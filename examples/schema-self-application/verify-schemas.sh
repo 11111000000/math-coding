@@ -71,7 +71,7 @@ if [ "$errors" -eq 0 ]; then
     cat > "$(dirname "$0")/verifier-output.yaml" <<EOF
 verdict: VERIFIED
 errors: 0
-verified_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+verified_at: "2026-07-02T10:02:39Z"
 scope:
   - schema-syntactic-validity
   - schema-version-present
@@ -87,7 +87,7 @@ else
     cat > "$(dirname "$0")/verifier-output.yaml" <<EOF
 verdict: NEEDS_REVISION
 errors: $errors
-verified_at: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+verified_at: "2026-07-02T10:02:39Z"
 scope:
   - schema-syntactic-validity
 tool: shell-verifier-v2
