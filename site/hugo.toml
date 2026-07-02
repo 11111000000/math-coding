@@ -11,7 +11,8 @@ defaultContentLanguage = "en"
 defaultContentLanguageInSubdir = false
 enableRobotsTXT = true
 enableGitInfo = true
-disablePathToLower = true
+# Note: keep disablePathToLower = false (default) so URLs are lowercase.
+# This is required for case-insensitive hosting (GitHub Pages on Linux).
 
 # Pagination
 paginate = 14
