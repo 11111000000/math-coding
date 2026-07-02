@@ -1,0 +1,15 @@
+task_id: theory-11-confidence-information
+title: Theory 11 — Confidence as Information
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: medium
+tags: [theory, foundation, information-theory, confidence, entropy]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-07-epistemic
+  - theory-05-assumption-set

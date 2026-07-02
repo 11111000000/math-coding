@@ -1,0 +1,29 @@
+{
+  "links": [
+    {
+      "source": "theory.md:§Formal definition",
+      "target": "core/core.md:§Packet structure",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "theory.md:§Connection to math-coding: verifier as type checker",
+      "target": "examples/self-application/verify-consistency.sh",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "theory.md:§Connection to math-coding: assumptions as context",
+      "target": "core/01-Theory/05-Assumption-Set.md",
+      "kind": "cross-reference"
+    },
+    {
+      "source": "theory.md:§Example: modal-dialog",
+      "target": "examples/modal-dialog/refinement.md",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "theory.md:§References: Curry & Howard",
+      "target": "Curry, Howard, Sørensen-Urzyczyn",
+      "kind": "bibliographic"
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+task_id: theory-11-confidence-information
+assumptions:
+  - id: A1
+    statement: Shannon information content of a proposition with confidence c is H(c) = -c log_2 c - (1-c) log_2 (1-c) bits.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.99
+  - id: A2
+    statement: The interval [0, 1] is the natural range for confidence because of probability semantics, 4-marker partitioning, and belief-update closure.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A3
+    statement: Effort spent on verification should be proportional to I(P), not to |1 - c|, because information content is non-linear.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+  - id: A4
+    statement: Most agents in practice underweight confidence near 0.5 (treat it as "vague") and overweight it near 0.95 (treat it as "certain").
+    status: open
+    epistemology: unknown

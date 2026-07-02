@@ -1,0 +1,29 @@
+{
+  "links": [
+    {
+      "source": "theory.md:§Formal definition",
+      "target": "core/core.md:§Epistemics",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "theory.md:§Connection to math-coding: confidence field",
+      "target": "schemas/assumptions.schema.json",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "theory.md:§Connection to math-coding: belief update",
+      "target": "core/01-Theory/07-Epistemic.md",
+      "kind": "cross-reference"
+    },
+    {
+      "source": "theory.md:§Example: TLC verification of I4",
+      "target": "examples/modal-dialog/verify.sh",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "theory.md:§References: Shannon",
+      "target": "Shannon, Cover-Thomas, MacKay",
+      "kind": "bibliographic"
+    }
+  ]
+}

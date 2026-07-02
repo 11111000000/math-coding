@@ -1,0 +1,16 @@
+task_id: theory-10-modal-lifecycle
+title: Theory 10 — Modal Logic for Lifecycle
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: medium
+tags: [theory, foundation, modal-logic, kripke, dependency-graph]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-02-state-machine
+  - theory-03-temporal-logic
+  - theory-08-deprecation

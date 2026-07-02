@@ -1,0 +1,16 @@
+task_id: theory-09-curry-howard
+title: Theory 09 — Curry-Howard for Packets
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: medium
+tags: [theory, foundation, curry-howard, proof-term, types]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-05-assumption-set
+  - theory-06-verdict
+  - theory-04-refinement

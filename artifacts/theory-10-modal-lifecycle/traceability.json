@@ -1,0 +1,29 @@
+{
+  "links": [
+    {
+      "source": "theory.md:§Formal definition",
+      "target": "core/core.md:§Triggered transitions",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "theory.md:§Connection to math-coding: cascading as modal",
+      "target": "core/01-Theory/08-Deprecation.md",
+      "kind": "cross-reference"
+    },
+    {
+      "source": "theory.md:§Connection to math-coding: forbidden transitions",
+      "target": "core/core.md:§Forbidden transitions",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "theory.md:§Example: modal-dialog cascade",
+      "target": "examples/modal-dialog/packet.yaml",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "theory.md:§References: Hughes-Cresswell",
+      "target": "Hughes-Cresswell, Modal Logic",
+      "kind": "bibliographic"
+    }
+  ]
+}

@@ -27,6 +27,9 @@ These are part of the core. They ground every rule in mathematics.
 | [06-Verdict](core/01-Theory/06-Verdict.md) | $\text{Spec} \models P$ | core.md: §Verdicts |
 | [07-Epistemic](core/01-Theory/07-Epistemic.md) | $B : \text{Prop} \times \text{Agent} \to [0,1]$ | core.md: §Epistemics |
 | [08-Deprecation](core/01-Theory/08-Deprecation.md) | $P_{\text{old}} \perp P_{\text{new}}$ | core.md: §Deprecation |
+| [09-Curry-Howard](core/01-Theory/09-Curry-Howard.md) | packet = $\langle \Gamma, P, \pi \rangle$ | core.md: §Proof structure |
+| [10-Modal-Lifecycle](core/01-Theory/10-Modal-Lifecycle.md) | $\square P$, $\Diamond P$ over dep graph | core.md: §Modal obligations |
+| [11-Confidence-Information](core/01-Theory/11-Confidence-Information.md) | $I(P) = H(c)$ bits | core.md: §Confidence calibration |
 
 ## Examples
 

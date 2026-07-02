@@ -1,0 +1,21 @@
+task_id: theory-09-curry-howard
+assumptions:
+  - id: A1
+    statement: The Curry-Howard correspondence generalises beyond intuitionistic propositional logic to dependent types and program verification.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: A math-coding packet is a well-formed proof term iff it has context, proposition, and derivation artifacts.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+  - id: A3
+    statement: The structural verifier behaves as a type checker: it rejects ill-formed packets and accepts well-formed ones with a verdict.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A4
+    statement: refinement.md and verifier-output.yaml play different proof-theoretic roles and cannot substitute for each other.
+    status: open
+    epistemology: unknown

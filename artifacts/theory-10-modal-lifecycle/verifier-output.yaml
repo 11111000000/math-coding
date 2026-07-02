@@ -1,0 +1,16 @@
+verdict: UNVERIFIABLE:OUT_OF_SCOPE
+errors: 0
+details: >
+  This packet's primary artifact is prose (theory.md). Mechanical
+  verification of prose correctness is outside the scope of the
+  base shell verifier. The packet is verified through human-review
+  of the mathematical definitions against references.
+human_review:
+  by: <agent-self>
+  process: >
+    Self-evaluation against rubric: (1) Are formal definitions
+    mathematically correct? (2) Is the connection to math-coding
+    concrete and specific? (3) Is the example illustrative of the
+    formal definition? (4) Are references accurate and accessible?
+  trigger: before-commit
+  re_verification: not-applicable

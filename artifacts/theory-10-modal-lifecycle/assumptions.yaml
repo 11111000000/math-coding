@@ -1,0 +1,21 @@
+task_id: theory-10-modal-lifecycle
+assumptions:
+  - id: A1
+    statement: Modal logic generalises LTL by adding operators over non-temporal accessibility relations.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: The packet dependency graph induces a Kripke structure where each packet is a world and depends_on edges are the accessibility relation.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A3
+    statement: Cascading deprecation is naturally expressed as a modal obligation over the dependency relation, not as a temporal guarantee.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+  - id: A4
+    statement: The structural verifier cannot detect modal violations of cascading because they require human action across packets.
+    status: open
+    epistemology: unknown

@@ -1,7 +1,7 @@
 # Math Coding Core (v2.0)
 
 This document defines the math-coding convention. It is grounded in
-eight theory documents that live in `core/01-Theory/`. Each section
+eleven theory documents that live in `core/01-Theory/`. Each section
 below cites the relevant theory.
 
 The repository itself uses this convention: `examples/self-application/`
@@ -20,6 +20,9 @@ the **fractal property** (ADR-0001).
 | §Verdict | [theory-06-verdict](01-Theory/06-Verdict.md) |
 | §Epistemics | [theory-07-epistemic](01-Theory/07-Epistemic.md) |
 | §Deprecation | [theory-08-deprecation](01-Theory/08-Deprecation.md) |
+| §Proof structure | [theory-09-curry-howard](01-Theory/09-Curry-Howard.md) |
+| §Modal obligations | [theory-10-modal-lifecycle](01-Theory/10-Modal-Lifecycle.md) |
+| §Confidence calibration | [theory-11-confidence-information](01-Theory/11-Confidence-Information.md) |
 
 ## What is a packet
 
