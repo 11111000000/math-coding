@@ -30,13 +30,13 @@ jobs:
       - name: Setup Hugo (extended)
         uses: peaceiris/actions-hugo@v3
         with:
-          hugo-version: "0.124.1"
+          hugo-version: "0.140.2"
           extended: true
 
       - name: Setup Go (for Hugo modules)
         uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: "1.23"
 
       - name: Sync content from main repository
         working-directory: site
