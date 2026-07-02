@@ -1,13 +1,10 @@
 baseURL = 'https://11111000000.github.io/math-coding/'
 title = 'math-coding'
 
-# Use Congo theme via Hugo modules
-[module]
-  [[module.imports]]
-    path = "github.com/jpanther/congo/v2"
-  [[module.imports]]
-    path = "github.com/jpanther/congo/v2"
-    disable = false
+# Use Congo theme via git clone (see .github/workflows/site.yml)
+# Theme is fetched at build time, not vendored in this repo.
+# For local dev: `git clone --depth 1 --branch v2.14.0 https://github.com/jpanther/congo.git themes/congo`
+theme = "congo"
 
 # Default language
 defaultContentLanguage = "en"

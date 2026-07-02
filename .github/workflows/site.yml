@@ -38,26 +38,19 @@ jobs:
         with:
           go-version: "1.23"
 
+      - name: Fetch Congo theme via git
+        working-directory: site
+        run: |
+          rm -rf themes/congo
+          git clone --depth 1 --branch v2.14.0 https://github.com/jpanther/congo.git themes/congo
+
       - name: Sync content from main repository
         working-directory: site
         run: sh sync-content.sh
 
-      - name: Resolve Hugo modules
-        working-directory: site
-        run: |
-          hugo mod init github.com/11111000000/math-coding/site || true
-          hugo mod get github.com/jpanther/congo/v2
-          hugo mod vendor
-          echo "=== module cache ==="
-          ls -la _vendor/ 2>/dev/null | head -10
-          echo "=== _vendor/congo _partials ==="
-          ls _vendor/github.com/jpanther/congo/v2/layouts/_partials/ 2>/dev/null
-          echo "=== _vendor/congo functions ==="
-          ls _vendor/github.com/jpanther/congo/v2/layouts/_partials/functions/ 2>/dev/null
-
       - name: Build Hugo site
         working-directory: site
-        run: hugo --minify --gc --themesDir _vendor/github.com/jpanther
+        run: hugo --minify --gc
 
       - name: Prepare Pages artifact
         run: |
