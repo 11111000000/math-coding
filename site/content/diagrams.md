@@ -33,7 +33,7 @@ stateDiagram-v2
     note right of archived: requires archived_at
 {{< /mermaid >}}
 
-See [Theory 02 — State Machine]({{< ref "/theory/theory-02-state-machine/" >}}) for the formal definition $\mathcal{M} = \langle S, s_0, A, \to, I \rangle$.
+See [Theory 02 — State Machine](/math-coding/theory/theory-02-state-machine/) for the formal definition $\mathcal{M} = \langle S, s_0, A, \to, I \rangle$.
 
 ## Modal dialog state machine
 
@@ -84,4 +84,4 @@ stateDiagram-v2
     note right of hypothesis: auto-inferred
 {{< /mermaid >}}
 
-See [Theory 07 — Epistemic]({{< ref "/theory/theory-07-epistemic-state/" >}}) for the formal definition of belief state $B : \text{Prop} \times \text{Agent} \to [0, 1]$.
+See [Theory 07 — Epistemic](/math-coding/theory/theory-07-epistemic-state/) for the formal definition of belief state $B : \text{Prop} \times \text{Agent} \to [0, 1]$.
