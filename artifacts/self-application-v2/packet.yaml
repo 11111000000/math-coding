@@ -1,0 +1,16 @@
+task_id: self-application-v2
+title: Self-Application v2 — Convention Verifies Itself
+lifecycle: verified
+substrate: shell
+decision: needed
+owner: math-coding
+priority: critical
+tags: [self-application, fractal, verifier, structural]
+created: "2026-07-02"
+verifier:
+  command: sh verify-consistency.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - core-v2
+  - schemas-v2
+  - agents-protocol

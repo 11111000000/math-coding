@@ -1,0 +1,14 @@
+task_id: README
+title: Repository entry point for visitors
+lifecycle: verified
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [readme, entry-point, documentation]
+created: "2026-07-02"
+verifier: null
+depends_on:
+  - core
+  - agents
+  - schema-self-application

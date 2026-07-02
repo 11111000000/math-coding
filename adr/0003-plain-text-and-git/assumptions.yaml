@@ -1,0 +1,11 @@
+task_id: 0003-plain-text-and-git
+assumptions:
+  - id: A1
+    statement: sh + git are universally available.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.99
+  - id: A2
+    statement: Optional tools are per-packet.
+    status: agent-inferred
+    epistemology: judgment

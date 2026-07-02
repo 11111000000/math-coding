@@ -1,0 +1,16 @@
+task_id: theory-06-verdict
+title: Theory 06 — Verdict as Theorem Statement
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [theory, foundation, verdict, theorem, model-checking]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-01-predicate-invariant
+  - theory-02-state-machine
+  - theory-03-temporal-logic

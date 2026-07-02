@@ -1,0 +1,11 @@
+task_id: 0007-theory-as-foundation
+assumptions:
+  - id: A1
+    statement: Mathematical grounding enables deeper reasoning.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A2
+    statement: Eight documents cover all major aspects.
+    status: agent-inferred
+    epistemology: judgment

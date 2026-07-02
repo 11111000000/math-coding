@@ -1,0 +1,11 @@
+task_id: 0005-soft-conventions
+assumptions:
+  - id: A1
+    statement: Verifier reports are sufficient for soft enforcement.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A2
+    statement: User discretion is preferable to automatic blocking.
+    status: agent-inferred
+    epistemology: judgment

@@ -1,0 +1,24 @@
+{
+  "links": [
+    {
+      "source": "task.md:§Problem: 5 lies of v1",
+      "target": "core/core.md:§v2 vs v1",
+      "kind": "design-rationale"
+    },
+    {
+      "source": "task.md:§Desired outcome",
+      "target": "core/core.md",
+      "kind": "produces"
+    },
+    {
+      "source": "refinement.md:§State mapping",
+      "target": "examples/self-application/verify-consistency.sh",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "depends_on: theory-*",
+      "target": "core/01-Theory/",
+      "kind": "depends-on"
+    }
+  ]
+}

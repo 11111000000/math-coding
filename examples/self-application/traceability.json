@@ -1,0 +1,24 @@
+{
+  "links": [
+    {
+      "source": "core/core.md:§Structural invariants",
+      "target": "verify-consistency.sh:check_packet",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "core/core.md:§Epistemics",
+      "target": "verify-consistency.sh:check_assumptions",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "core/core.md:§Refinement",
+      "target": "verify-consistency.sh:check_refinement",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "core/01-Theory/02-State-Machine.md",
+      "target": "verify-consistency.sh:lifecycle checks",
+      "kind": "concept-grounding"
+    }
+  ]
+}

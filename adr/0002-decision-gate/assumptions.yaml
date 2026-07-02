@@ -1,0 +1,10 @@
+task_id: 0002-decision-gate
+assumptions:
+  - id: A1
+    statement: Four implicit assumptions is a reasonable threshold.
+    status: agent-inferred
+    epistemology: judgment
+  - id: A2
+    statement: Override is judgment-based, not rule-based.
+    status: agent-inferred
+    epistemology: judgment

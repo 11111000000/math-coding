@@ -1,0 +1,14 @@
+verdict: UNVERIFIABLE:OUT_OF_SCOPE
+errors: 0
+details: >
+  Prose artifact. Belief-update protocol verified against
+  epistemic logic literature.
+human_review:
+  by: <agent-self>
+  process: >
+    Self-evaluation against rubric: (1) Is belief-update rule
+    mathematically sound? (2) Is the action protocol
+    implementable? (3) Does the two-layer scheme solve the
+    garbage-marker problem?
+  trigger: before-commit
+  re_verification: not-applicable

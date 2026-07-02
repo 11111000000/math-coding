@@ -1,0 +1,21 @@
+task_id: theory-03-temporal-logic
+assumptions:
+  - id: A1
+    statement: LTL is a standard temporal logic over state sequences.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Liveness properties require fairness hypotheses for model checking.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A3
+    statement: Packet lifecycle has liveness properties that need to be expressed.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+  - id: A4
+    statement: Reader can follow LTL notation without prior exposure.
+    status: open
+    epistemology: unknown

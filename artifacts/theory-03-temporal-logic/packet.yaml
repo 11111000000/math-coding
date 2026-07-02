@@ -1,0 +1,15 @@
+task_id: theory-03-temporal-logic
+title: Theory 03 — Temporal Logic
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [theory, foundation, temporal-logic, ltl]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-01-predicate-invariant
+  - theory-02-state-machine

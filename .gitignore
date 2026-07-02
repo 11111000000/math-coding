@@ -1,0 +1,8 @@
+.math-coding/
+.tools/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.python-version
+examples/*/verifier-output.yaml.tmp

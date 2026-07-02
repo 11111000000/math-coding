@@ -1,0 +1,12 @@
+task_id: 0009-extended-packet-fields
+assumptions:
+  - id: A1
+    statement: Optional fields preserve backward compatibility.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Owner, priority, tags are universally useful.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85

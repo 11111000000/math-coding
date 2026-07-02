@@ -1,0 +1,15 @@
+task_id: schema-self-application
+title: Schema Self-Application — Mechanical Validation of Schemas
+lifecycle: working
+substrate: shell
+decision: needed
+owner: math-coding
+priority: high
+tags: [schema, validation, meta-verification, bootstrapping]
+created: "2026-07-02"
+verifier:
+  command: sh verify-schemas.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - schemas-v2
+  - theory-06-verdict

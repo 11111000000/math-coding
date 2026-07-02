@@ -1,0 +1,24 @@
+{
+  "links": [
+    {
+      "source": "theory.md:§Formal definition: operators",
+      "target": "artifacts/theory-02-state-machine/theory.md",
+      "kind": "extends"
+    },
+    {
+      "source": "theory.md:§Connection: lifecycle properties",
+      "target": "core/core.md:§Lifecycle as FSM",
+      "kind": "annotates"
+    },
+    {
+      "source": "theory.md:§Connection: liveness",
+      "target": "artifacts/theory-06-verdict/theory.md",
+      "kind": "cross-reference"
+    },
+    {
+      "source": "theory.md:§Example: started ~> terminal",
+      "target": "examples/self-application/verify-consistency.sh",
+      "kind": "implementation-grounding"
+    }
+  ]
+}

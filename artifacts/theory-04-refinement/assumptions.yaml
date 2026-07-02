@@ -1,0 +1,21 @@
+task_id: theory-04-refinement
+assumptions:
+  - id: A1
+    statement: Refinement is a relation between two FSMs that preserves the spec's properties.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Stuttering equivalence allows non-atomic implementation actions.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A3
+    statement: The shell verifier is a refinement of the LTL spec for packet structural invariants.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+  - id: A4
+    statement: A packet's refinement.md should follow the structure: state mapping, operation mapping, invariant preservation, test obligation, runtime-check.
+    status: agent-inferred
+    epistemology: judgment

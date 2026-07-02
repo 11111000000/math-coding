@@ -1,0 +1,14 @@
+{
+  "links": [
+    {
+      "source": "schemas/*.schema.json",
+      "target": "verify-schemas.sh",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "core/01-Theory/06-Verdict.md:§Meta-verification",
+      "target": "verify-schemas.sh",
+      "kind": "concept-grounding"
+    }
+  ]
+}

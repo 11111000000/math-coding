@@ -1,0 +1,15 @@
+task_id: theory-05-assumption-set
+title: Theory 05 — Assumption Set as Axioms
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [theory, foundation, assumption-set, axioms]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-01-predicate-invariant
+  - theory-02-state-machine

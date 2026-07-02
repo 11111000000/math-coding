@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.local/schemas/traceability.schema.json",
+  "title": "Math Coding Traceability",
+  "type": "object",
+  "required": ["links"],
+  "properties": {
+    "links": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["source", "target", "kind"],
+        "properties": {
+          "source": { "type": "string" },
+          "target": { "type": "string" },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "concept-grounding",
+              "implementation-grounding",
+              "depends-on",
+              "extends",
+              "instance-of",
+              "annotates",
+              "bibliographic",
+              "design-rationale",
+              "cross-reference"
+            ]
+          },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false,
+  "version": "2.0"
+}

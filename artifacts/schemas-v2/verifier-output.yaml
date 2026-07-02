@@ -1,0 +1,15 @@
+verdict: UNVERIFIABLE:OUT_OF_SCOPE
+errors: 0
+details: >
+  The schemas are mechanical artifacts; their syntactic validity
+  is verified by examples/schema-self-application/, not by the
+  base shell verifier. Schema content is verified through
+  human-review against the JSON Schema 2020-12 specification.
+human_review:
+  by: <agent-self>
+  process: >
+    Self-evaluation: (1) Are schemas valid JSON Schema 2020-12?
+    (2) Do they cover all packet artifacts? (3) Are required
+    fields consistent with core.md?
+  trigger: before-commit
+  re_verification: schema-self-application packet must run

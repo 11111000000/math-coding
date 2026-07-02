@@ -1,0 +1,13 @@
+verdict: UNVERIFIABLE:OUT_OF_SCOPE
+errors: 0
+details: >
+  Prose artifact. Deprecation semantics verified against
+  partial-order literature.
+human_review:
+  by: <agent-self>
+  process: >
+    Self-evaluation against rubric: (1) Are partial-order
+    properties correct? (2) Is the cascading protocol clear?
+    (3) Is the example illustrative?
+  trigger: before-commit
+  re_verification: not-applicable

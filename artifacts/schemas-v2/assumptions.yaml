@@ -1,0 +1,21 @@
+task_id: schemas-v2
+assumptions:
+  - id: A1
+    statement: JSON Schema 2020-12 is the standard for machine-readable schemas.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Schemas must be self-verified to avoid circular dependency.
+    status: agent-inferred
+    epistemology: judgment
+  - id: A3
+    statement: Six schemas cover all packet artifacts.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+  - id: A4
+    statement: Backward compatibility with v1 schemas is achievable through version field.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85

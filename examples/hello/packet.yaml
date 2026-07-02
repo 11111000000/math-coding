@@ -1,0 +1,11 @@
+task_id: hello
+title: Hello packet — sketch lifecycle
+lifecycle: sketch
+substrate: none
+decision: needed
+owner: math-coding
+priority: low
+tags: [example, template, sketch]
+created: "2026-07-02"
+verifier: null
+depends_on: []

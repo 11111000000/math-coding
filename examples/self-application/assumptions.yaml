@@ -1,0 +1,36 @@
+task_id: self-application
+assumptions:
+  - id: A1
+    statement: Every packet directory contains packet.yaml, task.md, assumptions.yaml.
+    status: user-confirmed
+    epistemology: fact
+    confidence: 1.0
+  - id: A2
+    statement: packet.yaml has the required fields.
+    status: user-confirmed
+    epistemology: fact
+    confidence: 1.0
+  - id: A3
+    statement: task.md has H1, Problem, Desired outcome, Constraints sections.
+    status: user-confirmed
+    epistemology: fact
+    confidence: 1.0
+  - id: A4
+    statement: Every assumption has an epistemology marker.
+    status: user-confirmed
+    epistemology: fact
+    confidence: 1.0
+  - id: A5
+    statement: The verifier is a shell script with no external tools.
+    status: user-confirmed
+    epistemology: judgment
+  - id: A6
+    statement: refinement.md has the five required sections.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A7
+    statement: traceability.json has the required structure.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85

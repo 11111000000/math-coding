@@ -1,0 +1,29 @@
+task_id: 0010-extended-fsm-triggers
+title: ADR 0010 — Extended FSM triggers
+lifecycle: proposed
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [adr, fsm, dependency-cascade, version-trigger]
+created: "2026-07-02"
+verifier: null
+
+
+status: accepted
+context: >
+  v1 FSM transitions are all manual. Real-world packets have
+  triggered transitions: dependency cascade (when a packet is
+  deprecated) and convention version change (when core changes).
+decision: >
+  Three transition triggers: manual (human/agent), dependency
+  cascade (B deprecated -> A working), and convention version
+  (core.md version bump -> all verified -> working).
+consequences:
+  - Dependency cascade is a documented human responsibility.
+  - Convention version change requires re-verification.
+  - FSM has more lifecycle states (pre-cascade-pending).
+alternatives_considered:
+  - Manual only: too easy to miss cascades.
+  - Auto-cascade: violates ADR-0001 (fractal property) and may
+    cause unintended re-validations.

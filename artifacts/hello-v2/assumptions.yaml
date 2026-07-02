@@ -1,0 +1,19 @@
+task_id: hello-v2
+assumptions:
+  - id: A1
+    statement: The task is trivial enough that no formal model is needed.
+    status: agent-inferred
+    epistemology: judgment
+  - id: A2
+    statement: No verifier is needed because no property requires proof.
+    status: agent-inferred
+    epistemology: judgment
+  - id: A3
+    statement: The reader can read the task description and understand the work.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A4
+    statement: This packet serves as a template that can be copied.
+    status: agent-inferred
+    epistemology: judgment

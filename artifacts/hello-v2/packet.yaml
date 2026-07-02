@@ -1,0 +1,11 @@
+task_id: hello-v2
+title: Hello v2 — Minimal Sketch Packet
+lifecycle: sketch
+substrate: none
+decision: needed
+owner: math-coding
+priority: low
+tags: [example, hello, template, sketch]
+created: "2026-07-02"
+verifier: null
+depends_on: []

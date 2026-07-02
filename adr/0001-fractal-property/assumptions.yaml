@@ -1,0 +1,16 @@
+task_id: 0001-fractal-property
+assumptions:
+  - id: A1
+    statement: The methodology applies to itself (fractal property).
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Self-application must be complete (refinement, traceability).
+    status: agent-inferred
+    epistemology: judgment
+  - id: A3
+    statement: The convention is small enough for self-verification.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.9

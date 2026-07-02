@@ -1,0 +1,14 @@
+{
+  "links": [
+    {
+      "source": "task.md:§Desired outcome",
+      "target": "core/core.md:§Packet structure",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "refinement.md:§Operation mapping",
+      "target": "install/install.sh",
+      "kind": "implementation-grounding"
+    }
+  ]
+}

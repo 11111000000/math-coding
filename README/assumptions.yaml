@@ -1,0 +1,15 @@
+task_id: README
+assumptions:
+  - id: A1
+    statement: A new visitor can read README.md before doing anything else.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A2
+    statement: README.md must cite core.md and the theory documents.
+    status: agent-inferred
+    epistemology: judgment
+  - id: A3
+    statement: Visitors follow the quick-start instructions.
+    status: open
+    epistemology: unknown

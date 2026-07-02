@@ -1,0 +1,11 @@
+task_id: 0010-extended-fsm-triggers
+assumptions:
+  - id: A1
+    statement: Cascades are real and must be documented.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A2
+    statement: Manual cascade tracking is sufficient.
+    status: agent-inferred
+    epistemology: judgment

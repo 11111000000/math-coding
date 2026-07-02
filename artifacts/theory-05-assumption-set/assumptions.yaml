@@ -1,0 +1,21 @@
+task_id: theory-05-assumption-set
+assumptions:
+  - id: A1
+    statement: Assumption set is a finite set of first-order propositions.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Different epistemic markers have different proof-theoretic roles.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+  - id: A3
+    statement: Open assumptions (epistemology unknown, status open) must be resolved before code is final.
+    status: agent-inferred
+    epistemology: judgment
+  - id: A4
+    statement: proof-theoretic role of judgment and unknown can be made precise in modal logic.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7

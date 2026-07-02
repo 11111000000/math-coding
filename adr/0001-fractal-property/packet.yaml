@@ -1,0 +1,30 @@
+task_id: 0001-fractal-property
+title: ADR 0001 — The methodology must apply to itself
+lifecycle: proposed
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [adr, fractal, principle]
+created: "2026-07-02"
+verifier: null
+depends_on: []
+
+
+# Restructured artifact fields below (decision.md style)
+
+status: accepted
+context: >
+  A methodology that does not apply to itself cannot be trusted.
+  The convention must describe its own development.
+decision: >
+  Every file in the math-coding repository is a packet, part of
+  a packet, or serves a packet. The convention is verified by
+  the self-application packet.
+consequences:
+  - Adding a new rule requires opening a packet, not editing core.md.
+  - The convention is verified by a packet (fractal check).
+  - Self-application must be complete (refinement.md + traceability.json).
+alternatives_considered: 
+  - Linear convention-as-documentation: rejected because the convention
+    would not apply to itself.

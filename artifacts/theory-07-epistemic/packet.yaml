@@ -1,0 +1,15 @@
+task_id: theory-07-epistemic
+title: Theory 07 — Epistemic State
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [theory, foundation, epistemic, belief, knowledge]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-01-predicate-invariant
+  - theory-05-assumption-set

@@ -1,0 +1,27 @@
+task_id: 0006-self-applying-repository
+title: ADR 0006 — Every artifact is a packet
+lifecycle: proposed
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [adr, self-applying, structural]
+created: "2026-07-02"
+verifier: null
+
+
+status: accepted
+context: >
+  Without this rule, files outside the convention accumulate.
+  The exception list grows without bound.
+decision: >
+  Every file in the repository is a packet, part of a packet,
+  or serves a packet. INDEX.md and schemas/ are documented
+  exceptions.
+consequences:
+  - Repository is fully described by the convention.
+  - Adding a new file requires opening a packet or documenting
+    it as an exception via a new ADR.
+  - Structural verifier checks directory contents.
+alternatives_considered:
+  - Allow arbitrary files: leads to drift.

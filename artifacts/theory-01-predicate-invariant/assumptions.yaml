@@ -1,0 +1,21 @@
+task_id: theory-01-predicate-invariant
+assumptions:
+  - id: A1
+    statement: Predicate is a total function from a state space to the booleans.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Safety of an FSM is expressible as a universal quantifier over reachable states.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A3
+    statement: Each structural check in verify-consistency.sh is an instance of an invariant predicate.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+  - id: A4
+    statement: Readers without CS background can follow the compact notation if prose explanations accompany each formula.
+    status: open
+    epistemology: unknown

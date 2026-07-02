@@ -1,0 +1,11 @@
+task_id: 0008-epistemic-protocol
+assumptions:
+  - id: A1
+    statement: Agents can be instructed via tables.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A2
+    statement: Two-layer scheme is feasible.
+    status: agent-inferred
+    epistemology: judgment

@@ -1,0 +1,19 @@
+{
+  "links": [
+    {
+      "source": "task.md:§Epistemic protocol",
+      "target": "agents/agents.md:§Epistemics as Action Protocol",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "task.md:§Two-layer scheme",
+      "target": "core/01-Theory/07-Epistemic.md:§Two-layer scheme",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "refinement.md:§Operation mapping",
+      "target": "agents.md",
+      "kind": "implementation-grounding"
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "links": [
+    {
+      "source": "decision.md",
+      "target": "core/core.md:§State machine: triggered transitions",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "decision.md",
+      "target": "core/01-Theory/08-Deprecation.md",
+      "kind": "concept-grounding"
+    }
+  ]
+}

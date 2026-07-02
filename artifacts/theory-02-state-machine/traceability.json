@@ -1,0 +1,29 @@
+{
+  "links": [
+    {
+      "source": "theory.md:§Formal definition",
+      "target": "core/core.md:§Lifecycle as finite state machine",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "theory.md:§Connection to math-coding",
+      "target": "artifacts/theory-01-predicate-invariant/theory.md",
+      "kind": "depends-on"
+    },
+    {
+      "source": "theory.md:§Connection: packet lifecycle FSM",
+      "target": "core/core.md:§Lifecycle FSM",
+      "kind": "instance-of"
+    },
+    {
+      "source": "theory.md:§Example: commit lifecycle FSM",
+      "target": "examples/toggle/Model.tla",
+      "kind": "instance-of"
+    },
+    {
+      "source": "refinement.md:§Operation mapping",
+      "target": "examples/self-application/verify-consistency.sh:check_packet",
+      "kind": "implementation-grounding"
+    }
+  ]
+}

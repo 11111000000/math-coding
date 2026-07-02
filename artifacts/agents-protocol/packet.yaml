@@ -1,0 +1,15 @@
+task_id: agents-protocol
+title: Agent Notes v2 — Epistemics as Action Protocol
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [agents, instructions, protocol, epistemic]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-07-epistemic
+  - theory-05-assumption-set

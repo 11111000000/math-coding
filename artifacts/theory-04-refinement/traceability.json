@@ -1,0 +1,24 @@
+{
+  "links": [
+    {
+      "source": "theory.md:§Formal definition",
+      "target": "core/core.md:§Required files (refinement.md)",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "theory.md:§Connection to math-coding",
+      "target": "examples/self-application/refinement.md",
+      "kind": "instance-of"
+    },
+    {
+      "source": "theory.md:§Example: refinement map",
+      "target": "examples/self-application/verify-consistency.sh",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "refinement.md:§Required files check",
+      "target": "core/core.md:§Structural invariants",
+      "kind": "extends"
+    }
+  ]
+}

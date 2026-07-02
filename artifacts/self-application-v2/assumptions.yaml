@@ -1,0 +1,22 @@
+task_id: self-application-v2
+assumptions:
+  - id: A1
+    statement: Self-application is the strongest evidence of fractal property.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: A complete self-application packet has all required files plus refinement and traceability.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A3
+    statement: The verifier implements the invariants from core.md mechanically.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A4
+    statement: Self-application can fail if the convention is internally inconsistent.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85

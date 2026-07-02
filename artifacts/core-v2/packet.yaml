@@ -1,0 +1,22 @@
+task_id: core-v2
+title: Core v2 — Math Coding Convention with Theory Foundation
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [core, convention, v2, foundation]
+created: "2026-07-02"
+target_completion: "2026-07-02"
+verifier:
+  command: sh verify-consistency.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-01-predicate-invariant
+  - theory-02-state-machine
+  - theory-03-temporal-logic
+  - theory-04-refinement
+  - theory-05-assumption-set
+  - theory-06-verdict
+  - theory-07-epistemic
+  - theory-08-deprecation

@@ -1,0 +1,20 @@
+task_id: self-application
+title: Self-application — verify that the convention applies to itself
+lifecycle: verified
+substrate: shell
+decision: needed
+owner: math-coding
+priority: critical
+tags: [self-application, fractal, verifier]
+created: "2026-07-02"
+verifier:
+  command: sh verify-consistency.sh
+  verdict_file: verifier-output.yaml
+supersession:
+  supersedes: self-application-v1
+  reason: complete with refinement.md and traceability.json
+  type: replaced
+  deprecated_at: "2026-07-02"
+depends_on:
+  - core
+  - agents

@@ -1,0 +1,14 @@
+{
+  "links": [
+    {
+      "source": "decision.md",
+      "target": "examples/self-application/",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "decision.md",
+      "target": "core/core.md",
+      "kind": "concept-grounding"
+    }
+  ]
+}

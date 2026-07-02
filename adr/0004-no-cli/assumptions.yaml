@@ -1,0 +1,11 @@
+task_id: 0004-no-cli
+assumptions:
+  - id: A1
+    statement: Shell commands are sufficient for packet operations.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: A separate CLI project is the right boundary.
+    status: agent-inferred
+    epistemology: judgment

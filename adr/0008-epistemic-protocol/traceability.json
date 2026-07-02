@@ -1,0 +1,14 @@
+{
+  "links": [
+    {
+      "source": "decision.md",
+      "target": "agents/agents.md:§Epistemics as Action Protocol",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "decision.md",
+      "target": "core/01-Theory/07-Epistemic.md",
+      "kind": "concept-grounding"
+    }
+  ]
+}

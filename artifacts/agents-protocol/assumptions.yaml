@@ -1,0 +1,21 @@
+task_id: agents-protocol
+assumptions:
+  - id: A1
+    statement: Agents can be instructed to follow an action protocol.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Two-layer scheme (mandatory vs auto-inferred) is feasible.
+    status: agent-inferred
+    epistemology: judgment
+  - id: A3
+    statement: The action protocol makes epistemic markers non-cosmetic.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A4
+    statement: Agent confidence updates can be recorded in the assumption entry.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8

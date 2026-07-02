@@ -1,0 +1,14 @@
+task_id: install-v2
+title: Install Script v2 — One-command transfer
+lifecycle: working
+substrate: shell
+decision: needed
+owner: math-coding
+priority: medium
+tags: [install, deployment, templates]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - core

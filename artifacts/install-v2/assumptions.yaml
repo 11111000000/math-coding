@@ -1,0 +1,20 @@
+task_id: install-v2
+assumptions:
+  - id: A1
+    statement: A user can copy a directory with `cp -r` and run a shell script.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: The install script is idempotent.
+    status: agent-inferred
+    epistemology: judgment
+  - id: A3
+    statement: Required shell tools (sh, awk, grep, sed, find) are universally available.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.95
+  - id: A4
+    statement: The user reads the generated README before using the convention.
+    status: open
+    epistemology: unknown

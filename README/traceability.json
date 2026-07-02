@@ -1,0 +1,14 @@
+{
+  "links": [
+    {
+      "source": "README.md:§Mathematical foundation",
+      "target": "core/core.md",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "README.md:§Repository structure",
+      "target": "core/01-Theory/",
+      "kind": "cross-reference"
+    }
+  ]
+}

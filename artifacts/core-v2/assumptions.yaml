@@ -1,0 +1,21 @@
+task_id: core-v2
+assumptions:
+  - id: A1
+    statement: The convention requires mathematical grounding for each rule.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: The five lies of v1 are real flaws that affect user trust.
+    status: agent-inferred
+    epistemology: judgment
+  - id: A3
+    statement: Backward compatibility is achievable through optional fields.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+  - id: A4
+    statement: New fields (owner, priority, tags) do not break existing verifiers.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85

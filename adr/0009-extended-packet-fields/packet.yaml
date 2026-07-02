@@ -1,0 +1,29 @@
+task_id: 0009-extended-packet-fields
+title: ADR 0009 — Extended packet.yaml fields
+lifecycle: proposed
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [adr, packet-fields, owner, priority, tags, history]
+created: "2026-07-02"
+verifier: null
+
+
+status: accepted
+context: >
+  v1 packet.yaml had 7 fields. Real-world packet management
+  requires ownership, prioritization, tagging, and lifecycle
+  history.
+decision: >
+  packet.yaml gains new fields: owner, priority, tags,
+  target_completion, deprecated_at, archived_at, lifecycle_history.
+  All new fields are optional for backward compatibility.
+consequences:
+  - Packets have explicit owners and priorities.
+  - Lifecycle history records FSM transitions.
+  - Tags enable searching/filtering.
+  - Backward-compatible: old packets without new fields still validate.
+alternatives_considered:
+  - Required new fields: breaks backward compatibility.
+  - No new fields: stays limited.

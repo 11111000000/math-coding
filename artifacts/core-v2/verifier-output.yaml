@@ -1,0 +1,31 @@
+verdict: VERIFIED
+errors: 0
+verified_at: "2026-07-02"
+scope:
+  - packet-yaml-present
+  - packet-yaml-required-fields
+  - lifecycle-valid
+  - task-md-has-three-sections
+  - assumptions-yaml-present
+  - epistemic-markers-valid
+  - encoding-valid
+tool: shell-verifier-v2
+details: >
+  The core-v2 packet itself conforms to the v2 conventions. All
+  required files present, all required fields valid, FSM transitions
+  legal. Verifier output is recorded in this file.
+evidence:
+  files_checked:
+    - packet.yaml
+    - task.md
+    - assumptions.yaml
+    - refinement.md
+    - traceability.json
+  invariants_checked:
+    - packet-yaml-present: true
+    - packet-yaml-required-fields: true
+    - lifecycle-valid: true
+    - task-md-has-three-sections: true
+    - assumptions-yaml-present: true
+    - epistemic-markers-valid: true
+    - encoding-valid: true

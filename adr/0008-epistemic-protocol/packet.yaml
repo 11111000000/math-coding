@@ -1,0 +1,29 @@
+task_id: 0008-epistemic-protocol
+title: ADR 0008 — Epistemics as Action Protocol
+lifecycle: proposed
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [adr, epistemic, agent-protocol, two-layer]
+created: "2026-07-02"
+verifier: null
+
+
+status: accepted
+context: >
+  Epistemic markers (fact, hypothesis, judgment, unknown) in
+  v1 were cosmetic fields. Agents did not know what to do with
+  them.
+decision: >
+  Epistemic markers drive agent behavior via an action protocol
+  documented in agents.md. Two-layer scheme: mandatory
+  markers (judgment, unknown) require human input; auto-inferred
+  markers (fact, hypothesis) may be set by agents.
+consequences:
+  - Markers are no longer cosmetic.
+  - Agents follow a defined protocol per marker.
+  - Belief updates are recorded.
+alternatives_considered:
+  - Free-form markers: too easy to ignore.
+  - No markers: no epistemic rigor.

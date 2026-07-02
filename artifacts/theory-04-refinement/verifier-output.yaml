@@ -1,0 +1,13 @@
+verdict: UNVERIFIABLE:OUT_OF_SCOPE
+errors: 0
+details: >
+  Prose artifact. Refinement definition verified against
+  Abadi-Lamport 1988 and Lamport 2002.
+human_review:
+  by: <agent-self>
+  process: >
+    Self-evaluation against rubric: (1) Is refinement map
+    definition mathematically correct? (2) Is stuttering
+    equivalence correctly stated? (3) Is the example concrete?
+  trigger: before-commit
+  re_verification: not-applicable

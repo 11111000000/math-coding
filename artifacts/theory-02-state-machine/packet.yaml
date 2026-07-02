@@ -1,0 +1,14 @@
+task_id: theory-02-state-machine
+title: Theory 02 — State Machine
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [theory, foundation, state-machine, fsm]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-01-predicate-invariant

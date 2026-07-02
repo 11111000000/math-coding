@@ -1,0 +1,24 @@
+{
+  "links": [
+    {
+      "source": "theory.md:§Formal definition",
+      "target": "core/core.md:§Structural invariants",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "theory.md:§Example: $I_required",
+      "target": "examples/self-application/verify-consistency.sh:check_packet",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "theory.md:§Connection to math-coding",
+      "target": "core/01-Theory/02-State-Machine.md",
+      "kind": "cross-reference"
+    },
+    {
+      "source": "theory.md:§References: Lamport 2002",
+      "target": "Lamport, Specifying Systems",
+      "kind": "bibliographic"
+    }
+  ]
+}

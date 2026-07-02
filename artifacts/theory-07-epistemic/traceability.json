@@ -1,0 +1,24 @@
+{
+  "links": [
+    {
+      "source": "theory.md:§Formal definition",
+      "target": "core/core.md:§Epistemics",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "theory.md:§Action protocol",
+      "target": "agents/agents.md:§Epistemics as Action Protocol",
+      "kind": "instance-of"
+    },
+    {
+      "source": "theory.md:§Two-layer scheme",
+      "target": "adr/0008-epistemic-protocol/decision.md",
+      "kind": "cross-reference"
+    },
+    {
+      "source": "refinement.md:§Runtime-check",
+      "target": "examples/self-application/verify-consistency.sh:check_assumptions",
+      "kind": "implementation-grounding"
+    }
+  ]
+}

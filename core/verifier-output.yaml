@@ -1,0 +1,32 @@
+verdict: VERIFIED
+errors: 0
+verified_at: "2026-07-02"
+scope:
+  - packet-yaml-present
+  - packet-yaml-required-fields
+  - lifecycle-valid
+  - task-md-has-three-sections
+  - assumptions-yaml-present
+  - refinement-md-present
+  - traceability-json-present
+tool: shell-verifier-v2
+details: >
+  core packet has all required files and conforms to the v2
+  conventions. The convention document core.md is grounded in
+  8 theory documents and cites them throughout.
+evidence:
+  files_checked:
+    - packet.yaml
+    - task.md
+    - assumptions.yaml
+    - core.md
+    - refinement.md
+    - traceability.json
+  invariants_checked:
+    packet-yaml-present: true
+    packet-yaml-required-fields: true
+    lifecycle-valid: true
+    task-md-has-three-sections: true
+    assumptions-yaml-present: true
+    refinement-md-present: true
+    traceability-json-present: true

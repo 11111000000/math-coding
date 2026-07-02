@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.local/schemas/refinement.schema.json",
+  "title": "Math Coding Refinement Document",
+  "description": "Schema for refinement.md sections. refinement.md is markdown, but the section structure can be validated.",
+  "type": "object",
+  "required": ["required_sections"],
+  "properties": {
+    "required_sections": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "State mapping",
+          "Operation mapping",
+          "Invariant preservation",
+          "Test obligation mapping",
+          "Runtime-check mapping",
+          "Connection"
+        ]
+      }
+    },
+    "section_order": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Sections must appear in this order if present"
+    }
+  },
+  "additionalProperties": false,
+  "version": "2.0"
+}

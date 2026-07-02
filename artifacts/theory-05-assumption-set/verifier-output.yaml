@@ -1,0 +1,14 @@
+verdict: UNVERIFIABLE:OUT_OF_SCOPE
+errors: 0
+details: >
+  Prose artifact. Hoare-logic definitions verified against
+  primary sources.
+human_review:
+  by: <agent-self>
+  process: >
+    Self-evaluation against rubric: (1) Are proof-theoretic roles
+    of epistemic markers correctly captured? (2) Is the
+    Sigma |- Spec formalization correct? (3) Is the example
+    concrete enough to guide packet authors?
+  trigger: before-commit
+  re_verification: not-applicable

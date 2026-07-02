@@ -1,0 +1,21 @@
+task_id: theory-02-state-machine
+assumptions:
+  - id: A1
+    statement: A finite state machine is a tuple (S, s_0, A, →, I).
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Reachability is the smallest fixed-point of the transition closure.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A3
+    statement: The packet lifecycle FSM is a finite-state machine in the formal sense.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A4
+    statement: The base verifier can check safety for FSMs of size up to 5 states in seconds.
+    status: agent-inferred
+    epistemology: judgment

@@ -1,0 +1,28 @@
+task_id: 0007-theory-as-foundation
+title: ADR 0007 — Theory documents are part of the core
+lifecycle: proposed
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [adr, theory, foundation, math]
+created: "2026-07-02"
+verifier: null
+
+
+status: accepted
+context: >
+  v1 listed rules without mathematical grounding. AI agents
+  could not reason about why rules hold. Adoption was shallow
+  because each rule felt arbitrary.
+decision: >
+  Eight theory documents live in core/01-Theory/. Each section
+  of core.md cites the relevant theory. The theory is part of
+  the core, not separate documentation.
+consequences:
+  - AI agents and humans can reason about each rule.
+  - Mathematically grounded adoption is possible.
+  - Theory documents are themselves packets.
+alternatives_considered:
+  - Theory as separate wiki: rejected, would not be self-applying.
+  - No theory: rejected, no epistemic rigor.

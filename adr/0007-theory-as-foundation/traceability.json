@@ -1,0 +1,14 @@
+{
+  "links": [
+    {
+      "source": "decision.md",
+      "target": "core/01-Theory/",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "decision.md",
+      "target": "core/core.md",
+      "kind": "concept-grounding"
+    }
+  ]
+}

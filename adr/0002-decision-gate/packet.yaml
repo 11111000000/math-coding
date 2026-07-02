@@ -1,0 +1,28 @@
+task_id: 0002-decision-gate
+title: ADR 0002 — Decision gate for opening packets
+lifecycle: proposed
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [adr, decision-gate, threshold]
+created: "2026-07-02"
+verifier: null
+
+
+status: accepted
+context: >
+  Opening a packet for every trivial change adds overhead.
+  But skipping the packet for non-trivial work loses the
+  convention's benefits.
+decision: >
+  Open a packet when the task has four or more implicit
+  assumptions. Below that, fix directly. Override with judgment,
+  record the override in task.md under # Adaptations.
+consequences:
+  - Trivial tasks (rename, typo, one-liner) proceed without packet.
+  - Non-trivial tasks require a packet.
+  - Override threshold is judgment-based, not rule-based.
+alternatives_considered:
+  - Open packet for everything: too much overhead.
+  - No packet ever: loses convention benefits.

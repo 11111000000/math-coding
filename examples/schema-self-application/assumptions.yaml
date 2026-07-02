@@ -1,0 +1,21 @@
+task_id: schema-self-application
+assumptions:
+  - id: A1
+    statement: Each schema file must be valid JSON.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 1.0
+  - id: A2
+    statement: Each schema must declare $schema, type, properties, required.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A3
+    statement: The schema validator can be implemented in plain shell + python json or jq.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A4
+    statement: Schema validation is meta-verification, not part of the main FSM.
+    status: agent-inferred
+    epistemology: judgment

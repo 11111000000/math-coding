@@ -1,0 +1,15 @@
+task_id: schemas-v2
+title: JSON Schemas v2 — Machine-Readable Specifications
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [schema, json-schema, validation, machine-readable]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-01-predicate-invariant
+  - theory-04-refinement

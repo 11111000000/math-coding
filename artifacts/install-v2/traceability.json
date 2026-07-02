@@ -1,0 +1,14 @@
+{
+  "links": [
+    {
+      "source": "core/core.md:§Schema validation",
+      "target": "install/install.sh:cp schemas",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "core/core.md:§Packet structure",
+      "target": "install/install.sh:cp templates",
+      "kind": "implementation-grounding"
+    }
+  ]
+}

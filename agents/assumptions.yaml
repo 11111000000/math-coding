@@ -1,0 +1,20 @@
+task_id: agents
+assumptions:
+  - id: A1
+    statement: Agents follow instructions from a single source.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A2
+    statement: Two-layer scheme is the right approach for epistemic markers.
+    status: agent-inferred
+    epistemology: judgment
+  - id: A3
+    statement: Action protocol table is implementable.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A4
+    statement: Agents will apply the protocol without prompting.
+    status: open
+    epistemology: unknown

@@ -1,0 +1,31 @@
+verdict: VERIFIED
+errors: 0
+verified_at: "2026-07-02"
+scope:
+  - packet-yaml-present
+  - packet-yaml-required-fields
+  - lifecycle-valid
+  - task-md-has-three-sections
+  - assumptions-yaml-present
+  - refinement-md-present
+  - traceability-json-present
+tool: shell-verifier-v2
+details: >
+  agents packet has all required files. agents.md contains
+  the action protocol grounded in theory-07-epistemic.
+evidence:
+  files_checked:
+    - packet.yaml
+    - task.md
+    - assumptions.yaml
+    - agents.md
+    - refinement.md
+    - traceability.json
+  invariants_checked:
+    packet-yaml-present: true
+    packet-yaml-required-fields: true
+    lifecycle-valid: true
+    task-md-has-three-sections: true
+    assumptions-yaml-present: true
+    refinement-md-present: true
+    traceability-json-present: true

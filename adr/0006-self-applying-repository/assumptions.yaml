@@ -1,0 +1,11 @@
+task_id: 0006-self-applying-repository
+assumptions:
+  - id: A1
+    statement: All files must belong to a packet.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Exception list is finite and documented.
+    status: agent-inferred
+    epistemology: judgment

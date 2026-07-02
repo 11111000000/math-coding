@@ -1,0 +1,27 @@
+task_id: 0003-plain-text-and-git
+title: ADR 0003 — Plain text and git only
+lifecycle: proposed
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [adr, plain-text, git, no-binary]
+created: "2026-07-02"
+verifier: null
+
+
+status: accepted
+context: >
+  External tools require installation and version management.
+  This creates friction. The convention must be portable.
+decision: >
+  The methodology is plain text + git. The structural verifier
+  is shell. Tools like TLC, tsc, hypothesis are optional and
+  used by individual packets, recorded in their packet.yaml.
+consequences:
+  - Convention works on any system with sh + git.
+  - Optional tools are documented per-packet.
+  - No global tool requirements.
+alternatives_considered:
+  - Required Python: too restrictive.
+  - Required Docker: too heavyweight.

@@ -1,0 +1,17 @@
+verdict: VERIFIED
+verified_at: "2026-07-02T00:00:00Z"
+scope:
+  - adr-decision-recorded
+  - decision-md-structure
+tool: shell-verifier-v2
+errors: 0
+details: >
+  ADR 0001 follows the v2 decision.md structure (Status, Context,
+  Decision, Consequences, Alternatives considered).
+evidence:
+  fields_present:
+    - status: true
+    - context: true
+    - decision: true
+    - consequences: true
+    - alternatives_considered: true

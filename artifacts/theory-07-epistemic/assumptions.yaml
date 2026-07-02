@@ -1,0 +1,21 @@
+task_id: theory-07-epistemic
+assumptions:
+  - id: A1
+    statement: Belief is a graded function over propositions, not just true/false.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Evidence updates belief via a learning rule.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A3
+    statement: The four epistemic markers correspond to four belief-update protocols.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+  - id: A4
+    statement: judgment and unknown are not updateable by the agent.
+    status: agent-inferred
+    epistemology: judgment

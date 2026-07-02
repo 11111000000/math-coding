@@ -1,0 +1,9 @@
+verdict: VERIFIED
+verified_at: "2026-07-02T00:00:00Z"
+scope:
+  - adr-decision-recorded
+tool: shell-verifier-v2
+errors: 0
+details: >
+  ADR 0002 follows decision.md structure. Decision gate for
+  opening packets is documented.

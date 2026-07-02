@@ -1,0 +1,21 @@
+task_id: theory-06-verdict
+assumptions:
+  - id: A1
+    statement: Model checking can determine Spec ⊨ P or Spec ⊭ P.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Theorem proving (TLAPS) can discharge obligations that model checking cannot.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A3
+    statement: Each verdict has a precise logical reading.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A4
+    statement: UNVERIFIABLE verdicts should not be treated as failures but as deferred claims.
+    status: agent-inferred
+    epistemology: judgment

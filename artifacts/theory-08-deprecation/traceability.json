@@ -1,0 +1,24 @@
+{
+  "links": [
+    {
+      "source": "theory.md:§Formal definition",
+      "target": "core/core.md:§Lifecycle: deprecated, archived",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "theory.md:§Cascading deprecation",
+      "target": "core/core.md:§depends_on",
+      "kind": "extends"
+    },
+    {
+      "source": "theory.md:§Example: toggle-v1 -> toggle-v2",
+      "target": "examples/toggle/",
+      "kind": "instance-of"
+    },
+    {
+      "source": "refinement.md:§Runtime-check",
+      "target": "examples/self-application/verify-consistency.sh:check_packet",
+      "kind": "implementation-grounding"
+    }
+  ]
+}

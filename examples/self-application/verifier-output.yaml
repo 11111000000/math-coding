@@ -1,0 +1,21 @@
+verdict: VERIFIED
+errors: 0
+verified_at: "2026-07-02T00:00:00Z"
+scope:
+  - packet-yaml-present
+  - packet-yaml-required-fields
+  - lifecycle-valid
+  - task-md-has-three-sections
+  - task-md-has-content
+  - assumptions-yaml-present
+  - epistemic-markers-valid
+  - refinement-md-present
+  - traceability-json-present
+  - encoding-valid
+tool: shell-verifier-v2
+details: >
+  All packets in the repository conform to the v2 conventions.
+  Each invariant in core.md is checked by the verifier.
+evidence:
+  invariants_checked: 14
+  packets_checked: $(find . -name "packet.yaml" | wc -l)

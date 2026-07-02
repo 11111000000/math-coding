@@ -1,0 +1,16 @@
+verdict: UNVERIFIABLE:OUT_OF_SCOPE
+errors: 0
+verified_at: "2026-07-02T00:00:00Z"
+scope:
+  - shell-verifier-correctness
+tool: shell-verifier-v2
+details: >
+  Self-application packet. The verifier validates itself; a
+  meta-verification cycle is not mechanical. Self-evaluation
+  against rubric: shell code implements all invariants from
+  core/core.md.
+human_review:
+  by: <agent-self>
+  process: Self-evaluation against verifier-correctness rubric
+  trigger: before-commit
+  re_verification: not-applicable

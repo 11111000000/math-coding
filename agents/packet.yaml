@@ -1,0 +1,18 @@
+task_id: agents
+title: Notes for AI Agents v2
+lifecycle: verified
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [agents, instructions, epistemic-protocol]
+created: "2026-07-02"
+verifier: null
+supersession:
+  supersedes: agents-v1
+  reason: introduction of action protocol
+  type: replaced
+  deprecated_at: "2026-07-02"
+depends_on:
+  - theory-07-epistemic
+  - theory-05-assumption-set

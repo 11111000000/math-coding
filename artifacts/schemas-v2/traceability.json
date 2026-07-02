@@ -1,0 +1,29 @@
+{
+  "links": [
+    {
+      "source": "schemas/packet-manifest.schema.json",
+      "target": "core/packet.yaml",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "schemas/verification-report.schema.json",
+      "target": "core/verifier-output.yaml",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "schemas/assumptions.schema.json",
+      "target": "core/assumptions.yaml",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "schemas/traceability.schema.json",
+      "target": "core/traceability.json",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "schemas/refinement.schema.json",
+      "target": "core/refinement.md",
+      "kind": "concept-grounding"
+    }
+  ]
+}

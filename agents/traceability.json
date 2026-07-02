@@ -1,0 +1,19 @@
+{
+  "links": [
+    {
+      "source": "agents.md:§Epistemics as Action Protocol",
+      "target": "core/01-Theory/07-Epistemic.md",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "agents.md:§Process",
+      "target": "core/core.md:§Packet structure",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "agents.md:§Defaults",
+      "target": "schemas/packet-manifest.schema.json",
+      "kind": "schema-grounding"
+    }
+  ]
+}

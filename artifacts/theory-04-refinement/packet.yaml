@@ -1,0 +1,15 @@
+task_id: theory-04-refinement
+title: Theory 04 — Refinement as Homomorphism
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [theory, foundation, refinement, homomorphism]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on:
+  - theory-01-predicate-invariant
+  - theory-02-state-machine

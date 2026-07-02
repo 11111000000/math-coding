@@ -1,0 +1,25 @@
+task_id: 0004-no-cli
+title: ADR 0004 — No CLI
+lifecycle: proposed
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [adr, no-cli, simplicity]
+created: "2026-07-02"
+verifier: null
+
+
+status: accepted
+context: >
+  A CLI requires installation, version management, and updates.
+  The convention can be used through mkdir, cp, $EDITOR, sh.
+decision: >
+  The methodology has no CLI. All operations are shell commands.
+  A user who wants a CLI can write one as a separate project.
+consequences:
+  - Convention works with zero installation.
+  - Tools wrapping the convention are separate projects.
+  - The verifier is the only script that ships with the convention.
+alternatives_considered:
+  - Provide CLI: adds maintenance burden, version sync issues.

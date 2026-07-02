@@ -1,0 +1,11 @@
+verdict: VERIFIED
+errors: 0
+verified_at: "2026-07-02T06:42:20Z"
+scope:
+  - schema-syntactic-validity
+  - schema-version-present
+  - schema-balanced-braces
+tool: shell-verifier-v2
+details: All 6 schemas are structurally valid.
+evidence:
+  schemas_checked: 6

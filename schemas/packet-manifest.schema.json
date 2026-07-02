@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.local/schemas/packet-manifest.schema.json",
+  "title": "Math Coding Packet Manifest",
+  "type": "object",
+  "required": ["task_id", "title", "lifecycle", "created", "substrate", "decision", "verifier"],
+  "properties": {
+    "task_id": { "type": "string" },
+    "title": { "type": "string" },
+    "lifecycle": {
+      "type": "string",
+      "enum": ["sketch", "working", "verified", "deprecated", "archived"]
+    },
+    "created": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "updated": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "substrate": {
+      "type": "string",
+      "enum": ["none", "tla", "typescript", "python", "shell", "pbt"]
+    },
+    "decision": { "type": "string" },
+    "owner": { "type": "string" },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "target_completion": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "deprecated_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "archived_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "lifecycle_history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "at"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "at": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          }
+        }
+      }
+    },
+    "verifier": {
+      "oneOf": [
+        { "type": "null" },
+        {
+          "type": "object",
+          "required": ["command", "verdict_file"],
+          "properties": {
+            "command": { "type": "string" },
+            "verdict_file": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "depends_on": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "supersession": {
+      "type": "object",
+      "properties": {
+        "supersedes": { "type": "string" },
+        "reason": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["renamed", "replaced", "removed"]
+        },
+        "deprecated_at": { "type": "string" }
+      }
+    }
+  },
+  "additionalProperties": false,
+  "version": "2.0"
+}

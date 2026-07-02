@@ -1,0 +1,14 @@
+verdict: UNVERIFIABLE:OUT_OF_SCOPE
+errors: 0
+details: >
+  Prose artifact. Verdict semantics verified against model-checking
+  and theorem-proving literature.
+human_review:
+  by: <agent-self>
+  process: >
+    Self-evaluation against rubric: (1) Are all five verdicts
+    mapped to logical statements? (2) Is the distinction between
+    verification outcome and verification meta-claim preserved?
+    (3) Are UNVERIFIABLE subtypes correctly delineated?
+  trigger: before-commit
+  re_verification: not-applicable

@@ -1,0 +1,14 @@
+verdict: UNVERIFIABLE:OUT_OF_SCOPE
+verified_at: "2026-07-02T00:00:00Z"
+scope:
+  - template-validity
+tool: shell-verifier-v2
+errors: 0
+details: >
+  Sketch packet; no formal verification required. The verifier
+  confirms structural compliance.
+human_review:
+  by: <agent-self>
+  process: Structural verification by examples/self-application/verify-consistency.sh
+  trigger: before-commit
+  re_verification: not-applicable

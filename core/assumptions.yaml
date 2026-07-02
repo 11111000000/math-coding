@@ -1,0 +1,21 @@
+task_id: core
+assumptions:
+  - id: A1
+    statement: The convention must apply to itself (fractal property).
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: Each rule in core.md has a corresponding section in the theory documents.
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A3
+    statement: The structural invariants are mechanically checkable by a shell script.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A4
+    statement: Liveness and fairness are declared but not enforced by the base verifier.
+    status: agent-inferred
+    epistemology: judgment

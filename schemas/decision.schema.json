@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.local/schemas/decision.schema.json",
+  "title": "Math Coding ADR Decision Document",
+  "description": "Schema for decision.md (ADR) sections. decision.md is markdown, but the section structure can be validated.",
+  "type": "object",
+  "required": ["required_sections"],
+  "properties": {
+    "required_sections": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "Status",
+          "Context",
+          "Decision",
+          "Consequences",
+          "Alternatives considered"
+        ]
+      }
+    },
+    "status_enum": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["proposed", "accepted", "deprecated", "superseded"]
+      }
+    }
+  },
+  "additionalProperties": false,
+  "version": "2.0"
+}

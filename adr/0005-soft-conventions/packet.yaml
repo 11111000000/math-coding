@@ -1,0 +1,27 @@
+task_id: 0005-soft-conventions
+title: ADR 0005 — Soft conventions enforced by verifier
+lifecycle: proposed
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [adr, soft-conventions, verifier-reports]
+created: "2026-07-02"
+verifier: null
+
+
+status: accepted
+context: >
+  Hard enforcement of conventions blocks the user. Soft
+  conventions report violations and let the user decide.
+decision: >
+  The convention is enforced by the verifier, not by tooling
+  that blocks the user. The verifier reports which packets
+  violate the convention and how. The user decides whether to
+  fix the packet or override the convention (with documentation).
+consequences:
+  - User sees violations but is not blocked.
+  - Deviations appear in git diff.
+  - Convention can be updated through new ADR.
+alternatives_considered:
+  - Hard enforcement: too rigid, breaks legitimate edge cases.

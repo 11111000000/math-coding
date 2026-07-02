@@ -1,0 +1,24 @@
+{
+  "links": [
+    {
+      "source": "theory.md:§Formal definition",
+      "target": "core/core.md:§Verdicts",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "theory.md:§UNVERIFIABLE subtypes",
+      "target": "core/core.md:§Verdicts: UNVERIFIABLE:*",
+      "kind": "annotates"
+    },
+    {
+      "source": "theory.md:§Connection: provenance requirements",
+      "target": "schemas/verification-report.schema.json",
+      "kind": "schema-grounding"
+    },
+    {
+      "source": "theory.md:§References: Clarke et al.",
+      "target": "Clarke, Model Checking, 1999",
+      "kind": "bibliographic"
+    }
+  ]
+}

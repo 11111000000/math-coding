@@ -1,0 +1,13 @@
+task_id: theory-01-predicate-invariant
+title: Theory 01 — Predicate and Invariant
+lifecycle: working
+substrate: none
+decision: needed
+owner: math-coding
+priority: high
+tags: [theory, foundation, predicate, invariant]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+depends_on: []
