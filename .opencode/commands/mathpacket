@@ -1,0 +1,52 @@
+#!/bin/sh
+# mathpacket — create a new math-coding packet.
+# Usage: sh /path/to/math-coding/.opencode/commands/mathpacket <id> [title]
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOURCE_REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
+TEMPLATE_DIR="$SOURCE_REPO/examples/hello"
+
+if [ -z "$1" ]; then
+    echo "Usage: sh mathpacket <task-id> [title]"
+    exit 1
+fi
+
+TASK_ID="$1"
+TITLE="${2:-New Packet}"
+
+# Determine target directory
+if [ -d "math-coding/tasks" ]; then
+    TARGET="math-coding/tasks/$TASK_ID"
+elif [ -d "tasks" ]; then
+    TARGET="tasks/$TASK_ID"
+elif [ -d "artifacts" ]; then
+    TARGET="artifacts/$TASK_ID"
+else
+    TARGET="$TASK_ID"
+fi
+
+mkdir -p "$TARGET"
+
+# Copy templates
+for f in packet.yaml task.md assumptions.yaml refinement.md traceability.json; do
+    if [ ! -f "$TARGET/$f" ] && [ -f "$TEMPLATE_DIR/$f" ]; then
+        cp "$TEMPLATE_DIR/$f" "$TARGET/$f"
+    fi
+done
+
+# Fill in task_id and title in packet.yaml
+if [ -f "$TARGET/packet.yaml" ]; then
+    sed -i "s/^task_id: .*/task_id: $TASK_ID/" "$TARGET/packet.yaml"
+    sed -i "s/^title: .*/title: $TITLE/" "$TARGET/packet.yaml"
+fi
+
+echo "Created packet: $TARGET"
+echo "  task_id: $TASK_ID"
+echo "  title: $TITLE"
+echo ""
+echo "Next steps:"
+echo "  1. Fill in task.md (Problem, Desired outcome, Constraints)"
+echo "  2. Fill in assumptions.yaml (4+ entries, epistemic markers)"
+echo "  3. Run sh $SOURCE_REPO/examples/self-application/verify-consistency.sh $TARGET"

@@ -1,0 +1,60 @@
+name: verify
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  structural:
+    name: Structural verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run structural verifier
+        run: sh examples/self-application/verify-consistency.sh
+
+      - name: Run schema meta-validator
+        run: sh examples/schema-self-application/verify-schemas.sh
+
+      - name: Count packets
+        run: |
+          count=$(find . -name "packet.yaml" -not -path "*/.git/*" | wc -l)
+          echo "Total packets: $count"
+
+      - name: Check encoding (no CRLF)
+        run: |
+          if grep -rl $'\r' --include="*.md" --include="*.yaml" --include="*.sh" . 2>/dev/null; then
+            echo "FAIL: CRLF found"
+            exit 1
+          fi
+          echo "OK: no CRLF"
+
+  packet-count:
+    name: Packet statistics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Count by type
+        run: |
+          echo "Total packets: $(find . -name 'packet.yaml' -not -path '*/.git/*' | wc -l)"
+          echo "Theory documents: $(ls core/01-Theory/*.md 2>/dev/null | wc -l)"
+          echo "Schemas: $(ls schemas/*.json | wc -l)"
+          echo "ADRs: $(ls adr/*/packet.yaml | wc -l)"
+          echo "Examples: $(ls examples/*/packet.yaml | wc -l)"
+          echo "External Python references: $(grep -rl 'python3' --include='*.sh' --include='*.md' --include='*.yaml' . 2>/dev/null | wc -l)"
+
+  ignored-files:
+    name: Verify .gitignore is present
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check .gitignore
+        run: |
+          if [ ! -f .gitignore ]; then
+            echo "FAIL: .gitignore missing"
+            exit 1
+          fi
+          echo "OK: .gitignore present"

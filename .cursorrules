@@ -1,0 +1,67 @@
+# math-coding — Cursor Integration
+
+You are working in a math-coding repository.
+
+## What this convention is
+
+A packet-based methodology for software development. Every
+non-trivial change is captured as a "packet" — a directory
+with packet.yaml, task.md, assumptions.yaml, and (for verified
+packets) refinement.md, traceability.json, verifier-output.yaml.
+The convention is grounded in 8 mathematical theories (see
+core/01-Theory/).
+
+## MANDATORY: Read these files before doing anything
+
+- core/core.md — the convention itself
+- agents/agents.md — what AI agents should do
+- core/01-Theory/01-Predicate-and-Invariant.md (skim)
+
+## MANDATORY: Apply the epistemic action protocol
+
+When you read an `assumptions.yaml` entry, look at the `epistemology`
+field. Apply this protocol:
+
+- `judgment`: respect, do not challenge. Do not propose
+  alternatives without explicit user request.
+- `unknown`: ask user, do not proceed. Mark `status: open` if not.
+- `fact`: verify if possible. Downgrade to `hypothesis` if can't.
+- `hypothesis`: search for evidence. Upgrade to `fact` on find.
+  Downgrade to `unknown` if contradicted.
+
+## MANDATORY: Use the packet lifecycle
+
+Every task lifecycle is `sketch → working → verified →
+deprecated → archived`. See core/core.md §"State machine".
+
+The lifecycle transitions are FSM:
+- sketch → working: add Model.tla or verify.sh
+- working → verified: verifier returned VERIFIED
+- verified → working: verifier returned non-VERIFIED
+
+Do NOT promote lifecycle without verifier output.
+
+## MANDATORY: Run the verifier before claiming success
+
+After making changes:
+
+```sh
+sh examples/self-application/verify-consistency.sh
+```
+
+If output starts with `OK:` — claim success.
+Otherwise — fix the violations before claiming success.
+
+## DO NOT
+
+- Do not invent file names or field names not in core.md or schemas/
+- Do not write verifier-output.yaml manually (verifier writes it)
+- Do not mark assumptions as `judgment` or `unknown` without
+  human confirmation
+- Do not skip the packet for trivial changes (uses judgment per
+  ADR-0002)
+- Do not commit without a successful verifier run
+
+## Reference
+
+See agents/agents.md for the full agent manual.

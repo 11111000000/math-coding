@@ -1,0 +1,17 @@
+task_id: modal-dialog
+title: Modal Dialog State Machine — Reference Implementation
+lifecycle: verified
+substrate: tla
+decision: needed
+owner: math-coding
+priority: high
+tags: [example, modal, dialog, fsm, react, typescript]
+created: "2026-07-02"
+verifier:
+  command: sh verify.sh
+  verdict_file: verifier-output.yaml
+supersession: null
+depends_on:
+  - theory-02-state-machine
+  - theory-03-temporal-logic
+  - theory-04-refinement

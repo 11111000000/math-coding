@@ -1,0 +1,44 @@
+{
+  "links": [
+    {
+      "source": "Model.tla:§Modal Dialog State Machine",
+      "target": "implementation.ts:DialogState",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "Model.tla:Invariant",
+      "target": "tests.ts:checkInvariants",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "Model.tla:Open",
+      "target": "implementation.ts:reducer OPEN",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "Model.tla:Confirm",
+      "target": "implementation.ts:reducer CONFIRM",
+      "kind": "implementation-grounding"
+    },
+    {
+      "source": "task.md:§Key invariants",
+      "target": "Model.tla:Invariant",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "core/01-Theory/02-State-Machine.md",
+      "target": "Model.tla",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "core/01-Theory/03-Temporal-Logic.md",
+      "target": "Model.tla:Liveness",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "core/01-Theory/04-Refinement.md",
+      "target": "refinement.md",
+      "kind": "concept-grounding"
+    }
+  ]
+}

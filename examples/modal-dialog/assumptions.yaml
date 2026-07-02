@@ -1,0 +1,31 @@
+task_id: modal-dialog
+assumptions:
+  - id: A1
+    statement: The dialog has exactly five states: closed, opening, open, confirming, closing.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: The transition graph is acyclic in practice (no spurious loops).
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A3
+    statement: Animations always complete (no stuck states).
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+  - id: A4
+    statement: Async requests always resolve (success or failure).
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+  - id: A5
+    statement: We choose to forbid skipping states (closed -> confirming without going through open).
+    status: user-confirmed
+    epistemology: judgment
+  - id: A6
+    statement: Bounded model checking with TLC is sufficient for 5 states.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95

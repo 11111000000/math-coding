@@ -1,0 +1,20 @@
+#!/bin/sh
+# verify — run the math-coding verifier.
+# Usage: sh /path/to/math-coding/.opencode/commands/verify [packet-dir]
+
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SOURCE_REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
+VERIFIER="$SOURCE_REPO/examples/self-application/verify-consistency.sh"
+
+if [ ! -f "$VERIFIER" ]; then
+    echo "FAIL: verifier not found at $VERIFIER"
+    exit 1
+fi
+
+if [ -n "$1" ]; then
+    cd "$(dirname "$1")"
+fi
+
+sh "$VERIFIER"

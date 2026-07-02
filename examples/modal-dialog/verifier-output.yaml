@@ -1,0 +1,16 @@
+verdict: UNVERIFIABLE:TOOL_MISSING
+verified_at: "2026-07-02T00:00:00Z"
+scope:
+  - fsm-safety
+  - fsm-liveness
+tool: tlc-not-available
+errors: 0
+details: >
+  TLC (tla2tools.jar) is not available in the environment.
+  The TLA+ model is well-formed but mechanically unverified here.
+  CI environments install TLC and re-run this verifier.
+human_review:
+  by: <agent-self>
+  process: Self-evaluation against TLA+ model correctness rubric
+  trigger: before-commit
+  re_verification: install TLC and re-run

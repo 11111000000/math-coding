@@ -1,6 +1,6 @@
 verdict: VERIFIED
 errors: 0
-verified_at: "2026-07-02T06:42:20Z"
+verified_at: "2026-07-02T08:52:11Z"
 scope:
   - schema-syntactic-validity
   - schema-version-present
