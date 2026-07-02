@@ -6,3 +6,7 @@ __pycache__/
 *.pyc
 .python-version
 examples/*/verifier-output.yaml.tmp
+
+# opencode plugin runtime — installed per-machine, not part of repo
+.opencode/node_modules/
+.opencode/package-lock.json

@@ -33,6 +33,7 @@ These are part of the core. They ground every rule in mathematics.
 | Packet | Lifecycle | Substrate | Description |
 |--------|-----------|-----------|-------------|
 | [examples/hello](examples/hello/) | sketch | none | Minimal sketch packet |
+| [examples/modal-dialog](examples/modal-dialog/) | verified | tla | Reference implementation: 5-state modal FSM with TLA+ model and TypeScript reducer |
 | [examples/self-application](examples/self-application/) | verified | shell | Verifier (fractal property) |
 | [examples/schema-self-application](examples/schema-self-application/) | working | shell | Schema validator |
 
