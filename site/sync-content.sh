@@ -105,17 +105,36 @@ for d in "$REPO_ROOT/examples"/*/; do
     name=$(basename "$d")
     [ "$name" = "external-project" ] && continue
     if [ -f "$d/refinement.md" ]; then
-        title=$(grep -E "^# " "$d/refinement.md" | head -1 | sed 's/^# //')
-        pretty_title=$(echo "$title" | sed 's/Refinement: //')
-        cp "$d/refinement.md" "$CONTENT/examples/${name}.md"
-        sed -i "0,/^# /{s|^# .*|# ${pretty_title}|}" "$CONTENT/examples/${name}.md"
+        # Use a curated display name (not the file's H1, which is verbose)
+        case "$name" in
+            modal-dialog) pretty_title="Modal Dialog" ;;
+            self-application) pretty_title="Self-Application" ;;
+            schema-self-application) pretty_title="Schema Self-Application" ;;
+            *) pretty_title=$(echo "$name" | tr '-' ' ') ;;
+        esac
+        cat > "$CONTENT/examples/${name}.md" <<HDR
+---
+title: "$pretty_title"
+description: "Reference example"
+---
+
+HDR
+        # Append content but skip the original H1 (we use title from frontmatter)
+        sed '1,/^# /d' "$d/refinement.md" >> "$CONTENT/examples/${name}.md"
     fi
 done
 
 # External project example
 if [ -d "$REPO_ROOT/examples/external-project/example-packet" ]; then
-    cp "$REPO_ROOT/examples/external-project/example-packet/refinement.md" \
-       "$CONTENT/examples/external-project.md"
+    cat > "$CONTENT/examples/external-project.md" <<HDR
+---
+title: "External Project Example"
+description: "Demonstrates external-project mode"
+---
+
+HDR
+    sed '1,/^# /d' "$REPO_ROOT/examples/external-project/example-packet/refinement.md" \
+        >> "$CONTENT/examples/external-project.md"
 fi
 
 # Integrations
@@ -123,7 +142,15 @@ mkdir -p "$CONTENT/integrations"
 for f in "$REPO_ROOT/docs/integrations"/*.md; do
     [ -f "$f" ] || continue
     name=$(basename "$f" .md)
-    cp "$f" "$CONTENT/integrations/${name}.md"
+    title=$(grep -E "^# " "$f" | head -1 | sed 's/^# //' | sed 's/ Integration$//')
+    cat > "$CONTENT/integrations/${name}.md" <<HDR
+---
+title: "$title"
+description: "Integration guide"
+---
+
+HDR
+    sed '1,/^# /d' "$f" >> "$CONTENT/integrations/${name}.md"
 done
 
 echo "Content sync complete."
