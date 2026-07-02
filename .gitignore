@@ -1,7 +1,3 @@
-# Nix build outputs
-result/
-result-*
-
 # Editor
 .idea/
 .vscode/
@@ -10,22 +6,18 @@ result-*
 .DS_Store
 Thumbs.db
 
-# Hugo
-site/themes/
-site/resources/
-site/public/
-site/_vendor/
-site/.hugo_build.lock
-
-# Generated content (rebuilt by site/sync-content.sh)
-site/content/theory/*.md
-site/content/theory-advanced/*.md
-site/content/adr/*.md
-site/content/examples/*.md
-site/content/integrations/*.md
-site/content/agents/*.md
-site/content/core.md
-
-# Nix
-.direnv/
+# Python (caches)
+__pycache__/
+*.pyc
 .venv/
+
+# Node (caches, lock files)
+node_modules/
+package-lock.json
+
+# Build outputs (any site generator)
+public/
+out/
+dist/
+build/
+_site/
