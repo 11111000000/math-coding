@@ -1,8 +1,8 @@
 name: build-site
 
 # Build and deploy the math-coding documentation site to GitHub Pages.
-# Sources content from core/, agents/, examples/, adr/, docs/ — never
-# duplicates the source of truth.
+# Sources content from core/, agents/, examples/, adr/, docs/ via
+# site/sync-content.sh — never duplicates the source of truth.
 
 on:
   push:
@@ -40,81 +40,17 @@ jobs:
 
       - name: Sync content from main repository
         working-directory: site
-        run: |
-          set -e
-
-          # Theory (8 basic + 3 advanced)
-          mkdir -p content/theory content/theory-advanced
-          cp ../core/01-Theory/*.md content/theory/
-          cp ../core/02-Theory-advanced/*.md content/theory-advanced/
-
-          # Core convention
-          cp ../core/core.md content/core.md
-
-          # Agents
-          mkdir -p content/agents
-          cp ../agents/agents.md content/agents/agents.md
-          cp ../agents/process.md content/agents/process.md
-          cp ../agents/rigor-tools.md content/agents/rigor-tools.md
-
-          # ADRs — flatten adr/NNNN-name/decision.md to adr/NNNN-name.md
-          mkdir -p content/adr
-          for d in ../adr/*/; do
-            [ -f "$d/decision.md" ] || continue
-            name=$(basename "$d")
-            # Make display-friendly title
-            pretty=$(echo "$name" | sed 's/^[0-9]*-//' | tr '-' ' ')
-            cat > "content/adr/${name}.md" <<EOF
----
-title: "ADR ${pretty^}"
-description: "Architecture decision record"
-weight: $(echo "$name" | grep -oE '^[0-9]+' | sed 's/^0*//')
----
-
-EOF
-            cat "$d/decision.md" >> "content/adr/${name}.md"
-          done
-
-          # Examples — render refinement.md + packet.yaml
-          mkdir -p content/examples
-          for d in ../examples/*/; do
-            [ -d "$d" ] || continue
-            name=$(basename "$d")
-            [ "$name" = "external-project" ] && continue
-            if [ -f "$d/refinement.md" ]; then
-              title=$(grep -E "^# " "$d/refinement.md" | head -1 | sed 's/^# //')
-              pretty_title=$(echo "$title" | sed 's/Refinement: //')
-              cp "$d/refinement.md" "content/examples/${name}.md"
-              sed -i "0,/^# /{s|^# .*|# ${pretty_title}|}" "content/examples/${name}.md"
-            fi
-          done
-          # External project example
-          if [ -d ../examples/external-project/example-packet ]; then
-            cp ../examples/external-project/example-packet/refinement.md \
-               content/examples/external-project.md
-          fi
-
-          # Integrations
-          mkdir -p content/integrations
-          for f in ../docs/integrations/*.md; do
-            [ -f "$f" ] || continue
-            name=$(basename "$f" .md)
-            cp "$f" "content/integrations/${name}.md"
-          done
-
-          echo "Content sync complete."
-          ls -la content/
+        run: sh sync-content.sh
 
       - name: Build Hugo site
         working-directory: site
-        run: |
-          hugo --minify --gc
+        run: hugo --minify --gc
 
-      - name: Configure Pages
+      - name: Prepare Pages artifact
         run: |
           mkdir -p public
           cp -r site/public/* public/
-          echo "pages.ready" > public/.nojekyll
+          touch public/.nojekyll
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
