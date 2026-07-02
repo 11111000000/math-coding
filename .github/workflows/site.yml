@@ -30,19 +30,19 @@ jobs:
       - name: Setup Hugo (extended)
         uses: peaceiris/actions-hugo@v3
         with:
-          hugo-version: "0.140.2"
+          hugo-version: "0.124.1"
           extended: true
 
       - name: Setup Go (for Hugo modules)
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: "1.22"
 
       - name: Fetch Congo theme via git
         working-directory: site
         run: |
           rm -rf themes/congo
-          git clone --depth 1 --branch v2.14.0 https://github.com/jpanther/congo.git themes/congo
+          git clone --depth 1 --branch v2.7.6 https://github.com/jpanther/congo.git themes/congo
 
       - name: Sync content from main repository
         working-directory: site
