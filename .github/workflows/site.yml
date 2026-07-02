@@ -42,6 +42,13 @@ jobs:
         working-directory: site
         run: sh sync-content.sh
 
+      - name: Resolve Hugo modules
+        working-directory: site
+        run: |
+          hugo mod init github.com/11111000000/math-coding/site || true
+          hugo mod get github.com/jpanther/congo/v2
+          hugo mod tidy
+
       - name: Build Hugo site
         working-directory: site
         run: hugo --minify --gc
