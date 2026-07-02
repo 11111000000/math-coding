@@ -17,55 +17,54 @@ CONTENT="$SITE_DIR/content"
 mkdir -p "$CONTENT/theory" "$CONTENT/theory-advanced"
 for f in "$REPO_ROOT/core/01-Theory"/*.md; do
     [ -f "$f" ] || continue
-    # Lowercase the filename, keep hyphens
     base=$(basename "$f" .md | tr '[:upper:]' '[:lower:]')
     target="$CONTENT/theory/${base}.md"
+    # Display title (e.g., "Predicate and Invariant" without "Theory 01 — ")
+    title=$(grep -E '^# Theory [0-9]+' "$f" | head -1 | sed -E 's/^# Theory [0-9]+ — //' | sed -E 's/^# Theory [0-9]+: //')
     cat > "$target" <<HDR
 ---
-title: "$(grep -E '^# Theory [0-9]+' "$f" | head -1 | sed 's/^# //')"
+title: "$title"
 description: "Theory document"
+weight: $(echo "$base" | grep -oE '^[0-9]+' | sed 's/^0*//')
 ---
 
 HDR
-    cat "$f" >> "$target"
+    # Skip the first H1 (we use title from frontmatter instead)
+    sed '1,/^# /d' "$f" >> "$target"
 done
 
 for f in "$REPO_ROOT/core/02-Theory-advanced"/*.md; do
     [ -f "$f" ] || continue
     base=$(basename "$f" .md | tr '[:upper:]' '[:lower:]')
     target="$CONTENT/theory-advanced/${base}.md"
+    title=$(grep -E '^# Theory [0-9]+' "$f" | head -1 | sed -E 's/^# Theory [0-9]+ — //' | sed -E 's/^# Theory [0-9]+: //')
     cat > "$target" <<HDR
 ---
-title: "$(grep -E '^# Theory [0-9]+' "$f" | head -1 | sed 's/^# //')"
+title: "$title"
 description: "Advanced theory"
+weight: $(echo "$base" | grep -oE '^[0-9]+' | sed 's/^0*//')
 ---
 
 HDR
-    cat "$f" >> "$target"
+    sed '1,/^# /d' "$f" >> "$target"
 done
 
 # Core convention
-cat > "$CONTENT/core/_index.md.tmp" <<'EOF'
----
-title: "Core"
-description: "The convention itself — every rule grounded in mathematics"
----
-EOF
-# Preserve the existing _index.md for core (it's hand-curated)
-mv "$CONTENT/core/_index.md.tmp" "$CONTENT/core/_index.md.new" 2>/dev/null || true
-# Actually, core/ has its own _index.md from manual editing; don't overwrite
-rm -f "$CONTENT/core/_index.md.new"
-
 cp "$REPO_ROOT/core/core.md" "$CONTENT/core.md"
 
 # Agents
 mkdir -p "$CONTENT/agents"
 for f in agents.md process.md rigor-tools.md; do
-    title=$(grep -E '^# ' "$REPO_ROOT/agents/$f" | head -1 | sed 's/^# //')
     case "$f" in
         agents.md) target="$CONTENT/agents/_index.md" ;;
         process.md) target="$CONTENT/agents/process.md" ;;
         rigor-tools.md) target="$CONTENT/agents/rigor-tools.md" ;;
+    esac
+    # Display-friendly title
+    case "$f" in
+        agents.md) title="Notes for AI agents" ;;
+        process.md) title="Process for opening a packet" ;;
+        rigor-tools.md) title="Rigor tools" ;;
     esac
     cat > "$target" <<HDR
 ---
@@ -74,7 +73,7 @@ description: "Agent instructions"
 ---
 
 HDR
-    cat "$REPO_ROOT/agents/$f" >> "$target"
+    sed '1,/^# /d' "$REPO_ROOT/agents/$f" >> "$target"
 done
 
 # ADRs — flatten adr/NNNN-name/decision.md to adr/<slug>.md
@@ -82,10 +81,9 @@ mkdir -p "$CONTENT/adr"
 for d in "$REPO_ROOT/adr"/*/; do
     [ -f "$d/decision.md" ] || continue
     name=$(basename "$d")
-    # Lowercase slug: 0001-fractal-property
     slug=$(echo "$name" | tr '[:upper:]' '[:lower:]')
     weight=$(echo "$name" | grep -oE '^[0-9]+' | sed 's/^0*//')
-    # Display title (no ADR- prefix; weight is implicit in filename)
+    # Display title (just the name without numeric prefix)
     pretty=$(echo "$name" | sed 's/^[0-9]*-//' | tr '-' ' ')
     cat > "$CONTENT/adr/${slug}.md" <<HDR
 ---
@@ -95,7 +93,8 @@ weight: ${weight:-0}
 ---
 
 HDR
-    cat "$d/decision.md" >> "$CONTENT/adr/${slug}.md"
+    # Skip the original H1 ("# Decision: 0001 — Fractal Property")
+    sed '1,/^# /d' "$d/decision.md" >> "$CONTENT/adr/${slug}.md"
 done
 
 # Examples — render refinement.md as a page
@@ -105,7 +104,6 @@ for d in "$REPO_ROOT/examples"/*/; do
     name=$(basename "$d")
     [ "$name" = "external-project" ] && continue
     if [ -f "$d/refinement.md" ]; then
-        # Use a curated display name (not the file's H1, which is verbose)
         case "$name" in
             modal-dialog) pretty_title="Modal Dialog" ;;
             self-application) pretty_title="Self-Application" ;;
@@ -119,7 +117,6 @@ description: "Reference example"
 ---
 
 HDR
-        # Append content but skip the original H1 (we use title from frontmatter)
         sed '1,/^# /d' "$d/refinement.md" >> "$CONTENT/examples/${name}.md"
     fi
 done
@@ -128,7 +125,7 @@ done
 if [ -d "$REPO_ROOT/examples/external-project/example-packet" ]; then
     cat > "$CONTENT/examples/external-project.md" <<HDR
 ---
-title: "External Project Example"
+title: "External Project"
 description: "Demonstrates external-project mode"
 ---
 

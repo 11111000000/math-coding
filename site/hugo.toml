@@ -66,15 +66,12 @@ frontmatter.insertDate = true
   enableCodeCopy = true
   enableBlog = false
 
-  # Fonts (overridden via assets/css/custom.css)
-  googleFonts = ["JetBrains+Mono:400,500,600,700", "Spectral:400,500,600"]
+  # Math + Mermaid loaded via site/layouts/partials/extend-head.html
+  # (Congo's first-class extension hook). KaTeX and Mermaid come
+  # from the local theme assets (lib/katex/, lib/mermaid/) — no CDN.
 
-  # Math (KaTeX via custom partial in layouts)
-  enableMath = true
-  mathRenderer = "katex"
-
-  # Mermaid (loaded via custom partial)
-  enableMermaid = true
+  # Custom CSS — overrides Congo's defaults (academic-monospace style)
+  customCSS = ["css/custom.css"]
 
   # Menu
   [params.menu]

@@ -6,8 +6,6 @@ cascade:
   showDate: false
 ---
 
-# math-coding
-
 **A convention for mathematically grounded software artifacts.** Plain text + git. No external dependencies.
 
 This site is the rendered version of [the math-coding repository](https://github.com/11111000000/math-coding). The convention is the source of truth; this site is its surface.

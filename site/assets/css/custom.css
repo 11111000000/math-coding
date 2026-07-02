@@ -1,174 +1,432 @@
-/* math-coding site — custom CSS
- * Style: academic-monospace. Daō aesthetic.
- * Minimal color, mathematical precision.
- */
+/* ============================================================
+   math-coding — site stylesheet
+   Design language: academic-formalism
+   Goal: visually express the mathematical foundation of the
+   convention — clean grid, monospace accents, single accent
+   color, no decoration, no noise.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Spectral:ital,wght@0,300;0,400;0,500;0,600;1,400&family=IBM+Plex+Serif:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap');
 
 :root {
-  --mc-accent: #0066cc;
-  --mc-accent-dim: #004999;
+  /* Type */
+  --mc-mono: 'JetBrains Mono', 'SF Mono', 'Menlo', 'Consolas', monospace;
+  --mc-serif: 'IBM Plex Serif', 'Iowan Old Style', 'Charter', Georgia, serif;
+  --mc-display: 'JetBrains Mono', 'SF Mono', monospace;
+
+  /* Color — single accent, rest is neutrals */
   --mc-fg: #1a1a1a;
-  --mc-bg: #fafafa;
-  --mc-mono: "JetBrains Mono", "SF Mono", "Menlo", "Consolas", monospace;
-  --mc-serif: "Spectral", "Iowan Old Style", "Charter", serif;
+  --mc-fg-soft: #4a4a4a;
+  --mc-fg-mute: #8a8a8a;
+  --mc-bg: #fafaf7;
+  --mc-bg-elev: #ffffff;
+  --mc-bg-soft: #f3f3ee;
+  --mc-border: #e5e5dd;
+  --mc-border-soft: #efefea;
+  --mc-accent: #c7472b;        /* terracotta — academic, warm */
+  --mc-accent-soft: #e8a48b;
+
+  /* Math */
+  --mc-math-fg: #1a1a1a;
+  --mc-math-bg: #ffffff;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --mc-accent: #66aaff;
-    --mc-accent-dim: #3388dd;
-    --mc-fg: #e0e0e0;
+    --mc-fg: #e8e6df;
+    --mc-fg-soft: #b8b6af;
+    --mc-fg-mute: #6a6a65;
     --mc-bg: #1a1a1a;
+    --mc-bg-elev: #232220;
+    --mc-bg-soft: #1f1e1d;
+    --mc-border: #2e2d2c;
+    --mc-border-soft: #282726;
+    --mc-accent: #e8a48b;
+    --mc-accent-soft: #5a3530;
+    --mc-math-fg: #e8e6df;
+    --mc-math-bg: #1a1a1a;
   }
 }
 
-/* Typography */
+/* ============================================================
+   Base typography
+   ============================================================ */
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
   font-family: var(--mc-serif);
-  font-feature-settings: "kern", "liga";
-  text-rendering: geometricPrecision;
+  font-size: 1.0625rem;
+  line-height: 1.7;
+  color: var(--mc-fg);
+  background: var(--mc-bg);
+  font-feature-settings: 'kern' 1, 'liga' 1, 'onum' 1;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--mc-mono);
+/* Override Congo's default */
+.prose, article, .max-w-prose {
+  font-family: var(--mc-serif);
+  font-size: 1.0625rem;
+  line-height: 1.75;
+  max-width: 760px;
+}
+
+/* ============================================================
+   Headings — display monospace
+   ============================================================ */
+
+h1, h2, h3, h4, h5, h6,
+.prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 {
+  font-family: var(--mc-display);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  color: var(--mc-fg);
+  margin-top: 0;
+  margin-bottom: 0.6em;
 }
 
-h1 {
-  font-size: 2.2em;
+h1, .prose h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  margin-top: 0;
+  margin-bottom: 0.4em;
+  padding-bottom: 0.4em;
   border-bottom: 2px solid var(--mc-accent);
-  padding-bottom: 0.3em;
 }
 
-h2 {
-  font-size: 1.5em;
-  margin-top: 2em;
-}
-
-code, pre, kbd, samp {
-  font-family: var(--mc-mono);
-  font-size: 0.92em;
-}
-
-/* Inline code */
-:not(pre) > code {
-  background: rgba(0, 102, 204, 0.08);
-  padding: 0.1em 0.3em;
-  border-radius: 3px;
-  font-weight: 500;
-}
-
-/* KaTeX rendering — larger for prominence */
-.katex {
-  font-size: 1.1em !important;
-}
-
-.katex-display {
-  margin: 1.5em 0 !important;
-  overflow-x: auto;
-  overflow-y: hidden;
-}
-
-/* Tables — formal academic */
-table {
-  border-collapse: collapse;
-  margin: 1.5em 0;
-  font-size: 0.92em;
-}
-
-th, td {
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  padding: 0.5em 0.8em;
-  text-align: left;
-}
-
-th {
-  background: rgba(0, 0, 0, 0.04);
-  font-family: var(--mc-mono);
+h2, .prose h2 {
+  font-size: 1.65rem;
   font-weight: 600;
-  font-size: 0.88em;
+  margin-top: 2.2em;
+  margin-bottom: 0.5em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid var(--mc-border);
 }
 
-@media (prefers-color-scheme: dark) {
-  th, td { border-color: rgba(255, 255, 255, 0.1); }
-  th { background: rgba(255, 255, 255, 0.04); }
+h3, .prose h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-top: 1.8em;
+  margin-bottom: 0.4em;
+  color: var(--mc-fg-soft);
 }
 
-/* Blockquotes — for epistemic markers / quotes */
-blockquote {
-  border-left: 3px solid var(--mc-accent);
-  padding-left: 1em;
-  margin: 1.5em 0;
-  font-style: italic;
-  color: rgba(0, 0, 0, 0.7);
+h4, h5, h6, .prose h4, .prose h5, .prose h6 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1.4em;
+  color: var(--mc-fg-soft);
 }
 
-@media (prefers-color-scheme: dark) {
-  blockquote { color: rgba(255, 255, 255, 0.7); }
+/* ============================================================
+   Inline elements
+   ============================================================ */
+
+p {
+  margin-top: 0;
+  margin-bottom: 1.1em;
 }
 
-/* Links */
 a {
   color: var(--mc-accent);
   text-decoration: none;
   border-bottom: 1px solid transparent;
-  transition: border-color 0.15s ease;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
 a:hover {
   border-bottom-color: var(--mc-accent);
+  color: var(--mc-accent);
 }
 
-/* Mermaid diagrams */
+strong, b {
+  font-weight: 600;
+  color: var(--mc-fg);
+}
+
+em, i {
+  font-style: italic;
+}
+
+ul, ol {
+  padding-left: 1.5em;
+  margin-bottom: 1.1em;
+}
+
+li {
+  margin-bottom: 0.35em;
+  line-height: 1.65;
+}
+
+li::marker {
+  color: var(--mc-fg-mute);
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--mc-border);
+  margin: 2.5em 0;
+}
+
+blockquote {
+  border-left: 3px solid var(--mc-accent);
+  padding: 0.2em 0 0.2em 1.2em;
+  margin: 1.5em 0;
+  font-style: italic;
+  color: var(--mc-fg-soft);
+}
+
+/* ============================================================
+   Code
+   ============================================================ */
+
+code, kbd, samp, pre {
+  font-family: var(--mc-mono);
+  font-size: 0.875em;
+}
+
+:not(pre) > code {
+  background: var(--mc-bg-soft);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-weight: 500;
+  color: var(--mc-fg);
+  border: 1px solid var(--mc-border-soft);
+  font-size: 0.85em;
+}
+
+pre {
+  background: var(--mc-bg-elev);
+  border: 1px solid var(--mc-border);
+  border-radius: 6px;
+  padding: 1.1em 1.3em;
+  overflow-x: auto;
+  line-height: 1.55;
+  margin: 1.4em 0;
+  font-size: 0.85em;
+}
+
+pre code {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* ============================================================
+   Tables — formal academic
+   ============================================================ */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.6em 0;
+  font-size: 0.95em;
+  border: 1px solid var(--mc-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+thead {
+  background: var(--mc-bg-soft);
+  border-bottom: 2px solid var(--mc-border);
+}
+
+th, td {
+  padding: 0.65em 0.9em;
+  text-align: left;
+  border-bottom: 1px solid var(--mc-border-soft);
+  vertical-align: top;
+}
+
+th {
+  font-family: var(--mc-mono);
+  font-weight: 600;
+  font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mc-fg-soft);
+}
+
+tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+tbody tr:hover {
+  background: var(--mc-bg-soft);
+}
+
+/* ============================================================
+   KaTeX — larger for prominence, academic feel
+   ============================================================ */
+
+.katex {
+  font-size: 1.05em !important;
+  color: var(--mc-math-fg);
+  font-family: KaTeX_Main, 'Times New Roman', serif !important;
+}
+
+.katex-display {
+  margin: 1.6em 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.3em 0;
+  border-radius: 4px;
+}
+
+.katex-display > .katex {
+  display: inline-block;
+  text-align: center;
+  font-size: 1.1em !important;
+}
+
+.katex-display::before {
+  content: '';
+  display: block;
+  width: 2.5em;
+  height: 1px;
+  background: var(--mc-accent);
+  margin: 0 auto 0.5em;
+  opacity: 0.4;
+}
+
+/* ============================================================
+   Mermaid diagrams
+   ============================================================ */
+
 .mermaid {
   margin: 2em auto;
   text-align: center;
+  background: var(--mc-bg-elev);
+  border: 1px solid var(--mc-border);
+  border-radius: 6px;
+  padding: 1.5em;
+  font-family: var(--mc-mono) !important;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* ============================================================
+   Site header / navigation
+   ============================================================ */
+
+header.site-header,
+nav.flex.items-start {
   font-family: var(--mc-mono);
 }
 
-/* Article body width — narrow for reading */
-.prose {
-  max-width: 820px;
+header h1, header h2 {
+  font-family: var(--mc-display);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.01em;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  color: var(--mc-fg);
 }
 
-/* Sidebar / TOC */
-#TableOfContents {
+header h1 a, header h2 a {
+  color: inherit;
+  text-decoration: none;
+  border: 0;
+}
+
+header h1 a:hover, header h2 a:hover {
+  color: var(--mc-accent);
+}
+
+nav a, .menu a {
   font-family: var(--mc-mono);
-  font-size: 0.85em;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: lowercase;
+  letter-spacing: 0.02em;
+  color: var(--mc-fg-soft);
+  text-decoration: none;
+  border: 0;
 }
 
-/* Search results */
-.search-result {
+nav a:hover, .menu a:hover {
+  color: var(--mc-accent);
+}
+
+nav a.active, .menu a.active {
+  color: var(--mc-accent);
+  border-bottom: 1px solid var(--mc-accent);
+}
+
+/* ============================================================
+   Article header — title block
+   ============================================================ */
+
+article > header, .prose > header {
+  margin-bottom: 2em;
+  padding-bottom: 0;
+  border: 0;
+}
+
+article > header h1, .prose > header h1 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  border-bottom: 2px solid var(--mc-accent);
+  padding-bottom: 0.4em;
+  margin-bottom: 0.2em;
+}
+
+article > header p, .prose > header p {
+  color: var(--mc-fg-soft);
+  font-size: 1.05rem;
+  font-style: italic;
+  margin: 0.5em 0 0;
+}
+
+/* ============================================================
+   Footer
+   ============================================================ */
+
+footer {
+  font-family: var(--mc-mono);
+  font-size: 0.85rem;
+  color: var(--mc-fg-mute);
+  border-top: 1px solid var(--mc-border);
+  margin-top: 4em;
+  padding: 2em 0;
+}
+
+footer a {
+  color: var(--mc-fg-soft);
+}
+
+footer a:hover {
+  color: var(--mc-accent);
+}
+
+/* ============================================================
+   Search overlay
+   ============================================================ */
+
+#search-wrapper {
   font-family: var(--mc-serif);
 }
 
-.search-result-title {
+#search-query {
   font-family: var(--mc-mono);
-  font-weight: 600;
 }
 
-/* Site footer */
-footer {
-  font-family: var(--mc-mono);
-  font-size: 0.85em;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  margin-top: 4em;
-  padding-top: 2em;
-  opacity: 0.7;
-}
+/* ============================================================
+   Print
+   ============================================================ */
 
-/* Print — for PDF export */
 @media print {
   body { font-size: 11pt; }
   h1 { page-break-after: avoid; }
   pre, blockquote { page-break-inside: avoid; }
-}
-
-/* Mermaid error fallback */
-.mermaid-error {
-  border: 1px dashed #cc0000;
-  padding: 1em;
-  color: #cc0000;
-  font-family: var(--mc-mono);
-  background: rgba(204, 0, 0, 0.05);
+  nav, footer, #search-wrapper { display: none; }
 }

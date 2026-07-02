@@ -1,29 +1,88 @@
 ---
-title: "Agents"
-description: "Operational instructions for AI agents working under the convention"
+title: "Notes for AI agents"
+description: "Agent instructions"
 ---
 
-# Agents
+packets_dir: specs   # or: math
+convention_version: 2.1.0
+```
 
-For AI agents (LLM-based coding agents) operating under the math-coding convention, three documents describe the operational protocol.
+Default: `specs/`. The agent must **read `.mathcodingrc`
+first** before creating or locating packets.
 
-| Document | Size | Use case |
-|----------|------|----------|
-| [agents.md]({{< ref "agents.md" >}}) | ~180 lines | High-level: 5-step process, epistemic protocol, lifecycle awareness |
-| [process.md]({{< ref "process.md" >}}) | ~170 lines | Detailed: 13-step procedure for opening a packet |
-| [rigor-tools.md]({{< ref "rigor-tools.md" >}}) | ~160 lines | Reference: six rigour levels, detection rules, when to use each |
+## Rigor levels
 
-The agent must read `agents.md` before doing anything. `process.md` is for non-trivial packets where you want explicit guidance. `rigor-tools.md` is a reference consulted when deciding which rigour level applies.
+Math-coding supports six rigor levels. Higher rigor requires
+more formal artifacts but provides stronger guarantees.
 
-## Epistemic action protocol
+| Rigor | Marker files | When to use |
+|-------|--------------|-------------|
+| `light` | `verify.sh` | Default. Structural checks only. |
+| `property` | `verify-property.sh` | Property-based testing (fast-check, jqwik). |
+| `temporal` | `Model.tla` + `verify-tlc.sh` | TLA+. State machines, async, distributed protocols. |
+| `relational` | `Model.als` + `verify-alloy.sh` | Alloy. Structural/relational invariants. |
+| `proof` | `Model.v` + `verify-coq.sh` | Coq. Constructive proofs of propositions. |
+| `bpmn` | `Model.bpmn` + `verify-bpmn.sh` | BPMN. Business processes. |
 
-The most important part. When the agent reads an entry in `assumptions.yaml`, it must apply this protocol based on the `epistemology` field:
+The agent detects rigor by **file presence**, not by
+configuration. If `verify.sh` exists, rigor is at least light.
+If `Model.tla` and `verify-tlc.sh` exist, rigor is at least
+temporal. See `agents/rigor-tools.md` for the full reference.
 
-| Epistemology | Belief | Agent action |
-|--------------|--------|--------------|
-| `judgment` | $\{0, 1\}$ discrete | Respect, do not challenge |
-| `unknown` | $0$ | Ask user, do not proceed |
-| `fact` | $1.0$ | Verify if possible; downgrade to `hypothesis` if cannot |
-| `hypothesis` | $(0, 1)$ | Search for evidence; upgrade to `fact` on find |
+## Rules that are easy to get wrong
 
-Without this protocol, epistemic markers are merely cosmetic.
+- **Closed convention.** Do not invent file names or field
+  names. The convention is the files in `core/core.md` and the
+  schema for each. If you find yourself wanting to add
+  `packet.yaml.flow`, `packet.yaml.flow.md`, or similar, stop
+  and ask the human first.
+- **Always required files.** `packet.yaml`, `task.md`,
+  `assumptions.yaml`. A packet without all three is not a
+  packet.
+- **Epistemics are required, not optional.** Every assumption
+  needs `status` and `epistemology`. Use the action protocol
+  above.
+- **Don't open packets for trivial tasks.** If the task is a
+  one-line change, fix it directly. Use judgment for the
+  threshold.
+- **Don't keep packets in `sketch` forever.** A `sketch` packet
+  is a starting point. If the task warrants a formal model,
+  write `Model.tla`. If it warrants a verifier, write `verify.sh`.
+- **Verifier output is mandatory for `verified`.** If
+  `verifier-output.yaml` does not exist or its verdict is not
+  `VERIFIED`, the packet is not verified.
+- **Verifier output must include provenance.** `verified_at`,
+  `scope`, `tool`, `evidence` — see
+  `core/01-Theory/06-Verdict.md`.
+
+## Defaults
+
+- `substrate: shell` for shell-based tools.
+- `substrate: typescript` for TS/JS projects.
+- `substrate: tla` only when rigor is `temporal`.
+- `substrate: coq` only when rigor is `proof`.
+- `substrate: alloy` only when rigor is `relational`.
+- `substrate: bpmn` only when rigor is `bpmn`.
+- `substrate: none` for sketch packets.
+- `decision: needed` if you opened the packet.
+- `priority: medium` if not specified.
+
+## What not to do
+
+- Do not create a CLI or framework. The convention is
+  conventions only.
+- Do not add fields to `packet.yaml` that are not in
+  `core/core.md` or the schema.
+- Do not promote lifecycle from `working` to `verified` without
+  running the verifier.
+- Do not write `verifier-output.yaml` manually. The verifier
+  must produce it.
+- Do not mark assumptions as `judgment` or `unknown` without
+  human confirmation. These are mandatory markers.
+
+## When you are stuck
+
+Read `core/core.md` again. If it does not answer the question,
+the methodology is silent on that point and you may proceed as
+you see fit, but **document your decision** in the packet's
+`task.md` under `# Adaptations`. This is your epistemic trail.
