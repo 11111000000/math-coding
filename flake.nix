@@ -8,15 +8,16 @@
 
   outputs = { self, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs {
-          inherit system;
-          # Hugo needs extended build for SASS etc.
-          config.allowUnfree = false;
-        };
-        hugo = pkgs.hugo-extended;
-        git = pkgs.git;
-        bash = pkgs.bash;
+        let
+          pkgs = import nixpkgs {
+            inherit system;
+            config.allowUnfree = false;
+          };
+          # In nixpkgs 25.11, hugo is the extended build by default
+          # (Hugo ≥ 0.110 ships extended as the only variant).
+          hugo = pkgs.hugo;
+          git = pkgs.git;
+          bash = pkgs.bash;
       in
       {
         # Nix-managed dev environment: `nix develop`
