@@ -1,0 +1,22 @@
+{{/*
+  math-coding: Mermaid loader
+  Loaded in <head> when enableMermaid is true.
+*/}}
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral",
+    securityLevel: "loose",
+    fontFamily: "JetBrains Mono, monospace",
+    themeVariables: {
+      primaryColor: "#fafafa",
+      primaryTextColor: "#1a1a1a",
+      primaryBorderColor: "#0066cc",
+      lineColor: "#0066cc",
+      secondaryColor: "#f0f0f0",
+      tertiaryColor: "#f5f5f5"
+    }
+  });
+</script>

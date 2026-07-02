@@ -1,0 +1,18 @@
+stateDiagram-v2
+    direction TB
+    [*] --> fact
+    [*] --> hypothesis
+    [*] --> judgment
+    [*] --> unknown
+
+    fact --> hypothesis: cannot verify
+    hypothesis --> fact: found evidence
+    hypothesis --> unknown: contradicted
+    unknown --> judgment: resolved
+    unknown --> fact: resolved
+    judgment --> judgment: respect
+
+    note right of judgment: mandatory marker
+    note right of unknown: mandatory marker
+    note right of fact: auto-inferred
+    note right of hypothesis: auto-inferred
