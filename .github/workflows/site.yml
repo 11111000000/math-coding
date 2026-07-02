@@ -47,11 +47,17 @@ jobs:
         run: |
           hugo mod init github.com/11111000000/math-coding/site || true
           hugo mod get github.com/jpanther/congo/v2
-          hugo mod tidy
+          hugo mod vendor
+          echo "=== module cache ==="
+          ls -la _vendor/ 2>/dev/null | head -10
+          echo "=== _vendor/congo _partials ==="
+          ls _vendor/github.com/jpanther/congo/v2/layouts/_partials/ 2>/dev/null
+          echo "=== _vendor/congo functions ==="
+          ls _vendor/github.com/jpanther/congo/v2/layouts/_partials/functions/ 2>/dev/null
 
       - name: Build Hugo site
         working-directory: site
-        run: hugo --minify --gc
+        run: hugo --minify --gc --themesDir _vendor/github.com/jpanther
 
       - name: Prepare Pages artifact
         run: |
