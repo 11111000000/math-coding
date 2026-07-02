@@ -20,7 +20,7 @@ A document that:
 
 - Notation is compact (LaTeX-as-ASCII)
 - A concrete example ties the formal definition to `packet.yaml`
-- References to Lamport, Hoare
+- must References to Lamport, Hoare
 
 # Adaptations
 

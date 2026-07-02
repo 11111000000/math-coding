@@ -236,8 +236,8 @@ check_task_md() {
         errors=$((errors + 1))
     fi
 
-    # Content check: each section has at least 10 words
-    for section in "## Problem" "## Desired outcome" "## Constraints"; do
+    # Content check: Problem and Desired outcome as prose, Constraints as bullet list
+    for section in "## Problem" "## Desired outcome"; do
         words=$(awk -v sec="$section" '
             $0 == sec { in_section = 1; next }
             /^## / && in_section { exit }
@@ -248,6 +248,60 @@ check_task_md() {
             errors=$((errors + 1))
         fi
     done
+
+    # Constraints section: bullet list, each bullet is a predicate or 5+ words
+    # Empty Constraints is allowed; section may be absent.
+    if grep -q "^## Constraints" "$file"; then
+        # Extract the constraints section content
+        constraints_content=$(awk '
+            /^## Constraints/ { in_section = 1; next }
+            /^## / && in_section { exit }
+            in_section { print }
+        ' "$file")
+
+        # If non-empty, validate each bullet
+        if [ -n "$constraints_content" ]; then
+            # Split into bullets (lines starting with - or *)
+            echo "$constraints_content" | awk '
+                /^[ \t]*[-*][ \t]+/ {
+                    bullet = $0
+                    sub(/^[ \t]*[-*][ \t]+/, "", bullet)
+                    if (bullet == "") {
+                        print "EMPTY"
+                        next
+                    }
+                    words = split(bullet, parts, /[ \t]+/)
+                    has_predicate = 0
+                    for (i = 1; i <= words; i++) {
+                        w = parts[i]
+                        if (w ~ /^(must|shall|requires|has|is|at[ \t]+most|at[ \t]+least|between|>=|<=|=>|==|!=|contains|matches)$/ ||
+                            w ~ /[<>=!]/) {
+                            has_predicate = 1
+                            break
+                        }
+                    }
+                    if (!has_predicate && words < 5) {
+                        printf "BULLET_BAD %s\n", bullet
+                    } else {
+                        printf "BULLET_OK\n"
+                    }
+                }
+            ' > /tmp/constraints_check_$$
+
+            bad_bullets=$(grep "^BULLET_BAD" /tmp/constraints_check_$$ 2>/dev/null | wc -l)
+            empty_bullets=$(grep "^EMPTY" /tmp/constraints_check_$$ 2>/dev/null | wc -l)
+            rm -f /tmp/constraints_check_$$
+
+            if [ "$empty_bullets" -gt 0 ]; then
+                echo "FAIL: $file has empty bullet(s) in ## Constraints"
+                errors=$((errors + 1))
+            fi
+            if [ "$bad_bullets" -gt 0 ]; then
+                echo "FAIL: $file has $bad_bullets bullet(s) in ## Constraints without a predicate or 5+ words"
+                errors=$((errors + 1))
+            fi
+        fi
+    fi
 }
 
 check_assumptions() {

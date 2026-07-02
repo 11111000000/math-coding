@@ -11,9 +11,9 @@ and points at the convention and theory documents.
 
 ## Constraints
 
-- Plain prose
+- must Plain prose
 - Links to all major sections
-- Cites theory and core.md
+- must Cites theory and core.md
 
 # Adaptations
 

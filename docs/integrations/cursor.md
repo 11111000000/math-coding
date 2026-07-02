@@ -151,7 +151,7 @@ Open a new math-coding packet.
 
 Steps:
 1. Read core/core.md §"Packet structure"
-2. Copy templates from examples/hello/
+2. Run `sh .opencode/commands/mathpacket <id>` to create the packet (template is built into the command)
 3. Fill in packet.yaml (using the schema)
 4. Fill in task.md (Problem, Desired outcome, Constraints)
 5. Fill in assumptions.yaml (4+ entries with epistemic markers)

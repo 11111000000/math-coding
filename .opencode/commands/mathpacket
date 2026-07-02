@@ -1,12 +1,13 @@
 #!/bin/sh
 # mathpacket — create a new math-coding packet.
 # Usage: sh /path/to/math-coding/.opencode/commands/mathpacket <id> [title]
+#
+# Reads .mathcodingrc in current dir for packets_dir (specs or math).
+# Default: specs/.
 
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SOURCE_REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
-TEMPLATE_DIR="$SOURCE_REPO/examples/hello"
 
 if [ -z "$1" ]; then
     echo "Usage: sh mathpacket <task-id> [title]"
@@ -16,37 +17,129 @@ fi
 TASK_ID="$1"
 TITLE="${2:-New Packet}"
 
-# Determine target directory
-if [ -d "math-coding/tasks" ]; then
-    TARGET="math-coding/tasks/$TASK_ID"
-elif [ -d "tasks" ]; then
-    TARGET="tasks/$TASK_ID"
-elif [ -d "artifacts" ]; then
-    TARGET="artifacts/$TASK_ID"
-else
-    TARGET="$TASK_ID"
+# Determine packets_dir from .mathcodingrc or default to specs/
+PACKETS_DIR="specs"
+if [ -f .mathcodingrc ]; then
+    # Try YAML first (key: value on a line)
+    if grep -qE "^packets_dir:" .mathcodingrc 2>/dev/null; then
+        PACKETS_DIR=$(grep -E "^packets_dir:" .mathcodingrc | sed 's/^packets_dir:[[:space:]]*//' | tr -d '"'"'"'[:space:]')
+    fi
 fi
 
+# Create packet directory
+TARGET="$PACKETS_DIR/$TASK_ID"
 mkdir -p "$TARGET"
 
-# Copy templates
-for f in packet.yaml task.md assumptions.yaml refinement.md traceability.json; do
-    if [ ! -f "$TARGET/$f" ] && [ -f "$TEMPLATE_DIR/$f" ]; then
-        cp "$TEMPLATE_DIR/$f" "$TARGET/$f"
-    fi
-done
+# Generate packet.yaml
+cat > "$TARGET/packet.yaml" <<EOF
+task_id: $TASK_ID
+title: $TITLE
+lifecycle: sketch
+substrate: none
+decision: needed
+owner: <your-name-or-team>
+priority: medium
+tags: []
+created: "$(date +%Y-%m-%d)"
+verifier: null
+depends_on: []
+EOF
 
-# Fill in task_id and title in packet.yaml
-if [ -f "$TARGET/packet.yaml" ]; then
-    sed -i "s/^task_id: .*/task_id: $TASK_ID/" "$TARGET/packet.yaml"
-    sed -i "s/^title: .*/title: $TITLE/" "$TARGET/packet.yaml"
-fi
+# Generate task.md
+cat > "$TARGET/task.md" <<EOF
+# $TITLE
+
+## Problem
+
+Describe the problem this packet addresses.
+
+## Desired outcome
+
+Describe the intended outcome.
+
+## Constraints
+
+- must satisfy the convention invariants
+EOF
+
+# Generate assumptions.yaml
+cat > "$TARGET/assumptions.yaml" <<EOF
+task_id: $TASK_ID
+assumptions:
+  - id: A1
+    statement: <first assumption>
+    status: open
+    epistemology: unknown
+  - id: A2
+    statement: <second assumption>
+    status: open
+    epistemology: unknown
+  - id: A3
+    statement: <third assumption>
+    status: open
+    epistemology: unknown
+  - id: A4
+    statement: <fourth assumption>
+    status: open
+    epistemology: unknown
+EOF
+
+# Generate refinement.md
+cat > "$TARGET/refinement.md" <<EOF
+# Refinement: $TASK_ID
+
+## State mapping
+
+- Spec →
+- Implementation →
+- Bridge →
+
+## Operation mapping
+
+- →
+- →
+
+## Invariant preservation
+
+-
+
+## Test obligation mapping
+
+-
+
+## Runtime-check mapping
+
+-
+
+## Connection
+
+This packet is in $PACKETS_DIR/$TASK_ID/. The bridge to project
+code (if any) lives here; the project's source code lives in
+its native structure.
+EOF
+
+# Generate traceability.json
+cat > "$TARGET/traceability.json" <<EOF
+{
+  "links": [
+    {
+      "source": "task.md:## Problem",
+      "target": "",
+      "kind": "concept-grounding"
+    }
+  ]
+}
+EOF
 
 echo "Created packet: $TARGET"
 echo "  task_id: $TASK_ID"
 echo "  title: $TITLE"
+echo "  packets_dir: $PACKETS_DIR"
 echo ""
 echo "Next steps:"
-echo "  1. Fill in task.md (Problem, Desired outcome, Constraints)"
-echo "  2. Fill in assumptions.yaml (4+ entries, epistemic markers)"
-echo "  3. Run sh $SOURCE_REPO/examples/self-application/verify-consistency.sh $TARGET"
+echo "  1. Fill in $TARGET/task.md (Problem, Desired outcome, Constraints)"
+echo "  2. Fill in $TARGET/assumptions.yaml (4+ entries, epistemic markers)"
+echo "  3. Fill in $TARGET/refinement.md with the 5 required sections"
+echo "  4. Update $TARGET/traceability.json with real links"
+echo "  5. If rigor > light, add Model.* and verify-*.* scripts"
+echo "  6. Run structural verifier: sh examples/self-application/verify-consistency.sh"

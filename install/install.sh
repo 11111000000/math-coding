@@ -29,13 +29,7 @@ if [ -d "$SOURCE_REPO/core/01-Theory" ]; then
     cp -r "$SOURCE_REPO/core/01-Theory"/* "$TARGET_MATH_CODING/01-Theory/" 2>/dev/null || true
 fi
 
-# Copy templates (packet.yaml, task.md, assumptions.yaml)
-mkdir -p "$TARGET_MATH_CODING/templates"
-for f in packet.yaml task.md assumptions.yaml; do
-    if [ -f "$SOURCE_REPO/examples/hello/$f" ]; then
-        cp "$SOURCE_REPO/examples/hello/$f" "$TARGET_MATH_CODING/templates/"
-    fi
-done
+# Copy templates — none needed; template is built into .opencode/commands/mathpacket
 
 # Copy verifier
 if [ -f "$SOURCE_REPO/examples/self-application/verify-consistency.sh" ]; then

@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.local/schemas/project-config.schema.json",
+  "title": "Math-Coding Project Configuration",
+  "description": "Configuration file for projects adopting math-coding. Lives at the project root as .mathcodingrc.",
+  "type": "object",
+  "properties": {
+    "packets_dir": {
+      "type": "string",
+      "enum": ["specs", "math"],
+      "description": "Directory in the project where packets live. Default: specs."
+    },
+    "convention_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Version of math-coding convention this project tracks. Used for cascade checking."
+    }
+  },
+  "additionalProperties": false,
+  "version": "2.1"
+}

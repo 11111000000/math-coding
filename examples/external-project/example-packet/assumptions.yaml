@@ -1,0 +1,21 @@
+task_id: example-external-packet
+assumptions:
+  - id: A1
+    statement: The adopting project has a .mathcodingrc at its root.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+  - id: A2
+    statement: The adopting project's source code lives in src/, not in specs/.
+    status: user-confirmed
+    epistemology: judgment
+    confidence: 1.0
+  - id: A3
+    statement: The packets_dir field in .mathcodingrc determines where new packets are created.
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+  - id: A4
+    statement: Whether to extend math-coding with rigor tools (TLA+, PBT, Coq, Alloy, BPMN) for this project.
+    status: open
+    epistemology: unknown

@@ -1,0 +1,17 @@
+task_id: example-external-packet
+title: Example packet in external project mode
+lifecycle: sketch
+substrate: none
+decision: needed
+owner: example-team
+priority: low
+tags: [example, external-project, template]
+created: "2026-07-02"
+verifier: null
+depends_on: []
+
+# This packet lives in specs/example-external-packet/ in an adopting
+# project. The project's source code is elsewhere (e.g., src/).
+# The bridge is documented in refinement.md (which src/ files
+# implement this packet) and traceability.json (model elements to
+# code locations).

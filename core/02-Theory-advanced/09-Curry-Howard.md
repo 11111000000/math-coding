@@ -117,6 +117,33 @@ Three consequences for agents working with math-coding:
    weakens it. A packet with `assumptions.yaml` empty has
    $\Gamma = \emptyset$ and proves less.
 
+## What this explains vs what the verifier checks
+
+This theory is **advanced**. It applies at `rigor: proof+`.
+For projects with `rigor: light`, `property`, `temporal`,
+`relational`, or `bpmn`, the Curry-Howard view is a
+**reasoning aid** for agents, not a runtime check.
+
+| Aspect | What the theory explains | What the verifier checks |
+|--------|---------------------------|---------------------------|
+| Context $\Gamma$ | `assumptions.yaml` entries are typed propositions | structurally valid YAML, valid epistemics enum |
+| Proposition $P$ | convention invariants for this packet | invariant predicates hold at one point (current state) |
+| Derivation $\pi$ | `refinement.md` tactics + `verifier-output.yaml` verdict | five sections present, verdict is one of 5 enum values |
+| Type checking | logical consistency of the proof term | mechanical checks: required fields, FSM transitions, encoding |
+| Constructive proof | proof that the proposition holds | **not checked at this rigor level** — requires Coq extension |
+
+To turn the structural proof term into a constructive proof,
+adopt `rigor: proof` and write `Model.v` + `verify-coq.sh`.
+The Coq bridge translates `assumptions.yaml` statements into
+Coq propositions and checks them with `coqc`. See
+`agents/rigor-tools.md §proof` for the full workflow.
+
+Below `rigor: proof`, this theory is a **motivating framework**
+that explains why the structural checks are shaped the way
+they are. It is not a promise that the verifier proves the
+propositions; it is a story about what the artifacts would
+mean if a proof assistant were present.
+
 ## References
 
 - Curry & Howard, "Correspondence between Programs and

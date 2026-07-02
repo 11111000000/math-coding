@@ -1,0 +1,7 @@
+# Example .mathcodingrc for an external project adopting math-coding.
+# Place this file at the root of the adopting project (e.g., my-service/.mathcodingrc).
+#
+# Both YAML and JSON are valid. This example uses YAML for readability.
+
+packets_dir: specs           # where packets live; alternatives: math
+convention_version: 2.1.0    # tracks math-coding v2.1; mismatch triggers cascade warning

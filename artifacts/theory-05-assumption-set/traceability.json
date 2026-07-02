@@ -7,7 +7,7 @@
     },
     {
       "source": "theory.md:§Connection: Sigma = assumptions.yaml",
-      "target": "examples/hello/assumptions.yaml",
+      "target": ".opencode/commands/mathpacket (built-in template)",
       "kind": "instance-of"
     },
     {

@@ -1,9 +1,0 @@
-{
-  "links": [
-    {
-      "source": "task.md:§Problem",
-      "target": "core/core.md:§Packet structure",
-      "kind": "concept-grounding"
-    }
-  ]
-}

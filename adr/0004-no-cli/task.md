@@ -15,6 +15,6 @@ want one, but the core convention is CLI-free.
 
 ## Constraints
 
-- No CLI shipped
+- must No CLI shipped
 - Verifier is the only script that ships with the convention
 - All operations work with sh + coreutils

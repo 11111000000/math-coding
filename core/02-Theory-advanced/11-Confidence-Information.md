@@ -150,6 +150,43 @@ protocol (theory-07) recommends "search for evidence" for
 all `hypothesis` markers, but a careful agent weights the
 search budget by information content.
 
+## What this explains vs what the verifier checks
+
+This theory is **always applicable** — confidence values
+exist at every rigor level. The theory explains the
+**semantics** of the confidence field; the verifier
+**validates the syntax** of the field.
+
+| Aspect | What the theory explains | What the verifier checks |
+|--------|---------------------------|---------------------------|
+| Range $c \in [0, 1]$ | probability semantics + 4-marker partitioning + belief-update closure | JSON Schema: `confidence` is a number in $[0, 1]$ if present |
+| Information content $I(P) = H(c)$ | how much information is missing at confidence $c$ | **not computed**; this is a reasoning aid for agents |
+| Effort calibration | search budget $\propto I(P)$ | **not enforced**; agents may spend any amount of effort |
+| Belief update $B'(P, a)$ | how confidence changes with evidence | **not checked**; agents record updates in the entry, verifier does not compute |
+| Marker $H(c) = 0$ | `fact` and `judgment` markers (boundary) | marker enum: `fact`, `hypothesis`, `judgment`, `unknown` |
+
+The structural verifier validates that `confidence` is a
+number in $[0, 1]$ if present, and that `epistemology` is
+one of the four enum values. It does not:
+
+- Compute $H(c)$
+- Compare effort spent to $H(c)$
+- Apply belief updates
+- Warn on inconsistent confidence values
+
+These are **agent reasoning tasks**, not mechanical checks.
+The theory gives agents the vocabulary to reason about
+confidence rigorously; the verifier ensures the values are
+well-formed.
+
+For projects that want uncertainty budgets computed
+automatically (e.g., "this packet has 4.2 bits of unresolved
+information across all `hypothesis` entries"), an extension
+is needed. The extension reads all `assumptions.yaml` files,
+sums $H(c)$ over `hypothesis` entries, and reports the total
+as a `uncertainty_budget` field. This is not part of the
+core convention.
+
 ## References
 
 - Shannon, "A Mathematical Theory of Communication" (1948)

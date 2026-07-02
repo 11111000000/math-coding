@@ -20,9 +20,9 @@ the **fractal property** (ADR-0001).
 | §Verdict | [theory-06-verdict](01-Theory/06-Verdict.md) |
 | §Epistemics | [theory-07-epistemic](01-Theory/07-Epistemic.md) |
 | §Deprecation | [theory-08-deprecation](01-Theory/08-Deprecation.md) |
-| §Proof structure | [theory-09-curry-howard](01-Theory/09-Curry-Howard.md) |
-| §Modal obligations | [theory-10-modal-lifecycle](01-Theory/10-Modal-Lifecycle.md) |
-| §Confidence calibration | [theory-11-confidence-information](01-Theory/11-Confidence-Information.md) |
+| §Proof structure | [theory-09-curry-howard](02-Theory-advanced/09-Curry-Howard.md) |
+| §Modal obligations | [theory-10-modal-lifecycle](02-Theory-advanced/10-Modal-Lifecycle.md) |
+| §Confidence calibration | [theory-11-confidence-information](02-Theory-advanced/11-Confidence-Information.md) |
 
 ## What is a packet
 
@@ -39,6 +39,61 @@ decision or change, captured in isolation.
 
 A packet that lacks any of the three required files is **not a
 packet**. It is a draft. Complete it or delete it.
+
+## Two modes of application
+
+math-coding can be applied in two modes. The convention is the
+same; only the topology differs.
+
+### Self-application mode
+
+This repository itself uses the convention: every artifact is
+a packet, part of a packet, or serves a packet. The verifier
+checks that this invariant holds. This is the **fractal
+property** (ADR-0001).
+
+Use this mode when building math-coding itself, when the
+repository's only purpose is to express the convention, or
+when teaching math-coding to a new agent (a self-contained
+repo is the easiest way to read).
+
+### External project mode
+
+When math-coding is applied to a production project (a web
+service, a compiler, a kernel module), the project's code
+lives in its own structure — by language, framework, and team
+convention. **Packets live in a dedicated directory**, typically
+`specs/` or `math/`, configured via `.mathcodingrc` in the
+project root.
+
+```
+my-project/
+├── src/                    # project code (not a packet)
+├── tests/                  # project tests (not a packet)
+├── package.json
+└── specs/                  # packets live here
+    ├── payment-handler/
+    │   ├── packet.yaml
+    │   ├── task.md
+    │   ├── assumptions.yaml
+    │   ├── refinement.md    ← links src/payment/handler.ts
+    │   └── traceability.json ← bridge from model to code
+    └── payment-validator/
+        └── ...
+```
+
+The relationship between packets and project code is
+**explicit**: `refinement.md` describes the state and
+operation mapping; `traceability.json` records the link
+between model elements and concrete file paths in the
+project. Without these files, the packet is a design
+artifact with no link to implementation.
+
+This mode does **not** violate ADR-0006. The "every artifact
+is a packet" rule applies to the **math-coding repository**
+itself, not to the projects that use math-coding. In an
+external project, packets are an addition, not a replacement
+for the project's native structure.
 
 ## Packet structure
 
@@ -292,11 +347,19 @@ Schemas are themselves verified by
 - Test framework choice. The convention says "write a verifier";
   it does not say "use pytest".
 - Programming language. The convention works for any language.
-- Project structure. The convention says "a packet is a directory";
-  not where it lives.
 - Pull request workflow. The team's concern.
 - Continuous integration. The project's concern.
 - Specific tools. The convention is conventions only.
+- The advanced theories in `core/02-Theory-advanced/`. They
+  apply at `rigor: proof+` and are not part of the basic
+  convention. Read them when the project adopts advanced
+  formal tools (Coq, dependent types, modal cascade checking).
+- Cascade checking across the dependency graph. This is
+  mechanical in the modal theory (10) but implemented as an
+  opt-in extension, not in the core verifier.
+- Constructive proofs. The structural verifier validates
+  shape; it does not prove propositions. That requires
+  `rigor: proof` with a Coq bridge.
 
 ## Changes from v1
 

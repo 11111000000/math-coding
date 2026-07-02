@@ -12,9 +12,9 @@ assumptions.yaml) and lifecycle=sketch.
 
 ## Constraints
 
-- No formal model
-- No verifier artifact
-- Minimal content
+- must No formal model
+- must No verifier artifact
+- must Minimal content
 
 # Adaptations
 

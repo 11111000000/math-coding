@@ -11,9 +11,10 @@ A convention for structured artifacts (packets) in software
 projects. Plain text + git. No external dependencies.
 
 **This is a reference, not a product.** Read, adapt, do not
-install blindly. The eight theory documents in
-`core/01-Theory/` explain the formal foundation of every rule
-in `core.md`.
+install blindly. Eight theory documents in `core/01-Theory/`
+explain the formal foundation of every rule in `core.md`.
+Three advanced theory documents in `core/02-Theory-advanced/`
+extend the foundation for `rigor: proof+` projects.
 
 ## Why math-coding
 
@@ -68,7 +69,6 @@ drive agent behavior via the
 math-coding/
 ├── core/
 │   ├── core.md                          # the convention
-│   ├── packet.yaml
 │   ├── 01-Theory/                       # 8 mathematical foundations
 │   │   ├── 01-Predicate-and-Invariant.md
 │   │   ├── 02-State-Machine.md
@@ -78,36 +78,51 @@ math-coding/
 │   │   ├── 06-Verdict.md
 │   │   ├── 07-Epistemic.md
 │   │   └── 08-Deprecation.md
-│   ├── task.md
-│   ├── assumptions.yaml
-│   ├── refinement.md
-│   ├── traceability.json
-│   └── verifier-output.yaml
-├── agents/
-│   ├── agents.md                        # instructions for AI agents
-│   └── ...
+│   └── 02-Theory-advanced/              # 3 advanced foundations (rigor: proof+)
+│       ├── 09-Curry-Howard.md
+│       ├── 10-Modal-Lifecycle.md
+│       └── 11-Confidence-Information.md
+├── agents/                              # agent instructions
+│   ├── agents.md                        # concise protocol
+│   ├── process.md                       # detailed 13-step process
+│   └── rigor-tools.md                   # 6 rigor levels reference
 ├── schemas/                              # JSON Schema files
-│   ├── packet-manifest.schema.json
-│   ├── assumptions.schema.json
-│   ├── verification-report.schema.json
-│   ├── traceability.schema.json
-│   ├── refinement.schema.json
-│   └── decision.schema.json
 ├── install/
 │   └── install.sh
-├── examples/
-│   ├── hello/                            # minimal sketch packet
-│   ├── toggle/                           # working packet with TLA+
-│   ├── self-application/                 # verifier
-│   └── schema-self-application/          # meta-validation
+├── examples/                              # reference implementations
+│   ├── modal-dialog/                    # verified, TLA+ + TypeScript
+│   ├── self-application/                # verifier (fractal)
+│   └── schema-self-application/         # meta-validation
 ├── artifacts/                            # development packets
 ├── adr/                                  # 10 architectural decisions
+├── docs/                                  # integration guides
 ├── README/
-│   ├── README.md                         # this file
-│   └── packet.yaml
+│   ├── README.md                        # this file
+│   └── (other packet files)
 ├── INDEX.md                              # view over all packets
+├── .opencode/                            # opencode skill + commands
+├── .cursorrules                           # Cursor IDE instructions
+├── .github/workflows/verify.yml           # CI
 └── .gitignore
 ```
+
+## Two modes of application
+
+Math-coding can be applied in two topologies:
+
+**Self-application** (this repository): every artifact is a
+packet. Use for teaching, building math-coding itself, or
+when the repository's only purpose is to express the
+convention.
+
+**External project** (your production code): packets live in
+a dedicated directory, typically `specs/` or `math/`,
+configured via `.mathcodingrc` in your project root. Your
+code keeps its native structure. The bridge between packets
+and code is explicit through `refinement.md` and
+`traceability.json`.
+
+See `core/core.md §Two modes of application` for details.
 
 ## Quick start
 
@@ -120,17 +135,18 @@ sh /path/to/math-coding/install/install.sh
 Requires: `sh`, `awk`, `grep`, `sed`, `find`, `git`. Nothing
 else. **No Python, no Node, no Docker.**
 
-This creates `./math-coding/` in your project with templates,
-schemas, theory documents, and the verifier.
+This creates `./specs/` (or `./math/`, configurable via
+`.mathcodingrc`) in your project with templates, schemas,
+theory documents, and the verifier.
 
 Then:
 
 1. Read `core/core.md` for the convention.
 2. Read at least one theory document (e.g.,
    `core/01-Theory/01-Predicate-and-Invariant.md`).
-3. Copy templates: `cp math-coding/templates/* math-coding/tasks/my-task/`
+3. Open a packet: `sh .opencode/commands/mathpacket my-task`
 4. Fill in `packet.yaml`, `task.md`, `assumptions.yaml`.
-5. Run `sh math-coding/verify-consistency.sh`.
+5. Run `sh specs/verify-consistency.sh`.
 
 ## Integrations
 

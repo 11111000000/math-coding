@@ -55,7 +55,7 @@ output. See `core/core.md §State machine` for details.
 ### Process for opening a packet
 
 1. Decide: is this task non-trivial (4+ implicit assumptions)?
-2. If yes, copy template from `examples/hello/`.
+2. If yes, run `sh .opencode/commands/mathpacket <id>` to create the packet.
 3. Fill in `task.md` (Problem, Desired outcome, Constraints).
 4. Fill in `assumptions.yaml` with 4+ entries; apply epistemic
    protocol.

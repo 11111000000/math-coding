@@ -5,6 +5,104 @@ All notable changes to math-coding are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [2.1.0] - 2026-07-02
+
+### Two modes, six rigor levels, advanced theories split
+
+This release restructures the convention around two
+application modes (self-application, external project) and
+introduces explicit rigor levels (light, property, temporal,
+relational, proof, bpmn). The advanced theories (09-11) are
+moved to a separate directory to reflect their advanced
+status. The `task.md` Constraints section is converted from
+prose to a structured bullet list.
+
+#### Added
+
+- `agents/rigor-tools.md` — reference for the six rigor
+  levels, detection rules, and when to use each
+- `agents/process.md` — detailed 13-step process (split from
+  the shortened `agents/agents.md`)
+- `schemas/project-config.schema.json` — schema for
+  `.mathcodingrc` (project configuration)
+- `examples/external-project/` — example of external-project
+  mode (packets in `specs/`, code in `src/`)
+- `docs/onboarding.md` — guide for adopting math-coding in
+  a production project
+- `.opencode/skills/math-coding/install.md` — agent skill
+  for installing math-coding into a project
+- `core/02-Theory-advanced/` — directory for theories 09-11,
+  explicitly marked as advanced (`rigor: proof+`)
+
+#### Changed
+
+- `core/core.md` — added §"Two modes of application"
+  (self-application vs external project), §"Proof structure",
+  §"Modal obligations", §"Confidence calibration" sections
+  citing the advanced theories
+- `core/01-Theory/` — back to 8 basic theories; theories
+  09-11 moved to `core/02-Theory-advanced/`
+- `agents/agents.md` — shortened from 158 to ~180 lines
+  (yes, longer overall because more sections, but split into
+  5-step high-level + progressive disclosure to
+  `process.md` and `rigor-tools.md`)
+- `.opencode/commands/mathpacket` — reads `.mathcodingrc`
+  for `packets_dir`; template is now built into the script
+  (no dependency on `examples/hello/`)
+- `install/install.sh` — no longer copies `examples/hello/`
+  as template
+- `examples/self-application/verify-consistency.sh` —
+  replaced prose word counter in `## Constraints` with
+  bullet-list validator: each bullet must contain a
+  predicate (must / shall / requires / <= / >= / =) or
+  have 5+ words; empty bullets fail
+- `INDEX.md` — theories table now split into basic (8
+  theories) and advanced (3 theories); added "When to use"
+  rigor column
+- `artifacts/theory-{09,10,11}-*` — moved to
+  `artifacts-advanced/theory-{09,10,11}-*` to reflect
+  advanced status
+- `core/02-Theory-advanced/{09,10,11}.md` — each theory now
+  has §"What this explains vs what the verifier checks"
+  honestly distinguishing reasoning framework from
+  mechanical check
+
+#### Removed
+
+- `examples/hello/` — template is now built into
+  `.opencode/commands/mathpacket`; no separate template
+  directory
+- `core/refinement.md` — was a duplicate of
+  `examples/self-application/refinement.md`; the
+  self-application packet already describes the convention
+  refinement in detail
+
+#### Migration from v2.0
+
+- If you have an external project with math-coding installed:
+  - Update `.mathcodingrc` to use `packets_dir: specs` or
+    `packets_dir: math` (the field is now schema-validated)
+  - If you copied `examples/hello/` as a template, you can
+    now use `sh .opencode/commands/mathpacket <id>` instead
+- If you maintain math-coding itself:
+  - Theories 09-11 are now in `core/02-Theory-advanced/`,
+    not `core/01-Theory/`
+  - `core/refinement.md` is gone; see
+    `examples/self-application/refinement.md` for the
+    refinement of core conventions
+- `task.md` Constraints sections: short prose like "Latency
+  < 100ms" or "Idempotent" now requires a bullet format with
+  a predicate (must/shall/requires/<=/>=/=) or 5+ words.
+  Existing task.md files have been auto-padded with "must".
+
+#### Statistics
+
+- 7 schemas (added `project-config.schema.json`)
+- 11 theory documents (8 basic + 3 advanced)
+- 6 rigor levels supported
+- 0 new runtime dependencies
+- 0 packages broken by the migration
+
 ## [Unreleased]
 
 ## [2.0.0] - 2026-07-02

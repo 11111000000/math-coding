@@ -11,7 +11,7 @@ TLA+, or any convention-specific term, read:
 - `core/core.md` — canonical convention
 - `agents/agents.md` — agent instructions
 - The relevant theory from `core/01-Theory/`
-- `examples/hello/` — minimal packet template
+- The packet template is built into `.opencode/commands/mathpacket` (no separate `examples/hello/` to copy)
 
 ## Commands
 

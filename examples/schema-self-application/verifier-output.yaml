@@ -6,6 +6,6 @@ scope:
   - schema-version-present
   - schema-balanced-braces
 tool: shell-verifier-v2
-details: All 6 schemas are structurally valid.
+details: All 7 schemas are structurally valid.
 evidence:
-  schemas_checked: 6
+  schemas_checked: 7

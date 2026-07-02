@@ -15,30 +15,39 @@ verifier status. Click through to read the full packet.
 
 ## Theory documents (core/01-Theory/)
 
-These are part of the core. They ground every rule in mathematics.
+These are the basic mathematical foundations, always loaded.
 
-| Document | Mathematical basis | Cited from |
-|----------|---------------------|------------|
-| [01-Predicate-and-Invariant](core/01-Theory/01-Predicate-and-Invariant.md) | $I : S \to \mathbb{B}$ | core.md: §Invariants |
-| [02-State-Machine](core/01-Theory/02-State-Machine.md) | $\mathcal{M} = \langle S, s_0, A, \to, I \rangle$ | core.md: §State machine |
-| [03-Temporal-Logic](core/01-Theory/03-Temporal-Logic.md) | `[]P`, `<>P`, `P ~> Q` | core.md: §Temporal properties |
-| [04-Refinement](core/01-Theory/04-Refinement.md) | $R : S_{\text{impl}} \to S_{\text{spec}}$ | core.md: §Refinement |
-| [05-Assumption-Set](core/01-Theory/05-Assumption-Set.md) | $\Sigma \vdash \text{Spec}$ | core.md: §Assumption set |
-| [06-Verdict](core/01-Theory/06-Verdict.md) | $\text{Spec} \models P$ | core.md: §Verdicts |
-| [07-Epistemic](core/01-Theory/07-Epistemic.md) | $B : \text{Prop} \times \text{Agent} \to [0,1]$ | core.md: §Epistemics |
-| [08-Deprecation](core/01-Theory/08-Deprecation.md) | $P_{\text{old}} \perp P_{\text{new}}$ | core.md: §Deprecation |
-| [09-Curry-Howard](core/01-Theory/09-Curry-Howard.md) | packet = $\langle \Gamma, P, \pi \rangle$ | core.md: §Proof structure |
-| [10-Modal-Lifecycle](core/01-Theory/10-Modal-Lifecycle.md) | $\square P$, $\Diamond P$ over dep graph | core.md: §Modal obligations |
-| [11-Confidence-Information](core/01-Theory/11-Confidence-Information.md) | $I(P) = H(c)$ bits | core.md: §Confidence calibration |
+| Document | Mathematical basis | Cited from | Level |
+|----------|---------------------|------------|-------|
+| [01-Predicate-and-Invariant](core/01-Theory/01-Predicate-and-Invariant.md) | $I : S \to \mathbb{B}$ | core.md: §Invariants | basic |
+| [02-State-Machine](core/01-Theory/02-State-Machine.md) | $\mathcal{M} = \langle S, s_0, A, \to, I \rangle$ | core.md: §State machine | basic |
+| [03-Temporal-Logic](core/01-Theory/03-Temporal-Logic.md) | `[]P`, `<>P`, `P ~> Q` | core.md: §Temporal properties | basic |
+| [04-Refinement](core/01-Theory/04-Refinement.md) | $R : S_{\text{impl}} \to S_{\text{spec}}$ | core.md: §Refinement | basic |
+| [05-Assumption-Set](core/01-Theory/05-Assumption-Set.md) | $\Sigma \vdash \text{Spec}$ | core.md: §Assumption set | basic |
+| [06-Verdict](core/01-Theory/06-Verdict.md) | $\text{Spec} \models P$ | core.md: §Verdicts | basic |
+| [07-Epistemic](core/01-Theory/07-Epistemic.md) | $B : \text{Prop} \times \text{Agent} \to [0, 1]$ | core.md: §Epistemics | basic |
+| [08-Deprecation](core/01-Theory/08-Deprecation.md) | $P_{\text{old}} \perp P_{\text{new}}$ | core.md: §Deprecation | basic |
+
+## Advanced theory documents (core/02-Theory-advanced/)
+
+These extend the foundation for projects that adopt
+`rigor: proof+` or other advanced rigor levels. They are
+**not** part of the basic convention.
+
+| Document | Mathematical basis | Cited from | Required rigor |
+|----------|---------------------|------------|----------------|
+| [09-Curry-Howard](core/02-Theory-advanced/09-Curry-Howard.md) | packet = $\langle \Gamma, P, \pi \rangle$ | core.md: §Proof structure | proof+ |
+| [10-Modal-Lifecycle](core/02-Theory-advanced/10-Modal-Lifecycle.md) | $\square P$, $\Diamond P$ over dep graph | core.md: §Modal obligations | temporal+ |
+| [11-Confidence-Information](core/02-Theory-advanced/11-Confidence-Information.md) | $I(P) = H(c)$ bits | core.md: §Confidence calibration | any |
 
 ## Examples
 
 | Packet | Lifecycle | Substrate | Description |
 |--------|-----------|-----------|-------------|
-| [examples/hello](examples/hello/) | sketch | none | Minimal sketch packet |
 | [examples/modal-dialog](examples/modal-dialog/) | verified | tla | Reference implementation: 5-state modal FSM with TLA+ model and TypeScript reducer |
 | [examples/self-application](examples/self-application/) | verified | shell | Verifier (fractal property) |
 | [examples/schema-self-application](examples/schema-self-application/) | working | shell | Schema validator |
+| [examples/external-project](examples/external-project/) | sketch | none | Demonstrates external-project mode (packets in specs/, code in src/) |
 
 ## Architecture Decision Records
 

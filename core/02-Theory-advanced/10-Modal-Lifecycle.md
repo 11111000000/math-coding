@@ -136,6 +136,46 @@ invariants; the second governs cascading obligations. Without
 the modal layer, cascading deprecation is a convention-level
 rule that the verifier cannot express and humans may forget.
 
+## What this explains vs what the verifier checks
+
+This theory is **advanced**. It applies at `rigor: temporal+`
+for cascading deprecation reasoning. The structural verifier
+checks **safety** at every reachable state. It does not
+traverse the dependency graph.
+
+| Aspect | What the theory explains | What the verifier checks |
+|--------|---------------------------|---------------------------|
+| Forbidden transitions | $\square \neg(\text{sketch} \xrightarrow{} \text{verified})$ | checks current `lifecycle` value against FSM rules |
+| Dependency cascade | $\square(P \perp P' \Rightarrow \Diamond(Q \text{ re-verify}))$ | **not checked mechanically**; documented as human responsibility |
+| Modal obligation | existence of a path through the dependency graph | **not checked**; requires cascade-checker extension |
+| Convention version trigger | $\square(\text{version bump} \Rightarrow \square(\text{packet re-verify}))$ | **not checked**; convention-version trigger is human-applied |
+
+To turn cascading deprecation into a mechanical check, two
+extensions are required:
+
+1. **A dependency-graph extractor** that reads all
+   `packet.yaml` files and builds the `depends_on` graph.
+2. **A modal obligation linter** that, for each superseded
+   packet, walks the downstream packets and reports those
+   that have not documented their cascade response.
+
+These are not part of the core convention. They live in
+`extensions/cascade-checker/` (a separate repository, to keep
+the core convention free of dependencies). The cascade-checker
+is opt-in and runs in CI, not on every commit.
+
+For projects at `rigor: light` or `rigor: property`, modal
+obligations are documented in `task.md` under `# Adaptations`
+when a packet depends on a deprecated one. This is
+**epistemic work**, not mechanical work, and reflects the
+human's responsibility for cascade response.
+
+The theory explains **what cascading means in formal terms**;
+the verifier implements **what is mechanically checkable
+without graph traversal**. These are different scopes, and
+the distinction is honest about what the convention actually
+guarantees.
+
 ## References
 
 - Hughes & Cresswell, "A New Introduction to Modal Logic"

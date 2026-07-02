@@ -16,6 +16,6 @@ the packet or override the convention with documentation in
 
 ## Constraints
 
-- No blocking tooling
+- must No blocking tooling
 - Deviations must be explicit
 - Override is documented in # Adaptations

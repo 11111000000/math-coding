@@ -1,0 +1,20 @@
+{
+  "links": [
+    {
+      "source": "task.md:## Problem",
+      "target": "core/core.md:§Two modes of application",
+      "kind": "concept-grounding"
+    },
+    {
+      "source": "refinement.md:## State mapping",
+      "target": "src/payment/handler.ts:validatePayment",
+      "kind": "implementation-grounding",
+      "note": "Illustrative link; real packet would point to actual source file"
+    },
+    {
+      "source": "examples/external-project/.mathcodingrc:packets_dir",
+      "target": "schemas/project-config.schema.json",
+      "kind": "schema-validation"
+    }
+  ]
+}
