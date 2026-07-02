@@ -1,12 +1,31 @@
-.math-coding/
-.tools/
-.venv/
-venv/
-__pycache__/
-*.pyc
-.python-version
-examples/*/verifier-output.yaml.tmp
+# Nix build outputs
+result/
+result-*
 
-# opencode plugin runtime — installed per-machine, not part of repo
-.opencode/node_modules/
-.opencode/package-lock.json
+# Editor
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Hugo
+site/themes/
+site/resources/
+site/public/
+site/_vendor/
+site/.hugo_build.lock
+
+# Generated content (rebuilt by site/sync-content.sh)
+site/content/theory/*.md
+site/content/theory-advanced/*.md
+site/content/adr/*.md
+site/content/examples/*.md
+site/content/integrations/*.md
+site/content/agents/*.md
+site/content/core.md
+
+# Nix
+.direnv/
+.venv/
