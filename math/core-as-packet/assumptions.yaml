@@ -1,0 +1,53 @@
+task_id: core-as-packet
+assumptions:
+  - id: A1
+    statement: "OS files (non-packet convention artifacts) need explicit authorization by a packet"
+    status: judgment
+    epistemology: judgment
+    evidence: |
+      Without a packet authorizing core/, the convention would
+      have an unjustified OS directory. Recursive observability
+      requires that every directory or file has either a packet
+      decision or an explicit OS exception.
+      See: packet:math-coding-birth/refinement.md#operating-system
+
+  - id: A2
+    statement: "core/packet-schema.md is the canonical schema for packet fields"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      The schema lists 9 required fields and 1 conditional
+      field (supersession). This matches the 5-file packet
+      structure declared in math-coding-birth.
+      See: core/packet-schema.md (the file itself)
+
+  - id: A3
+    statement: "11 theory files in core/theories/ are the mathematical foundation of the convention"
+    status: judgment
+    epistemology: judgment
+    evidence: |
+      math-coding-birth/decision.md says convention is grounded
+      in math. The 11 theories are the explicit grounding.
+      See: packet:math-coding-birth/decision.md#synthesis
+
+  - id: A4
+    statement: "OS files don't need their own packets"
+    status: judgment
+    epistemology: judgment
+    evidence: |
+      Brownfield mode (per agents.md) treats most existing files
+      as OS. The same principle applies here: core/ OS files
+      don't need their own packets.
+      See: packet:math-coding-birth/refinement.md#brownfield-mode
+
+  - id: A5
+    statement: "core/ contains no packets; it is convention-OS only"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 1.0
+    evidence: |
+      core/ has no packet.yaml files. All files are .md
+      documentation. This is verified by find core/ -name packet.yaml
+      returning empty.
+      See: packet:math-coding-birth/refinement.md#operating-system
