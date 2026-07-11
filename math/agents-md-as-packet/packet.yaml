@@ -1,0 +1,11 @@
+task_id: agents-md-as-packet
+title: agents.md is convention-OS, authorized by this packet
+lifecycle: working
+substrate: none
+rigor: light
+decision: made
+created: "2026-07-11"
+verifier: null
+depends_on:
+  - math-coding-birth
+  - core-as-packet
