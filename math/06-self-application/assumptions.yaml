@@ -1,0 +1,28 @@
+task_id: 06-self-application
+assumptions:
+  - id: A1
+    statement: "the convention's own packets must satisfy its verifier"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      The seven axiom packets live under math/ and must
+      pass core/check/verify.sh. Their verifier is one of
+      the artifacts under core/.
+  - id: A2
+    statement: "probe.sh exits 0 iff the convention is internally consistent"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      probe.sh runs core/check/verify.sh against every
+      math/<pkt>/, then checks coherence between docs/axioms.md
+      and theories/, then runs core/check/drift-check.sh on
+      the axioms' applications[] entries.
+  - id: A3
+    statement: "the meta-check is itself a packet"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.99
+    evidence: |
+      This packet — math/06-self-application/ — is the
+      meta-check made into a 5-file packet. Its existence
+      is the proof that the convention applies to itself.

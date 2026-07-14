@@ -1,0 +1,14 @@
+task_id: 04-process
+title: A4 Process — temporal axiom
+lifecycle: working
+substrate: none
+rigor: property
+decision: made
+created: "2026-07-15"
+verifier: sh core/axiom/probe.sh
+depends_on:
+  - 00-difference
+  - 01-care
+  - 02-curry-howard
+  - 03-material
+applications: []

@@ -1,0 +1,11 @@
+task_id: 01-care
+title: A1 Care — motivational axiom
+lifecycle: working
+substrate: none
+rigor: proof
+decision: made
+created: "2026-07-15"
+verifier: sh core/axiom/probe.sh
+depends_on:
+  - 00-difference
+applications: []

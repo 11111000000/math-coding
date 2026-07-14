@@ -3,3 +3,10 @@
 *~
 *.bak
 .DS_Store
+
+# AI agent state
+/.agent-shell/
+/.obsidian/workspace.json
+
+# Brownfield (when math-coding is installed into another project)
+/.math-coding/

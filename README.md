@@ -1,97 +1,87 @@
-# math-coding
+# math-coding v0.854
 
-> A **Curry-Howard convention**: every packet is a **proof
-> term**, every verifier exit-code is a **type-check**. The
-> convention applies to itself.
+> Curry-Howard convention for AI coding agents.
+> Plain-text. git. POSIX. Seven axioms. axiom A6 self-application.
 
-## What is this
+## What this is
 
-math-coding is a plain-text + git + POSIX-shell convention
-where every non-trivial decision is a **packet** — a directory
-with five files. The packet is the proposition; the code is
-the proof term; the verifier is the type-checker; the proof
-resolves through `sh core/ops/probe.sh` exit-code.
+A convention where every non-trivial decision is a **packet**
+— a directory with exactly five files. The packet is the
+proposition; the verifier is the type-check; the convention
+applies to itself (axiom A6).
 
-## Four axioms
+## Seven axioms
 
-1. **think-before-do** — model first, code second.
-   See `core/think-before-do.md`.
+  A0. Difference       A4. Process
+  A1. Care             A5. Accounting
+  A2. Curry-Howard     A6. Self-Application
+  A3. Material Basis
 
-2. **FSM lifecycle** — every packet is `sketch → working →
-   verified → deprecated → archived`, with `superseded`
-   as a parallel terminal edge. Transition `sketch →
-   verified` is forbidden.
-
-3. **epistemic markers** — every assumption has one of:
-   `fact | hypothesis | judgment | unknown | proven`.
-
-4. **axiom A4** — the convention applies to itself.
-   `sh core/ops/probe.sh` exit 0 is the recursive
-   observability witness. Marker `epistemology: proven`
-   is reserved for this and similar end-to-end checks.
-
-## Eight theories (4 foundational + 4 applied)
-
-Foundational:
-
-1. `curry-howard` — proposition ↔ type.
-2. `predicate` — every check is a predicate `I: S → B`.
-3. `fsm` — lifecycle is a finite state machine.
-4. `refinement` — packet = spec, code = impl, relation R.
-
-Applied:
-
-5. `verdict` — five outcomes of verifier (VERIFIED /
-   NEEDS_REVISION / UNVERIFIABLE:*).
-6. `epistemic` — five markers, `confidence ∈ [0,1]`.
-7. `deprecation` — supersession is a strict partial order.
-8. `agent` — LLM as a runtime substrate (mode, role).
-
-## Three modes (proportional rigor)
-
-| Mode | When | Required artefacts |
-|------|------|---------------------|
-| `light` | typo, doc fix | commit + 1-line rationale |
-| `standard` | new feature | 5-file packet |
-| `strict` | architecture | packet + theory-link + applications[] |
-
-Default by role: developer→`standard`, designer/PM→`light`,
-researcher→`strict`, tech-writer→`skip`.
+Read `docs/axioms.md` for the full statement.
 
 ## Five-file packet
 
-```
-math/<name>/
-├── packet.yaml       # manifest + applications[]
-├── decision.md       # thesis / synthesis (+antithesis if feature)
-├── task.md           # problem / outcome / constraints
-├── assumptions.yaml  # Σ with epistemic markers
-└── refinement.md     # state / operation / invariant / test
-```
+  packet.yaml       manifest + lifecycle + applications[]
+  decision.md       proposition (thesis / antithesis / synthesis)
+  task.md           intent (problem / outcome / constraints)
+  assumptions.yaml  epistemic context (5 markers)
+  refinement.md     state / operation / invariant / test / runtime
 
-## Universal: one convention, depth scales
+Each packet lives under `math/<name>/`.
 
-Small project: 1-2 packets/week, mostly `light` mode.
-Large project: 100+ packets, `standard` and `strict` modes.
-**Same convention, different depth.**
+## Three modes
 
-## Self-application
+  light    commit message only
+  standard full 5-file packet
+  strict   packet + theory link + applications[] + surface impact
 
-This repository IS a math-coding repository:
+## Six lifecycle states
 
-- `core/theories/` — the eight theories.
-- `math/<name>/` — every decision is a packet.
-- The repository proves axiom A4 by `sh core/ops/probe.sh`
-  resolving to exit-code 0 against itself.
+  sketch → working → verified → deprecated → archived
+                                            ↑
+                                            superseded
+
+Forbidden: `sketch → verified`.
+
+## Five epistemic markers
+
+  fact / hypothesis / judgment / unknown / proven
+
+`proven` is reserved for axiom A6 self-application.
+
+## Five verdict outcomes
+
+  VERIFIED, NEEDS_REVISION, UNVERIFIABLE:{TOOL_MISSING,
+  DEFERRED, OUT_OF_SCOPE}.
+
+## Commands
+
+  sh math-coding init <name>     scaffold a 5-file packet
+  sh math-coding verify          structural check
+  sh math-coding drift-check     applications[] SHA vs HEAD
+  sh math-coding probe           axiom A6 self-application
+  sh math-coding install <path>  install into a brownfield project
+  sh math-coding upgrade <path>  upgrade an existing install
+  sh math-coding uninstall <path>
+
+## Quick start
+
+  git clone math-coding-v0.854
+  cd math-coding-v0.854
+  sh math-coding probe         # axiom A6 self-application
+  sh math-coding init my-feature
+  # fill the five files under math/my-feature/
+  git add math/my-feature
+  git commit -m "my-feature: first commit"
+  sh math-coding verify
+  # move to verified when ready (see AGENTS.md)
+
+## Install in an existing project
+
+  sh /path/to/math-coding/math-coding install /path/to/project
+  cd /path/to/project
+  sh ./.math-coding/math-coding probe
 
 ## License
 
-Living Beings — see LICENSE.
-
-## Read first (for agents)
-
-1. This file (root manifest).
-2. `core/think-before-do.md`.
-3. `core/decision-modes.md`.
-4. `core/packet-schema.md`.
-5. `math/<latest>/decision.md` (resolve via `git log --oneline math/*/decision.md | head -1`).
+Living Beings License — see LICENSE.
