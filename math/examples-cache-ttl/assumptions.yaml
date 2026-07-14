@@ -1,9 +1,24 @@
-task_id: examples-cache-ttl
+task_id: cache-ttl
 assumptions:
   - id: A1
-    statement: "<your first assumption>"
+    statement: "60s is acceptable for this endpoint"
+    status: user-confirmed
+    epistemology: fact
+    confidence: 0.95
+    evidence: "SLA allows 60s for /cache"
+  - id: A2
+    statement: "invalidation calls are safe to repeat"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      Idempotency is a standard property for cache
+      invalidation. Multiple calls remove the same
+      entry; no side effects beyond that.
+  - id: A3
+    statement: "upstream supports ETag-based refresh"
     status: agent-inferred
     epistemology: hypothesis
-    confidence: 0.5
+    confidence: 0.85
     evidence: |
-      <one-line evidence>
+      Upstream sends ETag headers; we honour them when
+      refreshing expired entries. Needs verification.

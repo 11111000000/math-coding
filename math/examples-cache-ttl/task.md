@@ -1,13 +1,19 @@
-# examples-cache-ttl
+# cache-ttl
 
 ## Problem
 
-What problem does this packet address?
+Stale data is served indefinitely after upstream changes
+because the cache has no expiration policy.
 
 ## Desired outcome
 
-What does success look like?
+Cache entries expire after a configurable TTL (default 60
+seconds). Manual invalidation is available as a separate
+endpoint for cases where freshness is critical.
 
 ## Constraints
 
-- must be testable
+- TTL must be configurable per cache type.
+- Invalidation must be idempotent (safe to call multiple
+  times).
+- No code change for in-process cache: just a wrapper.
