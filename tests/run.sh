@@ -105,6 +105,93 @@ else
     log_fail "axiom-a6-chain-closes" "math/06-self-application/ missing"
 fi
 
+# Case 9: every axiom packet has a "worked example" section
+# (the convention's content-quality standard)
+worked_missing=""
+for p in $axiom_packets packet-lifecycle; do
+    if [ -f "$REPO_ROOT/math/$p/decision.md" ]; then
+        if ! grep -qE '^## .*[Ww]orked example|^## Worked example' "$REPO_ROOT/math/$p/decision.md"; then
+            worked_missing="$worked_missing $p"
+        fi
+    fi
+done
+if [ -z "$worked_missing" ]; then
+    log_pass "worked-example-sections"
+else
+    log_fail "worked-example-sections" "missing:$worked_missing"
+fi
+
+# Case 10: no axiom packet uses by-number axiom names
+# (axiom A4, axiom A5, axiom A6) — must use names (Process,
+# Accounting, Self-Application)
+named_ok=1
+for p in $axiom_packets packet-lifecycle; do
+    if [ -f "$REPO_ROOT/math/$p/decision.md" ]; then
+        if grep -qE '\baxiom A[0-9]\b' "$REPO_ROOT/math/$p/decision.md"; then
+            log_fail "named-axioms-only" "$p uses 'axiom A<number>'"
+            named_ok=0
+        fi
+    fi
+done
+if [ "$named_ok" = "1" ]; then
+    log_pass "named-axioms-only"
+fi
+
+# Case 11: every axiom packet has a backlink to docs/axioms.md
+backlink_missing=""
+for p in $axiom_packets packet-lifecycle; do
+    if [ -f "$REPO_ROOT/math/$p/decision.md" ]; then
+        if ! grep -q 'This packet realises' "$REPO_ROOT/math/$p/decision.md"; then
+            backlink_missing="$backlink_missing $p"
+        fi
+    fi
+done
+if [ -z "$backlink_missing" ]; then
+    log_pass "axiom-packet-backlinks"
+else
+    log_fail "axiom-packet-backlinks" "missing:$backlink_missing"
+fi
+
+# Case 12: every axiom packet's applications[] resolves
+# (drift-check covers this; this is a redundant sanity test)
+if sh "$REPO_ROOT/core/check/drift-check.sh" 2>&1 | grep -qE 'applied: ([0-9]+), lookahead: 0, drift: 0'; then
+    log_pass "applications-witness-applied"
+else
+    log_fail "applications-witness-applied" "drift-check shows drift or lookahead"
+fi
+
+# Case 13: every axiom packet has a specific surface impact
+# (not "convention's foundation" or "axiom X" generic phrases)
+generic_missing=""
+for p in $axiom_packets packet-lifecycle; do
+    if [ -f "$REPO_ROOT/math/$p/decision.md" ]; then
+        if grep -qE '^touches: convention' "$REPO_ROOT/math/$p/decision.md"; then
+            generic_missing="$generic_missing $p"
+        fi
+    fi
+done
+if [ -z "$generic_missing" ]; then
+    log_pass "specific-surface-impact"
+else
+    log_fail "specific-surface-impact" "generic surface in:$generic_missing"
+fi
+
+# Case 14: every axiom packet's proof is evidence-based
+# (must reference tests, scripts, or "evidence")
+evidence_missing=""
+for p in $axiom_packets packet-lifecycle; do
+    if [ -f "$REPO_ROOT/math/$p/decision.md" ]; then
+        if ! grep -qE 'evidence|The evidence|tests/run|verify\.sh|probe\.sh|drift-check\.sh' "$REPO_ROOT/math/$p/decision.md"; then
+            evidence_missing="$evidence_missing $p"
+        fi
+    fi
+done
+if [ -z "$evidence_missing" ]; then
+    log_pass "evidence-based-proofs"
+else
+    log_fail "evidence-based-proofs" "no evidence in:$evidence_missing"
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "  pass: $pass"

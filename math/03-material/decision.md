@@ -97,10 +97,10 @@ But the script is not POSIX. On a host without Python
 3.12 — a fresh container, an old server, a macOS system
 where Homebrew has not been updated — the script fails.
 The convention has lost its material basis in practice.
-The `tests/run.sh` axiom-A6 self-application would
+The `tests/run.sh` axiom-Self-Application self-application would
 exit non-zero if the convention were installed on such a
 host; the bug is caught the next time the convention runs
-axiom A6.
+axiom Self-Application.
 
 These two examples are not hypothetical. They are
 failure modes of conventions that depended on
@@ -123,4 +123,4 @@ git, POSIX) hold at this commit.
 If a future commit introduces a binary file, a
 non-POSIX script, or a non-git change, one or more of the
 8 self-tests fails. The convention detects the drift and
-exits non-zero. axiom A6 holds only as long as A3 holds.
+exits non-zero. axiom Self-Application holds only as long as A3 holds.

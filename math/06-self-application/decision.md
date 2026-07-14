@@ -113,7 +113,7 @@ applied: 6, lookahead: 0, drift: 2
 
 This is axiom Self-Application in action. The convention
 detected that its own witness was stale. Two fix commits
-refreshed the SHA; the drift cleared; axiom A6 held again.
+refreshed the SHA; the drift cleared; axiom Self-Application held again.
 
 ```
 $ sh math-coding drift-check
