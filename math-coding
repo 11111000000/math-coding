@@ -1,0 +1,70 @@
+#!/bin/sh
+# math-coding — math-coding v0.854 dispatcher.
+#
+# Routes user-facing commands to the right tool. The dispatcher
+# knows the layout; the tools know their role.
+
+set -u
+
+REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+
+usage() {
+    cat <<EOF
+usage: math-coding <command> [args...]
+
+Commands:
+  init <name> [--template=<feature|bugfix|fsm>]
+                   Scaffold a new 5-file packet under math/<name>/.
+  verify            Run core/check/verify.sh on all packets.
+  drift-check       Run core/check/drift-check.sh on applications[].
+  probe             Run core/axiom/probe.sh (axiom A6 self-application).
+  install <path>    Install convention to <path>/.math-coding/.
+  upgrade <path>    Upgrade .math-coding/ in <path>.
+  uninstall <path>  Remove .math-coding/ from <path>.
+  help              This message.
+
+Examples:
+  sh math-coding init my-feature
+  sh math-coding verify
+  sh math-coding probe
+  sh math-coding install /path/to/project
+
+EOF
+}
+
+case "${1:-help}" in
+    init)
+        shift
+        exec sh "$REPO_ROOT/core/author/init-packet.sh" "$@"
+        ;;
+    verify)
+        exec sh "$REPO_ROOT/core/check/verify.sh"
+        ;;
+    drift-check)
+        exec sh "$REPO_ROOT/core/check/drift-check.sh"
+        ;;
+    probe)
+        exec sh "$REPO_ROOT/core/axiom/probe.sh"
+        ;;
+    install)
+        shift
+        exec sh "$REPO_ROOT/core/install/install.sh" "$@"
+        ;;
+    upgrade)
+        shift
+        exec sh "$REPO_ROOT/core/install/upgrade.sh" "$@"
+        ;;
+    uninstall)
+        shift
+        exec sh "$REPO_ROOT/core/install/uninstall.sh" "$@"
+        ;;
+    help|--help|-h|"")
+        usage
+        ;;
+    *)
+        echo "math-coding: unknown command '$1'" >&2
+        echo "" >&2
+        usage >&2
+        exit 2
+        ;;
+esac
