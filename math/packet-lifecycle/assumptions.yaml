@@ -1,0 +1,27 @@
+task_id: packet-lifecycle
+assumptions:
+  - id: A1
+    statement: "every change to a packet carries a git SHA"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      axiom A4 fixes the material basis as plain-text + git.
+      axiom A5 fixes the witness as SHA in applications[].
+      A change without SHA is a lie.
+  - id: A2
+    statement: "amendments and supersession are distinct acts"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      amendment: adds SHA to existing applications[].
+      supersession: creates new packet, old packet marked
+      superseded. The boundary is sharp: same proposition vs
+      different proposition.
+  - id: A3
+    statement: "no in-place edits of committed packets"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      In-place edits violate the append-only ledger axiom
+      and contradict the SHA witness.

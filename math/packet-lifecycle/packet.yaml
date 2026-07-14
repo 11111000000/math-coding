@@ -1,0 +1,12 @@
+task_id: packet-lifecycle
+title: How a packet evolves through its lifecycle
+lifecycle: working
+substrate: none
+rigor: property
+decision: made
+created: "2026-07-15"
+verifier: sh math-coding probe
+depends_on:
+  - 04-process
+  - 05-accounting
+applications: []
