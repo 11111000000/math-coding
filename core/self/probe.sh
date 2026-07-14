@@ -1,7 +1,7 @@
 #!/bin/sh
-# core/axiom/probe.sh — math-coding v0.854 axiom A6 orchestrator.
+# core/self/probe.sh — math-coding v0.854 axiom A6 orchestrator.
 #
-# Usage: sh core/axiom/probe.sh
+# Usage: sh core/self/probe.sh
 #
 # Runs the verifier and the drift-check; reports a verdict
 # on whether the convention is internally consistent.

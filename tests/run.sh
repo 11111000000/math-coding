@@ -45,7 +45,7 @@ echo "=== math-coding v0.854 self-tests ==="
 echo ""
 
 # Case 1: probe.sh exits 0
-run_case "probe-axiom-a6" "sh $REPO_ROOT/core/axiom/probe.sh >/dev/null 2>&1"
+run_case "probe-axiom-a6" "sh $REPO_ROOT/core/self/probe.sh >/dev/null 2>&1"
 
 # Case 2: verify.sh exits 0
 run_case "verify-structural" "sh $REPO_ROOT/core/check/verify.sh >/dev/null 2>&1"

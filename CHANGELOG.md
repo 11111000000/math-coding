@@ -28,7 +28,7 @@ First release after the recursive reset to v0.618.
   core/check/verify.sh          structural + axioms check
   core/check/drift-check.sh     applications[] SHA vs HEAD
   core/agent/mathrc.sh          load ./.mathrc
-  core/axiom/probe.sh           axiom A6 self-application
+  core/self/probe.sh           axiom A6 self-application
   core/install/install.sh       brownfield install
   core/install/upgrade.sh       brownfield upgrade
   core/install/uninstall.sh     brownfield uninstall

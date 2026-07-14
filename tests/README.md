@@ -30,5 +30,5 @@ of failures. Use this in CI:
 
 Tests are a separate role. They are not part of the
 convention's install payload; they live in the source
-repository only. axiom A6 is verified by `core/axiom/probe.sh`;
+repository only. axiom A6 is verified by `core/self/probe.sh`;
 the broader battery lives here.

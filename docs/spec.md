@@ -112,7 +112,7 @@ Exit 0 means axiom A6 holds.
   core/check/verify.sh        structural + axioms + theories check
   core/check/drift-check.sh   applications[] SHA vs HEAD
   core/agent/mathrc.sh        load ./.mathrc
-  core/axiom/probe.sh         axiom A6 self-application
+  core/self/probe.sh         axiom A6 self-application
   core/install/install.sh     brownfield install
   core/install/upgrade.sh     brownfield upgrade
   core/install/uninstall.sh   brownfield uninstall
@@ -132,5 +132,3 @@ Versions follow the φ-recurrence:
   v_{n+1} = v_n + (1 - v_n) * 0.618
 
   v0.618 → v0.854 → v0.944 → v0.978 → ...
-
-The convention approaches but never reaches 1.0.

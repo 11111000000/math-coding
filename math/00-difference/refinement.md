@@ -28,7 +28,7 @@ from which A1-A6 grow.
 
 ## Test obligation
 
-- axiom A6 (self-application) — `sh core/axiom/probe.sh` —
+- axiom A6 (self-application) — `sh core/self/probe.sh` —
   verifies that all 7 axioms cohere and that A0 sits at their
   base.
 

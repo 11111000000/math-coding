@@ -5,7 +5,7 @@
 - pre: the convention exists in fragments — packets, scripts,
   theories, axioms — but no single act demonstrates their
   mutual coherence.
-- post: `sh core/axiom/probe.sh` runs and returns 0. The
+- post: `sh core/self/probe.sh` runs and returns 0. The
   convention has applied itself to its own state and found
   itself consistent.
 

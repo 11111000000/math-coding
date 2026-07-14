@@ -9,7 +9,7 @@ consistent? What runs the proof?
 
 A meta axiom — A6 — and the script that satisfies it.
 
-When `sh core/axiom/probe.sh` returns 0, the convention
+When `sh core/self/probe.sh` returns 0, the convention
 has applied its own rules to its own state. The exit-code
 is the witness.
 

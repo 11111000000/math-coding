@@ -57,7 +57,7 @@ The convention applies to itself. Every axiom above is
 realised as a packet under `math/`. The verifier is itself
 the subject of a packet.
 
-  `sh core/axiom/probe.sh` exits 0 ⟺ the convention is
+  `sh core/self/probe.sh` exits 0 ⟺ the convention is
   internally consistent.
 
   Packet: math/06-self-application/

@@ -19,7 +19,7 @@ A6 closes the loop. The seven axioms are seven packets.
 The core/ scripts are themselves subjects of packets. The
 verifier exit-code is itself a witness in applications[].
 
-axiom A6 names this closure. `sh core/axiom/probe.sh` is
+axiom A6 names this closure. `sh core/self/probe.sh` is
 its proof: when the script returns 0, the convention has
 applied itself to its own state and found itself consistent.
 
@@ -29,7 +29,7 @@ touches: the convention's relationship with itself [FROZEN]
 
 ## Proof
 
-`sh core/axiom/probe.sh` exits 0 ⟺ the convention's own
+`sh core/self/probe.sh` exits 0 ⟺ the convention's own
 packets satisfy the structure their verifier demands, the
 axioms in docs/axioms.md cohere with the theories in
 theories/, the core/ scripts run on a minimal POSIX shell,

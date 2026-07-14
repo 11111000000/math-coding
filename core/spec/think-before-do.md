@@ -32,7 +32,7 @@ discipline of the convention.
 8. **Verify** with `sh core/check/verify.sh`. Five files
    present? Lifecycles valid? Epistemic markers valid?
 
-9. **Probe** with `sh core/axiom/probe.sh`. axiom A6 holds?
+9. **Probe** with `sh core/self/probe.sh`. axiom A6 holds?
 
 ## Forbidden
 

@@ -35,7 +35,7 @@ It routes commands to the right tool:
   sh math-coding init <name>     → core/author/init-packet.sh
   sh math-coding verify           → core/check/verify.sh
   sh math-coding drift-check      → core/check/drift-check.sh
-  sh math-coding probe            → core/axiom/probe.sh
+  sh math-coding probe            → core/self/probe.sh
   sh math-coding install <path>   → core/install/install.sh
   sh math-coding upgrade <path>   → core/install/upgrade.sh
   sh math-coding uninstall <path> → core/install/uninstall.sh
@@ -48,7 +48,7 @@ own role. The two are decoupled.
 Every script can be invoked directly:
 
   sh core/check/verify.sh
-  sh core/axiom/probe.sh
+  sh core/self/probe.sh
   sh core/author/init-packet.sh foo
 
 The dispatcher is the user-facing entry point. Direct

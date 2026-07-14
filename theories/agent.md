@@ -12,7 +12,7 @@ ask clarifying questions. Its actions form a trace:
 The convention treats every agent as an interpreter over
 the plain-text files in this repository. The agent's proof
 term is its trace; the agent's type-checker is
-`core/check/verify.sh` and (in axiom A6) `core/axiom/probe.sh`.
+`core/check/verify.sh` and (in axiom A6) `core/self/probe.sh`.
 
 In math-coding:
 

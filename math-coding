@@ -17,7 +17,7 @@ Commands:
                    Scaffold a new 5-file packet under math/<name>/.
   verify            Run core/check/verify.sh on all packets.
   drift-check       Run core/check/drift-check.sh on applications[].
-  probe             Run core/axiom/probe.sh (axiom A6 self-application).
+  probe             Run core/self/probe.sh (axiom A6 self-application).
   install <path>    Install convention to <path>/.math-coding/.
   upgrade <path>    Upgrade .math-coding/ in <path>.
   uninstall <path>  Remove .math-coding/ from <path>.
@@ -44,7 +44,7 @@ case "${1:-help}" in
         exec sh "$REPO_ROOT/core/check/drift-check.sh"
         ;;
     probe)
-        exec sh "$REPO_ROOT/core/axiom/probe.sh"
+        exec sh "$REPO_ROOT/core/self/probe.sh"
         ;;
     install)
         shift

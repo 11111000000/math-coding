@@ -14,7 +14,7 @@ In math-coding, every check reduces to a predicate:
   I_drift       = (∀ sha, file: git diff sha..HEAD -- file = ∅)
   I_self        = (axiom A6 proven)
 
-`core/check/verify.sh` and `core/axiom/probe.sh` evaluate
+`core/check/verify.sh` and `core/self/probe.sh` evaluate
 these predicates over the convention's own state.
 
 See math/02-curry-howard/, math/04-process/, math/06-self-application/.

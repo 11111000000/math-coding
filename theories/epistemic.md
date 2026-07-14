@@ -20,7 +20,7 @@ The marker has:
   status: user-confirmed
   epistemology: proven
   confidence: 1.0
-  evidence: `sh core/axiom/probe.sh` exits 0 against the
+  evidence: `sh core/self/probe.sh` exits 0 against the
             convention's own repository
 
 See math/05-accounting/, math/06-self-application/.
