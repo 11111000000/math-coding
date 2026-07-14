@@ -1,0 +1,26 @@
+task_id: 03-material
+assumptions:
+  - id: A1
+    statement: "plain-text files survive all tooling changes"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      Text formats from the 1970s are still readable. JSON-with-
+      comments from 2020 may not be. The convention bets on
+      the older substrate.
+  - id: A2
+    statement: "git is sufficient as append-only ledger"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      Every convention artifact carries a git SHA. History
+      is preserved across machines by `git clone` alone.
+  - id: A3
+    statement: "POSIX shell is sufficient as runtime"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.97
+    evidence: |
+      Every core/ script uses only POSIX-defined utilities
+      (test, awk, sed, grep, git, find, mktemp, printf).
+      Verified to run on dash and busybox sh.
