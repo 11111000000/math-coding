@@ -1,9 +1,26 @@
 task_id: 01-care
 assumptions:
   - id: A1
-    statement: "<your first assumption>"
-    status: agent-inferred
-    epistemology: hypothesis
-    confidence: 0.5
+    statement: "developers care about correctness of the code they ship"
+    status: user-confirmed
+    epistemology: judgment
     evidence: |
-      <one-line evidence>
+      Absent care, a developer ships code that "looks fine"
+      and breaks in production. The whole point of math-coding
+      is to replace "looks fine" with "verified".
+  - id: A2
+    statement: "AI agents operate on behalf of caring developers"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+    evidence: |
+      Agents in math-coding carry no will of their own.
+      They extend the developer who runs them.
+  - id: A3
+    statement: "care requires epistemic honesty"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      Care that mistakes belief for knowledge is harmful.
+      A5 (epistemic markers) is the discipline of care.
