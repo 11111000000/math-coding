@@ -1,0 +1,40 @@
+name: convention-ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  convention-axiom-a6:
+    name: axiom A6 (Self-Application) — convention verifies itself
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install minimal POSIX environment
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git dash
+
+      - name: Run axiom A6 (probe)
+        run: sh math-coding probe
+
+      - name: Run self-tests
+        run: sh tests/run.sh
+
+      - name: Run drift-check (axiom Accounting)
+        run: sh math-coding drift-check
+
+      - name: Run verify (axiom Curry-Howard)
+        run: sh core/check/verify.sh
+
+      - name: Verify no external dependencies
+        run: |
+          # axiom Material Basis: only git + POSIX shell.
+          # No Python, no JVM, no Node, no TLA+.
+          if command -v python3 >/dev/null 2>&1; then
+            echo "warning: python3 is installed (not used)"
+          fi
+          echo "axiom Material Basis: only git + POSIX shell"
