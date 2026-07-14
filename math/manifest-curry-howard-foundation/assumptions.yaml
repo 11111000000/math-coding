@@ -1,0 +1,27 @@
+task_id: manifest-curry-howard-foundation
+assumptions:
+  - id: A1
+    statement: "Curry-Howard is the load-bearing logical structure of math-coding"
+    status: user-confirmed
+    epistemology: fact
+    confidence: 1.0
+    evidence: |
+      core/think-before-do.md (v0.618) explicitly:
+      "Curry-Howard says a proof term follows the proposition
+      it proves. The packet is the proposition; the code is
+      the proof."
+  - id: A2
+    statement: "Eight theories (curry-howard, predicate, fsm, refinement, verdict, epistemic, deprecation, agent) form a self-sufficient foundation"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      Prior dialogues (this session) settled on 8 theories
+      as optimal: 4 foundational + 4 applied.
+  - id: A3
+    statement: "Three modes (light/standard/strict) suffice for all use-cases"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      Prior dialogues: 4 modes in v0.618 was excessive;
+      3 modes are sufficient (light = commit-only,
+      standard = packet, strict = packet + theory link).

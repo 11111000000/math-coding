@@ -1,0 +1,12 @@
+task_id: manifest-curry-howard-foundation
+title: Declare Curry-Howard as explicit foundation; write manifest
+lifecycle: working
+substrate: none
+rigor: property
+decision: made
+created: "2026-07-14"
+verifier: sh core/verify.sh
+depends_on:
+  - math-coding-birth
+  - core-as-packet
+applications: []

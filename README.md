@@ -1,39 +1,97 @@
-# math-coding v0.618
+# math-coding
 
-A convention for mathematically grounded software artifacts.
-Plain text + git. No external dependencies. No frameworks.
+> A **Curry-Howard convention**: every packet is a **proof
+> term**, every verifier exit-code is a **type-check**. The
+> convention applies to itself.
 
-## Why
+## What is this
 
-Vibe-coding optimizes for local plausibility. The code looks
-fine in the moment, breaks the first time a user clicks
-twice, a request arrives out of order, or a deployment
-scales past one node. math-coding replaces this: every
-decision becomes a packet, every packet is mechanically
-verifiable, the chat is not the spec, the code is not
-the first artifact.
+math-coding is a plain-text + git + POSIX-shell convention
+where every non-trivial decision is a **packet** — a directory
+with five files. The packet is the proposition; the code is
+the proof term; the verifier is the type-checker; the proof
+resolves through `sh core/ops/probe.sh` exit-code.
 
-## What
+## Four axioms
 
-Every directory in `math/` is a packet. Each packet has
-exactly 5 files:
-- `packet.yaml` — manifest (task_id, lifecycle, decision: made)
-- `decision.md` — thesis / antithesis / synthesis
-- `task.md` — problem / desired outcome / constraints
-- `assumptions.yaml` — explicit assumptions with epistemic markers
-- `refinement.md` — how the convention extends or supersedes itself
+1. **think-before-do** — model first, code second.
+   See `core/think-before-do.md`.
 
-## How
+2. **FSM lifecycle** — every packet is `sketch → working →
+   verified → deprecated → archived`, with `superseded`
+   as a parallel terminal edge. Transition `sketch →
+   verified` is forbidden.
 
-Read `math/math-coding-birth/` to see the first packet. Then
-read `agents.md` for the protocol. After commit 2, every key
-decision about the convention lives as its own packet in
-`math/`.
+3. **epistemic markers** — every assumption has one of:
+   `fact | hypothesis | judgment | unknown | proven`.
 
-## What this is NOT
+4. **axiom A4** — the convention applies to itself.
+   `sh core/ops/probe.sh` exit 0 is the recursive
+   observability witness. Marker `epistemology: proven`
+   is reserved for this and similar end-to-end checks.
 
-This is not a framework. There is no library to install,
-no API to call, no runtime to embed. The convention is the
-set of rules; the artifacts are the substance. The recursive
-property ("the convention applies to itself") is an assumption
-with evidence (A4 in `math-coding-birth`), not an axiom.
+## Eight theories (4 foundational + 4 applied)
+
+Foundational:
+
+1. `curry-howard` — proposition ↔ type.
+2. `predicate` — every check is a predicate `I: S → B`.
+3. `fsm` — lifecycle is a finite state machine.
+4. `refinement` — packet = spec, code = impl, relation R.
+
+Applied:
+
+5. `verdict` — five outcomes of verifier (VERIFIED /
+   NEEDS_REVISION / UNVERIFIABLE:*).
+6. `epistemic` — five markers, `confidence ∈ [0,1]`.
+7. `deprecation` — supersession is a strict partial order.
+8. `agent` — LLM as a runtime substrate (mode, role).
+
+## Three modes (proportional rigor)
+
+| Mode | When | Required artefacts |
+|------|------|---------------------|
+| `light` | typo, doc fix | commit + 1-line rationale |
+| `standard` | new feature | 5-file packet |
+| `strict` | architecture | packet + theory-link + applications[] |
+
+Default by role: developer→`standard`, designer/PM→`light`,
+researcher→`strict`, tech-writer→`skip`.
+
+## Five-file packet
+
+```
+math/<name>/
+├── packet.yaml       # manifest + applications[]
+├── decision.md       # thesis / synthesis (+antithesis if feature)
+├── task.md           # problem / outcome / constraints
+├── assumptions.yaml  # Σ with epistemic markers
+└── refinement.md     # state / operation / invariant / test
+```
+
+## Universal: one convention, depth scales
+
+Small project: 1-2 packets/week, mostly `light` mode.
+Large project: 100+ packets, `standard` and `strict` modes.
+**Same convention, different depth.**
+
+## Self-application
+
+This repository IS a math-coding repository:
+
+- `core/theories/` — the eight theories.
+- `math/<name>/` — every decision is a packet.
+- The repository proves axiom A4 by `sh core/ops/probe.sh`
+  resolving to exit-code 0 against itself.
+
+## License
+
+Living Beings — see LICENSE.
+
+## Read first (for agents)
+
+1. This file (root manifest).
+2. `core/think-before-do.md`.
+3. `core/decision-modes.md`.
+4. `core/packet-schema.md`.
+5. `math/<latest>/decision.md` (resolve via `git log --oneline math/*/decision.md | head -1`).
