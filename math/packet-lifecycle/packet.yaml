@@ -1,12 +1,18 @@
 task_id: packet-lifecycle
-title: How a packet evolves through its lifecycle
+title: Packet lifecycle — amendment and supersession
 lifecycle: working
 substrate: none
 rigor: property
 decision: made
 created: "2026-07-15"
-verifier: sh math-coding probe
+verifier: sh core/axiom/probe.sh
 depends_on:
   - 04-process
   - 05-accounting
-applications: []
+applications:
+  - sha: 9fd84a9a67c9ea2c4602eb2cbc99a37cc324a1f1
+    by: agent
+    date: "2026-07-15"
+    pressure: feature
+    files:
+      - math/packet-lifecycle/decision.md

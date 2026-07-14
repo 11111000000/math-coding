@@ -11,4 +11,10 @@ depends_on:
   - 01-care
   - 02-curry-howard
   - 03-material
-applications: []
+applications:
+  - sha: aca0ba138442faa987b9b0940fc17aeebe7e16a3
+    by: agent
+    date: "2026-07-15"
+    pressure: feature
+    files:
+      - math/04-process/decision.md

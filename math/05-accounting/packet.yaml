@@ -12,4 +12,10 @@ depends_on:
   - 02-curry-howard
   - 03-material
   - 04-process
-applications: []
+applications:
+  - sha: e7e35520330b048781b63104d294d909a4e37673
+    by: agent
+    date: "2026-07-15"
+    pressure: feature
+    files:
+      - math/05-accounting/decision.md

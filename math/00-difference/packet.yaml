@@ -7,4 +7,10 @@ decision: made
 created: "2026-07-15"
 verifier: sh core/axiom/probe.sh
 depends_on: []
-applications: []
+applications:
+  - sha: de3ded494c1b963f23c7deb39652e27153279c17
+    by: agent
+    date: "2026-07-15"
+    pressure: feature
+    files:
+      - math/00-difference/decision.md

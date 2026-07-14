@@ -10,4 +10,10 @@ depends_on:
   - 00-difference
   - 01-care
   - 02-curry-howard
-applications: []
+applications:
+  - sha: 576d803730a67546d1683740a49a23596c019317
+    by: agent
+    date: "2026-07-15"
+    pressure: feature
+    files:
+      - math/03-material/decision.md
