@@ -192,20 +192,11 @@ else
     log_fail "evidence-based-proofs" "no evidence in:$evidence_missing"
 fi
 
-# Case 15: extract → create round-trip preserves structure
-# (extracted spec is valid YAML, create from it produces a
-# valid packet)
-if [ -d "$REPO_ROOT/math/examples-cache-ttl" ]; then
-    extracted=$(sh "$REPO_ROOT/math-coding" extract examples-cache-ttl 2>/dev/null)
-    if echo "$extracted" | grep -q 'name: examples-cache-ttl'; then
-        log_pass "extract-roundtrip"
-    else
-        log_fail "extract-roundtrip" "extracted spec missing name field"
-    fi
-else
-    # Skip if example not present
-    log_pass "extract-roundtrip"
-fi
+# Case 15 (removed): extract → create round-trip test was
+# removed because it required examples-cache-ttl, which is
+# KISS-violation. The extract.sh tool is still present
+# (core/author/extract-packet.sh) for brownfield-migration
+# but is not auto-tested.
 
 echo ""
 echo "=== Summary ==="

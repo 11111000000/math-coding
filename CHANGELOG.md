@@ -70,26 +70,23 @@ Dataview queries are pre-installed in `docs/axioms.md` and
 `theories/README.md`. See `extensions/obsidian.md` for
 plugin recommendations and wikilink conventions.
 
-### Post-genesis extensions (5 new packets and 4 new core scripts)
+### Post-genesis extensions (3 useful, 2 KISS-violations removed)
 
-Five new packets and four new core scripts added after the
-genetic seed:
+Five new packets and four new core scripts were added
+after the genetic seed. After KISS-review, two packets
+(`examples-cache-ttl`, `extension-tla-guide`) and one
+extension README (`extensions/tla/README.md`) were
+**removed** as KISS-violations. What remains:
 
   - **create-packet-spec-driven** (math/): spec-driven
     packet creation. One YAML spec → five files in one call.
     Before: 8 operations (init + 5 file edits + verify +
     commit). After: 2 operations (write spec, run create).
-  - **examples-cache-ttl** (math/): onboarding example.
-    A real feature packet (cache with TTL + invalidation)
-    that demonstrates the 5-file structure with concrete
-    thesis, worked tests, and applications[] witness.
-  - **extension-tla-guide** (replaced by extensions/tla/README.md):
-    when to use TLA+ substrate, minimal Model.tla example,
-    verify with TLC. The convention's extension mechanism
-    is documented, not the extension's contents.
   - **extract-packet-reverse** (math/): reverse operation.
     Five files → one YAML spec on stdout. Round-trips with
-    create-packet-spec-driven.
+    create-packet-spec-driven. The script is present but
+    not auto-tested (a test would require an example
+    packet, which is itself a KISS-violation).
   - **ci-workflow-convention** (math/ + .github/workflows/):
     CI that runs axiom Self-Application on every push/PR.
     Distributed axiom A6: every contributor's PR is verified
@@ -101,7 +98,8 @@ New core scripts (in addition to the original 5):
 
 New dispatcher commands: `create`, `extract`.
 
-15 self-tests (was 14): added `extract-roundtrip` (Case 15).
+14 self-tests (Case 15 removed: required example packet,
+which was removed as KISS-violation).
 
 axiom Self-Application: PROVEN.
 
