@@ -10,7 +10,7 @@ depends_on:
   - 04-process
   - 05-accounting
 applications:
-  - sha: 9fd84a9a67c9ea2c4602eb2cbc99a37cc324a1f1
+  - sha: 12ece14055cbb659fe14cf3c4b88f8569c476352
     by: agent
     date: "2026-07-15"
     pressure: feature
