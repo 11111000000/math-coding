@@ -1,0 +1,28 @@
+task_id: 04-process
+assumptions:
+  - id: A1
+    statement: "the lifecycle is a finite state machine"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      States: sketch, working, verified, deprecated, archived,
+      superseded. Transitions: add_code, run_verifier,
+      deprecate, supersede, archive. See theories/fsm.md.
+  - id: A2
+    statement: "verified requires a SHA witness"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.99
+    evidence: |
+      A packet enters `verified` only when the convention's
+      prover (axiom A6) returns 0 against it. The SHA of
+      that commit is recorded in `applications:`.
+  - id: A3
+    statement: "sketch is not verified, by definition"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.99
+    evidence: |
+      A sketch is a scaffold; it has not yet instantiated
+      its proof term. Skipping `working` would mean claiming
+      proof without witness — the Curry-Howard contradiction.
