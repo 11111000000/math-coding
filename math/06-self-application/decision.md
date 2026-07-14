@@ -96,6 +96,34 @@ convention tells you. You align the theory with the packet.
 The convention is not a static document. It is a system
 that observes itself.
 
+## A worked example
+
+When the backlinks commit (12ece14) introduced edits to
+each axiom packet's `decision.md`, the recorded SHA in
+`applications[]` became stale for two packets (A6 and
+packet-lifecycle). The convention caught the drift
+immediately:
+
+```
+$ sh math-coding drift-check
+DRIFT: 06-self-application application 9fd84a9... stale
+DRIFT: packet-lifecycle application 9fd84a9... stale
+applied: 6, lookahead: 0, drift: 2
+```
+
+This is axiom Self-Application in action. The convention
+detected that its own witness was stale. Two fix commits
+refreshed the SHA; the drift cleared; axiom A6 held again.
+
+```
+$ sh math-coding drift-check
+applied: 8, lookahead: 0, drift: 0
+```
+
+The convention observed its own drift and recorded the
+observation. axiom Self-Application is real because the
+convention recorded it happening.
+
 ## Surface impact
 
 touches: the six checks in `core/self/probe.sh`:
