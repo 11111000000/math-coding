@@ -1,0 +1,12 @@
+task_id: theory-reduction-to-8
+title: Reduce theory count from 12 to 8: drop ltl, modal, assumption, confidence
+lifecycle: working
+substrate: shell
+rigor: property
+decision: made
+created: "2026-07-14"
+verifier: sh core/verify.sh
+depends_on:
+  - theory-predicate-as-packet
+  - theory-curry-howard-as-packet
+applications: []

@@ -1,0 +1,27 @@
+task_id: theory-reduction-to-8
+assumptions:
+  - id: A1
+    statement: "8 theories form a sufficient foundation"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      4 foundational + 4 applied = 8. Each foundational
+      theory is source-of-truth for its domain; each
+      applied theory instantiates one or more foundational
+      theories.
+  - id: A2
+    statement: "ltl/modal content folds into fsm"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      LTL □P/◇P are operations over FSM trajectories;
+      modal □P/◇P are operations over FSM branches. Both
+      collapse to properties of the FSM transition relation.
+  - id: A3
+    statement: "assumption content folds into predicate"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      Σ ⊢ Spec is short-hand for a set of predicate
+      instances. The distinction is presentational, not
+      semantic.
