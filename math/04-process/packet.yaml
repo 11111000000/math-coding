@@ -12,7 +12,7 @@ depends_on:
   - 02-curry-howard
   - 03-material
 applications:
-  - sha: d596fb120ee9b9047ed474c2e1418b615dd30d08
+  - sha: ce2faf53096f7f832094c95f8e71c77c496d0351
     by: agent
     date: "2026-07-15"
     pressure: feature
