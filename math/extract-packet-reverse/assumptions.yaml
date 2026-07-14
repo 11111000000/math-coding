@@ -1,9 +1,25 @@
 task_id: extract-packet-reverse
 assumptions:
   - id: A1
-    statement: "<your first assumption>"
+    statement: "round-trip preserves all 5 files"
     status: agent-inferred
-    epistemology: hypothesis
-    confidence: 0.5
+    epistemology: fact
+    confidence: 0.95
     evidence: |
-      <one-line evidence>
+      extract.sh reads each field once; create-packet.sh
+      writes each field once. The mapping is a bijection.
+  - id: A2
+    statement: "YAML spec is sufficient for round-trip"
+    status: user-confirmed
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      The create-packet.sh input is YAML; if extract
+      produces the same shape, round-trip is lossless.
+  - id: A3
+    statement: "extract does not depend on TLA+/Coq"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      extract reads 5 text files and emits YAML. No
+      substrate-specific logic.

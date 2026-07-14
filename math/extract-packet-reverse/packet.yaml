@@ -1,10 +1,12 @@
 task_id: extract-packet-reverse
-title: extract-packet-reverse
-lifecycle: sketch
-substrate: none
+title: Reverse — extract 5-file packet to single spec
+lifecycle: working
+substrate: shell
 rigor: light
-decision: needed
-created: "2026-07-14"
-verifier: null
-depends_on: []
+decision: made
+created: "2026-07-15"
+verifier: sh core/check/verify.sh
+depends_on:
+  - axiom-process
+  - axiom-accounting
 applications: []

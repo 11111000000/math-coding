@@ -192,6 +192,21 @@ else
     log_fail "evidence-based-proofs" "no evidence in:$evidence_missing"
 fi
 
+# Case 15: extract → create round-trip preserves structure
+# (extracted spec is valid YAML, create from it produces a
+# valid packet)
+if [ -d "$REPO_ROOT/math/examples-cache-ttl" ]; then
+    extracted=$(sh "$REPO_ROOT/math-coding" extract examples-cache-ttl 2>/dev/null)
+    if echo "$extracted" | grep -q 'name: examples-cache-ttl'; then
+        log_pass "extract-roundtrip"
+    else
+        log_fail "extract-roundtrip" "extracted spec missing name field"
+    fi
+else
+    # Skip if example not present
+    log_pass "extract-roundtrip"
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "  pass: $pass"

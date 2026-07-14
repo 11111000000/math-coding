@@ -2,12 +2,20 @@
 
 ## Problem
 
-What problem does this packet address?
+Reading a packet's content requires parsing five files.
+Cross-tool integration is hard when the convention is
+expressed as a directory of files.
 
 ## Desired outcome
 
-What does success look like?
+A single-call extractor that emits a YAML spec
+representing the packet. The spec is in the same shape
+as `create-packet.sh` input, enabling round-trip.
 
 ## Constraints
 
-- must be testable
+- POSIX shell only (axiom Material Basis).
+- Output must be valid YAML that `create-packet.sh` can
+  consume (round-trip).
+- No information loss: every field in the 5 files must
+  appear in the spec.
