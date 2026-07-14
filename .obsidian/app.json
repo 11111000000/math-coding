@@ -1,0 +1,10 @@
+{
+  "alwaysUpdateLinks": true,
+  "newLinkFormat": "shortest",
+  "useMarkdownLinks": false,
+  "showLineBreaksInPreview": false,
+  "showLineBreaksInSource": false,
+  "readableLineLength": 60,
+  "strictLineBreaks": false,
+  "vimMode": false
+}

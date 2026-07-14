@@ -1,0 +1,18 @@
+{
+  "id": "math-coding-v0.854",
+  "name": "math-coding",
+  "input": null,
+  "format": "markdown",
+  "version": "1.0",
+  "cssTheme": "obsidian-default",
+  "baseFontSize": 16,
+  "showLineNumbers": false,
+  "showRibbon": true,
+  "showOutline": true,
+  "showBacklinks": true,
+  "newFileLocation": "current",
+  "attachmentFolderPath": ".",
+  "plugins": {
+    "dataview": true
+  }
+}

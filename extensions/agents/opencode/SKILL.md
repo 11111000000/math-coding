@@ -67,14 +67,38 @@ Forbidden: `sketch → verified`.
   unknown     B(P) = 0
   proven      end-to-end verified (axiom A6)
 
+## Writing good packets
+
+A good thesis is **specific** ("reduce latency by 30%"), not
+vague ("improve performance"). A good antithesis is the
+**strongest objection**, not a strawman. A good synthesis
+**explains how the choice was made**, not just that it was.
+
+Each assumption carries one of the five epistemic markers
+plus one-line evidence. `fact` requires evidence; `proven`
+requires the convention's own verification.
+
+Each refinement.md declares: **state pre/post**, the
+**operation** that implements the packet, **mapping** from
+spec state to impl state, the **invariant** that stays
+true, and the **test** that verifies it.
+
+When the proposition itself changes, **do not edit the
+old packet**. Create a new packet with `supersession:`
+pointing at the old one. The old packet's lifecycle
+becomes `superseded`.
+
+See `AGENTS.md` (root) for the full discipline.
+
 ## Commands
 
-  sh math-coding init <name>     scaffold a 5-file packet
+  sh math-coding init <name>     scaffold a 5-file packet (template mode)
+  sh math-coding create <name>   create from YAML spec (planned)
   sh math-coding verify          structural check
   sh math-coding drift-check     applications[] SHA vs HEAD
   sh math-coding probe           axiom A6 self-application
-  sh math-coding install <path>  brownfield install
-  sh math-coding upgrade <path>  brownfield upgrade
+  sh math-coding install <path>  install into a brownfield project
+  sh math-coding upgrade <path>  upgrade an existing install
   sh math-coding uninstall <path>
 
 ## Modes of operation
