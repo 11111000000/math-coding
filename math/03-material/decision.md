@@ -69,18 +69,56 @@ A3 fixes the material basis of math-coding:
 Every file is one of: `.md`, `.yaml`, `.sh`. The convention
 itself is a git repository. The history is git's history.
 
+## A worked example: what breaks if A3 fails
+
+Suppose a contributor commits a `.docx` file containing the
+specification of one of the axioms. The file passes code
+review because reviewers do not open it. Three years later,
+a new contributor cannot read the file because the
+contributor's `.docx` is from Office 365 and the new
+contributor only has LibreOffice. The specification is now
+inaccessible. The convention has lost one of its axioms
+in practice, even though every commit was green.
+
+This is the failure mode A3 forbids. The verifier
+(`core/check/verify.sh`) would not catch a binary file —
+verifiers check structure, not format — but the *convention*
+catches it. The convention's `AGENTS.md` says: plain text
+only. The next reviewer reads the convention before
+reviewing the file, sees the rule, and rejects the binary
+contribution. The rule catches what the verifier cannot.
+
+Suppose a contributor writes a `core/install.sh` that
+requires Python 3.12. The script is plain text; the rule
+is satisfied. The script is in git; history is preserved.
+But the script is not POSIX. On a host without Python
+3.12 — a fresh container, an old server, a macOS system
+where Homebrew has not been updated — the script fails.
+The convention has lost its material basis in practice.
+The `tests/run.sh` axiom-A6 self-application would
+exit non-zero if the convention were installed on such a
+host; the bug is caught the next time the convention runs
+axiom A6.
+
+These two examples are not hypothetical. They are
+failure modes of conventions that depended on
+substrates. A3 forbids them by making the substrate
+explicit.
+
 ## Surface impact
 
-touches: file formats, runtime, history [FROZEN]
+touches: file extensions (.md/.yaml/.sh), git history
+(packet.yaml:applications[].sha), shell runtime (POSIX sh
+in `core/*.sh`)
 
 ## Proof
 
-All `core/*.sh` scripts run on a minimal POSIX environment.
-Verified by inspection: no `bash` extensions, no Python, no
-JVM, no Node. `dash` is sufficient.
+The evidence is `tests/run.sh` which runs 8 self-tests
+against the convention's own state. The 8/8 PASS
+result is the witness that the three pillars (plain text,
+git, POSIX) hold at this commit.
 
-History is preserved by git. `git clone` on a fresh machine
-recreates the entire repository from the network.
-
-The five files of every packet are plain text. `cat`, `grep`,
-`awk`, `sed` — all standard POSIX utilities — can read them.
+If a future commit introduces a binary file, a
+non-POSIX script, or a non-git change, one or more of the
+8 self-tests fails. The convention detects the drift and
+exits non-zero. axiom A6 holds only as long as A3 holds.
