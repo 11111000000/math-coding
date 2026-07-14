@@ -1,7 +1,9 @@
 # AGENTS.md — math-coding v0.854 runtime hint
 
 You are working in a math-coding v0.854 repository. Seven
-axioms govern the convention.
+axioms govern the convention. axiom Self-Application is
+proven: `sh math-coding probe` exits 0 against this very
+repository.
 
 ## The seven axioms
 
@@ -10,8 +12,10 @@ axioms govern the convention.
   A2 Curry-Howard      A6 Self-Application
   A3 Material Basis
 
-Read `docs/axioms.md` for the canonical statement of each.
-Read `theories/` for the eight theories that ground them.
+Read `docs/axioms.md` for the canonical statement of each
+axiom with formal definition, worked example, surface
+impact, and proof. Read `theories/` for the eight theories
+that ground them.
 
 ## Read first (in order)
 
@@ -59,7 +63,7 @@ Your trace is your proof term. Your type-checker is
   hypothesis  0.5 < B(P) < 0.95
   judgment    B(P) ∈ {0, 1}
   unknown     B(P) = 0
-  proven      end-to-end verified (axiom A6)
+  proven      end-to-end verified (axiom Self-Application)
 
 ### Six lifecycle states (packet.yaml)
 
@@ -77,12 +81,12 @@ Forbidden: `sketch → verified`.
   UNVERIFIABLE:DEFERRED
   UNVERIFIABLE:OUT_OF_SCOPE
 
-## Writing good packets (axiom A4 + axiom A5)
+## Writing good packets (axiom Process + axiom Accounting)
 
 A packet is the proof of your proposition. The five files
-are the proof term. The verifier is the type-check. axiom A5
-requires that every claim is marked with its epistemic
-status. axiom A4 forbids `sketch → verified`.
+are the proof term. The verifier is the type-check. axiom
+Accounting requires that every claim is marked with its
+epistemic status. axiom Process forbids `sketch → verified`.
 
 A good packet is **specific**, **falsifiable**, and
 **honest**.
@@ -100,6 +104,10 @@ A good thesis is:
 Good: "Cache entries expire after 60 seconds, not at user
 request." Bad: "Cache is fast."
 
+Good: "A 3 AM fix must work the first time because the cost
+of a second deploy during an outage is the outage itself."
+Bad: "Fixes should be careful."
+
 ### Good `decision.md:antithesis`
 
 A good antithesis is the **strongest objection** to the
@@ -115,8 +123,8 @@ faster?"
 A good synthesis resolves the thesis + antithesis. It is
 not "we chose this"; it is **how** the choice was made.
 
-Good: "TTL is fixed at 60s; manual invalidation is a separate
-endpoint (`--cache-invalidate`). The two paths are
+Good: "TTL is fixed at 60s; manual invalidation is a
+separate endpoint (`--cache-invalidate`). The two paths are
 independent." Bad: "We chose TTL."
 
 ### Good `assumptions.yaml`
@@ -178,16 +186,46 @@ Test:
   Insert entry with ts = now - 61s. Read. Expect upstream fetch.
 ```
 
+### Good `decision.md:surface impact`
+
+A good surface impact is **specific**, not generic:
+
+Good: "touches: 5 epistemic markers (assumptions.yaml:epistemology),
+SHA witness (packet.yaml:applications[].sha), 5 verdict
+outcomes (verifier stdout)"
+
+Bad: "touches: convention's foundation [FROZEN]"
+
+The surface impact is a **pointer** to what other parts of
+the convention this packet's claim touches. A reviewer can
+use the surface impact to find related packets.
+
+### Good `decision.md:proof`
+
+A good proof is **evidence**, not a claim.
+
+Good: "The evidence is `tests/run.sh` which runs 8
+self-tests against the convention's own state. The 8/8 PASS
+result is the witness."
+
+Bad: "All scripts run on a minimal POSIX environment." (this
+is a claim, not evidence — the test is the evidence)
+
+The proof section should answer: "what concrete test,
+script, or witness demonstrates this axiom holds at this
+commit?"
+
 ### Lifecycle discipline
 
 Move the lifecycle as the work progresses:
 
-  draft     →  packet created via `sh math-coding create`
+  draft     →  packet created via `sh math-coding init`
   sketch    →  first commit with code
   working   →  code committed, tests present
-  verified  →  tests pass, axiom A6 holds for this packet
+  verified  →  tests pass, axiom Self-Application holds for
+              this packet
 
-**Never** move `sketch → verified` directly. axiom A4
+**Never** move `sketch → verified` directly. axiom Process
 forbids it; `verify.sh` enforces it.
 
 ### Supersession
@@ -196,7 +234,7 @@ When the proposition itself changes, do not edit the old
 packet. Create a new one:
 
 ```bash
-sh math-coding create cache-ttl-v2 --from spec.yaml
+sh math-coding init cache-ttl-v2 --template=feature
 ```
 
 In `cache-ttl-v2/packet.yaml`:
@@ -208,15 +246,36 @@ supersession: math/cache-ttl/
 The old packet's lifecycle becomes `superseded`. The new
 packet becomes the source of truth.
 
-See `math/packet-lifecycle/` for the full discipline.
+### applications[] witness
+
+Every packet that moves to `verified` must have at least
+one entry in `packet.yaml:applications[]`:
+
+```yaml
+applications:
+  - sha: abc123def456
+    by: agent
+    date: "2026-07-15"
+    pressure: feature
+    files:
+      - src/cache.py
+```
+
+The SHA is a real commit. `git cat-file -e <sha>` succeeds.
+The files are what the commit changed. The witness is
+concrete, not symbolic.
+
+The axiom packets themselves carry applications[] entries
+(axiom Accounting applied to itself). The drift-check
+reports `applied: 8, lookahead: 0, drift: 0` against this
+repository.
 
 ## Commands
 
   sh math-coding init <name>     scaffold a 5-file packet (template)
-  sh math-coding create <name>   create a packet from spec (planned)
   sh math-coding verify          structural check
   sh math-coding drift-check     applications[] SHA vs HEAD
-  sh math-coding probe           axiom A6 self-application
+  sh math-coding probe           axiom Self-Application self-application
   sh math-coding install <path>  install into a project
   sh math-coding upgrade <path>  upgrade existing install
   sh math-coding uninstall <path>
@@ -231,4 +290,5 @@ When the user asks about an axiom, cite `math/<NN-axiom>/`
 and `theories/<theory>.md`.
 
 When the user asks about the convention's own state, run
-`sh math-coding probe`. If it returns 0, axiom A6 holds.
+`sh math-coding probe`. If it returns 0, axiom Self-Application
+holds.

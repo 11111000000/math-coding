@@ -32,7 +32,7 @@ First release after the recursive reset to v0.618.
   core/check/verify.sh                structural + axioms + theories check
   core/check/drift-check.sh           applications[] SHA vs HEAD
   core/agent/mathrc.sh                load ./.mathrc
-  core/self/probe.sh                  axiom A6 self-application
+  core/self/probe.sh                  axiom Self-Application self-application
   core/install/install.sh             brownfield install
   core/install/upgrade.sh             brownfield upgrade
   core/install/uninstall.sh           brownfield uninstall
@@ -42,11 +42,18 @@ First release after the recursive reset to v0.618.
   core/README.md                      core/ layout index
   math-coding                         dispatcher
 
-### axiom A6 (self-application)
+### axiom Self-Application (proven)
 
   $ sh math-coding probe
   ===
-  axiom A6: PROVEN
+  [1/6] five files per packet        ok: 8 packets
+  [2/6] seven axioms in docs/        ok: 7 axioms
+  [3/6] eight theories in theories/  ok: 8 theories
+  [4/6] core/check/verify.sh         ok: exit 0
+  [5/6] core/check/drift-check.sh    ok: no drift
+  [6/6] axiom packets form chain     ok: A6 references A0
+  ===
+  axiom Self-Application: PROVEN
 
 ### Three modes (light / standard / strict)
 
@@ -61,17 +68,35 @@ Dataview queries are pre-installed in `docs/axioms.md` and
 `theories/README.md`. See `extensions/obsidian.md` for
 plugin recommendations and wikilink conventions.
 
-### axiom packets as quality documents
+### Packet quality (post-genesis improvements)
 
-Each axiom packet's `decision.md` follows:
-  - specific, falsifiable thesis
-  - strongest-objection antithesis
-  - synthesis that explains how the choice was made
-  - surface impact + proof
+After the initial 17 genesis commits, eight additional
+commits brought each axiom packet up to a high quality
+standard:
 
-`AGENTS.md` and `extensions/agents/opencode/SKILL.md`
-document the "Writing good packets" discipline with
-good/bad examples.
+  - **concrete thesis** (A1: 3 AM fix scenario)
+  - **worked examples** (A1, A3, A4, A5 — each shows the
+    axiom applied to a concrete packet)
+  - **specific surface impact** (replacing generic
+    "touches: convention's foundation" with concrete file
+    paths and field names)
+  - **evidence-based proof** (each proof names the test,
+    script, or witness that demonstrates the axiom holds)
+  - **applications[] witness** (each axiom packet now
+    carries a SHA in `applications[]` — axiom Accounting
+    applied to itself)
+  - **backlinks** (each axiom decision.md opens with a
+    wikilink to the canonical axiom definition in
+    `docs/axioms.md`)
+  - **named axioms** (axiom A4 → axiom Process,
+    axiom A5 → axiom Accounting, axiom A6 → axiom
+    Self-Application) — the by-number names from the
+    v0.618 → 7-axiom rename have been replaced
+
+Each commit passed `sh math-coding verify`,
+`sh math-coding probe`, and `sh math-coding drift-check`.
+Final state: 8/8 self-tests pass, 0 drift, axiom
+Self-Application proven.
 
 ### Brownfield install
 
