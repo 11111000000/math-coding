@@ -1,0 +1,44 @@
+task_id: 05-accounting
+assumptions:
+  - id: A1
+    statement: "five epistemic markers are sufficient"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+    evidence: |
+      fact (B >= 0.95), hypothesis (0.5 < B < 0.95),
+      judgment (B in {0, 1}), unknown (B = 0),
+      proven (end-to-end verified by convention).
+      Five is enough; fewer loses distinction.
+  - id: A2
+    statement: "verdicts are finite and named"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      VERIFIED, NEEDS_REVISION, UNVERIFIABLE:{TOOL_MISSING,
+      DEFERRED, OUT_OF_SCOPE}. Anything else collapses to
+      "looks fine" — the failure mode this axiom prevents.
+  - id: A3
+    statement: "every change has a SHA witness"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      applications: [{sha, by, date, files: [...]}] in
+      packet.yaml. The SHA is the proof term; the files
+      are the bridge from proof to implementation.
+  - id: A4
+    statement: "supersession is a strict partial order"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      Irreflexive, asymmetric, transitive. See
+      theories/deprecation.md.
+  - id: A5
+    statement: "three modes are sufficient"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      light (commit only), standard (5-file packet),
+      strict (packet + theory link + applications[]).
+      Three modes cover the spectrum without explosion.

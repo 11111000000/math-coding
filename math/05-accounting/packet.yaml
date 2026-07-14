@@ -1,0 +1,15 @@
+task_id: 05-accounting
+title: A5 Accounting — epistemic axiom
+lifecycle: working
+substrate: none
+rigor: property
+decision: made
+created: "2026-07-15"
+verifier: sh core/axiom/probe.sh
+depends_on:
+  - 00-difference
+  - 01-care
+  - 02-curry-howard
+  - 03-material
+  - 04-process
+applications: []
