@@ -273,9 +273,11 @@ repository.
 ## Commands
 
   sh math-coding init <name>     scaffold a 5-file packet (template)
+  sh math-coding create <name>   create from YAML spec (one call, five files)
+  sh math-coding extract <name>  emit YAML spec to stdout
   sh math-coding verify          structural check
   sh math-coding drift-check     applications[] SHA vs HEAD
-  sh math-coding probe           axiom Self-Application self-application
+  sh math-coding probe           axiom A6 self-application
   sh math-coding install <path>  install into a project
   sh math-coding upgrade <path>  upgrade existing install
   sh math-coding uninstall <path>

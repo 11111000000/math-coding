@@ -26,9 +26,11 @@ First release after the recursive reset to v0.618.
   curry-howard, predicate, fsm, refinement, verdict,
   epistemic, deprecation, agent
 
-### Tools (5 core scripts + dispatcher)
+### Tools (5 core scripts + dispatcher + 2 author scripts)
 
   core/author/init-packet.sh          scaffold 5-file packet (template)
+  core/author/create-packet.sh        spec-driven packet creation (one call)
+  core/author/extract-packet.sh      reverse 5 files -> YAML spec
   core/check/verify.sh                structural + axioms + theories check
   core/check/drift-check.sh           applications[] SHA vs HEAD
   core/agent/mathrc.sh                load ./.mathrc
@@ -68,6 +70,41 @@ Dataview queries are pre-installed in `docs/axioms.md` and
 `theories/README.md`. See `extensions/obsidian.md` for
 plugin recommendations and wikilink conventions.
 
+### Post-genesis extensions (5 new packets and 4 new core scripts)
+
+Five new packets and four new core scripts added after the
+genetic seed:
+
+  - **create-packet-spec-driven** (math/): spec-driven
+    packet creation. One YAML spec → five files in one call.
+    Before: 8 operations (init + 5 file edits + verify +
+    commit). After: 2 operations (write spec, run create).
+  - **examples-cache-ttl** (math/): onboarding example.
+    A real feature packet (cache with TTL + invalidation)
+    that demonstrates the 5-file structure with concrete
+    thesis, worked tests, and applications[] witness.
+  - **extension-tla-guide** (replaced by extensions/tla/README.md):
+    when to use TLA+ substrate, minimal Model.tla example,
+    verify with TLC. The convention's extension mechanism
+    is documented, not the extension's contents.
+  - **extract-packet-reverse** (math/): reverse operation.
+    Five files → one YAML spec on stdout. Round-trips with
+    create-packet-spec-driven.
+  - **ci-workflow-convention** (math/ + .github/workflows/):
+    CI that runs axiom Self-Application on every push/PR.
+    Distributed axiom A6: every contributor's PR is verified
+    by the convention itself.
+
+New core scripts (in addition to the original 5):
+  - `core/author/create-packet.sh` — spec → 5 files
+  - `core/author/extract-packet.sh` — 5 files → spec
+
+New dispatcher commands: `create`, `extract`.
+
+15 self-tests (was 14): added `extract-roundtrip` (Case 15).
+
+axiom Self-Application: PROVEN.
+
 ### Packet quality (post-genesis improvements)
 
 After the initial 17 genesis commits, eight additional
@@ -95,7 +132,7 @@ standard:
 
 Each commit passed `sh math-coding verify`,
 `sh math-coding probe`, and `sh math-coding drift-check`.
-Final state: 8/8 self-tests pass, 0 drift, axiom
+Final state: 15/15 self-tests pass, 0 drift, axiom
 Self-Application proven.
 
 ### Brownfield install
