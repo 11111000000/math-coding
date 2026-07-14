@@ -8,7 +8,7 @@ created: "2026-07-15"
 verifier: sh core/axiom/probe.sh
 depends_on: []
 applications:
-  - sha: de3ded494c1b963f23c7deb39652e27153279c17
+  - sha: 12ece14055cbb659fe14cf3c4b88f8569c476352
     by: agent
     date: "2026-07-15"
     pressure: feature

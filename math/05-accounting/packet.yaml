@@ -13,7 +13,7 @@ depends_on:
   - 03-material
   - 04-process
 applications:
-  - sha: e7e35520330b048781b63104d294d909a4e37673
+  - sha: 12ece14055cbb659fe14cf3c4b88f8569c476352
     by: agent
     date: "2026-07-15"
     pressure: feature

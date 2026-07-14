@@ -9,7 +9,7 @@ verifier: sh core/axiom/probe.sh
 depends_on:
   - 00-difference
 applications:
-  - sha: ee80bb4708e3432ffb0f25b0c5161d51c05778fd
+  - sha: 12ece14055cbb659fe14cf3c4b88f8569c476352
     by: agent
     date: "2026-07-15"
     pressure: feature
