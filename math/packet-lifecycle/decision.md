@@ -13,8 +13,8 @@ appended.
 
 If we edited packets in place, the convention would lose
 its append-only ledger. A "fixed" packet would contradict
-its own `applications[].sha`. Reviewers would not know which
-version of the packet they were looking at.
+its own `applications[].sha`. Reviewers would not know
+which version of the packet they were looking at.
 
 If we treated every change as a new packet, the tree would
 explode. A typo in `refinement.md` would be a new packet.
@@ -53,7 +53,7 @@ t=2  fix a typo, add a test
      # applications: [{sha: def456, files: [src/foo.py, tests/]}]
      # lifecycle: working
 
-t=3  code is solid, tests pass, axiom A6 verified
+t=3  code is solid, tests pass, axiom Self-Application verified
      # lifecycle: verified
      # applications: [{sha: ghi789, ...}]
      # sh math-coding probe → exit 0
@@ -69,24 +69,29 @@ t=5  nobody needs packet-foo anymore
 
 ## What this is NOT
 
-- **Not a workflow tool.** No kanban, no sprints, no tickets.
-  This is the **discipline** of how a packet changes.
-
-- **Not a renaming convention.** When a packet's proposition
-  changes, do not rename the old packet. Spawn a new one
-  with `supersession:`.
-
-- **Not an excuse for ceremony.** An amendment is one commit
-  with a SHA in `applications[]`. Nothing more.
+- **Not a workflow tool.** No kanban, no sprints, no
+  tickets. This is the **discipline** of how a packet
+  changes.
+- **Not a renaming convention.** When a packet's
+  proposition changes, do not rename the old packet.
+  Spawn a new one with `supersession:`.
+- **Not an excuse for ceremony.** An amendment is one
+  commit with a SHA in `applications[]`. Nothing more.
 
 ## Surface impact
 
-touches: how every packet in math/ evolves [FROZEN]
+touches: how every packet in `math/` evolves — the
+lifecycle FSM (axiom Process), the supersession DAG
+(axiom Accounting), the SHA witness in `applications[]`
+(axiom Accounting), the verifier checks in
+`core/check/drift-check.sh`
 
 ## Proof
 
-`sh core/check/drift-check.sh` reports three buckets:
-applied (SHA matches file), lookahead (SHA unknown), drift
-(SHA known but file changed). The lifecycle is preserved by
-git, the FSM is enforced by `verify.sh`, and the witness is
-checked by `drift-check.sh`. axiom A6 closes the loop.
+The evidence is the lifecycle FSM itself. The specific
+enforcement is the line in `core/check/verify.sh` that
+rejects `verified` packets without SHA entries. axiom
+Self-Application's check 5/6 confirms
+`sh core/check/drift-check.sh` reports three buckets
+(applied, lookahead, drift). The discipline is enforced
+at commit time.
