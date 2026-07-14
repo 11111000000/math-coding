@@ -67,6 +67,22 @@ Difference:
 Without axiom Difference, the five files collapse to one.
 With axiom Difference, each file has a job.
 
+## A worked example
+
+The `def add(a, b)` example above is itself a worked
+example. The proposition is "integer addition" (recorded
+in `decision.md:thesis`); the implementation is
+`return a + b` (in `src/`). axiom Difference says: the
+proposition and the implementation are not the same. The
+reader of the proposition knows the implementation is wrong
+when the input is a string — even though the implementation
+is indistinguishable from a correct integer addition.
+
+Without axiom Difference, `decision.md` does not exist;
+without `decision.md`, the proposition is invisible; without
+the proposition, the bug returns at 4 AM. axiom Difference
+is what makes the convention useful.
+
 ## Surface impact
 
 touches: packet.yaml (the manifest), decision.md (the
