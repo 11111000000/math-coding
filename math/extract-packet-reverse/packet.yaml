@@ -1,0 +1,10 @@
+task_id: extract-packet-reverse
+title: extract-packet-reverse
+lifecycle: sketch
+substrate: none
+rigor: light
+decision: needed
+created: "2026-07-14"
+verifier: null
+depends_on: []
+applications: []

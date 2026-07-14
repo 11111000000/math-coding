@@ -1,0 +1,9 @@
+task_id: extract-packet-reverse
+assumptions:
+  - id: A1
+    statement: "<your first assumption>"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      <one-line evidence>

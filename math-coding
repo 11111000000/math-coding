@@ -15,6 +15,8 @@ usage: math-coding <command> [args...]
 Commands:
   init <name> [--template=<feature|bugfix|fsm>]
                    Scaffold a new 5-file packet under math/<name>/.
+  create <name> --from <spec.yaml>
+                   Create a packet from a YAML spec (file or '-').
   verify            Run core/check/verify.sh on all packets.
   drift-check       Run core/check/drift-check.sh on applications[].
   probe             Run core/self/probe.sh (axiom A6 self-application).
@@ -36,6 +38,10 @@ case "${1:-help}" in
     init)
         shift
         exec sh "$REPO_ROOT/core/author/init-packet.sh" "$@"
+        ;;
+    create)
+        shift
+        exec sh "$REPO_ROOT/core/author/create-packet.sh" "$@"
         ;;
     verify)
         exec sh "$REPO_ROOT/core/check/verify.sh"

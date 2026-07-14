@@ -1,0 +1,12 @@
+task_id: create-packet-spec-driven
+title: Spec-driven packet creation — single-call packet synthesis
+lifecycle: working
+substrate: shell
+rigor: light
+decision: made
+created: "2026-07-15"
+verifier: sh core/check/verify.sh
+depends_on:
+  - axiom-process
+  - axiom-accounting
+applications: []

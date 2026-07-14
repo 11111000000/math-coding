@@ -1,0 +1,37 @@
+task_id: create-packet-spec-driven
+assumptions:
+  - id: A1
+    statement: "agents produce specs in a single output"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      Modern agents produce structured output (YAML, JSON,
+      XML) in a single response. The convention can
+      consume this output directly.
+  - id: A2
+    statement: "one spec produces one packet, atomically"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      The 5-file packet is one atomic proposition
+      (axiom Curry-Howard). The creation should reflect
+      this — either all five files exist or none do.
+  - id: A3
+    statement: "YAML is sufficient as a spec format"
+    status: user-confirmed
+    epistemology: fact
+    confidence: 0.9
+    evidence: |
+      YAML is plain text, parseable by POSIX awk, well-
+      known to humans and agents. The convention's other
+      YAML files (assumptions.yaml, packet.yaml) use it.
+  - id: A4
+    statement: "spec-driven creation extends init-packet.sh, not replaces it"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      init-packet.sh is the template scaffolder; create-
+      packet.sh is the content generator. Both paths
+      produce the same five files, both pass verify.sh.
