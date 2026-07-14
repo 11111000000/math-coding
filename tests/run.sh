@@ -198,6 +198,37 @@ fi
 # (core/author/extract-packet.sh) for brownfield-migration
 # but is not auto-tested.
 
+# Case 16: brownfield install cycle (install + verify +
+# uninstall in a tmp directory). The test creates a tmp
+# directory, runs install, verifies axiom A6 in the copy,
+# uninstalls, and cleans up. Failure blocks axiom A6.
+if [ -x "$REPO_ROOT/core/install/install-smoke-test.sh" ]; then
+    if sh "$REPO_ROOT/core/install/install-smoke-test.sh" >/dev/null 2>&1; then
+        log_pass "brownfield-install-cycle"
+    else
+        log_fail "brownfield-install-cycle" "install+probe+uninstall cycle failed"
+    fi
+else
+    log_fail "brownfield-install-cycle" "install-smoke-test.sh not present"
+fi
+
+# Case 17: epistemic markers in theories/epistemic.md.
+# All five canonical markers (fact, hypothesis, judgment,
+# unknown, proven) must appear in the theory file. A typo
+# in the theory file is caught here.
+markers_found=0
+for m in fact hypothesis judgment unknown proven; do
+    if [ -f "$REPO_ROOT/theories/epistemic.md" ] && \
+       grep -q "$m" "$REPO_ROOT/theories/epistemic.md"; then
+        markers_found=$((markers_found + 1))
+    fi
+done
+if [ "$markers_found" = "5" ]; then
+    log_pass "epistemic-markers-in-theory"
+else
+    log_fail "epistemic-markers-in-theory" "found $markers_found/5 markers"
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "  pass: $pass"

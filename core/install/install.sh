@@ -29,11 +29,9 @@ fi
 
 mkdir -p "$DEST"
 
-# Copy core/, theories/, docs/
-for d in core theories docs; do
-    if [ -d "$REPO_ROOT/$d" ]; then
-        cp -R "$REPO_ROOT/$d" "$DEST/$d"
-    fi
+# Copy core/, theories/, docs/, math/ (axiom packets)
+for d in core theories docs math; do
+    cp -R "$REPO_ROOT/$d" "$DEST/$d"
 done
 
 # Copy dispatcher

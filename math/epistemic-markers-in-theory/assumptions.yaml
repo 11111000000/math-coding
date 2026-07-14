@@ -1,0 +1,25 @@
+task_id: epistemic-markers-in-theory
+assumptions:
+  - id: A1
+    statement: "five markers are canonical"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      axiom Accounting (A5) names five epistemic markers:
+      fact, hypothesis, judgment, unknown, proven. See
+      theories/epistemic.md.
+  - id: A2
+    statement: "the theory file contains all five"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      theories/epistemic.md is the canonical source. The
+      test verifies that all five are present.
+  - id: A3
+    statement: "missing a marker is a convention bug"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      If a marker is missing, axiom Accounting's spec is
+      silent, and the verifier may accept invalid markers.

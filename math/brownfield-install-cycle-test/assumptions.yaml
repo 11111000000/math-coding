@@ -1,0 +1,35 @@
+task_id: brownfield-install-cycle-test
+assumptions:
+  - id: A1
+    statement: "install.sh produces a working copy"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      The install script has been hand-tested during
+      genesis. axiom Self-Application PROVEN. But
+      hand-testing is not hermetic; a CI test is needed.
+  - id: A2
+    statement: "/tmp is writable and ephemeral"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.99
+    evidence: |
+      Standard POSIX. /tmp is writable on every Linux
+      distribution. Cleanup happens at end of test.
+  - id: A3
+    statement: "the copy is independent of the source"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      install.sh copies files into .math-coding/. The
+      .mathrc is created in the target directory. The
+      source repository is not modified.
+  - id: A4
+    statement: "axiom A6 works in the copy"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      axiom A6 is the convention applied to itself. The
+      copy contains the same files as the source; axiom
+      A6 should hold in both.

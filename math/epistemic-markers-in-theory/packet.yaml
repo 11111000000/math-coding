@@ -1,0 +1,11 @@
+task_id: epistemic-markers-in-theory
+title: Epistemic markers in theories/epistemic.md
+lifecycle: working
+substrate: none
+rigor: light
+decision: made
+created: "2026-07-15"
+verifier: sh tests/run.sh
+depends_on:
+  - axiom-accounting
+applications: []
