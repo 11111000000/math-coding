@@ -1,5 +1,7 @@
 # 03-material
 
+This packet realises [[docs/axioms.md#a3-material-basis-substrate|axiom Material Basis]].
+
 ## Thesis
 
 The convention lives in plain text, in git, and runs on a

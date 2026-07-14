@@ -1,5 +1,9 @@
 # packet-lifecycle
 
+This packet realises the lifecycle discipline described
+in [[docs/axioms.md#a4-process-temporal|axiom Process]]
+and [[docs/axioms.md#a5-accounting-epistemic|axiom Accounting]].
+
 ## Thesis
 
 A packet lives through seven phases — from a rough idea

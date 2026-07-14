@@ -1,5 +1,7 @@
 # 01-care
 
+This packet realises [[docs/axioms.md#a1-care-motivational|axiom Care]].
+
 ## Thesis
 
 A developer shipping a 3 AM fix to a production outage cares

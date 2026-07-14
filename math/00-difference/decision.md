@@ -1,5 +1,7 @@
 # 00-difference
 
+This packet realises [[docs/axioms.md#a0-difference-ontological|axiom Difference]].
+
 ## Thesis
 
 A proposition is a claim in language. An implementation is

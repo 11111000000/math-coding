@@ -1,5 +1,7 @@
 # 05-accounting
 
+This packet realises [[docs/axioms.md#a5-accounting-epistemic|axiom Accounting]].
+
 ## Thesis
 
 Knowledge must be marked. Verdicts must be named. Changes

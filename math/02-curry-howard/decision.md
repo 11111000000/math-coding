@@ -1,5 +1,7 @@
 # 02-curry-howard
 
+This packet realises [[docs/axioms.md#a2-curry-howard-structural|axiom Curry-Howard]].
+
 ## Thesis
 
 A packet is a proof term. A verifier is a type-check. The

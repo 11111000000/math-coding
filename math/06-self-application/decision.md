@@ -1,5 +1,7 @@
 # 06-self-application
 
+This packet realises [[docs/axioms.md#a6-self-application-meta|axiom Self-Application]].
+
 ## Thesis
 
 The convention applies to itself. Every axiom above is
