@@ -20,12 +20,12 @@ what it does not cover — does not. Six months later, someone
 adds a string to the call. The result is wrong. Nobody knew
 it was wrong, because the proposition was never recorded.
 
-A0 fixes this: the proposition is a separate object from
-the code. It lives in `decision.md`. It has a `task.md` that
-states the intent. It has `assumptions.yaml` that names what
-is taken for granted. It has `refinement.md` that maps the
-proposition to the implementation. The code is the last step,
-not the first.
+axiom Difference fixes this: the proposition is a separate
+object from the code. It lives in `decision.md`. It has a
+`task.md` that states the intent. It has `assumptions.yaml`
+that names what is taken for granted. It has `refinement.md`
+that maps the proposition to the implementation. The code is
+the last step, not the first.
 
 ## Antithesis
 
@@ -42,18 +42,19 @@ discovers.
 Some methods try to recover the proposition from the code —
 docstrings, type annotations, formal specifications embedded
 in the implementation. Each of these is a partial answer
-that re-introduces the gap by another name. A0 says: do not
-hide the gap. Name it.
+that re-introduces the gap by another name. axiom Difference
+says: do not hide the gap. Name it.
 
 ## Synthesis
 
-A0 grounds math-coding on difference. Each axiom that
-follows exists because some proposition differs from some
-implementation. axiom A2 (Curry-Howard) names this bridge.
-axiom A6 (Self-Application) verifies that the bridge holds
-when the convention applies it to itself.
+axiom Difference grounds math-coding on difference. Each
+axiom that follows exists because some proposition differs
+from some implementation. axiom Curry-Howard names this
+bridge. axiom Self-Application verifies that the bridge
+holds when the convention applies it to itself.
 
-The five-file packet is the practical form of A0:
+The five-file packet is the practical form of axiom
+Difference:
 
   packet.yaml      — the manifest, the type signature
   decision.md      — the proposition, the claim
@@ -61,15 +62,23 @@ The five-file packet is the practical form of A0:
   assumptions.yaml — the context Γ, what we take for granted
   refinement.md    — the elaboration, how the claim unfolds
 
-Without A0, the five files collapse to one. With A0, each
-file has a job.
+Without axiom Difference, the five files collapse to one.
+With axiom Difference, each file has a job.
 
 ## Surface impact
 
-touches: convention's foundation [FROZEN]
+touches: packet.yaml (the manifest), decision.md (the
+proposition), task.md (the intent), assumptions.yaml (the
+context), refinement.md (the mapping) — the five-file
+structure itself
 
 ## Proof
 
-axiom A2 (Curry-Howard) instantiates the bridge. axiom A6
-(Self-Application) verifies that the convention's own packets
-satisfy the structure their verifier demands.
+The evidence is axiom Self-Application. axiom Difference
+is real if and only if the five files of every packet
+remain distinct. The probe `sh core/self/probe.sh`
+verifies this: check 1/6 asserts every `math/<pkt>/` has
+exactly five files. If axiom Difference fails — if
+somebody collapses the five files into one — the probe
+exits non-zero. axiom Self-Application closes the loop
+that axiom Difference opens.
