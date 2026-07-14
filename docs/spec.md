@@ -9,7 +9,7 @@ how to use it.
 math-coding is a Curry-Howard convention for AI coding agents.
 Every non-trivial decision is a **packet**: a directory with
 exactly five files. The packet is the proposition. The
-verifier is the type-check. axiom A6 (self-application) is
+verifier is the type-check. axiom Self-Application is
 the meta-discipline: the convention applies to itself.
 
 ## The seven axioms
@@ -64,7 +64,7 @@ is a runtime spec for an LLM agent.
                                             ↑
                                             superseded
 
-Forbidden: `sketch → verified`. axiom A4 enforces.
+Forbidden: `sketch → verified`. axiom Process enforces.
 
 ## The five epistemic markers
 
@@ -74,7 +74,7 @@ Forbidden: `sketch → verified`. axiom A4 enforces.
   unknown     B(P) = 0
   proven      end-to-end verified by convention's own tools
 
-`proven` is reserved for axiom A6 self-application.
+`proven` is reserved for axiom Self-Application.
 
 ## The five verdict outcomes
 
@@ -93,7 +93,7 @@ Every change carries a git SHA in `packet.yaml:applications[]`.
   lookahead  — SHA unknown (forward-reference)
   drift      — SHA known, files changed since
 
-## axiom A6 (self-application)
+## axiom Self-Application
 
 `sh math-coding probe` runs six checks:
 
@@ -104,7 +104,7 @@ Every change carries a git SHA in `packet.yaml:applications[]`.
   [5/6] core/check/drift-check.sh detects no drift
   [6/6] axiom packets form dependency chain
 
-Exit 0 means axiom A6 holds.
+Exit 0 means axiom Self-Application holds.
 
 ## Tools
 
@@ -112,7 +112,7 @@ Exit 0 means axiom A6 holds.
   core/check/verify.sh        structural + axioms + theories check
   core/check/drift-check.sh   applications[] SHA vs HEAD
   core/agent/mathrc.sh        load ./.mathrc
-  core/self/probe.sh         axiom A6 self-application
+  core/self/probe.sh         axiom Self-Application
   core/install/install.sh     brownfield install
   core/install/upgrade.sh     brownfield upgrade
   core/install/uninstall.sh   brownfield uninstall

@@ -5,8 +5,8 @@ assumptions:
     status: user-confirmed
     epistemology: judgment
     evidence: |
-      axiom A4 fixes the material basis as plain-text + git.
-      axiom A5 fixes the witness as SHA in applications[].
+      axiom Process fixes the material basis as plain-text + git.
+      axiom Accounting fixes the witness as SHA in applications[].
       A change without SHA is a lie.
   - id: A2
     statement: "amendments and supersession are distinct acts"

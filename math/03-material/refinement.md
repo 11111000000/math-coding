@@ -32,4 +32,4 @@ only history mechanism. Enforce POSIX in every core/ script.
 
 ## Runtime check
 
-- axiom A6 — convention verifies its own material basis.
+- axiom Self-Application — convention verifies its own material basis.

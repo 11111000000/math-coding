@@ -32,11 +32,11 @@ If the need requires touching one of these, write a
 
 ## What does NOT go in extensions/
 
-  anything that modifies axiom A0-A6 — that requires a new
+  anything that modifies one of the seven axioms — that requires a new
   convention version
   anything that lives inside core/, theories/, or docs/ —
   those are the convention itself
-  anything that hides axiom A6 self-application — the
+  anything that hides axiom Self-Application — the
   convention must remain self-verifying
 
 ## Current extensions

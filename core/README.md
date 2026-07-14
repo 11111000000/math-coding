@@ -14,7 +14,7 @@ Installation payload for math-coding v0.854.
   agent/      — agent runtime
     mathrc.sh       load ./.mathrc, set MODE/ROLE defaults
 
-  axiom/      — axiom A6 (self-application)
+  axiom/      — axiom Self-Application (meta)
     probe.sh        orchestrator: verifier + drift + axioms
 
   spec/       — specification documents

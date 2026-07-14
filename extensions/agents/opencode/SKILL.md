@@ -65,7 +65,7 @@ Forbidden: `sketch → verified`.
   hypothesis  0.5 < B(P) < 0.95
   judgment    B(P) ∈ {0, 1}
   unknown     B(P) = 0
-  proven      end-to-end verified (axiom A6)
+  proven      end-to-end verified (axiom Self-Application)
 
 ## Writing good packets
 
@@ -96,7 +96,7 @@ See `AGENTS.md` (root) for the full discipline.
   sh math-coding create <name>   create from YAML spec (planned)
   sh math-coding verify          structural check
   sh math-coding drift-check     applications[] SHA vs HEAD
-  sh math-coding probe           axiom A6 self-application
+  sh math-coding probe           axiom Self-Application
   sh math-coding install <path>  install into a brownfield project
   sh math-coding upgrade <path>  upgrade an existing install
   sh math-coding uninstall <path>
@@ -115,4 +115,4 @@ When the user asks about an axiom, cite the axiom packet
 under `math/<NN-axiom>/` and the theory under `theories/`.
 
 When the user asks about the convention's own state, run
-`sh math-coding probe`. If it returns 0, axiom A6 holds.
+`sh math-coding probe`. If it returns 0, axiom Self-Application holds.

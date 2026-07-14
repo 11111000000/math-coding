@@ -1,4 +1,4 @@
-# Predicate and Invariant (axiom A4)
+# Predicate and Invariant (axiom Process)
 
 A predicate over a state space S is a function:
 
@@ -24,7 +24,7 @@ I_witness   = ∀ sha ∈ applications[]:
 I_drift     = ∀ sha, file:
                 git diff sha..HEAD -- file = ∅
 
-I_self      = (axiom A6 proven)
+I_self      = (axiom Self-Application proven)
 
 I_fsm       = ∀ packet p with lifecycle = verified:
                 applications[] contains at least one SHA
@@ -57,5 +57,5 @@ A FSM is a special case of a predicate:
 I_fsm(s) = predicate over the FSM state s
 ```
 
-axiom A4 uses predicates to define invariants for each FSM
+axiom Process uses predicates to define invariants for each FSM
 state. See `theories/fsm.md`.

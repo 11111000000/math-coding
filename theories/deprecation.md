@@ -1,4 +1,4 @@
-# Deprecation and Supersession (axiom A5)
+# Deprecation and Supersession (axiom Accounting)
 
 Supersession is a binary relation `⊥` between packets. It
 is a strict partial order:
@@ -72,7 +72,7 @@ forward; every replacement is recorded.
 
 ## Connection to FSM
 
-The FSM (axiom A4) defines the states `deprecated` and
+The FSM (axiom Process) defines the states `deprecated` and
 `superseded`. The supersession DAG defines the **edge**
 between an old packet and its new one.
 

@@ -1,12 +1,12 @@
 #!/bin/sh
-# core/self/probe.sh — math-coding v0.854 axiom A6 orchestrator.
+# core/self/probe.sh — math-coding v0.854 axiom Self-Application orchestrator.
 #
 # Usage: sh core/self/probe.sh
 #
 # Runs the verifier and the drift-check; reports a verdict
 # on whether the convention is internally consistent.
 #
-# axiom A6: this script IS the proof that the convention
+# axiom Self-Application: this script IS the proof that the convention
 # applies to itself. When it returns 0, A6 holds.
 
 set -u
@@ -16,7 +16,7 @@ cd "$REPO_ROOT" || exit 1
 
 errors=0
 
-echo "=== math-coding probe (axiom A6) ==="
+echo "=== math-coding probe (axiom Self-Application) ==="
 
 # Check 1: five files per packet
 echo ""
@@ -127,9 +127,9 @@ echo ""
 echo "=== summary ==="
 echo "  errors: $errors"
 if [ "$errors" = "0" ]; then
-    echo "  axiom A6: PROVEN"
+    echo "  axiom Self-Application: PROVEN"
     exit 0
 else
-    echo "  axiom A6: UNPROVEN ($errors failures)"
+    echo "  axiom Self-Application: UNPROVEN ($errors failures)"
     exit 1
 fi

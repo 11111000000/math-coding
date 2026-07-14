@@ -22,7 +22,7 @@ Forbidden: `sketch → verified`.
 |-------|-----------------|-----------------|
 | sketch | packet created (init-packet.sh) | proposition stated (decision.md) |
 | working | proposition + first commit | code committed |
-| verified | axiom A6 returns 0 | superseded OR deprecated |
+| verified | axiom Self-Application returns 0 | superseded OR deprecated |
 | deprecated | superseded by another packet | archived |
 | archived | terminal | none |
 | superseded | replaced by newer packet | archived |
@@ -34,7 +34,7 @@ Forbidden: `sketch → verified`.
 
 ## Test obligation
 
-- axiom A6 — verifier rejects `verified` without witness.
+- axiom Self-Application — verifier rejects `verified` without witness.
 
 ## Runtime check
 

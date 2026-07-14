@@ -21,7 +21,7 @@
    `applications: []` is allowed at working. `verify.sh`
    may emit warnings but should not block.
 
-4. Move to verified: ensure axiom A6 holds for this packet
+4. Move to verified: ensure axiom Self-Application holds for this packet
    (tests pass, structure clean). Add the first SHA to
    `applications[]`. lifecycle: verified.
 
@@ -63,7 +63,7 @@
 
 ## Test obligation
 
-- axiom A6 — the verifier checks `supersession:` references
+- axiom Self-Application — the verifier checks `supersession:` references
   resolve.
 - `sh core/check/drift-check.sh` — every `applications[].sha`
   either matches HEAD (applied) or is unknown (lookahead).

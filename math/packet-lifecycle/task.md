@@ -12,7 +12,7 @@ without guessing.
 
 ## Constraints
 
-- Append-only at commit level (axiom A4).
-- SHA witness for every change (axiom A5).
+- Append-only at commit level (axiom Process).
+- SHA witness for every change (axiom Accounting).
 - Re-application must be explicit (new directory, new
   lifecycle, supersession block).

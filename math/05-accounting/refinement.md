@@ -42,10 +42,10 @@ Enforce five instruments:
 
 ## Test obligation
 
-- axiom A6 — verifier rejects malformed epistemic markers,
+- axiom Self-Application — verifier rejects malformed epistemic markers,
   empty witnesses, dangling supersession references.
 
 ## Runtime check
 
-- axiom A6 — convention verifies its own epistemic
+- axiom Self-Application — convention verifies its own epistemic
   accounting.

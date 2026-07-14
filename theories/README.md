@@ -27,8 +27,8 @@ SORT file.name ASC
 
 ## Why eight
 
-axiom A0 (Difference) is ontological and stands above the
-eight. axiom A6 (Self-Application) is meta and stands below.
+axiom Difference is ontological and stands above the
+eight. axiom Self-Application is meta and stands below.
 The eight theories between them are the mathematical
 machinery the convention uses to verify itself.
 

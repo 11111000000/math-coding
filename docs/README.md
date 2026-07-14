@@ -19,7 +19,7 @@ axioms. See `theories/README.md` for the index.
 ## core/spec/
 
   packet-schema.md     five-file contract per packet
-  think-before-do.md  temporal discipline (axiom A4)
+  think-before-do.md  temporal discipline (axiom Process)
   decision-modes.md   three modes (light/standard/strict)
 
 ## Obsidian

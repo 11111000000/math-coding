@@ -1,4 +1,4 @@
-# Curry-Howard Correspondence (axiom A2)
+# Curry-Howard Correspondence (axiom Curry-Howard)
 
 A proposition is a type. A proof is a program. A
 type-check is the verification that a program inhabits its
@@ -39,7 +39,7 @@ a typed lambda-term:
 | refinement.md    | the elaboration    |
 
 Remove any one file and the proof is incomplete. The
-verifier checks all five. axiom A6 (Self-Application)
+verifier checks all five. axiom Self-Application
 verifies that the convention's own packets satisfy this
 structure — the proof checks its own proof.
 
@@ -65,7 +65,7 @@ files become a tax: developers fill them with placeholder
 text, then ignore them. The verifier cannot distinguish
 signal from noise.
 
-axiom A2 forbids this conflation. The proposition lives in
+axiom Curry-Howard forbids this conflation. The proposition lives in
 `decision.md`; the implementation lives in `src/`. The
 verifier checks the relationship between them, not one or
 the other. The relationship is the proof.

@@ -1,7 +1,7 @@
 # think-before-do (math-coding v0.854)
 
 The process precedes the code. The packet is written before
-the implementation. axiom A4 fixes this as the temporal
+the implementation. axiom Process fixes this as the temporal
 discipline of the convention.
 
 ## Order
@@ -32,29 +32,29 @@ discipline of the convention.
 8. **Verify** with `sh core/check/verify.sh`. Five files
    present? Lifecycles valid? Epistemic markers valid?
 
-9. **Probe** with `sh core/self/probe.sh`. axiom A6 holds?
+9. **Probe** with `sh core/self/probe.sh`. axiom Self-Application holds?
 
 ## Forbidden
 
 - **Code before packet.** Writing code without a proposition
-  is vibe-coding. axiom A4 forbids it.
+  is vibe-coding. axiom Process forbids it.
 
 - **Skip `working`.** A packet may not move from `sketch` to
-  `verified` directly. axiom A4 forbids it.
+  `verified` directly. axiom Process forbids it.
 
 - **Verify without witness.** A `verified` packet without
-  `applications[]` SHA is a lie. axiom A4 enforces it.
+  `applications[]` SHA is a lie. axiom Process enforces it.
 
 ## Anti-patterns
 
 - **"Looks fine" verdicts.** A packet must declare its
-  verdict, not assume it. axiom A5 forbids unmarked belief.
+  verdict, not assume it. axiom Accounting forbids unmarked belief.
 
-- **Unmarked assumptions.** Every claim has a marker. axiom A5
+- **Unmarked assumptions.** Every claim has a marker. axiom Accounting
   enforces it.
 
 - **Drift after witness.** A `applications[].sha` that no
-  longer matches the file is a stale witness. axiom A6
+  longer matches the file is a stale witness. axiom Self-Application
   detects it.
 
 ## What `think-before-do` is NOT
@@ -66,5 +66,5 @@ discipline of the convention.
   does not help the proof, it should not be there.
 
 - It is not perfection. A packet's claim may be wrong.
-  axiom A5's epistemic markers exist precisely so that wrong
+  axiom Accounting's epistemic markers exist precisely so that wrong
   claims are marked as `hypothesis` or `unknown`, not `fact`.

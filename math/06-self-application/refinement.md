@@ -45,10 +45,10 @@ probe.sh performs these checks:
 
 ## Test obligation
 
-- probe.sh exit 0 = axiom A6 proven.
+- probe.sh exit 0 = axiom Self-Application proven.
 - probe.sh exit non-zero = drift; the verdict lists the
   first failing check.
 
 ## Runtime check
 
-- axiom A6 itself — the convention's own runtime.
+- axiom Self-Application itself — the convention's own runtime.

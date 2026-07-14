@@ -1,4 +1,4 @@
-# Finite State Machine (axiom A4)
+# Finite State Machine (axiom Process)
 
 A finite state machine is a tuple:
 
@@ -55,7 +55,7 @@ accumulates "verified" packets that are not verified and
 
 The FSM forces every transition to be explicit. Each
 transition is a commit. Each commit is a SHA. The ledger
-is append-only. axiom A4 holds.
+is append-only. axiom Process holds.
 
 ## The seven states
 
@@ -66,7 +66,7 @@ is append-only. axiom A4 holds.
                    intent in `task.md`; assumptions marked;
                    refinement maps spec to impl.
 
-  **verified**   — axiom A6 holds for this packet; tests
+  **verified**   — axiom Self-Application holds for this packet; tests
                    pass; at least one SHA in `applications[]`.
 
   **deprecated** — superseded by a successor but still
@@ -84,4 +84,4 @@ is append-only. axiom A4 holds.
   `math/04-process/decision.md` — the axiom packet
   `theories/fsm.md` — this file
   `core/check/verify.sh` — the verifier that enforces FSM
-  `core/self/probe.sh` — axiom A6 self-application
+  `core/self/probe.sh` — axiom Self-Application

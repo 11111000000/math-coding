@@ -29,7 +29,7 @@ The convention's own rules apply to PR review:
 
 1. The packet is filed under `math/`.
 2. The verifier (`sh math-coding verify`) passes.
-3. axiom A6 (`sh math-coding probe`) holds.
+3. axiom Self-Application (`sh math-coding probe`) holds.
 4. The lifecycle transitions are documented in
    `applications[]` SHA.
 

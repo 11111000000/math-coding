@@ -1,4 +1,4 @@
-# Agent (axiom A6)
+# Agent (axiom Self-Application)
 
 An AI coding agent is a function over a state space:
 
@@ -29,7 +29,7 @@ agent writes math/<packet>/<file>.md, optionally with
              packet.yaml:applications[] entries
 ```
 
-axiom A6 (Self-Application) is the convention closing the
+axiom Self-Application is the convention closing the
 loop: an agent runs the convention on the convention.
 
 ## Modes and roles
@@ -56,7 +56,7 @@ the trace as an executable. The verifier evaluates the
 created), not the trace itself.
 
 The agent's type-checker is `core/check/verify.sh` and
-(in axiom A6) `core/self/probe.sh`. The trace is correct
+(in axiom Self-Application) `core/self/probe.sh`. The trace is correct
 iff the verifier exits 0 on the resulting state.
 
 ## Why it matters
@@ -71,7 +71,7 @@ structure from the first try. The agent's first commit is
 already a packet. The agent's first review is already a
 verifier run.
 
-axiom A6 makes this explicit: the agent **is** the
+axiom Self-Application makes this explicit: the agent **is** the
 convention's interpreter. The convention's structure is the
 agent's instruction set. The agent's output is the
 convention's content.

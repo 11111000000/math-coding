@@ -88,8 +88,8 @@ standard:
   - **backlinks** (each axiom decision.md opens with a
     wikilink to the canonical axiom definition in
     `docs/axioms.md`)
-  - **named axioms** (axiom A4 → axiom Process,
-    axiom A5 → axiom Accounting, axiom A6 → axiom
+  - **named axioms** (axiom Process,
+    axiom Accounting, axiom Self-Application: axiom
     Self-Application) — the by-number names from the
     v0.618 → 7-axiom rename have been replaced
 

@@ -11,7 +11,7 @@ depends_on:
   - 01-care
   - 02-curry-howard
 applications:
-  - sha: 7a415bac587c1052a6bbd67d706feeea82ef9428
+  - sha: 28c24b7191d9c4d4118c0724595ac7977ed0423a
     by: agent
     date: "2026-07-15"
     pressure: feature

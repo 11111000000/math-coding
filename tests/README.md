@@ -1,4 +1,4 @@
-# tests/ — math-coding v0.854 self-tests (axiom A6)
+# tests/ — math-coding v0.854 self-tests (axiom Self-Application)
 
 The tests in this directory verify that the convention
 applies to itself. `sh tests/run.sh` runs all cases and
@@ -6,7 +6,7 @@ reports PASS/FAIL.
 
 ## What we test
 
-  probe-axiom-a6         axiom A6 self-application exits 0
+  probe-axiom-a6         axiom Self-Application exits 0
   verify-structural      five-file contract holds
   drift-check            applications[] SHA vs HEAD
   seven-axiom-packets    all seven axiom directories exist
@@ -30,5 +30,5 @@ of failures. Use this in CI:
 
 Tests are a separate role. They are not part of the
 convention's install payload; they live in the source
-repository only. axiom A6 is verified by `core/self/probe.sh`;
+repository only. axiom Self-Application is verified by `core/self/probe.sh`;
 the broader battery lives here.

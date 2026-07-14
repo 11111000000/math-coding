@@ -1,5 +1,5 @@
 #!/bin/sh
-# tests/run.sh — math-coding v0.854 self-tests (axiom A6).
+# tests/run.sh — math-coding v0.854 self-tests (axiom Self-Application).
 #
 # Usage: sh tests/run.sh
 #
@@ -94,7 +94,7 @@ fi
 # Case 7: dispatcher works
 run_case "dispatcher-help" "sh $REPO_ROOT/math-coding help >/dev/null 2>&1"
 
-# Case 8: axiom A6 chain closes
+# Case 8: axiom Self-Application chain closes
 if [ -f "$REPO_ROOT/math/06-self-application/packet.yaml" ]; then
     if grep -q "00-difference" "$REPO_ROOT/math/06-self-application/packet.yaml"; then
         log_pass "axiom-a6-chain-closes"
@@ -122,7 +122,7 @@ else
 fi
 
 # Case 10: no axiom packet uses by-number axiom names
-# (axiom A4, axiom A5, axiom A6) — must use names (Process,
+# (axiom Process, axiom Accounting, axiom Self-Application) — must use names (Process,
 # Accounting, Self-Application)
 named_ok=1
 for p in $axiom_packets packet-lifecycle; do

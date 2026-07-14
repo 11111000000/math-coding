@@ -10,7 +10,7 @@
 ## Operation
 
 State the ontological difference between proposition and
-implementation as axiom A0. Treat this axiom as the seed
+implementation as axiom Difference. Treat this axiom as the seed
 from which A1-A6 grow.
 
 ## Mapping
@@ -28,7 +28,7 @@ from which A1-A6 grow.
 
 ## Test obligation
 
-- axiom A6 (self-application) — `sh core/self/probe.sh` —
+- axiom Self-Application — `sh core/self/probe.sh` —
   verifies that all 7 axioms cohere and that A0 sits at their
   base.
 

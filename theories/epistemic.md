@@ -1,4 +1,4 @@
-# Epistemic Markers (axiom A5)
+# Epistemic Markers (axiom Accounting)
 
 A belief state is a function:
 
@@ -24,7 +24,7 @@ The five markers, ordered by confidence:
 
 `proven` is reserved for claims whose evidence chain closes
 through the convention's own machinery. The canonical
-example is axiom A6:
+example is axiom Self-Application:
 
 ```
   status: user-confirmed
@@ -54,7 +54,7 @@ records the **kind** of knowledge, not just the **content**.
 
 A claim marked `fact` without evidence is a lie. A claim
 marked `unknown` honestly is honest. The five markers are
-the discipline of care (axiom A1).
+the discipline of care (axiom Care).
 
 ## Worked example
 

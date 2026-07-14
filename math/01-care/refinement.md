@@ -30,7 +30,7 @@ fact, hypothesis, judgment, unknown, proven.
 
 ## Test obligation
 
-- axiom A5 verification — every assumption has a marker.
+- axiom Accounting verification — every assumption has a marker.
 
 ## Runtime check
 

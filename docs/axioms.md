@@ -41,8 +41,8 @@ care, no amount of structure helps — the verifier passes on
 placeholder text and the code does nothing useful.
 
 **Why it matters**: "looks fine" is the failure mode
-axiom A1 forbids. A developer who asks "what does this code
-do when the input is null?" is the developer axiom A1
+axiom Care forbids. A developer who asks "what does this code
+do when the input is null?" is the developer axiom Care
 describes.
 
 **Packet**: `math/01-care/`
@@ -70,7 +70,7 @@ five parts of a proof:
   refinement.md    →  the elaboration
 
 The verifier checks the **relationship** between proposition
-and proof, not one or the other. Without axiom A2, the
+and proof, not one or the other. Without axiom Curry-Howard, the
 five files collapse to one.
 
 **Packet**: `math/02-curry-howard/`
@@ -141,7 +141,7 @@ modes = { light, standard, strict }
 **Why it matters**: "looks fine" is the failure mode. The
 five epistemic markers, five verdict outcomes, SHA witness,
 supersession DAG, and three modes are the discipline of
-care (axiom A1).
+care (axiom Care).
 
 **Packet**: `math/05-accounting/`
 
@@ -161,10 +161,10 @@ a packet.
 ```
 
 **Why it matters**: a convention that cannot verify itself
-relies on external authority. axiom A6 closes the loop:
+relies on external authority. axiom Self-Application closes the loop:
 `sh core/self/probe.sh` exits 0 ⟺ the convention is
 internally consistent. The probe runs six predicates; their
-conjunction is axiom A6.
+conjunction is axiom Self-Application.
 
 **Packet**: `math/06-self-application/`
 

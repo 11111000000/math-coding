@@ -54,7 +54,7 @@ assumptions:
 ```
 
 Five epistemic markers. `proven` is reserved for end-to-end
-verified claims (axiom A6).
+verified claims (axiom Self-Application).
 
 ## refinement.md — state/operation/mapping/invariant/test/runtime
 

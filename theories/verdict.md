@@ -1,4 +1,4 @@
-# Verdict (axiom A5)
+# Verdict (axiom Accounting)
 
 A verdict is the outcome of evaluating the proof
 obligation:
@@ -36,10 +36,10 @@ Exit codes follow POSIX sysexits.h convention.
 ## Why it matters
 
 Anything outside these five is "looks fine" — the failure
-mode axiom A5 forbids.
+mode axiom Accounting forbids.
 
 A verifier that prints "all checks passed" without
-naming a verdict fails axiom A5. A reviewer who reads
+naming a verdict fails axiom Accounting. A reviewer who reads
 "VERIFIED" knows what passed; a reviewer who reads "looks
 fine" knows nothing.
 
@@ -70,4 +70,4 @@ satisfies the structure.
   `math/05-accounting/decision.md` — the axiom packet
   `theories/verdict.md` — this file
   `core/check/verify.sh` — the verifier that produces verdicts
-  `core/self/probe.sh` — axiom A6 self-application
+  `core/self/probe.sh` — axiom Self-Application

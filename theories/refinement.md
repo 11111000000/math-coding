@@ -1,4 +1,4 @@
-# Refinement (axiom A4)
+# Refinement (axiom Process)
 
 A refinement is a relation:
 
@@ -49,7 +49,7 @@ Consider `math/cache-ttl/`:
       "Insert entry with ts = now - 61s. Read. Expect upstream
        fetch."
 
-The verifier (axiom A2: Curry-Howard) checks that the
+The verifier (axiom Curry-Howard) checks that the
 packet structure holds. The tests check that the refinement
 mapping holds. The two are complementary.
 
@@ -61,14 +61,14 @@ relationship between them does not exist anywhere. The
 verifier cannot check the relationship because the
 relationship is not stated.
 
-axiom A4 forces the relationship to be stated in
+axiom Process forces the relationship to be stated in
 `refinement.md`. The mapping is explicit. The invariant
 is explicit. The test is explicit. A reviewer can check the
 mapping without running the code.
 
 ## Connection to FSM
 
-The FSM (axiom A4 FSM) describes **when** transitions
+The FSM (axiom Process FSM) describes **when** transitions
 happen. The refinement describes **what** the transitions
 mean. Together: when and what.
 

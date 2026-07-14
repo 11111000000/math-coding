@@ -34,4 +34,4 @@ checks that every role is filled.
 
 ## Runtime check
 
-- axiom A6 — convention verifies its own packets.
+- axiom Self-Application — convention verifies its own packets.

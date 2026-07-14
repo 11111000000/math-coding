@@ -15,7 +15,7 @@ assumptions:
     confidence: 0.99
     evidence: |
       A packet enters `verified` only when the convention's
-      prover (axiom A6) returns 0 against it. The SHA of
+      prover (axiom Self-Application) returns 0 against it. The SHA of
       that commit is recorded in `applications:`.
   - id: A3
     statement: "sketch is not verified, by definition"
