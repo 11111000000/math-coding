@@ -58,6 +58,45 @@ PRs: name the packet in the title (`my-feature: short
 description`). Reference the axiom packet if the change
 implements an axiom.
 
+## What NOT to add (KISS-discipline)
+
+math-coding follows **KISS in measure** (KISS in меру).
+Before adding a new file or packet, ask:
+
+1. **Does axiom Self-Application require it?**
+   If the convention works without it, **do not add it**.
+   axiom A6 is the gatekeeper: it must hold after your
+   change.
+
+2. **Does it duplicate existing content?**
+   If `math/examples-cache-ttl/` is needed, the cache example
+   in `AGENTS.md` is already there. **No duplication.**
+
+3. **Is it part of the convention's core or an extension?**
+   Core is `core/`, `theories/`, `math/`, `docs/`,
+   `extensions/` (optional). If your file is none of
+   these, **find a better home or don't add it**.
+
+4. **Does it introduce a new axiom?**
+   If yes, the axiom must be added to `docs/axioms.md`,
+   named, with a packet. Without all three, it's incomplete.
+
+5. **Is it a test?**
+   Tests live in `tests/run.sh` as Cases. New tests must
+   be hermetic (no host-repo state) and pass axiom A6.
+
+If a proposed file or packet does not pass all five
+questions, **reconsider** or **propose in an issue first**.
+
+## Removed (KISS-violations, do not re-add)
+
+- `math/examples-cache-ttl/` — duplicated AGENTS.md content.
+- `extensions/tla/README.md` — deferred until TLA+ is used.
+- `math/extension-tla-guide/` — placeholder, never filled.
+
+These were removed as KISS-violations. If you have a strong
+reason to re-add them, **discuss in an issue first**.
+
 ## Community norms
 
 - Be specific. The packet's `decision.md:thesis` is the
@@ -67,3 +106,5 @@ implements an axiom.
 - Be concise. The packet has five files; each file has a
   role. Anything that does not serve the role does not
   belong.
+- Be KISS. Every file or packet must answer "what breaks
+  if I remove this?" If the answer is "nothing", remove it.
