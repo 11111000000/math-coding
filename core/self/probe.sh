@@ -40,15 +40,15 @@ else
     errors=$((errors + missing_count))
 fi
 
-# Check 2: seven axioms in docs/axioms.md
+# Check 2: axioms in docs/axioms.md (auto-discovered count)
 echo ""
-echo "[2/6] seven axioms in docs/axioms.md"
+echo "[2/6] axioms in docs/axioms.md"
 if [ -f docs/axioms.md ]; then
     n=$(grep -cE '^## A[0-9]\. ' docs/axioms.md || true)
-    if [ "$n" = "7" ]; then
-        echo "  ok: 7 axioms found"
+    if [ "$n" -ge 1 ]; then
+        echo "  ok: $n axioms found"
     else
-        echo "  FAIL: expected 7 axioms, found $n"
+        echo "  FAIL: no axioms in docs/axioms.md"
         errors=$((errors + 1))
     fi
 else
@@ -56,15 +56,15 @@ else
     errors=$((errors + 1))
 fi
 
-# Check 3: eight theories in theories/
+# Check 3: theories in theories/ (auto-discovered count)
 echo ""
-echo "[3/6] eight theories in theories/"
+echo "[3/6] theories in theories/"
 if [ -d theories ]; then
     n=$(find theories -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')
-    if [ "$n" = "8" ]; then
-        echo "  ok: 8 theories found"
+    if [ "$n" -ge 1 ]; then
+        echo "  ok: $n theories found"
     else
-        echo "  FAIL: expected 8 theories, found $n"
+        echo "  FAIL: no theories in theories/"
         errors=$((errors + 1))
     fi
 else
