@@ -1,0 +1,27 @@
+task_id: 00-difference
+assumptions:
+  - id: A1
+    statement: "proposition and code are different kinds of thing"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      A proposition is a claim stated in language. Code is a
+      sequence of executable symbols. No identity claim holds
+      between them; the gap is the bridge's reason.
+  - id: A2
+    statement: "without difference, no bridge is needed"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.99
+    evidence: |
+      Curry-Howard names a bridge. A bridge presupposes two
+      banks. Without two banks, there is nothing to bridge.
+  - id: A3
+    statement: "difference is fractal across scales"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      packet: proposition != 5 files
+      project: intent != implementation
+      convention: convention != code-convention

@@ -1,0 +1,10 @@
+task_id: 00-difference
+title: A0 Difference — ontological axiom
+lifecycle: working
+substrate: none
+rigor: proof
+decision: made
+created: "2026-07-15"
+verifier: sh core/axiom/probe.sh
+depends_on: []
+applications: []
