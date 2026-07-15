@@ -59,6 +59,10 @@ I_fsm(s) = predicate over the FSM state s
 
 axiom Process uses predicates to define invariants for each FSM
 state. See `theories/fsm.md`.
+## Definition
+
+A predicate is a function I : S → Bool over the filesystem state S. The convention's verifier evaluates I(s) for each packet s ∈ math/.
+
 ## Theorem
 
 The conjunction of the 16 self-tests implies axiom

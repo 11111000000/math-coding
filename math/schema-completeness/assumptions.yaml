@@ -1,0 +1,26 @@
+task_id: schema-completeness
+assumptions:
+  - id: A1
+    statement: "additive changes preserve invariants"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      Adding new fields to packet.yaml does not break
+      existing structure. Adding Definition sections to
+      theories does not change theorems.
+  - id: A2
+    statement: "16 self-tests are ground truth"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      The convention's axiom A6 is verified empirically
+      by 16 self-tests. Any change that breaks them would
+      be wrong.
+  - id: A3
+    statement: "navigation aids LLM agent context"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.85
+    evidence: |
+      LLM agents have finite context windows. An
+      axiom-name index reduces lookup time.

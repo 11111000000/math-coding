@@ -1,4 +1,5 @@
 task_id: 02-curry-howard
+axiom: A2
 title: A2 Curry-Howard — structural axiom
 lifecycle: working
 substrate: none

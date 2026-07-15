@@ -85,6 +85,10 @@ is append-only. axiom Process holds.
   `theories/fsm.md` — this file
   `core/check/verify.sh` — the verifier that enforces FSM
   `core/self/probe.sh` — axiom Self-Application
+## Definition
+
+A finite state machine is a tuple M = ⟨ S, s₀, A, →, I ⟩ where S = { sketch, working, verified, deprecated, archived, superseded }, s₀ = sketch, A = lifecycle actions, → = transitions, I = invariant.
+
 ## Theorem
 
 The forbidden transition `sketch → verified` is rejected

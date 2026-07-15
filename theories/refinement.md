@@ -73,6 +73,10 @@ happen. The refinement describes **what** the transitions
 mean. Together: when and what.
 
 See `theories/fsm.md` for the FSM.
+## Definition
+
+A refinement is a relation R ⊆ S_impl × S_spec between implementation states and specification states. In math-coding, the packet (5 files) is the spec; the code is the impl; R maps one to the other.
+
 ## Theorem
 
 A packet is a specification; the code is an implementation;

@@ -71,6 +71,10 @@ satisfies the structure.
   `theories/verdict.md` — this file
   `core/check/verify.sh` — the verifier that produces verdicts
   `core/self/probe.sh` — axiom Self-Application
+## Definition
+
+A verdict is the outcome of evaluating the proof obligation Spec ⊨ P. The convention's 5 verdicts (VERIFIED, NEEDS_REVISION, UNVERIFIABLE:TOOL_MISSING, UNVERIFIABLE:DEFERRED, UNVERIFIABLE:OUT_OF_SCOPE) are exhaustive.
+
 ## Theorem
 
 The 5 verdicts (VERIFIED, NEEDS_REVISION,

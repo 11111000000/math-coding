@@ -1,0 +1,11 @@
+task_id: schema-completeness
+title: Schema completeness — add axiom field, index table, math/README
+lifecycle: working
+substrate: none
+rigor: light
+decision: made
+created: "2026-07-15"
+verifier: sh math-coding probe
+depends_on:
+  - axiom-self-application
+applications: []

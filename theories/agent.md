@@ -83,6 +83,10 @@ convention's content.
   `theories/agent.md` — this file.
   `AGENTS.md` — runtime hint for any agent.
   `extensions/agents/opencode/SKILL.md` — OpenCode skill.
+## Definition
+
+An agent is a function S = (chat_history, files_read, files_written, mode, role) → S. The agent reads, writes, and verifies; its state is fully determined by S.
+
 ## Theorem
 
 An agent is a deterministic function over the state

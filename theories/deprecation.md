@@ -77,6 +77,10 @@ The FSM (axiom Process) defines the states `deprecated` and
 between an old packet and its new one.
 
 See `theories/fsm.md`.
+## Definition
+
+Supersession is a binary relation ⊥ on packets. A packet P₁ supersedes P₂ iff P₁ replaces P₂. The convention requires ⊥ to be a strict partial order.
+
 ## Theorem
 
 Supersession ⊥ is a strict partial order.

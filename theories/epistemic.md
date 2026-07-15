@@ -86,6 +86,10 @@ proof). Neither is overclaimed.
   `theories/epistemic.md` — this file
   `core/check/verify.sh` — the verifier that rejects invalid
   markers
+## Definition
+
+An epistemic marker is a label assigned to a belief. The convention's 5 markers (fact, hypothesis, judgment, unknown, proven) cover the confidence interval [0, 1].
+
 ## Theorem
 
 The 5 epistemic markers (fact, hypothesis, judgment,

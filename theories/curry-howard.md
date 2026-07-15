@@ -72,6 +72,10 @@ the other. The relationship is the proof.
 
 See `math/02-curry-howard/` for the axiom packet that
 realises this correspondence.
+## Definition
+
+A proof term is a program in the typed lambda-calculus. The five files of a packet (packet.yaml, decision.md, task.md, assumptions.yaml, refinement.md) form its canonical projection.
+
 ## Theorem
 
 A packet with all five files is a proof term.
