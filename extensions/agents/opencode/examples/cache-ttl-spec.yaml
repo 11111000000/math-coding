@@ -1,0 +1,84 @@
+name: cache-ttl
+mode: standard
+thesis: |
+  Cache entries expire after 60 seconds. Manual invalidation
+  is a separate endpoint.
+antithesis: |
+  Users may need to invalidate cache immediately when upstream
+  data changes. A fixed TTL forces them to wait up to 60
+  seconds for the next refresh.
+synthesis: |
+  Two paths, independent:
+    1. TTL: cache entries auto-expire after 60 seconds.
+    2. Invalidation: explicit `--cache-invalidate` endpoint
+       forces immediate eviction.
+  The TTL is configurable per cache type. The invalidation
+  is idempotent (multiple calls have the same effect as one).
+surface_impact: |
+  touches: CLI --cache-invalidate [FROZEN]
+  touches: Cache API [FLUID]
+proof: |
+  tests/contract/test_cache_ttl.spec:
+    - test_ttl_default_60s
+    - test_ttl_configurable
+    - test_invalidation_immediate
+    - test_invalidation_idempotent
+problem: |
+  Stale data is served indefinitely after upstream changes
+  because the cache has no expiration policy.
+outcome: |
+  Cache entries expire after a configurable TTL (default 60
+  seconds). Manual invalidation is available as a separate
+  endpoint for cases where freshness is critical.
+constraints:
+  - TTL must be configurable per cache type
+  - Invalidation must be idempotent (safe to call multiple times)
+  - No code change for in-process cache: just a wrapper
+assumptions:
+  - id: A1
+    statement: "60s is acceptable for this endpoint"
+    status: user-confirmed
+    epistemology: fact
+    confidence: 0.95
+    evidence: "SLA allows 60s for /cache"
+  - id: A2
+    statement: "invalidation calls are safe to repeat"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      Idempotency is a standard property for cache
+      invalidation. Multiple calls remove the same entry;
+      no side effects beyond that.
+  - id: A3
+    statement: "upstream supports ETag-based refresh"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+    evidence: |
+      Upstream sends ETag headers; we honour them when
+      refreshing expired entries. Needs verification.
+state:
+  pre: cache miss (no entry for key)
+  post: cache hit (entry exists, age < TTL)
+operation: |
+  On read, check entry timestamp. If age > TTL, refresh
+  from upstream. On explicit --cache-invalidate, evict the
+  entry immediately.
+mapping: |
+  spec: cache hit returns entry within 60s of last refresh
+  impl: dict[key] returns value if (now - ts) < 60
+invariant: |
+  Cache entries never served beyond TTL.
+test_obligation: |
+  tests/contract/test_cache_ttl.spec:
+    - test_ttl_default_60s: write entry, sleep 61, read
+      (expect upstream fetch)
+    - test_ttl_configurable: set TTL=5s, sleep 6, read
+      (expect upstream fetch)
+    - test_invalidation_immediate: write entry, invalidate,
+      read (expect miss)
+    - test_invalidation_idempotent: invalidate twice, write,
+      invalidate twice (expect same result as one call)
+runtime_check: |
+  Periodic log: "cache: N hits, M misses, K evictions" every
+  hour. Alerts if miss rate > 50%.

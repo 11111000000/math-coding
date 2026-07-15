@@ -1,0 +1,24 @@
+task_id: opencode-skill-restructure
+assumptions:
+  - id: A1
+    statement: "the agent reads the entry file first"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      Standard opencode skill format: the entry file is
+      loaded first; references are loaded on demand.
+  - id: A2
+    statement: "context tokens are a constraint"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      LLM agents have finite context windows. A 117-line
+      skill uses ~2,500 tokens at load. A 50-line entry
+      uses ~1,000 tokens. The split is cheaper.
+  - id: A3
+    statement: "references are plain text"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      References are markdown files. No new dependencies.
