@@ -83,3 +83,17 @@ convention's content.
   `theories/agent.md` — this file.
   `AGENTS.md` — runtime hint for any agent.
   `extensions/agents/opencode/SKILL.md` — OpenCode skill.
+## Theorem
+
+An agent is a deterministic function over the state
+S = (chat_history, files_read, files_written, mode, role).
+
+## Proof
+
+By definition: every agent action is a function
+trace = [(read, file), (propose, mode), (write, file), ...].
+The agent's mode and role are fixed at session start
+(loaded from AGENTS.md and .mathrc). The agent's state
+is fully determined by S. axiom Self-Application
+verifies that the agent's output satisfies the convention's
+verifier. □

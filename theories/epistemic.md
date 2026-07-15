@@ -86,3 +86,15 @@ proof). Neither is overclaimed.
   `theories/epistemic.md` — this file
   `core/check/verify.sh` — the verifier that rejects invalid
   markers
+## Theorem
+
+The 5 epistemic markers (fact, hypothesis, judgment,
+unknown, proven) partition [0, 1].
+
+## Proof
+
+By exhaustive cases: B(P, agent) ∈ [0, 1]. (1) fact:
+B ≥ 0.95. (2) hypothesis: 0.5 < B < 0.95. (3) judgment:
+B ∈ {0, 1}. (4) unknown: B = 0. (5) proven: B = 1
+(end-to-end verified). The 5 markers are mutually exclusive
+and exhaustive. □

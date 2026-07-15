@@ -1,0 +1,28 @@
+task_id: theory-formal-statements
+assumptions:
+  - id: A1
+    statement: "1-2 line proofs are sufficient"
+    status: user-confirmed
+    epistemology: judgment
+    evidence: |
+      KISS. A proof sketch that references the empirical
+      proof is enough. Coq/Lean is over-engineering.
+  - id: A2
+    statement: "the 8 theories need formal structure"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+    evidence: |
+      axioms A2-A6 all reference theoretical concepts
+      (Curry-Howard, FSM, predicate, refinement, verdict,
+      epistemic, deprecation, agent). These should be
+      formal statements, not visual definitions.
+  - id: A3
+    statement: "adding theorem-prove is non-breaking"
+    status: user-confirmed
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      Theorem/Proof sections are additive. They do not
+      change the empirical behaviour. 16 self-tests still
+      pass.

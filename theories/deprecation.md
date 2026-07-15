@@ -77,3 +77,16 @@ The FSM (axiom Process) defines the states `deprecated` and
 between an old packet and its new one.
 
 See `theories/fsm.md`.
+## Theorem
+
+Supersession ⊥ is a strict partial order.
+
+## Proof
+
+By the three axioms of strict partial order:
+(1) irreflexive — ¬(P ⊥ P) because no packet supersedes
+itself; (2) asymmetric — P₁ ⊥ P₂ ⇒ ¬(P₂ ⊥ P₁) because
+supersession is a one-way relation; (3) transitive —
+P₁ ⊥ P₂ ∧ P₂ ⊥ P₃ ⇒ P₁ ⊥ P₃ by chain composition.
+core/check/drift-check.sh verifies (1) and (2) at every
+commit. □

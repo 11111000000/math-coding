@@ -71,3 +71,16 @@ satisfies the structure.
   `theories/verdict.md` — this file
   `core/check/verify.sh` — the verifier that produces verdicts
   `core/self/probe.sh` — axiom Self-Application
+## Theorem
+
+The 5 verdicts (VERIFIED, NEEDS_REVISION,
+UNVERIFIABLE:TOOL_MISSING, UNVERIFIABLE:DEFERRED,
+UNVERIFIABLE:OUT_OF_SCOPE) are exhaustive.
+
+## Proof
+
+By enumeration: the proof obligation Spec ⊨ P has 5
+outcomes. (1) Verified: proof holds. (2) Needs revision:
+counterexample or missing piece. (3-5) Unverifiable:
+tool missing, data deferred, scope out. Any other outcome
+collapses to "looks fine" — axiom A5 forbids this. □

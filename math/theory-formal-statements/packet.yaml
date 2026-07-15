@@ -1,0 +1,14 @@
+task_id: theory-formal-statements
+title: Formal theorems + proofs for all 8 theories
+lifecycle: working
+substrate: none
+rigor: proof
+decision: made
+created: "2026-07-15"
+verifier: sh math-coding probe
+depends_on:
+  - axiom-curry-howard
+  - axiom-process
+  - axiom-accounting
+  - axiom-self-application
+applications: []

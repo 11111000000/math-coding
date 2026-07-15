@@ -73,3 +73,15 @@ happen. The refinement describes **what** the transitions
 mean. Together: when and what.
 
 See `theories/fsm.md` for the FSM.
+## Theorem
+
+A packet is a specification; the code is an implementation;
+R ⊆ S_impl × S_spec.
+
+## Proof
+
+By axiom A2 (Curry-Howard): the five files of a packet
+are the typed lambda-term (the spec). The code in src/,
+lib/, or wherever the project's convention dictates is the
+implementation. R ⊆ S_impl × S_spec is the refinement
+relation. The verifier checks R. □

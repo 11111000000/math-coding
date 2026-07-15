@@ -85,3 +85,16 @@ is append-only. axiom Process holds.
   `theories/fsm.md` — this file
   `core/check/verify.sh` — the verifier that enforces FSM
   `core/self/probe.sh` — axiom Self-Application
+## Theorem
+
+The forbidden transition `sketch → verified` is rejected
+by core/check/verify.sh.
+
+## Proof
+
+For s = sketch: I(s) = 5 files exist. For s = verified:
+I(s) = 5 files + SHA in applications[]. core/check/
+verify.sh checks I(verified) and fails if applications[]
+is empty. The transition `sketch → verified` requires
+I(verified) at the next state, which axiom A4 forbids
+without passing through working. □

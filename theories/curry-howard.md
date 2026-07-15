@@ -72,3 +72,14 @@ the other. The relationship is the proof.
 
 See `math/02-curry-howard/` for the axiom packet that
 realises this correspondence.
+## Theorem
+
+A packet with all five files is a proof term.
+
+## Proof
+
+By definition of axiom A2: the five files
+(packet.yaml, decision.md, task.md, assumptions.yaml,
+refinement.md) form the canonical projection of a typed
+lambda-term. axiom Self-Application verifies this at every
+commit. □

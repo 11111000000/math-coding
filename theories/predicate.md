@@ -59,3 +59,14 @@ I_fsm(s) = predicate over the FSM state s
 
 axiom Process uses predicates to define invariants for each FSM
 state. See `theories/fsm.md`.
+## Theorem
+
+The conjunction of the 16 self-tests implies axiom
+Self-Application holds.
+
+## Proof
+
+Each self-test is a predicate I : S → Bool over the
+filesystem state. The conjunction ∧ᵢ Iᵢ is axiom
+Self-Application. core/self/probe.sh evaluates this
+conjunction. □
