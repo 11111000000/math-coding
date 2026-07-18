@@ -1,7 +1,7 @@
 # math/
 
-Thirteen packets live here. Seven are axiom packets (A0-A6);
-six are post-genesis packets (implementation aspects).
+Sixteen packets live here. Seven are axiom packets
+(A0–A6); nine are post-genesis packets.
 
 ## Axiom packets
 
@@ -16,7 +16,7 @@ six are post-genesis packets (implementation aspects).
 ## Post-genesis packets
 
 - `packet-lifecycle/` — how packets evolve
-  (amendment vs supersession)
+  (amendment / supersession / deprecation)
 - `create-packet-spec-driven/` — spec-driven
   packet creation
 - `extract-packet-reverse/` — reverse: 5 files to spec
@@ -27,9 +27,27 @@ six are post-genesis packets (implementation aspects).
 - `opencode-skill-restructure/` — opencode skill split
 - `theory-formal-statements/` — theorem-proof for theories
 
+## Source-only
+
+v0.978: `math/` is **source-only**. The axiom packets and
+post-genesis packets live in the source repository where
+the convention is developed. They are not part of the
+install payload. `core/install/install.sh` does not copy
+them into target projects.
+
+In a target project, the user's own packets live in
+`<target>/math/`. This directory is created by `install.sh`
+as an empty workspace and is configured via `.mathrc`
+(field: `math_dir`).
+
+The distinction keeps the convention honest: axiom
+packets prove that the convention works (definitional
+axiom Self-Application); user packets prove that the
+convention applies (applicative axiom Self-Application).
+
 ## See also
 
 - `docs/axioms.md` — seven axioms with full statement
 - `theories/` — eight theories
 - `core/` — install payload
-- `tests/run.sh` — 16 self-tests
+- `tests/run.sh` — 20 self-tests

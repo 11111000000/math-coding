@@ -1,11 +1,17 @@
 task_id: 03-material
 axiom: A3
 title: A3 Material Basis — substrate axiom
-lifecycle: working
+lifecycle: applied
 substrate: none
 rigor: property
 decision: made
 created: "2026-07-15"
+reviews:
+  - by: axiom-self-approval
+    date: "2026-07-16"
+    verdict: approve
+    note: |
+      axiom package — self-approved as reference material
 verifier: sh core/axiom/probe.sh
 depends_on:
   - 00-difference
