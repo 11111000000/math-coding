@@ -1,30 +1,47 @@
 #!/bin/sh
-# core/author/create-packet.sh — spec-driven packet creation.
+# core/author/create-packet.sh — math-coding v0.991 packet creator.
 #
 # Usage:
 #   sh math-coding create <name> --from <spec.yaml>
 #   sh math-coding create <name> --from -
 #
-# Reads a YAML spec (file or stdin), parses it, generates
-# the five-file packet. POSIX shell + awk only.
+# Reads a YAML spec (file or stdin) with 7 fields and writes
+# the canonical packet files to $MATH_DIR/<name>/.
 #
-# axiom A2 (Curry-Howard): the spec is the proposition;
-# the five files are the proof term. axiom A4 (Process):
-# create → working → verified (via verify.sh exit 0).
+# The 7 fields:
+#
+#   proposition — one sentence, the claim (becomes decision.md:thesis)
+#   outcome     — one sentence, what becomes true (becomes task.md:outcome
+#                 and refinement.md:state:post)
+#   invariant   — one sentence, what stays true (becomes refinement.md:invariant)
+#   test        — how to verify, in 1-3 sentences (becomes refinement.md:test)
+#   antithesis  — the strongest objection (becomes decision.md:antithesis)
+#   synthesis   — how thesis + antithesis are resolved (becomes decision.md:synthesis)
+#   operation   — what the code does (becomes refinement.md:operation)
+#
+# v0.991: convention does not template antithesis/synthesis/operation
+# — they come from the agent (or human) and represent real decisions.
+#
+# Output files:
+#   packet.yaml      (lifecycle: draft, no SHA yet)
+#   decision.md      (thesis/antithesis/synthesis)
+#   refinement.md    (state/operation/invariant/test)
+#   task.md          (generated from proposition + outcome)
+#   assumptions.yaml (5 markers, status: agent-inferred)
 
 set -u
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+. "$(dirname "$0")/../lib/common.sh"
 
 usage() {
     cat <<'EOF' >&2
 usage: create-packet.sh <name> --from <spec.yaml>
        create-packet.sh <name> --from -
 
-Options:
-    --from <file>     read spec from YAML file
-    --from -           read spec from stdin
-    --help -h          this message
+Spec has 7 fields:
+  proposition, outcome, invariant, test,
+  antithesis, synthesis, operation
+
 EOF
     exit 2
 }
@@ -48,7 +65,7 @@ done
 [ -z "$name" ] && usage
 [ -z "$spec_file" ] && [ "$spec_stdin" = "0" ] && usage
 
-DEST="$REPO_ROOT/math/$name"
+DEST="$MATH_DIR/$name"
 [ -e "$DEST" ] && { echo "error: $DEST exists" >&2; exit 1; }
 mkdir -p "$DEST"
 
@@ -61,210 +78,213 @@ else
     SPEC_TMP="$spec_file"
 fi
 
-# Extract fields using awk. For multi-line blocks (list,
-# nested), we accumulate indented continuations.
+# Extract a multiline field from YAML.
+# Handles "field: |" (literal block scalar) and "field: value" (single line).
 get_field() {
     field="$1"
-    awk -v f="$field:" '
-        $0 ~ "^" f "[[:space:]]*$" { capturing = 1; next }
-        capturing && /^[a-z_]+:/ && $0 !~ "^" f { capturing = 0 }
-        capturing { sub(/^[^:]+:[[:space:]]*/, ""); print }
-    ' "$SPEC_TMP"
-}
-
-get_simple() {
-    field="$1"
-    awk -v f="$field:" '
-        $0 ~ "^" f "[[:space:]]" {
-            sub(/^[^:]+:[[:space:]]*/, "")
-            print
+    awk -v f="$field" '
+        $0 ~ "^" f ":[[:space:]]*\\|" {
+            capturing = 1
+            next
+        }
+        $0 ~ "^" f ":[[:space:]]+" {
+            line = $0
+            sub(/^[^:]+:[[:space:]]*/, "", line)
+            print line
+            capturing = 0
             exit
+        }
+        capturing && /^[^[:space:]]/ {
+            exit
+        }
+        capturing {
+            print
         }
     ' "$SPEC_TMP"
 }
 
-NAME=$(get_simple name)
-DATE=$(date -u +%Y-%m-%d)
+# Extract the 7 fields.
+PROPOSITION=$(get_field proposition)
+OUTCOME=$(get_field outcome)
+INVARIANT=$(get_field invariant)
+TEST=$(get_field test)
+ANTITHESIS=$(get_field antithesis)
+SYNTHESIS=$(get_field synthesis)
+OPERATION=$(get_field operation)
 
-# Validate name matches
-if [ "$NAME" != "$name" ]; then
-    echo "error: spec name '$NAME' != arg name '$name'" >&2
-    [ "$spec_stdin" = "1" ] && rm -f "$SPEC_TMP"
+# Validate required fields (proposition + outcome are mandatory).
+# Other 5 fields are strongly recommended but not required.
+required_missing=""
+[ -z "$PROPOSITION" ] && required_missing="$required_missing proposition"
+[ -z "$OUTCOME" ] && required_missing="$required_missing outcome"
+
+if [ -n "$required_missing" ]; then
+    echo "error: spec missing required field(s):$required_missing" >&2
+    echo "  proposition and outcome are mandatory (the claim and what becomes true)" >&2
     exit 1
 fi
 
-THESIS=$(get_simple thesis)
-ANTITHESIS=$(get_simple antithesis)
-SYNTHESIS=$(get_simple synthesis)
-SURFACE=$(get_simple surface_impact)
-PROOF=$(get_simple proof)
-PROBLEM=$(get_simple problem)
-OUTCOME=$(get_simple outcome)
-INVARIANT=$(get_simple invariant)
-TEST_OBLIGATION=$(get_simple test_obligation)
-RUNTIME_CHECK=$(get_simple runtime_check)
-OPERATION=$(get_simple operation)
-MAPPING=$(get_simple mapping)
-STATE_PRE=$(awk '/^state:[[:space:]]*$/{in_state=1; next} in_state && /^[[:space:]]+pre:/{sub(/^[[:space:]]+pre:[[:space:]]*/, ""); print; exit}' "$SPEC_TMP")
-STATE_POST=$(awk '/^state:[[:space:]]*$/{in_state=1; next} in_state && /^[[:space:]]+post:/{sub(/^[[:space:]]+post:[[:space:]]*/, ""); print; exit}' "$SPEC_TMP")
-MODE=$(get_simple mode)
+# Warn about missing recommended fields.
+recommended_missing=""
+[ -z "$INVARIANT" ] && recommended_missing="$recommended_missing invariant"
+[ -z "$TEST" ] && recommended_missing="$recommended_missing test"
+[ -z "$ANTITHESIS" ] && recommended_missing="$recommended_missing antithesis"
+[ -z "$SYNTHESIS" ] && recommended_missing="$recommended_missing synthesis"
+[ -z "$OPERATION" ] && recommended_missing="$recommended_missing operation"
 
-# Extract constraints (list of items) and assumptions (list of dicts).
-# Simple list extractor: items are `  - <text>`.
-CONSTRAINTS=$(awk '
-    /^constraints:[[:space:]]*$/ { in_c = 1; next }
-    in_c && /^[[:space:]]+-/ { sub(/^[[:space:]]+-[[:space:]]*/, ""); print; next }
-    in_c && /^[^[:space:]-]/ { in_c = 0 }
-' "$SPEC_TMP")
+if [ -n "$recommended_missing" ]; then
+    echo "warning: missing recommended field(s):$recommended_missing" >&2
+    echo "  convention recommends all 7 fields for full documentation" >&2
+    echo "  see docs/when-not-to-use.md if you're unsure" >&2
+fi
 
-# Write packet.yaml
+DATE=$(date -u +%Y-%m-%d)
+
+# v0.991: emit self-critique prompt before generating files.
+# This echoes guidance for the LLM to self-check before submit.
+# Convention does not block — agent is expected to apply checks.
+cat <<'CRITIQUE'
+
+Pre-create self-critique (review before continuing):
+  1. proposition: Did you run the 4 checklist questions?
+     (falsifiable, specific, one sentence, concrete?)
+  2. antithesis: Does it name a specific counter-example?
+     (not strawman, not generic, not tautological?)
+  3. synthesis: Does it acknowledge BOTH thesis and antithesis?
+     (explains HOW, not WHAT?)
+  4. operation: Does it describe behavior, not implementation?
+     (covers edge cases?)
+  5. test: Is it executable with a clear expected value?
+  6. epistemic markers: are they honest? `fact` requires
+     evidence; `hypothesis` requires confidence; `unknown`
+     admits ignorance.
+
+If any answer is NO, revise before continuing.
+
+CRITIQUE
+
+echo ""
+echo "Creating packet: $DEST"
+
+# 1. packet.yaml — manifest
+CREATOR="${CREATOR:-${USER:-agent}}"
 cat > "$DEST/packet.yaml" <<EOF
 task_id: $name
 title: $name
-lifecycle: working
+lifecycle: draft
 substrate: none
 rigor: light
 decision: made
 created: "$DATE"
-verifier: sh core/check/verify.sh
+creator: $CREATOR
+verifier: null
 depends_on: []
 applications: []
 EOF
 
-# Write decision.md
-{
-    echo "# $name"
-    echo
-    echo "## Thesis"
-    echo
-    [ -n "$THESIS" ] && echo "$THESIS" || echo "<state your proposition>"
-    echo
-    echo "## Antithesis"
-    echo
-    [ -n "$ANTITHESIS" ] && echo "$ANTITHESIS" || echo "<state what could contradict>"
-    echo
-    echo "## Synthesis"
-    echo
-    [ -n "$SYNTHESIS" ] && echo "$SYNTHESIS" || echo "<state your resolution>"
-    echo
-    echo "## Surface impact"
-    echo
-    [ -n "$SURFACE" ] && echo "$SURFACE" || echo "<which surface elements this packet touches>"
-    echo
-    echo "## Proof"
-    echo
-    [ -n "$PROOF" ] && echo "$PROOF" || echo "<reference to test or script>"
-} > "$DEST/decision.md"
+# 2. decision.md — proposition + antithesis + synthesis
+cat > "$DEST/decision.md" <<EOF
+# $name
 
-# Write task.md
-{
-    echo "# $name"
-    echo
-    echo "## Problem"
-    echo
-    [ -n "$PROBLEM" ] && echo "$PROBLEM" || echo "<what problem does this packet address>"
-    echo
-    echo "## Desired outcome"
-    echo
-    [ -n "$OUTCOME" ] && echo "$OUTCOME" || echo "<what does success look like>"
-    echo
-    echo "## Constraints"
-    echo
-    if [ -n "$CONSTRAINTS" ]; then
-        echo "$CONSTRAINTS" | while IFS= read -r c; do
-            [ -n "$c" ] && echo "- $c"
-        done
-    else
-        echo "- must be testable"
-    fi
-} > "$DEST/task.md"
+## Thesis
 
-# Write assumptions.yaml (parse the assumptions list).
-# This is a simplified parser: each assumption block has
-#   - id: A1
-#     statement: "..."
-#     status: ...
-#     epistemology: ...
-#     confidence: ...
-#     evidence: |
-#       "..."
-# We emit each field as a YAML list-item with key-value pair.
-# Multi-line values (e.g. evidence: |) are handled by
-# tracking indent.
-ASSUMPTIONS=$(awk '
-    BEGIN { item_indent = -1 }
-    /^assumptions:[[:space:]]*$/ { in_a = 1; next }
-    in_a && /^[[:space:]]*-/ {
-        # Start of a new list item.
-        sub(/^[[:space:]]*-[[:space:]]*/, "")
-        print "  - " $0
-        item_indent = index($0, $0) - 1
-        next
-    }
-    in_a && /^[[:space:]]+[a-z_]+:/ {
-        # Continuation of the current item: indent + key: value
-        sub(/^[[:space:]]+/, "")
-        print "    " $0
-        next
-    }
-    in_a && !/^[[:space:]]/ { in_a = 0 }
-' "$SPEC_TMP")
+$PROPOSITION
 
+## Antithesis
+
+$ANTITHESIS
+
+## Synthesis
+
+$SYNTHESIS
+EOF
+
+# 3. refinement.md — state / operation / invariant / test
+cat > "$DEST/refinement.md" <<EOF
+# Refinement: $name
+
+## State
+
+- pre: <state before implementation>
+- post: $OUTCOME
+
+## Operation
+
+$OPERATION
+
+## Invariant preservation
+
+$INVARIANT
+
+## Test obligation
+
+$TEST
+EOF
+
+# 4. task.md — generated from proposition + outcome
+cat > "$DEST/task.md" <<EOF
+# $name
+
+## Problem
+
+$PROPOSITION
+
+## Desired outcome
+
+$OUTCOME
+
+## Constraints
+
+- proposition must remain true
+- invariant must hold across all transitions
+EOF
+
+# 5. assumptions.yaml — 5 markers, all agent-inferred
 cat > "$DEST/assumptions.yaml" <<EOF
 task_id: $name
 assumptions:
-$ASSUMPTIONS
-EOF
-# If no assumptions extracted, provide a default
-if [ -z "$ASSUMPTIONS" ]; then
-    cat > "$DEST/assumptions.yaml" <<EOF
-task_id: $name
-assumptions:
   - id: A1
-    statement: "<your first assumption>"
+    statement: "$OUTCOME is achievable under current constraints"
     status: agent-inferred
     epistemology: hypothesis
     confidence: 0.5
     evidence: |
-      <one-line evidence>
+      generated from proposition — agent should review
+  - id: A2
+    statement: "$INVARIANT is the right invariant for this proposition"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from invariant — agent should review
+  - id: A3
+    statement: "the test specified covers the proposition"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from test — agent should review
+  - id: A4
+    statement: "the operating environment is stable"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      default assumption — replace with real evidence
+  - id: A5
+    statement: "$PROPOSITION is the right framing of the decision"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from proposition — agent should review
 EOF
-fi
-
-# Write refinement.md
-{
-    echo "# Refinement: $name"
-    echo
-    echo "## State"
-    echo
-    echo "- pre:  ${STATE_PRE:-<pre-state>}"
-    echo "- post: ${STATE_POST:-<post-state>}"
-    echo
-    echo "## Operation"
-    echo
-    [ -n "$OPERATION" ] && echo "$OPERATION" || echo "<the action that implements this packet>"
-    echo
-    echo "## Mapping"
-    echo
-    [ -n "$MAPPING" ] && echo "$MAPPING" || echo "<spec state to impl state mapping>"
-    echo
-    echo "## Invariant preservation"
-    echo
-    [ -n "$INVARIANT" ] && echo "$INVARIANT" || echo "<what stays true>"
-    echo
-    echo "## Test obligation"
-    echo
-    [ -n "$TEST_OBLIGATION" ] && echo "$TEST_OBLIGATION" || echo "<how to verify this packet>"
-    echo
-    echo "## Runtime check"
-    echo
-    [ -n "$RUNTIME_CHECK" ] && echo "$RUNTIME_CHECK" || echo "<how to monitor at runtime>"
-} > "$DEST/refinement.md"
 
 [ "$spec_stdin" = "1" ] && rm -f "$SPEC_TMP"
 
-# Run verifier to ensure the new packet is valid
-if sh "$REPO_ROOT/core/check/verify.sh" >/dev/null 2>&1; then
-    echo "Created packet: $DEST (verified)"
-else
-    echo "Created packet: $DEST (verify warning — please review files)"
-fi
+echo "Created packet: $DEST"
+echo "  - packet.yaml      (lifecycle: draft)"
+echo "  - decision.md      (thesis/antithesis/synthesis)"
+echo "  - refinement.md    (state/operation/invariant/test)"
+echo "  - task.md          (generated from proposition + outcome)"
+echo "  - assumptions.yaml (5 markers, agent-inferred)"
+echo ""
+echo "Next: implement the operation, then run:"
+echo "  sh math-coding apply $name"

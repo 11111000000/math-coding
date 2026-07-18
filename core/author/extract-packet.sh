@@ -1,117 +1,96 @@
 #!/bin/sh
-# core/author/extract-packet.sh — reverse: 5 files -> YAML spec.
+# core/author/extract-packet.sh — math-coding v0.991 packet extractor.
 #
-# Usage: sh math-coding extract <name>
+# Usage:
+#   sh math-coding extract <name>
 #
-# Reads the 5 files of math/<name>/, emits a YAML spec
-# on stdout. The output is in the same shape as
-# create-packet.sh input, enabling round-trip.
+# Reads the 5 files of math/<name>/ and emits a YAML spec on
+# stdout in the 7-field format accepted by create-packet.sh.
+# Enables round-trip: extract → modify → create.
 
 set -u
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+. "$(dirname "$0")/../lib/common.sh"
 
 usage() {
     cat <<'EOF' >&2
 usage: extract-packet.sh <name>
-       extract-packet.sh --help
+
+Emits a 7-field YAML spec from math/<name>/ on stdout.
+The spec is in the same format as create-packet.sh input,
+enabling extract → modify → create round-trip.
 EOF
     exit 2
 }
 
+case "$1" in
+    --help|-h) usage; exit 0 ;;
+esac
+
 [ $# -eq 1 ] || usage
-[ "$1" = "--help" ] || [ "$1" = "-h" ] && { usage; exit 0; }
 
 name="$1"
-DEST="$REPO_ROOT/math/$name"
+DEST="$MATH_DIR/$name"
 [ -d "$DEST" ] || { echo "error: $DEST not found" >&2; exit 2; }
 
-# Extract simple fields from packet.yaml.
-name_field=$(awk '/^task_id:/{sub(/^task_id:[[:space:]]*/, ""); print; exit}' "$DEST/packet.yaml")
-mode=$(awk '/^lifecycle:/{lc=$0; next} /^decision:/{print; exit}' "$DEST/packet.yaml")
-
-# Extract section content from decision.md.
-# We use a simple state machine: look for "## Section", then
-# emit everything until the next "## " or end of file.
+# Extract decision.md sections.
 get_section() {
-    file="$1"
-    section="$2"
-    awk -v s="## $section" '
+    awk -v s="## $1" '
         $0 ~ s { capturing = 1; next }
         capturing && /^## / { exit }
         capturing { print }
-    ' "$file"
+    ' "$2"
 }
 
-# Extract constraints (a list under "## Constraints").
-get_constraints() {
-    awk '
-        /^## Constraints/ { in_c = 1; next }
-        in_c && /^## / { exit }
-        in_c && /^[[:space:]]*-/ { sub(/^[[:space:]]+-[[:space:]]*/, ""); print }
-    ' "$1"
+# Extract refinement.md sections (handles "Invariant preservation" with space).
+get_refinement_section() {
+    # section name is the only argument; file is the second.
+    # Use printf to safely construct pattern.
+    awk -v s="$(printf '## %s' "$1")" '
+        $0 ~ s { capturing = 1; next }
+        capturing && /^## / { exit }
+        capturing { print }
+    ' "$2"
 }
 
 # Extract state.pre and state.post from refinement.md.
+# Returns only the value, not the "post:" prefix.
 get_state_field() {
-    awk -v field="$2" '
+    awk -v field="$1" '
         /^## State/ { in_s = 1; next }
         in_s && /^## / { exit }
         in_s && $0 ~ "^[[:space:]]*[-*] " field ":" {
             sub(/^[[:space:]]*[-*] /, "")
-            sub(/:[[:space:]]*/, "")
+            sub(/^[^:]+:[[:space:]]*/, "")
             print
             exit
         }
-    ' "$1"
+    ' "$2"
 }
 
-echo "name: $name_field"
-[ -n "$mode" ] && echo "mode: $mode"
+# Strip leading whitespace from multiline content.
+strip_indent() {
+    sed 's/^  //'
+}
 
-# decision.md
-echo "thesis: |"
-get_section "$DEST/decision.md" "Thesis" | sed 's/^/  /'
-antithesis=$(get_section "$DEST/decision.md" "Antithesis")
-[ -n "$antithesis" ] && { echo "antithesis: |"; echo "$antithesis" | sed 's/^/  /'; }
-synthesis=$(get_section "$DEST/decision.md" "Synthesis")
-[ -n "$synthesis" ] && { echo "synthesis: |"; echo "$synthesis" | sed 's/^/  /'; }
-surface=$(get_section "$DEST/decision.md" "Surface impact")
-[ -n "$surface" ] && { echo "surface_impact: |"; echo "$surface" | sed 's/^/  /'; }
-proof=$(get_section "$DEST/decision.md" "Proof")
-[ -n "$proof" ] && { echo "proof: |"; echo "$proof" | sed 's/^/  /'; }
+# Emit 7-field spec
+echo "proposition: |"
+get_section "Thesis" "$DEST/decision.md" | strip_indent | sed 's/^/  /'
 
-# task.md
-echo "problem: |"
-get_section "$DEST/task.md" "Problem" | sed 's/^/  /'
-outcome=$(get_section "$DEST/task.md" "Desired outcome")
-[ -n "$outcome" ] && { echo "outcome: |"; echo "$outcome" | sed 's/^/  /'; }
-constraints=$(get_constraints "$DEST/task.md")
-if [ -n "$constraints" ]; then
-    echo "constraints:"
-    echo "$constraints" | sed 's/^/  - /'
-fi
+echo "outcome: |"
+get_state_field "post" "$DEST/refinement.md" | sed 's/^/  /'
 
-# assumptions.yaml — emit as-is (already YAML).
-echo "assumptions: |"
-sed 's/^/  /' "$DEST/assumptions.yaml"
+echo "invariant: |"
+get_refinement_section "Invariant preservation" "$DEST/refinement.md" | strip_indent | sed 's/^/  /'
 
-# refinement.md
-state_pre=$(get_state_field "$DEST/refinement.md" "pre")
-state_post=$(get_state_field "$DEST/refinement.md" "post")
-if [ -n "$state_pre" ] || [ -n "$state_post" ]; then
-    echo "state:"
-    [ -n "$state_pre" ] && echo "  pre: $state_pre"
-    [ -n "$state_post" ] && echo "  post: $state_post"
-fi
+echo "test: |"
+get_refinement_section "Test obligation" "$DEST/refinement.md" | strip_indent | sed 's/^/  /'
 
-operation=$(get_section "$DEST/refinement.md" "Operation")
-[ -n "$operation" ] && { echo "operation: |"; echo "$operation" | sed 's/^/  /'; }
-mapping=$(get_section "$DEST/refinement.md" "Mapping")
-[ -n "$mapping" ] && { echo "mapping: |"; echo "$mapping" | sed 's/^/  /'; }
-invariant=$(get_section "$DEST/refinement.md" "Invariant preservation")
-[ -n "$invariant" ] && { echo "invariant: |"; echo "$invariant" | sed 's/^/  /'; }
-test_obl=$(get_section "$DEST/refinement.md" "Test obligation")
-[ -n "$test_obl" ] && { echo "test_obligation: |"; echo "$test_obl" | sed 's/^/  /'; }
-runtime=$(get_section "$DEST/refinement.md" "Runtime check")
-[ -n "$runtime" ] && { echo "runtime_check: |"; echo "$runtime" | sed 's/^/  /'; }
+echo "antithesis: |"
+get_section "Antithesis" "$DEST/decision.md" | strip_indent | sed 's/^/  /'
+
+echo "synthesis: |"
+get_section "Synthesis" "$DEST/decision.md" | strip_indent | sed 's/^/  /'
+
+echo "operation: |"
+get_refinement_section "Operation" "$DEST/refinement.md" | strip_indent | sed 's/^/  /'
