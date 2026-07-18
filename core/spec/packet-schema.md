@@ -1,4 +1,4 @@
-# packet-schema (math-coding v0.854)
+# packet-schema (math-coding v0.978)
 
 Every packet is exactly five files. The verifier
 (`core/check/verify.sh`) checks this contract.

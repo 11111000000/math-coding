@@ -1,4 +1,4 @@
-# think-before-do (math-coding v0.854)
+# think-before-do (math-coding v0.978)
 
 The process precedes the code. The packet is written before
 the implementation. axiom Process fixes this as the temporal

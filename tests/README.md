@@ -1,4 +1,4 @@
-# tests/ — math-coding v0.854 self-tests (axiom Self-Application)
+# tests/ — math-coding v0.944 self-tests (axiom Self-Application)
 
 The tests in this directory verify that the convention
 applies to itself. `sh tests/run.sh` runs all cases and
