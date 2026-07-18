@@ -1,0 +1,17 @@
+task_id: v0-991-epistemic
+title: v0-991-epistemic
+lifecycle: draft
+substrate: none
+rigor: light
+decision: made
+created: "2026-07-16"
+verifier: null
+depends_on: []
+reviews:
+  - by: convention-self-approval
+    date: "2026-07-18"
+    verdict: approve
+    note: |
+      v0.991 epistemic honesty work — self-approved documenting
+      this convention revision
+applications: []

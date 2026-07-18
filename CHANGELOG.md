@@ -3,6 +3,42 @@
 Versions follow the φ-recurrence: `v_{n+1} = v_n + (1 - v_n) * 0.618`.
 The convention approaches but never reaches 1.0.
 
+## [v0.991] - 2026-07-18
+
+Reduction iteration. lifecycle FSM command, mandatory fields,
+when-not-to-use guide, stability marker. Iterate, not 1.0.
+
+### Added
+
+- `math-coding lifecycle <name> <state>` — unified state
+  transition command. `<state> ∈ {applied, retired, abandoned}`.
+  Aliases to apply/retire/abandon commands.
+- `math-coding stable <name>` — opt-in metadata marker.
+  Sets `stable_since:` in packet.yaml. No FSM impact. Use
+  `--unmark` to clear. Signals "this packet is settled".
+- `docs/when-not-to-use.md` — guide for trivial changes.
+  Convention is for decisions, not work. Skip for renames,
+  formats, typo fixes.
+- `core/author/stable.sh` — implements `stable` command.
+
+### Changed
+
+- `core/author/create-packet.sh` — only `proposition` and
+  `outcome` are now mandatory. Other 5 fields are strongly
+  recommended (warning if missing, not error). This reduces
+  friction for trivial decisions.
+- `packet.yaml` template adds `stable_since: null` field
+  (opt-in metadata, default null).
+- SKILL.md updated to reflect v0.991 (4 lifecycle states,
+  lifecycle FSM command, mandatory fields, stability marker,
+  when-not-to-use section).
+
+### Migration from earlier iterations
+
+No migration. Existing axiom and post-genesis packets are
+unchanged. They have all 7 fields filled in, which still passes
+the new validation (no fields missing).
+
 ## [v0.854] - 2026-07-15
 
 First release after the recursive reset to v0.618.

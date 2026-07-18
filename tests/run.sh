@@ -1071,6 +1071,150 @@ YAML
     rm -rf "$TMP40"
 fi
 
+# Case 41: lifecycle command (applied) delegates to apply.
+TMP41=$(mktemp -d 2>/dev/null) || { log_fail "lifecycle-applied" "mktemp failed"; }
+if [ -n "$TMP41" ]; then
+    mkdir -p "$TMP41/math"
+    SPEC="$TMP41/spec.yaml"
+    cat > "$SPEC" <<'YAML'
+proposition: |
+  Test.
+outcome: |
+  Test.
+YAML
+    env MATH_DIR="$TMP41/math" PROJECT_ROOT="$TMP41" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
+    (cd "$TMP41" && git init -q && \
+        git -c user.email=t@t.local -c user.name=t add math/ && \
+        git -c user.email=t@t.local -c user.name=t commit -q -m "init")
+    # lifecycle applied should delegate to apply
+    if env MATH_DIR="$TMP41/math" PROJECT_ROOT="$TMP41" REPO_ROOT="$TMP41" \
+        sh "$REPO_ROOT/math-coding" lifecycle test-pkt applied >/dev/null 2>&1; then
+        lc=$(grep '^lifecycle:' "$TMP41/math/test-pkt/packet.yaml" | sed 's/^lifecycle: *//')
+        if [ "$lc" = "applied" ]; then
+            log_pass "lifecycle-applied"
+        else
+            log_fail "lifecycle-applied" "lifecycle is $lc, expected applied"
+        fi
+    else
+        log_fail "lifecycle-applied" "lifecycle command failed"
+    fi
+    rm -rf "$TMP41"
+fi
+
+# Case 42: lifecycle command (abandoned) delegates to abandon.
+TMP42=$(mktemp -d 2>/dev/null) || { log_fail "lifecycle-abandoned" "mktemp failed"; }
+if [ -n "$TMP42" ]; then
+    mkdir -p "$TMP42/math"
+    SPEC="$TMP42/spec.yaml"
+    cat > "$SPEC" <<'YAML'
+proposition: |
+  Test.
+outcome: |
+  Test.
+YAML
+    env MATH_DIR="$TMP42/math" PROJECT_ROOT="$TMP42" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
+    if env MATH_DIR="$TMP42/math" PROJECT_ROOT="$TMP42" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/math-coding" lifecycle test-pkt abandoned >/dev/null 2>&1; then
+        lc=$(grep '^lifecycle:' "$TMP42/math/test-pkt/packet.yaml" | sed 's/^lifecycle: *//')
+        if [ "$lc" = "abandoned" ]; then
+            log_pass "lifecycle-abandoned"
+        else
+            log_fail "lifecycle-abandoned" "lifecycle is $lc"
+        fi
+    else
+        log_fail "lifecycle-abandoned" "lifecycle command failed"
+    fi
+    rm -rf "$TMP42"
+fi
+
+# Case 43: lifecycle command rejects invalid states (e.g. draft).
+TMP43=$(mktemp -d 2>/dev/null) || { log_fail "lifecycle-rejects-invalid" "mktemp failed"; }
+if [ -n "$TMP43" ]; then
+    mkdir -p "$TMP43/math"
+    SPEC="$TMP43/spec.yaml"
+    cat > "$SPEC" <<'YAML'
+proposition: |
+  Test.
+outcome: |
+  Test.
+YAML
+    env MATH_DIR="$TMP43/math" PROJECT_ROOT="$TMP43" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
+    # lifecycle draft should fail (no transition to draft allowed)
+    if env MATH_DIR="$TMP43/math" PROJECT_ROOT="$TMP43" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/math-coding" lifecycle test-pkt draft 2>/dev/null 2>&1; then
+        log_fail "lifecycle-rejects-invalid" "draft transition was accepted"
+    else
+        log_pass "lifecycle-rejects-invalid"
+    fi
+    rm -rf "$TMP43"
+fi
+
+# Case 44: create with only proposition+outcome succeeds (warnings for missing 5).
+TMP44=$(mktemp -d 2>/dev/null) || { log_fail "create-minimal" "mktemp failed"; }
+if [ -n "$TMP44" ]; then
+    mkdir -p "$TMP44/math"
+    SPEC="$TMP44/spec.yaml"
+    cat > "$SPEC" <<'YAML'
+proposition: |
+  Test proposition.
+outcome: |
+  Test outcome.
+YAML
+    out=$(env MATH_DIR="$TMP44/math" PROJECT_ROOT="$TMP44" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" 2>&1)
+    if echo "$out" | grep -q "missing recommended field" && [ -d "$TMP44/math/test-pkt" ]; then
+        log_pass "create-minimal"
+    else
+        log_fail "create-minimal" "no warning or packet not created"
+    fi
+    rm -rf "$TMP44"
+fi
+
+# Case 45: create with only proposition fails (outcome required).
+TMP45=$(mktemp -d 2>/dev/null) || { log_fail "create-requires-outcome" "mktemp failed"; }
+if [ -n "$TMP45" ]; then
+    mkdir -p "$TMP45/math"
+    SPEC="$TMP45/spec.yaml"
+    cat > "$SPEC" <<'YAML'
+proposition: |
+  Test only.
+YAML
+    if env MATH_DIR="$TMP45/math" PROJECT_ROOT="$TMP45" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1; then
+        log_fail "create-requires-outcome" "create succeeded without outcome"
+    else
+        log_pass "create-requires-outcome"
+    fi
+    rm -rf "$TMP45"
+fi
+
+# Case 46: stable command records stable_since date.
+TMP46=$(mktemp -d 2>/dev/null) || { log_fail "stable-marker" "mktemp failed"; }
+if [ -n "$TMP46" ]; then
+    mkdir -p "$TMP46/math"
+    SPEC="$TMP46/spec.yaml"
+    cat > "$SPEC" <<'YAML'
+proposition: |
+  Test.
+outcome: |
+  Test.
+YAML
+    env MATH_DIR="$TMP46/math" PROJECT_ROOT="$TMP46" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
+    # Mark stable
+    env MATH_DIR="$TMP46/math" PROJECT_ROOT="$TMP46" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/core/author/stable.sh" test-pkt 2>&1 | tail -3
+    if grep -q "^stable_since:.*20" "$TMP46/math/test-pkt/packet.yaml"; then
+        log_pass "stable-marker"
+    else
+        log_fail "stable-marker" "stable_since not set"
+    fi
+    rm -rf "$TMP46"
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "  pass: $pass"

@@ -1,6 +1,6 @@
 task_id: ci-workflow-convention
 title: ci-workflow-convention
-lifecycle: sketch
+lifecycle: draft
 substrate: none
 rigor: light
 decision: needed

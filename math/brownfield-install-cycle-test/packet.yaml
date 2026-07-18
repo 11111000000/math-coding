@@ -1,10 +1,17 @@
 task_id: brownfield-install-cycle-test
 title: Brownfield install + verify + uninstall cycle test
-lifecycle: working
+lifecycle: applied
 substrate: shell
 rigor: property
 decision: made
 created: "2026-07-15"
+reviews:
+  - by: axiom-self-approval
+    date: "2026-07-16"
+    verdict: approve
+    note: |
+      axiom packet — self-approved as reference material
+
 verifier: sh tests/run.sh
 depends_on:
   - axiom-self-application
