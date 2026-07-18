@@ -1,33 +1,55 @@
 #!/bin/sh
-# math-coding — math-coding v0.854 dispatcher.
+# math-coding — math-coding v0.978 dispatcher.
 #
 # Routes user-facing commands to the right tool. The dispatcher
 # knows the layout; the tools know their role.
 
 set -u
 
-REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
+. "$(dirname "$0")/core/lib/common.sh"
 
 usage() {
     cat <<EOF
 usage: math-coding <command> [args...]
 
 Commands:
-  init <name> [--template=<feature|bugfix|fsm>]
-                   Scaffold a new 5-file packet under math/<name>/.
   create <name> --from <spec.yaml>
                    Create a packet from a YAML spec (file or '-').
+                   Spec has 7 fields: proposition, outcome,
+                   invariant, test, antithesis, synthesis, operation.
   extract <name>    Emit a YAML spec for an existing packet to stdout.
+  apply <name>      Record SHA witness and transition to applied.
+  review <name>     Peer-review: --approve | --request-changes |
+                   --comment. v0.991: applied needs >=1 approve.
+  retire <name> --reason=<supersession|deprecation>
+                   Transition to retired.
+  abandon <name>    Transition draft → abandoned (v0.991).
+  lifecycle <name> <state>
+                   Unified state transition. <state> ∈
+                   applied | retired | abandoned. Aliases
+                   to apply, retire, abandon.
+  stable <name>    Mark packet as stable_since today (opt-in).
+  archive <name> [--confirm]
+                   Move to math/archived/, preserve git history.
   verify            Run core/check/verify.sh on all packets.
   drift-check       Run core/check/drift-check.sh on applications[].
   probe             Run core/self/probe.sh (axiom A6 self-application).
-  install <path>    Install convention to <path>/.math-coding/.
+  install <path> [--gitignore]
+                   Install convention to <path>/.math-coding/.
+                   By default .math-coding/ is committed.
+                   --gitignore opts in to gitignore behavior.
+  install-skill    Install math-coding skill to agent's skills
+                   location (default: opencode). See
+                   core/install/install-skill.sh.
+  config           Interactive .mathrc editor. Asks for each
+                   field (Enter to keep). TTY-aware.
   upgrade <path>    Upgrade .math-coding/ in <path>.
   uninstall <path>  Remove .math-coding/ from <path>.
   help              This message.
 
 Examples:
-  sh math-coding init my-feature
+  sh math-coding create my-feature --from spec.yaml
+  sh math-coding apply my-feature
   sh math-coding verify
   sh math-coding probe
   sh math-coding install /path/to/project
@@ -36,10 +58,6 @@ EOF
 }
 
 case "${1:-help}" in
-    init)
-        shift
-        exec sh "$REPO_ROOT/core/author/init-packet.sh" "$@"
-        ;;
     create)
         shift
         exec sh "$REPO_ROOT/core/author/create-packet.sh" "$@"
@@ -47,6 +65,60 @@ case "${1:-help}" in
     extract)
         shift
         exec sh "$REPO_ROOT/core/author/extract-packet.sh" "$@"
+        ;;
+    apply)
+        shift
+        exec sh "$REPO_ROOT/core/author/apply-packet.sh" "$@"
+        ;;
+    review)
+        shift
+        exec sh "$REPO_ROOT/core/author/review-packet.sh" "$@"
+        ;;
+    retire)
+        shift
+        exec sh "$REPO_ROOT/core/author/retire-packet.sh" "$@"
+        ;;
+    abandon)
+        shift
+        exec sh "$REPO_ROOT/core/author/abandon-packet.sh" "$@"
+        ;;
+    lifecycle)
+        shift
+        name="$1"
+        state="$2"
+        if [ -z "$name" ] || [ -z "$state" ]; then
+            echo "usage: math-coding lifecycle <name> <state>" >&2
+            echo "  state: applied | retired | abandoned" >&2
+            exit 2
+        fi
+        shift 2
+        case "$state" in
+            applied)
+                exec sh "$REPO_ROOT/core/author/apply-packet.sh" "$name" "$@"
+                ;;
+            retired)
+                exec sh "$REPO_ROOT/core/author/retire-packet.sh" "$name" "$@"
+                ;;
+            abandoned)
+                exec sh "$REPO_ROOT/core/author/abandon-packet.sh" "$name" "$@"
+                ;;
+            draft)
+                echo "error: cannot transition to 'draft' (use create for new packet)" >&2
+                exit 1
+                ;;
+            *)
+                echo "error: unknown state '$state' (use: applied|retired|abandoned)" >&2
+                exit 1
+                ;;
+        esac
+        ;;
+    stable)
+        shift
+        exec sh "$REPO_ROOT/core/author/stable.sh" "$@"
+        ;;
+    archive)
+        shift
+        exec sh "$REPO_ROOT/core/author/archive-packet.sh" "$@"
         ;;
     verify)
         exec sh "$REPO_ROOT/core/check/verify.sh"
@@ -60,6 +132,14 @@ case "${1:-help}" in
     install)
         shift
         exec sh "$REPO_ROOT/core/install/install.sh" "$@"
+        ;;
+    install-skill)
+        shift
+        exec sh "$REPO_ROOT/core/install/install-skill.sh" "$@"
+        ;;
+    config)
+        shift
+        exec sh "$REPO_ROOT/core/author/config.sh" "$@"
         ;;
     upgrade)
         shift
