@@ -1,6 +1,6 @@
 task_id: brownfield-install-cycle-test
 title: Brownfield install + verify + uninstall cycle test
-lifecycle: applied
+lifecycle: draft
 substrate: shell
 rigor: property
 decision: made

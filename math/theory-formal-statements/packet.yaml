@@ -1,6 +1,6 @@
 task_id: theory-formal-statements
 title: Formal theorems + proofs for all 8 theories
-lifecycle: applied
+lifecycle: draft
 substrate: none
 rigor: proof
 decision: made
@@ -18,4 +18,9 @@ depends_on:
   - axiom-process
   - axiom-accounting
   - axiom-self-application
-applications: []
+    by: agent
+    date: "2026-07-15"
+    pressure: feature
+    files:
+      - math/theory-formal-statements/decision.md
+      - math/theory-formal-statements/refinement.md

@@ -112,31 +112,26 @@ ANTITHESIS=$(get_field antithesis)
 SYNTHESIS=$(get_field synthesis)
 OPERATION=$(get_field operation)
 
-# Validate required fields (proposition + outcome are mandatory).
-# Other 5 fields are strongly recommended but not required.
+# Validate required fields (all 7 are mandatory for v0.991+).
+# Convention is opinionated: a packet without antithesis or
+# synthesis is incomplete. A decision without consideration
+# of its strongest objection is a claim, not a decision.
 required_missing=""
 [ -z "$PROPOSITION" ] && required_missing="$required_missing proposition"
 [ -z "$OUTCOME" ] && required_missing="$required_missing outcome"
+[ -z "$INVARIANT" ] && required_missing="$required_missing invariant"
+[ -z "$TEST" ] && required_missing="$required_missing test"
+[ -z "$ANTITHESIS" ] && required_missing="$required_missing antithesis"
+[ -z "$SYNTHESIS" ] && required_missing="$required_missing synthesis"
+[ -z "$OPERATION" ] && required_missing="$required_missing operation"
 
 if [ -n "$required_missing" ]; then
     echo "error: spec missing required field(s):$required_missing" >&2
-    echo "  proposition and outcome are mandatory (the claim and what becomes true)" >&2
+    echo "  all 7 fields are mandatory: proposition, outcome, invariant," >&2
+    echo "  test, antithesis, synthesis, operation" >&2
     exit 1
 fi
 
-# Warn about missing recommended fields.
-recommended_missing=""
-[ -z "$INVARIANT" ] && recommended_missing="$recommended_missing invariant"
-[ -z "$TEST" ] && recommended_missing="$recommended_missing test"
-[ -z "$ANTITHESIS" ] && recommended_missing="$recommended_missing antithesis"
-[ -z "$SYNTHESIS" ] && recommended_missing="$recommended_missing synthesis"
-[ -z "$OPERATION" ] && recommended_missing="$recommended_missing operation"
-
-if [ -n "$recommended_missing" ]; then
-    echo "warning: missing recommended field(s):$recommended_missing" >&2
-    echo "  convention recommends all 7 fields for full documentation" >&2
-    echo "  see docs/when-not-to-use.md if you're unsure" >&2
-fi
 
 DATE=$(date -u +%Y-%m-%d)
 
@@ -177,6 +172,8 @@ rigor: light
 decision: made
 created: "$DATE"
 creator: $CREATOR
+# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+stable_since: null
 verifier: null
 depends_on: []
 applications: []

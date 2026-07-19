@@ -1,6 +1,6 @@
 task_id: opencode-skill-restructure
 title: Opencode skill — split entry from references, add examples
-lifecycle: applied
+lifecycle: draft
 substrate: shell
 rigor: light
 decision: made

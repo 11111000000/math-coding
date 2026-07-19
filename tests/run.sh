@@ -1076,12 +1076,7 @@ TMP41=$(mktemp -d 2>/dev/null) || { log_fail "lifecycle-applied" "mktemp failed"
 if [ -n "$TMP41" ]; then
     mkdir -p "$TMP41/math"
     SPEC="$TMP41/spec.yaml"
-    cat > "$SPEC" <<'YAML'
-proposition: |
-  Test.
-outcome: |
-  Test.
-YAML
+    make_spec > "$SPEC"
     env MATH_DIR="$TMP41/math" PROJECT_ROOT="$TMP41" REPO_ROOT="$REPO_ROOT" \
         sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
     (cd "$TMP41" && git init -q && \
@@ -1107,12 +1102,7 @@ TMP42=$(mktemp -d 2>/dev/null) || { log_fail "lifecycle-abandoned" "mktemp faile
 if [ -n "$TMP42" ]; then
     mkdir -p "$TMP42/math"
     SPEC="$TMP42/spec.yaml"
-    cat > "$SPEC" <<'YAML'
-proposition: |
-  Test.
-outcome: |
-  Test.
-YAML
+    make_spec > "$SPEC"
     env MATH_DIR="$TMP42/math" PROJECT_ROOT="$TMP42" REPO_ROOT="$REPO_ROOT" \
         sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
     if env MATH_DIR="$TMP42/math" PROJECT_ROOT="$TMP42" REPO_ROOT="$REPO_ROOT" \
@@ -1134,12 +1124,7 @@ TMP43=$(mktemp -d 2>/dev/null) || { log_fail "lifecycle-rejects-invalid" "mktemp
 if [ -n "$TMP43" ]; then
     mkdir -p "$TMP43/math"
     SPEC="$TMP43/spec.yaml"
-    cat > "$SPEC" <<'YAML'
-proposition: |
-  Test.
-outcome: |
-  Test.
-YAML
+    make_spec > "$SPEC"
     env MATH_DIR="$TMP43/math" PROJECT_ROOT="$TMP43" REPO_ROOT="$REPO_ROOT" \
         sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
     # lifecycle draft should fail (no transition to draft allowed)
@@ -1152,26 +1137,7 @@ YAML
     rm -rf "$TMP43"
 fi
 
-# Case 44: create with only proposition+outcome succeeds (warnings for missing 5).
-TMP44=$(mktemp -d 2>/dev/null) || { log_fail "create-minimal" "mktemp failed"; }
-if [ -n "$TMP44" ]; then
-    mkdir -p "$TMP44/math"
-    SPEC="$TMP44/spec.yaml"
-    cat > "$SPEC" <<'YAML'
-proposition: |
-  Test proposition.
-outcome: |
-  Test outcome.
-YAML
-    out=$(env MATH_DIR="$TMP44/math" PROJECT_ROOT="$TMP44" REPO_ROOT="$REPO_ROOT" \
-        sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" 2>&1)
-    if echo "$out" | grep -q "missing recommended field" && [ -d "$TMP44/math/test-pkt" ]; then
-        log_pass "create-minimal"
-    else
-        log_fail "create-minimal" "no warning or packet not created"
-    fi
-    rm -rf "$TMP44"
-fi
+# Case 44 (removed): convention now requires all 7 fields. See Case 22 for missing-field test.
 
 # Case 45: create with only proposition fails (outcome required).
 TMP45=$(mktemp -d 2>/dev/null) || { log_fail "create-requires-outcome" "mktemp failed"; }
@@ -1196,12 +1162,7 @@ TMP46=$(mktemp -d 2>/dev/null) || { log_fail "stable-marker" "mktemp failed"; }
 if [ -n "$TMP46" ]; then
     mkdir -p "$TMP46/math"
     SPEC="$TMP46/spec.yaml"
-    cat > "$SPEC" <<'YAML'
-proposition: |
-  Test.
-outcome: |
-  Test.
-YAML
+    make_spec > "$SPEC"
     env MATH_DIR="$TMP46/math" PROJECT_ROOT="$TMP46" REPO_ROOT="$REPO_ROOT" \
         sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
     # Mark stable
