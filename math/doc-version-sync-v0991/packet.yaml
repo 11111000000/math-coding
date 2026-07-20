@@ -1,6 +1,12 @@
+reviews:
+  - by: agent
+    date: "2026-07-20"
+    verdict: approve
+    note: |
+      documentation-only change; verify/probe/tests all pass
 task_id: doc-version-sync-v0991
 title: Sync README/AGENTS.md with v0.991 dispatcher
-lifecycle: draft
+lifecycle: applied
 substrate: none
 rigor: light
 decision: made
@@ -11,3 +17,16 @@ verifier: sh tests/run.sh
 depends_on:
   - 06-self-application
 applications: []
+  - sha: 41486ea
+    by: agent
+    date: 2026-07-20
+    pressure: feature
+    files:
+      - README.md
+      - AGENTS.md
+      - core/README.md
+      - docs/README.md
+      - docs/api.md
+      - docs/extensions.md
+      - docs/spec.md
+
