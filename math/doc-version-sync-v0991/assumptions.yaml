@@ -1,0 +1,36 @@
+task_id: doc-version-sync-v0991
+assumptions:
+  - id: A1
+    statement: "README.md and AGENTS.md currently identify the project as v0.854."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      README.md:1 says "math-coding v0.854"; AGENTS.md:1 says "math-coding v0.854 runtime hint".
+  - id: A2
+    statement: "The root dispatcher no longer exposes init; it exposes create, apply, review, abandon, lifecycle, config, and install-skill."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      math-coding dispatcher usage() lists create, extract, apply, review, retire, abandon, lifecycle, stable, archive, verify, drift-check, probe, install, install-skill, config, upgrade, uninstall.
+  - id: A3
+    statement: "The packet lifecycle implemented in v0.991 is draft → applied → retired, with abandoned and archived as terminal side states."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      core/spec/packet-schema.md and core/spec/decision-modes.md describe draft/applied/retired; tests/run.sh exercises abandon and archive transitions.
+  - id: A4
+    statement: "Updating README.md and AGENTS.md does not change executable behavior."
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      These files are consumed by humans and agents, not by core scripts.
+  - id: A5
+    statement: "Readers rely on README.md and AGENTS.md before reading dispatcher source."
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+    evidence: |
+      README.md is the repository landing page; AGENTS.md is the agent runtime hint. No telemetry confirms this.

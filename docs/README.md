@@ -1,4 +1,4 @@
-# Documentation (math-coding v0.854)
+# Documentation (math-coding v0.991)
 
 The convention's documentation lives in three places.
 

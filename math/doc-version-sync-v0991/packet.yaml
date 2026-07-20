@@ -1,0 +1,13 @@
+task_id: doc-version-sync-v0991
+title: Sync README/AGENTS.md with v0.991 dispatcher
+lifecycle: draft
+substrate: none
+rigor: light
+decision: made
+created: "2026-07-19"
+creator: za
+stable_since: null
+verifier: sh tests/run.sh
+depends_on:
+  - 06-self-application
+applications: []

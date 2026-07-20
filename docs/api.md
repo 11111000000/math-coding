@@ -1,8 +1,8 @@
-# API stability (math-coding v0.854)
+# API stability (math-coding v0.991)
 
 This document defines the **stable** surface of the
 convention. Changes to the stable surface require a
-major-version bump (e.g. v0.854 → v1.0).
+major-version bump (e.g. v0.991 → v1.0).
 
 ## Stable scripts
 
@@ -12,9 +12,13 @@ without changes within a major version.
 
 | Script | Purpose |
 |--------|---------|
-| `core/author/init-packet.sh` | scaffold 5-file packet (template) |
 | `core/author/create-packet.sh` | spec-driven packet creation (one call) |
 | `core/author/extract-packet.sh` | reverse: 5 files → YAML spec |
+| `core/author/apply-packet.sh` | SHA-witness + transition to applied |
+| `core/author/review-packet.sh` | peer-review verdict |
+| `core/author/retire-packet.sh` | transition to retired |
+| `core/author/abandon-packet.sh` | transition draft → abandoned |
+| `core/author/archive-packet.sh` | move retired packet to `math/archived/` |
 | `core/check/verify.sh` | structural + axioms + theories check |
 | `core/check/drift-check.sh` | applications[] SHA vs HEAD |
 | `core/agent/mathrc.sh` | load ./.mathrc |
@@ -30,15 +34,23 @@ The dispatcher `math-coding` exposes these commands:
 
 | Command | Behavior |
 |---------|----------|
-| `init <name>` | scaffold a 5-file packet |
 | `create <name> --from <spec>` | create from spec |
 | `extract <name>` | emit YAML spec to stdout |
+| `apply <name>` | record SHA witness and transition to applied |
+| `review <name>` | peer-review: `--approve`, `--request-changes`, `--comment` |
+| `retire <name>` | transition to retired |
+| `abandon <name>` | transition draft → abandoned |
+| `lifecycle <name> <state>` | unified transition: applied / retired / abandoned |
+| `stable <name>` | mark packet stable |
+| `archive <name>` | move retired packet to `math/archived/` |
 | `verify` | run verify.sh |
 | `drift-check` | run drift-check.sh |
 | `probe` | run probe.sh (axiom Self-Application) |
 | `install <path>` | install to path |
 | `upgrade <path>` | upgrade install at path |
 | `uninstall <path>` | uninstall from path |
+| `install-skill` | install agent skill |
+| `config` | interactive .mathrc editor |
 | `help` | show usage |
 
 Within a major version, these commands and their flags are

@@ -1,7 +1,7 @@
-# Specification (math-coding v0.978)
+# Specification (math-coding v0.991)
 
 This document is the canonical specification of math-coding
-v0.978. It states what the convention is, how it works, and
+v0.991. It states what the convention is, how it works, and
 how to use it.
 
 ## Identity
@@ -24,7 +24,7 @@ full statement.
   A1 Care           — developer cares about correctness
   A2 Curry-Howard   — packet = proof term
   A3 Material Basis — plain-text + git + POSIX
-  A4 Process        — three-state FSM (draft/applied/retired)
+  A4 Process        — three-state lifecycle (draft/applied/retired)
   A5 Accounting     — five markers, five verdicts, witness, modes
   A6 Self-Application — convention applies to itself
                          (definitional + applicative)
@@ -43,16 +43,18 @@ is a runtime spec for an LLM agent.
   deprecation  (A5): ⊥ strict partial order
   agent        (A6): S = (chat, files, mode, role, installation)
 
-## The packet (v0.978)
+## The packet (v0.991)
 
 Mandatory (3):
+
   packet.yaml      manifest (task_id, lifecycle, substrate,
                    rigor, decision, created, verifier,
-                   depends_on, applications[])
+                   depends_on, applications[], reviews[])
   decision.md      proposition (thesis, antithesis, synthesis)
   refinement.md    state / operation / invariant / test
 
 Auto-generated (2):
+
   task.md          generated from proposition + outcome
   assumptions.yaml 5 markers (status: agent-inferred)
 
@@ -98,8 +100,15 @@ Created by the consumer: `<target>/math/`, `<target>/tests/`,
   draft → applied → retired
 
 `draft` — packet created, no SHA witness yet.
-`applied` — packet has at least one SHA in applications[].
+`applied` — packet has at least one SHA in applications[]
+            and at least one approving review.
 `retired` — packet no longer applied.
+
+Side states:
+
+  abandoned   draft packet that will not be applied
+  archived    retired packet moved to `math/archived/`
+  superseded  replaced by a new packet
 
 ## The five epistemic markers
 
@@ -132,6 +141,19 @@ buckets:
   lookahead  — SHA unknown (forward-reference)
   drift      — SHA known, files changed since
 
+## Peer review
+
+Every applied packet requires at least one approving review
+in `packet.yaml:reviews[]`. The review records:
+
+  by      reviewer identity
+  date    ISO 8601 date
+  verdict approve | request-changes | comment
+  note    optional rationale
+
+Self-approval is configurable via `.mathrc` but disabled by
+default.
+
 ## MATH_DIR resolution
 
 Every script reads `math_dir` from `.mathrc` (default
@@ -152,11 +174,12 @@ target project this is `<target>/math/`.
     [6/6] axiom packets form dependency chain
 
   target mode (axiom packets absent):
-    [1/5] install payload intact
-    [2/5] .mathrc valid
-    [3/5] MATH_DIR exists
-    [4/5] verify.sh exit 0 on user's MATH_DIR
-    [5/5] drift-check.sh exit 0 on user's MATH_DIR
+    [1/6] install payload intact
+    [2/6] .mathrc valid
+    [3/6] MATH_DIR exists
+    [4/6] verify.sh exit 0 on user's MATH_DIR
+    [5/6] drift-check.sh exit 0 on user's MATH_DIR
+    [6/6] end-to-end create → apply → review → verify pipeline
 
 Exit 0 in source-repo mode: definitional axiom
 Self-Application holds.
@@ -168,9 +191,13 @@ holds.
 
   core/author/create-packet.sh  spec → 5 files (7-field spec)
   core/author/apply-packet.sh   SHA-witness + lifecycle transition
+  core/author/review-packet.sh  peer-review verdict
   core/author/retire-packet.sh  → retired
+  core/author/abandon-packet.sh → abandoned
   core/author/archive-packet.sh remove from working tree
   core/author/extract-packet.sh reverse: 5 files → YAML spec
+  core/author/config.sh         interactive .mathrc editor
+  core/author/stable.sh         mark packet stable
   core/check/verify.sh          structural + axioms + theories check
   core/check/drift-check.sh     applications[] SHA vs HEAD
   core/agent/mathrc.sh          load ./.mathrc
@@ -178,6 +205,7 @@ holds.
   core/install/install.sh       brownfield install
   core/install/upgrade.sh       brownfield upgrade
   core/install/uninstall.sh     brownfield uninstall
+  core/install/install-skill.sh agent skill install
 
   math-coding (root)            dispatcher
 
@@ -200,6 +228,4 @@ Versions follow the φ-recurrence:
 
   v_{n+1} = v_n + (1 - v_n) * 0.618
 
-  v0.618 → v0.978 → v0.978 → v0.978 → v0.988 → ...
-
-v0.978 is the next version after v0.978.
+v0.991 is the next version after v0.978.
