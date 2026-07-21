@@ -21,6 +21,7 @@ if [ ! -d "$DEST" ]; then
 fi
 
 # Remove old payload, install new
+# shellcheck disable=SC2115  # DEST is set from $1 with explicit error
 for d in core theories docs; do
     if [ -d "$DEST/$d" ]; then
         rm -rf "$DEST/$d"

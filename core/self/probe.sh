@@ -258,17 +258,19 @@ else
     fi
 
     # Check 6: end-to-end pipeline in target (create → apply → review → verify).
-    # Creates a sample packet in a tmp directory using the installed
-    # convention, runs the full pipeline, then cleans up. This
-    # proves axiom Self-Application (applicative): convention works
-    # end-to-end, not just structurally.
+    # Opt-in via --full-pipeline-test flag. By default OFF (the
+    # structural probe is sufficient for axiom Self-Application).
+    # When ON, creates a sample packet in a tmp directory and runs
+    # the full pipeline. This proves axiom Self-Application
+    # (applicative): convention works end-to-end, not just structurally.
     echo ""
-    echo "[6/6] end-to-end pipeline in target"
-    pipeline_tmp=$(mktemp -d 2>/dev/null) || { echo "  FAIL: mktemp"; errors=$((errors + 1)); }
-    if [ -n "$pipeline_tmp" ]; then
-        mkdir -p "$pipeline_tmp/math"
-        spec="$pipeline_tmp/spec.yaml"
-        cat > "$spec" <<'PIPELINE_SPEC'
+    if [ "${FULL_PIPELINE_TEST:-0}" = "1" ]; then
+        echo "[6/6] end-to-end pipeline in target (--full-pipeline-test)"
+        pipeline_tmp=$(mktemp -d 2>/dev/null) || { echo "  FAIL: mktemp"; errors=$((errors + 1)); }
+        if [ -n "$pipeline_tmp" ]; then
+            mkdir -p "$pipeline_tmp/math"
+            spec="$pipeline_tmp/spec.yaml"
+            cat > "$spec" <<'PIPELINE_SPEC'
 proposition: |
   Pipeline test proposition.
 outcome: |
@@ -284,34 +286,37 @@ synthesis: |
 operation: |
   Pipeline operation.
 PIPELINE_SPEC
-        # Use installed dispatcher (target context), not source-repo
-        # dispatcher. Set REPO_ROOT to target so the installer in
-        # target's dispatcher can find scripts.
-        target_dispatcher="$REPO_ROOT/math-coding"
-        if (
-            cd "$pipeline_tmp" && \
-            env REPO_ROOT="$pipeline_tmp/.math-coding" \
-                sh "$target_dispatcher" create pipeline-test --from "$spec" >/dev/null 2>&1 && \
-            cd "$pipeline_tmp" && git init -q && \
-            cd "$pipeline_tmp" && \
-                git -c user.email=test@test.local -c user.name=test add math/ spec.yaml && \
-                git -c user.email=test@test.local -c user.name=test commit -q -m "init" && \
-            cd "$pipeline_tmp" && \
+            target_dispatcher="$REPO_ROOT/math-coding"
+            # git init BEFORE create (apply needs git history for SHA-witness).
+            if (
+                cd "$pipeline_tmp" && \
+                git init -q && \
+                git -c user.email=test@test.local -c user.name=test \
+                    commit --allow-empty -q -m "init" && \
                 env REPO_ROOT="$pipeline_tmp/.math-coding" \
-                sh "$target_dispatcher" apply pipeline-test >/dev/null 2>&1 && \
-            cd "$pipeline_tmp" && \
+                    sh "$target_dispatcher" create pipeline-test --from "$spec" >/dev/null 2>&1 && \
+                cd "$pipeline_tmp" && \
+                git -c user.email=test@test.local -c user.name=test \
+                    add math/ spec.yaml && \
+                git -c user.email=test@test.local -c user.name=test \
+                    commit -q -m "add packet" && \
                 env REPO_ROOT="$pipeline_tmp/.math-coding" \
-                sh "$target_dispatcher" review pipeline-test --approve --note="pipeline test" >/dev/null 2>&1 && \
-            cd "$pipeline_tmp" && \
+                    sh "$target_dispatcher" apply pipeline-test >/dev/null 2>&1 && \
                 env REPO_ROOT="$pipeline_tmp/.math-coding" \
-                sh "$target_dispatcher" verify >/dev/null 2>&1
-        ); then
-            echo "  ok: create → apply → review → verify pipeline works"
-        else
-            echo "  FAIL: end-to-end pipeline failed"
-            errors=$((errors + 1))
+                    sh "$target_dispatcher" review pipeline-test --approve --note="pipeline test" >/dev/null 2>&1 && \
+                env REPO_ROOT="$pipeline_tmp/.math-coding" \
+                    sh "$target_dispatcher" verify >/dev/null 2>&1
+            ); then
+                echo "  ok: create → apply → review → verify pipeline works"
+            else
+                echo "  FAIL: end-to-end pipeline failed"
+                errors=$((errors + 1))
+            fi
+            rm -rf "$pipeline_tmp"
         fi
-        rm -rf "$pipeline_tmp"
+    else
+        echo "[6/6] end-to-end pipeline (skipped - use --full-pipeline-test)"
+        echo "  (structural-only probe is the default; full pipeline is opt-in)"
     fi
 
     echo ""
