@@ -2,6 +2,7 @@ task_id: 05-accounting
 axiom: A5
 title: A5 Accounting — epistemic axiom
 lifecycle: applied
+implementation: complete
 substrate: none
 rigor: property
 decision: made

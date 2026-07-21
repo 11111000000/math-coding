@@ -1,6 +1,7 @@
 task_id: extract-packet-reverse
 title: Reverse — extract 5-file packet to single spec
 lifecycle: draft
+implementation: absent
 substrate: shell
 rigor: light
 decision: made

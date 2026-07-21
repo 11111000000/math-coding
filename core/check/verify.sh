@@ -104,7 +104,7 @@ if [ -d "$MATH_DIR" ]; then
             *) fail "$pkt_name: invalid rigor '$rig'" ;;
         esac
 
-        # applied requires SHA in applications[]
+        # applied requires SHA in applications[] AND implementation=complete
         if [ "$lc" = "applied" ]; then
             if grep -q '^applications:' "$pkt_dir/packet.yaml"; then
                 if grep -qE 'sha: [0-9a-f]+' "$pkt_dir/packet.yaml"; then
@@ -114,6 +114,18 @@ if [ -d "$MATH_DIR" ]; then
                 fi
             else
                 fail "$pkt_name: lifecycle=applied but no applications[] block"
+            fi
+        fi
+
+        # v0.991: applied requires implementation=complete (Curry-Howard).
+        # axiom packets are exempt (reference material).
+        if [ "$lc" = "applied" ]; then
+            is_axiom=$(grep -q '^axiom:[[:space:]]*[Aa][0-9]' "$pkt_dir/packet.yaml" 2>/dev/null && echo 1 || echo 0)
+            impl=$(grep '^implementation:' "$pkt_dir/packet.yaml" | sed 's/^implementation:[[:space:]]*//' | tr -d '"' | tr -d "'" | awk '{print $1}')
+            if [ "$is_axiom" = "0" ]; then
+                if [ "$impl" != "complete" ]; then
+                    fail "$pkt_name: lifecycle=applied but implementation=$impl (must be complete, see fix-implementation-field)"
+                fi
             fi
         fi
 

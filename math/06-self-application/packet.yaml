@@ -2,6 +2,7 @@ task_id: 06-self-application
 axiom: A6
 title: A6 Self-Application — meta axiom
 lifecycle: applied
+implementation: complete
 substrate: none
 rigor: proof
 decision: made

@@ -2,6 +2,7 @@ task_id: 00-difference
 axiom: A0
 title: A0 Difference — ontological axiom
 lifecycle: applied
+implementation: complete
 substrate: none
 rigor: proof
 decision: made

@@ -2,6 +2,7 @@ task_id: 01-care
 axiom: A1
 title: A1 Care — motivational axiom
 lifecycle: applied
+implementation: complete
 substrate: none
 rigor: proof
 decision: made

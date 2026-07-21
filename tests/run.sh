@@ -399,6 +399,51 @@ YAML
     rm -rf "$TMP22"
 fi
 
+# Case 22b: applied with implementation != complete FAILS verify.
+TMP22b=$(mktemp -d 2>/dev/null) || { log_fail "implementation-field-enforced" "mktemp failed"; }
+if [ -n "$TMP22b" ]; then
+    mkdir -p "$TMP22b/math"
+    SPEC="$TMP22b/spec.yaml"
+    cat > "$SPEC" <<'YAML'
+proposition: |
+  Test.
+outcome: |
+  Test.
+invariant: |
+  Test.
+test: |
+  Test.
+antithesis: |
+  Test.
+synthesis: |
+  Test.
+operation: |
+  Test.
+YAML
+    env MATH_DIR="$TMP22b/math" PROJECT_ROOT="$TMP22b" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
+    # Set lifecycle=applied but implementation=absent (no verified_by)
+    sed -i 's/^lifecycle: draft$/lifecycle: applied/' "$TMP22b/math/test-pkt/packet.yaml"
+    sed -i '/^lifecycle: applied$/a\
+implementation: absent' "$TMP22b/math/test-pkt/packet.yaml"
+    if (
+        cd "$TMP22b" && git init -q && \
+        git -c user.email=t@t.local -c user.name=t commit --allow-empty -q -m init && \
+        env MATH_DIR="$TMP22b/math" PROJECT_ROOT="$TMP22b" REPO_ROOT="$TMP22b" \
+            sh "$REPO_ROOT/core/author/apply-packet.sh" test-pkt >/dev/null 2>&1
+    ); then
+        if env MATH_DIR="$TMP22b/math" PROJECT_ROOT="$TMP22b" REPO_ROOT="$TMP22b" \
+            sh "$REPO_ROOT/core/check/verify.sh" 2>&1 | grep -q "implementation=absent"; then
+            log_pass "implementation-field-enforced"
+        else
+            log_fail "implementation-field-enforced" "verify did not catch implementation=absent with applied"
+        fi
+    else
+        log_fail "implementation-field-enforced" "apply failed (implementation/apply setup)"
+    fi
+    rm -rf "$TMP22b"
+fi
+
 # Case 23: apply records SHA and transitions to applied.
 # v0.991: apply transitions draft → applied AND records SHA.
 # Verify is not run inside apply (it was in earlier versions

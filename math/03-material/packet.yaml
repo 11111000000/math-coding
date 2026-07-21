@@ -2,6 +2,7 @@ task_id: 03-material
 axiom: A3
 title: A3 Material Basis — substrate axiom
 lifecycle: applied
+implementation: complete
 substrate: none
 rigor: property
 decision: made

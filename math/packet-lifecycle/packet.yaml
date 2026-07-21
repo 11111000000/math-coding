@@ -1,6 +1,7 @@
 task_id: packet-lifecycle
 title: Packet lifecycle — amendment and supersession
 lifecycle: applied
+implementation: complete
 substrate: none
 rigor: property
 decision: made

@@ -1,6 +1,7 @@
 task_id: create-packet-spec-driven
 title: Spec-driven packet creation — single-call packet synthesis
 lifecycle: draft
+implementation: absent
 substrate: shell
 rigor: light
 decision: made

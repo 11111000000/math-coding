@@ -1,4 +1,4 @@
-# packet-schema (math-coding v0.978)
+# packet-schema (math-coding v0.991)
 
 Every packet is exactly five files. The verifier
 (`core/check/verify.sh`) checks this contract.
@@ -16,6 +16,7 @@ created: "YYYY-MM-DD"
 verifier: <command> | null          # null = self-applied
 depends_on: [<task_id>, ...]        # topological
 applications: []                   # witness list, see A5
+implementation: absent|partial|complete  # v0.991: required for applied
 ```
 
 ## decision.md — proposition

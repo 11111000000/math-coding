@@ -1,6 +1,7 @@
 task_id: schema-completeness
 title: Schema completeness — add axiom field, index table, math/README
 lifecycle: draft
+implementation: absent
 substrate: none
 rigor: light
 decision: made

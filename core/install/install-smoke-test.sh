@@ -75,6 +75,20 @@ fi
     exit 1
 }
 
+# Step 3.5: setup packet fields for v0.991+ requirements
+# (axiom: false, implementation: complete, verified_by, single_author)
+# — needed for applied lifecycle to pass verify
+if ! (cd "$TEST_DIR" && \
+    cat >> "math/$SAMPLE_PKT/packet.yaml" <<'PKT_EOF'
+axiom: false
+implementation: complete
+verified_by: [smoke-test-bot]
+single_author: true
+PKT_EOF
+); then
+    echo "FAIL: setup packet fields"
+    exit 1
+fi
 # Step 4: apply (record SHA witness)
 if ! run_in_target sh ./.math-coding/math-coding apply "$SAMPLE_PKT" >/dev/null 2>&1; then
     echo "FAIL: apply step"

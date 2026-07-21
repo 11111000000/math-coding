@@ -1,6 +1,7 @@
 task_id: theory-formal-statements
 title: Formal theorems + proofs for all 8 theories
 lifecycle: draft
+implementation: absent
 substrate: none
 rigor: proof
 decision: made

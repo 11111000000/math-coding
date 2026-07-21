@@ -2,6 +2,7 @@ task_id: 04-process
 axiom: A4
 title: A4 Process — temporal axiom
 lifecycle: applied
+implementation: complete
 substrate: none
 rigor: property
 decision: made

@@ -1,6 +1,7 @@
 task_id: v0-991-epistemic
 title: v0-991-epistemic
 lifecycle: draft
+implementation: absent
 substrate: none
 rigor: light
 decision: made
