@@ -19,6 +19,8 @@ implementation: absent|partial|complete  # v0.991: required for applied
 verified_by: [name, ...]            # v0.992: required when applied (peer review traceability)
 single_author: false                # v0.992: set true if peer-review is single-actor
 applications: []                   # witness list, see A5
+amendments: []                     # v0.992: append-only history of changes
+                                   #   each entry: {date, by, reason, sha}
 
 ### Lifecycle (graduated ceremony)
 

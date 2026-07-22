@@ -24,6 +24,9 @@ Commands:
   retire <name> --reason=<supersession|deprecation>
                    Transition to retired.
   abandon <name>    Transition draft → abandoned (v0.991).
+  amend <name> --reason="<text>"
+                   Record a formal amendment to a packet
+                   (append to amendments[]). v0.992.
   lifecycle <name> <state>
                    Unified state transition. <state> ∈
                    applied | retired | abandoned. Aliases
@@ -81,6 +84,10 @@ case "${1:-help}" in
     abandon)
         shift
         exec sh "$REPO_ROOT/core/author/abandon-packet.sh" "$@"
+        ;;
+    amend)
+        shift
+        exec sh "$REPO_ROOT/core/author/amend-packet.sh" "$@"
         ;;
     lifecycle)
         shift

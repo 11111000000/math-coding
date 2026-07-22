@@ -319,6 +319,35 @@ if [ -d "$MATH_DIR" ]; then
             fi
         fi
 
+        # v0.992: amendments[] entries must have date, by, reason, sha.
+        if grep -q '^amendments:' "$pkt_dir/packet.yaml" 2>/dev/null; then
+            awk -v pkt="$pkt_name" '
+                BEGIN { in_block = 0; in_entry = 0; ok = 0
+                        has_date = 0; has_by = 0; has_reason = 0; has_sha = 0 }
+                /^amendments:/ { in_block = 1; next }
+                in_block && /^[^ ]/ { in_block = 0 }
+                in_block && /^  - / {
+                    if (in_entry) check_entry()
+                    in_entry = 1
+                    has_date = 0; has_by = 0; has_reason = 0; has_sha = 0
+                    next
+                }
+                in_block && in_entry {
+                    if (/date:/) has_date = 1
+                    if (/by:/) has_by = 1
+                    if (/reason:/) has_reason = 1
+                    if (/sha:/) has_sha = 1
+                }
+                END { if (in_entry) check_entry(); exit ok }
+                function check_entry() {
+                    if (!has_date || !has_by || !has_reason || !has_sha) {
+                        print pkt ": amendment missing date/by/reason/sha"
+                        ok = 1
+                    }
+                }
+            ' "$pkt_dir/packet.yaml" && pass || warn "$pkt_name: amendment missing date/by/reason/sha"
+        fi
+
         # self_approve_allowed=no: reviews must not contain self-approve.
         if [ "$SELF_APPROVE_ALLOWED" = "no" ] && [ "$lc" = "applied" ]; then
             packet_creator=$(grep '^creator:' "$pkt_dir/packet.yaml" \
