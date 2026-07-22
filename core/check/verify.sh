@@ -104,48 +104,71 @@ if [ -d "$MATH_DIR" ]; then
             *) fail "$pkt_name: invalid rigor '$rig'" ;;
         esac
 
-        # applied requires SHA in applications[] AND implementation=complete
-        if [ "$lc" = "applied" ]; then
-            if grep -q '^applications:' "$pkt_dir/packet.yaml"; then
-                if grep -qE 'sha: [0-9a-f]+' "$pkt_dir/packet.yaml"; then
-                    pass
+        # v0.992: graduated ceremony per lifecycle state.
+        # draft    — minimal: mandatory files only. No SHA, no review, no
+        #            verified_by required. Idea-stage is cheap.
+        # applied  — full: SHA-witness + implementation=complete + ≥1 review
+        #            + verified_by. axiom packets exempt (reference material).
+        # retired/abandoned — closed; no further checks.
+        case "$lc" in
+            draft)
+                # no extra checks beyond mandatory files
+                pass
+                ;;
+            applied)
+                # SHA in applications[]
+                if grep -q '^applications:' "$pkt_dir/packet.yaml"; then
+                    if grep -qE 'sha: [0-9a-f]+' "$pkt_dir/packet.yaml"; then
+                        pass
+                    else
+                        fail "$pkt_name: lifecycle=applied but no SHA in applications[]"
+                    fi
                 else
-                    fail "$pkt_name: lifecycle=applied but no SHA in applications[]"
+                    fail "$pkt_name: lifecycle=applied but no applications[] block"
                 fi
-            else
-                fail "$pkt_name: lifecycle=applied but no applications[] block"
-            fi
-        fi
 
-        # v0.991: applied requires implementation=complete (Curry-Howard).
-        # axiom packets are exempt (reference material).
-        if [ "$lc" = "applied" ]; then
-            is_axiom=$(grep -q '^axiom:[[:space:]]*[Aa][0-9]' "$pkt_dir/packet.yaml" 2>/dev/null && echo 1 || echo 0)
-            impl=$(grep '^implementation:' "$pkt_dir/packet.yaml" | sed 's/^implementation:[[:space:]]*//' | tr -d '"' | tr -d "'" | awk '{print $1}')
-            if [ "$is_axiom" = "0" ]; then
-                if [ "$impl" != "complete" ]; then
+                # implementation=complete (axiom exempt)
+                is_axiom=$(grep -q '^axiom:[[:space:]]*[Aa][0-9]' "$pkt_dir/packet.yaml" 2>/dev/null && echo 1 || echo 0)
+                impl=$(grep '^implementation:' "$pkt_dir/packet.yaml" | sed 's/^implementation:[[:space:]]*//' | tr -d '"' | tr -d "'" | awk '{print $1}')
+                if [ "$is_axiom" = "0" ] && [ "$impl" != "complete" ]; then
                     fail "$pkt_name: lifecycle=applied but implementation=$impl (must be complete, see fix-implementation-field)"
                 fi
-            fi
-        fi
 
-        # v0.992: applied requires verified_by (peer review traceability).
-        # axiom packets are exempt (reference material).
-        if [ "$lc" = "applied" ]; then
-            is_axiom_check=$(grep -q '^axiom:[[:space:]]*[Aa][0-9]' "$pkt_dir/packet.yaml" 2>/dev/null && echo 1 || echo 0)
-            if [ "$is_axiom_check" = "0" ]; then
-                verified_by_count=$(grep '^verified_by:[[:space:]]*\[' "$pkt_dir/packet.yaml" | grep -c '[[:alnum:]]')
-                if [ "${verified_by_count:-0}" -lt 1 ]; then
-                    warn "$pkt_name: lifecycle=applied but no verified_by (see fix-verified-by-field)"
+                # verified_by (axiom exempt) + single_author declaration
+                if [ "$is_axiom" = "0" ]; then
+                    verified_by_count=$(grep '^verified_by:[[:space:]]*\[' "$pkt_dir/packet.yaml" | grep -c '[[:alnum:]]')
+                    if [ "${verified_by_count:-0}" -lt 1 ]; then
+                        warn "$pkt_name: lifecycle=applied but no verified_by (see fix-verified-by-field)"
+                    fi
+                    single_author=$(grep '^single_author:' "$pkt_dir/packet.yaml" | sed 's/^single_author:[[:space:]]*//' | tr -d '"' | tr -d "'" | awk '{print $1}')
+                    if [ "${verified_by_count:-0}" -eq 1 ] && [ "$single_author" != "true" ]; then
+                        warn "$pkt_name: single-actor review without single_author: true declaration"
+                    fi
                 fi
 
-                # v0.992: single-actor review requires explicit declaration
-                single_author=$(grep '^single_author:' "$pkt_dir/packet.yaml" | sed 's/^single_author:[[:space:]]*//' | tr -d '"' | tr -d "'" | awk '{print $1}')
-                if [ "${verified_by_count:-0}" -eq 1 ] && [ "$single_author" != "true" ]; then
-                    warn "$pkt_name: single-actor review without single_author: true declaration"
+                # at least one approve review
+                if grep -q '^reviews:' "$pkt_dir/packet.yaml" 2>/dev/null; then
+                    approves=$(awk '
+                        BEGIN { in_block = 0; count = 0 }
+                        /^reviews:/ { in_block = 1; next }
+                        in_block && /^[^ ]/ { in_block = 0 }
+                        in_block && /verdict:[[:space:]]*approve/ { count++ }
+                        END { print count+0 }
+                    ' "$pkt_dir/packet.yaml")
+                    if [ "${approves:-0}" -lt 1 ] 2>/dev/null; then
+                        fail "$pkt_name: lifecycle=applied but no approve review"
+                    else
+                        pass
+                    fi
+                else
+                    fail "$pkt_name: lifecycle=applied but no reviews[] block"
                 fi
-            fi
-        fi
+                ;;
+            retired|abandoned)
+                # closed; no enforcement
+                pass
+                ;;
+        esac
 
         # assumptions.yaml: epistemic markers + evidence content checks.
         [ -f "$pkt_dir/assumptions.yaml" ] || continue
@@ -271,26 +294,7 @@ if [ -d "$MATH_DIR" ]; then
             fi
         fi
 
-        # applied requires at least one approve review.
-        if [ "$lc" = "applied" ]; then
-            if grep -q '^reviews:' "$pkt_dir/packet.yaml" 2>/dev/null; then
-                # Count verdict: approve lines inside reviews: block.
-                approves=$(awk '
-                    BEGIN { in_block = 0; count = 0 }
-                    /^reviews:/ { in_block = 1; next }
-                    in_block && /^[^ ]/ { in_block = 0 }
-                    in_block && /verdict:[[:space:]]*approve/ { count++ }
-                    END { print count+0 }
-                ' "$pkt_dir/packet.yaml")
-                if [ "${approves:-0}" -lt 1 ] 2>/dev/null; then
-                    fail "$pkt_name: lifecycle=applied but no approve review"
-                else
-                    pass
-                fi
-            else
-                fail "$pkt_name: lifecycle=applied but no reviews[] block"
-            fi
-        fi
+        # applied requires at least one approve review (inside case applied above).
 
         # draft placeholder text in decision.md or refinement.md.
         if [ "$lc" = "draft" ] || [ "$lc" = "applied" ]; then

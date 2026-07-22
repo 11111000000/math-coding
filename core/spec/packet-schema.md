@@ -8,7 +8,7 @@ Every packet is exactly five files. The verifier
 ```yaml
 task_id: <string>                  # unique identifier
 title: <string>                    # human-readable name
-lifecycle: sketch|working|verified|deprecated|archived|superseded
+lifecycle: draft|applied|retired|abandoned   # v0.992: graduated ceremony
 substrate: none|shell|tla|coq|alloy|pbt|bpmn|pbt-prism
 rigor: light|property|temporal|proof
 decision: needed|made
@@ -19,6 +19,19 @@ implementation: absent|partial|complete  # v0.991: required for applied
 verified_by: [name, ...]            # v0.992: required when applied (peer review traceability)
 single_author: false                # v0.992: set true if peer-review is single-actor
 applications: []                   # witness list, see A5
+
+### Lifecycle (graduated ceremony)
+
+| State      | Files | impl | SHA | review | verified_by |
+|------------|-------|------|-----|--------|-------------|
+| draft      | 3 mandatory | any  | no  | no     | no          |
+| applied    | 3 mandatory | complete | yes | ≥1 approve | yes |
+| retired    | closed       | —    | —   | —      | —           |
+| abandoned  | closed       | —    | —   | —      | —           |
+
+`applied` is the production-ready state. axiom packets are exempt
+from `verified_by` and `implementation=complete` (reference material).
+Drafts are cheap; ceremony grows with state.
 ```
 
 ## decision.md — proposition
