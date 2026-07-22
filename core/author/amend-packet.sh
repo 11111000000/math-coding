@@ -52,6 +52,19 @@ DEST="$MATH_DIR/$name"
 [ -d "$DEST" ] || { echo "error: $DEST not found" >&2; exit 2; }
 [ -f "$DEST/packet.yaml" ] || { echo "error: $DEST/packet.yaml not found" >&2; exit 2; }
 
+# v0.992: amend is forbidden on applied packets. Production-ready
+# state means a peer has approved; silently rewriting the
+# proposition bypasses that approval. To change an applied
+# packet, retire it (with reason) and create a successor.
+lifecycle=$(get_lifecycle "$DEST/packet.yaml")
+if [ "$lifecycle" = "applied" ]; then
+    echo "error: cannot amend an applied packet (axiom Accounting)" >&2
+    echo "       applied packets have peer-reviewed propositions" >&2
+    echo "       to change: sh math-coding retire $name --reason=supersession" >&2
+    echo "                  sh math-coding create <new-name> --from <spec>" >&2
+    exit 1
+fi
+
 date=$(date -u +%Y-%m-%d)
 
 # v0.992: self-approve guard (same rule as review-packet).

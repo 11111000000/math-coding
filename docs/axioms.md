@@ -164,19 +164,28 @@ axiom above is realised as a packet under `math/`. The
 verifier that checks those packets is itself the subject of
 a packet.
 
-**Formal**:
+**Formal** (v0.992: dual mode):
 
 ```
-∀ packet P ∈ math/* :
-    ∀ axiom A_i (i ∈ {0,..,5}) :
-        P satisfies A_i
+A6_definitional (source-repo):
+    math/00-difference/ ∈ math/
+    ∧ math/06-self-application/ ∈ math/
+    ∧ ∀ axiom packet p ∈ math/: I_packet(p) ∧ I_axioms(p)
+
+A6_applicative (target):
+    .math-coding/ present at PROJECT_ROOT
+    ∧ I_mathrc(.mathrc)
+    ∧ I_install_payload(.math-coding/)
+    ∧ I_end_to_end(create→apply→review→verify→probe)
 ```
 
 **Why it matters**: a convention that cannot verify itself
-relies on external authority. axiom Self-Application closes the loop:
-`sh core/self/probe.sh` exits 0 ⟺ the convention is
-internally consistent. The probe runs six predicates; their
-conjunction is axiom Self-Application.
+relies on external authority. axiom Self-Application closes
+the loop: `sh math-coding probe` exits 0 ⟺ the convention
+is internally consistent. The probe auto-detects mode:
+if `math/00-difference/` exists, it runs source-repo
+mode (6 predicates); otherwise it runs target mode
+(5 predicates including end-to-end pipeline).
 
 **Packet**: `math/06-self-application/`
 
