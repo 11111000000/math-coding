@@ -129,6 +129,24 @@ if [ -d "$MATH_DIR" ]; then
             fi
         fi
 
+        # v0.992: applied requires verified_by (peer review traceability).
+        # axiom packets are exempt (reference material).
+        if [ "$lc" = "applied" ]; then
+            is_axiom_check=$(grep -q '^axiom:[[:space:]]*[Aa][0-9]' "$pkt_dir/packet.yaml" 2>/dev/null && echo 1 || echo 0)
+            if [ "$is_axiom_check" = "0" ]; then
+                verified_by_count=$(grep '^verified_by:[[:space:]]*\[' "$pkt_dir/packet.yaml" | grep -c '[[:alnum:]]')
+                if [ "${verified_by_count:-0}" -lt 1 ]; then
+                    warn "$pkt_name: lifecycle=applied but no verified_by (see fix-verified-by-field)"
+                fi
+
+                # v0.992: single-actor review requires explicit declaration
+                single_author=$(grep '^single_author:' "$pkt_dir/packet.yaml" | sed 's/^single_author:[[:space:]]*//' | tr -d '"' | tr -d "'" | awk '{print $1}')
+                if [ "${verified_by_count:-0}" -eq 1 ] && [ "$single_author" != "true" ]; then
+                    warn "$pkt_name: single-actor review without single_author: true declaration"
+                fi
+            fi
+        fi
+
         # assumptions.yaml: epistemic markers + evidence content checks.
         [ -f "$pkt_dir/assumptions.yaml" ] || continue
 

@@ -1,4 +1,6 @@
 task_id: packet-lifecycle
+verified_by: [math-coding-bot]
+single_author: true
 title: Packet lifecycle — amendment and supersession
 lifecycle: applied
 implementation: complete

@@ -444,7 +444,57 @@ implementation: absent' "$TMP22b/math/test-pkt/packet.yaml"
     rm -rf "$TMP22b"
 fi
 
-# Case 23: apply records SHA and transitions to applied.
+# Case 22c: applied without verified_by produces warning.
+# Direct packet setup (avoid apply chicken-egg).
+TMP22c=$(mktemp -d 2>/dev/null) || { log_fail "verified-by-warning" "mktemp failed"; }
+if [ -n "$TMP22c" ]; then
+    mkdir -p "$TMP22c/math/test-pkt"
+    cat > "$TMP22c/math/test-pkt/packet.yaml" <<'YAML'
+task_id: test-pkt
+title: Test.
+lifecycle: applied
+implementation: complete
+single_author: true
+applications:
+  - sha: test-sha
+    by: bot
+    date: 2026-07-21
+YAML
+    out=$(cd "$TMP22c" && env REPO_ROOT="/home/za/Desktop/math-coding" PROJECT_ROOT="$TMP22c" sh /home/za/Desktop/math-coding/core/check/verify.sh 2>&1)
+    if echo "$out" | grep -q "no verified_by"; then
+        log_pass "verified-by-warning"
+    else
+        log_fail "verified-by-warning" "verify did not warn about missing verified_by: $out"
+    fi
+    rm -rf "$TMP22c"
+fi
+
+# Case 22d: single-actor review without single_author declaration produces warning.
+# Direct packet setup.
+TMP22d=$(mktemp -d 2>/dev/null) || { log_fail "single-author-warning" "mktemp failed"; }
+if [ -n "$TMP22d" ]; then
+    mkdir -p "$TMP22d/math/test-pkt"
+    cat > "$TMP22d/math/test-pkt/packet.yaml" <<'YAML'
+task_id: test-pkt
+title: Test.
+lifecycle: applied
+implementation: complete
+verified_by: [single-author-bot]
+single_author: false
+applications:
+  - sha: $(echo $RANDOM)
+    by: bot
+    date: "$(date -u +%Y-%m-%d)"
+YAML
+    out=$(cd "$TMP22d" && env REPO_ROOT="/home/za/Desktop/math-coding" PROJECT_ROOT="$TMP22d" sh /home/za/Desktop/math-coding/core/check/verify.sh 2>&1)
+    if echo "$out" | grep -q "single-actor review without"; then
+        log_pass "single-author-warning"
+    else
+        log_fail "single-author-warning" "verify did not warn about single-actor without single_author: true: $out"
+    fi
+    rm -rf "$TMP22d"
+fi
+
 # v0.991: apply transitions draft → applied AND records SHA.
 # Verify is not run inside apply (it was in earlier versions
 # but blocked development). Test asserts the transition directly.
