@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/review-packet.sh — math-coding v0.991 peer-review.
+# core/author/review-packet.sh — math-coding v0.992 peer-review.
 #
 # Usage:
 #   sh math-coding review <name> --approve|--request-changes|--comment

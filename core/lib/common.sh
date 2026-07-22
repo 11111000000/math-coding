@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/lib/common.sh — math-coding v0.991 shared bootstrap.
+# core/lib/common.sh — math-coding v0.992 shared bootstrap.
 #
 # Usage:
 #   REPO_ROOT=/path/to/source-repo

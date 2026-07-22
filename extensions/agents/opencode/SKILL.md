@@ -1,6 +1,6 @@
 ---
 name: math-coding
-description: math-coding v0.991 convention for AI coding agents. Seven axioms, 3 mandatory files, 4 lifecycle states (draft/applied/retired/abandoned), 7-field spec, peer-review gate, configurable epistemic honesty, lifecycle FSM command. Use when user mentions math-coding, packets, or convention-bootstrap install.
+description: math-coding v0.992 convention for AI coding agents. Seven axioms, 3 mandatory files, 4 lifecycle states (draft/applied/retired/abandoned), 7-field spec, peer-review gate, configurable epistemic honesty, lifecycle FSM command. Use when user mentions math-coding, packets, or convention-bootstrap install.
 license: Living Beings License
 compatibility: opencode, claude-code
 metadata:
@@ -9,10 +9,10 @@ metadata:
   version: 0.991
 ---
 
-# math-coding v0.991 — Skill for AI Agents
+# math-coding v0.992 — Skill for AI Agents
 
 You are an AI coding agent working in a project with
-math-coding v0.991 installed. The convention guides how
+math-coding v0.992 installed. The convention guides how
 decisions are documented as packets.
 
 ## When to use this skill
@@ -126,7 +126,7 @@ agents and reviewers can see the packet is settled.
 
 Use `sh math-coding stable <name> --unmark` to clear.
 
-## Configuration (.mathrc) — v0.991
+## Configuration (.mathrc) — v0.992
 
 7 configurable fields with optimal defaults:
 
@@ -151,11 +151,11 @@ Use `sh math-coding config` for interactive .mathrc editor.
                                    [--tests-result=<status>] [--files=<glob>]
   sh math-coding review <name>    peer-review: --approve | --request-changes
                                    --comment [--note="..."] [--by=<name>]
-                                   v0.991: applied needs >=1 approve
+                                   v0.992: applied needs >=1 approve
   sh math-coding retire <name>    → retired
                                    --reason=<supersession|deprecation>
                                    [--supersede-with=<new>] [--from=<spec>]
-  sh math-coding abandon <name>   draft → abandoned (v0.991+)
+  sh math-coding abandon <name>   draft → abandoned (v0.992+)
   sh math-coding lifecycle <name> <state>
                                    unified state transition. <state> ∈
                                    applied | retired | abandoned. Aliases

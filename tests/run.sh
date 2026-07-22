@@ -1,5 +1,5 @@
 #!/bin/sh
-# tests/run.sh — math-coding v0.991 self-tests.
+# tests/run.sh — math-coding v0.992 self-tests.
 #
 # Usage: sh tests/run.sh
 #
@@ -47,7 +47,7 @@ run_case() {
     esac
 }
 
-echo "=== math-coding v0.991 self-tests ==="
+echo "=== math-coding v0.992 self-tests ==="
 echo ""
 
 # Case 1: probe.sh exits 0

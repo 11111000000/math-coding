@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/extract-packet.sh — math-coding v0.991 packet extractor.
+# core/author/extract-packet.sh — math-coding v0.992 packet extractor.
 #
 # Usage:
 #   sh math-coding extract <name>

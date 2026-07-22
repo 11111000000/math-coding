@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/stable.sh — math-coding v0.991 stable marker.
+# core/author/stable.sh — math-coding v0.992 stable marker.
 #
 # Usage:
 #   sh math-coding stable <name>

@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/install/install-smoke-test.sh — math-coding v0.991 hermetic brownfield test.
+# core/install/install-smoke-test.sh — math-coding v0.992 hermetic brownfield test.
 #
 # Usage: sh core/install/install-smoke-test.sh [--verbose|-v] [--quiet|-q]
 #

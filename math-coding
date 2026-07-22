@@ -1,5 +1,5 @@
 #!/bin/sh
-# math-coding — math-coding v0.978 dispatcher.
+# math-coding — math-coding v0.992 dispatcher.
 #
 # Routes user-facing commands to the right tool. The dispatcher
 # knows the layout; the tools know their role.

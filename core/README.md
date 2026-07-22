@@ -1,6 +1,6 @@
 # core/
 
-Installation payload for math-coding v0.991.
+Installation payload for math-coding v0.992.
 
 ## Layout
 

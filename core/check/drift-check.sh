@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/check/drift-check.sh — math-coding v0.854 drift detector.
+# core/check/drift-check.sh — math-coding v0.992 drift detector.
 #
 # Usage: sh core/check/drift-check.sh
 #

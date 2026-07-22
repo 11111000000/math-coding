@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/install/install.sh — math-coding v0.991 brownfield installer.
+# core/install/install.sh — math-coding v0.992 brownfield installer.
 #
 # Usage: sh core/install/install.sh <target-dir> [--gitignore]
 #

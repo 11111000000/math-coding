@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/retire-packet.sh — math-coding v0.991 packet retirer.
+# core/author/retire-packet.sh — math-coding v0.992 packet retirer.
 #
 # Usage:
 #   sh math-coding retire <name> --reason=<supersession|deprecation>

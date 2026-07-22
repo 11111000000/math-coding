@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/apply-packet.sh — math-coding v0.991 packet applier.
+# core/author/apply-packet.sh — math-coding v0.992 packet applier.
 #
 # Usage:
 #   sh math-coding apply <name> [options]

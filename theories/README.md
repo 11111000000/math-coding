@@ -1,6 +1,6 @@
 # Theories (eight)
 
-Eight mathematical theories ground math-coding v0.854.
+Eight mathematical theories ground math-coding v0.992.
 Each theory is a compact runtime spec for an LLM agent.
 Each axiom packet applies one or more theories to the
 convention itself.

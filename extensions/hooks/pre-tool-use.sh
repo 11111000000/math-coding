@@ -1,5 +1,5 @@
 #!/bin/sh
-# extensions/hooks/pre-tool-use.sh — math-coding v0.991 soft hook.
+# extensions/hooks/pre-tool-use.sh — math-coding v0.992 soft hook.
 #
 # Called by opencode before any tool use. Reads tool input from
 # stdin (JSON), detects if the action is decision-class, and

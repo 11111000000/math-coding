@@ -1,4 +1,4 @@
-# Seven Axioms (math-coding v0.854)
+# Seven Axioms (math-coding v0.992)
 
 math-coding is grounded on seven axioms. Each axiom is a
 packet under `math/<NN-axiom>/`. The axiom lives in the

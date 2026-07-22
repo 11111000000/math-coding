@@ -1,6 +1,6 @@
-# Known limitations (math-coding v0.978)
+# Known limitations (math-coding v0.992)
 
-math-coding v0.978 is intentionally minimal. It does not
+math-coding v0.992 is intentionally minimal. It does not
 attempt to solve every problem a project might face. This
 document lists the limitations we know about, why they
 exist, and what the workaround is.

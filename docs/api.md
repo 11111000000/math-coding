@@ -1,4 +1,4 @@
-# API stability (math-coding v0.991)
+# API stability (math-coding v0.992)
 
 This document defines the **stable** surface of the
 convention. Changes to the stable surface require a

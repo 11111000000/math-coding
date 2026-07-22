@@ -1,4 +1,4 @@
-# decision-modes (math-coding v0.978)
+# decision-modes (math-coding v0.992)
 
 Three modes govern how much ceremony a change requires.
 

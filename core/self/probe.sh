@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/self/probe.sh — math-coding v0.991 axiom Self-Application orchestrator.
+# core/self/probe.sh — math-coding v0.992 axiom Self-Application orchestrator.
 #
 # Usage: sh core/self/probe.sh
 #

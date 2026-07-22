@@ -1,7 +1,7 @@
-# Specification (math-coding v0.991)
+# Specification (math-coding v0.992)
 
 This document is the canonical specification of math-coding
-v0.991. It states what the convention is, how it works, and
+v0.992. It states what the convention is, how it works, and
 how to use it.
 
 ## Identity
@@ -43,7 +43,7 @@ is a runtime spec for an LLM agent.
   deprecation  (A5): ⊥ strict partial order
   agent        (A6): S = (chat, files, mode, role, installation)
 
-## The packet (v0.991)
+## The packet (v0.992)
 
 Mandatory (3):
 
@@ -228,4 +228,4 @@ Versions follow the φ-recurrence:
 
   v_{n+1} = v_n + (1 - v_n) * 0.618
 
-v0.991 is the next version after v0.978.
+v0.992 is the next version after v0.991.

@@ -1,6 +1,6 @@
-# AGENTS.md — math-coding v0.991 runtime hint
+# AGENTS.md — math-coding v0.992 runtime hint
 
-You are working in a math-coding v0.991 repository. Seven
+You are working in a math-coding v0.992 repository. Seven
 axioms govern the convention. axiom Self-Application is
 proven: `sh math-coding probe` exits 0 against this very
 repository.

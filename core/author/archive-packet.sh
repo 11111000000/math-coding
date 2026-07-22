@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/archive-packet.sh — math-coding v0.991 packet archiver.
+# core/author/archive-packet.sh — math-coding v0.992 packet archiver.
 #
 # Usage:
 #   sh math-coding archive <name> [--confirm]

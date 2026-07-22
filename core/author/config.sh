@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/config.sh — math-coding v0.991 interactive .mathrc editor.
+# core/author/config.sh — math-coding v0.992 interactive .mathrc editor.
 #
 # Usage:
 #   sh math-coding config

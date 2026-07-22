@@ -1,4 +1,4 @@
-# math-coding v0.991
+# math-coding v0.992
 
 > Curry-Howard convention for AI coding agents.
 > Plain-text. git. POSIX. Seven axioms. axiom Self-Application.
@@ -102,8 +102,8 @@ Side states:
 
 ## Quick start
 
-  git clone math-coding-v0.991
-  cd math-coding-v0.991
+  git clone math-coding-v0.992
+  cd math-coding-v0.992
   sh math-coding probe         # axiom Self-Application
   cat > spec.yaml <<'YAML'
 proposition: |

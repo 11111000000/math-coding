@@ -1,6 +1,6 @@
 # Extensions
 
-math-coding v0.991 is a complete convention. Extensions are
+math-coding v0.992 is a complete convention. Extensions are
 **optional** artefacts that extend the convention without
 modifying it.
 

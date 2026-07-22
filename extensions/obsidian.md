@@ -1,6 +1,6 @@
 # Obsidian support
 
-math-coding v0.854 is designed for Obsidian. Open this
+math-coding v0.992 is designed for Obsidian. Open this
 repository as an Obsidian vault.
 
 ## Plugins

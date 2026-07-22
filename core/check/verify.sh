@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/check/verify.sh — math-coding v0.991 verifier.
+# core/check/verify.sh — math-coding v0.992 verifier.
 #
 # Usage: sh core/check/verify.sh [--cross-packet-consistency]
 #

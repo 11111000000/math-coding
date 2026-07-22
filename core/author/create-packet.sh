@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/create-packet.sh — math-coding v0.991 packet creator.
+# core/author/create-packet.sh — math-coding v0.992 packet creator.
 #
 # Usage:
 #   sh math-coding create <name> --from <spec.yaml>

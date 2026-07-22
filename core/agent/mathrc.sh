@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/agent/mathrc.sh — math-coding v0.991 config loader.
+# core/agent/mathrc.sh — math-coding v0.992 config loader.
 #
 # Usage: . core/agent/mathrc.sh
 #        Sets MODE, ROLE, REPO_ROOT, MATH_DIR, and other

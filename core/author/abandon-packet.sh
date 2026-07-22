@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/abandon-packet.sh — math-coding v0.991 packet abandoner.
+# core/author/abandon-packet.sh — math-coding v0.992 packet abandoner.
 #
 # Usage:
 #   sh math-coding abandon <name> [--reason="<text>"]

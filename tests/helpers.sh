@@ -1,5 +1,5 @@
 #!/bin/sh
-# tests/helpers.sh — math-coding v0.991 test helpers.
+# tests/helpers.sh — math-coding v0.992 test helpers.
 #
 # Usage: . tests/helpers.sh
 #
