@@ -1,0 +1,26 @@
+# GitHub Actions workflow for math-coding v0.992.
+#
+# Drop this file at .github/workflows/math-coding.yml in your
+# project. It runs `sh math-coding probe` on push and PR.
+# Substitute `apply-probe` with `verify` if your project does
+# not use the applicative mode.
+
+name: math-coding
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: axiom Self-Application
+        run: sh math-coding probe
+      - name: drift-check
+        run: sh math-coding drift-check

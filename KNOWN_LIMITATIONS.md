@@ -21,8 +21,8 @@ and add installation complexity.
 **Workaround.** The target project runs its tests in its
 own CI. The convention provides:
 - `applications[].tests` field for recording test commands.
-- `extensions/ci/github-actions-convention.yml` as a CI
-  template that reads `applications[].tests` and runs them.
+- `extensions/ci/github-actions-tdd.yml` as a CI template
+  that reads `applications[].tests` and runs them.
 
 If you use a different CI (GitLab, Jenkins, CircleCI),
 adapt the template.
@@ -30,7 +30,7 @@ adapt the template.
 ## 2. Convention does not enforce CI in target
 
 **Limitation.** math-coding provides a CI template
-(`extensions/ci/github-actions-convention.yml`), but it
+(`extensions/ci/github-actions-tdd.yml`), but it
 does not enforce that target projects actually use it.
 If a target project has no CI, the convention cannot
 detect that.

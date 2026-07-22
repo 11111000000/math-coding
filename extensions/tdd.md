@@ -43,17 +43,19 @@ sh math-coding create cache-ttl --from /tmp/spec.yaml
 
 **Step 2. Write the test (red).**
 
-Create `tests/cache-ttl.test.sh` with the test from the spec.
+Create a test file (e.g. *tests/cache-ttl.test.sh*) with
+the test from the spec.
 
 Run it. Expect FAIL. The packet exists but the test fails
 because the implementation does not yet exist.
 
 **Step 3. Implement the code (green).**
 
-Write `src/cache.py` (or whatever the operation specifies).
+Write the implementation file (e.g. *src/cache.py*, or
+whatever the operation specifies).
 
-Run the test. Expect PASS. The test now passes because the
-implementation matches the proposition.
+Run the test. Expect PASS. The test now passes because
+the implementation matches the proposition.
 
 **Step 4. Commit.**
 
@@ -74,8 +76,9 @@ runs automatically.
 
 **Step 6. Add `tests:` to applications[].**
 
-After apply, edit `math/cache-ttl/packet.yaml` and add
-`tests:` to the applications entry:
+After apply, edit the new packet's YAML (e.g.
+*math/cache-ttl/packet.yaml*) and add `tests:` to the
+applications entry:
 
 ```yaml
 applications:
@@ -98,8 +101,8 @@ sh math-coding apply cache-ttl --tests="sh tests/cache-ttl.test.sh"
 
 **Step 7. CI runs the recorded tests.**
 
-In your `.github/workflows/convention.yml`, run the recorded
-tests. A template is in `extensions/ci/github-actions-tdd.yml`.
+Run the recorded tests in your project's CI workflow.
+A template is in `extensions/ci/github-actions-tdd.yml`.
 
 ## What math-coding sees, what it does not
 

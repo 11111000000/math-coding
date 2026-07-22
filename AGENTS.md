@@ -248,7 +248,7 @@ packet. Create a new one:
 sh math-coding create cache-ttl-v2 --from v2-spec.yaml
 ```
 
-In `cache-ttl-v2/packet.yaml`:
+In the new packet's YAML:
 
 ```yaml
 supersession: math/cache-ttl/
