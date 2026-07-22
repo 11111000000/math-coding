@@ -30,6 +30,16 @@ for pkt_yaml in "$MATH_DIR"/*/packet.yaml; do
     [ -f "$pkt_yaml" ] || continue
     pkt_name=$(basename "$(dirname "$pkt_yaml")")
 
+    # v0.992: only applied packets have a live SHA-witness
+    # obligation. retired / abandoned packets have frozen
+    # applications[]; their drift is intentional and not
+    # reported. axiom packets are applied by design, exempt.
+    lc=$(grep '^lifecycle:' "$pkt_yaml" \
+        | sed 's/^lifecycle:[[:space:]]*//' | tr -d '"' | tr -d "'")
+    if [ "$lc" != "applied" ]; then
+        continue
+    fi
+
     awk '
         /^applications:[[:space:]]*$/ { in_block = 1; next }
         in_block && /^[[:space:]]/ {

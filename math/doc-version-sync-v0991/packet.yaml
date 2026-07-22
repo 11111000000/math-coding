@@ -1,6 +1,7 @@
 task_id: doc-version-sync-v0991
 title: Sync README/AGENTS.md with v0.991 dispatcher
-lifecycle: applied
+lifecycle: retired
+retire_reason: deprecation
 implementation: complete
 substrate: none
 rigor: light
