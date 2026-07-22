@@ -97,17 +97,29 @@ packet is finite and ordered.
 ```
 M = ⟨ S, s₀, A, →, I ⟩
 
-S = { sketch, working, verified, deprecated, archived,
-      superseded }
-s₀ = sketch
-→ ⊆ S × A × S (with forbidden sketch → verified)
-I(s) = invariant for state s
+S = { draft, applied, retired, abandoned }
+s₀ = draft
+→ ⊆ S × A × S
+    draft    +apply    → applied
+    draft    +abandon  → abandoned
+    draft    +retire   → retired
+    applied  +retire   → retired
+    retired  +archive  → math/archived/  (out of S)
+    abandoned +archive → math/archived/  (out of S)
+I(s) = invariant for state s:
+    I(draft)     = 5 files exist
+    I(applied)   = 5 files + implementation=complete
+                   + ≥1 SHA in applications[]
+                   + ≥1 approve review
+    I(retired)   = lifecycle field set
+    I(abandoned) = lifecycle field set
 ```
 
-**Why it matters**: a packet that has never been elaborated
-(cannot skip from `sketch` to `verified`) cannot be proven.
-The verifier enforces this: `lifecycle: verified` requires
-at least one SHA in `applications[]`.
+**Why it matters**: the lifecycle FSM forbids skipping
+states. `applied` cannot be reached without a SHA witness
+(axiom A4 forbids it; the verifier enforces it via
+`applications[]`). axiom A5 (Accounting) requires the
+witness to be a real commit.
 
 **Packet**: `math/04-process/`
 

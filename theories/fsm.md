@@ -14,91 +14,104 @@ where
   →     — transition relation (subset of S × A × S)
   I     — invariant function `I : S → Bool`
 
-## math-coding instance
+## math-coding instance (v0.992)
 
-In math-coding, the lifecycle FSM:
+The packet lifecycle FSM:
 
 ```
-S = { sketch, working, verified, deprecated, archived,
-      superseded }
-s₀ = sketch
-A = { elaborate, commit, prove, deprecate, supersede,
-      archive }
+S = { draft, applied, retired, abandoned }
+s₀ = draft
+A = { apply, retire, abandon, archive }
 → = {
-    (sketch,     elaborate)   → working,
-    (working,    prove)        → verified,
-    (verified,   deprecate)    → deprecated,
-    (verified,   supersede)    → superseded,
-    (deprecated, archive)      → archived,
-    (superseded, archive)      → archived,
-    ... }
+    (draft,    apply)    → applied,
+    (draft,    abandon)  → abandoned,
+    (draft,    retire)   → retired,
+    (applied,  retire)   → retired,
+    (retired,  archive)  → math/archived/<name>/,   # out of S
+    (abandoned, archive) → math/archived/<name>/,   # out of S
+}
 I(s) = invariant for state s:
-    I(sketch)     = 5 files exist (any content)
-    I(working)    = 5 files exist; verifier accepts
-    I(verified)   = 5 files exist; at least one SHA in
-                   applications[]
-    I(deprecated) = applications[] is frozen
-    I(archived)   = applications[] is frozen; file remains
-    I(superseded) = applications[] is frozen; supersession:
-                   block names the successor
+    I(draft)     = 5 files exist; lifecycle field set;
+                   propositions may be placeholder
+    I(applied)   = 5 files exist; implementation=complete;
+                   ≥1 SHA in applications[]; ≥1 approve review;
+                   (axiom packets: implementation+verified_by exempt)
+    I(retired)   = lifecycle field set; applications[] frozen
+    I(abandoned) = lifecycle field set; applications[] frozen
 ```
 
-**Forbidden**: `sketch → verified`. The proposition has
-never been elaborated; it cannot be proven.
+`applied` requires `core/check/verify.sh` to pass on the packet.
+axiom packets (those with `axiom:` field) are exempt from
+`implementation=complete` and `verified_by` requirements because
+they are reference material, not implementations.
 
-## Why it matters
+**Forbidden**: `applied → abandoned` (use `retire` instead).
+**Forbidden**: `abandoned → applied` (terminal).
 
-A lifecycle without states is a black hole. Packets appear
-mature; nothing ripens; nothing retires. The convention
-accumulates "verified" packets that are not verified and
-"deprecated" packets that are still in use.
+## Why four states (not six)
 
-The FSM forces every transition to be explicit. Each
-transition is a commit. Each commit is a SHA. The ledger
-is append-only. axiom Process holds.
+Earlier drafts of this theory described six states
+(sketch / working / verified / deprecated / archived /
+superseded). The codebase, however, accepts only four:
+the FSM that the verifier enforces is the FSM that exists.
+v0.992 aligns the theory with the verifier. The 6-state
+model is preserved in `docs/migration-notes/v0.991-to-v0.992.md`
+for historical reference.
 
-## The seven states
+The `supersession:` field in `packet.yaml` is a binary
+relation between packets (see `theories/deprecation.md`),
+not a state. A superseded packet has lifecycle `retired`
+plus a `supersession: math/<successor>/` line.
 
-  **sketch**     — packet created; lifecycle field set;
-                   content placeholder acceptable.
+`archived` is a directory move, not a state. Packets in
+`math/archived/` are excluded from verification.
 
-  **working**    — proposition elaborated in `decision.md`;
-                   intent in `task.md`; assumptions marked;
-                   refinement maps spec to impl.
+## The four states
 
-  **verified**   — axiom Self-Application holds for this packet; tests
-                   pass; at least one SHA in `applications[]`.
+  **draft**     — packet created via `sh math-coding create`;
+                  lifecycle field set; placeholder text acceptable;
+                  no SHA witness yet.
 
-  **deprecated** — superseded by a successor but still
-                   referenced; applications[] is frozen.
+  **applied**   — axiom Self-Application holds; ≥1 SHA in
+                  `applications[]`; ≥1 approve review; tests
+                  claimed passing. Production-ready.
 
-  **superseded** — replaced by another packet (named in
-                   `supersession:` block); applications[] is
-                   frozen.
+  **retired**   — terminal-ish; packet no longer applied.
+                  Reason: deprecation (no successor) or
+                  supersession (named successor exists).
 
-  **archived**   — terminal; no references; applications[]
-                   frozen; file remains in tree for audit.
+  **abandoned** — terminal; draft that was never applied.
+                  Used when a proposition is rejected or a
+                  requirement cancelled.
 
 ## Where this lives
 
   `math/04-process/decision.md` — the axiom packet
-  `theories/fsm.md` — this file
-  `core/check/verify.sh` — the verifier that enforces FSM
-  `core/self/probe.sh` — axiom Self-Application
+  `theories/fsm.md`             — this file
+  `core/check/verify.sh`        — the verifier that enforces FSM
+  `core/self/probe.sh`          — axiom Self-Application
+  `core/lib/common.sh`          — `validate_lifecycle_transition`
+
 ## Definition
 
-A finite state machine is a tuple M = ⟨ S, s₀, A, →, I ⟩ where S = { sketch, working, verified, deprecated, archived, superseded }, s₀ = sketch, A = lifecycle actions, → = transitions, I = invariant.
+A finite state machine is a tuple M = ⟨ S, s₀, A, →, I ⟩
+where S = { draft, applied, retired, abandoned },
+s₀ = draft, A = lifecycle actions,
+→ is the transition relation above, I is the invariant
+function above.
 
 ## Theorem
 
-The forbidden transition `sketch → verified` is rejected
-by core/check/verify.sh.
+The forbidden transitions (applied → abandoned, abandoned → applied)
+are rejected by `core/check/verify.sh` and by
+`core/author/{apply,abandon}-packet.sh`.
 
 ## Proof
 
-For s = sketch: I(s) = 5 files exist. For s = verified:
-I(s) = 5 files + SHA in applications[]. core/check/
-verify.sh checks I(verified) and fails if applications[]
-is empty. The transition `sketch → verified` requires
-I(verified) at the next state, which axiom A4 forbids
-without passing through working. □
+For s = applied: `core/author/abandon-packet.sh:65-67` checks
+"if lifecycle=applied → refuse, suggest retire". For
+s = abandoned: `core/author/apply-packet.sh` reads the
+current lifecycle and rejects transitions from terminal
+states. The verifier `core/check/verify.sh:88-91` validates
+the lifecycle enum. axiom A4 forbids skipping steps
+without a SHA witness, enforced by `applications[]`. □
