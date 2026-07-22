@@ -1297,6 +1297,49 @@ if [ -n "$TMP46" ]; then
     rm -rf "$TMP46"
 fi
 
+# Case 47: doc refs resolve (axiom A2 — broken refs are lies).
+if sh "$REPO_ROOT/tests/doc-broken-refs.sh" >/dev/null 2>&1; then
+    log_pass "doc-broken-refs"
+else
+    log_fail "doc-broken-refs" "see tests/doc-broken-refs.sh output"
+fi
+
+# Case 48: all version labels match expected.
+if sh "$REPO_ROOT/tests/doc-version-consistency.sh" >/dev/null 2>&1; then
+    log_pass "doc-version-consistency"
+else
+    log_fail "doc-version-consistency" "see tests/doc-version-consistency.sh output"
+fi
+
+# Case 49: amend-applied gate (axiom Accounting).
+TMP49=$(mktemp -d 2>/dev/null) || { log_fail "amend-applied-forbidden" "mktemp failed"; }
+if [ -n "$TMP49" ]; then
+    mkdir -p "$TMP49/math/applied-pkt"
+    cat > "$TMP49/math/applied-pkt/packet.yaml" <<'YAML'
+task_id: applied-pkt
+title: applied
+lifecycle: applied
+implementation: complete
+applications:
+  - sha: abc1234
+    by: za
+    date: "2026-07-23"
+verified_by: [za]
+single_author: true
+reviews:
+  - by: za
+    date: "2026-07-23"
+    verdict: approve
+YAML
+    if env MATH_DIR="$TMP49/math" PROJECT_ROOT="$TMP49" REPO_ROOT="$REPO_ROOT" \
+        sh "$REPO_ROOT/core/author/amend-packet.sh" applied-pkt --reason="x" >/dev/null 2>&1; then
+        log_fail "amend-applied-forbidden" "amend succeeded on applied packet"
+    else
+        log_pass "amend-applied-forbidden"
+    fi
+    rm -rf "$TMP49"
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "  pass: $pass"
