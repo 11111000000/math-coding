@@ -4,10 +4,12 @@
 # Usage: sh tests/run.sh
 #
 # Runs a battery of checks against the convention's own state
-# and reports PASS/FAIL per case. v0.991 covers:
+# and reports PASS/FAIL per case. v0.992 covers:
 #   - definitional axiom Self-Application (Cases 1-15, source-repo)
 #   - applicative axiom Self-Application (Cases 16-20, target mode)
-#   - packet lifecycle (Cases 21-40, create/apply/retire/review/abandon/archive)
+#   - packet lifecycle (Cases 21-46, create/apply/retire/review/abandon/archive)
+#   - documentation discipline (Cases 47-51, broken refs, version sync,
+#     cross-doc consistency, amend gate)
 #
 # Helpers in tests/helpers.sh: with_tmp, make_spec, make_spec_invalid.
 
@@ -903,7 +905,8 @@ YAML
 fi
 
 # Case 33: create emits self-critique prompt.
-# v0.991: create command echoes self-critique before generating files.
+# v0.992: create command echoes self-critique AFTER generating files
+# (so the agent can read them and revise before apply).
 TMP33=$(mktemp -d 2>/dev/null) || { log_fail "create-self-critique-prompt" "mktemp failed"; }
 if [ -n "$TMP33" ]; then
     mkdir -p "$TMP33/math"
@@ -926,7 +929,7 @@ operation: |
 YAML
     out=$(env MATH_DIR="$TMP33/math" PROJECT_ROOT="$TMP33" REPO_ROOT="$REPO_ROOT" \
         sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" 2>&1)
-    if echo "$out" | grep -q "Pre-create self-critique"; then
+    if echo "$out" | grep -q "Post-create self-critique"; then
         log_pass "create-self-critique-prompt"
     else
         log_fail "create-self-critique-prompt" "no self-critique in output"
@@ -1338,6 +1341,13 @@ YAML
         log_pass "amend-applied-forbidden"
     fi
     rm -rf "$TMP49"
+fi
+
+# Case 50: packet.yaml fields are not duplicated.
+if sh "$REPO_ROOT/tests/doc-consistency.sh" >/dev/null 2>&1; then
+    log_pass "doc-consistency"
+else
+    log_fail "doc-consistency" "see tests/doc-consistency.sh output"
 fi
 
 echo ""
