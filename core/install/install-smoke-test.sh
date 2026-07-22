@@ -1,17 +1,31 @@
 #!/bin/sh
 # core/install/install-smoke-test.sh — math-coding v0.991 hermetic brownfield test.
 #
-# Usage: sh core/install/install-smoke-test.sh
+# Usage: sh core/install/install-smoke-test.sh [--verbose|-v] [--quiet|-q]
 #
 # Performs install + create + apply + review + verify + probe +
 # uninstall cycle in a tmp directory. Used by tests/run.sh
 # (Case 16). axiom Self-Application: the test verifies the
 # copy, not the source.
+#
+# v0.992: --verbose forwards subprocess output to stdout/stderr so
+# debugging failures is possible. Default keeps stderr suppressed
+# but echoes the failing command on FAIL. --quiet suppresses even
+# that.
 
 set -u
 
 # Source-repo where convention scripts live.
 CONVENTION_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+VERBOSE=0
+QUIET=0
+for arg in "$@"; do
+    case "$arg" in
+        --verbose|-v) VERBOSE=1 ;;
+        --quiet|-q) QUIET=1 ;;
+    esac
+done
 
 # Create tmp directory first
 TEST_DIR=$(mktemp -d 2>/dev/null) || {
@@ -37,11 +51,30 @@ run_in_target() {
     )
 }
 
+# Step runner: prints command + output on failure.
+run_step() {
+    step_name="$1"; shift
+    if [ "$VERBOSE" = "1" ]; then
+        if ! "$@"; then
+            echo "FAIL: $step_name" >&2
+            exit 1
+        fi
+    else
+        if ! out=$("$@" 2>&1); then
+            echo "FAIL: $step_name" >&2
+            if [ "$QUIET" = "0" ]; then
+                echo "--- output of failing command ---" >&2
+                printf '%s\n' "$out" >&2
+                echo "--- end output ---" >&2
+            fi
+            exit 1
+        fi
+    fi
+}
+
 # Step 1: install
-if ! sh "$CONVENTION_ROOT/core/install/install.sh" "$TEST_DIR" >/dev/null 2>&1; then
-    echo "FAIL: install step"
-    exit 1
-fi
+run_step "install step" \
+    sh "$CONVENTION_ROOT/core/install/install.sh" "$TEST_DIR"
 
 # Step 2: create a sample packet via 7-field spec
 SAMPLE_PKT="smoke-test-pkt"
@@ -62,16 +95,14 @@ synthesis: |
 operation: |
   Install copies payload, create scaffolds packet, verify accepts it.
 YAML
-if ! run_in_target sh ./.math-coding/math-coding create "$SAMPLE_PKT" --from "$SAMPLE_SPEC" >/dev/null 2>&1; then
-    echo "FAIL: create step"
-    exit 1
-fi
+run_step "create step" \
+    run_in_target sh ./.math-coding/math-coding create "$SAMPLE_PKT" --from "$SAMPLE_SPEC"
 
 # Step 3: git init + commit (apply requires git history)
 (cd "$TEST_DIR" && git init -q && \
     git -c user.email=test@test.local -c user.name=test add math/ && \
     git -c user.email=test@test.local -c user.name=test commit -q -m "init") || {
-    echo "FAIL: git setup"
+    echo "FAIL: git setup" >&2
     exit 1
 }
 
@@ -86,42 +117,33 @@ verified_by: [smoke-test-bot]
 single_author: true
 PKT_EOF
 ); then
-    echo "FAIL: setup packet fields"
+    echo "FAIL: setup packet fields" >&2
     exit 1
 fi
+
 # Step 4: apply (record SHA witness)
-if ! run_in_target sh ./.math-coding/math-coding apply "$SAMPLE_PKT" >/dev/null 2>&1; then
-    echo "FAIL: apply step"
-    exit 1
-fi
+run_step "apply step" \
+    run_in_target sh ./.math-coding/math-coding apply "$SAMPLE_PKT"
 
 # Step 5: review (peer approval, required for applied)
-if ! run_in_target sh ./.math-coding/math-coding review "$SAMPLE_PKT" --approve --note="smoke test" >/dev/null 2>&1; then
-    echo "FAIL: review step"
-    exit 1
-fi
+run_step "review step" \
+    run_in_target sh ./.math-coding/math-coding review "$SAMPLE_PKT" --approve --note="smoke test"
 
 # Step 6: verify (structural check)
-if ! run_in_target sh ./.math-coding/math-coding verify >/dev/null 2>&1; then
-    echo "FAIL: verify step"
-    exit 1
-fi
+run_step "verify step" \
+    run_in_target sh ./.math-coding/math-coding verify
 
 # Step 7: probe in target mode (applicative A6)
-if ! run_in_target sh ./.math-coding/math-coding probe >/dev/null 2>&1; then
-    echo "FAIL: probe step"
-    exit 1
-fi
+run_step "probe step" \
+    run_in_target sh ./.math-coding/math-coding probe
 
 # Step 8: uninstall
-if ! run_in_target sh ./.math-coding/math-coding uninstall "$TEST_DIR" >/dev/null 2>&1; then
-    echo "FAIL: uninstall step"
-    exit 1
-fi
+run_step "uninstall step" \
+    run_in_target sh ./.math-coding/math-coding uninstall "$TEST_DIR"
 
 # Step 9: verify .math-coding/ is gone
 if [ -d "$TEST_DIR/.math-coding" ]; then
-    echo "FAIL: .math-coding still present after uninstall"
+    echo "FAIL: .math-coding still present after uninstall" >&2
     exit 1
 fi
 
