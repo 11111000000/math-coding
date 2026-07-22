@@ -147,18 +147,23 @@ breaks the principle of explicit, atomic operations.
 **Workaround.** Always create the successor before retiring
 the predecessor. Or accept the brief inconsistency.
 
-## 9. The seven-field spec is required, not partial
+## 9. The seven-field spec: only proposition + outcome mandatory (v0.992)
 
-**Limitation.** `create` requires all seven fields. If
-even one is missing, the packet is not created. There is
-no "draft spec" mode.
+**Behavior.** `create` accepts a partial spec. Only
+`proposition` and `outcome` are required; the other five
+fields (`invariant`, `test`, `antithesis`, `synthesis`,
+`operation`) are recommended but generate warnings, not
+errors, when missing.
 
-**Why.** Partial specs lead to placeholder content in
-files, which is worse than refusing to create the packet.
+**Why.** Earlier versions required all seven fields and
+refused to create the packet otherwise. This produced
+friction for trivial decisions. v0.992 relaxes the gate
+to reduce ceremony; placeholder text in decision.md /
+refinement.md is still warned about by `verify.sh`.
 
-**Workaround.** If you are unsure of some fields, do not
-call `create` yet. Think through the proposition,
-antithesis, synthesis, and operation. Then call `create`.
+**Workaround.** None needed. Pass only `proposition` and
+`outcome` for a quick packet; fill the rest when the
+decision merits the work.
 
 ## 10. .math-coding/ is committed by default
 

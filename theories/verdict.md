@@ -21,17 +21,21 @@ The five canonical verdicts of math-coding:
   UNVERIFIABLE:OUT_OF_SCOPE   human review required
 ```
 
-## Mapping to verifier behaviour
+## Mapping to verifier behaviour (v0.992)
 
 | verdict | verifier exit code | convention artefact |
 |---------|--------------------|--------------------|
 | VERIFIED | 0 | `core/check/verify.sh` exits 0 |
 | NEEDS_REVISION | 1 | `verify.sh` finds a missing file or invalid field |
-| UNVERIFIABLE:TOOL_MISSING | 69 (EX_UNAVAILABLE) | a substrate (TLA+, Coq) is required but not installed |
-| UNVERIFIABLE:DEFERRED | 64 (EX_USAGE) | data not yet available |
-| UNVERIFIABLE:OUT_OF_SCOPE | 76 (EX_PROTOCOL) | requires human review |
+| UNVERIFIABLE:TOOL_MISSING | 1 (same as NEEDS_REVISION; substrate check) | a substrate (TLA+, Coq) is required but not installed |
+| UNVERIFIABLE:DEFERRED | 1 (same; marked in stdout) | data not yet available |
+| UNVERIFIABLE:OUT_OF_SCOPE | 1 (same; marked in stdout) | requires human review |
 
-Exit codes follow POSIX sysexits.h convention.
+**Note (v0.992):** the convention does not yet map the
+three UNVERIFIABLE verdicts to distinct POSIX exit codes
+(64/69/76 per sysexits.h). All `verify.sh` failures exit 1;
+the specific verdict is reported on stdout. Distinct
+exit codes are a roadmap item, not a v0.992 commitment.
 
 ## Why it matters
 

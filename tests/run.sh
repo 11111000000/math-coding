@@ -374,7 +374,7 @@ fi
 # Case 22: create fails when fields are missing.
 # v0.978: all 7 fields are required. create must fail if any
 # is missing. This test creates a spec without antithesis.
-TMP22=$(mktemp -d 2>/dev/null) || { log_fail "create-missing-field-fails" "mktemp failed"; }
+TMP22=$(mktemp -d 2>/dev/null) || { log_fail "create-missing-field-warns" "mktemp failed"; }
 if [ -n "$TMP22" ]; then
     mkdir -p "$TMP22/math"
     SPEC22="$TMP22/spec.yaml"
@@ -390,13 +390,39 @@ test: |
 operation: |
   Test operation.
 YAML
-    if env MATH_DIR="$TMP22/math" PROJECT_ROOT="$TMP22" REPO_ROOT="$REPO_ROOT" \
-       sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC22" >/dev/null 2>&1; then
-        log_fail "create-missing-field-fails" "create succeeded with missing antithesis"
+    # v0.992: missing antithesis is a warning, not an error.
+    # Test now asserts create succeeds AND emits a warning.
+    out=$(env MATH_DIR="$TMP22/math" PROJECT_ROOT="$TMP22" REPO_ROOT="$REPO_ROOT" \
+          sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC22" 2>&1)
+    rc=$?
+    if [ "$rc" = "0" ] && printf '%s' "$out" | grep -q "warning:.*antithesis"; then
+        log_pass "create-missing-field-warns"
+    elif [ "$rc" != "0" ]; then
+        log_fail "create-missing-field-warns" "create failed with missing antithesis (expected warning)"
     else
-        log_pass "create-missing-field-fails"
+        log_fail "create-missing-field-warns" "no warning emitted for missing antithesis"
     fi
     rm -rf "$TMP22"
+fi
+
+# Case 22-mandatory: missing proposition or outcome STILL fails.
+TMP22m=$(mktemp -d 2>/dev/null) || { log_fail "create-missing-mandatory" "mktemp failed"; }
+if [ -n "$TMP22m" ]; then
+    mkdir -p "$TMP22m/math"
+    SPEC22m="$TMP22m/spec.yaml"
+    cat > "$SPEC22m" <<'YAML'
+invariant: |
+  Test.
+antithesis: |
+  Test.
+YAML
+    if env MATH_DIR="$TMP22m/math" PROJECT_ROOT="$TMP22m" REPO_ROOT="$REPO_ROOT" \
+       sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC22m" >/dev/null 2>&1; then
+        log_fail "create-missing-mandatory" "create succeeded with missing proposition+outcome"
+    else
+        log_pass "create-missing-mandatory"
+    fi
+    rm -rf "$TMP22m"
 fi
 
 # Case 22b: applied with implementation != complete FAILS verify.

@@ -65,12 +65,18 @@ A predicate is a function I : S → Bool over the filesystem state S. The conven
 
 ## Theorem
 
-The conjunction of the 16 self-tests implies axiom
-Self-Application holds.
+The conjunction of the 6 source-repo self-tests (or 5
+target-mode self-tests) implies axiom Self-Application
+holds.
 
 ## Proof
 
 Each self-test is a predicate I : S → Bool over the
 filesystem state. The conjunction ∧ᵢ Iᵢ is axiom
-Self-Application. core/self/probe.sh evaluates this
-conjunction. □
+Self-Application. `core/self/probe.sh` evaluates this
+conjunction. Source-repo mode runs 6 predicates
+(`[1/6] mandatory files`, `[2/6] axioms`, `[3/6] theories`,
+`[4/6] verify.sh`, `[5/6] drift-check`, `[6/6] axiom chain`).
+Target mode runs 5 predicates (`[1/5] install payload`,
+`[2/5] .mathrc`, `[3/5] math_dir`, `[4/5] verify.sh`,
+`[5/5] end-to-end pipeline`). □

@@ -112,24 +112,30 @@ ANTITHESIS=$(get_field antithesis)
 SYNTHESIS=$(get_field synthesis)
 OPERATION=$(get_field operation)
 
-# Validate required fields (all 7 are mandatory for v0.991+).
-# Convention is opinionated: a packet without antithesis or
-# synthesis is incomplete. A decision without consideration
-# of its strongest objection is a claim, not a decision.
+# Validate required fields. v0.992: only proposition + outcome
+# are mandatory. The other 5 are recommended but generate
+# warnings, not errors, when missing. This reduces friction
+# for trivial decisions.
 required_missing=""
 [ -z "$PROPOSITION" ] && required_missing="$required_missing proposition"
 [ -z "$OUTCOME" ] && required_missing="$required_missing outcome"
-[ -z "$INVARIANT" ] && required_missing="$required_missing invariant"
-[ -z "$TEST" ] && required_missing="$required_missing test"
-[ -z "$ANTITHESIS" ] && required_missing="$required_missing antithesis"
-[ -z "$SYNTHESIS" ] && required_missing="$required_missing synthesis"
-[ -z "$OPERATION" ] && required_missing="$required_missing operation"
 
 if [ -n "$required_missing" ]; then
     echo "error: spec missing required field(s):$required_missing" >&2
-    echo "  all 7 fields are mandatory: proposition, outcome, invariant," >&2
-    echo "  test, antithesis, synthesis, operation" >&2
     exit 1
+fi
+
+optional_warn=""
+[ -z "$INVARIANT" ] && optional_warn="$optional_warn invariant"
+[ -z "$TEST" ] && optional_warn="$optional_warn test"
+[ -z "$ANTITHESIS" ] && optional_warn="$optional_warn antithesis"
+[ -z "$SYNTHESIS" ] && optional_warn="$optional_warn synthesis"
+[ -z "$OPERATION" ] && optional_warn="$optional_warn operation"
+
+if [ -n "$optional_warn" ]; then
+    echo "warning: spec missing recommended field(s):$optional_warn" >&2
+    echo "  these are recommended for substantive packets; see" >&2
+    echo "  extensions/agents/opencode/SKILL.md field checklists" >&2
 fi
 
 
