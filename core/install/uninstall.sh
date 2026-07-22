@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/install/uninstall.sh — math-coding v0.854 brownfield uninstaller.
+# core/install/uninstall.sh — math-coding v0.992 brownfield uninstaller.
 #
 # Usage: sh core/install/uninstall.sh <target-dir>
 #

@@ -73,7 +73,7 @@ DEST="$MATH_DIR/$name"
 [ -d "$DEST" ] || { echo "error: $DEST not found" >&2; exit 2; }
 [ -f "$DEST/packet.yaml" ] || { echo "error: $DEST/packet.yaml not found" >&2; exit 2; }
 
-# v0.991+: pre-apply self-critique echo (configurable)
+# v0.992+: pre-apply self-critique echo (configurable)
 if [ "$SELF_CRITIQUE_ECHO" = "yes" ]; then
     cat <<'CRITIQUE'
 
@@ -239,10 +239,10 @@ fi
 [ -n "$tests" ] && echo "  tests: $tests"
 [ -n "$tests_result" ] && echo "  tests_result: $tests_result"
 
-# v0.991: review is a separate command. Apply does not call
+# v0.992: review is a separate command. Apply does not call
 # verify — that is a separate concern. Run `sh math-coding verify`
 # after apply to check structural correctness, and `sh math-coding
 # review <name> --approve` to provide peer approval.
 echo ""
 echo "Next: run 'sh math-coding review <name> --approve' to record review."
-echo "      (v0.991 requires >=1 approve for applied packets)"
+echo "      (v0.992 requires >=1 approve for applied packets)"

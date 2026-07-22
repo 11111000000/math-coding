@@ -7,7 +7,7 @@
 #                              [--by=<name>]
 #
 # Records a review entry (approve / request-changes / comment)
-# in packet.yaml:reviews[]. v0.991: applied packets require at
+# in packet.yaml:reviews[]. v0.992: applied packets require at
 # least one approve review (verified by verify.sh).
 #
 # The command echoes the review criteria for the reviewer to
@@ -24,7 +24,7 @@ usage: review-packet.sh <name>
            [--note="<text>"]
            [--by=<name>]
 
-Records a peer-review entry. v0.991 requires at least one
+Records a peer-review entry. v0.992 requires at least one
 approve review before a packet can be applied.
 
 Options:
@@ -89,7 +89,7 @@ echo "Reviewer:       $by_name"
 
 date=$(date -u +%Y-%m-%d)
 
-# v0.991+: enforce self_approve_allowed
+# v0.992+: enforce self_approve_allowed
 # Read packet creator and compare with --by
 if [ "$verdict" = "approve" ]; then
     packet_creator=$(grep '^creator:' "$DEST/packet.yaml" | sed 's/^creator:[[:space:]]*//')

@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/install/install-skill.sh — math-coding v0.991 skill/agent/hook installer.
+# core/install/install-skill.sh — math-coding v0.992 skill/agent/hook installer.
 #
 # Usage:
 #   sh core/install/install-skill.sh [options]

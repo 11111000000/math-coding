@@ -8,7 +8,7 @@
 # packet was created but will not be implemented (proposition
 # proved wrong, requirement cancelled, etc.).
 #
-# v0.991: lifecycle FSM has 4 states.
+# v0.992: lifecycle FSM has 4 states.
 #   draft → applied (apply)
 #   draft → abandoned (abandon — this command)
 #   draft → retired (retire --reason=deprecation)

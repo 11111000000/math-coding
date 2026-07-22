@@ -6,7 +6,7 @@ compatibility: opencode, claude-code
 metadata:
   audience: ai-coding-agents
   workflow: documentation-as-code
-  version: 0.991
+  version: 0.992
 ---
 
 # math-coding v0.992 — Skill for AI Agents
@@ -395,21 +395,13 @@ all fields pass. Then submit via `create`.
 
 ## Known limitations
 
-See `KNOWN_LIMITATIONS.md` for what the convention does NOT do:
+See `KNOWN_LIMITATIONS.md` for the full list. Highlights:
 - Does not run user tests
 - Does not enforce CI in target
 - Does not support monorepo out-of-the-box
 - Does not prevent multi-agent conflicts
 - Cannot detect adversarial LLM deception
 
-## When NOT to use convention
-
 For trivial changes (rename, format, fix typo), do not
-create a packet. Use `git commit` and a clear message.
-Convention is for decisions, not work.
-
-Trivial = mechanical, reversible without thought.
-Decision = affects future direction, surprises you in 6 months.
-
-See `docs/when-not-to-use.md` for full guide with examples
-and judgment-call zone.
+create a packet — see `docs/when-not-to-use.md` for the
+judgment guide.

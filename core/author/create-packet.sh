@@ -19,7 +19,7 @@
 #   synthesis   — how thesis + antithesis are resolved (becomes decision.md:synthesis)
 #   operation   — what the code does (becomes refinement.md:operation)
 #
-# v0.991: convention does not template antithesis/synthesis/operation
+# v0.992: convention does not template antithesis/synthesis/operation
 # — they come from the agent (or human) and represent real decisions.
 #
 # Output files:
@@ -141,29 +141,6 @@ fi
 
 DATE=$(date -u +%Y-%m-%d)
 
-# v0.991: emit self-critique prompt before generating files.
-# This echoes guidance for the LLM to self-check before submit.
-# Convention does not block — agent is expected to apply checks.
-cat <<'CRITIQUE'
-
-Pre-create self-critique (review before continuing):
-  1. proposition: Did you run the 4 checklist questions?
-     (falsifiable, specific, one sentence, concrete?)
-  2. antithesis: Does it name a specific counter-example?
-     (not strawman, not generic, not tautological?)
-  3. synthesis: Does it acknowledge BOTH thesis and antithesis?
-     (explains HOW, not WHAT?)
-  4. operation: Does it describe behavior, not implementation?
-     (covers edge cases?)
-  5. test: Is it executable with a clear expected value?
-  6. epistemic markers: are they honest? `fact` requires
-     evidence; `hypothesis` requires confidence; `unknown`
-     admits ignorance.
-
-If any answer is NO, revise before continuing.
-
-CRITIQUE
-
 echo ""
 echo "Creating packet: $DEST"
 
@@ -281,6 +258,28 @@ assumptions:
 EOF
 
 [ "$spec_stdin" = "1" ] && rm -f "$SPEC_TMP"
+
+# v0.992: emit self-critique prompt AFTER generating files.
+# Now the agent can read them and revise before apply.
+cat <<'CRITIQUE'
+
+Post-create self-critique (review the files before apply):
+  1. proposition: Did you run the 4 checklist questions?
+     (falsifiable, specific, one sentence, concrete?)
+  2. antithesis: Does it name a specific counter-example?
+     (not strawman, not generic, not tautological?)
+  3. synthesis: Does it acknowledge BOTH thesis and antithesis?
+     (explains HOW, not WHAT?)
+  4. operation: Does it describe behavior, not implementation?
+     (covers edge cases?)
+  5. test: Is it executable with a clear expected value?
+  6. epistemic markers: are they honest? `fact` requires
+     evidence; `hypothesis` requires confidence; `unknown`
+     admits ignorance.
+
+If any answer is NO, edit the files now before applying.
+
+CRITIQUE
 
 echo "Created packet: $DEST"
 echo "  - packet.yaml      (lifecycle: draft)"

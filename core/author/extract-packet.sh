@@ -53,21 +53,6 @@ get_refinement_section() {
     ' "$2"
 }
 
-# Extract state.pre and state.post from refinement.md.
-# Returns only the value, not the "post:" prefix.
-get_state_field() {
-    awk -v field="$1" '
-        /^## State/ { in_s = 1; next }
-        in_s && /^## / { exit }
-        in_s && $0 ~ "^[[:space:]]*[-*] " field ":" {
-            sub(/^[[:space:]]*[-*] /, "")
-            sub(/^[^:]+:[[:space:]]*/, "")
-            print
-            exit
-        }
-    ' "$2"
-}
-
 # Strip leading whitespace from multiline content.
 strip_indent() {
     sed 's/^  //'
@@ -78,7 +63,12 @@ echo "proposition: |"
 get_section "Thesis" "$DEST/decision.md" | strip_indent | sed 's/^/  /'
 
 echo "outcome: |"
-get_state_field "post" "$DEST/refinement.md" | sed 's/^/  /'
+# outcome lives in task.md:## Desired outcome (auto-generated).
+# state.post is the post-operation state value — semantically
+# different ("data after operation" vs "what becomes true").
+if [ -f "$DEST/task.md" ]; then
+    get_section "Desired outcome" "$DEST/task.md" | strip_indent | sed 's/^/  /'
+fi
 
 echo "invariant: |"
 get_refinement_section "Invariant preservation" "$DEST/refinement.md" | strip_indent | sed 's/^/  /'

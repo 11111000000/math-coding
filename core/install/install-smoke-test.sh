@@ -106,7 +106,7 @@ run_step "create step" \
     exit 1
 }
 
-# Step 3.5: setup packet fields for v0.991+ requirements
+# Step 3.5: setup packet fields for v0.992+ requirements
 # (axiom: false, implementation: complete, verified_by, single_author)
 # — needed for applied lifecycle to pass verify
 if ! (cd "$TEST_DIR" && \

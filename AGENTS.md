@@ -217,8 +217,8 @@ use the surface impact to find related packets.
 
 A good proof is **evidence**, not a claim.
 
-Good: "The evidence is `tests/run.sh` which runs 44
-self-tests against the convention's own state. The 44/44 PASS
+Good: "The evidence is `tests/run.sh` which runs 51
+self-tests against the convention's own state. The 51/51 PASS
 result is the witness."
 
 Bad: "All scripts run on a minimal POSIX environment." (this

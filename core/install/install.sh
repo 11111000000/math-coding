@@ -78,12 +78,13 @@ fi
 
 mkdir -p "$DEST"
 
-# Copy install payload: core/, theories/, docs/.
+# Copy install payload: core/, theories/, docs/, extensions/.
 # math/ is intentionally NOT copied. axiom packets are
 # source-repo only (they prove the convention against itself;
 # they are not the convention's content for downstream
-# projects).
-for d in core theories docs; do
+# projects). extensions/ is included so agent skills,
+# hooks, and CI templates are present in the target.
+for d in core theories docs extensions; do
     if [ -d "$REPO_ROOT/$d" ]; then
         cp -R "$REPO_ROOT/$d" "$DEST/$d"
     fi
@@ -152,7 +153,7 @@ Optional flags:
     sh ./.math-coding/math-coding review my-feature \
         --approve --note="tests pass"
 
-v0.991+: applied packets require at least one approve review
+v0.992+: applied packets require at least one approve review
 in `packet.yaml:reviews[]`. Self-approve is allowed (marked
 `by: ai-agent-...`) but a different reviewer is stronger.
 
@@ -227,10 +228,11 @@ if [ "$GITIGNORE_OPT" = "1" ]; then
 fi
 
 echo "installed math-coding to $DEST"
-echo "  core/      $(find "$DEST/core" -type f 2>/dev/null | wc -l | tr -d ' ') files"
-echo "  theories/  $(find "$DEST/theories" -type f 2>/dev/null | wc -l | tr -d ' ') files"
-echo "  docs/      $(find "$DEST/docs" -type f 2>/dev/null | wc -l | tr -d ' ') files"
-echo "  math-coding (dispatcher)"
+echo "  core/        $(find "$DEST/core" -type f 2>/dev/null | wc -l | tr -d ' ') files"
+echo "  theories/    $(find "$DEST/theories" -type f 2>/dev/null | wc -l | tr -d ' ') files"
+echo "  docs/        $(find "$DEST/docs" -type f 2>/dev/null | wc -l | tr -d ' ') files"
+echo "  extensions/  $(find "$DEST/extensions" -type f 2>/dev/null | wc -l | tr -d ' ') files"
+echo "  math-coding  (dispatcher)"
 echo ""
 echo "  $TARGET_MATH/  (workspace for your packets)"
 echo "  $TARGET/.mathrc  (mode: standard, math_dir: math)"

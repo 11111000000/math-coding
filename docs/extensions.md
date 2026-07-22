@@ -42,10 +42,10 @@ If the need requires touching one of these, write a
 ## Current extensions
 
   agents/opencode/SKILL.md   OpenCode skill loader
+  ci/github-actions-tdd.yml  GitHub Actions workflow template
 
 ## Open extensions (planned, not yet implemented)
 
   tla/    optional TLA+ substrate for safety-critical packets
   coq/    optional Coq substrate for cryptographic packets
   bpmn/   optional BPMN substrate for workflow packets
-  ci/     GitHub Actions workflow running probe on push

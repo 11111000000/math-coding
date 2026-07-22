@@ -65,18 +65,27 @@ A predicate is a function I : S → Bool over the filesystem state S. The conven
 
 ## Theorem
 
-The conjunction of the 6 source-repo self-tests (or 5
-target-mode self-tests) implies axiom Self-Application
-holds.
+The conjunction of the 6 source-repo self-tests (or 6
+target-mode self-tests, with the last opt-in) implies axiom
+Self-Application holds.
 
 ## Proof
 
 Each self-test is a predicate I : S → Bool over the
 filesystem state. The conjunction ∧ᵢ Iᵢ is axiom
 Self-Application. `core/self/probe.sh` evaluates this
-conjunction. Source-repo mode runs 6 predicates
-(`[1/6] mandatory files`, `[2/6] axioms`, `[3/6] theories`,
-`[4/6] verify.sh`, `[5/6] drift-check`, `[6/6] axiom chain`).
-Target mode runs 5 predicates (`[1/5] install payload`,
-`[2/5] .mathrc`, `[3/5] math_dir`, `[4/5] verify.sh`,
-`[5/5] end-to-end pipeline`). □
+conjunction.
+
+Source-repo mode runs 6 predicates unconditionally:
+`[1/6] mandatory files`, `[2/6] axioms in docs/axioms.md`,
+`[3/6] theories in theories/`, `[4/6] verify.sh exits 0`,
+`[5/6] drift-check exits 0`, `[6/6] axiom packets form
+dependency chain`.
+
+Target mode runs 5 predicates unconditionally and a 6th
+opt-in via `--full-pipeline-test`:
+`[1/6] install payload intact`, `[2/6] .mathrc valid`,
+`[3/6] $MATH_DIR exists`, `[4/6] verify.sh exits 0 on
+user's $MATH_DIR`, `[5/6] drift-check exits 0 on user's
+$MATH_DIR`, `[6/6] end-to-end pipeline (opt-in:
+--full-pipeline-test)`. □
