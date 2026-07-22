@@ -1,7 +1,7 @@
 #!/bin/sh
 # core/check/verify.sh — math-coding v0.991 verifier.
 #
-# Usage: sh core/check/verify.sh
+# Usage: sh core/check/verify.sh [--cross-packet-consistency]
 #
 # Checks every packet under $MATH_DIR (top-level only, not archived/)
 # against the packet contract, the seven axioms, and the eight theories.
@@ -9,10 +9,19 @@
 # v0.991: 3 mandatory files. Optional files are bonus. Lifecycle:
 # draft/applied/retired/abandoned (4 states). Old states are invalid.
 # .mathrc unknown fields generate warnings.
+# v0.992: --cross-packet-consistency runs cross-packet-check.sh after
+# per-packet checks.
 
 set -u
 
 . "$(dirname "$0")/../lib/common.sh"
+
+cross_packet=0
+for arg in "$@"; do
+    case "$arg" in
+        --cross-packet-consistency) cross_packet=1 ;;
+    esac
+done
 
 AXIOMS_DOC="$REPO_ROOT/docs/axioms.md"
 THEORIES_DIR="$REPO_ROOT/theories"
@@ -391,4 +400,13 @@ fi
 
 echo ""
 echo "verify: $checks checks, $errors errors, $warnings warnings"
+
+if [ "$cross_packet" = "1" ]; then
+    echo ""
+    echo "=== cross-packet-consistency ==="
+    sh "$REPO_ROOT/core/check/cross-packet-check.sh"
+    cp_exit=$?
+    errors=$((errors + cp_exit))
+fi
+
 exit "$errors"

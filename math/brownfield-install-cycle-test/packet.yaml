@@ -16,5 +16,5 @@ reviews:
 verifier: sh tests/run.sh
 depends_on:
   - axiom-self-application
-  - axiom-material-basis
+  - axiom-material
 applications: []

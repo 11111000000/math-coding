@@ -34,7 +34,10 @@ Commands:
   stable <name>    Mark packet as stable_since today (opt-in).
   archive <name> [--confirm]
                    Move to math/archived/, preserve git history.
-  verify            Run core/check/verify.sh on all packets.
+  verify [--cross-packet-consistency]
+                   Run core/check/verify.sh on all packets.
+                   --cross-packet-consistency also runs cross-packet
+                   DAG checks (depends_on, supersession, amendments).
   drift-check       Run core/check/drift-check.sh on applications[].
   probe             Run core/self/probe.sh (axiom A6 self-application).
   install <path> [--gitignore]
@@ -128,7 +131,8 @@ case "${1:-help}" in
         exec sh "$REPO_ROOT/core/author/archive-packet.sh" "$@"
         ;;
     verify)
-        exec sh "$REPO_ROOT/core/check/verify.sh"
+        shift
+        exec sh "$REPO_ROOT/core/check/verify.sh" "$@"
         ;;
     drift-check)
         exec sh "$REPO_ROOT/core/check/drift-check.sh"
