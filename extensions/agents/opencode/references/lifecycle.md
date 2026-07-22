@@ -1,49 +1,44 @@
 # references/lifecycle.md
 
-The lifecycle FSM. Load this when the agent changes a
-packet's lifecycle (sketch → working → verified) or asks
-which state to use.
+The lifecycle FSM (v0.992). Load this when the agent changes a
+packet's lifecycle or asks which state to use.
 
-## Six states
+For canonical FSM definition, see `theories/fsm.md`. If this
+file disagrees, `theories/fsm.md` wins.
+
+## Four states
 
 | State | Meaning | When to use |
 |-------|---------|-------------|
-| sketch | packet created, content placeholder | right after `sh math-coding init` or `create` |
-| working | content filled, code committed, but axiom A6 not yet proven for this packet | first commit with code |
-| verified | axiom A6 holds for this packet; at least one SHA in `applications[]` | after the test pass |
-| deprecated | superseded by another packet but still referenced | during transition period |
-| superseded | replaced by another packet; `supersession:` block names the successor | after the new packet is established |
-| archived | terminal; no references | when nothing depends on this packet |
+| draft | packet created; 5 files exist; no SHA witness yet | right after `sh math-coding create` |
+| applied | axiom A6 holds; implementation=complete; ≥1 SHA in applications[]; ≥1 approve review | after implementation, after `sh math-coding apply`, after `sh math-coding review --approve` |
+| retired | terminal-ish; packet no longer applied. Reason: deprecation (no successor) or supersession (named successor exists) | `sh math-coding retire --reason=deprecation` or `--reason=supersession` |
+| abandoned | terminal; draft that was never applied | `sh math-coding abandon` for drafts that will not be implemented |
+
+## Transitions
+
+  draft    + apply    → applied
+  draft    + abandon  → abandoned
+  draft    + retire   → retired
+  applied  + retire   → retired
+  retired  + archive  → math/archived/<name>/   (out of FSM)
+  abandoned + archive → math/archived/<name>/   (out of FSM)
 
 ## Forbidden
 
-`sketch → verified`. The proposition has never been elaborated
-(working); it cannot be proven (verified). Run axiom A4
-strictly: every transition is a commit; every commit is a
-SHA; every SHA is in `applications[]`.
+- `applied → abandoned`. Use `retire` instead.
+- `abandoned → applied`. abandoned is terminal.
+- `applied → draft`. applied cannot regress.
+- Amend on `applied` (peer-reviewed; retire first).
 
-## How to transition
+## When to supersede vs amend
 
-1. **sketch → working**: fill in the five files with
-   content. First commit with code.
-2. **working → verified**: ensure axiom A6 holds for this
-   packet (test passes). Add the first SHA to
-   `applications[]`. Set `lifecycle: verified`.
-3. **verified → deprecated**: when another packet supersedes
-   this one, set `lifecycle: deprecated` and add
-   `supersession: math/<newer>/`.
-4. **deprecated → superseded**: when the newer packet is
-   established, set `lifecycle: superseded`.
-5. **superseded → archived**: when nothing references this
-   packet, set `lifecycle: archived`.
-
-## When to supersession vs amend
-
-- **Amend** (add SHA to `applications[]`): the proposition
-  is unchanged; the evidence is richer. Use for typo
-  fixes, additional tests, refactors.
-- **Supersession** (create a new packet with `supersession:`
-  in the old one): the proposition itself changes.
+- **Amend** (`sh math-coding amend --reason="..."`): the
+  proposition is unchanged; evidence is richer. Only allowed
+  on non-applied packets (draft/retired/abandoned).
+- **Supersession** (create new packet, retire old with
+  `supersession: math/<newer>/`): the proposition itself
+  changes.
 
 The boundary is sharp: amendment extends evidence;
 supersession replaces the claim.

@@ -24,7 +24,7 @@ full statement.
   A1 Care           — developer cares about correctness
   A2 Curry-Howard   — packet = proof term
   A3 Material Basis — plain-text + git + POSIX
-  A4 Process        — three-state lifecycle (draft/applied/retired)
+  A4 Process        — four-state lifecycle (draft/applied/retired/abandoned)
   A5 Accounting     — five markers, five verdicts, witness, modes
   A6 Self-Application — convention applies to itself
                          (definitional + applicative)
@@ -95,20 +95,23 @@ Created by the consumer: `<target>/math/`, `<target>/tests/`,
   standard — full packet (3 mandatory + 2 generated)
   strict   — packet + theory link + applications[] + surface impact
 
-## The three lifecycle states
+## The four lifecycle states
 
-  draft → applied → retired
+  draft → applied
+  draft → retired
+  draft → abandoned
+  applied → retired
 
 `draft` — packet created, no SHA witness yet.
 `applied` — packet has at least one SHA in applications[]
             and at least one approving review.
 `retired` — packet no longer applied.
+`abandoned` — draft packet that will not be applied.
 
-Side states:
+Side states (terminal-ish):
 
-  abandoned   draft packet that will not be applied
-  archived    retired packet moved to `math/archived/`
-  superseded  replaced by a new packet
+  archived    retired or abandoned packet moved to `math/archived/`
+  superseded  replaced by a new packet (declared via `supersession:`)
 
 ## The five epistemic markers
 
