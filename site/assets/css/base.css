@@ -248,3 +248,34 @@ button, input, select, textarea {
   background: var(--axiom);
   color: var(--paper);
 }
+
+/* === SPA navigation loading indicator ===
+   Triggered by router.mjs: document.body.classList.add('is-loading').
+   Renders as a thin top progress bar (Stripe-style) using only borders
+   and a 1px height — no shadows, no animations > 100ms, no gradients. */
+
+.is-loading main {
+  cursor: progress;
+}
+
+.is-loading main::before {
+  content: "";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--axiom);
+  z-index: 100;
+  animation: site-progress 80ms linear forwards;
+}
+
+@keyframes site-progress {
+  from { transform: scaleX(0);    transform-origin: left; }
+  to   { transform: scaleX(0.85); transform-origin: left; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .is-loading main::before { animation: none; opacity: 0.6; }
+}

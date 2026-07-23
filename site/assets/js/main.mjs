@@ -1,15 +1,22 @@
 // main.mjs — site entry point.
 //
 // Side effects (the ONLY side-effects in the site):
-//   1. setup() theme module → sets [data-theme] on root.
-//   2. fetch /data/packets-manifest.json ONCE.
-//   3. (if /packets.html) wire up filter-bar; on change re-render #packets-grid.
-//   4. (always) populate <span id="git-sha-footer"> with current build sha.
+//   1. setupRouter() — SPA navigation via fetch + DOM swap.
+//   2. setupTheme() — sets [data-theme] on root via localStorage override.
+//   3. populate <span id="git-sha-footer"> with current build sha.
+//   4. prettifyMathBlocks() — math notation rendering.
+//   5. (if /packets.html) wire up filter-bar; re-run on SPA navigation.
 //
 // Pure FP modules (filter, render, escape) compose without I/O.
-// No innerHTML on dynamic strings — DOMParser.parseFromString for fragments.
+// No innerHTML on dynamic strings — DOMParser.parseFromString for
+// fragments from router.mjs (which itself uses DOMParser on raw HTML).
+//
+// The "setup everything for the current page" function is exposed at
+// window.__setupPageContent so the router can call it after every
+// navigation. It runs both at initial load and on every SPA swap.
 
 import { setup as setupTheme } from './theme.mjs';
+import { setupRouter, loadManifest } from './router.mjs';
 import {
   filterPackets,
   sortPackets,
@@ -18,51 +25,49 @@ import {
 import { renderPacketCard, renderFilterCount } from './pure/render.mjs';
 import { prettifyMathBlocks } from './math-prettify.mjs';
 
-// === Side effect 1: theme setup (one attribute mutation) ===
+// 1. SPA router first — installs click + popstate listeners.
+setupRouter();
+
+// 2. Theme. Persists via localStorage; honors prefers-color-scheme.
 setupTheme();
 
-// === Side effect 2: populate git-sha stamps (a few textContent writes) ===
-const shaStamps = document.querySelectorAll('#git-sha, #git-sha-footer');
-shaStamps.forEach(el => {
-  // We embed the build SHA via a query-string-less placeholder
-  // from the build script. For now, the build script must replace
-  // <!--BUILT-SHA--> with the real short SHA before deploy.
-  const html = document.documentElement.outerHTML;
-  const match = html.match(/<!--BUILT-SHA:([a-f0-9]+)-->/);
-  if (match) el.textContent = match[1];
-});
+// 3. Page-content setup. Runs once now, then re-runs from router.
+const setupPageContent = () => {
+  // 3a. git-sha stamps.
+  document.querySelectorAll('#git-sha, #git-sha-footer').forEach(el => {
+    const html = document.documentElement.outerHTML;
+    const match = html.match(/<!--BUILT-SHA:([a-f0-9]+)-->/);
+    if (match) el.textContent = match[1];
+  });
 
-// === Side effect 2b: prettify math notation blocks ===
-// Detects math-y <pre> blocks (theorem-box context + unicode signals)
-// and adds .pre-math class. CSS renders them as displayed equations.
-prettifyMathBlocks(document);
+  // 3b. Math notation detection.
+  prettifyMathBlocks(document);
 
-// === Side effect 3: /packets.html live-filter wiring ===
-const grid = document.getElementById('packets-grid');
-if (grid) {
-  wirePacketsPage(grid);
+  // 3c. /packets.html live-filter wiring.
+  const grid = document.getElementById('packets-grid');
+  if (grid) wirePacketsPage(grid);
+};
+
+setupPageContent();
+
+// Expose for router to call after every navigation.
+if (typeof window !== 'undefined') {
+  window.__setupPageContent = setupPageContent;
 }
 
 async function wirePacketsPage(gridEl) {
-  let manifest = [];
-  try {
-    const resp = await fetch('/data/packets-manifest.json', { cache: 'no-cache' });
-    if (resp.ok) manifest = await resp.json();
-  } catch (err) {
-    gridEl.innerHTML = '';
-    renderError(gridEl, 'Could not load manifest: ' + err.message);
-    return;
-  }
+  // Module-level manifest cache (one fetch per session).
+  const manifest = await loadManifest();
 
   if (!Array.isArray(manifest)) {
     renderError(gridEl, 'Manifest is not a JSON array.');
     return;
   }
 
-  const depsSel     = document.getElementById('filter-deps');
+  const depsSel      = document.getElementById('filter-deps');
   const lifecycleSel = document.getElementById('filter-lifecycle');
-  const qInput      = document.getElementById('filter-q');
-  const countEl     = document.getElementById('filter-count');
+  const qInput       = document.getElementById('filter-q');
+  const countEl      = document.getElementById('filter-count');
 
   const render = () => {
     const filter = readFilterFromSearch(URLSearchParams_toSearchString({
@@ -73,18 +78,15 @@ async function wirePacketsPage(gridEl) {
     const sorted = sortPackets(manifest);
     const filtered = filterPackets(sorted, filter);
 
-    gridEl.replaceChildren(...filtered.map(p => {
-      const tmpl = htmlToElement(renderPacketCard(p));
-      return tmpl;
-    }));
+    gridEl.replaceChildren(...filtered.map(p => htmlToElement(renderPacketCard(p))));
 
     if (countEl) countEl.textContent = renderFilterCount(manifest.length, filtered.length);
 
     // Update browser URL (no navigation) so the filter state is shareable.
     const search = [];
-    if (filter.deps)      search.push('deps=' + encodeURIComponent(filter.deps));
-    if (filter.lifecycle) search.push('lifecycle=' + encodeURIComponent(filter.lifecycle));
-    if (filter.q)         search.push('q=' + encodeURIComponent(filter.q));
+    if (filter.deps)       search.push('deps=' + encodeURIComponent(filter.deps));
+    if (filter.lifecycle)  search.push('lifecycle=' + encodeURIComponent(filter.lifecycle));
+    if (filter.q)          search.push('q=' + encodeURIComponent(filter.q));
     const qs = search.length ? '?' + search.join('&') : '';
     if (location.search !== qs) {
       history.replaceState({}, '', qs ? location.pathname + qs : location.pathname);
@@ -94,12 +96,11 @@ async function wirePacketsPage(gridEl) {
   if (depsSel)      depsSel.addEventListener('change', render);
   if (lifecycleSel) lifecycleSel.addEventListener('change', render);
   if (qInput)       qInput.addEventListener('input', () => {
-    // small debounce for typing
     clearTimeout(qInput._t);
     qInput._t = setTimeout(render, 80);
   });
 
-  // initial render with URL search applied
+  // Initial render: URL search > form values.
   const urlFilter = readFilterFromSearch(location.search);
   if (depsSel       && urlFilter.deps)      depsSel.value = urlFilter.deps;
   if (lifecycleSel  && urlFilter.lifecycle) lifecycleSel.value = urlFilter.lifecycle;
@@ -108,7 +109,6 @@ async function wirePacketsPage(gridEl) {
   render();
 }
 
-// helper: parse object {deps, lifecycle, q} into ?deps=...&lifecycle=...&q=...
 function URLSearchParams_toSearchString(obj) {
   const params = new URLSearchParams();
   if (obj.deps) params.set('deps', obj.deps);
@@ -117,7 +117,6 @@ function URLSearchParams_toSearchString(obj) {
   return params.toString();
 }
 
-// helper: convert HTML string to first DOM element (NO scripts execute)
 function htmlToElement(html) {
   const tmpl = document.createElement('template');
   tmpl.innerHTML = html.trim();

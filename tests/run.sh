@@ -1404,6 +1404,11 @@ if [ -d "$REPO_ROOT/site" ]; then
         else
             log_fail "site (math-prettify)" "see node --test output"
         fi
+        if node --test "$REPO_ROOT/tests/router.test.mjs" >/dev/null 2>&1; then
+            log_pass "site (router)"
+        else
+            log_fail "site (router)" "see node --test output"
+        fi
     fi
 fi
 
