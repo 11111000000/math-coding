@@ -65,48 +65,98 @@ OUTPUT="$REPO_ROOT/extensions/agents/$agent/SKILL.md"
 [ -f "$OUTPUT" ]   || { echo "note: $OUTPUT not yet generated (first run)" >&2; }
 
 # Compute SHAs for witnesses.
-axioms_sha=$(git -C "$REPO_ROOT" ls-files -s "$AXIOMS" 2>/dev/null | awk '{print $2}' | head -c 7)
-[ -z "$axioms_sha" ] && axioms_sha=$(git -C "$REPO_ROOT" hash-object "$AXIOMS" 2>/dev/null | head -c 7)
-fsm_sha=$(git -C "$REPO_ROOT" ls-files -s "$FSM" 2>/dev/null | awk '{print $2}' | head -c 7)
-[ -z "$fsm_sha" ] && fsm_sha=$(git -C "$REPO_ROOT" hash-object "$FSM" 2>/dev/null | head -c 7)
-limit_sha=$(git -C "$REPO_ROOT" ls-files -s "$LIMITATIONS" 2>/dev/null | awk '{print $2}' | head -c 7)
-[ -z "$limit_sha" ] && limit_sha=$(git -C "$REPO_ROOT" hash-object "$LIMITATIONS" 2>/dev/null | head -c 7)
+axioms_sha=$(git -C "$REPO_ROOT" ls-files -s "$AXIOMS" 2>/dev/null | awk '{print $2}' | cut -c1-7)
+[ -z "$axioms_sha" ] && axioms_sha=$(git -C "$REPO_ROOT" hash-object "$AXIOMS" 2>/dev/null | cut -c1-7)
+fsm_sha=$(git -C "$REPO_ROOT" ls-files -s "$FSM" 2>/dev/null | awk '{print $2}' | cut -c1-7)
+[ -z "$fsm_sha" ] && fsm_sha=$(git -C "$REPO_ROOT" hash-object "$FSM" 2>/dev/null | cut -c1-7)
+limit_sha=$(git -C "$REPO_ROOT" ls-files -s "$LIMITATIONS" 2>/dev/null | awk '{print $2}' | cut -c1-7)
+[ -z "$limit_sha" ] && limit_sha=$(git -C "$REPO_ROOT" hash-object "$LIMITATIONS" 2>/dev/null | cut -c1-7)
 
 # Collect theory SHAs.
 theories_list=$(ls "$THEORIES_DIR"/*.md 2>/dev/null | grep -v README | sort)
 theories_sha_list=""
 for t in $theories_list; do
     name=$(basename "$t" .md)
-    sha=$(git -C "$REPO_ROOT" ls-files -s "$t" 2>/dev/null | awk '{print $2}' | head -c 7)
-    [ -z "$sha" ] && sha=$(git -C "$REPO_ROOT" hash-object "$t" 2>/dev/null | head -c 7)
+    sha=$(git -C "$REPO_ROOT" ls-files -s "$t" 2>/dev/null | awk '{print $2}' | cut -c1-7)
+    [ -z "$sha" ] && sha=$(git -C "$REPO_ROOT" hash-object "$t" 2>/dev/null | cut -c1-7)
     theories_sha_list="$theories_sha_list $name:$sha"
 done
 
 # Extract axiom cards: heading + first sentence (Statement).
 emit_axiom_cards() {
-    python3 - "$AXIOMS" <<'PY'
-import sys, re
-text = open(sys.argv[1]).read()
-# Split on top-level axiom headings.
-parts = re.split(r'(?=^## A\d+\. )', text, flags=re.M)
-for part in parts:
-    if not part.startswith('## A'):
-        continue
-    heading = part.splitlines()[0]
-    print(f"  {heading}")
-    # Find Statement: line, take first sentence.
-    m = re.search(r'\*\*Statement\*\*:\s*(.+?)(?:[\.\n]|\*\*)', part, re.S)
-    if m:
-        stmt = m.group(1).strip()
-        # First sentence.
-        first = re.split(r'(?<=[.!?])\s+', stmt, maxsplit=1)[0]
-        print(f"  > {first}")
-PY
+    awk '
+    BEGIN { in_axiom=0; collecting=0 }
+    # New axiom heading: reset, remember heading (defer processing until we know if a Statement follows).
+    /^## A[0-9]+\./ {
+        # Flush any pending axiom without a discovered period.
+        if (in_axiom && stmt != "") {
+            print "  " heading
+            print "  > " stmt
+        }
+        heading=$0
+        in_axiom=1
+        stmt=""
+        next
+    }
+    # End of file / horizontal rule: flush pending.
+    /^---$/ || /^$/ && collecting {
+        if (in_axiom && stmt != "") {
+            idx=index(stmt, ".")
+            first = (idx > 0) ? substr(stmt, 1, idx - 1) : stmt
+            print "  " heading
+            print "  > " first
+        }
+        collecting=0
+        in_axiom=0
+        stmt=""
+    }
+    in_axiom && /^\*\*Statement\*\*/ {
+        line=$0
+        sub(/^\*\*Statement\*\*:[[:space:]]*/, "", line)
+        stmt=line
+        idx=index(stmt, ".")
+        if (idx > 0) {
+            print "  " heading
+            print "  > " substr(stmt, 1, idx - 1)
+            in_axiom=0
+            stmt=""
+        } else {
+            collecting=1
+        }
+        next
+    }
+    collecting {
+        # Accumulate lines until we hit a period, end marker, or next axiom.
+        idx=index($0, ".")
+        if (idx > 0) {
+            stmt = stmt " " substr($0, 1, idx - 1)
+            # Trim leading space.
+            sub(/^ /, "", stmt)
+            print "  " heading
+            print "  > " stmt
+            collecting=0
+            in_axiom=0
+            stmt=""
+        } else {
+            stmt = stmt " " $0
+            sub(/^ /, "", stmt)
+        }
+    }
+    END {
+        # Flush any trailing axiom without period.
+        if (in_axiom && stmt != "") {
+            idx=index(stmt, ".")
+            first = (idx > 0) ? substr(stmt, 1, idx - 1) : stmt
+            print "  " heading
+            print "  > " first
+        }
+    }
+    ' "$AXIOMS"
 }
 
 # Extract FSM transitions as a single line of text.
 emit_fsm_card() {
-    sed -n '/^S = .*draft/,/^I(s) = invariant/p' "$FSM" | head -8
+    sed -n '/^S = .*draft/,/^I(s) = invariant/p' "$FSM" | head -n 8
 }
 
 # Theory list: one line per theory.
@@ -114,14 +164,14 @@ emit_theory_list() {
     for t in $theories_list; do
         name=$(basename "$t" .md)
         # First heading from theory file.
-        head -1 "$t" | sed 's/^# //'
+        head -n 1 "$t" | sed 's/^# //'
         echo "  - $name.md"
     done
 }
 
 # Limitations digest: each numbered section header is one item.
 emit_limitations() {
-    sed -n 's/^## \([0-9][0-9]*\.\)/\1/p' "$LIMITATIONS" | head -13
+    sed -n 's/^## \([0-9][0-9]*\.\)/\1/p' "$LIMITATIONS" | head -n 13
 }
 
 # Compose generated block.
@@ -161,22 +211,7 @@ EOF
 }
 
 # Build SKILL.md: split template on BEGIN/END markers, replace generated block.
-build_output() {
-    python3 - "$TEMPLATE" <<'PY'
-import sys
-lines = open(sys.argv[1]).readlines()
-in_gen = False
-for ln in lines:
-    if ln.startswith('<!-- BEGIN GENERATED'):
-        in_gen = True
-        continue
-    if ln.startswith('<!-- END GENERATED'):
-        in_gen = False
-        continue
-    if not in_gen:
-        sys.stdout.write(ln)
-PY
-}
+# (Done inline below using sed + gen_block — no shell pipeline needed.)
 
 if [ "$mode" = "check" ]; then
     # Build expected output and compare to current SKILL.md.
@@ -186,7 +221,7 @@ if [ "$mode" = "check" ]; then
         gen_block
         sed '1,/<!-- END GENERATED/d' "$TEMPLATE"
     } > "$expected"
-    if diff -q "$expected" "$OUTPUT" >/dev/null 2>&1; then
+    if cmp -s "$expected" "$OUTPUT" 2>/dev/null; then
         rm -f "$expected"
         echo "ok: $OUTPUT up-to-date"
         exit 0

@@ -69,7 +69,8 @@ If `sh meta/build-skill.sh opencode` fails:
 
 1. Check syntax: `sh -n meta/build-skill.sh`.
 2. Check sources exist: `ls core/spec/axioms.md core/spec/fsm.md core/theories/`.
-3. Check python3: `which python3`.
+3. (Legacy: this used to require python3. As of v0.992+
+   it uses POSIX awk + sed; no interpreter needed.)
 4. Check `extensions/agents/opencode/SKILL.template.md` has
    `<!-- BEGIN GENERATED -->` and `<!-- END GENERATED -->`
    markers.

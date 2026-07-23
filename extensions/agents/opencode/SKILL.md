@@ -34,11 +34,11 @@ not need packets. Use git commit, not convention. See
   ## A0. Difference (ontological)
   > A proposition differs from its implementation
   ## A1. Care (motivational)
-  > A developer cares whether the code does what
+  > A developer cares whether the code does what it claims
   ## A2. Curry-Howard (structural)
   > A packet is a proof term
   ## A3. Material Basis (substrate)
-  > The convention lives in plain text, in git,
+  > The convention lives in plain text, in git, and runs on a POSIX shell
   ## A4. Process (temporal)
   > Process precedes code
   ## A5. Accounting (epistemic)
