@@ -1,0 +1,36 @@
+task_id: install-skill-gate-v0992
+title: install-skill --check gate
+lifecycle: applied
+implementation: complete
+substrate: shell
+rigor: light
+decision: made
+created: "2026-07-23"
+creator: za
+verified_by: [math-coding-bot, agent]
+single_author: true
+axiom: false
+stable_since: null
+verifier: sh meta/build-skill.sh opencode --check
+depends_on:
+  - 02-curry-howard
+  - 05-accounting
+applications:
+  - sha: 6a0ff03
+    by: agent
+    date: "2026-07-23"
+    pressure: feature
+    files:
+      - core/install/install-skill.sh
+      - meta/ritual.md
+      - tests/spec-ritual.sh
+      - tests/no-duplication.sh
+      - tests/run.sh
+reviews:
+  - by: agent
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      install-skill gate enforced via meta/build-skill.sh --check.
+      meta/ritual.md documents the discipline. Two new tests
+      (spec-ritual, no-duplication) wired into run.sh. 54/54 pass.
