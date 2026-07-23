@@ -78,10 +78,11 @@ If `sh meta/build-skill.sh opencode` fails:
 If `--check` reports stale after a fresh build, the build
 itself is broken. File an issue.
 
-## The 5 files rule
+## The 5 files rule (now 6 with witness)
 
-The convention has its own "5-file packet" rule. The spec
-ritual has a parallel rule for normative content:
+The convention has its "5-file packet" rule + 1 witness
+file when applied. The spec ritual has a parallel rule for
+normative content:
 
   1. Edit `core/spec/*.md` or `core/theories/*.md` (source).
   2. Run `sh meta/build-skill.sh opencode` (derive).
@@ -89,7 +90,21 @@ ritual has a parallel rule for normative content:
   4. Commit source + SKILL.md in one commit (witness).
   5. Push. CI runs --check (axiom A5).
 
-Five steps, five files. Not coincidence. axiom A2.
+Five steps, six files (when applied). Not coincidence. axiom A2.
+
+## Witness file (v0.992)
+
+`math/<packet>/witness` records the SHA-witness for applied
+packets. **One line, space-separated git SHAs.** First SHA
+is canonical (last applied state); append-only across
+re-applies. Refresh commits no longer invalidate the
+witness because the witness file is separate from
+packet.yaml (axiom A5 recursion fix).
+
+`sh math-coding apply` appends to the witness file.
+`core/check/drift-check.sh` reads the last SHA and
+compares with HEAD; drift = packet files changed since
+the last applied state.
 
 ## Versioning
 

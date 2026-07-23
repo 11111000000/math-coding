@@ -17,4 +17,3 @@ verifier: sh core/check/verify.sh
 depends_on:
   - axiom-process
   - axiom-accounting
-applications: []

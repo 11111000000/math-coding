@@ -19,10 +19,3 @@ verifier: sh core/axiom/probe.sh
 depends_on:
   - 04-process
   - 05-accounting
-applications:
-  - sha: ce2faf53096f7f832094c95f8e71c77c496d0351
-    by: agent
-    date: "2026-07-15"
-    pressure: feature
-    files:
-      - math/packet-lifecycle/decision.md

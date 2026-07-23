@@ -15,17 +15,6 @@ verifier: sh meta/build-skill.sh opencode --check
 depends_on:
   - 02-curry-howard
   - 05-accounting
-applications:
-  - sha: 7058e49
-    by: agent
-    date: "2026-07-23"
-    pressure: feature
-    files:
-      - core/install/install-skill.sh
-      - meta/ritual.md
-      - tests/spec-ritual.sh
-      - tests/no-duplication.sh
-      - tests/run.sh
 reviews:
   - by: agent
     date: "2026-07-23"

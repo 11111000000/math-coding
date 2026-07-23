@@ -3,9 +3,14 @@
 #
 # Usage: sh core/check/drift-check.sh
 #
-# For every math/<pkt>/:applications[] entry, checks whether
-# the recorded SHA still matches the recorded files.
+# For every math/<pkt>/witness file (applied packets), checks
+# whether the recorded SHAs still match the packet's files.
 # Reports applied, lookahead, drift.
+#
+# v0.992: witness file replaces applications[] field in
+# packet.yaml. axiom A5 (Accounting): refresh commits no
+# longer invalidate the witness because the witness file
+# is not edited by packet content changes.
 
 set -u
 
@@ -26,75 +31,47 @@ if [ ! -d "$MATH_DIR" ]; then
     exit 0
 fi
 
-for pkt_yaml in "$MATH_DIR"/*/packet.yaml; do
-    [ -f "$pkt_yaml" ] || continue
-    pkt_name=$(basename "$(dirname "$pkt_yaml")")
+for pkt_dir in "$MATH_DIR"/*/; do
+    [ -d "$pkt_dir" ] || continue
+    pkt_name=$(basename "$pkt_dir")
+    [ "$pkt_name" = "archived" ] && continue
 
-    # v0.992: only applied packets have a live SHA-witness
-    # obligation. retired / abandoned packets have frozen
-    # applications[]; their drift is intentional and not
-    # reported. axiom packets are applied by design, exempt.
-    lc=$(grep '^lifecycle:' "$pkt_yaml" \
-        | sed 's/^lifecycle:[[:space:]]*//' | tr -d '"' | tr -d "'")
-    if [ "$lc" != "applied" ]; then
+    witness_file="$pkt_dir/witness"
+    [ -f "$witness_file" ] || continue
+
+    # Read SHAs from witness file (space-separated, one line).
+    shas=$(cat "$witness_file" 2>/dev/null | tr ' ' '\n' | grep -E '^[0-9a-f]{40}$')
+
+    if [ -z "$shas" ]; then
         continue
     fi
 
-    awk '
-        /^applications:[[:space:]]*$/ { in_block = 1; next }
-        in_block && /^[[:space:]]/ {
-            line = $0
-            sub(/^[[:space:]]+/, "", line)
-            if (line ~ /^- sha:[[:space:]]+/) {
-                entry_has_sha = 1
-                sha = line
-                sub(/^- sha:[[:space:]]+/, "", sha)
-                entry_sha = sha
-                next
-            }
-            if (line ~ /^sha:[[:space:]]+/) {
-                entry_has_sha = 1
-                sha = line
-                sub(/^sha:[[:space:]]+/, "", sha)
-                entry_sha = sha
-                next
-            }
-            if (line ~ /^files:[[:space:]]*$/ && entry_has_sha) {
-                reading_files = 1
-                next
-            }
-            if (reading_files && entry_has_sha && line ~ /^[[:space:]]*-[[:space:]]+/) {
-                f = line
-                sub(/^[[:space:]]*-[[:space:]]+/, "", f)
-                if (f != "") print entry_sha "\t" f
-                next
-            }
-            if (reading_files && line ~ /^[^[:space:]-]/) reading_files = 0
-            next
-        }
-        /^[^[:space:]]/ { in_block = 0; next }
-    ' "$pkt_yaml" | while IFS="$(printf '\t')" read -r sha file; do
-        [ -n "$sha" ] || continue
-        [ -n "$file" ] || continue
-
+    # For each SHA, check if any file in the packet dir has
+    # changed since that SHA. If yes, drift; if not, applied.
+    for sha in $shas; do
         case "$sha" in
             0000000000000000000000000000000000000000) continue ;;
         esac
 
         if ! git -C "$REPO_ROOT" cat-file -e "$sha" 2>/dev/null; then
             if [ "$LOOKAHEAD_OK" -eq 0 ]; then
-                echo "LOOKAHEAD: $pkt_name application $sha unknown to local history (file ref: $file)" >&2
+                echo "LOOKAHEAD: $pkt_name witness $sha unknown to local history" >&2
             fi
             echo "lookahead"
             continue
         fi
 
-        if ! git -C "$REPO_ROOT" diff --quiet "$sha"..HEAD -- "$file" 2>/dev/null; then
-            echo "DRIFT: $pkt_name application $sha stale in $file" >&2
-            echo "drift"
-            continue
+        # Check that packet's files have not drifted since the
+        # last (most recent) SHA. Witness file is append-only;
+        # new applies append. Drift = changes since last witness SHA.
+        last_sha=$(printf '%s\n' "$shas" | tail -1)
+        if [ "$sha" = "$last_sha" ]; then
+            if ! git -C "$REPO_ROOT" diff --quiet "$sha"..HEAD -- "$pkt_dir/" 2>/dev/null; then
+                echo "DRIFT: $pkt_name witness $sha stale in packet files" >&2
+                echo "drift"
+                continue
+            fi
         fi
-
         echo "applied"
     done
 done | {

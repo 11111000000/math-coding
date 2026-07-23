@@ -14,15 +14,6 @@ stable_since: null
 verifier: sh meta/build-skill.sh opencode --check
 depends_on:
   - 02-curry-howard
-applications:
-  - sha: c706707
-    by: agent
-    date: "2026-07-23"
-    pressure: feature
-    files:
-      - meta/build-skill.sh
-      - extensions/agents/opencode/SKILL.template.md
-      - extensions/agents/opencode/SKILL.md
 reviews:
   - by: agent
     date: "2026-07-23"

@@ -125,15 +125,17 @@ if [ -d "$MATH_DIR" ]; then
                 pass
                 ;;
             applied)
-                # SHA in applications[]
-                if grep -q '^applications:' "$pkt_dir/packet.yaml"; then
-                    if grep -qE 'sha: [0-9a-f]+' "$pkt_dir/packet.yaml"; then
+                # v0.992: witness is in sibling file, not in packet.yaml.
+                # Check witness file exists and contains a valid SHA.
+                if [ -f "$pkt_dir/witness" ]; then
+                    first_sha=$(awk '{print $1; exit}' "$pkt_dir/witness")
+                    if [ -n "$first_sha" ] && git -C "$REPO_ROOT" cat-file -e "$first_sha" 2>/dev/null; then
                         pass
                     else
-                        fail "$pkt_name: lifecycle=applied but no SHA in applications[]"
+                        fail "$pkt_name: lifecycle=applied but witness file has no valid SHA"
                     fi
                 else
-                    fail "$pkt_name: lifecycle=applied but no applications[] block"
+                    fail "$pkt_name: lifecycle=applied but no witness file"
                 fi
 
                 # implementation=complete (axiom exempt)

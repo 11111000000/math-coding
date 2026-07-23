@@ -1,0 +1,12 @@
+task_id: witness-external-v0992
+title: witness-external-v0992
+lifecycle: draft
+substrate: none
+rigor: light
+decision: made
+created: "2026-07-23"
+creator: za
+# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+stable_since: null
+verifier: null
+depends_on: []

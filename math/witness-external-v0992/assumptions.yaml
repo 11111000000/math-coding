@@ -1,0 +1,37 @@
+task_id: witness-external-v0992
+assumptions:
+  - id: A1
+    statement: "  Each packet has a witness file (space-separated SHAs) alongside packet.yaml. Drift-check reads witness file; refresh commit does not invalidate witness. is achievable under current constraints"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      generated from proposition — agent should review
+  - id: A2
+    statement: "  - packet.yaml has NO applications[] field
+  - witness file exists for applied packets (axiom + non-axiom)
+  - witness content: space-separated valid git SHAs, append-only
+  - First SHA in witness = canonical applied state is the right invariant for this proposition"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from invariant — agent should review
+  - id: A3
+    statement: "the test specified covers the proposition"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from test — agent should review
+  - id: A4
+    statement: "the operating environment is stable"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      default assumption — replace with real evidence
+  - id: A5
+    statement: "  Witness is an external file, not a field in packet.yaml. axiom A5 recursion breaks when refresh commit rewrites applications[]. is the right framing of the decision"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from proposition — agent should review

@@ -7,11 +7,13 @@
 # Options:
 #   --sha=<commit>           explicit SHA
 #   --files=<glob>           explicit file list (comma-separated)
-#   --tests=<command>        record test command in applications[].tests
+#   --tests=<command>        record test command (informational)
 #   --tests-result=<status>  record result (PASS|FAIL|SKIP|ERROR)
 #   --help -h                this message
 #
-# Records the SHA witness and transitions the packet to applied.
+# Records the SHA witness in a sibling `witness` file
+# (NOT in packet.yaml — see axiom A5 recursion rule) and
+# transitions the packet to applied.
 #
 # SHA selection (in order):
 #   1. --sha=<commit> if given
@@ -19,15 +21,18 @@
 #   3. Last commit whose message mentions <name>
 #   4. Last commit at all
 #
-# Files selection (in order):
+# Files selection (informational; not stored in witness):
 #   1. --files=<glob> if given (comma-separated)
-#   2. git diff --name-only <prev>..<sha> for all files in commit
+#   2. git diff --name-only <prev_witness_sha>..<sha> for files in commit
 #   3. Empty list
 #
 # After recording:
 #   draft -> applied
 #   applied stays applied (warning that new SHA is added)
 #   retired stays retired (error)
+#
+# v0.992: witness file is one line, space-separated git SHAs.
+# First SHA is canonical. Append-only across applies.
 
 set -u
 
@@ -168,73 +173,30 @@ esac
 
 date=$(date -u +%Y-%m-%d)
 
-# Update packet.yaml
+# Update packet.yaml: change lifecycle only. Applications[]
+# is NOT in packet.yaml anymore (axiom A5 recursion fix).
 tmp_yaml=$(mktemp) || { echo "error: mktemp failed" >&2; exit 1; }
-
-# Replace lifecycle line
 sed "s/^lifecycle: .*/lifecycle: $new_lifecycle/" "$DEST/packet.yaml" > "$tmp_yaml"
-
-# Insert new applications entry. Find applications: line.
-awk -v sha="$sha" -v date="$date" -v tests="$tests" -v tests_result="$tests_result" '
-    /^applications:/ && !inserted {
-        print
-        print "  - sha: " sha
-        print "    by: agent"
-        print "    date: " date
-        print "    pressure: feature"
-        inserted = 1
-        next
-    }
-    /^    pressure: feature$/ && inserted && !files_done {
-        # We just printed pressure; add files and tests after
-        # (handled in second awk pass below if needed)
-        print
-        files_done = 1
-        next
-    }
-    { print }
-    END {
-        # Append tests if set (will be picked up by second pass)
-    }
-' "$tmp_yaml" > "$tmp_yaml.2"
-mv "$tmp_yaml.2" "$tmp_yaml"
-
-# Now insert files: list and tests after the last "    pressure: feature"
-if [ -n "$files" ] || [ -n "$tests" ]; then
-    awk -v files="$files" -v tests="$tests" -v tests_result="$tests_result" '
-        /^    pressure: feature$/ && !inserted {
-            print
-            if (files != "") {
-                print "    files:"
-                n = split(files, arr, ",")
-                for (i = 1; i <= n; i++) {
-                    gsub(/^[ \t]+|[ \t]+$/, "", arr[i])
-                    if (arr[i] != "") print "      - " arr[i]
-                }
-            }
-            if (tests != "") {
-                print "    tests: \"" tests "\""
-                if (tests_result != "") {
-                    print "    tests_result: " tests_result
-                }
-            }
-            inserted = 1
-            next
-        }
-        { print }
-    ' "$tmp_yaml" > "$tmp_yaml.2"
-    mv "$tmp_yaml.2" "$tmp_yaml"
-fi
-
 mv "$tmp_yaml" "$DEST/packet.yaml"
 rm -f "$tmp_yaml"
+
+# Append SHA to witness file (one line, space-separated SHAs).
+witness_file="$DEST/witness"
+if [ -f "$witness_file" ]; then
+    # Append: existing SHAs + new SHA, space-separated, one line.
+    existing=$(cat "$witness_file")
+    printf '%s %s\n' "$existing" "$sha" > "$witness_file"
+else
+    printf '%s\n' "$sha" > "$witness_file"
+fi
 
 echo "Applied: $name"
 echo "  lifecycle: $new_lifecycle"
 echo "  sha: $sha"
+echo "  witness: $witness_file"
 if [ -n "$files" ]; then
     file_count=$(echo "$files" | tr ',' '\n' | grep -c .)
-    echo "  files: $file_count"
+    echo "  files: $file_count (informational)"
 fi
 [ -n "$tests" ] && echo "  tests: $tests"
 [ -n "$tests_result" ] && echo "  tests_result: $tests_result"

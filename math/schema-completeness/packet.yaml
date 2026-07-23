@@ -16,4 +16,3 @@ reviews:
 verifier: sh math-coding probe
 depends_on:
   - axiom-self-application
-applications: []

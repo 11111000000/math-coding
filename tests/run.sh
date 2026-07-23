@@ -524,9 +524,8 @@ YAML
     rm -rf "$TMP22d"
 fi
 
-# v0.991: apply transitions draft → applied AND records SHA.
-# Verify is not run inside apply (it was in earlier versions
-# but blocked development). Test asserts the transition directly.
+# v0.992: apply transitions draft → applied AND records SHA
+# in sibling witness file (not in packet.yaml).
 TMP23=$(mktemp -d 2>/dev/null) || { log_fail "apply-records-sha" "mktemp failed"; }
 if [ -n "$TMP23" ]; then
     mkdir -p "$TMP23/math"
@@ -552,14 +551,14 @@ YAML
     (cd "$TMP23" && git init -q && \
         git -c user.email=t@t.local -c user.name=t add math/ && \
         git -c user.email=t@t.local -c user.name=t commit -q -m "init")
-    if env MATH_DIR="$TMP23/math" PROJECT_ROOT="$TMP23" REPO_ROOT="$TMP23" \
+    if env MATH_DIR="$TMP23/math" PROJECT_ROOT="$TMP23" REPO_ROOT="$REPO_ROOT" \
         sh "$REPO_ROOT/core/author/apply-packet.sh" test-pkt >/dev/null 2>&1; then
         lc=$(grep '^lifecycle:' "$TMP23/math/test-pkt/packet.yaml" | sed 's/^lifecycle: *//')
-        sha_count=$(grep -cE 'sha: [0-9a-f]+' "$TMP23/math/test-pkt/packet.yaml" || echo 0)
-        if [ "$lc" = "applied" ] && [ "$sha_count" -ge 1 ]; then
+        witness_shas=$(awk '{print NF; exit}' "$TMP23/math/test-pkt/witness" 2>/dev/null)
+        if [ "$lc" = "applied" ] && [ "${witness_shas:-0}" -ge 1 ]; then
             log_pass "apply-records-sha"
         else
-            log_fail "apply-records-sha" "lifecycle=$lc sha_count=$sha_count"
+            log_fail "apply-records-sha" "lifecycle=$lc witness_shas=${witness_shas:-0}"
         fi
     else
         log_fail "apply-records-sha" "apply failed"
@@ -648,9 +647,11 @@ YAML
     rm -rf "$TMP25"
 fi
 
-# Case 26: apply --tests flag records test command.
-# v0.978: apply accepts --tests=<cmd> and writes it to
-# applications[].tests.
+# Case 26: apply --tests flag is accepted (informational).
+# v0.992: --tests is printed to stdout; not persisted in witness
+# file. Convention does not store test commands; verifier is
+# structural, not behavioral. The test ensures the flag is
+# accepted without breaking the apply workflow.
 TMP26=$(mktemp -d 2>/dev/null) || { log_fail "apply-tests-flag" "mktemp failed"; }
 if [ -n "$TMP26" ]; then
     mkdir -p "$TMP26/math"
@@ -676,17 +677,14 @@ YAML
     (cd "$TMP26" && git init -q && \
         git -c user.email=t@t.local -c user.name=t add math/ && \
         git -c user.email=t@t.local -c user.name=t commit -q -m "init")
-    if env MATH_DIR="$TMP26/math" PROJECT_ROOT="$TMP26" REPO_ROOT="$TMP26" \
-        sh "$REPO_ROOT/core/author/apply-packet.sh" test-pkt \
-        --tests="pytest tests/test.py -q" --tests-result=PASS >/dev/null 2>&1; then
-        if grep -q "tests:" "$TMP26/math/test-pkt/packet.yaml" && \
-           grep -q "pytest tests/test.py -q" "$TMP26/math/test-pkt/packet.yaml"; then
-            log_pass "apply-tests-flag"
-        else
-            log_fail "apply-tests-flag" "tests: field not found"
-        fi
+    out=$(env MATH_DIR="$TMP26/math" PROJECT_ROOT="$TMP26" REPO_ROOT="$REPO_ROOT" \
+          sh "$REPO_ROOT/core/author/apply-packet.sh" test-pkt \
+          --tests="pytest tests/test.py -q" --tests-result=PASS 2>&1)
+    rc=$?
+    if [ "$rc" = "0" ] && printf '%s' "$out" | grep -q "pytest tests/test.py -q"; then
+        log_pass "apply-tests-flag"
     else
-        log_fail "apply-tests-flag" "apply failed"
+        log_fail "apply-tests-flag" "tests not echoed (rc=$rc)"
     fi
     rm -rf "$TMP26"
 fi
@@ -1370,6 +1368,14 @@ if sh "$REPO_ROOT/tests/naming-version.sh" >/dev/null 2>&1; then
     log_pass "naming-version"
 else
     log_fail "naming-version" "see tests/naming-version.sh output"
+fi
+
+# Case 54: witness files satisfy structural invariants
+# (axiom A5 recursion fix).
+if sh "$REPO_ROOT/tests/witness.sh" >/dev/null 2>&1; then
+    log_pass "witness"
+else
+    log_fail "witness" "see tests/witness.sh output"
 fi
 
 echo ""

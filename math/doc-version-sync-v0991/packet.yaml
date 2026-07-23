@@ -15,19 +15,6 @@ stable_since: null
 verifier: sh tests/run.sh
 depends_on:
   - 06-self-application
-applications:
-  - sha: 25ce2ef
-    by: agent
-    date: "2026-07-23"
-    pressure: feature
-    files:
-      - README.md
-      - AGENTS.md
-      - core/README.md
-      - docs/README.md
-      - docs/api.md
-      - docs/extensions.md
-      - docs/spec.md
 reviews:
   - by: agent
     date: "2026-07-20"

@@ -17,4 +17,3 @@ verifier: sh tests/run.sh
 depends_on:
   - axiom-self-application
   - axiom-material
-applications: []
