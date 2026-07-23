@@ -1,11 +1,15 @@
 task_id: agent-mode-subagent-v0992
 title: Math agent — mode subagent, not primary
-lifecycle: draft
+lifecycle: applied
+implementation: complete
 substrate: shell
 rigor: light
 decision: made
 created: "2026-07-23"
 creator: za
+verified_by: [za, agent]
+axiom: false
+single_author: true
 # stable_since: opt-in. Run 'math-coding stable <name>' to set.
 stable_since: null
 verifier: sh math-coding probe
@@ -17,4 +21,11 @@ surface_impact: |
   extensions/agents/opencode/math-agent.md (frontmatter + prompt),
   KNOWN_LIMITATIONS.md (new note),
   ~/.config/opencode/agents/math/agent.md (sync target)
-reviews: []
+reviews:
+  - by: za
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      axiom A6 kept: probe exits 0. Math.mode == subagent verified
+      via opencode debug config. Build/plan primary cycle unchanged.
+      Trade-off documented in KNOWN_LIMITATIONS.md #14.
