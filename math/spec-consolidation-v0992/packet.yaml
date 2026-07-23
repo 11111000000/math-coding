@@ -16,7 +16,7 @@ depends_on:
   - 02-curry-howard
   - 04-process
 applications:
-  - sha: 90fc0d8
+  - sha: 305d3b9
     by: agent
     date: "2026-07-23"
     pressure: feature
@@ -44,7 +44,6 @@ applications:
       - KNOWN_LIMITATIONS.md
       - tests/run.sh
       - extensions/agents/opencode/SKILL.md
-      - extensions/agents/opencode/references/axioms.md
       - extensions/obsidian.md
 reviews:
   - by: agent
