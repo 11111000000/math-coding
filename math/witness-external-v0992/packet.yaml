@@ -16,9 +16,14 @@ depends_on:
   - 05-accounting
 reviews:
   - by: agent
+  - by: za
     date: "2026-07-23"
     verdict: approve
     note: |
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      axiom A5 recursion fix verified: 56/56 tests pass, witness files external, drift=0, probe PROVEN. axiom Self-Application holds.
       axiom A5 recursion fixed: witness is external file,
       not in packet.yaml. Refresh commits no longer
       invalidate witness. 13 packets migrated.
