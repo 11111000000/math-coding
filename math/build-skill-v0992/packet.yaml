@@ -15,6 +15,13 @@ verifier: sh meta/build-skill.sh opencode --check
 depends_on:
   - 02-curry-howard
 applications:
+  - sha: 9c0206d
+    by: agent
+    date: 2026-07-23
+    pressure: feature
+    files:
+      - math/build-skill-v0992/packet.yaml
+math/spec-consolidation-v0992/packet.yaml
   - sha: 90fc0d8
     by: agent
     date: "2026-07-23"
@@ -25,9 +32,14 @@ applications:
       - extensions/agents/opencode/SKILL.md
 reviews:
   - by: agent
+  - by: za
     date: "2026-07-23"
     verdict: approve
     note: |
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      build-skill scaffold verified: meta/build-skill.sh generates SKILL.md from core/spec/ + core/theories/ + KNOWN_LIMITATIONS.md; --check mode works; 52/52 tests pass
       Generated SKILL.md has compact axiom/FSM/theory/limitations
       blocks. --check mode enforces freshness. Source SHAs in
       header are witnesses (axiom A5).
