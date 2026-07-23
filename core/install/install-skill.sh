@@ -168,9 +168,13 @@ if [ "$DRY_RUN" = "1" ]; then
         fi
     fi
     if [ "$WITH_HOOKS" = "1" ]; then
-        hook_src="$REPO_ROOT/extensions/hooks/pre-tool-use.sh"
-        if [ -f "$hook_src" ]; then
-            echo "    hook: $hook_src"
+        if [ "$AGENT" != "opencode" ]; then
+            echo "    hook: SKIPPED (--with-hooks is opencode-only in v0.992)"
+        else
+            hook_src="$REPO_ROOT/extensions/hooks/pre-tool-use.sh"
+            if [ -f "$hook_src" ]; then
+                echo "    hook: $hook_src"
+            fi
         fi
     fi
     exit 0
@@ -225,27 +229,33 @@ if [ "$WITH_AGENT" = "1" ]; then
     fi
 fi
 
-# Install hooks if requested
+# Install hooks if requested.
+# v0.992: hooks are opencode-specific. For non-opencode agents,
+# --with-hooks prints a warning and skips.
 hook_installed=0
 if [ "$WITH_HOOKS" = "1" ]; then
-    hook_src="$REPO_ROOT/extensions/hooks/pre-tool-use.sh"
-    if [ -f "$hook_src" ]; then
-        hooks_root="$HOME/.config/opencode/hooks"
-        mkdir -p "$hooks_root"
-        cp "$hook_src" "$hooks_root/pre-tool-use.sh"
-        chmod +x "$hooks_root/pre-tool-use.sh"
-        hook_installed=1
-        # Note: hook registration in opencode.json is manual
-        echo ""
-        echo "NOTE: To activate the hook, add this to opencode.json:"
-        echo "  \"hooks\": {"
-        echo "    \"pre_tool_use\": {"
-        echo "      \"edit\": \"$hooks_root/pre-tool-use.sh\","
-        echo "      \"bash\": \"$hooks_root/pre-tool-use.sh\""
-        echo "    }"
-        echo "  }"
+    if [ "$AGENT" != "opencode" ]; then
+        echo "warning: --with-hooks is opencode-specific in v0.992; skipping for AGENT=$AGENT" >&2
     else
-        echo "warning: $hook_src not found, skipping hook install" >&2
+        hook_src="$REPO_ROOT/extensions/hooks/pre-tool-use.sh"
+        if [ -f "$hook_src" ]; then
+            hooks_root="$HOME/.config/opencode/hooks"
+            mkdir -p "$hooks_root"
+            cp "$hook_src" "$hooks_root/pre-tool-use.sh"
+            chmod +x "$hooks_root/pre-tool-use.sh"
+            hook_installed=1
+            # Note: hook registration in opencode.json is manual
+            echo ""
+            echo "NOTE: To activate the hook, add this to opencode.json:"
+            echo "  \"hooks\": {"
+            echo "    \"pre_tool_use\": {"
+            echo "      \"edit\": \"$hooks_root/pre-tool-use.sh\""
+            echo "      \"bash\": \"$hooks_root/pre-tool-use.sh\""
+            echo "    }"
+            echo "  }"
+        else
+            echo "warning: $hook_src not found, skipping hook install" >&2
+        fi
     fi
 fi
 
