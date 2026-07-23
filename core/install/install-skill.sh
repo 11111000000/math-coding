@@ -112,6 +112,18 @@ if [ ! -f "$SRC_PATH/SKILL.md" ]; then
     exit 1
 fi
 
+# v0.992: if meta/build-skill.sh exists (source-repo context), gate
+# the install on SKILL.md freshness. This prevents shipping a
+# stale SKILL.md that doesn't match current source content.
+if [ -x "$REPO_ROOT/meta/build-skill.sh" ]; then
+    if ! "$REPO_ROOT/meta/build-skill.sh" "$AGENT" --check; then
+        echo "" >&2
+        echo "Install aborted: SKILL.md is stale." >&2
+        echo "  refresh: sh meta/build-skill.sh $AGENT" >&2
+        exit 1
+    fi
+fi
+
 # Verify SKILL.md has `name:` in frontmatter
 skill_name_in_yaml=$(awk '
     /^---/ { in_fm = !in_fm; next }
