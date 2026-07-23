@@ -40,7 +40,11 @@ cd "$REPO_ROOT" || exit 2
 
 # Registered agents. Add new agents here.
 # MUST be kept in sync with core/install/install-skill.sh AGENT_TARGETS.
-AGENTS="opencode claude cursor"
+# Universal/AGENTS.md agents (project-local) are listed separately
+# since they have no install-skill user-global path.
+SKILL_AGENTS="opencode claude cursor"
+ALL_AGENTS="$SKILL_AGENTS universal"
+AGENTS="$ALL_AGENTS"
 
 usage() {
     cat <<'EOF' >&2
@@ -97,6 +101,7 @@ ensure_trailing_newline() {
 
 CANON_BODY="$REPO_ROOT/extensions/agents/canon/SKILL.body.template.md"
 CANON_AGENT_BODY="$REPO_ROOT/extensions/agents/canon/math-agent.body.md"
+CANON_AGENTS_BODY="$REPO_ROOT/extensions/agents/canon/AGENTS.body.template.md"
 
 # Sources.
 AXIOMS="$REPO_ROOT/core/spec/axioms.md"
@@ -107,10 +112,11 @@ LIMITATIONS="$REPO_ROOT/KNOWN_LIMITATIONS.md"
 [ -f "$CANON_BODY" ] || { echo "error: $CANON_BODY not found" >&2; exit 2; }
 [ -f "$CANON_AGENT_BODY" ] || { echo "error: $CANON_AGENT_BODY not found" >&2; exit 2; }
 
-# Sanity check: build AGENTS must be a subset of install AGENT_TARGETS.
+# Sanity check: SKILL_AGENTS must match install AGENT_TARGETS.
 # Detects drift between the two registries.
+# (universal is project-local, not in AGENT_TARGETS — excluded.)
 INSTALL_TARGETS="$(awk -F: '/^[a-z]+:~\// {print $1}' "$REPO_ROOT/core/install/install-skill.sh" | sort -u | tr '\n' ' ')"
-for a in $AGENTS; do
+for a in $SKILL_AGENTS; do
     if ! echo " $INSTALL_TARGETS " | grep -q " $a "; then
         echo "warning: agent '$a' registered in build-skill.sh but missing in install-skill.sh AGENT_TARGETS" >&2
     fi
@@ -358,10 +364,101 @@ build_agent_for() {
     echo "wrote: $AGENT_OUTPUT"
 }
 
+# Compose generated block for AGENTS.md (axioms only, condensed).
+# Writes to a temp file (mktemp) to avoid shell-quoting in awk.
+gen_block_agents_to_file() {
+    out="$1"
+    {
+        cat <<HEADER
+<!-- Sources: core/spec/axioms.md@$axioms_sha -->
+
+HEADER
+        cat <<'SUBSECTION'
+## Seven axioms (compact)
+
+SUBSECTION
+        emit_axiom_cards
+        cat <<'SUBSECTION'
+
+SUBSECTION
+    } > "$out"
+}
+
+# Process AGENTS body: replace BEGIN/END GENERATED region with axiom block.
+process_agents_body() {
+    block_file=$(mktemp) || return 1
+    gen_block_agents_to_file "$block_file"
+    awk -v block_file="$block_file" '
+        /<!-- BEGIN GENERATED -->/ {
+            while ((getline line < block_file) > 0) print line
+            close(block_file)
+            in_block=1
+            next
+        }
+        /<!-- END GENERATED -->/ {
+            in_block=0
+            next
+        }
+        !in_block { print }
+    ' "$CANON_AGENTS_BODY"
+    rm -f "$block_file"
+}
+
+# Generate AGENTS.md for an agent (project-local fallback format).
+# Same pattern as SKILL.md but no YAML frontmatter in preamble.
+build_agents_md_for() {
+    agent="$1"
+
+    PREAMBLE="$REPO_ROOT/extensions/agents/$agent/AGENTS.preamble.md"
+    OUTPUT="$REPO_ROOT/extensions/agents/$agent/AGENTS.md"
+
+    if [ ! -f "$PREAMBLE" ]; then
+        # No preamble → no AGENTS.md to generate for this agent.
+        return 0
+    fi
+    if [ ! -f "$CANON_AGENTS_BODY" ]; then
+        echo "skip: $CANON_AGENTS_BODY not found" >&2
+        return 1
+    fi
+
+    if [ "$mode" = "check" ]; then
+        expected=$(mktemp) || return 1
+        {
+            cat "$PREAMBLE"
+            process_agents_body
+        } > "$expected"
+        if cmp -s "$expected" "$OUTPUT" 2>/dev/null; then
+            rm -f "$expected"
+            echo "ok: $OUTPUT up-to-date"
+            return 0
+        fi
+        rm -f "$expected"
+        echo "stale: $OUTPUT differs from preamble + canon body" >&2
+        echo "  run: sh meta/build-skill.sh $agent" >&2
+        return 1
+    fi
+
+    {
+        cat "$PREAMBLE"
+        process_agents_body
+    } > "$OUTPUT.new"
+    ensure_trailing_newline "$OUTPUT.new"
+    mv "$OUTPUT.new" "$OUTPUT"
+    echo "wrote: $OUTPUT"
+}
+
 # Main: iterate over agents.
 if [ -n "$target" ]; then
-    build_skill_for "$target" || true
-    build_agent_for "$target" || true
+    # Per-agent: detect which artifacts exist and build only those.
+    if [ -f "$REPO_ROOT/extensions/agents/$target/SKILL.preamble.md" ]; then
+        build_skill_for "$target" || true
+    fi
+    if [ -f "$REPO_ROOT/extensions/agents/$target/math-agent.preamble.yaml" ]; then
+        build_agent_for "$target" || true
+    fi
+    if [ -f "$REPO_ROOT/extensions/agents/$target/AGENTS.preamble.md" ]; then
+        build_agents_md_for "$target" || true
+    fi
     if [ "$mode" = "check" ]; then
         exit_status=0
     fi
@@ -370,8 +467,15 @@ else
     # Build all agents.
     rc=0
     for a in $AGENTS; do
-        build_skill_for "$a" || rc=1
-        build_agent_for "$a" || rc=1
+        if [ -f "$REPO_ROOT/extensions/agents/$a/SKILL.preamble.md" ]; then
+            build_skill_for "$a" || rc=1
+        fi
+        if [ -f "$REPO_ROOT/extensions/agents/$a/math-agent.preamble.yaml" ]; then
+            build_agent_for "$a" || rc=1
+        fi
+        if [ -f "$REPO_ROOT/extensions/agents/$a/AGENTS.preamble.md" ]; then
+            build_agents_md_for "$a" || rc=1
+        fi
     done
     if [ "$mode" = "check" ]; then
         exit $rc

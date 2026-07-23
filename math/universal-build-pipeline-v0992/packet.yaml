@@ -1,0 +1,38 @@
+task_id: universal-build-pipeline-v0992
+title: Universal AGENTS.md — build pipeline integration
+lifecycle: applied
+implementation: complete
+substrate: shell
+rigor: light
+decision: made
+created: "2026-07-23"
+creator: za
+verified_by: [za, agent]
+axiom: false
+single_author: true
+# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+stable_since: null
+verifier: sh math-coding probe
+depends_on:
+  - 06-self-application
+  - multi-agent-skills-v0992
+  - universal-agents-md-v0992
+applications: []
+surface_impact: |
+  extensions/agents/canon/AGENTS.body.template.md (new),
+  extensions/agents/universal/AGENTS.preamble.md (new),
+  extensions/agents/universal/AGENTS.md (regenerated from canon),
+  meta/build-skill.sh (gen_block_agents, process_agents_body,
+  build_agents_md_for; SKILL_AGENTS/ALL_AGENTS/AGENTS vars)
+reviews:
+  - by: za
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      universal/AGENTS.md now generated from canon body.
+      axiom cards propagate via build pipeline. Build orchestrator
+      detects preamble type (SKILL.preamble.md → SKILL.md,
+      AGENTS.preamble.md → AGENTS.md, math-agent.preamble.yaml →
+      math-agent.md). universal added to ALL_AGENTS, excluded
+      from SKILL_AGENTS sanity check (no install path).
+      Regression: opencode/claude/cursor --check all pass.
