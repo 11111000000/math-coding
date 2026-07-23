@@ -194,23 +194,34 @@ if [ -d "$SRC_PATH/examples" ]; then
     cp -R "$SRC_PATH/examples/." "$TARGET_DIR/examples/"
 fi
 
-# Install Math agent if requested
+# Install Math agent if requested (per-agent: extensions/agents/<agent>/math-agent.md)
 agent_installed=0
+agent_install_path=""
 if [ "$WITH_AGENT" = "1" ]; then
-    agent_src="$REPO_ROOT/extensions/agents/opencode/math-agent.md"
+    agent_src="$REPO_ROOT/extensions/agents/$AGENT/math-agent.md"
     if [ -f "$agent_src" ]; then
         agent_name=$(awk '/^---/{fm=!fm; next} fm && /^name:/{sub(/^name:[[:space:]]*/, ""); print; exit}' "$agent_src")
         if [ -z "$agent_name" ]; then
-            echo "warning: math-agent.md has no 'name:' field, skipping" >&2
+            echo "warning: $AGENT/math-agent.md has no 'name:' field, skipping" >&2
         else
-            # Agent install location: $HOME/.config/opencode/agents/$agent_name/
-            agents_root="$HOME/.config/opencode/agents"
-            mkdir -p "$agents_root/$agent_name"
-            cp "$agent_src" "$agents_root/$agent_name/agent.md"
-            agent_installed=1
+            # Per-agent install location. opencode: ~/.config/opencode/agents/<name>/agent.md
+            # claude/cursor: no equivalent path (Claude Skills API is flat).
+            # v0.992: only opencode supports subagent install.
+            case "$AGENT" in
+                opencode)
+                    agents_root="$HOME/.config/opencode/agents"
+                    agent_install_path="$agents_root/$agent_name/agent.md"
+                    mkdir -p "$agents_root/$agent_name"
+                    cp "$agent_src" "$agents_root/$agent_name/agent.md"
+                    agent_installed=1
+                    ;;
+                *)
+                    echo "note: $AGENT has no agent install path in v0.992; skipping" >&2
+                    ;;
+            esac
         fi
     else
-        echo "warning: $agent_src not found, skipping agent install" >&2
+        echo "note: $AGENT/math-agent.md not found, skipping agent install" >&2
     fi
 fi
 
@@ -240,7 +251,7 @@ fi
 
 # Report
 echo "Installed $SKILL_NAME skill to $TARGET_DIR"
-[ "$agent_installed" = "1" ] && echo "Installed Math agent to $HOME/.config/opencode/agents/"
+[ "$agent_installed" = "1" ] && echo "Installed Math agent to $agent_install_path"
 [ "$hook_installed" = "1" ] && echo "Installed hook to $HOME/.config/opencode/hooks/pre-tool-use.sh"
 echo ""
 echo "Reload your agent (opencode, claude, cursor, etc.) to pick up the skill."
