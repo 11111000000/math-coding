@@ -1,0 +1,36 @@
+task_id: multi-agent-skills-v0992
+title: Multi-agent skill build — canon body + per-agent preambles
+lifecycle: draft
+implementation: complete
+substrate: shell
+rigor: light
+decision: made
+created: "2026-07-23"
+creator: za
+verified_by: [za, agent]
+axiom: false
+single_author: true
+# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+stable_since: null
+verifier: sh math-coding probe
+depends_on:
+  - 06-self-application
+  - agent-mode-subagent-v0992
+applications: []
+surface_impact: |
+  meta/build-skill.sh (rewrite: per-agent build loop),
+  extensions/agents/canon/SKILL.body.template.md (new),
+  extensions/agents/canon/math-agent.body.md (new),
+  extensions/agents/opencode/SKILL.preamble.md (new),
+  extensions/agents/opencode/math-agent.preamble.yaml (new),
+  extensions/agents/opencode/SKILL.template.md (removed),
+reviews:
+  - by: za
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      Regression test passed: opencode SKILL.md byte-identical
+      to pre-split output (cmp -s). per-agent SKILL.preamble.md
+      + math-agent.preamble.yaml carries frontmatter only.
+      canon/ holds shared bodies. build-skill.sh handles
+      --list, --check, single-agent, all-agents.
