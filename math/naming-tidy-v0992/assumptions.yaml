@@ -1,18 +1,17 @@
-task_id: v0-991-epistemic
+task_id: naming-tidy-v0992
 assumptions:
   - id: A1
-    statement: "  LLM agents produce packets with honest epistemic markers;
-  reviewers (human or AI) apply explicit criteria before
-  approving; convention warns but does not block. is achievable under current constraints"
+    statement: "  Every packet name follows the same convention for version-tag position. ls math/ gives a stable order; reader does not guess where version sits. is achievable under current constraints"
     status: agent-inferred
     epistemology: hypothesis
     confidence: 0.5
     evidence: |
       generated from proposition — agent should review
   - id: A2
-    statement: "  All `fact` markers carry evidence; all `applied` packets
-  have at least one `approve` review; convention never
-  pretendits protection from adversarial LLMs. is the right invariant for this proposition"
+    statement: "  - Version tags use format -v<N><N><N> (no dots)
+  - Version tag is suffix (last segment of name)
+  - Axiom packets (0X-name) keep their legacy form
+  - Packet names without version are unchanged is the right invariant for this proposition"
     status: agent-inferred
     epistemology: judgment
     evidence: |
@@ -31,9 +30,7 @@ assumptions:
     evidence: |
       default assumption — replace with real evidence
   - id: A5
-    statement: "  v0.991 strengthens epistemic honesty in math-coding through
-  evidence enforcement and peer-review criteria without blocking
-  honest agents. is the right framing of the decision"
+    statement: "  Packet names with version tags place the tag at the end: <slug>-v<N><N><N>. is the right framing of the decision"
     status: agent-inferred
     epistemology: judgment
     evidence: |

@@ -1,0 +1,40 @@
+task_id: epistemic-v0991
+assumptions:
+  - id: A1
+    statement: "  LLM agents produce packets with honest epistemic markers;
+  reviewers (human or AI) apply explicit criteria before
+  approving; convention warns but does not block. is achievable under current constraints"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      generated from proposition — agent should review
+  - id: A2
+    statement: "  All `fact` markers carry evidence; all `applied` packets
+  have at least one `approve` review; convention never
+  pretendits protection from adversarial LLMs. is the right invariant for this proposition"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from invariant — agent should review
+  - id: A3
+    statement: "the test specified covers the proposition"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from test — agent should review
+  - id: A4
+    statement: "the operating environment is stable"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      default assumption — replace with real evidence
+  - id: A5
+    statement: "  v0.991 strengthens epistemic honesty in math-coding through
+  evidence enforcement and peer-review criteria without blocking
+  honest agents. is the right framing of the decision"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from proposition — agent should review

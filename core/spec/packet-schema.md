@@ -98,6 +98,13 @@ implicitly by which fields are filled:
   standard — full 5-file packet, applications[] filled at verified
   strict   — packet + theory link + applications[] + surface impact
 
+## Naming
+
+If a packet name carries a version tag, the tag is the
+**last** segment of the name: `<slug>-v<N><N><N>` (no dots).
+Axiom packets (`0X-name`) are exempt. Tests in
+`tests/naming-version.sh` enforce this rule.
+
 ## Stability contract
 
 These surfaces are stable within a major version:

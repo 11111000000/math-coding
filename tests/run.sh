@@ -1365,6 +1365,13 @@ else
     log_fail "no-duplication" "see tests/no-duplication.sh output"
 fi
 
+# Case 53: packet names follow the version-suffix rule.
+if sh "$REPO_ROOT/tests/naming-version.sh" >/dev/null 2>&1; then
+    log_pass "naming-version"
+else
+    log_fail "naming-version" "see tests/naming-version.sh output"
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "  pass: $pass"
