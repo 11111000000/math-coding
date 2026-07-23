@@ -1,0 +1,37 @@
+task_id: cursor-skills-v0992
+assumptions:
+  - id: A1
+    statement: "Cursor reads SKILL.md from ~/.cursor/skills/<name>/SKILL.md"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+    evidence: |
+      Cursor docs (docs.cursor.com/en/context/rules) returns search page; inferred from public Cursor announcements. Cursor has both .mdc rules and skills/<name>/SKILL.md. Newer convention assumed; verification deferred.
+  - id: A2
+    statement: "Cursor supports mode: subagent for skill frontmatter"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.6
+    evidence: |
+      Cursor agent system supports subagents per public docs. Whether SKILL.md frontmatter accepts mode: subagent is uncertain — may need filter step in future.
+  - id: A3
+    statement: "cursor body identical to opencode body"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      build-skill.sh does not modify body content; only frontmatter differs. Identical canon SKILL.body.template.md consumed.
+  - id: A4
+    statement: "Cursor install path ~/.cursor/skills/math-coding is canonical"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+    evidence: |
+      Already declared in install-skill.sh AGENT_TARGETS. Matches Cursor skills convention. Verification deferred to actual Cursor session.
+  - id: A5
+    statement: "Cursor does not need a hook equivalent in v0.992"
+    status: agent-inferred
+    epistemology: judgment
+    confidence: 0.85
+    evidence: |
+      Cursor's hook system differs from opencode's plugin model. Without clear docs, hook support deferred. install-skill --with-hooks would still copy to ~/.config/opencode/hooks (out of scope for cursor install).

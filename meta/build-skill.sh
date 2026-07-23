@@ -39,7 +39,7 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$REPO_ROOT" || exit 2
 
 # Registered agents. Add new agents here.
-AGENTS="opencode claude"
+AGENTS="opencode claude cursor"
 
 usage() {
     cat <<'EOF' >&2

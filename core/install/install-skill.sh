@@ -161,7 +161,7 @@ if [ "$DRY_RUN" = "1" ]; then
     [ -d "$SRC_PATH/references" ] && echo "    references/ (optional, deprecated)"
     [ -d "$SRC_PATH/examples" ] && echo "    examples/ (optional)"
     if [ "$WITH_AGENT" = "1" ]; then
-        agent_src="$REPO_ROOT/extensions/agents/opencode/math-agent.md"
+        agent_src="$REPO_ROOT/extensions/agents/$AGENT/math-agent.md"
         if [ -f "$agent_src" ]; then
             agent_name=$(awk '/^---/{fm=!fm; next} fm && /^name:/{sub(/^name:[[:space:]]*/, ""); print; exit}' "$agent_src")
             echo "    agent: $agent_name ($agent_src)"
