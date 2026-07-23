@@ -1,0 +1,20 @@
+task_id: agent-mode-subagent-v0992
+title: Math agent — mode subagent, not primary
+lifecycle: draft
+substrate: shell
+rigor: light
+decision: made
+created: "2026-07-23"
+creator: za
+# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+stable_since: null
+verifier: sh math-coding probe
+depends_on:
+  - 06-self-application
+  - install-skill-gate-v0992
+applications: []
+surface_impact: |
+  extensions/agents/opencode/math-agent.md (frontmatter + prompt),
+  KNOWN_LIMITATIONS.md (new note),
+  ~/.config/opencode/agents/math/agent.md (sync target)
+reviews: []

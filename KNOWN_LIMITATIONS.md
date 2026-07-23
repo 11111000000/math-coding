@@ -307,3 +307,53 @@ governance:
 **protocol for honest agents**, not a **shield against
 dishonest ones**. Treat v0.991 as raising the floor for
 honest agents, not as security.
+
+## 14. Math agent is subagent, not primary
+
+**Limitation.** `extensions/agents/opencode/math-agent.md` is
+shipped with `mode: subagent` (v0.992+). It does not appear in
+the opencode TUI Tab cycle (which is `build` ↔ `plan`). Users
+must invoke Math explicitly via `@math` mention or the Task
+tool from a primary agent.
+
+**Why.** When Math was registered with no `mode` field (default
+`all`), it was selectable as a primary agent. Switching to Math
+replaced the system prompt with one that framed the agent as a
+"peer who suggests" — combined with five explicit "you do NOT"
+instructions, the model fell into a passive advisor role. The
+user observed this as "Math thinks it is in plan mode and does
+nothing." The mismatch between permissive config (all tools)
+and restrictive prompt (DO NOT enforce) caused the model to
+take the minimum path: read, advise, never act.
+
+**Workaround.** None at the convention level. This is the
+intentional design choice, not a bug. To use Math:
+
+- Type `@math` followed by your request in the opencode chat.
+  Example: `@math help me write a packet for adding user auth`.
+- From a primary agent, invoke Math via the Task tool with
+  `math` as the subagent type.
+- Math drafts the 7-field spec and runs `sh math-coding create`,
+  then exits. The primary agent (build or plan) resumes.
+
+**Discoverability trade-off.** Tab cycle becomes
+`build` ↔ `plan` only. Users who reach for Math are already
+inside the math-coding workflow (they installed the skill),
+so `@math` is acceptable friction. The cost is two: users
+who expect Math in Tab cycle may treat build as broken Math
+and get confused.
+
+**Why we do not fix this differently.** Alternatives:
+
+- *Primary mode + action-oriented prompt*: turns Math into
+  enforcer-light. Loses the "peer who does not enforce" stance.
+- *Primary mode + `permission: { edit: ask, bash: ask }`*:
+  every action requires user confirmation. Treats the symptom
+  (passivity) with user friction rather than fixing the cause
+  (subagent role).
+
+The chosen design (subagent + prompt that allows action) keeps
+the primary cycle clean and makes Math discoverable to those
+already in the convention.
+
+**Documented in:** `math/agent-mode-subagent-v0992/`.

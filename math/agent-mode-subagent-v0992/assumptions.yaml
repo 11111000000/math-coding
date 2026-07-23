@@ -1,0 +1,37 @@
+task_id: agent-mode-subagent-v0992
+assumptions:
+  - id: A1
+    statement: "opencode 1.17.13 supports agent mode: subagent in frontmatter"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      https://opencode.ai/docs/agents/#mode: "mode can be set to primary, subagent, or all. If no mode is specified, it defaults to all."
+  - id: A2
+    statement: "switching primary agent via Tab uses mode: primary agents only"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+    evidence: |
+      https://opencode.ai/docs/agents/#primary-agents: "Use the Tab key to switch between primary agents."
+  - id: A3
+    statement: "Math users reach it via @math or Task tool, not Tab"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+    evidence: |
+      convention is opt-in users installing math-coding skill are inside the workflow; primary cycle stays clean for daily development.
+  - id: A4
+    statement: "replacing 5 negative instructions with 1-2 positive reduces model passivity"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.6
+    evidence: |
+      heuristic only; needs runtime test in opencode chat to measure.
+  - id: A5
+    statement: "KNOWN_LIMITATIONS.md is the right place to document the trade-off"
+    status: agent-inferred
+    epistemology: judgment
+    confidence: 0.8
+    evidence: |
+      existing structure: KNOWN_LIMITATIONS.md documents known design trade-offs (#1, #2, #3...) with reasons. Adding a new entry follows the same pattern.
