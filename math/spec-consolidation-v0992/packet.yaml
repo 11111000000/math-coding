@@ -48,9 +48,14 @@ applications:
       - extensions/obsidian.md
 reviews:
   - by: agent
+  - by: za
     date: "2026-07-23"
     verdict: approve
     note: |
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      single-source consolidation verified: 52/52 tests, probe PROVEN, no docs/, axiom/fsm/spec in core/spec/, theories in core/theories/
       single-source consolidation: docs/ removed, axioms/fsm moved
       into core/spec/, theories moved into core/. tests, install,
       probe, verify, smoke-test all green. 52/52 tests pass.
