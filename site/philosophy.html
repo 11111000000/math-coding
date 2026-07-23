@@ -73,14 +73,15 @@ math-coding refuses to be ceremony. Three modes exist precisely so trivial chang
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">What we refuse to be</h2>
 
 <p>
-math-coding is intentionally not:
+The quick summary lives on the home page. Below: what each of
+those <em>means</em> in practice.
 </p>
 
 <ul>
 <li><strong>Not a framework.</strong> There is no CLI to install, no runtime, no opinion about language or stack. The conventions are plain text. The agent reads them.</li>
 <li><strong>Not a test runner.</strong> The verifier checks structure, not behavior. Behavioral tests belong in your project's own CI.</li>
 <li><strong>Not a governance tool.</strong> math-coding cannot enforce anything in a project that has not adopted it. It makes promises to its own adopters only.</li>
-<li><strong>Not a shield against dishonest agents.</strong> Adversarial LLMs can mark a speculation as <code>fact</code>. The convention is a protocol for honest agents, not a defense against dishonest ones. Honest framing matters: we raise the floor, we do not raise the ceiling.</li>
+<li><strong>Not a shield against dishonest agents.</strong> This is the point that needs more than a bullet. The convention operates on <em>outputs</em>, not on the LLM's internal state. An adversarial model can mark a speculation as <code>fact</code>, submit <code>--approve</code> without reading the criteria, or skip self-critique entirely. The convention cannot detect what the agent thought — only what it wrote. Treat epistemic honesty as a <em>protocol for honest agents</em>: it raises the floor for those who want to do good work, it does not raise the ceiling against those who want to game it. External governance — human review, sampling audits, restricted compute — remains the only real defense.</li>
 </ul>
 
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">The substrate</h2>

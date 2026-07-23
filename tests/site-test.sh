@@ -116,12 +116,53 @@ for css in $(find "$SITE/assets/css" -type f -name '*.css' 2>/dev/null); do
 done
 ok "CSS invariants hold (no shadows, animation ≤ 100ms, radius ≤ 2px)"
 
+# === 3b. server-side math equation tagging ===
+# dist/fsm.html and dist/axioms.html must have at least one
+# class="math-equation" block (rendered server-side, no JS needed).
+if [ -d "$DIST" ]; then
+    for page in fsm axioms; do
+        if [ -f "$DIST/${page}.html" ]; then
+            count=$(grep -c 'class="math-equation"' "$DIST/${page}.html" || true)
+            if [ "$count" -lt 1 ]; then
+                fail "$page.html: no server-tagged math-equation blocks"
+            fi
+        fi
+    done
+    ok "math-equation blocks tagged server-side (no JS heuristic needed)"
+fi
+
 # === 4. dist/ exists if -e flag passed ===
 DIST_REQUIRED="${DIST_REQUIRED:-yes}"
 if [ "$DIST_REQUIRED" = "yes" ]; then
     [ -d "$DIST" ] || fail "dist/ directory missing (run sh meta/site-build.sh)"
 fi
 ok "dist/ exists"
+
+# === 4b. <!--PACKET_COUNT--> substituted in index.html ===
+if [ -d "$DIST" ] && [ -f "$DIST/index.html" ]; then
+    if grep -q '<!--PACKET_COUNT-->' "$DIST/index.html"; then
+        fail "index.html: <!--PACKET_COUNT--> placeholder not substituted"
+    fi
+    ok "index.html: packet count substituted"
+fi
+
+# === 4c. every public HTML page has full 7-link nav ===
+if [ -d "$DIST" ]; then
+    for f in "$DIST"/*.html; do
+        [ -f "$f" ] || continue
+        case "$(basename "$f")" in
+            404.html) continue ;;  # 404 has different layout by design
+        esac
+        for path in '/' '/axioms.html' '/packets.html' '/fsm.html' \
+                     '/getting-started.html' '/philosophy.html' \
+                     '/limitations.html'; do
+            if ! grep -qF "href=\"$path\"" "$f"; then
+                fail "$(basename "$f"): missing nav link to $path"
+            fi
+        done
+    done
+    ok "all public pages have full 7-link nav"
+fi
 
 # === 5. manifest count matches math/ ===
 if [ -f "$DIST/data/packets-manifest.json" ]; then

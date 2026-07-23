@@ -23,8 +23,8 @@ amendments: []                     # v0.992: append-only history of changes
                                    #   each entry: {date, by, reason, sha}
 
 NOTE: witness is NOT in packet.yaml. axiom A5 recursion
-breaks when refresh commit rewrites applications[] in the
-file it is supposed to witness. Witness lives in a sibling
+breaks when refresh commit rewrites the witness file in the
+same commit it is supposed to witness. Witness lives in a sibling
 file `witness` (see below).
 ```
 

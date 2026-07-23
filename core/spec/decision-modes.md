@@ -22,12 +22,12 @@ substantive refactor. It is recorded as a 5-file packet.
   Required:
     - 5 files: packet.yaml, decision.md, task.md,
       assumptions.yaml, refinement.md
-    - lifecycle transitions: sketch → working → verified
-    - applications[] SHA when entering verified
+    - lifecycle transitions: draft → applied → retired
+    - witness SHA when entering applied
 
   Forbidden:
-    - skipping `working`
-    - verified without applications[]
+    - skipping `applied`
+    - applied without witness
 
 ## strict
 

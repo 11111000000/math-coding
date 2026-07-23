@@ -88,7 +88,7 @@ Verdict (axiom Accounting)
 10. .math-coding/ is committed by default
 11. Convention does not provide schema migration tools
 12. The convention's own axiom packets may have placeholder text
-13. Adversarial LLMs bypass epistemic honesty (v0.991)
+13. Adversarial LLMs bypass epistemic honesty (v0.992)
 
 <!-- END GENERATED — source SHAs above are witnesses (axiom A5) -->
 

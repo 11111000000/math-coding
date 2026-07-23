@@ -1,19 +1,5 @@
 # Finite State Machine (axiom Process)
 
-A finite state machine is a tuple:
-
-```
-M = ⟨ S, s₀, A, →, I ⟩
-```
-
-where
-
-  S     — finite set of states
-  s₀    — initial state
-  A     — set of actions
-  →     — transition relation (subset of S × A × S)
-  I     — invariant function `I : S → Bool`
-
 ## math-coding instance (v0.992)
 
 The packet lifecycle FSM:
@@ -34,10 +20,10 @@ I(s) = invariant for state s:
     I(draft)     = 5 files exist; lifecycle field set;
                    propositions may be placeholder
     I(applied)   = 5 files exist; implementation=complete;
-                   ≥1 SHA in applications[]; ≥1 approve review;
+                   ≥1 SHA in witness; ≥1 approve review;
                    (axiom packets: implementation+verified_by exempt)
-    I(retired)   = lifecycle field set; applications[] frozen
-    I(abandoned) = lifecycle field set; applications[] frozen
+    I(retired)   = lifecycle field set; witness frozen
+    I(abandoned) = lifecycle field set; witness frozen
 ```
 
 `applied` requires `core/check/verify.sh` to pass on the packet.
@@ -73,7 +59,7 @@ plus a `supersession: math/<successor>/` line.
                   no SHA witness yet.
 
   **applied**   — axiom Self-Application holds; ≥1 SHA in
-                  `applications[]`; ≥1 approve review; tests
+                  the witness file; ≥1 approve review; tests
                   claimed passing. Production-ready.
 
   **retired**   — terminal-ish; packet no longer applied.
@@ -114,4 +100,4 @@ s = abandoned: `core/author/apply-packet.sh` reads the
 current lifecycle and rejects transitions from terminal
 states. The verifier `core/check/verify.sh:88-91` validates
 the lifecycle enum. axiom A4 forbids skipping steps
-without a SHA witness, enforced by `applications[]`. □
+without a SHA witness, enforced by the witness file. □

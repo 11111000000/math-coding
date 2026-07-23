@@ -35,7 +35,7 @@
 <main>
 
 <h1>Lifecycle FSM</h1>
-<p>axiom A4 (Process). The lifecycle of a packet is finite and ordered. Each transition is a commit; every commit is a SHA; every SHA appears in <code>applications[]</code>.</p>
+<p>axiom A4 (Process). The lifecycle of a packet is finite and ordered. Each transition is a commit; every commit is a SHA; every SHA lives in the witness file.</p>
 
 <div class="theorem-box">
 <p class="theorem-box__label">formal</p>
@@ -77,7 +77,7 @@ where <code>S = { draft, applied, retired, abandoned }</code>, <code>s₀ = draf
 <rect x="240" y="200" width="120" height="50" class="fsm-node fsm-node-applied"/>
 <text x="300" y="225" class="fsm-node">applied</text>
 <text x="450" y="220" class="fsm-invariant">I(applied) = 5 files +</text>
-<text x="450" y="232" class="fsm-invariant">  ≥ 1 SHA in applications[]</text>
+<text x="450" y="232" class="fsm-invariant">  ≥ 1 SHA in witness</text>
 <text x="450" y="244" class="fsm-invariant">  + ≥ 1 approve review</text>
 
 <!-- retired -->

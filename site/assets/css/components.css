@@ -9,7 +9,7 @@
  *   .synthesis-box     ↔  `## Synthesis`
  *   .dialectic-box     ↔  generic thesis/antithesis/synthesis block
  *   .lifecycle-pill    ↔  `lifecycle:` value in packet.yaml
- *   .sha-link          ↔  applications[].sha witness (axiom A5)
+ *   .sha-link          ↔  witness file SHA (axiom A5)
  *   .packet-card       ↔  packet envelope in /packets.html
  *   .epistemic-marker  ↔  5 epistemic markers per packet
  *   .assumption-row    ↔  assumptions.yaml entry

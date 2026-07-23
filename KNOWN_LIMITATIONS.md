@@ -10,9 +10,9 @@ exist, and what the workaround is.
 **Limitation.** math-coding's verifier checks structure
 (packet.yaml fields, decision.md sections, etc.) but does
 not run the tests described in `refinement.md:test` or
-`applications[].tests`. The convention's runtime is POSIX
-shell — it does not depend on pytest, jest, go test, or
-any other test framework.
+recorded in `packet.yaml:verifier`. The convention's runtime
+is POSIX shell — it does not depend on pytest, jest, go test,
+or any other test framework.
 
 **Why.** axiom A3 (Material Basis): plain text + git + POSIX.
 Adding test runners would break the substrate requirement
@@ -20,9 +20,9 @@ and add installation complexity.
 
 **Workaround.** The target project runs its tests in its
 own CI. The convention provides:
-- `applications[].tests` field for recording test commands.
+- `packet.yaml:verifier` for recording the verification command.
 - `extensions/ci/github-actions-tdd.yml` as a CI template
-  that reads `applications[].tests` and runs them.
+  that reads `verifier` and runs it.
 
 If you use a different CI (GitLab, Jenkins, CircleCI),
 adapt the template.
@@ -45,7 +45,7 @@ PRs pass `sh math-coding probe` before merge.
 
 ## 3. Monorepo not supported out-of-the-box
 
-**Limitation.** v0.978 supports one `math/` at the
+**Limitation.** math-coding supports one `math/` at the
 project root. For monorepos with multiple subprojects
 (each with their own decision history), there is no
 native support.
@@ -86,16 +86,16 @@ Distributed coordination requires external infrastructure
 cannot provide without breaking axiom A3.
 
 **Workaround.** Use git's merge mechanism for packet files.
-If two agents add to `applications[]`, merge manually.
+If two agents append to the witness file, merge manually.
 For high-concurrency setups, use agent-locking at the
 orchestration layer (above the convention).
 
 ## 5. Verification is structural, not behavioral
 
 **Limitation.** `verify.sh` checks packet structure
-(5 files, lifecycle enum, epistemology enum, applications[]
-SHA). It does not check that the code in `applications[].files`
-actually implements the proposition.
+(5 files, lifecycle enum, epistemology enum, witness SHA).
+It does not check that the code in the commit referenced by
+the witness actually implements the proposition.
 
 **Why.** The convention does not run the code. To verify
 behavior, you need to run the code (axiom A3 limits us to
@@ -167,14 +167,14 @@ decision merits the work.
 
 ## 10. .math-coding/ is committed by default
 
-**Behavior.** As of v0.978+, `install.sh` does NOT add
-`.math-coding/` to `.gitignore` by default. The convention
-is committed to the project's git repository. New clones
-have the convention without running install.sh manually,
-and CI works out-of-the-box.
+**Behavior.** `install.sh` does NOT add `.math-coding/`
+to `.gitignore` by default. The convention is committed to the
+project's git repository. New clones have the convention
+without running install.sh manually, and CI works
+out-of-the-box.
 
-**Why.** This is the v0.978+ default — committed convention
-removes the "new developer runs install.sh" friction.
+**Why.** Committed convention removes the "new developer
+runs install.sh" friction.
 
 **Opt-out.** Pass `--gitignore` to `install.sh`:
 ```
@@ -194,7 +194,7 @@ or transactions. Distributed coordination requires
 external infrastructure.
 
 **Workaround.** Use git's merge mechanism for packet files.
-If two agents add to `applications[]`, merge manually.
+If two agents append to the witness file, merge manually.
 For high-concurrency setups, use agent-locking at the
 orchestration layer (above the convention).
 
@@ -213,8 +213,16 @@ upgrade would require a new migration script.
 - `lifecycle: superseded|deprecated|archived` → `retired`
 - 5 files kept, 3 are now mandatory (others are auto-generated)
 
-Future versions may include `sh math-coding migrate`
-scripts.
+For v0.991 → v0.992, the migration was:
+- `packet.yaml:applications[]` SHA moved to sibling `witness` file
+  (axiom A5 recursion fix — refresh commit no longer rewrites the
+  file it is supposed to witness)
+- 6-state lifecycle FSM collapsed to 4-state (draft / applied /
+  retired / abandoned) matching the verifier
+
+Run `sh meta/migrate-witnesses.sh` to migrate existing
+applications[] entries automatically. Future versions may
+include `sh math-coding migrate` scripts.
 
 ## 12. The convention's own axiom packets may have placeholder text
 
@@ -281,11 +289,12 @@ Each limitation has a workaround. Use the workaround
 if the limitation affects you. If the workaround is
 insufficient, open an issue describing the use case.
 
-## 13. Adversarial LLMs bypass epistemic honesty (v0.991)
+## 13. Adversarial LLMs bypass epistemic honesty (v0.992)
 
-**Limitation.** v0.991 enforces:
+**Limitation.** v0.992 enforces:
 - `fact` markers carry evidence (warning otherwise).
-- `applied` packets require reviews[] entry with approve.
+- `applied` packets require ≥1 SHA in the witness file
+  plus ≥1 approve review.
 - Self-critique prompts and review criteria are echoed.
 
 **What this DOES NOT catch.** Adversarial LLM can:
@@ -305,7 +314,7 @@ governance:
 
 **Honest framing.** math-coding's epistemic honesty is a
 **protocol for honest agents**, not a **shield against
-dishonest ones**. Treat v0.991 as raising the floor for
+dishonest ones**. Treat v0.992 as raising the floor for
 honest agents, not as security.
 
 ## 14. Vendored fonts not yet shipped with site (v0.992+)

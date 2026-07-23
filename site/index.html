@@ -39,7 +39,7 @@
 <p style="color: var(--ink-soft); margin-top: 1.5rem">plain text. git. POSIX. seven axioms.</p>
 <div class="hero__cta">
 <a href="/axioms.html">read the axioms →</a>
-<a href="/packets.html">browse 24 packets →</a>
+<a href="/packets.html">browse <!--PACKET_COUNT--> packets →</a>
 <a href="/getting-started.html">install →</a>
 </div>
 <div class="hero__proof">
@@ -54,8 +54,9 @@
 <p>
 <code>def add(a, b)</code> is correct in arithmetic and wrong in string concatenation.
 The proposition must come from somewhere, and that somewhere is <code>decision.md</code>,
-separate from the code. <a href="/philosophy.html">Read more →</a>
+separate from the code.
 </p>
+<p><a href="/philosophy.html">Why this matters →</a></p>
 </section>
 
 <section style="margin-top: 3rem">
@@ -91,65 +92,16 @@ separate from the code. <a href="/philosophy.html">Read more →</a>
 
 <section style="margin-top: 3rem">
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem">Seven axioms</h2>
-<p>Each axiom is a formal proposition. Each lives as a packet under <code>math/&lt;NN-name&gt;/</code>. Read them in order:</p>
-<ol class="axiom-list" style="list-style: none; padding: 0; margin: 1.5rem 0; max-width: none">
-<li>
-<span class="axiom-list__index">A0</span>
-<div>
-<h4 class="axiom-list__name">Difference</h4>
-<p class="axiom-list__body">A proposition differs from its implementation. Without this gap, no convention is needed.</p>
-</div>
-<span class="axiom-list__category">ontological</span>
-</li>
-<li>
-<span class="axiom-list__index">A1</span>
-<div>
-<h4 class="axiom-list__name">Care</h4>
-<p class="axiom-list__body">A developer cares whether the code does what it claims. Without care, no amount of structure helps.</p>
-</div>
-<span class="axiom-list__category">motivational</span>
-</li>
-<li>
-<span class="axiom-list__index">A2</span>
-<div>
-<h4 class="axiom-list__name">Curry-Howard</h4>
-<p class="axiom-list__body">A packet is a proof term. A verifier is a type-check.</p>
-</div>
-<span class="axiom-list__category">structural</span>
-</li>
-<li>
-<span class="axiom-list__index">A3</span>
-<div>
-<h4 class="axiom-list__name">Material Basis</h4>
-<p class="axiom-list__body">The convention lives in plain text, in git, and runs on POSIX shell.</p>
-</div>
-<span class="axiom-list__category">substrate</span>
-</li>
-<li>
-<span class="axiom-list__index">A4</span>
-<div>
-<h4 class="axiom-list__name">Process</h4>
-<p class="axiom-list__body">Process precedes code. The lifecycle of a packet is finite and ordered.</p>
-</div>
-<span class="axiom-list__category">temporal</span>
-</li>
-<li>
-<span class="axiom-list__index">A5</span>
-<div>
-<h4 class="axiom-list__name">Accounting</h4>
-<p class="axiom-list__body">Knowledge must be marked. Verdicts must be named. Changes must be witnessed.</p>
-</div>
-<span class="axiom-list__category">epistemic</span>
-</li>
-<li>
-<span class="axiom-list__index">A6</span>
-<div>
-<h4 class="axiom-list__name">Self-Application</h4>
-<p class="axiom-list__body">The convention applies to itself.</p>
-</div>
-<span class="axiom-list__category">meta</span>
-</li>
-</ol>
+<p>Each axiom is a formal proposition, grounded as a packet under <code>math/&lt;NN-name&gt;/</code>.</p>
+<table style="width: auto; margin: 1.5rem 0; border-collapse: collapse;">
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A0</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Difference</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">ontological</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A1</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Care</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">motivational</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A2</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Curry-Howard</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">structural</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A3</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Material Basis</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">substrate</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A4</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Process</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">temporal</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A5</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Accounting</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">epistemic</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A6</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Self-Application</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">meta</td></tr>
+</table>
 <p><a href="/axioms.html">full axiom statements →</a></p>
 </section>
 

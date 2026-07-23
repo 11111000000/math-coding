@@ -110,6 +110,7 @@ fail() {
 command -v pandoc >/dev/null 2>&1 || fail "pandoc not found"
 command -v git >/dev/null    >/dev/null 2>&1 || fail "git not found"
 command -v awk >/dev/null    >/dev/null 2>&1 || fail "awk not found"
+command -v gawk >/dev/null   >/dev/null 2>&1 || fail "gawk not found (math equation tagging needs gawk for multibyte)"
 
 log "preparing $DIST"
 rm -rf "$DIST"
@@ -127,6 +128,10 @@ for f in "$SRC"/*.html; do
     [ -f "$f" ] || continue
     cp "$f" "$DIST/"
 done
+
+# Substitute <!--PACKET_COUNT--> with the actual count, computed below
+# (after the math walk). Initialise the variable here for clarity.
+PACKET_COUNT="${PACKET_COUNT:-0}"
 
 log "copying site/assets/ (except fonts/, handled separately)"
 test -d "$SRC/assets/css" && cp -r "$SRC/assets/css" "$DIST/assets/"
@@ -156,6 +161,9 @@ render_md() {
 #   _name  marker name (without the <!--...--> wrappers)
 # Strips the first <h1>...</h1> from the fragment so the static
 # page template's H1 remains the sole H1 on the rendered page.
+# Also tags <pre><code> blocks that contain math notation with
+# class="math-equation" so CSS styles them as displayed equations
+# without relying on JS heuristics (graceful degradation).
 inject_marker() {
     _page="$1"
     _frag="$2"
@@ -184,7 +192,71 @@ inject_marker() {
         }
     ' "$_frag" > "$_tmp_frag"
 
-    awk -v marker="$_marker" -v frag="$_tmp_frag" '
+    # Tag math-notation <pre><code> blocks with class="math-equation".
+    # Matches the same heuristic as site/assets/js/math-prettify.mjs:
+    # 2+ math signals OR a leading "X = ..." / "X : ..." pattern.
+    gawk '
+        BEGIN {
+            # Math signals as a single string; split into chars below.
+            sig_str = "∈ ∋ ⊆ ⊂ ∪ ∩ ∅ × Γ Π Σ → ↔ ⇒ ∀ ∃ ¬ ∨ ∧ ⊥ ⊤ ≡ ⟨ ⟩ ₀ ₁ ₂ ₃ ₄ ₅ ₆ ₇ ₈ ₉"
+            n = 0
+            i = 1
+            ilen = length(sig_str)
+            while (i <= ilen) {
+                c = substr(sig_str, i, 1)
+                if (c == " ") { i++; continue }
+                # multibyte UTF-8 char: leading bits determine length
+                step = 1
+                b0 = 0 + substr(sig_str, i, 1)
+                if (b0 >= 240) step = 4
+                else if (b0 >= 224) step = 3
+                else if (b0 >= 192) step = 2
+                n++
+                sig[n] = substr(sig_str, i, step)
+                i += step
+            }
+            in_pre = 0; pre_content = ""; pre_open_line = ""
+        }
+        {
+            if (in_pre == 0 && $0 ~ /^<pre><code>/) {
+                in_pre = 1
+                pre_open_line = $0
+                pre_content = ""
+                next
+            }
+            if (in_pre == 1) {
+                if ($0 ~ /<\/code><\/pre>$/) {
+                    sigs = 0
+                    s = pre_content
+                    for (k = 1; k <= n; k++) {
+                        cnt = gsub(sig[k], "&", s)
+                        s = pre_content  # reset (gsub modifies)
+                        sigs += cnt
+                    }
+                    first = pre_content
+                    sub(/^[ \t\n]+/, "", first)
+                    is_math = 0
+                    if (sigs >= 2) is_math = 1
+                    else if (first ~ /^[A-ZΑ-Ω][A-Za-zΑ-Ω0-9₀-₉]*[ \t]*[:=]/) is_math = 1
+                    if (is_math) {
+                        sub(/^<pre>/, "<pre class=\"math-equation\">", pre_open_line)
+                        print pre_open_line
+                    } else {
+                        print pre_open_line
+                    }
+                    print pre_content
+                    print $0
+                    in_pre = 0
+                    next
+                }
+                pre_content = pre_content $0 "\n"
+                next
+            }
+            print
+        }
+    ' "$_tmp_frag" > "${_tmp_frag}.math"
+
+    awk -v marker="$_marker" -v frag="${_tmp_frag}.math" '
         BEGIN {
             while ((getline line < frag) > 0) {
                 frag_lines[++fc] = line
@@ -199,7 +271,7 @@ inject_marker() {
             print
         }
     ' "$_page" > "${_page}.tmp" && mv "${_page}.tmp" "$_page"
-    rm -f "$_tmp_frag"
+    rm -f "$_tmp_frag" "${_tmp_frag}.math"
 }
 
 # Render MD fragments then inject into page templates.
@@ -487,7 +559,7 @@ cat > "$DIST/404.html" <<'EOF'
 <h1>404 — page not found</h1>
 <p style="font-size: var(--text-prose); color: var(--ink-soft); max-width: 62ch">
 That URL does not correspond to any axiom or packet.
-The convention <code>does not pretend to be</code> what it is not.
+The convention does not pretend to be what it is not.
 </p>
 <p><a href="/">← back to home</a></p>
 </main>
@@ -498,3 +570,15 @@ EOF
 log "build complete: $DIST"
 log "$packet_count packet pages emitted"
 log "manifest: $manifest"
+
+# Substitute <!--PACKET_COUNT--> in all rendered HTML files with the
+# actual count computed during the math walk above.
+log "substituting <!--PACKET_COUNT--> with $packet_count"
+if [ "$packet_count" -gt 0 ]; then
+    for f in "$DIST"/*.html; do
+        [ -f "$f" ] || continue
+        # portable in-place replacement (avoid sed -i for A3)
+        awk -v n="$packet_count" '{ gsub(/<!--PACKET_COUNT-->/, n) } 1' "$f" > "$f.tmp" \
+            && mv "$f.tmp" "$f"
+    done
+fi

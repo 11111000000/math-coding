@@ -132,7 +132,8 @@ pre code {
    Renders as displayed-equation: serif, centered, breathing
    room, but content remains plain text (grep-able, copy-pasteable). */
 
-.pre-math {
+.pre-math,
+.math-equation {
   font-family: var(--font-display);
   font-style: italic;
   text-align: center;
