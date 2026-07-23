@@ -1,0 +1,36 @@
+task_id: build-skill-v0992
+assumptions:
+  - id: A1
+    statement: "  SKILL.md rebuilds automatically from core/spec/, core/theories/, and KNOWN_LIMITATIONS.md via meta/build-skill.sh. --check mode fails if stale. is achievable under current constraints"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      generated from proposition — agent should review
+  - id: A2
+    statement: "  - core/spec/axioms.md, core/spec/fsm.md, core/theories/*.md, KNOWN_LIMITATIONS.md are single sources
+  - extensions/agents/opencode/SKILL.md has AUTO-GENERATED marker
+  - --check mode compares against template + sources is the right invariant for this proposition"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from invariant — agent should review
+  - id: A3
+    statement: "the test specified covers the proposition"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from test — agent should review
+  - id: A4
+    statement: "the operating environment is stable"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      default assumption — replace with real evidence
+  - id: A5
+    statement: "  extensions/agents/opencode/SKILL.md is generated, not hand-authored. Single source for normative content. is the right framing of the decision"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from proposition — agent should review
