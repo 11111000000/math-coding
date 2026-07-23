@@ -1,13 +1,23 @@
 task_id: site-pure-fp
 title: site-pure-fp — pure-functional client JS with Node-tested predicates
-lifecycle: draft
+lifecycle: applied
+implementation: complete
 substrate: none
 rigor: light
 decision: made
 created: "2026-07-23"
 creator: za
+single_author: true
+verified_by: [math-coding-bot, agent]
 # stable_since: opt-in. Run 'math-coding stable <name>' to set.
 stable_since: null
 verifier: node --test tests/pure-fp.test.mjs
 depends_on:
   - site-design
+reviews:
+  - by: agent-self
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      site-test.sh passes; pure-fp node --test passes;
+      axiom A6 self-application holds at b591118.
