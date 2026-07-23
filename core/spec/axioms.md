@@ -222,8 +222,8 @@ Navigation from axiom to packet to theory to related axioms.
 |-------|--------|--------|----------|
 | A0 Difference (ontological) | `math/00-difference/` | — | A2 (Curry-Howard) |
 | A1 Care (motivational) | `math/01-care/` | — | A5 (Accounting) |
-| A2 Curry-Howard (structural) | `math/02-curry-howard/` | `theories/curry-howard.md` | A0, A6 |
+| A2 Curry-Howard (structural) | `math/02-curry-howard/` | `core/theories/curry-howard.md` | A0, A6 |
 | A3 Material Basis (substrate) | `math/03-material/` | — | A2, A4 |
-| A4 Process (temporal) | `math/04-process/` | `theories/{fsm,predicate,refinement}.md` | A3, A5, A6 |
-| A5 Accounting (epistemic) | `math/05-accounting/` | `theories/{verdict,epistemic,deprecation}.md` | A1, A4, A6 |
-| A6 Self-Application (meta) | `math/06-self-application/` | `theories/agent.md` | A2, A4, A5 |
+| A4 Process (temporal) | `math/04-process/` | `core/spec/fsm.md`, `core/theories/{predicate,refinement}.md` | A3, A5, A6 |
+| A5 Accounting (epistemic) | `math/05-accounting/` | `core/theories/{verdict,epistemic,deprecation}.md` | A1, A4, A6 |
+| A6 Self-Application (meta) | `math/06-self-application/` | `core/theories/agent.md` | A2, A4, A5 |

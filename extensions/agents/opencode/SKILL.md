@@ -24,7 +24,7 @@ Use this skill when:
 
 **When NOT to use:** Trivial changes (rename, format, typo) do
 not need packets. Use git commit, not convention. See
-`docs/when-not-to-use.md` for the full guide.
+`KNOWN_LIMITATIONS.md` for the full guide.
 
 ## The seven axioms
 
@@ -33,7 +33,7 @@ not need packets. Use git commit, not convention. See
   A2 Curry-Howard      A6 Self-Application
   A3 Material Basis
 
-Read `docs/axioms.md` for the canonical statement of each.
+Read `core/spec/axioms.md` for the canonical statement of each.
 
 ## Packet (3 mandatory + 2 generated)
 
@@ -375,7 +375,7 @@ all fields pass. Then submit via `create`.
 5. **Forgetting `apply`** — packet stays draft forever.
 6. **Forgetting `review`** — applied without approval fails verify.
 7. **Too many drafts** — use `abandon` for ones you won't implement.
-8. **Packet for trivial change** — see `docs/when-not-to-use.md`.
+8. **Packet for trivial change** — see `KNOWN_LIMITATIONS.md`.
 
 ## The seven axioms (for reference)
 
@@ -389,7 +389,7 @@ all fields pass. Then submit via `create`.
 
 ## The three levels
 
-  Level 1: Definition     core/, theories/, docs/, dispatcher (install payload)
+  Level 1: Definition     core/, core/theories/, docs/, dispatcher (install payload)
   Level 2: Proof          math/ (axiom packets), tests/, extensions/, .github/ (source-only)
   Level 3: Application    <target>/math/, <target>/tests/, <target>/.mathrc (consumer)
 
@@ -403,5 +403,5 @@ See `KNOWN_LIMITATIONS.md` for the full list. Highlights:
 - Cannot detect adversarial LLM deception
 
 For trivial changes (rename, format, fix typo), do not
-create a packet — see `docs/when-not-to-use.md` for the
+create a packet — see `KNOWN_LIMITATIONS.md` for the
 judgment guide.

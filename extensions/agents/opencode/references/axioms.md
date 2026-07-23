@@ -3,8 +3,8 @@
 The seven axioms of math-coding v0.992. Load this when the agent
 cites an axiom or asks about what a specific axiom means.
 
-For canonical definitions, see `docs/axioms.md`. This file is a
-compact reference. If they disagree, `docs/axioms.md` wins.
+For canonical definitions, see `core/spec/axioms.md`. This file is a
+compact reference. If they disagree, `core/spec/axioms.md` wins.
 
 ## A0. Difference (ontological)
 
@@ -40,8 +40,8 @@ implementation. The lifecycle FSM has four states:
 `applied` requires implementation=complete, ≥1 SHA in
 applications[], and ≥1 approve review. `retired` and
 `abandoned` are terminal. Supersession is a relation
-between packets, not a state. See `theories/fsm.md` and
-`docs/axioms.md` A4.
+between packets, not a state. See `core/spec/fsm.md` and
+`core/spec/axioms.md` A4.
 
 ## A5. Accounting (epistemic)
 
@@ -66,4 +66,4 @@ The convention applies to itself in two modes:
 `math/00-difference/`. Source-repo mode runs 6 predicates;
 target mode runs 6 predicates (last is opt-in via
 `--full-pipeline-test`). See `core/self/probe.sh` and
-`theories/predicate.md`.
+`core/theories/predicate.md`.

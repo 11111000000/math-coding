@@ -17,7 +17,7 @@ type-check; the convention applies to itself (axiom Self-Application).
   A2. Curry-Howard     A6. Self-Application
   A3. Material Basis
 
-Read `docs/axioms.md` for the full statement.
+Read `core/spec/axioms.md` for the full statement.
 
 ## Packet
 

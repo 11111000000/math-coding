@@ -64,35 +64,35 @@ if is_source_repo; then
         errors=$((errors + missing_count))
     fi
 
-    # Check 2: axioms in docs/axioms.md (auto-discovered count)
+    # Check 2: axioms in core/spec/axioms.md (auto-discovered count)
     echo ""
-    echo "[2/6] axioms in docs/axioms.md"
-    if [ -f docs/axioms.md ]; then
-        n=$(grep -cE '^## A[0-9]\. ' docs/axioms.md || true)
+    echo "[2/6] axioms in core/spec/axioms.md"
+    if [ -f core/spec/axioms.md ]; then
+        n=$(grep -cE '^## A[0-9]\. ' core/spec/axioms.md || true)
         if [ "$n" -ge 1 ]; then
             echo "  ok: $n axioms found"
         else
-            echo "  FAIL: no axioms in docs/axioms.md"
+            echo "  FAIL: no axioms in core/spec/axioms.md"
             errors=$((errors + 1))
         fi
     else
-        echo "  FAIL: docs/axioms.md missing"
+        echo "  FAIL: core/spec/axioms.md missing"
         errors=$((errors + 1))
     fi
 
-    # Check 3: theories in theories/ (auto-discovered count)
+    # Check 3: theories in core/theories/ (auto-discovered count)
     echo ""
-    echo "[3/6] theories in theories/"
-    if [ -d theories ]; then
-        n=$(find theories -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')
+    echo "[3/6] theories in core/theories/"
+    if [ -d core/theories ]; then
+        n=$(find core/theories -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')
         if [ "$n" -ge 1 ]; then
             echo "  ok: $n theories found"
         else
-            echo "  FAIL: no theories in theories/"
+            echo "  FAIL: no theories in core/theories/"
             errors=$((errors + 1))
         fi
     else
-        echo "  FAIL: theories/ missing"
+        echo "  FAIL: core/theories/ missing"
         errors=$((errors + 1))
     fi
 
@@ -181,7 +181,7 @@ else
     # Check 1: payload integrity
     echo "[1/6] install payload intact"
     payload_ok=1
-    for d in core theories docs; do
+    for d in core extensions; do
         if [ ! -d "$REPO_ROOT/$d" ]; then
             echo "  FAIL: $REPO_ROOT/$d missing"
             payload_ok=0
@@ -192,7 +192,7 @@ else
         payload_ok=0
     fi
     if [ "$payload_ok" = "1" ]; then
-        echo "  ok: core/, theories/, docs/, dispatcher present"
+        echo "  ok: core/, extensions/, dispatcher present"
     else
         errors=$((errors + 1))
     fi

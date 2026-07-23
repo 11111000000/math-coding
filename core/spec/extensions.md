@@ -11,7 +11,7 @@ An extension is justified when:
 1. The convention's seven axioms do not cover a need.
 2. The need is concrete and recurring.
 3. The extension can be implemented without changes to
-   `core/`, `theories/`, or `docs/`.
+   `core/`, `core/theories/`, or `docs/`.
 
 If the need requires touching one of these, write a
 `standard` or `strict` packet and submit it for review.
@@ -34,7 +34,7 @@ If the need requires touching one of these, write a
 
   anything that modifies one of the seven axioms — that requires a new
   convention version
-  anything that lives inside core/, theories/, or docs/ —
+  anything that lives inside core/, core/theories/, or docs/ —
   those are the convention itself
   anything that hides axiom Self-Application — the
   convention must remain self-verifying

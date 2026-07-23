@@ -23,8 +23,8 @@ for arg in "$@"; do
     esac
 done
 
-AXIOMS_DOC="$REPO_ROOT/docs/axioms.md"
-THEORIES_DIR="$REPO_ROOT/theories"
+AXIOMS_DOC="$REPO_ROOT/core/spec/axioms.md"
+THEORIES_DIR="$REPO_ROOT/core/theories"
 
 errors=0
 warnings=0
@@ -386,16 +386,16 @@ fi
 # Document-level checks
 if [ -f "$AXIOMS_DOC" ]; then
     axiom_count=$(grep -cE '^## A[0-9]\. ' "$AXIOMS_DOC" || true)
-    [ "$axiom_count" = "7" ] && pass || fail "docs/axioms.md: expected 7 axioms, found $axiom_count"
+    [ "$axiom_count" = "7" ] && pass || fail "core/spec/axioms.md: expected 7 axioms, found $axiom_count"
 else
     fail "docs/axioms.md: missing"
 fi
 
 if [ -d "$THEORIES_DIR" ]; then
     theory_count=$(find "$THEORIES_DIR" -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l)
-    [ "$theory_count" = "8" ] && pass || fail "theories/: expected 8 theories, found $theory_count"
+    [ "$theory_count" = "7" ] && pass || fail "core/theories/: expected 7 theories (FSM moved to core/spec/fsm.md), found $theory_count"
 else
-    fail "theories/: missing"
+    fail "core/theories/: missing"
 fi
 
 echo ""

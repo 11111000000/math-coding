@@ -106,10 +106,10 @@ The convention provides `extensions/tdd.md` for this.
 
 ## 6. Dataview only works in source-repo
 
-**Limitation.** Dataview queries in `docs/axioms.md` and
-`theories/README.md` work only when the source-repo is
+**Limitation.** Dataview queries in `core/spec/axioms.md` and
+`core/theories/README.md` work only when the source-repo is
 opened in Obsidian. They do not work in target projects
-(which lack axioms/, theories/, docs/).
+(which lack axioms/, core/theories/, docs/).
 
 **Why.** Dataview queries against axiom packets. axiom
 packets are source-only.
@@ -229,6 +229,45 @@ content is meant to be read, not generated.
 **Workaround.** Ignore warnings on axiom packets. They are
 expected. If you create your own axiom packets, ensure
 they have substantive content.
+
+## When NOT to use math-coding (v0.992)
+
+The convention is for **decisions**, not for **work**.
+Creating a packet for every commit produces ceremony without
+signal.
+
+### Trivial changes (use `git commit`, no packet)
+
+  - Typos in code or docs.
+  - Renames of a local variable, function, file, or directory.
+  - Format fixes that don't change behavior.
+  - Dependency bumps within a minor version.
+  - Doc-only changes that do not encode a decision.
+
+These are mechanical, reversible without thought.
+
+### Decision-class changes (use `sh math-coding create`)
+
+  - A choice was made that another developer would
+    disagree with, and you had reasons.
+  - The change affects future direction.
+  - The change is irreversible.
+  - The change introduces a new invariant.
+
+### Judgment-call zone
+
+  1. Would I be surprised to see this in 6 months? If yes,
+     write a packet. If no, commit.
+  2. Is there a reasonable alternative I rejected?
+     If yes, the rejection is the decision; write a packet.
+
+### Anti-patterns
+
+  - **Packet for everything**: signal diluted; readers learn
+    to ignore packets. Use `abandon` and `retire` to keep
+    `math/` lean.
+  - **No packets**: decisions live in memory only.
+    "Why is the cache 60s?" becomes "guess".
 
 ## What this list is NOT
 

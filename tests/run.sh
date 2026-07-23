@@ -75,28 +75,29 @@ else
     log_fail "seven-axiom-packets" "missing:$axiom_missing"
 fi
 
-# Case 5: seven axioms in docs/axioms.md
-if [ -f "$REPO_ROOT/docs/axioms.md" ]; then
-    n=$(grep -cE '^## A[0-9]\. ' "$REPO_ROOT/docs/axioms.md" || true)
+# Case 5: seven axioms in core/spec/axioms.md
+if [ -f "$REPO_ROOT/core/spec/axioms.md" ]; then
+    n=$(grep -cE '^## A[0-9]\. ' "$REPO_ROOT/core/spec/axioms.md" || true)
     if [ "$n" = "7" ]; then
         log_pass "seven-axioms-doc"
     else
         log_fail "seven-axioms-doc" "found $n axioms"
     fi
 else
-    log_fail "seven-axioms-doc" "docs/axioms.md missing"
+    log_fail "seven-axioms-doc" "core/spec/axioms.md missing"
 fi
 
-# Case 6: eight theories
-if [ -d "$REPO_ROOT/theories" ]; then
-    n=$(find "$REPO_ROOT/theories" -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')
-    if [ "$n" = "8" ]; then
-        log_pass "eight-theories"
+# Case 6: seven theories (FSM moved to core/spec/fsm.md as a spec,
+# not a theory; the remaining 7 are explanatory theories).
+if [ -d "$REPO_ROOT/core/theories" ]; then
+    n=$(find "$REPO_ROOT/core/theories" -maxdepth 1 -name '*.md' ! -name 'README.md' | wc -l | tr -d ' ')
+    if [ "$n" = "7" ]; then
+        log_pass "seven-theories"
     else
-        log_fail "eight-theories" "found $n"
+        log_fail "seven-theories" "found $n"
     fi
 else
-    log_fail "eight-theories" "theories/ missing"
+    log_fail "seven-theories" "core/theories/ missing"
 fi
 
 # Case 7: dispatcher works
@@ -145,7 +146,7 @@ if [ "$named_ok" = "1" ]; then
     log_pass "named-axioms-only"
 fi
 
-# Case 11: every axiom packet has a backlink to docs/axioms.md
+# Case 11: every axiom packet has a backlink to core/spec/axioms.md
 backlink_missing=""
 for p in $axiom_packets packet-lifecycle; do
     if [ -f "$REPO_ROOT/math/$p/decision.md" ]; then
@@ -309,14 +310,14 @@ YAML
     rm -rf "$TMP20"
 fi
 
-# Case 17: epistemic markers in theories/epistemic.md.
+# Case 17: epistemic markers in core/theories/epistemic.md.
 # All five canonical markers (fact, hypothesis, judgment,
 # unknown, proven) must appear in the theory file. A typo
 # in the theory file is caught here.
 markers_found=0
 for m in fact hypothesis judgment unknown proven; do
-    if [ -f "$REPO_ROOT/theories/epistemic.md" ] && \
-       grep -q "$m" "$REPO_ROOT/theories/epistemic.md"; then
+    if [ -f "$REPO_ROOT/core/theories/epistemic.md" ] && \
+       grep -q "$m" "$REPO_ROOT/core/theories/epistemic.md"; then
         markers_found=$((markers_found + 1))
     fi
 done

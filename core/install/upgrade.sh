@@ -4,7 +4,7 @@
 # Usage: sh core/install/upgrade.sh <target-dir>
 #
 # Overwrites the .math-coding/ payload in a target project
-# with the current convention's core/, theories/, docs/,
+# with the current convention's core/, extensions/,
 # extensions/, and dispatcher. The .mathrc file is preserved
 # (user config). extensions/ is included so agents and CI
 # templates stay in sync with the convention version.
@@ -23,13 +23,13 @@ if [ ! -d "$DEST" ]; then
 fi
 
 # Remove old payload, install new
-for d in core theories docs extensions; do
+for d in core extensions; do
     if [ -d "$DEST/$d" ]; then
         rm -rf "$DEST/$d"
     fi
 done
 
-for d in core theories docs extensions; do
+for d in core extensions; do
     if [ -d "$REPO_ROOT/$d" ]; then
         cp -R "$REPO_ROOT/$d" "$DEST/$d"
     fi
@@ -39,4 +39,4 @@ cp "$REPO_ROOT/math-coding" "$DEST/math-coding"
 chmod +x "$DEST/math-coding"
 
 echo "upgraded math-coding in $DEST"
-echo "  (core/, theories/, docs/, extensions/, dispatcher)"
+echo "  (core/, extensions/, dispatcher)"

@@ -14,7 +14,7 @@
 # Four things happen:
 #
 #   1. .math-coding/ is created with the install payload
-#      (core/, theories/, docs/, dispatcher). axiom packets
+#      (core/, extensions/, dispatcher). axiom packets
 #      under math/ are NOT copied — they live only in the
 #      source-repo where they prove axiom Self-Application.
 #
@@ -78,13 +78,13 @@ fi
 
 mkdir -p "$DEST"
 
-# Copy install payload: core/, theories/, docs/, extensions/.
-# math/ is intentionally NOT copied. axiom packets are
-# source-repo only (they prove the convention against itself;
-# they are not the convention's content for downstream
-# projects). extensions/ is included so agent skills,
-# hooks, and CI templates are present in the target.
-for d in core theories docs extensions; do
+# Copy install payload: core/, extensions/.
+# math/ is intentionally NOT copied (axiom packets are
+# source-repo only). core/theories/ lives inside core/ and
+# is copied with that directory.
+# extensions/ is included so agent skills, hooks, and CI
+# templates are present in the target.
+for d in core extensions; do
     if [ -d "$REPO_ROOT/$d" ]; then
         cp -R "$REPO_ROOT/$d" "$DEST/$d"
     fi
@@ -229,7 +229,7 @@ fi
 
 echo "installed math-coding to $DEST"
 echo "  core/        $(find "$DEST/core" -type f 2>/dev/null | wc -l | tr -d ' ') files"
-echo "  theories/    $(find "$DEST/theories" -type f 2>/dev/null | wc -l | tr -d ' ') files"
+echo "  core/theories/    $(find "$DEST/core/theories" -type f 2>/dev/null | wc -l | tr -d ' ') files"
 echo "  docs/        $(find "$DEST/docs" -type f 2>/dev/null | wc -l | tr -d ' ') files"
 echo "  extensions/  $(find "$DEST/extensions" -type f 2>/dev/null | wc -l | tr -d ' ') files"
 echo "  math-coding  (dispatcher)"

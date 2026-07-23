@@ -97,3 +97,17 @@ implicitly by which fields are filled:
   light    — commit message only, no 5-file packet
   standard — full 5-file packet, applications[] filled at verified
   strict   — packet + theory link + applications[] + surface impact
+
+## Stability contract
+
+These surfaces are stable within a major version:
+
+  - 5-file packet format (additive only; renaming is breaking)
+  - 7 spec fields (proposition/outcome/invariant/test/antithesis/synthesis/operation)
+  - 5 epistemic markers (fact/hypothesis/judgment/unknown/proven)
+  - 4 lifecycle states (draft/applied/retired/abandoned)
+  - applications[] entry fields (sha, by, date, files, pressure, tests, tests_result)
+  - All `math-coding` dispatcher commands
+
+A breaking change to any of these requires a major version bump.
+See `KNOWN_LIMITATIONS.md` for current limitations.

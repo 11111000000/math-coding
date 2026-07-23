@@ -1,0 +1,56 @@
+task_id: spec-consolidation-v0992
+title: spec-consolidation-v0992 — single-source consolidation
+lifecycle: applied
+implementation: complete
+substrate: none
+rigor: light
+decision: made
+created: "2026-07-23"
+creator: za
+verified_by: [math-coding-bot, agent]
+single_author: true
+axiom: false
+stable_since: null
+verifier: sh tests/run.sh
+depends_on:
+  - 02-curry-howard
+  - 04-process
+applications:
+  - sha: ec5e14c7167e6b5ad27ec7d260efe18437a5315d
+    by: agent
+    date: "2026-07-23"
+    pressure: feature
+    files:
+      - core/check/drift-check.sh
+      - core/check/verify.sh
+      - core/install/install.sh
+      - core/install/upgrade.sh
+      - core/self/probe.sh
+      - core/spec/axioms.md
+      - core/spec/extensions.md
+      - core/spec/fsm.md
+      - core/spec/packet-schema.md
+      - core/theories/README.md
+      - core/theories/agent.md
+      - core/theories/curry-howard.md
+      - core/theories/deprecation.md
+      - core/theories/epistemic.md
+      - core/theories/predicate.md
+      - core/theories/refinement.md
+      - core/theories/verdict.md
+      - core/migration-notes/v0.991-to-v0.992.md
+      - AGENTS.md
+      - README.md
+      - KNOWN_LIMITATIONS.md
+      - tests/run.sh
+      - extensions/agents/opencode/SKILL.md
+      - extensions/agents/opencode/references/axioms.md
+      - extensions/obsidian.md
+reviews:
+  - by: agent
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      single-source consolidation: docs/ removed, axioms/fsm moved
+      into core/spec/, theories moved into core/. tests, install,
+      probe, verify, smoke-test all green. 52/52 tests pass.

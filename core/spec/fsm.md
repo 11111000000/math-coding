@@ -59,7 +59,7 @@ model is preserved in `docs/migration-notes/v0.991-to-v0.992.md`
 for historical reference.
 
 The `supersession:` field in `packet.yaml` is a binary
-relation between packets (see `theories/deprecation.md`),
+relation between packets (see `core/theories/deprecation.md`),
 not a state. A superseded packet has lifecycle `retired`
 plus a `supersession: math/<successor>/` line.
 
@@ -87,7 +87,7 @@ plus a `supersession: math/<successor>/` line.
 ## Where this lives
 
   `math/04-process/decision.md` — the axiom packet
-  `theories/fsm.md`             — this file
+  `core/spec/fsm.md`             — this file
   `core/check/verify.sh`        — the verifier that enforces FSM
   `core/self/probe.sh`          — axiom Self-Application
   `core/lib/common.sh`          — `validate_lifecycle_transition`

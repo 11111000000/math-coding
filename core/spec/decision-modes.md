@@ -11,7 +11,7 @@ behaviour tweak. It is recorded as a commit message.
     - commit message with one-line rationale
 
   Forbidden:
-    - any change to math/, theories/, docs/, or core/
+    - any change to math/, core/theories/, docs/, or core/
     - any change to public surface
 
 ## standard
@@ -37,8 +37,8 @@ plus a theory link.
 
   Required:
     - all standard-mode requirements
-    - reference to a theory in theories/
-    - reference to an axiom in docs/axioms.md
+    - reference to a theory in core/theories/
+    - reference to an axiom in core/spec/axioms.md
     - surface impact (if the change touches a public contract)
 
   Forbidden:
@@ -63,7 +63,7 @@ The mode is set by the pressure in `decision.md`:
   ops       — usually light (configuration, tooling)
   arch      — usually strict (architecture change)
 
-A `light` change that touches math/, theories/, docs/, or
+A `light` change that touches math/, core/theories/, docs/, or
 core/ is automatically `standard`. The verifier rejects it
 otherwise.
 

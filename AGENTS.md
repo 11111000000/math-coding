@@ -12,16 +12,16 @@ repository.
   A2 Curry-Howard      A6 Self-Application
   A3 Material Basis
 
-Read `docs/axioms.md` for the canonical statement of each
+Read `core/spec/axioms.md` for the canonical statement of each
 axiom with formal definition, worked example, surface
-impact, and proof. Read `theories/` for the eight theories
+impact, and proof. Read `core/theories/` for the eight theories
 that ground them.
 
 ## Read first (in order)
 
 1. `README.md` — one-page manifest
-2. `docs/axioms.md` — seven axioms
-3. `theories/README.md` — eight theories
+2. `core/spec/axioms.md` — seven axioms
+3. `core/theories/README.md` — eight theories
 4. `math/<latest-packet>/decision.md` — most recent decision
 
 Resolve the latest packet with:
@@ -309,7 +309,7 @@ the generated files, and commit. For typos and doc fixes,
 commit directly.
 
 When the user asks about an axiom, cite `math/<NN-axiom>/`
-and `theories/<theory>.md`.
+and `core/theories/<theory>.md`.
 
 When the user asks about the convention's own state, run
 `sh math-coding probe`. If it returns 0, axiom Self-Application

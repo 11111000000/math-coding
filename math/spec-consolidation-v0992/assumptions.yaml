@@ -1,0 +1,38 @@
+task_id: spec-consolidation-v0992
+assumptions:
+  - id: A1
+    statement: "  One source of truth per fact. Each axiom or FSM state lives in exactly one file under core/spec/. Generated SKILL.md rebuilds automatically. is achievable under current constraints"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      generated from proposition — agent should review
+  - id: A2
+    statement: "  - core/spec/* contains all normative content
+  - core/theories/* contains all 8 theory statements (no fsm — fsm moves to core/spec)
+  - docs/ folder does not exist
+  - extensions/agents/<agent>/SKILL.md is generated, not hand-authored
+  - All references in tests/, SKILL.md, AGENTS.md update to new paths is the right invariant for this proposition"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from invariant — agent should review
+  - id: A3
+    statement: "the test specified covers the proposition"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from test — agent should review
+  - id: A4
+    statement: "the operating environment is stable"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      default assumption — replace with real evidence
+  - id: A5
+    statement: "  docs/ dies. core/spec/ becomes the single home for normative content (axioms, fsm, packet-schema, extensions). meta/ holds dev tooling. No duplication. is the right framing of the decision"
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      generated from proposition — agent should review
