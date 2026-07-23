@@ -1,0 +1,32 @@
+task_id: cursor-temp-cleanup-v0992
+title: Cursor math-agent — drop unsupported temperature field
+lifecycle: applied
+implementation: complete
+substrate: shell
+rigor: light
+decision: made
+created: "2026-07-23"
+creator: za
+verified_by: [za, agent]
+axiom: false
+single_author: true
+# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+stable_since: null
+verifier: sh math-coding probe
+depends_on:
+  - 06-self-application
+  - cursor-skills-v0992
+applications: []
+surface_impact: |
+  extensions/agents/cursor/math-agent.preamble.yaml (drop temperature),
+  extensions/agents/cursor/math-agent.md (regenerated)
+reviews:
+  - by: za
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      Cursor math-agent frontmatter now: name + description +
+      mode: subagent (Cursor docs verify). Dropped temperature
+      because Cursor's documented agent frontmatter schema
+      does not include temperature. Schema-clean > potentially-
+      rejected field. Generated math-agent.md updated.

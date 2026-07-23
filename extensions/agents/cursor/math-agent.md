@@ -2,7 +2,6 @@
 name: math
 description: Math — convention peer for math-coding. Helps document decisions as packets. Use when the user wants to document a decision or create a packet. Invoke sh math-coding create|apply|review|verify.
 mode: subagent
-temperature: 0.3
 ---
 
 # Math — Convention Peer Agent
