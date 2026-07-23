@@ -129,12 +129,37 @@ render_md() {
 #   _page  HTML file with marker
 #   _frag  HTML fragment (just the body content of MD)
 #   _name  marker name (without the <!--...--> wrappers)
+# Strips the first <h1>...</h1> from the fragment so the static
+# page template's H1 remains the sole H1 on the rendered page.
 inject_marker() {
     _page="$1"
     _frag="$2"
     _name="$3"
     _marker="<!--MARKER-${_name}-->"
-    awk -v marker="$_marker" -v frag="$_frag" '
+    _tmp_frag="$(mktemp)"
+    # Strip leading <h1 ...>...</h1> if present (first heading).
+    awk '
+        BEGIN { seen_h1=0 }
+        {
+            line = $0
+            # Drop leading H1 block (it may span multiple lines, but pandoc emits one)
+            if (seen_h1 == 0 && line ~ /^<h1[ >]/) {
+                seen_h1 = 1
+                # If the same line has closing tag, drop just this line.
+                if (line ~ /<\/h1>/) next
+                # Otherwise skip until we see the closing tag.
+                dropping = 1
+                next
+            }
+            if (dropping) {
+                if (line ~ /<\/h1>/) dropping = 0
+                next
+            }
+            print line
+        }
+    ' "$_frag" > "$_tmp_frag"
+
+    awk -v marker="$_marker" -v frag="$_tmp_frag" '
         BEGIN {
             while ((getline line < frag) > 0) {
                 frag_lines[++fc] = line
@@ -149,6 +174,7 @@ inject_marker() {
             print
         }
     ' "$_page" > "${_page}.tmp" && mv "${_page}.tmp" "$_page"
+    rm -f "$_tmp_frag"
 }
 
 # Render MD fragments then inject into page templates.

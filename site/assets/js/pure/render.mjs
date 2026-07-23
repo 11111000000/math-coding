@@ -25,7 +25,9 @@ export const renderPacketCard = (p) => {
   </h3>
   <div class="packet-card__meta">
     <span class="${lifecycleClass}">${escapeHtml(lifecycle)}</span>
-    ${p.axiom ? `<span class="sha-link">axiom ${escapeHtml(p.axiom)}</span>` : ''}
+    ${p.axiom && p.axiom !== 'false' && p.axiom !== ''
+      ? `<span class="sha-link">axiom ${escapeHtml(p.axiom)}</span>`
+      : ''}
     ${shaShort ? `<a class="sha-link" title="${escapeAttr(shaFull)}" href="https://github.com/11111000000/math-coding/commit/${escapeAttr(shaFull)}">sha ${escapeHtml(shaShort)}</a>` : ''}
   </div>
   <p class="packet-card__id" style="font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft); margin: 0">${escapeHtml(p.id)}</p>
