@@ -16,7 +16,7 @@ depends_on:
   - 02-curry-howard
   - 04-process
 applications:
-  - sha: 305d3b9
+  - sha: 7058e49
     by: agent
     date: "2026-07-23"
     pressure: feature

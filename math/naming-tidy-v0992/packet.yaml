@@ -1,13 +1,36 @@
 task_id: naming-tidy-v0992
-title: naming-tidy-v0992
-lifecycle: draft
+title: naming convention — version tag is suffix
+lifecycle: applied
+implementation: complete
 substrate: none
 rigor: light
 decision: made
 created: "2026-07-23"
 creator: za
-# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+verified_by: [math-coding-bot, agent]
+single_author: true
+axiom: false
 stable_since: null
-verifier: null
+verifier: sh tests/naming-version.sh
 depends_on: []
-applications: []
+applications:
+  - sha: 7058e49
+    by: agent
+    date: "2026-07-23"
+    pressure: feature
+    files:
+      - core/spec/packet-schema.md
+      - tests/naming-version.sh
+      - tests/run.sh
+reviews:
+  - by: agent
+  - by: za
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      version-suffix rule enforced; v0-991-epistemic → epistemic-v0991; 55/55 tests pass; drift=0
+      Version-tag position rule enforced. v0-991-epistemic
+      renamed to epistemic-v0991. 55/55 tests pass.

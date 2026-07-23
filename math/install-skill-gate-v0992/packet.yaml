@@ -16,7 +16,7 @@ depends_on:
   - 02-curry-howard
   - 05-accounting
 applications:
-  - sha: 6a0ff03
+  - sha: 7058e49
     by: agent
     date: "2026-07-23"
     pressure: feature
