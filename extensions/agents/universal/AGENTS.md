@@ -1,0 +1,73 @@
+# AGENTS.md — math-coding v0.992 (universal)
+
+This file is read by AI coding agents that support the universal
+`AGENTS.md` convention (Codex CLI, GitHub Copilot, Continue,
+Cursor 1+, Windsurf, and others). Place at the repository root.
+
+## What this convention is
+
+math-coding v0.992 documents substantive coding decisions as
+**packets** — directories with three mandatory files:
+- `packet.yaml` — manifest with lifecycle (draft/applied/retired/abandoned)
+- `decision.md` — thesis, antithesis, synthesis
+- `refinement.md` — state, operation, invariant, test
+
+## When to create a packet
+
+Create a packet when a change is **decision-class**:
+- New feature or new file
+- Public API or schema change
+- New dependency
+- Refactor across files
+
+**Do NOT create** a packet for trivial changes (rename, typo,
+formatting, same-file edit). Use git commit directly.
+
+## Workflow
+
+```
+sh math-coding create <name> --from spec.yaml   # create draft
+git add math/<name>/ && git commit -m "..."     # commit packet
+sh math-coding apply <name>                     # transition to applied (SHA witness)
+sh math-coding review <name> --approve --note="..."   # peer-review
+sh math-coding verify                           # structural check
+```
+
+For seven-field spec, only **proposition + outcome are mandatory**:
+- proposition: one sentence, falsifiable
+- outcome: what becomes true after the decision
+- invariant: what stays true across transitions
+- test: how to verify (concrete command/assertion)
+- antithesis: strongest objection (not strawman)
+- synthesis: how thesis + antithesis resolve (1-3 sentences)
+- operation: behavior, not implementation detail
+
+<!-- Sources: core/spec/axioms.md@f9c7208 -->
+
+## Seven axioms (compact)
+
+  ## A0. Difference (ontological)
+  > A proposition differs from its implementation
+  ## A1. Care (motivational)
+  > A developer cares whether the code does what it claims
+  ## A2. Curry-Howard (structural)
+  > A packet is a proof term
+  ## A3. Material Basis (substrate)
+  > The convention lives in plain text, in git, and runs on a POSIX shell
+  ## A4. Process (temporal)
+  > Process precedes code
+  ## A5. Accounting (epistemic)
+  > Knowledge must be marked
+  ## A6. Self-Application (meta)
+  > The convention applies to itself
+
+
+## Conventions for this project
+
+This convention is opt-in. If you are writing code, follow packet-
+discipline for substantive decisions; trivial changes skip the
+packet. If you are unsure, ask the user.
+
+For full reference (axiom statements, lifecycle FSM, theories,
+limitations): see the project's `math/` directory or `core/spec/`
+of the math-coding source repo.

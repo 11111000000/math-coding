@@ -1,0 +1,37 @@
+task_id: cursor-temp-cleanup-v0992
+assumptions:
+  - id: A1
+    statement: "Cursor agent frontmatter schema does not include temperature"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+    evidence: |
+      Cursor agent examples in docs (per opencode Cursor agents docs at /docs/agents) show: description, mode, model, prompt, tools, permission. No temperature field documented. Inferred from absence in documented examples.
+  - id: A2
+    statement: "Cursor silently ignores unknown frontmatter fields rather than rejecting them"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.6
+    evidence: |
+      Cursor behavior with unknown YAML keys is not documented. Common convention in YAML-based systems is to ignore unknown keys.
+  - id: A3
+    statement: "Removing temperature has no observable impact in cursor"
+    status: agent-inferred
+    epistemology: judgment
+    confidence: 0.7
+    evidence: |
+      If Cursor ignored temperature, no change. If Cursor rejects unknown fields, current behavior already fails — cleanup improves robustness. Either way: removal is safer than leaving it.
+  - id: A4
+    statement: "mode: subagent is documented Cursor agent field"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.85
+    evidence: |
+      Cursor docs /docs/agents example: 'mode: subagent' as documented field for subagent-type agents. Direct doc reference.
+  - id: A5
+    statement: "math-agent.md generation rebuilds identically after edit"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      build-skill.sh rebuilds from preamble + canon body. The only change is preamble content; canon body unchanged.

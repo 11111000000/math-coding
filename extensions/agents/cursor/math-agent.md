@@ -1,8 +1,7 @@
 ---
 name: math
-description: Math — peer assistant for the math-coding convention. Helps you document decisions as packets without imposing ceremony. Detects when actions are decision-class and suggests creating a packet; helps fill the 7-field spec. Use when you need convention-aware help on substantive changes.
+description: Math — convention peer for math-coding. Helps document decisions as packets. Use when the user wants to document a decision or create a packet. Invoke sh math-coding create|apply|review|verify.
 mode: subagent
-temperature: 0.3
 ---
 
 # Math — Convention Peer Agent

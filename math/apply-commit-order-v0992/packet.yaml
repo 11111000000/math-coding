@@ -1,0 +1,35 @@
+task_id: apply-commit-order-v0992
+title: apply-commit-order — apply must run after commit
+lifecycle: applied
+implementation: complete
+substrate: shell
+rigor: light
+decision: made
+created: "2026-07-23"
+creator: za
+verified_by: [za, agent]
+axiom: false
+single_author: true
+# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+stable_since: null
+verifier: sh math-coding probe
+depends_on:
+  - 06-self-application
+applications: []
+surface_impact: |
+  core/author/apply-packet.sh (uncommitted-changes check + --force-apply flag),
+  extensions/agents/canon/SKILL.body.template.md (workflow doc update),
+  extensions/agents/<agent>/SKILL.md (regenerated with new workflow text)
+reviews:
+  - by: za
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      apply-packet.sh now checks for uncommitted changes via
+      `git status --porcelain` (catches untracked files which
+      `git diff` alone misses). On uncommitted: warning + exit 1.
+      Override: --force-apply flag or FORCE_APPLY=1 env var.
+      SKILL.md workflow now explicit about commit-before-apply
+      order, with axiom A5 reasoning. Regression: opencode/claude/
+      cursor/universal --check all pass. Prevents future drift
+      (cad685a was a manual refresh after this exact issue).

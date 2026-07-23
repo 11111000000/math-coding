@@ -1,0 +1,38 @@
+task_id: build-skill-install-improvements-v0992
+assumptions:
+  - id: A1
+    statement: "od -tx1 outputs lowercase hex without leading space on this system"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+    evidence: |
+      Tested via head/tail -c 1 | od -An -tx1 | tr -d ' ' on linux/macos:
+      outputs "0a" for newline byte, "20" for space. Portable across POSIX systems.
+  - id: A2
+    statement: "mktemp avoids awk shell-quoting issues with content containing backslashes or quotes"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      gen_block output includes heredoc text with potential shell metacharacters. Passing via -v string requires shell-escaping; passing via file is unambiguous.
+  - id: A3
+    statement: "AGENT_TARGETS in install-skill.sh has same agent names as AGENTS in build-skill.sh"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      install-skill.sh AGENT_TARGETS: opencode, claude, cursor. build-skill.sh AGENTS: opencode claude cursor. Sanity check verifies this.
+  - id: A4
+    statement: "refactor preserves byte-identical output for opencode (regression test)"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      cmp verified after refactor: SKILL.md and math-agent.md identical to pre-refactor versions.
+  - id: A5
+    statement: "if/then arg parser is more readable than `[ $# -eq 0 ] || { ... }`"
+    status: agent-inferred
+    epistemology: judgment
+    confidence: 0.85
+    evidence: |
+      POSIX shell idiom; explicit if/then/fi structure is the conventional style. Code-review flagged readability.

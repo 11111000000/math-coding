@@ -1,0 +1,39 @@
+task_id: multi-agent-skills-v0992
+assumptions:
+  - id: A1
+    statement: "opencode SKILL.md and math-agent.md rebuild byte-identical to pre-split output"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      cmp /tmp/SKILL.md.before extensions/agents/opencode/SKILL.md → identical.
+      cmp /tmp/math-agent.md.before extensions/agents/opencode/math-agent.md → identical.
+  - id: A2
+    statement: "core/, KNOWN_LIMITATIONS.md remain sole sources for axiom cards and FSM"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      meta/build-skill.sh still uses AXIOMS, FSM, THEORIES_DIR, LIMITATIONS as inputs.
+      Per-agent preamble only feeds YAML frontmatter and intro prose.
+  - id: A3
+    statement: "BEGIN/END GENERATED region is preserved during build"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      awk in process_body strips lines inside BEGIN/END markers and inserts gen_block output in their place. The marker comments are replaced, not preserved.
+  - id: A4
+    statement: "trailing newline preserved by build"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+    evidence: |
+      build_skill_for and build_agent_for both append a newline if tail -c 1 of output is not \n. Verified via diff (delta was one missing \n before fix; identical after fix).
+  - id: A5
+    statement: "future agents (claude, cursor, universal) can register without touching canon/"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+    evidence: |
+      Architecture confirmed: per-agent SKILL.preamble.md + math-agent.preamble.yaml carry only agent-specific frontmatter. Adding an agent requires only writing those two files + adding name to AGENTS= in build-skill.sh.
