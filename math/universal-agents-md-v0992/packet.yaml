@@ -1,0 +1,32 @@
+task_id: universal-agents-md-v0992
+title: Universal AGENTS.md — project-local fallback
+lifecycle: applied
+implementation: complete
+substrate: shell
+rigor: light
+decision: made
+created: "2026-07-23"
+creator: za
+verified_by: [za, agent]
+axiom: false
+single_author: true
+# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+stable_since: null
+verifier: sh math-coding probe
+depends_on:
+  - 06-self-application
+  - multi-agent-skills-v0992
+applications: []
+surface_impact: |
+  extensions/agents/universal/AGENTS.md (new, 63 lines),
+  KNOWN_LIMITATIONS.md #15 (new entry, project-local install path)
+reviews:
+  - by: za
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      Universal AGENTS.md is a condensed (60-line) math-coding
+      summary: axioms, FSM, workflow, packet discipline.
+      Project-local install: cp to <project>/AGENTS.md.
+      Documented in KNOWN_LIMITATIONS #15. v0.992 ships
+      as a hand-written static file (no build pipeline yet).

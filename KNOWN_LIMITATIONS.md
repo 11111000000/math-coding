@@ -357,3 +357,53 @@ the primary cycle clean and makes Math discoverable to those
 already in the convention.
 
 **Documented in:** `math/agent-mode-subagent-v0992/`.
+
+## 15. Universal AGENTS.md is project-local, not user-skill
+
+**Limitation.** `extensions/agents/universal/AGENTS.md` ships
+a 63-line condensed math-coding summary for agents that read
+the universal `AGENTS.md` convention (Codex CLI, GitHub Copilot,
+Continue, Cursor 1+, Windsurf). It is **not installed via
+`sh math-coding install-skill`**; users copy it into their
+project root manually.
+
+**Why.** Some agents do not expose a user-global skill system:
+- Codex CLI / GitHub Copilot: agent instructions live in the
+  repository, not in the user's home directory.
+- Continue.dev: rules are per-project (`.continue/rules/`).
+- These tools read `AGENTS.md` at the project root on each
+  chat session, not from a user-global skills directory.
+
+The convention's install payload (`sh math-coding install`)
+targets user-global config locations. AGENTS.md needs to be
+in the project to be discovered. Hence the project-local
+boundary.
+
+**Workaround.** To use math-coding with a universal-agent tool,
+copy the file into your project:
+
+```
+cp /path/to/math-coding/extensions/agents/universal/AGENTS.md \
+   <your-project>/AGENTS.md
+git add AGENTS.md
+git commit -m "Add math-coding universal agent instructions"
+```
+
+The agent now reads AGENTS.md automatically. The condensed
+content (axioms, FSM, workflow, packet discipline) is enough
+for most code-writing tasks. For full reference, the user can
+also install via `sh math-coding install` for tools that
+support global skills (opencode, Claude Code, Cursor).
+
+**Discoverability.** Users of universal-agent tools see no
+install command. AGENTS.md must be hand-copied. This is a
+**convention-level** boundary, not a bug — the underlying
+agent system does not have a global-skill API.
+
+**v0.992 simplification.** AGENTS.md is hand-written, not
+generated from `canon/`. Future versions may extend
+`meta/build-skill.sh` to produce a generated AGENTS.md from
+the same source as SKILL.md. For now, manual consistency
+checks on axiom changes.
+
+**Documented in:** `math/universal-agents-md-v0992/`.
