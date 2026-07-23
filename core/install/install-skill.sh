@@ -158,7 +158,7 @@ if [ "$DRY_RUN" = "1" ]; then
     echo "  to:   $TARGET_DIR"
     echo "  files:"
     echo "    SKILL.md (required)"
-    [ -d "$SRC_PATH/references" ] && echo "    references/ (optional)"
+    [ -d "$SRC_PATH/references" ] && echo "    references/ (optional, deprecated)"
     [ -d "$SRC_PATH/examples" ] && echo "    examples/ (optional)"
     if [ "$WITH_AGENT" = "1" ]; then
         agent_src="$REPO_ROOT/extensions/agents/opencode/math-agent.md"

@@ -15,7 +15,7 @@ verifier: sh meta/build-skill.sh opencode --check
 depends_on:
   - 02-curry-howard
 applications:
-  - sha: 9c0206d
+  - sha: 547a510
     by: agent
     date: 2026-07-23
     pressure: feature

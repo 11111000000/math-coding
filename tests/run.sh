@@ -1351,6 +1351,20 @@ else
     log_fail "doc-consistency" "see tests/doc-consistency.sh output"
 fi
 
+# Case 51: SKILL.md freshness (axiom A2: proof term matches proposition).
+if sh "$REPO_ROOT/tests/spec-ritual.sh" >/dev/null 2>&1; then
+    log_pass "spec-ritual"
+else
+    log_fail "spec-ritual" "see tests/spec-ritual.sh output"
+fi
+
+# Case 52: no single-source duplicates.
+if sh "$REPO_ROOT/tests/no-duplication.sh" >/dev/null 2>&1; then
+    log_pass "no-duplication"
+else
+    log_fail "no-duplication" "see tests/no-duplication.sh output"
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "  pass: $pass"
