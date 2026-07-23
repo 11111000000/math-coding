@@ -1,0 +1,37 @@
+task_id: claude-skills-v0992
+assumptions:
+  - id: A1
+    statement: "Anthropic Skills API accepts SKILL.md with name + description frontmatter"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+    evidence: |
+      Anthropic docs (docs.claude.com/en/docs/agents-and-tools/agent-skills/overview) region-blocked. Inferred from public Anthropic announcements (Oct 2024 Skills API) and similar markdown-based skill systems. Direct verification deferred — schema is well-documented elsewhere.
+  - id: A2
+    statement: "Claude Code has no subagent concept; SKILL.md is the only installable component"
+    status: agent-inferred
+    epistemology: judgment
+    confidence: 0.85
+    evidence: |
+      Claude Code has Skills (loaded as tools) and Projects (project memory). No peer-agent system analogous to opencode's subagent. Inference from Claude Code architecture descriptions.
+  - id: A3
+    statement: "Body content reused from canon works in claude (no per-body adaptation needed)"
+    status: agent-inferred
+    epistemology: judgment
+    confidence: 0.9
+    evidence: |
+      Both agents consume markdown body content. Body has no agent-specific assumptions (axiom cards, packet mechanics, commands are universal). Per-agent divergence is frontmatter-only.
+  - id: A4
+    statement: "~/.claude/skills/ is the canonical install path for claude SKILL.md"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.85
+    evidence: |
+      Matches Anthropic Skills API convention. Already declared in install-skill.sh AGENT_TARGETS. Validation deferred to actual claude session test.
+  - id: A5
+    statement: "model can invoke Skill tool to load math-coding skill in chat"
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+    evidence: |
+      Per Anthropic Skills API design: skill name + description in frontmatter is how the model decides whether to invoke the skill via the Skill tool. The description field is the user's prompt instruction.
