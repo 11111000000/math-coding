@@ -13,3 +13,6 @@
 # Obsidian config files (added by user, not part of project)
 /.obsidian/appearance.json
 /.obsidian/core-plugins.json
+
+# Site build artifacts (math/site-* packet — built via meta/site-build.sh)
+/dist/

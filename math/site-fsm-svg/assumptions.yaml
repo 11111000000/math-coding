@@ -1,0 +1,50 @@
+task_id: site-fsm-svg
+assumptions:
+  - id: A1
+    statement: "Hand-coded SVG with explicit pixel coordinates is more maintainable than script-generated SVG for a 4-state FSM (which is axiom-frozen)."
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      Axiom A4 in math/04-process/decision.md declares the FSM frozen:
+      adding a state requires a packet proposal, not a quiet edit.
+      Hand-coding once per ~3 years is the right cost. A SVG-generator
+      script would have higher maintenance than the artifact itself.
+  - id: A2
+    statement: "Plain SVG text labels (no fonts loaded) render uniformly across browsers including text-mode browsers like w3m/lynx is not required, so we accept font dependency for the FSM labels."
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      FSM labels in SVG need only monospace. JetBrains Mono will be
+      loaded for code-style content; SVG inherits via font-family on
+      <text> elements. Browsers without the font fall back to system
+      mono, which is acceptable for FSM labels.
+  - id: A3
+    statement: "SVG with one rect per state plus one path per transition can be expressed in < 100 lines of XML."
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+    evidence: |
+      Specification: 4 state rectangles, 5 transitions, 4 invariant
+      text blocks, 1 title, 1 legend block. ~80 lines estimated.
+      Will be measured after implementation.
+  - id: A4
+    statement: "Inline SVG (vs. external .svg file) is preferable for /fsm.html because it shares CSS tokens (no <img> shadow)."
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      Inline SVG inherits CSS custom properties from the document
+      — colors like --axiom and --proof propagate. <img src=*.svg>
+      would require fill="var(--axiom)" duplicated or SVG re-render
+      per theme. Inline is simpler; file size impact (~2 KB) is
+      negligible. Trade-off: fsm.svg as standalone asset remains
+      convenient for re-use in PDF export.
+  - id: A5
+    statement: "Tests/site-test.sh can grep-verify all 4 state names + 4 invariant markers + 5 transition labels appear in the SVG."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      grep -E "draft|applied|retired|abandoned" against the SVG file
+      catches all 4 state names. grep -E "I\(draft\)|I\(applied\)..."
+      catches invariants. Transition labels are fixed strings: apply,
+      retire, abandon, archive. Each is greppable.

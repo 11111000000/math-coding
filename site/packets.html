@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Browse all packets under math/. Each is a proof term, a proposition + refinement + verification. Filter by axiom or lifecycle state.">
+<title>Packets · math-coding v0.992</title>
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/layout.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+</head>
+<body class="page">
+
+<header class="site-header">
+<div class="site-header__inner">
+<a class="wordmark" href="/">
+<span class="wordmark-name">math-coding</span>
+<span class="wordmark-version">v0.992</span>
+</a>
+<nav class="site-nav">
+<a href="/">home</a>
+<a href="/axioms.html">axioms</a>
+<a href="/packets.html" aria-current="page">packets</a>
+<a href="/fsm.html">fsm</a>
+<a href="/getting-started.html">get started</a>
+<a href="/philosophy.html">philosophy</a>
+<a href="/limitations.html">limitations</a>
+</nav>
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">theme</button>
+</div>
+</header>
+
+<main>
+
+<h1>Packets</h1>
+<p>Every packet under <code>math/&lt;name&gt;/</code> is a proof term — five plain-text files carrying the proposition, the antithesis, and the synthesis. Each may be in lifecycle state <code>draft</code>, <code>applied</code>, <code>retired</code>, or <code>abandoned</code>.</p>
+
+<div class="filter-bar">
+<label>axiom
+<select id="filter-axiom">
+<option value="">all</option>
+<option value="A0">A0</option>
+<option value="A1">A1</option>
+<option value="A2">A2</option>
+<option value="A3">A3</option>
+<option value="A4">A4</option>
+<option value="A5">A5</option>
+<option value="A6">A6</option>
+</select>
+</label>
+<label>lifecycle
+<select id="filter-lifecycle">
+<option value="">all</option>
+<option value="applied">applied</option>
+<option value="draft">draft</option>
+<option value="retired">retired</option>
+<option value="abandoned">abandoned</option>
+</select>
+</label>
+<label>search
+<input id="filter-q" type="search" placeholder="title or proposition" autocomplete="off">
+</label>
+<span class="filter-count" id="filter-count">— packets</span>
+</div>
+
+<div class="packets" id="packets-grid">
+<p style="font-family: var(--font-mono); color: var(--ink-soft); font-size: var(--text-xs)">
+Loading packets…
+</p>
+</div>
+
+<noscript>
+<div class="theorem-box" style="margin-top: 2rem">
+<p class="theorem-box__label">no JavaScript</p>
+<p class="theorem-box__body">
+JavaScript is required for the live-filter experience on this page. The static index of packets is also available at <a href="https://github.com/11111000000/math-coding/tree/main/math">github.com/11111000000/math-coding/tree/main/math</a>.
+</p>
+</div>
+</noscript>
+
+<div class="probe-stamp">built from commit <span id="git-sha-footer">—</span> · axiom A6 self-application</div>
+
+</main>
+
+<footer class="site-footer">
+<div class="site-footer__inner">
+<div>
+<h4>math-coding</h4>
+<ul>
+<li>v0.992 · Living Beings License</li>
+<li><a href="https://github.com/11111000000/math-coding">source repo</a></li>
+</ul>
+</div>
+<div>
+<h4>convention</h4>
+<ul>
+<li><a href="/axioms.html">seven axioms</a></li>
+<li><a href="/fsm.html">lifecycle FSM</a></li>
+<li><a href="/limitations.html">known limitations</a></li>
+</ul>
+</div>
+</div>
+</footer>
+
+<script type="module" src="/assets/js/main.mjs"></script>
+</body>
+</html>

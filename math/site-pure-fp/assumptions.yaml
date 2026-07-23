@@ -1,0 +1,52 @@
+task_id: site-pure-fp
+assumptions:
+  - id: A1
+    statement: "Live-filter functionality at /packets.html is justified given 25+ packets."
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      With ~25 packets and growing, finding a packet by axiom or
+      lifecycle requires scrolling the index. A live-filter reduces
+      user effort. Below 25 packets, filters add UI overhead without
+      proportional benefit; above 100, server-side becomes necessary.
+  - id: A2
+    statement: "Pure FP over a fetched JSON manifest is testable by Node --test in CI without DOM dependencies."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      Node --test (built-in test runner since Node 18) imports ESM
+      modules and runs them in the same V8 runtime as browser.
+      Pure functions have no side effects, so they execute identically
+      in Node and browser. See tests/pure-fp.test.mjs.
+  - id: A3
+    statement: "DOMParser.parseFromString (DOM API) or textContent + setAttribute suffices to safely render dynamic strings without innerHTML XSS."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      DOMParser is a W3C-standard API: parses an HTML string to a
+      static DocumentFragment, never executes any scripts inside
+      <script> tags. textContent assignment is also XSS-safe by
+      construction. Both supported in all major browsers since
+      2010+. Documented in MDN.
+  - id: A4
+    statement: "Browser ES modules (type=module) eliminate the need for a bundler entirely."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      ESM in browsers is supported in all major browsers since 2018.
+      Loading: <script type="module" src="/js/main.mjs"></script>.
+      Imports work natively. Bundle size is the sum of file sizes.
+      No bundler step needed.
+  - id: A5
+    statement: "~150 lines of pure FP JS is the right scope for the site's interactive features."
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.6
+    evidence: |
+      Derived from: live-filter (~40 LOC), theme toggle (~15 LOC),
+      packet-card render (~30 LOC), filter predicates (~15 LOC),
+      escape fn (~10 LOC), entry/main (~40 LOC). Total ≈ 150.
+      Will be measured after implementation.

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Lifecycle FSM M = ⟨S, s₀, A, →, I⟩ for math-coding packets. Four states: draft, applied, retired, abandoned.">
+<title>Lifecycle FSM · math-coding v0.992</title>
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/layout.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+</head>
+<body class="page">
+
+<header class="site-header">
+<div class="site-header__inner">
+<a class="wordmark" href="/">
+<span class="wordmark-name">math-coding</span>
+<span class="wordmark-version">v0.992</span>
+</a>
+<nav class="site-nav">
+<a href="/">home</a>
+<a href="/axioms.html">axioms</a>
+<a href="/packets.html">packets</a>
+<a href="/fsm.html" aria-current="page">fsm</a>
+<a href="/getting-started.html">get started</a>
+<a href="/philosophy.html">philosophy</a>
+<a href="/limitations.html">limitations</a>
+</nav>
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">theme</button>
+</div>
+</header>
+
+<main>
+
+<h1>Lifecycle FSM</h1>
+<p>axiom A4 (Process). The lifecycle of a packet is finite and ordered. Each transition is a commit; every commit is a SHA; every SHA appears in <code>applications[]</code>.</p>
+
+<div class="theorem-box">
+<p class="theorem-box__label">formal</p>
+<p class="theorem-box__body">
+<code>M = ⟨ S, s₀, A, →, I ⟩</code>
+where <code>S = { draft, applied, retired, abandoned }</code>, <code>s₀ = draft</code>, transitions follow the diagram below, and <code>I(s)</code> is the invariant for state s.
+</p>
+</div>
+
+<!--MARKER-FSM-->
+
+<div class="fsm-svg-wrap" aria-label="Lifecycle FSM diagram">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 380" role="img" aria-label="Lifecycle FSM: draft, applied, retired, abandoned">
+<style>
+  .fsm-node { fill: var(--paper); stroke: var(--ink); stroke-width: 1.5;
+              font-family: "JetBrains Mono", monospace; font-size: 14px;
+              text-anchor: middle; dominant-baseline: middle; }
+  .fsm-node-applied { fill: var(--ink); }
+  .fsm-node-applied text { fill: var(--paper); }
+  .fsm-edge { stroke: var(--ink-soft); stroke-width: 1; fill: none; }
+  .fsm-edge-label { font-family: "JetBrains Mono", monospace; font-size: 11px;
+                    fill: var(--ink-soft); text-anchor: middle;
+                    background: var(--paper); }
+  .fsm-invariant { font-family: "Source Serif 4", serif; font-size: 11px;
+                   font-style: italic; fill: var(--ink-soft); }
+  .fsm-title { font-family: "Source Serif 4", serif; font-size: 14px;
+               font-weight: 600; fill: var(--ink); }
+</style>
+
+<text x="360" y="30" class="fsm-title">M = ⟨ S, s₀, A, →, I ⟩  ·  A4 Process</text>
+
+<!-- draft -->
+<rect x="60" y="80" width="120" height="50" class="fsm-node"/>
+<text x="120" y="105" class="fsm-node">draft</text>
+<text x="270" y="100" class="fsm-invariant">I(draft) = 5 files exist</text>
+<text x="270" y="115" class="fsm-invariant">      (any content)</text>
+
+<!-- applied -->
+<rect x="240" y="200" width="120" height="50" class="fsm-node fsm-node-applied"/>
+<text x="300" y="225" class="fsm-node">applied</text>
+<text x="450" y="220" class="fsm-invariant">I(applied) = 5 files +</text>
+<text x="450" y="232" class="fsm-invariant">  ≥ 1 SHA in applications[]</text>
+<text x="450" y="244" class="fsm-invariant">  + ≥ 1 approve review</text>
+
+<!-- retired -->
+<rect x="420" y="320" width="120" height="50" class="fsm-node"/>
+<text x="480" y="345" class="fsm-node">retired</text>
+<text x="80" y="345" class="fsm-invariant">I(retired) = lifecycle field set</text>
+
+<!-- abandoned -->
+<rect x="500" y="80" width="120" height="50" class="fsm-node"/>
+<text x="560" y="105" class="fsm-node">abandoned</text>
+<text x="500" y="60" class="fsm-invariant">I(abandoned) = lifecycle field set</text>
+
+<!-- edges -->
+<!-- draft -> applied -->
+<path d="M 150 130 Q 200 165 250 200" class="fsm-edge" marker-end="url(#fsm-arrow)"/>
+<text x="190" y="170" class="fsm-edge-label">apply</text>
+
+<!-- draft -> abandoned -->
+<path d="M 180 90 Q 350 50 500 90" class="fsm-edge" marker-end="url(#fsm-arrow)"/>
+<text x="340" y="55" class="fsm-edge-label">abandon</text>
+
+<!-- draft -> retired -->
+<path d="M 120 130 Q 200 220 420 340" class="fsm-edge" marker-end="url(#fsm-arrow)"/>
+<text x="240" y="260" class="fsm-edge-label">retire</text>
+
+<!-- applied -> retired -->
+<path d="M 300 250 Q 380 290 420 340" class="fsm-edge" marker-end="url(#fsm-arrow)"/>
+<text x="370" y="305" class="fsm-edge-label">retire</text>
+
+<!-- retired -> archived (out of S) -->
+<path d="M 420 370 Q 360 380 280 380" class="fsm-edge" stroke-dasharray="4 4" marker-end="url(#fsm-arrow)"/>
+<text x="335" y="395" class="fsm-edge-label">archive → math/archived/</text>
+
+<!-- abandoned -> archived (out of S) -->
+<path d="M 560 130 Q 600 280 600 380" class="fsm-edge" stroke-dasharray="4 4" marker-end="url(#fsm-arrow)"/>
+<text x="640" y="280" class="fsm-edge-label" text-anchor="start">archive → math/archived/</text>
+
+<defs>
+  <marker id="fsm-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--ink-soft)"/>
+  </marker>
+</defs>
+</svg>
+</div>
+
+<div class="probe-stamp">built from commit <span id="git-sha-footer">—</span> · axiom A6 self-application</div>
+
+</main>
+
+<footer class="site-footer">
+<div class="site-footer__inner">
+<div>
+<h4>math-coding</h4>
+<ul>
+<li>v0.992 · Living Beings License</li>
+<li><a href="https://github.com/11111000000/math-coding">source repo</a></li>
+</ul>
+</div>
+<div>
+<h4>convention</h4>
+<ul>
+<li><a href="/axioms.html">seven axioms</a></li>
+<li><a href="/fsm.html">lifecycle FSM</a></li>
+<li><a href="/limitations.html">known limitations</a></li>
+</ul>
+</div>
+</div>
+</footer>
+
+<script type="module" src="/assets/js/main.mjs"></script>
+</body>
+</html>

@@ -1378,6 +1378,30 @@ else
     log_fail "witness" "see tests/witness.sh output"
 fi
 
+# Case 55: site self-test (axiom A6 self-application for site/).
+# Skipped unless site/ exists. Build dist/ first if running end-to-end.
+if [ -d "$REPO_ROOT/site" ]; then
+    if DIST_REQUIRED=no sh "$REPO_ROOT/tests/site-test.sh" >/dev/null 2>&1; then
+        log_pass "site (structure)"
+    else
+        log_fail "site (structure)" "see tests/site-test.sh output"
+    fi
+    if [ -d "$REPO_ROOT/dist" ]; then
+        if sh "$REPO_ROOT/tests/site-test.sh" >/dev/null 2>&1; then
+            log_pass "site (post-build)"
+        else
+            log_fail "site (post-build)" "see tests/site-test.sh output"
+        fi
+    fi
+    if command -v node >/dev/null 2>&1; then
+        if node --test "$REPO_ROOT/tests/pure-fp.test.mjs" >/dev/null 2>&1; then
+            log_pass "site (pure-fp)"
+        else
+            log_fail "site (pure-fp)" "see node --test output"
+        fi
+    fi
+fi
+
 echo ""
 echo "=== Summary ==="
 echo "  pass: $pass"

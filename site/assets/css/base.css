@@ -1,0 +1,200 @@
+/* base.css — reset, typography, page primitives.
+ *
+ * See math/site-design/decision.md.
+ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--paper);
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* === Headings === */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: var(--leading-tight);
+  margin: 0 0 1rem 0;
+  letter-spacing: -0.01em;
+}
+
+h1 {
+  font-size: var(--text-2xl);
+  margin-top: 2rem;
+}
+h2 {
+  font-size: var(--text-xl);
+  margin-top: 2.5rem;
+}
+h3 {
+  font-size: var(--text-lg);
+  margin-top: 1.75rem;
+}
+h4 {
+  font-size: var(--text-md);
+  margin-top: 1.5rem;
+}
+h5, h6 {
+  font-size: var(--text-base);
+  margin-top: 1.25rem;
+}
+
+/* === Body === */
+
+p, li, dd, dt, blockquote, pre, figure {
+  margin: 0 0 1rem 0;
+  max-width: var(--measure);
+}
+
+p {
+  font-size: var(--text-prose);
+  line-height: var(--leading-prose);
+}
+
+ul, ol {
+  padding-left: 1.5rem;
+  max-width: var(--measure);
+}
+
+li {
+  margin-bottom: 0.5rem;
+}
+
+/* === Links === */
+
+a {
+  color: var(--link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-style: dotted;
+  transition: text-decoration-style 80ms ease;
+}
+
+a:hover, a:focus {
+  text-decoration-style: solid;
+}
+
+a:visited {
+  color: var(--link-visited);
+}
+
+a:focus-visible {
+  outline: 1px solid var(--link);
+  outline-offset: 2px;
+}
+
+/* === Inline code === */
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  padding: 0.1em 0.3em;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+}
+
+pre {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--ink-soft);
+  background: var(--paper-elevated);
+  overflow-x: auto;
+}
+
+pre code {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* === Blockquote === */
+
+blockquote {
+  font-family: var(--font-display);
+  font-style: italic;
+  padding-left: 1rem;
+  border-left: 2px solid var(--ink-soft);
+  color: var(--ink-soft);
+  margin-left: 0;
+}
+
+/* === Horizontal rule === */
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 2rem 0;
+}
+
+/* === Tables === */
+
+table {
+  border-collapse: collapse;
+  max-width: var(--measure);
+  font-size: var(--text-base);
+}
+
+th, td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+
+th {
+  font-family: var(--font-display);
+  font-weight: 600;
+  border-bottom: 2px solid var(--ink-soft);
+}
+
+/* === Math elements (mathML from pandoc --mathml) === */
+
+math {
+  font-family: var(--font-display);
+  font-style: italic;
+}
+
+math[display="block"] {
+  display: block;
+  text-align: center;
+  margin: 1.25rem 0;
+  font-style: normal;
+}
+
+math mi { font-style: italic; }
+math mo { font-family: var(--font-display); font-style: normal; }
+math mn { font-family: var(--font-mono); font-style: normal; }
+
+/* === Forms (none used in v1 but referenced by future site-test) === */
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* === Selection === */
+
+::selection {
+  background: var(--axiom);
+  color: var(--paper);
+}

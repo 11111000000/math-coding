@@ -1,0 +1,12 @@
+task_id: site-design
+title: site-design — 5-accent Cambridge Tract palette with self-hosted fonts
+lifecycle: draft
+substrate: none
+rigor: light
+decision: made
+created: "2026-07-23"
+creator: za
+# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+stable_since: null
+verifier: sh tests/site-test.sh
+depends_on: []

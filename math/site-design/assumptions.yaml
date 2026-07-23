@@ -1,0 +1,49 @@
+task_id: site-design
+assumptions:
+  - id: A1
+    statement: "5 semantic accent colors (axiom/proof/antithesis/synthesis/epistemic) plus paper+ink surfaces are sufficient to express every visual primitive in the convention."
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      Derived from a structural reading of core/spec/axioms.md (7 axioms
+      → 5 semantic instruments grouped by A5 Accounting) and
+      core/theories/curry-howard.md (5 files per packet → 5 columns).
+  - id: A2
+    statement: "Self-hosted Source Serif 4 + JetBrains Mono (~138 KB combined) provides display + mono with sufficient coverage of math-unicode range (U+2200-22FF)."
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+    evidence: |
+      Source Serif 4 SIL OFL license permits redistribution; JetBrains
+      Mono Apache 2.0. Both ship woff2 with broad unicode-range subsets.
+      Until measured: pending verification.
+  - id: A3
+    statement: "Cambridge Tract / Springer LNCS aesthetic fits the convention's tone better than a typical SaaS landing visual."
+    status: agent-inferred
+    epistemology: judgment
+    evidence: |
+      The convention's own prose (math/04-process/decision.md,
+      core/spec/axioms.md) reads as theorem-proof-paradigm. A
+      theorem-proof visual grammar matches its grammar. A marketing
+      aesthetic would demonstrate cognitive dissonance.
+  - id: A4
+    statement: "Container queries + CSS Grid can produce a 5-column packet layout that gracefully collapses to mobile without media queries."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      Container queries (CSS Containment Module Level 3) supported in
+      all major browsers since 2023. CSS Grid (Level 1) universally
+      supported. Implementation will be empirically verified by
+      building /packet.html with sample data and screenshotting at
+      1280px and 375px viewports.
+  - id: A5
+    statement: "Self-hosting fonts via woff2 with unicode-range subsetting satisfies A3 Material Basis (no external CDN) without performance regression."
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.6
+    evidence: |
+      Axiom A3 rejects external CDNs in math/03-material/decision.md.
+      Self-hosting woff2 has been industry standard since ~2018.
+      Performance hypothesis: ~138 KB total / 2 fonts, lazy-loaded
+      after first paint. Will be measured at tests/site-test.sh.

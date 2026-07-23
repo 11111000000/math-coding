@@ -1,0 +1,164 @@
+/* tokens.css — math-coding site design tokens.
+ *
+ * Five semantic accent colors (axiom/proof/antithesis/synthesis/
+ * epistemic) + paper/ink surfaces. Layout primitive: 5-column
+ * packet grid, 1 column mobile. Typography: system serif fallbacks
+ * until Source Serif 4 + JetBrains Mono woff2 are vendored under
+ * a site-fonts-vendoring packet (see KNOWN_LIMITATIONS.md §14).
+ *
+ * No border-radius. No box-shadow. No CDN. See
+ * math/site-design/decision.md for the why.
+ *
+ * prefers-color-scheme + [data-theme] override per axiom A1.
+ */
+
+/* Typography uses system fallbacks until vendored fonts are added.
+ * Once woff2 files are vendored under site/assets/fonts/, the
+ * @font-face declarations below will be uncommented. */
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/fonts/source-serif-4-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/fonts/source-serif-4-italic.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/assets/fonts/source-serif-4-semibold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Source Serif 4";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/assets/fonts/source-serif-4-bold.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/assets/fonts/jetbrains-mono-regular.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/assets/fonts/jetbrains-mono-medium.woff2") format("woff2");
+}
+
+:root {
+  color-scheme: light dark;
+
+  /* === Surfaces (light defaults) === */
+  --paper:           #faf8f3;
+  --paper-elevated:  #f4f1ea;
+  --ink:             #1c1b18;
+  --ink-soft:        #4a4640;
+  --rule:            #d4cfbf;
+
+  /* === Five semantic accents === */
+  --axiom:           #c14b4b;   /* theorem red */
+  --proof:           #2d6a4f;   /* proof green */
+  --antithesis:      #b08500;   /* antithesis gold */
+  --synthesis:       #6b4e9c;   /* synthesis purple */
+  --epistemic:       #1e6091;   /* epistemic teal */
+
+  /* === Utilities === */
+  --link:            #3a6ea5;
+  --link-visited:    #5a4f8a;
+
+  /* === Type === */
+  --font-display:    "Source Serif 4", "Charter", "Iowan Old Style", "Cambria", Georgia, serif;
+  --font-body:       system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono:       "JetBrains Mono", "IBM Plex Mono", "Berkeley Mono", Consolas, monospace;
+
+  --text-xs:         0.8125rem;   /* 13px */
+  --text-base:       1.0625rem;   /* 17px */
+  --text-prose:      1.1875rem;   /* 19px long-form */
+  --text-md:         1.25rem;     /* 20px */
+  --text-lg:         1.5rem;      /* 24px */
+  --text-xl:         1.875rem;    /* 30px */
+  --text-2xl:        2.5rem;      /* 40px */
+
+  --leading-tight:   1.15;
+  --leading-snug:    1.35;
+  --leading-normal:  1.6;
+  --leading-prose:   1.65;
+
+  --measure:         62ch;
+  --max-width:       72rem;
+  --gutter:          2rem;
+  --side-margin:     calc((100% - var(--max-width)) / 2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper:          #1c1b18;
+    --paper-elevated: #25241f;
+    --ink:            #e8e5dd;
+    --ink-soft:       #b0a998;
+    --rule:           #3a3733;
+
+    --axiom:          #d97757;
+    --proof:          #6ba889;
+    --antithesis:     #d4aa44;
+    --synthesis:      #9d83c7;
+    --epistemic:      #6fb0d9;
+
+    --link:           #7eb0db;
+    --link-visited:   #a094cf;
+  }
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --paper:           #faf8f3;
+  --paper-elevated:  #f4f1ea;
+  --ink:             #1c1b18;
+  --ink-soft:        #4a4640;
+  --rule:            #d4cfbf;
+  --axiom:           #c14b4b;
+  --proof:           #2d6a4f;
+  --antithesis:      #b08500;
+  --synthesis:       #6b4e9c;
+  --epistemic:       #1e6091;
+  --link:            #3a6ea5;
+  --link-visited:    #5a4f8a;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:           #1c1b18;
+  --paper-elevated:  #25241f;
+  --ink:             #e8e5dd;
+  --ink-soft:        #b0a998;
+  --rule:            #3a3733;
+  --axiom:           #d97757;
+  --proof:           #2d6a4f;
+  --antithesis:      #b08500;
+  --synthesis:       #6b4e9c;
+  --epistemic:       #1e6091;
+  --link:            #7eb0db;
+  --link-visited:    #a094cf;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001s !important;
+    transition-duration: 0.001s !important;
+  }
+}

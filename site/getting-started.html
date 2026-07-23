@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Install math-coding v0.992 in a project. POSIX shell, plain text, no external dependencies.">
+<title>Get started · math-coding v0.992</title>
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/layout.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+</head>
+<body class="page">
+
+<header class="site-header">
+<div class="site-header__inner">
+<a class="wordmark" href="/">
+<span class="wordmark-name">math-coding</span>
+<span class="wordmark-version">v0.992</span>
+</a>
+<nav class="site-nav">
+<a href="/">home</a>
+<a href="/axioms.html">axioms</a>
+<a href="/packets.html">packets</a>
+<a href="/fsm.html">fsm</a>
+<a href="/getting-started.html" aria-current="page">get started</a>
+<a href="/philosophy.html">philosophy</a>
+<a href="/limitations.html">limitations</a>
+</nav>
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">theme</button>
+</div>
+</header>
+
+<main>
+
+<h1>Get started</h1>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem">Prerequisites</h2>
+
+<p>
+math-coding requires:
+</p>
+
+<ul>
+<li>A POSIX shell (<code>/bin/sh</code>, dash, ash, busybox sh — bash works but is not required).</li>
+<li><code>git</code> for SHA witnesses.</li>
+<li>A text editor.</li>
+</ul>
+
+<p>
+No Node, no Python, no JVM, no package manager. See <a href="/axioms.html#a3-material-basis-substrate">axiom A3</a>.
+</p>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">1. Probe the source repo</h2>
+
+<p>Before installing, verify the convention is internally consistent:</p>
+
+<pre><code>git clone https://github.com/11111000000/math-coding.git
+cd math-coding
+sh math-coding probe</code></pre>
+
+<p>
+This runs 51+ self-tests (axiom A6 in action). If <code>probe</code> exits 0, the convention holds at this commit.
+</p>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">2. Install in a project</h2>
+
+<p>Install into a brownfield project:</p>
+
+<pre><code>sh /path/to/math-coding/math-coding install /path/to/your-project</code></pre>
+
+<p>
+By default <code>.math-coding/</code> is committed to the project. Use <code>--gitignore</code> to opt in to gitignored behavior.
+</p>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">3. Create your first packet</h2>
+
+<p>
+Write the proposition first. A worked example — cache TTL:
+</p>
+
+<pre><code>cat &gt; spec.yaml &lt;&lt;'YAML'
+proposition: |
+  Cache entries expire after 60 seconds, not at user request.
+outcome: |
+  Cache returns fresh entry within 60s of last refresh.
+invariant: |
+  Cache entries never served beyond TTL.
+test: |
+  Insert entry with ts = now - 61s. Read. Expect upstream fetch.
+antithesis: |
+  Manual invalidation may be needed; fixed TTL forces users to wait 60s.
+synthesis: |
+  TTL is fixed at 60s; manual invalidation is a separate endpoint.
+operation: |
+  On read, check entry timestamp. If age > 60s, refresh from upstream.
+YAML
+
+sh math-coding create cache-ttl --from spec.yaml</code></pre>
+
+<p>
+The convention creates <code>math/cache-ttl/</code> with five files. Edit them; commit; apply.
+</p>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">4. Apply, review, verify</h2>
+
+<pre><code>git add math/cache-ttl spec.yaml
+git commit -m "cache-ttl: apply 60s expiration"
+sh math-coding apply cache-ttl --sha=&lt;commit-sha&gt;
+sh math-coding review cache-ttl --approve --note="60s is correct for /cache"
+sh math-coding verify</code></pre>
+
+<p>
+The <code>apply</code> command records the SHA witness (axiom A5). The <code>review</code> command records peer approval. The <code>verify</code> command runs the structural check.
+</p>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">5. The five files</h2>
+
+<div class="packet-grid">
+<div class="packet-grid__cell">
+<p class="packet-grid__label">packet.yaml</p>
+<p>type signature — manifest, lifecycle, applications[]</p>
+</div>
+<div class="packet-grid__cell">
+<p class="packet-grid__label">decision.md</p>
+<p>the proposition — Thesis / Antithesis / Synthesis</p>
+</div>
+<div class="packet-grid__cell">
+<p class="packet-grid__label">task.md</p>
+<p>the goal — Problem / Outcome / Constraints</p>
+</div>
+<div class="packet-grid__cell">
+<p class="packet-grid__label">assumptions.yaml</p>
+<p>context Γ — five epistemic markers, each with evidence</p>
+</div>
+<div class="packet-grid__cell">
+<p class="packet-grid__label">refinement.md</p>
+<p>the elaboration — State / Operation / Invariant / Test</p>
+</div>
+</div>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">6. Read the axioms</h2>
+
+<p>
+The seven axioms are short. Read them in order. They take 30 minutes total and explain why the convention exists.
+</p>
+
+<p><a href="/axioms.html">→ Seven axioms</a></p>
+
+<div class="probe-stamp">built from commit <span id="git-sha-footer">—</span> · axiom A6 self-application</div>
+
+</main>
+
+<footer class="site-footer">
+<div class="site-footer__inner">
+<div>
+<h4>math-coding</h4>
+<ul>
+<li>v0.992 · Living Beings License</li>
+<li><a href="https://github.com/11111000000/math-coding">source repo</a></li>
+</ul>
+</div>
+<div>
+<h4>convention</h4>
+<ul>
+<li><a href="/axioms.html">seven axioms</a></li>
+<li><a href="/fsm.html">lifecycle FSM</a></li>
+<li><a href="/limitations.html">known limitations</a></li>
+</ul>
+</div>
+</div>
+</footer>
+
+<script type="module" src="/assets/js/main.mjs"></script>
+</body>
+</html>

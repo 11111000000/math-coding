@@ -307,3 +307,30 @@ governance:
 **protocol for honest agents**, not a **shield against
 dishonest ones**. Treat v0.991 as raising the floor for
 honest agents, not as security.
+
+## 14. Vendored fonts not yet shipped with site (v0.992+)
+
+**Limitation.** Site CSS at `site/assets/css/tokens.css`
+declares `@font-face` rules referencing Source Serif 4 and
+JetBrains Mono woff2 files at `site/assets/fonts/`. As of
+v0.992, those woff2 files are not vendored in this
+repository, so browsers fall back to system serif/mono
+fonts until a follow-up packet adds the font assets.
+
+**Why.** Vendoring ~138 KB of binary font assets requires
+a packet proposal with explicit license verification (both
+Source Serif 4 SIL OFL and JetBrains Mono Apache 2.0 allow
+redistribution, but the packet must record the verification
+as an axiom A5 epistemic marker with evidence).
+
+**Workaround.** Browsers fall back to system fonts
+(`Charter, Iowan Old Style, Cambria` for serif; system
+mono for code). Visual identity is recognisably Cambridge
+Tract but slightly different. Until vendoring completes,
+the site-test invariant "no CDN references" still holds —
+fonts are *absent*, not *external*.
+
+**Status.** Tracked under `math/site-design/` packet.
+Once woff2 files are vendored under a `site-fonts-vendoring`
+packet, the limitation should move to its own packet and
+be retired.
