@@ -1399,6 +1399,11 @@ if [ -d "$REPO_ROOT/site" ]; then
         else
             log_fail "site (pure-fp)" "see node --test output"
         fi
+        if node --test "$REPO_ROOT/tests/math-prettify.test.mjs" >/dev/null 2>&1; then
+            log_pass "site (math-prettify)"
+        else
+            log_fail "site (math-prettify)" "see node --test output"
+        fi
     fi
 fi
 

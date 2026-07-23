@@ -16,6 +16,7 @@ import {
   readFilterFromSearch,
 } from './pure/filter.mjs';
 import { renderPacketCard, renderFilterCount } from './pure/render.mjs';
+import { prettifyMathBlocks } from './math-prettify.mjs';
 
 // === Side effect 1: theme setup (one attribute mutation) ===
 setupTheme();
@@ -30,6 +31,11 @@ shaStamps.forEach(el => {
   const match = html.match(/<!--BUILT-SHA:([a-f0-9]+)-->/);
   if (match) el.textContent = match[1];
 });
+
+// === Side effect 2b: prettify math notation blocks ===
+// Detects math-y <pre> blocks (theorem-box context + unicode signals)
+// and adds .pre-math class. CSS renders them as displayed equations.
+prettifyMathBlocks(document);
 
 // === Side effect 3: /packets.html live-filter wiring ===
 const grid = document.getElementById('packets-grid');

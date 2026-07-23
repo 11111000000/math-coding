@@ -127,6 +127,56 @@ pre code {
   background: transparent;
 }
 
+/* === Math-y <pre> blocks (formal notation) ===
+   Detected by math-prettify.mjs (DOM-side heuristic).
+   Renders as displayed-equation: serif, centered, breathing
+   room, but content remains plain text (grep-able, copy-pasteable). */
+
+.pre-math {
+  font-family: var(--font-display);
+  font-style: italic;
+  text-align: center;
+  padding: 1.5rem 2rem;
+  background: var(--paper-elevated);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--axiom);
+  font-size: var(--text-md);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  color: var(--ink);
+  overflow-x: auto;
+}
+
+.pre-math code {
+  font-family: inherit;
+  font-style: inherit;
+  font-weight: inherit;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+/* === Inline math-y <code> (e.g., inside theorem-box) ===
+   Same heuristic as .pre-math but doesn't break the flow. */
+
+.code-math {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95em;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--ink);
+}
+
+.code-math::before,
+.code-math::after {
+  /* Re-paint spaces around inline math for better separation. */
+  content: " ";
+  white-space: pre;
+}
+
 /* === Blockquote === */
 
 blockquote {
