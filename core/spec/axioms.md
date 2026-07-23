@@ -109,7 +109,7 @@ s₀ = draft
 I(s) = invariant for state s:
     I(draft)     = 5 files exist
     I(applied)   = 5 files + implementation=complete
-                   + ≥1 SHA in applications[]
+                   + ≥1 SHA in witness
                    + ≥1 approve review
     I(retired)   = lifecycle field set
     I(abandoned) = lifecycle field set
@@ -117,8 +117,8 @@ I(s) = invariant for state s:
 
 **Why it matters**: the lifecycle FSM forbids skipping
 states. `applied` cannot be reached without a SHA witness
-(axiom A4 forbids it; the verifier enforces it via
-`applications[]`). axiom A5 (Accounting) requires the
+(axiom A4 forbids it; the verifier enforces it via the
+witness file). axiom A5 (Accounting) requires the
 witness to be a real commit.
 
 **Packet**: `math/04-process/`

@@ -1,0 +1,52 @@
+task_id: site-build
+assumptions:
+  - id: A1
+    statement: "POSIX shell + pandoc + yq + sed/awk is sufficient to produce a static documentation site without a JS framework runtime."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.9
+    evidence: |
+      pandoc is on `ubuntu-latest` GitHub runner by default and on
+      Debian Sid. yq is also available via apt-get. POSIX shell
+      is axiomatic for math-coding (axiom A3 in math/03-material/).
+  - id: A2
+    statement: "MathML output of pandoc --mathml renders natively in all major browsers without JS dependencies for our math notation (Unicode symbols, set notation, type signatures)."
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+    evidence: |
+      W3C MathML is the closest equivalent to LaTeX math typesetting
+      for HTML. Browser support varies (Chrome ~95%, Firefox ~95%,
+      Safari ~85% per MDN caniuse). For math-coding's existing math
+      (no LaTeX, only Unicode in <pre>), this is plenty. If we later
+      add LaTeX, fallback may be needed.
+  - id: A3
+    statement: "GitHub Pages with actions/deploy-pages@v4 deploys a gh-pages-compatible directory artifact."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      GitHub official docs: actions/deploy-pages@v4 takes a Pages
+      artifact from actions/upload-pages-artifact@v3 and deploys
+      to *.github.io/<repo>/ by default. Standard CI capability,
+      available since 2022.
+  - id: A4
+    statement: "Total CI runtime (apt-get install pandoc yq + shell build + tests + Pages deploy) stays under 3 minutes."
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.5
+    evidence: |
+      apt-get install for 2 small packages: ~30 sec. POSIX shell
+      build for ~25 packet HTMLs: ~5 sec estimated. Node tests
+      for pure-fp: ~5 sec. actions/deploy-pages: ~30 sec typical.
+      Total: ~1-2 minutes. Will be measured after first run.
+  - id: A5
+    statement: "Site-test shell script can verify every A3 claim about site/ via grep+find without requiring a JS test runner."
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      Every A3 claim is a structural property checkable by grep:
+      "no .png in site/", "no src=https:// outside fonts/". These
+      can be expressed as one-line sh -c pipelines. Pure-FP tests
+      go through node --test separately (ci-only, NOT runtime).

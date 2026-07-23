@@ -25,7 +25,7 @@ discipline of the convention.
 6. **Write the code** in `src/`, `lib/`, or wherever the
    project's own convention dictates.
 
-7. **Record the witness** in `packet.yaml:applications[]`.
+7. **Record the witness** in `math/<name>/witness`.
    The git SHA of the commit, the files that implement the
    packet, the date, the author.
 
@@ -39,11 +39,11 @@ discipline of the convention.
 - **Code before packet.** Writing code without a proposition
   is vibe-coding. axiom Process forbids it.
 
-- **Skip `working`.** A packet may not move from `sketch` to
-  `verified` directly. axiom Process forbids it.
+- **Skip `applied`.** A packet may not move from `draft` to
+  `retired` without passing through `applied`. axiom Process forbids it.
 
-- **Verify without witness.** A `verified` packet without
-  `applications[]` SHA is a lie. axiom Process enforces it.
+- **Apply without witness.** An `applied` packet without a
+  witness SHA is a lie. axiom Process enforces it.
 
 ## Anti-patterns
 
@@ -53,8 +53,8 @@ discipline of the convention.
 - **Unmarked assumptions.** Every claim has a marker. axiom Accounting
   enforces it.
 
-- **Drift after witness.** A `applications[].sha` that no
-  longer matches the file is a stale witness. axiom Self-Application
+- **Drift after witness.** A witness SHA that no longer
+  resolves in git is a stale witness. axiom Self-Application
   detects it.
 
 ## What `think-before-do` is NOT

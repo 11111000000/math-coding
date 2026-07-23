@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="math-coding v0.992 — a convention where every non-trivial decision is a proof term, not a commit message. Plain text. Git. POSIX. Seven axioms.">
+<title>math-coding v0.992 — a convention for AI coding agents</title>
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/layout.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+</head>
+<body class="page">
+
+<header class="site-header">
+<div class="site-header__inner">
+<a class="wordmark" href="/">
+<span class="wordmark-name">math-coding</span>
+<span class="wordmark-version">v0.992</span>
+</a>
+<nav class="site-nav">
+<a href="/axioms.html">axioms</a>
+<a href="/packets.html">packets</a>
+<a href="/fsm.html">fsm</a>
+<a href="/getting-started.html">get started</a>
+<a href="/philosophy.html">philosophy</a>
+<a href="/limitations.html">limitations</a>
+</nav>
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">theme</button>
+</div>
+</header>
+
+<main>
+
+<section class="hero">
+<h1>math-coding v0.992</h1>
+<p>A convention where every non-trivial decision is a proof term — five plain-text files carrying the proposition, the antithesis, and the synthesis. The verifier is a type-check. The convention applies to itself.</p>
+<p style="color: var(--ink-soft); margin-top: 1.5rem">plain text. git. POSIX. seven axioms.</p>
+<div class="hero__cta">
+<a href="/axioms.html">read the axioms →</a>
+<a href="/packets.html">browse <!--PACKET_COUNT--> packets →</a>
+<a href="/getting-started.html">install →</a>
+</div>
+<div class="hero__proof">
+<span class="hero__proof-line">$ sh math-coding probe</span>
+<span class="hero__proof-line" style="color: var(--proof)">exit 0  ⟺  the convention is internally consistent</span>
+<span class="hero__proof-line" style="color: var(--ink-soft); margin-top: 0.5rem">built from commit <span id="git-sha">—</span> · axiom Self-Application holds</span>
+</div>
+</section>
+
+<section style="margin-top: 4rem">
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem">Why</h2>
+<p>
+<code>def add(a, b)</code> is correct in arithmetic and wrong in string concatenation.
+The proposition must come from somewhere, and that somewhere is <code>decision.md</code>,
+separate from the code.
+</p>
+<p><a href="/philosophy.html">Why this matters →</a></p>
+</section>
+
+<section style="margin-top: 3rem">
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem">What it is, what it is not</h2>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:1rem">
+<div style="border:1px solid var(--rule);padding:1rem;background:var(--paper)">
+<h3 style="margin-top:0">What it is</h3>
+<ul>
+<li>A convention for AI coding agents that documents decisions as proof terms.</li>
+<li>A formal grammar of decision-making, not a workflow for committing code.</li>
+<li>Plain-text: <code>.md</code>, <code>.yaml</code>, <code>.sh</code>. Always.</li>
+</ul>
+</div>
+<div style="border:1px solid var(--rule);padding:1rem;background:var(--paper)">
+<h3 style="margin-top:0">What it is not</h3>
+<ul>
+<li>Not a framework. Not a test runner. Not a governance tool for non-AI commits.</li>
+<li>Not a substitute for human review on adversarial work.</li>
+<li>Not magic. It is a protocol for honest agents, not a shield against dishonest ones.</li>
+</ul>
+</div>
+<div style="border:1px solid var(--rule);padding:1rem;background:var(--paper)">
+<h3 style="margin-top:0">When not to use</h3>
+<ul>
+<li>Typos, renames, format fixes, dep bumps within minor version.</li>
+<li>Throwaway scripts and demo codebases.</li>
+<li>If you cannot commit the decision-grammar to your repository.</li>
+</ul>
+<p style="margin-bottom:0"><a href="/limitations.html">full list →</a></p>
+</div>
+</div>
+</section>
+
+<section style="margin-top: 3rem">
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem">Seven axioms</h2>
+<p>Each axiom is a formal proposition, grounded as a packet under <code>math/&lt;NN-name&gt;/</code>.</p>
+<table style="width: auto; margin: 1.5rem 0; border-collapse: collapse;">
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A0</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Difference</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">ontological</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A1</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Care</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">motivational</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A2</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Curry-Howard</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">structural</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A3</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Material Basis</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">substrate</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A4</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Process</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">temporal</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A5</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Accounting</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">epistemic</td></tr>
+<tr><td style="padding: 0.4rem 1.5rem 0.4rem 0; font-family: var(--font-display); font-weight: 600; color: var(--axiom);">A6</td><td style="padding: 0.4rem 1.5rem 0.4rem 0;">Self-Application</td><td style="padding: 0.4rem 0; font-family: var(--font-mono); font-size: var(--text-xs); color: var(--ink-soft);">meta</td></tr>
+</table>
+<p><a href="/axioms.html">full axiom statements →</a></p>
+</section>
+
+<div class="probe-stamp">built from commit <span id="git-sha-footer">—</span> · axiom A6 self-application</div>
+
+</main>
+
+<footer class="site-footer">
+<div class="site-footer__inner">
+<div>
+<h4>math-coding</h4>
+<ul>
+<li>v0.992 · Living Beings License</li>
+<li><a href="https://github.com/11111000000/math-coding">source repo</a></li>
+</ul>
+</div>
+<div>
+<h4>convention</h4>
+<ul>
+<li><a href="/axioms.html">seven axioms</a></li>
+<li><a href="/fsm.html">lifecycle FSM</a></li>
+<li><a href="/limitations.html">known limitations</a></li>
+</ul>
+</div>
+<div>
+<h4>project</h4>
+<ul>
+<li><a href="/packets.html">all packets</a></li>
+<li><a href="/getting-started.html">install</a></li>
+<li><a href="/philosophy.html">philosophy</a></li>
+</ul>
+</div>
+</div>
+</footer>
+
+<script type="module" src="/assets/js/main.mjs"></script>
+</body>
+</html>

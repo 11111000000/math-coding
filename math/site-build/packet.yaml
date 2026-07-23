@@ -1,0 +1,23 @@
+task_id: site-build
+title: site-build — POSIX shell pipeline + pandoc + Pages deploy
+lifecycle: applied
+implementation: complete
+substrate: shell
+rigor: proof
+decision: made
+created: "2026-07-23"
+creator: za
+single_author: true
+verified_by: [math-coding-bot, agent]
+# stable_since: opt-in. Run 'math-coding stable <name>' to set.
+stable_since: null
+verifier: sh tests/site-test.sh
+depends_on:
+  - site-design
+reviews:
+  - by: agent-self
+    date: "2026-07-23"
+    verdict: approve
+    note: |
+      site-test.sh passes; pure-fp node --test passes;
+      axiom A6 self-application holds at b591118.

@@ -1,0 +1,68 @@
+name: site-build
+
+# Builds and deploys the math-coding documentation site.
+# Triggered on every push to main after packets merged.
+#
+# axiom A6 (Self-Application): site-test.sh runs before deploy.
+# axiom A3 (Material Basis): no JS-framework, no CDN.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Don't run concurrently — prevents partial deploys.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    name: build + verify site (axiom A6 self-application)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install minimal POSIX + pandoc + node
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git dash pandoc
+          # node is needed only for `node --test` of pure-fp modules.
+
+      - name: Probe convention first (axiom A6 self-application)
+        run: sh math-coding probe
+
+      - name: Run site self-test (structure only — pre-build)
+        run: sh tests/site-test.sh
+        env:
+          DIST_REQUIRED: "no"
+
+      - name: Run pure-FP tests (node --test, ci-only)
+        run: node --test tests/pure-fp.test.mjs
+
+      - name: Build the site (POSIX shell + pandoc + awk)
+        run: sh meta/site-build.sh
+
+      - name: Run site self-test (post-build, manifest + SHAs verified)
+        run: sh tests/site-test.sh
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/
+
+  deploy:
+    name: deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

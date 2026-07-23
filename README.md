@@ -23,7 +23,7 @@ Read `core/spec/axioms.md` for the full statement.
 
 Mandatory:
 
-  packet.yaml      manifest + lifecycle + applications[]
+  packet.yaml      manifest + lifecycle + reviews[]
   decision.md      proposition (thesis / antithesis / synthesis)
   refinement.md    state / operation / invariant / test
 
@@ -38,7 +38,7 @@ Each packet lives under `math/<name>/`.
 
   light    commit message only
   standard full packet (3 mandatory + 2 generated)
-  strict   packet + theory link + applications[] + surface impact
+  strict   packet + theory link + witness + surface impact
 
 ## Lifecycle
 
@@ -52,8 +52,8 @@ Side states:
   archived    (retired packet moved to `math/archived/`)
   superseded  (replaced by a new packet)
 
-`applied` requires at least one SHA witness in
-`packet.yaml:applications[]` and at least one approving review.
+`applied` requires at least one SHA in `math/<name>/witness`
+and at least one approving review.
 
 ## Five epistemic markers
 
@@ -87,7 +87,7 @@ Side states:
   sh math-coding archive <name> [--confirm]
                               Move retired packet to `math/archived/`.
   sh math-coding verify       Run structural checks.
-  sh math-coding drift-check  Check applications[] SHA vs HEAD.
+  sh math-coding drift-check  Check witness SHAs against git history.
   sh math-coding probe        Run axiom Self-Application checks.
   sh math-coding install <path> [--gitignore]
                               Install into a brownfield project.

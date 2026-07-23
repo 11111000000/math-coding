@@ -53,7 +53,7 @@ Your trace is your proof term. Your type-checker is
 
 Mandatory files:
 
-  packet.yaml       manifest, lifecycle, applications[]
+  packet.yaml       manifest, lifecycle, reviews[]
   decision.md       proposition (thesis / antithesis / synthesis)
   refinement.md     state / operation / invariant / test
 
@@ -83,7 +83,7 @@ Side states:
   superseded  replaced by a new packet
 
 `applied` requires:
-  - at least one SHA in `packet.yaml:applications[]`
+  - at least one SHA in `math/<name>/witness`
   - at least one approving review (verifier enforces this)
 
 ### Five verdict outcomes
@@ -204,8 +204,7 @@ Test:
 A good surface impact is **specific**, not generic:
 
 Good: "touches: 5 epistemic markers (assumptions.yaml:epistemology),
-SHA witness (packet.yaml:applications[].sha), 5 verdict
-outcomes (verifier stdout)"
+SHA witness (math/<name>/witness), 5 verdict outcomes (verifier stdout)"
 
 Bad: "touches: convention's foundation [FROZEN]"
 
@@ -257,28 +256,22 @@ supersession: math/cache-ttl/
 The old packet's lifecycle becomes `retired`. The new
 packet becomes the source of truth.
 
-### applications[] witness
+### witness file
 
-Every packet that moves to `applied` must have at least
-one entry in `packet.yaml:applications[]`:
+Every packet that moves to `applied` must have a witness
+file at `math/<name>/witness` — a single line containing
+the git SHA of the commit that realises the packet:
 
-```yaml
-applications:
-  - sha: abc123def456
-    by: agent
-    date: "2026-07-15"
-    pressure: feature
-    files:
-      - src/cache.py
+```
+b59111803f7a56f236e7746fea813611eaa2e624
 ```
 
 The SHA is a real commit. `git cat-file -e <sha>` succeeds.
-The files are what the commit changed. The witness is
-concrete, not symbolic.
+The witness is concrete, not symbolic.
 
-The axiom packets themselves carry applications[] entries
-(axiom Accounting applied to itself). The drift-check
-reports `applied: 8, lookahead: 0, drift: 0` against this
+Axiom packets also carry witness entries (axiom Accounting
+applied to itself). The drift-check reports the count of
+applied packets and any stale witnesses against this
 repository.
 
 ## Commands

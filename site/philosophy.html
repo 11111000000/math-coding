@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="The philosophy of math-coding v0.992 — why the convention exists, what it asks of developers and agents, what it refuses to be.">
+<title>Philosophy · math-coding v0.992</title>
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/base.css">
+<link rel="stylesheet" href="/assets/css/layout.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+</head>
+<body class="page">
+
+<header class="site-header">
+<div class="site-header__inner">
+<a class="wordmark" href="/">
+<span class="wordmark-name">math-coding</span>
+<span class="wordmark-version">v0.992</span>
+</a>
+<nav class="site-nav">
+<a href="/">home</a>
+<a href="/axioms.html">axioms</a>
+<a href="/packets.html">packets</a>
+<a href="/fsm.html">fsm</a>
+<a href="/getting-started.html">get started</a>
+<a href="/philosophy.html" aria-current="page">philosophy</a>
+<a href="/limitations.html">limitations</a>
+</nav>
+<button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">theme</button>
+</div>
+</header>
+
+<main>
+
+<h1>Philosophy</h1>
+
+<div class="theorem-box">
+<p class="theorem-box__label">statement</p>
+<p class="theorem-box__body">
+A convention that documents every non-trivial decision as a proof term, applied to itself.
+</p>
+</div>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem">Why</h2>
+
+<p>
+The AI-coding-agent era has a problem that commit messages cannot solve. After enough time, even a careful author cannot recall <em>why</em> a particular implementation was chosen. Six months later, the commit message says <code>fix: handle null case</code>. The proposition — <em>what null-cases we accept, what null-cases we reject, why the line is drawn here</em> — is gone. The agent that wrote it does not remember. The reviewer does not remember. Nobody does.
+</p>
+
+<p>
+math-coding is the response: write the proposition <em>before</em> the implementation, in plain text, alongside the code. Five files per decision. They survive git, grep, and the test of time.
+</p>
+
+<div class="antithesis-box">
+<p class="antithesis-box__label">antithesis</p>
+<p class="antithesis-box__body">
+This could be ceremony without signal. If a team creates packets for every commit — typo, dependency bump, rename — the convention becomes noise, and the packets that <em>actually</em> matter get lost in the volume. A convention that demands everything demands nothing.
+</p>
+</div>
+
+<div class="synthesis-box">
+<p class="synthesis-box__label">synthesis</p>
+<p class="synthesis-box__body">
+math-coding refuses to be ceremony. Three modes exist precisely so trivial changes can stay trivial: <code>light</code> writes a commit message; <code>standard</code> writes the full 5-file packet; <code>strict</code> adds theory links and surface impact. The question is not "should I create a packet?" but "is this decision-class?" The decision-class test is simple:
+</p>
+<p style="margin-top: 1rem">
+<strong>Would I be surprised to see this in 6 months?</strong> If yes, write a packet.
+</p>
+</div>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">What we refuse to be</h2>
+
+<p>
+The quick summary lives on the home page. Below: what each of
+those <em>means</em> in practice.
+</p>
+
+<ul>
+<li><strong>Not a framework.</strong> There is no CLI to install, no runtime, no opinion about language or stack. The conventions are plain text. The agent reads them.</li>
+<li><strong>Not a test runner.</strong> The verifier checks structure, not behavior. Behavioral tests belong in your project's own CI.</li>
+<li><strong>Not a governance tool.</strong> math-coding cannot enforce anything in a project that has not adopted it. It makes promises to its own adopters only.</li>
+<li><strong>Not a shield against dishonest agents.</strong> This is the point that needs more than a bullet. The convention operates on <em>outputs</em>, not on the LLM's internal state. An adversarial model can mark a speculation as <code>fact</code>, submit <code>--approve</code> without reading the criteria, or skip self-critique entirely. The convention cannot detect what the agent thought — only what it wrote. Treat epistemic honesty as a <em>protocol for honest agents</em>: it raises the floor for those who want to do good work, it does not raise the ceiling against those who want to game it. External governance — human review, sampling audits, restricted compute — remains the only real defense.</li>
+</ul>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">The substrate</h2>
+
+<p>
+<a href="/axioms.html#a3-material-basis-substrate">axiom A3 (Material Basis)</a> declares that the convention lives in plain text, in git, and runs on POSIX shell. This is not a passing preference. Plain text (1960s), git (2005), and POSIX (1988) are older than most projects that will adopt math-coding. They will outlive it.
+</p>
+
+<p>
+A convention that depends on a language, framework, IDE, or vendor outlives its usefulness only as long as that substrate survives. We refuse to make the convention a hostage of fashion. <code>core/</code> scripts run on dash, ash, busybox sh — not bash, not Python, not Node.
+</p>
+
+<h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">Self-application</h2>
+
+<p>
+The seventh axiom declares that the convention applies to itself. Every axiom above is realised as a packet under <code>math/</code>. The verifier that checks those packets is itself the subject of a packet. <code>sh math-coding probe</code> exits 0 ⟺ the convention is internally consistent.
+</p>
+
+<p>
+This is a strong claim. Most conventions cannot verify themselves; they rely on a maintainer's judgment, and when the maintainer leaves, the convention rots in silence. math-coding's self-application closes that loop. The convention observes its own drift. The convention records that observation.
+</p>
+
+<div class="probe-stamp">built from commit <span id="git-sha-footer">—</span> · axiom A6 self-application</div>
+
+</main>
+
+<footer class="site-footer">
+<div class="site-footer__inner">
+<div>
+<h4>math-coding</h4>
+<ul>
+<li>v0.992 · Living Beings License</li>
+<li><a href="https://github.com/11111000000/math-coding">source repo</a></li>
+</ul>
+</div>
+<div>
+<h4>convention</h4>
+<ul>
+<li><a href="/axioms.html">seven axioms</a></li>
+<li><a href="/fsm.html">lifecycle FSM</a></li>
+<li><a href="/limitations.html">known limitations</a></li>
+</ul>
+</div>
+</div>
+</footer>
+
+<script type="module" src="/assets/js/main.mjs"></script>
+</body>
+</html>
