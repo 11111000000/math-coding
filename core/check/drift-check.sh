@@ -64,9 +64,13 @@ for pkt_dir in "$MATH_DIR"/*/; do
         # Check that packet's files have not drifted since the
         # last (most recent) SHA. Witness file is append-only;
         # new applies append. Drift = changes since last witness SHA.
+        # Note: we exclude the witness file itself from drift
+        # detection — the witness records its own changes.
         last_sha=$(printf '%s\n' "$shas" | tail -1)
         if [ "$sha" = "$last_sha" ]; then
-            if ! git -C "$REPO_ROOT" diff --quiet "$sha"..HEAD -- "$pkt_dir/" 2>/dev/null; then
+            if ! git -C "$REPO_ROOT" diff --quiet \
+                "$sha"..HEAD -- "$pkt_dir/" \
+                ":(exclude)$pkt_dir/witness" 2>/dev/null; then
                 echo "DRIFT: $pkt_name witness $sha stale in packet files" >&2
                 echo "drift"
                 continue
