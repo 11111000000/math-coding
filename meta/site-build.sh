@@ -52,6 +52,11 @@ yaml_applications_sha() {
 }
 
 # Get array value (e.g. depends_on) as space-separated list.
+# Handles two YAML formats:
+#   1. inline: depends_on: [a, b, c]
+#   2. block:  depends_on:
+#                - a
+#                - b
 yaml_array() {
     _ya_file="$1"
     _ya_key="$2"
@@ -59,6 +64,7 @@ yaml_array() {
         $0 ~ k {
             sub(k, "")
             sub(/^[[:space:]]+/, "")
+            # Format 1: inline [a, b, c]
             if ($0 ~ /^\[/ && $0 ~ /\]$/) {
                 sub(/^\[/, "")
                 sub(/\]$/, "")
@@ -67,7 +73,26 @@ yaml_array() {
                 print
                 exit
             }
-            if ($0 == "") exit
+            # Format 2: empty value, list items follow on next lines
+            if ($0 == "") {
+                while ((getline line) > 0) {
+                    if (line ~ /^[[:space:]]*-[[:space:]]*/) {
+                        # strip leading "  - " or "- "
+                        sub(/^[[:space:]]*-[[:space:]]*/, "", line)
+                        gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+                        gsub(/^["'\''"]|["'\''"]$/, "", line)
+                        if (items == "") items = line
+                        else items = items " " line
+                        continue
+                    }
+                    if (items != "") { print items; exit }
+                    # Empty line or non-list line — stop.
+                    exit
+                }
+                if (items != "") { print items; exit }
+                exit
+            }
+            exit
         }
     ' "$_ya_file"
 }
@@ -385,6 +410,18 @@ for d in "$REPO_ROOT/math"/*; do
     manifest_lifecycle="$lifecycle"
     manifest_axiom="$axiom"
     manifest_sha="${apps_sha:-}"
+    # JSON-encode depends_on as an array of strings.
+    deps_json="[]"
+    if [ -n "$depends_on_list" ]; then
+        deps_json="["
+        first=1
+        for d in $depends_on_list; do
+            if [ $first -eq 0 ]; then deps_json="${deps_json},"; fi
+            deps_json="${deps_json}\"$d\""
+            first=0
+        done
+        deps_json="${deps_json}]"
+    fi
     cat >> "$manifest.tmp" <<JSON
 {
   "id": "$manifest_id",
@@ -392,7 +429,7 @@ for d in "$REPO_ROOT/math"/*; do
   "lifecycle": "$manifest_lifecycle",
   "axiom": "$manifest_axiom",
   "lastSha": "$manifest_sha",
-  "depends_on": "$(echo "$depends_on_list" | tr ' ' ',')",
+  "depends_on": $deps_json,
   "url": "/packets/$manifest_id/"
 }
 JSON

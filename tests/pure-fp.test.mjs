@@ -36,13 +36,24 @@ test('filterPackets returns input unchanged with empty spec', () => {
   assert.deepEqual(filterPackets(ps, {}), ps);
 });
 
-test('filterPackets filters by axiom', () => {
+test('filterPackets filters by depends_on (axiom packet reference)', () => {
   const ps = [
-    { id: 'a', title: 'A', axiom: 'A0' },
-    { id: 'b', title: 'B', axiom: 'A1' },
+    { id: '00-difference', depends_on: [] },
+    { id: '01-care',      depends_on: ['00-difference'] },
+    { id: '02-curry-howard', depends_on: ['00-difference', '01-care'] },
+    { id: 'some-pkt',    depends_on: ['03-material'] },
   ];
-  const out = filterPackets(ps, { axiom: 'A0' });
-  assert.deepEqual(out.map(p => p.id), ['a']);
+  // Filter by 00-difference: axiom itself + any packet with depends_on
+  const out = filterPackets(ps, { deps: '00-difference' });
+  assert.deepEqual(out.map(p => p.id).sort(), ['00-difference', '01-care', '02-curry-howard']);
+});
+
+test('filterPackets with no deps filter returns input unchanged', () => {
+  const ps = [
+    { id: 'a', depends_on: ['x'] },
+    { id: 'b', depends_on: ['y'] },
+  ];
+  assert.deepEqual(filterPackets(ps, { deps: null }), ps);
 });
 
 test('filterPackets filters by lifecycle', () => {
@@ -66,18 +77,19 @@ test('filterPackets searches case-insensitive over title + id', () => {
 
 test('filterPackets composes filters (AND semantics)', () => {
   const ps = [
-    { id: 'a', axiom: 'A0', lifecycle: 'applied', title: 'X' },
-    { id: 'b', axiom: 'A0', lifecycle: 'draft',   title: 'X' },
-    { id: 'c', axiom: 'A1', lifecycle: 'applied', title: 'X' },
+    { id: 'a', depends_on: ['00-difference'], lifecycle: 'applied', title: 'X' },
+    { id: 'b', depends_on: ['00-difference'], lifecycle: 'draft',   title: 'X' },
+    { id: 'c', depends_on: ['01-care'],       lifecycle: 'applied', title: 'X' },
   ];
-  const out = filterPackets(ps, { axiom: 'A0', lifecycle: 'applied' });
+  const out = filterPackets(ps, { deps: '00-difference', lifecycle: 'applied' });
   assert.deepEqual(out.map(p => p.id), ['a']);
 });
 
 test('filterPackets defends against missing fields', () => {
-  const ps = [{ id: 'a' }, { id: 'b', axiom: 'A0' }];
-  assert.deepEqual(filterPackets(ps, { axiom: 'A0' }).map(p => p.id), ['b']);
+  const ps = [{ id: 'a' }, { id: 'b', depends_on: ['00-difference'] }];
+  assert.deepEqual(filterPackets(ps, { deps: '00-difference' }).map(p => p.id), ['b']);
   assert.deepEqual(filterPackets(ps, {}), ps);
+  assert.deepEqual(filterPackets(ps, { deps: '' }), ps);
 });
 
 // === sortPackets ===
@@ -105,12 +117,12 @@ test('groupByLifecycle keys by lifecycle', () => {
 
 // === readFilterFromSearch ===
 test('readFilterFromSearch parses URLSearchParams', () => {
-  assert.deepEqual(readFilterFromSearch('?axiom=A0&lifecycle=applied&q=cache'),
-    { axiom: 'A0', lifecycle: 'applied', q: 'cache' });
+  assert.deepEqual(readFilterFromSearch('?deps=00-difference&lifecycle=applied&q=cache'),
+    { deps: '00-difference', lifecycle: 'applied', q: 'cache' });
   assert.deepEqual(readFilterFromSearch(''),
-    { axiom: null, lifecycle: null, q: '' });
+    { deps: null, lifecycle: null, q: '' });
   assert.deepEqual(readFilterFromSearch('?q='),
-    { axiom: null, lifecycle: null, q: '' });
+    { deps: null, lifecycle: null, q: '' });
 });
 
 // === renderPacketCard (XSS-safe by escapeHtml layer) ===

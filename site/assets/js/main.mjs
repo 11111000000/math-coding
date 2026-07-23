@@ -59,14 +59,14 @@ async function wirePacketsPage(gridEl) {
     return;
   }
 
-  const axiomSel    = document.getElementById('filter-axiom');
+  const depsSel     = document.getElementById('filter-deps');
   const lifecycleSel = document.getElementById('filter-lifecycle');
   const qInput      = document.getElementById('filter-q');
   const countEl     = document.getElementById('filter-count');
 
   const render = () => {
     const filter = readFilterFromSearch(URLSearchParams_toSearchString({
-      axiom: axiomSel ? axiomSel.value : '',
+      deps: depsSel ? depsSel.value : '',
       lifecycle: lifecycleSel ? lifecycleSel.value : '',
       q: qInput ? qInput.value : '',
     }));
@@ -82,7 +82,7 @@ async function wirePacketsPage(gridEl) {
 
     // Update browser URL (no navigation) so the filter state is shareable.
     const search = [];
-    if (filter.axiom)     search.push('axiom=' + encodeURIComponent(filter.axiom));
+    if (filter.deps)      search.push('deps=' + encodeURIComponent(filter.deps));
     if (filter.lifecycle) search.push('lifecycle=' + encodeURIComponent(filter.lifecycle));
     if (filter.q)         search.push('q=' + encodeURIComponent(filter.q));
     const qs = search.length ? '?' + search.join('&') : '';
@@ -91,9 +91,9 @@ async function wirePacketsPage(gridEl) {
     }
   };
 
-  if (axiomSel)    axiomSel.addEventListener('change', render);
+  if (depsSel)      depsSel.addEventListener('change', render);
   if (lifecycleSel) lifecycleSel.addEventListener('change', render);
-  if (qInput)      qInput.addEventListener('input', () => {
+  if (qInput)       qInput.addEventListener('input', () => {
     // small debounce for typing
     clearTimeout(qInput._t);
     qInput._t = setTimeout(render, 80);
@@ -101,17 +101,17 @@ async function wirePacketsPage(gridEl) {
 
   // initial render with URL search applied
   const urlFilter = readFilterFromSearch(location.search);
-  if (axiomSel    && urlFilter.axiom)     axiomSel.value = urlFilter.axiom;
-  if (lifecycleSel && urlFilter.lifecycle) lifecycleSel.value = urlFilter.lifecycle;
-  if (qInput      && urlFilter.q)         qInput.value = urlFilter.q;
+  if (depsSel       && urlFilter.deps)      depsSel.value = urlFilter.deps;
+  if (lifecycleSel  && urlFilter.lifecycle) lifecycleSel.value = urlFilter.lifecycle;
+  if (qInput        && urlFilter.q)         qInput.value = urlFilter.q;
 
   render();
 }
 
-// helper: parse object {axiom, lifecycle, q} into ?axiom=...&lifecycle=...&q=...
+// helper: parse object {deps, lifecycle, q} into ?deps=...&lifecycle=...&q=...
 function URLSearchParams_toSearchString(obj) {
   const params = new URLSearchParams();
-  if (obj.axiom) params.set('axiom', obj.axiom);
+  if (obj.deps) params.set('deps', obj.deps);
   if (obj.lifecycle) params.set('lifecycle', obj.lifecycle);
   if (obj.q) params.set('q', obj.q);
   return params.toString();

@@ -4,20 +4,27 @@
 // No DOM, no side-effects.
 
 /**
- * Filter packets by axiom (string), lifecycle (string), and search query (string).
+ * Filter packets by depends-on axiom (string id), lifecycle, and
+ * search query. The "depends on axiom" filter shows all packets that
+ * list the given axiom in their depends_on array.
+ *
  * Pure: same input → same output.
  *
  * @param {Array<object>} packets
- * @param {{axiom?: string|null, lifecycle?: string|null, q?: string|null}} opts
+ * @param {{deps?: string|null, lifecycle?: string|null, q?: string|null}} opts
  * @returns {Array<object>}
  */
 export const filterPackets = (packets, opts = {}) => {
-  const axiom = opts.axiom ?? null;
-  const lifecycle = opts.lifecycle ?? null;
+  // Empty string is treated as "no filter", same as null.
+  const deps = (opts.deps == null || opts.deps === '') ? null : opts.deps;
+  const lifecycle = (opts.lifecycle == null || opts.lifecycle === '') ? null : opts.lifecycle;
   const q = (opts.q ?? '').toLowerCase().trim();
 
   return packets.filter(p => {
-    if (axiom !== null && p.axiom !== axiom) return false;
+    if (deps !== null) {
+      const ds = Array.isArray(p.depends_on) ? p.depends_on : [];
+      if (!ds.includes(deps) && p.id !== deps) return false;
+    }
     if (lifecycle !== null && p.lifecycle !== lifecycle) return false;
     if (q !== '') {
       const haystack = `${p.title} ${p.id}`.toLowerCase();
@@ -61,7 +68,7 @@ export const sortPackets = (packets) => {
 export const readFilterFromSearch = (search) => {
   const params = new URLSearchParams(search || '');
   return {
-    axiom: params.get('axiom') || null,
+    deps: params.get('deps') || null,
     lifecycle: params.get('lifecycle') || null,
     q: params.get('q') || '',
   };
