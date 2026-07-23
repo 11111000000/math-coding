@@ -1,0 +1,43 @@
+task_id: apply-commit-order-v0992
+assumptions:
+  - id: A1
+    statement: "git status --porcelain catches both untracked and modified files"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      `git status --porcelain` outputs XY format where X=index, Y=worktree.
+      Untracked: '??'. Modified: ' M'. Both covered.
+  - id: A2
+    statement: "git diff --quiet alone misses untracked files"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      `git diff` compares tracked files only. Untracked files are ignored by
+      default; need `git diff --no-index --diff-filter=A` to include.
+  - id: A3
+    statement: "Apply user can override with --force-apply"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      --force-apply flag and FORCE_APPLY=1 env var both bypass the warning.
+      Documented in usage text.
+  - id: A4
+    statement: "SKILL.md regeneration propagates the workflow text to all agents"
+    status: agent-inferred
+    epistemology: fact
+    confidence: 0.95
+    evidence: |
+      SKILL.body.template.md is the canonical body. Per-agent preamble
+      unchanged. Build pipeline regenerates all SKILL.md files.
+  - id: A5
+    statement: "the check prevents future drift (cad685a was a manual fix)"
+    status: agent-inferred
+    epistemology: judgment
+    confidence: 0.85
+    evidence: |
+      cad685a commit in this branch was a manual refresh after
+      apply-before-commit caused witness SHA mismatch. Check would have
+      prevented that commit.

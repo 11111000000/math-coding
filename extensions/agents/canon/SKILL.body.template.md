@@ -57,8 +57,16 @@ When the user asks to create a packet:
 4. (Recommended) form the other five fields.
 5. Run `sh math-coding create <name> --from -` and pipe the spec.
 6. Implement the operation in code.
-7. Commit the code and the packet.
+7. **Commit the packet directory before applying**:
+   ```
+   git add math/<name>/
+   git commit -m "v0.992: <name> — <short description>"
+   ```
+   axiom A5 (Accounting): the SHA witness must point to the
+   committed state, not the working tree.
 8. Run `sh math-coding apply <name>` (records SHA witness).
+   If the packet directory has uncommitted changes, apply prints
+   a warning and exits. Pass `--force-apply` to override.
 9. Run `sh math-coding review <name> --approve --note="..."` (peer-review).
 10. Verify: `sh math-coding verify`.
 

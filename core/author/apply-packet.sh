@@ -9,7 +9,14 @@
 #   --files=<glob>           explicit file list (comma-separated)
 #   --tests=<command>        record test command (informational)
 #   --tests-result=<status>  record result (PASS|FAIL|SKIP|ERROR)
+#   --force-apply            bypass uncommitted-changes warning
 #   --help -h                this message
+#
+# v0.992: apply MUST run AFTER commit. If the packet directory
+# has uncommitted changes relative to the recorded SHA, apply
+# prints a warning and exits with status 1. Pass --force-apply
+# to override (records the committed state regardless of dirty
+# working tree).
 #
 # Records the SHA witness in a sibling `witness` file
 # (NOT in packet.yaml — see axiom A5 recursion rule) and
@@ -66,6 +73,7 @@ while [ $# -gt 0 ]; do
         --files=*) files="${1#--files=}"; shift ;;
         --tests=*) tests="${1#--tests=}"; shift ;;
         --tests-result=*) tests_result="${1#--tests-result=}"; shift ;;
+        --force-apply) FORCE_APPLY=1; shift ;;
         --help|-h) usage ;;
         -*) echo "unknown flag: $1" >&2; usage ;;
         *) name="$1"; shift ;;
@@ -131,6 +139,33 @@ fi
 if ! git -C "$REPO_ROOT" cat-file -e "$sha" 2>/dev/null; then
     echo "error: SHA $sha unknown to local git history" >&2
     exit 1
+fi
+
+# v0.992: workflow discipline — apply must run AFTER commit, not before.
+# axiom A5 (Accounting): witness records the SHA of the committed
+# state, not the working tree. If the packet directory has
+# uncommitted changes (working tree differs from $sha), the
+# witness would lie about what's actually applied.
+#
+# Detection: git status --porcelain catches both untracked and
+# modified files in the packet directory (git diff alone ignores
+# untracked files).
+RELATIVE_DEST="$MATH_DIR/$name"
+case "$RELATIVE_DEST" in
+    "$REPO_ROOT"/*)
+        RELATIVE_DEST="${RELATIVE_DEST#$REPO_ROOT/}"
+        ;;
+esac
+uncommitted=$(git -C "$REPO_ROOT" status --porcelain -- "$RELATIVE_DEST" 2>/dev/null)
+if [ -n "$uncommitted" ]; then
+    echo "warning: packet directory has uncommitted changes relative to working tree:" >&2
+    echo "$uncommitted" | sed 's/^/         /' >&2
+    echo "         apply records the committed state; commit before applying." >&2
+    echo "         (run: git add math/$name && git commit -m '...')" >&2
+    echo "         (use --force-apply to override this warning)" >&2
+    if [ "${FORCE_APPLY:-0}" != "1" ]; then
+        exit 1
+    fi
 fi
 
 # Determine files
