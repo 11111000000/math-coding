@@ -53,8 +53,7 @@
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem">Why</h2>
 <p>
 <code>def add(a, b)</code> is correct in arithmetic and wrong in string concatenation.
-The proposition must come from somewhere, and that somewhere is <code>decision.md</code>,
-separate from the code.
+The proposition lives in <code>decision.md</code>, separate from the code.
 </p>
 <p><a href="/philosophy.html">Why this matters →</a></p>
 </section>
@@ -64,26 +63,26 @@ separate from the code.
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:1rem">
 <div style="border:1px solid var(--rule);padding:1rem;background:var(--paper)">
 <h3 style="margin-top:0">What it is</h3>
-<ul>
-<li>A convention for AI coding agents that documents decisions as proof terms.</li>
-<li>A formal grammar of decision-making, not a workflow for committing code.</li>
-<li>Plain-text: <code>.md</code>, <code>.yaml</code>, <code>.sh</code>. Always.</li>
-</ul>
+    <ul>
+      <li>A convention for AI coding agents. Decisions are proof terms.</li>
+      <li>A grammar of decision-making — not a workflow for committing code.</li>
+      <li>Plain text: <code>.md</code>, <code>.yaml</code>, <code>.sh</code>. Always.</li>
+    </ul>
 </div>
 <div style="border:1px solid var(--rule);padding:1rem;background:var(--paper)">
 <h3 style="margin-top:0">What it is not</h3>
-<ul>
-<li>Not a framework. Not a test runner. Not a governance tool for non-AI commits.</li>
-<li>Not a substitute for human review on adversarial work.</li>
-<li>Not magic. It is a protocol for honest agents, not a shield against dishonest ones.</li>
-</ul>
+    <ul>
+      <li>No framework. No test runner. No governance layer for non-AI commits.</li>
+      <li>No substitute for human review on adversarial work.</li>
+      <li>No shield against dishonest agents — honest agents only.</li>
+    </ul>
 </div>
 <div style="border:1px solid var(--rule);padding:1rem;background:var(--paper)">
 <h3 style="margin-top:0">When not to use</h3>
 <ul>
 <li>Typos, renames, format fixes, dep bumps within minor version.</li>
 <li>Throwaway scripts and demo codebases.</li>
-<li>If you cannot commit the decision-grammar to your repository.</li>
+      <li>Repos where you cannot commit the decision-grammar itself.</li>
 </ul>
 <p style="margin-bottom:0"><a href="/limitations.html">full list →</a></p>
 </div>

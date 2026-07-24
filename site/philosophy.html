@@ -46,7 +46,7 @@ A convention that documents every non-trivial decision as a proof term, applied 
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem">Why</h2>
 
 <p>
-The AI-coding-agent era has a problem that commit messages cannot solve. After enough time, even a careful author cannot recall <em>why</em> a particular implementation was chosen. Six months later, the commit message says <code>fix: handle null case</code>. The proposition — <em>what null-cases we accept, what null-cases we reject, why the line is drawn here</em> — is gone. The agent that wrote it does not remember. The reviewer does not remember. Nobody does.
+The AI-coding-agent era has a problem commit messages cannot solve. After enough time, even a careful author cannot recall <em>why</em> a particular implementation was chosen. Six months later, the commit message says <code>fix: handle null case</code>. The proposition — what null-cases we accept, what we reject, why the line is drawn here — is gone. The agent that wrote it does not remember. The reviewer does not remember. Nobody does.
 </p>
 
 <p>
@@ -63,7 +63,7 @@ This could be ceremony without signal. If a team creates packets for every commi
 <div class="synthesis-box">
 <p class="synthesis-box__label">synthesis</p>
 <p class="synthesis-box__body">
-math-coding refuses to be ceremony. Three modes exist precisely so trivial changes can stay trivial: <code>light</code> writes a commit message; <code>standard</code> writes the full 5-file packet; <code>strict</code> adds theory links and surface impact. The question is not "should I create a packet?" but "is this decision-class?" The decision-class test is simple:
+math-coding refuses to be ceremony. Three modes exist so trivial changes can stay trivial: <code>light</code> for a commit message, <code>standard</code> for the full 5-file packet, <code>strict</code> for theory links plus surface impact. The test:
 </p>
 <p style="margin-top: 1rem">
 <strong>Would I be surprised to see this in 6 months?</strong> If yes, write a packet.
@@ -80,8 +80,8 @@ those <em>means</em> in practice.
 <ul>
 <li><strong>Not a framework.</strong> There is no CLI to install, no runtime, no opinion about language or stack. The conventions are plain text. The agent reads them.</li>
 <li><strong>Not a test runner.</strong> The verifier checks structure, not behavior. Behavioral tests belong in your project's own CI.</li>
-<li><strong>Not a governance tool.</strong> math-coding cannot enforce anything in a project that has not adopted it. It makes promises to its own adopters only.</li>
-<li><strong>Not a shield against dishonest agents.</strong> This is the point that needs more than a bullet. The convention operates on <em>outputs</em>, not on the LLM's internal state. An adversarial model can mark a speculation as <code>fact</code>, submit <code>--approve</code> without reading the criteria, or skip self-critique entirely. The convention cannot detect what the agent thought — only what it wrote. Treat epistemic honesty as a <em>protocol for honest agents</em>: it raises the floor for those who want to do good work, it does not raise the ceiling against those who want to game it. External governance — human review, sampling audits, restricted compute — remains the only real defense.</li>
+  <li><strong>Not a governance tool.</strong> math-coding cannot enforce anything in a project that has not adopted it. Promises to its own adopters only.</li>
+  <li><strong>Not a shield against dishonest agents.</strong> This needs more than a bullet. The convention operates on <em>outputs</em>, not on the LLM's internal state. An adversarial model can mark a speculation as <code>fact</code>, submit <code>--approve</code> without reading the criteria, skip self-critique entirely. The convention sees only what the agent wrote — not what it thought. Treat epistemic honesty as a <em>protocol for honest agents</em>: it raises the floor for those who want to do good work, not the ceiling against those who want to game it. External governance — human review, sampling audits, restricted compute — remains the only real defense.</li>
 </ul>
 
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">The substrate</h2>
@@ -91,7 +91,7 @@ those <em>means</em> in practice.
 </p>
 
 <p>
-A convention that depends on a language, framework, IDE, or vendor outlives its usefulness only as long as that substrate survives. We refuse to make the convention a hostage of fashion. <code>core/</code> scripts run on dash, ash, busybox sh — not bash, not Python, not Node.
+  A convention that depends on a language, framework, IDE, or vendor outlives its usefulness only as long as the substrate survives. Refuse to make the convention a hostage of fashion. <code>core/</code> scripts run on dash, ash, busybox sh — not bash, not Python, not Node.
 </p>
 
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">Self-application</h2>
@@ -101,7 +101,7 @@ The seventh axiom declares that the convention applies to itself. Every axiom ab
 </p>
 
 <p>
-This is a strong claim. Most conventions cannot verify themselves; they rely on a maintainer's judgment, and when the maintainer leaves, the convention rots in silence. math-coding's self-application closes that loop. The convention observes its own drift. The convention records that observation.
+  This is a strong claim. Most conventions cannot verify themselves; they rely on a maintainer's judgment, and when the maintainer leaves, the convention rots in silence. math-coding closes that loop — the convention observes its own drift and records the observation.
 </p>
 
 <div class="probe-stamp">built from commit <span id="git-sha-footer">—</span> · axiom A6 self-application</div>

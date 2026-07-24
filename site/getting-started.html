@@ -54,14 +54,14 @@ No Node, no Python, no JVM, no package manager. See <a href="/axioms.html#a3-mat
 
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">1. Probe the source repo</h2>
 
-<p>Before installing, verify the convention is internally consistent:</p>
+<p>Before installing, verify the convention holds:</p>
 
 <pre><code>git clone https://github.com/11111000000/math-coding.git
 cd math-coding
 sh math-coding probe</code></pre>
 
 <p>
-This runs 51+ self-tests (axiom A6 in action). If <code>probe</code> exits 0, the convention holds at this commit.
+51+ self-tests run. <code>probe</code> exit 0 means axiom A6 holds at this commit.
 </p>
 
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">2. Install in a project</h2>
@@ -71,7 +71,7 @@ This runs 51+ self-tests (axiom A6 in action). If <code>probe</code> exits 0, th
 <pre><code>sh /path/to/math-coding/math-coding install /path/to/your-project</code></pre>
 
 <p>
-By default <code>.math-coding/</code> is committed to the project. Use <code>--gitignore</code> to opt in to gitignored behavior.
+By default <code>.math-coding/</code> is committed. Pass <code>--gitignore</code> to keep it out of the repo.
 </p>
 
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">3. Create your first packet</h2>
@@ -100,7 +100,7 @@ YAML
 sh math-coding create cache-ttl --from spec.yaml</code></pre>
 
 <p>
-The convention creates <code>math/cache-ttl/</code> with five files. Edit them; commit; apply.
+<code>math/cache-ttl/</code> appears with five files. Edit them. Commit. Apply.
 </p>
 
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">4. Apply, review, verify</h2>
@@ -112,7 +112,7 @@ sh math-coding review cache-ttl --approve --note="60s is correct for /cache"
 sh math-coding verify</code></pre>
 
 <p>
-The <code>apply</code> command records the SHA witness (axiom A5). The <code>review</code> command records peer approval. The <code>verify</code> command runs the structural check.
+<code>apply</code> records the SHA witness (axiom A5). <code>review</code> records peer approval. <code>verify</code> runs the structural check.
 </p>
 
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">5. The five files</h2>
@@ -143,7 +143,7 @@ The <code>apply</code> command records the SHA witness (axiom A5). The <code>rev
 <h2 style="border-bottom: 1px solid var(--rule); padding-bottom: 0.5rem; margin-top: 3rem">6. Read the axioms</h2>
 
 <p>
-The seven axioms are short. Read them in order. They take 30 minutes total and explain why the convention exists.
+The seven axioms take 30 minutes. Read them in order.
 </p>
 
 <p><a href="/axioms.html">→ Seven axioms</a></p>
