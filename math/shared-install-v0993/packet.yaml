@@ -1,6 +1,6 @@
 task_id: shared-install-v0993
 title: Shared install — payload once, project keeps wrapper
-lifecycle: draft
+lifecycle: applied
 substrate: shell
 rigor: light
 decision: made
