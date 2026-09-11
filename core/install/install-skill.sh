@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/install/install-skill.sh — math-coding v0.992 skill/agent/hook installer.
+# core/install/install-skill.sh — math-coding v0.993 skill/agent/hook installer.
 #
 # Usage:
 #   sh core/install/install-skill.sh [options]
@@ -93,8 +93,7 @@ while [ $# -gt 0 ]; do
     shift
 done
 
-# Resolve REPO_ROOT
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+# REPO_ROOT resolved by . "$(dirname "$0")/../lib/common.sh" above.
 
 # Determine source path
 if [ -z "$SRC_PATH" ]; then
@@ -112,7 +111,7 @@ if [ ! -f "$SRC_PATH/SKILL.md" ]; then
     exit 1
 fi
 
-# v0.992: if meta/build-skill.sh exists (source-repo context), gate
+# v0.993: if meta/build-skill.sh exists (source-repo context), gate
 # the install on SKILL.md freshness. This prevents shipping a
 # stale SKILL.md that doesn't match current source content.
 if [ -x "$REPO_ROOT/meta/build-skill.sh" ]; then
@@ -169,7 +168,7 @@ if [ "$DRY_RUN" = "1" ]; then
     fi
     if [ "$WITH_HOOKS" = "1" ]; then
         if [ "$AGENT" != "opencode" ]; then
-            echo "    hook: SKIPPED (--with-hooks is opencode-only in v0.992)"
+            echo "    hook: SKIPPED (--with-hooks is opencode-only in v0.993)"
         else
             hook_src="$REPO_ROOT/extensions/hooks/pre-tool-use.sh"
             if [ -f "$hook_src" ]; then
@@ -210,7 +209,7 @@ if [ "$WITH_AGENT" = "1" ]; then
         else
             # Per-agent install location. opencode: ~/.config/opencode/agents/<name>/agent.md
             # claude/cursor: no equivalent path (Claude Skills API is flat).
-            # v0.992: only opencode supports subagent install.
+            # v0.993: only opencode supports subagent install.
             case "$AGENT" in
                 opencode)
                     agents_root="$HOME/.config/opencode/agents"
@@ -220,7 +219,7 @@ if [ "$WITH_AGENT" = "1" ]; then
                     agent_installed=1
                     ;;
                 *)
-                    echo "note: $AGENT has no agent install path in v0.992; skipping" >&2
+                    echo "note: $AGENT has no agent install path in v0.993; skipping" >&2
                     ;;
             esac
         fi
@@ -230,12 +229,12 @@ if [ "$WITH_AGENT" = "1" ]; then
 fi
 
 # Install hooks if requested.
-# v0.992: hooks are opencode-specific. For non-opencode agents,
+# v0.993: hooks are opencode-specific. For non-opencode agents,
 # --with-hooks prints a warning and skips.
 hook_installed=0
 if [ "$WITH_HOOKS" = "1" ]; then
     if [ "$AGENT" != "opencode" ]; then
-        echo "warning: --with-hooks is opencode-specific in v0.992; skipping for AGENT=$AGENT" >&2
+        echo "warning: --with-hooks is opencode-specific in v0.993; skipping for AGENT=$AGENT" >&2
     else
         hook_src="$REPO_ROOT/extensions/hooks/pre-tool-use.sh"
         if [ -f "$hook_src" ]; then

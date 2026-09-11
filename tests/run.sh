@@ -1,10 +1,10 @@
 #!/bin/sh
-# tests/run.sh — math-coding v0.992 self-tests.
+# tests/run.sh — math-coding v0.993 self-tests.
 #
 # Usage: sh tests/run.sh
 #
 # Runs a battery of checks against the convention's own state
-# and reports PASS/FAIL per case. v0.992 covers:
+# and reports PASS/FAIL per case. v0.993 covers:
 #   - definitional axiom Self-Application (Cases 1-15, source-repo)
 #   - applicative axiom Self-Application (Cases 16-20, target mode)
 #   - packet lifecycle (Cases 21-46, create/apply/retire/review/abandon/archive)
@@ -49,7 +49,7 @@ run_case() {
     esac
 }
 
-echo "=== math-coding v0.992 self-tests ==="
+echo "=== math-coding v0.993 self-tests ==="
 echo ""
 
 # Case 1: probe.sh exits 0
@@ -203,9 +203,9 @@ fi
 
 # Case 15 (removed): extract → create round-trip test was
 # removed because it required examples-cache-ttl, which is
-# KISS-violation. The extract.sh tool is still present
-# (core/author/extract-packet.sh) for brownfield-migration
-# but is not auto-tested.
+# KISS-violation. v0.993: extract is now a subcommand of
+# lifecycle.sh (core/author/lifecycle.sh extract <name>) and
+# is no longer auto-tested.
 
 # Case 16: brownfield install cycle (install + create + verify +
 # probe + uninstall in a tmp directory). v0.978: the cycle
@@ -228,9 +228,11 @@ fi
 # v0.944: axiom packets are source-only. install.sh must not
 # place them in .math-coding/. This catches the v0.944 bug
 # where axiom packets leaked into target projects.
+# v0.993: install uses --local to put payload in .math-coding/
+# so we can verify no axiom packets leak.
 TMP18=$(mktemp -d 2>/dev/null) || { log_fail "install-no-axiom-copy" "mktemp failed"; }
 if [ -n "$TMP18" ]; then
-    if sh "$REPO_ROOT/core/install/install.sh" "$TMP18" >/dev/null 2>&1; then
+    if sh "$REPO_ROOT/core/install/install.sh" "$TMP18" --local >/dev/null 2>&1; then
         if [ -d "$TMP18/.math-coding/math/00-difference" ] || \
            [ -d "$TMP18/.math-coding/math/06-self-application" ]; then
             log_fail "install-no-axiom-copy" "axiom packets leaked into .math-coding/math/"
@@ -248,10 +250,12 @@ fi
 # v0.944: the user's math/ directory lives at the project root,
 # not inside .math-coding/. install.sh must create it with a
 # README stub so the user knows how to scaffold their first
-# packet.
+# packet. v0.993: shared install writes wrapper + .mathrc +
+# math/README.md into the project; legacy --local layout does
+# the same.
 TMP19=$(mktemp -d 2>/dev/null) || { log_fail "install-creates-math" "mktemp failed"; }
 if [ -n "$TMP19" ]; then
-    if sh "$REPO_ROOT/core/install/install.sh" "$TMP19" >/dev/null 2>&1; then
+    if sh "$REPO_ROOT/core/install/install.sh" "$TMP19" --local >/dev/null 2>&1; then
         if [ -d "$TMP19/math" ] && [ -f "$TMP19/math/README.md" ]; then
             log_pass "install-creates-math"
         else
@@ -270,7 +274,7 @@ fi
 # This proves the end-to-end pipeline from install → create → verify works.
 TMP20=$(mktemp -d 2>/dev/null) || { log_fail "create-creates-valid-pkt" "mktemp failed"; }
 if [ -n "$TMP20" ]; then
-    if sh "$REPO_ROOT/core/install/install.sh" "$TMP20" >/dev/null 2>&1; then
+    if sh "$REPO_ROOT/core/install/install.sh" "$TMP20" --local >/dev/null 2>&1; then
         SPEC20="$TMP20/spec.yaml"
         cat > "$SPEC20" <<'YAML'
 proposition: |
@@ -393,7 +397,7 @@ test: |
 operation: |
   Test operation.
 YAML
-    # v0.992: missing antithesis is a warning, not an error.
+    # v0.993: missing antithesis is a warning, not an error.
     # Test now asserts create succeeds AND emits a warning.
     out=$(env MATH_DIR="$TMP22/math" PROJECT_ROOT="$TMP22" REPO_ROOT="$REPO_ROOT" \
           sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC22" 2>&1)
@@ -457,7 +461,8 @@ YAML
 implementation: absent' "$TMP22b/math/test-pkt/packet.yaml"
     if (
         cd "$TMP22b" && git init -q && \
-        git -c user.email=t@t.local -c user.name=t commit --allow-empty -q -m init && \
+        git -c user.email=t@t.local -c user.name=t add math/ && \
+        git -c user.email=t@t.local -c user.name=t commit -q -m init && \
         env MATH_DIR="$TMP22b/math" PROJECT_ROOT="$TMP22b" REPO_ROOT="$TMP22b" \
             sh "$REPO_ROOT/core/author/apply-packet.sh" test-pkt >/dev/null 2>&1
     ); then
@@ -524,7 +529,7 @@ YAML
     rm -rf "$TMP22d"
 fi
 
-# v0.992: apply transitions draft → applied AND records SHA
+# v0.993: apply transitions draft → applied AND records SHA
 # in sibling witness file (not in packet.yaml).
 TMP23=$(mktemp -d 2>/dev/null) || { log_fail "apply-records-sha" "mktemp failed"; }
 if [ -n "$TMP23" ]; then
@@ -635,7 +640,7 @@ YAML
         sh "$REPO_ROOT/core/author/retire-packet.sh" test-pkt --reason=deprecation >/dev/null 2>&1
     # Now archive must succeed
     if env MATH_DIR="$TMP25/math" PROJECT_ROOT="$TMP25" REPO_ROOT="$REPO_ROOT" \
-        sh "$REPO_ROOT/core/author/archive-packet.sh" test-pkt --confirm >/dev/null 2>&1; then
+        sh "$REPO_ROOT/core/author/lifecycle.sh" archive test-pkt --confirm >/dev/null 2>&1; then
         if [ ! -d "$TMP25/math/test-pkt" ] && [ -d "$TMP25/math/archived/test-pkt" ]; then
             log_pass "archive-moves-to-archived"
         else
@@ -648,7 +653,7 @@ YAML
 fi
 
 # Case 26: apply --tests flag is accepted (informational).
-# v0.992: --tests is printed to stdout; not persisted in witness
+# v0.993: --tests is printed to stdout; not persisted in witness
 # file. Convention does not store test commands; verifier is
 # structural, not behavioral. The test ensures the flag is
 # accepted without breaking the apply workflow.
@@ -771,7 +776,7 @@ fi
 # Case 29: install --gitignore adds .math-coding/ to .gitignore.
 TMP29=$(mktemp -d 2>/dev/null) || { log_fail "install-opt-in-gitignore" "mktemp failed"; }
 if [ -n "$TMP29" ]; then
-    if sh "$REPO_ROOT/core/install/install.sh" "$TMP29" --gitignore >/dev/null 2>&1; then
+    if sh "$REPO_ROOT/core/install/install.sh" "$TMP29" --local --gitignore >/dev/null 2>&1; then
         if grep -q "^.math-coding/" "$TMP29/.gitignore"; then
             log_pass "install-opt-in-gitignore"
         else
@@ -904,7 +909,7 @@ YAML
 fi
 
 # Case 33: create emits self-critique prompt.
-# v0.992: create command echoes self-critique AFTER generating files
+# v0.993: create command echoes self-critique AFTER generating files
 # (so the agent can read them and revise before apply).
 TMP33=$(mktemp -d 2>/dev/null) || { log_fail "create-self-critique-prompt" "mktemp failed"; }
 if [ -n "$TMP33" ]; then
@@ -996,7 +1001,7 @@ YAML
     env MATH_DIR="$TMP35/math" PROJECT_ROOT="$TMP35" REPO_ROOT="$REPO_ROOT" \
         sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
     if env MATH_DIR="$TMP35/math" PROJECT_ROOT="$TMP35" REPO_ROOT="$REPO_ROOT" \
-        sh "$REPO_ROOT/core/author/abandon-packet.sh" test-pkt --reason="not implementing" >/dev/null 2>&1; then
+        sh "$REPO_ROOT/core/author/lifecycle.sh" abandon test-pkt --reason="not implementing" >/dev/null 2>&1; then
         lc=$(grep '^lifecycle:' "$TMP35/math/test-pkt/packet.yaml" | sed 's/^lifecycle: *//')
         reason=$(grep '^abandon_reason:' "$TMP35/math/test-pkt/packet.yaml" | sed 's/^abandon_reason: *//')
         if [ "$lc" = "abandoned" ] && [ "$reason" = "not implementing" ]; then
@@ -1036,7 +1041,7 @@ YAML
     sed -i 's/^lifecycle: draft$/lifecycle: applied/' "$TMP36/math/test-pkt/packet.yaml"
     # Try to abandon applied — must fail
     if env MATH_DIR="$TMP36/math" PROJECT_ROOT="$TMP36" REPO_ROOT="$REPO_ROOT" \
-        sh "$REPO_ROOT/core/author/abandon-packet.sh" test-pkt >/dev/null 2>&1; then
+        sh "$REPO_ROOT/core/author/lifecycle.sh" abandon test-pkt >/dev/null 2>&1; then
         log_fail "abandon-refuses-applied" "abandon succeeded on applied packet"
     else
         log_pass "abandon-refuses-applied"
@@ -1068,7 +1073,7 @@ YAML
     env MATH_DIR="$TMP37/math" PROJECT_ROOT="$TMP37" REPO_ROOT="$REPO_ROOT" \
         sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
     env MATH_DIR="$TMP37/math" PROJECT_ROOT="$TMP37" REPO_ROOT="$REPO_ROOT" \
-        sh "$REPO_ROOT/core/author/abandon-packet.sh" test-pkt >/dev/null 2>&1
+        sh "$REPO_ROOT/core/author/lifecycle.sh" abandon test-pkt >/dev/null 2>&1
     if env MATH_DIR="$TMP37/math" PROJECT_ROOT="$TMP37" REPO_ROOT="$REPO_ROOT" \
         sh "$REPO_ROOT/core/check/verify.sh" >/dev/null 2>&1; then
         log_pass "verify-abandoned-state"
@@ -1290,7 +1295,7 @@ if [ -n "$TMP46" ]; then
         sh "$REPO_ROOT/core/author/create-packet.sh" test-pkt --from "$SPEC" >/dev/null 2>&1
     # Mark stable
     env MATH_DIR="$TMP46/math" PROJECT_ROOT="$TMP46" REPO_ROOT="$REPO_ROOT" \
-        sh "$REPO_ROOT/core/author/stable.sh" test-pkt 2>&1 | tail -3
+        sh "$REPO_ROOT/core/author/lifecycle.sh" stable test-pkt 2>&1 | tail -3
     if grep -q "^stable_since:.*20" "$TMP46/math/test-pkt/packet.yaml"; then
         log_pass "stable-marker"
     else
@@ -1334,7 +1339,7 @@ reviews:
     verdict: approve
 YAML
     if env MATH_DIR="$TMP49/math" PROJECT_ROOT="$TMP49" REPO_ROOT="$REPO_ROOT" \
-        sh "$REPO_ROOT/core/author/amend-packet.sh" applied-pkt --reason="x" >/dev/null 2>&1; then
+        sh "$REPO_ROOT/core/author/lifecycle.sh" amend applied-pkt --reason="x" >/dev/null 2>&1; then
         log_fail "amend-applied-forbidden" "amend succeeded on applied packet"
     else
         log_pass "amend-applied-forbidden"

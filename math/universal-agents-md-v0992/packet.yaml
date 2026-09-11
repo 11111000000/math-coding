@@ -16,7 +16,6 @@ verifier: sh math-coding probe
 depends_on:
   - 06-self-application
   - multi-agent-skills-v0992
-applications: []
 surface_impact: |
   extensions/agents/universal/AGENTS.md (new, 63 lines),
   KNOWN_LIMITATIONS.md #15 (new entry, project-local install path)

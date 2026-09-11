@@ -1,5 +1,5 @@
 #!/bin/sh
-# tests/doc-broken-refs.sh — math-coding v0.992 broken reference checker.
+# tests/doc-broken-refs.sh — math-coding v0.993 broken reference checker.
 #
 # Walks docs/, theories/, extensions/, README.md, AGENTS.md,
 # KNOWN_LIMITATIONS.md, SKILL.md and extracts:

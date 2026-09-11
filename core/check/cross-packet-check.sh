@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/check/cross-packet-check.sh — math-coding v0.992 cross-packet consistency.
+# core/check/cross-packet-check.sh — math-coding v0.993 cross-packet consistency.
 #
 # Usage:
 #   sh math-coding verify --cross-packet-consistency

@@ -16,7 +16,6 @@ verifier: sh math-coding probe
 depends_on:
   - 06-self-application
   - multi-agent-skills-v0992
-applications: []
 surface_impact: |
   meta/build-skill.sh (refactor: helper, mktemp, if/then parser, sanity check),
   core/install/install-skill.sh (hooks warning for non-opencode agents)

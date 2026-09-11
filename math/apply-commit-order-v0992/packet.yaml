@@ -15,7 +15,6 @@ stable_since: null
 verifier: sh math-coding probe
 depends_on:
   - 06-self-application
-applications: []
 surface_impact: |
   core/author/apply-packet.sh (uncommitted-changes check + --force-apply flag),
   extensions/agents/canon/SKILL.body.template.md (workflow doc update),

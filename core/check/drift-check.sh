@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/check/drift-check.sh — math-coding v0.992 drift detector.
+# core/check/drift-check.sh — math-coding v0.993 drift detector.
 #
 # Usage: sh core/check/drift-check.sh
 #
@@ -7,7 +7,7 @@
 # whether the recorded SHAs still match the packet's files.
 # Reports applied, lookahead, drift.
 #
-# v0.992: witness file replaces applications[] field in
+# v0.993: witness file replaces applications[] field in
 # packet.yaml. axiom A5 (Accounting): refresh commits no
 # longer invalidate the witness because the witness file
 # is not edited by packet content changes.
@@ -53,7 +53,7 @@ for pkt_dir in "$MATH_DIR"/*/; do
             0000000000000000000000000000000000000000) continue ;;
         esac
 
-        if ! git -C "$REPO_ROOT" cat-file -e "$sha" 2>/dev/null; then
+        if ! git -C "$PROJECT_ROOT" cat-file -e "$sha" 2>/dev/null; then
             if [ "$LOOKAHEAD_OK" -eq 0 ]; then
                 echo "LOOKAHEAD: $pkt_name witness $sha unknown to local history" >&2
             fi
@@ -68,7 +68,7 @@ for pkt_dir in "$MATH_DIR"/*/; do
         # detection — the witness records its own changes.
         last_sha=$(printf '%s\n' "$shas" | tail -1)
         if [ "$sha" = "$last_sha" ]; then
-            if ! git -C "$REPO_ROOT" diff --quiet \
+            if ! git -C "$PROJECT_ROOT" diff --quiet \
                 "$sha"..HEAD -- "$pkt_dir/" \
                 ":(exclude)$pkt_dir/witness" 2>/dev/null; then
                 echo "DRIFT: $pkt_name witness $sha stale in packet files" >&2

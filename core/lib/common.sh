@@ -1,64 +1,93 @@
 #!/bin/sh
-# core/lib/common.sh — math-coding v0.992 shared bootstrap.
+# core/lib/common.sh — math-coding v0.993 shared bootstrap.
 #
-# Usage:
-#   REPO_ROOT=/path/to/source-repo
-#   . "$REPO_ROOT/core/lib/common.sh"
+# Resolution order for REPO_ROOT (where payload lives):
+#   1. $REPO_ROOT env var, if set and contains core/lib/common.sh.
+#   2. $MATH_CODING_HOME/current, if set.
+#   3. $XDG_DATA_HOME/math-coding/current, if set.
+#   4. $HOME/.local/share/math-coding/current, if present.
+#   5. /usr/local/share/math-coding/current, if present.
+#   6. Caller dir (legacy: source-repo layout).
 #
-# Or in scripts:
-#   . "$(dirname "$0")/../lib/common.sh"
-#
-# Sets:
-#   REPO_ROOT     source-repo root
-#   PROJECT_ROOT  where the user works (parent of math/, .mathrc)
-#   MATH_DIR      resolved absolute path
-#   MATHRC_LOADED 1 if .mathrc was sourced
-#
-# Helpers:
-#   get_lifecycle <packet.yaml>
-#   validate_lifecycle_transition <from> <to>
+# Once REPO_ROOT is known, PROJECT_ROOT and MATH_DIR are
+# resolved from the .mathrc at PROJECT_ROOT.
 
-# Derive REPO_ROOT from $0 if not set. Use realpath if available,
-# else fall back to dirname-based computation.
-derive_repo_root() {
-    src="$1"
-    if command -v realpath >/dev/null 2>&1 && [ -f "$src" ]; then
-        src_abs=$(realpath "$src" 2>/dev/null)
-        [ -n "$src_abs" ] && src="$src_abs"
+resolve_repo_root() {
+    if [ -n "${REPO_ROOT:-}" ] && [ -f "${REPO_ROOT}/core/lib/common.sh" ]; then
+        return 0
     fi
-    case "$(dirname "$src")" in
-        core/*|*/core/*) REPO_ROOT="$(cd "$(dirname "$src")/../.." && pwd)" ;;
-        *)              REPO_ROOT="$(cd "$(dirname "$src")" && pwd)" ;;
+    if [ -n "${MATH_CODING_HOME:-}" ] && [ -f "${MATH_CODING_HOME}/core/lib/common.sh" ]; then
+        REPO_ROOT="$MATH_CODING_HOME"
+        return 0
+    fi
+    for d in "${XDG_DATA_HOME:-$HOME/.local/share}/math-coding/current" \
+             "/usr/local/share/math-coding/current" \
+             "/opt/math-coding/current"; do
+        if [ -f "$d/core/lib/common.sh" ]; then
+            REPO_ROOT="$d"
+            return 0
+        fi
+    done
+    # Fallback: caller directory (source-repo layout).
+    src="${1:-${0:-}}"
+    case "$(dirname "$src" 2>/dev/null)" in
+        core/*|*/core/*|core)
+            REPO_ROOT="$(cd "$(dirname "$src")/../.." 2>/dev/null && pwd)"
+            ;;
+        *)
+            REPO_ROOT="$(cd "$(dirname "$src")" 2>/dev/null && pwd)"
+            ;;
     esac
 }
 
-# If REPO_ROOT is unset OR doesn't have core/, derive from $0.
-if [ -z "${REPO_ROOT:-}" ] || [ ! -d "${REPO_ROOT}/core" ]; then
-    derive_repo_root "${0:-}"
-fi
+resolve_repo_root "${0:-}"
 
-# Validate
-if [ -z "$REPO_ROOT" ] || [ ! -d "$REPO_ROOT/core" ]; then
-    echo "error: REPO_ROOT not set; source this from a math-coding script" >&2
+if [ -z "${REPO_ROOT:-}" ] || [ ! -d "$REPO_ROOT/core" ]; then
+    echo "error: REPO_ROOT not resolved; run install.sh first" >&2
     return 1 2>/dev/null || exit 1
 fi
 
+# PROJECT_ROOT: directory containing .mathrc. In source-repo
+# it's REPO_ROOT. In a target project it's the parent of the
+# wrapper (the wrapper itself is in REPO_ROOT, .mathrc is one
+# level up, or two if wrapper was copied into project root).
+# Detect by walking up from $PWD looking for .mathrc.
+detect_project_root() {
+    d="$(pwd)"
+    while [ -n "$d" ] && [ "$d" != "/" ]; do
+        if [ -f "$d/.mathrc" ]; then
+            printf '%s' "$d"
+            return 0
+        fi
+        d="$(dirname "$d")"
+    done
+    return 1
+}
+
+if [ -z "${PROJECT_ROOT:-}" ]; then
+    if detected=$(detect_project_root); then
+        PROJECT_ROOT="$detected"
+    else
+        # Fallback: parent of REPO_ROOT (legacy in-repo layout).
+        if [ -f "$(dirname "$REPO_ROOT")/.mathrc" ]; then
+            PROJECT_ROOT="$(dirname "$REPO_ROOT")"
+        else
+            PROJECT_ROOT="$REPO_ROOT"
+        fi
+    fi
+fi
+
+export PROJECT_ROOT
+
+# Sourcing mathrc.sh sets REPO_ROOT defaults, MATH_DIR, and
+# the epistemic/placeholder config flags. PROJECT_ROOT was
+# already set above.
 . "$REPO_ROOT/core/agent/mathrc.sh"
-MATHRC_LOADED=1
 
-# Resolve MATH_DIR: if relative, anchor to PROJECT_ROOT.
-case "$MATH_DIR" in
-    /*) ;;
-    *) MATH_DIR="$PROJECT_ROOT/$MATH_DIR" ;;
-esac
-
-# Read packet.yaml lifecycle field.
 get_lifecycle() {
     grep '^lifecycle:' "$1" 2>/dev/null | sed 's/^lifecycle:[[:space:]]*//' | tr -d '"' | tr -d "'"
 }
 
-# Validate lifecycle transition is allowed.
-# Returns 0 if transition is allowed, 1 otherwise.
 validate_lifecycle_transition() {
     case "$1:$2" in
         draft:applied|draft:retired|draft:abandoned|applied:retired) return 0 ;;
@@ -66,4 +95,4 @@ validate_lifecycle_transition() {
     esac
 }
 
-export REPO_ROOT PROJECT_ROOT MATH_DIR MATHRC_LOADED
+export REPO_ROOT PROJECT_ROOT MATH_DIR

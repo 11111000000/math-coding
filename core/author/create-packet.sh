@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/create-packet.sh — math-coding v0.992 packet creator.
+# core/author/create-packet.sh — math-coding v0.993 packet creator.
 #
 # Usage:
 #   sh math-coding create <name> --from <spec.yaml>
@@ -19,7 +19,7 @@
 #   synthesis   — how thesis + antithesis are resolved (becomes decision.md:synthesis)
 #   operation   — what the code does (becomes refinement.md:operation)
 #
-# v0.992: convention does not template antithesis/synthesis/operation
+# v0.993: convention does not template antithesis/synthesis/operation
 # — they come from the agent (or human) and represent real decisions.
 #
 # Output files:
@@ -112,7 +112,7 @@ ANTITHESIS=$(get_field antithesis)
 SYNTHESIS=$(get_field synthesis)
 OPERATION=$(get_field operation)
 
-# Validate required fields. v0.992: only proposition + outcome
+# Validate required fields. v0.993: only proposition + outcome
 # are mandatory. The other 5 are recommended but generate
 # warnings, not errors, when missing. This reduces friction
 # for trivial decisions.
@@ -259,7 +259,7 @@ EOF
 
 [ "$spec_stdin" = "1" ] && rm -f "$SPEC_TMP"
 
-# v0.992: emit self-critique prompt AFTER generating files.
+# v0.993: emit self-critique prompt AFTER generating files.
 # Now the agent can read them and revise before apply.
 cat <<'CRITIQUE'
 

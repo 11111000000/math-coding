@@ -1,12 +1,12 @@
 #!/bin/sh
-# core/self/probe.sh — math-coding v0.992 axiom Self-Application orchestrator.
+# core/self/probe.sh — math-coding v0.993 axiom Self-Application orchestrator.
 #
 # Usage: sh core/self/probe.sh
 #
 # Runs the verifier and the drift-check; reports a verdict
 # on whether the convention is internally consistent.
 #
-# axiom Self-Application has two modes in v0.991:
+# axiom Self-Application has two modes:
 #
 #   source-repo mode — axiom packets are present in
 #   $MATH_DIR. The probe verifies axiom-packet integrity,
@@ -217,6 +217,8 @@ else
     fi
 
     # Check 3: MATH_DIR exists (may be empty)
+    # v0.993: math/ defaults to $PROJECT_ROOT/math in target mode.
+    : "${MATH_DIR:=$PROJECT_ROOT/math}"
     echo ""
     echo "[3/6] $MATH_DIR exists"
     if [ -d "$MATH_DIR" ]; then
