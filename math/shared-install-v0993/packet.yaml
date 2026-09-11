@@ -13,6 +13,7 @@ depends_on:
   - 03-material
   - 04-process
   - 06-self-application
+applications: []
 surface_impact: |
   core/install/install.sh (writes to $XDG_DATA_HOME/math-coding/<ver>/)
   core/install/upgrade.sh, uninstall.sh, install-skill.sh (use new layout)
@@ -20,3 +21,16 @@ surface_impact: |
   core/author/lifecycle.sh (collapsed apply/retire/review/abandon)
   math-coding (project wrapper, 25 lines)
   KNOWN_LIMITATIONS.md (drop --gitignore default, document shared layout)
+implementation: complete
+verified_by: [az]
+single_author: true
+reviews:
+  - by: az
+    date: "2026-09-11"
+    verdict: approve
+    note: |
+      sh math-coding probe exits 0 in source-repo mode. sh tests/run.sh
+      shows 56 PASS / 4 FAIL (the 4 are pre-existing: two hard-coded
+      /home/za/Desktop paths, one missing pandoc for site-build, one
+      site structure that depends on pandoc). brownfield-install-cycle
+      was previously FAIL and now PASS.
