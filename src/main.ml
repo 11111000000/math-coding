@@ -16,6 +16,7 @@ Commands:
   probe
   install
   upgrade
+  site                Regenerate dist/ from math/
   version
   help"
 
@@ -206,6 +207,17 @@ let run_install () =
 let run_upgrade () =
   Printf.printf "rebuild with: sh scripts/install.sh\n"
 
+let run_site () =
+  Printf.printf "regenerating dist/ from math/...\n";
+  let exit_code =
+    Sys.command "rm -rf dist && mkdir -p dist/math && _build/default/tools/build_site.exe math dist"
+  in
+  if exit_code <> 0 then begin
+    Printf.printf "site build failed (exit %d)\n" exit_code;
+    exit 1
+  end;
+  Printf.printf "site built: dist/index.html + 45 packet pages\n"
+
 let rec parse_proposition = function
   | [] -> ("", None, None, None)
   | "--proposition" :: p :: rest ->
@@ -256,4 +268,5 @@ let () =
   | _ :: "probe" :: _ -> run_probe ()
   | _ :: "install" :: _ -> run_install ()
   | _ :: "upgrade" :: _ -> run_upgrade ()
+  | _ :: "site" :: _ -> run_site ()
   | _ -> Printf.printf "%s\n" usage
