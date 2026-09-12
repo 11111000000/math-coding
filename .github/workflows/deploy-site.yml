@@ -1,0 +1,44 @@
+name: deploy-site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+
+      - name: Enable flake features
+        run: echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+
+      - name: Build OCaml site
+        run: nix develop --command bash -c 'dune build'
+
+      - name: Generate dist/
+        run: nix develop --command bash -c './math-coding site'
+
+      - name: Configure git
+        run: |
+          git config user.name "math-coding-bot"
+          git config user.email "math-coding-bot@users.noreply.github.com"
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          keep_files: false
+          force_orphan: true
+          user_name: math-coding-bot
+          user_email: math-coding-bot@users.noreply.github.com
+          commit_message: "v1.0 site: ${{ github.sha }}"
