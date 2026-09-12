@@ -1,3 +1,0 @@
-(executable
- (name build_site)
- (libraries math_coding_lib yaml))

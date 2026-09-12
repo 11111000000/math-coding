@@ -1,9 +1,0 @@
-^.pid$
-^_build/
-^*.install$
-^*.exe$
-^*.opam$
-.opam/
-result
-dist/
-
