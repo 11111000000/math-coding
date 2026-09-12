@@ -32,8 +32,16 @@ let check_files_exist pkt =
   in
   check pkt.files
 
-let check_lifecycle git pkt =
-  let computed = Lifecycle.compute_lifecycle git pkt in
+let lifecycle_to_string = function
+  | Draft -> "draft"
+  | Applied -> "applied"
+  | Drift -> "drift"
+  | Stale -> "stale"
+  | Retired -> "retired"
+  | Abandoned -> "abandoned"
+
+let check_lifecycle pkt =
+  let computed = Lifecycle.compute_lifecycle pkt in
   match pkt.status with
   | Some explicit when explicit <> computed ->
       [Warn (Printf.sprintf "status %s overrides computed %s"
@@ -42,13 +50,6 @@ let check_lifecycle git pkt =
   | None ->
       [Pass (Printf.sprintf "computed lifecycle: %s"
         (lifecycle_to_string computed))]
-and lifecycle_to_string = function
-  | Draft -> "draft"
-  | Applied -> "applied"
-  | Drift -> "drift"
-  | Stale -> "stale"
-  | Retired -> "retired"
-  | Abandoned -> "abandoned"
 
 let check_substrate pkt =
   let path = pkt.path in
@@ -138,11 +139,11 @@ let check_epistemics pkt =
   in
   List.map check_one pkt.epistemics
 
-let check git pkt =
+let check pkt =
   let verdicts = ref [] in
   verdicts := !verdicts @ check_structure pkt;
   verdicts := !verdicts @ check_files_exist pkt;
-  verdicts := !verdicts @ check_lifecycle git pkt;
+  verdicts := !verdicts @ check_lifecycle pkt;
   verdicts := !verdicts @ check_substrate pkt;
   verdicts := !verdicts @ check_witness pkt;
   !verdicts

@@ -7,17 +7,17 @@ open Packet
    - Witness + proposition changed → Drift
    - Witness + files changed but proposition same → Stale
    - Witness + proposition same + files match → Applied *)
-let compute_lifecycle git pkt =
+let compute_lifecycle pkt =
   match pkt.witness with
   | [] -> Draft
   | last :: _ ->
       let proposition_match =
-        Git.proposition_in_commit git pkt.last.sha pkt.proposition
+        Git.proposition_in_commit last.sha pkt.proposition
       in
       if not proposition_match then Drift
       else
         let files_match =
-          Git.files_in_commit git pkt.last.sha pkt.files
+          Git.files_in_commit last.sha pkt.files
         in
         if files_match then Applied
         else Stale
