@@ -4,7 +4,6 @@
 ^*.exe$
 ^*.opam$
 .opam/
-math-coding
 result
 dist/
 
