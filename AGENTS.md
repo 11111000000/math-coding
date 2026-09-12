@@ -1,9 +1,28 @@
-# AGENTS.md — math-coding v0.993 runtime hint
+# AGENTS.md — math-coding v1.0 runtime hint
 
-You are working in a math-coding v0.993 repository. Seven
-axioms govern the convention. axiom Self-Application is
-proven: `sh math-coding probe` exits 0 against this very
-repository.
+You are working in a math-coding v1.0 repository. The convention
+guides how decisions are documented as packets. Every non-trivial
+decision lives under `math/<name>/`.
+
+## What math-coding is
+
+math-coding is a discipline for documenting decisions. A packet
+records:
+
+1. **Proposition** — what was decided (one sentence, falsifiable).
+2. **Antithesis** — the strongest objection (recommended).
+3. **Synthesis** — how thesis and antithesis resolve (recommended
+   when antithesis exists).
+4. **Intent** — what success looks like (recommended).
+5. **What this is NOT** — anti-claims (optional).
+6. **Worked example** — concrete instance (optional).
+7. **Run** — executable specification (optional, enables `shell`
+   or `pbt` substrate).
+8. **Notes** — free-form (optional).
+
+The packet lives in `math/<name>/packet.md`. Witness history lives
+in `math/<name>/witness`. Substrate-specific files (TLA+, Coq,
+Alloy) live in `math/<name>/<substrate>/`.
 
 ## The seven axioms
 
@@ -12,298 +31,131 @@ repository.
   A2 Curry-Howard      A6 Self-Application
   A3 Material Basis
 
-Read `core/spec/axioms.md` for the canonical statement of each
-axiom with formal definition, worked example, surface
-impact, and proof. Read `core/theories/` for the eight theories
-that ground them.
+A3 (Material Basis) reads: plain text for human content, git for
+state, single static binary for tools. No per-project framework
+install.
 
-## Read first (in order)
+## Three lifecycle states (computed)
 
-1. `README.md` — one-page manifest
-2. `core/spec/axioms.md` — seven axioms
-3. `core/theories/README.md` — eight theories
-4. `math/<latest-packet>/decision.md` — most recent decision
+  draft       — no witness
+  applied     — witness + files in witness commit
+  drift       — proposition changed after witness
+  retired     — explicit retire (via CLI)
+  abandoned   — explicit abandon (via CLI)
 
-Resolve the latest packet with:
+Lifecycle is **computed** from git history. Optional `status:`
+field in frontmatter **overrides** the computation.
 
-  git log --oneline math/*/decision.md | head -1
+## Eight substrates
 
-## How to operate
+  none        — only proposition, no executable verification
+  shell       — run shell command, verify exit code
+  tla+        — TLA+ state-machine spec (TLC)
+  coq         — Coq formal proof (coqc)
+  alloy       — Alloy relational constraint
+  pbt         — property-based tests (QCheck-style)
+  bpmn        — BPMN workflow (XML well-formedness)
+  pbt-prism   — probabilistic PBT (Prism)
 
-You are a function over:
+Substrate is chosen by the LLM based on
+`docs/substrate-decision-rules.md`. Real verification is
+implemented for `none`, `shell`, `pbt` in v1.0. Other substrates
+report `tool not installed, SKIP` until external checkers are wired.
 
-  S = (chat_history, files_read, files_written, mode, role, installation)
+## Five epistemic markers
 
-Your trace is your proof term. Your type-checker is
-`sh math-coding verify`. Your meta-checker is
-`sh math-coding probe`.
+  fact        — verified by evidence
+  hypothesis  — suspected, not proven
+  judgment    — decision, do not argue
+  unknown     — do not know
+  proven      — evidence reproduces (re-runnable command)
 
-### Mode (set in .mathrc, default standard)
+`proven` requires reproducible evidence. Verify re-runs the
+recorded command and compares exit code. If mismatch, marker
+demotes to `hypothesis`.
 
-  skip      no record
-  light     commit message only
-  standard  full packet (3 mandatory + 2 generated)
-  strict    packet + theory link + surface impact
+## Workflow
 
-### Role (default developer)
+When the user asks for a non-trivial change:
 
-  developer / designer / product-manager / researcher / tech-writer
+1. Read context (issue, code, related packets).
+2. Form a proposition: one sentence, falsifiable.
+3. Form an antithesis: strongest objection.
+4. Form a synthesis: how both resolve.
+5. Choose a substrate: read `docs/substrate-decision-rules.md`.
+6. Run `sh scripts/install.sh` (one-time, builds and installs
+   the OCaml binary to `$XDG_DATA_HOME/math-coding/`).
+7. Run `math-coding packet create <name> --proposition="..."
+   --antithesis="..." --synthesis="..."`.
+8. Implement the operation in code.
+9. Commit: `git add . && git commit -m "<name>: <short desc>"`.
+10. Run `math-coding check` — verifies structure + lifecycle.
+11. Optionally run `math-coding review <name> --approve`.
+12. Run `math-coding probe` — axiom Self-Application.
 
-### Packet (standard or strict)
+When the proposition changes: create a new packet with
+`--supersession=math/<old-name>/`. Do not edit the old packet.
 
-Mandatory files:
+## Packet structure (v1.0)
 
-  packet.yaml       manifest, lifecycle, reviews[]
-  decision.md       proposition (thesis / antithesis / synthesis)
-  refinement.md     state / operation / invariant / test
+```
+math/<name>/
+├── packet.md        # YAML frontmatter + Markdown body
+├── witness          # YAML list of witness entries
+├── run.sh           # only if substrate: shell
+├── properties/      # only if substrate: pbt
+├── tla/             # only if substrate: tla+
+├── coq/             # only if substrate: coq
+├── alloy/           # only if substrate: alloy
+└── bpmn/            # only if substrate: bpmn
+```
 
-Auto-generated by `create --from spec.yaml`:
-
-  task.md           intent (problem / outcome / constraints)
-  assumptions.yaml  epistemic context (5 markers)
-
-### Five epistemic markers (assumptions.yaml)
-
-  fact        B(P) ≥ 0.95
-  hypothesis  0.5 < B(P) < 0.95
-  judgment    B(P) ∈ {0, 1}
-  unknown     B(P) = 0
-  proven      end-to-end verified (axiom Self-Application)
-
-### Lifecycle states
-
-Main line:
-
-  draft → applied → retired
-
-Side states:
-
-  abandoned   draft packet that will not be applied
-  archived    retired packet moved to `math/archived/`
-  superseded  replaced by a new packet
-
-`applied` requires:
-  - at least one SHA in `math/<name>/witness`
-  - at least one approving review (verifier enforces this)
-
-### Five verdict outcomes
-
-  VERIFIED
-  NEEDS_REVISION
-  UNVERIFIABLE:TOOL_MISSING
-  UNVERIFIABLE:DEFERRED
-  UNVERIFIABLE:OUT_OF_SCOPE
-
-## Writing good packets (axiom Process + axiom Accounting)
-
-A packet is the proof of your proposition. The mandatory files
-are the proof term. The verifier is the type-check. axiom
-Accounting requires that every claim is marked with its
-epistemic status. axiom Process forbids skipping `applied`.
-
-A good packet is **specific**, **falsifiable**, and
-**honest**.
-
-### Good `decision.md:thesis`
-
-A good thesis is:
-
-  - **specific**: not "improve performance" but "reduce
-    latency by 30%"
-  - **falsifiable**: it can be wrong
-  - **one sentence**: avoid "and"
-  - **concrete**: numbers, names, paths
-
-Good: "Cache entries expire after 60 seconds, not at user
-request." Bad: "Cache is fast."
-
-Good: "A 3 AM fix must work the first time because the cost
-of a second deploy during an outage is the outage itself."
-Bad: "Fixes should be careful."
-
-### Good `decision.md:antithesis`
-
-A good antithesis is the **strongest objection** to the
-thesis. It is not a strawman; it is the reason a thoughtful
-reviewer might reject the packet.
-
-Good: "Users may need manual invalidation; fixed TTL forces
-them to wait 60 seconds." Bad: "What if we want to be
-faster?"
-
-### Good `decision.md:synthesis`
-
-A good synthesis resolves the thesis + antithesis. It is
-not "we chose this"; it is **how** the choice was made.
-
-Good: "TTL is fixed at 60s; manual invalidation is a
-separate endpoint (`--cache-invalidate`). The two paths are
-independent." Bad: "We chose TTL."
-
-### Good `assumptions.yaml`
-
-Each assumption has:
-  - **id**: A1, A2, ...
-  - **statement**: one sentence
-  - **status**: user-confirmed | agent-inferred | open
-  - **epistemology**: fact | hypothesis | judgment | unknown |
-    proven
-  - **evidence**: one line, or `open` for unknown
-
-Good:
+## Witness file format
 
 ```yaml
-- id: A1
-  statement: "60s is acceptable for this endpoint"
-  status: user-confirmed
-  epistemology: fact
-  confidence: 0.95
-  evidence: "SLA allows 60s for /cache"
+- sha: abc1234...
+  date: 2026-09-15
+  kind: amendment       # or: supersession
+  files: [src/cache.py, tests/cache_test.py]
+- sha: def5678...
+  date: 2026-10-01
+  kind: supersession
+  superseded_by: math/cache-ttl-v2/
 ```
-
-Bad:
-
-```yaml
-- id: A1
-  statement: "cache works"
-  status: agent-inferred
-  epistemology: hypothesis
-  confidence: 0.5
-```
-
-### Good `refinement.md`
-
-A good refinement is **operational**:
-
-  - State: pre/post (specific)
-  - Operation: what the agent or developer does
-  - Mapping: spec state → impl state
-  - Invariant: what stays true (mathematically)
-  - Test: how to verify (concretely)
-
-Good:
-
-```markdown
-State:
-  pre:  cache miss (no entry for key)
-  post: cache hit (entry exists, age < 60s)
-Operation:
-  On read, check entry timestamp. If age > 60s, refresh
-  from upstream.
-Mapping:
-  spec: cache hit returns entry within 60s of last refresh
-  impl: dict[key] returns entry if (now - ts) < 60s
-Invariant:
-  Cache entries never served beyond TTL.
-Test:
-  Insert entry with ts = now - 61s. Read. Expect upstream fetch.
-```
-
-### Good `decision.md:surface impact`
-
-A good surface impact is **specific**, not generic:
-
-Good: "touches: 5 epistemic markers (assumptions.yaml:epistemology),
-SHA witness (math/<name>/witness), 5 verdict outcomes (verifier stdout)"
-
-Bad: "touches: convention's foundation [FROZEN]"
-
-The surface impact is a **pointer** to what other parts of
-the convention this packet's claim touches. A reviewer can
-use the surface impact to find related packets.
-
-### Good `decision.md:proof`
-
-A good proof is **evidence**, not a claim.
-
-Good: "The evidence is `tests/run.sh` which runs 51
-self-tests against the convention's own state. The 51/51 PASS
-result is the witness."
-
-Bad: "All scripts run on a minimal POSIX environment." (this
-is a claim, not evidence — the test is the evidence)
-
-The proof section should answer: "what concrete test,
-script, or witness demonstrates this proposition holds at this
-commit?"
-
-### Lifecycle discipline
-
-Move the lifecycle as the work progresses:
-
-  draft     →  packet created via `sh math-coding create <name> --from <spec.yaml>`
-  applied   →  SHA witness recorded via `sh math-coding apply <name>`
-  retired   →  packet replaced or no longer applied
-
-**Never** move `draft → applied` without a SHA witness and
-review. axiom Process forbids it; `verify.sh` enforces it.
-
-### Supersession
-
-When the proposition itself changes, do not edit the old
-packet. Create a new one:
-
-```bash
-sh math-coding create cache-ttl-v2 --from v2-spec.yaml
-```
-
-In the new packet's YAML:
-
-```yaml
-supersession: math/cache-ttl/
-```
-
-The old packet's lifecycle becomes `retired`. The new
-packet becomes the source of truth.
-
-### witness file
-
-Every packet that moves to `applied` must have a witness
-file at `math/<name>/witness` — a single line containing
-the git SHA of the commit that realises the packet:
-
-```
-b59111803f7a56f236e7746fea813611eaa2e624
-```
-
-The SHA is a real commit. `git cat-file -e <sha>` succeeds.
-The witness is concrete, not symbolic.
-
-Axiom packets also carry witness entries (axiom Accounting
-applied to itself). The drift-check reports the count of
-applied packets and any stale witnesses against this
-repository.
 
 ## Commands
 
-  sh math-coding create <name> --from <spec.yaml>
-  sh math-coding extract <name>
-  sh math-coding apply <name>
-  sh math-coding review <name> --approve | --request-changes | --comment
-  sh math-coding retire <name> --reason=<supersession|deprecation>
-  sh math-coding abandon <name>
-  sh math-coding lifecycle <name> <applied|retired|abandoned>
-  sh math-coding stable <name>
-  sh math-coding archive <name> [--confirm]
-  sh math-coding verify
-  sh math-coding drift-check
-  sh math-coding probe
-  sh math-coding install <path> [--gitignore]
-  sh math-coding upgrade <path>
-  sh math-coding uninstall <path>
-  sh math-coding install-skill
-  sh math-coding config
+  math-coding packet create <name> --proposition="..."
+                                   [--antithesis="..."]
+                                   [--synthesis="..."]
+                                   [--intent="..."]
+                                   [--files=path1,path2]
+                                   [--substrate=none|shell|pbt|...]
+                                   [--supersession=math/<name>]
+  math-coding packet edit <name>    [--proposition="..."]
+                                   [--antithesis="..."]
+                                   [--clear=antithesis]
+                                   [--status=applied|retired|abandoned]
+                                   [--substrate=...]
+  math-coding packet show <name>
+  math-coding packet list
+  math-coding packet substrate <name> <level>
+                                   # adds substrate-specific files
 
-## Modes of operation
+  math-coding check                 [--epistemics] [--json]
+  math-coding drift
+  math-coding probe                  # axiom Self-Application
+  math-coding install                # builds OCaml, installs to $XDG_DATA_HOME
+  math-coding upgrade                # rebuilds from source
 
-When the user asks for a non-trivial change, open a packet
-with `sh math-coding create <name> --from <spec.yaml>`, fill
-the generated files, and commit. For typos and doc fixes,
-commit directly.
+## Reading order
 
-When the user asks about an axiom, cite `math/<NN-axiom>/`
-and `core/theories/<theory>.md`.
+1. `AGENTS.md` — this file
+2. `docs/axioms.md` — seven axioms
+3. `docs/theories.md` — theories
+4. `docs/substrate-decision-rules.md` — when to use each substrate
+5. `math/<latest-packet>/packet.md` — most recent decision
 
-When the user asks about the convention's own state, run
-`sh math-coding probe`. If it returns 0, axiom Self-Application
-holds.
+Resolve the latest packet with:
+
+  git log --oneline -- math/ | head -1

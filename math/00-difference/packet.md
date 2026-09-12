@@ -1,0 +1,147 @@
+---
+proposition: "A proposition is a claim in language. An implementation is a sequence of executable symbols. They are not the same thing. Without this gap, math-coding has nothing to bridge. "
+antithesis: "If proposition equals implementation, no convention is needed. Code that explains itself has no decision to record. But code does not explain itself. A function `add(a, b)` "
+synthesis: "axiom Difference grounds math-coding on difference. Each axiom that follows exists because some proposition differs from some implementation. axiom Curry-Howard names this bridge. axiom Self-Application verifies that the bridge "
+axiom: A0
+substrate: none
+---
+
+# 00-difference
+
+This packet realises [[docs/axioms.md#a0-difference-ontological|axiom Difference]].
+
+## Thesis
+
+A proposition is a claim in language. An implementation is
+a sequence of executable symbols. They are not the same
+thing. Without this gap, math-coding has nothing to bridge.
+
+Consider a junior developer who writes:
+
+```python
+def add(a, b):
+    return a + b
+```
+
+and commits it without a test, without a comment, without
+a story. The implementation exists. The proposition — what
+this code is supposed to mean, in which context it is correct,
+what it does not cover — does not. Six months later, someone
+adds a string to the call. The result is wrong. Nobody knew
+it was wrong, because the proposition was never recorded.
+
+axiom Difference fixes this: the proposition is a separate
+object from the code. It lives in `decision.md`. It has a
+`task.md` that states the intent. It has `assumptions.yaml`
+that names what is taken for granted. It has `refinement.md`
+that maps the proposition to the implementation. The code is
+the last step, not the first.
+
+## Antithesis
+
+If proposition equals implementation, no convention is needed.
+Code that explains itself has no decision to record.
+
+But code does not explain itself. A function `add(a, b)`
+is correct in arithmetic and wrong in string concatenation.
+The implementation carries no hint which one. The proposition
+must come from somewhere. Without a separate place for it,
+the developer guesses, the reviewer guesses, the user
+discovers.
+
+Some methods try to recover the proposition from the code —
+docstrings, type annotations, formal specifications embedded
+in the implementation. Each of these is a partial answer
+that re-introduces the gap by another name. axiom Difference
+says: do not hide the gap. Name it.
+
+## Synthesis
+
+axiom Difference grounds math-coding on difference. Each
+axiom that follows exists because some proposition differs
+from some implementation. axiom Curry-Howard names this
+bridge. axiom Self-Application verifies that the bridge
+holds when the convention applies it to itself.
+
+The five-file packet is the practical form of axiom
+Difference:
+
+  packet.yaml      — the manifest, the type signature
+  decision.md      — the proposition, the claim
+  task.md          — the intent, the goal
+  assumptions.yaml — the context Γ, what we take for granted
+  refinement.md    — the elaboration, how the claim unfolds
+
+Without axiom Difference, the five files collapse to one.
+With axiom Difference, each file has a job.
+
+## A worked example
+
+The `def add(a, b)` example above is itself a worked
+example. The proposition is "integer addition" (recorded
+in `decision.md:thesis`); the implementation is
+`return a + b` (in `src/`). axiom Difference says: the
+proposition and the implementation are not the same. The
+reader of the proposition knows the implementation is wrong
+when the input is a string — even though the implementation
+is indistinguishable from a correct integer addition.
+
+Without axiom Difference, `decision.md` does not exist;
+without `decision.md`, the proposition is invisible; without
+the proposition, the bug returns at 4 AM. axiom Difference
+is what makes the convention useful.
+
+## Surface impact
+
+touches: packet.yaml (the manifest), decision.md (the
+proposition), task.md (the intent), assumptions.yaml (the
+context), refinement.md (the mapping) — the five-file
+structure itself
+
+## Proof
+
+The evidence is axiom Self-Application. axiom Difference
+is real if and only if the five files of every packet
+remain distinct. The probe `sh core/self/probe.sh`
+verifies this: check 1/6 asserts every `math/<pkt>/` has
+exactly five files. If axiom Difference fails — if
+somebody collapses the five files into one — the probe
+exits non-zero. axiom Self-Application closes the loop
+that axiom Difference opens.
+# Refinement: 00-difference
+
+## State
+
+- pre: convention without foundation — propositions confused
+  with code, no recording of decisions.
+- post: convention grounded on A0 (Difference). Every axiom
+  below derives from the gap between claim and realization.
+
+## Operation
+
+State the ontological difference between proposition and
+implementation as axiom Difference. Treat this axiom as the seed
+from which A1-A6 grow.
+
+## Mapping
+
+| scale | proposition-side | implementation-side |
+|-------|------------------|----------------------|
+| packet | decision.md | 5 files of packet |
+| project | SURFACE.md (proposed) | src/, lib/, tests/ |
+| convention | docs/axioms.md | core/, theories/ |
+
+## Invariant preservation
+
+- Every axiom below must reduce to A0 plus its own kind.
+- No axiom may depend on hidden ontological claims.
+
+## Test obligation
+
+- axiom Self-Application — `sh core/self/probe.sh` —
+  verifies that all 7 axioms cohere and that A0 sits at their
+  base.
+
+## Runtime check
+
+None — A0 is structural.
