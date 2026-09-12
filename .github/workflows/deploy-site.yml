@@ -23,6 +23,9 @@ jobs:
       - name: Build OCaml site
         run: nix develop --command bash -c 'dune build'
 
+      - name: Install shared binary
+        run: nix develop --command bash -c 'MATH_CODING_VERSION=ci-test sh scripts/install.sh'
+
       - name: Generate dist/
         run: nix develop --command bash -c './math-coding site'
 
