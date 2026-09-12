@@ -1,5 +1,7 @@
 (* lib/git.ml — git operations for math-coding v1.0. *)
 
+module StringSet = Set.Make (String)
+
 (* Check if a SHA exists in git history. *)
 let sha_exists sha =
   let cmd = Printf.sprintf "git cat-file -e %s 2>/dev/null" sha in
@@ -30,7 +32,7 @@ let files_in_commit sha files =
     sha
   in
   let ic = Unix.open_process_in cmd in
-  let changed = ref (String.Set.of_list files) in
+  let remaining = ref (StringSet.of_list files) in
   (try
     while true do
       let line = input_line ic in
@@ -39,11 +41,11 @@ let files_in_commit sha files =
         |> List.map String.trim
         |> List.filter (fun x -> x <> "")
       in
-      List.iter (fun f -> changed := String.Set.remove f !changed) changed_files
+      List.iter (fun f -> remaining := StringSet.remove f !remaining) changed_files
     done
   with End_of_file -> ());
   close_in ic;
-  String.Set.is_empty !changed
+  StringSet.is_empty !remaining
 
 (* Get current commit SHA (HEAD). *)
 let head_sha =

@@ -75,19 +75,22 @@ let load_packet name =
   let ic = open_in packet_md in
   let content = really_input_string ic (in_channel_length ic) in
   close_in ic;
-  Packet.Parse.parse_packet name path content
+  Math_coding_lib.Parse.parse_packet name path content
 
 let packet_show name =
   let pkt = load_packet name in
-  Printf.printf "name: %s\n" pkt.Packet.name;
-  Printf.printf "path: %s\n" pkt.Packet.path;
-  Printf.printf "proposition: %s\n" pkt.Packet.proposition;
-  Printf.printf "substrate: %s\n" (Packet.substrate_to_string pkt.Packet.substrate);
-  Printf.printf "files: [%s]\n" (String.concat ", " pkt.Packet.files);
-  (match pkt.Packet.axiom with
+  Printf.printf "name: %s\n" pkt.name;
+  Printf.printf "path: %s\n" pkt.path;
+  Printf.printf "proposition: %s\n" pkt.proposition;
+  Printf.printf "substrate: %s\n"
+    (Math_coding_lib.Packet.substrate_to_string pkt.substrate);
+  Printf.printf "files: [%s]\n"
+    (String.concat ", " pkt.files);
+  (match pkt.axiom with
    | Some s -> Printf.printf "axiom: %s\n" s
    | None -> ());
-  Printf.printf "witness entries: %d\n" (List.length pkt.Packet.witness)
+  Printf.printf "witness entries: %d\n"
+    (List.length pkt.witness)
 
 let packet_list () =
   let dir = "math" in
@@ -108,8 +111,7 @@ let packet_list () =
     end
   ) entries
 
-let run_check epistemic json =
-  let git = Packet.Git in
+let run_check epistemic _json =
   let math_dir = "math" in
   if not (Sys.file_exists math_dir) then begin
     Printf.printf "no math/ directory\n";
@@ -128,18 +130,22 @@ let run_check epistemic json =
     let packet_md = Filename.concat path "packet.md" in
     if Sys.is_directory path && Sys.file_exists packet_md then begin
       let pkt = load_packet name in
-      let verdicts = Packet.Check.check git pkt in
+      let verdicts = Math_coding_lib.Check.check pkt in
       let epistemics =
-        if epistemic then Packet.Check.check_epistemics pkt else []
+        if epistemic then Math_coding_lib.Check.check_epistemics pkt else []
       in
       let all = verdicts @ epistemics in
       Printf.printf "%s:\n" name;
       List.iter (fun v ->
         match v with
-        | Packet.Check.Pass s -> Printf.printf "  PASS: %s\n" s; incr total_pass
-        | Packet.Check.Warn s -> Printf.printf "  WARN: %s\n" s; incr total_warn
-        | Packet.Check.Fail s -> Printf.printf "  FAIL: %s\n" s; incr total_fail
-        | Packet.Check.Skip s -> Printf.printf "  SKIP: %s\n" s; incr total_skip
+        | Math_coding_lib.Check.Pass s ->
+            Printf.printf "  PASS: %s\n" s; incr total_pass
+        | Math_coding_lib.Check.Warn s ->
+            Printf.printf "  WARN: %s\n" s; incr total_warn
+        | Math_coding_lib.Check.Fail s ->
+            Printf.printf "  FAIL: %s\n" s; incr total_fail
+        | Math_coding_lib.Check.Skip s ->
+            Printf.printf "  SKIP: %s\n" s; incr total_skip
       ) all
     end
   ) entries;
@@ -148,7 +154,6 @@ let run_check epistemic json =
   if !total_fail > 0 then exit 1
 
 let run_drift () =
-  let git = Packet.Git in
   let math_dir = "math" in
   if not (Sys.file_exists math_dir) then begin
     Printf.printf "no math/ directory\n";
@@ -164,9 +169,9 @@ let run_drift () =
     let packet_md = Filename.concat path "packet.md" in
     if Sys.is_directory path && Sys.file_exists packet_md then begin
       let pkt = load_packet name in
-      let lifecycle = Packet.Lifecycle.compute_lifecycle git pkt in
+      let lifecycle = Math_coding_lib.Lifecycle.compute_lifecycle pkt in
       match lifecycle with
-      | Packet.Drift ->
+      | Math_coding_lib.Packet.Drift ->
           Printf.printf "drift: %s\n" name;
           incr drift_count
       | _ -> ()
@@ -176,19 +181,20 @@ let run_drift () =
   if !drift_count > 0 then exit 1
 
 let run_probe () =
-  let git = Packet.Git in
   let math_dir = "math" in
   if not (Sys.file_exists math_dir) then begin
     Printf.printf "no math/ directory\n";
     exit 1
   end;
-  let verdicts = Packet.Probe.probe math_dir git in
+  let verdicts = Math_coding_lib.Probe.probe math_dir in
   let total_pass = ref 0 in
   let total_fail = ref 0 in
   List.iter (fun v ->
     match v with
-    | Packet.Check.Pass s -> Printf.printf "PASS: %s\n" s; incr total_pass
-    | Packet.Check.Fail s -> Printf.printf "FAIL: %s\n" s; incr total_fail
+    | Math_coding_lib.Check.Pass s ->
+        Printf.printf "PASS: %s\n" s; incr total_pass
+    | Math_coding_lib.Check.Fail s ->
+        Printf.printf "FAIL: %s\n" s; incr total_fail
     | _ -> ()
   ) verdicts;
   Printf.printf "\nprobe: %d pass, %d fail\n" !total_pass !total_fail;
@@ -234,8 +240,7 @@ let () =
   | _ :: "version" :: _ -> Printf.printf "math-coding %s\n" version
   | _ :: "help" :: _
   | _ :: "--help" :: _
-  | _ :: "-h" :: _
-  | [|_|] -> Printf.printf "%s\n" usage
+  | _ :: "-h" :: _ -> Printf.printf "%s\n" usage
   | _ :: "packet" :: "create" :: name :: rest ->
       let prop, ant, syn, intent = parse_proposition rest in
       packet_create name prop ant syn intent

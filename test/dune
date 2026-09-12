@@ -4,4 +4,4 @@
 
 (test
  (name test_properties)
- (libraries math_coding_lib qcheck unix))
+ (libraries math_coding_lib qcheck qcheck-core.runner unix))

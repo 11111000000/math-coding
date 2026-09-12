@@ -16,7 +16,7 @@ let axiom_packets dir =
           loop acc rest
   in
   let entries =
-    try Sys.readdir dir with Sys_error _ -> []
+    try Sys.readdir dir with Sys_error _ -> [||]
   in
   loop [] (Array.to_list entries)
 
@@ -28,13 +28,13 @@ let load_axiom_packet name path =
   let pkt = Parse.parse_packet name path content in
   { pkt with axiom = Some ("A" ^ String.sub name 0 1) }
 
-let probe math_dir git =
+let probe math_dir =
   let axioms = axiom_packets math_dir in
   let verdicts = ref [] in
   List.iter (fun name ->
     let path = Filename.concat math_dir name in
     let pkt = load_axiom_packet name path in
-    let pkt_verdicts = check git pkt in
+    let pkt_verdicts = check pkt in
     verdicts := !verdicts @ pkt_verdicts
   ) axioms;
   !verdicts
