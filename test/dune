@@ -1,0 +1,7 @@
+(test
+ (name test_packet)
+ (libraries math_coding_lib qcheck alcotest unix))
+
+(test
+ (name test_properties)
+ (libraries math_coding_lib qcheck unix))

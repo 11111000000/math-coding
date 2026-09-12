@@ -1,0 +1,4 @@
+(executable
+ (name math_coding)
+ (public_name math-coding)
+ (libraries yaml yojson))

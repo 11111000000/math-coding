@@ -1,0 +1,35 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: "5.2.0"
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libev-dev
+          opam install . --deps-only --with-test
+
+      - name: Build
+        run: opam exec -- dune build --profile=release
+
+      - name: Test
+        run: opam exec -- dune test
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: math-coding
+          path: _build/default/math-coding
