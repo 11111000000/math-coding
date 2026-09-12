@@ -6,3 +6,5 @@
 .opam/
 math-coding
 result
+dist/
+
