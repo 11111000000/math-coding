@@ -34,14 +34,31 @@ jobs:
           git config user.name "math-coding-bot"
           git config user.email "math-coding-bot@users.noreply.github.com"
 
-      - name: Deploy to gh-pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          publish_branch: gh-pages
-          keep_files: false
-          force_orphan: true
-          user_name: math-coding-bot
-          user_email: math-coding-bot@users.noreply.github.com
-          commit_message: "v1.0 site: ${{ github.sha }}"
+      - name: Configure git author for cross-repo push
+        run: |
+          git config --global user.name "math-coding-bot"
+          git config --global user.email "math-coding-bot@users.noreply.github.com"
+
+      - name: Push to math-coding-site gh-pages
+        env:
+          SITE_REPO: "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/11111000000/math-coding-site.git"
+        run: |
+          rm -rf /tmp/site-deploy
+          git clone --depth 1 "$SITE_REPO" /tmp/site-deploy
+          cd /tmp/site-deploy
+          # Delete all tracked files, keep .nojekyll if present
+          git ls-files | xargs -r rm -f
+          # Copy dist/ from current build
+          cp -r "$GITHUB_WORKSPACE/dist/" .
+          touch .nojekyll
+          git add -A
+          git -c user.name=math-coding-bot -c user.email=math-coding-bot@users.noreply.github.com \
+            commit -m "v1.0 site: ${{ github.sha }}"
+          # Push to gh-pages branch (force to clobber old build)
+          git push "$SITE_REPO" HEAD:gh-pages --force
+
+      - name: Confirm publish
+        run: |
+          sleep 30
+          status=$(curl -sI "https://11111000000.github.io/math-coding-site/" | head -1)
+          echo "publish status: $status"
