@@ -1,0 +1,9 @@
+lib: [
+  "_build/install/default/lib/math-coding/META"
+  "_build/install/default/lib/math-coding/dune-package"
+  "_build/install/default/lib/math-coding/opam"
+]
+doc: [
+  "_build/install/default/doc/math-coding/LICENSE"
+  "_build/install/default/doc/math-coding/README.md"
+]
