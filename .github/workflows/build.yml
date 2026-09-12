@@ -11,25 +11,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup OCaml
-        uses: ocaml/setup-ocaml@v2
+      - name: Install Nix
+        uses: cachix/install-nix-action@v24
+
+      - name: Enable flake features
+        run: echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+
+      - name: Cache nix store
+        uses: cachix/cachix-action@v12
         with:
-          ocaml-compiler: "5.2.0"
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          cachix-cache-name: 'math-coding'
 
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libev-dev
-          opam install . --deps-only --with-test
+      - name: Build shell
+        uses: rsnabc/markdown-shellcheck-action@v0
+        with:
+          files: scripts/install.sh
 
-      - name: Build
-        run: opam exec -- dune build --profile=release
+      - name: Build OCaml binary
+        run: nix develop --command bash -c 'dune build --profile=release'
 
-      - name: Test
-        run: opam exec -- dune test
+      - name: Run tests
+        run: nix develop --command bash -c 'dune test'
+
+      - name: Build shared install
+        run: nix develop --command bash -c 'MATH_CODING_VERSION=ci-test sh scripts/install.sh'
+
+      - name: Verify binary
+        run: ./math-coding version
+
+      - name: Probe axiom packets
+        run: ./math-coding probe 2>&1 | tail -5
+
+      - name: Check all packets
+        run: ./math-coding check 2>&1 | tail -5
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: math-coding
-          path: _build/default/math-coding
+          path: _build/default/src/main.exe
