@@ -1,4 +1,4 @@
-# math-coding v0.992
+# math-coding v0.993
 
 > Curry-Howard convention for AI coding agents.
 > Plain-text. git. POSIX. Seven axioms. axiom Self-Application.
@@ -102,8 +102,8 @@ and at least one approving review.
 
 ## Quick start
 
-  git clone math-coding-v0.992
-  cd math-coding-v0.992
+  git clone math-coding-v0.993
+  cd math-coding-v0.993
   sh math-coding probe         # axiom Self-Application
   cat > spec.yaml <<'YAML'
 proposition: |
@@ -129,7 +129,18 @@ YAML
 
 ## Install in an existing project
 
+Default install puts the runtime payload at
+`${XDG_DATA_HOME:-$HOME/.local/share}/math-coding/<ver>/` and
+copies only a wrapper + `.mathrc` into the project:
+
   sh /path/to/math-coding/math-coding install /path/to/project
+  cd /path/to/project
+  sh ./math-coding probe          # wrapper → shared install
+
+Hermetic CI / sandboxed agents use `--local` to copy payload
+into the project:
+
+  sh /path/to/math-coding/math-coding install /path/to/project --local
   cd /path/to/project
   sh ./.math-coding/math-coding probe
 

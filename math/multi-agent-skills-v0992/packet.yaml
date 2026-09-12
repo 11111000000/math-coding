@@ -16,7 +16,6 @@ verifier: sh math-coding probe
 depends_on:
   - 06-self-application
   - agent-mode-subagent-v0992
-applications: []
 surface_impact: |
   meta/build-skill.sh (rewrite: per-agent build loop),
   extensions/agents/canon/SKILL.body.template.md (new),

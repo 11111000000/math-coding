@@ -1,6 +1,6 @@
 ---
 name: math-coding
-description: math-coding v0.992 convention for AI coding agents. Seven axioms, 3 mandatory files, 4 lifecycle states, 7-field spec, peer-review gate, configurable epistemic honesty, lifecycle FSM command. Use when user mentions math-coding, packets, or convention-bootstrap install.
+description: math-coding v0.993 convention for AI coding agents. Seven axioms, 3 mandatory files, 4 lifecycle states, 7-field spec, peer-review gate, configurable epistemic honesty, lifecycle FSM command. Use when user mentions math-coding, packets, or convention-bootstrap install.
 license: Living Beings License
 compatibility: opencode, claude-code
 metadata:
@@ -9,10 +9,10 @@ metadata:
   version: 0.992
 ---
 
-# math-coding v0.992 — Skill for AI Agents
+# math-coding v0.993 — Skill for AI Agents
 
 You are an AI coding agent working in a project with
-math-coding v0.992 installed. The convention guides how
+math-coding v0.993 installed. The convention guides how
 decisions are documented as packets.
 
 ## When to use this skill
@@ -84,11 +84,11 @@ Verdict (axiom Accounting)
 6. Dataview only works in source-repo
 7. synthesis and operation are not templated
 8. Supersession is two-step, not atomic
-9. The seven-field spec: only proposition + outcome mandatory (v0.992)
+9. The seven-field spec: only proposition + outcome mandatory (v0.993)
 10. .math-coding/ is committed by default
 11. Convention does not provide schema migration tools
 12. The convention's own axiom packets may have placeholder text
-13. Adversarial LLMs bypass epistemic honesty (v0.992)
+13. Adversarial LLMs bypass epistemic honesty (v0.993)
 
 <!-- END GENERATED — source SHAs above are witnesses (axiom A5) -->
 
@@ -146,7 +146,7 @@ When the user asks to create a packet:
 7. **Commit the packet directory before applying**:
    ```
    git add math/<name>/
-   git commit -m "v0.992: <name> — <short description>"
+   git commit -m "v0.993: <name> — <short description>"
    ```
    axiom A5 (Accounting): the SHA witness must point to the
    committed state, not the working tree.
@@ -191,7 +191,7 @@ agents and reviewers can see the packet is settled.
 
 Use `sh math-coding stable <name> --unmark` to clear.
 
-## Configuration (.mathrc) — v0.992
+## Configuration (.mathrc) — v0.993
 
 7 configurable fields with optimal defaults:
 
@@ -216,11 +216,11 @@ Use `sh math-coding config` for interactive .mathrc editor.
                                    [--tests-result=<status>] [--files=<glob>]
   sh math-coding review <name>    peer-review: --approve | --request-changes
                                    --comment [--note="..."] [--by=<name>]
-                                   v0.992: applied needs >=1 approve
+                                   v0.993: applied needs >=1 approve
   sh math-coding retire <name>    → retired
                                    --reason=<supersession|deprecation>
                                    [--supersede-with=<new>] [--from=<spec>]
-  sh math-coding abandon <name>   draft → abandoned (v0.992+)
+  sh math-coding abandon <name>   draft → abandoned (v0.993+)
   sh math-coding lifecycle <name> <state>
                                    unified state transition. <state> ∈
                                    applied | retired | abandoned. Aliases

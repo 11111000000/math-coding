@@ -16,7 +16,6 @@ verifier: sh math-coding probe
 depends_on:
   - 06-self-application
   - install-skill-gate-v0992
-applications: []
 surface_impact: |
   extensions/agents/opencode/math-agent.md (frontmatter + prompt),
   KNOWN_LIMITATIONS.md (new note),

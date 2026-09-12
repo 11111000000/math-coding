@@ -1,18 +1,18 @@
 ---
 name: math-coding
-description: math-coding v0.992 convention for AI coding agents. Seven axioms, 3 mandatory files, 4 lifecycle states, 7-field spec, peer-review gate, configurable epistemic honesty, lifecycle FSM command. Use when user mentions math-coding, packets, or convention-bootstrap install.
+description: math-coding v0.993 convention for AI coding agents. Seven axioms, 3 mandatory files, 4 lifecycle states, 7-field spec, peer-review gate, configurable epistemic honesty, lifecycle FSM command, shared install. Use when user mentions math-coding, packets, or convention-bootstrap install.
 license: Living Beings License
 compatibility: opencode, claude-code
 metadata:
   audience: ai-coding-agents
   workflow: documentation-as-code
-  version: 0.992
+  version: 0.993
 ---
 
-# math-coding v0.992 — Skill for AI Agents
+# math-coding v0.993 — Skill for AI Agents
 
 You are an AI coding agent working in a project with
-math-coding v0.992 installed. The convention guides how
+math-coding v0.993 installed. The convention guides how
 decisions are documented as packets.
 
 ## When to use this skill

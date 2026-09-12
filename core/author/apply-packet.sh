@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/author/apply-packet.sh — math-coding v0.992 packet applier.
+# core/author/apply-packet.sh — math-coding v0.993 packet applier.
 #
 # Usage:
 #   sh math-coding apply <name> [options]
@@ -12,7 +12,7 @@
 #   --force-apply            bypass uncommitted-changes warning
 #   --help -h                this message
 #
-# v0.992: apply MUST run AFTER commit. If the packet directory
+# v0.993: apply MUST run AFTER commit. If the packet directory
 # has uncommitted changes relative to the recorded SHA, apply
 # prints a warning and exits with status 1. Pass --force-apply
 # to override (records the committed state regardless of dirty
@@ -38,7 +38,7 @@
 #   applied stays applied (warning that new SHA is added)
 #   retired stays retired (error)
 #
-# v0.992: witness file is one line, space-separated git SHAs.
+# v0.993: witness file is one line, space-separated git SHAs.
 # First SHA is canonical. Append-only across applies.
 
 set -u
@@ -86,7 +86,7 @@ DEST="$MATH_DIR/$name"
 [ -d "$DEST" ] || { echo "error: $DEST not found" >&2; exit 2; }
 [ -f "$DEST/packet.yaml" ] || { echo "error: $DEST/packet.yaml not found" >&2; exit 2; }
 
-# v0.992+: pre-apply self-critique echo (configurable)
+# v0.993+: pre-apply self-critique echo (configurable)
 if [ "$SELF_CRITIQUE_ECHO" = "yes" ]; then
     cat <<'CRITIQUE'
 
@@ -111,11 +111,11 @@ if [ -z "$sha" ]; then
     esac
 
     # Try 1: last commit on math/<name>/
-    sha=$(git -C "$REPO_ROOT" log --oneline -1 -- "$RELATIVE_DEST" 2>/dev/null | awk '{print $1}')
+    sha=$(git -C "$PROJECT_ROOT" log --oneline -1 -- "$RELATIVE_DEST" 2>/dev/null | awk '{print $1}')
 
     # Try 2: last commit mentioning <name> in message
     if [ -z "$sha" ]; then
-        sha=$(git -C "$REPO_ROOT" log --oneline --grep="$name" -1 2>/dev/null | awk '{print $1}')
+        sha=$(git -C "$PROJECT_ROOT" log --oneline --grep="$name" -1 2>/dev/null | awk '{print $1}')
         if [ -n "$sha" ]; then
             echo "info: SHA found via commit message match" >&2
         fi
@@ -123,7 +123,7 @@ if [ -z "$sha" ]; then
 
     # Try 3: last commit at all
     if [ -z "$sha" ]; then
-        sha=$(git -C "$REPO_ROOT" log -1 --format=%H 2>/dev/null)
+        sha=$(git -C "$PROJECT_ROOT" log -1 --format=%H 2>/dev/null)
         if [ -n "$sha" ]; then
             echo "info: SHA is last commit at all (no specific match)" >&2
         fi
@@ -136,12 +136,12 @@ if [ -z "$sha" ]; then
 fi
 
 # Validate SHA
-if ! git -C "$REPO_ROOT" cat-file -e "$sha" 2>/dev/null; then
+if ! git -C "$PROJECT_ROOT" cat-file -e "$sha" 2>/dev/null; then
     echo "error: SHA $sha unknown to local git history" >&2
     exit 1
 fi
 
-# v0.992: workflow discipline — apply must run AFTER commit, not before.
+# v0.993: workflow discipline — apply must run AFTER commit, not before.
 # axiom A5 (Accounting): witness records the SHA of the committed
 # state, not the working tree. If the packet directory has
 # uncommitted changes (working tree differs from $sha), the
@@ -150,13 +150,12 @@ fi
 # Detection: git status --porcelain catches both untracked and
 # modified files in the packet directory (git diff alone ignores
 # untracked files).
-RELATIVE_DEST="$MATH_DIR/$name"
-case "$RELATIVE_DEST" in
-    "$REPO_ROOT"/*)
-        RELATIVE_DEST="${RELATIVE_DEST#$REPO_ROOT/}"
-        ;;
+RELATIVE_DEST="math/$name"
+case "$MATH_DIR" in
+    "$PROJECT_ROOT"/*) ;;
+    *) RELATIVE_DEST="$MATH_DIR/$name" ;;
 esac
-uncommitted=$(git -C "$REPO_ROOT" status --porcelain -- "$RELATIVE_DEST" 2>/dev/null)
+uncommitted=$(git -C "$PROJECT_ROOT" status --porcelain -- "$RELATIVE_DEST" 2>/dev/null)
 if [ -n "$uncommitted" ]; then
     echo "warning: packet directory has uncommitted changes relative to working tree:" >&2
     echo "$uncommitted" | sed 's/^/         /' >&2
@@ -172,13 +171,13 @@ fi
 if [ -z "$files" ]; then
     # Get all files in commit, excluding the packet itself
     prev_sha=$(grep -oE 'sha: [0-9a-f]+' "$DEST/packet.yaml" | tail -1 | awk '{print $2}')
-    if [ -n "$prev_sha" ] && git -C "$REPO_ROOT" cat-file -e "$prev_sha" 2>/dev/null; then
-        files=$(git -C "$REPO_ROOT" diff --name-only "$prev_sha".."$sha" 2>/dev/null \
+    if [ -n "$prev_sha" ] && git -C "$PROJECT_ROOT" cat-file -e "$prev_sha" 2>/dev/null; then
+        files=$(git -C "$PROJECT_ROOT" diff --name-only "$prev_sha".."$sha" 2>/dev/null \
             | grep -v "^$MATH_DIR/$name/" \
             | grep -v "^.math-coding/")
     else
         # No prev SHA: list files in commit, excluding the packet
-        files=$(git -C "$REPO_ROOT" show --name-only --format= "$sha" 2>/dev/null \
+        files=$(git -C "$PROJECT_ROOT" show --name-only --format= "$sha" 2>/dev/null \
             | grep -v "^$MATH_DIR/$name/" \
             | grep -v "^.math-coding/" \
             | grep -v "^$")
@@ -236,10 +235,10 @@ fi
 [ -n "$tests" ] && echo "  tests: $tests"
 [ -n "$tests_result" ] && echo "  tests_result: $tests_result"
 
-# v0.992: review is a separate command. Apply does not call
+# v0.993: review is a separate command. Apply does not call
 # verify — that is a separate concern. Run `sh math-coding verify`
 # after apply to check structural correctness, and `sh math-coding
 # review <name> --approve` to provide peer approval.
 echo ""
 echo "Next: run 'sh math-coding review <name> --approve' to record review."
-echo "      (v0.992 requires >=1 approve for applied packets)"
+echo "      (v0.993 requires >=1 approve for applied packets)"

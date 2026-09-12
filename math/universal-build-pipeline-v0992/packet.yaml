@@ -17,7 +17,6 @@ depends_on:
   - 06-self-application
   - multi-agent-skills-v0992
   - universal-agents-md-v0992
-applications: []
 surface_impact: |
   extensions/agents/canon/AGENTS.body.template.md (new),
   extensions/agents/universal/AGENTS.preamble.md (new),

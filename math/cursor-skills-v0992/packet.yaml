@@ -16,7 +16,6 @@ verifier: sh math-coding probe
 depends_on:
   - 06-self-application
   - multi-agent-skills-v0992
-applications: []
 surface_impact: |
   extensions/agents/cursor/SKILL.preamble.md (new),
   extensions/agents/cursor/math-agent.preamble.yaml (new),

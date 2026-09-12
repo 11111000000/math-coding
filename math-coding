@@ -1,8 +1,8 @@
 #!/bin/sh
-# math-coding — math-coding v0.992 dispatcher.
+# math-coding — math-coding v0.993 dispatcher.
 #
-# Routes user-facing commands to the right tool. The dispatcher
-# knows the layout; the tools know their role.
+# Single entry point. Resolves REPO_ROOT via core/lib/common.sh,
+# then routes commands to the right tool.
 
 set -u
 
@@ -14,44 +14,28 @@ usage: math-coding <command> [args...]
 
 Commands:
   create <name> --from <spec.yaml>
-                   Create a packet from a YAML spec (file or '-').
-                   Spec has 7 fields: proposition, outcome,
-                   invariant, test, antithesis, synthesis, operation.
-  extract <name>    Emit a YAML spec for an existing packet to stdout.
-  apply <name>      Record SHA witness and transition to applied.
-  review <name>     Peer-review: --approve | --request-changes |
-                   --comment. v0.991: applied needs >=1 approve.
-  retire <name> --reason=<supersession|deprecation>
-                   Transition to retired.
-  abandon <name>    Transition draft → abandoned (v0.991).
-  amend <name> --reason="<text>"
-                   Record a formal amendment to a packet
-                   (append to amendments[]). v0.992.
-  lifecycle <name> <state>
-                   Unified state transition. <state> ∈
-                   applied | retired | abandoned. Aliases
-                   to apply, retire, abandon.
-  stable <name>    Mark packet as stable_since today (opt-in).
-  archive <name> [--confirm]
-                   Move to math/archived/, preserve git history.
+                   Create a packet from a YAML spec (file or '-'). 7 fields:
+                   proposition, outcome, invariant, test, antithesis, synthesis,
+                   operation. v0.993: only proposition + outcome are mandatory.
+  apply <name>    Record SHA witness and transition to applied.
+  review <name>   Peer-review: --approve | --request-changes | --comment.
+                   v0.993: applied needs >=1 approve.
+  lifecycle <name> <state> [--reason=<text>] [--supersede-with=<name>]
+                   Transition: applied | retired | abandoned. Aliases
+                   to apply/retire/abandon.
   verify [--cross-packet-consistency]
                    Run core/check/verify.sh on all packets.
-                   --cross-packet-consistency also runs cross-packet
-                   DAG checks (depends_on, supersession, amendments).
-  drift-check       Run core/check/drift-check.sh on applications[].
-  probe             Run core/self/probe.sh (axiom A6 self-application).
-  install <path> [--gitignore]
-                   Install convention to <path>/.math-coding/.
-                   By default .math-coding/ is committed.
-                   --gitignore opts in to gitignore behavior.
-  install-skill    Install math-coding skill to agent's skills
-                   location (default: opencode). See
-                   core/install/install-skill.sh.
-  config           Interactive .mathrc editor. Asks for each
-                   field (Enter to keep). TTY-aware.
-  upgrade <path>    Upgrade .math-coding/ in <path>.
-  uninstall <path>  Remove .math-coding/ from <path>.
-  help              This message.
+  drift-check     Run core/check/drift-check.sh on witness files.
+  probe           Run core/self/probe.sh (axiom A6 self-application).
+  install <path>  Install convention (default: shared at \$XDG_DATA_HOME).
+  install --local <path>
+                   Legacy in-repo install (hermetic CI).
+  upgrade         Refresh shared install from current source-repo.
+  uninstall <path>
+                   Remove project wrapper and (with --local) .math-coding/.
+  install-skill [opts]
+                   Install skill/agent/hook payloads.
+  help            This message.
 
 Examples:
   sh math-coding create my-feature --from spec.yaml
@@ -59,7 +43,6 @@ Examples:
   sh math-coding verify
   sh math-coding probe
   sh math-coding install /path/to/project
-
 EOF
 }
 
@@ -68,67 +51,30 @@ case "${1:-help}" in
         shift
         exec sh "$REPO_ROOT/core/author/create-packet.sh" "$@"
         ;;
-    extract)
+    apply|review|retire|abandon|stable|archive|amend)
+        cmd="$1"
         shift
-        exec sh "$REPO_ROOT/core/author/extract-packet.sh" "$@"
-        ;;
-    apply)
-        shift
-        exec sh "$REPO_ROOT/core/author/apply-packet.sh" "$@"
-        ;;
-    review)
-        shift
-        exec sh "$REPO_ROOT/core/author/review-packet.sh" "$@"
-        ;;
-    retire)
-        shift
-        exec sh "$REPO_ROOT/core/author/retire-packet.sh" "$@"
-        ;;
-    abandon)
-        shift
-        exec sh "$REPO_ROOT/core/author/abandon-packet.sh" "$@"
-        ;;
-    amend)
-        shift
-        exec sh "$REPO_ROOT/core/author/amend-packet.sh" "$@"
+        exec sh "$REPO_ROOT/core/author/lifecycle.sh" "$cmd" "$@"
         ;;
     lifecycle)
         shift
-        name="$1"
-        state="$2"
-        if [ -z "$name" ] || [ -z "$state" ]; then
-            echo "usage: math-coding lifecycle <name> <state>" >&2
-            echo "  state: applied | retired | abandoned" >&2
-            exit 2
+        # Legacy form: lifecycle <name> <state>. Detect by second
+        # arg being a known state.
+        if [ $# -ge 2 ] && case "$2" in
+            applied|retired|abandoned|draft) true ;;
+            *) false ;;
+        esac; then
+            state="$2"
+            name="$1"
+            shift 2
+            case "$state" in
+                applied)   exec sh "$REPO_ROOT/core/author/lifecycle.sh" apply "$name" "$@" ;;
+                retired)   exec sh "$REPO_ROOT/core/author/lifecycle.sh" retire "$name" "$@" ;;
+                abandoned) exec sh "$REPO_ROOT/core/author/lifecycle.sh" abandon "$name" "$@" ;;
+                draft)     echo "error: cannot transition to 'draft'" >&2; exit 1 ;;
+            esac
         fi
-        shift 2
-        case "$state" in
-            applied)
-                exec sh "$REPO_ROOT/core/author/apply-packet.sh" "$name" "$@"
-                ;;
-            retired)
-                exec sh "$REPO_ROOT/core/author/retire-packet.sh" "$name" "$@"
-                ;;
-            abandoned)
-                exec sh "$REPO_ROOT/core/author/abandon-packet.sh" "$name" "$@"
-                ;;
-            draft)
-                echo "error: cannot transition to 'draft' (use create for new packet)" >&2
-                exit 1
-                ;;
-            *)
-                echo "error: unknown state '$state' (use: applied|retired|abandoned)" >&2
-                exit 1
-                ;;
-        esac
-        ;;
-    stable)
-        shift
-        exec sh "$REPO_ROOT/core/author/stable.sh" "$@"
-        ;;
-    archive)
-        shift
-        exec sh "$REPO_ROOT/core/author/archive-packet.sh" "$@"
+        exec sh "$REPO_ROOT/core/author/lifecycle.sh" "$@"
         ;;
     verify)
         shift
@@ -148,13 +94,8 @@ case "${1:-help}" in
         shift
         exec sh "$REPO_ROOT/core/install/install-skill.sh" "$@"
         ;;
-    config)
-        shift
-        exec sh "$REPO_ROOT/core/author/config.sh" "$@"
-        ;;
     upgrade)
-        shift
-        exec sh "$REPO_ROOT/core/install/upgrade.sh" "$@"
+        exec sh "$REPO_ROOT/core/install/upgrade.sh"
         ;;
     uninstall)
         shift
@@ -165,7 +106,6 @@ case "${1:-help}" in
         ;;
     *)
         echo "math-coding: unknown command '$1'" >&2
-        echo "" >&2
         usage >&2
         exit 2
         ;;

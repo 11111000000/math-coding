@@ -1,42 +1,47 @@
 #!/bin/sh
-# core/install/upgrade.sh — math-coding v0.992 brownfield upgrader.
+# core/install/upgrade.sh — math-coding v0.993 shared upgrader.
 #
-# Usage: sh core/install/upgrade.sh <target-dir>
+# Usage: sh core/install/upgrade.sh
 #
-# Overwrites the .math-coding/ payload in a target project
-# with the current convention's core/, extensions/,
-# extensions/, and dispatcher. The .mathrc file is preserved
-# (user config). extensions/ is included so agents and CI
-# templates stay in sync with the convention version.
+# Refreshes the shared install at $XDG_DATA_HOME/math-coding/<ver>/
+# from the current source-repo. The active symlink `current` keeps
+# pointing at this version. Project wrappers resolve at runtime;
+# nothing in the project repo changes.
 
 set -u
 
-REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-TARGET="${1:?usage: sh core/install/upgrade.sh <target-dir>}"
+. "$(dirname "$0")/../lib/common.sh"
 
-TARGET="$(cd "$TARGET" && pwd)"
-DEST="$TARGET/.math-coding"
+DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
+DATA_DIR="$DATA/math-coding"
+VERSION_DIR="$DATA_DIR/$VERSION"
+CURRENT_LINK="$DATA_DIR/current"
 
-if [ ! -d "$DEST" ]; then
-    echo "error: $DEST does not exist; run install.sh first" >&2
+if [ ! -L "$CURRENT_LINK" ] && [ ! -e "$CURRENT_LINK" ]; then
+    echo "error: $CURRENT_LINK missing; run install.sh first" >&2
     exit 2
 fi
 
-# Remove old payload, install new
-for d in core extensions; do
-    if [ -d "$DEST/$d" ]; then
-        rm -rf "$DEST/$d"
-    fi
-done
+mkdir -p "$VERSION_DIR" || { echo "error: cannot create $VERSION_DIR" >&2; exit 1; }
 
 for d in core extensions; do
     if [ -d "$REPO_ROOT/$d" ]; then
-        cp -R "$REPO_ROOT/$d" "$DEST/$d"
+        rm -rf "$VERSION_DIR/$d"
+        cp -R "$REPO_ROOT/$d" "$VERSION_DIR/$d"
     fi
 done
 
-cp "$REPO_ROOT/math-coding" "$DEST/math-coding"
-chmod +x "$DEST/math-coding"
+if [ -f "$REPO_ROOT/math-coding" ]; then
+    cp "$REPO_ROOT/math-coding" "$VERSION_DIR/math-coding"
+    chmod +x "$VERSION_DIR/math-coding"
+fi
 
-echo "upgraded math-coding in $DEST"
-echo "  (core/, extensions/, dispatcher)"
+# Re-point current to this version.
+cur_target=$(readlink "$CURRENT_LINK" 2>/dev/null || true)
+if [ "$cur_target" != "$VERSION" ]; then
+    rm -f "$CURRENT_LINK"
+    ln -s "$VERSION" "$CURRENT_LINK"
+fi
+
+echo "upgraded shared install → $VERSION_DIR"
+echo "  symlink: $CURRENT_LINK → $VERSION"

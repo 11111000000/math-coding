@@ -1,5 +1,5 @@
 #!/bin/sh
-# core/check/verify.sh — math-coding v0.992 verifier.
+# core/check/verify.sh — math-coding v0.993 verifier.
 #
 # Usage: sh core/check/verify.sh [--cross-packet-consistency]
 #
@@ -9,7 +9,7 @@
 # v0.991: 3 mandatory files. Optional files are bonus. Lifecycle:
 # draft/applied/retired/abandoned (4 states). Old states are invalid.
 # .mathrc unknown fields generate warnings.
-# v0.992: --cross-packet-consistency runs cross-packet-check.sh after
+# v0.993: --cross-packet-consistency runs cross-packet-check.sh after
 # per-packet checks.
 
 set -u
@@ -113,7 +113,7 @@ if [ -d "$MATH_DIR" ]; then
             *) fail "$pkt_name: invalid rigor '$rig'" ;;
         esac
 
-        # v0.992: graduated ceremony per lifecycle state.
+        # v0.993: graduated ceremony per lifecycle state.
         # draft    — minimal: mandatory files only. No SHA, no review, no
         #            verified_by required. Idea-stage is cheap.
         # applied  — full: SHA-witness + implementation=complete + ≥1 review
@@ -125,11 +125,11 @@ if [ -d "$MATH_DIR" ]; then
                 pass
                 ;;
             applied)
-                # v0.992: witness is in sibling file, not in packet.yaml.
+                # v0.993: witness is in sibling file, not in packet.yaml.
                 # Check witness file exists and contains a valid SHA.
                 if [ -f "$pkt_dir/witness" ]; then
                     first_sha=$(awk '{print $1; exit}' "$pkt_dir/witness")
-                    if [ -n "$first_sha" ] && git -C "$REPO_ROOT" cat-file -e "$first_sha" 2>/dev/null; then
+                    if [ -n "$first_sha" ] && git -C "$PROJECT_ROOT" cat-file -e "$first_sha" 2>/dev/null; then
                         pass
                     else
                         fail "$pkt_name: lifecycle=applied but witness file has no valid SHA"
@@ -330,7 +330,7 @@ if [ -d "$MATH_DIR" ]; then
             fi
         fi
 
-        # v0.992: amendments[] entries must have date, by, reason, sha.
+        # v0.993: amendments[] entries must have date, by, reason, sha.
         if grep -q '^amendments:' "$pkt_dir/packet.yaml" 2>/dev/null; then
             awk -v pkt="$pkt_name" '
                 BEGIN { in_block = 0; in_entry = 0; ok = 0

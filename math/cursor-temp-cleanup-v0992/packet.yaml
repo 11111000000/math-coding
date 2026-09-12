@@ -16,7 +16,6 @@ verifier: sh math-coding probe
 depends_on:
   - 06-self-application
   - cursor-skills-v0992
-applications: []
 surface_impact: |
   extensions/agents/cursor/math-agent.preamble.yaml (drop temperature),
   extensions/agents/cursor/math-agent.md (regenerated)

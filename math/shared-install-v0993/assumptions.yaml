@@ -1,0 +1,30 @@
+task_id: shared-install-v0993
+assumptions:
+  - id: A1
+    statement: "$XDG_DATA_HOME (or $HOME/.local/share fallback) is writable on every supported host."
+    status: user-confirmed
+    epistemology: fact
+    confidence: 0.95
+    evidence: "XDG Base Directory Specification; standard Linux/macOS layout."
+  - id: A2
+    statement: "CI runners can use --local install or pre-populate $XDG_DATA_HOME in the job image."
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.8
+    evidence: "GitHub Actions, GitLab CI, Buildkite all support $HOME caching; sandboxed containers may not."
+  - id: A3
+    statement: "Removing extract, config, stable, archive, amend, abandon scripts does not break existing applied packets."
+    status: agent-inferred
+    epistemology: judgment
+    evidence: "These scripts edit packet.yaml:reviews[] and lifecycle: lines; verifier and self-tests do not invoke them."
+  - id: A4
+    statement: "One combined lifecycle.sh preserves the same exit codes and side effects as the seven existing scripts."
+    status: agent-inferred
+    epistemology: hypothesis
+    confidence: 0.7
+    evidence: "Each existing script modifies one YAML field or appends one entry; combining keeps the per-subcommand dispatch."
+  - id: A5
+    statement: "shared install reduces repo size meaningfully (target repo loses ~7000 LoC of shell)."
+    status: fact
+    confidence: 0.95
+    evidence: "find core tests meta -name '*.sh' yields 6949 lines today."

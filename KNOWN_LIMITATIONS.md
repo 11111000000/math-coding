@@ -1,6 +1,6 @@
-# Known limitations (math-coding v0.992)
+# Known limitations (math-coding v0.993)
 
-math-coding v0.992 is intentionally minimal. It does not
+math-coding v0.993 is intentionally minimal. It does not
 attempt to solve every problem a project might face. This
 document lists the limitations we know about, why they
 exist, and what the workaround is.
@@ -147,7 +147,7 @@ breaks the principle of explicit, atomic operations.
 **Workaround.** Always create the successor before retiring
 the predecessor. Or accept the brief inconsistency.
 
-## 9. The seven-field spec: only proposition + outcome mandatory (v0.992)
+## 9. The seven-field spec: only proposition + outcome mandatory (v0.993)
 
 **Behavior.** `create` accepts a partial spec. Only
 `proposition` and `outcome` are required; the other five
@@ -157,7 +157,7 @@ errors, when missing.
 
 **Why.** Earlier versions required all seven fields and
 refused to create the packet otherwise. This produced
-friction for trivial decisions. v0.992 relaxes the gate
+friction for trivial decisions. v0.993 relaxes the gate
 to reduce ceremony; placeholder text in decision.md /
 refinement.md is still warned about by `verify.sh`.
 
@@ -165,23 +165,35 @@ refinement.md is still warned about by `verify.sh`.
 `outcome` for a quick packet; fill the rest when the
 decision merits the work.
 
-## 10. .math-coding/ is committed by default
+## 10. Shared install replaces in-repo payload (v0.993)
 
-**Behavior.** `install.sh` does NOT add `.math-coding/`
-to `.gitignore` by default. The convention is committed to the
-project's git repository. New clones have the convention
-without running install.sh manually, and CI works
-out-of-the-box.
+**Behavior.** Default `install.sh` writes the runtime payload
+once to `${XDG_DATA_HOME:-$HOME/.local/share}/math-coding/<ver>/`,
+exposes it through a `current` symlink, and copies only a 25-line
+wrapper, `.mathrc`, and `math/README.md` into the target project.
+The wrapper resolves the shared install at runtime; the project's
+own repository contains no `core/`, `extensions/`, or dispatcher
+beyond the wrapper itself.
 
-**Why.** Committed convention removes the "new developer
-runs install.sh" friction.
+**Why.** In-repo copies of `core/` and `extensions/` (~7000 LoC
+of shell) bloated project clones, slowed `grep`/`rg` over user
+code, and forced every project to track convention upgrades via
+its own git history.
 
-**Opt-out.** Pass `--gitignore` to `install.sh`:
+**Opt-out.** Pass `--local` to `install.sh` to reproduce the
+legacy in-repo `.math-coding/` layout. Useful for hermetic CI
+jobs and sandboxed agents without a writable `$HOME`:
+
 ```
-sh math-coding install /path/to/project --gitignore
+sh math-coding install /path/to/project --local
+sh math-coding install /path/to/project --local --gitignore
 ```
-This restores the historical behavior of adding
-`.math-coding/` to `.gitignore`.
+
+**CI usage.** Pre-populate `$XDG_DATA_HOME/math-coding/<ver>/`
+in the job image, or run `install --local` inside the job
+before `verify`.
+
+**Documented in:** `math/shared-install-v0993/`.
 
 ## 10a. Race condition on concurrent apply
 
@@ -213,7 +225,7 @@ upgrade would require a new migration script.
 - `lifecycle: superseded|deprecated|archived` → `retired`
 - 5 files kept, 3 are now mandatory (others are auto-generated)
 
-For v0.991 → v0.992, the migration was:
+For v0.991 → v0.993, the migration was:
 - `packet.yaml:applications[]` SHA moved to sibling `witness` file
   (axiom A5 recursion fix — refresh commit no longer rewrites the
   file it is supposed to witness)
@@ -238,7 +250,7 @@ content is meant to be read, not generated.
 expected. If you create your own axiom packets, ensure
 they have substantive content.
 
-## When NOT to use math-coding (v0.992)
+## When NOT to use math-coding (v0.993)
 
 The convention is for **decisions**, not for **work**.
 Creating a packet for every commit produces ceremony without
@@ -289,9 +301,9 @@ Each limitation has a workaround. Use the workaround
 if the limitation affects you. If the workaround is
 insufficient, open an issue describing the use case.
 
-## 13. Adversarial LLMs bypass epistemic honesty (v0.992)
+## 13. Adversarial LLMs bypass epistemic honesty (v0.993)
 
-**Limitation.** v0.992 enforces:
+**Limitation.** v0.993 enforces:
 - `fact` markers carry evidence (warning otherwise).
 - `applied` packets require ≥1 SHA in the witness file
   plus ≥1 approve review.
@@ -314,15 +326,15 @@ governance:
 
 **Honest framing.** math-coding's epistemic honesty is a
 **protocol for honest agents**, not a **shield against
-dishonest ones**. Treat v0.992 as raising the floor for
+dishonest ones**. Treat v0.993 as raising the floor for
 honest agents, not as security.
 
-## 14. Vendored fonts not yet shipped with site (v0.992+)
+## 14. Vendored fonts not yet shipped with site (v0.993+)
 
 **Limitation.** Site CSS at `site/assets/css/tokens.css`
 declares `@font-face` rules referencing Source Serif 4 and
 JetBrains Mono woff2 files at `site/assets/fonts/`. As of
-v0.992, those woff2 files are not vendored in this
+v0.993, those woff2 files are not vendored in this
 repository, so browsers fall back to system serif/mono
 fonts until a follow-up packet adds the font assets.
 
@@ -347,7 +359,7 @@ be retired.
 ## 15. Math agent is subagent, not primary
 
 **Limitation.** `extensions/agents/opencode/math-agent.md` is
-shipped with `mode: subagent` (v0.992+). It does not appear in
+shipped with `mode: subagent` (v0.993+). It does not appear in
 the opencode TUI Tab cycle (which is `build` ↔ `plan`). Users
 must invoke Math explicitly via `@math` mention or the Task
 tool from a primary agent.
@@ -436,7 +448,7 @@ install command. AGENTS.md must be hand-copied. This is a
 **convention-level** boundary, not a bug — the underlying
 agent system does not have a global-skill API.
 
-**v0.992 build pipeline.** AGENTS.md is generated from
+**v0.993 build pipeline.** AGENTS.md is generated from
 `extensions/agents/canon/AGENTS.body.template.md` via
 `meta/build-skill.sh universal`. Axiom cards flow from
 `core/spec/axioms.md` at build time. The hand-copy install
