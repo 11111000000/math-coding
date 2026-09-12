@@ -13,7 +13,6 @@ depends_on:
   - 03-material
   - 04-process
   - 06-self-application
-applications: []
 surface_impact: |
   core/install/install.sh (writes to $XDG_DATA_HOME/math-coding/<ver>/)
   core/install/upgrade.sh, uninstall.sh, install-skill.sh (use new layout)
