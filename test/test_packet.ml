@@ -33,6 +33,23 @@ let test_parse_packet_frontmatter () =
   Alcotest.(check string) "proposition" "test" pkt.P.proposition;
   Alcotest.(check (option string)) "antithesis" (Some "alt") pkt.P.antithesis
 
+let test_parse_inline_list () =
+  let content = "---\nproposition: \"test\"\nfiles: [src/foo.ml, src/bar.ml]\n---\n" in
+  let pkt = Math_coding_lib.Parse.parse_packet "test" "/tmp/test" content in
+  Alcotest.(check (list string)) "files parsed from inline list"
+    ["src/foo.ml"; "src/bar.ml"] pkt.P.files
+
+let test_parse_comma_list () =
+  let content = "---\nproposition: \"test\"\nfiles: src/foo.ml, src/bar.ml\n---\n" in
+  let pkt = Math_coding_lib.Parse.parse_packet "test" "/tmp/test" content in
+  Alcotest.(check (list string)) "files parsed from comma list"
+    ["src/foo.ml"; "src/bar.ml"] pkt.P.files
+
+let test_parse_empty_brackets () =
+  let content = "---\nproposition: \"test\"\nfiles: []\n---\n" in
+  let pkt = Math_coding_lib.Parse.parse_packet "test" "/tmp/test" content in
+  Alcotest.(check (list string)) "files parsed from empty brackets" [] pkt.P.files
+
 let test_lifecycle_no_witness () =
   let pkt = P.empty_packet "test" "/tmp/test" in
   let _lifecycle = Math_coding_lib.Lifecycle.compute_lifecycle pkt in
@@ -48,6 +65,9 @@ let () =
     ];
     "parse", [
       Alcotest.test_case "frontmatter" `Quick test_parse_packet_frontmatter;
+      Alcotest.test_case "inline_list" `Quick test_parse_inline_list;
+      Alcotest.test_case "comma_list" `Quick test_parse_comma_list;
+      Alcotest.test_case "empty_brackets" `Quick test_parse_empty_brackets;
     ];
     "lifecycle", [
       Alcotest.test_case "no_witness" `Quick test_lifecycle_no_witness;

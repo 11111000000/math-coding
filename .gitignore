@@ -1,5 +1,8 @@
-_build/
-*.exe
-*.install
+^.pid$
+^_build/
+^*.install$
+^*.exe$
+^*.opam$
 .opam/
+math-coding
 result

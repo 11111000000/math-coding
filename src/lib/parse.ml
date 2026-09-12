@@ -29,14 +29,30 @@ let yaml_get_string yaml key : string option =
   in
   loop lines
 
-(* Get a list value for `key:` (comma-separated). *)
+(* Split a raw string value into a list. Supports two YAML forms:
+   - inline list: "[a, b, c]"
+   - comma-separated: "a, b, c"
+   Empty brackets ("[]") gives an empty list. *)
+let yaml_split_list (s : string) : string list =
+  let trimmed = String.trim s in
+  let len = String.length trimmed in
+  let inner =
+    if len >= 2 && trimmed.[0] = '[' && trimmed.[len - 1] = ']' then
+      String.trim (String.sub trimmed 1 (len - 2))
+    else
+      trimmed
+  in
+  inner
+  |> String.split_on_char ','
+  |> List.map (fun x ->
+    String.trim (strip_quotes x))
+  |> List.filter (fun x -> x <> "")
+
+(* Get a list value for `key:` (YAML inline list or comma-separated). *)
 let yaml_get_string_list yaml key =
   match yaml_get_string yaml key with
   | None -> []
-  | Some s ->
-      String.split_on_char ',' s
-      |> List.map String.trim
-      |> List.filter (fun x -> x <> "")
+  | Some s -> yaml_split_list s
 
 (* Split content into (frontmatter_yaml, body). *)
 let split_frontmatter (content : string) : (string * string) option =

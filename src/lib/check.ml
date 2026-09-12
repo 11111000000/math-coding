@@ -21,14 +21,26 @@ let check_structure pkt =
     verdicts := Fail "packet directory missing" :: !verdicts;
   List.rev !verdicts
 
+(* Check that each declared file exists. If the path is absolute,
+   use it directly. Otherwise, treat it as relative to project root
+   (the grandparent of pkt.path, which is math/<name>/) — this matches
+   how authors write paths like "src/lib/check.ml" referring to
+   project sources, not packet internals. *)
 let check_files_exist pkt =
+  let project_root = Filename.dirname (Filename.dirname pkt.path) in
   let rec check = function
     | [] -> [Pass "all files exist"]
     | f :: rest ->
-        if Sys.file_exists (Filename.concat pkt.path f) then
+        let resolved =
+          if Filename.is_relative f then
+            Filename.concat project_root f
+          else
+            f
+        in
+        if Sys.file_exists resolved then
           check rest
         else
-          [Fail ("file missing: " ^ f)]
+          [Fail ("file missing: " ^ f ^ " (resolved to " ^ resolved ^ ")")]
   in
   check pkt.files
 

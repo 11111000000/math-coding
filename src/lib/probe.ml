@@ -7,13 +7,15 @@ let axiom_packets dir =
   let rec loop acc = function
     | [] -> List.rev acc
     | entry :: rest ->
-        let name = Filename.basename entry in
-        let path = Filename.concat entry "packet.md" in
+        let name = entry in
         let full_path = Filename.concat dir name in
-        if Sys.is_directory full_path && Sys.file_exists path then
-          loop (name :: acc) rest
-        else
-          loop acc rest
+        let pm = Filename.concat full_path "packet.md" in
+        let visible = String.length name > 0 && name.[0] <> '.' in
+        let cond = visible
+          && Sys.is_directory full_path
+          && Sys.file_exists pm
+        in
+        if cond then loop (name :: acc) rest else loop acc rest
   in
   let entries =
     try Sys.readdir dir with Sys_error _ -> [||]
