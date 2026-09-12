@@ -18,7 +18,7 @@ jobs:
         uses: cachix/install-nix-action@v24
 
       - name: Enable flake features
-        run: echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+        run: mkdir -p ~/.config/nix && echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
 
       - name: Build OCaml site
         run: nix develop --command bash -c 'dune build'
