@@ -1,0 +1,8 @@
+ASSERT None
+ASSERT Shell
+ASSERT Tla
+ASSERT Coq
+ASSERT Alloy
+ASSERT Pbt
+ASSERT Bpmn
+ASSERT PbtPrism
