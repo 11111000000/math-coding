@@ -37,6 +37,58 @@ let split (content : string) : string * string =
   | Some (fm, body) -> (fm, body)
   | None -> ("", content)
 
+(* Site navigation helpers used by the new design. *)
+let site_nav _current =
+  let items = [
+    "index.html", "overview";
+    "about.html", "about";
+    "guide.html", "guide";
+    "substrates.html", "substrates";
+    "axioms.html", "axioms";
+    "installing.html", "installing";
+    "packets.html", "packets";
+  ] in
+  let buf = Buffer.create 512 in
+  Buffer.add_string buf "<nav class=\"site-nav\">";
+  List.iter (fun (href, label) ->
+    let active = if href = _current then " aria-current=\"page\"" else "" in
+    Printf.bprintf buf "  <a href=\"%s\"%s>%s</a>" href active label
+  ) items;
+  Buffer.add_string buf "</nav>\n";
+  Buffer.contents buf
+
+let page_header _current title =
+  let nav = site_nav _current in
+  Printf.sprintf
+    "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n\
+     <meta charset=\"utf-8\">\n\
+     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n\
+     <meta name=\"color-scheme\" content=\"light dark\">\n\
+     <title>%s — math-coding v1.0</title>\n\
+     <link rel=\"stylesheet\" href=\"assets/tokens.css\">\n\
+     </head>\n<body>\n%s"
+    (html_escape title) nav
+
+let page_footer _current =
+  let nav_links = [
+    "index.html", "overview";
+    "about.html", "about";
+    "guide.html", "guide";
+    "substrates.html", "substrates";
+    "axioms.html", "axioms";
+    "installing.html", "installing";
+    "packets.html", "packets";
+  ] in
+  let buf = Buffer.create 512 in
+  Buffer.add_string buf "<footer class=\"site-foot\"><p>";
+  Buffer.add_string buf "math-coding v1.0 · Living Beings License · ";
+  List.iteri (fun i (href, label) ->
+    if i > 0 then Buffer.add_string buf " · ";
+    Printf.bprintf buf "<a href=\"%s\">%s</a>" href label
+  ) nav_links;
+  Buffer.add_string buf "</p></footer>\n</body>\n</html>\n";
+  Buffer.contents buf
+
 (* Tiny markdown subset: paragraphs, ## headings, ``` blocks. *)
 let render_md md =
   let buf = Buffer.create (String.length md * 2) in
@@ -199,38 +251,24 @@ let render_index (packets : (string * string * bool) list) =
   let n_axiom = List.length (List.filter (fun (_, _, is_axiom) -> is_axiom) packets) in
   let n_v1 = List.length packets - n_axiom in
   let buf = Buffer.create 4096 in
-  Buffer.add_string buf "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
-  Buffer.add_string buf "<meta charset=\"utf-8\">\n";
-  Buffer.add_string buf "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n";
-  Buffer.add_string buf "<meta name=\"color-scheme\" content=\"light dark\">\n";
-  Buffer.add_string buf "<title>math-coding v1.0</title>\n";
-  Buffer.add_string buf "<link rel=\"stylesheet\" href=\"assets/tokens.css\">\n";
-  Buffer.add_string buf "</head>\n<body>\n";
-  Buffer.add_string buf "<nav class=\"site-nav\">\n  \
-  <a href=\"index.html\">overview</a>\n  \
-  <a href=\"axioms.html\">axioms</a>\n  \
-  <a href=\"installing.html\">installing</a>\n\
-  </nav>\n";
-  Buffer.add_string buf "<h1>math-coding v1.0</h1>\n";
-  Buffer.add_string buf "<p>A convention for documenting decisions in code. Each\n";
-  Buffer.add_string buf "non-trivial choice becomes a packet: a short proposition,\n";
-  Buffer.add_string buf "the strongest objection, and how it resolves. Packets live\n";
-  Buffer.add_string buf "as plain-text files under <code>math/</code>, the runtime\n";
-  Buffer.add_string buf "verifies them, and a single OCaml binary drives check, probe,\n";
-  Buffer.add_string buf "and site generation.</p>\n";
+  Buffer.add_string buf (page_header "index.html" "math-coding");
+  Buffer.add_string buf "<section class=\"hero\">\n";
+  Buffer.add_string buf "<h1>math-coding</h1>\n";
+  Buffer.add_string buf "<p>A convention for documenting decisions in code.</p>\n";
+  Buffer.add_string buf "<p class=\"formula\">decisions = packet &times; git &times; one binary</p>\n";
+  Buffer.add_string buf "</section>\n";
   Printf.bprintf buf
-    "<p>Currently <strong>%d packets</strong> (%d axiom + %d design).</p>\n"
+    "<p>Currently <strong>%d packets</strong> (%d axiom + %d v1.0 design). Lifecycle is observed, not assigned.</p>\n"
     (List.length packets) n_axiom n_v1;
-  Buffer.add_string buf "<h2>What you get</h2>\n";
-  Buffer.add_string buf "<ul>\n";
+  Buffer.add_string buf "<h2>What you get</h2>\n<ul>\n";
   Buffer.add_string buf "<li><b>Disciplined commits.</b> Every decision is a packet with a proposition, antithesis, and synthesis.</li>\n";
   Buffer.add_string buf "<li><b>Self-checking.</b> <code>math-coding check</code> validates structure and lifecycle. <code>math-coding probe</code> proves the convention applies to itself.</li>\n";
-  Buffer.add_string buf "<li><b>Epistemic honesty.</b> <code>proven</code> means the evidence command re-runs and matches its recorded exit code.</li>\n";
+  Buffer.add_string buf "<li><b>Epistemic honesty.</b> A <code>proven</code> marker means the evidence command re-runs and matches its recorded exit code.</li>\n";
   Buffer.add_string buf "<li><b>Plain text.</b> No database, no CMS, no SaaS. The convention is a directory and a binary.</li>\n";
   Buffer.add_string buf "</ul>\n";
   Buffer.add_string buf "<h2>Packet index</h2>\n";
   Buffer.add_string buf "<table class=\"index\">\n";
-  Buffer.add_string buf "<tr><th>packet</th><th>proposition</th></tr>\n";
+  Buffer.add_string buf "<tr><th>packet</th><th>category</th><th>proposition</th></tr>\n";
   List.iter (fun (name, prop, is_axiom) ->
     let cls = if is_axiom then " class=\"axiom\"" else "" in
     let link_path = Printf.sprintf "math/%s.html" name in
@@ -241,9 +279,7 @@ let render_index (packets : (string * string * bool) list) =
   ) packets;
   Buffer.add_string buf "</table>\n";
   Buffer.add_string buf "<footer class=\"site-foot\">\n";
-  Buffer.add_string buf "<p>Living Beings License · <a href=\"axioms.html\">axioms</a> · ";
-  Buffer.add_string buf "<a href=\"installing.html\">installing</a></p>\n</footer>\n";
-  Buffer.add_string buf "</body>\n</html>\n";
+  Buffer.add_string buf (page_footer "index.html");
   Buffer.contents buf
 
 let render_axioms () =
