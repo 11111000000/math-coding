@@ -67,9 +67,8 @@ for d in \
   "$HOME/.config/opencode/skills/math-coding" \
   "$HOME/.cursor/skills/math-coding" \
   "$HOME/.continue/skills/math-coding"; do
-  if [ -d "$(dirname "$(dirname "$d")")" ] || [ -d "$(dirname "$d")" ]; then
+  if [ -d "$(dirname "$d")" ] || mkdir -p "$(dirname "$d")"; then
     mkdir -p "$d"
-    # Download SKILL.md from repo.
     SKILL_URL="$REPO/raw/main/skills/math-coding/SKILL.md"
     if command -v curl >/dev/null 2>&1; then
       curl -fsSL -o "$d/SKILL.md" "$SKILL_URL" 2>/dev/null || true
