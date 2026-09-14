@@ -17,27 +17,11 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v24
 
-      - name: Enable flake features
-        run: mkdir -p ~/.config/nix && echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-
       - name: Build OCaml site
         run: nix develop --command bash -c 'dune build'
 
-      - name: Install shared binary
-        run: nix develop --command bash -c 'MATH_CODING_VERSION=ci-test sh scripts/install.sh'
-
       - name: Generate dist/
-        run: nix develop --command bash -c './math-coding site'
-
-      - name: Configure git
-        run: |
-          git config user.name "math-coding-bot"
-          git config user.email "math-coding-bot@users.noreply.github.com"
-
-      - name: Configure git author for cross-repo push
-        run: |
-          git config --global user.name "math-coding-bot"
-          git config --global user.email "math-coding-bot@users.noreply.github.com"
+        run: nix develop --command bash -c 'dune exec -- tools/build_site.exe math dist'
 
       - name: Push to math-coding-site gh-pages
         env:
@@ -46,19 +30,10 @@ jobs:
           rm -rf /tmp/site-deploy
           git clone --depth 1 "$SITE_REPO" /tmp/site-deploy
           cd /tmp/site-deploy
-          # Delete all tracked files, keep .nojekyll if present
           git ls-files | xargs -r rm -f
-          # Copy dist/ from current build
           cp -r "$GITHUB_WORKSPACE/dist/" .
           touch .nojekyll
           git add -A
           git -c user.name=math-coding-bot -c user.email=math-coding-bot@users.noreply.github.com \
             commit -m "v1.0 site: ${{ github.sha }}"
-          # Push to gh-pages branch (force to clobber old build)
           git push "$SITE_REPO" HEAD:gh-pages --force
-
-      - name: Confirm publish
-        run: |
-          sleep 30
-          status=$(curl -sI "https://11111000000.github.io/math-coding-site/" | head -1)
-          echo "publish status: $status"

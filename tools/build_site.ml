@@ -250,22 +250,51 @@ let render_packet_html (name : string) (content : string) =
 let render_index (packets : (string * string * bool) list) =
   let n_axiom = List.length (List.filter (fun (_, _, is_axiom) -> is_axiom) packets) in
   let n_v1 = List.length packets - n_axiom in
-  let buf = Buffer.create 4096 in
+  let buf = Buffer.create 8192 in
   Buffer.add_string buf (page_header "index.html" "math-coding");
   Buffer.add_string buf "<section class=\"hero\">\n";
   Buffer.add_string buf "<h1>math-coding</h1>\n";
-  Buffer.add_string buf "<p>A convention for documenting decisions in code.</p>\n";
+  Buffer.add_string buf "<p>A convention for documenting decisions in code. Each non-trivial choice becomes a <em>packet</em>: a short proposition, the strongest objection, and how it resolves.</p>\n";
   Buffer.add_string buf "<p class=\"formula\">decisions = packet &times; git &times; one binary</p>\n";
   Buffer.add_string buf "</section>\n";
   Printf.bprintf buf
     "<p>Currently <strong>%d packets</strong> (%d axiom + %d v1.0 design). Lifecycle is observed, not assigned.</p>\n"
     (List.length packets) n_axiom n_v1;
-  Buffer.add_string buf "<h2>What you get</h2>\n<ul>\n";
-  Buffer.add_string buf "<li><b>Disciplined commits.</b> Every decision is a packet with a proposition, antithesis, and synthesis.</li>\n";
-  Buffer.add_string buf "<li><b>Self-checking.</b> <code>math-coding check</code> validates structure and lifecycle. <code>math-coding probe</code> proves the convention applies to itself.</li>\n";
-  Buffer.add_string buf "<li><b>Epistemic honesty.</b> A <code>proven</code> marker means the evidence command re-runs and matches its recorded exit code.</li>\n";
-  Buffer.add_string buf "<li><b>Plain text.</b> No database, no CMS, no SaaS. The convention is a directory and a binary.</li>\n";
-  Buffer.add_string buf "</ul>\n";
+  Buffer.add_string buf
+    "<h2>Install</h2>\n\
+     <p>One command. Auto-detects your agent (claude-code, opencode, cursor, continue) and your OS.</p>\n\
+     <pre class=\"code\"><code>curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/skills/install.sh | sh</code></pre>\n\
+     <p>Binary lands in <code>~/.local/bin/math-coding</code>. The skill lands in your agent's skills directory. The snippet lands in <code>~/.config/math-coding/AGENTS.md</code>.</p>\n\
+     <p>Pre-built binaries are published for: <b>linux-x86_64</b>, <b>linux-aarch64</b>, <b>darwin-x86_64</b> (Intel Mac), <b>darwin-aarch64</b> (Apple Silicon), and <b>windows-x86_64</b>. See the <a href=\"https://github.com/11111000000/math-coding/releases\">GitHub releases page</a>.</p>\n";
+  Buffer.add_string buf
+    "<h2>Use</h2>\n\
+     <p>After install, the binary is on your <code>PATH</code>:</p>\n\
+     <pre class=\"code\"><code>math-coding packet create cache-ttl \\\n\
+      \  --proposition=\"Cache entries expire after 60 seconds\" \\\n\
+      \  --antithesis=\"Manual invalidation forces users to wait\" \\\n\
+      \  --synthesis=\"TTL is fixed; manual invalidate is /admin/cache\"\n\
+     git add math/cache-ttl\n\
+     git commit -m \"cache-ttl: 60s TTL\"\n\
+     math-coding check</code></pre>\n";
+  Buffer.add_string buf
+    "<h2>What you get</h2>\n\
+     <ul>\n\
+     <li><b>Disciplined commits.</b> Every decision is a packet with a proposition, antithesis, and synthesis.</li>\n\
+     <li><b>Self-checking.</b> <code>math-coding check</code> validates structure and lifecycle. <code>math-coding probe</code> proves the convention applies to itself.</li>\n\
+     <li><b>Epistemic honesty.</b> A <code>proven</code> marker means the evidence command re-runs and matches its recorded exit code.</li>\n\
+     <li><b>Plain text.</b> No database, no CMS, no SaaS. The convention is a directory and a binary.</li>\n\
+     </ul>\n";
+  Buffer.add_string buf
+    "<h2>How math-coding differs from related things</h2>\n\
+     <p>People sometimes ask: &ldquo;isn't this just an ADR? or a fancy README? or TODO.md with rules?&rdquo; Short answer: no.</p>\n\
+     <ul>\n\
+     <li><b>vs ADRs.</b> ADRs are for architecture, written rarely, reviewed as documents. math-coding is for <em>every</em> decision, written with the code, with a lifecycle the runtime computes from git. ADRs decay silently; packets can't.</li>\n\
+     <li><b>vs comments / TODO.md / <code>*</code>.</b> Comments drift. TODO is a backlog. math-coding is a separate, lifecycle-tracked artefact: <em>why</em> a decision was made, not just <em>what</em>.</li>\n\
+     <li><b>vs wiki / Confluence / Notion.</b> Wikis drift and live behind a login. math-coding is a directory in the same repository as the code; grep-able and diff-able in the same pull request.</li>\n\
+     <li><b>vs typed language (TypeScript, F*, TLA+).</b> math-coding is for the layer above. The eight <a href=\"substrates.html\">substrates</a> include <code>tla+</code>, <code>coq</code>, <code>alloy</code> so formal methods layer on top when warranted.</li>\n\
+     </ul>";
+  Buffer.add_string buf
+    "<p>For the longer story, see the <a href=\"about.html\">about page</a>.</p>\n";
   Buffer.add_string buf "<h2>Packet index</h2>\n";
   Buffer.add_string buf "<table class=\"index\">\n";
   Buffer.add_string buf "<tr><th>packet</th><th>category</th><th>proposition</th></tr>\n";
@@ -278,10 +307,9 @@ let render_index (packets : (string * string * bool) list) =
       cls link_path (html_escape name) (html_escape subtitle)
   ) packets;
   Buffer.add_string buf "</table>\n";
-  Buffer.add_string buf "<footer class=\"site-foot\">\n";
+  Buffer.add_string buf "<p>Or browse the <a href=\"packets.html\">full packet listing</a> by category.</p>\n";
   Buffer.add_string buf (page_footer "index.html");
   Buffer.contents buf
-
 let render_axioms () =
   let axioms = [
     ("A0", "Difference", "A proposition differs from its implementation.");
