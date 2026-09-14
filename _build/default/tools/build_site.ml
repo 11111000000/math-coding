@@ -369,17 +369,37 @@ let render_about () =
   Buffer.add_string buf "</head>\n<body>\n";
   Buffer.add_string buf "<nav class=\"site-nav\">\n  \
   <a href=\"index.html\">overview</a>\n  \
+  <a href=\"about.html\">about</a>\n  \
+  <a href=\"guide.html\">guide</a>\n  \
+  <a href=\"substrates.html\">substrates</a>\n  \
   <a href=\"axioms.html\">axioms</a>\n  \
-  <a href=\"installing.html\">installing</a>\n\
+  <a href=\"installing.html\">installing</a>\n  \
+  <a href=\"packets.html\">packets</a>\n\
   </nav>\n";
   Buffer.add_string buf "<h1>about</h1>\n";
-  Buffer.add_string buf "<p>math-coding is a convention for documenting decisions in code.\n";
-  Buffer.add_string buf "Code reviews fail because reviewers see only the diff. The decision\n";
-  Buffer.add_string buf "that produced the diff — what was tried, what was rejected, why this\n";
-  Buffer.add_string buf "option — is gone. Six months later, nobody can tell whether a line is\n";
-  Buffer.add_string buf "load-bearing or accidental.</p>\n";
-  Buffer.add_string buf "<p>math-coding fixes this by treating every decision as a first-class\n";
-  Buffer.add_string buf "artefact: a <em>packet</em>.</p>\n";
+  Buffer.add_string buf "<p>math-coding is a convention for documenting decisions in code. Each non-trivial choice becomes a <em>packet</em>: a short proposition, the strongest objection, and how it resolves.</p>\n";
+  Buffer.add_string buf "<h2>Why this exists</h2>\n";
+  Buffer.add_string buf "<p>Code reviews fail because reviewers see only the diff. The decision that produced the diff — what was tried, what was rejected, why this option — is gone. Six months later nobody can tell whether a line is load-bearing or accidental. math-coding fixes this by treating every decision as a first-class artefact in version control.</p>\n";
+  Buffer.add_string buf "<p>The verb is <em>care</em>. The noun is <em>decision</em>. The medium is <em>plain text + git</em>. The verifier is the runtime itself: <code>math-coding check</code> validates structure and lifecycle, <code>math-coding probe</code> proves the convention applies to itself.</p>\n";
+  Buffer.add_string buf "<h2>How math-coding differs from related things</h2>\n";
+  Buffer.add_string buf "<p>People sometimes ask: &ldquo;isn't this just an ADR? or a fancy README? or TODO.md with rules?&rdquo; Short answer: no. Here is how it differs.</p>\n";
+  Buffer.add_string buf "<h3>Compared to ADRs (Architectural Decision Records)</h3>\n";
+  Buffer.add_string buf "<ul>\n";
+  Buffer.add_string buf "<li><b>ADRs are for architecture</b> — usually kept in <code>docs/adr/</code> or a wiki, are heavyweight to write, and are reviewed as documents, not as code. ADRs are the right tool for &ldquo;we are switching from PostgreSQL to SQLite&rdquo; — a big choice, made rarely, by senior people, with consequences measured in quarters.</li>\n";
+  Buffer.add_string buf "<li><b>math-coding is for every decision</b> — the cache TTL, the error message wording, the retry count, the order of arguments in a public function. Anything that someone might reasonably disagree with and that will be hard to recover from <em>by reading the code</em> is a candidate packet. ADRs are a subset; math-coding is the union of ADRs and the long tail of in-flight decisions.</li>\n";
+  Buffer.add_string buf "<li><b>ADRs are a record; math-coding is a record + a verifier.</b> An ADR is a document you write once and forget. A packet has a lifecycle (draft, applied, drift, retired) that the runtime computes from git history. If the code in the witness commit no longer matches the proposition, the packet is in <span class=\"badge drift\">drift</span> and you have to act on it. ADRs decay silently; packets can't.</li>\n";
+  Buffer.add_string buf "<li><b>ADRs are architecture; math-coding is epistemology.</b> A good packet answers not just &ldquo;what did we decide&rdquo; but &ldquo;what were we considering, what did we reject, and why is this better than that.&rdquo; The antithesis is the part you usually skip — and it's the part future-you most needs.</li>\n";
+  Buffer.add_string buf "</ul>\n";
+  Buffer.add_string buf "<h3>Compared to a <code>*</code> / TODO.md / comments-only approach</h3>\n";
+  Buffer.add_string buf "<ul>\n";
+  Buffer.add_string buf "<li><b>Comments in code drift.</b> A comment says &ldquo;we used X because Y&rdquo; on the day it was written. Two years later, Y has changed and the comment is a lie. math-coding moves the reasoning out of the source file into a separate, reviewable, lifecycle-tracked artefact. The code is the what; the packet is the why.</li>\n";
+  Buffer.add_string buf "<li><b>TODO.md is a backlog.</b> It's a flat list of things someone should get around to. It doesn't record the reasoning <em>behind</em> the deferral — was it deferred because of risk, cost, or some other option? A packet on the same topic reads: &ldquo;we chose X over Y because Z, and we may revisit when W.&rdquo; When W happens, the packet is already in git history; you don't have to reconstruct the reasoning from a one-line TODO.</li>\n";
+  Buffer.add_string buf "<li><b><code>*</code> markers in source code</b> are unsearchable across files, unversioned, and disappear when the file is rewritten. A packet is searchable, has a real lifecycle, and survives rewrites because it lives in its own file.</li>\n";
+  Buffer.add_string buf "</ul>\n";
+  Buffer.add_string buf "<h3>Compared to a wiki / Confluence / Notion</h3>\n";
+  Buffer.add_string buf "<p>wikis are <em>separate</em> from the code. They drift, they get stale, they require maintenance, and they live behind a login. math-coding is a directory in the same repository as the code. Every packet is just a YAML file. It is grep-able, diff-able, and reviewable in the same pull request that changes the code.</p>\n";
+  Buffer.add_string buf "<h3>Compared to a typed language (TypeScript, F*, TLA+)</h3>\n";
+  Buffer.add_string buf "<p>math-coding does not invent a new type system. It uses git as the storage layer, plain text as the format, and the OCaml runtime as a thin verifier. If your team already has a typed language, that's the right place for invariants <em>the compiler can check</em>. math-coding is for the layer above: design intent, alternative-considered, trade-off-recorded, lifecycle-tracked. The eight <a href=\"substrates.html\">substrates</a> include <code>tla+</code>, <code>coq</code>, and <code>alloy</code> precisely so you can layer formal methods on top when a decision warrants it.</p>\n";
   Buffer.add_string buf "<h2>The seven axioms</h2>\n";
   Buffer.add_string buf "<dl class=\"axioms\">\n";
   let ax = [
@@ -399,10 +419,19 @@ let render_about () =
   Buffer.add_string buf "<h2>When to use</h2>\n";
   Buffer.add_string buf "<ul>\n";
   Buffer.add_string buf "<li>Public APIs, architecture choices, configuration defaults, trade-offs.</li>\n";
-  Buffer.add_string buf "<li>Decisions that are obvious don't need packets — use a regular commit.</li>\n";
+  Buffer.add_string buf "<li>Decisions that are obviously forced by the problem don't need packets — use a regular commit.</li>\n";
+  Buffer.add_string buf "<li>Documentation that doesn't change code doesn't need a packet — use a README.</li>\n";
   Buffer.add_string buf "</ul>\n";
+  Buffer.add_string buf "<h2>The four questions a packet answers</h2>\n";
+  Buffer.add_string buf "<ol>\n";
+  Buffer.add_string buf "<li><b>What</b> was decided? — the proposition.</li>\n";
+  Buffer.add_string buf "<li><b>What else</b> was considered? — the antithesis.</li>\n";
+  Buffer.add_string buf "<li><b>Why this</b> and not that? — the synthesis.</li>\n";
+  Buffer.add_string buf "<li><b>Is it still true</b>? — the lifecycle, computed from git.</li>\n";
+  Buffer.add_string buf "</ol>\n";
+  Buffer.add_string buf "<p>ADRs answer the first three. A wiki answers the first. Comments can answer the first. Only math-coding answers all four — including the fourth, automatically, every time you run <code>math-coding check</code>.</p>\n";
   Buffer.add_string buf "<footer class=\"site-foot\">\n";
-  Buffer.add_string buf "<p>Living Beings License · <a href=\"index.html\">overview</a></p>\n</footer>\n";
+  Buffer.add_string buf "<p>Living Beings License · <a href=\"index.html\">overview</a></p></footer>\n";
   Buffer.add_string buf "</body>\n</html>\n";
   Buffer.contents buf
 
