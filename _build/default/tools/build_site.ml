@@ -196,34 +196,48 @@ let render_packet_html (name : string) (content : string) =
   Buffer.contents buf
 
 let render_index (packets : (string * string * bool) list) =
+  let n_axiom = List.length (List.filter (fun (_, _, is_axiom) -> is_axiom) packets) in
+  let n_v1 = List.length packets - n_axiom in
   let buf = Buffer.create 4096 in
   Buffer.add_string buf "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
   Buffer.add_string buf "<meta charset=\"utf-8\">\n";
   Buffer.add_string buf "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n";
   Buffer.add_string buf "<meta name=\"color-scheme\" content=\"light dark\">\n";
-  Buffer.add_string buf "<title>math-coding v1.0 — packets</title>\n";
+  Buffer.add_string buf "<title>math-coding v1.0</title>\n";
   Buffer.add_string buf "<link rel=\"stylesheet\" href=\"assets/tokens.css\">\n";
   Buffer.add_string buf "</head>\n<body>\n";
-  Buffer.add_string buf "<nav class=\"site-nav\">\n";
-  Buffer.add_string buf "  <a href=\"index.html\">index</a>\n";
-  Buffer.add_string buf "  <a href=\"axioms.html\">axioms</a>\n";
-  Buffer.add_string buf "  <a href=\"installing.html\">installing</a>\n";
-  Buffer.add_string buf "</nav>\n";
+  Buffer.add_string buf "<nav class=\"site-nav\">\n  \
+  <a href=\"index.html\">overview</a>\n  \
+  <a href=\"axioms.html\">axioms</a>\n  \
+  <a href=\"installing.html\">installing</a>\n\
+  </nav>\n";
   Buffer.add_string buf "<h1>math-coding v1.0</h1>\n";
-  Buffer.add_string buf "<p>Plain text. Git. Single OCaml binary. Eight substrates. Five epistemic markers. ";
-  Buffer.add_string buf "<span class=\"epistemic\">Curry-Howard</span> as a checkable claim, not a metaphor.";
-  Buffer.add_string buf "</p>\n";
-  Printf.bprintf buf "<p>Currently <strong>%d packets</strong> under <code>math/</code>.</p>\n"
-    (List.length packets);
+  Buffer.add_string buf "<p>A convention for documenting decisions in code. Each\n";
+  Buffer.add_string buf "non-trivial choice becomes a packet: a short proposition,\n";
+  Buffer.add_string buf "the strongest objection, and how it resolves. Packets live\n";
+  Buffer.add_string buf "as plain-text files under <code>math/</code>, the runtime\n";
+  Buffer.add_string buf "verifies them, and a single OCaml binary drives check, probe,\n";
+  Buffer.add_string buf "and site generation.</p>\n";
+  Printf.bprintf buf
+    "<p>Currently <strong>%d packets</strong> (%d axiom + %d design).</p>\n"
+    (List.length packets) n_axiom n_v1;
+  Buffer.add_string buf "<h2>What you get</h2>\n";
+  Buffer.add_string buf "<ul>\n";
+  Buffer.add_string buf "<li><b>Disciplined commits.</b> Every decision is a packet with a proposition, antithesis, and synthesis.</li>\n";
+  Buffer.add_string buf "<li><b>Self-checking.</b> <code>math-coding check</code> validates structure and lifecycle. <code>math-coding probe</code> proves the convention applies to itself.</li>\n";
+  Buffer.add_string buf "<li><b>Epistemic honesty.</b> <code>proven</code> means the evidence command re-runs and matches its recorded exit code.</li>\n";
+  Buffer.add_string buf "<li><b>Plain text.</b> No database, no CMS, no SaaS. The convention is a directory and a binary.</li>\n";
+  Buffer.add_string buf "</ul>\n";
+  Buffer.add_string buf "<h2>Packet index</h2>\n";
   Buffer.add_string buf "<table class=\"index\">\n";
-  Buffer.add_string buf "<tr><th>packet</th><th>status</th><th>subtitle</th></tr>\n";
+  Buffer.add_string buf "<tr><th>packet</th><th>proposition</th></tr>\n";
   List.iter (fun (name, prop, is_axiom) ->
     let cls = if is_axiom then " class=\"axiom\"" else "" in
     let link_path = Printf.sprintf "math/%s.html" name in
-    let subtitle = if String.length prop > 70 then
-      String.sub prop 0 67 ^ "..." else prop in
-    Printf.bprintf buf "<tr%s><td><a href=\"%s\">%s</a></td><td>%s</td><td>%s</td></tr>\n"
-      cls link_path (html_escape name) (html_escape (if prop = "" then "—" else "")) (html_escape subtitle)
+    let subtitle = if String.length prop > 80 then
+      String.sub prop 0 77 ^ "..." else prop in
+    Printf.bprintf buf "<tr%s><td><a href=\"%s\">%s</a></td><td>%s</td></tr>\n"
+      cls link_path (html_escape name) (html_escape subtitle)
   ) packets;
   Buffer.add_string buf "</table>\n";
   Buffer.add_string buf "<footer class=\"site-foot\">\n";
@@ -308,6 +322,151 @@ let render_installing () =
    <footer class=\"site-foot\"><p><a href=\"index.html\">index</a></p></footer>\n\
    </body>\n</html>\n"
 
+let render_about () =
+  let buf = Buffer.create 4096 in
+  Buffer.add_string buf "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
+  Buffer.add_string buf "<meta charset=\"utf-8\">\n";
+  Buffer.add_string buf "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n";
+  Buffer.add_string buf "<meta name=\"color-scheme\" content=\"light dark\">\n";
+  Buffer.add_string buf "<title>about — math-coding</title>\n";
+  Buffer.add_string buf "<link rel=\"stylesheet\" href=\"assets/tokens.css\">\n";
+  Buffer.add_string buf "</head>\n<body>\n";
+  Buffer.add_string buf "<nav class=\"site-nav\">\n  \
+  <a href=\"index.html\">overview</a>\n  \
+  <a href=\"axioms.html\">axioms</a>\n  \
+  <a href=\"installing.html\">installing</a>\n\
+  </nav>\n";
+  Buffer.add_string buf "<h1>about</h1>\n";
+  Buffer.add_string buf "<p>math-coding is a convention for documenting decisions in code.\n";
+  Buffer.add_string buf "Code reviews fail because reviewers see only the diff. The decision\n";
+  Buffer.add_string buf "that produced the diff — what was tried, what was rejected, why this\n";
+  Buffer.add_string buf "option — is gone. Six months later, nobody can tell whether a line is\n";
+  Buffer.add_string buf "load-bearing or accidental.</p>\n";
+  Buffer.add_string buf "<p>math-coding fixes this by treating every decision as a first-class\n";
+  Buffer.add_string buf "artefact: a <em>packet</em>.</p>\n";
+  Buffer.add_string buf "<h2>The seven axioms</h2>\n";
+  Buffer.add_string buf "<dl class=\"axioms\">\n";
+  let ax = [
+    ("A0", "Difference", "A proposition differs from its implementation.");
+    ("A1", "Care", "A developer cares whether the code does what it claims.");
+    ("A2", "Curry-Howard", "A packet is a spec; the code is the impl; the witness closes the gap.");
+    ("A3", "Material Basis", "Plain text for content, git for state, single binary for tools.");
+    ("A4", "Process", "Lifecycle is computed from git history.");
+    ("A5", "Accounting", "Marked knowledge is reproducible when proven.");
+    ("A6", "Self-Application", "Each axiom is realised as a packet; the runtime proves itself.");
+  ] in
+  List.iter (fun (code, name, stmt) ->
+    Printf.bprintf buf "<dt><span class=\"axiom\">%s</span> %s</dt><dd>%s</dd>\n"
+      code (html_escape name) (html_escape stmt)
+  ) ax;
+  Buffer.add_string buf "</dl>\n";
+  Buffer.add_string buf "<h2>When to use</h2>\n";
+  Buffer.add_string buf "<ul>\n";
+  Buffer.add_string buf "<li>Public APIs, architecture choices, configuration defaults, trade-offs.</li>\n";
+  Buffer.add_string buf "<li>Decisions that are obvious don't need packets — use a regular commit.</li>\n";
+  Buffer.add_string buf "</ul>\n";
+  Buffer.add_string buf "<footer class=\"site-foot\">\n";
+  Buffer.add_string buf "<p>Living Beings License · <a href=\"index.html\">overview</a></p>\n</footer>\n";
+  Buffer.add_string buf "</body>\n</html>\n";
+  Buffer.contents buf
+
+let render_guide () =
+  let buf = Buffer.create 4096 in
+  Buffer.add_string buf "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
+  Buffer.add_string buf "<meta charset=\"utf-8\">\n";
+  Buffer.add_string buf "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n";
+  Buffer.add_string buf "<meta name=\"color-scheme\" content=\"light dark\">\n";
+  Buffer.add_string buf "<title>guide — math-coding</title>\n";
+  Buffer.add_string buf "<link rel=\"stylesheet\" href=\"assets/tokens.css\">\n";
+  Buffer.add_string buf "</head>\n<body>\n";
+  Buffer.add_string buf "<nav class=\"site-nav\">\n  \
+  <a href=\"index.html\">overview</a>\n  \
+  <a href=\"axioms.html\">axioms</a>\n  \
+  <a href=\"installing.html\">installing</a>\n\
+  </nav>\n";
+  Buffer.add_string buf "<h1>guide</h1>\n";
+  Buffer.add_string buf "<h2>Install</h2>\n";
+  Buffer.add_string buf "<pre><code>nix develop\nsh scripts/install.sh</code></pre>\n";
+  Buffer.add_string buf "<p>Builds the OCaml binary, installs to\n";
+  Buffer.add_string buf "<code>$XDG_DATA_HOME/math-coding/current/math-coding</code>,\n";
+  Buffer.add_string buf "drops a wrapper at the project root.</p>\n";
+  Buffer.add_string buf "<h2>Create your first packet</h2>\n";
+  Buffer.add_string buf "<pre><code>./math-coding packet create cache-ttl \\\n";
+  Buffer.add_string buf "  --proposition=\"Cache entries expire after 60 seconds\" \\\n";
+  Buffer.add_string buf "  --antithesis=\"Manual invalidation forces users to wait\" \\\n";
+  Buffer.add_string buf "  --synthesis=\"TTL is fixed; manual invalidate is /admin/cache\"</code></pre>\n";
+  Buffer.add_string buf "<h2>Daily workflow</h2>\n";
+  Buffer.add_string buf "<ol>\n";
+  Buffer.add_string buf "<li>Make code change. <code>git commit -m \"...\"</code></li>\n";
+  Buffer.add_string buf "<li><code>./math-coding check</code> verifies structure.</li>\n";
+  Buffer.add_string buf "<li><code>./math-coding probe</code> proves the convention applies to itself.</li>\n";
+  Buffer.add_string buf "</ol>\n";
+  Buffer.add_string buf "<h2>Five commands you need</h2>\n";
+  Buffer.add_string buf "<pre><code>./math-coding check      # structure + lifecycle of every packet\n";
+  Buffer.add_string buf "./math-coding probe      # every axiom packet is sound\n";
+  Buffer.add_string buf "./math-coding site       # render dist/ from math/\n";
+  Buffer.add_string buf "./math-coding packet show NAME\n";
+  Buffer.add_string buf "./math-coding packet edit NAME --antithesis=\"...\"</code></pre>\n";
+  Buffer.add_string buf "<footer class=\"site-foot\">\n";
+  Buffer.add_string buf "<p>Living Beings License · <a href=\"index.html\">overview</a></p>\n</footer>\n";
+  Buffer.add_string buf "</body>\n</html>\n";
+  Buffer.contents buf
+
+let render_substrates () =
+  let buf = Buffer.create 4096 in
+  Buffer.add_string buf "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n";
+  Buffer.add_string buf "<meta charset=\"utf-8\">\n";
+  Buffer.add_string buf "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n";
+  Buffer.add_string buf "<meta name=\"color-scheme\" content=\"light dark\">\n";
+  Buffer.add_string buf "<title>substrates — math-coding</title>\n";
+  Buffer.add_string buf "<link rel=\"stylesheet\" href=\"assets/tokens.css\">\n";
+  Buffer.add_string buf "</head>\n<body>\n";
+  Buffer.add_string buf "<nav class=\"site-nav\">\n  \
+  <a href=\"index.html\">overview</a>\n  \
+  <a href=\"axioms.html\">axioms</a>\n  \
+  <a href=\"installing.html\">installing</a>\n\
+  </nav>\n";
+  Buffer.add_string buf "<h1>eight substrates</h1>\n";
+  Buffer.add_string buf "<p>The substrate is how strongly the proposition is verified.\n";
+  Buffer.add_string buf "Pick the simplest one that gives you the right confidence.</p>\n";
+  Buffer.add_string buf "<table class=\"index\">\n";
+  Buffer.add_string buf "<tr><th>substrate</th><th>verifies</th><th>use when</th></tr>\n";
+  let rows = [
+    ("none", "nothing", "cosmetic changes, name choices");
+    ("shell", "exit code of a shell command", "one executable check");
+    ("pbt", "property-based tests", "\"for all X, P(X)\" with generators");
+    ("tla+", "TLA+ state-machine spec via TLC", "state, concurrency, ordering");
+    ("coq", "Coq proof via coqc", "critical invariant");
+    ("alloy", "Alloy relational constraint", "structural shape, reachability");
+    ("bpmn", "XML well-formedness", "business workflow");
+    ("pbt-prism", "probabilistic model checking via Prism", "probabilities, randomised systems");
+  ] in
+  List.iter (fun (s, v, w) ->
+    Printf.bprintf buf "<tr><td><code>%s</code></td><td>%s</td><td>%s</td></tr>\n"
+      s (html_escape v) (html_escape w);
+  ) rows;
+  Buffer.add_string buf "</table>\n";
+  Buffer.add_string buf "<h2>Decision tree</h2>\n";
+  Buffer.add_string buf "<pre><code>Is the proposition about a single executable fact?\n";
+  Buffer.add_string buf "  -> yes: shell\n";
+  Buffer.add_string buf "  -> no: Is it \"for all X, P(X)\" with many cases?\n";
+  Buffer.add_string buf "    -> yes: pbt\n";
+  Buffer.add_string buf "    -> no: state, concurrency?\n";
+  Buffer.add_string buf "      -> yes: tla+\n";
+  Buffer.add_string buf "      -> no: critical invariant?\n";
+  Buffer.add_string buf "        -> yes: coq\n";
+  Buffer.add_string buf "        -> no: structural shape?\n";
+  Buffer.add_string buf "          -> yes: alloy\n";
+  Buffer.add_string buf "          -> no: workflow?\n";
+  Buffer.add_string buf "            -> yes: bpmn\n";
+  Buffer.add_string buf "            -> no: probabilities?\n";
+  Buffer.add_string buf "              -> yes: pbt-prism\n";
+  Buffer.add_string buf "              -> no: none</code></pre>\n";
+  Buffer.add_string buf "<footer class=\"site-foot\">\n";
+  Buffer.add_string buf "<p>Living Beings License · <a href=\"index.html\">overview</a></p>\n</footer>\n";
+  Buffer.add_string buf "</body>\n</html>\n";
+  Buffer.contents buf
+
 let list_packets math_dir =
   let rec loop acc = function
     | [] -> List.rev acc
@@ -360,6 +519,9 @@ let build_site math_dir dist_dir =
 
   let list_entries = List.rev !entries in
   write_file (Filename.concat dist_dir "index.html") (render_index list_entries);
+  write_file (Filename.concat dist_dir "about.html") (render_about ());
+  write_file (Filename.concat dist_dir "guide.html") (render_guide ());
+  write_file (Filename.concat dist_dir "substrates.html") (render_substrates ());
   write_file (Filename.concat dist_dir "axioms.html") (render_axioms ());
   write_file (Filename.concat dist_dir "installing.html") (render_installing ());
 
