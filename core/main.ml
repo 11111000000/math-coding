@@ -357,26 +357,9 @@ let cmd_status () =
         end
       end
 
-(* render: generate HTML site from the LaTeX model via pandoc.
-   Output goes to render/index.html. The .gitignore excludes it. *)
-let cmd_render () =
-  let model_dir = "math/modeling" in
-  let out_dir = "render" in
-  if not (Sys.file_exists (Filename.concat model_dir "math-coding.tex")) then begin
-    Printf.printf "error: %s/math-coding.tex not found\n" model_dir;
-    exit 1
-  end;
-  let _ = Sys.command ("mkdir -p " ^ out_dir) in
-  let cmd = Printf.sprintf
-    "cd %s && pandoc math-coding.tex --mathjax --standalone -o ../%s/index.html 2>&1"
-    model_dir out_dir in
-  let rc = Sys.command cmd in
-  if rc <> 0 then begin
-    Printf.printf "error: pandoc failed (rc=%d)\n" rc;
-    Printf.printf "  hint: install pandoc, e.g. 'nix develop'\n";
-    exit 1
-  end;
-  Printf.printf "mathc render: %s/index.html generated\n" out_dir
+(* render: generate full static site.
+   Wiring is in core/render.ml; main.ml only dispatches. *)
+let cmd_render () = Render.cmd_render ()
 
 (* review: transition to reviewed state (signed). *)
 let rec cmd_review name =

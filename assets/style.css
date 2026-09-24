@@ -1,0 +1,395 @@
+/* math-coding v2.0-Y site stylesheet
+ *
+ * Design choices:
+ *   - Single accent color: deep amber #b45309 (call-to-action, links)
+ *   - Secondary accent: slate #475569 (subtle headings)
+ *   - Background off-white #fafaf9 (paper-like)
+ *   - Monospace: SF Mono / Menlo / Consolas / monospace
+ *   - Body: Charter / Georgia (serif for academic register)
+ *   - Layout: max-width 52rem, single column, no sidebar chrome
+ *   - MathJax scales math inline; mermaid diagrams inline
+ *   - No frameworks; pure CSS so the site stays fast and grep-able
+ */
+
+:root {
+  --bg: #fafaf9;
+  --bg-card: #ffffff;
+  --fg: #1c1917;
+  --fg-muted: #57534e;
+  --fg-light: #78716c;
+  --accent: #b45309;
+  --accent-hover: #c2410c;
+  --secondary: #475569;
+  --secondary-hover: #334155;
+  --border: #e7e5e4;
+  --border-strong: #d6d3d1;
+  --code-bg: #f5f5f4;
+  --code-fg: #1c1917;
+  --theorem-bg: #fef7ed;
+  --theorem-border: #fb923c;
+  --highlight: #fef3c7;
+  --max-width: 52rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: "Charter", "Georgia", "Iowan Old Style",
+               "Apple Garamond", "Baskerville", "Times New Roman",
+               serif;
+  font-feature-settings: "kern", "liga";
+}
+
+main, .container {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  padding: 2rem 1.5rem 6rem;
+}
+
+/* Navigation bar */
+nav.site-nav {
+  background: #1c1917;
+  color: #fafaf9;
+  padding: 0.875rem 1.5rem;
+  border-bottom: 2px solid var(--accent);
+}
+
+nav.site-nav .nav-inner {
+  max-width: var(--max-width);
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+nav.site-nav a {
+  color: #fafaf9;
+  text-decoration: none;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
+  text-transform: lowercase;
+  opacity: 0.85;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+nav.site-nav a:hover {
+  opacity: 1;
+  color: #fbbf24;
+}
+
+nav.site-nav .brand {
+  font-family: "Charter", "Georgia", serif;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 1;
+}
+
+/* Hero (front page only) */
+.hero {
+  text-align: center;
+  padding: 4rem 1.5rem 3rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 3rem;
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  font-weight: 400;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.02em;
+}
+
+.hero .tagline {
+  font-size: 1.15rem;
+  color: var(--fg-muted);
+  font-style: italic;
+  margin: 0 0 1rem;
+}
+
+.hero .meta {
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 0.8rem;
+  color: var(--fg-light);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* Typography */
+h1, h2, h3, h4 {
+  font-family: "Charter", "Georgia", serif;
+  font-weight: 600;
+  color: var(--fg);
+  letter-spacing: -0.01em;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+h1 {
+  font-size: 2rem;
+  font-weight: 400;
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 0.5rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+  color: var(--secondary);
+}
+
+h3 {
+  font-size: 1.2rem;
+  color: var(--fg);
+}
+
+p {
+  margin: 0 0 1.25rem;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+}
+
+a:hover {
+  color: var(--accent-hover);
+  border-bottom-style: solid;
+}
+
+/* Code blocks and inline code */
+code {
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 0.875em;
+  background: var(--code-bg);
+  padding: 0.125em 0.4em;
+  border-radius: 3px;
+  color: var(--code-fg);
+}
+
+pre {
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  background: var(--code-bg);
+  padding: 1rem 1.25rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  line-height: 1.5;
+  margin: 0 0 1.5rem;
+  font-size: 0.85rem;
+}
+
+pre code {
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+}
+
+/* MathJax/KaTeX block spacing */
+mjx-container, .katex-display, .MathJax_Display {
+  margin: 1.25rem 0 !important;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+mjx-container[display="true"], .katex-display {
+  padding: 0.5rem 0;
+}
+
+/* Blockquote — for verdicts, theorems */
+blockquote, .theorem, .definition, .proposition {
+  background: var(--theorem-bg);
+  border-left: 4px solid var(--theorem-border);
+  padding: 1rem 1.25rem;
+  margin: 1.5rem 0;
+  font-style: normal;
+  border-radius: 0 4px 4px 0;
+}
+
+blockquote p:last-child,
+.theorem p:last-child,
+.definition p:last-child {
+  margin-bottom: 0;
+}
+
+/* Tables (used in 9-field frontmatter displays) */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+  font-size: 0.9rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  background: var(--code-bg);
+  font-weight: 600;
+  font-family: "Charter", "Georgia", serif;
+  color: var(--secondary);
+}
+
+tr:hover td {
+  background: rgba(180, 83, 9, 0.03);
+}
+
+/* Frontmatter display */
+pre.frontmatter {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  padding: 1rem 1.25rem;
+  border-radius: 0 4px 4px 0;
+  font-size: 0.85rem;
+}
+
+/* Lifecycle status badge */
+.badge {
+  display: inline-block;
+  padding: 0.2em 0.7em;
+  border-radius: 999px;
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badge-applied { background: #dcfce7; color: #166534; }
+.badge-draft   { background: #fef3c7; color: #854d0e; }
+.badge-drift   { background: #fee2e2; color: #991b1b; }
+.badge-stale   { background: #f1f5f9; color: #475569; }
+
+/* Navigation footer (between pages of the same type) */
+.page-nav {
+  display: flex;
+  justify-content: space-between;
+  margin: 3rem 0 0;
+  padding: 1rem 0 0;
+  border-top: 1px solid var(--border);
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 0.85rem;
+}
+
+.page-nav a {
+  border-bottom: none;
+}
+
+/* Grid for packet listings */
+.packets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.packet-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.packet-card:hover {
+  border-color: var(--accent);
+}
+
+.packet-card a {
+  border-bottom: none;
+  font-weight: 600;
+  font-family: "Charter", "Georgia", serif;
+  font-size: 1.05rem;
+}
+
+.packet-card .meta {
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 0.72rem;
+  color: var(--fg-light);
+  margin-top: 0.5rem;
+}
+
+.packet-card .proposition {
+  font-size: 0.9rem;
+  color: var(--fg-muted);
+  margin: 0.5rem 0 0;
+  font-style: italic;
+}
+
+/* Footer */
+.site-footer {
+  max-width: var(--max-width);
+  margin: 4rem auto 0;
+  padding: 2rem 1.5rem;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.site-footer a {
+  border-bottom: none;
+}
+
+/* Mermaid diagrams */
+.mermaid {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+/* Selection */
+::selection {
+  background: var(--highlight);
+  color: var(--fg);
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+  body {
+    font-size: 15px;
+  }
+  .hero h1 {
+    font-size: 1.8rem;
+  }
+  nav.site-nav {
+    padding: 0.75rem 1rem;
+  }
+  nav.site-nav .nav-inner {
+    gap: 1rem;
+  }
+  main, .container {
+    padding: 1.5rem 1rem 4rem;
+  }
+}
+
+/* Print-friendly adjustments */
+@media print {
+  nav.site-nav, .site-footer, .page-nav { display: none; }
+  main { padding: 0; }
+  a { color: inherit; border-bottom: none; }
+  pre { border: 1px solid #ccc; page-break-inside: avoid; }
+}
