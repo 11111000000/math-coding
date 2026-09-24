@@ -1,5 +1,5 @@
 #!/bin/sh
-# scripts/install.sh — math-coding installer.
+# scripts/install.sh — math-coding v2.0-Y installer.
 #
 # Builds the OCaml binary and installs to $XDG_DATA_HOME/math-coding/.
 # Requires OCaml 5.x + dune 3.x.
