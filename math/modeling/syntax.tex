@@ -1,0 +1,93 @@
+% syntax.tex — type definitions for math-coding v2.0-Y.
+% Companion to MANIFESTO.md; canonical formal model.
+
+\section{Syntax}
+
+\begin{definition}[Schema version]
+A schema version is a SemVer string:
+$\mathbb{V} \subseteq \{\, v \in \mathbb{S} \mid v = \mathrm{major}.\mathrm{minor}.\mathrm{patch} \,\}$.
+The current canonical version is ``2.0''.
+\end{definition}
+
+\begin{definition}[Actor]
+An actor identifies who originated a decision:
+$$\Actor ::= \textsc{Human} \mid \textsc{Agent} \mid \textsc{System}$$
+\end{definition}
+
+\begin{definition}[Register]
+The epistemic stance of a decision:
+$$\Reg ::= \textsc{Fact} \mid \textsc{Hypothesis} \mid \textsc{Judgment} \mid \textsc{Unknown}$$
+\end{definition}
+
+\begin{definition}[State]
+The FSM state of a packet:
+$$\State ::= \textsc{Draft} \mid \textsc{Applied} \mid \textsc{Reviewed} \mid \textsc{Retired} \mid \textsc{Abandoned}$$
+\end{definition}
+
+\begin{definition}[Lifecycle]
+The computed lifecycle:
+$$\Lifecycle ::= \textsc{Draft} \mid \textsc{Applied} \mid \textsc{Drift} \mid \textsc{Stale}$$
+\end{definition}
+
+\begin{definition}[Verdict]
+The verdict of a check:
+$$\Verdict ::= \textsc{Pass} \mid \textsc{Warn} \mid \textsc{Fail} \mid \textsc{Skip}$$
+\end{definition}
+
+\begin{definition}[Beneficiary]
+Who is served by the decision:
+$$\Ben ::= \textsc{User} \mid \textsc{Developer} \mid \textsc{Team} \mid \textsc{FutureSelf} \mid \textsc{System} \mid \textsc{Other}(\mathbb{S})$$
+\end{definition}
+
+\begin{definition}[Decision]
+A decision is the central data type of math-coding. Its schema:
+\begin{align*}
+\Dec \;:=\; \langle
+& \mathtt{schema\_version} : \mathbb{V}, \\
+& \mathtt{name}            : \mathbb{S}, \\
+& \mathtt{proposition}     : \mathbb{S}, \\
+& \mathtt{code}            : \mathbb{S} \cup \{\bot\}, \\
+& \mathtt{witness}         : \mathbb{SHA} \cup \{\bot\}, \\
+& \mathtt{register}        : \Reg, \\
+& \mathtt{state}           : \State, \\
+& \mathtt{actor}           : \Actor, \\
+& \mathtt{confidence}      : [0, 1], \\
+& \mathtt{superseded\_by}  : \mathbb{S} \cup \{\bot\}, \\
+& \mathtt{beneficiary}     : \Ben
+\rangle
+\end{align*}
+Field constraints:
+\begin{itemize}
+\item $\mathtt{schema\_version} = \mathtt{``2.0''}$ (mandatory, $V_7$)
+\item $\mathtt{proposition} \neq \mathtt{``''}$ (mandatory, $V_1$)
+\item $\mathtt{register} \in \Reg$ (mandatory, $V_3$)
+\item $\mathtt{state} \in \State$ (mandatory, $V_4$)
+\item $\mathtt{actor} \in \Actor$ (mandatory, $V_5$)
+\item $\mathtt{confidence} \in [0, 1]$ (mandatory)
+\item $\mathtt{confidence} \models \mathtt{register}$ (consistency, $V_3$)
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Register-confidence consistency]
+The register constrains the confidence value:
+\begin{align*}
+\mathtt{register} = \textsc{Fact}       &\;\Rightarrow\; \mathtt{confidence} \in [0.95,\, 1] \\
+\mathtt{register} = \textsc{Hypothesis} &\;\Rightarrow\; \mathtt{confidence} \in (0.5,\, 0.95) \\
+\mathtt{register} = \textsc{Judgment}   &\;\Rightarrow\; \mathtt{confidence} \in \{0,\, 1\} \\
+\mathtt{register} = \textsc{Unknown}    &\;\Rightarrow\; \mathtt{confidence} = 0
+\end{align*}
+\end{definition}
+
+\begin{definition}[Substrate]
+A substrate specifies how a packet's proof is verified:
+\begin{align*}
+\mathsf{Substrate} ::= \; & \mathsf{None} \\
+  \mid\; & \mathsf{Shell}(\mathbb{S}) \\
+  \mid\; & \mathsf{Pbt}(\mathbb{S}) \\
+  \mid\; & \mathsf{Tla}(\mathbb{S}) \\
+  \mid\; & \mathsf{Coq}(\mathbb{S}) \\
+  \mid\; & \mathsf{Alloy}(\mathbb{S}) \\
+  \mid\; & \mathsf{Bpmn}(\mathbb{S}) \\
+  \mid\; & \mathsf{PbtPrism}(\mathbb{S})
+\end{align*}
+\end{definition}

@@ -1,0 +1,22 @@
+opam-version: "2.0"
+synopsis: "Curry-Howard convention for AI coding agents"
+description: """
+math-coding — record decisions as plain-text packets.
+Each packet has a proposition and a witness (git SHA).
+A single OCaml binary verifies packet structure,
+lifecycle, and supersession.
+"""
+maintainer: "math-coding contributors"
+authors: "math-coding contributors"
+license: "Living Beings License"
+homepage: "https://github.com/11111000000/math-coding"
+bug-reports: "https://github.com/11111000000/math-coding/issues"
+depends: [
+  "ocaml" {>= "5.0.0"}
+  "dune" {>= "3.0"}
+]
+build: [
+  ["dune" "build" "-p" name "-j" jobs]
+  ["dune" "build" "--profile" "release" "core/main.exe"]
+]
+dev-repo: "git+https://github.com/11111000000/math-coding.git"

@@ -1,0 +1,11 @@
+(library
+ (name math_coding_core)
+ (modules types repo lifecycle check parse migrate plugin current signing navigate)
+ (libraries unix)
+ (wrapped false))
+
+(executable
+ (name main)
+ (public_name mathc)
+ (modules main)
+ (libraries math_coding_core unix))

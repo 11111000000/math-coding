@@ -1,0 +1,16 @@
+^.pid$
+^_build/
+^*.install$
+^*.exe$
+^*.opam$
+.opam/
+result
+dist/
+
+_build/
+math/modeling/*.pdf
+math/modeling/*.aux
+math/modeling/*.log
+math/modeling/*.out
+math/modeling/*.toc
+render/

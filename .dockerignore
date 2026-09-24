@@ -1,0 +1,13 @@
+_build/
+.git/
+dist/
+*.exe
+*.install
+result
+.opam/
+.github/
+_site/
+.vscode/
+*.pid
+.dockerignore
+Dockerfile.site

@@ -1,0 +1,80 @@
+% theorems.tex — derived theorems and the Y-fixed-point.
+
+\section{Theorems}
+
+\subsection{Y-fixed-point: math-coding applies to itself}
+
+\begin{theorem}[y-fixed-point.math-coding]
+math-coding is a Y-fixed point:
+$$Y(\mathrm{math\text{-}coding}) = \mathrm{math\text{-}coding}$$
+The convention, applied to itself, yields itself.
+\end{theorem}
+
+\begin{proof}
+math-coding is a function $\mathcal{M} : \mathrm{Project} \to
+\mathcal{P}(\Dec)$. Applied to itself, it produces:
+\begin{enumerate}
+\item the five foundations as ordinary packets
+      (\texttt{curry-howard}, \texttt{temporal}, \texttt{constructive},
+      \texttt{categorical}, \texttt{motivation}),
+\item the three extensions as ordinary packets
+      (\texttt{process-fsm}, \texttt{dialectic-tas},
+      \texttt{actor-discipline}),
+\item the kernel $S$ that type-checks those packets using the same
+      code that checks user packets.
+\end{enumerate}
+All three are themselves packets verified by the same kernel. There
+is no special path for the foundations; this is the structural
+expression of the Y-fixed-point property. If any proposition in a
+foundation packet is false, the kernel detects drift in that
+foundation just as it does for a user packet.
+\end{proof}
+
+\subsection{Drift detection}
+
+\begin{theorem}[drift.detection]
+$$L(d, r) = \textsc{Drift} \iff d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) \neq d.\mathtt{proposition}$$
+That is, drift occurs exactly when the proposition at the witness
+commit differs from the current proposition.
+\end{theorem}
+
+\begin{proof}
+If $\mathrm{prop}(r, \text{sha}, d.\mathtt{name}) = d.\mathtt{proposition}$,
+the proposition is consistent with history and $L = \textsc{Applied}$
+(possibly $\textsc{Stale}$ if files changed). If they differ, the
+proposition has been modified without a supersession, which is the
+definition of drift. The kernel implements this comparison through
+\texttt{git show sha:math/name/packet.md}.
+\end{proof}
+
+\subsection{SPO transitivity preserves lineage}
+
+\begin{theorem}[spo-transitivity]
+If $d_1 \preceq d_2$ and $d_2 \preceq d_3$, then $d_1 \preceq d_3$
+through the composition of two supersession chains.
+\end{theorem}
+
+\begin{proof}
+By definition of transitivity in
+\texttt{categorical.supersession-spo}, the composition of two
+supersession links is a supersession link. The kernel preserves
+chains through the \texttt{mathc graph} command, which renders the
+Hasse diagram of the partial order.
+\end{proof}
+
+\subsection{Kernel uniformity}
+
+\begin{theorem}[kernel-uniformity]
+The kernel $S$ applies uniformly to all decisions, including the
+foundations and extensions. No special path exists for axiomatic
+packets.
+\end{theorem}
+
+\begin{proof}
+\texttt{core/check.ml} iterates over \texttt{math/} recursively and
+applies \texttt{Check.check : decision -> verdict} to every packet
+without distinction. The foundations satisfy the schema (V1--V7)
+the same way user packets do. This is the operational expression of
+the Y-fixed-point: the kernel that verifies packets also verifies
+the description of the kernel.
+\end{proof}

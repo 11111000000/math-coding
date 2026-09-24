@@ -1,0 +1,41 @@
+% math-coding.tex — main file for the formal model.
+
+\documentclass[11pt,a4paper]{article}
+
+\input{preamble.tex}
+
+\begin{document}
+
+\title{math-coding v2.0-Y: Formal Model}
+\author{math-coding contributors}
+\date{\today}
+
+\maketitle
+
+\begin{abstract}
+math-coding is a discipline for recording architectural decisions as
+plain-text packets verified by a single static OCaml binary. This
+document formalises the type system, the kernel semantics, the five
+foundations and three extensions, and the Y-fixed-point property
+that makes the convention self-applicable. The OCaml implementation
+in \texttt{core/*.ml} mirrors these definitions; any divergence is
+recorded as a \texttt{KNOWN DIVERGENCE} comment with an issue
+reference.
+\end{abstract}
+
+\tableofcontents
+
+\input{syntax.tex}
+\input{semantics.tex}
+\input{foundations.tex}
+\input{extensions.tex}
+\input{theorems.tex}
+
+\section*{Colophon}
+
+This document was typeset with \texttt{pdflatex} twice for cross-
+references. The source lives in \texttt{math/modeling/} alongside
+the OCaml source in \texttt{core/}. Both layers are kept in sync
+through manual review and the \texttt{KNOWN DIVERGENCE} convention.
+
+\end{document}

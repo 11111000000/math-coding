@@ -1,0 +1,89 @@
+% semantics.tex — kernel S semantics for math-coding v2.0-Y.
+
+\section{Semantics}
+
+The kernel $S$ maps a decision (plus repo context) to a verdict.
+
+\begin{definition}[Kernel $S$]
+$$S : \Dec \times \mathrm{Repo} \to \Verdict$$
+$S$ composes six structural predicates V1--V6 plus V7 schema
+validation. The verdict is the worst case across all predicates.
+\end{definition}
+
+\subsection{Structural predicates}
+
+\begin{proposition}[V1: structure]
+$$\forall d.\ d.\mathtt{proposition} \neq \mathtt{``''}$$
+If violated, $V_1(d) = \textsc{Fail}$.
+\end{proposition}
+
+\begin{proposition}[V2: lifecycle]
+$$\forall d.\ d.\mathtt{state} = \textsc{Applied} \iff (d.\mathtt{witness} \neq \bot \;\wedge\; \mathrm{prop\_at\_witness}(d) = d.\mathtt{proposition})$$
+Drift ($\mathrm{prop\_at\_witness}(d) \neq d.\mathtt{proposition}$) returns
+$\textsc{Drift}$. No witness returns $\textsc{Draft}$. Returns
+$\textsc{Warn}$ (kernel emits $\textsc{Warn}$ verdict).
+\end{proposition}
+
+\begin{proposition}[V3: register--confidence consistency]
+$$\forall d.\ d.\mathtt{confidence} \models d.\mathtt{register}$$
+(Defined in \texttt{syntax.tex}, ``Register-confidence consistency''.)
+If violated, $V_3(d) = \textsc{Fail}$.
+\end{proposition}
+
+\begin{proposition}[V4: state FSM]
+The FSM permits transitions
+$\textsc{Draft} \to \textsc{Applied}$, $\textsc{Applied} \to \textsc{Reviewed}$,
+$\textsc{Applied} \to \textsc{Retired}$, $\textsc{Applied} \to \textsc{Abandoned}$,
+$\textsc{Applied} \to \textsc{Draft}$ (via supersession).
+The transition $\textsc{Draft} \to \textsc{Reviewed}$ is forbidden when
+$d.\mathtt{witness} = \bot$. If attempted, $V_4(d) = \textsc{Fail}$.
+\end{proposition}
+
+\begin{proposition}[V5: actor discipline]
+Three modes via $.mathrc\!:\!\mathtt{SIGNING\_MODE} \in \{\textsc{strict}, \textsc{lenient}, \textsc{off}\}$:
+\begin{itemize}
+\item $\textsc{strict}$: $d.\mathtt{actor} = \textsc{Human} \wedge d.\mathtt{signed\_by} = \bot \Rightarrow V_5(d) = \textsc{Fail}$
+\item $\textsc{lenient}$: same condition returns $\textsc{Warn}$
+\item $\textsc{off}$: signing not checked
+\end{itemize}
+Universal warnings:
+\begin{itemize}
+\item $d.\mathtt{actor} = \textsc{Agent} \wedge d.\mathtt{register} = \textsc{Fact} \Rightarrow \textsc{Warn}$ (an agent shall not assert fact without evidence)
+\item $d.\mathtt{actor} = \textsc{Agent} \wedge d.\mathtt{state} = \textsc{Reviewed} \Rightarrow \textsc{Warn}$ (state Reviewed requires explicit human sign-off)
+\item $d.\mathtt{actor} = \textsc{Human} \wedge d.\mathtt{motivation} = \bot \Rightarrow \textsc{Warn}$
+\end{itemize}
+\end{proposition}
+
+\begin{proposition}[V6: supersession SPO]
+Supersession $\preceq$ on decisions is a strict partial order:
+\begin{itemize}
+\item irreflexive: $\neg(d \preceq d)$
+\item asymmetric: $d_1 \preceq d_2 \Rightarrow \neg(d_2 \preceq d_1)$
+\item transitive: $d_1 \preceq d_2 \wedge d_2 \preceq d_3 \Rightarrow d_1 \preceq d_3$
+\end{itemize}
+A cycle in the supersession graph returns $V_6(d) = \textsc{Fail}$.
+\end{proposition}
+
+\begin{proposition}[V7: schema version]
+$$d.\mathtt{schema\_version} = \mathtt{``2.0''}$$
+If violated (unknown version), $V_7(d) = \textsc{Fail}$. Future
+versions trigger best-effort parsing with a warning.
+\end{proposition}
+
+\subsection{Composition}
+
+\begin{definition}[Verdict composition]
+The overall verdict is the worst case across V1--V7:
+$$\mathrm{Verdict}(S, d) = \min(\{V_i(d) \mid i \in 1..7\})$$
+where $\min$ is the total order $\textsc{Fail} < \textsc{Warn} < \textsc{Pass} < \textsc{Skip}$.
+\end{definition}
+
+\begin{definition}[Lifecycle computation]
+$$L : \Dec \times \mathrm{Repo} \to \Lifecycle$$
+\begin{align*}
+L(d, r) = \;& \textsc{Draft}   &&\text{if } d.\mathtt{witness} = \bot \\
+           &\;\mid\; \textsc{Drift} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) \neq d.\mathtt{proposition} \\
+           &\;\mid\; \textsc{Stale} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) = d.\mathtt{proposition} \;\wedge\; \text{files changed since sha} \\
+           &\;\mid\; \textsc{Applied} &&\text{otherwise}
+\end{align*}
+\end{definition}

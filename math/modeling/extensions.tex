@@ -1,0 +1,85 @@
+% extensions.tex — three extension propositions of math-coding.
+
+\section{Extensions}
+
+Three extensions add domain-specific obligations to the foundation
+schema. Each is instantiated as a packet under
+\texttt{math/extensions/}.
+
+\subsection{process-fsm: state machine with one forbidden transition}
+
+\begin{theorem}[process-fsm.fsm]
+A decision exists in one of five states
+$\textsc{Draft} \mid \textsc{Applied} \mid \textsc{Reviewed} \mid \textsc{Retired} \mid \textsc{Abandoned}$.
+The single forbidden transition is $\textsc{Draft} \to \textsc{Reviewed}$
+without $\Witness$.
+\end{theorem}
+
+\begin{proof}
+Without an explicit state machine, a packet remains ``applied'' by
+default and review loses meaning. With a five-state machine, each
+decision traverses an explicit path: from proposition (Draft) to
+inhabitation (Applied) to human review (Reviewed), with possible
+exit through Retired or Abandoned. The forbidden transition
+$\textsc{Draft} \to \textsc{Reviewed}$ without $\Witness$ closes a
+trivial bypass: one cannot declare a decision reviewed without
+passing through inhabitation via git fix. This is the minimal
+sufficient restriction: one rule closes all bypasses.
+\end{proof}
+
+\begin{theorem}[process-fsm.forbidden-transition]
+$$\forall d.\ d.\mathtt{state} = \textsc{Reviewed} \;\wedge\; d.\mathtt{witness} = \bot \;\Rightarrow\; S(d) = \textsc{Fail}$$
+The kernel $\mathrm{V_4}$ detects this and refuses the packet.
+\end{theorem}
+
+\subsection{dialectic-tas: thesis, antithesis, synthesis required}
+
+\begin{theorem}[dialectic-tas.required-sections]
+A packet with $\Reg = \textsc{Judgment}$ or $\Actor = \textsc{Human}$
+requires the body sections \texttt{\#\# Thesis}, \texttt{\#\# Antithesis},
+\texttt{\#\# Synthesis}. The structural form of dialectics is mandatory
+for human judgments.
+\end{theorem}
+
+\begin{proof}
+Human judgment without explicit consideration of counter-arguments
+slips into self-deception. The dialectic tradition shows that
+synthesis is reachable only through thesis and antithesis; collapsing
+this structure turns judgment into declaration. In software
+engineering, judgment about trust, security, or reversibility must
+contain an explicit antithesis---the strongest counter-argument
+against the decision taken. Without it, the proposition is a slogan
+and the reviewer cannot distinguish considered decision from
+impulsive one.
+\end{proof}
+
+\subsection{actor-discipline: signed commits fix author}
+
+\begin{theorem}[actor-discipline.signed-commits]
+A decision records its author through commit signatures. The signing
+mode ($\textsc{strict} / \textsc{lenient} / \textsc{off}$) is determined
+by the project through \texttt{.mathrc} and checked by the kernel.
+\end{theorem}
+
+\begin{proof}
+A decision without author carries no responsibility. In distributed
+development (human, agent, agentic system), commit signature is the
+only cryptographically verifiable way to bind a proposition to a
+subject. Without an explicit signing mode, the project ends up in a
+situation where ``everyone signs, no one checks''---or vice versa,
+``no one signs, authorship is untraceable''. Three modes---strict,
+lenient, off---cover three classes of projects: critical
+infrastructure, ordinary development, prototyping.
+\end{proof}
+
+\begin{theorem}[Signing modes]
+\begin{itemize}
+\item \textsc{strict}: every commit of the packet has a valid GPG/SSH
+      signature. Kernel rejects the packet without signature
+      ($\textsc{Fail}$).
+\item \textsc{lenient}: the \texttt{amend} commit has a signature;
+      others need not. Kernel returns $\textsc{Warn}$ if \texttt{amend}
+      lacks signature.
+\item \textsc{off}: signatures not required; kernel does not check.
+\end{itemize}
+\end{theorem}

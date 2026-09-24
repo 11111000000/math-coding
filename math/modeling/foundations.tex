@@ -1,0 +1,142 @@
+% foundations.tex — five foundational propositions of math-coding.
+
+\section{Foundations}
+
+Five foundational propositions ground the convention. Each is
+instantiated as a packet under \texttt{math/foundations/}.
+
+\subsection{curry-howard: decision is a triple}
+
+\begin{theorem}[curry-howard.triple]
+A decision in math-coding is structurally a triple $(\Prop, \Code, \Witness)$,
+and the structural correspondence between proposition and code is
+verified through witness.
+\end{theorem}
+
+\begin{proof}
+Curry-Howard isomorphism states that proposition is a type, code is a
+term, and inhabitation is a proof. In software engineering, proposition
+becomes a statement about a decision, code its realisation, and
+witness the git commit binding the proposition to that realisation.
+Without the triple, proposition is documentation without consequences:
+its change cannot be tracked. With the triple, proposition and code
+become a verifiable pair; any code change either updates the
+proposition or triggers an explicit supersession.
+\end{proof}
+
+\begin{theorem}[Triple in OCaml]
+The OCaml record \texttt{decision} mirrors the triple directly:
+\begin{verbatim}
+type decision = {
+  proposition : string;     (* type *)
+  code        : string option; (* term *)
+  witness     : Sha.t option;  (* inhabitation proof *)
+}
+\end{verbatim}
+\end{theorem}
+
+\subsection{temporal: lifecycle is computed}
+
+\begin{theorem}[temporal.lifecycle]
+The lifecycle of a decision $L$ is a function of the decision and git
+history; $L$ is computed, not stored.
+\end{theorem}
+
+\begin{proof}
+Decisions evolve. A proposition true at commit $A$ may be false at commit
+$B$. Storing lifecycle as a stored field admits lying: a developer
+changes code but forgets to update the \texttt{state} field. Computing
+lifecycle from git history makes drift detection automatic and
+falsifiable---a lie about state becomes mechanically impossible,
+because state is a consequence of history, not an editable field.
+\end{proof}
+
+\begin{theorem}[Lifecycle function]
+\begin{align*}
+L : \Dec \times \mathrm{Repo} &\to \Lifecycle \\
+L(d, r) = \;& \textsc{Draft}   &&\text{if } d.\mathtt{witness} = \bot \\
+           &\;\mid\; \textsc{Drift} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) \neq d.\mathtt{proposition} \\
+           &\;\mid\; \textsc{Stale} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) = d.\mathtt{proposition} \;\wedge\; \text{files changed since sha} \\
+           &\;\mid\; \textsc{Applied} &&\text{otherwise}
+\end{align*}
+\end{theorem}
+
+\subsection{constructive: proof is reproducible}
+
+\begin{theorem}[constructive.proof]
+A packet with \texttt{substrate: shell} or \texttt{substrate: pbt} requires
+reproducible evidence: re-running the command yields the recorded
+exit code.
+\end{theorem}
+
+\begin{proof}
+Classical logic permits ``proven'' without construction. Constructive
+logic requires a term---a program that normalises to the sought value.
+In software engineering, the term is a re-runnable command: test,
+benchmark, type-check. If the result is not reproducible, the claim is
+not proven---it is a hypothesis. This is the only epistemic marker
+that triggers runtime action; \texttt{register: fact}, \texttt{hypothesis},
+\texttt{judgment}, \texttt{unknown} are declarative stances.
+\end{proof}
+
+\begin{theorem}[Reproducible definition]
+$$\mathrm{Reproducible} \triangleq \mathrm{Re\!-\!run}(\mathrm{command}) = \mathrm{recorded\_exit}$$
+\end{theorem}
+
+\subsection{categorical: supersession is SPO}
+
+\begin{theorem}[categorical.supersession-spo]
+Supersession $\preceq$ on decisions is a strict partial order:
+irreflexive, asymmetric, transitive.
+\end{theorem}
+
+\begin{proof}
+Decisions evolve. When a proposition changes, the old decision is not
+edited---it is superseded by a new one. The relation ``supersedes''
+must be a strict partial order to preserve meaning.
+Irreflexivity prevents trivial self-supersession. Asymmetry excludes
+cycles. Transitivity composes chains into lineages. Without these
+properties, the history of decisions becomes inconsistent: a
+reviewer cannot tell which decision is current.
+\end{proof}
+
+\begin{theorem}[SPO axioms]
+\begin{align*}
+\forall a.\ &\neg(a \preceq a)                              &&\text{(irreflexive)} \\
+\forall a, b.\ &(a \preceq b) \Rightarrow \neg(b \preceq a) &&\text{(asymmetric)} \\
+\forall a, b, c.\ &(a \preceq b) \wedge (b \preceq c) \Rightarrow (a \preceq c) &&\text{(transitive)}
+\end{align*}
+\end{theorem}
+
+\subsection{motivation: register and why}
+
+\begin{theorem}[motivation.register-and-why]
+Every packet declares an epistemic register
+(\textsc{Fact}/\textsc{Hypothesis}/\textsc{Judgment}/\textsc{Unknown}) and
+a numerical confidence. A convention without motivation is ceremony.
+\end{theorem}
+
+\begin{proof}
+Decisions are taken with different degrees of confidence. A fact
+requires reproduction; a hypothesis is open to refutation; a judgment
+is an explicit indication of potential harm (reversibility,
+mitigation); an unknown is an honest admission of a boundary. Without
+explicit register, epistemic honesty degrades into self-deception:
+a developer fills ``fact'' without evidence; an agent fills
+``fact'' without verification. Without motivation, proposition
+becomes a slogan beyond critique. This is axiom A1 (Care) of
+math-coding v0.854, restored in v2.0-Y.
+\end{proof}
+
+\begin{theorem}[Register-confidence consistency]
+The register constrains the confidence value:
+\begin{align*}
+\mathtt{register} = \textsc{Fact}       &\;\Rightarrow\; \mathtt{confidence} \in [0.95,\, 1] \\
+\mathtt{register} = \textsc{Hypothesis} &\;\Rightarrow\; \mathtt{confidence} \in (0.5,\, 0.95) \\
+\mathtt{register} = \textsc{Judgment}   &\;\Rightarrow\; \mathtt{confidence} \in \{0,\, 1\} \\
+\mathtt{register} = \textsc{Unknown}    &\;\Rightarrow\; \mathtt{confidence} = 0
+\end{align*}
+The \texttt{judgment} register additionally obligates a non-empty
+\texttt{\#\# Why} section in the packet body, declaring reversibility
+and mitigation.
+\end{theorem}

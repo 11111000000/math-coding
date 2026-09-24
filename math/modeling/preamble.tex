@@ -1,0 +1,42 @@
+% preamble.tex — packages and macros for math-coding v2.0-Y formal model.
+% This file is \input{} from math-coding.tex; it must NOT contain
+% \documentclass.
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue,
+  pdftitle={math-coding v2.0-Y: formal model},
+  pdfauthor={math-coding contributors}
+}
+
+\theoremstyle{plain}
+\newtheorem{theorem}{Theorem}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+
+\theoremstyle{definition}
+\newtheorem{definition}{Definition}
+
+\newcommand{\Dec}{\mathsf{Decision}}
+\newcommand{\Prop}{\mathsf{Proposition}}
+\newcommand{\Code}{\mathsf{Code}}
+\newcommand{\Witness}{\mathsf{Witness}}
+\newcommand{\Actor}{\mathsf{Actor}}
+\newcommand{\Reg}{\mathsf{Register}}
+\newcommand{\State}{\mathsf{State}}
+\newcommand{\Lifecycle}{\mathsf{Lifecycle}}
+\newcommand{\Verdict}{\mathsf{Verdict}}
+\newcommand{\Conf}{\mathsf{Confidence}}
+\newcommand{\Ben}{\mathsf{Beneficiary}}
