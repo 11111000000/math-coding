@@ -6,7 +6,7 @@ register: judgment
 state: applied
 actor: system
 confidence: 1.0
-superseded_by:
+superseded_by: agents-protocol-v2
 beneficiary: developer
 ---
 
@@ -40,7 +40,7 @@ name: <unique-name>                    # mandatory
 proposition: "<one-sentence claim>"   # V1: mandatory, non-empty
 register: fact|hypothesis|judgment|unknown  # V3: mandatory
 state: draft|applied|reviewed|retired|abandoned  # V4: mandatory
-superseded_by: <name>|""              # V6: mandatory (empty if none)
+superseded_by: agents-protocol-v2
 actor: human|agent|system             # V5: mandatory
 confidence: <0.0-1.0>                 # mandatory; bounded by register
 beneficiary: <enum>|Other(text)       # optional (default: System)
