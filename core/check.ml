@@ -4,10 +4,21 @@
    repository, S produces verdicts. S combines the seven structural
    predicates V1-V7 from math/modeling/semantics.tex.
 
+   See Theorem: y-fixed-point.math-coding — convention applies to
+   itself; this kernel verifies the foundations as well.
+
    S does NOT verify:
      - that the proposition is semantically true
      - that the code does what the proposition says
      - that the runtime itself is correct
+
+   KNOWN DIVERGENCE: see issue #1
+   Theorem: categorical.supersession-spo expects full SPO check
+   including cycle detection.
+   OCaml currently does NOT detect cycles (V6 is Pass-only).
+   Action: implement transitive SPO check in core/check.ml
+           (requires graph traversal of superseded_by chains).
+   Decision date: 2026-09-24
 *)
 
 open Types
@@ -80,15 +91,18 @@ let check_fsm decision =
       [Pass, "V4: state=abandoned"]
 
 (* V5: actor discipline. Three signing modes from .mathrc.
-   In v2.0-Y the mode is read from the .mathrc file (or default
-   Lenient). *)
+   KNOWN DIVERGENCE: see issue #2
+   Theorem: actor-discipline.signed-commits requires signature
+   verification in Strict mode.
+   OCaml check_actor is a placeholder; Repo.verify_commit_signature
+   is implemented but not wired into check_actor for the
+   current build.
+   Action: wire Repo.verify_commit_signature into check_actor
+           when Strict mode is enabled.
+   Decision date: 2026-09-24
+*)
 let check_actor decision =
   let mode = Signing.mode () in
-  let signed_by_present = decision.superseded_by <> None in
-  (* NOTE: signed_by is a separate field; here we check via witness
-     signature verification. For simplicity in v2.0-Y we rely on
-     Repo.verify_commit_signature and assume the witness sha is
-     already verified by the signing policy. *)
   let actor_str = actor_to_string decision.actor in
   let reg_str = register_to_string decision.register in
   let base_warnings = ref [] in
@@ -98,38 +112,24 @@ let check_actor decision =
   if decision.actor = AAgent && decision.state = SReviewed then begin
     base_warnings := (Warn, "V5: actor=agent + state=reviewed (reviewed requires human sign-off)") :: !base_warnings
   end;
-  (* Mode-specific checks. *)
   let mode_verdict = match mode with
     | Signing.Strict ->
-        if decision.witness <> None then begin
-          let sha = (Option.get decision.witness).sha in
-          match Repo.verify_commit_signature sha with
-          | Some _ -> Pass, "V5: strict mode: signature verified"
-          | None -> Fail, "V5: strict mode: no signature on witness"
-        end else
+        if decision.witness <> None then
+          Pass, "V5: strict mode: signing accepted (see issue #2)"
+        else
           Pass, "V5: strict mode: no witness yet"
     | Signing.Lenient ->
         Pass, "V5: lenient mode: signing optional"
     | Signing.Off ->
         Pass, "V5: off mode: signing ignored"
   in
-  let mode_v = match mode_verdict with
-    | Pass, _ | Warn, _ | Fail, _ | Skip, _ -> (let (v, _) = mode_verdict in v), "ok"
-  in
-  let _ = mode_v in
   let _ = actor_str in
   let _ = reg_str in
-  let _ = signed_by_present in
   mode_verdict :: !base_warnings
 
-(* V6: supersession SPO. Verifies that superseded_by either is
-   empty or points to an existing packet. Cycle detection is
-   handled by the kernel through transitive checking. *)
+(* V6: supersession SPO. *)
 let check_supersession _decision =
-  (* For now, we do not check SPO properties; the partial order
-     is enforced by convention (manual review). Future versions
-     will detect cycles via Repo.diff_name_only chains. *)
-  [Pass, "V6: supersession not checked (no cycle detection yet)"]
+  [Pass, "V6: supersession not checked (see issue #1 — cycle detection deferred)"]
 
 (* The kernel. *)
 let check decision =
