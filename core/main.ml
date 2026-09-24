@@ -379,14 +379,18 @@ let cmd_render () =
   Printf.printf "mathc render: %s/index.html generated\n" out_dir
 
 (* review: transition to reviewed state (signed). *)
-let cmd_review name =
+let rec cmd_review name =
+  cmd_transition name "reviewed"
+
+(* transition: change the FSM state of a packet. *)
+and cmd_transition name target =
   let dir = Filename.concat "math" name in
   if not (Sys.file_exists dir) then begin
     Printf.printf "error: packet does not exist (%s)\n" name;
     exit 1
   end;
-  let packet_md = Filename.concat dir "packet.md" in
   if not !dry_run then begin
+    let packet_md = Filename.concat dir "packet.md" in
     let ic = open_in packet_md in
     let content = really_input_string ic (in_channel_length ic) in
     close_in ic;
@@ -394,14 +398,13 @@ let cmd_review name =
     let updated = List.map
       (fun line ->
         if String.starts_with ~prefix:"state:" (String.trim line) then
-          "state: reviewed"
+          "state: " ^ target
         else line)
       lines in
     let oc = open_out packet_md in
     List.iter (fun l -> output_string oc l; output_char oc '\n') updated;
     close_out oc;
-    Printf.printf "mathc review: %s -> reviewed\n" name;
-    Printf.printf "  note: requires signed commit in strict mode\n"
+    Printf.printf "mathc transition: %s -> state=%s\n" name target
   end
 
 (* Entry point. *)
@@ -417,6 +420,7 @@ let cmd_help () =
   Printf.printf "  status                   JSON: state + next_steps\n";
   Printf.printf "  render                   generate HTML site\n";
   Printf.printf "  review <name>            transition to state: reviewed (signed)\n";
+  Printf.printf "  transition <name> <s>    change FSM state (draft|applied|reviewed|retired|abandoned)\n";
   Printf.printf "  find <substring>         search packets by substring\n";
   Printf.printf "  grep <pattern>           grep over proposition and name\n";
   Printf.printf "  show <name>              show full packet\n";
@@ -451,6 +455,9 @@ let () =
   | "review" :: name :: _ -> cmd_review name
   | "review" :: _ ->
       Printf.printf "usage: mathc review <name>\n"; exit 1
+  | "transition" :: name :: target :: _ -> cmd_transition name target
+  | "transition" :: _ ->
+      Printf.printf "usage: mathc transition <name> <draft|applied|reviewed|retired|abandoned>\n"; exit 1
   | "find" :: query -> Navigate.cmd_find (String.concat " " query)
   | "grep" :: pattern -> Navigate.cmd_grep (String.concat " " pattern)
   | "show" :: name :: _ -> Navigate.cmd_show name
