@@ -1,3 +1,15 @@
+---
+schema_version: "2.0"
+name: agents-protocol
+proposition: "AI agents working on a math-coding project record non-trivial decisions as packets through mathc record + amend; the convention describes protocol via the same kernel that verifies user packets."
+register: judgment
+state: applied
+actor: system
+confidence: 1.0
+superseded_by:
+beneficiary: developer
+---
+
 # math-coding — protocol for AI agents in math-coding v2.0-Y
 
 This packet documents how AI agents (LLM-driven coding tools) should
