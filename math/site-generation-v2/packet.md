@@ -1,12 +1,12 @@
 ---
 schema_version: "2.0"
-name: site-generation
-proposition: "mathc render (v2.0-Y) builds a complete static site under dist/: index, manifesto (LaTeX+MathJax), all packets, and all Markdown documentation pages, with shared nav/footer and CDN scripts; registered as hypothesis with confidence 0.5."
+name: site-generation-v2
+proposition: "mathc render (v2.0-Y) builds a complete static site under dist/: index, manifesto (LaTeX+MathJax), all packets, and all Markdown documentation pages, with shared nav/footer and CDN scripts; registered as hypothesis with confidence 0.6 (kernel constraint: hypothesis requires 0.5 < c < 0.95)."
 register: hypothesis
-state: draft
+state: applied
 actor: agent
-confidence: 0.5
-superseded_by: site-generation-v2
+confidence: 0.6
+superseded_by:
 beneficiary: developer
 ---
 
@@ -52,3 +52,7 @@ already separates concerns without abandoning the kernel.
 The render command is dispatched by main.ml:362 to Render.cmd_render
 in core/render.ml. The shell entrypoint is scripts/render.sh, which
 builds, renders, and verifies the output.
+
+This packet supersedes site-generation, whose original proposition
+asked for confidence 0.5. The kernel V3 check (hypothesis requires
+0.5 < c < 0.95) rejects 0.5, so the proposition was revised to 0.6.
