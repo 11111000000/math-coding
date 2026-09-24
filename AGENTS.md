@@ -1,113 +1,136 @@
-# AGENTS.md — math-coding protocol for AI agents
+# AGENTS.md — protocol for AI agents in math-coding v2.0-Y
 
-You are working in a math-coding repository. Read this before
-acting.
+When working on a math-coding project, you have a single
+binary `mathc` available. Use it to record non-trivial decisions
+as **packets** in `math/<name>/packet.md`.
 
-## What math-coding is
+## When to use
 
-math-coding records decisions as plain-text packets. Each non-trivial
-decision becomes a directory `math/<name>/packet.md` with a
-proposition and a witness (git SHA). A single OCaml binary `mathc`
-verifies structure, lifecycle, witness, and supersession.
+If a code change is more than a typo or a rename — if a reviewer
+would reasonably ask "why this and not that" — create a packet:
 
-## Read first
-
-1. `README.md` — what math-coding is
-2. `skills/math-coding/SKILL.md` — how to use `mathc`
-3. `math/foundations/` — the four foundations (curry-howard, temporal, constructive, categorical)
-
-## When to record a decision
-
-If your change is a typo, rename, or one-line tweak — skip; commit
-message is enough.
-
-If your change introduces an architectural choice, a non-trivial API,
-an error-handling strategy, a dependency choice — record it as a
-packet.
-
-## Workflow
-
-```
-mathc record <name> "<proposition>"   # create math/<name>/packet.md
-git add math/<name>/ && git commit -m "<name>: <short>"  # commit packet
-mathc amend <name>                    # set witness to HEAD
-git add math/<name>/witness && git commit -m "<name>: witness"
+```sh
+mathc record NAME "single-sentence proposition"
+git add math/NAME/ && git commit -m "NAME: short description"
+mathc amend NAME              # set witness to current HEAD
+git add math/NAME/witness && git commit -m "NAME: witness"
+mathc check
 ```
 
-After step 4, `mathc check` reports `applied ✓` for the packet.
+If the change is trivial, just commit — no packet needed.
 
-## When a decision changes
+## Frontmatter (9 fields, 6 mandatory)
 
-Do not edit `packet.md` in place. That hides drift. Instead:
-
+```yaml
+---
+schema_version: "2.0"                 # V7: mandatory
+name: <unique-name>                    # mandatory
+proposition: "<one-sentence claim>"   # V1: mandatory, non-empty
+register: fact|hypothesis|judgment|unknown  # V3: mandatory
+state: draft|applied|reviewed|retired|abandoned  # V4: mandatory
+superseded_by: <name>|""              # V6: mandatory (empty if none)
+actor: human|agent|system             # V5: mandatory
+confidence: <0.0-1.0>                  # mandatory; bounded by register
+beneficiary: <enum>|Other(text)        # optional (default: System)
+---
 ```
-mathc supersede <old-name> <new-name> "<new proposition>"
-git add math/<new-name>/ && git commit -m "<new-name>: ..."
-mathc amend <new-name>
-git add math/<new-name>/witness && git commit
+
+## Verify
+
+After any commit that touches `math/`:
+
+```sh
+mathc check                     # structure + lifecycle + substrate
+mathc check --json              # machine-parseable
 ```
 
-The old packet gets `superseded_by: <new-name>` in its frontmatter.
-Both remain in `git log` for review.
+A `Fail` verdict means the proposition was edited after witnessing
+without supersession; fix with `mathc supersede NAME NAME-v2 "new prop"`.
 
-## When something is wrong
+## Navigate
 
-`mathc check` reports drift (`?`) or failure (`✗`).
+```sh
+mathc list                       # all packets with lifecycle
+mathc find <substring>           # search by name/proposition
+mathc grep <pattern>             # grep over proposition
+mathc show <name>                # full packet (frontmatter + body)
+mathc history <name>             # git log + supersession chain
+mathc graph <name>               # mermaid supersession diagram
+mathc stats                      # drift rate, applied/total, chains
+```
 
-- `?` (Warn) — proposition changed after witness. Either:
-  - `mathc supersede` if the change is intentional.
-  - `git revert` and `mathc amend` if accidental.
-- `✗` (Fail) — structural error. Read the reason in the output.
+## State transitions (V4)
 
-`mathc fix` auto-supersedes drifted packets. Use it for bulk recovery.
+States are: `draft` (no witness) → `applied` (witness set) →
+`reviewed` (human signed) → `retired` or `abandoned` (terminal).
+
+Use:
+```sh
+mathc transition NAME applied
+mathc review NAME              # alias for transition reviewed
+mathc transition NAME retired
+```
+
+Forbidden transition: `draft → reviewed` without witness (V4 Fail).
+
+## Supersession (V6)
+
+When proposition changes, never edit `packet.md` in place. Use:
+
+```sh
+mathc supersede OLD NEW "new proposition"
+git add math/NEW/ && git commit -m "NEW: ..."
+mathc amend NEW
+git add math/NEW/witness && git commit
+```
+
+Supersession is a strict partial order (irreflexive, asymmetric,
+transitive). Cycles are forbidden.
+
+## Six lifecycle verdicts
+
+| Verdict | Meaning |
+|---------|---------|
+| `Pass`  | Packet is structurally valid and consistent |
+| `Warn`  | Convention recommends action (drift, missing field, FSM warning) |
+| `Fail`  | Convention violated; fix before commit |
+| `Skip`  | Packet skipped by configuration |
+
+| Lifecycle | Meaning |
+|-----------|---------|
+| `Draft`   | No witness |
+| `Applied` | Witness + proposition matches at witness commit |
+| `Drift`   | Witness + proposition changed after witness |
+| `Stale`   | Witness commit missing files or unreadable |
+
+## Signing modes (.mathrc)
+
+```yaml
+SIGNING_MODE: lenient   # strict | lenient | off
+AUTO_AMEND: true        # auto-set witness after commit
+AUTO_RECORD_PROMPT: true  # suggest packets for agent-driven decisions
+```
+
+- `strict`: every witness commit must be GPG/SSH signed
+- `lenient`: only the amend commit needs a signature
+- `off`: signatures ignored
 
 ## Do not
 
-- Do not edit `packet.md` after witnessing. Causes drift.
-- Do not create a packet with empty `proposition`. Fail.
-- Do not invent fields outside the schema. Frontmatter is `name`,
-  `proposition`, `superseded_by` only. Body is free-form Markdown.
-- Do not skip `amend`. The packet stays `draft` without a witness.
+- Edit `packet.md` after witnessing without `supersede`.
+- Create a packet with empty `proposition`.
+- Skip `amend` after commit; the packet stays `draft` until witnessed.
+- Create `state: reviewed` without witness (V4 Fail).
+- Claim `register: fact` as an agent; use `hypothesis` (V5 Warn).
+- Add fields outside the schema; `frontmatter` has exactly 9 keys.
 
-## The four foundations
+## Source of truth
 
-`math/foundations/` contains four packets about math-coding itself:
+The repository's `core/`, `math/modeling/`, `MANIFESTO.md`,
+`FOUNDATIONS.md`, `WORKFLOW.md`, and `FAQ.md` are the source of
+truth. This snippet is auto-generated from
+`docs/agents-protocol.md` (regenerated by `mathc render`).
 
-- **curry-howard**: Decision is a (proposition, code, witness) triple.
-- **temporal**: Lifecycle is computed from git history, not stored.
-- **constructive**: `proven` requires re-runnable evidence.
-- **categorical**: Supersession is a strict partial order.
-
-These are regular packets. The kernel `S` verifies them with the same
-code that verifies user packets. No special path.
-
-## Exit codes
-
-```
-0  Pass / success
-1  Fail (structural error)
-2  Already exists (use `supersede`)
-3  Drift detected (run `fix` or `supersede`)
-```
-
-## Tools
-
-```
-mathc init
-mathc record <name> "<proposition>"
-mathc amend <name>
-mathc supersede <old> <new> "<proposition>"
-mathc check [--json]
-mathc fix [--dry-run]
-mathc status [--json]
-mathc render
-mathc help
-```
-
-Use `--json` for machine-parseable output.
-
-## What this is not
-
-- Not a documentation tool. Decisions live in code, witnessed by git.
-- Not an ADR log. Decisions are first-class, versioned, and verified.
-- Not a wiki. Plain text files only. No server, no database.
+Convention applies to itself: this protocol is itself a
+**packet** (`math/agents-protocol/`) — edit via supersede, not
+in place.

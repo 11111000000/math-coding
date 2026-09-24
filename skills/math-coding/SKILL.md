@@ -1,48 +1,59 @@
 # math-coding — agent skill
 
-math-coding v2: record decisions as plain-text packets.
-Verified by a single OCaml binary (`mathc`).
+math-coding v2.0-Y: record decisions as plain-text packets,
+verified by a single OCaml binary (`mathc`).
 
 ## When to use
 
 You made a non-trivial decision (architecture, API choice, error
 strategy, dependency choice). Document it.
 
-If the change is a typo, rename, or one-line tweak — skip; commit
-message is enough.
+If the change is a typo, rename, or one-line tweak — skip;
+commit message is enough.
 
 ## Workflow
 
-```
+```sh
 # 1. Create the packet
 mathc record <name> "<proposition>"
 
 # 2. Commit the packet
-git add math/<name>/ && git commit -m "<name>: <short>"
+git add math/<name>/ && git commit -m "<name>: short"
 
 # 3. Set the witness (after commit)
 mathc amend <name>
 git add math/<name>/witness && git commit -m "<name>: witness"
+
+# 4. Verify
+mathc check
 ```
 
-After step 3, `mathc check` reports `applied ✓`.
+After step 4, `mathc check` reports `applied ✓`.
 
 ## Commands
 
 | command | what it does |
 |---|---|
-| `mathc init` | bootstrap: creates math/, .mathrc |
-| `mathc record <name> <prop>` | create packet (writes math/<name>/packet.md) |
+| `mathc init` | bootstrap: creates `math/`, `.mathrc`, pre-commit hook |
+| `mathc record <name> "<prop>"` | create packet (writes `math/<name>/packet.md`) |
 | `mathc amend <name>` | update witness to current HEAD |
-| `mathc supersede <old> <new> <prop>` | replace packet (creates new, marks old) |
-| `mathc check` | verify every packet; outputs ✓/✗/? per packet |
-| `mathc fix` | auto-supersede packets with drift |
-| `mathc status --json` | JSON: state + next steps |
-| `mathc render` | generate dist/ from foundations + packets |
+| `mathc supersede <old> <new> "<prop>"` | replace packet (creates new, marks old) |
+| `mathc transition <name> <state>` | change FSM state |
+| `mathc review <name>` | transition to `reviewed` (alias) |
+| `mathc check` | verify every packet; outputs `✓` per packet |
+| `mathc check --json` | machine-parseable verdicts |
+| `mathc status --json` | JSON: state and next steps |
+| `mathc render` | generate HTML site (pandoc on LaTeX model) |
+| `mathc find <substring>` | search packets by substring |
+| `mathc grep <pattern>` | grep over proposition and name |
+| `mathc show <name>` | show full packet |
+| `mathc list` | list all packets with lifecycle |
+| `mathc history <name>` | packet history and versions |
+| `mathc graph <name>` | mermaid supersession chain |
+| `mathc stats` | drift rate and applied/total |
 | `mathc help` | this message |
 
-Flags: `--json`, `--quiet`, `--verbose`, `--dry-run`.
-
+Flags: `--json`, `--quiet`, `--verbose`, `--dry-run`, `--strict`.
 Exit codes: 0=Pass, 1=Fail, 2=exists, 3=drift.
 
 ## Packet format
@@ -50,26 +61,41 @@ Exit codes: 0=Pass, 1=Fail, 2=exists, 3=drift.
 ```
 math/<name>/packet.md:
 ---
+schema_version: "2.0"
 name: <name>
 proposition: "<what was decided>"
+register: fact|hypothesis|judgment|unknown
+state: draft|applied|reviewed|retired|abandoned
+actor: human|agent|system
+confidence: <0.0-1.0>
 superseded_by:        # leave empty unless this is superseded
+beneficiary: <enum>|Other(text)
 ---
 
 ## Why
 
 <one-paragraph justification>
 
-## Considered alternatives
+## Care
 
-<what else was considered and why rejected>
+<ethical consideration; required for actor=human>
+
+## Thesis
+
+<the proposition in full>
+
+## Antithesis
+
+<strongest objection>
+
+## Synthesis
+
+<how thesis and antithesis resolve>
 
 ## Notes
 
 <any context>
 ```
-
-Body (## Why, ## Considered alternatives, ## Notes) is free-form.
-Kernel validates only frontmatter.
 
 ## Detecting drift
 
@@ -81,10 +107,11 @@ If drift is accidental — `git revert` and re-`mathc amend`.
 
 ## Self-application
 
-The four foundation packets (`math/foundations/*`) describe math-coding
-itself. `mathc check` verifies them with the same kernel. This is not
-deep closure — it's "kernel applies uniformly to all packets
-including foundations".
+The five foundation packets (`math/{curry-howard,temporal,constructive,categorical,motivation}`)
+and three extensions (`math/{process-fsm,dialectic-tas,actor-discipline}`)
+describe math-coding itself. `mathc check` verifies them with the
+same kernel. This is not deep closure — it's "kernel applies
+uniformly to all packets including foundations".
 
 ## Common mistakes
 
@@ -94,12 +121,21 @@ including foundations".
   witnessed.
 - Editing `packet.md` in place after witnessing. This causes drift.
   Use `supersede` instead.
+- Setting `state: reviewed` without witness. V4 forbids it.
+- Setting `actor: human` without `## Care` section. V5 warns.
+- Setting `register: fact` as agent. V5 warns; use `hypothesis`.
 
 ## Why this design
 
-- 4 fields + body (no ceremony theater).
-- 8 commands (no choice paralysis).
-- JSON output everywhere (machine-parseable).
-- Auto-derive from git (no manual SHA copy-paste).
-- Auto-fix for drift (`mathc fix`).
-- One binary, no dependencies (`./mathc help`).
+- 9 fields in frontmatter (no ceremony theater).
+- 17 commands (no choice paralysis; navigation is `find/grep/show/list/history/graph/stats`).
+- JSON output everywhere (`--json`).
+- Auto-derive witness from git (no manual SHA copy-paste).
+- Strict mode for high-stakes, lenient for ordinary, off for prototypes.
+- One OCaml binary (~700 lines), no dependencies.
+
+## Source of truth
+
+The source for this skill is `skills/math-coding/SKILL.md`,
+regenerated by `mathc render` from `docs/skill.md`. Edit the
+source, not this file.
