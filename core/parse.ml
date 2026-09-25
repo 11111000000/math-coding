@@ -116,29 +116,40 @@ let body_section_headings body =
       else None)
     lines
 
-(* Extract body as list of (heading, content) pairs. *)
+(* Extract body as list of (heading, content) pairs.
+   Tracks triple-backtick code fences so that '## Foo' inside a
+   code block is not mistakenly treated as a section heading. *)
 let extract_body_sections body =
   let lines = String.split_on_char '\n' body in
-  let rec split acc current_heading current_lines = function
+  let rec split acc current_heading current_lines in_code = function
     | [] ->
         (match current_heading with
          | None -> List.rev acc
          | Some h -> List.rev ((h, String.concat "\n" (List.rev current_lines)) :: acc))
     | line :: rest ->
         let trimmed = String.trim line in
-        if String.length trimmed > 3 && String.sub trimmed 0 3 = "## " then begin
+        let opens_code = trimmed = "```" || (String.length trimmed >= 3 && String.sub trimmed 0 3 = "```") in
+        if opens_code then
+          let content = match current_heading with
+            | None -> line :: current_lines
+            | Some _ -> line :: current_lines
+          in
+          split acc current_heading content (not in_code) rest
+        else if not in_code
+             && String.length trimmed > 3
+             && String.sub trimmed 0 3 = "## " then begin
           let heading = String.sub trimmed 3 (String.length trimmed - 3) in
           let acc' = match current_heading with
             | None -> acc
             | Some h -> List.rev ((h, String.concat "\n" (List.rev current_lines)) :: acc)
           in
-          split acc' (Some heading) [] rest
+          split acc' (Some heading) [] in_code rest
         end else
           match current_heading with
-          | None -> split acc current_heading current_lines rest
-          | Some _ -> split acc current_heading (line :: current_lines) rest
+          | None -> split acc current_heading current_lines in_code rest
+          | Some _ -> split acc current_heading (line :: current_lines) in_code rest
   in
-  split [] None [] lines
+  split [] None [] false lines
 
 (* Backward-compatible alias returning just headings. *)
 let body_sections body =

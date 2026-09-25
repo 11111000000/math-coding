@@ -1,0 +1,4 @@
+(test
+ (name test_check)
+ (modules test_check test_lifecycle test_parse test_runner)
+ (libraries math_coding_core))
