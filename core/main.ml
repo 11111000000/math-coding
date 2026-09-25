@@ -456,8 +456,11 @@ let cmd_mark_superseded old new_name =
   end;
   Printf.printf "done.\n"
 
-(* archive: move a packet to math/archived/<year>/<month>/<name>/. *)
-let cmd_archive name =
+(* archive: move a packet to math/archived/<year>/<month>/<name>/.
+   --commit auto-commits the move; default is to leave it staged for
+   the user to commit (matches record/amend behaviour). *)
+let cmd_archive name args =
+  let do_commit = List.mem "--commit" args in
   let dir = Filename.concat "math" name in
   if not (Sys.file_exists dir) then begin
     Printf.printf "error: packet does not exist (%s)\n" name;
@@ -475,7 +478,12 @@ let cmd_archive name =
   if not !dry_run then begin
     run_cmd_or_die ["mkdir"; "-p"; Filename.dirname dest];
     run_cmd_or_die ["git"; "mv"; dir; dest];
-    Printf.printf "mathc archive: %s -> %s\n" name dest
+    if do_commit then begin
+      run_cmd_or_die ["git"; "commit"; "-m"; Printf.sprintf "%s: archive" name]
+    end;
+    Printf.printf "mathc archive: %s -> %s\n" name dest;
+    if not do_commit then
+      Printf.printf "  hint: pass --commit to auto-commit, or run 'git commit' manually\n"
   end;
   Printf.printf "done.\n"
 
@@ -586,7 +594,7 @@ let cmd_status () =
   | None ->
       Printf.printf "{\"error\":\"math/ not found\"}\n";
       exit 1
-  | Some math_dir ->
+      | Some math_dir ->
       let dirs = Parse.list_packet_dirs math_dir in
       let next_steps = ref [] in
       List.iter
@@ -595,9 +603,13 @@ let cmd_status () =
           match Parse.parse_packet ~rel_path:(rel_path_of dir) dir with
           | Ok d ->
               let s = Lifecycle.compute d in
-              if s = Drift then
-                next_steps := ("mathc supersede " ^ name ^ " " ^ name ^ "-v2 \"...\"", "drift") :: !next_steps
-              else if s = Draft then
+              if s = Drift then begin
+                if d.superseded_by <> None then
+                  next_steps := ("mathc mark-superseded " ^ name ^ " <existing>",
+                    "drift; already superseded — link to existing successor") :: !next_steps
+                else
+                  next_steps := ("mathc supersede " ^ name ^ " " ^ name ^ "-v2 \"...\"", "drift") :: !next_steps
+              end else if s = Draft then
                 next_steps := ("mathc record " ^ name ^ " \"...\"", "draft, no witness") :: !next_steps
               else ()
           | Error _ -> ())
@@ -749,7 +761,7 @@ let () =
       cmd_supersede old new_name proposition
   | "supersede" :: _ ->
       Printf.printf "usage: mathc supersede <old> <new> <proposition>\n"; exit 1
-  | "archive" :: name :: _ -> cmd_archive name
+  | "archive" :: name :: rest -> cmd_archive name rest
   | "archive" :: _ ->
       Printf.printf "usage: mathc archive <name>\n"; exit 1
   | "mark-superseded" :: old :: new_name :: _ -> cmd_mark_superseded old new_name
