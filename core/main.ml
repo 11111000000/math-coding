@@ -122,9 +122,25 @@ let write_witness path ~sha ~date ~by =
   Printf.fprintf oc "by: %s\n" by;
   close_out oc
 
-(* Run a shell command silently; return exit code. *)
-let run_silent cmd =
-  let _ = Sys.command cmd in 0
+(* Run a shell command built from a list of arguments. Each
+   argument is shell-quoted via Filename.quote so that user
+   input (packet names, paths) cannot inject shell metacharacters.
+   Returns the process exit code. *)
+let run_cmd cmd_args =
+  let cmd = String.concat " " (List.map Filename.quote cmd_args) in
+  Sys.command cmd
+
+(* Run a shell command, abort the program with a diagnostic if it
+   fails. Used for any step whose failure would leave the project
+   in an inconsistent state (e.g. cmd_decide after writing a witness
+   to a non-existent commit). *)
+let run_cmd_or_die cmd_args =
+  let rc = run_cmd cmd_args in
+  if rc <> 0 then begin
+    Printf.printf "error: command failed (rc=%d): %s\n"
+      rc (String.concat " " cmd_args);
+    exit 1
+  end
 
 (* Commands. *)
 
@@ -238,7 +254,7 @@ let cmd_decide name (proposition : string) flags_and_rest =
     exit 2
   end;
   if not !dry_run then begin
-    let _ = Sys.command ("mkdir -p " ^ dir) in
+    run_cmd_or_die ["mkdir"; "-p"; dir];
     let packet_md = Filename.concat dir "packet.md" in
     let oc = open_out packet_md in
     write_frontmatter oc ~schema:"2.1" ~state:"applied" ~name ~proposition
@@ -258,16 +274,15 @@ let cmd_decide name (proposition : string) flags_and_rest =
         then String.sub proposition 0 57 ^ "..."
         else proposition
       in
-      let _ = run_silent (Printf.sprintf "git add math/%s" name) in
-      let _ = run_silent (Printf.sprintf "git commit -m %S"
-        (Printf.sprintf "%s: %s" name prop_short)) in
+      let commit_msg = Printf.sprintf "%s: %s" name prop_short in
+      run_cmd_or_die ["git"; "add"; Filename.concat "math" name];
+      run_cmd_or_die ["git"; "commit"; "-m"; commit_msg];
       let new_head = Repo.head () in
       let new_author = Repo.head_author () in
       let new_today = Repo.today () in
       write_witness witness ~sha:new_head ~date:new_today ~by:new_author;
-      let _ = run_silent (Printf.sprintf "git add math/%s/witness" name) in
-      let _ = run_silent (Printf.sprintf "git commit -m %S"
-        (Printf.sprintf "%s: witness" name)) in
+      run_cmd_or_die ["git"; "add"; Filename.concat dir "witness"];
+      run_cmd_or_die ["git"; "commit"; "-m"; Printf.sprintf "%s: witness" name];
       Printf.printf "mathc decide: %s applied\n" name;
       Printf.printf "  witness: %s\n" new_head
     end
@@ -287,7 +302,7 @@ let cmd_record name (proposition : string) =
     exit 2
   end;
   if not !dry_run then begin
-    let _ = Sys.command ("mkdir -p " ^ dir) in
+    run_cmd_or_die ["mkdir"; "-p"; dir];
     let packet_md = Filename.concat dir "packet.md" in
     let oc = open_out packet_md in
     let actor = Signing.get "ACTOR_DEFAULT" in
@@ -356,7 +371,7 @@ let cmd_supersede old new_name (proposition : string) =
     exit 2
   end;
   if not !dry_run then begin
-    let _ = Sys.command ("mkdir -p " ^ new_dir) in
+    run_cmd_or_die ["mkdir"; "-p"; new_dir];
     let packet_md = Filename.concat new_dir "packet.md" in
     let oc = open_out packet_md in
     write_frontmatter oc ~schema:"2.1" ~state:"draft" ~name:new_name
@@ -453,8 +468,8 @@ let cmd_archive name =
     exit 2
   end;
   if not !dry_run then begin
-    let _ = Sys.command (Printf.sprintf "mkdir -p %s" (Filename.dirname dest)) in
-    let _ = Sys.command (Printf.sprintf "git mv %s %s" dir dest) in
+    run_cmd_or_die ["mkdir"; "-p"; Filename.dirname dest];
+    run_cmd_or_die ["git"; "mv"; dir; dest];
     Printf.printf "mathc archive: %s -> %s\n" name dest
   end;
   Printf.printf "done.\n"
@@ -476,7 +491,7 @@ let cmd_note text =
     exit 2
   end;
   if not !dry_run then begin
-    let _ = Sys.command ("mkdir -p " ^ dir) in
+    run_cmd_or_die ["mkdir"; "-p"; dir];
     let packet_md = Filename.concat dir "packet.md" in
     let oc = open_out packet_md in
     write_frontmatter oc ~schema:"2.1" ~state:"draft" ~name
