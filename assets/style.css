@@ -1,39 +1,39 @@
-/* math-coding v2.0-Y site stylesheet
+/* math-coding v2.0-Y — Tufte-inspired stylesheet
  *
- * Design choices:
- *   - Single accent color: deep amber #b45309 (call-to-action, links)
- *   - Secondary accent: slate #475569 (subtle headings)
- *   - Background off-white #fafaf9 (paper-like)
- *   - Monospace: SF Mono / Menlo / Consolas / monospace
- *   - Body: Charter / Georgia (serif for academic register)
- *   - Layout: max-width 52rem, single column, no sidebar chrome
- *   - MathJax scales math inline; mermaid diagrams inline
- *   - No frameworks; pure CSS so the site stays fast and grep-able
+ * Design intent:
+ *   - Generous whitespace, ample line-height, serif body
+ *   - Sidenotes (margin notes) on wide viewports, in-flow on narrow
+ *   - Single accent color (sepia/oxblood) used sparingly
+ *   - Thin rules, soft borders, no decorative shadows
+ *   - Mermaid diagrams and MathJax respect the same typography
+ *
+ * Reference: Edward Tufte's CSS guide and "The Visual Display
+ * of Quantitative Information" principles — clarity, restraint,
+ * integration of text and figure.
  */
 
 :root {
-  --bg: #fafaf9;
-  --bg-card: #ffffff;
-  --fg: #1c1917;
-  --fg-muted: #57534e;
-  --fg-light: #78716c;
-  --accent: #b45309;
-  --accent-hover: #c2410c;
-  --secondary: #475569;
-  --secondary-hover: #334155;
-  --border: #e7e5e4;
-  --border-strong: #d6d3d1;
-  --code-bg: #f5f5f4;
-  --code-fg: #1c1917;
-  --theorem-bg: #fef7ed;
-  --theorem-border: #fb923c;
-  --highlight: #fef3c7;
-  --max-width: 52rem;
+  /* Tufte-style palette: paper-like background, ink foreground,
+     single warm accent for emphasis (not links). */
+  --bg:           #fbfaf6;   /* warm cream */
+  --bg-card:      #ffffff;
+  --fg:           #1a1a1a;   /* ink */
+  --fg-muted:     #5a5a5a;
+  --fg-faint:     #8a8a8a;
+  --accent:       #8b3a3a;   /* oxblood / burgundy — single accent */
+  --accent-soft:  #b76e6e;
+  --rule:         #d4d0c8;   /* hairline rule */
+  --rule-strong:  #b0a99c;
+  --code-bg:      #f1ede5;
+  --theorem-bg:   #f5e9d8;
+  --theorem-rule: #c49859;   /* amber, like old book end-papers */
+  --link:         #6b2a2a;
+  --selection:    #f7e9c0;
+  --max-width:    54rem;
+  --side-width:   16rem;
 }
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 html {
   font-size: 16px;
@@ -46,24 +46,28 @@ body {
   padding: 0;
   background: var(--bg);
   color: var(--fg);
-  font-family: "Charter", "Georgia", "Iowan Old Style",
-               "Apple Garamond", "Baskerville", "Times New Roman",
-               serif;
-  font-feature-settings: "kern", "liga";
+  font-family: "Charter", "Iowan Old Style", "Georgia",
+               "Apple Garamond", "Baskerville", "Times New Roman", serif;
+  font-feature-settings: "kern", "liga", "onum";
+  font-variant-numeric: oldstyle-nums;
 }
 
 main, .container {
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 2rem 1.5rem 6rem;
+  padding: 3rem 2rem 6rem;
+  position: relative;
 }
 
-/* Navigation bar */
+/* --------------------------------------------------------------- *
+ *  Navigation — a thin hairline across the page, ink-dark brand.
+ * --------------------------------------------------------------- */
+
 nav.site-nav {
-  background: #1c1917;
-  color: #fafaf9;
+  background: #1a1a1a;
+  color: #fbfaf6;
   padding: 0.875rem 1.5rem;
-  border-bottom: 2px solid var(--accent);
+  border-bottom: 1px solid var(--accent);
 }
 
 nav.site-nav .nav-inner {
@@ -71,139 +75,238 @@ nav.site-nav .nav-inner {
   margin: 0 auto;
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 1.5rem;
+  align-items: baseline;
+  gap: 1.75rem;
 }
 
 nav.site-nav a {
-  color: #fafaf9;
+  color: #fbfaf6;
   text-decoration: none;
   font-family: "SF Mono", "Menlo", "Consolas", monospace;
-  font-size: 0.85rem;
-  letter-spacing: 0.02em;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
   text-transform: lowercase;
-  opacity: 0.85;
+  opacity: 0.72;
   transition: opacity 0.15s, color 0.15s;
 }
 
 nav.site-nav a:hover {
   opacity: 1;
-  color: #fbbf24;
+  color: var(--theorem-rule);
+}
+
+nav.site-nav a.active {
+  opacity: 1;
+  color: var(--theorem-rule);
+  border-bottom: 1px solid var(--theorem-rule);
+  padding-bottom: 1px;
 }
 
 nav.site-nav .brand {
-  font-family: "Charter", "Georgia", serif;
-  font-size: 1.05rem;
+  font-family: "Charter", "Iowan Old Style", "Georgia", serif;
+  font-size: 1.15rem;
   font-weight: 600;
   font-style: italic;
   text-transform: none;
   letter-spacing: 0;
   opacity: 1;
+  color: #fbfaf6;
 }
 
-/* Hero (front page only) */
+/* --------------------------------------------------------------- *
+ *  Hero — front page only. Asymmetric, restrained, single emphasis.
+ * --------------------------------------------------------------- */
+
 .hero {
   text-align: center;
-  padding: 4rem 1.5rem 3rem;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 3rem;
+  padding: 5rem 1rem 3rem;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 4rem;
 }
 
 .hero h1 {
-  font-size: 2.5rem;
+  font-size: 3.25rem;
   font-weight: 400;
   margin: 0 0 0.5rem;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
 }
 
 .hero .tagline {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   color: var(--fg-muted);
   font-style: italic;
   margin: 0 0 1rem;
+  letter-spacing: 0;
 }
 
 .hero .meta {
   font-family: "SF Mono", "Menlo", "Consolas", monospace;
-  font-size: 0.8rem;
-  color: var(--fg-light);
-  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+  color: var(--fg-faint);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-/* Typography */
+/* --------------------------------------------------------------- *
+ *  Typography — minimal weight contrast, generous leading.
+ * --------------------------------------------------------------- */
+
 h1, h2, h3, h4 {
-  font-family: "Charter", "Georgia", serif;
+  font-family: "Charter", "Iowan Old Style", "Georgia", serif;
   font-weight: 600;
   color: var(--fg);
-  letter-spacing: -0.01em;
-  margin-top: 2.5rem;
-  margin-bottom: 1rem;
+  letter-spacing: -0.012em;
+  margin-top: 3rem;
+  margin-bottom: 1.25rem;
+  line-height: 1.2;
 }
 
 h1 {
   font-size: 2rem;
   font-weight: 400;
-  border-bottom: 2px solid var(--accent);
-  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.6rem;
+  margin-top: 0;
 }
 
 h2 {
   font-size: 1.5rem;
-  color: var(--secondary);
-}
-
-h3 {
-  font-size: 1.2rem;
   color: var(--fg);
 }
 
+h3 {
+  font-size: 1.18rem;
+  font-style: italic;
+  color: var(--fg);
+  font-weight: 500;
+}
+
+h4 {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
 p {
-  margin: 0 0 1.25rem;
+  margin: 0 0 1.4rem;
 }
 
 a {
-  color: var(--accent);
+  color: var(--link);
   text-decoration: none;
-  border-bottom: 1px dotted var(--accent);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s;
 }
 
 a:hover {
-  color: var(--accent-hover);
-  border-bottom-style: solid;
+  border-bottom-color: var(--accent);
 }
 
-/* Code blocks and inline code */
+/* --------------------------------------------------------------- *
+ *  Sidenotes — Tufte's defining feature.
+ *  Float into right margin on wide viewports, in-flow on narrow.
+ * --------------------------------------------------------------- */
+
+.sidenote,
+.marginnote {
+  float: right;
+  clear: right;
+  width: var(--side-width);
+  margin-right: calc(-1 * var(--side-width) - 1rem);
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 0.82rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--fg-muted);
+  position: relative;
+}
+
+.sidenote::before,
+.marginnote::before {
+  counter-increment: sidenote-counter;
+  content: counter(sidenote-counter) " ";
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  margin-right: 0.25em;
+}
+
+.sidenote-label {
+  counter-increment: sidenote-counter;
+}
+
+.sidenote-number::after,
+.marginnote-number::after {
+  content: counter(sidenote-counter);
+  vertical-align: super;
+  font-size: 0.7em;
+  margin-left: 0.1em;
+  color: var(--accent);
+}
+
+/* On narrow screens, sidenotes fall inline. */
+@media (max-width: 760px) {
+  .sidenote,
+  .marginnote {
+    float: none;
+    clear: both;
+    width: auto;
+    margin: 1rem 0;
+    padding: 0.5rem 1rem;
+    background: var(--code-bg);
+    border-left: 3px solid var(--theorem-rule);
+    font-size: 0.92rem;
+  }
+  .sidenote::before,
+  .marginnote::before {
+    content: "Note: ";
+    color: var(--accent);
+  }
+}
+
+/* --------------------------------------------------------------- *
+ *  Code — restrained, monospace, soft background.
+ * --------------------------------------------------------------- */
+
 code {
-  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-family: "SF Mono", "Menlo", "Consolas", "DejaVu Sans Mono", monospace;
   font-size: 0.875em;
   background: var(--code-bg);
-  padding: 0.125em 0.4em;
-  border-radius: 3px;
-  color: var(--code-fg);
+  padding: 0.1em 0.4em;
+  border-radius: 2px;
+  color: var(--fg);
 }
 
 pre {
-  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-family: "SF Mono", "Menlo", "Consolas", "DejaVu Sans Mono", monospace;
   background: var(--code-bg);
   padding: 1rem 1.25rem;
-  border-radius: 6px;
-  border: 1px solid var(--border);
+  border-radius: 2px;
+  border: 1px solid var(--rule);
   overflow-x: auto;
-  line-height: 1.5;
+  line-height: 1.55;
   margin: 0 0 1.5rem;
   font-size: 0.85rem;
+  color: var(--fg);
 }
 
 pre code {
   background: transparent;
   padding: 0;
   border-radius: 0;
+  font-size: inherit;
 }
 
-/* MathJax/KaTeX block spacing */
+/* --------------------------------------------------------------- *
+ *  MathJax — match the body font and lead.
+ * --------------------------------------------------------------- */
+
 mjx-container, .katex-display, .MathJax_Display {
-  margin: 1.25rem 0 !important;
+  margin: 1.5rem 0 !important;
   overflow-x: auto;
   overflow-y: hidden;
 }
@@ -212,14 +315,32 @@ mjx-container[display="true"], .katex-display {
   padding: 0.5rem 0;
 }
 
-/* Blockquote — for verdicts, theorems */
-blockquote, .theorem, .definition, .proposition {
+.MathJax {
+  font-size: 105% !important;
+  color: var(--fg) !important;
+}
+
+/* Inline math slightly tighter than surrounding text. */
+math, .math {
+  font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math",
+               "Times New Roman", serif;
+}
+
+/* --------------------------------------------------------------- *
+ *  Blockquote — used for verdicts and theorems. Aged paper feel.
+ * --------------------------------------------------------------- */
+
+blockquote,
+.theorem,
+.definition,
+.proposition {
   background: var(--theorem-bg);
-  border-left: 4px solid var(--theorem-border);
+  border-left: 3px solid var(--theorem-rule);
   padding: 1rem 1.25rem;
   margin: 1.5rem 0;
   font-style: normal;
-  border-radius: 0 4px 4px 0;
+  border-radius: 0;
+  position: relative;
 }
 
 blockquote p:last-child,
@@ -228,66 +349,120 @@ blockquote p:last-child,
   margin-bottom: 0;
 }
 
-/* Tables (used in 9-field frontmatter displays) */
+blockquote .theorem-name,
+.theorem .theorem-name {
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+  font-style: normal;
+}
+
+/* --------------------------------------------------------------- *
+ *  Tables — Tufte's booktabs style.
+ * --------------------------------------------------------------- */
+
 table {
   border-collapse: collapse;
   width: 100%;
-  margin: 1.5rem 0;
-  font-size: 0.9rem;
+  margin: 1.75rem 0;
+  font-size: 0.92rem;
 }
 
 th, td {
   text-align: left;
-  padding: 0.6rem 0.75rem;
-  border-bottom: 1px solid var(--border);
+  padding: 0.55rem 0.25rem;
 }
 
 th {
-  background: var(--code-bg);
   font-weight: 600;
   font-family: "Charter", "Georgia", serif;
-  color: var(--secondary);
-}
-
-tr:hover td {
-  background: rgba(180, 83, 9, 0.03);
-}
-
-/* Frontmatter display */
-pre.frontmatter {
-  background: var(--code-bg);
-  border: 1px solid var(--border);
-  border-left: 4px solid var(--accent);
-  padding: 1rem 1.25rem;
-  border-radius: 0 4px 4px 0;
+  color: var(--fg);
+  border-top: 1px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
   font-size: 0.85rem;
 }
 
-/* Lifecycle status badge */
-.badge {
-  display: inline-block;
-  padding: 0.2em 0.7em;
-  border-radius: 999px;
-  font-family: "SF Mono", "Menlo", "Consolas", monospace;
-  font-size: 0.75rem;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+td {
+  border-bottom: 1px solid var(--rule);
 }
 
-.badge-applied { background: #dcfce7; color: #166534; }
-.badge-draft   { background: #fef3c7; color: #854d0e; }
-.badge-drift   { background: #fee2e2; color: #991b1b; }
-.badge-stale   { background: #f1f5f9; color: #475569; }
+tbody tr:last-child td {
+  border-bottom: 1px solid var(--rule-strong);
+}
 
-/* Navigation footer (between pages of the same type) */
+tr:hover td {
+  background: rgba(139, 58, 58, 0.025);
+}
+
+/* --------------------------------------------------------------- *
+ *  Frontmatter display — used on packet pages.
+ *  Definition-list style, subtle.
+ * --------------------------------------------------------------- */
+
+pre.frontmatter,
+dl.frontmatter {
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.25rem;
+  border-radius: 0;
+  font-size: 0.85rem;
+  margin: 1.5rem 0;
+}
+
+dl.frontmatter dt {
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--fg-muted);
+  margin-top: 0.5rem;
+}
+
+dl.frontmatter dt:first-child {
+  margin-top: 0;
+}
+
+dl.frontmatter dd {
+  margin: 0 0 0.5rem 0;
+}
+
+/* --------------------------------------------------------------- *
+ *  Lifecycle status badges.
+ * --------------------------------------------------------------- */
+
+.badge {
+  display: inline-block;
+  padding: 0.15em 0.7em;
+  border-radius: 999px;
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+}
+
+.badge-applied { background: #e8f0e2; color: #4d6b3a; }
+.badge-draft   { background: #f7eed8; color: #8b6c2c; }
+.badge-drift   { background: #f5e0e0; color: #8b3a3a; }
+.badge-stale   { background: #e8e6e0; color: #5a5a5a; }
+
+/* --------------------------------------------------------------- *
+ *  Navigation footer (between pages of the same type).
+ * --------------------------------------------------------------- */
+
 .page-nav {
   display: flex;
   justify-content: space-between;
   margin: 3rem 0 0;
   padding: 1rem 0 0;
-  border-top: 1px solid var(--border);
-  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  border-top: 1px solid var(--rule);
+  font-family: "SF Mono", "Menlo", monospace;
   font-size: 0.85rem;
 }
 
@@ -295,24 +470,27 @@ pre.frontmatter {
   border-bottom: none;
 }
 
-/* Grid for packet listings */
+/* --------------------------------------------------------------- *
+ *  Packet grid — refined card style.
+ * --------------------------------------------------------------- */
+
 .packets-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
-  gap: 1rem;
-  margin: 1.5rem 0;
+  grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr));
+  gap: 1.25rem;
+  margin: 2rem 0;
 }
 
 .packet-card {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 1rem;
-  transition: border-color 0.15s, transform 0.15s;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.25rem;
+  transition: border-left-color 0.15s, transform 0.15s;
 }
 
 .packet-card:hover {
-  border-color: var(--accent);
+  border-left-color: var(--accent-soft);
 }
 
 .packet-card a {
@@ -320,13 +498,15 @@ pre.frontmatter {
   font-weight: 600;
   font-family: "Charter", "Georgia", serif;
   font-size: 1.05rem;
+  color: var(--fg);
 }
 
 .packet-card .meta {
   font-family: "SF Mono", "Menlo", monospace;
-  font-size: 0.72rem;
-  color: var(--fg-light);
+  font-size: 0.7rem;
+  color: var(--fg-faint);
   margin-top: 0.5rem;
+  letter-spacing: 0.04em;
 }
 
 .packet-card .proposition {
@@ -336,14 +516,17 @@ pre.frontmatter {
   font-style: italic;
 }
 
-/* Footer */
+/* --------------------------------------------------------------- *
+ *  Footer — minimal, centered.
+ * --------------------------------------------------------------- */
+
 .site-footer {
   max-width: var(--max-width);
   margin: 4rem auto 0;
   padding: 2rem 1.5rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
   color: var(--fg-muted);
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   text-align: center;
 }
 
@@ -351,45 +534,132 @@ pre.frontmatter {
   border-bottom: none;
 }
 
-/* Mermaid diagrams */
+.site-footer .rule {
+  color: var(--accent);
+  margin: 0 0.5rem;
+}
+
+/* --------------------------------------------------------------- *
+ *  Mermaid diagrams — minimal, integrated.
+ * --------------------------------------------------------------- */
+
 .mermaid {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px solid var(--rule);
   padding: 1.5rem;
   margin: 1.5rem 0;
   text-align: center;
+  font-family: "Charter", "Georgia", serif;
 }
 
-/* Selection */
+/* Mermaid's default styles are too colorful for a Tufte aesthetic.
+   Override its stroke/fill classes. */
+.mermaid .node rect,
+.mermaid .node polygon,
+.mermaid .node circle,
+.mermaid .node ellipse,
+.mermaid .node path {
+  fill: var(--bg-card) !important;
+  stroke: var(--fg) !important;
+  stroke-width: 1px !important;
+}
+
+.mermaid .edgePath path,
+.mermaid .flowchart-link {
+  stroke: var(--fg-muted) !important;
+  stroke-width: 1px !important;
+  fill: none !important;
+}
+
+.mermaid .arrowheadPath,
+.mermaid marker path {
+  fill: var(--fg-muted) !important;
+  stroke: var(--fg-muted) !important;
+}
+
+.mermaid .label text,
+.mermaid text {
+  fill: var(--fg) !important;
+  font-family: "Charter", "Georgia", serif !important;
+  font-size: 13px !important;
+}
+
+/* --------------------------------------------------------------- *
+ *  Selection.
+ * --------------------------------------------------------------- */
+
 ::selection {
-  background: var(--highlight);
+  background: var(--selection);
   color: var(--fg);
 }
 
-/* Responsive */
-@media (max-width: 720px) {
+/* --------------------------------------------------------------- *
+ *  Responsive.
+ * --------------------------------------------------------------- */
+
+@media (max-width: 760px) {
   body {
     font-size: 15px;
   }
   .hero h1 {
-    font-size: 1.8rem;
+    font-size: 2.25rem;
   }
   nav.site-nav {
     padding: 0.75rem 1rem;
   }
   nav.site-nav .nav-inner {
     gap: 1rem;
+    font-size: 0.72rem;
   }
   main, .container {
-    padding: 1.5rem 1rem 4rem;
+    padding: 2rem 1.25rem 4rem;
+  }
+  h1 { font-size: 1.65rem; }
+  h2 { font-size: 1.3rem; }
+  pre { padding: 0.875rem 1rem; font-size: 0.82rem; }
+  .packets-grid { grid-template-columns: 1fr; }
+}
+
+@media (min-width: 1200px) {
+  main, .container {
+    max-width: 60rem;
+  }
+  /* Sidenotes get more breathing room on very wide screens. */
+  .sidenote,
+  .marginnote {
+    margin-right: calc(-1 * var(--side-width) - 2rem);
   }
 }
 
-/* Print-friendly adjustments */
+/* --------------------------------------------------------------- *
+ *  Print.
+ * --------------------------------------------------------------- */
+
 @media print {
-  nav.site-nav, .site-footer, .page-nav { display: none; }
-  main { padding: 0; }
+  nav.site-nav, .site-footer, .page-nav,
+  .packet-card, .mermaid, .site-footer,
+  body > nav { display: none; }
+  main { padding: 0; max-width: 100%; }
   a { color: inherit; border-bottom: none; }
-  pre { border: 1px solid #ccc; page-break-inside: avoid; }
+  pre, code { border: 1px solid #ccc; page-break-inside: avoid; }
+  .packet-card, blockquote { page-break-inside: avoid; }
+  body { background: white; color: black; font-size: 11pt; }
+}
+
+/* --------------------------------------------------------------- *
+ *  Back-link (used at top of packet pages).
+ * --------------------------------------------------------------- */
+
+a.back-link {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-family: "SF Mono", "Menlo", monospace;
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  border-bottom: 1px solid transparent;
+}
+
+a.back-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
 }
