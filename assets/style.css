@@ -39,6 +39,7 @@ html {
   font-size: 16px;
   line-height: 1.6;
   -webkit-text-size-adjust: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -50,6 +51,9 @@ body {
                "Apple Garamond", "Baskerville", "Times New Roman", serif;
   font-feature-settings: "kern", "liga", "onum";
   font-variant-numeric: oldstyle-nums;
+  overflow-x: hidden;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 main, .container {
@@ -57,6 +61,7 @@ main, .container {
   margin: 0 auto;
   padding: 3rem 2rem 6rem;
   position: relative;
+  overflow-x: hidden;
 }
 
 /* --------------------------------------------------------------- *
@@ -307,12 +312,40 @@ pre code {
 
 mjx-container, .katex-display, .MathJax_Display {
   margin: 1.5rem 0 !important;
-  overflow-x: auto;
-  overflow-y: hidden;
+  max-width: 100%;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  word-wrap: break-word;
+}
+
+/* Force mjx containers to actually scroll internally instead of
+   pushing the body width. Without this, MathJax formulas blow up
+   mobile layouts because the parent has overflow-x: hidden. */
+mjx-container {
+  display: inline-block !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
 }
 
 mjx-container[display="true"], .katex-display {
+  display: block !important;
   padding: 0.5rem 0;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+.MathJax_Display {
+  display: block !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+/* Inline math: ensure it stays within the line, wraps if needed. */
+mjx-math {
+  max-width: 100%;
+  white-space: normal;
 }
 
 .MathJax {
@@ -610,14 +643,30 @@ dl.frontmatter dd {
   nav.site-nav .nav-inner {
     gap: 1rem;
     font-size: 0.72rem;
+    flex-wrap: wrap;
+  }
+  nav.site-nav a {
+    white-space: nowrap;
   }
   main, .container {
-    padding: 2rem 1.25rem 4rem;
+    padding: 2rem 1rem 4rem;
   }
   h1 { font-size: 1.65rem; }
   h2 { font-size: 1.3rem; }
   pre { padding: 0.875rem 1rem; font-size: 0.82rem; }
   .packets-grid { grid-template-columns: 1fr; }
+  .mermaid { padding: 1rem; }
+  /* Stack nav vertically on very narrow screens. */
+  @media (max-width: 480px) {
+    nav.site-nav .nav-inner {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.4rem;
+    }
+    nav.site-nav a.active {
+      border-bottom: none;
+    }
+  }
 }
 
 @media (min-width: 1200px) {

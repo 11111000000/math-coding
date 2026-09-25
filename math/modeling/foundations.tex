@@ -54,10 +54,10 @@ because state is a consequence of history, not an editable field.
 \begin{theorem}[Lifecycle function]
 \begin{align*}
 L : \Dec \times \mathrm{Repo} &\to \Lifecycle \\
-L(d, r) = \;& \textsc{Draft}   &&\text{if } d.\mathtt{witness} = \bot \\
-           &\;\mid\; \textsc{Drift} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) \neq d.\mathtt{proposition} \\
-           &\;\mid\; \textsc{Stale} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) = d.\mathtt{proposition} \;\wedge\; \text{files changed since sha} \\
-           &\;\mid\; \textsc{Applied} &&\text{otherwise}
+L(d, r) = \;& \mathrm{Draft}   &&\text{if } d.\mathtt{witness} = \bot \\
+           &\;\mid\; \mathrm{Drift} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) \neq d.\mathtt{proposition} \\
+           &\;\mid\; \mathrm{Stale} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) = d.\mathtt{proposition} \;\wedge\; \text{files changed since sha} \\
+           &\;\mid\; \mathrm{Applied} &&\text{otherwise}
 \end{align*}
 \end{theorem}
 
@@ -112,7 +112,7 @@ reviewer cannot tell which decision is current.
 
 \begin{theorem}[motivation.register-and-why]
 Every packet declares an epistemic register
-(\textsc{Fact}/\textsc{Hypothesis}/\textsc{Judgment}/\textsc{Unknown}) and
+(\mathrm{Fact}/\mathrm{Hypothesis}/\mathrm{Judgment}/\mathrm{Unknown}) and
 a numerical confidence. A convention without motivation is ceremony.
 \end{theorem}
 
@@ -131,10 +131,10 @@ math-coding v0.854, restored in v2.0-Y.
 \begin{theorem}[Register-confidence consistency]
 The register constrains the confidence value:
 \begin{align*}
-\mathtt{register} = \textsc{Fact}       &\;\Rightarrow\; \mathtt{confidence} \in [0.95,\, 1] \\
-\mathtt{register} = \textsc{Hypothesis} &\;\Rightarrow\; \mathtt{confidence} \in (0.5,\, 0.95) \\
-\mathtt{register} = \textsc{Judgment}   &\;\Rightarrow\; \mathtt{confidence} \in \{0,\, 1\} \\
-\mathtt{register} = \textsc{Unknown}    &\;\Rightarrow\; \mathtt{confidence} = 0
+\mathtt{register} = \mathrm{Fact}       &\;\Rightarrow\; \mathtt{confidence} \in [0.95,\, 1] \\
+\mathtt{register} = \mathrm{Hypothesis} &\;\Rightarrow\; \mathtt{confidence} \in (0.5,\, 0.95) \\
+\mathtt{register} = \mathrm{Judgment}   &\;\Rightarrow\; \mathtt{confidence} \in \{0,\, 1\} \\
+\mathtt{register} = \mathrm{Unknown}    &\;\Rightarrow\; \mathtt{confidence} = 0
 \end{align*}
 The \texttt{judgment} register additionally obligates a non-empty
 \texttt{\#\# Why} section in the packet body, declaring reversibility

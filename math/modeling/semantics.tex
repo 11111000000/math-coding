@@ -14,43 +14,43 @@ validation. The verdict is the worst case across all predicates.
 
 \begin{proposition}[V1: structure]
 $$\forall d.\ d.\mathtt{proposition} \neq \mathtt{``''}$$
-If violated, $V_1(d) = \textsc{Fail}$.
+If violated, $V_1(d) = \mathrm{Fail}$.
 \end{proposition}
 
 \begin{proposition}[V2: lifecycle]
-$$\forall d.\ d.\mathtt{state} = \textsc{Applied} \iff (d.\mathtt{witness} \neq \bot \;\wedge\; \mathrm{prop\_at\_witness}(d) = d.\mathtt{proposition})$$
+$$\forall d.\ d.\mathtt{state} = \mathrm{Applied} \iff (d.\mathtt{witness} \neq \bot \;\wedge\; \mathrm{prop\_at\_witness}(d) = d.\mathtt{proposition})$$
 Drift ($\mathrm{prop\_at\_witness}(d) \neq d.\mathtt{proposition}$) returns
-$\textsc{Drift}$. No witness returns $\textsc{Draft}$. Returns
-$\textsc{Warn}$ (kernel emits $\textsc{Warn}$ verdict).
+$\mathrm{Drift}$. No witness returns $\mathrm{Draft}$. Returns
+$\mathrm{Warn}$ (kernel emits $\mathrm{Warn}$ verdict).
 \end{proposition}
 
 \begin{proposition}[V3: register--confidence consistency]
 $$\forall d.\ d.\mathtt{confidence} \models d.\mathtt{register}$$
 (Defined in \texttt{syntax.tex}, ``Register-confidence consistency''.)
-If violated, $V_3(d) = \textsc{Fail}$.
+If violated, $V_3(d) = \mathrm{Fail}$.
 \end{proposition}
 
 \begin{proposition}[V4: state FSM]
 The FSM permits transitions
-$\textsc{Draft} \to \textsc{Applied}$, $\textsc{Applied} \to \textsc{Reviewed}$,
-$\textsc{Applied} \to \textsc{Retired}$, $\textsc{Applied} \to \textsc{Abandoned}$,
-$\textsc{Applied} \to \textsc{Draft}$ (via supersession).
-The transition $\textsc{Draft} \to \textsc{Reviewed}$ is forbidden when
-$d.\mathtt{witness} = \bot$. If attempted, $V_4(d) = \textsc{Fail}$.
+$\mathrm{Draft} \to \mathrm{Applied}$, $\mathrm{Applied} \to \mathrm{Reviewed}$,
+$\mathrm{Applied} \to \mathrm{Retired}$, $\mathrm{Applied} \to \mathrm{Abandoned}$,
+$\mathrm{Applied} \to \mathrm{Draft}$ (via supersession).
+The transition $\mathrm{Draft} \to \mathrm{Reviewed}$ is forbidden when
+$d.\mathtt{witness} = \bot$. If attempted, $V_4(d) = \mathrm{Fail}$.
 \end{proposition}
 
 \begin{proposition}[V5: actor discipline]
-Three modes via $.mathrc\!:\!\mathtt{SIGNING\_MODE} \in \{\textsc{strict}, \textsc{lenient}, \textsc{off}\}$:
+Three modes via $.mathrc\!:\!\mathtt{SIGNING\_MODE} \in \{\mathrm{strict}, \mathrm{lenient}, \mathrm{off}\}$:
 \begin{itemize}
-\item $\textsc{strict}$: $d.\mathtt{actor} = \textsc{Human} \wedge d.\mathtt{signed\_by} = \bot \Rightarrow V_5(d) = \textsc{Fail}$
-\item $\textsc{lenient}$: same condition returns $\textsc{Warn}$
-\item $\textsc{off}$: signing not checked
+\item $\mathrm{strict}$: $d.\mathtt{actor} = \mathrm{Human} \wedge d.\mathtt{signed\_by} = \bot \Rightarrow V_5(d) = \mathrm{Fail}$
+\item $\mathrm{lenient}$: same condition returns $\mathrm{Warn}$
+\item $\mathrm{off}$: signing not checked
 \end{itemize}
 Universal warnings:
 \begin{itemize}
-\item $d.\mathtt{actor} = \textsc{Agent} \wedge d.\mathtt{register} = \textsc{Fact} \Rightarrow \textsc{Warn}$ (an agent shall not assert fact without evidence)
-\item $d.\mathtt{actor} = \textsc{Agent} \wedge d.\mathtt{state} = \textsc{Reviewed} \Rightarrow \textsc{Warn}$ (state Reviewed requires explicit human sign-off)
-\item $d.\mathtt{actor} = \textsc{Human} \wedge d.\mathtt{motivation} = \bot \Rightarrow \textsc{Warn}$
+\item $d.\mathtt{actor} = \mathrm{Agent} \wedge d.\mathtt{register} = \mathrm{Fact} \Rightarrow \mathrm{Warn}$ (an agent shall not assert fact without evidence)
+\item $d.\mathtt{actor} = \mathrm{Agent} \wedge d.\mathtt{state} = \mathrm{Reviewed} \Rightarrow \mathrm{Warn}$ (state Reviewed requires explicit human sign-off)
+\item $d.\mathtt{actor} = \mathrm{Human} \wedge d.\mathtt{motivation} = \bot \Rightarrow \mathrm{Warn}$
 \end{itemize}
 \end{proposition}
 
@@ -61,12 +61,12 @@ Supersession $\preceq$ on decisions is a strict partial order:
 \item asymmetric: $d_1 \preceq d_2 \Rightarrow \neg(d_2 \preceq d_1)$
 \item transitive: $d_1 \preceq d_2 \wedge d_2 \preceq d_3 \Rightarrow d_1 \preceq d_3$
 \end{itemize}
-A cycle in the supersession graph returns $V_6(d) = \textsc{Fail}$.
+A cycle in the supersession graph returns $V_6(d) = \mathrm{Fail}$.
 \end{proposition}
 
 \begin{proposition}[V7: schema version]
 $$d.\mathtt{schema\_version} = \mathtt{``2.0''}$$
-If violated (unknown version), $V_7(d) = \textsc{Fail}$. Future
+If violated (unknown version), $V_7(d) = \mathrm{Fail}$. Future
 versions trigger best-effort parsing with a warning.
 \end{proposition}
 
@@ -75,15 +75,15 @@ versions trigger best-effort parsing with a warning.
 \begin{definition}[Verdict composition]
 The overall verdict is the worst case across V1--V7:
 $$\mathrm{Verdict}(S, d) = \min(\{V_i(d) \mid i \in 1..7\})$$
-where $\min$ is the total order $\textsc{Fail} < \textsc{Warn} < \textsc{Pass} < \textsc{Skip}$.
+where $\min$ is the total order $\mathrm{Fail} < \mathrm{Warn} < \mathrm{Pass} < \mathrm{Skip}$.
 \end{definition}
 
 \begin{definition}[Lifecycle computation]
 $$L : \Dec \times \mathrm{Repo} \to \Lifecycle$$
 \begin{align*}
-L(d, r) = \;& \textsc{Draft}   &&\text{if } d.\mathtt{witness} = \bot \\
-           &\;\mid\; \textsc{Drift} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) \neq d.\mathtt{proposition} \\
-           &\;\mid\; \textsc{Stale} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) = d.\mathtt{proposition} \;\wedge\; \text{files changed since sha} \\
-           &\;\mid\; \textsc{Applied} &&\text{otherwise}
+L(d, r) = \;& \mathrm{Draft}   &&\text{if } d.\mathtt{witness} = \bot \\
+           &\;\mid\; \mathrm{Drift} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) \neq d.\mathtt{proposition} \\
+           &\;\mid\; \mathrm{Stale} &&\text{if } d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) = d.\mathtt{proposition} \;\wedge\; \text{files changed since sha} \\
+           &\;\mid\; \mathrm{Applied} &&\text{otherwise}
 \end{align*}
 \end{definition}

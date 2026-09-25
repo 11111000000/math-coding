@@ -10,8 +10,8 @@ schema. Each is instantiated as a packet under
 
 \begin{theorem}[process-fsm.fsm]
 A decision exists in one of five states
-$\textsc{Draft} \mid \textsc{Applied} \mid \textsc{Reviewed} \mid \textsc{Retired} \mid \textsc{Abandoned}$.
-The single forbidden transition is $\textsc{Draft} \to \textsc{Reviewed}$
+$\mathrm{Draft} \mid \mathrm{Applied} \mid \mathrm{Reviewed} \mid \mathrm{Retired} \mid \mathrm{Abandoned}$.
+The single forbidden transition is $\mathrm{Draft} \to \mathrm{Reviewed}$
 without $\Witness$.
 \end{theorem}
 
@@ -21,21 +21,21 @@ default and review loses meaning. With a five-state machine, each
 decision traverses an explicit path: from proposition (Draft) to
 inhabitation (Applied) to human review (Reviewed), with possible
 exit through Retired or Abandoned. The forbidden transition
-$\textsc{Draft} \to \textsc{Reviewed}$ without $\Witness$ closes a
+$\mathrm{Draft} \to \mathrm{Reviewed}$ without $\Witness$ closes a
 trivial bypass: one cannot declare a decision reviewed without
 passing through inhabitation via git fix. This is the minimal
 sufficient restriction: one rule closes all bypasses.
 \end{proof}
 
 \begin{theorem}[process-fsm.forbidden-transition]
-$$\forall d.\ d.\mathtt{state} = \textsc{Reviewed} \;\wedge\; d.\mathtt{witness} = \bot \;\Rightarrow\; S(d) = \textsc{Fail}$$
+$$\forall d.\ d.\mathtt{state} = \mathrm{Reviewed} \;\wedge\; d.\mathtt{witness} = \bot \;\Rightarrow\; S(d) = \mathrm{Fail}$$
 The kernel $\mathrm{V_4}$ detects this and refuses the packet.
 \end{theorem}
 
 \subsection{dialectic-tas: thesis, antithesis, synthesis required}
 
 \begin{theorem}[dialectic-tas.required-sections]
-A packet with $\Reg = \textsc{Judgment}$ or $\Actor = \textsc{Human}$
+A packet with $\Reg = \mathrm{Judgment}$ or $\Actor = \mathrm{Human}$
 requires the body sections \texttt{\#\# Thesis}, \texttt{\#\# Antithesis},
 \texttt{\#\# Synthesis}. The structural form of dialectics is mandatory
 for human judgments.
@@ -57,7 +57,7 @@ impulsive one.
 
 \begin{theorem}[actor-discipline.signed-commits]
 A decision records its author through commit signatures. The signing
-mode ($\textsc{strict} / \textsc{lenient} / \textsc{off}$) is determined
+mode ($\mathrm{strict} / \mathrm{lenient} / \mathrm{off}$) is determined
 by the project through \texttt{.mathrc} and checked by the kernel.
 \end{theorem}
 
@@ -74,12 +74,12 @@ infrastructure, ordinary development, prototyping.
 
 \begin{theorem}[Signing modes]
 \begin{itemize}
-\item \textsc{strict}: every commit of the packet has a valid GPG/SSH
+\item \mathrm{strict}: every commit of the packet has a valid GPG/SSH
       signature. Kernel rejects the packet without signature
-      ($\textsc{Fail}$).
-\item \textsc{lenient}: the \texttt{amend} commit has a signature;
-      others need not. Kernel returns $\textsc{Warn}$ if \texttt{amend}
+      ($\mathrm{Fail}$).
+\item \mathrm{lenient}: the \texttt{amend} commit has a signature;
+      others need not. Kernel returns $\mathrm{Warn}$ if \texttt{amend}
       lacks signature.
-\item \textsc{off}: signatures not required; kernel does not check.
+\item \mathrm{off}: signatures not required; kernel does not check.
 \end{itemize}
 \end{theorem}

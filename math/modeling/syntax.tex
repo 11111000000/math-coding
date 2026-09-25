@@ -11,32 +11,32 @@ The current canonical version is ``2.0''.
 
 \begin{definition}[Actor]
 An actor identifies who originated a decision:
-$$\Actor ::= \textsc{Human} \mid \textsc{Agent} \mid \textsc{System}$$
+$$\Actor ::= \mathrm{Human} \mid \mathrm{Agent} \mid \mathrm{System}$$
 \end{definition}
 
 \begin{definition}[Register]
 The epistemic stance of a decision:
-$$\Reg ::= \textsc{Fact} \mid \textsc{Hypothesis} \mid \textsc{Judgment} \mid \textsc{Unknown}$$
+$$\Reg ::= \mathrm{Fact} \mid \mathrm{Hypothesis} \mid \mathrm{Judgment} \mid \mathrm{Unknown}$$
 \end{definition}
 
 \begin{definition}[State]
 The FSM state of a packet:
-$$\State ::= \textsc{Draft} \mid \textsc{Applied} \mid \textsc{Reviewed} \mid \textsc{Retired} \mid \textsc{Abandoned}$$
+$$\State ::= \mathrm{Draft} \mid \mathrm{Applied} \mid \mathrm{Reviewed} \mid \mathrm{Retired} \mid \mathrm{Abandoned}$$
 \end{definition}
 
 \begin{definition}[Lifecycle]
 The computed lifecycle:
-$$\Lifecycle ::= \textsc{Draft} \mid \textsc{Applied} \mid \textsc{Drift} \mid \textsc{Stale}$$
+$$\Lifecycle ::= \mathrm{Draft} \mid \mathrm{Applied} \mid \mathrm{Drift} \mid \mathrm{Stale}$$
 \end{definition}
 
 \begin{definition}[Verdict]
 The verdict of a check:
-$$\Verdict ::= \textsc{Pass} \mid \textsc{Warn} \mid \textsc{Fail} \mid \textsc{Skip}$$
+$$\Verdict ::= \mathrm{Pass} \mid \mathrm{Warn} \mid \mathrm{Fail} \mid \mathrm{Skip}$$
 \end{definition}
 
 \begin{definition}[Beneficiary]
 Who is served by the decision:
-$$\Ben ::= \textsc{User} \mid \textsc{Developer} \mid \textsc{Team} \mid \textsc{FutureSelf} \mid \textsc{System} \mid \textsc{Other}(\mathbb{S})$$
+$$\Ben ::= \mathrm{User} \mid \mathrm{Developer} \mid \mathrm{Team} \mid \mathrm{FutureSelf} \mid \mathrm{System} \mid \mathrm{Other}(\mathbb{S})$$
 \end{definition}
 
 \begin{definition}[Decision]
@@ -71,10 +71,10 @@ Field constraints:
 \begin{definition}[Register-confidence consistency]
 The register constrains the confidence value:
 \begin{align*}
-\mathtt{register} = \textsc{Fact}       &\;\Rightarrow\; \mathtt{confidence} \in [0.95,\, 1] \\
-\mathtt{register} = \textsc{Hypothesis} &\;\Rightarrow\; \mathtt{confidence} \in (0.5,\, 0.95) \\
-\mathtt{register} = \textsc{Judgment}   &\;\Rightarrow\; \mathtt{confidence} \in \{0,\, 1\} \\
-\mathtt{register} = \textsc{Unknown}    &\;\Rightarrow\; \mathtt{confidence} = 0
+\mathtt{register} = \mathrm{Fact}       &\;\Rightarrow\; \mathtt{confidence} \in [0.95,\, 1] \\
+\mathtt{register} = \mathrm{Hypothesis} &\;\Rightarrow\; \mathtt{confidence} \in (0.5,\, 0.95) \\
+\mathtt{register} = \mathrm{Judgment}   &\;\Rightarrow\; \mathtt{confidence} \in \{0,\, 1\} \\
+\mathtt{register} = \mathrm{Unknown}    &\;\Rightarrow\; \mathtt{confidence} = 0
 \end{align*}
 \end{definition}
 

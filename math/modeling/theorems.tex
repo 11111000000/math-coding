@@ -33,15 +33,15 @@ foundation just as it does for a user packet.
 \subsection{Drift detection}
 
 \begin{theorem}[drift.detection]
-$$L(d, r) = \textsc{Drift} \iff d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) \neq d.\mathtt{proposition}$$
+$$L(d, r) = \mathrm{Drift} \iff d.\mathtt{witness} = \text{sha} \;\wedge\; \mathrm{prop}(r, \text{sha}, d.\mathtt{name}) \neq d.\mathtt{proposition}$$
 That is, drift occurs exactly when the proposition at the witness
 commit differs from the current proposition.
 \end{theorem}
 
 \begin{proof}
 If $\mathrm{prop}(r, \text{sha}, d.\mathtt{name}) = d.\mathtt{proposition}$,
-the proposition is consistent with history and $L = \textsc{Applied}$
-(possibly $\textsc{Stale}$ if files changed). If they differ, the
+the proposition is consistent with history and $L = \mathrm{Applied}$
+(possibly $\mathrm{Stale}$ if files changed). If they differ, the
 proposition has been modified without a supersession, which is the
 definition of drift. The kernel implements this comparison through
 \texttt{git show sha:math/name/packet.md}.
