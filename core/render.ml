@@ -377,7 +377,8 @@ let rec list_packets acc dir =
         let full = Filename.concat dir entry in
         let is_dir = try Sys.is_directory full with _ -> false in
         let has_packet = Sys.file_exists (Filename.concat full "packet.md") in
-        if is_dir && has_packet then full :: acc
+        if is_dir && entry = "archived" then acc
+        else if is_dir && has_packet then full :: acc
         else if is_dir then list_packets acc full
         else acc)
       acc entries

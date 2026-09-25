@@ -48,8 +48,9 @@ done
 
 # Verify each packet page exists.
 for d in math/*/; do
+    name=$(basename "$d")
+    if [ "$name" = "archived" ]; then continue; fi
     if [ -f "$d/packet.md" ]; then
-        name=$(basename "$d")
         f="dist/packets/$name.html"
         if [ ! -f "$f" ]; then
             echo "  MISSING: $f"
