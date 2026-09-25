@@ -3,7 +3,7 @@ schema_version: "2.0"
 name: mobile-polish-v2-y
 proposition: "Mobile typography and navigation v2.0-Y: (1) mjx-container scrolls internally with hidden visual scrollbar (scrollbar-width:none + ::-webkit-scrollbar{display:none}) and cursor:grab affordance; (2) nav below 720px viewport switches to a collapsible hamburger pattern (toggle button + JS class toggle on .nav-inner), preserving horizontal flex layout on desktop; (3) body font-size via clamp(15px, 1.6vw, 16px) so formulas inherit a smaller size on narrow phones; (4) prefers-reduced-motion respected on all transitions; (5) safe-area-inset padding for notched phones on body padding-bottom."
 register: judgment
-state: draft
+state: applied
 actor: agent
 confidence: 1.0
 superseded_by:
@@ -149,3 +149,4 @@ Trade-offs explicitly accepted:
   output, in a single `<script>(function(){...})();</script>` block at
   the bottom of `<body>`. The script depends only on browser globals
   (no library, no framework, no CDn dependency).
+
