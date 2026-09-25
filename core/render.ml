@@ -1,15 +1,16 @@
 (* core/render.ml -- site generation for math-coding v2.0-Y.
 
    Generates a complete static site under dist/:
-     - index.html         front page with hero and packet grid
+     - index.html         front page (hero, packet grid, mermaid)
      - manifesto.html     LaTeX rendered via pandoc with mathjax
+     - manifesto-narrative.html  Markdown narrative of MANIFESTO.md
      - foundations.html   rendered from FOUNDATIONS.md
      - workflow.html      rendered from WORKFLOW.md
      - faq.html           rendered from FAQ.md
      - agents.html        rendered from AGENTS.md
      - contributing.html  rendered from CONTRIBUTING.md
-     - readme.html        rendered from README.md
-     - readme-ru.html     rendered from README.ru.md
+     - readme.html        rendered from README.md (English)
+     - readme-ru.html     rendered from README.ru.md (Russian)
      - packets.html       list of all packets with mermaid graph
      - extensions.html    the three extensions only
      - packets/NAME.html  one HTML page per packet
@@ -20,18 +21,18 @@
 
 open Types
 
-(* --- navigation and shell helpers --- *)
+(* --- navigation links (English) --- *)
 
 let nav_links = [
-  ("index",      "Главная",    "/");
-  ("manifesto",  "Манифест",   "/manifesto.html");
-  ("readme",     "README",     "/readme.html");
-  ("packets",    "Пакеты",     "/packets.html");
-  ("foundations","Основания",  "/foundations.html");
-  ("extensions", "Расширения", "/extensions.html");
-  ("workflow",   "Workflow",   "/workflow.html");
-  ("faq",        "FAQ",        "/faq.html");
-  ("agents",     "Agents",     "/agents.html");
+  ("home",       "Home",        "/");
+  ("manifesto",  "Manifesto",   "/manifesto.html");
+  ("readme",     "README",      "/readme.html");
+  ("packets",    "Packets",     "/packets.html");
+  ("foundations","Foundations", "/foundations.html");
+  ("extensions", "Extensions",  "/extensions.html");
+  ("workflow",   "Workflow",    "/workflow.html");
+  ("faq",        "FAQ",         "/faq.html");
+  ("agents",     "Agents",      "/agents.html");
 ]
 
 let render_nav active =
@@ -133,10 +134,6 @@ let badge_class = function
   | "stale"   -> "badge-stale"
   | _ -> "badge-stale"
 
-let format_field key value =
-  Printf.sprintf
-    {|<dt>%s</dt><dd>%s</dd>|} (html_escape key) (html_escape value)
-
 let empty_value = "&mdash;"
 
 let render_frontmatter d =
@@ -158,10 +155,6 @@ let render_frontmatter d =
 %s</pre>|} body_str
 
 let render_packet_body body =
-  (* Convert Markdown-ish body to HTML. Simple rules:
-     - ## headings (##)
-     - ```code``` blocks
-     - paragraphs separated by blank line *)
   let lines = String.split_on_char '\n' body in
   let b = Buffer.create 4096 in
   let in_code = ref false in
@@ -218,7 +211,7 @@ let render_packet_page packet_dir =
       | _ -> "" in
     let body_html = render_packet_body body in
     let inner = Printf.sprintf
-{|<a href="/packets.html">&larr; &nbsp;Пакеты</a>
+{|<a class="back-link" href="/packets.html">&larr; Packets</a>
 <h1>%s <span class="badge %s">%s</span></h1>
 <dl>%s</dl>
 %s
@@ -301,56 +294,76 @@ let cmd_render () =
     (match tex_files with
      | [] -> ()
      | _ ->
-         (* Use a temp dir so pandoc can resolve \input{...}. *)
-         let tmp_dir = Filename.temp_file "mathcoding-manifest" ".d" in
-         let _ = Sys.remove tmp_dir in
-         let _ = Sys.command (Printf.sprintf "mkdir -p %s" (Filename.quote tmp_dir)) in
-         List.iter (fun f ->
-           let src = Filename.concat model_dir f in
-           let dst = Filename.concat tmp_dir f in
-           let _ = Sys.command (Printf.sprintf "cp %s %s"
-             (Filename.quote src) (Filename.quote dst)) in
-           ()) tex_files;
-         let tmp_html = Filename.temp_file "manifesto-frag" ".html" in
-         let ok = run_pandoc ~input:"math-coding.tex" ~output:tmp_html
-           ~extra:"--mathjax" ~workdir:tmp_dir in
-         if ok then begin
-           let body = read_file tmp_html in
-           let page = render_page ~nav_key:"manifesto"
-             ~title:"math-coding: formal model" ~body in
-           write_file "dist/manifesto.html" page;
-           Printf.printf "  + manifesto.html (LaTeX rendered with MathJax)\n"
-         end;
-         Sys.remove tmp_html;
-         let _ = Sys.command (Printf.sprintf "rm -rf %s" (Filename.quote tmp_dir)) in
-         ())
+        let tmp_dir = Filename.temp_file "mathcoding-manifest" ".d" in
+        let _ = Sys.remove tmp_dir in
+        let _ = Sys.command (Printf.sprintf "mkdir -p %s" (Filename.quote tmp_dir)) in
+        List.iter (fun f ->
+          let src = Filename.concat model_dir f in
+          let dst = Filename.concat tmp_dir f in
+          let _ = Sys.command (Printf.sprintf "cp %s %s"
+            (Filename.quote src) (Filename.quote dst)) in
+          ()) tex_files;
+        let tmp_html = Filename.temp_file "manifesto-frag" ".html" in
+        let ok = run_pandoc ~input:"math-coding.tex" ~output:tmp_html
+          ~extra:"--mathjax" ~workdir:tmp_dir in
+        if ok then begin
+          let body = read_file tmp_html in
+          let page = render_page ~nav_key:"manifesto"
+            ~title:"math-coding: formal model" ~body in
+          write_file "dist/manifesto.html" page;
+          Printf.printf "  + manifesto.html (LaTeX rendered with MathJax)\n"
+        end;
+        Sys.remove tmp_html;
+        let _ = Sys.command (Printf.sprintf "rm -rf %s" (Filename.quote tmp_dir)) in
+        ())
   end;
 
-  (* Render selected Markdown files via pandoc. *)
+  (* Render selected Markdown files via pandoc.
+     Each FOO.md has an English version rendered to FOO.html.
+     Optional FOO.ru.md is rendered to FOO.ru.html when present. *)
   let md_files = [
-    ("README.md",       "readme.html",         "readme");
-    ("README.ru.md",    "readme-ru.html",      "readme");
-    ("MANIFESTO.md",    "manifesto-narrative.html", "manifesto");
-    ("FOUNDATIONS.md",  "foundations.html",    "foundations");
-    ("WORKFLOW.md",     "workflow.html",       "workflow");
-    ("FAQ.md",          "faq.html",            "faq");
-    ("AGENTS.md",       "agents.html",         "agents");
-    ("CONTRIBUTING.md", "contributing.html",   "agents");
+    ("README.md",       "readme.html");
+    ("MANIFESTO.md",    "manifesto-narrative.html");
+    ("FOUNDATIONS.md",  "foundations.html");
+    ("WORKFLOW.md",     "workflow.html");
+    ("FAQ.md",          "faq.html");
+    ("AGENTS.md",       "agents.html");
+    ("CONTRIBUTING.md", "contributing.html");
   ] in
+  (* English versions. *)
   List.iter
-    (fun (src, dst, nav_key) ->
+    (fun (src, dst) ->
       if Sys.file_exists src then begin
         let title = Filename.basename (Filename.chop_suffix src ".md") in
         let tmp_html = Filename.temp_file "page-frag" ".html" in
         let body = render_pandoc_fragment ~input:src
           ~extra:"--mathjax" ~out_tmp:tmp_html in
-        let page = render_page ~nav_key ~title ~body in
+        let page = render_page ~nav_key:(Filename.chop_suffix src ".md")
+          ~title ~body in
         let out = Filename.concat out_dir dst in
         write_file out page;
         Sys.remove tmp_html;
         Printf.printf "  + %s\n" dst
       end)
     md_files;
+  (* Russian .ru.md versions. *)
+  List.iter
+    (fun src ->
+      let base = Filename.chop_suffix src ".md" in
+      let ru_src = base ^ ".ru.md" in
+      let dst = (Filename.basename base) ^ ".ru.html" in
+      if Sys.file_exists ru_src then begin
+        let title = Printf.sprintf "%s (Russian)" (Filename.basename base) in
+        let tmp_html = Filename.temp_file "page-frag-ru" ".html" in
+        let body = render_pandoc_fragment ~input:ru_src
+          ~extra:"--mathjax" ~out_tmp:tmp_html in
+        let page = render_page ~nav_key:base ~title ~body in
+        let out = Filename.concat out_dir dst in
+        write_file out page;
+        Sys.remove tmp_html;
+        Printf.printf "  + %s\n" dst
+      end)
+    (List.map fst md_files);
 
   (* Collect packets and chain info for the index/list pages. *)
   let packets = list_packets [] "math" in
@@ -394,16 +407,16 @@ let cmd_render () =
 </div>|} name (html_escape name) cls lc_str (html_escape prop))
       packet_data) in
   let packets_body = Printf.sprintf
-{|<h1>Пакеты</h1>
-<p class="meta">%d пакетов, проверены одним ядром S</p>
+    {|<h1>Packets</h1>
+<p class="meta">%d packets verified by the same kernel S</p>
 <div class="packets-grid">
 %s
 </div>
-<h2>Цепочки замещения</h2>
+<h2>Supersession chains</h2>
 %s|}
     (List.length packet_data) packet_cards
     (render_supersession_graph chains) in
-  let packets_page = render_page ~nav_key:"packets" ~title:"Пакеты"
+  let packets_page = render_page ~nav_key:"packets" ~title:"Packets"
     ~body:packets_body in
   write_file "dist/packets.html" packets_page;
   Printf.printf "  + packets.html\n";
@@ -423,16 +436,47 @@ let cmd_render () =
           (html_escape prop))
       ext_data) in
   let extensions_body = Printf.sprintf
-{|<h1>Расширения</h1>
-<p>Три расширения добавляют обязательства к схеме пакета и автомату состояний.</p>
+    {|<h1>Extensions</h1>
+<p>Three extensions add obligations to the packet schema and the
+state machine: process-fsm governs FSM transitions,
+dialectic-tas requires Thesis/Antithesis/Synthesis sections for
+human judgments, and actor-discipline binds decisions to authors
+through signed commits.</p>
 <div class="packets-grid">
 %s
 </div>|}
     ext_cards in
   let extensions_page = render_page ~nav_key:"extensions"
-    ~title:"Расширения" ~body:extensions_body in
+    ~title:"Extensions" ~body:extensions_body in
   write_file "dist/extensions.html" extensions_page;
   Printf.printf "  + extensions.html\n";
+
+  (* Render foundations.html: 5 foundation packets. *)
+  let found_names = ["curry-howard"; "temporal"; "constructive"; "categorical"; "motivation"] in
+  let found_data = List.filter (fun (n, _, _, _) -> List.mem n found_names) packet_data in
+  let found_cards = String.concat "\n"
+    (List.map
+      (fun (name, prop, lc, _) ->
+        let lc_str = lifecycle_to_string lc in
+        Printf.sprintf {|<div class="packet-card">
+<a href="/packets/%s.html">%s</a>
+<div class="meta"><span class="badge %s">%s</span></div>
+<p class="proposition">%s</p>
+</div>|} name (html_escape name) (badge_class lc_str) lc_str
+          (html_escape prop))
+      found_data) in
+  let foundations_body = Printf.sprintf
+    {|<h1>Foundations</h1>
+<p>Five foundational propositions ground the convention. Each is
+itself a packet, verified by the same kernel S.</p>
+<div class="packets-grid">
+%s
+</div>|}
+    found_cards in
+  let foundations_page = render_page ~nav_key:"foundations"
+    ~title:"Foundations" ~body:foundations_body in
+  write_file "dist/foundations.html" foundations_page;
+  Printf.printf "  + foundations.html\n";
 
   (* Render index.html -- front page. *)
   let cards_overview = String.concat "\n"
@@ -443,33 +487,33 @@ let cmd_render () =
 <p class="proposition">%s</p>
 </div>|} name (html_escape name) (html_escape prop))
       packet_data) in
-  let stats = Printf.sprintf "%d пакетов, 1 бинарь, 1 соглашение"
+  let stats = Printf.sprintf "%d packets &middot; 1 binary &middot; 1 convention"
     (List.length packet_data) in
   let index_body = Printf.sprintf
-{|<section class="hero">
+    {|<section class="hero">
 <h1>math-coding</h1>
-<p class="tagline">Практика записывать решения перед кодом.</p>
-<p class="meta">%s &middot; v2.0-Y &middot; Y-комбинатор</p>
+<p class="tagline">A practice of recording decisions before code.</p>
+<p class="meta">%s &middot; v2.0-Y &middot; Y-fixed point</p>
 </section>
 
-<h2>Что это</h2>
-<p>math-coding &mdash; это convention, в которой каждое нетривиальное
-архитектурное решение существует как <em>пакет</em>: явное
-утверждение, привязанное к коду через SHA в git и проверяемое
-одним ядром. Решения эволюционируют через <em>замещение</em>
-(supersession), а не редактирование.</p>
+<h2>What it is</h2>
+<p>math-coding is a convention in which every non-trivial
+architectural decision exists as a <em>packet</em>: an explicit
+proposition bound to code through a git SHA and verified by a
+single kernel. Decisions evolve through <em>supersession</em>,
+not through editing.</p>
 
-<h2>Граф цепочек замещения</h2>
-<p>Каждый пакет имеет <code>superseded_by</code>. Зависимости
-образуют строгий частичный порядок:</p>
+<h2>Supersession chains</h2>
+<p>Each packet has <code>superseded_by</code>. The relation is
+a strict partial order; chains form a directed acyclic graph:</p>
 %s
 
-<h2>Пакеты (%d)</h2>
+<h2>Packets (%d)</h2>
 <div class="packets-grid">
 %s
 </div>
 
-<h2>Восемь принципов</h2>
+<h2>Eight principles</h2>
 <ol>
 <li><strong>Decision is a triple</strong> &mdash; (proposition, code, witness); Curry-Howard.</li>
 <li><strong>Lifecycle is computed</strong> &mdash; L(decision, repo) from git, not stored.</li>
@@ -477,11 +521,11 @@ let cmd_render () =
 <li><strong>Supersession is SPO</strong> &mdash; irreflexive, asymmetric, transitive.</li>
 <li><strong>Register and why</strong> &mdash; A1 Care restored.</li>
 <li><strong>FSM with one forbidden</strong> &mdash; draft &rarr; reviewed forbidden.</li>
-<li><strong>Thesis/Antithesis/Synthesis</strong> &mdash; dialectic for judgments.</li>
+<li><strong>Thesis / Antithesis / Synthesis</strong> &mdash; dialectic for judgments.</li>
 <li><strong>Signed commits fix author</strong> &mdash; three signing modes.</li>
 </ol>
 
-<h2>Быстрый старт</h2>
+<h2>Quick start</h2>
 <pre><code>mathc init
 mathc record my-decision "TTL = 60s with manual invalidation"
 git add math/my-decision/ &amp;&amp; git commit -m "my-decision: ttl policy"
@@ -489,13 +533,28 @@ mathc amend my-decision
 git add math/my-decision/witness &amp;&amp; git commit -m "my-decision: witness"
 mathc check</code></pre>
 
-<p>Установка: <code>nix develop --command sh scripts/install.sh</code>.
-Бинарь окажется в <code>$XDG_DATA_HOME/math-coding/current/mathc</code>.</p>|}
+<p>Install: <code>nix develop --command sh scripts/install.sh</code>.
+Binary lands at <code>$XDG_DATA_HOME/math-coding/current/mathc</code>.</p>
+
+<h2>Project layout</h2>
+<ul>
+<li><code>README.md</code> &mdash; English teaser (this site's <a href="/readme.html">readme.html</a>)</li>
+<li><code>README.ru.md</code> &mdash; Russian parallel (<a href="/readme-ru.html">readme-ru.html</a>)</li>
+<li><code>MANIFESTO.md</code> &mdash; eight principles (<a href="/manifesto-narrative.html">narrative</a>, <a href="/manifesto.html">formal model</a>)</li>
+<li><code>FOUNDATIONS.md</code> &mdash; packet descriptions (<a href="/foundations.html">foundations.html</a>)</li>
+<li><code>WORKFLOW.md</code> &mdash; daily + brownfield (<a href="/workflow.html">workflow.html</a>)</li>
+<li><code>FAQ.md</code> &mdash; ten frequent questions (<a href="/faq.html">faq.html</a>)</li>
+<li><code>AGENTS.md</code> &mdash; protocol for AI agents (<a href="/agents.html">agents.html</a>)</li>
+<li><code>CONTRIBUTING.md</code> &mdash; KNOWN DIVERGENCE convention (<a href="/contributing.html">contributing.html</a>)</li>
+<li><code>math/modeling/*.tex</code> &mdash; formal LaTeX model</li>
+<li><code>math/&lt;name&gt;/packet.md</code> &mdash; convention packets</li>
+</ul>|}
     stats (render_supersession_graph chains)
     (List.length packet_data) cards_overview in
-  let index_page = render_page ~nav_key:"index" ~title:"math-coding v2.0-Y"
+  let index_page = render_page ~nav_key:"home" ~title:"math-coding v2.0-Y"
     ~body:index_body in
   write_file "dist/index.html" index_page;
   Printf.printf "  + index.html\n";
 
-  Printf.printf "mathc render: dist/ generated\n"
+  Printf.printf "mathc render: dist/ generated (%d pages)\n"
+    (List.length packet_data + 13)

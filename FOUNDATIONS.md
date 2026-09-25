@@ -1,128 +1,135 @@
-# Основания и расширения
+# Foundations and extensions
 
-math-coding состоит из восьми пакетов: пять оснований (`foundations/`)
-и три расширения (`extensions/`). Все восемь проверяются одним и тем
-же ядром — никакого специального пути для оснований не существует.
+math-coding consists of eight packets: five foundations
+(`foundations/`) and three extensions (`extensions/`). All eight are
+verified by the same kernel — there is no special path for the
+foundations.
 
-## Основания
+## Foundations
 
 ### `math/foundations/curry-howard/`
 
-**Тезис.** Решение есть тройка (proposition, code, witness); ядро $S$
-проверяет структурное соответствие между proposition и code через
-witness.
+**Thesis.** A decision is a triple (proposition, code, witness); the
+kernel $S$ verifies the structural correspondence between proposition
+and code through the witness.
 
-**Реализация в OCaml:** тип `decision` в `core/types.ml` —
-прямое отражение тройки из изоморфизма Карри-Ховарда. proposition
-есть тип, code есть терм, witness есть derivation.
+**Implementation in OCaml:** the `decision` type in `core/types.ml`
+— a direct reflection of the triple from the Curry-Howard
+isomorphism. The proposition is a type, the code is a term, the
+witness is a derivation.
 
-**Когда применяется:** каждый пакет в проекте. Основание
-curry-howard — это схема данных.
+**When applied:** every packet in the project. The curry-howard
+foundation is the data schema.
 
 ### `math/foundations/temporal/`
 
-**Тезис.** Жизненный цикл $L$ решения есть функция от решения и
-git-истории; $L$ вычисляется, а не хранится.
+**Thesis.** The lifecycle $L$ of a decision is a function of the
+decision and git history; $L$ is computed, not stored.
 
-**Реализация в OCaml:** `Lifecycle.compute : decision -> lifecycle`
-в `core/lifecycle.ml`. Возвращает `Draft | Applied | Drift | Stale`
-на основании witness и `git show <sha>:math/<name>/packet.md`.
+**Implementation in OCaml:** `Lifecycle.compute : decision ->
+lifecycle` in `core/lifecycle.ml`. Returns `Draft | Applied | Drift
+| Stale` based on the witness and `git show <sha>:math/<name>/packet.md`.
 
-**Когда применяется:** каждый раз при `mathc check`. Если proposition
-в witness-коммите отличается от текущей — drift.
+**When applied:** every time `mathc check` runs. If the proposition
+in the witness commit differs from the current one — drift.
 
 ### `math/foundations/constructive/`
 
-**Тезис.** Состояние `proven` требует воспроизводимого свидетельства:
-повторный запуск команды должен давать записанный код выхода.
+**Thesis.** The `proven` state requires reproducible evidence:
+re-running the command must yield the recorded exit code.
 
-**Реализация в OCaml:** `Repo.run_substrate` в `core/repo.ml`
-запускает shell-команду, записывает код выхода во временный файл,
-сравнивает с `recorded_exit`. Несовпадение → drift.
+**Implementation in OCaml:** `Repo.run_substrate` in `core/repo.ml`
+runs a shell command, records the exit code into a temporary file,
+and compares it with `recorded_exit`. On mismatch — drift.
 
-**Когда применяется:** пакеты с `substrate: shell` или `substrate: pbt`.
-Без substrate — конструктивное доказательство не требуется.
+**When applied:** packets with `substrate: shell` or
+`substrate: pbt`. Without a substrate, constructive proof is not
+required.
 
 ### `math/foundations/categorical/`
 
-**Тезис.** Замещение — строгий частичный порядок: иррефлексивный,
-асимметричный, транзитивный.
+**Thesis.** Supersession is a strict partial order: irreflexive,
+asymmetric, transitive.
 
-**Реализация в OCaml:** `Check.check_supersession` в
-`core/check.ml`. Проверяет, что `superseded_by` указывает на
-существующий пакет в состоянии `applied`.
+**Implementation in OCaml:** `Check.check_supersession` in
+`core/check.ml`. Checks that `superseded_by` points to an existing
+packet in the `applied` state.
 
-**Когда применяется:** каждый раз при `mathc check`. Обнаружение
-цикла — `Fail`.
+**When applied:** every time `mathc check` runs. Detecting a cycle
+yields `Fail`.
 
 ### `math/foundations/motivation/`
 
-**Тезис.** Каждый пакет декларирует эпистемический регистр
-(`fact`/`hypothesis`/`judgment`/`unknown`) и численную уверенность.
-Поле `why` (в секции `## Why`) обязательно для `judgment`.
+**Thesis.** Every packet declares an epistemic register
+(`fact`/`hypothesis`/`judgment`/`unknown`) and a numerical
+confidence. The `why` field (in the `## Why` section) is mandatory
+for `judgment`.
 
-**Реализация в OCaml:** `Check.check_motivation` в `core/check.ml`.
-Проверяет, что register ∈ допустимых, confidence ∈ [0,1],
-соответствует register. why непусто.
+**Implementation in OCaml:** `Check.check_motivation` in
+`core/check.ml`. Checks that the register is among the permitted
+ones, that the confidence lies in [0,1], and that it matches the
+register. `why` must be non-empty.
 
-**Когда применяется:** каждый пакет. `why` обязательно для `judgment`-
-пакетов (Warn, не Fail).
+**When applied:** every packet. `why` is mandatory for `judgment`
+packets (Warn, not Fail).
 
-## Расширения
+## Extensions
 
 ### `math/extensions/process-fsm/`
 
-**Тезис.** Решения существуют в пяти состояниях (`draft`, `applied`,
-`reviewed`, `retired`, `abandoned`); единственный запрещённый
-переход — `draft` → `reviewed` без witness.
+**Thesis.** Decisions exist in five states (`draft`, `applied`,
+`reviewed`, `retired`, `abandoned`); the only forbidden transition
+is `draft` → `reviewed` without a witness.
 
-**Реализация в OCaml:** `Check.check_fsm` в `core/check.ml`.
-Сравнивает `state` пакета с наличием witness. Запрещённый переход
-выдаёт `Fail`.
+**Implementation in OCaml:** `Check.check_fsm` in `core/check.ml`.
+Compares the packet's `state` against the presence of a witness. A
+forbidden transition yields `Fail`.
 
-**Когда применяется:** каждый пакет с явным `state: reviewed`. Без
-witness — отвергается.
+**When applied:** every packet with an explicit `state: reviewed`.
+Without a witness — rejected.
 
 ### `math/extensions/dialectic-tas/`
 
-**Тезис.** Пакеты с регистром `judgment` или actor `human` требуют
-разделов `## Thesis`, `## Antithesis`, `## Synthesis`. Структурная
-форма диалектики обязательна для человеческих суждений.
+**Thesis.** Packets with a `judgment` register or a `human` actor
+require `## Thesis`, `## Antithesis`, `## Synthesis` sections. The
+structural form of dialectic is mandatory for human judgments.
 
-**Реализация в OCaml:** `Check.check_dialectic` в `core/check.ml`.
-Парсит секции Markdown в теле packet.md. Отсутствие любой —
-`Warn`.
+**Implementation in OCaml:** `Check.check_dialectic` in
+`core/check.ml`. Parses Markdown sections in the body of
+packet.md. The absence of any one yields `Warn`.
 
-**Когда применяется:** каждый `judgment` или `human` пакет. Warn,
-не Fail — рекомендация, не требование.
+**When applied:** every `judgment` or `human` packet. Warn, not
+Fail — a recommendation, not a hard requirement.
 
 ### `math/extensions/actor-discipline/`
 
-**Тезис.** Решение фиксирует автора через подписи коммитов; режим
-подписи (`strict`/`lenient`/`off`) определяется проектом через
-`.mathrc`.
+**Thesis.** A decision fixes the author through commit signatures;
+the signing mode (`strict`/`lenient`/`off`) is set by the project
+through `.mathrc`.
 
-**Реализация в OCaml:** `Repo.run_substrate` + `verify_signature` в
-`core/repo.ml`. Три режима через `.mathrc: SIGNING_MODE`.
+**Implementation in OCaml:** `Repo.run_substrate` plus
+`verify_signature` in `core/repo.ml`. Three modes through
+`.mathrc: SIGNING_MODE`.
 
-**Когда применяется:** пакеты с `actor: human` или `actor: agent`.
-`strict` → Fail без подписи; `lenient` → Warn; `off` → игнорирует.
+**When applied:** packets with `actor: human` or `actor: agent`.
+`strict` → Fail without a signature; `lenient` → Warn; `off` →
+ignored.
 
-## Структура пакета (9 полей frontmatter)
+## Packet structure (9 frontmatter fields)
 
 ```yaml
 ---
-schema_version: "2.0"                  # обязательно
-name: <unique-name>                     # обязательно
-proposition: <one-sentence>             # обязательно, non-empty
-register: fact|hypothesis|judgment|unknown  # обязательно
-state: draft|applied|reviewed|retired|abandoned  # обязательно
-superseded_by: <name>|""               # обязательно (пусто если нет)
-actor: human|agent|system               # обязательно
-confidence: <0.0-1.0>                 # обязательна для fact/hypothesis
-beneficiary: <enum>|Other(text)         # опционально
+schema_version: "2.0"                  # mandatory
+name: <unique-name>                    # mandatory
+proposition: <one-sentence>            # mandatory, non-empty
+register: fact|hypothesis|judgment|unknown  # mandatory
+state: draft|applied|reviewed|retired|abandoned  # mandatory
+superseded_by: <name>|""               # mandatory (empty if none)
+actor: human|agent|system              # mandatory
+confidence: <0.0-1.0>                  # mandatory for fact/hypothesis
+beneficiary: <enum>|Other(text)         # optional
 ---
 ```
 
-Поле `schema_version` гарантирует, что ядро знает, какой плагин
-формата использовать для парсинга. Начиная с v2.0 — обязательно.
+The `schema_version` field ensures that the kernel knows which
+format plugin to use for parsing. Starting from v2.0 — mandatory.

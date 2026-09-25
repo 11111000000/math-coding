@@ -1,128 +1,127 @@
-# Как работать с math-coding
+# How to work with math-coding
 
-## Ежедневный поток
+## Daily flow
 
-### 1. Перед записью нетривиального решения
+### 1. Before recording a non-trivial decision
 
-Создать пакет **до** того, как пишется код. Это и есть
-curry-howard: proposition (тип) предшествует code (терму).
-
-```sh
-mathc record моё-решение "краткое утверждение на одном предложении"
-git add math/моё-решение/ && git commit -m "моё-решение: краткое описание"
-mathc amend моё-решение
-git add math/моё-решение/witness && git commit -m "моё-решение: фиксация"
-```
-
-После этого — `mathc check` показывает `applied ✓`.
-
-### 2. Когда proposition меняется
-
-Никогда не редактировать `packet.md` после `witness`. Использовать
-замещение:
+Create a packet **before** the code is written. This is the
+curry-howard aspect: the proposition (type) precedes the code (term).
 
 ```sh
-mathc supersede моё-решение моё-решение-v2 "новое утверждение"
-git add math/моё-решение/ && git commit -m "v2: новое утверждение"
-mathc amend моё-решение-v2
-git add math/моё-решение-v2/witness && git commit
+mathc record my-decision "a single-sentence proposition"
+git add math/my-decision/ && git commit -m "my-decision: short description"
+mathc amend my-decision
+git add math/my-decision/witness && git commit -m "my-decision: witness"
 ```
 
-Старая цепочка сохраняется в git-истории. Ядро проверяет, что
-`superseded_by: моё-решение-v2` ведёт на существующий пакет.
+After this, `mathc check` shows `applied ✓`.
 
-### 3. Поиск и навигация
+### 2. When the proposition changes
+
+Never edit `packet.md` after `witness`. Use supersession:
 
 ```sh
-mathc find TTL                       # найти пакеты по подстроке
-mathc grep "cache"                    # grep по proposition и имени
-mathc show моё-решение                # показать полный пакет
-mathc list                           # все пакеты
-mathc history моё-решение            # история пакета
-mathc graph моё-решение              # mermaid-цепочка замещения
+mathc supersede my-decision my-decision-v2 "new proposition"
+git add math/my-decision/ && git commit -m "v2: new proposition"
+mathc amend my-decision-v2
+git add math/my-decision-v2/witness && git commit
 ```
 
-### 4. Проверка состояния
+The old chain is preserved in git history. The kernel verifies that
+`superseded_by: my-decision-v2` points to an existing packet.
+
+### 3. Search and navigation
 
 ```sh
-mathc check                          # проверить все пакеты
-mathc status --json                  # JSON: состояние и next steps
-mathc stats                          # метрики (drift rate, applied/total)
+mathc find TTL                       # find packets by substring
+mathc grep "cache"                   # grep over proposition and name
+mathc show my-decision               # show the full packet
+mathc list                           # all packets
+mathc history my-decision            # packet history
+mathc graph my-decision              # mermaid supersession chain
 ```
 
-## Brownfield: переход с существующего проекта
+### 4. Status check
 
-### Шаг 1. Установка
+```sh
+mathc check                          # check all packets
+mathc status --json                  # JSON: state and next steps
+mathc stats                          # metrics (drift rate, applied/total)
+```
+
+## Brownfield: migrating an existing project
+
+### Step 1. Install
 
 ```sh
 nix develop --command sh scripts/install.sh
-# или
+# or
 opam switch create 5.2.0 && opam install dune
 sh scripts/install.sh
 ```
 
-Бинарь окажется в `$XDG_DATA_HOME/math-coding/current/mathc`.
-Обёртка `./mathc` в корне проекта указывает на него.
+The binary lands at `$XDG_DATA_HOME/math-coding/current/mathc`. The
+`./mathc` wrapper at the project root points to it.
 
-### Шаг 2. Инициализация
+### Step 2. Initialise
 
 ```sh
 mathc init
 ```
 
-Создаёт `math/`, `.mathrc`, устанавливает pre-commit hook.
-Существующие файлы не трогает.
+Creates `math/`, `.mathrc`, and installs the pre-commit hook.
+Existing files are left untouched.
 
-### Шаг 3. Авторизация существующего кода
+### Step 3. Authorise existing code
 
-Для legacy кода создать один пакет:
+For legacy code, create one packet:
 
 ```sh
-mathc record legacy-code "Существующий код авторизован как legacy: <краткое описание>"
-git add math/legacy-code/ && git commit -m "legacy-code: авторизация"
+mathc record legacy-code "Existing code is authorised as legacy: <short description>"
+git add math/legacy-code/ && git commit -m "legacy-code: authorisation"
 mathc amend legacy-code
 git add math/legacy-code/witness && git commit
 ```
 
-Этот пакет служит маркером: «всё, что существовало до convention,
-считается авторизованным как legacy».
+This packet serves as a marker: "everything that existed before the
+convention is considered authorised as legacy."
 
-### Шаг 4. Новые решения
+### Step 4. New decisions
 
-Каждое новое архитектурное решение — отдельный пакет:
+Each new architectural decision becomes its own packet:
 
 ```sh
-mathc record моё-решение "..."
+mathc record my-decision "..."
 git add . && git commit
-mathc amend моё-решение
+mathc amend my-decision
 ```
 
-### Шаг 5. Постепенное расширение
+### Step 5. Gradual expansion
 
-Старые важные решения можно задним числом перевести в пакеты.
-Не обязательно всё сразу. Convention сама подскажет через
-`mathc status`, какие пакеты отсутствуют для существующих решений.
+Old important decisions can be retroactively turned into packets.
+Not all at once is fine. The convention itself will hint, through
+`mathc status`, which packets are missing for existing decisions.
 
-## Конфигурация: `.mathrc`
+## Configuration: `.mathrc`
 
 ```yaml
-# Режим подписи
+# Signing mode
 SIGNING_MODE: lenient    # strict | lenient | off
 
-# Автоматизация
-AUTO_AMEND: true         # record → auto-amend после commit
-AUTO_RECORD_PROMPT: true # agent предлагает создать пакет
+# Automation
+AUTO_AMEND: true         # record → auto-amend after commit
+AUTO_RECORD_PROMPT: true # agent proposes creating a packet
 
 # Substrate
 SUBSTRATE_DEFAULT: none
 
 # Lifecycle
-STRICT_DRIFT_CHECK: false # strict = Fail на drift; lenient = Warn
+STRICT_DRIFT_CHECK: false # strict = Fail on drift; lenient = Warn
 
 # Schema
 SCHEMA_VERSION: "2.0"
 
-# Plugin (для будущих legacy)
+# Plugin (for future legacy)
 PLUGINS: ["v2.0"]
 
 # Output
@@ -131,36 +130,37 @@ DEFAULT_JSON: false
 
 ## Pre-commit hook (auto-installed)
 
-`mathc init` устанавливает `.git/hooks/pre-commit`:
+`mathc init` installs `.git/hooks/pre-commit`:
 
 ```sh
 #!/bin/sh
 exec mathc check --staged --strict
 ```
 
-При каждом commit проверяются staged пакеты. Drift до попадания
-в git обнаруживается автоматически.
+On every commit, the staged packets are checked. Drift is detected
+automatically before reaching git.
 
-## Эволюция convention
+## Evolving the convention
 
-### Обновление frontmatter (новые поля)
+### Updating frontmatter (new fields)
 
-Когда convention добавляет новое обязательное поле:
+When the convention adds a new mandatory field:
 
 ```sh
 mathc migrate-convention
 ```
 
-Анализирует все пакеты, добавляет новые поля с дефолтами, не трогает
-существующие proposition/witness. Создаёт commit «convention: migration».
+It analyses every packet, adds new fields with defaults, and does not
+touch existing proposition/witness. It creates a commit titled
+"convention: migration".
 
-### Эволюция формата (новая schema_version)
+### Format evolution (new schema_version)
 
-Когда convention требует новой версии схемы:
+When the convention requires a new schema version:
 
 ```sh
-# mathc migrate --from=v2.0 --to=v3.0 (отложено до v2.0.1)
+# mathc migrate --from=v2.0 --to=v3.0 (deferred until v2.0.1)
 ```
 
-Legacy plugins будут добавлены в v2.0.1+ для brownfield migration
-из v1.0/v0.99/v0.854.
+Legacy plugins will be added in v2.0.1+ for brownfield migration
+from v1.0/v0.99/v0.854.

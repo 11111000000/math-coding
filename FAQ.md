@@ -1,94 +1,93 @@
-# Часто задаваемые вопросы
+# Frequently Asked Questions
 
-## Чем math-coding отличается от ADR-log?
+## How is math-coding different from ADR-log?
 
-math-coding — это ADR, проверяемый convention. ADR в wiki
-устаревает; пакеты в math-coding живут в git-истории вместе
-с кодом. `mathc check` обнаруживает расхождение между
-proposition и реализацией автоматически.
+math-coding is an ADR convention that is verifiable. ADRs in a wiki
+go stale; packets in math-coding live in git history alongside the
+code. `mathc check` automatically detects drift between the
+proposition and the implementation.
 
-## Можно ли использовать math-coding на существующем проекте?
+## Can math-coding be used on an existing project?
 
-Да. См. WORKFLOW.md «Brownfield: переход с существующего
-проекта». Ключевые шаги: `mathc init`, создать один пакет
-`legacy-code`, авторизующий существующий код, далее — каждый
-новый архитектурный выбор как пакет. Старые пакеты
-постепенно.
+Yes. See WORKFLOW.md "Brownfield: migrating an existing project."
+The key steps: `mathc init`, create one `legacy-code` packet that
+authorises the existing code, then turn each new architectural
+choice into a packet. Old packets are migrated gradually.
 
-## Нужен ли OCaml для использования math-coding?
+## Do I need OCaml to use math-coding?
 
-Для сборки — да (один раз). После установки — нет. Один
-бинарь `mathc` плюс shell и git — это всё, что нужно для
-повседневной работы.
+For building — yes (one time). After installation — no. One `mathc`
+binary, plus shell and git, is everything you need for day-to-day
+work.
 
-## Как добавить новый пакет?
+## How do I add a new packet?
 
 ```sh
-mathc record <имя> "<утверждение>"
-git add math/<имя>/ && git commit -m "<имя>: краткое описание"
-mathc amend <имя>
-git add math/<имя>/witness && git commit -m "<имя>: фиксация"
+mathc record <name> "<proposition>"
+git add math/<name>/ && git commit -m "<name>: short description"
+mathc amend <name>
+git add math/<name>/witness && git commit -m "<name>: witness"
 mathc check
 ```
 
-Или с `AUTO_AMEND: true` в `.mathrc`: после commit mathc
-предложит amend автоматически.
+Or, with `AUTO_AMEND: true` in `.mathrc`: after a commit, mathc
+will propose `amend` automatically.
 
-## Что делать, если код изменился, а proposition нет?
+## What if the code changes but the proposition does not?
 
-Это расхождение (`Drift`). `mathc check` покажет его как Warn.
-Исправить через `mathc supersede <имя> <имя>-v2 "<новое>"` —
-создаётся новый пакет, старая цепочка сохраняется как lineage.
+That is drift (`Drift`). `mathc check` shows it as Warn. Fix it with
+`mathc supersede <name> <name>-v2 "<new>"` — a new packet is created,
+and the old chain is preserved as lineage.
 
-## Зачем signed commits?
+## Why signed commits?
 
-В режиме `strict` подпись проверяет, что человек действительно
-принял решение, а не кто-то записал от его имени. В режиме
-`lenient` подпись — рекомендация. В режиме `off` convention не
-проверяет actor.
+In `strict` mode the signature verifies that a human actually
+adopted the decision, not someone recording it on their behalf. In
+`lenient` mode the signature is a recommendation. In `off` mode the
+convention does not check the actor.
 
-## Как найти все пакеты о cache TTL?
+## How do I find all packets about cache TTL?
 
 ```sh
 mathc find TTL
-# или
+# or
 mathc grep "cache"
-# или, если есть grep:
+# or, if you have grep:
 grep -r "TTL" math/ --include="packet.md"
 ```
 
-## Можно ли удалить пакет?
+## Can a packet be deleted?
 
-Нет. Только замещение (`mathc supersede`). История сохраняется
-для родословной решений. Удаление пакета = потеря памяти о
-том, почему код такой.
+No. Only supersession (`mathc supersede`). The history is preserved
+as the decision's lineage. Deleting a packet means losing the memory
+of why the code is the way it is.
 
-## Как сгенерировать сайт?
+## How do I generate the site?
 
 ```sh
 mathc render
 ```
 
-Создаёт `dist/index.html` с индексированными пакетами. LaTeX-
-формулы рендерятся через MathJax.
+It produces `dist/index.html` with indexed packets. LaTeX formulas
+are rendered through MathJax.
 
-## Что делает mathc stats?
+## What does mathc stats do?
 
 ```sh
 mathc stats
-# Всего пакетов: 8
-# Применено: 7 (87.5%)
-# В черновике: 1 (12.5%)
-# Частота расхождений: 0/8 (0%)
-# Цепочки замещения:
+# Total packets: 8
+# Applied: 7 (87.5%)
+# In draft: 1 (12.5%)
+# Drift rate: 0/8 (0%)
+# Supersession chains:
 #   ttl-policy → ttl-policy-v2
 ```
 
-Метрики convention: drift rate, applied/total, supersession
-chains. Помогает увидеть, как convention работает на проекте.
+Convention metrics: drift rate, applied/total, supersession chains.
+Helps see how the convention is working on a project.
 
-## Кто поддерживает math-coding?
+## Who maintains math-coding?
 
-Community. Issues, pull requests, discussions в репозитории.
-Внутренние изменения проходят через merge в main. Каждое
-архитектурное решение в ядре записывается как пакет.
+The community. Issues, pull requests, and discussions in the
+repository. Internal changes go through a merge to main. Each
+architectural decision in the kernel itself is recorded as a packet.
