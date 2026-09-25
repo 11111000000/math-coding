@@ -3,7 +3,7 @@ schema_version: "2.0"
 name: narrative-rebalance-v2-y
 proposition: "In line with positioning-v2-y, README.md front-loads the AI-coding-agent pitch (verifiable decision recording, tagline 'Agent claims were answers. Decisions are now receipts.') and demotes the 'Eight packets / 700 lines of OCaml' pitch to a tertiary under-the-hood paragraph; MANIFESTO.md opener adds an audience note linking readers who came via AI agents back to README.md; FAQ.md 'How is math-coding different from ADR-log?' now compares against adr-tools, MADR, and log4brains on verifiability, drift, and signing — not only against wiki-ADR."
 register: judgment
-state: draft
+state: applied
 actor: agent
 confidence: 1.0
 superseded_by:
@@ -103,3 +103,4 @@ separate packets per convention's rule of one decision per packet.
 - After this packet: a follow-up site-generation packet should be
   considered if homepage design wants further adjustment; see the
   supersession chain in this packet's history if so.
+
