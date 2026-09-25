@@ -55,10 +55,8 @@ let render_nav active =
   Printf.sprintf
     {|<nav class="site-nav">
 <a class="brand" href="%s">math-coding</a>
-<details class="nav-collapse">
-<summary class="nav-toggle" aria-label="Toggle navigation"><span aria-hidden="true">&#9776;</span></summary>
-<div class="nav-inner">%s</div>
-</details>
+<button type="button" class="nav-toggle" aria-label="Toggle navigation" aria-controls="nav-inner" aria-expanded="false"><span aria-hidden="true">&#9776;</span></button>
+<div class="nav-inner" id="nav-inner">%s</div>
 </nav>|}
     site_base items
 
@@ -92,17 +90,29 @@ let render_page ~nav_key ~title ~body =
 %s
 <script>
 (function(){
-  var d=document.querySelector('details.nav-collapse');
-  if(d){
-    var s=d.querySelector('summary');
-    if(s){
-      s.addEventListener('click',function(){
-        setTimeout(function(){
-          s.setAttribute('aria-expanded',d.open?'true':'false');
-        },0);
-      });
+  var t=document.querySelector('.nav-toggle');
+  var n=document.querySelector('.nav-inner');
+  if(!t||!n) return;
+  // Collapse on mobile at first paint; desktop keeps nav-inner visible
+  // because [hidden] is set only by the responsive stylesheet below.
+  // We trigger a re-check on resize.
+  function sync(){
+    var isMobile = window.matchMedia('(max-width: 720px)').matches;
+    if(isMobile){
+      t.setAttribute('aria-expanded','false');
+      n.hidden = true;
+    } else {
+      t.setAttribute('aria-expanded','true');
+      n.hidden = false;
     }
   }
+  sync();
+  window.addEventListener('resize',sync);
+  t.addEventListener('click',function(){
+    var open = t.getAttribute('aria-expanded') === 'true';
+    t.setAttribute('aria-expanded', open ? 'false' : 'true');
+    n.hidden = open;
+  });
 })();
 </script>
 </body>

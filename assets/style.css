@@ -74,10 +74,9 @@ nav.site-nav {
   padding: 0.875rem 1.5rem;
   border-bottom: 1px solid var(--accent);
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 1.75rem;
-  max-width: var(--max-width);
-  margin: 0 auto;
+  position: relative;
 }
 
 nav.site-nav .brand {
@@ -98,14 +97,8 @@ nav.site-nav .brand:hover {
   opacity: 1;
 }
 
-nav.site-nav details.nav-collapse {
-  flex: 1;
-  min-width: 0;
-}
-
-nav.site-nav summary.nav-toggle {
+nav.site-nav .nav-toggle {
   display: none;
-  list-style: none;
   cursor: pointer;
   font-size: 1.4rem;
   line-height: 1;
@@ -115,60 +108,49 @@ nav.site-nav summary.nav-toggle {
   margin-left: auto;
   color: #fbfaf6;
   opacity: 0.85;
+  background: transparent;
+  border: 0;
 }
 
-nav.site-nav summary.nav-toggle::-webkit-details-marker { display: none; }
-nav.site-nav summary.nav-toggle::marker { display: none; }
-nav.site-nav summary.nav-toggle:hover { opacity: 1; color: var(--theorem-rule); }
+nav.site-nav .nav-toggle:hover { opacity: 1; color: var(--theorem-rule); }
+nav.site-nav .nav-toggle:focus-visible { outline: 2px solid var(--theorem-rule); outline-offset: 2px; }
 
 nav.site-nav .nav-inner {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 1.75rem;
+  flex: 1;
+  min-width: 0;
 }
 
 @media (max-width: 720px) {
   nav.site-nav {
     gap: 0.5rem;
+    padding: 0.75rem 1rem;
   }
-  nav.site-nav summary.nav-toggle {
+  nav.site-nav .nav-toggle {
     display: block;
   }
-  nav.site-nav details.nav-collapse {
-    overflow: hidden;
-  }
-  nav.site-nav details.nav-collapse:not([open]) .nav-inner {
-    max-height: 0;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    opacity: 0;
-    visibility: hidden;
-    transition: max-height 0.2s ease-out, opacity 0.15s ease-out;
-  }
-  nav.site-nav details.nav-collapse[open] .nav-inner {
+  nav.site-nav .nav-inner {
     position: absolute;
     left: 0;
     right: 0;
     top: 100%;
-    background: #1a1a1a;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.45rem;
     padding: 0.8rem 1rem 1rem;
+    background: #1a1a1a;
     border-bottom: 1px solid var(--accent);
-    max-height: 30rem;
-    opacity: 1;
-    visibility: visible;
-    transition: max-height 0.25s ease-out, opacity 0.2s ease-out;
     z-index: 10;
   }
+  nav.site-nav .nav-inner[hidden] { display: none; }
   nav.site-nav .brand { font-size: 1rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  nav.site-nav details.nav-collapse .nav-inner { transition: none; }
+  nav.site-nav .nav-inner, nav.site-nav .nav-toggle { transition: none; }
 }
 
 nav.site-nav a {
