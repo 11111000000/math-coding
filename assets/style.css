@@ -380,20 +380,25 @@ mjx-container, .katex-display, .MathJax_Display {
   word-wrap: break-word;
 }
 
-/* Force mjx containers to actually scroll internally instead of
-   pushing the body width. Without this, MathJax formulas blow up
-   mobile layouts because the parent has overflow-x: hidden. */
-mjx-container {
+/* Inline mjx containers: keep inline (MathJax's default), so each
+   glyph cluster flows with surrounding prose instead of forcing a
+   line break per formula. When a formula is wider than the line it
+   scrolls horizontally inside its own container rather than
+   expanding the parent or pushing siblings to new lines. */
+mjx-container:not([display="true"]) {
   display: inline-block !important;
-  max-width: 100% !important;
   overflow-x: auto !important;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
   cursor: grab;
+  /* Stay on the text baseline like a normal inline element. */
+  vertical-align: middle;
+  /* Allow long lines of text that wrap inside a wide mjx container. */
+  white-space: normal;
 }
-mjx-container::-webkit-scrollbar { display: none; width: 0; height: 0; }
-mjx-container:active { cursor: grabbing; }
+mjx-container:not([display="true"])::-webkit-scrollbar { display: none; width: 0; height: 0; }
+mjx-container:not([display="true"]):active { cursor: grabbing; }
 
 mjx-container[display="true"], .katex-display {
   /* Keep inline-block so surrounding text wraps with the formula
