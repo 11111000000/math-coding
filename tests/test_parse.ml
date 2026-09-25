@@ -53,6 +53,32 @@ let test_parse_quoted_proposition () =
       cleanup name;
       failwith ("parse failed: " ^ e)
 
+let test_parse_escaped_quote_in_proposition () =
+  Printf.printf "Parse: escaped double quote inside proposition\n";
+  let name = "_test_escaped" in
+  let content = "---\nschema_version: \"2.1\"\nname: e\nproposition: \"a \\\"b\\\" c\"\nregister: hypothesis\nstate: applied\nactor: human\nconfidence: 0.7\nsuperseded_by:\nbeneficiary: system\nkind: policy\n---\n" in
+  write_packet name content;
+  match Parse.parse_packet dir:((Filename.concat "math" name)) with
+  | Ok d ->
+      assert_eq ~label:"escaped-quote" (s d.Types.proposition) (s {|a "b" c|});
+      cleanup name
+  | Error e ->
+      cleanup name;
+      failwith ("parse failed: " ^ e)
+
+let test_parse_escaped_backslash_in_proposition () =
+  Printf.printf "Parse: backslash-quote escapes; double-backslash preserved\n";
+  let name = "_test_backslash" in
+  let content = "---\nschema_version: \"2.1\"\nname: bs\nproposition: \"a\\\\b\"\nregister: hypothesis\nstate: applied\nactor: human\nconfidence: 0.7\nsuperseded_by:\nbeneficiary: system\nkind: policy\n---\n" in
+  write_packet name content;
+  match Parse.parse_packet dir:((Filename.concat "math" name)) with
+  | Ok d ->
+      assert_eq ~label:"backslash" (s d.Types.proposition) (s {|a\\b|});
+      cleanup name
+  | Error e ->
+      cleanup name;
+      failwith ("parse failed: " ^ e)
+
 let test_parse_body_section_in_code_fence_is_not_section () =
   Printf.printf "Parse: '## Why' inside a code fence must NOT be a section\n";
   let name = "_test_codefence" in
@@ -86,9 +112,11 @@ let test_parse_missing_frontmatter () =
    | Ok _ -> cleanup name; failwith "expected Error"
    | Error _ -> cleanup name)
 
-let () =
+let run () =
   test_parse_basic ();
   test_parse_quoted_proposition ();
+  test_parse_escaped_quote_in_proposition ();
+  test_parse_escaped_backslash_in_proposition ();
   test_parse_body_section_in_code_fence_is_not_section ();
   test_parse_missing_frontmatter ();
   summary ()

@@ -26,6 +26,25 @@ let extract_frontmatter content : (string list * string list) option =
 (* Extract a string value for `key:` from frontmatter lines. *)
 let yaml_string_value lines key =
   let prefix = key ^ ":" in
+  (* Process escape sequences inside a double-quoted string. Only
+     the quote escapes are recognised so LaTeX-style identifiers
+     (e.g. \textsc) and pre-existing `\\` sequences in propositions
+     are preserved verbatim. *)
+  let process_escapes s =
+    let b = Buffer.create (String.length s) in
+    let len = String.length s in
+    let i = ref 0 in
+    while !i < len do
+      match s.[!i] with
+      | '\\' when !i + 1 < len && (s.[!i + 1] = '"' || s.[!i + 1] = '\'') ->
+          Buffer.add_char b s.[!i + 1];
+          i := !i + 2
+      | c ->
+          Buffer.add_char b c;
+          incr i
+    done;
+    Buffer.contents b
+  in
   let rec loop = function
     | [] -> None
     | line :: rest ->
@@ -34,11 +53,11 @@ let yaml_string_value lines key =
           let value = String.sub trimmed (String.length prefix)
             (String.length trimmed - String.length prefix) in
           let v = String.trim value in
-          (* Strip quotes if present. *)
+          (* Strip surrounding quotes and process escapes inside. *)
           let v =
             if String.length v >= 2 &&
                v.[0] = '"' && v.[String.length v - 1] = '"' then
-              String.sub v 1 (String.length v - 2)
+              process_escapes (String.sub v 1 (String.length v - 2))
             else if String.length v >= 2 &&
                     v.[0] = '\'' && v.[String.length v - 1] = '\'' then
               String.sub v 1 (String.length v - 2)
