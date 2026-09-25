@@ -1,5 +1,10 @@
 # Eight principles of math-coding
 
+> **Audience note.** If you arrived via an AI coding agent (Cursor,
+> Claude Code, Copilot Workspace, or any other), read [README.md](README.md)
+> first — that document is the entry pitch. This file is the formal
+> exposition; start here only if you came from the kernel side.
+
 ## Introduction
 
 math-coding is a convention for recording architectural decisions in the form of verifiable packets. The convention applies to itself: the kernel $S$ that implements the eight principles is itself described through those same principles. This forms a fixed point $Y$ in the programmer's sense: a fixed point of the function that maps an arbitrary decision-recording convention to a convention capable of describing itself.

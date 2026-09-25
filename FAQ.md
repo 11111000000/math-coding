@@ -1,11 +1,21 @@
 # Frequently Asked Questions
 
-## How is math-coding different from ADR-log?
+## How is math-coding different from ADR-tools / MADR / log4brains?
 
-math-coding is an ADR convention that is verifiable. ADRs in a wiki
-go stale; packets in math-coding live in git history alongside the
-code. `mathc check` automatically detects drift between the
-proposition and the implementation.
+The functional difference is that the others store a *record*;
+math-coding stores a *witness*. A record says what was decided; a
+witness says the decision still matches the code at this commit.
+
+| axis | adr-tools | MADR | log4brains | math-coding |
+|---|---|---|---|---|
+| verifiability | prose in markdown, manually read | prose, manually read | prose, GUI view | `mathc check` over git SHA |
+| drift detection | none — author remembers to update | none | none | automatic, kernel returns `Drift` |
+| author / signing | git author only | git author only | git author only | signed commits, `strict`/`lenient`/`off` modes |
+| reproducibility | none | none | none | `Reproducible{command, recorded_exit}` re-runnable |
+
+The packet is plain text under `math/<name>/packet.md`, bound to the
+code by a `witness` (a git SHA), so `mathc check` returns the lifecycle
+of every decision without a server.
 
 ## Can math-coding be used on an existing project?
 

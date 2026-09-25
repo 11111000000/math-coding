@@ -2,6 +2,18 @@
 
 > A discipline of recording decisions before code.
 
+**Verifiable decision recording for AI coding agents.**
+*Agent claims were answers. Decisions are now receipts.*
+
+math-coding is the only ADR convention whose packets are bound to the
+code through a git SHA, with drift detected by a static kernel: when
+an AI coding agent (Cursor, Claude Code, Copilot Workspace, or any
+other) commits a decision alongside its code, `mathc check` reads
+it back from git history and warns if the code moves without a
+supersession. The kernel ships as a single static binary; packets
+are plain text and live in `math/`; signing modes bind authorship
+cryptographically so a packet's `actor` field cannot drift silently.
+
 ## What it is
 
 math-coding is a discipline in which the proposition is recorded
@@ -31,8 +43,7 @@ convention:
 
 ## What's inside
 
-Eight packets. Around seven hundred lines of OCaml. One binary.
-Plain text and git. No servers, no databases, no frameworks.
+Eight packets that the kernel `S` verifies, all under one binary.
 
 - **curry-howard** — decision = (proposition, code, witness)
 - **temporal** — lifecycle computed from git history
@@ -45,6 +56,13 @@ Plain text and git. No servers, no databases, no frameworks.
 
 The convention applies to itself: foundations are packets verified
 by the same kernel.
+
+## Under the hood
+
+- Five foundations + three extensions = eight packets, all verified by
+  the same kernel `S` over the same git history.
+- ~700 lines of OCaml, one static binary (`mathc`).
+- Plain text + git, no servers, no databases, no frameworks.
 
 ## Quick start
 
