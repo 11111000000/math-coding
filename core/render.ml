@@ -280,78 +280,69 @@ let render_packet_page packet_dir =
 (* --- Site generation --- *)
 
 (* Post-processing pass:
-     1. Rewrite .md" → .html" (pandoc keeps .md in cross-doc links).
-     2. Lowercase every href value (GitHub Pages is case-sensitive:
-        MANIFESTO.html 404s, manifesto.html works).
-     3. Rewrite math/modeling/ → manifesto.html (no folder page).
-     4. Rewrite LICENSE → root (no license page shipped). *)
+     1. Collapse math/modeling/* and LICENSE into single pages
+        (manifesto.html and #). Run BEFORE lowercase so the
+        original-case tokens still match.
+     2. Rewrite .md" → .html" (pandoc keeps .md in cross-doc links).
+     3. Lowercase the path part of every href (GitHub Pages is
+        case-sensitive: MANIFESTO.html 404s, manifesto.html works).
+        Anchors (#fragment) and query strings (?key=val) are
+        preserved verbatim — only the path before '#' or '?' is
+        lowercased.
+
+   OCaml Str does not implement optional groups (? after a
+   parenthesised atom works on single characters only). Where we
+   want to match "with or without https://host/", we run two
+   separate global_replaces. *)
 let rewrite_md_links html =
-  (* Four transformations:
-     1. .md" → .html"      (pandoc leaves .md in cross-doc links)
-     2. lowercase href paths (GitHub Pages is case-sensitive:
-        MANIFESTO.html 404s, manifesto.html works)
-     3. math/modeling/ → manifesto.html (no folder page shipped)
-     4. LICENSE → root                                     *)
-
-  (* Step 1: .md → .html *)
-  let s1 = Str.global_replace (Str.regexp {|\.md"|}) {|.html"|} html in
-
-  (* Step 2: lowercase the path of every href="..." attribute.
-     Use the manual scan because OCaml 5 Str.global_replace has
-     only a string -> string -> string signature. *)
-  let buf = Buffer.create (String.length s1 * 2) in
-  let i = ref 0 in
-  let len = String.length s1 in
-  while !i < len do
-    (* Find next href=. *)
-    let rel = ref (!i) in
-    let found = ref false in
-    while !rel + 6 <= len && not !found do
-      if String.sub s1 !rel 6 = "href=\"" then begin
-        found := true;
-        (* Copy bytes before href. *)
-        Buffer.add_substring buf s1 !i (!rel - !i);
-        (* Write the href open tag. *)
-        Buffer.add_string buf {|href="|};
-        (* Find closing quote and lowercase the contents. *)
-        let k = ref (!rel + 6) in
-        while !k < len && s1.[!k] <> '"' do incr k done;
-        if !k > !rel + 6 then
-          Buffer.add_string buf
-            (String.lowercase_ascii
-               (String.sub s1 (!rel + 6) (!k - !rel - 6)));
-        if !k < len then begin
-          Buffer.add_char buf s1.[!k];
-          i := !k + 1
-        end else i := !k
-      end else
-        incr rel
-    done;
-    if not !found then begin
-      Buffer.add_substring buf s1 !i 1;
-      incr i
-    end
-  done;
-  let s2 = Buffer.contents buf in
-
-  (* Step 3: math/modeling/ → manifesto.html (no folder page). *)
-  let s3 =
+  (* Step 1: math/modeling/X → manifesto.html (no folder page). *)
+  let s1a =
     Str.global_replace
-      (Str.regexp {|href="\(https\?://[^/]*/\)\?math/modeling/"|})
-      {|href="\1manifesto.html"|} s2
+      (Str.regexp {|href="https\?://[^/]*/math/modeling/[^"]*"|})
+      {|href="manifesto.html"|} html
+  in
+  let s1b =
+    Str.global_replace
+      (Str.regexp {|href="math/modeling/[^"]*"|})
+      {|href="manifesto.html"|} s1a
   in
 
-  (* Step 4: LICENSE → root (no license page shipped). *)
-  let s4 =
+  (* Step 2: LICENSE → root anchor (no license page shipped). *)
+  let s2a =
     Str.global_replace
-      (Str.regexp {|href="\(https\?://[^/]*/\)\?LICENSE"|})
-      {|href="\1#"|} s3
+      (Str.regexp {|href="https\?://[^/]*/LICENSE"|})
+      {|href="#"|} s1b
   in
-  let s5 =
-    Str.global_replace (Str.regexp {|href="/math-coding/LICENSE"|})
-      {|href="/math-coding/"|} s4
+  let s2b =
+    Str.global_replace
+      (Str.regexp {|href="LICENSE"|})
+      {|href="#"|} s2a
   in
-  s5
+
+  (* Step 3: .md → .html *)
+  let s3 = Str.global_replace (Str.regexp {|\.md"|}) {|.html"|} s2b in
+
+  (* Step 4: lowercase the path of every href="..." attribute. *)
+  let href_re = Str.regexp {|href="\([^"]*\)"|} in
+  let lowercase_path content =
+    let split_idx =
+      let len = String.length content in
+      let rec scan i =
+        if i >= len then len
+        else if content.[i] = '#' || content.[i] = '?' then i
+        else scan (i + 1)
+      in
+      scan 0
+    in
+    let path = String.sub content 0 split_idx in
+    let rest = String.sub content split_idx (String.length content - split_idx) in
+    String.lowercase_ascii path ^ rest
+  in
+  Str.global_substitute href_re
+    (fun m ->
+      let content = Str.matched_group 1 m in
+      Printf.sprintf {|href="%s"|} (lowercase_path content))
+    s3
 
 let write_file path content =
   let oc = open_out path in

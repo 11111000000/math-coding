@@ -255,4 +255,5 @@ let () =
   test_v5_lenient_unsigned ();
   test_v5_off_unsigned ();
   test_v5_no_witness ();
+  Test_render.run ();
   summary ()
