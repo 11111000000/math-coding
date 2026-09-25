@@ -497,18 +497,54 @@ let cmd_render () =
 
   (* Collect packets and chain info for the index/list pages. *)
   let packets = list_packets [] "math" in
+  (* For each packet, derive the unix timestamp of its witness commit
+     (the commit hash recorded in math/<name>/witness). We use this
+     to sort packets in chronological order so the index reads from
+     the earliest convention to the latest. *)
+  let packet_witness_timestamp packet_name =
+    let witness = Filename.concat "math" (Filename.concat packet_name "witness") in
+    if not (Sys.file_exists witness) then 0 else
+    let ic = open_in witness in
+    let n = in_channel_length ic in
+    let s = really_input_string ic (min n 4096) in
+    close_in ic;
+    (* Witness file is YAML frontmatter; scan line by line for "sha:".
+       Scanf.sscanf on the whole blob fails because the file starts
+       with "---", so use string split. *)
+    let sha =
+      let lines = String.split_on_char '\n' s in
+      let rec find = function
+        | [] -> ""
+        | line :: rest ->
+          try Scanf.sscanf line "sha: %s" (fun h -> h) with _ -> find rest
+      in
+      let raw = find lines in
+      String.trim raw
+    in
+    if sha = "" then 0 else
+    let ic2 = Unix.open_process_in
+      (Printf.sprintf "git log -1 --format=%%ct %s 2>/dev/null" sha) in
+    let line = try input_line ic2 with End_of_file -> "" in
+    let _ = close_in ic2 in
+    try int_of_string (String.trim line) with _ -> 0
+  in
   let packet_data = List.filter_map
     (fun dir ->
       match Parse.parse_packet ~rel_path:(rel_path_of dir) dir with
       | Ok d ->
         let lc = Lifecycle.compute d in
-        Some (d.name, d.proposition, lc, d.superseded_by)
+        let ts = packet_witness_timestamp d.name in
+        Some (d.name, d.proposition, lc, d.superseded_by, ts)
       | Error _ -> None)
     packets in
+  (* Sort chronologically: oldest witness first, so the index reads
+     from convention origin to most recent. *)
+  let packet_data =
+    List.sort (fun (_, _, _, _, a) (_, _, _, _, b) -> compare a b) packet_data in
 
   (* Render each packet page. *)
   List.iter
-    (fun (name, _, _, _) ->
+    (fun (name, _, _, _, _) ->
       let dir = Filename.concat "math" name in
       let out = Filename.concat out_dir (Filename.concat "packets" (name ^ ".html")) in
       let html = render_packet_page dir in
@@ -518,7 +554,7 @@ let cmd_render () =
 
   (* Compute supersession chains for the index page graph. *)
   let chains = List.filter_map
-    (fun (n, _, _, sup) ->
+    (fun (n, _, _, sup, _) ->
       match sup with
       | Some s when s <> "" -> Some (n, s)
       | _ -> None)
@@ -527,7 +563,7 @@ let cmd_render () =
   (* Render packets.html (list of all packets with cards). *)
   let packet_cards = String.concat "\n"
     (List.map
-      (fun (name, prop, lc, _) ->
+      (fun (name, prop, lc, _, _) ->
         let lc_str = lifecycle_to_string lc in
         let cls = badge_class lc_str in
         Printf.sprintf
@@ -553,12 +589,15 @@ let cmd_render () =
   write_file "dist/packets.html" packets_page;
   Printf.printf "  + packets.html\n";
 
-  (* extensions.html: only process-fsm, dialectic-tas, actor-discipline. *)
+  (* extensions.html: only process-fsm, dialectic-tas, actor-discipline.
+     Sorted by witness timestamp so the extensions index reads in the
+     order they were added to the convention. *)
   let ext_names = ["process-fsm"; "dialectic-tas"; "actor-discipline"] in
-  let ext_data = List.filter (fun (n, _, _, _) -> List.mem n ext_names) packet_data in
+  let ext_data =
+    List.filter (fun (n, _, _, _, _) -> List.mem n ext_names) packet_data in
   let ext_cards = String.concat "\n"
     (List.map
-      (fun (name, prop, lc, _) ->
+      (fun (name, prop, lc, _, _) ->
         let lc_str = lifecycle_to_string lc in
         Printf.sprintf
           {|<div class="packet-card">
@@ -585,12 +624,14 @@ through signed commits.</p>
   write_file "dist/extensions.html" extensions_page;
   Printf.printf "  + extensions.html\n";
 
-  (* Render foundations.html: 5 foundation packets. *)
+  (* Render foundations.html: 5 foundation packets. Sorted by witness
+     timestamp so the foundations index reads chronologically. *)
   let found_names = ["curry-howard"; "temporal"; "constructive"; "categorical"; "motivation"] in
-  let found_data = List.filter (fun (n, _, _, _) -> List.mem n found_names) packet_data in
+  let found_data =
+    List.filter (fun (n, _, _, _, _) -> List.mem n found_names) packet_data in
   let found_cards = String.concat "\n"
     (List.map
-      (fun (name, prop, lc, _) ->
+      (fun (name, prop, lc, _, _) ->
         let lc_str = lifecycle_to_string lc in
         Printf.sprintf
           {|<div class="packet-card">
@@ -617,7 +658,7 @@ itself a packet, verified by the same kernel S.</p>
   (* Render index.html -- front page. *)
   let cards_overview = String.concat "\n"
     (List.map
-      (fun (name, prop, _, _) ->
+      (fun (name, prop, _, _, _) ->
         Printf.sprintf
           {|<div class="packet-card">
 <a href="%spackets/%s.html">%s</a>
