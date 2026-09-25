@@ -1,6 +1,6 @@
 # math-coding — agent skill
 
-math-coding v2.0-Y: record decisions as plain-text packets,
+math-coding v2.1: record decisions as plain-text packets,
 verified by a single OCaml binary (`mathc`).
 
 ## When to use
