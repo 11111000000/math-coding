@@ -91,16 +91,33 @@ let render_page ~nav_key ~title ~body =
 <script>
 (function(){
   var t=document.querySelector('.nav-toggle');
-  if(!t) return;
+  var n=document.querySelector('.nav-inner');
+  if(!t||!n) return;
   function sync(){
     var isMobile = window.matchMedia('(max-width: 720px)').matches;
-    t.setAttribute('aria-expanded', isMobile ? 'false' : 'true');
+    if(isMobile){
+      t.style.display='block';
+      if(t.getAttribute('aria-expanded')!=='true'){
+        n.style.display='none';
+        n.setAttribute('aria-hidden','true');
+      } else {
+        n.style.display='';
+        n.setAttribute('aria-hidden','false');
+      }
+      t.setAttribute('aria-expanded', t.getAttribute('aria-expanded')||'false');
+    } else {
+      n.style.display='';
+      n.setAttribute('aria-hidden','false');
+      t.style.display='none';
+      t.setAttribute('aria-expanded','true');
+    }
   }
   sync();
   window.addEventListener('resize',sync);
   t.addEventListener('click',function(){
     var open = t.getAttribute('aria-expanded') === 'true';
     t.setAttribute('aria-expanded', open ? 'false' : 'true');
+    sync();
   });
 })();
 </script>
