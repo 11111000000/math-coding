@@ -9,17 +9,21 @@ open Types
 
 (* See Theorem: drift.detection
    Lifecycle function from semantics.tex. *)
-let compute decision =
+
+(* Core logic, parameterized on a proposition-at-SHA lookup so the
+   function is testable without a real git repo. Production wires
+   `Repo.proposition_at`; tests pass a stub. *)
+let compute_with lookup decision =
   match decision.witness with
   | None -> Draft
   | Some w ->
-      let prop_at_witness = Repo.proposition_at w.sha decision.name in
+      let prop_at_witness = lookup w.sha decision.name in
       if prop_at_witness = "" then Stale
       else if prop_at_witness <> decision.proposition then Drift
       else Applied
 
-let status decision =
-  let lifecycle = compute decision in
+let status_with lookup decision =
+  let lifecycle = compute_with lookup decision in
   let verdict, reason =
     match lifecycle with
     | Draft   -> Warn, Some "no witness; lifecycle is draft"
@@ -28,6 +32,13 @@ let status decision =
     | Stale   -> Warn, Some "witness file missing or unreadable"
   in
   { lifecycle; verdict; reason }
+
+(* Production entry points. *)
+let compute decision =
+  compute_with (fun sha name -> Repo.proposition_at sha name) decision
+
+let status decision =
+  status_with (fun sha name -> Repo.proposition_at sha name) decision
 
 (* Helper: convert string option to string with default. *)
 let opt_string default = function

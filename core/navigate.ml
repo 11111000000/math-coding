@@ -141,8 +141,9 @@ let cmd_history name =
     exit 1
   end;
   Printf.printf "git log for math/%s:\n" name;
-  let out = Sys.command ("git log --oneline -- math/" ^ name) in
-  ignore out;
+  let _ = Sys.command
+    (Printf.sprintf "git log --oneline -- %s"
+       (Filename.quote (Filename.concat "math" name))) in
   match parse_packet_in_dir dir with
   | Ok d ->
       Printf.printf "\nsuperseded chain:\n";
