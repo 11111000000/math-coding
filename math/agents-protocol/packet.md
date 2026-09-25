@@ -10,6 +10,39 @@ superseded_by: agents-protocol-v2-1
 beneficiary: developer
 ---
 
+## Why
+
+The v2.0-Y protocol was the first formalized agent procedure; it
+established that AI agents must record non-trivial decisions as
+packets and verify them through the same kernel. Without explicit
+agent protocol, agent decisions would be undocumented.
+
+## Care
+
+This packet is retired — superseded by agents-protocol-v2-1, which
+collapses the five-step manual flow into `mathc decide` and adds
+auto-retire on supersede. Editing this packet is not recommended;
+supersede instead.
+
+## Thesis
+
+AI agents record decisions through `mathc record` + `mathc amend`;
+the convention describes protocol via the same kernel S that
+verifies user packets. Y-fixed-point holds: foundation packets are
+verified by the same kernel.
+
+## Antithesis
+
+A five-step manual flow is too friction-heavy for agents; they
+default to skipping steps, leaving packets in draft limbo.
+Documentation alone cannot prevent this.
+
+## Synthesis
+
+This packet's proposition (record + amend, kernel-verified) remains
+true at v2.0-Y. The implementation is superseded by agents-protocol-v2-1,
+which automates the flow.
+
 # math-coding — protocol for AI agents in math-coding v2.0-Y
 
 This packet documents how AI agents (LLM-driven coding tools) should
