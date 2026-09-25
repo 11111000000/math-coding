@@ -6,6 +6,7 @@ register: judgment
 state: applied
 actor: agent
 confidence: 1.0
+kind: fix
 superseded_by:
 beneficiary: FutureSelf
 ---

@@ -352,6 +352,7 @@ let cmd_supersede old new_name (proposition : string) =
   end;
   if Sys.file_exists new_dir then begin
     Printf.printf "  error: %s already exists\n" new_name;
+    Printf.printf "  hint: use `mathc mark-superseded %s %s` to link without creating\n" old new_name;
     exit 2
   end;
   if not !dry_run then begin
@@ -392,6 +393,45 @@ let cmd_supersede old new_name (proposition : string) =
     close_out oc;
     Printf.printf "  wrote: %s\n" packet_md;
     Printf.printf "  wrote: %s\n" witness;
+    Printf.printf "  marked: %s superseded_by %s, state=retired\n" old new_name
+  end;
+  Printf.printf "done.\n"
+
+(* mark-superseded: link OLD to existing NEW (NEW already exists). *)
+let cmd_mark_superseded old new_name =
+  Printf.printf "mathc mark-superseded: %s -> %s\n" old new_name;
+  let old_dir = Filename.concat "math" old in
+  let new_dir = Filename.concat "math" new_name in
+  if not (Sys.file_exists old_dir) then begin
+    Printf.printf "  error: %s does not exist\n" old;
+    exit 1
+  end;
+  if not (Sys.file_exists new_dir) then begin
+    Printf.printf "  error: %s does not exist\n" new_name;
+    Printf.printf "  hint: use `mathc supersede %s %s \"...\"` to create it\n" old new_name;
+    exit 2
+  end;
+  if not !dry_run then begin
+    let old_packet = Filename.concat old_dir "packet.md" in
+    let ic = open_in old_packet in
+    let content = really_input_string ic (in_channel_length ic) in
+    close_in ic;
+    let lines = String.split_on_char '\n' content in
+    let replaced_state = ref false in
+    let new_content =
+      List.map
+        (fun line ->
+          let trimmed = String.trim line in
+          if String.starts_with ~prefix:"superseded_by:" trimmed then
+            "superseded_by: " ^ new_name
+          else if String.starts_with ~prefix:"state:" trimmed && not !replaced_state then begin
+            replaced_state := true;
+            "state: retired"
+          end else line)
+        lines in
+    let oc = open_out old_packet in
+    List.iter (fun l -> output_string oc l; output_char oc '\n') new_content;
+    close_out oc;
     Printf.printf "  marked: %s superseded_by %s, state=retired\n" old new_name
   end;
   Printf.printf "done.\n"
@@ -608,6 +648,7 @@ let cmd_help () =
   Printf.printf "  record <name> <prop>     create packet (legacy two-step flow)\n";
   Printf.printf "  amend <name>             update witness to current HEAD\n";
   Printf.printf "  supersede <old> <new>    replace decision; auto-retires old\n";
+  Printf.printf "  mark-superseded <o> <n>  link existing OLD to existing NEW; auto-retires OLD\n";
   Printf.printf "  archive <name>           move to math/archived/<year>/<month>/\n";
   Printf.printf "  note <text>              create a trivial packet (no witness)\n";
   Printf.printf "  check                    verify all packets (V1..V7)\n";
@@ -651,6 +692,9 @@ let () =
   | "archive" :: name :: _ -> cmd_archive name
   | "archive" :: _ ->
       Printf.printf "usage: mathc archive <name>\n"; exit 1
+  | "mark-superseded" :: old :: new_name :: _ -> cmd_mark_superseded old new_name
+  | "mark-superseded" :: _ ->
+      Printf.printf "usage: mathc mark-superseded <old> <new>\n"; exit 1
   | "note" :: text -> cmd_note (String.concat " " text)
   | "check" :: _ -> cmd_check ()
   | "status" :: _ -> cmd_status ()

@@ -3,10 +3,10 @@ schema_version: "2.0"
 name: agents-protocol
 proposition: "AI agents working on a math-coding project record non-trivial decisions as packets through mathc record + amend; the convention describes protocol via the same kernel that verifies user packets."
 register: judgment
-state: applied
+state: retired
 actor: system
 confidence: 1.0
-superseded_by: agents-protocol-v2
+superseded_by: agents-protocol-v2-1
 beneficiary: developer
 ---
 
@@ -40,7 +40,7 @@ name: <unique-name>                    # mandatory
 proposition: "<one-sentence claim>"   # V1: mandatory, non-empty
 register: fact|hypothesis|judgment|unknown  # V3: mandatory
 state: draft|applied|reviewed|retired|abandoned  # V4: mandatory
-superseded_by: agents-protocol-v2
+superseded_by: agents-protocol-v2-1
 actor: human|agent|system             # V5: mandatory
 confidence: <0.0-1.0>                 # mandatory; bounded by register
 beneficiary: <enum>|Other(text)       # optional (default: System)
@@ -139,3 +139,4 @@ the convention's invariant.
 The canonical source for this protocol is the `AGENTS.md` file at
 the project root, generated from this packet by `mathc render`.
 Edit this packet via `supersede`, not the rendered file.
+
