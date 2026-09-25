@@ -624,8 +624,37 @@ let cmd_status () =
    Wiring is in core/render.ml; main.ml only dispatches. *)
 let cmd_render () = Render.cmd_render ()
 
-(* review: transition to reviewed state (signed). *)
+(* review: transition to reviewed state. In Strict signing mode
+   the witness commit must be signed; in Lenient mode an unsigned
+   witness produces a warning but the transition still happens; in
+   Off mode no signing check is performed. *)
 let rec cmd_review name =
+  let dir = Filename.concat "math" name in
+  if not (Sys.file_exists dir) then begin
+    Printf.printf "error: packet does not exist (%s)\n" name;
+    exit 1
+  end;
+  let parsed = Parse.parse_packet ~rel_path:(Filename.basename dir) dir in
+  (match parsed, Signing.mode () with
+   | Ok d, Signing.Strict ->
+       (match d.witness with
+        | None ->
+            Printf.printf "error: cannot review %s: no witness\n" name;
+            exit 1
+        | Some w ->
+            if Repo.verify_commit_signature w.sha = None then begin
+              Printf.printf "error: cannot review %s: witness commit %s is unsigned\n"
+                name w.sha;
+              Printf.printf "  hint: set SIGNING_MODE=off in .mathrc, or sign the witness commit\n";
+              exit 1
+            end)
+   | Ok d, Signing.Lenient ->
+       (match d.witness with
+        | Some w when Repo.verify_commit_signature w.sha = None ->
+            Printf.printf "warning: witness commit %s is unsigned (Lenient mode allows this transition)\n"
+              w.sha
+        | _ -> ())
+   | _ -> ());
   cmd_transition name "reviewed"
 
 (* transition: change the FSM state of a packet. *)
@@ -669,7 +698,7 @@ let cmd_help () =
   Printf.printf "  check                    verify all packets (V1..V7)\n";
   Printf.printf "  status                   JSON: state + next_steps\n";
   Printf.printf "  render                   generate HTML site\n";
-  Printf.printf "  review <name>            transition to state: reviewed (signed)\n";
+  Printf.printf "  review <name>            transition to state: reviewed (Strict mode requires signed witness)\n";
   Printf.printf "  transition <name> <s>    change FSM state (draft|applied|reviewed|retired|abandoned)\n";
   Printf.printf "  find <substring>         search packets by substring\n";
   Printf.printf "  grep <pattern>           grep over proposition and name\n";
