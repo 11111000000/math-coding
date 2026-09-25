@@ -184,6 +184,48 @@ let test_v1_empty_proposition () =
   let vs = Check.check_structure d in
   assert_verdict ~label:"empty-prop" vs Types.Fail
 
+(* --- V5 actor/signing -- *)
+
+let test_v5_strict_unsigned () =
+  Printf.printf "V5: strict + unsigned witness must fail\n";
+  let d = mk_decision () in
+  let is_signed _ = false in
+  let vs = Check.check_actor_with ~is_signed Signing.Strict d in
+  assert_verdict ~label:"strict-unsigned" vs Types.Fail
+
+let test_v5_strict_signed () =
+  Printf.printf "V5: strict + signed witness must pass\n";
+  let d = mk_decision () in
+  let is_signed _ = true in
+  let vs = Check.check_actor_with ~is_signed Signing.Strict d in
+  assert_verdict ~label:"strict-signed" vs Types.Pass
+
+let test_v5_lenient_unsigned () =
+  Printf.printf "V5: lenient + unsigned witness must warn\n";
+  let d = mk_decision () in
+  let is_signed _ = false in
+  let vs = Check.check_actor_with ~is_signed Signing.Lenient d in
+  assert_verdict ~label:"lenient-unsigned" vs Types.Warn
+
+let test_v5_off_unsigned () =
+  Printf.printf "V5: off + unsigned witness must pass\n";
+  let d = mk_decision () in
+  let is_signed _ = false in
+  let vs = Check.check_actor_with ~is_signed Signing.Off d in
+  assert_verdict ~label:"off-unsigned" vs Types.Pass
+
+let test_v5_no_witness () =
+  Printf.printf "V5: no witness; signing verdict is Pass in any mode\n";
+  let base = mk_decision ~state:Types.SDraft () in
+  let d = { base with witness = None } in
+  let is_signed _ = false in
+  let vs_s = Check.check_actor_with ~is_signed Signing.Strict d in
+  let vs_l = Check.check_actor_with ~is_signed Signing.Lenient d in
+  let vs_o = Check.check_actor_with ~is_signed Signing.Off d in
+  assert_verdict ~label:"no-witness-strict" vs_s Types.Pass;
+  assert_verdict ~label:"no-witness-lenient" vs_l Types.Pass;
+  assert_verdict ~label:"no-witness-off" vs_o Types.Pass
+
 (* --- runner --- *)
 
 let () =
@@ -208,4 +250,9 @@ let () =
   test_v4_reviewed_without_witness ();
   test_v4_applied_without_witness ();
   test_v1_empty_proposition ();
+  test_v5_strict_unsigned ();
+  test_v5_strict_signed ();
+  test_v5_lenient_unsigned ();
+  test_v5_off_unsigned ();
+  test_v5_no_witness ();
   summary ()

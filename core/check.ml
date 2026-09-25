@@ -84,11 +84,12 @@ let check_fsm decision =
   | SAbandoned, _ ->
       [Pass, "V4: state=abandoned"]
 
-(* V5: actor discipline. Three signing modes from .mathrc. *)
-let check_actor decision =
-  let mode = Signing.mode () in
-  let actor_str = actor_to_string decision.actor in
-  let reg_str = register_to_string decision.register in
+(* V5: actor discipline. Three signing modes from .mathrc.
+   Off: ignore signing entirely.
+   Lenient: Warn if a witness exists but its commit is unsigned.
+   Strict: Fail if a witness exists but its commit is unsigned.
+   Without a witness, all three modes pass (no signature to check). *)
+let check_actor_with ~is_signed mode decision =
   let base_warnings = ref [] in
   if decision.actor = AAgent && decision.register = RFact then begin
     base_warnings := (Warn, "V5: actor=agent + register=fact (agent should not assert fact without evidence)") :: !base_warnings
@@ -96,20 +97,31 @@ let check_actor decision =
   if decision.actor = AAgent && decision.state = SReviewed then begin
     base_warnings := (Warn, "V5: actor=agent + state=reviewed (reviewed requires human sign-off)") :: !base_warnings
   end;
-  let mode_verdict = match mode with
-    | Signing.Strict ->
-        if decision.witness <> None then
-          Pass, "V5: strict mode: signing accepted"
-        else
-          Pass, "V5: strict mode: no witness yet"
-    | Signing.Lenient ->
-        Pass, "V5: lenient mode: signing optional"
-    | Signing.Off ->
-        Pass, "V5: off mode: signing ignored"
+  let signing_verdict = match decision.witness with
+    | None ->
+        Pass, "V5: no witness; signing not yet applicable"
+    | Some w ->
+        let signed = is_signed w.sha in
+        match mode with
+        | Signing.Off ->
+            Pass, "V5: off mode; signature not checked"
+        | Signing.Lenient ->
+            if signed then
+              Pass, "V5: lenient mode; witness commit is signed"
+            else
+              Warn, "V5: lenient mode; witness commit is unsigned"
+        | Signing.Strict ->
+            if signed then
+              Pass, "V5: strict mode; witness commit is signed"
+            else
+              Fail, "V5: strict mode; witness commit is unsigned"
   in
-  let _ = actor_str in
-  let _ = reg_str in
-  mode_verdict :: !base_warnings
+  signing_verdict :: !base_warnings
+
+(* Production entry point: ask git whether the witness commit is signed. *)
+let check_actor decision =
+  let is_signed sha = Repo.verify_commit_signature sha <> None in
+  check_actor_with ~is_signed (Signing.mode ()) decision
 
 (* V6: supersession SPO. Walks superseded_by graph from all
    decisions and detects cycles, self-loops, and broken links. *)

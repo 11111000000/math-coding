@@ -1,0 +1,10 @@
+# math-coding v2.1 configuration for the math-coding project itself.
+#
+# This project does not sign commits (the bot account math-coding-bot
+# has no GPG/SSH signing key configured), so V5 strict/lenient would
+# surface warnings on every packet. Set OFF explicitly.
+#
+# Projects that DO sign commits should set SIGNING_MODE to "lenient"
+# (warn on unsigned witness) or "strict" (fail).
+
+SIGNING_MODE: off
