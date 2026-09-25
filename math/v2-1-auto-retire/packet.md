@@ -3,7 +3,7 @@ schema_version: "2.1"
 name: v2-1-auto-retire
 proposition: "mathc supersede automatically marks the old packet as state=retired and writes superseded_by, eliminating the applied-but-superseded limbo."
 register: judgment
-state: draft
+state: applied
 actor: human
 confidence: 1.00
 kind: policy
@@ -30,3 +30,4 @@ Auto-modifying state without explicit consent surprises users; manual retire via
 ## Synthesis
 
 Supersession is by definition a state change. Auto-retire is the natural extension; users opt out by editing OLD manually after supersede.
+

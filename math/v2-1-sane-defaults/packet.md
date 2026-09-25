@@ -3,7 +3,7 @@ schema_version: "2.1"
 name: v2-1-sane-defaults
 proposition: ".mathrc is optional; without it, defaults (SIGNING_MODE=off, AUTO_AMEND=true, DIALECTIC_REQUIRED.judgment=[Why,Antithesis,Synthesis]) apply."
 register: judgment
-state: draft
+state: applied
 actor: human
 confidence: 1.00
 kind: policy
@@ -30,3 +30,4 @@ Hidden defaults make it harder to understand why the kernel behaves a certain wa
 ## Synthesis
 
 .mathrc is opt-in for overrides; cmd_init writes defaults explicitly so users see what they're accepting.
+

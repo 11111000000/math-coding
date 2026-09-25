@@ -3,7 +3,7 @@ schema_version: "2.1"
 name: v2-1-kind-field
 proposition: "Packets declare kind: axiom|policy|fix|experiment; default=policy. Used for filtering, visual differentiation, and lifecycle."
 register: judgment
-state: draft
+state: applied
 actor: human
 confidence: 1.00
 kind: policy
@@ -30,3 +30,4 @@ kind is another axis; with register, state, actor, beneficiary, schema gets crow
 ## Synthesis
 
 kind is essential for scale; without it, fix and policy are indistinguishable in listings. The cost of one extra field is small.
+

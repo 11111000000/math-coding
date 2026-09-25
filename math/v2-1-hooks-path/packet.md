@@ -3,7 +3,7 @@ schema_version: "2.1"
 name: v2-1-hooks-path
 proposition: "Pre-commit hook lives in .git-hooks/ and is configured via 'git config core.hooksPath .git-hooks'; ships with the repo instead of being local."
 register: judgment
-state: draft
+state: applied
 actor: human
 confidence: 1.00
 kind: policy
@@ -30,3 +30,4 @@ core.hooksPath affects all clones globally for that repo; some developers prefer
 ## Synthesis
 
 Local repo-level config is the right scope: convention enforcement for this repo only; developers retain global hook freedom.
+

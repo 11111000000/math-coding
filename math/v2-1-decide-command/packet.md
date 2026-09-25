@@ -3,7 +3,7 @@ schema_version: "2.1"
 name: v2-1-decide-command
 proposition: "mathc decide creates, applies, and witnesses a packet in one command, replacing the manual record+commit+amend+commit flow."
 register: judgment
-state: draft
+state: applied
 actor: human
 confidence: 1.00
 kind: policy
@@ -30,3 +30,4 @@ Combining steps hides failures: if witness commit fails, user thinks packet is a
 ## Synthesis
 
 One command is preferred because the steps are deterministic and failures are recoverable; --no-commit flag preserves the manual flow for edge cases.
+

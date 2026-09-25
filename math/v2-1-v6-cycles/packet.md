@@ -3,7 +3,7 @@ schema_version: "2.1"
 name: v2-1-v6-cycles
 proposition: "Kernel walks the superseded_by graph and returns Fail V6 on cycles, self-loops, and broken links; previously a known divergence."
 register: judgment
-state: draft
+state: applied
 actor: human
 confidence: 1.00
 kind: policy
@@ -30,3 +30,4 @@ Detection is too late: by the time check runs, the cycle is committed to git. Pr
 ## Synthesis
 
 Detection is a safety net for prevention; mathc supersede never creates cycles, but external edits could. Detection closes the gap.
+

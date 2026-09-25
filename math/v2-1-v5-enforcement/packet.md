@@ -3,7 +3,7 @@ schema_version: "2.1"
 name: v2-1-v5-enforcement
 proposition: "Packets with register=judgment must have non-empty ## Why, ## Antithesis, ## Synthesis sections; kernel returns Fail V7 otherwise."
 register: judgment
-state: draft
+state: applied
 actor: human
 confidence: 1.00
 kind: policy
@@ -30,3 +30,4 @@ Body sections are stylistic; some judgments don't need full dialectic (e.g., 'th
 ## Synthesis
 
 Enforce only for register=judgment; for hypothesis/fact/unknown, body is free Markdown. Empty bodies are still allowed.
+

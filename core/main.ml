@@ -241,7 +241,7 @@ let cmd_decide name (proposition : string) flags_and_rest =
     let _ = Sys.command ("mkdir -p " ^ dir) in
     let packet_md = Filename.concat dir "packet.md" in
     let oc = open_out packet_md in
-    write_frontmatter oc ~schema:"2.1" ~state:"draft" ~name ~proposition
+    write_frontmatter oc ~schema:"2.1" ~state:"applied" ~name ~proposition
       ~register ~actor ~confidence ~kind ~superseded_by:None ~beneficiary ();
     write_body oc ?why ?care ?thesis ?antithesis ?synthesis ?notes ();
     close_out oc;
@@ -308,7 +308,7 @@ let cmd_record name (proposition : string) =
   end;
   Printf.printf "done.\n"
 
-(* amend: set witness to current HEAD. *)
+(* amend: set witness to current HEAD; transitions draft->applied. *)
 let cmd_amend name =
   let dir = Filename.concat "math" name in
   if not (Sys.file_exists dir) then begin
@@ -320,6 +320,24 @@ let cmd_amend name =
   let today = Repo.today () in
   let witness = Filename.concat dir "witness" in
   write_witness witness ~sha:head_sha ~date:today ~by:author;
+  (* If state is draft, transition to applied. *)
+  let packet_md = Filename.concat dir "packet.md" in
+  let ic = open_in packet_md in
+  let content = really_input_string ic (in_channel_length ic) in
+  close_in ic;
+  let lines = String.split_on_char '\n' content in
+  let state_replaced = ref false in
+  let updated =
+    List.map
+      (fun line ->
+        if String.starts_with ~prefix:"state:" (String.trim line) && not !state_replaced then begin
+          state_replaced := true;
+          "state: applied"
+        end else line)
+      lines in
+  let oc = open_out packet_md in
+  List.iter (fun l -> output_string oc l; output_char oc '\n') updated;
+  close_out oc;
   Printf.printf "mathc amend: %s\n" name;
   Printf.printf "  wrote: %s (sha=%s)\n" witness head_sha
 

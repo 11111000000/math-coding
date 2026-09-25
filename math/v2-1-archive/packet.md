@@ -3,7 +3,7 @@ schema_version: "2.1"
 name: v2-1-archive
 proposition: "mathc archive moves a packet to math/archived/<year>/<month>/<name>/; walker skips the tree by default, --include-archived opts in."
 register: judgment
-state: draft
+state: applied
 actor: human
 confidence: 1.00
 kind: policy
@@ -30,3 +30,4 @@ Archive creates an 'invisible' state that complicates grep/find; users may forge
 ## Synthesis
 
 Archive is preferred over deletion because git history is preserved; --include-archived is the escape hatch for discoverability.
+
