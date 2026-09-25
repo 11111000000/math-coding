@@ -22,3 +22,4 @@ superseded_by:
 
 Добавить минимальный escape-процессор: внутри double-quoted значения только backslash-quote → литеральная кавычка. Backslash+backslash НЕ схлопывается — иначе сломаются существующие пакеты вроде latex-textsc-rm, где backslash-textsc записано буквально. ~15 строк кода, два теста.
 
+
