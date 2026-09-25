@@ -53,7 +53,12 @@ let render_nav active =
       Printf.sprintf {|<a%s href="%s%s">%s</a>|} cls site_base href label)
     nav_links) in
   Printf.sprintf
-    {|<nav class="site-nav"><div class="nav-inner"><a class="brand" href="%s">math-coding</a>%s</div></nav>|}
+    {|<nav class="site-nav">
+<details class="nav-collapse">
+<summary class="nav-toggle" aria-label="Toggle navigation"><span aria-hidden="true">&#9776;</span></summary>
+<div class="nav-inner"><a class="brand" href="%s">math-coding</a>%s</div>
+</details>
+</nav>|}
     site_base items
 
 let render_footer =
@@ -84,6 +89,21 @@ let render_page ~nav_key ~title ~body =
 %s
 </main>
 %s
+<script>
+(function(){
+  var d=document.querySelector('details.nav-collapse');
+  if(d){
+    var s=d.querySelector('summary');
+    if(s){
+      s.addEventListener('click',function(){
+        setTimeout(function(){
+          s.setAttribute('aria-expanded',d.open?'true':'false');
+        },0);
+      });
+    }
+  }
+})();
+</script>
 </body>
 </html>|}
     site_base
