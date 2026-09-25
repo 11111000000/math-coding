@@ -1,6 +1,6 @@
 (library
  (name math_coding_core)
- (modules types repo lifecycle check parse migrate plugin current signing navigate render)
+ (modules types repo lifecycle check parse signing navigate render)
  (libraries unix str)
  (wrapped false))
 
