@@ -387,6 +387,7 @@ mjx-container, .katex-display, .MathJax_Display {
    expanding the parent or pushing siblings to new lines. */
 mjx-container:not([display="true"]) {
   display: inline-block !important;
+  max-width: none !important;
   overflow-x: auto !important;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -402,8 +403,9 @@ mjx-container:not([display="true"]):active { cursor: grabbing; }
 
 mjx-container[display="true"], .katex-display {
   /* Keep inline-block so surrounding text wraps with the formula
-     instead of getting pushed onto its own line. Centering via
-     margin:auto + text-align:center is the standard MathJax idiom. */
+     instead of getting pushed onto its own line. Center horizontally
+     in the parent; if the formula is wider than the viewport the
+     user can scroll the mjx-container itself to see the rest. */
   display: inline-block !important;
   text-align: center;
   padding: 0.5rem 0;
@@ -411,6 +413,10 @@ mjx-container[display="true"], .katex-display {
   max-width: 100% !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
+  /* Don't let the centered formula push the visible start off-screen
+     when it's wider than the viewport — anchor to the leading edge
+     so the user can scroll right to see the rest. */
+  text-align: left;
 }
 
 .MathJax_Display {
