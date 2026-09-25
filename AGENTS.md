@@ -1,136 +1,133 @@
-# AGENTS.md — protocol for AI agents in math-coding v2.0-Y
+# AGENTS.md — protocol for AI agents in math-coding v2.1
 
-When working on a math-coding project, you have a single
-binary `mathc` available. Use it to record non-trivial decisions
-as **packets** in `math/<name>/packet.md`.
+This packet documents how AI agents (LLM-driven coding tools) should
+interact with a math-coding project. The protocol is auto-installed
+by `mathc init` and supersedes the previous v2.0-Y AGENTS.md.
 
-## When to use
+## When to record a decision
 
-If a code change is more than a typo or a rename — if a reviewer
-would reasonably ask "why this and not that" — create a packet:
+If a code change is more than a typo or rename — if a reviewer
+would reasonably ask "why this and not that" — record a packet:
 
 ```sh
-mathc record NAME "single-sentence proposition"
-git add math/NAME/ && git commit -m "NAME: short description"
-mathc amend NAME              # set witness to current HEAD
-git add math/NAME/witness && git commit -m "NAME: witness"
-mathc check
+mathc decide NAME "single-sentence proposition" --register=judgment \
+  --antithesis="..." --synthesis="..."
 ```
 
-If the change is trivial, just commit — no packet needed.
+This single command creates the packet, commits it, sets the
+witness, and commits the witness. Done.
 
-## Frontmatter (9 fields, 6 mandatory)
+For trivial changes (renames, typos, formatting), just commit —
+no packet needed.
+
+## Frontmatter (10 fields)
 
 ```yaml
 ---
-schema_version: "2.0"                 # V7: mandatory
+schema_version: "2.1"                 # V7: mandatory
 name: <unique-name>                    # mandatory
 proposition: "<one-sentence claim>"   # V1: mandatory, non-empty
 register: fact|hypothesis|judgment|unknown  # V3: mandatory
 state: draft|applied|reviewed|retired|abandoned  # V4: mandatory
-superseded_by: <name>|""              # V6: mandatory (empty if none)
 actor: human|agent|system             # V5: mandatory
-confidence: <0.0-1.0>                  # mandatory; bounded by register
-beneficiary: <enum>|Other(text)        # optional (default: System)
+confidence: <0.0-1.0>                 # mandatory; bounded by register
+kind: axiom|policy|fix|experiment     # for filtering; default: policy
+superseded_by: <name>|""              # only present when superseded
+beneficiary: <enum>|Other(text)       # optional (default: System)
 ---
 ```
 
-## Verify
+## Body sections
 
-After any commit that touches `math/`:
+For `register: judgment` packets, the following sections are
+**required** (V7: dialectic-tas):
+
+- `## Why` — motivation, one paragraph
+- `## Antithesis` — strongest objection
+- `## Synthesis` — how thesis and antithesis resolve
+
+For `register: hypothesis`/`fact`/`unknown` packets, body is free
+Markdown. Empty body is allowed.
+
+## Commands
 
 ```sh
-mathc check                     # structure + lifecycle + substrate
+mathc decide NAME "prop" [opts]   # one-step: create + commit + amend + commit
+mathc record NAME "prop"          # legacy: two-step (record, commit, amend, commit)
+mathc amend NAME                  # set witness to current HEAD
+mathc supersede OLD NEW "..."     # replace decision; auto-retires OLD
+mathc mark-superseded OLD NEW     # link OLD to existing NEW (no NEW create)
+mathc archive NAME                # move to math/archived/<year>/<month>/
+mathc note "comment"              # trivial packet (no witness, register=unknown)
+mathc check                       # verify all packets
+mathc list                        # only active (default)
+mathc list --all                  # including archived
+mathc find <substr>               # search proposition
+mathc show <name>                 # full packet (frontmatter + body)
+mathc history <name>              # git log + supersession chain
+mathc graph <name>                # mermaid supersession graph
+mathc stats                       # applied/retired breakdown
+```
+
+## Six lifecycle verdicts
+
+- `Pass` — packet is structurally valid
+- `Warn` — convention recommends action
+- `Fail` — convention violated; fix before commit
+- `Skip` — packet skipped by configuration
+
+Lifecycles: `Draft` (no witness) → `Applied` (witness matches
+proposition) → `Drift` (proposition changed after witness) →
+`Stale` (witness commit unreadable).
+
+## Verify
+
+```sh
+mathc check                     # structure + lifecycle + FSM + register + dialectic + cycles
 mathc check --json              # machine-parseable
 ```
 
-A `Fail` verdict means the proposition was edited after witnessing
-without supersession; fix with `mathc supersede NAME NAME-v2 "new prop"`.
+A `Fail` verdict means the convention was violated. Common fixes:
 
-## Navigate
+- `V4 Fail` (state=draft but witness present): run `mathc amend NAME`
+- `V7 Fail` (judgment missing dialectic): add `## Why`/`## Antithesis`/`## Synthesis`
+- `V6 Fail` (supersession cycle): remove the cycle via `mark-superseded`
 
-```sh
-mathc list                       # all packets with lifecycle
-mathc find <substring>           # search by name/proposition
-mathc grep <pattern>             # grep over proposition
-mathc show <name>                # full packet (frontmatter + body)
-mathc history <name>             # git log + supersession chain
-mathc graph <name>               # mermaid supersession diagram
-mathc stats                      # drift rate, applied/total, chains
-```
-
-## State transitions (V4)
-
-States are: `draft` (no witness) → `applied` (witness set) →
-`reviewed` (human signed) → `retired` or `abandoned` (terminal).
-
-Use:
-```sh
-mathc transition NAME applied
-mathc review NAME              # alias for transition reviewed
-mathc transition NAME retired
-```
-
-Forbidden transition: `draft → reviewed` without witness (V4 Fail).
-
-## Supersession (V6)
+## Supersession (V6 SPO)
 
 When proposition changes, never edit `packet.md` in place. Use:
 
 ```sh
 mathc supersede OLD NEW "new proposition"
-git add math/NEW/ && git commit -m "NEW: ..."
-mathc amend NEW
-git add math/NEW/witness && git commit
+# or, if NEW already exists:
+mathc mark-superseded OLD NEW
 ```
 
 Supersession is a strict partial order (irreflexive, asymmetric,
-transitive). Cycles are forbidden.
+transitive). Cycles are detected by V6.
 
-## Six lifecycle verdicts
+## Sane defaults (.mathrc is optional)
 
-| Verdict | Meaning |
-|---------|---------|
-| `Pass`  | Packet is structurally valid and consistent |
-| `Warn`  | Convention recommends action (drift, missing field, FSM warning) |
-| `Fail`  | Convention violated; fix before commit |
-| `Skip`  | Packet skipped by configuration |
+Without `.mathrc`, defaults apply:
 
-| Lifecycle | Meaning |
-|-----------|---------|
-| `Draft`   | No witness |
-| `Applied` | Witness + proposition matches at witness commit |
-| `Drift`   | Witness + proposition changed after witness |
-| `Stale`   | Witness commit missing files or unreadable |
+- `SIGNING_MODE: off` (signatures not checked)
+- `AUTO_AMEND: true` (decide auto-commits witness)
+- `FACT_POLICY: warn` (agent+fact without evidence is a warning)
+- `DIALECTIC_REQUIRED.judgment: [Why, Antithesis, Synthesis]`
 
-## Signing modes (.mathrc)
+Override via `.mathrc` if you need strict signing, fail-on-fact, or
+custom dialectic requirements.
 
-```yaml
-SIGNING_MODE: lenient   # strict | lenient | off
-AUTO_AMEND: true        # auto-set witness after commit
-AUTO_RECORD_PROMPT: true  # suggest packets for agent-driven decisions
-```
+## Self-application
 
-- `strict`: every witness commit must be GPG/SSH signed
-- `lenient`: only the amend commit needs a signature
-- `off`: signatures ignored
-
-## Do not
-
-- Edit `packet.md` after witnessing without `supersede`.
-- Create a packet with empty `proposition`.
-- Skip `amend` after commit; the packet stays `draft` until witnessed.
-- Create `state: reviewed` without witness (V4 Fail).
-- Claim `register: fact` as an agent; use `hypothesis` (V5 Warn).
-- Add fields outside the schema; `frontmatter` has exactly 9 keys.
+The five foundations (`math/{curry-howard,temporal,constructive,categorical,motivation}`)
+and three extensions (`math/{process-fsm,dialectic-tas,actor-discipline}`)
+are themselves packets. `mathc check` verifies them with the same
+kernel. Convention applies to itself: this protocol is part of
+the convention's invariant.
 
 ## Source of truth
 
-The repository's `core/`, `math/modeling/`, `MANIFESTO.md`,
-`FOUNDATIONS.md`, `WORKFLOW.md`, and `FAQ.md` are the source of
-truth. This snippet is auto-generated from
-`docs/agents-protocol.md` (regenerated by `mathc render`).
-
-Convention applies to itself: this protocol is itself a
-**packet** (`math/agents-protocol/`) — edit via supersede, not
-in place.
+The canonical source for this protocol is the
+`agents-protocol-v2-1` packet in `math/`. Edit that packet via
+`supersede`, not the rendered file.
