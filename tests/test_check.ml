@@ -272,4 +272,5 @@ let () =
   test_v5_no_witness ();
   test_summarize_skip_is_not_fail ();
   Test_render.run ();
+  Test_lifecycle.run ();
   summary ()
