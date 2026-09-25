@@ -152,13 +152,12 @@ let cmd_init args =
   in
   Printf.printf "mathc init: project=%s\n" project_name;
   if not !dry_run then begin
-    let _ = Sys.command "mkdir -p math math/archived" in
+    let _ = run_cmd ["mkdir"; "-p"; "math"; "math/archived"] in
     if not (Sys.file_exists ".mathrc") then begin
       let oc = open_out ".mathrc" in
       Printf.fprintf oc "# math-coding v2.1 configuration\n";
       Printf.fprintf oc "# All fields are optional; sane defaults apply if .mathrc is absent.\n";
       Printf.fprintf oc "\n";
-      Printf.fprintf oc "SCHEMA_VERSION: \"2.1\"\n";
       Printf.fprintf oc "SIGNING_MODE: off           # strict | lenient | off\n";
       Printf.fprintf oc "AUTO_AMEND: true            # mathc decide auto-amends witness\n";
       Printf.fprintf oc "FACT_POLICY: warn           # fail | warn | off — agent+fact without evidence\n";
@@ -176,7 +175,7 @@ let cmd_init args =
       close_out oc;
       Printf.printf "  wrote: .mathrc (sane defaults)\n"
     end;
-    let _ = Sys.command "mkdir -p .git-hooks" in
+    let _ = run_cmd ["mkdir"; "-p"; ".git-hooks"] in
     let hook = ".git-hooks/pre-commit" in
     if not (Sys.file_exists hook) then begin
       let oc = open_out hook in
@@ -185,10 +184,10 @@ let cmd_init args =
       Printf.fprintf oc "# Runs from project root; aborts commit if mathc check fails.\n";
       Printf.fprintf oc "exec mathc check --strict\n";
       close_out oc;
-      let _ = Sys.command ("chmod +x " ^ hook) in
+      let _ = run_cmd ["chmod"; "+x"; hook] in
       Printf.printf "  wrote: %s\n" hook
     end;
-    let _ = Sys.command "git config core.hooksPath .git-hooks" in
+    let _ = run_cmd ["git"; "config"; "core.hooksPath"; ".git-hooks"] in
     Printf.printf "  set: git config core.hooksPath .git-hooks\n"
   end;
   Printf.printf "done.\n"
