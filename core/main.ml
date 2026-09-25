@@ -1,10 +1,13 @@
-(* core/main.ml — mathc CLI for math-coding v2.0-Y.
+(* core/main.ml — mathc CLI for math-coding v2.1.
 
    Commands:
-     init [name]              bootstrap (math/, .mathrc, pre-commit)
-     record <name> <prop>     create packet
-     amend <name>             update witness to HEAD
-     supersede <old> <new>    replace decision
+     init [name]              bootstrap (math/, .mathrc, .git-hooks/pre-commit)
+     decide <name> <prop>     create + commit + amend + commit (one step)
+     record <name> <prop>     create packet (legacy two-step flow)
+     amend <name>             update witness to current HEAD
+     supersede <old> <new>    replace decision (auto-retires old)
+     archive <name>           move to math/archived/<year>/<month>/
+     note <text>              create a trivial packet (no witness)
      check                    verify all packets
      status                   JSON state + next_steps
      render                   generate HTML site
@@ -66,56 +69,212 @@ let rel_path_of dir =
     else find_math (i + 1) path
   in
   let dir_str : string = dir in
-  let result : string =
-    match find_math 0 dir_str with
-    | None -> Filename.basename dir
-    | Some i ->
-        let after = String.sub dir_str (i + 5) (String.length dir_str - i - 5) in
-        let len = String.length after in
-        if len > 0 && after.[len - 1] = '/' then
-          String.sub after 0 (len - 1)
-        else after
+  match find_math 0 dir_str with
+  | None -> Filename.basename dir
+  | Some i ->
+      let after = String.sub dir_str (i + 5) (String.length dir_str - i - 5) in
+      let len = String.length after in
+      if len > 0 && after.[len - 1] = '/' then
+        String.sub after 0 (len - 1)
+      else after
+
+(* --- helpers --- *)
+
+(* Write a frontmatter block. *)
+let write_frontmatter oc ?(schema="2.1") ?(state="applied") ~name ~proposition
+    ~register ~actor ~confidence ~kind ~superseded_by ~beneficiary () =
+  Printf.fprintf oc "---\n";
+  Printf.fprintf oc "schema_version: \"%s\"\n" schema;
+  Printf.fprintf oc "name: %s\n" name;
+  Printf.fprintf oc "proposition: \"%s\"\n" proposition;
+  Printf.fprintf oc "register: %s\n" register;
+  Printf.fprintf oc "state: %s\n" state;
+  Printf.fprintf oc "actor: %s\n" actor;
+  Printf.fprintf oc "confidence: %.2f\n" confidence;
+  Printf.fprintf oc "kind: %s\n" kind;
+  Printf.fprintf oc "beneficiary: %s\n" beneficiary;
+  (match superseded_by with
+   | Some s -> Printf.fprintf oc "superseded_by: %s\n" s
+   | None -> Printf.fprintf oc "superseded_by:\n");
+  Printf.fprintf oc "---\n"
+
+(* Write body sections. *)
+let write_body oc ?why ?care ?thesis ?antithesis ?synthesis ?notes () =
+  let emit name content =
+    Printf.fprintf oc "\n## %s\n\n%s\n" name content
   in
-  result
+  let emit_if name = function
+    | Some s when s <> "" -> emit name s
+    | _ -> ()
+  in
+  emit_if "Why" why;
+  emit_if "Care" care;
+  emit_if "Thesis" thesis;
+  emit_if "Antithesis" antithesis;
+  emit_if "Synthesis" synthesis;
+  emit_if "Notes" notes
+
+(* Write a witness file. *)
+let write_witness path ~sha ~date ~by =
+  let oc = open_out path in
+  Printf.fprintf oc "sha: %s\n" sha;
+  Printf.fprintf oc "date: %s\n" date;
+  Printf.fprintf oc "by: %s\n" by;
+  close_out oc
+
+(* Run a shell command silently; return exit code. *)
+let run_silent cmd =
+  let _ = Sys.command cmd in 0
 
 (* Commands. *)
 
-(* init: bootstrap math/, .mathrc, pre-commit hook. *)
+(* init: bootstrap math/, .mathrc, .git-hooks/pre-commit. *)
 let cmd_init args =
   let project_name = match args with
     | [] -> Filename.basename (Sys.getcwd ())
     | name :: _ -> name
   in
   Printf.printf "mathc init: project=%s\n" project_name;
-  Printf.printf "  creates: math/, .mathrc, .git/hooks/pre-commit\n";
   if not !dry_run then begin
-    let _ = Sys.command "mkdir -p math" in
+    let _ = Sys.command "mkdir -p math math/archived" in
     if not (Sys.file_exists ".mathrc") then begin
       let oc = open_out ".mathrc" in
-      Printf.fprintf oc "# math-coding v2.0-Y configuration\n";
-      Printf.fprintf oc "SCHEMA_VERSION: \"2.0\"\n";
-      Printf.fprintf oc "SIGNING_MODE: lenient\n";
-      Printf.fprintf oc "AUTO_AMEND: true\n";
-      Printf.fprintf oc "AUTO_RECORD_PROMPT: true\n";
-      Printf.fprintf oc "SUBSTRATE_DEFAULT: none\n";
-      Printf.fprintf oc "STRICT_DRIFT_CHECK: false\n";
-      Printf.fprintf oc "DEFAULT_JSON: false\n";
+      Printf.fprintf oc "# math-coding v2.1 configuration\n";
+      Printf.fprintf oc "# All fields are optional; sane defaults apply if .mathrc is absent.\n";
+      Printf.fprintf oc "\n";
+      Printf.fprintf oc "SCHEMA_VERSION: \"2.1\"\n";
+      Printf.fprintf oc "SIGNING_MODE: off           # strict | lenient | off\n";
+      Printf.fprintf oc "AUTO_AMEND: true            # mathc decide auto-amends witness\n";
+      Printf.fprintf oc "FACT_POLICY: warn           # fail | warn | off — agent+fact without evidence\n";
+      Printf.fprintf oc "DRAFT_STALE_DAYS: 90        # warn if draft older than this\n";
+      Printf.fprintf oc "\n";
+      Printf.fprintf oc "DIALECTIC_REQUIRED:\n";
+      Printf.fprintf oc "  judgment: [Why, Antithesis, Synthesis]\n";
+      Printf.fprintf oc "  hypothesis: []\n";
+      Printf.fprintf oc "  fact: []\n";
+      Printf.fprintf oc "  unknown: []\n";
+      Printf.fprintf oc "\n";
+      Printf.fprintf oc "KIND_DEFAULT: policy        # axiom | policy | fix | experiment\n";
+      Printf.fprintf oc "BENEFICIARY_DEFAULT: system # user | developer | team | future_self | system\n";
+      Printf.fprintf oc "ACTOR_DEFAULT: agent        # human | agent | system\n";
       close_out oc;
-      Printf.printf "  wrote: .mathrc\n"
+      Printf.printf "  wrote: .mathrc (sane defaults)\n"
     end;
-    let _ = Sys.command "mkdir -p .git/hooks" in
-    let hook = ".git/hooks/pre-commit" in
-    let oc = open_out hook in
-    Printf.fprintf oc "#!/bin/sh\n";
-    Printf.fprintf oc "# mathc pre-commit hook — auto-installed by 'mathc init'\n";
-    Printf.fprintf oc "exec mathc check --staged --strict\n";
-    close_out oc;
-    let _ = Sys.command ("chmod +x " ^ hook) in
-    Printf.printf "  wrote: %s\n" hook
+    let _ = Sys.command "mkdir -p .git-hooks" in
+    let hook = ".git-hooks/pre-commit" in
+    if not (Sys.file_exists hook) then begin
+      let oc = open_out hook in
+      Printf.fprintf oc "#!/bin/sh\n";
+      Printf.fprintf oc "# mathc pre-commit hook — auto-installed by 'mathc init'.\n";
+      Printf.fprintf oc "# Runs from project root; aborts commit if mathc check fails.\n";
+      Printf.fprintf oc "exec mathc check --strict\n";
+      close_out oc;
+      let _ = Sys.command ("chmod +x " ^ hook) in
+      Printf.printf "  wrote: %s\n" hook
+    end;
+    let _ = Sys.command "git config core.hooksPath .git-hooks" in
+    Printf.printf "  set: git config core.hooksPath .git-hooks\n"
   end;
   Printf.printf "done.\n"
 
-(* record: create a packet. *)
+(* Parse --key=value from a list of args. *)
+let parse_kv_flags args =
+  let rec loop acc = function
+    | [] -> List.rev acc, []
+    | arg :: rest when String.length arg > 2 && String.sub arg 0 2 = "--" ->
+        let eq = String.index_opt arg '=' in
+        (match eq with
+         | Some i ->
+             let k = String.sub arg 2 (i - 2) in
+             let v = String.sub arg (i + 1) (String.length arg - i - 1) in
+             loop ((k, v) :: acc) rest
+         | None -> List.rev acc, arg :: rest)
+    | x :: rest -> List.rev acc, x :: rest
+  in
+  loop [] args
+
+let lookup_opt key pairs =
+  List.assoc_opt key pairs
+
+(* decide: one-step record + commit + amend + commit. *)
+let cmd_decide name (proposition : string) flags_and_rest =
+  if proposition = "" then begin
+    Printf.printf "error: proposition must be non-empty\n";
+    exit 1
+  end;
+  let kv, rest = parse_kv_flags flags_and_rest in
+  let register = match lookup_opt "register" kv with Some s -> s | None -> "hypothesis" in
+  let actor = match lookup_opt "actor" kv with
+    | Some s -> s
+    | None -> (match Signing.get "ACTOR_DEFAULT" with "" -> "human" | s -> s)
+  in
+  let confidence = match lookup_opt "confidence" kv with
+    | Some s -> (try float_of_string s with _ -> 0.7)
+    | None -> (match register with
+        | "fact" -> 0.95
+        | "judgment" -> 1.0
+        | "unknown" -> 0.0
+        | _ -> 0.7)
+  in
+  let kind = match lookup_opt "kind" kv with
+    | Some s -> s
+    | None -> (match Signing.get "KIND_DEFAULT" with "" -> "policy" | s -> s)
+  in
+  let beneficiary = match lookup_opt "beneficiary" kv with
+    | Some s -> s
+    | None -> (match Signing.get "BENEFICIARY_DEFAULT" with "" -> "system" | s -> s)
+  in
+  let why = lookup_opt "why" kv in
+  let care = lookup_opt "care" kv in
+  let thesis = lookup_opt "thesis" kv in
+  let antithesis = lookup_opt "antithesis" kv in
+  let synthesis = lookup_opt "synthesis" kv in
+  let notes = lookup_opt "notes" kv in
+  let no_commit = List.mem "--no-commit" rest in
+  let dir = Filename.concat "math" name in
+  if Sys.file_exists dir then begin
+    Printf.printf "error: packet already exists (%s)\n" name;
+    Printf.printf "  hint: use `mathc supersede %s <new> \"...\"` to replace\n" name;
+    exit 2
+  end;
+  if not !dry_run then begin
+    let _ = Sys.command ("mkdir -p " ^ dir) in
+    let packet_md = Filename.concat dir "packet.md" in
+    let oc = open_out packet_md in
+    write_frontmatter oc ~schema:"2.1" ~state:"applied" ~name ~proposition
+      ~register ~actor ~confidence ~kind ~superseded_by:None ~beneficiary ();
+    write_body oc ?why ?care ?thesis ?antithesis ?synthesis ?notes ();
+    close_out oc;
+    let head_sha = Repo.head () in
+    let author = Repo.head_author () in
+    let today = Repo.today () in
+    let witness = Filename.concat dir "witness" in
+    write_witness witness ~sha:head_sha ~date:today ~by:author;
+    if no_commit then begin
+      Printf.printf "mathc decide: %s (--no-commit, in working tree)\n" name
+    end else begin
+      let prop_short =
+        if String.length proposition > 60
+        then String.sub proposition 0 57 ^ "..."
+        else proposition
+      in
+      let _ = run_silent (Printf.sprintf "git add math/%s" name) in
+      let _ = run_silent (Printf.sprintf "git commit -m %S"
+        (Printf.sprintf "%s: %s" name prop_short)) in
+      let new_head = Repo.head () in
+      let new_author = Repo.head_author () in
+      let new_today = Repo.today () in
+      write_witness witness ~sha:new_head ~date:new_today ~by:new_author;
+      let _ = run_silent (Printf.sprintf "git add math/%s/witness" name) in
+      let _ = run_silent (Printf.sprintf "git commit -m %S"
+        (Printf.sprintf "%s: witness" name)) in
+      Printf.printf "mathc decide: %s applied\n" name;
+      Printf.printf "  witness: %s\n" new_head
+    end
+  end;
+  Printf.printf "done.\n"
+
+(* record: create a packet (legacy two-step flow). *)
 let cmd_record name (proposition : string) =
   if proposition = "" then begin
     Printf.printf "error: proposition must be non-empty\n";
@@ -131,33 +290,25 @@ let cmd_record name (proposition : string) =
     let _ = Sys.command ("mkdir -p " ^ dir) in
     let packet_md = Filename.concat dir "packet.md" in
     let oc = open_out packet_md in
-    Printf.fprintf oc "---\n";
-    Printf.fprintf oc "schema_version: \"2.0\"\n";
-    Printf.fprintf oc "name: %s\n" name;
-    Printf.fprintf oc "proposition: \"%s\"\n" proposition;
-    Printf.fprintf oc "register: hypothesis\n";
-    Printf.fprintf oc "state: draft\n";
-    Printf.fprintf oc "actor: human\n";
-    Printf.fprintf oc "confidence: 0.7\n";
-    Printf.fprintf oc "superseded_by:\n";
-    Printf.fprintf oc "---\n\n";
-    Printf.fprintf oc "## Why\n\n";
-    Printf.fprintf oc "## Care\n\n";
-    Printf.fprintf oc "## Thesis\n\n";
-    Printf.fprintf oc "## Antithesis\n\n";
-    Printf.fprintf oc "## Synthesis\n\n";
-    Printf.fprintf oc "## Notes\n";
+    let actor = Signing.get "ACTOR_DEFAULT" in
+    let kind = Signing.get "KIND_DEFAULT" in
+    let beneficiary = Signing.get "BENEFICIARY_DEFAULT" in
+    let register = "hypothesis" in
+    let confidence = 0.7 in
+    write_frontmatter oc ~schema:"2.1" ~state:"draft" ~name ~proposition
+      ~register ~actor:(if actor = "" then "human" else actor)
+      ~confidence ~kind:(if kind = "" then "policy" else kind)
+      ~superseded_by:None
+      ~beneficiary:(if beneficiary = "" then "system" else beneficiary) ();
+    write_body oc ();
     close_out oc;
     Printf.printf "mathc record: name=%s\n" name;
     Printf.printf "  wrote: %s\n" packet_md;
-    Printf.printf "  next: git add %s && git commit -m \"%s: ...\"\n" dir name;
-    Printf.printf "  next: mathc amend %s   (after commit, to set witness)\n" name;
-    if Signing.get "AUTO_AMEND" = "true" then
-      Printf.printf "  (.mathrc: AUTO_AMEND=true; consider 'mathc amend' after commit)\n"
+    Printf.printf "  tip: use `mathc decide %s \"...\"` for one-step record+commit+amend\n" name
   end;
   Printf.printf "done.\n"
 
-(* amend: set witness to current HEAD. *)
+(* amend: set witness to current HEAD; transitions draft->applied. *)
 let cmd_amend name =
   let dir = Filename.concat "math" name in
   if not (Sys.file_exists dir) then begin
@@ -168,20 +319,31 @@ let cmd_amend name =
   let author = Repo.head_author () in
   let today = Repo.today () in
   let witness = Filename.concat dir "witness" in
-  let oc = open_out witness in
-  Printf.fprintf oc "---\n";
-  Printf.fprintf oc "sha: %s\n" head_sha;
-  Printf.fprintf oc "date: %s\n" today;
-  Printf.fprintf oc "by: %s\n" author;
-  Printf.fprintf oc "---\n";
+  write_witness witness ~sha:head_sha ~date:today ~by:author;
+  (* If state is draft, transition to applied. *)
+  let packet_md = Filename.concat dir "packet.md" in
+  let ic = open_in packet_md in
+  let content = really_input_string ic (in_channel_length ic) in
+  close_in ic;
+  let lines = String.split_on_char '\n' content in
+  let state_replaced = ref false in
+  let updated =
+    List.map
+      (fun line ->
+        if String.starts_with ~prefix:"state:" (String.trim line) && not !state_replaced then begin
+          state_replaced := true;
+          "state: applied"
+        end else line)
+      lines in
+  let oc = open_out packet_md in
+  List.iter (fun l -> output_string oc l; output_char oc '\n') updated;
   close_out oc;
   Printf.printf "mathc amend: %s\n" name;
   Printf.printf "  wrote: %s (sha=%s)\n" witness head_sha
 
-(* supersede: replace decision. *)
+(* supersede: replace decision. Auto-retires the old packet. *)
 let cmd_supersede old new_name (proposition : string) =
   Printf.printf "mathc supersede: %s -> %s\n" old new_name;
-  Printf.printf "  proposition: %s\n" proposition;
   let old_dir = Filename.concat "math" old in
   let new_dir = Filename.concat "math" new_name in
   if not (Sys.file_exists old_dir) then begin
@@ -190,58 +352,140 @@ let cmd_supersede old new_name (proposition : string) =
   end;
   if Sys.file_exists new_dir then begin
     Printf.printf "  error: %s already exists\n" new_name;
+    Printf.printf "  hint: use `mathc mark-superseded %s %s` to link without creating\n" old new_name;
     exit 2
   end;
   if not !dry_run then begin
     let _ = Sys.command ("mkdir -p " ^ new_dir) in
     let packet_md = Filename.concat new_dir "packet.md" in
+    let oc = open_out packet_md in
+    write_frontmatter oc ~schema:"2.1" ~state:"draft" ~name:new_name
+      ~proposition ~register:"hypothesis" ~actor:"human"
+      ~confidence:0.7 ~kind:"policy" ~superseded_by:None
+      ~beneficiary:"system" ();
+    write_body oc ();
+    close_out oc;
     let head_sha = Repo.head () in
     let author = Repo.head_author () in
     let today = Repo.today () in
-    let oc = open_out packet_md in
-    Printf.fprintf oc "---\n";
-    Printf.fprintf oc "schema_version: \"2.0\"\n";
-    Printf.fprintf oc "name: %s\n" new_name;
-    Printf.fprintf oc "proposition: \"%s\"\n" proposition;
-    Printf.fprintf oc "register: hypothesis\n";
-    Printf.fprintf oc "state: draft\n";
-    Printf.fprintf oc "actor: human\n";
-    Printf.fprintf oc "confidence: 0.7\n";
-    Printf.fprintf oc "superseded_by:\n";
-    Printf.fprintf oc "---\n\n";
-    Printf.fprintf oc "## Why\n\n";
-    Printf.fprintf oc "## Care\n\n";
-    Printf.fprintf oc "## Thesis\n\n";
-    Printf.fprintf oc "## Antithesis\n\n";
-    Printf.fprintf oc "## Synthesis\n\n";
-    Printf.fprintf oc "## Notes\n";
-    close_out oc;
     let witness = Filename.concat new_dir "witness" in
-    let oc = open_out witness in
-    Printf.fprintf oc "---\n";
-    Printf.fprintf oc "sha: %s\n" head_sha;
-    Printf.fprintf oc "date: %s\n" today;
-    Printf.fprintf oc "by: %s\n" author;
-    Printf.fprintf oc "---\n";
-    close_out oc;
+    write_witness witness ~sha:head_sha ~date:today ~by:author;
+    (* Mark old packet: superseded_by + state=retired. *)
     let old_packet = Filename.concat old_dir "packet.md" in
     let ic = open_in old_packet in
     let content = really_input_string ic (in_channel_length ic) in
     close_in ic;
+    let lines = String.split_on_char '\n' content in
+    let replaced_state = ref false in
     let new_content =
-      let lines = String.split_on_char '\n' content in
       List.map
         (fun line ->
-          if String.starts_with ~prefix:"superseded_by:" (String.trim line) then
+          let trimmed = String.trim line in
+          if String.starts_with ~prefix:"superseded_by:" trimmed then
             "superseded_by: " ^ new_name
-          else line)
+          else if String.starts_with ~prefix:"state:" trimmed && not !replaced_state then begin
+            replaced_state := true;
+            "state: retired"
+          end else line)
         lines in
     let oc = open_out old_packet in
     List.iter (fun l -> output_string oc l; output_char oc '\n') new_content;
     close_out oc;
     Printf.printf "  wrote: %s\n" packet_md;
     Printf.printf "  wrote: %s\n" witness;
-    Printf.printf "  marked: %s superseded_by %s\n" old new_name
+    Printf.printf "  marked: %s superseded_by %s, state=retired\n" old new_name
+  end;
+  Printf.printf "done.\n"
+
+(* mark-superseded: link OLD to existing NEW (NEW already exists). *)
+let cmd_mark_superseded old new_name =
+  Printf.printf "mathc mark-superseded: %s -> %s\n" old new_name;
+  let old_dir = Filename.concat "math" old in
+  let new_dir = Filename.concat "math" new_name in
+  if not (Sys.file_exists old_dir) then begin
+    Printf.printf "  error: %s does not exist\n" old;
+    exit 1
+  end;
+  if not (Sys.file_exists new_dir) then begin
+    Printf.printf "  error: %s does not exist\n" new_name;
+    Printf.printf "  hint: use `mathc supersede %s %s \"...\"` to create it\n" old new_name;
+    exit 2
+  end;
+  if not !dry_run then begin
+    let old_packet = Filename.concat old_dir "packet.md" in
+    let ic = open_in old_packet in
+    let content = really_input_string ic (in_channel_length ic) in
+    close_in ic;
+    let lines = String.split_on_char '\n' content in
+    let replaced_state = ref false in
+    let new_content =
+      List.map
+        (fun line ->
+          let trimmed = String.trim line in
+          if String.starts_with ~prefix:"superseded_by:" trimmed then
+            "superseded_by: " ^ new_name
+          else if String.starts_with ~prefix:"state:" trimmed && not !replaced_state then begin
+            replaced_state := true;
+            "state: retired"
+          end else line)
+        lines in
+    let oc = open_out old_packet in
+    List.iter (fun l -> output_string oc l; output_char oc '\n') new_content;
+    close_out oc;
+    Printf.printf "  marked: %s superseded_by %s, state=retired\n" old new_name
+  end;
+  Printf.printf "done.\n"
+
+(* archive: move a packet to math/archived/<year>/<month>/<name>/. *)
+let cmd_archive name =
+  let dir = Filename.concat "math" name in
+  if not (Sys.file_exists dir) then begin
+    Printf.printf "error: packet does not exist (%s)\n" name;
+    exit 1
+  end;
+  let tm = Unix.localtime (Unix.time ()) in
+  let year = Printf.sprintf "%04d" (tm.Unix.tm_year + 1900) in
+  let month = Printf.sprintf "%02d" (tm.Unix.tm_mon + 1) in
+  let dest = Filename.concat "math/archived"
+    (Filename.concat year (Filename.concat month name)) in
+  if Sys.file_exists dest then begin
+    Printf.printf "error: archived destination already exists (%s)\n" dest;
+    exit 2
+  end;
+  if not !dry_run then begin
+    let _ = Sys.command (Printf.sprintf "mkdir -p %s" (Filename.dirname dest)) in
+    let _ = Sys.command (Printf.sprintf "git mv %s %s" dir dest) in
+    Printf.printf "mathc archive: %s -> %s\n" name dest
+  end;
+  Printf.printf "done.\n"
+
+(* note: create a trivial packet (no witness, register=unknown). *)
+let cmd_note text =
+  if text = "" then begin
+    Printf.printf "usage: mathc note \"<text>\"\n";
+    exit 1
+  end;
+  let tm = Unix.localtime (Unix.time ()) in
+  let stamp = Printf.sprintf "%04d-%02d-%02d-%02d%02d%02d"
+    (tm.Unix.tm_year + 1900) (tm.Unix.tm_mon + 1) tm.Unix.tm_mday
+    tm.Unix.tm_hour tm.Unix.tm_min tm.Unix.tm_sec in
+  let name = "note-" ^ stamp in
+  let dir = Filename.concat "math" name in
+  if Sys.file_exists dir then begin
+    Printf.printf "error: note %s already exists\n" name;
+    exit 2
+  end;
+  if not !dry_run then begin
+    let _ = Sys.command ("mkdir -p " ^ dir) in
+    let packet_md = Filename.concat dir "packet.md" in
+    let oc = open_out packet_md in
+    write_frontmatter oc ~schema:"2.1" ~state:"draft" ~name
+      ~proposition:text
+      ~register:"unknown" ~actor:"agent" ~confidence:0.0
+      ~kind:"policy" ~superseded_by:None ~beneficiary:"system" ();
+    close_out oc;
+    Printf.printf "mathc note: %s\n" name;
+    Printf.printf "  wrote: %s\n" packet_md
   end;
   Printf.printf "done.\n"
 
@@ -253,13 +497,18 @@ let cmd_check () =
       exit 1
   | Some math_dir ->
       let dirs = Parse.list_packet_dirs math_dir in
-      let results = List.map
+      let parsed = List.filter_map
         (fun dir ->
           let name = Filename.basename dir in
           match Parse.parse_packet ~rel_path:(rel_path_of dir) dir with
-          | Error e -> (name, [Fail, e])
-          | Ok d -> (name, Check.check d))
+          | Ok d -> Some (name, dir, d)
+          | Error _ -> None)
         dirs in
+      let decisions = List.map (fun (_, _, d) -> d) parsed in
+      let verdicts_per_packet = Check.check_all decisions in
+      let results = List.map2
+        (fun (name, _, _) vs -> (name, vs))
+        parsed verdicts_per_packet in
       if !json_mode then begin
         Printf.printf "{";
         Printf.printf "\"packets\":[";
@@ -287,10 +536,9 @@ let cmd_check () =
                 (List.concat (List.map (fun (_, vs) -> List.map fst vs) results))))
       end else begin
         let dir_for_name = Hashtbl.create 32 in
-        List.iter (fun dir ->
-          let name = Filename.basename dir in
+        List.iter (fun (name, dir, _) ->
           Hashtbl.add dir_for_name name dir
-        ) dirs;
+        ) parsed;
         List.iter
           (fun (_name, verdicts) ->
             let original_dir = match Hashtbl.find_opt dir_for_name _name with
@@ -301,9 +549,9 @@ let cmd_check () =
               (match Parse.parse_packet ~rel_path:(rel_path_of original_dir) original_dir with
                | Ok d -> d
                | Error _ -> empty_decision _name) in
-            let sym = if List.exists (fun (v, _) -> v = Fail) verdicts then "✗"
-                      else if List.exists (fun (v, _) -> v = Warn) verdicts then "?"
-                      else "✓" in
+            let sym = if List.exists (fun (v, _) -> v = Fail) verdicts then "FAIL"
+                      else if List.exists (fun (v, _) -> v = Warn) verdicts then "WARN"
+                      else "OK" in
             Printf.printf "%s: %s %s\n" _name (lifecycle_to_string s) sym)
           results;
         let total_verdicts = List.concat (List.map snd results) in
@@ -393,13 +641,17 @@ and cmd_transition name target =
 (* Entry point. *)
 
 let cmd_help () =
-  Printf.printf "mathc — agent-efficient decision recorder\n\n";
+  Printf.printf "mathc — agent-efficient decision recorder (v2.1)\n\n";
   Printf.printf "Commands:\n";
-  Printf.printf "  init [name]              bootstrap project\n";
-  Printf.printf "  record <name> <prop>     create packet (run amend after commit)\n";
+  Printf.printf "  init [name]              bootstrap project (math/, .mathrc, .git-hooks/)\n";
+  Printf.printf "  decide <name> <prop>     create + commit + amend + commit (one step)\n";
+  Printf.printf "  record <name> <prop>     create packet (legacy two-step flow)\n";
   Printf.printf "  amend <name>             update witness to current HEAD\n";
-  Printf.printf "  supersede <old> <new>    replace decision\n";
-  Printf.printf "  check                    verify all packets\n";
+  Printf.printf "  supersede <old> <new>    replace decision; auto-retires old\n";
+  Printf.printf "  mark-superseded <o> <n>  link existing OLD to existing NEW; auto-retires OLD\n";
+  Printf.printf "  archive <name>           move to math/archived/<year>/<month>/\n";
+  Printf.printf "  note <text>              create a trivial packet (no witness)\n";
+  Printf.printf "  check                    verify all packets (V1..V7)\n";
   Printf.printf "  status                   JSON: state + next_steps\n";
   Printf.printf "  render                   generate HTML site\n";
   Printf.printf "  review <name>            transition to state: reviewed (signed)\n";
@@ -422,6 +674,11 @@ let () =
   | [] -> cmd_help ()
   | "help" :: _ -> cmd_help ()
   | "init" :: rest -> cmd_init rest
+  | "decide" :: name :: proposition :: rest -> cmd_decide name proposition rest
+  | "decide" :: _ ->
+      Printf.printf "usage: mathc decide <name> <proposition> [options]\n";
+      Printf.printf "  options: --register=judgment --actor=human --kind=fix --antithesis=... --synthesis=...\n";
+      exit 1
   | "record" :: name :: proposition :: _ -> cmd_record name proposition
   | "record" :: _ ->
       Printf.printf "usage: mathc record <name> <proposition>\n"; exit 1
@@ -432,6 +689,13 @@ let () =
       cmd_supersede old new_name proposition
   | "supersede" :: _ ->
       Printf.printf "usage: mathc supersede <old> <new> <proposition>\n"; exit 1
+  | "archive" :: name :: _ -> cmd_archive name
+  | "archive" :: _ ->
+      Printf.printf "usage: mathc archive <name>\n"; exit 1
+  | "mark-superseded" :: old :: new_name :: _ -> cmd_mark_superseded old new_name
+  | "mark-superseded" :: _ ->
+      Printf.printf "usage: mathc mark-superseded <old> <new>\n"; exit 1
+  | "note" :: text -> cmd_note (String.concat " " text)
   | "check" :: _ -> cmd_check ()
   | "status" :: _ -> cmd_status ()
   | "render" :: _ -> cmd_render ()

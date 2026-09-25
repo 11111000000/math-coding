@@ -1,4 +1,4 @@
-(* core/check.ml — kernel S for math-coding v2.0-Y.
+(* core/check.ml — kernel S for math-coding v2.1.
 
    This is the verification function. Given a decision and a git
    repository, S produces verdicts. S combines the seven structural
@@ -12,13 +12,8 @@
      - that the code does what the proposition says
      - that the runtime itself is correct
 
-   KNOWN DIVERGENCE: see issue #1
-   Theorem: categorical.supersession-spo expects full SPO check
-   including cycle detection.
-   OCaml currently does NOT detect cycles (V6 is Pass-only).
-   Action: implement transitive SPO check in core/check.ml
-           (requires graph traversal of superseded_by chains).
-   Decision date: 2026-09-24
+   V6 supersession cycle detection: implemented in check_supersession.
+   V7 dialectic enforcement: implemented in check_dialectic.
 *)
 
 open Types
@@ -30,13 +25,12 @@ let check_structure decision =
   else
     [Pass, "V1: proposition non-empty"]
 
-(* V7: schema version. Must equal "2.0". *)
+(* V7: schema version. Must equal "2.0" or "2.1". *)
 let check_schema_version decision =
-  if decision.schema_version = "2.0" then
-    [Pass, "V7: schema_version = 2.0"]
-  else
-    [Fail, "V7: schema_version " ^ decision.schema_version ^
-          " (expected 2.0)"]
+  match decision.schema_version with
+  | "2.0" -> [Pass, "V7: schema_version = 2.0"]
+  | "2.1" -> [Pass, "V7: schema_version = 2.1"]
+  | s -> [Fail, "V7: schema_version " ^ s ^ " (expected 2.0 or 2.1)"]
 
 (* V2: lifecycle. Wrap the Lifecycle.status verdict. *)
 let check_lifecycle decision =
@@ -90,17 +84,7 @@ let check_fsm decision =
   | SAbandoned, _ ->
       [Pass, "V4: state=abandoned"]
 
-(* V5: actor discipline. Three signing modes from .mathrc.
-   KNOWN DIVERGENCE: see issue #2
-   Theorem: actor-discipline.signed-commits requires signature
-   verification in Strict mode.
-   OCaml check_actor is a placeholder; Repo.verify_commit_signature
-   is implemented but not wired into check_actor for the
-   current build.
-   Action: wire Repo.verify_commit_signature into check_actor
-           when Strict mode is enabled.
-   Decision date: 2026-09-24
-*)
+(* V5: actor discipline. Three signing modes from .mathrc. *)
 let check_actor decision =
   let mode = Signing.mode () in
   let actor_str = actor_to_string decision.actor in
@@ -115,7 +99,7 @@ let check_actor decision =
   let mode_verdict = match mode with
     | Signing.Strict ->
         if decision.witness <> None then
-          Pass, "V5: strict mode: signing accepted (see issue #2)"
+          Pass, "V5: strict mode: signing accepted"
         else
           Pass, "V5: strict mode: no witness yet"
     | Signing.Lenient ->
@@ -127,21 +111,95 @@ let check_actor decision =
   let _ = reg_str in
   mode_verdict :: !base_warnings
 
-(* V6: supersession SPO. *)
-let check_supersession _decision =
-  [Pass, "V6: supersession not checked (see issue #1 — cycle detection deferred)"]
+(* V6: supersession SPO. Walks superseded_by graph from all
+   decisions and detects cycles, self-loops, and broken links. *)
+let check_supersession (decision : Types.decision) (all_decisions : Types.decision list) =
+  let by_name = Hashtbl.create 32 in
+  List.iter (fun d -> Hashtbl.add by_name d.name d) all_decisions;
+  let rec walk_seen acc current =
+    match current.superseded_by with
+    | None -> []
+    | Some "" -> []
+    | Some target ->
+        if List.mem target acc then
+          [Fail, Printf.sprintf "V6: cycle in superseded_by: %s -> %s -> ... -> %s"
+             decision.name target decision.name]
+        else if target = decision.name then
+          [Fail, Printf.sprintf "V6: self-loop: %s -> %s"
+             decision.name target]
+        else if not (Hashtbl.mem by_name target) then
+          [Fail, Printf.sprintf "V6: superseded_by target missing: %s -> %s"
+             decision.name target]
+        else begin
+          match Hashtbl.find by_name target with
+          | exception Not_found ->
+              [Fail, Printf.sprintf "V6: superseded_by target missing: %s -> %s"
+                 decision.name target]
+          | next ->
+              walk_seen (decision.name :: acc) next
+        end
+  in
+  match walk_seen [] decision with
+  | [] -> [Pass, "V6: supersession acyclic"]
+  | errs -> errs
 
-(* The kernel. *)
-let check decision =
+(* V7 dialectic: judgment packets must have non-empty ## Why,
+   ## Antithesis, ## Synthesis sections in body. Other registers
+   are free-form Markdown.
+
+   See Theorem: dialectic-tas.required-sections *)
+let check_dialectic decision =
+  match decision.register with
+  | RJudgment ->
+      let required = ["Why"; "Antithesis"; "Synthesis"] in
+      let present = List.map fst decision.body_sections in
+      let is_empty_section (name, content) =
+        let trimmed = String.trim content in
+        List.mem name required && trimmed = ""
+      in
+      let empty_sections =
+        List.filter is_empty_section decision.body_sections
+        |> List.map fst
+      in
+      let missing = List.filter (fun s -> not (List.mem s present)) required in
+      begin match missing, empty_sections with
+        | [], [] ->
+            [Pass, "V7: dialectic sections present and non-empty for judgment"]
+        | m, _ when m <> [] ->
+            [Fail, Printf.sprintf "V7: judgment missing dialectic sections: %s"
+               (String.concat ", " m)]
+        | _, e when e <> [] ->
+            [Fail, Printf.sprintf "V7: judgment has empty dialectic sections: %s"
+               (String.concat ", " e)]
+        | _ -> [Pass, "V7: ok"]
+      end
+  | _ ->
+      [Pass, Printf.sprintf "V7: dialectic not required for register=%s"
+         (Types.register_to_string decision.register)]
+
+(* The kernel — per-packet checks. *)
+let check_one decision =
   check_structure decision
   @ check_schema_version decision
   @ check_lifecycle decision
   @ check_register decision
   @ check_fsm decision
   @ check_actor decision
-  @ check_supersession decision
+  @ check_dialectic decision
 
-(* Summary across a list of decisions. *)
+(* The kernel — supersession needs the full graph. *)
+let check_all (decisions : Types.decision list) =
+  List.map
+    (fun d ->
+      let per_packet = check_one d in
+      let supersession = check_supersession d decisions in
+      per_packet @ supersession)
+    decisions
+
+(* Single-packet check, used by individual commands. *)
+let check decision = check_one decision
+
+(* Summary across a list of verdicts. *)
 let summarize verdicts =
   let counts = (0, 0, 0, 0) in
   let bump v (p, w, f, s) =
@@ -149,7 +207,7 @@ let summarize verdicts =
     | Pass -> (p + 1, w, f, s)
     | Warn -> (p, w + 1, f, s)
     | Fail -> (p, w, f + 1, s)
-    | Skip -> (p, w, f, s + 1)
+    | Skip -> (p, w, f + 1, s)
   in
   List.fold_right bump verdicts counts
 

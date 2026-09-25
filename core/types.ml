@@ -1,10 +1,19 @@
-(* core/types.ml — type definitions for math-coding v2.0-Y.
+(* core/types.ml — type definitions for math-coding v2.1.
 
    The Decision type mirrors math/modeling/syntax.tex verbatim.
    See theorem `curry-howard.triple` for the formal specification.
 
-   Any divergence between this OCaml code and the LaTeX is recorded
-   as a `KNOWN DIVERGENCE` comment with an issue reference. *)
+   Changes in v2.1 (vs v2.0-Y):
+   - `kind` field added for category-based filtering (axiom|policy|fix|experiment).
+   - `body_sections` field added; populated by parser from `## Heading` blocks.
+     Used by V7 dialectic enforcement. *)
+
+(* See Theorem: motivation.kind *)
+type kind =
+  | KAxiom
+  | KPolicy
+  | KFix
+  | KExperiment
 
 (* --- Decision --- *)
 
@@ -65,6 +74,8 @@ type decision = {
   superseded_by : string option;
   beneficiary   : beneficiary;
   substrate     : substrate;
+  kind          : kind;
+  body_sections : (string * string) list;
 }
 
 (* --- Kernel output --- *)
@@ -132,6 +143,19 @@ let actor_of_string = function
   | "system" -> ASystem
   | _        -> AAgent
 
+let kind_to_string = function
+  | KAxiom     -> "axiom"
+  | KPolicy    -> "policy"
+  | KFix       -> "fix"
+  | KExperiment -> "experiment"
+
+let kind_of_string = function
+  | "axiom"      -> KAxiom
+  | "policy"     -> KPolicy
+  | "fix"        -> KFix
+  | "experiment" -> KExperiment
+  | _            -> KPolicy (* default for v2.0 packets without kind *)
+
 let beneficiary_to_string = function
   | User       -> "user"
   | Developer  -> "developer"
@@ -162,7 +186,7 @@ let substrate_path (s : substrate) : string option =
   | PbtPrism r -> Some r.run
 
 let empty_decision name = {
-  schema_version = "2.0";
+  schema_version = "2.1";
   name;
   proposition = "";
   code = None;
@@ -174,8 +198,11 @@ let empty_decision name = {
   superseded_by = None;
   beneficiary = System;
   substrate = None;
+  kind = KPolicy;
+  body_sections = [];
 }
 
 let schema_version_of_string = function
   | "2.0" -> "2.0"
+  | "2.1" -> "2.1"
   | _    -> "unknown"

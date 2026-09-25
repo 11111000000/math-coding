@@ -1,7 +1,8 @@
-(* core/parse.ml — packet.md parser for math-coding v2.0-Y.
+(* core/parse.ml — packet.md parser for math-coding v2.1.
 
    Reads a packet directory into a Decision. The frontmatter is
-   parsed as a simple YAML subset (key: value, no nesting).
+   parsed as a simple key:value subset (not full YAML — see
+   math-coding frontmatter micro-format spec).
    See math/modeling/syntax.tex for the field specification. *)
 
 (* Extract frontmatter (between --- markers) from packet.md content. *)
@@ -103,8 +104,8 @@ let extract_body content =
   let after_fm = drop_until_close lines in
   String.concat "\n" after_fm
 
-(* Find which body sections exist (lines starting with `## `). *)
-let body_sections body =
+(* Find which body section headings exist (lines starting with `## `). *)
+let body_section_headings body =
   let lines = String.split_on_char '\n' body in
   List.filter_map
     (fun line ->
@@ -114,6 +115,35 @@ let body_sections body =
         Some (String.sub trimmed 3 (String.length trimmed - 3))
       else None)
     lines
+
+(* Extract body as list of (heading, content) pairs. *)
+let extract_body_sections body =
+  let lines = String.split_on_char '\n' body in
+  let rec split acc current_heading current_lines = function
+    | [] ->
+        (match current_heading with
+         | None -> List.rev acc
+         | Some h -> List.rev ((h, String.concat "\n" (List.rev current_lines)) :: acc))
+    | line :: rest ->
+        let trimmed = String.trim line in
+        if String.length trimmed > 3 && String.sub trimmed 0 3 = "## " then begin
+          let heading = String.sub trimmed 3 (String.length trimmed - 3) in
+          let acc' = match current_heading with
+            | None -> acc
+            | Some h -> List.rev ((h, String.concat "\n" (List.rev current_lines)) :: acc)
+          in
+          split acc' (Some heading) [] rest
+        end else
+          match current_heading with
+          | None -> split acc current_heading current_lines rest
+          | Some _ -> split acc current_heading (line :: current_lines) rest
+  in
+  split [] None [] lines
+
+(* Backward-compatible alias returning just headings. *)
+let body_sections body =
+  let pairs = extract_body_sections body in
+  List.map fst pairs
 
 (* Parse a packet directory into a Decision. *)
 let parse_packet ?rel_path dir =
@@ -146,9 +176,14 @@ let parse_packet ?rel_path dir =
           | Some s -> s
           | None -> ""
         in
-        let superseded_by = yaml_string_value fm_lines "superseded_by" in
+        let superseded_by =
+          match yaml_string_value fm_lines "superseded_by" with
+          | Some "" -> None
+          | Some s -> Some s
+          | None -> None
+        in
         let witness = read_witness witness_file in
-        (* v2.0-Y motivation fields. *)
+        (* v2.1 fields. *)
         let register = match yaml_string_value fm_lines "register" with
           | Some s -> Types.register_of_string s
           | None -> Types.RFact
@@ -179,8 +214,11 @@ let parse_packet ?rel_path dir =
           | None -> "unknown"
         in
         let body = extract_body content in
-        let sections = body_sections body in
-        let _ = sections in
+        let sections = extract_body_sections body in
+        let kind = match yaml_string_value fm_lines "kind" with
+          | Some s -> Types.kind_of_string s
+          | None -> Types.KPolicy
+        in
         Ok {
           Types.schema_version;
           name;
@@ -194,12 +232,15 @@ let parse_packet ?rel_path dir =
           superseded_by;
           beneficiary;
           substrate = Types.None;
+          kind;
+          body_sections = sections;
         }
 
 (* List all packet directories under math/.
    Recurses into foundations/, extensions/, and any subdirectory
-   containing a packet.md. *)
-let list_packet_dirs math_dir =
+   containing a packet.md. Skips math/archived/ by default
+   (use list_packet_dirs_all for that). *)
+let list_packet_dirs ?(include_archived = false) math_dir =
   if not (Sys.file_exists math_dir) then []
   else
     let rec walk acc dir =
@@ -210,13 +251,18 @@ let list_packet_dirs math_dir =
             let full = Filename.concat dir entry in
             let is_dir = try Sys.is_directory full with _ -> false in
             let has_packet = Sys.file_exists (Filename.concat full "packet.md") in
-            if is_dir && has_packet then full :: acc
+            if entry = "archived" && is_dir && not include_archived then acc
+            else if is_dir && has_packet then full :: acc
             else if is_dir then walk acc full
             else acc)
           acc entries
       with _ -> acc
     in
     walk [] math_dir
+
+(* Same as list_packet_dirs but also includes math/archived/ tree. *)
+let list_packet_dirs_all math_dir =
+  list_packet_dirs ~include_archived:true math_dir
 
 (* Find which body sections are present in a packet. *)
 let has_section name body =

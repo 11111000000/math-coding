@@ -3,12 +3,45 @@ schema_version: "2.0"
 name: agents-protocol
 proposition: "AI agents working on a math-coding project record non-trivial decisions as packets through mathc record + amend; the convention describes protocol via the same kernel that verifies user packets."
 register: judgment
-state: applied
+state: retired
 actor: system
 confidence: 1.0
-superseded_by: agents-protocol-v2
+superseded_by: agents-protocol-v2-1
 beneficiary: developer
 ---
+
+## Why
+
+The v2.0-Y protocol was the first formalized agent procedure; it
+established that AI agents must record non-trivial decisions as
+packets and verify them through the same kernel. Without explicit
+agent protocol, agent decisions would be undocumented.
+
+## Care
+
+This packet is retired — superseded by agents-protocol-v2-1, which
+collapses the five-step manual flow into `mathc decide` and adds
+auto-retire on supersede. Editing this packet is not recommended;
+supersede instead.
+
+## Thesis
+
+AI agents record decisions through `mathc record` + `mathc amend`;
+the convention describes protocol via the same kernel S that
+verifies user packets. Y-fixed-point holds: foundation packets are
+verified by the same kernel.
+
+## Antithesis
+
+A five-step manual flow is too friction-heavy for agents; they
+default to skipping steps, leaving packets in draft limbo.
+Documentation alone cannot prevent this.
+
+## Synthesis
+
+This packet's proposition (record + amend, kernel-verified) remains
+true at v2.0-Y. The implementation is superseded by agents-protocol-v2-1,
+which automates the flow.
 
 # math-coding — protocol for AI agents in math-coding v2.0-Y
 
@@ -40,7 +73,7 @@ name: <unique-name>                    # mandatory
 proposition: "<one-sentence claim>"   # V1: mandatory, non-empty
 register: fact|hypothesis|judgment|unknown  # V3: mandatory
 state: draft|applied|reviewed|retired|abandoned  # V4: mandatory
-superseded_by: agents-protocol-v2
+superseded_by: agents-protocol-v2-1
 actor: human|agent|system             # V5: mandatory
 confidence: <0.0-1.0>                 # mandatory; bounded by register
 beneficiary: <enum>|Other(text)       # optional (default: System)
@@ -139,3 +172,4 @@ the convention's invariant.
 The canonical source for this protocol is the `AGENTS.md` file at
 the project root, generated from this packet by `mathc render`.
 Edit this packet via `supersede`, not the rendered file.
+
