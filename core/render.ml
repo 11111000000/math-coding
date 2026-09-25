@@ -91,27 +91,16 @@ let render_page ~nav_key ~title ~body =
 <script>
 (function(){
   var t=document.querySelector('.nav-toggle');
-  var n=document.querySelector('.nav-inner');
-  if(!t||!n) return;
-  // Collapse on mobile at first paint; desktop keeps nav-inner visible
-  // because [hidden] is set only by the responsive stylesheet below.
-  // We trigger a re-check on resize.
+  if(!t) return;
   function sync(){
     var isMobile = window.matchMedia('(max-width: 720px)').matches;
-    if(isMobile){
-      t.setAttribute('aria-expanded','false');
-      n.hidden = true;
-    } else {
-      t.setAttribute('aria-expanded','true');
-      n.hidden = false;
-    }
+    t.setAttribute('aria-expanded', isMobile ? 'false' : 'true');
   }
   sync();
   window.addEventListener('resize',sync);
   t.addEventListener('click',function(){
     var open = t.getAttribute('aria-expanded') === 'true';
     t.setAttribute('aria-expanded', open ? 'false' : 'true');
-    n.hidden = open;
   });
 })();
 </script>

@@ -100,9 +100,9 @@ nav.site-nav .brand:hover {
 nav.site-nav .nav-toggle {
   display: none;
   cursor: pointer;
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   line-height: 1;
-  padding: 0.25rem 0;
+  padding: 0.25rem 0.4rem;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
   margin-left: auto;
@@ -110,6 +110,8 @@ nav.site-nav .nav-toggle {
   opacity: 0.85;
   background: transparent;
   border: 0;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 nav.site-nav .nav-toggle:hover { opacity: 1; color: var(--theorem-rule); }
@@ -132,11 +134,14 @@ nav.site-nav .nav-inner {
   nav.site-nav .nav-toggle {
     display: block;
   }
-  nav.site-nav .nav-inner {
+  /* On mobile: hide menu by default; show only when toggle has aria-expanded=true. */
+  nav.site-nav .nav-inner { display: none; }
+  nav.site-nav .nav-toggle[aria-expanded="true"] ~ .nav-inner {
     position: absolute;
     left: 0;
     right: 0;
     top: 100%;
+    display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.45rem;
@@ -145,7 +150,6 @@ nav.site-nav .nav-inner {
     border-bottom: 1px solid var(--accent);
     z-index: 10;
   }
-  nav.site-nav .nav-inner[hidden] { display: none; }
   nav.site-nav .brand { font-size: 1rem; }
 }
 
