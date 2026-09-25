@@ -3,9 +3,9 @@ schema_version: "2.0"
 name: latex-textsc-mathrm
 proposition: "LaTeX \\textsc{} is text-mode (not MathJax-supported), producing literal 'textsc' on rendered site; replaced with \\mathrm{} across math/modeling/*.tex so CHTML output matches the spec."
 register: judgment
-state: draft
+state: applied
 actor: agent
-confidence: 0.95
+confidence: 1.0
 superseded_by:
 beneficiary: FutureSelf
 ---

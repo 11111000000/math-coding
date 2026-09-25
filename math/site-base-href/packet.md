@@ -3,9 +3,9 @@ schema_version: "2.0"
 name: site-base-href
 proposition: "Site deployed under /math-coding/ subpath uses <base href='/math-coding/'> with MATH_CODING_BASE env override, and rewrites .md links to lowercase .html so GitHub Pages case-sensitive routing works."
 register: judgment
-state: draft
+state: applied
 actor: agent
-confidence: 0.9
+confidence: 1.0
 superseded_by:
 beneficiary: Developer
 ---

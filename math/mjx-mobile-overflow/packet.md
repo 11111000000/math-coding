@@ -3,9 +3,9 @@ schema_version: "2.0"
 name: mjx-mobile-overflow
 proposition: "MathJax mjx-container overflows mobile viewport (375px); fix is html/body overflow-x:hidden + mjx-container{display:inline-block,max-width:100%,overflow-x:auto!important} so formulas scroll internally instead of pushing body width."
 register: judgment
-state: draft
+state: applied
 actor: agent
-confidence: 0.85
+confidence: 1.0
 superseded_by:
 beneficiary: User
 ---
