@@ -73,11 +73,34 @@ nav.site-nav {
   color: #fbfaf6;
   padding: 0.875rem 1.5rem;
   border-bottom: 1px solid var(--accent);
+  display: flex;
+  align-items: baseline;
+  gap: 1.75rem;
+  max-width: var(--max-width);
+  margin: 0 auto;
+}
+
+nav.site-nav .brand {
+  font-family: "Charter", "Iowan Old Style", "Georgia", serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 1;
+  color: #fbfaf6;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+nav.site-nav .brand:hover {
+  color: var(--theorem-rule);
+  opacity: 1;
 }
 
 nav.site-nav details.nav-collapse {
-  max-width: var(--max-width);
-  margin: 0 auto;
+  flex: 1;
+  min-width: 0;
 }
 
 nav.site-nav summary.nav-toggle {
@@ -89,10 +112,14 @@ nav.site-nav summary.nav-toggle {
   padding: 0.25rem 0;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  margin-left: auto;
+  color: #fbfaf6;
+  opacity: 0.85;
 }
 
 nav.site-nav summary.nav-toggle::-webkit-details-marker { display: none; }
 nav.site-nav summary.nav-toggle::marker { display: none; }
+nav.site-nav summary.nav-toggle:hover { opacity: 1; color: var(--theorem-rule); }
 
 nav.site-nav .nav-inner {
   display: flex;
@@ -102,9 +129,11 @@ nav.site-nav .nav-inner {
 }
 
 @media (max-width: 720px) {
+  nav.site-nav {
+    gap: 0.5rem;
+  }
   nav.site-nav summary.nav-toggle {
     display: block;
-    float: right;
   }
   nav.site-nav details.nav-collapse {
     overflow: hidden;
@@ -119,14 +148,21 @@ nav.site-nav .nav-inner {
     transition: max-height 0.2s ease-out, opacity 0.15s ease-out;
   }
   nav.site-nav details.nav-collapse[open] .nav-inner {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: #1a1a1a;
     flex-direction: column;
     align-items: flex-start;
     gap: 0.45rem;
-    padding-top: 0.6rem;
+    padding: 0.8rem 1rem 1rem;
+    border-bottom: 1px solid var(--accent);
     max-height: 30rem;
     opacity: 1;
     visibility: visible;
     transition: max-height 0.25s ease-out, opacity 0.2s ease-out;
+    z-index: 10;
   }
   nav.site-nav .brand { font-size: 1rem; }
 }
@@ -156,17 +192,6 @@ nav.site-nav a.active {
   color: var(--theorem-rule);
   border-bottom: 1px solid var(--theorem-rule);
   padding-bottom: 1px;
-}
-
-nav.site-nav .brand {
-  font-family: "Charter", "Iowan Old Style", "Georgia", serif;
-  font-size: 1.15rem;
-  font-weight: 600;
-  font-style: italic;
-  text-transform: none;
-  letter-spacing: 0;
-  opacity: 1;
-  color: #fbfaf6;
 }
 
 /* --------------------------------------------------------------- *

@@ -54,9 +54,10 @@ let render_nav active =
     nav_links) in
   Printf.sprintf
     {|<nav class="site-nav">
+<a class="brand" href="%s">math-coding</a>
 <details class="nav-collapse">
 <summary class="nav-toggle" aria-label="Toggle navigation"><span aria-hidden="true">&#9776;</span></summary>
-<div class="nav-inner"><a class="brand" href="%s">math-coding</a>%s</div>
+<div class="nav-inner">%s</div>
 </details>
 </nav>|}
     site_base items
