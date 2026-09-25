@@ -41,12 +41,18 @@ let set_flag flag =
   | "--strict" -> strict_mode := true
   | _ -> ()
 
+let known_flags = ["--json"; "--quiet"; "--verbose"; "--dry-run"; "--strict"; "--no-commit"; "--staged"; "--all"]
+
 let rec extract_flags args =
   match args with
   | [] -> []
   | flag :: rest when List.mem flag ["--json"; "--quiet"; "--verbose"; "--dry-run"; "--strict"] ->
       set_flag flag;
       extract_flags rest
+  | flag :: rest when String.length flag > 2 && String.sub flag 0 2 = "--" ->
+      if not (List.mem flag known_flags) then
+        Printf.printf "warning: unknown flag '%s' (treated as positional)\n" flag;
+      flag :: extract_flags rest
   | x :: rest -> x :: extract_flags rest
 
 (* Find math/ in current or parent directories. *)
@@ -152,13 +158,12 @@ let cmd_init args =
   in
   Printf.printf "mathc init: project=%s\n" project_name;
   if not !dry_run then begin
-    let _ = Sys.command "mkdir -p math math/archived" in
+    let _ = run_cmd ["mkdir"; "-p"; "math"; "math/archived"] in
     if not (Sys.file_exists ".mathrc") then begin
       let oc = open_out ".mathrc" in
       Printf.fprintf oc "# math-coding v2.1 configuration\n";
       Printf.fprintf oc "# All fields are optional; sane defaults apply if .mathrc is absent.\n";
       Printf.fprintf oc "\n";
-      Printf.fprintf oc "SCHEMA_VERSION: \"2.1\"\n";
       Printf.fprintf oc "SIGNING_MODE: off           # strict | lenient | off\n";
       Printf.fprintf oc "AUTO_AMEND: true            # mathc decide auto-amends witness\n";
       Printf.fprintf oc "FACT_POLICY: warn           # fail | warn | off — agent+fact without evidence\n";
@@ -176,7 +181,7 @@ let cmd_init args =
       close_out oc;
       Printf.printf "  wrote: .mathrc (sane defaults)\n"
     end;
-    let _ = Sys.command "mkdir -p .git-hooks" in
+    let _ = run_cmd ["mkdir"; "-p"; ".git-hooks"] in
     let hook = ".git-hooks/pre-commit" in
     if not (Sys.file_exists hook) then begin
       let oc = open_out hook in
@@ -185,10 +190,10 @@ let cmd_init args =
       Printf.fprintf oc "# Runs from project root; aborts commit if mathc check fails.\n";
       Printf.fprintf oc "exec mathc check --strict\n";
       close_out oc;
-      let _ = Sys.command ("chmod +x " ^ hook) in
+      let _ = run_cmd ["chmod"; "+x"; hook] in
       Printf.printf "  wrote: %s\n" hook
     end;
-    let _ = Sys.command "git config core.hooksPath .git-hooks" in
+    let _ = run_cmd ["git"; "config"; "core.hooksPath"; ".git-hooks"] in
     Printf.printf "  set: git config core.hooksPath .git-hooks\n"
   end;
   Printf.printf "done.\n"
@@ -451,8 +456,11 @@ let cmd_mark_superseded old new_name =
   end;
   Printf.printf "done.\n"
 
-(* archive: move a packet to math/archived/<year>/<month>/<name>/. *)
-let cmd_archive name =
+(* archive: move a packet to math/archived/<year>/<month>/<name>/.
+   --commit auto-commits the move; default is to leave it staged for
+   the user to commit (matches record/amend behaviour). *)
+let cmd_archive name args =
+  let do_commit = List.mem "--commit" args in
   let dir = Filename.concat "math" name in
   if not (Sys.file_exists dir) then begin
     Printf.printf "error: packet does not exist (%s)\n" name;
@@ -470,7 +478,12 @@ let cmd_archive name =
   if not !dry_run then begin
     run_cmd_or_die ["mkdir"; "-p"; Filename.dirname dest];
     run_cmd_or_die ["git"; "mv"; dir; dest];
-    Printf.printf "mathc archive: %s -> %s\n" name dest
+    if do_commit then begin
+      run_cmd_or_die ["git"; "commit"; "-m"; Printf.sprintf "%s: archive" name]
+    end;
+    Printf.printf "mathc archive: %s -> %s\n" name dest;
+    if not do_commit then
+      Printf.printf "  hint: pass --commit to auto-commit, or run 'git commit' manually\n"
   end;
   Printf.printf "done.\n"
 
@@ -581,7 +594,7 @@ let cmd_status () =
   | None ->
       Printf.printf "{\"error\":\"math/ not found\"}\n";
       exit 1
-  | Some math_dir ->
+      | Some math_dir ->
       let dirs = Parse.list_packet_dirs math_dir in
       let next_steps = ref [] in
       List.iter
@@ -590,9 +603,13 @@ let cmd_status () =
           match Parse.parse_packet ~rel_path:(rel_path_of dir) dir with
           | Ok d ->
               let s = Lifecycle.compute d in
-              if s = Drift then
-                next_steps := ("mathc supersede " ^ name ^ " " ^ name ^ "-v2 \"...\"", "drift") :: !next_steps
-              else if s = Draft then
+              if s = Drift then begin
+                if d.superseded_by <> None then
+                  next_steps := ("mathc mark-superseded " ^ name ^ " <existing>",
+                    "drift; already superseded — link to existing successor") :: !next_steps
+                else
+                  next_steps := ("mathc supersede " ^ name ^ " " ^ name ^ "-v2 \"...\"", "drift") :: !next_steps
+              end else if s = Draft then
                 next_steps := ("mathc record " ^ name ^ " \"...\"", "draft, no witness") :: !next_steps
               else ()
           | Error _ -> ())
@@ -624,8 +641,37 @@ let cmd_status () =
    Wiring is in core/render.ml; main.ml only dispatches. *)
 let cmd_render () = Render.cmd_render ()
 
-(* review: transition to reviewed state (signed). *)
+(* review: transition to reviewed state. In Strict signing mode
+   the witness commit must be signed; in Lenient mode an unsigned
+   witness produces a warning but the transition still happens; in
+   Off mode no signing check is performed. *)
 let rec cmd_review name =
+  let dir = Filename.concat "math" name in
+  if not (Sys.file_exists dir) then begin
+    Printf.printf "error: packet does not exist (%s)\n" name;
+    exit 1
+  end;
+  let parsed = Parse.parse_packet ~rel_path:(Filename.basename dir) dir in
+  (match parsed, Signing.mode () with
+   | Ok d, Signing.Strict ->
+       (match d.witness with
+        | None ->
+            Printf.printf "error: cannot review %s: no witness\n" name;
+            exit 1
+        | Some w ->
+            if Repo.verify_commit_signature w.sha = None then begin
+              Printf.printf "error: cannot review %s: witness commit %s is unsigned\n"
+                name w.sha;
+              Printf.printf "  hint: set SIGNING_MODE=off in .mathrc, or sign the witness commit\n";
+              exit 1
+            end)
+   | Ok d, Signing.Lenient ->
+       (match d.witness with
+        | Some w when Repo.verify_commit_signature w.sha = None ->
+            Printf.printf "warning: witness commit %s is unsigned (Lenient mode allows this transition)\n"
+              w.sha
+        | _ -> ())
+   | _ -> ());
   cmd_transition name "reviewed"
 
 (* transition: change the FSM state of a packet. *)
@@ -660,6 +706,9 @@ let cmd_help () =
   Printf.printf "Commands:\n";
   Printf.printf "  init [name]              bootstrap project (math/, .mathrc, .git-hooks/)\n";
   Printf.printf "  decide <name> <prop>     create + commit + amend + commit (one step)\n";
+  Printf.printf "                            options: --register=judgment --actor=human --kind=fix\n";
+  Printf.printf "                                     --antithesis=... --synthesis=...\n";
+  Printf.printf "                                     --no-commit (skip auto-commit, write only)\n";
   Printf.printf "  record <name> <prop>     create packet (legacy two-step flow)\n";
   Printf.printf "  amend <name>             update witness to current HEAD\n";
   Printf.printf "  supersede <old> <new>    replace decision; auto-retires old\n";
@@ -669,7 +718,7 @@ let cmd_help () =
   Printf.printf "  check                    verify all packets (V1..V7)\n";
   Printf.printf "  status                   JSON: state + next_steps\n";
   Printf.printf "  render                   generate HTML site\n";
-  Printf.printf "  review <name>            transition to state: reviewed (signed)\n";
+  Printf.printf "  review <name>            transition to state: reviewed (Strict mode requires signed witness)\n";
   Printf.printf "  transition <name> <s>    change FSM state (draft|applied|reviewed|retired|abandoned)\n";
   Printf.printf "  find <substring>         search packets by substring\n";
   Printf.printf "  grep <pattern>           grep over proposition and name\n";
@@ -679,6 +728,14 @@ let cmd_help () =
   Printf.printf "  graph <name>             mermaid supersession chain\n";
   Printf.printf "  stats                    drift rate, applied/total\n";
   Printf.printf "  help                     self-doc\n";
+  Printf.printf "\nVerdicts (V1..V7):\n";
+  Printf.printf "  V1 structure         proposition must be non-empty\n";
+  Printf.printf "  V2 lifecycle        computed from witness vs current proposition (Draft/Applied/Drift/Stale)\n";
+  Printf.printf "  V3 register         confidence must match register range (fact>=0.95, hyp 0.5<x<0.95, judgment 0 or 1, unknown 0)\n";
+  Printf.printf "  V4 FSM              draft+with witness forbidden, reviewed without witness forbidden\n";
+  Printf.printf "  V5 actor            signing mode (off/lenient/strict); agent+fact warns; agent+reviewed warns\n";
+  Printf.printf "  V6 supersession     superseded_by must form a DAG (no cycles, no self-loops)\n";
+  Printf.printf "  V7 dialectic        judgment requires non-empty Why, Antithesis, Synthesis\n";
   Printf.printf "\nFlags: --json --quiet --verbose --dry-run --strict\n";
   Printf.printf "Exit codes: 0=Pass, 1=Fail, 2=exists, 3=drift\n"
 
@@ -704,7 +761,7 @@ let () =
       cmd_supersede old new_name proposition
   | "supersede" :: _ ->
       Printf.printf "usage: mathc supersede <old> <new> <proposition>\n"; exit 1
-  | "archive" :: name :: _ -> cmd_archive name
+  | "archive" :: name :: rest -> cmd_archive name rest
   | "archive" :: _ ->
       Printf.printf "usage: mathc archive <name>\n"; exit 1
   | "mark-superseded" :: old :: new_name :: _ -> cmd_mark_superseded old new_name

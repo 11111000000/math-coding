@@ -219,7 +219,7 @@ let summarize verdicts =
     | Pass -> (p + 1, w, f, s)
     | Warn -> (p, w + 1, f, s)
     | Fail -> (p, w, f + 1, s)
-    | Skip -> (p, w, f + 1, s)
+    | Skip -> (p, w, f, s + 1)
   in
   List.fold_right bump verdicts counts
 

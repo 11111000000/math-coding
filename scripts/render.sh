@@ -10,7 +10,8 @@
 #   sh scripts/render.sh           # uses local _build
 #   nix develop --command sh scripts/render.sh
 
-set -u
+set -eu
+set -o pipefail
 
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$REPO_ROOT" || exit 1
@@ -23,7 +24,7 @@ if [ -z "$DUNE" ]; then
 fi
 
 echo "[1/3] building mathc binary..."
-"$DUNE" build core/main.exe || { echo "build failed" >&2; exit 1; }
+"$DUNE" build core/main.exe
 
 BIN=_build/default/core/main.exe
 if [ ! -x "$BIN" ]; then
@@ -32,7 +33,7 @@ if [ ! -x "$BIN" ]; then
 fi
 
 echo "[2/3] running mathc render..."
-"$BIN" render || { echo "render failed" >&2; exit 1; }
+"$BIN" render
 
 echo "[3/3] verifying dist/..."
 
@@ -46,8 +47,11 @@ for f in $required; do
     fi
 done
 
-# Verify each packet page exists.
+# Verify each packet page exists. Loop over actual directory
+# entries (not glob) so an empty math/ does not iterate on the
+# literal "math/*/".
 for d in math/*/; do
+    [ -d "$d" ] || continue
     name=$(basename "$d")
     if [ "$name" = "archived" ]; then continue; fi
     if [ -f "$d/packet.md" ]; then

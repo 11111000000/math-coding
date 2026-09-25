@@ -196,24 +196,45 @@ let cmd_stats () =
   let draft = ref 0 in
   let drift = ref 0 in
   let stale = ref 0 in
-  let chains = ref [] in
+  (* Build a name -> decision map, then for each applied packet
+     whose superseded_by is Some, walk the chain to its end. *)
+  let by_name = Hashtbl.create 32 in
+  let all_decisions = ref [] in
   List.iter
     (fun dir ->
       incr total;
       match parse_packet_in_dir dir with
       | Ok d ->
+          Hashtbl.add by_name d.name d;
+          all_decisions := d :: !all_decisions;
           let s = Lifecycle.compute d in
           (match s with
            | Draft -> incr draft
-           | Applied ->
-             incr applied;
-             (match d.superseded_by with
-              | Some sup -> chains := (d.name, sup) :: !chains
-              | None -> ())
+           | Applied -> incr applied
            | Drift -> incr drift
            | Stale -> incr stale)
       | Error _ -> ())
     dirs;
+  (* Walk each applied packet with superseded_by. Walk forward until
+     we reach None or a target we don't have. The "chain head" is the
+     earliest packet in the chain. *)
+  let rec walk_head name =
+    match Hashtbl.find_opt by_name name with
+    | Some d ->
+        (match d.superseded_by with
+         | Some next -> walk_head next
+         | None -> name)
+    | None -> name
+  in
+  let chain_set = Hashtbl.create 8 in
+  List.iter
+    (fun d ->
+      match d.superseded_by with
+      | Some _ when Lifecycle.compute d = Applied ->
+          let head = walk_head d.name in
+          Hashtbl.replace chain_set head true
+      | _ -> ())
+    !all_decisions;
   Printf.printf "Total packets: %d\n" !total;
   Printf.printf "Applied: %d (%.1f%%)\n" !applied
     (if !total = 0 then 0.0
@@ -221,11 +242,12 @@ let cmd_stats () =
   Printf.printf "Draft: %d\n" !draft;
   Printf.printf "Drift: %d\n" !drift;
   Printf.printf "Stale: %d\n" !stale;
-  if !chains <> [] then begin
-    Printf.printf "\nSupersession chains:\n";
-    List.iter
-      (fun (older, newer) -> Printf.printf "  %s -> %s\n" older newer)
-      (List.rev !chains)
+  let chain_count = Hashtbl.length chain_set in
+  Printf.printf "\nSupersession chains: %d\n" chain_count;
+  if chain_count > 0 then begin
+    Printf.printf "Chain heads:\n";
+    Hashtbl.iter (fun head _ ->
+      Printf.printf "  -> ends at %s\n" head) chain_set
   end;
   let drift_rate = if !total = 0 then 0.0
                    else 100.0 *. float_of_int !drift /. float_of_int !total in

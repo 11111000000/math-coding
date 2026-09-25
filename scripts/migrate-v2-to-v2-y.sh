@@ -4,12 +4,13 @@
 # Adopts math-coding v2.0-Y in an existing project. Steps:
 #   1. Build and install mathc
 #   2. Initialize math/ and .mathrc (preserves existing files)
-#   3. Install pre-commit hook
+#   3. Install pre-commit hook under .git-hooks/ (matches mathc init)
 #   4. Authorize legacy code with one packet
 #
 # Run this from the project root after `nix develop`.
 
-set -u
+set -eu
+set -o pipefail
 
 REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$REPO_ROOT" || exit 1
@@ -25,7 +26,7 @@ if ! command -v dune >/dev/null 2>&1; then
     echo "  hint: run 'nix develop --command sh scripts/install.sh' first"
     exit 1
 fi
-dune build --profile=release core/main.exe || exit 1
+dune build --profile=release core/main.exe
 
 # 2. Initialize
 echo ""
@@ -38,14 +39,23 @@ else
 fi
 if [ ! -f .mathrc ]; then
     cat > .mathrc <<'EOF'
-# math-coding v2.0-Y configuration
-SCHEMA_VERSION: "2.0"
-SIGNING_MODE: lenient
-AUTO_AMEND: true
-AUTO_RECORD_PROMPT: true
-SUBSTRATE_DEFAULT: none
-STRICT_DRIFT_CHECK: false
-DEFAULT_JSON: false
+# math-coding v2.1 configuration.
+# All fields are optional; sane defaults apply if .mathrc is absent.
+
+SIGNING_MODE: off           # strict | lenient | off
+AUTO_AMEND: true            # mathc decide auto-amends witness
+FACT_POLICY: warn           # fail | warn | off — agent+fact without evidence
+DRAFT_STALE_DAYS: 90        # warn if draft older than this
+
+DIALECTIC_REQUIRED:
+  judgment: [Why, Antithesis, Synthesis]
+  hypothesis: []
+  fact: []
+  unknown: []
+
+KIND_DEFAULT: policy        # axiom | policy | fix | experiment
+BENEFICIARY_DEFAULT: system # user | developer | team | future_self | system
+ACTOR_DEFAULT: agent        # human | agent | system
 EOF
     echo "  created .mathrc"
 else
@@ -55,14 +65,15 @@ fi
 # 3. Pre-commit hook
 echo ""
 echo "Step 3: install pre-commit hook"
-mkdir -p .git/hooks
-cat > .git/hooks/pre-commit <<'EOF'
+mkdir -p .git-hooks
+cat > .git-hooks/pre-commit <<'EOF'
 #!/bin/sh
 # mathc pre-commit hook — auto-installed by migration script.
-exec mathc check --staged --strict
+exec mathc check --strict
 EOF
-chmod +x .git/hooks/pre-commit
-echo "  installed .git/hooks/pre-commit"
+chmod +x .git-hooks/pre-commit
+git config core.hooksPath .git-hooks
+echo "  installed .git-hooks/pre-commit (and configured core.hooksPath)"
 
 # 4. Authorize legacy code
 echo ""

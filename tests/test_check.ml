@@ -226,6 +226,21 @@ let test_v5_no_witness () =
   assert_verdict ~label:"no-witness-lenient" vs_l Types.Pass;
   assert_verdict ~label:"no-witness-off" vs_o Types.Pass
 
+(* --- summarize --- *)
+
+let test_summarize_skip_is_not_fail () =
+  Printf.printf "summarize: Skip increments skip count, not fail count\n";
+  let verdicts = [
+    Types.Pass, "ok";
+    Types.Skip, "config-disabled";
+    Types.Fail, "bad";
+  ] in
+  let p, w, f, s = Check.summarize (List.map fst verdicts) in
+  assert_eq ~label:"pass" (i p) (i 1);
+  assert_eq ~label:"fail" (i f) (i 1);
+  assert_eq ~label:"skip" (i s) (i 1);
+  assert_eq ~label:"warn" (i w) (i 0)
+
 (* --- runner --- *)
 
 let () =
@@ -255,4 +270,7 @@ let () =
   test_v5_lenient_unsigned ();
   test_v5_off_unsigned ();
   test_v5_no_witness ();
+  test_summarize_skip_is_not_fail ();
+  Test_render.run ();
+  Test_lifecycle.run ();
   summary ()

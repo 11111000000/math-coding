@@ -90,6 +90,11 @@ let b v = `Bool v
 let l v = `List v
 let p a b = `Pair (a, b)
 let v x = `Verdict x
+let lc x = `Verdict (match x with
+  | Types.Draft -> Types.Pass
+  | Types.Applied -> Types.Pass
+  | Types.Drift -> Types.Warn
+  | Types.Stale -> Types.Warn)
 
 let verdict_count_pass verds =
   List.length (List.filter (fun (v, _) -> v = Types.Pass) verds)
