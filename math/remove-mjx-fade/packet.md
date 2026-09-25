@@ -3,9 +3,9 @@ schema_version: "2.0"
 name: remove-mjx-fade
 proposition: "The dark right-edge box-shadow on mjx-container (added in commit 65fd8f7 as a replacement for mask-image) creates visible shading on every math element including tiny inline math; user reports it as wrong, so remove it entirely."
 register: judgment
-state: draft
+state: applied
 actor: agent
-confidence: 0.8
+confidence: 1.0
 superseded_by:
 beneficiary: User
 ---
@@ -56,3 +56,4 @@ Repro: open `dist/manifesto.html` at viewport ≤400px on mobile or
 DevTools, scroll to the "Semantics" section. Every `$S$`, `→`,
 `Applied`, `Fail`, `Drift`, `Warn` etc. shows the dark right-edge
 rectangle. After the fix, the same elements render cleanly inline.
+
