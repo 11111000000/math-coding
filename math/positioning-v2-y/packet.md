@@ -3,7 +3,7 @@ schema_version: "2.0"
 name: positioning-v2-y
 proposition: "Positioning v2.0-Y has three layers: hero for AI-agent builders (verifiable ADR for agents), body for open-source maintainers (plain-text ADR over git), and appendix for formal-methods readers (Y-fixed point). The academic narrative relocates to math/modeling/ and FOUNDATIONS.md; the live site speaks AI-first."
 register: judgment
-state: draft
+state: applied
 actor: agent
 confidence: 1.0
 superseded_by:
@@ -116,3 +116,4 @@ decision-recording convention. If no external project adopts, the
   publicly to a position is the larger one.
 - Hero / body / appendix taglines are placeholders; the writing team
   may revise, the three-layer architecture is the binding decision.
+
