@@ -41,12 +41,18 @@ let set_flag flag =
   | "--strict" -> strict_mode := true
   | _ -> ()
 
+let known_flags = ["--json"; "--quiet"; "--verbose"; "--dry-run"; "--strict"; "--no-commit"; "--staged"; "--all"]
+
 let rec extract_flags args =
   match args with
   | [] -> []
   | flag :: rest when List.mem flag ["--json"; "--quiet"; "--verbose"; "--dry-run"; "--strict"] ->
       set_flag flag;
       extract_flags rest
+  | flag :: rest when String.length flag > 2 && String.sub flag 0 2 = "--" ->
+      if not (List.mem flag known_flags) then
+        Printf.printf "warning: unknown flag '%s' (treated as positional)\n" flag;
+      flag :: extract_flags rest
   | x :: rest -> x :: extract_flags rest
 
 (* Find math/ in current or parent directories. *)
@@ -688,6 +694,9 @@ let cmd_help () =
   Printf.printf "Commands:\n";
   Printf.printf "  init [name]              bootstrap project (math/, .mathrc, .git-hooks/)\n";
   Printf.printf "  decide <name> <prop>     create + commit + amend + commit (one step)\n";
+  Printf.printf "                            options: --register=judgment --actor=human --kind=fix\n";
+  Printf.printf "                                     --antithesis=... --synthesis=...\n";
+  Printf.printf "                                     --no-commit (skip auto-commit, write only)\n";
   Printf.printf "  record <name> <prop>     create packet (legacy two-step flow)\n";
   Printf.printf "  amend <name>             update witness to current HEAD\n";
   Printf.printf "  supersede <old> <new>    replace decision; auto-retires old\n";
@@ -707,6 +716,14 @@ let cmd_help () =
   Printf.printf "  graph <name>             mermaid supersession chain\n";
   Printf.printf "  stats                    drift rate, applied/total\n";
   Printf.printf "  help                     self-doc\n";
+  Printf.printf "\nVerdicts (V1..V7):\n";
+  Printf.printf "  V1 structure         proposition must be non-empty\n";
+  Printf.printf "  V2 lifecycle        computed from witness vs current proposition (Draft/Applied/Drift/Stale)\n";
+  Printf.printf "  V3 register         confidence must match register range (fact>=0.95, hyp 0.5<x<0.95, judgment 0 or 1, unknown 0)\n";
+  Printf.printf "  V4 FSM              draft+with witness forbidden, reviewed without witness forbidden\n";
+  Printf.printf "  V5 actor            signing mode (off/lenient/strict); agent+fact warns; agent+reviewed warns\n";
+  Printf.printf "  V6 supersession     superseded_by must form a DAG (no cycles, no self-loops)\n";
+  Printf.printf "  V7 dialectic        judgment requires non-empty Why, Antithesis, Synthesis\n";
   Printf.printf "\nFlags: --json --quiet --verbose --dry-run --strict\n";
   Printf.printf "Exit codes: 0=Pass, 1=Fail, 2=exists, 3=drift\n"
 
