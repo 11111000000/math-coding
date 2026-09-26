@@ -1,0 +1,142 @@
+---
+schema: math-coding/3.0-alpha
+id: infrastructure-honesty
+revision: 1
+
+intent: |
+  Repair four classes of dishonest infrastructure state that the v3-alpha
+  bootstrap inherited: CI workflows that reference non-existent paths,
+  nixpkgs tracked at a moving branch instead of a pinned commit, third-party
+  binaries downloaded without integrity checks, and conformance test
+  sources that exist but are not wired into the test runner.
+
+commitment: |
+  Restore honesty in the build pipeline and reproducibility claim. Each
+  class of repair is committed separately with positive and negative
+  fixtures, a documented countercase, and a reversal path. The kernel
+  is NOT modified in this decision.
+
+scope:
+  capabilities:
+    - ci-pipeline
+    - reproducible-build
+    - supply-chain
+  paths:
+    - ".github/workflows/**"
+    - "flake.nix"
+    - "flake.lock"
+    - "tests/dune"
+  exclusions:
+    - "lib/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+
+outcomes:
+  - id: ci-references-real-targets
+    statement: |
+      Every CI workflow path under .github/workflows/ MUST refer to files
+      and commands that exist in the source tree. A green badge that hides
+      a broken reference is a violation of A1 (Epistemic honesty).
+  - id: nixpkgs-pinned
+    statement: |
+      The build is reproducible across machines. flake.lock pins a specific
+      nixpkgs commit, not a branch reference; the lockfile IS the source of
+      truth. An out-of-date machine MUST produce the same artifacts as an
+      up-to-date machine.
+  - id: lockfile-discipline
+    statement: |
+      Any change that updates flake.lock MUST come with a corresponding
+      bootstrap-decision revision listing old and new narHash, per A3
+      (self-application).
+  - id: supply-chain-verified
+    statement: |
+      Third-party binaries downloaded by CI (opam bootstrap on Windows,
+      etc.) are verified by SHA256 checksum recorded in the commit before
+      use, per A1 (no unsigned assumptions in the build path).
+  - id: conformance-runner-enabled
+    statement: |
+      The conformance corpus at fixtures/conformance/ is exercised by
+      dune test. A passing run asserts that positive fixtures parse and
+      negative fixtures are rejected.
+
+countercase: |
+  The repair is excessive because "the agent will not run CI between
+  bootstrap milestones anyway, and the kernel is what matters." The
+  counterargument fails because: (a) the constitution A1 forbids claiming
+  guarantees that are not enforced; a green badge is a claim; (b) the
+  agent workflow runs CI as part of its loop, so broken CI silently
+  corrupts the agent's evidence; (c) the spec already requires
+  reproducibility, so a moving nixpkgs is a hidden violation.
+
+assumptions:
+  - id: github-actions-allowed
+    state: assumed
+    statement: GitHub Actions remain the project's CI provider.
+    owner: human:maintainer
+    consequence_if_false: workflows may need rewriting for a different
+      provider.
+    review_on:
+      - signal: ci-provider-change
+
+obligations:
+  - id: fix-ci-targets
+    outcome: ci-references-real-targets
+    claim: |
+      .github/workflows/ci.yml, release.yml, and site.yml reference real
+      paths: bin/mathc.exe (not core/main.exe), scripts/ that exist
+      (not scripts/render.sh), and dune commands that succeed.
+    acceptance:
+      all:
+        - verifier: ci-targets-exist.sh
+          result: pass
+
+  - id: pin-nixpkgs-commit
+    outcome: nixpkgs-pinned
+    claim: |
+      flake.nix inputs.nixpkgs.url points to a specific commit hash, not
+      a branch reference. flake.lock is committed. The locked commit is
+      recorded in this decision's commit message.
+    acceptance:
+      all:
+        - verifier: flake-ref-is-commit.sh
+          result: pass
+
+  - id: verify-opam-checksum
+    outcome: supply-chain-verified
+    claim: |
+      When release CI downloads opam binaries (currently Windows fallback),
+      SHA256 of the downloaded file is recorded and compared against a
+      known-good value before installation.
+    acceptance:
+      all:
+        - verifier: release-checksum-verified.sh
+          result: pass
+
+  - id: wire-conformance-runner
+    outcome: conformance-runner-enabled
+    claim: |
+      tests/conformance.ml walks fixtures/conformance/ and asserts
+      positive fixtures parse and negative fixtures are rejected.
+      tests/dune declares both digest_vectors and conformance test stanzas.
+    acceptance:
+      all:
+        - verifier: dune test passes
+          result: pass
+
+reversal:
+  - signal: any-obligation-fails-without-mitigation
+    action: revert-this-decision
+  - signal: kernel-progress-makes-checkpoint-obsolete
+    action: archive-as-historical-fix
+
+risk:
+  declared_triggers:
+    - infrastructure-breakage
+    - supply-chain-attack
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3
+  superseded_by: []

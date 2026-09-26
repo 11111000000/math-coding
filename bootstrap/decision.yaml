@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: bootstrap-v3
-revision: 1
+revision: 2
 
 intent: Replace math-coding 2.1 with a self-applying assurance protocol.
 
@@ -123,5 +123,5 @@ risk:
     - protocol-breaking-change
 
 relations:
-  supersedes:
-    - bootstrap-v2.1
+  addresses:
+    - infrastructure-honesty@1
