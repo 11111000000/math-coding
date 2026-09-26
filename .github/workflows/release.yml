@@ -18,90 +18,105 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { label: linux-x86_64,    runs-on: ubuntu-latest,    ocaml-arch: x86_64,  exe: mathc-linux-x86_64,    ext: '' }
-          - { label: linux-aarch64,   runs-on: ubuntu-24.04-arm, ocaml-arch: arm64,   exe: mathc-linux-aarch64,   ext: '' }
-          - { label: darwin-aarch64,  runs-on: macos-latest,     ocaml-arch: arm64,   exe: mathc-darwin-aarch64,  ext: '' }
-          # darwin-x86_64 (Intel macs): GitHub's macos-13 runners
-          # are nearly always queued out. Modern Macs are Apple Silicon
-          # so this is dropped from v1. To re-enable: change `macos-13`
-          # to whatever Intel macOS runner is current, e.g. macos-14-xlarge.
+          # Linux
+          - { label: linux-x86_64,    runs-on: ubuntu-latest,     exe: mathc-linux-x86_64,    ext: '' }
+          - { label: linux-aarch64,   runs-on: ubuntu-24.04-arm,  exe: mathc-linux-aarch64,   ext: '' }
+          # macOS
+          - { label: darwin-x86_64,   runs-on: macos-15-intel,    exe: mathc-darwin-x86_64,   ext: '' }
+          - { label: darwin-aarch64,  runs-on: macos-latest,      exe: mathc-darwin-aarch64,  ext: '' }
+          # Windows
+          - { label: windows-x86_64,  runs-on: windows-latest,    exe: mathc-windows-x86_64,  ext: '.exe' }
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Manual OCaml bootstrap.
-      #
-      # We avoid ocaml/setup-ocaml@v2 because:
-      #   1. It pins opam 2.0/2.1 with a frozen opam-repository snapshot
-      #      that lags behind new OCaml releases.
-      #   2. It apt-installs darcs as part of opam init, but Ubuntu 24.04
-      #      has dropped the darcs package from its repositories.
-      #   3. It uses --no-depexts flag that requires opam >= 2.1.
-      #
-      # We install opam 2.4.1 directly from the upstream binary release,
-      # point it at opam-repository#HEAD, and switch to OCaml 5.4.0.
+      # Manual OCaml bootstrap. We avoid ocaml/setup-ocaml@v2 because
+      # it pins opam 2.0/2.1 with a frozen opam-repository snapshot
+      # that lags new OCaml releases, and on Windows its bundled
+      # opam-repository snapshot doesn't even contain OCaml 5.4.0.
+
       - name: Install system dependencies (Linux)
-        if: matrix.runs-on == 'ubuntu-latest' || matrix.runs-on == 'ubuntu-24.04-arm'
+        if: runner.os == 'Linux'
+        shell: bash
         run: |
           set -eu
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential curl git ca-certificates rsync bubblewrap
-      - name: Install opam (Linux)
-        if: matrix.runs-on == 'ubuntu-latest' || matrix.runs-on == 'ubuntu-24.04-arm'
+
+      - name: Install opam (Linux/macOS)
+        if: runner.os == 'Linux' || runner.os == 'macOS'
+        shell: bash
         run: |
           set -eu
-          # Always install opam 2.4.1 over whatever the runner may
-          # have pre-installed via apt; --no-setup requires opam >= 2.2.
-          curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${{ matrix.ocaml-arch }}-linux" \
-            -o /tmp/opam
-          sudo install -m755 /tmp/opam /usr/local/bin/opam
-          opam --version
-      - name: Install opam (macOS)
-        if: matrix.runs-on == 'macos-latest'
-        run: |
-          set -eu
-          curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${{ matrix.ocaml-arch }}-macos" \
+          arch=$(uname -m)
+          case "$arch" in
+            x86_64|amd64) arch=x86_64 ;;
+            aarch64|arm64) arch=arm64 ;;
+          esac
+          curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${arch}-${RUNNER_OS,,}" \
             -o /tmp/opam
           sudo install -m755 /tmp/opam /usr/local/bin/opam
           opam --version
 
-      - name: Init opam and install OCaml
+      - name: Install opam (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # NSIS silent installer.
+          $installer = "$env:TEMP\opam-setup.exe"
+          Invoke-WebRequest -Uri "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-x86_64-windows.exe" -OutFile $installer -UseBasicParsing
+          $proc = Start-Process -FilePath $installer -ArgumentList '/S' -PassThru -Wait -NoNewWindow
+          if ($proc.ExitCode -ne 0) { throw "opam installer exited $($proc.ExitCode)" }
+          # opam installer puts opam.exe under C:\Program Files\opam\bin (or equivalent)
+          $opamPath = (Get-Command opam -ErrorAction SilentlyContinue).Source
+          if (-not $opamPath) {
+            $candidates = @(
+              "C:\Program Files\opam\bin\opam.exe",
+              "C:\Program Files (x86)\opam\bin\opam.exe"
+            )
+            foreach ($c in $candidates) { if (Test-Path $c) { $opamPath = $c; break } }
+          }
+          if (-not $opamPath) { throw "opam.exe not found after install" }
+          # Add to PATH for subsequent steps.
+          "C:\Program Files\opam\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          & $opamPath --version
+
+      - name: Init opam and create OCaml switch
+        shell: bash
         run: |
           set -eu
           opam init -y --bare --disable-sandboxing
           opam switch create 5.4.0 -y
           opam switch set 5.4.0
           echo "OPAM_SWITCH=5.4.0" >> "$GITHUB_ENV"
-          echo "PATH=$HOME/.opam/5.4.0/bin:$PATH" >> "$GITHUB_ENV"
+          OPAM_BIN="$HOME/.opam/5.4.0/bin"
+          [ -d "$OPAM_BIN" ] || OPAM_BIN="/c/Users/$USERNAME/.opam/5.4.0/bin"
+          echo "PATH=$OPAM_BIN:$PATH" >> "$GITHUB_ENV"
 
       - name: Install dune
+        shell: bash
         run: |
           set -eu
           eval "$(opam env --switch=5.4.0)"
           opam install --yes dune
 
       - name: Build mathc (release)
+        shell: bash
         run: |
           set -eu
           eval "$(opam env --switch=5.4.0)"
           opam exec -- dune build --profile=release core/main.exe
 
       - name: Stage binary
+        shell: bash
         run: |
           set -eu
           mkdir -p dist-bin
           cp _build/default/core/main.exe "dist-bin/${{ matrix.exe }}${{ matrix.ext }}"
           chmod +x "dist-bin/${{ matrix.exe }}${{ matrix.ext }}" 2>/dev/null || true
           ls -la dist-bin
-          file dist-bin/*
-
-      - name: Smoke-test binary
-        run: |
-          set -eu
-          bin="dist-bin/${{ matrix.exe }}${{ matrix.ext }}"
-          "$bin" version || true
-          "$bin" help 2>&1 | head -5 || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -127,7 +142,9 @@ jobs:
       - name: Verify all expected platforms present
         run: |
           set -eu
-          for exe in mathc-linux-x86_64 mathc-linux-aarch64 mathc-darwin-aarch64; do
+          for exe in mathc-linux-x86_64 mathc-linux-aarch64 \
+                    mathc-darwin-x86_64 mathc-darwin-aarch64 \
+                    mathc-windows-x86_64.exe; do
             [ -f "dist-bin/$exe" ] || { echo "missing: $exe"; exit 1; }
           done
 
@@ -141,7 +158,9 @@ jobs:
           files: |
             dist-bin/mathc-linux-x86_64
             dist-bin/mathc-linux-aarch64
+            dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
+            dist-bin/mathc-windows-x86_64.exe
 
       - name: Publish on main / manual dispatch — rolling edge
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
@@ -153,7 +172,9 @@ jobs:
           files: |
             dist-bin/mathc-linux-x86_64
             dist-bin/mathc-linux-aarch64
+            dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
+            dist-bin/mathc-windows-x86_64.exe
           body: |
             Rolling prerelease built from the latest commit on `main`.
 
