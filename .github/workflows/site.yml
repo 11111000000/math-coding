@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # mathc render reads witness commit hashes; shallow clone errors
       - uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: 5.4
