@@ -54,34 +54,31 @@ jobs:
             x86_64|amd64) arch=x86_64 ;;
             aarch64|arm64) arch=arm64 ;;
           esac
-          curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${arch}-${RUNNER_OS,,}" \
+          # ${RUNNER_OS,,} is Bash 4+ only; macOS Bash is 3.2.
+          case "$RUNNER_OS" in
+            Linux) os=linux ;;
+            macOS) os=macos ;;
+            *) echo "unknown RUNNER_OS: $RUNNER_OS"; exit 1 ;;
+          esac
+          curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${arch}-${os}" \
             -o /tmp/opam
           sudo install -m755 /tmp/opam /usr/local/bin/opam
           opam --version
 
-      - name: Install opam (Windows)
+      - name: Install opam (Windows via Chocolatey)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          # NSIS silent installer.
-          $installer = "$env:TEMP\opam-setup.exe"
-          Invoke-WebRequest -Uri "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-x86_64-windows.exe" -OutFile $installer -UseBasicParsing
-          $proc = Start-Process -FilePath $installer -ArgumentList '/S' -PassThru -Wait -NoNewWindow
-          if ($proc.ExitCode -ne 0) { throw "opam installer exited $($proc.ExitCode)" }
-          # opam installer puts opam.exe under C:\Program Files\opam\bin (or equivalent)
-          $opamPath = (Get-Command opam -ErrorAction SilentlyContinue).Source
-          if (-not $opamPath) {
-            $candidates = @(
-              "C:\Program Files\opam\bin\opam.exe",
-              "C:\Program Files (x86)\opam\bin\opam.exe"
-            )
-            foreach ($c in $candidates) { if (Test-Path $c) { $opamPath = $c; break } }
-          }
-          if (-not $opamPath) { throw "opam.exe not found after install" }
-          # Add to PATH for subsequent steps.
-          "C:\Program Files\opam\bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
-          & $opamPath --version
+          # GitHub's opam Windows .exe is an interactive NSIS installer;
+          # CI has no desktop session. Chocolatey packages the same
+          # release and supports unattended install.
+          choco install opam --version=2.4.1 -y --no-progress --source=chocolatey
+          # choco installs to C:\Program Files\opam\bin by default; refresh PATH.
+          $opamBin = 'C:\Program Files\opam\bin'
+          $env:PATH = "$opamBin;$env:PATH"
+          "$opamBin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          & opam --version
 
       - name: Init opam and create OCaml switch
         shell: bash
