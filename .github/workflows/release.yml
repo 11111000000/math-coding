@@ -20,8 +20,11 @@ jobs:
         include:
           - { label: linux-x86_64,    runs-on: ubuntu-latest,    ocaml-arch: x86_64,  exe: mathc-linux-x86_64,    ext: '' }
           - { label: linux-aarch64,   runs-on: ubuntu-24.04-arm, ocaml-arch: arm64,   exe: mathc-linux-aarch64,   ext: '' }
-          - { label: darwin-x86_64,   runs-on: macos-13,         ocaml-arch: x86_64,  exe: mathc-darwin-x86_64,   ext: '' }
           - { label: darwin-aarch64,  runs-on: macos-latest,     ocaml-arch: arm64,   exe: mathc-darwin-aarch64,  ext: '' }
+          # darwin-x86_64 (Intel macs): GitHub's macos-13 runners
+          # are nearly always queued out. Modern Macs are Apple Silicon
+          # so this is dropped from v1. To re-enable: change `macos-13`
+          # to whatever Intel macOS runner is current, e.g. macos-14-xlarge.
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -55,7 +58,7 @@ jobs:
           sudo install -m755 /tmp/opam /usr/local/bin/opam
           opam --version
       - name: Install opam (macOS)
-        if: matrix.runs-on == 'macos-13' || matrix.runs-on == 'macos-latest'
+        if: matrix.runs-on == 'macos-latest'
         run: |
           set -eu
           curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${{ matrix.ocaml-arch }}-macos" \
@@ -124,7 +127,7 @@ jobs:
       - name: Verify all expected platforms present
         run: |
           set -eu
-          for exe in mathc-linux-x86_64 mathc-linux-aarch64 mathc-darwin-x86_64 mathc-darwin-aarch64; do
+          for exe in mathc-linux-x86_64 mathc-linux-aarch64 mathc-darwin-aarch64; do
             [ -f "dist-bin/$exe" ] || { echo "missing: $exe"; exit 1; }
           done
 
@@ -138,7 +141,6 @@ jobs:
           files: |
             dist-bin/mathc-linux-x86_64
             dist-bin/mathc-linux-aarch64
-            dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
 
       - name: Publish on main / manual dispatch — rolling edge
@@ -151,7 +153,6 @@ jobs:
           files: |
             dist-bin/mathc-linux-x86_64
             dist-bin/mathc-linux-aarch64
-            dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
           body: |
             Rolling prerelease built from the latest commit on `main`.
