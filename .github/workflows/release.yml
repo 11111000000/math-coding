@@ -27,18 +27,29 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # darcs shim: `ocaml/setup-ocaml@v2` apt-installs darcs as part
-      # of opam init, and Ubuntu 24.04 has dropped the package. We
-      # don't need darcs at all — only OCaml + dune — so we provide a
-      # no-op stub that satisfies any later `darcs` invocation.
-      - name: Provide darcs stub (Linux only)
+      # Ubuntu 24.04 removed `darcs` from its apt repositories, but
+      # `ocaml/setup-ocaml@v2` unconditionally does `apt-get install
+      # darcs` during init. We don't need darcs (only OCaml + dune),
+      # so we synthesize a no-op `darcs` package via equivs and
+      # install it locally. This makes the action's `apt-get install
+      # darcs` a no-op success.
+      - name: Install fake darcs package (Linux only)
         if: matrix.runs-on == 'ubuntu-latest' || matrix.runs-on == 'ubuntu-24.04-arm'
         run: |
-          if ! command -v darcs >/dev/null 2>&1; then
-            printf '#!/bin/sh\necho "darcs: stub (math-coding does not use darcs)" >&2\nexit 0\n' \
-              | sudo tee /usr/local/bin/darcs >/dev/null
-            sudo chmod +x /usr/local/bin/darcs
-          fi
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends equivs
+          cat > /tmp/darcs.ctl <<'CTL'
+          Section: devel
+          Package: darcs
+          Version: 99.0
+          Maintainer: math-coding CI <ci@local>
+          Architecture: any
+          Description: shim for ocaml/setup-ocaml@v2 on Ubuntu 24.04+
+           math-coding does not invoke darcs at build time; this empty
+           package satisfies the action's mandatory `apt-get install darcs`.
+          CTL
+          (cd /tmp && equivs-build darcs.ctl) >/dev/null
+          sudo dpkg -i /tmp/darcs_99.0_*.deb || sudo apt-get install -f -y
 
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v2
