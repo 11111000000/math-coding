@@ -18,62 +18,89 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { label: linux-x86_64,    runs-on: ubuntu-latest,     exe: mathc-linux-x86_64,    ext: '' }
-          - { label: linux-aarch64,   runs-on: ubuntu-24.04-arm,  exe: mathc-linux-aarch64,   ext: '' }
-          - { label: darwin-x86_64,   runs-on: macos-13,          exe: mathc-darwin-x86_64,   ext: '' }
-          - { label: darwin-aarch64,  runs-on: macos-latest,      exe: mathc-darwin-aarch64,  ext: '' }
-          - { label: windows-x86_64,  runs-on: windows-latest,    exe: mathc-windows-x86_64,  ext: '.exe' }
+          - { label: linux-x86_64,    runs-on: ubuntu-latest,    ocaml-arch: x86_64,  exe: mathc-linux-x86_64,    ext: '' }
+          - { label: linux-aarch64,   runs-on: ubuntu-24.04-arm, ocaml-arch: arm64,   exe: mathc-linux-aarch64,   ext: '' }
+          - { label: darwin-x86_64,   runs-on: macos-13,         ocaml-arch: x86_64,  exe: mathc-darwin-x86_64,   ext: '' }
+          - { label: darwin-aarch64,  runs-on: macos-latest,     ocaml-arch: arm64,   exe: mathc-darwin-aarch64,  ext: '' }
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Ubuntu 24.04 removed `darcs` from its apt repositories, but
-      # `ocaml/setup-ocaml@v2` unconditionally does `apt-get install
-      # darcs` during init. We don't need darcs (only OCaml + dune),
-      # so we synthesize a no-op `darcs` package via equivs and
-      # install it locally. This makes the action's `apt-get install
-      # darcs` a no-op success.
-      - name: Install fake darcs package (Linux only)
+      # Manual OCaml bootstrap.
+      #
+      # We avoid ocaml/setup-ocaml@v2 because:
+      #   1. It pins opam 2.0/2.1 with a frozen opam-repository snapshot
+      #      that lags behind new OCaml releases.
+      #   2. It apt-installs darcs as part of opam init, but Ubuntu 24.04
+      #      has dropped the darcs package from its repositories.
+      #   3. It uses --no-depexts flag that requires opam >= 2.1.
+      #
+      # We install opam 2.4.1 directly from the upstream binary release,
+      # point it at opam-repository#HEAD, and switch to OCaml 5.4.0.
+      - name: Install system dependencies (Linux)
         if: matrix.runs-on == 'ubuntu-latest' || matrix.runs-on == 'ubuntu-24.04-arm'
         run: |
+          set -eu
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends equivs
-          cat > /tmp/darcs.ctl <<'CTL'
-          Section: devel
-          Package: darcs
-          Version: 99.0
-          Maintainer: math-coding CI <ci@local>
-          Architecture: any
-          Description: shim for ocaml/setup-ocaml@v2 on Ubuntu 24.04+
-           math-coding does not invoke darcs at build time; this empty
-           package satisfies the action's mandatory `apt-get install darcs`.
-          CTL
-          (cd /tmp && equivs-build darcs.ctl) >/dev/null
-          sudo dpkg -i /tmp/darcs_99.0_*.deb || sudo apt-get install -f -y
+          sudo apt-get install -y --no-install-recommends \
+            build-essential curl git ca-certificates rsync bubblewrap
+      - name: Install opam (Linux)
+        if: matrix.runs-on == 'ubuntu-latest' || matrix.runs-on == 'ubuntu-24.04-arm'
+        run: |
+          set -eu
+          if ! command -v opam >/dev/null 2>&1; then
+            curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${{ matrix.ocaml-arch }}-linux" \
+              -o /tmp/opam
+            sudo install -m755 /tmp/opam /usr/local/bin/opam
+          fi
+          opam --version
+      - name: Install opam (macOS)
+        if: matrix.runs-on == 'macos-13' || matrix.runs-on == 'macos-latest'
+        run: |
+          set -eu
+          if ! command -v opam >/dev/null 2>&1; then
+            curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${{ matrix.ocaml-arch }}-macos" \
+              -o /tmp/opam
+            sudo install -m755 /tmp/opam /usr/local/bin/opam
+          fi
+          opam --version
 
-      - name: Set up OCaml
-        uses: ocaml/setup-ocaml@v2
-        with:
-          ocaml-compiler: 5.4.0
-          opam-repositories: |
-            default: git+https://github.com/ocaml/opam-repository.git
-          opam-depext: false
-          dune-cache: true
+      - name: Init opam and install OCaml
+        run: |
+          set -eu
+          opam init -y --bare --no-setup --disable-sandboxing
+          opam switch create 5.4.0 -y --no-setup
+          opam switch set 5.4.0
+          echo "OPAM_SWITCH=5.4.0" >> "$GITHUB_ENV"
+          echo "PATH=$HOME/.opam/5.4.0/bin:$PATH" >> "$GITHUB_ENV"
 
       - name: Install dune
-        run: opam install --yes dune
+        run: |
+          set -eu
+          eval "$(opam env --switch=5.4.0)"
+          opam install --yes dune
 
       - name: Build mathc (release)
-        run: opam exec -- dune build --profile=release core/main.exe
+        run: |
+          set -eu
+          eval "$(opam env --switch=5.4.0)"
+          opam exec -- dune build --profile=release core/main.exe
 
       - name: Stage binary
-        shell: bash
         run: |
           set -eu
           mkdir -p dist-bin
           cp _build/default/core/main.exe "dist-bin/${{ matrix.exe }}${{ matrix.ext }}"
           chmod +x "dist-bin/${{ matrix.exe }}${{ matrix.ext }}" 2>/dev/null || true
           ls -la dist-bin
+          file dist-bin/*
+
+      - name: Smoke-test binary
+        run: |
+          set -eu
+          bin="dist-bin/${{ matrix.exe }}${{ matrix.ext }}"
+          "$bin" version || true
+          "$bin" help 2>&1 | head -5 || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -94,7 +121,14 @@ jobs:
           merge-multiple: true
 
       - name: List staged binaries
-        run: ls -la dist-bin
+        run: ls -la dist-bin && file dist-bin/*
+
+      - name: Verify all expected platforms present
+        run: |
+          set -eu
+          for exe in mathc-linux-x86_64 mathc-linux-aarch64 mathc-darwin-x86_64 mathc-darwin-aarch64; do
+            [ -f "dist-bin/$exe" ] || { echo "missing: $exe"; exit 1; }
+          done
 
       - name: Publish on tag — official release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -108,7 +142,6 @@ jobs:
             dist-bin/mathc-linux-aarch64
             dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
-            dist-bin/mathc-windows-x86_64.exe
 
       - name: Publish on main / manual dispatch — rolling edge
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
@@ -122,7 +155,6 @@ jobs:
             dist-bin/mathc-linux-aarch64
             dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
-            dist-bin/mathc-windows-x86_64.exe
           body: |
             Rolling prerelease built from the latest commit on `main`.
 
