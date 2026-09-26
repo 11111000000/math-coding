@@ -48,21 +48,19 @@ jobs:
         if: matrix.runs-on == 'ubuntu-latest' || matrix.runs-on == 'ubuntu-24.04-arm'
         run: |
           set -eu
-          if ! command -v opam >/dev/null 2>&1; then
-            curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${{ matrix.ocaml-arch }}-linux" \
-              -o /tmp/opam
-            sudo install -m755 /tmp/opam /usr/local/bin/opam
-          fi
+          # Always install opam 2.4.1 over whatever the runner may
+          # have pre-installed via apt; --no-setup requires opam >= 2.2.
+          curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${{ matrix.ocaml-arch }}-linux" \
+            -o /tmp/opam
+          sudo install -m755 /tmp/opam /usr/local/bin/opam
           opam --version
       - name: Install opam (macOS)
         if: matrix.runs-on == 'macos-13' || matrix.runs-on == 'macos-latest'
         run: |
           set -eu
-          if ! command -v opam >/dev/null 2>&1; then
-            curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${{ matrix.ocaml-arch }}-macos" \
-              -o /tmp/opam
-            sudo install -m755 /tmp/opam /usr/local/bin/opam
-          fi
+          curl -fsSL "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-${{ matrix.ocaml-arch }}-macos" \
+            -o /tmp/opam
+          sudo install -m755 /tmp/opam /usr/local/bin/opam
           opam --version
 
       - name: Init opam and install OCaml
