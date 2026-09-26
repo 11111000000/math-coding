@@ -84,6 +84,22 @@ mathc check
 ## Установка
 
 ```sh
+# Самый простой путь: бинарь + авто-установка скилла агента.
+curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/skills/install.sh | sh
+```
+
+Это ставит `mathc` в `~/.local/bin/` и копирует `SKILL.md`
+в `~/.claude/skills/math-coding/`, `~/.config/opencode/skills/math-coding/`
+и аналогичные каталоги Cursor и Continue.
+
+Если для вашей OS/arch нет GitHub Release, скрипт собирает
+из исходников через opam или nix.
+
+### Сборка из исходников
+
+```sh
+git clone https://github.com/11111000000/math-coding
+cd math-coding
 nix develop --command sh scripts/install.sh
 # или
 opam switch create 5.2.0 && opam install dune
@@ -101,7 +117,7 @@ sh scripts/install.sh
 - [FAQ.md](FAQ.md) — десять частых вопросов
 - [math/modeling/](math/modeling/) — формальная модель (LaTeX)
 - [AGENTS.md](AGENTS.md) — протокол для ИИ-агентов
-- [SKILL.md](SKILL.md) — bootstrap для opencode
+- [skills/math-coding/SKILL.md](skills/math-coding/SKILL.md) — bootstrap для opencode / claude-code
 
 ## Лицензия
 

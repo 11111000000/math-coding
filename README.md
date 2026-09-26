@@ -100,6 +100,22 @@ mathc check
 ## Install
 
 ```sh
+# Easiest: binary drop with agent-skill auto-install.
+curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/skills/install.sh | sh
+```
+
+This installs `mathc` to `~/.local/bin/`, drops `SKILL.md` into
+`~/.claude/skills/math-coding/`, `~/.config/opencode/skills/math-coding/`,
+and similar dirs for Cursor and Continue.
+
+If no GitHub Release is available for your OS/arch, the script
+falls back to building from source via opam or nix.
+
+### Source build
+
+```sh
+git clone https://github.com/11111000000/math-coding
+cd math-coding
 nix develop --command sh scripts/install.sh
 # or
 opam switch create 5.2.0 && opam install dune
@@ -117,7 +133,7 @@ Wrapper `./mathc` at the project root resolves to it.
 - [FAQ.md](FAQ.md) — ten frequent questions
 - [math/modeling/](math/modeling/) — formal model (LaTeX)
 - [AGENTS.md](AGENTS.md) — protocol for AI agents
-- [SKILL.md](SKILL.md) — bootstrap for opencode
+- [skills/math-coding/SKILL.md](skills/math-coding/SKILL.md) — bootstrap for opencode / claude-code
 
 ## License
 

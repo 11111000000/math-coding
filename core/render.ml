@@ -782,7 +782,8 @@ mathc amend my-decision
 git add math/my-decision/witness &amp;&amp; git commit -m "my-decision: witness"
 mathc check</code></pre>
 
-<p>Install: <code>nix develop --command sh scripts/install.sh</code>.
+<p>Install (easiest): <code>curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/skills/install.sh | sh</code>.
+Source build: <code>nix develop --command sh scripts/install.sh</code>.
 Binary lands at <code>$XDG_DATA_HOME/math-coding/current/mathc</code>.</p>
 
 <h2>Project layout</h2>

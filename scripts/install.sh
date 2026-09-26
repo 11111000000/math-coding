@@ -10,7 +10,7 @@
 
 set -u
 
-VERSION="${MATH_CODING_VERSION:-2.0.0}"
+VERSION="${MATH_CODING_VERSION:-2.1}"
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
 INSTALL_DIR="$DATA/math-coding/$VERSION"
 CURRENT_LINK="$DATA/math-coding/current"

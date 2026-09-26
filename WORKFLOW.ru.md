@@ -55,6 +55,21 @@ mathc stats                          # метрики (drift rate, applied/total
 ### Шаг 1. Установка
 
 ```sh
+# Самый простой путь: бинарь + авто-установка скилла агента.
+curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/skills/install.sh | sh
+```
+
+Это кладёт `mathc` в `~/.local/bin/` и устанавливает скилл агента
+в каталоги Claude Code, opencode, Cursor и Continue. Если под
+вашу OS/arch нет Release-бинаря, скрипт собирает из исходников
+через opam/nix.
+
+Если предпочитаете сборку из исходников (например, чтобы хакать
+на `mathc`):
+
+```sh
+git clone https://github.com/11111000000/math-coding
+cd math-coding
 nix develop --command sh scripts/install.sh
 # или
 opam switch create 5.2.0 && opam install dune

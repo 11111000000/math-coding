@@ -37,7 +37,7 @@ echo "[2/3] running mathc render..."
 
 echo "[3/3] verifying dist/..."
 
-required="dist/index.html dist/manifesto.html dist/foundations.html dist/workflow.html dist/faq.html dist/agents.html dist/contributing.html dist/readme.html dist/readme-ru.html dist/manifesto-narrative.html dist/packets.html dist/extensions.html dist/assets/style.css"
+required="dist/index.html dist/manifesto.html dist/foundations.html dist/workflow.html dist/faq.html dist/agents.html dist/contributing.html dist/readme.html dist/readme-ru.html dist/manifesto-narrative.html dist/packets.html dist/extensions.html dist/skill.html dist/assets/style.css"
 
 missing=0
 for f in $required; do

@@ -54,6 +54,20 @@ mathc stats                          # metrics (drift rate, applied/total)
 ### Step 1. Install
 
 ```sh
+# Easiest: binary drop with agent-skill auto-install.
+curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/skills/install.sh | sh
+```
+
+This puts `mathc` in `~/.local/bin/` and installs the agent skill
+into Claude Code, opencode, Cursor, and Continue directories.
+Falls back to building from source via opam/nix if no release
+binary is available for your OS/arch.
+
+If you prefer building from source (e.g., to hack on `mathc`):
+
+```sh
+git clone https://github.com/11111000000/math-coding
+cd math-coding
 nix develop --command sh scripts/install.sh
 # or
 opam switch create 5.2.0 && opam install dune
