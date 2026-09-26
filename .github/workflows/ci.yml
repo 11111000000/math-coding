@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 5.4
+          dune-cache: true
+      - run: opam install --yes dune
+      - name: Build
+        run: opam exec -- dune build --profile=release core/main.exe
+      - name: Test
+        run: opam exec -- dune test
+      - name: Render site (smoke)
+        run: sh scripts/render.sh
