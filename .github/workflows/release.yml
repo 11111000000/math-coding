@@ -27,6 +27,7 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: 5.4
+          opam-depext: false
           dune-cache: true
       - name: Install dune
         run: opam install --yes dune
