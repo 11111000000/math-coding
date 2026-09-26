@@ -30,11 +30,19 @@ let fixture_root =
 (* --- File loaders --- *)
 
 (* Hand-rolled YAML loader for the subset used by fixtures/conformance:
-   top-level mapping, scalar values only. This is NOT a general YAML
-   parser. Decision fixtures use only this subset; richer YAML would
-   need a real parser. *)
+   top-level mapping with nested mappings and lists. This is NOT a
+   general YAML parser. The subset is sufficient for the decision
+   fixtures, which mirror the structure of the JSON fixtures.
+   See OCAML_BEST_PRACTICES §10.4 §1: the kernel stays offline and
+   dependency-free, so the loader is hand-rolled. If a fixture ever
+   needs richer YAML (anchors, multi-document, inline JSON values,
+   flow style with nested brackets), extend this loader before
+   reaching for a real parser dependency. *)
 
 let[@warning "-32"] yaml_strip s =
+  (* Strip '#'-to-EOL comments and carriage returns only.
+     Spaces and tabs are preserved so the tokenizer can compute the
+     indent of each line. *)
   let len = String.length s in
   let buf = Buffer.create len in
   let rec loop i =
@@ -46,7 +54,7 @@ let[@warning "-32"] yaml_strip s =
          let rec skip j =
            if j >= len then () else if String.unsafe_get s j = '\n' then loop (j + 1) else skip (j + 1)
          in skip i
-       | ' ' | '\t' | '\r' -> loop (i + 1)
+       | '\r' -> loop (i + 1)
        | _ -> Buffer.add_char buf c; loop (i + 1))
   in loop 0; Buffer.contents buf
 
@@ -62,7 +70,28 @@ let[@warning "-32"] yaml_lines s =
       loop (j + 1) (String.sub stripped i (j - i) :: acc)
   in loop 0 []
 
-let[@warning "-32"] parse_yaml_value s =
+(* A token is one logical YAML line with its indentation. Comments and
+   blank lines are dropped at tokenization time. *)
+type yaml_token = { yindent : int; ycontent : string }
+
+let[@warning "-32"] yaml_tokens raw =
+  List.filter_map
+    (fun line ->
+      let len = String.length line in
+      let rec count_spaces i =
+        if i >= len then i
+        else if String.unsafe_get line i = ' ' then count_spaces (i + 1)
+        else i
+      in
+      let indent = count_spaces 0 in
+      if indent = len then None
+      else
+        let content = String.sub line indent (len - indent) in
+        Some { yindent = indent; ycontent = content })
+    (yaml_lines raw)
+
+(* Scalar value: null, bool, int, quoted string, or bare string. *)
+let[@warning "-32"] parse_yaml_scalar s =
   let s = String.trim s in
   match s with
   | "" -> Jsonl.Null
@@ -90,33 +119,115 @@ let[@warning "-32"] parse_yaml_value s =
       Jsonl.String (String.sub s 1 (String.length s - 2))
     else Jsonl.String s
 
-let[@warning "-32"] parse_yaml lines =
-  List.filter_map
-    (fun line ->
-      let indent =
-        let rec loop i =
-          if i >= String.length line then i
-          else if String.unsafe_get line i = ' ' then loop (i + 1) else i
-        in loop 0
-      in
-      if indent = String.length line then None
-      else if indent <> 0 then None
+let[@warning "-32"] is_dash_item content =
+  String.length content >= 2
+  && String.unsafe_get content 0 = '-'
+  && String.unsafe_get content 1 = ' '
+
+(* Mutually recursive YAML block parsers. See OCAML_BEST_PRACTICES
+   §11.3 — `let rec ... and ...` must be one group. *)
+
+let[@warning "-32"] head_indent = function
+  | { yindent; _ } :: _ -> yindent
+  | [] -> -1
+
+let[@warning "-32"] rec parse_yaml_pairs tokens cur_indent =
+  let rec loop acc tokens =
+    match tokens with
+    | [] -> List.rev acc, []
+    | _ :: _ when head_indent tokens < cur_indent -> List.rev acc, tokens
+    | _ :: _ when head_indent tokens > cur_indent ->
+        (* Indentation grew unexpectedly: this token belongs to a
+           nested block the caller should consume. Bail out so the
+           caller can re-enter at the correct indent. *)
+        List.rev acc, tokens
+    | { ycontent; _ } :: rest when head_indent tokens = cur_indent ->
+        if is_dash_item ycontent then
+          List.rev acc, tokens
+        else
+          (match String.index_opt ycontent ':' with
+           | None -> List.rev acc, tokens
+           | Some ci ->
+               let key = String.sub ycontent 0 ci in
+               let vraw = String.sub ycontent (ci + 1)
+                 (String.length ycontent - ci - 1) in
+               let vstr = String.trim vraw in
+               let value, rest2 =
+                 if vstr = "" then
+                   (match rest with
+                    | [] -> Jsonl.Null, []
+                    | first :: _ -> parse_yaml_value rest first.yindent)
+                 else parse_yaml_scalar vstr, rest
+               in
+               loop ((key, value) :: acc) rest2)
+    | _ -> List.rev acc, tokens
+  in loop [] tokens
+
+and parse_yaml_value tokens cur_indent =
+  match tokens with
+  | [] -> Jsonl.Null, []
+  | _ :: _ when head_indent tokens < cur_indent -> Jsonl.Null, tokens
+  | { ycontent; _ } :: _ when head_indent tokens = cur_indent ->
+      if is_dash_item ycontent then
+        parse_yaml_seq tokens cur_indent
       else
-        let rest = String.sub line indent (String.length line - indent) in
-        match String.index_opt rest ':' with
-        | Some ci ->
-          let k = String.sub rest 0 ci in
-          let v = String.sub rest (ci + 1) (String.length rest - ci - 1) in
-          Some (String.trim k, parse_yaml_value v)
-        | None -> None)
-    lines
+        let pairs, rest2 = parse_yaml_pairs tokens cur_indent in
+        Jsonl.Object pairs, rest2
+  | _ -> Jsonl.Null, []
+
+and parse_yaml_seq tokens cur_indent =
+  let rec loop acc tokens =
+    match tokens with
+    | [] -> Jsonl.Array (List.rev acc), []
+    | _ :: _ when head_indent tokens < cur_indent ->
+        Jsonl.Array (List.rev acc), tokens
+    | _ :: _ when head_indent tokens > cur_indent ->
+        Jsonl.Array (List.rev acc), tokens
+    | { ycontent; _ } :: rest when head_indent tokens = cur_indent ->
+        if not (is_dash_item ycontent) then
+          Jsonl.Array (List.rev acc), tokens
+        else
+          let item_str = String.sub ycontent 2
+            (String.length ycontent - 2) in
+          let item_str_trim = String.trim item_str in
+          let item, rest2 =
+            if item_str_trim = "" then
+              (* Body of the list item is on subsequent indented lines. *)
+              parse_yaml_value rest (cur_indent + 2)
+            else
+              (match String.index_opt item_str ':' with
+               | Some ci ->
+                   let key = String.sub item_str 0 ci in
+                   let vraw = String.sub item_str (ci + 1)
+                     (String.length item_str - ci - 1) in
+                   let vstr = String.trim vraw in
+                   let first_value, more_rest =
+                     if vstr = "" then
+                       (match rest with
+                        | [] -> Jsonl.Null, []
+                        | first :: _ ->
+                            parse_yaml_value rest first.yindent)
+                     else parse_yaml_scalar vstr, rest
+                   in
+                   let first_pair = [(key, first_value)] in
+                   let more_pairs, rest3 =
+                     parse_yaml_pairs more_rest (cur_indent + 2)
+                   in
+                   Jsonl.Object (first_pair @ more_pairs), rest3
+               | None -> parse_yaml_scalar item_str_trim, rest)
+          in
+          loop (item :: acc) rest2
+    | _ -> Jsonl.Array (List.rev acc), tokens
+  in loop [] tokens
 
 let[@warning "-32"] parse_yaml_file path =
   let ic = open_in path in
   let len = in_channel_length ic in
   let raw = really_input_string ic len in
   close_in ic;
-  Jsonl.Object (parse_yaml (yaml_lines raw))
+  let tokens = yaml_tokens raw in
+  let pairs, _ = parse_yaml_pairs tokens 0 in
+  Jsonl.Object pairs
 
 let[@warning "-32"] load_fixture path =
   let sfx = Filename.extension path in

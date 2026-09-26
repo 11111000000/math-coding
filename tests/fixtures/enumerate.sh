@@ -41,9 +41,12 @@ fi
 # Behaviour-level check: dune test runs the conformance suite.
 # We do NOT count cases (that's OCaml's job). We only verify that
 # dune test runs at all AND emits Alcotest output naming the suite.
+# --force forces dune to re-execute tests even when the build is
+# cached, so the fixture's grep sees real output regardless of
+# whether the per-fixture verdicts pass or fail.
 log=$(mktemp)
 trap 'rm -f "$log"' EXIT
-nix develop .#test --command bash -c 'dune test --root .' >"$log" 2>&1 || true
+nix develop .#test --command bash -c 'dune test --root . --force' >"$log" 2>&1 || true
 # Note: || true because parser regressions are recorded by separate
 # fixtures; this one verifies the runner is wired, not parser quality.
 

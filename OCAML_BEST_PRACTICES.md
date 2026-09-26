@@ -1054,6 +1054,77 @@ match Sys.is_directory path with
 Only some `Sys` functions return `option` (e.g., `Sys.getenv_opt`,
 `Sys.argv`-related).
 
+### 11.13 A whitespace-stripping helper destroys source structure
+
+The original `yaml_strip` in `tests/conformance.ml` (pre-fix) looked
+innocuous — strip `#` comments, then drop `' ' | '\t' | '\r'`:
+
+```ocaml
+| ' ' | '\t' | '\r' -> loop (i + 1)
+```
+
+But this dropped **every** space/tab/CR, including the leading
+indentation that gives YAML its structure. The result:
+
+```yaml
+intent:
+  source: issue:143
+  text: ...
+```
+
+…became `intent:\nsource:issue:143\ntext:...` after stripping — every
+line collapsed to indent 0, and the nested object became three sibling
+top-level keys with names like `source`, `text`. `parse_yaml` happily
+returned a flat object and the parser couldn't recover the hierarchy.
+The kernel then rejected the fixture because `intent.source` was
+missing.
+
+**Symptom**: every nested YAML fixture parses but with a totally wrong
+shape — keys with embedded `-` appear (`-rev:102abc`), and nested
+mappings collapse into siblings. The fix looks like it should be in
+the loader, but the bug is upstream in the preprocessor.
+
+**Fix**: only strip `#`-to-EOL comments and `\r`. Preserve all spaces
+and tabs so the tokenizer can compute indentation.
+
+```ocaml
+(* only strip comments and CR *)
+| '#' -> skip_to_eol i
+| '\r' -> loop (i + 1)
+| _ -> Buffer.add_char buf c; loop (i + 1)
+```
+
+**Trigger**: any hand-rolled YAML/indentation-sensitive loader that
+delegates preprocessing to a "strip whitespace" helper.
+
+### 11.14 `dune test` emits no output when nothing changed
+
+When every test in a stanza passes, `dune test` caches the result and
+emits *no* Alcotest output on subsequent runs (no `Testing` line, no
+per-case `[OK]` lines). Shell fixtures that grep the output for a
+suite name then fail — but only on the *second* run, after the cache
+warms.
+
+**Symptom**: a fixture passes once (when something triggers a rebuild
+that re-runs the tests) and fails on the next `check.sh` invocation.
+Flaky green/red between calls.
+
+**Fix**: pass `--force` to `dune test` from shell fixtures that grep
+its output. `--force` rebuilds the test executables and re-runs them,
+guaranteeing output regardless of cache state.
+
+```sh
+nix develop .#test --command bash -c 'dune test --root . --force'
+```
+
+`dune test` has no `--error-on-warnings` flag (only `dune build` does
+in older versions); do not assume test-time strict-warnings is
+available.
+
+**Trigger**: a shell fixture `grep`s for a string in the output of
+`dune test`, and the fixture's input tree has been stable long enough
+for dune's build cache to short-circuit the run.
+
 ### 11.12 Warnings classified as errors during compilation
 
 `dune build` returns nonzero exit code on warnings when:
