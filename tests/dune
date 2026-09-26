@@ -1,3 +1,7 @@
 (test
  (name digest_vectors)
  (libraries mathcoding_core alcotest))
+
+(test
+ (name conformance)
+ (libraries mathcoding_core alcotest))
