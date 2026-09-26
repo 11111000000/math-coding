@@ -7,6 +7,9 @@ on:
       - 'v*.*.*'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     name: mathc (${{ matrix.label }})
@@ -15,35 +18,55 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { label: linux-x86_64,    runs-on: ubuntu-latest,     exe: mathc-linux-x86_64 }
-          - { label: linux-aarch64,   runs-on: ubuntu-24.04-arm,  exe: mathc-linux-aarch64 }
-          - { label: darwin-x86_64,   runs-on: macos-13,          exe: mathc-darwin-x86_64 }
-          - { label: darwin-aarch64,  runs-on: macos-latest,      exe: mathc-darwin-aarch64 }
-          - { label: windows-x86_64,  runs-on: windows-latest,    exe: mathc-windows-x86_64.exe }
+          - { label: linux-x86_64,    runs-on: ubuntu-latest,     exe: mathc-linux-x86_64,    ext: '' }
+          - { label: linux-aarch64,   runs-on: ubuntu-24.04-arm,  exe: mathc-linux-aarch64,   ext: '' }
+          - { label: darwin-x86_64,   runs-on: macos-13,          exe: mathc-darwin-x86_64,   ext: '' }
+          - { label: darwin-aarch64,  runs-on: macos-latest,      exe: mathc-darwin-aarch64,  ext: '' }
+          - { label: windows-x86_64,  runs-on: windows-latest,    exe: mathc-windows-x86_64,  ext: '.exe' }
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      # darcs shim: `ocaml/setup-ocaml@v2` apt-installs darcs as part
+      # of opam init, and Ubuntu 24.04 has dropped the package. We
+      # don't need darcs at all — only OCaml + dune — so we provide a
+      # no-op stub that satisfies any later `darcs` invocation.
+      - name: Provide darcs stub (Linux only)
+        if: matrix.runs-on == 'ubuntu-latest' || matrix.runs-on == 'ubuntu-24.04-arm'
+        run: |
+          if ! command -v darcs >/dev/null 2>&1; then
+            printf '#!/bin/sh\necho "darcs: stub (math-coding does not use darcs)" >&2\nexit 0\n' \
+              | sudo tee /usr/local/bin/darcs >/dev/null
+            sudo chmod +x /usr/local/bin/darcs
+          fi
+
       - name: Set up OCaml
         uses: ocaml/setup-ocaml@v2
         with:
-          ocaml-compiler: 5.4
+          ocaml-compiler: 5.4.0
           opam-depext: false
           dune-cache: true
+
       - name: Install dune
-        run: opam install --yes dune
+        run: opam install --yes --no-depexts dune
+
       - name: Build mathc (release)
         run: opam exec -- dune build --profile=release core/main.exe
+
       - name: Stage binary
+        shell: bash
         run: |
+          set -eu
           mkdir -p dist-bin
-          cp _build/default/core/main.exe "dist-bin/${{ matrix.exe }}"
-          chmod +x "dist-bin/${{ matrix.exe }}" || true
+          cp _build/default/core/main.exe "dist-bin/${{ matrix.exe }}${{ matrix.ext }}"
+          chmod +x "dist-bin/${{ matrix.exe }}${{ matrix.ext }}" 2>/dev/null || true
           ls -la dist-bin
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.label }}
-          path: dist-bin/${{ matrix.exe }}
+          path: dist-bin/${{ matrix.exe }}${{ matrix.ext }}
           if-no-files-found: error
 
   publish:
