@@ -21,13 +21,26 @@ Before changing anything in this repository, read in order:
 4. `spec/semantics.md` — gate logic and exit codes.
 5. `OCAML_BEST_PRACTICES.md` — project-specific OCaml conventions,
    including which conventions are *enforced* by `bootstrap/decision.yaml`.
-6. `bootstrap/decision.yaml` — the bootstrap decision itself; its
-   obligations describe the manual checks you must perform.
+   The trap log in §11 is the first place to look when debugging an
+   OCaml or dune error.
+6. `bootstrap/decision.yaml` and `bootstrap/infrastructure-honesty.yaml`
+   — the active decisions; their obligations describe the manual checks
+   you must perform and the verifiers you must satisfy.
 7. `axioms/` — the philosophical and mathematical foundations. Every
    non-trivial change MUST be derivable from at least one axiom.
 
 If any of these contradict each other, the contradiction is a deficit.
 Report it; do not silently resolve it.
+
+## When a dune or OCaml error appears
+
+Before adding a workaround or running `rm -rf _build`:
+
+1. Read `OCAML_BEST_PRACTICES.md` §11 (the trap log). Many recurring
+   errors are recorded there with minimal reproducers.
+2. If the error is not in the trap log, fix the underlying cause and
+   append a new entry to §11 before merging.
+3. Never `rm -rf _build` directly. Use `./scripts/dev rebuild`.
 
 ## Purpose
 
