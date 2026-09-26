@@ -56,9 +56,7 @@ jobs:
         with:
           ocaml-compiler: 5.4.0
           opam-repositories: |
-            [
-              "default https://github.com/ocaml/opam-repository.git#HEAD"
-            ]
+            default: git+https://github.com/ocaml/opam-repository.git
           opam-depext: false
           dune-cache: true
 
