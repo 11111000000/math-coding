@@ -861,3 +861,207 @@ JUnit report goes through `Jsonl.stringify` first.
    Defer until 3.0-beta — touches every consumer.
 10. Move the 11 modules under `lib/kernel/` (§10.1) when the first adapter
     lands.
+---
+
+## 11. OCaml 5 trap log
+
+Real errors encountered in this repo, with minimal reproducers and fixes.
+**Before debugging an OCaml syntax/type error, read this section.**
+If you trip a new trap, append it here with the exact error message.
+
+### 11.1 Inline record shorthand forbids qualified labels
+
+```ocaml
+(* FAILS *)
+Some (Domain.Verifier { Domain.id; Domain.result })
+
+(* Error: The field Domain.id belongs to the record type
+   Domain.attestation but a field was expected belonging to the record
+   type Domain.acceptance.Verifier *)
+
+(* WORKS *)
+Some (Domain.Verifier { id; result })
+(* Or explicitly: *)
+Some (Domain.Verifier { Domain.id = id; Domain.result = r })
+```
+
+OCaml 5 does not allow `Module.field` qualification on inline record
+labels when the type of the record constructor must be inferred from
+context. Use unqualified labels or write `field = value` pairs.
+
+**Trigger**: record constructor `Foo { Module.x; Module.y }` for a
+constructor `Foo` whose argument type contains fields named `x` and `y`.
+
+### 11.2 Reserved keyword in record field name
+
+```ocaml
+(* FAILS — "class" is a keyword in object contexts *)
+type t = { code : string; class : [...] }
+
+(* WORKS *)
+type t = { code : string; class_ : [...] }
+(* Or rename entirely — class_ is a wart *)
+```
+
+The original `class` field in `lib/diagnostic.ml:18` was renamed to
+`kind`. Don't reintroduce `class` even with `_` suffix; rename.
+
+**Trigger**: any record field name that is an OCaml reserved word:
+`class`, `match`, `object`, `type`, `val`, `inherit`, `initializer`,
+`method`, `private`, `virtual`, `when`.
+
+### 11.3 Mutually recursive `let` must be one group
+
+```ocaml
+(* FAILS — parse_decision and parse_obligation cannot see each other *)
+let parse_decision v = ...
+let parse_obligation v = ... uses parse_decision ...
+
+(* WORKS *)
+let rec parse_decision v = ...
+and parse_obligation v = ... uses parse_decision ...
+```
+
+When two functions call each other, they MUST be declared as a single
+`let rec ... and ...` group. Putting `let` before `and` is not the
+same group.
+
+**Trigger**: `Error: Unbound value X` where `X` is defined right above.
+
+### 11.4 `let ... and ...` requires the first definition to be `let rec`
+
+```ocaml
+(* FAILS — and must follow let rec, not let *)
+let parse_yaml mapping = ...
+and parse_scalar s = ... uses parse_yaml ...
+
+(* WORKS *)
+let rec parse_yaml mapping = ...
+and parse_scalar s = ...
+```
+
+The first `let` in a mutually recursive group must be `let rec`. The
+rest follow with `and`. Without `rec`, OCaml treats `and` as a
+definition that cannot call back into the group.
+
+### 11.5 `rec` keyword on a non-recursive function is a warning
+
+```ocaml
+let[@warning "-32"] parse_acceptance v = ...
+(* Error (warning 39 [unused-rec-flag]): unused rec flag. *)
+
+(* WORKS *)
+let parse_acceptance v = ...
+```
+
+Only use `[@warning "-32"] rec` when the function genuinely calls itself.
+The compiler warns even when warnings are suppressed with `[@warning "-32"]`.
+
+### 11.6 Dune does not re-read `modules` lists incrementally
+
+Adding a new file `lib/foo.ml` to `lib/`:
+
+```lisp
+(modules ... foo)        ; ← newly added
+```
+
+…does NOT cause `dune build` to compile `foo.ml`. The change is
+detected, but the existing `_build/default/lib.cmxs` is kept.
+You must run `dune build --force` or `dune clean && dune build`.
+
+**Fix**: `./scripts/dev rebuild` — never `rm -rf _build` directly.
+See `scripts/dev`, which exists specifically to avoid this superstition.
+
+**Trigger**: new file in `lib/` not picked up; or `Unbound module Foo`
+when `Foo` should exist.
+
+### 11.7 Adding a new OCaml package to `flake.nix` requires a clean rebuild
+
+When you add `ocamlPackages.foo` to `flake.nix:devShells.test.packages`,
+the new `foo` package is not yet on the closure. `nix develop .#test`
+will either:
+- rebuild the dev-shell (slow first time), or
+- fail to find `foo` in `OCAMLPATH` if the shell was cached.
+
+After `nix develop .#test`, run `./scripts/dev rebuild` so dune
+re-evaluates the closure.
+
+### 11.8 `Sys.getcwd()` inside a test runs from `_build/default/tests/...`
+
+When `dune test` runs an executable, the working directory is the
+stanza output directory, not the source root. Relative paths like
+`"fixtures/conformance"` resolve against the wrong root.
+
+**Fix**: anchor on a known file at the repo root:
+
+```ocaml
+let fixture_root =
+  let cwd = Sys.getcwd () in
+  let rec find_dune_project d =
+    let candidate = Filename.concat d "dune-project" in
+    if Sys.file_exists candidate then d
+    else
+      let parent = Filename.dirname d in
+      if parent = d then cwd  (* fallback *)
+      else find_dune_project parent
+  in
+  Filename.concat (find_dune_project cwd)
+    "fixtures" |> Filename.concat "conformance"
+```
+
+### 11.9 `nix develop --command bash -c '...'` parses one shell string
+
+```sh
+# WRONG — embedded ' inside single-quoted string breaks the shell
+nix develop .#test --command "bash -c 'echo 'literal''"
+# Bash sees: bash -c 'echo literal' — single-quote eats literal''
+
+# WORKING PATTERN (what scripts/dev uses)
+nix develop .#test --command bash -c "cmd && other"
+```
+
+`--command` takes a SHELL COMMAND as one argument. The shell then parses
+it. Don't wrap the shell's `-c` argument in single quotes from inside.
+
+### 11.10 `Array.filter` does not exist in OCaml stdlib
+
+```ocaml
+(* FAILS — Unbound value Array.filter *)
+Array.filter (fun n -> ...) dir
+
+(* WORKS *)
+List.filter (fun n -> ...) (Array.to_list dir)
+```
+
+OCaml stdlib has `Array.exists`, `Array.iter`, `Array.map`, etc., but
+not `Array.filter`. Convert to list first.
+
+### 11.11 `Sys.is_directory` returns `bool`, not `bool option`
+
+```ocaml
+(* FAILS — pattern match against a bool *)
+match Sys.is_directory path with
+| Some true -> ...
+| _ -> ...
+
+(* WORKS *)
+match Sys.is_directory path with
+| true -> ...
+| false -> ...
+```
+
+`Sys.is_directory` returns plain `bool` (true = is a directory).
+Only some `Sys` functions return `option` (e.g., `Sys.getenv_opt`,
+`Sys.argv`-related).
+
+### 11.12 Warnings classified as errors during compilation
+
+`dune build` returns nonzero exit code on warnings when:
+- `tests/dune` declares a `(test ...)` stanza and the test source has warnings
+- An executable's source has unused fields that flow into record literals
+
+`warning 8 [partial-match]`, `warning 32 [unused-value-declaration]`,
+and `warning 39 [unused-rec-flag]` are the most common ones. Fix the
+warning; don't suppress with `[@warning "-32"]` unless intentional.
+Use `./scripts/dev lint` to fail fast on warnings.
+
