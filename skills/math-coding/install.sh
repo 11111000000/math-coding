@@ -12,16 +12,17 @@
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/skills/install.sh | sh
-#   MATH_CODING_VERSION=v2.1 sh
+#   MATH_CODING_VERSION=v2.1 sh     # pin to a specific tag
+#   MATH_CODING_VERSION=edge sh     # default: rolling prerelease from main
 #
 # Env:
-#   MATH_CODING_VERSION=latest|<vX.Y.Z>  default: latest
-#   MATH_CODING_NO_BUILD=1               skip source-build fallback
-#   MATH_CODING_NO_SKILL=1               skip agent-skill install
+#   MATH_CODING_VERSION=edge|<vX.Y.Z>  default: edge (rolling prerelease)
+#   MATH_CODING_NO_BUILD=1             skip source-build fallback
+#   MATH_CODING_NO_SKILL=1             skip agent-skill install
 
 set -eu
 
-VERSION="${MATH_CODING_VERSION:-latest}"
+VERSION="${MATH_CODING_VERSION:-edge}"
 REPO="https://github.com/11111000000/math-coding"
 RAW_REPO="https://raw.githubusercontent.com/11111000000/math-coding/main"
 BIN_DIR="${HOME}/.local/bin"
@@ -56,17 +57,21 @@ mkdir -p "$BIN_DIR"
 BIN_PATH="$BIN_DIR/$BIN_NAME$ext"
 
 fetch_from_release() {
-  if [ "$VERSION" = "latest" ]; then
-    URL="$REPO/releases/latest/download/mathc-$os-$arch$ext"
-  else
-    URL="$REPO/releases/download/$VERSION/mathc-$os-$arch$ext"
-  fi
-  log "fetching release: $URL"
-  if command -v curl >/dev/null 2>&1; then
-    curl -fsSL -o "$BIN_PATH" "$URL" && return 0
-  elif command -v wget >/dev/null 2>&1; then
-    wget -q -O "$BIN_PATH" "$URL" && return 0
-  fi
+  # `edge` is the rolling prerelease tag updated on every push to
+  # main by .github/workflows/release.yml. `latest` resolves to the
+  # most recent non-prerelease only — so for first-use we resolve
+  # `latest` first, then fall back to `edge`.
+  for ver in "$VERSION" \
+             $([ "$VERSION" = "latest" ] && echo "edge" || true); do
+    URL="$REPO/releases/download/$ver/mathc-$os-$arch$ext"
+    log "fetching release: $URL"
+    if command -v curl >/dev/null 2>&1; then
+      curl -fsSL -o "$BIN_PATH" "$URL" 2>/dev/null && return 0
+    elif command -v wget >/dev/null 2>&1; then
+      wget -q -O "$BIN_PATH" "$URL" 2>/dev/null && return 0
+    fi
+    log "  not available at $ver"
+  done
   return 1
 }
 

@@ -1,0 +1,96 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: mathc (${{ matrix.label }})
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { label: linux-x86_64,    runs-on: ubuntu-latest,     exe: mathc-linux-x86_64 }
+          - { label: linux-aarch64,   runs-on: ubuntu-24.04-arm,  exe: mathc-linux-aarch64 }
+          - { label: darwin-x86_64,   runs-on: macos-13,          exe: mathc-darwin-x86_64 }
+          - { label: darwin-aarch64,  runs-on: macos-latest,      exe: mathc-darwin-aarch64 }
+          - { label: windows-x86_64,  runs-on: windows-latest,    exe: mathc-windows-x86_64.exe }
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 5.4
+          dune-cache: true
+      - name: Install dune
+        run: opam install --yes dune
+      - name: Build mathc (release)
+        run: opam exec -- dune build --profile=release core/main.exe
+      - name: Stage binary
+        run: |
+          mkdir -p dist-bin
+          cp _build/default/core/main.exe "dist-bin/${{ matrix.exe }}"
+          chmod +x "dist-bin/${{ matrix.exe }}" || true
+          ls -la dist-bin
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.label }}
+          path: dist-bin/${{ matrix.exe }}
+          if-no-files-found: error
+
+  publish:
+    name: publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-bin
+          merge-multiple: true
+
+      - name: List staged binaries
+        run: ls -la dist-bin
+
+      - name: Publish on tag — official release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: math-coding ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist-bin/mathc-linux-x86_64
+            dist-bin/mathc-linux-aarch64
+            dist-bin/mathc-darwin-x86_64
+            dist-bin/mathc-darwin-aarch64
+            dist-bin/mathc-windows-x86_64.exe
+
+      - name: Publish on main / manual dispatch — rolling edge
+        if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: edge
+          name: edge (rolling nightly from main)
+          prerelease: true
+          files: |
+            dist-bin/mathc-linux-x86_64
+            dist-bin/mathc-linux-aarch64
+            dist-bin/mathc-darwin-x86_64
+            dist-bin/mathc-darwin-aarch64
+            dist-bin/mathc-windows-x86_64.exe
+          body: |
+            Rolling prerelease built from the latest commit on `main`.
+
+            ```sh
+            curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/skills/install.sh | sh
+            ```
+
+            No toolchain required: downloads `mathc` for your OS/arch.
