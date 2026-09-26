@@ -55,11 +55,15 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: 5.4.0
+          opam-repositories: |
+            [
+              "default https://github.com/ocaml/opam-repository.git#HEAD"
+            ]
           opam-depext: false
           dune-cache: true
 
       - name: Install dune
-        run: opam install --yes --no-depexts dune
+        run: opam install --yes dune
 
       - name: Build mathc (release)
         run: opam exec -- dune build --profile=release core/main.exe
