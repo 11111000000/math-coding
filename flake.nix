@@ -2,7 +2,11 @@
   description = "math-coding 3.0-alpha — risk-adaptive assurance protocol";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    # Pinned to commit e94cb152ed51bd6e24eb4a41f1460252beb52cd2
+    # (current flake.lock value). Do NOT change without a
+    # bootstrap/decision.yaml revision listing old and new narHash
+    # (axiom A3: self-application).
+    nixpkgs.url = "github:NixOS/nixpkgs/e94cb152ed51bd6e24eb4a41f1460252beb52cd2";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
