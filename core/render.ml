@@ -786,6 +786,15 @@ mathc check</code></pre>
 Source build: <code>nix develop --command sh scripts/install.sh</code>.
 Binary lands at <code>$XDG_DATA_HOME/math-coding/current/mathc</code>.</p>
 
+<p>Prebuilt binaries are auto-published on every push to <code>main</code>
+to the rolling <a href="https://github.com/11111000000/math-coding/releases/tag/edge"><code>edge</code></a>
+prerelease for Linux x86_64+aarch64, macOS x86_64+aarch64, and Windows x86_64.
+Direct download: <a href="https://github.com/11111000000/math-coding/releases/download/edge/mathc-linux-x86_64">linux-x86_64</a>,
+<a href="https://github.com/11111000000/math-coding/releases/download/edge/mathc-linux-aarch64">linux-aarch64</a>,
+<a href="https://github.com/11111000000/math-coding/releases/download/edge/mathc-darwin-x86_64">darwin-x86_64</a>,
+<a href="https://github.com/11111000000/math-coding/releases/download/edge/mathc-darwin-aarch64">darwin-aarch64</a>,
+<a href="https://github.com/11111000000/math-coding/releases/download/edge/mathc-windows-x86_64.exe">windows-x86_64.exe</a>.</p>
+
 <h2>Project layout</h2>
 <ul>
 <li><code>README.md</code> &mdash; English teaser (this site's <a href="%sreadme.html">readme.html</a>)</li>

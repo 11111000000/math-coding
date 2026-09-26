@@ -125,6 +125,24 @@ sh scripts/install.sh
 Binary lands at `$XDG_DATA_HOME/math-coding/current/mathc`.
 Wrapper `./mathc` at the project root resolves to it.
 
+### Download binaries directly
+
+Five platform binaries are auto-built on every push to `main`
+and published as the rolling [`edge`](https://github.com/11111000000/math-coding/releases/tag/edge)
+prerelease:
+
+| Platform | Binary | Size |
+|---|---|---|
+| Linux x86_64   | [`mathc-linux-x86_64`](https://github.com/11111000000/math-coding/releases/download/edge/mathc-linux-x86_64)       | ~4.4 MB |
+| Linux aarch64  | [`mathc-linux-aarch64`](https://github.com/11111000000/math-coding/releases/download/edge/mathc-linux-aarch64)     | ~4.9 MB |
+| macOS Intel    | [`mathc-darwin-x86_64`](https://github.com/11111000000/math-coding/releases/download/edge/mathc-darwin-x86_64)     | ~2.0 MB |
+| macOS Apple Silicon | [`mathc-darwin-aarch64`](https://github.com/11111000000/math-coding/releases/download/edge/mathc-darwin-aarch64) | ~2.0 MB |
+| Windows x86_64 | [`mathc-windows-x86_64.exe`](https://github.com/11111000000/math-coding/releases/download/edge/mathc-windows-x86_64.exe) | ~5.7 MB |
+
+Stable releases on tags publish the same set at
+`releases/download/<tag>/...`. Override at install time with
+`MATH_CODING_VERSION=v1.2.3 sh`.
+
 ## Documentation
 
 - [MANIFESTO.md](MANIFESTO.md) — eight principles, academic exposition
