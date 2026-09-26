@@ -65,19 +65,18 @@ jobs:
           sudo install -m755 /tmp/opam /usr/local/bin/opam
           opam --version
 
-      - name: Install opam (Windows via Chocolatey)
+      - name: Install opam (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          # GitHub's opam Windows .exe is an interactive NSIS installer;
-          # CI has no desktop session. Chocolatey packages the same
-          # release and supports unattended install.
-          choco install opam --version=2.4.1 -y --no-progress --source=chocolatey
-          # choco installs to C:\Program Files\opam\bin by default; refresh PATH.
-          $opamBin = 'C:\Program Files\opam\bin'
-          $env:PATH = "$opamBin;$env:PATH"
-          "$opamBin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          # The opam Windows .exe is not an installer — it's a
+          # single-file distribution. Place it on PATH as opam.exe.
+          $bin = 'C:\tools'
+          New-Item -ItemType Directory -Force -Path $bin | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-x86_64-windows.exe" -OutFile "$bin\opam.exe" -UseBasicParsing
+          "$bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+          $env:PATH = "$bin;$env:PATH"
           & opam --version
 
       - name: Init opam and create OCaml switch
