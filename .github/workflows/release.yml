@@ -66,8 +66,8 @@ jobs:
       - name: Init opam and install OCaml
         run: |
           set -eu
-          opam init -y --bare --no-setup --disable-sandboxing
-          opam switch create 5.4.0 -y --no-setup
+          opam init -y --bare --disable-sandboxing
+          opam switch create 5.4.0 -y
           opam switch set 5.4.0
           echo "OPAM_SWITCH=5.4.0" >> "$GITHUB_ENV"
           echo "PATH=$HOME/.opam/5.4.0/bin:$PATH" >> "$GITHUB_ENV"
