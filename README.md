@@ -48,3 +48,17 @@ source is preserved by the remote tag `v2.1-final`.
 ## For agents
 
 Read `AGENTS.md` before modifying anything.
+
+## Foundations
+
+The mathematical and philosophical basis is in `axioms/`. Every
+non-trivial change is derived from at least one axiom:
+
+- [A0 Separation](axioms/separation.md)
+- [A1 Feedback](axioms/feedback.md)
+- [A2 Invariants](axioms/invariants.md)
+- [A3 Self-application](axioms/self-application.md)
+- [A4 Care](axioms/care.md)
+
+See [axioms/index.md](axioms/index.md) for the entry point and the
+table linking each axiom to the kernel properties that enforce it.
