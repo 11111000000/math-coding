@@ -1,0 +1,17 @@
+{
+  "schema": "math-coding/3.0-alpha/decision",
+  "kind": "decision",
+  "id": "missing-commitment",
+  "intent": {"source": "issue:1", "text": "x"},
+  "scope": [{"kind": "capability", "capability": "y"}],
+  "outcomes": [{"id": "o", "statement": "y"}],
+  "obligations": [
+    {
+      "id": "ob",
+      "decision": "missing-commitment",
+      "claim": "y",
+      "subjects": [{"kind": "capability", "capability": "y"}],
+      "acceptance": {"all": [{"verifier": "v", "result": "pass"}]}
+    }
+  ]
+}

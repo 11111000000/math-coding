@@ -1,0 +1,13 @@
+{
+  "schema": "math-coding/waiver-3.0-alpha",
+  "kind": "waiver",
+  "id": "expired-waiver",
+  "policy_id": "repository-policy",
+  "rule": "payment-side-effect/duplicate-delivery",
+  "subject": "change:pr-481",
+  "issuer": "human:lead",
+  "issued_at": "2026-09-20T00:00:00Z",
+  "expires_at": "2026-09-25T00:00:00Z",
+  "reason": "Gateway unavailable",
+  "compensating_controls": ["Disable retries"]
+}

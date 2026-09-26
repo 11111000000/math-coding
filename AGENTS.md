@@ -1,133 +1,147 @@
-# AGENTS.md — protocol for AI agents in math-coding v2.1
+# Math-coding 3.0-alpha bootstrap protocol
 
-This packet documents how AI agents (LLM-driven coding tools) should
-interact with a math-coding project. The protocol is auto-installed
-by `mathc init` and supersedes the previous v2.0-Y AGENTS.md.
+> Project author: Petr Kosov <p.b.kosov@yandex.ru>
 
-## When to record a decision
+This repository is migrating from math-coding 2.1 to 3.0-alpha. The
+3.0 kernel does not exist yet. Until `mathc self-check` passes, all
+assessments are manual declarations and MUST NOT be described as
+automated guarantees.
 
-If a code change is more than a typo or rename — if a reviewer
-would reasonably ask "why this and not that" — record a packet:
+The complete v2.1 source is preserved by the remote Git tag
+`v2.1-final`. Do not use v2 packet fields, commands, or lifecycle rules
+for new work.
 
-```sh
-mathc decide NAME "single-sentence proposition" --register=judgment \
-  --antithesis="..." --synthesis="..."
+## Purpose
+
+Math-coding links a concrete change to the obligations it may affect and
+to bounded evidence about those obligations. It does not prove software
+correctness.
+
+The working chain is:
+
+```text
+intent -> decision -> obligation -> change -> attestation -> revision
 ```
 
-This single command creates the packet, commits it, sets the
-witness, and commits the witness. Done.
+## Before work
 
-For trivial changes (renames, typos, formatting), just commit —
-no packet needed.
+Use an isolated branch or worktree. Inspect the current tree before
+editing. Do not overwrite unrelated work.
 
-## Frontmatter (10 fields)
+For a meaningful change, state this compact contract before editing:
 
 ```yaml
----
-schema_version: "2.1"                 # V7: mandatory
-name: <unique-name>                    # mandatory
-proposition: "<one-sentence claim>"   # V1: mandatory, non-empty
-register: fact|hypothesis|judgment|unknown  # V3: mandatory
-state: draft|applied|reviewed|retired|abandoned  # V4: mandatory
-actor: human|agent|system             # V5: mandatory
-confidence: <0.0-1.0>                 # mandatory; bounded by register
-kind: axiom|policy|fix|experiment     # for filtering; default: policy
-superseded_by: <name>|""              # only present when superseded
-beneficiary: <enum>|Other(text)       # optional (default: System)
----
+intent: What should become true?
+change_kind: implementation | decision | policy | constitution
+affected_capabilities: []
+must_preserve: []
+counterexample: What plausible case would make this change wrong?
+unknowns: []
+planned_evidence: []
 ```
 
-## Body sections
+For a provably editorial change, state only:
 
-For `register: judgment` packets, the following sections are
-**required** (V7: dialectic-tas):
-
-- `## Why` — motivation, one paragraph
-- `## Antithesis` — strongest objection
-- `## Synthesis` — how thesis and antithesis resolve
-
-For `register: hypothesis`/`fact`/`unknown` packets, body is free
-Markdown. Empty body is allowed.
-
-## Commands
-
-```sh
-mathc decide NAME "prop" [opts]   # one-step: create + commit + amend + commit
-mathc record NAME "prop"          # legacy: two-step (record, commit, amend, commit)
-mathc amend NAME                  # set witness to current HEAD
-mathc supersede OLD NEW "..."     # replace decision; auto-retires OLD
-mathc mark-superseded OLD NEW     # link OLD to existing NEW (no NEW create)
-mathc archive NAME                # move to math/archived/<year>/<month>/
-mathc note "comment"              # trivial packet (no witness, register=unknown)
-mathc check                       # verify all packets
-mathc list                        # only active (default)
-mathc list --all                  # including archived
-mathc find <substr>               # search proposition
-mathc show <name>                 # full packet (frontmatter + body)
-mathc history <name>              # git log + supersession chain
-mathc graph <name>                # mermaid supersession graph
-mathc stats                       # applied/retired breakdown
+```yaml
+change_kind: editorial
+reason: Why behavior and policy are unchanged.
 ```
 
-## Six lifecycle verdicts
+## Friction
 
-- `Pass` — packet is structurally valid
-- `Warn` — convention recommends action
-- `Fail` — convention violated; fix before commit
-- `Skip` — packet skipped by configuration
+Apply the least sufficient response:
 
-Lifecycles: `Draft` (no witness) → `Applied` (witness matches
-proposition) → `Drift` (proposition changed after witness) →
-`Stale` (witness commit unreadable).
+- `silent`: deterministic evidence shows no semantic or protected change.
+- `record`: the change is meaningful but covered by existing decisions and evidence.
+- `ask`: an answer would change behavior, risk, obligations, or recovery.
+- `block`: an explicit policy requirement has an unresolved deficit.
 
-## Verify
+Never block without naming the rule, affected subject, reason, and at
+least one remedy. Unknown is not Pass. A waiver is not Pass.
 
-```sh
-mathc check                     # structure + lifecycle + FSM + register + dialectic + cycles
-mathc check --json              # machine-parseable
+## Decisions
+
+Create a decision only for a new commitment, tradeoff, assumption,
+public contract, risk acceptance, architecture, or policy change.
+
+Do not create a decision for formatting, spelling, generated output,
+evidence refresh, implementation of an existing decision, or a
+behavior-preserving refactor with adequate characterization evidence.
+
+Decision reasoning is proportional to risk:
+
+- low risk: commitment, obligation, reversal condition;
+- consequential: options, countercase, tradeoff;
+- critical or irreversible: failure modes, recovery, independent review.
+
+## Evidence
+
+Distinguish sources:
+
+```text
+declared != derived != attested != reviewed != observed
 ```
 
-A `Fail` verdict means the convention was violated. Common fixes:
+An agent report is a declaration, not evidence. A passing test only
+attests to its named obligation, subject, inputs, environment, and run.
+Do not claim stronger assurance than the source supports.
 
-- `V4 Fail` (state=draft but witness present): run `mathc amend NAME`
-- `V7 Fail` (judgment missing dialectic): add `## Why`/`## Antithesis`/`## Synthesis`
-- `V6 Fail` (supersession cycle): remove the cycle via `mark-superseded`
+Prefer existing tests, CI, reviews, and standard reports. Do not rerun
+or duplicate evidence when relevant material digests are unchanged.
 
-## Supersession (V6 SPO)
+## After work
 
-When proposition changes, never edit `packet.md` in place. Use:
+Report only the knowledge delta:
 
-```sh
-mathc supersede OLD NEW "new proposition"
-# or, if NEW already exists:
-mathc mark-superseded OLD NEW
+```yaml
+changed: []
+preserved: []
+evidence: []
+new_assumptions: []
+remaining_unknowns: []
 ```
 
-Supersession is a strict partial order (irreflexive, asymmetric,
-transitive). Cycles are detected by V6.
+Run all available relevant checks. If a check cannot run, state why.
 
-## Sane defaults (.mathrc is optional)
+## Agent conduct
 
-Without `.mathrc`, defaults apply:
-
-- `SIGNING_MODE: off` (signatures not checked)
-- `AUTO_AMEND: true` (decide auto-commits witness)
-- `FACT_POLICY: warn` (agent+fact without evidence is a warning)
-- `DIALECTIC_REQUIRED.judgment: [Why, Antithesis, Synthesis]`
-
-Override via `.mathrc` if you need strict signing, fail-on-fact, or
-custom dialectic requirements.
+- Use project memory and a bounded context capsule instead of reading
+  every historical decision.
+- Suggest failure modes and obligations; do not present inference as
+  policy or evidence.
+- Ask only questions whose answers change implementation, obligations,
+  risk, recovery, or the gate.
+- Preserve uncertainty explicitly instead of inventing values.
+- Do not store private chain-of-thought, secrets, or unnecessary
+  personal data in project artifacts.
 
 ## Self-application
 
-The five foundations (`math/{curry-howard,temporal,constructive,categorical,motivation}`)
-and three extensions (`math/{process-fsm,dialectic-tas,actor-discipline}`)
-are themselves packets. `mathc check` verifies them with the same
-kernel. Convention applies to itself: this protocol is part of
-the convention's invariant.
+Changes to this protocol, the constitution, schemas, canonicalization,
+kernel, or protected policy controls always require:
 
-## Source of truth
+1. a decision under the currently active rules;
+2. a strongest practical countercase;
+3. positive and negative conformance fixtures;
+4. a migration and recovery path;
+5. authorization by the previous active policy;
+6. an explicit list of changed verdicts.
 
-The canonical source for this protocol is the
-`agents-protocol-v2-1` packet in `math/`. Edit that packet via
-`supersede`, not the rendered file.
+Candidate rules cannot authorize their own adoption.
+
+## Bootstrap gate
+
+Until the 3.0 kernel is implemented, a change may proceed only when
+all applicable checks below are manually satisfied:
+
+- the intended behavior and affected capabilities are explicit;
+- known invariants are preserved or deliberately revised;
+- the strongest relevant counterexample has been considered;
+- planned evidence is available or its absence is declared;
+- every known blocking deficit has a remedy;
+- rollback or forward recovery exists for irreversible work;
+- specification changes include positive and negative fixtures;
+- no automated guarantee is claimed.
+
+The bootstrap protocol expires when the released 3.0 kernel
+successfully checks this repository and its conformance corpus.

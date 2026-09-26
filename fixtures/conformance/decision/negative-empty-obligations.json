@@ -1,0 +1,10 @@
+{
+  "schema": "math-coding/3.0-alpha/decision",
+  "kind": "decision",
+  "id": "no-obligations",
+  "intent": {"source": "issue:1", "text": "x"},
+  "commitment": "y",
+  "scope": [{"kind": "capability", "capability": "y"}],
+  "outcomes": [{"id": "o", "statement": "y"}],
+  "obligations": []
+}

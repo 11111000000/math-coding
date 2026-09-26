@@ -1,0 +1,4 @@
+(executable
+ (name mathc)
+ (modules Mathc)
+ (libraries mathcoding_core str unix))

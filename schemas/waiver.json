@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.0-alpha/waiver.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "kind", "id", "policy_id", "rule", "subject",
+    "issuer", "issued_at", "expires_at", "reason"
+  ],
+  "properties": {
+    "schema": {"const": "math-coding/waiver-3.0-alpha"},
+    "kind": {"const": "waiver"},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+    "policy_id": {"type": "string"},
+    "rule": {"type": "string"},
+    "subject": {"type": "string"},
+    "scope": {"$ref": "common.json#/definitions/scope"},
+    "issuer": {"type": "string"},
+    "issued_at": {"$ref": "common.json#/definitions/timestamp"},
+    "expires_at": {"$ref": "common.json#/definitions/timestamp"},
+    "reason": {"type": "string", "minLength": 1},
+    "unverified_obligation": {"type": "string"},
+    "compensating_controls": {
+      "type": "array", "items": {"type": "string"}
+    }
+  }
+}

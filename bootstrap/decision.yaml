@@ -1,0 +1,101 @@
+---
+schema: math-coding/3.0-alpha
+id: bootstrap-v3
+revision: 1
+
+intent: Replace math-coding 2.1 with a self-applying assurance protocol.
+
+commitment: |
+  Build math-coding 3.0 from an executable specification in an isolated
+  branch. Preserve 2.1 source by tag and remove active 2.1 implementation
+  only after the regression corpus is satisfiable by the new kernel.
+
+scope:
+  paths:
+    - "spec/**"
+    - "schemas/**"
+    - "fixtures/**"
+    - "lib/**"
+    - "bin/**"
+    - "tests/**"
+    - "bootstrap/**"
+
+outcomes:
+  - id: executable-specification
+    statement: Every kernel-enforced MUST has positive and negative fixtures.
+  - id: honest-bootstrap
+    statement: Documentation does not claim unavailable automated enforcement.
+  - id: reversible-transition
+    statement: Complete 2.1 source is recoverable from tag v2.1-final.
+  - id: agent-authorable
+    statement: An LLM agent can produce a valid decision draft on first attempt
+      in at least 9 of 10 representative tasks.
+  - id: token-disciplined
+    statement: Tier-1 context capsule fits within the declared token budget
+      and never exceeds it silently.
+
+assumptions:
+  - id: manual-enforcement
+    state: assumed
+    statement: Until the 3.0 kernel exists, assurance gaps are enforced manually.
+    owner: human:maintainer
+    consequence_if_false: An agent could claim a verdict the kernel cannot confirm.
+    review_on:
+      - signal: kernel-self-check-passes
+
+obligations:
+  - id: preserve-v2
+    outcome: reversible-transition
+    claim: The v2.1-final tag resolves to a reachable commit.
+    acceptance:
+      all:
+        - verifier: mathc-tag-exists
+          result: pass
+
+  - id: conformance-coverage
+    outcome: executable-specification
+    claim: Every kernel-enforced rule has at least one positive and one negative
+      fixture.
+    acceptance:
+      all:
+        - verifier: mathc-conformance-run
+          result: pass
+
+  - id: bootstrap-honesty
+    outcome: honest-bootstrap
+    claim: AGENTS.md and bootstrap documents do not claim automated enforcement
+      that is not yet implemented.
+    acceptance:
+      all:
+        - verifier: mathc-text-scan
+          result: pass
+
+  - id: authoring-benchmark
+    outcome: agent-authorable
+    claim: First-attempt structural validity of decisions produced by an LLM
+      reaches the documented threshold.
+    acceptance:
+      all:
+        - verifier: mathc-benchmark
+          result: pass
+
+  - id: context-budget
+    outcome: token-disciplined
+    claim: Tier-1 context capsule never silently exceeds its declared budget.
+    acceptance:
+      all:
+        - verifier: mathc-context-budget
+          result: pass
+
+reversal:
+  - signal: conformance-failure
+    action: revert
+
+risk:
+  declared_triggers:
+    - policy-weakening
+    - protocol-breaking-change
+
+relations:
+  supersedes:
+    - bootstrap-v2.1

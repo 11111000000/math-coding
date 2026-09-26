@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.0-alpha/common.json",
+  "definitions": {
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "scope_target": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "path"],
+          "properties": {
+            "kind": {"const": "path"},
+            "path": {"type": "string", "minLength": 1},
+            "match": {"enum": ["exact", "tree"]}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "capability"],
+          "properties": {
+            "kind": {"const": "capability"},
+            "capability": {"type": "string", "minLength": 1}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "interface"],
+          "properties": {
+            "kind": {"const": "interface"},
+            "interface": {"type": "string", "minLength": 1}
+          }
+        }
+      ]
+    },
+    "scope": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"$ref": "#/definitions/scope_target"}
+    },
+    "acceptance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["all"],
+      "properties": {
+        "all": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["verifier", "result"],
+            "properties": {
+              "verifier": {"type": "string", "minLength": 1},
+              "result": {"enum": ["pass"]},
+              "review": {
+                "type": "object", "additionalProperties": false,
+                "required": ["authority"],
+                "properties": {
+                  "authority": {"type": "string"},
+                  "minimum_independence": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "any": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/acceptance/items"}
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+(library
+ (name mathcoding_core)
+ (wrapped false)
+ (modules
+   domain canonical jsonl schema diagnostic
+   identifier digest scope reference
+   decision)
+ (libraries str))

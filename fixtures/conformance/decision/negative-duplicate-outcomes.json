@@ -1,0 +1,21 @@
+{
+  "schema": "math-coding/3.0-alpha/decision",
+  "kind": "decision",
+  "id": "duplicate-outcomes",
+  "intent": {"source": "issue:1", "text": "x"},
+  "commitment": "y",
+  "scope": [{"kind": "capability", "capability": "y"}],
+  "outcomes": [
+    {"id": "o", "statement": "y"},
+    {"id": "o", "statement": "z"}
+  ],
+  "obligations": [
+    {
+      "id": "ob",
+      "decision": "duplicate-outcomes",
+      "claim": "y",
+      "subjects": [{"kind": "capability", "capability": "y"}],
+      "acceptance": {"all": [{"verifier": "v", "result": "pass"}]}
+    }
+  ]
+}

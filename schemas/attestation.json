@@ -1,0 +1,51 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.0-alpha/attestation.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "kind", "id", "subject", "kind_", "producer",
+    "result", "issued_at"
+  ],
+  "properties": {
+    "schema": {"const": "math-coding/attestation-3.0-alpha"},
+    "kind": {"const": "attestation"},
+    "id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "subject": {
+      "type": "object", "additionalProperties": false,
+      "required": ["decision", "obligation", "candidate_tree", "materials_digest"],
+      "properties": {
+        "decision": {"type": "string"},
+        "decision_revision": {"type": "string"},
+        "decision_digest": {"type": "string"},
+        "obligation": {"type": "string"},
+        "obligation_digest": {"type": "string"},
+        "candidate_tree": {"type": "string"},
+        "materials_digest": {"type": "string"}
+      }
+    },
+    "kind_": {"enum": ["test", "review", "build", "analysis", "observation"]},
+    "producer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["identity"],
+      "properties": {
+        "identity": {"type": "string"},
+        "run": {"type": "string"}
+      }
+    },
+    "environment_class": {"type": "string"},
+    "result": {"enum": ["pass", "fail", "inconclusive", "infrastructure-error"]},
+    "issued_at": {"$ref": "common.json#/definitions/timestamp"},
+    "valid_until": {"$ref": "common.json#/definitions/timestamp"},
+    "evidence_digest": {"type": "string"},
+    "signature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["format", "key_id", "value"],
+      "properties": {
+        "format": {"const": "dsse"},
+        "key_id": {"type": "string"},
+        "value": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

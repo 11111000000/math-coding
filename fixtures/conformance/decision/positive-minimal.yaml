@@ -1,0 +1,35 @@
+id: redis-origin-fallback
+revision: rev:41aa92
+intent:
+  source: issue:143
+  text: Search remains available when Redis is unavailable.
+commitment: Fall back to origin.
+scope:
+  paths: ["src/search/cache/**"]
+outcomes:
+  - id: availability
+    statement: Redis failure does not make search unavailable.
+obligations:
+  - id: bounded-fallback-amplification
+    claim: Simultaneous fallback traffic stays within origin capacity.
+    subjects:
+      - path: "src/search/cache/**"
+    acceptance:
+      - verifier: search-fallback-load-test
+        result: pass
+    phase: pre-release
+assumptions:
+  - id: origin-capacity
+    state: assumed
+    statement: Origin can absorb cache fallback traffic at peak.
+    owner: team:search
+    consequence_if_false: Search may fail during a Redis outage.
+reversal:
+  - signal: origin-error-rate
+    condition: value > 0.05
+    action: revert
+risk:
+  declared_triggers: ["external-service-dependency"]
+  owner: team:search
+relations:
+  addresses: ["issue:143"]

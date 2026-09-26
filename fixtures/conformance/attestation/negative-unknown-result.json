@@ -1,0 +1,16 @@
+{
+  "schema": "math-coding/attestation-3.0-alpha",
+  "kind": "attestation",
+  "id": "sha256:7e91f2c3a8b14d50e9a2c5f8e1b0d4c6a8e2f1b3c5d7e9f1a3c5d7e9f1a3c5d7",
+  "subject": {
+    "decision": "d",
+    "decision_digest": "sha256:102a",
+    "obligation": "o",
+    "obligation_digest": "sha256:384c",
+    "candidate_tree": "sha256:41aa",
+    "materials_digest": "sha256:21de"
+  },
+  "kind_": "test",
+  "producer": {"identity": "ci:test"},
+  "result": "successful"
+}

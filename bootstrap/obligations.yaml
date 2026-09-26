@@ -1,0 +1,25 @@
+schema: math-coding/obligations-3.0-alpha
+decision:
+  id: bootstrap-v3
+  revision: 1
+obligations:
+  - id: preserve-v2
+    kind: invariant
+    statement: The v2.1-final tag resolves to the pre-migration source.
+    evidence: manual-git-verification
+  - id: single-active-protocol
+    kind: invariant
+    statement: Active agent guidance uses only 3.0-alpha semantics.
+    evidence: repository-search
+  - id: executable-musts
+    kind: acceptance
+    statement: Every normative MUST has positive and negative fixtures.
+    evidence: conformance-suite
+  - id: honest-bootstrap
+    kind: invariant
+    statement: Documentation does not claim unavailable automated enforcement.
+    evidence: review
+  - id: reversible-cutover
+    kind: acceptance
+    statement: Removal of v2 active code occurs only after regression inventory exists.
+    evidence: migration-review

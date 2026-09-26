@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.0-alpha/obligation.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "decision", "claim", "subjects", "acceptance"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+    "decision": {"type": "string", "minLength": 1},
+    "outcome": {"type": "string"},
+    "claim": {"type": "string", "minLength": 1},
+    "subjects": {"$ref": "common.json#/definitions/scope"},
+    "acceptance": {"$ref": "common.json#/definitions/acceptance"},
+    "phase": {"enum": ["pre-merge", "pre-release", "post-release"]},
+    "kind": {"enum": ["invariant", "acceptance", "recovery", "operational"]}
+  }
+}
