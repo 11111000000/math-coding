@@ -70,11 +70,19 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          # The opam Windows .exe is not an installer — it's a
-          # single-file distribution. Place it on PATH as opam.exe.
+          # The opam Windows .exe is a single-file distribution.
+          # Place it on PATH as opam.exe.
           $bin = 'C:\tools'
           New-Item -ItemType Directory -Force -Path $bin | Out-Null
-          Invoke-WebRequest -Uri "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-x86_64-windows.exe" -OutFile "$bin\opam.exe" -UseBasicParsing
+          $url = "https://github.com/ocaml/opam/releases/download/2.4.1/opam-2.4.1-x86_64-windows.exe"
+          $expected = "72dbcc40dc5e2bb9185f444fd125d2fa0899c4d069652be01647a3a3b8be8fa8"
+          Invoke-WebRequest -Uri $url -OutFile "$bin\opam.exe" -UseBasicParsing
+          $actual = (Get-FileHash -Path "$bin\opam.exe" -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $expected) {
+            Write-Error "opam.exe checksum mismatch:`n  expected: $expected`n  actual:   $actual"
+            exit 1
+          }
+          Write-Host "opam.exe SHA256 verified: $actual"
           "$bin" | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
           $env:PATH = "$bin;$env:PATH"
           & opam --version

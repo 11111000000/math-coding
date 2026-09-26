@@ -28,7 +28,14 @@ jobs:
           ocaml-compiler: 5.4
       - run: opam install --yes dune
       - name: Render site
-        run: opam exec -- bash scripts/render.sh
+        run: |
+          mkdir -p dist
+          pandoc --standalone --metadata title='math-coding' README.md -o dist/index.html
+          for src in AGENTS.md spec/constitution.md spec/domain.md spec/semantics.md axioms/index.md; do
+            [ -f "$src" ] || continue
+            out="dist/$(basename "$src" .md).html"
+            pandoc --standalone --metadata title="math-coding" "$src" -o "$out"
+          done
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
