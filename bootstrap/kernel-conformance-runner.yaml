@@ -1,0 +1,144 @@
+---
+schema: math-coding/3.0-alpha
+id: kernel-conformance-runner
+revision: 1
+
+intent: |
+  Replace the ad-hoc `tests/conformance.ml.disabled` with a working
+  conformance runner that walks fixtures/conformance/, exercises both
+  decision and attestation fixtures, and reports per-fixture verdicts
+  as exit codes. The previous attempt left a broken YAML loader and a
+  shell-only test; this decision is the kernel-shape replacement.
+
+commitment: |
+  tests/conformance.ml runs all positive and negative fixtures under
+  fixtures/conformance/{decision,attestation}/. Positive fixtures
+  parse to a successful Decision.Attestation. Negative fixtures are
+  rejected with a structured Diagnostic. Each fixture produces a clear
+  pass/fail verdict and the runner exits nonzero on any failure.
+
+scope:
+  capabilities:
+    - kernel-conformance
+  paths:
+    - "tests/conformance.ml"
+    - "tests/dune"
+    - "fixtures/conformance/**"
+  exclusions:
+    - "lib/**"
+    - "spec/**"
+    - "bootstrap/**"
+
+outcomes:
+  - id: conformance-walks-all-fixtures
+    statement: |
+      tests/conformance.ml enumerates every JSON and YAML fixture under
+      fixtures/conformance/{decision,attestation}/ and asserts the
+      expected verdict (pass for positive-, fail for negative-).
+  - id: kernel-decision-parses
+    statement: |
+      Decision.parse_decision accepts every positive- decision fixture
+      and rejects every negative- decision fixture. Yaml fixtures use a
+      small subset YAML loader; failures are explicit, not silent.
+  - id: kernel-attestation-parses
+    statement: |
+      Attestation fixture parsing is wired through Codec and Schema.
+      Acceptance predicate types are recognized.
+
+countercase: |
+  The conformance runner is redundant with the JSON Schema in
+  schemas/. The counterargument fails because:
+  (a) JSON Schema validates only structure, not our domain predicates
+      (e.g., decision.revision must be content-derived, scope.paths
+      must match tree, attestation.result must be one of {pass,fail,...});
+  (b) the runner is the executable gate that AGENTS.md and CI run;
+  (c) JSON Schema could change without the kernel changing, and the
+      runner is the only witness of kernel-level consistency.
+
+assumptions:
+  - id: minimal-yaml-subset
+    state: assumed
+    statement: |
+      Conformance YAML fixtures use only top-level mappings with scalar
+      values. Nested mappings, sequences, and multi-document YAML are
+      not required for current fixtures.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a fixture needs richer YAML, extend the loader rather than
+      adding a general YAML parser dependency.
+    review_on:
+      - signal: fixture-requires-richer-yaml
+  - id: no-attestation-parser-yet
+    state: assumed
+    statement: |
+      lib/codec.ml does not yet have attestation/waiver parsers; only
+      Decision parsing is wired. The runner treats attestation fixtures
+      as expected-fail (acceptance is structurally required, not
+      enforced) until attestation parsing lands.
+    owner: human:maintainer
+    consequence_if_false: N/A
+    review_on:
+      - signal: attestation-parser-lands
+
+obligations:
+  - id: enumerate-and-classify-fixtures
+    outcome: conformance-walks-all-fixtures
+    claim: |
+      tests/conformance.ml reads tests/fixtures/ recursively, classifies
+      each fixture by name prefix (positive-/negative-) and kind
+      (decision/attestation), and dispatches to the appropriate parser.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/enumerate.sh
+          result: pass
+
+  - id: parse-positive-and-negative-decision
+    outcome: kernel-decision-parses
+    claim: |
+      Every positive- decision fixture (both JSON and YAML) parses via
+      Decision.parse_decision to Some _; every negative- decision
+      fixture parses to None or fails on a specific parse_error path.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/decision-parses.sh
+          result: pass
+
+  - id: wire-conformance-into-dune-test
+    outcome: conformance-walks-all-fixtures
+    claim: |
+      tests/dune declares (test (name conformance)). 'dune test' runs
+      both digest_vectors and conformance stanzas. (This obligation
+      was closed in v3-alpha-0.0.3 commit 968a550; recorded here for
+      completeness.)
+    acceptance:
+      all:
+        - verifier: tests/fixtures/dune-runs-conformance.sh
+          result: pass
+
+  - id: skip-non-decision-fixtures-with-warning
+    outcome: conformance-walks-all-fixtures
+    claim: |
+      Attestation and waiver fixtures are skipped (not run) until their
+      parsers exist. The runner emits a clear 'skipped' message naming
+      the parser gap, rather than silently passing or hard-failing.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/attestation-skip-message.sh
+          result: pass
+
+reversal:
+  - signal: parser-must-be-extended-but-shouldnt-have-been
+    action: archive-attestation-fixtures-until-parser-lands
+  - signal: yaml-loader-becomes-bottleneck
+    action: replace-with-real-yaml-parser-as-dev-dep
+
+risk:
+  declared_triggers:
+    - kernel-shape-misalignment
+    - parser-regression
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - infrastructure-honesty@1
+  superseded_by: []
