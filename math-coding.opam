@@ -1,11 +1,20 @@
-(lang dune 3.16)
-(generate_opam_files true)
-(name math-coding)
-(version 3.0-alpha)
-(source (github 11111000000/math-coding))
-(license Apache-2.0)
-(authors "Petr Kosov <p.b.kosov@yandex.ru>")
-(maintainers "Petr Kosov <p.b.kosov@yandex.ru>")
-(homepage https://github.com/11111000000/math-coding)
-(documentation https://11111000000.github.io/math-coding/)
-(depends (ocaml (>= 5.0)) (dune (>= 3.16)))
+opam-version: "2.0"
+name: "math-coding"
+version: "3.0-alpha"
+synopsis: "Risk-adaptive assurance protocol"
+description: "Math-coding links a concrete change to the obligations it may affect and to bounded evidence about those obligations."
+maintainer: "Petr Kosov <p.b.kosov@yandex.ru>"
+authors: ["Petr Kosov <p.b.kosov@yandex.ru>"]
+license: "Apache-2.0"
+homepage: "https://github.com/11111000000/math-coding"
+bug-reports: "https://github.com/11111000000/math-coding/issues"
+depends: [
+  "ocaml" {>= "5.0"}
+  "dune" {>= "3.16"}
+]
+dev-depends: [
+  "alcotest" {>= "1.7"}
+]
+build: [
+  ["dune" "build" "--root" "." "bin/mathc.exe"]
+]

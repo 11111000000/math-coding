@@ -2,7 +2,7 @@
   description = "math-coding 3.0-alpha — risk-adaptive assurance protocol";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
@@ -18,6 +18,7 @@
           name = "math-coding-dev";
           packages = [
             ocamlPackages.ocaml
+            ocamlPackages.alcotest
           ] ++ ocamlSelect ocamlPackages ++ (with pkgs; [
             git
             pkg-config
@@ -44,6 +45,26 @@
             runHook preInstall
             mkdir -p $out/bin
             cp _build/default/bin/mathc.exe $out/bin/mathc
+            runHook postInstall
+          '';
+        };
+
+        checks.default = pkgs.stdenv.mkDerivation {
+          name = "math-coding-tests";
+          src = ./.;
+          nativeBuildInputs = [
+            ocamlPackages.ocaml
+            ocamlPackages.alcotest
+          ] ++ ocamlSelect ocamlPackages;
+          buildPhase = ''
+            runHook preBuild
+            dune build --root . @tests/runtest
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out
+            touch $out/ok
             runHook postInstall
           '';
         };

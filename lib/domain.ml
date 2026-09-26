@@ -176,7 +176,7 @@ type gate =
 
 type diagnostic = {
   code : string;
-  class_ : [ `Input | `Question | `Deficit | `Infrastructure | `Conflict | `Authorization ];
+  kind : [ `Input | `Question | `Deficit | `Infrastructure | `Conflict | `Authorization ];
   severity : [ `Info | `Warn | `Block ];
   subject : id option;
   path : string list;

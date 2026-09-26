@@ -1,0 +1,3 @@
+(test
+ (name digest_vectors)
+ (libraries mathcoding_core alcotest))
