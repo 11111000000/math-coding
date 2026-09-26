@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# math-coding 3.0-alpha — repeatable development commands.
+#
+# Each subcommand prints what it is doing. None of them are silent.
+# Use these instead of "rm -rf _build" superstition.
+#
+# Usage:
+#   scripts/dev build           — compile kernel + CLI
+#   scripts/dev test            — run conformance suite
+#   scripts/dev rebuild         — full rebuild (when build is wedged)
+#   scripts/dev lint            — strict warnings-as-errors build
+#   scripts/dev check           — nix flake check
+#   scripts/dev lock-update     — refresh flake.lock
+#   scripts/dev shell           — drop into nix develop .#test
+#   scripts/dev run FILE        — build + run mathc.exe FILE
+
+set -eu
+cd "$(dirname "$0")/.."
+
+usage() {
+  sed -n '2,17p' "$0"
+  exit 1
+}
+
+cmd="${1:-}"
+shift || true
+
+run_in_shell() {
+  nix develop .#test --command bash -c "$1"
+}
+
+case "$cmd" in
+  build)
+    run_in_shell "dune build --root . && echo 'build: ok'"
+    ;;
+
+  test)
+    run_in_shell "dune test --root ."
+    ;;
+
+  rebuild)
+    run_in_shell "dune clean && dune build --root . && echo 'rebuild: ok'"
+    ;;
+
+  lint)
+    # Treat warnings as errors via dune's --error-on-warnings flag.
+    # Exits nonzero if any test executable emits a warning.
+    run_in_shell "dune build --root . --error-on-warnings && dune test --root . --error-on-warnings && echo 'lint: clean'"
+    ;;
+
+  check)
+    nix flake check
+    ;;
+
+  lock-update)
+    nix flake lock --update-input "$@"
+    git diff flake.lock | head -50
+    ;;
+
+  shell)
+    nix develop .#test --command bash
+    ;;
+
+  run)
+    if [ $# -lt 1 ]; then usage; fi
+    file="$1"
+    run_in_shell "dune build --root . bin/mathc.exe && _build/default/bin/mathc.exe '$file'"
+    ;;
+
+  ""|-h|--help|help)
+    usage
+    ;;
+
+  *)
+    echo "unknown subcommand: $cmd" >&2
+    usage
+    ;;
+esac
