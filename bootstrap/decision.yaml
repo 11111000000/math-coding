@@ -87,6 +87,32 @@ obligations:
         - verifier: mathc-context-budget
           result: pass
 
+  - id: developer-practices-binding
+    outcome: agent-authorable
+    claim: |
+      Every change to the kernel, schemas, or build follows the rules
+      in OCAML_BEST_PRACTICES.md. In particular:
+        - the kernel stays offline and side-effect-free;
+        - 'class', 'match', 'object' are not used as record field names;
+        - polymorphic variants are reserved for genuinely extensible
+          categories, not used for closed sets;
+        - SHA-256 is not used for canonicalization until RFC 6234 vectors
+          pass in tests/.
+    acceptance:
+      all:
+        - verifier: practice-review
+          result: pass
+
+  - id: axioms-binding
+    outcome: agent-authorable
+    claim: |
+      Every non-trivial change is motivated by at least one axiom in
+      axioms/ and is recorded as a relation superseding or addressing it.
+    acceptance:
+      all:
+        - verifier: axiom-link-review
+          result: pass
+
 reversal:
   - signal: conformance-failure
     action: revert
