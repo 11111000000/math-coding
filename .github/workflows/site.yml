@@ -16,13 +16,12 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: 5.4
-          dune-cache: true
       - run: opam install --yes dune
       - name: Render site
         run: sh scripts/render.sh
