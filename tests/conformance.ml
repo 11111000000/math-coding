@@ -9,7 +9,8 @@
  *   - decision fixtures: full parsing (parser exists in lib/decision.ml)
  *   - attestation fixtures: full parsing (parser in lib/codec.ml since
  *     obligation attestation-parser landed)
- *   - waiver fixtures: skipped (parser not yet in lib/)
+ *   - waiver fixtures: full parsing (parser in lib/codec.ml since
+ *     obligation waiver-parser landed)
  *
  * Negative fixture (before this commit): tests/dune declares the
  * conformance test but the runner executable does not exist.
@@ -271,8 +272,12 @@ let[@warning "-32"] parse_attestation_for_fixture path =
   | None -> Reject
   | exception Jsonl.Parse_error _ -> Reject
 
-let[@warning "-32"] parse_waiver_for_fixture _path =
-  Skip
+let[@warning "-32"] parse_waiver_for_fixture path =
+  let v = load_fixture path in
+  match Codec.parse_waiver v with
+  | Some _ -> Accept
+  | None -> Reject
+  | exception Jsonl.Parse_error _ -> Reject
 
 let[@warning "-32"] dispatch dir path =
   match dir with

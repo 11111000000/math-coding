@@ -161,3 +161,70 @@ let[@warning "-32"] parse_attestation v =
         | _ -> None)
      | _ -> None)
   | _ -> None
+
+(* Waiver decoder. The fixture layout mirrors schemas/waiver.json:
+   required scalar fields are flat (id, policy_id, rule, subject,
+   issuer, issued_at, expires_at, reason); scope is an array of
+   scope_target objects under "scope" (optional — waivers may cover a
+   single subject without enumerating paths); unverified_obligation is
+   an optional id string; compensating_controls is an optional array
+   of strings. See lib/domain.ml:127-141 for the resulting record
+   type. *)
+let[@warning "-32"] parse_waiver v =
+  match v with
+  | Jsonl.Object ps ->
+    (match Schema.take_string ps "id" with
+     | Some id ->
+       (match Schema.take_string ps "policy_id" with
+        | Some policy_id ->
+          (match Schema.take_string ps "rule" with
+           | Some rule ->
+             (match Schema.take_string ps "subject" with
+              | Some subject ->
+                (match Schema.take_string ps "issuer" with
+                 | Some issuer ->
+                   (match Schema.take_string ps "issued_at" with
+                    | Some issued_at ->
+                      (match Schema.take_string ps "expires_at" with
+                       | Some expires_at ->
+                         (match Schema.take_string ps "reason" with
+                          | Some reason ->
+                            let scope =
+                              match Schema.take_array ps "scope" with
+                              | Some xs -> parse_scope xs
+                              | None -> []
+                            in
+                            let unverified_obligation =
+                              Schema.take_string ps "unverified_obligation"
+                            in
+                            let compensating_controls =
+                              match Schema.take_array ps "compensating_controls" with
+                              | Some xs ->
+                                List.filter_map
+                                  (fun x ->
+                                    match x with
+                                    | Jsonl.String s -> Some s
+                                    | _ -> None)
+                                  xs
+                              | None -> []
+                            in
+                            Some { Domain.id;
+                                   Domain.policy_id;
+                                   Domain.rule;
+                                   Domain.subject;
+                                   Domain.scope;
+                                   Domain.issuer;
+                                   Domain.issued_at;
+                                   Domain.expires_at;
+                                   Domain.reason;
+                                   Domain.unverified_obligation;
+                                   Domain.compensating_controls }
+                         | _ -> None)
+                      | _ -> None)
+                   | _ -> None)
+                | _ -> None)
+             | _ -> None)
+          | _ -> None)
+       | _ -> None)
+    | _ -> None)
+  | _ -> None
