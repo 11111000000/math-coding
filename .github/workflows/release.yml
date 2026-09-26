@@ -1,0 +1,82 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to backfill (e.g. v0.854)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: linux-x86_64
+            archive: tar.gz
+          - os: macos-13
+            label: macos-x86_64
+            archive: tar.gz
+          - os: macos-latest
+            label: macos-arm64
+            archive: tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v27
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build mathc
+        run: nix build --no-link --print-out-paths .#default
+      - name: Package
+        env:
+          LABEL: ${{ matrix.label }}
+          ARCHIVE: ${{ matrix.archive }}
+          BIN_PATH: ${{ steps.build.outputs.outPath }}
+        run: |
+          mkdir -p "mathc-$LABEL"
+          cp "$BIN_PATH/bin/mathc" "mathc-$LABEL/mathc"
+          chmod +x "mathc-$LABEL/mathc"
+          tar -cJf "mathc-$LABEL.tar.xz" -C "mathc-$LABEL" mathc
+          sha256sum "mathc-$LABEL.tar.xz" > "mathc-$LABEL.tar.xz.sha256"
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mathc-${{ matrix.label }}
+          path: |
+            mathc-${{ matrix.label }}.tar.xz
+            mathc-${{ matrix.label }}.tar.xz.sha256
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "name=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${GITHUB_REF#refs/tags/}" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create or update release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.name }}
+          generate_release_notes: true
+          files: artifacts/*
