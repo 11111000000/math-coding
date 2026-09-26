@@ -11,6 +11,24 @@ The complete v2.1 source is preserved by the remote Git tag
 `v2.1-final`. Do not use v2 packet fields, commands, or lifecycle rules
 for new work.
 
+## Read first
+
+Before changing anything in this repository, read in order:
+
+1. `README.md` — current state and scope.
+2. `spec/constitution.md` — invariants of the kernel.
+3. `spec/domain.md` — entity model.
+4. `spec/semantics.md` — gate logic and exit codes.
+5. `OCAML_BEST_PRACTICES.md` — project-specific OCaml conventions,
+   including which conventions are *enforced* by `bootstrap/decision.yaml`.
+6. `bootstrap/decision.yaml` — the bootstrap decision itself; its
+   obligations describe the manual checks you must perform.
+7. `axioms/` — the philosophical and mathematical foundations. Every
+   non-trivial change MUST be derivable from at least one axiom.
+
+If any of these contradict each other, the contradiction is a deficit.
+Report it; do not silently resolve it.
+
 ## Purpose
 
 Math-coding links a concrete change to the obligations it may affect and
