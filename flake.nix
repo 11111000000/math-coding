@@ -19,6 +19,11 @@
           packages = [
             ocamlPackages.ocaml
             ocamlPackages.alcotest
+            ocamlPackages.fmt
+            ocamlPackages.cmdliner
+            ocamlPackages.uutf
+            ocamlPackages.seq
+            ocamlPackages.re
           ] ++ ocamlSelect ocamlPackages ++ (with pkgs; [
             git
             pkg-config
