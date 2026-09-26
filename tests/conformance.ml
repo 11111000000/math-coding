@@ -7,7 +7,8 @@
  *
  * Scope (kernel-conformance-runner@1):
  *   - decision fixtures: full parsing (parser exists in lib/decision.ml)
- *   - attestation fixtures: skipped (parser not yet in lib/)
+ *   - attestation fixtures: full parsing (parser in lib/codec.ml since
+ *     obligation attestation-parser landed)
  *   - waiver fixtures: skipped (parser not yet in lib/)
  *
  * Negative fixture (before this commit): tests/dune declares the
@@ -263,10 +264,12 @@ let[@warning "-32"] parse_decision_for_fixture path =
   | None -> Reject
   | exception Jsonl.Parse_error _ -> Reject
 
-let[@warning "-32"] parse_attestation_for_fixture _path =
-  (* Attestation parser not yet in lib/. Skip explicitly so the runner
-     still emits a verdict per fixture. *)
-  Skip
+let[@warning "-32"] parse_attestation_for_fixture path =
+  let v = load_fixture path in
+  match Codec.parse_attestation v with
+  | Some _ -> Accept
+  | None -> Reject
+  | exception Jsonl.Parse_error _ -> Reject
 
 let[@warning "-32"] parse_waiver_for_fixture _path =
   Skip

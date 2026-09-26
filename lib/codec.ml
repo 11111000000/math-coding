@@ -90,3 +90,74 @@ let[@warning "-32"] parse_scope arr =
        | None -> loop acc rest)
   in
   loop [] arr
+
+(* Attestation decoder. The fixture layout nests the decision/obligation
+   references and digests under a "subject" object and stores the
+   attestation kind under "kind_" (because top-level "kind" carries the
+   document kind string "attestation"). The producer identity lives
+   under "producer.identity". Everything else is flat. See
+   schemas/attestation.json for the canonical layout. *)
+let[@warning "-32"] parse_attestation v =
+  match v with
+  | Jsonl.Object ps ->
+    (match Schema.take_string ps "id" with
+     | Some id ->
+       (match Schema.take_object ps "subject" with
+        | Some sps ->
+          (match Schema.take_string sps "decision" with
+           | Some decision ->
+             let decision_digest = Schema.take_string sps "decision_digest" in
+             (match Schema.take_string sps "obligation" with
+              | Some obligation ->
+                let obligation_digest =
+                  Schema.take_string sps "obligation_digest" in
+                let candidate_tree =
+                  match Schema.take_string sps "candidate_tree" with
+                  | Some s -> s | None -> "" in
+                let materials_digest =
+                  match Schema.take_string sps "materials_digest" with
+                  | Some s -> s | None -> "" in
+                (match Schema.take_string ps "kind_" with
+                 | Some kind_str ->
+                   (match parse_attestation_kind kind_str with
+                    | Some kind ->
+                      (match Schema.take_object ps "producer" with
+                       | Some pps ->
+                         (match Schema.take_string pps "identity" with
+                          | Some producer_identity ->
+                            let producer_run =
+                              Schema.take_string pps "run" in
+                            (match Schema.take_string ps "result" with
+                             | Some result_str ->
+                               (match parse_result result_str with
+                                | Some result ->
+                                  (match Schema.take_string ps "issued_at" with
+                                   | Some issued_at ->
+                                     Some { Domain.id;
+                                            Domain.decision;
+                                            Domain.decision_revision = None;
+                                            Domain.decision_digest;
+                                            Domain.obligation;
+                                            Domain.obligation_digest;
+                                            Domain.candidate_tree;
+                                            Domain.materials_digest;
+                                            Domain.kind;
+                                            Domain.producer_identity;
+                                            Domain.producer_run;
+                                            Domain.environment_class = None;
+                                            Domain.result;
+                                            Domain.issued_at;
+                                            Domain.valid_until = None;
+                                            Domain.evidence_digest = None }
+                                   | _ -> None)
+                                | _ -> None)
+                             | _ -> None)
+                          | _ -> None)
+                       | _ -> None)
+                    | _ -> None)
+                 | _ -> None)
+              | _ -> None)
+           | _ -> None)
+        | _ -> None)
+     | _ -> None)
+  | _ -> None
