@@ -24,7 +24,7 @@ jobs:
           ocaml-compiler: 5.4
       - run: opam install --yes dune
       - name: Render site
-        run: bash scripts/render.sh
+        run: opam exec -- bash scripts/render.sh
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

@@ -22,4 +22,4 @@ jobs:
       - name: Test
         run: opam exec -- dune test
       - name: Render site (smoke)
-        run: bash scripts/render.sh
+        run: opam exec -- bash scripts/render.sh
