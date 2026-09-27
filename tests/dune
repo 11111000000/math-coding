@@ -6,19 +6,17 @@
  (name conformance)
  (libraries mathcoding_core alcotest))
 
-; cli-integration-cram: dune cram tests for the mathc CLI.
-; Each .t file in tests/cram/ is a file-style cram test. The (deps)
-; below triggers a build of bin/mathc.exe before the cram tests run,
-; so the tests can invoke the binary by absolute path inside the
-; cram sandbox (which does not expose the build dir via relative
-; paths; see OCAML_BEST_PRACTICES trap log entry §11.20 for the
-; cram-sandbox vs binary-path resolution).
-
-(cram
- (deps
-  validate.t
-  assess.t
-  attest.t
-  time-estimate.t
-  time-storage.t
-  ../bin/mathc.exe))
+; CLI integration was previously tested via dune's cram stanza
+; (see archived tests/cram/*.t). Cram's bwrap sandbox in dune 3.23
+; does not expose _build/default/bin/mathc.exe to the test
+; process despite (deps ../bin/mathc.exe), and CRAM_NO_BWRAP=1
+; does not help — the sandbox still resolves /home/... paths
+; against the sandbox FS, where the binary is masked.
+;
+; Shell fixtures under tests/fixtures/cli-*.sh provide the same
+; CLI coverage via direct invocation through `nix develop .#test`.
+; They run reliably in any dune version and have full access to
+; the project tree. Migrate new CLI tests there.
+;
+; For the rationale and the documented cram sandbox limitation,
+; see OCAML_BEST_PRACTICES §11.22 (was §11.20, retired).

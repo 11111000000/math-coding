@@ -51,13 +51,12 @@ fi
 # is replaced by "..." and the fixture can't distinguish accept
 # from skip. See OCAML_BEST_PRACTICES §11.14 and Alcotest's own
 # env-var docs in alcotest/cli.ml.
-#
-# dune test may exit nonzero when cram tests fail due to
-# pre-existing cram path-fragility (OCAML_BEST_PRACTICES §11.20);
-# that is environmental and unrelated to waiver parsing. We
-# tolerate a nonzero exit and assert directly on stdout.
-nix develop .#test --command bash -c \
-     'ALCOTEST_COLUMNS=500 dune test --root . --force' >"$log" 2>&1 || true
+if ! nix develop .#test --command bash -c \
+     'ALCOTEST_COLUMNS=500 dune test --root . --force' >"$log" 2>&1; then
+  echo "  FAIL dune test exit status was nonzero" >&2
+  tail -30 "$log" >&2
+  exit 1
+fi
 
 # Extract every Alcotest line mentioning a waiver fixture.
 # Output format from the runner (one line per fixture, with
