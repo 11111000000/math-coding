@@ -431,11 +431,19 @@ Deficits reported in the `Notes:` sections of commits since the
 v0.0.5 cut. None are blocking; each is recorded for the next
 release.
 
+**Resolution status (updated 2026-09-27 at v3-alpha-0.0.12)**: D3
+was closed between v0.0.11 and v0.0.12 by the
+`bootstrap/priority-drift.yaml` decision and the
+`tests/fixtures/spec-vs-bp-priority.sh` fixture. D1 and D2 were
+also closed by `bootstrap/yaml-block-scalars.md` (rev 2) and
+`tests/fixtures/yaml-block-scalars.sh`. D4–D8 remain open; see
+the body of each row for the recommended remedy.
+
 | # | Deficit | Reported in | Root cause | Recommended remedy |
 |---|---|---|---|---|
 | D1 | `lib/codec.ml` does not handle YAML literal-block scalars (`\|`). `bootstrap/*.yaml` uses `\|` for commitment/intent, so obligations/assumptions/triggers counts come back as 0 from the YAML path. `decision_id` and `revision` parse correctly because `Memory.strip_yaml_frontmatter` strips `---` locally before calling `Codec.load_yaml_string`. | `f0f80a9` (v3-alpha-0.0.7 commit message, Notes). | Hand-rolled YAML loader in `lib/codec.ml:412` is intentionally narrow (only top-level mappings with scalar values, per `bootstrap/kernel-conformance-runner.yaml` assumption `minimal-yaml-subset-stable`). | Extend `Codec.load_yaml_string` to handle `\|` block scalars. Must be done in `lib/codec.ml` (kernel offline, so the loader is the right place, not in `capsule`). OCAML_BEST_PRACTICES §11.19 already documents the related front-matter trap. |
 | D2 | `lib/codec.ml` does not handle `---` YAML front-matter. `bootstrap/*.yaml` and the front-matter of `bootstrap/validate-and-context.md` start with `---`. The local `Memory.strip_yaml_frontmatter` workaround is sufficient for `mc context` only. | `OCAML_BEST_PRACTICES §11.19` (trap log entry written at v3-alpha-0.0.7). | Same loader limitation as D1. | Same remedy as D1; the two extensions should land together. |
-| D3 | No priority-drift detector between `spec/semantics.md` "context-prioritisation" and `OCAML_BEST_PRACTICES.md` §10.5. The two tables are required to stay in lockstep (per `bootstrap/validate-and-context.md` countercase), but a change to one is not auto-detected as a change to the other. | `f0f80a9` Notes (recorded as risk `priority-order-drift-between-spec-and-implementation` in `bootstrap/validate-and-context.md`). | No machine check exists between the two tables. | Add a fixture that diffs the two tables; until then, code review is the only enforcement. This is a candidate for the v0.0.12 obligation list. |
+| D3 | No priority-drift detector between `spec/semantics.md` "context-prioritisation" and `OCAML_BEST_PRACTICES.md` §10.5. The two tables are required to stay in lockstep (per `bootstrap/validate-and-context.md` countercase), but a change to one is not auto-detected as a change to the other. | `f0f80a9` Notes (recorded as risk `priority-order-drift-between-spec-and-implementation` in `bootstrap/validate-and-context.md`). | No machine check exists between the two tables. | **RESOLVED at v3-alpha-0.0.12**: see `bootstrap/priority-drift.yaml` obligation `priority-drift-detector` and the fixture `tests/fixtures/spec-vs-bp-priority.sh`. The fixture is invoked by `./scripts/check.sh`; it compares the priority-ordering line in `spec/semantics.md` to the mirror in `OCAML_BEST_PRACTICES.md` §10.5 and exits 1 (with a diff) on any byte-level mismatch or on exactly-one-missing. New trap-log entry `OCAML_BEST_PRACTICES.md §11.27` documents the failure mode for future maintainers. (Original recommendation was: add a fixture that diffs the two tables; until then, code review is the only enforcement. That recommendation was implemented.) |
 | D4 | `lib/digest.ml` SHA-256 implementation has not been validated against RFC 6234 vectors. `tests/digest_vectors.ml` exists but its 3 tests are marked `xfail until Digest is fixed`. | `OCAML_BEST_PRACTICES §5` and the `xfail until Digest is fixed` label visible in `dune test` output. | Hand-rolled SHA-256 (`lib/digest.ml:1-176`); conformance corpus would skip. | Until the vectors pass, do not use `Digest.sha256_hex` for canonicalization. `OCAML_BEST_PRACTICES §10.4` item 1 lists this as the top-priority pre-3.0-beta task. |
 | D5 | `bin/mathc_main.ml` is a 1-line stale file containing the v0.0.5 hello-string. `bin/dune` lists only `Mathc`, so `mathc_main.ml` is not compiled, but it lingers in the tree. | `OCAML_BEST_PRACTICES §9.4` and §10.4 item 7 (recorded at v3-alpha-0.0.6). | History: `main.ml → mathc.ml → Mathc.ml`. | Delete `bin/mathc_main.ml`. Trivial cleanup; not blocking. |
 | D6 | The 8 obligations in `bootstrap/decision.yaml` have manual-only verifiers. The kernel that would auto-verify them does not exist. | `bootstrap/decision.yaml` and `bootstrap/rationale.md`. | This is the bootstrap protocol itself, not a bug. | Track; expire when the released 3.0 kernel successfully checks this repository and its conformance corpus (`AGENTS.md` §Bootstrap gate). |
@@ -455,6 +463,19 @@ maps to D7: the Git adapter obligation exists in the decision but
 is grouped under the JUnit decision file rather than its own
 file. There is no missing obligation; the situation is a
 documentation gap, not a policy deficit.)
+
+**Closure status of the parent task's three items (updated
+2026-09-27 at v3-alpha-0.0.12)**:
+
+- D1 — **closed** at v3-alpha-0.0.12 by
+  `bootstrap/yaml-block-scalars.md` (rev 2) and
+  `tests/fixtures/yaml-block-scalars.sh`.
+- D3 — **closed** at v3-alpha-0.0.12 by
+  `bootstrap/priority-drift.yaml` (rev 2) and
+  `tests/fixtures/spec-vs-bp-priority.sh` (this commit's
+  work).
+- D7 — **unchanged**; the documentation-gap note above still
+  applies.
 
 ---
 
