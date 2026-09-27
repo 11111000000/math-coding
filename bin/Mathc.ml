@@ -229,16 +229,16 @@ let print_usage oc =
     \  context BASE HEAD --budget N     print a JSON context capsule\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
     \  attest FILE                      parse FILE as a JUnit XML report\n\
-    \  time-estimate --class ...        print JSON forecast from declared distribution\n\
+    \  time-estimate --class ...        print JSON forecast from declared \
+     distribution\n\
     \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\
     \  session-start                    write .local/session-start ISO timestamp\n\
-    \  record --decision-id ID ...      append event to bootstrap/execution-logs.jsonl\n\
+    \  record --decision-id ID ...      append event to \
+     bootstrap/execution-logs.jsonl\n\
     \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
-     exit codes:\n\
-    \  0 accept  1 reject  2 input error  3 internal error\n"
      exit codes:\n\
     \  0 accept  1 reject  2 input error  3 internal error\n"
 
@@ -310,8 +310,7 @@ let[@warning "-32"] run_git_command base head args =
    cram harness sets to $DUNE_SOURCEROOT). *)
 let[@warning "-32"] find_project_root start =
   match Sys.getenv_opt "MATH_CODING_ROOT" with
-  | Some root when Sys.file_exists (Filename.concat root "dune-project") ->
-      root
+  | Some root when Sys.file_exists (Filename.concat root "dune-project") -> root
   | _ ->
       let rec loop d =
         let candidate = Filename.concat d "dune-project" in
@@ -832,14 +831,11 @@ let[@warning "-32"] do_time_estimate () =
 
 (* mkdir -p, recursively. Idempotent: ignores EEXIST. *)
 let[@warning "-32"] rec ensure_dir d =
-  if d = "" || d = "/" || Filename.basename d = ""
-  then ()
-  else if Sys.file_exists d
-  then ()
+  if d = "" || d = "/" || Filename.basename d = "" then ()
+  else if Sys.file_exists d then ()
   else begin
     ensure_dir (Filename.dirname d);
-    (try Unix.mkdir d 0o755
-     with Unix.Unix_error (Unix.EEXIST, _, _) -> ())
+    try Unix.mkdir d 0o755 with Unix.Unix_error (Unix.EEXIST, _, _) -> ()
   end
 
 let[@warning "-32"] read_session_start_path root =
@@ -861,8 +857,7 @@ let[@warning "-32"] write_session_start () =
    failure. The format is fixed: we only write what we wrote. *)
 let[@warning "-32"] parse_iso_to_unix s =
   try
-    Scanf.sscanf s "%4d-%2d-%2dT%2d:%2d:%2dZ"
-      (fun y mo d h mi se ->
+    Scanf.sscanf s "%4d-%2d-%2dT%2d:%2d:%2dZ" (fun y mo d h mi se ->
         let tm : Unix.tm =
           {
             tm_year = y - 1900;
@@ -899,22 +894,20 @@ let[@warning "-32"] do_session_start () =
 let[@warning "-32"] observed_by () =
   match Sys.getenv_opt "MATH_CODING_USER" with
   | Some s when s <> "" -> s
-  | _ ->
+  | _ -> (
       let ic =
-        try Some (Unix.open_process_in "git config user.email")
-        with _ -> None
+        try Some (Unix.open_process_in "git config user.email") with _ -> None
       in
       match ic with
       | None -> "human:anonymous"
-      | Some ic ->
-          (try
-             let email = input_line ic |> String.trim in
-             let _ = Unix.close_process_in ic in
-             if email = "" then "human:anonymous"
-             else "human:" ^ email
-           with _ ->
-             let _ = Unix.close_process_in ic in
-             "human:anonymous")
+      | Some ic -> (
+          try
+            let email = input_line ic |> String.trim in
+            let _ = Unix.close_process_in ic in
+            if email = "" then "human:anonymous" else "human:" ^ email
+          with _ ->
+            let _ = Unix.close_process_in ic in
+            "human:anonymous"))
 
 (* --- record subcommand (bootstrap decision time-honesty-storage) ---
  *
@@ -927,9 +920,7 @@ let[@warning "-32"] observed_by () =
 
 let[@warning "-32"] append_event_to_file path body =
   ensure_dir (Filename.dirname path);
-  let oc =
-    open_out_gen [ Open_append; Open_creat; Open_text ] 0o644 path
-  in
+  let oc = open_out_gen [ Open_append; Open_creat; Open_text ] 0o644 path in
   output_string oc body;
   output_char oc '\n';
   close_out oc
@@ -939,7 +930,8 @@ let[@warning "-32"] event_to_json_line (ev : (string * Jsonl.value) list) =
   "{"
   ^ String.concat ","
       (List.map
-         (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
+         (fun (k, v) ->
+           Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
          sorted)
   ^ "}"
 
@@ -958,20 +950,26 @@ let[@warning "-32"] do_record () =
   (try
      Arg.parse
        [
-         ("--decision-id", Arg.String set_id,
-          " Decision id (required), e.g. bootstrap-v3");
-         ("--revision", Arg.String set_rev,
-          " Revision digest or label (optional, defaults to 'current')");
-         ("--scale", Arg.String set_scale,
-          " wall-clock-minutes | step-count (required)");
-         ("--class", Arg.String set_class,
-          " Task class name from bin/data/time-distribution.yaml (optional)");
-         ("--value", Arg.String set_value,
-          " Numeric value for scale=step-count only; \
-           rejected for wall-clock-minutes");
+         ( "--decision-id",
+           Arg.String set_id,
+           " Decision id (required), e.g. bootstrap-v3" );
+         ( "--revision",
+           Arg.String set_rev,
+           " Revision digest or label (optional, defaults to 'current')" );
+         ( "--scale",
+           Arg.String set_scale,
+           " wall-clock-minutes | step-count (required)" );
+         ( "--class",
+           Arg.String set_class,
+           " Task class name from bin/data/time-distribution.yaml (optional)" );
+         ( "--value",
+           Arg.String set_value,
+           " Numeric value for scale=step-count only; rejected for \
+            wall-clock-minutes" );
        ]
        (fun _ -> raise (Arg.Bad "no positional arguments expected"))
-       "usage: mc record --decision-id ID [--revision REV] --scale S [--class C] [--value N]"
+       "usage: mc record --decision-id ID [--revision REV] --scale S [--class \
+        C] [--value N]"
    with Arg.Bad m ->
      Printf.fprintf stderr "mc record: %s\n" m;
      exit 2);
@@ -992,7 +990,8 @@ let[@warning "-32"] do_record () =
           exit 2
         end;
         let session_str =
-          try read_session_start () with _ ->
+          try read_session_start ()
+          with _ ->
             Printf.fprintf stderr
               "mc record: MC-SESSION-MISSING; run 'mc session-start' first\n";
             exit 2
@@ -1006,30 +1005,28 @@ let[@warning "-32"] do_record () =
         end;
         let minutes_total = (t1 -. t0) /. 60.0 in
         let minutes_int = int_of_float (minutes_total +. 0.5) in
-        ("scale", Jsonl.String "wall-clock-minutes"),
-        ("value", Jsonl.Int minutes_int)
-    | "step-count" ->
+        ( ("scale", Jsonl.String "wall-clock-minutes"),
+          ("value", Jsonl.Int minutes_int) )
+    | "step-count" -> (
         if !value_opt = "" then begin
           Printf.fprintf stderr
             "mc record: --value is required for --scale step-count\n";
           exit 2
         end;
-        (match int_of_string_opt !value_opt with
-         | Some n ->
-             ("scale", Jsonl.String "step-count"),
-             ("value", Jsonl.Int n)
-         | None ->
-             Printf.fprintf stderr
-               "mc record: --value must be an integer for step-count\n";
-             exit 2)
+        match int_of_string_opt !value_opt with
+        | Some n ->
+            (("scale", Jsonl.String "step-count"), ("value", Jsonl.Int n))
+        | None ->
+            Printf.fprintf stderr
+              "mc record: --value must be an integer for step-count\n";
+            exit 2)
     | _ ->
         Printf.fprintf stderr
           "mc record: --scale must be wall-clock-minutes or step-count\n";
         exit 2
   in
   let rev_pair =
-    if !decision_rev <> "" then
-      ("decision_revision", Jsonl.String !decision_rev)
+    if !decision_rev <> "" then ("decision_revision", Jsonl.String !decision_rev)
     else ("decision_revision", Jsonl.String "current")
   in
   let class_pair =
@@ -1073,21 +1070,17 @@ let[@warning "-32"] read_jsonl_events root =
   else
     try
       let raw = In_channel.with_open_bin path In_channel.input_all in
-      raw
-      |> String.split_on_char '\n'
+      raw |> String.split_on_char '\n'
       |> List.filter (fun s -> s <> "")
       |> List.filter_map (fun line ->
-             try Some (line, Jsonl.parse line)
-             with _ -> None)
+          try Some (line, Jsonl.parse line) with _ -> None)
     with _ -> []
 
 let[@warning "-32"] event_field_string ev key =
   let rec field = function
     | [] -> None
     | (k, v) :: _ when k = key -> (
-        match v with
-        | Jsonl.String s -> Some s
-        | _ -> None)
+        match v with Jsonl.String s -> Some s | _ -> None)
     | _ :: rest -> field rest
   in
   field ev
@@ -1096,9 +1089,7 @@ let[@warning "-32"] event_field_int ev key =
   let rec field = function
     | [] -> None
     | (k, v) :: _ when k = key -> (
-        match v with
-        | Jsonl.Int n -> Some n
-        | _ -> None)
+        match v with Jsonl.Int n -> Some n | _ -> None)
     | _ :: rest -> field rest
   in
   field ev
@@ -1111,14 +1102,13 @@ let[@warning "-32"] quantile (xs : int list) (p : float) =
   | _ ->
       let sorted = List.sort compare xs in
       let n = List.length sorted in
-      let pos = (p /. 100.0) *. float_of_int (n - 1) in
+      let pos = p /. 100.0 *. float_of_int (n - 1) in
       let lo = int_of_float pos in
       let hi = min (lo + 1) (n - 1) in
       let frac = pos -. float_of_int lo in
       let a = List.nth sorted lo in
       let b = List.nth sorted hi in
-      int_of_float
-        ((float_of_int a +. (float_of_int (b - a) *. frac)) +. 0.5)
+      int_of_float (float_of_int a +. (float_of_int (b - a) *. frac) +. 0.5)
 
 let[@warning "-32"] do_stats () =
   let scale = ref "" in
@@ -1128,12 +1118,15 @@ let[@warning "-32"] do_stats () =
   (try
      Arg.parse
        [
-         ("--scale", Arg.String (fun s -> scale := s),
-          " wall-clock-minutes | step-count");
-         ("--class", Arg.String (fun s -> class_opt := s),
-          " Task class name (optional)");
-         ("--since", Arg.String (fun s -> since := s),
-          " ISO 8601 UTC timestamp; events before this are filtered");
+         ( "--scale",
+           Arg.String (fun s -> scale := s),
+           " wall-clock-minutes | step-count" );
+         ( "--class",
+           Arg.String (fun s -> class_opt := s),
+           " Task class name (optional)" );
+         ( "--since",
+           Arg.String (fun s -> since := s),
+           " ISO 8601 UTC timestamp; events before this are filtered" );
        ]
        (fun _ -> raise (Arg.Bad "no positional arguments expected"))
        "usage: mc stats [--scale S] [--class C] [--since ISO]"
@@ -1144,51 +1137,54 @@ let[@warning "-32"] do_stats () =
   let pairs =
     read_jsonl_events root
     |> List.filter_map (fun (_line, v) ->
-           match v with
-           | Jsonl.Object ps ->
-               let scale_ok =
-                 !scale = ""
-                 || (match event_field_string ps "scale" with
-                    | Some s -> s = !scale
-                    | None -> false)
-               in
-               let class_ok =
-                 !class_opt = ""
-                 || (match event_field_string ps "class" with
-                    | Some s -> s = !class_opt
-                    | None -> false)
-               in
-               let since_ok =
-                 !since = ""
-                 || (match event_field_string ps "recorded_at" with
-                    | Some t -> t >= !since
-                    | None -> false)
-               in
-               if scale_ok && class_ok && since_ok then Some ps else None
-           | _ -> None)
+        match v with
+        | Jsonl.Object ps ->
+            let scale_ok =
+              !scale = ""
+              ||
+              match event_field_string ps "scale" with
+              | Some s -> s = !scale
+              | None -> false
+            in
+            let class_ok =
+              !class_opt = ""
+              ||
+              match event_field_string ps "class" with
+              | Some s -> s = !class_opt
+              | None -> false
+            in
+            let since_ok =
+              !since = ""
+              ||
+              match event_field_string ps "recorded_at" with
+              | Some t -> t >= !since
+              | None -> false
+            in
+            if scale_ok && class_ok && since_ok then Some ps else None
+        | _ -> None)
   in
-  let values =
-    List.filter_map (fun ps -> event_field_int ps "value") pairs
-  in
+  let values = List.filter_map (fun ps -> event_field_int ps "value") pairs in
   let n = List.length values in
   let threshold = 30 in
   let quantiles_obj =
     if n >= threshold then
-      "{" ^ String.concat ","
-        [
-          Jsonl.stringify (Jsonl.String "p50")
-          ^ ":"
-          ^ string_of_int (quantile values 50.0);
-          Jsonl.stringify (Jsonl.String "p80")
-          ^ ":"
-          ^ string_of_int (quantile values 80.0);
-          Jsonl.stringify (Jsonl.String "p95")
-          ^ ":"
-          ^ string_of_int (quantile values 95.0);
-          Jsonl.stringify (Jsonl.String "p99")
-          ^ ":"
-          ^ string_of_int (quantile values 99.0);
-        ] ^ "}"
+      "{"
+      ^ String.concat ","
+          [
+            Jsonl.stringify (Jsonl.String "p50")
+            ^ ":"
+            ^ string_of_int (quantile values 50.0);
+            Jsonl.stringify (Jsonl.String "p80")
+            ^ ":"
+            ^ string_of_int (quantile values 80.0);
+            Jsonl.stringify (Jsonl.String "p95")
+            ^ ":"
+            ^ string_of_int (quantile values 95.0);
+            Jsonl.stringify (Jsonl.String "p99")
+            ^ ":"
+            ^ string_of_int (quantile values 99.0);
+          ]
+      ^ "}"
     else Jsonl.stringify Jsonl.Null
   in
   let warning =
@@ -1206,13 +1202,13 @@ let[@warning "-32"] do_stats () =
       ("quantiles", quantiles_obj);
       ("scale", Jsonl.stringify (Jsonl.String !scale));
       ("since", Jsonl.stringify (Jsonl.String !since));
-      ("source", Jsonl.stringify
-        (Jsonl.String "bootstrap/execution-logs.jsonl"));
+      ("source", Jsonl.stringify (Jsonl.String "bootstrap/execution-logs.jsonl"));
       ("threshold", Jsonl.stringify (Jsonl.Int threshold));
     ]
-    @ (if warning <> "" then
-         [ ("warning", Jsonl.stringify (Jsonl.String warning)) ]
-       else [])
+    @
+    if warning <> "" then
+      [ ("warning", Jsonl.stringify (Jsonl.String warning)) ]
+    else []
   in
   let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
   print_endline
