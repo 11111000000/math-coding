@@ -431,13 +431,20 @@ Deficits reported in the `Notes:` sections of commits since the
 v0.0.5 cut. None are blocking; each is recorded for the next
 release.
 
-**Resolution status (updated 2026-09-27 at v3-alpha-0.0.12)**: D3
+**Resolution status (updated 2026-09-27 at v3-alpha-0.0.13)**: D3
 was closed between v0.0.11 and v0.0.12 by the
 `bootstrap/priority-drift.yaml` decision and the
 `tests/fixtures/spec-vs-bp-priority.sh` fixture. D1 and D2 were
 also closed by `bootstrap/yaml-block-scalars.md` (rev 2) and
-`tests/fixtures/yaml-block-scalars.sh`. D4–D8 remain open; see
-the body of each row for the recommended remedy.
+`tests/fixtures/yaml-block-scalars.sh`. The new D4 (CLI
+subcommand catalog; recommendation §Process improvements item
+13) was closed at v3-alpha-0.0.13 by `bootstrap/spec-cli-catalog.md`
+and `tests/fixtures/spec-catalog-present.sh`. The original D4
+(SHA-256 RFC vectors, listed as `D4`) remains open; the two
+deficits share a label by coincidence (the parent v0.0.13 task
+instruction labelled the new deficit "D4" while the audit
+already used the slot). D5–D8 remain open; see the body of
+each row for the recommended remedy.
 
 | # | Deficit | Reported in | Root cause | Recommended remedy |
 |---|---|---|---|---|
@@ -449,6 +456,7 @@ the body of each row for the recommended remedy.
 | D6 | The 8 obligations in `bootstrap/decision.yaml` have manual-only verifiers. The kernel that would auto-verify them does not exist. | `bootstrap/decision.yaml` and `bootstrap/rationale.md`. | This is the bootstrap protocol itself, not a bug. | Track; expire when the released 3.0 kernel successfully checks this repository and its conformance corpus (`AGENTS.md` §Bootstrap gate). |
 | D7 | `bootstrap/adapters.md` does not yet record a `git-changed-files-adapter` obligation as its own decision entry. The obligation appears in the v0.0.8 commit message and in `bootstrap/validate-and-context.md`'s `scope.capabilities`, but the adapters decision file groups it under the JUnit obligation. | `9f6d595` (the v0.0.8 commit added `bootstrap/adapters.md`; the message body is essentially empty; only `bcce74d` and `5486c13` carry the per-obligation text). | The two adapters landed in a single decision file but two implementation commits. | Either (a) split into two decision files (`adapters-git.md`, `adapters-junit.md`) for clarity, or (b) leave as is and record in the audit that the decision covers two obligations. (b) is the cheaper choice. |
 | D8 | `mc validate` synthesises a single coarse diagnostic ("missing or invalid required field") without naming the specific field. The kernel's `Decision.parse_decision` returns `Some _ \| None`, not a typed `Diagnostic.t option`. | `bootstrap/validate-and-context.md` assumption `parse-decision-rejection-reason-coarse`. | Decision parser is binary accept/reject; finer diagnostics are a 3.0-beta item. | Promote `Decision.parse_decision` to return `Diagnostic.t option` in 3.0-beta; until then, the coarse diagnostic is documented. |
+| D4′ | **NEW D4 (parent task label; renamed `D4′` here to disambiguate from the SHA-256 deficit above).** The mathc CLI subcommand list (version, validate, context, assess, attest, gate, session-start, record, stats, time-estimate) was documented only in `bin/Mathc.ml`'s header comment; the spec named only the priority order and exit codes. The audit's §Process improvements item 13 named this gap. | `doc/AUDIT-0.0.11.md` §Process improvements item 13. | The spec describes kernel semantics; the CLI surface was an implementation summary. | **RESOLVED at v3-alpha-0.0.13**: see `bootstrap/spec-cli-catalog.md` obligation `spec-cli-catalog-promoted` (this is the new decision file) and the fixture `tests/fixtures/spec-catalog-present.sh`. The new `spec/semantics.md` "CLI subcommands" section enumerates every subcommand bin/Mathc.ml implements at HEAD with synopsis, input, output, exit code, and the bootstrap obligation that justifies each. The fixture is invoked by `./scripts/check.sh` and exits 1 with the missing-name list on any absent canonical subcommand. `bin/Mathc.ml` is unchanged. (Original recommendation was: a spec section listing `mc validate`, `mc context`, `mc assess`, `mc attest`. That recommendation was implemented, and extended to the full ten-subcommand surface.) |
 
 The parent task instruction also listed three deficits to ensure
 are covered:
@@ -465,7 +473,7 @@ file. There is no missing obligation; the situation is a
 documentation gap, not a policy deficit.)
 
 **Closure status of the parent task's three items (updated
-2026-09-27 at v3-alpha-0.0.12)**:
+2026-09-27 at v3-alpha-0.0.13)**:
 
 - D1 — **closed** at v3-alpha-0.0.12 by
   `bootstrap/yaml-block-scalars.md` (rev 2) and
@@ -476,6 +484,17 @@ documentation gap, not a policy deficit.)
   work).
 - D7 — **unchanged**; the documentation-gap note above still
   applies.
+
+**Closure status of the v0.0.13 CLI subcommand task (updated
+2026-09-27 at v3-alpha-0.0.13)**:
+
+- D4 (CLI subcommand catalog; the parent task's "D4",
+  labelled `D4′` in the diagnostics table to disambiguate from
+  the SHA-256 D4) — **closed** at v3-alpha-0.0.13 by
+  `bootstrap/spec-cli-catalog.md` and
+  `tests/fixtures/spec-catalog-present.sh`. The new
+  `spec/semantics.md` "CLI subcommands" section enumerates the
+  full ten-subcommand surface.
 
 ---
 
