@@ -861,6 +861,33 @@ JUnit report goes through `Jsonl.stringify` first.
    Defer until 3.0-beta — touches every consumer.
 10. Move the 11 modules under `lib/kernel/` (§10.1) when the first adapter
     lands.
+
+### 10.5 Context-capsule priority order (for `mc context`)
+
+`mc context BASE HEAD --budget N` builds a JSON capsule whose items
+are sorted and truncated by priority. The order is normative; an
+agent MUST NOT silently reorder or rebucket it. See
+`spec/semantics.md` "context-prioritisation" for the authoritative
+table.
+
+```text
+RequiredForGate > Changed > HighRisk > Unresolved > Supporting > Historical
+```
+
+| Priority | Source class |
+|---|---|
+| `RequiredForGate` | bootstrap/decision.yaml, the currently active policy. The capsule ALWAYS includes this even if budget is exhausted (skippable in practice — see spec/semantics.md) |
+| `Changed` | `git diff BASE..HEAD --name-only` paths; commit log BASE..HEAD |
+| `HighRisk` | Decisions whose `risk.declared_triggers` is non-empty |
+| `Unresolved` | Assumptions with `state: unknown` (kernel-decision aware) |
+| `Supporting` | spec/*, OCAML_BEST_PRACTICES.md |
+| `Historical` | axioms/* (rarely changed) |
+
+When the budget is exhausted, items are dropped in reverse priority
+order. The dropped items appear in the JSON `omitted` array with an
+`expansion` command (e.g., `"mc explain decision:Foo"`) so an LLM
+agent can fetch the missing context on demand. The total bytes used
+are reported as `total_bytes`.
 ---
 
 ## 11. OCaml 5 trap log
@@ -1200,4 +1227,136 @@ working through the early `]` shortcut at line 92.
 **Trigger**: any fixture with non-empty array fields the kernel
 parses into a list — and the conformance runner doesn't transitively
 inspect list contents, only `Some _` / `None` on top-level decisions.
+
+### 11.16 `in_channel_length` on a subprocess pipe returns 0
+
+When you spawn a subprocess with `Unix.open_process_args_in` and try
+to read its stdout with `really_input_string ic (in_channel_length ic)`,
+you get an empty string. Pipes are not seekable; `in_channel_length`
+returns 0 because no bytes have been buffered yet (the subprocess
+may not even have started writing).
+
+```ocaml
+(* FAILS — output looks empty *)
+let raw =
+  let ic = Unix.open_process_args_in "git" [|"git"; "log"; "--oneline"|] in
+  let len = in_channel_length ic in
+  really_input_string ic len
+```
+
+```ocaml
+(* WORKS — read until EOF *)
+let read_all ic =
+  let buf = Buffer.create 256 in
+  (try while true do Buffer.add_channel buf ic 4096 done
+   with End_of_file -> ());
+  Buffer.contents buf
+```
+
+**Trigger**: any subprocess invocation whose output is captured into
+a string for parsing (e.g., `mc context` reading `git log` /
+`git diff`). Symptom: every parsed field is empty even though the
+command runs fine from the shell.
+
+### 11.17 `Arg.parse` calls `anonfun` once per positional, overwriting refs
+
+`Arg.parse` treats the third argument as the *anonfun*, which is
+called for every positional argument. If `anonfun` writes into a
+single ref, each positional overwrites the previous one:
+
+```ocaml
+(* FAILS — `base` ends up holding "HEAD", `head` is never set *)
+let base = ref "" in
+let head = ref "" in
+let set_base s = base := s in
+let set_head s = head := s in
+Arg.parse ["--budget", ...] (fun s -> if !base = "" then set_base s else set_head s) "..."
+```
+
+The clean fix is to collect positionals into a list, then pattern-match
+the list (expected length, named fields):
+
+```ocaml
+(* WORKS *)
+let positionals = ref [] in
+let anon s = positionals := s :: !positionals in
+Arg.parse ["--budget", ...] anon "..."
+let args = List.rev !positionals in
+match args with
+| [b; h] -> ... (* use b, h *)
+| [_]    -> error "missing HEAD"
+| _      -> error "wrong number of positionals"
+```
+
+**Trigger**: a multi-positional CLI command (e.g., `mc context BASE HEAD`)
+where the obvious `set_X` pattern collapses the second positional into
+the first. Symptom: the second ref is always empty and the parser
+falls into a "missing arg" branch.
+
+### 11.18 Structurally identical record types unify under inference
+
+When two record types in the same module have identical fields
+(e.g., `Memory.spec_doc = { path : string; body : string }` and
+`Memory.axiom_doc = { path : string; body : string }`), OCaml's
+structural row polymorphism can unify them at use-sites:
+
+```ocaml
+(* FAILS in another module that consumes Memory.t: *)
+let build_spec_items mem =
+  List.map (fun s -> s.Memory.path) mem.Memory.spec
+(* type error: "expression was expected of type axiom_doc list" *)
+```
+
+The compiler propagates whichever name it saw first. Annotate at the
+construction site *and* at the consumption site:
+
+```ocaml
+let[@warning "-32"] load_spec reader root : spec_doc list = ...
+let[@warning "-32"] build_spec_items (mem : Memory.t) =
+  let spec : Memory.spec_doc list = mem.Memory.spec in
+  List.map (fun (s : Memory.spec_doc) -> s.Memory.path) spec
+```
+
+**Trigger**: pure-data record types used by both the producer
+(lib/memory.ml) and the consumer (lib/capsule.ml); same field set
+across two types in the same module. Symptom: confusing "field X has
+type A but expected type B" errors at use-sites in another file.
+
+### 11.19 `lib/codec.ml`'s YAML loader does not handle `---` front-matter
+
+The hand-rolled YAML loader in `lib/codec.ml:412` calls
+`parse_yaml_pairs tokens 0` directly. When the first token's
+`ycontent` is `---`, the inner `String.index_opt ycontent ':'`
+returns `None`, and the loop returns the empty accumulator and the
+remaining tokens — which `load_yaml_string` then discards. The
+result: every document that begins with YAML front-matter parses
+to `Jsonl.Object []`.
+
+```yaml
+---                        # ← loop exits here, rest of file is dropped
+schema: math-coding/3.0-alpha
+id: bootstrap-v3
+```
+
+**Symptom**: `Decision.parse_decision` returns `None` for files
+that start with `---`. The conformance corpus does not catch this
+because its YAML fixtures (e.g.,
+`fixtures/conformance/decision/positive-minimal.yaml`) do not use
+front-matter.
+
+**Fix (capsule-side workaround)**: in `lib/memory.ml`'s decision
+loader, strip leading `---` lines before calling
+`Codec.load_yaml_string`. Do not modify `lib/codec.ml` without
+also extending the loader's block-scalar support (otherwise the
+first scalar after `---` is fine but a subsequent `|` literal
+block will still break the rest of the document — see
+OCAML_BEST_PRACTICES §1.3 — kernel stays offline and pure, so
+extending the loader to handle block scalars is the right place,
+not in capsule).
+
+**Trigger**: any caller of `Codec.load_yaml_string` whose input
+might start with `---`. Currently affects `bootstrap/decision.yaml`,
+`bootstrap/infrastructure-honesty.yaml`,
+`bootstrap/kernel-conformance-runner.yaml`, and the YAML
+front-matter of `bootstrap/validate-and-context.md`.
 

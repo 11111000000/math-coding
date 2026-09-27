@@ -1,44 +1,56 @@
 ---
 schema: math-coding/3.0-alpha
 id: validate-and-context
-revision: 1
+revision: 2
 
 intent: |
-  Establish the first useful mathc CLI command: `mc validate FILE`.
-  Until this lands, the CLI only prints a bootstrap hello, so humans
-  and CI have no cheap way to ask "is this decision shape-valid?"
-  without running the full conformance suite. This commit closes the
-  validate obligation; the context obligation (printing the active
-  policy context under which a decision was evaluated) is recorded
-  here but deferred to validate-and-context@2.
+  Close the deferred obligation `deferred-cli-context` from
+  validate-and-context@1 by adding `mc context BASE HEAD --budget N`
+  to bin/Mathc.ml. The new subcommand emits a JSON capsule of
+  project memory (active decisions, obligations, changed paths,
+  recent commits, spec/axiom/practices docs) tagged with priority
+  and freshness, sorted by the priority order defined in
+  spec/semantics.md "context-prioritisation", and truncated to the
+  byte budget with omitted items listed alongside an expansion
+  command. This makes the bootstrap protocol observable to an LLM
+  agent that otherwise has no way to know which policy is in
+  force.
 
 commitment: |
-  bin/Mathc.ml becomes a real argv dispatcher supporting `mc version`
-  and `mc validate FILE [--format=text|json]`. validate FILE exits 0
-  when Decision.parse_decision returns Some _, exits 1 with a
-  structured diagnostic when it returns None, exits 2 on input errors
-  (file not found, malformed JSON or YAML, bad CLI args), and exits 3
-  on uncaught internal exceptions. The kernel (`lib/`) stays offline
-  and pure; bin/ is the only I/O boundary. Existing conformance
-  behavior is unchanged.
+  bin/Mathc.ml gains a `context` subcommand. `mc context BASE HEAD
+  --budget N` exits 0 and prints a JSON object containing at
+  minimum the keys "change", "decisions", "obligations", "items",
+  "omitted", "total_bytes", "truncated", "now", "base", and "head".
+  BASE and HEAD may be any git ref (commit, branch, tag). Items
+  are sorted by priority (RequiredForGate > Changed > HighRisk >
+  Unresolved > Supporting > Historical) and truncated to fit
+  `budget` bytes; omitted items are listed with a `mc explain ...`
+  expansion command. The kernel stays offline: lib/capsule.ml and
+  lib/memory.ml are pure modules with file I/O injected via
+  callbacks; bin/ is the only I/O boundary.
 
 scope:
   capabilities:
     - cli-validate-decision
     - cli-version
-    - deferred-cli-context
+    - cli-context-capsule
+    - capsule-byte-budget-tracked
     - jsonl-array-parser-fix
   paths:
     - "bin/Mathc.ml"
     - "bin/dune"
     - "lib/codec.ml"
     - "lib/jsonl.ml"
+    - "lib/memory.ml"
+    - "lib/capsule.ml"
+    - "lib/dune"
     - "OCAML_BEST_PRACTICES.md"
+    - "spec/semantics.md"
     - "tests/fixtures/validate-positive.sh"
     - "tests/fixtures/validate-negative.sh"
+    - "tests/fixtures/context-budget.sh"
     - "bootstrap/validate-and-context.md"
   exclusions:
-    - "spec/**"
     - "lib/decision.ml"
     - "lib/diagnostic.ml"
     - "lib/domain.ml"
@@ -58,8 +70,10 @@ outcomes:
   - id: kernel-stays-offline
     statement: |
       lib/codec.ml exposes load_yaml_string : string -> Jsonl.value
-      as a pure function. The file I/O (open_in, close_in) stays in
-      bin/. No Printf.printf, exit, or In_channel slips into lib/.
+      as a pure function. lib/memory.ml exposes load_memory with an
+      injected reader callback. lib/capsule.ml exposes build_capsule
+      as a pure transformation Memory.t -> Capsule.t. No file I/O
+      leaks into lib/.
   - id: jsonl-array-parser-fixed
     statement: |
       lib/jsonl.ml:99 parse_array was returning Array (List.rev acc)
@@ -71,12 +85,16 @@ outcomes:
       fixture with non-empty array fields parsed its lists as `[]`
       despite acceptance; the conformance runner did not catch this
       because it only inspects Some _ / None).
-  - id: deferred-cli-context
+  - id: cli-context-capsule
     statement: |
-      The `mc context DECISION` subcommand (printing the active
-      policy context under which a named decision was evaluated) is
-      recorded but not implemented in this revision. Deferred to
-      validate-and-context@2.
+      `mc context BASE HEAD --budget N` exits 0 with a JSON capsule
+      containing the keys "change", "decisions", "obligations",
+      "items", "omitted", "total_bytes", "truncated", "now",
+      "base", and "head". Items are sorted and truncated by
+      priority per spec/semantics.md "context-prioritisation". Each
+      item carries a "priority" tag and an optional "freshness"
+      timestamp. Omitted items are listed in the "omitted" array
+      with an "expansion" command.
 
 countercase: |
   Why not defer validate entirely until the 3.0 kernel exists?
@@ -101,6 +119,26 @@ countercase: |
   duplication is acceptable, and the fix history (the yaml_strip
   trap in OCAML_BEST_PRACTICES §11.13) is small enough that both
   copies can be kept aligned by hand.
+
+  Why is the priority order defined in spec/semantics.md rather than
+  in OCAML_BEST_PRACTICES.md? Because the priority order is a kernel
+  policy statement, not a coding convention. The spec is the
+  authoritative source; OCAML_BEST_PRACTICES §10.5 mirrors the table
+  for implementer convenience. A change to the order is a protected
+  policy transition; the two files stay in lockstep.
+
+  Why not add Yojson (or another JSON library) for capsule output?
+  The kernel stays offline (OCAML_BEST_PRACTICES §1.3) and bin/ may
+  not pull Yojson (OCAML_BEST_PRACTICES §7.3). The capsule JSON is
+  flat and predictable; a hand-rolled renderer that calls
+  Jsonl.stringify for value-level escaping is sufficient. The
+  resulting JSON is valid (`python3 -m json.tool` parses it).
+
+  Why is the budget byte-counted, not token-counted? Byte counting
+  is exact, reproducible, and does not depend on an external tokenizer.
+  An LLM client can estimate tokens from byte count; an LLM cannot
+  estimate bytes from a token count. The reverse direction is the
+  one an agent needs.
 
 assumptions:
   - id: yaml-fixture-subset-stable
@@ -190,13 +228,13 @@ obligations:
   - id: kernel-offline-pure-unchanged
     outcome: kernel-stays-offline
     claim: |
-      lib/codec.ml, lib/decision.ml, lib/diagnostic.ml, and
-      lib/jsonl.ml do not import Unix, call exit, or write to a
-      channel. The new load_yaml_string in lib/codec.ml is a pure
-      string -> Jsonl.value transformation. The yaml_strip /
-      yaml_tokens / parse_yaml_* helpers moved from
-      tests/conformance.ml into lib/codec.ml preserve the same
-      purity boundary.
+      lib/codec.ml, lib/decision.ml, lib/diagnostic.ml, lib/jsonl.ml,
+      lib/memory.ml, and lib/capsule.ml do not import Unix, call
+      exit, or write to a channel. load_yaml_string in lib/codec.ml
+      is a pure string -> Jsonl.value transformation. Memory.load_memory
+      takes an injected reader callback. Capsule.build_capsule is a
+      pure Memory.t -> Capsule.t transformation. No file I/O leaks
+      into lib/.
     acceptance:
       all:
         - verifier: tests/fixtures/validate-positive.sh
@@ -205,26 +243,54 @@ obligations:
         # pulled in unix-only functions for bin/'s use; the build
         # succeeds, proving no kernel API leak.
 
-  - id: deferred-cli-context
-    outcome: deferred-cli-context
+  - id: cli-context-capsule
+    outcome: cli-context-capsule
     claim: |
-      The `mc context DECISION` subcommand (printing the active
-      policy context under which a named decision is evaluated) is
-      recorded as a follow-up obligation. Implementation is
-      deferred to validate-and-context@2 (v3-alpha-0.0.7).
+      `mc context BASE HEAD --budget N` exits 0 with a JSON capsule
+      containing at minimum the keys "change", "decisions",
+      "obligations", "items", "omitted", "total_bytes", "truncated",
+      "now", "base", and "head". BASE and HEAD may be any git ref
+      (commit, branch, tag). Items are sorted and truncated by the
+      priority order in spec/semantics.md "context-prioritisation".
+      Each item carries a "priority" tag and an optional "freshness"
+      timestamp. Omitted items appear in the "omitted" array with an
+      "expansion" command of the form "mc explain <detail_ref>".
+      The capsule prints to stdout, exits 2 on input errors (missing
+      BASE, missing HEAD, bad --budget value).
     acceptance:
-      all: []
+      all:
+        - verifier: tests/fixtures/context-budget.sh
+          result: pass
+
+  - id: capsule-byte-budget-tracked
+    outcome: cli-context-capsule
+    claim: |
+      The capsule JSON contains a "total_bytes" key whose value
+      equals the actual byte length of the kept items plus their
+      JSON framing. The "truncated" key is true iff the budget was
+      insufficient for the entire priority-sorted item list. The
+      fixture tests/fixtures/context-budget.sh asserts both keys
+      are present; the assertion is a regression check that the
+      budget is observable (A1 / axiom-of-care: don't silently drop
+      without telling).
+    acceptance:
+      all:
+        - verifier: tests/fixtures/context-budget.sh
+          result: pass
 
 reversal:
   - signal: parse-decision-becomes-total
     action: archive-negative-fixture-when-empty
   - signal: kernel-checks-attestation-contents
     action: validate-promoted-to-check-deferred
+  - signal: context-budget-becomes-token-budget
+    action: replace-byte-counter-with-token-counter-and-revise-spec
 
 risk:
   declared_triggers:
     - duplicate-yaml-loader-drift
     - exit-code-misalignment-with-spec
+    - priority-order-drift-between-spec-and-implementation
   owner: human:maintainer
 
 relations:

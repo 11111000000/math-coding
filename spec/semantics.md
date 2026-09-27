@@ -145,6 +145,40 @@ Adopt(P0, P1) valid iff
 After adoption, an activation boundary is recorded. Changes before
 that boundary evaluate under `P0`; later changes under `P1`.
 
+## Context-prioritisation
+
+The `mc context BASE HEAD --budget N` command produces a JSON
+capsule of artefacts relevant to evaluating a change. Items in the
+capsule are sorted and truncated by the following priority order.
+The order is normative; an agent MUST NOT silently reorder or
+rebucket items.
+
+```text
+RequiredForGate > Changed > HighRisk > Unresolved > Supporting > Historical
+```
+
+| Priority | Source class | Inclusion rule |
+|---|---|---|
+| `RequiredForGate` | bootstrap/decision.yaml; the active policy | Always included if present. The capsule still completes when this is the only item that fits in budget. |
+| `Changed` | `git diff BASE..HEAD --name-only`; commit log BASE..HEAD | Included in priority order. Order within the bucket is stable on input order. |
+| `HighRisk` | Decisions whose `risk.declared_triggers` is non-empty; axioms/invariants.md | Included when budget allows. |
+| `Unresolved` | Assumptions with `state: unknown` | Included when budget allows. |
+| `Supporting` | spec/*, OCAML_BEST_PRACTICES.md | Included when budget allows. |
+| `Historical` | axioms/* (rarely changed) | Included when budget allows. |
+
+When the budget is exhausted, items are dropped in reverse priority
+order. The dropped items appear in the JSON `omitted` array with an
+`expansion` command (e.g., `"mc explain decision:Foo"`) so an LLM
+agent can fetch the missing context on demand.
+
+The capsule MUST log the byte count under `total_bytes` so the
+budget is observable. The `truncated` flag MUST be `true` iff the
+`omitted` array is non-empty.
+
+A change to the priority order is itself a protected policy
+transition (see above); the table above is the v3-alpha-0.0.7
+ordering and may only be revised through the bootstrap gate.
+
 ## Kernel Output
 
 For every rule the kernel emits:
