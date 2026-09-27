@@ -5,12 +5,12 @@
 # mathc CLI subcommand present in bin/Mathc.ml at HEAD:
 # version, validate, context, assess, attest, gate, session-start,
 # record, stats, time-estimate. The spec describes what the CLI
-# does (per bootstrap/spec-cli-catalog.md); the fixture exists to
+# does (per bootstrap/spec-cli-catalog.yaml); the fixture exists to
 # trip if the catalog disappears from the spec or if a
 # subcommand is added to bin/Mathc.ml without a spec row.
 #
 # This is the acceptance gate for obligation
-# spec-cli-catalog-promoted in bootstrap/spec-cli-catalog.md.
+# spec-cli-catalog-promoted in bootstrap/spec-cli-catalog.yaml.
 #
 # Strategy: locate a heading in spec/semantics.md that names the
 # CLI surface (case-insensitive: "CLI subcommands" or

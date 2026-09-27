@@ -40,7 +40,7 @@ scope:
     - spec-cli-catalog-promoted
   paths:
     - "spec/semantics.md"
-    - "bootstrap/spec-cli-catalog.md"
+    - "bootstrap/spec-cli-catalog.yaml"
     - "tests/fixtures/spec-catalog-present.sh"
     - "doc/AUDIT-0.0.11.md"
   exclusions:
