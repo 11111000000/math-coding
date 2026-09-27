@@ -229,9 +229,11 @@ let print_usage oc =
     \  context BASE HEAD --budget N     print a JSON context capsule\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
     \  attest FILE                      parse FILE as a JUnit XML report\n\
-    \  time-estimate --class ...        print JSON forecast from declared \
-     distribution\n\
-    \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\n\
+    \  time-estimate --class ...        print JSON forecast from declared distribution\n\
+    \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\
+    \  session-start                    write .local/session-start ISO timestamp\n\
+    \  record --decision-id ID ...      append event to bootstrap/execution-logs.jsonl\n\
+    \  stats [--class N] [--scale S]    emit empirical distribution JSON\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
@@ -808,6 +810,245 @@ let[@warning "-32"] do_time_estimate () =
       print_endline body;
       exit 0
 
+(* --- session-start subcommand (bootstrap decision time-honesty-storage) ---
+ *
+ * Writes the current UTC instant as one ISO 8601 line to
+ * .local/session-start inside the project root. Re-runs
+ * overwrite; the most recent call wins. Each `mc record` reads
+ * this file and uses (now - session_start) as the
+ * wall-clock-minutes value. The user controls when the session
+ * starts; the agent cannot influence the resulting elapsed
+ * time without also editing the file (the file is in the
+ * worktree, gitignored per bootstrap/time-honesty-storage.yaml;
+   users can verify). *)
+
+(* mkdir -p, recursively. Idempotent: ignores EEXIST. *)
+let[@warning "-32"] rec ensure_dir d =
+  if d = "" || d = "/" || Filename.basename d = ""
+  then ()
+  else if Sys.file_exists d
+  then ()
+  else begin
+    ensure_dir (Filename.dirname d);
+    (try Unix.mkdir d 0o755
+     with Unix.Unix_error (Unix.EEXIST, _, _) -> ())
+  end
+
+let[@warning "-32"] read_session_start_path root =
+  Filename.concat root ".local/session-start"
+
+let[@warning "-32"] write_session_start () =
+  let root = find_project_root (Sys.getcwd ()) in
+  let path = read_session_start_path root in
+  ensure_dir (Filename.dirname path);
+  let ts = now_iso () in
+  let oc = open_out path in
+  output_string oc ts;
+  output_char oc '\n';
+  close_out oc;
+  Printf.printf "%s\n%!" (Jsonl.stringify (Jsonl.String ts))
+
+(* Parse an ISO-8601 UTC timestamp like 2026-09-27T10:00:00Z
+   into Unix.time () (seconds since epoch). Returns nan on parse
+   failure. The format is fixed: we only write what we wrote. *)
+let[@warning "-32"] parse_iso_to_unix s =
+  try
+    Scanf.sscanf s "%4d-%2d-%2dT%2d:%2d:%2dZ"
+      (fun y mo d h mi se ->
+        let tm : Unix.tm =
+          {
+            tm_year = y - 1900;
+            tm_mon = mo - 1;
+            tm_mday = d;
+            tm_hour = h;
+            tm_min = mi;
+            tm_sec = se;
+            tm_wday = 0;
+            tm_yday = 0;
+            tm_isdst = false;
+          }
+        in
+        fst (Unix.mktime tm))
+  with _ -> nan
+
+let[@warning "-32"] read_session_start () : string =
+  let root = find_project_root (Sys.getcwd ()) in
+  let path = read_session_start_path root in
+  In_channel.with_open_bin path In_channel.input_all |> String.trim
+
+let[@warning "-32"] do_session_start () =
+  let anon _ = raise (Arg.Bad "no positional arguments expected") in
+  Arg.current := 1;
+  (try Arg.parse [] anon "usage: mc session-start"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mc session-start: %s\n" m;
+     exit 2);
+  write_session_start ()
+
+(* observed_by: prefer the explicit MATH_CODING_USER env var;
+   fall back to git config user.email; final fallback is
+   human:anonymous. *)
+let[@warning "-32"] observed_by () =
+  match Sys.getenv_opt "MATH_CODING_USER" with
+  | Some s when s <> "" -> s
+  | _ ->
+      let ic =
+        try Some (Unix.open_process_in "git config user.email")
+        with _ -> None
+      in
+      match ic with
+      | None -> "human:anonymous"
+      | Some ic ->
+          (try
+             let email = input_line ic |> String.trim in
+             let _ = Unix.close_process_in ic in
+             if email = "" then "human:anonymous"
+             else "human:" ^ email
+           with _ ->
+             let _ = Unix.close_process_in ic in
+             "human:anonymous")
+
+(* --- record subcommand (bootstrap decision time-honesty-storage) ---
+ *
+ * Appends one event line to bootstrap/execution-logs.jsonl.
+ * The wall-clock-minutes value is auto-computed from
+ * now - session_start. The step-count value is supplied by
+ * the caller (assumption step-count-supplied, until the
+ * runtime harness lands); --value is REJECTED for
+ * wall-clock-minutes by the subcommand logic. *)
+
+let[@warning "-32"] append_event_to_file path body =
+  ensure_dir (Filename.dirname path);
+  let oc =
+    open_out_gen [ Open_append; Open_creat; Open_text ] 0o644 path
+  in
+  output_string oc body;
+  output_char oc '\n';
+  close_out oc
+
+let[@warning "-32"] event_to_json_line (ev : (string * Jsonl.value) list) =
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) ev in
+  "{"
+  ^ String.concat ","
+      (List.map
+         (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
+         sorted)
+  ^ "}"
+
+let[@warning "-32"] do_record () =
+  let decision_id = ref "" in
+  let decision_rev = ref "" in
+  let scale = ref "" in
+  let class_opt = ref "" in
+  let value_opt = ref "" in
+  let set_id s = decision_id := s in
+  let set_rev s = decision_rev := s in
+  let set_scale s = scale := s in
+  let set_class s = class_opt := s in
+  let set_value s = value_opt := s in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [
+         ("--decision-id", Arg.String set_id,
+          " Decision id (required), e.g. bootstrap-v3");
+         ("--revision", Arg.String set_rev,
+          " Revision digest or label (optional, defaults to 'current')");
+         ("--scale", Arg.String set_scale,
+          " wall-clock-minutes | step-count (required)");
+         ("--class", Arg.String set_class,
+          " Task class name from bin/data/time-distribution.yaml (optional)");
+         ("--value", Arg.String set_value,
+          " Numeric value for scale=step-count only; \
+           rejected for wall-clock-minutes");
+       ]
+       (fun _ -> raise (Arg.Bad "no positional arguments expected"))
+       "usage: mc record --decision-id ID [--revision REV] --scale S [--class C] [--value N]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mc record: %s\n" m;
+     exit 2);
+  if !decision_id = "" then begin
+    Printf.fprintf stderr "mc record: --decision-id is required\n";
+    exit 2
+  end;
+  if !scale = "" then begin
+    Printf.fprintf stderr "mc record: --scale is required\n";
+    exit 2
+  end;
+  let scale_pair, value_json =
+    match !scale with
+    | "wall-clock-minutes" ->
+        if !value_opt <> "" then begin
+          Printf.fprintf stderr
+            "mc record: --value rejected for --scale wall-clock-minutes\n";
+          exit 2
+        end;
+        let session_str =
+          try read_session_start () with _ ->
+            Printf.fprintf stderr
+              "mc record: MC-SESSION-MISSING; run 'mc session-start' first\n";
+            exit 2
+        in
+        let t0 = parse_iso_to_unix session_str in
+        let t1 = parse_iso_to_unix (now_iso ()) in
+        if Float.is_nan t0 || Float.is_nan t1 then begin
+          Printf.fprintf stderr
+            "mc record: cannot parse session-start timestamp\n";
+          exit 2
+        end;
+        let minutes_total = (t1 -. t0) /. 60.0 in
+        let minutes_int = int_of_float (minutes_total +. 0.5) in
+        ("scale", Jsonl.String "wall-clock-minutes"),
+        ("value", Jsonl.Int minutes_int)
+    | "step-count" ->
+        if !value_opt = "" then begin
+          Printf.fprintf stderr
+            "mc record: --value is required for --scale step-count\n";
+          exit 2
+        end;
+        (match int_of_string_opt !value_opt with
+         | Some n ->
+             ("scale", Jsonl.String "step-count"),
+             ("value", Jsonl.Int n)
+         | None ->
+             Printf.fprintf stderr
+               "mc record: --value must be an integer for step-count\n";
+             exit 2)
+    | _ ->
+        Printf.fprintf stderr
+          "mc record: --scale must be wall-clock-minutes or step-count\n";
+        exit 2
+  in
+  let rev_pair =
+    if !decision_rev <> "" then
+      ("decision_revision", Jsonl.String !decision_rev)
+    else ("decision_revision", Jsonl.String "current")
+  in
+  let class_pair =
+    if !class_opt <> "" then [ ("class", Jsonl.String !class_opt) ] else []
+  in
+  let ev =
+    class_pair
+    @ [
+        ("decision_id", Jsonl.String !decision_id);
+        rev_pair;
+        ("observed_by", Jsonl.String (observed_by ()));
+        ("recorded_at", Jsonl.String (now_iso ()));
+        scale_pair;
+        value_json;
+        ("v", Jsonl.Int 1);
+      ]
+  in
+  let line = event_to_json_line ev in
+  let root = find_project_root (Sys.getcwd ()) in
+  let path = Filename.concat root "bootstrap/execution-logs.jsonl" in
+  (try append_event_to_file path line
+   with exn ->
+     Printf.fprintf stderr "mc record: cannot write %s: %s\n" path
+       (Printexc.to_string exn);
+     exit 2);
+  Printf.printf "%s\n%!" line
+
 (* --- attest subcommand (junit-attestation-import) --- *)
 
 (* Read FILE as a string. Same I/O semantics as validate. *)
@@ -979,6 +1220,8 @@ let dispatch () =
   | "attest" -> do_attest ()
   | "time-estimate" -> do_time_estimate ()
   | "gate" -> do_gate ()
+  | "session-start" -> do_session_start ()
+  | "record" -> do_record ()
   | "--help" | "-h" ->
       print_usage stdout;
       exit 0
