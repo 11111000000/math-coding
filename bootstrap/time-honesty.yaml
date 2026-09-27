@@ -1,0 +1,161 @@
+---
+schema: math-coding/3.0-alpha
+id: time-honesty
+revision: 1
+
+intent: |
+  Close the A1 (Feedback) deficit in math-coding 3.0-alpha for
+  agent narratives about the duration of work. Without an observable
+  scale and a reference class, the agent can drift into strategic
+  misrepresentation — claiming durations in units it cannot ground
+  (Jones & Euske, 1991). This decision introduces three observable
+  scales and a reproducible reference-class estimator.
+
+commitment: |
+  Add an honest-time-reporting norm to AGENTS.md, a
+  reference-class time estimator subcommand (mc time-estimate)
+  backed by a declared distribution file, optional additive
+  `time.estimate` / `time.actual` fields in Decision/Attestation,
+  and a new additive execution_log record in lib/domain.ml. Do
+  NOT modify the kernel's sealed `kind` enum, the constitution,
+  or any protected rule. Do NOT add new required fields to
+  existing schemas. Do NOT introduce token-budget scoring (out of
+  scope per ETHICS.md non-surveillance; future Decision).
+
+scope:
+  paths:
+    - "AGENTS.md"
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "bin/data/**"
+    - "schemas/decision.json"
+    - "schemas/attestation.json"
+    - "lib/domain.ml"
+    - "spec/domain.md"
+    - "bootstrap/time-honesty.yaml"
+    - "tests/conformance/**"
+  exclusions:
+    - "spec/constitution.md"
+    - "axioms/**"
+    - "lib/diagnostic.ml"
+    - "lib/canonical.ml"
+    - "lib/digest.ml"
+
+outcomes:
+  - id: agent-narrative-anchored
+    statement: |
+      Every agent claim about task duration in AGENTS.md or in
+      submitted Decisions is expressed in one of three observable
+      scales (wall-clock-minutes, token-budget, step-count) and
+      cites a reference class.
+  - id: estimator-reproducible
+    statement: |
+      bin/mathc.exe time-estimate produces the same numeric
+      estimate for the same (class, count, percentile) input on
+      every run, byte-for-byte. Exit codes follow spec/semantics
+      and OCAML_BEST_PRACTICES §4.3.
+  - id: additive-only
+    statement: |
+      No existing positive conformance fixture stops parsing.
+      No existing required field of decision/attestation grows.
+      lib/domain.ml gains a new record type, not a new
+      constructor in `kind`.
+
+countercase: |
+  "Time estimates are subjective; codifying them just adds
+  bureaucracy without changing agent behaviour." The
+  counterargument fails because the deficit today is not
+  "imprecision" but "unobservability": the agent can write
+  "two months of focused work" with no scale, no reference
+  class, no observable anchor. The cost of the norm is one
+  line per Decision and one subcommand. The cost of the deficit
+  is unbounded erosion of trust (Hofstadter 1979; Pezzo 2006
+  impression-management).
+
+assumptions:
+  - id: swebench-2025-q4-baseline
+    state: declared
+    statement: |
+      The reference-class distribution (P50, P95 per class) is
+      declared from SWE-bench Verified (n=500, 2025-Q4 frontier).
+      It is NOT measured on math-coding itself.
+    owner: human:maintainer
+    consequence_if_false: |
+      OCaml-specific tasks are under-estimated. Mitigation: a
+      future Decision may collect n>=30 OCaml-specific samples
+      and produce an OCaml-override distribution table.
+    review_on:
+      - signal: more-than-30-samples-available
+        date: 2027-06-01
+  - id: three-scales-exhaustive
+    state: assumed
+    statement: |
+      wall-clock-minutes, token-budget, and step-count together
+      cover every honest duration claim for math-coding agents.
+    owner: human:maintainer
+    consequence_if_false: |
+      A claim legitimately needs a fourth scale (e.g.,
+      latency-budget for distributed verification). The change
+      would be a protected policy transition (new enum value).
+    review_on:
+      - signal: latency-budget-appears-in-tasks
+        date: 2027-06-01
+
+obligations:
+  - id: agendum-time-honesty-present
+    outcome: agent-narrative-anchored
+    claim: |
+      AGENTS.md contains a section "Honest time reporting" with
+      the three-scale discipline, an explicit reference to
+      bin/data/time-distribution.yaml, and an anti-patterns list.
+    acceptance:
+      all:
+        - verifier: text-scan-presence
+          result: pass
+  - id: estimator-subcommand-runs
+    outcome: estimator-reproducible
+    claim: |
+      bin/mathc.exe time-estimate --class <known> --count N
+      --percentile <p50|p80|p95|p99> exits 0 and prints the
+      estimate as JSON. Unknown class exits 2 with a JSON
+      diagnostic.
+    acceptance:
+      all:
+        - verifier: script-runs-and-is-deterministic
+          result: pass
+  - id: additive-only-fixtures
+    outcome: additive-only
+    claim: |
+      No previously positive fixture in tests/conformance/ is
+      reported as failing after this decision. No required
+      field appears in schemas/decision.json or
+      schemas/attestation.json. The lib/domain.ml `kind` enum
+      still has exactly five constructors.
+    acceptance:
+      all:
+        - verifier: conformance-fixtures-still-pass
+          result: pass
+
+reversal:
+  - signal: agent-narratives-still-unanchored
+    condition: |
+      After 60+ commits since acceptance, the AGENTS.md rule
+      is not reflected in any agent's submitted Decisions
+      (manual review by maintainer).
+    action: review
+  - signal: kernel-can-measure-time
+    condition: |
+      The 3.0 kernel is implemented and can produce an
+      ExecutionLog.kind attestation automatically.
+    action: supersede
+
+risk:
+  declared_triggers:
+    - policy-weakening
+    - additive-asymmetry
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3
+  supersedes: []
