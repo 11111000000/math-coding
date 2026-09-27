@@ -239,8 +239,6 @@ let print_usage oc =
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
      exit codes:\n\
     \  0 accept  1 reject  2 input error  3 internal error\n"
-     exit codes:\n\
-    \  0 accept  1 reject  2 input error  3 internal error\n"
 
 let parse_format s =
   match s with
