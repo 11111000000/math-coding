@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: process-principles
-revision: 1
+revision: 2
 
 intent: |
   Lock down the seven process principles P1-P7 recorded in
