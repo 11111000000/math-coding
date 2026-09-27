@@ -34,7 +34,7 @@ scope:
     - "fixtures/conformance/decision/positive-malformed-acceptance.json"
     - "tests/fixtures/ambiguous-acceptance.sh"
     - "tests/fixtures/malformed-acceptance.sh"
-    - "bootstrap/parse-acceptance-diagnostics.md"
+    - "bootstrap/parse-acceptance-diagnostics.yaml"
   exclusions:
     - "lib/capsule.ml"
     - "lib/codec.ml"

@@ -41,7 +41,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `bootstrap/adapters.yaml` | `adapters` | 2 | 6 | RESOLVED | audit D7 (git + junit) |
 | `bootstrap/capsule-active-policy.yaml` | `capsule-active-policy` | 1 | 7 | RESOLVED | capsule priority class |
 | `bootstrap/gate-decision.yaml` | `gate-decision` | 1 | 7 | SCAFFOLD | mc gate (no store yet) |
-| `bootstrap/parse-acceptance-diagnostics.md` | `parse-acceptance-diagnostics` | 1 | 5 | RESOLVED | kernel diagnostics |
+| `bootstrap/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 1 | 5 | RESOLVED | kernel diagnostics |
 | `bootstrap/time-honesty.yaml` | `time-honesty` | 1 | 8 | RESOLVED | time-honesty distribution |
 | `bootstrap/time-honesty-storage.yaml` | `time-honesty-storage` | 1 | 9 | RESOLVED | time storage writers |
 | `bootstrap/yaml-block-scalars.md` | `yaml-block-scalars` | 2 | 9 | DECISION | audit D1/D2 (impl deferred) |
@@ -79,7 +79,7 @@ satisfied. `./scripts/check.sh` runs them all and aggregates.
 | `gate-scaffold.sh` | `mc gate` runs and emits JSON | `bootstrap/gate-decision.yaml` |
 | `git-adapter.sh` | `mc assess` works via lib/git | `bootstrap/adapters.yaml` |
 | `junit-adapter.sh` | `mc attest` works via lib/junit | `bootstrap/adapters.yaml` |
-| `malformed-acceptance.sh` | malformed predicate shape rejected | `bootstrap/parse-acceptance-diagnostics.md` |
+| `malformed-acceptance.sh` | malformed predicate shape rejected | `bootstrap/parse-acceptance-diagnostics.yaml` |
 | `spec-catalog-present.sh` | spec lists current CLI subcommands | `bootstrap/spec-cli-catalog.md` |
 | `spec-vs-bp-priority.sh` | priority tables in spec and practice match | `bootstrap/priority-drift.md` |
 | `validate-negative.sh` | invalid decision rejected | `bootstrap/validate-and-context.md` |
