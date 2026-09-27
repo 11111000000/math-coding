@@ -1406,31 +1406,20 @@ Absolute paths through these vars work and trigger the build, but
 `$TESTCASE_ROOT` is **not** exported in dune 3.23's cram runner
 (the Jane-Street cram tool does set it; Dune's does not).
 
-**Fix** (tests/cram/*.t in this repo): anchor the binary at the
-absolute path inside the cram test:
-
-```text
-  $ mathc="$INSIDE_DUNE/bin/mathc.exe"
-  $ "$mathc" validate "$DUNE_SOURCEROOT/fixtures/x.json"
-```
-
-And in `tests/dune` declare the binary as a dep of the cram stanza
-so dune rebuilds the binary before the cram test runs:
-
-```lisp
-(cram
- (deps validate.t assess.t attest.t ../bin/mathc.exe))
-```
-
-Without this dep, `(deps ../bin/mathc.exe)` from inside the cram
-sandbox does not trigger the build, and the absolute path lookup
-returns "No such file or directory" — the cram test silently
-passes-with-no-output because the expected output is empty.
-
-**Trigger**: any cram test in Dune 3.x that needs to invoke an
-OCaml binary defined elsewhere in the project. Symptom: cram
-diff shows the binary path as `No such file or directory` even
-though the file exists in `_build/default/bin/`.
+**Status (2026-09-27, T7): RETIRED.** The cram stanza in
+`tests/dune` was removed; all cram `.t` files were deleted; their
+coverage now lives in `tests/fixtures/cli-*.sh` (shell fixtures,
+DRY with the rest of the corpus). Dune 3.23's cram sandbox
+masks `_build/default/bin/mathc.exe` even with `(deps
+../bin/mathc.exe)` and even with `CRAM_NO_BWRAP=1`. The captured
+`cram.out` files were "passing" because they matched against
+captured failure output — a self-referential lie. Migrate new CLI
+tests to shell fixtures under `tests/fixtures/cli-<sub>.sh` per
+the pattern established in commit dc78bcd. **Trigger**: if
+cram is reintroduced and tests use `dune build @runtest` they
+will appear to pass while binary invocation silently fails; check
+the captured `cram.out` for `No such file or directory` in the
+diff before trusting the green CI badge.
 
 ### 11.21 `dune fmt` exits 0 even when files would be reformatted
 
