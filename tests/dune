@@ -15,4 +15,9 @@
 ; cram-sandbox vs binary-path resolution).
 
 (cram
- (deps validate.t assess.t attest.t ../bin/mathc.exe))
+ (deps
+  validate.t
+  assess.t
+  attest.t
+  time-estimate.t
+  ../bin/mathc.exe))
