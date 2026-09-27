@@ -11,6 +11,20 @@
  *                                      changed paths, recent commits)
  *                                      for an LLM agent. Exit 0 on
  *                                      success, 2 on input error.
+ *   mc assess BASE HEAD              - print a JSON array of changed
+ *                                      file paths under BASE..HEAD via
+ *                                      `git diff --name-only`. Exit 0
+ *                                      on success; exit 2 if git fails
+ *                                      or positional arguments are
+ *                                      wrong. BASE and HEAD may be any
+ *                                      git ref (commit, branch, tag).
+ *   mc attest FILE                   - parse FILE as a JUnit XML report
+ *                                      and print a JSON summary on stdout.
+ *                                      Exit 0 on success (including soft
+ *                                      parse errors that populate an
+ *                                      "error" field); exit 2 only when
+ *                                      the path is wrong (file not found,
+ *                                      unreadable).
  *
  * Exit codes:
  *   0  accept   (Decision.parse_decision returned Some _)
@@ -22,8 +36,11 @@
  *
  * The kernel (lib/) stays offline and pure. All I/O happens here in
  * bin/. Pure helpers (Jsonl.parse, Decision.parse_decision,
- * Codec.load_yaml_string, Memory.load_memory, Capsule.build_capsule)
- * are called on already-loaded strings or with injected readers. *)
+ * Codec.load_yaml_string, Memory.load_memory, Capsule.build_capsule,
+ * Junit.parse_junit, Junit.to_json) are called on already-loaded
+ * strings or with injected readers. The git adapter
+ * (Git_diff.changed_files) lives in lib/git/ and is the I/O
+ * boundary for git invocations from this binary. *)
 
 type output_format = Text | Json
 
@@ -133,6 +150,8 @@ let print_usage oc =
     \  version                          print the bootstrap hello and exit 0\n\
     \  validate FILE [--format=...]     parse FILE as a decision\n\
     \  context BASE HEAD --budget N     print a JSON context capsule\n\
+    \  assess BASE HEAD                 print JSON array of changed file paths\n\
+    \  attest FILE                      parse FILE as a JUnit XML report\n\
      \n\
      options:\n\
     \  --format=text (default) or --format=json\n\
@@ -419,6 +438,102 @@ let do_context () =
   print_string (capsule_to_json cap);
   exit 0
 
+(* --- assess subcommand ---
+ *
+ * `mc assess BASE HEAD` invokes Git_diff.changed_files with the
+ * current working directory and prints a JSON array of the changed
+ * file paths on stdout. Exits 0 on success; exits 2 if the git
+ * command fails or positional arguments are wrong. Follows the
+ * positionals-collection pattern from OCAML_BEST_PRACTICES §11.17
+ * to avoid the Arg.parse anonfun-overwrite trap. *)
+let[@warning "-32"] do_assess () =
+  let positionals : string list ref = ref [] in
+  let anon s = positionals := s :: !positionals in
+  Arg.current := 1;
+  (try
+     Arg.parse [] anon "usage: mc assess BASE HEAD"
+   with
+   | Arg.Bad m ->
+     Printf.fprintf stderr "mc assess: %s\n" m;
+     exit 2);
+  let args = List.rev !positionals in
+  match args with
+  | [b; h] ->
+    let cwd = Sys.getcwd () in
+    (match Git_diff.changed_files ~cwd ~base:b ~head:h with
+     | Ok paths ->
+       let json_items =
+         String.concat ","
+           (List.map (fun p -> Jsonl.stringify (Jsonl.String p)) paths)
+       in
+       Printf.printf "[%s]\n" json_items;
+       exit 0
+     | Error msg ->
+       Printf.fprintf stderr "mc assess: %s\n" msg;
+       exit 2)
+  | [_] ->
+    Printf.fprintf stderr "mc assess: missing HEAD\n";
+    print_usage stderr;
+    exit 2
+  | _ ->
+    Printf.fprintf stderr "mc assess: expected BASE HEAD; got %d positional(s)\n"
+      (List.length args);
+    print_usage stderr;
+    exit 2
+
+(* --- attest subcommand (junit-attestation-import) --- *)
+
+(* Read FILE as a string. Same I/O semantics as validate. *)
+let[@warning "-32"] read_xml_file path =
+  try In_channel.with_open_bin path In_channel.input_all
+  with
+  | Sys_error s ->
+    Printf.fprintf stderr "mc attest: %s: %s\n" path s;
+    exit 2
+  | e ->
+    Printf.fprintf stderr "mc attest: %s: %s\n" path (Printexc.to_string e);
+    exit 2
+
+(* Render the soft-parse-error JSON body. The adapter obligation
+   says: malformed XML inside an existing file is exit 0 with the
+   error reported via JSON. Exit 2 is reserved for missing path. *)
+let[@warning "-32"] soft_error_json msg =
+  Jsonl.stringify (Jsonl.Object [
+    "error", Jsonl.String msg;
+    "error_count", Jsonl.Int 0;
+    "failure_count", Jsonl.Int 0;
+    "skip_count", Jsonl.Int 0;
+    "suite_name", Jsonl.String "";
+    "test_count", Jsonl.Int 0;
+    "tests", Jsonl.Array [];
+  ])
+
+let do_attest () =
+  let file = ref "" in
+  let set_file s = file := s in
+  Arg.current := 1;
+  (try
+     Arg.parse [] set_file "usage: mc attest FILE"
+   with
+   | Arg.Bad m ->
+     Printf.fprintf stderr "mc attest: %s\n" m;
+     exit 2);
+  let path = !file in
+  if path = "" then begin
+    Printf.fprintf stderr "mc attest: missing FILE argument\n";
+    print_usage stderr;
+    exit 2
+  end;
+  let xml = read_xml_file path in
+  let run =
+    try Junit.parse_junit xml
+    with Junit.Parse_error (msg, _) ->
+      print_endline (soft_error_json msg);
+      exit 0
+  in
+  print_endline (Jsonl.stringify (Junit.to_json run));
+  exit 0
+
 let dispatch () =
   if Array.length Sys.argv < 2 then begin
     print_usage stderr;
@@ -428,6 +543,8 @@ let dispatch () =
   | "validate" -> do_validate ()
   | "version" -> do_version ()
   | "context" -> do_context ()
+  | "assess" -> do_assess ()
+  | "attest" -> do_attest ()
   | "--help" | "-h" -> print_usage stdout; exit 0
   | other ->
     Printf.fprintf stderr "mc: unknown command: %s\n" other;
