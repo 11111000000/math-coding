@@ -511,7 +511,7 @@ let do_context () =
   let memory = build_memory_for root !base !head in
   let cap =
     Capsule.build_capsule ~now:(now_iso ()) ~base:!base ~head:!head ~memory
-      ~budget_bytes:!budget
+      ~budget_bytes:!budget ~active_policy_id:Capsule.default_active_policy_id
   in
   print_string (capsule_to_json cap);
   exit 0

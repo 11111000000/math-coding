@@ -119,11 +119,22 @@ let[@warning "-32"] doc_excerpt s = truncate s 800
    for a typical main..HEAD range it is small. *)
 let[@warning "-32"] path_is_changed mem p = List.mem p mem.Memory.changed_paths
 
-(* Decisions: a Changed decision file (modified between BASE and
-   HEAD) is treated as Changed; a decision with declared_triggers
-   is HighRisk; otherwise Supporting. *)
-let[@warning "-32"] classify_decision mem entry source_path =
-  if path_is_changed mem source_path then Changed
+(* The active policy id. Per spec/semantics.md "context-prioritisation"
+   the active policy MUST always be classified as RequiredForGate.
+   The kernel currently has no first-class concept of "active
+   policy"; by convention the active policy is the bootstrap
+   decision (`bootstrap-v3`). Callers may override via the
+   `~active_policy_id` argument to `build_capsule`. The default
+   preserves the existing behaviour for callers that do not care. *)
+let[@warning "-32"] default_active_policy_id = "bootstrap-v3"
+
+(* Decisions: the active policy is RequiredForGate; a Changed
+   decision file (modified between BASE and HEAD) is Changed; a
+   decision with declared_triggers is HighRisk; otherwise
+   Supporting. *)
+let[@warning "-32"] classify_decision ~active_policy_id mem entry source_path =
+  if entry.Memory.decision_id = active_policy_id then RequiredForGate
+  else if path_is_changed mem source_path then Changed
   else if entry.Memory.risk_triggers <> [] then HighRisk
   else Supporting
 
@@ -160,7 +171,7 @@ let[@warning "-32"] build_change_items mem =
   in
   commit_item :: path_items
 
-let[@warning "-32"] build_decision_items mem =
+let[@warning "-32"] build_decision_items ~active_policy_id mem =
   List.map
     (fun entry ->
       let source_path =
@@ -172,7 +183,7 @@ let[@warning "-32"] build_decision_items mem =
         | "validate-and-context" -> "bootstrap/validate-and-context.md"
         | _ -> "bootstrap/" ^ entry.Memory.decision_id ^ ".yaml"
       in
-      let kind = classify_decision mem entry source_path in
+      let kind = classify_decision ~active_policy_id mem entry source_path in
       let summary =
         Printf.sprintf "%s@%s: %d obligations, %d assumptions, %d triggers"
           entry.Memory.decision_id
@@ -223,10 +234,11 @@ let[@warning "-32"] sort_items (items : item list) : item list =
   List.stable_sort cmp items
 
 (* Top-level builder. *)
-let[@warning "-32"] build_capsule ~now ~base ~head ~memory ~budget_bytes =
+let[@warning "-32"] build_capsule ~now ~base ~head ~memory ~budget_bytes
+    ~active_policy_id =
   let raw_items =
     build_change_items memory
-    @ build_decision_items memory
+    @ build_decision_items ~active_policy_id memory
     @ build_spec_items memory @ build_axiom_items memory
     @ build_best_practices_item memory
   in
