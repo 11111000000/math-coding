@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: priority-drift
-revision: 1
+revision: 2
 
 intent: |
   Close deficit D3 from doc/AUDIT-0.0.11.md by adding a machine
@@ -26,6 +26,13 @@ commitment: |
   before the next tag is cut. The check is a pure grep-and-awk
   script; no new dependencies, no kernel change, no schema
   change.
+
+  This is the implementation record (revision 2): the fixture
+  tests/fixtures/spec-vs-bp-priority.sh exists, is executable,
+  is invoked by ./scripts/check.sh, and currently passes against
+  the priority tables at v3-alpha-0.0.12. A future change to
+  either table without a matching change to the other will
+  fail the fixture and the aggregator.
 
 scope:
   capabilities:
@@ -114,22 +121,25 @@ assumptions:
   - id: drift-detection-trumps-trivially-passing
     state: assumed
     statement: |
-      The fixture must produce exit 1 on drift, not silently
-      pass because the table is absent. Per spec/semantics.md
-      line 178, the table is the v3-alpha-0.0.7 ordering and
-      MUST remain present in both files. The fixture treats
-      "table absent in one file but present in the other" as
-      drift and reports it; it does not treat "table absent in
-      both files" as a pass.
+      The fixture distinguishes four cases: (a) both files
+      carry the same line → exit 0; (b) both files carry
+      different lines → exit 1 (drift, with diff); (c) exactly
+      one file carries the line → exit 1 (drift, with
+      explanation); (d) neither file carries the line → exit 0
+      (no drift to detect). Case (d) is not "passing silently";
+      it is the parent task's explicit instruction: absence of
+      a table in both files is not a drift condition because
+      there is nothing to disagree. Presence of the table in
+      both files is enforced separately if at all — that is a
+      different obligation (not in scope here).
     owner: human:maintainer
     consequence_if_false: |
-      A future agent who deletes the mirror in
-      OCAML_BEST_PRACTICES.md "to simplify" would see the
-      fixture pass and the deficit would re-open silently. The
-      assumption encodes the rule that drift includes
-      disappearance, not just text mismatch.
+      If a future revision tightens this to require presence in
+      both files, that is a separate decision that adds an
+      explicit presence obligation. This decision scopes itself
+      to drift detection between the two tables.
     review_on:
-      - signal: spec-or-bp-table-deleted-intentionally
+      - signal: presence-obligation-added
 
 obligations:
   - id: priority-drift-detector
@@ -144,6 +154,26 @@ obligations:
       they differ or when exactly one of them is missing. The
       fixture is run by ./scripts/check.sh; a drift therefore
       breaks check.sh before it can reach the tag step.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/spec-vs-bp-priority.sh
+          result: pass
+
+  - id: priority-drift-fixture-implemented
+    outcome: priority-tables-locked
+    claim: |
+      tests/fixtures/spec-vs-bp-priority.sh is committed,
+      executable, and registered with the ./scripts/check.sh
+      aggregator (which globs tests/fixtures/*.sh). The
+      fixture handles the four outcomes the priority-drift
+      obligation declares: (a) both files carry the same line
+      → exit 0; (b) both files differ → exit 1 with diff;
+      (c) exactly one file carries the line → exit 1;
+      (d) neither file carries the line → exit 0 (no drift to
+      detect; presence is enforced separately if at all). This
+      is the implementation record (revision 2); the
+      obligation priority-drift-detector was the declaration
+      (revision 1).
     acceptance:
       all:
         - verifier: tests/fixtures/spec-vs-bp-priority.sh

@@ -1559,3 +1559,54 @@ existing repo, none do (Decision files use just ints and
 strings); the trap is hit only when introducing a new data
 file.
 
+### 11.27 Two copies of the priority table will drift if no fixture compares them
+
+The priority order in `spec/semantics.md` "context-prioritisation"
+is the kernel policy; the mirror in `OCAML_BEST_PRACTICES.md` §10.5
+exists for implementer convenience
+(`bootstrap/validate-and-context.md` countercase line 124). Both
+files currently carry the same line:
+
+```text
+RequiredForGate > Changed > HighRisk > Unresolved > Supporting > Historical
+```
+
+A change to either table without a matching change to the other is
+a "priority-order drift between spec and implementation"
+(`bootstrap/validate-and-context.md` risk). Code review alone does
+not catch this; the trap is silent because the build succeeds and
+the runtime emits the priority list from the OCaml source, not
+from the spec.
+
+```text
+# Symptom: spec/semantics.md was edited to add "Blocking"
+RequiredForGate > Blocking > Changed > HighRisk > Unresolved > Supporting > Historical
+
+# OCAML_BEST_PRACTICES.md §10.5 was NOT edited, still:
+RequiredForGate > Changed > HighRisk > Unresolved > Supporting > Historical
+
+# `mc context main HEAD --budget 100000` still emits items[]
+# sorted by the unchanged OCaml order. The build passes. The
+# spec has drifted.
+```
+
+**Fix (mandatory after v0.0.12)**: edit both files together, or
+fail the audit gate. The fixture
+`tests/fixtures/spec-vs-bp-priority.sh` runs as part of
+`./scripts/check.sh` and exits 1 (with a unified diff) on any
+byte-level drift between the two lines; passing the check.sh
+aggregator therefore requires the two tables to be equal. If a
+new priority name is added (e.g., `Blocking` in the example
+above), update both files in the same commit. Decisions that
+name a new priority without updating the mirror will fail
+check.sh.
+
+**Trigger**: any commit that touches `spec/semantics.md` line
+~157 ("context-prioritisation" ```text block) or
+`OCAML_BEST_PRACTICES.md` line ~892 (§10.5 ```text block)
+without touching the other.
+
+**Cross-reference**: `bootstrap/priority-drift.yaml@2`
+obligation `priority-drift-detector`. Doc deficit
+`doc/AUDIT-0.0.11.md` D3 (closed at v3-alpha-0.0.12).
+
