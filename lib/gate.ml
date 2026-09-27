@@ -9,7 +9,7 @@
  *           gate-attestation-store-fill promote this to per-obligation)
  *
  * This is a SCAFFOLD. Without an attestation store (see
- * bootstrap/gate-decision.md obligation
+ * bootstrap/gate-decision.yaml obligation
  * attestation-store-future-revision) we cannot compute
  * Pass(o, c, g) per spec/semantics.md §"Evaluation". The scaffold
  * returns Unknown with explicit causes for every decision whose

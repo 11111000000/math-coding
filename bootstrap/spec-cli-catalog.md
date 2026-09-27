@@ -54,7 +54,7 @@ scope:
     - "bootstrap/adapters.yaml"
     - "bootstrap/time-honesty.yaml"
     - "bootstrap/time-honesty-storage.yaml"
-    - "bootstrap/gate-decision.md"
+    - "bootstrap/gate-decision.yaml"
     - "bootstrap/priority-drift.yaml"
     - "bootstrap/yaml-block-scalars.md"
 
@@ -240,5 +240,5 @@ relations:
     - bootstrap/adapters.yaml#junit-attestation-import
     - bootstrap/time-honesty.yaml
     - bootstrap/time-honesty-storage.yaml
-    - bootstrap/gate-decision.md
+    - bootstrap/gate-decision.yaml
   superseded_by: []

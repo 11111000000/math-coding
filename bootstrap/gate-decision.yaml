@@ -41,7 +41,7 @@ scope:
     - "lib/gate.ml"
     - "lib/dune"
     - "tests/fixtures/gate-scaffold.sh"
-    - "bootstrap/gate-decision.md"  # this file
+    - "bootstrap/gate-decision.yaml"  # this file
   exclusions:
     - "lib/diagnostic.ml"
     - "lib/canonical.ml"

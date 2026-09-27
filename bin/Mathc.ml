@@ -1289,7 +1289,7 @@ let do_attest () =
  * Unknown with explicit causes. The verdict is Pass only when
  * the tree changed nothing that touches an obligation.
  *
- * Per bootstrap/gate-decision.md the JSON shape is fixed:
+ * Per bootstrap/gate-decision.yaml the JSON shape is fixed:
  *   { verdict, gaps, obligations, now, base, head }
  * Future revisions may ADD keys but MUST NOT remove or rename
  * these. *)

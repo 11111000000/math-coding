@@ -5,7 +5,7 @@
 # object containing at minimum the keys "verdict", "gaps",
 # "obligations", "now", "base", "head". The verdict is
 # expected to be "unknown" or "pass" (never "pass" without an
-# attestation store; see bootstrap/gate-decision.md outcome
+# attestation store; see bootstrap/gate-decision.yaml outcome
 # gate-stub-honest). The fixture exists to PIN the JSON
 # contract; future revisions under obligation
 # gate-attestation-store-fill extend the body without

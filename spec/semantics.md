@@ -282,7 +282,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   merges). The disposition-vs-exit-code mapping documented
   above (1 = block) is forward-looking; today the JSON
   verdict carries the disposition and the exit code is 0.
-- **Justification**: `bootstrap/gate-decision.md` (the
+- **Justification**: `bootstrap/gate-decision.yaml` (the
   scaffold).
 
 ### `session-start`
