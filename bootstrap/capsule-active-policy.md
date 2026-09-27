@@ -1,0 +1,135 @@
+---
+schema: math-coding/3.0-alpha
+id: capsule-active-policy
+revision: 1
+
+intent: |
+  Close the spec/compliance gap noted in critical analysis
+  2026-09-27: spec/semantics.md "context-prioritisation"
+  requires the active policy to be classified as
+  RequiredForGate in the context capsule. The current
+  classify_decision in lib/capsule.ml classifies the active
+  policy as Supporting, violating the normative priority
+  ordering. This decision introduces the active_policy_id
+  parameter and the convention that the active policy is
+  bootstrap-v3.
+
+commitment: |
+  Capsule.classify_decision takes ~active_policy_id and assigns
+  RequiredForGate to the decision whose id matches. Capsule.build_capsule
+  takes ~active_policy_id as a required labelled argument;
+  bin/Mathc.ml passes Capsule.default_active_policy_id
+  ("bootstrap-v3") explicitly. The shell fixtures
+  context-required-for-gate.sh, context-truncated-omitted.sh,
+  context-budget-bound.sh, and context-priority-order.sh pin
+  the invariants: items[] starts with RequiredForGate when
+  the active policy is present; truncated/omitted/budget
+  inequalities hold.
+
+scope:
+  paths:
+    - "lib/capsule.ml"
+    - "bin/Mathc.ml"
+    - "tests/fixtures/context-truncated-omitted.sh"
+    - "tests/fixtures/context-budget-bound.sh"
+    - "tests/fixtures/context-required-for-gate.sh"
+    - "tests/fixtures/context-priority-order.sh"
+    - "bootstrap/capsule-active-policy.md"
+  exclusions:
+    - "lib/codec.ml"
+    - "lib/decision.ml"
+    - "lib/diagnostic.ml"
+    - "spec/**"
+    - "schemas/**"
+
+outcomes:
+  - id: capsule-required-for-gate
+    statement: |
+      Capsule items[] contains the active policy (bootstrap-v3)
+      with priority='RequiredForGate'. The decision is the
+      FIRST item in items[] when present.
+  - id: capsule-budget-invariant
+    statement: |
+      The capsule honours the byte budget: total_bytes <=
+      budget_bytes when truncated=false; truncated=true iff
+      omitted[] is non-empty.
+  - id: capsule-priority-ordering
+    statement: |
+      Items[] is sorted in the normative priority order
+      RequiredForGate > Changed > HighRisk > Unresolved >
+      Supporting > Historical.
+
+countercase: |
+  "Hardcoding bootstrap-v3 violates A0 separation if a future
+  repo uses a different active policy id." Counter: the
+  required labelled argument is the escape hatch; bin/ is the
+  only caller and can be updated when the convention changes.
+  The default keeps the existing convention for callers that
+  do not care.
+
+assumptions:
+  - id: active-policy-convention
+    state: assumed
+    statement: |
+      The active policy id is bootstrap-v3 by convention until
+      the kernel has a first-class 'active policy' concept.
+      A future decision may extend the model.
+    owner: human:maintainer
+    consequence_if_false: |
+      Build_capsule callers must pass ~active_policy_id
+      explicitly; bin/Mathc.ml is the only caller.
+    review_on:
+      - signal: kernel-active-policy-field
+
+obligations:
+  - id: capsule-required-for-gate-classification
+    outcome: capsule-required-for-gate
+    claim: |
+      Decision whose id matches active_policy_id is classified
+      as RequiredForGate. mc context main HEAD --budget 100000
+      has items[] with the active policy as the first entry.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/context-required-for-gate.sh
+          result: pass
+  - id: capsule-budget-bounded
+    outcome: capsule-budget-invariant
+    claim: |
+      When --budget is large enough to fit everything,
+      truncated=false and total_bytes <= budget_bytes.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/context-budget-bound.sh
+          result: pass
+        - verifier: tests/fixtures/context-truncated-omitted.sh
+          result: pass
+  - id: capsule-priority-sorted
+    outcome: capsule-priority-ordering
+    claim: |
+      items[] is sorted RequiredForGate < Changed < HighRisk <
+      Unresolved < Supporting < Historical.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/context-priority-order.sh
+          result: pass
+
+reversal:
+  - signal: kernel-active-policy-field
+    condition: |
+      A future revision adds Domain.active_policy_id and the
+      capsule reads it from the decision instead of taking it
+      as a labelled argument.
+    action: supersede-with-kernel-active-policy-field
+
+risk:
+  declared_triggers:
+    - convention-drift
+    - cli-output-schema-drift
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3
+    - validate-and-context@2
+  supersedes: []
+  superseded_by: []
