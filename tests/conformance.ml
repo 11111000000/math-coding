@@ -51,14 +51,21 @@ let[@warning "-32"] yaml_strip s =
     if i >= len then ()
     else
       let c = String.unsafe_get s i in
-      (match c with
-       | '#' ->
-         let rec skip j =
-           if j >= len then () else if String.unsafe_get s j = '\n' then loop (j + 1) else skip (j + 1)
-         in skip i
-       | '\r' -> loop (i + 1)
-       | _ -> Buffer.add_char buf c; loop (i + 1))
-  in loop 0; Buffer.contents buf
+      match c with
+      | '#' ->
+          let rec skip j =
+            if j >= len then ()
+            else if String.unsafe_get s j = '\n' then loop (j + 1)
+            else skip (j + 1)
+          in
+          skip i
+      | '\r' -> loop (i + 1)
+      | _ ->
+          Buffer.add_char buf c;
+          loop (i + 1)
+  in
+  loop 0;
+  Buffer.contents buf
 
 let[@warning "-32"] yaml_lines s =
   let stripped = yaml_strip s in
@@ -66,11 +73,14 @@ let[@warning "-32"] yaml_lines s =
   let rec loop i acc =
     if i >= len then List.rev acc
     else
-      let rec find_eol j = if j >= len || String.unsafe_get stripped j = '\n' then j else find_eol (j + 1)
+      let rec find_eol j =
+        if j >= len || String.unsafe_get stripped j = '\n' then j
+        else find_eol (j + 1)
       in
       let j = find_eol i in
       loop (j + 1) (String.sub stripped i (j - i) :: acc)
-  in loop 0 []
+  in
+  loop 0 []
 
 (* A token is one logical YAML line with its indentation. Comments and
    blank lines are dropped at tokenization time. *)
@@ -101,25 +111,28 @@ let[@warning "-32"] parse_yaml_scalar s =
   | "false" -> Jsonl.Bool false
   | "null" -> Jsonl.Null
   | _ ->
-    let is_int s =
-      let len = String.length s in
-      len > 0 &&
-      let rec loop i =
-        if i >= len then true
-        else
-          let c = String.unsafe_get s i in
-          (c >= '0' && c <= '9') && loop (i + 1)
-      in loop 0
-    in
-    if is_int s then
-      (match int_of_string_opt s with
-       | Some i -> Jsonl.Int i
-       | None -> Jsonl.String s)
-    else if String.length s >= 2
-         && String.unsafe_get s 0 = '"'
-         && String.unsafe_get s (String.length s - 1) = '"' then
-      Jsonl.String (String.sub s 1 (String.length s - 2))
-    else Jsonl.String s
+      let is_int s =
+        let len = String.length s in
+        len > 0
+        &&
+        let rec loop i =
+          if i >= len then true
+          else
+            let c = String.unsafe_get s i in
+            (c >= '0' && c <= '9') && loop (i + 1)
+        in
+        loop 0
+      in
+      if is_int s then
+        match int_of_string_opt s with
+        | Some i -> Jsonl.Int i
+        | None -> Jsonl.String s
+      else if
+        String.length s >= 2
+        && String.unsafe_get s 0 = '"'
+        && String.unsafe_get s (String.length s - 1) = '"'
+      then Jsonl.String (String.sub s 1 (String.length s - 2))
+      else Jsonl.String s
 
 let[@warning "-32"] is_dash_item content =
   String.length content >= 2
@@ -136,91 +149,91 @@ let[@warning "-32"] head_indent = function
 let[@warning "-32"] rec parse_yaml_pairs tokens cur_indent =
   let rec loop acc tokens =
     match tokens with
-    | [] -> List.rev acc, []
-    | _ :: _ when head_indent tokens < cur_indent -> List.rev acc, tokens
+    | [] -> (List.rev acc, [])
+    | _ :: _ when head_indent tokens < cur_indent -> (List.rev acc, tokens)
     | _ :: _ when head_indent tokens > cur_indent ->
         (* Indentation grew unexpectedly: this token belongs to a
            nested block the caller should consume. Bail out so the
            caller can re-enter at the correct indent. *)
-        List.rev acc, tokens
-    | { ycontent; _ } :: rest when head_indent tokens = cur_indent ->
-        if is_dash_item ycontent then
-          List.rev acc, tokens
+        (List.rev acc, tokens)
+    | { ycontent; _ } :: rest when head_indent tokens = cur_indent -> (
+        if is_dash_item ycontent then (List.rev acc, tokens)
         else
-          (match String.index_opt ycontent ':' with
-           | None -> List.rev acc, tokens
-           | Some ci ->
-               let key = String.sub ycontent 0 ci in
-               let vraw = String.sub ycontent (ci + 1)
-                 (String.length ycontent - ci - 1) in
-               let vstr = String.trim vraw in
-               let value, rest2 =
-                 if vstr = "" then
-                   (match rest with
-                    | [] -> Jsonl.Null, []
-                    | first :: _ -> parse_yaml_value rest first.yindent)
-                 else parse_yaml_scalar vstr, rest
-               in
-               loop ((key, value) :: acc) rest2)
-    | _ -> List.rev acc, tokens
-  in loop [] tokens
+          match String.index_opt ycontent ':' with
+          | None -> (List.rev acc, tokens)
+          | Some ci ->
+              let key = String.sub ycontent 0 ci in
+              let vraw =
+                String.sub ycontent (ci + 1) (String.length ycontent - ci - 1)
+              in
+              let vstr = String.trim vraw in
+              let value, rest2 =
+                if vstr = "" then
+                  match rest with
+                  | [] -> (Jsonl.Null, [])
+                  | first :: _ -> parse_yaml_value rest first.yindent
+                else (parse_yaml_scalar vstr, rest)
+              in
+              loop ((key, value) :: acc) rest2)
+    | _ -> (List.rev acc, tokens)
+  in
+  loop [] tokens
 
 and parse_yaml_value tokens cur_indent =
   match tokens with
-  | [] -> Jsonl.Null, []
-  | _ :: _ when head_indent tokens < cur_indent -> Jsonl.Null, tokens
+  | [] -> (Jsonl.Null, [])
+  | _ :: _ when head_indent tokens < cur_indent -> (Jsonl.Null, tokens)
   | { ycontent; _ } :: _ when head_indent tokens = cur_indent ->
-      if is_dash_item ycontent then
-        parse_yaml_seq tokens cur_indent
+      if is_dash_item ycontent then parse_yaml_seq tokens cur_indent
       else
         let pairs, rest2 = parse_yaml_pairs tokens cur_indent in
-        Jsonl.Object pairs, rest2
-  | _ -> Jsonl.Null, []
+        (Jsonl.Object pairs, rest2)
+  | _ -> (Jsonl.Null, [])
 
 and parse_yaml_seq tokens cur_indent =
   let rec loop acc tokens =
     match tokens with
-    | [] -> Jsonl.Array (List.rev acc), []
+    | [] -> (Jsonl.Array (List.rev acc), [])
     | _ :: _ when head_indent tokens < cur_indent ->
-        Jsonl.Array (List.rev acc), tokens
+        (Jsonl.Array (List.rev acc), tokens)
     | _ :: _ when head_indent tokens > cur_indent ->
-        Jsonl.Array (List.rev acc), tokens
+        (Jsonl.Array (List.rev acc), tokens)
     | { ycontent; _ } :: rest when head_indent tokens = cur_indent ->
-        if not (is_dash_item ycontent) then
-          Jsonl.Array (List.rev acc), tokens
+        if not (is_dash_item ycontent) then (Jsonl.Array (List.rev acc), tokens)
         else
-          let item_str = String.sub ycontent 2
-            (String.length ycontent - 2) in
+          let item_str = String.sub ycontent 2 (String.length ycontent - 2) in
           let item_str_trim = String.trim item_str in
           let item, rest2 =
             if item_str_trim = "" then
               (* Body of the list item is on subsequent indented lines. *)
               parse_yaml_value rest (cur_indent + 2)
             else
-              (match String.index_opt item_str ':' with
-               | Some ci ->
-                   let key = String.sub item_str 0 ci in
-                   let vraw = String.sub item_str (ci + 1)
-                     (String.length item_str - ci - 1) in
-                   let vstr = String.trim vraw in
-                   let first_value, more_rest =
-                     if vstr = "" then
-                       (match rest with
-                        | [] -> Jsonl.Null, []
-                        | first :: _ ->
-                            parse_yaml_value rest first.yindent)
-                     else parse_yaml_scalar vstr, rest
-                   in
-                   let first_pair = [(key, first_value)] in
-                   let more_pairs, rest3 =
-                     parse_yaml_pairs more_rest (cur_indent + 2)
-                   in
-                   Jsonl.Object (first_pair @ more_pairs), rest3
-               | None -> parse_yaml_scalar item_str_trim, rest)
+              match String.index_opt item_str ':' with
+              | Some ci ->
+                  let key = String.sub item_str 0 ci in
+                  let vraw =
+                    String.sub item_str (ci + 1)
+                      (String.length item_str - ci - 1)
+                  in
+                  let vstr = String.trim vraw in
+                  let first_value, more_rest =
+                    if vstr = "" then
+                      match rest with
+                      | [] -> (Jsonl.Null, [])
+                      | first :: _ -> parse_yaml_value rest first.yindent
+                    else (parse_yaml_scalar vstr, rest)
+                  in
+                  let first_pair = [ (key, first_value) ] in
+                  let more_pairs, rest3 =
+                    parse_yaml_pairs more_rest (cur_indent + 2)
+                  in
+                  (Jsonl.Object (first_pair @ more_pairs), rest3)
+              | None -> (parse_yaml_scalar item_str_trim, rest)
           in
           loop (item :: acc) rest2
-    | _ -> Jsonl.Array (List.rev acc), tokens
-  in loop [] tokens
+    | _ -> (Jsonl.Array (List.rev acc), tokens)
+  in
+  loop [] tokens
 
 let[@warning "-32"] parse_yaml_file path =
   let ic = open_in path in
@@ -248,11 +261,13 @@ type expectation = Accept | Reject | Skip
 let[@warning "-32"] classify name =
   let prefix_pos = String.length "positive-" in
   let prefix_neg = String.length "negative-" in
-  if String.length name >= prefix_pos
-     && String.sub name 0 prefix_pos = "positive-"
+  if
+    String.length name >= prefix_pos
+    && String.sub name 0 prefix_pos = "positive-"
   then Accept
-  else if String.length name >= prefix_neg
-          && String.sub name 0 prefix_neg = "negative-"
+  else if
+    String.length name >= prefix_neg
+    && String.sub name 0 prefix_neg = "negative-"
   then Reject
   else Skip
 
@@ -293,8 +308,8 @@ let[@warning "-32"] list_dir dir =
   match Sys.is_directory p with
   | false -> []
   | true ->
-    let entries = Sys.readdir p in
-    Array.to_list entries
+      let entries = Sys.readdir p in
+      Array.to_list entries
 
 let[@warning "-32"] fixture_files dir =
   List.filter
@@ -304,16 +319,17 @@ let[@warning "-32"] fixture_files dir =
     (list_dir dir)
 
 let[@warning "-32"] test_one dir path =
-  let label =
-    Printf.sprintf "%s/%s" dir (Filename.basename path) in
+  let label = Printf.sprintf "%s/%s" dir (Filename.basename path) in
   let expected = classify (Filename.basename path) in
   let actual = dispatch dir path in
-  let expected_str = match expected with
+  let expected_str =
+    match expected with
     | Accept -> "accept"
     | Reject -> "reject"
     | Skip -> "skip"
   in
-  let actual_str = match actual with
+  let actual_str =
+    match actual with
     | Accept -> "accepted"
     | Reject -> "rejected"
     | Skip -> "skipped (parser not yet in lib/)"
@@ -322,30 +338,31 @@ let[@warning "-32"] test_one dir path =
     (label ^ " [expects=" ^ expected_str ^ ", got=" ^ actual_str ^ "]")
     `Quick
   @@ fun () ->
-    match expected, actual with
-    | Accept, Accept -> ()
-    | Reject, Reject -> ()
-    | Skip, _ -> ()
-    (* Accept expected but Reject means parser is too strict; flag loud. *)
-    | Accept, Reject ->
+  match (expected, actual) with
+  | Accept, Accept -> ()
+  | Reject, Reject -> ()
+  | Skip, _ -> ()
+  (* Accept expected but Reject means parser is too strict; flag loud. *)
+  | Accept, Reject ->
       Alcotest.failf
-        "positive fixture %s was rejected by parser; \
-         check lib/decision.ml or fix the fixture" label
-    (* Reject expected but Accept means parser is too loose; flag loud. *)
-    | Reject, Accept ->
+        "positive fixture %s was rejected by parser; check lib/decision.ml or \
+         fix the fixture"
+        label
+  (* Reject expected but Accept means parser is too loose; flag loud. *)
+  | Reject, Accept ->
       Alcotest.failf
-        "negative fixture %s was accepted by parser; \
-         either the fixture is wrong or the parser is too permissive" label
-    | _, _ -> ()
+        "negative fixture %s was accepted by parser; either the fixture is \
+         wrong or the parser is too permissive"
+        label
+  | _, _ -> ()
 
 let[@warning "-32"] collect_cases () =
   List.concat_map
     (fun dir ->
       let base = Filename.concat fixture_root dir in
-      List.map (fun n -> test_one dir (Filename.concat base n))
+      List.map
+        (fun n -> test_one dir (Filename.concat base n))
         (fixture_files dir))
     [ "decision"; "attestation"; "waiver" ]
 
-let () =
-  Alcotest.run "kernel conformance"
-    [ "fixtures", collect_cases () ]
+let () = Alcotest.run "kernel conformance" [ ("fixtures", collect_cases ()) ]

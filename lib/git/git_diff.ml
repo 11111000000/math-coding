@@ -40,8 +40,7 @@ let[@warning "-32"] shell_quote s =
   Buffer.add_char buf '\'';
   for i = 0 to len - 1 do
     let c = String.unsafe_get s i in
-    if c = '\'' then Buffer.add_string buf "'\\''"
-    else Buffer.add_char buf c
+    if c = '\'' then Buffer.add_string buf "'\\''" else Buffer.add_char buf c
   done;
   Buffer.add_char buf '\'';
   Buffer.contents buf
@@ -56,28 +55,25 @@ let[@warning "-32"] shell_quote s =
  * git failure (non-zero exit code, git not on PATH, not a git
  * repo, etc.). *)
 let[@warning "-32"] changed_files ~cwd ~base ~head :
-  (string list, string) result =
+    (string list, string) result =
   let tmp = Filename.temp_file "mc_git_diff_" ".txt" in
-  Fun.protect ~finally:(fun () -> try Sys.remove tmp with _ -> ())
+  Fun.protect
+    ~finally:(fun () -> try Sys.remove tmp with _ -> ())
     (fun () ->
-       let cmd = Printf.sprintf
-         "git -C %s diff --name-only %s..%s > %s 2>/dev/null"
-         (shell_quote cwd)
-         (shell_quote base)
-         (shell_quote head)
-         (shell_quote tmp)
-       in
-       let exit_code = Sys.command cmd in
-       if exit_code <> 0 then
-         Error (Printf.sprintf
-                  "git diff --name-only %s..%s failed (cwd=%s, exit=%d)"
-                  base head cwd exit_code)
-       else
-         let raw = In_channel.with_open_bin tmp In_channel.input_all in
-         let paths =
-           raw
-           |> String.split_on_char '\n'
-           |> List.map String.trim
-           |> List.filter (fun l -> l <> "")
-         in
-         Ok paths)
+      let cmd =
+        Printf.sprintf "git -C %s diff --name-only %s..%s > %s 2>/dev/null"
+          (shell_quote cwd) (shell_quote base) (shell_quote head)
+          (shell_quote tmp)
+      in
+      let exit_code = Sys.command cmd in
+      if exit_code <> 0 then
+        Error
+          (Printf.sprintf "git diff --name-only %s..%s failed (cwd=%s, exit=%d)"
+             base head cwd exit_code)
+      else
+        let raw = In_channel.with_open_bin tmp In_channel.input_all in
+        let paths =
+          raw |> String.split_on_char '\n' |> List.map String.trim
+          |> List.filter (fun l -> l <> "")
+        in
+        Ok paths)

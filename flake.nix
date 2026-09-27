@@ -8,9 +8,14 @@
     # (axiom A3: self-application).
     nixpkgs.url = "github:NixOS/nixpkgs/e94cb152ed51bd6e24eb4a41f1460252beb52cd2";
     flake-utils.url = "github:numtide/flake-utils";
+    # pre-commit-hooks.nix provides shellcheck + nix-flake-check hooks
+    # for the fmt check derivation (see obligation
+    # ocamlformat-fmt-clean); ocamlformat itself runs through `dune
+    # fmt` and is added to ocamlDeps below.
+    pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, flake-utils, pre-commit-hooks }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs { inherit system; };
@@ -30,6 +35,10 @@
           seq
           re
           stdlib-shims
+          # ocamlformat (conventional profile; see .ocamlformat) is
+          # the formatter backend for `dune fmt`. Pinned at 0.29.x by
+          # the current nixpkgs revision.
+          ocamlformat
         ];
         buildTools = with pkgs; [
           bashInteractive
@@ -125,6 +134,38 @@
             touch $out/ok
             runHook postInstall
           '';
+        };
+
+        # ocamlformat-fmt-clean: pre-commit-hooks.nix run for shellcheck.
+        # The dune-fmt check itself lives in scripts/fmt-check.sh,
+        # invoked by the fmt-clean fixture; it is not a pre-commit-hooks.nix
+        # builtin. We additionally run shellcheck here so every bash and
+        # shell script the project ships (scripts/check.sh,
+        # scripts/dev, scripts/fmt-check.sh, all tests/fixtures/*.sh)
+        # is statically checked.
+        checks.fmt = pre-commit-hooks.lib.${system}.run {
+          src = ./.;
+          hooks = {
+            shellcheck = {
+              enable = true;
+              # Excluded rules (documented per-rule):
+              #   SC2164 — `cd $(dirname $0)/../..` warns "use cd ...
+              #            || exit". The codebase pattern uses
+              #            `set -uo pipefail` at the top of every
+              #            shell script; under pipefail a failed cd
+              #            really does abort the script, and
+              #            rewriting 17 fixture files is out of scope
+              #            for the fmt obligation.
+              #   SC2016 — single-quoted `bash -c '...'` snippets
+              #            (see trap log §11.9). The pattern is
+              #            intentional so nix-develop's outer shell
+              #            does not expand `$` inside the nix shell.
+              # -S INFO downgrades everything from "warning" to
+              # "info" so a single unused-variable note doesn't fail
+              # the build.
+              args = [ "-e" "SC2164" "-e" "SC2016" "-S" "info" ];
+            };
+          };
         };
       });
 }

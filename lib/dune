@@ -2,7 +2,17 @@
  (name mathcoding_core)
  (wrapped false)
  (modules
-   domain canonical jsonl schema diagnostic
-   identifier digest scope reference codec decision
-   memory capsule)
+  domain
+  canonical
+  jsonl
+  schema
+  diagnostic
+  identifier
+  digest
+  scope
+  reference
+  codec
+  decision
+  memory
+  capsule)
  (libraries str))

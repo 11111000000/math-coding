@@ -22,6 +22,12 @@ check_target() {
   local label="$1"
   local pattern="$2"
   local resolved="$3"
+  # `pattern` is a documentation-only positional; the body uses
+  # neither it nor `label` because $resolved alone decides. We accept
+  # the unused-parameter false positive to keep the three positional
+  # names explanatory at the call site below.
+  # shellcheck disable=SC2034
+  : "${pattern}"
   if [ -e "$resolved" ]; then
     echo "  ok   $label -> $resolved"
   else

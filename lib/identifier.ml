@@ -9,36 +9,27 @@ let parse_timestamp s =
     let check cond = if cond then Some s else None in
     check
       (ok_digit 0 && ok_digit 1 && ok_digit 2 && ok_digit 3
-       && String.unsafe_get s 4 = '-'
-       && ok_digit 5 && ok_digit 6
-       && String.unsafe_get s 7 = '-'
-       && ok_digit 8 && ok_digit 9
-       && String.unsafe_get s 10 = 'T'
-       && ok_digit 11 && ok_digit 12
-       && String.unsafe_get s 13 = ':'
-       && ok_digit 14 && ok_digit 15
-       && String.unsafe_get s 16 = ':'
-       && ok_digit 17 && ok_digit 18
-       && String.unsafe_get s 19 = 'Z')
+      && String.unsafe_get s 4 = '-'
+      && ok_digit 5 && ok_digit 6
+      && String.unsafe_get s 7 = '-'
+      && ok_digit 8 && ok_digit 9
+      && String.unsafe_get s 10 = 'T'
+      && ok_digit 11 && ok_digit 12
+      && String.unsafe_get s 13 = ':'
+      && ok_digit 14 && ok_digit 15
+      && String.unsafe_get s 16 = ':'
+      && ok_digit 17 && ok_digit 18
+      && String.unsafe_get s 19 = 'Z')
 
 let parse_id s =
   let len = String.length s in
   if len = 0 || len > 128 then None
   else
     let first = String.unsafe_get s 0 in
-    let good_first c =
-      (c >= 'a' && c <= 'z')
-      || (c >= '0' && c <= '9')
-    in
-    let good_rest c =
-      good_first c
-      || c = '.'
-      || c = '_'
-      || c = '-'
-    in
+    let good_first c = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') in
+    let good_rest c = good_first c || c = '.' || c = '_' || c = '-' in
     let rec loop i ok =
-      if i >= len then
-        if ok then Some s else None
+      if i >= len then if ok then Some s else None
       else
         let c = String.unsafe_get s i in
         let ok' = if i = 0 then good_first c else good_rest c in
@@ -70,6 +61,4 @@ let parse_digest s =
           let c = String.unsafe_get s i in
           scan (i + 1) (ok && hex_ok c)
       in
-      loop 0 true |> function
-      | None -> None
-      | Some _ -> scan p_len true
+      loop 0 true |> function None -> None | Some _ -> scan p_len true

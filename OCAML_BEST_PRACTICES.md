@@ -1414,3 +1414,36 @@ OCaml binary defined elsewhere in the project. Symptom: cram
 diff shows the binary path as `No such file or directory` even
 though the file exists in `_build/default/bin/`.
 
+### 11.21 `dune fmt` exits 0 even when files would be reformatted
+
+`dune fmt` and `dune fmt --preview` both exit 0 unconditionally in
+dune 3.23, even when source files would change under the
+configured formatter (`ocamlformat`). `--preview` only prints
+diffs to stdout without writing; it does not turn the exit code
+into a check. `dune fmt` itself has no `--check` flag in dune
+3.23 (added later; check `dune fmt --help` for the local build).
+
+**Symptom**: any script that runs `dune fmt --check --root .`
+either errors with `unknown option '--check'` (3.23.1) or runs
+the apply-mode and exits 0 even on a tree that needs
+reformatting. A "fmt clean" gate that just trusts dune's exit
+code silently passes on dirty trees.
+
+**Fix** (scripts/fmt-check.sh in this repo): set
+`DUNE_DISABLE_PROMOTION=1` and run `dune fmt --root . --preview`.
+The promotion-disabled mode causes dune to error (exit 1) when
+the formatter would change a file, instead of silently writing
+the change. The script preserves dune's diff output so the
+human can see what would change.
+
+```sh
+DUNE_DISABLE_PROMOTION=1 dune fmt --root . --preview
+```
+
+**Trigger**: any CI check that wants to prove "the OCaml tree is
+ocamlformat-clean" using `dune fmt` in dune 3.23.x. Also: the
+ocamlformat option is `indicate-multiline-delimiters` (not
+`indicate-multiline-deltas` as documented in some blog posts);
+the latter silently produces
+`Unknown option "indicate-multiline-deltas"`.
+

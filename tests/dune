@@ -13,9 +13,6 @@
 ; cram sandbox (which does not expose the build dir via relative
 ; paths; see OCAML_BEST_PRACTICES trap log entry §11.20 for the
 ; cram-sandbox vs binary-path resolution).
+
 (cram
- (deps
-  validate.t
-  assess.t
-  attest.t
-  ../bin/mathc.exe))
+ (deps validate.t assess.t attest.t ../bin/mathc.exe))

@@ -6,4 +6,3 @@ type target =
 type t = target list
 
 let covers _t _path = false
-

@@ -1,44 +1,19 @@
 type timestamp = string
-
 type id = string
-
-type kind =
-  | Decision
-  | Obligation
-  | Attestation
-  | Waiver
-  | Change
-
-type epistemic =
-  | Declared
-  | Derived
-  | Attested
-  | Reviewed
-  | Observed
-
-type freshness =
-  | Fresh
-  | Stale
-  | AtRisk
-  | Unknown
+type kind = Decision | Obligation | Attestation | Waiver | Change
+type epistemic = Declared | Derived | Attested | Reviewed | Observed
+type freshness = Fresh | Stale | AtRisk | Unknown
 
 type acceptance =
   | All of acceptance list
   | Any of acceptance list
-  | Verifier of {
-      id : string;
-      result : result;
-    }
+  | Verifier of { id : string; result : result }
   | Review of {
       review_authority : string;
       minimum_independence : string option;
     }
 
-and result =
-  | Pass
-  | Fail
-  | Inconclusive
-  | InfrastructureError
+and result = Pass | Fail | Inconclusive | InfrastructureError
 
 type scope_target =
   | PathTarget of { path : string; match_ : [ `Exact | `Tree ] }
@@ -46,11 +21,7 @@ type scope_target =
   | InterfaceTarget of string
 
 type scope = scope_target list
-
-type outcome = {
-  id : id;
-  statement : string;
-}
+type outcome = { id : id; statement : string }
 
 type assumption = {
   id : id;
@@ -78,10 +49,7 @@ type reversal = {
   action : [ `Revert | `Halt | `Review | `Rework ];
 }
 
-type risk = {
-  declared_triggers : string list;
-  owner : string;
-}
+type risk = { declared_triggers : string list; owner : string }
 
 type relations = {
   supersedes : id list;
@@ -164,19 +132,23 @@ type gap = {
   kind : gap_kind;
   subject : id;
   obligation : id option;
-  state : [ `Missing | `Stale | `Failed | `Inconclusive | `Infrastructure | `Waived ];
+  state :
+    [ `Missing | `Stale | `Failed | `Inconclusive | `Infrastructure | `Waived ];
   causes : string list;
   remedies : (string * string) list;
 }
 
-type gate =
-  | Open
-  | Open_with_waiver of id list
-  | Blocked of gap list
+type gate = Open | Open_with_waiver of id list | Blocked of gap list
 
 type diagnostic = {
   code : string;
-  kind : [ `Input | `Question | `Deficit | `Infrastructure | `Conflict | `Authorization ];
+  kind :
+    [ `Input
+    | `Question
+    | `Deficit
+    | `Infrastructure
+    | `Conflict
+    | `Authorization ];
   severity : [ `Info | `Warn | `Block ];
   subject : id option;
   path : string list;

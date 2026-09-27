@@ -1,4 +1,5 @@
 type severity = Info | Warn | Block
+
 type kind =
   | Input
   | Question
@@ -7,9 +8,7 @@ type kind =
   | Conflict
   | Authorization
 
-type subject =
-  | Subject of string
-  | Anonymous
+type subject = Subject of string | Anonymous
 
 type t = {
   code : string;
@@ -25,17 +24,30 @@ type t = {
   next_actions : (string * string) list;
 }
 
-let create ?(code = "MC-UNKNOWN") ?(kind = Input)
-    ?(severity = Info) ?(subject = Anonymous) ?(path = [])
-    ?(cause = []) ?(policy_rule = None) ?(retryable = false)
-    ?(autofix_safe = false) ?(next_actions = []) message =
-  { code; kind; severity; subject; path; message;
-    cause; policy_rule; retryable; autofix_safe; next_actions }
+let create ?(code = "MC-UNKNOWN") ?(kind = Input) ?(severity = Info)
+    ?(subject = Anonymous) ?(path = []) ?(cause = []) ?(policy_rule = None)
+    ?(retryable = false) ?(autofix_safe = false) ?(next_actions = []) message =
+  {
+    code;
+    kind;
+    severity;
+    subject;
+    path;
+    message;
+    cause;
+    policy_rule;
+    retryable;
+    autofix_safe;
+    next_actions;
+  }
 
 let input code message = create ~code ~kind:Input message
 let question code message = create ~code ~kind:Question message
 let deficit code message = create ~code ~kind:Deficit ~severity:Block message
-let infra code message = create ~code ~kind:Infrastructure ~retryable:true message
+
+let infra code message =
+  create ~code ~kind:Infrastructure ~retryable:true message
+
 let authorization code message = create ~code ~kind:Authorization message
 
 let severity_of_string = function
@@ -71,5 +83,4 @@ let code s = s
 let render d =
   Printf.sprintf "[%s] %s/%s: %s"
     (string_of_severity d.severity)
-    (string_of_kind d.kind)
-    d.code d.message
+    (string_of_kind d.kind) d.code d.message
