@@ -54,15 +54,16 @@ if [ ! -f "$spec" ]; then
   exit 1
 fi
 
-# Locate the body of a "CLI subcommands" section (## heading or
-# equivalent). We accept any heading line whose lowercase text
-# mentions both "cli" and "subcommand" (covers "CLI subcommands",
-# "CLI Subcommands", and the "CLI subcommand" phrasing). We
-# capture the body lines from that heading until the next ##-
-# level (or #-level) heading or EOF.
+# Locate the body of a "CLI subcommands" section (## heading).
+# We accept any ## heading whose lowercase text mentions both
+# "cli" and "subcommand" (covers "CLI subcommands", "CLI
+# Subcommands", and the "CLI subcommand" phrasing). We capture
+# the body lines from that heading until the next ##-level
+# heading or EOF (### sub-headings do not terminate the
+# section, because the catalog uses ### per-subcommand entries).
 section_body=$(awk '
   BEGIN { in_section = 0 }
-  /^# / || /^## / || /^### / || /^#### / {
+  /^# / || /^## / {
       if (in_section) exit
       lc = tolower($0)
       if (lc ~ /cli/ && lc ~ /subcommand/) {
