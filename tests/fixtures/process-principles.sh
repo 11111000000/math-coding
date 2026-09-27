@@ -2,7 +2,7 @@
 # process-principles: p1 + p2 + p5 + p6 + p7 fixture
 #
 # Asserts the checkable subset of ROADMAP.md Process Principles
-# P1-P7 as locked down by bootstrap/process-principles.md. Each
+# P1-P7 as locked down by bootstrap/process-principles.yaml. Each
 # principle has its own check; the fixture prints the principle
 # name on success or failure, and exits 1 with the offending
 # principle's label on the first violation.
@@ -41,13 +41,13 @@
 #     statement. P7 is meta-checked by the human maintainer.
 #
 # P3 (time-box) and P4 (merge order) are NOT checked here;
-#     per bootstrap/process-principles.md they are
+#     per bootstrap/process-principles.yaml they are
 #     honest-declaration obligations with manual-acceptance.
 #
 # This fixture is the acceptance gate for obligations
 # p1-decisions-before-kernel-changes, p2-decisions-paired-with-fixtures,
 # p5-cram-retired-shell-fixtures-only, p6-pre-commit-verification,
-# p7-honesty-in-fixture-assertions in bootstrap/process-principles.md.
+# p7-honesty-in-fixture-assertions in bootstrap/process-principles.yaml.
 #
 # Verdict:
 #   exit 0 — every checkable principle holds at HEAD.
@@ -69,7 +69,7 @@ fail=0
 p1_fail=0
 
 # Files explicitly excluded from the P1 schema check
-# (see bootstrap/process-principles.md assumption
+# (see bootstrap/process-principles.yaml assumption
 #  meta-policy-skipped-by-fixture):
 #   - bootstrap/decision.yaml      (active policy; no obligations:)
 #   - bootstrap/obligations.yaml   (aggregator; different schema)

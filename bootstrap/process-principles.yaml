@@ -45,7 +45,7 @@ scope:
   capabilities:
     - process-principles-enforced
   paths:
-    - "bootstrap/process-principles.md"
+    - "bootstrap/process-principles.yaml"
     - "tests/fixtures/process-principles.sh"
     - "PACKAGES.md"
     - "doc/AUDIT-0.0.11.md"
@@ -60,7 +60,7 @@ outcomes:
   - id: principles-recorded-as-obligations
     statement: |
       Each of P1-P7 is a discrete obligation in
-      bootstrap/process-principles.md with its own claim,
+      bootstrap/process-principles.yaml with its own claim,
       countercase (where applicable), and acceptance predicate.
       The obligations are visible in PACKAGES.md under
       "Bootstrap packages (by file)" once that table is updated.
