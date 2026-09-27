@@ -305,16 +305,22 @@ let[@warning "-32"] run_git_command base head args =
    here so the CLI is reproducible from any working directory.
    Mirrors the helper in tests/conformance.ml but the bin/ side
    follows the OCAML_BEST_PRACTICES §11.8 rule for production
-   binaries (CLI defaults to CWD; agent can override via -C). *)
+   binaries (CLI defaults to CWD; agent can override via -C,
+   or via the MATH_CODING_ROOT environment variable which the
+   cram harness sets to $DUNE_SOURCEROOT). *)
 let[@warning "-32"] find_project_root start =
-  let rec loop d =
-    let candidate = Filename.concat d "dune-project" in
-    if Sys.file_exists candidate then d
-    else
-      let parent = Filename.dirname d in
-      if parent = d then start else loop parent
-  in
-  loop start
+  match Sys.getenv_opt "MATH_CODING_ROOT" with
+  | Some root when Sys.file_exists (Filename.concat root "dune-project") ->
+      root
+  | _ ->
+      let rec loop d =
+        let candidate = Filename.concat d "dune-project" in
+        if Sys.file_exists candidate then d
+        else
+          let parent = Filename.dirname d in
+          if parent = d then start else loop parent
+      in
+      loop start
 
 let[@warning "-32"] now_iso () =
   let tm = Unix.gmtime (Unix.time ()) in
