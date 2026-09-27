@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: yaml-block-scalars
-revision: 1
+revision: 2
 
 intent: |
   Close deficit D1 and D2 from doc/AUDIT-0.0.11.md by extending
@@ -219,6 +219,33 @@ obligations:
           result: pass
         - verifier: tests/fixtures/yaml-block-scalars.sh
           result: pass
+  - id: yaml-block-scalars-loader-extended
+    outcome: kernel-handles-block-scalars
+    claim: |
+      lib/codec.ml's load_yaml_string recognises a value
+      starting with `|`, `|-`, `|+`, `>`, `>-`, `>+` (after
+      trim) as a block scalar header, collects subsequent
+      tokens at the parent's first-content-indent or deeper
+      as the block body, applies the joining and chomping
+      rules declared by outcome: kernel-handles-block-scalars,
+      and returns Jsonl.String. The extension is additive:
+      every non-zero value's parse path is unchanged. Leading
+      YAML front-matter (`---` as a token whose ycontent is
+      exactly `---`) is dropped because bootstrap/decision.yaml
+      begins with one and the alternative (a stripper at every
+      call site) would push D1 into the next caller; this is
+      the minimum change that lets `mc validate
+      bootstrap/decision.yaml` exit 0.
+    acceptance:
+      all:
+        - verifier: dune build --root . tests/yaml_block_scalars.exe
+          result: pass
+        - verifier: dune test --root . --force
+          result: pass
+        - verifier: tests/fixtures/yaml-block-scalars.sh
+          result: pass
+        - verifier: mc validate bootstrap/decision.yaml
+          result: accept
 
 reversal:
   - signal: kernel-self-check-passes
