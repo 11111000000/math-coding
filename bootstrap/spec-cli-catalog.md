@@ -1,0 +1,244 @@
+---
+schema: math-coding/3.0-alpha
+id: spec-cli-catalog
+revision: 1
+
+intent: |
+  Close the doc/AUDIT-0.0.11.md "Promote `mc validate`, `mc
+  context`, `mc assess`, `mc attest` in `spec/semantics.md`" gap
+  (recommendation §Process improvements item 13) by adding a
+  normative "CLI subcommands" section to spec/semantics.md that
+  lists every mathc subcommand the 3.0-alpha kernel ships at HEAD,
+  with synopsis, input arguments, output shape, exit code, and the
+  bootstrap obligation each subcommand satisfies. Today the
+  subcommand list lives only in bin/Mathc.ml's header comment,
+  which is implementation detail; the spec must be authoritative
+  so that "the spec describes what the CLI does; the CLI does what
+  the spec says" can be enforced. A spec table also gives the
+  audit reviewer a single location to compare the normative
+  surface against the runtime surface.
+
+commitment: |
+  spec/semantics.md gains a "CLI subcommands" section placed
+  BEFORE the existing "Context-prioritisation" section. The new
+  section enumerates every mathc subcommand that exists in
+  bin/Mathc.ml at HEAD: version, validate, context, assess,
+  attest, gate, session-start, record, stats, time-estimate.
+  Each subcommand is described by five fields: synopsis (one
+  line), input arguments, output shape (text vs JSON and the
+  field set), exit code (per OCAML_BEST_PRACTICES §4.3: 0/1/2/3),
+  and the bootstrap obligation it satisfies. The section is
+  normative: an implementation MUST NOT silently add a new
+  subcommand without first adding a row here, and an
+  implementation MUST NOT change a subcommand's documented exit
+  code without a corresponding spec edit. The header comment in
+  bin/Mathc.ml is the implementation summary; the spec is the
+  authoritative contract.
+
+scope:
+  capabilities:
+    - spec-cli-catalog-promoted
+  paths:
+    - "spec/semantics.md"
+    - "bootstrap/spec-cli-catalog.md"
+    - "tests/fixtures/spec-catalog-present.sh"
+    - "doc/AUDIT-0.0.11.md"
+  exclusions:
+    - "bin/Mathc.ml"
+    - "lib/**"
+    - "schemas/**"
+    - "bootstrap/decision.yaml"
+    - "bootstrap/infrastructure-honesty.yaml"
+    - "bootstrap/kernel-conformance-runner.yaml"
+    - "bootstrap/validate-and-context.md"
+    - "bootstrap/adapters.md"
+    - "bootstrap/time-honesty.yaml"
+    - "bootstrap/time-honesty-storage.yaml"
+    - "bootstrap/gate-decision.md"
+    - "bootstrap/priority-drift.yaml"
+    - "bootstrap/yaml-block-scalars.md"
+
+outcomes:
+  - id: cli-subcommands-listed-in-spec
+    statement: |
+      spec/semantics.md contains a "CLI subcommands" section that
+      lists every mathc subcommand present in bin/Mathc.ml at
+      HEAD: version, validate, context, assess, attest, gate,
+      session-start, record, stats, time-estimate. Each entry
+      names the synopsis, input arguments, output shape, exit
+      code, and the bootstrap obligation that justifies the
+      subcommand's existence.
+  - id: spec-precedes-implementation
+    statement: |
+      The CLI subcommands section is placed BEFORE the existing
+      "Context-prioritisation" section in spec/semantics.md. The
+      section order is: CLI subcommands, Context-prioritisation,
+      Kernel Output. Reading the spec from top to bottom, the
+      reader encounters the CLI surface before the priority
+      semantics that depend on it (the priority table is what
+      `mc context` emits).
+  - id: implementation-remains-unchanged
+    statement: |
+      bin/Mathc.ml is NOT modified by this decision. The
+      subcommand dispatch in `dispatch ()` (lines 1389-1412 of
+      the v0.0.12 source) stays as-is. The header comment in
+      bin/Mathc.ml (lines 1-43) stays as the implementation
+      summary; the spec table is the normative contract. If the
+      CLI does something not in the spec, the spec is
+      incomplete; the CLI is unchanged until a separate
+      obligation covers that.
+
+countercase: |
+  Why not put the CLI subcommand list in bin/Mathc.ml's header
+  comment only, and treat that as authoritative? Because the
+  spec is the normative contract and bin/ is implementation.
+  Putting the authoritative list in an implementation header
+  inverts the policy hierarchy that spec/constitution.md
+  establishes. The bootstrap protocol (AGENTS.md §Read first)
+  names spec/ as a primary source, second only to the
+  constitution; a kernel implementer reading the spec should
+  not have to open bin/ to learn what subcommands exist.
+
+  Why not put the CLI subcommand list in OCAML_BEST_PRACTICES.md?
+  Because OCAML_BEST_PRACTICES.md is a mirrored subset of the
+  spec for implementer convenience (see the priority-table
+  precedent in bootstrap/validate-and-context.md countercase
+  line 124, and the priority-drift detector in
+  bootstrap/priority-drift.yaml that exists precisely because
+  the mirror can drift). The spec is the source of truth; a
+  mirror would invite the same drift that priority-drift was
+  designed to prevent.
+
+  Why not auto-generate the spec table from bin/Mathc.ml's
+  dispatch table at build time? Because the spec is a single
+  Markdown document, not a templated artifact, and generating
+  part of it from OCaml would add a build-step dependency that
+  the 3.0-alpha bootstrap does not yet support. A human-written
+  spec table is auditable side-by-side with bin/Mathc.ml's
+  dispatch; a generator hides its source.
+
+  Why list subcommands that are still scaffolds (notably
+  `gate BASE HEAD`)? Because the spec must describe what the
+  CLI does, not only what is fully integrated. Omitting a
+  scaffolded subcommand would create the same gap this
+  decision exists to close: the implementation has a behaviour
+  the spec does not describe. The spec entry for `gate`
+  labels it accordingly (verdict is one of Pass / Unknown /
+  Block in the scaffold; full blocking comes with the
+  attestation store).
+
+assumptions:
+  - id: spec-cli-catalog-is-decision
+    state: assumed
+    statement: |
+      The act of adding a CLI subcommand catalog to the spec is
+      itself a Decision (it commits to "the spec describes what
+      the CLI does; the CLI does what the spec says"). It is
+      not a formatting / spelling change, a generated output, or
+      a behavior-preserving refactor. The catalog promotes the
+      CLI surface from an implementation comment to a normative
+      spec section.
+    owner: human:maintainer
+    consequence_if_false: |
+      Without this decision, the spec/CLI gap remains open and
+      every future CLI addition re-invites a "is this in the
+      spec?" audit question.
+    review_on:
+      - signal: cli-addition-without-spec-row
+  - id: bin-matches-spec-today
+    state: assumed
+    statement: |
+      bin/Mathc.ml at v0.0.12 implements exactly the ten
+      subcommands named in this decision. No subcommand
+      implemented in bin/ is missing from the spec's new
+      catalog; no spec row is dangling without a bin/ handler.
+      A future commit that adds a subcommand MUST add a spec
+      row in the same commit, and vice versa.
+    owner: human:maintainer
+    consequence_if_false: |
+      If bin/ gains a subcommand the spec does not describe,
+      the spec is incomplete (a follow-up Decision closes the
+      gap). If the spec lists a subcommand bin/ does not
+      implement, the kernel is incomplete (a follow-up
+      implementation commit closes the gap).
+    review_on:
+      - signal: bin-and-spec-subcommand-set-diverges
+  - id: catalog-stays-acronym-free
+    state: assumed
+    statement: |
+      The catalog uses the existing bin/ dispatch names
+      verbatim (version, validate, context, assess, attest,
+      gate, session-start, record, stats, time-estimate). It
+      does not invent alias names. A reader can find a
+      subcommand in the spec by its dispatch name without
+      consulting an alias map.
+    owner: human:maintainer
+    consequence_if_false: |
+      Alias maps drift; an alias in the spec that bin/ does
+      not handle is a silent failure (dispatch prints "unknown
+      command" and exits 2).
+    review_on:
+      - signal: spec-row-lists-alias-not-in-bin
+
+obligations:
+  - id: spec-cli-catalog-promoted
+    outcome: cli-subcommands-listed-in-spec
+    claim: |
+      spec/semantics.md contains a section titled "CLI
+      subcommands" (or equivalent normative heading) that lists
+      every mathc subcommand present in bin/Mathc.ml at HEAD:
+      version, validate, context, assess, attest, gate,
+      session-start, record, stats, time-estimate. For each
+      subcommand the spec names the synopsis, input arguments,
+      output shape, exit code (per OCAML_BEST_PRACTICES §4.3),
+      and the bootstrap obligation that justifies the
+      subcommand. The section appears BEFORE the existing
+      "Context-prioritisation" section so the reader encounters
+      the CLI surface before the priority semantics that
+      depend on it.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/spec-catalog-present.sh
+          result: pass
+
+  - id: spec-catalog-fixture-implemented
+    outcome: cli-subcommands-listed-in-spec
+    claim: |
+      tests/fixtures/spec-catalog-present.sh is committed,
+      executable, and registered with the ./scripts/check.sh
+      aggregator (which globs tests/fixtures/*.sh). The fixture
+      reads spec/semantics.md, asserts the file contains a
+      section whose heading names "CLI subcommands" and whose
+      body mentions each of the ten canonical subcommand names,
+      and exits 1 with a "missing: <name>" list on the first
+      absent name. This is the implementation record for the
+      obligation spec-cli-catalog-promoted.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/spec-catalog-present.sh
+          result: pass
+
+reversal:
+  - signal: cli-surface-becomes-templated
+    action: replace-hand-written-spec-section-with-template-rendered-from-ocaml-when-supported
+  - signal: spec-catalog-becomes-duplicated-in-ocaml-best-practices
+    action: add-a-priority-drift-detector-mirror-when-a-mirror-table-appears
+
+risk:
+  declared_triggers:
+    - spec-row-drifts-from-bin-dispatch
+    - new-subcommand-added-without-spec-row
+    - existing-subcommand-changes-exit-code-silently
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap/validate-and-context.md#cli-validate-decision
+    - bootstrap/validate-and-context.md#cli-version-preserved
+    - bootstrap/validate-and-context.md#cli-context-capsule
+    - bootstrap/adapters.md#git-changed-files-adapter
+    - bootstrap/adapters.md#junit-attestation-import
+    - bootstrap/time-honesty.yaml
+    - bootstrap/time-honesty-storage.yaml
+    - bootstrap/gate-decision.md
+  superseded_by: []
