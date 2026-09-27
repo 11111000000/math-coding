@@ -82,8 +82,8 @@ satisfied. `./scripts/check.sh` runs them all and aggregates.
 | `malformed-acceptance.sh` | malformed predicate shape rejected | `bootstrap/parse-acceptance-diagnostics.yaml` |
 | `spec-catalog-present.sh` | spec lists current CLI subcommands | `bootstrap/spec-cli-catalog.yaml` |
 | `spec-vs-bp-priority.sh` | priority tables in spec and practice match | `bootstrap/priority-drift.md` |
-| `validate-negative.sh` | invalid decision rejected | `bootstrap/validate-and-context.md` |
-| `validate-positive.sh` | valid decision accepted | `bootstrap/validate-and-context.md` |
+| `validate-negative.sh` | invalid decision rejected | `bootstrap/validate-and-context.yaml` |
+| `validate-positive.sh` | valid decision accepted | `bootstrap/validate-and-context.yaml` |
 | `waiver-parser.sh` | waiver parser wired | `bootstrap/kernel-conformance-runner.yaml` |
 
 ## Kernel packages (`lib/`)

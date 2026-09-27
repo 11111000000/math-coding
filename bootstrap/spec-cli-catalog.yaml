@@ -50,7 +50,7 @@ scope:
     - "bootstrap/decision.yaml"
     - "bootstrap/infrastructure-honesty.yaml"
     - "bootstrap/kernel-conformance-runner.yaml"
-    - "bootstrap/validate-and-context.md"
+    - "bootstrap/validate-and-context.yaml"
     - "bootstrap/adapters.yaml"
     - "bootstrap/time-honesty.yaml"
     - "bootstrap/time-honesty-storage.yaml"
@@ -102,7 +102,7 @@ countercase: |
   Why not put the CLI subcommand list in OCAML_BEST_PRACTICES.md?
   Because OCAML_BEST_PRACTICES.md is a mirrored subset of the
   spec for implementer convenience (see the priority-table
-  precedent in bootstrap/validate-and-context.md countercase
+  precedent in bootstrap/validate-and-context.yaml countercase
   line 124, and the priority-drift detector in
   bootstrap/priority-drift.yaml that exists precisely because
   the mirror can drift). The spec is the source of truth; a
@@ -233,9 +233,9 @@ risk:
 
 relations:
   addresses:
-    - bootstrap/validate-and-context.md#cli-validate-decision
-    - bootstrap/validate-and-context.md#cli-version-preserved
-    - bootstrap/validate-and-context.md#cli-context-capsule
+    - bootstrap/validate-and-context.yaml#cli-validate-decision
+    - bootstrap/validate-and-context.yaml#cli-version-preserved
+    - bootstrap/validate-and-context.yaml#cli-context-capsule
     - bootstrap/adapters.yaml#git-changed-files-adapter
     - bootstrap/adapters.yaml#junit-attestation-import
     - bootstrap/time-honesty.yaml

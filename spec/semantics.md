@@ -176,7 +176,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 - **Output**: text. Prints `math-coding 3.0-alpha: bootstrap`
   and a trailing newline.
 - **Exit code**: `0`.
-- **Justification**: `bootstrap/validate-and-context.md`
+- **Justification**: `bootstrap/validate-and-context.yaml`
   obligation `cli-version-preserved` (the v0.0.5 hello-string
   is reachable as a subcommand instead of being the bare
   default).
@@ -201,7 +201,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 - **Exit code**: `0` accept, `1` reject, `2` input error
   (missing file, unparseable JSON/YAML, bad CLI args),
   `3` internal error.
-- **Justification**: `bootstrap/validate-and-context.md`
+- **Justification**: `bootstrap/validate-and-context.yaml`
   obligations `cli-validate-decision` and
   `jsonl-array-parser-fixed`.
 
@@ -225,7 +225,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 - **Exit code**: `0` always on a successful git invocation;
   `2` on input error (missing positional, bad `--budget`,
   bad git ref).
-- **Justification**: `bootstrap/validate-and-context.md`
+- **Justification**: `bootstrap/validate-and-context.yaml`
   obligations `cli-context-capsule` and
   `capsule-byte-budget-tracked`.
 

@@ -49,7 +49,7 @@ scope:
     - "tests/fixtures/validate-positive.sh"
     - "tests/fixtures/validate-negative.sh"
     - "tests/fixtures/context-budget.sh"
-    - "bootstrap/validate-and-context.md"
+    - "bootstrap/validate-and-context.yaml"
   exclusions:
     - "lib/decision.ml"
     - "lib/diagnostic.ml"

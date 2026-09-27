@@ -4,7 +4,7 @@
 # Asserts that `mc validate FILE` rejects an invalid decision file,
 # exits 1, and emits a recognisable diagnostic mentioning the missing
 # field. This is the acceptance gate for obligation
-# cli-validate-decision in bootstrap/validate-and-context.md.
+# cli-validate-decision in bootstrap/validate-and-context.yaml.
 #
 # Negative run (before cli-validate-decision lands):
 #   bin/mathc.exe is two lines and ignores argv — it always exits 0

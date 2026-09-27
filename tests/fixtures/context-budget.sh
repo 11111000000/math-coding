@@ -4,7 +4,7 @@
 # Asserts that `mc context BASE HEAD --budget N` produces a JSON
 # capsule of relevant context for an LLM agent. This is the
 # acceptance gate for obligation deferred-cli-context in
-# bootstrap/validate-and-context.md.
+# bootstrap/validate-and-context.yaml.
 #
 # The capsule MUST:
 #   - exit 0 on success

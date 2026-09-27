@@ -40,7 +40,7 @@ scope:
     - "bootstrap/decision.yaml"
     - "bootstrap/infrastructure-honesty.yaml"
     - "bootstrap/kernel-conformance-runner.yaml"
-    - "bootstrap/validate-and-context.md"
+    - "bootstrap/validate-and-context.yaml"
     - "bootstrap/adapters.yaml"
     - "tests/conformance.ml"
     - "lib/memory.ml"
@@ -176,7 +176,7 @@ assumptions:
       mode closed by this decision (commitment empty after
       YAML parse) — not the general "decision parses"
       obligation, which is the responsibility of
-      bootstrap/validate-and-context.md.
+      bootstrap/validate-and-context.yaml.
     review_on:
       - signal: decision-parser-takes-diagnostic-option
   - id: kernel-offline-pure-unchanged-holds
@@ -193,7 +193,7 @@ assumptions:
       A Unix-only call in lib/ would break the kernel-offline
       invariant (OCAML_BEST_PRACTICES §1.3) and the obligation
       kernel-offline-pure-unchanged in
-      bootstrap/validate-and-context.md. dune build --root .
+      bootstrap/validate-and-context.yaml. dune build --root .
       would still succeed because the closure includes unix;
       only the architectural separation would be lost.
     review_on:

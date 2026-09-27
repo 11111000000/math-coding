@@ -175,7 +175,7 @@ let[@warning "-32"] load_decisions reader root =
       Filename.concat root "bootstrap/decision.yaml";
       Filename.concat root "bootstrap/infrastructure-honesty.yaml";
       Filename.concat root "bootstrap/kernel-conformance-runner.yaml";
-      Filename.concat root "bootstrap/validate-and-context.md";
+      Filename.concat root "bootstrap/validate-and-context.yaml";
     ]
   in
   List.filter_map
@@ -183,8 +183,8 @@ let[@warning "-32"] load_decisions reader root =
       match read reader p with
       | None -> None
       | Some raw -> (
-          (* .yaml files parse cleanly; .md files (validate-and-context.md)
-           embed front-matter that the YAML loader can still consume
+          (* .yaml files parse cleanly; the bootstrap decision files
+           may embed front-matter that the YAML loader can still consume
            because the leading '---' block is plain YAML. If parsing
            fails, fall back to a minimal entry so the capsule still
            names the decision file. *)

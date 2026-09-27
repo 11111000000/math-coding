@@ -4,7 +4,7 @@
 # Asserts that `mc validate FILE` accepts a parseable decision file,
 # exits 0, and prints an "accept" verdict. This is the acceptance gate
 # for obligation cli-validate-decision in
-# bootstrap/validate-and-context.md.
+# bootstrap/validate-and-context.yaml.
 #
 # Negative run (before cli-validate-decision lands):
 #   bin/mathc.exe is two lines: it ignores argv and prints

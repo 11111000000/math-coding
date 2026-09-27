@@ -1376,7 +1376,7 @@ not in capsule).
 might start with `---`. Currently affects `bootstrap/decision.yaml`,
 `bootstrap/infrastructure-honesty.yaml`,
 `bootstrap/kernel-conformance-runner.yaml`, and the YAML
-front-matter of `bootstrap/validate-and-context.md`.
+front-matter of `bootstrap/validate-and-context.yaml`.
 
 ### 11.20 Dune 3.23 cram tests cannot reach binaries via relative paths
 
@@ -1564,7 +1564,7 @@ file.
 The priority order in `spec/semantics.md` "context-prioritisation"
 is the kernel policy; the mirror in `OCAML_BEST_PRACTICES.md` §10.5
 exists for implementer convenience
-(`bootstrap/validate-and-context.md` countercase line 124). Both
+(`bootstrap/validate-and-context.yaml` countercase line 124). Both
 files currently carry the same line:
 
 ```text
@@ -1573,7 +1573,7 @@ RequiredForGate > Changed > HighRisk > Unresolved > Supporting > Historical
 
 A change to either table without a matching change to the other is
 a "priority-order drift between spec and implementation"
-(`bootstrap/validate-and-context.md` risk). Code review alone does
+(`bootstrap/validate-and-context.yaml` risk). Code review alone does
 not catch this; the trap is silent because the build succeeds and
 the runtime emits the priority list from the OCaml source, not
 from the spec.

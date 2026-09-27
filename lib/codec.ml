@@ -255,7 +255,7 @@ let[@warning "-32"] parse_waiver v =
  * Mirrors the loader in tests/conformance.ml: block-style mappings
  * with scalar or list values, nested objects via indentation,
  * quoted or bare scalars, and block-style sequences via "- ".
- * This is NOT a general YAML parser. See bootstrap/validate-and-context.md
+ * This is NOT a general YAML parser. See bootstrap/validate-and-context.yaml
  * for the assumption record and OCAML_BEST_PRACTICES §11.13 for the
  * trap-log entry that fixes the whitespace-stripping bug.
  *

@@ -8,7 +8,7 @@ intent: |
   check that the priority table in spec/semantics.md
   ("context-prioritisation") and the mirror table in
   OCAML_BEST_PRACTICES.md §10.5 stay byte-equivalent. The spec
-  is authoritative (`bootstrap/validate-and-context.md` line 124
+  is authoritative (`bootstrap/validate-and-context.yaml` line 124
   countercase: "the priority order is a kernel policy statement,
   not a coding convention"); the practices file mirrors the
   table for implementer convenience. Two copies, maintained by
@@ -72,7 +72,7 @@ countercase: |
   Why not put the table only in OCAML_BEST_PRACTICES.md and
   delete it from the spec? Because spec/semantics.md names the
   table a kernel policy statement (line 124 of
-  bootstrap/validate-and-context.md says so explicitly: "the
+  bootstrap/validate-and-context.yaml says so explicitly: "the
   priority order is a kernel policy statement, not a coding
   convention. The spec is the authoritative source"). Removing
   the table from the spec would invert the policy hierarchy.
@@ -193,5 +193,5 @@ risk:
 relations:
   addresses:
     - doc/AUDIT-0.0.11.md#D3
-    - bootstrap/validate-and-context.md#risk.priority-order-drift-between-spec-and-implementation
+    - bootstrap/validate-and-context.yaml#risk.priority-order-drift-between-spec-and-implementation
   superseded_by: []

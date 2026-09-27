@@ -180,7 +180,7 @@ let[@warning "-32"] build_decision_items ~active_policy_id mem =
         | "infrastructure-honesty" -> "bootstrap/infrastructure-honesty.yaml"
         | "kernel-conformance-runner" ->
             "bootstrap/kernel-conformance-runner.yaml"
-        | "validate-and-context" -> "bootstrap/validate-and-context.md"
+        | "validate-and-context" -> "bootstrap/validate-and-context.yaml"
         | _ -> "bootstrap/" ^ entry.Memory.decision_id ^ ".yaml"
       in
       let kind = classify_decision ~active_policy_id mem entry source_path in

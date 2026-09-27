@@ -4,7 +4,7 @@
 # Asserts that the priority-ordering line in spec/semantics.md
 # ("context-prioritisation") is byte-equivalent (modulo whitespace)
 # to the mirror line in OCAML_BEST_PRACTICES.md §10.5. The spec is
-# the authoritative source per bootstrap/validate-and-context.md
+# the authoritative source per bootstrap/validate-and-context.yaml
 # (line 124, countercase); the practices file mirrors the table for
 # implementer convenience. A drift means one was edited without
 # the other.
