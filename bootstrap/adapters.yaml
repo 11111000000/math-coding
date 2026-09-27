@@ -83,7 +83,7 @@ scope:
     - "lib/dune"
     - "tests/fixtures/junit-adapter.sh"
     - "tests/fixtures/git-adapter.sh"
-    - "bootstrap/adapters.md"
+    - "bootstrap/adapters.yaml"
   exclusions:
     - "lib/codec.ml"
     - "lib/decision.ml"

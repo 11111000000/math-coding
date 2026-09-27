@@ -5,7 +5,7 @@
 # BASE..HEAD` via lib/git/git_diff.changed_files and emits a JSON
 # array of the changed file paths on stdout. This is the acceptance
 # gate for obligation git-changed-files-adapter declared in
-# bootstrap/adapters.md.
+# bootstrap/adapters.yaml.
 #
 # Negative run (before this commit):
 #   bin/mathc.exe has no `assess` subcommand; the dispatcher

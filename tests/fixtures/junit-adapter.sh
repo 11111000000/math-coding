@@ -3,7 +3,7 @@
 #
 # Asserts that `mc attest FILE` parses a JUnit XML report and emits
 # a JSON summary on stdout. This is the acceptance gate for
-# obligation junit-attestation-import in bootstrap/adapters.md.
+# obligation junit-attestation-import in bootstrap/adapters.yaml.
 #
 # The fixture:
 #   - writes a minimal JUnit XML report to a temp file

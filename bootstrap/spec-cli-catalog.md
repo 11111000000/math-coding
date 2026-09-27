@@ -51,7 +51,7 @@ scope:
     - "bootstrap/infrastructure-honesty.yaml"
     - "bootstrap/kernel-conformance-runner.yaml"
     - "bootstrap/validate-and-context.md"
-    - "bootstrap/adapters.md"
+    - "bootstrap/adapters.yaml"
     - "bootstrap/time-honesty.yaml"
     - "bootstrap/time-honesty-storage.yaml"
     - "bootstrap/gate-decision.md"
@@ -236,8 +236,8 @@ relations:
     - bootstrap/validate-and-context.md#cli-validate-decision
     - bootstrap/validate-and-context.md#cli-version-preserved
     - bootstrap/validate-and-context.md#cli-context-capsule
-    - bootstrap/adapters.md#git-changed-files-adapter
-    - bootstrap/adapters.md#junit-attestation-import
+    - bootstrap/adapters.yaml#git-changed-files-adapter
+    - bootstrap/adapters.yaml#junit-attestation-import
     - bootstrap/time-honesty.yaml
     - bootstrap/time-honesty-storage.yaml
     - bootstrap/gate-decision.md

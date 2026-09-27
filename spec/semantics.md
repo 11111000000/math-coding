@@ -240,7 +240,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   --name-only` reported no changes.
 - **Exit code**: `0` on success; `2` on input error
   (missing positional, bad git ref, git command fails).
-- **Justification**: `bootstrap/adapters.md`
+- **Justification**: `bootstrap/adapters.yaml`
   obligation `git-changed-files-adapter`.
 
 ### `attest FILE`
@@ -258,7 +258,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   `unknown`), `time` (numeric seconds, may be `null`)).
 - **Exit code**: `0` on success (including soft parse errors);
   `2` only when `FILE` is missing or unreadable.
-- **Justification**: `bootstrap/adapters.md`
+- **Justification**: `bootstrap/adapters.yaml`
   obligation `junit-attestation-import`.
 
 ### `gate BASE HEAD`

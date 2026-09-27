@@ -41,7 +41,7 @@ scope:
     - "bootstrap/infrastructure-honesty.yaml"
     - "bootstrap/kernel-conformance-runner.yaml"
     - "bootstrap/validate-and-context.md"
-    - "bootstrap/adapters.md"
+    - "bootstrap/adapters.yaml"
     - "tests/conformance.ml"
     - "lib/memory.ml"
 

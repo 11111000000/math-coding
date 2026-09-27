@@ -38,7 +38,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `bootstrap/validate-and-context.yaml` | `validate-and-context` | 2 | 13 | RESOLVED | first CLI + context capsule |
 | `bootstrap/priority-drift.yaml` | `priority-drift` | 2 | 5 | RESOLVED | audit D3 |
 | `bootstrap/spec-cli-catalog.md` | `spec-cli-catalog` | 1 | 8 | RESOLVED | audit D4 |
-| `bootstrap/adapters.md` | `adapters` | 2 | 6 | RESOLVED | audit D7 (git + junit) |
+| `bootstrap/adapters.yaml` | `adapters` | 2 | 6 | RESOLVED | audit D7 (git + junit) |
 | `bootstrap/capsule-active-policy.md` | `capsule-active-policy` | 1 | 7 | RESOLVED | capsule priority class |
 | `bootstrap/gate-decision.md` | `gate-decision` | 1 | 7 | SCAFFOLD | mc gate (no store yet) |
 | `bootstrap/parse-acceptance-diagnostics.md` | `parse-acceptance-diagnostics` | 1 | 5 | RESOLVED | kernel diagnostics |
@@ -77,8 +77,8 @@ satisfied. `./scripts/check.sh` runs them all and aggregates.
 | `flake-ref-is-commit.sh` | nixpkgs pinned to a commit hash | `bootstrap/infrastructure-honesty.yaml` |
 | `fmt-clean.sh` | `dune fmt --check` is clean | `OCAML_BEST_PRACTICES §10.4 item 6` |
 | `gate-scaffold.sh` | `mc gate` runs and emits JSON | `bootstrap/gate-decision.md` |
-| `git-adapter.sh` | `mc assess` works via lib/git | `bootstrap/adapters.md` |
-| `junit-adapter.sh` | `mc attest` works via lib/junit | `bootstrap/adapters.md` |
+| `git-adapter.sh` | `mc assess` works via lib/git | `bootstrap/adapters.yaml` |
+| `junit-adapter.sh` | `mc attest` works via lib/junit | `bootstrap/adapters.yaml` |
 | `malformed-acceptance.sh` | malformed predicate shape rejected | `bootstrap/parse-acceptance-diagnostics.md` |
 | `spec-catalog-present.sh` | spec lists current CLI subcommands | `bootstrap/spec-cli-catalog.md` |
 | `spec-vs-bp-priority.sh` | priority tables in spec and practice match | `bootstrap/priority-drift.md` |

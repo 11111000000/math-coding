@@ -84,7 +84,7 @@ Source: `./scripts/check.sh` (observed). Coverage:
   (cli-validate via validate-positive/validate-negative,
   cli-context-capsule + capsule-byte-budget-tracked via
   context-budget);
-- 2 obligations from `bootstrap/adapters.md`
+- 2 obligations from `bootstrap/adapters.yaml`
   (git-changed-files-adapter, junit-attestation-import);
 - 1 obligation from the parent `bootstrap/decision.yaml`
   (conformance-coverage, exercised by enumerate and
@@ -282,7 +282,7 @@ exist yet):
 | Modules in `mathcoding_core` | 13 | declared in `lib/dune` |
 | Modules in `mathcoding_git` | 1 | `git_diff` (`lib/git/dune`) |
 | Modules in `mathcoding_junit` | 1 | `junit` (`lib/junit/dune`) |
-| `bootstrap/` decisions | 5 | `decision.yaml`, `infrastructure-honesty.yaml`, `kernel-conformance-runner.yaml`, `validate-and-context.md`, `adapters.md` |
+| `bootstrap/` decisions | 5 | `decision.yaml`, `infrastructure-honesty.yaml`, `kernel-conformance-runner.yaml`, `validate-and-context.md`, `adapters.yaml` |
 | `bootstrap/` support files | 2 | `obligations.yaml`, `rationale.md` |
 
 Per-file line counts (rounded):
@@ -320,7 +320,7 @@ Per-file line counts (rounded):
 | `infrastructure-honesty.yaml` | 1 | 4: fix-ci-targets, pin-nixpkgs-commit, verify-opam-checksum, wire-conformance-runner | **All 4 done** at v3-alpha-0.0.3. Fixtures: `tests/fixtures/ci-targets-exist.sh`, `tests/fixtures/flake-ref-is-commit.sh`, `tests/fixtures/flake-lock-changes-record-decision.sh`, `tests/fixtures/dune-runs-conformance.sh`. All four pass under `./scripts/check.sh`. |
 | `kernel-conformance-runner.yaml` | 1 | 4: enumerate-and-classify-fixtures, parse-positive-and-negative-decision, wire-conformance-into-dune-test, skip-non-decision-fixtures-with-warning | **All 4 done** between v3-alpha-0.0.3 and v3-alpha-0.0.5. Fixtures: `enumerate.sh`, `decision-parses.sh`, `dune-runs-conformance.sh`, `attestation-skip-message.sh`, `waiver-parser.sh` (5 fixtures for 4 obligations because `skip-non-decision-fixtures-with-warning` is exercised by both attestation and waiver cases). |
 | `validate-and-context.md` | 2 | 6: jsonl-array-parser-fixed, cli-validate-decision, cli-version-preserved, kernel-offline-pure-unchanged, cli-context-capsule, capsule-byte-budget-tracked | **All 6 done** at v3-alpha-0.0.6 (jsonl-array-parser-fixed, cli-validate-decision, cli-version-preserved, kernel-offline-pure-unchanged) and v3-alpha-0.0.7 (cli-context-capsule, capsule-byte-budget-tracked). Fixtures: `validate-positive.sh`, `validate-negative.sh`, `context-budget.sh`. The kernel-offline-pure-unchanged obligation is verified by the build itself (any Unix-only call in `lib/` would fail to link). |
-| `adapters.md` | 1 | 2: git-changed-files-adapter, junit-attestation-import | **Both done** at v3-alpha-0.0.9. Fixtures: `tests/fixtures/git-adapter.sh`, `tests/fixtures/junit-adapter.sh`, plus cram tests `tests/cram/assess.t`, `tests/cram/attest.t`. Cram coverage is also asserted by `tests/fixtures/cram-runs.sh`. |
+| `adapters.yaml` | 1 | 2: git-changed-files-adapter, junit-attestation-import | **Both done** at v3-alpha-0.0.9. Fixtures: `tests/fixtures/git-adapter.sh`, `tests/fixtures/junit-adapter.sh`, plus cram tests `tests/cram/assess.t`, `tests/cram/attest.t`. Cram coverage is also asserted by `tests/fixtures/cram-runs.sh`. |
 
 ### `bootstrap/decision.yaml` obligations, in detail
 
@@ -441,7 +441,7 @@ subcommand catalog; recommendation §Process improvements item
 13) was closed at v3-alpha-0.0.13 by `bootstrap/spec-cli-catalog.md`
 and `tests/fixtures/spec-catalog-present.sh`. D7 (single
 decision file covering two adapters) was closed at
-v3-alpha-0.0.14 by `bootstrap/adapters.md@2`, which adds the
+v3-alpha-0.0.14 by `bootstrap/adapters.yaml@2`, which adds the
 git-changed-files-adapter obligation as a parallel obligation
 to the existing junit-attestation-import obligation (audit
 remedy (b)). The original D4 (SHA-256 RFC vectors, listed as
@@ -461,7 +461,7 @@ Extended at v3-alpha-0.0.16: process-principles fixture (tests/fixtures/process-
 | D4 | `lib/digest.ml` SHA-256 implementation has not been validated against RFC 6234 vectors. `tests/digest_vectors.ml` exists but its 3 tests are marked `xfail until Digest is fixed`. | `OCAML_BEST_PRACTICES §5` and the `xfail until Digest is fixed` label visible in `dune test` output. | Hand-rolled SHA-256 (`lib/digest.ml:1-176`); conformance corpus would skip. | Until the vectors pass, do not use `Digest.sha256_hex` for canonicalization. `OCAML_BEST_PRACTICES §10.4` item 1 lists this as the top-priority pre-3.0-beta task. |
 | D5 | `bin/mathc_main.ml` is a 1-line stale file containing the v0.0.5 hello-string. `bin/dune` lists only `Mathc`, so `mathc_main.ml` is not compiled, but it lingers in the tree. | `OCAML_BEST_PRACTICES §9.4` and §10.4 item 7 (recorded at v3-alpha-0.0.6). | History: `main.ml → mathc.ml → Mathc.ml`. | Delete `bin/mathc_main.ml`. Trivial cleanup; not blocking. |
 | D6 | The 8 obligations in `bootstrap/decision.yaml` have manual-only verifiers. The kernel that would auto-verify them does not exist. | `bootstrap/decision.yaml` and `bootstrap/rationale.md`. | This is the bootstrap protocol itself, not a bug. | Track; expire when the released 3.0 kernel successfully checks this repository and its conformance corpus (`AGENTS.md` §Bootstrap gate). |
-| D7 | `bootstrap/adapters.md` does not yet record a `git-changed-files-adapter` obligation as its own decision entry. The obligation appears in the v0.0.8 commit message and in `bootstrap/validate-and-context.md`'s `scope.capabilities`, but the adapters decision file groups it under the JUnit obligation. | `9f6d595` (the v0.0.8 commit added `bootstrap/adapters.md`; the message body is essentially empty; only `bcce74d` and `5486c13` carry the per-obligation text). | The two adapters landed in a single decision file but two implementation commits. | **RESOLVED at v3-alpha-0.0.14**: see `bootstrap/adapters.md@2`, which adds the `git-changed-files-adapter` obligation as a parallel obligation alongside the existing `junit-attestation-import` obligation (the audit's remedy (b)). The new obligation is anchored to the existing fixture `tests/fixtures/git-adapter.sh`, which is invoked by `./scripts/check.sh` and asserts that `mc assess BASE HEAD` exits 0 and emits a JSON array containing the expected file paths. The decision file also adds the corresponding `git-changed-files-adapter` outcome, capability, and scope.paths entries (`lib/git/git_diff.ml`, `lib/git/dune`, `tests/fixtures/git-adapter.sh`), and updates `relations.addresses` to include this audit. No new dependency, no fixture changes, no kernel changes. `./scripts/check.sh` remains at 26 passes (no new failures). (Original recommendation was: either split into two decision files or leave as-is and document that one file covers two obligations. The (b) branch of that recommendation was implemented.) |
+| D7 | `bootstrap/adapters.yaml` does not yet record a `git-changed-files-adapter` obligation as its own decision entry. The obligation appears in the v0.0.8 commit message and in `bootstrap/validate-and-context.md`'s `scope.capabilities`, but the adapters decision file groups it under the JUnit obligation. | `9f6d595` (the v0.0.8 commit added `bootstrap/adapters.yaml`; the message body is essentially empty; only `bcce74d` and `5486c13` carry the per-obligation text). | The two adapters landed in a single decision file but two implementation commits. | **RESOLVED at v3-alpha-0.0.14**: see `bootstrap/adapters.yaml@2`, which adds the `git-changed-files-adapter` obligation as a parallel obligation alongside the existing `junit-attestation-import` obligation (the audit's remedy (b)). The new obligation is anchored to the existing fixture `tests/fixtures/git-adapter.sh`, which is invoked by `./scripts/check.sh` and asserts that `mc assess BASE HEAD` exits 0 and emits a JSON array containing the expected file paths. The decision file also adds the corresponding `git-changed-files-adapter` outcome, capability, and scope.paths entries (`lib/git/git_diff.ml`, `lib/git/dune`, `tests/fixtures/git-adapter.sh`), and updates `relations.addresses` to include this audit. No new dependency, no fixture changes, no kernel changes. `./scripts/check.sh` remains at 26 passes (no new failures). (Original recommendation was: either split into two decision files or leave as-is and document that one file covers two obligations. The (b) branch of that recommendation was implemented.) |
 | D8 | `mc validate` synthesises a single coarse diagnostic ("missing or invalid required field") without naming the specific field. The kernel's `Decision.parse_decision` returns `Some _ \| None`, not a typed `Diagnostic.t option`. | `bootstrap/validate-and-context.md` assumption `parse-decision-rejection-reason-coarse`. | Decision parser is binary accept/reject; finer diagnostics are a 3.0-beta item. | Promote `Decision.parse_decision` to return `Diagnostic.t option` in 3.0-beta; until then, the coarse diagnostic is documented. |
 | D4′ | **NEW D4 (parent task label; renamed `D4′` here to disambiguate from the SHA-256 deficit above).** The mathc CLI subcommand list (version, validate, context, assess, attest, gate, session-start, record, stats, time-estimate) was documented only in `bin/Mathc.ml`'s header comment; the spec named only the priority order and exit codes. The audit's §Process improvements item 13 named this gap. | `doc/AUDIT-0.0.11.md` §Process improvements item 13. | The spec describes kernel semantics; the CLI surface was an implementation summary. | **RESOLVED at v3-alpha-0.0.13**: see `bootstrap/spec-cli-catalog.md` obligation `spec-cli-catalog-promoted` (this is the new decision file) and the fixture `tests/fixtures/spec-catalog-present.sh`. The new `spec/semantics.md` "CLI subcommands" section enumerates every subcommand bin/Mathc.ml implements at HEAD with synopsis, input, output, exit code, and the bootstrap obligation that justifies each. The fixture is invoked by `./scripts/check.sh` and exits 1 with the missing-name list on any absent canonical subcommand. `bin/Mathc.ml` is unchanged. (Original recommendation was: a spec section listing `mc validate`, `mc context`, `mc assess`, `mc attest`. That recommendation was implemented, and extended to the full ten-subcommand surface.) |
 
@@ -470,10 +470,10 @@ are covered:
 
 - **YAML `\|` block scalars in `lib/codec.ml`** → D1.
 - **Priority drift detector missing** → D3.
-- **Git obligation in `bootstrap/adapters.md`** → D7.
+- **Git obligation in `bootstrap/adapters.yaml`** → D7.
 
 All three are present above. (The "git obligation in
-`bootstrap/adapters.md`" phrasing in the parent task description
+`bootstrap/adapters.yaml`" phrasing in the parent task description
 maps to D7: the Git adapter obligation exists in the decision but
 is grouped under the JUnit decision file rather than its own
 file. There is no missing obligation; the situation is a
@@ -490,7 +490,7 @@ documentation gap, not a policy deficit.)
   `tests/fixtures/spec-vs-bp-priority.sh` (this commit's
   work).
 - D7 — **closed** at v3-alpha-0.0.14 by
-  `bootstrap/adapters.md@2`, which adds the
+  `bootstrap/adapters.yaml@2`, which adds the
   `git-changed-files-adapter` obligation as a parallel
   obligation alongside `junit-attestation-import`. The audit's
   remedy (b) was implemented: a single decision file covers
