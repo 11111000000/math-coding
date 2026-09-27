@@ -95,8 +95,9 @@ and parse_array s i : value * int =
       let v, j = parse_value s i in
       let i = skip_ws s j in
       let len = String.length s in
+      let acc = v :: acc in
       if i < len && String.unsafe_get s i = ',' then
-        loop (acc @ [v]) (skip_ws s (i + 1))
+        loop acc (skip_ws s (i + 1))
       else if i < len && String.unsafe_get s i = ']' then
         Array (List.rev acc), i + 1
       else parse_error "expected ',' or ']'" i

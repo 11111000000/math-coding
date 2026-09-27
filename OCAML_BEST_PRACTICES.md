@@ -1136,3 +1136,68 @@ and `warning 39 [unused-rec-flag]` are the most common ones. Fix the
 warning; don't suppress with `[@warning "-32"]` unless intentional.
 Use `./scripts/dev lint` to fail fast on warnings.
 
+### 11.15 `parse_array` drops the last element when followed by `]`
+
+The hand-rolled JSON parser at `lib/jsonl.ml:99` (pre-fix) returned
+`Array (List.rev acc)` from the `]` branch without appending the just-
+parsed element `v`:
+
+```ocaml
+and parse_array s i : value * int =
+  ...
+  let rec loop acc i =
+    let v, j = parse_value s i in
+    let i = skip_ws s j in
+    ...
+    if i < len && s.[i] = ',' then
+      loop (acc @ [v]) (skip_ws s (i + 1))
+    else if i < len && s.[i] = ']' then
+      Array (List.rev acc), i + 1     (* missing v *)
+    ...
+  in loop [] i
+```
+
+For a single-element array, `v` is parsed and `acc` is `[]`; the `]`
+branch returns `Array []` — element lost. For a multi-element array
+like `[1,2,3]`, the `,` branch appends the previous element to `acc`,
+but the final `]` branch returns `List.rev acc` minus the latest `v`.
+`[1,2,3]` decoded as `[2;1]`; `[{...}, {...}]` lost the last object.
+
+The conformance corpus did not detect this because every fixture's
+arrays happen to be single-element under the keys the runner
+inspects (`obligations`, `assumptions`, `outcomes`, `reversal`,
+`parents`, etc.). Single-element arrays go through the
+return-missing-v branch and become `[]`; the runner's accept/reject
+verdict on a `Some _` result still holds because the top-level
+required fields (id, revision, intent, commitment) are parsed
+correctly.
+
+**Symptom**: any code path that inspects `d.obligations` (or any list
+field built through `List.filter_map` over an array) sees `[]` even
+when the JSON source has elements. `mc validate FILE` showed
+`obligations: 0, assumptions: 0` for `positive-minimal.json` which
+genuinely contains one of each.
+
+**Fix** (lib/jsonl.ml:99): prepend `v` to `acc` once, before the
+dispatch on `,`/`]`:
+
+```ocaml
+let v, j = parse_value s i in
+let i = skip_ws s j in
+let len = String.length s in
+let acc = v :: acc in
+if i < len && s.[i] = ',' then
+  loop acc (skip_ws s (i + 1))
+else if i < len && s.[i] = ']' then
+  Array (List.rev acc), i + 1
+else parse_error "expected ',' or ']'" i
+```
+
+The `@ [v]` per-iteration pattern is replaced by single cons; the
+final `List.rev acc` already yields the correct order. `[]` keeps
+working through the early `]` shortcut at line 92.
+
+**Trigger**: any fixture with non-empty array fields the kernel
+parses into a list — and the conformance runner doesn't transitively
+inspect list contents, only `Some _` / `None` on top-level decisions.
+
