@@ -136,13 +136,11 @@
           '';
         };
 
-        # ocamlformat-fmt-clean: pre-commit-hooks.nix run for shellcheck.
-        # The dune-fmt check itself lives in scripts/fmt-check.sh,
-        # invoked by the fmt-clean fixture; it is not a pre-commit-hooks.nix
-        # builtin. We additionally run shellcheck here so every bash and
-        # shell script the project ships (scripts/check.sh,
-        # scripts/dev, scripts/fmt-check.sh, all tests/fixtures/*.sh)
-        # is statically checked.
+        # ocamlformat-fmt-clean: pre-commit-hooks.nix run for shellcheck
+        # and ocamlformat. The dune-fmt check itself is in scripts/fmt-check.sh,
+        # invoked by the fmt-clean fixture; it is also wired here via the
+        # ocamlformat hook so `nix flake check` catches drift on every
+        # commit, not only when scripts/check.sh runs.
         checks.fmt = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
@@ -164,6 +162,13 @@
               # "info" so a single unused-variable note doesn't fail
               # the build.
               args = [ "-e" "SC2164" "-e" "SC2016" "-S" "info" ];
+            };
+            ocamlformat = {
+              enable = true;
+              # Pin to the conventional profile; see .ocamlformat.
+              # dune-promote or dune fmt runs on commit; CI failures
+              # block merge.
+              args = [ "--profile" "conventional" "-m" "80" ];
             };
           };
         };

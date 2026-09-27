@@ -9,6 +9,8 @@
 #   scripts/dev test            — run conformance suite
 #   scripts/dev rebuild         — full rebuild (when build is wedged)
 #   scripts/dev lint            — strict warnings-as-errors build
+#   scripts/dev verify          — full check before commit: build +
+#                                dune test + scripts/check.sh + fmt
 #   scripts/dev check           — nix flake check
 #   scripts/dev lock-update     — refresh flake.lock
 #   scripts/dev shell           — drop into nix develop .#test
@@ -29,23 +31,55 @@ run_in_shell() {
   nix develop .#test --command bash -c "$1"
 }
 
+# Kill any stale dune / nix-develop processes that may hold
+# _build/.lock from a previous interrupted run. Idempotent.
+cleanup_dune_lock() {
+  pkill -9 -f 'dune build'  2>/dev/null || true
+  pkill -9 -f 'dune test'   2>/dev/null || true
+  pkill -9 -f 'nix develop .#test' 2>/dev/null || true
+  [ ! -f _build/.lock ] || rm -f _build/.lock || true
+  sleep 1
+}
+
 case "$cmd" in
   build)
+    cleanup_dune_lock
     run_in_shell "dune build --root . && echo 'build: ok'"
     ;;
 
   test)
+    cleanup_dune_lock
     run_in_shell "dune test --root ."
     ;;
 
   rebuild)
+    cleanup_dune_lock
     run_in_shell "dune clean && dune build --root . && echo 'rebuild: ok'"
     ;;
 
   lint)
+    cleanup_dune_lock
     # Treat warnings as errors via dune's --error-on-warnings flag.
     # Exits nonzero if any test executable emits a warning.
     run_in_shell "dune build --root . --error-on-warnings && dune test --root . --error-on-warnings && echo 'lint: clean'"
+    ;;
+
+  verify)
+    # Single entry point for "is this commit-ready?".
+    # Order matters: build first (catches type errors), then dune
+    # test (catches runtime regressions), then dune fmt --check
+    # (catches formatting drift), then scripts/check.sh (catches
+    # fixture regressions). Each step is independent so a fail in
+    # step 3 doesn't skip step 4.
+    cleanup_dune_lock
+    run_in_shell "dune build --root . && echo 'verify build: ok'"
+    run_in_shell "dune test --root . && echo 'verify dune test: ok'"
+    # dune 3.23 has no --check flag; the fmt-check.sh wrapper
+    # handles the "is tree clean?" check via dune fmt --preview.
+    # See OCAML_BEST_PRACTICES §11.21.
+    ./scripts/fmt-check.sh && echo "verify fmt: ok"
+    ./scripts/check.sh
+    echo "verify: ok"
     ;;
 
   check)
@@ -62,6 +96,7 @@ case "$cmd" in
     ;;
 
   run)
+    cleanup_dune_lock
     if [ $# -lt 1 ]; then usage; fi
     file="$1"
     run_in_shell "dune build --root . bin/mathc.exe && _build/default/bin/mathc.exe '$file'"
