@@ -45,7 +45,7 @@ without a `bootstrap/*.yaml` decision under the active policy.
 
 | # | Deficit | Status | Notes |
 |---|---|---|---|
-| 6 | D1/D2 (yaml-block-scalars impl) | **deferred**; decision @rev2 in main, implementation pending | `bootstrap/yaml-block-scalars-impl-pending.md` records the deferral with rationale |
+| 6 | D1/D2 (yaml-block-scalars impl) | **deferred**; decision @rev2 in main, implementation pending | `bootstrap/yaml-block-scalars-impl-pending.yaml` records the deferral with rationale |
 | 7 | D5 (stale `bin/mathc_main.ml`) | **closed** in commit `191d1af` | |
 | 8 | D7 (adapters decision covers two obligations) | **closed** in commit `be5c4bd` | |
 | 9 | D3 (priority-drift detector) | **closed** in commit `4855a57` | |

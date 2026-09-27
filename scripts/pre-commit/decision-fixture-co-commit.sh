@@ -61,7 +61,7 @@ for path in "${staged[@]}"; do
       fixture_touched=1
       fixture_files+=("$path")
       ;;
-    scripts/pre-commit/*|ROADMAP.md|bootstrap/yaml-block-scalars-impl-pending.md)
+    scripts/pre-commit/*|ROADMAP.md|bootstrap/yaml-block-scalars-impl-pending.yaml)
       # Process / roadmap / explicit-deferral files do not require
       # a co-decision.
       ;;

@@ -45,7 +45,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `bootstrap/time-honesty.yaml` | `time-honesty` | 1 | 8 | RESOLVED | time-honesty distribution |
 | `bootstrap/time-honesty-storage.yaml` | `time-honesty-storage` | 1 | 9 | RESOLVED | time storage writers |
 | `bootstrap/yaml-block-scalars.md` | `yaml-block-scalars` | 2 | 9 | DECISION | audit D1/D2 (impl deferred) |
-| `bootstrap/yaml-block-scalars-impl-pending.md` | `yaml-block-scalars-impl-pending` | 1 | 3 | DEFERRED | records D1/D2 deferral |
+| `bootstrap/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 1 | 3 | DEFERRED | records D1/D2 deferral |
 | `bootstrap/process-principles.yaml` | `process-principles` | 2 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
 | `bootstrap/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
@@ -151,7 +151,7 @@ This isolates I/O from the pure kernel (see `OCAML_BEST_PRACTICES §10.1`).
 
 | id | Description | Status |
 |---|---|---|
-| D1 | YAML `\|` block scalars (kernel-side) | DEFERRED via `yaml-block-scalars-impl-pending.md` |
+| D1 | YAML `\|` block scalars (kernel-side) | DEFERRED via `yaml-block-scalars-impl-pending.yaml` |
 | D2 | YAML front-matter (kernel-side) | DEFERRED via same (bypassed in `Memory.strip_yaml_frontmatter`) |
 | D4 | SHA-256 RFC vectors (kernel-side) | OPEN |
 | D6 | bootstrap-v3 manual-only verifiers | TRACKED (kernel does not exist yet) |

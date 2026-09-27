@@ -33,7 +33,7 @@ err=0
 # implementation is added. Until then, the shell fixture at
 # tests/fixtures/yaml-block-scalars.sh is the verification gate.
 # This is the deferral recorded in
-# bootstrap/yaml-block-scalars-impl-pending.md.
+# bootstrap/yaml-block-scalars-impl-pending.yaml.
 
 if ! grep -qE "^id: yaml-block-scalars$" bootstrap/yaml-block-scalars.md ; then
   echo "  FAIL bootstrap/yaml-block-scalars.md is missing the active decision id" >&2
@@ -49,11 +49,11 @@ else
   echo "  ok   bootstrap/yaml-block-scalars.md records the obligation"
 fi
 
-if ! grep -qE "yaml-block-scalars-supported" bootstrap/yaml-block-scalars-impl-pending.md 2>/dev/null ; then
+if ! grep -qE "yaml-block-scalars-supported" bootstrap/yaml-block-scalars-impl-pending.yaml 2>/dev/null ; then
   echo "  FAIL the deferral decision is missing the obligation id reference" >&2
   err=1
 else
-  echo "  ok   bootstrap/yaml-block-scalars-impl-pending.md records the obligation id"
+  echo "  ok   bootstrap/yaml-block-scalars-impl-pending.yaml records the obligation id"
 fi
 
 # Also check that the audit doc references this fixture
