@@ -15,22 +15,41 @@ for new work.
 
 Before changing anything in this repository, read in order:
 
-1. `README.md` — current state and scope.
-2. `spec/constitution.md` — invariants of the kernel.
-3. `spec/domain.md` — entity model.
-4. `spec/semantics.md` — gate logic and exit codes.
-5. `OCAML_BEST_PRACTICES.md` — project-specific OCaml conventions,
+1. `ROADMAP.md` — the single source of truth for priorities, audit
+   status, and process principles. Read this first; it supersedes
+   any inline priority lists in this file.
+2. `PACKAGES.md` — the single source of truth for "what exists in
+   this repository": every decision, fixture, kernel module,
+   adapter, schema, spec, and axiom. Use this file to **find which
+   decision file** to read or which fixture to modify; it supersedes
+   the inline "where things live" lists elsewhere.
+3. `README.md` — short pitch and pointers.
+4. `spec/constitution.md` — invariants of the kernel.
+5. `spec/domain.md` — entity model.
+6. `spec/semantics.md` — gate logic, exit codes, CLI subcommand catalog.
+7. `OCAML_BEST_PRACTICES.md` — project-specific OCaml conventions,
    including which conventions are *enforced* by `bootstrap/decision.yaml`.
    The trap log in §11 is the first place to look when debugging an
    OCaml or dune error.
-6. `bootstrap/decision.yaml` and `bootstrap/infrastructure-honesty.yaml`
-   — the active decisions; their obligations describe the manual checks
-   you must perform and the verifiers you must satisfy.
-7. `axioms/` — the philosophical and mathematical foundations. Every
+8. `bootstrap/*.yaml` — the active decisions; their obligations
+   describe the manual checks you must perform and the verifiers
+   you must satisfy.
+9. `axioms/` — the philosophical and mathematical foundations. Every
    non-trivial change MUST be derivable from at least one axiom.
 
 If any of these contradict each other, the contradiction is a deficit.
 Report it; do not silently resolve it.
+
+## Before picking work
+
+Read `ROADMAP.md` §"Priority queue" for the active tier ordering.
+Use `PACKAGES.md` §"Active policy" to find the matching decision file
+and §"Fixtures" to find the matching acceptance test. Do not invent
+priorities; pick the highest-priority unblocked task whose Tier matches
+your capability and whose dependencies (test infrastructure, decision
+files, fixtures) are already in `main`. Each task in the priority queue
+names its decision file, fixture, and verifier; do not skip those or
+you skip the obligation closure.
 
 ## When a dune or OCaml error appears
 
