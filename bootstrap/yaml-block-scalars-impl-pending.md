@@ -4,9 +4,9 @@ id: yaml-block-scalars-impl-pending
 revision: 1
 
 intent: |
-  Record that the implementation obligation
-  `yaml-block-scalars-loader-extended` from
-  `bootstrap/yaml-block-scalars.md@2` is deferred past
+  Record that the parent obligation `yaml-block-scalars-supported`
+  (from `bootstrap/yaml-block-scalars.md@2`) and its sub-obligation
+  `yaml-block-scalars-loader-extended` are deferred past
   v3-alpha-0.0.12. The deficit D1/D2 from doc/AUDIT-0.0.11.md
   remains open until the implementation lands.
 
