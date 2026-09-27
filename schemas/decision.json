@@ -99,6 +99,25 @@
         "addresses": {"type": "array", "items": {"type": "string"}},
         "depends_on": {"type": "array", "items": {"type": "string"}}
       }
+    },
+    "time": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional forward-looking duration estimate for the work this Decision commits to. Required fields are scale, value, reference_class, percentile. See AGENTS.md §Honest time reporting and bootstrap/time-honesty.yaml.",
+      "required": ["estimate"],
+      "properties": {
+        "estimate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scale", "value", "reference_class", "percentile"],
+          "properties": {
+            "scale": {"enum": ["wall-clock-minutes", "token-budget", "step-count"]},
+            "value": {"type": "number", "minimum": 0},
+            "reference_class": {"type": "string", "minLength": 1},
+            "percentile": {"enum": ["p50", "p80", "p95", "p99"]}
+          }
+        }
+      }
     }
   }
 }
