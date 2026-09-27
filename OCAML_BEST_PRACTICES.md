@@ -1360,3 +1360,57 @@ might start with `---`. Currently affects `bootstrap/decision.yaml`,
 `bootstrap/kernel-conformance-runner.yaml`, and the YAML
 front-matter of `bootstrap/validate-and-context.md`.
 
+### 11.20 Dune 3.23 cram tests cannot reach binaries via relative paths
+
+Cram tests in `tests/cram/*.t` are sandboxed: their working directory
+is `_build/default/tests/cram/` but the sandbox only exposes the
+test's own `.t` files, `cram.sh`, and `cram.out`. Going `..`
+returns `cram` (the test sub-dir of `tests/`), and `../..` shows
+only `tests` — `_build/default/bin/` is not visible. This means:
+
+```text
+  $ ../bin/mathc.exe validate fixtures/x.json
+  ../bin/mathc.exe: No such file or directory
+  [127]
+```
+
+even when `_build/default/bin/mathc.exe` exists and the cram stanza
+declares the binary as a dep.
+
+```text
+  $ /tmp/proj/_build/default/bin/mathc.exe ...
+  myexe output
+```
+
+The cram test runs in an environment with `$INSIDE_DUNE` set to the
+build directory and `$DUNE_SOURCEROOT` set to the project root.
+Absolute paths through these vars work and trigger the build, but
+`$TESTCASE_ROOT` is **not** exported in dune 3.23's cram runner
+(the Jane-Street cram tool does set it; Dune's does not).
+
+**Fix** (tests/cram/*.t in this repo): anchor the binary at the
+absolute path inside the cram test:
+
+```text
+  $ mathc="$INSIDE_DUNE/bin/mathc.exe"
+  $ "$mathc" validate "$DUNE_SOURCEROOT/fixtures/x.json"
+```
+
+And in `tests/dune` declare the binary as a dep of the cram stanza
+so dune rebuilds the binary before the cram test runs:
+
+```lisp
+(cram
+ (deps validate.t assess.t attest.t ../bin/mathc.exe))
+```
+
+Without this dep, `(deps ../bin/mathc.exe)` from inside the cram
+sandbox does not trigger the build, and the absolute path lookup
+returns "No such file or directory" — the cram test silently
+passes-with-no-output because the expected output is empty.
+
+**Trigger**: any cram test in Dune 3.x that needs to invoke an
+OCaml binary defined elsewhere in the project. Symptom: cram
+diff shows the binary path as `No such file or directory` even
+though the file exists in `_build/default/bin/`.
+

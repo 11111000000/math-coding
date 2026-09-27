@@ -5,3 +5,17 @@
 (test
  (name conformance)
  (libraries mathcoding_core alcotest))
+
+; cli-integration-cram: dune cram tests for the mathc CLI.
+; Each .t file in tests/cram/ is a file-style cram test. The (deps)
+; below triggers a build of bin/mathc.exe before the cram tests run,
+; so the tests can invoke the binary by absolute path inside the
+; cram sandbox (which does not expose the build dir via relative
+; paths; see OCAML_BEST_PRACTICES trap log entry §11.20 for the
+; cram-sandbox vs binary-path resolution).
+(cram
+ (deps
+  validate.t
+  assess.t
+  attest.t
+  ../bin/mathc.exe))
