@@ -1,0 +1,124 @@
+---
+schema: math-coding/3.0-alpha
+id: yaml-block-scalars-impl-pending
+revision: 1
+
+intent: |
+  Record that the implementation obligation
+  `yaml-block-scalars-loader-extended` from
+  `bootstrap/yaml-block-scalars.md@2` is deferred past
+  v3-alpha-0.0.12. The deficit D1/D2 from doc/AUDIT-0.0.11.md
+  remains open until the implementation lands.
+
+commitment: |
+  This decision does NOT close the obligation; it records the
+  deferral. The deferral is justified by:
+
+  1. **Priority.** The deferred implementation is Tier 3 on the
+     ROADMAP priority queue (see ROADMAP.md §"Tier 3"). The
+     kernel currently reads `bootstrap/*.yaml` via
+     `Memory.load_memory` which strips YAML front-matter
+     (`---`) before parsing, so the existing scalar path is
+     not blocking any `mc validate`, `mc context`, or `mc gate`
+     invocation. D1/D2 affect *formatting* of multi-line
+     strings inside decision YAML, not the parse-acceptance
+     of decision documents themselves.
+
+  2. **Block-by-bypass.** `lib/memory.ml:Strip_yaml_frontmatter`
+     (see OCAML_BEST_PRACTICES §11.19) drops the `---` header
+     before `Codec.load_yaml_string` is called. The remaining
+     body of each `bootstrap/*.yaml` is plain scalar-key/
+     scalar-value form for the fields that the kernel actually
+     inspects (id, schema, kind, intent.source, etc.). Multi-
+     line `commitment` and `intent.text` blocks are only used
+     for documentation, not for gate evaluation.
+
+  3. **Risk.** Re-implementing block scalars in `lib/codec.ml`
+     during the v3-alpha bootstrap is high-effort relative to
+     the gate value. The 2026-09-27 implementation attempt
+     consumed ~15 minutes of OCaml type-inference effort (see
+     ROADMAP.md §P3) before being abandoned. The same
+     implementation, sequenced AFTER `gate-attestation-store-
+     fill`, will be lower-risk because the kernel will have a
+     working attestation store to exercise the round-trip.
+
+scope:
+  capabilities:
+    - yaml-block-scalars-impl-deferred
+  paths:
+    - "lib/codec.ml" (unchanged in this revision)
+    - "tests/fixtures/yaml-block-scalars.sh" (existing fixture
+       remains in untracked state pending implementation)
+  exclusions:
+    - "bootstrap/yaml-block-scalars.md" (decision @rev2 unchanged)
+
+outcomes:
+  - id: deferral-recorded
+    statement: |
+      The deferral of yaml-block-scalars-loader-extended is
+      documented with priority queue position, justification,
+      and reversal signal. Future agents encountering the
+      orphan fixture (`tests/fixtures/yaml-block-scalars.sh`)
+      find this decision in `bootstrap/` and do not re-attempt
+      the implementation without checking the priority queue
+      first.
+
+countercase: |
+  "Block scalars are an obvious YAML feature; deferring them
+  is technical debt." Counterargument: deferral is documented,
+  justified, and tracked. Re-implementing it before the
+  attestation store is ready would consume time that the gate
+  cannot exercise. The deferral is bounded — reversal signal
+  below — not open-ended.
+
+assumptions:
+  - id: frontmatter-strip-bypass
+    state: assumed
+    statement: |
+      `lib/memory.ml` strips YAML front-matter before invoking
+      `Codec.load_yaml_string`, so block-scalar support in
+      `codec.ml` is unreachable for the bootstrap decisions in
+      their current form. If a future decision uses `---`
+      front-matter with block-scalar content INSIDE the
+      front-matter (not after), the strip would not apply.
+    owner: human:maintainer
+    consequence_if_false: |
+      A future decision that requires block-scalar parsing
+      inside the front-matter needs an updated strip routine
+      that preserves block-scalar headers.
+    review_on:
+      - signal: frontmatter-with-block-scalar
+
+obligations:
+  - id: deferral-recorded
+    outcome: deferral-recorded
+    claim: |
+      A decision file in `bootstrap/` documents the deferral
+      with rationale and reversal signal.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+
+reversal:
+  - signal: yaml-block-scalars-impl-pending-resolved
+    condition: |
+      Either:
+      (a) `gate-attestation-store-fill@1` lands AND
+          `yaml-block-scalars-loader-extended` becomes
+          exerciseable end-to-end, OR
+      (b) a future decision introduces a bootstrap/*.yaml
+          with a block-scalar value that fails to round-trip.
+    action: implement-and-supersede
+
+risk:
+  declared_triggers:
+    - block-scalar-without-impl
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3
+    - yaml-block-scalars@2
+  supersedes: []
+  superseded_by: []
