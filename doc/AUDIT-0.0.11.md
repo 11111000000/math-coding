@@ -435,7 +435,7 @@ release.
 was closed between v0.0.11 and v0.0.12 by the
 `bootstrap/priority-drift.yaml` decision and the
 `tests/fixtures/spec-vs-bp-priority.sh` fixture. D1 and D2 were
-also closed by `bootstrap/yaml-block-scalars.md` (rev 2) and
+also closed by `bootstrap/yaml-block-scalars.yaml` (rev 2) and
 `tests/fixtures/yaml-block-scalars.sh`. The new D4 (CLI
 subcommand catalog; recommendation §Process improvements item
 13) was closed at v3-alpha-0.0.13 by `bootstrap/spec-cli-catalog.yaml`
@@ -483,7 +483,7 @@ documentation gap, not a policy deficit.)
 2026-09-27 at v3-alpha-0.0.14)**:
 
 - D1 — **closed** at v3-alpha-0.0.12 by
-  `bootstrap/yaml-block-scalars.md` (rev 2) and
+  `bootstrap/yaml-block-scalars.yaml` (rev 2) and
   `tests/fixtures/yaml-block-scalars.sh`.
 - D3 — **closed** at v3-alpha-0.0.12 by
   `bootstrap/priority-drift.yaml` (rev 2) and
@@ -592,7 +592,7 @@ and any preconditions.
    authorization by the current policy. The current policy is
    `bootstrap/decision.yaml@2`; a new revision `bootstrap/decision.yaml@3`
    would authorize the kernel change. Add a new decision file
-   `bootstrap/yaml-block-scalars.md` recording the obligation.
+   `bootstrap/yaml-block-scalars.yaml` recording the obligation.
 2. **`bin/mathc_main.ml`** (D5). Delete the file. One-line edit.
    No bootstrap change needed (no behavior change).
 3. **Priority drift detector** (D3). Add

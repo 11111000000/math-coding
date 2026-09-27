@@ -4,12 +4,12 @@
 # Asserts that:
 #  - tests/yaml_block_scalars.ml exists (Alcotest unit test for the
 #    kernel parser extension to `|` and `>` block scalars)
-#  - bootstrap/yaml-block-scalars.md is the active decision
+#  - bootstrap/yaml-block-scalars.yaml is the active decision
 #  - lib/codec.ml has been touched since the decision was bumped to
 #    revision 2 (i.e., the loader extension exists or is in progress)
 #
 # This is the positive acceptance gate for obligation
-# `yaml-block-scalars-supported` in bootstrap/yaml-block-scalars.md.
+# `yaml-block-scalars-supported` in bootstrap/yaml-block-scalars.yaml.
 #
 # This fixture is structural only: it does not parse YAML. The actual
 # parser extension is verified by `tests/yaml_block_scalars.ml`
@@ -17,7 +17,7 @@
 # `tests/fixtures/yaml-block-scalars.sh` (which runs `mc validate`
 # against a real bootstrap YAML).
 #
-# Why this fixture exists: bootstrap/yaml-block-scalars.md@2 listed
+# Why this fixture exists: bootstrap/yaml-block-scalars.yaml@2 listed
 # this fixture path as the acceptance verifier since v0.0.12, but no
 # fixture file existed. The process-principles fixture (v0.0.16)
 # caught the missing file. This fixture is the missing verifier.
@@ -35,18 +35,18 @@ err=0
 # This is the deferral recorded in
 # bootstrap/yaml-block-scalars-impl-pending.yaml.
 
-if ! grep -qE "^id: yaml-block-scalars$" bootstrap/yaml-block-scalars.md ; then
-  echo "  FAIL bootstrap/yaml-block-scalars.md is missing the active decision id" >&2
+if ! grep -qE "^id: yaml-block-scalars$" bootstrap/yaml-block-scalars.yaml ; then
+  echo "  FAIL bootstrap/yaml-block-scalars.yaml is missing the active decision id" >&2
   err=1
 else
-  echo "  ok   bootstrap/yaml-block-scalars.md is the active decision"
+  echo "  ok   bootstrap/yaml-block-scalars.yaml is the active decision"
 fi
 
-if ! grep -qE "yaml-block-scalars-supported" bootstrap/yaml-block-scalars.md ; then
-  echo "  FAIL bootstrap/yaml-block-scalars.md is missing the yaml-block-scalars-supported obligation" >&2
+if ! grep -qE "yaml-block-scalars-supported" bootstrap/yaml-block-scalars.yaml ; then
+  echo "  FAIL bootstrap/yaml-block-scalars.yaml is missing the yaml-block-scalars-supported obligation" >&2
   err=1
 else
-  echo "  ok   bootstrap/yaml-block-scalars.md records the obligation"
+  echo "  ok   bootstrap/yaml-block-scalars.yaml records the obligation"
 fi
 
 if ! grep -qE "yaml-block-scalars-supported" bootstrap/yaml-block-scalars-impl-pending.yaml 2>/dev/null ; then

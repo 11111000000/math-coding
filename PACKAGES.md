@@ -44,7 +44,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `bootstrap/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 1 | 5 | RESOLVED | kernel diagnostics |
 | `bootstrap/time-honesty.yaml` | `time-honesty` | 1 | 8 | RESOLVED | time-honesty distribution |
 | `bootstrap/time-honesty-storage.yaml` | `time-honesty-storage` | 1 | 9 | RESOLVED | time storage writers |
-| `bootstrap/yaml-block-scalars.md` | `yaml-block-scalars` | 2 | 9 | DECISION | audit D1/D2 (impl deferred) |
+| `bootstrap/yaml-block-scalars.yaml` | `yaml-block-scalars` | 2 | 9 | DECISION | audit D1/D2 (impl deferred) |
 | `bootstrap/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 1 | 3 | DEFERRED | records D1/D2 deferral |
 | `bootstrap/process-principles.yaml` | `process-principles` | 2 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
 | `bootstrap/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
@@ -63,7 +63,7 @@ satisfied. `./scripts/check.sh` runs them all and aggregates.
 | `cli-time-storage.sh` | `mc session-start`/`mc record` work | `bootstrap/time-honesty-storage.yaml` |
 | `process-principles.sh` | ROADMAP P1, P2, P5, P6, P7 enforced | `bootstrap/process-principles.yaml` |
 | `release-checksum-verified.sh` | SHA256 in CI for opam download | `bootstrap/infrastructure-honesty.yaml` |
-| `yaml-block-scalars.sh` | yaml-block-scalars obligation has fixtures | `bootstrap/yaml-block-scalars.md` |
+| `yaml-block-scalars.sh` | yaml-block-scalars obligation has fixtures | `bootstrap/yaml-block-scalars.yaml` |
 | `context-budget-bound.sh` | context budget not silently exceeded | `bootstrap/validate-and-context.yaml` |
 | `context-budget.sh` | context capsule produced | `bootstrap/validate-and-context.yaml` |
 | `context-priority-order.sh` | RequiredForGate > Changed > ... | `bootstrap/capsule-active-policy.yaml` |

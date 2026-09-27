@@ -56,7 +56,7 @@ scope:
     - "bootstrap/time-honesty-storage.yaml"
     - "bootstrap/gate-decision.yaml"
     - "bootstrap/priority-drift.yaml"
-    - "bootstrap/yaml-block-scalars.md"
+    - "bootstrap/yaml-block-scalars.yaml"
 
 outcomes:
   - id: cli-subcommands-listed-in-spec

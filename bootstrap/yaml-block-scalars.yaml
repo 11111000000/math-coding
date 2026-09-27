@@ -35,7 +35,7 @@ scope:
     - "tests/fixtures/yaml-block-scalars.sh"
     - "OCAML_BEST_PRACTICES.md"
     - "doc/AUDIT-0.0.11.md"
-    - "bootstrap/yaml-block-scalars.md"
+    - "bootstrap/yaml-block-scalars.yaml"
   exclusions:
     - "bootstrap/decision.yaml"
     - "bootstrap/infrastructure-honesty.yaml"
