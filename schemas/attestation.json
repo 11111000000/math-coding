@@ -46,6 +46,18 @@
         "key_id": {"type": "string"},
         "value": {"type": "string", "minLength": 1}
       }
+    },
+    "time_observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional wall-clock / token-budget / step-count observation closed against a corresponding Decision.time.estimate. Required: scale, value. Optional: observed_at, observed_by. See AGENTS.md §Honest time reporting and bootstrap/time-honesty.yaml.",
+      "required": ["scale", "value"],
+      "properties": {
+        "scale": {"enum": ["wall-clock-minutes", "token-budget", "step-count"]},
+        "value": {"type": "number", "minimum": 0},
+        "observed_at": {"$ref": "common.json#/definitions/timestamp"},
+        "observed_by": {"type": "string"}
+      }
     }
   }
 }

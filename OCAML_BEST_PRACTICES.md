@@ -1447,3 +1447,108 @@ ocamlformat option is `indicate-multiline-delimiters` (not
 the latter silently produces
 `Unknown option "indicate-multiline-deltas"`.
 
+### 11.24 YAML loader rejects flow-style sequences `[a, b, c]`
+
+The hand-rolled YAML loader in `lib/codec.ml` (look for
+`parse_yaml_pairs`/`parse_yaml_value`) only understands
+**block-style** YAML. Flow-style sequences written as
+`key: [a, b, c]` round-trip as a single `Jsonl.String` with the
+verbatim text `[a, b, c]` — `parse_yaml_scalar` treats the whole
+bracketed expression as one non-int scalar. Consumers that look
+up `obj_array` (or just key access on an Array) silently see a
+String and never find what they expect.
+
+```yaml
+# FAILS — round-trips as Jsonl.String "[p50, p80, p95, p99]"
+percentiles_available: [p50, p80, p95, p99]
+
+# WORKS — block style
+percentiles_available:
+  - p50
+  - p80
+  - p95
+  - p99
+```
+
+**Symptom**: any caller of `Codec.load_yaml_string` that expects
+an Array gets a String instead. `bin/Mathc.ml time-estimate` keys
+on `Jsonl.String ... ~percentile...` and outputs the wrong value
+without surfacing an error.
+
+**Fix (workaround, no kernel change)**: write the file in block
+style until a separate Decision extends the loader. Block style
+for sequences is `\n- item` per item.
+
+**Trigger**: any YAML file under `bin/data/`, `bootstrap/`, or
+`fixtures/` that mixes flow-style with block-style. Note that the
+existing fixtures use block style consistently, so this trap was
+only hit when bootstrapping new data files (e.g.,
+`bin/data/time-distribution.yaml`).
+
+### 11.25 YAML loader rejects flow-style mappings `{ a: 1, b: 2 }`
+
+Same loader, same reason as 11.21: flow-style mappings written
+inline as `{ key: value, ... }` are not recognised.
+
+```yaml
+# FAILS — round-trips as Jsonl.String "{ p50: 1, p95: 3 }"
+trivial: { p50: 1, p95: 3 }
+
+# WORKS — block style
+trivial:
+  p50: 1
+  p95: 3
+```
+
+**Symptom**: any consumer that looks up `p50` on the inner
+object sees `Jsonl.Null` and reports "unknown class" or "missing
+field" even though the file declares it.
+
+**Fix (workaround)**: block-style only. The mix of block-mapping
+outer + block-mapping inner keeps the file readable and the
+parser happy.
+
+**Trigger**: same as 11.21 — first hit was the time-honesty
+distribution file. Any new data file should be audited for
+flow-style before commit.
+
+### 11.26 YAML loader rejects decimal numbers
+
+The hand-rolled YAML loader's `parse_yaml_scalar` only treats
+strings of digits as `Jsonl.Int`. A decimal such as `1.6` fails
+`is_int`, fails the quoted-string check, and falls through to
+`Jsonl.String "1.6"`.
+
+```yaml
+# FAILS — Jsonl.String "1.6"
+factor: 1.6
+
+# WORKS — int * 10
+factor_x10: 16
+# then divide by 10.0 in the OCaml consumer.
+```
+
+**Symptom**: arithmetic consumers (`*.0`, division) type-error
+because they receive a String where they expected a Float. The
+current `Jsonl.value` does not even have a Float constructor
+(see `lib/jsonl.ml:5`); some int encoding is mandatory until
+the loader is extended.
+
+**Fix (workaround)**: store int * 10, divide by 10.0 in OCaml.
+The companion `bin/Mathc.ml time-estimate` subcommand does this
+transparently — see `apply_multiplier` and `interp_p50_p95`.
+
+**Fix (root cause, out of scope here)**: extending `Jsonl.value`
+with a Float constructor and teaching `parse_yaml_scalar` to
+recognise the optional fractional part of a number. This is a
+protected transition (`lib/jsonl.ml` is the canonical value
+type used by every consumer); defer to a separate Decision with
+positive and negative conformance fixtures covering floats
+(round-trip, integer-as-float, exponent form `1.0e2`, `-0.5`,
+`1.6e-3`).
+
+**Trigger**: any YAML data file that wants floats. In the
+existing repo, none do (Decision files use just ints and
+strings); the trap is hit only when introducing a new data
+file.
+

@@ -155,7 +155,9 @@ let print_usage oc =
     \  validate FILE [--format=...]     parse FILE as a decision\n\
     \  context BASE HEAD --budget N     print a JSON context capsule\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
-    \  attest FILE                      parse FILE as a JUnit XML report\n\n\
+     \  attest FILE                      parse FILE as a JUnit XML report\n\
+     \  time-estimate --class ...        print JSON forecast from declared distribution\n\n\
+
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
@@ -483,6 +485,252 @@ let[@warning "-32"] do_assess () =
       print_usage stderr;
       exit 2
 
+(* --- time-estimate subcommand (bootstrap decision time-honesty) ---
+ *
+ * Reads bin/data/time-distribution.yaml and prints a JSON
+ * reference-class forecast. Side-effect-free w.r.t. the kernel;
+ * reads one declared data file and emits a single JSON document.
+ *
+ * Exits 0 on success and emits one JSON object on stdout. Exits
+ * 2 when the class is unknown, the YAML cannot be parsed, or a
+ * required CLI flag is missing; in that case a JSON diagnostic is
+ * emitted on stderr (Unix convention, follows the existing
+ * subcommand style). *)
+
+let obj_get (k : string) (v : Jsonl.value) : Jsonl.value =
+  match v with
+  | Jsonl.Object pairs -> (
+      match List.assoc_opt k pairs with Some x -> x | None -> Jsonl.Null)
+  | _ -> Jsonl.Null
+
+let obj_string_opt (v : Jsonl.value) (k : string) : string option =
+  match obj_get k v with Jsonl.String s -> Some s | _ -> None
+
+let obj_int_opt (v : Jsonl.value) (k : string) : int option =
+  match obj_get k v with Jsonl.Int n -> Some n | _ -> None
+
+let obj_string_keys (v : Jsonl.value) : string list =
+  match v with Jsonl.Object pairs -> List.map (fun (k, _) -> k) pairs | _ -> []
+
+let load_distribution root : Jsonl.value =
+  let path = Filename.concat root "bin/data/time-distribution.yaml" in
+  match read_file path with
+  | Ok s -> (
+      try Codec.load_yaml_string s
+      with _ ->
+        Printf.fprintf stderr
+          "mc time-estimate: cannot parse %s\n" path;
+        exit 2)
+  | Error (`Sys m) ->
+      Printf.fprintf stderr "mc time-estimate: cannot read %s: %s\n" path m;
+      exit 2
+  | Error _ ->
+      Printf.fprintf stderr "mc time-estimate: cannot read %s\n" path;
+      exit 2
+
+(* Look up class C inside the classes block. Returns (p50, p95)
+   or None when the class is absent or the row is malformed. *)
+let class_data (dist : Jsonl.value) (klass : string) : (int * int) option =
+  match obj_get "classes" dist with
+  | Jsonl.Object pairs -> (
+      match List.assoc_opt klass pairs with
+      | Some row -> (
+          match (obj_int_opt row "p50", obj_int_opt row "p95") with
+          | Some p50, Some p95 -> Some (p50, p95)
+          | _ -> None)
+      | None -> None)
+  | _ -> None
+
+let int_x10_or_exit (block : Jsonl.value) (k : string) (ctx : string) : int =
+  match obj_int_opt block k with
+  | Some n -> n
+  | None ->
+      Printf.fprintf stderr
+        "mc time-estimate: missing %s in %s\n" k ctx;
+      exit 2
+
+(* Percentile for non-stored quantiles. Linear interpolation
+   between P50 and P95 (file declares only those two). P99 is
+   extrapolated by continuing the slope by 4/5 of the P50->P95
+   rise. This is documented in the file's `caveats:` block. *)
+let interp_p50_p95 p50 p95 p_percent =
+  let base = float_of_int p50 in
+  let hi = float_of_int p95 in
+  if p_percent = 50 then base
+  else if p_percent = 95 then hi
+  else if p_percent = 80 then
+    base +. (hi -. base) *. (30.0 /. 45.0)
+  else if p_percent = 99 then
+    hi +. (hi -. base) *. (4.0 /. 45.0)
+  else base +. (hi -. base) *. (float_of_int (p_percent - 50) /. 45.0)
+
+let[@warning "-32"] apply_multiplier (name : string) (count : int)
+    (dist : Jsonl.value) (estimate : float) : float * string list =
+  let block = obj_get name (obj_get "multipliers" dist) in
+  match name with
+  | "per_artifact_over_first" ->
+      let f =
+        if count <= 1 then None
+        else if count = 2 then
+          Some (int_x10_or_exit block "factor_at_count_2_x10" name)
+        else if count = 3 then
+          Some (int_x10_or_exit block "factor_at_count_3_x10" name)
+        else if count <= 5 then
+          Some (int_x10_or_exit block "factor_at_count_4_or_5_x10" name)
+        else Some (int_x10_or_exit block "factor_at_count_6_or_more_x10" name)
+      in
+      (match f with
+       | None -> (estimate, [])
+       | Some m -> (estimate *. (float_of_int m /. 10.0), [ name ]))
+  | "mixed_class_scope" ->
+      let m = int_x10_or_exit block "factor_x10" name in
+      (estimate *. (float_of_int m /. 10.0), [ name ])
+  | "cross_language_non_ocaml" ->
+      let m = int_x10_or_exit block "factor_x10" name in
+      (estimate *. (float_of_int m /. 10.0), [ name ])
+  | "test_required_with_runtime" ->
+      let m = int_x10_or_exit block "factor_x10" name in
+      (estimate *. (float_of_int m /. 10.0), [ name ])
+  | _ ->
+      Printf.fprintf stderr
+        "mc time-estimate: unknown --multiplier: %s\n" name;
+      exit 2
+
+let known_classes_json (dist : Jsonl.value) : string =
+  let keys = obj_string_keys (obj_get "classes" dist) in
+  let sorted = List.sort String.compare keys in
+  "["
+  ^ String.concat ","
+      (List.map (fun s -> Jsonl.stringify (Jsonl.String s)) sorted)
+  ^ "]"
+
+let[@warning "-32"] do_time_estimate () =
+  let class_ref = ref "" in
+  let count_ref = ref 1 in
+  let percentile_ref = ref 80 in
+  let multipliers_ref : string list ref = ref [] in
+  let set_class s = class_ref := s in
+  let set_count s =
+    match int_of_string_opt s with
+    | Some n when n >= 1 -> count_ref := n
+    | _ -> raise (Arg.Bad ("invalid --count: " ^ s))
+  in
+  let set_percentile s =
+    match s with
+    | "p50" -> percentile_ref := 50
+    | "p80" -> percentile_ref := 80
+    | "p95" -> percentile_ref := 95
+    | "p99" -> percentile_ref := 99
+    | _ -> raise (Arg.Bad ("unknown --percentile: " ^ s))
+  in
+  let add_mult s = multipliers_ref := s :: !multipliers_ref in
+  let reject_positional _ =
+    raise (Arg.Bad "no positional arguments expected")
+  in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [
+         ("--class", Arg.String set_class, " Class name (required)");
+         ("--count", Arg.String set_count, " Number of artifacts in scope");
+         ( "--percentile",
+           Arg.String set_percentile,
+           " p50 | p80 (default) | p95 | p99" );
+         ( "--multiplier",
+           Arg.String add_mult,
+           " Repeatable: per_artifact_over_first | mixed_class_scope | \
+            cross_language_non_ocaml | test_required_with_runtime" );
+       ]
+       reject_positional
+       "usage: mc time-estimate --class <name> [--count N] [--percentile p50|p80|p95|p99] [--multiplier NAME]..."
+   with
+   | Arg.Bad m ->
+       Printf.fprintf stderr "mc time-estimate: %s\n" m;
+       exit 2);
+  if !class_ref = "" then begin
+    Printf.fprintf stderr "mc time-estimate: --class is required\n";
+    exit 2
+  end;
+  let root = find_project_root (Sys.getcwd ()) in
+  let dist = load_distribution root in
+  let unit =
+    match obj_string_opt dist "unit" with Some u -> u | None -> "minutes"
+  in
+  match class_data dist !class_ref with
+  | None ->
+      let body =
+        let fields =
+          [
+            ("class", Jsonl.stringify (Jsonl.String !class_ref));
+            ("code", Jsonl.stringify (Jsonl.String "MC-CLASS-UNKNOWN"));
+            ( "known_classes",
+              Jsonl.stringify (Jsonl.String (known_classes_json dist)) );
+            ( "message",
+              Jsonl.stringify
+                (Jsonl.String ("unknown class; known: " ^ known_classes_json dist)) );
+          ]
+        in
+        let sorted =
+          List.sort (fun (a, _) (b, _) -> String.compare a b) fields
+        in
+        "{"
+        ^ String.concat ","
+            (List.map
+               (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+               sorted)
+        ^ "}"
+      in
+      Printf.fprintf stderr "%s\n" body;
+      exit 2
+  | Some (p50, p95) ->
+      let per_p = interp_p50_p95 p50 p95 !percentile_ref in
+      let est, applied_rev =
+        List.fold_left
+          (fun (e, acc) name ->
+            let e', names = apply_multiplier name !count_ref dist e in
+            (e', names @ acc))
+          (per_p, []) !multipliers_ref
+      in
+      let est_int = int_of_float (est +. 0.5) in
+      let applied_sorted = List.sort String.compare applied_rev in
+      let mults_json =
+        "["
+        ^ String.concat ","
+            (List.map (fun s -> Jsonl.stringify (Jsonl.String s))
+               applied_sorted)
+        ^ "]"
+      in
+      let body =
+        let fields =
+          [
+            ("applied_multipliers", mults_json);
+            ( "caveat",
+              Jsonl.stringify
+                (Jsonl.String
+                   "declared distribution; SWE-bench-V 2025-Q4; update via Decision") );
+            ("class", Jsonl.stringify (Jsonl.String !class_ref));
+            ("count", string_of_int !count_ref);
+            ("estimate_value", string_of_int est_int);
+            ("percentile", string_of_int !percentile_ref);
+            ( "reference",
+              Jsonl.stringify
+                (Jsonl.String "SWE-bench Verified (n=500, 2025-Q4)") );
+            ("scale", Jsonl.stringify (Jsonl.String unit));
+            ( "source",
+              Jsonl.stringify (Jsonl.String "bin/data/time-distribution.yaml") );
+          ]
+        in
+        let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+        "{"
+        ^ String.concat ","
+            (List.map
+               (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+               sorted)
+        ^ "}"
+      in
+      print_endline body;
+      exit 0
+
 (* --- attest subcommand (junit-attestation-import) --- *)
 
 (* Read FILE as a string. Same I/O semantics as validate. *)
@@ -546,6 +794,7 @@ let dispatch () =
   | "context" -> do_context ()
   | "assess" -> do_assess ()
   | "attest" -> do_attest ()
+  | "time-estimate" -> do_time_estimate ()
   | "--help" | "-h" ->
       print_usage stdout;
       exit 0

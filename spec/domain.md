@@ -212,3 +212,57 @@ Trust levels (ordered):
 ```text
 untrusted < authenticated < delegated < authoritative
 ```
+
+## ExecutionLog
+
+`ExecutionLog` is the observation that closes the time-honesty
+feedback loop (axiom A1). It records one of three observable
+scales named in AGENTS.md §Honest time reporting:
+
+```text
+wall-clock-minutes   real seconds/minutes from session start to now
+token-budget         prompt + completion tokens consumed
+step-count           tool calls / reasoning rounds performed
+```
+
+An `ExecutionLog` is observation, not certification (A0:
+`attestation != observation`). It is therefore a distinct kind
+from `Attestation`. The `lib/domain.ml kind` enum is intentionally
+unchanged — adding `ExecutionLog` there would conflate two
+semantics; instead ExecutionLog is a separate record
+(`Domain.execution_log`).
+
+```yaml
+id: sha256:deadbeef...
+kind: execution_log
+scale: wall-clock-minutes   # token-budget | step-count
+value: 12.5                 # wall-clock-minutes; integer for step-count
+observed_at: 2026-09-26T12:00:00Z
+observed_by: human:devname  # or runtime harness identity
+source_decision: time-honesty@rev:2b853ca
+```
+
+`ExecutionLog.scale` and `ExecutionLog.value` MUST name a scale
+the agent can defend (A1: every commitment has a path to an
+observation). A `Decision.time.estimate` whose corresponding
+`ExecutionLog.value` lands outside the reference-class percentile
+band opens an `AssuranceGap` of kind `time-estimate-exceeded`
+(proposed; not implemented in this revision).
+
+No `ExecutionLog` is constructed by the bootstrap parser. The
+runtime harness, when implemented, is the only writer. Agents
+read but never instantiate.
+
+## Relations (extended)
+
+Relations remain as listed above. `ExecutionLog` does not add
+new relation types in this revision.
+
+## Identity and Trust (extended)
+
+`ExecutionLog.observed_by` may carry any `id` from the same
+identity classes as other artifacts. A runtime harness writes
+under its own forge identity. The trust level of an ExecutionLog
+is **declared** by the writer until the kernel can verify the
+harness signature; an unsupported ExecutionLog is therefore
+`Untrusted` until promoted.

@@ -146,6 +146,59 @@ Run all available relevant checks. If a check cannot run, state why.
 - Do not store private chain-of-thought, secrets, or unnecessary
   personal data in project artifacts.
 
+## Honest time reporting
+
+When the agent makes a claim about how long a past or future task
+"took", "will take", or "should take", it MUST name one of three
+observable scales, cite a reference class, and not combine the
+three scales into a single natural-language estimate.
+
+The three allowed scales are:
+
+```text
+wall-clock-minutes   real seconds/minutes from session start to now
+                     (or the runtime harness's own clock)
+token-budget         prompt + completion tokens consumed
+step-count           tool calls / reasoning rounds performed
+```
+
+These three are independently observable. Wall-clock is recorded
+by the user or runtime harness; token-budget by the API; step-count
+by the harness. No fourth scale is acceptable without an axiomatic
+justification (A0 separation).
+
+For a forward-looking estimate (e.g., "this refactor will take
+~20 min"), the agent MUST cite a reference class. The default
+reference class for software-engineering work in this repository
+is `bin/data/time-distribution.yaml`, which is a declared
+distribution from SWE-bench Verified (n=500, 2025-Q4 frontier). The
+canonical estimator command is:
+
+```text
+mc time-estimate --class <name> --count N --percentile p50|p80|p95|p99
+```
+
+The agent MUST NOT replace this estimator with private intuition
+or with phrases such as "a few days of focused thought" or "a
+month of work" that combine scales or omit a reference class.
+
+Anti-patterns:
+
+- "I have spent days on this." — unless wall-clock is recorded.
+- "This is a one-month project." — unless reference-class uplifted
+  (P95 of SWE-bench-V for class `kernel-change` is 150 min; a
+  one-month claim requires a different reference class with a
+  decision citing it).
+- "Quick fix, a few minutes." — when actual time is unknown.
+- Mixing scales: "a week of careful thinking" confuses wall-clock
+  (a week) with subjective attention (careful thinking). Pick
+  one scale; the other must be in a separate claim.
+
+This norm is normative (see axiom A1 Feedback — every commitment
+must have a path to an observation). The agent's duration claims
+are commitments. Without an observable scale + reference class they
+are wishes.
+
 ## Self-application
 
 Changes to this protocol, the constitution, schemas, canonicalization,

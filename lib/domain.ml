@@ -116,6 +116,25 @@ type change = {
   detected_triggers : string list;
 }
 
+(* ExecutionLog — declared by bootstrap/time-honesty.yaml.
+   Holds the wall-clock / token-budget / step-count observation
+   that closes the time-honesty feedback loop. The runtime
+   harness writes this; the agent cites it. Never constructed by
+   the parser in commit 2b853ca; it is added now as a domain
+   entity so that future parsers and attesters have a sealed
+   type. The new constructor `ExecutionLog` is intentionally
+   NOT added to `kind` (which stays sealed at five); ExecutionLog
+   is observation, Attestation is certification — they are
+   distinct per A0 (Separation). *)
+type execution_scale = [ `WallClockMinutes | `TokenBudget | `StepCount ]
+
+type execution_log = {
+  scale : execution_scale;
+  value : float;
+  observed_at : timestamp;
+  observed_by : id;
+}
+
 type gap_kind =
   | MissingEvidence
   | StaleEvidence
