@@ -431,7 +431,7 @@ Deficits reported in the `Notes:` sections of commits since the
 v0.0.5 cut. None are blocking; each is recorded for the next
 release.
 
-**Resolution status (updated 2026-09-27 at v3-alpha-0.0.13)**: D3
+**Resolution status (updated 2026-09-27 at v3-alpha-0.0.14)**: D3
 was closed between v0.0.11 and v0.0.12 by the
 `bootstrap/priority-drift.yaml` decision and the
 `tests/fixtures/spec-vs-bp-priority.sh` fixture. D1 and D2 were
@@ -439,12 +439,17 @@ also closed by `bootstrap/yaml-block-scalars.md` (rev 2) and
 `tests/fixtures/yaml-block-scalars.sh`. The new D4 (CLI
 subcommand catalog; recommendation §Process improvements item
 13) was closed at v3-alpha-0.0.13 by `bootstrap/spec-cli-catalog.md`
-and `tests/fixtures/spec-catalog-present.sh`. The original D4
-(SHA-256 RFC vectors, listed as `D4`) remains open; the two
-deficits share a label by coincidence (the parent v0.0.13 task
-instruction labelled the new deficit "D4" while the audit
-already used the slot). D5–D8 remain open; see the body of
-each row for the recommended remedy.
+and `tests/fixtures/spec-catalog-present.sh`. D7 (single
+decision file covering two adapters) was closed at
+v3-alpha-0.0.14 by `bootstrap/adapters.md@2`, which adds the
+git-changed-files-adapter obligation as a parallel obligation
+to the existing junit-attestation-import obligation (audit
+remedy (b)). The original D4 (SHA-256 RFC vectors, listed as
+`D4`) remains open; the two deficits share a label by
+coincidence (the parent v0.0.13 task instruction labelled the
+new deficit "D4" while the audit already used the slot).
+D5, D6, D8 remain open; see the body of each row for the
+recommended remedy.
 
 | # | Deficit | Reported in | Root cause | Recommended remedy |
 |---|---|---|---|---|
@@ -454,7 +459,7 @@ each row for the recommended remedy.
 | D4 | `lib/digest.ml` SHA-256 implementation has not been validated against RFC 6234 vectors. `tests/digest_vectors.ml` exists but its 3 tests are marked `xfail until Digest is fixed`. | `OCAML_BEST_PRACTICES §5` and the `xfail until Digest is fixed` label visible in `dune test` output. | Hand-rolled SHA-256 (`lib/digest.ml:1-176`); conformance corpus would skip. | Until the vectors pass, do not use `Digest.sha256_hex` for canonicalization. `OCAML_BEST_PRACTICES §10.4` item 1 lists this as the top-priority pre-3.0-beta task. |
 | D5 | `bin/mathc_main.ml` is a 1-line stale file containing the v0.0.5 hello-string. `bin/dune` lists only `Mathc`, so `mathc_main.ml` is not compiled, but it lingers in the tree. | `OCAML_BEST_PRACTICES §9.4` and §10.4 item 7 (recorded at v3-alpha-0.0.6). | History: `main.ml → mathc.ml → Mathc.ml`. | Delete `bin/mathc_main.ml`. Trivial cleanup; not blocking. |
 | D6 | The 8 obligations in `bootstrap/decision.yaml` have manual-only verifiers. The kernel that would auto-verify them does not exist. | `bootstrap/decision.yaml` and `bootstrap/rationale.md`. | This is the bootstrap protocol itself, not a bug. | Track; expire when the released 3.0 kernel successfully checks this repository and its conformance corpus (`AGENTS.md` §Bootstrap gate). |
-| D7 | `bootstrap/adapters.md` does not yet record a `git-changed-files-adapter` obligation as its own decision entry. The obligation appears in the v0.0.8 commit message and in `bootstrap/validate-and-context.md`'s `scope.capabilities`, but the adapters decision file groups it under the JUnit obligation. | `9f6d595` (the v0.0.8 commit added `bootstrap/adapters.md`; the message body is essentially empty; only `bcce74d` and `5486c13` carry the per-obligation text). | The two adapters landed in a single decision file but two implementation commits. | Either (a) split into two decision files (`adapters-git.md`, `adapters-junit.md`) for clarity, or (b) leave as is and record in the audit that the decision covers two obligations. (b) is the cheaper choice. |
+| D7 | `bootstrap/adapters.md` does not yet record a `git-changed-files-adapter` obligation as its own decision entry. The obligation appears in the v0.0.8 commit message and in `bootstrap/validate-and-context.md`'s `scope.capabilities`, but the adapters decision file groups it under the JUnit obligation. | `9f6d595` (the v0.0.8 commit added `bootstrap/adapters.md`; the message body is essentially empty; only `bcce74d` and `5486c13` carry the per-obligation text). | The two adapters landed in a single decision file but two implementation commits. | **RESOLVED at v3-alpha-0.0.14**: see `bootstrap/adapters.md@2`, which adds the `git-changed-files-adapter` obligation as a parallel obligation alongside the existing `junit-attestation-import` obligation (the audit's remedy (b)). The new obligation is anchored to the existing fixture `tests/fixtures/git-adapter.sh`, which is invoked by `./scripts/check.sh` and asserts that `mc assess BASE HEAD` exits 0 and emits a JSON array containing the expected file paths. The decision file also adds the corresponding `git-changed-files-adapter` outcome, capability, and scope.paths entries (`lib/git/git_diff.ml`, `lib/git/dune`, `tests/fixtures/git-adapter.sh`), and updates `relations.addresses` to include this audit. No new dependency, no fixture changes, no kernel changes. `./scripts/check.sh` remains at 26 passes (no new failures). (Original recommendation was: either split into two decision files or leave as-is and document that one file covers two obligations. The (b) branch of that recommendation was implemented.) |
 | D8 | `mc validate` synthesises a single coarse diagnostic ("missing or invalid required field") without naming the specific field. The kernel's `Decision.parse_decision` returns `Some _ \| None`, not a typed `Diagnostic.t option`. | `bootstrap/validate-and-context.md` assumption `parse-decision-rejection-reason-coarse`. | Decision parser is binary accept/reject; finer diagnostics are a 3.0-beta item. | Promote `Decision.parse_decision` to return `Diagnostic.t option` in 3.0-beta; until then, the coarse diagnostic is documented. |
 | D4′ | **NEW D4 (parent task label; renamed `D4′` here to disambiguate from the SHA-256 deficit above).** The mathc CLI subcommand list (version, validate, context, assess, attest, gate, session-start, record, stats, time-estimate) was documented only in `bin/Mathc.ml`'s header comment; the spec named only the priority order and exit codes. The audit's §Process improvements item 13 named this gap. | `doc/AUDIT-0.0.11.md` §Process improvements item 13. | The spec describes kernel semantics; the CLI surface was an implementation summary. | **RESOLVED at v3-alpha-0.0.13**: see `bootstrap/spec-cli-catalog.md` obligation `spec-cli-catalog-promoted` (this is the new decision file) and the fixture `tests/fixtures/spec-catalog-present.sh`. The new `spec/semantics.md` "CLI subcommands" section enumerates every subcommand bin/Mathc.ml implements at HEAD with synopsis, input, output, exit code, and the bootstrap obligation that justifies each. The fixture is invoked by `./scripts/check.sh` and exits 1 with the missing-name list on any absent canonical subcommand. `bin/Mathc.ml` is unchanged. (Original recommendation was: a spec section listing `mc validate`, `mc context`, `mc assess`, `mc attest`. That recommendation was implemented, and extended to the full ten-subcommand surface.) |
 
@@ -473,7 +478,7 @@ file. There is no missing obligation; the situation is a
 documentation gap, not a policy deficit.)
 
 **Closure status of the parent task's three items (updated
-2026-09-27 at v3-alpha-0.0.13)**:
+2026-09-27 at v3-alpha-0.0.14)**:
 
 - D1 — **closed** at v3-alpha-0.0.12 by
   `bootstrap/yaml-block-scalars.md` (rev 2) and
@@ -482,8 +487,12 @@ documentation gap, not a policy deficit.)
   `bootstrap/priority-drift.yaml` (rev 2) and
   `tests/fixtures/spec-vs-bp-priority.sh` (this commit's
   work).
-- D7 — **unchanged**; the documentation-gap note above still
-  applies.
+- D7 — **closed** at v3-alpha-0.0.14 by
+  `bootstrap/adapters.md@2`, which adds the
+  `git-changed-files-adapter` obligation as a parallel
+  obligation alongside `junit-attestation-import`. The audit's
+  remedy (b) was implemented: a single decision file covers
+  both obligations, and the audit now records that fact.
 
 **Closure status of the v0.0.13 CLI subcommand task (updated
 2026-09-27 at v3-alpha-0.0.13)**:
