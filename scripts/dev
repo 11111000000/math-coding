@@ -15,6 +15,7 @@
 #   scripts/dev lock-update     — refresh flake.lock
 #   scripts/dev shell           — drop into nix develop .#test
 #   scripts/dev run FILE        — build + run mathc.exe FILE
+#   scripts/dev close-branches — list branches merged into main
 
 set -eu
 cd "$(dirname "$0")/.."
@@ -100,6 +101,26 @@ case "$cmd" in
     if [ $# -lt 1 ]; then usage; fi
     file="$1"
     run_in_shell "dune build --root . bin/mathc.exe && _build/default/bin/mathc.exe '$file'"
+    ;;
+
+  close-branches)
+    # Branch-hygiene: list branches whose tip is reachable from main
+    # (already merged) and offer to delete them. Stale branches
+    # accumulate worktree noise (ROADMAP.md §P4). Refuses to delete
+    # branches that have unique commits ahead of main.
+    main_sha=$(git rev-parse main)
+    for b in $(git branch --format='%(refname:short)' \
+               | grep -v '^\*' \
+               | grep -vE '^(main|integration-tip)$'); do
+      sha=$(git rev-parse "$b" 2>/dev/null) || continue
+      if git merge-base --is-ancestor "$sha" main 2>/dev/null; then
+        echo "MERGED: $b  ($sha)"
+      else
+        echo "UNIQUE: $b  ($sha) — kept"
+      fi
+    done
+    echo
+    echo "To delete merged branches: git branch -d <name>"
     ;;
 
   ""|-h|--help|help)
