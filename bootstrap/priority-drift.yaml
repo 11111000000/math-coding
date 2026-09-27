@@ -1,0 +1,167 @@
+---
+schema: math-coding/3.0-alpha
+id: priority-drift
+revision: 1
+
+intent: |
+  Close deficit D3 from doc/AUDIT-0.0.11.md by adding a machine
+  check that the priority table in spec/semantics.md
+  ("context-prioritisation") and the mirror table in
+  OCAML_BEST_PRACTICES.md §10.5 stay byte-equivalent. The spec
+  is authoritative (`bootstrap/validate-and-context.md` line 124
+  countercase: "the priority order is a kernel policy statement,
+  not a coding convention"); the practices file mirrors the
+  table for implementer convenience. Two copies, maintained by
+  hand, will drift over time unless a fixture compares them on
+  every check.sh run.
+
+commitment: |
+  tests/fixtures/spec-vs-bp-priority.sh exits 0 when the
+  normative priority-ordering line in spec/semantics.md
+  "context-prioritisation" is byte-equivalent (modulo
+  whitespace) to the corresponding line in
+  OCAML_BEST_PRACTICES.md §10.5, and exits 1 (printing the diff)
+  otherwise. The fixture is part of the standard
+  ./scripts/check.sh aggregator; a drift is therefore caught
+  before the next tag is cut. The check is a pure grep-and-awk
+  script; no new dependencies, no kernel change, no schema
+  change.
+
+scope:
+  capabilities:
+    - priority-drift-detector
+  paths:
+    - "tests/fixtures/spec-vs-bp-priority.sh"
+    - "bootstrap/priority-drift.yaml"
+    - "OCAML_BEST_PRACTICES.md"
+    - "doc/AUDIT-0.0.11.md"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+
+outcomes:
+  - id: priority-tables-locked
+    statement: |
+      The priority-ordering line in spec/semantics.md (the
+      ```text block under "context-prioritisation") is
+      byte-equivalent to the priority-ordering line in
+      OCAML_BEST_PRACTICES.md §10.5. Either both are present
+      and identical, or both are absent. Any other state is a
+      drift and the fixture reports it with a unified diff.
+
+countercase: |
+  Why a fixture instead of code review? Because two copies of
+  the same line, maintained by hand, will drift over time. The
+  spec copy and the practices mirror exist for different
+  audiences (kernel spec vs. OCaml implementer) but the data
+  must be the same data; the smallest change to the order is a
+  protected policy transition (spec/semantics.md line 178: "A
+  change to the priority order is itself a protected policy
+  transition"), and code review alone has already allowed one
+  audit (doc/AUDIT-0.0.11.md D3) to flag this gap.
+
+  Why not put the table only in OCAML_BEST_PRACTICES.md and
+  delete it from the spec? Because spec/semantics.md names the
+  table a kernel policy statement (line 124 of
+  bootstrap/validate-and-context.md says so explicitly: "the
+  priority order is a kernel policy statement, not a coding
+  convention. The spec is the authoritative source"). Removing
+  the table from the spec would invert the policy hierarchy.
+
+  Why not put the table only in the spec and delete it from
+  OCAML_BEST_PRACTICES.md? Because the practices file is the
+  hand-held reference for OCaml implementers who don't read the
+  spec; removing the table would not stop the mirror from
+  existing, it would just make the mirror a memory of a memory.
+
+  Why not auto-generate the practices table from the spec at
+  build time? Because the practices file is a single Markdown
+  document, not a templated artifact; a generator would add a
+  step to the build pipeline and a dependency on the
+  generator. The fixture approach is cheaper: it asserts the
+  invariant, doesn't try to enforce the policy by rewriting
+  either file.
+
+  Why byte-equivalent rather than semantically equivalent?
+  Because the order is six priority names separated by " > ";
+  a semantic equivalence check (parse the names, sort them,
+  compare) would also work, but a byte-equality check is
+  simpler, faster, and produces a useful diff on failure. The
+  cost is that an editor who reformats the line (say,
+  inserting a space after ">") trips the fixture — that is the
+  intended behaviour, because any visible edit to one table
+  must be reflected in the other.
+
+assumptions:
+  - id: no-new-deps
+    state: assumed
+    statement: |
+      The fixture uses only POSIX shell, grep, sed, awk, and
+      diff. No new executable, no new package, no new dune
+      stanza. The fixture is invoked by ./scripts/check.sh via
+      the same aggregator that runs every other fixture.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future extension to the priority table includes
+      nested structure (e.g., a per-priority rationale or a
+      sub-bucket), the grep-and-awk check must be replaced by a
+      structural diff. That is a separate Decision; this one
+      does not anticipate it.
+    review_on:
+      - signal: priority-table-becomes-structured
+  - id: drift-detection-trumps-trivially-passing
+    state: assumed
+    statement: |
+      The fixture must produce exit 1 on drift, not silently
+      pass because the table is absent. Per spec/semantics.md
+      line 178, the table is the v3-alpha-0.0.7 ordering and
+      MUST remain present in both files. The fixture treats
+      "table absent in one file but present in the other" as
+      drift and reports it; it does not treat "table absent in
+      both files" as a pass.
+    owner: human:maintainer
+    consequence_if_false: |
+      A future agent who deletes the mirror in
+      OCAML_BEST_PRACTICES.md "to simplify" would see the
+      fixture pass and the deficit would re-open silently. The
+      assumption encodes the rule that drift includes
+      disappearance, not just text mismatch.
+    review_on:
+      - signal: spec-or-bp-table-deleted-intentionally
+
+obligations:
+  - id: priority-drift-detector
+    outcome: priority-tables-locked
+    claim: |
+      The priority-ordering line in spec/semantics.md
+      "context-prioritisation" is byte-equivalent (modulo
+      whitespace) to the priority-ordering line in
+      OCAML_BEST_PRACTICES.md §10.5. The fixture
+      tests/fixtures/spec-vs-bp-priority.sh exits 0 when the
+      two lines are equal and exits 1 (printing the diff) when
+      they differ or when exactly one of them is missing. The
+      fixture is run by ./scripts/check.sh; a drift therefore
+      breaks check.sh before it can reach the tag step.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/spec-vs-bp-priority.sh
+          result: pass
+
+reversal:
+  - signal: spec-and-practices-merge
+    action: archive-decision-when-priority-table-stops-being-mirrored
+  - signal: drift-fixture-becomes-too-coarse
+    action: replace-grep-with-structural-diff-when-priority-table-becomes-structured
+
+risk:
+  declared_triggers:
+    - spec-vs-doc-drift
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - doc/AUDIT-0.0.11.md#D3
+    - bootstrap/validate-and-context.md#risk.priority-order-drift-between-spec-and-implementation
+  superseded_by: []
