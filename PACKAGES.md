@@ -39,7 +39,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `bootstrap/priority-drift.yaml` | `priority-drift` | 2 | 5 | RESOLVED | audit D3 |
 | `bootstrap/spec-cli-catalog.md` | `spec-cli-catalog` | 1 | 8 | RESOLVED | audit D4 |
 | `bootstrap/adapters.yaml` | `adapters` | 2 | 6 | RESOLVED | audit D7 (git + junit) |
-| `bootstrap/capsule-active-policy.md` | `capsule-active-policy` | 1 | 7 | RESOLVED | capsule priority class |
+| `bootstrap/capsule-active-policy.yaml` | `capsule-active-policy` | 1 | 7 | RESOLVED | capsule priority class |
 | `bootstrap/gate-decision.md` | `gate-decision` | 1 | 7 | SCAFFOLD | mc gate (no store yet) |
 | `bootstrap/parse-acceptance-diagnostics.md` | `parse-acceptance-diagnostics` | 1 | 5 | RESOLVED | kernel diagnostics |
 | `bootstrap/time-honesty.yaml` | `time-honesty` | 1 | 8 | RESOLVED | time-honesty distribution |
@@ -66,8 +66,8 @@ satisfied. `./scripts/check.sh` runs them all and aggregates.
 | `yaml-block-scalars.sh` | yaml-block-scalars obligation has fixtures | `bootstrap/yaml-block-scalars.md` |
 | `context-budget-bound.sh` | context budget not silently exceeded | `bootstrap/validate-and-context.yaml` |
 | `context-budget.sh` | context capsule produced | `bootstrap/validate-and-context.yaml` |
-| `context-priority-order.sh` | RequiredForGate > Changed > ... | `bootstrap/capsule-active-policy.md` |
-| `context-required-for-gate.sh` | RequiredForGate classifier correct | `bootstrap/capsule-active-policy.md` |
+| `context-priority-order.sh` | RequiredForGate > Changed > ... | `bootstrap/capsule-active-policy.yaml` |
+| `context-required-for-gate.sh` | RequiredForGate classifier correct | `bootstrap/capsule-active-policy.yaml` |
 | `context-truncated-omitted.sh` | omitted items listed on truncation | `bootstrap/validate-and-context.yaml` |
 | `decision-parses.sh` | Decision.parse_decision works | `bootstrap/kernel-conformance-runner.yaml` |
 | `digest-vectors-coverage.sh` | digest vectors are exercised | `OCAML_BEST_PRACTICES §5` |

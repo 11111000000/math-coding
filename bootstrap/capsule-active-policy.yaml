@@ -34,7 +34,7 @@ scope:
     - "tests/fixtures/context-budget-bound.sh"
     - "tests/fixtures/context-required-for-gate.sh"
     - "tests/fixtures/context-priority-order.sh"
-    - "bootstrap/capsule-active-policy.md"
+    - "bootstrap/capsule-active-policy.yaml"
   exclusions:
     - "lib/codec.ml"
     - "lib/decision.ml"
