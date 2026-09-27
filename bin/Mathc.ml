@@ -233,10 +233,12 @@ let print_usage oc =
     \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\
     \  session-start                    write .local/session-start ISO timestamp\n\
     \  record --decision-id ID ...      append event to bootstrap/execution-logs.jsonl\n\
-    \  stats [--class N] [--scale S]    emit empirical distribution JSON\n\n\
+    \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
+     exit codes:\n\
+    \  0 accept  1 reject  2 input error  3 internal error\n"
      exit codes:\n\
     \  0 accept  1 reject  2 input error  3 internal error\n"
 
@@ -1049,6 +1051,172 @@ let[@warning "-32"] do_record () =
      exit 2);
   Printf.printf "%s\n%!" line
 
+(* --- stats subcommand (bootstrap decision time-honesty-storage) ---
+ *
+ * Aggregates events from bootstrap/execution-logs.jsonl into a
+ * JSON summary. Filters: --scale, --class, --since (ISO 8601
+ * UTC; lexicographic comparison is correct for this format).
+ * Quantiles are emitted only when n >= 30 (Flyvbjerg /
+ * Kahneman reference-class sample size threshold); below that
+ * a warning names the declared floor as the recommended
+ * reference. *)
+
+let[@warning "-32"] read_jsonl_events root =
+  let path = Filename.concat root "bootstrap/execution-logs.jsonl" in
+  if not (Sys.file_exists path) then []
+  else
+    try
+      let raw = In_channel.with_open_bin path In_channel.input_all in
+      raw
+      |> String.split_on_char '\n'
+      |> List.filter (fun s -> s <> "")
+      |> List.filter_map (fun line ->
+             try Some (line, Jsonl.parse line)
+             with _ -> None)
+    with _ -> []
+
+let[@warning "-32"] event_field_string ev key =
+  let rec field = function
+    | [] -> None
+    | (k, v) :: _ when k = key -> (
+        match v with
+        | Jsonl.String s -> Some s
+        | _ -> None)
+    | _ :: rest -> field rest
+  in
+  field ev
+
+let[@warning "-32"] event_field_int ev key =
+  let rec field = function
+    | [] -> None
+    | (k, v) :: _ when k = key -> (
+        match v with
+        | Jsonl.Int n -> Some n
+        | _ -> None)
+    | _ :: rest -> field rest
+  in
+  field ev
+
+(* Linear-interpolation quantile for sorted list xs and percent
+   p in [0, 100]. Empty list -> 0. *)
+let[@warning "-32"] quantile (xs : int list) (p : float) =
+  match xs with
+  | [] -> 0
+  | _ ->
+      let sorted = List.sort compare xs in
+      let n = List.length sorted in
+      let pos = (p /. 100.0) *. float_of_int (n - 1) in
+      let lo = int_of_float pos in
+      let hi = min (lo + 1) (n - 1) in
+      let frac = pos -. float_of_int lo in
+      let a = List.nth sorted lo in
+      let b = List.nth sorted hi in
+      int_of_float
+        ((float_of_int a +. (float_of_int (b - a) *. frac)) +. 0.5)
+
+let[@warning "-32"] do_stats () =
+  let scale = ref "" in
+  let class_opt = ref "" in
+  let since = ref "" in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [
+         ("--scale", Arg.String (fun s -> scale := s),
+          " wall-clock-minutes | step-count");
+         ("--class", Arg.String (fun s -> class_opt := s),
+          " Task class name (optional)");
+         ("--since", Arg.String (fun s -> since := s),
+          " ISO 8601 UTC timestamp; events before this are filtered");
+       ]
+       (fun _ -> raise (Arg.Bad "no positional arguments expected"))
+       "usage: mc stats [--scale S] [--class C] [--since ISO]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mc stats: %s\n" m;
+     exit 2);
+  let root = find_project_root (Sys.getcwd ()) in
+  let pairs =
+    read_jsonl_events root
+    |> List.filter_map (fun (_line, v) ->
+           match v with
+           | Jsonl.Object ps ->
+               let scale_ok =
+                 !scale = ""
+                 || (match event_field_string ps "scale" with
+                    | Some s -> s = !scale
+                    | None -> false)
+               in
+               let class_ok =
+                 !class_opt = ""
+                 || (match event_field_string ps "class" with
+                    | Some s -> s = !class_opt
+                    | None -> false)
+               in
+               let since_ok =
+                 !since = ""
+                 || (match event_field_string ps "recorded_at" with
+                    | Some t -> t >= !since
+                    | None -> false)
+               in
+               if scale_ok && class_ok && since_ok then Some ps else None
+           | _ -> None)
+  in
+  let values =
+    List.filter_map (fun ps -> event_field_int ps "value") pairs
+  in
+  let n = List.length values in
+  let threshold = 30 in
+  let quantiles_obj =
+    if n >= threshold then
+      "{" ^ String.concat ","
+        [
+          Jsonl.stringify (Jsonl.String "p50")
+          ^ ":"
+          ^ string_of_int (quantile values 50.0);
+          Jsonl.stringify (Jsonl.String "p80")
+          ^ ":"
+          ^ string_of_int (quantile values 80.0);
+          Jsonl.stringify (Jsonl.String "p95")
+          ^ ":"
+          ^ string_of_int (quantile values 95.0);
+          Jsonl.stringify (Jsonl.String "p99")
+          ^ ":"
+          ^ string_of_int (quantile values 99.0);
+        ] ^ "}"
+    else Jsonl.stringify Jsonl.Null
+  in
+  let warning =
+    if n < threshold then
+      Printf.sprintf
+        "insufficient samples (n=%d < %d); declared floor in \
+         bin/data/time-distribution.yaml still applies"
+        n threshold
+    else ""
+  in
+  let fields =
+    [
+      ("class", Jsonl.stringify (Jsonl.String !class_opt));
+      ("n", Jsonl.stringify (Jsonl.Int n));
+      ("quantiles", quantiles_obj);
+      ("scale", Jsonl.stringify (Jsonl.String !scale));
+      ("since", Jsonl.stringify (Jsonl.String !since));
+      ("source", Jsonl.stringify
+        (Jsonl.String "bootstrap/execution-logs.jsonl"));
+      ("threshold", Jsonl.stringify (Jsonl.Int threshold));
+    ]
+    @ (if warning <> "" then
+         [ ("warning", Jsonl.stringify (Jsonl.String warning)) ]
+       else [])
+  in
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+  print_endline
+    ("{"
+    ^ String.concat ","
+        (List.map
+           (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+           sorted)
+    ^ "}")
+
 (* --- attest subcommand (junit-attestation-import) --- *)
 
 (* Read FILE as a string. Same I/O semantics as validate. *)
@@ -1222,6 +1390,7 @@ let dispatch () =
   | "gate" -> do_gate ()
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()
+  | "stats" -> do_stats ()
   | "--help" | "-h" ->
       print_usage stdout;
       exit 0
