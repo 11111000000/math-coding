@@ -136,11 +136,20 @@
           '';
         };
 
-        # ocamlformat-fmt-clean: pre-commit-hooks.nix run for shellcheck
+         # ocamlformat-fmt-clean: pre-commit-hooks.nix run for shellcheck
         # and ocamlformat. The dune-fmt check itself is in scripts/fmt-check.sh,
         # invoked by the fmt-clean fixture; it is also wired here via the
-        # ocamlformat hook so `nix flake check` catches drift on every
+        # ocamlformat hook so `nix flake check` catches formatting drift on every
         # commit, not only when scripts/check.sh runs.
+        #
+        # Plus a decision-fixture-co-commit hook: a commit that touches
+        # any kernel/protected file under lib/ or bin/ or spec/ MUST
+        # also touch at least one bootstrap/*.yaml (decisions) and at
+        # least one tests/fixtures/*.sh (fixture) in the same commit,
+        # OR be a pure-deferral decision. This closes the T4/T6-style
+        # "kernel change without bootstrap decision" deficit observed
+        # in the 2026-09-27 session (see ROADMAP.md §P1). Implemented
+        # as a tiny shell script invoked from pre-commit-hooks.nix.
         checks.fmt = pre-commit-hooks.lib.${system}.run {
           src = ./.;
           hooks = {
@@ -166,9 +175,19 @@
             ocamlformat = {
               enable = true;
               # Pin to the conventional profile; see .ocamlformat.
-              # dune-promote or dune fmt runs on commit; CI failures
-              # block merge.
               args = [ "--profile" "conventional" "-m" "80" ];
+            };
+            # decision-fixture-co-commit: ensure that any commit
+            # touching kernel files (lib/, bin/Mathc.ml, spec/) also
+            # touches bootstrap/*.yaml (decision) and tests/fixtures/*.sh
+            # (fixture). The script returns nonzero when the rule is
+            # violated; pre-commit-hooks.nix surfaces the failure
+            # before the commit lands.
+            decision-fixture-co-commit = {
+              enable = true;
+              entry = ./scripts/pre-commit/decision-fixture-co-commit.sh;
+              types = [ "ocaml" "shell" "markdown" "yaml" ];
+              pass_filenames = true;
             };
           };
         };
