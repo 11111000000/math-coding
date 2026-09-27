@@ -845,7 +845,16 @@ let[@warning "-32"] write_session_start () =
   let root = find_project_root (Sys.getcwd ()) in
   let path = read_session_start_path root in
   ensure_dir (Filename.dirname path);
-  let ts = now_iso () in
+  (* MATH_CODING_FIXED_TIME, when set, overrides the wall-clock
+     timestamp. Cram tests set this to make session-start output
+     deterministic across runs; the env var is documented in
+     OCAML_BEST_PRACTICES §11.16 alongside the cram-test path
+     fragility fix. *)
+  let ts =
+    match Sys.getenv_opt "MATH_CODING_FIXED_TIME" with
+    | Some s when String.length s > 0 -> s
+    | _ -> now_iso ()
+  in
   let oc = open_out path in
   output_string oc ts;
   output_char oc '\n';

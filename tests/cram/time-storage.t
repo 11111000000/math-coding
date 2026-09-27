@@ -12,14 +12,14 @@ because the cram sandbox's `.git` is a stub and `git config
 user.email` errors out (we cannot reasonably rely on the
 fallback path inside a sandbox).
 
-Session-start writes a fresh ISO 8601 UTC anchor; we use cram's
-character-class wildcards for the timestamp and exit-status
-assertion via [N].
+Session-start writes a fresh ISO 8601 UTC anchor; we set
+MATH_CODING_FIXED_TIME so the timestamp is deterministic across
+runs. The cram body hard-codes the fixed value it asked for.
 
   $ mathc="$INSIDE_DUNE/bin/mathc.exe"
   $ rm -f "$DUNE_SOURCEROOT/.local/session-start" "$DUNE_SOURCEROOT/bootstrap/execution-logs.jsonl"
 
-  $ MATH_CODING_USER=human:test@local MATH_CODING_ROOT="$DUNE_SOURCEROOT" "$mathc" session-start
+  $ MATH_CODING_USER=human:test@local MATH_CODING_FIXED_TIME=2026-09-27T07:07:17Z MATH_CODING_ROOT="$DUNE_SOURCEROOT" "$mathc" session-start
   "2026-09-27T07:07:17Z"
 
 mc record --scale wall-clock-minutes REJECTS --value. The runtime
@@ -78,5 +78,5 @@ scale (session-start was used only to test the error path).
 mc session-start cleans .local/session-start by overwriting it.
 
   $ rm -f "$DUNE_SOURCEROOT/.local/session-start"
-  $ MATH_CODING_USER=human:test@local MATH_CODING_ROOT="$DUNE_SOURCEROOT" "$mathc" session-start
+  $ MATH_CODING_USER=human:test@local MATH_CODING_FIXED_TIME=2026-09-27T07:07:18Z MATH_CODING_ROOT="$DUNE_SOURCEROOT" "$mathc" session-start
   "2026-09-27T07:07:18Z"
