@@ -1,0 +1,95 @@
+# math-coding 3.0-alpha — time reference-class distribution.
+#
+# This file is a DECLARED distribution. It is NOT derived from
+# math-coding itself. It is the floor of the reference class that
+# `mc time-estimate` (bin/Mathc.ml) uses for outside-view forecasting.
+#
+# Schema: math-coding/time-distribution-3.0-alpha
+# Source: SWE-bench Verified (n=500, 2025-Q4 frontier models)
+# URL:    https://www.swebench.com/verified
+# Declared: 2026-09-26 by human:maintainer
+# Update rule: edit this file only via a Decision in bootstrap/.
+#
+# NOTE on YAML encoding. The math-coding YAML parser does not
+# yet understand:
+#   - decimal numbers (parses `1.6` as the string "1.6");
+#   - flow-style sequences `[a, b]` or mappings `{ a: 1, b: 2 }`.
+# Use:
+#   - integers; for fractions store int*10 and divide by 10.0 in OCaml;
+#   - block-style with leading `- ` for sequences;
+#   - block-style with leading `key:` on its own line for mappings.
+
+unit: minutes
+
+percentiles_available_p50: 50
+percentiles_available_p80: 80
+percentiles_available_p95: 95
+percentiles_available_p99: 99
+
+# P80 is the default percentile for forward forecasts. P99 is for
+# risk-tolerant worst-case planning. The file only stores P50 and
+# P95; the OCaml side interpolates P80 and P99 linearly with a
+# documented formula. Replace interpolation with empirical quantiles
+# when math-coding has n>=30 internal samples (a future Decision).
+
+classes:
+  trivial:
+    p50: 1
+    p95: 3
+  docs-only:
+    p50: 2
+    p95: 6
+  single-file-edit:
+    p50: 3
+    p95: 10
+  bug-diagnosis:
+    p50: 5
+    p95: 18
+  multi-file-edit:
+    p50: 9
+    p95: 30
+  refactor:
+    p50: 12
+    p95: 45
+  feature-add:
+    p50: 20
+    p95: 70
+  schema-change:
+    p50: 25
+    p95: 90
+  kernel-change:
+    p50: 40
+    p95: 150
+
+multipliers:
+  # Each multiplier is opt-in; the agent MUST name the multipliers
+  # it applied in its output. Per AGENTS.md Honest time reporting,
+  # the agent may not silently apply them.
+  #
+  # All `factor_x10` fields are int * 10; OCaml divides by 10.0.
+
+  per_artifact_over_first:
+    description: "Each artifact beyond the first compounds the base estimate by roughly 1.6, then 1.25, then 1.10, then saturates at 2.5."
+    factor_at_count_1_x10: 10
+    factor_at_count_2_x10: 16
+    factor_at_count_3_x10: 20
+    factor_at_count_4_or_5_x10: 22
+    factor_at_count_6_or_more_x10: 25
+
+  mixed_class_scope:
+    description: "Scope spans more than one class from `classes:`."
+    factor_x10: 13
+
+  cross_language_non_ocaml:
+    description: "Touches non-OCaml artefacts (YAML, markdown, scripts, JSON) in addition to OCaml code."
+    factor_x10: 14
+
+  test_required_with_runtime:
+    description: "Acceptance requires a running test (not a static check)."
+    factor_x10: 12
+
+caveats:
+  - "Distribution is for AI software-engineering tasks on frontier models. OCaml-specific kernel and schema work in math-coding may differ."
+  - "P80 and P99 are linear interpolations between P50 and P95 in this version of the file. Replace with empirical P80 and P99 when a future Decision collects n>=30 math-coding-internal samples."
+  - "Fractions are stored as int*10 because the math-coding YAML parser is not yet decimal-aware."
+  - "This file is consumed by bin/Mathc.ml subcommand 'time-estimate'. Manual edits must be followed by `dune build` and by a tests/conformance fixture update."
