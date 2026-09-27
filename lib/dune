@@ -14,5 +14,6 @@
   codec
   decision
   memory
-  capsule)
+  capsule
+  gate)
  (libraries str))

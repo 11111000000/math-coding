@@ -1,0 +1,151 @@
+---
+schema: math-coding/3.0-alpha
+id: gate-decision
+revision: 1
+
+intent: |
+  Introduce the `mc gate BASE HEAD` subcommand that evaluates a
+  candidate tree against the active policy and produces a gate
+  verdict per spec/semantics.md "Merge gate" and "Release gate".
+  Today the kernel lacks the attestation store required for a
+  full Pass(o, c, g) computation, so the first iteration of this
+  decision lands a SCAFFOLD: a CLI subcommand, a lib/gate.ml with
+  verdict and gap data types, and a stub evaluator that returns
+  Unknown with explicit reasons. Future revisions under
+  obligation gate-attestation-store-fill extend the stub.
+
+commitment: |
+  bin/Mathc.ml gains a `gate BASE HEAD` subcommand. It exits 0 on
+  success, prints a JSON object on stdout containing at minimum
+  the keys "verdict" (one of "pass" / "open-with-waiver" /
+  "block" / "unknown"), "gaps" (an array of gap objects each
+  carrying "obligation_id", "kind", "causes", "remedies"),
+  "obligations" (the obligations whose subjects overlap with
+  the changed paths), "now", "base", "head". lib/gate.ml is a
+  pure module that takes Memory.t and the changed-path list as
+  arguments and returns a Gate.t (verdict + gap list). The
+  evaluator is a STUB: it matches changed paths against
+  obligation subjects but cannot determine pass/fail without an
+  attestation store, so it always returns Unknown with explicit
+  causes. This is the smallest defensible scaffold that satisfies
+  spec/semantics.md "Kernel Output" and gives future revisions a
+  stable API.
+
+scope:
+  capabilities:
+    - cli-gate-scaffold
+    - gate-attestation-store-fill   # future revision
+  paths:
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "lib/gate.ml"
+    - "lib/dune"
+    - "tests/fixtures/gate-scaffold.sh"
+    - "bootstrap/gate-decision.md"  # this file
+  exclusions:
+    - "lib/diagnostic.ml"
+    - "lib/canonical.ml"
+    - "spec/**"
+    - "schemas/**"
+
+outcomes:
+  - id: gate-cli-exists
+    statement: |
+      `mc gate BASE HEAD` is a recognised subcommand; the
+      dispatcher in bin/Mathc.ml routes to it.
+  - id: gate-output-shape-stable
+    statement: |
+      The JSON body printed on stdout has keys "verdict", "gaps",
+      "obligations", "now", "base", "head". Future revisions may
+      add keys but MUST NOT remove or rename these.
+  - id: gate-stub-honest
+    statement: |
+      When the stub cannot determine a verdict (today: always),
+      it returns verdict="unknown" with causes explaining why.
+      The stub MUST NOT emit verdict="pass" without attestation
+      evidence — that would violate spec/constitution.md
+      "Honest status".
+
+countercase: |
+  "Scaffolding without logic is theatre; we should wait until
+  attestation store exists." Counterargument: the gate subcommand
+  has a stable JSON contract that future revisions build on. The
+  scaffold is the API surface for obligation gate-attestation-
+  store-fill, gate-coverage-fixtures, and the eventual mc self-
+  check. Recording the contract now under the active policy (this
+  decision is accepted under bootstrap-v3) means future revisions
+  do not have to negotiate the JSON shape — they extend it. A
+  zero-attestation gate that emits verdict="pass" is dishonest;
+  a zero-attestation gate that emits verdict="unknown" is honest
+  and matches the bootstrap reality.
+
+assumptions:
+  - id: attestation-store-future-revision
+    state: assumed
+    statement: |
+      A future revision (gate-attestation-store-fill) will add a
+      filesystem-backed attestation store under lib/attestations/
+      so that Gate.t can compute Pass(o,c,g). This revision does
+      not block on that work; it sets the API.
+    owner: human:maintainer
+    consequence_if_false: |
+      The gate remains verdict="unknown" forever. A waiver for
+      the gate obligation is then the only way to release.
+    review_on:
+      - signal: lib/attestations/ added
+
+  - id: obligations-corpus-stable
+    state: assumed
+    statement: |
+      The fixtures/conformance/obligation/ corpus is small but
+      present; future revisions may add obligations without
+      changing the gate-cli-exists or gate-output-shape-stable
+      contracts.
+    owner: human:maintainer
+    consequence_if_false: |
+      The gate keeps working on whatever obligations exist;
+      adding obligations is additive under A0 separation.
+    review_on:
+      - signal: obligations-fixtures-changed
+
+obligations:
+  - id: gate-cli-runs
+    outcome: gate-cli-exists
+    claim: |
+      `mc gate BASE HEAD` exits 0 and prints a JSON object whose
+      first key is "verdict" and which contains "gaps",
+      "obligations", "now", "base", "head".
+    acceptance:
+      all:
+        - verifier: tests/fixtures/gate-scaffold.sh
+          result: pass
+  - id: gate-output-shape
+    outcome: gate-output-shape-stable
+    claim: |
+      The JSON body keys are exactly the documented set
+      (verdict, gaps, obligations, now, base, head). A future
+      revision that adds a key is fine; one that removes a key
+      requires a new bootstrap decision.
+    acceptance:
+      all:
+        - verifier: gate-shape-fixture
+          result: pass
+
+reversal:
+  - signal: gate-attestation-store-lands
+    condition: |
+      lib/attestations/ exists with a stable reader and the
+      obligation store can be populated from JSON files.
+    action: supersede-with-gate-attestation-store-fill
+
+risk:
+  declared_triggers:
+    - gate-stub-disguised-as-gate
+    - cli-api-drift
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3
+  supersedes: []
+  superseded_by: []

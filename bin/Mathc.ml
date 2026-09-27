@@ -155,7 +155,8 @@ let print_usage oc =
     \  validate FILE [--format=...]     parse FILE as a decision\n\
     \  context BASE HEAD --budget N     print a JSON context capsule\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
-    \  attest FILE                      parse FILE as a JUnit XML report\n\n\
+    \  attest FILE                      parse FILE as a JUnit XML report\n\
+    \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
@@ -535,6 +536,112 @@ let do_attest () =
   print_endline (Jsonl.stringify (Junit.to_json run));
   exit 0
 
+(* --- gate subcommand (gate-decision@1 scaffold) ---
+ *
+ * `mc gate BASE HEAD` evaluates the candidate tree against the
+ * active policy and prints a JSON verdict per spec/semantics.md
+ * "Kernel Output". This is the SCAFFOLD iteration: without an
+ * attestation store, every applicable obligation is reported as
+ * Unknown with explicit causes. The verdict is Pass only when
+ * the tree changed nothing that touches an obligation.
+ *
+ * Per bootstrap/gate-decision.md the JSON shape is fixed:
+ *   { verdict, gaps, obligations, now, base, head }
+ * Future revisions may ADD keys but MUST NOT remove or rename
+ * these. *)
+
+let[@warning "-32"] gap_to_json (g : Gate.gap) =
+  let fields =
+    [
+      ( "causes",
+        Jsonl.stringify
+          (Jsonl.Array (List.map (fun s -> Jsonl.String s) g.causes)) );
+      ( "kind",
+        Jsonl.stringify
+          (Jsonl.String
+             (match g.kind with
+             | `MissingEvidence -> "MissingEvidence"
+             | `StaleEvidence -> "StaleEvidence"
+             | `MissingReview -> "MissingReview"
+             | `NoAttestationStore -> "NoAttestationStore"
+             | `Unknown -> "Unknown")) );
+      ("obligation_id", Jsonl.stringify (Jsonl.String g.obligation_id));
+      ( "remedies",
+        Jsonl.stringify
+          (Jsonl.Array (List.map (fun s -> Jsonl.String s) g.remedies)) );
+    ]
+  in
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+  "{"
+  ^ String.concat ","
+      (List.map
+         (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+         sorted)
+  ^ "}"
+
+let[@warning "-32"] gate_to_json (g : Gate.t) =
+  let fields =
+    [
+      ("base", Jsonl.stringify (Jsonl.String g.base));
+      ("gaps", "[" ^ String.concat "," (List.map gap_to_json g.gaps) ^ "]");
+      ("head", Jsonl.stringify (Jsonl.String g.head));
+      ("now", Jsonl.stringify (Jsonl.String g.now));
+      ("obligations", string_of_int g.obligation_count);
+      ( "verdict",
+        Jsonl.stringify (Jsonl.String (Gate.verdict_to_string g.verdict)) );
+    ]
+  in
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+  "{"
+  ^ String.concat ","
+      (List.map
+         (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+         sorted)
+  ^ "}\n"
+
+let do_gate () =
+  let base = ref "" and head = ref "" in
+  let positionals : string list ref = ref [] in
+  let anon s = positionals := s :: !positionals in
+  Arg.current := 1;
+  (try Arg.parse [] anon "usage: mc gate BASE HEAD"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mc gate: %s\n" m;
+     exit 2);
+  let args = List.rev !positionals in
+  (match args with
+  | [ b; h ] ->
+      base := b;
+      head := h
+  | [ _ ] ->
+      Printf.fprintf stderr "mc gate: missing HEAD\n";
+      print_usage stderr;
+      exit 2
+  | _ ->
+      Printf.fprintf stderr
+        "mc gate: expected BASE HEAD; got %d positional(s)\n" (List.length args);
+      print_usage stderr;
+      exit 2);
+  let root = find_project_root (Sys.getcwd ()) in
+  let memory = build_memory_for root !base !head in
+  let changed_paths_raw =
+    try run_git_command !base !head [ "diff"; "--name-only" ] with _ -> ""
+  in
+  let changed_paths =
+    changed_paths_raw |> String.split_on_char '\n'
+    |> List.filter (fun s -> String.length s > 0)
+  in
+  let result =
+    Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
+      ~changed_paths
+  in
+  (* Verdict "block" -> exit 1, "pass" -> exit 0, "unknown" ->
+     exit 0 (informational; not blocking). The CLI does not yet
+     block merges (that requires the attestation store); exit
+     code matches the disposition today. *)
+  print_string (gate_to_json result);
+  exit 0
+
 let dispatch () =
   if Array.length Sys.argv < 2 then begin
     print_usage stderr;
@@ -546,6 +653,7 @@ let dispatch () =
   | "context" -> do_context ()
   | "assess" -> do_assess ()
   | "attest" -> do_attest ()
+  | "gate" -> do_gate ()
   | "--help" | "-h" ->
       print_usage stdout;
       exit 0
