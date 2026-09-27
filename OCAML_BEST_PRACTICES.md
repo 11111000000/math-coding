@@ -709,7 +709,7 @@ make once and document.
 
 ### 9.1 `parse_acceptance` triple-tuple match
 
-`lib/decision.ml:103-106`:
+`lib/decision.ml:103-106` (pre-refactor):
 
 ```ocaml
 match vid, result, review with
@@ -728,6 +728,24 @@ present, `review` is lost without a diagnostic.
 helpers (§3.2). Each helper returns `option`; a combined `parse_acceptance_item`
 returns `Some _` only when exactly one shape is present. If both are present,
 return `None` and the caller emits `Diagnostic.code = "MC-AMBIGUOUS-ACCEPTANCE"`.
+
+**Status (2026-09-27, T4): DONE.** The current `lib/decision.ml` has
+`parse_verifier`, `parse_review`, `parse_acceptance_item` (§3.2),
+plus a new `classify_acceptance_item : Jsonl.value -> acceptance_shape`
+that distinguishes `ShapeAmbiguous`, `ShapeMalformed`, `ShapeVerifier`,
+`ShapeReview`, `ShapeEmpty`. The kernel still prefers Verifier on
+ambiguity (verifier half parses, review is dropped) but `mc validate`
+surfaces `MC-AMBIGUOUS-ACCEPTANCE` to stderr per obligation id and
+position so the author can disambiguate. The CLI JSON output also
+includes a `diagnostics` array. `MC-MALFORMED-ACCEPTANCE` is the
+sister diagnostic for items whose fields are right but values are
+unparseable (e.g., `result: "bogus"`). Positive fixtures:
+`fixtures/conformance/decision/positive-ambiguous-acceptance.json`,
+`fixtures/conformance/decision/positive-malformed-acceptance.json`;
+shell fixtures: `tests/fixtures/ambiguous-acceptance.sh`,
+`tests/fixtures/malformed-acceptance.sh`. The conformance runner
+still classifies these as `Accept` because the decision parses;
+the diagnostics are the side-channel.
 
 ### 9.2 `domain.ml` used `class` as a record field name
 

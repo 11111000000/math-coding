@@ -50,6 +50,42 @@ let infra code message =
 
 let authorization code message = create ~code ~kind:Authorization message
 
+(* MC-AMBIGUOUS-ACCEPTANCE: emitted by the conformance runner when
+   an obligation's `all` or `any` list contains an item with both
+   `verifier` + `result` AND `review` fields. Per
+   OCAML_BEST_PRACTICES §9.1 the verifier shape is preferred and
+   the review is silently dropped; we surface the ambiguity as a
+   Warn-level diagnostic so the author can disambiguate.
+   Severity is Warn (not Block) because the kernel still produces a
+   well-typed Domain.acceptance for the verifier half — the
+   alternative would be to refuse the whole obligation, which is
+   heavier than the spec requires. *)
+let ambiguous_acceptance ?(obligation_id = "") ?(item_position = -1) () =
+  let pos_str =
+    if item_position >= 0 then Printf.sprintf " (all[%d])" item_position else ""
+  in
+  let msg =
+    Printf.sprintf
+      "obligation %s: acceptance item carries both verifier and review%s; \
+       verifier wins, review is dropped"
+      obligation_id pos_str
+  in
+  create ~code:"MC-AMBIGUOUS-ACCEPTANCE" ~kind:Conflict ~severity:Warn msg
+
+(* MC-MALFORMED-ACCEPTANCE: emitted when an acceptance item has the
+   right field shape (verifier+result OR review) but the values do
+   not parse. E.g., verifier="x" with result="bogus" — `result` is
+   not one of pass/fail/inconclusive/infrastructure-error. *)
+let malformed_acceptance ?(obligation_id = "") ?(item_position = -1) reason =
+  let pos_str =
+    if item_position >= 0 then Printf.sprintf " (all[%d])" item_position else ""
+  in
+  let msg =
+    Printf.sprintf "obligation %s: acceptance item%s is malformed: %s"
+      obligation_id pos_str reason
+  in
+  create ~code:"MC-MALFORMED-ACCEPTANCE" ~kind:Input ~severity:Warn msg
+
 let severity_of_string = function
   | "info" -> Some Info
   | "warn" -> Some Warn

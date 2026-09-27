@@ -1,0 +1,53 @@
+{
+  "schema": "math-coding/3.0-alpha/decision",
+  "kind": "decision",
+  "id": "malformed-acceptance-demo",
+  "revision": "rev:8c4b",
+  "intent": {
+    "source": "test:malformed-acceptance",
+    "text": "Demonstrate MC-MALFORMED-ACCEPTANCE detection: an acceptance item with verifier field but unparseable result value."
+  },
+  "commitment": "The parser accepts the decision but emits MC-MALFORMED-ACCEPTANCE for the item whose result field is not in the result enum.",
+  "scope": [
+    {"kind": "path", "path": "lib/**", "match": "tree"}
+  ],
+  "outcomes": [
+    {"id": "demonstrate", "statement": "malformed acceptance is detected and reported"}
+  ],
+  "assumptions": [
+    {
+      "id": "result-enum-strict",
+      "state": "assumed",
+      "statement": "Acceptance result must be pass/fail/inconclusive/infrastructure-error.",
+      "owner": "human:maintainer",
+      "consequence_if_false": "Malformed results silently drop the item",
+      "review_on": [{"signal": "result-enum-change"}]
+    }
+  ],
+  "obligations": [
+    {
+      "id": "malformed-obligation",
+      "decision": "malformed-acceptance-demo",
+      "outcome": "demonstrate",
+      "claim": "Result field must be one of the four documented values.",
+      "subjects": [{"kind": "path", "path": "lib/**", "match": "tree"}],
+      "acceptance": {
+        "all": [
+          {"verifier": "mathc-test-runner", "result": "bogus-result-value"}
+        ]
+      },
+      "phase": "pre-merge",
+      "kind": "acceptance"
+    }
+  ],
+  "reversal": [
+    {"signal": "result-enum-too-permissive", "action": "revert"}
+  ],
+  "risk": {
+    "declared_triggers": ["silent-malformed-drop"],
+    "owner": "human:maintainer"
+  },
+  "relations": {
+    "addresses": ["bootstrap-v3"]
+  }
+}

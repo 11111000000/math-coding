@@ -1,0 +1,57 @@
+{
+  "schema": "math-coding/3.0-alpha/decision",
+  "kind": "decision",
+  "id": "ambiguous-acceptance-demo",
+  "revision": "rev:7f3a",
+  "intent": {
+    "source": "test:ambiguous-acceptance",
+    "text": "Demonstrate MC-AMBIGUOUS-ACCEPTANCE detection: an acceptance item with both verifier and review fields."
+  },
+  "commitment": "The parser accepts the verifier half and emits MC-AMBIGUOUS-ACCEPTANCE for the silently-dropped review.",
+  "scope": [
+    {"kind": "path", "path": "lib/**", "match": "tree"}
+  ],
+  "outcomes": [
+    {"id": "demonstrate", "statement": "ambiguous acceptance is detected and reported"}
+  ],
+  "assumptions": [
+    {
+      "id": "kernel-has-shape-classifier",
+      "state": "assumed",
+      "statement": "Decision.classify_acceptance_item is in scope.",
+      "owner": "human:maintainer",
+      "consequence_if_false": "ambiguous acceptance is silently dropped",
+      "review_on": [{"signal": "kernel-refactor"}]
+    }
+  ],
+  "obligations": [
+    {
+      "id": "obligation-with-ambiguous-acceptance",
+      "decision": "ambiguous-acceptance-demo",
+      "outcome": "demonstrate",
+      "claim": "Every acceptance item must declare verifier OR review, not both.",
+      "subjects": [{"kind": "path", "path": "lib/**", "match": "tree"}],
+      "acceptance": {
+        "all": [
+          {
+            "verifier": "mathc-test-runner",
+            "result": "pass",
+            "review": {"authority": "human:reviewer", "minimum_independence": "different-principal"}
+          }
+        ]
+      },
+      "phase": "pre-merge",
+      "kind": "acceptance"
+    }
+  ],
+  "reversal": [
+    {"signal": "kernel-classify-missing", "action": "revert"}
+  ],
+  "risk": {
+    "declared_triggers": ["silent-attestation-drop"],
+    "owner": "human:maintainer"
+  },
+  "relations": {
+    "addresses": ["bootstrap-v3"]
+  }
+}

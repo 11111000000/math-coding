@@ -42,6 +42,50 @@ let[@warning "-32"] parse_acceptance_item v =
       parse_verifier v
   | _ -> ( match parse_review v with Some a -> Some a | None -> None)
 
+(* Shape of a single acceptance item, exposed for diagnostic
+   emission. An item with both verifier and review fields is
+   ambiguous (A0 separation deficit: two distinct attestation
+   sources in the same object) and the conformance runner
+   surfaces MC-AMBIGUOUS-ACCEPTANCE per spec/constitution.md
+   "Honest status" and OCAML_BEST_PRACTICES §9.1. *)
+type acceptance_shape =
+  | ShapeVerifier
+  | ShapeReview
+  | ShapeAmbiguous
+  | ShapeMalformed
+  | ShapeEmpty
+
+let[@warning "-32"] classify_acceptance_item v =
+  match v with
+  | Jsonl.Object ps -> (
+      let has_verifier_fields =
+        Schema.take_string ps "verifier" <> None
+        && Schema.take_string ps "result" <> None
+      in
+      let has_review_field = Schema.take_object ps "review" <> None in
+      match (has_verifier_fields, has_review_field) with
+      | true, true -> ShapeAmbiguous
+      | true, false -> (
+          match parse_verifier v with
+          | Some _ -> ShapeVerifier
+          | None -> ShapeMalformed)
+      | false, true -> (
+          match parse_review v with
+          | Some _ -> ShapeReview
+          | None -> ShapeMalformed)
+      | false, false -> ShapeEmpty)
+  | _ -> ShapeEmpty
+
+(* Per-item position-tagged shape list. Used by the conformance
+   runner to emit MC-AMBIGUOUS-ACCEPTANCE per item rather than
+   silently dropping the review half. *)
+let[@warning "-32"] collect_shapes xs =
+  let[@warning "-32"] rec loop i acc = function
+    | [] -> List.rev acc
+    | v :: rest -> loop (i + 1) ((i, classify_acceptance_item v) :: acc) rest
+  in
+  loop 0 [] xs
+
 let parse_acceptance v =
   match v with
   | Jsonl.Object ps -> (
@@ -52,6 +96,27 @@ let parse_acceptance v =
           | Some xs -> Domain.Any (List.filter_map parse_acceptance_item xs)
           | _ -> Domain.All []))
   | _ -> Domain.All []
+
+(* `parse_acceptance_with_shapes` is the diagnostic-aware variant:
+   it returns both the Domain.acceptance (verifier+review only,
+   never ambiguous — ambiguous items are dropped) and the per-item
+   shape list for diagnostic emission. Callers that want to surface
+   MC-AMBIGUOUS-ACCEPTANCE should iterate the shape list and emit
+   one diagnostic per ShapeAmbiguous / ShapeMalformed item. *)
+let[@warning "-32"] parse_acceptance_with_shapes v =
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_array ps "all" with
+      | Some xs ->
+          let shapes = collect_shapes xs in
+          (Domain.All (List.filter_map parse_acceptance_item xs), shapes)
+      | None -> (
+          match Schema.take_array ps "any" with
+          | Some xs ->
+              let shapes = collect_shapes xs in
+              (Domain.Any (List.filter_map parse_acceptance_item xs), shapes)
+          | _ -> (Domain.All [], [])))
+  | _ -> (Domain.All [], [])
 
 let[@warning "-32"] parse_outcome v =
   match v with

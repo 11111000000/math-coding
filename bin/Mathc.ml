@@ -68,6 +68,52 @@ let parse_file path :
           with Jsonl.Parse_error (m, p) -> Error (`Parse (m, p)))
       | Error e -> Error e)
 
+(* Walk every obligation's acceptance list and emit one diagnostic
+   per ambiguous or malformed item. The kernel still parses the
+   verifier-half successfully; this collector is what surfaces
+   the silent-drop defect so authors can fix the input rather than
+   wonder why their review is ignored. *)
+let[@warning "-32"] collect_ambiguous_acceptance_diagnostics v =
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_array ps "obligations" with
+      | Some obls ->
+          List.concat_map
+            (fun v ->
+              match v with
+              | Jsonl.Object ops -> (
+                  let id =
+                    match Schema.take_string ops "id" with
+                    | Some s -> s
+                    | None -> ""
+                  in
+                  match Schema.take_object ops "acceptance" with
+                  | Some a ->
+                      let _, shapes =
+                        Decision.parse_acceptance_with_shapes (Jsonl.Object a)
+                      in
+                      List.filter_map
+                        (fun (pos, shape) ->
+                          match shape with
+                          | Decision.ShapeAmbiguous ->
+                              Some
+                                (Diagnostic.ambiguous_acceptance
+                                   ~obligation_id:id ~item_position:pos ())
+                          | Decision.ShapeMalformed ->
+                              Some
+                                (Diagnostic.malformed_acceptance
+                                   ~obligation_id:id ~item_position:pos
+                                   "verifier or review present but unparseable")
+                          | Decision.ShapeVerifier | Decision.ShapeReview
+                          | Decision.ShapeEmpty ->
+                              None)
+                        shapes
+                  | None -> [])
+              | _ -> [])
+            obls
+      | None -> [])
+  | _ -> []
+
 let validate_with_counts path =
   match parse_file path with
   | Error (`Sys m) -> `Input_err m
@@ -81,7 +127,9 @@ let validate_with_counts path =
   | Ok v -> (
       try
         match Decision.parse_decision v with
-        | Some d -> `Accept d
+        | Some d ->
+            let extra_diags = collect_ambiguous_acceptance_diagnostics v in
+            `Accept (d, extra_diags)
         | None ->
             `Reject
               ( Diagnostic.create ~code:"MC-DECISION-INVALID"
@@ -98,7 +146,7 @@ let validate_with_counts path =
 let emit (format : output_format) path
     (outcome :
       [ `Input_err of string
-      | `Accept of Domain.decision
+      | `Accept of Domain.decision * Diagnostic.t list
       | `Reject of Diagnostic.t * string ]) =
   match outcome with
   | `Input_err m ->
@@ -108,7 +156,7 @@ let emit (format : output_format) path
         (Diagnostic.string_of_kind d.kind)
         d.code d.message;
       exit 2
-  | `Accept d ->
+  | `Accept (d, extra_diags) ->
       let decision_id = d.Domain.id in
       let revision = d.Domain.revision in
       let obligations = List.length d.Domain.obligations in
@@ -123,10 +171,35 @@ let emit (format : output_format) path
             \  assumptions: %d\n"
             path decision_id revision obligations assumptions
       | Json ->
+          let extras =
+            if extra_diags = [] then ""
+            else
+              Printf.sprintf ",\"diagnostics\":[%s]"
+                (String.concat ","
+                   (List.map
+                      (fun d ->
+                        Printf.sprintf
+                          "{\"code\":\"%s\",\"severity\":\"%s\",\"message\":%s}"
+                          d.Diagnostic.code
+                          (Diagnostic.string_of_severity d.severity)
+                          (Jsonl.stringify (Jsonl.String d.message)))
+                      extra_diags))
+          in
           Printf.printf
-            "{\"verdict\":\"accept\",\"path\":%s,\"decision\":\"%s\",\"revision\":\"%s\",\"obligations\":%d,\"assumptions\":%d}\n"
+            "{\"verdict\":\"accept\",\"path\":%s,\"decision\":\"%s\",\"revision\":\"%s\",\"obligations\":%d,\"assumptions\":%d%s}\n"
             (Jsonl.stringify (Jsonl.String path))
-            decision_id revision obligations assumptions);
+            decision_id revision obligations assumptions extras);
+      (* Print extra diagnostics (e.g., MC-AMBIGUOUS-ACCEPTANCE) to
+         stderr. The verdict is still "accept" because the kernel
+         DID parse the verifier-half; the diagnostic tells the
+         author that their review half is silently dropped. *)
+      List.iter
+        (fun diag ->
+          Printf.fprintf stderr "[%s] %s/%s: %s\n"
+            (Diagnostic.string_of_severity diag.Diagnostic.severity)
+            (Diagnostic.string_of_kind diag.kind)
+            diag.Diagnostic.code diag.message)
+        extra_diags;
       exit 0
   | `Reject (d, _) ->
       (match format with
@@ -155,10 +228,10 @@ let print_usage oc =
     \  validate FILE [--format=...]     parse FILE as a decision\n\
     \  context BASE HEAD --budget N     print a JSON context capsule\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
-     \  attest FILE                      parse FILE as a JUnit XML report\n\
-     \  time-estimate --class ...        print JSON forecast from declared distribution\n\n\
-
-     options:\n\
+    \  attest FILE                      parse FILE as a JUnit XML report\n\
+    \  time-estimate --class ...        print JSON forecast from declared \
+     distribution\n\n\n\
+    \     options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
      exit codes:\n\
@@ -510,7 +583,9 @@ let obj_int_opt (v : Jsonl.value) (k : string) : int option =
   match obj_get k v with Jsonl.Int n -> Some n | _ -> None
 
 let obj_string_keys (v : Jsonl.value) : string list =
-  match v with Jsonl.Object pairs -> List.map (fun (k, _) -> k) pairs | _ -> []
+  match v with
+  | Jsonl.Object pairs -> List.map (fun (k, _) -> k) pairs
+  | _ -> []
 
 let load_distribution root : Jsonl.value =
   let path = Filename.concat root "bin/data/time-distribution.yaml" in
@@ -518,8 +593,7 @@ let load_distribution root : Jsonl.value =
   | Ok s -> (
       try Codec.load_yaml_string s
       with _ ->
-        Printf.fprintf stderr
-          "mc time-estimate: cannot parse %s\n" path;
+        Printf.fprintf stderr "mc time-estimate: cannot parse %s\n" path;
         exit 2)
   | Error (`Sys m) ->
       Printf.fprintf stderr "mc time-estimate: cannot read %s: %s\n" path m;
@@ -545,8 +619,7 @@ let int_x10_or_exit (block : Jsonl.value) (k : string) (ctx : string) : int =
   match obj_int_opt block k with
   | Some n -> n
   | None ->
-      Printf.fprintf stderr
-        "mc time-estimate: missing %s in %s\n" k ctx;
+      Printf.fprintf stderr "mc time-estimate: missing %s in %s\n" k ctx;
       exit 2
 
 (* Percentile for non-stored quantiles. Linear interpolation
@@ -558,17 +631,15 @@ let interp_p50_p95 p50 p95 p_percent =
   let hi = float_of_int p95 in
   if p_percent = 50 then base
   else if p_percent = 95 then hi
-  else if p_percent = 80 then
-    base +. (hi -. base) *. (30.0 /. 45.0)
-  else if p_percent = 99 then
-    hi +. (hi -. base) *. (4.0 /. 45.0)
-  else base +. (hi -. base) *. (float_of_int (p_percent - 50) /. 45.0)
+  else if p_percent = 80 then base +. ((hi -. base) *. (30.0 /. 45.0))
+  else if p_percent = 99 then hi +. ((hi -. base) *. (4.0 /. 45.0))
+  else base +. ((hi -. base) *. (float_of_int (p_percent - 50) /. 45.0))
 
 let[@warning "-32"] apply_multiplier (name : string) (count : int)
     (dist : Jsonl.value) (estimate : float) : float * string list =
   let block = obj_get name (obj_get "multipliers" dist) in
   match name with
-  | "per_artifact_over_first" ->
+  | "per_artifact_over_first" -> (
       let f =
         if count <= 1 then None
         else if count = 2 then
@@ -579,9 +650,9 @@ let[@warning "-32"] apply_multiplier (name : string) (count : int)
           Some (int_x10_or_exit block "factor_at_count_4_or_5_x10" name)
         else Some (int_x10_or_exit block "factor_at_count_6_or_more_x10" name)
       in
-      (match f with
-       | None -> (estimate, [])
-       | Some m -> (estimate *. (float_of_int m /. 10.0), [ name ]))
+      match f with
+      | None -> (estimate, [])
+      | Some m -> (estimate *. (float_of_int m /. 10.0), [ name ]))
   | "mixed_class_scope" ->
       let m = int_x10_or_exit block "factor_x10" name in
       (estimate *. (float_of_int m /. 10.0), [ name ])
@@ -592,8 +663,7 @@ let[@warning "-32"] apply_multiplier (name : string) (count : int)
       let m = int_x10_or_exit block "factor_x10" name in
       (estimate *. (float_of_int m /. 10.0), [ name ])
   | _ ->
-      Printf.fprintf stderr
-        "mc time-estimate: unknown --multiplier: %s\n" name;
+      Printf.fprintf stderr "mc time-estimate: unknown --multiplier: %s\n" name;
       exit 2
 
 let known_classes_json (dist : Jsonl.value) : string =
@@ -642,11 +712,11 @@ let[@warning "-32"] do_time_estimate () =
             cross_language_non_ocaml | test_required_with_runtime" );
        ]
        reject_positional
-       "usage: mc time-estimate --class <name> [--count N] [--percentile p50|p80|p95|p99] [--multiplier NAME]..."
-   with
-   | Arg.Bad m ->
-       Printf.fprintf stderr "mc time-estimate: %s\n" m;
-       exit 2);
+       "usage: mc time-estimate --class <name> [--count N] [--percentile \
+        p50|p80|p95|p99] [--multiplier NAME]..."
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mc time-estimate: %s\n" m;
+     exit 2);
   if !class_ref = "" then begin
     Printf.fprintf stderr "mc time-estimate: --class is required\n";
     exit 2
@@ -667,7 +737,8 @@ let[@warning "-32"] do_time_estimate () =
               Jsonl.stringify (Jsonl.String (known_classes_json dist)) );
             ( "message",
               Jsonl.stringify
-                (Jsonl.String ("unknown class; known: " ^ known_classes_json dist)) );
+                (Jsonl.String
+                   ("unknown class; known: " ^ known_classes_json dist)) );
           ]
         in
         let sorted =
@@ -696,7 +767,8 @@ let[@warning "-32"] do_time_estimate () =
       let mults_json =
         "["
         ^ String.concat ","
-            (List.map (fun s -> Jsonl.stringify (Jsonl.String s))
+            (List.map
+               (fun s -> Jsonl.stringify (Jsonl.String s))
                applied_sorted)
         ^ "]"
       in
@@ -707,7 +779,8 @@ let[@warning "-32"] do_time_estimate () =
             ( "caveat",
               Jsonl.stringify
                 (Jsonl.String
-                   "declared distribution; SWE-bench-V 2025-Q4; update via Decision") );
+                   "declared distribution; SWE-bench-V 2025-Q4; update via \
+                    Decision") );
             ("class", Jsonl.stringify (Jsonl.String !class_ref));
             ("count", string_of_int !count_ref);
             ("estimate_value", string_of_int est_int);
@@ -717,10 +790,13 @@ let[@warning "-32"] do_time_estimate () =
                 (Jsonl.String "SWE-bench Verified (n=500, 2025-Q4)") );
             ("scale", Jsonl.stringify (Jsonl.String unit));
             ( "source",
-              Jsonl.stringify (Jsonl.String "bin/data/time-distribution.yaml") );
+              Jsonl.stringify (Jsonl.String "bin/data/time-distribution.yaml")
+            );
           ]
         in
-        let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+        let sorted =
+          List.sort (fun (a, _) (b, _) -> String.compare a b) fields
+        in
         "{"
         ^ String.concat ","
             (List.map
