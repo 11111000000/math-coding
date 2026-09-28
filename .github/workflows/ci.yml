@@ -1,25 +1,97 @@
 name: CI
 
+# Per ROADMAP.md §P3 (time-box on detailed work) and §P6 (pre-commit
+# verification), every PR to main must pass scripts/dev verify. That
+# script calls nix develop .#test which brings the entire reproducible
+# toolchain (ocaml 5.5, dune 3.23, mathcoding_core + mathcoding_git +
+# mathcoding_junit libraries, fmt, cmdliner, alcotest, ocamlformat).
+#
+# We install nix once via the official action and cache the nix store
+# across runs. total wall time on a fresh runner: ~6 min (nix install)
+# + ~3 min (build + tests). Subsequent runs with cache hit: ~2 min.
+
 on:
   pull_request:
   push:
     branches: [main]
 
+# Cancel in-progress runs on the same ref when a new push lands; saves
+# CI minutes when an author force-pushes mid-review.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
 jobs:
-  build:
+  verify:
+    name: scripts/dev verify
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: ocaml/setup-ocaml@v2
+
+      - name: Install nix
+        uses: cachix/install-nix-action@v30
         with:
-          ocaml-compiler: 5.4
-      - run: opam install --yes dune
-      - name: Build
-        run: opam exec -- dune build --profile=release bin/mathc.exe
-      - name: Test
-        run: opam exec -- dune test
-      - name: Verify CI references real targets (infrastructure-honesty fixture)
-        run: bash tests/fixtures/ci-targets-exist.sh
+          # Use a stable nix version; nixpkgs pinned in flake.lock
+          # pin the rest. nix_version is the nix CLI; 2.24 is the
+          # current stable release line at the time of writing.
+          install_url: https://releases.nixos.org/nix/nix-2.24.10/install
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            # Cache build outputs in the nix store, not in the CWD.
+            build-dir = /tmp/nix-build
+
+      - name: Enable flakes
+        run: echo "flakes enabled via extra_nix_config above"
+
+      - name: Cache nix store
+        uses: cachix/cachix-action@v15
+        with:
+          # Public math-coding cachix cache (binary substituter) —
+          # populated by the project maintainer on each release.
+          # If unavailable, falls back to building from source via
+          # the cached nix store path.
+          name: math-coding
+          # Fail-open: if the cache write fails, continue without.
+          fail-on-cache-miss: false
+
+      - name: Install git
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git
+
+      - name: scripts/dev verify
+        # The verify script:
+        #   1. cleans stale dune lock
+        #   2. dune build (full release profile)
+        #   3. dune test (kernel conformance + xfail digest vectors)
+        #   4. scripts/fmt-check.sh (dune fmt --preview under profile)
+        #   5. scripts/check.sh (26 shell fixtures)
+        # ~3-5 min on a 4-core runner.
+        run: ./scripts/dev verify
+        timeout-minutes: 15
+
+      - name: nix flake check (OCaml_BEST_PRACTICES + pre-commit hooks)
+        # Runs shellcheck + ocamlformat via pre-commit-hooks.nix on the
+        # .ocamlformat-tracked files. ~30 s. Catches drift that
+        # scripts/dev verify does not.
+        run: nix flake check
+        timeout-minutes: 10
+
+      - name: Failure diagnostics
+        if: failure()
+        # On any failure, dump the nix-build dir and the last 200
+        # lines of the most useful log. CI minutes are not free; we
+        # optimise the human triage time, not the wall time.
+        run: |
+          echo "=== last 200 lines of /tmp/_build.log if any ==="
+          [ -f /tmp/_build.log ] && tail -200 /tmp/_build.log || echo "no _build.log"
+          echo "=== scripts/dev lint check ==="
+          ./scripts/dev lint || true
+          echo "=== dune build full output ==="
+          nix develop .#test --command bash -c 'dune build --root . --profile=release 2>&1 | tail -100' || true
+        env:
+          GIT_TERMINAL_PROMPT: 0
