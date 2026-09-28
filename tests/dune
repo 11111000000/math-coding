@@ -1,17 +1,3 @@
-(test
- (name digest_vectors)
+(tests
+ (names digest_vectors conformance repo_structure)
  (libraries mathcoding_core alcotest))
-
-(test
- (name conformance)
- (libraries mathcoding_core alcotest))
-
-; CLI integration tests live in tests/cli/*.t under the cram stanza
-; declared in tests/cli/dune. dune exposes mathc to the cram shell
-; via (deps %{bin:mathc}) thanks to (public_name mathc) in bin/dune.
-; Each .t does `cd "$DUNE_SOURCEROOT"` first so mathc sees project-
-; relative paths and echoes them back, keeping the .t files
-; portable across machines without scrubbing.
-;
-; See OCAML_BEST_PRACTICES §11.20 for the cram-sandbox mechanics
-; and the rationale for this layout.

@@ -89,7 +89,7 @@ obligations:
       (decision/attestation), and dispatches to the appropriate parser.
     acceptance:
       all:
-        - verifier: tests/fixtures/enumerate.sh
+        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
           result: pass
 
   - id: parse-positive-and-negative-decision
