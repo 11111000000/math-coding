@@ -40,7 +40,7 @@ scope:
     - "bin/dune"
     - "lib/gate.ml"
     - "lib/dune"
-    - "tests/fixtures/gate-scaffold.sh"
+    - "tests/cli/gate-scaffold.t"
     - "bootstrap/gate-decision.yaml"  # this file
   exclusions:
     - "lib/diagnostic.ml"
@@ -117,7 +117,7 @@ obligations:
       "obligations", "now", "base", "head".
     acceptance:
       all:
-        - verifier: tests/fixtures/gate-scaffold.sh
+        - verifier: tests/cli/gate-scaffold.t
           result: pass
   - id: gate-output-shape
     outcome: gate-output-shape-stable

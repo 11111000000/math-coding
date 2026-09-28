@@ -1,0 +1,139 @@
+---
+schema: math-coding/3.0-alpha
+id: cli-cram-tests
+revision: 1
+
+intent: |
+  Replace the per-subcommand shell fixtures under tests/fixtures/
+  (ambiguous-acceptance.sh, malformed-acceptance.sh,
+  validate-positive.sh, validate-negative.sh, context-budget.sh,
+  context-budget-bound.sh, context-priority-order.sh,
+  context-required-for-gate.sh, context-truncated-omitted.sh,
+  gate-scaffold.sh, git-adapter.sh, junit-adapter.sh,
+  cli-time-estimate.sh, cli-time-storage.sh — 14 fixtures, ~1200
+  lines of bash) with cram .t files under tests/cli/. dune 3.23
+  exposes the mathc binary to the cram shell via (public_name
+  mathc) in bin/dune combined with (deps %{bin:mathc}) in the
+  cram stanza; each .t does `cd "$DUNE_SOURCEROOT"` first so
+  mathc sees project-relative paths and echoes them back,
+  keeping the .t files portable across machines without
+  scrubbing. The shell fixtures exercised the mathc CLI as a
+  separate process via `nix develop .#test --command bash -c
+  '...'`. The cram .t files exercise the same behaviour via
+  dune's native cram stanza; the shell fixtures are deleted
+  once the corresponding .t files pass.
+
+  This commit revises 7 prior bootstrap decisions
+  (parse-acceptance-diagnostics, validate-and-context,
+  capsule-active-policy, gate-decision, adapters, time-honesty,
+  time-honesty-storage) to reference tests/cli/*.t instead of
+  tests/fixtures/*.sh. The "Migrate new CLI tests there"
+  paragraph in OCAML_BEST_PRACTICES §11.20 is replaced with
+  the actual cram mechanism, since the §11.20 RETIRED status no
+  longer holds.
+
+  The 15 remaining shell fixtures (attestation-skip-message.sh,
+  ci-targets-exist.sh, decision-parses.sh,
+  digest-vectors-coverage.sh, dune-runs-conformance.sh,
+  enumerate.sh, flake-lock-changes-record-decision.sh,
+  flake-ref-is-commit.sh, fmt-clean.sh, process-principles.sh,
+  release-checksum-verified.sh, spec-catalog-present.sh,
+  spec-vs-bp-priority.sh, waiver-parser.sh,
+  yaml-block-scalars.sh) test repository state (file existence,
+  format, content scans, priority drift detection) rather than
+  CLI behaviour. They stay as shell fixtures for now; a
+  follow-up commit migrates them to OCaml/Alcotest in a new
+  tests/repo_structure.ml.
+
+commitment: |
+  bin/Mathc.ml gains a public install handle: (public_name
+  mathc) in bin/dune causes dune to install mathc to
+  _build/install/default/bin/mathc and add it to the PATH of
+  every cram test that declares (deps %{bin:mathc}) in its
+  cram stanza. tests/cli/dune gains the cram stanza. tests/cli/
+  contains 15 new .t files, one per CLI subcommand or
+  obligation. tests/fixtures/ loses the 14 corresponding shell
+  fixtures. bootstrap/parse-acceptance-diagnostics.yaml,
+  bootstrap/validate-and-context.yaml,
+  bootstrap/capsule-active-policy.yaml,
+  bootstrap/gate-decision.yaml, bootstrap/adapters.yaml gain
+  updated verifier paths.
+
+scope:
+  paths:
+    - bin/dune
+    - tests/cli/dune
+    - tests/cli/*.t
+    - bootstrap/parse-acceptance-diagnostics.yaml
+    - bootstrap/validate-and-context.yaml
+    - bootstrap/capsule-active-policy.yaml
+    - bootstrap/gate-decision.yaml
+    - bootstrap/adapters.yaml
+    - bootstrap/time-honesty.yaml
+    - bootstrap/time-honesty-storage.yaml
+    - OCAML_BEST_PRACTICES.md
+    - PACKAGES.md
+    - tests/dune
+  exclusions:
+    - lib/**
+    - spec/**
+    - schemas/**
+    - axioms/**
+    - fixtures/conformance/**
+
+risk:
+  reversal_condition: |
+      Revert bin/dune's (public_name mathc), the cram stanza
+      in tests/cli/dune, the new tests/cli/*.t files, and
+      restore the 14 deleted tests/fixtures/*.sh files. The
+      bootstrap yaml files lose the cli-cram-tests references
+      and re-reference the shell fixtures. OCAML_BEST_PRACTICES
+      §11.20 regains its RETIRED status. Total cost of
+      reversal: ~1400 lines of churn (test files + docs +
+      yaml); well within the cost of a single revert commit.
+  - counterexample: |
+      A cram test invoking mathc with a relative path from
+      the cram shell's bwrap cwd fails because mathc can't
+      resolve the file. Mitigation: every .t does `cd
+      "$DUNE_SOURCEROOT"` before invoking mathc, which sets
+      the mathc process cwd to the project root where the
+      fixture files exist. Verified empirically during
+      development: `cd "$DUNE_SOURCEROOT"; mathc validate
+      fixtures/conformance/decision/positive-minimal.json`
+      produces the accept verdict with the relative path
+      `fixtures/conformance/decision/positive-minimal.json`
+      in the captured output.
+
+obligations:
+  - id: cli-tests-via-cram
+    statement: |
+      Each mathc CLI subcommand exercised by this decision
+      (version, validate, context, assess, attest, gate,
+      time-estimate, session-start, record, stats) has a cram
+      .t file under tests/cli/ that invokes it via `mc ...`
+      and asserts on the exit status and output. The .t files
+      pass under `dune runtest` from any checkout.
+    outcome: cli-tests-via-cram
+    acceptance:
+      all:
+        - verifier: dune build @tests/cli/runtest --root . exits 0
+          result: pass
+
+evidence:
+  - kind: observed
+    statement: |
+      On commit cram-cli-tests-v1, dune runtest --root . reports
+      `11 tests run. Test Successful` for tests/conformance.ml
+      and no diff for tests/cli/*.t. Each of the 15 .t files
+      passes individually when run via `dune runtest --root .
+      tests/cli/<name>.t`.
+
+unknowns:
+  - Whether dune cram in 3.25+ gains regex/glob output matchers
+    (which would obsolete the `jq | del(.now)` scrub pattern
+    used by context-budget.t and gate-scaffold.t). If yes, a
+    follow-up can simplify those .t files. See OCAML_BEST_PRACTICES
+    §11.20 caveat 2.
+  - Whether the (lang dune 3.21) bump in dune-project causes
+    any new warnings during `dune build`. Currently dune build
+    emits no warnings.

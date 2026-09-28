@@ -46,9 +46,9 @@ scope:
     - "lib/dune"
     - "OCAML_BEST_PRACTICES.md"
     - "spec/semantics.md"
-    - "tests/fixtures/validate-positive.sh"
-    - "tests/fixtures/validate-negative.sh"
-    - "tests/fixtures/context-budget.sh"
+    - "tests/cli/validate-positive.t"
+    - "tests/cli/validate-negative.t"
+    - "tests/cli/context-budget.t"
     - "bootstrap/validate-and-context.yaml"
   exclusions:
     - "lib/decision.ml"
@@ -187,11 +187,11 @@ obligations:
       by the existing kernel-conformance-runner (9 fixtures still
       pass: each fixture that was green at v0.0.5 still decodes
       to Some _ / None as expected) and by the new fixtures
-      tests/fixtures/validate-positive.sh which inspects the
+      tests/cli/validate-positive.t which inspects the
       obligations/assumptions counts on the parsed decision.
     acceptance:
       all:
-        - verifier: tests/fixtures/validate-positive.sh
+        - verifier: tests/cli/validate-positive.t
           result: pass
 
   - id: cli-validate-decision
@@ -207,9 +207,9 @@ obligations:
       CLI args) and exit 3 for uncaught internal exceptions.
     acceptance:
       all:
-        - verifier: tests/fixtures/validate-positive.sh
+        - verifier: tests/cli/validate-positive.t
           result: pass
-        - verifier: tests/fixtures/validate-negative.sh
+        - verifier: tests/cli/validate-negative.t
           result: pass
 
   - id: cli-version-preserved
@@ -219,7 +219,7 @@ obligations:
       exits 0. The hello-string from v0.0.5 is preserved verbatim.
     acceptance:
       all:
-        - verifier: tests/fixtures/validate-positive.sh
+        - verifier: tests/cli/validate-positive.t
           result: pass
         # The fixture builds bin/mathc.exe; a regression in the
         # Mathc.ml module that breaks `version` would also break the
@@ -237,7 +237,7 @@ obligations:
       into lib/.
     acceptance:
       all:
-        - verifier: tests/fixtures/validate-positive.sh
+        - verifier: tests/cli/validate-positive.t
           result: pass
         # Building the binary would warn or fail to link if lib/
         # pulled in unix-only functions for bin/'s use; the build
@@ -259,7 +259,7 @@ obligations:
       BASE, missing HEAD, bad --budget value).
     acceptance:
       all:
-        - verifier: tests/fixtures/context-budget.sh
+        - verifier: tests/cli/context-budget.t
           result: pass
 
   - id: capsule-byte-budget-tracked
@@ -269,13 +269,13 @@ obligations:
       equals the actual byte length of the kept items plus their
       JSON framing. The "truncated" key is true iff the budget was
       insufficient for the entire priority-sorted item list. The
-      fixture tests/fixtures/context-budget.sh asserts both keys
+      fixture tests/cli/context-budget.t asserts both keys
       are present; the assertion is a regression check that the
       budget is observable (A1 / axiom-of-care: don't silently drop
       without telling).
     acceptance:
       all:
-        - verifier: tests/fixtures/context-budget.sh
+        - verifier: tests/cli/context-budget.t
           result: pass
 
 reversal:

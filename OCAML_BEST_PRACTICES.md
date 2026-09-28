@@ -1381,45 +1381,33 @@ front-matter of `bootstrap/validate-and-context.yaml`.
 ### 11.20 Dune 3.23 cram tests cannot reach binaries via relative paths
 
 Cram tests in `tests/cram/*.t` are sandboxed: their working directory
-is `_build/default/tests/cram/` but the sandbox only exposes the
-test's own `.t` files, `cram.sh`, and `cram.out`. Going `..`
-returns `cram` (the test sub-dir of `tests/`), and `../..` shows
-only `tests` — `_build/default/bin/` is not visible. This means:
+is `_build/default/tests/cram/` and the bwrap sandbox only exposes
+the test's own files plus BPFM-rewritten paths. Going `..` from the
+cram shell's cwd does not expose `_build/default/bin/` — declaring
+the binary via `(deps ../bin/mathc.exe)` does not whitelist the
+path in the bwrap FS.
 
-```text
-  $ ../bin/mathc.exe validate fixtures/x.json
-  ../bin/mathc.exe: No such file or directory
-  [127]
-```
+The fix used by `tests/cli/*.t` is `(public_name mathc)` in
+`bin/dune` combined with `(deps %{bin:mathc})` in the cram stanza
+(per arvidj/dune_cram_example pattern). `public_name` causes dune
+to install `mathc` to `_build/install/default/bin/mathc` and add
+that directory to `$PATH` of every cram test that declares the
+dep via `%{bin:...}`. The binary is then invocable by its bare
+name (`mathc validate ...`), with rebuild tracked as a normal
+file dependency.
 
-even when `_build/default/bin/mathc.exe` exists and the cram stanza
-declares the binary as a dep.
+Two caveats from the dune 3.23 implementation:
 
-```text
-  $ /tmp/proj/_build/default/bin/mathc.exe ...
-  myexe output
-```
+1. The cram shell's cwd is a bwrap tmp dir, not the project root.
+   mathc reads files relative to its cwd, so tests must `cd
+   "$DUNE_SOURCEROOT"` (exported by dune) before invoking mathc,
+   or pass absolute paths via the same env var.
 
-The cram test runs in an environment with `$INSIDE_DUNE` set to the
-build directory and `$DUNE_SOURCEROOT` set to the project root.
-Absolute paths through these vars work and trigger the build, but
-`$TESTCASE_ROOT` is **not** exported in dune 3.23's cram runner
-(the Jane-Street cram tool does set it; Dune's does not).
-
-**Status (2026-09-27, T7): RETIRED.** The cram stanza in
-`tests/dune` was removed; all cram `.t` files were deleted; their
-coverage now lives in `tests/fixtures/cli-*.sh` (shell fixtures,
-DRY with the rest of the corpus). Dune 3.23's cram sandbox
-masks `_build/default/bin/mathc.exe` even with `(deps
-../bin/mathc.exe)` and even with `CRAM_NO_BWRAP=1`. The captured
-`cram.out` files were "passing" because they matched against
-captured failure output — a self-referential lie. Migrate new CLI
-tests to shell fixtures under `tests/fixtures/cli-<sub>.sh` per
-the pattern established in commit dc78bcd. **Trigger**: if
-cram is reintroduced and tests use `dune build @runtest` they
-will appear to pass while binary invocation silently fails; check
-the captured `cram.out` for `No such file or directory` in the
-diff before trusting the green CI badge.
+2. Dune cram does NOT implement regex/glob output matchers (see
+   https://dune.readthedocs.io/en/stable/tests.html). Captured
+   stdout is compared verbatim. For non-deterministic fields
+   like timestamps, pipe through `jq` to scrub (e.g., `jq -c
+   'del(.now)'`) before comparison.
 
 ### 11.21 `dune fmt` exits 0 even when files would be reformatted
 

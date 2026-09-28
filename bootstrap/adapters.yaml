@@ -81,8 +81,8 @@ scope:
     - "lib/git/git_diff.ml"
     - "lib/git/dune"
     - "lib/dune"
-    - "tests/fixtures/junit-adapter.sh"
-    - "tests/fixtures/git-adapter.sh"
+    - "tests/cli/junit-adapter.t"
+    - "tests/cli/git-adapter.t"
     - "bootstrap/adapters.yaml"
   exclusions:
     - "lib/codec.ml"
@@ -277,7 +277,7 @@ obligations:
       lib/diagnostic.ml, lib/jsonl.ml) remains offline.
     acceptance:
       all:
-        - verifier: tests/fixtures/junit-adapter.sh
+        - verifier: tests/cli/junit-adapter.t
           result: pass
 
   - id: git-changed-files-adapter
@@ -314,7 +314,7 @@ obligations:
       flagged as a documentation gap.
     acceptance:
       all:
-        - verifier: tests/fixtures/git-adapter.sh
+        - verifier: tests/cli/git-adapter.t
           result: pass
 
 reversal:
