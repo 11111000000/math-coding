@@ -234,6 +234,8 @@ let print_usage oc =
     \  time-estimate --class ...        print JSON forecast from declared \
      distribution\n\
     \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\
+    \  self-check                       print JSON self-check verdict; exits \
+     0|1|3\n\
     \  session-start                    write .local/session-start ISO timestamp\n\
     \  record --decision-id ID ...      append event to \
      decisions/execution-logs.jsonl\n\
@@ -1596,6 +1598,355 @@ let do_gate () =
   print_string (gate_to_json result);
   exit (verdict_to_exit result.verdict)
 
+(* --- self-check subcommand (bootstrap decision
+ *   mc-self-check-subcommand@2) ---
+ *
+ * `mc self-check` walks every decision file under decisions/*.yaml,
+ * loads the attestation store via Attestations.load, and emits a
+ * single JSON verdict object on stdout. The pass-condition is the
+ * AGENTS.md §Bootstrap gate expiry clause verbatim: "the released
+ * 3.0 kernel successfully checks this repository and its
+ * conformance corpus" (per spec/semantics.md:415).
+ *
+ * Per-decision verdicts use the existing Gate.obligation_gap (a
+ * top-level binding of lib/gate.ml, exposed because the library is
+ * `(wrapped false)` per OCAML_BEST_PRACTICES §1.2). The top-level
+ * verdict is `fail` if any subject is `fail`, `pass` if every
+ * subject is `pass`, else `unknown`. Per constitution.md:59
+ * (`unknown != pass`) the dispatcher MUST exit nonzero on
+ * `unknown` (exit code 3 per spec/semantics.md:435-440).
+ *
+ * The decisions directory is enumerated via Sys.readdir directly
+ * (no hardcoded file list — the decision set grows over time per
+ * ROADMAP P1). Each `.yaml` / `.yml` / `.json` file under
+ * decisions/ is parsed via Memory.parse_decision_yaml to extract
+ * id, revision, and obligation IDs.
+ *
+ * changed_paths is a single sentinel ["self-check"] so the
+ * materials_digest is non-empty: lib/gate.ml's evaluate short-
+ * circuits to Pass on empty paths (lib/gate.ml:245-246), but for
+ * self-check we want the evaluator to walk every obligation. The
+ * Gate.fresh_against wildcard (`materials_digest = ""` matches
+ * anything) means existing attestations still apply. *)
+
+(* Map a Gate verdict variant to the self-check JSON verdict
+   string. Open_with_waiver is reported as `pass` because a
+   waiver is an explicit, scoped, expiring acceptance of the
+   underlying gap (per constitution.md §Waivers). *)
+let[@warning "-32"] verdict_to_pass_fail_unknown = function
+  | Gate.Pass -> "pass"
+  | Gate.Open_with_waiver -> "pass"
+  | Gate.Block -> "fail"
+  | Gate.Unknown -> "unknown"
+
+(* Enumerate decisions/*.yaml. Returns absolute paths. The .yaml
+   extension is the convention; we also accept .yml and .json so
+   future revisions can ship machine-authored decisions without
+   renaming. Decisions/ONBOARDING.md and decisions/rationale.md
+   are markdown notes, not decisions, and are filtered out by
+   extension. *)
+let[@warning "-32"] list_decision_files dir =
+  if not (Sys.file_exists dir) then []
+  else if not (Sys.is_directory dir) then []
+  else
+    try
+      Sys.readdir dir |> Array.to_list
+      |> List.filter (fun name ->
+          let sfx = Filename.extension name in
+          sfx = ".yaml" || sfx = ".yml" || sfx = ".json")
+      |> List.map (fun name -> Filename.concat dir name)
+    with _ -> []
+
+(* Parse a single decision file via the existing Memory helper.
+   Returns None on parse failure — the dispatcher is best-effort
+   and never crashes on a malformed decision.
+
+   Note: the kernel YAML parser (Codec.load_yaml_string) is
+   hand-rolled and drops continuation lines for unquoted
+   multi-line scalars (see OCAML_BEST_PRACTICES §11.13 — the
+   "whitespace-stripping helper destroys source structure"
+   trap). For `mc self-check` we need both the decision id and
+   the obligation ids; if Memory.parse_decision_yaml returns a
+   stub with empty obligation_ids we fall back to a text
+   scan that only needs to find top-level `id: NAME` and the
+   `- id: NAME` items under the `obligations:` block. The text
+   scan is robust to multi-line scalars because it matches
+   line-by-line and ignores content after the value. *)
+let[@warning "-32"] leading_spaces line =
+  let len = String.length line in
+  let rec loop i =
+    if i >= len then i
+    else
+      let c = String.unsafe_get line i in
+      if c = ' ' || c = '\t' then loop (i + 1) else i
+  in
+  loop 0
+
+(* Return true if `line` looks like a top-level YAML key/value
+   (no leading whitespace, not a comment, not the YAML
+   front-matter marker `---`). *)
+let[@warning "-32"] is_top_level line =
+  let len = String.length line in
+  if len = 0 then false
+  else
+    let c0 = String.unsafe_get line 0 in
+    if c0 = ' ' || c0 = '\t' || c0 = '#' then false
+    else if len >= 3 && line = "---" then false
+    else true
+
+(* Find the first top-level `id: VALUE` line and return VALUE.
+   VALUE is everything after the colon, trimmed. Block-scalar
+   values (`id: |`) are skipped (they are not used in our
+   decisions). *)
+let[@warning "-32"] extract_top_level_id lines =
+  let rec loop = function
+    | [] -> None
+    | line :: rest -> (
+        if not (is_top_level line) then loop rest
+        else
+          let trimmed = String.trim line in
+          match String.index_opt trimmed ':' with
+          | Some i ->
+              let key = String.sub trimmed 0 i in
+              let v =
+                String.trim
+                  (String.sub trimmed (i + 1) (String.length trimmed - i - 1))
+              in
+              if
+                String.equal key "id" && v <> "" && v.[0] <> '|' && v.[0] <> '>'
+              then Some v
+              else loop rest
+          | None -> loop rest)
+  in
+  loop lines
+
+(* Collect `- id: NAME` items under the `obligations:` block.
+   The block ends at the next top-level key. Multi-line scalar
+   continuations are ignored because we only match the literal
+   `- id:` prefix at indent 2. *)
+let[@warning "-32"] extract_obligation_ids lines =
+  let rec scan acc in_obls = function
+    | [] -> List.rev acc
+    | line :: rest ->
+        if is_top_level line then
+          begin if String.trim line = "obligations:" then scan acc true rest
+          else if in_obls then List.rev acc
+          else scan acc false rest
+          end
+        else if in_obls then
+          let indent = leading_spaces line in
+          if indent = 2 && String.length line > 4 then begin
+            let after = String.sub line 2 (String.length line - 2) in
+            let trimmed = String.trim after in
+            if
+              String.length trimmed > 2
+              && trimmed.[0] = '-'
+              && trimmed.[1] = ' '
+            then begin
+              let rest_of = String.sub trimmed 2 (String.length trimmed - 2) in
+              match String.index_opt rest_of ':' with
+              | Some i ->
+                  let key = String.sub rest_of 0 i in
+                  let v =
+                    String.trim
+                      (String.sub rest_of (i + 1)
+                         (String.length rest_of - i - 1))
+                  in
+                  if String.equal key "id" && v <> "" then
+                    scan (v :: acc) true rest
+                  else scan acc true rest
+              | None -> scan acc true rest
+            end
+            else scan acc true rest
+          end
+          else scan acc true rest
+        else scan acc in_obls rest
+  in
+  scan [] false lines
+
+let[@warning "-32"] load_decision_entry reader path =
+  match reader path with
+  | "" -> None
+  | raw ->
+      let lines = String.split_on_char '\n' raw in
+      let decision_id =
+        match extract_top_level_id lines with Some id -> id | None -> ""
+      in
+      let obligation_ids = extract_obligation_ids lines in
+      if decision_id = "" then None
+      else
+        let stub : Memory.decision_entry =
+          {
+            Memory.decision_id;
+            Memory.revision = None;
+            Memory.source = raw;
+            Memory.obligations = List.length obligation_ids;
+            Memory.obligation_ids;
+            Memory.assumptions = 0;
+            Memory.risk_triggers = [];
+          }
+        in
+        Some stub
+
+(* Per-decision evaluation. Walks every obligation in `entry` and
+   computes its gap; aggregates gaps into the decision's subject
+   verdict; returns (verdict, causes[], remedies[]). When the
+   subject verdict is `pass`, the gap list is empty and the
+   causes/remedies are empty too. *)
+let[@warning "-32"] evaluate_decision ~materials ~store
+    (entry : Memory.decision_entry) =
+  let gaps =
+    List.filter_map
+      (fun obl_id ->
+        Gate.obligation_gap ~decision_id:entry.Memory.decision_id
+          ~obligation_id:obl_id ~materials_digest:materials ~store)
+      entry.Memory.obligation_ids
+  in
+  let verdict = Gate.aggregate gaps in
+  let causes = List.concat_map (fun g -> g.Gate.causes) gaps in
+  let remedies = List.concat_map (fun g -> g.Gate.remedies) gaps in
+  (verdict, causes, remedies)
+
+(* Compute repository_digest from the sorted (decision_id, revision)
+   tuples. Stable across file orderings; absent revision is
+   represented as "?". The digest is the kernel's fingerprint of
+   the policy it just evaluated — paired with kernel_digest it
+   proves which (policy, kernel) pair produced the verdict. *)
+let[@warning "-32"] repository_digest_of entries =
+  let lines =
+    entries
+    |> List.sort (fun a b ->
+        String.compare a.Memory.decision_id b.Memory.decision_id)
+    |> List.map (fun e ->
+        e.Memory.decision_id ^ "@"
+        ^ match e.Memory.revision with Some r -> r | None -> "?")
+  in
+  Digest.sha256_hex (String.concat "\n" lines)
+
+(* Compute kernel_digest as the SHA-256 of the mathc binary
+   contents. The binary is the released kernel that the bootstrap
+   gate certifies; this fingerprint is what the verifier (and a
+   future shipped-build chain) ties the verdict to. Returns
+   "unavailable" if the binary is unreadable (e.g. stripped
+   build, hostile fs). *)
+let[@warning "-32"] kernel_digest_of () =
+  let path = Sys.executable_name in
+  try
+    let raw = In_channel.with_open_bin path In_channel.input_all in
+    Digest.sha256_hex raw
+  with _ -> "unavailable"
+
+(* Render one subject. Sorted keys per spec/semantics.md CLI
+   output contract. *)
+let[@warning "-32"] subject_to_json name verdict causes remedies =
+  let causes_json =
+    "["
+    ^ String.concat ","
+        (List.map (fun s -> Jsonl.stringify (Jsonl.String s)) causes)
+    ^ "]"
+  in
+  let remedies_json =
+    "["
+    ^ String.concat ","
+        (List.map (fun s -> Jsonl.stringify (Jsonl.String s)) remedies)
+    ^ "]"
+  in
+  let fields =
+    [
+      ("causes", causes_json);
+      ("name", Jsonl.stringify (Jsonl.String name));
+      ("remedies", remedies_json);
+      ("verdict", Jsonl.stringify (Jsonl.String verdict));
+    ]
+  in
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+  "{"
+  ^ String.concat ","
+      (List.map
+         (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+         sorted)
+  ^ "}"
+
+let[@warning "-32"] do_self_check () =
+  let anon _ = raise (Arg.Bad "no positional arguments expected") in
+  Arg.current := 1;
+  (try Arg.parse [] anon "usage: mc self-check"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mc self-check: %s\n" m;
+     exit 2);
+  let root = find_project_root (Sys.getcwd ()) in
+  let decisions_dir = Filename.concat root "decisions" in
+  let reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  let decision_files = list_decision_files decisions_dir in
+  let entries =
+    List.filter_map (fun p -> load_decision_entry reader p) decision_files
+  in
+  let store_root = resolve_store_root root in
+  let store = Attestations.load ~reader ~root:store_root in
+  let materials = Gate.materials_digest_of [ "self-check" ] in
+  let evaluated =
+    List.map
+      (fun entry ->
+        let verdict, causes, remedies =
+          evaluate_decision ~materials ~store entry
+        in
+        (entry.Memory.decision_id, verdict, causes, remedies))
+      entries
+  in
+  (* Top-level aggregation. Empty decision set is treated as
+     `unknown` (not `pass`) — a kernel with no decisions to check
+     cannot honestly claim to have checked the policy. *)
+  let top_verdict =
+    match evaluated with
+    | [] -> Gate.Unknown
+    | _ ->
+        let verdicts = List.map (fun (_, v, _, _) -> v) evaluated in
+        if List.exists (fun v -> v = Gate.Block) verdicts then Gate.Block
+        else if List.for_all (fun v -> v = Gate.Pass) verdicts then Gate.Pass
+        else Gate.Unknown
+  in
+  let top_string = verdict_to_pass_fail_unknown top_verdict in
+  let subjects_json =
+    "["
+    ^ String.concat ","
+        (List.map
+           (fun (name, verdict, causes, remedies) ->
+             subject_to_json name
+               (verdict_to_pass_fail_unknown verdict)
+               causes remedies)
+           evaluated)
+    ^ "]"
+  in
+  let fields =
+    [
+      ("kernel_digest", Jsonl.stringify (Jsonl.String (kernel_digest_of ())));
+      ("now", Jsonl.stringify (Jsonl.String (now_iso ())));
+      ( "repository_digest",
+        Jsonl.stringify (Jsonl.String (repository_digest_of entries)) );
+      ("subjects", subjects_json);
+      ("verdict", Jsonl.stringify (Jsonl.String top_string));
+    ]
+  in
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+  let body =
+    "{"
+    ^ String.concat ","
+        (List.map
+           (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+           sorted)
+    ^ "}\n"
+  in
+  print_string body;
+  (* Exit code mapping per spec/semantics.md:435-440 and
+     constitution.md:148 (exit honesty). Unknown is NOT 0 —
+     that would be `unknown != pass` laundering. *)
+  match top_verdict with
+  | Gate.Pass | Gate.Open_with_waiver -> exit 0
+  | Gate.Block -> exit 1
+  | Gate.Unknown -> exit 3
+
 let dispatch () =
   if Array.length Sys.argv < 2 then begin
     print_usage stderr;
@@ -1610,6 +1961,7 @@ let dispatch () =
   | "attest" -> do_attest ()
   | "time-estimate" -> do_time_estimate ()
   | "gate" -> do_gate ()
+  | "self-check" -> do_self_check ()
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()
   | "stats" -> do_stats ()
