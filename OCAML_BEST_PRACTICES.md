@@ -1001,3 +1001,530 @@ indent + 2 (or whatever the author chose). Using `>` instead of
 root cause of the v0.0.19 `literal simple` test failure (empty
 string instead of `"hello\nworld\n"`).
 
+### 11.4 `let ... and ...` requires the first definition to be `let rec`
+
+```ocaml
+(* FAILS — and must follow let rec, not let *)
+let parse_yaml mapping = ...
+and parse_scalar s = ... uses parse_yaml ...
+
+(* WORKS *)
+let rec parse_yaml mapping = ...
+and parse_scalar s = ...
+```
+
+The first `let` in a mutually recursive group must be `let rec`. The
+rest follow with `and`. Without `rec`, OCaml treats `and` as a
+definition that cannot call back into the group.
+
+### 11.5 `rec` keyword on a non-recursive function is a warning
+
+```ocaml
+let[@warning "-32"] parse_acceptance v = ...
+(* Error (warning 39 [unused-rec-flag]): unused rec flag. *)
+
+(* WORKS *)
+let parse_acceptance v = ...
+```
+
+Only use `rec` when the function genuinely calls itself. The
+compiler warns even when warnings are suppressed with
+`[@warning "-32"]`.
+
+### 11.6 Dune does not re-read `modules` lists incrementally
+
+Adding a new file `lib/foo.ml` to `lib/`:
+
+```lisp
+(modules ... foo)        ; ← newly added
+```
+
+…does NOT cause `dune build` to compile `foo.ml`. The change is
+detected, but the existing `_build/default/lib.cmxs` is kept.
+You must run `dune build --force` or `dune clean && dune build`.
+
+**Fix**: `./scripts/dev rebuild` — never `rm -rf _build` directly.
+See `scripts/dev`, which exists specifically to avoid this superstition.
+Referenced from `lib/git/git_diff.ml:19`.
+
+**Trigger**: new file in `lib/` not picked up; or `Unbound module Foo`
+when `Foo` should exist.
+
+### 11.7 Adding a new OCaml package to `flake.nix` requires a clean rebuild
+
+When you add `ocamlPackages.foo` to `flake.nix:devShells.test.packages`,
+the new `foo` package is not yet on the closure. `nix develop .#test`
+will either:
+- rebuild the dev-shell (slow first time), or
+- fail to find `foo` in `OCAMLPATH` if the shell was cached.
+
+After `nix develop .#test`, run `./scripts/dev rebuild` so dune
+re-evaluates the closure.
+
+### 11.8 `Sys.getcwd()` inside a test runs from `_build/default/tests/...`
+
+When `dune test` runs an executable, the working directory is the
+stanza output directory, not the source root. Relative paths like
+`"fixtures/conformance"` resolve against the wrong root. Referenced
+from `bin/Mathc.ml:307` (production-binary rule: CLI defaults to CWD;
+agent can override via `-C`, or via the `MATH_CODING_ROOT` environment
+variable).
+
+**Fix**: anchor on a known file at the repo root:
+
+```ocaml
+let fixture_root =
+  let cwd = Sys.getcwd () in
+  let rec find_dune_project d =
+    let candidate = Filename.concat d "dune-project" in
+    if Sys.file_exists candidate then d
+    else
+      let parent = Filename.dirname d in
+      if parent = d then cwd  (* fallback *)
+      else find_dune_project parent
+  in
+  Filename.concat (find_dune_project cwd)
+    "fixtures" |> Filename.concat "conformance"
+```
+
+### 11.9 `nix develop --command bash -c '...'` parses one shell string
+
+```sh
+# WRONG — embedded ' inside single-quoted string breaks the shell
+nix develop .#test --command "bash -c 'echo 'literal''"
+# Bash sees: bash -c 'echo literal' — single-quote eats literal''
+
+# WORKING PATTERN (what scripts/dev uses)
+nix develop .#test --command bash -c "cmd && other"
+```
+
+`--command` takes a SHELL COMMAND as one argument. The shell then parses
+it. Don't wrap the shell's `-c` argument in single quotes from inside.
+Referenced from `flake.nix:167` (shellcheck SC2016 exemption: the
+single-quoted `bash -c '...'` snippets are intentional so nix-develop's
+outer shell does not expand `$` inside the nix shell).
+
+### 11.10 `Array.filter` does not exist in OCaml stdlib
+
+```ocaml
+(* FAILS — Unbound value Array.filter *)
+Array.filter (fun n -> ...) dir
+
+(* WORKS *)
+List.filter (fun n -> ...) (Array.to_list dir)
+```
+
+OCaml stdlib has `Array.exists`, `Array.iter`, `Array.map`, etc., but
+not `Array.filter`. Convert to list first.
+
+### 11.11 `Sys.is_directory` returns `bool`, not `bool option`
+
+```ocaml
+(* FAILS — pattern match against a bool *)
+match Sys.is_directory path with
+| Some true -> ...
+| _ -> ...
+
+(* WORKS *)
+match Sys.is_directory path with
+| true -> ...
+| false -> ...
+```
+
+`Sys.is_directory` returns plain `bool` (true = is a directory).
+Only some `Sys` functions return `option` (e.g., `Sys.getenv_opt`,
+`Sys.argv`-related).
+
+### 11.13 A whitespace-stripping helper destroys source structure
+
+The original `yaml_strip` in `tests/conformance.ml` (pre-fix) looked
+innocuous — strip `#` comments, then drop `' ' | '\t' | '\r'`:
+
+```ocaml
+| ' ' | '\t' | '\r' -> loop (i + 1)
+```
+
+But this dropped **every** space/tab/CR, including the leading
+indentation that gives YAML its structure. The result:
+
+```yaml
+intent:
+  source: issue:143
+  text: ...
+```
+
+…became `intent:\nsource:issue:143\ntext:...` after stripping — every
+line collapsed to indent 0, and the nested object became three sibling
+top-level keys with names like `source`, `text`. `parse_yaml` happily
+returned a flat object and the parser couldn't recover the hierarchy.
+The kernel then rejected the fixture because `intent.source` was
+missing.
+
+**Symptom**: every nested YAML fixture parses but with a totally wrong
+shape — keys with embedded `-` appear (`-rev:102abc`), and nested
+mappings collapse into siblings. The fix looks like it should be in
+the loader, but the bug is upstream in the preprocessor.
+
+**Fix**: only strip `#`-to-EOL comments and `\r`. Preserve all spaces
+and tabs so the tokenizer can compute indentation.
+
+```ocaml
+(* only strip comments and CR *)
+| '#' -> skip_to_eol i
+| '\r' -> loop (i + 1)
+| _ -> Buffer.add_char buf c; loop (i + 1)
+```
+
+Referenced from `lib/codec.ml:259` (whitespace-stripping trap
+documented in the loader's header comment).
+
+**Trigger**: any hand-rolled YAML/indentation-sensitive loader that
+delegates preprocessing to a "strip whitespace" helper.
+
+### 11.14 `dune test` emits no output when nothing changed
+
+When every test in a stanza passes, `dune test` caches the result and
+emits *no* Alcotest output on subsequent runs (no `Testing` line, no
+per-case `[OK]` lines). Shell fixtures that grep the output for a
+suite name then fail — but only on the *second* run, after the cache
+warms.
+
+**Symptom**: a fixture passes once (when something triggers a rebuild
+that re-runs the tests) and fails on the next `check.sh` invocation.
+Flaky green/red between calls.
+
+**Fix**: pass `--force` to `dune test` from shell fixtures that grep
+its output. `--force` rebuilds the test executables and re-runs them,
+guaranteeing output regardless of cache state.
+
+```sh
+nix develop .#test --command bash -c 'dune test --root . --force'
+```
+
+`dune test` has no `--error-on-warnings` flag (only `dune build` does
+in older versions); do not assume test-time strict-warnings is
+available.
+
+**Trigger**: a shell fixture `grep`s for a string in the output of
+`dune test`, and the fixture's input tree has been stable long enough
+for dune's build cache to short-circuit the run.
+
+### 11.12 Warnings classified as errors during compilation
+
+`dune build` returns nonzero exit code on warnings when:
+- `tests/dune` declares a `(test ...)` stanza and the test source has warnings
+- An executable's source has unused fields that flow into record literals
+
+`warning 8 [partial-match]`, `warning 32 [unused-value-declaration]`,
+and `warning 39 [unused-rec-flag]` are the most common ones. Fix the
+warning; don't suppress with `[@warning "-32"]` unless intentional.
+Use `./scripts/dev lint` to fail fast on warnings.
+
+### 11.15 `parse_array` drops the last element when followed by `]`
+
+The hand-rolled JSON parser at `lib/jsonl.ml:99` (pre-fix) returned
+`Array (List.rev acc)` from the `]` branch without appending the just-
+parsed element `v`:
+
+```ocaml
+and parse_array s i : value * int =
+  ...
+  let rec loop acc i =
+    let v, j = parse_value s i in
+    let i = skip_ws s j in
+    ...
+    if i < len && s.[i] = ',' then
+      loop (acc @ [v]) (skip_ws s (i + 1))
+    else if i < len && s.[i] = ']' then
+      Array (List.rev acc), i + 1     (* missing v *)
+    ...
+  in loop [] i
+```
+
+For a single-element array, `v` is parsed and `acc` is `[]`; the `]`
+branch returns `Array []` — element lost. For a multi-element array
+like `[1,2,3]`, the `,` branch appends the previous element to `acc`,
+but the final `]` branch returns `List.rev acc` minus the latest `v`.
+`[1,2,3]` decoded as `[2;1]`; `[{...}, {...}]` lost the last object.
+
+The conformance corpus did not detect this because every fixture's
+arrays happen to be single-element under the keys the runner
+inspects (`obligations`, `assumptions`, `outcomes`, `reversal`,
+`parents`, etc.). Single-element arrays go through the
+return-missing-v branch and become `[]`; the runner's accept/reject
+verdict on a `Some _` result still holds because the top-level
+required fields (id, revision, intent, commitment) are parsed
+correctly.
+
+**Symptom**: any code path that inspects `d.obligations` (or any list
+field built through `List.filter_map` over an array) sees `[]` even
+when the JSON source has elements. `mc validate FILE` showed
+`obligations: 0, assumptions: 0` for `positive-minimal.json` which
+genuinely contains one of each.
+
+**Fix** (`lib/jsonl.ml:99`): prepend `v` to `acc` once, before the
+dispatch on `,`/`]`:
+
+```ocaml
+let v, j = parse_value s i in
+let i = skip_ws s j in
+let len = String.length s in
+let acc = v :: acc in
+if i < len && s.[i] = ',' then
+  loop acc (skip_ws s (i + 1))
+else if i < len && s.[i] = ']' then
+  Array (List.rev acc), i + 1
+else parse_error "expected ',' or ']'" i
+```
+
+The `@ [v]` per-iteration pattern is replaced by single cons; the
+final `List.rev acc` already yields the correct order. `[]` keeps
+working through the early `]` shortcut at line 92.
+
+Referenced from `decisions/validate-and-context.yaml:84` (the
+`jsonl-array-parser-fixed` obligation records this trap's symptom
+and the conformance-runner blind spot). Also referenced from
+`doc/AUDIT-0.0.11.md:373` as the reason the bug went undetected for
+two years: the runner inspects `Some _ | None`, not `length`.
+
+**Trigger**: any fixture with non-empty array fields the kernel
+parses into a list — and the conformance runner doesn't transitively
+inspect list contents, only `Some _` / `None` on top-level decisions.
+
+### 11.16 `in_channel_length` on a subprocess pipe returns 0
+
+When you spawn a subprocess with `Unix.open_process_args_in` and try
+to read its stdout with `really_input_string ic (in_channel_length ic)`,
+you get an empty string. Pipes are not seekable; `in_channel_length`
+returns 0 because no bytes have been buffered yet (the subprocess
+may not even have started writing).
+
+```ocaml
+(* FAILS — output looks empty *)
+let raw =
+  let ic = Unix.open_process_args_in "git" [|"git"; "log"; "--oneline"|] in
+  let len = in_channel_length ic in
+  really_input_string ic len
+```
+
+```ocaml
+(* WORKS — read until EOF *)
+let read_all ic =
+  let buf = Buffer.create 256 in
+  (try while true do Buffer.add_channel buf ic 4096 done
+   with End_of_file -> ());
+  Buffer.contents buf
+```
+
+Referenced from `lib/git/git_diff.ml:22` (the git adapter redirects
+stdout to a tempfile and reads via `In_channel.with_open_bin`,
+matching the task spec and avoiding the pipe-length trap). Also
+referenced from `bin/Mathc.ml:851` (the cram-test determinism
+override `MATH_CODING_FIXED_TIME`) and `decisions/adapters.yaml:166`
+(JUnit emitter uses `In_channel.with_open_bin` on a tempfile). Cited
+in `spec/semantics.md:324` as the canonical fix pattern.
+
+**Trigger**: any subprocess invocation whose output is captured into
+a string for parsing (e.g., `mc context` reading `git log` /
+`git diff`). Symptom: every parsed field is empty even though the
+command runs fine from the shell.
+
+### 11.17 `Arg.parse` calls `anonfun` once per positional, overwriting refs
+
+`Arg.parse` treats the third argument as the *anonfun*, which is
+called for every positional argument. If `anonfun` writes into a
+single ref, each positional overwrites the previous one:
+
+```ocaml
+(* FAILS — `base` ends up holding "HEAD", `head` is never set *)
+let base = ref "" in
+let head = ref "" in
+let set_base s = base := s in
+let set_head s = head := s in
+Arg.parse ["--budget", ...] (fun s -> if !base = "" then set_base s else set_head s) "..."
+```
+
+The clean fix is to collect positionals into a list, then pattern-match
+the list (expected length, named fields):
+
+```ocaml
+(* WORKS *)
+let positionals = ref [] in
+let anon s = positionals := s :: !positionals in
+Arg.parse ["--budget", ...] anon "..."
+let args = List.rev !positionals in
+match args with
+| [b; h] -> ... (* use b, h *)
+| [_]    -> error "missing HEAD"
+| _      -> error "wrong number of positionals"
+```
+
+Referenced from `bin/Mathc.ml:535` (`do_assess` uses the
+positionals-collection pattern to avoid the anonfun-overwrite trap).
+Also cited in `doc/AUDIT-0.0.11.md:570` as one of the most recent
+five trap entries.
+
+**Trigger**: a multi-positional CLI command (e.g., `mc context BASE HEAD`)
+where the obvious `set_X` pattern collapses the second positional into
+the first. Symptom: the second ref is always empty and the parser
+falls into a "missing arg" branch.
+
+### 11.18 Structurally identical record types unify under inference
+
+When two record types in the same module have identical fields
+(e.g., `Memory.spec_doc = { path : string; body : string }` and
+`Memory.axiom_doc = { path : string; body : string }`), OCaml's
+structural row polymorphism can unify them at use-sites:
+
+```ocaml
+(* FAILS in another module that consumes Memory.t: *)
+let build_spec_items mem =
+  List.map (fun s -> s.Memory.path) mem.Memory.spec
+(* type error: "expression was expected of type axiom_doc list" *)
+```
+
+The compiler propagates whichever name it saw first. Annotate at the
+construction site *and* at the consumption site:
+
+```ocaml
+let[@warning "-32"] load_spec reader root : spec_doc list = ...
+let[@warning "-32"] build_spec_items (mem : Memory.t) =
+  let spec : Memory.spec_doc list = mem.Memory.spec in
+  List.map (fun (s : Memory.spec_doc) -> s.Memory.path) spec
+```
+
+**Trigger**: pure-data record types used by both the producer
+(lib/memory.ml) and the consumer (lib/capsule.ml); same field set
+across two types in the same module. Symptom: confusing "field X has
+type A but expected type B" errors at use-sites in another file.
+
+### 11.19 `lib/codec.ml`'s YAML loader does not handle `---` front-matter
+
+The hand-rolled YAML loader in `lib/codec.ml` (pre-v3.0.0.19)
+called `parse_yaml_pairs tokens 0` directly. When the first token's
+`ycontent` was `---`, the inner `String.index_opt ycontent ':'`
+returned `None`, and the loop returned the empty accumulator and the
+remaining tokens — which `load_yaml_string` then discarded. The
+result: every document that begins with YAML front-matter parsed
+to `Jsonl.Object []`.
+
+```yaml
+---                        # ← loop exits here, rest of file is dropped
+schema: math-coding/3.0-alpha
+id: bootstrap-v3
+```
+
+**Symptom**: `Decision.parse_decision` returned `None` for files
+that start with `---`. The conformance corpus did not catch this
+because its YAML fixtures (e.g.,
+`fixtures/conformance/decision/positive-minimal.yaml`) do not use
+front-matter.
+
+**Fix (capsule-side workaround, used through v0.0.18)**: in
+`lib/memory.ml`'s decision loader, strip leading `---` lines before
+calling `Codec.load_yaml_string`. The proper fix landed in
+v3.0.0.19: `load_yaml_string` strips `---` itself, and the loader
+gains block-scalar support (`|`, `|-`, `|+`, `>`, `>-`, `>+` with
+Clip/Strip/Keep chomping). See `decisions/yaml-block-scalars.yaml`
+and §11.1-§11.3 above for the resolved trap entries.
+
+**Trigger**: any caller of `Codec.load_yaml_string` whose input
+might start with `---`. Cited in `doc/AUDIT-0.0.11.md:564` as a
+top-5 recent entry. Referenced from `lib/codec.ml:259` and
+`decisions/yaml-block-scalars-impl-pending.yaml:38`.
+
+### 11.20 Dune 3.23 cram tests cannot reach binaries via relative paths
+
+Cram tests in `tests/cli/*.t` are sandboxed: their working directory
+is `_build/default/tests/cli/` but the sandbox only exposes the
+test's own `.t` files, `cram.sh`, and `cram.out`. Going `..`
+returns `cli` (the test sub-dir of `tests/`), and `../..` shows
+only `tests` — `_build/default/bin/` is not visible. This means:
+
+```text
+  $ ../bin/mathc.exe validate fixtures/x.json
+  ../bin/mathc.exe: No such file or directory
+  [127]
+```
+
+even when `_build/default/bin/mathc.exe` exists and the cram stanza
+declares the binary as a dep.
+
+```text
+  $ /tmp/proj/_build/default/bin/mathc.exe ...
+  myexe output
+```
+
+The cram test runs in an environment with `$INSIDE_DUNE` set to the
+build directory and `$DUNE_SOURCEROOT` set to the project root.
+Absolute paths through these vars work and trigger the build, but
+`$TESTCASE_ROOT` is **not** exported in dune 3.23's cram runner
+(the Jane-Street cram tool does set it; Dune's does not).
+
+**Fix** (`tests/cli/*.t` in this repo): anchor the binary at the
+absolute path inside the cram test:
+
+```text
+  $ mathc="$INSIDE_DUNE/bin/mathc.exe"
+  $ "$mathc" validate "$DUNE_SOURCEROOT/fixtures/x.json"
+```
+
+And in `tests/cli/dune` declare the binary as a dep of the cram stanza
+so dune rebuilds the binary before the cram test runs:
+
+```lisp
+(cram
+ (deps ... ../bin/mathc.exe))
+```
+
+Without this dep, `(deps ../bin/mathc.exe)` from inside the cram
+sandbox does not trigger the build, and the absolute path lookup
+returns "No such file or directory" — the cram test silently
+passes-with-no-output because the expected output is empty.
+
+**Trigger**: any cram test in Dune 3.x that needs to invoke an
+OCaml binary defined elsewhere in the project. Symptom: cram
+diff shows the binary path as `No such file or directory` even
+though the file exists in `_build/default/bin/`. Cited in
+`doc/AUDIT-0.0.11.md:561` as a top-5 recent entry. Referenced
+from `decisions/cli-cram-tests.yaml:31-32, 90, 135` (the cram
+RETIRED → active → documented cycle is recorded here).
+
+### 11.21 `dune fmt` exits 0 even when files would be reformatted
+
+`dune fmt` and `dune fmt --preview` both exit 0 unconditionally in
+dune 3.23, even when source files would change under the
+configured formatter (`ocamlformat`). `--preview` only prints
+diffs to stdout without writing; it does not turn the exit code
+into a check. `dune fmt` itself has no `--check` flag in dune
+3.23 (added later; check `dune fmt --help` for the local build).
+
+**Symptom**: any script that runs `dune fmt --check --root .`
+either errors with `unknown option '--check'` (3.23.1) or runs
+the apply-mode and exits 0 even on a tree that needs
+reformatting. A "fmt clean" gate that just trusts dune's exit
+code silently passes on dirty trees.
+
+**Fix** (`scripts/fmt-check.sh` in this repo): set
+`DUNE_DISABLE_PROMOTION=1` and run `dune fmt --root . --preview`.
+The promotion-disabled mode causes dune to error (exit 1) when
+the formatter would change a file, instead of silently writing
+the change. The script preserves dune's diff output so the
+human can see what would change.
+
+```sh
+DUNE_DISABLE_PROMOTION=1 dune fmt --root . --preview
+```
+
+Referenced from `scripts/fmt-check.sh:14` (header comment cites
+this trap-log entry) and `scripts/dev:80` (`verify` step cites it
+in the inline comment explaining the `fmt-check.sh` call).
+Cited in `doc/AUDIT-0.0.11.md:558` as a top-5 recent entry.
+
+**Trigger**: any CI check that wants to prove "the OCaml tree is
+ocamlformat-clean" using `dune fmt` in dune 3.23.x. Also: the
+ocamlformat option is `indicate-multiline-delimiters` (not
+`indicate-multiline-deltas` as documented in some blog posts);
+the latter silently produces
+`Unknown option "indicate-multiline-deltas"`.
+
