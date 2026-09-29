@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
-# math-coding 3.0-alpha: run all repo-state shell fixtures and report
-# per-fixture status, then run the dune cram CLI tests.
+# math-coding 3.0-alpha: run all remaining repo-state shell
+# fixtures and report per-fixture status, then run the dune cram
+# CLI tests. The kernel conformance, digest conformance, and repo
+# structure (OCaml/Alcotest) suites are exercised separately by
+# `dune build @runtest`; this script is the only place that runs
+# the repo-state shell fixtures.
 #
 # Usage:
 #   scripts/check.sh            — run all fixtures, exit 0 only if all pass

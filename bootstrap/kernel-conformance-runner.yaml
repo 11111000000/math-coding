@@ -100,7 +100,7 @@ obligations:
       fixture parses to None or fails on a specific parse_error path.
     acceptance:
       all:
-        - verifier: tests/fixtures/decision-parses.sh
+        - verifier: dune build @tests/conformance/runtest --root . exits 0
           result: pass
 
   - id: wire-conformance-into-dune-test
@@ -112,7 +112,7 @@ obligations:
       completeness.)
     acceptance:
       all:
-        - verifier: tests/fixtures/dune-runs-conformance.sh
+        - verifier: dune build @runtest --root . exits 0
           result: pass
 
   - id: skip-non-decision-fixtures-with-warning
@@ -123,7 +123,7 @@ obligations:
       the parser gap, rather than silently passing or hard-failing.
     acceptance:
       all:
-        - verifier: tests/fixtures/attestation-skip-message.sh
+        - verifier: dune build @tests/conformance/runtest --root . exits 0
           result: pass
 
 reversal:

@@ -32,14 +32,15 @@ intent: |
   the actual cram mechanism, since the §11.20 RETIRED status no
   longer holds.
 
-  The 15 remaining shell fixtures (attestation-skip-message.sh,
-  ci-targets-exist.sh, decision-parses.sh,
-  digest-vectors-coverage.sh, dune-runs-conformance.sh,
-  enumerate.sh, flake-lock-changes-record-decision.sh,
-  flake-ref-is-commit.sh, fmt-clean.sh, process-principles.sh,
+  The 9 remaining shell fixtures (ci-targets-exist.sh,
+  flake-lock-changes-record-decision.sh, flake-ref-is-commit.sh,
+  fmt-clean.sh, process-principles.sh,
   release-checksum-verified.sh, spec-catalog-present.sh,
-  spec-vs-bp-priority.sh, waiver-parser.sh,
-  yaml-block-scalars.sh) test repository state (file existence,
+  spec-vs-bp-priority.sh, yaml-block-scalars.sh) test repository
+  state (file existence, format, content scans, process
+  discipline). They run under `scripts/check.sh` alongside
+  `dune runtest` which exercises the kernel conformance, digest
+  conformance, and repo structure (OCaml/Alcotest) suites.
   format, content scans, priority drift detection) rather than
   CLI behaviour. They stay as shell fixtures for now; a
   follow-up commit migrates them to OCaml/Alcotest in a new
