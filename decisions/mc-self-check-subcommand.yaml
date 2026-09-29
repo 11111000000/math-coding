@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: mc-self-check-subcommand
-revision: 1
+revision: 2
 
 intent: |
   Close ROADMAP Tier-1 #2 (`mc self-check`) and thereby the
@@ -22,14 +22,29 @@ commitment: |
   #1) lands, `mc self-check` cannot move past `unknown` and
   this decision's exit code is reserved accordingly.
 
+  Revision 2 implements the dispatcher in `bin/Mathc.ml`. The
+  implementation walks `decisions/*.yaml` directly via
+  `Sys.readdir` (no hardcoded file list), consumes the
+  attestation store via the existing `Attestations.load`, and
+  evaluates each (decision, obligation) pair via `Gate.obligation_gap`
+  (a top-level binding exposed from `lib/gate.ml`). The kernel
+  stays offline and side-effect-free; all I/O lives in bin/.
+  Exit codes: 0 on `pass`; 1 on `fail`; 3 on `unknown` /
+  infrastructure error — `unknown` is NOT collapsed onto 0, per
+  constitution.md:59 (`unknown != pass`) and
+  spec/semantics.md:435-440.
+
 scope:
   paths:
     - "spec/semantics.md"
     - "bin/Mathc.ml"
     - "lib/gate.ml"
     - "lib/attestations/*.json"
-    - "tests/cli/self-check-positive.t"
-    - "tests/cli/self-check-negative.t"
+    - "tests/cli/self-check-pass.t"
+    - "tests/cli/self-check-fail.t"
+    - "tests/cli/self-check-unknown.t"
+    - "tests/fixtures/self-check-pass/**"
+    - "tests/fixtures/self-check-fail/**"
 
 outcomes:
   - id: spec-row-promoted
@@ -113,17 +128,20 @@ obligations:
       conformance corpus with exit 0; against a deliberately
       broken fixture the kernel returns `fail` with exit 1;
       against an unloadable policy the kernel returns
-      `unknown` with exit 3. **Note**: this obligation is
-      implementation-pending; the verifier below is a
-      manual-style honest declaration until the fixtures land.
-      Per AGENTS.md P2 the fixtures MUST exist before the
-      obligation is closed.
+      `unknown` with exit 3. Revision 2 implements the
+      dispatcher and closes this obligation via the three
+      cram fixtures below; the verifiers name the positive,
+      negative and unknown/infrastructure-error cases
+      separately per AGENTS.md §Self-application
+      ("positive and negative conformance fixtures").
     acceptance:
       all:
-        - verifier: cram-fixture-tests-cli-self-check-positive-t
-          result: pending
-        - verifier: cram-fixture-tests-cli-self-check-negative-t
-          result: pending
+        - verifier: cram-fixture-tests-cli-self-check-pass-t
+          result: pass
+        - verifier: cram-fixture-tests-cli-self-check-fail-t
+          result: pass
+        - verifier: cram-fixture-tests-cli-self-check-unknown-t
+          result: pass
 
 reversal:
   - signal: kernel-diverges-from-spec
