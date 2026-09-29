@@ -1,25 +1,59 @@
+---
 schema: math-coding/obligations-3.0-alpha
 decision:
   id: bootstrap-v3
-  revision: 1
+  revision: 2
+# This file aggregates the obligations declared in
+# `decisions/decision.yaml@2` so external readers see a single
+# canonical obligation set without parsing the parent policy.
+# Revision bumped 1 -> 2 at v0.0.19 alongside the count reconciliation:
+# - prior (rev 1): 5 obligations, ids `preserve-v2`,
+#   `single-active-protocol`, `executable-musts`, `honest-bootstrap`,
+#   `reversible-cutover` — names from the v0.0.10 obligation set;
+#   three ids (`single-active-protocol`, `executable-musts`,
+#   `reversible-cutover`) do not exist in `decisions/decision.yaml@2`.
+# - now (rev 2): 7 obligations, ids match `decisions/decision.yaml@2`
+#   line-for-line. The two dropped obligations
+#   (`single-active-protocol`, `reversible-cutover`) were folded into
+#   the bootstrap protocol at v0.0.18 and are no longer tracked here;
+#   `executable-musts` was renamed to `conformance-coverage`,
+#   `honest-bootstrap` to `bootstrap-honesty`. Net: 5 -> 7 with a
+#   name reconciliation. The packges `Obs` column in `PACKAGES.md`
+#   is observation count from a separate audit tool and is
+#   unaffected by this reconcile.
 obligations:
   - id: preserve-v2
     kind: invariant
     statement: The v2.1-final tag resolves to the pre-migration source.
     evidence: manual-git-verification
-  - id: single-active-protocol
-    kind: invariant
-    statement: Active agent guidance uses only 3.0-alpha semantics.
-    evidence: repository-search
-  - id: executable-musts
+  - id: conformance-coverage
     kind: acceptance
-    statement: Every normative MUST has positive and negative fixtures.
+    statement: Every kernel-enforced rule has at least one positive and one
+      negative fixture.
     evidence: conformance-suite
-  - id: honest-bootstrap
+  - id: bootstrap-honesty
     kind: invariant
     statement: Documentation does not claim unavailable automated enforcement.
     evidence: review
-  - id: reversible-cutover
+  - id: authoring-benchmark
     kind: acceptance
-    statement: Removal of v2 active code occurs only after regression inventory exists.
-    evidence: migration-review
+    statement: First-attempt structural validity of decisions produced by an
+      LLM reaches the documented threshold.
+    evidence: manual-benchmark
+  - id: context-budget
+    kind: invariant
+    statement: Tier-1 context capsule never silently exceeds its declared
+      budget.
+    evidence: tests/cli/context-budget-bound.t
+  - id: developer-practices-binding
+    kind: invariant
+    statement: |
+      Every change to the kernel, schemas, or build follows the rules
+      in OCAML_BEST_PRACTICES.md.
+    evidence: manual-review-against-bp
+  - id: axioms-binding
+    kind: invariant
+    statement: |
+      Every non-trivial change is motivated by at least one axiom in
+      axioms/ and is recorded as a relation superseding or addressing it.
+    evidence: manual-axiom-link-review

@@ -1,0 +1,142 @@
+---
+schema: math-coding/3.0-alpha
+id: mc-self-check-subcommand
+revision: 1
+
+intent: |
+  Close ROADMAP Tier-1 #2 (`mc self-check`) and thereby the
+  AGENTS.md bootstrap-gate expiry condition verbatim: the
+  released 3.0 kernel successfully checks this repository and
+  its conformance corpus. `mc self-check` is the named mechanism;
+  until it ships, every assessment is a manual declaration,
+  not an automated guarantee (AGENTS.md §Bootstrap gate).
+
+commitment: |
+  Add a normative row for `mc self-check` in `spec/semantics.md`
+  §"CLI subcommands" so the catalog is complete and the
+  constitution-level unrecorded gap (semantics.md:152-155) is
+  closed on the spec side. The dispatcher ships in a follow-up
+  revision of this decision (rev 2), gated by `mc self-check`
+  passing locally against this repository and its conformance
+  corpus. Until `gate-attestation-store-fill` (ROADMAP Tier-1
+  #1) lands, `mc self-check` cannot move past `unknown` and
+  this decision's exit code is reserved accordingly.
+
+scope:
+  paths:
+    - "spec/semantics.md"
+    - "bin/Mathc.ml"
+    - "lib/gate.ml"
+    - "lib/attestations/*.json"
+    - "tests/cli/self-check-positive.t"
+    - "tests/cli/self-check-negative.t"
+
+outcomes:
+  - id: spec-row-promoted
+    statement: spec/semantics.md §"CLI subcommands" has a
+      `### self-check` row whose output carries `verdict`,
+      `subjects[]`, `repository_digest`, and `kernel_digest`,
+      and whose pass-condition is the AGENTS.md bootstrap-gate
+      expiry clause verbatim.
+  - id: gate-attestation-store-filled
+    statement: lib/gate.ml no longer reports
+      `NoAttestationStore` for any obligation whose attestation
+      store entry exists; the `gate-attestation-store-fill`
+      obligation of `decisions/gate-decision.yaml` is closed.
+  - id: dispatcher-shipped
+    statement: bin/Mathc.ml dispatches `mc self-check` and the
+      kernel returns `pass` against this repository and its
+      conformance corpus, with exit code 0.
+
+assumptions:
+  - id: store-precedes-self-check
+    state: assumed
+    statement: |
+      `gate-attestation-store-fill` (ROADMAP Tier-1 #1) precedes
+      `mc self-check` implementation. The dependency is recorded
+      in ROADMAP.md and is structural: without the store, every
+      gate verdict is `NoAttestationStore` and self-check
+      cannot move past `unknown`, which `constitution.md:59`
+      forbids conflating with `pass`.
+    owner: human:maintainer
+    consequence_if_false: `mc self-check` would return `unknown`
+      for every obligation and would fail the bootstrap expiry
+      condition.
+    review_on:
+      - signal: gate-attestation-store-fill-merged
+  - id: bootstrap-gate-verbatim
+    state: assumed
+    statement: |
+      The M3 verdict (`pass`) is the AGENTS.md bootstrap-gate
+      expiry clause quoted verbatim — including the words
+      `released` and `and its conformance corpus`. A
+      `mc self-check` that only checks the repository and not
+      the corpus does not expire the bootstrap.
+    owner: human:maintainer
+    consequence_if_false: a partial check would let an
+      unreleased build claim M3 prematurely.
+    review_on:
+      - signal: kernel-released
+
+obligations:
+  - id: mc-self-check-spec-promoted
+    outcome: spec-row-promoted
+    claim: |
+      spec/semantics.md §"CLI subcommands" contains a row
+      `### self-check` whose output shape and exit codes match
+      the AGENTS.md bootstrap-gate expiry clause and the
+      constitution.md `unknown != pass` distinction.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: text-scan-spec-semantics-has-self-check-row
+          result: pass
+  - id: mc-self-check-store-precedes
+    outcome: gate-attestation-store-filled
+    claim: |
+      The attestation store is filled so that lib/gate.ml
+      reports per-obligation verdicts rather than
+      `NoAttestationStore` for every obligation whose store
+      entry exists. Tracked under
+      `decisions/gate-decision.yaml` obligation
+      `gate-attestation-store-fill`.
+    acceptance:
+      all:
+        - verifier: gate-shape-fixture
+          result: pending
+  - id: mc-self-check-dispatcher-shipped
+    outcome: dispatcher-shipped
+    claim: |
+      bin/Mathc.ml dispatches `mc self-check`. The kernel
+      returns `pass` against this repository and its
+      conformance corpus with exit 0; against a deliberately
+      broken fixture the kernel returns `fail` with exit 1;
+      against an unloadable policy the kernel returns
+      `unknown` with exit 3. **Note**: this obligation is
+      implementation-pending; the verifier below is a
+      manual-style honest declaration until the fixtures land.
+      Per AGENTS.md P2 the fixtures MUST exist before the
+      obligation is closed.
+    acceptance:
+      all:
+        - verifier: cram-fixture-tests-cli-self-check-positive-t
+          result: pending
+        - verifier: cram-fixture-tests-cli-self-check-negative-t
+          result: pending
+
+reversal:
+  - signal: kernel-diverges-from-spec
+    action: revert the dispatcher; downgrade the spec row to
+    a documented limitation
+
+risk:
+  declared_triggers:
+    - bootstrap-premature-expiry
+    - unknown-confused-with-pass
+    - store-empty-but-verdict-pass
+    - kernel-diverges-from-release
+
+relations:
+  addresses:
+    - bootstrap-v3@2

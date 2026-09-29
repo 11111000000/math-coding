@@ -229,6 +229,32 @@ existence. Output JSON objects use sorted keys for reproducibility.
   obligations `cli-context-capsule` and
   `capsule-byte-budget-tracked`.
 
+### `explain DETAIL_REF`
+
+- **Synopsis**: `mc explain DETAIL_REF`
+- **Input**: `DETAIL_REF` is a colon-separated reference of the
+  form `kind:id` (e.g. `decision:bootstrap-v3`,
+  `obligation:conformance-coverage`, `axiom:A1`). The format
+  matches the `expansion` strings that `mc context` emits in
+  its `omitted[]` array.
+- **Output**: a single JSON object on stdout containing at
+  least `kind`, `id`, `digest`, `path`, and `body` (the
+  verbatim file contents) when the ref resolves to a single
+  artifact. On an unresolvable ref a typed diagnostic is
+  emitted on stderr with `code`
+  (`MC-REF-UNKNOWN` | `MC-REF-AMBIGUOUS` | `MC-REF-INVALID`).
+  **Bootstrap limitation (v3-alpha-0.0.19)**: `mc explain` is
+  not yet dispatched in `bin/Mathc.ml`. `mc context`'s
+  `omitted[].expansion` strings therefore cannot be expanded
+  today. The spec row is recorded now to close the broken
+  promise that `lib/capsule.ml:88` and
+  `spec/semantics.md:412-413` make; the implementation is
+  tracked in `decisions/mc-explain-subcommand.yaml`.
+- **Exit code**: `0` on a resolved ref; `2` on input error or
+  unresolvable ref.
+- **Justification**: `decisions/mc-explain-subcommand.yaml`
+  obligation `mc-explain-spec-promoted`.
+
 ### `assess BASE HEAD`
 
 - **Synopsis**: `mc assess BASE HEAD`
@@ -385,6 +411,36 @@ existence. Output JSON objects use sorted keys for reproducibility.
   YAML cannot be loaded.
 - **Justification**: `decisions/time-honesty.yaml` (the
   reference-class estimator obligation).
+
+### `self-check`
+
+- **Synopsis**: `mc self-check`
+- **Input**: none.
+- **Output**: a single JSON object on stdout with at least
+  `verdict` (`pass` | `fail` | `unknown`), `subjects[]`
+  (each with `name`, `verdict`, `causes[]`, `remedies[]`),
+  `now`, `repository_digest`, and `kernel_digest`. `pass`
+  is the AGENTS.md bootstrap-gate expiry condition verbatim:
+  the **released** 3.0 kernel successfully checks this
+  repository **and its conformance corpus**. `unknown` is
+  reserved for infrastructure errors (e.g. cannot load
+  `decisions/decision.yaml`); it MUST be distinct from
+  `pass` and `fail` per `constitution.md:59` (`unknown != pass`).
+  **Bootstrap limitation (v3-alpha-0.0.19)**: not implemented.
+  This subcommand depends on `gate-attestation-store-fill`
+  (ROADMAP Tier-1 #1): without the store, `mc gate` returns
+  `NoAttestationStore` for every obligation and `self-check`
+  cannot move past `unknown`. Implementation tracked in
+  `decisions/mc-self-check-subcommand.yaml`.
+- **Exit code**: `0` on `pass`; `1` on `fail`; `3` on
+  `unknown` / infrastructure error (per `OCAML_BEST_PRACTICES.md`
+  §4.3: `0 = accept | pass`, `1 = block | reject`,
+  `3 = internal error (uncaught exception)` — the
+  infrastructure-error case maps to `3` because `unknown`
+  is a kernel verdict, not a CLI invocation fault).
+- **Justification**: `decisions/mc-self-check-subcommand.yaml`
+  obligation `mc-self-check-spec-promoted`; closes ROADMAP
+  Tier-1 #2.
 
 ## Context-prioritisation
 

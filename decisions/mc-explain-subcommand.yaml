@@ -1,0 +1,104 @@
+---
+schema: math-coding/3.0-alpha
+id: mc-explain-subcommand
+revision: 1
+
+intent: |
+  Close the broken promise in shipped code: `lib/capsule.ml:88`
+  emits `mc explain <detail_ref>` as the expansion command for
+  omitted capsule items, and `spec/semantics.md:412-413` quotes
+  the same form, but `bin/Mathc.ml:1395-1404` does not dispatch
+  any such subcommand. The cram test
+  `tests/cli/context-truncated-omitted.t` asserts the literal
+  string `mc explain`; if a user copies it to a shell today,
+  nothing answers.
+
+commitment: |
+  Add a normative row for `mc explain DETAIL_REF` in
+  `spec/semantics.md` §"CLI subcommands" so the catalog is
+  complete; record the implementation gap explicitly in the spec
+  row so the broken promise is no longer silent. The dispatcher
+  handler ships in a follow-up revision of this decision
+  (rev 2), gated by positive and negative cram fixtures.
+
+scope:
+  paths:
+    - "spec/semantics.md"
+    - "bin/Mathc.ml"
+    - "tests/cli/explain-positive.t"
+    - "tests/cli/explain-negative.t"
+
+outcomes:
+  - id: spec-row-promoted
+    statement: spec/semantics.md §"CLI subcommands" has a
+      `### explain DETAIL_REF` row with synopsis, input,
+      output, exit code, and bootstrap justification.
+  - id: dispatcher-shipped
+    statement: bin/Mathc.ml dispatches `mc explain DETAIL_REF` to
+      a handler that resolves `kind:id` references and emits
+      `{kind, id, digest, path, body}` JSON or a typed
+      diagnostic on stderr.
+
+assumptions:
+  - id: spec-before-impl
+    state: assumed
+    statement: |
+      Spec promotion precedes dispatcher implementation. The
+      spec row is the load-bearing artifact; the dispatcher
+      is its consumer.
+    owner: human:maintainer
+    consequence_if_false: the dispatcher would land without a
+      spec backing, violating `semantics.md:152-155` ("an
+      implementation MUST NOT add a new subcommand without
+      first adding a row here").
+    review_on:
+      - signal: spec-row-promoted
+
+obligations:
+  - id: mc-explain-spec-promoted
+    outcome: spec-row-promoted
+    claim: |
+      spec/semantics.md §"CLI subcommands" contains a row
+      `### explain DETAIL_REF` with the five fields named in
+      `semantics.md:166-170` (synopsis, input, output shape,
+      exit code, justification).
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: text-scan-spec-semantics-has-explain-row
+          result: pass
+  - id: mc-explain-dispatcher-shipped
+    outcome: dispatcher-shipped
+    claim: |
+      bin/Mathc.ml dispatches `explain` and the kernel resolves
+      `kind:id` references against on-disk artifacts (decisions,
+      obligations, axioms). A positive cram fixture asserts a
+      resolved ref produces the expected JSON shape; a negative
+      cram fixture asserts an unresolvable ref produces a typed
+      `MC-REF-UNKNOWN` diagnostic and exit 2. **Note**: this
+      obligation is implementation-pending; the verifier below
+      is a manual-style honest declaration until the fixtures
+      land. Per AGENTS.md P2 (decisions paired with fixtures)
+      the fixtures MUST exist before the obligation is closed;
+      `rev 2` of this decision is the trigger.
+    acceptance:
+      all:
+        - verifier: cram-fixture-tests-cli-explain-positive-t
+          result: pending
+        - verifier: cram-fixture-tests-cli-explain-negative-t
+          result: pending
+
+reversal:
+  - signal: dispatcher-breaks-context
+    action: revert the dispatcher; keep the spec row as
+    documented limitation
+
+risk:
+  declared_triggers:
+    - context-expansion-broken
+    - spec-without-impl
+
+relations:
+  addresses:
+    - bootstrap-v3@2

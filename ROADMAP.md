@@ -98,13 +98,24 @@ When multiple parallel agents commit, integrate in this order:
 4. **bin/Mathc.ml** — touches dispatcher; merge last
 5. **OCaml build fixes** (build artifacts, lockfiles) — own commit
 
-### P5. Cram is retired; shell fixtures only
+### P5. Cram lives in `tests/cli/`; OLD `tests/cram/` and shell fixtures retired
 
-`tests/cram/*.t` were removed in `dc78bcd`. New CLI tests go in
-`tests/fixtures/cli-<sub>.sh` per the pattern in `cli-time-estimate.sh`
-and `cli-time-storage.sh`. **Rationale:** dune 3.23 cram sandbox does
-not expose `_build/default/bin/mathc.exe` (see OCAML_BEST_PRACTICES
-§11.22 RETIRED).
+`tests/cram/*.t` was removed in `dc78bcd` (v3-alpha-0.0.10). The
+`tests/fixtures/cli-<sub>.sh` convention was retired at
+v3-alpha-0.0.16 when all CLI shell fixtures were migrated to
+`dune cram` in `tests/cli/*.t` (15 files at HEAD). Cram now lives in
+`tests/cli/*.t`, asserting CLI stdout/stderr snapshots via dune 3.23
+cram stanzas. The `tests/fixtures/` directory persists only as a
+host for `scripts/dev verify` aggregator wrappers, not per-CLI
+fixtures. **Rationale:** dune cram exposes `bin/mathc.exe` via
+`(deps %{bin:mathc})` in the cram stanza combined with
+`(public_name mathc)` in `bin/dune`; shell fixtures could not do
+this portably. The enforced test at
+`tests/process_principles.ml:332-348` checks only the OLD
+`tests/cram/` directory is absent; the live cram is in `tests/cli/`.
+(`OCAML_BEST_PRACTICES.md` §11 has only its header at HEAD; the
+§11.22 reference is preserved as a forward pointer for the
+restoration commit.)
 
 ### P6. Pre-commit verification
 
