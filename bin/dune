@@ -2,4 +2,10 @@
  (name mathc)
  (public_name mathc)
  (modules Mathc)
- (libraries mathcoding_core mathcoding_junit mathcoding_git str unix))
+ (libraries
+  mathcoding_core
+  mathcoding_junit
+  mathcoding_git
+  mathcoding_attestations
+  str
+  unix))

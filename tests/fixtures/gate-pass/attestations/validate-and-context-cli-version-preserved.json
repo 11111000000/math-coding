@@ -1,0 +1,12 @@
+{
+  "id": "sha256:0000000000000000000000000000000000000000000000000000000000000007",
+  "subject": {
+    "decision": "validate-and-context",
+    "obligation": "cli-version-preserved",
+    "materials_digest": ""
+  },
+  "kind_": "test",
+  "producer": {"identity": "ci:fixture"},
+  "result": "pass",
+  "issued_at": "2026-09-26T12:00:00Z"
+}

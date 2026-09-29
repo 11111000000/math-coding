@@ -1294,6 +1294,18 @@ let do_attest () =
  * Future revisions may ADD keys but MUST NOT remove or rename
  * these. *)
 
+(* Resolve the attestation store path. The default is the relative
+ * path `attestations/`; tests and operators can override via the
+ * environment variable MATH_CODING_ATTESTATION_STORE. The path is
+ * always resolved against the project root so the gate is
+ * reproducible from any working directory (mirrors
+ * MATH_CODING_ROOT in :312). *)
+let[@warning "-32"] resolve_store_root project_root =
+  match Sys.getenv_opt "MATH_CODING_ATTESTATION_STORE" with
+  | Some s when String.length s > 0 ->
+      if Filename.is_relative s then Filename.concat project_root s else s
+  | _ -> Filename.concat project_root "attestations"
+
 let[@warning "-32"] gap_to_json (g : Gate.gap) =
   let fields =
     [
@@ -1306,6 +1318,7 @@ let[@warning "-32"] gap_to_json (g : Gate.gap) =
              (match g.kind with
              | `MissingEvidence -> "MissingEvidence"
              | `StaleEvidence -> "StaleEvidence"
+             | `FailedEvidence -> "FailedEvidence"
              | `MissingReview -> "MissingReview"
              | `NoAttestationStore -> "NoAttestationStore"
              | `Unknown -> "Unknown")) );
@@ -1322,6 +1335,10 @@ let[@warning "-32"] gap_to_json (g : Gate.gap) =
          (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
          sorted)
   ^ "}"
+
+let[@warning "-32"] verdict_to_exit = function
+  | Gate.Pass | Gate.Open_with_waiver | Gate.Unknown -> 0
+  | Gate.Block -> 1
 
 let[@warning "-32"] gate_to_json (g : Gate.t) =
   let fields =
@@ -1375,16 +1392,23 @@ let do_gate () =
     changed_paths_raw |> String.split_on_char '\n'
     |> List.filter (fun s -> String.length s > 0)
   in
+  let store_root = resolve_store_root root in
+  let store_reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  let store = Attestations.load ~reader:store_reader ~root:store_root in
   let result =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
-      ~changed_paths
+      ~changed_paths ~store
   in
-  (* Verdict "block" -> exit 1, "pass" -> exit 0, "unknown" ->
-     exit 0 (informational; not blocking). The CLI does not yet
-     block merges (that requires the attestation store); exit
-     code matches the disposition today. *)
+  (* Verdict "block" -> exit 1; "pass" / "unknown" /
+     "open-with-waiver" -> exit 0. Per constitution.md Invariant 14
+     ("a blocking verdict MUST produce nonzero exit code") and
+     spec/semantics.md:306-310 (the forward-looking clause).
+     `unknown` stays 0 because blocking on infrastructure (no
+     attestation, stale store) is not yet warranted. *)
   print_string (gate_to_json result);
-  exit 0
+  exit (verdict_to_exit result.verdict)
 
 let dispatch () =
   if Array.length Sys.argv < 2 then begin
