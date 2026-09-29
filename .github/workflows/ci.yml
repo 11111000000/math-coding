@@ -74,13 +74,16 @@ jobs:
         run: ./scripts/dev verify
         timeout-minutes: 15
 
-      - name: mc self-check (informational; future blocking gate)
+      - name: mc self-check (bootstrap-gate block)
         # Tier-1 ROADMAP #2 / AGENTS.md §Bootstrap-gate expiry mechanism.
-        # At v3.0.0.19 the attestation store is empty, so the verdict
-        # is `unknown` and exit code is 3; this step logs the result
-        # for visibility but does NOT block the merge. When the store
-        # is populated, change `continue-on-error: false` to make this
-        # the actual bootstrap-gate block.
+        # v3.0.0.19 closes the bootstrap gate: the attestation store at
+        # attestations/ is populated, and `mc self-check` against the
+        # populated store returns verdict=pass (exit 0) on a clean
+        # main HEAD. PRs that produce verdict=fail (exit 1) or
+        # verdict=unknown (exit 3) on this step now block the merge
+        # per constitution.md Invariant 14 (exit honesty). See
+        # decisions/attestation-store-fill.yaml@2 obligation
+        # ci-block-set.
         # ~5 s.
         run: |
           set +e
@@ -90,7 +93,7 @@ jobs:
              _build/install/default/bin/mathc self-check > /tmp/self-check.json 2> /tmp/self-check.err; \
              echo "self-check exit=$?"; \
              jq -c "{verdict, kernel_digest, repository_digest, subjects_count: (.subjects | length)}" /tmp/self-check.json || cat /tmp/self-check.err'
-        continue-on-error: true
+        continue-on-error: false
         timeout-minutes: 2
 
       - name: nix flake check (OCaml_BEST_PRACTICES + pre-commit hooks)
