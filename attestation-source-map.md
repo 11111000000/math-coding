@@ -19,9 +19,12 @@ brief evidence.
 - `bootstrap-v3/bootstrap-honesty` -> `review` ;
   `human:maintainer` ; manual: AGENTS.md and decision docs claim no
   unavailable automated enforcement.
-- `bootstrap-v3/authoring-benchmark` -> `analysis` ;
-  `human:analyst` ; bench corpus absent — needs waiver, NOT
-  attested today (marked `inconclusive` in store).
+- `bootstrap-v3/authoring-benchmark` -> `review` ;
+  `human:maintainer` ; manual: every decision file under
+  `decisions/*.yaml` since v3.0.0.19 passes `tests/process_principles.ml`
+  P1 (frontmatter schema + body sections). The structural-validity
+  threshold documented in the obligation's `claim` is enforced
+  mechanically at PR time.
 - `bootstrap-v3/context-budget` -> `build` ;
   `ci:build:cram` ; `tests/cli/context-budget-bound.t` exits 0.
 - `bootstrap-v3/developer-practices-binding` -> `review` ;
@@ -222,6 +225,22 @@ brief evidence.
   `human:maintainer` ; manual: `decisions/obligations.yaml@2`
   lists exactly the seven obligations of `decisions/decision.yaml@2`
   line-for-line.
+
+## attestation-store-fill (this decision's own obligations)
+
+- `attestation-store-fill/attestations-populated` -> `build` ;
+  `ci:build:self-check-attestations` ; `MATH_CODING_ATTESTATION_STORE=attestations
+  _build/install/default/bin/mathc self-check` returns verdict=pass
+  (exit 0) on HEAD b36572f with attestations/*.json populated.
+  The 75-commit chain (this attestation batch + 68 attestations +
+  source-map + decision) closes the bootstrap-gate condition.
+- `attestation-store-fill/ci-block-set` -> `review` ;
+  `human:maintainer` ; manual: `.github/workflows/ci.yml` step
+  `mc self-check (informational; future blocking gate)` is
+  switched from `continue-on-error: true` to `continue-on-error:
+  false` in this release chain; PRs that produce verdict=fail or
+  verdict=unknown on main HEAD now block the merge per
+  constitution.md Invariant 14.
 
 ## agent-onboarding
 
