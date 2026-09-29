@@ -68,7 +68,7 @@ let k =
     0xc67178f2;
   |]
 
-let rotr x n = (x lsr n) lor (x lsl (32 - n))
+let rotr x n = (x lsr n) lor (x lsl (32 - n)) land 0xffffffff
 let ch x y z = x land y lor (lnot x land z)
 let maj x y z = x land y lor (x land z) lor (y land z)
 let bsig0 x = rotr x 2 lxor rotr x 13 lxor rotr x 22
@@ -83,7 +83,7 @@ let pad s =
   Buffer.add_string buf s;
   Buffer.add_char buf (Char.chr 0x80);
   let target = (len + 9 + 63) / 64 * 64 in
-  let pad_len = target - len - 1 in
+  let pad_len = target - len - 9 in
   for _ = 1 to pad_len do
     Buffer.add_char buf (Char.chr 0)
   done;
@@ -148,17 +148,16 @@ let digest_string s =
     let[@warning "-32"] step_round i a b c d e f g h =
       let t1 = (h + bsig1 e + ch e f g + k.(i) + w.(i)) land 0xffffffff in
       let t2 = (bsig0 a + maj a b c) land 0xffffffff in
-      ((d + t1) land 0xffffffff, (t1 + t2) land 0xffffffff)
+      ((t1 + t2) land 0xffffffff, (d + t1) land 0xffffffff)
     in
     let[@warning "-32"] rec loop i a b c d e f g h =
       if i > 63 then (a, b, c, d, e, f, g, h)
       else
         let a', e' = step_round i a b c d e f g h in
-        let b' = b and c' = c and d' = d and f' = f and g' = g and h' = h in
-        loop (i + 1) a' b' c' d' e' f' g' h'
+        loop (i + 1) a' a b c e' e f g
     in
     let a', b', c', d', e', f', g', h' =
-      loop 8 h.(0) h.(1) h.(2) h.(3) h.(4) h.(5) h.(6) h.(7)
+      loop 0 h.(0) h.(1) h.(2) h.(3) h.(4) h.(5) h.(6) h.(7)
     in
     h.(0) <- (h.(0) + a') land 0xffffffff;
     h.(1) <- (h.(1) + b') land 0xffffffff;
