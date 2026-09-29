@@ -1,22 +1,3 @@
-(test
- (name digest_vectors)
+(tests
+ (names digest_vectors conformance repo_structure)
  (libraries mathcoding_core alcotest))
-
-(test
- (name conformance)
- (libraries mathcoding_core alcotest))
-
-; CLI integration was previously tested via dune's cram stanza
-; (see archived tests/cram/*.t). Cram's bwrap sandbox in dune 3.23
-; does not expose _build/default/bin/mathc.exe to the test
-; process despite (deps ../bin/mathc.exe), and CRAM_NO_BWRAP=1
-; does not help — the sandbox still resolves /home/... paths
-; against the sandbox FS, where the binary is masked.
-;
-; Shell fixtures under tests/fixtures/cli-*.sh provide the same
-; CLI coverage via direct invocation through `nix develop .#test`.
-; They run reliably in any dune version and have full access to
-; the project tree. Migrate new CLI tests there.
-;
-; For the rationale and the documented cram sandbox limitation,
-; see OCAML_BEST_PRACTICES §11.22 (was §11.20, retired).

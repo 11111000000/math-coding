@@ -146,7 +146,7 @@ fi
 # P2 — every obligation in a non-meta decision file references a
 #      verifier via `acceptance.all[].verifier`, where the
 #      verifier is either a present fixture file, a kernel-test
-#      reference, or a manual-style verifier.
+#      reference, a cram .t file, or a manual-style verifier.
 # -----------------------------------------------------------------
 p2_fail=0
 
@@ -206,6 +206,14 @@ classify_verifier() {
   # Bare <name>.sh (used by infrastructure-honesty.yaml).
   if [[ "$v" =~ ^[A-Za-z0-9_-]+\.sh$ ]]; then
     printf 'fixture-path\ntests/fixtures/%s\n' "$v"
+    return
+  fi
+  # Cram .t file under tests/cli/. Treated as a present fixture;
+  # dune discovers it via the (cram ...) stanza in tests/cli/dune
+  # and runs it under `dune runtest`.
+  if [[ "$v" =~ ^tests/cli/[A-Za-z0-9_./-]+\.t(:.+)?$ ]]; then
+    local bare="${v%%:*}"
+    printf 'fixture-path\n%s\n' "$bare"
     return
   fi
   # Kernel-test reference: tests/<file>.ml or tests/conformance.ml ...

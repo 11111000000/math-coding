@@ -47,28 +47,59 @@ that authorises all other decisions. Its obligations are tracked in
 | `bootstrap/yaml-block-scalars.yaml` | `yaml-block-scalars` | 2 | 9 | DECISION | audit D1/D2 (impl deferred) |
 | `bootstrap/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 1 | 3 | DEFERRED | records D1/D2 deferral |
 | `bootstrap/process-principles.yaml` | `process-principles` | 2 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
+| `bootstrap/cli-cram-tests.yaml` | `cli-cram-tests` | 1 | 1 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
 | `bootstrap/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
-## Fixtures (`tests/fixtures/*.sh`)
+## Cram integration tests (`tests/cli/*.t`)
 
-Each fixture is a shell script that exits 0 if its obligation is
-satisfied. `./scripts/check.sh` runs them all and aggregates.
+Cram `.t` files exercise the mathc CLI as a separate process via
+`dune runtest`. Each `.t` is both the test and the fixture: cram
+captures stdout/stderr of the `$ command` lines and compares
+against the expected snapshot below each command.
 
-| Fixture | Obligation | File |
+The binary is exposed to the cram shell by `(public_name mathc)`
+in `bin/dune` combined with `(deps %{bin:mathc})` in the cram
+stanza (`tests/cli/dune`). dune installs mathc to
+`_build/install/default/bin/mathc` and adds it to `$PATH` of every
+cram test that declares the dep.
+
+Path portability: each test does `cd "$DUNE_SOURCEROOT"` first so
+mathc sees project-relative paths; its output echoes those
+relative paths back, which makes `.t` files portable across
+machines without scrubbing. `DUNE_SOURCEROOT` is exported by
+dune. Non-deterministic JSON fields (e.g. `now` timestamps) are
+scrubbed with `jq -c 'del(.now)'` before comparison.
+
+| Cram test | Obligation | Decision |
 |---|---|---|
-| `ambiguous-acceptance.sh` | parse handles ambiguous predicate shape | `lib/codec.ml` |
+| `version.t` | mathc prints bootstrap hello on `version` | `bootstrap/cli-cram-tests.yaml` |
+| `validate-positive.t` | valid decision accepted | `bootstrap/validate-and-context.yaml` |
+| `validate-negative.t` | invalid decision rejected | `bootstrap/validate-and-context.yaml` |
+| `ambiguous-acceptance.t` | MC-AMBIGUOUS-ACCEPTANCE diagnostic | `bootstrap/parse-acceptance-diagnostics.yaml` |
+| `malformed-acceptance.t` | MC-MALFORMED-ACCEPTANCE diagnostic | `bootstrap/parse-acceptance-diagnostics.yaml` |
+| `context-budget.t` | context capsule JSON shape | `bootstrap/validate-and-context.yaml` |
+| `context-budget-bound.t` | total_bytes <= budget | `bootstrap/validate-and-context.yaml` |
+| `context-priority-order.t` | items[] priority order monotonic | `bootstrap/capsule-active-policy.yaml` |
+| `context-required-for-gate.t` | active policy in RequiredForGate | `bootstrap/capsule-active-policy.yaml` |
+| `context-truncated-omitted.t` | truncated:true + omitted[] with expansion | `bootstrap/validate-and-context.yaml` |
+| `gate-scaffold.t` | gate emits documented JSON keys | `bootstrap/gate-decision.yaml` |
+| `git-adapter.t` | assess runs git diff --name-only | `bootstrap/adapters.yaml` |
+| `junit-adapter.sh` | attest parses JUnit XML | `bootstrap/adapters.yaml` |
+| `cli-time-estimate.t` | time-estimate 4 documented paths | `bootstrap/time-honesty.yaml` |
+| `cli-time-storage.t` | session-start / record / stats pipeline | `bootstrap/time-honesty-storage.yaml` |
+
+## Shell fixtures (`tests/fixtures/*.sh`)
+
+Shell fixtures that remain after the cram migration test
+*repository state* (file existence, format, content scans) rather
+than CLI behaviour. Each fixture is a shell script that exits 0
+if its obligation is satisfied. `./scripts/check.sh` runs them all
+and aggregates.
+
+| Fixture | Obligation | Decision |
+|---|---|---|
 | `attestation-skip-message.sh` | attestation parser wired | `bootstrap/kernel-conformance-runner.yaml` |
 | `ci-targets-exist.sh` | CI workflows reference real paths | `bootstrap/infrastructure-honesty.yaml` |
-| `cli-time-estimate.sh` | `mc time-estimate` works | `bootstrap/time-honesty.yaml` |
-| `cli-time-storage.sh` | `mc session-start`/`mc record` work | `bootstrap/time-honesty-storage.yaml` |
-| `process-principles.sh` | ROADMAP P1, P2, P5, P6, P7 enforced | `bootstrap/process-principles.yaml` |
-| `release-checksum-verified.sh` | SHA256 in CI for opam download | `bootstrap/infrastructure-honesty.yaml` |
-| `yaml-block-scalars.sh` | yaml-block-scalars obligation has fixtures | `bootstrap/yaml-block-scalars.yaml` |
-| `context-budget-bound.sh` | context budget not silently exceeded | `bootstrap/validate-and-context.yaml` |
-| `context-budget.sh` | context capsule produced | `bootstrap/validate-and-context.yaml` |
-| `context-priority-order.sh` | RequiredForGate > Changed > ... | `bootstrap/capsule-active-policy.yaml` |
-| `context-required-for-gate.sh` | RequiredForGate classifier correct | `bootstrap/capsule-active-policy.yaml` |
-| `context-truncated-omitted.sh` | omitted items listed on truncation | `bootstrap/validate-and-context.yaml` |
 | `decision-parses.sh` | Decision.parse_decision works | `bootstrap/kernel-conformance-runner.yaml` |
 | `digest-vectors-coverage.sh` | digest vectors are exercised | `OCAML_BEST_PRACTICES §5` |
 | `dune-runs-conformance.sh` | dune test runs conformance runner | `bootstrap/kernel-conformance-runner.yaml` |
@@ -76,15 +107,12 @@ satisfied. `./scripts/check.sh` runs them all and aggregates.
 | `flake-lock-changes-record-decision.sh` | flake.lock changes are recorded | `bootstrap/infrastructure-honesty.yaml` |
 | `flake-ref-is-commit.sh` | nixpkgs pinned to a commit hash | `bootstrap/infrastructure-honesty.yaml` |
 | `fmt-clean.sh` | `dune fmt --check` is clean | `OCAML_BEST_PRACTICES §10.4 item 6` |
-| `gate-scaffold.sh` | `mc gate` runs and emits JSON | `bootstrap/gate-decision.yaml` |
-| `git-adapter.sh` | `mc assess` works via lib/git | `bootstrap/adapters.yaml` |
-| `junit-adapter.sh` | `mc attest` works via lib/junit | `bootstrap/adapters.yaml` |
-| `malformed-acceptance.sh` | malformed predicate shape rejected | `bootstrap/parse-acceptance-diagnostics.yaml` |
+| `process-principles.sh` | ROADMAP P1, P2, P5, P6, P7 enforced | `bootstrap/process-principles.yaml` |
+| `release-checksum-verified.sh` | SHA256 in CI for opam download | `bootstrap/infrastructure-honesty.yaml` |
 | `spec-catalog-present.sh` | spec lists current CLI subcommands | `bootstrap/spec-cli-catalog.yaml` |
-| `spec-vs-bp-priority.sh` | priority tables in spec and practice match | `bootstrap/priority-drift.md` |
-| `validate-negative.sh` | invalid decision rejected | `bootstrap/validate-and-context.yaml` |
-| `validate-positive.sh` | valid decision accepted | `bootstrap/validate-and-context.yaml` |
+| `spec-vs-bp-priority.sh` | priority tables in spec and practice match | `bootstrap/priority-drift.yaml` |
 | `waiver-parser.sh` | waiver parser wired | `bootstrap/kernel-conformance-runner.yaml` |
+| `yaml-block-scalars.sh` | yaml-block-scalars obligation has fixtures | `bootstrap/yaml-block-scalars.yaml` |
 
 ## Kernel packages (`lib/`)
 

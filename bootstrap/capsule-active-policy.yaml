@@ -19,9 +19,9 @@ commitment: |
   RequiredForGate to the decision whose id matches. Capsule.build_capsule
   takes ~active_policy_id as a required labelled argument;
   bin/Mathc.ml passes Capsule.default_active_policy_id
-  ("bootstrap-v3") explicitly. The shell fixtures
-  context-required-for-gate.sh, context-truncated-omitted.sh,
-  context-budget-bound.sh, and context-priority-order.sh pin
+  ("bootstrap-v3") explicitly. The cram tests
+  context-required-for-gate.t, context-truncated-omitted.t,
+  context-budget-bound.t, and context-priority-order.t pin
   the invariants: items[] starts with RequiredForGate when
   the active policy is present; truncated/omitted/budget
   inequalities hold.
@@ -30,10 +30,10 @@ scope:
   paths:
     - "lib/capsule.ml"
     - "bin/Mathc.ml"
-    - "tests/fixtures/context-truncated-omitted.sh"
-    - "tests/fixtures/context-budget-bound.sh"
-    - "tests/fixtures/context-required-for-gate.sh"
-    - "tests/fixtures/context-priority-order.sh"
+    - "tests/cli/context-truncated-omitted.t"
+    - "tests/cli/context-budget-bound.t"
+    - "tests/cli/context-required-for-gate.t"
+    - "tests/cli/context-priority-order.t"
     - "bootstrap/capsule-active-policy.yaml"
   exclusions:
     - "lib/codec.ml"
@@ -90,7 +90,7 @@ obligations:
       has items[] with the active policy as the first entry.
     acceptance:
       all:
-        - verifier: tests/fixtures/context-required-for-gate.sh
+        - verifier: tests/cli/context-required-for-gate.t
           result: pass
   - id: capsule-budget-bounded
     outcome: capsule-budget-invariant
@@ -99,9 +99,9 @@ obligations:
       truncated=false and total_bytes <= budget_bytes.
     acceptance:
       all:
-        - verifier: tests/fixtures/context-budget-bound.sh
+        - verifier: tests/cli/context-budget-bound.t
           result: pass
-        - verifier: tests/fixtures/context-truncated-omitted.sh
+        - verifier: tests/cli/context-truncated-omitted.t
           result: pass
   - id: capsule-priority-sorted
     outcome: capsule-priority-ordering
@@ -110,7 +110,7 @@ obligations:
       Unresolved < Supporting < Historical.
     acceptance:
       all:
-        - verifier: tests/fixtures/context-priority-order.sh
+        - verifier: tests/cli/context-priority-order.t
           result: pass
 
 reversal:

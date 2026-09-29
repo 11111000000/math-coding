@@ -1,13 +1,20 @@
 #!/usr/bin/env bash
-# math-coding 3.0-alpha: run all infrastructure-honesty and
-# kernel-conformance-runner fixtures and report per-fixture status.
+# math-coding 3.0-alpha: run all remaining repo-state shell
+# fixtures and report per-fixture status, then run the dune cram
+# CLI tests. The kernel conformance, digest conformance, and repo
+# structure (OCaml/Alcotest) suites are exercised separately by
+# `dune build @runtest`; this script is the only place that runs
+# the repo-state shell fixtures.
 #
 # Usage:
 #   scripts/check.sh            — run all fixtures, exit 0 only if all pass
 #   scripts/check.sh <name>     — run a single fixture by basename
 #
 # Each fixture in tests/fixtures/*.sh is a self-contained executable
-# that asserts one obligation. This script is just the aggregator.
+# that asserts one obligation. The CLI integration tests live in
+# tests/cli/*.t as dune cram tests; they are exercised via
+# `dune runtest` at the end of the aggregator so a single invocation
+# of scripts/check.sh covers both shells and cram.
 #
 # Dune-lock handling: each fixture spawns `nix develop .#test`
 # which runs dune. When a previous invocation is interrupted
@@ -60,6 +67,25 @@ for f in "${fixtures[@]}"; do
     failed_names+=("$name")
   fi
 done
+
+# CLI cram integration tests (tests/cli/*.t). These run via dune
+# test. We force dune to rebuild so the bwrap sandbox is rebuilt
+# fresh; on a clean run this is fast (incremental cache).
+cleanup_dune
+cram_log=$(mktemp)
+trap 'rm -f "$cram_log"' EXIT
+if ! nix develop .#test --command bash -c '
+    dune build --root . @install >/dev/null 2>&1 &&
+    dune runtest --root . tests/cli
+' >"$cram_log" 2>&1; then
+  printf "  FAIL cli-cram\n"
+  tail -20 "$cram_log" >&2 || true
+  fail=$((fail + 1))
+  failed_names+=("cli-cram")
+else
+  printf "  ok   cli-cram\n"
+  pass=$((pass + 1))
+fi
 
 cleanup_dune
 

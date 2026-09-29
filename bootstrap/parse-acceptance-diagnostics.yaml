@@ -32,8 +32,8 @@ scope:
     - "OCAML_BEST_PRACTICES.md"
     - "fixtures/conformance/decision/positive-ambiguous-acceptance.json"
     - "fixtures/conformance/decision/positive-malformed-acceptance.json"
-    - "tests/fixtures/ambiguous-acceptance.sh"
-    - "tests/fixtures/malformed-acceptance.sh"
+    - "tests/cli/ambiguous-acceptance.t"
+    - "tests/cli/malformed-acceptance.t"
     - "bootstrap/parse-acceptance-diagnostics.yaml"
   exclusions:
     - "lib/capsule.ml"
@@ -46,8 +46,8 @@ outcomes:
     statement: |
       Decision.classify_acceptance_item is exported from lib/decision.ml
       and returns one of five acceptance_shape variants. Tests in
-      tests/conformance.ml can call it directly; tests/fixtures/
-      *.sh exercise it via mc validate.
+      tests/conformance.ml can call it directly; tests/cli/*.t
+      exercise it via mc validate.
   - id: diagnostic-emission
     statement: |
       mc validate FILE prints MC-AMBIGUOUS-ACCEPTANCE per obligation
@@ -101,9 +101,9 @@ obligations:
       'diagnostics':[…] array.
     acceptance:
       all:
-        - verifier: tests/fixtures/ambiguous-acceptance.sh
+        - verifier: tests/cli/ambiguous-acceptance.t
           result: pass
-        - verifier: tests/fixtures/malformed-acceptance.sh
+        - verifier: tests/cli/malformed-acceptance.t
           result: pass
 
 reversal:
