@@ -56,7 +56,9 @@ active project policy.
 | `scripts/dev` | Build wrapper (replaces `rm -rf _build` superstition) |
 | `scripts/check.sh` | Aggregates all `tests/fixtures/*.sh` |
 | `doc/AUDIT-0.0.11.md` | Open/closed deficit chain (every deficit tracks a commit hash) |
-| `legacy/v2.1.md` | Pointer to the `v2.1-final` tag; v2 source NOT in active tree |
+| `bootstrap/agent-onboarding.yaml` | Lockdown of the onboarding convention (ADRs, TLA/Coq/Alloy, read-first order); added in v3-alpha-0.0.18 |
+| `bootstrap/formal-verifier-conventions.yaml` | Codifies the `tla:`/`coq:`/`alloy:` review-prefixes; added in v3-alpha-0.0.18 |
+| ~~`legacy/v2.1.md`~~ | Removed in v3-alpha-0.0.18; the v2.1 source is reachable via the `v2.1-final` tag (`git switch v2.1-final`) but is no longer indexed here |
 
 ## CLI subcommands
 
