@@ -11,7 +11,7 @@ to a deterministic value; recorded_at and observed_by in record
 output are not currently scrubbed (could use jq if format drifts).
 
   $ cd "$DUNE_SOURCEROOT"
-  $ rm -f .local/session-start bootstrap/execution-logs.jsonl
+  $ rm -f .local/session-start decisions/execution-logs.jsonl
   $ MATH_CODING_FIXED_TIME=2026-09-27T07:07:17Z MATH_CODING_USER=human:test@local mathc session-start
   "2026-09-27T07:07:17Z"
   $ mathc record --decision-id bootstrap-v3 --scale wall-clock-minutes --value 5
@@ -24,10 +24,10 @@ output are not currently scrubbed (could use jq if format drifts).
   $ mathc record --decision-id bootstrap-v3 --scale step-count
   mc record: --value is required for --scale step-count
   [2]
-  $ rm -f bootstrap/execution-logs.jsonl
+  $ rm -f decisions/execution-logs.jsonl
   $ mathc stats | jq -c '{n, warning: (.warning // null)}'
   {"n":0,"warning":"insufficient samples (n=0 < 30); declared floor in bin/data/time-distribution.yaml still applies"}
   $ for i in $(seq 1 36); do mathc record --decision-id bootstrap-v3 --scale step-count --value $i >/dev/null 2>&1; done
   $ mathc stats --scale step-count | jq -c '{n, p50: .quantiles.p50, p99: .quantiles.p99}'
   {"n":36,"p50":19,"p99":36}
-  $ rm -f .local/session-start bootstrap/execution-logs.jsonl
+  $ rm -f .local/session-start decisions/execution-logs.jsonl
