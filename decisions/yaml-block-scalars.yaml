@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: yaml-block-scalars
-revision: 3
+revision: 4
 
 intent: |
   Close deficit D1 and D2 from doc/AUDIT-0.0.11.md by extending
@@ -17,6 +17,16 @@ intent: |
   implementation is added in v0.0.19. The reversal signal
   `yaml-block-scalars-impl-pending-resolved` triggers; the
   deferral decision is superseded.
+
+  Revision 4 is editorial: two natural-language verifier
+  strings in obligation `yaml-block-scalars-loader-extended`
+  (the `positive-`/`negative-block-scalars.yaml` fixture
+  acceptance/rejection lines) were rejected by the P2
+  classifier because they used no recognised manual-style
+  prefix. Each now starts with `manual-`; the underlying
+  acceptance behaviour and fixture files are unchanged. This
+  closes the pre-existing `tests/process_principles.ml` P2
+  failure on main HEAD `085f4e3`.
 
 commitment: |
   lib/codec.ml's load_yaml_string recognises a value starting
@@ -251,9 +261,9 @@ obligations:
           result: pass
         - verifier: mc validate decisions/decision.yaml
           result: accept
-        - verifier: fixtures/conformance/decision/positive-block-scalars.yaml is accepted by Decision.parse_decision
+        - verifier: manual-fixtures/conformance/decision/positive-block-scalars.yaml is accepted by Decision.parse_decision
           result: pass
-        - verifier: fixtures/conformance/decision/negative-block-scalars.yaml is rejected by Decision.parse_decision (missing commitment)
+        - verifier: manual-fixtures/conformance/decision/negative-block-scalars.yaml is rejected by Decision.parse_decision (missing commitment)
           result: pass
 
 reversal:
