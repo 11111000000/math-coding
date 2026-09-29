@@ -1,0 +1,1 @@
+{"id":"sha256:f6a5b795e815fba1a6cb39b5ea68668d7489e73b12ca6bdd5505bada9f446584","issued_at":"2026-09-29T18:00:00Z","kind":"attestation","kind_":"test","producer":{"identity":"ci:fixture:cli-gate"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"gate-decision","materials_digest":"","obligation":"gate-cli-runs"}}

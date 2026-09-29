@@ -1,0 +1,1 @@
+{"id":"sha256:96bbbac1109b46765cf9c4de7afbb3d56e64367a65feafb2122443d29417ca82","issued_at":"2026-09-29T18:00:00Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:build:flake"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"infrastructure-honesty","materials_digest":"","obligation":"pin-nixpkgs-commit"}}

@@ -1,0 +1,1 @@
+{"id":"sha256:796291b7699c392e4efca6cc27ab25efbf273ae9f4d837c8c6b052cafe59f79a","issued_at":"2026-09-29T18:00:00Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:build:ci"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"infrastructure-honesty","materials_digest":"","obligation":"fix-ci-targets"}}

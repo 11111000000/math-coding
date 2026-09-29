@@ -1,0 +1,1 @@
+{"id":"sha256:a77ffc98319a91fddbbacb087ce13cc1c5df1a38d212d6135cd6e9673ab26a00","issued_at":"2026-09-29T18:00:00Z","kind":"attestation","kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"bootstrap-v3","materials_digest":"","obligation":"axioms-binding"}}

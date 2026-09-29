@@ -1,0 +1,1 @@
+{"id":"sha256:6dc901f2081546892b4b113926261de4c68cb0a44bc9ecb9e58c0809dc162275","issued_at":"2026-09-29T18:00:00Z","kind":"attestation","kind_":"test","producer":{"identity":"ci:fixture:cli-cram"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"cli-cram-tests","materials_digest":"","obligation":"cli-tests-via-cram"}}

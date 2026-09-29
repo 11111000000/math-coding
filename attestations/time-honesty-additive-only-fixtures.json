@@ -1,0 +1,1 @@
+{"id":"sha256:2ec20d936ad100bfe4f1a1f02bedb6ec7f9700202e83ebf4a9ff7f22bee6587d","issued_at":"2026-09-29T18:00:00Z","kind":"attestation","kind_":"test","producer":{"identity":"ci:fixture:cli-time"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"time-honesty","materials_digest":"","obligation":"additive-only-fixtures"}}

@@ -1,0 +1,1 @@
+{"id":"sha256:acbfdfe93c80614dfa3764cfdc17e09004ad7de939a5483cedbd6599eee209fb","issued_at":"2026-09-29T18:00:00Z","kind":"attestation","kind_":"test","producer":{"identity":"ci:fixture:cli-assess"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"adapters","materials_digest":"","obligation":"git-changed-files-adapter"}}

@@ -90,6 +90,7 @@ let[@warning "-32"] manual_verifier_prefixes =
     "reference-class";
     "this-decision-file-present";
     "mc ";
+    "mc-";
   ]
 
 (* Manual-style exact verifier names. *)
