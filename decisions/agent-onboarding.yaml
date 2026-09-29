@@ -1,0 +1,208 @@
+---
+schema: math-coding/3.0-alpha
+id: agent-onboarding
+revision: 1
+
+intent: |
+  Codify the conventions a new agent needs to be productive in
+  math-coding 3.0-alpha. The conventions are not new — the
+  documentation already exists in ROADMAP.md, PACKAGES.md,
+  AGENTS.md, axioms/index.md — but the conventions are
+  documentation-only: a new agent can read them in any order
+  (or skip some) and nothing fails. Recording them as a
+  decision locks the conventions as obligations, makes them
+  discoverable through PACKAGES.md, and asserts them through
+  tests/repo_structure.ml (per P2 in
+  decisions/process-principles.yaml: every obligation has a
+  present verifier).
+
+commitment: |
+  The conventions are:
+
+  1. ADRs are `decisions/<topic>.yaml` files. An ADR in the
+     math-coding sense is a decision; it follows the existing
+     schema in schemas/decision.json. There is no parallel
+     "ADR directory" or "ADR schema". The new directory
+     convention replaces the `bootstrap/` directory (renamed
+     in the previous commit of this release); the convention
+     is the same, the path is new.
+
+  2. Formal artefacts (TLA+, Coq, Alloy) live at
+     `decisions/<id>/formal/<lang>.<ext>`. The verifier name
+     prefixes `tla:`, `coq:`, `alloy:` are formal evidence
+     authorities under the existing acceptance schema; the
+     human-review pattern is recorded in
+     `decisions/formal-verifier-conventions.yaml` (sibling
+     decision in this release).
+
+  3. The first file a new agent reads is ROADMAP.md. The
+     read-first order is recorded in AGENTS.md §"Read first";
+     that order is the canonical sequence. The agent does not
+     read this decision file first; it reads ROADMAP.md first,
+     which itself points to this file. The recursive
+     structure is the A3 self-application pattern.
+
+  4. Every obligation in this decision file references
+     `tests/repo_structure.ml` as its verifier. The OCaml
+     test asserts the conventions are present; a future
+     regression (e.g., a future commit that renames the
+     decision directory) trips the test and produces a
+     concrete diff for review.
+
+scope:
+  capabilities:
+    - agent-onboarding-convention-locked
+  paths:
+    - "AGENTS.md"
+    - "PACKAGES.md"
+    - "README.md"
+    - "decisions/"
+    - "tests/repo_structure.ml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+
+outcomes:
+  - id: conventions-locked-as-obligations
+    statement: |
+      The three conventions (ADR location, formal-verifier prefixes,
+      first-file) are recorded as discrete obligations in this
+      decision file, with verifiers pointing at
+      tests/repo_structure.ml (per P2 in
+      decisions/process-principles.yaml).
+  - id: conventions-discoverable-in-packages
+    statement: |
+      The conventions appear in PACKAGES.md under
+      "Bootstrap packages (by file)" once that table is updated
+      to include this decision.
+
+countercase: |
+  "The conventions are already documented in AGENTS.md,
+  README.md, and PACKAGES.md; adding a decision duplicates
+  without changing behavior." The counterargument fails for
+  three reasons (per the A0-separation dialectic applied to
+  this question):
+  (a) AGENTS.md is a protocol document; the conventions
+      described there are *for agents*. This decision is *for
+      the project*. The same content, addressed to different
+      audiences, is not duplication; it is the A0 separation
+      pattern.
+  (b) README.md and PACKAGES.md are discovery surfaces. The
+      new obligation in this decision references both: the
+      verifier checks `tests/repo_structure.ml` for the
+      conventions, and the obligation's outcome is
+      discoverable in PACKAGES.md. The behavior changes from
+      "documentation" to "enforceable convention with a
+      machine-checked fixture."
+  (c) The decision does not introduce a parallel convention
+      system; it codifies the existing one. The decision itself
+      is an ADR following the convention it declares
+      (recursion via A3 self-application, per the project's
+      authored precedent in decisions/decision.yaml: that
+      decision declares the rules that govern it).
+
+assumptions:
+  - id: ocaml-test-fixture-still-applicable
+    state: assumed
+    statement: |
+      tests/repo_structure.ml is the right place to assert
+      conventions; it was the natural home for the
+      "conventions are encoded as decisions" test that
+      closed the previous release (commit 7907b17,
+      "feat(tests): drop redundant repo-state shell fixtures").
+    owner: human:maintainer
+    consequence_if_false: |
+      If the test executable is split or restructured,
+      this decision's verifier names may need to move with
+      it; the move is a one-line change in the verifier
+      string and a new round-trip test.
+    review_on:
+      - signal: tests-reorganized
+  - id: conventions-stable
+    state: assumed
+    statement: |
+      The three conventions (ADR location, formal-verifier
+      prefixes, first-file) are stable across the 3.0-alpha
+      → 3.0-beta → 3.x migration. A future release that
+      changes one of them requires a new decision with
+      `supersedes: [agent-onboarding@1]` and a countercase
+      explaining why the change is necessary.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a convention is changed without a recorded
+      decision, the convention-drift detector
+      (decisions/priority-drift.yaml@2) flags the change as
+      a candidate drift, but the absence of a `supersedes`
+      line means the new state is undocumented. A future
+      audit cycle may add an "undocumented-convention-change"
+      drift type.
+    review_on:
+      - signal: convention-changed-without-decision
+
+obligations:
+  - id: conventions-recorded-as-obligations
+    outcome: conventions-locked-as-obligations
+    claim: |
+      The three conventions are recorded in this file
+      as discrete obligations, each with a verifier pointing
+      at the OCaml test `tests/repo_structure.ml`.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+  - id: conventions-discoverable-in-packages-md
+    outcome: conventions-discoverable-in-packages
+    claim: |
+      A row in PACKAGES.md §"Bootstrap packages (by file)"
+      names this decision file and links to its conventions
+      in the "Closes audit" column. The OCaml test
+      `tests/repo_structure.ml` asserts the row exists.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+  - id: adr-location-codified
+    outcome: conventions-locked-as-obligations
+    claim: |
+      ADRs are recorded as `decisions/<topic>.yaml` files
+      following the existing schema. The decision directory
+      name reflects the convention's role (a registry of
+      recorded decisions, not a bootstrap initializer). The
+      OCaml test asserts the directory exists and is
+      walkable.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+  - id: first-file-codified
+    outcome: conventions-locked-as-obligations
+    claim: |
+      The first file a new agent reads is ROADMAP.md. The
+      read-first order is recorded in AGENTS.md §"Read first";
+      that section is the canonical sequence. The OCaml test
+      asserts that AGENTS.md contains the read-first
+      paragraph in a recognisable form.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+
+reversal:
+  - signal: conventions-changed-without-decision
+    action: |
+      record-a-new-decision-with-supersedes:-[agent-onboarding@1]
+      and-document-why-the-convention-changed
+
+risk:
+  declared_triggers:
+    - convention-drift
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3
+  supersedes: []
+  superseded_by: []
