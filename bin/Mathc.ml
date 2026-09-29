@@ -227,6 +227,8 @@ let print_usage oc =
     \  version                          print the bootstrap hello and exit 0\n\
     \  validate FILE [--format=...]     parse FILE as a decision\n\
     \  context BASE HEAD --budget N     print a JSON context capsule\n\
+    \  explain DETAIL_REF               print JSON {kind,id,digest,path,body} \
+     for the ref\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
     \  attest FILE                      parse FILE as a JUnit XML report\n\
     \  time-estimate --class ...        print JSON forecast from declared \
@@ -484,6 +486,160 @@ let[@warning "-32"] capsule_to_json cap =
          (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
          sorted)
   ^ "}\n"
+
+(* --- explain subcommand (bootstrap decision mc-explain-subcommand) --- *)
+
+(* Resolve a decision id to its project-relative file under
+   decisions/. Mirrors the special-case table in
+   lib/capsule.ml:174-185 so a `mc context` omitted item with
+   detail_ref `decision:<id>` resolves to the same file the
+   capsule would have shown had the budget permitted. Returns
+   a project-relative path so the JSON `path` field is portable
+   across worktrees (the absolute path is reconstructed for the
+   actual file read). *)
+let[@warning "-32"] decision_relpath id =
+  match id with
+  | "bootstrap-v3" -> "decisions/decision.yaml"
+  | "infrastructure-honesty" -> "decisions/infrastructure-honesty.yaml"
+  | "kernel-conformance-runner" -> "decisions/kernel-conformance-runner.yaml"
+  | "validate-and-context" -> "decisions/validate-and-context.yaml"
+  | _ -> "decisions/" ^ id ^ ".yaml"
+
+(* Resolve a "soft" kind that lib/reference.ml does not recognise
+   (the formal parser covers decision/obligation/attestation/waiver/
+   change; the capsule also emits spec/axiom/doc which are project
+   files outside the formal schema). Returns a project-relative
+   path or None. *)
+let[@warning "-32"] soft_kind_relpath kind id =
+  match kind with
+  | "spec" -> Some ("spec/" ^ id)
+  | "axiom" -> Some ("axioms/" ^ id)
+  | "doc" -> Some id
+  | _ -> None
+
+(* Render an explain success object. Sorted keys per
+   spec/semantics.md:170. *)
+let[@warning "-32"] explain_json kind id digest path body =
+  let fields =
+    [
+      ("body", Jsonl.String body);
+      ("digest", Jsonl.String digest);
+      ("id", Jsonl.String id);
+      ("kind", Jsonl.String kind);
+      ("path", Jsonl.String path);
+    ]
+  in
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+  "{"
+  ^ String.concat ","
+      (List.map
+         (fun (k, v) ->
+           Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
+         sorted)
+  ^ "}\n"
+
+(* Render a typed explain diagnostic on stderr. Sorted keys. *)
+let[@warning "-32"] explain_diag code kind id message =
+  let fields =
+    [
+      ("code", Jsonl.String code);
+      ("id", Jsonl.String id);
+      ("kind", Jsonl.String kind);
+      ("message", Jsonl.String message);
+    ]
+  in
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+  let s =
+    "{"
+    ^ String.concat ","
+        (List.map
+           (fun (k, v) ->
+             Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
+           sorted)
+    ^ "}\n"
+  in
+  Printf.fprintf stderr "%s" s
+
+(* Dispatch a parsed DETAIL_REF to a (kind, id, relpath) triple.
+
+   Resolution order:
+     1. lib/reference.ml handles the five formal kinds. We act on
+        `Ref { Decision }` directly (the only file-resident formal
+        kind in this revision).
+     2. The "soft" table handles spec/axiom/doc — capsule-emitted
+        detail_refs that the formal parser does not cover.
+     3. Anything else is MC-REF-UNKNOWN: either a non-file formal
+        kind (obligation/attestation/waiver/change, which aggregate
+        across multiple files) or a non-file capsule kind
+        (commits/path, git artifacts). This is an honest declaration
+        of scope, not a permanent limit. *)
+let[@warning "-32"] resolve_ref raw_ref :
+    (string * string * string, string * string * string * string) result =
+  match String.split_on_char ':' raw_ref with
+  | [ kind; id ] -> (
+      match Reference.parse raw_ref with
+      | Some (Ref { kind = Decision; id = did; revision = _ }) ->
+          Ok (kind, did, decision_relpath did)
+      | _ -> (
+          match soft_kind_relpath kind id with
+          | Some p -> Ok (kind, id, p)
+          | None ->
+              Error
+                ( "MC-REF-UNKNOWN",
+                  kind,
+                  id,
+                  Printf.sprintf
+                    "kind '%s' is not addressable to a single file in this \
+                     revision; the dispatcher resolves decision/spec/axiom/doc \
+                     only"
+                    kind )))
+  | _ ->
+      Error
+        ("MC-REF-INVALID", "", raw_ref, "DETAIL_REF must be of the form kind:id")
+
+let[@warning "-32"] do_explain () =
+  let positionals : string list ref = ref [] in
+  let anon s = positionals := s :: !positionals in
+  Arg.current := 1;
+  (try Arg.parse [] anon "usage: mc explain DETAIL_REF"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mc explain: %s\n" m;
+     exit 2);
+  let args = List.rev !positionals in
+  let raw_ref =
+    match args with
+    | [ r ] -> r
+    | [] ->
+        Printf.fprintf stderr "mc explain: missing DETAIL_REF\n";
+        print_usage stderr;
+        exit 2
+    | _ ->
+        Printf.fprintf stderr
+          "mc explain: expected one DETAIL_REF; got %d positional(s)\n"
+          (List.length args);
+        print_usage stderr;
+        exit 2
+  in
+  let root = find_project_root (Sys.getcwd ()) in
+  match resolve_ref raw_ref with
+  | Error (code, k, i, msg) ->
+      explain_diag code k i msg;
+      exit 2
+  | Ok (kind, id, relpath) -> (
+      let abs_path = Filename.concat root relpath in
+      match read_file_for_capsule abs_path with
+      | Error (`Sys s) ->
+          explain_diag "MC-REF-UNKNOWN" kind id
+            (Printf.sprintf "cannot read '%s': %s" relpath s);
+          exit 2
+      | Error (`Other s) ->
+          explain_diag "MC-REF-UNKNOWN" kind id
+            (Printf.sprintf "cannot read '%s': %s" relpath s);
+          exit 2
+      | Ok body ->
+          let digest = Digest.sha256_hex body in
+          print_string (explain_json kind id digest relpath body);
+          exit 0)
 
 let do_context () =
   let base = ref "" and head = ref "" and budget = ref 8192 in
@@ -1395,6 +1551,7 @@ let dispatch () =
   | "validate" -> do_validate ()
   | "version" -> do_version ()
   | "context" -> do_context ()
+  | "explain" -> do_explain ()
   | "assess" -> do_assess ()
   | "attest" -> do_attest ()
   | "time-estimate" -> do_time_estimate ()
