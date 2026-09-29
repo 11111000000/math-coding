@@ -1,0 +1,1 @@
+{"id":"sha256:65a86f397cf72b0f90017f2e9cdcf615ae2c6e686092abd38d210e87ce007bae","issued_at":"2026-09-29T18:00:00Z","kind":"attestation","kind_":"test","producer":{"identity":"ci:fixture:cli-attest"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"adapters","materials_digest":"","obligation":"junit-attestation-import"}}

@@ -1,0 +1,1 @@
+{"id":"sha256:248299bc9e7d627d98148af91db53ea1353cbf28a8d5f6574457084f645bb3b0","issued_at":"2026-09-29T18:00:00Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:build:conformance"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"bootstrap-v3","materials_digest":"","obligation":"conformance-coverage"}}

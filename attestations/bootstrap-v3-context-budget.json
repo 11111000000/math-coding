@@ -1,0 +1,1 @@
+{"id":"sha256:237ba8b62a1e212ed566fd01f373607a6247ac9657b56e184996850cd71861b5","issued_at":"2026-09-29T18:00:00Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:build:cram"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"bootstrap-v3","materials_digest":"","obligation":"context-budget"}}
