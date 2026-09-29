@@ -7,7 +7,7 @@
 >
 > **Author:** Petr Kosov <p.b.kosov@yandex.ru>
 > **License:** Apache-2.0 (see `LICENSE`, `NOTICE`)
-> **Active policy:** `bootstrap-v3@2` (see `bootstrap/decision.yaml`)
+> **Active policy:** `bootstrap-v3@2` (see `decisions/decision.yaml`)
 
 This document is the **single source of truth** for what math-coding 3.0
 is doing, what it is not yet doing, and in what order the remaining
@@ -22,7 +22,7 @@ intent -> decision -> obligation -> change -> attestation -> revision
 
 Every commit on `main` must close at least one obligation. No obligation
 closes without a positive + negative fixture. No kernel change ships
-without a `bootstrap/*.yaml` decision under the active policy.
+without a `decisions/*.yaml` decision under the active policy.
 
 ## Priority queue (highest leverage first)
 
@@ -45,7 +45,7 @@ without a `bootstrap/*.yaml` decision under the active policy.
 
 | # | Deficit | Status | Notes |
 |---|---|---|---|
-| 6 | D1/D2 (yaml-block-scalars impl) | **deferred**; decision @rev2 in main, implementation pending | `bootstrap/yaml-block-scalars-impl-pending.yaml` records the deferral with rationale |
+| 6 | D1/D2 (yaml-block-scalars impl) | **deferred**; decision @rev2 in main, implementation pending | `decisions/yaml-block-scalars-impl-pending.yaml` records the deferral with rationale |
 | 7 | D5 (stale `bin/mathc_main.ml`) | **closed** in commit `191d1af` | |
 | 8 | D7 (adapters decision covers two obligations) | **closed** in commit `be5c4bd` | |
 | 9 | D3 (priority-drift detector) | **closed** in commit `4855a57` | |
@@ -67,7 +67,7 @@ prevents.
 ### P1. Decisions before kernel changes
 
 A change to `lib/*.ml`, `spec/*.md`, `schemas/*.json`, or `bin/Mathc.ml`
-ships with a `bootstrap/*.yaml` decision under the active policy.
+ships with a `decisions/*.yaml` decision under the active policy.
 **Rationale:** AGENTS.md self-application requires it; the T4/T6
 session showed the cost of retrofit (2 retroactive decisions for what
 should have been 2 forward decisions).
@@ -92,7 +92,7 @@ tool, not a fast iteration loop.
 
 When multiple parallel agents commit, integrate in this order:
 
-1. **Decisions** (bootstrap/*.yaml) — never conflict
+1. **Decisions** (decisions/*.yaml) — never conflict
 2. **Tests/fixtures** — additive, low conflict
 3. **lib/ pure helpers** — additive at the type level
 4. **bin/Mathc.ml** — touches dispatcher; merge last
@@ -143,5 +143,5 @@ every source class is bounded by subject/inputs/time.
 
 - `AGENTS.md` — agent conduct (defer to this file for priorities)
 - `OCAML_BEST_PRACTICES.md` — OCaml traps and conventions
-- `bootstrap/decision.yaml` — the active policy
+- `decisions/decision.yaml` — the active policy
 - `doc/AUDIT-0.0.11.md` — the open/closed audit chain

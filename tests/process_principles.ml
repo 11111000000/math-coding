@@ -1,12 +1,12 @@
 (* tests/process_principles.ml
  *
  * Asserts the checkable subset of ROADMAP.md Process Principles
- * P1, P2, P5, P6 as locked down by bootstrap/process-principles.yaml.
+ * P1, P2, P5, P6 as locked down by decisions/process-principles.yaml.
  * Each principle has its own Alcotest case; the test executable
  * runs all of them on every `dune runtest` invocation.
  *
  * P1 (decisions before kernel changes) — every non-meta file in
- *     bootstrap/ has the required frontmatter fields (schema, id,
+ *     decisions/ has the required frontmatter fields (schema, id,
  *     revision) and the required body sections (intent, commitment,
  *     scope, obligations, risk).
  *
@@ -25,7 +25,7 @@
  *     is executable.
  *
  * P3 (time-box), P4 (merge order), P7 (honesty) are NOT
- *     auto-asserted; per bootstrap/process-principles.yaml they are
+ *     auto-asserted; per decisions/process-principles.yaml they are
  *     honest-declaration obligations with manual-acceptance. P7
  *     gets a one-line marker so the reviewer can grep for it. *)
 
@@ -53,14 +53,14 @@ let[@warning "-32"] read_file path =
 let[@warning "-32"] file_exists path = Sys.file_exists path
 
 (* Files explicitly excluded from the process-principles schema
-   check (per bootstrap/process-principles.yaml assumption
+   check (per decisions/process-principles.yaml assumption
    meta-policy-skipped-by-fixture). These have a different
    schema or are pure prose. *)
 let[@warning "-32"] excluded_decision_files =
   [
-    "bootstrap/decision.yaml";
-    "bootstrap/obligations.yaml";
-    "bootstrap/rationale.md";
+    "decisions/decision.yaml";
+    "decisions/obligations.yaml";
+    "decisions/rationale.md";
   ]
 
 let[@warning "-32"] required_frontmatter_fields = [ "schema"; "id"; "revision" ]
@@ -140,13 +140,13 @@ let[@warning "-32"] check_p1_file rel_path =
       (String.concat ", " missing_sections)
 
 let[@warning "-32"] test_p1 () =
-  let dir = in_repo "bootstrap" in
-  if not (file_exists dir) then Alcotest.fail "P1: bootstrap/ directory missing";
+  let dir = in_repo "decisions" in
+  if not (file_exists dir) then Alcotest.fail "P1: decisions/ directory missing";
   let files =
     Sys.readdir dir |> Array.to_list
     |> List.filter (fun n ->
         Filename.check_suffix n ".yaml" || Filename.check_suffix n ".md")
-    |> List.map (fun n -> Filename.concat "bootstrap" n)
+    |> List.map (fun n -> Filename.concat "decisions" n)
   in
   let to_check =
     List.filter (fun f -> not (List.mem f excluded_decision_files)) files
@@ -259,15 +259,15 @@ let[@warning "-32"] has_no_verifier verifiers =
   List.for_all (fun v -> v = "") verifiers
 
 let[@warning "-32"] test_p2 () =
-  let dir = in_repo "bootstrap" in
-  if not (file_exists dir) then Alcotest.fail "P2: bootstrap/ directory missing";
+  let dir = in_repo "decisions" in
+  if not (file_exists dir) then Alcotest.fail "P2: decisions/ directory missing";
   let files =
     Sys.readdir dir |> Array.to_list
     |> List.filter (fun n ->
         Filename.check_suffix n ".yaml" || Filename.check_suffix n ".md")
     |> List.filter (fun n ->
-        not (List.mem (Filename.concat "bootstrap" n) excluded_decision_files))
-    |> List.map (fun n -> Filename.concat "bootstrap" n)
+        not (List.mem (Filename.concat "decisions" n) excluded_decision_files))
+    |> List.map (fun n -> Filename.concat "decisions" n)
   in
   let all_entries =
     List.concat_map

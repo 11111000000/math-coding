@@ -46,7 +46,7 @@ In particular:
 - `spec/constitution.md` — invariant 12 (Prior authority), invariant
   13 (Fixture coverage).
 - `spec/semantics.md` — Protected Policy Transition section.
-- `bootstrap/decision.yaml` — obligations include `conformance-coverage`
+- `decisions/decision.yaml` — obligations include `conformance-coverage`
   and `developer-practices-binding`, both of which must pass under the
   *current* rules before the next rules take effect.
 - `OCAML_BEST_PRACTICES.md` §10 — adapter conventions explicitly forbid

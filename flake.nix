@@ -4,7 +4,7 @@
   inputs = {
     # Pinned to commit e94cb152ed51bd6e24eb4a41f1460252beb52cd2
     # (current flake.lock value). Do NOT change without a
-    # bootstrap/decision.yaml revision listing old and new narHash
+    # decisions/decision.yaml revision listing old and new narHash
     # (axiom A3: self-application).
     nixpkgs.url = "github:NixOS/nixpkgs/e94cb152ed51bd6e24eb4a41f1460252beb52cd2";
     flake-utils.url = "github:numtide/flake-utils";
@@ -144,10 +144,10 @@
         #
         # Plus a decision-fixture-co-commit hook: a commit that touches
         # any kernel/protected file under lib/ or bin/ or spec/ MUST
-        # also touch at least one bootstrap/*.yaml (decisions) and at
+        # also touch at least one decisions/*.yaml (decisions) and at
         # least one tests/fixtures/*.sh (fixture) in the same commit,
         # OR be a pure-deferral decision. This closes the T4/T6-style
-        # "kernel change without bootstrap decision" deficit observed
+        # "kernel change without decisions entry" deficit observed
         # in the 2026-09-27 session (see ROADMAP.md §P1). Implemented
         # as a tiny shell script invoked from pre-commit-hooks.nix.
         checks.fmt = pre-commit-hooks.lib.${system}.run {
@@ -179,7 +179,7 @@
             };
             # decision-fixture-co-commit: ensure that any commit
             # touching kernel files (lib/, bin/Mathc.ml, spec/) also
-            # touches bootstrap/*.yaml (decision) and tests/fixtures/*.sh
+            # touches decisions/*.yaml (decision) and tests/fixtures/*.sh
             # (fixture). The script returns nonzero when the rule is
             # violated; pre-commit-hooks.nix surfaces the failure
             # before the commit lands.

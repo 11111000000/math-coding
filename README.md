@@ -33,7 +33,7 @@ active project policy.
 ## Current status (see ROADMAP.md for live numbers)
 
 - Active tag: `v3-alpha-0.0.14`
-- Active policy: `bootstrap-v3@2` (see `bootstrap/decision.yaml`)
+- Active policy: `bootstrap-v3@2` (see `decisions/decision.yaml`)
 - Shell fixtures green: see `ROADMAP.md` §"Status"
 - v2.1 implementation removed from active tree; source preserved by
   remote tag `v2.1-final`
@@ -48,7 +48,7 @@ active project policy.
 | `spec/` | Constitution, domain, semantics (normative) |
 | `axioms/` | A0–A4 philosophical foundations (normative) |
 | `schemas/` | Canonical JSON Schemas for each artifact kind |
-| `bootstrap/` | Active policy and decisions; each decision names its obligation, fixture, verifier |
+| `decisions/` | Active policy and decisions; each decision names its obligation, fixture, verifier |
 | `lib/` | Pure OCaml kernel (offline; no I/O) |
 | `bin/Mathc.ml` | argv dispatcher and CLI subcommand implementations |
 | `lib/git/`, `lib/junit/` | Adapter libraries (may do I/O) |
@@ -56,8 +56,8 @@ active project policy.
 | `scripts/dev` | Build wrapper (replaces `rm -rf _build` superstition) |
 | `scripts/check.sh` | Aggregates all `tests/fixtures/*.sh` |
 | `doc/AUDIT-0.0.11.md` | Open/closed deficit chain (every deficit tracks a commit hash) |
-| `bootstrap/agent-onboarding.yaml` | Lockdown of the onboarding convention (ADRs, TLA/Coq/Alloy, read-first order); added in v3-alpha-0.0.18 |
-| `bootstrap/formal-verifier-conventions.yaml` | Codifies the `tla:`/`coq:`/`alloy:` review-prefixes; added in v3-alpha-0.0.18 |
+| `decisions/agent-onboarding.yaml` | Lockdown of the onboarding convention (ADRs, TLA/Coq/Alloy, read-first order); added in v3-alpha-0.0.18 |
+| `decisions/formal-verifier-conventions.yaml` | Codifies the `tla:`/`coq:`/`alloy:` review-prefixes; added in v3-alpha-0.0.18 |
 | ~~`legacy/v2.1.md`~~ | Removed in v3-alpha-0.0.18; the v2.1 source is reachable via the `v2.1-final` tag (`git switch v2.1-final`) but is no longer indexed here |
 
 ## CLI subcommands

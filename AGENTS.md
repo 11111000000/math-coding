@@ -28,10 +28,10 @@ Before changing anything in this repository, read in order:
 5. `spec/domain.md` — entity model.
 6. `spec/semantics.md` — gate logic, exit codes, CLI subcommand catalog.
 7. `OCAML_BEST_PRACTICES.md` — project-specific OCaml conventions,
-   including which conventions are *enforced* by `bootstrap/decision.yaml`.
+   including which conventions are *enforced* by `decisions/decision.yaml`.
    The trap log in §11 is the first place to look when debugging an
    OCaml or dune error.
-8. `bootstrap/*.yaml` — the active decisions; their obligations
+8. `decisions/*.yaml` — the active decisions; their obligations
    describe the manual checks you must perform and the verifiers
    you must satisfy.
 9. `axioms/` — the philosophical and mathematical foundations. Every

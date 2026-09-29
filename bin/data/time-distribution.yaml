@@ -8,7 +8,7 @@
 # Source: SWE-bench Verified (n=500, 2025-Q4 frontier models)
 # URL:    https://www.swebench.com/verified
 # Declared: 2026-09-26 by human:maintainer
-# Update rule: edit this file only via a Decision in bootstrap/.
+# Update rule: edit this file only via a Decision in decisions/.
 #
 # NOTE on YAML encoding. The math-coding YAML parser does not
 # yet understand:

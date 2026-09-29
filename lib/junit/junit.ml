@@ -15,7 +15,7 @@
  *   - <?xml ... ?> and <!-- ... --> are skipped
  * Anything outside this subset is reported via the soft
  * parse-error JSON field, with exit 0, per the obligation
- * claim in bootstrap/adapters.yaml.
+ * claim in decisions/adapters.yaml.
  *
  * No new dependencies; Stdlib only. *)
 

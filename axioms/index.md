@@ -31,7 +31,7 @@ appear to work; it is wrong.
 | A0 — Separation | Variants over records for sealed kinds. Closed `additionalProperties` in schemas. Per-kind digest prefixes. |
 | A1 — Feedback | `result` enum includes `Inconclusive` and `InfrastructureError`. Waivers require `expires_at`. Operational outcomes allow `absence_means: inconclusive`. |
 | A2 — Invariants and Recovery | `gate` variant includes `Blocked` with `remedies`. Diagnostics carry `next_actions`. Exit codes 0/1/2/3. |
-| A3 — Self-application | `bootstrap/decision.yaml` references this index. Constituent changes require migration + conformance. Old policy authorizes new policy. |
+| A3 — Self-application | `decisions/decision.yaml` references this index. Constituent changes require migration + conformance. Old policy authorizes new policy. |
 | A4 — Care | `decision.risk.owner`, `obligation.decision`, `assumption.owner`, `waiver.issuer` are required, not optional. |
 
 ## How axioms relate to the agent

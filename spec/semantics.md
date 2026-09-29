@@ -176,7 +176,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 - **Output**: text. Prints `math-coding 3.0-alpha: bootstrap`
   and a trailing newline.
 - **Exit code**: `0`.
-- **Justification**: `bootstrap/validate-and-context.yaml`
+- **Justification**: `decisions/validate-and-context.yaml`
   obligation `cli-version-preserved` (the v0.0.5 hello-string
   is reachable as a subcommand instead of being the bare
   default).
@@ -201,7 +201,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 - **Exit code**: `0` accept, `1` reject, `2` input error
   (missing file, unparseable JSON/YAML, bad CLI args),
   `3` internal error.
-- **Justification**: `bootstrap/validate-and-context.yaml`
+- **Justification**: `decisions/validate-and-context.yaml`
   obligations `cli-validate-decision` and
   `jsonl-array-parser-fixed`.
 
@@ -225,7 +225,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 - **Exit code**: `0` always on a successful git invocation;
   `2` on input error (missing positional, bad `--budget`,
   bad git ref).
-- **Justification**: `bootstrap/validate-and-context.yaml`
+- **Justification**: `decisions/validate-and-context.yaml`
   obligations `cli-context-capsule` and
   `capsule-byte-budget-tracked`.
 
@@ -240,7 +240,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   --name-only` reported no changes.
 - **Exit code**: `0` on success; `2` on input error
   (missing positional, bad git ref, git command fails).
-- **Justification**: `bootstrap/adapters.yaml`
+- **Justification**: `decisions/adapters.yaml`
   obligation `git-changed-files-adapter`.
 
 ### `attest FILE`
@@ -258,7 +258,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   `unknown`), `time` (numeric seconds, may be `null`)).
 - **Exit code**: `0` on success (including soft parse errors);
   `2` only when `FILE` is missing or unreadable.
-- **Justification**: `bootstrap/adapters.yaml`
+- **Justification**: `decisions/adapters.yaml`
   obligation `junit-attestation-import`.
 
 ### `gate BASE HEAD`
@@ -282,7 +282,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   merges). The disposition-vs-exit-code mapping documented
   above (1 = block) is forward-looking; today the JSON
   verdict carries the disposition and the exit code is 0.
-- **Justification**: `bootstrap/gate-decision.yaml` (the
+- **Justification**: `decisions/gate-decision.yaml` (the
   scaffold).
 
 ### `session-start`
@@ -297,7 +297,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   set to a non-empty value, that value replaces the wall clock
   (test/determinism hook; see `OCAML_BEST_PRACTICES.md` §11.16).
 - **Exit code**: `0`.
-- **Justification**: `bootstrap/time-honesty-storage.yaml`
+- **Justification**: `decisions/time-honesty-storage.yaml`
   obligation `session-start-valid`.
 
 ### `record --decision-id ID [--revision REV] --scale S [--class C] [--value N]`
@@ -317,7 +317,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
     `step-count`; rejected for `wall-clock-minutes` (the
     value is auto-computed from `now - session_start`).
 - **Output**: a single JSON object is appended to
-  `bootstrap/execution-logs.jsonl` and echoed on stdout.
+  `decisions/execution-logs.jsonl` and echoed on stdout.
   Fields (sorted): `class` (optional), `decision_id`,
   `decision_revision`, `observed_by`, `recorded_at`, `scale`,
   `value`, `v` (= 1). `wall-clock-minutes` rejects the
@@ -326,7 +326,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   invalid `--scale`, rejected `--value`, missing session-start
   file (`MC-SESSION-MISSING`), unparseable timestamp, or write
   failure.
-- **Justification**: `bootstrap/time-honesty-storage.yaml`
+- **Justification**: `decisions/time-honesty-storage.yaml`
   obligation `record-no-user-value-for-wallclock`.
 
 ### `stats [--scale S] [--class C] [--since ISO]`
@@ -344,13 +344,13 @@ existence. Output JSON objects use sorted keys for reproducibility.
   when `n >= 30`, containing `p50`, `p80`, `p95`, `p99`),
   `scale` (string, may be empty), `since` (string, may be
   empty), `source` (always
-  `bootstrap/execution-logs.jsonl`), `threshold` (always
+  `decisions/execution-logs.jsonl`), `threshold` (always
   `30`), and an optional `warning` field naming the declared
   floor when `n < 30`. The declared floor in
   `bin/data/time-distribution.yaml` remains the recommended
   reference below that sample size.
 - **Exit code**: `0`.
-- **Justification**: `bootstrap/time-honesty-storage.yaml`
+- **Justification**: `decisions/time-honesty-storage.yaml`
   obligation `stats-n-threshold`.
 
 ### `time-estimate --class C [--count N] [--percentile p50|p80|p95|p99] [--multiplier NAME]...`
@@ -383,7 +383,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   the class is unknown (`MC-CLASS-UNKNOWN`), the multiplier
   is unknown, the percentile token is unrecognised, or the
   YAML cannot be loaded.
-- **Justification**: `bootstrap/time-honesty.yaml` (the
+- **Justification**: `decisions/time-honesty.yaml` (the
   reference-class estimator obligation).
 
 ## Context-prioritisation
@@ -400,7 +400,7 @@ RequiredForGate > Changed > HighRisk > Unresolved > Supporting > Historical
 
 | Priority | Source class | Inclusion rule |
 |---|---|---|
-| `RequiredForGate` | bootstrap/decision.yaml; the active policy | Always included if present. The capsule still completes when this is the only item that fits in budget. |
+| `RequiredForGate` | decisions/decision.yaml; the active policy | Always included if present. The capsule still completes when this is the only item that fits in budget. |
 | `Changed` | `git diff BASE..HEAD --name-only`; commit log BASE..HEAD | Included in priority order. Order within the bucket is stable on input order. |
 | `HighRisk` | Decisions whose `risk.declared_triggers` is non-empty; axioms/invariants.md | Included when budget allows. |
 | `Unresolved` | Assumptions with `state: unknown` | Included when budget allows. |

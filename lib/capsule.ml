@@ -176,12 +176,12 @@ let[@warning "-32"] build_decision_items ~active_policy_id mem =
     (fun entry ->
       let source_path =
         match entry.Memory.decision_id with
-        | "bootstrap-v3" -> "bootstrap/decision.yaml"
-        | "infrastructure-honesty" -> "bootstrap/infrastructure-honesty.yaml"
+        | "bootstrap-v3" -> "decisions/decision.yaml"
+        | "infrastructure-honesty" -> "decisions/infrastructure-honesty.yaml"
         | "kernel-conformance-runner" ->
-            "bootstrap/kernel-conformance-runner.yaml"
-        | "validate-and-context" -> "bootstrap/validate-and-context.yaml"
-        | _ -> "bootstrap/" ^ entry.Memory.decision_id ^ ".yaml"
+            "decisions/kernel-conformance-runner.yaml"
+        | "validate-and-context" -> "decisions/validate-and-context.yaml"
+        | _ -> "decisions/" ^ entry.Memory.decision_id ^ ".yaml"
       in
       let kind = classify_decision ~active_policy_id mem entry source_path in
       let summary =

@@ -116,7 +116,7 @@ type change = {
   detected_triggers : string list;
 }
 
-(* ExecutionLog — declared by bootstrap/time-honesty.yaml.
+(* ExecutionLog — declared by decisions/time-honesty.yaml.
    Holds the wall-clock / token-budget / step-count observation
    that closes the time-honesty feedback loop. The runtime
    harness writes this; the agent cites it. Never constructed by

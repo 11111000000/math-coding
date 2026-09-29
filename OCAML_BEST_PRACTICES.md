@@ -894,7 +894,7 @@ RequiredForGate > Changed > HighRisk > Unresolved > Supporting > Historical
 
 | Priority | Source class |
 |---|---|
-| `RequiredForGate` | bootstrap/decision.yaml, the currently active policy. The capsule ALWAYS includes this even if budget is exhausted (skippable in practice — see spec/semantics.md) |
+| `RequiredForGate` | decisions/decision.yaml, the currently active policy. The capsule ALWAYS includes this even if budget is exhausted (skippable in practice — see spec/semantics.md) |
 | `Changed` | `git diff BASE..HEAD --name-only` paths; commit log BASE..HEAD |
 | `HighRisk` | Decisions whose `risk.declared_triggers` is non-empty |
 | `Unresolved` | Assumptions with `state: unknown` (kernel-decision aware) |
@@ -1373,10 +1373,10 @@ extending the loader to handle block scalars is the right place,
 not in capsule).
 
 **Trigger**: any caller of `Codec.load_yaml_string` whose input
-might start with `---`. Currently affects `bootstrap/decision.yaml`,
-`bootstrap/infrastructure-honesty.yaml`,
-`bootstrap/kernel-conformance-runner.yaml`, and the YAML
-front-matter of `bootstrap/validate-and-context.yaml`.
+might start with `---`. Currently affects `decisions/decision.yaml`,
+`decisions/infrastructure-honesty.yaml`,
+`decisions/kernel-conformance-runner.yaml`, and the YAML
+front-matter of `decisions/validate-and-context.yaml`.
 
 ### 11.20 Dune 3.23 cram tests cannot reach binaries via relative paths
 
@@ -1474,7 +1474,7 @@ without surfacing an error.
 style until a separate Decision extends the loader. Block style
 for sequences is `\n- item` per item.
 
-**Trigger**: any YAML file under `bin/data/`, `bootstrap/`, or
+**Trigger**: any YAML file under `bin/data/`, `decisions/`, or
 `fixtures/` that mixes flow-style with block-style. Note that the
 existing fixtures use block style consistently, so this trap was
 only hit when bootstrapping new data files (e.g.,
@@ -1552,7 +1552,7 @@ file.
 The priority order in `spec/semantics.md` "context-prioritisation"
 is the kernel policy; the mirror in `OCAML_BEST_PRACTICES.md` §10.5
 exists for implementer convenience
-(`bootstrap/validate-and-context.yaml` countercase line 124). Both
+(`decisions/validate-and-context.yaml` countercase line 124). Both
 files currently carry the same line:
 
 ```text
@@ -1561,7 +1561,7 @@ RequiredForGate > Changed > HighRisk > Unresolved > Supporting > Historical
 
 A change to either table without a matching change to the other is
 a "priority-order drift between spec and implementation"
-(`bootstrap/validate-and-context.yaml` risk). Code review alone does
+(`decisions/validate-and-context.yaml` risk). Code review alone does
 not catch this; the trap is silent because the build succeeds and
 the runtime emits the priority list from the OCaml source, not
 from the spec.
@@ -1594,7 +1594,7 @@ check.sh.
 `OCAML_BEST_PRACTICES.md` line ~892 (§10.5 ```text block)
 without touching the other.
 
-**Cross-reference**: `bootstrap/priority-drift.yaml@2`
+**Cross-reference**: `decisions/priority-drift.yaml@2`
 obligation `priority-drift-detector`. Doc deficit
 `doc/AUDIT-0.0.11.md` D3 (closed at v3-alpha-0.0.12).
 

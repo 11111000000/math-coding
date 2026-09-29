@@ -19,36 +19,36 @@ Last verified at: tag `v3-alpha-0.0.14`, commit `05e2ea5`.
 - **RESOLVED** — obligation closed by implementation, fixture green
 - **DECISION** — decision recorded, implementation pending
 - **DEFERRED** — explicitly deferred per recorded decision (see
-  `bootstrap/<id>-impl-pending.md`)
+  `decisions/<id>-impl-pending.md`)
 - **SCAFFOLD** — kernel surface exists but does not yet block
 
 ## Active policy
 
-**`bootstrap-v3@2`** (`bootstrap/decision.yaml`) — the master policy
+**`bootstrap-v3@2`** (`decisions/decision.yaml`) — the master policy
 that authorises all other decisions. Its obligations are tracked in
-`bootstrap/obligations.yaml`.
+`decisions/obligations.yaml`.
 
 ## Bootstrap packages (by file)
 
 | File | Decision id | Rev | Obs | Status | Closes audit |
 |---|---|---|---|---|---|
-| `bootstrap/decision.yaml` | `bootstrap-v3` | 2 | 13 | RESOLVED | bootstrap protocol |
-| `bootstrap/infrastructure-honesty.yaml` | `infrastructure-honesty` | 1 | 10 | RESOLVED | audit D5, D7 |
-| `bootstrap/kernel-conformance-runner.yaml` | `kernel-conformance-runner` | 1 | 9 | RESOLVED | conformance runner |
-| `bootstrap/validate-and-context.yaml` | `validate-and-context` | 2 | 13 | RESOLVED | first CLI + context capsule |
-| `bootstrap/priority-drift.yaml` | `priority-drift` | 2 | 5 | RESOLVED | audit D3 |
-| `bootstrap/spec-cli-catalog.yaml` | `spec-cli-catalog` | 1 | 8 | RESOLVED | audit D4 |
-| `bootstrap/adapters.yaml` | `adapters` | 2 | 6 | RESOLVED | audit D7 (git + junit) |
-| `bootstrap/capsule-active-policy.yaml` | `capsule-active-policy` | 1 | 7 | RESOLVED | capsule priority class |
-| `bootstrap/gate-decision.yaml` | `gate-decision` | 1 | 7 | SCAFFOLD | mc gate (no store yet) |
-| `bootstrap/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 1 | 5 | RESOLVED | kernel diagnostics |
-| `bootstrap/time-honesty.yaml` | `time-honesty` | 1 | 8 | RESOLVED | time-honesty distribution |
-| `bootstrap/time-honesty-storage.yaml` | `time-honesty-storage` | 1 | 9 | RESOLVED | time storage writers |
-| `bootstrap/yaml-block-scalars.yaml` | `yaml-block-scalars` | 2 | 9 | DECISION | audit D1/D2 (impl deferred) |
-| `bootstrap/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 1 | 3 | DEFERRED | records D1/D2 deferral |
-| `bootstrap/process-principles.yaml` | `process-principles` | 2 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
-| `bootstrap/cli-cram-tests.yaml` | `cli-cram-tests` | 1 | 1 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
-| `bootstrap/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
+| `decisions/decision.yaml` | `bootstrap-v3` | 2 | 13 | RESOLVED | bootstrap protocol |
+| `decisions/infrastructure-honesty.yaml` | `infrastructure-honesty` | 1 | 10 | RESOLVED | audit D5, D7 |
+| `decisions/kernel-conformance-runner.yaml` | `kernel-conformance-runner` | 1 | 9 | RESOLVED | conformance runner |
+| `decisions/validate-and-context.yaml` | `validate-and-context` | 2 | 13 | RESOLVED | first CLI + context capsule |
+| `decisions/priority-drift.yaml` | `priority-drift` | 2 | 5 | RESOLVED | audit D3 |
+| `decisions/spec-cli-catalog.yaml` | `spec-cli-catalog` | 1 | 8 | RESOLVED | audit D4 |
+| `decisions/adapters.yaml` | `adapters` | 2 | 6 | RESOLVED | audit D7 (git + junit) |
+| `decisions/capsule-active-policy.yaml` | `capsule-active-policy` | 1 | 7 | RESOLVED | capsule priority class |
+| `decisions/gate-decision.yaml` | `gate-decision` | 1 | 7 | SCAFFOLD | mc gate (no store yet) |
+| `decisions/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 1 | 5 | RESOLVED | kernel diagnostics |
+| `decisions/time-honesty.yaml` | `time-honesty` | 1 | 8 | RESOLVED | time-honesty distribution |
+| `decisions/time-honesty-storage.yaml` | `time-honesty-storage` | 1 | 9 | RESOLVED | time storage writers |
+| `decisions/yaml-block-scalars.yaml` | `yaml-block-scalars` | 2 | 9 | DECISION | audit D1/D2 (impl deferred) |
+| `decisions/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 1 | 3 | DEFERRED | records D1/D2 deferral |
+| `decisions/process-principles.yaml` | `process-principles` | 2 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
+| `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 1 | 1 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
+| `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 ## Cram integration tests (`tests/cli/*.t`)
 
@@ -72,21 +72,21 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 
 | Cram test | Obligation | Decision |
 |---|---|---|
-| `version.t` | mathc prints bootstrap hello on `version` | `bootstrap/cli-cram-tests.yaml` |
-| `validate-positive.t` | valid decision accepted | `bootstrap/validate-and-context.yaml` |
-| `validate-negative.t` | invalid decision rejected | `bootstrap/validate-and-context.yaml` |
-| `ambiguous-acceptance.t` | MC-AMBIGUOUS-ACCEPTANCE diagnostic | `bootstrap/parse-acceptance-diagnostics.yaml` |
-| `malformed-acceptance.t` | MC-MALFORMED-ACCEPTANCE diagnostic | `bootstrap/parse-acceptance-diagnostics.yaml` |
-| `context-budget.t` | context capsule JSON shape | `bootstrap/validate-and-context.yaml` |
-| `context-budget-bound.t` | total_bytes <= budget | `bootstrap/validate-and-context.yaml` |
-| `context-priority-order.t` | items[] priority order monotonic | `bootstrap/capsule-active-policy.yaml` |
-| `context-required-for-gate.t` | active policy in RequiredForGate | `bootstrap/capsule-active-policy.yaml` |
-| `context-truncated-omitted.t` | truncated:true + omitted[] with expansion | `bootstrap/validate-and-context.yaml` |
-| `gate-scaffold.t` | gate emits documented JSON keys | `bootstrap/gate-decision.yaml` |
-| `git-adapter.t` | assess runs git diff --name-only | `bootstrap/adapters.yaml` |
-| `junit-adapter.t` | attest parses JUnit XML | `bootstrap/adapters.yaml` |
-| `cli-time-estimate.t` | time-estimate 4 documented paths | `bootstrap/time-honesty.yaml` |
-| `cli-time-storage.t` | session-start / record / stats pipeline | `bootstrap/time-honesty-storage.yaml` |
+| `version.t` | mathc prints bootstrap hello on `version` | `decisions/cli-cram-tests.yaml` |
+| `validate-positive.t` | valid decision accepted | `decisions/validate-and-context.yaml` |
+| `validate-negative.t` | invalid decision rejected | `decisions/validate-and-context.yaml` |
+| `ambiguous-acceptance.t` | MC-AMBIGUOUS-ACCEPTANCE diagnostic | `decisions/parse-acceptance-diagnostics.yaml` |
+| `malformed-acceptance.t` | MC-MALFORMED-ACCEPTANCE diagnostic | `decisions/parse-acceptance-diagnostics.yaml` |
+| `context-budget.t` | context capsule JSON shape | `decisions/validate-and-context.yaml` |
+| `context-budget-bound.t` | total_bytes <= budget | `decisions/validate-and-context.yaml` |
+| `context-priority-order.t` | items[] priority order monotonic | `decisions/capsule-active-policy.yaml` |
+| `context-required-for-gate.t` | active policy in RequiredForGate | `decisions/capsule-active-policy.yaml` |
+| `context-truncated-omitted.t` | truncated:true + omitted[] with expansion | `decisions/validate-and-context.yaml` |
+| `gate-scaffold.t` | gate emits documented JSON keys | `decisions/gate-decision.yaml` |
+| `git-adapter.t` | assess runs git diff --name-only | `decisions/adapters.yaml` |
+| `junit-adapter.t` | attest parses JUnit XML | `decisions/adapters.yaml` |
+| `cli-time-estimate.t` | time-estimate 4 documented paths | `decisions/time-honesty.yaml` |
+| `cli-time-storage.t` | session-start / record / stats pipeline | `decisions/time-honesty-storage.yaml` |
 
 ## Process-principles test (`tests/process_principles.ml`)
 
@@ -97,7 +97,7 @@ labelled Alcotest case:
 
 | Principle | What the case checks |
 |---|---|
-| P1 (decisions before kernel changes) | every non-meta `bootstrap/*.yaml`/`.md` has `schema`, `id`, `revision` frontmatter + `intent`, `commitment`, `scope`, `obligations`, `risk` body sections |
+| P1 (decisions before kernel changes) | every non-meta `decisions/*.yaml`/`.md` has `schema`, `id`, `revision` frontmatter + `intent`, `commitment`, `scope`, `obligations`, `risk` body sections |
 | P2 (decisions paired with fixtures) | every obligation has a verifier; the verifier is a present fixture path, a kernel-test reference, a cram `.t` path, or a recognised manual-style prefix |
 | P5 (cram retired) | `tests/cram/*.t` does not exist |
 | P6 (pre-commit verification) | `scripts/check.sh` exists and is executable |

@@ -355,12 +355,12 @@ let[@warning "-32"] git_log_for file =
 let[@warning "-32"] test_yaml_block_scalars_structural () =
   (* Mirrors tests/fixtures/yaml-block-scalars.sh. The Alcotest kernel
      test tests/yaml_block_scalars.ml is OPTIONAL (deferred per
-     bootstrap/yaml-block-scalars-impl-pending.yaml); this gate is
+     decisions/yaml-block-scalars-impl-pending.yaml); this gate is
      structural: the active decision exists, it records the
      obligation, the deferral decision records the obligation id,
      and the audit doc references the fixture. *)
-  let yaml = in_repo "bootstrap/yaml-block-scalars.yaml" in
-  let pending = in_repo "bootstrap/yaml-block-scalars-impl-pending.yaml" in
+  let yaml = in_repo "decisions/yaml-block-scalars.yaml" in
+  let pending = in_repo "decisions/yaml-block-scalars-impl-pending.yaml" in
   let audit = in_repo "doc/AUDIT-0.0.11.md" in
   let has_id =
     file_exists yaml
@@ -375,7 +375,7 @@ let[@warning "-32"] test_yaml_block_scalars_structural () =
   in
   if not has_id then
     Alcotest.fail
-      "bootstrap/yaml-block-scalars.yaml is missing the active decision id";
+      "decisions/yaml-block-scalars.yaml is missing the active decision id";
   let has_obligation =
     file_exists yaml
     &&
@@ -389,7 +389,7 @@ let[@warning "-32"] test_yaml_block_scalars_structural () =
   in
   if not has_obligation then
     Alcotest.fail
-      "bootstrap/yaml-block-scalars.yaml is missing the \
+      "decisions/yaml-block-scalars.yaml is missing the \
        yaml-block-scalars-supported obligation";
   let has_pending_obligation =
     file_exists pending
@@ -526,12 +526,12 @@ let[@warning "-32"] test_flake_lock_changes_record_decision () =
      tightened when the second lockfile update lands." This OCaml
      test enforces the structural checks only (decision files
      exist with proper acceptances). *)
-  let decision = in_repo "bootstrap/decision.yaml" in
-  let honesty = in_repo "bootstrap/infrastructure-honesty.yaml" in
+  let decision = in_repo "decisions/decision.yaml" in
+  let honesty = in_repo "decisions/infrastructure-honesty.yaml" in
   if not (file_exists decision) then
-    Alcotest.fail "bootstrap/decision.yaml missing";
+    Alcotest.fail "decisions/decision.yaml missing";
   if not (file_exists honesty) then
-    Alcotest.fail "bootstrap/infrastructure-honesty.yaml missing";
+    Alcotest.fail "decisions/infrastructure-honesty.yaml missing";
   let decision_text = read_file decision in
   let honesty_text = read_file honesty in
   let has_acceptance_dec =
@@ -547,9 +547,9 @@ let[@warning "-32"] test_flake_lock_changes_record_decision () =
     with Not_found -> false
   in
   if not has_acceptance_dec then
-    Alcotest.fail "bootstrap/decision.yaml has no acceptance field";
+    Alcotest.fail "decisions/decision.yaml has no acceptance field";
   if not has_verifier_dec then
-    Alcotest.fail "bootstrap/decision.yaml has no verifier field";
+    Alcotest.fail "decisions/decision.yaml has no verifier field";
   let has_acceptance_hon =
     try
       ignore (Str.search_forward (Str.regexp "acceptance:") honesty_text 0);
@@ -564,9 +564,9 @@ let[@warning "-32"] test_flake_lock_changes_record_decision () =
   in
   if not has_acceptance_hon then
     Alcotest.fail
-      "bootstrap/infrastructure-honesty.yaml has no acceptance field";
+      "decisions/infrastructure-honesty.yaml has no acceptance field";
   if not has_verifier_hon then
-    Alcotest.fail "bootstrap/infrastructure-honesty.yaml has no verifier field"
+    Alcotest.fail "decisions/infrastructure-honesty.yaml has no verifier field"
 (* ------------------------------------------------------------------------- *)
 (* Test runner                                                                *)
 (* ------------------------------------------------------------------------- *)

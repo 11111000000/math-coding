@@ -92,7 +92,7 @@ let[@warning "-32"] trim s =
    Missing fields default to safe values; the loader is total.
 
    Note: lib/codec.ml's load_yaml_string does not handle YAML
-   front-matter (a leading '---' line). The bootstrap/*.yaml files
+   front-matter (a leading '---' line). The decisions/*.yaml files
    start with '---'. We strip the leading '---' here so the
    loader can parse the rest. This is local to the capsule loader
    and does not touch lib/codec.ml. *)
@@ -172,10 +172,10 @@ let[@warning "-32"] read reader path =
 let[@warning "-32"] load_decisions reader root =
   let paths =
     [
-      Filename.concat root "bootstrap/decision.yaml";
-      Filename.concat root "bootstrap/infrastructure-honesty.yaml";
-      Filename.concat root "bootstrap/kernel-conformance-runner.yaml";
-      Filename.concat root "bootstrap/validate-and-context.yaml";
+      Filename.concat root "decisions/decision.yaml";
+      Filename.concat root "decisions/infrastructure-honesty.yaml";
+      Filename.concat root "decisions/kernel-conformance-runner.yaml";
+      Filename.concat root "decisions/validate-and-context.yaml";
     ]
   in
   List.filter_map

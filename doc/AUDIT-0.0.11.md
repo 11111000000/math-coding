@@ -10,10 +10,10 @@
 >
 > Scope: foundation audit. Per `AGENTS.md` §Self-application, the
 > audit verifies existing decisions; it does not create a new one. No
-> new `bootstrap/*.yaml` file is added, no fixture is touched, no
+> new `decisions/*.yaml` file is added, no fixture is touched, no
 > `OCAML_BEST_PRACTICES.md` rule is changed. The audit is appended to
 > `doc/` and is itself protected by A3 only insofar as it is a
-> reflection of the source-of-truth files (spec/, axioms/, bootstrap/,
+> reflection of the source-of-truth files (spec/, axioms/, decisions/,
 > lib/, bin/, tests/).
 
 This document is structured as a series of snapshots. Each section
@@ -74,19 +74,19 @@ summary: 15 passed, 0 failed
 
 Source: `./scripts/check.sh` (observed). Coverage:
 
-- 4 obligations from `bootstrap/infrastructure-honesty.yaml`
+- 4 obligations from `decisions/infrastructure-honesty.yaml`
   (ci-targets-exist, flake-lock-changes-record-decision,
   flake-ref-is-commit, dune-runs-conformance-via-the-runner);
-- 4 obligations from `bootstrap/kernel-conformance-runner.yaml`
+- 4 obligations from `decisions/kernel-conformance-runner.yaml`
   (enumerate, decision-parses, attestation-skip-message,
   waiver-parser);
-- 3 obligations from `bootstrap/validate-and-context.yaml`
+- 3 obligations from `decisions/validate-and-context.yaml`
   (cli-validate via validate-positive/validate-negative,
   cli-context-capsule + capsule-byte-budget-tracked via
   context-budget);
-- 2 obligations from `bootstrap/adapters.yaml`
+- 2 obligations from `decisions/adapters.yaml`
   (git-changed-files-adapter, junit-attestation-import);
-- 1 obligation from the parent `bootstrap/decision.yaml`
+- 1 obligation from the parent `decisions/decision.yaml`
   (conformance-coverage, exercised by enumerate and
   dune-runs-conformance);
 - 1 fmt-clean obligation from v3-alpha-0.0.10
@@ -167,7 +167,7 @@ starts after the blank line. Sample of the capsule:
 
 The capsule emits `total_bytes` and `truncated` as required by the
 obligation `capsule-byte-budget-tracked`
-(`bootstrap/validate-and-context.yaml`).
+(`decisions/validate-and-context.yaml`).
 
 ---
 
@@ -255,7 +255,7 @@ kernel properties that enforce it:
   (`OCAML_BEST_PRACTICES.md` §4.3).
 - **A3 — Self-application** (`axioms/self-application.md`).
   Rules govern themselves. Enforced by
-  `bootstrap/decision.yaml` obligations `conformance-coverage`
+  `decisions/decision.yaml` obligations `conformance-coverage`
   and `developer-practices-binding`, both of which must pass
   under current rules before the next rules take effect.
 - **A4 — Care** (`axioms/care.md`). The four "who/when" fields
@@ -282,8 +282,8 @@ exist yet):
 | Modules in `mathcoding_core` | 13 | declared in `lib/dune` |
 | Modules in `mathcoding_git` | 1 | `git_diff` (`lib/git/dune`) |
 | Modules in `mathcoding_junit` | 1 | `junit` (`lib/junit/dune`) |
-| `bootstrap/` decisions | 5 | `decision.yaml`, `infrastructure-honesty.yaml`, `kernel-conformance-runner.yaml`, `validate-and-context.yaml`, `adapters.yaml` |
-| `bootstrap/` support files | 2 | `obligations.yaml`, `rationale.md` |
+| `decisions/` decisions | 5 | `decision.yaml`, `infrastructure-honesty.yaml`, `kernel-conformance-runner.yaml`, `validate-and-context.yaml`, `adapters.yaml` |
+| `decisions/` support files | 2 | `obligations.yaml`, `rationale.md` |
 
 Per-file line counts (rounded):
 
@@ -314,15 +314,15 @@ Per-file line counts (rounded):
 
 ## Decisions and obligations
 
-| `bootstrap/` file | Revision | Obligations | Verification status |
+| `decisions/` file | Revision | Obligations | Verification status |
 |---|---|---|---|
-| `decision.yaml` | 2 | 8 (preserve-v2, conformance-coverage, bootstrap-honesty, authoring-benchmark, context-budget, developer-practices-binding, axioms-binding, …) | All **manual** today; the kernel that would auto-verify them does not exist. The bootstrap protocol explicitly names these as manual declarations (`AGENTS.md` §Bootstrap gate, `bootstrap/rationale.md`). |
+| `decision.yaml` | 2 | 8 (preserve-v2, conformance-coverage, bootstrap-honesty, authoring-benchmark, context-budget, developer-practices-binding, axioms-binding, …) | All **manual** today; the kernel that would auto-verify them does not exist. The bootstrap protocol explicitly names these as manual declarations (`AGENTS.md` §Bootstrap gate, `decisions/rationale.md`). |
 | `infrastructure-honesty.yaml` | 1 | 4: fix-ci-targets, pin-nixpkgs-commit, verify-opam-checksum, wire-conformance-runner | **All 4 done** at v3-alpha-0.0.3. Fixtures: `tests/fixtures/ci-targets-exist.sh`, `tests/fixtures/flake-ref-is-commit.sh`, `tests/fixtures/flake-lock-changes-record-decision.sh`, `tests/fixtures/dune-runs-conformance.sh`. All four pass under `./scripts/check.sh`. |
 | `kernel-conformance-runner.yaml` | 1 | 4: enumerate-and-classify-fixtures, parse-positive-and-negative-decision, wire-conformance-into-dune-test, skip-non-decision-fixtures-with-warning | **All 4 done** between v3-alpha-0.0.3 and v3-alpha-0.0.5. Fixtures: `enumerate.sh`, `decision-parses.sh`, `dune-runs-conformance.sh`, `attestation-skip-message.sh`, `waiver-parser.sh` (5 fixtures for 4 obligations because `skip-non-decision-fixtures-with-warning` is exercised by both attestation and waiver cases). |
 | `validate-and-context.yaml` | 2 | 6: jsonl-array-parser-fixed, cli-validate-decision, cli-version-preserved, kernel-offline-pure-unchanged, cli-context-capsule, capsule-byte-budget-tracked | **All 6 done** at v3-alpha-0.0.6 (jsonl-array-parser-fixed, cli-validate-decision, cli-version-preserved, kernel-offline-pure-unchanged) and v3-alpha-0.0.7 (cli-context-capsule, capsule-byte-budget-tracked). Fixtures: `validate-positive.sh`, `validate-negative.sh`, `context-budget.sh`. The kernel-offline-pure-unchanged obligation is verified by the build itself (any Unix-only call in `lib/` would fail to link). |
 | `adapters.yaml` | 1 | 2: git-changed-files-adapter, junit-attestation-import | **Both done** at v3-alpha-0.0.9. Fixtures: `tests/fixtures/git-adapter.sh`, `tests/fixtures/junit-adapter.sh`, plus cram tests `tests/cram/assess.t`, `tests/cram/attest.t`. Cram coverage is also asserted by `tests/fixtures/cram-runs.sh`. |
 
-### `bootstrap/decision.yaml` obligations, in detail
+### `decisions/decision.yaml` obligations, in detail
 
 | Obligation | Verifier | Status |
 |---|---|---|
@@ -334,7 +334,7 @@ Per-file line counts (rounded):
 | `developer-practices-binding` | `practice-review` | **Manual**: enforced through code review and the trap log; no automated linter. `fmt-clean.sh` and the shellcheck pre-commit hook are partial automation. |
 | `axioms-binding` | `axiom-link-review` | **Manual**: every change is supposed to reference at least one axiom; this is reviewed, not auto-verified. |
 
-Per `bootstrap/rationale.md`: *"acceptance predicates refer to
+Per `decisions/rationale.md`: *"acceptance predicates refer to
 verifiers that become available only as the kernel is implemented.
 Until then, the predicates describe requirements, not guarantees."*
 
@@ -433,15 +433,15 @@ release.
 
 **Resolution status (updated 2026-09-27 at v3-alpha-0.0.14)**: D3
 was closed between v0.0.11 and v0.0.12 by the
-`bootstrap/priority-drift.yaml` decision and the
+`decisions/priority-drift.yaml` decision and the
 `tests/fixtures/spec-vs-bp-priority.sh` fixture. D1 and D2 were
-also closed by `bootstrap/yaml-block-scalars.yaml` (rev 2) and
+also closed by `decisions/yaml-block-scalars.yaml` (rev 2) and
 `tests/fixtures/yaml-block-scalars.sh`. The new D4 (CLI
 subcommand catalog; recommendation §Process improvements item
-13) was closed at v3-alpha-0.0.13 by `bootstrap/spec-cli-catalog.yaml`
+13) was closed at v3-alpha-0.0.13 by `decisions/spec-cli-catalog.yaml`
 and `tests/fixtures/spec-catalog-present.sh`. D7 (single
 decision file covering two adapters) was closed at
-v3-alpha-0.0.14 by `bootstrap/adapters.yaml@2`, which adds the
+v3-alpha-0.0.14 by `decisions/adapters.yaml@2`, which adds the
 git-changed-files-adapter obligation as a parallel obligation
 to the existing junit-attestation-import obligation (audit
 remedy (b)). The original D4 (SHA-256 RFC vectors, listed as
@@ -453,27 +453,27 @@ recommended remedy.
 
 | # | Deficit | Reported in | Root cause | Recommended remedy |
 |---|---|---|---|---|
-| D1 | `lib/codec.ml` does not handle YAML literal-block scalars (`\|`). `bootstrap/*.yaml` uses `\|` for commitment/intent, so obligations/assumptions/triggers counts come back as 0 from the YAML path. `decision_id` and `revision` parse correctly because `Memory.strip_yaml_frontmatter` strips `---` locally before calling `Codec.load_yaml_string`. | `f0f80a9` (v3-alpha-0.0.7 commit message, Notes). | Hand-rolled YAML loader in `lib/codec.ml:412` is intentionally narrow (only top-level mappings with scalar values, per `bootstrap/kernel-conformance-runner.yaml` assumption `minimal-yaml-subset-stable`). | Extend `Codec.load_yaml_string` to handle `\|` block scalars. Must be done in `lib/codec.ml` (kernel offline, so the loader is the right place, not in `capsule`). OCAML_BEST_PRACTICES §11.19 already documents the related front-matter trap. |
-| D2 | `lib/codec.ml` does not handle `---` YAML front-matter. `bootstrap/*.yaml` and the front-matter of `bootstrap/validate-and-context.yaml` start with `---`. The local `Memory.strip_yaml_frontmatter` workaround is sufficient for `mc context` only. | `OCAML_BEST_PRACTICES §11.19` (trap log entry written at v3-alpha-0.0.7). | Same loader limitation as D1. | Same remedy as D1; the two extensions should land together. |
-| D3 | No priority-drift detector between `spec/semantics.md` "context-prioritisation" and `OCAML_BEST_PRACTICES.md` §10.5. The two tables are required to stay in lockstep (per `bootstrap/validate-and-context.yaml` countercase), but a change to one is not auto-detected as a change to the other. | `f0f80a9` Notes (recorded as risk `priority-order-drift-between-spec-and-implementation` in `bootstrap/validate-and-context.yaml`). | No machine check exists between the two tables. | **RESOLVED at v3-alpha-0.0.12**: see `bootstrap/priority-drift.yaml` obligation `priority-drift-detector` and the fixture `tests/fixtures/spec-vs-bp-priority.sh`. The fixture is invoked by `./scripts/check.sh`; it compares the priority-ordering line in `spec/semantics.md` to the mirror in `OCAML_BEST_PRACTICES.md` §10.5 and exits 1 (with a diff) on any byte-level mismatch or on exactly-one-missing. New trap-log entry `OCAML_BEST_PRACTICES.md §11.27` documents the failure mode for future maintainers. (Original recommendation was: add a fixture that diffs the two tables; until then, code review is the only enforcement. That recommendation was implemented.)
+| D1 | `lib/codec.ml` does not handle YAML literal-block scalars (`\|`). `decisions/*.yaml` uses `\|` for commitment/intent, so obligations/assumptions/triggers counts come back as 0 from the YAML path. `decision_id` and `revision` parse correctly because `Memory.strip_yaml_frontmatter` strips `---` locally before calling `Codec.load_yaml_string`. | `f0f80a9` (v3-alpha-0.0.7 commit message, Notes). | Hand-rolled YAML loader in `lib/codec.ml:412` is intentionally narrow (only top-level mappings with scalar values, per `decisions/kernel-conformance-runner.yaml` assumption `minimal-yaml-subset-stable`). | Extend `Codec.load_yaml_string` to handle `\|` block scalars. Must be done in `lib/codec.ml` (kernel offline, so the loader is the right place, not in `capsule`). OCAML_BEST_PRACTICES §11.19 already documents the related front-matter trap. |
+| D2 | `lib/codec.ml` does not handle `---` YAML front-matter. `decisions/*.yaml` and the front-matter of `decisions/validate-and-context.yaml` start with `---`. The local `Memory.strip_yaml_frontmatter` workaround is sufficient for `mc context` only. | `OCAML_BEST_PRACTICES §11.19` (trap log entry written at v3-alpha-0.0.7). | Same loader limitation as D1. | Same remedy as D1; the two extensions should land together. |
+| D3 | No priority-drift detector between `spec/semantics.md` "context-prioritisation" and `OCAML_BEST_PRACTICES.md` §10.5. The two tables are required to stay in lockstep (per `decisions/validate-and-context.yaml` countercase), but a change to one is not auto-detected as a change to the other. | `f0f80a9` Notes (recorded as risk `priority-order-drift-between-spec-and-implementation` in `decisions/validate-and-context.yaml`). | No machine check exists between the two tables. | **RESOLVED at v3-alpha-0.0.12**: see `decisions/priority-drift.yaml` obligation `priority-drift-detector` and the fixture `tests/fixtures/spec-vs-bp-priority.sh`. The fixture is invoked by `./scripts/check.sh`; it compares the priority-ordering line in `spec/semantics.md` to the mirror in `OCAML_BEST_PRACTICES.md` §10.5 and exits 1 (with a diff) on any byte-level mismatch or on exactly-one-missing. New trap-log entry `OCAML_BEST_PRACTICES.md §11.27` documents the failure mode for future maintainers. (Original recommendation was: add a fixture that diffs the two tables; until then, code review is the only enforcement. That recommendation was implemented.)
 
-Extended at v3-alpha-0.0.16: process-principles fixture (tests/fixtures/process-principles.sh) broadens the drift-detector idea from priority tables (one instance of D3) to a class of principle-drift bugs. The new fixture enforces five machine-checkable principles (P1, P2, P5, P6, P7) and records two non-machine-checkable principles (P3 time-box, P4 merge order) as manual-acceptance obligations in bootstrap/process-principles.yaml. P1 (every bootstrap file has required frontmatter + body sections), P2 (every obligation declares a present verifier), P5 (no tests/cram/*.t files; cram retired in v0.0.10), P6 (scripts/check.sh exists and is executable), P7 (fixture assertions must be structural, not self-referential).) Reclassified at v3-alpha-0.0.16+process-principles-migration: the shell fixture was subsumed into `tests/process_principles.ml` (OCaml/Alcotest, registered via tests/dune). Behaviour is unchanged: same five principles asserted by the same checks, now expressed as labelled Alcotest cases in a single dune-runtest executable. |
+Extended at v3-alpha-0.0.16: process-principles fixture (tests/fixtures/process-principles.sh) broadens the drift-detector idea from priority tables (one instance of D3) to a class of principle-drift bugs. The new fixture enforces five machine-checkable principles (P1, P2, P5, P6, P7) and records two non-machine-checkable principles (P3 time-box, P4 merge order) as manual-acceptance obligations in decisions/process-principles.yaml. P1 (every bootstrap file has required frontmatter + body sections), P2 (every obligation declares a present verifier), P5 (no tests/cram/*.t files; cram retired in v0.0.10), P6 (scripts/check.sh exists and is executable), P7 (fixture assertions must be structural, not self-referential).) Reclassified at v3-alpha-0.0.16+process-principles-migration: the shell fixture was subsumed into `tests/process_principles.ml` (OCaml/Alcotest, registered via tests/dune). Behaviour is unchanged: same five principles asserted by the same checks, now expressed as labelled Alcotest cases in a single dune-runtest executable. |
 | D4 | `lib/digest.ml` SHA-256 implementation has not been validated against RFC 6234 vectors. `tests/digest_vectors.ml` exists but its 3 tests are marked `xfail until Digest is fixed`. | `OCAML_BEST_PRACTICES §5` and the `xfail until Digest is fixed` label visible in `dune test` output. | Hand-rolled SHA-256 (`lib/digest.ml:1-176`); conformance corpus would skip. | Until the vectors pass, do not use `Digest.sha256_hex` for canonicalization. `OCAML_BEST_PRACTICES §10.4` item 1 lists this as the top-priority pre-3.0-beta task. |
 | D5 | `bin/mathc_main.ml` is a 1-line stale file containing the v0.0.5 hello-string. `bin/dune` lists only `Mathc`, so `mathc_main.ml` is not compiled, but it lingers in the tree. | `OCAML_BEST_PRACTICES §9.4` and §10.4 item 7 (recorded at v3-alpha-0.0.6). | History: `main.ml → mathc.ml → Mathc.ml`. | Delete `bin/mathc_main.ml`. Trivial cleanup; not blocking. |
-| D6 | The 8 obligations in `bootstrap/decision.yaml` have manual-only verifiers. The kernel that would auto-verify them does not exist. | `bootstrap/decision.yaml` and `bootstrap/rationale.md`. | This is the bootstrap protocol itself, not a bug. | Track; expire when the released 3.0 kernel successfully checks this repository and its conformance corpus (`AGENTS.md` §Bootstrap gate). |
-| D7 | `bootstrap/adapters.yaml` does not yet record a `git-changed-files-adapter` obligation as its own decision entry. The obligation appears in the v0.0.8 commit message and in `bootstrap/validate-and-context.yaml`'s `scope.capabilities`, but the adapters decision file groups it under the JUnit obligation. | `9f6d595` (the v0.0.8 commit added `bootstrap/adapters.yaml`; the message body is essentially empty; only `bcce74d` and `5486c13` carry the per-obligation text). | The two adapters landed in a single decision file but two implementation commits. | **RESOLVED at v3-alpha-0.0.14**: see `bootstrap/adapters.yaml@2`, which adds the `git-changed-files-adapter` obligation as a parallel obligation alongside the existing `junit-attestation-import` obligation (the audit's remedy (b)). The new obligation is anchored to the existing fixture `tests/fixtures/git-adapter.sh`, which is invoked by `./scripts/check.sh` and asserts that `mc assess BASE HEAD` exits 0 and emits a JSON array containing the expected file paths. The decision file also adds the corresponding `git-changed-files-adapter` outcome, capability, and scope.paths entries (`lib/git/git_diff.ml`, `lib/git/dune`, `tests/fixtures/git-adapter.sh`), and updates `relations.addresses` to include this audit. No new dependency, no fixture changes, no kernel changes. `./scripts/check.sh` remains at 26 passes (no new failures). (Original recommendation was: either split into two decision files or leave as-is and document that one file covers two obligations. The (b) branch of that recommendation was implemented.) |
-| D8 | `mc validate` synthesises a single coarse diagnostic ("missing or invalid required field") without naming the specific field. The kernel's `Decision.parse_decision` returns `Some _ \| None`, not a typed `Diagnostic.t option`. | `bootstrap/validate-and-context.yaml` assumption `parse-decision-rejection-reason-coarse`. | Decision parser is binary accept/reject; finer diagnostics are a 3.0-beta item. | Promote `Decision.parse_decision` to return `Diagnostic.t option` in 3.0-beta; until then, the coarse diagnostic is documented. |
-| D4′ | **NEW D4 (parent task label; renamed `D4′` here to disambiguate from the SHA-256 deficit above).** The mathc CLI subcommand list (version, validate, context, assess, attest, gate, session-start, record, stats, time-estimate) was documented only in `bin/Mathc.ml`'s header comment; the spec named only the priority order and exit codes. The audit's §Process improvements item 13 named this gap. | `doc/AUDIT-0.0.11.md` §Process improvements item 13. | The spec describes kernel semantics; the CLI surface was an implementation summary. | **RESOLVED at v3-alpha-0.0.13**: see `bootstrap/spec-cli-catalog.yaml` obligation `spec-cli-catalog-promoted` (this is the new decision file) and the fixture `tests/fixtures/spec-catalog-present.sh`. The new `spec/semantics.md` "CLI subcommands" section enumerates every subcommand bin/Mathc.ml implements at HEAD with synopsis, input, output, exit code, and the bootstrap obligation that justifies each. The fixture is invoked by `./scripts/check.sh` and exits 1 with the missing-name list on any absent canonical subcommand. `bin/Mathc.ml` is unchanged. (Original recommendation was: a spec section listing `mc validate`, `mc context`, `mc assess`, `mc attest`. That recommendation was implemented, and extended to the full ten-subcommand surface.) |
+| D6 | The 8 obligations in `decisions/decision.yaml` have manual-only verifiers. The kernel that would auto-verify them does not exist. | `decisions/decision.yaml` and `decisions/rationale.md`. | This is the bootstrap protocol itself, not a bug. | Track; expire when the released 3.0 kernel successfully checks this repository and its conformance corpus (`AGENTS.md` §Bootstrap gate). |
+| D7 | `decisions/adapters.yaml` does not yet record a `git-changed-files-adapter` obligation as its own decision entry. The obligation appears in the v0.0.8 commit message and in `decisions/validate-and-context.yaml`'s `scope.capabilities`, but the adapters decision file groups it under the JUnit obligation. | `9f6d595` (the v0.0.8 commit added `decisions/adapters.yaml`; the message body is essentially empty; only `bcce74d` and `5486c13` carry the per-obligation text). | The two adapters landed in a single decision file but two implementation commits. | **RESOLVED at v3-alpha-0.0.14**: see `decisions/adapters.yaml@2`, which adds the `git-changed-files-adapter` obligation as a parallel obligation alongside the existing `junit-attestation-import` obligation (the audit's remedy (b)). The new obligation is anchored to the existing fixture `tests/fixtures/git-adapter.sh`, which is invoked by `./scripts/check.sh` and asserts that `mc assess BASE HEAD` exits 0 and emits a JSON array containing the expected file paths. The decision file also adds the corresponding `git-changed-files-adapter` outcome, capability, and scope.paths entries (`lib/git/git_diff.ml`, `lib/git/dune`, `tests/fixtures/git-adapter.sh`), and updates `relations.addresses` to include this audit. No new dependency, no fixture changes, no kernel changes. `./scripts/check.sh` remains at 26 passes (no new failures). (Original recommendation was: either split into two decision files or leave as-is and document that one file covers two obligations. The (b) branch of that recommendation was implemented.) |
+| D8 | `mc validate` synthesises a single coarse diagnostic ("missing or invalid required field") without naming the specific field. The kernel's `Decision.parse_decision` returns `Some _ \| None`, not a typed `Diagnostic.t option`. | `decisions/validate-and-context.yaml` assumption `parse-decision-rejection-reason-coarse`. | Decision parser is binary accept/reject; finer diagnostics are a 3.0-beta item. | Promote `Decision.parse_decision` to return `Diagnostic.t option` in 3.0-beta; until then, the coarse diagnostic is documented. |
+| D4′ | **NEW D4 (parent task label; renamed `D4′` here to disambiguate from the SHA-256 deficit above).** The mathc CLI subcommand list (version, validate, context, assess, attest, gate, session-start, record, stats, time-estimate) was documented only in `bin/Mathc.ml`'s header comment; the spec named only the priority order and exit codes. The audit's §Process improvements item 13 named this gap. | `doc/AUDIT-0.0.11.md` §Process improvements item 13. | The spec describes kernel semantics; the CLI surface was an implementation summary. | **RESOLVED at v3-alpha-0.0.13**: see `decisions/spec-cli-catalog.yaml` obligation `spec-cli-catalog-promoted` (this is the new decision file) and the fixture `tests/fixtures/spec-catalog-present.sh`. The new `spec/semantics.md` "CLI subcommands" section enumerates every subcommand bin/Mathc.ml implements at HEAD with synopsis, input, output, exit code, and the bootstrap obligation that justifies each. The fixture is invoked by `./scripts/check.sh` and exits 1 with the missing-name list on any absent canonical subcommand. `bin/Mathc.ml` is unchanged. (Original recommendation was: a spec section listing `mc validate`, `mc context`, `mc assess`, `mc attest`. That recommendation was implemented, and extended to the full ten-subcommand surface.) |
 
 The parent task instruction also listed three deficits to ensure
 are covered:
 
 - **YAML `\|` block scalars in `lib/codec.ml`** → D1.
 - **Priority drift detector missing** → D3.
-- **Git obligation in `bootstrap/adapters.yaml`** → D7.
+- **Git obligation in `decisions/adapters.yaml`** → D7.
 
 All three are present above. (The "git obligation in
-`bootstrap/adapters.yaml`" phrasing in the parent task description
+`decisions/adapters.yaml`" phrasing in the parent task description
 maps to D7: the Git adapter obligation exists in the decision but
 is grouped under the JUnit decision file rather than its own
 file. There is no missing obligation; the situation is a
@@ -483,14 +483,14 @@ documentation gap, not a policy deficit.)
 2026-09-27 at v3-alpha-0.0.14)**:
 
 - D1 — **closed** at v3-alpha-0.0.12 by
-  `bootstrap/yaml-block-scalars.yaml` (rev 2) and
+  `decisions/yaml-block-scalars.yaml` (rev 2) and
   `tests/fixtures/yaml-block-scalars.sh`.
 - D3 — **closed** at v3-alpha-0.0.12 by
-  `bootstrap/priority-drift.yaml` (rev 2) and
+  `decisions/priority-drift.yaml` (rev 2) and
   `tests/fixtures/spec-vs-bp-priority.sh` (this commit's
   work).
 - D7 — **closed** at v3-alpha-0.0.14 by
-  `bootstrap/adapters.yaml@2`, which adds the
+  `decisions/adapters.yaml@2`, which adds the
   `git-changed-files-adapter` obligation as a parallel
   obligation alongside `junit-attestation-import`. The audit's
   remedy (b) was implemented: a single decision file covers
@@ -502,7 +502,7 @@ documentation gap, not a policy deficit.)
 - D4 (CLI subcommand catalog; the parent task's "D4",
   labelled `D4′` in the diagnostics table to disambiguate from
   the SHA-256 D4) — **closed** at v3-alpha-0.0.13 by
-  `bootstrap/spec-cli-catalog.yaml` and
+  `decisions/spec-cli-catalog.yaml` and
   `tests/fixtures/spec-catalog-present.sh`. The new
   `spec/semantics.md` "CLI subcommands" section enumerates the
   full ten-subcommand surface.
@@ -536,7 +536,7 @@ should write next, prioritized. Status at HEAD `1b48db2`:
 | `bisect_ppx` coverage | Coverage of the kernel is well-exercised by the 9 conformance cases; coverage of adapters will be useful when the MCP adapter lands. Defer until then. |
 | `ppx_expect` snapshot tests | Useful for the `mc context` capsule output and the JUnit JSON rendering. Defer to 0.0.12. |
 | `core_bench` benchmarks | No performance budget yet. Defer. |
-| MCP server (`lib/mcp/server.ml`) | Adapter split is ready (`OCAML_BEST_PRACTICES §10.1`); the obligation is not yet recorded. Candidate for v0.0.12 (a separate decision under `bootstrap/`). |
+| MCP server (`lib/mcp/server.ml`) | Adapter split is ready (`OCAML_BEST_PRACTICES §10.1`); the obligation is not yet recorded. Candidate for v0.0.12 (a separate decision under `decisions/`). |
 
 ---
 
@@ -590,16 +590,16 @@ and any preconditions.
    block scalars. This is a kernel change; per A3, requires a
    decision, positive+negative fixtures, migration path, and
    authorization by the current policy. The current policy is
-   `bootstrap/decision.yaml@2`; a new revision `bootstrap/decision.yaml@3`
+   `decisions/decision.yaml@2`; a new revision `decisions/decision.yaml@3`
    would authorize the kernel change. Add a new decision file
-   `bootstrap/yaml-block-scalars.yaml` recording the obligation.
+   `decisions/yaml-block-scalars.yaml` recording the obligation.
 2. **`bin/mathc_main.ml`** (D5). Delete the file. One-line edit.
    No bootstrap change needed (no behavior change).
 3. **Priority drift detector** (D3). Add
    `tests/fixtures/spec-vs-bp-priority.sh` that diffs the two
    tables and fails on mismatch. The fixture would be a
    v0.0.12 addition under a new
-   `bootstrap/spec-lockstep.md` decision.
+   `decisions/spec-lockstep.md` decision.
 
 ### Refactors (carryover from §10.4)
 
@@ -621,7 +621,7 @@ and any preconditions.
 ### New obligations
 
 7. **MCP server adapter**. Record in
-   `bootstrap/adapters-mcp.md`; defer implementation to v0.0.13.
+   `decisions/adapters-mcp.md`; defer implementation to v0.0.13.
    The split convention is ready (`lib/mcp/` not yet present).
 8. **`.mli` files + `odoc`** (§10.4 item 8 deferred). Add
    `lib/digest.mli`, `lib/jsonl.mli`, `lib/decision.mli`, etc.,
@@ -664,7 +664,7 @@ and any preconditions.
   that produces `bin/mathc.exe` does not include it). Stdlib
   `Arg` is sufficient for the four-subcommand CLI.
 - Cutting the v2.1-final branch. The bootstrap protocol requires
-  the tag to remain reachable (`bootstrap/decision.yaml`
+  the tag to remain reachable (`decisions/decision.yaml`
   obligation `preserve-v2`).
 
 ---
@@ -699,9 +699,9 @@ The audit does not claim:
 - That the kernel is correct (A1 forbids it: "Math-coding must
   not present structural validity as proof of software
   correctness").
-- That the obligations in `bootstrap/decision.yaml` are
+- That the obligations in `decisions/decision.yaml` are
   satisfied by anything more than a manual declaration
-  (`bootstrap/rationale.md`).
+  (`decisions/rationale.md`).
 - That the trap log is complete.
 - That the recommendations in §Recommendations are urgent or
   authorized; each is a research proposal for human review.

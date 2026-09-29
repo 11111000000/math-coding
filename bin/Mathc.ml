@@ -234,7 +234,7 @@ let print_usage oc =
     \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\
     \  session-start                    write .local/session-start ISO timestamp\n\
     \  record --decision-id ID ...      append event to \
-     bootstrap/execution-logs.jsonl\n\
+     decisions/execution-logs.jsonl\n\
     \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
@@ -826,7 +826,7 @@ let[@warning "-32"] do_time_estimate () =
  * wall-clock-minutes value. The user controls when the session
  * starts; the agent cannot influence the resulting elapsed
  * time without also editing the file (the file is in the
- * worktree, gitignored per bootstrap/time-honesty-storage.yaml;
+ * worktree, gitignored per decisions/time-honesty-storage.yaml;
    users can verify). *)
 
 (* mkdir -p, recursively. Idempotent: ignores EEXIST. *)
@@ -920,7 +920,7 @@ let[@warning "-32"] observed_by () =
 
 (* --- record subcommand (bootstrap decision time-honesty-storage) ---
  *
- * Appends one event line to bootstrap/execution-logs.jsonl.
+ * Appends one event line to decisions/execution-logs.jsonl.
  * The wall-clock-minutes value is auto-computed from
  * now - session_start. The step-count value is supplied by
  * the caller (assumption step-count-supplied, until the
@@ -1055,7 +1055,7 @@ let[@warning "-32"] do_record () =
   in
   let line = event_to_json_line ev in
   let root = find_project_root (Sys.getcwd ()) in
-  let path = Filename.concat root "bootstrap/execution-logs.jsonl" in
+  let path = Filename.concat root "decisions/execution-logs.jsonl" in
   (try append_event_to_file path line
    with exn ->
      Printf.fprintf stderr "mc record: cannot write %s: %s\n" path
@@ -1065,7 +1065,7 @@ let[@warning "-32"] do_record () =
 
 (* --- stats subcommand (bootstrap decision time-honesty-storage) ---
  *
- * Aggregates events from bootstrap/execution-logs.jsonl into a
+ * Aggregates events from decisions/execution-logs.jsonl into a
  * JSON summary. Filters: --scale, --class, --since (ISO 8601
  * UTC; lexicographic comparison is correct for this format).
  * Quantiles are emitted only when n >= 30 (Flyvbjerg /
@@ -1074,7 +1074,7 @@ let[@warning "-32"] do_record () =
  * reference. *)
 
 let[@warning "-32"] read_jsonl_events root =
-  let path = Filename.concat root "bootstrap/execution-logs.jsonl" in
+  let path = Filename.concat root "decisions/execution-logs.jsonl" in
   if not (Sys.file_exists path) then []
   else
     try
@@ -1211,7 +1211,7 @@ let[@warning "-32"] do_stats () =
       ("quantiles", quantiles_obj);
       ("scale", Jsonl.stringify (Jsonl.String !scale));
       ("since", Jsonl.stringify (Jsonl.String !since));
-      ("source", Jsonl.stringify (Jsonl.String "bootstrap/execution-logs.jsonl"));
+      ("source", Jsonl.stringify (Jsonl.String "decisions/execution-logs.jsonl"));
       ("threshold", Jsonl.stringify (Jsonl.Int threshold));
     ]
     @
@@ -1289,7 +1289,7 @@ let do_attest () =
  * Unknown with explicit causes. The verdict is Pass only when
  * the tree changed nothing that touches an obligation.
  *
- * Per bootstrap/gate-decision.yaml the JSON shape is fixed:
+ * Per decisions/gate-decision.yaml the JSON shape is fixed:
  *   { verdict, gaps, obligations, now, base, head }
  * Future revisions may ADD keys but MUST NOT remove or rename
  * these. *)
