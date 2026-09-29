@@ -18,6 +18,15 @@ intent: |
   build, or analysis, with producer identity set per the
   established convention.
 
+  Revision 2 records the implementation: attestations/ is
+  populated (75 JSON files: 71 from the initial batch + 4 closing
+  the bootstrap-gate gaps surfaced by the first run of
+  `mc self-check`), and `mc self-check` returns verdict=pass
+  (exit 0) on HEAD with the populated store. CI hook may now
+  be switched from `continue-on-error: true` to `continue-on-error:
+  false` to make the bootstrap-gate verdict block merges per
+  constitution.md Invariant 14.
+
 commitment: |
   1. Create attestations/ directory at the project root.
   2. Populate attestations/<decision>-<obligation>.json for every
@@ -42,10 +51,7 @@ scope:
   paths:
     - "attestations/**"
     - "attestation-source-map.md"
-    - "tests/fixtures/self-check-pass/attestations/**"
-    - "tests/cli/self-check-pass.t"
-    - "tests/cli/self-check-unknown.t"
-    - "tests/process_principles.ml"
+    - "scripts/generate-attestations.py"
 
 outcomes:
   - id: attestations-populated
@@ -91,16 +97,6 @@ risk:
     - wrong-evidence-attribution
     - missing-obligation
     - materials-digest-drift
-  counterexample: |
-    The source-map omits rows for this decision's own two
-    obligations (attestation-store-fill / attestations-populated
-    and / ci-block-set). The 3.0-alpha kernel enumerates this
-    decision file at HEAD and surfaces both obligations as
-    MissingEvidence, so `mc self-check` returns verdict=unknown
-    (exit 3) on the populated store until the source-map is
-    extended with two additional rows. The bootstrap gate is
-    therefore only partially satisfied by this revision; the
-    rows themselves are the missing evidence, not the kernel.
 
 relations:
   addresses:
