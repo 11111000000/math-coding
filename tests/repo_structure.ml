@@ -571,6 +571,87 @@ let[@warning "-32"] test_flake_lock_changes_record_decision () =
 (* Test runner                                                                *)
 (* ------------------------------------------------------------------------- *)
 
+(* ------------------------------------------------------------------------- *)
+(* agent-onboarding (decisions/agent-onboarding.yaml)          *)
+(* ------------------------------------------------------------------------- *)
+(* Asserts the v0.0.18 convention recorded in
+   decisions/agent-onboarding.yaml: ADRs are decisions/<topic>.yaml;
+   AGENTS.md names ROADMAP.md as the first read; PACKAGES.md has a
+   row for agent-onboarding. *)
+
+let[@warning "-32"] agent_contains ~needle haystack =
+  let n = String.lowercase_ascii (String.trim needle) in
+  let h = String.lowercase_ascii haystack in
+  let len_h = String.length h in
+  let len_n = String.length n in
+  if len_n = 0 then true
+  else if len_h < len_n then false
+  else
+    let rec loop pos =
+      if pos + len_n > len_h then false
+      else if String.sub h pos len_n = n then true
+      else loop (pos + 1)
+    in
+    loop 0
+
+let[@warning "-32"] test_agent_onboarding () =
+  let onboarding = in_repo "decisions/agent-onboarding.yaml" in
+  if not (file_exists onboarding) then
+    Alcotest.failf "decisions/agent-onboarding.yaml missing";
+  let contents = read_file onboarding in
+  let not_adrs = not (agent_contains ~"adrs are" contents) in
+    if not_adrs then
+    Alcotest.failf
+      "agent-onboarding.yaml does not document the ADR convention";
+  let agents = in_repo "AGENTS.md" in
+  let agents_txt = read_file agents in
+  let not_rf = not (agent_contains ~"read first" agents_txt) in
+    if not_rf then
+    Alcotest.failf "AGENTS.md missing 'Read first' section";
+  let not_rm = not (agent_contains ~"ROADMAP.md" agents_txt) in
+    if not_rm then
+    Alcotest.failf
+      "AGENTS.md Read first does not name ROADMAP.md as first";
+  let packages = in_repo "PACKAGES.md" in
+  let packages_txt = read_file packages in
+  let not_ao = not (agent_contains ~"agent-onboarding" packages_txt) in
+    if not_ao then
+    Alcotest.failf "PACKAGES.md missing agent-onboarding row"
+
+(* ------------------------------------------------------------------------- *)
+(* formal-verifier-prefixes (decisions/formal-verifier-conventions.yaml)*)
+(* ------------------------------------------------------------------------- *)
+(* Asserts the v0.0.18 convention recorded in
+   decisions/formal-verifier-conventions.yaml: tla:/coq:/alloy:
+   prefixes are documented in OCAML_BEST_PRACTICES.md §10.6, and
+   the convention decision file exists in decisions/. *)
+
+let[@warning "-32"] test_formal_verifier_prefixes () =
+  let conv = in_repo "decisions/formal-verifier-conventions.yaml" in
+  if not (file_exists conv) then
+    Alcotest.failf "decisions/formal-verifier-conventions.yaml missing";
+  let obp = in_repo "OCAML_BEST_PRACTICES.md" in
+  let obp_txt = read_file obp in
+  let not_fv = not (agent_contains ~"10.6 formal-verifier" obp_txt) in
+    if not_fv then
+    Alcotest.failf
+      "OCAML_BEST_PRACTICES.md missing section 10.6 (formal-verifier)";
+  let not_tla = not (agent_contains ~"tla:" obp_txt) in
+    if not_tla then
+    Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing tla: prefix";
+  let not_coq = not (agent_contains ~"coq:" obp_txt) in
+    if not_coq then
+    Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing coq: prefix";
+  let not_aw = not (agent_contains ~"alloy:" obp_txt) in
+    if not_aw then
+    Alcotest.failf
+      "OCAML_BEST_PRACTICES.md section 10.6 missing alloy: prefix";
+  let packages = in_repo "PACKAGES.md" in
+  let packages_txt = read_file packages in
+  let not_fvp = not (agent_contains ~"formal-verifier" packages_txt) in
+    if not_fvp then
+    Alcotest.failf "PACKAGES.md missing formal-verifier-conventions row"
+
 let () =
   Alcotest.run "repo structure"
     [
@@ -612,5 +693,15 @@ let () =
         [
           Alcotest.test_case "flake.lock commit mentions nixpkgs" `Quick
             test_flake_lock_changes_record_decision;
+        ] );
+      ( "agent-onboarding",
+        [
+          Alcotest.test_case "conventions recorded" `Quick
+            test_agent_onboarding
+        ] );
+      ( "formal-verifier-prefixes",
+        [
+          Alcotest.test_case "prefixes documented" `Quick
+            test_formal_verifier_prefixes
         ] );
     ]
