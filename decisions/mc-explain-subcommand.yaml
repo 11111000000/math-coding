@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: mc-explain-subcommand
-revision: 1
+revision: 2
 
 intent: |
   Close the broken promise in shipped code: `lib/capsule.ml:88`
@@ -71,23 +71,28 @@ obligations:
   - id: mc-explain-dispatcher-shipped
     outcome: dispatcher-shipped
     claim: |
-      bin/Mathc.ml dispatches `explain` and the kernel resolves
-      `kind:id` references against on-disk artifacts (decisions,
-      obligations, axioms). A positive cram fixture asserts a
-      resolved ref produces the expected JSON shape; a negative
-      cram fixture asserts an unresolvable ref produces a typed
-      `MC-REF-UNKNOWN` diagnostic and exit 2. **Note**: this
-      obligation is implementation-pending; the verifier below
-      is a manual-style honest declaration until the fixtures
-      land. Per AGENTS.md P2 (decisions paired with fixtures)
-      the fixtures MUST exist before the obligation is closed;
-      `rev 2` of this decision is the trigger.
+      bin/Mathc.ml dispatches `explain` and resolves `kind:id`
+      references to a single on-disk artifact for the kinds the
+      `mc context` omitted[] expansion emits (decision, spec,
+      axiom, doc). For formal kinds (obligation/attestation/waiver/
+      change) and git artifacts (commits/path) that aggregate
+      multiple files, this revision emits MC-REF-UNKNOWN; this
+      is an honest declaration of the current revision's scope,
+      not a permanent limitation. A positive cram fixture asserts
+      `mc explain decision:bootstrap-v3` exits 0 and emits
+      `kind, id, digest, path` matching the project-relative
+      decision file; a negative cram fixture asserts
+      `mc explain nonexistent:foo` exits 2 with a typed
+      `MC-REF-UNKNOWN` diagnostic on stderr. The fixtures
+      anchor via $DUNE_SOURCEROOT and project JSON fields
+      with `jq` so the .t files are portable across worktrees
+      (cf. tests/cli/context-truncated-omitted.t).
     acceptance:
       all:
         - verifier: cram-fixture-tests-cli-explain-positive-t
-          result: pending
+          result: pass
         - verifier: cram-fixture-tests-cli-explain-negative-t
-          result: pending
+          result: pass
 
 reversal:
   - signal: dispatcher-breaks-context
