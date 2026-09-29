@@ -15,38 +15,38 @@ intent: |
   changed, and a fixture appeared in `tests/fixtures/` without a
   paired decision in `bootstrap/`. Recording the principles as
   obligations makes them visible in PACKAGES.md; the checkable
-  subset (P1, P2, P5, P6, P7) is asserted by the new fixture
-  `tests/fixtures/process-principles.sh`; the non-checkable
-  subset (P3, P4) is recorded as manual-acceptance obligations
-  with the explicit acknowledgement that they cannot be
-  machine-checked (per AGENTS.md §"Bootstrap gate" — "Process
-  principles cannot be machine-checked; they are honest
-  declarations of how the human and agents work").
+  subset (P1, P2, P5, P6, P7) is asserted by the OCaml/Alcotest
+  test `tests/process_principles.ml` (registered with
+  `dune runtest` via tests/dune); the non-checkable subset
+  (P3, P4) is recorded as manual-acceptance obligations with
+  the explicit acknowledgement that they cannot be machine-checked
+  (per AGENTS.md §"Bootstrap gate" — "Process principles cannot
+  be machine-checked; they are honest declarations of how the
+  human and agents work").
 
 commitment: |
   Each of P1-P7 is recorded as a separate obligation in this
   decision file. For P1, P2, P5, P6, P7 the obligation's
-  acceptance predicate references
-  `tests/fixtures/process-principles.sh` (one shared fixture;
-  each check is its own labelled sub-section of the fixture
-  output). For P3, P4 the obligation carries
-  `evidence: manual-acceptance` and names the human maintainer
-  as the reviewer, because the principle is a declaration of
-  agent conduct, not a property of the tree.
+  acceptance predicate references the OCaml test
+  `tests/process_principles.ml` (one shared test executable;
+  each principle is its own Alcotest case). For P3, P4 the
+  obligation carries `evidence: manual-acceptance` and names
+  the human maintainer as the reviewer, because the principle
+  is a declaration of agent conduct, not a property of the tree.
 
-  The fixture `tests/fixtures/process-principles.sh` is
-  registered with `./scripts/check.sh` via the existing glob
-  (`tests/fixtures/*.sh`). It exits 0 when all checkable
+  The test `tests/process_principles.ml` is registered with
+  `dune runtest` via tests/dune. It exits 0 when all checkable
   principles hold and exits 1 with the offending principle name
-  on the first violation. The fixture must be a real check,
-  not a self-referential pass (P7).
+  on the first violation. The test must be a real check, not a
+  self-referential pass (P7).
 
 scope:
   capabilities:
     - process-principles-enforced
   paths:
     - "bootstrap/process-principles.yaml"
-    - "tests/fixtures/process-principles.sh"
+    - "tests/process_principles.ml"
+    - "tests/dune"
     - "PACKAGES.md"
     - "doc/AUDIT-0.0.11.md"
   exclusions:
@@ -66,7 +66,7 @@ outcomes:
       "Bootstrap packages (by file)" once that table is updated.
   - id: checkable-principles-asserted-by-fixture
     statement: |
-      tests/fixtures/process-principles.sh asserts P1, P2, P5,
+      tests/process_principles.ml asserts P1, P2, P5,
       P6, P7 by reading the repository state and exits 1 with
       the principle name on any violation. P3 and P4 are
       recorded as manual-acceptance obligations and are NOT
@@ -188,7 +188,7 @@ obligations:
       fixture.
     acceptance:
       all:
-        - verifier: tests/fixtures/process-principles.sh
+        - verifier: tests/process_principles.ml
           result: pass
   - id: p2-decisions-paired-with-fixtures
     outcome: principles-recorded-as-obligations
@@ -196,8 +196,9 @@ obligations:
       Every obligation in a non-meta decision file references
       a test fixture via `acceptance.all[].verifier`, either
       as a path under `tests/fixtures/*.sh` (file exists), a
-      kernel-test reference (`tests/conformance.ml ...`), or
-      an explicit manual-style verifier (e.g., `text-scan-`,
+      path under `tests/cli/*.t` (dune cram file exists), a
+      kernel-test reference (`tests/conformance.ml ...`),
+      or an explicit manual-style verifier (e.g., `text-scan-`,
       `cram-fixture-`, `script-runs-and-is-deterministic`,
       `dune test`, `manual-`, `review`, `practice-review`,
       `mathc-`). The check is structural: every obligation
@@ -206,10 +207,10 @@ obligations:
       or is in the manual-style prefix list. An obligation
       with no verifier declaration, or with a verifier
       pointing to a non-existent fixture file, trips the
-      fixture.
+      OCaml test.
     acceptance:
       all:
-        - verifier: tests/fixtures/process-principles.sh
+        - verifier: tests/process_principles.ml
           result: pass
   - id: p3-time-box-on-detailed-work
     outcome: principles-recorded-as-obligations
@@ -249,7 +250,7 @@ obligations:
       and trips the fixture.
     acceptance:
       all:
-        - verifier: tests/fixtures/process-principles.sh
+        - verifier: tests/process_principles.ml
           result: pass
   - id: p6-pre-commit-verification
     outcome: checkable-principles-asserted-by-fixture
@@ -263,7 +264,7 @@ obligations:
       executable bit violates P6 and trips the fixture.
     acceptance:
       all:
-        - verifier: tests/fixtures/process-principles.sh
+        - verifier: tests/process_principles.ml
           result: pass
   - id: p7-honesty-in-fixture-assertions
     outcome: checkable-principles-asserted-by-fixture
@@ -273,8 +274,8 @@ obligations:
       0" asserting on its own exit code, or matching a
       captured failure output verbatim) violate the principle.
       The acceptance proxy for P7 is meta: this fixture
-      (process-principles.sh) is itself a check, and the
-      other 26 fixtures it does not subsume are checked
+      (tests/process_principles.ml) is itself a check, and the
+      other 7 shell fixtures it does not subsume are checked
       independently by `./scripts/check.sh`. The fixture
       does NOT assert "this fixture exits 0" as its only
       statement; it reads repository state and compares it
@@ -284,7 +285,7 @@ obligations:
       per A3 self-application).
     acceptance:
       all:
-        - verifier: tests/fixtures/process-principles.sh
+        - verifier: tests/process_principles.ml
           result: pass
 
 reversal:
@@ -295,7 +296,7 @@ reversal:
       changing the principle itself.
   - signal: frontmatter-schema-extends
     action: |
-      update-tests/fixtures/process-principles.sh to require
+      update-tests/process_principles.ml to require
       the new field, and update every decision file in the
       same release.
 

@@ -32,14 +32,13 @@ intent: |
   the actual cram mechanism, since the §11.20 RETIRED status no
   longer holds.
 
-  The single remaining shell fixture (process-principles.sh)
-  enforces the ROADMAP P1-P7 process discipline (decision-file
-  schema, paired fixtures, scripts/check.sh presence, cram
-  retirement, etc.). All other repo-state checks live in
-  tests/repo_structure.ml (OCaml/Alcotest) and are exercised by
-  `dune runtest`. scripts/check.sh runs process-principles.sh
-  alongside `dune runtest tests/cli` to cover both shell
-  fixtures and dune cram in a single invocation.
+  The process-principles check (tests/process_principles.ml,
+  OCaml/Alcotest) enforces the ROADMAP P1-P7 process discipline
+  (decision-file schema, verifier pairing, scripts/check.sh
+  presence, cram retirement, etc.). It is exercised by `dune
+  runtest` alongside the rest of the test suite; the previous
+  shell fixture (tests/fixtures/process-principles.sh) was
+  subsumed into this OCaml test.
   format, content scans, priority drift detection) rather than
   CLI behaviour. They stay as shell fixtures for now; a
   follow-up commit migrates them to OCaml/Alcotest in a new

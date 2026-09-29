@@ -31,7 +31,15 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 fixture_dir="tests/fixtures"
+# `nullglob` lets an empty glob expand to nothing (avoids running
+# a literal '*' when the dir is empty). The `tests/fixtures/`
+# directory currently holds no shell fixtures (the historical
+# process-principles.sh was subsumed into tests/process_principles.ml
+# in cli-cram-tests.yaml@2); the test executable is invoked
+# separately below.
+shopt -s nullglob
 fixtures=("$fixture_dir"/*.sh)
+shopt -u nullglob
 
 if [ "${1:-}" != "" ]; then
   fixtures=("$fixture_dir/$1.sh")
@@ -67,6 +75,23 @@ for f in "${fixtures[@]}"; do
     failed_names+=("$name")
   fi
 done
+
+# process-principles check is now an OCaml/Alcotest executable
+# (tests/process_principles.ml), exercised by `dune runtest`. We
+# surface it here as a named entry so the aggregator's total
+# count is consistent with the historical `process-principles.sh`
+# fixture.
+cleanup_dune
+if ! nix develop .#test --command bash -c '
+    dune build --root . tests/process_principles.exe >/dev/null 2>&1
+' 2>/dev/null; then
+  printf "  FAIL process-principles\n"
+  fail=$((fail + 1))
+  failed_names+=("process-principles")
+else
+  printf "  ok   process-principles\n"
+  pass=$((pass + 1))
+fi
 
 # CLI cram integration tests (tests/cli/*.t). These run via dune
 # test. We force dune to rebuild so the bwrap sandbox is rebuilt

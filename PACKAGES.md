@@ -88,20 +88,23 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `cli-time-estimate.t` | time-estimate 4 documented paths | `bootstrap/time-honesty.yaml` |
 | `cli-time-storage.t` | session-start / record / stats pipeline | `bootstrap/time-honesty-storage.yaml` |
 
-## Shell fixtures (`tests/fixtures/*.sh`)
+## Process-principles test (`tests/process_principles.ml`)
 
-A single shell fixture remains. `process-principles.sh` enforces
-the ROADMAP P1-P7 process discipline (decision-file schema,
-verifier pairing, scripts/check.sh presence, cram retirement,
-honesty). All other repo-state checks live in `tests/repo_structure.ml`
-(OCaml/Alcotest) and are exercised by `dune runtest`.
-`./scripts/check.sh` runs this fixture alongside the dune cram
-invocation to cover both shell and OCaml/Alcotest surfaces in a
-single run.
+The ROADMAP P1-P7 process discipline is enforced by a single
+OCaml/Alcotest executable, `tests/process_principles.ml`, registered
+with `dune runtest` via `tests/dune`. Each principle is its own
+labelled Alcotest case:
 
-| Fixture | Obligation | Decision |
-|---|---|---|
-| `process-principles.sh` | ROADMAP P1, P2, P5, P6, P7 enforced | `bootstrap/process-principles.yaml` |
+| Principle | What the case checks |
+|---|---|
+| P1 (decisions before kernel changes) | every non-meta `bootstrap/*.yaml`/`.md` has `schema`, `id`, `revision` frontmatter + `intent`, `commitment`, `scope`, `obligations`, `risk` body sections |
+| P2 (decisions paired with fixtures) | every obligation has a verifier; the verifier is a present fixture path, a kernel-test reference, a cram `.t` path, or a recognised manual-style prefix |
+| P5 (cram retired) | `tests/cram/*.t` does not exist |
+| P6 (pre-commit verification) | `scripts/check.sh` exists and is executable |
+| P7 (honesty) | meta-assertion only; reviewed by the human maintainer |
+
+Non-checkable principles (P3 time-box, P4 merge order) remain
+manual-acceptance obligations on the same decision.
 
 ## Kernel packages (`lib/`)
 
