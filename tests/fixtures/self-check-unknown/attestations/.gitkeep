@@ -1,0 +1,8 @@
+Placeholder — see tests/cli/self-check-unknown.t.
+
+The unknown-case test points MATH_CODING_ATTESTATION_STORE at
+`$tmp/does-not-exist` rather than at this directory, so the
+empty attestations/ directory is intentionally bare. The
+directory is preserved as part of the fixture layout per the
+`tests/fixtures/self-check-<scenario>/attestations/` convention
+named in the mc-self-check-subcommand decision (rev 2).

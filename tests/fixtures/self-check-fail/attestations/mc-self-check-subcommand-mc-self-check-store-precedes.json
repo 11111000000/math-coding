@@ -1,0 +1,1 @@
+{"id":"sha256:0000000000000000000000000000000000000000000000000000000000000001","subject":{"decision":"mc-self-check-subcommand","obligation":"mc-self-check-store-precedes","materials_digest":""},"kind_":"test","producer":{"identity":"ci:fixture"},"result":"pass","issued_at":"2026-09-29T00:00:00Z"}
