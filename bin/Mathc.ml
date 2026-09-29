@@ -301,25 +301,58 @@ let[@warning "-32"] run_git_command base head args =
   let _ = Unix.close_process_in ic in
   raw
 
-(* Project root: the directory containing `dune-project`. We anchor
-   here so the CLI is reproducible from any working directory.
-   Mirrors the helper in tests/conformance.ml but the bin/ side
-   follows the OCAML_BEST_PRACTICES §11.8 rule for production
-   binaries (CLI defaults to CWD; agent can override via -C,
-   or via the MATH_CODING_ROOT environment variable which the
-   cram harness sets to $DUNE_SOURCEROOT). *)
-let[@warning "-32"] find_project_root start =
-  match Sys.getenv_opt "MATH_CODING_ROOT" with
-  | Some root when Sys.file_exists (Filename.concat root "dune-project") -> root
-  | _ ->
-      let rec loop d =
-        let candidate = Filename.concat d "dune-project" in
-        if Sys.file_exists candidate then d
-        else
-          let parent = Filename.dirname d in
-          if parent = d then start else loop parent
-      in
-      loop start
+ (* Project root: the directory containing `dune-project`. We anchor
+    here so the CLI is reproducible from any working directory.
+    Mirrors the helper in tests/conformance.ml but the bin/ side
+    follows the OCAML_BEST_PRACTICES §11.8 rule for production
+    binaries (CLI defaults to CWD; agent can override via -C,
+    or via the MATH_CODING_ROOT environment variable which the
+    cram harness sets to $DUNE_SOURCEROOT).
+
+    Resolution chain (first hit wins):
+      1. $MATH_CODING_ROOT (explicit, recommended for tests)
+      2. $DUNE_SOURCEROOT (dune cram runtime export; some versions
+         of dune 3.x emit it empty when the test is launched via
+         dune runtest, so we still need the next two)
+      3. dirname $0 / dirname of Sys.executable_name (binary path;
+         works even when cwd is unrelated to the project root, e.g.
+         in bwrap sandbox from cram)
+      4. walk up from cwd (the historical behaviour; works when
+         the user runs the binary from inside the project tree)
+
+    Without (3), the cram sandbox of dune 3.23 + bwrap can place
+    mathc at a cwd where $DUNE_SOURCEROOT is unset and the walk
+    from cwd hits no `dune-project`. Symptom: decisions/[] in the
+    capsule collapses to fallback defaults (0 obligations, 0
+    triggers) even though the test fixture expects real counts,
+    because the loader's hardcoded 4 files are read with wrong cwd. *)
+ let[@warning "-32"] find_project_root start =
+   let climb d =
+     let rec loop d =
+       let candidate = Filename.concat d "dune-project" in
+       if Sys.file_exists candidate then Some d
+       else
+         let parent = Filename.dirname d in
+         if parent = d then None else loop parent
+     in
+     loop d
+   in
+   let has_dune_project root =
+     Sys.file_exists (Filename.concat root "dune-project")
+   in
+   match Sys.getenv_opt "MATH_CODING_ROOT" with
+   | Some root when has_dune_project root -> root
+   | _ -> (
+       match Sys.getenv_opt "DUNE_SOURCEROOT" with
+       | Some root when has_dune_project root -> root
+       | _ -> (
+           match climb (Filename.dirname Sys.executable_name) with
+           | Some root -> root
+           | None -> (
+               match climb start with
+               | Some root -> root
+               | None -> start)))
+
 
 let[@warning "-32"] now_iso () =
   let tm = Unix.gmtime (Unix.time ()) in
