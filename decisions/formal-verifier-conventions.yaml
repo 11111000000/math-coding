@@ -1,0 +1,162 @@
+---
+schema: math-coding/3.0-alpha
+id: formal-verifier-conventions
+revision: 1
+
+intent: |
+  Codify the convention for formal-verifier artefacts (TLA+, Coq,
+  Alloy) without adding any runtime dependency. The project's
+  flake.nix has no TLA+, Coq, or Alloy tool; the convention is
+  documentation only and the obligations are machine-checked
+  through repo-structure, not through tool invocation.
+
+  A formal artefact is an "evidence-authority" under the existing
+  acceptance schema (schemas/common.json — review.authority is a
+  free-form string). The convention names the prefixes an author
+  uses to record that an obligation is satisfied by a formal
+  artefact rather than by a human review or a runtime test.
+
+  This decision is itself a decisions/ file. The convention it
+  codifies is "record conventions as decisions in decisions/".
+  A3 self-application.
+
+commitment: |
+  The convention is:
+
+  1. Verifier names in `acceptance.all[].review.authority` (and
+     `acceptance.all[].verifier`) may carry the following prefixes
+     to indicate a formal-verifier evidence:
+     - `tla:<module>` — TLA+ artefact; the module is a TLA
+       identifier; the artefact lives at
+       `decisions/<topic>/formal/<module>.tla` and the digest of
+       the artefact is `evidence_digest` on the attestation.
+     - `coq:<lemma>` — Coq artefact; the lemma is a Coq
+       identifier; the artefact lives at
+       `decisions/<topic>/formal/<lemma>.v`.
+     - `alloy:<world>` — Alloy artefact; the world is an Alloy
+       sig/instance name; the artefact lives at
+       `decisions/<topic>/formal/<world>.als`.
+
+  2. The convention is recorded in OCAML_BEST_PRACTICES.md
+     §10.6 alongside the priority-order mirror in §10.5.
+
+  3. The convention is **not** wired into nix develop, dune, or
+     scripts/. No tool is invoked. The human author of the
+     obligation is responsible for invoking the tool
+     (tla2tools.jar, coqc, or alloy-cli) locally; the convention
+     is the form for the review authority field, not the
+     implementation of the tool.
+
+  4. The convention is machine-checked only insofar as the
+     review-authority field is captured in the obligation
+     schema. The convention is NOT machine-checked for the
+     existence of the formal artefact file; that is a
+     separate question for the 3.0-beta kernel.
+
+scope:
+  capabilities:
+    - formal-verifier-evidence-convention
+  paths:
+    - "OCAML_BEST_PRACTICES.md"
+    - "schemas/common.json"
+    - "decisions/"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+    - "tests/**"
+
+outcomes:
+  - id: convention-documented
+    statement: |
+      The tla:/coq:/alloy: prefixes are recorded in
+      OCAML_BEST_PRACTICES.md §10.6, alongside §10.5 (priority mirror)
+      and §10.4 (architecture conventions).
+  - id: convention-locked-as-obligation
+    statement: |
+      This file is the recording of the convention. The
+      convention is itself an obligation under the active policy.
+
+countercase: |
+  "No one has actually written a TLA spec for math-coding; this
+  convention is speculative." The counterargument fails: the
+  convention is the form a future author uses WHEN they write
+  a formal artefact. Recording the form now means the form is
+  consistent with the existing acceptance schema (review.authority
+  is a free-form string, so any prefix is permitted; this
+  decision records which prefixes are conventional). The
+  existence of a formal artefact is a separate question.
+
+assumptions:
+  - id: no-tool-integration
+    state: assumed
+    statement: |
+      The convention does not add TLA+, Coq, or Alloy tools to
+      flake.nix. The convention is documentation only; tools
+      are invoked manually by the human author.
+    owner: human:maintainer
+    consequence_if_false: |
+      If flake.nix is extended with a TLA/Coq/Alloy toolchain
+      in a future release, the convention does not change (the
+      prefixes still apply), but the obligation's verifier may
+      need to be extended with a "tool runs the artefact" check.
+      That is a separate decision, not an edit to this one.
+    review_on:
+      - signal: flake-nix-formal-tool-added
+  - id: schema-stable
+    state: assumed
+    statement: |
+      The acceptance schema (schemas/common.json) does not change
+      in this revision. The review.authority field is a free-form
+      string; the convention is the choice of prefix, not the
+      schema.
+    owner: human:maintainer
+    consequence_if_false: |
+      If schemas/common.json changes review.authority to an enum
+      of permitted values (instead of free-form), the tla:/coq:/
+      alloy: prefixes must be in that enum. That is a separate
+      schema change, recorded as a protected-policy transition.
+    review_on:
+      - signal: schemas-common-review-authority-enumified
+
+obligations:
+  - id: convention-recorded-in-ocaml-best-practices
+    outcome: convention-documented
+    claim: |
+      OCAML_BEST_PRACTICES.md §10.6 (or a new section in that file)
+      names the tla:/coq:/alloy: prefixes and the
+      decisions/<topic>/formal/<lang>.<ext> directory
+      convention.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+  - id: convention-locked-as-decision
+    outcome: convention-locked-as-obligation
+    claim: |
+      This file exists in decisions/ as a decisions/<topic>.yaml
+      record under the active policy. The convention is locked
+      as an obligation.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+
+reversal:
+  - signal: convention-changed-or-abandoned
+    action: |
+      record-a-new-decision-with-supersedes:-[formal-verifier-
+      conventions@1] and document the change in the new
+      decision's countercase.
+
+risk:
+  declared_triggers:
+    - convention-drift
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3
+  supersedes: []
+  superseded_by: []
