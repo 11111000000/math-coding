@@ -1,0 +1,70 @@
+---
+schema: "math-coding/3.0-alpha/decision"
+kind: decision
+id: block-scalar-fixture
+revision: rev:01abcd
+
+intent:
+  source: "issue:200"
+  text: |
+    Decision text that spans
+    multiple lines with the
+    literal block scalar style.
+
+commitment: |
+  Fall back to origin when
+  Redis is unavailable.
+  This commitment is a
+  multi-line block-scalar.
+
+scope:
+  - kind: capability
+    capability: search-availability
+  - kind: path
+    path: src/search/cache
+    match: tree
+
+outcomes:
+  - id: availability
+    statement: |
+      Redis failure does not make
+      search unavailable.
+
+obligations:
+  - id: bounded-fallback-amplification
+    decision: block-scalar-fixture
+    outcome: availability
+    claim: |
+      Simultaneous fallback traffic
+      from all instances stays within
+      origin capacity.
+    subjects:
+      - kind: path
+        path: src/search/cache
+        match: tree
+    acceptance:
+      all:
+        - verifier: search-fallback-load-test
+          result: pass
+    phase: pre-release
+
+assumptions:
+  - id: origin-capacity
+    state: assumed
+    statement: Origin can absorb cache fallback traffic at peak.
+    owner: "team:search"
+    consequence_if_false: Search may fail during a Redis outage.
+
+reversal:
+  - signal: origin-error-rate
+    condition: value > 0.05
+    action: revert
+
+risk:
+  declared_triggers:
+    - external-service-dependency
+  owner: "team:search"
+
+relations:
+  addresses:
+    - "issue:200"

@@ -6,7 +6,7 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: tag `v3-alpha-0.0.14`, commit `05e2ea5`.
+Last verified at: tag `v3.0.0.19-alpha`.
 
 **Cross-references:**
 - `ROADMAP.md` — priorities, tier ordering, process principles (P1–P7)
@@ -44,8 +44,8 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 1 | 5 | RESOLVED | kernel diagnostics |
 | `decisions/time-honesty.yaml` | `time-honesty` | 1 | 8 | RESOLVED | time-honesty distribution |
 | `decisions/time-honesty-storage.yaml` | `time-honesty-storage` | 1 | 9 | RESOLVED | time storage writers |
-| `decisions/yaml-block-scalars.yaml` | `yaml-block-scalars` | 2 | 9 | DECISION | audit D1/D2 (impl deferred) |
-| `decisions/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 1 | 3 | DEFERRED | records D1/D2 deferral |
+| `decisions/yaml-block-scalars.yaml` | `yaml-block-scalars` | 3 | 9 | RESOLVED | audit D1/D2 (impl landed v0.0.19) |
+| `decisions/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 2 | 3 | RESOLVED | records D1/D2 deferral, superseded by yaml-block-scalars@3 |
 | `decisions/process-principles.yaml` | `process-principles` | 2 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
 | | `decisions/agent-onboarding.yaml` | `agent-onboarding` | 1 | 4 | RESOLVED | locks ADR location + first-file convention |
 | | `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 1 | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
@@ -173,8 +173,8 @@ This isolates I/O from the pure kernel (see `OCAML_BEST_PRACTICES §10.1`).
 
 | id | Description | Status |
 |---|---|---|
-| D1 | YAML `\|` block scalars (kernel-side) | DEFERRED via `yaml-block-scalars-impl-pending.yaml` |
-| D2 | YAML front-matter (kernel-side) | DEFERRED via same (bypassed in `Memory.strip_yaml_frontmatter`) |
+| D1 | YAML `\|` block scalars (kernel-side) | CLOSED at v0.0.19 |
+| D2 | YAML front-matter (kernel-side) | CLOSED at v0.0.19 |
 | D4 | SHA-256 RFC vectors (kernel-side) | OPEN |
 | D6 | bootstrap-v3 manual-only verifiers | TRACKED (kernel does not exist yet) |
 | D8 | `mc validate` coarse diagnostics | TRACKED for 3.0-beta |

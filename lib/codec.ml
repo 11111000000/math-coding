@@ -350,6 +350,129 @@ let[@warning "-32"] parse_yaml_scalar s =
       then Jsonl.String (String.sub s 1 (String.length s - 2))
       else Jsonl.String s
 
+(* -----------------------------------------------------------------
+ * YAML block scalars (| and >) — D1/D2 audit closure
+ * Recognises |, |-, |+, >, >-, >+ headers at value position
+ * in a mapping. Collects indented body lines and joins them
+ * according to the chomping indicator. Reference: YAML 1.2 §8.1.1
+ * (literal block), §8.1.3 (folded block).
+ *
+ * This module is pure: takes a token list and a parent indent,
+ * returns the parsed value + remaining tokens. No I/O, no shell,
+ * no randomness. The caller (parse_yaml_pairs) recognises the
+ * header and dispatches to this function. *)
+
+type chomp = Clip | Strip | Keep
+
+let[@warning "-32"] parse_chomp s =
+  if String.length s >= 2 then
+    let c0 = String.unsafe_get s 0 in
+    if c0 = '-' then Strip else if c0 = '+' then Keep else Clip
+  else Clip
+
+let[@warning "-32"] block_strip s =
+  let len = String.length s in
+  let buf = Buffer.create len in
+  let rec skip_ws i =
+    if i >= len then i
+    else
+      match String.unsafe_get s i with ' ' | '\t' -> skip_ws (i + 1) | _ -> i
+  in
+  let rec loop i =
+    if i >= len then ()
+    else
+      let c = String.unsafe_get s i in
+      (match c with '\r' -> () | _ -> Buffer.add_char buf c);
+      loop (i + 1)
+  in
+  loop (skip_ws 0);
+  Buffer.contents buf
+
+let[@warning "-32"] strip_trailing_newlines s =
+  let len = String.length s in
+  let rec loop i =
+    if i < 0 then 0
+    else if String.unsafe_get s i = '\n' then loop (i - 1)
+    else i + 1
+  in
+  String.sub s 0 (loop (len - 1))
+
+let[@warning "-32"] fold_join lines chomp =
+  let body =
+    List.fold_left
+      (fun acc line ->
+        let stripped = block_strip line in
+        if acc = "" then stripped
+        else if stripped = "" then acc
+        else acc ^ " " ^ stripped)
+      "" lines
+  in
+  match chomp with
+  | Clip -> body ^ "\n"
+  | Strip -> strip_trailing_newlines body
+  | Keep -> body ^ "\n"
+
+let[@warning "-32"] literal_join lines chomp =
+  let body =
+    List.fold_left
+      (fun acc line ->
+        if acc = "" then line
+        else if line = "" then acc ^ "\n"
+        else acc ^ "\n" ^ line)
+      "" lines
+  in
+  match chomp with
+  | Clip -> body ^ "\n"
+  | Strip -> strip_trailing_newlines body
+  | Keep -> body
+
+(* Returns true if the line at head is a block-scalar header
+   (|, |-, |+, >, >-, >+). The chomping indicator (or its absence)
+   is the suffix. *)
+let[@warning "-32"] is_block_header s =
+  if String.length s < 1 then false
+  else
+    let c0 = String.unsafe_get s 0 in
+    if c0 = '|' || c0 = '>' then
+      let s1 = if String.length s >= 2 then String.unsafe_get s 1 else ' ' in
+      s1 = ' ' || s1 = '-' || s1 = '+'
+    else false
+
+let[@warning "-32"] block_header_kind s =
+  if String.length s < 1 then (Clip, false)
+  else
+    let c0 = String.unsafe_get s 0 in
+    if c0 = '|' then
+      if String.length s >= 2 && String.unsafe_get s 1 = '-' then (Strip, false)
+      else if String.length s >= 2 && String.unsafe_get s 1 = '+' then
+        (Keep, false)
+      else (Clip, false)
+    else if c0 = '>' then
+      if String.length s >= 2 && String.unsafe_get s 1 = '-' then (Strip, true)
+      else if String.length s >= 2 && String.unsafe_get s 1 = '+' then
+        (Keep, true)
+      else (Clip, true)
+    else (Clip, false)
+
+(* Parse a block-scalar body. Returns the collected value and
+   the remaining tokens. body_indent is the indent at which the
+   body lines must appear. is_folded distinguishes '|' (literal)
+   from '>' (folded). *)
+let rec parse_yaml_block body_indent is_folded chomp tokens =
+  let rec collect acc tokens =
+    match tokens with
+    | [] -> (List.rev acc, [])
+    | { yindent; ycontent; _ } :: rest when yindent >= body_indent ->
+        let stripped = block_strip ycontent in
+        collect (stripped :: acc) rest
+    | _ -> (List.rev acc, tokens)
+  in
+  let lines, remaining = collect [] tokens in
+  let body =
+    if is_folded then fold_join lines chomp else literal_join lines chomp
+  in
+  (body, remaining)
+
 let[@warning "-32"] is_dash_item content =
   String.length content >= 2
   && String.unsafe_get content 0 = '-'
@@ -381,6 +504,17 @@ let[@warning "-32"] rec parse_yaml_pairs tokens cur_indent =
                   match rest with
                   | [] -> (Jsonl.Null, [])
                   | first :: _ -> parse_yaml_value rest first.yindent
+                else if is_block_header vstr then
+                  let chomp, is_folded = block_header_kind vstr in
+                  let body_indent =
+                    match rest with
+                    | { yindent; _ } :: _ when yindent > cur_indent -> yindent
+                    | _ -> cur_indent + 2
+                  in
+                  let body, rest2 =
+                    parse_yaml_block body_indent is_folded chomp rest
+                  in
+                  (Jsonl.String body, rest2)
                 else (parse_yaml_scalar vstr, rest)
               in
               loop ((key, value) :: acc) rest2)
@@ -414,6 +548,17 @@ and parse_yaml_seq tokens cur_indent =
           let item_str_trim = String.trim item_str in
           let item, rest2 =
             if item_str_trim = "" then parse_yaml_value rest (cur_indent + 2)
+            else if is_block_header item_str_trim then
+              let chomp, is_folded = block_header_kind item_str_trim in
+              let body_indent =
+                match rest with
+                | { yindent; _ } :: _ when yindent > cur_indent -> yindent
+                | _ -> cur_indent + 2
+              in
+              let body, rest2 =
+                parse_yaml_block body_indent is_folded chomp rest
+              in
+              (Jsonl.String body, rest2)
             else
               match String.index_opt item_str ':' with
               | Some ci ->
@@ -428,6 +573,18 @@ and parse_yaml_seq tokens cur_indent =
                       match rest with
                       | [] -> (Jsonl.Null, [])
                       | first :: _ -> parse_yaml_value rest first.yindent
+                    else if is_block_header vstr then
+                      let chomp, is_folded = block_header_kind vstr in
+                      let body_indent =
+                        match rest with
+                        | { yindent; _ } :: _ when yindent > cur_indent + 2 ->
+                            yindent
+                        | _ -> cur_indent + 4
+                      in
+                      let body, rest2 =
+                        parse_yaml_block body_indent is_folded chomp rest
+                      in
+                      (Jsonl.String body, rest2)
                     else (parse_yaml_scalar vstr, rest)
                   in
                   let first_pair = [ (key, first_value) ] in
@@ -443,6 +600,23 @@ and parse_yaml_seq tokens cur_indent =
   loop [] tokens
 
 let[@warning "-32"] load_yaml_string raw =
-  let tokens = yaml_tokens raw in
+  (* Strip a leading YAML front-matter (`---` ... optional `---`).
+     decisions/*.yaml files start with `---`; without stripping,
+     the first token would be `---` and parse_yaml_pairs would
+     reject it (no `:`), so the loader returns an empty object.
+     This closes audit deficit D2 (see doc/AUDIT-0.0.11.md). *)
+  let strip_frontmatter s =
+    let lines = yaml_lines s in
+    match lines with
+    | "---" :: rest ->
+        let rec skip_body acc = function
+          | [] -> List.rev acc
+          | "---" :: _ -> List.rev acc
+          | l :: rest -> skip_body (l :: acc) rest
+        in
+        skip_body [] rest
+    | _ -> lines
+  in
+  let tokens = yaml_tokens (String.concat "\n" (strip_frontmatter raw)) in
   let pairs, _ = parse_yaml_pairs tokens 0 in
   Jsonl.Object pairs

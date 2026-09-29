@@ -1,14 +1,24 @@
 ---
 schema: math-coding/3.0-alpha
 id: yaml-block-scalars-impl-pending
-revision: 1
+revision: 2
 
 intent: |
   Record that the parent obligation `yaml-block-scalars-supported`
-  (from `bootstrap/yaml-block-scalars.yaml@2`) and its sub-obligation
+  (from `bootstrap/yaml-block-scalars.yaml@2`, now
+  `decisions/yaml-block-scalars.yaml@3`) and its sub-obligation
   `yaml-block-scalars-loader-extended` are deferred past
   v3-alpha-0.0.12. The deficit D1/D2 from doc/AUDIT-0.0.11.md
   remains open until the implementation lands.
+
+  Revision 2 records the resolution. The implementation
+  landed in v3.0.0.19 (lib/codec.ml parse_yaml_block,
+  literal_join, fold_join, parse_chomp, plus the
+  front-matter strip in load_yaml_string). The reversal
+  signal `yaml-block-scalars-impl-pending-resolved`
+  triggers. This decision is superseded by
+  `yaml-block-scalars.yaml@3` and is retained for audit
+  continuity.
 
 commitment: |
   This decision does NOT close the obligation; it records the
@@ -126,6 +136,7 @@ risk:
 relations:
   addresses:
     - bootstrap-v3
-    - yaml-block-scalars@2
+    - yaml-block-scalars@3
   supersedes: []
-  superseded_by: []
+  superseded_by:
+    - yaml-block-scalars@3

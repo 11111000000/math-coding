@@ -433,26 +433,32 @@ let[@warning "-32"] test_enumerate () =
     else
       let dune_contents = read_file dune_file in
       let has_conformance_test =
-        (* OCaml Str doesn't handle alternation `|` well; use two
-         regexes. *)
-        let pat_test =
-          Str.regexp {|test[ \t\n\r]*\([ \t\n\r]*name[ \t\n\r]+conformance\)|}
+        (* OCaml Str regex has surprising limits in OCaml 5.x:
+           `.` does not match `\n`, and character-class negation
+           against `\n` (`[^\n]`) does not behave as documented in
+           pattern repetition.  See OCAML_BEST_PRACTICES §11
+           (trap log).  We use substring + position checks instead
+           of regex. *)
+        let has_substring needle =
+          let n = String.length needle in
+          let h = String.length dune_contents in
+          let rec scan i =
+            if i + n > h then false
+            else if String.sub dune_contents i n = needle then true
+            else scan (i + 1)
+          in
+          scan 0
         in
-        let pat_names =
-          Str.regexp {|names[ \t\n\r]+[^\n]*conformance[ \t\n\r]|}
+        let names_pos =
+          let p = has_substring "(names" in
+          p
         in
-        let r1 =
-          try
-            ignore (Str.search_forward pat_test dune_contents 0);
-            true
-          with Not_found -> false
+        let conf_pos =
+          let p = has_substring "conformance" in
+          p
         in
-        let r2 =
-          try
-            ignore (Str.search_forward pat_names dune_contents 0);
-            true
-          with Not_found -> false
-        in
+        let r1 = has_substring "(test (name conformance" in
+        let r2 = names_pos && conf_pos in
         r1 || r2
       in
       if not has_conformance_test then
@@ -579,7 +585,7 @@ let[@warning "-32"] test_flake_lock_changes_record_decision () =
    AGENTS.md names ROADMAP.md as the first read; PACKAGES.md has a
    row for agent-onboarding. *)
 
-let[@warning "-32"] agent_contains ~needle haystack =
+let[@warning "-32"] agent_contains needle haystack =
   let n = String.lowercase_ascii (String.trim needle) in
   let h = String.lowercase_ascii haystack in
   let len_h = String.length h in
@@ -599,24 +605,27 @@ let[@warning "-32"] test_agent_onboarding () =
   if not (file_exists onboarding) then
     Alcotest.failf "decisions/agent-onboarding.yaml missing";
   let contents = read_file onboarding in
-  let not_adrs = not (agent_contains ~"adrs are" contents) in
-    if not_adrs then
-    Alcotest.failf
-      "agent-onboarding.yaml does not document the ADR convention";
+  if not (agent_contains "adrs are" contents) then
+    Alcotest.failf "agent-onboarding.yaml does not document the ADR convention";
   let agents = in_repo "AGENTS.md" in
   let agents_txt = read_file agents in
-  let not_rf = not (agent_contains ~"read first" agents_txt) in
-    if not_rf then
-    Alcotest.failf "AGENTS.md missing 'Read first' section";
-  let not_rm = not (agent_contains ~"ROADMAP.md" agents_txt) in
-    if not_rm then
-    Alcotest.failf
-      "AGENTS.md Read first does not name ROADMAP.md as first";
+  if
+    not
+      (let found = agent_contains "read first" agents_txt in
+       found)
+  then Alcotest.failf "AGENTS.md missing 'Read first' section";
+  if
+    not
+      (let found = agent_contains "ROADMAP.md" agents_txt in
+       found)
+  then Alcotest.failf "AGENTS.md Read first does not name ROADMAP.md as first";
   let packages = in_repo "PACKAGES.md" in
   let packages_txt = read_file packages in
-  let not_ao = not (agent_contains ~"agent-onboarding" packages_txt) in
-    if not_ao then
-    Alcotest.failf "PACKAGES.md missing agent-onboarding row"
+  if
+    not
+      (let found = agent_contains "agent-onboarding" packages_txt in
+       found)
+  then Alcotest.failf "PACKAGES.md missing agent-onboarding row"
 
 (* ------------------------------------------------------------------------- *)
 (* formal-verifier-prefixes (decisions/formal-verifier-conventions.yaml)*)
@@ -632,24 +641,23 @@ let[@warning "-32"] test_formal_verifier_prefixes () =
     Alcotest.failf "decisions/formal-verifier-conventions.yaml missing";
   let obp = in_repo "OCAML_BEST_PRACTICES.md" in
   let obp_txt = read_file obp in
-  let not_fv = not (agent_contains ~"10.6 formal-verifier" obp_txt) in
-    if not_fv then
+  let not_fv = not (agent_contains "10.6 formal-verifier" obp_txt) in
+  if not_fv then
     Alcotest.failf
       "OCAML_BEST_PRACTICES.md missing section 10.6 (formal-verifier)";
-  let not_tla = not (agent_contains ~"tla:" obp_txt) in
-    if not_tla then
+  let not_tla = not (agent_contains "tla:" obp_txt) in
+  if not_tla then
     Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing tla: prefix";
-  let not_coq = not (agent_contains ~"coq:" obp_txt) in
-    if not_coq then
+  let not_coq = not (agent_contains "coq:" obp_txt) in
+  if not_coq then
     Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing coq: prefix";
-  let not_aw = not (agent_contains ~"alloy:" obp_txt) in
-    if not_aw then
-    Alcotest.failf
-      "OCAML_BEST_PRACTICES.md section 10.6 missing alloy: prefix";
+  let not_aw = not (agent_contains "alloy:" obp_txt) in
+  if not_aw then
+    Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing alloy: prefix";
   let packages = in_repo "PACKAGES.md" in
   let packages_txt = read_file packages in
-  let not_fvp = not (agent_contains ~"formal-verifier" packages_txt) in
-    if not_fvp then
+  let not_fvp = not (agent_contains "formal-verifier" packages_txt) in
+  if not_fvp then
     Alcotest.failf "PACKAGES.md missing formal-verifier-conventions row"
 
 let () =
@@ -696,12 +704,11 @@ let () =
         ] );
       ( "agent-onboarding",
         [
-          Alcotest.test_case "conventions recorded" `Quick
-            test_agent_onboarding
+          Alcotest.test_case "conventions recorded" `Quick test_agent_onboarding;
         ] );
       ( "formal-verifier-prefixes",
         [
           Alcotest.test_case "prefixes documented" `Quick
-            test_formal_verifier_prefixes
+            test_formal_verifier_prefixes;
         ] );
     ]

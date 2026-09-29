@@ -1,3 +1,8 @@
 (tests
- (names digest_vectors conformance repo_structure process_principles)
+ (names
+  digest_vectors
+  conformance
+  repo_structure
+  process_principles
+  yaml_block_scalars)
  (libraries mathcoding_core alcotest))

@@ -1,0 +1,63 @@
+---
+schema: "math-coding/3.0-alpha/decision"
+kind: decision
+id: block-scalar-missing-commitment
+revision: rev:02bcde
+
+intent:
+  source: "issue:201"
+  text: |
+    Decision text that uses
+    block-scalar style but
+    omits the commitment field.
+
+# NOTE: this fixture is rejected because `commitment` is missing.
+# The block-scalar parsing path is exercised by the `text:` field;
+# the rejection comes from the decision parser, not from the
+# YAML parser.
+
+scope:
+  - kind: capability
+    capability: search-availability
+
+outcomes:
+  - id: availability
+    statement: Redis failure does not make search unavailable.
+
+obligations:
+  - id: bounded-fallback-amplification
+    decision: block-scalar-missing-commitment
+    outcome: availability
+    claim: |
+      Simultaneous fallback traffic
+      stays within origin capacity.
+    subjects:
+      - kind: path
+        path: src/search/cache
+        match: tree
+    acceptance:
+      all:
+        - verifier: search-fallback-load-test
+          result: pass
+    phase: pre-release
+
+assumptions:
+  - id: origin-capacity
+    state: assumed
+    statement: Origin can absorb cache fallback traffic at peak.
+    owner: "team:search"
+    consequence_if_false: Search may fail during a Redis outage.
+
+reversal:
+  - signal: origin-error-rate
+    condition: value > 0.05
+    action: revert
+
+risk:
+  declared_triggers:
+    - external-service-dependency
+  owner: "team:search"
+
+relations:
+  addresses:
+    - "issue:201"

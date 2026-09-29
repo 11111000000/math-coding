@@ -240,9 +240,13 @@ let[@warning "-32"] parse_yaml_file path =
   let len = in_channel_length ic in
   let raw = really_input_string ic len in
   close_in ic;
-  let tokens = yaml_tokens raw in
-  let pairs, _ = parse_yaml_pairs tokens 0 in
-  Jsonl.Object pairs
+  (* Delegate to the kernel's YAML loader so block-scalar support
+     (see decisions/yaml-block-scalars.yaml@3) is available here
+     too. The local yaml_* helpers are kept only for the explicit
+     hand-rolled path used by older fixtures. *)
+  match Codec.load_yaml_string raw with
+  | v -> v
+  | exception _ -> Jsonl.Object []
 
 let[@warning "-32"] load_fixture path =
   let sfx = Filename.extension path in

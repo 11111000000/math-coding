@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: yaml-block-scalars
-revision: 2
+revision: 3
 
 intent: |
   Close deficit D1 and D2 from doc/AUDIT-0.0.11.md by extending
@@ -11,6 +11,13 @@ intent: |
   subset covered is what hand-written YAML in this repository
   uses and what the existing bootstrap files require.
 
+  Revision 3 implements the loader. The deferral
+  (`yaml-block-scalars-impl-pending.yaml@1`) recorded the
+  priority and risk rationale for delaying past v0.0.12. The
+  implementation is added in v0.0.19. The reversal signal
+  `yaml-block-scalars-impl-pending-resolved` triggers; the
+  deferral decision is superseded.
+
 commitment: |
   lib/codec.ml's load_yaml_string recognises a value starting
   with `|` or `>` (optionally followed by `-` or `+`) as a block
@@ -18,8 +25,8 @@ commitment: |
   the first non-empty content line, joined by '\n' for literal
   (`|`) and by ' ' for folded (`>`), and chomped according to
   the indicator. The change is backward-compatible: every
-  fixture that the loader accepted at v0.0.12 still parses to
-  the same Jsonl.value. bootstrap/*.yaml's commitment,
+  fixture that the loader accepted at v0.0.18 still parses to
+  the same Jsonl.value. decisions/*.yaml's commitment,
   intent.text, and reason fields now serialise through
   Decision.parse_decision as the multi-line strings they are,
   instead of coming back as `Jsonl.Null` (the previous
@@ -33,16 +40,20 @@ scope:
     - "tests/yaml_block_scalars.ml"
     - "tests/dune"
     - "tests/repo_structure.ml"
+    - "tests/conformance.ml"
     - "OCAML_BEST_PRACTICES.md"
     - "doc/AUDIT-0.0.11.md"
-    - "bootstrap/yaml-block-scalars.yaml"
+    - "doc/AUDIT-0.0.19.md"
+    - "decisions/yaml-block-scalars.yaml"
+    - "decisions/yaml-block-scalars-impl-pending.yaml"
+    - "fixtures/conformance/decision/positive-block-scalars.yaml"
+    - "fixtures/conformance/decision/negative-block-scalars.yaml"
   exclusions:
-    - "bootstrap/decision.yaml"
-    - "bootstrap/infrastructure-honesty.yaml"
-    - "bootstrap/kernel-conformance-runner.yaml"
-    - "bootstrap/validate-and-context.yaml"
-    - "bootstrap/adapters.yaml"
-    - "tests/conformance.ml"
+    - "decisions/decision.yaml"
+    - "decisions/infrastructure-honesty.yaml"
+    - "decisions/kernel-conformance-runner.yaml"
+    - "decisions/validate-and-context.yaml"
+    - "decisions/adapters.yaml"
     - "lib/memory.ml"
 
 outcomes:
@@ -56,29 +67,34 @@ outcomes:
       trailing newlines present in the source (or one if the
       source had none). Block scalars at any nesting level
       (top-level mapping, nested mapping, inside a sequence
-      item) are supported.
+      item) are supported. Implemented in v0.0.19 (lib/codec.ml
+      parse_yaml_block, literal_join, fold_join).
   - id: bootstrap-yaml-parses-with-commitment
     statement: |
-      `mc validate bootstrap/decision.yaml` exits 0 with an
+      `mc validate decisions/decision.yaml` exits 0 with an
       accept verdict, and the parsed decision's commitment
       field is the multi-line text from the source (`Build
       math-coding 3.0 from an executable specification...`
-      is no longer empty after YAML parse).
+      is no longer empty after YAML parse). Verified in v0.0.19
+      via fixtures/conformance/decision/positive-block-scalars.yaml
+      and tests/yaml_block_scalars.ml.
   - id: backward-compatibility-preserved
     statement: |
       All conformance fixtures that the runner accepted at
-      v0.0.12 (nine fixtures under fixtures/conformance/)
+      v0.0.18 (eleven fixtures under fixtures/conformance/)
       still parse to the same Jsonl.value via the same path.
-      Adding block-scalar support must not change the parser
-      output for a single existing fixture. The new unit test
-      for block scalars is additive; it does not modify any
-      existing fixture.
+      Adding block-scalar support did not change the parser
+      output for a single existing fixture. Verified by the
+      kernel-conformance suite (tests/conformance.exe) which
+      exercises every existing fixture and reports Accept.
   - id: kernel-stays-offline
     statement: |
       lib/codec.ml does not import Unix, call exit, or write
       to a channel after this change. The block-scalar parser
       is a pure transformation on the string and the token
-      list. No new dependency enters the closure.
+      list. No new dependency enters the closure. Verified by
+      reading lib/codec.ml and by the dune closure for
+      mathcoding_core (unchanged).
 
 countercase: |
   Why not pull in a real YAML library (e.g., `yaml`/`ocaml-yaml`)?
@@ -89,100 +105,91 @@ countercase: |
   hand-rolled subset loader is sufficient for the bootstrap
   files and stays tiny.
 
-  Why not factor a shared YAML loader between lib/codec.ml and
-  tests/conformance.ml? Because tests/conformance.ml is already
-  an inlined, self-contained fixture walker; coupling its YAML
-  loader to a kernel module would tangle test inputs with
-  kernel inputs. The duplication is acceptable and the fix
-  history (the yaml_strip bug in OCAML_BEST_PRACTICES §11.13)
-  is small enough that both copies can be kept aligned by hand.
-  This decision extends lib/codec.ml only; tests/conformance.ml
-  keeps its narrower loader, which is sufficient for the
-  conformance fixtures it walks (none of which use block
-  scalars).
-
-  Why not keep the workaround in lib/memory.ml that strips
-  `---` front-matter and calls Codec.load_yaml_string? Because
-  the workaround only fixes the missing-front-matter path for
-  the capsule loader; it does not fix the YAML loader itself.
-  Any other caller that points at a bootstrap/*.yaml file
-  (including future adapters) would hit D1 again.
+  Why was the duplication between lib/codec.ml and
+  tests/conformance.ml acceptable in v0.0.18 but no longer
+  acceptable in v0.0.19? Because v0.0.18 conformance fixtures
+  used inline scalar YAML, and the duplicated hand-rolled
+  parser handled them correctly. With v0.0.19 fixtures using
+  block scalars, the duplication would diverge (one parser
+  knows block scalars, the other does not). The fix is to
+  delegate tests/conformance.ml:parse_yaml_file to
+  Codec.load_yaml_string. The hand-rolled yaml_* helpers in
+  tests/conformance.ml remain — they are used by the
+  `walk_decision_yaml` walker to inspect token streams that
+  the kernel strips (e.g. front-matter). Documented in
+  OCAML_BEST_PRACTICES §11 (trap log) as a known divergence.
 
   Why is the explicit-indentation form (`|2`, `>4`) not
   supported? Because hand-written YAML in this repo never uses
   it. Adding the parser logic for it would be dead code. If a
   future YAML fixture needs explicit indentation indicators,
-  the fix is to extend parse_block_scalar; trap log entry
-  §11.22 (see OCAML_BEST_PRACTICES) records the simpler form
-  this commit ships.
+  the fix is to extend parse_yaml_block.
 
   Why are anchors/aliases (`&` / `*`), tags (`!!str`, `!!int`),
   multi-document YAML (`---` / `...`), flow style inside block
   scalars, and comments inside block scalars not supported?
-  Because they are out of scope for v0.0.13, which exists to
-  close D1/D2 against the bootstrap files. They can land in
-  v0.0.14+ if a future decision records the obligation.
+  Because they are out of scope for v0.0.19. They can land in
+  v0.0.20+ if a future decision records the obligation.
 
   Why preserve backward compatibility so strictly? Because the
-  nine conformance cases are the only evidence corpus the
+  thirteen conformance cases are the only evidence corpus the
   3.0-alpha kernel has. If block-scalar support changes the
   Jsonl.value of an existing fixture, the conformance
-  runner's verdicts become incomparable across the v0.0.12
-  → v0.0.13 transition. A3 (axioms/self-application.md)
+  runner's verdicts become incomparable across the v0.0.18
+  → v0.0.19 transition. A3 (axioms/self-application.md)
   forbids that without an explicit verdict-diff declaration.
 
 assumptions:
   - id: bootstrap-files-use-only-pipe-clip
     state: assumed
     statement: |
-      All block scalars in bootstrap/*.yaml and bootstrap/*.md
+      All block scalars in decisions/*.yaml and decisions/*.md
       are literal (`|`) with the default chomping (clip).
       None use `|` with `|-`/`|+`, none use `>` at all, and
       none use nested block scalars more than two levels
-      deep. The folded `>` cases exercised by
+      deep. The folded `>` and `|-`/`|+` cases exercised by
       tests/yaml_block_scalars.ml are forward-looking
-      regression tests, not coverage of current bootstrap
+      regression tests, not coverage of current decisions
       files.
     owner: human:maintainer
     consequence_if_false: |
-      A bootstrap file that introduces `|-`/`|+`/`>` would
+      A decisions file that introduces `|-`/`|+`/`>` would
       round-trip through the kernel unchanged because the
-      chomping indicators ship together. If a bootstrap file
+      chomping indicators ship together. If a decisions file
       started using blank lines inside a `|` block, those
       blanks would be eaten by the loader (yaml_tokens strips
       whitespace-only lines) and the surrounding paragraphs
       would collapse into a single line. This is acceptable
-      for v0.0.13; the loader is documented as not preserving
+      for v0.0.19; the loader is documented as not preserving
       blank lines inside block scalars.
     review_on:
-      - signal: bootstrap-file-uses-folded-or-chomp
-      - signal: bootstrap-file-uses-blank-lines-in-block
+      - signal: decision-file-uses-folded-or-chomp
+      - signal: decision-file-uses-blank-lines-in-block
   - id: parse-decision-returns-decision-t
     state: assumed
     statement: |
       Decision.parse_decision returns Some Domain.decision
       when all required fields (id, revision, intent.source,
       intent.text, commitment, risk.owner) are present in the
-      Jsonl.value. After this commit, the commitment field of
-      bootstrap/decision.yaml will be a non-empty multi-line
-      string instead of Jsonl.Null (which was the previous
-      failure mode of the CLI validate path).
+      Jsonl.value. After v0.0.19, the commitment field of
+      decisions/decision.yaml is a non-empty multi-line string
+      instead of Jsonl.Null (which was the previous failure
+      mode of the CLI validate path).
     owner: human:maintainer
     consequence_if_false: |
-      If Decision.parse_decision rejected bootstrap/decision.yaml
+      If Decision.parse_decision rejected decisions/decision.yaml
       for some other reason besides the missing commitment,
       the fixture in this commit would still fail post-fix.
-      The fixture is designed to assert the specific failure
-      mode closed by this decision (commitment empty after
-      YAML parse) — not the general "decision parses"
-      obligation, which is the responsibility of
-      bootstrap/validate-and-context.yaml.
+      The fixture asserts the specific failure mode closed by
+      this decision (commitment parses as String) — not the
+      general "decision parses" obligation, which is the
+      responsibility of decisions/validate-and-context.yaml.
     review_on:
       - signal: decision-parser-takes-diagnostic-option
   - id: kernel-offline-pure-unchanged-holds
-    state: assumed
+    state: confirmed
     statement: |
-      The block-scalar parser added in this commit lives in
+      The block-scalar parser added in v0.0.19 lives in
       lib/codec.ml and depends only on standard library
       functions (String, Buffer, List, Char). It does not
       import Unix, Sys, Filename, or any module from bin/
@@ -193,7 +200,7 @@ assumptions:
       A Unix-only call in lib/ would break the kernel-offline
       invariant (OCAML_BEST_PRACTICES §1.3) and the obligation
       kernel-offline-pure-unchanged in
-      bootstrap/validate-and-context.yaml. dune build --root .
+      decisions/validate-and-context.yaml. dune build --root .
       would still succeed because the closure includes unix;
       only the architectural separation would be lost.
     review_on:
@@ -217,7 +224,7 @@ obligations:
       all:
         - verifier: tests/yaml_block_scalars.ml
           result: pass
-        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
+        - verifier: dune build @runtest --root . exits 0
           result: pass
   - id: yaml-block-scalars-loader-extended
     outcome: kernel-handles-block-scalars
@@ -231,21 +238,23 @@ obligations:
       and returns Jsonl.String. The extension is additive:
       every non-zero value's parse path is unchanged. Leading
       YAML front-matter (`---` as a token whose ycontent is
-      exactly `---`) is dropped because bootstrap/decision.yaml
+      exactly `---`) is dropped because decisions/decision.yaml
       begins with one and the alternative (a stripper at every
       call site) would push D1 into the next caller; this is
       the minimum change that lets `mc validate
-      bootstrap/decision.yaml` exit 0.
+      decisions/decision.yaml` exit 0.
     acceptance:
       all:
         - verifier: dune build --root . tests/yaml_block_scalars.exe
           result: pass
-        - verifier: dune test --root . --force
+        - verifier: dune test --root .
           result: pass
-        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
-          result: pass
-        - verifier: mc validate bootstrap/decision.yaml
+        - verifier: mc validate decisions/decision.yaml
           result: accept
+        - verifier: fixtures/conformance/decision/positive-block-scalars.yaml is accepted by Decision.parse_decision
+          result: pass
+        - verifier: fixtures/conformance/decision/negative-block-scalars.yaml is rejected by Decision.parse_decision (missing commitment)
+          result: pass
 
 reversal:
   - signal: kernel-self-check-passes
@@ -264,4 +273,6 @@ relations:
   addresses:
     - doc/AUDIT-0.0.11.md#D1
     - doc/AUDIT-0.0.11.md#D2
+  supersedes:
+    - yaml-block-scalars-impl-pending@1
   superseded_by: []

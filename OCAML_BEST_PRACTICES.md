@@ -939,3 +939,65 @@ toolchain. Adding a tool is a separate decision with its own
 risk and its own countercase.
 
 ## 11. OCaml 5 trap log
+
+### 11.1 Str.regexp: `.` does not match `\n`, and `[^\n]` negation is brittle
+
+OCaml 5.x's `Str` library is a POSIX-style regex engine; it does
+not match `.` against `\n` (a PCRE convention), and character-class
+negation against `\n` (`[^\n]`) does not always behave as expected
+inside a repetition group.
+
+**Symptom.** A pattern like `Str.regexp "names[^\n]*conformance"`
+or `Str.regexp "names\(.\|\n\)*conformance"` silently fails to
+match text that contains `conformance` after `names`. The same
+pattern, tested on a single line without a newline, matches.
+
+**Repro (real session, v0.0.19 work).**
+
+```ocaml
+(* inside tests/repo_structure.ml: *)
+let pat = Str.regexp "names[\t\n\r]\(.\|\n\)*conformance" in
+(* On input "(names\n  digest_vectors\n  conformance\n  ...)\n",
+   Str.search_forward raises Not_found. *)
+```
+
+**Workaround.** Use substring + position checks instead of regex
+whenever the haystack may contain newlines. See
+`tests/repo_structure.ml:test_enumerate` for the pattern: scan
+`dune_contents` for the substrings `(names` and `conformance` (and
+optionally `(test (name conformance`) with a simple `String.sub`
+loop. POSIX regex is not the right tool for "find this substring
+near that other substring".
+
+**Alternative.** If you must use regex, constrain both sides to
+single-line content (no `\n` between them) and use a different
+approach for multi-line matching — e.g. line-by-line scan with a
+state machine.
+
+### 11.2 Chomp indicator semantics: `Plain` vs `Clip` in YAML block scalars
+
+YAML 1.2 block-scalar chomping indicators have three states:
+
+| Indicator | Chomp name | Trailing newlines |
+|---|---|---|
+| (none) | **Clip** (default) | exactly one trailing `\n` |
+| `-` | **Strip** | zero trailing `\n` |
+| `+` | **Keep** | all trailing `\n` as-is |
+
+A common mistake is to call the default `Plain`. The YAML spec
+calls it **Clip** (since "clip" describes the action of clipping
+to one newline). Use `Clip`/`Strip`/`Keep`, not `Plain`/`Strip`/`Keep`.
+This was corrected in v0.0.19 (the kernel before that called
+the default `Plain`, which clashed with the YAML spec naming).
+
+### 11.3 Block-scalar body indent: `>=` not `>`
+
+When collecting tokens for a YAML block-scalar body, the test
+must be `yindent >= body_indent`, **not** `yindent > body_indent`.
+The header line's value (e.g. `greeting: |`) determines the
+parent indent; the body lines typically appear at exactly that
+indent + 2 (or whatever the author chose). Using `>` instead of
+`>=` collects nothing and produces an empty string. This was the
+root cause of the v0.0.19 `literal simple` test failure (empty
+string instead of `"hello\nworld\n"`).
+
