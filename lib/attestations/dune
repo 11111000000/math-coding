@@ -1,0 +1,5 @@
+(library
+ (name mathcoding_attestations)
+ (wrapped false)
+ (modules attestations)
+ (libraries mathcoding_core))

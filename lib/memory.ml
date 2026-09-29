@@ -21,6 +21,7 @@ type decision_entry = {
   revision : string option;
   source : string; (* raw YAML/JSON, opaque here *)
   obligations : int;
+  obligation_ids : string list;
   assumptions : int;
   risk_triggers : string list;
 }
@@ -141,6 +142,20 @@ let[@warning "-32"] parse_decision_yaml raw =
         in
         let rev = extract_string_field ps [ "revision" ] in
         let obligations = count_array_field ps "obligations" in
+        let obligation_ids =
+          match Schema.take_array ps "obligations" with
+          | Some xs ->
+              List.filter_map
+                (fun ob ->
+                  match ob with
+                  | Jsonl.Object ops -> (
+                      match Schema.take_string ops "id" with
+                      | Some s -> Some s
+                      | None -> None)
+                  | _ -> None)
+                xs
+          | None -> []
+        in
         let assumptions = count_array_field ps "assumptions" in
         let risk_triggers =
           match Schema.take_object ps "risk" with
@@ -155,6 +170,7 @@ let[@warning "-32"] parse_decision_yaml raw =
               revision = rev;
               source = raw;
               obligations;
+              obligation_ids;
               assumptions;
               risk_triggers;
             }
@@ -206,6 +222,7 @@ let[@warning "-32"] load_decisions reader root =
                   revision = None;
                   source = raw;
                   obligations = 0;
+                  obligation_ids = [];
                   assumptions = 0;
                   risk_triggers = [];
                 }))
