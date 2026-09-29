@@ -84,35 +84,24 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `context-truncated-omitted.t` | truncated:true + omitted[] with expansion | `bootstrap/validate-and-context.yaml` |
 | `gate-scaffold.t` | gate emits documented JSON keys | `bootstrap/gate-decision.yaml` |
 | `git-adapter.t` | assess runs git diff --name-only | `bootstrap/adapters.yaml` |
-| `junit-adapter.sh` | attest parses JUnit XML | `bootstrap/adapters.yaml` |
+| `junit-adapter.t` | attest parses JUnit XML | `bootstrap/adapters.yaml` |
 | `cli-time-estimate.t` | time-estimate 4 documented paths | `bootstrap/time-honesty.yaml` |
 | `cli-time-storage.t` | session-start / record / stats pipeline | `bootstrap/time-honesty-storage.yaml` |
 
 ## Shell fixtures (`tests/fixtures/*.sh`)
 
-Shell fixtures that remain after the cram migration test
-*repository state* (file existence, format, content scans) rather
-than CLI behaviour. Each fixture is a shell script that exits 0
-if its obligation is satisfied. `./scripts/check.sh` runs them all
-and aggregates.
+A single shell fixture remains. `process-principles.sh` enforces
+the ROADMAP P1-P7 process discipline (decision-file schema,
+verifier pairing, scripts/check.sh presence, cram retirement,
+honesty). All other repo-state checks live in `tests/repo_structure.ml`
+(OCaml/Alcotest) and are exercised by `dune runtest`.
+`./scripts/check.sh` runs this fixture alongside the dune cram
+invocation to cover both shell and OCaml/Alcotest surfaces in a
+single run.
 
 | Fixture | Obligation | Decision |
 |---|---|---|
-| `attestation-skip-message.sh` | attestation parser wired | `bootstrap/kernel-conformance-runner.yaml` |
-| `ci-targets-exist.sh` | CI workflows reference real paths | `bootstrap/infrastructure-honesty.yaml` |
-| `decision-parses.sh` | Decision.parse_decision works | `bootstrap/kernel-conformance-runner.yaml` |
-| `digest-vectors-coverage.sh` | digest vectors are exercised | `OCAML_BEST_PRACTICES §5` |
-| `dune-runs-conformance.sh` | dune test runs conformance runner | `bootstrap/kernel-conformance-runner.yaml` |
-| `enumerate.sh` | kernel-conformance-runner skeleton exists | `bootstrap/kernel-conformance-runner.yaml` |
-| `flake-lock-changes-record-decision.sh` | flake.lock changes are recorded | `bootstrap/infrastructure-honesty.yaml` |
-| `flake-ref-is-commit.sh` | nixpkgs pinned to a commit hash | `bootstrap/infrastructure-honesty.yaml` |
-| `fmt-clean.sh` | `dune fmt --check` is clean | `OCAML_BEST_PRACTICES §10.4 item 6` |
 | `process-principles.sh` | ROADMAP P1, P2, P5, P6, P7 enforced | `bootstrap/process-principles.yaml` |
-| `release-checksum-verified.sh` | SHA256 in CI for opam download | `bootstrap/infrastructure-honesty.yaml` |
-| `spec-catalog-present.sh` | spec lists current CLI subcommands | `bootstrap/spec-cli-catalog.yaml` |
-| `spec-vs-bp-priority.sh` | priority tables in spec and practice match | `bootstrap/priority-drift.yaml` |
-| `waiver-parser.sh` | waiver parser wired | `bootstrap/kernel-conformance-runner.yaml` |
-| `yaml-block-scalars.sh` | yaml-block-scalars obligation has fixtures | `bootstrap/yaml-block-scalars.yaml` |
 
 ## Kernel packages (`lib/`)
 

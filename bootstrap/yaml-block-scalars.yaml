@@ -32,7 +32,7 @@ scope:
     - "lib/codec.ml"
     - "tests/yaml_block_scalars.ml"
     - "tests/dune"
-    - "tests/fixtures/yaml-block-scalars.sh"
+    - "tests/repo_structure.ml"
     - "OCAML_BEST_PRACTICES.md"
     - "doc/AUDIT-0.0.11.md"
     - "bootstrap/yaml-block-scalars.yaml"
@@ -217,7 +217,7 @@ obligations:
       all:
         - verifier: tests/yaml_block_scalars.ml
           result: pass
-        - verifier: tests/fixtures/yaml-block-scalars.sh
+        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
           result: pass
   - id: yaml-block-scalars-loader-extended
     outcome: kernel-handles-block-scalars
@@ -242,7 +242,7 @@ obligations:
           result: pass
         - verifier: dune test --root . --force
           result: pass
-        - verifier: tests/fixtures/yaml-block-scalars.sh
+        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
           result: pass
         - verifier: mc validate bootstrap/decision.yaml
           result: accept

@@ -32,15 +32,14 @@ intent: |
   the actual cram mechanism, since the §11.20 RETIRED status no
   longer holds.
 
-  The 9 remaining shell fixtures (ci-targets-exist.sh,
-  flake-lock-changes-record-decision.sh, flake-ref-is-commit.sh,
-  fmt-clean.sh, process-principles.sh,
-  release-checksum-verified.sh, spec-catalog-present.sh,
-  spec-vs-bp-priority.sh, yaml-block-scalars.sh) test repository
-  state (file existence, format, content scans, process
-  discipline). They run under `scripts/check.sh` alongside
-  `dune runtest` which exercises the kernel conformance, digest
-  conformance, and repo structure (OCaml/Alcotest) suites.
+  The single remaining shell fixture (process-principles.sh)
+  enforces the ROADMAP P1-P7 process discipline (decision-file
+  schema, paired fixtures, scripts/check.sh presence, cram
+  retirement, etc.). All other repo-state checks live in
+  tests/repo_structure.ml (OCaml/Alcotest) and are exercised by
+  `dune runtest`. scripts/check.sh runs process-principles.sh
+  alongside `dune runtest tests/cli` to cover both shell
+  fixtures and dune cram in a single invocation.
   format, content scans, priority drift detection) rather than
   CLI behaviour. They stay as shell fixtures for now; a
   follow-up commit migrates them to OCaml/Alcotest in a new

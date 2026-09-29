@@ -16,21 +16,21 @@ intent: |
   every check.sh run.
 
 commitment: |
-  tests/fixtures/spec-vs-bp-priority.sh exits 0 when the
-  normative priority-ordering line in spec/semantics.md
-  "context-prioritisation" is byte-equivalent (modulo
-  whitespace) to the corresponding line in
-  OCAML_BEST_PRACTICES.md §10.5, and exits 1 (printing the diff)
-  otherwise. The fixture is part of the standard
-  ./scripts/check.sh aggregator; a drift is therefore caught
-  before the next tag is cut. The check is a pure grep-and-awk
-  script; no new dependencies, no kernel change, no schema
+  tests/repo_structure.ml:test_spec_vs_bp_priority exits OK
+  (Alcotest) when the normative priority-ordering line in
+  spec/semantics.md "context-prioritisation" is byte-equivalent
+  (modulo whitespace) to the corresponding line in
+  OCAML_BEST_PRACTICES.md §10.5, and FAILS (printing a unified
+  diff) otherwise. The OCaml test is part of the standard
+  `dune runtest`; a drift is therefore caught before the next tag
+  is cut. The check uses hand-rolled OCaml + the Str regex
+  library; no new dependencies, no kernel change, no schema
   change.
 
-  This is the implementation record (revision 2): the fixture
-  tests/fixtures/spec-vs-bp-priority.sh exists, is executable,
-  is invoked by ./scripts/check.sh, and currently passes against
-  the priority tables at v3-alpha-0.0.12. A future change to
+  This is the implementation record (revision 2): the OCaml test
+  tests/repo_structure.ml:test_spec_vs_bp_priority exists, is
+  registered in tests/dune, and currently passes against the
+  priority tables at v3-alpha-0.0.12. A future change to
   either table without a matching change to the other will
   fail the fixture and the aggregator.
 
@@ -38,7 +38,7 @@ scope:
   capabilities:
     - priority-drift-detector
   paths:
-    - "tests/fixtures/spec-vs-bp-priority.sh"
+    - "tests/repo_structure.ml"
     - "bootstrap/priority-drift.yaml"
     - "OCAML_BEST_PRACTICES.md"
     - "doc/AUDIT-0.0.11.md"
@@ -148,35 +148,33 @@ obligations:
       The priority-ordering line in spec/semantics.md
       "context-prioritisation" is byte-equivalent (modulo
       whitespace) to the priority-ordering line in
-      OCAML_BEST_PRACTICES.md §10.5. The fixture
-      tests/fixtures/spec-vs-bp-priority.sh exits 0 when the
-      two lines are equal and exits 1 (printing the diff) when
-      they differ or when exactly one of them is missing. The
-      fixture is run by ./scripts/check.sh; a drift therefore
-      breaks check.sh before it can reach the tag step.
+      OCAML_BEST_PRACTICES.md §10.5. tests/repo_structure.ml:
+      test_spec_vs_bp_priority extracts the line beginning with
+      `RequiredForGate` from each file (or returns None if
+      absent), normalises whitespace, and asserts equality. A
+      drift fails the Alcotest case with a unified diff; an
+      absent-on-one-side is reported explicitly.
     acceptance:
       all:
-        - verifier: tests/fixtures/spec-vs-bp-priority.sh
+        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
           result: pass
 
   - id: priority-drift-fixture-implemented
     outcome: priority-tables-locked
     claim: |
-      tests/fixtures/spec-vs-bp-priority.sh is committed,
-      executable, and registered with the ./scripts/check.sh
-      aggregator (which globs tests/fixtures/*.sh). The
-      fixture handles the four outcomes the priority-drift
-      obligation declares: (a) both files carry the same line
-      → exit 0; (b) both files differ → exit 1 with diff;
-      (c) exactly one file carries the line → exit 1;
-      (d) neither file carries the line → exit 0 (no drift to
-      detect; presence is enforced separately if at all). This
-      is the implementation record (revision 2); the
+      tests/repo_structure.ml:test_spec_vs_bp_priority is committed
+      to the OCaml test suite and runs under `dune runtest`. The
+      test handles the four outcomes the priority-drift obligation
+      declares: (a) both files carry the same line → OK; (b) both
+      files differ → FAIL with diff; (c) exactly one file carries
+      the line → FAIL; (d) neither file carries the line → OK (no
+      drift to detect; presence is enforced separately if at all).
+      This is the implementation record (revision 2); the
       obligation priority-drift-detector was the declaration
       (revision 1).
     acceptance:
       all:
-        - verifier: tests/fixtures/spec-vs-bp-priority.sh
+        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
           result: pass
 
 reversal:

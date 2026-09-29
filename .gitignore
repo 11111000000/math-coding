@@ -4,6 +4,11 @@ _build/
 .math/cache/
 dist/
 
+# Worktree directories created by `git worktree add`. Each
+# per-machine, per-branch, with its own .git pointer; never
+# committed.
+.worktrees/
+
 # time-honesty-storage obligation storage-paths-declared:
 # per-worktree runtime data; never committed, never uploaded.
 .local

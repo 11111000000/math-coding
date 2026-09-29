@@ -47,8 +47,10 @@ scope:
     - yaml-block-scalars-impl-deferred
   paths:
     - "lib/codec.ml" (unchanged in this revision)
-    - "tests/fixtures/yaml-block-scalars.sh" (existing fixture
-       remains in untracked state pending implementation)
+    - "tests/repo_structure.ml:test_yaml_block_scalars_structural"
+      (replaces the deleted tests/fixtures/yaml-block-scalars.sh
+      which had subsumed into the OCaml/Alcotest suite during the
+      shell-to-OCaml migration in cli-cram-tests.yaml@1).
   exclusions:
     - "bootstrap/yaml-block-scalars.yaml" (decision @rev2 unchanged)
 
@@ -58,13 +60,18 @@ outcomes:
       The deferral of yaml-block-scalars-loader-extended is
       documented with priority queue position, justification,
       and reversal signal. Future agents encountering the
-      orphan fixture (`tests/fixtures/yaml-block-scalars.sh`)
-      find this decision in `bootstrap/` and do not re-attempt
+      orphan test (replaced by tests/repo_structure.ml:
+      test_yaml_block_scalars_structural during the shell-to-OCaml
+      migration) find this decision in `bootstrap/` and do not
+      re-attempt the implementation without checking the priority
+      queue first.
       the implementation without checking the priority queue
       first.
 
+  exclusions:
+    - "bootstrap/yaml-block-scalars.yaml" (decision @rev2 unchanged)
+
 countercase: |
-  "Block scalars are an obvious YAML feature; deferring them
   is technical debt." Counterargument: deferral is documented,
   justified, and tracked. Re-implementing it before the
   attestation store is ready would consume time that the gate

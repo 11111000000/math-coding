@@ -41,7 +41,7 @@ scope:
   paths:
     - "spec/semantics.md"
     - "bootstrap/spec-cli-catalog.yaml"
-    - "tests/fixtures/spec-catalog-present.sh"
+    - "tests/repo_structure.ml"
     - "doc/AUDIT-0.0.11.md"
   exclusions:
     - "bin/Mathc.ml"
@@ -198,24 +198,22 @@ obligations:
       depend on it.
     acceptance:
       all:
-        - verifier: tests/fixtures/spec-catalog-present.sh
+        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
           result: pass
 
   - id: spec-catalog-fixture-implemented
     outcome: cli-subcommands-listed-in-spec
     claim: |
-      tests/fixtures/spec-catalog-present.sh is committed,
-      executable, and registered with the ./scripts/check.sh
-      aggregator (which globs tests/fixtures/*.sh). The fixture
-      reads spec/semantics.md, asserts the file contains a
-      section whose heading names "CLI subcommands" and whose
-      body mentions each of the ten canonical subcommand names,
-      and exits 1 with a "missing: <name>" list on the first
+      tests/repo_structure.ml:test_spec_catalog_present walks
+      spec/semantics.md, asserts the file contains a section whose
+      heading names "CLI subcommands" and whose body mentions each
+      of the ten canonical subcommand names, and fails the
+      Alcotest case with a "missing: <name>" list on the first
       absent name. This is the implementation record for the
       obligation spec-cli-catalog-promoted.
     acceptance:
       all:
-        - verifier: tests/fixtures/spec-catalog-present.sh
+        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
           result: pass
 
 reversal:

@@ -88,7 +88,7 @@ obligations:
       (not scripts/render.sh), and dune commands that succeed.
     acceptance:
       all:
-        - verifier: ci-targets-exist.sh
+        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
           result: pass
 
   - id: pin-nixpkgs-commit
@@ -99,7 +99,7 @@ obligations:
       recorded in this decision's commit message.
     acceptance:
       all:
-        - verifier: flake-ref-is-commit.sh
+        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
           result: pass
 
   - id: verify-opam-checksum
@@ -110,7 +110,7 @@ obligations:
       known-good value before installation.
     acceptance:
       all:
-        - verifier: release-checksum-verified.sh
+        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
           result: pass
 
   - id: wire-conformance-runner
