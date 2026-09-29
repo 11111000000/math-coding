@@ -1,0 +1,77 @@
+---
+schema: math-coding/3.0-alpha
+id: obligation-count-reconcile
+revision: 1
+
+intent: |
+  Reconcile the obligation-count drift across four normative
+  documents in the read-first set. At HEAD `9a16751`:
+    - decisions/decision.yaml@2 lists 7 obligations;
+    - decisions/obligations.yaml@1 lists 5;
+    - decisions/ONBOARDING.md line 272 and
+      doc/AUDIT-0.0.11.md line 463 say 8;
+    - doc/AUDIT-0.0.18.md line 99 and PACKAGES.md line 35 say 13.
+  The bootstrap kernel cannot enumerate its own obligations while
+  these disagree, so D6 (manual-only verifiers at AUDIT-0.0.11.md
+  line 463) cannot expire with any class better than `unknown`.
+
+commitment: |
+  Promote `decisions/obligations.yaml` to revision 2 with the
+  seven obligation ids that match `decisions/decision.yaml@2`
+  line-for-line. Record the rename history in a header comment.
+  Leave `PACKAGES.md`'s `Obs` column unchanged — it is an
+  observation count from a separate audit tool, not an obligation
+  count (this assumption is recorded below).
+
+scope:
+  paths:
+    - "decisions/obligations.yaml"
+
+outcomes:
+  - id: aggregator-matches-parent
+    statement: obligations.yaml lists exactly the seven obligations of
+      decisions/decision.yaml@2 with identical ids in the same order.
+
+assumptions:
+  - id: packges-obs-unaffected
+    state: assumed
+    statement: |
+      PACKAGES.md `Obs` column is an observation count from a
+      separate audit tool, not an obligation count. Audit 0.0.18
+      line 99 "13 obligations" is an audit-text error; decision.yaml
+      carries seven and obligations.yaml@2 matches.
+    owner: human:maintainer
+    consequence_if_false: a future reconcile would rename the
+      `Obs` column or drop it.
+    review_on:
+      - signal: packges-audit-tool-defined
+
+obligations:
+  - id: aggregator-7-of-7
+    outcome: aggregator-matches-parent
+    claim: |
+      decisions/obligations.yaml@2 lists exactly the seven
+      obligations of decisions/decision.yaml@2 with identical
+      ids, in the same order. The aggregator's revision field
+      reads `revision: 2`.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: text-scan-decisions-obligations-yaml-rev-2
+          result: pass
+        - verifier: text-scan-decisions-obligations-yaml-7-ids
+          result: pass
+
+reversal:
+  - signal: aggregator-id-drift
+    action: re-reconcile with a new decision revision
+
+risk:
+  declared_triggers:
+    - aggregator-points-at-superseded-revision
+    - obligation-count-diverges-across-documents
+
+relations:
+  addresses:
+    - bootstrap-v3@2

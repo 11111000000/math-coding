@@ -599,24 +599,20 @@ let[@warning "-32"] test_agent_onboarding () =
   if not (file_exists onboarding) then
     Alcotest.failf "decisions/agent-onboarding.yaml missing";
   let contents = read_file onboarding in
-  let not_adrs = not (agent_contains ~"adrs are" contents) in
-    if not_adrs then
-    Alcotest.failf
-      "agent-onboarding.yaml does not document the ADR convention";
+  let not_adrs = not (agent_contains ~needle:"adrs are" contents) in
+  if not_adrs then
+    Alcotest.failf "agent-onboarding.yaml does not document the ADR convention";
   let agents = in_repo "AGENTS.md" in
   let agents_txt = read_file agents in
-  let not_rf = not (agent_contains ~"read first" agents_txt) in
-    if not_rf then
-    Alcotest.failf "AGENTS.md missing 'Read first' section";
-  let not_rm = not (agent_contains ~"ROADMAP.md" agents_txt) in
-    if not_rm then
-    Alcotest.failf
-      "AGENTS.md Read first does not name ROADMAP.md as first";
+  let not_rf = not (agent_contains ~needle:"read first" agents_txt) in
+  if not_rf then Alcotest.failf "AGENTS.md missing 'Read first' section";
+  let not_rm = not (agent_contains ~needle:"ROADMAP.md" agents_txt) in
+  if not_rm then
+    Alcotest.failf "AGENTS.md Read first does not name ROADMAP.md as first";
   let packages = in_repo "PACKAGES.md" in
   let packages_txt = read_file packages in
-  let not_ao = not (agent_contains ~"agent-onboarding" packages_txt) in
-    if not_ao then
-    Alcotest.failf "PACKAGES.md missing agent-onboarding row"
+  let not_ao = not (agent_contains ~needle:"agent-onboarding" packages_txt) in
+  if not_ao then Alcotest.failf "PACKAGES.md missing agent-onboarding row"
 
 (* ------------------------------------------------------------------------- *)
 (* formal-verifier-prefixes (decisions/formal-verifier-conventions.yaml)*)
@@ -632,24 +628,23 @@ let[@warning "-32"] test_formal_verifier_prefixes () =
     Alcotest.failf "decisions/formal-verifier-conventions.yaml missing";
   let obp = in_repo "OCAML_BEST_PRACTICES.md" in
   let obp_txt = read_file obp in
-  let not_fv = not (agent_contains ~"10.6 formal-verifier" obp_txt) in
-    if not_fv then
+  let not_fv = not (agent_contains ~needle:"10.6 formal-verifier" obp_txt) in
+  if not_fv then
     Alcotest.failf
       "OCAML_BEST_PRACTICES.md missing section 10.6 (formal-verifier)";
-  let not_tla = not (agent_contains ~"tla:" obp_txt) in
-    if not_tla then
+  let not_tla = not (agent_contains ~needle:"tla:" obp_txt) in
+  if not_tla then
     Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing tla: prefix";
-  let not_coq = not (agent_contains ~"coq:" obp_txt) in
-    if not_coq then
+  let not_coq = not (agent_contains ~needle:"coq:" obp_txt) in
+  if not_coq then
     Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing coq: prefix";
-  let not_aw = not (agent_contains ~"alloy:" obp_txt) in
-    if not_aw then
-    Alcotest.failf
-      "OCAML_BEST_PRACTICES.md section 10.6 missing alloy: prefix";
+  let not_aw = not (agent_contains ~needle:"alloy:" obp_txt) in
+  if not_aw then
+    Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing alloy: prefix";
   let packages = in_repo "PACKAGES.md" in
   let packages_txt = read_file packages in
-  let not_fvp = not (agent_contains ~"formal-verifier" packages_txt) in
-    if not_fvp then
+  let not_fvp = not (agent_contains ~needle:"formal-verifier" packages_txt) in
+  if not_fvp then
     Alcotest.failf "PACKAGES.md missing formal-verifier-conventions row"
 
 let () =
@@ -696,12 +691,11 @@ let () =
         ] );
       ( "agent-onboarding",
         [
-          Alcotest.test_case "conventions recorded" `Quick
-            test_agent_onboarding
+          Alcotest.test_case "conventions recorded" `Quick test_agent_onboarding;
         ] );
       ( "formal-verifier-prefixes",
         [
           Alcotest.test_case "prefixes documented" `Quick
-            test_formal_verifier_prefixes
+            test_formal_verifier_prefixes;
         ] );
     ]
