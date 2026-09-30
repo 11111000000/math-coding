@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: agent-onboarding
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Codify the conventions a new agent needs to be productive in
   math-coding 3.0-alpha. The conventions are not new — the

@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: mc-self-check-subcommand
 revision: 2
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Close ROADMAP Tier-1 #2 (`mc self-check`) and thereby the
   AGENTS.md bootstrap-gate expiry condition verbatim: the

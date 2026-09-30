@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: time-honesty
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Close the A1 (Feedback) deficit in math-coding 3.0-alpha for
   agent narratives about the duration of work. Without an observable

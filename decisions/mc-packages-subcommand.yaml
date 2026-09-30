@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: mc-packages-subcommand
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Add `mc packages` — a kernel-level subcommand that enumerates
   every package (decision + obligation pair) in the repository,

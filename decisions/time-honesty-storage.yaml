@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: time-honesty-storage
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Close the read side of A1 (Feedback) for time claims. The prior
   decision time-honesty@v1 registered obligations on the forward-

@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: formal-verifier-conventions
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Codify the convention for formal-verifier artefacts (TLA+, Coq,
   Alloy) without adding any runtime dependency. The project's

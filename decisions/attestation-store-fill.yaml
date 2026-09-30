@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: attestation-store-fill
 revision: 2
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Close the AGENTS.md §Bootstrap-gate expiry condition for
   v3.0.0.19 by populating the filesystem-backed attestation

@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: yaml-block-scalars
 revision: 4
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Close deficit D1 and D2 from doc/AUDIT-0.0.11.md by extending
   lib/codec.ml's hand-rolled YAML loader to recognise `|` and

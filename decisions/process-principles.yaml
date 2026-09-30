@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: process-principles
 revision: 2
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as

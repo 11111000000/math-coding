@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: cli-cram-tests
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Replace the per-subcommand shell fixtures under tests/fixtures/
   (ambiguous-acceptance.sh, malformed-acceptance.sh,
