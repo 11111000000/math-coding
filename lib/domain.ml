@@ -41,6 +41,14 @@ type phase = [ `PreMerge | `PreRelease | `PostRelease ]
    (algebra §3, §7). Five levels, monotonically increasing. *)
 type mode = [ `Tiny | `Light | `Standard | `Strict | `Exhaustive ]
 
+(* Trust level (algebra §1 universal set 𝓣, §10 rebuttal binding,
+   §12 trust dynamics). Monotonic: Untrusted < Authenticated <
+   Delegated < Authoritative. Carried by the rebutter at the time
+   a rebuttal is recorded (`trust_level_at_rebuttal`); the binding
+   check (algebra §10) compares this rank against the authority
+   floor required by the obligation's mode. *)
+type trust = [ `Untrusted | `Authenticated | `Delegated | `Authoritative ]
+
 (* Coarse environment class label (algebra §13, §14).
    Matches schemas/common.json#/definitions/environment_class_label. *)
 type environment_class_label =

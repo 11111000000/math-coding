@@ -17,5 +17,6 @@
   capsule
   gate
   packages
-  render)
+  render
+  rebuttal)
  (libraries str))
