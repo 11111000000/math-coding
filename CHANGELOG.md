@@ -3,7 +3,76 @@
 > Single-source-of-truth for releases. Mirrors the `v3.x.y` git
 > tags. The current release is highlighted.
 
-## v3.0.0.20 — 2026-09-30 — current
+## v3.1.0-alpha — 2026-09-30 — current
+
+**Status:** algebra 3.2-ideal adopted as forward-looking formal
+spec. The runtime kernel is unchanged (still v3.0.0.20); the
+algebra is a normative supplement that future kernel releases
+will implement.
+
+### Added
+
+- `spec/algebra-3.2.md` — formal mathematical specification
+  (30 sections) of the 3.2-ideal kernel. Normative alongside
+  `constitution.md`, `domain.md`, and `semantics.md`.
+- `decisions/algebra-3.2.yaml` — bootstrap decision adopting
+  the algebra as the authoritative formal spec for the
+  3.2-ideal kernel.
+- Applicability envelope (§28) — explicit decision tree for
+  "when to use math-coding": projects evaluate
+  `applicability(P, 𝒫)` and choose Path A (full 3.2) or
+  Path C (no math-coding) on documented rationale.
+- Two-tier cognitive model (§29) — separates the user-facing
+  surface (~1100 lines of prose docs) from the kernel-developer
+  surface (~3600 lines of normative spec); adoption friction
+  scales with role.
+- Binary distribution as architectural property (§30) — kernel
+  ships as portable binaries for 5 target platforms; users do
+  not need OCaml, nix, or dune on the host. Recorded as a
+  known anti-property in current builds (nix-store glibc
+  linkage); static-link or musl fix tracked separately in
+  ROADMAP Tier 3.
+
+### Spec changes
+
+- `spec/algebra-3.2.md` published alongside `constitution.md`,
+  `domain.md`, and `semantics.md`. The algebra is additive;
+  the existing prose specs remain as historical context.
+- 14 constitution invariants I1–I14 preserved verbatim.
+- 5 axioms A0–A4 preserved verbatim.
+
+### Implementation roadmap
+
+ROADMAP.md Tier 3.5 enumerates the 13 implementation tasks
+required to realize the 3.2 algebra on top of the 3.0.0.20
+kernel:
+
+- Schema extensions: `decision.json`, `attestation.json`,
+  `obligation.json`, new `policy.json` (4 files).
+- New kernel modules: `lib/policy.ml`, `lib/rebuttal.ml`,
+  `lib/re_evaluation.ml` (3 new files).
+- Multi-CI composition (§23) and rebuttal artifacts (§27)
+  wired through the gate.
+- Applicability envelope adoption guidance folded into
+  `USAGE.md`.
+- Binary distribution fix (§30 anti-property): static-link
+  or musl-based build pipeline.
+
+Out of scope for Tier 3.5: axiom-as-decision (tracked as a
+separate feature). The algebra preserves A0–A4 as immutable
+per A3 Self-Application; no decision may adopt or modify an
+axiom.
+
+### Backward compatibility
+
+All 28 existing decisions in `decisions/*.yaml` remain valid
+under the extended schema. New fields (decision `state`,
+`sha`, epistemic markers; attestation freshness; obligation
+phases) are optional with sensible defaults. No existing
+decision requires modification. Migration is implicit; the
+algebra adoption does not regress v3.0.0.20 conformance.
+
+## v3.0.0.20 — 2026-09-30
 
 **Status:** bootstrap gate expired at v3.0.0.19; v3.0.0.20 ships
 post-bootstrap hardening.

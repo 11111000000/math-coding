@@ -1,0 +1,299 @@
+---
+schema: math-coding/3.0-alpha
+id: algebra-3.2
+revision: 1
+
+intent: |
+  Adopt `spec/algebra-3.2.md` as the authoritative formal specification
+  of the math-coding 3.2-ideal kernel, supplementing (not replacing)
+  the 14 constitution invariants from `spec/constitution.md`.
+
+  The 3.2 algebra was derived from:
+  - Simulation analysis (4 subagent behavior reports on 3.1-ideal)
+  - Critical analysis (substrate lock-in correction)
+  - Fresh-rethink per user direction
+  - Missing-ideas audit (5 epistemic markers restored, honest
+    uncertainty principle added, 8 relations enum explicit, 3
+    obligation phases made normative)
+
+commitment: |
+  The math-coding project formally adopts the 3.2 algebra as the
+  mathematical specification of what the kernel MUST enforce.
+
+  Concretely:
+  - `spec/algebra-3.2.md` is a normative spec alongside constitution.md
+  - The kernel implementation (lib/*.ml) must conform to the algebra
+  - New kernel rules MUST be added via decision files following §20
+  - Applicability envelope (§28) guides adoption decisions per project
+  - Binary distribution (§30) is the user-facing property: kernel ships
+    for 5 platforms, users do not need OCaml/nix/dune
+
+  Boundaries:
+  - Constitution invariants I1-I14 preserved verbatim
+  - 5 axioms A0-A4 preserved verbatim
+  - 5 modes preserved
+  - §7 Decision entity extends v3 with state, sha fields, epistemic markers
+  - §15 Gate verdict adds 3 obligation phases
+  - §17 Axiom change adds transition kinds + re_evaluate oracle
+  - §20 Kernel rules adds CoCommitDecision + CoCommitFixture
+  - §24 Adoption path drops 3.2-L (user direction)
+  - §28-§30 are new meta-constructs
+
+scope:
+  capabilities:
+    - kernel-specification
+    - applicability-envelope
+    - multi-policy-composition
+    - rebuttal-mechanism
+    - axiom-transition-types
+    - re-evaluation-oracle
+  paths:
+    - "spec/algebra-3.2.md"
+    - "decisions/algebra-3.2.yaml"
+    - "lib/canonical.ml"
+    - "lib/decision.ml"
+    - "lib/gate.ml"
+    - "lib/attestations.ml"
+    - "lib/capsule.ml"
+    - "lib/memory.ml"
+    - "lib/policy.ml"
+    - "lib/rebuttal.ml"
+    - "lib/re_evaluation.ml"
+    - "lib/digest.ml"
+    - "lib/reference.ml"
+    - "bin/Mathc.ml"
+    - "schemas/decision.json"
+    - "schemas/attestation.json"
+    - "schemas/obligation.json"
+    - "schemas/policy.json"
+    - "tests/process_principles.ml"
+    - "tests/repo_structure.ml"
+    - "tests/cli/*.t"
+    - "tests/conformance.ml"
+    - "AGENTS.md"
+    - "ROADMAP.md"
+    - "PACKAGES.md"
+    - "CHANGELOG.md"
+    - "USAGE.md"
+    - ".github/workflows/site.yml"
+    - ".github/workflows/release.yml"
+  exclusions:
+    - "axioms/**"            # axioms are immutable per A3 Self-Application
+    - "spec/constitution.md" # I1-I14 preserved verbatim
+    - "legacy/**"
+
+outcomes:
+  - id: formal-spec-adopted
+    statement: |
+      `spec/algebra-3.2.md` is the authoritative normative spec for
+      the 3.2-ideal kernel, supplementing constitution.md.
+
+  - id: applicability-envelope-active
+    statement: |
+      Each new project adopting math-coding evaluates applicability
+      per §28 and chooses Path A (full 3.2) or Path C (no math-coding)
+      based on documented rationale.
+
+  - id: kernel-conformance-tracked
+    statement: |
+      Kernel implementation conforms to the algebra; deviations are
+      tracked as decisions and added to ROADMAP.
+
+  - id: backward-compatibility-preserved
+    statement: |
+      All existing decisions (28 active) continue to satisfy the
+      algebra via optional fields with defaults. Migration is implicit.
+
+countercase: |
+  "The 3.2 algebra is over-engineered for the current project scale.
+  Most teams don't need multi-CI, axiom transitions, or rebuttal
+  artifacts. The 3.0 kernel already works."
+
+  Counterargument: the 3.2 algebra explicitly addresses this through
+  §28 (applicability envelope) and §29 (two-tier cognitive model).
+  Users in tiny/light modes experience 0 friction and read only ~1100
+  lines. The full algebra is normative for kernel developers (~5
+  people), not for the typical user. Adopting Path C is a documented
+  choice for projects where applicability ≤ 0.
+
+  "We just shipped v3.0.0.20 yesterday; reopening the spec this fast
+  creates churn."
+
+  Counterargument: the 3.2 algebra is ADDITIVE to v3.0.0.20, not a
+  replacement. v3.0.0.20 satisfies all 14 invariants I1-I14 from
+  constitution.md, which 3.2 also preserves. Implementation rollout
+  is incremental (Tier 1-4 in ROADMAP); users on v3.0.0.20 continue
+  to work without modification. Spec adoption is decoupled from
+  kernel implementation.
+
+  "Substrate §30 is aspirational; the binary currently links against
+  nix-store glibc."
+
+  Counterargument: §30 records this as an anti-property and a
+  required fix. The distribution_property violation is a known issue
+  that requires static linking or musl-based build. Tracked under
+  ROADMAP Tier 3 as a separate task.
+
+assumptions:
+  - id: constitution-stable
+    state: assumed
+    statement: |
+      The 14 constitution invariants (I1-I14) are stable and not
+      modified by 3.2 adoption. Any future constitutional change
+      requires a protected-policy transition per A3 Self-Application.
+    owner: human:maintainer
+    consequence_if_false: |
+      Constitutional change would require this decision to be
+      superseded, with a new decision under the changed constitution.
+    review_on:
+      - signal: constitution-amended
+
+  - id: kernel-developers-stable
+    state: assumed
+    statement: |
+      The set K of kernel developers (1-5 people) is stable for
+      the duration of 3.2 implementation. Per §29 two-tier model.
+    owner: human:maintainer
+    consequence_if_false: |
+      Kernel-developer rotation would require re-distribution of the
+      3600-line kernel-dev documentation burden. New developers
+      onboarded via path in §29.
+    review_on:
+      - signal: kernel-developer-rotated
+
+  - id: binary-distribution-achievable
+    state: assumed
+    statement: |
+      The kernel can be compiled to portable binaries for the 5
+      target platforms without nix-store path dependencies. Currently
+      this is a known violation (§30 anti-property); the fix is
+      tracked separately.
+    owner: human:maintainer
+    consequence_if_false: |
+      If portable binaries prove infeasible, distribution_property in
+      §30 is weakened to "kernel ships as source build, users
+      require OCaml toolchain" — same as 3.0.0.20. Applicability
+      envelope (§28) would then need re-evaluation for projects
+      without OCaml expertise.
+    review_on:
+      - signal: portable-build-attempted
+
+  - id: schema-backward-compat
+    state: assumed
+    statement: |
+      All extensions to schemas (decision.json, attestation.json,
+      obligation.json) are backward-compatible: new fields are
+      optional with sensible defaults. No existing decision file
+      breaks.
+    owner: human:maintainer
+    consequence_if_false: |
+      If migration requires editing existing decision files, a
+      separate migration decision must precede this one.
+    review_on:
+      - signal: schema-migration-needed
+
+obligations:
+  - id: spec-file-exists
+    outcome: formal-spec-adopted
+    claim: |
+      `spec/algebra-3.2.md` exists at this commit and contains all
+      30 sections of the algebra as specified in this decision.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+
+  - id: cross-references-correct
+    outcome: formal-spec-adopted
+    claim: |
+      spec/algebra-3.2.md cross-references axioms/, constitution.md,
+      and decisions/decision.yaml. Each cross-reference resolves.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+
+  - id: applicability-documented
+    outcome: applicability-envelope-active
+    claim: |
+      ROADMAP.md and USAGE.md document the applicability envelope
+      (§28) and the two adoption paths (full 3.2 vs no math-coding).
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+
+  - id: kernel-conformance-baseline
+    outcome: kernel-conformance-tracked
+    claim: |
+      All existing kernel modules (lib/*.ml, bin/Mathc.ml) satisfy
+      the 14 invariants I1-I14 from spec/constitution.md. This is
+      verified by `mc self-check` returning `pass` on clean HEAD.
+    acceptance:
+      all:
+        - verifier: tests/conformance.ml
+          result: pass
+
+  - id: adoption-path-documented
+    outcome: applicability-envelope-active
+    claim: |
+      USAGE.md provides step-by-step adoption guidance for both
+      Path A (full 3.2) and Path C (no math-coding). Applicability
+      check is explicit (decision tree in §28).
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+
+  - id: backward-compat-test
+    outcome: backward-compatibility-preserved
+    claim: |
+      All 28 existing decisions in decisions/*.yaml continue to parse
+      successfully under the extended schema. No existing decision
+      requires modification to remain valid.
+    acceptance:
+      all:
+        - verifier: tests/conformance.ml
+          result: pass
+
+  - id: implementation-roadmap
+    outcome: kernel-conformance-tracked
+    claim: |
+      ROADMAP.md Tier-3 (kernel enrichment) is updated to include
+      the 3.2 implementation roadmap: schema extensions (Tier 1),
+      kernel rule expansion (Tier 2), attestation + axiom changes
+      (Tier 3), documentation sync (Tier 4).
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+
+reversal:
+  - signal: spec-3.2-superseded-by-3.3
+    condition: |
+      Record a new decision algebra-3.3 with supersedes:
+      [algebra-3.2@1]. Migration path: kernel conformance re-evaluated;
+      existing decisions remain valid via optional-field defaults.
+    action: rework
+
+  - signal: spec-rejected-by-constitution
+    condition: |
+      If 3.2 is found to violate any of I1-I14, this decision
+      BLOCKS. Resolution: identify the violating section, propose
+      a 3.2.1 patch that preserves invariants, or roll back this
+      decision entirely.
+    action: halt
+
+risk:
+  declared_triggers:
+    - constitution-amendment
+    - kernel-developer-rotation
+    - portable-build-attempted
+    - schema-migration-needed
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []

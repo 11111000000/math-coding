@@ -1,15 +1,19 @@
 # Math-coding 3.0-alpha — ROADMAP
 
-> **Status (2026-09-29, post-v3.0.0.19):** bootstrap protocol **expired**
+> **Status (2026-09-30, post-v3.0.0.20):** bootstrap protocol **expired**
 > (commit `8fa7fcf`). The 3.0 kernel checks this repository and its
 > conformance corpus via `mc self-check`, which is a **blocking** CI
 > step per `constitution.md` Invariant 14. The attestation store at
-> `attestations/` is populated (75 files). CLI surface: `validate`,
+> `attestations/` is populated (80 files). CLI surface: `validate`,
 > `context`, `explain`, `assess`, `attest`, `gate`, `session-start`,
 > `record`, `stats`, `time-estimate`, `self-check`, `version`, `render`,
 > `packages`.
 >
-> **Author:** Petr Kosov <p.b.kosov@yandex.ru>
+> **Algebra 3.2-ideal**: accepted via `decisions/algebra-3.2.yaml`;
+> normative spec at `spec/algebra-3.2.md` (30 sections). Implementation
+> tracked in Tier 3.5 below.
+>
+> **Author:** Petr Kosov &lt;p.b.kosov@yandex.ru&gt;
 > **License:** Apache-2.0 (see `LICENSE`, `NOTICE`)
 > **Active policy:** `bootstrap-v3@2` (see `decisions/decision.yaml`)
 
@@ -66,6 +70,35 @@ without a `decisions/*.yaml` decision under the active policy.
 - OCaml types to replace `lib/domain.ml` strings (`id` phantom types)
 - Decision validation against schema (currently parser-only)
 - Multi-policy hierarchy (activation boundary per `spec/semantics.md` §"Protected Policy Transition")
+
+### Tier 3.5 — math-coding 3.2-ideal implementation (accepted algebra, pending kernel)
+
+**Status**: `decisions/algebra-3.2.yaml` accepted; `spec/algebra-3.2.md` published.
+Kernel implementation is incremental. Schema extensions preserve backward compat
+(via optional fields with defaults).
+
+| # | Task | Decision | Effort | Depends |
+|---|---|---|---|---|
+| 1 | Schema extensions: decision.json (+state, +body_sha, +yaml_sha, +axiom_link), attestation.json (+substrate_digest, +env_class_level), obligation.json (+phase, +obligation_domain) | `algebra-3.2@1` | S | — |
+| 2 | lib/domain.ml: new fields, 5 epistemic markers (`fact\|hypothesis\|judgment\|unknown\|proven`), 3 obligation phases, 8 relations enum | `algebra-3.2@1` | S | #1 |
+| 3 | lib/canonical.ml: risk function overhaul (impact × probability × irreversibility, exhaustive taxonomy, mode_floor) | `algebra-3.2@1` | M | #1 |
+| 4 | lib/decision.ml: parser extensions + sha-match validation | `algebra-3.2@1` | M | #2 |
+| 5 | lib/policy.ml (NEW): per-path policy parser, union+transitive composition | `algebra-3.2@1` | M | #1 |
+| 6 | lib/gate.ml: `apply()` function for kernel rules; gate_merge / gate_release / post_release_monitor | `algebra-3.2@1` | L | #4, #5 |
+| 7 | lib/rebuttal.ml (NEW): rebuttals/<sha>.yaml parser + walker; forge mirror adapter | `algebra-3.2@1` | L | #1 |
+| 8 | lib/re_evaluation.ml (NEW): re_evaluate(d, A_new) oracle with Compatible \| StaleClaim \| Inconclusive | `algebra-3.2@1` | L | #2 |
+| 9 | lib/attestations.ml: substrate_fingerprint, env_class_level, multi-CI aggregation | `algebra-3.2@1` | M | #1 |
+| 10 | Cram fixtures: rebuttal.t, multi-policy.t, axiom-change.t, applic.t, trailer-formats.t | `algebra-3.2@1` | M | #6, #7, #8 |
+| 11 | Migration: state=active on 28 existing decisions; body_sha/yaml_sha stubs | `algebra-3.2@1` | S | #4 |
+| 12 | ROADMAP.md, PACKAGES.md, CHANGELOG.md, USAGE.md sync (applicability envelope, two-tier model) | `algebra-3.2@1` | S | — |
+| 13 | Portable binary build (anti-property fix in §30): musl-based or static-link, no nix-store paths | `algebra-3.2@1` | M | — |
+
+**Out of scope for 3.2** (deferred to 3.2.1 or 3.3):
+- Axiom-as-decision (P5 from earlier plan; separate feature)
+- Phantom types for IDs
+- Per-path policies for non-default services
+
+**Reference**: `spec/algebra-3.2.md` is the normative spec.
 
 ## Process principles (binding on all agents)
 

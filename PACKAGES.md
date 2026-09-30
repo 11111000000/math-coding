@@ -62,6 +62,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/site-deploy.yaml` | `site-deploy` | 1 | 3 | RESOLVED | restores the project's published surface under its own gate |
 | `decisions/mc-packages-subcommand.yaml` | `mc-packages-subcommand` | 1 | 3 | RESOLVED | Tier-1 #4 |
 | `decisions/obligation-count-reconcile.yaml` | `obligation-count-reconcile` | 1 | 2 | RESOLVED | aligns PACKAGES.md counts with `obligations.yaml` |
+| `decisions/algebra-3.2.yaml` | `algebra-3.2` | 1 | 7 | RESOLVED | adopts `spec/algebra-3.2.md` as formal normative spec |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 ## Cram integration tests (`tests/cli/*.t`)
@@ -186,8 +187,9 @@ This isolates I/O from the pure kernel (see `OCAML_BEST_PRACTICES §10.1`).
 | File | Purpose |
 |---|---|
 | `constitution.md` | 14 invariants; the kernel MUST preserve these |
-| `domain.md` | Closed entity model; what kinds exist |
-| `semantics.md` | Operational rules (merge gate, exit codes, CLI subcommands) |
+| `domain.md` | Closed entity model; what kinds exist (prose; superseded by `algebra-3.2.md` §7) |
+| `semantics.md` | Operational rules (prose; superseded by `algebra-3.2.md` §15) |
+| `algebra-3.2.md` | Formal mathematical specification of the 3.2-ideal kernel (30 sections) |
 
 ## Axiom packages (`axioms/`)
 
