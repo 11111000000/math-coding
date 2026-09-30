@@ -24,7 +24,7 @@
 
 (* --- minimal Markdown subset --- *)
 
-let[@warning "-32" html_escape s =
+let[@warning "-32"] html_escape s =
   let len = String.length s in
   let buf = Buffer.create len in
   for i = 0 to len - 1 do
@@ -37,7 +37,7 @@ let[@warning "-32" html_escape s =
   done;
   Buffer.contents buf
 
-let[@warning "-32" md_inline s =
+let[@warning "-32"] md_inline s =
   let len = String.length s in
   let buf = Buffer.create len in
   let i = ref 0 in
@@ -45,7 +45,9 @@ let[@warning "-32" md_inline s =
     let c = s.[!i] in
     if c = '`' then begin
       let j = ref (!i + 1) in
-      while !j < len && s.[!j] <> '`' do incr j done;
+      while !j < len && s.[!j] <> '`' do
+        incr j
+      done;
       if !j < len then begin
         let code = String.sub s (!i + 1) (!j - !i - 1) in
         Buffer.add_string buf "<code>";
@@ -54,16 +56,18 @@ let[@warning "-32" md_inline s =
         i := !j + 1
       end
       else begin
-        Buffer.add_char buf c; incr i
+        Buffer.add_char buf c;
+        incr i
       end
     end
     else begin
-      Buffer.add_char buf c; incr i
+      Buffer.add_char buf c;
+      incr i
     end
   done;
   Buffer.contents buf
 
-let[@warning "-32" md_parse source =
+let[@warning "-32"] md_parse source =
   let lines = String.split_on_char '\n' source in
   let buf = Buffer.create 256 in
   let flush_para text =
@@ -74,41 +78,47 @@ let[@warning "-32" md_parse source =
     end
   in
   let rec collect_code acc = function
-    | [] -> acc
+    | [] -> (List.rev acc, [])
     | l :: r ->
         let trimmed = String.trim l in
-        if String.length trimmed > 4 && String.sub trimmed 0 4 = "```" then r
+        if String.length trimmed > 4 && String.sub trimmed 0 4 = "```" then
+          (List.rev acc, r)
         else collect_code (l :: acc) r
   in
   let rec loop acc_para = function
     | [] -> flush_para acc_para
-    | line :: rest ->
+    | line :: rest -> (
         let t = String.trim line in
         let push_para () = flush_para acc_para in
         match t with
-        | "" -> push_para (); loop "" rest
+        | "" ->
+            push_para ();
+            loop "" rest
         | _ when String.length t > 2 && String.sub t 0 2 = "# " ->
             push_para ();
             Buffer.add_string buf "<h1>";
-            Buffer.add_string buf (md_inline (String.sub t 2 (String.length t - 2)));
+            Buffer.add_string buf
+              (md_inline (String.sub t 2 (String.length t - 2)));
             Buffer.add_string buf "</h1>\n";
             loop "" rest
         | _ when String.length t > 3 && String.sub t 0 3 = "## " ->
             push_para ();
             Buffer.add_string buf "<h2>";
-            Buffer.add_string buf (md_inline (String.sub t 3 (String.length t - 3)));
+            Buffer.add_string buf
+              (md_inline (String.sub t 3 (String.length t - 3)));
             Buffer.add_string buf "</h2>\n";
             loop "" rest
         | _ when String.length t > 4 && String.sub t 0 4 = "### " ->
             push_para ();
             Buffer.add_string buf "<h3>";
-            Buffer.add_string buf (md_inline (String.sub t 4 (String.length t - 4)));
+            Buffer.add_string buf
+              (md_inline (String.sub t 4 (String.length t - 4)));
             Buffer.add_string buf "</h3>\n";
             loop "" rest
         | _ when String.length t > 4 && String.sub t 0 4 = "```" ->
             push_para ();
             let collected, after = collect_code [] rest in
-            let code = String.concat "\n" (List.rev collected) in
+            let code = String.concat "\n" collected in
             Buffer.add_string buf "<pre><code>";
             Buffer.add_string buf (html_escape code);
             Buffer.add_string buf "</code></pre>\n";
@@ -116,27 +126,29 @@ let[@warning "-32" md_parse source =
         | _ when String.length t > 2 && String.sub t 0 2 = "- " ->
             push_para ();
             Buffer.add_string buf "<ul>\n  <li>";
-            Buffer.add_string buf (md_inline (String.sub t 2 (String.length t - 2)));
+            Buffer.add_string buf
+              (md_inline (String.sub t 2 (String.length t - 2)));
             Buffer.add_string buf "</li>\n</ul>\n";
             loop "" rest
         | _ ->
             let next = if acc_para = "" then t else acc_para ^ " " ^ t in
-            loop next rest
+            loop next rest)
   in
   loop "" lines;
   Buffer.contents buf
 
 (* --- page renderer --- *)
 
-let[@warning "-32" nav_links = [
-  ("home", "Home", "index.html");
-  ("axioms", "Axioms", "axioms.html");
-  ("methodology", "Methodology", "methodology.html");
-  ("bootstrap-gate", "Bootstrap Gate", "bootstrap-gate.html");
-  ("packages", "Packages", "packages.html");
-]
+let[@warning "-32"] nav_links =
+  [
+    ("home", "Home", "index.html");
+    ("axioms", "Axioms", "axioms.html");
+    ("methodology", "Methodology", "methodology.html");
+    ("bootstrap-gate", "Bootstrap Gate", "bootstrap-gate.html");
+    ("packages", "Packages", "packages.html");
+  ]
 
-let[@warning "-32" render_nav active =
+let[@warning "-32"] render_nav active =
   let buf = Buffer.create 256 in
   Buffer.add_string buf "<nav class=\"site-nav\">\n";
   Buffer.add_string buf "  <a class=\"brand\" href=\"./\">math-coding</a>\n";
@@ -152,18 +164,18 @@ let[@warning "-32" render_nav active =
   Buffer.add_string buf "  </ul>\n</nav>\n";
   Buffer.contents buf
 
-let[@warning "-32" render_footer =
+let[@warning "-32"] render_footer =
   "<footer class=\"site-footer\">\n\
-   <p>Built by <code>mc render</code> at build time. \
-   The site follows the math-coding methodology: every page \
-   that describes a kernel feature is itself produced by the \
-   kernel.</p>\n\
-   <p class=\"site-meta\">v3.0.0 &middot; <a href=\"../AGENTS.html\">AGENTS.md</a> \
-   &middot; <a href=\"../ROADMAP.html\">ROADMAP.md</a> \
-   &middot; <a href=\"../PACKAGES.html\">PACKAGES.md</a></p>\n\
+   <p>Built by <code>mc render</code> at build time. The site follows the \
+   math-coding methodology: every page that describes a kernel feature is \
+   itself produced by the kernel.</p>\n\
+   <p class=\"site-meta\">v3.0.0 &middot; <a \
+   href=\"../AGENTS.html\">AGENTS.md</a> &middot; <a \
+   href=\"../ROADMAP.html\">ROADMAP.md</a> &middot; <a \
+   href=\"../PACKAGES.html\">PACKAGES.md</a></p>\n\
    </footer>\n"
 
-let[@warning "-32" render_page ~nav_key ~title ~body ~extra_head =
+let[@warning "-32"] render_page ~nav_key ~title ~body ~extra_head =
   Printf.sprintf
     "<!DOCTYPE html>\n\
      <html lang=\"en\">\n\
@@ -184,7 +196,7 @@ let[@warning "-32" render_page ~nav_key ~title ~body ~extra_head =
      </html>\n"
     (html_escape title) extra_head (render_nav nav_key) body render_footer
 
-let[@warning "-32" render_axioms_section axioms =
+let[@warning "-32"] render_axioms_section axioms =
   let buf = Buffer.create 256 in
   Buffer.add_string buf "<section class=\"mc-axioms\">\n";
   List.iter
@@ -196,12 +208,12 @@ let[@warning "-32" render_axioms_section axioms =
   Buffer.add_string buf "</section>\n";
   Buffer.contents buf
 
-let[@warning "-32" render_index ~package_html ~axioms_html ~policy_id =
+let[@warning "-32"] render_index ~package_html ~axioms_html ~policy_id =
   Printf.sprintf
     "<section class=\"hero\">\n\
      <h1>math-coding 3.0-alpha</h1>\n\
-     <p class=\"lead\">A risk-adaptive assurance protocol for software changes. \
-     Links <em>intent</em>, <em>decisions</em>, <em>obligations</em>, \
+     <p class=\"lead\">A risk-adaptive assurance protocol for software \
+     changes. Links <em>intent</em>, <em>decisions</em>, <em>obligations</em>, \
      <em>changes</em>, <em>attestations</em>, and <em>revisions</em> into a \
      single traceable chain. The site you are reading was built by the same \
      kernel that the protocol describes.</p>\n\
@@ -209,25 +221,24 @@ let[@warning "-32" render_index ~package_html ~axioms_html ~policy_id =
      is the live output of <code>mc packages --format=html</code>.</p>\n\
      </section>\n\
      <section class=\"mc-packages-section\">\n\
-     <h2>Packages</h2>\n%s\n\
+     <h2>Packages</h2>\n\
+     %s\n\
      </section>\n\
      <section class=\"mc-axioms-section\">\n\
-     <h2>Axioms</h2>\n%s\n\
+     <h2>Axioms</h2>\n\
+     %s\n\
      </section>\n\
      <p class=\"site-callout\">Every page on this site is produced by the \
-     math-coding kernel. The methodology is the artifact; the artifact \
-     follows the methodology.</p>\n"
+     math-coding kernel. The methodology is the artifact; the artifact follows \
+     the methodology.</p>\n"
     (html_escape policy_id) package_html axioms_html
 
-let[@warning "-32" render_decision_page ~decision_id ~obligation_html =
+let[@warning "-32"] render_decision_page ~decision_id ~obligation_html =
   Printf.sprintf
-    "<section class=\"mc-decision-page\">\n\
-     <h1>%s</h1>\n\
-     %s\n\
-     </section>\n"
+    "<section class=\"mc-decision-page\">\n<h1>%s</h1>\n%s\n</section>\n"
     (html_escape decision_id) obligation_html
 
-let[@warning "-32" render_axiom_page ~axiom_id ~body =
+let[@warning "-32"] render_axiom_page ~axiom_id ~body =
   Printf.sprintf
     "<section class=\"mc-axiom-page\">\n\
      <h1>Axiom %s</h1>\n\
@@ -237,19 +248,10 @@ let[@warning "-32" render_axiom_page ~axiom_id ~body =
 
 (* --- render entry point --- *)
 
-type page = {
-  path : string;
-  body : string;
-}
+type page = { path : string; body : string }
 
-let[@warning "-32" build_pages
-    ~reader
-    ~site_dir
-    ~package_html
-    ~decisions_data
-    ~axioms_data
-    ~now_iso
-    ~policy_id =
+let[@warning "-32"] build_pages ~reader ~site_dir ~package_html ~decisions_data
+    ~axioms_data ~now_iso ~policy_id =
   let load name =
     let path = Filename.concat site_dir name in
     reader path
@@ -264,68 +266,81 @@ let[@warning "-32" build_pages
   let axioms_overview_html = render_axioms_section axioms_data in
 
   let index_body =
-    render_index ~package_html ~axioms_html:axioms_overview_html
-      ~policy_id
+    render_index ~package_html ~axioms_html:axioms_overview_html ~policy_id
   in
-  pages := { path = "index.html";
-             body = render_page ~nav_key:"home" ~title:"math-coding 3.0-alpha"
-                                  ~body:index_body ~extra_head:"" }
-           :: !pages;
+  pages :=
+    {
+      path = "index.html";
+      body =
+        render_page ~nav_key:"home" ~title:"math-coding 3.0-alpha"
+          ~body:index_body ~extra_head:"";
+    }
+    :: !pages;
 
-  pages := { path = "axioms.html";
-             body = render_page ~nav_key:"axioms" ~title:"Axioms"
-                                  ~body:(md_parse axioms_overview_md)
-                                  ~extra_head:"" }
-           :: !pages;
+  pages :=
+    {
+      path = "axioms.html";
+      body =
+        render_page ~nav_key:"axioms" ~title:"Axioms"
+          ~body:(md_parse axioms_overview_md)
+          ~extra_head:"";
+    }
+    :: !pages;
 
-  pages := { path = "methodology.html";
-             body = render_page ~nav_key:"methodology"
-                                  ~title:"Methodology (mathoding)"
-                                  ~body:(md_parse methodology_md)
-                                  ~extra_head:"" }
-           :: !pages;
+  pages :=
+    {
+      path = "methodology.html";
+      body =
+        render_page ~nav_key:"methodology" ~title:"Methodology (mathoding)"
+          ~body:(md_parse methodology_md) ~extra_head:"";
+    }
+    :: !pages;
 
-  pages := { path = "bootstrap-gate.html";
-             body = render_page ~nav_key:"bootstrap-gate"
-                                  ~title:"Bootstrap Gate"
-                                  ~body:(md_parse bootstrap_md)
-                                  ~extra_head:"" }
-           :: !pages;
+  pages :=
+    {
+      path = "bootstrap-gate.html";
+      body =
+        render_page ~nav_key:"bootstrap-gate" ~title:"Bootstrap Gate"
+          ~body:(md_parse bootstrap_md) ~extra_head:"";
+    }
+    :: !pages;
 
-  pages := { path = "packages.html";
-             body = render_page ~nav_key:"packages" ~title:"Packages"
-                                  ~body:(Printf.sprintf "%s\n%s"
-                                                   (md_parse packages_md)
-                                                   package_html)
-                                  ~extra_head:"" }
-           :: !pages;
+  pages :=
+    {
+      path = "packages.html";
+      body =
+        render_page ~nav_key:"packages" ~title:"Packages"
+          ~body:(Printf.sprintf "%s\n%s" (md_parse packages_md) package_html)
+          ~extra_head:"";
+    }
+    :: !pages;
 
   List.iter
     (fun (decision_id, ob_html) ->
       let body = render_decision_page ~decision_id ~obligation_html:ob_html in
-      pages := { path = Filename.concat "decisions" (decision_id ^ ".html");
-                 body =
-                   render_page ~action:nav_key_of_packages
-                                ~title:(Printf.sprintf "%s — math-coding"
-                                                         decision_id)
-                                ~body
-                                ~extra_head:"" }
-           :: !pages)
+      pages :=
+        {
+          path = Filename.concat "decisions" (decision_id ^ ".html");
+          body =
+            render_page ~nav_key:"packages"
+              ~title:(Printf.sprintf "%s — math-coding" decision_id)
+              ~body ~extra_head:"";
+        }
+        :: !pages)
     decisions_data;
 
   List.iter
     (fun (axiom_id, body_md) ->
       let body = render_axiom_page ~axiom_id ~body:body_md in
-      pages := { path = Filename.concat "axioms" (axiom_id ^ ".html");
-                 body =
-                   render_page ~action:nav_key_of_axioms
-                                ~title:(Printf.sprintf "Axiom %s" axiom_id)
-                                ~body
-                                ~extra_head:"" }
-           :: !pages)
+      pages :=
+        {
+          path = Filename.concat "axioms" (axiom_id ^ ".html");
+          body =
+            render_page ~nav_key:"axioms"
+              ~title:(Printf.sprintf "Axiom %s" axiom_id)
+              ~body ~extra_head:"";
+        }
+        :: !pages)
     axioms_data;
 
   List.rev !pages
-
-let nav_key_of_packages = "packages"
-let nav_key_of_axioms = "axioms"

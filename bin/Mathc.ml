@@ -240,8 +240,9 @@ let print_usage oc =
     \  record --decision-id ID ...      append event to \
      decisions/execution-logs.jsonl\n\
     \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\
-     \  packages [--format=...]         list decisions + verdicts (text|json|html)\n\
-     \  render [--out DIR]             render the static site under DIR\n\n\
+    \  packages [--format=...]         list decisions + verdicts \
+     (text|json|html)\n\
+    \  render [--out DIR]             render the static site under DIR\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
@@ -1991,17 +1992,15 @@ let[@warning "-32"] read_file path =
 
 let[@warning "-32"] now_iso () =
   let tm = Unix.gmtime (Unix.time ()) in
-  Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ"
-    (tm.tm_year + 1900) (tm.tm_mon + 1) tm.tm_mday
-    tm.tm_hour tm.tm_min tm.tm_sec
+  Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ" (tm.tm_year + 1900)
+    (tm.tm_mon + 1) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
 
 let[@warning "-32"] read_axioms axioms_root =
   if not (Sys.file_exists axioms_root) then []
   else if not (Sys.is_directory axioms_root) then []
   else
     try
-      Sys.readdir axioms_root
-      |> Array.to_list
+      Sys.readdir axioms_root |> Array.to_list
       |> List.filter (fun n -> Filename.extension n = ".md")
       |> List.filter (fun n -> n <> "index.md")
       |> List.sort String.compare
@@ -2037,7 +2036,7 @@ let[@warning "-32"] render_search_index pages =
             let re = regexp "<title>\\(.*\\) &mdash; math-coding</title>" in
             let _ = search_forward re body 0 in
             Some (matched_string body)
-        with Not_found -> None
+          with Not_found -> None
         in
         let cleaned_title =
           match title_match with
@@ -2045,9 +2044,11 @@ let[@warning "-32"] render_search_index pages =
           | None -> ""
         in
         if cleaned_title = "" then None
-        else Some (Printf.sprintf "  {\"title\": %s, \"path\": %s}"
-                     (Jsonl.stringify (Jsonl.String cleaned_title))
-                     (Jsonl.stringify (Jsonl.String path))))
+        else
+          Some
+            (Printf.sprintf "  {\"title\": %s, \"path\": %s}"
+               (Jsonl.stringify (Jsonl.String cleaned_title))
+               (Jsonl.stringify (Jsonl.String path))))
       pages
   in
   Buffer.add_string buf (String.concat ",\n" entries);
@@ -2059,13 +2060,15 @@ let[@warning "-32"] do_render () =
   Arg.current := 1;
   (try
      Arg.parse
-       [ "-o", Arg.String (fun s -> out_dir := s), "output directory" ]
+       [
+         ("-o", Arg.String (fun s -> out_dir := s), "output directory");
+         ("--out", Arg.String (fun s -> out_dir := s), "output directory");
+       ]
        (fun _ -> ())
        "usage: mc render [--out DIR]"
-   with
-   | Arg.Bad m ->
-       Printf.fprintf stderr "mc render: %s\n" m;
-       exit 2);
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mc render: %s\n" m;
+     exit 2);
   let site_dir = "site" in
   let axioms_root = "axioms" in
   let decisions_root = "decisions" in
@@ -2077,19 +2080,17 @@ let[@warning "-32"] do_render () =
   end;
 
   let reader p =
-    try In_channel.with_open_bin p In_channel.input_all
-    with _ -> ""
+    try In_channel.with_open_bin p In_channel.input_all with _ -> ""
   in
   let has_store = Sys.file_exists attestations_root in
   let store =
-    if has_store then Attestations.load ~reader ~root:attestations_root
-    else []
+    if has_store then Attestations.load ~reader ~root:attestations_root else []
   in
   let now = now_iso () in
   let policy_id = "bootstrap-v3" in
   let pkg =
-    Packages.walk ~reader ~decisions_root ~store ~has_store
-      ~now_iso:now ~policy_id
+    Packages.walk ~reader ~decisions_root ~store ~has_store ~now_iso:now
+      ~policy_id
   in
   let package_html = Packages.to_html pkg in
   let axioms_data = read_axioms axioms_root in
@@ -2099,17 +2100,12 @@ let[@warning "-32"] do_render () =
       pkg.Packages.decisions
   in
   let pages =
-    Render.build_pages
-      ~reader
-      ~site_dir
-      ~package_html
-      ~decisions_data
-      ~axioms_data
-      ~now_iso:now
-      ~policy_id
+    Render.build_pages ~reader ~site_dir ~package_html ~decisions_data
+      ~axioms_data ~now_iso:now ~policy_id
   in
 
-  Printf.printf "[render] writing %d pages to %s/\n" (List.length pages) !out_dir;
+  Printf.printf "[render] writing %d pages to %s/\n" (List.length pages)
+    !out_dir;
   List.iter
     (fun page ->
       let path = Filename.concat !out_dir page.Render.path in
@@ -2157,32 +2153,29 @@ let[@warning "-32"] do_packages () =
   Arg.current := 1;
   (try
      Arg.parse
-       [ "--format", Arg.String set_format, "output format (text|json|html)" ]
+       [ ("--format", Arg.String set_format, "output format (text|json|html)") ]
        (fun _ -> ())
        "usage: mc packages [--format=text|json|html]"
-   with
-   | Arg.Bad m ->
-       Printf.fprintf stderr "mc packages: %s\n" m;
-       exit 2);
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mc packages: %s\n" m;
+     exit 2);
   let decisions_root = "decisions" in
   let attestations_root = "attestations" in
-  let reader = In_channel.with_open_bin In_channel.input_all in
+  let reader path = In_channel.with_open_bin path In_channel.input_all in
   let has_store = Sys.file_exists attestations_root in
   let store =
     if has_store then
-      try Attestations.load ~reader:(fun p -> reader p) ~root:attestations_root
-      with _ -> []
+      try Attestations.load ~reader ~root:attestations_root with _ -> []
     else []
   in
   let now_iso =
     let tm = Unix.gmtime (Unix.time ()) in
-    Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ"
-      (tm.tm_year + 1900) (tm.tm_mon + 1) tm.tm_mday
-      tm.tm_hour tm.tm_min tm.tm_sec
+    Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ" (tm.tm_year + 1900)
+      (tm.tm_mon + 1) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
   in
   let pkg =
-    Packages.walk ~reader:(fun p -> reader p) ~decisions_root ~store
-      ~has_store ~now_iso ~policy_id:"bootstrap-v3"
+    Packages.walk ~reader ~decisions_root ~store ~has_store ~now_iso
+      ~policy_id:"bootstrap-v3"
   in
   match !format with
   | `Text -> print_string (Packages.to_text pkg)

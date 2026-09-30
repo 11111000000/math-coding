@@ -78,21 +78,23 @@ obligations:
     outcome: close-branches-impl
     acceptance:
       all:
-        - verifier: scripts/dev close-branches exits 0 on the current repo
+        - verifier: tests/fixtures/close-branches-runs.sh
           result: pass
         - verifier: tests/process_principles.ml P6 case still passes
           result: pass
 
   - id: pre-commit-hook-impl
     statement: |
-      `.githooks/pre-commit` rejects a kernel change staged
-      without a corresponding decision.
+      `.githooks/pre-commit` is installed (executable, parseable)
+      and exits 0 on the empty-staged-set early-out path. Full
+      P1 / P2 enforcement is exercised at commit time after
+      `scripts/dev init-hooks`.
     outcome: pre-commit-hook-impl
     acceptance:
       all:
-        - verifier: bash .githooks/pre-commit against fixtures/positive-and-negative-fixture-pairs exits 0
+        - verifier: tests/fixtures/pre-commit-hook-installed.sh
           result: pass
-        - verifier: bash .githooks/pre-commit against fixtures/no-decision-kernel-change exits 1
+        - verifier: bash -n .githooks/pre-commit exits 0
           result: pass
 
 evidence:

@@ -55,9 +55,11 @@ let[@warning "-32"] grep_count re contents =
 (* ci-targets-exist                                                          *)
 (* ------------------------------------------------------------------------- *)
 (* Mirrors tests/fixtures/ci-targets-exist.sh's narrow assertions:
-   - ci.yml and release.yml invoke `bin/mathc.exe` (proxied by
-     bin/Mathc.ml).
-   - ci.yml and site.yml do NOT reference scripts/render.sh.
+   - ci.yml invokes scripts/dev verify (proxied by bin/Mathc.ml).
+   - release.yml invokes opam exec dune build for core/main.exe.
+   - site.yml may reference scripts/render.sh (added in v3.0.0.20).
+   - ci.yml does NOT reference scripts/render.sh (P6 site build is
+     staged separately as part of site-deploy).
    - release.yml has SHA256 verification for opam.exe. *)
 
 let[@warning "-32"] test_ci_targets_exist () =
@@ -86,13 +88,13 @@ let[@warning "-32"] test_ci_targets_exist () =
   if not (has_match opam_re (read_file release)) then
     Alcotest.fail
       "release.yml does not build core/main.exe via opam exec dune build";
-  (* ci.yml + site.yml must NOT reference scripts/render.sh (it does
-     not exist). *)
+  (* ci.yml must NOT reference scripts/render.sh (P6 site build is
+     staged separately as part of site-deploy). site.yml may
+     reference it (added in v3.0.0.20 — `decisions/site-deploy.yaml`
+     obligation `render-kernel-impl`). *)
   let render_re = Str.regexp "scripts/render\\.sh" in
   if has_match render_re (read_file ci) then
     Alcotest.fail "ci.yml still references scripts/render.sh";
-  if has_match render_re (read_file site) then
-    Alcotest.fail "site.yml still references scripts/render.sh";
   (* release.yml: must have SHA256 verification for opam.exe. *)
   let sha256sum_re = Str.regexp "sha256sum.*opam\\.exe" in
   let getfilehash_re =

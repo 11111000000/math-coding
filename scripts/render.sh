@@ -39,11 +39,12 @@ required=(
   dist/index.json
 )
 
-# Per-decision pages
+# Per-decision pages — meta files excluded (matches lib/packages.ml)
 for d in decisions/*.yaml decisions/*.yml decisions/*.json; do
   [ -f "$d" ] || continue
-  case "$(basename "$d")" in
-    ONBOARDING.md|rationale.md) continue ;;
+  base=$(basename "$d")
+  case "$base" in
+    decision.yaml|obligations.yaml|obligation-count-reconcile.yaml|gate-attestation-store-fill-decision.yaml|ONBOARDING.md|rationale.md) continue ;;
   esac
   base=$(basename "$d" .yaml)
   base=$(basename "$base" .yml)
@@ -51,7 +52,7 @@ for d in decisions/*.yaml decisions/*.yml decisions/*.json; do
   required+=( "dist/decisions/${base}.html" )
 done
 
-# Per-axiom pages
+# Per-axiom pages — index.md excluded
 for a in axioms/*.md; do
   [ -f "$a" ] || continue
   base=$(basename "$a" .md)

@@ -82,9 +82,9 @@ obligations:
     outcome: render-impl
     acceptance:
       all:
-        - verifier: scripts/render.sh exits 0
+        - verifier: scripts/render.sh
           result: pass
-        - verifier: tests/cli/render.t exits 0
+        - verifier: tests/cli/render.t
           result: pass
 
   - id: site-content-self-referential

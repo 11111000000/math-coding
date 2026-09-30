@@ -110,8 +110,7 @@ let[@warning "-32"] list_decision_paths ~decisions_root =
   else if not (Sys.is_directory decisions_root) then []
   else
     try
-      Sys.readdir decisions_root
-      |> Array.to_list
+      Sys.readdir decisions_root |> Array.to_list
       |> List.filter is_decision_filename
       |> List.sort String.compare
       |> List.map (fun n -> Filename.concat decisions_root n)
@@ -136,29 +135,55 @@ let[@warning "-32"] extract_top_level_id lines =
 (* Extract `id: <name>` entries nested under an `obligations:` line.
    Matches a one-level nesting like `  - id: foo` (i.e. two-space
    indent followed by `- id: foo`). Sufficient for the current
-   decision format used in this repo. *)
+   decision format used in this repo.
+
+   Enter the obligation list when we see `obligations:` at column 0.
+   Inside the list:
+   - a line that starts with `-` and contains `id: NAME` contributes
+     an obligation id;
+   - a line at column 0 that ends with `:` (e.g. `outcomes:`,
+     `reversal:`, `risk:`, `relations:`) exits the list;
+   - indented non-list lines (`    claim:`, `  outcome:`) keep us
+     inside the current obligation. *)
 let[@warning "-32"] extract_obligation_ids lines =
   let in_obls = ref false in
   let rec scan acc = function
     | [] -> List.rev acc
     | line :: rest ->
         let t = String.trim line in
-        if String.length t > 10 && String.sub t 0 11 = "obligations:" then begin
+        let raw_indent =
+          let len = String.length line in
+          let i = ref 0 in
+          while !i < len && line.[!i] = ' ' do
+            incr i
+          done;
+          !i
+        in
+        if t = "obligations:" && raw_indent = 0 then begin
           in_obls := true;
           scan acc rest
         end
         else if !in_obls then
           if t = "" then scan acc rest
           else if String.length t > 0 && t.[0] = '-' then begin
-            (* Look for `- id: NAME` *)
+            (* Look for `- id: NAME` (any indent) *)
             let trimmed = String.trim (String.sub t 1 (String.length t - 1)) in
             if String.length trimmed > 4 && String.sub trimmed 0 4 = "id: " then begin
-              let v = String.trim (String.sub trimmed 4 (String.length trimmed - 4)) in
+              let v =
+                String.trim (String.sub trimmed 4 (String.length trimmed - 4))
+              in
               if v <> "" then scan (v :: acc) rest else scan acc rest
             end
             else scan acc rest
           end
-          else if String.length t > 0 && t.[0] <> ' ' && t.[0] <> '-' then begin
+          else if
+            raw_indent = 0
+            && String.length t > 0
+            && t.[String.length t - 1] = ':'
+          then begin
+            (* Top-level key ending in ':' (e.g. `outcomes:`,
+               `reversal:`, `risk:`, `relations:`). Exit the
+               obligation list. *)
             in_obls := false;
             scan acc rest
           end
@@ -188,15 +213,13 @@ let[@warning "-32"] load_decision ~reader ~path =
    which encodes both ids; we filter on the typed fields. *)
 let[@warning "-32"] latest_attestation ~store ~obligation_id =
   let matching =
-        List.filter
-            (fun a ->
-              Domain.id_value a.obligation = obligation_id)
-            store
-      in
+    List.filter
+      (fun (a : Domain.attestation) -> a.obligation = obligation_id)
+      store
+  in
   List.sort
-    (fun a b ->
-      compare (Domain.timestamp_to_string b.issued_at)
-              (Domain.timestamp_to_string a.issued_at))
+    (fun (a : Domain.attestation) (b : Domain.attestation) ->
+      compare b.issued_at a.issued_at)
     matching
 
 (* Compute the verdict for an obligation. The verdict string is
@@ -206,16 +229,10 @@ let[@warning "-32"] verdict_of ~now_iso ~obligation_id ~store ~has_store =
   else
     match latest_attestation ~store ~obligation_id with
     | [] -> "missing"
-    | att :: _ ->
-        let valid_until_string =
-          match att.valid_until with
-          | Some t -> Domain.timestamp_to_string t
-          | None -> ""
-        in
+    | (att : Domain.attestation) :: _ -> (
         let is_expired =
           match att.valid_until with
-          | Some t ->
-              String.compare now_iso (Domain.timestamp_to_string t) > 0
+          | Some t -> String.compare now_iso t > 0
           | None -> false
         in
         if is_expired then "stale"
@@ -223,7 +240,7 @@ let[@warning "-32"] verdict_of ~now_iso ~obligation_id ~store ~has_store =
           match att.result with
           | Domain.Pass -> "pass"
           | Domain.Fail -> "fail"
-          | Domain.Inconclusive | Domain.InfrastructureError -> "unknown"
+          | Domain.Inconclusive | Domain.InfrastructureError -> "unknown")
 
 (* `remedies` for a missing obligation. The list is a static
    catalog keyed on the verdict string; no waivers yet. *)
@@ -232,7 +249,8 @@ let[@warning "-32"] remedies_of = function
   | "stale" -> [ "re-run the verifier to refresh the attestation" ]
   | "fail" -> [ "investigate the failing verifier; cannot waive" ]
   | "unknown" -> [ "investigate the inconclusive verifier; treat as fail" ]
-  | "no_store" -> [ "populate attestations/ via scripts/generate-attestations.py" ]
+  | "no_store" ->
+      [ "populate attestations/ via scripts/generate-attestations.py" ]
   | "waived" -> [ "review the waiver expiry; re-evaluate before it lapses" ]
   | _ -> []
 
@@ -245,9 +263,7 @@ let[@warning "-32"] remedies_of = function
 let[@warning "-32"] obligation_view ~now_iso ~obligation_id ~store ~has_store =
   let verdict = verdict_of ~now_iso ~obligation_id ~store ~has_store in
   let att_opt = latest_attestation ~store ~obligation_id in
-  let att =
-    match att_opt with [] -> None | h :: _ -> Some h
-  in
+  let att = match att_opt with [] -> None | h :: _ -> Some h in
   {
     id = obligation_id;
     verdict;
@@ -256,11 +272,9 @@ let[@warning "-32"] obligation_view ~now_iso ~obligation_id ~store ~has_store =
       (match att with None -> None | Some a -> Some a.Domain.id);
     attestation_expires =
       (match att with
-        | None -> None
-        | Some a ->
-            (match a.Domain.valid_until with
-              | None -> None
-              | Some t -> Some (Domain.timestamp_to_string t)));
+      | None -> None
+      | Some a -> (
+          match a.Domain.valid_until with None -> None | Some t -> Some t));
     remedies = remedies_of verdict;
   }
 
@@ -276,9 +290,23 @@ let[@warning "-32"] decision_view ~now_iso ~store ~has_store ~path =
    module does not perform I/O on the store. This keeps the
    kernel/adapter boundary: lib/attestations/ is the I/O
    boundary; lib/packages.ml is pure. *)
-let[@warning "-32"] walk ~reader ~decisions_root ~store ~has_store
-    ~now_iso ~policy_id =
-  let decisions_paths = list_decision_paths ~decisions_root in
+let[@warning "-32"] is_meta_filename name =
+  let base = Filename.basename name in
+  match base with
+  | "decision.yaml" -> true
+  | "obligations.yaml" -> true
+  | "obligation-count-reconcile.yaml" -> true
+  | "ONBOARDING.md" -> true
+  | "rationale.md" -> true
+  | _ -> false
+
+let[@warning "-32"] walk ~reader ~decisions_root ~store ~has_store ~now_iso
+    ~policy_id =
+  let decisions_paths =
+    List.filter
+      (fun p -> not (is_meta_filename p))
+      (list_decision_paths ~decisions_root)
+  in
   let decisions =
     List.filter_map
       (fun path ->
@@ -288,27 +316,58 @@ let[@warning "-32"] walk ~reader ~decisions_root ~store ~has_store
             let obs =
               List.map
                 (fun oid ->
-                  obligation_view
-                      ~now_iso ~obligation_id:oid ~store ~has_store)
+                  obligation_view ~now_iso ~obligation_id:oid ~store ~has_store)
                 obligation_ids
             in
             Some { decision_id; decision_revision; obligations = obs })
       decisions_paths
   in
-  let counts = ref {
-    total = 0; pass = 0; fail = 0; unknown = 0;
-    waived = 0; stale = 0; missing = 0; no_store = 0;
-  } in
+  let counts =
+    ref
+      {
+        total = 0;
+        pass = 0;
+        fail = 0;
+        unknown = 0;
+        waived = 0;
+        stale = 0;
+        missing = 0;
+        no_store = 0;
+      }
+  in
   let bump v =
     counts :=
       match v with
-      | "pass" -> { !counts with total = !counts.total + 1; pass = !counts.pass + 1 }
-      | "fail" -> { !counts with total = !counts.total + 1; fail = !counts.fail + 1 }
-      | "unknown" -> { !counts with total = !counts.total + 1; unknown = !counts.unknown + 1 }
-      | "waived" -> { !counts with total = !counts.total + 1; waived = !counts.waived + 1 }
-      | "stale" -> { !counts with total = !counts.total + 1; stale = !counts.stale + 1 }
-      | "missing" -> { !counts with total = !counts.total + 1; missing = !counts.missing + 1 }
-      | "no_store" -> { !counts with total = !counts.total + 1; no_store = !counts.no_store + 1 }
+      | "pass" ->
+          { !counts with total = !counts.total + 1; pass = !counts.pass + 1 }
+      | "fail" ->
+          { !counts with total = !counts.total + 1; fail = !counts.fail + 1 }
+      | "unknown" ->
+          {
+            !counts with
+            total = !counts.total + 1;
+            unknown = !counts.unknown + 1;
+          }
+      | "waived" ->
+          {
+            !counts with
+            total = !counts.total + 1;
+            waived = !counts.waived + 1;
+          }
+      | "stale" ->
+          { !counts with total = !counts.total + 1; stale = !counts.stale + 1 }
+      | "missing" ->
+          {
+            !counts with
+            total = !counts.total + 1;
+            missing = !counts.missing + 1;
+          }
+      | "no_store" ->
+          {
+            !counts with
+            total = !counts.total + 1;
+            no_store = !counts.no_store + 1;
+          }
       | _ -> { !counts with total = !counts.total + 1 }
   in
   List.iter
@@ -328,46 +387,57 @@ let[@warning "-32"] option_to_json = function
   | Some s -> Jsonl.String s
 
 let[@warning "-32"] count_to_json (c : counts) =
-  let kvs = [
-    ("fail", json_value_of_int c.fail);
-    ("missing", json_value_of_int c.missing);
-    ("no_store", json_value_of_int c.no_store);
-    ("pass", json_value_of_int c.pass);
-    ("stale", json_value_of_int c.stale);
-    ("total", json_value_of_int c.total);
-    ("unknown", json_value_of_int c.unknown);
-    ("waived", json_value_of_int c.waived);
-  ] in
+  let kvs =
+    [
+      ("fail", json_value_of_int c.fail);
+      ("missing", json_value_of_int c.missing);
+      ("no_store", json_value_of_int c.no_store);
+      ("pass", json_value_of_int c.pass);
+      ("stale", json_value_of_int c.stale);
+      ("total", json_value_of_int c.total);
+      ("unknown", json_value_of_int c.unknown);
+      ("waived", json_value_of_int c.waived);
+    ]
+  in
   json_value_of_obj (List.sort (fun (a, _) (b, _) -> String.compare a b) kvs)
 
 let[@warning "-32"] obligation_to_json (o : obligation_view) =
-  let kvs = [
-    ("attestation_expires", option_to_json o.attestation_expires);
-    ("attestation_id", option_to_json o.attestation_id);
-    ("id", Jsonl.String o.id);
-    ("remedies", json_value_of_list (List.map (fun s -> Jsonl.String s) o.remedies));
-    ("verdict", Jsonl.String o.verdict);
-    ("verifier", Jsonl.String o.verifier);
-  ] in
+  let kvs =
+    [
+      ("attestation_expires", option_to_json o.attestation_expires);
+      ("attestation_id", option_to_json o.attestation_id);
+      ("id", Jsonl.String o.id);
+      ( "remedies",
+        json_value_of_list (List.map (fun s -> Jsonl.String s) o.remedies) );
+      ("verdict", Jsonl.String o.verdict);
+      ("verifier", Jsonl.String o.verifier);
+    ]
+  in
   json_value_of_obj (List.sort (fun (a, _) (b, _) -> String.compare a b) kvs)
 
 let[@warning "-32"] decision_to_json (d : decision_view) =
-  let obligations_json = json_value_of_list (List.map obligation_to_json d.obligations) in
-  let kvs = [
-    ("decision_id", Jsonl.String d.decision_id);
-    ("decision_revision", option_to_json d.decision_revision);
-    ("obligations", obligations_json);
-  ] in
+  let obligations_json =
+    json_value_of_list (List.map obligation_to_json d.obligations)
+  in
+  let kvs =
+    [
+      ("decision_id", Jsonl.String d.decision_id);
+      ("decision_revision", option_to_json d.decision_revision);
+      ("obligations", obligations_json);
+    ]
+  in
   json_value_of_obj (List.sort (fun (a, _) (b, _) -> String.compare a b) kvs)
 
 let[@warning "-32"] to_json (p : package_list) =
-  let kvs = [
-    ("as_of", Jsonl.String p.as_of);
-    ("counts", count_to_json p.counts);
-    ("decisions", json_value_of_list (List.map decision_to_json p.decisions));
-    ("policy_id", Jsonl.String p.policy_id);
-    ("source", Jsonl.String "decisions/");
-  ] in
+  let kvs =
+    [
+      ("as_of", Jsonl.String p.as_of);
+      ("counts", count_to_json p.counts);
+      ("decisions", json_value_of_list (List.map decision_to_json p.decisions));
+      ("policy_id", Jsonl.String p.policy_id);
+      ("source", Jsonl.String "decisions/");
+    ]
+  in
   json_value_of_obj (List.sort (fun (a, _) (b, _) -> String.compare a b) kvs)
 
 (* --- text renderer --- *)
@@ -377,9 +447,10 @@ let[@warning "-32"] to_text (p : package_list) =
   Buffer.add_string buf "math-coding packages\n";
   Printf.bprintf buf "as_of: %s\n" p.as_of;
   Printf.bprintf buf "policy_id: %s\n" p.policy_id;
-  Printf.bprintf buf "total=%d pass=%d fail=%d unknown=%d stale=%d missing=%d no_store=%d\n\n"
-    p.counts.total p.counts.pass p.counts.fail p.counts.unknown
-    p.counts.stale p.counts.missing p.counts.no_store;
+  Printf.bprintf buf
+    "total=%d pass=%d fail=%d unknown=%d stale=%d missing=%d no_store=%d\n\n"
+    p.counts.total p.counts.pass p.counts.fail p.counts.unknown p.counts.stale
+    p.counts.missing p.counts.no_store;
   List.iter
     (fun d ->
       Printf.bprintf buf "%s\n" d.decision_id;
@@ -413,10 +484,11 @@ let[@warning "-32"] to_html (p : package_list) =
      data-mc-as-of=\"%s\" data-mc-policy=\"%s\">\n"
     p.counts.total (html_escape p.as_of) (html_escape p.policy_id);
   Printf.bprintf buf "<h2>math-coding packages</h2>\n";
-  Printf.bprintf buf "<p class=\"mc-counts\">total=%d pass=%d fail=%d \
-                      unknown=%d stale=%d missing=%d no_store=%d</p>\n"
-    p.counts.total p.counts.pass p.counts.fail p.counts.unknown
-    p.counts.stale p.counts.missing p.counts.no_store;
+  Printf.bprintf buf
+    "<p class=\"mc-counts\">total=%d pass=%d fail=%d unknown=%d stale=%d \
+     missing=%d no_store=%d</p>\n"
+    p.counts.total p.counts.pass p.counts.fail p.counts.unknown p.counts.stale
+    p.counts.missing p.counts.no_store;
   List.iter
     (fun d ->
       Printf.bprintf buf "<article class=\"mc-decision\">\n";
@@ -426,11 +498,9 @@ let[@warning "-32"] to_html (p : package_list) =
         (fun o ->
           Printf.bprintf buf
             "  <li class=\"mc-obligation mc-verdict-%s\" \
-             data-mc-verdict=\"%s\"><code>%s</code> \
-             <span class=\"mc-verdict-label\">%s</span></li>\n"
-            (html_escape o.verdict)
-            (html_escape o.verdict)
-            (html_escape o.id)
+             data-mc-verdict=\"%s\"><code>%s</code> <span \
+             class=\"mc-verdict-label\">%s</span></li>\n"
+            (html_escape o.verdict) (html_escape o.verdict) (html_escape o.id)
             (html_escape o.verdict))
         d.obligations;
       Printf.bprintf buf "</ul>\n</article>\n")

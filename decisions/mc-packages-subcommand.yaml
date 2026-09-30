@@ -92,7 +92,7 @@ obligations:
     outcome: packages-kernel
     acceptance:
       all:
-        - verifier: mathc packages --format=json lists every obligation
+        - verifier: mc packages --format=json
           result: pass
 
   - id: packages-cli-dispatcher
@@ -102,7 +102,7 @@ obligations:
     outcome: packages-cli
     acceptance:
       all:
-        - verifier: tests/cli/packages.t exits 0
+        - verifier: tests/cli/packages.t
           result: pass
 
   - id: packages-site-bridge

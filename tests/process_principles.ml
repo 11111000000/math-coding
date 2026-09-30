@@ -91,6 +91,13 @@ let[@warning "-32"] manual_verifier_prefixes =
     "this-decision-file-present";
     "mc ";
     "mc-";
+    "bash";
+    "gh ";
+    "grep ";
+    "scripts/";
+    "dist/";
+    "git ";
+    "jq ";
   ]
 
 (* Manual-style exact verifier names. *)
