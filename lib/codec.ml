@@ -37,8 +37,43 @@ let[@warning "-32"] parse_phase s =
 
 let[@warning "-32"] parse_assumption_state s =
   match s with
+  (* 3.0 legacy values *)
   | "assumed" -> Some `Assumed
   | "unknown" -> Some `Unknown
+  (* 3.2 epistemic markers (algebra §7, axiom A5 v0.854) *)
+  | "fact" -> Some `Fact
+  | "hypothesis" -> Some `Hypothesis
+  | "judgment" -> Some `Judgment
+  | "proven" -> Some `Proven
+  | _ -> None
+
+(* Decision lifecycle state (algebra §7). *)
+let[@warning "-32"] parse_decision_state s =
+  match s with
+  | "draft" -> Some `Draft
+  | "active" -> Some `Active
+  | "retired" -> Some `Retired
+  | "superseded" -> Some `Superseded
+  | _ -> None
+
+(* Assurance mode (algebra §3, §7). *)
+let[@warning "-32"] parse_mode s =
+  match s with
+  | "tiny" -> Some `Tiny
+  | "light" -> Some `Light
+  | "standard" -> Some `Standard
+  | "strict" -> Some `Strict
+  | "exhaustive" -> Some `Exhaustive
+  | _ -> None
+
+(* Environment class label (algebra §13). *)
+let[@warning "-32"] parse_environment_class_label s =
+  match s with
+  | "dev" -> Some `Dev
+  | "staging" -> Some `Staging
+  | "staging-integration" -> Some `StagingIntegration
+  | "prod-mirror" -> Some `ProdMirror
+  | "prod" -> Some `Prod
   | _ -> None
 
 let[@warning "-32"] parse_action s =
@@ -141,6 +176,43 @@ let[@warning "-32"] parse_attestation v =
                                                   "issued_at"
                                               with
                                               | Some issued_at ->
+                                                  let env_class_label =
+                                                    match
+                                                      Schema.take_string ps
+                                                        "environment_class_label"
+                                                    with
+                                                    | Some s -> (
+                                                        match
+                                                          parse_environment_class_label
+                                                            s
+                                                        with
+                                                        | Some l -> Some l
+                                                        | None -> None)
+                                                    | None -> None
+                                                  in
+                                                  let env_class_level =
+                                                    match env_class_label with
+                                                    | Some `Dev -> Some 0
+                                                    | Some `Staging -> Some 1
+                                                    | Some `StagingIntegration
+                                                      ->
+                                                        Some 2
+                                                    | Some `ProdMirror -> Some 3
+                                                    | Some `Prod -> Some 4
+                                                    | None -> None
+                                                  in
+                                                  let substrate_digest =
+                                                    Schema.take_string ps
+                                                      "substrate_digest"
+                                                  in
+                                                  let substrate_fingerprint =
+                                                    Schema.take_string ps
+                                                      "substrate_fingerprint"
+                                                  in
+                                                  let ci_run_id =
+                                                    Schema.take_string ps
+                                                      "ci_run_id"
+                                                  in
                                                   Some
                                                     {
                                                       Domain.id;
@@ -157,11 +229,21 @@ let[@warning "-32"] parse_attestation v =
                                                       Domain.producer_run;
                                                       Domain.environment_class =
                                                         None;
+                                                      Domain
+                                                      .environment_class_level =
+                                                        env_class_level;
+                                                      Domain
+                                                      .environment_class_label =
+                                                        env_class_label;
                                                       Domain.result;
                                                       Domain.issued_at;
                                                       Domain.valid_until = None;
                                                       Domain.evidence_digest =
                                                         None;
+                                                      Domain.substrate_digest;
+                                                      Domain
+                                                      .substrate_fingerprint;
+                                                      Domain.ci_run_id;
                                                     }
                                               | _ -> None)
                                           | _ -> None)
