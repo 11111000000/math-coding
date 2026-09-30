@@ -18,6 +18,7 @@
   gate
   packages
   policy
+  rebuttal
   render
   risk)
  (libraries str))
