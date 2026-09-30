@@ -1,5 +1,18 @@
 (* Decision / Obligation decoder. *)
 
+(* sha-match validation per algebra §3 and §7.
+   Algebra §3 requires: if both sibling_yaml(c) and body_section(c)
+   exist then sha256(sibling_yaml) = sha256(body_section). Algebra §7
+   states the same invariant on the Decision entity: if D.body_sha ≠ ∅
+   ∧ D.yaml_sha ≠ ∅ then D.body_sha = D.yaml_sha.
+   The check is parser-side: when both hashes are recorded on the
+   Decision they must agree as strings. If either is absent the
+   invariant is vacuously satisfied (no mismatch is possible).
+   The string format is `sha256:<64 hex>` per schemas/decision.json,
+   so equality of the formatted strings is equality of the digests. *)
+let sha_match_check (d : Domain.decision) : bool =
+  match (d.body_sha, d.yaml_sha) with Some bs, Some ys -> bs = ys | _ -> true
+
 (* Parse a single obligation acceptance item (verifier OR review). *)
 let[@warning "-32"] parse_verifier v =
   match v with
@@ -288,6 +301,50 @@ and parse_obligation v =
           }
   | _ -> None
 
+(* Relations parser (algebra §7, 8 kinds). The JSON object under
+   "relations" carries up to 9 array-valued fields; the 8 relation
+   kinds defined by algebra §7 are revises, supersedes, refines,
+   depends_on, conflicts_with, addresses, implements, verifies.
+   The 9th field `superseded_by` is the inverse of `supersedes` and
+   is already populated by existing decisions; both directions are
+   carried for convenience. Missing fields default to the empty
+   list. The whole `relations` object may be absent; in that case
+   the result is the empty relation set. *)
+and parse_relations v =
+  let[@warning "-32"] extract_ids ps key =
+    match Schema.take_array ps key with
+    | Some xs ->
+        List.filter_map
+          (fun x -> match x with Jsonl.String s -> Some s | _ -> None)
+          xs
+    | None -> []
+  in
+  match v with
+  | Jsonl.Object ps ->
+      {
+        Domain.revises = extract_ids ps "revises";
+        Domain.supersedes = extract_ids ps "supersedes";
+        Domain.superseded_by = extract_ids ps "superseded_by";
+        Domain.refines = extract_ids ps "refines";
+        Domain.depends_on = extract_ids ps "depends_on";
+        Domain.conflicts_with = extract_ids ps "conflicts_with";
+        Domain.addresses = extract_ids ps "addresses";
+        Domain.implements = extract_ids ps "implements";
+        Domain.verifies = extract_ids ps "verifies";
+      }
+  | _ ->
+      {
+        Domain.revises = [];
+        Domain.supersedes = [];
+        Domain.superseded_by = [];
+        Domain.refines = [];
+        Domain.depends_on = [];
+        Domain.conflicts_with = [];
+        Domain.addresses = [];
+        Domain.implements = [];
+        Domain.verifies = [];
+      }
+
 and parse_decision v =
   match v with
   | Jsonl.Object ps -> (
@@ -408,6 +465,27 @@ and parse_decision v =
                                       let yaml_sha =
                                         Schema.take_string ps "yaml_sha"
                                       in
+                                      let relations =
+                                        match
+                                          Schema.take_object ps "relations"
+                                        with
+                                        | Some rps ->
+                                            parse_relations (Jsonl.Object rps)
+                                        | _ -> parse_relations Jsonl.Null
+                                      in
+                                      let axiom_link =
+                                        match
+                                          Schema.take_array ps "axiom_link"
+                                        with
+                                        | Some xs ->
+                                            List.filter_map
+                                              (fun x ->
+                                                match x with
+                                                | Jsonl.String s -> Some s
+                                                | _ -> None)
+                                              xs
+                                        | _ -> []
+                                      in
                                       Some
                                         {
                                           Domain.id;
@@ -427,24 +505,14 @@ and parse_decision v =
                                                 triggers;
                                               Domain.owner;
                                             };
-                                          Domain.relations =
-                                            {
-                                              Domain.revises = [];
-                                              Domain.supersedes = [];
-                                              Domain.superseded_by = [];
-                                              Domain.refines = [];
-                                              Domain.depends_on = [];
-                                              Domain.conflicts_with = [];
-                                              Domain.addresses = [];
-                                              Domain.implements = [];
-                                              Domain.verifies = [];
-                                            };
+                                          Domain.relations;
                                           Domain.counterexample;
                                           Domain.state;
                                           Domain.mode;
                                           Domain.mode_floor_used;
                                           Domain.body_sha;
                                           Domain.yaml_sha;
+                                          Domain.axiom_link;
                                         }
                                   | _ -> None)
                               | _ -> None)

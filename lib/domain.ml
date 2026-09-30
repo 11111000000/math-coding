@@ -136,7 +136,11 @@ type relations = {
    is the assurance floor that the agent adopted when authoring this
    Decision; it is informational. counterexample is required for
    modes ≥ light (algebra §11) but is optional here so that
-   parser layer can default it. *)
+   parser layer can default it. axiom_link carries the axiom IDs
+   (e.g. "A1", "A3") this Decision addresses; the JSON schema
+   lists it as a top-level array property (schemas/decision.json)
+   even though the algebra §7 syntax only carries the `addresses`
+   relation. It is additive and defaults to [] when absent. *)
 type decision = {
   id : id;
   rev : string;
@@ -157,6 +161,7 @@ type decision = {
   mode_floor_used : mode option;
   body_sha : string option;
   yaml_sha : string option;
+  axiom_link : string list;
 }
 
 (* Attestation entity (algebra §13). environment_class is the
