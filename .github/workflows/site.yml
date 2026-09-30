@@ -1,50 +1,108 @@
 name: Site
 
+# Per decisions/site-deploy.yaml (rev 1, id=site-deploy), this workflow
+# closes obligation `site-deploy-pipeline`: on every push to main,
+# build the site via scripts/render.sh and publish `dist/` to GitHub
+# Pages. Obligation `site-pinned-ubuntu` requires the runs-on value
+# to be ubuntu-22.04 (set in both jobs below). Obligation
+# `render-kernel-impl` is closed by scripts/render.sh itself, which
+# builds mathc via scripts/dev build and verifies the allowlist of
+# expected output files under dist/.
+
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+# Pages deploy requires `pages: write` to publish and `id-token: write`
+# for OIDC (deploy-pages authenticates to Pages via OIDC, not a
+# long-lived PAT). `contents: read` matches ci.yml.
 permissions:
   contents: read
   pages: write
   id-token: write
 
+# Concurrency group `pages` is the canonical group name recommended by
+# GitHub's Pages + Actions tutorial: deploys are idempotent
+# (deploy-pages replaces the live artifact), so a new push should
+# always reach production even if a deploy is still in flight.
+# `cancel-in-progress: false` is therefore deliberate: we never
+# abandon a queued build in favor of a newer one — both finish and the
+# newer one wins by virtue of arriving later.
 concurrency:
   group: pages
   cancel-in-progress: false
 
 jobs:
   build:
+    # site-deploy@1 obligation site-pinned-ubuntu: the runner image is
+    # pinned to ubuntu-22.04 (matches ci.yml).
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      # Pin nix-2.24.10 + enable flakes. Mirrors ci.yml so the site
+      # binary (mathc) and the CI-tested binary share the same nix
+      # CLI version; the OCaml/dune versions themselves are pinned by
+      # flake.lock, which both jobs use identically.
+      - name: Install nix
+        uses: cachix/install-nix-action@v30
         with:
-          fetch-depth: 0  # mathc render reads witness commit hashes; shallow clone errors
-      - name: Install pandoc (for manifesto.html LaTeX model)
-        run: sudo apt-get install -y pandoc
-      - uses: ocaml/setup-ocaml@v2
+          install_url: https://releases.nixos.org/nix/nix-2.24.10/install
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            # Cache build outputs in the nix store, not in the CWD.
+            build-dir = /tmp/nix-build
+
+      # Cachix `math-coding` cache is the public binary substituter
+      # for mathcoding_core, mathcoding_git, mathcoding_junit, dune,
+      # ocamlformat, etc. Fail-open (`fail-on-cache-miss: false`) —
+      # if the cache write fails or returns no hit, we build from
+      # source rather than fail the deploy. Site availability
+      # outranks cache freshness; missing a publish is not.
+      - name: Cache nix store
+        uses: cachix/cachix-action@v15
         with:
-          ocaml-compiler: 5.4
-      - run: opam install --yes dune
-      - name: Render site
-        run: |
-          mkdir -p dist
-          pandoc --standalone --metadata title='math-coding' README.md -o dist/index.html
-          for src in AGENTS.md spec/constitution.md spec/domain.md spec/semantics.md axioms/index.md; do
-            [ -f "$src" ] || continue
-            out="dist/$(basename "$src" .md).html"
-            pandoc --standalone --metadata title="math-coding" "$src" -o "$out"
-          done
-      - uses: actions/upload-pages-artifact@v3
+          name: math-coding
+          fail-on-cache-miss: false
+
+      # Closes site-deploy@1 obligation render-kernel-impl. The
+      # script: (1) builds mathc via scripts/dev build (the same
+      # command CI runs); (2) runs `mc render --out dist/` which
+      # walks site/, decisions/, axioms/ and emits the static site;
+      # (3) copies assets/{style.css,site.js}; (4) verifies the
+      # allowlist of expected files under dist/ and exits non-zero
+      # on any missing file.
+      - name: Render site (scripts/render.sh)
+        run: ./scripts/render.sh
+        timeout-minutes: 15
+
+      # Hand `dist/` to the `deploy` job as a Pages artifact.
+      # `path: dist` matches the default `--out` of `mc render` and
+      # the only directory scripts/render.sh writes to.
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    # ubuntu-22.04 again: a deploy job that drifted to ubuntu-latest
+    # would still satisfy `runs-on: ubuntu-22.04` in `build` only by
+    # accident. Pin both jobs (site-deploy@1 obligation site-pinned-
+    # ubuntu covers the workflow, not just one job).
+    runs-on: ubuntu-22.04
+    # The `github-pages` environment is the contract that ties this
+    # workflow to the repo's Pages site. `url` exposes the live
+    # page_url as a step output and on the run summary, so reviewers
+    # see where the deploy landed without opening the repo Settings
+    # tab.
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
+        # Official Pages action; consumes the artifact from the build
+        # job and publishes it to the github-pages environment.
         uses: actions/deploy-pages@v4

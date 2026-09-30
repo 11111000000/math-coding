@@ -62,6 +62,12 @@
       in
       {
         # Default shell: kernel + CLI only.
+        # `render` helper: closes site-deploy@1 obligation
+        # `render-kernel-impl`. The script builds mathc via
+        # scripts/dev build, runs `mc render --out dist/`, copies
+        # assets/, and verifies the output allowlist; non-zero on any
+        # missing file (so it is its own attestation, per the
+        # decision's declared acceptance verifiers).
         devShells.default = pkgs.mkShell {
           name = "math-coding-dev";
           packages = [
@@ -73,6 +79,7 @@
             echo "  dune:   $(which dune)"
             echo "  ocaml:  $(ocaml --version)"
             echo ""
+            echo "  run 'scripts/render.sh' to render the site (site-deploy@1: render-kernel-impl)"
             echo "  run 'dune build' to compile kernel + CLI"
             echo "  run 'nix develop .#test' to enable alcotest"
             echo "  run 'mc validate FILE' to validate a decision"
@@ -80,6 +87,11 @@
         };
 
         # Test shell: kernel + CLI + conformance suite.
+        # `render` helper: closes site-deploy@1 obligation
+        # `render-kernel-impl` (same script as in devShells.default;
+        # included here so the test-shell oneline mirrors the default-
+        # shell oneline and a developer who `nix develop .#test` to
+        # run conformance + render in one session sees the entry).
         devShells.test = pkgs.mkShell {
           name = "math-coding-dev-test";
           packages = ocamlDeps ++ ocamlSelect ocamlPackages ++ buildTools;
@@ -92,6 +104,7 @@
             echo "  alcotest: via dune-package"
             echo "  OCAMLPATH entries: $(echo "$OCAMLPATH" | tr ':' '\n' | wc -l)"
             echo ""
+            echo "  run 'scripts/render.sh' to render the site (site-deploy@1: render-kernel-impl)"
             echo "  run 'dune test' to run conformance suite"
             echo "  run 'dune build' to compile kernel + CLI"
             echo "  run 'mc validate FILE' to validate a decision"

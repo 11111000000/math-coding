@@ -1,88 +1,62 @@
-# Math-coding 3.0-alpha
+# math-coding 3.0-alpha
 
-> Project author: Petr Kosov <p.b.kosov@yandex.ru>
-> License: Apache-2.0 (see `LICENSE`, `NOTICE`)
-> Ethics: non-binding (see `ETHICS.md`)
+> Author: Petr Kosov <p.b.kosov@yandex.ru>
+> Status: 3.0-alpha. Bootstrap gate expired at v3.0.0.19 (2026-09-29).
+> License: Apache-2.0 (see `LICENSE`, `NOTICE`).
+> Ethics: [`ETHICS.md`](ETHICS.md).
 
-Math-coding is a risk-adaptive assurance protocol for software
-changes. It links intent, decisions, obligations, changes,
-attestations, observations, and revisions.
+Math-coding is a protocol that ties every change to a written
+commitment, a list of obligations, and bounded evidence that they
+hold. It is for teams who want their CI to refuse a change for a
+named rule, not a vague feeling. It does not prove software correctness.
 
-## Single source of truth
-
-**Read [`ROADMAP.md`](ROADMAP.md) first.** It supersedes any inline
-status lists in this file. ROADMAP.md contains the active priority
-queue, process principles (P1–P7), and the current audit status.
-
-## Working chain
+## The chain
 
 ```text
 intent -> decision -> obligation -> change -> attestation -> revision
 ```
 
-## Operational chain
+- **intent**: what should become true.
+- **decision**: a written commitment, recorded under the active policy.
+- **obligation**: what the decision promises; each one names a fixture.
+- **change**: the diff that implements the decision.
+- **attestation**: bounded evidence that the obligation holds.
+- **revision**: the next decision that updates or supersedes the last.
 
-```text
-change -> affected_knowledge -> assurance_gaps -> minimal_remedies -> gate
-```
+The kernel checks the chain. Humans write it.
 
-Math-coding does not prove software correctness. It determines whether
-a concrete change satisfies the assurance requirements declared by the
-active project policy.
+## Why bootstrap-gate expiry matters
 
-## Current status (see ROADMAP.md for live numbers)
+Before v3.0.0.19, every change had to satisfy eight manual bootstrap
+checks in lieu of a working kernel. From v3.0.0.19 onward,
+`mc self-check` is a blocking CI step. The kernel is now the source
+of the verdict. `mc gate`, `mc self-check`, and `mc assess` are
+automated guarantees, not hand-written promises. Routine checks are
+free; protected-policy transitions keep the manual checklist on top.
 
-- Active tag: `v3-alpha-0.0.14`
-- Active policy: `bootstrap-v3@2` (see `decisions/decision.yaml`)
-- Shell fixtures green: see `ROADMAP.md` §"Status"
-- v2.1 implementation removed from active tree; source preserved by
-  remote tag `v2.1-final`
+## CLI
 
-## Where things live
-
-| Path | Purpose |
+| Subcommand | Purpose |
 |---|---|
-| `ROADMAP.md` | Priority queue, process principles, audit status |
-| `AGENTS.md` | Agent protocol (read first, before any edit) |
-| `OCAML_BEST_PRACTICES.md` | OCaml conventions + trap log §11 |
-| `spec/` | Constitution, domain, semantics (normative) |
-| `axioms/` | A0–A4 philosophical foundations (normative) |
-| `schemas/` | Canonical JSON Schemas for each artifact kind |
-| `decisions/` | Active policy and decisions; each decision names its obligation, fixture, verifier |
-| `lib/` | Pure OCaml kernel (offline; no I/O) |
-| `bin/Mathc.ml` | argv dispatcher and CLI subcommand implementations |
-| `lib/git/`, `lib/junit/` | Adapter libraries (may do I/O) |
-| `tests/` | Conformance runner (Alcotest) and shell fixtures (`tests/fixtures/`) |
-| `scripts/dev` | Build wrapper (replaces `rm -rf _build` superstition) |
-| `scripts/check.sh` | Aggregates all `tests/fixtures/*.sh` |
-| `doc/AUDIT-0.0.11.md` | Open/closed deficit chain (every deficit tracks a commit hash) |
-| `decisions/agent-onboarding.yaml` | Lockdown of the onboarding convention (ADRs, TLA/Coq/Alloy, read-first order); added in v3-alpha-0.0.18 |
-| `decisions/formal-verifier-conventions.yaml` | Codifies the `tla:`/`coq:`/`alloy:` review-prefixes; added in v3-alpha-0.0.18 |
-| ~~`legacy/v2.1.md`~~ | Removed in v3-alpha-0.0.18; the v2.1 source is reachable via the `v2.1-final` tag (`git switch v2.1-final`) but is no longer indexed here |
+| `mc validate FILE` | Schema check on a decision |
+| `mc context BASE HEAD --budget N` | Bounded context capsule for an agent |
+| `mc explain REF` | Resolve a `kind:id` reference to its body |
+| `mc assess BASE HEAD` | List changed files between two git refs |
+| `mc attest FILE` | Import a JUnit XML report as JSON |
+| `mc gate BASE HEAD` | Assurance verdict for the diff |
+| `mc self-check` | Kernel passes its own repository + corpus |
+| `mc packages` | Index of decisions, obligations, verdicts |
+| `mc render` | Build the static site under `dist/` |
+| `mc time-estimate` | Honest duration claim from a reference class |
 
-## CLI subcommands
+Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
 
-See `spec/semantics.md` §"CLI subcommands" for the authoritative
-catalog of `mc validate`, `mc context`, `mc assess`, `mc attest`,
-`mc gate`, plus the time-honesty subcommands (`session-start`,
-`record`, `stats`, `time-estimate`). `bin/Mathc.ml` is the only
-implementation; the spec is the contract.
+## Pointers
 
-## For agents
-
-Read `AGENTS.md` first. It enumerates the read-first order, the
-bootstrap protocol, and the trap log location. Then read
-`ROADMAP.md` §"Priority queue" for what to work on next.
-
-## Foundations
-
-Five normative axioms in `axioms/`:
-
-- A0 Separation — kinds are distinct; chains go one way
-- A1 Feedback — every commitment has a path to observation
-- A2 Invariants — every invariant has an authorized recovery
-- A3 Self-application — the rules govern their own changes
-- A4 Care — owner, consequence, accountability required
-
-See [axioms/index.md](axioms/index.md) for the entry point and the
-table linking each axiom to the kernel properties that enforce it.
+- [`AGENTS.md`](AGENTS.md): agent protocol. Read first.
+- [`ROADMAP.md`](ROADMAP.md): priority queue and process principles.
+- [`PACKAGES.md`](PACKAGES.md): what exists in this repository.
+- [`spec/constitution.md`](spec/constitution.md): 14 invariants the kernel preserves.
+- [`axioms/`](axioms/index.md): A0 separation, A1 feedback, A2 invariants, A3 self-application, A4 care.
+- [`site/`](site/): published surface, built by `mc render`.
+- [`USAGE.md`](USAGE.md): adoption runbook.

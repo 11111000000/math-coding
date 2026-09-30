@@ -1,0 +1,143 @@
+---
+schema: math-coding/3.0-alpha
+id: site-deploy
+revision: 1
+
+intent: |
+  Restore the project's published surface (a static site at
+  `site/` rendered to `dist/`) under the 3.0 kernel's own
+  gate. The site **demonstrates** the methodology: it is
+  built by `mc render`, links between pages reuse the
+  `mc explain` and `mc packages` output, and the build
+  pipeline (`.github/workflows/site.yml`) is the same
+  `scripts/dev verify` shell the protocol mandates for
+  every other merge.
+
+  The site contains articles about mathoding — the methodology
+  that governs code change. The site is self-referential in the
+  A3 sense: the rules that govern the system also govern the
+  system's published explanation of itself.
+
+commitment: |
+  `bin/Mathc.ml` dispatches `mc render [--out DIR]` to invoke
+  a pure function in `lib/render.ml`. The render function:
+    1. reads source articles from `site/`,
+    2. walks `decisions/*.yaml` + `attestations/*.json` to
+       produce the package grid (`mc packages --format=html`),
+    3. emits a complete static site under `--out` (default
+       `dist/`) with index, axiom pages, methodology,
+       bootstrap-gate, decisions, packages, assets, and a
+       search index (JSON),
+    4. verifies every expected file exists (per
+       `scripts/render.sh` allowlist) and exits non-zero on
+       drift.
+
+  `scripts/render.sh` builds mathc via `scripts/dev build`
+  and runs `mc render`. `.github/workflows/site.yml` is
+  pinned to `ubuntu-22.04` and runs `scripts/render.sh` on
+  every push to main; the resulting `dist/` is published to
+  GitHub Pages.
+
+scope:
+  paths:
+    - lib/render.ml
+    - lib/packages.ml
+    - lib/dune
+    - bin/Mathc.ml
+    - bin/dune
+    - scripts/render.sh
+    - .github/workflows/site.yml
+    - site/
+    - assets/
+    - tests/render.ml
+    - tests/cli/render.t
+    - flake.nix
+    - decisions/site-deploy.yaml
+
+risk:
+  declared_triggers:
+    - site-generation-changes
+    - pages-deploy-config-changes
+  - counterexample: |
+      `scripts/render.sh` silently exits 0 even when a
+      required page is missing. Mitigation: the render
+      allowlist in `scripts/render.sh` is verified by
+      `tests/cli/render.t`, which exits non-zero on any
+      missing file. The render-allowlist and the test
+      list are the same set of paths, copy-pasted.
+  - pages_deploy_config_changes: |
+      GitHub Pages disabled at the repo level. The workflow
+      then publishes into a disabled sink, which silently
+      produces no artifact. Mitigation: the workflow uses
+      `actions/deploy-pages@v4` which fails open on a Pages
+      configuration error; the Pages URL is then asserted by
+      a `workflow_run` check on the next push. Until that
+      check exists, the deploy step is reviewed manually on
+      each release.
+
+obligations:
+  - id: render-kernel-impl
+    statement: |
+      `mc render` populates `dist/` with the full site tree.
+    outcome: render-impl
+    acceptance:
+      all:
+        - verifier: scripts/render.sh
+          result: pass
+        - verifier: tests/cli/render.t
+          result: pass
+
+  - id: site-content-self-referential
+    statement: |
+      At least 3 site articles cite the protocol's own
+      decisions (e.g. `bootstrap-v3`, `mc-packages-subcommand`,
+      `site-deploy`). The site is its own first consumer.
+    outcome: site-self-referential
+    acceptance:
+      all:
+        - verifier: grep -l "mc packages" dist/*.html | wc -l >= 3
+          result: pass
+
+  - id: site-deploy-pipeline
+    statement: |
+      `.github/workflows/site.yml` runs `scripts/render.sh` on
+      every push to main and publishes `dist/` to GitHub Pages.
+    outcome: site-deploy-pipeline
+    acceptance:
+      all:
+        - verifier: gh run list --workflow=site.yml --limit=1 --json status
+          result: pass
+
+  - id: site-pinned-ubuntu
+    statement: |
+      The site workflow pins to `ubuntu-22.04` (setup-ocaml/v2
+      needs darcs, unavailable on 24.04 default runners).
+    outcome: site-pinned-ubuntu
+    acceptance:
+      all:
+        - verifier: grep 'runs-on: ubuntu-22.04' .github/workflows/site.yml
+          result: pass
+
+evidence:
+  - kind: declared
+    statement: |
+      The site is built by the kernel, not by a parallel
+      walker. `lib/render.ml` has no `walk_decisions` function;
+      it imports `lib/packages.ml`.
+  - kind: observed
+    statement: |
+      On commit v3.0.0.20, `scripts/render.sh` produces
+      `dist/index.html`, `dist/axioms.html`, `dist/methodology.html`,
+      `dist/bootstrap-gate.html`, `dist/packages.html`,
+      `dist/decisions/*.html` (one per `decisions/*.yaml`),
+      `dist/axioms/A0.html` ... `dist/axioms/A4.html`,
+      and `dist/assets/style.css` + `dist/assets/site.js`.
+
+unknowns:
+  - Whether to ship a Spanish or French translation. v3.0.0.20
+    ships English only; v2.1 had `readme-ru.html`. Deferred.
+  - Whether the site should be served under a custom domain.
+    Deferred; default `math-coding` repo Pages URL.
+  - Whether to expose a `mc serve` for local preview. Implemented
+    as `scripts/dev serve` (calls `python3 -m http.server` on
+    `dist/`) — not a kernel surface.

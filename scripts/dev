@@ -5,23 +5,26 @@
 # Use these instead of "rm -rf _build" superstition.
 #
 # Usage:
-#   scripts/dev build           — compile kernel + CLI
-#   scripts/dev test            — run conformance suite
-#   scripts/dev rebuild         — full rebuild (when build is wedged)
-#   scripts/dev lint            — strict warnings-as-errors build
-#   scripts/dev verify          — full check before commit: build +
-#                                dune test + scripts/check.sh + fmt
-#   scripts/dev check           — nix flake check
-#   scripts/dev lock-update     — refresh flake.lock
-#   scripts/dev shell           — drop into nix develop .#test
-#   scripts/dev run FILE        — build + run mathc.exe FILE
-#   scripts/dev close-branches — list branches merged into main
+#   scripts/dev build                — compile kernel + CLI
+#   scripts/dev test                 — run conformance suite
+#   scripts/dev rebuild              — full rebuild (when build is wedged)
+#   scripts/dev lint                 — strict warnings-as-errors build
+#   scripts/dev verify               — full check before commit: build +
+#                                     dune test + scripts/check.sh + fmt
+#   scripts/dev check                — nix flake check
+#   scripts/dev close-branches       — list branches merged into main
+#                                     [--yes] also delete + push to origin
+#   scripts/dev init-hooks           — one-time: git config core.hooksPath
+#                                     .githooks
+#   scripts/dev lock-update          — refresh flake.lock
+#   scripts/dev shell                — drop into nix develop .#test
+#   scripts/dev run FILE             — build + run mathc.exe FILE
 
 set -eu
 cd "$(dirname "$0")/.."
 
 usage() {
-  sed -n '2,17p' "$0"
+  sed -n '2,21p' "$0"
   exit 1
 }
 
@@ -87,6 +90,64 @@ case "$cmd" in
     nix flake check
     ;;
 
+  close-branches)
+    # Branch-hygiene per decisions/process-principles-close-branches.yaml.
+    # List every local branch whose merge-base with `main` equals the
+    # branch HEAD (i.e. fully merged into main). Refuses to consider
+    # `main`, `HEAD`, or any `release/*` branch. With `--yes`, delete
+    # each listed branch locally and push the deletion to origin; the
+    # run is refused outright if any candidate has unpushed commits
+    # (`git log @{u}..<branch>` non-empty).
+    yes=0
+    if [ "${1:-}" = "--yes" ]; then
+      yes=1
+      shift
+    fi
+    main_sha=$(git rev-parse --verify main)
+    merged=()
+    while IFS= read -r b; do
+      case "$b" in
+        main|HEAD) continue ;;
+        release/*) continue ;;
+      esac
+      head_sha=$(git rev-parse --verify "$b" 2>/dev/null) || continue
+      mb=$(git merge-base "$main_sha" "$head_sha" 2>/dev/null) || continue
+      if [ "$mb" = "$head_sha" ]; then
+        echo "$b"
+        merged+=("$b")
+      fi
+    done < <(git for-each-ref --format='%(refname:short)' refs/heads/)
+
+    if [ "$yes" = "1" ]; then
+      # Refuse if any candidate has unpushed commits.
+      for b in "${merged[@]}"; do
+        [ -z "$b" ] && continue
+        if git rev-parse --verify "$b@{u}" >/dev/null 2>&1; then
+          if [ -n "$(git log "@{u}..$b" 2>/dev/null)" ]; then
+            echo "close-branches: refuse — $b has unpushed commits" >&2
+            exit 1
+          fi
+        fi
+      done
+      for b in "${merged[@]}"; do
+        [ -z "$b" ] && continue
+        git branch -d "$b"
+        git push origin --delete "$b" \
+          || echo "close-branches: push-failed for $b (no upstream?)" >&2
+      done
+    fi
+    exit 0
+    ;;
+
+  init-hooks)
+    # One-time per clone: point git at the in-repo .githooks/ dir.
+    # After this, .githooks/pre-commit fires on every commit and
+    # enforces process-principles P1 + P2 (see
+    # decisions/process-principles-close-branches.yaml).
+    git config core.hooksPath .githooks
+    echo "init-hooks: core.hooksPath set to .githooks/"
+    ;;
+
   lock-update)
     nix flake lock --update-input "$@"
     git diff flake.lock | head -50
@@ -101,26 +162,6 @@ case "$cmd" in
     if [ $# -lt 1 ]; then usage; fi
     file="$1"
     run_in_shell "dune build --root . bin/mathc.exe && _build/default/bin/mathc.exe '$file'"
-    ;;
-
-  close-branches)
-    # Branch-hygiene: list branches whose tip is reachable from main
-    # (already merged) and offer to delete them. Stale branches
-    # accumulate worktree noise (ROADMAP.md §P4). Refuses to delete
-    # branches that have unique commits ahead of main.
-    main_sha=$(git rev-parse main)
-    for b in $(git branch --format='%(refname:short)' \
-               | grep -v '^\*' \
-               | grep -vE '^(main|integration-tip)$'); do
-      sha=$(git rev-parse "$b" 2>/dev/null) || continue
-      if git merge-base --is-ancestor "$sha" main 2>/dev/null; then
-        echo "MERGED: $b  ($sha)"
-      else
-        echo "UNIQUE: $b  ($sha) — kept"
-      fi
-    done
-    echo
-    echo "To delete merged branches: git branch -d <name>"
     ;;
 
   ""|-h|--help|help)

@@ -15,5 +15,7 @@
   decision
   memory
   capsule
-  gate)
+  gate
+  packages
+  render)
  (libraries str))

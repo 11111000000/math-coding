@@ -1,15 +1,26 @@
-# Math-coding 3.0-alpha bootstrap protocol
+# Math-coding 3.0-alpha agent protocol
 
 > Project author: Petr Kosov <p.b.kosov@yandex.ru>
 
-This repository is migrating from math-coding 2.1 to 3.0-alpha. The
-3.0 kernel does not exist yet. Until `mathc self-check` passes, all
-assessments are manual declarations and MUST NOT be described as
-automated guarantees.
+This repository implements math-coding 3.0-alpha. As of v3.0.0.19
+(commit `8fa7fcf`) the bootstrap gate has expired: the released
+3.0 kernel successfully checks this repository and its conformance
+corpus (`mc self-check` is now a blocking CI step per
+`constitution.md` Invariant 14). Assessment verdicts produced by
+`mc gate`, `mc self-check`, and `mc assess` are automated
+guarantees, not manual declarations.
 
 The complete v2.1 source is preserved by the remote Git tag
 `v2.1-final`. Do not use v2 packet fields, commands, or lifecycle rules
 for new work.
+
+> Bootstrap history: between `v3-alpha-0.0.1` and `8fa7fcf` (Sep
+> 26–29, 2026) every change had to satisfy the eight manual
+> bootstrap checks below in lieu of a working kernel. Those
+> checks are now *additive* to automated guarantees: the
+> kernel still decides schema/reference/identity/freshness;
+> agents still owe counterexamples, evidence plans, and
+> recovery paths. See `ROADMAP.md` v3.0.0.20 for status.
 
 ## Read first
 
@@ -234,8 +245,17 @@ Candidate rules cannot authorize their own adoption.
 
 ## Bootstrap gate
 
-Until the 3.0 kernel is implemented, a change may proceed only when
-all applicable checks below are manually satisfied:
+The bootstrap protocol expired at commit `8fa7fcf` (v3.0.0.19,
+2026-09-29). The eight manual checks below remain *additive*
+obligations for agents working on protected policy transitions
+(constitution, kernel, gate rules, authority rules, waiver rules);
+they are no longer the only enforcement mechanism for routine
+work.
+
+For routine changes, automated guarantees apply: `mc validate`
+on the diff checks schema/reference/identity, `mc gate BASE HEAD`
+reports the assurance verdict, and CI blocks merge on a
+non-pass verdict via `mc self-check`. The agent still owes:
 
 - the intended behavior and affected capabilities are explicit;
 - known invariants are preserved or deliberately revised;
@@ -243,8 +263,9 @@ all applicable checks below are manually satisfied:
 - planned evidence is available or its absence is declared;
 - every known blocking deficit has a remedy;
 - rollback or forward recovery exists for irreversible work;
-- specification changes include positive and negative fixtures;
-- no automated guarantee is claimed.
+- specification changes include positive and negative fixtures.
 
-The bootstrap protocol expires when the released 3.0 kernel
-successfully checks this repository and its conformance corpus.
+For the protected-policy transition checklist (decision under
+prior policy, strongest countercase, fixtures, migration,
+recovery, prior authorization, verdict diff) see
+`AGENTS.md §Self-application`.

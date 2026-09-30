@@ -1,9 +1,13 @@
 # Math-coding 3.0-alpha — ROADMAP
 
-> **Status (2026-09-27, post-v3-alpha-0.0.11):** alpha kernel in place
-> for 14 of 14 constitution invariants; CLI surface complete (validate,
-> context, assess, attest, gate scaffold, time-estimate, session-start,
-> record, stats); 24 shell fixtures green on `scripts/dev verify`.
+> **Status (2026-09-29, post-v3.0.0.19):** bootstrap protocol **expired**
+> (commit `8fa7fcf`). The 3.0 kernel checks this repository and its
+> conformance corpus via `mc self-check`, which is a **blocking** CI
+> step per `constitution.md` Invariant 14. The attestation store at
+> `attestations/` is populated (75 files). CLI surface: `validate`,
+> `context`, `explain`, `assess`, `attest`, `gate`, `session-start`,
+> `record`, `stats`, `time-estimate`, `self-check`, `version`, `render`,
+> `packages`.
 >
 > **Author:** Petr Kosov <p.b.kosov@yandex.ru>
 > **License:** Apache-2.0 (see `LICENSE`, `NOTICE`)
@@ -26,37 +30,42 @@ without a `decisions/*.yaml` decision under the active policy.
 
 ## Priority queue (highest leverage first)
 
-### Tier 1 — protocol becomes executable
+### Tier 0 — bootstrap: closed
 
-| # | Task | Decision | Why |
+| # | Task | Decision | Status |
 |---|---|---|---|
-| 1 | `gate-attestation-store-fill` | (planned) `gate-attestation-store-fill@1` | Without an attestation store, `mc gate` returns `unknown` for every obligation. The gate is the only kernel primitive that can block merges; today it's a scaffold. |
-| 2 | `mc self-check` | (depends on #1) | Bootstrap expires when `mc self-check` checks this repository. Until then every assessment is a manual declaration, not an automated guarantee (see AGENTS.md). |
+| ~~1~~ | `gate-attestation-store-fill` | `gate-attestation-store-fill@2` | **closed** in commit `ed42290` |
+| ~~2~~ | `mc self-check` | `mc-self-check-subcommand@2` | **closed** in commit `758f340`; blocking CI in `8fa7fcf` |
+| ~~A~~ | `mc explain` dispatcher | `mc-explain-subcommand@1` | **closed** in commit `6e922d3` (broken promise from `omitted[].expansion` resolved) |
+| ~~B~~ | D1/D2 (YAML block-scalars + front-matter) | `yaml-block-scalars@3` | **closed** in commit `79d138b` (v3.0.0.19) |
+| ~~C~~ | D4 (SHA-256 RFC vectors) | `kernel-conformance-runner@1` | **closed** in commit `d77624b` |
 
-### Tier 2 — process hardening (one-time)
+### Tier 1 — process hardening (next)
 
-| # | Task | Effort | Closes |
-|---|---|---|---|
-| 3 | CI hook on PR (`.github/workflows/ci.yml`) | small | every merge to `main` runs `scripts/dev verify` in a fresh runner |
-| 4 | Branch-hygiene script (`scripts/dev close-branches`) | small | stops stale worktree accumulation |
-| 5 | Decision-fixture co-commit pre-commit hook | small | stops "decision without implementation" + "implementation without decision" drift |
+| # | Task | Decision | Effort | Closes |
+|---|---|---|---|---|
+| 1 | `scripts/dev close-branches` | `process-principles@2` | small | stale-worktree accumulation (D10) |
+| 2 | Decision-fixture co-commit pre-commit hook | `process-principles@2` | small | "decision without implementation" + "implementation without decision" drift |
+| 3 | Site deploy (`.github/workflows/site.yml`) | `site-deploy@1` | small | brings the protocol's published surface under its own gate |
+| 4 | `mc packages` subcommand | `mc-packages-subcommand@1` | small | first kernel decision without an HTTP round-trip |
+| 5 | `mc render` (site generator) | `site-deploy@1` | medium | brings v2.1's `core/render.ml` capability back under the 3.0 kernel |
 
-### Tier 3 — close specific audit deficits
+### Tier 2 — close specific audit deficits
 
 | # | Deficit | Status | Notes |
 |---|---|---|---|
-| 6 | D1/D2 (yaml-block-scalars impl) | **deferred**; decision @rev2 in main, implementation pending | `decisions/yaml-block-scalars-impl-pending.yaml` records the deferral with rationale |
+| 6 | D6 (bootstrap-v3 manual-only verifiers) | **closing** in v3.0.0.20 | `mc self-check` is blocking; manual-only verifiers move to machine-checked |
 | 7 | D5 (stale `bin/mathc_main.ml`) | **closed** in commit `191d1af` | |
 | 8 | D7 (adapters decision covers two obligations) | **closed** in commit `be5c4bd` | |
 | 9 | D3 (priority-drift detector) | **closed** in commit `4855a57` | |
 | 10 | D4 (spec-cli-catalog) | **closed** in commit `2c2a032` | |
+| 11 | D8 (`mc validate` coarse diagnostics) | open | tracked for 3.0-beta |
 
-### Tier 4 — kernel enrichment (after Tier 1)
+### Tier 3 — kernel enrichment (after Tier 1)
 
 - OCaml types to replace `lib/domain.ml` strings (`id` phantom types)
 - Decision validation against schema (currently parser-only)
-- `mc explain <decision-id>` (read the kernel verdict for a single decision)
-- Multi-policy hierarchy (activation boundary per spec/semantics.md §"Protected Policy Transition")
+- Multi-policy hierarchy (activation boundary per `spec/semantics.md` §"Protected Policy Transition")
 
 ## Process principles (binding on all agents)
 
