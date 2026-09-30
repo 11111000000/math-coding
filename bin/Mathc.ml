@@ -158,7 +158,7 @@ let emit (format : output_format) path
       exit 2
   | `Accept (d, extra_diags) ->
       let decision_id = d.Domain.id in
-      let revision = d.Domain.revision in
+      let revision = d.Domain.rev in
       let obligations = List.length d.Domain.obligations in
       let assumptions = List.length d.Domain.assumptions in
       (match format with

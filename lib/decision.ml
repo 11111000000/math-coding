@@ -185,6 +185,13 @@ let rec parse_assumption v =
                                   xs
                             | _ -> []
                           in
+                          let evidence = Schema.take_string ps "evidence" in
+                          (* confidence is typed as float option;
+                             the JSON parser only exposes Int,
+                             so leave None for now. A future parser
+                             update (Phase 2D) can wire up Float
+                             reading when the Jsonl module gains it. *)
+                          let confidence = None in
                           Some
                             {
                               Domain.id;
@@ -193,11 +200,27 @@ let rec parse_assumption v =
                               Domain.owner;
                               Domain.consequence_if_false = consequence;
                               Domain.review_on;
+                              Domain.evidence;
+                              Domain.confidence;
                             }
                       | _ -> None)
                   | _ -> None)
               | _ -> None)
           | _ -> None)
+      | _ -> None)
+  | _ -> None
+
+and parse_obligation_domain v =
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_string ps "obligation_kind" with
+      | Some obligation_kind ->
+          let path_namespace =
+            match Schema.take_string ps "path_namespace" with
+            | Some s -> s
+            | None -> ""
+          in
+          Some { Domain.obligation_kind; Domain.path_namespace }
       | _ -> None)
   | _ -> None
 
@@ -246,6 +269,11 @@ and parse_obligation v =
           | Some k -> k
           | None -> `Invariant
         in
+        let obligation_domain =
+          match Schema.take_object ps "obligation_domain" with
+          | Some ops -> parse_obligation_domain (Jsonl.Object ops)
+          | _ -> None
+        in
         Some
           {
             Domain.id;
@@ -256,6 +284,7 @@ and parse_obligation v =
             Domain.acceptance;
             Domain.kind;
             Domain.phase;
+            Domain.obligation_domain;
           }
   | _ -> None
 
@@ -325,10 +354,64 @@ and parse_decision v =
                                   in
                                   match Schema.take_string rps "owner" with
                                   | Some owner ->
+                                      let counterexample =
+                                        match
+                                          Schema.take_array ps "counterexample"
+                                        with
+                                        | Some xs ->
+                                            List.filter_map
+                                              (fun x ->
+                                                match x with
+                                                | Jsonl.String s -> Some s
+                                                | _ -> None)
+                                              xs
+                                            |> String.concat "\n"
+                                            |> fun s -> Some s
+                                        | _ -> None
+                                      in
+                                      let state_str =
+                                        match Schema.take_string ps "state" with
+                                        | Some s -> s
+                                        | None -> "active"
+                                      in
+                                      let state =
+                                        match
+                                          Codec.parse_decision_state state_str
+                                        with
+                                        | Some s -> s
+                                        | None -> `Active
+                                      in
+                                      let mode_str =
+                                        match Schema.take_string ps "mode" with
+                                        | Some s -> s
+                                        | None -> "standard"
+                                      in
+                                      let mode =
+                                        match Codec.parse_mode mode_str with
+                                        | Some m -> m
+                                        | None -> `Standard
+                                      in
+                                      let mode_floor_used =
+                                        match
+                                          Schema.take_string ps
+                                            "mode_floor_used"
+                                        with
+                                        | Some s -> (
+                                            match Codec.parse_mode s with
+                                            | Some m -> Some m
+                                            | None -> None)
+                                        | None -> None
+                                      in
+                                      let body_sha =
+                                        Schema.take_string ps "body_sha"
+                                      in
+                                      let yaml_sha =
+                                        Schema.take_string ps "yaml_sha"
+                                      in
                                       Some
                                         {
                                           Domain.id;
-                                          Domain.revision;
+                                          Domain.rev = revision;
                                           Domain.parents;
                                           Domain.intent_source = source;
                                           Domain.intent_text = text;
@@ -346,10 +429,22 @@ and parse_decision v =
                                             };
                                           Domain.relations =
                                             {
+                                              Domain.revises = [];
                                               Domain.supersedes = [];
-                                              Domain.addresses = [];
+                                              Domain.superseded_by = [];
+                                              Domain.refines = [];
                                               Domain.depends_on = [];
+                                              Domain.conflicts_with = [];
+                                              Domain.addresses = [];
+                                              Domain.implements = [];
+                                              Domain.verifies = [];
                                             };
+                                          Domain.counterexample;
+                                          Domain.state;
+                                          Domain.mode;
+                                          Domain.mode_floor_used;
+                                          Domain.body_sha;
+                                          Domain.yaml_sha;
                                         }
                                   | _ -> None)
                               | _ -> None)
