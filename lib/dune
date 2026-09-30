@@ -17,6 +17,7 @@
   capsule
   gate
   packages
+  policy
   render
   risk)
  (libraries str))
