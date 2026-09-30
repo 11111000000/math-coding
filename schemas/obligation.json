@@ -11,7 +11,28 @@
     "claim": {"type": "string", "minLength": 1},
     "subjects": {"$ref": "common.json#/definitions/scope"},
     "acceptance": {"$ref": "common.json#/definitions/acceptance"},
-    "phase": {"enum": ["pre-merge", "pre-release", "post-release"]},
-    "kind": {"enum": ["invariant", "acceptance", "recovery", "operational"]}
+    "phase": {
+      "description": "Enforcement phase. See spec/algebra-3.2.md §15. pre_merge blocks the merge gate; pre_release blocks the release gate; post_release is monitoring-only and surfaces AssuranceGap.",
+      "type": "string",
+      "enum": ["pre_merge", "pre_release", "post_release"],
+      "default": "pre_merge"
+    },
+    "kind": {"enum": ["invariant", "acceptance", "recovery", "operational"]},
+    "obligation_domain": {
+      "description": "Classifier pair (kind + namespace) used by the auto-inference rule and the gate. See spec/algebra-3.2.md §8.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["obligation_kind"],
+      "properties": {
+        "obligation_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path_namespace": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
   }
 }

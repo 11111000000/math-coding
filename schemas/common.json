@@ -14,6 +14,37 @@
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
+    "epistemic_marker": {
+      "description": "Epistemic status of an assumption. See spec/algebra-3.2.md §7 and axiom A5 (v0.854).",
+      "enum": ["fact", "hypothesis", "judgment", "unknown", "proven"]
+    },
+    "relation_kind": {
+      "description": "Directed relation between two Decisions. See spec/algebra-3.2.md §7.",
+      "enum": [
+        "revises",
+        "supersedes",
+        "refines",
+        "depends_on",
+        "conflicts_with",
+        "addresses",
+        "implements",
+        "verifies"
+      ]
+    },
+    "mode_floor": {
+      "description": "Minimum assurance mode applied to a decision or policy. See spec/algebra-3.2.md §3.",
+      "enum": ["tiny", "light", "standard", "strict", "exhaustive"]
+    },
+    "environment_class_label": {
+      "description": "Coarse environment class label. See spec/algebra-3.2.md §13.",
+      "enum": ["dev", "staging", "staging-integration", "prod-mirror", "prod"]
+    },
+    "environment_class_level": {
+      "description": "Numeric level for environment_class_label. 0=dev, 4=prod. See spec/algebra-3.2.md §13.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
     "scope_target": {
       "oneOf": [
         {

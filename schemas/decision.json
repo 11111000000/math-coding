@@ -29,6 +29,32 @@
     },
     "commitment": {"type": "string", "minLength": 1},
     "scope": {"$ref": "common.json#/definitions/scope"},
+    "state": {
+      "description": "Lifecycle state of this Decision. See spec/algebra-3.2.md §7.",
+      "type": "string",
+      "enum": ["draft", "active", "retired", "superseded"],
+      "default": "active"
+    },
+    "mode_floor_used": {
+      "description": "Assurance mode floor applied to this Decision at authoring time. See spec/algebra-3.2.md §3, §7.",
+      "$ref": "common.json#/definitions/mode_floor"
+    },
+    "body_sha": {
+      "description": "sha256 of the Decision body (excluding the YAML wrapper). See spec/algebra-3.2.md §7.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "yaml_sha": {
+      "description": "sha256 of the sibling YAML wrapper, if present. See spec/algebra-3.2.md §7.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "axiom_link": {
+      "description": "Axiom IDs (e.g. 'A1', 'A3') this Decision addresses. See spec/algebra-3.2.md §7.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
     "outcomes": {
       "type": "array", "minItems": 1, "uniqueItems": true,
       "items": {
@@ -61,6 +87,21 @@
                 "date": {"$ref": "common.json#/definitions/timestamp"}
               }
             }
+          },
+          "epistemic_marker": {
+            "description": "5-marker epistemic status per axiom A5 (v0.854) and algebra §7.",
+            "$ref": "common.json#/definitions/epistemic_marker"
+          },
+          "confidence": {
+            "description": "Numeric confidence in [0.0, 1.0]. Required when epistemic_marker ∈ {fact, hypothesis}. See algebra §7.",
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "evidence": {
+            "description": "Evidence reference for judgment-state assumptions. See algebra §7.",
+            "type": "string",
+            "minLength": 1
           }
         }
       }
@@ -94,10 +135,46 @@
     },
     "relations": {
       "type": "object", "additionalProperties": false,
+      "description": "Directed relations to other Decisions. See spec/algebra-3.2.md §7 for kind semantics and acyclicity invariants (I6, I7).",
       "properties": {
-        "supersedes": {"type": "array", "items": {"type": "string"}},
-        "addresses": {"type": "array", "items": {"type": "string"}},
-        "depends_on": {"type": "array", "items": {"type": "string"}}
+        "revises": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "supersedes": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "superseded_by": {
+          "description": "Inverse of supersedes: Decisions that supersede this one. Already in use by 28 existing decisions; formalised in algebra §7.",
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "refines": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "depends_on": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "conflicts_with": {
+          "description": "Symmetric mutual exclusion. See algebra §7 invariant: D₁ ∈ D₂.conflicts_with ⟺ D₂ ∈ D₁.conflicts_with.",
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "addresses": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "implements": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "verifies": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
       }
     },
     "time": {

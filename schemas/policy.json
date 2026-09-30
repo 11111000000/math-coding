@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.0-alpha/policy.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "kind", "policy_id", "scope_paths", "obligations"],
+  "properties": {
+    "schema": {"const": "math-coding/3.0-alpha/policy"},
+    "kind": {"const": "policy"},
+    "policy_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "description": "Stable identifier for this policy. Referenced from Decisions via obligation.policy_id and from §9 policy(p)."
+    },
+    "scope_paths": {
+      "description": "Glob patterns of paths this policy applies to. See spec/algebra-3.2.md §9.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "obligations": {
+      "description": "Obligations that bind any Decision touching scope_paths (direct) or transitive_into paths (transitive).",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "obligation.json"}
+    },
+    "mode_floor": {
+      "description": "Minimum assurance mode required for any Decision touching this policy. See spec/algebra-3.2.md §3, §9.",
+      "$ref": "common.json#/definitions/mode_floor"
+    },
+    "transitive_into": {
+      "description": "Paths that inherit this policy's obligations via data flow (imports/exports reachability). See spec/algebra-3.2.md §9 transitive_paths.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "data_flow_edges": {
+      "description": "Inferred or declared data-flow edges between paths. The transitive closure drives transitive_paths(c). See spec/algebra-3.2.md §9.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "target", "kind"],
+        "properties": {
+          "source": {"type": "string", "minLength": 1},
+          "target": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["import", "export"]}
+        }
+      }
+    }
+  }
+}

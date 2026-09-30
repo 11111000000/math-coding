@@ -33,7 +33,33 @@
         "run": {"type": "string"}
       }
     },
-    "environment_class": {"type": "string"},
+    "environment_class": {
+      "description": "Free-form environment class string (legacy). Use environment_class_label + environment_class_level for new attestations.",
+      "type": "string"
+    },
+    "environment_class_level": {
+      "description": "Numeric environment class level 0..4. See spec/algebra-3.2.md §13 and §14 (decisive_threshold).",
+      "$ref": "common.json#/definitions/environment_class_level"
+    },
+    "environment_class_label": {
+      "description": "Coarse environment class label. See spec/algebra-3.2.md §13.",
+      "$ref": "common.json#/definitions/environment_class_label"
+    },
+    "ci_run_id": {
+      "description": "Identifier of the CI run that produced this attestation. Used as input to attestation id derivation. See spec/algebra-3.2.md §13.",
+      "type": "string",
+      "minLength": 1
+    },
+    "substrate_digest": {
+      "description": "sha256 of (kernel version || ocaml version || dependency digests). See spec/algebra-3.2.md §13, §16.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "substrate_fingerprint": {
+      "description": "Identifier (𝓢.id) of the substrate declaration this attestation was produced against. See spec/algebra-3.2.md §13, §16.",
+      "type": "string",
+      "minLength": 1
+    },
     "result": {"enum": ["pass", "fail", "inconclusive", "infrastructure-error"]},
     "issued_at": {"$ref": "common.json#/definitions/timestamp"},
     "valid_until": {"$ref": "common.json#/definitions/timestamp"},
