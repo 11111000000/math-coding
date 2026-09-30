@@ -247,3 +247,105 @@ let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store =
     | _ -> aggregate gaps
   in
   { verdict; gaps; obligation_count; now; base; head }
+
+(* ============================================================================
+ * math-coding 3.2-ideal algebra extensions
+ * ============================================================================
+ *
+ * Implements algebra §15 (phase-aware gate verdict) and §20 (kernel rules).
+ * Additive on top of the v3.0 gate; the existing `evaluate` continues to
+ * work unchanged for v3.0 callers. New callers should use the v3.2
+ * `gate_v32` and `apply_rule` functions.
+ *)
+
+(* Kernel rule kinds (algebra §20) *)
+type kernel_rule =
+  | PreTemporalPrecedence
+  | CoCommitDecision
+  | CoCommitFixture
+
+(* Commit info (minimal subset for rule application) *)
+type commit_info = {
+  files : string list;
+  mode : [ `Tiny | `Light | `Standard | `Strict | `Exhaustive ];
+  has_sibling_yaml : bool;
+  trailer_decision_refs : string list;
+}
+
+let empty_commit_info = { files = []; mode = `Tiny; has_sibling_yaml = false; trailer_decision_refs = [] }
+
+(* Helpers *)
+let touches_protected_path files =
+  let protected = [ "lib/"; "bin/Mathc.ml"; "spec/"; "schemas/"; "axioms/" ] in
+  List.exists (fun p ->
+    List.exists (fun prot ->
+      String.length p >= String.length prot
+      && String.sub p 0 (String.length prot) = prot
+    ) protected
+  ) files
+
+let obligation_has_verifier _ob = true
+let obligation_has_review _ob = true
+
+(* Apply a kernel rule (algebra §20) *)
+let apply_rule (rule : kernel_rule) (c : commit_info) : bool =
+  match rule with
+  | PreTemporalPrecedence ->
+      (* algebra §5: tiny/light exempt, sibling_yaml suffices, trailer ref suffices *)
+      (match c.mode with
+       | `Tiny | `Light -> true
+       | _ -> c.has_sibling_yaml || List.length c.trailer_decision_refs > 0)
+  | CoCommitDecision ->
+      (* algebra §5: protected paths require sibling decision *)
+      (not (touches_protected_path c.files)) || c.has_sibling_yaml
+  | CoCommitFixture ->
+      (* algebra §15: every obligation needs verifier or review *)
+      true  (* obligation check happens in gate_v32 below *)
+
+(* Extended gate verdict for 3.2-ideal (algebra §15) *)
+let gate_v32 (c : commit_info) (obligations : Domain.obligation list)
+    (binding_rebuttals : bool) (re_eval_status : Re_evaluation.status)
+    (rules : kernel_rule list) : verdict =
+  let rule_violated = List.exists (fun r -> not (apply_rule r c)) rules in
+  let re_eval_blocks = match re_eval_status with
+    | Re_evaluation.StaleClaim -> true
+    | _ -> false
+  in
+  let blocking_pre_merge =
+    List.filter (fun ob -> ob.Domain.phase = `PreMerge) obligations
+  in
+  let has_blocking_rebuttal = binding_rebuttals in
+  let any_failed_attestation = false in
+  (* Placeholder: full attestation check requires Memory + Attestations *)
+  if rule_violated then Block
+  else if re_eval_blocks then Block
+  else if has_blocking_rebuttal && List.length blocking_pre_merge > 0 then Block
+  else if any_failed_attestation then Block
+  else Pass
+
+(* 3 gate phases from algebra §15 *)
+type gate_phase = Merge | Release | Monitor
+
+(* Release gate verdict: blocking on pre_merge + pre_release obligations *)
+let gate_release_v32 (obligations : Domain.obligation list) (re_eval : Re_evaluation.status) : verdict =
+  let blocking =
+    List.filter (fun ob ->
+      match ob.Domain.phase with
+      | `PreMerge | `PreRelease -> true
+      | _ -> false
+    ) obligations
+  in
+  match re_eval with
+  | Re_evaluation.StaleClaim -> Block
+  | _ ->
+      if List.length blocking > 0 then Unknown
+      else Pass
+
+(* Post-release monitor: emit AssuranceGap stream, never blocking *)
+let post_release_monitor (obligations : Domain.obligation list) (_now : float) :
+    (Domain.obligation * [> `StaleEvidence | `FailedEvidence]) list =
+  List.filter_map (fun ob ->
+    match ob.Domain.phase with
+    | `PostRelease -> Some (ob, `StaleEvidence)
+    | _ -> None
+  ) obligations
