@@ -280,6 +280,47 @@ brief evidence.
   `human:maintainer` ; manual: deferral decision was superseded at
   v3.0.0.19 by `decisions/yaml-block-scalars.yaml@3`.
 
+## D6-bootstrap-v3-verifiers-implemented (v3.0.0.20)
+
+- `D6-bootstrap-v3-verifiers-implemented/D6-verifiers-machine-checked` ->
+  `build` ; `ci:build:self-check` ; `MATH_CODING_ATTESTATION_STORE=attestations
+  mathc self-check` exits 0 with verdict=pass on clean HEAD.
+
+## mc-packages-subcommand (v3.0.0.20)
+
+- `mc-packages-subcommand/packages-kernel-walker` -> `build` ;
+  `ci:build:packages` ; `mc packages --format=json` lists every
+  decision-obligation pair (count > 0 in this repo).
+- `mc-packages-subcommand/packages-cli-dispatcher` -> `test` ;
+  `ci:fixture:cram` ; `tests/cli/packages.t` exits 0.
+- `mc-packages-subcommand/packages-site-bridge` -> `build` ;
+  `ci:build:render` ; `dist/index.html` carries `data-mc-package-count`
+  matching `mc packages --format=json | jq '.counts.total'`.
+
+## process-principles-close-branches (v3.0.0.20)
+
+- `process-principles-close-branches/close-branches-impl` -> `test` ;
+  `ci:fixture:shell` ; `tests/fixtures/close-branches-runs.sh` exits 0
+  AND `tests/process_principles.ml` P6 case passes.
+- `process-principles-close-branches/pre-commit-hook-impl` -> `test` ;
+  `ci:fixture:shell` ; `tests/fixtures/pre-commit-hook-installed.sh`
+  exits 0 AND `bash -n .githooks/pre-commit` exits 0.
+
+## site-deploy (v3.0.0.20)
+
+- `site-deploy/render-kernel-impl` -> `build` ; `ci:build:render` ;
+  `scripts/render.sh` exits 0 AND `tests/cli/render.t` exits 0.
+- `site-deploy/site-content-self-referential` -> `test` ;
+  `ci:fixture:shell` ; `grep -l "mc packages" dist/*.html | wc -l`
+  returns >= 3 (every site page that documents a kernel feature
+  references `mc packages`).
+- `site-deploy/site-deploy-pipeline` -> `build` ; `ci:workflow:site` ;
+  `.github/workflows/site.yml` runs `scripts/render.sh` on every
+  push to main and publishes `dist/` to GitHub Pages.
+- `site-deploy/site-pinned-ubuntu` -> `review` ; `human:maintainer` ;
+  manual: `.github/workflows/site.yml` pins `runs-on: ubuntu-22.04`
+  in both `build` and `deploy` jobs.
+
 ## Notes for the generating agent
 
 - Set `kind_` per the row above.
