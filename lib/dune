@@ -17,5 +17,6 @@
   capsule
   gate
   packages
+  re_evaluation
   render)
  (libraries str))
