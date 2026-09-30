@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: process-principles-close-branches
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Implement `scripts/dev close-branches`, the long-promised
   branch-hygiene utility from ROADMAP Tier-2 #4. Closes audit

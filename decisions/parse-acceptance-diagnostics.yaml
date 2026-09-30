@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: parse-acceptance-diagnostics
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Close OCAML_BEST_PRACTICES §9.1: when an obligation's acceptance
   item carries both `verifier` and `review` fields on the same

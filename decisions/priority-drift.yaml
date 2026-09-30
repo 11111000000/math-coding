@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: priority-drift
 revision: 2
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Close deficit D3 from doc/AUDIT-0.0.11.md by adding a machine
   check that the priority table in spec/semantics.md

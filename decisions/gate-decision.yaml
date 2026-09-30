@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: gate-decision
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Introduce the `mc gate BASE HEAD` subcommand that evaluates a
   candidate tree against the active policy and produces a gate

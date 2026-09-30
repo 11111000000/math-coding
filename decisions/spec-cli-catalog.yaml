@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: spec-cli-catalog
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Close the doc/AUDIT-0.0.11.md "Promote `mc validate`, `mc
   context`, `mc assess`, `mc attest` in `spec/semantics.md`" gap

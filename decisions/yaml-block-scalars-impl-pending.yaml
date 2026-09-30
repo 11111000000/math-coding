@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: yaml-block-scalars-impl-pending
 revision: 2
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Record that the parent obligation `yaml-block-scalars-supported`
   (from `bootstrap/yaml-block-scalars.yaml@2`, now

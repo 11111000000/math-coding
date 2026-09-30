@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: infrastructure-honesty
 revision: 1
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Repair four classes of dishonest infrastructure state that the v3-alpha
   bootstrap inherited: CI workflows that reference non-existent paths,

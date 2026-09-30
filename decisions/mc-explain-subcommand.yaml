@@ -3,6 +3,9 @@ schema: math-coding/3.0-alpha
 id: mc-explain-subcommand
 revision: 2
 
+state: active
+body_sha: ""
+yaml_sha: ""
 intent: |
   Close the broken promise in shipped code: `lib/capsule.ml:88`
   emits `mc explain <detail_ref>` as the expansion command for
