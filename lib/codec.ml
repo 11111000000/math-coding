@@ -702,3 +702,28 @@ let[@warning "-32"] load_yaml_string raw =
   let tokens = yaml_tokens (String.concat "\n" (strip_frontmatter raw)) in
   let pairs, _ = parse_yaml_pairs tokens 0 in
   Jsonl.Object pairs
+
+(* Variant of load_yaml_string that returns the parsed Jsonl.value
+   directly (Object OR Array OR scalar). load_yaml_string is
+   hard-coded to call parse_yaml_pairs and always returns Object,
+   which silently drops top-level YAML sequences such as the
+   policies.yaml file used by lib/policy.ml (spec/algebra-3.2.md
+   §9 multi-policy). This wrapper calls parse_yaml_value instead,
+   which dispatches to parse_yaml_pairs or parse_yaml_seq based
+   on whether the leading token is a dash-item. *)
+let[@warning "-32"] load_yaml_value raw =
+  let strip_frontmatter s =
+    let lines = yaml_lines s in
+    match lines with
+    | "---" :: rest ->
+        let rec skip_body acc = function
+          | [] -> List.rev acc
+          | "---" :: _ -> List.rev acc
+          | l :: rest -> skip_body (l :: acc) rest
+        in
+        skip_body [] rest
+    | _ -> lines
+  in
+  let tokens = yaml_tokens (String.concat "\n" (strip_frontmatter raw)) in
+  let value, _ = parse_yaml_value tokens 0 in
+  value

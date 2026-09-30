@@ -17,5 +17,6 @@
   capsule
   gate
   packages
+  policy
   render)
  (libraries str))
