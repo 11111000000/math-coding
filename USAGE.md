@@ -18,11 +18,11 @@ Two ways to get `mc` (`bin/mathc.exe` once compiled):
 1. Put the `mc` binary on `PATH` (a `tools/` directory keeps the repo
    self-contained).
 2. Create `decisions/decision.yaml` mirroring the active policy at
-   [`p.b.kosov@yandex.ru/math-coding/decisions/decision.yaml`](https://github.com/p.b.kosov/math-coding/blob/main/decisions/decision.yaml).
+   [`math-coding/decisions/decision.yaml`](https://github.com/11111000000/math-coding/blob/main/decisions/decision.yaml).
    Start by copying the file verbatim and changing the scope paths.
 3. Add an empty `attestations/` directory and commit it.
 4. Mirror `.github/workflows/ci.yml` from
-   [`p.b.kosov@yandex.ru/math-coding/.github/workflows/ci.yml`](https://github.com/p.b.kosov/math-coding/blob/main/.github/workflows/ci.yml).
+   [`math-coding/.github/workflows/ci.yml`](https://github.com/11111000000/math-coding/blob/main/.github/workflows/ci.yml).
    The `mc self-check` step must run as a blocking gate (no
    `continue-on-error: true`).
 5. First run, populate the store:
@@ -30,7 +30,9 @@ Two ways to get `mc` (`bin/mathc.exe` once compiled):
    one `decision<TAB>obligation<TAB>kind<TAB>identity` row per line
    and writes one attestation JSON per row into `attestations/`. The
    manual equivalent is one JSON file per obligation matching
-   `schemas/attestation.json`.
+   `schemas/attestation.json`. The math-coding repo itself uses
+   `scripts/generate-attestations-v3.0.0.20.sh` as a worked example
+   for one release's batch.
 6. Open a first PR. CI must be green on `mc self-check` before the
    next decision lands.
 

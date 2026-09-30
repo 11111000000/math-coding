@@ -6,7 +6,12 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: tag `v3.0.0.20`.
+Last verified at: tag `v3.0.0.20`. Attestation store at
+`attestations/` contains 80 files; `mc packages` reports 25
+decisions (after the meta-file filter) / 72 obligations (all
+passing). `mc self-check` on a clean tree returns verdict `pass`
+with `subjects_count=27` (the master policy's 7 obligations
+count separately).
 
 **Cross-references:**
 - `ROADMAP.md` — priorities, tier ordering, process principles (P1–P7)

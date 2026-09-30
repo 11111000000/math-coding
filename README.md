@@ -58,5 +58,7 @@ Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
 - [`PACKAGES.md`](PACKAGES.md): what exists in this repository.
 - [`spec/constitution.md`](spec/constitution.md): 14 invariants the kernel preserves.
 - [`axioms/`](axioms/index.md): A0 separation, A1 feedback, A2 invariants, A3 self-application, A4 care.
-- [`site/`](site/): published surface, built by `mc render`.
+- [`site/`](site/): published surface, built by `mc render` and
+  deployed to [GitHub Pages](https://11111000000.github.io/math-coding/)
+  by `.github/workflows/site.yml`.
 - [`USAGE.md`](USAGE.md): adoption runbook.
