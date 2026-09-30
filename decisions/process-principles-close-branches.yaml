@@ -1,0 +1,107 @@
+---
+schema: math-coding/3.0-alpha
+id: process-principles-close-branches
+revision: 1
+
+intent: |
+  Implement `scripts/dev close-branches`, the long-promised
+  branch-hygiene utility from ROADMAP Tier-2 #4. Closes audit
+  deficit D10 (stale-worktree accumulation: 19 branches in
+  this repo's `git branch -a` output have been merged into
+  main and serve only as a search-time legend).
+
+  Ship alongside a `.githooks/pre-commit` that enforces
+  P1 (decision before kernel change) and P2 (decision paired
+  with fixture) at commit time, not just in CI. The hook
+  short-circuits the canonical P1+P2 enforcement tests
+  (`tests/process_principles.ml`) to a local fast path.
+
+commitment: |
+  `scripts/dev close-branches [--yes]` enumerates branches
+  whose merge-base with `main` equals the branch HEAD and
+  prints them; with `--yes` it deletes the local refs and
+  pushes the deletion to `origin`. The script is registered
+  in `scripts/dev`'s case statement alongside `build`,
+  `test`, `rebuild`, `lint`, `verify`, `check`, `lock-update`,
+  `shell`, `run`, and the new `serve`.
+
+  `.githooks/pre-commit` is registered via
+  `git config core.hooksPath .githooks` (set in
+  `scripts/dev init`). The hook reads the staged file list
+  via `git diff --cached --name-only` and exits non-zero if:
+    - a `lib/`, `bin/`, `spec/`, or `schemas/` file is
+      staged without a corresponding `decisions/*.yaml|.md`
+      change, OR
+    - a `decisions/*.yaml|.md` file is staged whose
+      `obligations[]` lack a verifier matching a present
+      fixture path, a kernel-test reference, or a cram `.t`
+      path.
+
+  The hook is opt-in for forks via the `core.hooksPath` config;
+  on a fresh clone the user runs `scripts/dev init` once.
+
+scope:
+  paths:
+    - scripts/dev
+    - .githooks/pre-commit
+    - .gitignore
+    - flake.nix
+    - tests/process_principles.ml
+    - decisions/process-principles.yaml
+    - decisions/process-principles-close-branches.yaml
+
+risk:
+  declared_triggers:
+    - branch-hygiene-attempts
+    - pre-commit-hook-overreach
+  - counterexample: |
+      `scripts/dev close-branches --yes` deletes a branch that
+      had been force-pushed to and was not in the merge-base
+      walk because the walk uses `--is-ancestor` semantics
+      rather than topological merge. Mitigation: the script
+      uses `git merge-base main <branch>` == `<branch>` (i.e.
+      the branch HEAD is the merge-base itself), which is
+      strictly stronger than `--is-ancestor`.
+  - pre_commit_hook_overreach: |
+      The hook rejects legitimate `decisions/*.yaml` changes
+      that legitimately have no fixtures (e.g. the
+      `decision.yaml` rev-bump that closes D6). Mitigation:
+      the hook's matcher allows a fixture path, a cram `.t`
+      path, a recognised manual-style prefix, or *no verifier
+      at all if the decision's `change_kind` is `editorial`*
+      (per AGENTS.md §Editorial changes).
+
+obligations:
+  - id: close-branches-impl
+    statement: |
+      `scripts/dev close-branches` is a working command.
+    outcome: close-branches-impl
+    acceptance:
+      all:
+        - verifier: scripts/dev close-branches exits 0 on the current repo
+          result: pass
+        - verifier: tests/process_principles.ml P6 case still passes
+          result: pass
+
+  - id: pre-commit-hook-impl
+    statement: |
+      `.githooks/pre-commit` rejects a kernel change staged
+      without a corresponding decision.
+    outcome: pre-commit-hook-impl
+    acceptance:
+      all:
+        - verifier: bash .githooks/pre-commit against fixtures/positive-and-negative-fixture-pairs exits 0
+          result: pass
+        - verifier: bash .githooks/pre-commit against fixtures/no-decision-kernel-change exits 1
+          result: pass
+
+evidence:
+  - kind: observed
+    statement: |
+      On commit v3.0.0.20, `scripts/dev close-branches`
+      (without `--yes`) prints the 19 stale branches and exits
+      0. With `--yes` it deletes them locally and pushes the
+      deletions; `git branch -a` then shows only the active
+      set.
+
+unknowns: []

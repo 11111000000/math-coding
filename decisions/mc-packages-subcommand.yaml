@@ -1,0 +1,139 @@
+---
+schema: math-coding/3.0-alpha
+id: mc-packages-subcommand
+revision: 1
+
+intent: |
+  Add `mc packages` — a kernel-level subcommand that enumerates
+  every package (decision + obligation pair) in the repository,
+  its current verdict, the verifier, and the most recent
+  attestation status. This is the operator's single-pane view
+  of the project's assurance surface; without it, callers must
+  manually walk `decisions/*.yaml`, `attestations/*.json`, and
+  `doc/AUDIT-*.md` to recover the same picture.
+
+  The site at `cmd/members/site/index.md` reads this output via
+  `mc packages --format=html` to render the package grid page,
+  so the subcommand also serves as the bridge between the
+  kernel and the project's published surface.
+
+commitment: |
+  `bin/Mathc.ml` dispatches `mc packages [--format=text|json|html]`.
+  The dispatcher invokes a pure function in `lib/packages.ml`
+  that:
+    1. enumerates every `decisions/*.yaml` and `decisions/*.md`,
+    2. for each decision, walks its `obligations[]`,
+    3. joins each obligation with the attestation store at
+       `attestations/`,
+    4. computes a per-obligation verdict (pass | fail | unknown
+       | waived | stale | missing) by the rules in
+       `spec/semantics.md §Evaluation`,
+    5. emits a sorted-key JSON object (default), plain text
+       table (`--format=text`), or a self-contained HTML
+       fragment (`--format=html`).
+
+  A new cram fixture `tests/cli/packages.t` exercises the
+  positive path; a kernel unit test in `tests/packages.ml`
+  asserts the negative path (empty `decisions/`).
+
+  The `site/index.md` page is generated from this subcommand's
+  `--format=html` output. No additional kernel surface is
+  added for the site; the site is a *consumer* of `mc
+  packages`, not a parallel source of truth.
+
+scope:
+  paths:
+    - lib/packages.ml
+    - lib/dune
+    - bin/Mathc.ml
+    - bin/dune
+    - tests/packages.ml
+    - tests/dune
+    - tests/cli/packages.t
+    - site/index.md
+    - site/packages.md
+    - scripts/render.sh
+    - spec/semantics.md
+    - schemas/common.json
+    - decisions/mc-packages-subcommand.yaml
+  exclusions:
+    - lib/git/**
+    - lib/junit/**
+    - attestations/**
+
+risk:
+  declared_triggers:
+    - decision-graph-walk-changes
+    - site-rendering-changes
+  - counterexample: |
+      The package walker fails silently on a `decisions/*.yaml`
+      with a malformed obligation (e.g. `acceptance` is a string
+      instead of an object). The site then renders a partial
+      grid. Mitigation: the walker returns `Result::Diagnostic`
+      on the first parse error and the dispatcher exits non-zero;
+      `site/index.md` is regenerated only when the kernel
+      succeeds. Cf. `OCAML_BEST_PRACTICES.md §10.1` (adapters
+      surface parse errors as `Diagnostic.t`, not as silent
+      omissions).
+  - decision_graph_wal_changes: |
+      The schema for `obligation.acceptance` evolves (e.g. an
+      `any:` combinator is added). The walker misses the new
+      branch and produces empty verdicts. Mitigation: a
+      conformance runner obligation (`kernel-conformance-runner`)
+      already enumerates every obligation; the walker joins on
+      the same key. Any schema drift shows up as a conformance
+      runner failure before it reaches the site.
+
+obligations:
+  - id: packages-kernel-walker
+    statement: |
+      The kernel function in `lib/packages.ml` enumerates every
+      decision-obligation pair and emits a verdict per obligation.
+    outcome: packages-kernel
+    acceptance:
+      all:
+        - verifier: mathc packages --format=json lists every obligation
+          result: pass
+
+  - id: packages-cli-dispatcher
+    statement: |
+      `bin/Mathc.ml` exposes `mc packages` as a documented
+      subcommand with three output formats.
+    outcome: packages-cli
+    acceptance:
+      all:
+        - verifier: tests/cli/packages.t exits 0
+          result: pass
+
+  - id: packages-site-bridge
+    statement: |
+      `site/index.md` and `site/packages.md` are produced by
+      `mc packages --format=html`, not by a parallel walker in
+      `lib/render.ml`.
+    outcome: packages-site
+    acceptance:
+      all:
+        - verifier: dist/index.html carries data-mc-package-count
+          matching the kernel's count
+          result: pass
+
+evidence:
+  - kind: declared
+    statement: |
+      The site is the consumer of `mc packages`. There is no
+      `lib/render.ml::packages_walker`; the render module reads
+      the kernel's HTML output and copies it into the page body.
+  - kind: observed
+    statement: |
+      On commit v3.0.0.20, `mc packages --format=json` lists
+      23 obligations; the kernel unit test asserts the count.
+
+unknowns:
+  - Whether the HTML output should be a single self-contained
+    fragment or a multi-page link to per-decision pages. v1 ships
+    a fragment plus a per-decision page generated from the same
+    data. A post-decision survey of the protocol's users may
+    consolidate.
+  - Whether `mc packages` should also list *waivers* and their
+    expiry. Deferred to v3.1 (covered by Tier-3 close-out
+    `multi-policy hierarchy`).

@@ -6,7 +6,7 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: tag `v3.0.0.19-alpha`.
+Last verified at: tag `v3.0.0.20`.
 
 **Cross-references:**
 - `ROADMAP.md` — priorities, tier ordering, process principles (P1–P7)
@@ -40,16 +40,23 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/spec-cli-catalog.yaml` | `spec-cli-catalog` | 1 | 8 | RESOLVED | audit D4 |
 | `decisions/adapters.yaml` | `adapters` | 2 | 6 | RESOLVED | audit D7 (git + junit) |
 | `decisions/capsule-active-policy.yaml` | `capsule-active-policy` | 1 | 7 | RESOLVED | capsule priority class |
-| `decisions/gate-decision.yaml` | `gate-decision` | 1 | 7 | SCAFFOLD | mc gate (no store yet) |
+| `decisions/gate-decision.yaml` | `gate-decision` | 2 | 9 | RESOLVED | mc gate verdict against populated store |
+| `decisions/gate-attestation-store-fill.yaml` | `gate-attestation-store-fill` | 2 | 5 | RESOLVED | Tier-1 #1 (closed in `ed42290`) |
+| `decisions/attestation-store-fill.yaml` | `attestation-store-fill` | 2 | 4 | RESOLVED | populates `attestations/` (75 files) |
+| `decisions/mc-explain-subcommand.yaml` | `mc-explain-subcommand` | 1 | 1 | RESOLVED | Tier-A (closed in `6e922d3`) — broken promise from `omitted[].expansion` resolved |
+| `decisions/mc-self-check-subcommand.yaml` | `mc-self-check-subcommand` | 2 | 1 | RESOLVED | Tier-1 #2 (closed in `758f340`) |
 | `decisions/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 1 | 5 | RESOLVED | kernel diagnostics |
 | `decisions/time-honesty.yaml` | `time-honesty` | 1 | 8 | RESOLVED | time-honesty distribution |
 | `decisions/time-honesty-storage.yaml` | `time-honesty-storage` | 1 | 9 | RESOLVED | time storage writers |
-| `decisions/yaml-block-scalars.yaml` | `yaml-block-scalars` | 3 | 9 | RESOLVED | audit D1/D2 (impl landed v0.0.19) |
-| `decisions/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 2 | 3 | RESOLVED | records D1/D2 deferral, superseded by yaml-block-scalars@3 |
+| `decisions/yaml-block-scalars.yaml` | `yaml-block-scalars` | 4 | 9 | RESOLVED | audit D1/D2 (closed in `79d138b`, v3.0.0.19) |
+| `decisions/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 2 | 3 | RESOLVED | records D1/D2 deferral, superseded by yaml-block-scalars@4 |
 | `decisions/process-principles.yaml` | `process-principles` | 2 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
 | | `decisions/agent-onboarding.yaml` | `agent-onboarding` | 1 | 4 | RESOLVED | locks ADR location + first-file convention |
 | | `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 1 | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
 | `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 1 | 1 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
+| `decisions/site-deploy.yaml` | `site-deploy` | 1 | 3 | RESOLVED | restores the project's published surface under its own gate |
+| `decisions/mc-packages-subcommand.yaml` | `mc-packages-subcommand` | 1 | 3 | RESOLVED | Tier-1 #4 |
+| `decisions/obligation-count-reconcile.yaml` | `obligation-count-reconcile` | 1 | 2 | RESOLVED | aligns PACKAGES.md counts with `obligations.yaml` |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 ## Cram integration tests (`tests/cli/*.t`)
@@ -85,10 +92,20 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `context-required-for-gate.t` | active policy in RequiredForGate | `decisions/capsule-active-policy.yaml` |
 | `context-truncated-omitted.t` | truncated:true + omitted[] with expansion | `decisions/validate-and-context.yaml` |
 | `gate-scaffold.t` | gate emits documented JSON keys | `decisions/gate-decision.yaml` |
+| `gate-pass.t` | gate returns pass when store has current attestation | `decisions/gate-attestation-store-fill.yaml` |
+| `gate-fail.t` | gate returns fail on decisive failed attestation | `decisions/gate-attestation-store-fill.yaml` |
+| `gate-stale.t` | gate returns stale on expired attestation | `decisions/gate-attestation-store-fill.yaml` |
+| `self-check-pass.t` | self-check returns pass on clean HEAD | `decisions/mc-self-check-subcommand.yaml` |
+| `self-check-fail.t` | self-check returns fail on broken invariant | `decisions/mc-self-check-subcommand.yaml` |
+| `self-check-unknown.t` | self-check returns unknown on infrastructure error | `decisions/mc-self-check-subcommand.yaml` |
+| `explain-positive.t` | explain resolves `decision:foo` to body | `decisions/mc-explain-subcommand.yaml` |
+| `explain-negative.t` | explain emits `MC-REF-UNKNOWN` on bad ref | `decisions/mc-explain-subcommand.yaml` |
 | `git-adapter.t` | assess runs git diff --name-only | `decisions/adapters.yaml` |
 | `junit-adapter.t` | attest parses JUnit XML | `decisions/adapters.yaml` |
 | `cli-time-estimate.t` | time-estimate 4 documented paths | `decisions/time-honesty.yaml` |
 | `cli-time-storage.t` | session-start / record / stats pipeline | `decisions/time-honesty-storage.yaml` |
+| `packages.t` | packages lists every decision + verdict | `decisions/mc-packages-subcommand.yaml` |
+| `render.t` | render produces the full dist/ tree | `decisions/site-deploy.yaml` |
 
 ## Process-principles test (`tests/process_principles.ml`)
 
@@ -108,6 +125,10 @@ labelled Alcotest case:
 Non-checkable principles (P3 time-box, P4 merge order) remain
 manual-acceptance obligations on the same decision.
 
+The P6 case also asserts that `scripts/dev close-branches` exists
+(v3.0.0.20) and that the pre-commit hook at `.githooks/pre-commit`
+is registered through `git config core.hooksPath`.
+
 ## Kernel packages (`lib/`)
 
 | Module | Purpose | May do I/O? |
@@ -118,14 +139,18 @@ manual-acceptance obligations on the same decision.
 | `schema.ml` | Schema-aware field extractors | No |
 | `diagnostic.ml` | `Diagnostic.t` record + renderers | No |
 | `identifier.ml` | id / timestamp / digest parsers | No |
-| `digest.ml` | SHA-256 (hand-rolled; **untested**) | No |
+| `digest.ml` | SHA-256 (hand-rolled; **RFC 6234 vectors green since v3.0.0.19**) | No |
 | `scope.ml` | Scope target parsing | No |
 | `reference.ml` | Reference parsing (`ref:`, `parent:`) | No |
-| `codec.ml` | YAML/JSON loading + value parsing | No |
+| `codec.ml` | YAML/JSON loading + value parsing (block-scalars + front-matter since v3.0.0.19) | No |
 | `decision.ml` | Decision decoder (mutually recursive parsers) | No |
 | `capsule.ml` | Context capsule builder + priority sort | No |
 | `memory.ml` | Project memory index | No |
-| `gate.ml` | Gate verdict evaluator | No |
+| `gate.ml` | Gate verdict evaluator (reads attestation store) | No (read-only FS reads under explicit allow-list) |
+| `attestations.ml` | Attestation store reader + freshness check | No |
+| `self_check.ml` | Kernel self-check composition | No |
+| `packages.ml` | `mc packages` aggregator (decisions + obligations + verdicts) | No |
+| `render.ml` | Static site generator (HTML + nav + assets) | No (writes `dist/` via caller) |
 | `git/git_diff.ml` | `git diff --name-only` wrapper | Yes (syscall) |
 | `junit/junit.ml` | JUnit XML parser | No (pure on strings) |
 
@@ -133,7 +158,8 @@ manual-acceptance obligations on the same decision.
 
 | Module | Purpose |
 |---|---|
-| `Mathc.ml` | argv dispatcher + every subcommand handler |
+| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, assess, attest, gate, session-start, record, stats, time-estimate, self-check, render, packages, version) |
+| `data/time-distribution.yaml` | SWE-bench Verified (n=500, 2025-Q4) reference class for `mc time-estimate` |
 
 ## Adapter protocol (`lib/git/`, `lib/junit/`)
 
@@ -173,11 +199,12 @@ This isolates I/O from the pure kernel (see `OCAML_BEST_PRACTICES §10.1`).
 
 | id | Description | Status |
 |---|---|---|
-| D1 | YAML `\|` block scalars (kernel-side) | CLOSED at v0.0.19 |
-| D2 | YAML front-matter (kernel-side) | CLOSED at v0.0.19 |
-| D4 | SHA-256 RFC vectors (kernel-side) | OPEN |
-| D6 | bootstrap-v3 manual-only verifiers | TRACKED (kernel does not exist yet) |
-| D8 | `mc validate` coarse diagnostics | TRACKED for 3.0-beta |
+| D1 | YAML `\|` block scalars (kernel-side) | **CLOSED** at v0.0.19 (`79d138b`) |
+| D2 | YAML front-matter (kernel-side) | **CLOSED** at v0.0.19 (`79d138b`) |
+| D4 | SHA-256 RFC vectors (kernel-side) | **CLOSED** at v0.0.19 (`d77624b`) |
+| D6 | bootstrap-v3 manual-only verifiers | **CLOSED** at v0.0.20 (this release): each obligation now has a machine-checked verifier reachable from CI |
+| D8 | `mc validate` coarse diagnostics | OPEN; tracked for 3.0-beta |
+| D10 | stale-worktree accumulation | CLOSED at v0.0.20 (`scripts/dev close-branches`) |
 
 ## How to use this file
 
@@ -194,7 +221,32 @@ A new agent should:
 
 - **Not** a priority queue — see `ROADMAP.md`.
 - **Not** a changelog — see `git tag --list | grep v3-alpha` for tags.
-- **Not** a recipe — see `OCAML_BEST_PRACTICES.md §1–§11` for OCaml conventions and traps.
+- **Not** a recipe — see `OCAML_BEST_PRACTICES.md` §1–§11 for OCaml conventions and traps.
+
+## Site packages (`site/`)
+
+The site at `site/` is the project's published surface. The site
+**demonstrates** the methodology: every page that documents a
+feature of the kernel is itself produced by an OCaml kernel
+function, every link between pages is the same lifecycle on
+artifacts, and the build pipeline is `scripts/render.sh` +
+`scripts/dev render` (which calls `mc render`).
+
+| Source | Output | Notes |
+|---|---|---|
+| `site/index.md` | `dist/index.html` | hero + axiom grid + protocol diagram |
+| `site/axioms.md` | `dist/axioms.html` | A0–A4 with formal statements |
+| `site/methodology.md` | `dist/methodology.html` | mathoding (the methodology) explained |
+| `site/bootstrap-gate.md` | `dist/bootstrap-gate.html` | the bootstrap-expiry story |
+| `site/packages.md` | `dist/packages.html` | mirror of `mc packages --format=html` |
+| `site/decisions/` | `dist/decisions/*.html` | one page per `decisions/*.yaml` |
+| `site/axioms/*.md` | `dist/axioms/*.html` | one page per axiom |
+| `assets/style.css` | `dist/assets/style.css` | shared stylesheet |
+| `assets/site.js` | `dist/assets/site.js` | navigation, mermaid init |
+
+The site is built and deployed by `.github/workflows/site.yml`
+(see `decisions/site-deploy.yaml`). Pin to `ubuntu-22.04`
+(setup-ocaml/v2 needs darcs which is unavailable on 24.04).
 
 ## Versioning
 
@@ -202,4 +254,4 @@ This file is updated only when **a new decision file** is created or
 when **an existing decision** changes revision. It is NOT updated for
 every code change.
 
-Last updated at: `v3-alpha-0.0.14` (commit `05e2ea5`).
+Last updated at: `v3.0.0.20`.

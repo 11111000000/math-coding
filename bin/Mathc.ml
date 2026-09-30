@@ -239,7 +239,9 @@ let print_usage oc =
     \  session-start                    write .local/session-start ISO timestamp\n\
     \  record --decision-id ID ...      append event to \
      decisions/execution-logs.jsonl\n\
-    \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\n\
+    \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\
+     \  packages [--format=...]         list decisions + verdicts (text|json|html)\n\
+     \  render [--out DIR]             render the static site under DIR\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
@@ -1947,6 +1949,246 @@ let[@warning "-32"] do_self_check () =
   | Gate.Block -> exit 1
   | Gate.Unknown -> exit 3
 
+(* --- render subcommand (bootstrap decision site-deploy@1) ---
+ *
+ * `mc render --out DIR` renders the static site under DIR (default
+ * dist/). The render reads articles from `site/`, walks decisions
+ * via lib/packages.ml, and writes one .html file per page. The
+ * dispatcher's I/O is the boundary; lib/render.ml is pure.
+ *
+ * Per spec/semantics.md §`render`, the allowlist is:
+ *   index.html, axioms.html, methodology.html,
+ *   bootstrap-gate.html, packages.html, decisions/*.html,
+ *   axioms/*.html, assets/style.css, index.json.
+ * Missing any file is exit 2. *)
+
+let[@warning "-32"] mkdir_p dir =
+  let rec loop d =
+    if d = "" || d = "/" || d = "." || Sys.file_exists d then ()
+    else begin
+      let parent = Filename.dirname d in
+      loop parent;
+      try Unix.mkdir d 0o755 with _ -> ()
+    end
+  in
+  loop dir
+
+let[@warning "-32"] write_file path contents =
+  let dir = Filename.dirname path in
+  if dir <> "" then mkdir_p dir;
+  let ch = open_out_bin path in
+  output_string ch contents;
+  close_out ch
+
+let[@warning "-32"] read_file path =
+  try
+    let ch = open_in_bin path in
+    let n = in_channel_length ch in
+    let s = really_input_string ch n in
+    close_in ch;
+    s
+  with _ -> ""
+
+let[@warning "-32"] now_iso () =
+  let tm = Unix.gmtime (Unix.time ()) in
+  Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ"
+    (tm.tm_year + 1900) (tm.tm_mon + 1) tm.tm_mday
+    tm.tm_hour tm.tm_min tm.tm_sec
+
+let[@warning "-32"] read_axioms axioms_root =
+  if not (Sys.file_exists axioms_root) then []
+  else if not (Sys.is_directory axioms_root) then []
+  else
+    try
+      Sys.readdir axioms_root
+      |> Array.to_list
+      |> List.filter (fun n -> Filename.extension n = ".md")
+      |> List.filter (fun n -> n <> "index.md")
+      |> List.sort String.compare
+      |> List.filter_map (fun n ->
+          let base = Filename.chop_extension n in
+          let path = Filename.concat axioms_root n in
+          let body = read_file path in
+          if body = "" then None else Some (base, body))
+    with _ -> []
+
+let[@warning "-32"] per_decision_obligation_html (d : Packages.decision_view) =
+  let buf = Buffer.create 256 in
+  Printf.bprintf buf "<h3>%s</h3>\n<ul>" d.Packages.decision_id;
+  List.iter
+    (fun o ->
+      Printf.bprintf buf
+        "<li class=\"mc-obligation mc-verdict-%s\"><code>%s</code> <span \
+         class=\"mc-verdict-label\">%s</span></li>"
+        o.Packages.verdict o.Packages.id o.Packages.verdict)
+    d.Packages.obligations;
+  Buffer.add_string buf "</ul>";
+  Buffer.contents buf
+
+let[@warning "-32"] render_search_index pages =
+  let buf = Buffer.create 256 in
+  Buffer.add_string buf "[\n";
+  let entries =
+    List.filter_map
+      (fun (path, body) ->
+        let title_match =
+          let open Str in
+          try
+            let re = regexp "<title>\\(.*\\) &mdash; math-coding</title>" in
+            let _ = search_forward re body 0 in
+            Some (matched_string body)
+        with Not_found -> None
+        in
+        let cleaned_title =
+          match title_match with
+          | Some s -> String.sub s 7 (String.length s - 7)
+          | None -> ""
+        in
+        if cleaned_title = "" then None
+        else Some (Printf.sprintf "  {\"title\": %s, \"path\": %s}"
+                     (Jsonl.stringify (Jsonl.String cleaned_title))
+                     (Jsonl.stringify (Jsonl.String path))))
+      pages
+  in
+  Buffer.add_string buf (String.concat ",\n" entries);
+  Buffer.add_string buf "\n]\n";
+  Buffer.contents buf
+
+let[@warning "-32"] do_render () =
+  let out_dir = ref "dist" in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [ "-o", Arg.String (fun s -> out_dir := s), "output directory" ]
+       (fun _ -> ())
+       "usage: mc render [--out DIR]"
+   with
+   | Arg.Bad m ->
+       Printf.fprintf stderr "mc render: %s\n" m;
+       exit 2);
+  let site_dir = "site" in
+  let axioms_root = "axioms" in
+  let decisions_root = "decisions" in
+  let attestations_root = "attestations" in
+
+  if not (Sys.file_exists site_dir) then begin
+    Printf.fprintf stderr "mc render: site directory not found: %s\n" site_dir;
+    exit 2
+  end;
+
+  let reader p =
+    try In_channel.with_open_bin p In_channel.input_all
+    with _ -> ""
+  in
+  let has_store = Sys.file_exists attestations_root in
+  let store =
+    if has_store then Attestations.load ~reader ~root:attestations_root
+    else []
+  in
+  let now = now_iso () in
+  let policy_id = "bootstrap-v3" in
+  let pkg =
+    Packages.walk ~reader ~decisions_root ~store ~has_store
+      ~now_iso:now ~policy_id
+  in
+  let package_html = Packages.to_html pkg in
+  let axioms_data = read_axioms axioms_root in
+  let decisions_data =
+    List.map
+      (fun d -> (d.Packages.decision_id, per_decision_obligation_html d))
+      pkg.Packages.decisions
+  in
+  let pages =
+    Render.build_pages
+      ~reader
+      ~site_dir
+      ~package_html
+      ~decisions_data
+      ~axioms_data
+      ~now_iso:now
+      ~policy_id
+  in
+
+  Printf.printf "[render] writing %d pages to %s/\n" (List.length pages) !out_dir;
+  List.iter
+    (fun page ->
+      let path = Filename.concat !out_dir page.Render.path in
+      write_file path page.Render.body;
+      Printf.printf "  %s\n" page.Render.path)
+    pages;
+
+  let index_path = Filename.concat !out_dir "index.json" in
+  let pages_for_index =
+    List.map (fun p -> (p.Render.path, p.Render.body)) pages
+  in
+  let index_body = render_search_index pages_for_index in
+  write_file index_path index_body;
+  Printf.printf "  index.json\n";
+
+  Printf.printf "render OK: %d pages + 1 search index.\n" (List.length pages)
+
+(* --- packages subcommand (bootstrap decision
+ *   mc-packages-subcommand@1) ---
+ *
+ * `mc packages [--format=text|json|html]` walks every decision
+ * file under `decisions/` and joins each obligation against the
+ * attestation store at `attestations/`. The output is the
+ * package_list produced by lib/packages.ml. The site at
+ * site/index.md renders the HTML form into the package grid.
+ *
+ * The default decisions/ and attestations/ paths are relative
+ * to the project root; the dispatcher reads them via the same
+ * filesystem_read callback as mc self-check. *)
+
+(* Render the package_list in the requested format. The JSON and
+   HTML forms are emitted via lib/packages.ml renderers; text is
+   a fixed-width table. *)
+let[@warning "-32"] do_packages () =
+  let format = ref `Text in
+  let set_format s =
+    match s with
+    | "text" -> format := `Text
+    | "json" -> format := `Json
+    | "html" -> format := `Html
+    | _ ->
+        Printf.fprintf stderr "mc packages: unknown --format: %s\n" s;
+        exit 2
+  in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [ "--format", Arg.String set_format, "output format (text|json|html)" ]
+       (fun _ -> ())
+       "usage: mc packages [--format=text|json|html]"
+   with
+   | Arg.Bad m ->
+       Printf.fprintf stderr "mc packages: %s\n" m;
+       exit 2);
+  let decisions_root = "decisions" in
+  let attestations_root = "attestations" in
+  let reader = In_channel.with_open_bin In_channel.input_all in
+  let has_store = Sys.file_exists attestations_root in
+  let store =
+    if has_store then
+      try Attestations.load ~reader:(fun p -> reader p) ~root:attestations_root
+      with _ -> []
+    else []
+  in
+  let now_iso =
+    let tm = Unix.gmtime (Unix.time ()) in
+    Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ"
+      (tm.tm_year + 1900) (tm.tm_mon + 1) tm.tm_mday
+      tm.tm_hour tm.tm_min tm.tm_sec
+  in
+  let pkg =
+    Packages.walk ~reader:(fun p -> reader p) ~decisions_root ~store
+      ~has_store ~now_iso ~policy_id:"bootstrap-v3"
+  in
+  match !format with
+  | `Text -> print_string (Packages.to_text pkg)
+  | `Json -> print_endline (Jsonl.stringify (Packages.to_json pkg))
+  | `Html -> print_string (Packages.to_html pkg)
+
 let dispatch () =
   if Array.length Sys.argv < 2 then begin
     print_usage stderr;
@@ -1965,6 +2207,8 @@ let dispatch () =
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()
   | "stats" -> do_stats ()
+  | "packages" -> do_packages ()
+  | "render" -> do_render ()
   | "--help" | "-h" ->
       print_usage stdout;
       exit 0

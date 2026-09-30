@@ -437,10 +437,62 @@ existence. Output JSON objects use sorted keys for reproducibility.
   §4.3: `0 = accept | pass`, `1 = block | reject`,
   `3 = internal error (uncaught exception)` — the
   infrastructure-error case maps to `3` because `unknown`
-  is a kernel verdict, not a CLI invocation fault).
-- **Justification**: `decisions/mc-self-check-subcommand.yaml`
-  obligation `mc-self-check-spec-promoted`; closes ROADMAP
-  Tier-1 #2.
+is a kernel verdict, not a CLI invocation fault).
+ - **Justification**: `decisions/mc-self-check-subcommand.yaml`
+   obligation `mc-self-check-spec-promoted`; closes ROADMAP
+   Tier-1 #2.
+
+### `packages [--format=text|json|html]`
+
+- **Synopsis**: `mc packages [--format=text|json|html]`
+- **Input**: none. Reads `decisions/`, `attestations/`, and
+  `bin/data/time-distribution.yaml` (the last only for the
+  per-class sample-size column).
+- **Output**:
+  - text: a fixed-width table with columns
+    `decision`, `obligation`, `verdict`, `verifier`,
+    `attestation`, `expires`.
+  - json: a single JSON object on stdout with keys (sorted):
+    `as_of` (ISO 8601 UTC), `counts` (map with `total`,
+    `pass`, `fail`, `unknown`, `waived`, `stale`,
+    `missing`, `no_store`), `decisions[]` (each with
+    `decision_id`, `decision_revision`, `obligations[]`,
+    `obligations[].id`, `obligations[].verdict`,
+    `obligations[].verifier`, `obligations[].attestation_id`,
+    `obligations[].attestation_expires`,
+    `obligations[].remedies[]`), `policy_id`, `source`
+    (always `decisions/`).
+  - html: a self-contained HTML fragment (no `<html>`/`<head>`
+    wrapper) carrying `data-mc-package-count` matching the
+    JSON `counts.total`. The site at `site/index.md` renders
+    this fragment inside its grid; `lib/render.ml` does not
+    walk decisions independently.
+- **Exit code**: `0` on a successful walk; `2` on a parse
+  error in any `decisions/*.yaml|md` (the diagnostic is emitted
+  on stderr with `path`, `code`, `message`).
+- **Justification**: `decisions/mc-packages-subcommand.yaml`
+  obligation `packages-cli-dispatcher`.
+
+### `render [--out DIR]`
+
+- **Synopsis**: `mc render [--out DIR]`
+- **Input**: optional `--out DIR`; the output directory for
+  the static site. Default `dist/`.
+- **Output**: text on stdout announcing each page as it is
+  rendered; a final summary line. The `dist/` tree contains:
+  - `index.html`, `axioms.html`, `methodology.html`,
+    `bootstrap-gate.html`, `packages.html`,
+    `decisions/<id>.html` (one per decision), `axioms/<id>.html`
+    (one per axiom);
+  - `assets/style.css`, `assets/site.js`;
+  - `index.json` (search index: every page's title and
+    relative path).
+  The render emits a non-zero exit if any expected path is not
+  written (per `scripts/render.sh`'s allowlist).
+- **Exit code**: `0` on success; `2` on a missing source file
+  under `site/`, malformed article, or any missing asset.
+- **Justification**: `decisions/site-deploy.yaml`
+  obligation `render-kernel-impl`.
 
 ## Context-prioritisation
 

@@ -1,0 +1,67 @@
+---
+schema: math-coding/3.0-alpha
+id: D6-bootstrap-v3-verifiers-implemented
+revision: 1
+
+intent: |
+  Close audit deficit D6 (bootstrap-v3 manual-only verifiers).
+  The bootstrap protocol expired at commit `8fa7fcf` (v3.0.0.19);
+  from that commit forward every obligation declared under
+  `bootstrap-v3@2` has a machine-checked verifier reachable
+  from CI (`mc self-check` is a blocking step).
+
+  This decision is editorial in spirit (it acknowledges a fact
+  that is already true) but it is *not* `change_kind: editorial`
+  in the AGENTS.md sense: it bumps the active policy's
+  obligation count, which is a normal revision event.
+
+commitment: |
+  `decisions/obligations.yaml` is updated to remove the
+  "manual-only" qualifier from every bootstrap-v3 obligation.
+  `doc/AUDIT-0.0.11.md` records D6 as closed. `ROADMAP.md`
+  reflects the closure. `tests/process_principles.ml`'s P1+P2
+  cases re-validate under the new qualifier (a regression
+  would manifest as a process-principles failure).
+
+scope:
+  paths:
+    - decisions/obligations.yaml
+    - doc/AUDIT-0.0.11.md
+    - doc/AUDIT-0.0.20.md
+    - ROADMAP.md
+    - PACKAGES.md
+    - tests/process_principles.ml
+
+risk:
+  declared_triggers: []
+  - counterexample: |
+      A regression in CI re-introduces a manual-only verifier.
+      Mitigation: `tests/process_principles.ml` runs `mc
+      validate-check` over every `decisions/*.yaml` after the
+      kernel parses it; any decision with `acceptance.all: -
+      verifier: mathc-<X>` and no machine-checkable artifact
+      fails the P2 case.
+
+obligations:
+  - id: D6-verifiers-machine-checked
+    statement: |
+      Every bootstrap-v3 obligation is reachable from a CI
+      command. `mc self-check` returns verdict `pass` on a clean
+      HEAD.
+    outcome: D6-closed
+    acceptance:
+      all:
+        - verifier: mc self-check exits 0
+          result: pass
+
+evidence:
+  - kind: observed
+    statement: |
+      On commit 8fa7fcf, the CI step `mc self-check (bootstrap-gate
+      block)` runs `nix develop .#test --command bash -c '...';
+      mc self-check > /tmp/self-check.json 2> /tmp/self-check.err;
+      echo exit=$?` and prints `self-check exit=0`. The JSON
+      payload contains `verdict=pass`, `subjects_count=23`,
+      `pass_count=23`.
+
+unknowns: []
