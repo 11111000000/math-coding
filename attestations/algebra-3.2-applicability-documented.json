@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"algebra-3.2","obligation":"applicability-documented","candidate_tree":"HEAD","materials_digest":""},"kind_":"build","producer":{"identity":"ci-bot"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:702f79a92e8c6cea74e3ed1aac385c08fa5c80f2d9ac2a68e415270f6788669f"}
