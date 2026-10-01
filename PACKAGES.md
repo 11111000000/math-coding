@@ -152,11 +152,15 @@ is registered through `git config core.hooksPath`.
 | `decision.ml` | Decision decoder (mutually recursive parsers) | No |
 | `capsule.ml` | Context capsule builder + priority sort | No |
 | `memory.ml` | Project memory index | No |
-| `gate.ml` | Gate verdict evaluator (reads attestation store) | No (read-only FS reads under explicit allow-list) |
-| `attestations.ml` | Attestation store reader + freshness check | No |
+| `gate.ml` | Gate verdict evaluator (reads attestation store); **v3.2: `apply()` for kernel rules + phase-aware gates** | No (read-only FS reads under explicit allow-list) |
+| `attestations.ml` | Attestation store reader + freshness check; **v3.2: substrate fingerprint, env_class lattice, multi-CI aggregation** | No |
 | `self_check.ml` | Kernel self-check composition | No |
 | `packages.ml` | `mc packages` aggregator (decisions + obligations + verdicts) | No |
 | `render.ml` | Static site generator (HTML + nav + assets) | No (writes `dist/` via caller) |
+| `risk.ml` (v3.2 NEW) | Risk classifier: 12-entry path taxonomy, impact + irreversibility, risk-to-mode threshold | No (alg §2) |
+| `policy.ml` (v3.2 NEW) | Per-path policy lookup, multi-policy composition (union + data-flow transitive) | No (alg §9) |
+| `rebuttal.ml` (v3.2 NEW) | Hybrid rebuttal mechanism (sibling `rebuttals/<sha>.yaml` + forge mirror + trust binding) | No (alg §10) |
+| `re_evaluation.ml` (v3.2 NEW) | `re_evaluate(d, A_new)` oracle returning `Compatible | Inconclusive | StaleClaim` | No (alg §17) |
 | `git/git_diff.ml` | `git diff --name-only` wrapper | Yes (syscall) |
 | `junit/junit.ml` | JUnit XML parser | No (pure on strings) |
 
