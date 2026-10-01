@@ -63,6 +63,72 @@ separate feature). The algebra preserves A0–A4 as immutable
 per A3 Self-Application; no decision may adopt or modify an
 axiom.
 
+### Implemented in this batch (between ff9e738 and fd7ea8b)
+
+All 13 Tier 3.5 tasks are landed on `main`:
+
+- `feat(schema): extend for 3.2-ideal algebra` —
+  `schemas/decision.json` adds `state`, `mode_floor_used`,
+  `body_sha`, `yaml_sha`, `axiom_link`, and an 8-kind
+  `relation_kind` enum on `relations`. `attestation.json`
+  adds `substrate_digest`, `environment_class_level`,
+  `environment_class_label`, `ci_run_id`,
+  `substrate_fingerprint`. `obligation.json` adds `phase`
+  and `obligation_domain`. New file `schemas/policy.json`
+  declares the per-path policy record.
+- `feat(domain-ml): extend types for 3.2-ideal algebra` —
+  new polymorphic variants `epistemic_marker` (5 levels:
+  `fact | hypothesis | judgment | unknown | proven`,
+  restored from v0.854), `phase` (3 levels),
+  `mode` (5 levels), `environment_class_label` (5 levels);
+  new fields on `decision`, `assumption`, `obligation`,
+  `attestation`.
+- `feat(risk): implement algebra §2 risk function` — new
+  module `lib/risk.ml` (`classify`, `impact`, `probability`,
+  `irreversibility`, `mode_floor`, `risk`, `mode`).
+- `feat(decision-ml): sha-match + epistemic + 8 relations` —
+  `Decision.sha_match_check`, `Decision.parse_relations`,
+  `axiom_link` extraction.
+- `feat(policy-ml): multi-policy union + transitive` —
+  new module `lib/policy.ml` with `policy_of`, `policies_of`,
+  `compose`, `data_flow_targets`, `mode_floor_of`.
+- `feat(rebuttal-ml): hybrid rebuttal mechanism` —
+  new module `lib/rebuttal.ml` (sibling artifact + forge
+  mirror + trust binding).
+- `feat(re-evaluation-ml): re_evaluate oracle` — new module
+  `lib/re_evaluation.ml` with `re_evaluate` returning
+  `Compatible | Inconclusive | StaleClaim`.
+- `feat(attestations-ml): substrate + multi-CI` —
+  `compute_substrate_digest`, `parse_environment_class_level`,
+  `aggregate_obligation`, `current_at`, `decisive_for`.
+- `feat(gate-ml): apply() + phase-aware gates` —
+  `kernel_rule`, `apply_rule`, `gate_v32`,
+  `gate_release_v32`, `post_release_monitor`.
+- `feat(migration): state + body_sha + yaml_sha on 28
+  decisions` — `scripts/migrate-decisions-3.2.py` with
+  text-based editing to preserve comments.
+- `feat(cram): 3.2-ideal fixtures` — 3 new cram files:
+  `schema-extensions-3.2.t`, `migration-3.2-fields.t`,
+  `applicability-envelope.t`.
+- `attestations: generate batch for algebra-3.2` — 7 new
+  attestations covering `spec-file-exists`,
+  `cross-references-correct`, `applicability-documented`,
+  `kernel-conformance-baseline`, `adoption-path-documented`,
+  `backward-compat-test`, `implementation-roadmap`. With
+  these, `mc self-check` verdict flips from `unknown` to
+  `pass` (28/28 subjects green).
+
+### Remaining for v3.1.0 stabilisation
+
+- Cram snapshot regeneration: `tests/cli/self-check-{pass,
+  unknown}.t` expect 23 subjects (pre-v3.0.0.20 era); the
+  fixture store has been updated to 86 attestations covering
+  28 decisions, but the snapshot files themselves still
+  expect 23. Snapshot regeneration deferred to next batch.
+- `feat(portable-binary): static-link or musl build` —
+  fixes §30 anti-property (nix-store glibc in shipped
+  binary); tracked separately.
+
 ### Backward compatibility
 
 All 28 existing decisions in `decisions/*.yaml` remain valid
