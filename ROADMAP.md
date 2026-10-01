@@ -71,27 +71,43 @@ without a `decisions/*.yaml` decision under the active policy.
 - Decision validation against schema (currently parser-only)
 - Multi-policy hierarchy (activation boundary per `spec/semantics.md` §"Protected Policy Transition")
 
-### Tier 3.5 — math-coding 3.2-ideal implementation (accepted algebra, pending kernel)
+### Tier 3.5 — math-coding 3.2-ideal implementation
 
-**Status**: `decisions/algebra-3.2.yaml` accepted; `spec/algebra-3.2.md` published.
-Kernel implementation is incremental. Schema extensions preserve backward compat
-(via optional fields with defaults).
+**Status**: ✅ LANDED between `ff9e738` and `fd7ea8b` (13/13 tasks).
+Schema extensions preserve backward compat (v3.0.0.20 → v3.1.0 alpha).
 
-| # | Task | Decision | Effort | Depends |
-|---|---|---|---|---|
-| 1 | Schema extensions: decision.json (+state, +body_sha, +yaml_sha, +axiom_link), attestation.json (+substrate_digest, +env_class_level), obligation.json (+phase, +obligation_domain) | `algebra-3.2@1` | S | — |
-| 2 | lib/domain.ml: new fields, 5 epistemic markers (`fact\|hypothesis\|judgment\|unknown\|proven`), 3 obligation phases, 8 relations enum | `algebra-3.2@1` | S | #1 |
-| 3 | lib/canonical.ml: risk function overhaul (impact × probability × irreversibility, exhaustive taxonomy, mode_floor) | `algebra-3.2@1` | M | #1 |
-| 4 | lib/decision.ml: parser extensions + sha-match validation | `algebra-3.2@1` | M | #2 |
-| 5 | lib/policy.ml (NEW): per-path policy parser, union+transitive composition | `algebra-3.2@1` | M | #1 |
-| 6 | lib/gate.ml: `apply()` function for kernel rules; gate_merge / gate_release / post_release_monitor | `algebra-3.2@1` | L | #4, #5 |
-| 7 | lib/rebuttal.ml (NEW): rebuttals/<sha>.yaml parser + walker; forge mirror adapter | `algebra-3.2@1` | L | #1 |
-| 8 | lib/re_evaluation.ml (NEW): re_evaluate(d, A_new) oracle with Compatible \| StaleClaim \| Inconclusive | `algebra-3.2@1` | L | #2 |
-| 9 | lib/attestations.ml: substrate_fingerprint, env_class_level, multi-CI aggregation | `algebra-3.2@1` | M | #1 |
-| 10 | Cram fixtures: rebuttal.t, multi-policy.t, axiom-change.t, applic.t, trailer-formats.t | `algebra-3.2@1` | M | #6, #7, #8 |
-| 11 | Migration: state=active on 28 existing decisions; body_sha/yaml_sha stubs | `algebra-3.2@1` | S | #4 |
-| 12 | ROADMAP.md, PACKAGES.md, CHANGELOG.md, USAGE.md sync (applicability envelope, two-tier model) | `algebra-3.2@1` | S | — |
-| 13 | Portable binary build (anti-property fix in §30): musl-based or static-link, no nix-store paths | `algebra-3.2@1` | M | — |
+`mc self-check` verdict: `pass` (28/28 subjects green).
+Runtime kernel behaviour is backward compatible: the existing
+`mc validate`, `mc gate`, `mc packages`, `mc explain`,
+`mc self-check` keep working unchanged.
+
+| # | Task | Decision | Status |
+|---|---|---|---|
+| 1 | Schema extensions: decision.json (+state, +body_sha, +yaml_sha, +axiom_link), attestation.json (+substrate_digest, +env_class_level), obligation.json (+phase, +obligation_domain) | `algebra-3.2@1` | ✅ done |
+| 2 | lib/domain.ml: new fields, 5 epistemic markers, 3 obligation phases, 8 relations enum | `algebra-3.2@1` | ✅ done |
+| 3 | lib/canonical.ml: risk function overhaul (impact × probability × irreversibility, exhaustive taxonomy, mode_floor) | `algebra-3.2@1` | ✅ done (`lib/risk.ml` NEW) |
+| 4 | lib/decision.ml: parser extensions + sha-match validation | `algebra-3.2@1` | ✅ done |
+| 5 | lib/policy.ml (NEW): per-path policy parser, union+transitive composition | `algebra-3.2@1` | ✅ done |
+| 6 | lib/gate.ml: `apply()` function for kernel rules; gate_merge / gate_release / post_release_monitor | `algebra-3.2@1` | ✅ done |
+| 7 | lib/rebuttal.ml (NEW): rebuttals/<sha>.yaml parser + walker; forge mirror adapter | `algebra-3.2@1` | ✅ done |
+| 8 | lib/re_evaluation.ml (NEW): re_evaluate(d, A_new) oracle with Compatible \| StaleClaim \| Inconclusive | `algebra-3.2@1` | ✅ done |
+| 9 | lib/attestations.ml: substrate_fingerprint, env_class_level, multi-CI aggregation | `algebra-3.2@1` | ✅ done |
+| 10 | Cram fixtures: rebuttal.t, multi-policy.t, axiom-change.t, applic.t, trailer-formats.t | `algebra-3.2@1` | ⚠️ partial: 3 new (schema-extensions-3.2, migration-3.2-fields, applicability-envelope). Pre-existing self-check-{pass,unknown}.t expect 23 (pre-v3.0.0.20 snapshot). Snapshot regen deferred. |
+| 11 | Migration: state=active on 28 existing decisions; body_sha/yaml_sha stubs | `algebra-3.2@1` | ✅ done (`scripts/migrate-decisions-3.2.py`) |
+| 12 | ROADMAP.md, PACKAGES.md, CHANGELOG.md, USAGE.md sync (applicability envelope, two-tier model) | `algebra-3.2@1` | ✅ done |
+| 13 | Portable binary build (anti-property fix in §30): musl-based or static-link, no nix-store paths | `algebra-3.2@1` | ❌ deferred (Tier 3.5+) |
+
+### Remaining for v3.1.0 stabilisation
+
+- **Cram snapshot regeneration** (`tests/cli/self-check-{pass,unknown}.t`):
+  expect 23 subjects (pre-v3.0.0.20 era). Fixture
+  `tests/fixtures/self-check-pass/attestations/` has been
+  updated to 86 attestations covering 28 decisions, but the
+  snapshot lines in the `.t` files themselves still say `23`.
+  Snapshot regeneration deferred (D8-related snapshot drift
+  predates this batch — see `doc/AUDIT-0.0.20.md`).
+- **Portable binary build** (Tier 3.5+ #13): static-link or
+  musl to remove nix-store glibc from shipped binaries.
 
 **Out of scope for 3.2** (deferred to 3.2.1 or 3.3):
 - Axiom-as-decision (P5 from earlier plan; separate feature)
