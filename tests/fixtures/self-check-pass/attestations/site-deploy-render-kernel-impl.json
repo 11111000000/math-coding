@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"site-deploy","obligation":"render-kernel-impl","candidate_tree":"HEAD","materials_digest":""},"kind_":"build","producer":{"identity":"ci:build:render"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:12d31e860f125c5f13d112eae747983e98920f5f7f6197b266dc8f416622f6a6"}
