@@ -1,3 +1,8 @@
+# DEPRECATED: this script was used to generate the v3.0.0.20 attestation
+# batch. The v3.1.0-alpha algebra-3.2 batch (7 attestations) was
+# generated via direct git commit at fd7ea8b rather than this script.
+# For new attestation batches, write the manifest directly and use
+# scripts/generate-attestations.py.
 #!/usr/bin/env bash
 # scripts/generate-attestations-v3.0.0.20.sh
 #

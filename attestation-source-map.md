@@ -321,6 +321,30 @@ brief evidence.
   manual: `.github/workflows/site.yml` pins `runs-on: ubuntu-22.04`
   in both `build` and `deploy` jobs.
 
+## algebra-3.2 (v3.1.0-alpha; algebra 3.2-ideal implementation)
+
+- `algebra-3.2/spec-file-exists` -> `build` ; `ci:build:docs` ;
+  `spec/algebra-3.2.md` exists at HEAD and contains 30 sections
+  (per the v3.2-ideal formal spec).
+- `algebra-3.2/cross-references-correct` -> `build` ; `ci:build:docs` ;
+  spec cross-references resolve to existing files
+  (axioms/, spec/constitution.md, spec/algebra-3.2.md).
+- `algebra-3.2/applicability-documented` -> `build` ;
+  `ci:build:docs` ; USAGE.md "Choose your adoption path" section
+  (lines 39-105) describes the §28 envelope.
+- `algebra-3.2/kernel-conformance-baseline` -> `test` ;
+  `ci:test:self-check` ; `_build/install/default/bin/mathc self-check`
+  exits 0 with verdict=pass on clean HEAD (28/28 subjects green).
+- `algebra-3.2/adoption-path-documented` -> `build` ;
+  `ci:build:docs` ; USAGE.md "Path A" / "Path B" sections present.
+- `algebra-3.2/backward-compat-test` -> `test` ;
+  `ci:test:fixtures` ; all 28 existing decisions/*.yaml files parse
+  under the extended schema (state, body_sha, yaml_sha added as
+  optional fields with defaults; no breaking change).
+- `algebra-3.2/implementation-roadmap` -> `build` ;
+  `ci:build:docs` ; ROADMAP.md Tier 3.5 enumerates 13 implementation
+  tasks, all marked landed.
+
 ## Notes for the generating agent
 
 - Set `kind_` per the row above.

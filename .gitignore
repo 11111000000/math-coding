@@ -3,6 +3,7 @@ _build/
 *.opam
 .math/cache/
 dist/
+result
 result/
 
 # Worktree directories created by `git worktree add`. Each

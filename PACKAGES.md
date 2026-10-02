@@ -6,12 +6,13 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: tag `v3.0.0.20`. Attestation store at
-`attestations/` contains 80 files; `mc packages` reports 25
-decisions (after the meta-file filter) / 72 obligations (all
+Last verified at: HEAD (post-Tier 3.5 algebra 3.2 implementation).
+Attestation store at `attestations/` contains 87 files (post-v3.1.0-alpha
+attestation batch from `fd7ea8b`); `mc packages` reports 27 active
+decisions / 79 obligations (72 original + 7 from algebra-3.2, all
 passing). `mc self-check` on a clean tree returns verdict `pass`
-with `subjects_count=27` (the master policy's 7 obligations
-count separately).
+with `subjects_count=28` (the master policy's 7 obligations count
+separately).
 
 **Cross-references:**
 - `ROADMAP.md` — priorities, tier ordering, process principles (P1–P7)
@@ -112,6 +113,9 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `cli-time-storage.t` | session-start / record / stats pipeline | `decisions/time-honesty-storage.yaml` |
 | `packages.t` | packages lists every decision + verdict | `decisions/mc-packages-subcommand.yaml` |
 | `render.t` | render produces the full dist/ tree | `decisions/site-deploy.yaml` |
+| `schema-extensions-3.2.t` | decisions with 3.2 fields parse via mc validate | `decisions/algebra-3.2.yaml` |
+| `migration-3.2-fields.t` | migrated decisions have state=active + sha fields | `decisions/algebra-3.2.yaml` |
+| `applicability-envelope.t` | applicability decision tree surfaces in docs | `decisions/algebra-3.2.yaml` |
 
 ## Process-principles test (`tests/process_principles.ml`)
 
@@ -154,7 +158,7 @@ is registered through `git config core.hooksPath`.
 | `memory.ml` | Project memory index | No |
 | `gate.ml` | Gate verdict evaluator (reads attestation store); **v3.2: `apply()` for kernel rules + phase-aware gates** | No (read-only FS reads under explicit allow-list) |
 | `attestations.ml` | Attestation store reader + freshness check; **v3.2: substrate fingerprint, env_class lattice, multi-CI aggregation** | No |
-| `self_check.ml` | Kernel self-check composition | No |
+| `self_check.ml` | (n/a — self-check logic lives in `bin/Mathc.ml`; see **v3.2** subcommand table below) | No |
 | `packages.ml` | `mc packages` aggregator (decisions + obligations + verdicts) | No |
 | `render.ml` | Static site generator (HTML + nav + assets) | No (writes `dist/` via caller) |
 | `risk.ml` (v3.2 NEW) | Risk classifier: 12-entry path taxonomy, impact + irreversibility, risk-to-mode threshold | No (alg §2) |
