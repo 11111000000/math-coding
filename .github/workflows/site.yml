@@ -57,11 +57,17 @@ jobs:
 
       # Cachix `math-coding` cache is the public binary substituter
       # for mathcoding_core, mathcoding_git, mathcoding_junit, dune,
-      # ocamlformat, etc. Fail-open (`fail-on-cache-miss: false`) —
-      # if the cache write fails or returns no hit, we build from
-      # source rather than fail the deploy. Site availability
-      # outranks cache freshness; missing a publish is not.
-      - name: Cache nix store
+      # ocamlformat, etc. The step is currently disabled because the
+      # `cachix/cachix-action@v15` install requires /tmp/nix-build to
+      # pre-exist (set as `build-dir` by install-nix-action above) but
+      # GitHub-hosted runners do not create it; the resulting
+      # `nix-env -iA cachix` failure skips every downstream step.
+      # Mitigation: build from source without the Cachix cache. Site
+      # availability outranks cache freshness; the build still finishes
+      # in <5 minutes. Re-enable when the upstream action or runner
+      # image guarantees the build-dir.
+      - name: Cache nix store (disabled, see comment)
+        if: false
         uses: cachix/cachix-action@v15
         with:
           name: math-coding
