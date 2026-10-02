@@ -233,7 +233,10 @@ let print_usage oc =
     \  attest FILE                      parse FILE as a JUnit XML report\n\
     \  time-estimate --class ...        print JSON forecast from declared \
      distribution\n\
-    \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\
+     \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\
+    \  mode PATHS...                    compute risk + mode from paths (v3.2 §2)\n\
+    \  rebuttals COMMIT_SHA              load rebuttals/<sha>.yaml (v3.2 §10)\n\
+    \  re-evaluate                       run re_evaluate oracle (v3.2 §17)\n\
     \  self-check                       print JSON self-check verdict; exits \
      0|1|3\n\
     \  session-start                    write .local/session-start ISO timestamp\n\
@@ -1604,6 +1607,123 @@ let do_gate () =
   print_string (gate_to_json result);
   exit (verdict_to_exit result.verdict)
 
+(* --- mode subcommand (algebra 3.2 §2 risk function) ---
+ *
+ * `mc mode PATH1 PATH2 ...` computes the risk classification,
+ * probability, risk, and effective mode for the given paths via
+ * `lib/risk.ml`. Emits JSON for pipeline use; exits 0 always. *)
+let do_mode () =
+  Arg.current := 1;
+  let paths = ref [] in
+  let set_path s = paths := s :: !paths in
+  let format = ref "json" in
+  let set_format s = format := s in
+  let spec = "usage: mc mode PATH1 PATH2 ... [--format=json|text]" in
+  (try
+     Arg.parse [("--format", Arg.String set_format, " output format")]
+       set_path spec
+   with Arg.Bad _ -> ());
+  let ps = List.rev !paths in
+  if ps = [] then begin
+    print_usage stderr; exit 2
+  end;
+  let classified =
+    List.map (fun p -> (p, Risk.classify p)) ps in
+  let impact = Risk.impact ps in
+  let probability = Risk.probability ps in
+  let irreversibility = Risk.irreversibility ps in
+  let r = Risk.risk ps in
+  let m = Risk.mode ps in
+  let mode_str = match m with
+    | `Tiny -> "tiny" | `Light -> "light"
+    | `Standard -> "standard" | `Strict -> "strict"
+    | `Exhaustive -> "exhaustive"
+  in
+  Jsonl.stringify
+    (Jsonl.Object
+       [ "paths", Jsonl.Array (List.map (fun (p, c) ->
+           Jsonl.Object
+             [ "path", Jsonl.String p; "classify", Jsonl.String (Float.to_string (c ))])
+         classified)
+       ; "impact", Jsonl.String (Float.to_string (impact))
+       ; "probability", Jsonl.String (Float.to_string (probability))
+       ; "irreversibility", Jsonl.String (Float.to_string (irreversibility))
+       ; "risk", Jsonl.String (Float.to_string (r))
+       ; "mode", Jsonl.String mode_str ])
+  |> print_endline
+
+(* --- rebuttals subcommand (algebra 3.2 §10) ---
+ *
+ * `mc rebuttals COMMIT_SHA` loads `rebuttals/<sha>.yaml` plus the
+ * forge mirror and emits all rebuttals. Used by CI to surface
+ * multi-agent objections against a commit. *)
+let do_rebuttals () =
+  Arg.current := 1;
+  let sha = ref "" in
+  (try Arg.parse [] (fun s -> sha := s) "usage: mc rebuttals COMMIT_SHA"
+   with Arg.Bad _ -> ());
+  if !sha = "" then begin
+    print_usage stderr; exit 2
+  end;
+  let rebuttals = Rebuttal.all_rebuttals !sha in
+  let stats = Rebuttal.stats rebuttals in
+  let stats_json = Jsonl.Object
+    [ "total", Jsonl.Int stats.total
+    ; "accepted", Jsonl.Int stats.accepted
+    ; "rejected_with_reason", Jsonl.Int stats.rejected_with_reason
+    ; "ignored_non_binding", Jsonl.Int stats.ignored_non_binding
+    ; "never_resolved", Jsonl.Int stats.never_resolved
+    ; "pending", Jsonl.Int stats.pending
+    ]
+  in
+  Jsonl.stringify
+    (Jsonl.Object
+       [ "commit_sha", Jsonl.String !sha
+       ; "rebuttals", Jsonl.Array (List.map Rebuttal.to_json rebuttals)
+       ; "stats", stats_json ])
+  |> print_endline
+
+(* --- re-evaluate subcommand (algebra 3.2 §17) ---
+ *
+ * `mc re-evaluate` walks decisions/ via Re_evaluation.load_decisions
+ * and reports the §17 re_evaluate verdict for each (decision, axiom)
+ * pair. Until axiom_revision loading is wired in, this returns
+ * Inconclusive for every decision, signaling that all decisions
+ * need manual review. *)
+let do_re_evaluate () =
+  Arg.current := 1;
+  let repo_root = "." in
+  let reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  let decisions = Re_evaluation.load_decisions ~reader ~root:repo_root in
+  let v_to_string : Re_evaluation.status -> string = function
+    | Re_evaluation.Compatible -> "compatible"
+    | Re_evaluation.Inconclusive -> "inconclusive"
+    | Re_evaluation.StaleClaim -> "stale_claim"
+  in
+  let dummy_rev : Re_evaluation.axiom_revision =
+    { Re_evaluation.axiom_id = "A0"
+    ; old_sha = ""
+    ; new_sha = ""
+    ; old_forbidden_patterns = []
+    ; new_forbidden_patterns = []
+    } in
+  let results =
+    List.map (fun d ->
+      let v = Re_evaluation.re_evaluate d dummy_rev in
+      Jsonl.Object
+        [ "decision", Jsonl.String d.Domain.id
+        ; "axiom", Jsonl.String "A0"
+        ; "verdict", Jsonl.String (v_to_string v) ])
+      decisions
+  in
+  Jsonl.stringify
+    (Jsonl.Object
+       [ "decisions_evaluated", Jsonl.Int (List.length decisions)
+       ; "results", Jsonl.Array results ])
+  |> print_endline
+
 (* --- self-check subcommand (bootstrap decision
  *   mc-self-check-subcommand@2) ---
  *
@@ -2295,6 +2415,9 @@ let dispatch () =
   | "attest" -> do_attest ()
   | "time-estimate" -> do_time_estimate ()
   | "gate" -> do_gate ()
+  | "mode" -> do_mode ()
+  | "rebuttals" -> do_rebuttals ()
+  | "re-evaluate" -> do_re_evaluate ()
   | "self-check" -> do_self_check ()
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()
