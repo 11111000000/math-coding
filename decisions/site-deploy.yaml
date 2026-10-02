@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: site-deploy
-revision: 2
+revision: 3
 
 state: active
 body_sha: ""
@@ -68,7 +68,7 @@ scope:
     - .github/workflows/site.yml
     - site/
     - assets/
-    - tests/render.ml
+    - tests/render_kernel.ml
     - tests/dune
     - tests/cli/render.t
     - flake.nix
@@ -112,13 +112,13 @@ risk:
       Markdown sources use semantic class names (`palette-bg`,
       `palette-fg`, `palette-accent`) that resolve to the
       CSS tokens. Visual regression asserted by
-      `tests/render.ml::tufte_tokens_resolve`.
+      `tests/render_kernel.ml::tufte_tokens_resolve`.
   - bilingual_content_drift: |
       The Russian sibling `site/<name>.ru.md` is a
       hand-written translation, not a derivation of the
       English source. A change to `site/<name>.md` that
       forgets to update the Russian sibling drifts. Mitigation:
-      `tests/render.ml::bilingual_pairs_complete` asserts that
+      `tests/render_kernel.ml::bilingual_pairs_complete` asserts that
       every `site/*.md` with siblings has a `.ru.md` counterpart
       and vice versa. The protocol's `mc packages --format=html`
       surfaces only the English version; readers who navigate
@@ -271,6 +271,35 @@ obligations:
         - verifier: dist/contributing.html is non-empty
           result: pass
         - verifier: dist/readme.html is non-empty
+          result: pass
+
+  - id: extended-markdown-subset
+    statement: |
+      `lib/render.ml` parses a Markdown subset that covers the
+      real-world articles in `site/*.md`: GitHub-flavoured
+      pipe tables, `**bold**` and `*italic*` emphasis, `> ` block
+      quotes, `[text](url)` inline links, and `---` horizontal
+      rules. The previous rev 2 left these as plain text; rev 3
+      fills the gap so that MANIFESTO, FOUNDATIONS, WORKFLOW,
+      FAQ, README render as intended.
+    outcome: site-content-markup
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::table_renders
+          result: pass
+        - verifier: tests/render_kernel.ml::bold_renders
+          result: pass
+        - verifier: tests/render_kernel.ml::blockquote_renders
+          result: pass
+        - verifier: tests/render_kernel.ml::link_renders
+          result: pass
+        - verifier: tests/render_kernel.ml::hr_renders
+          result: pass
+        - verifier: dist/manifesto.html has <table
+          result: pass
+        - verifier: dist/manifesto.html has <strong>
+          result: pass
+        - verifier: dist/workflow.html has <a href=\"axioms.html\">
           result: pass
 
 evidence:
