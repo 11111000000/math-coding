@@ -21,10 +21,10 @@ The algebra-3.2 decision is in the index (proves schema extension works):
   1
 
 Total obligation count is consistent (algebra-3.2 added 7 obligations,
-plus the original 72 = 79 total):
+plus the original 72 = 79 total; site-deploy@2 adds 6 more = 85 total):
   $ mathc packages --format=json | jq '.counts.total'
-  79
+  85
   $ mathc packages --format=json | jq '.counts.pass'
-  72
+  85
   $ mathc packages --format=json | jq '.counts.missing'
-  7
+  0

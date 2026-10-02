@@ -242,7 +242,10 @@ let print_usage oc =
     \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\
     \  packages [--format=...]         list decisions + verdicts \
      (text|json|html)\n\
-    \  render [--out DIR]             render the static site under DIR\n\n\
+    \  render [--out DIR] [--lang en|ru|both]\n\
+    \           [--site-base HREF] [--mathjax|--no-mathjax]\n\
+    \           [--mermaid|--no-mermaid]\n\
+    \                                     render the static site under DIR\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
@@ -1950,17 +1953,28 @@ let[@warning "-32"] do_self_check () =
   | Gate.Block -> exit 1
   | Gate.Unknown -> exit 3
 
-(* --- render subcommand (bootstrap decision site-deploy@1) ---
+(* --- render subcommand (bootstrap decision site-deploy@2) ---
  *
- * `mc render --out DIR` renders the static site under DIR (default
- * dist/). The render reads articles from `site/`, walks decisions
- * via lib/packages.ml, and writes one .html file per page. The
- * dispatcher's I/O is the boundary; lib/render.ml is pure.
+ * `mc render [--out DIR] [--lang en|ru|both] [--site-base HREF]
+ * [--mathjax|--no-mathjax] [--mermaid|--no-mermaid]` renders the
+ * static site under DIR (default `dist/`). The render reads
+ * articles from `site/`, walks decisions via lib/packages.ml, and
+ * writes one .html file per page. The dispatcher's I/O is the
+ * boundary; lib/render.ml is pure.
  *
- * Per spec/semantics.md §`render`, the allowlist is:
- *   index.html, axioms.html, methodology.html,
- *   bootstrap-gate.html, packages.html, decisions/*.html,
- *   axioms/*.html, assets/style.css, index.json.
+ * Bilingual mode (`--lang=both`) renders both English and Russian
+ * pages when `site/<name>.ru.md` exists; the Russian page is
+ * omitted otherwise. The `--site-base` value is emitted as
+ * `<base href="…">` so the same dist/ tree serves under any
+ * subpath (default `/math-coding/` for GitHub Pages).
+ *
+ * Per spec/semantics.md §`render`, the allowlist is the union of
+ * the English and Russian page sets:
+ *   index.{html,ru.html}, axioms.html, methodology.html,
+ *   bootstrap-gate.html, packages.html, manifesto.{html,ru.html},
+ *   foundations.{html,ru.html}, workflow.html, faq.html,
+ *   contributing.html, readme.{html,ru.html},
+ *   decisions/*.html, axioms/*.html, assets/style.css, index.json.
  * Missing any file is exit 2. *)
 
 let[@warning "-32"] mkdir_p dir =
@@ -2057,15 +2071,36 @@ let[@warning "-32"] render_search_index pages =
 
 let[@warning "-32"] do_render () =
   let out_dir = ref "dist" in
+  let lang_arg = ref "en" in
+  let site_base = ref "/math-coding/" in
+  let enable_mathjax = ref true in
+  let enable_mermaid = ref true in
+  let set_lang s =
+    match s with
+    | "en" | "ru" | "both" -> lang_arg := s
+    | _ ->
+        Printf.fprintf stderr "mc render: --lang must be en|ru|both\n";
+        exit 2
+  in
+  let set_base s = site_base := s in
   Arg.current := 1;
   (try
      Arg.parse
        [
          ("-o", Arg.String (fun s -> out_dir := s), "output directory");
          ("--out", Arg.String (fun s -> out_dir := s), "output directory");
+         ("--lang", Arg.String set_lang, "page languages: en|ru|both");
+         ( "--site-base",
+           Arg.String set_base,
+           " <base href> value (default /math-coding/)" );
+         ("--mathjax", Arg.Set enable_mathjax, "load MathJax 3 (default on)");
+         ("--no-mathjax", Arg.Clear enable_mathjax, "do not load MathJax");
+         ("--mermaid", Arg.Set enable_mermaid, "load mermaid 10 (default on)");
+         ("--no-mermaid", Arg.Clear enable_mermaid, "do not load mermaid");
        ]
        (fun _ -> ())
-       "usage: mc render [--out DIR]"
+       "usage: mc render [--out DIR] [--lang en|ru|both] [--site-base HREF] \
+        [--mathjax|--no-mathjax] [--mermaid|--no-mermaid]"
    with Arg.Bad m ->
      Printf.fprintf stderr "mc render: %s\n" m;
      exit 2);
@@ -2099,9 +2134,73 @@ let[@warning "-32"] do_render () =
       (fun d -> (d.Packages.decision_id, per_decision_obligation_html d))
       pkg.Packages.decisions
   in
+
+  (* Article catalogue. Each entry: (name, title, source-file).
+     The first 4 entries existed at rev 1; the next 6 are new at
+     rev 2 (MANIFESTO, FOUNDATIONS, WORKFLOW, FAQ, CONTRIBUTING,
+     README). Each entry optionally has a `<name>.ru.md` sibling
+     that the dispatcher loads if `--lang=ru|both`. *)
+  let articles =
+    [
+      ("axioms", "Axioms", "axioms.md");
+      ("methodology", "Methodology", "methodology.md");
+      ("manifesto", "Manifesto", "manifesto.md");
+      ("foundations", "Foundations", "foundations.md");
+      ("workflow", "Workflow", "workflow.md");
+      ("faq", "FAQ", "faq.md");
+      ("readme", "README", "readme.md");
+      ("contributing", "Contributing", "contributing.md");
+      ("bootstrap-gate", "Bootstrap Gate", "bootstrap-gate.md");
+      ("packages", "Packages", "packages.md");
+    ]
+  in
+
+  let load_md filename =
+    let path = Filename.concat site_dir filename in
+    reader path
+  in
+
+  let site_pages =
+    List.filter_map
+      (fun (name, title, fname) ->
+        let body = load_md fname in
+        if body = "" then None else Some (name, title, body))
+      articles
+  in
+
+  let ru_enabled = !lang_arg = "ru" || !lang_arg = "both" in
+  let site_pages_ru =
+    if not ru_enabled then []
+    else
+      List.filter_map
+        (fun (name, title, _) ->
+          let fname = name ^ ".ru.md" in
+          let body = load_md fname in
+          if body = "" then None else Some (name, title ^ " / RU", body))
+        articles
+  in
+
+  let languages =
+    match !lang_arg with
+    | "en" -> [ "en" ]
+    | "ru" -> [ "ru" ]
+    | "both" -> [ "en"; "ru" ]
+    | _ -> [ "en" ]
+  in
+
+  let config : Render.config =
+    {
+      Render.site_base = !site_base;
+      Render.enable_mathjax = !enable_mathjax;
+      Render.enable_mermaid = !enable_mermaid;
+      Render.enable_lang_toggle = true;
+      Render.languages;
+    }
+  in
+
   let pages =
-    Render.build_pages ~reader ~site_dir ~package_html ~decisions_data
-      ~axioms_data ~now_iso:now ~policy_id
+    Render.build_pages ~package_html ~decisions_data ~policy_id ~config
+      ~site_pages ~site_pages_ru ~axioms_data
   in
 
   Printf.printf "[render] writing %d pages to %s/\n" (List.length pages)

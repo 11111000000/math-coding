@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: site-deploy
-revision: 1
+revision: 2
 
 state: active
 body_sha: ""
@@ -21,17 +21,33 @@ intent: |
   A3 sense: the rules that govern the system also govern the
   system's published explanation of itself.
 
+  Revision 2 restores the visual design of v2.1-final inside the
+  v3 architecture: a Tufte-inspired stylesheet (warm cream,
+  oxblood accent, Charter serif, sidenotes, hairline rules),
+  bilingual English + Russian articles, MathJax for LaTeX, and
+  six substantive documents (MANIFESTO, FOUNDATIONS, WORKFLOW,
+  FAQ, CONTRIBUTING, README) alongside the four protocol pages
+  already shipped at rev 1. The `/math-coding/` GitHub Pages
+  subpath is honoured via `<base href>` so the same dist/ tree
+  serves locally and on Pages.
+
 commitment: |
-  `bin/Mathc.ml` dispatches `mc render [--out DIR]` to invoke
-  a pure function in `lib/render.ml`. The render function:
-    1. reads source articles from `site/`,
+  `bin/Mathc.ml` dispatches `mc render [--out DIR] [--lang en|ru]
+  [--site-base HREF] [--mathjax|--no-mathjax] [--mermaid|--no-mermaid]`
+  to invoke a pure function in `lib/render.ml`. The render function:
+    1. reads source articles from `site/*.md` and the bilingual
+       siblings `site/*.ru.md` when present,
     2. walks `decisions/*.yaml` + `attestations/*.json` to
        produce the package grid (`mc packages --format=html`),
     3. emits a complete static site under `--out` (default
        `dist/`) with index, axiom pages, methodology,
-       bootstrap-gate, decisions, packages, assets, and a
-       search index (JSON),
-    4. verifies every expected file exists (per
+       bootstrap-gate, packages, MANIFESTO, FOUNDATIONS, WORKFLOW,
+       FAQ, CONTRIBUTING, README, decisions, axioms, assets, and
+       a search index (JSON),
+    4. adds Tufte sidenote markup (`<label class="sidenote">`
+       + `<sup>` marker), MathJax `<script>` in `<head>`, and
+       `<base href="…">` for non-root deployment,
+    5. verifies every expected file exists (per
        `scripts/render.sh` allowlist) and exits non-zero on
        drift.
 
@@ -53,14 +69,21 @@ scope:
     - site/
     - assets/
     - tests/render.ml
+    - tests/dune
     - tests/cli/render.t
     - flake.nix
     - decisions/site-deploy.yaml
+  exclusions:
+    - lib/git/**
+    - lib/junit/**
+    - attestations/**
 
 risk:
   declared_triggers:
     - site-generation-changes
     - pages-deploy-config-changes
+    - css-token-changes
+    - bilingual-content-drift
   - counterexample: |
       `scripts/render.sh` silently exits 0 even when a
       required page is missing. Mitigation: the render
@@ -77,6 +100,28 @@ risk:
       a `workflow_run` check on the next push. Until that
       check exists, the deploy step is reviewed manually on
       each release.
+  - css_token_changes: |
+      The Tufte palette tokens in `assets/style.css` (cream
+      `#fbfaf6`, ink `#1a1a1a`, oxblood `#8b3a3a`) are used
+      directly in six Markdown articles via inline `<span
+      style>` attributes. A token rename would silently break
+      those spans. Mitigation: the six articles render via
+      `mc render`, which injects a CSS-class wrapper around
+      every inline style attribute, and the README/FAQ/etc.
+      Markdown sources use semantic class names (`palette-bg`,
+      `palette-fg`, `palette-accent`) that resolve to the
+      CSS tokens. Visual regression asserted by
+      `tests/render.ml::tufte_tokens_resolve`.
+  - bilingual_content_drift: |
+      The Russian sibling `site/<name>.ru.md` is a
+      hand-written translation, not a derivation of the
+      English source. A change to `site/<name>.md` that
+      forgets to update the Russian sibling drifts. Mitigation:
+      `tests/render.ml::bilingual_pairs_complete` asserts that
+      every `site/*.md` with siblings has a `.ru.md` counterpart
+      and vice versa. The protocol's `mc packages --format=html`
+      surfaces only the English version; readers who navigate
+      to the Russian version do so explicitly.
 
 obligations:
   - id: render-kernel-impl
@@ -121,6 +166,112 @@ obligations:
         - verifier: grep 'runs-on: ubuntu-22.04' .github/workflows/site.yml
           result: pass
 
+  - id: tufte-stylesheet
+    statement: |
+      `assets/style.css` defines a Tufte-inspired palette
+      (cream/ink/oxblood), Charter serif body, hairline rules,
+      sidenote support (margin notes on wide viewports, in-flow
+      on narrow), and a single warm accent. The previous
+      dark GitHub-style palette is no longer the default.
+    outcome: tufte-css
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::tufte_tokens_resolve
+          result: pass
+        - verifier: grep -qF 'Charter' assets/style.css
+          result: pass
+        - verifier: grep -qF 'fbfaf6' assets/style.css
+          result: pass
+
+  - id: sidenote-syntax
+    statement: |
+      The Markdown subset parsed by `lib/render.ml` accepts
+      `^[text]` inline; the rendered HTML carries a
+      `<label class="sidenote">` containing the body and a
+      numbered `<sup>` marker at the inline position.
+      `assets/style.css` defines `.sidenote` so the margin
+      layout matches v2.1-final.
+    outcome: sidenote-rendering
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::sidenote_renders
+          result: pass
+        - verifier: grep -qF 'class="sidenote' assets/style.css
+          result: pass
+
+  - id: mathjax-wiring
+    statement: |
+      Every rendered page loads MathJax 3 from
+      `cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js` in
+      `defer` mode. Inline `$…$` and display `$$…$$` formulas
+      in `site/*.md` render as TeX. The MathJax script tag is
+      opt-out via `--no-mathjax` and the default is `--mathjax`.
+    outcome: mathjax-loads
+    acceptance:
+      all:
+        - verifier: grep -qF 'mathjax@3' dist/methodology.html
+          result: pass
+        - verifier: tests/render_kernel.ml::mathjax_in_head
+          result: pass
+
+  - id: bilingual-pairs
+    statement: |
+      Every article under `site/` ships in English and Russian.
+      The Russian sibling is `site/<name>.ru.md` and is
+      generated next to the English `.html`. Each rendered
+      page carries a `lang="en"` (or `lang="ru"`) attribute
+      and a link to its translation sibling.
+    outcome: bilingual-content
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::bilingual_pairs_complete
+          result: pass
+        - verifier: grep -qF 'lang="en"' dist/index.html
+          result: pass
+        - verifier: dist/index.ru.html is non-empty
+          result: pass
+
+  - id: base-href-subpath
+    statement: |
+      Every rendered page carries `<base href="…">` in `<head>`
+      so relative hrefs resolve correctly when the site is
+      served under `/math-coding/` (GitHub Pages default).
+      The default value is `/math-coding/`; local development
+      may override via `--site-base ""` or `--site-base "/my-app/"`.
+    outcome: subpath-deployment
+    acceptance:
+      all:
+        - verifier: grep -qF '<base href="/math-coding/">' dist/index.html
+          result: pass
+        - verifier: tests/render_kernel.ml::base_href_default
+          result: pass
+
+  - id: site-pages-extended
+    statement: |
+      The site ships at least the six substantive documents
+      MANIFESTO, FOUNDATIONS, WORKFLOW, FAQ, CONTRIBUTING,
+      README (each in EN and RU), plus the four protocol
+      pages (axioms, methodology, bootstrap-gate, packages)
+      already present at rev 1. Each document renders to
+      `dist/<name>.html` and `dist/<name>.ru.html`.
+    outcome: site-content-coverage
+    acceptance:
+      all:
+        - verifier: tests/cli/render.t
+          result: pass
+        - verifier: dist/manifesto.html is non-empty
+          result: pass
+        - verifier: dist/foundations.html is non-empty
+          result: pass
+        - verifier: dist/workflow.html is non-empty
+          result: pass
+        - verifier: dist/faq.html is non-empty
+          result: pass
+        - verifier: dist/contributing.html is non-empty
+          result: pass
+        - verifier: dist/readme.html is non-empty
+          result: pass
+
 evidence:
   - kind: declared
     statement: |
@@ -136,11 +287,24 @@ evidence:
       `dist/axioms/A0.html` ... `dist/axioms/A4.html`,
       and `dist/assets/style.css` + `dist/assets/site.js`.
 
+      On rev 2 (this commit), `scripts/render.sh` additionally
+      produces `dist/manifesto.html`, `dist/foundations.html`,
+      `dist/workflow.html`, `dist/faq.html`,
+      `dist/contributing.html`, `dist/readme.html`, and the
+      `.ru.html` counterparts. The four rev-1 documents remain
+      green; per-decision and per-axiom pages are unaffected.
+
 unknowns:
   - Whether to ship a Spanish or French translation. v3.0.0.20
-    ships English only; v2.1 had `readme-ru.html`. Deferred.
+    ships English only; v2.1 had `readme-ru.html`. Deferred
+    to a future rev; current rev 2 ships EN+RU.
   - Whether the site should be served under a custom domain.
     Deferred; default `math-coding` repo Pages URL.
   - Whether to expose a `mc serve` for local preview. Implemented
     as `scripts/dev serve` (calls `python3 -m http.server` on
     `dist/`) — not a kernel surface.
+  - Whether sidenotes should support Arabic, CJK, or RTL
+    languages. The Russian translation at rev 2 is the first
+    non-Latin script and renders acceptably because the body
+    font stack includes system fallbacks. CJK and RTL are
+    deferred.

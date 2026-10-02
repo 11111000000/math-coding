@@ -3,7 +3,9 @@
 #
 # Pipeline:
 #   1. Build the mathc binary via `scripts/dev build`.
-#   2. Run `mc render --out dist/` to render the site.
+#   2. Run `mc render --out dist/ --lang=both` to render the
+#      site in English and Russian (any site/<name>.ru.md sibling
+#      is rendered to dist/<name>.ru.html).
 #   3. Copy `assets/style.css` to `dist/assets/style.css`.
 #   4. Verify every expected file exists (per spec/semantics.md
 #      §`render`).
@@ -20,7 +22,11 @@ scripts/dev build
 
 echo "[2/4] running mc render..."
 mkdir -p dist
-_build/install/default/bin/mathc render --out dist
+# --lang=both emits both the English .html and the Russian
+# .ru.html for every article that has a sibling. Sites that do
+# not yet ship a Russian translation still get the English page;
+# the Russian .ru.html is omitted when its source is absent.
+_build/install/default/bin/mathc render --out dist --lang=both
 
 echo "[3/4] copying assets..."
 mkdir -p dist/assets
@@ -33,6 +39,12 @@ required=(
   dist/index.html
   dist/axioms.html
   dist/methodology.html
+  dist/manifesto.html
+  dist/foundations.html
+  dist/workflow.html
+  dist/faq.html
+  dist/readme.html
+  dist/contributing.html
   dist/bootstrap-gate.html
   dist/packages.html
   dist/assets/style.css
@@ -62,6 +74,15 @@ for a in axioms/*.md; do
   required+=( "dist/axioms/${base}.html" )
 done
 
+# Russian siblings — only when the source `<name>.ru.md` exists.
+# The bilingual_pairs_complete obligation is asserted by
+# tests/render.ml; the allowlist here mirrors that policy.
+for s in site/*.ru.md; do
+  [ -f "$s" ] || continue
+  base=$(basename "$s" .ru.md)
+  required+=( "dist/${base}.ru.html" )
+done
+
 missing=0
 for f in "${required[@]}"; do
   if [ ! -f "$f" ]; then
@@ -75,7 +96,7 @@ if [ "$missing" -ne 0 ]; then
   exit 2
 fi
 
-echo "render OK: dist/ contains $(echo "${#required[@]}") files."
+echo "render OK: dist/ contains ${#required[@]} files."
 echo ""
 echo "preview locally:"
 echo "  python3 -m http.server -d dist/ 8000"

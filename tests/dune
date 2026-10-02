@@ -4,5 +4,6 @@
   conformance
   repo_structure
   process_principles
+  render_kernel
   yaml_block_scalars)
  (libraries mathcoding_core alcotest))
