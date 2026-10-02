@@ -36,13 +36,10 @@ let[@warning "-32"] tufte_tokens_resolve () =
     \  body { font-family: Charter, \"Iowan Old Style\", Georgia; }\n\
     \  .sidenote { float: right; clear: right; width: 18rem; }\n"
   in
-  Alcotest.(check bool)
-    "Tufte cream bg present" true (has "fbfaf6" css);
+  Alcotest.(check bool) "Tufte cream bg present" true (has "fbfaf6" css);
   Alcotest.(check bool) "Tufte ink fg present" true (has "1a1a1a" css);
-  Alcotest.(check bool)
-    "Tufte oxblood accent present" true (has "8b3a3a" css);
-  Alcotest.(check bool)
-    "Charter serif in body stack" true (has "Charter" css);
+  Alcotest.(check bool) "Tufte oxblood accent present" true (has "8b3a3a" css);
+  Alcotest.(check bool) "Charter serif in body stack" true (has "Charter" css);
   Alcotest.(check bool) ".sidenote rule defined" true (has ".sidenote" css)
 
 let[@warning "-32"] sidenote_renders () =
@@ -128,6 +125,59 @@ let[@warning "-32"] bilingual_pairs_complete () =
     "Russian page carries lang=\"ru\"" true
     (has "<html lang=\"ru\">" manifest_ru.Render.body)
 
+(* --- extended-markdown-subset obligation (rev 3) --- *)
+
+let[@warning "-32"] table_renders () =
+  let src =
+    "| Col1 | Col2 |\n|------|------|\n| a    | b    |\n| c    | d    |\n"
+  in
+  let html = Render.md_parse src in
+  Alcotest.(check bool) "<table> tag present" true (has "<table" html);
+  Alcotest.(check bool)
+    "<thead> with header cells" true
+    (has "<th>Col1</th>" html && has "<th>Col2</th>" html);
+  Alcotest.(check bool)
+    "<tbody> with body rows" true
+    (has "<td>a</td>" html && has "<td>b</td>" html);
+  Alcotest.(check bool)
+    "second row present" true
+    (has "<td>c</td>" html && has "<td>d</td>" html)
+
+let[@warning "-32"] bold_renders () =
+  let src = "before **strong** after" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "<strong>strong</strong> present" true
+    (has "<strong>strong</strong>" html);
+  (* Plain asterisks without pairing are literal. *)
+  let html2 = Render.md_parse "single * not bold" in
+  Alcotest.(check bool)
+    "lone asterisk is literal" true
+    ((not (has "<em>" html2)) && has "single" html2)
+
+let[@warning "-32"] blockquote_renders () =
+  let src = "> a quoted line" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool) "<blockquote> present" true (has "<blockquote>" html);
+  Alcotest.(check bool) "quoted text present" true (has "a quoted line" html)
+
+let[@warning "-32"] link_renders () =
+  let src = "see [axioms](axioms.html) for details" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "<a href=\"axioms.html\">axioms</a> present" true
+    (has "<a href=\"axioms.html\">axioms</a>" html);
+  (* Tolerant: unmatched [ stays literal. *)
+  let html2 = Render.md_parse "no link [here" in
+  Alcotest.(check bool)
+    "unmatched [ is literal" true
+    ((not (has "<a href" html2)) && has "[here" html2)
+
+let[@warning "-32"] hr_renders () =
+  let src = "above\n\n---\n\nbelow" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool) "<hr> present" true (has "<hr>" html)
+
 let () =
   Alcotest.run "render"
     [
@@ -140,4 +190,10 @@ let () =
         [ Alcotest.test_case "href" `Quick base_href_default ] );
       ( "bilingual_pairs_complete",
         [ Alcotest.test_case "pairs" `Quick bilingual_pairs_complete ] );
+      ("table_renders", [ Alcotest.test_case "table" `Quick table_renders ]);
+      ("bold_renders", [ Alcotest.test_case "bold" `Quick bold_renders ]);
+      ( "blockquote_renders",
+        [ Alcotest.test_case "bq" `Quick blockquote_renders ] );
+      ("link_renders", [ Alcotest.test_case "link" `Quick link_renders ]);
+      ("hr_renders", [ Alcotest.test_case "hr" `Quick hr_renders ]);
     ]

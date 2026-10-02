@@ -38,4 +38,8 @@ subpath deployment, and the bilingual EN+RU page set
   $ grep -qF 'lang="ru"' dist/index.ru.html
   $ grep -qF 'mathjax@3' dist/methodology.html
   $ grep -qF 'class="sidenote"' dist/manifesto.html
+  $ grep -qF '<table class="mc-table"' dist/manifesto.html
+  $ grep -qF '<strong>' dist/manifesto.html
+  $ grep -qF '<a href="axioms.html"' dist/workflow.html
   $ rm -rf dist
+

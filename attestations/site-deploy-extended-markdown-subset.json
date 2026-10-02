@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"site-deploy","obligation":"extended-markdown-subset","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"ci:fixture:cram"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:2ae0e3a88dbaa33716c06dee88eeaefa3c8593964f181f3e469806ce5229182a"}

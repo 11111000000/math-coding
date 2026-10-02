@@ -41,6 +41,14 @@ let[@warning "-32"] html_escape s =
   done;
   Buffer.contents buf
 
+(* Helper: render the HTML of a list of (html, _) fragments
+   by joining all their HTML strings. Used for nested inline
+   processing (bold inside bold, link text inside a link). *)
+let[@warning "-32"] html_of_fragments (frags : (string * bool) list) : string =
+  let buf = Buffer.create 64 in
+  List.iter (fun (h, _) -> Buffer.add_string buf h) frags;
+  Buffer.contents buf
+
 (* Parse the body of an inline segment looking for `^[text]`
    sidenote syntax. Returns a list of (escaped_html, is_sidenote)
    fragments in source order. Outside a sidenote, also handles
@@ -50,7 +58,7 @@ let[@warning "-32"] html_escape s =
    anchor id pair (sn-N, snref-N). The reference itself lives in
    the closure of `loop`; both bindings are introduced inside
    `md_inline_parse`. *)
-let[@warning "-32"] md_inline_parse s =
+let[@warning "-32"] rec md_inline_parse s =
   let len = String.length s in
   let buf = Buffer.create len in
   let fragments : (string * bool) list ref = ref [] in
@@ -115,6 +123,92 @@ let[@warning "-32"] md_inline_parse s =
           loop (i + 1)
         end
       end
+      else if c = '*' && i + 1 < len && s.[i + 1] = '*' then begin
+        (* Bold: **text** → <strong>text</strong> *)
+        let k = ref (i + 2) in
+        let found = ref false in
+        let body_start = i + 2 in
+        let body_end = ref body_start in
+        while !k + 1 < len && not !found do
+          if s.[!k] = '*' && s.[!k + 1] = '*' then begin
+            body_end := !k;
+            found := true
+          end
+          else incr k
+        done;
+        if !found then begin
+          flush_inline ();
+          let body_str = String.sub s body_start (!body_end - body_start) in
+          let html =
+            Printf.sprintf "<strong>%s</strong>"
+              (html_of_fragments (md_inline_parse body_str))
+          in
+          fragments := (html, false) :: !fragments;
+          loop (!k + 2)
+        end
+        else begin
+          Buffer.add_char buf c;
+          loop (i + 1)
+        end
+      end
+      else if c = '[' then begin
+        (* Inline link: [text](url). Tolerant: if no `]` followed by
+           `(` is found, the `[` is literal. *)
+        let k = ref (i + 1) in
+        let depth = ref 1 in
+        let found_text = ref false in
+        let text_end = ref 0 in
+        while !k < len && not !found_text do
+          if s.[!k] = '[' then incr depth
+          else if s.[!k] = ']' then begin
+            decr depth;
+            if !depth = 0 then begin
+              text_end := !k;
+              found_text := true
+            end
+          end;
+          if not !found_text then incr k
+        done;
+        if !found_text && !text_end + 1 < len && s.[!text_end + 1] = '(' then begin
+          let m = ref (!text_end + 2) in
+          let depth_p = ref 1 in
+          let url_end = ref 0 in
+          let found_url = ref false in
+          while !m < len && not !found_url do
+            if s.[!m] = '(' then incr depth_p
+            else if s.[!m] = ')' then begin
+              decr depth_p;
+              if !depth_p = 0 then begin
+                url_end := !m;
+                found_url := true
+              end
+            end;
+            if not !found_url then incr m
+          done;
+          if !found_url then begin
+            let text = String.sub s (i + 1) (!text_end - i - 1) in
+            let url =
+              String.trim
+                (String.sub s (!text_end + 2) (!url_end - !text_end - 2))
+            in
+            flush_inline ();
+            let html =
+              Printf.sprintf "<a href=\"%s\">%s</a>" (html_escape url)
+                (html_of_fragments (md_inline_parse text))
+            in
+            fragments := (html, false) :: !fragments;
+            loop (!url_end + 1)
+          end
+          else begin
+            Buffer.add_char buf c;
+            loop (i + 1)
+          end
+        end
+        else begin
+          Buffer.add_char buf c;
+          loop (i + 1)
+        end
+      end
       else begin
         Buffer.add_char buf c;
         loop (i + 1)
@@ -153,7 +247,7 @@ let[@warning "-32"] md_parse source =
   let flush_para text =
     if text <> "" then begin
       Buffer.add_string buf "  <p>";
-      Buffer.add_string buf (md_inline text);
+      Buffer.add_string buf (html_of_fragments (md_inline_parse text));
       Buffer.add_string buf "</p>\n"
     end
   in
@@ -164,6 +258,86 @@ let[@warning "-32"] md_parse source =
         if String.length trimmed > 4 && String.sub trimmed 0 4 = "```" then
           (List.rev acc, r)
         else collect_code (l :: acc) r
+  in
+  (* Detect whether a line is a horizontal rule: dashes or
+     asterisks only. Used by md_parse. *)
+  let[@warning "-32"] is_hr_line t =
+    if String.length t < 3 then false
+    else
+      let c0 = t.[0] in
+      (c0 = '-' || c0 = '*') && String.for_all (fun c -> c = c0) t
+  in
+  (* Detect whether a line starts a markdown table row.
+     The line must start with `|`. *)
+  let[@warning "-32"] is_table_line t = String.length t > 0 && t.[0] = '|' in
+  (* A line is a table separator when it consists solely of
+     `|`, `-`, `:`, and whitespace. *)
+  let[@warning "-32"] is_table_separator t =
+    String.length t > 2
+    && String.contains t '|' && String.contains t '-'
+    && String.for_all (fun c -> c = '|' || c = '-' || c = ':' || c = ' ') t
+  in
+  (* Split a table row by `|`, dropping the leading/trailing
+     empty cell when the row starts or ends with `|`. *)
+  let[@warning "-32"] split_table_row t =
+    let len = String.length t in
+    if len = 0 then []
+    else
+      let start = if t.[0] = '|' then 1 else 0 in
+      let finish = if t.[len - 1] = '|' then len - 1 else len in
+      let cells = ref [] in
+      let i = ref start in
+      while !i < finish do
+        let j = ref !i in
+        while !j < finish && t.[!j] <> '|' do
+          incr j
+        done;
+        let cell = String.trim (String.sub t !i (!j - !i)) in
+        cells := cell :: !cells;
+        i := !j + 1
+      done;
+      List.rev !cells
+  in
+  let render_table header_rows body_rows =
+    Buffer.add_string buf "<table class=\"mc-table\">\n";
+    if header_rows <> [] then begin
+      Buffer.add_string buf "  <thead>\n  <tr>";
+      List.iter
+        (fun cell ->
+          Buffer.add_string buf "<th>";
+          Buffer.add_string buf (html_of_fragments (md_inline_parse cell));
+          Buffer.add_string buf "</th>")
+        header_rows;
+      Buffer.add_string buf "</tr>\n  </thead>\n"
+    end;
+    if body_rows <> [] then begin
+      Buffer.add_string buf "  <tbody>\n";
+      List.iter
+        (fun row ->
+          Buffer.add_string buf "    <tr>";
+          List.iter
+            (fun cell ->
+              Buffer.add_string buf "<td>";
+              Buffer.add_string buf (html_of_fragments (md_inline_parse cell));
+              Buffer.add_string buf "</td>")
+            row;
+          Buffer.add_string buf "</tr>\n")
+        body_rows;
+      Buffer.add_string buf "  </tbody>\n"
+    end;
+    Buffer.add_string buf "</table>\n"
+  in
+  (* Collect subsequent table rows until a blank line or non-table line. *)
+  let collect_table_rows rem =
+    let rec loop acc = function
+      | [] -> (List.rev acc, [])
+      | line :: more ->
+          let t = String.trim line in
+          if t = "" then (List.rev acc, more)
+          else if is_table_line t then loop (split_table_row t :: acc) more
+          else (List.rev acc, line :: more)
+    in
+    loop [] rem
   in
   let rec loop acc_para = function
     | [] -> flush_para acc_para
@@ -217,6 +391,51 @@ let[@warning "-32"] md_parse source =
                 Buffer.add_string buf "</code></pre>\n");
             loop "" after
           end
+        | _ when is_hr_line t ->
+            push_para ();
+            Buffer.add_string buf "<hr>\n";
+            loop "" rest
+        | _ when String.length t > 1 && t.[0] = '>' ->
+            push_para ();
+            (* Blockquote: each `> ` line joins the quote body. The
+               FIRST line's body is taken from `t` (the matched line);
+               subsequent lines contribute their own body via
+               collect's recursive body extraction. *)
+            let first_body =
+              String.trim (String.sub t 1 (String.length t - 1))
+            in
+            let rec collect acc rem =
+              match rem with
+              | [] -> (acc, [])
+              | l :: r ->
+                  let tt = String.trim l in
+                  if String.length tt > 0 && tt.[0] = '>' then
+                    let b =
+                      String.trim
+                        (String.sub tt 1 (String.length tt - 1))
+                    in
+                    collect (b :: acc) r
+                  else (acc, l :: r)
+            in
+            let collected, after = collect [first_body] rest in
+            let joined = String.concat " " (List.rev collected) in
+            Buffer.add_string buf "<blockquote><p>";
+            Buffer.add_string buf (html_of_fragments (md_inline_parse joined));
+            Buffer.add_string buf "</p></blockquote>\n";
+            loop "" after
+        | _ when is_table_line t && String.length t > 2 -> (
+            push_para ();
+            (* Detect table: header | separator | row* | blank. *)
+            let header_cells = split_table_row t in
+            match rest with
+            | sep :: rows when is_table_separator (String.trim sep) ->
+                let body_rows, after = collect_table_rows rows in
+                render_table header_cells body_rows;
+                loop "" after
+            | _ ->
+                (* Not a table; emit as paragraph *)
+                let next = if acc_para = "" then t else acc_para ^ " " ^ t in
+                loop next rest)
         | _ when String.length t > 2 && String.sub t 0 2 = "- " ->
             push_para ();
             Buffer.add_string buf "<ul>\n  <li>";
