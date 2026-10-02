@@ -65,7 +65,7 @@ jobs:
         uses: cachix/cachix-action@v15
         with:
           name: math-coding
-          fail-on-cache-miss: false
+          skipPush: true
 
       # Closes site-deploy@1 obligation render-kernel-impl. The
       # script: (1) builds mathc via scripts/dev build (the same
