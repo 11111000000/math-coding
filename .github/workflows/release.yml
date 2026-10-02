@@ -152,6 +152,14 @@ jobs:
             [ -f "dist-bin/$exe" ] || { echo "missing: $exe"; exit 1; }
           done
 
+      - name: Generate adoption bundle
+        run: |
+            set -eu
+            ./scripts/dist-adoption.sh
+            ls -laR dist/adoption/
+            tar -czf dist-bin/dist-adoption.tar.gz -C dist adoption
+            ls -la dist-bin/dist-adoption.tar.gz
+
       - name: Publish on tag — official release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -165,6 +173,7 @@ jobs:
             dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
             dist-bin/mathc-windows-x86_64.exe
+            dist-bin/dist-adoption.tar.gz
 
       - name: Publish on main / manual dispatch — rolling edge
         if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
@@ -179,6 +188,7 @@ jobs:
             dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
             dist-bin/mathc-windows-x86_64.exe
+            dist-bin/dist-adoption.tar.gz
           body: |
             Rolling prerelease built from the latest commit on `main`.
 
