@@ -75,6 +75,7 @@ let[@warning "-32"] make_decision ?(id = "dec-test") ?(rev = "1")
     mode_floor_used = None;
     body_sha = None;
     yaml_sha = None;
+    axiom_link = [];
   }
 
 let[@warning "-32"] empty_rev axiom_id =
@@ -259,13 +260,31 @@ let[@warning "-32"] test_remediation_mentions_decision_and_axiom () =
   let text = Re_evaluation.remediation d "A1" in
   Alcotest.(check bool) "names decision id"
     true
-    (Str.string_match (Str.regexp "kernel-change") text 0);
+    (let re = Str.regexp "kernel-change" in
+     let len = String.length text in
+     let rec search off =
+       if off >= len then false
+       else try ignore (Str.search_forward re text off); true
+         with Not_found -> search (off + 1)
+     in search 0);
   Alcotest.(check bool) "names axiom id"
     true
-    (Str.string_match (Str.regexp "A1") text 0);
+    (let re = Str.regexp "A1" in
+     let len = String.length text in
+     let rec search off =
+       if off >= len then false
+       else try ignore (Str.search_forward re text off); true
+         with Not_found -> search (off + 1)
+     in search 0);
   Alcotest.(check bool) "mentions axioms path"
     true
-    (Str.string_match (Str.regexp "axioms/A1.md") text 0)
+    (let re = Str.regexp "axioms/A1.md" in
+     let len = String.length text in
+     let rec search off =
+       if off >= len then false
+       else try ignore (Str.search_forward re text off); true
+         with Not_found -> search (off + 1)
+     in search 0)
 
 (* --- enumerate --- *)
 

@@ -87,10 +87,8 @@ jobs:
         # ~5 s.
         run: |
           set +e
-          MATH_CODING_ATTESTATION_STORE=/tmp/empty-attestations \
-            nix develop .#test --command bash -c \
-            'mkdir -p /tmp/empty-attestations && \
-             _build/install/default/bin/mathc self-check > /tmp/self-check.json 2> /tmp/self-check.err; \
+          nix develop .#test --command bash -c \
+            '_build/install/default/bin/mathc self-check > /tmp/self-check.json 2> /tmp/self-check.err; \
              echo "self-check exit=$?"; \
              jq -c "{verdict, kernel_digest, repository_digest, subjects_count: (.subjects | length)}" /tmp/self-check.json || cat /tmp/self-check.err'
         continue-on-error: false

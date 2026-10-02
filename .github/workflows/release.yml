@@ -111,14 +111,14 @@ jobs:
         run: |
           set -eu
           eval "$(opam env --switch=5.4.0)"
-          opam exec -- dune build --profile=release core/main.exe
+          opam exec -- dune build --profile=release bin/mathc.exe
 
       - name: Stage binary
         shell: bash
         run: |
           set -eu
           mkdir -p dist-bin
-          cp _build/default/core/main.exe "dist-bin/${{ matrix.exe }}${{ matrix.ext }}"
+          cp _build/default/bin/mathc.exe "dist-bin/${{ matrix.exe }}${{ matrix.ext }}"
           chmod +x "dist-bin/${{ matrix.exe }}${{ matrix.ext }}" 2>/dev/null || true
           ls -la dist-bin
 
