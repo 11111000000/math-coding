@@ -82,7 +82,7 @@ outcomes:
       "Bootstrap packages (by file)" once that table is updated
       to include this decision.
 
-countercase: |
+counterexample: |
   "The conventions are already documented in AGENTS.md,
   README.md, and PACKAGES.md; adding a decision duplicates
   without changing behavior." The counterargument fails for

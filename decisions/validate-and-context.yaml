@@ -99,7 +99,7 @@ outcomes:
       timestamp. Omitted items are listed in the "omitted" array
       with an "expansion" command.
 
-countercase: |
+counterexample: |
   Why not defer validate entirely until the 3.0 kernel exists?
   Because (a) shape validation today is a useful gate before deeper
   kernel checks; (b) the v3-alpha protocol is self-applying — without

@@ -104,6 +104,7 @@ reversal:
 
 risk:
   declared_triggers:
+    owner: human:maintainer
     - context-expansion-broken
     - spec-without-impl
 

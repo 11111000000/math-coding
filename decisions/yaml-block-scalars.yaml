@@ -109,7 +109,7 @@ outcomes:
       reading lib/codec.ml and by the dune closure for
       mathcoding_core (unchanged).
 
-countercase: |
+counterexample: |
   Why not pull in a real YAML library (e.g., `yaml`/`ocaml-yaml`)?
   Because the kernel must remain offline and side-effect-free
   (OCAML_BEST_PRACTICES §1.3, §7.3). Adding a parser dependency

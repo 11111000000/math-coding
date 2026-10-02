@@ -153,6 +153,7 @@ reversal:
 
 risk:
   declared_triggers:
+    owner: human:maintainer
     - bootstrap-premature-expiry
     - unknown-confused-with-pass
     - store-empty-but-verdict-pass

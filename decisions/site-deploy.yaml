@@ -80,6 +80,7 @@ scope:
 
 risk:
   declared_triggers:
+    owner: human:maintainer
     - site-generation-changes
     - pages-deploy-config-changes
     - css-token-changes

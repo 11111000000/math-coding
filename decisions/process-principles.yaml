@@ -76,7 +76,7 @@ outcomes:
       asserted by the fixture, with the rationale recorded
       alongside the obligation.
 
-countercase: |
+counterexample: |
   "These principles are already documented in ROADMAP.md; the
   decision duplicates them without changing behavior." The
   counterargument fails for three reasons:

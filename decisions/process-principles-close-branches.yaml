@@ -55,6 +55,7 @@ scope:
 
 risk:
   declared_triggers:
+    owner: human:maintainer
     - branch-hygiene-attempts
     - pre-commit-hook-overreach
   - counterexample: |

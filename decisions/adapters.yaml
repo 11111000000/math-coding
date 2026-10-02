@@ -124,7 +124,7 @@ outcomes:
       git's output are filtered; the adapter never silently
       drops non-empty entries.
 
-countercase: |
+counterexample: |
   Why not defer `mc attest` until the 3.0 kernel exists? The
   3.0 kernel's `attestations` collection already expects
   attestations of kind=test that carry a producer_run linking

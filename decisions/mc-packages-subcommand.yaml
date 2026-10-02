@@ -66,6 +66,7 @@ scope:
 
 risk:
   declared_triggers:
+    owner: human:maintainer
     - decision-graph-walk-changes
     - site-rendering-changes
   - counterexample: |

@@ -64,7 +64,7 @@ outcomes:
       lib/domain.ml gains a new record type, not a new
       constructor in `kind`.
 
-countercase: |
+counterexample: |
   "Time estimates are subjective; codifying them just adds
   bureaucracy without changing agent behaviour." The
   counterargument fails because the deficit today is not
@@ -77,7 +77,7 @@ countercase: |
 
 assumptions:
   - id: swebench-2025-q4-baseline
-    state: declared
+    state: assumed
     statement: |
       The reference-class distribution (P50, P95 per class) is
       declared from SWE-bench Verified (n=500, 2025-Q4 frontier).

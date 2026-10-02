@@ -69,7 +69,7 @@ outcomes:
       evidence — that would violate spec/constitution.md
       "Honest status".
 
-countercase: |
+counterexample: |
   "Scaffolding without logic is theatre; we should wait until
   attestation store exists." Counterargument: the gate subcommand
   has a stable JSON contract that future revisions build on. The

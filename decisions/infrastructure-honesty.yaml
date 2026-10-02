@@ -63,7 +63,7 @@ outcomes:
       dune test. A passing run asserts that positive fixtures parse and
       negative fixtures are rejected.
 
-countercase: |
+counterexample: |
   The repair is excessive because "the agent will not run CI between
   bootstrap milestones anyway, and the kernel is what matters." The
   counterargument fails because: (a) the constitution A1 forbids claiming

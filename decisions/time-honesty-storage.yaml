@@ -65,7 +65,7 @@ outcomes:
       n >= 30; otherwise a warning field is set that names the
       declared floor as the recommended reference.
 
-countercase: |
+counterexample: |
   "Agent can fake the value when calling mc record; storage
   cannot fix it." The counterargument: mc record has no
   --value, --seconds, or --minutes flag for wall-clock-

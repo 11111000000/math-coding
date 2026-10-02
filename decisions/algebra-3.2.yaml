@@ -52,11 +52,10 @@ scope:
     - re-evaluation-oracle
   paths:
     - "spec/algebra-3.2.md"
-    - "decisions/algebra-3.2.yaml"
     - "lib/canonical.ml"
     - "lib/decision.ml"
     - "lib/gate.ml"
-    - "lib/attestations.ml"
+    - \"lib/attestations/attestations.ml\"
     - "lib/capsule.ml"
     - "lib/memory.ml"
     - "lib/policy.ml"
@@ -107,7 +106,7 @@ outcomes:
       All existing decisions (28 active) continue to satisfy the
       algebra via optional fields with defaults. Migration is implicit.
 
-countercase: |
+counterexample: |
   "The 3.2 algebra is over-engineered for the current project scale.
   Most teams don't need multi-CI, axiom transitions, or rebuttal
   artifacts. The 3.0 kernel already works."

@@ -84,7 +84,8 @@ scope:
     - fixtures/conformance/**
 
 risk:
-  reversal_condition: |
+  declared_triggers: |
+    owner: human:maintainer
       Revert bin/dune's (public_name mathc), the cram stanza
       in tests/cli/dune, the new tests/cli/*.t files, and
       restore the 14 deleted tests/fixtures/*.sh files. The

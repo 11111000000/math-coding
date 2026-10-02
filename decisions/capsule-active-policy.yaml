@@ -62,7 +62,7 @@ outcomes:
       RequiredForGate > Changed > HighRisk > Unresolved >
       Supporting > Historical.
 
-countercase: |
+counterexample: |
   "Hardcoding bootstrap-v3 violates A0 separation if a future
   repo uses a different active policy id." Counter: the
   required labelled argument is the escape hatch; bin/ is the

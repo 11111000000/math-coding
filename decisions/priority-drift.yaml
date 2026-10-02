@@ -12,7 +12,7 @@ intent: |
   ("context-prioritisation") and the mirror table in
   OCAML_BEST_PRACTICES.md §10.5 stay byte-equivalent. The spec
   is authoritative (`bootstrap/validate-and-context.yaml` line 124
-  countercase: "the priority order is a kernel policy statement,
+  counterexample: "the priority order is a kernel policy statement,
   not a coding convention"); the practices file mirrors the
   table for implementer convenience. Two copies, maintained by
   hand, will drift over time unless a fixture compares them on
@@ -61,7 +61,7 @@ outcomes:
       and identical, or both are absent. Any other state is a
       drift and the fixture reports it with a unified diff.
 
-countercase: |
+counterexample: |
   Why a fixture instead of code review? Because two copies of
   the same line, maintained by hand, will drift over time. The
   spec copy and the practices mirror exist for different

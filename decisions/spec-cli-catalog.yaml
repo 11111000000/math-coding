@@ -91,7 +91,7 @@ outcomes:
       incomplete; the CLI is unchanged until a separate
       obligation covers that.
 
-countercase: |
+counterexample: |
   Why not put the CLI subcommand list in bin/Mathc.ml's header
   comment only, and treat that as authoritative? Because the
   spec is the normative contract and bin/ is implementation.

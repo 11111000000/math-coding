@@ -103,7 +103,7 @@ outcomes:
       Four cram fixtures in `tests/cli/` exercise the four
       scenarios above and all four pass on `scripts/dev verify`.
 
-countercase: |
+counterexample: |
   "A store that emits Pass without verifying materials_digest
   freshness would let a stale CI run certify a broken change."
   Counterargument: the loader returns the typed list; the

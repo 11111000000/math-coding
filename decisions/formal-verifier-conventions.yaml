@@ -81,7 +81,7 @@ outcomes:
       This file is the recording of the convention. The
       convention is itself an obligation under the active policy.
 
-countercase: |
+counterexample: |
   "No one has actually written a TLA spec for math-coding; this
   convention is speculative." The counterargument fails: the
   convention is the form a future author uses WHEN they write

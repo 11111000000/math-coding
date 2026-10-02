@@ -84,7 +84,7 @@ outcomes:
   exclusions:
     - "bootstrap/yaml-block-scalars.yaml" (decision @rev2 unchanged)
 
-countercase: |
+counterexample: |
   is technical debt." Counterargument: deferral is documented,
   justified, and tracked. Re-implementing it before the
   attestation store is ready would consume time that the gate

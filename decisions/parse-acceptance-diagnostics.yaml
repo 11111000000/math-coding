@@ -58,7 +58,7 @@ outcomes:
       obligation with ShapeMalformed items. Diagnostics appear on
       stderr AND in the JSON output under 'diagnostics':[…].
 
-countercase: |
+counterexample: |
   "WARN diagnostics on accept-verdict erode the gap between
   Pass and Open-with-waiver (A2 invariant 10)." Counterargument:
   the verdict remains 'accept' on the verifier half; the diagnostic

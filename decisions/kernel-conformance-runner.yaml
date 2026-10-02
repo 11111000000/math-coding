@@ -48,7 +48,7 @@ outcomes:
       Attestation fixture parsing is wired through Codec and Schema.
       Acceptance predicate types are recognized.
 
-countercase: |
+counterexample: |
   The conformance runner is redundant with the JSON Schema in
   schemas/. The counterargument fails because:
   (a) JSON Schema validates only structure, not our domain predicates
