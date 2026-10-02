@@ -1,42 +1,42 @@
 # Основания
 
 > **От аксиом к OCaml.** Каждое основание — пакет в
-> `decisions/`, отображающий аксиому в механизм ядра
-> и обязательство верификации.
+> каталоге `decisions/`, отображающий аксиому в механизм
+> ядра и обязательство верификации.
 
 ## A0 — Разделение → `bootstrap-v3`
 
 **Аксиома.** Виды различны; цепочка идёт одним путём.
-`intent ≠ decision ≠ obligation ≠ change ≠ attestation ≠
-observation ≠ revision`.
+`намерение ≠ решение ≠ обязательство ≠ изменение ≠
+аттестация ≠ наблюдение ≠ ревизия`.
 
 **Механизм.** Закрытые варианты в `lib/domain.ml` для
-каждого вида; префиксы на документ; закрытые
-`additionalProperties` в JSON-схемах под `schemas/`.
-Парсер отвергает любой документ, чей id не принадлежит
-закрытому множеству.
+каждого вида; префиксы на документ; закрытые поля
+«дополнительные свойства» в JSON-схемах в каталоге
+`schemas/`. Разборщик отвергает любой документ, чей
+идентификатор не входит в закрытое множество.
 
 **Верификация.** Обязательство `packages-kernel-walker` в
 `decisions/mc-packages-subcommand.yaml` перечисляет каждое
-решение в репозитории и эмитирует типизированный JSON;
-walker падает на виде, не входящем в закрытое множество.
+решение в репозитории и выдаёт типизированный JSON;
+обходчик падает на виде, не входящем в закрытое множество.
 
 ## A1 — Обратная связь → `attestation-store-fill`
 
 **Аксиома.** У каждого обязательства есть путь к наблюдению:
-`commitment → prediction → observation → revision`. Без
-наблюдения обязательство — пожелание.
+`обязательство → предсказание → наблюдение → ревизия`.
+Без наблюдения обязательство — пожелание.
 
 **Механизм.** `attestations/*.json` записывает каждую
-пару «решение — обязательство» как вердикт `pass | fail |
-stale | unknown | missing | no_store`. `lib/attestations.ml`
-загружает хранилище и соединяет записи с gate ядра.
+пару «решение — обязательство» как вердикт `успех — провал —
+просрочено — отсутствует — нет_хранилища`.
+`lib/attestations.ml` загружает хранилище и сопоставляет
+записи со шлюзом.
 
 **Верификация.** `scripts/generate-attestations.py`
 производит 80 файлов аттестаций в каждом релизе;
-`mc gate BASE HEAD` отвечает `gate-pass.t` /
-`gate-fail.t` / `gate-stale.t` зелёным (cram-фикстуры в
-`tests/cli/`).
+`mc gate BASE HEAD` отвечает зелёным на `gate-pass.t`,
+`gate-fail.t`, `gate-stale.t` (cram-фикстуры в `tests/cli/`).
 
 ## A2 — Инварианты и восстановление → `kernel-conformance-runner`
 
@@ -44,30 +44,31 @@ stale | unknown | missing | no_store`. `lib/attestations.ml`
 восстановления `R` авторизован. Решение конечно.
 
 **Механизм.** `lib/gate.ml` оценивает каждое обязательство
-против хранилища аттестаций и эмитирует типизированные
-`Gate.gap` записи с `causes` и `remedies`. Ядро никогда
-не блокирует merge, не назвав remedy.
+против хранилища аттестаций и выдаёт типизированные
+записи `Gate.gap` с причинами и мерами. Ядро никогда не
+блокирует слияние, не назвав меру устранения.
 
 **Верификация.** `tests/conformance.ml` перечисляет каждую
-фикстуру и проверяет, что runner не падает; `mc
-self-check` возвращает `pass` на чистом `main` HEAD.
+фикстуру и проверяет, что обходчик не падает; `mc
+self-check` возвращает «успех» на чистом `main`.
 
 ## A3 — Само-применение → `mc-self-check-subcommand`
 
 **Аксиома.** Правила управляют своими изменениями:
-`(K_n, P_n) → (K_{n+1}, P_{n+1})` требует Gate Open,
-Conformance Pass, Migration round-trip, VerdictDiff в
-DeclaredSemanticChanges, SelfVerify Pass.
+`(K_n, P_n) → (K_{n+1}, P_{n+1})` требует «Шлюз открыт»,
+«Соответствие пройдено», «Миграция обратима», «Изменения
+вердиктов в пределах объявленных», «Самопроверка пройдена».
 
 **Механизм.** `mc self-check` обходит каждое решение в
-`decisions/` и эмитирует JSON-вердикт, называющий ядро,
-которое его произвело (SHA-256 бинаря), и digest
-репозитория. Вердикт управляется **текущими** правилами,
-до повышения до lock.
+каталоге `decisions/` и выдаёт JSON-вердикт, называющий
+ядро, которое его произвело (SHA-256 исполняемого файла),
+и дайджест репозитория. Вердикт управляется **текущими**
+правилами, до повышения до полного режима.
 
 **Верификация.** `tests/cli/self-check-{pass,fail,unknown}.t`
-зелёные; обязательство `mc-self-check-dispatcher-shipped`
-в `decisions/mc-self-check-subcommand.yaml` выполнено.
+зелёные; обязательство
+`mc-self-check-dispatcher-shipped` в
+`decisions/mc-self-check-subcommand.yaml` выполнено.
 
 ## A4 — Забота → `validate-and-context`
 
@@ -77,12 +78,12 @@ DeclaredSemanticChanges, SelfVerify Pass.
 **Механизм.** `decision.risk.owner`, `obligation.decision`,
 `assumption.owner`, `waiver.issuer`,
 `attestation.producer_identity` — **обязательные** поля
-в своих схемах. Парсер отвергает решение без владельца.
+в своих схемах. Разборщик отвергает решение без владельца.
 
 **Верификация.** `fixtures/conformance/decision/negative-*.yaml`
-отвергаются `Decision.parse_decision` за отсутствие
-обязательных полей; `fixtures/conformance/decision/positive-*.yaml`
-принимаются.
+отвергаются разборщиком `Decision.parse_decision` за
+отсутствие обязательных полей;
+`fixtures/conformance/decision/positive-*.yaml` принимаются.
 
 ## Расширения
 
@@ -91,9 +92,9 @@ DeclaredSemanticChanges, SelfVerify Pass.
 
 | Расширение | Поверхность | Cram-фикстура |
 |------------|-------------|----------------|
-| `mc-explain-subcommand` | `mc explain decision:foo` → `{kind,id,digest,path,body}` | `explain-{positive,negative}.t` |
+| `mc-explain-subcommand` | `mc explain decision:foo` → `{вид,идентификатор,дайджест,путь,тело}` | `explain-{positive,negative}.t` |
 | `mc-self-check-subcommand` | `mc self-check` → JSON-вердикт | `self-check-{pass,fail,unknown}.t` |
 | `mc-packages-subcommand` | `mc packages --format=text\|json\|html` → список пакетов | `packages.t` |
 
-Ядро на v3.0.0.20 поставляет все восемь. Сайт на
+Ядро на v3.0.0.20 поставляет все восемь. Сайт
 [Packages](packages.html) — живой вердикт всех восьми.
