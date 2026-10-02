@@ -53,7 +53,8 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
             # Cache build outputs in the nix store, not in the CWD.
-            build-dir = /tmp/nix-build
+            # Pre-create the dir; install-nix-action does not.
+            build-dir = /tmp/nix-build-math-coding
 
       # Cachix `math-coding` cache is the public binary substituter
       # for mathcoding_core, mathcoding_git, mathcoding_junit, dune,
@@ -72,6 +73,12 @@ jobs:
         with:
           name: math-coding
           skipPush: true
+
+      # install-nix-action sets `build-dir = /tmp/nix-build-math-coding`
+      # but does not create it; nix-env and nix develop crash with
+      # `creating directory ... No such file or directory`. Pre-create.
+      - name: Prepare nix build dir
+        run: mkdir -p /tmp/nix-build-math-coding
 
       # Closes site-deploy@1 obligation render-kernel-impl. The
       # script: (1) builds mathc via scripts/dev build (the same
