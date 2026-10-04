@@ -110,8 +110,16 @@ Runtime kernel behaviour is backward compatible: the existing
   2026-10-04). If a future change re-introduces drift, regenerate
   snapshots by running `dune promote` after a clean
   `dune build` on a host with a working toolchain.
-- **Portable binary build** (Tier 3.5+ #13): static-link or
-  musl to remove nix-store glibc from shipped binaries.
+- **Portable binary build** (Tier 3.5+ #13): **in progress** at
+  `feature/portable-musl-build` (HEAD `17e023d`). Decision
+  `decisions/portable-linux-musl.yaml` is `state: active` (user
+  authorization 2026-10-04). x86_64 Linux: dual-publish via
+  `ocaml/opam:alpine` container; `release.yml` matrix entry
+  `linux-x86_64-musl` builds `mathc-linux-x86_64-musl`. aarch64-musl
+  deferred to v3.2.1 (needs QEMU emulation). Closure signal:
+  first successful Alpine CI run that publishes a binary linking
+  against musl-libc (no `libc.so.6` in `ldd` output). Failure
+  signal: `alpine-ci-build-fails` per the decision file.
 
 **Out of scope for 3.2** (deferred to 3.2.1 or 3.3):
 - Axiom-as-decision (P5 from earlier plan; separate feature)

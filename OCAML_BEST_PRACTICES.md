@@ -1528,3 +1528,57 @@ ocamlformat option is `indicate-multiline-delimiters` (not
 the latter silently produces
 `Unknown option "indicate-multiline-deltas"`.
 
+### 11.22 `nix develop` builds a non-portable `mathc` that fails
+
+`GLIBC_2.42 not found` on the host
+
+The local dev loop is `nix develop .#test` → `dune build` →
+`./mathc version`. The resulting binary at
+`_build/install/default/bin/mathc` links against
+`/nix/store/<hash>-glibc-2.42-84/lib/ld-linux-x86-64.so.2`.
+On any host whose system glibc is older than 2.42 (e.g. NixOS
+unstable post-2025-Q4 has glibc-2.42; older systems have 2.39-2.40),
+the binary refuses to start:
+
+```
+$ _build/install/default/bin/mathc version
+mathc: /lib64/ld-linux-x86-64.so.2: version `GLIBC_2.42' not found
+        (required by _build/install/default/bin/mathc)
+```
+
+This is a **false negative** for portability: the binary built via
+`nix develop` is NOT what `release.yml` ships. The release.yml
+artifacts are produced by opam on Ubuntu-22.04 / macos / Windows
+runners with system glibc; they link against the runner's glibc and
+are not nix-store dependent.
+
+**Fix** for local verification:
+
+1. Do not trust `_build/install/default/bin/mathc` to be portable.
+   It is a debug artefact for `scripts/dev verify`, not a release
+   candidate.
+2. To smoke-test portability locally, build inside the same opam
+   flow as `.github/workflows/release.yml`:
+   ```sh
+   opam init -y --bare --disable-sandboxing
+   opam switch create 5.4.0 -y
+   opam switch set 5.4.0
+   opam install --yes dune
+   opam exec -- dune build --profile=release bin/mathc.exe
+   ldd _build/default/bin/mathc.exe
+   ```
+   The resulting binary links against the host's system glibc,
+   not nix-store glibc.
+3. To run an actual release artefact, download from the GitHub
+   releases page (or build via release.yml in a fork).
+
+`ldd mathc-linux-x86_64-musl` MUST NOT print `libc.so.6` (it must
+print `musl` or `ld-musl-x86_64.so.1`); the `release.yml` matrix
+entry `linux-x86_64-musl` enforces this with a defensive grep step.
+
+**Trigger**: any agent that builds `mathc` via `nix develop` and
+claims the result is portable. Cited in this session (2026-10-04)
+as the trigger for `decisions/portable-linux-musl.yaml`. Referenced
+from `decisions/portable-linux-musl.yaml` obligations
+`musl-binary-runs-version` and `release-yml-alpine-job-present`.
+
