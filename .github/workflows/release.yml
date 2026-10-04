@@ -27,7 +27,7 @@ jobs:
           # See decisions/portable-linux-musl.yaml. aarch64-musl is
           # deferred to v2 (needs QEMU emulation or a native arm64 runner
           # with container support).
-          - { label: linux-x86_64-musl, runs-on: ubuntu-latest, is_musl: true, container: ocaml/opam:alpine-3.20-ocaml-5.4, exe: mathc-linux-x86_64-musl, ext: '' }
+          - { label: linux-x86_64-musl, runs-on: ubuntu-latest, is_musl: true, container: ocaml/opam:alpine-3.24-ocaml-5.4, exe: mathc-linux-x86_64-musl, ext: '' }
           # macOS
           - { label: darwin-x86_64,   runs-on: macos-15-intel,    exe: mathc-darwin-x86_64,   ext: '' }
           - { label: darwin-aarch64,  runs-on: macos-latest,      exe: mathc-darwin-aarch64,  ext: '' }
@@ -115,12 +115,27 @@ jobs:
         shell: bash
         run: |
           set -eu
-          # Alpine container ships opam preinstalled; just activate
-          # the OCaml switch that the image provides. Bubblewrap is
-          # unavailable on Alpine; opam detects this and falls back
-          # to non-sandboxed init automatically.
+          # The ocaml/opam:alpine images ship opam at /usr/local/bin/opam
+          # but PATH inside the container may need adjustment. First
+          # verify opam is on PATH; if not, locate it.
+          if ! command -v opam >/dev/null 2>&1; then
+            echo "opam not on PATH; searching common locations..."
+            for candidate in /usr/local/bin/opam /usr/bin/opam \
+                             /opt/opam/opam /root/.local/bin/opam; do
+              if [ -x "$candidate" ]; then
+                echo "Found opam at $candidate; adding to PATH"
+                export PATH="$(dirname "$candidate"):$PATH"
+                break
+              fi
+            done
+          fi
+          command -v opam >/dev/null 2>&1 \
+            || { echo "FATAL: opam binary not found in container" >&2; exit 1; }
           opam --version
           eval "$(opam env --switch=5.4.0)"
+          # Pin dependency cache so an opam build that's missing the
+          # switch (rare) doesn't fail silently.
+          opam switch list 2>&1 | head -5
 
       - name: Install dune
         shell: bash
