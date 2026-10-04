@@ -65,7 +65,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 2 | 3 | RESOLVED | records D1/D2 deferral, superseded by yaml-block-scalars@4 |
 | `decisions/process-principles.yaml` | `process-principles` | 2 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
 | `decisions/D6-bootstrap-v3-verifiers-implemented.yaml` | `D6-bootstrap-v3-verifiers-implemented` | 1 | 1 | RESOLVED | closes D6 (manual-only verifiers) per AUDIT-0.0.20 |
-| `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 1 | 7 | RESOLVED | closes algebra-3.2 §30 anti-property for x86_64 Linux via Alpine container build |
+| `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 2 | 0 | DEFERRED | attempted algebra-3.2 §30 closure via Alpine container build; CI runs #81/#83/#84/#85 broke on opam setup; reversal signal `alpine-ci-build-fails` fired per the decision file. Re-enable when Alpine image debugged. |
 | | `decisions/agent-onboarding.yaml` | `agent-onboarding` | 1 | 4 | RESOLVED | locks ADR location + first-file convention |
 | | `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 1 | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
 | `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 1 | 1 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |

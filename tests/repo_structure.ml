@@ -723,10 +723,18 @@ let[@warning "-32"] test_portable_linux_decision_active () =
       "decisions/portable-linux-musl.yaml missing — required by ROADMAP \
        Tier 3.5+ #13 and algebra-3.2 §30";
   let txt = read_file dec in
-  if not (agent_contains "state: active" txt) then
+  (* Accepts both 'state: active' (in-flight) and 'state: retired'
+     (after the 'alpine-ci-build-fails' reversal signal fired). The
+     test fails only if the file is in 'state: draft', which would
+     mean the work landed without explicit human or reversal
+     promotion. *)
+  if not (agent_contains "state: active" txt)
+     && not (agent_contains "state: retired" txt) then
     Alcotest.failf
-      "decisions/portable-linux-musl.yaml must be in state: active before \
-       merge; current draft state blocks the §30 closure"
+      "decisions/portable-linux-musl.yaml must be in state: active (in \
+       flight) or state: retired (reversed). Current 'draft' blocks \
+       the §30 closure until the decision is explicitly promoted or \
+       reversed."
 
 let () =
   Alcotest.run "repo structure"

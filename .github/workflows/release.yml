@@ -21,13 +21,14 @@ jobs:
           # Linux
           - { label: linux-x86_64,    runs-on: ubuntu-latest,     is_musl: false, exe: mathc-linux-x86_64,    ext: '' }
           - { label: linux-aarch64,   runs-on: ubuntu-24.04-arm,  is_musl: false, exe: mathc-linux-aarch64,   ext: '' }
-          # Linux — musl (alpine). Uses GitHub Actions `container:` to run
-          # inside an Alpine userland on top of the existing runner kernel,
-          # so opam builds against musl-libc without cross-compile.
-          # See decisions/portable-linux-musl.yaml. aarch64-musl is
-          # deferred to v2 (needs QEMU emulation or a native arm64 runner
-          # with container support).
-          - { label: linux-x86_64-musl, runs-on: ubuntu-latest, is_musl: true, container: ocaml/opam:alpine-3.24-ocaml-5.4, exe: mathc-linux-x86_64-musl, ext: '' }
+          # Linux — musl (alpine). DISABLED 2026-10-04 per
+          # decisions/portable-linux-musl.yaml reversal signal
+          # 'alpine-ci-build-fails' (CI runs #81, #83, #84, #85 all failed
+          # at the 'Init opam (Alpine musl container)' step with exit code
+          # 127/1). The Alpine container's opam setup needs manual debugging
+          # with authenticated log access. Re-enable when verified.
+          # aarch64-musl deferred to v2 (needs QEMU emulation).
+          # - { label: linux-x86_64-musl, runs-on: ubuntu-latest, is_musl: true, container: ocaml/opam:alpine-3.24-ocaml-5.4, exe: mathc-linux-x86_64-musl, ext: '' }
           # macOS
           - { label: darwin-x86_64,   runs-on: macos-15-intel,    exe: mathc-darwin-x86_64,   ext: '' }
           - { label: darwin-aarch64,  runs-on: macos-latest,      exe: mathc-darwin-aarch64,  ext: '' }

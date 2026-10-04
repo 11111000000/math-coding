@@ -110,16 +110,18 @@ Runtime kernel behaviour is backward compatible: the existing
   2026-10-04). If a future change re-introduces drift, regenerate
   snapshots by running `dune promote` after a clean
   `dune build` on a host with a working toolchain.
-- **Portable binary build** (Tier 3.5+ #13): **in progress** at
-  `feature/portable-musl-build` (HEAD `17e023d`). Decision
-  `decisions/portable-linux-musl.yaml` is `state: active` (user
-  authorization 2026-10-04). x86_64 Linux: dual-publish via
-  `ocaml/opam:alpine` container; `release.yml` matrix entry
-  `linux-x86_64-musl` builds `mathc-linux-x86_64-musl`. aarch64-musl
-  deferred to v3.2.1 (needs QEMU emulation). Closure signal:
-  first successful Alpine CI run that publishes a binary linking
-  against musl-libc (no `libc.so.6` in `ldd` output). Failure
-  signal: `alpine-ci-build-fails` per the decision file.
+- **Portable binary build** (Tier 3.5+ #13): **DEFERRED via reversal
+  signal** at HEAD `f60c971d` (rev 2 of `decisions/portable-linux-musl.yaml`).
+  First push attempted `linux-x86_64-musl` Alpine container build
+  in `release.yml`; CI runs #81/#83/#84/#85 all failed at the
+  `Init opam (Alpine musl container)` step (exit 127/1). The
+  matrix entry is commented out. Re-enable when the Alpine image's
+  opam setup is debugged end-to-end with authenticated log access.
+  Closure signal: first green Alpine CI run that publishes a
+  binary linking against musl-libc (no `libc.so.6` in `ldd` output).
+  The glibc pipeline (`mathc-linux-x86_64`, `mathc-linux-aarch64`,
+  `mathc-darwin-*`, `mathc-windows-x86_64.exe`) is unaffected and
+  continues to publish every release.
 
 **Out of scope for 3.2** (deferred to 3.2.1 or 3.3):
 - Axiom-as-decision (P5 from earlier plan; separate feature)

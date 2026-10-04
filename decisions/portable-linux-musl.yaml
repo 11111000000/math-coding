@@ -1,15 +1,23 @@
 ---
 schema: math-coding/3.0-alpha
 id: portable-linux-musl
-revision: 1
+revision: 2
 
-# state: active  (promoted 2026-10-04 by user authorization in session
-#                 "продолжай делать до Делай"; AGENTS.md §Self-application
-#                 says "candidate rules cannot authorize their own adoption",
-#                 but the user — who is the maintainer and author of AGENTS.md —
-#                 has explicitly authorized the promotion in this session.
-#                 Recorded here so a future reviewer sees the chain.)
-state: active
+# state: retired  (reversal signal 'alpine-ci-build-fails' fired 2026-10-04
+#                  after CI runs #81, #83, #84, #85 all failed at the
+#                  'Init opam (Alpine musl container)' step in
+#                  release.yml. The release.yml change (matrix entry
+#                  linux-x86_64-musl) has been commented out per this
+#                  decision's reversal clause. The glibc pipeline is
+#                  unaffected. Re-enable by bumping revision and
+#                  uncommenting the matrix entry once the Alpine
+#                  container's opam setup is debugged end-to-end.)
+#
+# History:
+#   rev 1 (2026-10-04): state: draft, adopted Alpine/musl pipeline
+#                       (user-authorized promotion to active).
+#   rev 2 (2026-10-04): state: retired, reversal signal fired.
+state: retired
 body_sha: ""
 yaml_sha: ""
 intent: |

@@ -45,9 +45,13 @@ schema. The migration cost is one decision and one CI change.
 ```bash
 # Pick the release tag that matches this skill. The release page lists
 # binaries for linux-amd64, linux-arm64, macos-amd64, macos-arm64.
-# On Linux there are also musl variants for Alpine / older glibc:
-#   mathc-linux-x86_64       (glibc, Ubuntu 22.04+ recommended)
-#   mathc-linux-x86_64-musl  (musl, runs anywhere; pick if ldd fails)
+# On Linux the binary links against system glibc (Ubuntu 22.04+).
+# A musl variant was attempted but reverted (CI build pipeline
+# could not drive Alpine container's opam setup). For Alpine / older
+# glibc distros, build from source:
+#   nix develop .#test
+#   dune build --root . bin/mathc.exe
+# or wait for a future release with musl support.
 MC_VERSION=3.0.0.20
 URL="https://github.com/11111000000/math-coding/releases/download/v${MC_VERSION}"
 wget -qO ~/.local/bin/mc "${URL}/mc-linux-amd64"
