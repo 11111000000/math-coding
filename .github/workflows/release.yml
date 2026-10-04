@@ -207,12 +207,21 @@ jobs:
       - name: Verify all expected platforms present
         run: |
           set -eu
+          # Required artifacts: 5 platforms.
+          # mathc-linux-x86_64-musl is OPTIONAL — it is built only
+          # when the linux-x86_64-musl matrix entry is enabled
+          # (currently disabled per decisions/portable-linux-musl.yaml
+          # reversal signal 'alpine-ci-build-fails', 2026-10-04).
           for exe in mathc-linux-x86_64 mathc-linux-aarch64 \
-                    mathc-linux-x86_64-musl \
                     mathc-darwin-x86_64 mathc-darwin-aarch64 \
                     mathc-windows-x86_64.exe; do
             [ -f "dist-bin/$exe" ] || { echo "missing: $exe"; exit 1; }
           done
+          if [ -f "dist-bin/mathc-linux-x86_64-musl" ]; then
+            echo "musl artifact present (linux-x86_64-musl)"
+          else
+            echo "musl artifact absent — expected while portable-linux-musl is retired"
+          fi
 
       - name: Generate adoption bundle
         run: |
@@ -232,7 +241,6 @@ jobs:
           files: |
             dist-bin/mathc-linux-x86_64
             dist-bin/mathc-linux-aarch64
-            dist-bin/mathc-linux-x86_64-musl
             dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
             dist-bin/mathc-windows-x86_64.exe
@@ -248,7 +256,6 @@ jobs:
           files: |
             dist-bin/mathc-linux-x86_64
             dist-bin/mathc-linux-aarch64
-            dist-bin/mathc-linux-x86_64-musl
             dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
             dist-bin/mathc-windows-x86_64.exe
