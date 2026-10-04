@@ -115,40 +115,33 @@ jobs:
         shell: bash
         run: |
           set -eu
-          # The ocaml/opam:alpine images ship opam at /usr/local/bin/opam
-          # but PATH inside the container may need adjustment. First
-          # verify opam is on PATH; if not, locate it.
+          # The ocaml/opam:alpine-3.24-ocaml-5.4 image ships with opam
+          # and a default OCaml 5.4 switch pre-installed. We just need
+          # to activate that default switch — naming the switch with
+          # --switch=<version> fails because the image's switch name
+          # is whatever ocurrent chose (typically the OCaml version
+          # like "5.4", not "5.4.0").
           if ! command -v opam >/dev/null 2>&1; then
-            echo "opam not on PATH; searching common locations..."
+            echo "opam not on PATH; locating..."
             for candidate in /usr/local/bin/opam /usr/bin/opam \
                              /opt/opam/opam /root/.local/bin/opam; do
               if [ -x "$candidate" ]; then
-                echo "Found opam at $candidate; adding to PATH"
+                echo "Found opam at $candidate"
                 export PATH="$(dirname "$candidate"):$PATH"
                 break
               fi
             done
           fi
           command -v opam >/dev/null 2>&1 \
-            || { echo "FATAL: opam binary not found in container" >&2; exit 1; }
+            || { echo "FATAL: opam binary not found" >&2; exit 1; }
           opam --version
-          # The image ships with an OCaml 5.4 switch under a name like
-          # "5.4" or "ocaml-5.4"; "5.4.0" (the version we use for the
-          # non-Alpine matrix entries) may not be installed. Try the
-          # common names in order before falling back to opam's default.
-          for switch in "5.4.0" "5.4" "ocaml-5.4"; do
-            if opam switch list --short 2>/dev/null | grep -qx "$switch"; then
-              eval "$(opam env --switch="$switch")"
-              echo "Activated switch: $switch"
-              break
-            fi
-          done
-          # If none matched, fall back to whatever opam considers default.
-          if ! command -v ocaml >/dev/null 2>&1; then
-            echo "No explicit switch activated; using opam default"
-            eval "$(opam env)"
-          fi
+          # Use the image's default switch (do NOT pass --switch= which
+          # requires an exact name match and the image uses an
+          # opaque name like "5.4" or "default").
+          eval "$(opam env)"
           ocaml --version
+          which ocaml dune 2>/dev/null || true
+          opam switch list 2>/dev/null || true
 
       - name: Install dune
         shell: bash
