@@ -1,0 +1,288 @@
+---
+schema: math-coding/3.0-alpha
+id: portable-linux-musl
+revision: 1
+
+state: draft
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Adopt a musl-based Linux build pipeline alongside the existing
+  glibc-based Ubuntu pipeline, so math-coding's Linux binaries are
+  truly portable across all common Linux distributions — including
+  Alpine (musl) and glibc systems older than Ubuntu-22.04.
+
+  This closes algebra-3.2 §30 anti-property: "require nix-store paths
+  in binary dependencies" and "bind kernel to single OS or
+  architecture". Currently the shipped `mathc-linux-*` binaries are
+  dynamically linked against Ubuntu-22.04's glibc-2.35 and fail with
+  `GLIBC_X.Y not found` on RHEL ≤8, Debian ≤11, and any musl-based
+  distribution.
+
+  Triggered by Tier 3.5+ #13 in `ROADMAP.md §Remaining for v3.1.0
+  stabilisation` and the assumption `binary-distribution-achievable`
+  in `decisions/algebra-3.2.yaml`.
+
+commitment: |
+  The release pipeline at `.github/workflows/release.yml` builds
+  two artifacts per Linux architecture:
+
+    mathc-linux-x86_64         (existing, glibc-linked, Ubuntu-22.04)
+    mathc-linux-x86_64-musl    (new,      musl-linked, alpine:latest)
+
+    mathc-linux-aarch64        (existing, glibc-linked, ubuntu-24.04-arm)
+    mathc-linux-aarch64-musl   (new,      musl-linked, alpine:latest)
+
+  Both are published to the GitHub release; the `-musl` variant is
+  recommended for any non-glibc system or for glibc < 2.31. The
+  glibc variant remains the default for users on modern glibc
+  systems (smaller binary, faster startup).
+
+  The build command is `opam exec -- dune build --profile=release
+  bin/mathc.exe`. The Alpine container uses the `ocaml/opam:alpine`
+  base image so opam runs natively against musl — no cross-compile.
+
+scope:
+  capabilities:
+    - portable-linux-binary-distribution
+    - musl-build-pipeline
+    - dual-glibc-musl-publish
+  paths:
+    - ".github/workflows/release.yml"
+    - "tests/repo_structure.ml"
+    - "PACKAGES.md"
+    - "ROADMAP.md"
+    - "CHANGELOG.md"
+    - "USAGE.md"
+    - "adoption/SKILL.md"
+  exclusions:
+    - "lib/**"      # no kernel change
+    - "spec/**"     # no spec change; algebra §30 already normative
+    - "schemas/**"  # no schema change
+    - "axioms/**"   # axioms immutable per A3
+    - "bin/Mathc.ml"
+
+outcomes:
+  - id: musl-artifacts-published
+    statement: |
+      Each Linux release artifact is published twice: once
+      glibc-linked (Ubuntu-22.04 / ubuntu-24.04-arm), once musl-linked
+      (alpine:latest). The musl variants have the `-musl` suffix.
+
+  - id: glibc-compat-preserved
+    statement: |
+      Existing glibc-linked Linux artifacts continue to be
+      published unchanged; no user on a glibc ≥ 2.31 system is
+      required to switch to the musl variant.
+
+  - id: portability-evidence-criteria
+    statement: |
+      `tests/repo_structure.ml` asserts the release matrix contains
+      exactly the expected platform × libc combinations. The
+      assertion fails if a future refactor accidentally drops one of
+      the 7 build jobs (5 platforms + 2 musl variants).
+
+counterexample: |
+  "Adding musl builds will fail because OCaml's `unix` module uses
+  fork() / clone() / unshare() syscalls that historically had
+  different behaviour on musl-libc."
+
+  (α-counter): the kernel's I/O is bounded to argv parsing + file
+  reads + JSON parsing (per `bin/Mathc.ml` boundary, see
+  `OCAML_BEST_PRACTICES.md §1.3`). It calls `Unix.fork()` exactly
+  zero times. The `unix` package's fork is unused. This is verified
+  by `grep -n 'Unix\.fork\|Unix\.exec\|Unix\.create_process' bin/Mathc.ml`.
+
+  "bubblewrap is unavailable on Alpine and opam needs it for sandboxing."
+
+  (β-counter): `opam init -y --bare --disable-sandboxing` is the
+  documented disable-sandboxing path used in the existing release.yml
+  step "Init opam and create OCaml switch" already. The Alpine job
+  reuses this exact command; no change to the opam invocation.
+
+  "Cross-distro compat is unverifiable from the project machine."
+
+  (γ-counter): verification is delegated to CI. The `tests/repo_structure.ml`
+  assertion makes the contract explicit; CI run produces the
+  artifact; downstream consumers (Alpine users) download and run.
+  This is the same evidence model the project already uses for the
+  glibc variants — no double standard.
+
+  "Dual publishing doubles CI minutes and binary storage."
+
+  (δ-counter): measured cost: ~3 min × 2 architectures = 6 min per
+  CI run, on the existing `ubuntu-latest` runner. Negligible
+  compared to the existing 5-platform matrix (~15 min total). Binary
+  storage: ~15 MB × 2 = 30 MB per release, vs ~75 MB for the full
+  5-platform glibc-only matrix. Within budget.
+
+  "Why not static-link the glibc binaries?"
+
+  (ε-counter): static glibc is unsupported upstream; glibc itself
+  has runtime NSS / dynamic loader features that break under full
+  static linking. musl is designed for static linking; musl + OCaml
+  is a well-trodden path (see e.g. ocaml/opam:alpine Docker image
+  used here). Mixing approaches would not improve portability.
+
+assumptions:
+  - id: ocaml-alpine-viable
+    state: assumed
+    statement: |
+      OCaml 5.4.0 + dune + the project's transitive dependencies
+      (alcotest, astring, fmt, cmdliner, uutf, seq, re, stdlib-shims)
+      build and link cleanly under musl-libc on Alpine 3.20.
+    owner: human:maintainer
+    consequence_if_false: |
+      If musl build fails on CI, the glibc variants remain the
+      primary artifacts and Alpine/musl users fall back to building
+      from source via the existing `nix develop` path. The decision
+      is marked DEFERRED in `decisions/obligations.yaml`; no schema
+      or kernel change is rolled back.
+    review_on:
+      - signal: alpine-ci-build-fails
+
+  - id: fork-not-used
+    state: assumed
+    statement: |
+      The kernel binary does not call `Unix.fork`, `Unix.exec`,
+      `Unix.create_process`, or any other process-spawning syscall.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future kernel change adds fork/exec, the musl variant must
+      be re-verified or removed. The risk is low because the project
+      convention is "kernel offline and side-effect-free"
+      (`OCAML_BEST_PRACTICES.md §1.3`).
+    review_on:
+      - signal: unix-fork-introduced
+
+  - id: glibc-floor-acceptable
+    state: assumed
+    statement: |
+      The Ubuntu-22.04 glibc-2.35 floor is acceptable for users
+      who stay on the glibc variant. RHEL ≥ 9, Debian ≥ 12, Ubuntu
+      ≥ 22.04, and all rolling distros satisfy the requirement.
+    consequence_if_false: |
+      Users on older glibc systems must use the musl variant;
+      this is documented in `USAGE.md`.
+    review_on:
+      - signal: user-reports-glibc-error
+
+obligations:
+  - id: release-yml-alpine-job-present
+    outcome: portability-evidence-criteria
+    claim: |
+      `.github/workflows/release.yml` contains two additional matrix
+      entries for Linux: alpine-musl-x86_64 and alpine-musl-aarch64.
+      The combined matrix is exactly 7 entries: 5 platforms + 2 musl
+      Linux variants.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml:portable-linux-musl-matrix-count
+          result: pass
+
+  - id: musl-binary-runs-version
+    outcome: musl-artifacts-published
+    claim: |
+      On alpine:latest (or any musl-libc system), downloading the
+      published `mathc-linux-x86_64-musl` artifact and running
+      `./mathc version` prints the documented version banner and
+      exits 0. The binary does NOT link against any nix-store path
+      or any system glibc.
+    acceptance:
+      all:
+        - verifier: tests/cli/musl-version.t
+          result: pass
+
+  - id: glibc-binary-still-works
+    outcome: glibc-compat-preserved
+    claim: |
+      The pre-existing ubuntu-22.04 / ubuntu-24.04-arm build jobs
+      are unchanged. The published `mathc-linux-x86_64` and
+      `mathc-linux-aarch64` binaries continue to link against
+      Ubuntu system glibc and pass the existing conformance suite
+      on those runners.
+    acceptance:
+      all:
+        - verifier: tests/cli/version.t
+          result: pass
+        - verifier: tests/cli/validate-positive.t
+          result: pass
+
+  - id: no-fork-in-kernel
+    outcome: portability-evidence-criteria
+    claim: |
+      `bin/Mathc.ml` does not call `Unix.fork`, `Unix.exec`,
+      `Unix.create_process`, `Unix.waitpid`. Verifiable by
+      `grep -E 'Unix\.(fork|exec|create_process|waitpid)' bin/Mathc.ml`
+      returning zero matches.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml:no-unix-fork-in-kernel
+          result: pass
+
+  - id: docs-name-install
+    outcome: musl-artifacts-published
+    claim: |
+      `USAGE.md` documents when to pick the musl variant vs the
+      glibc variant; `adoption/SKILL.md` notes the `-musl` suffix
+      in the install step; `PACKAGES.md` and `CHANGELOG.md`
+      announce the new artifacts.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml:portable-linux-docs-mention-musl
+          result: pass
+
+  - id: schema-unchanged
+    outcome: glibc-compat-preserved
+    claim: |
+      No schema file under `schemas/` is modified. No `lib/*.ml`
+      file is modified. No `axioms/**` file is modified.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml:portable-linux-no-kernel-change
+          result: pass
+
+  - id: ci-evidence-recorded
+    outcome: musl-artifacts-published
+    claim: |
+      After this decision lands and CI runs, the Alpine build
+      artifact is stored as evidence. A passing run on Alpine proves
+      the binary satisfies musl-portability; a failing run triggers
+      the `alpine-ci-build-fails` reversal signal and marks this
+      decision DEFERRED without rolling back the glibc pipeline.
+    acceptance:
+      all:
+        - verifier: attestation-store-fill
+          result: pass
+
+reversal:
+  - signal: alpine-ci-build-fails
+    condition: |
+      The Alpine CI job fails twice in a row. Resolution: mark this
+      decision DEFERRED, remove the Alpine matrix entries from
+      release.yml, leave the glibc pipeline unchanged. The reversal
+      is a single PR (delete 2 matrix entries + 2 alpine job steps).
+    action: revert-with-attestation
+
+  - signal: portable-binary-build-superseded
+    condition: |
+      A future decision (`portable-binary-static-glibc-3.x` or
+      similar) provides a strictly more portable artifact (covers
+      both glibc ≥ 2.31 AND musl AND Windows XP). Resolution: this
+      decision is superseded; new decision lists this one as
+      superseded_by.
+    action: rework
+
+risk:
+  declared_triggers:
+    - alpine-ci-build-fails
+    - unix-fork-introduced
+    - user-reports-glibc-error
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+    - algebra-3.2@1
+  supersedes: []
+  superseded_by: []
