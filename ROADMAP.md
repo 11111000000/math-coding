@@ -99,13 +99,17 @@ Runtime kernel behaviour is backward compatible: the existing
 
 ### Remaining for v3.1.0 stabilisation
 
-- **Cram snapshot regeneration** (`tests/cli/self-check-{pass,unknown}.t`):
-  expect 23 subjects (pre-v3.0.0.20 era). Fixture
-  `tests/fixtures/self-check-pass/attestations/` has been
-  updated to 86 attestations covering 28 decisions, but the
-  snapshot lines in the `.t` files themselves still say `23`.
-  Snapshot regeneration deferred (D8-related snapshot drift
-  predates this batch — see `doc/AUDIT-0.0.20.md`).
+- **Cram snapshot regeneration**: as of HEAD `4ef31f7`, the
+  cram snapshots in `tests/cli/self-check-pass.t:17` and
+  `tests/cli/self-check-unknown.t:16` already read `28`
+  (`subjects_len:28`, `total_subjects:28`, `pass_count:28`,
+  `unknown_count:28`). The "snapshots say 23" claim in
+  AUDIT-0.0.20.md is stale and does not match the tree.
+  **Status**: closed at this sync (verified by
+  `grep -n 'subjects_len\|total_subjects\|pass_count' tests/cli/self-check-*.t`,
+  2026-10-04). If a future change re-introduces drift, regenerate
+  snapshots by running `dune promote` after a clean
+  `dune build` on a host with a working toolchain.
 - **Portable binary build** (Tier 3.5+ #13): static-link or
   musl to remove nix-store glibc from shipped binaries.
 
@@ -171,9 +175,15 @@ fixtures. **Rationale:** dune cram exposes `bin/mathc.exe` via
 this portably. The enforced test at
 `tests/process_principles.ml:332-348` checks only the OLD
 `tests/cram/` directory is absent; the live cram is in `tests/cli/`.
-(`OCAML_BEST_PRACTICES.md` §11 has only its header at HEAD; the
-§11.22 reference is preserved as a forward pointer for the
-restoration commit.)
+
+**Correction (2026-10-04):** `OCAML_BEST_PRACTICES.md` §11 trap
+log has 21 entries (§11.1–§11.21, verified by
+`grep -c '^### 11\.' OCAML_BEST_PRACTICES.md`); the earlier
+"§11 has only its header" claim was stale. The "§11.22 forward
+pointer" mention is preserved for completeness but no §11.22
+entry has been authored yet — new traps should be appended
+following the §11.21 pattern (Symptom / Fix / Referenced from /
+Trigger).
 
 ### P6. Pre-commit verification
 

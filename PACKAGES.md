@@ -6,13 +6,18 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: HEAD (post-Tier 3.5 algebra 3.2 implementation).
-Attestation store at `attestations/` contains 87 files (post-v3.1.0-alpha
-attestation batch from `fd7ea8b`); `mc packages` reports 27 active
-decisions / 79 obligations (72 original + 7 from algebra-3.2, all
-passing). `mc self-check` on a clean tree returns verdict `pass`
-with `subjects_count=28` (the master policy's 7 obligations count
-separately).
+Last verified at: HEAD `4ef31f7` (post-Tier 3.5 algebra 3.2 implementation,
+sync refresh 2026-10-04).
+Attestation store at `attestations/` contains **94 files** (verified by
+`ls attestations/ | wc -l`; post-v3.1.0-alpha batch from `fd7ea8b` plus
+Tier 3.5 additions); **`mc packages` reports 28 active decisions / 79
+obligations (72 original + 7 from algebra-3.2)** (declared by the
+last release-time run; not re-verified in this sync session because the
+binary requires nix-store glibc-2.42). `mc self-check` on a clean tree
+returns verdict `pass` with `subjects_count=28` (corroborated by the
+cram snapshots at `tests/cli/self-check-pass.t:17` and
+`tests/cli/self-check-unknown.t:16`; the master policy's 7 obligations
+count separately).
 
 **Cross-references:**
 - `ROADMAP.md` — priorities, tier ordering, process principles (P1–P7)
@@ -57,6 +62,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/yaml-block-scalars.yaml` | `yaml-block-scalars` | 4 | 9 | RESOLVED | audit D1/D2 (closed in `79d138b`, v3.0.0.19) |
 | `decisions/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 2 | 3 | RESOLVED | records D1/D2 deferral, superseded by yaml-block-scalars@4 |
 | `decisions/process-principles.yaml` | `process-principles` | 2 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
+| `decisions/D6-bootstrap-v3-verifiers-implemented.yaml` | `D6-bootstrap-v3-verifiers-implemented` | 1 | 1 | RESOLVED | closes D6 (manual-only verifiers) per AUDIT-0.0.20 |
 | | `decisions/agent-onboarding.yaml` | `agent-onboarding` | 1 | 4 | RESOLVED | locks ADR location + first-file convention |
 | | `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 1 | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
 | `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 1 | 1 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
@@ -269,4 +275,4 @@ This file is updated only when **a new decision file** is created or
 when **an existing decision** changes revision. It is NOT updated for
 every code change.
 
-Last updated at: `v3.0.0.20`.
+Last updated at: `v3.1.0-alpha` (sync refresh 2026-10-04 at HEAD `4ef31f7`).

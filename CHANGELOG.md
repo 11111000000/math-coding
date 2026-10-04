@@ -120,11 +120,12 @@ All 13 Tier 3.5 tasks are landed on `main`:
 
 ### Remaining for v3.1.0 stabilisation
 
-- Cram snapshot regeneration: `tests/cli/self-check-{pass,
-  unknown}.t` expect 23 subjects (pre-v3.0.0.20 era); the
-  fixture store has been updated to 86 attestations covering
-  28 decisions, but the snapshot files themselves still
-  expect 23. Snapshot regeneration deferred to next batch.
+- Cram snapshot regeneration: closed at HEAD `4ef31f7` (sync
+  refresh 2026-10-04). `tests/cli/self-check-pass.t:17` and
+  `tests/cli/self-check-unknown.t:16` already read `28`
+  (`subjects_len:28`, `total_subjects:28`, `pass_count:28`,
+  `unknown_count:28`); the "snapshots say 23" claim was stale
+  and did not match the tree.
 - `feat(portable-binary): static-link or musl build` —
   fixes §30 anti-property (nix-store glibc in shipped
   binary); tracked separately.
