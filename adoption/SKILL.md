@@ -45,6 +45,9 @@ schema. The migration cost is one decision and one CI change.
 ```bash
 # Pick the release tag that matches this skill. The release page lists
 # binaries for linux-amd64, linux-arm64, macos-amd64, macos-arm64.
+# On Linux there are also musl variants for Alpine / older glibc:
+#   mathc-linux-x86_64       (glibc, Ubuntu 22.04+ recommended)
+#   mathc-linux-x86_64-musl  (musl, runs anywhere; pick if ldd fails)
 MC_VERSION=3.0.0.20
 URL="https://github.com/11111000000/math-coding/releases/download/v${MC_VERSION}"
 wget -qO ~/.local/bin/mc "${URL}/mc-linux-amd64"

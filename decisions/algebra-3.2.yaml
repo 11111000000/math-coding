@@ -170,6 +170,14 @@ assumptions:
       target platforms without nix-store path dependencies. Currently
       this is a known violation (§30 anti-property); the fix is
       tracked separately.
+
+      Status update 2026-10-04: x86_64 Linux coverage is in
+      progress under `decisions/portable-linux-musl.yaml` (Alpine
+      container build inside `.github/workflows/release.yml`).
+      Closure signal: first successful CI run on the
+      `linux-x86_64-musl` matrix entry. aarch64-musl deferred to
+      v3.2.1; macOS and Windows are already non-nix-store-glibc
+      and so satisfy the assumption.
     owner: human:maintainer
     consequence_if_false: |
       If portable binaries prove infeasible, distribution_property in
@@ -179,6 +187,8 @@ assumptions:
       without OCaml expertise.
     review_on:
       - signal: portable-build-attempted
+      - signal: portable-musl-ci-pass
+      - signal: portable-musl-ci-fail
 
   - id: schema-backward-compat
     state: assumed

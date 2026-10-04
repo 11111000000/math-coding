@@ -57,6 +57,12 @@ For applicable projects. The full ceremony is justified.
 
 - Install the kernel binary from the
   [GitHub releases page](https://github.com/11111000000/math-coding/releases).
+  On Linux there are two artifacts per architecture:
+  `mathc-linux-x86_64` (glibc, Ubuntu-22.04+ recommended) and
+  `mathc-linux-x86_64-musl` (musl, for Alpine, older glibc distros,
+  and any system where the glibc binary fails with `GLIBC_X.Y not
+  found`). Pick the musl variant if your `ldd mathc-linux-x86_64`
+  reports an unsatisfied higher-version glibc.
 - Use the AI-agent skill from
   [`adoption/SKILL.md`](adoption/SKILL.md) (preferred) or follow the
   four steps in it manually.

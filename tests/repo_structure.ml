@@ -662,6 +662,72 @@ let[@warning "-32"] test_formal_verifier_prefixes () =
   if not_fvp then
     Alcotest.failf "PACKAGES.md missing formal-verifier-conventions row"
 
+(* ------------------------------------------------------------------------- *)
+(* portable-linux-musl (decisions/portable-linux-musl.yaml)                   *)
+(* ------------------------------------------------------------------------- *)
+(* Asserts the v3.1.0-α convention from
+   decisions/portable-linux-musl.yaml:
+   (a) .github/workflows/release.yml has the alpine musl matrix entry;
+   (b) bin/Mathc.ml does not call Unix.fork / Unix.exec /
+       Unix.create_process / Unix.waitpid (musl-compat assumption);
+   (c) USAGE.md / adoption/SKILL.md mention the `-musl` suffix;
+   (d) decisions/portable-linux-musl.yaml exists with state: active. *)
+
+let[@warning "-32"] test_portable_linux_musl_matrix () =
+  let ryml = in_repo ".github/workflows/release.yml" in
+  if not (file_exists ryml) then
+    Alcotest.failf ".github/workflows/release.yml missing";
+  let txt = read_file ryml in
+  if not (agent_contains "linux-x86_64-musl" txt) then
+    Alcotest.failf
+      "release.yml matrix is missing the linux-x86_64-musl entry (per \
+       decisions/portable-linux-musl.yaml obligation \
+       release-yml-alpine-job-present)";
+  if not (agent_contains "ocaml/opam:alpine" txt) then
+    Alcotest.failf
+      "release.yml musl job must reference the ocaml/opam:alpine container \
+       image; cross-compile is out of scope for this decision"
+
+let[@warning "-32"] test_no_unix_fork_in_kernel () =
+  let ml = in_repo "bin/Mathc.ml" in
+  let txt = read_file ml in
+  let forbidden = [ "Unix.fork"; "Unix.exec"; "Unix.create_process"
+                  ; "Unix.waitpid" ]
+  in
+  List.iter
+    (fun needle ->
+      if agent_contains needle txt then
+        Alcotest.failf
+          "bin/Mathc.ml calls %s — this breaks the musl-portability \
+           assumption in decisions/portable-linux-musl.yaml (fork-not-used)"
+          needle)
+    forbidden
+
+let[@warning "-32"] test_portable_linux_docs () =
+  let usage = in_repo "USAGE.md" in
+  let usage_txt = read_file usage in
+  let adoption = in_repo "adoption/SKILL.md" in
+  let adoption_txt = read_file adoption in
+  if not (agent_contains "musl" usage_txt) then
+    Alcotest.failf
+      "USAGE.md does not mention the musl variant; users on Alpine / older \
+       glibc distros will not find guidance on which artifact to download";
+  if not (agent_contains "musl" adoption_txt) then
+    Alcotest.failf
+      "adoption/SKILL.md does not mention the musl suffix in the install step"
+
+let[@warning "-32"] test_portable_linux_decision_active () =
+  let dec = in_repo "decisions/portable-linux-musl.yaml" in
+  if not (file_exists dec) then
+    Alcotest.failf
+      "decisions/portable-linux-musl.yaml missing — required by ROADMAP \
+       Tier 3.5+ #13 and algebra-3.2 §30";
+  let txt = read_file dec in
+  if not (agent_contains "state: active" txt) then
+    Alcotest.failf
+      "decisions/portable-linux-musl.yaml must be in state: active before \
+       merge; current draft state blocks the §30 closure"
+
 let () =
   Alcotest.run "repo structure"
     [
@@ -712,5 +778,16 @@ let () =
         [
           Alcotest.test_case "prefixes documented" `Quick
             test_formal_verifier_prefixes;
+        ] );
+      ( "portable-linux-musl",
+        [
+          Alcotest.test_case "release.yml has musl matrix entry" `Quick
+            test_portable_linux_musl_matrix;
+          Alcotest.test_case "kernel does not call Unix.fork / exec" `Quick
+            test_no_unix_fork_in_kernel;
+          Alcotest.test_case "USAGE + adoption mention musl suffix" `Quick
+            test_portable_linux_docs;
+          Alcotest.test_case "decision file is in state: active" `Quick
+            test_portable_linux_decision_active;
         ] );
     ]
