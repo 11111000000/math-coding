@@ -132,10 +132,23 @@ jobs:
           command -v opam >/dev/null 2>&1 \
             || { echo "FATAL: opam binary not found in container" >&2; exit 1; }
           opam --version
-          eval "$(opam env --switch=5.4.0)"
-          # Pin dependency cache so an opam build that's missing the
-          # switch (rare) doesn't fail silently.
-          opam switch list 2>&1 | head -5
+          # The image ships with an OCaml 5.4 switch under a name like
+          # "5.4" or "ocaml-5.4"; "5.4.0" (the version we use for the
+          # non-Alpine matrix entries) may not be installed. Try the
+          # common names in order before falling back to opam's default.
+          for switch in "5.4.0" "5.4" "ocaml-5.4"; do
+            if opam switch list --short 2>/dev/null | grep -qx "$switch"; then
+              eval "$(opam env --switch="$switch")"
+              echo "Activated switch: $switch"
+              break
+            fi
+          done
+          # If none matched, fall back to whatever opam considers default.
+          if ! command -v ocaml >/dev/null 2>&1; then
+            echo "No explicit switch activated; using opam default"
+            eval "$(opam env)"
+          fi
+          ocaml --version
 
       - name: Install dune
         shell: bash
