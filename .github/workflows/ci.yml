@@ -47,16 +47,19 @@ jobs:
       - name: Enable flakes
         run: echo "flakes enabled via extra_nix_config above"
 
-      - name: Cache nix store
+      - name: Cache nix store (disabled, see comment)
+        # Parallel fix to commit 4b623c2 (which fixed the same issue
+        # in site.yml but not here). cachix-action@v15 rejects
+        # 'fail-on-cache-miss' as an unknown input, which caused
+        # CI #49 to fail at this step and skip all subsequent
+        # steps (scripts/dev verify, mc self-check, nix flake
+        # check). Disabling matches the site.yml pattern.
+        # Re-enable when cachix-action accepts the new schema.
+        if: false
         uses: cachix/cachix-action@v15
         with:
-          # Public math-coding cachix cache (binary substituter) —
-          # populated by the project maintainer on each release.
-          # If unavailable, falls back to building from source via
-          # the cached nix store path.
           name: math-coding
-          # Fail-open: if the cache write fails, continue without.
-          fail-on-cache-miss: false
+          skipPush: true
 
       - name: Install git
         run: |
