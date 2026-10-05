@@ -4,12 +4,18 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema", "kind", "id", "intent", "commitment",
+    "schema", "id", "intent", "commitment",
     "scope", "outcomes", "obligations"
   ],
   "properties": {
-    "schema": {"const": "math-coding/3.0-alpha/decision"},
-    "kind": {"const": "decision"},
+    "schema": {
+      "description": "Schema family identifier. Both forms are accepted: the canonical `math-coding/3.0-alpha/decision` (JSON) and the family-only `math-coding/3.0-alpha` (YAML). They denote the same form.",
+      "enum": ["math-coding/3.0-alpha", "math-coding/3.0-alpha/decision"]
+    },
+    "kind": {
+      "description": "Document kind. Required only for JSON form; YAML form omits it (the document is a decision by convention).",
+      "const": "decision"
+    },
     "id": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
@@ -20,15 +26,49 @@
       "items": {"type": "string", "minLength": 1}
     },
     "intent": {
-      "type": "object", "additionalProperties": false,
-      "required": ["source", "text"],
-      "properties": {
-        "source": {"type": "string", "minLength": 1},
-        "text": {"type": "string", "minLength": 1}
-      }
+      "description": "Decision intent. Two forms: (a) YAML form — a single scalar string; (b) JSON form — an object with `source` (provenance) and `text` (statement). The YAML form is the canonical source-of-truth for the 30 active decisions; the JSON form is a structured refinement that records provenance explicitly. Author choose either; the kernel parses both into the same domain value.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["source", "text"],
+          "properties": {
+            "source": {"type": "string", "minLength": 1},
+            "text": {"type": "string", "minLength": 1}
+          }
+        }
+      ]
     },
     "commitment": {"type": "string", "minLength": 1},
-    "scope": {"$ref": "common.json#/definitions/scope"},
+    "scope": {
+      "description": "Decision scope. Two forms: (a) YAML form — object with `paths` (globs), `capabilities` (string list), `exclusions` (globs); (b) JSON form — array of scope_target objects. The YAML form is the canonical source-of-truth; the JSON form is the explicit form for tooling that needs every entry as a self-describing record.",
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "paths": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 1}
+            },
+            "capabilities": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 1}
+            },
+            "exclusions": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        {
+          "$ref": "common.json#/definitions/scope"
+        }
+      ]
+    },
     "state": {
       "description": "Lifecycle state of this Decision. See spec/algebra-3.2.md §7.",
       "type": "string",
@@ -107,8 +147,45 @@
       }
     },
     "obligations": {
+      "description": "Decision obligations. Each item carries `id` (unique within the decision), `claim` (what the kernel guarantees), and `acceptance` (verifier+result pair). The YAML form uses `statement` as an alias for `claim` for readability; the JSON form uses `claim` strictly. The kernel accepts both as the same field.",
       "type": "array", "minItems": 1, "uniqueItems": true,
-      "items": {"$ref": "obligation.json"}
+      "items": {
+        "oneOf": [
+          {"$ref": "obligation.json"},
+          {
+            "type": "object", "additionalProperties": false,
+            "required": ["id", "statement"],
+            "properties": {
+              "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+              "statement": {"type": "string", "minLength": 1},
+              "outcome": {"type": "string"},
+              "acceptance": {
+                "oneOf": [
+                  {"$ref": "common.json#/definitions/acceptance"},
+                  {
+                    "type": "object", "additionalProperties": false,
+                    "required": ["all"],
+                    "properties": {
+                      "all": {
+                        "type": "array", "minItems": 1,
+                        "items": {
+                          "type": "object", "additionalProperties": false,
+                          "required": ["verifier", "result"],
+                          "properties": {
+                            "verifier": {"type": "string", "minLength": 1},
+                            "result": {"enum": ["pass"]}
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "phase": {"enum": ["pre-merge", "pre-release", "post-release"]}
+            }
+          }
+        ]
+      }
     },
     "reversal": {
       "type": "array",

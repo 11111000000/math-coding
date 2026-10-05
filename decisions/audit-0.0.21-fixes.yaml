@@ -1,0 +1,340 @@
+---
+schema: math-coding/3.0-alpha
+id: audit-0.0.21-fixes
+revision: 1
+
+state: active
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Authorise and bound a single cycle of fixes that closes the
+  13 specific deficits catalogued in `doc/AUDIT-0.0.21.md`
+  (D21.1 … D21.13). The cycle is committed as five sequential
+  phases:
+
+    Phase 1 — unify the decision model (schema ↔ parser ↔ YAML)
+    Phase 2 — restore `mc self-check` to `verdict:"pass"`
+    Phase 3 — synchronise doc counters with kernel reality
+    Phase 4 — close process holes (memory, hook, constitution typo)
+    Phase 5 — merge the cycle branch back to main
+
+  Each phase lands atomically with at least one passing
+  conformance fixture; the cycle is bounded by the
+  criterion-of-pass in the master-outcome below. No new
+  capability is added; this cycle is *structural honesty*
+  only.
+
+  History:
+    rev 1 (this commit): initial adoption.
+
+commitment: |
+  The kernel's `mc self-check` on the integrated HEAD MUST
+  return `verdict:"pass"`, exit `0`, with every active decision's
+  `pass_count` matching `subjects_len` and no `unknown` subjects
+  except those bound to a recorded waiver. The README CLI
+  table, PACKAGES.md main table, PACKAGES.md cram table, and
+  ROADMAP.md status block MUST each enumerate the same set of
+  subcommands and decisions the kernel implements.
+
+  Boundaries:
+  - This cycle does NOT add any new obligation type, gate, or
+    attestation schema. The schema, attestation store, and gate
+    semantics are unchanged in shape; only their internal
+    consistency is restored.
+  - This cycle does NOT migrate existing decisions from YAML
+    to JSON. The schema accepts the YAML form; decisions stay
+    in YAML.
+  - The constitution (I1-I14) is unchanged in semantics; only
+    a literal typo at `spec/constitution.md:149` is corrected.
+  - The `portable-linux-musl` decision stays at `state: retired`
+    with the same reversal signal. Its obligations stay missing
+    unless a waiver is issued; the audit explicitly notes this
+    is the binding condition for self-check verdict=pass.
+
+scope:
+  capabilities:
+    - kernel-self-consistency
+    - doc-drift-prevention
+    - decision-parser-unification
+  paths:
+    - "schemas/decision.json"
+    - "schemas/common.json"
+    - "lib/decision.ml"
+    - "lib/memory.ml"
+    - "bin/Mathc.ml"
+    - "tests/cli/*.t"
+    - "tests/fixtures/self-check-pass/attestations/"
+    - "tests/fixtures/self-check-fail/attestations/"
+    - "tests/fixtures/self-check-unknown/attestations/"
+    - "tests/decision_parser_yaml.ml"
+    - "tests/counters_drift.ml"
+    - "scripts/dev"
+    - "scripts/regenerate-self-check-fixture.sh"
+    - "AGENTS.md"
+    - "ROADMAP.md"
+    - "PACKAGES.md"
+    - "README.md"
+    - "USAGE.md"
+    - "CHANGELOG.md"
+    - "doc/AUDIT-0.0.21.md"
+    - "spec/constitution.md"
+  exclusions:
+    - "axioms/**"
+    - "spec/algebra-3.2.md"
+    - "lib/attestations/attestations.ml"
+    - "lib/risk.ml"
+    - "lib/policy.ml"
+    - "lib/rebuttal.ml"
+    - "lib/re_evaluation.ml"
+    - "schemas/attestation.json"
+    - "schemas/obligation.json"
+    - "schemas/waiver.json"
+    - "schemas/policy.json"
+    - ".github/workflows/release.yml"
+
+outcomes:
+  - id: kernel-self-check-passes
+    statement: |
+      `mc self-check` on a clean tree of the integrated HEAD
+      returns `verdict:"pass"`, exit `0`, with `pass_count ==
+      subjects_len` and `unknown_count == 0` (or, with waivers,
+      `unknown_count == waived_count`).
+
+  - id: validate-accepts-own-decisions
+    statement: |
+      `mc validate decisions/<file>.yaml` returns `accept`
+      for every YAML decision in `decisions/*.yaml` (excluding
+      the three meta-aggregator files: `decision.yaml`,
+      `obligations.yaml`, `obligation-count-reconcile.yaml`,
+      which are tracked under separate rules).
+
+  - id: re-evaluate-loads-decisions
+    statement: |
+      `mc re-evaluate <known-id> <A0..A4>` returns
+      `compatible|inconclusive|stale_claim` for at least the
+      master policy `bootstrap-v3` (so the oracle path is
+      demonstrably functional).
+
+  - id: doc-counters-match-kernel
+    statement: |
+      The counters in `PACKAGES.md` (Obs column, decisions,
+      obligations, attestations, cram tests), `ROADMAP.md`
+      (status block, Tier counters), `README.md` (CLI table
+      row count), and `doc/AUDIT-0.0.21.md` (final state
+      section) all equal the values reported by
+      `mc packages --format=json` and `mc self-check`.
+
+  - id: pre-commit-hook-enforceable
+    statement: |
+      `git config core.hooksPath` returns `.githooks` on a
+      contributor's first `scripts/dev init-hooks` run, and
+      `.githooks/pre-commit` exits 0 on a clean staged change
+      and exits 1 on a kernel change staged without a paired
+      decision file.
+
+assumptions:
+  - id: yaml-form-is-canonical
+    state: assumed
+    statement: |
+      The YAML decision form used by all 29 active decisions
+      (`intent` as scalar, `scope.paths` as list, no `kind`
+      field, `schema: math-coding/3.0-alpha` without
+      `/decision` suffix) is the canonical form the kernel
+      actually consumes. The JSON form used by conformance
+      fixtures is a strict superset.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the JSON form is canonical, then a migration of 29
+      YAML decisions to JSON is required, breaking every
+      downstream consumer. Reopen this decision and reroute
+      Phase 1.
+    review_on:
+      - signal: schema-form-canonical
+
+  - id: retired-decisions-may-be-waived
+    state: assumed
+    statement: |
+      A decision with `state: retired` can have its missing
+      obligations satisfied by an explicit waiver
+      (`schemas/waiver.json`) without re-enabling the
+      decision. The gate counts waivers as evidence for
+      `pass` verdict.
+    owner: human:maintainer
+    consequence_if_false: |
+      If retired decisions are not waivable, then
+      `mc self-check` cannot return `pass` until either the
+      `portable-linux-musl` decision is reactivated (i.e.,
+      the Alpine build leg works) or retired decisions are
+      excluded from `self-check` scope (which conflicts with
+      P1's "kernel checks every loaded decision"). Reopen
+      this decision and choose one of the two branches.
+    review_on:
+      - signal: waiver-semantics-clarified
+
+  - id: counters-script-may-create-new-state
+    state: assumed
+    statement: |
+      A `scripts/dev counters` subcommand that derives all
+      reported counts from `mc packages --format=json` and
+      `mc self-check` may be added. The output of this script
+      is the single source of truth that all docs sync to.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a counters script is unacceptable, the audit's
+      counters must be hand-synced, and Phase 3's
+      drift-detector test must compare docs against the
+      kernel on every run.
+    review_on:
+      - signal: scripts-dev-counters-included
+
+obligations:
+  - id: schema-supports-yaml-decision-form
+    outcome: validate-accepts-own-decisions
+    claim: |
+      `schemas/decision.json` declares `intent` as a oneOf
+      of string and `{source, text}` object, `scope` as
+      a oneOf of array and `{paths: [...]}` object, and
+      does not require `kind` for the `decision` family.
+      `mc validate decisions/<file>.yaml` returns `accept`
+      for every YAML decision in the repo.
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.ml
+          result: pass
+        - verifier: tests/conformance.ml
+          result: pass
+
+  - id: parser-accepts-yaml-form
+    outcome: validate-accepts-own-decisions
+    claim: |
+      `lib/decision.ml:parse_decision` parses both the YAML
+      and JSON forms. Each form yields the same `Domain.decision`
+      record (modulo the `kind` field, which is optional).
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.ml
+          result: pass
+
+  - id: re-evaluate-loads-decisions
+    outcome: re-evaluate-loads-decisions
+    claim: |
+      `mc re-evaluate bootstrap-v3 A1` returns a verdict
+      (not "unknown DECISION_ID"). The §17 oracle path is
+      functional on at least the master policy.
+    acceptance:
+      all:
+        - verifier: tests/cli/re-evaluate.t
+          result: pass
+        - verifier: tests/re_evaluation_test.ml
+          result: pass
+
+  - id: self-check-pass-fixture-covers-all
+    outcome: kernel-self-check-passes
+    claim: |
+      `tests/fixtures/self-check-pass/attestations/` contains
+      a pass attestation for every (decision_id, obligation_id)
+      pair enumerated by `mc packages --format=json`, with
+      the single exception of `portable-linux-musl`, which is
+      bound by a waiver.
+    acceptance:
+      all:
+        - verifier: scripts/regenerate-self-check-fixture.sh
+          result: pass
+
+  - id: self-check-verdict-is-pass
+    outcome: kernel-self-check-passes
+    claim: |
+      `mc self-check` against the regenerated fixture returns
+      `verdict:"pass"`, exit `0`, `unknown_count == 0`
+      (or `unknown_count == waived_count` if waivers are
+      issued for retired subjects).
+    acceptance:
+      all:
+        - verifier: tests/cli/self-check-pass.t
+          result: pass
+        - verifier: mc-self-check-verdict-pass
+          result: pass
+
+  - id: counters-single-source
+    outcome: doc-counters-match-kernel
+    claim: |
+      `scripts/dev counters` is the single source of truth
+      for: decisions_count, obligations_count, attestations_count,
+      cram_tests_count, subcommands_count, subjects_count,
+      pass_count. The script outputs JSON.
+    acceptance:
+      all:
+        - verifier: tests/counters_drift.ml
+          result: pass
+
+  - id: no-doc-drift-across-read-first-set
+    outcome: doc-counters-match-kernel
+    claim: |
+      Every numeric count in `AGENTS.md`, `ROADMAP.md`,
+      `PACKAGES.md`, `README.md`, `USAGE.md`, `CHANGELOG.md`,
+      `doc/AUDIT-0.0.21.md` equals the corresponding output
+      of `scripts/dev counters` (within an explicit, recorded
+      tolerance if rounding is unavoidable).
+    acceptance:
+      all:
+        - verifier: tests/counters_drift.ml
+          result: pass
+
+  - id: pre-commit-hook-registered
+    outcome: pre-commit-hook-enforceable
+    claim: |
+      `scripts/dev init-hooks` is documented in `USAGE.md`
+      and `AGENTS.md` as a one-time first-action. `.githooks/pre-commit`
+      exits 0 on a clean staged change and exits 1 on a
+      `lib/`, `bin/`, `spec/`, or `schemas/` change staged
+      without a paired `decisions/*.yaml|.md` file.
+    acceptance:
+      all:
+        - verifier: tests/process_principles.ml
+          result: pass
+
+  - id: constitution-typo-corrected
+    outcome: kernel-self-check-passes
+    claim: |
+      `spec/constitution.md:149` reads
+      `MUST have at least one`, not `MUST MUST have at least one`.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+
+reversal:
+  - signal: cycle-diverges
+    condition: |
+      Any phase of this cycle introduces a new schema field,
+      removes an existing schema field, or removes a documented
+      subcommand. Resolution: halt the cycle, identify the
+      drift, and either amend this decision's scope or split
+      into a separate decision for the new change.
+    action: rework
+
+  - signal: kernel-self-check-regresses
+    condition: |
+      After Phase 2 lands, `mc self-check` continues to return
+      `verdict:"unknown"` on a clean HEAD. Resolution: identify
+      the binding gap (a missing attestation or waiver), produce
+      it, and re-run `mc self-check`. If a structural fix is
+      required, this revision is incremented to track the gap
+      closure.
+    action: rework
+
+risk:
+  declared_triggers:
+    - schema-migration-broken
+    - parser-semantic-shift
+    - doc-counter-tied-to-stale-data
+    - retirement-policy-too-permissive
+    - waiver-spam
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+    - algebra-3.2@1
+  supersedes: []
+  superseded_by: []

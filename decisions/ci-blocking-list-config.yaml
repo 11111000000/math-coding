@@ -138,7 +138,6 @@ reversal:
 
 risk:
   declared_triggers:
-    owner: human:maintainer
     - env-var-misconfiguration
     - follow-up-deferral-creep
   - misconfigured_env: |

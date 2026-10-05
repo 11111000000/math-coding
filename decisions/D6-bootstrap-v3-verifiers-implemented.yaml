@@ -37,7 +37,7 @@ scope:
 
 risk:
   declared_triggers: []
-    owner: human:maintainer
+  owner: human:maintainer
   - counterexample: |
       A regression in CI re-introduces a manual-only verifier.
       Mitigation: `tests/process_principles.ml` runs `mc

@@ -4,7 +4,7 @@
 > (commit `8fa7fcf`). The 3.0 kernel checks this repository and its
 > conformance corpus via `mc self-check`, which is a **blocking** CI
 > step per `constitution.md` Invariant 14. The attestation store at
-> `attestations/` is populated (94 files). CLI surface: `validate`,
+> `attestations/` is populated (105 files). CLI surface: `validate`,
 > `context`, `explain`, `assess`, `attest`, `gate`, `session-start`,
 > `record`, `stats`, `time-estimate`, `self-check`, `version`, `render`,
 > `packages`.
@@ -76,7 +76,7 @@ without a `decisions/*.yaml` decision under the active policy.
 **Status**: ✅ LANDED between `ff9e738` and `fd7ea8b` (13/13 tasks).
 Schema extensions preserve backward compat (v3.0.0.20 → v3.1.0 alpha).
 
-`mc self-check` verdict: `pass` (28/28 subjects green).
+`mc self-check` verdict: `pass` (32 subjects (30 pass + 2 unknown)).
 Runtime kernel behaviour is backward compatible: the existing
 `mc validate`, `mc gate`, `mc packages`, `mc explain`,
 `mc self-check` keep working unchanged.
@@ -175,7 +175,7 @@ When multiple parallel agents commit, integrate in this order:
 `tests/cram/*.t` was removed in `dc78bcd` (v3-alpha-0.0.10). The
 `tests/fixtures/cli-<sub>.sh` convention was retired at
 v3-alpha-0.0.16 when all CLI shell fixtures were migrated to
-`dune cram` in `tests/cli/*.t` (15 files at HEAD). Cram now lives in
+`dune cram` in `tests/cli/*.t` (32 files at HEAD). Cram now lives in
 `tests/cli/*.t`, asserting CLI stdout/stderr snapshots via dune 3.23
 cram stanzas. The `tests/fixtures/` directory persists only as a
 host for `scripts/dev verify` aggregator wrappers, not per-CLI

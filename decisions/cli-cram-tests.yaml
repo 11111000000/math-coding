@@ -84,8 +84,11 @@ scope:
     - fixtures/conformance/**
 
 risk:
-  declared_triggers: |
-    owner: human:maintainer
+  declared_triggers:
+    - cram-stdout-layout-change
+  owner: human:maintainer
+counterexample: |
+  - cram-invocation: |
       Revert bin/dune's (public_name mathc), the cram stanza
       in tests/cli/dune, the new tests/cli/*.t files, and
       restore the 14 deleted tests/fixtures/*.sh files. The
@@ -94,7 +97,7 @@ risk:
       §11.20 regains its RETIRED status. Total cost of
       reversal: ~1400 lines of churn (test files + docs +
       yaml); well within the cost of a single revert commit.
-  - counterexample: |
+  - cram-relative-path: |
       A cram test invoking mathc with a relative path from
       the cram shell's bwrap cwd fails because mathc can't
       resolve the file. Mitigation: every .t does `cd

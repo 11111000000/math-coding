@@ -7,5 +7,7 @@
   re_evaluation_test
   render_kernel
   yaml_block_scalars
-  ci_blocking_list_test)
+  ci_blocking_list_test
+  decision_parser_yaml
+  counters_drift)
  (libraries mathcoding_core mathcoding_attestations alcotest))

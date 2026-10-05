@@ -354,9 +354,14 @@ let[@warning "-32"] yaml_strip s =
       let c = String.unsafe_get s i in
       match c with
       | '#' ->
+          (* Skip from '#' to but not including the next '\n' so
+             the line structure is preserved. *)
           let rec skip j =
             if j >= len then ()
-            else if String.unsafe_get s j = '\n' then loop (j + 1)
+            else if String.unsafe_get s j = '\n' then begin
+              Buffer.add_char buf '\n';
+              loop (j + 1)
+            end
             else skip (j + 1)
           in
           skip i

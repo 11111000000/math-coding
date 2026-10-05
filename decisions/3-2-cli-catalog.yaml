@@ -188,7 +188,6 @@ obligations:
 
 risk:
   declared_triggers:
-    owner: human:maintainer
     - spec-catalog-falls-behind-dispatcher-again
     - cram-fixture-flake-on-clock
   - drift_recurs: |

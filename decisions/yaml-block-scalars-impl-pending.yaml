@@ -81,9 +81,6 @@ outcomes:
       the implementation without checking the priority queue
       first.
 
-  exclusions:
-    - "bootstrap/yaml-block-scalars.yaml" (decision @rev2 unchanged)
-
 counterexample: |
   is technical debt." Counterargument: deferral is documented,
   justified, and tracked. Re-implementing it before the

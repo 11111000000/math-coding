@@ -122,7 +122,6 @@ reversal:
 
 risk:
   declared_triggers:
-    owner: human:maintainer
     - policy-weakening
     - protocol-breaking-change
 

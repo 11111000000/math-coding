@@ -433,7 +433,7 @@ let[@warning "-32"] read_decision (reader : string -> string) (path : string) :
     in
     match v with
     | Jsonl.Object _ -> (
-        match Decision.parse_decision v with
+        match Decision.parse_decision_yaml v with
         | Some d ->
             (* Bridge: the existing parser leaves relations
              * empty. Scan the raw YAML for axiom IDs (A0..A4

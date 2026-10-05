@@ -146,6 +146,6 @@ deterministic kernel result.
     revisions, gate and validity interval.
 12. Prior authority: a protected transition MUST be authorized by the
     previously active policy.
-13. Fixture coverage: every kernel-enforced MUST MUST have at least one
+13. Fixture coverage: every kernel-enforced MUST have at least one
     accepting and one rejecting conformance fixture.
 14. Exit honesty: a blocking verdict MUST produce nonzero exit code.

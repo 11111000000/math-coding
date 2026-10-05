@@ -66,9 +66,10 @@ scope:
 
 risk:
   declared_triggers:
-    owner: human:maintainer
     - decision-graph-walk-changes
     - site-rendering-changes
+  owner: human:maintainer
+counterexample: |
   - counterexample: |
       The package walker fails silently on a `decisions/*.yaml`
       with a malformed obligation (e.g. `acceptance` is a string
