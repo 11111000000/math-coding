@@ -36,7 +36,7 @@
 #   /path/to/repo/scripts/dist-adoption.sh`). release.yml invokes
 #   it from the repo root, but local dev may not.
 
-set -euo pipefail
+set -eu
 
 # Resolve repo root from the script's location. Works whether invoked
 # as `./scripts/dist-adoption.sh` (CWD = repo root, no-op) or
@@ -47,7 +47,6 @@ cd "$(cd "$(dirname "$0")" && pwd)/.."
 # behaviour (CI Ubuntu 22.04 vs local) and a single failure mode
 # here stops the entire release. With `set -eu` and explicit error
 # messages, the script is robust without pipefail.
-set -eu
 
 src="adoption/SKILL.md"
 out_root="dist/adoption"
