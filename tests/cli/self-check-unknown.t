@@ -13,5 +13,5 @@ case) in decisions/mc-self-check-subcommand.yaml@2.
 
   $ cd "$DUNE_SOURCEROOT"
   $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" bash -c 'tmp=$(mktemp -d); MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" mathc self-check > /tmp/sc-unk.out; ec=$?; jq -c "del(.now) | {verdict, unknown_count: ([.subjects[] | select(.verdict == \"unknown\")] | length), total_subjects: (.subjects | length), all_unknown: ([.subjects[].verdict] | all(. == \"unknown\"))}" < /tmp/sc-unk.out; echo "exit=$ec"; rm -rf "$tmp"'
-  {"verdict":"unknown","unknown_count":30,"total_subjects":30,"all_unknown":true}
+  {"verdict":"unknown","unknown_count":31,"total_subjects":31,"all_unknown":true}
   exit=3
