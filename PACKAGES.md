@@ -8,23 +8,26 @@
 
 Last verified at: HEAD `a87d55d` (post-`mathoding→mathcoding` rename and
 this Phase 1 editorial cleanup, 2026-10-05).
-Attestation store at `attestations/` contains **105 files** (verified by
+Attestation store at `attestations/` contains **124 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
-on every check); **`mc packages` reports 30 active decisions / 121
+on every check); **`mc packages` reports 32 active decisions / 122
 obligations (the count rises as new decisions are added; the master
 policy's 7 obligations are enumerated separately)**. The exact numbers
 are emitted by `scripts/dev-counters.py` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
 `mc self-check` on a clean tree currently returns verdict `unknown` with
-30 pass / 2 unknown. The 2 unknown subjects are:
+34 pass / 2 unknown. The 2 unknown subjects are:
 - `portable-linux-musl` (its 7 obligations have no attestations because
   the Alpine CI build never succeeded and the decision is in `state:
   retired`; reversal signal `alpine-ci-build-fails` fired per
   `decisions/portable-linux-musl.yaml`)
-- `audit-0.0.21-fixes` (its 9 obligations have no attestations; the
-  master decision for the integrity-fixes cycle is itself in deficit —
-  see F13 in the analysis plan; resolution tracked under Phase 5)
+- `audit-0.0.21-fixes` (8 of 9 obligations have attestations; the 9th,
+  `self-check-verdict-is-pass`, has an `inconclusive` attestation
+  because the criterion cannot be satisfied while any subject
+  contributes to `unknown`. Resolution: kernel waiver infrastructure
+  per `lib/waiver.ml` once it lands; waiver record in
+  `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`)
 
 The `mc self-check` pass-fixture at
 `tests/fixtures/self-check-pass/attestations` is regenerated to match
@@ -87,6 +90,10 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/process-principles-close-branches.yaml` | `process-principles-close-branches` | 1 | 3 | RESOLVED | close-branches subcommand and pre-commit hook (process-principles@2 P2 detail) |
 | `decisions/mc-packages-subcommand.yaml` | `mc-packages-subcommand` | 1 | 3 | RESOLVED | Tier-1 #4 |
 | `decisions/obligation-count-reconcile.yaml` | `obligation-count-reconcile` | 1 | 2 | RESOLVED | aligns PACKAGES.md counts with `obligations.yaml` |
+| `decisions/spec-prose-corrections-2026-10.yaml` | `spec-prose-corrections-2026-10` | 1 | 3 | RESOLVED | factual corrections to spec/algebra-3.2.md and spec/semantics.md (2026-10-05 audit F7, F11) |
+| `decisions/algebra-3.2-notation-flag-2026-10.yaml` | `algebra-3.2-notation-flag-2026-10` | 1 | 2 | RESOLVED | flags ambiguous `⌈risk(c)⌉` notation in algebra §2 (2026-10-05 audit F9) |
+| `decisions/schema-empty-sha-2026-10.yaml` | `schema-empty-sha-2026-10` | 1 | 2 | META | schema relaxation for empty-string `body_sha`/`yaml_sha` stubs; not counted as active decision |
+| `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml` | `audit-0.0.21-fixes-self-check-waiver-2026-10` | 1 | 3 | META | waiver record for the structural deficit on `self-check-verdict-is-pass`; not counted as active decision |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision
@@ -305,7 +312,11 @@ This file is updated only when **a new decision file** is created or
 when **an existing decision** changes revision. It is NOT updated for
 every code change.
 
-Last updated at: HEAD `a87d55d` (Phase 1 editorial cleanup, 2026-10-05).
+Last updated at: HEAD `feadf41` (Phases 1-5 of 2026-10-05 analysis
+applied: mathoding→mathcoding, editorial cleanup, spec prose
+corrections, audit-0.0.21-fixes deficit closure, schema
+relaxation, §27 proof completion, §2 notation flag; 2026-10-05).
+
 Previous: `v3.1.0-alpha` + `feature/portable-musl-build` (sync refresh
 2026-10-04 at HEAD `4ef31f7`; portable-linux-musl activated by user
 authorization — see decision file for the authorization chain).

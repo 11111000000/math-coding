@@ -60,7 +60,16 @@ def main():
         "active": 0,
         "paths": [],
     }
-    meta = {"decision.yaml", "obligations.yaml", "obligation-count-reconcile.yaml"}
+    meta = {
+        "decision.yaml",
+        "obligations.yaml",
+        "obligation-count-reconcile.yaml",
+        # Schema-change decisions and waivers — tracked as their own
+        # entities by `mc packages` but should not be in PACKAGES'
+        # "active decisions" count (they don't ship kernel changes).
+        "schema-empty-sha-2026-10.yaml",
+        "audit-0.0.21-fixes-self-check-waiver-2026-10.yaml",
+    }
     for p in yaml_files:
         counters["decisions"]["paths"].append(p.name)
         if p.name not in meta:
