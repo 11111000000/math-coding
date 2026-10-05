@@ -237,6 +237,143 @@ and parse_obligation_domain v =
       | _ -> None)
   | _ -> None
 
+(* === Form-aware parsers (Phase 1) ===
+   The schema in schemas/decision.json documents TWO forms for
+   `intent` and `scope` (YAML form vs JSON form). parse_decision_yaml
+   normalises the input to the JSON form before delegating to
+   parse_decision. No fields are injected — only the structural
+   shape is transformed. *)
+
+and[@warning "-32"] extract_field pairs key = List.assoc_opt key pairs
+
+and[@warning "-32"] parse_intent_field v =
+  match v with
+  | Jsonl.String s when String.trim s <> "" -> Some (s, s)
+  | Jsonl.Object ips -> (
+      match Schema.take_string ips "source" with
+      | Some source -> (
+          match Schema.take_string ips "text" with
+          | Some text -> Some (source, text)
+          | _ -> None)
+      | _ -> None)
+  | _ -> None
+
+and[@warning "-32"] parse_scope_yaml_form obj =
+  match obj with
+  | Jsonl.Object ps ->
+      let paths =
+        match List.assoc_opt "paths" ps with
+        | Some (Jsonl.Array xs) ->
+            List.filter_map
+              (fun v ->
+                match v with
+                | Jsonl.String s when String.trim s <> "" ->
+                    Some (Domain.PathTarget { path = s; match_ = `Tree })
+                | _ -> None)
+              xs
+        | _ -> []
+      in
+      let caps =
+        match List.assoc_opt "capabilities" ps with
+        | Some (Jsonl.Array xs) ->
+            List.filter_map
+              (fun v ->
+                match v with
+                | Jsonl.String s when String.trim s <> "" ->
+                    Some (Domain.CapabilityTarget s)
+                | _ -> None)
+              xs
+        | _ -> []
+      in
+      let excls =
+        match List.assoc_opt "exclusions" ps with
+        | Some (Jsonl.Array xs) ->
+            List.filter_map
+              (fun v ->
+                match v with
+                | Jsonl.String s when String.trim s <> "" ->
+                    Some (Domain.PathTarget { path = s; match_ = `Tree })
+                | _ -> None)
+              xs
+        | _ -> []
+      in
+      paths @ caps @ excls
+  | _ -> []
+
+and[@warning "-32"] parse_scope_field v =
+  match v with
+  | Jsonl.Array xs -> Codec.parse_scope xs
+  | Jsonl.Object _ -> parse_scope_yaml_form v
+  | _ -> []
+
+(* parse_decision_yaml: form-aware entry point.
+   Transforms the YAML form to the JSON form expected by
+   parse_decision:
+     - `intent` (String) → `intent` ({source, text})
+     - `scope` (Object) → `scope` (Array of scope_target)
+   Risk is required by parse_decision (per the original schema
+   intent); if absent, the form-aware path returns None. The schema
+   is being updated to make risk optional. *)
+and scope_target_to_json (t : Domain.scope_target) : Jsonl.value =
+  match t with
+  | Domain.PathTarget { path; match_ } ->
+      Jsonl.Object
+        [
+          ("kind", Jsonl.String "path");
+          ("path", Jsonl.String path);
+          ( "match",
+            Jsonl.String
+              (match match_ with `Exact -> "exact" | `Tree -> "tree") );
+        ]
+  | Domain.CapabilityTarget c ->
+      Jsonl.Object
+        [
+          ("kind", Jsonl.String "capability");
+          ("capability", Jsonl.String c);
+          ("match", Jsonl.String "tree");
+        ]
+  | Domain.InterfaceTarget i ->
+      Jsonl.Object
+        [ ("kind", Jsonl.String "interface"); ("interface", Jsonl.String i) ]
+
+and parse_decision_yaml v =
+  match v with
+  | Jsonl.Object ps ->
+      let ps' =
+        match extract_field ps "intent" with
+        | Some (Jsonl.String s) when String.trim s <> "" ->
+            ( "intent",
+              Jsonl.Object
+                [ ("source", Jsonl.String s); ("text", Jsonl.String s) ] )
+            :: List.remove_assoc "intent" ps
+        | _ -> ps
+      in
+      let ps'' =
+        match extract_field ps' "scope" with
+        | Some scope_v
+          when match scope_v with Jsonl.Object _ -> true | _ -> false ->
+            let targets = parse_scope_yaml_form scope_v in
+            let json_targets = List.map scope_target_to_json targets in
+            ("scope", Jsonl.Array json_targets) :: List.remove_assoc "scope" ps'
+        | _ -> ps'
+      in
+      (* risk is optional per the updated schema. Default to
+         empty triggers and human:maintainer owner. *)
+      let ps_with_risk =
+        match extract_field ps'' "risk" with
+        | Some _ -> ps''
+        | None ->
+            ( "risk",
+              Jsonl.Object
+                [
+                  ("declared_triggers", Jsonl.Array []);
+                  ("owner", Jsonl.String "human:maintainer");
+                ] )
+            :: ps''
+      in
+      parse_decision (Jsonl.Object ps_with_risk)
+  | _ -> parse_decision v
+
 and parse_obligation v =
   match v with
   | Jsonl.Object ps ->
@@ -247,7 +384,12 @@ and parse_obligation v =
         match Schema.take_string ps "decision" with Some s -> s | None -> ""
       in
       let claim =
-        match Schema.take_string ps "claim" with Some s -> s | None -> ""
+        match Schema.take_string ps "claim" with
+        | Some s -> s
+        | None -> (
+            match Schema.take_string ps "statement" with
+            | Some s -> s
+            | None -> "")
       in
       if id = "" || decision = "" || claim = "" then None
       else

@@ -5,9 +5,14 @@ let string_opt v = match v with Jsonl.String s -> Some s | _ -> None
 let array_opt v = match v with Jsonl.Array xs -> Some xs | _ -> None
 let object_pairs v = match v with Jsonl.Object ps -> ps | _ -> []
 
+(* `take_string` accepts Jsonl.String and Jsonl.Int; the YAML loader
+   parses bare digits as Int (see lib/codec.ml:parse_yaml_scalar),
+   so YAML-form fields like `revision: 2` produce Int 2. The strict
+   JSON form parses these as String. Both should resolve to "2". *)
 let take_string pairs key =
   match List.assoc_opt key pairs with
   | Some (Jsonl.String s) -> Some s
+  | Some (Jsonl.Int i) -> Some (string_of_int i)
   | _ -> None
 
 let take_array pairs key =
