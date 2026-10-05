@@ -146,8 +146,8 @@ risk:
       every obligation to receive a `Still_running` verdict
       forever. Mitigation: the `MATH_CODING_BLOCKING_CIS`
       value is logged by the kernel at startup (in a
-      follow-up commit) and the list is emitted in `mc
-      packages` and `mc self-check` output so an operator
+      follow-up commit) and the list is emitted in `mathc
+      packages` and `mathc self-check` output so an operator
       notices the drift.
 
 relations:

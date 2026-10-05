@@ -25,13 +25,13 @@ intent: |
 
 ```yaml
 commitment: |
-  mc packages --format=html собирает HTML-сетку пар
+  mathc packages --format=html собирает HTML-сетку пар
   «решение — обязательство» с вердиктами.
 obligation:
   - id: packages-kernel-walker
     acceptance:
       all:
-        - verifier: mc packages --format=json
+        - verifier: mathc packages --format=json
           result: pass
 ```
 
@@ -50,14 +50,14 @@ obligation:
 
 ## 5. Проверьте шлюз
 
-`mc gate BASE HEAD` запускается против заполненного
+`mathc gate BASE HEAD` запускается против заполненного
 хранилища. Код выхода: `0` для «успех», `1` для «блок»,
 `3` для «неизвестно». Блокирующий шаг в сборочном конвейере —
-`mc self-check`.
+`mathc self-check`.
 
 ## 6. Самопроверка
 
-`mc self-check` запускается против **всего** графа решений.
+`mathc self-check` запускается против **всего** графа решений.
 Код выхода открывает или блокирует слияние в `main`.
 `self-check` возвращает JSON с полями `verdict`,
 `subjects_count`, `pass_count` и `kernel_digest` (SHA-256
@@ -65,15 +65,15 @@ obligation:
 
 ## Развёрнутый пример
 
-Решение о добавлении `mc packages` прошло шесть шагов в
+Решение о добавлении `mathc packages` прошло шесть шагов в
 коммите `5d1046a`:
 
 | Шаг | Коммит | Верификатор |
 |-----|--------|-------------|
-| 1. Сформулировать намерение | `mc-packages-subcommand@1` | блок `intent:` |
+| 1. Сформулировать намерение | `mathc-packages-subcommand@1` | блок `intent:` |
 | 2. Зафиксировать обязательство | тот же | `commitment:` + `obligation:` |
 | 3. Реализовать | `lib/packages.ml`, `bin/Mathc.ml` | `dune build` с кодом выхода 0 |
-| 4. Аттестовать | `attestations/mc-packages-subcommand-*.json` | `mc packages --format=json` |
+| 4. Аттестовать | `attestations/mathc-packages-subcommand-*.json` | `mathc packages --format=json` |
 | 5. Шлюз | `tests/cli/gate-{pass,fail,stale}.t` | cram-фикстуры зелёные |
 | 6. Самопроверка | `tests/cli/self-check-pass.t` | cram-фикстура зелёная |
 

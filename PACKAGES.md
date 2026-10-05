@@ -10,13 +10,13 @@ Last verified at: HEAD `a87d55d` (post-`mathoding→mathcoding` rename and
 this Phase 1 editorial cleanup, 2026-10-05).
 Attestation store at `attestations/` contains **124 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
-on every check); **`mc packages` reports 32 active decisions / 122
+on every check); **`mathc packages` reports 32 active decisions / 122
 obligations (the count rises as new decisions are added; the master
 policy's 7 obligations are enumerated separately)**. The exact numbers
 are emitted by `scripts/dev-counters.py` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
-`mc self-check` on a clean tree currently returns verdict `unknown` with
+`mathc self-check` on a clean tree currently returns verdict `unknown` with
 34 pass / 2 unknown. The 2 unknown subjects are:
 - `portable-linux-musl` (its 7 obligations have no attestations because
   the Alpine CI build never succeeded and the decision is in `state:
@@ -29,7 +29,7 @@ are emitted by `scripts/dev-counters.py` and enforced against
   per `lib/waiver.ml` once it lands; waiver record in
   `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`)
 
-The `mc self-check` pass-fixture at
+The `mathc self-check` pass-fixture at
 `tests/fixtures/self-check-pass/attestations` is regenerated to match
 the current obligation set; the cram snapshot at
 `tests/cli/self-check-pass.t` reflects the actual verdict.
@@ -66,11 +66,11 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/spec-cli-catalog.yaml` | `spec-cli-catalog` | 1 | 2 | RESOLVED | audit D4 |
 | `decisions/adapters.yaml` | `adapters` | 2 | 2 | RESOLVED | audit D7 (git + junit) |
 | `decisions/capsule-active-policy.yaml` | `capsule-active-policy` | 1 | 3 | RESOLVED | capsule priority class |
-| `decisions/gate-decision.yaml` | `gate-decision` | 2 | 2 | RESOLVED | mc gate verdict against populated store |
+| `decisions/gate-decision.yaml` | `gate-decision` | 2 | 2 | RESOLVED | mathc gate verdict against populated store |
 | `decisions/gate-attestation-store-fill-decision.yaml` | `gate-attestation-store-fill` | 1 | 4 | RESOLVED | Tier-1 #1 (closed in `ed42290`) |
 | `decisions/attestation-store-fill.yaml` | `attestation-store-fill` | 2 | 2 | RESOLVED | populates `attestations/` (75 files) |
-| `decisions/mc-explain-subcommand.yaml` | `mc-explain-subcommand` | 1 | 2 | RESOLVED | Tier-A (closed in `6e922d3`) — broken promise from `omitted[].expansion` resolved |
-| `decisions/mc-self-check-subcommand.yaml` | `mc-self-check-subcommand` | 2 | 3 | RESOLVED | Tier-1 #2 (closed in `758f340`) |
+| `decisions/mathc-explain-subcommand.yaml` | `mathc-explain-subcommand` | 1 | 2 | RESOLVED | Tier-A (closed in `6e922d3`) — broken promise from `omitted[].expansion` resolved |
+| `decisions/mathc-self-check-subcommand.yaml` | `mathc-self-check-subcommand` | 2 | 3 | RESOLVED | Tier-1 #2 (closed in `758f340`) |
 | `decisions/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 1 | 2 | RESOLVED | kernel diagnostics |
 | `decisions/time-honesty.yaml` | `time-honesty` | 1 | 3 | RESOLVED | time-honesty distribution |
 | `decisions/time-honesty-storage.yaml` | `time-honesty-storage` | 1 | 4 | RESOLVED | time storage writers |
@@ -83,12 +83,13 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 1 | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
 | `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 1 | 1 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
 | `decisions/site-deploy.yaml` | `site-deploy` | 4 | 11 | RESOLVED | restores the project's published surface under its own gate |
+| `decisions/cli-rename-mc-to-mathc.yaml` | `cli-rename-mc-to-mathc` | 1 | TBD | RESOLVED | collapses mc/mathc/mathc.exe CLI referents into one |
 | `decisions/3-2-cli-catalog.yaml` | `3-2-cli-catalog` | 1 | 7 | RESOLVED | closes 3.2-cli-catalog drift (mode, rebuttals, re-evaluate subcommands added) |
 | `decisions/algebra-3.2.yaml` | `algebra-3.2` | 1 | 7 | RESOLVED | adopts `spec/algebra-3.2.md` as formal normative spec |
 | `decisions/audit-0.0.21-fixes.yaml` | `audit-0.0.21-fixes` | 1 | 9 | RESOLVED | master decision for the integrity-fixes cycle (Phase 1-5) |
 | `decisions/ci-blocking-list-config.yaml` | `ci-blocking-list-config` | 1 | 2 | RESOLVED | configurable blocking-CI list via MATH_CODING_BLOCKING_CIS |
 | `decisions/process-principles-close-branches.yaml` | `process-principles-close-branches` | 1 | 3 | RESOLVED | close-branches subcommand and pre-commit hook (process-principles@2 P2 detail) |
-| `decisions/mc-packages-subcommand.yaml` | `mc-packages-subcommand` | 1 | 3 | RESOLVED | Tier-1 #4 |
+| `decisions/mathc-packages-subcommand.yaml` | `mathc-packages-subcommand` | 1 | 3 | RESOLVED | Tier-1 #4 |
 | `decisions/obligation-count-reconcile.yaml` | `obligation-count-reconcile` | 1 | 2 | RESOLVED | aligns PACKAGES.md counts with `obligations.yaml` |
 | `decisions/spec-prose-corrections-2026-10.yaml` | `spec-prose-corrections-2026-10` | 1 | 3 | RESOLVED | factual corrections to spec/algebra-3.2.md and spec/semantics.md (2026-10-05 audit F7, F11) |
 | `decisions/algebra-3.2-notation-flag-2026-10.yaml` | `algebra-3.2-notation-flag-2026-10` | 1 | 2 | RESOLVED | flags ambiguous `⌈risk(c)⌉` notation in algebra §2 (2026-10-05 audit F9) |
@@ -98,7 +99,7 @@ that authorises all other decisions. Its obligations are tracked in
 
 **Column key.** `Obl` = current obligation count for that decision
 (counted via `python3 -c "import re,glob; ..."` against the
-`obligations:` block of the YAML; equivalent to `mc packages
+`obligations:` block of the YAML; equivalent to `mathc packages
 --format=json` per-decision count, modulo unknown-filtered
 obligations). The earlier `Obs` column showed a pre-3.2 snapshot that
 drifted during the algebra-3.2 migration; the `Obs` label has been
@@ -142,21 +143,21 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `gate-fail.t` | gate returns fail on decisive failed attestation | `decisions/gate-attestation-store-fill.yaml` |
 | `gate-stale.t` | gate returns stale on expired attestation | `decisions/gate-attestation-store-fill.yaml` |
 | `gate-empty.t` | gate with empty store -> unknown verdict | `decisions/gate-attestation-store-fill.yaml` |
-| `mode.t` | mc mode computes risk+mode for paths (v3.2 §2) | `decisions/3-2-cli-catalog.yaml` |
-| `re-evaluate.t` | mc re-evaluate runs §17 oracle | `decisions/3-2-cli-catalog.yaml` |
-| `rebuttals.t` | mc rebuttals walks rebuttals/<sha>.yaml (v3.2 §10) | `decisions/3-2-cli-catalog.yaml` |
+| `mode.t` | mathc mode computes risk+mode for paths (v3.2 §2) | `decisions/3-2-cli-catalog.yaml` |
+| `re-evaluate.t` | mathc re-evaluate runs §17 oracle | `decisions/3-2-cli-catalog.yaml` |
+| `rebuttals.t` | mathc rebuttals walks rebuttals/<sha>.yaml (v3.2 §10) | `decisions/3-2-cli-catalog.yaml` |
 | `migration-3.2-fields.t` | migrated decisions have state=active + sha fields | `decisions/algebra-3.2.yaml` |
-| `schema-extensions-3.2.t` | decisions with 3.2 fields parse via mc validate | `decisions/algebra-3.2.yaml` |
-| `self-check-pass.t` | self-check returns pass on clean HEAD | `decisions/mc-self-check-subcommand.yaml` |
-| `self-check-fail.t` | self-check returns fail on broken invariant | `decisions/mc-self-check-subcommand.yaml` |
-| `self-check-unknown.t` | self-check returns unknown on infrastructure error | `decisions/mc-self-check-subcommand.yaml` |
-| `explain-positive.t` | explain resolves `decision:foo` to body | `decisions/mc-explain-subcommand.yaml` |
-| `explain-negative.t` | explain emits `MC-REF-UNKNOWN` on bad ref | `decisions/mc-explain-subcommand.yaml` |
+| `schema-extensions-3.2.t` | decisions with 3.2 fields parse via mathc validate | `decisions/algebra-3.2.yaml` |
+| `self-check-pass.t` | self-check returns pass on clean HEAD | `decisions/mathc-self-check-subcommand.yaml` |
+| `self-check-fail.t` | self-check returns fail on broken invariant | `decisions/mathc-self-check-subcommand.yaml` |
+| `self-check-unknown.t` | self-check returns unknown on infrastructure error | `decisions/mathc-self-check-subcommand.yaml` |
+| `explain-positive.t` | explain resolves `decision:foo` to body | `decisions/mathc-explain-subcommand.yaml` |
+| `explain-negative.t` | explain emits `MC-REF-UNKNOWN` on bad ref | `decisions/mathc-explain-subcommand.yaml` |
 | `git-adapter.t` | assess runs git diff --name-only | `decisions/adapters.yaml` |
 | `junit-adapter.t` | attest parses JUnit XML | `decisions/adapters.yaml` |
 | `cli-time-estimate.t` | time-estimate 4 documented paths | `decisions/time-honesty.yaml` |
 | `cli-time-storage.t` | session-start / record / stats pipeline | `decisions/time-honesty-storage.yaml` |
-| `packages.t` | packages lists every decision + verdict | `decisions/mc-packages-subcommand.yaml` |
+| `packages.t` | packages lists every decision + verdict | `decisions/mathc-packages-subcommand.yaml` |
 | `render.t` | render produces the full dist/ tree | `decisions/site-deploy.yaml` |
 | `applicability-envelope.t` | applicability decision tree surfaces in docs | `decisions/algebra-3.2.yaml` |
 
@@ -202,7 +203,7 @@ is registered through `git config core.hooksPath`.
 | `gate.ml` | Gate verdict evaluator (reads attestation store); **v3.2: `apply()` for kernel rules + phase-aware gates** | No (read-only FS reads under explicit allow-list) |
 | `attestations.ml` | Attestation store reader + freshness check; **v3.2: substrate fingerprint, env_class lattice, multi-CI aggregation** | No |
 | `self_check.ml` | (n/a — self-check logic lives in `bin/Mathc.ml`; see **v3.2** subcommand table below) | No |
-| `packages.ml` | `mc packages` aggregator (decisions + obligations + verdicts) | No |
+| `packages.ml` | `mathc packages` aggregator (decisions + obligations + verdicts) | No |
 | `render.ml` | Static site generator (HTML + nav + assets) | No (writes `dist/` via caller) |
 | `risk.ml` (v3.2 NEW) | Risk classifier: 12-entry path taxonomy, impact + irreversibility, risk-to-mode threshold | No (alg §2) |
 | `policy.ml` (v3.2 NEW) | Per-path policy lookup, multi-policy composition (union + data-flow transitive) | No (alg §9) |
@@ -216,7 +217,7 @@ is registered through `git config core.hooksPath`.
 | Module | Purpose |
 |---|---|
 | `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, assess, attest, gate, version, session-start, record, stats, time-estimate, self-check, render, packages, mode, rebuttals, re-evaluate) — 17 subcommands total |
-| `data/time-distribution.yaml` | SWE-bench Verified (n=500, 2025-Q4) reference class for `mc time-estimate` |
+| `data/time-distribution.yaml` | SWE-bench Verified (n=500, 2025-Q4) reference class for `mathc time-estimate` |
 
 ## Adapter protocol (`lib/git/`, `lib/junit/`)
 
@@ -261,7 +262,7 @@ This isolates I/O from the pure kernel (see `OCAML_BEST_PRACTICES §10.1`).
 | D2 | YAML front-matter (kernel-side) | **CLOSED** at v0.0.19 (`79d138b`) |
 | D4 | SHA-256 RFC vectors (kernel-side) | **CLOSED** at v0.0.19 (`d77624b`) |
 | D6 | bootstrap-v3 manual-only verifiers | **CLOSED** at v0.0.20 (this release): each obligation now has a machine-checked verifier reachable from CI |
-| D8 | `mc validate` coarse diagnostics | OPEN; tracked for 3.0-beta |
+| D8 | `mathc validate` coarse diagnostics | OPEN; tracked for 3.0-beta |
 | D10 | stale-worktree accumulation | CLOSED at v0.0.20 (`scripts/dev close-branches`) |
 
 ## How to use this file
@@ -288,7 +289,7 @@ The site at `site/` is the project's published surface. The site
 feature of the kernel is itself produced by an OCaml kernel
 function, every link between pages is the same lifecycle on
 artifacts, and the build pipeline is `scripts/render.sh` +
-`scripts/dev render` (which calls `mc render`).
+`scripts/dev render` (which calls `mathc render`).
 
 | Source | Output | Notes |
 |---|---|---|
@@ -296,7 +297,7 @@ artifacts, and the build pipeline is `scripts/render.sh` +
 | `site/axioms.md` | `dist/axioms.html` | A0–A4 with formal statements |
 | `site/methodology.md` | `dist/methodology.html` | mathcoding (the methodology) explained |
 | `site/bootstrap-gate.md` | `dist/bootstrap-gate.html` | the bootstrap-expiry story |
-| `site/packages.md` | `dist/packages.html` | mirror of `mc packages --format=html` |
+| `site/packages.md` | `dist/packages.html` | mirror of `mathc packages --format=html` |
 | `site/decisions/` | `dist/decisions/*.html` | one page per `decisions/*.yaml` |
 | `site/axioms/*.md` | `dist/axioms/*.html` | one page per axiom |
 | `assets/style.css` | `dist/assets/style.css` | shared stylesheet |

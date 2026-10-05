@@ -1,28 +1,28 @@
 ---
 schema: math-coding/3.0-alpha
-id: mc-self-check-subcommand
-revision: 2
+id: mathc-self-check-subcommand
+revision: 3
 
 state: active
 body_sha: ""
 yaml_sha: ""
 intent: |
-  Close ROADMAP Tier-1 #2 (`mc self-check`) and thereby the
+  Close ROADMAP Tier-1 #2 (`mathc self-check`) and thereby the
   AGENTS.md bootstrap-gate expiry condition verbatim: the
   released 3.0 kernel successfully checks this repository and
-  its conformance corpus. `mc self-check` is the named mechanism;
+  its conformance corpus. `mathc self-check` is the named mechanism;
   until it ships, every assessment is a manual declaration,
   not an automated guarantee (AGENTS.md §Bootstrap gate).
 
 commitment: |
-  Add a normative row for `mc self-check` in `spec/semantics.md`
+  Add a normative row for `mathc self-check` in `spec/semantics.md`
   §"CLI subcommands" so the catalog is complete and the
   constitution-level unrecorded gap (semantics.md:152-155) is
   closed on the spec side. The dispatcher ships in a follow-up
-  revision of this decision (rev 2), gated by `mc self-check`
+  revision of this decision (rev 2), gated by `mathc self-check`
   passing locally against this repository and its conformance
   corpus. Until `gate-attestation-store-fill` (ROADMAP Tier-1
-  #1) lands, `mc self-check` cannot move past `unknown` and
+  #1) lands, `mathc self-check` cannot move past `unknown` and
   this decision's exit code is reserved accordingly.
 
   Revision 2 implements the dispatcher in `bin/Mathc.ml`. The
@@ -62,7 +62,7 @@ outcomes:
       store entry exists; the `gate-attestation-store-fill`
       obligation of `decisions/gate-decision.yaml` is closed.
   - id: dispatcher-shipped
-    statement: bin/Mathc.ml dispatches `mc self-check` and the
+    statement: bin/Mathc.ml dispatches `mathc self-check` and the
       kernel returns `pass` against this repository and its
       conformance corpus, with exit code 0.
 
@@ -71,13 +71,13 @@ assumptions:
     state: assumed
     statement: |
       `gate-attestation-store-fill` (ROADMAP Tier-1 #1) precedes
-      `mc self-check` implementation. The dependency is recorded
+      `mathc self-check` implementation. The dependency is recorded
       in ROADMAP.md and is structural: without the store, every
       gate verdict is `NoAttestationStore` and self-check
       cannot move past `unknown`, which `constitution.md:59`
       forbids conflating with `pass`.
     owner: human:maintainer
-    consequence_if_false: `mc self-check` would return `unknown`
+    consequence_if_false: `mathc self-check` would return `unknown`
       for every obligation and would fail the bootstrap expiry
       condition.
     review_on:
@@ -88,7 +88,7 @@ assumptions:
       The M3 verdict (`pass`) is the AGENTS.md bootstrap-gate
       expiry clause quoted verbatim — including the words
       `released` and `and its conformance corpus`. A
-      `mc self-check` that only checks the repository and not
+      `mathc self-check` that only checks the repository and not
       the corpus does not expire the bootstrap.
     owner: human:maintainer
     consequence_if_false: a partial check would let an
@@ -97,7 +97,7 @@ assumptions:
       - signal: kernel-released
 
 obligations:
-  - id: mc-self-check-spec-promoted
+  - id: mathc-self-check-spec-promoted
     outcome: spec-row-promoted
     claim: |
       spec/semantics.md §"CLI subcommands" contains a row
@@ -110,7 +110,7 @@ obligations:
           result: pass
         - verifier: text-scan-spec-semantics-has-self-check-row
           result: pass
-  - id: mc-self-check-store-precedes
+  - id: mathc-self-check-store-precedes
     outcome: gate-attestation-store-filled
     claim: |
       The attestation store is filled so that lib/gate.ml
@@ -123,10 +123,10 @@ obligations:
       all:
         - verifier: gate-shape-fixture
           result: pending
-  - id: mc-self-check-dispatcher-shipped
+  - id: mathc-self-check-dispatcher-shipped
     outcome: dispatcher-shipped
     claim: |
-      bin/Mathc.ml dispatches `mc self-check`. The kernel
+      bin/Mathc.ml dispatches `mathc self-check`. The kernel
       returns `pass` against this repository and its
       conformance corpus with exit 0; against a deliberately
       broken fixture the kernel returns `fail` with exit 1;

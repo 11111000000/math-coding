@@ -8,7 +8,7 @@ body_sha: ""
 yaml_sha: ""
 intent: |
   Close the deferred obligation `deferred-cli-context` from
-  validate-and-context@1 by adding `mc context BASE HEAD --budget N`
+  validate-and-context@1 by adding `mathc context BASE HEAD --budget N`
   to bin/Mathc.ml. The new subcommand emits a JSON capsule of
   project memory (active decisions, obligations, changed paths,
   recent commits, spec/axiom/practices docs) tagged with priority
@@ -20,14 +20,14 @@ intent: |
   force.
 
 commitment: |
-  bin/Mathc.ml gains a `context` subcommand. `mc context BASE HEAD
+  bin/Mathc.ml gains a `context` subcommand. `mathc context BASE HEAD
   --budget N` exits 0 and prints a JSON object containing at
   minimum the keys "change", "decisions", "obligations", "items",
   "omitted", "total_bytes", "truncated", "now", "base", and "head".
   BASE and HEAD may be any git ref (commit, branch, tag). Items
   are sorted by priority (RequiredForGate > Changed > HighRisk >
   Unresolved > Supporting > Historical) and truncated to fit
-  `budget` bytes; omitted items are listed with a `mc explain ...`
+  `budget` bytes; omitted items are listed with a `mathc explain ...`
   expansion command. The kernel stays offline: lib/capsule.ml and
   lib/memory.ml are pure modules with file I/O injected via
   callbacks; bin/ is the only I/O boundary.
@@ -61,13 +61,13 @@ scope:
 outcomes:
   - id: cli-validate-parses-decision
     statement: |
-      `mc validate FILE` reads FILE (json or yaml), parses via
+      `mathc validate FILE` reads FILE (json or yaml), parses via
       Decision.parse_decision, and reports accept or reject with
       structured diagnostics. Exit codes 0/1/2/3 align with
       spec/semantics.md "exit honesty" and OCAML_BEST_PRACTICES §4.3.
   - id: cli-version-still-works
     statement: |
-      `mc version` prints "math-coding 3.0-alpha: bootstrap" and
+      `mathc version` prints "math-coding 3.0-alpha: bootstrap" and
       exits 0. This preserves the v0.0.5 hello-string behavior; it
       is no longer the bare default but is reachable as a subcommand.
   - id: kernel-stays-offline
@@ -90,7 +90,7 @@ outcomes:
       because it only inspects Some _ / None).
   - id: cli-context-capsule
     statement: |
-      `mc context BASE HEAD --budget N` exits 0 with a JSON capsule
+      `mathc context BASE HEAD --budget N` exits 0 with a JSON capsule
       containing the keys "change", "decisions", "obligations",
       "items", "omitted", "total_bytes", "truncated", "now",
       "base", and "head". Items are sorted and truncated by
@@ -200,7 +200,7 @@ obligations:
   - id: cli-validate-decision
     outcome: cli-validate-parses-decision
     claim: |
-      `mc validate FILE` exits 0 with an "accept" verdict on stdout
+      `mathc validate FILE` exits 0 with an "accept" verdict on stdout
       when Decision.parse_decision returns Some _, and exits 1 with
       a structured diagnostic (code MC-DECISION-INVALID or
       MC-DECISION-PARSE-ERROR, severity warn/block) when it returns
@@ -218,7 +218,7 @@ obligations:
   - id: cli-version-preserved
     outcome: cli-version-still-works
     claim: |
-      `mc version` prints "math-coding 3.0-alpha: bootstrap" and
+      `mathc version` prints "math-coding 3.0-alpha: bootstrap" and
       exits 0. The hello-string from v0.0.5 is preserved verbatim.
     acceptance:
       all:
@@ -249,7 +249,7 @@ obligations:
   - id: cli-context-capsule
     outcome: cli-context-capsule
     claim: |
-      `mc context BASE HEAD --budget N` exits 0 with a JSON capsule
+      `mathc context BASE HEAD --budget N` exits 0 with a JSON capsule
       containing at minimum the keys "change", "decisions",
       "obligations", "items", "omitted", "total_bytes", "truncated",
       "now", "base", and "head". BASE and HEAD may be any git ref
@@ -257,7 +257,7 @@ obligations:
       priority order in spec/semantics.md "context-prioritisation".
       Each item carries a "priority" tag and an optional "freshness"
       timestamp. Omitted items appear in the "omitted" array with an
-      "expansion" command of the form "mc explain <detail_ref>".
+      "expansion" command of the form "mathc explain <detail_ref>".
       The capsule prints to stdout, exits 2 on input errors (missing
       BASE, missing HEAD, bad --budget value).
     acceptance:

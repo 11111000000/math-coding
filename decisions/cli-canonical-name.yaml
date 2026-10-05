@@ -1,0 +1,238 @@
+---
+schema: math-coding/3.0-alpha
+id: cli-canonical-name
+revision: 1
+
+state: active
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Collapse the project's three CLI referents (the legacy short
+  alias `mc`, the public install name `mathc`, and the dune on-disk
+  artifact `mathc.exe`) and the separate kernel-verifier namespace
+  prefix `mc-*` into a single canonical name `mathc` (binary
+  invocation) and `mathc-` (built-in verifier prefix). Removes:
+
+  - adoption/SKILL.md:57 referencing a non-existent
+    `mc-linux-amd64` release asset (real assets are
+    `mathc-linux-*` per release.yml);
+  - the CLI-collision with Midnight Commander on Debian/Ubuntu/
+    Fedora/Arch (no consumer of `~/.local/bin/mathc` survives the
+    rename because the SKILL points at `mathc-linux-amd64` and
+    saves it as `mathc`, not `mathc`);
+
+  and eliminates the cognitive load of three names for one binary.
+
+commitment: |
+  Every `mathc` string that names the CLI invocation, every `mathc-`
+  prefix that names a built-in verifier, every `mathc-*` decision
+  ID, every `mathc-*` CSS class / HTML data-attribute, and the
+  matching kernel literal in lib/re_evaluation.ml, are renamed to
+  the `mathc` / `mathc-` form. No shim, no deprecation window, no
+  dual-prefix support in the kernel. The on-disk dune build
+  artifact `bin/mathc.exe` and the public_name `mathc` are
+  unchanged. Diagnostic error codes prefixed `MC-` (e.g.,
+  `MC-REF-UNKNOWN`, `MC-INPUT`, `MC-AMBIGUOUS-ACCEPTANCE`) are
+  OUT OF SCOPE — they form a separate public API namespace
+  emitted in JSON; renaming is a semantic break for external
+  parsers and is tracked as a follow-up decision if requested.
+
+scope:
+  paths:
+    - "bin/**"
+    - "lib/re_evaluation.ml"
+    - "lib/capsule.ml"
+    - "lib/packages.ml"
+    - "lib/render.ml"
+    - "decisions/**"
+    - "tests/**"
+    - ".github/workflows/**"
+    - "scripts/**"
+    - "assets/**"
+    - "adoption/SKILL.md"
+    - "site/**"
+    - "spec/**"
+    - "USAGE.md"
+    - "README.md"
+    - "ROADMAP.md"
+    - "CHANGELOG.md"
+    - "OCAML_BEST_PRACTICES.md"
+
+outcomes:
+  - id: single-cli-name
+    statement: |
+      A single CLI name `mathc` is the only CLI invocation used in
+      docs, code help-strings, cram tests, CI workflow steps, and
+      shell fixtures. `git grep -E '\bmc\b'` against tracked files
+      outside `MC-*` error-code identifiers returns 0 matches.
+  - id: kernel-prefix-is-mathc
+    statement: |
+      lib/re_evaluation.ml:103 matches the literal string `mathc-`
+      (not `mathc-`) when classifying a `verifier:` field as BuiltIn.
+      Every `verifier: mathc-*` reference in `decisions/*.yaml` is
+      renamed to `verifier: mathc-*`.
+  - id: decision-ids-renamed
+    statement: |
+      Decision files whose `id:` starts with `mathc-` are renamed to
+      `mathc-`. The on-disk filename matches the new `id:`. Internal
+      `addresses:` / `supersedes:` references are updated atomically.
+      Each renamed decision is bumped to a new revision.
+  - id: site-classes-renamed
+    statement: |
+      CSS class selectors and HTML `data-mathc-*` attributes in
+      `lib/packages.ml`, `lib/render.ml`, and `assets/style.css`
+      are renamed to `mathc-*` / `data-mathc-*`. The rendered
+      site's table/grid styling and verdict-badge colors are
+      unchanged at the visual level.
+  - id: skill-url-correct
+    statement: |
+      adoption/SKILL.md:55-60 downloads from
+      `${URL}/mathc-linux-amd64` (matching release.yml:22) and
+      saves it as `~/.local/bin/mathc`. The previous `mathc-linux-amd64`
+      URL (404) is closed.
+
+assumptions:
+  - id: no-active-external-clients
+    state: assumed
+    statement: |
+      At v3.0.0.20 the project has no external consumers of `mathc`
+      other than its own adoption SKILL, which already references a
+      non-existent asset. `git grep -E '\bmc\b'` is the scope.
+    owner: human:maintainer
+    consequence_if_false: external scripts invoking `mathc validate`
+      or `mathc gate` fail post-rename; mitigation is out of scope
+      (consumers must update their scripts to `mathc`).
+    review_on:
+      - signal: kernel-released-as-3.0.0.21
+  - id: ci-no-shadowing
+    state: assumed
+    statement: |
+      GitHub-hosted runners (ubuntu-latest, ubuntu-24.04-arm,
+      macos-15-intel, macos-latest, windows-latest) do not have
+      `mathc` (Midnight Commander) at a path that would shadow the
+      new `mathc` binary once CI files invoke `mathc`. Pre-rename
+      CI steps are unaffected by the rename because they already
+      invoke `mathc` (the `mathc` form does not exist in CI yml).
+    owner: human:maintainer
+    consequence_if_false: a CI step that invoked `mathc` could
+      hit Midnight Commander on a runner that has it preinstalled
+      in a higher-priority PATH entry. Mitigation: rename the
+      GitHub Action install step to place `mathc` at `/usr/local/bin`,
+      which precedes `/usr/bin` on the runner images.
+    review_on:
+      - signal: ci-matrix-passing-post-rename
+  - id: diagnostic-codes-out-of-scope
+    state: assumed
+    statement: |
+      Diagnostic error codes in the `MC-*` family
+      (`MC-REF-UNKNOWN`, `MC-INPUT`, `MC-DECISION-INVALID`,
+      `MC-AMBIGUOUS-ACCEPTANCE`, `MC-MALFORMED-ACCEPTANCE`,
+      `MC-CLASS-UNKNOWN`, `MC-SESSION-MISSING`, `MC-PARSE`,
+      `MC-UNKNOWN`) are stable public identifiers emitted in JSON
+      output and are out of scope for this rename.
+    owner: human:maintainer
+    consequence_if_false: external tools grep for `MC-` codes and
+      would break silently. The user has been asked separately and
+      has not authorised renaming the `MC-*` family.
+    review_on:
+      - signal: diagnostic-codes-rename-decision-landed
+
+obligations:
+  - id: kernel-prefix-matches-mathc
+    outcome: kernel-prefix-is-mathc
+    claim: |
+      lib/re_evaluation.ml matches the literal string `mathc-`
+      (not `mathc-`) when classifying a `verifier:` field as BuiltIn.
+      Negative conformance: a decision with `verifier: mathc-foo`
+      is now rejected (no BuiltIn classification); positive: a
+      decision with `verifier: mathc-validate` is accepted as
+      BuiltIn.
+    acceptance:
+      all:
+        - verifier: text-scan-lib-re-evaluation-has-mathc-prefix
+          result: pass
+        - verifier: text-scan-lib-re-evaluation-no-mathc-prefix
+          result: pass
+        - verifier: mathc-validate-passes-on-decisions
+          result: pass
+  - id: docs-no-mathc-cli
+    outcome: single-cli-name
+    claim: |
+      `git grep -E '\bmc\b'` over tracked files in scope returns
+      0 results outside the `MC-*` diagnostic-code family.
+    acceptance:
+      all:
+        - verifier: text-scan-tracked-no-mathc-cli
+          result: pass
+  - id: decisions-renamed
+    outcome: decision-ids-renamed
+    claim: |
+      No `decisions/*.yaml` file contains the substring `mathc-` as
+      a verifier prefix or as part of its `id:` field. The renames
+      are atomic: file path, `id:`, and any internal `addresses:`
+      / `supersedes:` references are updated together. Each renamed
+      decision's revision is bumped by 1.
+    acceptance:
+      all:
+        - verifier: text-scan-decisions-no-mathc-id
+          result: pass
+        - verifier: text-scan-decisions-no-mathc-verifier
+          result: pass
+        - verifier: mathc-validate-passes-all-decisions
+          result: pass
+  - id: site-classes-renamed
+    outcome: site-classes-renamed
+    claim: |
+      `assets/style.css` and the rendered HTML class names /
+      data-attributes use the `mathc-*` prefix. Visual styling is
+      preserved (the renames are 1-to-1 on selectors).
+    acceptance:
+      all:
+        - verifier: text-scan-assets-style-css-no-mathc
+          result: pass
+        - verifier: text-scan-lib-render-no-mathc-class
+          result: pass
+        - verifier: text-scan-lib-packages-no-mathc-class
+          result: pass
+        - verifier: mathc-render-produces-styled-output
+          result: pass
+  - id: skill-url-points-at-real-asset
+    outcome: skill-url-correct
+    claim: |
+      adoption/SKILL.md:55-60 references the published asset
+      `mathc-linux-amd64` (matching release.yml:22) and saves it
+      as `~/.local/bin/mathc`.
+    acceptance:
+      all:
+        - verifier: text-scan-skill-url-matches-release-asset
+          result: pass
+
+reversal:
+  - signal: rename-breaks-self-check
+    action: |
+      `git revert HEAD` — single-commit revert; no shim was added
+      and no dual-naming is in place, so the pre-rename tree is
+      reachable via a single revert commit. Recovery does not
+      require a migration window.
+
+risk:
+  declared_triggers:
+    - external-fork-with-mathc-references
+    - midnight-commander-shadowing-on-ci-runner
+    - missed-occurrence-in-generated-doc
+    - human-reader-confusion-over-diagnostic-codes-still-mathc
+
+changed_verdicts:
+  - from: mathc-self-check-subcommand@2
+    to: mathc-self-check-subcommand@3
+    effect: content unchanged semantically; `mathc self-check` → `mathc self-check` in help-string and references
+  - from: mathc-explain-subcommand@1
+    to: mathc-explain-subcommand@2
+    effect: same
+  - from: mathc-packages-subcommand@1
+    to: mathc-packages-subcommand@2
+    effect: same
+
+relations:
+  addresses:
+    - bootstrap-v3@2

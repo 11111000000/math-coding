@@ -1,12 +1,12 @@
-mc explain exits 2 and emits a typed JSON diagnostic on stderr
+mathc explain exits 2 and emits a typed JSON diagnostic on stderr
 when the kind is unrecognised. Per spec/semantics.md
 "explain DETAIL_REF": on an unresolvable ref a typed diagnostic
 is emitted on stderr with `code`
 (MC-REF-UNKNOWN | MC-REF-AMBIGUOUS | MC-REF-INVALID). Cram
 captures stderr to the expected output and the `[2]` line
 asserts the exit code. Acceptance gate for obligation
-mc-explain-dispatcher-shipped in
-decisions/mc-explain-subcommand.yaml.
+mathc-explain-dispatcher-shipped in
+decisions/mathc-explain-subcommand.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
   $ mathc explain nonexistent:foo

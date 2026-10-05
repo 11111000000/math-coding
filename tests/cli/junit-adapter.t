@@ -1,4 +1,4 @@
-mc attest FILE parses a JUnit XML report and emits a JSON summary
+mathc attest FILE parses a JUnit XML report and emits a JSON summary
 on stdout containing the keys "suite_name", "test_count",
 "failure_count", "skip_count", and "tests" (with at least one
 pass and one failure so an empty parser is rejected). Acceptance

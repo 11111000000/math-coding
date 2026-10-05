@@ -6,21 +6,21 @@
 > Status: post-bootstrap-audit. The bootstrap protocol expires at
 > commit `8fa7fcf` (v3.0.0.19); this release is the first
 > release-time audit run under the **expired** bootstrap regime.
-> All work below is bootstrapped by `mc self-check` (now a
+> All work below is bootstrapped by `mathc self-check` (now a
 > blocking CI step per `constitution.md` Invariant 14) and
 > the populated store at `attestations/`.
 
 This release closes **D6** (bootstrap-v3 manual-only verifiers),
 introduces **D10** (stale-worktree accumulation, closed), and
-adds the site + `mc packages` + `mc render` capabilities.
+adds the site + `mathc packages` + `mathc render` capabilities.
 
 ## Summary of the release
 
 | What | Where | Closes |
 |------|-------|--------|
-| Site generator (`mc render`) + 12 articles under `site/` | `lib/render.ml`, `bin/Mathc.ml` (`render` subcommand), `scripts/render.sh` | `decisions/site-deploy.yaml` |
+| Site generator (`mathc render`) + 12 articles under `site/` | `lib/render.ml`, `bin/Mathc.ml` (`render` subcommand), `scripts/render.sh` | `decisions/site-deploy.yaml` |
 | Site workflow (`.github/workflows/site.yml`) | `.github/workflows/site.yml` | `decisions/site-deploy.yaml` |
-| `mc packages` subcommand | `lib/packages.ml`, `bin/Mathc.ml` | `decisions/mc-packages-subcommand.yaml` |
+| `mathc packages` subcommand | `lib/packages.ml`, `bin/Mathc.ml` | `decisions/mathc-packages-subcommand.yaml` |
 | `scripts/dev close-branches` | `scripts/dev` | `decisions/process-principles.yaml` (D10 closed) |
 | Decision-fixture co-commit pre-commit hook | `.githooks/pre-commit`, `flake.nix` | `decisions/process-principles.yaml` (P2 machine-checked) |
 | Editorial sync | `AGENTS.md`, `ROADMAP.md`, `PACKAGES.md` | marks bootstrap as expired |
@@ -40,18 +40,18 @@ v3.0.0.20        post-bootstrap: site, packages, render, D6 closed
 Per `AGENTS.md §Bootstrap gate`, the bootstrap protocol expired at
 commit `8fa7fcf`. Concretely:
 
-- `mc self-check` is a blocking CI step. A clean `main` HEAD
+- `mathc self-check` is a blocking CI step. A clean `main` HEAD
   yields verdict `pass` (exit 0) with `subjects_count=28`,
   `pass_count=28`. PRs that yield `fail` (exit 1) or `unknown`
-  (exit 3) on the `mc self-check` step block the merge.
+  (exit 3) on the `mathc self-check` step block the merge.
 - The attestation store at `attestations/` contains 94 files:
   one per decision-obligation pair enumerated by
   `scripts/generate-attestations.py`.
-- `mc gate BASE HEAD` now reports verdicts against the store;
+- `mathc gate BASE HEAD` now reports verdicts against the store;
   `gate-pass.t`, `gate-fail.t`, `gate-stale.t` are green.
 
 From this release forward, **assessment verdicts produced by
-`mc gate`, `mc self-check`, and `mc assess` are automated
+`mathc gate`, `mathc self-check`, and `mathc assess` are automated
 guarantees, not manual declarations**. The eight manual
 bootstrap checks in `AGENTS.md §Bootstrap gate` remain as
 *additive* obligations on protected policy transitions (see
@@ -61,14 +61,14 @@ bootstrap checks in `AGENTS.md §Bootstrap gate` remain as
 
 | Source | Where | Type |
 |--------|-------|------|
-| `mc self-check` on clean HEAD | CI run for `8fa7fcf` | observed |
+| `mathc self-check` on clean HEAD | CI run for `8fa7fcf` | observed |
 | `scripts/dev verify` | CI run for `8fa7fcf` | observed |
 | 28/94 attestations resolve to current (post-3.1.0-alpha batch) | `scripts/generate-attestations.py` | derived |
 | 19 stale branches removed | `git for-each-ref` | observed |
 
 ## Outstanding
 
-- **D8** (`mc validate` coarse diagnostics) — open; tracked for
+- **D8** (`mathc validate` coarse diagnostics) — open; tracked for
   3.0-beta.
 - **Tier 3** (phantom types, schema validation, multi-policy
   hierarchy) — open for v3.1.

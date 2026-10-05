@@ -171,7 +171,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 
 ### `version`
 
-- **Synopsis**: `mc version`
+- **Synopsis**: `mathc version`
 - **Input**: none.
 - **Output**: text. Prints `math-coding 3.0-alpha: bootstrap`
   and a trailing newline.
@@ -183,7 +183,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 
 ### `validate FILE [--format=text|json]`
 
-- **Synopsis**: `mc validate FILE [--format=text|json]`
+- **Synopsis**: `mathc validate FILE [--format=text|json]`
 - **Input**: `FILE` is the path to a Decision in `.json`,
   `.yaml`, or `.yml`. `--format` selects the output renderer;
   default `text`.
@@ -207,7 +207,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 
 ### `context BASE HEAD --budget N`
 
-- **Synopsis**: `mc context BASE HEAD --budget N`
+- **Synopsis**: `mathc context BASE HEAD --budget N`
 - **Input**: `BASE` and `HEAD` are positional git refs (commit,
   branch, tag); `--budget N` is the maximum byte budget for the
   capsule (default 8192). `BASE..HEAD` selects the candidate
@@ -220,7 +220,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   next section. Each item carries `detail_ref`, `summary`,
   `priority` (one of the six priority names), and optional
   `freshness` (ISO 8601 UTC). Omitted items appear in `omitted[]`
-  with an `expansion` command of the form `mc explain <detail_ref>`.
+  with an `expansion` command of the form `mathc explain <detail_ref>`.
   `truncated` is `true` iff `omitted` is non-empty.
 - **Exit code**: `0` always on a successful git invocation;
   `2` on input error (missing positional, bad `--budget`,
@@ -231,11 +231,11 @@ existence. Output JSON objects use sorted keys for reproducibility.
 
 ### `explain DETAIL_REF`
 
-- **Synopsis**: `mc explain DETAIL_REF`
+- **Synopsis**: `mathc explain DETAIL_REF`
 - **Input**: `DETAIL_REF` is a colon-separated reference of the
   form `kind:id` (e.g. `decision:bootstrap-v3`,
   `obligation:conformance-coverage`, `axiom:A1`). The format
-  matches the `expansion` strings that `mc context` emits in
+  matches the `expansion` strings that `mathc context` emits in
   its `omitted[]` array.
 - **Output**: a single JSON object on stdout containing at
   least `kind`, `id`, `digest`, `path`, and `body` (the
@@ -245,12 +245,12 @@ existence. Output JSON objects use sorted keys for reproducibility.
   (`MC-REF-UNKNOWN` | `MC-REF-AMBIGUOUS` | `MC-REF-INVALID`).
 - **Exit code**: `0` on a resolved ref; `2` on input error or
   unresolvable ref.
-- **Justification**: `decisions/mc-explain-subcommand.yaml`
-  obligation `mc-explain-spec-promoted`.
+- **Justification**: `decisions/mathc-explain-subcommand.yaml`
+  obligation `mathc-explain-spec-promoted`.
 
 ### `assess BASE HEAD`
 
-- **Synopsis**: `mc assess BASE HEAD`
+- **Synopsis**: `mathc assess BASE HEAD`
 - **Input**: `BASE` and `HEAD` are positional git refs
   (commit, branch, tag).
 - **Output**: a JSON array on stdout listing the file paths
@@ -264,7 +264,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 
 ### `attest FILE`
 
-- **Synopsis**: `mc attest FILE`
+- **Synopsis**: `mathc attest FILE`
 - **Input**: `FILE` is the path to a JUnit-format XML report.
 - **Output**: a single JSON object on stdout summarising the
   JUnit report. Soft parse errors (malformed XML inside an
@@ -282,7 +282,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 
 ### `gate BASE HEAD`
 
-- **Synopsis**: `mc gate BASE HEAD`
+- **Synopsis**: `mathc gate BASE HEAD`
 - **Input**: `BASE` and `HEAD` are positional git refs
   (commit, branch, tag).
 - **Output**: a single JSON object on stdout with the keys
@@ -297,7 +297,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
   `unknown` (informational, not blocking). Full blocking
   arrives with the attestation store.
 - **Exit code**: `0` always today (the gate verdict is
-  informational in the scaffold; `mc gate` does not yet block
+  informational in the scaffold; `mathc gate` does not yet block
   merges). The disposition-vs-exit-code mapping documented
   above (1 = block) is forward-looking; today the JSON
   verdict carries the disposition and the exit code is 0.
@@ -306,7 +306,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 
 ### `session-start`
 
-- **Synopsis**: `mc session-start`
+- **Synopsis**: `mathc session-start`
 - **Input**: none.
 - **Output**: text. The current UTC instant as an ISO 8601
   timestamp (`YYYY-MM-DDThh:mm:ssZ`) is written to
@@ -322,7 +322,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 ### `record --decision-id ID [--revision REV] --scale S [--class C] [--value N]`
 
 - **Synopsis**:
-  `mc record --decision-id ID [--revision REV] --scale S [--class C] [--value N]`
+  `mathc record --decision-id ID [--revision REV] --scale S [--class C] [--value N]`
 - **Input**:
   - `--decision-id ID` — the Decision identifier this event
     attaches to. Required.
@@ -350,7 +350,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 
 ### `stats [--scale S] [--class C] [--since ISO]`
 
-- **Synopsis**: `mc stats [--scale S] [--class C] [--since ISO]`
+- **Synopsis**: `mathc stats [--scale S] [--class C] [--since ISO]`
 - **Input**: optional filters:
   - `--scale S` — restrict to one scale
     (`wall-clock-minutes` or `step-count`).
@@ -375,7 +375,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 ### `time-estimate --class C [--count N] [--percentile p50|p80|p95|p99] [--multiplier NAME]...`
 
 - **Synopsis**:
-  `mc time-estimate --class C [--count N] [--percentile P] [--multiplier NAME]...`
+  `mathc time-estimate --class C [--count N] [--percentile P] [--multiplier NAME]...`
 - **Input**:
   - `--class C` — the task class name from
     `bin/data/time-distribution.yaml`. Required.
@@ -407,7 +407,7 @@ existence. Output JSON objects use sorted keys for reproducibility.
 
 ### `self-check`
 
-- **Synopsis**: `mc self-check`
+- **Synopsis**: `mathc self-check`
 - **Input**: none.
 - **Output**: a single JSON object on stdout with at least
   `verdict` (`pass` | `fail` | `unknown`), `subjects[]`
@@ -425,13 +425,13 @@ existence. Output JSON objects use sorted keys for reproducibility.
   `3 = internal error (uncaught exception)` — the
   infrastructure-error case maps to `3` because `unknown`
 is a kernel verdict, not a CLI invocation fault).
- - **Justification**: `decisions/mc-self-check-subcommand.yaml`
-   obligation `mc-self-check-spec-promoted`; closes ROADMAP
+ - **Justification**: `decisions/mathc-self-check-subcommand.yaml`
+   obligation `mathc-self-check-spec-promoted`; closes ROADMAP
    Tier-1 #2.
 
 ### `packages [--format=text|json|html]`
 
-- **Synopsis**: `mc packages [--format=text|json|html]`
+- **Synopsis**: `mathc packages [--format=text|json|html]`
 - **Input**: none. Reads `decisions/`, `attestations/`, and
   `bin/data/time-distribution.yaml` (the last only for the
   per-class sample-size column).
@@ -450,19 +450,19 @@ is a kernel verdict, not a CLI invocation fault).
     `obligations[].remedies[]`), `policy_id`, `source`
     (always `decisions/`).
   - html: a self-contained HTML fragment (no `<html>`/`<head>`
-    wrapper) carrying `data-mc-package-count` matching the
+    wrapper) carrying `data-mathc-package-count` matching the
     JSON `counts.total`. The site at `site/index.md` renders
     this fragment inside its grid; `lib/render.ml` does not
     walk decisions independently.
 - **Exit code**: `0` on a successful walk; `2` on a parse
   error in any `decisions/*.yaml|md` (the diagnostic is emitted
   on stderr with `path`, `code`, `message`).
-- **Justification**: `decisions/mc-packages-subcommand.yaml`
+- **Justification**: `decisions/mathc-packages-subcommand.yaml`
   obligation `packages-cli-dispatcher`.
 
 ### `render [--out DIR]`
 
-- **Synopsis**: `mc render [--out DIR]`
+- **Synopsis**: `mathc render [--out DIR]`
 - **Input**: optional `--out DIR`; the output directory for
   the static site. Default `dist/`.
 - **Output**: text on stdout announcing each page as it is
@@ -483,7 +483,7 @@ is a kernel verdict, not a CLI invocation fault).
 
 ### `mode [PATH ...] [--format=json|text]`
 
-- **Synopsis**: `mc mode PATH1 PATH2 ... [--format=json|text]`
+- **Synopsis**: `mathc mode PATH1 PATH2 ... [--format=json|text]`
 - **Input**: one or more file paths. `--format` selects the
   output renderer; default `json`. At least one PATH is
   required; the empty path list is an input error.
@@ -507,7 +507,7 @@ is a kernel verdict, not a CLI invocation fault).
 
 ### `rebuttals COMMIT_SHA`
 
-- **Synopsis**: `mc rebuttals COMMIT_SHA`
+- **Synopsis**: `mathc rebuttals COMMIT_SHA`
 - **Input**: `COMMIT_SHA` is a 7+ character git commit
   prefix. The command walks
   `rebuttals/<sha>.yaml` (sibling YAML artefact) and the
@@ -531,7 +531,7 @@ is a kernel verdict, not a CLI invocation fault).
 
 ### `re-evaluate DECISION_ID AXIOM_ID`
 
-- **Synopsis**: `mc re-evaluate DECISION_ID AXIOM_ID`
+- **Synopsis**: `mathc re-evaluate DECISION_ID AXIOM_ID`
 - **Input**: `DECISION_ID` is the id of an existing
   decision under `decisions/*.yaml` (e.g. `bootstrap-v3`,
   `algebra-3.2`). `AXIOM_ID` is one of `A0`, `A1`, `A2`,
@@ -554,7 +554,7 @@ is a kernel verdict, not a CLI invocation fault).
 
 ## Context-prioritisation
 
-The `mc context BASE HEAD --budget N` command produces a JSON
+The `mathc context BASE HEAD --budget N` command produces a JSON
 capsule of artefacts relevant to evaluating a change. Items in the
 capsule are sorted and truncated by the following priority order.
 The order is normative; an agent MUST NOT silently reorder or
@@ -575,7 +575,7 @@ RequiredForGate > Changed > HighRisk > Unresolved > Supporting > Historical
 
 When the budget is exhausted, items are dropped in reverse priority
 order. The dropped items appear in the JSON `omitted` array with an
-`expansion` command (e.g., `"mc explain decision:Foo"`) so an LLM
+`expansion` command (e.g., `"mathc explain decision:Foo"`) so an LLM
 agent can fetch the missing context on demand.
 
 The capsule MUST log the byte count under `total_bytes` so the

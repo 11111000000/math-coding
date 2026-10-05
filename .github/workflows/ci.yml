@@ -52,7 +52,7 @@ jobs:
         # in site.yml but not here). cachix-action@v15 rejects
         # 'fail-on-cache-miss' as an unknown input, which caused
         # CI #49 to fail at this step and skip all subsequent
-        # steps (scripts/dev verify, mc self-check, nix flake
+        # steps (scripts/dev verify, mathc self-check, nix flake
         # check). Disabling matches the site.yml pattern.
         # Re-enable when cachix-action accepts the new schema.
         if: false
@@ -77,10 +77,10 @@ jobs:
         run: ./scripts/dev verify
         timeout-minutes: 15
 
-      - name: mc self-check (bootstrap-gate block)
+      - name: mathc self-check (bootstrap-gate block)
         # Tier-1 ROADMAP #2 / AGENTS.md §Bootstrap-gate expiry mechanism.
         # v3.0.0.19 closes the bootstrap gate: the attestation store at
-        # attestations/ is populated, and `mc self-check` against the
+        # attestations/ is populated, and `mathc self-check` against the
         # populated store returns verdict=pass (exit 0) on a clean
         # main HEAD. PRs that produce verdict=fail (exit 1) or
         # verdict=unknown (exit 3) on this step now block the merge

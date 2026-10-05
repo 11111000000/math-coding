@@ -31,8 +31,8 @@ The kernel checks the chain. Humans write it.
 
 Before v3.0.0.19, every change had to satisfy eight manual bootstrap
 checks in lieu of a working kernel. From v3.0.0.19 onward,
-`mc self-check` is a blocking CI step. The kernel is now the source
-of the verdict. `mc gate`, `mc self-check`, and `mc assess` are
+`mathc self-check` is a blocking CI step. The kernel is now the source
+of the verdict. `mathc gate`, `mathc self-check`, and `mathc assess` are
 automated guarantees, not hand-written promises. Routine checks are
 free; protected-policy transitions keep the manual checklist on top.
 
@@ -40,23 +40,23 @@ free; protected-policy transitions keep the manual checklist on top.
 
 | Subcommand | Purpose |
 |---|---|
-| `mc validate FILE` | Schema check on a decision |
-| `mc context BASE HEAD --budget N` | Bounded context capsule for an agent |
-| `mc explain REF` | Resolve a `kind:id` reference to its body |
-| `mc assess BASE HEAD` | List changed files between two git refs |
-| `mc attest FILE` | Import a JUnit XML report as JSON |
-| `mc gate BASE HEAD` | Assurance verdict for the diff |
-| `mc self-check` | Kernel passes its own repository + corpus |
-| `mc packages` | Index of decisions, obligations, verdicts |
-| `mc render` | Build the static site under `dist/` |
-| `mc time-estimate` | Honest duration claim from a reference class |
-| `mc mode PATH ...` | 3.2-ideal risk classification (algebra §2) |
-| `mc rebuttals SHA` | Walk `rebuttals/<sha>.yaml` (algebra §10) |
-| `mc re-evaluate DEC AXIOM` | Re-evaluation oracle (algebra §17) |
-| `mc version` | Print the bootstrap hello and exit 0 |
-| `mc session-start` | Write `.local/session-start` ISO timestamp |
-| `mc record --decision-id ID ...` | Append event to `decisions/execution-logs.jsonl` |
-| `mc stats [--class N] [--scale S]` | Emit empirical aggregate JSON |
+| `mathc validate FILE` | Schema check on a decision |
+| `mathc context BASE HEAD --budget N` | Bounded context capsule for an agent |
+| `mathc explain REF` | Resolve a `kind:id` reference to its body |
+| `mathc assess BASE HEAD` | List changed files between two git refs |
+| `mathc attest FILE` | Import a JUnit XML report as JSON |
+| `mathc gate BASE HEAD` | Assurance verdict for the diff |
+| `mathc self-check` | Kernel passes its own repository + corpus |
+| `mathc packages` | Index of decisions, obligations, verdicts |
+| `mathc render` | Build the static site under `dist/` |
+| `mathc time-estimate` | Honest duration claim from a reference class |
+| `mathc mode PATH ...` | 3.2-ideal risk classification (algebra §2) |
+| `mathc rebuttals SHA` | Walk `rebuttals/<sha>.yaml` (algebra §10) |
+| `mathc re-evaluate DEC AXIOM` | Re-evaluation oracle (algebra §17) |
+| `mathc version` | Print the bootstrap hello and exit 0 |
+| `mathc session-start` | Write `.local/session-start` ISO timestamp |
+| `mathc record --decision-id ID ...` | Append event to `decisions/execution-logs.jsonl` |
+| `mathc stats [--class N] [--scale S]` | Emit empirical aggregate JSON |
 
 Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
 
@@ -67,7 +67,7 @@ Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
 - [`PACKAGES.md`](PACKAGES.md): what exists in this repository.
 - [`spec/constitution.md`](spec/constitution.md): 14 invariants the kernel preserves.
 - [`axioms/`](axioms/index.md): A0 separation, A1 feedback, A2 invariants, A3 self-application, A4 care.
-- [`site/`](site/): published surface, built by `mc render` and
+- [`site/`](site/): published surface, built by `mathc render` and
   deployed to [GitHub Pages](https://11111000000.github.io/math-coding/)
   by `.github/workflows/site.yml`.
 - [`USAGE.md`](USAGE.md): adoption runbook.

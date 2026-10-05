@@ -1,5 +1,5 @@
 The migrated decision files all carry the 3.2-ideal fields
-(state=active, body_sha, yaml_sha). Verified via `mc packages`
+(state=active, body_sha, yaml_sha). Verified via `mathc packages`
 which enumerates every decision in decisions/*.yaml.
 
 This fixture proves the migration script (scripts/migrate-decisions-3.2.py)
@@ -7,7 +7,7 @@ ran successfully and the schema-extension is backward-compatible.
 
   $ cd "$DUNE_SOURCEROOT"
 
-mc packages indexes every non-meta decision (skipping
+mathc packages indexes every non-meta decision (skipping
 obligations.yaml aggregator and decision.yaml bootstrap policy):
   $ mathc packages --format=json | jq -r '.decisions[].decision_id' | wc -l
   29

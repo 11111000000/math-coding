@@ -24,13 +24,13 @@ The commitment is the **falsifiable claim**. The
 
 ```yaml
 commitment: |
-  mc packages --format=html renders an HTML grid of
+  mathc packages --format=html renders an HTML grid of
   decision-obligation pairs with verdicts.
 obligation:
   - id: packages-kernel-walker
     acceptance:
       all:
-        - verifier: mc packages --format=json
+        - verifier: mathc packages --format=json
           result: pass
 ```
 
@@ -49,13 +49,13 @@ the JSON files.
 
 ## 5. Gate
 
-`mc gate BASE HEAD` runs against the populated store.
+`mathc gate BASE HEAD` runs against the populated store.
 The exit code is `0` for `pass`, `1` for `block`,
-`3` for `unknown`. The CI block step is `mc self-check`.
+`3` for `unknown`. The CI block step is `mathc self-check`.
 
 ## 6. Self-verify
 
-`mc self-check` runs against the **entire** decision
+`mathc self-check` runs against the **entire** decision
 graph. Its exit code gates merge to `main`. The
 self-check's JSON carries `verdict`, `subjects_count`,
 `pass_count`, and the `kernel_digest` (SHA-256 of the
@@ -63,15 +63,15 @@ binary that produced the verdict).
 
 ## A worked example
 
-A decision to add `mc packages` went through the six
+A decision to add `mathc packages` went through the six
 steps in commit `5d1046a`:
 
 | Step | Commit | Verifier |
 |------|--------|----------|
-| 1. State intent | `mc-packages-subcommand@1` | `intent:` block |
+| 1. State intent | `mathc-packages-subcommand@1` | `intent:` block |
 | 2. Commit | same | `commitment:` + `obligation:` |
 | 3. Implement | `lib/packages.ml`, `bin/Mathc.ml` | `dune build` exits 0 |
-| 4. Attest | `attestations/mc-packages-subcommand-*.json` | `mc packages --format=json` |
+| 4. Attest | `attestations/mathc-packages-subcommand-*.json` | `mathc packages --format=json` |
 | 5. Gate | `tests/cli/gate-{pass,fail,stale}.t` | cram green |
 | 6. Self-verify | `tests/cli/self-check-pass.t` | cram green |
 

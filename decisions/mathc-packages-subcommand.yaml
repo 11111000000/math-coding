@@ -1,13 +1,13 @@
 ---
 schema: math-coding/3.0-alpha
-id: mc-packages-subcommand
-revision: 1
+id: mathc-packages-subcommand
+revision: 2
 
 state: active
 body_sha: ""
 yaml_sha: ""
 intent: |
-  Add `mc packages` — a kernel-level subcommand that enumerates
+  Add `mathc packages` — a kernel-level subcommand that enumerates
   every package (decision + obligation pair) in the repository,
   its current verdict, the verifier, and the most recent
   attestation status. This is the operator's single-pane view
@@ -16,12 +16,12 @@ intent: |
   `doc/AUDIT-*.md` to recover the same picture.
 
   The site at `cmd/members/site/index.md` reads this output via
-  `mc packages --format=html` to render the package grid page,
+  `mathc packages --format=html` to render the package grid page,
   so the subcommand also serves as the bridge between the
   kernel and the project's published surface.
 
 commitment: |
-  `bin/Mathc.ml` dispatches `mc packages [--format=text|json|html]`.
+  `bin/Mathc.ml` dispatches `mathc packages [--format=text|json|html]`.
   The dispatcher invokes a pure function in `lib/packages.ml`
   that:
     1. enumerates every `decisions/*.yaml` and `decisions/*.md`,
@@ -41,7 +41,7 @@ commitment: |
 
   The `site/index.md` page is generated from this subcommand's
   `--format=html` output. No additional kernel surface is
-  added for the site; the site is a *consumer* of `mc
+  added for the site; the site is a *consumer* of `mathc
   packages`, not a parallel source of truth.
 
 scope:
@@ -58,7 +58,7 @@ scope:
     - scripts/render.sh
     - spec/semantics.md
     - schemas/common.json
-    - decisions/mc-packages-subcommand.yaml
+    - decisions/mathc-packages-subcommand.yaml
   exclusions:
     - lib/git/**
     - lib/junit/**
@@ -97,12 +97,12 @@ obligations:
     outcome: packages-kernel
     acceptance:
       all:
-        - verifier: mc packages --format=json
+        - verifier: mathc packages --format=json
           result: pass
 
   - id: packages-cli-dispatcher
     statement: |
-      `bin/Mathc.ml` exposes `mc packages` as a documented
+      `bin/Mathc.ml` exposes `mathc packages` as a documented
       subcommand with three output formats.
     outcome: packages-cli
     acceptance:
@@ -113,24 +113,24 @@ obligations:
   - id: packages-site-bridge
     statement: |
       `site/index.md` and `site/packages.md` are produced by
-      `mc packages --format=html`, not by a parallel walker in
+      `mathc packages --format=html`, not by a parallel walker in
       `lib/render.ml`.
     outcome: packages-site
     acceptance:
       all:
-        - verifier: dist/index.html carries data-mc-package-count
+        - verifier: dist/index.html carries data-mathc-package-count
           matching the kernel's count
           result: pass
 
 evidence:
   - kind: declared
     statement: |
-      The site is the consumer of `mc packages`. There is no
+      The site is the consumer of `mathc packages`. There is no
       `lib/render.ml::packages_walker`; the render module reads
       the kernel's HTML output and copies it into the page body.
   - kind: observed
     statement: |
-      On commit v3.0.0.20, `mc packages --format=json` lists
+      On commit v3.0.0.20, `mathc packages --format=json` lists
       23 obligations; the kernel unit test asserts the count.
 
 unknowns:
@@ -139,6 +139,6 @@ unknowns:
     a fragment plus a per-decision page generated from the same
     data. A post-decision survey of the protocol's users may
     consolidate.
-  - Whether `mc packages` should also list *waivers* and their
+  - Whether `mathc packages` should also list *waivers* and their
     expiry. Deferred to v3.1 (covered by Tier-3 close-out
     `multi-policy hierarchy`).

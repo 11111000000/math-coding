@@ -1,4 +1,4 @@
-mc gate BASE HEAD with an attestation store whose only candidate
+mathc gate BASE HEAD with an attestation store whose only candidate
 attestation carries a stale materials_digest emits verdict
 "unknown" (Kernel Invariant 9 — freshness) and exits 0. The
 stale attestation's obligation surfaces as a StaleEvidence gap;

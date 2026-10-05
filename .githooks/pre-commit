@@ -80,7 +80,7 @@ while IFS= read -r df; do
       if (v == "") return 0
       gsub(/^["\x27]|["\x27]$/, "", v)
       if (v == "") return 0
-      if (v ~ /^(mathc-|manual:|manual-|text-scan-|cram-fixture-|script-runs-|conformance-fixtures-|compiler-warning-|sha256-|flake-pin-|reference-class-|this-decision-file-|practice-review|gate-shape-fixture|dune |mc |bash |sh |git |gh |grep |awk |sed |python |perl |nix |cargo)/) return 1
+      if (v ~ /^(mathc-|manual:|manual-|text-scan-|cram-fixture-|script-runs-|conformance-fixtures-|compiler-warning-|sha256-|flake-pin-|reference-class-|this-decision-file-|practice-review|gate-shape-fixture|dune |mathc |bash |sh |git |gh |grep |awk |sed |python |perl |nix |cargo|rg |ls )/) return 1
       if (v ~ /^tests\//) return 1
       if (v ~ /^fixtures\/conformance\//) return 1
       if (v ~ /^scripts\//) return 1

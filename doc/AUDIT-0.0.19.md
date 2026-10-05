@@ -78,7 +78,7 @@ v0.0.19         audit D1 + D2 (YAML block scalars + front-matter)
   v0.0.18 records this). D6 expires when the 3.0 kernel
   successfully checks this repository
   (`AGENTS.md §Bootstrap gate`).
-- **D8** — coarse `mc validate` diagnostic. The kernel
+- **D8** — coarse `mathc validate` diagnostic. The kernel
   synthesises "missing or invalid required field" without
   naming the field. Fix is to promote `Decision.parse_decision`
   to return `Diagnostic.t option` (3.0-beta work).
@@ -177,7 +177,7 @@ Total passing tests: 36 + 15 cram = 51.
 - No schema change. `schemas/*.json` is unchanged.
 - No decision parser change. `Decision.parse_decision` is
   unchanged from v0.0.18.
-- No `mc explain` (Tier-4).
+- No `mathc explain` (Tier-4).
 
 ## See also
 

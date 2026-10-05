@@ -1,6 +1,6 @@
 ---
 schema: math-coding/3.0-alpha
-id: mc-explain-subcommand
+id: mathc-explain-subcommand
 revision: 2
 
 state: active
@@ -8,16 +8,16 @@ body_sha: ""
 yaml_sha: ""
 intent: |
   Close the broken promise in shipped code: `lib/capsule.ml:88`
-  emits `mc explain <detail_ref>` as the expansion command for
+  emits `mathc explain <detail_ref>` as the expansion command for
   omitted capsule items, and `spec/semantics.md:412-413` quotes
   the same form, but `bin/Mathc.ml:1395-1404` does not dispatch
   any such subcommand. The cram test
   `tests/cli/context-truncated-omitted.t` asserts the literal
-  string `mc explain`; if a user copies it to a shell today,
+  string `mathc explain`; if a user copies it to a shell today,
   nothing answers.
 
 commitment: |
-  Add a normative row for `mc explain DETAIL_REF` in
+  Add a normative row for `mathc explain DETAIL_REF` in
   `spec/semantics.md` §"CLI subcommands" so the catalog is
   complete; record the implementation gap explicitly in the spec
   row so the broken promise is no longer silent. The dispatcher
@@ -37,7 +37,7 @@ outcomes:
       `### explain DETAIL_REF` row with synopsis, input,
       output, exit code, and bootstrap justification.
   - id: dispatcher-shipped
-    statement: bin/Mathc.ml dispatches `mc explain DETAIL_REF` to
+    statement: bin/Mathc.ml dispatches `mathc explain DETAIL_REF` to
       a handler that resolves `kind:id` references and emits
       `{kind, id, digest, path, body}` JSON or a typed
       diagnostic on stderr.
@@ -58,7 +58,7 @@ assumptions:
       - signal: spec-row-promoted
 
 obligations:
-  - id: mc-explain-spec-promoted
+  - id: mathc-explain-spec-promoted
     outcome: spec-row-promoted
     claim: |
       spec/semantics.md §"CLI subcommands" contains a row
@@ -71,21 +71,21 @@ obligations:
           result: pass
         - verifier: text-scan-spec-semantics-has-explain-row
           result: pass
-  - id: mc-explain-dispatcher-shipped
+  - id: mathc-explain-dispatcher-shipped
     outcome: dispatcher-shipped
     claim: |
       bin/Mathc.ml dispatches `explain` and resolves `kind:id`
       references to a single on-disk artifact for the kinds the
-      `mc context` omitted[] expansion emits (decision, spec,
+      `mathc context` omitted[] expansion emits (decision, spec,
       axiom, doc). For formal kinds (obligation/attestation/waiver/
       change) and git artifacts (commits/path) that aggregate
       multiple files, this revision emits MC-REF-UNKNOWN; this
       is an honest declaration of the current revision's scope,
       not a permanent limitation. A positive cram fixture asserts
-      `mc explain decision:bootstrap-v3` exits 0 and emits
+      `mathc explain decision:bootstrap-v3` exits 0 and emits
       `kind, id, digest, path` matching the project-relative
       decision file; a negative cram fixture asserts
-      `mc explain nonexistent:foo` exits 2 with a typed
+      `mathc explain nonexistent:foo` exits 2 with a typed
       `MC-REF-UNKNOWN` diagnostic on stderr. The fixtures
       anchor via $DUNE_SOURCEROOT and project JSON fields
       with `jq` so the .t files are portable across worktrees

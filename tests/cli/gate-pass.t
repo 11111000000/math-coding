@@ -1,4 +1,4 @@
-mc gate BASE HEAD with a populated attestation store covering all
+mathc gate BASE HEAD with a populated attestation store covering all
 applicable obligations emits verdict "pass" and exits 0. The
 fixture creates a temp git repo with one changed file, sets
 MATH_CODING_ROOT to the project root and MATH_CODING_ATTESTATION_STORE

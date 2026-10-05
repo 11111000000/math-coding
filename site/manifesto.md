@@ -49,9 +49,9 @@ packets under `decisions/`:
 | foundation | `validate-and-context` | every decision parses and exposes a capsule |
 | foundation | `gate-decision` | the gate verdict is machine-checked |
 | foundation | `attestation-store-fill` | the attestation store is populated |
-| extension | `mc-explain-subcommand` | `mc explain` resolves a `decision:` ref |
-| extension | `mc-self-check-subcommand` | `mc self-check` returns an automated verdict |
-| extension | `mc-packages-subcommand` | `mc packages` is a first-class surface |
+| extension | `mathc-explain-subcommand` | `mathc explain` resolves a `decision:` ref |
+| extension | `mathc-self-check-subcommand` | `mathc self-check` returns an automated verdict |
+| extension | `mathc-packages-subcommand` | `mathc packages` is a first-class surface |
 
 The eight are not arbitrary. They are the minimum set that
 closes the bootstrap loop: from the first commit (`v3-alpha-0.0.1`)
@@ -65,6 +65,6 @@ for the philosophical foundations. Then [Foundations](foundations.html)
 for the OCaml mapping. Then [Packages](packages.html) for the live
 assurance surface.
 
-This site is itself produced by the kernel (`mc render`). The
-index page below is the live output of `mc packages`. The
+This site is itself produced by the kernel (`mathc render`). The
+index page below is the live output of `mathc packages`. The
 pages you read are arguments the kernel accepts about itself.

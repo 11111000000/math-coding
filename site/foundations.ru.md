@@ -17,7 +17,7 @@
 идентификатор не входит в закрытое множество.
 
 **Верификация.** Обязательство `packages-kernel-walker` в
-`decisions/mc-packages-subcommand.yaml` перечисляет каждое
+`decisions/mathc-packages-subcommand.yaml` перечисляет каждое
 решение в репозитории и выдаёт типизированный JSON;
 обходчик падает на виде, не входящем в закрытое множество.
 
@@ -35,7 +35,7 @@
 
 **Верификация.** `scripts/generate-attestations.py`
 производит 94 файла аттестаций в каждом релизе;
-`mc gate BASE HEAD` отвечает зелёным на `gate-pass.t`,
+`mathc gate BASE HEAD` отвечает зелёным на `gate-pass.t`,
 `gate-fail.t`, `gate-stale.t` (cram-фикстуры в `tests/cli/`).
 
 ## A2 — Инварианты и восстановление → `kernel-conformance-runner`
@@ -49,17 +49,17 @@
 блокирует слияние, не назвав меру устранения.
 
 **Верификация.** `tests/conformance.ml` перечисляет каждую
-фикстуру и проверяет, что обходчик не падает; `mc
+фикстуру и проверяет, что обходчик не падает; `mathc
 self-check` возвращает «успех» на чистом `main`.
 
-## A3 — Само-применение → `mc-self-check-subcommand`
+## A3 — Само-применение → `mathc-self-check-subcommand`
 
 **Аксиома.** Правила управляют своими изменениями:
 `(K_n, P_n) → (K_{n+1}, P_{n+1})` требует «Шлюз открыт»,
 «Соответствие пройдено», «Миграция обратима», «Изменения
 вердиктов в пределах объявленных», «Самопроверка пройдена».
 
-**Механизм.** `mc self-check` обходит каждое решение в
+**Механизм.** `mathc self-check` обходит каждое решение в
 каталоге `decisions/` и выдаёт JSON-вердикт, называющий
 ядро, которое его произвело (SHA-256 исполняемого файла),
 и дайджест репозитория. Вердикт управляется **текущими**
@@ -67,8 +67,8 @@ self-check` возвращает «успех» на чистом `main`.
 
 **Верификация.** `tests/cli/self-check-{pass,fail,unknown}.t`
 зелёные; обязательство
-`mc-self-check-dispatcher-shipped` в
-`decisions/mc-self-check-subcommand.yaml` выполнено.
+`mathc-self-check-dispatcher-shipped` в
+`decisions/mathc-self-check-subcommand.yaml` выполнено.
 
 ## A4 — Забота → `validate-and-context`
 
@@ -92,9 +92,9 @@ self-check` возвращает «успех» на чистом `main`.
 
 | Расширение | Поверхность | Cram-фикстура |
 |------------|-------------|----------------|
-| `mc-explain-subcommand` | `mc explain decision:foo` → `{вид,идентификатор,дайджест,путь,тело}` | `explain-{positive,negative}.t` |
-| `mc-self-check-subcommand` | `mc self-check` → JSON-вердикт | `self-check-{pass,fail,unknown}.t` |
-| `mc-packages-subcommand` | `mc packages --format=text\|json\|html` → список пакетов | `packages.t` |
+| `mathc-explain-subcommand` | `mathc explain decision:foo` → `{вид,идентификатор,дайджест,путь,тело}` | `explain-{positive,negative}.t` |
+| `mathc-self-check-subcommand` | `mathc self-check` → JSON-вердикт | `self-check-{pass,fail,unknown}.t` |
+| `mathc-packages-subcommand` | `mathc packages --format=text\|json\|html` → список пакетов | `packages.t` |
 
 Ядро на v3.1.0-alpha поставляет все восемь оснований. Сайт
 [Packages](packages.html) — живой вердикт всех 29 активных

@@ -1,4 +1,4 @@
-mc time-estimate reads bin/data/time-distribution.yaml via the
+mathc time-estimate reads bin/data/time-distribution.yaml via the
 project-root anchor and prints a JSON forecast. This exercises the
 documented success paths (single-file-edit at p80,
 feature-add at p95 with two multipliers) and rejection paths
@@ -14,5 +14,5 @@ cli-time-estimate in bootstrap/time-honesty.yaml.
   {"class":"bogus","code":"MC-CLASS-UNKNOWN","known_classes":"[\"bug-diagnosis\",\"docs-only\",\"feature-add\",\"kernel-change\",\"multi-file-edit\",\"refactor\",\"schema-change\",\"single-file-edit\",\"trivial\"]","message":"unknown class; known: [\"bug-diagnosis\",\"docs-only\",\"feature-add\",\"kernel-change\",\"multi-file-edit\",\"refactor\",\"schema-change\",\"single-file-edit\",\"trivial\"]"}
   [2]
   $ mathc time-estimate
-  mc time-estimate: --class is required
+  mathc time-estimate: --class is required
   [2]

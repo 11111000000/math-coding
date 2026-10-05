@@ -21,7 +21,7 @@ decision under the active policy.
 
 - **Tier 1+**: feature branch off `main`, named
   `<group>/<slug>` (e.g. `site/tufte-redesign`,
-  `mc/packages-html`).
+  `mathc/packages-html`).
 - **Tier 3+**: split across multiple PRs per `OCAML_BEST_PRACTICES.md`
   §P4 merge order: decisions first, fixtures second,
   pure kernel helpers third, `bin/Mathc.ml` last.
@@ -73,7 +73,7 @@ ci: ...
 
 PR titles follow the same convention. The scope should
 name the package or kernel module affected
-(`mc-self-check`, `lib/render`, `bin/Mathc`,
+(`mathc-self-check`, `lib/render`, `bin/Mathc`,
 `decisions/site-deploy`, etc.).
 
 ## Time-honest commits
@@ -106,7 +106,7 @@ Anti-patterns (which the maintainer will reject):
 - All cram fixtures live under `tests/cli/*.t`; never
   re-create `tests/cram/`.
 - All time estimates cite a reference class from
-  `bin/data/time-distribution.yaml` via `mc time-estimate`.
+  `bin/data/time-distribution.yaml` via `mathc time-estimate`.
 
 ## When you get stuck
 

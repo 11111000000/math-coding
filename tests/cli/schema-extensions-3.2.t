@@ -2,8 +2,8 @@ Schema extensions for math-coding 3.2-ideal algebra (algebra §7):
 decisions with the new 3.2 fields (state, body_sha, yaml_sha)
 parse through the schema without breaking existing v3.0 structure.
 
-We verify via `mc validate` (which is lenient about D8 schema
-deviations, known issue tracked in ROADMAP) and `mc packages`
+We verify via `mathc validate` (which is lenient about D8 schema
+deviations, known issue tracked in ROADMAP) and `mathc packages`
 (decision enumeration from lib/packages.ml).
 
   $ cd "$DUNE_SOURCEROOT"

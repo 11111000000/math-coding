@@ -1,7 +1,7 @@
-mc session-start writes a deterministic ISO 8601 UTC anchor;
-mc record rejects --value for --scale wall-clock-minutes, requires
+mathc session-start writes a deterministic ISO 8601 UTC anchor;
+mathc record rejects --value for --scale wall-clock-minutes, requires
 --value for --scale step-count, and emits MC-SESSION-MISSING
-without prior session-start; mc stats emits aggregate JSON.
+without prior session-start; mathc stats emits aggregate JSON.
 Acceptance gates for cli-session-start, cli-record, cli-stats in
 bootstrap/time-honesty-storage.yaml.
 
@@ -15,14 +15,14 @@ output are not currently scrubbed (could use jq if format drifts).
   $ MATH_CODING_FIXED_TIME=2026-09-27T07:07:17Z MATH_CODING_USER=human:test@local mathc session-start
   "2026-09-27T07:07:17Z"
   $ mathc record --decision-id bootstrap-v3 --scale wall-clock-minutes --value 5
-  mc record: --value rejected for --scale wall-clock-minutes
+  mathc record: --value rejected for --scale wall-clock-minutes
   [2]
   $ rm -f .local/session-start
   $ mathc record --decision-id bootstrap-v3 --scale wall-clock-minutes --class feature-add
-  mc record: MC-SESSION-MISSING; run 'mc session-start' first
+  mathc record: MC-SESSION-MISSING; run 'mathc session-start' first
   [2]
   $ mathc record --decision-id bootstrap-v3 --scale step-count
-  mc record: --value is required for --scale step-count
+  mathc record: --value is required for --scale step-count
   [2]
   $ rm -f decisions/execution-logs.jsonl
   $ mathc stats | jq -c '{n, warning: (.warning // null)}'

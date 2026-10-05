@@ -16,7 +16,7 @@ intent: |
 
 commitment: |
   Add an honest-time-reporting norm to AGENTS.md, a
-  reference-class time estimator subcommand (mc time-estimate)
+  reference-class time estimator subcommand (mathc time-estimate)
   backed by a declared distribution file, optional additive
   `time.estimate` / `time.actual` fields in Decision/Attestation,
   and a new additive execution_log record in lib/domain.ml. Do

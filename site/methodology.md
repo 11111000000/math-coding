@@ -47,15 +47,15 @@ the formal statements.
 A change arrives as a `git diff`. The kernel asks four questions:
 
 1. **Schema.** Does every artifact (decision, obligation,
-   attestation, waiver) match its JSON Schema? (`mc validate`.)
+   attestation, waiver) match its JSON Schema? (`mathc validate`.)
 2. **Identity.** Does every relation endpoint resolve? Does every
    `(kind, id, revision)` form a globally unique tuple?
    (Constitution invariants 2 and 4.)
 3. **Freshness.** Are the attestations still current? Has any
-   material digest shifted? (`mc gate BASE HEAD`.)
+   material digest shifted? (`mathc gate BASE HEAD`.)
 4. **Coverage.** Does every obligation declared in the active
    policy have at least one machine-checked verifier and one
-   positive + negative fixture? (`mc self-check`.)
+   positive + negative fixture? (`mathc self-check`.)
 
 The fourth question is the one that closes the **bootstrap gate**.
 A bootstrap-gate `pass` means the released kernel successfully
@@ -85,7 +85,7 @@ steps:
 
 1. Create `decisions/decision.yaml` declaring the active policy
    (start with `bootstrap-v3@2`).
-2. Add the kernel binary (`mc`) to CI; `mc self-check` becomes a
+2. Add the kernel binary (`mathc`) to CI; `mathc self-check` becomes a
    blocking step.
 3. Move existing guarantees — code-review records, JUnit reports,
    security attestations — into the `attestations/` directory as

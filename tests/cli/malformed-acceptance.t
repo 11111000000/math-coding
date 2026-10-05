@@ -1,4 +1,4 @@
-mc validate exits 0 on a decision whose acceptance item carries an
+mathc validate exits 0 on a decision whose acceptance item carries an
 unparseable verifier, emits the MC-MALFORMED-ACCEPTANCE diagnostic
 on stderr naming the obligation id, and still prints the accept
 verdict. The acceptance list is one shorter (Domain.All []) but the

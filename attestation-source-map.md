@@ -198,24 +198,24 @@ brief evidence.
 - `gate-attestation-store-fill/gate-fixtures-coverage` -> `test` ;
   `ci:fixture:cli-gate` ; all four gate-*.t pass.
 
-## mc-explain-subcommand
+## mathc-explain-subcommand
 
-- `mc-explain-subcommand/mc-explain-spec-promoted` -> `review` ;
+- `mathc-explain-subcommand/mathc-explain-spec-promoted` -> `review` ;
   `human:maintainer` ; manual: `spec/semantics.md:232-256` defines
   the row.
-- `mc-explain-subcommand/mc-explain-dispatcher-shipped` -> `test` ;
+- `mathc-explain-subcommand/mathc-explain-dispatcher-shipped` -> `test` ;
   `ci:fixture:cli-explain` ; `tests/cli/explain-{positive,negative}.t`
   exit 0.
 
-## mc-self-check-subcommand
+## mathc-self-check-subcommand
 
-- `mc-self-check-subcommand/mc-self-check-spec-promoted` -> `review` ;
+- `mathc-self-check-subcommand/mathc-self-check-spec-promoted` -> `review` ;
   `human:maintainer` ; manual: `spec/semantics.md:415-443` defines
   the row.
-- `mc-self-check-subcommand/mc-self-check-store-precedes` -> `build` ;
+- `mathc-self-check-subcommand/mathc-self-check-store-precedes` -> `build` ;
   `ci:build:kernel` ; the gate-attestation-store-fill obligation
   above provides the dependency.
-- `mc-self-check-subcommand/mc-self-check-dispatcher-shipped` -> `test` ;
+- `mathc-self-check-subcommand/mathc-self-check-dispatcher-shipped` -> `test` ;
   `ci:fixture:cli-self-check` ; `tests/cli/self-check-{pass,fail,unknown}.t`
   exit 0 with documented exit codes (0/1/3).
 
@@ -236,7 +236,7 @@ brief evidence.
   source-map + decision) closes the bootstrap-gate condition.
 - `attestation-store-fill/ci-block-set` -> `review` ;
   `human:maintainer` ; manual: `.github/workflows/ci.yml` step
-  `mc self-check (informational; future blocking gate)` is
+  `mathc self-check (informational; future blocking gate)` is
   switched from `continue-on-error: true` to `continue-on-error:
   false` in this release chain; PRs that produce verdict=fail or
   verdict=unknown on main HEAD now block the merge per
@@ -286,16 +286,16 @@ brief evidence.
   `build` ; `ci:build:self-check` ; `MATH_CODING_ATTESTATION_STORE=attestations
   mathc self-check` exits 0 with verdict=pass on clean HEAD.
 
-## mc-packages-subcommand (v3.0.0.20)
+## mathc-packages-subcommand (v3.0.0.20)
 
-- `mc-packages-subcommand/packages-kernel-walker` -> `build` ;
-  `ci:build:packages` ; `mc packages --format=json` lists every
+- `mathc-packages-subcommand/packages-kernel-walker` -> `build` ;
+  `ci:build:packages` ; `mathc packages --format=json` lists every
   decision-obligation pair (count > 0 in this repo).
-- `mc-packages-subcommand/packages-cli-dispatcher` -> `test` ;
+- `mathc-packages-subcommand/packages-cli-dispatcher` -> `test` ;
   `ci:fixture:cram` ; `tests/cli/packages.t` exits 0.
-- `mc-packages-subcommand/packages-site-bridge` -> `build` ;
-  `ci:build:render` ; `dist/index.html` carries `data-mc-package-count`
-  matching `mc packages --format=json | jq '.counts.total'`.
+- `mathc-packages-subcommand/packages-site-bridge` -> `build` ;
+  `ci:build:render` ; `dist/index.html` carries `data-mathc-package-count`
+  matching `mathc packages --format=json | jq '.counts.total'`.
 
 ## process-principles-close-branches (v3.0.0.20)
 
@@ -311,9 +311,9 @@ brief evidence.
 - `site-deploy/render-kernel-impl` -> `build` ; `ci:build:render` ;
   `scripts/render.sh` exits 0 AND `tests/cli/render.t` exits 0.
 - `site-deploy/site-content-self-referential` -> `test` ;
-  `ci:fixture:shell` ; `grep -l "mc packages" dist/*.html | wc -l`
+  `ci:fixture:shell` ; `grep -l "mathc packages" dist/*.html | wc -l`
   returns >= 3 (every site page that documents a kernel feature
-  references `mc packages`).
+  references `mathc packages`).
 - `site-deploy/site-deploy-pipeline` -> `build` ; `ci:workflow:site` ;
   `.github/workflows/site.yml` runs `scripts/render.sh` on every
   push to main and publishes `dist/` to GitHub Pages.

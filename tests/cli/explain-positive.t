@@ -1,4 +1,4 @@
-mc explain resolves a `decision:<id>` reference to its on-disk
+mathc explain resolves a `decision:<id>` reference to its on-disk
 file under decisions/ and emits the documented JSON object on
 stdout. The fixture scrubs the `digest` (it is a hex SHA-256 of
 the verbatim file contents; the .t file asserts only that it is
@@ -8,8 +8,8 @@ hundreds of bytes — including it verbatim would couple the test
 to the file's exact contents). Per spec/semantics.md
 "explain DETAIL_REF" the output object carries at least
 {kind, id, digest, path, body}. Acceptance gate for obligation
-mc-explain-dispatcher-shipped in
-decisions/mc-explain-subcommand.yaml.
+mathc-explain-dispatcher-shipped in
+decisions/mathc-explain-subcommand.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
   $ mathc explain decision:bootstrap-v3 | jq -c '{kind, id, path, digest_len: (.digest | length), body_present: (has("body") and (.body | length > 0))}'

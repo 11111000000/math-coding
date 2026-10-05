@@ -9,10 +9,10 @@ yaml_sha: ""
 intent: |
   Close the AGENTS.md §Bootstrap-gate expiry condition for
   v3.0.0.19 by populating the filesystem-backed attestation
-  store at attestations/ so that `mc self-check` returns
+  store at attestations/ so that `mathc self-check` returns
   verdict=pass against the current main HEAD.
 
-  At HEAD b36572f, `mc self-check` enumerates 22 decisions and
+  At HEAD b36572f, `mathc self-check` enumerates 22 decisions and
   ~70 obligations; without attestations the verdict is `unknown`
   (exit 3) and the AGENTS.md bootstrap-gate condition is not
   met. This decision commits to produce one attestation per
@@ -24,7 +24,7 @@ intent: |
   Revision 2 records the implementation: attestations/ is
   populated (75 JSON files: 71 from the initial batch + 4 closing
   the bootstrap-gate gaps surfaced by the first run of
-  `mc self-check`), and `mc self-check` returns verdict=pass
+  `mathc self-check`), and `mathc self-check` returns verdict=pass
   (exit 0) on HEAD with the populated store. CI hook may now
   be switched from `continue-on-error: true` to `continue-on-error:
   false` to make the bootstrap-gate verdict block merges per
@@ -33,7 +33,7 @@ intent: |
 commitment: |
   1. Create attestations/ directory at the project root.
   2. Populate attestations/<decision>-<obligation>.json for every
-     obligation that `mc self-check` enumerates at HEAD b36572f.
+     obligation that `mathc self-check` enumerates at HEAD b36572f.
      Each file conforms to schemas/attestation.json.
   3. Use the producer-identity convention documented in
      attestation-source-map.md:
@@ -47,7 +47,7 @@ commitment: |
      freshness for declared-pass attestations when no candidate
      tree is supplied — see lib/gate.ml:166-171 current
      implementation).
-  5. Verify scripts/dev verify exits 0 and `mc self-check`
+  5. Verify scripts/dev verify exits 0 and `mathc self-check`
      returns verdict=pass on the populated store.
 
 scope:
@@ -58,11 +58,11 @@ scope:
 
 outcomes:
   - id: attestations-populated
-    statement: Every obligation enumerated by `mc self-check` on
+    statement: Every obligation enumerated by `mathc self-check` on
       HEAD b36572f has a corresponding attestation file in
       attestations/ that the kernel gate evaluator accepts.
   - id: self-check-returns-pass
-    statement: `mc self-check` against attestations/ returns
+    statement: `mathc self-check` against attestations/ returns
       verdict=pass and exit 0 on HEAD b36572f.
 
 obligations:
@@ -71,23 +71,23 @@ obligations:
     claim: |
       The attestations/ directory at HEAD b36572f contains one
       .json file per (decision, obligation) pair that
-      `mc self-check` enumerates, each conforming to
+      `mathc self-check` enumerates, each conforming to
       schemas/attestation.json.
     acceptance:
       all:
-        - verifier: mc-self-check-verdict
+        - verifier: mathc-self-check-verdict
           result: pass
   - id: ci-block-set
     outcome: self-check-returns-pass
     claim: |
       After the attestations are committed, the CI step
-      `mc self-check (informational; future blocking gate)` in
+      `mathc self-check (informational; future blocking gate)` in
       .github/workflows/ci.yml may be switched from
       continue-on-error: true to continue-on-error: false
-      without breaking main HEAD's `mc self-check` run.
+      without breaking main HEAD's `mathc self-check` run.
     acceptance:
       all:
-        - verifier: mc-self-check-verdict
+        - verifier: mathc-self-check-verdict
           result: pass
 
 reversal:
@@ -104,5 +104,5 @@ risk:
 relations:
   addresses:
     - bootstrap-v3@2
-    - mc-self-check-subcommand@2
+    - mathc-self-check-subcommand@2
     - gate-attestation-store-fill@1

@@ -16,7 +16,7 @@ in JSON Schemas under `schemas/`. The parser refuses any
 document whose id does not match the closed set declared in
 the per-schema file.
 
-**Verification.** `decisions/mc-packages-subcommand.yaml`
+**Verification.** `decisions/mathc-packages-subcommand.yaml`
 obligation `packages-kernel-walker` enumerates every decision
 in the repository and emits a typed JSON; the walker
 crashes on a kind that is not in the closed set.
@@ -34,7 +34,7 @@ loads the store and joins each entry against the kernel's
 gate.
 
 **Verification.** `scripts/generate-attestations.py`
-produces 94 attestation files on every release; `mc gate
+produces 94 attestation files on every release; `mathc gate
 BASE HEAD` reports `gate-pass.t` / `gate-fail.t` /
 `gate-stale.t` as green (cram fixtures under `tests/cli/`).
 
@@ -49,25 +49,25 @@ against the attestation store and emits typed
 kernel never blocks a merge without naming a remedy.
 
 **Verification.** `tests/conformance.ml` enumerates every
-fixture and asserts the runner never crashes; `mc
+fixture and asserts the runner never crashes; `mathc
 self-check` returns `pass` on clean `main` HEAD.
 
-## A3 — Self-application → `mc-self-check-subcommand`
+## A3 — Self-application → `mathc-self-check-subcommand`
 
 **Axiom.** The rules govern their own changes:
 `(K_n, P_n) → (K_{n+1}, P_{n+1})` requires Gate Open,
 Conformance Pass, Migration round-trips, VerdictDiff
 within DeclaredSemanticChanges, SelfVerify Pass.
 
-**Mechanism.** `mc self-check` walks every decision in
+**Mechanism.** `mathc self-check` walks every decision in
 `decisions/` and emits a JSON verdict that names the
 kernel that produced it (SHA-256 of the binary) and the
 repository digest. The verdict is gated on the **current**
 rules, before the lock is promoted.
 
 **Verification.** `tests/cli/self-check-{pass,fail,unknown}.t`
-green; `decisions/mc-self-check-subcommand.yaml` obligation
-`mc-self-check-dispatcher-shipped` is met.
+green; `decisions/mathc-self-check-subcommand.yaml` obligation
+`mathc-self-check-dispatcher-shipped` is met.
 
 ## A4 — Care → `validate-and-context`
 
@@ -92,9 +92,9 @@ five foundations:
 
 | Extension | Surface | Cram fixture |
 |-----------|---------|--------------|
-| `mc-explain-subcommand` | `mc explain decision:foo` → `{kind,id,digest,path,body}` | `explain-{positive,negative}.t` |
-| `mc-self-check-subcommand` | `mc self-check` → JSON verdict | `self-check-{pass,fail,unknown}.t` |
-| `mc-packages-subcommand` | `mc packages --format=text\|json\|html` → package list | `packages.t` |
+| `mathc-explain-subcommand` | `mathc explain decision:foo` → `{kind,id,digest,path,body}` | `explain-{positive,negative}.t` |
+| `mathc-self-check-subcommand` | `mathc self-check` → JSON verdict | `self-check-{pass,fail,unknown}.t` |
+| `mathc-packages-subcommand` | `mathc packages --format=text\|json\|html` → package list | `packages.t` |
 
 The kernel at v3.1.0-alpha ships the eight foundations. The
 site at [Packages](packages.html) is the live verdict of all

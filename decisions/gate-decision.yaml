@@ -7,7 +7,7 @@ state: active
 body_sha: ""
 yaml_sha: ""
 intent: |
-  Introduce the `mc gate BASE HEAD` subcommand that evaluates a
+  Introduce the `mathc gate BASE HEAD` subcommand that evaluates a
   candidate tree against the active policy and produces a gate
   verdict per spec/semantics.md "Merge gate" and "Release gate".
   Today the kernel lacks the attestation store required for a
@@ -54,7 +54,7 @@ scope:
 outcomes:
   - id: gate-cli-exists
     statement: |
-      `mc gate BASE HEAD` is a recognised subcommand; the
+      `mathc gate BASE HEAD` is a recognised subcommand; the
       dispatcher in bin/Mathc.ml routes to it.
   - id: gate-output-shape-stable
     statement: |
@@ -74,7 +74,7 @@ counterexample: |
   attestation store exists." Counterargument: the gate subcommand
   has a stable JSON contract that future revisions build on. The
   scaffold is the API surface for obligation gate-attestation-
-  store-fill, gate-coverage-fixtures, and the eventual mc self-
+  store-fill, gate-coverage-fixtures, and the eventual mathc self-
   check. Recording the contract now under the active policy (this
   decision is accepted under bootstrap-v3) means future revisions
   do not have to negotiate the JSON shape — they extend it. A
@@ -115,7 +115,7 @@ obligations:
   - id: gate-cli-runs
     outcome: gate-cli-exists
     claim: |
-      `mc gate BASE HEAD` exits 0 and prints a JSON object whose
+      `mathc gate BASE HEAD` exits 0 and prints a JSON object whose
       first key is "verdict" and which contains "gaps",
       "obligations", "now", "base", "head".
     acceptance:

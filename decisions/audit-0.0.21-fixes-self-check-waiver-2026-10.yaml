@@ -14,7 +14,7 @@ intent: |
   statement already contemplates (`unknown_count == waived_count`).
 
   The deficit:
-    - `mc self-check` on a clean tree currently returns `verdict:unknown`
+    - `mathc self-check` on a clean tree currently returns `verdict:unknown`
       with 30 pass + 2 unknown subjects.
     - The two unknown subjects are `portable-linux-musl` (state:retired,
       reversal signal `alpine-ci-build-fails` fired after CI runs

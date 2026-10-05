@@ -2,8 +2,8 @@
 
 > **Дисциплина записи решений до кода.** Ядро — один
 > статический исполняемый файл; пакеты — простой текст и
-> живут в каталоге `decisions/`; вердикты выдают `mc gate` и
-> `mc self-check`.
+> живут в каталоге `decisions/`; вердикты выдают `mathc gate` и
+> `mathc self-check`.
 
 ## Что это такое
 
@@ -24,12 +24,12 @@ math-coding связывает каждое конкретное изменен�
 
 ## Что оно поставляет
 
-- Ядро (`mc`), один OCaml-исполняемый файл, около семисот
+- Ядро (`mathc`), один OCaml-исполняемый файл, около семисот
   строк плюс транзитивные модули.
 - Восемь принципов, каждый оформлен как пакет в
   `decisions/` и проверяется cram-фикстурой в
   `tests/cli/`.
-- Статический сайт (этот), порождаемый `mc render`,
+- Статический сайт (этот), порождаемый `mathc render`,
   развёртывается на GitHub Pages.
 
 ## Пять оснований и три расширения
@@ -41,9 +41,9 @@ math-coding связывает каждое конкретное изменен�
 | основа | `validate-and-context` | каждое решение разбирается и открывает капсулу |
 | основа | `gate-decision` | вердикт шлюза проверяется сценарно |
 | основа | `attestation-store-fill` | хранилище аттестаций заполнено |
-| расширение | `mc-explain-subcommand` | `mc explain` разрешает ссылки вида `decision:` |
-| расширение | `mc-self-check-subcommand` | `mc self-check` возвращает автоматический вердикт |
-| расширение | `mc-packages-subcommand` | `mc packages` — поверхность первого класса |
+| расширение | `mathc-explain-subcommand` | `mathc explain` разрешает ссылки вида `decision:` |
+| расширение | `mathc-self-check-subcommand` | `mathc self-check` возвращает автоматический вердикт |
+| расширение | `mathc-packages-subcommand` | `mathc packages` — поверхность первого класса |
 
 См. [Foundations](foundations.html) для полного отображения
 каждой аксиомы в механизм ядра и обязательство верификации.
@@ -54,14 +54,14 @@ math-coding связывает каждое конкретное изменен�
 nix develop .#test
 dune build
 dune test
-mc self-check     # выводит JSON-вердикт; код выхода 0 = «успех»
+mathc self-check     # выводит JSON-вердикт; код выхода 0 = «успех»
 ```
 
 Чтобы собрать сайт локально:
 
 ```sh
 scripts/render.sh         # собирает mathc, запускает
-                          # `mc render`, проверяет
+                          # `mathc render`, проверяет
                           # разрешённый список файлов
 python3 -m http.server -d dist/ 8000
 # откройте http://localhost:8000/
@@ -71,23 +71,23 @@ python3 -m http.server -d dist/ 8000
 
 | команда | назначение |
 |---------|------------|
-| `mc validate FILE` | разобрать FILE как решение |
-| `mc context BASE HEAD --budget N` | вывести JSON-капсулу контекста |
-| `mc explain DETAIL_REF` | разрешить `decision:<идентификатор>` в тело |
-| `mc assess BASE HEAD` | список изменённых путей |
-| `mc attest FILE` | разобрать JUnit-XML-отчёт |
-| `mc time-estimate --class ... --count N` | прогноз по референсному классу |
-| `mc gate BASE HEAD` | вердикт шлюза против хранилища аттестаций |
-| `mc self-check` | автоматическая самопроверка |
-| `mc packages --format=text\|json\|html` | сетка пакетов |
-| `mc render [--lang en\|ru\|both]` | породить статический сайт |
+| `mathc validate FILE` | разобрать FILE как решение |
+| `mathc context BASE HEAD --budget N` | вывести JSON-капсулу контекста |
+| `mathc explain DETAIL_REF` | разрешить `decision:<идентификатор>` в тело |
+| `mathc assess BASE HEAD` | список изменённых путей |
+| `mathc attest FILE` | разобрать JUnit-XML-отчёт |
+| `mathc time-estimate --class ... --count N` | прогноз по референсному классу |
+| `mathc gate BASE HEAD` | вердикт шлюза против хранилища аттестаций |
+| `mathc self-check` | автоматическая самопроверка |
+| `mathc packages --format=text\|json\|html` | сетка пакетов |
+| `mathc render [--lang en\|ru\|both]` | породить статический сайт |
 
 ## Где что лежит
 
 | путь | что |
 |------|-----|
 | `lib/` | чистые OCaml-модули ядра |
-| `bin/` | диспетчер командной строки `mc` |
+| `bin/` | диспетчер командной строки `mathc` |
 | `decisions/` | пакеты «решение + обязательство» (поверхность обеспечения качества) |
 | `attestations/` | аттестации по отпечатку SHA (поверхность доказательств) |
 | `axioms/` | пять аксиом в формате Markdown |

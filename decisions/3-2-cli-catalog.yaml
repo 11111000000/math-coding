@@ -13,10 +13,10 @@ intent: |
   subcommands` documents 14. The three undocumented
   subcommands are:
 
-    mc mode       — algebra §2 risk function (lib/risk.ml);
-    mc rebuttals  — algebra §10 hybrid rebuttal mechanism
+    mathc mode       — algebra §2 risk function (lib/risk.ml);
+    mathc rebuttals  — algebra §10 hybrid rebuttal mechanism
                     (lib/rebuttal.ml);
-    mc re-evaluate — algebra §17 re-evaluation oracle
+    mathc re-evaluate — algebra §17 re-evaluation oracle
                     (lib/re_evaluation.ml).
 
   These subcommands were introduced in the v3.1.0-alpha
@@ -41,9 +41,9 @@ intent: |
 commitment: |
   Three subcommands become first-class entries in
   `spec/semantics.md §CLI subcommands` and `README.md`:
-    - `mc mode PATH1 PATH2 ...` — risk classification
-    - `mc rebuttals COMMIT_SHA` — sibling-YAML rebuttal walker
-    - `mc re-evaluate DECISION_ID AXIOM_ID` — re-evaluation
+    - `mathc mode PATH1 PATH2 ...` — risk classification
+    - `mathc rebuttals COMMIT_SHA` — sibling-YAML rebuttal walker
+    - `mathc re-evaluate DECISION_ID AXIOM_ID` — re-evaluation
       oracle
 
   For each, add a positive cram fixture under `tests/cli/`
@@ -77,7 +77,7 @@ outcomes:
   - id: readme-catalog-complete
     statement: README.md's CLI table lists every subcommand
       the dispatcher recognises at HEAD; readers of the
-      README no longer see "missing" subcommands in `mc --help`.
+      README no longer see "missing" subcommands in `mathc --help`.
   - id: fixtures-positive-and-negative
     statement: every 3.2 subcommand has both a positive cram
       fixture (exit 0 with the documented output) and a
@@ -142,8 +142,8 @@ obligations:
     outcome: readme-catalog-complete
     claim: |
       README.md's CLI table (line 41-50) gains three rows:
-      `mc mode`, `mc rebuttals`, `mc re-evaluate`. The new
-      rows use the same `| \`mc ...\` | Purpose |` format.
+      `mathc mode`, `mathc rebuttals`, `mathc re-evaluate`. The new
+      rows use the same `| \`mathc ...\` | Purpose |` format.
     acceptance:
       all:
         - verifier: text-scan-readme-md-mode-row
@@ -156,7 +156,7 @@ obligations:
   - id: mode-fixture-pair
     outcome: fixtures-positive-and-negative
     claim: |
-      `tests/cli/mode.t` exists and exercises `mc mode` with
+      `tests/cli/mode.t` exists and exercises `mathc mode` with
       at least one positive case (paths given, exit 0) and
       one negative case (no paths, exit 2).
     acceptance:
@@ -167,7 +167,7 @@ obligations:
   - id: rebuttals-fixture-pair
     outcome: fixtures-positive-and-negative
     claim: |
-      `tests/cli/rebuttals.t` exists and exercises `mc
+      `tests/cli/rebuttals.t` exists and exercises `mathc
       rebuttals` with at least one positive and one negative
       case.
     acceptance:
@@ -178,7 +178,7 @@ obligations:
   - id: re-evaluate-fixture-pair
     outcome: fixtures-positive-and-negative
     claim: |
-      `tests/cli/re-evaluate.t` exists and exercises `mc
+      `tests/cli/re-evaluate.t` exists and exercises `mathc
       re-evaluate` with at least one positive and one negative
       case.
     acceptance:

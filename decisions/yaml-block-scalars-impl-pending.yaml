@@ -32,7 +32,7 @@ commitment: |
      kernel currently reads `bootstrap/*.yaml` via
      `Memory.load_memory` which strips YAML front-matter
      (`---`) before parsing, so the existing scalar path is
-     not blocking any `mc validate`, `mc context`, or `mc gate`
+     not blocking any `mathc validate`, `mathc context`, or `mathc gate`
      invocation. D1/D2 affect *formatting* of multi-line
      strings inside decision YAML, not the parse-acceptance
      of decision documents themselves.

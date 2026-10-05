@@ -1,4 +1,4 @@
-mc mode computes the risk classification for one or more paths
+mathc mode computes the risk classification for one or more paths
 per algebra 3.2 §2 (lib/risk.ml). Exercises the success path
 with a kernel path (lib/packages.ml) and a docs path
 (README.md). The rejection path (no positional paths) prints

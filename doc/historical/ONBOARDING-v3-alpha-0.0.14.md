@@ -686,8 +686,8 @@ v0.0.2          dev-shell split
 v0.0.3          add dune-project, flake, opam, .gitignore
 v0.0.4          rename class_ to kind, refactor parse_acceptance
 v0.0.5          process-principles
-v0.0.6          mc validate
-v0.0.7          mc context
+v0.0.6          mathc validate
+v0.0.7          mathc context
 v0.0.8          adapters (git, junit)
 v0.0.9          cram integration
 v0.0.10         consolidation (parse-acceptance, sha-256, capsule,
@@ -719,7 +719,7 @@ v0.0.18         (in progress) onboarding convention, formal-verifier
   does not exist yet. This obligation expires when the released
   3.0 kernel successfully checks this repository and its
   conformance corpus (per AGENTS.md §"Bootstrap gate").
-- **D8** — `mc validate` synthesises a coarse diagnostic
+- **D8** — `mathc validate` synthesises a coarse diagnostic
   ("missing or invalid required field") without naming the
   specific field. The fix is to promote `Decision.parse_decision`
   to return `Diagnostic.t option` (3.0-beta work).
@@ -732,7 +732,7 @@ The `time-honesty` worktree (worktree on `time-honesty` branch)
 records time estimates via the `ExecutionLog` record
 (Domain.execution_log), with classes defined in
 `bin/data/time-distribution.yaml` and Cram CLI tests for
-`mc record` / `mc stats` / `mc time-estimate` /
+`mathc record` / `mathc stats` / `mathc time-estimate` /
 `session-start`. This is the human-time honesty layer; it
 complements the SHA-256 wall-clock work but does not close the
 D4 deficit (the kernel still uses an unverified hand-rolled

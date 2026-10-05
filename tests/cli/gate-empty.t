@@ -1,4 +1,4 @@
-mc gate BASE HEAD with no attestation store present (the loader
+mathc gate BASE HEAD with no attestation store present (the loader
 returns []) emits verdict "unknown" and exits 0. Every applicable
 obligation surfaces as a MissingEvidence gap; the aggregate
 treats MissingEvidence as informational (not blocking) per the

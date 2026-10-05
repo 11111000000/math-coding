@@ -1,4 +1,4 @@
-mc context with --budget 100000 (~100 KiB) fits everything; the
+mathc context with --budget 100000 (~100 KiB) fits everything; the
 capsule reports truncated=false and total_bytes <= 100000.
 Per spec/semantics.md "context-prioritisation": the `truncated`
 flag MUST be `true` iff the `omitted` array is non-empty.

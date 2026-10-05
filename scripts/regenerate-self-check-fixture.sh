@@ -2,17 +2,17 @@
 # scripts/regenerate-self-check-fixture.sh
 #
 # Regenerates tests/fixtures/self-check-pass/attestations/ to cover every
-# (decision_id, obligation_id) pair enumerated by `mc packages --format=json`,
+# (decision_id, obligation_id) pair enumerated by `mathc packages --format=json`,
 # producing a pass attestation for each. This is the acceptance gate for
 # obligation `audit-0.0.21-fixes/self-check-pass-fixture-covers-all` and the
 # substrate for tests/cli/self-check-pass.t returning verdict:pass.
 #
-# Pair list source: `mc packages --format=json` (the kernel's own enumeration).
+# Pair list source: `mathc packages --format=json` (the kernel's own enumeration).
 # For each (decision, obligation), we emit one attestation JSON in the
 # fixture store with the producer identity `human:maintainer` and
 # result=pass. The cram test then loads this store via
 # `MATH_CODING_ATTESTATION_STORE=tests/fixtures/self-check-pass/attestations`
-# and asserts that `mc self-check` returns verdict=pass, subjects=29, unknown=0.
+# and asserts that `mathc self-check` returns verdict=pass, subjects=29, unknown=0.
 #
 # Run after any change to the obligation set (new decision, new obligation,
 # retired decision). The script is idempotent: re-running overwrites the
@@ -25,7 +25,7 @@ FIXTURE_DIR="tests/fixtures/self-check-pass/attestations"
 mkdir -p "$FIXTURE_DIR"
 
 # Build the (decision, obligation, kind_, identity, result) TSV from the kernel.
-# `mc packages --format=json` is the canonical enumeration. We use
+# `mathc packages --format=json` is the canonical enumeration. We use
 # `human:maintainer` as the producer identity (the doc/audit trail author
 # for hand-verified obligations) and `result=pass` because every obligation
 # in the test fixture is satisfied (a test fixture cannot model real CI).

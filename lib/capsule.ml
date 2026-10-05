@@ -85,7 +85,7 @@ let[@warning "-32"] item_bytes (it : item) : int =
 let[@warning "-32"] make_item ?freshness kind summary detail_ref =
   { kind; summary; detail_ref; freshness }
 
-let[@warning "-32"] expansion_command detail_ref = "mc explain " ^ detail_ref
+let[@warning "-32"] expansion_command detail_ref = "mathc explain " ^ detail_ref
 
 (* --- change / commit summarisation --- *)
 

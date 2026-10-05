@@ -22,7 +22,7 @@ commitment: |
   returns both the typed Domain.acceptance and the per-item shape
   list. Diagnostic.ambiguous_acceptance and Diagnostic.malformed_acceptance
   emit MC-AMBIGUOUS-ACCEPTANCE and MC-MALFORMED-ACCEPTANCE on the
-  bin/Mathc.ml side. mc validate prints the diagnostics to stderr
+  bin/Mathc.ml side. mathc validate prints the diagnostics to stderr
   AND embeds them in JSON output under 'diagnostics':[…]. The
   verdict remains 'accept' on the verifier half; the diagnostic is
   a side-channel that does NOT lie about pass-attestation.
@@ -50,10 +50,10 @@ outcomes:
       Decision.classify_acceptance_item is exported from lib/decision.ml
       and returns one of five acceptance_shape variants. Tests in
       tests/conformance.ml can call it directly; tests/cli/*.t
-      exercise it via mc validate.
+      exercise it via mathc validate.
   - id: diagnostic-emission
     statement: |
-      mc validate FILE prints MC-AMBIGUOUS-ACCEPTANCE per obligation
+      mathc validate FILE prints MC-AMBIGUOUS-ACCEPTANCE per obligation
       with ShapeAmbiguous items, and MC-MALFORMED-ACCEPTANCE per
       obligation with ShapeMalformed items. Diagnostics appear on
       stderr AND in the JSON output under 'diagnostics':[…].
@@ -99,7 +99,7 @@ obligations:
   - id: diagnostic-emission-cli
     outcome: diagnostic-emission
     claim: |
-      mc validate emits MC-AMBIGUOUS-ACCEPTANCE and
+      mathc validate emits MC-AMBIGUOUS-ACCEPTANCE and
       MC-MALFORMED-ACCEPTANCE on stderr; JSON output includes
       'diagnostics':[…] array.
     acceptance:

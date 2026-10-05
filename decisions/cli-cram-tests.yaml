@@ -116,7 +116,7 @@ obligations:
       Each mathc CLI subcommand exercised by this decision
       (version, validate, context, assess, attest, gate,
       time-estimate, session-start, record, stats) has a cram
-      .t file under tests/cli/ that invokes it via `mc ...`
+      .t file under tests/cli/ that invokes it via `mathc ...`
       and asserts on the exit status and output. The .t files
       pass under `dune runtest` from any checkout.
     outcome: cli-tests-via-cram

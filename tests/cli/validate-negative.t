@@ -1,5 +1,5 @@
-mc validate exits 1 with a reject verdict for an unparseable
-decision. The test invokes `mc validate --format=json` and
+mathc validate exits 1 with a reject verdict for an unparseable
+decision. The test invokes `mathc validate --format=json` and
 projects the JSON object via `jq` to keep the assertion portable:
 the `path` field is a project-relative path emitted by
 `bin/Mathc.ml`'s JSON renderer, so it does not depend on the

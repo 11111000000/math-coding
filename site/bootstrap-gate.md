@@ -36,7 +36,7 @@ the 95% of practical cases — the kernel decides; humans review.
 
 The gate expired at commit `8fa7fcf` (v3.0.0.19). Concretely:
 
-- `mc self-check` is a blocking CI step. On a clean `main` HEAD
+- `mathc self-check` is a blocking CI step. On a clean `main` HEAD
   the step prints `self-check exit=0` and the JSON payload
   contains `verdict=pass`, `subjects_count=23`,
   `pass_count=23`. PRs that yield `fail` (exit 1) or
@@ -44,12 +44,12 @@ The gate expired at commit `8fa7fcf` (v3.0.0.19). Concretely:
 - The attestation store at `attestations/` contains 75 JSON
   files — one per decision-obligation pair enumerated by
   `scripts/generate-attestations.py`.
-- `mc gate BASE HEAD` reports verdicts against the populated
+- `mathc gate BASE HEAD` reports verdicts against the populated
   store: `gate-pass.t`, `gate-fail.t`, `gate-stale.t` are
   green.
 
 From this commit forward, **assessment verdicts produced by
-`mc gate`, `mc self-check`, and `mc assess` are automated
+`mathc gate`, `mathc self-check`, and `mathc assess` are automated
 guarantees, not manual declarations**.
 
 ## The eight checks, post-expiry
@@ -63,10 +63,10 @@ constitutional ones. The two regimes coexist.
 ## What this site is
 
 This site is the first artifact the kernel produced **after**
-the gate expired. Every page on it is rendered by `mc render`
+the gate expired. Every page on it is rendered by `mathc render`
 from source files under `site/`. The package grid on
 [index.html](index.html) is the live output of
-`mc packages --format=html`. The methodology page
+`mathc packages --format=html`. The methodology page
 ([methodology.html](methodology.html)) describes the discipline
 that the kernel enforces; the kernel enforces it on the site
 that describes it. This is A3, applied.

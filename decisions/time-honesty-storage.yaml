@@ -14,19 +14,19 @@ intent: |
   distribution can close the loop.
 
 commitment: |
-  Three new subcommands (mc session-start, mc record, mc stats)
+  Three new subcommands (mathc session-start, mathc record, mathc stats)
   write to two declared storage paths:
     - .local/session-start             (one ISO 8601 UTC timestamp);
     - decisions/execution-logs.jsonl   (one JSON object per line).
   Both paths are local to a clone or worktree and are NOT
   tracked in git (see acceptance storage-path-declared).
-  `mc record` does not accept a user-supplied value; the only
+  `mathc record` does not accept a user-supplied value; the only
   wall-clock-minutes source is the auto-computed difference
   (now - session_start). step-count is recorded when a runtime
   harness supplies the value through a future adapter; until
   then the subcommand accepts --value for step-count only,
   documented as a Phase-1 temporary concession.
-  `mc stats` outputs aggregate quantiles only when n >= 30;
+  `mathc stats` outputs aggregate quantiles only when n >= 30;
   otherwise it emits a warning that the declared floor
   (bin/data/time-distribution.yaml) still applies.
 
@@ -51,7 +51,7 @@ outcomes:
     statement: |
       For every recorded agent session, an event is appended to
       decisions/execution-logs.jsonl with scale = wall-clock-
-      minutes and value = (now - session_start). mc stats reports
+      minutes and value = (now - session_start). mathc stats reports
       the empirical distribution against the declared floor.
   - id: storage-gitignored
     statement: |
@@ -60,18 +60,18 @@ outcomes:
       worktree and never uploaded by any CI flow.
   - id: stats-n-threshold
     statement: |
-      mc stats emits {n, threshold: 30, quantiles: ...}
+      mathc stats emits {n, threshold: 30, quantiles: ...}
       where quantiles (p50, p80, p95, p99) are present only when
       n >= 30; otherwise a warning field is set that names the
       declared floor as the recommended reference.
 
 counterexample: |
-  "Agent can fake the value when calling mc record; storage
-  cannot fix it." The counterargument: mc record has no
+  "Agent can fake the value when calling mathc record; storage
+  cannot fix it." The counterargument: mathc record has no
   --value, --seconds, or --minutes flag for wall-clock-
   minutes. The only source is now() - session_start, where
   session_start is an ISO 8601 UTC timestamp written by
-  `mc session-start` at the user's keystroke, not the
+  `mathc session-start` at the user's keystroke, not the
   agent's request. To fake, the agent must edit
   .local/session-start; the user can verify that file (it is
   in the worktree). ETHICS.md non-surveillance is preserved
@@ -94,7 +94,7 @@ assumptions:
   - id: step-count-supplied
     state: assumed
     statement: |
-      For Phase 1, mc record --scale step-count accepts a
+      For Phase 1, mathc record --scale step-count accepts a
       caller-supplied count via --value. The runtime harness
       that owns the counter integration is not yet written;
       this concession exists only because no LLM harness today
@@ -123,7 +123,7 @@ obligations:
   - id: record-no-user-value-for-wallclock
     outcome: runtime-observation-closed-loop
     claim: |
-      bin/Mathc.ml mc record does NOT declare --value, --seconds,
+      bin/Mathc.ml mathc record does NOT declare --value, --seconds,
       --minutes, or any other numeric flag when --scale is
       wall-clock-minutes. The wall-clock value is computed
       internally. step-count MAY accept --value as documented
@@ -135,7 +135,7 @@ obligations:
   - id: stats-n-threshold
     outcome: stats-n-threshold
     claim: |
-      bin/Mathc.ml mc stats emits JSON with the fields:
+      bin/Mathc.ml mathc stats emits JSON with the fields:
         n (int), threshold (int = 30), scale (string), class
         (string, optional), quantiles (object present only when
         n >= threshold; otherwise omitted), warning (string
@@ -147,11 +147,11 @@ obligations:
   - id: session-start-valid
     outcome: runtime-observation-closed-loop
     claim: |
-      `mc session-start` writes a single ISO 8601 UTC timestamp
+      `mathc session-start` writes a single ISO 8601 UTC timestamp
       line to .local/session-start and exits 0. Re-running over-
       writes the timestamp with a fresh one (the most recent
       call wins; this matches expected agent-cycle semantics).
-      `mc record` reads this file and emits MC-SESSION-MISSING
+      `mathc record` reads this file and emits MC-SESSION-MISSING
       if absent.
     acceptance:
       all:

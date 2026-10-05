@@ -174,7 +174,7 @@ platform you use and place it at the target path in your project.
 Source of truth: `adoption/SKILL.md`. To regenerate after editing,
 run `scripts/dist-adoption.sh` from the repository root.
 
-The `mc` binary referenced by the skill ships in the same release
+The `mathc` binary referenced by the skill ships in the same release
 tarball as this directory.
 README_EOF
 

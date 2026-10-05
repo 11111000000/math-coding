@@ -3,7 +3,7 @@
 #
 # Pipeline:
 #   1. Build the mathc binary via `scripts/dev build`.
-#   2. Run `mc render --out dist/ --lang=both` to render the
+#   2. Run `mathc render --out dist/ --lang=both` to render the
 #      site in English and Russian (any site/<name>.ru.md sibling
 #      is rendered to dist/<name>.ru.html).
 #   3. Copy `assets/style.css` to `dist/assets/style.css`.
@@ -20,7 +20,7 @@ cd "$(dirname "$0")/.."
 echo "[1/4] building mathc..."
 scripts/dev build
 
-echo "[2/4] running mc render..."
+echo "[2/4] running mathc render..."
 mkdir -p dist
 # --lang=both emits both the English .html and the Russian
 # .ru.html for every article that has a sibling. Sites that do

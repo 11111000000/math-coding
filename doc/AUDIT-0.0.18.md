@@ -102,7 +102,7 @@ None. v0.0.18 does not open any new audit debt.
   obligation (winner-1 in v0.0.18 records this). D6 expires
   when the 3.0 kernel successfully checks this repository
   (`AGENTS.md §Bootstrap gate`).
-- **D8** — coarse `mc validate` diagnostic. The kernel
+- **D8** — coarse `mathc validate` diagnostic. The kernel
   synthesises "missing or invalid required field" without
   naming the field. Fix is to promote `Decision.parse_decision`
   to return `Diagnostic.t option` (3.0-beta work).

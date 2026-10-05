@@ -204,7 +204,7 @@ obligations:
       or any system glibc.
     acceptance:
       all:
-        - verifier: mc-self-check-verdict
+        - verifier: mathc-self-check-verdict
           result: pass
 
   - id: glibc-binary-still-works
@@ -266,7 +266,7 @@ obligations:
       decision DEFERRED without rolling back the glibc pipeline.
     acceptance:
       all:
-        - verifier: mc-self-check-verdict
+        - verifier: mathc-self-check-verdict
           result: pass
 
 reversal:

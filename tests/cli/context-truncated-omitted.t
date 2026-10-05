@@ -1,6 +1,6 @@
-mc context with --budget 200 forces truncation: the capsule
+mathc context with --budget 200 forces truncation: the capsule
 reports truncated=true, omitted[] is non-empty, and every omitted
-item carries an `expansion` field (an `mc explain ...` command so
+item carries an `expansion` field (an `mathc explain ...` command so
 an LLM agent can fetch the missing context on demand). Per
 spec/semantics.md "context-prioritisation": when the budget is
 exhausted, items are dropped in reverse priority order, and the

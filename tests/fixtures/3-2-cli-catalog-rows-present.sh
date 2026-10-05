@@ -8,7 +8,7 @@
 #   - spec/semantics.md contains the three new subcommand rows
 #     (`### \`mode`, `### \`rebuttals`, `### \`re-evaluate`)
 #   - README.md's CLI table contains the three new subcommand
-#     rows (`mc mode`, `mc rebuttals`, `mc re-evaluate`)
+#     rows (`mathc mode`, `mathc rebuttals`, `mathc re-evaluate`)
 
 set -uo pipefail
 cd "$(dirname "$0")/../.."
@@ -29,11 +29,11 @@ done
 
 # README.md: three new subcommand rows
 for sub in mode rebuttals re-evaluate; do
-  if ! grep -qE "^\| \`mc $sub " "$readme"; then
-    echo "FAIL: $readme missing '| \`mc $sub ...' table row"
+  if ! grep -qE "^\| \`mathc $sub " "$readme"; then
+    echo "FAIL: $readme missing '| \`mathc $sub ...' table row"
     fail=1
   else
-    echo "ok: $readme has '| \`mc $sub ...' table row"
+    echo "ok: $readme has '| \`mathc $sub ...' table row"
   fi
 done
 

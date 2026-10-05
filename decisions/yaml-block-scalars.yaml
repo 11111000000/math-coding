@@ -84,7 +84,7 @@ outcomes:
       parse_yaml_block, literal_join, fold_join).
   - id: bootstrap-yaml-parses-with-commitment
     statement: |
-      `mc validate decisions/decision.yaml` exits 0 with an
+      `mathc validate decisions/decision.yaml` exits 0 with an
       accept verdict, and the parsed decision's commitment
       field is the multi-line text from the source (`Build
       math-coding 3.0 from an executable specification...`
@@ -254,7 +254,7 @@ obligations:
       exactly `---`) is dropped because decisions/decision.yaml
       begins with one and the alternative (a stripper at every
       call site) would push D1 into the next caller; this is
-      the minimum change that lets `mc validate
+      the minimum change that lets `mathc validate
       decisions/decision.yaml` exit 0.
     acceptance:
       all:
@@ -262,7 +262,7 @@ obligations:
           result: pass
         - verifier: dune test --root .
           result: pass
-        - verifier: mc validate decisions/decision.yaml
+        - verifier: mathc validate decisions/decision.yaml
           result: accept
         - verifier: manual-fixtures/conformance/decision/positive-block-scalars.yaml is accepted by Decision.parse_decision
           result: pass

@@ -82,7 +82,7 @@ jobs:
 
       # Closes site-deploy@1 obligation render-kernel-impl. The
       # script: (1) builds mathc via scripts/dev build (the same
-      # command CI runs); (2) runs `mc render --out dist/` which
+      # command CI runs); (2) runs `mathc render --out dist/` which
       # walks site/, decisions/, axioms/ and emits the static site;
       # (3) copies assets/{style.css,site.js}; (4) verifies the
       # allowlist of expected files under dist/ and exits non-zero
@@ -92,7 +92,7 @@ jobs:
         timeout-minutes: 15
 
       # Hand `dist/` to the `deploy` job as a Pages artifact.
-      # `path: dist` matches the default `--out` of `mc render` and
+      # `path: dist` matches the default `--out` of `mathc render` and
       # the only directory scripts/render.sh writes to.
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

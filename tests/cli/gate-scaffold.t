@@ -1,4 +1,4 @@
-mc gate BASE HEAD exits 0 and prints a JSON object containing
+mathc gate BASE HEAD exits 0 and prints a JSON object containing
 at minimum the keys "verdict", "gaps", "obligations", "now",
 "base", "head". The verdict is "unknown" or "pass" (never "pass"
 without an attestation store; see bootstrap/gate-decision.yaml

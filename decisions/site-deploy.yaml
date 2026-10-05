@@ -10,8 +10,8 @@ intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own
   gate. The site **demonstrates** the methodology: it is
-  built by `mc render`, links between pages reuse the
-  `mc explain` and `mc packages` output, and the build
+  built by `mathc render`, links between pages reuse the
+  `mathc explain` and `mathc packages` output, and the build
   pipeline (`.github/workflows/site.yml`) is the same
   `scripts/dev verify` shell the protocol mandates for
   every other merge.
@@ -32,13 +32,13 @@ intent: |
   serves locally and on Pages.
 
 commitment: |
-  `bin/Mathc.ml` dispatches `mc render [--out DIR] [--lang en|ru]
+  `bin/Mathc.ml` dispatches `mathc render [--out DIR] [--lang en|ru]
   [--site-base HREF] [--mathjax|--no-mathjax] [--mermaid|--no-mermaid]`
   to invoke a pure function in `lib/render.ml`. The render function:
     1. reads source articles from `site/*.md` and the bilingual
        siblings `site/*.ru.md` when present,
     2. walks `decisions/*.yaml` + `attestations/*.json` to
-       produce the package grid (`mc packages --format=html`),
+       produce the package grid (`mathc packages --format=html`),
     3. emits a complete static site under `--out` (default
        `dist/`) with index, axiom pages, methodology,
        bootstrap-gate, packages, MANIFESTO, FOUNDATIONS, WORKFLOW,
@@ -52,7 +52,7 @@ commitment: |
        drift.
 
   `scripts/render.sh` builds mathc via `scripts/dev build`
-  and runs `mc render`. `.github/workflows/site.yml` is
+  and runs `mathc render`. `.github/workflows/site.yml` is
   pinned to `ubuntu-22.04` and runs `scripts/render.sh` on
   every push to main; the resulting `dist/` is published to
   GitHub Pages.
@@ -108,7 +108,7 @@ counterexample: |
       directly in six Markdown articles via inline `<span
       style>` attributes. A token rename would silently break
       those spans. Mitigation: the six articles render via
-      `mc render`, which injects a CSS-class wrapper around
+      `mathc render`, which injects a CSS-class wrapper around
       every inline style attribute, and the README/FAQ/etc.
       Markdown sources use semantic class names (`palette-bg`,
       `palette-fg`, `palette-accent`) that resolve to the
@@ -121,14 +121,14 @@ counterexample: |
       forgets to update the Russian sibling drifts. Mitigation:
       `tests/render_kernel.ml::bilingual_pairs_complete` asserts that
       every `site/*.md` with siblings has a `.ru.md` counterpart
-      and vice versa. The protocol's `mc packages --format=html`
+      and vice versa. The protocol's `mathc packages --format=html`
       surfaces only the English version; readers who navigate
       to the Russian version do so explicitly.
 
 obligations:
   - id: render-kernel-impl
     statement: |
-      `mc render` populates `dist/` with the full site tree.
+      `mathc render` populates `dist/` with the full site tree.
     outcome: render-impl
     acceptance:
       all:
@@ -140,12 +140,12 @@ obligations:
   - id: site-content-self-referential
     statement: |
       At least 3 site articles cite the protocol's own
-      decisions (e.g. `bootstrap-v3`, `mc-packages-subcommand`,
+      decisions (e.g. `bootstrap-v3`, `mathc-packages-subcommand`,
       `site-deploy`). The site is its own first consumer.
     outcome: site-self-referential
     acceptance:
       all:
-        - verifier: grep -l "mc packages" dist/*.html | wc -l >= 3
+        - verifier: grep -l "mathc packages" dist/*.html | wc -l >= 3
           result: pass
 
   - id: site-deploy-pipeline
@@ -331,7 +331,7 @@ unknowns:
     to a future rev; current rev 2 ships EN+RU.
   - Whether the site should be served under a custom domain.
     Deferred; default `math-coding` repo Pages URL.
-  - Whether to expose a `mc serve` for local preview. Implemented
+  - Whether to expose a `mathc serve` for local preview. Implemented
     as `scripts/dev serve` (calls `python3 -m http.server` on
     `dist/`) — not a kernel surface.
   - Whether sidenotes should support Arabic, CJK, or RTL

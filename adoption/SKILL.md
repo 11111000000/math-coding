@@ -6,13 +6,13 @@ description: |
   decisions", "we need an audit trail", or mentions obligations,
   attestations, or waiver in a project context. Do not trigger on casual
   uses of "decision" or "obligation" in ordinary conversation.
-compatible_with: mc@>=3.0.0.20
+compatible_with: mathc@>=3.0.0.20
 ---
 
 # math-coding
 
 Math-coding binds every change to a written commitment, a list of
-obligations, and bounded evidence. The kernel (`mc`) checks that
+obligations, and bounded evidence. The kernel (`mathc`) checks that
 nothing is silently promoted from `unknown` to `pass`.
 
 The protocol does not prove software correctness. It refuses to.
@@ -54,10 +54,10 @@ schema. The migration cost is one decision and one CI change.
 # or wait for a future release with musl support.
 MC_VERSION=3.0.0.20
 URL="https://github.com/11111000000/math-coding/releases/download/v${MC_VERSION}"
-wget -qO ~/.local/bin/mc "${URL}/mc-linux-amd64"
-chmod +x ~/.local/bin/mc
+wget -qO ~/.local/bin/mathc "${URL}/mathc-linux-amd64"
+chmod +x ~/.local/bin/mathc
 export PATH="$HOME/.local/bin:$PATH"
-mc version
+mathc version
 ```
 
 If `~/.local/bin` is not on `$PATH`, the line above sets it for the
@@ -81,7 +81,7 @@ curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/decisi
 $EDITOR decisions/decision.yaml
 ```
 
-`mc version` should print `math-coding 3.0-alpha: bootstrap` and exit 0
+`mathc version` should print `math-coding 3.0-alpha: bootstrap` and exit 0
 on the current release. If it does not, the binary you downloaded is
 not the same release as this skill; see `compatible_with` in the
 frontmatter above.
@@ -131,11 +131,11 @@ relations:
 ## Step 4. Validate and self-check
 
 ```bash
-mc validate decisions/<id>.yaml   # exits 0 on accept, 1 on reject, 2 on input
-mc self-check                     # exits 0 on pass; non-zero blocks merge
+mathc validate decisions/<id>.yaml   # exits 0 on accept, 1 on reject, 2 on input
+mathc self-check                     # exits 0 on pass; non-zero blocks merge
 ```
 
-The first `mc self-check` after a fresh bootstrap may return `stale`
+The first `mathc self-check` after a fresh bootstrap may return `stale`
 because no attestation has been recorded yet. That is expected; the
 gate does not block until a policy change makes a missing attestation
 an obligation.

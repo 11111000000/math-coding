@@ -7,7 +7,7 @@
 
 A discipline of recording architectural commitments as
 packets before the code that implements them. The kernel
-(`mc`) checks the commitment against the code on every
+(`mathc`) checks the commitment against the code on every
 merge.
 
 ### What is mathcoding?
@@ -31,7 +31,7 @@ dependency would break the reproducibility guarantee the
 kernel is built around. The hand-rolled subset loader is
 sufficient for the bootstrap files and stays tiny.
 
-### Why a hand-rolled Markdown subset for `mc render`?
+### Why a hand-rolled Markdown subset for `mathc render`?
 
 Same reason. The published prose uses a narrow subset
 (headings, paragraphs, lists, code blocks, sidenotes).
@@ -94,5 +94,5 @@ diff. See `AGENTS.md` §Self-application.
 1. Read [Methodology](methodology.html).
 2. Read [Axioms](axioms.html).
 3. Read [Foundations](foundations.html).
-4. Run `mc self-check` on this repository.
+4. Run `mathc self-check` on this repository.
 5. Adopt the discipline in your own.

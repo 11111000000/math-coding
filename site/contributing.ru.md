@@ -22,7 +22,7 @@
 
 - **Уровень 1 и выше**: функциональная ветка от `main`,
   имя строится как `<группа>/<краткое-имя>` (например,
-  `site/tufte-redesign`, `mc/packages-html`).
+  `site/tufte-redesign`, `mathc/packages-html`).
 - **Уровень 3 и выше**: разнесите по нескольким
   запросам на слияние согласно порядку merge из
   `OCAML_BEST_PRACTICES.md` §P4: сначала решения, затем
@@ -79,7 +79,7 @@ ci: ...
 
 Заголовки запросов на слияние следуют той же конвенции.
 Поле scope называет затронутый пакет или модуль ядра
-(`mc-self-check`, `lib/render`, `bin/Mathc`,
+(`mathc-self-check`, `lib/render`, `bin/Mathc`,
 `decisions/site-deploy` и так далее).
 
 ## Честные по длительности коммиты
@@ -113,7 +113,7 @@ feat(kernel): добавить risk-классификатор (kernel-change p9
   пересоздавайте `tests/cram/`.
 - Все оценки длительности ссылаются на референсный класс
   из `bin/data/time-distribution.yaml` через
-  `mc time-estimate`.
+  `mathc time-estimate`.
 
 ## Когда застряли
 

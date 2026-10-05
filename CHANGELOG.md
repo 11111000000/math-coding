@@ -164,7 +164,7 @@ All 13 Tier 3.5 tasks are landed on `main`:
   `cross-references-correct`, `applicability-documented`,
   `kernel-conformance-baseline`, `adoption-path-documented`,
   `backward-compat-test`, `implementation-roadmap`. With
-  these, `mc self-check` verdict flips from `unknown` to
+  these, `mathc self-check` verdict flips from `unknown` to
   `pass` (28/28 subjects green).
 
 ### Remaining for v3.1.0 stabilisation
@@ -195,9 +195,9 @@ post-bootstrap hardening.
 
 ### Added
 
-- `mc packages [--format=text|json|html]` — single-pane view of
+- `mathc packages [--format=text|json|html]` — single-pane view of
   every decision-obligation-verdict pair in the repository.
-- `mc render [--out DIR]` — static site generator; writes `dist/`
+- `mathc render [--out DIR]` — static site generator; writes `dist/`
   with `index.html`, `axioms.html`, `methodology.html`,
   `bootstrap-gate.html`, `packages.html`, per-decision pages,
   per-axiom pages, and a JSON search index.
@@ -205,7 +205,7 @@ post-bootstrap hardening.
   every push to main. Pinned to `ubuntu-22.04` (matches `ci.yml`;
   setup-ocaml/v2 needs darcs, unavailable on 24.04).
 - `scripts/render.sh` — local site-build pipeline: builds mathc,
-  runs `mc render`, copies assets, verifies the output allowlist,
+  runs `mathc render`, copies assets, verifies the output allowlist,
   exits non-zero on any missing file (self-attestation).
 - `scripts/dev close-branches [--yes]` — branch-hygiene utility
   per ROADMAP Tier-2 #4. Refuses to delete `main`, `HEAD`,
@@ -218,7 +218,7 @@ post-bootstrap hardening.
 - `site/methodology.md`, `site/bootstrap-gate.md`,
   `site/packages.md`, `site/axioms.md` — four articles. The
   site **demonstrates** the methodology (built by the kernel,
-  every page that documents a feature references `mc packages`).
+  every page that documents a feature references `mathc packages`).
 - `assets/style.css`, `assets/site.js` — dark monospace theme,
   navigation toggle.
 - `USAGE.md` — adoption runbook (install → adopt → author first
@@ -233,7 +233,7 @@ post-bootstrap hardening.
 
 ### Fixed
 
-- `mc explain` dispatcher was a broken promise in
+- `mathc explain` dispatcher was a broken promise in
   `spec/semantics.md §`explain` ``omitted[].expansion``. Closed
   in v3.0.0.19 by commit `6e922d3`.
 - `find_project_root` fallback chain (DUNE_SOURCEROOT +
@@ -246,13 +246,13 @@ post-bootstrap hardening.
   commit `8fa7fcf`; the eight manual checks remain as additive
   obligations on protected policy transitions.
 - `ROADMAP.md` — Tier-1 marked closed; new Tier-1 entries:
-  `mc packages`, `mc render`, `site-deploy`.
+  `mathc packages`, `mathc render`, `site-deploy`.
 - `PACKAGES.md` — D1, D2, D4, D6, D10 marked closed; new
   decisions registered.
-- `spec/semantics.md` — added `mc packages` and `mc render`
+- `spec/semantics.md` — added `mathc packages` and `mathc render`
   subcommand rows.
 - `bin/Mathc.ml` — added `do_packages` and `do_render`; the
-  `--out` long-flag is now accepted for `mc render`.
+  `--out` long-flag is now accepted for `mathc render`.
 - `lib/packages.ml` — pure kernel walker that joins decisions
   against the attestation store; renders JSON / text / HTML.
 - `lib/render.ml` — pure site generator with a Markdown subset
@@ -285,8 +285,8 @@ m3-foundation
 m3/attestation-store-fill
 m3/d4-sha256-fix
 m3/gate-attestation-store
-m3/mc-explain
-m3/mc-self-check
+m3/mathc-explain
+m3/mathc-self-check
 m3/pre-existing-fixes
 m3/traplog-restore
 setup-site-and-ci
@@ -304,9 +304,9 @@ history; not in scope).
 ## v3.0.0.19 — 2026-09-29 — bootstrap-gate expiry
 
 **Status:** last release under the bootstrap protocol. Audit
-chain: closes D1, D2, D4. Ships `mc explain`, `mc self-check`
-dispatcher, attestation store (75 files populated), `mc gate`
-real verdict against the store. CI step `mc self-check` becomes
+chain: closes D1, D2, D4. Ships `mathc explain`, `mathc self-check`
+dispatcher, attestation store (75 files populated), `mathc gate`
+real verdict against the store. CI step `mathc self-check` becomes
 blocking (`continue-on-error: false`).
 
 ## v3.0.0.18 and earlier

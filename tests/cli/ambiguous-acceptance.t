@@ -1,4 +1,4 @@
-mc validate exits 0 on a decision whose acceptance carries both
+mathc validate exits 0 on a decision whose acceptance carries both
 verifier and review: the kernel accepts the verifier half and emits
 the MC-AMBIGUOUS-ACCEPTANCE diagnostic on stderr naming the
 obligation id. This pins the silent-drop fix recorded against

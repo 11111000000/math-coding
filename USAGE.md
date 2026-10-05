@@ -6,7 +6,7 @@ math-coding protocol. For AI-agent adoption see the canonical skill at
 
 ## Install
 
-Two ways to get `mc` (`bin/mathc.exe` once compiled):
+Two ways to get `mathc` (`bin/mathc.exe` once compiled):
 
 - Download a release binary from the project's GitHub releases page
   (Linux or macOS).
@@ -20,8 +20,8 @@ GitHub Copilot) to apply math-coding in your repository, copy the
 matching file from the latest release tarball under
 `dist/adoption/<platform>/` into the path named in
 [`adoption/SKILL.md`](adoption/SKILL.md) §"Deploy this skill to your
-platform". The skill walks the agent through four steps: install `mc`,
-bootstrap the repo, author one decision, run `mc self-check`.
+platform". The skill walks the agent through four steps: install `mathc`,
+bootstrap the repo, author one decision, run `mathc self-check`.
 
 For manual adoption, follow the same four steps by reading the skill.
 
@@ -69,7 +69,7 @@ For applicable projects. The full ceremony is justified.
 - Use the AI-agent skill from
   [`adoption/SKILL.md`](adoption/SKILL.md) (preferred) or follow the
   four steps in it manually.
-- Wire the blocking `mc self-check` into CI per the project's
+- Wire the blocking `mathc self-check` into CI per the project's
   [`.github/workflows/ci.yml`](https://github.com/11111000000/math-coding/blob/main/.github/workflows/ci.yml).
 - Populate the attestation store on day one so the gate goes green.
 
@@ -105,9 +105,9 @@ questions, in this order:
 
 1. Does the diff touch only files in `scope.paths[]`? If not, the
    decision does not authorise it.
-2. Does every new artifact pass `mc validate` against its JSON Schema?
+2. Does every new artifact pass `mathc validate` against its JSON Schema?
 3. Does each obligation name a fixture path that is present and green?
-4. Does `mc self-check` pass on the branch HEAD?
+4. Does `mathc self-check` pass on the branch HEAD?
 
 A `no` on any of these is a block, not a waiver. AI agents walking
 the same checks find the questions enumerated at the top of

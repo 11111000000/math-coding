@@ -14,7 +14,7 @@ intent: |
   carry `body_sha: ""` and `yaml_sha: ""` as stubs, while the schema
   pattern `^sha256:[0-9a-f]{64}$` does not accept empty strings. The
   kernel currently does not enforce this pattern strictly
-  (`mc validate` accepts both forms), but the schema declaration
+  (`mathc validate` accepts both forms), but the schema declaration
   remains a latent inconsistency: any future schema-enforcing tool
   would reject the existing decisions.
 
@@ -118,7 +118,7 @@ obligations:
   - id: kernel-unchanged
     outcome: schema-matches-kernel
     claim: |
-      No change to `lib/` or `bin/`. `mc validate` continues to
+      No change to `lib/` or `bin/`. `mathc validate` continues to
       accept all 32 existing decision files.
     acceptance:
       all:

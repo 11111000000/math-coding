@@ -11,7 +11,7 @@
 
 This audit is a gap inventory at the boundary between docs,
 kernel, schema, parser, fixtures, attestations, and the
-`mc self-check` blocking gate. It enumerates 13 specific
+`mathc self-check` blocking gate. It enumerates 13 specific
 defects (D21.1 … D21.13) and routes each to a single owner
 phase in the cycle plan (Phases 0–5 in this audit's
 sister document).
@@ -30,34 +30,34 @@ in two commands:
 
 ```bash
 # Reproduces D21.1, D21.5, D21.6, D21.9, D21.10
-mc packages --format=json | jq '.counts'
-mc self-check | jq '.verdict, (.subjects | length)'
+mathc packages --format=json | jq '.counts'
+mathc self-check | jq '.verdict, (.subjects | length)'
 
 # Reproduces D21.2, D21.3, D21.4
-mc validate decisions/decision.yaml
-mc validate fixtures/conformance/decision/positive-minimal.json
-mc re-evaluate bootstrap-v3 A1
+mathc validate decisions/decision.yaml
+mathc validate fixtures/conformance/decision/positive-minimal.json
+mathc re-evaluate bootstrap-v3 A1
 ```
 
 ## Summary
 
 | ID | One-line | Severity | Phase |
 |---|---|---|---|
-| D21.1 | `mc self-check` returns `unknown` on clean HEAD, not `pass` | **blocking** | 2 |
-| D21.2 | `mc validate` rejects every YAML decision in the repo (32/32) | **blocking** | 1 |
+| D21.1 | `mathc self-check` returns `unknown` on clean HEAD, not `pass` | **blocking** | 2 |
+| D21.2 | `mathc validate` rejects every YAML decision in the repo (32/32) | **blocking** | 1 |
 | D21.3 | Two incompatible decision models (strict schema-driven vs line-based) | structural | 1 |
-| D21.4 | `mc re-evaluate` cannot load any decision (returns "unknown DECISION_ID" for all) | **blocking** | 1 |
+| D21.4 | `mathc re-evaluate` cannot load any decision (returns "unknown DECISION_ID" for all) | **blocking** | 1 |
 | D21.5 | `tests/cli/self-check-pass.t` snapshot expects `verdict:"unknown"` despite preamble claiming `pass` | documentation lie | 2 |
 | D21.6 | PACKAGES.md/ROADMAP.md/AUDIT-0.0.20.md quote `28 active decisions / 94 attestations`; actual `29 / 105` | drift | 3 |
 | D21.7 | PACKAGES.md main table omits 5 active decisions | drift | 3 |
 | D21.8 | PACKAGES.md cram table omits 4 cram fixtures | drift | 3 |
 | D21.9 | README.md CLI table lists 13 subcommands; kernel implements 17 | drift | 3 |
-| D21.10 | Obligation-count breakdown in PACKAGES.md (`72+7+0=79`) does not match `mc packages` (`103`) | drift | 3 |
+| D21.10 | Obligation-count breakdown in PACKAGES.md (`72+7+0=79`) does not match `mathc packages` (`103`) | drift | 3 |
 | D21.11 | `lib/memory.ml:load_decisions` hardcodes 4 files (contradicts ROADMAP P1) | structural | 4 |
 | D21.12 | `spec/constitution.md:149` contains `MUST MUST` typo | typo | 4 |
 | D21.13 | `git config core.hooksPath` is empty; pre-commit hook is not registered | process | 4 |
 
-## D21.1 — `mc self-check` is `unknown` on clean HEAD
+## D21.1 — `mathc self-check` is `unknown` on clean HEAD
 
 **Gap.** AGENTS.md:6 states the bootstrap gate has expired
 because "the released 3.0 kernel successfully checks this
@@ -71,7 +71,7 @@ blocking CI step (per `constitution.md` Invariant 14).
 - `doc/AUDIT-0.0.20.md:44` — "subjects_count=28, pass_count=28"
 - `tests/cli/self-check-pass.t:2-3` — preamble claims verdict `"pass"` and exit `0`
 
-**What actually happens.** Running `mc self-check` returns
+**What actually happens.** Running `mathc self-check` returns
 `verdict:"unknown"`, exit `3`. Two store configurations:
 
 - Live store (`attestations/`): 31 subjects, 30 pass,
@@ -98,13 +98,13 @@ and CI runs have been observed to fail at the
 `Init opam (Alpine musl container)` step per the commit log
 of `release.yml`. Live store = same broken state.
 
-## D21.2 — `mc validate` rejects every YAML decision
+## D21.2 — `mathc validate` rejects every YAML decision
 
 **Gap.** The kernel's strict validator (`Decision.parse_decision`
-in `lib/decision.ml`) is the gate for `mc validate`. Every file
+in `lib/decision.ml`) is the gate for `mathc validate`. Every file
 under `decisions/*.yaml` should pass it. None do.
 
-**Where it surfaces.** `mc validate decisions/<file>.yaml`
+**Where it surfaces.** `mathc validate decisions/<file>.yaml`
 for any of the 32 files. Each returns reject and the diagnostic
 `MC-DECISION-INVALID / "missing or invalid required field"`.
 
@@ -124,10 +124,10 @@ emits the coarse diagnostic "missing or invalid required field"
 **Consequence.** The kernel has two incompatible models of
 what a decision is:
 
-1. The strict schema-driven model used by `mc validate`
+1. The strict schema-driven model used by `mathc validate`
    (accepts only the JSON shape used by conformance fixtures).
-2. The line-based model used by `mc self-check`, `mc packages`,
-   `mc gate` (extracts id and obligations via line regex
+2. The line-based model used by `mathc self-check`, `mathc packages`,
+   `mathc gate` (extracts id and obligations via line regex
    in `bin/Mathc.ml:1958-2080` and `lib/memory.ml:134`).
 
 The first model never sees the project's own decisions.
@@ -137,8 +137,8 @@ The second model never uses the schema. They disagree.
 should write JSON." Production code, fixtures, schema docs,
 and migration scripts all assume the YAML form. Migrating
 29 active decisions to JSON would break every downstream
-consumer (`mc self-check`, `mc packages`, `mc gate`,
-`mc context`, `mc explain`) and require a kernel rewrite.
+consumer (`mathc self-check`, `mathc packages`, `mathc gate`,
+`mathc context`, `mathc explain`) and require a kernel rewrite.
 
 ## D21.3 — Two incompatible decision models
 
@@ -146,17 +146,17 @@ See D21.2 for the description. The fix is unification:
 the schema accepts the YAML form; the parser parses the
 YAML form; both yield the same domain value.
 
-## D21.4 — `mc re-evaluate` cannot load any decision
+## D21.4 — `mathc re-evaluate` cannot load any decision
 
-**Gap.** `mc re-evaluate DECISION_ID AXIOM_ID` is a 3.2-ideal
+**Gap.** `mathc re-evaluate DECISION_ID AXIOM_ID` is a 3.2-ideal
 subcommand implementing `lib/re_evaluation.ml`'s `re_evaluate`
 oracle (algebra-3.2 §17).
 
 **Where it surfaces.** Any invocation:
 
 ```
-$ mc re-evaluate bootstrap-v3 A1
-mc re-evaluate: unknown DECISION_ID bootstrap-v3
+$ mathc re-evaluate bootstrap-v3 A1
+mathc re-evaluate: unknown DECISION_ID bootstrap-v3
 ```
 
 The error fires for **every** decision ID, including the
@@ -189,7 +189,7 @@ preamble vs. `:17` snapshot.
 
 **What actually happens.** The snapshot reads:
 `{"verdict":"unknown","pass_count":29,"fail_count":0,
-"unknown_count":2,"subjects_len":31,...}`. Running `mc
+"unknown_count":2,"subjects_len":31,...}`. Running `mathc
 self-check` against the same fixture reproduces this.
 
 **History.** Commit `2e0cb95` (2026-09-29) authored the
@@ -212,10 +212,10 @@ match the kernel.
 | Source | Claimed | Actual | Δ |
 |---|---|---|---|
 | `PACKAGES.md:11` | `attestations/ contains 94 files` | `105` | +11 |
-| `PACKAGES.md:14` | `mc packages reports 28 active decisions` | `29` | +1 |
-| `PACKAGES.md:19` | `mc self-check … subjects_count=28` | `31` | +3 |
+| `PACKAGES.md:14` | `mathc packages reports 28 active decisions` | `29` | +1 |
+| `PACKAGES.md:19` | `mathc self-check … subjects_count=28` | `31` | +3 |
 | `ROADMAP.md:7` | `attestations/ is populated (94 files)` | `105` | +11 |
-| `ROADMAP.md:79` | `mc self-check verdict: pass (28/28)` | `29 pass + 2 unknown (31 total)` | mixed |
+| `ROADMAP.md:79` | `mathc self-check verdict: pass (28/28)` | `29 pass + 2 unknown (31 total)` | mixed |
 | `ROADMAP.md:178` | `tests/cli/*.t (15 files at HEAD)` | `32` | +17 |
 | `doc/AUDIT-0.0.20.md:44-45` | `subjects_count=28, pass_count=28` | `31, 29` | +3 |
 | `doc/AUDIT-0.0.20.md:47` | `attestations/ contains 94 files` | `105` | +11 |
@@ -290,11 +290,11 @@ new subcommand without first adding a row here").
 
 **Gap.** PACKAGES.md:14-18 says:
 ```
-mc packages reports 28 active decisions / 79 obligations
+mathc packages reports 28 active decisions / 79 obligations
 (72 original + 7 from algebra-3.2 + 0 from portable-linux-musl)
 ```
 
-`mc packages --format=json` reports:
+`mathc packages --format=json` reports:
 ```
 { total: 103, pass: 96, missing: 7 }
 ```
@@ -302,7 +302,7 @@ mc packages reports 28 active decisions / 79 obligations
 The breakdown `72 + 7 + 0 = 79` does not sum to `103`. The
 arithmetic is wrong by `24`.
 
-**Cause.** PACKAGES.md was last updated when `mc packages`
+**Cause.** PACKAGES.md was last updated when `mathc packages`
 reported `79` obligations (rev 2 of `obligation-count-reconcile`,
 commit `93e765a`). Since then, five additional decisions
 landed (`3-2-cli-catalog`, `ci-blocking-list-config`,
@@ -332,8 +332,8 @@ let paths = [
 ROADMAP.md P1 (process-principles) requires the dispatcher
 to walk the full directory (`tests/cli/self-check-pass.t:7-8`
 echoes this). The kernel's other entry points
-(`bin/Mathc.ml:2061` `mc self-check`,
-`bin/Mathc.ml:2426` `mc packages`) use
+(`bin/Mathc.ml:2061` `mathc self-check`,
+`bin/Mathc.ml:2426` `mathc packages`) use
 `Sys.readdir` over `decisions/`. Only the `memory.ml`
 capsule builder uses the hardcoded list.
 
@@ -344,9 +344,9 @@ unintended consequences for the gate-* cram fixtures".
 The revert message does not explain the unintended
 consequence.
 
-**Consequence.** `mc context BASE HEAD --budget N` produces
+**Consequence.** `mathc context BASE HEAD --budget N` produces
 a capsule that names 4 of 29 active decisions. An agent
-reading the capsule has no visibility into `mc self-check`,
+reading the capsule has no visibility into `mathc self-check`,
 `gate-decision`, `algebra-3.2`, `site-deploy`, etc.
 
 ## D21.12 — `spec/constitution.md:149` contains `MUST MUST`
@@ -392,20 +392,20 @@ catch is in CI.
 ## Authoritative numbers (verified at HEAD `d10732d`)
 
 ```bash
-$ mc packages --format=json | jq '.counts'
+$ mathc packages --format=json | jq '.counts'
 { fail: 0, missing: 7, no_store: 0, pass: 96,
   stale: 0, total: 103, unknown: 0, waived: 0 }
 
-$ mc packages --format=json | jq '.decisions | length'
+$ mathc packages --format=json | jq '.decisions | length'
 29
 
-$ mc self-check | jq '.subjects | length'
+$ mathc self-check | jq '.subjects | length'
 31
 
-$ mc self-check | jq '.verdict'
+$ mathc self-check | jq '.verdict'
 "unknown"
 
-$ mc self-check | jq '[.subjects[] | select(.verdict == "pass")] | length'
+$ mathc self-check | jq '[.subjects[] | select(.verdict == "pass")] | length'
 29
 
 $ ls attestations/ | wc -l
@@ -417,7 +417,7 @@ $ ls tests/cli/*.t | wc -l
 $ ls decisions/*.yaml | wc -l
 32
 
-$ mc validate decisions/decision.yaml
+$ mathc validate decisions/decision.yaml
 reject: decisions/decision.yaml
   code: MC-DECISION-INVALID
   severity: warn
@@ -444,17 +444,17 @@ to main.
 
 | Source | Where | Type |
 |---|---|---|
-| `mc packages --format.json` | run at HEAD | observed |
-| `mc self-check` | run at HEAD | observed |
-| `mc validate decisions/*.yaml` | 32 invocations | observed |
-| `mc re-evaluate <known-id> A1` | 4 invocations | observed |
+| `mathc packages --format.json` | run at HEAD | observed |
+| `mathc self-check` | run at HEAD | observed |
+| `mathc validate decisions/*.yaml` | 32 invocations | observed |
+| `mathc re-evaluate <known-id> A1` | 4 invocations | observed |
 | `git config core.hooksPath` | run at HEAD | observed |
 | `git log --oneline` | run at HEAD | observed |
 | `ls attestations/`, `ls tests/cli/*.t`, `ls decisions/*.yaml` | run at HEAD | observed |
 
 ## Outstanding after this cycle (deferred)
 
-- **D8** (`mc validate` coarse diagnostics) — pre-existing,
+- **D8** (`mathc validate` coarse diagnostics) — pre-existing,
   tracked at `doc/AUDIT-0.0.11.md:465`, scheduled for 3.0-beta.
 - The **portable-linux-musl** retirement signal (`alpine-ci-build-fails`)
   is unchanged; the 7 obligations stay missing unless a

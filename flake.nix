@@ -64,7 +64,7 @@
         # Default shell: kernel + CLI only.
         # `render` helper: closes site-deploy@1 obligation
         # `render-kernel-impl`. The script builds mathc via
-        # scripts/dev build, runs `mc render --out dist/`, copies
+        # scripts/dev build, runs `mathc render --out dist/`, copies
         # assets/, and verifies the output allowlist; non-zero on any
         # missing file (so it is its own attestation, per the
         # decision's declared acceptance verifiers).
@@ -82,7 +82,7 @@
             echo "  run 'scripts/render.sh' to render the site (site-deploy@1: render-kernel-impl)"
             echo "  run 'dune build' to compile kernel + CLI"
             echo "  run 'nix develop .#test' to enable alcotest"
-            echo "  run 'mc validate FILE' to validate a decision"
+            echo "  run 'mathc validate FILE' to validate a decision"
           '';
         };
 
@@ -107,7 +107,7 @@
             echo "  run 'scripts/render.sh' to render the site (site-deploy@1: render-kernel-impl)"
             echo "  run 'dune test' to run conformance suite"
             echo "  run 'dune build' to compile kernel + CLI"
-            echo "  run 'mc validate FILE' to validate a decision"
+            echo "  run 'mathc validate FILE' to validate a decision"
           '';
         };
 

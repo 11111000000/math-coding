@@ -89,8 +89,8 @@ let[@warning "-32"] manual_verifier_prefixes =
     "mathc-";
     "reference-class";
     "this-decision-file-present";
-    "mc ";
-    "mc-";
+    "mathc ";
+    "mathc-";
     "bash";
     "gh ";
     "grep ";
@@ -98,6 +98,8 @@ let[@warning "-32"] manual_verifier_prefixes =
     "dist/";
     "git ";
     "jq ";
+    "ls ";
+    "rg ";
   ]
 
 (* Manual-style exact verifier names. *)

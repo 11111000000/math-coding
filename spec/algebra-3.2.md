@@ -706,7 +706,7 @@ Path A — full 3.2:
   Step 1: download kernel binary from releases (Linux/macOS/Windows × x86_64/aarch64)
   Step 2: read USAGE.md + AGENTS.md + axioms/ (~1100 lines)
   Step 3: copy decisions/decision.yaml template to user's project
-  Step 4: enable mc gate as blocking CI step
+  Step 4: enable mathc gate as blocking CI step
   Step 5: populate attestation store from CI logs
   friction_user: 1100_lines_once + per-commit as in §21
   friction_kernel_dev: amortized, shared with all users
@@ -714,7 +714,7 @@ Path A — full 3.2:
 Path C — no math-coding (regular ADR):
   Step 1: standard ADR practice (one markdown file per decision)
   Step 2: counterexample as prose paragraph in ADR
-  Step 3: PR review for verdict (no mc gate)
+  Step 3: PR review for verdict (no mathc gate)
   Step 4: CI logs as evidence (no attestation store)
   friction: 0 (regular practice)
 

@@ -240,7 +240,7 @@ obligations:
     claim: |
       All existing kernel modules (lib/*.ml, bin/Mathc.ml) satisfy
       the 14 invariants I1-I14 from spec/constitution.md. This is
-      verified by `mc self-check` returning `pass` on clean HEAD.
+      verified by `mathc self-check` returning `pass` on clean HEAD.
     acceptance:
       all:
         - verifier: tests/conformance.ml

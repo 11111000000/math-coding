@@ -1,4 +1,4 @@
-mc context with --budget 100000 produces a JSON capsule whose
+mathc context with --budget 100000 produces a JSON capsule whose
 top-level object carries the documented keys (base, change,
 decisions, obligations, head, items, omitted, total_bytes,
 truncated). The `now` field is non-deterministic and the absolute

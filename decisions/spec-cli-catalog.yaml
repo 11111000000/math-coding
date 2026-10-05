@@ -7,8 +7,8 @@ state: active
 body_sha: ""
 yaml_sha: ""
 intent: |
-  Close the doc/AUDIT-0.0.11.md "Promote `mc validate`, `mc
-  context`, `mc assess`, `mc attest` in `spec/semantics.md`" gap
+  Close the doc/AUDIT-0.0.11.md "Promote `mathc validate`, `mathc
+  context`, `mathc assess`, `mathc attest` in `spec/semantics.md`" gap
   (recommendation §Process improvements item 13) by adding a
   normative "CLI subcommands" section to spec/semantics.md that
   lists every mathc subcommand the 3.0-alpha kernel ships at HEAD,
@@ -79,7 +79,7 @@ outcomes:
       Kernel Output. Reading the spec from top to bottom, the
       reader encounters the CLI surface before the priority
       semantics that depend on it (the priority table is what
-      `mc context` emits).
+      `mathc context` emits).
   - id: implementation-remains-unchanged
     statement: |
       bin/Mathc.ml is NOT modified by this decision. The

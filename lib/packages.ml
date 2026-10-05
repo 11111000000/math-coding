@@ -1,4 +1,4 @@
-(* lib/packages.ml — kernel aggregator for `mc packages`.
+(* lib/packages.ml — kernel aggregator for `mathc packages`.
 
    Walks every decision in `decisions/` and joins each obligation
    against the attestation store at `attestations/`. Returns a
@@ -474,26 +474,26 @@ let[@warning "-32"] html_escape s =
 let[@warning "-32"] to_html (p : package_list) =
   let buf = Buffer.create 512 in
   Printf.bprintf buf
-    "<section class=\"mc-packages\" data-mc-package-count=\"%d\" \
-     data-mc-as-of=\"%s\" data-mc-policy=\"%s\">\n"
+    "<section class=\"mathc-packages\" data-mathc-package-count=\"%d\" \
+     data-mathc-as-of=\"%s\" data-mathc-policy=\"%s\">\n"
     p.counts.total (html_escape p.as_of) (html_escape p.policy_id);
   Printf.bprintf buf "<h2>math-coding packages</h2>\n";
   Printf.bprintf buf
-    "<p class=\"mc-counts\">total=%d pass=%d fail=%d unknown=%d stale=%d \
+    "<p class=\"mathc-counts\">total=%d pass=%d fail=%d unknown=%d stale=%d \
      missing=%d no_store=%d</p>\n"
     p.counts.total p.counts.pass p.counts.fail p.counts.unknown p.counts.stale
     p.counts.missing p.counts.no_store;
   List.iter
     (fun d ->
-      Printf.bprintf buf "<article class=\"mc-decision\">\n";
+      Printf.bprintf buf "<article class=\"mathc-decision\">\n";
       Printf.bprintf buf "<h3>%s</h3>\n" (html_escape d.decision_id);
-      Printf.bprintf buf "<ul class=\"mc-obligations\">\n";
+      Printf.bprintf buf "<ul class=\"mathc-obligations\">\n";
       List.iter
         (fun o ->
           Printf.bprintf buf
-            "  <li class=\"mc-obligation mc-verdict-%s\" \
-             data-mc-verdict=\"%s\"><code>%s</code> <span \
-             class=\"mc-verdict-label\">%s</span></li>\n"
+            "  <li class=\"mathc-obligation mathc-verdict-%s\" \
+             data-mathc-verdict=\"%s\"><code>%s</code> <span \
+             class=\"mathc-verdict-label\">%s</span></li>\n"
             (html_escape o.verdict) (html_escape o.verdict) (html_escape o.id)
             (html_escape o.verdict))
         d.obligations;

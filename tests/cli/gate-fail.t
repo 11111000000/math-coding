@@ -1,4 +1,4 @@
-mc gate BASE HEAD with an attestation store whose entries include
+mathc gate BASE HEAD with an attestation store whose entries include
 a decisive fail attestation for one obligation emits verdict
 "block" and exits 1 (constitution.md Invariant 14 — exit honesty).
 The remaining obligations either pass or surface as

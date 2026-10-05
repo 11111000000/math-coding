@@ -1,24 +1,24 @@
 (* math-coding CLI.
  *
  * Subcommands:
- *   mc version                       - print the bootstrap hello and exit 0.
- *   mc validate FILE [--format=...]  - parse FILE as a decision. Exits
+ *   mathc version                       - print the bootstrap hello and exit 0.
+ *   mathc validate FILE [--format=...]  - parse FILE as a decision. Exits
  *                                      0/1/2/3 per spec/semantics.md and
  *                                      OCAML_BEST_PRACTICES §4.3.
  *                                      FILE may be .json or .yaml.
- *   mc context BASE HEAD --budget N  - print a JSON capsule of relevant
+ *   mathc context BASE HEAD --budget N  - print a JSON capsule of relevant
  *                                      context (decisions, obligations,
  *                                      changed paths, recent commits)
  *                                      for an LLM agent. Exit 0 on
  *                                      success, 2 on input error.
- *   mc assess BASE HEAD              - print a JSON array of changed
+ *   mathc assess BASE HEAD              - print a JSON array of changed
  *                                      file paths under BASE..HEAD via
  *                                      `git diff --name-only`. Exit 0
  *                                      on success; exit 2 if git fails
  *                                      or positional arguments are
  *                                      wrong. BASE and HEAD may be any
  *                                      git ref (commit, branch, tag).
- *   mc attest FILE                   - parse FILE as a JUnit XML report
+ *   mathc attest FILE                   - parse FILE as a JUnit XML report
  *                                      and print a JSON summary on stdout.
  *                                      Exit 0 on success (including soft
  *                                      parse errors that populate an
@@ -222,7 +222,7 @@ let print_version () = print_endline "math-coding 3.0-alpha: bootstrap"
 
 let print_usage oc =
   Printf.fprintf oc
-    "usage: mc <command> [args]\n\n\
+    "usage: mathc <command> [args]\n\n\
      commands:\n\
     \  version                          print the bootstrap hello and exit 0\n\
     \  validate FILE [--format=...]     parse FILE as a decision\n\
@@ -273,7 +273,7 @@ let do_validate () =
         Arg.String set_format,
         " Output format: text (default) or json" );
     ]
-    set_file "usage: mc validate FILE [--format=...]";
+    set_file "usage: mathc validate FILE [--format=...]";
   let path = !file in
   if path = "" then begin
     print_usage stderr;
@@ -293,7 +293,7 @@ let read_file_for_capsule path =
   | e -> Error (`Other (Printexc.to_string e))
 
 (* Run `git log BASE..HEAD --oneline` or `git diff BASE..HEAD --name-only`
-   via the shell. We only run two invocations per `mc context` call;
+   via the shell. We only run two invocations per `mathc context` call;
    subprocess latency is acceptable here.
 
    Note: we read until EOF instead of using `in_channel_length` because
@@ -528,11 +528,11 @@ let[@warning "-32"] capsule_to_json cap =
          sorted)
   ^ "}\n"
 
-(* --- explain subcommand (bootstrap decision mc-explain-subcommand) --- *)
+(* --- explain subcommand (bootstrap decision mathc-explain-subcommand) --- *)
 
 (* Resolve a decision id to its project-relative file under
    decisions/. Mirrors the special-case table in
-   lib/capsule.ml:174-185 so a `mc context` omitted item with
+   lib/capsule.ml:174-185 so a `mathc context` omitted item with
    detail_ref `decision:<id>` resolves to the same file the
    capsule would have shown had the budget permitted. Returns
    a project-relative path so the JSON `path` field is portable
@@ -642,21 +642,21 @@ let[@warning "-32"] do_explain () =
   let positionals : string list ref = ref [] in
   let anon s = positionals := s :: !positionals in
   Arg.current := 1;
-  (try Arg.parse [] anon "usage: mc explain DETAIL_REF"
+  (try Arg.parse [] anon "usage: mathc explain DETAIL_REF"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc explain: %s\n" m;
+     Printf.fprintf stderr "mathc explain: %s\n" m;
      exit 2);
   let args = List.rev !positionals in
   let raw_ref =
     match args with
     | [ r ] -> r
     | [] ->
-        Printf.fprintf stderr "mc explain: missing DETAIL_REF\n";
+        Printf.fprintf stderr "mathc explain: missing DETAIL_REF\n";
         print_usage stderr;
         exit 2
     | _ ->
         Printf.fprintf stderr
-          "mc explain: expected one DETAIL_REF; got %d positional(s)\n"
+          "mathc explain: expected one DETAIL_REF; got %d positional(s)\n"
           (List.length args);
         print_usage stderr;
         exit 2
@@ -695,9 +695,9 @@ let do_context () =
   (try
      Arg.parse
        [ ("--budget", Arg.String set_budget, " Maximum bytes for the capsule") ]
-       anon "usage: mc context BASE HEAD [--budget N]"
+       anon "usage: mathc context BASE HEAD [--budget N]"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc context: %s\n" m;
+     Printf.fprintf stderr "mathc context: %s\n" m;
      exit 2);
   let args = List.rev !positionals in
   (match args with
@@ -705,12 +705,12 @@ let do_context () =
       base := b;
       head := h
   | [ _ ] ->
-      Printf.fprintf stderr "mc context: missing HEAD\n";
+      Printf.fprintf stderr "mathc context: missing HEAD\n";
       print_usage stderr;
       exit 2
   | _ ->
       Printf.fprintf stderr
-        "mc context: expected BASE HEAD; got %d positional(s)\n"
+        "mathc context: expected BASE HEAD; got %d positional(s)\n"
         (List.length args);
       print_usage stderr;
       exit 2);
@@ -725,7 +725,7 @@ let do_context () =
 
 (* --- assess subcommand ---
  *
- * `mc assess BASE HEAD` invokes Git_diff.changed_files with the
+ * `mathc assess BASE HEAD` invokes Git_diff.changed_files with the
  * current working directory and prints a JSON array of the changed
  * file paths on stdout. Exits 0 on success; exits 2 if the git
  * command fails or positional arguments are wrong. Follows the
@@ -735,9 +735,9 @@ let[@warning "-32"] do_assess () =
   let positionals : string list ref = ref [] in
   let anon s = positionals := s :: !positionals in
   Arg.current := 1;
-  (try Arg.parse [] anon "usage: mc assess BASE HEAD"
+  (try Arg.parse [] anon "usage: mathc assess BASE HEAD"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc assess: %s\n" m;
+     Printf.fprintf stderr "mathc assess: %s\n" m;
      exit 2);
   let args = List.rev !positionals in
   match args with
@@ -752,15 +752,15 @@ let[@warning "-32"] do_assess () =
           Printf.printf "[%s]\n" json_items;
           exit 0
       | Error msg ->
-          Printf.fprintf stderr "mc assess: %s\n" msg;
+          Printf.fprintf stderr "mathc assess: %s\n" msg;
           exit 2)
   | [ _ ] ->
-      Printf.fprintf stderr "mc assess: missing HEAD\n";
+      Printf.fprintf stderr "mathc assess: missing HEAD\n";
       print_usage stderr;
       exit 2
   | _ ->
       Printf.fprintf stderr
-        "mc assess: expected BASE HEAD; got %d positional(s)\n"
+        "mathc assess: expected BASE HEAD; got %d positional(s)\n"
         (List.length args);
       print_usage stderr;
       exit 2
@@ -800,13 +800,13 @@ let load_distribution root : Jsonl.value =
   | Ok s -> (
       try Codec.load_yaml_string s
       with _ ->
-        Printf.fprintf stderr "mc time-estimate: cannot parse %s\n" path;
+        Printf.fprintf stderr "mathc time-estimate: cannot parse %s\n" path;
         exit 2)
   | Error (`Sys m) ->
-      Printf.fprintf stderr "mc time-estimate: cannot read %s: %s\n" path m;
+      Printf.fprintf stderr "mathc time-estimate: cannot read %s: %s\n" path m;
       exit 2
   | Error _ ->
-      Printf.fprintf stderr "mc time-estimate: cannot read %s\n" path;
+      Printf.fprintf stderr "mathc time-estimate: cannot read %s\n" path;
       exit 2
 
 (* Look up class C inside the classes block. Returns (p50, p95)
@@ -826,7 +826,7 @@ let int_x10_or_exit (block : Jsonl.value) (k : string) (ctx : string) : int =
   match obj_int_opt block k with
   | Some n -> n
   | None ->
-      Printf.fprintf stderr "mc time-estimate: missing %s in %s\n" k ctx;
+      Printf.fprintf stderr "mathc time-estimate: missing %s in %s\n" k ctx;
       exit 2
 
 (* Percentile for non-stored quantiles. Linear interpolation
@@ -870,7 +870,8 @@ let[@warning "-32"] apply_multiplier (name : string) (count : int)
       let m = int_x10_or_exit block "factor_x10" name in
       (estimate *. (float_of_int m /. 10.0), [ name ])
   | _ ->
-      Printf.fprintf stderr "mc time-estimate: unknown --multiplier: %s\n" name;
+      Printf.fprintf stderr "mathc time-estimate: unknown --multiplier: %s\n"
+        name;
       exit 2
 
 let known_classes_json (dist : Jsonl.value) : string =
@@ -919,13 +920,13 @@ let[@warning "-32"] do_time_estimate () =
             cross_language_non_ocaml | test_required_with_runtime" );
        ]
        reject_positional
-       "usage: mc time-estimate --class <name> [--count N] [--percentile \
+       "usage: mathc time-estimate --class <name> [--count N] [--percentile \
         p50|p80|p95|p99] [--multiplier NAME]..."
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc time-estimate: %s\n" m;
+     Printf.fprintf stderr "mathc time-estimate: %s\n" m;
      exit 2);
   if !class_ref = "" then begin
-    Printf.fprintf stderr "mc time-estimate: --class is required\n";
+    Printf.fprintf stderr "mathc time-estimate: --class is required\n";
     exit 2
   end;
   let root = find_project_root (Sys.getcwd ()) in
@@ -1018,7 +1019,7 @@ let[@warning "-32"] do_time_estimate () =
  *
  * Writes the current UTC instant as one ISO 8601 line to
  * .local/session-start inside the project root. Re-runs
- * overwrite; the most recent call wins. Each `mc record` reads
+ * overwrite; the most recent call wins. Each `mathc record` reads
  * this file and uses (now - session_start) as the
  * wall-clock-minutes value. The user controls when the session
  * starts; the agent cannot influence the resulting elapsed
@@ -1088,9 +1089,9 @@ let[@warning "-32"] read_session_start () : string =
 let[@warning "-32"] do_session_start () =
   let anon _ = raise (Arg.Bad "no positional arguments expected") in
   Arg.current := 1;
-  (try Arg.parse [] anon "usage: mc session-start"
+  (try Arg.parse [] anon "usage: mathc session-start"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc session-start: %s\n" m;
+     Printf.fprintf stderr "mathc session-start: %s\n" m;
      exit 2);
   write_session_start ()
 
@@ -1174,17 +1175,17 @@ let[@warning "-32"] do_record () =
             wall-clock-minutes" );
        ]
        (fun _ -> raise (Arg.Bad "no positional arguments expected"))
-       "usage: mc record --decision-id ID [--revision REV] --scale S [--class \
-        C] [--value N]"
+       "usage: mathc record --decision-id ID [--revision REV] --scale S \
+        [--class C] [--value N]"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc record: %s\n" m;
+     Printf.fprintf stderr "mathc record: %s\n" m;
      exit 2);
   if !decision_id = "" then begin
-    Printf.fprintf stderr "mc record: --decision-id is required\n";
+    Printf.fprintf stderr "mathc record: --decision-id is required\n";
     exit 2
   end;
   if !scale = "" then begin
-    Printf.fprintf stderr "mc record: --scale is required\n";
+    Printf.fprintf stderr "mathc record: --scale is required\n";
     exit 2
   end;
   let scale_pair, value_json =
@@ -1192,21 +1193,21 @@ let[@warning "-32"] do_record () =
     | "wall-clock-minutes" ->
         if !value_opt <> "" then begin
           Printf.fprintf stderr
-            "mc record: --value rejected for --scale wall-clock-minutes\n";
+            "mathc record: --value rejected for --scale wall-clock-minutes\n";
           exit 2
         end;
         let session_str =
           try read_session_start ()
           with _ ->
             Printf.fprintf stderr
-              "mc record: MC-SESSION-MISSING; run 'mc session-start' first\n";
+              "mathc record: MC-SESSION-MISSING; run 'mathc session-start' first\n";
             exit 2
         in
         let t0 = parse_iso_to_unix session_str in
         let t1 = parse_iso_to_unix (now_iso ()) in
         if Float.is_nan t0 || Float.is_nan t1 then begin
           Printf.fprintf stderr
-            "mc record: cannot parse session-start timestamp\n";
+            "mathc record: cannot parse session-start timestamp\n";
           exit 2
         end;
         let minutes_total = (t1 -. t0) /. 60.0 in
@@ -1216,7 +1217,7 @@ let[@warning "-32"] do_record () =
     | "step-count" -> (
         if !value_opt = "" then begin
           Printf.fprintf stderr
-            "mc record: --value is required for --scale step-count\n";
+            "mathc record: --value is required for --scale step-count\n";
           exit 2
         end;
         match int_of_string_opt !value_opt with
@@ -1224,11 +1225,11 @@ let[@warning "-32"] do_record () =
             (("scale", Jsonl.String "step-count"), ("value", Jsonl.Int n))
         | None ->
             Printf.fprintf stderr
-              "mc record: --value must be an integer for step-count\n";
+              "mathc record: --value must be an integer for step-count\n";
             exit 2)
     | _ ->
         Printf.fprintf stderr
-          "mc record: --scale must be wall-clock-minutes or step-count\n";
+          "mathc record: --scale must be wall-clock-minutes or step-count\n";
         exit 2
   in
   let rev_pair =
@@ -1255,7 +1256,7 @@ let[@warning "-32"] do_record () =
   let path = Filename.concat root "decisions/execution-logs.jsonl" in
   (try append_event_to_file path line
    with exn ->
-     Printf.fprintf stderr "mc record: cannot write %s: %s\n" path
+     Printf.fprintf stderr "mathc record: cannot write %s: %s\n" path
        (Printexc.to_string exn);
      exit 2);
   Printf.printf "%s\n%!" line
@@ -1335,9 +1336,9 @@ let[@warning "-32"] do_stats () =
            " ISO 8601 UTC timestamp; events before this are filtered" );
        ]
        (fun _ -> raise (Arg.Bad "no positional arguments expected"))
-       "usage: mc stats [--scale S] [--class C] [--since ISO]"
+       "usage: mathc stats [--scale S] [--class C] [--since ISO]"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc stats: %s\n" m;
+     Printf.fprintf stderr "mathc stats: %s\n" m;
      exit 2);
   let root = find_project_root (Sys.getcwd ()) in
   let pairs =
@@ -1431,10 +1432,10 @@ let[@warning "-32"] do_stats () =
 let[@warning "-32"] read_xml_file path =
   try In_channel.with_open_bin path In_channel.input_all with
   | Sys_error s ->
-      Printf.fprintf stderr "mc attest: %s: %s\n" path s;
+      Printf.fprintf stderr "mathc attest: %s: %s\n" path s;
       exit 2
   | e ->
-      Printf.fprintf stderr "mc attest: %s: %s\n" path (Printexc.to_string e);
+      Printf.fprintf stderr "mathc attest: %s: %s\n" path (Printexc.to_string e);
       exit 2
 
 (* Render the soft-parse-error JSON body. The adapter obligation
@@ -1457,13 +1458,13 @@ let do_attest () =
   let file = ref "" in
   let set_file s = file := s in
   Arg.current := 1;
-  (try Arg.parse [] set_file "usage: mc attest FILE"
+  (try Arg.parse [] set_file "usage: mathc attest FILE"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc attest: %s\n" m;
+     Printf.fprintf stderr "mathc attest: %s\n" m;
      exit 2);
   let path = !file in
   if path = "" then begin
-    Printf.fprintf stderr "mc attest: missing FILE argument\n";
+    Printf.fprintf stderr "mathc attest: missing FILE argument\n";
     print_usage stderr;
     exit 2
   end;
@@ -1479,7 +1480,7 @@ let do_attest () =
 
 (* --- gate subcommand (gate-decision@1 scaffold) ---
  *
- * `mc gate BASE HEAD` evaluates the candidate tree against the
+ * `mathc gate BASE HEAD` evaluates the candidate tree against the
  * active policy and prints a JSON verdict per spec/semantics.md
  * "Kernel Output". This is the SCAFFOLD iteration: without an
  * attestation store, every applicable obligation is reported as
@@ -1562,9 +1563,9 @@ let do_gate () =
   let positionals : string list ref = ref [] in
   let anon s = positionals := s :: !positionals in
   Arg.current := 1;
-  (try Arg.parse [] anon "usage: mc gate BASE HEAD"
+  (try Arg.parse [] anon "usage: mathc gate BASE HEAD"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc gate: %s\n" m;
+     Printf.fprintf stderr "mathc gate: %s\n" m;
      exit 2);
   let args = List.rev !positionals in
   (match args with
@@ -1572,12 +1573,13 @@ let do_gate () =
       base := b;
       head := h
   | [ _ ] ->
-      Printf.fprintf stderr "mc gate: missing HEAD\n";
+      Printf.fprintf stderr "mathc gate: missing HEAD\n";
       print_usage stderr;
       exit 2
   | _ ->
       Printf.fprintf stderr
-        "mc gate: expected BASE HEAD; got %d positional(s)\n" (List.length args);
+        "mathc gate: expected BASE HEAD; got %d positional(s)\n"
+        (List.length args);
       print_usage stderr;
       exit 2);
   let root = find_project_root (Sys.getcwd ()) in
@@ -1609,7 +1611,7 @@ let do_gate () =
 
 (* --- mode subcommand (algebra 3.2 §2 risk function) ---
  *
- * `mc mode PATH1 PATH2 ...` computes the risk classification,
+ * `mathc mode PATH1 PATH2 ...` computes the risk classification,
  * probability, risk, and effective mode for the given paths via
  * `lib/risk.ml`. Emits JSON for pipeline use; exits 0 always. *)
 let do_mode () =
@@ -1618,7 +1620,7 @@ let do_mode () =
   let set_path s = paths := s :: !paths in
   let format = ref "json" in
   let set_format s = format := s in
-  let spec = "usage: mc mode PATH1 PATH2 ... [--format=json|text]" in
+  let spec = "usage: mathc mode PATH1 PATH2 ... [--format=json|text]" in
   (try
      Arg.parse
        [ ("--format", Arg.String set_format, " output format") ]
@@ -1666,13 +1668,13 @@ let do_mode () =
 
 (* --- rebuttals subcommand (algebra 3.2 §10) ---
  *
- * `mc rebuttals COMMIT_SHA` loads `rebuttals/<sha>.yaml` plus the
+ * `mathc rebuttals COMMIT_SHA` loads `rebuttals/<sha>.yaml` plus the
  * forge mirror and emits all rebuttals. Used by CI to surface
  * multi-agent objections against a commit. *)
 let do_rebuttals () =
   Arg.current := 1;
   let sha = ref "" in
-  (try Arg.parse [] (fun s -> sha := s) "usage: mc rebuttals COMMIT_SHA"
+  (try Arg.parse [] (fun s -> sha := s) "usage: mathc rebuttals COMMIT_SHA"
    with Arg.Bad _ -> ());
   if !sha = "" then begin
     print_usage stderr;
@@ -1702,7 +1704,7 @@ let do_rebuttals () =
 
 (* --- re-evaluate subcommand (algebra 3.2 §17) ---
  *
- * `mc re-evaluate` walks decisions/ via Re_evaluation.load_decisions
+ * `mathc re-evaluate` walks decisions/ via Re_evaluation.load_decisions
  * and reports the §17 re_evaluate verdict for each (decision, axiom)
  * pair. Until axiom_revision loading is wired in, this returns
  * Inconclusive for every decision, signaling that all decisions
@@ -1718,7 +1720,7 @@ let do_re_evaluate () =
   let set_dec s = decision_id := s in
   let set_axiom s = axiom_id := s in
   let spec =
-    "usage: mc re-evaluate DECISION_ID AXIOM_ID (e.g. mc re-evaluate \
+    "usage: mathc re-evaluate DECISION_ID AXIOM_ID (e.g. mathc re-evaluate \
      bootstrap-v3 A1)"
   in
   let anon s =
@@ -1728,17 +1730,17 @@ let do_re_evaluate () =
   in
   (try Arg.parse [] anon spec
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc re-evaluate: %s\n" m;
+     Printf.fprintf stderr "mathc re-evaluate: %s\n" m;
      exit 2);
   if !decision_id = "" || !axiom_id = "" then begin
     Printf.fprintf stderr
-      "mc re-evaluate: DECISION_ID and AXIOM_ID are required\n";
+      "mathc re-evaluate: DECISION_ID and AXIOM_ID are required\n";
     exit 2
   end;
   let valid_axioms = [ "A0"; "A1"; "A2"; "A3"; "A4" ] in
   if not (List.mem !axiom_id valid_axioms) then begin
     Printf.fprintf stderr
-      "mc re-evaluate: AXIOM_ID must be one of A0..A4 (got %s)\n" !axiom_id;
+      "mathc re-evaluate: AXIOM_ID must be one of A0..A4 (got %s)\n" !axiom_id;
     exit 2
   end;
   let decisions = Re_evaluation.load_decisions ~reader ~root:repo_root in
@@ -1749,7 +1751,7 @@ let do_re_evaluate () =
   in
   match target with
   | None ->
-      Printf.fprintf stderr "mc re-evaluate: unknown DECISION_ID %s\n"
+      Printf.fprintf stderr "mathc re-evaluate: unknown DECISION_ID %s\n"
         !decision_id;
       exit 2
   | Some d ->
@@ -1790,9 +1792,9 @@ let do_re_evaluate () =
       |> print_endline
 
 (* --- self-check subcommand (bootstrap decision
- *   mc-self-check-subcommand@2) ---
+ *   mathc-self-check-subcommand@2) ---
  *
- * `mc self-check` walks every decision file under decisions/*.yaml,
+ * `mathc self-check` walks every decision file under decisions/*.yaml,
  * loads the attestation store via Attestations.load, and emits a
  * single JSON verdict object on stdout. The pass-condition is the
  * AGENTS.md §Bootstrap gate expiry clause verbatim: "the released
@@ -1856,7 +1858,7 @@ let[@warning "-32"] list_decision_files dir =
    hand-rolled and drops continuation lines for unquoted
    multi-line scalars (see OCAML_BEST_PRACTICES §11.12 — the
    "whitespace-stripping helper destroys source structure"
-   trap). For `mc self-check` we need both the decision id and
+   trap). For `mathc self-check` we need both the decision id and
    the obligation ids; if Memory.parse_decision_yaml returns a
    stub with empty obligation_ids we fall back to a text
    scan that only needs to find top-level `id: NAME` and the
@@ -2061,9 +2063,9 @@ let[@warning "-32"] subject_to_json name verdict causes remedies =
 let[@warning "-32"] do_self_check () =
   let anon _ = raise (Arg.Bad "no positional arguments expected") in
   Arg.current := 1;
-  (try Arg.parse [] anon "usage: mc self-check"
+  (try Arg.parse [] anon "usage: mathc self-check"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc self-check: %s\n" m;
+     Printf.fprintf stderr "mathc self-check: %s\n" m;
      exit 2);
   let root = find_project_root (Sys.getcwd ()) in
   let decisions_dir = Filename.concat root "decisions" in
@@ -2140,7 +2142,7 @@ let[@warning "-32"] do_self_check () =
 
 (* --- render subcommand (bootstrap decision site-deploy@2) ---
  *
- * `mc render [--out DIR] [--lang en|ru|both] [--site-base HREF]
+ * `mathc render [--out DIR] [--lang en|ru|both] [--site-base HREF]
  * [--mathjax|--no-mathjax] [--mermaid|--no-mermaid]` renders the
  * static site under DIR (default `dist/`). The render reads
  * articles from `site/`, walks decisions via lib/packages.ml, and
@@ -2216,8 +2218,8 @@ let[@warning "-32"] per_decision_obligation_html (d : Packages.decision_view) =
   List.iter
     (fun o ->
       Printf.bprintf buf
-        "<li class=\"mc-obligation mc-verdict-%s\"><code>%s</code> <span \
-         class=\"mc-verdict-label\">%s</span></li>"
+        "<li class=\"mathc-obligation mathc-verdict-%s\"><code>%s</code> <span \
+         class=\"mathc-verdict-label\">%s</span></li>"
         o.Packages.verdict o.Packages.id o.Packages.verdict)
     d.Packages.obligations;
   Buffer.add_string buf "</ul>";
@@ -2264,7 +2266,7 @@ let[@warning "-32"] do_render () =
     match s with
     | "en" | "ru" | "both" -> lang_arg := s
     | _ ->
-        Printf.fprintf stderr "mc render: --lang must be en|ru|both\n";
+        Printf.fprintf stderr "mathc render: --lang must be en|ru|both\n";
         exit 2
   in
   let set_base s = site_base := s in
@@ -2284,10 +2286,10 @@ let[@warning "-32"] do_render () =
          ("--no-mermaid", Arg.Clear enable_mermaid, "do not load mermaid");
        ]
        (fun _ -> ())
-       "usage: mc render [--out DIR] [--lang en|ru|both] [--site-base HREF] \
+       "usage: mathc render [--out DIR] [--lang en|ru|both] [--site-base HREF] \
         [--mathjax|--no-mathjax] [--mermaid|--no-mermaid]"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc render: %s\n" m;
+     Printf.fprintf stderr "mathc render: %s\n" m;
      exit 2);
   let site_dir = "site" in
   let axioms_root = "axioms" in
@@ -2295,7 +2297,8 @@ let[@warning "-32"] do_render () =
   let attestations_root = "attestations" in
 
   if not (Sys.file_exists site_dir) then begin
-    Printf.fprintf stderr "mc render: site directory not found: %s\n" site_dir;
+    Printf.fprintf stderr "mathc render: site directory not found: %s\n"
+      site_dir;
     exit 2
   end;
 
@@ -2408,9 +2411,9 @@ let[@warning "-32"] do_render () =
   Printf.printf "render OK: %d pages + 1 search index.\n" (List.length pages)
 
 (* --- packages subcommand (bootstrap decision
- *   mc-packages-subcommand@1) ---
+ *   mathc-packages-subcommand@1) ---
  *
- * `mc packages [--format=text|json|html]` walks every decision
+ * `mathc packages [--format=text|json|html]` walks every decision
  * file under `decisions/` and joins each obligation against the
  * attestation store at `attestations/`. The output is the
  * package_list produced by lib/packages.ml. The site at
@@ -2418,7 +2421,7 @@ let[@warning "-32"] do_render () =
  *
  * The default decisions/ and attestations/ paths are relative
  * to the project root; the dispatcher reads them via the same
- * filesystem_read callback as mc self-check. *)
+ * filesystem_read callback as mathc self-check. *)
 
 (* Render the package_list in the requested format. The JSON and
    HTML forms are emitted via lib/packages.ml renderers; text is
@@ -2431,7 +2434,7 @@ let[@warning "-32"] do_packages () =
     | "json" -> format := `Json
     | "html" -> format := `Html
     | _ ->
-        Printf.fprintf stderr "mc packages: unknown --format: %s\n" s;
+        Printf.fprintf stderr "mathc packages: unknown --format: %s\n" s;
         exit 2
   in
   Arg.current := 1;
@@ -2439,9 +2442,9 @@ let[@warning "-32"] do_packages () =
      Arg.parse
        [ ("--format", Arg.String set_format, "output format (text|json|html)") ]
        (fun _ -> ())
-       "usage: mc packages [--format=text|json|html]"
+       "usage: mathc packages [--format=text|json|html]"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mc packages: %s\n" m;
+     Printf.fprintf stderr "mathc packages: %s\n" m;
      exit 2);
   let decisions_root = "decisions" in
   let attestations_root = "attestations" in
@@ -2493,7 +2496,7 @@ let dispatch () =
       print_usage stdout;
       exit 0
   | other ->
-      Printf.fprintf stderr "mc: unknown command: %s\n" other;
+      Printf.fprintf stderr "mathc: unknown command: %s\n" other;
       print_usage stderr;
       exit 2
 
@@ -2503,11 +2506,11 @@ let () =
       print_usage stdout;
       exit 0
   | Arg.Bad m ->
-      Printf.fprintf stderr "mc: %s\n" m;
+      Printf.fprintf stderr "mathc: %s\n" m;
       exit 2
   | Failure m ->
-      Printf.fprintf stderr "mc: %s\n" m;
+      Printf.fprintf stderr "mathc: %s\n" m;
       exit 3
   | e ->
-      Printf.fprintf stderr "mc: internal error: %s\n" (Printexc.to_string e);
+      Printf.fprintf stderr "mathc: internal error: %s\n" (Printexc.to_string e);
       exit 3

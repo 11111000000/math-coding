@@ -5,4 +5,4 @@ The unknown-case test points MATH_CODING_ATTESTATION_STORE at
 empty attestations/ directory is intentionally bare. The
 directory is preserved as part of the fixture layout per the
 `tests/fixtures/self-check-<scenario>/attestations/` convention
-named in the mc-self-check-subcommand decision (rev 2).
+named in the mathc-self-check-subcommand decision (rev 2).

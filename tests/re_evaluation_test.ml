@@ -149,12 +149,13 @@ let[@warning "-32"] test_re_evaluate_manual_verifier_inconclusive () =
 
 let[@warning "-32"] test_re_evaluate_builtin_verifier_compatible () =
   let ob =
-    make_obligation ~verifier:"mc-validate-self-check" ~claim:"hello world" ()
+    make_obligation ~verifier:"mathc-validate-self-check" ~claim:"hello world"
+      ()
   in
   let d = make_decision [ ob ] in
   let rev = empty_rev "A0" in
   Alcotest.(check string)
-    "mc- builtin verifier -> compatible" "compatible"
+    "mathc- builtin verifier -> compatible" "compatible"
     (Re_evaluation.re_evaluate d rev |> status_to_string)
 
 let[@warning "-32"] test_re_evaluate_stale_claim () =

@@ -17,12 +17,12 @@ intent: |
       The spec contains sections §0 through §30, as enumerated by its
       own Summary block at the end of the file. The previous number
       drifted from a snapshot of an earlier version of the spec.
-    - spec/semantics.md `mc explain` row: remove the
+    - spec/semantics.md `mathc explain` row: remove the
       "Bootstrap limitation (v3-alpha-0.0.19)" block that claims
-      `mc explain` is not yet dispatched. The subcommand has been
+      `mathc explain` is not yet dispatched. The subcommand has been
       dispatched since commit 6e922d3 (Tier-A in ROADMAP); the
       dispatch line is `bin/Mathc.ml:2478`.
-    - spec/semantics.md `mc self-check` row: remove the matching
+    - spec/semantics.md `mathc self-check` row: remove the matching
       "Bootstrap limitation (v3-alpha-0.0.19)" block. The subcommand
       has been dispatched since commit 758f340; CI is blocking since
       8fa7fcf (the bootstrap-gate-expiry commit). The dispatch line
@@ -152,7 +152,7 @@ obligations:
   - id: kernel-unchanged
     outcome: factual-accuracy-restored
     claim: |
-      No change to lib/, bin/, schemas/, or axioms/. `mc self-check`
+      No change to lib/, bin/, schemas/, or axioms/. `mathc self-check`
       verdict and pass-count are unchanged by this decision.
     acceptance:
       all:

@@ -14,11 +14,11 @@ intent: |
   observation (kind=observation), but not from automated test
   runners that publish JUnit XML; and there is no machine-readable
   way to enumerate the files changed between two git refs, which
-  the `mc context` capsule and any future diff-driven obligation
+  the `mathc context` capsule and any future diff-driven obligation
   both need. The v3-alpha obligations `junit-attestation-import`
   and `git-changed-files-adapter` close those two gaps by giving
-  `mc attest FILE` the ability to read a JUnit XML report and
-  emit a JSON summary on stdout, and by giving `mc assess BASE
+  `mathc attest FILE` the ability to read a JUnit XML report and
+  emit a JSON summary on stdout, and by giving `mathc assess BASE
   HEAD` the ability to emit a JSON array of changed file paths.
   The kernel stays offline and pure; the JUnit importer lives
   under `lib/junit/` and the Git emitter lives under `lib/git/`,
@@ -41,7 +41,7 @@ commitment: |
   bin/Mathc.ml gains two new subcommands: `attest FILE` and
   `assess BASE HEAD`.
 
-  `mc attest FILE` exits 0 on success and prints a JSON object
+  `mathc attest FILE` exits 0 on success and prints a JSON object
   on stdout containing at minimum the keys "suite_name",
   "test_count", "failure_count", "error_count", "skip_count",
   and "tests" (an array of per-testcase records each carrying
@@ -55,7 +55,7 @@ commitment: |
   skipped, system-out/system-err CDATA, attribute
   name="value").
 
-  `mc assess BASE HEAD` exits 0 on success and prints a JSON
+  `mathc assess BASE HEAD` exits 0 on success and prints a JSON
   array of changed file paths on stdout, obtained by running
   `git -C <cwd> diff --name-only BASE..HEAD` via
   `lib/git/git_diff.changed_files`. cwd is `Sys.getcwd ()`;
@@ -97,7 +97,7 @@ scope:
 outcomes:
   - id: junit-attestation-import
     statement: |
-      `mc attest FILE` reads FILE as a JUnit XML report,
+      `mathc attest FILE` reads FILE as a JUnit XML report,
       parses it via Junit.parse_junit, and prints a JSON object
       on stdout with at least the keys "suite_name",
       "test_count", "failure_count", "error_count",
@@ -111,7 +111,7 @@ outcomes:
 
   - id: git-changed-files-adapter
     statement: |
-      `mc assess BASE HEAD` reads the cwd via `Sys.getcwd ()`,
+      `mathc assess BASE HEAD` reads the cwd via `Sys.getcwd ()`,
       invokes `Git_diff.changed_files ~cwd ~base ~HEAD` (which
       runs `git -C cwd diff --name-only BASE..HEAD` via
       `Sys.command` with stdout redirected to a temp file),
@@ -125,7 +125,7 @@ outcomes:
       drops non-empty entries.
 
 counterexample: |
-  Why not defer `mc attest` until the 3.0 kernel exists? The
+  Why not defer `mathc attest` until the 3.0 kernel exists? The
   3.0 kernel's `attestations` collection already expects
   attestations of kind=test that carry a producer_run linking
   them to a CI artifact. A JUnit XML report is the natural
@@ -134,8 +134,8 @@ counterexample: |
   trip (XML → JSON → attestation candidate) without waiting
   for kernel 3.0.
 
-  Why not defer `mc assess` until the 3.0 kernel exists?
-  Because the `mc context` capsule and any future diff-driven
+  Why not defer `mathc assess` until the 3.0 kernel exists?
+  Because the `mathc context` capsule and any future diff-driven
   obligation both need to enumerate the files changed between
   two git refs, and shelling out from the kernel would violate
   OCAML_BEST_PRACTICES §1.3 (kernel stays offline). Implementing
@@ -177,11 +177,11 @@ counterexample: |
   surprise (unusual XML). The decision rule is documented
   in the obligation's claim above.
 
-  Why exit 2 on a failed `mc assess`? The Git emitter
+  Why exit 2 on a failed `mathc assess`? The Git emitter
   depends on an external tool (the `git` binary) and on
   the cwd being a git working tree; both can be wrong even
   when the user typed the right thing. Exit 2 is the same
-  "infrastructure" exit code `mc attest` uses for a missing
+  "infrastructure" exit code `mathc attest` uses for a missing
   path, and it is reserved by spec/semantics.md for "we
   couldn't even attempt the operation". Exit 3 is reserved
   for uncaught internal exceptions. A successful git call
@@ -244,15 +244,15 @@ assumptions:
   - id: attest-is-informational
     state: assumed
     statement: |
-      The `mc attest` subcommand is observational; it does
+      The `mathc attest` subcommand is observational; it does
       not write to the kernel's attestation store and does
       not produce a Decision.t. It emits JSON. A future
-      obligation may add `mc attest FILE --into DECISION_ID`
+      obligation may add `mathc attest FILE --into DECISION_ID`
       which calls into the kernel to register an attestation;
       that obligation is not part of this decision.
     owner: human:maintainer
     consequence_if_false: |
-      If `mc attest` becomes a write-path, it must respect
+      If `mathc attest` becomes a write-path, it must respect
       OCAML_BEST_PRACTICES §1.3 (kernel stays offline) by
       funneling through a new lib/attest.ml adapter that
       builds the Domain.attestation record and emits it
@@ -264,7 +264,7 @@ obligations:
   - id: junit-attestation-import
     outcome: junit-attestation-import
     claim: |
-      `mc attest FILE` MUST:
+      `mathc attest FILE` MUST:
         - parse a JUnit XML file into a typed Test_run.t
           via the hand-rolled parser in lib/junit/junit.ml
         - return JSON on stdout with keys including
@@ -286,7 +286,7 @@ obligations:
   - id: git-changed-files-adapter
     outcome: git-changed-files-adapter
     claim: |
-      `mc assess BASE HEAD` MUST:
+      `mathc assess BASE HEAD` MUST:
         - resolve cwd via Sys.getcwd () (the user's working
           directory at invocation time) and BASE/HEAD via the
           positional arguments

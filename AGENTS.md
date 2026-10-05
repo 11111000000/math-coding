@@ -5,9 +5,9 @@
 This repository implements math-coding 3.0-alpha. As of v3.0.0.19
 (commit `8fa7fcf`) the bootstrap gate has expired: the released
 3.0 kernel successfully checks this repository and its conformance
-corpus (`mc self-check` is now a blocking CI step per
+corpus (`mathc self-check` is now a blocking CI step per
 `constitution.md` Invariant 14). Assessment verdicts produced by
-`mc gate`, `mc self-check`, and `mc assess` are automated
+`mathc gate`, `mathc self-check`, and `mathc assess` are automated
 guarantees, not manual declarations.
 
 The complete v2.1 source is preserved by the remote Git tag
@@ -206,7 +206,7 @@ distribution from SWE-bench Verified (n=500, 2025-Q4 frontier). The
 canonical estimator command is:
 
 ```text
-mc time-estimate --class <name> --count N --percentile p50|p80|p95|p99
+mathc time-estimate --class <name> --count N --percentile p50|p80|p95|p99
 ```
 
 The agent MUST NOT replace this estimator with private intuition
@@ -253,10 +253,10 @@ obligations for agents working on protected policy transitions
 they are no longer the only enforcement mechanism for routine
 work.
 
-For routine changes, automated guarantees apply: `mc validate`
-on the diff checks schema/reference/identity, `mc gate BASE HEAD`
+For routine changes, automated guarantees apply: `mathc validate`
+on the diff checks schema/reference/identity, `mathc gate BASE HEAD`
 reports the assurance verdict, and CI blocks merge on a
-non-pass verdict via `mc self-check`. The agent still owes:
+non-pass verdict via `mathc self-check`. The agent still owes:
 
 - the intended behavior and affected capabilities are explicit;
 - known invariants are preserved or deliberately revised;

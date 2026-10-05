@@ -132,7 +132,7 @@ obligations:
     outcome: notation-ambiguity-recorded
     claim: |
       No change to `lib/`, `bin/`, `schemas/`, or `axioms/`.
-      `mc self-check` verdict is unchanged by this decision.
+      `mathc self-check` verdict is unchanged by this decision.
     acceptance:
       all:
         - verifier: mathc-self-check-verdict

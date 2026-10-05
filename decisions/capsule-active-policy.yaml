@@ -89,7 +89,7 @@ obligations:
     outcome: capsule-required-for-gate
     claim: |
       Decision whose id matches active_policy_id is classified
-      as RequiredForGate. mc context main HEAD --budget 100000
+      as RequiredForGate. mathc context main HEAD --budget 100000
       has items[] with the active policy as the first entry.
     acceptance:
       all:

@@ -734,7 +734,7 @@ return `None` and the caller emits `Diagnostic.code = "MC-AMBIGUOUS-ACCEPTANCE"`
 plus a new `classify_acceptance_item : Jsonl.value -> acceptance_shape`
 that distinguishes `ShapeAmbiguous`, `ShapeMalformed`, `ShapeVerifier`,
 `ShapeReview`, `ShapeEmpty`. The kernel still prefers Verifier on
-ambiguity (verifier half parses, review is dropped) but `mc validate`
+ambiguity (verifier half parses, review is dropped) but `mathc validate`
 surfaces `MC-AMBIGUOUS-ACCEPTANCE` to stderr per obligation id and
 position so the author can disambiguate. The CLI JSON output also
 includes a `diagnostics` array. `MC-MALFORMED-ACCEPTANCE` is the
@@ -878,9 +878,9 @@ JUnit report goes through `Jsonl.stringify` first.
 9. Move the 11 modules under `lib/kernel/` (§10.1) when the first adapter
    lands.
 
-### 10.5 Context-capsule priority order (for `mc context`)
+### 10.5 Context-capsule priority order (for `mathc context`)
 
-`mc context BASE HEAD --budget N` builds a JSON capsule whose items
+`mathc context BASE HEAD --budget N` builds a JSON capsule whose items
 are sorted and truncated by priority. The order is normative; an
 agent MUST NOT silently reorder or rebucket it. See
 `spec/semantics.md` "context-prioritisation" for the authoritative
@@ -901,7 +901,7 @@ RequiredForGate > Changed > HighRisk > Unresolved > Supporting > Historical
 
 When the budget is exhausted, items are dropped in reverse priority
 order. The dropped items appear in the JSON `omitted` array with an
-`expansion` command (e.g., `"mc explain decision:Foo"`) so an LLM
+`expansion` command (e.g., `"mathc explain decision:Foo"`) so an LLM
 agent can fetch the missing context on demand. The total bytes used
 are reported as `total_bytes`.
 ---
@@ -1256,7 +1256,7 @@ correctly.
 
 **Symptom**: any code path that inspects `d.obligations` (or any list
 field built through `List.filter_map` over an array) sees `[]` even
-when the JSON source has elements. `mc validate FILE` showed
+when the JSON source has elements. `mathc validate FILE` showed
 `obligations: 0, assumptions: 0` for `positive-minimal.json` which
 genuinely contains one of each.
 
@@ -1323,7 +1323,7 @@ override `MATH_CODING_FIXED_TIME`) and `decisions/adapters.yaml:166`
 in `spec/semantics.md:324` as the canonical fix pattern.
 
 **Trigger**: any subprocess invocation whose output is captured into
-a string for parsing (e.g., `mc context` reading `git log` /
+a string for parsing (e.g., `mathc context` reading `git log` /
 `git diff`). Symptom: every parsed field is empty even though the
 command runs fine from the shell.
 
@@ -1362,7 +1362,7 @@ positionals-collection pattern to avoid the anonfun-overwrite trap).
 Also cited in `doc/AUDIT-0.0.11.md:570` as one of the most recent
 five trap entries.
 
-**Trigger**: a multi-positional CLI command (e.g., `mc context BASE HEAD`)
+**Trigger**: a multi-positional CLI command (e.g., `mathc context BASE HEAD`)
 where the obvious `set_X` pattern collapses the second positional into
 the first. Symptom: the second ref is always empty and the parser
 falls into a "missing arg" branch.

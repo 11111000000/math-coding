@@ -13,7 +13,7 @@ intent: |
   phases:
 
     Phase 1 — unify the decision model (schema ↔ parser ↔ YAML)
-    Phase 2 — restore `mc self-check` to `verdict:"pass"`
+    Phase 2 — restore `mathc self-check` to `verdict:"pass"`
     Phase 3 — synchronise doc counters with kernel reality
     Phase 4 — close process holes (memory, hook, constitution typo)
     Phase 5 — merge the cycle branch back to main
@@ -28,7 +28,7 @@ intent: |
     rev 1 (this commit): initial adoption.
 
 commitment: |
-  The kernel's `mc self-check` on the integrated HEAD MUST
+  The kernel's `mathc self-check` on the integrated HEAD MUST
   return `verdict:"pass"`, exit `0`, with every active decision's
   `pass_count` matching `subjects_len` and no `unknown` subjects
   except those bound to a recorded waiver. The README CLI
@@ -95,14 +95,14 @@ scope:
 outcomes:
   - id: kernel-self-check-passes
     statement: |
-      `mc self-check` on a clean tree of the integrated HEAD
+      `mathc self-check` on a clean tree of the integrated HEAD
       returns `verdict:"pass"`, exit `0`, with `pass_count ==
       subjects_len` and `unknown_count == 0` (or, with waivers,
       `unknown_count == waived_count`).
 
   - id: validate-accepts-own-decisions
     statement: |
-      `mc validate decisions/<file>.yaml` returns `accept`
+      `mathc validate decisions/<file>.yaml` returns `accept`
       for every YAML decision in `decisions/*.yaml` (excluding
       the three meta-aggregator files: `decision.yaml`,
       `obligations.yaml`, `obligation-count-reconcile.yaml`,
@@ -110,7 +110,7 @@ outcomes:
 
   - id: re-evaluate-loads-decisions
     statement: |
-      `mc re-evaluate <known-id> <A0..A4>` returns
+      `mathc re-evaluate <known-id> <A0..A4>` returns
       `compatible|inconclusive|stale_claim` for at least the
       master policy `bootstrap-v3` (so the oracle path is
       demonstrably functional).
@@ -122,7 +122,7 @@ outcomes:
       (status block, Tier counters), `README.md` (CLI table
       row count), and `doc/AUDIT-0.0.21.md` (final state
       section) all equal the values reported by
-      `mc packages --format=json` and `mc self-check`.
+      `mathc packages --format=json` and `mathc self-check`.
 
   - id: pre-commit-hook-enforceable
     statement: |
@@ -162,7 +162,7 @@ assumptions:
     owner: human:maintainer
     consequence_if_false: |
       If retired decisions are not waivable, then
-      `mc self-check` cannot return `pass` until either the
+      `mathc self-check` cannot return `pass` until either the
       `portable-linux-musl` decision is reactivated (i.e.,
       the Alpine build leg works) or retired decisions are
       excluded from `self-check` scope (which conflicts with
@@ -175,8 +175,8 @@ assumptions:
     state: assumed
     statement: |
       A `scripts/dev counters` subcommand that derives all
-      reported counts from `mc packages --format=json` and
-      `mc self-check` may be added. The output of this script
+      reported counts from `mathc packages --format=json` and
+      `mathc self-check` may be added. The output of this script
       is the single source of truth that all docs sync to.
     owner: human:maintainer
     consequence_if_false: |
@@ -195,7 +195,7 @@ obligations:
       of string and `{source, text}` object, `scope` as
       a oneOf of array and `{paths: [...]}` object, and
       does not require `kind` for the `decision` family.
-      `mc validate decisions/<file>.yaml` returns `accept`
+      `mathc validate decisions/<file>.yaml` returns `accept`
       for every YAML decision in the repo.
     acceptance:
       all:
@@ -218,7 +218,7 @@ obligations:
   - id: re-evaluate-loads-decisions
     outcome: re-evaluate-loads-decisions
     claim: |
-      `mc re-evaluate bootstrap-v3 A1` returns a verdict
+      `mathc re-evaluate bootstrap-v3 A1` returns a verdict
       (not "unknown DECISION_ID"). The §17 oracle path is
       functional on at least the master policy.
     acceptance:
@@ -233,7 +233,7 @@ obligations:
     claim: |
       `tests/fixtures/self-check-pass/attestations/` contains
       a pass attestation for every (decision_id, obligation_id)
-      pair enumerated by `mc packages --format=json`, with
+      pair enumerated by `mathc packages --format=json`, with
       the single exception of `portable-linux-musl`, which is
       bound by a waiver.
     acceptance:
@@ -244,7 +244,7 @@ obligations:
   - id: self-check-verdict-is-pass
     outcome: kernel-self-check-passes
     claim: |
-      `mc self-check` against the regenerated fixture returns
+      `mathc self-check` against the regenerated fixture returns
       `verdict:"pass"`, exit `0`, `unknown_count == 0`
       (or `unknown_count == waived_count` if waivers are
       issued for retired subjects).
@@ -252,7 +252,7 @@ obligations:
       all:
         - verifier: tests/cli/self-check-pass.t
           result: pass
-        - verifier: mc-self-check-verdict-pass
+        - verifier: mathc-self-check-verdict-pass
           result: pass
 
   - id: counters-single-source
@@ -315,10 +315,10 @@ reversal:
 
   - signal: kernel-self-check-regresses
     condition: |
-      After Phase 2 lands, `mc self-check` continues to return
+      After Phase 2 lands, `mathc self-check` continues to return
       `verdict:"unknown"` on a clean HEAD. Resolution: identify
       the binding gap (a missing attestation or waiver), produce
-      it, and re-run `mc self-check`. If a structural fix is
+      it, and re-run `mathc self-check`. If a structural fix is
       required, this revision is incremented to track the gap
       closure.
     action: rework

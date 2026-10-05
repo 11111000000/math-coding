@@ -17,14 +17,14 @@ Counts produced (all verified against the kernel binary at HEAD):
                                obligation-count-reconcile.yaml)
     decisions.in_main_table  — active decisions listed in PACKAGES.md
     obligations.total        — sum of obligation counts across active
-                               decisions (per `mc packages --format=json`)
+                               decisions (per `mathc packages --format=json`)
     attestations.total       — JSON files under attestations/
     fixtures.attestations    — JSON files under tests/fixtures/*/attestations/
-    self_check.subjects      — count of `mc self-check` subjects
+    self_check.subjects      — count of `mathc self-check` subjects
     self_check.passing       — number of subjects with verdict=pass
     self_check.unknown       — number of subjects with verdict=unknown
     self_check.verdict       — top-level verdict string
-    self_check.exit_code     — process exit code of `mc self-check`
+    self_check.exit_code     — process exit code of `mathc self-check`
     cli.subcommands          — count of subcommands in bin/Mathc.ml dispatcher
     cram_tests               — count of tests/cli/*.t files
     unit_tests               — total of the 8 test executables' test counts
@@ -65,7 +65,7 @@ def main():
         "obligations.yaml",
         "obligation-count-reconcile.yaml",
         # Schema-change decisions and waivers — tracked as their own
-        # entities by `mc packages` but should not be in PACKAGES'
+        # entities by `mathc packages` but should not be in PACKAGES'
         # "active decisions" count (they don't ship kernel changes).
         "schema-empty-sha-2026-10.yaml",
         "audit-0.0.21-fixes-self-check-waiver-2026-10.yaml",

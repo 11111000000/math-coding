@@ -45,8 +45,8 @@ if os.path.exists(packages_path):
     with open(packages_path) as f:
         packages = f.read()
     
-    # "mc packages reports X active decisions"
-    m = re.search(r'mc packages reports (\d+) active decisions', packages)
+    # "mathc packages reports X active decisions"
+    m = re.search(r'mathc packages reports (\d+) active decisions', packages)
     if m:
         claimed = int(m.group(1))
         if claimed != d_active:
@@ -101,7 +101,7 @@ if os.path.exists(readme_path):
     with open(readme_path) as f:
         readme = f.read()
     
-    readme_cli_rows = re.findall(r'^\| `mc [a-zA-Z-]+', readme, re.MULTILINE)
+    readme_cli_rows = re.findall(r'^\| `mathc [a-zA-Z-]+', readme, re.MULTILINE)
     if len(readme_cli_rows) != sc:
         errors.append(f"README.md CLI table has {len(readme_cli_rows)} rows, kernel has {sc} subcommands")
 

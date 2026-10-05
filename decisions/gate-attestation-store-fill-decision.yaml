@@ -8,7 +8,7 @@ body_sha: ""
 yaml_sha: ""
 intent: |
   Close ROADMAP Tier-1 #1 (`gate-attestation-store-fill`). The
-  v3-alpha-0.0.19 `mc gate` is a SCAFFOLD: lib/gate.ml:84-87
+  v3-alpha-0.0.19 `mathc gate` is a SCAFFOLD: lib/gate.ml:84-87
   returns verdict "unknown" for every loaded decision because
   no attestation store is available. This decision extends the
   scaffold into a real evaluator that consumes a filesystem-
@@ -57,7 +57,7 @@ commitment: |
 scope:
   capabilities:
     - gate-attestation-store-fill
-    - mc-gate-blocking (exit-code basis)
+    - mathc-gate-blocking (exit-code basis)
   paths:
     - "decisions/gate-attestation-store-fill-decision.yaml"  # this file
     - "lib/attestations/dune"
@@ -93,7 +93,7 @@ outcomes:
       spec/semantics.md:46-53.
   - id: exit-code-honest
     statement: |
-      `mc gate BASE HEAD` returns exit 1 when verdict is "block",
+      `mathc gate BASE HEAD` returns exit 1 when verdict is "block",
       exit 0 when verdict is "pass" / "unknown" /
       "open-with-waiver", exit 2 on input error. This implements
       constitution.md Invariant 14 ("a blocking verdict MUST
@@ -183,7 +183,7 @@ obligations:
     outcome: gate-consumes-store
     claim: |
       With a populated store containing a matching pass
-      attestation, `mc gate BASE HEAD` emits verdict "pass".
+      attestation, `mathc gate BASE HEAD` emits verdict "pass".
       With a matching fail attestation, verdict "block". With a
       stale attestation, a `StaleEvidence` gap appears.
     acceptance:
@@ -197,7 +197,7 @@ obligations:
   - id: gate-exit-honest
     outcome: exit-code-honest
     claim: |
-      `mc gate` returns exit 1 on verdict "block" and exit 0 on
+      `mathc gate` returns exit 1 on verdict "block" and exit 0 on
       "pass" / "unknown" / "open-with-waiver" (constitution.md
       Invariant 14).
     acceptance:

@@ -7,12 +7,12 @@
 The package grid below is the live output of:
 
 ```bash
-mc packages --format=html
+mathc packages --format=html
 ```
 
 The kernel emits the same data as JSON (`--format=json`) and as
 a fixed-width table (`--format=text`). The HTML form carries a
-`data-mc-package-count` attribute that lets site-level tooling
+`data-mathc-package-count` attribute that lets site-level tooling
 verify the kernel's count without re-walking the decisions.
 
 ## Why a packages surface
@@ -27,7 +27,7 @@ surface, every consumer reads the same kernel output.
 ## How to consume
 
 ```bash
-mc packages --format=json | jq '.counts'
+mathc packages --format=json | jq '.counts'
 ```
 
 gives the live aggregate:

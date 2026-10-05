@@ -1,11 +1,11 @@
-mc packages [--format=text|json|html] walks decisions/ joined
+mathc packages [--format=text|json|html] walks decisions/ joined
 against attestations/ and emits the package_list per
 spec/semantics.md §`packages`. The text form begins with the
 literal "math-coding packages" line; the JSON form is sorted by
 key and carries as_of, counts, decisions, policy_id, source; the
-HTML form embeds data-mc-package-count matching counts.total.
+HTML form embeds data-mathc-package-count matching counts.total.
 Acceptance gate for obligation packages-cli-dispatcher in
-decisions/mc-packages-subcommand.yaml.
+decisions/mathc-packages-subcommand.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
   $ mathc packages --format=text | head -n 1
@@ -14,6 +14,6 @@ decisions/mc-packages-subcommand.yaml.
   true
   $ mathc packages --format=json | jq -e '.counts.total > 0'
   true
-  $ mathc packages --format=html | grep -qF 'data-mc-package-count="'
+  $ mathc packages --format=html | grep -qF 'data-mathc-package-count="'
   $ count=$(mathc packages --format=json | jq '.counts.total')
-  $ mathc packages --format=html | grep -qF "data-mc-package-count=\"$count\""
+  $ mathc packages --format=html | grep -qF "data-mathc-package-count=\"$count\""

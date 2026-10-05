@@ -93,14 +93,14 @@ let[@warning "-32"] gate_verdict = function
  * category per algebra §17:
  *   - `Test     : verifier id starts with "tests/" — runnable
  *   - `BuiltIn  : verifier id starts with a kernel built-in
- *                 prefix ("mc-", "kernel:") — invocable in-process
+ *                 prefix ("mathc-", "kernel:") — invocable in-process
  *   - `Manual   : everything else (review, no verifier, etc.) *)
 type verifier_kind = Test | BuiltIn | Manual
 
 let[@warning "-32"] classify_verifier (v : string) : verifier_kind =
   let n = String.length v in
   if n >= 6 && String.sub v 0 6 = "tests/" then Test
-  else if n >= 3 && String.sub v 0 3 = "mc-" then BuiltIn
+  else if n >= 3 && String.sub v 0 3 = "mathc-" then BuiltIn
   else if n >= 7 && String.sub v 0 7 = "kernel:" then BuiltIn
   else Manual
 
@@ -171,10 +171,10 @@ let[@warning "-32"] evaluate_obligation (ob : Domain.obligation) rev : status =
          * the real change set. *)
         Compatible
     | BuiltIn ->
-        (* Built-in verifiers (mc-validate, mc-gate, mc-self-check)
+        (* Built-in verifiers (mathc-validate, mathc-gate, mathc-self-check)
          * are still considered Compatible in this revision: the
          * kernel doesn't shell out from a pure module. The gate
-         * will run them in `mc gate`. *)
+         * will run them in `mathc gate`. *)
         Compatible
     | Manual ->
         (* Manual-style verifier: §17 says return Inconclusive.
@@ -272,7 +272,7 @@ This decision references axiom %s which has been changed.
    semantics.
 3. Create a new revision (`rev+1`) of this decision under
    `decisions/%s.yaml`.
-4. Re-run `mc validate` and `mc gate` so the obligations are
+4. Re-run `mathc validate` and `mathc gate` so the obligations are
    re-attested against the new axiom.
 
 ### Current commitment

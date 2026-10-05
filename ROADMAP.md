@@ -2,7 +2,7 @@
 
 > **Status (2026-09-30, post-v3.0.0.20):** bootstrap protocol **expired**
 > (commit `8fa7fcf`). The 3.0 kernel checks this repository and its
-> conformance corpus via `mc self-check`, which is a **blocking** CI
+> conformance corpus via `mathc self-check`, which is a **blocking** CI
 > step per `constitution.md` Invariant 14. The attestation store at
 > `attestations/` is populated (105 files). CLI surface: `validate`,
 > `context`, `explain`, `assess`, `attest`, `gate`, `session-start`,
@@ -39,8 +39,8 @@ without a `decisions/*.yaml` decision under the active policy.
 | # | Task | Decision | Status |
 |---|---|---|---|
 | ~~1~~ | `gate-attestation-store-fill` | `gate-attestation-store-fill@1` | **closed** in commit `ed42290` |
-| ~~2~~ | `mc self-check` | `mc-self-check-subcommand@2` | **closed** in commit `758f340`; blocking CI in `8fa7fcf` |
-| ~~A~~ | `mc explain` dispatcher | `mc-explain-subcommand@1` | **closed** in commit `6e922d3` (broken promise from `omitted[].expansion` resolved) |
+| ~~2~~ | `mathc self-check` | `mathc-self-check-subcommand@2` | **closed** in commit `758f340`; blocking CI in `8fa7fcf` |
+| ~~A~~ | `mathc explain` dispatcher | `mathc-explain-subcommand@1` | **closed** in commit `6e922d3` (broken promise from `omitted[].expansion` resolved) |
 | ~~B~~ | D1/D2 (YAML block-scalars + front-matter) | `yaml-block-scalars@3` | **closed** in commit `79d138b` (v3.0.0.19) |
 | ~~C~~ | D4 (SHA-256 RFC vectors) | `kernel-conformance-runner@1` | **closed** in commit `d77624b` |
 
@@ -51,19 +51,19 @@ without a `decisions/*.yaml` decision under the active policy.
 | 1 | `scripts/dev close-branches` | `process-principles@2` | small | stale-worktree accumulation (D10) |
 | 2 | Decision-fixture co-commit pre-commit hook | `process-principles@2` | small | "decision without implementation" + "implementation without decision" drift |
 | 3 | Site deploy (`.github/workflows/site.yml`) | `site-deploy@1` | small | brings the protocol's published surface under its own gate |
-| 4 | `mc packages` subcommand | `mc-packages-subcommand@1` | small | first kernel decision without an HTTP round-trip |
-| 5 | `mc render` (site generator) | `site-deploy@1` | medium | brings v2.1's `core/render.ml` capability back under the 3.0 kernel |
+| 4 | `mathc packages` subcommand | `mathc-packages-subcommand@1` | small | first kernel decision without an HTTP round-trip |
+| 5 | `mathc render` (site generator) | `site-deploy@1` | medium | brings v2.1's `core/render.ml` capability back under the 3.0 kernel |
 
 ### Tier 2 — close specific audit deficits
 
 | # | Deficit | Status | Notes |
 |---|---|---|---|
-| 6 | D6 (bootstrap-v3 manual-only verifiers) | **closed** in v3.0.0.20 | `mc self-check` is blocking; manual-only verifiers move to machine-checked |
+| 6 | D6 (bootstrap-v3 manual-only verifiers) | **closed** in v3.0.0.20 | `mathc self-check` is blocking; manual-only verifiers move to machine-checked |
 | 7 | D5 (stale `bin/mathc_main.ml`) | **closed** in commit `191d1af` | |
 | 8 | D7 (adapters decision covers two obligations) | **closed** in commit `be5c4bd` | |
 | 9 | D3 (priority-drift detector) | **closed** in commit `4855a57` | |
 | 10 | D4 (spec-cli-catalog) | **closed** in commit `2c2a032` | |
-| 11 | D8 (`mc validate` coarse diagnostics) | open | tracked for 3.0-beta |
+| 11 | D8 (`mathc validate` coarse diagnostics) | open | tracked for 3.0-beta |
 
 ### Tier 3 — kernel enrichment (after Tier 1)
 
@@ -76,10 +76,10 @@ without a `decisions/*.yaml` decision under the active policy.
 **Status**: ✅ LANDED between `ff9e738` and `fd7ea8b` (13/13 tasks).
 Schema extensions preserve backward compat (v3.0.0.20 → v3.1.0 alpha).
 
-`mc self-check` verdict: `pass` (32 subjects (30 pass + 2 unknown)).
+`mathc self-check` verdict: `pass` (32 subjects (30 pass + 2 unknown)).
 Runtime kernel behaviour is backward compatible: the existing
-`mc validate`, `mc gate`, `mc packages`, `mc explain`,
-`mc self-check` keep working unchanged.
+`mathc validate`, `mathc gate`, `mathc packages`, `mathc explain`,
+`mathc self-check` keep working unchanged.
 
 | # | Task | Decision | Status |
 |---|---|---|---|

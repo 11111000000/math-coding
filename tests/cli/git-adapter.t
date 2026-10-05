@@ -1,8 +1,8 @@
-mc assess BASE HEAD runs git diff --name-only BASE..HEAD via
+mathc assess BASE HEAD runs git diff --name-only BASE..HEAD via
 lib/git/git_diff.changed_files and emits a JSON array of the
 changed file paths on stdout. The fixture creates a temp git repo
 with a known two-commit history (HEAD~1 -> HEAD adds one file),
-runs `mc assess HEAD~1 HEAD` from inside the temp repo, asserts
+runs `mathc assess HEAD~1 HEAD` from inside the temp repo, asserts
 exit 0 and a JSON array containing the added file. Acceptance
 gate for obligation git-changed-files-adapter in
 bootstrap/adapters.yaml.
