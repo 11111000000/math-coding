@@ -38,7 +38,7 @@ without a `decisions/*.yaml` decision under the active policy.
 
 | # | Task | Decision | Status |
 |---|---|---|---|
-| ~~1~~ | `gate-attestation-store-fill` | `gate-attestation-store-fill@2` | **closed** in commit `ed42290` |
+| ~~1~~ | `gate-attestation-store-fill` | `gate-attestation-store-fill@1` | **closed** in commit `ed42290` |
 | ~~2~~ | `mc self-check` | `mc-self-check-subcommand@2` | **closed** in commit `758f340`; blocking CI in `8fa7fcf` |
 | ~~A~~ | `mc explain` dispatcher | `mc-explain-subcommand@1` | **closed** in commit `6e922d3` (broken promise from `omitted[].expansion` resolved) |
 | ~~B~~ | D1/D2 (YAML block-scalars + front-matter) | `yaml-block-scalars@3` | **closed** in commit `79d138b` (v3.0.0.19) |
@@ -186,14 +186,14 @@ this portably. The enforced test at
 `tests/process_principles.ml:332-348` checks only the OLD
 `tests/cram/` directory is absent; the live cram is in `tests/cli/`.
 
-**Correction (2026-10-04):** `OCAML_BEST_PRACTICES.md` §11 trap
-log has 21 entries (§11.1–§11.21, verified by
+**Correction (2026-10-04, refresh 2026-10-05):** `OCAML_BEST_PRACTICES.md` §11
+trap log has 22 entries (§11.1–§11.22, verified by
 `grep -c '^### 11\.' OCAML_BEST_PRACTICES.md`); the earlier
-"§11 has only its header" claim was stale. The "§11.22 forward
-pointer" mention is preserved for completeness but no §11.22
-entry has been authored yet — new traps should be appended
-following the §11.21 pattern (Symptom / Fix / Referenced from /
-Trigger).
+"§11 has only its header" claim was stale. §11.22 (`nix develop`
+builds a non-portable `mathc` that fails) was added in `Unreleased`
+(CHANGELOG:22) after the portable-musl reversal signal. New traps
+should be appended following the §11.22 pattern (Symptom / Fix /
+Referenced from / Trigger).
 
 ### P6. Pre-commit verification
 
