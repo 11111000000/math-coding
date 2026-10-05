@@ -333,10 +333,34 @@ let[@warning "-32"] attestations_by_ci attestations ci_name =
  * The kernel waits for all blocking CIs by default (algebra §14
  * default). For the math-coding CI farm this list is
  * "payments-ci", "orders-ci", and "integration-ci". Custom
- * projects override this via `decisions/*.yaml` policy rows;
- * the default is the fallback when no policy is declared. *)
+ * projects override this list via the
+ * MATH_CODING_BLOCKING_CIS environment variable (a
+ * comma-separated list, e.g.
+ * `MATH_CODING_BLOCKING_CIS=ci-bot,security-bot`); the
+ * default is the fallback when no override is declared.
+ *
+ * See decisions/ci-blocking-list-config.yaml for the
+ * governing decision; the kernel does not parse
+ * `decisions/*.yaml` here because the file format is not
+ * yet stable and the env-var path is sufficient for all
+ * current projects (math-coding CI farm, ad-hoc forks). *)
 let[@warning "-32"] blocking_cis_default =
   [ "payments-ci"; "orders-ci"; "integration-ci" ]
+
+(* Read the override list from the MATH_CODING_BLOCKING_CIS env
+   variable. Returns the default if the variable is unset or
+   empty. Comma-separated parsing is permissive: whitespace
+   around commas is trimmed, empty entries are skipped. *)
+let[@warning "-32"] blocking_cis () =
+  match Sys.getenv_opt "MATH_CODING_BLOCKING_CIS" with
+  | None | Some "" -> blocking_cis_default
+  | Some s ->
+      let entries =
+        String.split_on_char ',' s
+        |> List.map (fun e -> String.trim e)
+        |> List.filter (fun e -> e <> "")
+      in
+      if entries = [] then blocking_cis_default else entries
 
 (* -----------------------------------------------------------------
  * Store loader (existing code, unchanged). *)

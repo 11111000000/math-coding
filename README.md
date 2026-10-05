@@ -50,6 +50,9 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mc packages` | Index of decisions, obligations, verdicts |
 | `mc render` | Build the static site under `dist/` |
 | `mc time-estimate` | Honest duration claim from a reference class |
+| `mc mode PATH ...` | 3.2-ideal risk classification (algebra §2) |
+| `mc rebuttals SHA` | Walk `rebuttals/<sha>.yaml` (algebra §10) |
+| `mc re-evaluate DEC AXIOM` | Re-evaluation oracle (algebra §17) |
 
 Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
 

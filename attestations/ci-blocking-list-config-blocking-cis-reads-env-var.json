@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"ci-blocking-list-config","obligation":"blocking-cis-reads-env-var","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"test"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:e121b0eda55e9a8d94115c6170c3ade0b073bf83ee3620f73cf91998e91f9448"}

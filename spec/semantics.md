@@ -494,6 +494,77 @@ is a kernel verdict, not a CLI invocation fault).
 - **Justification**: `decisions/site-deploy.yaml`
   obligation `render-kernel-impl`.
 
+### `mode [PATH ...] [--format=json|text]`
+
+- **Synopsis**: `mc mode PATH1 PATH2 ... [--format=json|text]`
+- **Input**: one or more file paths. `--format` selects the
+  output renderer; default `json`. At least one PATH is
+  required; the empty path list is an input error.
+- **Output**: a single JSON object on stdout with sorted
+  keys carrying the risk classification of the given
+  paths per `lib/risk.ml` (algebra §2). Fields:
+  `files[]` (input paths), `impact` (max `classify(p)`,
+  `0 ≤ impact ≤ 1`), `probability` (default 0.5 unless a
+  policy override applies), `irreversibility` (max marker
+  across files, default 0.1), `risk` (impact × probability
+  × irreversibility, `0 ≤ risk ≤ 1`), `mode`
+  (`tiny`/`light`/`standard`/`strict`/`exhaustive`,
+  per the `risk_to_mode` thresholds). In `--format=text`
+  the fields are emitted as `key: value` lines, one per
+  line, in alphabetical key order.
+- **Exit code**: `0` on success; `2` on no positional paths,
+  a path that does not exist on disk, or an unknown
+  `--format` value.
+- **Justification**: `decisions/3-2-cli-catalog.yaml`
+  obligation `mode-subcommand-spec-row` (algebra §2).
+
+### `rebuttals COMMIT_SHA`
+
+- **Synopsis**: `mc rebuttals COMMIT_SHA`
+- **Input**: `COMMIT_SHA` is a 7+ character git commit
+  prefix. The command walks
+  `rebuttals/<sha>.yaml` (sibling YAML artefact) and the
+  forge mirror (`forge_api.comments_for` in algebra §10,
+  currently returns `[]` in this revision; see
+  `lib/rebuttal.ml:forge_mirror`).
+- **Output**: a single JSON object on stdout with the keys
+  `commit`, `count` (number of rebuttals found), and
+  `rebuttals[]` (each entry carrying `rebutter`, `objection`,
+  `evidence`, `outcome`, `trust_level_at_rebuttal`,
+  `binding`, `timestamp`, and an optional `domain`).
+  `binding` is computed per algebra §10
+  (`trust(r.rebutter, obligation_domain(c)) ≥
+  authority(c.mode)`).
+- **Exit code**: `0` on success; `2` on missing `COMMIT_SHA`
+  argument, malformed `COMMIT_SHA` (fewer than 7 hex
+  characters), or an unreadable `rebuttals/<sha>.yaml`
+  file.
+- **Justification**: `decisions/3-2-cli-catalog.yaml`
+  obligation `rebuttals-subcommand-spec-row` (algebra §10).
+
+### `re-evaluate DECISION_ID AXIOM_ID`
+
+- **Synopsis**: `mc re-evaluate DECISION_ID AXIOM_ID`
+- **Input**: `DECISION_ID` is the id of an existing
+  decision under `decisions/*.yaml` (e.g. `bootstrap-v3`,
+  `algebra-3.2`). `AXIOM_ID` is one of `A0`, `A1`, `A2`,
+  `A3`, `A4`. Both arguments are required.
+- **Output**: a single JSON object on stdout carrying
+  `decision` (the id), `axiom` (the id), `status`
+  (`compatible` | `inconclusive` | `stale_claim` per
+  algebra §17), and `obligations[]` (per-obligation
+  sub-status). `inconclusive` indicates a manual-style
+  verifier needs follow-up review; `stale_claim` blocks
+  the change per the gate's `re_evaluation_status(c) ≠
+  stale_claim` precondition.
+- **Exit code**: `0` on a resolved pair; `2` on missing
+  arguments, an unknown `DECISION_ID` (not in
+  `decisions/*.yaml`), or an unknown `AXIOM_ID` (not in
+  `axioms/index.md`).
+- **Justification**: `decisions/3-2-cli-catalog.yaml`
+  obligation `re-evaluate-subcommand-spec-row` (algebra
+  §17).
+
 ## Context-prioritisation
 
 The `mc context BASE HEAD --budget N` command produces a JSON

@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"3-2-cli-catalog","obligation":"re-evaluate-subcommand-spec-row","candidate_tree":"HEAD","materials_digest":""},"kind_":"build","producer":{"identity":"ci-bot"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:73436227ea64febfa7ad2e42020e8b6a23a5890eeadf3b6b875922c85fd2009e"}

@@ -1,0 +1,203 @@
+---
+schema: math-coding/3.0-alpha
+id: full-decision-memory
+revision: 1
+
+state: active
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Expand `lib/memory.ml:load_decisions` from a 4-file
+  hardcoded list to a directory walk. The kernel capsule
+  (`mc context BASE HEAD --budget N`) currently embeds a
+  hardcoded list of four "bootstrap" decisions in
+  `lib/memory.ml:188-195`:
+
+    decisions/decision.yaml
+    decisions/infrastructure-honesty.yaml
+    decisions/kernel-conformance-runner.yaml
+    decisions/validate-and-context.yaml
+
+  This means 24 of the 28 active decisions in the project are
+  invisible to the capsule builder. An agent reading the
+  capsule would not know about `mc-self-check-subcommand`,
+  `gate-decision`, `algebra-3.2`, `site-deploy`, etc., and
+  would have to expand each one via `mc explain
+  decision:<id>` to discover its obligations.
+
+  The fix is to walk `decisions/*.yaml` (excluding meta files
+  and retired decisions) instead of enumerating four names.
+  The byte budget enforcement in `lib/capsule.ml:build_capsule`
+  is unchanged, so the capsule stays within the budget; the
+  difference is that low-priority decisions now appear in
+  `omitted[]` with `expansion` commands instead of being
+  completely absent.
+
+  History:
+    rev 1 (this commit): initial adoption. The 4-file list
+                          predates the v3.0.0.20 expansion
+                          (when 20+ additional decisions
+                          landed). No functional change to the
+                          capsule byte budget; the visible
+                          diff is that more decisions appear in
+                          the `omitted[]` expansion list when
+                          budget pressure is high.
+
+commitment: |
+  `lib/memory.ml:load_decisions` walks the `decisions/`
+  directory and returns a `decision_entry` for every active
+  non-meta decision file. Meta files (per the existing list:
+  `decision.yaml`, `obligations.yaml`,
+  `obligation-count-reconcile.yaml`, `ONBOARDING.md`,
+  `rationale.md`) are skipped. Decisions with
+  `state: retired` (currently only `portable-linux-musl@2`)
+  are also skipped. The capsule byte budget is unchanged;
+  `build_capsule` continues to enforce `total_bytes ≤
+  budget` and to populate `omitted[]` with `expansion`
+  commands for dropped items.
+
+  Migration: the four hardcoded filenames are removed from
+  `load_decisions`; tests that read `memory.decisions` no
+  longer see only four entries. The OCaml test
+  `tests/repo_structure.ml` has no obligation counting
+  decisions, so no test breakage is expected. Cram fixtures
+  that read the capsule will see more entries in `items[]`
+  (within budget) and possibly more entries in `omitted[]`
+  when budget pressure is high.
+
+  Recovery: revert the commit. The 4-file list returns; the
+  capsule shrinks back to the 4-decision baseline. This is
+  acceptable because the original 4-decision scope was a
+  documented simplification; reverting restores the simpler
+  contract.
+
+scope:
+  paths:
+    - lib/memory.ml
+    - tests/repo_structure.ml
+    - tests/fixtures/full-decision-memory-walks.sh
+    - tests/fixtures/full-decision-memory-skips-meta.sh
+    - tests/fixtures/full-decision-memory-skips-retired.sh
+    - tests/fixtures/full-decision-memory-budget-respected.sh
+
+outcomes:
+  - id: capsule-is-complete
+    statement: the capsule enumerates every active decision
+      in the project (subject to the byte budget cap), not
+      just the original 4 bootstrap decisions.
+  - id: meta-files-excluded
+    statement: meta files (decision.yaml master policy,
+      obligations.yaml aggregator, rationale.md,
+      obligation-count-reconcile.yaml, ONBOARDING.md) never
+      appear in the capsule, preserving the existing
+      excluded-files contract.
+  - id: retired-decisions-excluded
+    statement: decisions whose top-level `state: retired` do
+      not appear in the capsule, even if their
+      `obligations[]` are still enumerated by
+      `mc packages`.
+
+assumptions:
+  - id: byte-budget-is-sufficient
+    state: assumed
+    statement: |
+      The 8KB default capsule budget (`spec/semantics.md`
+      `context-budget` parameter) is sufficient to hold all
+      active decisions' first-paragraph summaries plus the
+      active policy reference. If the project grows past ~80
+      active decisions the assumption breaks and a higher
+      default budget (or a different packing strategy) is
+      required. The current count is 28 active decisions,
+      well within the budget.
+    owner: human:maintainer
+    consequence_if_false: the agent sees an empty or near-empty
+      `items[]` and must expand every decision; the
+      `omitted[]` array becomes useless.
+    review_on:
+      - signal: capsule-truncation-rate-spikes
+
+obligations:
+  - id: load-decisions-walks-decisions-dir
+    outcome: capsule-is-complete
+    claim: |
+      `lib/memory.ml:load_decisions` reads `decisions/*.yaml`
+      (excluding meta and retired files) and returns one
+      `decision_entry` per active non-meta decision. With the
+      current 28 active decisions, the loader returns
+      ≥ 27 entries (portable-linux-musl is retired and is
+      excluded; one entry is the master policy which is
+      meta-skipped; the remaining 27 are non-meta, non-retired).
+    acceptance:
+      all:
+        - verifier: tests/fixtures/full-decision-memory-walks.sh
+          result: pass
+        - verifier: text-scan-memory-ml-no-hardcoded-decision-paths
+          result: pass
+
+  - id: load-decisions-skips-meta
+    outcome: meta-files-excluded
+    claim: |
+      `lib/memory.ml:load_decisions` does not return entries
+      for `decision.yaml`, `obligations.yaml`,
+      `obligation-count-reconcile.yaml`, `ONBOARDING.md`,
+      or `rationale.md`. The contract matches the existing
+      `tests/repo_structure.ml:excluded_decision_files` set.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/full-decision-memory-skips-meta.sh
+          result: pass
+
+  - id: load-decisions-skips-retired
+    outcome: retired-decisions-excluded
+    claim: |
+      `lib/memory.ml:load_decisions` does not return entries
+      for decisions whose top-level `state: retired` (at
+      HEAD, only `portable-linux-musl@2`). The state field
+      is read from the raw YAML, not via `Decision.parse_decision`
+      (which is currently broken for every decision in the
+      repo; see OCAML_BEST_PRACTICES §11.12 and the open
+      `mc validate` bug tracked in `doc/AUDIT-0.0.11.md:463`).
+    acceptance:
+      all:
+        - verifier: tests/fixtures/full-decision-memory-skips-retired.sh
+          result: pass
+
+  - id: capsule-still-respects-budget
+    outcome: capsule-is-complete
+    claim: |
+      `mc context BASE HEAD --budget N` continues to enforce
+      `total_bytes ≤ budget` after this change. The number of
+      items in `items[]` may grow (up to the budget), and
+      `omitted[]` will contain expansion commands for the
+      decisions that did not fit. No `items[]` entry exceeds
+      its allocated byte cost; `truncated` is `true` iff
+      `omitted[]` is non-empty.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/full-decision-memory-budget-respected.sh
+          result: pass
+
+reversal:
+  - signal: capsule-budget-saturation
+    action: re-issue with rev 2, narrowing the walked set
+    (e.g. only decisions whose id starts with one of a
+    configured allow-list prefix).
+
+risk:
+  declared_triggers:
+    owner: human:maintainer
+    - capsule-budget-saturation
+    - meta-file-state-confusion
+  - capsule_overload: |
+      A future addition of 50+ active decisions could
+      exhaust the default 8KB budget. Mitigation: the
+      `byte-budget-is-sufficient` assumption triggers a
+      review when the active decision count crosses 50;
+      a follow-up decision can either raise the default
+      budget or introduce a tiered-capsule strategy.
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  refines:
+    - validate-and-context@2

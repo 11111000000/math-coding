@@ -1709,44 +1709,85 @@ let do_rebuttals () =
  * need manual review. *)
 let do_re_evaluate () =
   Arg.current := 1;
-  let repo_root = "." in
+  let repo_root = find_project_root (Sys.getcwd ()) in
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
+  let decision_id = ref "" in
+  let axiom_id = ref "" in
+  let set_dec s = decision_id := s in
+  let set_axiom s = axiom_id := s in
+  let spec =
+    "usage: mc re-evaluate DECISION_ID AXIOM_ID (e.g. mc re-evaluate \
+     bootstrap-v3 A1)"
+  in
+  let anon s =
+    if !decision_id = "" then set_dec s
+    else if !axiom_id = "" then set_axiom s
+    else raise (Arg.Bad "only two positional arguments expected")
+  in
+  (try Arg.parse [] anon spec
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mc re-evaluate: %s\n" m;
+     exit 2);
+  if !decision_id = "" || !axiom_id = "" then begin
+    Printf.fprintf stderr
+      "mc re-evaluate: DECISION_ID and AXIOM_ID are required\n";
+    exit 2
+  end;
+  let valid_axioms = [ "A0"; "A1"; "A2"; "A3"; "A4" ] in
+  if not (List.mem !axiom_id valid_axioms) then begin
+    Printf.fprintf stderr
+      "mc re-evaluate: AXIOM_ID must be one of A0..A4 (got %s)\n" !axiom_id;
+    exit 2
+  end;
   let decisions = Re_evaluation.load_decisions ~reader ~root:repo_root in
-  let v_to_string : Re_evaluation.status -> string = function
-    | Re_evaluation.Compatible -> "compatible"
-    | Re_evaluation.Inconclusive -> "inconclusive"
-    | Re_evaluation.StaleClaim -> "stale_claim"
-  in
-  let dummy_rev : Re_evaluation.axiom_revision =
-    {
-      Re_evaluation.axiom_id = "A0";
-      old_sha = "";
-      new_sha = "";
-      old_forbidden_patterns = [];
-      new_forbidden_patterns = [];
-    }
-  in
-  let results =
-    List.map
-      (fun d ->
-        let v = Re_evaluation.re_evaluate d dummy_rev in
-        Jsonl.Object
-          [
-            ("decision", Jsonl.String d.Domain.id);
-            ("axiom", Jsonl.String "A0");
-            ("verdict", Jsonl.String (v_to_string v));
-          ])
+  let target =
+    List.find_opt
+      (fun (d : Domain.decision) -> String.equal d.Domain.id !decision_id)
       decisions
   in
-  Jsonl.stringify
-    (Jsonl.Object
-       [
-         ("decisions_evaluated", Jsonl.Int (List.length decisions));
-         ("results", Jsonl.Array results);
-       ])
-  |> print_endline
+  match target with
+  | None ->
+      Printf.fprintf stderr "mc re-evaluate: unknown DECISION_ID %s\n"
+        !decision_id;
+      exit 2
+  | Some d ->
+      let rev : Re_evaluation.axiom_revision =
+        {
+          Re_evaluation.axiom_id = !axiom_id;
+          old_sha = "";
+          new_sha = "";
+          old_forbidden_patterns = [];
+          new_forbidden_patterns = [];
+        }
+      in
+      let v = Re_evaluation.re_evaluate d rev in
+      let v_to_string : Re_evaluation.status -> string = function
+        | Re_evaluation.Compatible -> "compatible"
+        | Re_evaluation.Inconclusive -> "inconclusive"
+        | Re_evaluation.StaleClaim -> "stale_claim"
+      in
+      let status_per_obligation =
+        List.map
+          (fun (ob : Domain.obligation) ->
+            let sub = Re_evaluation.evaluate_obligation ob rev in
+            Jsonl.Object
+              [
+                ("id", Jsonl.String ob.Domain.id);
+                ("verdict", Jsonl.String (v_to_string sub));
+              ])
+          d.Domain.obligations
+      in
+      Jsonl.stringify
+        (Jsonl.Object
+           [
+             ("decision", Jsonl.String !decision_id);
+             ("axiom", Jsonl.String !axiom_id);
+             ("verdict", Jsonl.String (v_to_string v));
+             ("obligations", Jsonl.Array status_per_obligation);
+           ])
+      |> print_endline
 
 (* --- self-check subcommand (bootstrap decision
  *   mc-self-check-subcommand@2) ---

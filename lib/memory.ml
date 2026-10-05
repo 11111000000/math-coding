@@ -185,48 +185,98 @@ let[@warning "-32"] read reader path =
 
 (* --- loader --- *)
 
+(* Meta files carry a different schema (per OCaml test's
+   excluded_decision_files); the rigorous check skips them, so
+   do we. Mirrors `tests/repo_structure.ml:excluded_decision_files`. *)
+let[@warning "-32"] excluded_decision_basenames = function
+  | "decision.yaml" -> true
+  | "obligations.yaml" -> true
+  | "obligation-count-reconcile.yaml" -> true
+  | "ONBOARDING.md" -> true
+  | "rationale.md" -> true
+  | _ -> false
+
+(* Read the top-level `state: <retired|draft|active|superseded>`
+   field from raw YAML. A simple line scan is sufficient: the
+   YAML loader is the canonical parser, but Decision.parse_decision
+   currently rejects every decision in the repo (see
+   `doc/AUDIT-0.0.11.md:463` and OCAML_BEST_PRACTICES §11.12), so
+   the loader would return None for every file. We fall back to a
+   text scan that only needs to find `^state: retired$` on its own
+   line. Returns true iff the state line reads exactly `retired`. *)
+let[@warning "-32"] is_retired raw =
+  let lines = split_lines raw in
+  List.exists
+    (fun line ->
+      let trimmed = trim line in
+      trimmed = "state: retired" || trimmed = "state: retired ")
+    lines
+
+(* Walk `decisions/` and return every active non-meta decision.
+   This replaces the 4-file hardcoded list that pre-dates the
+   v3.0.0.20 expansion. The capsule byte budget (see
+   `build_capsule` in `lib/capsule.ml`) is unchanged, so the
+   visible diff is that low-priority decisions now appear in
+   `omitted[]` with `expansion` commands instead of being
+   completely absent.
+
+   Per `decisions/full-decision-memory.yaml` obligations
+   `load-decisions-walks-decisions-dir`,
+   `load-decisions-skips-meta`, and
+   `load-decisions-skips-retired`. *)
 let[@warning "-32"] load_decisions reader root =
-  let paths =
-    [
-      Filename.concat root "decisions/decision.yaml";
-      Filename.concat root "decisions/infrastructure-honesty.yaml";
-      Filename.concat root "decisions/kernel-conformance-runner.yaml";
-      Filename.concat root "decisions/validate-and-context.yaml";
-    ]
-  in
-  List.filter_map
-    (fun p ->
-      match read reader p with
-      | None -> None
-      | Some raw -> (
-          (* .yaml files parse cleanly; the bootstrap decision files
-           may embed front-matter that the YAML loader can still consume
-           because the leading '---' block is plain YAML. If parsing
-           fails, fall back to a minimal entry so the capsule still
-           names the decision file. *)
-          match parse_decision_yaml raw with
-          | Some entry -> Some entry
-          | None ->
-              let id =
-                let base = Filename.basename p in
-                match Filename.chop_suffix_opt ~suffix:".yaml" base with
-                | Some s -> s
-                | None -> (
-                    match Filename.chop_suffix_opt ~suffix:".md" base with
+  let decisions_dir = Filename.concat root "decisions" in
+  if not (Sys.file_exists decisions_dir) then []
+  else if not (Sys.is_directory decisions_dir) then []
+  else
+    let entries =
+      try Sys.readdir decisions_dir |> Array.to_list with _ -> []
+    in
+    let yaml_files =
+      List.filter
+        (fun name ->
+          let sfx = Filename.extension name in
+          sfx = ".yaml" || sfx = ".yml" || sfx = ".json")
+        entries
+    in
+    let non_meta_files =
+      List.filter
+        (fun name -> not (excluded_decision_basenames name))
+        yaml_files
+    in
+    let paths =
+      List.map (fun name -> Filename.concat decisions_dir name) non_meta_files
+    in
+    List.filter_map
+      (fun p ->
+        match read reader p with
+        | None -> None
+        | Some raw -> (
+            if is_retired raw then None
+            else
+              match parse_decision_yaml raw with
+              | Some entry -> Some entry
+              | None ->
+                  let id =
+                    let base = Filename.basename p in
+                    match Filename.chop_suffix_opt ~suffix:".yaml" base with
                     | Some s -> s
-                    | None -> base)
-              in
-              Some
-                {
-                  decision_id = id;
-                  revision = None;
-                  source = raw;
-                  obligations = 0;
-                  obligation_ids = [];
-                  assumptions = 0;
-                  risk_triggers = [];
-                }))
-    paths
+                    | None -> (
+                        match Filename.chop_suffix_opt ~suffix:".md" base with
+                        | Some s -> s
+                        | None -> base)
+                  in
+                  Some
+                    {
+                      decision_id = id;
+                      revision = None;
+                      source = raw;
+                      obligations = 0;
+                      obligation_ids = [];
+                      assumptions = 0;
+                      risk_triggers = [];
+                    }))
+      paths
 
 let[@warning "-32"] load_spec reader root : spec_doc list =
   let names = [ "constitution.md"; "domain.md"; "semantics.md" ] in
