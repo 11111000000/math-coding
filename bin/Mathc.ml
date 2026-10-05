@@ -233,7 +233,7 @@ let print_usage oc =
     \  attest FILE                      parse FILE as a JUnit XML report\n\
     \  time-estimate --class ...        print JSON forecast from declared \
      distribution\n\
-     \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\
+    \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\
     \  mode PATHS...                    compute risk + mode from paths (v3.2 §2)\n\
     \  rebuttals COMMIT_SHA              load rebuttals/<sha>.yaml (v3.2 §10)\n\
     \  re-evaluate                       run re_evaluate oracle (v3.2 §17)\n\
@@ -1620,36 +1620,48 @@ let do_mode () =
   let set_format s = format := s in
   let spec = "usage: mc mode PATH1 PATH2 ... [--format=json|text]" in
   (try
-     Arg.parse [("--format", Arg.String set_format, " output format")]
+     Arg.parse
+       [ ("--format", Arg.String set_format, " output format") ]
        set_path spec
    with Arg.Bad _ -> ());
   let ps = List.rev !paths in
   if ps = [] then begin
-    print_usage stderr; exit 2
+    print_usage stderr;
+    exit 2
   end;
-  let classified =
-    List.map (fun p -> (p, Risk.classify p)) ps in
+  let classified = List.map (fun p -> (p, Risk.classify p)) ps in
   let impact = Risk.impact ps in
   let probability = Risk.probability ps in
   let irreversibility = Risk.irreversibility ps in
   let r = Risk.risk ps in
   let m = Risk.mode ps in
-  let mode_str = match m with
-    | `Tiny -> "tiny" | `Light -> "light"
-    | `Standard -> "standard" | `Strict -> "strict"
+  let mode_str =
+    match m with
+    | `Tiny -> "tiny"
+    | `Light -> "light"
+    | `Standard -> "standard"
+    | `Strict -> "strict"
     | `Exhaustive -> "exhaustive"
   in
   Jsonl.stringify
     (Jsonl.Object
-       [ "paths", Jsonl.Array (List.map (fun (p, c) ->
-           Jsonl.Object
-             [ "path", Jsonl.String p; "classify", Jsonl.String (Float.to_string (c ))])
-         classified)
-       ; "impact", Jsonl.String (Float.to_string (impact))
-       ; "probability", Jsonl.String (Float.to_string (probability))
-       ; "irreversibility", Jsonl.String (Float.to_string (irreversibility))
-       ; "risk", Jsonl.String (Float.to_string (r))
-       ; "mode", Jsonl.String mode_str ])
+       [
+         ( "paths",
+           Jsonl.Array
+             (List.map
+                (fun (p, c) ->
+                  Jsonl.Object
+                    [
+                      ("path", Jsonl.String p);
+                      ("classify", Jsonl.String (Float.to_string c));
+                    ])
+                classified) );
+         ("impact", Jsonl.String (Float.to_string impact));
+         ("probability", Jsonl.String (Float.to_string probability));
+         ("irreversibility", Jsonl.String (Float.to_string irreversibility));
+         ("risk", Jsonl.String (Float.to_string r));
+         ("mode", Jsonl.String mode_str);
+       ])
   |> print_endline
 
 (* --- rebuttals subcommand (algebra 3.2 §10) ---
@@ -1663,24 +1675,29 @@ let do_rebuttals () =
   (try Arg.parse [] (fun s -> sha := s) "usage: mc rebuttals COMMIT_SHA"
    with Arg.Bad _ -> ());
   if !sha = "" then begin
-    print_usage stderr; exit 2
+    print_usage stderr;
+    exit 2
   end;
   let rebuttals = Rebuttal.all_rebuttals !sha in
   let stats = Rebuttal.stats rebuttals in
-  let stats_json = Jsonl.Object
-    [ "total", Jsonl.Int stats.total
-    ; "accepted", Jsonl.Int stats.accepted
-    ; "rejected_with_reason", Jsonl.Int stats.rejected_with_reason
-    ; "ignored_non_binding", Jsonl.Int stats.ignored_non_binding
-    ; "never_resolved", Jsonl.Int stats.never_resolved
-    ; "pending", Jsonl.Int stats.pending
-    ]
+  let stats_json =
+    Jsonl.Object
+      [
+        ("total", Jsonl.Int stats.total);
+        ("accepted", Jsonl.Int stats.accepted);
+        ("rejected_with_reason", Jsonl.Int stats.rejected_with_reason);
+        ("ignored_non_binding", Jsonl.Int stats.ignored_non_binding);
+        ("never_resolved", Jsonl.Int stats.never_resolved);
+        ("pending", Jsonl.Int stats.pending);
+      ]
   in
   Jsonl.stringify
     (Jsonl.Object
-       [ "commit_sha", Jsonl.String !sha
-       ; "rebuttals", Jsonl.Array (List.map Rebuttal.to_json rebuttals)
-       ; "stats", stats_json ])
+       [
+         ("commit_sha", Jsonl.String !sha);
+         ("rebuttals", Jsonl.Array (List.map Rebuttal.to_json rebuttals));
+         ("stats", stats_json);
+       ])
   |> print_endline
 
 (* --- re-evaluate subcommand (algebra 3.2 §17) ---
@@ -1703,25 +1720,32 @@ let do_re_evaluate () =
     | Re_evaluation.StaleClaim -> "stale_claim"
   in
   let dummy_rev : Re_evaluation.axiom_revision =
-    { Re_evaluation.axiom_id = "A0"
-    ; old_sha = ""
-    ; new_sha = ""
-    ; old_forbidden_patterns = []
-    ; new_forbidden_patterns = []
-    } in
+    {
+      Re_evaluation.axiom_id = "A0";
+      old_sha = "";
+      new_sha = "";
+      old_forbidden_patterns = [];
+      new_forbidden_patterns = [];
+    }
+  in
   let results =
-    List.map (fun d ->
-      let v = Re_evaluation.re_evaluate d dummy_rev in
-      Jsonl.Object
-        [ "decision", Jsonl.String d.Domain.id
-        ; "axiom", Jsonl.String "A0"
-        ; "verdict", Jsonl.String (v_to_string v) ])
+    List.map
+      (fun d ->
+        let v = Re_evaluation.re_evaluate d dummy_rev in
+        Jsonl.Object
+          [
+            ("decision", Jsonl.String d.Domain.id);
+            ("axiom", Jsonl.String "A0");
+            ("verdict", Jsonl.String (v_to_string v));
+          ])
       decisions
   in
   Jsonl.stringify
     (Jsonl.Object
-       [ "decisions_evaluated", Jsonl.Int (List.length decisions)
-       ; "results", Jsonl.Array results ])
+       [
+         ("decisions_evaluated", Jsonl.Int (List.length decisions));
+         ("results", Jsonl.Array results);
+       ])
   |> print_endline
 
 (* --- self-check subcommand (bootstrap decision

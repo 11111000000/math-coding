@@ -25,9 +25,7 @@ let[@warning "-32"] make_obligation ?(verifier = "tests/conformance")
   let verifier_id = verifier in
   let result_str = "pass" in
   let result =
-    match result_str with
-    | "pass" -> Domain.Pass
-    | _ -> Domain.Pass
+    match result_str with "pass" -> Domain.Pass | _ -> Domain.Pass
   in
   {
     Domain.id = "ob-test-" ^ claim;
@@ -91,50 +89,45 @@ let[@warning "-32"] empty_rev axiom_id =
 
 let[@warning "-32"] test_max_verdict () =
   Alcotest.(check string)
-    "empty -> compatible"
-    "compatible"
+    "empty -> compatible" "compatible"
     (Re_evaluation.max_verdict [] |> status_to_string);
   Alcotest.(check string)
-    "[compatible] -> compatible"
-    "compatible"
-    (Re_evaluation.max_verdict [ Re_evaluation.Compatible ]
-     |> status_to_string);
+    "[compatible] -> compatible" "compatible"
+    (Re_evaluation.max_verdict [ Re_evaluation.Compatible ] |> status_to_string);
   Alcotest.(check string)
-    "[inconclusive] -> inconclusive"
-    "inconclusive"
+    "[inconclusive] -> inconclusive" "inconclusive"
     (Re_evaluation.max_verdict [ Re_evaluation.Inconclusive ]
-     |> status_to_string);
+    |> status_to_string);
   Alcotest.(check string)
-    "[stale] -> stale"
-    "stale"
-    (Re_evaluation.max_verdict [ Re_evaluation.StaleClaim ]
-     |> status_to_string);
+    "[stale] -> stale" "stale"
+    (Re_evaluation.max_verdict [ Re_evaluation.StaleClaim ] |> status_to_string);
   Alcotest.(check string)
-    "max wins"
-    "stale"
+    "max wins" "stale"
     (Re_evaluation.max_verdict
-       [ Re_evaluation.Compatible; Re_evaluation.Inconclusive;
-         Re_evaluation.StaleClaim ]
-     |> status_to_string);
+       [
+         Re_evaluation.Compatible;
+         Re_evaluation.Inconclusive;
+         Re_evaluation.StaleClaim;
+       ]
+    |> status_to_string);
   Alcotest.(check string)
-    "compatible doesn't beat inconclusive"
-    "inconclusive"
+    "compatible doesn't beat inconclusive" "inconclusive"
     (Re_evaluation.max_verdict
        [ Re_evaluation.Compatible; Re_evaluation.Inconclusive ]
-     |> status_to_string)
+    |> status_to_string)
 
 (* --- gate_verdict --- *)
 
 let[@warning "-32"] test_gate_verdict () =
-  Alcotest.(check string) "compatible -> pass" "pass"
-    (Re_evaluation.gate_verdict Re_evaluation.Compatible
-     |> gate_to_string);
-  Alcotest.(check string) "inconclusive -> pass" "pass"
-    (Re_evaluation.gate_verdict Re_evaluation.Inconclusive
-     |> gate_to_string);
-  Alcotest.(check string) "stale -> block" "block"
-    (Re_evaluation.gate_verdict Re_evaluation.StaleClaim
-     |> gate_to_string)
+  Alcotest.(check string)
+    "compatible -> pass" "pass"
+    (Re_evaluation.gate_verdict Re_evaluation.Compatible |> gate_to_string);
+  Alcotest.(check string)
+    "inconclusive -> pass" "pass"
+    (Re_evaluation.gate_verdict Re_evaluation.Inconclusive |> gate_to_string);
+  Alcotest.(check string)
+    "stale -> block" "block"
+    (Re_evaluation.gate_verdict Re_evaluation.StaleClaim |> gate_to_string)
 
 (* --- re_evaluate: per-obligation rules --- *)
 
@@ -143,15 +136,15 @@ let[@warning "-32"] test_re_evaluate_test_verifier_compatible () =
   let d = make_decision [ ob ] in
   let rev = empty_rev "A0" in
   Alcotest.(check string)
-    "test verifier + no forbidden pattern -> compatible"
-    "compatible"
+    "test verifier + no forbidden pattern -> compatible" "compatible"
     (Re_evaluation.re_evaluate d rev |> status_to_string)
 
 let[@warning "-32"] test_re_evaluate_manual_verifier_inconclusive () =
   let ob = make_obligation ~verifier:"manual-review" ~claim:"hello world" () in
   let d = make_decision [ ob ] in
   let rev = empty_rev "A0" in
-  Alcotest.(check string) "manual verifier -> inconclusive" "inconclusive"
+  Alcotest.(check string)
+    "manual verifier -> inconclusive" "inconclusive"
     (Re_evaluation.re_evaluate d rev |> status_to_string)
 
 let[@warning "-32"] test_re_evaluate_builtin_verifier_compatible () =
@@ -160,15 +153,14 @@ let[@warning "-32"] test_re_evaluate_builtin_verifier_compatible () =
   in
   let d = make_decision [ ob ] in
   let rev = empty_rev "A0" in
-  Alcotest.(check string) "mc- builtin verifier -> compatible" "compatible"
+  Alcotest.(check string)
+    "mc- builtin verifier -> compatible" "compatible"
     (Re_evaluation.re_evaluate d rev |> status_to_string)
 
 let[@warning "-32"] test_re_evaluate_stale_claim () =
   let ob =
-    make_obligation
-      ~verifier:"tests/x"
-      ~claim:"the old axiom says 'forbidden phrase' must hold"
-      ()
+    make_obligation ~verifier:"tests/x"
+      ~claim:"the old axiom says 'forbidden phrase' must hold" ()
   in
   let d = make_decision [ ob ] in
   let rev =
@@ -180,17 +172,15 @@ let[@warning "-32"] test_re_evaluate_stale_claim () =
       new_forbidden_patterns = [];
     }
   in
-  Alcotest.(check string) "claim mentions forbidden pattern -> stale"
-    "stale"
+  Alcotest.(check string)
+    "claim mentions forbidden pattern -> stale" "stale"
     (Re_evaluation.re_evaluate d rev |> status_to_string)
 
 let[@warning "-32"] test_re_evaluate_worst_across_obligations () =
   let ok_ob = make_obligation ~verifier:"tests/x" ~claim:"hello world" () in
   let stale_ob =
-    make_obligation
-      ~verifier:"tests/x"
-      ~claim:"contains the keyword forbidden-pattern-here today"
-      ()
+    make_obligation ~verifier:"tests/x"
+      ~claim:"contains the keyword forbidden-pattern-here today" ()
   in
   let d = make_decision [ ok_ob; stale_ob ] in
   let rev =
@@ -202,8 +192,8 @@ let[@warning "-32"] test_re_evaluate_worst_across_obligations () =
       new_forbidden_patterns = [];
     }
   in
-  Alcotest.(check string) "max over [compatible; stale] -> stale"
-    "stale"
+  Alcotest.(check string)
+    "max over [compatible; stale] -> stale" "stale"
     (Re_evaluation.re_evaluate d rev |> status_to_string)
 
 (* --- impact_list / transitive_impact_list --- *)
@@ -214,11 +204,9 @@ let[@warning "-32"] test_impact_list_filters_by_addresses () =
   let d_none = make_decision ~id:"gamma" ~axiom_addresses:[] [] in
   let ds = [ d_a0; d_a2; d_none ] in
   let result = Re_evaluation.impact_list ds "A0" in
-  Alcotest.(check int) "A0 -> 1 decision"
-    (Stdlib.List.length result) 1;
-  Alcotest.(check string) "A0 -> alpha"
-    "alpha"
-    (Stdlib.List.hd result).Domain.id
+  Alcotest.(check int) "A0 -> 1 decision" (Stdlib.List.length result) 1;
+  Alcotest.(check string)
+    "A0 -> alpha" "alpha" (Stdlib.List.hd result).Domain.id
 
 let[@warning "-32"] test_transitive_impact_includes_dependents () =
   let d_a0 = make_decision ~id:"alpha" ~axiom_addresses:[ "A0" ] [] in
@@ -227,8 +215,7 @@ let[@warning "-32"] test_transitive_impact_includes_dependents () =
       (make_decision ~id:"delta" ~axiom_addresses:[] []) with
       Domain.relations =
         {
-          (make_decision ~id:"delta" ~axiom_addresses:[] []).Domain.relations
-          with
+          (make_decision ~id:"delta" ~axiom_addresses:[] []).Domain.relations with
           Domain.depends_on = [ "alpha" ];
         };
     }
@@ -250,49 +237,59 @@ let[@warning "-32"] test_transitive_impact_no_self_reference () =
   in
   let ids = Stdlib.List.map (fun (d : Domain.decision) -> d.Domain.id) result in
   Alcotest.(check (list string))
-    "single direct match, no transitive self-reference"
-    [ "alpha" ] ids
+    "single direct match, no transitive self-reference" [ "alpha" ] ids
 
 (* --- remediation --- *)
 
 let[@warning "-32"] test_remediation_mentions_decision_and_axiom () =
   let d = make_decision ~id:"kernel-change" [] in
   let text = Re_evaluation.remediation d "A1" in
-  Alcotest.(check bool) "names decision id"
-    true
+  Alcotest.(check bool)
+    "names decision id" true
     (let re = Str.regexp "kernel-change" in
      let len = String.length text in
      let rec search off =
        if off >= len then false
-       else try ignore (Str.search_forward re text off); true
+       else
+         try
+           ignore (Str.search_forward re text off);
+           true
          with Not_found -> search (off + 1)
-     in search 0);
-  Alcotest.(check bool) "names axiom id"
-    true
+     in
+     search 0);
+  Alcotest.(check bool)
+    "names axiom id" true
     (let re = Str.regexp "A1" in
      let len = String.length text in
      let rec search off =
        if off >= len then false
-       else try ignore (Str.search_forward re text off); true
+       else
+         try
+           ignore (Str.search_forward re text off);
+           true
          with Not_found -> search (off + 1)
-     in search 0);
-  Alcotest.(check bool) "mentions axioms path"
-    true
+     in
+     search 0);
+  Alcotest.(check bool)
+    "mentions axioms path" true
     (let re = Str.regexp "axioms/A1.md" in
      let len = String.length text in
      let rec search off =
        if off >= len then false
-       else try ignore (Str.search_forward re text off); true
+       else
+         try
+           ignore (Str.search_forward re text off);
+           true
          with Not_found -> search (off + 1)
-     in search 0)
+     in
+     search 0)
 
 (* --- enumerate --- *)
 
 let () =
   Alcotest.run "re-evaluation oracle"
     [
-      ( "max_verdict",
-        [ Alcotest.test_case "ordering" `Quick test_max_verdict ] );
+      ("max_verdict", [ Alcotest.test_case "ordering" `Quick test_max_verdict ]);
       ( "gate_verdict",
         [ Alcotest.test_case "pass/block split" `Quick test_gate_verdict ] );
       ( "re_evaluate",

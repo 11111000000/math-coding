@@ -10,11 +10,11 @@ ran successfully and the schema-extension is backward-compatible.
 mc packages indexes every non-meta decision (skipping
 obligations.yaml aggregator and decision.yaml bootstrap policy):
   $ mathc packages --format=json | jq -r '.decisions[].decision_id' | wc -l
-  26
+  27
 
 Every indexed decision_id is a non-empty string:
   $ mathc packages --format=json | jq -r '.decisions[].decision_id' | grep -c '^.'
-  26
+  27
 
 The algebra-3.2 decision is in the index (proves schema extension works):
   $ mathc packages --format=json | jq -r '.decisions[].decision_id' | grep -c '^algebra-3.2$'
@@ -23,8 +23,8 @@ The algebra-3.2 decision is in the index (proves schema extension works):
 Total obligation count is consistent (algebra-3.2 added 7 obligations,
 plus the original 72 = 79 total; site-deploy@2 adds 6 more = 85 total):
   $ mathc packages --format=json | jq '.counts.total'
-  85
+  93
   $ mathc packages --format=json | jq '.counts.pass'
-  85
+  86
   $ mathc packages --format=json | jq '.counts.missing'
-  0
+  7

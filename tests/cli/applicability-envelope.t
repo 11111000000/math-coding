@@ -32,4 +32,4 @@ Applicability envelope is functional when:
 2. decisions/algebra-3.2.yaml accepted (passed above)
 3. Tier 3.5 implementation tracked in ROADMAP.md:
   $ grep -c 'Tier 3.5' ROADMAP.md
-  2
+  4

@@ -83,11 +83,15 @@ let[@warning "-32"] test_ci_targets_exist () =
   let verify_re = Str.regexp "scripts/dev verify" in
   if not (has_match verify_re (read_file ci)) then
     Alcotest.fail "ci.yml does not invoke scripts/dev verify";
-  (* release.yml invokes opam exec dune build for core/main.exe. *)
-  let opam_re = Str.regexp "opam exec.*dune build.*core/main\\.exe" in
+  (* release.yml invokes opam exec dune build for bin/mathc.exe
+     (v3.x; v2.1 used core/main.exe which this test used to assert).
+     We accept any path ending in mathc.exe or main.exe to remain
+     forward-compatible with future renames. *)
+  let opam_re = Str.regexp "opam exec.*dune build.*\\(mathc\\|main\\)\\.exe" in
   if not (has_match opam_re (read_file release)) then
     Alcotest.fail
-      "release.yml does not build core/main.exe via opam exec dune build";
+      "release.yml does not build a mathc/main executable via opam exec dune \
+       build";
   (* ci.yml must NOT reference scripts/render.sh (P6 site build is
      staged separately as part of site-deploy). site.yml may
      reference it (added in v3.0.0.20 — `decisions/site-deploy.yaml`
@@ -695,17 +699,67 @@ let[@warning "-32"] test_portable_linux_musl_matrix () =
   if not (agent_contains "linux-x86_64-musl" txt) then
     Alcotest.failf
       "release.yml no longer references linux-x86_64-musl. This is the \
-       portable-linux-musl decision's preserved-infrastructure promise: \
-       the label must appear in release.yml (matrix or comment) so a \
-       future re-attempt can simply uncomment the line. If the label \
-       was intentionally removed, retire decisions/portable-linux-musl.yaml \
-       by removing the file entirely instead of silently dropping the \
-       label from the pipeline."
+       portable-linux-musl decision's preserved-infrastructure promise: the \
+       label must appear in release.yml (matrix or comment) so a future \
+       re-attempt can simply uncomment the line. If the label was \
+       intentionally removed, retire decisions/portable-linux-musl.yaml by \
+       removing the file entirely instead of silently dropping the label from \
+       the pipeline."
   else if not (agent_contains "ocaml/opam:alpine" txt) then
     Alcotest.failf
-      "release.yml references linux-x86_64-musl but not the \
-       ocaml/opam:alpine container; the commented matrix entry must \
-       preserve the container: field for re-enable."
+      "release.yml references linux-x86_64-musl but not the ocaml/opam:alpine \
+       container; the commented matrix entry must preserve the container: \
+       field for re-enable."
+
+let[@warning "-32"] test_no_unix_fork_in_kernel () =
+  let ml = in_repo "bin/Mathc.ml" in
+  let txt = read_file ml in
+  let forbidden =
+    [ "Unix.fork"; "Unix.exec"; "Unix.create_process"; "Unix.waitpid" ]
+  in
+  List.iter
+    (fun needle ->
+      if agent_contains needle txt then
+        Alcotest.failf
+          "bin/Mathc.ml calls %s — this breaks the musl-portability assumption \
+           in decisions/portable-linux-musl.yaml (fork-not-used)"
+          needle)
+    forbidden
+
+let[@warning "-32"] test_portable_linux_docs () =
+  let usage = in_repo "USAGE.md" in
+  let usage_txt = read_file usage in
+  let adoption = in_repo "adoption/SKILL.md" in
+  let adoption_txt = read_file adoption in
+  if not (agent_contains "musl" usage_txt) then
+    Alcotest.failf
+      "USAGE.md does not mention musl. Users on Alpine / older glibc distros \
+       will not find guidance on which artifact to download or how to build \
+       from source.";
+  if not (agent_contains "musl" adoption_txt) then
+    Alcotest.failf
+      "adoption/SKILL.md does not mention musl in the install step."
+
+let[@warning "-32"] test_portable_linux_decision_active () =
+  let dec = in_repo "decisions/portable-linux-musl.yaml" in
+  if not (file_exists dec) then
+    Alcotest.failf
+      "decisions/portable-linux-musl.yaml missing — required by ROADMAP Tier \
+       3.5+ #13 and algebra-3.2 §30";
+  let txt = read_file dec in
+  (* Accepts both 'state: active' (in-flight) and 'state: retired'
+     (after the 'alpine-ci-build-fails' reversal signal fired). The
+     test fails only if the file is in 'state: draft', which would
+     mean the work landed without explicit human or reversal
+     promotion. *)
+  if
+    (not (agent_contains "state: active" txt))
+    && not (agent_contains "state: retired" txt)
+  then
+    Alcotest.failf
+      "decisions/portable-linux-musl.yaml must be in state: active (in flight) \
+       or state: retired (reversed). Current 'draft' blocks the §30 closure \
+       until the decision is explicitly promoted or reversed."
 
 let () =
   Alcotest.run "repo structure"

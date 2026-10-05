@@ -411,13 +411,12 @@ let[@warning "-32"] md_parse source =
                   let tt = String.trim l in
                   if String.length tt > 0 && tt.[0] = '>' then
                     let b =
-                      String.trim
-                        (String.sub tt 1 (String.length tt - 1))
+                      String.trim (String.sub tt 1 (String.length tt - 1))
                     in
                     collect (b :: acc) r
                   else (acc, l :: r)
             in
-            let collected, after = collect [first_body] rest in
+            let collected, after = collect [ first_body ] rest in
             let joined = String.concat " " (List.rev collected) in
             Buffer.add_string buf "<blockquote><p>";
             Buffer.add_string buf (html_of_fragments (md_inline_parse joined));
