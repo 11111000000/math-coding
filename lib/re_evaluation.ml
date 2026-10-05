@@ -100,7 +100,7 @@ type verifier_kind = Test | BuiltIn | Manual
 let[@warning "-32"] classify_verifier (v : string) : verifier_kind =
   let n = String.length v in
   if n >= 6 && String.sub v 0 6 = "tests/" then Test
-  else if n >= 3 && String.sub v 0 3 = "mathc-" then BuiltIn
+  else if n >= 6 && String.sub v 0 6 = "mathc-" then BuiltIn
   else if n >= 7 && String.sub v 0 7 = "kernel:" then BuiltIn
   else Manual
 
