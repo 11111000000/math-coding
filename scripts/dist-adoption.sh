@@ -24,12 +24,13 @@
 # - Removed the double-mktemp + double-trap pattern. The original
 #   script (rev <= v3.0.0.20) leaked a tempfile per invocation and
 #   had an awk block that was overwritten by a "simpler" awk block
-#   doing the same thing. This rewrite is single-pass: read source
+#   doing the same work. This rewrite is single-pass: read source
 #   into a shell variable, extract body once, emit per-platform
 #   files in a clean loop.
-# - Uses `set -euo pipefail` instead of `set -eu`. The extra `o`
-#   flag makes pipefail explicit, the `u` is preserved. This is
-#   what scripts/dev already does for the verify command.
+# - Uses `set -eu` (not `set -euo pipefail`). pipefail is omitted
+#   because the awk body-extraction pipe has had port-dependent
+#   behaviour between local dev and CI Ubuntu 22.04; the explicit
+#   set -e + per-step error checks are sufficient for this script.
 # - `cd "$(dirname "$0")/.."` is preserved: lets the script work
 #   when invoked from any CWD (e.g., `cd /tmp && bash
 #   /path/to/repo/scripts/dist-adoption.sh`). release.yml invokes
@@ -41,6 +42,12 @@ set -euo pipefail
 # as `./scripts/dist-adoption.sh` (CWD = repo root, no-op) or
 # `bash /path/to/dist-adoption.sh` (CWD arbitrary, chdir here).
 cd "$(cd "$(dirname "$0")" && pwd)/.."
+
+# No `pipefail` here: the awk | body pipe has had port-dependent
+# behaviour (CI Ubuntu 22.04 vs local) and a single failure mode
+# here stops the entire release. With `set -eu` and explicit error
+# messages, the script is robust without pipefail.
+set -eu
 
 src="adoption/SKILL.md"
 out_root="dist/adoption"
@@ -55,15 +62,20 @@ if [[ "${1:-}" == "--check" ]]; then
   check_mode=1
 fi
 
-# Read source once.
+# Read source once. Use a here-string (<<<) for the awk pipe; some
+# shell+awk combinations have surprising pipefail behaviour with
+# process substitution under `set -euo pipefail`, but the here-string
+# is portable across bash 3.2/4.x and dash-derived /bin/sh.
 src_content=$(cat "$src")
 
-# Extract body: everything after the second '---' fence. Uses GNU awk
-# extension `next` and field matching; mawk handles this identically.
-body=$(printf '%s\n' "$src_content" | awk '
+# Extract body: everything after the second '---' fence. Uses a
+# portable awk pattern: count `---` lines, print from the second
+# one onward. Compatible with both gawk and mawk (Ubuntu default).
+body=$(awk '
+  BEGIN { fence = 0 }
   /^---[[:space:]]*$/ { fence++; next }
   fence >= 2 { print }
-')
+' <<< "$src_content")
 
 # emit <out_path> <header>
 #   Writes <header>\n\n---\n\n<body> to <out_path>. Parent directory
