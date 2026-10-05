@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"full-decision-memory","obligation":"load-decisions-skips-meta","candidate_tree":"HEAD","materials_digest":""},"kind_":"build","producer":{"identity":"ci-bot"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:6ea260109110b29413d645795af6fea8216d91201dd40fa0b75cc1081e36f48f"}
