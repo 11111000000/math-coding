@@ -116,7 +116,6 @@ reversal:
 
 risk:
   declared_triggers:
-    owner: human:maintainer
     - aggregator-points-at-superseded-revision
     - obligation-count-diverges-across-documents
     - assumption-id-typo-recurs

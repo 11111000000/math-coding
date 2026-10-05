@@ -97,7 +97,6 @@ reversal:
 
 risk:
   declared_triggers:
-    owner: human:maintainer
     - wrong-evidence-attribution
     - missing-obligation
     - materials-digest-drift

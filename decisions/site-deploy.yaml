@@ -80,19 +80,20 @@ scope:
 
 risk:
   declared_triggers:
-    owner: human:maintainer
     - site-generation-changes
     - pages-deploy-config-changes
     - css-token-changes
     - bilingual-content-drift
-  - counterexample: |
+  owner: human:maintainer
+counterexample: |
+    - counterexample: |
       `scripts/render.sh` silently exits 0 even when a
       required page is missing. Mitigation: the render
       allowlist in `scripts/render.sh` is verified by
       `tests/cli/render.t`, which exits non-zero on any
       missing file. The render-allowlist and the test
       list are the same set of paths, copy-pasted.
-  - pages_deploy_config_changes: |
+    - pages_deploy_config_changes: |
       GitHub Pages disabled at the repo level. The workflow
       then publishes into a disabled sink, which silently
       produces no artifact. Mitigation: the workflow uses
@@ -101,7 +102,7 @@ risk:
       a `workflow_run` check on the next push. Until that
       check exists, the deploy step is reviewed manually on
       each release.
-  - css_token_changes: |
+    - css_token_changes: |
       The Tufte palette tokens in `assets/style.css` (cream
       `#fbfaf6`, ink `#1a1a1a`, oxblood `#8b3a3a`) are used
       directly in six Markdown articles via inline `<span
@@ -113,7 +114,7 @@ risk:
       `palette-fg`, `palette-accent`) that resolve to the
       CSS tokens. Visual regression asserted by
       `tests/render_kernel.ml::tufte_tokens_resolve`.
-  - bilingual_content_drift: |
+    - bilingual_content_drift: |
       The Russian sibling `site/<name>.ru.md` is a
       hand-written translation, not a derivation of the
       English source. A change to `site/<name>.md` that
