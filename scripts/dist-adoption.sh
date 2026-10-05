@@ -38,6 +38,13 @@
 
 set -eu
 
+# Verbose step-by-step tracing for CI debugging. Each phase echoes
+# before running and on failure the partial output makes the
+# failing phase obvious. Toggle off by setting QUIET=1.
+if [ "${QUIET:-0}" != "1" ]; then
+  set -x
+fi
+
 # Resolve repo root from the script's location. Works whether invoked
 # as `./scripts/dist-adoption.sh` (CWD = repo root, no-op) or
 # `bash /path/to/dist-adoption.sh` (CWD arbitrary, chdir here).
