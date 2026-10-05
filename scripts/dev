@@ -76,13 +76,33 @@ case "$cmd" in
     # fixture regressions). Each step is independent so a fail in
     # step 3 doesn't skip step 4.
     cleanup_dune_lock
-    run_in_shell "dune build --root . && echo 'verify build: ok'"
-    run_in_shell "dune test --root . && echo 'verify dune test: ok'"
+    # Each step is wrapped with an explicit 'echo STAGE: ...' so
+    # CI logs identify the failing sub-step. Without this, a fail
+    # in step 2 looks identical to a fail in step 4 (both return
+    # exit 1 from `./scripts/dev verify`).
+    echo "verify: stage 1/4 = dune build"
+    run_in_shell "dune build --root . && echo 'verify build: ok'" || {
+        echo "verify: FAIL at stage 1 (dune build)" >&2
+        exit 1
+    }
+    echo "verify: stage 2/4 = dune test"
+    run_in_shell "dune test --root . && echo 'verify dune test: ok'" || {
+        echo "verify: FAIL at stage 2 (dune test)" >&2
+        exit 1
+    }
     # dune 3.23 has no --check flag; the fmt-check.sh wrapper
     # handles the "is tree clean?" check via dune fmt --preview.
     # See OCAML_BEST_PRACTICES §11.21.
-    ./scripts/fmt-check.sh && echo "verify fmt: ok"
-    ./scripts/check.sh
+    echo "verify: stage 3/4 = fmt-check.sh"
+    ./scripts/fmt-check.sh && echo "verify fmt: ok" || {
+        echo "verify: FAIL at stage 3 (fmt-check.sh)" >&2
+        exit 1
+    }
+    echo "verify: stage 4/4 = check.sh"
+    ./scripts/check.sh || {
+        echo "verify: FAIL at stage 4 (check.sh)" >&2
+        exit 1
+    }
     echo "verify: ok"
     ;;
 
