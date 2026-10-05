@@ -186,13 +186,13 @@ let[@warning "-32"] read reader path =
 (* --- loader --- *)
 
 let[@warning "-32"] load_decisions reader root =
+  let dir = Filename.concat root "decisions" in
   let paths =
-    [
-      Filename.concat root "decisions/decision.yaml";
-      Filename.concat root "decisions/infrastructure-honesty.yaml";
-      Filename.concat root "decisions/kernel-conformance-runner.yaml";
-      Filename.concat root "decisions/validate-and-context.yaml";
-    ]
+    if Sys.file_exists dir && Sys.is_directory dir then
+      Array.to_list (Sys.readdir dir)
+      |> List.filter (fun n -> Filename.check_suffix n ".yaml")
+      |> List.map (fun n -> Filename.concat dir n)
+    else []
   in
   List.filter_map
     (fun p ->
