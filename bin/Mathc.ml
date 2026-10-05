@@ -126,7 +126,7 @@ let validate_with_counts path =
           msg )
   | Ok v -> (
       try
-        match Decision.parse_decision v with
+        match Decision.parse_decision_yaml v with
         | Some d ->
             let extra_diags = collect_ambiguous_acceptance_diagnostics v in
             `Accept (d, extra_diags)
