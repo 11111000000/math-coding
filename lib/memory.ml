@@ -230,8 +230,7 @@ let[@warning "-32"] load_decisions reader root =
   else if not (Sys.is_directory decisions_dir) then []
   else
     let entries =
-      try Sys.readdir decisions_dir |> Array.to_list
-      with _ -> []
+      try Sys.readdir decisions_dir |> Array.to_list with _ -> []
     in
     let yaml_files =
       List.filter
@@ -241,7 +240,9 @@ let[@warning "-32"] load_decisions reader root =
         entries
     in
     let non_meta_files =
-      List.filter (fun name -> not (excluded_decision_basenames name)) yaml_files
+      List.filter
+        (fun name -> not (excluded_decision_basenames name))
+        yaml_files
     in
     let paths =
       List.map (fun name -> Filename.concat decisions_dir name) non_meta_files

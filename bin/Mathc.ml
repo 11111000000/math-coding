@@ -1718,8 +1718,8 @@ let do_re_evaluate () =
   let set_dec s = decision_id := s in
   let set_axiom s = axiom_id := s in
   let spec =
-    "usage: mc re-evaluate DECISION_ID AXIOM_ID (e.g. mc \
-     re-evaluate bootstrap-v3 A1)"
+    "usage: mc re-evaluate DECISION_ID AXIOM_ID (e.g. mc re-evaluate \
+     bootstrap-v3 A1)"
   in
   let anon s =
     if !decision_id = "" then set_dec s
@@ -1731,14 +1731,14 @@ let do_re_evaluate () =
      Printf.fprintf stderr "mc re-evaluate: %s\n" m;
      exit 2);
   if !decision_id = "" || !axiom_id = "" then begin
-    Printf.fprintf stderr "mc re-evaluate: DECISION_ID and AXIOM_ID are required\n";
+    Printf.fprintf stderr
+      "mc re-evaluate: DECISION_ID and AXIOM_ID are required\n";
     exit 2
   end;
-  let valid_axioms = ["A0"; "A1"; "A2"; "A3"; "A4"] in
+  let valid_axioms = [ "A0"; "A1"; "A2"; "A3"; "A4" ] in
   if not (List.mem !axiom_id valid_axioms) then begin
     Printf.fprintf stderr
-      "mc re-evaluate: AXIOM_ID must be one of A0..A4 (got %s)\n"
-      !axiom_id;
+      "mc re-evaluate: AXIOM_ID must be one of A0..A4 (got %s)\n" !axiom_id;
     exit 2
   end;
   let decisions = Re_evaluation.load_decisions ~reader ~root:repo_root in
@@ -1749,8 +1749,8 @@ let do_re_evaluate () =
   in
   match target with
   | None ->
-      Printf.fprintf stderr
-        "mc re-evaluate: unknown DECISION_ID %s\n" !decision_id;
+      Printf.fprintf stderr "mc re-evaluate: unknown DECISION_ID %s\n"
+        !decision_id;
       exit 2
   | Some d ->
       let rev : Re_evaluation.axiom_revision =

@@ -6,5 +6,6 @@
   process_principles
   re_evaluation_test
   render_kernel
-  yaml_block_scalars)
- (libraries mathcoding_core alcotest))
+  yaml_block_scalars
+  ci_blocking_list_test)
+ (libraries mathcoding_core mathcoding_attestations alcotest))

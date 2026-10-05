@@ -1,0 +1,158 @@
+---
+schema: math-coding/3.0-alpha
+id: ci-blocking-list-config
+revision: 1
+
+state: active
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Make the math-coding kernel's hardcoded list of blocking
+  CIs (currently `["payments-ci"; "orders-ci";
+  "integration-ci"]` in
+  `lib/attestations/attestations.ml:338-339`) configurable
+  at runtime via the `MATH_CODING_BLOCKING_CIS` environment
+  variable. The current list looks like a leftover from a
+  different project's CI farm (the math-coding CI farm
+  does not have CIs named "payments-ci" or "orders-ci";
+  see `.github/workflows/ci.yml` and `release.yml` for the
+  actual CI list).
+
+  The change:
+    1. `blocking_cis_default` stays at the historical list
+       (kept as the documented default for callers that do
+       not set the env var);
+    2. `blocking_cis ()` reads `MATH_CODING_BLOCKING_CIS`
+       (comma-separated, whitespace-tolerant, empty
+       entries skipped); falls back to the default when the
+       env var is unset or empty.
+
+  The kernel does not parse `decisions/*.yaml` for this
+  list because the policy-file format is not yet stable for
+  per-path policies (`lib/policy.ml` exists but
+  `MATH_CODING_BLOCKING_CIS` covers the 80% case: project-
+  level CI list override, with no per-path semantics). A
+  follow-up decision can promote the env-var path to a
+  `decisions/policy.yaml` row when a project needs more
+  than one blocking-CI list across services.
+
+  History:
+    rev 1 (this commit): initial adoption. The hardcoded
+                          list is preserved as the default;
+                          callers can override via env.
+
+commitment: |
+  `lib/attestations/attestations.ml` exports
+  `blocking_cis : unit -> string list`. The function reads
+  `MATH_CODING_BLOCKING_CIS` from the environment; if unset
+  or empty, it returns `blocking_cis_default` (the
+  historical list `["payments-ci"; "orders-ci";
+  "integration-ci"]`). The new function is not yet called
+  by any kernel module; this decision only adds the API.
+  A follow-up decision will route `aggregate_obligation` and
+  `attestations_by_ci` through `blocking_cis ()`.
+
+  Migration: no caller changes. The hardcoded
+  `blocking_cis_default` value remains as the documentation
+  of the historical default; the runtime override is
+  opt-in via the env var.
+
+  Recovery: revert the commit. `blocking_cis ()` is
+  removed; `blocking_cis_default` continues to expose the
+  historical list. The status quo (the kernel has the
+  wrong list) is restored.
+
+scope:
+  paths:
+    - lib/attestations/attestations.ml
+    - tests/ci_blocking_list_test.ml
+    - tests/dune
+
+outcomes:
+  - id: env-var-readable
+    statement: a function-call to `Attestations.blocking_cis ()`
+      in any kernel module or test reads the current value
+      of `MATH_CODING_BLOCKING_CIS` and falls back to
+      `blocking_cis_default` when the env var is unset.
+  - id: default-preserved
+    statement: the historical default list
+      `["payments-ci"; "orders-ci"; "integration-ci"]` is
+      preserved as a constant and is what the function
+      returns when the env var is unset or empty.
+
+assumptions:
+  - id: env-var-is-sufficient
+    state: assumed
+    statement: |
+      The set of projects using math-coding is small enough
+      that a single env-var override (rather than a
+      per-decision policy row) is sufficient. Currently
+      there is one consumer: the math-coding CI farm,
+      whose blocking CIs are named differently from
+      `blocking_cis_default`.
+    owner: human:maintainer
+    consequence_if_false: a future project with multiple
+      blocking-CI lists (per service) needs a
+      `decisions/policy.yaml` row that maps path patterns
+      to blocking-CI lists. The follow-up decision is
+      tracked in ROADMAP Tier 3 (multi-policy hierarchy).
+    review_on:
+      - signal: blocking-cis-list-must-vary-by-service
+
+obligations:
+  - id: blocking-cis-default-preserved
+    outcome: default-preserved
+    claim: |
+      `Attestations.blocking_cis_default` is a value equal
+      to the historical list `["payments-ci"; "orders-ci";
+      "integration-ci"]` and is preserved across this
+      decision. The Alco test
+      `tests/ci_blocking_list_test.ml` verifies this by
+      calling `Attestations.blocking_cis ()` with the env
+      var unset and asserting the result equals the
+      default list.
+    acceptance:
+      all:
+        - verifier: tests/ci_blocking_list_test.ml
+          result: pass
+
+  - id: blocking-cis-reads-env-var
+    outcome: env-var-readable
+    claim: |
+      `Attestations.blocking_cis ()` returns a list derived
+      from the `MATH_CODING_BLOCKING_CIS` environment
+      variable when set (comma-separated, whitespace-
+      tolerant). The default is returned when the env var
+      is unset, empty, or contains only whitespace/commas.
+      The Alco test covers the unset, single, multiple,
+      whitespace, and empty-entries cases.
+    acceptance:
+      all:
+        - verifier: tests/ci_blocking_list_test.ml
+          result: pass
+
+reversal:
+  - signal: env-var-breaks-aggregate-obligation
+    action: re-issue with rev 2, switching to a
+    `decisions/policy.yaml` parser
+
+risk:
+  declared_triggers:
+    owner: human:maintainer
+    - env-var-misconfiguration
+    - follow-up-deferral-creep
+  - misconfigured_env: |
+      A deployment that sets MATH_CODING_BLOCKING_CIS to a
+      value that no attestation producer names would cause
+      every obligation to receive a `Still_running` verdict
+      forever. Mitigation: the `MATH_CODING_BLOCKING_CIS`
+      value is logged by the kernel at startup (in a
+      follow-up commit) and the list is emitted in `mc
+      packages` and `mc self-check` output so an operator
+      notices the drift.
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  refines:
+    - algebra-3.2@1
