@@ -868,7 +868,7 @@ protocol has two consumer populations:
 documentation_scope(consumer A):
   A ∈ U: reads USAGE.md + AGENTS.md + axioms/ + PACKAGES.md ≈ 1100 lines, 5 modes, 1 schema
   A ∈ K: reads all of U's docs + OCAML_BEST_PRACTICES.md + spec/
-         ≈ 3600 lines, 27 sections, 14 invariants
+         ≈ 3600 lines, 31 sections (§0-§30), 14 invariants
 
 friction(c) = friction_user(c) ⊕ friction_kernel_dev(c)
 

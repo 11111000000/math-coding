@@ -243,13 +243,6 @@ existence. Output JSON objects use sorted keys for reproducibility.
   artifact. On an unresolvable ref a typed diagnostic is
   emitted on stderr with `code`
   (`MC-REF-UNKNOWN` | `MC-REF-AMBIGUOUS` | `MC-REF-INVALID`).
-  **Bootstrap limitation (v3-alpha-0.0.19)**: `mc explain` is
-  not yet dispatched in `bin/Mathc.ml`. `mc context`'s
-  `omitted[].expansion` strings therefore cannot be expanded
-  today. The spec row is recorded now to close the broken
-  promise that `lib/capsule.ml:88` and
-  `spec/semantics.md:412-413` make; the implementation is
-  tracked in `decisions/mc-explain-subcommand.yaml`.
 - **Exit code**: `0` on a resolved ref; `2` on input error or
   unresolvable ref.
 - **Justification**: `decisions/mc-explain-subcommand.yaml`
@@ -426,12 +419,6 @@ existence. Output JSON objects use sorted keys for reproducibility.
   reserved for infrastructure errors (e.g. cannot load
   `decisions/decision.yaml`); it MUST be distinct from
   `pass` and `fail` per `constitution.md:59` (`unknown != pass`).
-  **Bootstrap limitation (v3-alpha-0.0.19)**: not implemented.
-  This subcommand depends on `gate-attestation-store-fill`
-  (ROADMAP Tier-1 #1): without the store, `mc gate` returns
-  `NoAttestationStore` for every obligation and `self-check`
-  cannot move past `unknown`. Implementation tracked in
-  `decisions/mc-self-check-subcommand.yaml`.
 - **Exit code**: `0` on `pass`; `1` on `fail`; `3` on
   `unknown` / infrastructure error (per `OCAML_BEST_PRACTICES.md`
   §4.3: `0 = accept | pass`, `1 = block | reject`,

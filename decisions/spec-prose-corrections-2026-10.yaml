@@ -1,0 +1,180 @@
+---
+schema: math-coding/3.0-alpha
+id: spec-prose-corrections-2026-10
+revision: 1
+
+state: active
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Apply factual corrections to the spec/ tree that the 2026-10-05
+  audit flagged. These are not semantic changes to the algebra or
+  semantics; they are prose-level factual errors that have drifted
+  since the documents were authored.
+
+  Corrections in scope:
+    - spec/algebra-3.2.md §29: "27 sections" -> "31 sections (§0-§30)".
+      The spec contains sections §0 through §30, as enumerated by its
+      own Summary block at the end of the file. The previous number
+      drifted from a snapshot of an earlier version of the spec.
+    - spec/semantics.md `mc explain` row: remove the
+      "Bootstrap limitation (v3-alpha-0.0.19)" block that claims
+      `mc explain` is not yet dispatched. The subcommand has been
+      dispatched since commit 6e922d3 (Tier-A in ROADMAP); the
+      dispatch line is `bin/Mathc.ml:2478`.
+    - spec/semantics.md `mc self-check` row: remove the matching
+      "Bootstrap limitation (v3-alpha-0.0.19)" block. The subcommand
+      has been dispatched since commit 758f340; CI is blocking since
+      8fa7fcf (the bootstrap-gate-expiry commit). The dispatch line
+      is `bin/Mathc.ml:2486`.
+
+  Out of scope (deferred to a follow-up decision):
+    - spec/algebra-3.2.md §27 proof-sketch completeness (F8 from the
+      audit): the proof is missing the strict/exhaustive bound declared
+      in §21. This requires math-level review; not bundled here.
+    - spec/algebra-3.2.md §2 `⌈risk(c)⌉` notation (F9): requires
+      clarification with the spec owner before automated change.
+
+change_kind: editorial
+
+commitment: |
+  The spec text becomes factually accurate against the rest of the
+  repository. No new kernel behaviour, no new schema field, no new
+  obligation type, no new mode or risk mapping.
+
+  Boundaries:
+    - This commit does NOT add, remove, or rename any algebraic section.
+    - This commit does NOT change the gate verdict semantics
+      (algebra §15) or any other normative clause.
+    - This commit does NOT touch lib/, bin/, schemas/, or axioms/.
+
+scope:
+  capabilities: []
+  paths:
+    - "spec/algebra-3.2.md"
+    - "spec/semantics.md"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "spec/constitution.md"  # I1-I14 preserved verbatim
+    - "spec/domain.md"          # unchanged in this revision
+
+outcomes:
+  - id: factual-accuracy-restored
+    statement: |
+      The two stale "Bootstrap limitation" blocks in spec/semantics.md
+      and the wrong section count in spec/algebra-3.2.md are removed or
+      corrected. The spec text becomes consistent with the current
+      dispatcher (bin/Mathc.ml) and with the spec's own enumeration
+      of its sections.
+
+counterexample: |
+  "Removing the bootstrap-limitation blocks is editorial, but a
+  careful reader of the v3-alpha-0.0.19 history used the
+  bootstrap-limitation label to understand why certain
+  subcommands returned NoAttestationStore early on. Erasing the
+  label hides that history."
+
+  Counterargument: the dispatch history is preserved in the git log
+  (commits 6e922d3, 758f340, 8fa7fcf). The spec text describes the
+  *current* contract; historical implementation gaps belong in
+  CHANGELOG.md (already there: `## v3.0.0.19 — bootstrap-gate
+  expiry`). The `bootstrap-limitation` label was a forward-looking
+  caveat, not a historical record.
+
+  "31 sections is also wrong — the spec has a Summary block after
+  §30 and a Cross-references block before §0, so 33 total
+  sections."
+
+  Counterargument: the Summary and Cross-references blocks are
+  meta-sections (preamble and epilogue), not numbered algebra
+  sections. The Summary table itself enumerates §0 through §30 as
+  the 31 numbered sections. The fix uses the inclusive count
+  (31) to match the spec's own Summary enumeration; an exclusive
+  count of 30 (§1-§30) would also be defensible. The change
+  records both: "31 sections (§0-§30)".
+
+assumptions:
+  - id: section-count-factual
+    state: assumed
+    statement: |
+      The spec's Summary block (spec/algebra-3.2.md:928-962) is the
+      canonical enumeration of the algebra's sections. Counting rows
+      there gives §0 through §30, i.e. 31 numbered sections.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the Summary block is not the canonical enumeration, the
+      correction may need to use a different number. The change is
+      reversible by reverting the commit.
+    review_on:
+      - signal: spec-enumeration-rule-changed
+
+  - id: bootstrap-limitation-stale
+    state: assumed
+    statement: |
+      The two "Bootstrap limitation (v3-alpha-0.0.19)" blocks were
+      written before the subcommands were dispatched and have not been
+      updated since. They are factually wrong as of HEAD `a87d55d`.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the bootstrap-limitation labels were meant to be permanent
+      historical disclaimers (rather than forward-looking caveats),
+      the blocks should be re-inserted with historical framing. This
+      decision would be superseded by a `spec-bootstrap-history.yaml`
+      decision.
+    review_on:
+      - signal: bootstrap-history-block-needed
+
+obligations:
+  - id: bootstrap-limitation-blocks-removed
+    outcome: factual-accuracy-restored
+    claim: |
+      `rg 'Bootstrap limitation' spec/semantics.md` returns zero
+      matches after this decision lands.
+    acceptance:
+      all:
+        - verifier: rg -n 'Bootstrap limitation' spec/semantics.md
+          result: pass
+
+  - id: section-count-corrected
+    outcome: factual-accuracy-restored
+    claim: |
+      `spec/algebra-3.2.md` §29 no longer claims "27 sections"; the
+      actual count (31 sections §0-§30, or 30 if §0 is excluded as
+      preamble) is reflected.
+    acceptance:
+      all:
+        - verifier: rg -n '27 sections' spec/algebra-3.2.md
+          result: pass
+
+  - id: kernel-unchanged
+    outcome: factual-accuracy-restored
+    claim: |
+      No change to lib/, bin/, schemas/, or axioms/. `mc self-check`
+      verdict and pass-count are unchanged by this decision.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-verdict
+          result: pass
+
+reversal:
+  - signal: spec-restoration-required
+    condition: |
+      A future decision (`spec-bootstrap-history-block.yaml` or
+      similar) restores the bootstrap-limitation blocks with a
+      historical framing. This decision is then superseded.
+    action: supersede-with-spec-bootstrap-history-block
+
+risk:
+  declared_triggers:
+    - spec-enumeration-rule-changed
+    - bootstrap-history-block-needed
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []
