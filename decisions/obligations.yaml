@@ -18,7 +18,7 @@ decision:
 #   the bootstrap protocol at v0.0.18 and are no longer tracked here;
 #   `executable-musts` was renamed to `conformance-coverage`,
 #   `honest-bootstrap` to `bootstrap-honesty`. Net: 5 -> 7 with a
-#   name reconciliation. The packges `Obs` column in `PACKAGES.md`
+#   name reconciliation. The packages `Obs` column in `PACKAGES.md`
 #   is observation count from a separate audit tool and is
 #   unaffected by this reconcile.
 obligations:

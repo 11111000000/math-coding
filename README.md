@@ -1,7 +1,9 @@
 # math-coding 3.0-alpha
 
 > Author: Petr Kosov <p.b.kosov@yandex.ru>
-> Status: 3.0-alpha. Bootstrap gate expired at v3.0.0.19 (2026-09-29).
+> Status: 3.0-alpha, current release v3.1.0-alpha. Bootstrap gate
+> expired at v3.0.0.19 (2026-09-29). The 3.2-ideal algebra
+> (`spec/algebra-3.2.md`) is normative alongside the prose specs.
 > License: Apache-2.0 (see `LICENSE`, `NOTICE`).
 > Ethics: [`ETHICS.md`](ETHICS.md).
 

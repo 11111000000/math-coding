@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: process-principles-close-branches
-revision: 1
+revision: 2
 
 state: active
 body_sha: ""
@@ -18,6 +18,27 @@ intent: |
   with fixture) at commit time, not just in CI. The hook
   short-circuits the canonical P1+P2 enforcement tests
   (`tests/process_principles.ml`) to a local fast path.
+
+  History:
+    rev 1 (2026-09-30): first issuance. The pre-commit hook's
+                        P2 enforcement was described in the risk
+                        section as allowing an "editorial
+                        exemption" (a decision whose top-level
+                        `change_kind: editorial` is exempt from
+                        the verifier requirement), but the actual
+                        hook implementation never honoured it.
+                        The reference was also written as
+                        `AGENTS.md §Editorial changes`, a section
+                        that does not exist; the correct anchor
+                        is `AGENTS.md §Before work — 'provably
+                        editorial change' contract`.
+    rev 2 (this commit): the hook now actually reads the
+                        `change_kind: editorial` top-level key
+                        and exempts the file from P2. The risk
+                        section's broken reference is fixed.
+                        A new obligation `editorial-exemption-impl`
+                        records the contract, with positive and
+                        negative fixtures in tests/fixtures/.
 
 commitment: |
   `scripts/dev close-branches [--yes]` enumerates branches
@@ -39,6 +60,14 @@ commitment: |
       `obligations[]` lack a verifier matching a present
       fixture path, a kernel-test reference, or a cram `.t`
       path.
+
+  P2 is exempted for any `decisions/*.yaml|.md` file whose
+  top-level `change_kind:` key reads `editorial` (per
+  AGENTS.md §Before work — "provably editorial change"
+  contract). The exemption is matched before the P2 awk
+  pass; a `change_kind: editorial` decision file may have
+  zero obligations or obligations without a verifier
+  without failing the hook.
 
   The hook is opt-in for forks via the `core.hooksPath` config;
   on a fresh clone the user runs `scripts/dev init` once.
@@ -73,7 +102,10 @@ risk:
       the hook's matcher allows a fixture path, a cram `.t`
       path, a recognised manual-style prefix, or *no verifier
       at all if the decision's `change_kind` is `editorial`*
-      (per AGENTS.md §Editorial changes).
+      (per AGENTS.md §Before work — the "provably editorial
+      change" contract, line 105). The exemption is matched
+      before the P2 awk pass; rev 2 makes the exemption
+      effective where rev 1 only described it.
 
 obligations:
   - id: close-branches-impl
@@ -101,6 +133,23 @@ obligations:
         - verifier: bash -n .githooks/pre-commit exits 0
           result: pass
 
+  - id: editorial-exemption-impl
+    statement: |
+      `.githooks/pre-commit` honours the `change_kind: editorial`
+      exemption per AGENTS.md §Before work. A staged
+      `decisions/*.yaml` file whose top-level `change_kind`
+      reads `editorial` is exempt from the P2 verifier check
+      (it may declare obligations without fixture paths, or no
+      obligations at all), while a non-editorial decision file
+      without a recognised verifier still fails the hook.
+    outcome: pre-commit-hook-impl
+    acceptance:
+      all:
+        - verifier: tests/fixtures/pre-commit-editorial-exempt.sh
+          result: pass
+        - verifier: tests/fixtures/pre-commit-editorial-still-enforced.sh
+          result: pass
+
 evidence:
   - kind: observed
     statement: |
@@ -110,4 +159,16 @@ evidence:
       deletions; `git branch -a` then shows only the active
       set.
 
+  - kind: observed
+    statement: |
+      On commit (this rev 2), `tests/fixtures/pre-commit-editorial-exempt.sh`
+      stages an editorial decision without a verifier and
+      confirms the hook exits 0. `tests/fixtures/pre-commit-editorial-still-enforced.sh`
+      stages a non-editorial decision without a verifier and
+      confirms the hook exits 1.
+
 unknowns: []
+
+relations:
+  revises:
+    - process-principles-close-branches@1

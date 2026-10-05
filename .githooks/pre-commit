@@ -61,6 +61,20 @@ while IFS= read -r df; do
     decision.yaml|obligations.yaml|rationale.md) continue ;;
   esac
 
+  # Editorial exemption (per AGENTS.md §Before work, "provably
+  # editorial change" contract, line 105). When a staged
+  # decision file declares `change_kind: editorial` at the top
+  # level (outside the YAML front-matter `---` block), P2 is
+  # satisfied for the whole file: obligations may have no
+  # verifier, or there may be no obligations at all. The
+  # rationale is recorded in
+  # `decisions/process-principles-close-branches.yaml`
+  # obligation `editorial-exemption-impl`.
+  if grep -qE '^change_kind:[[:space:]]+editorial([[:space:]]|$)' "$df"; then
+    echo "pre-commit: $df declares change_kind: editorial — P2 exempted"
+    continue
+  fi
+
   orphans=$(awk '
     function classify(v) {
       if (v == "") return 0

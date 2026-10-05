@@ -12,7 +12,7 @@ intent: |
   formal obligations under the active policy (bootstrap-v3).
   Today those principles are documentation-only: a new agent can
   read ROADMAP.md and skip them, because no machine check fires
-  when one is violated. The yml-block-scalars and priority-drift
+  when one is violated. The yaml-block-scalars and priority-drift
   sessions (D1, D2, D3) showed that principle-drift is a real
   failure mode: decisions were retro-fitted after the kernel
   changed, and a fixture appeared in `tests/fixtures/` without a

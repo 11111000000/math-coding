@@ -34,7 +34,7 @@ loads the store and joins each entry against the kernel's
 gate.
 
 **Verification.** `scripts/generate-attestations.py`
-produces 80 attestation files on every release; `mc gate
+produces 94 attestation files on every release; `mc gate
 BASE HEAD` reports `gate-pass.t` / `gate-fail.t` /
 `gate-stale.t` as green (cram fixtures under `tests/cli/`).
 
@@ -96,6 +96,6 @@ five foundations:
 | `mc-self-check-subcommand` | `mc self-check` → JSON verdict | `self-check-{pass,fail,unknown}.t` |
 | `mc-packages-subcommand` | `mc packages --format=text\|json\|html` → package list | `packages.t` |
 
-The kernel at v3.0.0.20 ships all eight. The site at
-[Packages](packages.html) is the live verdict of all
-eight.
+The kernel at v3.1.0-alpha ships the eight foundations. The
+site at [Packages](packages.html) is the live verdict of all
+29 active decisions.

@@ -871,14 +871,12 @@ JUnit report goes through `Jsonl.stringify` first.
    `parse_assumption_state`, `parse_action`, `parse_match`. Remove them
    from `decision.ml`.
 6. Fix `flake.nix:40` to also build `@tests/runtest`.
-7. Delete `bin/mathc_main.ml`. Confirm `bin/dune` says `(name mathc)` with
-   `(modules Mathc)`.
-8. Introduce phantom-typed IDs in `lib/identifier.ml` (§2.3). Defer until
+7. Introduce phantom-typed IDs in `lib/identifier.ml` (§2.3). Defer until
    v3.0-beta.
-9. Move polymorphic variants to concrete variants in `domain.ml` (§2.2).
+8. Move polymorphic variants to concrete variants in `domain.ml` (§2.2).
    Defer until 3.0-beta — touches every consumer.
-10. Move the 11 modules under `lib/kernel/` (§10.1) when the first adapter
-    lands.
+9. Move the 11 modules under `lib/kernel/` (§10.1) when the first adapter
+   lands.
 
 ### 10.5 Context-capsule priority order (for `mc context`)
 
@@ -1135,7 +1133,7 @@ match Sys.is_directory path with
 Only some `Sys` functions return `option` (e.g., `Sys.getenv_opt`,
 `Sys.argv`-related).
 
-### 11.13 A whitespace-stripping helper destroys source structure
+### 11.12 A whitespace-stripping helper destroys source structure
 
 The original `yaml_strip` in `tests/conformance.ml` (pre-fix) looked
 innocuous — strip `#` comments, then drop `' ' | '\t' | '\r'`:
@@ -1181,7 +1179,7 @@ documented in the loader's header comment).
 **Trigger**: any hand-rolled YAML/indentation-sensitive loader that
 delegates preprocessing to a "strip whitespace" helper.
 
-### 11.14 `dune test` emits no output when nothing changed
+### 11.13 `dune test` emits no output when nothing changed
 
 When every test in a stanza passes, `dune test` caches the result and
 emits *no* Alcotest output on subsequent runs (no `Testing` line, no
@@ -1209,7 +1207,7 @@ available.
 `dune test`, and the fixture's input tree has been stable long enough
 for dune's build cache to short-circuit the run.
 
-### 11.12 Warnings classified as errors during compilation
+### 11.14 Warnings classified as errors during compilation
 
 `dune build` returns nonzero exit code on warnings when:
 - `tests/dune` declares a `(test ...)` stanza and the test source has warnings

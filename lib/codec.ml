@@ -338,7 +338,7 @@ let[@warning "-32"] parse_waiver v =
  * with scalar or list values, nested objects via indentation,
  * quoted or bare scalars, and block-style sequences via "- ".
  * This is NOT a general YAML parser. See decisions/validate-and-context.yaml
- * for the assumption record and OCAML_BEST_PRACTICES §11.13 for the
+ * for the assumption record and OCAML_BEST_PRACTICES §11.12 for the
  * trap-log entry that fixes the whitespace-stripping bug.
  *
  * Pure function: takes a string, returns a Jsonl.value. No file I/O.
