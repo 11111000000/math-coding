@@ -115,6 +115,19 @@ mode_floor(c) = max{mode_floor(policy(p)) : p ∈ c.files ∪ transitive_paths(c
     axiom-touching → exhaustive
 ```
 
+> **Notation note (2026-10-05, ref `decisions/algebra-3.2-notation-flag-2026-10.yaml`):**
+> the form `mode(c) = max(⌈risk(c)⌉, mode_floor(c))` is ambiguous given the
+> current type declaration `risk: 𝓒 → 𝓡` with `𝓡 ∈ [0, 1]`. The standard
+> ceiling function applied to a value in `[0, 1]` yields either `0` or `1`,
+> which collapses the mode enumeration. The intended mapping is presumed
+> to be a bucketed function `risk_to_mode : [0, 1] → 𝓜` (e.g. via
+> `5 ⌈risk · 5⌉` or an explicit piecewise table), but the spec does
+> not say so explicitly. This ambiguity is recorded but **not** silently
+> rewritten by this branch. The spec owner should either (a) replace
+> `⌈risk(c)⌉` with the explicit bucketed form, or (b) redefine `𝓡` as a
+> discrete set of values that the ceiling can map onto `𝓜`. See the linked
+> decision for counterexamples and the recommended resolution.
+
 ---
 
 ## §3. Authoring model
@@ -803,6 +816,7 @@ Proof sketch:
   exhaustive mode: friction_user ≤ 300
 
   ∴ friction_user_ideal_3.2 ≤ friction_user_baseline    for mode(c) ≤ standard
+  ∴ friction_user_ideal_3.2 ≤ 1.5 × friction_user_baseline    for mode(c) ∈ {strict, exhaustive}
   ∴ axiom A4 Process preserved via PreTemporalPrecedence + CoCommitDecision
   ∴ multi-agent rebuttals structured via rebuttals/<sha>.yaml + forge mirror
   ∴ multi-policy composition via union + transitive

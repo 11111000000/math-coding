@@ -1,0 +1,160 @@
+---
+schema: math-coding/3.0-alpha
+id: algebra-3.2-notation-flag-2026-10
+revision: 1
+
+state: active
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Flag a latent ambiguity in `spec/algebra-3.2.md` §2 (Risk function)
+  that an automated auditor caught in 2026-10-05 but which the agent
+  is **not authorised** to silently rewrite:
+
+      mode(c) = max(⌈risk(c)⌉, mode_floor(c))
+
+  with `risk: 𝓒 → 𝓡` and `𝓡 ∈ [0, 1]`, and `𝓜 = {tiny, light, standard,
+  strict, exhaustive}` (a 5-element set).
+
+  The standard ceiling function ⌈·⌉ maps `[0, 1]` to either `0` or `1`,
+  not to a 5-element set. As written, `mode(c)` is either `mode_floor(c)`
+  or `max(1, mode_floor(c))` — neither of which matches the 5-mode
+  algebra the rest of the spec assumes.
+
+  This decision records the ambiguity. It does NOT rewrite the
+  algebra. The intended mapping is most likely a bucketed function
+  `risk_to_mode : [0, 1] → 𝓜` (e.g. via `5 ⌈5 · risk⌉ - 1`, or an
+  explicit piecewise table like
+  `[0, 0.2) → tiny, [0.2, 0.4) → light, [0.4, 0.6) → standard,
+  [0.6, 0.8) → strict, [0.8, 1.0] → exhaustive`),
+  but the spec does not say so explicitly, and a non-trivial change
+  to the algebra's risk-to-mode mapping is a protected policy
+  transition per AGENTS.md §Self-application.
+
+  This decision adds a "Notation note" block to the spec immediately
+  after §2, documenting the ambiguity and pointing to this decision
+  file as the resolution record. The note does not change any
+  normative clause.
+
+  Out of scope (deferred to a follow-up protected transition):
+    - Choosing between candidate `risk_to_mode` definitions.
+    - Verifying that the chosen mapping satisfies §21's
+      `mode(c) ≤ standard ⇒ friction_user ≤ baseline` and
+      `mode(c) ∈ {strict, exhaustive} ⇒ friction_user ≤ 1.5 × baseline`
+      properties together with the §27 proof sketch.
+    - Updating `lib/risk.ml` to match the chosen mapping (if it does
+      not already).
+
+change_kind: editorial
+
+commitment: |
+  The notation `⌈risk(c)⌉` is preserved verbatim in §2 (the
+  ambiguity is real and the spec owner should resolve it), and a
+  Notation note is added immediately after §2 that points readers
+  to this decision. No other change to the algebra.
+
+  Boundaries:
+    - This commit does NOT replace `⌈risk(c)⌉` with a bucketed
+      form.
+    - This commit does NOT redefine `𝓡`.
+    - This commit does NOT change the 5-mode enumeration.
+    - This commit does NOT touch `lib/risk.ml`.
+    - The kernel implementation in `lib/risk.ml` is the
+      authoritative source for `risk_to_mode` until the spec
+      catches up. Readers comparing the spec to the kernel should
+      prefer the kernel for current behaviour.
+
+scope:
+  capabilities: []
+  paths:
+    - "spec/algebra-3.2.md"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/algebra-3.2.yaml"
+
+outcomes:
+  - id: notation-ambiguity-recorded
+    statement: |
+      A reader of `spec/algebra-3.2.md` §2 who notices that
+      `⌈risk(c)⌉` cannot map `[0, 1]` onto `𝓜` is pointed at
+      `decisions/algebra-3.2-notation-flag-2026-10.yaml` as the
+      resolution record.
+
+counterexample: |
+  "Just rewrite `⌈risk(c)⌉` as `risk_to_mode(risk(c))` and
+  declare the bucketing in §2. The change is small and obvious."
+
+  Counterargument: the bucketing is not obvious. A piecewise
+  definition (`[0, 0.2) → tiny, …`) is a policy choice; an
+  integer-multiplier form (`5 ⌈5 · risk⌉ - 1`) is a different
+  policy choice. The spec owner should pick one (or a third
+  form). Doing so is a protected policy transition per
+  AGENTS.md §Self-application — not a unilateral agent
+  correction.
+
+  "The kernel already implements `risk_to_mode` in `lib/risk.ml`,
+  so just copy that mapping into the spec."
+
+  Counterargument: this would make the spec conform to the kernel
+  rather than the other way round. The algebra is the normative
+  layer; the kernel is the implementation. If the kernel
+  implements a bucketed form that the spec does not declare, the
+  fix is either (a) amend the spec to match, or (b) correct the
+  kernel. (a) is a protected transition; (b) is a kernel change
+  that also requires a transition. Either way, agent-level
+  editing of the spec text without owner review would invert the
+  normative direction.
+
+  "Don't bother — the kernel passes its own tests; the spec is
+  descriptive."
+
+  Counterargument: this audit found two other spec discrepancies
+  (F7, F8) where the spec drifted from the kernel. The same
+  pattern may apply here. Recording the discrepancy is cheap;
+  resolving it is the architect's call.
+
+obligations:
+  - id: notation-note-present
+    outcome: notation-ambiguity-recorded
+    claim: |
+      `spec/algebra-3.2.md` immediately after §2 contains a
+      "Notation note" block referencing this decision file and
+      summarising the ambiguity.
+    acceptance:
+      all:
+        - verifier: rg -n 'algebra-3.2-notation-flag-2026-10' spec/algebra-3.2.md
+          result: pass
+
+  - id: kernel-unchanged
+    outcome: notation-ambiguity-recorded
+    claim: |
+      No change to `lib/`, `bin/`, `schemas/`, or `axioms/`.
+      `mc self-check` verdict is unchanged by this decision.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-verdict
+          result: pass
+
+reversal:
+  - signal: notation-resolved
+    condition: |
+      A future decision (`algebra-3.2-risk-mode-resolved.yaml` or
+      similar) replaces `⌈risk(c)⌉` with an explicit bucketed
+      form and updates §2 accordingly. This decision is then
+      superseded and the notation note removed.
+    action: supersede-with-algebra-3.2-risk-mode-resolved
+
+risk:
+  declared_triggers:
+    - notation-resolved
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+    - algebra-3.2@1
+  supersedes: []
+  superseded_by: []
