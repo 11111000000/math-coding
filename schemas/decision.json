@@ -80,14 +80,14 @@
       "$ref": "common.json#/definitions/mode_floor"
     },
     "body_sha": {
-      "description": "sha256 of the Decision body (excluding the YAML wrapper). See spec/algebra-3.2.md §7.",
+      "description": "sha256 of the Decision body (excluding the YAML wrapper), or empty string when the canonical form has not been computed yet (stubs from the v3.2 migration). See spec/algebra-3.2.md §7.",
       "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$"
+      "pattern": "^(|sha256:[0-9a-f]{64})$"
     },
     "yaml_sha": {
-      "description": "sha256 of the sibling YAML wrapper, if present. See spec/algebra-3.2.md §7.",
+      "description": "sha256 of the sibling YAML wrapper, or empty string when not computed. See spec/algebra-3.2.md §7.",
       "type": "string",
-      "pattern": "^sha256:[0-9a-f]{64}$"
+      "pattern": "^(|sha256:[0-9a-f]{64})$"
     },
     "axiom_link": {
       "description": "Axiom IDs (e.g. 'A1', 'A3') this Decision addresses. See spec/algebra-3.2.md §7.",

@@ -1,0 +1,145 @@
+---
+schema: math-coding/3.0-alpha
+id: schema-empty-sha-2026-10
+revision: 1
+
+state: active
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Bring `schemas/decision.json` into alignment with the actual
+  state of `decisions/*.yaml` files.
+
+  The audit on 2026-10-05 flagged that all 32 active decision files
+  carry `body_sha: ""` and `yaml_sha: ""` as stubs, while the schema
+  pattern `^sha256:[0-9a-f]{64}$` does not accept empty strings. The
+  kernel currently does not enforce this pattern strictly
+  (`mc validate` accepts both forms), but the schema declaration
+  remains a latent inconsistency: any future schema-enforcing tool
+  would reject the existing decisions.
+
+  Resolution: relax the pattern to `^(|sha256:[0-9a-f]{64})$`,
+  accepting empty strings or the canonical sha256 form. The empty
+  string denotes a stub (the v3.2 migration left these unfilled);
+  the sha256 form denotes a computed canonical digest.
+
+  Out of scope (deferred to a follow-up decision):
+    - Computing real `body_sha` / `yaml_sha` digests for all 32
+      decision files (would require defining the canonicalization
+      algorithm for body vs YAML wrapper in `spec/algebra-3.2.md`
+      §7 or a sibling spec file).
+
+change_kind: editorial
+
+commitment: |
+  The schema accepts the empty-string stub form. No existing
+  decision file is modified. The kernel continues to accept both
+  forms; the schema no longer declares a stricter rule than the
+  kernel enforces.
+
+  Boundaries:
+    - This commit does NOT compute new digests for any decision file.
+    - This commit does NOT change `lib/decision.ml` or any other
+      kernel code.
+    - The sha_match_check (lib/decision.ml:13-14) already treats
+      empty strings as a vacuous pass; this decision preserves that
+      behaviour.
+
+scope:
+  capabilities: []
+  paths:
+    - "schemas/decision.json"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+    - "decisions/*.yaml"
+
+outcomes:
+  - id: schema-matches-kernel
+    statement: |
+      `schemas/decision.json` declares `body_sha` and `yaml_sha` with
+      a pattern that accepts the empty-string stub form used by all
+      32 active decision files, while still accepting the canonical
+      sha256 form for future use.
+
+counterexample: |
+  "Relaxing the schema lowers the data-integrity bar — a decision
+  with `body_sha: ""` and `yaml_sha: ""` is content-free by its own
+  admission, and the schema should reject this."
+
+  Counterargument: the empty-string stub denotes "computed but not
+  yet", which is a valid phase during the v3.2 migration. The schema
+  relaxation permits two phases (stub, filled) to coexist. When the
+  migration completes (or is abandoned), the schema can be tightened
+  again. Today, the honest position is: the data is what it is;
+  the schema should reflect that, not aspirationally reject it.
+
+  "Trust section built is more honest than empty stub
+  computation: just compute the real digests in this commit."
+
+  Counterargument: computing real digests requires defining the
+  canonicalization algorithm for body vs YAML wrapper. The current
+  spec describes the invariant (lib/decision.ml:13-14) but does not
+  specify the exact byte-range the hash covers. Doing that
+  correctly is a separate decision (algebra §7 detail) and requires
+  kernel-side changes to compute it.
+
+assumptions:
+  - id: empty-stub-distinct
+    state: assumed
+    statement: |
+      The empty-string form (`""`) is a sentinel for "not yet
+      computed"; the sha256 form is for "computed". They are
+      distinguishable by length.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the empty string were ever populated with a real digest by
+      mistake, sha-match validation could silently miss a divergence.
+      The current sha_match_check already treats empty strings as
+      a vacuous pass, so the worst outcome is a missed discrepancy,
+      not a wrong-pass.
+    review_on:
+      - signal: empty-stub-and-real-digest-confused
+
+obligations:
+  - id: pattern-accepts-empty-or-sha256
+    outcome: schema-matches-kernel
+    claim: |
+      `schemas/decision.json` declares `body_sha` and `yaml_sha` with
+      the pattern `^(|sha256:[0-9a-f]{64})$`, accepting empty
+      string or the canonical sha256 form.
+    acceptance:
+      all:
+        - verifier: rg -n 'pattern.*\\^\\(\\|sha256' schemas/decision.json
+          result: pass
+
+  - id: kernel-unchanged
+    outcome: schema-matches-kernel
+    claim: |
+      No change to `lib/` or `bin/`. `mc validate` continues to
+      accept all 32 existing decision files.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-verdict
+          result: pass
+
+reversal:
+  - signal: stub-population-completed
+    condition: |
+      All 32 active decision files have non-empty `body_sha` and
+      `yaml_sha` values matching the canonical sha256 form. The
+      schema can be tightened to `^sha256:[0-9a-f]{64}$`.
+    action: rework
+
+risk:
+  declared_triggers:
+    - empty-stub-and-real-digest-confused
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []
