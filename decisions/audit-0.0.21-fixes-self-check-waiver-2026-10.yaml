@@ -1,0 +1,226 @@
+---
+schema: math-coding/3.0-alpha
+id: audit-0.0.21-fixes-self-check-waiver-2026-10
+revision: 1
+
+state: active
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Record the structural deficit that prevents
+  `decisions/audit-0.0.21-fixes.yaml` obligation
+  `self-check-verdict-is-pass` from being satisfied at HEAD, and
+  document the named exception that the decision's own outcome
+  statement already contemplates (`unknown_count == waived_count`).
+
+  The deficit:
+    - `mc self-check` on a clean tree currently returns `verdict:unknown`
+      with 30 pass + 2 unknown subjects.
+    - The two unknown subjects are `portable-linux-musl` (state:retired,
+      reversal signal `alpine-ci-build-fails` fired after CI runs
+      #81/#83/#84/#85 broke on the Alpine musl container) and
+      `audit-0.0.21-fixes` itself (whose `self-check-verdict-is-pass`
+      obligation is structurally unsatisfiable while any other subject
+      contributes to `unknown`).
+    - `audit-0.0.21-fixes` has 9 obligations; 8 are attestable as
+      satisfied at HEAD (this PR adds the 8 attestations), and 1
+      (`self-check-verdict-is-pass`) cannot be truthfully attested as
+      pass while `portable-linux-musl` is unknown.
+    - An `inconclusive` attestation is added for that obligation
+      (see `attestations/audit-0.0.21-fixes-self-check-verdict-is-pass.json`).
+
+  Why a waiver file (not a rev-bump of audit-0.0.21-fixes):
+    - The original decision's outcome statement
+      (`decisions/audit-0.0.21-fixes.yaml:96-101`) already permits
+      `unknown_count == waived_count` when waivers are issued for
+      retired subjects. This decision is therefore a structural
+      amendment, not a content amendment.
+    - Per `constitution.md §Waivers`, a waiver MUST identify
+      authority, rationale, scope, issue time, expiry, and
+      recovery/follow-up action. This file provides all six.
+    - Per `constitution.md §Waivers`: a waiver "MAY permit a gate only
+      when the active policy marks that gap class waivable at that
+      gate". The active policy `bootstrap-v3@2` (rev 2) does not yet
+      explicitly mark retired-subject unknowns as waivable in the gate
+      path. This is a known deferred item; see `new_assumptions` below.
+
+  Kernel waiver infrastructure status:
+    - `lib/gate.ml` (lines 41, 67) declares a `Open_with_waiver`
+      verdict variant but the aggregate function does not produce it
+      (gap kinds remain `MissingEvidence` / `StaleEvidence` /
+      `FailedEvidence` / `Unknown`).
+    - `lib/packages.ml:53-58` notes "v1 of the module does not yet
+      consult waivers; that is a v3.0.0.30 task once `lib/waiver.ml`
+      lands (Tier-3 close-out per ROADMAP)".
+    - Until `lib/waiver.ml` lands and `lib/gate.ml:aggregate` consults
+      it, the kernel-level verdict for `audit-0.0.21-fixes` stays
+      `unknown` because of the 1 inconclusive / missing attestation.
+
+change_kind: editorial
+
+commitment: |
+  The structural deficit is recorded with full provenance. Nine
+  attestations cover `audit-0.0.21-fixes`'s nine obligations: eight
+  as `result:pass`, one (`self-check-verdict-is-pass`) as
+  `result:inconclusive` with a `reason` field naming the structural
+  cause.
+
+  Boundaries:
+    - This decision does NOT modify `audit-0.0.21-fixes.yaml`.
+    - This decision does NOT modify `portable-linux-musl.yaml`
+      (still `state:retired`, still subject to reversal signal).
+    - This decision does NOT add `lib/waiver.ml`; that is a separate
+      Tier-3 task tracked in ROADMAP.
+    - The `inconclusive` attestation is not a false attestation:
+      the obligation is genuinely not concluded at HEAD, and the
+      attestation's `reason` field names the structural cause.
+
+scope:
+  capabilities: []
+  paths:
+    - "attestations/audit-0.0.21-fixes-*.json"
+    - "decisions/audit-0.0.21-fixes.yaml"  # read-only reference
+    - "decisions/portable-linux-musl.yaml"  # read-only reference
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+    - "decisions/audit-0.0.21-fixes.yaml"  # explicit no-touch
+
+outcomes:
+  - id: structural-deficit-recorded
+    statement: |
+      A waiver-style decision exists, named exceptions are documented
+      (portable-linux-musl state:retired reversal signal), 8 pass
+      attestations and 1 inconclusive attestation cover the 9
+      obligations of audit-0.0.21-fixes, and the provenance chain
+      is auditable from any reader.
+
+  - id: kernel-waiver-infrastructure-pending
+    statement: |
+      The pending `lib/waiver.ml` work is recorded in ROADMAP; until
+      it lands, the kernel-level verdict for audit-0.0.21-fixes stays
+      `unknown`. This is recorded as an open item, not a hidden one.
+
+  - id: aitestation-evidence-bound
+    statement: |
+      The 9 attestations in this commit name the exact (decision,
+      obligation) pairs they cover; the inconclusive one carries a
+      `reason` field that names the structural cause.
+
+counterexample: |
+  "Issuing an `inconclusive` attestation with a `reason` field
+  circumvents the gate by signalling 'not pass' but still letting the
+  obligation count as attested, which is dishonest."
+
+  Counterargument: the attestation schema (`schemas/attestation.json`)
+  does not require a `reason` field, but it permits one. The
+  attestation result is `inconclusive`, which `lib/gate.ml:175-185`
+  maps to a `Unknown` gap kind — the same gap kind produced by a
+  missing attestation. The kernel verdict for `audit-0.0.21-fixes`
+  therefore stays `unknown` until `lib/waiver.ml` lands. The
+  attestation is a human-readable record of the structural cause;
+  it does not flip any gate to pass.
+
+  "The decision's outcome statement permits `unknown_count ==
+  waived_count` but the active policy does not formally mark retired
+  subjects as waivable. Issuing this waiver anyway is overreach."
+
+  Counterargument: this waiver does not promote `passive` to
+  `pass`. It records the structural cause and adds an `inconclusive`
+  attestation (which the gate treats the same as missing). When
+  `lib/waiver.ml` lands, the active policy will be amended to mark
+  retired-subject unknowns as waivable; this waiver file is the
+  pre-existing record that justifies that future amendment.
+
+  "Why not bump `audit-0.0.21-fixes` to remove the
+  `self-check-verdict-is-pass` obligation entirely?"
+
+  Counterargument: the obligation is the master criterion of the
+  integrity-fixes cycle. Removing it would defeat the decision's
+  purpose. The honest path is to record why the criterion cannot be
+  satisfied today and let the kernel waiver infrastructure (when it
+  lands) close the loop structurally.
+
+assumptions:
+  - id: kernel-waiver-pending
+    state: assumed
+    statement: |
+      `lib/waiver.ml` is a separate, deferred Tier-3 task tracked
+      in `ROADMAP.md`. Until it lands, the gate's `Unknown` verdict
+      for `audit-0.0.21-fixes` is unavoidable.
+    owner: human:maintainer
+    consequence_if_false: |
+      If `lib/waiver.ml` is built before this waiver is recorded,
+      the kernel may produce a different verdict for
+      `audit-0.0.21-fixes` and the `inconclusive` attestation may
+      need to be re-evaluated.
+    review_on:
+      - signal: lib-waiver-ml-landed
+
+obligations:
+  - id: nine-attestations-present
+    outcome: aitestation-evidence-bound
+    claim: |
+      Exactly nine files matching `attestations/audit-0.0.21-fixes-*.json`
+      exist on HEAD; eight are `result:pass`, one is `result:inconclusive`
+      with a `reason` field naming the structural cause.
+    acceptance:
+      all:
+        - verifier: ls attestations/audit-0.0.21-fixes-*.json | wc -l
+          result: pass
+
+  - id: inconclusive-reason-cited
+    outcome: aitestation-evidence-bound
+    claim: |
+      The inconclusive attestation's `reason` string names
+      `portable-linux-musl`, the `alpine-ci-build-fails` reversal
+      signal, and the pending waiver file by path.
+    acceptance:
+      all:
+        - verifier: rg -l 'portable-linux-musl' attestations/audit-0.0.21-fixes-self-check-verdict-is-pass.json
+          result: pass
+
+  - id: audit-0.0.21-fixes-decision-untouched
+    outcome: structural-deficit-recorded
+    claim: |
+      `decisions/audit-0.0.21-fixes.yaml` is byte-identical before and
+      after this commit (no rev bump, no body edit).
+    acceptance:
+      all:
+        - verifier: git diff HEAD~1..HEAD -- decisions/audit-0.0.21-fixes.yaml
+          result: pass
+
+reversal:
+  - signal: kernel-waiver-ml-landed
+    condition: |
+      `lib/waiver.ml` is implemented and `lib/gate.ml` consults it.
+      Resolution: re-evaluate `self-check-verdict-is-pass` against
+      the named waiver; convert the attestation to `result:pass`
+      if the kernel reports the obligation satisfied under the
+      waiver, or remove it if the kernel handles the waiver path
+      natively.
+    action: rework
+
+  - signal: portable-linux-musl-re-enabled
+    condition: |
+      Alpine musl CI builds are debugged; `portable-linux-musl` is
+      re-enabled (rev bumped to `state: active`) and CI runs produce
+      attestations for its 7 obligations. The structural deficit
+      disappears; this waiver is superseded by the new evidence.
+    action: supersede-with-portable-linux-musl-active
+
+risk:
+  declared_triggers:
+    - lib-waiver-ml-landed
+    - portable-linux-musl-re-enabled
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+    - audit-0.0.21-fixes@1
+  supersedes: []
+  superseded_by: []
