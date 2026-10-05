@@ -1,0 +1,214 @@
+---
+schema: math-coding/3.0-alpha
+id: 3-2-cli-catalog
+revision: 1
+
+state: active
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Resolve the spec-vs-implementation drift on 3.2-ideal
+  algebra subcommands. The `bin/Mathc.ml` dispatcher at HEAD
+  recognises 17 subcommands; `spec/semantics.md §CLI
+  subcommands` documents 14. The three undocumented
+  subcommands are:
+
+    mc mode       — algebra §2 risk function (lib/risk.ml);
+    mc rebuttals  — algebra §10 hybrid rebuttal mechanism
+                    (lib/rebuttal.ml);
+    mc re-evaluate — algebra §17 re-evaluation oracle
+                    (lib/re_evaluation.ml).
+
+  These subcommands were introduced in the v3.1.0-alpha
+  algebra batch (between ff9e738 and fd7ea8b, recorded in
+  ROADMAP Tier 3.5) but the spec rows were forgotten. The
+  spec at `spec/semantics.md:152` mandates:
+
+    "an implementation MUST NOT add a new subcommand without
+    first adding a row here, and MUST NOT change a subcommand's
+    documented exit code without a corresponding spec edit."
+
+  This decision closes the drift by adding the three rows to
+  the spec, the corresponding entries in `README.md`, and a
+  positive cram fixture for each. The behavior of the
+  subcommands is unchanged; only the documentation catches
+  up to the implementation.
+
+  History:
+    rev 1 (this commit): initial adoption under the
+                          bootstrap-v3@2 policy.
+
+commitment: |
+  Three subcommands become first-class entries in
+  `spec/semantics.md §CLI subcommands` and `README.md`:
+    - `mc mode PATH1 PATH2 ...` — risk classification
+    - `mc rebuttals COMMIT_SHA` — sibling-YAML rebuttal walker
+    - `mc re-evaluate DECISION_ID AXIOM_ID` — re-evaluation
+      oracle
+
+  For each, add a positive cram fixture under `tests/cli/`
+  that asserts exit code 0 and the documented output keys,
+  and a negative cram fixture that asserts exit code 2 on
+  missing required arguments.
+
+  Migration: README's CLI table at line 41-50 grows by three
+  rows. spec/semantics.md's table at line 148 grows by three
+  `### \`<subcommand>\`` sections.
+
+  Recovery: revert the commit. The 3 subcommands remain
+  dispatchable but lose their spec rows, returning to the
+  pre-rev-1 drift state. This is acceptable because the
+  subcommands are still documented in `bin/Mathc.ml` and the
+  README — the spec gap is the only thing the revert restores.
+
+scope:
+  paths:
+    - spec/semantics.md
+    - README.md
+    - tests/cli/mode.t
+    - tests/cli/rebuttals.t
+    - tests/cli/re-evaluate.t
+
+outcomes:
+  - id: spec-catalog-complete
+    statement: spec/semantics.md §CLI subcommands lists every
+      subcommand the dispatcher recognises at HEAD; the spec
+      and the implementation no longer disagree.
+  - id: readme-catalog-complete
+    statement: README.md's CLI table lists every subcommand
+      the dispatcher recognises at HEAD; readers of the
+      README no longer see "missing" subcommands in `mc --help`.
+  - id: fixtures-positive-and-negative
+    statement: every 3.2 subcommand has both a positive cram
+      fixture (exit 0 with the documented output) and a
+      negative one (exit 2 on missing arguments).
+
+assumptions:
+  - id: algebra-batch-is-shipped
+    state: assumed
+    statement: |
+      The 3.2-ideal algebra has been implemented in the
+      `lib/risk.ml`, `lib/rebuttal.ml`, `lib/re_evaluation.ml`
+      modules and shipped in v3.1.0-alpha (CHANGELOG.md Tier
+      3.5 batch). Without this assumption the spec rows would
+      describe behaviour that does not exist.
+    owner: human:maintainer
+    consequence_if_false: the spec rows become aspirational;
+      the 3 subcommands would have to be removed from the
+      dispatcher.
+    review_on:
+      - signal: algebra-3-2-shipped
+
+obligations:
+  - id: mode-subcommand-spec-row
+    outcome: spec-catalog-complete
+    claim: |
+      `spec/semantics.md §CLI subcommands` contains a
+      `### \`mode [PATH ...] [--format=json|text]\`` row
+      with the same synopsis, exit code, and justification
+      sections as the other 14 rows.
+    acceptance:
+      all:
+        - verifier: tests/cli/mode.t
+          result: pass
+        - verifier: text-scan-spec-semantics-md-mode-row
+          result: pass
+
+  - id: rebuttals-subcommand-spec-row
+    outcome: spec-catalog-complete
+    claim: |
+      `spec/semantics.md §CLI subcommands` contains a
+      `### \`rebuttals COMMIT_SHA\`` row.
+    acceptance:
+      all:
+        - verifier: tests/cli/rebuttals.t
+          result: pass
+        - verifier: text-scan-spec-semantics-md-rebuttals-row
+          result: pass
+
+  - id: re-evaluate-subcommand-spec-row
+    outcome: spec-catalog-complete
+    claim: |
+      `spec/semantics.md §CLI subcommands` contains a
+      `### \`re-evaluate DECISION_ID AXIOM_ID\`` row.
+    acceptance:
+      all:
+        - verifier: tests/cli/re-evaluate.t
+          result: pass
+        - verifier: text-scan-spec-semantics-md-re-evaluate-row
+          result: pass
+
+  - id: readme-cli-table-grows-by-three
+    outcome: readme-catalog-complete
+    claim: |
+      README.md's CLI table (line 41-50) gains three rows:
+      `mc mode`, `mc rebuttals`, `mc re-evaluate`. The new
+      rows use the same `| \`mc ...\` | Purpose |` format.
+    acceptance:
+      all:
+        - verifier: text-scan-readme-md-mode-row
+          result: pass
+        - verifier: text-scan-readme-md-rebuttals-row
+          result: pass
+        - verifier: text-scan-readme-md-re-evaluate-row
+          result: pass
+
+  - id: mode-fixture-pair
+    outcome: fixtures-positive-and-negative
+    claim: |
+      `tests/cli/mode.t` exists and exercises `mc mode` with
+      at least one positive case (paths given, exit 0) and
+      one negative case (no paths, exit 2).
+    acceptance:
+      all:
+        - verifier: tests/cli/mode.t
+          result: pass
+
+  - id: rebuttals-fixture-pair
+    outcome: fixtures-positive-and-negative
+    claim: |
+      `tests/cli/rebuttals.t` exists and exercises `mc
+      rebuttals` with at least one positive and one negative
+      case.
+    acceptance:
+      all:
+        - verifier: tests/cli/rebuttals.t
+          result: pass
+
+  - id: re-evaluate-fixture-pair
+    outcome: fixtures-positive-and-negative
+    claim: |
+      `tests/cli/re-evaluate.t` exists and exercises `mc
+      re-evaluate` with at least one positive and one negative
+      case.
+    acceptance:
+      all:
+        - verifier: tests/cli/re-evaluate.t
+          result: pass
+
+risk:
+  declared_triggers:
+    owner: human:maintainer
+    - spec-catalog-falls-behind-dispatcher-again
+    - cram-fixture-flake-on-clock
+  - drift_recurs: |
+      A future addition to bin/Mathc.ml adds a subcommand
+      without adding a spec row. Mitigation: the existing
+      `text-scan-spec-semantics-md-*` verifier in
+      `tests/repo_structure.ml` is now joined by three new
+      verifiers (mode/rebuttals/re-evaluate). A spec-cat
+      detector similar to the priority-drift detector (see
+      `decisions/priority-drift.yaml`) would be a natural
+      follow-up; this decision records the manual
+      `text-scan` checks as the floor.
+
+reversal:
+  - signal: spec-row-becomes-wrong
+    action: re-issue this decision with rev: 2, correcting
+      the synopsis or exit code
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  refines:
+    - algebra-3.2@1
