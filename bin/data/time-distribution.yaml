@@ -69,7 +69,7 @@ multipliers:
   # All `factor_x10` fields are int * 10; OCaml divides by 10.0.
 
   per_artifact_over_first:
-    description: "Each artifact beyond the first compounds the base estimate by roughly 1.6, then 1.25, then 1.10, then saturates at 2.5."
+    description: "Each artifact beyond the first compounds the base estimate by roughly 1.6 (count 2), 2.0 (count 3), 2.2 (counts 4–5), then saturates at 2.5 (count 6+)."
     factor_at_count_1_x10: 10
     factor_at_count_2_x10: 16
     factor_at_count_3_x10: 20

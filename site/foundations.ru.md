@@ -34,7 +34,7 @@
 записи со шлюзом.
 
 **Верификация.** `scripts/generate-attestations.py`
-производит 80 файлов аттестаций в каждом релизе;
+производит 94 файла аттестаций в каждом релизе;
 `mc gate BASE HEAD` отвечает зелёным на `gate-pass.t`,
 `gate-fail.t`, `gate-stale.t` (cram-фикстуры в `tests/cli/`).
 
@@ -96,5 +96,6 @@ self-check` возвращает «успех» на чистом `main`.
 | `mc-self-check-subcommand` | `mc self-check` → JSON-вердикт | `self-check-{pass,fail,unknown}.t` |
 | `mc-packages-subcommand` | `mc packages --format=text\|json\|html` → список пакетов | `packages.t` |
 
-Ядро на v3.0.0.20 поставляет все восемь. Сайт
-[Packages](packages.html) — живой вердикт всех восьми.
+Ядро на v3.1.0-alpha поставляет все восемь оснований. Сайт
+[Packages](packages.html) — живой вердикт всех 29 активных
+решений.

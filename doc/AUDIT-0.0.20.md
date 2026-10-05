@@ -41,10 +41,10 @@ Per `AGENTS.md §Bootstrap gate`, the bootstrap protocol expired at
 commit `8fa7fcf`. Concretely:
 
 - `mc self-check` is a blocking CI step. A clean `main` HEAD
-  yields verdict `pass` (exit 0) with `subjects_count=23`,
-  `pass_count=23`. PRs that yield `fail` (exit 1) or `unknown`
+  yields verdict `pass` (exit 0) with `subjects_count=28`,
+  `pass_count=28`. PRs that yield `fail` (exit 1) or `unknown`
   (exit 3) on the `mc self-check` step block the merge.
-- The attestation store at `attestations/` contains 75 files:
+- The attestation store at `attestations/` contains 94 files:
   one per decision-obligation pair enumerated by
   `scripts/generate-attestations.py`.
 - `mc gate BASE HEAD` now reports verdicts against the store;
@@ -63,7 +63,7 @@ bootstrap checks in `AGENTS.md §Bootstrap gate` remain as
 |--------|-------|------|
 | `mc self-check` on clean HEAD | CI run for `8fa7fcf` | observed |
 | `scripts/dev verify` | CI run for `8fa7fcf` | observed |
-| 23/75 attestations resolve to current | `scripts/generate-attestations.py` | derived |
+| 28/94 attestations resolve to current (post-3.1.0-alpha batch) | `scripts/generate-attestations.py` | derived |
 | 19 stale branches removed | `git for-each-ref` | observed |
 
 ## Outstanding

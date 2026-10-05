@@ -14,5 +14,4 @@ result/
 # time-honesty-storage obligation storage-paths-declared:
 # per-worktree runtime data; never committed, never uploaded.
 .local
-bootstrap/execution-logs.jsonl
 decisions/execution-logs.jsonl

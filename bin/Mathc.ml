@@ -1813,7 +1813,7 @@ let[@warning "-32"] list_decision_files dir =
 
    Note: the kernel YAML parser (Codec.load_yaml_string) is
    hand-rolled and drops continuation lines for unquoted
-   multi-line scalars (see OCAML_BEST_PRACTICES §11.13 — the
+   multi-line scalars (see OCAML_BEST_PRACTICES §11.12 — the
    "whitespace-stripping helper destroys source structure"
    trap). For `mc self-check` we need both the decision id and
    the obligation ids; if Memory.parse_decision_yaml returns a

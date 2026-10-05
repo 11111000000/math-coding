@@ -16,8 +16,8 @@ intent: |
 commitment: |
   Three new subcommands (mc session-start, mc record, mc stats)
   write to two declared storage paths:
-    - .local/session-start           (one ISO 8601 UTC timestamp);
-    - bootstrap/execution-logs.jsonl  (one JSON object per line).
+    - .local/session-start             (one ISO 8601 UTC timestamp);
+    - decisions/execution-logs.jsonl   (one JSON object per line).
   Both paths are local to a clone or worktree and are NOT
   tracked in git (see acceptance storage-path-declared).
   `mc record` does not accept a user-supplied value; the only
@@ -50,12 +50,12 @@ outcomes:
   - id: runtime-observation-closed-loop
     statement: |
       For every recorded agent session, an event is appended to
-      bootstrap/execution-logs.jsonl with scale = wall-clock-
+      decisions/execution-logs.jsonl with scale = wall-clock-
       minutes and value = (now - session_start). mc stats reports
       the empirical distribution against the declared floor.
   - id: storage-gitignored
     statement: |
-      .local/session-start and bootstrap/execution-logs.jsonl
+      .local/session-start and decisions/execution-logs.jsonl
       are NOT tracked in git. They are local to a clone or
       worktree and never uploaded by any CI flow.
   - id: stats-n-threshold
@@ -113,7 +113,7 @@ obligations:
   - id: storage-paths-declared
     outcome: storage-gitignored
     claim: |
-      .gitignore lists .local/ and bootstrap/execution-logs.jsonl
+      .gitignore lists .local/ and decisions/execution-logs.jsonl
       as ignored. `git ls-files --error-unmatch` on either path
       returns an error (untracked) on a freshly-init'd worktree.
     acceptance:

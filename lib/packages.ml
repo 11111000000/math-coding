@@ -278,12 +278,6 @@ let[@warning "-32"] obligation_view ~now_iso ~obligation_id ~store ~has_store =
     remedies = remedies_of verdict;
   }
 
-(* Render a decision view. *)
-let[@warning "-32"] decision_view ~now_iso ~store ~has_store ~path =
-  match load_decision ~reader:(fun _ -> failwith "unreachable") ~path with
-  | None -> None
-  | Some _ -> None
-
 (* Walk every decision; produce a package_list. The store is
    passed in as a typed list (Domain.attestation list) — the
    caller loads the store from disk via Attestations.load; this

@@ -120,7 +120,7 @@ counterexample: |
   self-contained fixture walker. Coupling it to a YAML helper that
   lives elsewhere would tangle test inputs and kernel inputs. The
   duplication is acceptable, and the fix history (the yaml_strip
-  trap in OCAML_BEST_PRACTICES §11.13) is small enough that both
+  trap in OCAML_BEST_PRACTICES §11.12) is small enough that both
   copies can be kept aligned by hand.
 
   Why is the priority order defined in spec/semantics.md rather than

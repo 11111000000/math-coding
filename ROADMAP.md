@@ -4,7 +4,7 @@
 > (commit `8fa7fcf`). The 3.0 kernel checks this repository and its
 > conformance corpus via `mc self-check`, which is a **blocking** CI
 > step per `constitution.md` Invariant 14. The attestation store at
-> `attestations/` is populated (80 files). CLI surface: `validate`,
+> `attestations/` is populated (94 files). CLI surface: `validate`,
 > `context`, `explain`, `assess`, `attest`, `gate`, `session-start`,
 > `record`, `stats`, `time-estimate`, `self-check`, `version`, `render`,
 > `packages`.
@@ -58,7 +58,7 @@ without a `decisions/*.yaml` decision under the active policy.
 
 | # | Deficit | Status | Notes |
 |---|---|---|---|
-| 6 | D6 (bootstrap-v3 manual-only verifiers) | **closing** in v3.0.0.20 | `mc self-check` is blocking; manual-only verifiers move to machine-checked |
+| 6 | D6 (bootstrap-v3 manual-only verifiers) | **closed** in v3.0.0.20 | `mc self-check` is blocking; manual-only verifiers move to machine-checked |
 | 7 | D5 (stale `bin/mathc_main.ml`) | **closed** in commit `191d1af` | |
 | 8 | D7 (adapters decision covers two obligations) | **closed** in commit `be5c4bd` | |
 | 9 | D3 (priority-drift detector) | **closed** in commit `4855a57` | |

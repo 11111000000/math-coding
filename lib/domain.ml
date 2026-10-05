@@ -18,11 +18,13 @@
        environment_class_label, substrate_digest,
        substrate_fingerprint, ci_run_id
 
-   Backward compatibility: 23 existing decisions in decisions/*.yaml
-   still use state: assumed. The widened epistemic_marker enum
-   preserves `Assumed and `Unknown alongside the four new markers
-   `Fact | `Hypothesis | `Judgment | `Proven. `Unknown is shared
-   between the legacy and 3.2 enums — they are the same variant. *)
+   Backward compatibility: 27 of 28 active decisions in decisions/*.yaml
+   carry at least one assumption in the legacy `Assumed` state (verified
+   at HEAD via `grep -c '^state: assumed' decisions/*.yaml`). The widened
+   epistemic_marker enum preserves `Assumed and `Unknown alongside the
+   four new markers `Fact | `Hypothesis | `Judgment | `Proven. `Unknown
+   is shared between the legacy and 3.2 enums — they are the same
+   variant. *)
 
 type timestamp = string
 type id = string
