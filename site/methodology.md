@@ -1,13 +1,13 @@
-# Methodology — mathoding
+# Methodology — mathcoding
 
 > This page is about the methodology that math-coding (the kernel)
-> implements. We call the methodology **mathoding** — math-coding
+> implements. We call the methodology **mathcoding** — math-coding
 > applied as a discipline to software change. The kernel is the
 > reference implementation; the methodology is the thinking.
 
-## What mathoding is
+## What mathcoding is
 
-Mathoding is the practice of binding every meaningful change to an
+Mathcoding is the practice of binding every meaningful change to an
 **observable commitment** before it merges. It is not a CI tool, not
 a code-review tool, not a documentation tool. It is the discipline
 that links intent, decisions, obligations, changes, attestations,
@@ -80,7 +80,7 @@ friction but never lower it.
 
 ## Adoption
 
-Adopting mathoding in an existing project is, in practice, three
+Adopting mathcoding in an existing project is, in practice, three
 steps:
 
 1. Create `decisions/decision.yaml` declaring the active policy

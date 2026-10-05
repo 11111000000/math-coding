@@ -10,10 +10,10 @@ packets before the code that implements them. The kernel
 (`mc`) checks the commitment against the code on every
 merge.
 
-### What is mathoding?
+### What is mathcoding?
 
 The methodology that the kernel implements. Math-coding
-is the kernel; mathoding is the discipline.
+is the kernel; mathcoding is the discipline.
 
 ### Why eight principles, not one?
 

@@ -279,7 +279,7 @@ artifacts, and the build pipeline is `scripts/render.sh` +
 |---|---|---|
 | `site/index.md` | `dist/index.html` | hero + axiom grid + protocol diagram |
 | `site/axioms.md` | `dist/axioms.html` | A0–A4 with formal statements |
-| `site/methodology.md` | `dist/methodology.html` | mathoding (the methodology) explained |
+| `site/methodology.md` | `dist/methodology.html` | mathcoding (the methodology) explained |
 | `site/bootstrap-gate.md` | `dist/bootstrap-gate.html` | the bootstrap-expiry story |
 | `site/packages.md` | `dist/packages.html` | mirror of `mc packages --format=html` |
 | `site/decisions/` | `dist/decisions/*.html` | one page per `decisions/*.yaml` |

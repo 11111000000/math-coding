@@ -19,7 +19,7 @@ intent -> decision -> obligation -> change -> attestation -> revision
 Every architectural commitment is written **before**
 the code, and the kernel checks the commitment against
 the code on every merge. The discipline is called
-**mathoding** — math-coding applied as a methodology.
+**mathcoding** — math-coding applied as a methodology.
 
 ## What it ships
 

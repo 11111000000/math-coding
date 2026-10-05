@@ -16,7 +16,7 @@ the documentation is not checked against the code.
 Math-coding inverts the asymmetry: every architectural
 commitment is written **before** the code, and the kernel
 checks the commitment against the code on every merge.
-The discipline is called **mathoding** — math-coding
+The discipline is called **mathcoding** — math-coding
 applied as a methodology to software change.^[The smallest
 call that closes a feedback loop in a process discipline is a
 verifier — a program that can be re-run and whose exit

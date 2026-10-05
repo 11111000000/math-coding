@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: site-deploy
-revision: 3
+revision: 4
 
 state: active
 body_sha: ""
@@ -16,7 +16,7 @@ intent: |
   `scripts/dev verify` shell the protocol mandates for
   every other merge.
 
-  The site contains articles about mathoding — the methodology
+  The site contains articles about mathcoding — the methodology
   that governs code change. The site is self-referential in the
   A3 sense: the rules that govern the system also govern the
   system's published explanation of itself.
