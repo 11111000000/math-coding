@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: obligation-count-reconcile
-revision: 1
+revision: 2
 
 state: active
 body_sha: ""
@@ -18,6 +18,23 @@ intent: |
   these disagree, so D6 (manual-only verifiers at AUDIT-0.0.11.md
   line 463) cannot expire with any class better than `unknown`.
 
+  History:
+    rev 1 (2026-09-30): first issuance, 7-id aggregator
+                        reconciled; assumption `packges-obs-unaffected`
+                        and signal `packges-audit-tool-defined` were
+                        misspelled (missing the second 'a').
+    rev 2 (this commit): rename assumption id to
+                        `packages-obs-unaffected` and signal to
+                        `packages-audit-tool-defined` so the names
+                        spell "packages" correctly. No external
+                        consumer references these identifiers
+                        (verified at HEAD by `grep -rn
+                        'packges-obs-unaffected\|packges-audit-tool-defined'`
+                        — only this file matches), so the rename
+                        is internal and does not break any contract.
+                        Obligation `aggregator-7-of-7` and its
+                        attestations are unaffected.
+
 commitment: |
   Promote `decisions/obligations.yaml` to revision 2 with the
   seven obligation ids that match `decisions/decision.yaml@2`
@@ -25,18 +42,27 @@ commitment: |
   Leave `PACKAGES.md`'s `Obs` column unchanged — it is an
   observation count from a separate audit tool, not an obligation
   count (this assumption is recorded below).
+  This rev 2 additionally renames the assumption id and signal
+  to the correct "packages" spelling.
 
 scope:
   paths:
     - "decisions/obligations.yaml"
+    - "decisions/obligation-count-reconcile.yaml"
 
 outcomes:
   - id: aggregator-matches-parent
     statement: obligations.yaml lists exactly the seven obligations of
       decisions/decision.yaml@2 with identical ids in the same order.
+  - id: assumption-ids-spelled-correctly
+    statement: Every assumption id and review_on signal in this
+      decision file is spelled correctly. The "packages" word
+      carries the canonical spelling across the project; the
+      misspelling "packges" is not allowed anywhere in
+      decisions/*.yaml.
 
 assumptions:
-  - id: packges-obs-unaffected
+  - id: packages-obs-unaffected
     state: assumed
     statement: |
       PACKAGES.md `Obs` column is an observation count from a
@@ -47,7 +73,7 @@ assumptions:
     consequence_if_false: a future reconcile would rename the
       `Obs` column or drop it.
     review_on:
-      - signal: packges-audit-tool-defined
+      - signal: packages-audit-tool-defined
 
 obligations:
   - id: aggregator-7-of-7
@@ -66,6 +92,24 @@ obligations:
         - verifier: text-scan-decisions-obligations-yaml-7-ids
           result: pass
 
+  - id: corrected-spelling-contract
+    outcome: assumption-ids-spelled-correctly
+    claim: |
+      This decision file (revision: 2) does not contain the
+      misspelling "packges" anywhere. The assumption id is
+      `packages-obs-unaffected` and the review_on signal is
+      `packages-audit-tool-defined`. No other file in decisions/
+      carries the misspelling either (verified by `grep -rn
+      'packges' decisions/*.yaml`).
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: text-scan-no-packges-misspelling
+          result: pass
+        - verifier: text-scan-contains-packages-spelling
+          result: pass
+
 reversal:
   - signal: aggregator-id-drift
     action: re-reconcile with a new decision revision
@@ -75,7 +119,10 @@ risk:
     owner: human:maintainer
     - aggregator-points-at-superseded-revision
     - obligation-count-diverges-across-documents
+    - assumption-id-typo-recurs
 
 relations:
   addresses:
     - bootstrap-v3@2
+  revises:
+    - obligation-count-reconcile@1

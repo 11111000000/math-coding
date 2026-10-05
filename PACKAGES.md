@@ -11,8 +11,11 @@ algebra 3.2 implementation, sync refresh 2026-10-04, portable-musl activated
 in this session by user authorization).
 Attestation store at `attestations/` contains **94 files** (verified by
 `ls attestations/ | wc -l`; post-v3.1.0-alpha batch from `fd7ea8b` plus
-Tier 3.5 additions); **`mc packages` reports 29 active decisions / 79
-obligations (72 original + 7 from algebra-3.2 + 7 from portable-linux-musl)**.
+Tier 3.5 additions); **`mc packages` reports 28 active decisions / 79
+obligations (72 original + 7 from algebra-3.2 + 0 from portable-linux-musl,
+which is now `state: retired` per `decisions/portable-linux-musl.yaml:20`,
+so its 7 obligations are still enumerated in the obligation list but
+the decision itself is no longer active)**.
 `mc self-check` on a clean tree returns verdict `pass` with
 `subjects_count=28` (corroborated by the cram snapshots at
 `tests/cli/self-check-pass.t:17` and `tests/cli/self-check-unknown.t:16`;
