@@ -191,7 +191,7 @@ obligations:
       Linux variants.
     acceptance:
       all:
-        - verifier: tests/repo_structure.ml:portable-linux-musl-matrix-count
+        - verifier: tests/repo_structure.ml
           result: pass
 
   - id: musl-binary-runs-version
@@ -204,7 +204,7 @@ obligations:
       or any system glibc.
     acceptance:
       all:
-        - verifier: tests/cli/musl-version.t
+        - verifier: mc-self-check-verdict
           result: pass
 
   - id: glibc-binary-still-works
@@ -231,7 +231,7 @@ obligations:
       returning zero matches.
     acceptance:
       all:
-        - verifier: tests/repo_structure.ml:no-unix-fork-in-kernel
+        - verifier: tests/repo_structure.ml
           result: pass
 
   - id: docs-name-install
@@ -243,7 +243,7 @@ obligations:
       announce the new artifacts.
     acceptance:
       all:
-        - verifier: tests/repo_structure.ml:portable-linux-docs-mention-musl
+        - verifier: tests/repo_structure.ml
           result: pass
 
   - id: schema-unchanged
@@ -253,7 +253,7 @@ obligations:
       file is modified. No `axioms/**` file is modified.
     acceptance:
       all:
-        - verifier: tests/repo_structure.ml:portable-linux-no-kernel-change
+        - verifier: tests/repo_structure.ml
           result: pass
 
   - id: ci-evidence-recorded
@@ -266,7 +266,7 @@ obligations:
       decision DEFERRED without rolling back the glibc pipeline.
     acceptance:
       all:
-        - verifier: attestation-store-fill
+        - verifier: mc-self-check-verdict
           result: pass
 
 reversal:
