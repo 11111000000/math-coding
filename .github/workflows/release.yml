@@ -24,11 +24,15 @@ jobs:
           # Linux — musl (alpine). DISABLED 2026-10-04 per
           # decisions/portable-linux-musl.yaml reversal signal
           # 'alpine-ci-build-fails' (CI runs #81, #83, #84, #85 all failed
-          # at the 'Init opam (Alpine musl container)' step with exit code
-          # 127/1). The Alpine container's opam setup needs manual debugging
-          # with authenticated log access. Re-enable when verified.
+          # at the 'Init opam (Alpine musl container)' step). Re-enable
+          # by uncommenting this line. The matrix entry uses
+          # alpine:3.20 (plain) + `apk add opam` rather than the
+          # ocaml/opam:alpine-* image; previous attempts with the
+          # prebuilt image gave exit 127/1 across multiple opam
+          # invocation patterns. Plain Alpine + apk removes the
+          # dependence on the image's pre-installed opam setup.
           # aarch64-musl deferred to v2 (needs QEMU emulation).
-          # - { label: linux-x86_64-musl, runs-on: ubuntu-latest, is_musl: true, container: ocaml/opam:alpine-3.24-ocaml-5.4, exe: mathc-linux-x86_64-musl, ext: '' }
+          # - { label: linux-x86_64-musl, runs-on: ubuntu-latest, is_musl: true, container: alpine:3.20, exe: mathc-linux-x86_64-musl, ext: '' }
           # macOS
           - { label: darwin-x86_64,   runs-on: macos-15-intel,    exe: mathc-darwin-x86_64,   ext: '' }
           - { label: darwin-aarch64,  runs-on: macos-latest,      exe: mathc-darwin-aarch64,  ext: '' }
@@ -116,33 +120,27 @@ jobs:
         shell: bash
         run: |
           set -eu
-          # The ocaml/opam:alpine-3.24-ocaml-5.4 image ships with opam
-          # and a default OCaml 5.4 switch pre-installed. We just need
-          # to activate that default switch — naming the switch with
-          # --switch=<version> fails because the image's switch name
-          # is whatever ocurrent chose (typically the OCaml version
-          # like "5.4", not "5.4.0").
-          if ! command -v opam >/dev/null 2>&1; then
-            echo "opam not on PATH; locating..."
-            for candidate in /usr/local/bin/opam /usr/bin/opam \
-                             /opt/opam/opam /root/.local/bin/opam; do
-              if [ -x "$candidate" ]; then
-                echo "Found opam at $candidate"
-                export PATH="$(dirname "$candidate"):$PATH"
-                break
-              fi
-            done
-          fi
-          command -v opam >/dev/null 2>&1 \
-            || { echo "FATAL: opam binary not found" >&2; exit 1; }
+          # Plain alpine:3.20 image. Install opam from apk. alpine's
+          # opam package is older (2.1.x line) but supports creating
+          # an OCaml 5.4 switch via opam switch create. This avoids
+          # the op/opam Docker image's quirks that broke the previous
+          # 4 attempts (exit 127/1 across image upgrades, PATH
+          # search, switch-name trial, opam env without --switch).
+          apk add --no-cache opam bash
           opam --version
-          # Use the image's default switch (do NOT pass --switch= which
-          # requires an exact name match and the image uses an
-          # opaque name like "5.4" or "default").
-          eval "$(opam env)"
+          # Initialize opam (sandboxing disabled: bubblewrap is
+          # unavailable on Alpine).
+          opam init -y --bare --disable-sandboxing
+          # Create the OCaml 5.4 switch from scratch (the apk opam
+          # does not pre-install a switch).
+          opam switch create 5.4.0 -y
+          opam switch set 5.4.0
+          eval "$(opam env --switch=5.4.0)"
+          OPAM_BIN="$HOME/.opam/5.4.0/bin"
+          echo "OPAM_BIN=$OPAM_BIN"
+          [ -d "$OPAM_BIN" ] || { echo "FATAL: switch bin dir not created" >&2; exit 1; }
+          echo "PATH=$OPAM_BIN:$PATH" >> "$GITHUB_ENV"
           ocaml --version
-          which ocaml dune 2>/dev/null || true
-          opam switch list 2>/dev/null || true
 
       - name: Install dune
         shell: bash

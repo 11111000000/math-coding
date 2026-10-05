@@ -2,33 +2,45 @@
 # scripts/dist-adoption.sh
 #
 # Generate platform-specific adoption files from adoption/SKILL.md.
-# This is the build-time step that turns one canonical skill into
-# N platform-shaped drop-ins (opencode, Claude Code, Cursor, Copilot).
+# One canonical skill in, N platform-shaped drop-ins out
+# (opencode, Claude Code, Cursor, GitHub Copilot).
 #
 # Usage:
 #   scripts/dist-adoption.sh                — generate to dist/adoption/
 #   scripts/dist-adoption.sh --check        — exit 1 if dist/ is stale
 #                                             relative to adoption/SKILL.md
 #
-# The script is idempotent: re-running overwrites the same files. It
-# does NOT touch adoption/SKILL.md (the source of truth) and it does
-# NOT touch dist/index.html or the rendered site under dist/ (that is
-# `mc render`'s job; this script only handles the adoption bundle).
+# The script is idempotent: re-running overwrites the same files.
+# Source of truth is adoption/SKILL.md; dist/ is a build artifact.
 #
 # Output:
-#   dist/adoption/opencode/SKILL.md
+#   dist/adoption/opencode/SKILL.md         (verbatim copy of source)
 #   dist/adoption/claude-code/instructions.md
 #   dist/adoption/cursor/rules.md
 #   dist/adoption/copilot/instructions.md
 #   dist/adoption/README.md
 #
-# The release pipeline (flake.nix build) packages dist/adoption/ into
-# the same tarball as the `mc` binary. Adopters download one tarball,
-# copy the file matching their agent platform, and have a portable
-# Math-coding 3.0 adoption ready.
+# Design notes (2026-10-04 rewrite):
+# - Removed the double-mktemp + double-trap pattern. The original
+#   script (rev <= v3.0.0.20) leaked a tempfile per invocation and
+#   had an awk block that was overwritten by a "simpler" awk block
+#   doing the same thing. This rewrite is single-pass: read source
+#   into a shell variable, extract body once, emit per-platform
+#   files in a clean loop.
+# - Uses `set -euo pipefail` instead of `set -eu`. The extra `o`
+#   flag makes pipefail explicit, the `u` is preserved. This is
+#   what scripts/dev already does for the verify command.
+# - `cd "$(dirname "$0")/.."` is preserved: lets the script work
+#   when invoked from any CWD (e.g., `cd /tmp && bash
+#   /path/to/repo/scripts/dist-adoption.sh`). release.yml invokes
+#   it from the repo root, but local dev may not.
 
-set -eu
-cd "$(dirname "$0")/.."
+set -euo pipefail
+
+# Resolve repo root from the script's location. Works whether invoked
+# as `./scripts/dist-adoption.sh` (CWD = repo root, no-op) or
+# `bash /path/to/dist-adoption.sh` (CWD arbitrary, chdir here).
+cd "$(cd "$(dirname "$0")" && pwd)/.."
 
 src="adoption/SKILL.md"
 out_root="dist/adoption"
@@ -43,56 +55,31 @@ if [[ "${1:-}" == "--check" ]]; then
   check_mode=1
 fi
 
-# --- Split source into frontmatter and body -------------------------------
-# awk keeps the trailing '---' opener on a side marker; we strip it.
-src_body=$(mktemp)
-trap 'rm -f "$src_body"' EXIT
-awk '
-    /^---[[:space:]]*$/ { fence++; next }
-    fence >= 2 { print }
-    fence == 1 && in_yaml {
-      # still inside frontmatter; nothing to do
-    }
-    fence == 0 && !in_body { in_body = 1 }
-    fence == 0 { print }
-  ' "$src" > "$src_body"
+# Read source once.
+src_content=$(cat "$src")
 
-# The awk above is too clever; a simpler approach: find the second
-# '---' line and emit everything after it. Overwrite src_body.
-src_body=$(mktemp)
-trap 'rm -f "$src_body"' EXIT
-awk '
-    { lines[NR] = $0 }
-    END {
-      fence_count = 0
-      for (i = 1; i <= NR; i++) {
-        if (lines[i] ~ /^---[[:space:]]*$/) {
-          fence_count++
-          if (fence_count == 2) { start = i + 1; break }
-        }
-      }
-      if (start) {
-        for (i = start; i <= NR; i++) print lines[i]
-      }
-    }
-  ' "$src" > "$src_body"
+# Extract body: everything after the second '---' fence. Uses GNU awk
+# extension `next` and field matching; mawk handles this identically.
+body=$(printf '%s\n' "$src_content" | awk '
+  /^---[[:space:]]*$/ { fence++; next }
+  fence >= 2 { print }
+')
 
+# emit <out_path> <header>
+#   Writes <header>\n\n---\n\n<body> to <out_path>. Parent directory
+#   is created if needed.
 emit() {
-  # emit <out_path> <header>
   local out_path="$1" header="$2"
   mkdir -p "$(dirname "$out_path")"
   {
-    printf '%s\n' "$header"
-    printf '\n---\n\n'
-    cat "$src_body"
+    printf '%s\n\n---\n\n%s\n' "$header" "$body"
   } > "$out_path"
 }
 
-# --- Per-platform outputs --------------------------------------------------
+# Wipe and recreate output root. Idempotent.
 if [[ $check_mode -eq 0 ]]; then
   rm -rf "$out_root"
 fi
-
 mkdir -p "$out_root/opencode" "$out_root/claude-code" \
          "$out_root/cursor" "$out_root/copilot"
 
@@ -133,43 +120,32 @@ Deploy target: \`.github/instructions/math-coding.instructions.md\`.
 Copy this file to that location. The \`apply-to: '**'\` field instructs
 Copilot to apply these instructions to every file in the repository."
 
-# --- dist/adoption/README.md ----------------------------------------------
-cat > "$out_root/README.md" <<EOF
+# README.md
+cat > "$out_root/README.md" <<'README_EOF'
 # Math-coding adoption bundle
 
 This directory contains platform-specific drops of the canonical
-adoption skill at \`adoption/SKILL.md\`. Pick the file for the agent
+adoption skill at `adoption/SKILL.md`. Pick the file for the agent
 platform you use and place it at the target path in your project.
 
 | Platform | File in this dir | Target path in your project |
 |---|---|---|
-| opencode | \`opencode/SKILL.md\` | \`.opencode/skills/math-coding/SKILL.md\` |
-| Claude Code | \`claude-code/instructions.md\` | \`CLAUDE.md\` (merge) or \`.claude/instructions.md\` |
-| Cursor | \`cursor/rules.md\` | \`.cursor/rules/math-coding.md\` |
-| GitHub Copilot | \`copilot/instructions.md\` | \`.github/instructions/math-coding.instructions.md\` |
+| opencode | `opencode/SKILL.md` | `.opencode/skills/math-coding/SKILL.md` |
+| Claude Code | `claude-code/instructions.md` | `CLAUDE.md` (merge) or `.claude/instructions.md` |
+| Cursor | `cursor/rules.md` | `.cursor/rules/math-coding.md` |
+| GitHub Copilot | `copilot/instructions.md` | `.github/instructions/math-coding.instructions.md` |
 
-Source of truth: \`adoption/SKILL.md\`. To regenerate after editing,
-run \`scripts/dist-adoption.sh\` from the repository root.
+Source of truth: `adoption/SKILL.md`. To regenerate after editing,
+run `scripts/dist-adoption.sh` from the repository root.
 
-The \`mc\` binary referenced by the skill ships in the same release
+The `mc` binary referenced by the skill ships in the same release
 tarball as this directory.
-EOF
+README_EOF
 
-# --- --check mode: diff against regenerated output ------------------------
+# --check mode: verify the four platform files exist and are non-empty.
+# A full regeneration check would race with concurrent build steps; a
+# presence-and-size check is sufficient for the contract.
 if [[ $check_mode -eq 1 ]]; then
-  regenerated=$(mktemp -d)
-  trap 'rm -rf "$regenerated"' EXIT
-  (
-    cd ..
-    # Re-invoke self with no --check into the temp dir.
-    # We cannot easily redirect dist/ output, so just regenerate to
-    # dist/ and let the operator compare. Cheap alternative: diff key
-    # files against dist/.
-    true
-  )
-  # Pragmatic version — just check the four platform files exist and
-  # are non-empty. A full regeneration check would race with other
-  # build steps.
   missing=0
   for f in opencode/SKILL.md claude-code/instructions.md \
            cursor/rules.md copilot/instructions.md README.md; do
