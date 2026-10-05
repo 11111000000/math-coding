@@ -193,6 +193,17 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
+      # CI runs #86-#94 all failed at "Generate adoption bundle"
+      # with exit 127 (command not found). The publish job did
+      # not check out the source, so ./scripts/dist-adoption.sh
+      # did not exist in the workspace. This checkout is required
+      # for the dist-adoption.sh invocation. Pre-existing bug
+      # dating back to at least 4ef31f7 (release #80); release.yml
+      # was refactored when the dist-adoption.sh script was added
+      # (commit fd4ecca) but the checkout was missed.
+      - name: Checkout (for dist-adoption.sh)
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
