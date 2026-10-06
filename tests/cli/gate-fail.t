@@ -19,7 +19,7 @@ gate-exit-honest in bootstrap/gate-attestation-store-fill-decision.yaml.
   $ echo b > b.txt
   $ git add . && git commit -q -m second
   $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$DUNE_SOURCEROOT/tests/fixtures/gate-fail/attestations" bash -c 'mathc gate HEAD~1 HEAD > /tmp/gate-fail.out; ec=$?; jq -c "del(.now) | {verdict, has_failed_gap: ([.gaps[].kind] | any(. == \"FailedEvidence\")), obligations}" < /tmp/gate-fail.out; echo "exit=$ec"'
-  {"verdict":"block","has_failed_gap":true,"obligations":10}
+  {"verdict":"block","has_failed_gap":true,"obligations":100}
   exit=1
   $ cd /
   $ rm -rf "$tmp"

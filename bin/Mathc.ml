@@ -118,16 +118,13 @@ let[@warning "-32"] collect_ambiguous_acceptance_diagnostics v =
    validate_with_counts to surface the FIRST missing field instead
    of a generic "missing or invalid required field". *)
 let decision_required_fields =
-  [ "schema"; "id"; "intent"; "commitment"
-  ; "scope"; "outcomes"; "obligations" ]
+  [ "schema"; "id"; "intent"; "commitment"; "scope"; "outcomes"; "obligations" ]
 
 let first_missing_required v =
   match v with
   | Jsonl.Object ps ->
       let keys = List.map fst ps in
-      List.find_opt
-        (fun f -> not (List.mem f keys))
-        decision_required_fields
+      List.find_opt (fun f -> not (List.mem f keys)) decision_required_fields
   | _ -> None
 
 let validate_with_counts path =
@@ -143,13 +140,11 @@ let validate_with_counts path =
   | Ok v -> (
       match first_missing_required v with
       | Some field ->
-          let msg =
-            Printf.sprintf "missing required field: %s" field
-          in
+          let msg = Printf.sprintf "missing required field: %s" field in
           `Reject
             ( Diagnostic.create ~code:"MC-DECISION-INVALID"
                 ~severity:Diagnostic.Warn ~retryable:false ~autofix_safe:false
-                ~path:[field] msg,
+                ~path:[ field ] msg,
               msg )
       | None -> (
           try
@@ -161,8 +156,8 @@ let validate_with_counts path =
                 let msg = "missing or invalid required field" in
                 `Reject
                   ( Diagnostic.create ~code:"MC-DECISION-INVALID"
-                      ~severity:Diagnostic.Warn ~retryable:false ~autofix_safe:false
-                      msg,
+                      ~severity:Diagnostic.Warn ~retryable:false
+                      ~autofix_safe:false msg,
                     msg )
           with Jsonl.Parse_error (m, p) ->
             let msg = Printf.sprintf "%s at byte %d" m p in

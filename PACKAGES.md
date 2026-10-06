@@ -86,6 +86,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/time-honesty-storage.yaml` | `time-honesty-storage` | 2 | 4 | RESOLVED | time storage writers |
 | `decisions/yaml-block-scalars.yaml` | `yaml-block-scalars` | 5 | 2 | RESOLVED | audit D1/D2 (closed in `79d138b`, v3.0.0.19) |
 | `decisions/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 3 | 1 | RESOLVED | records D1/D2 deferral, superseded by yaml-block-scalars@4 |
+| `decisions/validator-actionable-error.yaml` | `validator-actionable-error` | 1 | 3 | RESOLVED | D8 actionable validator error: missing-field name in diagnostic |
 | `decisions/process-principles.yaml` | `process-principles` | 3 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
 | `decisions/D6-bootstrap-v3-verifiers-implemented.yaml` | `D6-bootstrap-v3-verifiers-implemented` | 2 | 1 | RESOLVED | closes D6 (manual-only verifiers) per AUDIT-0.0.20 |
 | `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 3 | 7 | RETIRED | attempted algebra-3.2 §30 closure via Alpine container build; CI runs #81/#83/#84/#85 broke on opam setup; reversal signal `alpine-ci-build-fails` fired per the decision file. Re-enable when Alpine image debugged. |
@@ -143,6 +144,7 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `version.t` | mathc prints bootstrap hello on `version` | `decisions/cli-cram-tests.yaml` |
 | `validate-positive.t` | valid decision accepted | `decisions/validate-and-context.yaml` |
 | `validate-negative.t` | invalid decision rejected | `decisions/validate-and-context.yaml` |
+| `validate-error-actionable.t` | validator names the missing required field | `decisions/validator-actionable-error.yaml` |
 | `ambiguous-acceptance.t` | MC-AMBIGUOUS-ACCEPTANCE diagnostic | `decisions/parse-acceptance-diagnostics.yaml` |
 | `malformed-acceptance.t` | MC-MALFORMED-ACCEPTANCE diagnostic | `decisions/parse-acceptance-diagnostics.yaml` |
 | `context-budget.t` | context capsule JSON shape | `decisions/validate-and-context.yaml` |

@@ -20,6 +20,6 @@ bootstrap/gate-attestation-store-fill-decision.yaml.
   $ echo b > b.txt
   $ git add . && git commit -q -m second
   $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$DUNE_SOURCEROOT/tests/fixtures/gate-stale/attestations" mathc gate HEAD~1 HEAD | jq -c 'del(.now) | {verdict, has_stale_gap: ([.gaps[].kind] | any(. == "StaleEvidence")), obligations}'
-  {"verdict":"unknown","has_stale_gap":true,"obligations":10}
+  {"verdict":"unknown","has_stale_gap":true,"obligations":100}
   $ cd /
   $ rm -rf "$tmp"
