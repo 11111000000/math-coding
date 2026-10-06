@@ -70,6 +70,7 @@ without a `decisions/*.yaml` decision under the active policy.
 - OCaml types to replace `lib/domain.ml` strings (`id` phantom types)
 - Decision validation against schema (currently parser-only)
 - Multi-policy hierarchy (activation boundary per `spec/semantics.md` §"Protected Policy Transition")
+- **D5: body-vs-wrapper canonicalization in `spec/algebra-3.2.md` §7** (2026-10-05 audit). Phase 4b uses the trivial YAML-only case (both fields = file digest); dual-authored decisions need a formal definition. A3-protected transition when picked up.
 
 ### Tier 3.5 — math-coding 3.2-ideal implementation
 

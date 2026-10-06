@@ -28,12 +28,5 @@ reason: |
     - the gap list (MissingEvidence) is preserved in the gate
       output; the verdict is Open_with_waiver
     - the underlying assurance result is unchanged
-unverified_obligation: |
-  release-yml-alpine-job-present
-  musl-binary-runs-version
-  ci-evidence-recorded
-  glibc-binary-still-works
-compensating_controls:
-  - "re-evaluate when release.yml musl matrix is re-enabled"
-  - "expire_at: 2027-04-06; after this date, unknown returns"
-  - "Tier-3.5+ portable-binary-build work tracked in ROADMAP.md"
+unverified_obligation: [release-yml-alpine-job-present, musl-binary-runs-version, ci-evidence-recorded, glibc-binary-still-works]
+compensating_controls: [re-evaluate when release.yml musl matrix is re-enabled, expire_at: 2027-04-06; after this date, unknown returns]

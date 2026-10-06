@@ -1,0 +1,39 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10
+policy_id: bootstrap-v3
+rule: obligation-missing-attestation
+subject: audit-0.0.21-fixes
+issuer: human:maintainer
+issued_at: 2026-10-06T00:00:00Z
+expires_at: 2027-04-06T00:00:00Z
+reason: |
+  The 1 obligation of decisions/audit-0.0.21-fixes.yaml below
+  (self-check-verdict-is-pass) is structurally circular at HEAD:
+  the obligation requires `mathc self-check` to emit `verdict:pass`
+  on a clean tree, which is unattainable whenever any subject
+  contributes to `unknown`. With this waiver file in place,
+  `portable-linux-musl` no longer contributes to `unknown` (Phase
+  3 wired lib/waiver.ml into the gate, so the waiver lifts
+  MissingEvidence to Open_with_waiver = `pass`). What remains
+  unknown on the next clean tree is the presence of this very
+  obligation (audit-0.0.21-fixes), making the criterion
+  circular by definition.
+
+  Closure path: this waiver expires 2027-04-06. If the criterion
+  is still circular at that time, the obligation should be
+  rewritten (e.g. relax to "verdict is unknown iff unknown_count
+  is non-zero and not covered by waivers") or removed entirely.
+  See decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml
+  for the original audit context.
+
+  Boundaries (constitution.md §Waivers, spec/semantics.md §Waiver):
+    - effective_at 2026-10-06 .. 2027-04-06 (UTC, inclusive)
+    - subject is the single decision `audit-0.0.21-fixes`
+    - the waiver does NOT modify decisions/audit-0.0.21-fixes.yaml
+    - the gap list (Unknown on the inconclusive attestation) is
+      preserved in the gate output
+    - the underlying assurance result is unchanged
+unverified_obligation: [self-check-verdict-is-pass]
+compensating_controls: [re-evaluate on or before 2027-04-06; rewrite or remove the criterion if still circular, expire_at: 2027-04-06]
