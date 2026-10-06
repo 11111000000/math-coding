@@ -426,9 +426,37 @@ let[@warning "-32"] parse_yaml_scalar s =
         in
         loop 0
       in
+      (* A YAML scalar like `0.85` must be parsed as Jsonl.Float,
+         not as Jsonl.String. Without this, fields typed as float
+         in the domain (e.g. `Domain.assumption.confidence`) are
+         silently lost — see tests/confidence_preserve.ml. *)
+      let is_float s =
+        let len = String.length s in
+        let count_dots =
+          let n = ref 0 in
+          for i = 0 to len - 1 do
+            if String.unsafe_get s i = '.' then incr n
+          done;
+          !n
+        in
+        let all_digits_or_dot =
+          let rec loop i =
+            if i >= len then true
+            else
+              let c = String.unsafe_get s i in
+              ((c >= '0' && c <= '9') || c = '.') && loop (i + 1)
+          in
+          loop 0
+        in
+        len > 0 && count_dots = 1 && all_digits_or_dot
+      in
       if is_int s then
         match int_of_string_opt s with
         | Some i -> Jsonl.Int i
+        | None -> Jsonl.String s
+      else if is_float s then
+        match float_of_string_opt s with
+        | Some f -> Jsonl.Float f
         | None -> Jsonl.String s
       else if
         String.length s >= 2
@@ -691,10 +719,20 @@ let[@warning "-32"] load_yaml_string raw =
      decisions/*.yaml files start with `---`; without stripping,
      the first token would be `---` and parse_yaml_pairs would
      reject it (no `:`), so the loader returns an empty object.
-     This closes audit deficit D2 (see doc/AUDIT-0.0.11.md). *)
+     This closes audit deficit D2 (see doc/AUDIT-0.0.11.md).
+
+     Skip any leading blank lines first: an OCaml raw string
+     `{|...|}` keeps any leading newline, so the first line is
+     empty and the front-matter match fails. *)
   let strip_frontmatter s =
     let lines = yaml_lines s in
-    match lines with
+    let rec skip_empty acc = function
+      | [] -> List.rev acc
+      | "" :: rest -> skip_empty acc rest
+      | l :: rest -> List.rev acc @ (l :: rest)
+    in
+    let lines_no_blanks = skip_empty [] lines in
+    match lines_no_blanks with
     | "---" :: rest ->
         let rec skip_body acc = function
           | [] -> List.rev acc
@@ -702,7 +740,7 @@ let[@warning "-32"] load_yaml_string raw =
           | l :: rest -> skip_body (l :: acc) rest
         in
         skip_body [] rest
-    | _ -> lines
+    | _ -> lines_no_blanks
   in
   let tokens = yaml_tokens (String.concat "\n" (strip_frontmatter raw)) in
   let pairs, _ = parse_yaml_pairs tokens 0 in

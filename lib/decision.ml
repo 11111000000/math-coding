@@ -199,12 +199,16 @@ let rec parse_assumption v =
                             | _ -> []
                           in
                           let evidence = Schema.take_string ps "evidence" in
-                          (* confidence is typed as float option;
-                             the JSON parser only exposes Int,
-                             so leave None for now. A future parser
-                             update (Phase 2D) can wire up Float
-                             reading when the Jsonl module gains it. *)
-                          let confidence = None in
+                          (* confidence is a float in [0.0, 1.0] per
+                             spec/algebra-3.2.md §7. Jsonl now parses
+                             Float values (lib/jsonl.ml); preserve the
+                             authored value rather than dropping it. *)
+                          let confidence =
+                            match List.assoc_opt "confidence" ps with
+                            | Some (Jsonl.Float f) -> Some f
+                            | Some (Jsonl.Int i) -> Some (float_of_int i)
+                            | _ -> None
+                          in
                           Some
                             {
                               Domain.id;

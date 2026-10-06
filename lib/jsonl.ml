@@ -6,6 +6,7 @@ type value =
   | Null
   | Bool of bool
   | Int of int
+  | Float of float
   | String of string
   | Array of value list
   | Object of (string * value) list
@@ -181,7 +182,18 @@ and parse_number s i : value * int =
     end
   end;
   let n = int_of_string_opt (String.sub s i (!j - i)) in
-  match n with Some k -> (Int k, !j) | None -> parse_error "bad number" i
+  match n with
+  | Some k -> (Int k, !j)
+  | None -> (
+      (* If the literal contains '.' or 'e'/'E', it must be a
+         float, not an int. Use float_of_string_opt to parse.
+         Without this, fields like `confidence: 0.95` would
+         raise "bad number" — see decision.ml:202 for the
+         original drop-on-Float TODO that this closes. *)
+      let f = float_of_string_opt (String.sub s i (!j - i)) in
+      match f with
+      | Some x -> (Float x, !j)
+      | None -> parse_error "bad number" i)
 
 let parse s =
   let v, j = parse_value s 0 in
@@ -194,6 +206,11 @@ let rec stringify = function
   | Bool true -> "true"
   | Bool false -> "false"
   | Int k -> string_of_int k
+  | Float x ->
+      (* Print with full precision so round-tripping the same
+         value through `parse` is stable. %.17g is enough for
+         IEEE 754 double precision; it round-trips. *)
+      Printf.sprintf "%.17g" x
   | String s -> Canonical.canonicalize_string s
   | Array arr -> "[" ^ String.concat "," (List.map stringify arr) ^ "]"
   | Object pairs ->

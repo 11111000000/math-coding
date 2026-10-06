@@ -10,5 +10,8 @@
   ci_blocking_list_test
   decision_parser_yaml
   counters_drift
-  waiver_test)
+  waiver_test
+  confidence_preserve
+  fixture_coverage
+  identity_uniqueness)
  (libraries mathcoding_core mathcoding_attestations alcotest))
