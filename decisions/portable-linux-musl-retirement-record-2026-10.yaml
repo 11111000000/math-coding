@@ -1,0 +1,80 @@
+---
+schema: math-coding/3.0-alpha
+id: portable-linux-musl-retirement-record-2026-10
+revision: 1
+state: active
+body_sha: "sha256:f0ba7dacc22de35a00df652c90300547ae78b0a2f229c7ab6ac0c319453fe3ba"
+yaml_sha: "sha256:f0ba7dacc22de35a00df652c90300547ae78b0a2f229c7ab6ac0c319453fe3ba"
+intent: |
+  Record the retirement accounting of decisions/portable-linux-musl.yaml
+  following the 2026-10-05 audit:
+  - 3 of 7 obligations (no-fork-in-kernel, docs-name-install,
+    schema-unchanged) are attestable on HEAD and have been attested.
+  - 4 of 7 obligations (release-yml-alpine-job-present,
+    musl-binary-runs-version, ci-evidence-recorded,
+    glibc-binary-still-works) are structurally unreachable at HEAD:
+    the musl matrix entries in .github/workflows/release.yml:35 are
+    commented out per the alpine-ci-build-fails reversal signal.
+  - Solution path is Tier-3.5 portable-binary-build (algebra-3.2 §30),
+    not in the scope of this branch.
+
+  This decision does NOT waive any obligation. It records an
+  accounting so future readers know which obligations are structurally
+  held by the reversal signal and which were attestable and are now
+  attested.
+commitment: |
+  The retirement accounting is recorded with full provenance: this
+  decision file exists at HEAD, the three attestable obligations
+  (no-fork-in-kernel, docs-name-install, schema-unchanged) are attested
+  on HEAD, and the four structurally-unreachable obligations
+  (release-yml-alpine-job-present, musl-binary-runs-version,
+  ci-evidence-recorded, glibc-binary-still-works) are named with the
+  reversal signal that holds them. No audit-state mutation; this is a
+  documentation-only decision and `decisions/portable-linux-musl.yaml`
+  remains at rev=3 / state=retired.
+scope:
+  capabilities: []
+  paths:
+    - "decisions/portable-linux-musl.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+outcomes:
+  - id: retirement-accounted
+    statement: |
+      3/7 obligations attested, 4/7 structurally held by reversal
+      signal, solution path = Tier-3.5 portable build.
+counterexample: |
+  "Why not waive all 7 obligations in a single waiver file?"
+  Answer: this decision is not a waiver. The 4 structurally-unreachable
+  obligations remain nominally open; they will be closed by a future
+  waiver-aggregation decision when lib/waiver.ml is implemented.
+obligations:
+  - id: accounting-record-present
+    outcome: retirement-accounted
+    claim: |
+      This file exists at HEAD and names the 3 attested and 4 unreachable
+      obligations of decisions/portable-linux-musl.yaml.
+    acceptance:
+      all:
+        - verifier: rg -l 'no-fork-in-kernel|docs-name-install|schema-unchanged' decisions/portable-linux-musl-retirement-record-2026-10.yaml
+          result: pass
+reversal:
+  - signal: portable-binary-build-shipped
+    condition: |
+      A future decision ships a portable musl build (algebra-3.2 §30);
+      portable-linux-musl is then either superseded (re-activated) or
+      this record is folded into the new decision.
+    action: rework
+risk:
+  declared_triggers:
+    - portable-binary-build-shipped
+  owner: human:maintainer
+relations:
+  addresses:
+    - portable-linux-musl@3
+  supersedes: []
+  superseded_by: []

@@ -99,6 +99,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/algebra-3.2-notation-flag-2026-10.yaml` | `algebra-3.2-notation-flag-2026-10` | 2 | 2 | RESOLVED | flags ambiguous `⌈risk(c)⌉` notation in algebra §2 (2026-10-05 audit F9) |
 | `decisions/schema-empty-sha-2026-10.yaml` | `schema-empty-sha-2026-10` | 3 | 2 | RETIRED | schema relaxation for empty-string `body_sha`/`yaml_sha` stubs; not counted as active decision |
 | `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml` | `audit-0.0.21-fixes-self-check-waiver-2026-10` | 2 | 3 | META | waiver record for the structural deficit on `self-check-verdict-is-pass`; not counted as active decision |
+| `decisions/portable-linux-musl-retirement-record-2026-10.yaml` | `portable-linux-musl-retirement-record-2026-10` | 1 | 1 | META | records 3/7 obligations attested + 4/7 structurally held by reversal signal; not a waiver, not counted as active decision |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision
