@@ -43,6 +43,13 @@
       ]
     },
     "commitment": {"type": "string", "minLength": 1},
+    "counterexample": {
+      "description": "Strongest objection to the decision, named after the dialectical slot. Per spec/algebra-3.2.md §11, counterexample is required for modes >= light; the kernel emits a Warn diagnostic when absent in standard/strict/exhaustive modes. The author who omits it gets one surfaced next-step, not a reject. 29/40 existing decisions carry this field; the other 11 are pre-v0.854 legacy and remain accepted. Both forms: YAML (string) and JSON (array of strings).",
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+      ]
+    },
     "scope": {
       "description": "Decision scope. Two forms: (a) YAML form — object with `paths` (globs), `capabilities` (string list), `exclusions` (globs); (b) JSON form — array of scope_target objects. The YAML form is the canonical source-of-truth; the JSON form is the explicit form for tooling that needs every entry as a self-describing record.",
       "oneOf": [

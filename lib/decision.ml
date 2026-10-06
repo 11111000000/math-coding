@@ -553,20 +553,33 @@ and parse_decision v =
                                   in
                                   match Schema.take_string rps "owner" with
                                   | Some owner ->
+                                      (* counterexample: two forms.
+                                         YAML form: scalar string.
+                                         JSON form: array of strings
+                                         (one entry per dialectical
+                                         objection). Accept both, since
+                                         schemas/decision.json oneOf
+                                         allows either. *)
                                       let counterexample =
                                         match
-                                          Schema.take_array ps "counterexample"
+                                          Schema.take_string ps "counterexample"
                                         with
-                                        | Some xs ->
-                                            List.filter_map
-                                              (fun x ->
-                                                match x with
-                                                | Jsonl.String s -> Some s
-                                                | _ -> None)
-                                              xs
-                                            |> String.concat "\n"
-                                            |> fun s -> Some s
-                                        | _ -> None
+                                        | Some s -> Some s
+                                        | None -> (
+                                            match
+                                              Schema.take_array ps
+                                                "counterexample"
+                                            with
+                                            | Some xs ->
+                                                List.filter_map
+                                                  (fun x ->
+                                                    match x with
+                                                    | Jsonl.String s -> Some s
+                                                    | _ -> None)
+                                                  xs
+                                                |> String.concat "\n"
+                                                |> fun s -> Some s
+                                            | _ -> None)
                                       in
                                       let state_str =
                                         match Schema.take_string ps "state" with

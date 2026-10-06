@@ -151,6 +151,39 @@ let validate_with_counts path =
             match Decision.parse_decision_yaml v with
             | Some d ->
                 let extra_diags = collect_ambiguous_acceptance_diagnostics v in
+                (* counterexample is required for modes >= light per
+                   spec/algebra-3.2.md §11; emit a Warn diagnostic when
+                   absent. The verdict remains 'accept' — counterexample
+                   is a dialectical slot, not a hard requirement, so
+                   older decisions without it stay valid. *)
+                let counterexample_diag =
+                  if d.Domain.counterexample = None then
+                    let msg =
+                      Printf.sprintf
+                        "missing counterexample: spec/algebra-3.2.md %s \
+                         requires it for modes >= light; add a counterexample \
+                         section naming the strongest objection"
+                        "§11"
+                    in
+                    Some
+                      (Diagnostic.create ~code:"MC-COUNTEREXAMPLE-MISSING"
+                         ~severity:Diagnostic.Warn ~retryable:false
+                         ~autofix_safe:false
+                         ~next_actions:
+                           [
+                             ( "add",
+                               "counterexample: |\n\
+                               \                                 <one-line \
+                                objection>" );
+                           ]
+                         msg)
+                  else None
+                in
+                let extra_diags =
+                  match counterexample_diag with
+                  | Some diag -> diag :: extra_diags
+                  | None -> extra_diags
+                in
                 `Accept (d, extra_diags)
             | None ->
                 let msg = "missing or invalid required field" in

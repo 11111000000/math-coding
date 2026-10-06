@@ -145,6 +145,7 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `validate-positive.t` | valid decision accepted | `decisions/validate-and-context.yaml` |
 | `validate-negative.t` | invalid decision rejected | `decisions/validate-and-context.yaml` |
 | `validate-error-actionable.t` | validator names the missing required field | `decisions/validator-actionable-error.yaml` |
+| `counterexample-warning.t` | validator warns when counterexample field is missing | `decisions/validator-actionable-error.yaml` |
 | `ambiguous-acceptance.t` | MC-AMBIGUOUS-ACCEPTANCE diagnostic | `decisions/parse-acceptance-diagnostics.yaml` |
 | `malformed-acceptance.t` | MC-MALFORMED-ACCEPTANCE diagnostic | `decisions/parse-acceptance-diagnostics.yaml` |
 | `context-budget.t` | context capsule JSON shape | `decisions/validate-and-context.yaml` |
