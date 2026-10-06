@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: cli-canonical-name
-revision: 2
+revision: 3
 state: active
-body_sha: "sha256:090d7bceb29ae8db09b4923404b113bc3c28b02fe193093a94ca7311f932e25e"
-yaml_sha: "sha256:090d7bceb29ae8db09b4923404b113bc3c28b02fe193093a94ca7311f932e25e"
+body_sha: "sha256:8c9ad12a66d186243bf8f4579face13f3803adeff4faf80891624dde02d72fa9"
+yaml_sha: "sha256:8c9ad12a66d186243bf8f4579face13f3803adeff4faf80891624dde02d72fa9"
 intent: |
   Collapse the project's three CLI referents (the legacy short
   alias `mc`, the public install name `mathc`, and the dune on-disk
@@ -67,8 +67,8 @@ outcomes:
   - id: kernel-prefix-is-mathc
     statement: |
       lib/re_evaluation.ml:103 matches the literal string `mathc-`
-      (not `mathc-`) when classifying a `verifier:` field as BuiltIn.
-      Every `verifier: mathc-*` reference in `decisions/*.yaml` is
+      (not `mc-`) when classifying a `verifier:` field as BuiltIn.
+      Every `verifier: mc-*` reference in `decisions/*.yaml` is
       renamed to `verifier: mathc-*`.
   - id: decision-ids-renamed
     statement: |
@@ -141,7 +141,7 @@ obligations:
     outcome: kernel-prefix-is-mathc
     claim: |
       lib/re_evaluation.ml matches the literal string `mathc-`
-      (not `mathc-`) when classifying a `verifier:` field as BuiltIn.
+      (not `mc-`) when classifying a `verifier:` field as BuiltIn.
       Negative conformance: a decision with `verifier: mathc-foo`
       is now rejected (no BuiltIn classification); positive: a
       decision with `verifier: mathc-validate` is accepted as
@@ -199,8 +199,10 @@ obligations:
     outcome: skill-url-correct
     claim: |
       adoption/SKILL.md:55-60 references the published asset
-      `mathc-linux-amd64` (matching release.yml:22) and saves it
-      as `~/.local/bin/mathc`.
+      `mathc-linux-x86_64` (matching release.yml:22) and saves it
+      as `~/.local/bin/mathc`. The download URL is constructed by
+      `${URL}/${asset}` where URL is the GitHub release URL and asset
+      is `mathc-linux-x86_64`.
     acceptance:
       all:
         - verifier: text-scan-skill-url-matches-release-asset

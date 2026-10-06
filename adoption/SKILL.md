@@ -54,7 +54,7 @@ schema. The migration cost is one decision and one CI change.
 # or wait for a future release with musl support.
 MC_VERSION=3.0.0.20
 URL="https://github.com/11111000000/math-coding/releases/download/v${MC_VERSION}"
-wget -qO ~/.local/bin/mathc "${URL}/mathc-linux-amd64"
+wget -qO ~/.local/bin/mathc "${URL}/mathc-linux-x86_64"
 chmod +x ~/.local/bin/mathc
 export PATH="$HOME/.local/bin:$PATH"
 mathc version
