@@ -19,5 +19,6 @@
   re_evaluation
   rebuttal
   render
-  risk)
+  risk
+  waiver)
  (libraries str))

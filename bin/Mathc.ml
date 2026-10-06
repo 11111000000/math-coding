@@ -1985,8 +1985,25 @@ let[@warning "-32"] load_decision_entry reader path =
    computes its gap; aggregates gaps into the decision's subject
    verdict; returns (verdict, causes[], remedies[]). When the
    subject verdict is `pass`, the gap list is empty and the
-   causes/remedies are empty too. *)
-let[@warning "-32"] evaluate_decision ~materials ~store
+   causes/remedies are empty too.
+
+   Waiver consultation (math-coding 3.0, decision
+   waiver-infrastructure-2026-10): if the aggregated verdict is
+   `Unknown` and a waiver covers the subject at `now`, we
+   return `Open_with_waiver` instead. The CLI maps
+   `Open_with_waiver -> "pass"` in the verdict string (existing
+   behaviour at bin/Mathc.ml:1829-1833) but the gap list and
+   the cause/remedy remain in the JSON output — the gap is a
+   gap, the waiver is an acknowledgment, not an elimination
+   (constitution.md §Waivers line 102; spec/semantics.md
+   §Waiver "MUST NOT change the underlying assurance result").
+
+   A FailedEvidence gap is never waived: only MissingEvidence,
+   StaleEvidence, and Unknown gaps can be lifted to
+   Open_with_waiver. This preserves the
+   "decisive fail -> Block" invariant (constitution.md
+   Invariant 14, spec/semantics.md §Evaluation). *)
+let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
     (entry : Memory.decision_entry) =
   let gaps =
     List.filter_map
@@ -1995,7 +2012,26 @@ let[@warning "-32"] evaluate_decision ~materials ~store
           ~obligation_id:obl_id ~materials_digest:materials ~store)
       entry.Memory.obligation_ids
   in
-  let verdict = Gate.aggregate gaps in
+  let aggregate_verdict = Gate.aggregate gaps in
+  let verdict =
+    match aggregate_verdict with
+    | Gate.Unknown ->
+        let all_waivable =
+          List.for_all
+            (fun g ->
+              match g.Gate.kind with
+              | `MissingEvidence | `StaleEvidence | `Unknown -> true
+              | `FailedEvidence | `MissingReview | `NoAttestationStore -> false)
+            gaps
+        in
+        if
+          all_waivable
+          && Option.is_some
+               (Waiver.covers waivers ~decision_id:entry.Memory.decision_id ~now)
+        then Gate.Open_with_waiver
+        else Gate.Unknown
+    | v -> v
+  in
   let causes = List.concat_map (fun g -> g.Gate.causes) gaps in
   let remedies = List.concat_map (fun g -> g.Gate.remedies) gaps in
   (verdict, causes, remedies)
@@ -2078,12 +2114,21 @@ let[@warning "-32"] do_self_check () =
   in
   let store_root = resolve_store_root root in
   let store = Attestations.load ~reader ~root:store_root in
+  (* Load waivers from decisions/waivers/. The Waiver module
+     is pure (takes a `reader`); we reuse the same reader the
+     store and decisions use, so waiver loading shares the I/O
+     pattern. The waivers/ subdir may not exist; Waiver.load
+     returns [] in that case (mirrors the empty-store handling
+     in Attestations.load). *)
+  let waivers_dir = Filename.concat decisions_dir "waivers" in
+  let waivers = Waiver.load ~reader ~root:waivers_dir in
   let materials = Gate.materials_digest_of [ "self-check" ] in
+  let now = now_iso () in
   let evaluated =
     List.map
       (fun entry ->
         let verdict, causes, remedies =
-          evaluate_decision ~materials ~store entry
+          evaluate_decision ~materials ~store ~waivers ~now entry
         in
         (entry.Memory.decision_id, verdict, causes, remedies))
       entries

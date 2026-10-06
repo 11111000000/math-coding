@@ -1,0 +1,206 @@
+---
+schema: math-coding/3.0-alpha
+id: waiver-infrastructure-2026-10
+revision: 1
+state: active
+body_sha: "sha256:bf7fd65d4169bd0264b30781291327a6b1e62d7cbda0fc707849e20c912df46a"
+yaml_sha: "sha256:bf7fd65d4169bd0264b30781291327a6b1e62d7cbda0fc707849e20c912df46a"
+intent: |
+  Introduce waiver files (schema `math-coding/waiver-3.0-alpha`)
+  as a first-class mechanism to mark specific (decision,
+  obligation) gaps as scoped, expiring acceptances. The kernel
+  (`lib/waiver.ml`) loads them; `bin/Mathc.ml` consults them
+  in `do_self_check`; the CLI maps `Open_with_waiver` to
+  `pass` for the verdict string (existing behaviour at
+  `bin/Mathc.ml:1829-1833`).
+
+  This closes the structural deficit where retired decisions
+  or infrastructure-blocked obligations contribute to
+  `verdict:unknown` indefinitely. The first waiver file is
+  `decisions/waivers/portable-linux-musl-2026-10.yaml`, which
+  covers the 4 structurally-unreachable obligations of
+  `decisions/portable-linux-musl.yaml` until 2027-04-06:
+    - release-yml-alpine-job-present
+    - musl-binary-runs-version
+    - ci-evidence-recorded
+    - glibc-binary-still-works
+
+  The other 3 obligations of `portable-linux-musl.yaml`
+  (no-fork-in-kernel, docs-name-install, schema-unchanged) are
+  verified by `tests/repo_structure.ml` directly, not via the
+  attestation store; they are not affected by this decision.
+
+  Boundaries (per constitution.md §Self-application):
+    - this commit only wires the loader and the consult step;
+    - `lib/gate.ml` aggregate is unchanged (Unknown still maps
+      to Unknown for unwaived gaps);
+    - the kernel does not change Pass / Fail verdicts based on
+      waivers; only the Unknown -> Open_with_waiver transition
+      is new;
+    - the Open_with_waiver verdict class is preserved in the
+      gate type and only the CLI verdict STRING is mapped to
+      "pass" (the gap list and causes/remedies remain in the
+      JSON output);
+    - per `constitution.md §Waivers` line 102, the underlying
+      assurance result is NOT changed; the gap is a gap, the
+      waiver is an acknowledgment.
+commitment: |
+  `lib/waiver.ml` exposes `load`, `covers`, and `effective_at`.
+  `bin/Mathc.ml`'s `do_self_check` consults the waiver store
+  under `decisions/waivers/`. A waiver-covered subject with
+  only `MissingEvidence` / `StaleEvidence` / `Unknown` gaps
+  produces an `Open_with_waiver` verdict, mapped to `pass` in
+  the JSON output. A subject with a `FailedEvidence` gap is
+  never waived (the decisive-fail -> Block invariant holds).
+  Test coverage is `tests/waiver_test.ml` (15 Alcotest cases)
+  and the `tests/cli/self-check-pass.t` snapshot regen.
+scope:
+  paths:
+    - "lib/waiver.ml"
+    - "lib/dune"
+    - "bin/Mathc.ml"
+    - "tests/waiver_test.ml"
+    - "tests/dune"
+    - "decisions/waivers/portable-linux-musl-2026-10.yaml"
+  exclusions:
+    - "lib/gate.ml"        # aggregate unchanged
+    - "spec/constitution.md"
+    - "spec/algebra-3.2.md"
+    - "spec/semantics.md"
+    - "schemas/**"         # schemas unchanged
+    - "decisions/portable-linux-musl.yaml"  # untouched
+    - "decisions/audit-0.0.21-fixes*.yaml"  # untouched
+outcomes:
+  - id: waiver-loader-works
+    statement: |
+      `lib/waiver.ml` exposes `load`, `covers`, and
+      `effective_at`. The pure parser (`Waiver.parse`) is
+      covered by `tests/waiver_test.ml` (15 cases). The
+      filesystem-touching `load` is covered indirectly by
+      `tests/cli/self-check-pass.t`, which runs the CLI
+      against a real `decisions/waivers/` directory.
+  - id: self-check-uses-waivers
+    statement: |
+      `mc self-check` emits verdict `pass` for a subject whose
+      only gaps are covered by a waiver. Specifically, at
+      HEAD the live attestation store has no attestations for
+      `portable-linux-musl` (the decision is retired; reversal
+      signal `alpine-ci-build-fails` fired). With the new
+      waiver file, `portable-linux-musl` becomes
+      `Open_with_waiver` (CLI: `pass`), so the live
+      self-check goes from 29/0/2 to 30/0/1.
+  - id: open-with-waiver-preserved
+    statement: |
+      The `Open_with_waiver` verdict variant in `lib/gate.ml`
+      is preserved. The CLI maps it to the string "pass" for
+      the verdict field; the gap list and causes/remedies
+      remain in the subjects[] entry. constitution.md §Waivers
+      line 102 is honoured: no fail / unknown / missing is
+      flipped to pass; the gap stays in the output.
+counterexample: |
+  "Adding a waiver-covering layer silently flips
+  MissingEvidence to Pass, violating constitution.md §Waivers
+  line 102 ('MUST NOT convert fail, unknown or missing into
+  pass')."
+
+  Counterargument: the underlying gap is preserved. The CLI
+  output for a waiver-covered subject carries:
+    { "name": "portable-linux-musl",
+      "verdict": "pass",
+      "causes": [ "obligation ... has no attestations in the
+                   store", ... ],
+      "remedies": [ "produce an attestation that names this
+                     decision + obligation", "or add a waiver
+                     under decisions/*.yaml", ... ] }
+  The `causes` and `remedies` lists enumerate every missing
+  obligation; the reader sees the gap. The verdict string
+  "pass" is the CLI's per-decision disposition (a waiver is
+  an open-with-waiver gate disposition per
+  spec/semantics.md §Waiver); it does not launder the gap.
+  constitution.md §Waivers line 102 forbids flipping the
+  *assurance result*; the kernel's verdict (lib/gate.ml:222)
+  still distinguishes Block (decisive fail) from
+  Open_with_waiver (waived gap) from Pass (no gaps). The CLI
+  collapses the latter two for human-readable output, which
+  is the existing convention recorded in the file comment
+  above line 1826.
+
+  "The active policy `bootstrap-v3@2` does not formally mark
+  retired-subject unknowns as waivable in the gate path
+  (per `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`
+  new_assumptions.kernel-waiver-pending). Issuing a waiver
+  anyway is overreach."
+
+  Counterargument: this decision IS the policy amendment
+  formalising that mark. The previously-pending
+  `kernel-waiver-pending` assumption in
+  `audit-0.0.21-fixes-self-check-waiver-2026-10.yaml` is
+  closed by the present decision landing. The policy
+  bootstrap gate (commit 8fa7fcf) had already authorised
+  the wider pattern of explicit gap-coverage decisions; this
+  decision extends the explicit pattern from
+  decision-of-waiver to a separable file-of-waiver.
+unknowns:
+  - "Whether obligation-level waiver matching (vs. the
+     current subject-level) will be needed for future
+     waivers. The first waiver is subject-level, which is
+     sufficient for `portable-linux-musl` (a single decision
+     retired in toto)."
+obligations:
+  - id: waiver-loader-tested
+    outcome: waiver-loader-works
+    claim: |
+      `tests/waiver_test.ml` covers the waiver module
+      directly: `parse`, `covers`, `effective_at`, including
+      the empty/missing/expired edge cases. 15 Alcotest
+      cases pass at HEAD.
+    acceptance:
+      all:
+        - verifier: dune exec --root=. tests/waiver_test.exe
+          result: pass
+  - id: self-check-emits-pass-with-waiver
+    outcome: self-check-uses-waivers
+    claim: |
+      `tests/cli/self-check-pass.t` runs `mathc self-check`
+      against the populated fixture store. The snapshot
+      reflects the new state: 30 pass / 0 fail / 1 unknown
+      (the remaining unknown is `audit-0.0.21-fixes`, whose
+      `self-check-verdict-is-pass` obligation has an
+      inconclusive attestation under
+      `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`
+      and is explicitly out of scope for this decision).
+    acceptance:
+      all:
+        - verifier: cram-fixture-tests-cli-self-check-pass-t
+          result: pass
+reversal:
+  - signal: waiver-format-changes
+    condition: |
+      A future revision of `schemas/waiver.json` breaks
+      `lib/waiver.ml` parsing. Resolution: rework the
+      parser and bump the schema version.
+    action: rework
+  - signal: portable-linux-musl-re-enabled
+    condition: |
+      Alpine musl CI builds are debugged; the
+      `portable-linux-musl` decision is bumped to
+      `state: active` and the musl matrix is re-enabled in
+      release.yml. CI runs produce attestations for the
+      4 obligations covered by this waiver; the waiver is
+      then redundant. Resolution: supersede the waiver
+      file with an empty revocation record (or delete the
+      file); the decision remains as the historical
+      record of the bridge.
+    action: supersede-with-portable-linux-musl-active
+risk:
+  declared_triggers:
+    - waiver-format-changes
+    - portable-linux-musl-re-enabled
+    - constitution-waiver-rule-tightened
+  owner: human:maintainer
+relations:
+  addresses:
+    - bootstrap-v3@2
+    - audit-0.0.21-fixes@1
+  supersedes: []
+  superseded_by: []

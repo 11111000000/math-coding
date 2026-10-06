@@ -69,6 +69,10 @@ def main():
         # "active decisions" count (they don't ship kernel changes).
         "schema-empty-sha-2026-10.yaml",
         "audit-0.0.21-fixes-self-check-waiver-2026-10.yaml",
+        # Waiver infrastructure decision (waiver-infrastructure-2026-10):
+        # no kernel surface, only the loader and the consult step. Same
+        # reasoning as the audit-0.0.21-fixes-self-check-waiver above.
+        "waiver-infrastructure-2026-10.yaml",
     }
     for p in yaml_files:
         counters["decisions"]["paths"].append(p.name)

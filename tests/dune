@@ -9,5 +9,6 @@
   yaml_block_scalars
   ci_blocking_list_test
   decision_parser_yaml
-  counters_drift)
+  counters_drift
+  waiver_test)
  (libraries mathcoding_core mathcoding_attestations alcotest))

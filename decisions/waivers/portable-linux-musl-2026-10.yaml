@@ -1,0 +1,39 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: portable-linux-musl-2026-10
+policy_id: bootstrap-v3
+rule: obligation-missing-attestation
+subject: portable-linux-musl
+issuer: human:maintainer
+issued_at: 2026-10-06T00:00:00Z
+expires_at: 2027-04-06T00:00:00Z
+reason: |
+  The 4 obligations of decisions/portable-linux-musl.yaml below
+  are structurally unreachable at HEAD: the musl matrix entries
+  in .github/workflows/release.yml are commented out per the
+  decision's `alpine-ci-build-fails` reversal signal
+  (decisions/portable-linux-musl.yaml:5-13, 271-278). The
+  solution path is algebra-3.2 §30 (portable-binary-build),
+  tracked as Tier-3.5+ #13 in ROADMAP.
+
+  This waiver acknowledges the gap, not the obligation. The
+  obligations remain nominally open and re-evaluate when the
+  musl build is restored.
+
+  Boundaries (constitution.md §Waivers, spec/semantics.md §Waiver):
+    - effective_at 2026-10-06 .. 2027-04-06 (UTC, inclusive)
+    - subject is the single decision `portable-linux-musl`
+    - the waiver does NOT modify decisions/portable-linux-musl.yaml
+    - the gap list (MissingEvidence) is preserved in the gate
+      output; the verdict is Open_with_waiver
+    - the underlying assurance result is unchanged
+unverified_obligation: |
+  release-yml-alpine-job-present
+  musl-binary-runs-version
+  ci-evidence-recorded
+  glibc-binary-still-works
+compensating_controls:
+  - "re-evaluate when release.yml musl matrix is re-enabled"
+  - "expire_at: 2027-04-06; after this date, unknown returns"
+  - "Tier-3.5+ portable-binary-build work tracked in ROADMAP.md"

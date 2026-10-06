@@ -85,6 +85,7 @@ let[@warning "-32"] manual_verifier_prefixes =
     "flake-pin-clean";
     "dune test";
     "dune build";
+    "dune exec";
     "review";
     "mathc-";
     "reference-class";

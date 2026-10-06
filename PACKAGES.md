@@ -6,32 +6,38 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: HEAD `83c3441` + Phase 4b (real sha256 for every
-decision file, schema re-tightened; 2026-10-05).
-Attestation store at `attestations/` contains **124 files** (verified by
+Last verified at: HEAD `6a7c8e4` + Step 3 of the 2026-10 waiver
+infrastructure (lib/waiver.ml lands, first waiver covers
+`portable-linux-musl`; 2026-10-06).
+Attestation store at `attestations/` contains **126 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
-on every check); **`mathc packages` reports 33 active decisions / 127
-obligations (114 pass, 12 missing, 1 unknown; the master policy's 7
+on every check); **`mathc packages` reports 33 active decisions / 129
+obligations (116 pass, 12 missing, 1 unknown; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `scripts/dev-counters.py` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
 `mathc self-check` on a clean tree currently returns verdict `unknown` with
-34 pass / 3 unknown out of 37 subjects. The 3 unknown subjects are:
-- `portable-linux-musl` (its 7 obligations have no attestations because
-  the Alpine CI build never succeeded and the decision is in `state:
-  retired`; reversal signal `alpine-ci-build-fails` fired per
-  `decisions/portable-linux-musl.yaml`)
+36 pass / 2 unknown out of 38 subjects. The 2 remaining unknown subjects are:
 - `audit-0.0.21-fixes` (8 of 9 obligations have attestations; the 9th,
   `self-check-verdict-is-pass`, has an `inconclusive` attestation
   because the criterion cannot be satisfied while any subject
-  contributes to `unknown`. Resolution: kernel waiver infrastructure
-  per `lib/waiver.ml` once it lands; waiver record in
+  contributes to `unknown`. Resolution: a separate waiver file
+  per obligation — out of scope for Step 3; waiver record in
   `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`)
 - `cli-canonical-name` (introduced by `83c3441`; 4 of its obligations
-  have no attestations in the store. Not in Phase 4b scope — recorded
+  have no attestations in the store. Not in scope — recorded
   here as an open deficit rather than closed by a fabricated
   attestation.)
+
+`portable-linux-musl` was previously unknown (its 7 obligations have
+no attestations because the Alpine CI build never succeeded and the
+decision is in `state: retired`; reversal signal
+`alpine-ci-build-fails` fired per `decisions/portable-linux-musl.yaml`).
+Step 3 closes this subject via the new waiver file
+`decisions/waivers/portable-linux-musl-2026-10.yaml`, which maps
+the 4 structurally-unreachable obligations to
+`Open_with_waiver` (CLI verdict: `pass`) until 2027-04-06.
 
 The `mathc self-check` pass-fixture at
 `tests/fixtures/self-check-pass/attestations` is regenerated to match
@@ -100,6 +106,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/schema-empty-sha-2026-10.yaml` | `schema-empty-sha-2026-10` | 3 | 2 | RETIRED | schema relaxation for empty-string `body_sha`/`yaml_sha` stubs; not counted as active decision |
 | `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml` | `audit-0.0.21-fixes-self-check-waiver-2026-10` | 2 | 3 | META | waiver record for the structural deficit on `self-check-verdict-is-pass`; not counted as active decision |
 | `decisions/portable-linux-musl-retirement-record-2026-10.yaml` | `portable-linux-musl-retirement-record-2026-10` | 1 | 1 | META | records 3/7 obligations attested + 4/7 structurally held by reversal signal; not a waiver, not counted as active decision |
+| `decisions/waiver-infrastructure-2026-10.yaml` | `waiver-infrastructure-2026-10` | 1 | 2 | META | introduces `lib/waiver.ml` + the consult step in `bin/Mathc.ml`; first waiver file `decisions/waivers/portable-linux-musl-2026-10.yaml`; not counted as active decision (no kernel surface) |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision
