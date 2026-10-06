@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: adapters
-revision: 2
-
+revision: 3
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:c8c09dffd5856d5155e8f4b51a0b742b5a58c6533d063b10e7fed57c8d84e4ef"
+yaml_sha: "sha256:c8c09dffd5856d5155e8f4b51a0b742b5a58c6533d063b10e7fed57c8d84e4ef"
 intent: |
   Add the first non-CLI adapters to the math-coding 3.0-alpha
   protocol: a JUnit XML importer and a Git changed-files

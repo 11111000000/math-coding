@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: mathc-packages-subcommand
-revision: 2
-
+revision: 3
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:72086b5cfc96e7346a46d8e30d8649f14e3bd70a9addfd0616eb98f91a44a93a"
+yaml_sha: "sha256:72086b5cfc96e7346a46d8e30d8649f14e3bd70a9addfd0616eb98f91a44a93a"
 intent: |
   Add `mathc packages` — a kernel-level subcommand that enumerates
   every package (decision + obligation pair) in the repository,

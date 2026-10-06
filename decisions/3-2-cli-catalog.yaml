@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: 3-2-cli-catalog
-revision: 1
-
+revision: 2
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:f0b7283c0cb70f8152db444e9eed2aea563f4250fc92ad2ce2bf4cce4b1223c7"
+yaml_sha: "sha256:f0b7283c0cb70f8152db444e9eed2aea563f4250fc92ad2ce2bf4cce4b1223c7"
 intent: |
   Resolve the spec-vs-implementation drift on 3.2-ideal
   algebra subcommands. The `bin/Mathc.ml` dispatcher at HEAD

@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: algebra-3.2
-revision: 1
-
+revision: 2
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:eb17fd06264eb174c7cc48aa101ec5127075e460df9b1709dcc3cfa16713198c"
+yaml_sha: "sha256:eb17fd06264eb174c7cc48aa101ec5127075e460df9b1709dcc3cfa16713198c"
 intent: |
   Adopt `spec/algebra-3.2.md` as the authoritative formal specification
   of the math-coding 3.2-ideal kernel, supplementing (not replacing)

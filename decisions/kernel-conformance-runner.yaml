@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: kernel-conformance-runner
-revision: 1
-
+revision: 2
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:a9b1e01e6c199fa42f3741af166d03afed4cb3317b386fd2a90bd9888435186e"
+yaml_sha: "sha256:a9b1e01e6c199fa42f3741af166d03afed4cb3317b386fd2a90bd9888435186e"
 intent: |
   Replace the ad-hoc `tests/conformance.ml.disabled` with a working
   conformance runner that walks fixtures/conformance/, exercises both

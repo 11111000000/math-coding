@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: gate-attestation-store-fill
-revision: 1
-
+revision: 2
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:1ec335a8927d656cce436b87e6d825674060c111ace6ac6c103b833247f3e843"
+yaml_sha: "sha256:1ec335a8927d656cce436b87e6d825674060c111ace6ac6c103b833247f3e843"
 intent: |
   Close ROADMAP Tier-1 #1 (`gate-attestation-store-fill`). The
   v3-alpha-0.0.19 `mathc gate` is a SCAFFOLD: lib/gate.ml:84-87

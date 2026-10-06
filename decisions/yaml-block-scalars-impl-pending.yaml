@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: yaml-block-scalars-impl-pending
-revision: 2
-
+revision: 3
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:1a451ac975bd15c928808afe08cb307202a3fd30c4c46f719e26648d36b05280"
+yaml_sha: "sha256:1a451ac975bd15c928808afe08cb307202a3fd30c4c46f719e26648d36b05280"
 intent: |
   Record that the parent obligation `yaml-block-scalars-supported`
   (from `bootstrap/yaml-block-scalars.yaml@2`, now

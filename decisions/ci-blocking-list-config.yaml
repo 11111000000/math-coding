@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: ci-blocking-list-config
-revision: 1
-
+revision: 2
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:76de3b6dc15ae0e259e213bf86fd3598a3c4455192b4d2df188ebc2397f48f57"
+yaml_sha: "sha256:76de3b6dc15ae0e259e213bf86fd3598a3c4455192b4d2df188ebc2397f48f57"
 intent: |
   Make the math-coding kernel's hardcoded list of blocking
   CIs (currently `["payments-ci"; "orders-ci";

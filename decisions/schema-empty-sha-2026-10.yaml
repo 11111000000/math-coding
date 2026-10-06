@@ -1,33 +1,43 @@
 ---
 schema: math-coding/3.0-alpha
 id: schema-empty-sha-2026-10
-revision: 1
-
-state: active
-body_sha: ""
-yaml_sha: ""
+revision: 3
+state: retired
+body_sha: "sha256:64cace87246c275ed5fd15e48520f9a20c845c6a6aae58b825d469727b79e2e9"
+yaml_sha: "sha256:64cace87246c275ed5fd15e48520f9a20c845c6a6aae58b825d469727b79e2e9"
 intent: |
-  Bring `schemas/decision.json` into alignment with the actual
-  state of `decisions/*.yaml` files.
+  This decision recorded an interim approach (2026-10-05, rev 1-2):
+  bring `schemas/decision.json` into alignment with the actual state
+  of `decisions/*.yaml` by relaxing the `body_sha` and `yaml_sha`
+  patterns to accept the empty-string stub form that the v3.2
+  migration had left in every decision file.
 
-  The audit on 2026-10-05 flagged that all 32 active decision files
-  carry `body_sha: ""` and `yaml_sha: ""` as stubs, while the schema
-  pattern `^sha256:[0-9a-f]{64}$` does not accept empty strings. The
-  kernel currently does not enforce this pattern strictly
-  (`mathc validate` accepts both forms), but the schema declaration
-  remains a latent inconsistency: any future schema-enforcing tool
-  would reject the existing decisions.
+  That approach is retired at rev 3. The 2026-10-05 audit concluded
+  that computing the real digests is more honest than widening the
+  schema to accommodate empty stubs: a relaxed pattern makes the
+  declaration match the data, but it leaves the data itself
+  unevidenced. The user chose the compute-real-digests path
+  explicitly.
 
-  Resolution: relax the pattern to `^(|sha256:[0-9a-f]{64})$`,
-  accepting empty strings or the canonical sha256 form. The empty
-  string denotes a stub (the v3.2 migration left these unfilled);
-  the sha256 form denotes a computed canonical digest.
+  State at rev 3 (this commit):
+    - All 37 decision files that carry the fields now hold a real
+      sha256 in `body_sha` and `yaml_sha`, self-consistent under the
+      rule "replace the embedded hash with `sha256:` + 64 zeros and
+      re-hash; the result must equal the embedded value".
+    - Each of those files is revision-bumped by one, since the
+      revision change is part of the hashed content and must happen
+      before the digest is computed.
+    - `schemas/decision.json` is re-tightened to the strict pattern
+      `^sha256:[0-9a-f]{64}$` for both fields.
+    - The decision is `state: retired`; the `stub-population-completed`
+      reversal signal recorded at rev 1 has fired.
 
-  Out of scope (deferred to a follow-up decision):
-    - Computing real `body_sha` / `yaml_sha` digests for all 32
-      decision files (would require defining the canonicalization
-      algorithm for body vs YAML wrapper in `spec/algebra-3.2.md`
-      §7 or a sibling spec file).
+  Revision history:
+    rev 1 (2026-10-05): initial adoption; relax the pattern to
+      `^(|sha256:[0-9a-f]{64})$`. State: active.
+    rev 2 (2026-10-05): metadata refresh, no body change. State: active.
+    rev 3 (2026-10-05, this commit): reversal signal fired; the real
+      digests are computed and the schema re-tightened. State: retired.
 
 change_kind: editorial
 

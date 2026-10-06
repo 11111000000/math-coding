@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: algebra-3.2-notation-flag-2026-10
-revision: 1
-
+revision: 2
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:14e9f676e13cd1aab320a698d21572ff56bc98eacba859318260e0b957bf4b99"
+yaml_sha: "sha256:14e9f676e13cd1aab320a698d21572ff56bc98eacba859318260e0b957bf4b99"
 intent: |
   Flag a latent ambiguity in `spec/algebra-3.2.md` §2 (Risk function)
   that an automated auditor caught in 2026-10-05 but which the agent

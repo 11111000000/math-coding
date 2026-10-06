@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: gate-decision
-revision: 1
-
+revision: 2
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:8a9d1a69fc01d672f5de10a2888bcba9274a6e17759d1a1d2092f43ea3ae0369"
+yaml_sha: "sha256:8a9d1a69fc01d672f5de10a2888bcba9274a6e17759d1a1d2092f43ea3ae0369"
 intent: |
   Introduce the `mathc gate BASE HEAD` subcommand that evaluates a
   candidate tree against the active policy and produces a gate

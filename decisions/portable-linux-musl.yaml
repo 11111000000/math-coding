@@ -1,8 +1,7 @@
 ---
 schema: math-coding/3.0-alpha
 id: portable-linux-musl
-revision: 2
-
+revision: 3
 # state: retired  (reversal signal 'alpine-ci-build-fails' fired 2026-10-04
 #                  after CI runs #81, #83, #84, #85 all failed at the
 #                  'Init opam (Alpine musl container)' step in
@@ -18,8 +17,8 @@ revision: 2
 #                       (user-authorized promotion to active).
 #   rev 2 (2026-10-04): state: retired, reversal signal fired.
 state: retired
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:0733a3341cc873613a0aadaae1805da36382935bde07375f43293c0c698ec3f4"
+yaml_sha: "sha256:0733a3341cc873613a0aadaae1805da36382935bde07375f43293c0c698ec3f4"
 intent: |
   Adopt a musl-based Linux build pipeline alongside the existing
   glibc-based Ubuntu pipeline, so math-coding's Linux binaries are

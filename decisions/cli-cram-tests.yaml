@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: cli-cram-tests
-revision: 1
-
+revision: 2
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:f8f4f6959e3d0a9431d76e1d2b2b536a1dbd359df60a6ae26d35fb66caf7e9b0"
+yaml_sha: "sha256:f8f4f6959e3d0a9431d76e1d2b2b536a1dbd359df60a6ae26d35fb66caf7e9b0"
 intent: |
   Replace the per-subcommand shell fixtures under tests/fixtures/
   (ambiguous-acceptance.sh, malformed-acceptance.sh,

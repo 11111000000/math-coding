@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: obligation-count-reconcile
-revision: 2
-
+revision: 3
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:e830fa3025523e9f9f5f2a82ee8a8cae5758320c4c5934d85364f693ed3eeda6"
+yaml_sha: "sha256:e830fa3025523e9f9f5f2a82ee8a8cae5758320c4c5934d85364f693ed3eeda6"
 intent: |
   Reconcile the obligation-count drift across four normative
   documents in the read-first set. At HEAD `9a16751`:

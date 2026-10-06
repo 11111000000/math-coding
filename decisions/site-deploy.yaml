@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: site-deploy
-revision: 4
-
+revision: 5
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:aa122e4c95aaed5046318a2fb39efdd6921330d3049727faafc3fbc693d131b9"
+yaml_sha: "sha256:aa122e4c95aaed5046318a2fb39efdd6921330d3049727faafc3fbc693d131b9"
 intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own

@@ -80,14 +80,14 @@
       "$ref": "common.json#/definitions/mode_floor"
     },
     "body_sha": {
-      "description": "sha256 of the Decision body (excluding the YAML wrapper), or empty string when the canonical form has not been computed yet (stubs from the v3.2 migration). See spec/algebra-3.2.md §7.",
+      "description": "sha256 of the decision file content with the body_sha and yaml_sha values temporarily replaced by the placeholder 'sha256:' + 64 zeros. Self-consistency rule: replace the embedded hash with the placeholder (same character count) and re-hash; the result must equal the embedded value. For YAML-only decisions (current state) both fields hold the same digest, which trivially satisfies the dual-authoring equality check in spec/algebra-3.2.md §7. See spec/algebra-3.2.md §7.",
       "type": "string",
-      "pattern": "^(|sha256:[0-9a-f]{64})$"
+      "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "yaml_sha": {
-      "description": "sha256 of the sibling YAML wrapper, or empty string when not computed. See spec/algebra-3.2.md §7.",
+      "description": "sha256 of the decision file content; see body_sha for the self-consistency rule. For a future dual-authored decision (commit body section plus sibling YAML), the two fields may differ in content but algebra §7's equality check still requires the digests to agree. See spec/algebra-3.2.md §7.",
       "type": "string",
-      "pattern": "^(|sha256:[0-9a-f]{64})$"
+      "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "axiom_link": {
       "description": "Axiom IDs (e.g. 'A1', 'A3') this Decision addresses. See spec/algebra-3.2.md §7.",

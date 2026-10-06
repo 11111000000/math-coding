@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: audit-0.0.21-fixes
-revision: 1
-
+revision: 2
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:0970c569cbecae71e38beabc83efd71b61a431120427660e112e0d2f6ef9ba12"
+yaml_sha: "sha256:0970c569cbecae71e38beabc83efd71b61a431120427660e112e0d2f6ef9ba12"
 intent: |
   Authorise and bound a single cycle of fixes that closes the
   13 specific deficits catalogued in `doc/AUDIT-0.0.21.md`

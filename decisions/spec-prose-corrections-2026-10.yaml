@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: spec-prose-corrections-2026-10
-revision: 1
-
+revision: 2
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:29286ae53a87dd31f98a78b4684e24d55e371abf4bdfa7fd6f43cb76d07ea6ef"
+yaml_sha: "sha256:29286ae53a87dd31f98a78b4684e24d55e371abf4bdfa7fd6f43cb76d07ea6ef"
 intent: |
   Apply factual corrections to the spec/ tree that the 2026-10-05
   audit flagged. These are not semantic changes to the algebra or

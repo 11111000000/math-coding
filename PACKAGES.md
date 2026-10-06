@@ -6,18 +6,18 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: HEAD `a87d55d` (post-`mathoding→mathcoding` rename and
-this Phase 1 editorial cleanup, 2026-10-05).
+Last verified at: HEAD `83c3441` + Phase 4b (real sha256 for every
+decision file, schema re-tightened; 2026-10-05).
 Attestation store at `attestations/` contains **124 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
-on every check); **`mathc packages` reports 32 active decisions / 122
-obligations (the count rises as new decisions are added; the master
-policy's 7 obligations are enumerated separately)**. The exact numbers
+on every check); **`mathc packages` reports 33 active decisions / 127
+obligations (114 pass, 12 missing, 1 unknown; the master policy's 7
+obligations are enumerated separately)**. The exact numbers
 are emitted by `scripts/dev-counters.py` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
 `mathc self-check` on a clean tree currently returns verdict `unknown` with
-34 pass / 2 unknown. The 2 unknown subjects are:
+34 pass / 3 unknown out of 37 subjects. The 3 unknown subjects are:
 - `portable-linux-musl` (its 7 obligations have no attestations because
   the Alpine CI build never succeeded and the decision is in `state:
   retired`; reversal signal `alpine-ci-build-fails` fired per
@@ -28,6 +28,10 @@ are emitted by `scripts/dev-counters.py` and enforced against
   contributes to `unknown`. Resolution: kernel waiver infrastructure
   per `lib/waiver.ml` once it lands; waiver record in
   `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`)
+- `cli-canonical-name` (introduced by `83c3441`; 4 of its obligations
+  have no attestations in the store. Not in Phase 4b scope — recorded
+  here as an open deficit rather than closed by a fabricated
+  attestation.)
 
 The `mathc self-check` pass-fixture at
 `tests/fixtures/self-check-pass/attestations` is regenerated to match
@@ -58,43 +62,43 @@ that authorises all other decisions. Its obligations are tracked in
 
 | File | Decision id | Rev | Obl | Status | Closes audit |
 |---|---|---|---|---|---|
-| `decisions/decision.yaml` | `bootstrap-v3` | 2 | 7 | RESOLVED | bootstrap protocol |
-| `decisions/infrastructure-honesty.yaml` | `infrastructure-honesty` | 1 | 4 | RESOLVED | audit D5, D7 |
-| `decisions/kernel-conformance-runner.yaml` | `kernel-conformance-runner` | 1 | 4 | RESOLVED | conformance runner |
-| `decisions/validate-and-context.yaml` | `validate-and-context` | 2 | 6 | RESOLVED | first CLI + context capsule |
-| `decisions/priority-drift.yaml` | `priority-drift` | 2 | 2 | RESOLVED | audit D3 |
-| `decisions/spec-cli-catalog.yaml` | `spec-cli-catalog` | 1 | 2 | RESOLVED | audit D4 |
-| `decisions/adapters.yaml` | `adapters` | 2 | 2 | RESOLVED | audit D7 (git + junit) |
-| `decisions/capsule-active-policy.yaml` | `capsule-active-policy` | 1 | 3 | RESOLVED | capsule priority class |
+| `decisions/decision.yaml` | `bootstrap-v3` | 3 | 7 | RESOLVED | bootstrap protocol |
+| `decisions/infrastructure-honesty.yaml` | `infrastructure-honesty` | 2 | 4 | RESOLVED | audit D5, D7 |
+| `decisions/kernel-conformance-runner.yaml` | `kernel-conformance-runner` | 2 | 4 | RESOLVED | conformance runner |
+| `decisions/validate-and-context.yaml` | `validate-and-context` | 3 | 6 | RESOLVED | first CLI + context capsule |
+| `decisions/priority-drift.yaml` | `priority-drift` | 3 | 2 | RESOLVED | audit D3 |
+| `decisions/spec-cli-catalog.yaml` | `spec-cli-catalog` | 2 | 2 | RESOLVED | audit D4 |
+| `decisions/adapters.yaml` | `adapters` | 3 | 2 | RESOLVED | audit D7 (git + junit) |
+| `decisions/capsule-active-policy.yaml` | `capsule-active-policy` | 2 | 3 | RESOLVED | capsule priority class |
 | `decisions/gate-decision.yaml` | `gate-decision` | 2 | 2 | RESOLVED | mathc gate verdict against populated store |
-| `decisions/gate-attestation-store-fill-decision.yaml` | `gate-attestation-store-fill` | 1 | 4 | RESOLVED | Tier-1 #1 (closed in `ed42290`) |
-| `decisions/attestation-store-fill.yaml` | `attestation-store-fill` | 2 | 2 | RESOLVED | populates `attestations/` (75 files) |
-| `decisions/mathc-explain-subcommand.yaml` | `mathc-explain-subcommand` | 1 | 2 | RESOLVED | Tier-A (closed in `6e922d3`) — broken promise from `omitted[].expansion` resolved |
-| `decisions/mathc-self-check-subcommand.yaml` | `mathc-self-check-subcommand` | 2 | 3 | RESOLVED | Tier-1 #2 (closed in `758f340`) |
-| `decisions/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 1 | 2 | RESOLVED | kernel diagnostics |
-| `decisions/time-honesty.yaml` | `time-honesty` | 1 | 3 | RESOLVED | time-honesty distribution |
-| `decisions/time-honesty-storage.yaml` | `time-honesty-storage` | 1 | 4 | RESOLVED | time storage writers |
-| `decisions/yaml-block-scalars.yaml` | `yaml-block-scalars` | 4 | 2 | RESOLVED | audit D1/D2 (closed in `79d138b`, v3.0.0.19) |
-| `decisions/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 2 | 1 | RESOLVED | records D1/D2 deferral, superseded by yaml-block-scalars@4 |
-| `decisions/process-principles.yaml` | `process-principles` | 2 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
-| `decisions/D6-bootstrap-v3-verifiers-implemented.yaml` | `D6-bootstrap-v3-verifiers-implemented` | 1 | 1 | RESOLVED | closes D6 (manual-only verifiers) per AUDIT-0.0.20 |
-| `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 2 | 7 | DEFERRED | attempted algebra-3.2 §30 closure via Alpine container build; CI runs #81/#83/#84/#85 broke on opam setup; reversal signal `alpine-ci-build-fails` fired per the decision file. Re-enable when Alpine image debugged. |
-| `decisions/agent-onboarding.yaml` | `agent-onboarding` | 1 | 4 | RESOLVED | locks ADR location + first-file convention |
-| `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 1 | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
-| `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 1 | 1 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
-| `decisions/site-deploy.yaml` | `site-deploy` | 4 | 11 | RESOLVED | restores the project's published surface under its own gate |
-| `decisions/cli-rename-mc-to-mathc.yaml` | `cli-rename-mc-to-mathc` | 1 | TBD | RESOLVED | collapses mc/mathc/mathc.exe CLI referents into one |
-| `decisions/3-2-cli-catalog.yaml` | `3-2-cli-catalog` | 1 | 7 | RESOLVED | closes 3.2-cli-catalog drift (mode, rebuttals, re-evaluate subcommands added) |
-| `decisions/algebra-3.2.yaml` | `algebra-3.2` | 1 | 7 | RESOLVED | adopts `spec/algebra-3.2.md` as formal normative spec |
-| `decisions/audit-0.0.21-fixes.yaml` | `audit-0.0.21-fixes` | 1 | 9 | RESOLVED | master decision for the integrity-fixes cycle (Phase 1-5) |
-| `decisions/ci-blocking-list-config.yaml` | `ci-blocking-list-config` | 1 | 2 | RESOLVED | configurable blocking-CI list via MATH_CODING_BLOCKING_CIS |
-| `decisions/process-principles-close-branches.yaml` | `process-principles-close-branches` | 1 | 3 | RESOLVED | close-branches subcommand and pre-commit hook (process-principles@2 P2 detail) |
-| `decisions/mathc-packages-subcommand.yaml` | `mathc-packages-subcommand` | 1 | 3 | RESOLVED | Tier-1 #4 |
-| `decisions/obligation-count-reconcile.yaml` | `obligation-count-reconcile` | 1 | 2 | RESOLVED | aligns PACKAGES.md counts with `obligations.yaml` |
-| `decisions/spec-prose-corrections-2026-10.yaml` | `spec-prose-corrections-2026-10` | 1 | 3 | RESOLVED | factual corrections to spec/algebra-3.2.md and spec/semantics.md (2026-10-05 audit F7, F11) |
-| `decisions/algebra-3.2-notation-flag-2026-10.yaml` | `algebra-3.2-notation-flag-2026-10` | 1 | 2 | RESOLVED | flags ambiguous `⌈risk(c)⌉` notation in algebra §2 (2026-10-05 audit F9) |
-| `decisions/schema-empty-sha-2026-10.yaml` | `schema-empty-sha-2026-10` | 1 | 2 | META | schema relaxation for empty-string `body_sha`/`yaml_sha` stubs; not counted as active decision |
-| `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml` | `audit-0.0.21-fixes-self-check-waiver-2026-10` | 1 | 3 | META | waiver record for the structural deficit on `self-check-verdict-is-pass`; not counted as active decision |
+| `decisions/gate-attestation-store-fill-decision.yaml` | `gate-attestation-store-fill` | 2 | 4 | RESOLVED | Tier-1 #1 (closed in `ed42290`) |
+| `decisions/attestation-store-fill.yaml` | `attestation-store-fill` | 3 | 2 | RESOLVED | populates `attestations/` (75 files) |
+| `decisions/mathc-explain-subcommand.yaml` | `mathc-explain-subcommand` | 3 | 2 | RESOLVED | Tier-A (closed in `6e922d3`) — broken promise from `omitted[].expansion` resolved |
+| `decisions/mathc-self-check-subcommand.yaml` | `mathc-self-check-subcommand` | 4 | 3 | RESOLVED | Tier-1 #2 (closed in `758f340`) |
+| `decisions/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 2 | 2 | RESOLVED | kernel diagnostics |
+| `decisions/time-honesty.yaml` | `time-honesty` | 2 | 3 | RESOLVED | time-honesty distribution |
+| `decisions/time-honesty-storage.yaml` | `time-honesty-storage` | 2 | 4 | RESOLVED | time storage writers |
+| `decisions/yaml-block-scalars.yaml` | `yaml-block-scalars` | 5 | 2 | RESOLVED | audit D1/D2 (closed in `79d138b`, v3.0.0.19) |
+| `decisions/yaml-block-scalars-impl-pending.yaml` | `yaml-block-scalars-impl-pending` | 3 | 1 | RESOLVED | records D1/D2 deferral, superseded by yaml-block-scalars@4 |
+| `decisions/process-principles.yaml` | `process-principles` | 3 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
+| `decisions/D6-bootstrap-v3-verifiers-implemented.yaml` | `D6-bootstrap-v3-verifiers-implemented` | 2 | 1 | RESOLVED | closes D6 (manual-only verifiers) per AUDIT-0.0.20 |
+| `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 3 | 7 | RETIRED | attempted algebra-3.2 §30 closure via Alpine container build; CI runs #81/#83/#84/#85 broke on opam setup; reversal signal `alpine-ci-build-fails` fired per the decision file. Re-enable when Alpine image debugged. |
+| `decisions/agent-onboarding.yaml` | `agent-onboarding` | 2 | 4 | RESOLVED | locks ADR location + first-file convention |
+| `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 2 | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
+| `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 2 | 1 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
+| `decisions/site-deploy.yaml` | `site-deploy` | 5 | 11 | RESOLVED | restores the project's published surface under its own gate |
+| `decisions/cli-canonical-name.yaml` | `cli-canonical-name` | 2 | 5 | RESOLVED | collapses mc/mathc/mathc.exe CLI referents into one |
+| `decisions/3-2-cli-catalog.yaml` | `3-2-cli-catalog` | 2 | 7 | RESOLVED | closes 3.2-cli-catalog drift (mode, rebuttals, re-evaluate subcommands added) |
+| `decisions/algebra-3.2.yaml` | `algebra-3.2` | 2 | 7 | RESOLVED | adopts `spec/algebra-3.2.md` as formal normative spec |
+| `decisions/audit-0.0.21-fixes.yaml` | `audit-0.0.21-fixes` | 2 | 9 | RESOLVED | master decision for the integrity-fixes cycle (Phase 1-5) |
+| `decisions/ci-blocking-list-config.yaml` | `ci-blocking-list-config` | 2 | 2 | RESOLVED | configurable blocking-CI list via MATH_CODING_BLOCKING_CIS |
+| `decisions/process-principles-close-branches.yaml` | `process-principles-close-branches` | 3 | 3 | RESOLVED | close-branches subcommand and pre-commit hook (process-principles@2 P2 detail) |
+| `decisions/mathc-packages-subcommand.yaml` | `mathc-packages-subcommand` | 3 | 3 | RESOLVED | Tier-1 #4 |
+| `decisions/obligation-count-reconcile.yaml` | `obligation-count-reconcile` | 3 | 2 | RESOLVED | aligns PACKAGES.md counts with `obligations.yaml` |
+| `decisions/spec-prose-corrections-2026-10.yaml` | `spec-prose-corrections-2026-10` | 2 | 3 | RESOLVED | factual corrections to spec/algebra-3.2.md and spec/semantics.md (2026-10-05 audit F7, F11) |
+| `decisions/algebra-3.2-notation-flag-2026-10.yaml` | `algebra-3.2-notation-flag-2026-10` | 2 | 2 | RESOLVED | flags ambiguous `⌈risk(c)⌉` notation in algebra §2 (2026-10-05 audit F9) |
+| `decisions/schema-empty-sha-2026-10.yaml` | `schema-empty-sha-2026-10` | 3 | 2 | RETIRED | schema relaxation for empty-string `body_sha`/`yaml_sha` stubs; not counted as active decision |
+| `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml` | `audit-0.0.21-fixes-self-check-waiver-2026-10` | 2 | 3 | META | waiver record for the structural deficit on `self-check-verdict-is-pass`; not counted as active decision |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision
@@ -313,11 +317,14 @@ This file is updated only when **a new decision file** is created or
 when **an existing decision** changes revision. It is NOT updated for
 every code change.
 
-Last updated at: HEAD `feadf41` (Phases 1-5 of 2026-10-05 analysis
+Last updated at: HEAD `83c3441` + Phase 4b (2026-10-05): real sha256
+computed for all 37 decision files carrying body_sha/yaml_sha,
+schema re-tightened to `^sha256:[0-9a-f]{64}$`,
+`schema-empty-sha-2026-10` retired at rev 3, and the
+`cli-rename-mc-to-mathc` row corrected to the real filename
+`cli-canonical-name.yaml`.
+
+Previous: HEAD `50b8cd3` (Phases 1-5 of 2026-10-05 analysis
 applied: mathoding→mathcoding, editorial cleanup, spec prose
 corrections, audit-0.0.21-fixes deficit closure, schema
 relaxation, §27 proof completion, §2 notation flag; 2026-10-05).
-
-Previous: `v3.1.0-alpha` + `feature/portable-musl-build` (sync refresh
-2026-10-04 at HEAD `4ef31f7`; portable-linux-musl activated by user
-authorization — see decision file for the authorization chain).

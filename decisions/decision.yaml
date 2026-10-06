@@ -1,11 +1,10 @@
 ---
 schema: math-coding/3.0-alpha
 id: bootstrap-v3
-revision: 2
-
+revision: 3
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:b4908b437c1866e887b6265062cb24b1522a3aaf3b8326a731af661fffbe9209"
+yaml_sha: "sha256:b4908b437c1866e887b6265062cb24b1522a3aaf3b8326a731af661fffbe9209"
 intent: Replace math-coding 2.1 with a self-applying assurance protocol.
 
 commitment: |
