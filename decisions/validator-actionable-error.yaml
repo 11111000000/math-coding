@@ -1,0 +1,149 @@
+---
+schema: math-coding/3.0-alpha
+id: validator-actionable-error
+revision: 1
+state: active
+body_sha: "sha256:034ed4c3b491f5838413ed5bcd5648188ad3bebcc07aa9436b66ad48aaa087f4"
+yaml_sha: "sha256:034ed4c3b491f5838413ed5bcd5648188ad3bebcc07aa9436b66ad48aaa087f4"
+intent: |
+  Close D8 (actionable validator error): when `mathc validate FILE`
+  rejects a decision because a required top-level field is absent,
+  the diagnostic message MUST name the specific field (schema, id,
+  intent, commitment, scope, outcomes, or obligations) instead of
+  the generic `missing or invalid required field`. The author
+  looking at the rejection must know which field to add without
+  re-reading the schema.
+
+  Also unify the `phase` enum across schemas: `decision.json` and
+  `obligation.json` previously disagreed (hyphen vs underscore).
+  The spec uses underscore; the kernel accepts both for
+  back-compat but the canonical form is underscore.
+
+commitment: |
+  The kernel-side precheck in `bin/Mathc.ml` (function
+  `first_missing_required`) lists top-level fields required by
+  `schemas/decision.json` and emits a `MC-DECISION-INVALID`
+  diagnostic naming the first one that is absent. The message
+  format is `missing required field: <name>`. The validator exit
+  code remains 1; the verdict remains `reject`; the JSON output
+  includes the field name in the `path` array.
+
+  The `parse_phase` function in `lib/codec.ml` accepts both
+  `pre_merge` and `pre-merge` (and `pre_release` / `pre-release`,
+  `post_release` / `post-release`) for back-compat with existing
+  decision files. The default in `lib/decision.ml:410` is
+  `pre_merge`. The schema enum in `schemas/decision.json:184` is
+  updated to underscore to match `schemas/obligation.json:17`.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/codec.ml"
+    - "lib/decision.ml"
+    - "schemas/decision.json"
+    - "tests/cli/validate-error-actionable.t"
+  exclusions:
+    - "lib/capsule.ml"
+    - "lib/gate.ml"
+    - "lib/waiver.ml"
+    - "spec/**"
+    - "axioms/**"
+
+outcomes:
+  - id: validator-names-field
+    statement: |
+      `mathc validate` rejection message names the specific missing
+      top-level field, not a generic `missing or invalid required
+      field`. The JSON output includes the field name in `path`.
+  - id: phase-enum-unified
+    statement: |
+      `schemas/decision.json:184` and `schemas/obligation.json:17`
+      use the same phase enum (`pre_merge` / `pre_release` /
+      `post_release`). `lib/codec.ml:parse_phase` accepts both
+      underscore and hyphen forms.
+  - id: cram-fixture
+    statement: |
+      `tests/cli/validate-error-actionable.t` demonstrates three
+      scenarios: missing `commitment`, missing `outcomes`, missing
+      multiple fields (validator surfaces the first, not all).
+
+counterexample: |
+  "Naming a specific field when many are missing leaks the
+  schema's required-field order to the author, which a hostile
+  reader could exploit to map the kernel's validation
+  surface." Counterargument: the order of required fields is
+  already public via `schemas/decision.json`; the diagnostic
+  does not leak anything that the schema does not already
+  declare. The author's own benefit (one actionable next
+  step) outweighs the non-issue.
+
+assumptions:
+  - id: precheck-supplements-not-replaces
+    state: assumed
+    statement: |
+      The precheck only inspects top-level field presence; it
+      does NOT validate field types, patterns, or nested
+      structures. Deeper validation is still the parser's job
+      (returning None). The precheck is a faster, more
+      user-friendly layer for the most common failure mode
+      (forgot a required field).
+    owner: human:maintainer
+    consequence_if_false: |
+      If the precheck becomes the only validation, malformed
+      but present fields would slip through. Tests in
+      `tests/conformance/decision/` cover deep validation.
+    review_on:
+      - signal: precheck-overreaches
+
+obligations:
+  - id: validator-emits-field-name
+    outcome: validator-names-field
+    claim: |
+      `mathc validate FILE` for a decision missing a top-level
+      field emits a `MC-DECISION-INVALID` diagnostic whose
+      message is `missing required field: <field-name>` and
+      whose JSON `path` array contains the field name. The
+      validator exit code is 1.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-error-actionable.t
+          result: pass
+  - id: phase-accepts-both-forms
+    outcome: phase-enum-unified
+    claim: |
+      `lib/codec.ml:parse_phase` accepts `pre_merge` (canonical)
+      and `pre-merge` (back-compat). `lib/decision.ml:410` defaults
+      to `pre_merge`. `schemas/decision.json:184` enum is
+      underscore.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-error-actionable.t
+          result: pass
+  - id: existing-decisions-still-parse
+    outcome: phase-enum-unified
+    claim: |
+      All 40 existing `decisions/*.yaml` continue to parse via
+      `mathc validate` after the phase-unification change.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/*.yaml
+          result: pass
+
+reversal:
+  - signal: precheck-overreaches
+    condition: |
+      The precheck starts validating field types, patterns, or
+      nested structures, duplicating the parser's job and
+      creating a maintenance burden.
+    action: revert-to-parser-only
+
+risk:
+  declared_triggers:
+    - schema-validator-divergence
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3
+  supersedes: []
+  superseded_by: []

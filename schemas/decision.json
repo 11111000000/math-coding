@@ -181,7 +181,7 @@
                   }
                 ]
               },
-              "phase": {"enum": ["pre-merge", "pre-release", "post-release"]}
+              "phase": {"enum": ["pre_merge", "pre_release", "post_release"]}
             }
           }
         ]

@@ -114,6 +114,22 @@ let[@warning "-32"] collect_ambiguous_acceptance_diagnostics v =
       | None -> [])
   | _ -> []
 
+(* Required top-level fields per schemas/decision.json. Used by
+   validate_with_counts to surface the FIRST missing field instead
+   of a generic "missing or invalid required field". *)
+let decision_required_fields =
+  [ "schema"; "id"; "intent"; "commitment"
+  ; "scope"; "outcomes"; "obligations" ]
+
+let first_missing_required v =
+  match v with
+  | Jsonl.Object ps ->
+      let keys = List.map fst ps in
+      List.find_opt
+        (fun f -> not (List.mem f keys))
+        decision_required_fields
+  | _ -> None
+
 let validate_with_counts path =
   match parse_file path with
   | Error (`Sys m) -> `Input_err m
@@ -125,23 +141,35 @@ let validate_with_counts path =
             ~retryable:false ~autofix_safe:false msg,
           msg )
   | Ok v -> (
-      try
-        match Decision.parse_decision_yaml v with
-        | Some d ->
-            let extra_diags = collect_ambiguous_acceptance_diagnostics v in
-            `Accept (d, extra_diags)
-        | None ->
+      match first_missing_required v with
+      | Some field ->
+          let msg =
+            Printf.sprintf "missing required field: %s" field
+          in
+          `Reject
+            ( Diagnostic.create ~code:"MC-DECISION-INVALID"
+                ~severity:Diagnostic.Warn ~retryable:false ~autofix_safe:false
+                ~path:[field] msg,
+              msg )
+      | None -> (
+          try
+            match Decision.parse_decision_yaml v with
+            | Some d ->
+                let extra_diags = collect_ambiguous_acceptance_diagnostics v in
+                `Accept (d, extra_diags)
+            | None ->
+                let msg = "missing or invalid required field" in
+                `Reject
+                  ( Diagnostic.create ~code:"MC-DECISION-INVALID"
+                      ~severity:Diagnostic.Warn ~retryable:false ~autofix_safe:false
+                      msg,
+                    msg )
+          with Jsonl.Parse_error (m, p) ->
+            let msg = Printf.sprintf "%s at byte %d" m p in
             `Reject
-              ( Diagnostic.create ~code:"MC-DECISION-INVALID"
-                  ~severity:Diagnostic.Warn ~retryable:false ~autofix_safe:false
-                  "missing or invalid required field",
-                "missing or invalid required field" )
-      with Jsonl.Parse_error (m, p) ->
-        let msg = Printf.sprintf "%s at byte %d" m p in
-        `Reject
-          ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
-              ~retryable:false ~autofix_safe:false msg,
-            msg ))
+              ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
+                  ~retryable:false ~autofix_safe:false msg,
+                msg )))
 
 let emit (format : output_format) path
     (outcome :

@@ -407,7 +407,7 @@ and parse_obligation v =
         let phase_str =
           match Schema.take_string ps "phase" with
           | Some s -> s
-          | None -> "pre-merge"
+          | None -> "pre_merge"
         in
         let phase =
           match Codec.parse_phase phase_str with

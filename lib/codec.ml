@@ -30,9 +30,9 @@ let[@warning "-32"] parse_obligation_kind s =
 
 let[@warning "-32"] parse_phase s =
   match s with
-  | "pre-merge" -> Some `PreMerge
-  | "pre-release" -> Some `PreRelease
-  | "post-release" -> Some `PostRelease
+  | "pre_merge" | "pre-merge" -> Some `PreMerge
+  | "pre_release" | "pre-release" -> Some `PreRelease
+  | "post_release" | "post-release" -> Some `PostRelease
   | _ -> None
 
 let[@warning "-32"] parse_assumption_state s =
