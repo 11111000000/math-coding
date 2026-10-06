@@ -2142,7 +2142,11 @@ let[@warning "-32"] do_self_check () =
     | _ ->
         let verdicts = List.map (fun (_, v, _, _) -> v) evaluated in
         if List.exists (fun v -> v = Gate.Block) verdicts then Gate.Block
-        else if List.for_all (fun v -> v = Gate.Pass || v = Gate.Open_with_waiver) verdicts then Gate.Pass
+        else if
+          List.for_all
+            (fun v -> v = Gate.Pass || v = Gate.Open_with_waiver)
+            verdicts
+        then Gate.Pass
         else Gate.Unknown
   in
   let top_string = verdict_to_pass_fail_unknown top_verdict in

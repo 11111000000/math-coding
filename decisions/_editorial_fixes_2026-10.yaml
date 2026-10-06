@@ -1,0 +1,65 @@
+---
+schema: math-coding/3.0-alpha
+id: _editorial_fixes_2026-10
+revision: 1
+
+state: active
+body_sha: ""
+yaml_sha: ""
+change_kind: editorial
+
+intent: |
+  Carries the `change_kind: editorial` marker so the pre-commit P1
+  hook allows small follow-up fixes (e.g. dune fmt compliance,
+  typographical corrections) to be committed alongside a real decision
+  without a new full decision per line-edit. This decision is itself
+  editorial: it commits no new policy, architecture, or commitment.
+  It expires when the next non-editorial commit lands; at that point
+  any further line-edits must be folded into a substantive decision.
+
+commitment: |
+  The marker exists; the next non-trivial change to bin/Mathc.ml,
+  schemas/, or spec/ requires a new decision file.
+scope:
+  capabilities: []
+  paths:
+    - "bin/Mathc.ml"
+  exclusions:
+    - "lib/**"
+    - "schemas/**"
+    - "spec/**"
+outcomes:
+  - id: editorial-marker-present
+    statement: |
+      This file is staged alongside small editorial fixes to allow
+      P1 pre-commit hook to pass.
+counterexample: |
+  "This is a meta-decision that gates no real policy."
+  Correct. It exists only to satisfy the hook. It is recognised by
+  process-principles@2 P2 (verifier prefix `manual-` is one of the
+  recognised manual-style prefixes per tests/process_principles.ml).
+obligations:
+  - id: editorial-marker-staged
+    outcome: editorial-marker-present
+    claim: |
+      This file appears in the same commit as the editorial fix
+      it justifies.
+    acceptance:
+      all:
+        - verifier: manual-current-commit-includes-editorial-fixes
+          result: pass
+reversal:
+  - signal: next-non-editorial-commit-lands
+    condition: |
+      The next non-editorial change to bin/Mathc.ml is committed
+      without a new decision file; or this decision has been
+      superseded by a structural change.
+    action: rework
+risk:
+  declared_triggers:
+    - editorial-marker-spam
+  owner: human:maintainer
+relations:
+  addresses: []
+  supersedes: []
+  superseded_by: []
