@@ -14,6 +14,7 @@ depends: [
 ]
 dev-depends: [
   "alcotest" {>= "1.7"}
+  "qcheck" {>= "0.18"}
 ]
 build: [
   ["dune" "build" "--root" "." "bin/mathc.exe"]

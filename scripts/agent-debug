@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# math-coding 3.0-alpha — resolve dune build errors via OCAML_BEST_PRACTICES §11.
+# Reads dune stderr from stdin (or: $1 = file with stderr), prints human hint.
+# Exit: 0 if at least one trap matched; 1 if no match; 2 on usage error.
+#
+# Usage:
+#   dune build --root . 2>&1 | scripts/agent-debug
+#   scripts/agent-debug < build.log
+#   scripts/agent-debug build.log
+
+set -eu
+cd "$(dirname "$0")/.."
+
+usage() {
+  sed -n '2,10p' "$0"
+  exit 2
+}
+
+if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then usage; fi
+if [ $# -gt 1 ]; then usage; fi
+
+if [ $# -eq 1 ]; then
+  if [ ! -r "$1" ]; then
+    echo "agent-debug: cannot read file: $1" >&2; exit 2
+  fi
+  input=$(cat "$1")
+else
+  input=$(cat)
+fi
+
+if [ -z "$input" ]; then
+  echo "agent-debug: empty input" >&2; exit 2
+fi
+
+found=0
+hint() { printf "→ §%s: %s\n" "$1" "$2"; found=1; }
+
+# §11.6: dune does not re-read (modules ...) incrementally.
+if [[ "$input" =~ Unbound\ module|dune.*could\ not\ read.*modules ]]; then
+  hint "11.6" "dune не перечитывает modules инкрементально. Запусти scripts/dev rebuild"
+fi
+
+# §11.5: 'rec' on a non-recursive fn (Warning 39 fires even with [@warning "-32"]).
+if [[ "$input" =~ unused-rec-flag|warning\ 39 ]]; then
+  hint "11.5" "unused-rec-flag — даже [@warning \"-32\"] не глушит. Убери rec: функция не самовызывается"
+fi
+
+# §11.14: warning 32 (unused-value-declaration). Fix it; don't suppress.
+if [[ "$input" =~ warning\ 32|unused-value-declaration ]]; then
+  hint "11.14" "unused-value-declaration. Fix the warning; do not suppress with [@warning \"-32\"] unless intentional. См. scripts/dev lint"
+fi
+
+# §11.18: structurally identical records unify across modules.
+if [[ "$input" =~ This\ expression\ has\ type.*but\ an\ expression\ was\ expected\ of\ type ]]; then
+  hint "11.18" "проверь structural unification. Возможно, два record-типа с одинаковыми полями в одном модуле? Аннотируй на construction- и consumption-site. См. §2.5/§2.6"
+fi
+
+# §8.1: kernel forbids [@warning "-8"]. OCaml emits `partial-match`,
+# humans often write `partial match` — match both.
+if [[ "$input" =~ partial-match|partial\ match ]]; then
+  hint "8.1"  "kernel запрещает [@warning \"-8\"]. Добавь недостающий case — kernel match должен быть total"
+fi
+
+# §8.1 specific: missing case in Diagnostic.string_of_kind.
+if [[ "$input" =~ partial-match.*Diagnostic|partial\ match.*Diagnostic ]]; then
+  hint "8.1"  "missing case in Diagnostic.string_of_kind — добавь case для нового variant и пересобери"
+fi
+
+# §11.10: Array.filter does not exist in stdlib.
+if [[ "$input" =~ Array\.filter ]]; then
+  hint "11.10" "Array.filter не существует в OCaml stdlib. Конвертируй в List.filter (Array.to_list …)"
+fi
+
+# §11.11: Sys.is_directory returns bool, not bool option.
+if [[ "$input" =~ Sys\.is_directory.*Some ]]; then
+  hint "11.11" "Sys.is_directory возвращает bool, не option. Убери Some/"
+fi
+
+# §11.22: nix-built binary links against nix-store glibc; use opam/release.
+if [[ "$input" =~ GLIBC_2\.42|version\ .GLIBC.*not\ found ]]; then
+  hint "11.22" "nix-built бинарь непортабельный. Используй opam-сборку или release.yml артефакт"
+fi
+
+# §11.21: dune 3.23 has no `dune fmt --check`; use scripts/fmt-check.sh.
+if [[ "$input" =~ unknown\ option.*--check ]]; then
+  hint "11.21" "dune fmt не имеет --check в dune 3.23. Используй scripts/fmt-check.sh"
+fi
+
+if [ "$found" -eq 0 ]; then
+  echo "no trap matched; full error below:"
+  echo "---"
+  printf "%s\n" "$input"
+  exit 1
+fi
+exit 0

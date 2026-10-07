@@ -6,19 +6,20 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: HEAD `6a7c8e4` + Step 3 of the 2026-10 waiver
-infrastructure (lib/waiver.ml lands, first waiver covers
-`portable-linux-musl`; 2026-10-06).
+Last verified at: HEAD `1879d53` + Step 4 of the 2026-10
+agent-debug infrastructure (scripts/agent-debug + tests/traps.ml +
+tests/qcheck_parsers.ml + Jsonl.Parse_error { line; col; msg; context };
+2026-10-07).
 Attestation store at `attestations/` contains **126 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
-on every check); **`mathc packages` reports 33 active decisions / 129
-obligations (116 pass, 12 missing, 1 unknown; the master policy's 7
+on every check); **`mathc packages` reports 36 active decisions / 137
+obligations (125 pass, 11 missing, 1 unknown; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `scripts/dev-counters.py` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
 `mathc self-check` on a clean tree currently returns verdict `unknown` with
-36 pass / 2 unknown out of 38 subjects. The 2 remaining unknown subjects are:
+39 pass / 2 unknown out of 41 subjects. The 2 remaining unknown subjects are:
 - `audit-0.0.21-fixes` (8 of 9 obligations have attestations; the 9th,
   `self-check-verdict-is-pass`, has an `inconclusive` attestation
   because the criterion cannot be satisfied while any subject
@@ -108,6 +109,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml` | `audit-0.0.21-fixes-self-check-waiver-2026-10` | 2 | 3 | META | waiver record for the structural deficit on `self-check-verdict-is-pass`; not counted as active decision |
 | `decisions/portable-linux-musl-retirement-record-2026-10.yaml` | `portable-linux-musl-retirement-record-2026-10` | 1 | 1 | META | records 3/7 obligations attested + 4/7 structurally held by reversal signal; not a waiver, not counted as active decision |
 | `decisions/waiver-infrastructure-2026-10.yaml` | `waiver-infrastructure-2026-10` | 1 | 2 | META | introduces `lib/waiver.ml` + the consult step in `bin/Mathc.ml`; first waiver file `decisions/waivers/portable-linux-musl-2026-10.yaml`; not counted as active decision (no kernel surface) |
+| `decisions/agent-debug-infrastructure-2026-10.yaml` | `agent-debug-infrastructure-2026-10` | 1 | 4 | META | scripts/agent-debug + tests/traps.ml + tests/qcheck_parsers.ml + Jsonl.Parse_error verbosity; not counted as active decision (dev-infra, no kernel surface) |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision

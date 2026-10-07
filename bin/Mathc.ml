@@ -51,7 +51,7 @@ let read_file path =
 
 let parse_file path :
     ( Jsonl.value,
-      [ `Sys of string | `Other of string | `Parse of string * int ] )
+      [ `Sys of string | `Other of string | `Parse of string * int * int ] )
     result =
   let ext = Filename.extension path in
   match ext with
@@ -65,7 +65,8 @@ let parse_file path :
       match read_file path with
       | Ok s -> (
           try Ok (Jsonl.parse s)
-          with Jsonl.Parse_error (m, p) -> Error (`Parse (m, p)))
+          with Jsonl.Parse_error { line; col; msg; context = _ } ->
+            Error (`Parse (msg, line, col)))
       | Error e -> Error e)
 
 (* Walk every obligation's acceptance list and emit one diagnostic
@@ -131,8 +132,8 @@ let validate_with_counts path =
   match parse_file path with
   | Error (`Sys m) -> `Input_err m
   | Error (`Other m) -> `Input_err m
-  | Error (`Parse (m, p)) ->
-      let msg = Printf.sprintf "%s at byte %d" m p in
+  | Error (`Parse (m, line, col)) ->
+      let msg = Printf.sprintf "%s at line %d col %d" m line col in
       `Reject
         ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
             ~retryable:false ~autofix_safe:false msg,
@@ -192,11 +193,11 @@ let validate_with_counts path =
                       ~severity:Diagnostic.Warn ~retryable:false
                       ~autofix_safe:false msg,
                     msg )
-          with Jsonl.Parse_error (m, p) ->
-            let msg = Printf.sprintf "%s at byte %d" m p in
+          with Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
+            let msg = Printf.sprintf "%s at line %d col %d" raw_msg line col in
             `Reject
               ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
-                  ~retryable:false ~autofix_safe:false msg,
+                  ~retryable:false ~autofix_safe:false ~cause:context msg,
                 msg )))
 
 let emit (format : output_format) path
