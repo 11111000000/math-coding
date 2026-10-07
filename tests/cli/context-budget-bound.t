@@ -9,4 +9,4 @@ bootstrap/validate-and-context.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
   $ mathc context main HEAD --budget 100000 | jq -c '{truncated, total_bytes, omitted: (.omitted | length)}'
-  {"truncated":false,"total_bytes":9530,"omitted":0}
+  {"truncated":false,"total_bytes":9696,"omitted":0}

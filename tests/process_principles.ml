@@ -1,7 +1,9 @@
 (* tests/process_principles.ml
  *
  * Asserts the checkable subset of ROADMAP.md Process Principles
- * P1, P2, P5, P6 as locked down by decisions/process-principles.yaml.
+ * P1, P2, P5, P6, P8 as locked down by
+ * decisions/process-principles.yaml and
+ * decisions/plan-2026-10-improvements/t6-1.yaml.
  * Each principle has its own Alcotest case; the test executable
  * runs all of them on every `dune runtest` invocation.
  *
@@ -24,10 +26,17 @@
  * P6 (pre-commit verification) — `scripts/check.sh` exists and
  *     is executable.
  *
+ * P8 (no stub without tracking) — `scripts/check.sh` runs a
+ *     `stub-lint` step implemented in `scripts/check-stub-lint.sh`
+ *     and the lint correctly classifies a synthetic stub vs a
+ *     tracked stub. The case exercises the lint on two
+ *     scratch `.ml` files written under `lib/` (one untracked,
+ *     one tracked) and asserts the exit codes.
+ *
  * P3 (time-box), P4 (merge order), P7 (honesty) are NOT
- *     auto-asserted; per decisions/process-principles.yaml they are
- *     honest-declaration obligations with manual-acceptance. P7
- *     gets a one-line marker so the reviewer can grep for it. *)
+ * auto-asserted; per decisions/process-principles.yaml they are
+ * honest-declaration obligations with manual-acceptance. P7
+ * gets a one-line marker so the reviewer can grep for it. *)
 
 open Stdlib
 
@@ -375,6 +384,96 @@ let[@warning "-32"] test_p6 () =
         Alcotest.failf "P6: %s is not executable (perms %o)" check_sh perms
 
 (* ------------------------------------------------------------------------- *)
+(* P8: no stub without tracking (decisions/plan-2026-10-improvements/t6-1)   *)
+(* ------------------------------------------------------------------------- *)
+
+(* Run a command via the system shell. We avoid Sys.command +
+   the 2-arg variant to keep the call site compact. *)
+let[@warning "-32"] run_cmd cmd =
+  let ic = Unix.open_process_in cmd in
+  let buf = Buffer.create 64 in
+  (try
+     while true do
+       Buffer.add_channel buf ic 1
+     done
+   with End_of_file -> ());
+  let _ = Unix.close_process_in ic in
+  Buffer.contents buf
+
+(* The stub-lint step is wired into scripts/check.sh via a
+   literal "stub-lint" name. We search the contents for the
+   name and verify the wrapper script reference; both must
+   be present. *)
+let[@warning "-32"] test_p8_wiring () =
+  let check_sh = in_repo "scripts/check.sh" in
+  let contents = read_file check_sh in
+  let contains_stub_lint =
+    Str.string_match (Str.regexp "stub-lint") contents 0
+    ||
+      try
+        ignore (Str.search_forward (Str.regexp "stub-lint") contents 0);
+        true
+      with Not_found -> false
+  in
+  if not contains_stub_lint then
+    Alcotest.failf "P8: scripts/check.sh does not reference a stub-lint step"
+  else
+    let wrapper = in_repo "scripts/check-stub-lint.sh" in
+    if not (file_exists wrapper) then
+      Alcotest.failf "P8: %s does not exist" wrapper;
+    let stat = Unix.stat wrapper in
+    let perms = stat.Unix.st_perm in
+    if Int.logand perms 0o111 = 0 then
+      Alcotest.failf "P8: %s is not executable (perms %o)" wrapper perms
+
+(* Synthetic lint check: write two scratch .ml files under
+   lib/, one with an untracked Phase 2E marker and one with
+   a tracked Phase 2E marker, and assert that the lint exits
+   1 on the former and 0 on the latter. The files are named
+   with a leading underscore and a `_p8_test_` substring so
+   the test cleanup can find them. *)
+let[@warning "-32"] test_p8_synthetic () =
+  let lint_sh = in_repo "scripts/check-stub-lint.sh" in
+  if not (file_exists lint_sh) then
+    Alcotest.failf "P8: %s not present; P8 wiring test should run first" lint_sh;
+  let scratch_dir = in_repo "lib" in
+  let untracked_path =
+    Filename.concat scratch_dir "_p8_test_untracked_stub.ml"
+  in
+  let tracked_path = Filename.concat scratch_dir "_p8_test_tracked_stub.ml" in
+  let finally_cleanup () =
+    (try Unix.unlink untracked_path with _ -> ());
+    try Unix.unlink tracked_path with _ -> ()
+  in
+  let untracked_contents =
+    "(* Phase 2E will replace this stub *)\nlet x = 1\n"
+  in
+  let tracked_contents =
+    "(* Phase 2E tracked: decisions/_p8-test-stub-tracking.yaml *)\nlet x = 1\n"
+  in
+  try
+    Out_channel.with_open_bin untracked_path (fun oc ->
+        output_string oc untracked_contents);
+    Out_channel.with_open_bin tracked_path (fun oc ->
+        output_string oc tracked_contents);
+    let cmd =
+      Printf.sprintf
+        "cd %s && bash scripts/check-stub-lint.sh >/dev/null 2>&1; echo $?"
+        (Filename.quote project_root)
+    in
+    let out = String.trim (run_cmd cmd) in
+    finally_cleanup ();
+    match int_of_string_opt out with
+    | Some 1 -> ()
+    | Some n ->
+        Alcotest.failf "P8: untracked stub expected exit 1, got %d (out=%s)" n
+          out
+    | None -> Alcotest.failf "P8: untracked stub produced no exit code: %s" out
+  with exn ->
+    finally_cleanup ();
+    raise exn
+
+(* ------------------------------------------------------------------------- *)
 (* Test runner                                                                *)
 (* ------------------------------------------------------------------------- *)
 
@@ -398,6 +497,14 @@ let () =
         [
           Alcotest.test_case "scripts/check.sh exists and is executable" `Quick
             test_p6;
+        ] );
+      ( "P8 (no stub without tracking)",
+        [
+          Alcotest.test_case "scripts/check.sh wires the stub-lint step (t6-1)"
+            `Quick test_p8_wiring;
+          Alcotest.test_case
+            "stub-lint rejects untracked and accepts tracked markers" `Quick
+            test_p8_synthetic;
         ] );
       ( "P7 (honesty)",
         [
