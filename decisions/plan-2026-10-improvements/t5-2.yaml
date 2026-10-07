@@ -1,0 +1,268 @@
+---
+schema: math-coding/3.0-alpha
+id: t5-2-spec-mathjax
+revision: 1
+state: active
+body_sha: "sha256:42f571ce898fa1a75f5bb3d6cecc08054ab029329ae7cc934b53de13a85a2ed9"
+yaml_sha: "sha256:42f571ce898fa1a75f5bb3d6cecc08054ab029329ae7cc934b53de13a85a2ed9"
+intent: |
+  Ensure that `mathc render` produces the four normative spec
+  pages under `dist/spec/<name>.html` — `algebra-3.2.html`,
+  `constitution.html`, `domain.html`, `semantics.html` — with
+  MathJax 3 loaded in defer mode, so any `$..$` / `$$..$$`
+  formula in `spec/algebra-3.2.md` (and the other spec files)
+  is typeset as TeX when the rendered page is opened in a
+  browser. This is one of the 14 obligations authorised by the
+  meta-decision `decisions/plan-2026-10-improvements.yaml@1`
+  (commit `f2d3302`, 2026-10-07); specifically obligation
+  `t5-2-spec-mathjax`.
+
+  History:
+    rev 1 (this commit): initial adoption. Closes the
+    meta-decision's t5-2 obligation by (a) extending
+    `lib/render.ml::build_pages` so it self-serves the
+    `spec/*.md` source (no dispatcher change required) and
+    (b) forcing `enable_mathjax:true` for every spec page
+    regardless of the global `Render.config.enable_mathjax`
+    default. The site surface gains four new files
+    (`dist/spec/algebra-3.2.html`, `dist/spec/constitution.html`,
+    `dist/spec/domain.html`, `dist/spec/semantics.html`); the
+    previously-rendered site articles are unchanged.
+
+commitment: |
+  1. `lib/render.ml::build_pages` reads `spec/*.md` (via a
+     helper `read_spec_files`) and emits one page per file
+     at `dist/spec/<name>.html`. The read is best-effort: a
+     missing `spec/` directory yields zero pages and the
+     rest of the render proceeds unchanged. `DUNE_SOURCEROOT`
+     is honoured first so a kernel test loaded from
+     `_build/default/tests/` reads the same `spec/` source
+     that `mathc render` reads when invoked from the project
+     root.
+
+  2. Each spec page is rendered through the existing
+     `render_page` helper with `enable_mathjax:true` forced
+     at the call site. The global default
+     `Render.config.enable_mathjax = false` is preserved for
+     the `site/*.md` articles, so prose pages remain free of
+     MathJax's aggressive typesetting of parenthetical
+     English. A future site-deploy sub-decision may flip
+     the global default; this decision does not.
+
+  3. The per-spec wrapper carries `class="mathc-spec-page"`
+     so a future stylesheet rule under `assets/style.css`
+     can target math-heavy spec pages distinctly from
+     prose site articles. This commit ships the class but
+     does not add a stylesheet rule.
+
+  4. `tests/cli/render-mathjax-spec.t` (new cram fixture)
+     covers four cases:
+       (a) `dist/spec/algebra-3.2.html` exists and references
+           `mathjax@3` in a `<script defer>` tag with
+           `tex-mml-chtml` and the inline `inlineMath` /
+           `displayMath` delimiter declaration,
+       (b) the body of `dist/spec/algebra-3.2.html` contains
+           the spec's normative text (`friction_user`,
+           `risk_to_mode`, the `class="mathc-spec-page"`
+           wrapper, the filename "algebra-3.2"),
+       (c) the three sibling spec pages
+           (`constitution.html`, `domain.html`,
+           `semantics.html`) are emitted,
+       (d) prose pages (`index.html`, `methodology.html`,
+           `manifesto.html`) do NOT carry the mathjax script
+           tag — MathJax injection is scoped to spec pages
+           only and the global default-off behaviour is
+           preserved.
+
+  5. The kernel-level test `tests/render_kernel.ml` keeps
+     passing: `mathjax_default_off` still asserts the
+     default config's `enable_mathjax` is `false`;
+     `mathjax_in_head_when_enabled` still asserts that
+     flipping the global flag emits the mathjax script into
+     `methodology.html`. The new spec rendering does not
+     alter either behaviour.
+
+  Boundaries:
+    - `bin/Mathc.ml` is NOT modified. Stream η owns the
+      dispatcher (T4.1). This decision self-serves the spec
+      source inside `lib/render.ml` so the dispatcher
+      remains untouched.
+    - `scripts/render.sh` is NOT modified. The allowlist in
+      `scripts/render.sh` checks for missing files but
+      permits extra files; the four new spec pages are
+      extras and the script remains green.
+    - `assets/style.css` is NOT modified. The
+      `class="mathc-spec-page"` wrapper is added but no CSS
+      rule targets it in this commit.
+    - The four spec files under `spec/` are NOT modified.
+      This decision ships a renderer; the spec sources are
+      frozen by the spec/correction cycle (T0.1, T0.2,
+      algebra-3.2-notation-flag-2026-10).
+    - The default `Render.config.enable_mathjax` stays
+      `false`. Flipping the default would be a separate
+      decision; until then, `site/*.md` pages continue to
+      render without MathJax, which is what
+      `tests/render_kernel.ml::mathjax_default_off`
+      asserts.
+
+scope:
+  capabilities:
+    - spec-rendering-inversion
+    - mathjax-wiring-spec
+  paths:
+    - "lib/render.ml"
+    - "tests/cli/render-mathjax-spec.t"
+    - "decisions/plan-2026-10-improvements/t5-2.yaml"
+    - "attestations/t5-2-spec-mathjax-spec-mathjax-wired-and-rendered.json"
+    - "attestations/plan-2026-10-improvements-t5-2-spec-mathjax.json"
+
+outcomes:
+  - id: spec-mathjax-wired-and-rendered
+    statement: |
+      `mathc render` emits `dist/spec/algebra-3.2.html` (and
+      `dist/spec/{constitution,domain,semantics}.html`) with
+      the MathJax 3 CDN script tag injected into `<head>`
+      (in `defer` mode) and the inline `inlineMath` /
+      `displayMath` delimiter declaration. The spec body
+      carries the `<section class="mathc-spec-page">`
+      wrapper and the source content reaches the DOM
+      unmodified so MathJax can typeset any `$..$` /
+      `$$..$$` formula present in the source.
+
+  - id: prose-pages-stay-mathjax-off
+    statement: |
+      `dist/index.html`, `dist/methodology.html`, and the
+      other `site/*.md`-derived prose pages do NOT carry the
+      MathJax script tag. The global default
+      `Render.config.enable_mathjax` is `false`; the
+      spec-page override is local to `build_pages` and does
+      not leak into prose rendering.
+
+counterexample: |
+  "The dispatcher is the right place to add spec rendering;
+  adding it inside `lib/render.ml` makes the renderer less
+  pure and couples it to a specific on-disk layout."
+
+  Counterargument: the meta-decision's t5-2 obligation names
+  `bin/Mathc.ml` as owned by stream η (T4.1, the diagnostics
+  stream), so modifying the dispatcher would either (a) cross
+  stream boundaries, or (b) require coordination that
+  exceeds the time budget for a single T-point. Self-serving
+  the spec source inside `lib/render.ml` is bounded: the
+  read is best-effort (missing `spec/` returns `[]`), the
+  per-page override is local to `build_pages`, and the
+  pre-existing `tests/render_kernel.ml` test surface
+  continues to pass. The dispatcher can later be extended
+  to delegate to a pure `Render.build_spec_pages` helper
+  under stream η's stream-owned refactor; this commit
+  authors the helper implicitly (via `build_pages`) and
+  leaves the dispatcher rewrite to a future decision.
+
+  "Spec pages should not get MathJax automatically — the
+  user might not want formula typesetting on a page that
+  has no formulas."
+
+  Counterargument: `spec/algebra-3.2.md` is the normative
+  specification of the kernel; even if the current source
+  uses ` ``` ` fenced blocks rather than `$..$` delimiters,
+  future revisions may add inline formulas, and forcing
+  MathJax now guarantees the rendered HTML remains
+  typesetting-ready without per-page bookkeeping. The cost
+  of MathJax on a non-math page is one deferred script
+  load (~120 KB minified) and a few `MutationObserver`
+  passes; both are negligible. A future refinement can
+  scope MathJax to pages whose source carries at least one
+  `$..$` or `$$..$$` delimiter; this commit ships the
+  simpler always-on-for-spec behaviour.
+
+  "`read_spec_files` reads from disk inside the kernel module;
+  this breaks the pure-function contract."
+
+  Counterargument: `read_version_file` (already in
+  `lib/render.ml:980`) reads the project `VERSION` file
+  the same way. The pre-existing pure-function contract is
+  best understood as "no I/O at module load time" rather
+  than "no I/O ever"; the dispatcher passes in most
+  inputs but a small set of well-known files (`VERSION`,
+  `spec/`) are read by the renderer because doing so in
+  the dispatcher would only add noise.
+
+obligations:
+  - id: spec-mathjax-wired-and-rendered
+    outcome: spec-mathjax-wired-and-rendered
+    statement: |
+      `tests/cli/render-mathjax-spec.t` passes on this branch:
+      `dist/spec/algebra-3.2.html` (and the three sibling
+      spec pages) exists with MathJax 3 in `<head>` and the
+      spec source content in the body.
+    claim: |
+      After `mathc render --out dist --lang=both`,
+      `grep -qF 'mathjax@3' dist/spec/algebra-3.2.html`
+      exits 0; `grep -qF 'friction_user'
+      dist/spec/algebra-3.2.html` exits 0; the prose-page
+      negative checks
+      (`! grep -qF 'mathjax@3' dist/methodology.html` etc.)
+      all exit 0.
+    acceptance:
+      all:
+        - verifier: tests/cli/render-mathjax-spec.t
+          result: pass
+
+  - id: prose-pages-stay-mathjax-off
+    outcome: prose-pages-stay-mathjax-off
+    statement: |
+      `tests/render_kernel.ml::mathjax_default_off` continues
+      to pass at HEAD on this branch; the global default
+      `Render.config.enable_mathjax` is `false`. The new
+      spec rendering does not regress the prose-only path.
+    claim: |
+      `_build/default/tests/render_kernel.exe mathjax_default_off`
+      exits 0; `mathjax_in_head_when_enabled` (which flips
+      the global flag and asserts methodology.html
+      carries `mathjax@3`) also exits 0.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::mathjax_default_off
+          result: pass
+        - verifier: tests/render_kernel.ml::mathjax_in_head_when_enabled
+          result: pass
+
+reversal:
+  - signal: spec-renderer-self-serve
+    condition: |
+      Stream η (T4.1) later extends `bin/Mathc.ml` to call a
+      pure `Render.build_spec_pages` helper that does not
+      read from disk. When that lands, this sub-decision's
+      `lib/render.ml::read_spec_files` helper becomes
+      redundant. The decision is superseded (action:
+      `rework`) by the stream-η change; `read_spec_files` is
+      removed and `build_pages` reverts to receiving spec
+      data through a parameter.
+    action: rework
+
+  - signal: mathjax-default-flipped
+    condition: |
+      A future site-deploy sub-decision flips the global
+      `Render.config.enable_mathjax = true`. When that
+      lands, every prose page also carries MathJax and the
+      spec-page override in `build_pages` becomes a
+      no-op. The decision is not reversed (the per-page
+      override is still correct); the spec rendering stays
+      and the test continues to pass with the additional
+      mathjax-on-prose-pages noise filtered out by a
+      negative `! grep` check on the prose pages only if
+      the global flag is also flipped.
+    action: rework
+
+risk:
+  declared_triggers:
+    - spec-source-missing
+    - dispatcher-delegation-drift
+    - mathjax-load-degradation-on-prose
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []

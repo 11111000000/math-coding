@@ -890,6 +890,19 @@ let[@warning "-32"] render_decision_page ~decision_id ~obligation_html =
     "<section class=\"mathc-decision-page\">\n<h1>%s</h1>\n%s\n</section>\n"
     decision_id obligation_html
 
+let[@warning "-32"] render_spec_page ~name ~body_md =
+  (* `spec/<name>.md` pages — normative algebra-3.2 spec, the
+     constitution, the domain, the semantics. Each page is rendered
+     with `enable_mathjax:true` so MathJax 3 (in defer mode) is
+     injected into `<head>` and the page's `$..$` / `$$..$$`
+     formulas are typeset as TeX at runtime. The class
+     `mathc-spec-page` marks the wrapper so a future stylesheet
+     can target math-heavy spec pages distinctly from prose site
+     articles. *)
+  let body_md_parsed = md_parse body_md in
+  Printf.sprintf "<section class=\"mathc-spec-page\">\n%s\n</section>\n"
+    body_md_parsed
+
 let[@warning "-32"] render_axiom_page ~axiom_id ~body =
   (* If the source body starts with `# <title>`, strip that
      leading heading — the synthetic `<h1>Axiom <id></h1>` we
@@ -995,6 +1008,51 @@ let[@warning "-32"] read_version_file ~fallback =
   let rec loop = function
     | [] -> fallback
     | p :: rest -> ( match try_one p with Some v -> v | None -> loop rest)
+  in
+  loop candidates
+
+(* Read every `*.md` file under `spec/` and return them as
+   (name, body) pairs sorted alphabetically. The dispatcher
+   did not previously render spec files; this helper lets
+   `build_pages` self-serve the spec source so a spec page
+   lands under `dist/spec/<name>.html` with MathJax 3 in
+   `<head>`, without requiring a dispatcher change. The read
+   is best-effort: a missing `spec/` directory or unreadable
+   file returns `[]`, matching `read_axioms` in `bin/Mathc.ml`.
+   `DUNE_SOURCEROOT` is honoured first so a kernel test
+   loaded from `_build/default/tests/` reads the same `spec/`
+   that a `mathc render` invocation does. *)
+let[@warning "-32"] read_spec_files () =
+  let candidates =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> [ Filename.concat p "spec" ]
+    | None -> []
+  in
+  let candidates = candidates @ [ "spec" ] in
+  let try_dir d =
+    if not (Sys.file_exists d) then None
+    else if not (Sys.is_directory d) then None
+    else
+      try
+        Some
+          (Sys.readdir d |> Array.to_list
+          |> List.filter (fun n -> Filename.extension n = ".md")
+          |> List.sort String.compare
+          |> List.filter_map (fun n ->
+              let base = Filename.chop_extension n in
+              let path = Filename.concat d n in
+              let ic = open_in_bin path in
+              let n_bytes = in_channel_length ic in
+              let s =
+                if n_bytes = 0 then "" else really_input_string ic n_bytes
+              in
+              close_in ic;
+              if s = "" then None else Some (base, s)))
+      with _ -> None
+  in
+  let rec loop = function
+    | [] -> []
+    | d :: rest -> ( match try_dir d with Some xs -> xs | None -> loop rest)
   in
   loop candidates
 
@@ -1140,6 +1198,33 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
         :: !pages)
     axioms_data;
 
+  (* Per-spec pages (English-only). The spec source under `spec/`
+     is normative (algebra-3.2, constitution, domain, semantics);
+     each page is forced to `enable_mathjax:true` regardless of
+     `config.enable_mathjax` so MathJax 3 is always available for
+     `$..$` / `$$..$$` formulas at runtime. Reading `spec/*.md`
+     here — rather than in `bin/Mathc.ml` — keeps `lib/render.ml`
+     self-contained: the spec surface lands under
+     `dist/spec/<name>.html` whenever `mathc render` runs, without
+     the dispatcher learning about spec pages. *)
+  let spec_data = read_spec_files () in
+  List.iter
+    (fun (name, body_md) ->
+      let body = render_spec_page ~name ~body_md in
+      pages :=
+        {
+          path = Filename.concat "spec" (name ^ ".html");
+          body =
+            render_page ~lang:"en" ~page_key:("spec/" ^ name)
+              ~title:(Printf.sprintf "%s — math-coding spec" name)
+              ~body ~site_base:config.site_base ~enable_mathjax:true
+              ~enable_mermaid:config.enable_mermaid
+              ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
+              ~version ~extra_head:"";
+        }
+        :: !pages)
+    spec_data;
+
   List.rev !pages
 
 (* Default configuration used by the CLI. The dispatcher overrides
@@ -1148,13 +1233,18 @@ let[@warning "-32"] default_config =
   {
     site_base = "/math-coding/";
     (* MathJax 3 is wired in the code path but defaults OFF. The
-       site currently has zero pages with `$...$` or `\[...\]`
-       formulas; MathJax on every page aggressively typesets
+       `site/*.md` articles carry no `$...$` or `\[...\]` formulas;
+       MathJax on every prose page aggressively typesets
        parenthetical English like `(Honest status)` as math italics
        (`<math>` tags wrap ordinary prose). The default-off keeps
-       the rendered output clean; pages that need formulas opt in
-       via the `--mathjax` flag or by setting
-       `Render.config.enable_mathjax = true` programmatically. *)
+       prose pages clean; the dispatcher opts pages in via the
+       `--mathjax` flag or by setting
+       `Render.config.enable_mathjax = true` programmatically.
+       Spec pages (`spec/algebra-3.2.md`, `constitution.md`,
+       `domain.md`, `semantics.md`) force `enable_mathjax:true`
+       per-page inside `build_pages` regardless of this default —
+       the normative spec is the only consumer that actually
+       needs TeX typesetting. *)
     enable_mathjax = false;
     enable_mermaid = true;
     enable_lang_toggle = true;
