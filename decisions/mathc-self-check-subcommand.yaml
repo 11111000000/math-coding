@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: mathc-self-check-subcommand
 revision: 4
 state: active
-body_sha: "sha256:ba652bb5d62326c8b56328bc14f584df83cb1c274ac9ef79e62e4403b4a35f07"
-yaml_sha: "sha256:ba652bb5d62326c8b56328bc14f584df83cb1c274ac9ef79e62e4403b4a35f07"
+body_sha: "sha256:29c34b290c5832e4d3ecc722f9b7617734393dcf956c47cc1739056c2efe390d"
+yaml_sha: "sha256:29c34b290c5832e4d3ecc722f9b7617734393dcf956c47cc1739056c2efe390d"
 intent: |
   Close ROADMAP Tier-1 #2 (`mathc self-check`) and thereby the
   AGENTS.md bootstrap-gate expiry condition verbatim: the
@@ -64,6 +64,9 @@ outcomes:
     statement: bin/Mathc.ml dispatches `mathc self-check` and the
       kernel returns `pass` against this repository and its
       conformance corpus, with exit code 0.
+
+counterexample: |
+  `unknown` (exit 3) on an empty store must not be conflated with `pass`.
 
 assumptions:
   - id: store-precedes-self-check

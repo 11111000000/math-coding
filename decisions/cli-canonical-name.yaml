@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: cli-canonical-name
 revision: 3
 state: active
-body_sha: "sha256:8c9ad12a66d186243bf8f4579face13f3803adeff4faf80891624dde02d72fa9"
-yaml_sha: "sha256:8c9ad12a66d186243bf8f4579face13f3803adeff4faf80891624dde02d72fa9"
+body_sha: "sha256:0e53dd18848a72f3e7d78149060b2d1d1a3c18a9275128529af3ee0ae702990a"
+yaml_sha: "sha256:0e53dd18848a72f3e7d78149060b2d1d1a3c18a9275128529af3ee0ae702990a"
 intent: |
   Collapse the project's three CLI referents (the legacy short
   alias `mc`, the public install name `mathc`, and the dune on-disk
@@ -89,6 +89,9 @@ outcomes:
       `${URL}/mathc-linux-amd64` (matching release.yml:22) and
       saves it as `~/.local/bin/mathc`. The previous `mathc-linux-amd64`
       URL (404) is closed.
+
+counterexample: |
+  Renaming `mc` -> `mathc` ships without exercising the Midnight-Commander collision.
 
 assumptions:
   - id: no-active-external-clients

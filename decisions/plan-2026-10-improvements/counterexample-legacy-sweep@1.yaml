@@ -1,0 +1,229 @@
+---
+schema: math-coding/3.0-alpha
+id: counterexample-legacy-sweep
+revision: 1
+state: active
+body_sha: "sha256:a94d45be6eaf2ad0689bf59a08b4559b9f79eba28323576988e6ae913edec810"
+yaml_sha: "sha256:a94d45be6eaf2ad0689bf59a08b4559b9f79eba28323576988e6ae913edec810"
+intent: |
+  Sub-decision under `decisions/plan-2026-10-improvements.yaml`
+  obligation `t6-2-counterexample-required`, recording the
+  one-shot migration that appends a `counterexample: |` block
+  to every legacy decision whose field was empty at HEAD
+  4a3d14e.
+
+  This is the "data half" of T6.2. The "rule half" (turning
+  `MC-COUNTEREXAMPLE-MISSING` from Warn into Block) ships
+  separately in Round 4. The split is deliberate: a single
+  atomic commit that adds both would mix an A3-protected
+  structural change (gate semantics) with a data-only change,
+  forcing the dual-failure evidence path described in
+  `spec/constitution.md` §Self-application on data that needs
+  no such gate.
+
+  Migration scope (verified at HEAD 4a3d14e):
+    8 of the 30-50 active decisions in `decisions/*.yaml`
+    lacked a top-level `counterexample:` block. The plan's
+    "28" figure is an over-count from an earlier draft; this
+    sub-decision and the companion
+    `decisions/plan-2026-10-improvements/t6-2-prep.yaml` carry
+    the full per-file record.
+
+  Migration tool:
+    `scripts/counterexample-seed.py` — a deterministic
+    idempotent Python 3 script. The script reads a lookup
+    table of (decision_id → one_liner) and applies the
+    sweep to decisions whose field is empty. Re-running on a
+    tree whose counterexample field is already populated is a
+    no-op (file content byte-identical).
+
+  Per-file record lives in
+    `decisions/plan-2026-10-improvements/t6-2-prep.yaml:notes`.
+
+commitment: |
+  1. `scripts/counterexample-seed.py` exists and is idempotent
+     (re-running on a tree whose counterexample is populated
+     leaves file content byte-identical, verified by
+     `git diff --stat` after the dry-run).
+  2. The script's lookup table covers the 8 legacy decisions
+     named in this commitment's scope. A new legacy decision
+     without a lookup entry fails the script with a non-zero
+     exit and a `NO-LOOKUP` line, forcing the agent to extend
+     the table rather than invent text.
+  3. `mathc validate` on each of the 8 modified files returns
+     `accept` (5/8) or rejects for a pre-existing structural
+     deficit (3/8 — `cli-canonical-name`, `D6-bootstrap-v3-
+     verifiers-implemented`, `mathc-explain-subcommand`
+     missing `obligations:` or `outcomes:`; see
+     `decisions/plan-2026-10-improvements/t6-2-prep.yaml:notes`
+     for the per-file record).
+  4. `mathc self-check` on the integrated HEAD returns
+     `verdict:"pass"` for each of the 8 modified subjects.
+  5. `tests/conformance.ml::legacy_counterexample_sweep`
+     passes in the dune `runtest` target.
+  6. `mathc validate
+     decisions/plan-2026-10-improvements/counterexample-legacy-sweep@1.yaml`
+     returns `accept`.
+
+counterexample: |
+  "The migration is one PR with 8 one-line edits; it does not
+  warrant a sub-decision of its own."
+
+  Counterargument: the plan's §outcomes/counterexample-required
+  says the migration is a sub-decision in its own right
+  (`counterexample-legacy-sweep@1`) under this plan, with its
+  own attestation (`kind_: build`, producer:
+  `ci:migration-script`). The plan authorises it; this
+  sub-decision honours the plan.
+
+  "Future maintainers should be free to edit the one-liners;
+  the lookup table is a single point of truth that drifts over
+  the lifetime of the codebase."
+
+  Counterargument: the table is intentionally explicit, not
+  implicit. The migration script does not invent one-liners from
+  the decision's intent or commitment text; if a new legacy
+  decision appears without a one-liner, the script fails with
+  `NO-LOOKUP` exit 1 and the maintainer is forced to add an
+  entry to the table. This bounds the drift.
+
+scope:
+  capabilities:
+    - counterexample-data-migration
+  paths:
+    - "decisions/*.yaml"
+    - "scripts/counterexample-seed.py"
+    - "tests/conformance.ml"
+    - "attestations/counterexample-sweep-*.json"
+    - "decisions/plan-2026-10-improvements/counterexample-legacy-sweep@1.yaml"
+  exclusions:
+    - "spec/**"
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "decisions/obligations.yaml"
+    - "decisions/obligation-count-reconcile.yaml"
+    - "decisions/rationale.md"
+    - "decisions/plan-2026-10-improvements/t6-2-prep.yaml"
+    - "decisions/plan-2026-10-improvements/counterexample-legacy-sweep@1.yaml"
+
+outcomes:
+  - id: eight-decisions-swept
+    statement: |
+      Every active decision in `decisions/*.yaml` (excluding
+      the four meta files) carries a top-level `counterexample:`
+      block whose stripped length is >= 8 chars. The 8
+      newly-annotated files are recorded in
+      `attestations/counterexample-sweep-data-applied.json`.
+  - id: sha-match-maintained
+    statement: |
+      For each modified file, `body_sha` and `yaml_sha` are
+      consistent with the file's content under the sha-match
+      rule (`spec/algebra-3.2.md` §7).
+  - id: idempotent-tool
+    statement: |
+      `scripts/counterexample-seed.py` is idempotent and
+      deterministic. The lookup table is the single point of
+      extension for new legacy decisions.
+
+assumptions:
+  - id: tool-runs-in-ci
+    state: assumed
+    statement: |
+      `python3` is available in any environment that runs
+      `scripts/counterexample-seed.py` (including the
+      `nix develop .#test` shell used by CI). The script
+      does not depend on OCaml, on `mathc` itself, or on any
+      schema validator.
+    owner: human:maintainer
+    consequence_if_false: |
+      If python3 is unavailable, the script cannot run. The
+      fallback is to apply the migration by hand from the
+      lookup table in this sub-decision; deferred until
+      python3 is observed to be unavailable.
+    review_on:
+      - signal: python3-missing-in-ci
+
+obligations:
+  - id: eight-decisions-have-counterexample
+    outcome: eight-decisions-swept
+    statement: |
+      The 8 files listed in
+      `decisions/plan-2026-10-improvements/t6-2-prep.yaml:notes`
+      each carry a top-level `counterexample:` block whose
+      stripped length is >= 8 chars.
+    claim: |
+      For each of the 8 files, `grep -A1 '^counterexample: |'`
+      returns a block whose body, after collapsing whitespace,
+      is >= 8 chars.
+    acceptance:
+      all:
+        - verifier: tests/conformance.ml::legacy_counterexample_sweep
+          result: pass
+        - verifier: mathc validate decisions/<file>.yaml
+          result: pass
+  - id: sha-match-pass
+    outcome: sha-match-maintained
+    statement: |
+      For each of the 8 files, the sha-match rule
+      (`spec/algebra-3.2.md` §7) holds: replacing the
+      embedded `body_sha`/`yaml_sha` value with the
+      placeholder `sha256:` + 64 zeros and re-hashing yields
+      the embedded value itself.
+    claim: |
+      `python3 scripts/counterexample-seed.py --verbose`
+      logs `sha256=<prefix>...` for each file, and a
+      follow-up sha re-computation by `python3 -c "<inline>"`
+      produces the same prefix.
+    acceptance:
+      all:
+        - verifier: scripts/counterexample-seed.py --verbose
+          result: pass
+  - id: seed-script-idempotent
+    outcome: idempotent-tool
+    statement: |
+      `scripts/counterexample-seed.py` is idempotent.
+    claim: |
+      `python3 scripts/counterexample-seed.py --dry-run
+      --verbose` on a state where every decision already has
+      counterexample reports `OK: 0`, `SKIP-PRESENT: 8` (the
+      8 touched files), and `git diff --stat` is empty after
+      the dry-run.
+    acceptance:
+      all:
+        - verifier: scripts/counterexample-seed.py --dry-run --verbose
+          result: pass
+
+reversal:
+  - signal: counterexample-content-rejected-by-maintainer
+    condition: |
+      A maintainer reviews the appended one-liner for any of
+      the 8 files and finds the content false on review.
+      Resolution: edit the one-liner in
+      `scripts/counterexample-seed.py`'s `ONE_LINERS` dict,
+      remove the appended block from the affected
+      `decisions/*.yaml`, re-run the script, and bump this
+      sub-decision's revision.
+    action: rework
+  - signal: prep-rule-order-reversed
+    condition: |
+      The T6.2 enforcement rule ships before the prep and
+      the integrated tree fails `mathc self-check`.
+    action: halt
+
+risk:
+  declared_triggers:
+    - one-liner-false-on-review
+    - lookup-table-drift
+    - new-legacy-decision-after-sweep
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+    - bootstrap-v3@2
+    - t6-2-prep@1
+  supersedes: []
+  superseded_by: []

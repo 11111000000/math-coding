@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: audit-0.0.21-fixes
 revision: 2
 state: active
-body_sha: "sha256:0970c569cbecae71e38beabc83efd71b61a431120427660e112e0d2f6ef9ba12"
-yaml_sha: "sha256:0970c569cbecae71e38beabc83efd71b61a431120427660e112e0d2f6ef9ba12"
+body_sha: "sha256:ea7bb41ed2670a994f533639db884d43d8ddaeafff6a7895b98708edb02930d8"
+yaml_sha: "sha256:ea7bb41ed2670a994f533639db884d43d8ddaeafff6a7895b98708edb02930d8"
 intent: |
   Authorise and bound a single cycle of fixes that closes the
   13 specific deficits catalogued in `doc/AUDIT-0.0.21.md`
@@ -130,6 +130,9 @@ outcomes:
       `.githooks/pre-commit` exits 0 on a clean staged change
       and exits 1 on a kernel change staged without a paired
       decision file.
+
+counterexample: |
+  Five phases across 22 paths and 7 schemas invite regressions outside the audit's catalogue.
 
 assumptions:
   - id: yaml-form-is-canonical

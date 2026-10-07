@@ -1,0 +1,432 @@
+---
+schema: math-coding/3.0-alpha
+id: t6-2-prep
+revision: 1
+state: active
+body_sha: "sha256:b35b088aeb330c3f109cd9ca6327cfa754077de44a809f29bc11d2de48b2e47d"
+yaml_sha: "sha256:b35b088aeb330c3f109cd9ca6327cfa754077de44a809f29bc11d2de48b2e47d"
+intent: |
+  Pre-flight sweep that prepares the legacy decision corpus for
+  the T6.2 enforcement rule which will land in Round 4 (ε/T6.2).
+  T6.2 turns the current `MC-COUNTEREXAMPLE-MISSING` *Warn* into
+  a *Block*: a new active decision whose `mode >= standard` and
+  whose `counterexample` is empty will be rejected by
+  `mathc validate` with exit 1.
+
+  This decision is itself NOT the rule. The rule ships under
+  `decisions/plan-2026-10-improvements/t6-2.yaml` in Round 4, gated
+  by A3-protected transition per `spec/constitution.md` §Self-
+  application. This prep-step only adds the **data** the rule
+  needs: it appends a `counterexample: |` block to every legacy
+  decision whose `counterexample` was empty when this commit
+  landed, and writes the migration under its own sub-decision
+  `counterexample-legacy-sweep@1` (also in this branch) for
+  audit-trail purposes.
+
+  The prep is necessary because adding the rule first would
+  immediately Block every legacy decision that lacks
+  `counterexample`, breaking `mathc self-check` on the rule's
+  own integrated tree. The plan's §outcomes/counterexample-required
+  anticipated this:
+    "A single bounded sweep; each appended `counterexample`
+     block is one line per decision and carries the same
+     epistemic marker (judgment) for all legacy items."
+  This prep executes that sweep one cycle ahead of the rule.
+
+  Scope:
+    - 8 active decisions in `decisions/*.yaml` whose
+      `counterexample` was empty at HEAD 4a3d14e (the count is
+      8, not the 28 mentioned in the plan's intent; the plan's
+      number overstates the corpus and is documented as a known
+      discrepancy in this sub-decision's `counterexample`).
+    - The deterministic seed script
+      `scripts/counterexample-seed.py` that produces the sweep.
+    - The conformance test case
+      `tests/conformance.ml::legacy_counterexample_sweep` that
+      asserts every legacy decision in scope has a
+      `counterexample:` block whose length is >= 8 chars.
+
+  Out of scope:
+    - `spec/algebra-3.2.md`: the rule ships in Round 4 under
+      t6-2.yaml, not here.
+    - `lib/decision.ml`: the rule's enforcement is a separate
+      Round 4 change.
+    - `schemas/decision.json`: `counterexample` is already
+      declared there; no schema change is needed.
+    - The three meta-aggregator files (`decision.yaml`,
+      `obligations.yaml`, `obligation-count-reconcile.yaml`):
+      they follow a different schema family and are not part
+      of the sweep.
+
+commitment: |
+  1. A deterministic Python script
+     `scripts/counterexample-seed.py` exists and is idempotent:
+     re-running it on a tree whose counterexample field is
+     already populated leaves the file content byte-identical.
+  2. The script's lookup table covers the 8 legacy decisions
+     named in this commitment's "scope" section. A new legacy
+     decision without a lookup entry fails the script with a
+     non-zero exit and a `NO-LOOKUP` line, forcing the agent
+     to extend the table rather than invent text on the fly.
+  3. `mathc self-check` on the integrated HEAD returns
+     `verdict:"pass"` for every one of the 8 modified subjects
+     (no regression vs HEAD 4a3d14e, where 5 of 8 already passed
+     and 3 had pre-existing structural rejects unrelated to
+     counterexample — see the per-file notes below).
+  4. `tests/conformance.ml::legacy_counterexample_sweep` passes
+     in the dune `runtest` target.
+  5. The 3 files that reject `mathc validate` for pre-existing
+     structural deficits (missing `obligations:` or
+     `outcomes:`) are noted but NOT fixed in this prep step:
+     those are separate deficits (T2 family, not T6) and
+     remain open.
+
+counterexample: |
+  "The prep step is unnecessary; the rule should be added with
+  the data simultaneously, in a single atomic commit. Splitting
+  prep from rule creates two commits that each individually
+  look like nothing happened (prep adds data, rule ships the
+  enforcement) and obscures the change-set."
+
+  Counterargument: the plan's §outcomes/counterexample-required
+  records that the migration is its own sub-decision
+  (`counterexample-legacy-sweep@1`) under this plan, with its
+  own attestation (`kind_: build`, producer:
+  `ci:migration-script`). The prep-vs-rule split is deliberate:
+  the rule is A3-protected (it changes gate semantics) while the
+  prep is purely additive data. A single atomic commit would
+  mix a structural-change decision (A3-gated, needs dual-failure
+  evidence per `spec/constitution.md` §Self-application) with
+  a data-only change (no A3 gate), and the review burden would
+  double. The split is the cheaper path.
+
+  "The plan says 28 legacy decisions; this prep sweeps only 8.
+  Either the corpus is bigger than the plan claims and the
+  prep is incomplete, or the prep has over-counted."
+
+  Counterargument: at HEAD 4a3d14e, 8 of the ~45 active
+  decisions in `decisions/*.yaml` lack a top-level
+  `counterexample:` field. The plan's "28" is an over-count
+  from an earlier draft. The discrepancy is honest: this
+  sub-decision's `notes` carry the full list and the per-file
+  one-liners, so a future maintainer who reads the plan can
+  reconcile the 28/8 gap without guessing. If 20 additional
+  legacy decisions appear in a future commit and lack
+  counterexample, the seed script fails with `NO-LOOKUP` and
+  forces the agent to extend the table.
+
+  "Adding a one-liner counterexample to a decision that
+  already ships a long-form counterexample (e.g.
+  `algebra-3.2.yaml`) would be duplication, but this prep
+  only touches decisions that lack the field; the existing
+  long-form counterexamples are untouched."
+
+scope:
+  capabilities:
+    - process-discipline
+    - counterexample-data-prep
+  paths:
+    - "decisions/*.yaml"
+    - "scripts/counterexample-seed.py"
+    - "tests/conformance.ml"
+    - "attestations/t6-2-prep-*.json"
+    - "decisions/plan-2026-10-improvements/t6-2-prep.yaml"
+    - "decisions/plan-2026-10-improvements/counterexample-legacy-sweep@1.yaml"
+  exclusions:
+    - "spec/**"
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "decisions/obligations.yaml"
+    - "decisions/obligation-count-reconcile.yaml"
+    - "decisions/rationale.md"
+
+outcomes:
+  - id: sweep-applied-to-eight
+    statement: |
+      Every active decision in `decisions/*.yaml` that lacked a
+      top-level `counterexample:` field at HEAD 4a3d14e now
+      carries one. The 8 modified files are listed in
+      `attestations/t6-2-prep-data-applied.json` with their new
+      `body_sha` and the appended block content.
+  - id: seed-script-idempotent
+    statement: |
+      `scripts/counterexample-seed.py` is idempotent: re-running
+      it on a tree where every decision already has
+      `counterexample` leaves every file byte-identical.
+      `python3 scripts/counterexample-seed.py --dry-run --verbose`
+      on the integrated HEAD reports `SKIP-PRESENT` for all
+      8 touched files and `OK` for zero.
+  - id: conformance-case-passes
+    statement: |
+      `tests/conformance.ml::legacy_counterexample_sweep` runs in
+      the dune `runtest` target and exits 0. The case reads
+      every `decisions/*.yaml` (excluding the four meta files)
+      and asserts each carries a `counterexample:` block whose
+      stripped length is >= 8 chars.
+  - id: mathc-self-check-still-pass
+    statement: |
+      `mathc self-check` on the integrated tree returns
+      `verdict:"pass"` for each of the 8 touched subjects. No
+      regression vs HEAD 4a3d14e (where the same 8 subjects
+      already had `verdict:"pass"` for the 5 that parse
+      correctly and 3 pre-existing rejects for the structural
+      deficits noted below).
+
+assumptions:
+  - id: count-of-eight-is-current
+    state: assumed
+    statement: |
+      At HEAD 4a3d14e, exactly 8 active decisions in
+      `decisions/*.yaml` lack a top-level `counterexample:`
+      block: `3-2-cli-catalog`, `attestation-store-fill`,
+      `audit-0.0.21-fixes`, `ci-blocking-list-config`,
+      `cli-canonical-name`, `D6-bootstrap-v3-verifiers-implemented`,
+      `mathc-explain-subcommand`, `mathc-self-check-subcommand`.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future commit adds a 9th legacy decision without
+      counterexample, the seed script's `NO-LOOKUP` check exits
+      1 and forces the agent to extend the table. The script
+      cannot silently skip.
+    review_on:
+      - signal: new-legacy-decision-without-counterexample
+  - id: pre-existing-rejects-not-our-deficit
+    state: assumed
+    statement: |
+      Three of the 8 modified files reject `mathc validate`
+      for pre-existing structural deficits unrelated to
+      counterexample:
+        `cli-canonical-name` lacks `obligations:`
+        `D6-bootstrap-v3-verifiers-implemented` lacks `outcomes:`
+        `mathc-explain-subcommand` lacks `obligations:`
+      These rejects are present at HEAD 4a3d14e (verified by
+      `git stash; mathc validate <file>; git stash pop`). They
+      belong to a separate T2-family deficit and are explicitly
+      out of scope for T6.2 prep.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future commit fixes those 3 structural deficits,
+      the prep step's `mathc validate` acceptance count rises
+      from 5/8 to 8/8 automatically — no change to this
+      sub-decision is needed.
+    review_on:
+      - signal: structural-deficits-fixed
+  - id: counterexample-required-rule-defers-to-round-4
+    state: assumed
+    statement: |
+      The rule that turns `MC-COUNTEREXAMPLE-MISSING` from Warn
+      to Block ships under `decisions/plan-2026-10-improvements/
+      t6-2.yaml` in Round 4 (after the prep lands). The prep
+      does NOT itself change the kernel.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the rule is added before the prep, every legacy
+      decision that lacks counterexample would Block immediately
+      and `mathc self-check` would break. The prep MUST land
+      first.
+    review_on:
+      - signal: counterexample-rule-lands
+
+obligations:
+  - id: sweep-applied
+    outcome: sweep-applied-to-eight
+    statement: |
+      The 8 legacy decisions listed in this commitment's
+      "scope" section each carry a new `counterexample:` block
+      whose stripped length is >= 8 chars and whose body_sha /
+      yaml_sha are consistent with the file's content (sha-match
+      rule per `spec/algebra-3.2.md` §7).
+    claim: |
+      `python3 scripts/counterexample-seed.py --verbose` on the
+      integrated HEAD reports `OK: <file>` for each of the 8
+      decisions and `SKIP-PRESENT` for the 39 decisions that
+      already had counterexample.
+    acceptance:
+      all:
+        - verifier: python3 scripts/counterexample-seed.py --verbose
+          result: pass
+        - verifier: mathc validate decisions/<each-of-8>.yaml exits 0 OR rejects for pre-existing structural deficit only
+          result: pass
+  - id: seed-script-idempotent
+    outcome: seed-script-idempotent
+    statement: |
+      `scripts/counterexample-seed.py` does not rewrite a file
+      whose counterexample is already populated and whose body
+      is unchanged. Re-running the script on the integrated HEAD
+      is a no-op.
+    claim: |
+      `python3 scripts/counterexample-seed.py --verbose` run
+      twice in succession produces the same file tree (verified
+      by `git diff --stat` after each run).
+    acceptance:
+      all:
+        - verifier: scripts/counterexample-seed.py --dry-run --verbose
+          result: pass
+  - id: conformance-test-passes
+    outcome: conformance-case-passes
+    statement: |
+      `tests/conformance.ml::legacy_counterexample_sweep` runs
+      in the dune `runtest` target and reports every legacy
+      decision in `decisions/*.yaml` (excluding meta) as
+      counterexample-bearing.
+    claim: |
+      `dune test tests/conformance.exe` reports
+      `legacy_counterexample_sweep` as `pass` on the integrated
+      HEAD.
+    acceptance:
+      all:
+        - verifier: tests/conformance.ml::legacy_counterexample_sweep
+          result: pass
+  - id: self-check-no-regression
+    outcome: mathc-self-check-still-pass
+    statement: |
+      For each of the 8 modified decisions, `mathc self-check`
+      on the integrated tree reports `verdict:"pass"` (the same
+      verdict the decision carried at HEAD 4a3d14e).
+    claim: |
+      `nix develop .#test --command bash -c '_build/default/bin/mathc.exe self-check'`
+      parses to a JSON document whose `subjects` array contains
+      each of the 8 modified decisions with `verdict:"pass"`.
+    acceptance:
+      all:
+        - verifier: mathc self-check verdict for each of 8 touched subjects
+          result: pass
+
+reversal:
+  - signal: prep-rule-order-reversed
+    condition: |
+      The T6.2 enforcement rule lands before the prep commit
+      and the integrated tree fails `mathc self-check`. The
+      prep is no longer "ahead of the rule" but is recovering
+      from it.
+    action: halt
+  - signal: counterexample-content-rejected-by-maintainer
+    condition: |
+      A maintainer reviews one or more of the 8 appended
+      one-liners and finds the content false on review.
+      Resolution: edit the one-liner in
+      `scripts/counterexample-seed.py`'s lookup table,
+      delete the appended block from the affected
+      `decisions/*.yaml`, re-run the script, and bump
+      this sub-decision's revision.
+    action: rework
+
+risk:
+  declared_triggers:
+    - prep-rule-race
+    - counterexample-false-on-review
+    - new-legacy-decision-after-prep
+    - pre-existing-rejects-become-blocking
+  owner: human:maintainer
+
+notes: |
+  Per-file record of the prep change:
+
+    1. 3-2-cli-catalog.yaml
+         Pre-existing state: missing counterexample.
+         Pre-existing validate verdict: accept.
+         One-liner appended (99 chars):
+           "Adding spec rows for already-shipped subcommands
+            duplicates information without changing behaviour."
+         Post-sweep validate verdict: accept.
+
+    2. attestation-store-fill.yaml
+         Pre-existing state: missing counterexample.
+         Pre-existing validate verdict: accept.
+         One-liner appended (96 chars):
+           "Self-attestations certify a kernel that cannot yet
+            check itself; this loop is structurally weak."
+         Post-sweep validate verdict: accept.
+
+    3. audit-0.0.21-fixes.yaml
+         Pre-existing state: missing counterexample.
+         Pre-existing validate verdict: accept.
+         One-liner appended (91 chars):
+           "Five phases across 22 paths and 7 schemas invite
+            regressions outside the audit's catalogue."
+         Post-sweep validate verdict: accept.
+
+    4. ci-blocking-list-config.yaml
+         Pre-existing state: missing counterexample.
+         Pre-existing validate verdict: accept.
+         One-liner appended (100 chars):
+           "Without a `decisions/policy.yaml` parser, projects
+            with non-default CI lists still patch the kernel."
+         Post-sweep validate verdict: accept.
+
+    5. cli-canonical-name.yaml
+         Pre-existing state: missing counterexample AND
+           missing `obligations:` field (latter is a T2 deficit
+           out of scope for T6.2 prep).
+         Pre-existing validate verdict: reject (missing
+           required field: obligations).
+         One-liner appended (83 chars):
+           "Renaming `mc` -> `mathc` ships without exercising
+            the Midnight-Commander collision."
+         Post-sweep validate verdict: still reject (same
+           pre-existing structural reason). `mathc self-check`
+           verdict: pass (unchanged).
+
+    6. D6-bootstrap-v3-verifiers-implemented.yaml
+         Pre-existing state: missing counterexample, has a
+           `- counterexample: |` list item misplaced inside the
+           `risk:` block (commit 902ef46 missed this file when
+           it fixed similar issues for three other files), AND
+           missing `outcomes:` field (latter is a T2 deficit
+           out of scope for T6.2 prep).
+         Pre-existing validate verdict: reject (missing
+           required field: outcomes).
+         One-liner appended (98 chars):
+           "This decision's only enforcement is
+            `tests/process_principles.ml`'s P2 case, not a
+            counterexample."
+         Structural fix applied: the misplaced
+           `- counterexample: |` is moved out of the `risk:`
+           block (it was dead text there) and replaced by the
+           new top-level `counterexample: |` block.
+         Post-sweep validate verdict: still reject (same
+           pre-existing structural reason). `mathc self-check`
+           verdict: pass (unchanged).
+
+    7. mathc-explain-subcommand.yaml
+         Pre-existing state: missing counterexample AND
+           missing `obligations:` field (latter is a T2 deficit
+           out of scope for T6.2 prep).
+         Pre-existing validate verdict: reject (missing
+           required field: obligations).
+         One-liner appended (73 chars):
+           "Promoting the spec row commits to a follow-up
+            revision that may not land."
+         Post-sweep validate verdict: still reject (same
+           pre-existing structural reason). `mathc self-check`
+           verdict: pass (unchanged).
+
+    8. mathc-self-check-subcommand.yaml
+         Pre-existing state: missing counterexample.
+         Pre-existing validate verdict: accept.
+         One-liner appended (71 chars):
+           "`unknown` (exit 3) on an empty store must not be
+            conflated with `pass`."
+         Post-sweep validate verdict: accept.
+
+  Plan's "28 legacy decisions" vs actual "8":
+    The plan's outcomes/counterexample-required counts
+    "all 28 existing legacy decisions" — this prep touches 8.
+    The discrepancy is honest: the 2026-10 cycle (Decisions
+    with `-2026-10` in the filename) added counterexample as
+    part of their initial authoring, so by the time T6.2 was
+    planned only 8 of the 30-ish pre-cycle decisions lacked it.
+    The plan's number is an over-count from an earlier draft
+    where counterexample was even less common. Future legacy
+    decisions added without counterexample are caught by the
+    script's `NO-LOOKUP` failure mode.
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []
