@@ -1,0 +1,254 @@
+---
+schema: math-coding/3.0-alpha
+id: t2-1
+revision: 1
+state: active
+body_sha: "sha256:880d7ace3d567349f453f4f61512bfe5eb1dc3852f8bd0931fa7d304150d99aa"
+yaml_sha: "sha256:880d7ace3d567349f453f4f61512bfe5eb1dc3852f8bd0931fa7d304150d99aa"
+intent: |
+  Migrate axiom-id detection out of the raw-YAML bridge in
+  `lib/re_evaluation.ml::scan_axiom_ids` and into the
+  parser itself (`lib/decision.ml::parse_decision`). After this
+  commit, `parse_decision` populates `Domain.decision.relations.addresses`
+  directly from three sources:
+
+  1. The `relations.addresses` YAML block (already handled by
+     `parse_relations`).
+  2. Explicit `axiom:`, `axiom-id:`, `axioms:` keys anywhere in
+     the decision object (scalar or list).
+  3. `A<digits>...` tokens embedded as prose in any string scalar
+     in the decision (e.g. "axiom A1 self-application" inside an
+     obligation claim).
+
+  The bridge `lib/re_evaluation.ml::scan_axiom_ids` (lines 294-401)
+  and the augmentation block in `read_decision` are removed; the
+  loader becomes a thin parser wrapper. `tests/decision_addresses_equality.ml`
+  pins the equivalence for all 51 active decisions so the migration
+  is bit-for-bit unable to drift the addresses list.
+
+  History:
+    rev 1 (this commit): initial adoption. Closes meta-decision
+      `plan-2026-10-improvements` Tier 2 obligation
+      `t2-1-decision-parser-addresses`.
+
+commitment: |
+  `lib/decision.ml::parse_decision` populates
+  `relations.addresses` from the three sources listed in the
+  intent. The bridge `lib/re_evaluation.ml::scan_axiom_ids` and
+  the augmentation block in `read_decision` are deleted.
+  `tests/decision_addresses_equality.ml` is a regression test
+  that asserts the new parser's `relations.addresses` is set-equal
+  to (relations.addresses from the YAML block) ∪
+  (scan_axiom_ids of the raw YAML text) for every active
+  decision in `decisions/*.yaml` and
+  `decisions/plan-2026-10-improvements/*.yaml`. The reference
+  `scan_axiom_ids` is inlined into the test file (copied
+  verbatim from the pre-removal `re_evaluation.ml`) so the test
+  stays green after the bridge is removed.
+
+  Boundaries:
+  - `lib/gate.ml`, `lib/risk.ml`, `lib/policy.ml`,
+    `lib/waiver.ml`, `lib/rebuttal.ml`, `lib/diagnostic.ml`,
+    `lib/attestations/attestations.ml` are NOT modified.
+  - `bin/Mathc.ml` is NOT modified (stream ζ owns it).
+  - `lib/re_evaluation.ml` IS modified but only in the bridge
+    path: the module-level `status`, `axiom_revision`,
+    `re_evaluate`, `addresses_axiom`, `impact_list`,
+    `transitive_impact_list`, `gate_verdict`, `verifier_kind`,
+    `classify_verifier`, `first_verifier_id`, `str_contains_ci`,
+    `claim_references_any`, `evaluate_obligation`,
+    `remediation`, `list_decision_files`, `read_decision`,
+    `load_decisions` are unchanged in behaviour. Stream ζ owns
+    the 4-valued status change (T1.2) which is out of scope for
+    this stream.
+  - `schemas/decision.json` is NOT modified (relations.addresses
+    schema already supports the populated form).
+  - `spec/algebra-3.2.md` is NOT modified.
+  - Existing decision files (`decisions/*.yaml`,
+    `decisions/plan-2026-10-improvements/*.yaml`) are NOT
+    modified. The parser-side change is transparent to all 51
+    active decisions.
+  - The 14 constitution invariants (I1–I14) and the 5 axioms
+    (A0–A4) are preserved verbatim.
+  - The `A0` separation invariant holds: axiom detection
+    happens inside the pure parser module; no I/O, no kernel
+    gate, no runtime coupling.
+
+scope:
+  capabilities:
+    - decision-parser-canonicalisation
+  paths:
+    - "lib/decision.ml"
+    - "lib/re_evaluation.ml"
+    - "tests/decision_addresses_equality.ml"
+    - "tests/dune"
+    - "decisions/plan-2026-10-improvements/t2-1.yaml"
+    - "attestations/t2-1-*.json"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "site/**"
+    - "scripts/**"
+    - "spec/**"
+    - "decisions/plan-2026-10-improvements.yaml"
+    - "decisions/*.yaml"
+    - "decisions/plan-2026-10-improvements/*.yaml" (except t2-1.yaml)
+
+outcomes:
+  - id: parser-populates-relations-addresses
+    statement: |
+      `lib/decision.ml::parse_decision` populates
+      `relations.addresses` from the YAML block and from explicit
+      `axiom:` / `axiom-id:` / `axioms:` keys. A tree walk over
+      the parsed Jsonl value captures prose `A<id>` tokens in any
+      string scalar.
+
+  - id: bridge-removed
+    statement: |
+      `lib/re_evaluation.ml::scan_axiom_ids`, its helpers
+      (`strip_value`, `is_axiom_token`, `split_list_value`,
+      `collect_value`), and the augmentation block in
+      `read_decision` are deleted. The loader is reduced to a
+      thin parser wrapper.
+
+  - id: equivalence-test-pinned
+    statement: |
+      `tests/decision_addresses_equality.ml` asserts set equality
+      between the new parser's `relations.addresses` and the
+      (YAML block ∪ `scan_axiom_ids` raw-text scan) union, for
+      every active decision in the corpus. The test re-implements
+      `scan_axiom_ids` verbatim so it stays green after the
+      bridge is deleted.
+
+counterexample: |
+  "Just keep the bridge in `re_evaluation.ml`; the parser change
+  is unnecessary refactoring."
+
+  Counterargument: the bridge is a workaround for the pre-3.2
+  parser. It scans raw YAML text and bypasses the parsed
+  representation, which means:
+    (a) it cannot use the JSON-form normalization that
+        `parse_decision_yaml` already performs (scope/intent
+        shape, risk default-owner);
+    (b) it is invisible to any tool that consumes
+        `parse_decision_yaml` directly (e.g. tests, future
+        callers in `bin/Mathc.ml`, the `decision_parser_yaml`
+        conformance runner);
+    (c) it forces the loader to mutate
+        `Domain.decision.relations` post-parse, which violates
+        the algebra §7 invariant that the parser is the
+        authoritative source of a Decision's record.
+
+  The migration moves the detection into the parser and pins the
+  equivalence with a regression suite so no future parser change
+  can silently regress `impact_list`.
+
+  "The equivalence test inlines a copy of `scan_axiom_ids`; that
+  defeats the purpose of having a single source of truth."
+
+  Counterargument: the test inlines a *snapshot* of the bridge's
+  behaviour. The reference is verbatim at the moment the bridge
+  is removed, then frozen. If the project ever decides to widen
+  the axiom-token regex, both sides must change in lockstep —
+  and the test will fail until they do. This is the same
+  pattern used elsewhere in the kernel (e.g. the digest-vector
+  fixtures in `tests/digest_vectors.ml`).
+
+obligations:
+  - id: parser-populates-axiom-link
+    outcome: parser-populates-relations-addresses
+    statement: |
+      `parse_decision_yaml` produces a `Domain.decision` whose
+      `relations.addresses` is the union of (1) the YAML
+      `relations.addresses` block parsed via `parse_relations`,
+      (2) explicit `axiom:`, `axiom-id:`, `axioms:` keys
+      (scalar or list), and (3) prose `A[0-9]+` tokens in any
+      string scalar of the parsed decision tree.
+    claim: |
+      For every active decision, the new parser's
+      `relations.addresses` is set-equal to the union of the
+      YAML `relations.addresses` block and the prose
+      `A[0-9]+...` tokens that `scan_axiom_ids` would have
+      extracted from the raw YAML text.
+    acceptance:
+      all:
+        - verifier: tests/decision_addresses_equality.ml::equivalence.new parser ≡ reference bridge
+          result: pass
+        - verifier: tests/decision_addresses_equality.ml::parser robustness.relations.block well-formed
+          result: pass
+
+  - id: bridge-removed
+    outcome: bridge-removed
+    statement: |
+      `lib/re_evaluation.ml::scan_axiom_ids` and its helpers
+      are deleted; the augmentation block in `read_decision`
+      is removed. `read_decision` returns the decision as
+      `parse_decision_yaml` produced it.
+    claim: |
+      `grep -n 'scan_axiom_ids\|strip_value\|is_axiom_token\|split_list_value\|collect_value' lib/re_evaluation.ml`
+      returns nothing. `dune build` reports no unresolved
+      references. `tests/re_evaluation_test.ml` and
+      `tests/decision_addresses_equality.ml` pass.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: tests/re_evaluation_test.ml
+          result: pass
+        - verifier: tests/decision_addresses_equality.ml
+          result: pass
+
+  - id: mathc-validate-regression-free
+    outcome: equivalence-test-pinned
+    statement: |
+      For every active decision in the corpus, `mathc validate`
+      returns the same `accept` / `[warn]` / `reject` status as
+      it did on the meta-decision merge commit `4a3d14e`. The
+      migration is purely a kernel-internal change; nothing
+      about decision validation moves.
+    claim: |
+      The histogram of validate verdicts across all 54 decision
+      files matches the pre-migration histogram exactly: 35
+      `accept`, 8 `[warn]`, 11 `reject`.
+    acceptance:
+      all:
+        - verifier: mathc validate (corpus histogram match)
+          result: pass
+        - verifier: tests/decision_parser_yaml
+          result: pass
+
+reversal:
+  - signal: addresses-drift-detected
+    condition: |
+      A future change to the parser breaks the equivalence
+      invariant and `tests/decision_addresses_equality.ml`
+      fails. Resolution: re-introduce the bridge in
+      `read_decision` (same shape as pre-T2.1) under a new
+      sub-decision; supersede this one. The bridge code is
+      preserved in `tests/decision_addresses_equality.ml`'s
+      reference implementation as a recovery vector.
+    action: halt
+  - signal: scan-axiom-ids-reintroduced
+    condition: |
+      Stream ζ (T1.2) needs a re-evaluate path that depends on
+      prose axiom-token scanning. Resolution: re-introduce
+      `scan_axiom_ids` in `lib/re_evaluation.ml` as a private
+      helper used only by the 4-valued status path; the kernel
+      decision parser remains authoritative for
+      `relations.addresses`.
+    action: rework
+
+risk:
+  declared_triggers:
+    - parser-refactor
+    - equivalence-test-twin
+    - jsonl-walker-edge-case
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []

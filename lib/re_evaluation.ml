@@ -26,14 +26,13 @@
  * directory. Tests can pass a fake reader; the CLI calls
  * `In_channel.input_all`.
  *
- * The kernel decision parser (`lib/decision.ml`) does not yet
- * populate `Domain.decision.relations.addresses`; the loader here
- * bridges that gap by scanning the raw YAML source for axiom IDs
- * (`A0`..`A4` and any `axiom:` / `addresses:` field that names an
- * axiom). Decisions without addresses are still returned (with an
- * empty `relations.addresses`), so the rest of the kernel continues
- * to work; impact_list simply excludes them until the parser is
- * extended. *)
+ * As of T2.1 (decision parser addresses), the kernel decision
+ * parser (`lib/decision.ml::parse_decision`) populates
+ * `Domain.decision.relations.addresses` directly from the parsed
+ * YAML — the explicit `relations.addresses` block, the explicit
+ * `axiom:` / `axiom-id:` / `axioms:` keys, and any prose `A<id>`
+ * token embedded in the decision tree. The loader here no longer
+ * needs a raw-YAML bridge and is reduced to a thin parser wrapper. *)
 
 (* --- Verdict --- *)
 
@@ -291,115 +290,6 @@ commitment are now stale, and rewrite them.]
 
 (* --- Loader (boundary I/O) --- *)
 
-(* Scan raw decision YAML for axiom IDs.
- *
- * Recognises:
- *   - bare tokens matching `A[0-9]+(@rev)?` on any line (so
- *     existing prose references like "axiom A1" light up);
- *   - explicit `axiom:` or `axiom-id:` keys, scalar value or
- *     list;
- *   - the canonical `addresses:` block (already parsed by some
- *     callers) — we only fold axiom-shaped entries into the
- *     addresses list to keep the union non-conflicting.
- *
- * Helpers are declared first because `read_decision` consumes
- * the result; OCaml's top-down binding rules require the
- * helpers to appear above the consumer. *)
-let[@warning "-32"] strip_value v =
-  let v = String.trim v in
-  let n = String.length v in
-  if n >= 2 && v.[0] = '"' && v.[n - 1] = '"' then String.sub v 1 (n - 2)
-  else if n >= 2 && v.[0] = '\'' && v.[n - 1] = '\'' then String.sub v 1 (n - 2)
-  else v
-
-let[@warning "-32"] is_axiom_token s =
-  let n = String.length s in
-  if n < 2 then false
-  else if s.[0] <> 'A' then false
-  else
-    let re = Str.regexp "^A[0-9]+\\([@.][A-Za-z0-9_.-]*\\)?$" in
-    try
-      ignore (Str.search_forward re s 0);
-      true
-    with Not_found -> false
-
-let[@warning "-32"] split_list_value v =
-  String.split_on_char ',' v |> List.map strip_value
-  |> List.filter (fun s -> s <> "")
-
-let[@warning "-32"] collect_value (acc : string list) (v : string) =
-  let stripped = strip_value v in
-  if is_axiom_token stripped then
-    if List.mem stripped acc then acc else stripped :: acc
-  else acc
-
-let[@warning "-32"] scan_axiom_ids (raw : string) : string list =
-  let lines = String.split_on_char '\n' raw in
-  let re_token = Str.regexp "\\(\\<A[0-9]+\\([@.][A-Za-z0-9_.-]*\\)?\\>\\)" in
-  let scan_token (acc : string list) (line : string) =
-    let pos = ref 0 in
-    let rec loop () =
-      try
-        let _ = Str.search_forward re_token line !pos in
-        let tok = Str.matched_string line in
-        let acc =
-          if is_axiom_token tok && not (List.mem tok acc) then tok :: acc
-          else acc
-        in
-        pos := Str.match_end ();
-        let _ = acc in
-        loop ()
-      with Not_found -> acc
-    in
-    loop ()
-  in
-  let rec loop acc = function
-    | [] -> List.rev acc
-    | line :: rest ->
-        let trimmed = String.trim line in
-        (* Token scan first: catches prose references like
-         * "axiom A1" or "A2 self-application" anywhere on a
-         * line. *)
-        let acc = scan_token acc line in
-        (* Keyed scan: explicit `axiom: A0`, `addresses: [...]`
-         * forms. *)
-        let acc =
-          match String.index_opt trimmed ':' with
-          | Some i ->
-              let key = String.trim (String.sub trimmed 0 i) in
-              let v =
-                String.trim
-                  (String.sub trimmed (i + 1) (String.length trimmed - i - 1))
-              in
-              if
-                String.equal key "axiom"
-                || String.equal key "axiom-id"
-                || String.equal key "axioms"
-              then
-                let values = if v <> "" then [ v ] else [] in
-                List.fold_left collect_value acc values
-              else if String.equal key "addresses" then
-                let n = String.length v in
-                let values =
-                  if n >= 2 && v.[0] = '[' && v.[n - 1] = ']' then
-                    let inner = String.sub v 1 (n - 2) in
-                    split_list_value inner
-                  else if v <> "" then [ v ]
-                  else []
-                in
-                List.filter_map
-                  (fun s -> if is_axiom_token s then Some s else None)
-                  values
-                |> List.fold_left
-                     (fun a id -> if List.mem id a then a else id :: a)
-                     acc
-              else acc
-          | None -> acc
-        in
-        loop acc rest
-  in
-  loop [] lines
-
 (* Enumerate candidate decision paths under <root>/decisions/*.yaml
  * (also accepting .yml and .json). Missing directory -> []. The
  * kernel never crashes on a missing decisions directory; the
@@ -421,7 +311,12 @@ let[@warning "-32"] list_decision_files (root : string) : string list =
  * reader contract: empty string means "missing or empty", and we
  * return None for that. Parse failures are swallowed — the
  * kernel is best-effort over the corpus and never crashes on a
- * malformed decision (mirrors `Attestations.read_one`). *)
+ * malformed decision (mirrors `Attestations.read_one`).
+ *
+ * Post-T2.1: `Decision.parse_decision_yaml` already populates
+ * `relations.addresses` (YAML block + `axiom:` / `axiom-id:` /
+ * `axioms:` keys + prose `A<id>` tokens). The loader is now a
+ * thin parser wrapper. *)
 let[@warning "-32"] read_decision (reader : string -> string) (path : string) :
     Domain.decision option =
   let raw = reader path in
@@ -431,41 +326,14 @@ let[@warning "-32"] read_decision (reader : string -> string) (path : string) :
       try Codec.load_yaml_string raw
       with _ -> ( try Jsonl.parse raw with _ -> Jsonl.Null)
     in
-    match v with
-    | Jsonl.Object _ -> (
-        match Decision.parse_decision_yaml v with
-        | Some d ->
-            (* Bridge: the existing parser leaves relations
-             * empty. Scan the raw YAML for axiom IDs (A0..A4
-             * or any token matching `^A[0-9]+(@rev)?$`) and
-             * populate `relations.addresses` with the subset
-             * that looks like an axiom id. This keeps
-             * `impact_list` functional without forcing every
-             * decision author to migrate to the 3.2 parser. *)
-            let axiom_ids = scan_axiom_ids raw in
-            let existing = d.Domain.relations.Domain.addresses in
-            let merged =
-              List.fold_left
-                (fun acc id -> if List.mem id acc then acc else id :: acc)
-                existing axiom_ids
-            in
-            Some
-              {
-                d with
-                Domain.relations =
-                  { d.Domain.relations with Domain.addresses = merged };
-              }
-        | None -> None)
-    | _ -> None
+    match v with Jsonl.Object _ -> Decision.parse_decision_yaml v | _ -> None
 
 (* load_decisions : reader × root → Domain.decision list
  *
  * Boundary function. Mirrors `Attestations.load`:
  *   - takes a `reader` callback (caller controls I/O),
  *   - walks <root>/decisions/*.yaml,
- *   - parses each file with `Decision.parse_decision`,
- *   - augments `relations.addresses` with axiom IDs found in the
- *     raw YAML,
+ *   - parses each file with `Decision.parse_decision_yaml`,
  *   - skips malformed files silently (the kernel is best-effort). *)
 let[@warning "-32"] load_decisions ~reader ~root =
   match list_decision_files root with

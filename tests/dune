@@ -19,7 +19,8 @@
   supersession_check
   qcheck_parsers
   junit_test
-  rebuttal_forge_stub)
+  rebuttal_forge_stub
+  decision_addresses_equality)
  (libraries
   mathcoding_core
   mathcoding_attestations
