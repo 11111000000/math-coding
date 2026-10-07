@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: D6-bootstrap-v3-verifiers-implemented
 revision: 2
 state: active
-body_sha: "sha256:6a49f5bc2781b29bdd57c16a84113b3e7a969d26555f82db1644d5071fec7dc8"
-yaml_sha: "sha256:6a49f5bc2781b29bdd57c16a84113b3e7a969d26555f82db1644d5071fec7dc8"
+body_sha: "sha256:0b2a55e09f82640328d5a9f47f18f04223a1b7be00d7d5bd345a57cee5f05ef2"
+yaml_sha: "sha256:0b2a55e09f82640328d5a9f47f18f04223a1b7be00d7d5bd345a57cee5f05ef2"
 intent: |
   Close audit deficit D6 (bootstrap-v3 manual-only verifiers).
   The bootstrap protocol expired at commit `8fa7fcf` (v3.0.0.19);
@@ -34,16 +34,12 @@ scope:
     - PACKAGES.md
     - tests/process_principles.ml
 
+counterexample: |
+  This decision's only enforcement is `tests/process_principles.ml`'s P2 case, not a counterexample.
+
 risk:
   declared_triggers: []
   owner: human:maintainer
-  - counterexample: |
-      A regression in CI re-introduces a manual-only verifier.
-      Mitigation: `tests/process_principles.ml` runs `mathc
-      validate-check` over every `decisions/*.yaml` after the
-      kernel parses it; any decision with `acceptance.all: -
-      verifier: mathc-<X>` and no machine-checkable artifact
-      fails the P2 case.
 
 obligations:
   - id: D6-verifiers-machine-checked

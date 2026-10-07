@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: 3-2-cli-catalog
 revision: 2
 state: active
-body_sha: "sha256:f0b7283c0cb70f8152db444e9eed2aea563f4250fc92ad2ce2bf4cce4b1223c7"
-yaml_sha: "sha256:f0b7283c0cb70f8152db444e9eed2aea563f4250fc92ad2ce2bf4cce4b1223c7"
+body_sha: "sha256:0f2cfc46f4144d6cd7ec827a9a4f8a80147f530e7587445a18c497538c2ce318"
+yaml_sha: "sha256:0f2cfc46f4144d6cd7ec827a9a4f8a80147f530e7587445a18c497538c2ce318"
 intent: |
   Resolve the spec-vs-implementation drift on 3.2-ideal
   algebra subcommands. The `bin/Mathc.ml` dispatcher at HEAD
@@ -81,6 +81,9 @@ outcomes:
     statement: every 3.2 subcommand has both a positive cram
       fixture (exit 0 with the documented output) and a
       negative one (exit 2 on missing arguments).
+
+counterexample: |
+  Adding spec rows for already-shipped subcommands duplicates information without changing behaviour.
 
 assumptions:
   - id: algebra-batch-is-shipped

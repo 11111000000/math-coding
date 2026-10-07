@@ -369,4 +369,121 @@ let[@warning "-32"] collect_cases () =
         (fixture_files dir))
     [ "decision"; "attestation"; "waiver" ]
 
+(* --- legacy_counterexample_sweep (T6.2 prep, plan-2026-10-improvements) --- *)
+
+(* Meta files: aggregator decisions that follow a different
+   schema family (math-coding/obligations-3.0-alpha and the
+   special-purpose math-coding/decision.yaml) and a markdown
+   file (rationale.md). They are tracked under separate rules
+   and are explicitly excluded from the sweep. *)
+let[@warning "-32"] legacy_meta_files =
+  [
+    "decision.yaml";
+    "obligations.yaml";
+    "obligation-count-reconcile.yaml";
+    "rationale.md";
+  ]
+
+let[@warning "-32"] is_legacy_meta name = List.mem name legacy_meta_files
+
+let[@warning "-32"] counterexample_text content =
+  (* Return the stripped value of the top-level `counterexample: |`
+     block in `content`, or `None` if absent. *)
+  let lines = String.split_on_char '\n' content in
+  let rec find i =
+    if i >= List.length lines then None
+    else
+      let line = List.nth lines i in
+      match String.trim line with
+      | "counterexample: |" ->
+          let body =
+            lines
+            |> List.filteri (fun j _ -> j > i)
+            |> List.take_while (fun l ->
+                let len = String.length l in
+                len > 0 && (l.[0] = ' ' || l.[0] = '\t'))
+            |> List.map (fun l ->
+                let len = String.length l in
+                let rec skip_spaces k =
+                  if k >= len then 0
+                  else if l.[k] = ' ' then skip_spaces (k + 1)
+                  else k
+                in
+                Stdlib.String.sub l (skip_spaces 0) (len - skip_spaces 0))
+            |> String.concat " "
+          in
+          let stripped = String.trim body in
+          if String.length stripped >= 8 then Some stripped else Some ""
+      | _ -> find (i + 1)
+  in
+  find 0
+
+let[@warning "-32"] decisions_dir () =
+  let cwd = Sys.getcwd () in
+  let rec find_root d =
+    let candidate = Filename.concat d "dune-project" in
+    if Sys.file_exists candidate then d
+    else
+      let parent = Filename.dirname d in
+      if parent = d then cwd else find_root parent
+  in
+  Filename.concat (find_root cwd) "decisions"
+
+let[@warning "-32"] legacy_decision_files () =
+  let d = decisions_dir () in
+  match Sys.is_directory d with
+  | false -> []
+  | true ->
+      Sys.readdir d |> Array.to_list
+      |> List.filter (fun f ->
+          let sfx = Filename.extension f in
+          sfx = ".yaml")
+      |> List.filter (fun f -> not (is_legacy_meta f))
+      |> List.sort String.compare
+      |> List.map (fun f -> Filename.concat d f)
+
+let[@warning "-32"] assert_counterexample_present path =
+  let content =
+    try
+      Sys.readdir (Filename.dirname path) |> Array.to_list |> ignore;
+      let ic = open_in path in
+      let len = in_channel_length ic in
+      let s = really_input_string ic len in
+      close_in ic;
+      s
+    with _ -> ""
+  in
+  match counterexample_text content with
+  | None ->
+      Alcotest.failf
+        "%s: missing top-level counterexample: | block (T6.2 prep rule)"
+        (Filename.basename path)
+  | Some body when String.length body < 8 ->
+      Alcotest.failf
+        "%s: counterexample block is too short (%d chars, need >= 8): `%s`"
+        (Filename.basename path) (String.length body) body
+  | Some body ->
+      (* Sanity: also ensure the body is non-empty after strip. *)
+      Alcotest.(check bool)
+        (Printf.sprintf "%s has non-empty counterexample"
+           (Filename.basename path))
+        true
+        (String.length body >= 8)
+
+let[@warning "-32"] legacy_counterexample_sweep_cases () =
+  legacy_decision_files ()
+  |> List.map (fun path ->
+      Alcotest.test_case
+        (Printf.sprintf "legacy_counterexample_sweep[%s]"
+           (Filename.basename path))
+        `Quick
+        (fun () -> assert_counterexample_present path))
+
+let () =
+  Alcotest.run "kernel conformance"
+    [
+      ("fixtures", collect_cases ());
+      ("legacy_counterexample_sweep", legacy_counterexample_sweep_cases ());
+    ]
+
 let () = Alcotest.run "kernel conformance" [ ("fixtures", collect_cases ()) ]

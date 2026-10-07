@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: attestation-store-fill
 revision: 3
 state: active
-body_sha: "sha256:1fc2d876067ccb6ccdedf77aa21bca6f226d648225d2a7ed18db3ac27edf8555"
-yaml_sha: "sha256:1fc2d876067ccb6ccdedf77aa21bca6f226d648225d2a7ed18db3ac27edf8555"
+body_sha: "sha256:e47bcde6635a7310ccad158287a0a2f8746249ab998cf331da2c818ecf85906b"
+yaml_sha: "sha256:e47bcde6635a7310ccad158287a0a2f8746249ab998cf331da2c818ecf85906b"
 intent: |
   Close the AGENTS.md §Bootstrap-gate expiry condition for
   v3.0.0.19 by populating the filesystem-backed attestation
@@ -88,6 +88,9 @@ obligations:
       all:
         - verifier: mathc-self-check-verdict
           result: pass
+
+counterexample: |
+  Self-attestations certify a kernel that cannot yet check itself; this loop is structurally weak.
 
 reversal:
   - signal: attestations-stale-or-wrong

@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: ci-blocking-list-config
 revision: 2
 state: active
-body_sha: "sha256:76de3b6dc15ae0e259e213bf86fd3598a3c4455192b4d2df188ebc2397f48f57"
-yaml_sha: "sha256:76de3b6dc15ae0e259e213bf86fd3598a3c4455192b4d2df188ebc2397f48f57"
+body_sha: "sha256:406ecaee39800347d18fd5d11802a6ad675d758ca803f0e165882252e7ed1153"
+yaml_sha: "sha256:406ecaee39800347d18fd5d11802a6ad675d758ca803f0e165882252e7ed1153"
 intent: |
   Make the math-coding kernel's hardcoded list of blocking
   CIs (currently `["payments-ci"; "orders-ci";
@@ -78,6 +78,9 @@ outcomes:
       `["payments-ci"; "orders-ci"; "integration-ci"]` is
       preserved as a constant and is what the function
       returns when the env var is unset or empty.
+
+counterexample: |
+  Without a `decisions/policy.yaml` parser, projects with non-default CI lists still patch the kernel.
 
 assumptions:
   - id: env-var-is-sufficient

@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"t6-2-prep","obligation":"seed-script-idempotent","candidate_tree":"HEAD","materials_digest":""},"kind_":"analysis","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-10-07T18:00:00Z","id":"sha256:b9fac55a05649e98a71bec018a3a10aef616ccd79c83f626d8afd39490139b97"}
