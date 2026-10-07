@@ -13,5 +13,6 @@
   waiver_test
   confidence_preserve
   fixture_coverage
-  identity_uniqueness)
+  identity_uniqueness
+  supersession_check)
  (libraries mathcoding_core mathcoding_attestations alcotest))
