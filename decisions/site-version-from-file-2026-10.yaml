@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: site-version-from-file-2026-10
 revision: 1
 state: active
-body_sha: "sha256:69fbf46ddcc3e60c66f0a8c2b8c85a241914a9385113ef17490e569ad23c6511"
-yaml_sha: "sha256:69fbf46ddcc3e60c66f0a8c2b8c85a241914a9385113ef17490e569ad23c6511"
+body_sha: "sha256:09ec90c2dc6544cad7df788604afdb91213cb1b3038a9ecb7401303b75250b5d"
+yaml_sha: "sha256:09ec90c2dc6544cad7df788604afdb91213cb1b3038a9ecb7401303b75250b5d"
 intent: |
   Remove the hardcoded `3.0-alpha` and `v3.0.0` strings from
   `lib/render.ml`. The site hero, page titles, and footer
@@ -77,12 +77,35 @@ commitment: |
     `git describe --tags --abbrev=0 > VERSION` so a tag and
     the file stay in lock-step; the current cycle is the
     mechanism only.
-  - This cycle does not change any obligation in
-    `site-deploy@5`. The `mathjax-wiring` obligation
-    continues to assert the script is wired; the `tufte-
-    stylesheet` obligation continues to assert the Tufte
-    palette tokens; the new behaviour is opt-in via
-    `config.version`.
+- This cycle does not change any obligation in
+      `site-deploy@5`. The `mathjax-wiring` obligation
+      continues to assert the script is wired; the `tufte-
+      stylesheet` obligation continues to assert the Tufte
+      palette tokens; the new behaviour is opt-in via
+      `config.version`.
+
+scope:
+  capabilities:
+    - site-version-source-of-truth
+    - version-string-stability
+  paths:
+    - "lib/render.ml"
+    - "bin/Mathc.ml"
+    - "VERSION"
+    - "tests/render_kernel.ml"
+    - "tests/cli/version.t"
+    - "scripts/render.sh"
+  exclusions:
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/decision.ml"
+    - "lib/codec.ml"
+    - "lib/jsonl.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "attestations/**"
+    - "decisions/decision.yaml"
 
 counterexample: |
   "Reading the version from a file is a worse source of truth

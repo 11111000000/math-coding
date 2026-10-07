@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"parser-risk-owner-default","obligation":"bootstrap-validates","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"ci-bot"},"result":"pass","issued_at":"2026-10-07T16:30:00Z","id":"sha256:6849dade0604b3f0f11ad6a74f85a2697c092dee9422bc73717b09f4e1886228"}

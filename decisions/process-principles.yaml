@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: process-principles
 revision: 3
 state: active
-body_sha: "sha256:196601729a301d461ae1045802eecc273cfdceff02051f7f6da3add43f9ff4f8"
-yaml_sha: "sha256:196601729a301d461ae1045802eecc273cfdceff02051f7f6da3add43f9ff4f8"
+body_sha: "sha256:709f41e0776e4f0dbde12a84be597845952449297c35b6fc6f3669ba9a38d6c5"
+yaml_sha: "sha256:709f41e0776e4f0dbde12a84be597845952449297c35b6fc6f3669ba9a38d6c5"
 intent: |
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as
@@ -174,6 +174,27 @@ assumptions:
     review_on:
       - signal: maintainer-rotation
 
+  - id: P8
+    state: assumed
+    statement: |
+      An agent MUST detect when it is in an edit-loop. After 3
+      consecutive failed `dune build` attempts with the same
+      error class on the same file, the agent MUST stop editing
+      that file and switch to probe-driven debugging: write a
+      `tests/probe_X.ml` executable that calls the failing
+      function with debug prints, run it via `dune build`, and
+      use the output to identify whether the issue is a
+      structural refactor (deeply nested match) or a 1-3 line
+      content fix.
+    owner: human:maintainer
+    consequence_if_false: |
+      The agent spends hours on the same edit cycle, producing
+      no progress and risking merge conflicts. A 5+ attempt cycle
+      on the same file is a strong signal the approach is wrong.
+    evidence: manual-acceptance
+    review_on:
+      - signal: edit-loop-detected
+
 obligations:
   - id: p1-decisions-before-kernel-changes
     outcome: principles-recorded-as-obligations
@@ -289,27 +310,6 @@ obligations:
       all:
         - verifier: tests/process_principles.ml
           result: pass
-
-  - id: P8
-    state: assumed
-    statement: |
-      An agent MUST detect when it is in an edit-loop. After 3
-      consecutive failed `dune build` attempts with the same
-      error class on the same file, the agent MUST stop editing
-      that file and switch to probe-driven debugging: write a
-      `tests/probe_X.ml` executable that calls the failing
-      function with debug prints, run it via `dune build`, and
-      use the output to identify whether the issue is a
-      structural refactor (deeply nested match) or a 1-3 line
-      content fix.
-    owner: human:maintainer
-    consequence_if_false: |
-      The agent spends hours on the same edit cycle, producing
-      no progress and risking merge conflicts. A 5+ attempt cycle
-      on the same file is a strong signal the approach is wrong.
-    evidence: manual-acceptance
-    review_on:
-      - signal: edit-loop-detected
 
 reversal:
   - signal: kernel-can-enforce-p3-p4

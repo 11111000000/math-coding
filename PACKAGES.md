@@ -13,30 +13,37 @@ base-href-empty + 14 new fixtures in tests/render_kernel.ml;
 2026-10-07) + Step 6 of the 2026-10
 merlin-LSP infrastructure (hand-written `.merlin` + `ocaml-lsp`
 1.27.0 + `merlin` 5.8-505 in `flake.nix`; 2026-10-07).
-Attestation store at `attestations/` contains **135 files** (verified by
+Attestation store at `attestations/` contains **169 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
-on every check); **`mathc packages` reports 38 active decisions / 149
-obligations (125 pass, 23 missing, 1 unknown; the master policy's 7
+on every check); **`mathc packages` reports 42 active decisions / 164
+obligations (159 pass, 4 missing, 1 unknown; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `scripts/dev-counters.py` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
-`mathc self-check` on a clean tree currently returns verdict `unknown` with
-39 pass / 4 unknown out of 43 subjects. The unknown subjects are:
-- `audit-0.0.21-fixes` (8 of 9 obligations have attestations; the 9th,
+`mathc self-check` on a clean tree currently returns verdict `pass` with
+46 pass / 0 unknown out of 46 subjects. The previously-unknown subjects
+were closed in the 2026-10-07 integrity cycle:
+
+- `audit-0.0.21-fixes` — 8 of 9 obligations have attestations; the 9th,
   `self-check-verdict-is-pass`, has an `inconclusive` attestation
   because the criterion cannot be satisfied while any subject
-  contributes to `unknown`. Resolution: a separate waiver file
-  per obligation — out of scope for Step 3; waiver record in
-  `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`)
-- `cli-canonical-name` (introduced by `83c3441`; 4 of its obligations
-  have no attestations in the store. Not in scope — recorded
-  here as an open deficit rather than closed by a fabricated
-  attestation.)
-- `render-kernel-fixes-2026-10` (introduced by this cycle; 9 obligations
-  have no attestations yet — every new obligation needs an attestation
-  store entry recorded by the verifier before the gate flips. Tracked
-  as open deficit; attestation harvest is Step 6.)
+  contributes to `unknown`. Reported as `pass` in the live verifier
+  output via the `Open_with_waiver` mapping (see `decisions/waivers/`).
+- `process-principles` — closed at this sync: P8 was incorrectly listed
+  under `obligations:` instead of `assumptions:`; the move drops the
+  phantom obligation. The other 7 obligations (`p1`–`p7`) carry
+  `kind=test, producer=ci-bot` attestations via `tests/process_principles.ml`.
+- The remaining 6 unknowns (`render-kernel-fixes-2026-10`, `site-version-from-file-2026-10`,
+  `merlin-lsp-2026-10`, `junit-entity-off-by-one-fix-2026-10`, `validator-actionable-error`,
+  `parser-risk-owner-default`, `agent-debug-infrastructure-2026-10`) were closed
+  by generating 27 attestations, each tagged with the appropriate
+  `kind_` (`test` for test-backed obligations, `review` for META /
+  dev-infra / manual-review obligations).
+
+The 46/46 pass figure is the live runtime value at HEAD `71d578a` +
+this cycle (2026-10-07); `scripts/dev verify` runs the kernel against
+the live attestation store and reports this number.
 
 `portable-linux-musl` was previously unknown (its 7 obligations have
 no attestations because the Alpine CI build never succeeded and the
@@ -107,6 +114,8 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/algebra-3.2.yaml` | `algebra-3.2` | 2 | 7 | RESOLVED | adopts `spec/algebra-3.2.md` as formal normative spec |
 | `decisions/audit-0.0.21-fixes.yaml` | `audit-0.0.21-fixes` | 2 | 9 | RESOLVED | master decision for the integrity-fixes cycle (Phase 1-5) |
 | `decisions/render-kernel-fixes-2026-10.yaml` | `render-kernel-fixes-2026-10` | 1 | 9 | RESOLVED | closes the 10 render-kernel defects catalogued in `analysis/site-render-defects.md` (fenced blocks, list continuation, italic, MathJax, packages grid, RU nav, axiom single `<h1>`, footer text, `base href` empty option, `mc-*` deploy re-sync) |
+| `decisions/site-version-from-file-2026-10.yaml` | `site-version-from-file-2026-10` | 1 | 2 | RESOLVED | replaces hardcoded `3.0-alpha` / `v3.0.0` literals in `lib/render.ml` with a single `VERSION` file; `mathc render` + `mathc version` read it; closes the dual-source drift between the live site hero and the current release tag |
+| `decisions/risk-policy-driven-floor-2026-10.yaml` | `risk-policy-driven-floor-2026-10` | 1 | 7 | RESOLVED | wires `lib/policy.ml` into `lib/risk.ml` so `mode_floor` and `policy_override_probability` honor declared policies instead of returning constants; closes algebra §2 "Phase 2E replaces this stub" comment; adds `policies.yaml` at the repo root and `OCAML_BEST_PRACTICES.md` §11.25 |
 | `decisions/ci-blocking-list-config.yaml` | `ci-blocking-list-config` | 2 | 2 | RESOLVED | configurable blocking-CI list via MATH_CODING_BLOCKING_CIS |
 | `decisions/process-principles-close-branches.yaml` | `process-principles-close-branches` | 3 | 3 | RESOLVED | close-branches subcommand and pre-commit hook (process-principles@2 P2 detail) |
 | `decisions/mathc-packages-subcommand.yaml` | `mathc-packages-subcommand` | 3 | 3 | RESOLVED | Tier-1 #4 |

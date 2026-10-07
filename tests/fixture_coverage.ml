@@ -62,10 +62,12 @@ let manual_prefixes =
     (* descoped checks: not file existence, but property checks
        (output non-empty, contains X, etc.) — manual-style. *)
     "tests/render_kernel.ml::";
+    "tests/risk_kernel.ml::";
     "tests/process_principles.ml::";
     "tests/process_principles.ml ";
     "tests/conformance.ml ";
     "tests/conformance.exe ";
+    "tests/repo_structure.ml::";
     (* rendered outputs — produced by `mathc render`, not source. *)
     "dist/";
   ]

@@ -2653,6 +2653,18 @@ let dispatch () =
     print_usage stderr;
     exit 2
   end;
+  (* Load policies.yaml once at startup so the cached policy list
+     is populated before any `mathc mode` invocation runs. The
+     call is a no-op when the file is absent (algebra §9 default:
+     `policy(p) = default-policy`). The path is anchored at the
+     project root (find_project_root walks up to dune-project),
+     so the loader works from any cwd. See decision
+     `risk-policy-driven-floor-2026-10`. *)
+  let _ =
+    let root = find_project_root (Sys.getcwd ()) in
+    let path = Filename.concat root "policies.yaml" in
+    Policy.load_policies ~path ()
+  in
   match Sys.argv.(1) with
   | "validate" -> do_validate ()
   | "version" -> do_version ()

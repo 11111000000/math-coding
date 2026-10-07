@@ -6,6 +6,7 @@
   process_principles
   re_evaluation_test
   render_kernel
+  risk_kernel
   yaml_block_scalars
   ci_blocking_list_test
   decision_parser_yaml

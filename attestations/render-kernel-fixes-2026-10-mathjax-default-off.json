@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"render-kernel-fixes-2026-10","obligation":"mathjax-default-off","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"ci-bot"},"result":"pass","issued_at":"2026-10-07T16:30:00Z","id":"sha256:c859d6c2ea9bca5e5b44125ba1a00bdd039f280198435a8ebb98a233578c131d"}

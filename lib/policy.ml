@@ -60,6 +60,7 @@ type policy = {
   scope_paths : string list;
   obligations : obligation_ref list;
   mode_floor : Domain.mode;
+  override_probability : float;
   transitive_into : string list;
   data_flow_edges : data_flow_edge list;
 }
@@ -72,6 +73,7 @@ let default_policy =
     scope_paths = [];
     obligations = [];
     mode_floor = `Tiny;
+    override_probability = 0.0;
     transitive_into = [];
     data_flow_edges = [];
   }
@@ -184,6 +186,12 @@ let policies_of policies files =
 let[@warning "-32"] merge_policies ps =
   let obligations = dedup_refs (all_obligation_refs ps) in
   let mode_floor = max_mode_floor (List.map (fun p -> p.mode_floor) ps) in
+  let sum =
+    List.fold_left (fun acc p -> acc +. p.override_probability) 0.0 ps
+  in
+  let override_probability =
+    if sum > 1.0 then 1.0 else if sum < -1.0 then -1.0 else sum
+  in
   let transitive_into =
     dedup_strings (List.concat_map (fun p -> p.transitive_into) ps)
   in
@@ -193,6 +201,7 @@ let[@warning "-32"] merge_policies ps =
     scope_paths = dedup_strings (List.concat_map (fun p -> p.scope_paths) ps);
     obligations;
     mode_floor;
+    override_probability;
     transitive_into;
     data_flow_edges;
   }
@@ -251,6 +260,38 @@ let mode_floor_of policies files =
     @ policies_of policies (data_flow_targets policies files)
   in
   max_mode_floor (List.map (fun p -> p.mode_floor) applicable)
+
+(* policy_override_of_files: sum of `override_probability` across
+   all policies whose `scope_paths` match at least one file in the
+   input list, clamped to [-1, 1].
+
+   Algebra §2: probability(c) = 0.5 + 0.5 · policy_override_probability(c)
+   The override lives in [-1, 1] so probability stays in [0, 1].
+   Multiple policies that match the same file sum linearly; the
+   clamp is the kernel's invariant (OCAML_BEST_PRACTICES §11.25).
+
+   Pure, offline, no exceptions. Policies without
+   `override_probability` contribute 0.0 (the default). *)
+let[@warning "-32"] clamp_override f =
+  if f > 1.0 then 1.0 else if f < -1.0 then -1.0 else f
+
+let policy_override_of_files policies files =
+  let matching =
+    List.filter
+      (fun p ->
+        match p.scope_paths with
+        | [] -> false
+        | _ ->
+            List.exists
+              (fun path ->
+                List.exists (fun sp -> path_matches sp path) p.scope_paths)
+              files)
+      policies
+  in
+  let sum =
+    List.fold_left (fun acc p -> acc +. p.override_probability) 0.0 matching
+  in
+  clamp_override sum
 
 (* --- JSON / YAML parsers --- *)
 
@@ -333,12 +374,18 @@ let[@warning "-32"] parse_policy v =
           in
           let transitive_into = parse_string_list ps "transitive_into" in
           let data_flow_edges = parse_data_flow_edges ps in
+          let override_probability =
+            match Schema.take_number ps "override_probability" with
+            | Some f -> f
+            | None -> 0.0
+          in
           Some
             {
               policy_id;
               scope_paths;
               obligations;
               mode_floor;
+              override_probability;
               transitive_into;
               data_flow_edges;
             }
@@ -423,3 +470,6 @@ let[@warning "-32"] mode_floor_of_cached files =
 
 let[@warning "-32"] data_flow_targets_cached files =
   data_flow_targets !cached_policies files
+
+let policy_override_of_files_cached files =
+  policy_override_of_files (cached ()) files

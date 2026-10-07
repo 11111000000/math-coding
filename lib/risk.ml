@@ -101,10 +101,15 @@ let impact files =
 
 (* ---------- probability ---------- *)
 
-(* policy_override_probability(c) ∈ [-1, 1] from policy.yaml,
-   algebra §2. Default 0 ⇒ probability(c) = 0.5.
-   Phase 2E replaces this stub with Policy.policy_override_of_files. *)
-let policy_override_probability _files = 0.0
+(* policy_override_probability(c) ∈ [-1, 1] from policies.yaml,
+   algebra §2. Default 0 ⇒ probability(c) = 0.5. Wired to
+   `Policy.policy_override_of_files` (per decision
+   `risk-policy-driven-floor-2026-10`); before that decision
+   landed, the value was a constant 0.0 and the function
+   carried a "Phase 2E replaces this stub" comment. *)
+let policy_override_probability files =
+  Policy.policy_override_of_files_cached files
+
 let probability files = 0.5 +. (0.5 *. policy_override_probability files)
 
 (* ---------- irreversibility (algebra §2) ---------- *)
@@ -149,14 +154,13 @@ let mode_floor_of_string (s : string) : Domain.mode option =
   | _ -> None
 
 (* mode_floor(c) = max{mode_floor(policy(p)) : p ∈ c.files ∪
-                       transitive_paths(c)}, algebra §2.
-   Phase 2E will replace this stub with a call into lib/policy.ml
-   that reads declared_policies.yaml and computes the transitive
-   union via data_flow_targets* (algebra §9). Until then, every
-   commit starts at Standard — the spec's default floor — so the
-   gate sees the classifier's output above the floor but cannot
-   yet be raised by an axiom-touching or pci-strict declaration. *)
-let mode_floor (_files : string list) : Domain.mode = `Standard
+                       transitive_paths(c)}, algebra §2. Wired to
+   `Policy.mode_floor_of_cached` (per decision
+   `risk-policy-driven-floor-2026-10`); before that decision
+   landed, the value was a constant `Standard` and the function
+   carried a "Phase 2E will replace this stub" comment. *)
+let mode_floor (files : string list) : Domain.mode =
+  Policy.mode_floor_of_cached files
 
 (* ---------- mode arithmetic ---------- *)
 

@@ -77,7 +77,7 @@ without a `decisions/*.yaml` decision under the active policy.
 **Status**: ✅ LANDED between `ff9e738` and `fd7ea8b` (13/13 tasks).
 Schema extensions preserve backward compat (v3.0.0.20 → v3.1.0 alpha).
 
-`mathc self-check` verdict: `pass` (32 subjects (30 pass + 2 unknown)).
+`mathc self-check` verdict: `unknown` (46 subjects (39 pass + 7 unknown)).
 Runtime kernel behaviour is backward compatible: the existing
 `mathc validate`, `mathc gate`, `mathc packages`, `mathc explain`,
 `mathc self-check` keep working unchanged.
@@ -108,9 +108,12 @@ Runtime kernel behaviour is backward compatible: the existing
   AUDIT-0.0.20.md is stale and does not match the tree.
   **Status**: closed at this sync (verified by
   `grep -n 'subjects_len\|total_subjects\|pass_count' tests/cli/self-check-*.t`,
-  2026-10-04). If a future change re-introduces drift, regenerate
-  snapshots by running `dune promote` after a clean
-  `dune build` on a host with a working toolchain.
+  2026-10-04). **Reopened and re-closed at the 2026-10-07
+  integrity cycle**: the live kernel reports 46 subjects with
+  39 pass + 7 unknown (`mathc self-check`); the cram snapshots
+  lag the live state until regenerated. The current fix path
+  is `dune promote` after a clean `dune build` on a host
+  with a working toolchain.
 - **Portable binary build** (Tier 3.5+ #13): **DEFERRED via reversal
   signal** at HEAD `f60c971d` (rev 2 of `decisions/portable-linux-musl.yaml`).
   First push attempted `linux-x86_64-musl` Alpine container build
@@ -176,7 +179,7 @@ When multiple parallel agents commit, integrate in this order:
 `tests/cram/*.t` was removed in `dc78bcd` (v3-alpha-0.0.10). The
 `tests/fixtures/cli-<sub>.sh` convention was retired at
 v3-alpha-0.0.16 when all CLI shell fixtures were migrated to
-`dune cram` in `tests/cli/*.t` (32 files at HEAD). Cram now lives in
+`dune cram` in `tests/cli/*.t` (35 files at HEAD). Cram now lives in
 `tests/cli/*.t`, asserting CLI stdout/stderr snapshots via dune 3.23
 cram stanzas. The `tests/fixtures/` directory persists only as a
 host for `scripts/dev verify` aggregator wrappers, not per-CLI

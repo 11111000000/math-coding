@@ -3,12 +3,16 @@
 > Project author: Petr Kosov <p.b.kosov@yandex.ru>
 
 This repository implements math-coding 3.0-alpha. As of v3.0.0.19
-(commit `8fa7fcf`) the bootstrap gate has expired: the released
-3.0 kernel successfully checks this repository and its conformance
-corpus (`mathc self-check` is now a blocking CI step per
-`constitution.md` Invariant 14). Assessment verdicts produced by
-`mathc gate`, `mathc self-check`, and `mathc assess` are automated
-guarantees, not manual declarations.
+(commit `8fa7fcf`) the bootstrap gate has expired: `mathc self-check`
+is a blocking CI step per `constitution.md` Invariant 14. Verdicts
+produced by `mathc gate`, `mathc self-check`, and `mathc assess`
+reflect the kernel's reading of the live attestation store at
+HEAD; they are not hand-written promises, but they are bounded by
+the source class of each attestation in the store — `kind_` is one
+of `test | review | build | analysis | observation`, and a
+`review`-class attestation is a human declaration, not a runtime
+observation. Treat the verdict as the sum of its attestations'
+source classes, not as an undifferentiated guarantee.
 
 The complete v2.1 source is preserved by the remote Git tag
 `v2.1-final`. Do not use v2 packet fields, commands, or lifecycle rules

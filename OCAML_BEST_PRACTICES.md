@@ -1756,3 +1756,43 @@ before the build even runs.
 
 Cited from `AGENTS.md:§Edit-loop prevention` and
 `decisions/process-principles.yaml:P8`.
+
+### 11.25 Policy override clamp contract
+
+**Symptom.** A change to `lib/policy.ml::policy_override_of_files`
+or `lib/policy.ml::merge_policies` removes or weakens the
+`clamp_override` step (or the inline equivalent in
+`merge_policies`). Two policies each contributing `+0.5` now
+yield `override_probability = 1.0` (the sum, not the clamp).
+This silently saturates `probability(c) = 0.5 + 0.5 * 1.0 = 1.0`
+for any commit touching both policy paths, which then makes
+`risk(c) = impact(c) * 1.0 * irreversibility(c) = irreversibility(c)`
+regardless of impact. The classifier under-weights the impact
+factor for that commit.
+
+**Fix.** The clamp is a kernel invariant. Every code path that
+sums `override_probability` across policies MUST clamp the sum
+to `[-1, 1]` before returning. The current implementation lives
+in two places:
+
+  - `lib/policy.ml::clamp_override` (used by
+    `policy_override_of_files` and `policy_override_of_files_cached`).
+  - `lib/policy.ml::merge_policies` (inline, used by
+    `policy_of` when multiple policies match a single path).
+
+A future refactor that introduces a third call site (e.g. a
+`policy_override_of_cached_file` lookup) MUST also clamp.
+The regression pin: `tests/risk_kernel.ml::policy_override_clamps_to_unit`
+asserts that two policies each with `override_probability: 0.7`
+sum to `1.0`, not `1.4`.
+
+**Trigger.** Any hand-written policy lookup that does
+`List.fold_left (fun acc p -> acc +. p.override_probability) 0.0 ps`
+without a `if sum > 1.0 then 1.0 else if sum < -1.0 then -1.0 else sum`
+clamp. The Python script
+`scripts/check-policy-override-clamp.sh` (follow-up cycle)
+can grep for the unclamped pattern; today the check is manual.
+
+Cited from `decisions/risk-policy-driven-floor-2026-10.yaml`
+(assumptions: `policy-override-clamp-contracts-stable`,
+obligations: `policy_override_of_files`).

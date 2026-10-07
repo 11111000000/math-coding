@@ -1,0 +1,46 @@
+# policies.yaml — math-coding 3.0 project policy declaration.
+#
+# Loaded once at mathc startup by `lib/policy.ml::load_policies`
+# (decision `risk-policy-driven-floor-2026-10`). The cache is
+# read by `lib/risk.ml::mode_floor` and
+# `lib/risk.ml::policy_override_probability`.
+#
+# Schema: schemas/policy.json. Each entry is a policy record
+# with `scope_paths` (glob-like: `path`, `path/*`, `path/**`),
+# `mode_floor` (one of: tiny | light | standard | strict |
+# exhaustive — per `lib/codec.ml::parse_mode`),
+# and `override_probability` ∈ [-1, 1] (clamped at the kernel
+# boundary; OCAML_BEST_PRACTICES §11.25).
+#
+# The default policy catches every path matched by `scope_paths`.
+# The axioms policy is more specific; for `axioms/**` paths
+# both apply, and `mode_floor` is the max (per algebra §2).
+# Adding a new policy is a code change that requires its own
+# decision under bootstrap-v3.
+
+- policy_id: math-coding-default
+  scope_paths:
+    - "lib/**"
+    - "bin/**"
+    - "tests/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "site/**"
+    - "scripts/**"
+    - "decisions/**"
+    - "attestations/**"
+  mode_floor: standard
+  override_probability: 0.0
+  obligations: []
+  transitive_into: []
+  data_flow_edges: []
+
+- policy_id: math-coding-axioms
+  scope_paths:
+    - "axioms/**"
+  mode_floor: exhaustive
+  override_probability: 0.0
+  obligations: []
+  transitive_into: []
+  data_flow_edges: []

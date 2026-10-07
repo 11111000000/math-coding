@@ -31,9 +31,14 @@ The kernel checks the chain. Humans write it.
 
 Before v3.0.0.19, every change had to satisfy eight manual bootstrap
 checks in lieu of a working kernel. From v3.0.0.19 onward,
-`mathc self-check` is a blocking CI step. The kernel is now the source
-of the verdict. `mathc gate`, `mathc self-check`, and `mathc assess` are
-automated guarantees, not hand-written promises. Routine checks are
+`mathc self-check` is a blocking CI step. The kernel is now the
+authoritative source of the verdict on a clean tree. The verdicts
+are bounded by the source class of each attestation in the store
+(`kind_` ∈ `test | review | build | analysis | observation`); a
+`review`-class attestation is a human declaration, not a runtime
+observation, so "verdict: pass" reflects that every obligation has
+at least one attestation — it does not by itself assert that every
+attestation is a `test`-class automated check. Routine checks are
 free; protected-policy transitions keep the manual checklist on top.
 
 ## CLI
