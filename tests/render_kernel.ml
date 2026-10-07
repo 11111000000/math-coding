@@ -28,6 +28,17 @@ let[@warning "-32"] index_of haystack needle =
 
 let[@warning "-32"] has needle haystack = index_of haystack needle >= 0
 
+(* Count non-overlapping occurrences of `needle` inside `haystack`. *)
+let[@warning "-32"] count needle haystack =
+  let len = String.length haystack in
+  let nlen = String.length needle in
+  let rec loop i acc =
+    if i + nlen > len then acc
+    else if String.sub haystack i nlen = needle then loop (i + nlen) (acc + 1)
+    else loop (i + 1) acc
+  in
+  loop 0 0
+
 let[@warning "-32"] tufte_tokens_resolve () =
   let css =
     "  --bg: #fbfaf6;\n\
@@ -178,6 +189,226 @@ let[@warning "-32"] hr_renders () =
   let html = Render.md_parse src in
   Alcotest.(check bool) "<hr> present" true (has "<hr>" html)
 
+(* --- render-kernel-fixes-2026-10 obligations --- *)
+
+let[@warning "-32"] fenced_code_renders () =
+  let src = "```text\ncommitment\n   |\n   v\nprediction\n```\n" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "<pre><code class=\"language-text\"> present" true
+    (has "<pre><code class=\"language-text\">" html);
+  Alcotest.(check bool)
+    "diagram body inside <pre>" true
+    (has "commitment\n   |\n   v\nprediction" html);
+  (* Negative: <pre> must NOT include the closing fence itself. *)
+  Alcotest.(check bool)
+    "closing fence is not echoed verbatim" true
+    ((not (has "```" html)) || has "<pre>" html)
+
+let[@warning "-32"] fenced_code_closing_fence_length_3 () =
+  (* Regression test for the "```text" bug: the previous predicate
+     was `String.length trimmed > 4 && String.sub trimmed 0 4 = "```"`,
+     which can NEVER match because `String.sub "```" 0 4` raises
+     Invalid_argument — and the `> 4` guard hid that crash by
+     silently failing the predicate. The closing fence is length 3. *)
+  let src = "before\n\n```text\nbody\n```\n\nafter\n" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "<pre><code> wraps the body" true
+    (has "<pre><code class=\"language-text\">body" html);
+  Alcotest.(check bool)
+    "<p>after</p> present after fence" true (has "after" html)
+
+let[@warning "-32"] mermaid_fence_renders_as_div () =
+  let src = "```mermaid\ngraph TD; A-->B;\n```\n" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "<div class=\"mermaid\"> present" true
+    (has "<div class=\"mermaid\">" html);
+  Alcotest.(check bool)
+    "no <pre><code> for mermaid" true
+    (not (has "<pre><code class=\"language-mermaid\">" html))
+
+let[@warning "-32"] list_continuation_renders () =
+  (* Multi-line list item: continuation lines joined into one <li>. *)
+  let src = "- first line\n  second line\n  third line\n- second item\n" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "two <li> for two items" true
+    (has "<li>" html && count "<li>" html = 2);
+  Alcotest.(check bool)
+    "first item contains continuation" true
+    (has "first line second line third line" html);
+  Alcotest.(check bool)
+    "second item is independent" true (has "second item" html)
+
+let[@warning "-32"] list_single_item_still_one_li () =
+  (* Single-line list item stays as one <li>. *)
+  let src = "- just one line\n" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool) "single <li>" true (count "<li>" html = 1)
+
+let[@warning "-32"] italic_renders () =
+  let src = "an *italic* word" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "<em>italic</em> present" true
+    (has "<em>italic</em>" html);
+  (* A separate test pairs italic with bold to ensure both
+     render in one pass. *)
+  let src2 = "**bold** and *italic*" in
+  let html2 = Render.md_parse src2 in
+  Alcotest.(check bool)
+    "<strong>bold</strong> still rendered" true
+    (has "<strong>bold</strong>" html2);
+  Alcotest.(check bool)
+    "<em>italic</em> still rendered" true
+    (has "<em>italic</em>" html2);
+  (* Underscore italic with word-boundary. *)
+  let src3 = "see _emphasis_ here" in
+  let html3 = Render.md_parse src3 in
+  Alcotest.(check bool)
+    "_text_ becomes <em> via word-boundary" true
+    (has "<em>emphasis</em>" html3)
+
+let[@warning "-32"] italic_lone_asterisk_literal () =
+  let html = Render.md_parse "single * not italic" in
+  Alcotest.(check bool)
+    "lone asterisk stays literal" true
+    (has "single * not italic" html && not (has "<em>" html))
+
+let[@warning "-32"] italic_underscore_inside_identifier_safe () =
+  (* `$x_i$` style identifiers must not be italicised; the underscore
+     is preceded by an alphanumeric so the rule does not match. *)
+  let html = Render.md_parse "subscript $x_i$ is fine" in
+  Alcotest.(check bool)
+    "no <em> for intraword underscore" true
+    (not (has "<em>" html))
+
+let[@warning "-32"] mathjax_default_off () =
+  let cfg : Render.config = Render.default_config in
+  Alcotest.(check bool)
+    "default_config.enable_mathjax is false" true
+    (not cfg.Render.enable_mathjax)
+
+let[@warning "-32"] mathjax_in_head_when_enabled () =
+  let cfg : Render.config =
+    { Render.default_config with Render.enable_mathjax = true }
+  in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg
+      ~site_pages:[ ("methodology", "Methodology", "before") ]
+      ~site_pages_ru:[] ~axioms_data:[]
+  in
+  let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
+  Alcotest.(check bool)
+    "MathJax CDN script emitted when flag on" true
+    (has "mathjax@3" page.Render.body)
+
+let[@warning "-32"] packages_page_has_grid () =
+  let cfg : Render.config = Render.default_config in
+  let pkg_html =
+    "<section class=\"mathc-packages\" \
+     data-mathc-package-count=\"42\"><h2>packages</h2></section>"
+  in
+  let pages =
+    Render.build_pages ~package_html:pkg_html ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg
+      ~site_pages:[ ("packages", "Packages", "prose body") ]
+      ~site_pages_ru:[] ~axioms_data:[]
+  in
+  let page = List.find (fun p -> p.Render.path = "packages.html") pages in
+  Alcotest.(check bool)
+    "packages.html has <section class=\"mathc-packages-section\">" true
+    (has "<section class=\"mathc-packages-section\">" page.Render.body);
+  Alcotest.(check bool)
+    "packages.html has the grid body" true
+    (has "data-mathc-package-count=\"42\"" page.Render.body)
+
+let[@warning "-32"] ru_nav_omits_missing_sibling () =
+  let cfg : Render.config = Render.default_config in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg
+      ~site_pages:
+        [
+          ("methodology", "Methodology", "EN methodology");
+          ("manifesto", "Manifesto", "EN manifesto");
+        ]
+      ~site_pages_ru:[ ("manifesto", "Manifesto / RU", "RU manifesto") ]
+      ~axioms_data:[]
+  in
+  let methodology =
+    List.find (fun p -> p.Render.path = "methodology.html") pages
+  in
+  let manifesto = List.find (fun p -> p.Render.path = "manifesto.html") pages in
+  Alcotest.(check bool)
+    "methodology omits RU toggle (no .ru.md sibling)" true
+    ((not (has "lang-toggle" methodology.Render.body))
+    || not (has "methodology.ru.html" methodology.Render.body));
+  Alcotest.(check bool)
+    "manifesto carries RU toggle" true
+    (has "manifesto.ru.html" manifesto.Render.body)
+
+let[@warning "-32"] axiom_page_single_h1 () =
+  let cfg : Render.config = Render.default_config in
+  let axiom_body = "# Axiom A1 — Feedback\n\nbody text\n" in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~axioms_data:[ ("feedback", axiom_body) ]
+  in
+  let page =
+    List.find (fun p -> p.Render.path = "axioms/feedback.html") pages
+  in
+  let h1_count = count "<h1>" page.Render.body in
+  Alcotest.(check bool)
+    "exactly one <h1> on axiom page (template h1 + stripped source h1)" true
+    (h1_count = 1)
+
+let[@warning "-32"] footer_mathc_render () =
+  let cfg : Render.config = Render.default_config in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg
+      ~site_pages:[ ("home", "Home", "body") ]
+      ~site_pages_ru:[] ~axioms_data:[]
+  in
+  let page = List.find (fun p -> p.Render.path = "index.html") pages in
+  Alcotest.(check bool)
+    "footer says mathc render" true
+    (has "mathc render" page.Render.body);
+  Alcotest.(check bool)
+    "footer does not say mc render" true
+    (not (has "<code>mc render</code>" page.Render.body))
+
+let[@warning "-32"] base_href_default () =
+  let cfg : Render.config = Render.default_config in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~axioms_data:[]
+  in
+  let home = List.find (fun p -> p.Render.path = "index.html") pages in
+  Alcotest.(check bool)
+    "<base href='/math-coding/'> in <head> by default" true
+    (has "<base href=\"/math-coding/\">" home.Render.body)
+
+let[@warning "-32"] base_href_empty () =
+  let cfg : Render.config =
+    { Render.default_config with Render.site_base = "" }
+  in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~axioms_data:[]
+  in
+  let home = List.find (fun p -> p.Render.path = "index.html") pages in
+  Alcotest.(check bool)
+    "empty site_base suppresses <base href>" true
+    (not (has "<base href=" home.Render.body))
+
 let () =
   Alcotest.run "render"
     [
@@ -185,9 +416,11 @@ let () =
         [ Alcotest.test_case "tokens" `Quick tufte_tokens_resolve ] );
       ( "sidenote_renders",
         [ Alcotest.test_case "rounds" `Quick sidenote_renders ] );
-      ("mathjax_in_head", [ Alcotest.test_case "script" `Quick mathjax_in_head ]);
+      ( "mathjax_in_head_when_enabled",
+        [ Alcotest.test_case "script" `Quick mathjax_in_head_when_enabled ] );
       ( "base_href_default",
         [ Alcotest.test_case "href" `Quick base_href_default ] );
+      ("base_href_empty", [ Alcotest.test_case "empty" `Quick base_href_empty ]);
       ( "bilingual_pairs_complete",
         [ Alcotest.test_case "pairs" `Quick bilingual_pairs_complete ] );
       ("table_renders", [ Alcotest.test_case "table" `Quick table_renders ]);
@@ -196,4 +429,33 @@ let () =
         [ Alcotest.test_case "bq" `Quick blockquote_renders ] );
       ("link_renders", [ Alcotest.test_case "link" `Quick link_renders ]);
       ("hr_renders", [ Alcotest.test_case "hr" `Quick hr_renders ]);
+      ( "fenced_code_renders",
+        [ Alcotest.test_case "pre" `Quick fenced_code_renders ] );
+      ( "fenced_code_closing_fence_length_3",
+        [ Alcotest.test_case "len-3" `Quick fenced_code_closing_fence_length_3 ]
+      );
+      ( "mermaid_fence_renders_as_div",
+        [ Alcotest.test_case "mermaid" `Quick mermaid_fence_renders_as_div ] );
+      ( "list_continuation_renders",
+        [ Alcotest.test_case "cont" `Quick list_continuation_renders ] );
+      ( "list_single_item_still_one_li",
+        [ Alcotest.test_case "single" `Quick list_single_item_still_one_li ] );
+      ("italic_renders", [ Alcotest.test_case "em" `Quick italic_renders ]);
+      ( "italic_lone_asterisk_literal",
+        [ Alcotest.test_case "lone" `Quick italic_lone_asterisk_literal ] );
+      ( "italic_underscore_inside_identifier_safe",
+        [
+          Alcotest.test_case "id" `Quick
+            italic_underscore_inside_identifier_safe;
+        ] );
+      ( "mathjax_default_off",
+        [ Alcotest.test_case "off" `Quick mathjax_default_off ] );
+      ( "packages_page_has_grid",
+        [ Alcotest.test_case "grid" `Quick packages_page_has_grid ] );
+      ( "ru_nav_omits_missing_sibling",
+        [ Alcotest.test_case "ru" `Quick ru_nav_omits_missing_sibling ] );
+      ( "axiom_page_single_h1",
+        [ Alcotest.test_case "h1" `Quick axiom_page_single_h1 ] );
+      ( "footer_mathc_render",
+        [ Alcotest.test_case "footer" `Quick footer_mathc_render ] );
     ]

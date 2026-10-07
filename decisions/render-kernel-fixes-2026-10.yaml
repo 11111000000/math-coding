@@ -1,0 +1,394 @@
+---
+schema: math-coding/3.0-alpha
+id: render-kernel-fixes-2026-10
+revision: 1
+state: active
+body_sha: "sha256:6933700a0493840c29769d693a893563c7cd621a18ab25ac718437087cc709f0"
+yaml_sha: "sha256:6933700a0493840c29769d693a893563c7cd621a18ab25ac718437087cc709f0"
+intent: |
+  Close the ten concrete render-kernel defects catalogued in
+  `analysis/site-render-defects.md` (commit-diagnostic branch
+  `fact-site-render-analysis`, 2026-10-07). The defects fall
+  into three buckets:
+
+    Bug fixes (kernel) — six defects in `lib/render.ml`:
+      fenced code blocks (lines 372, 258), list-item
+      continuation, italic emphasis, MathJax snatching
+      parenthetical text, packages-page grid missing,
+      RU-nav pointing at non-existent siblings, axiom-page
+      duplicated `<h1>`, footer hard-coded "mc render".
+
+    Surface patch (CSS + footer text) — three defects:
+      the live `assets/style.css` is pinned to a tree that
+      used the old `mc-*` class names (deployed before
+      `cli-canonical-name@2`); the footer text says `mc render`,
+      not `mathc render`. Both are fixed by re-deploying after
+      this kernel cycle lands.
+
+    Local-preview fix — one defect: `<base href="/math-coding/">`
+      breaks local `python3 -m http.server` preview by making
+      CSS/asset URLs resolve under a non-existent subpath.
+
+  Each fix is paired with at least one positive and one
+  negative fixture in `tests/render_kernel.ml`; a cram snapshot
+  in `tests/cli/render.t` checks the produced `dist/` tree for
+  the previously-broken artefacts.
+
+  History:
+    rev 1 (this commit): initial adoption. Closes the 10
+    defects listed in `analysis/site-render-defects.md` (2026-10-07).
+
+commitment: |
+  `mathc render --out dist --lang=both` produces a static site
+  in which:
+
+    1. Every fenced code block (```` ```lang ... ``` ````) in
+       `site/*.md`, `axioms/*.md`, and `decisions/*.md` excerpts
+       renders as `<pre><code class="language-lang">...</code>`
+       (or `<pre><code>` when no language is given, or
+       `<div class="mermaid">` for `mermaid` fences). ASCII art
+       diagrams in `axioms/*.md` keep their line breaks.
+
+    2. Multi-line list items in `site/*.md` render as one
+       `<li>` per item, with continuation lines joined by a
+       space (matching the previous in-prose convention). No
+       spurious `</ul>` between the first and last line of an
+       item.
+
+    3. `*italic*` (single asterisk) renders as `<em>italic</em>`.
+       Lone asterisks without pairing stay literal.
+
+    4. MathJax 3 is wired in the kernel but defaults to OFF
+       (`enable_mathjax = false`). No page in `site/*.md` or
+       `axioms/*.md` currently contains `$…$` or `\[…\]` math,
+       so the default-off does not regress the rendered output;
+       it does prevent MathJax from typesetting English words
+       in parentheses as math italics. The kernel still emits
+       the MathJax `<script>` when `enable_mathjax = true` is
+       passed, so future pages with formulas keep the path.
+
+    5. `dist/packages.html` carries the live package grid
+       (`<section class="mathc-packages-section">` followed by
+       the `mathc packages --format=html` HTML), below the prose.
+       `dist/index.html` continues to carry the grid.
+
+    6. The Russian nav links to `<name>.ru.html` only when
+       `site/<name>.ru.md` exists. For pages without a Russian
+       sibling (currently `methodology`, `workflow`, `faq`),
+       the EN page's `RU` toggle is omitted.
+
+    7. Per-axiom pages (`dist/axioms/<id>.html`) carry exactly
+       one `<h1>`. The `render_axiom_page` template no longer
+       prepends a synthetic `<h1>` when the source's first
+       line is already a top-level heading.
+
+    8. The footer text reads `mathc render` in both the English
+       and Russian templates.
+
+    9. `<base href>` remains `/math-coding/` by default for
+       GitHub Pages compatibility. A `--site-base ""` (or any
+       other value) CLI flag passes the value through to every
+       page; `tests/render_kernel.ml::base_href_default` and a
+       new `base_href_local_empty` test cover both branches.
+
+  Boundaries:
+    - This cycle does not change `lib/packages.ml`, the
+      attestation store format, or the schema files.
+    - This cycle does not alter the `site-deploy@5`
+      obligations. The existing `extended-markdown-subset`
+      obligation already names italic; this cycle closes the
+      implementation gap.
+    - This cycle does not retire `mathjax-wiring`; it amends
+      the default off while keeping the script on the code path.
+
+scope:
+  capabilities:
+    - site-content-markup
+    - markdown-subset-correctness
+    - kernel-render-output
+  paths:
+    - "lib/render.ml"
+    - "bin/Mathc.ml"
+    - "assets/style.css"
+    - "tests/render_kernel.ml"
+    - "tests/cli/render.t"
+    - "scripts/render.sh"
+    - ".github/workflows/site.yml"
+  exclusions:
+    - "lib/packages.ml"
+    - "lib/codec.ml"
+    - "lib/jsonl.ml"
+    - "lib/diagnostic.ml"
+    - "lib/decision.ml"
+    - "schemas/**"
+    - "attestations/**"
+    - "site/axioms/**"
+    - "spec/**"
+
+outcomes:
+  - id: render-kernel-bugs-fixed
+    statement: |
+      The 10 defects catalogued in
+      `analysis/site-render-defects.md` (2026-10-07) are closed.
+      `tests/render_kernel.ml` carries a positive and a negative
+      fixture for each; the `tests/cli/render.t` cram snapshot
+      asserts the produced `dist/` tree for at least one
+      previously-broken artefact (the package grid in
+      `packages.html`).
+
+  - id: live-site-redeploys-with-current-tree
+    statement: |
+      `.github/workflows/site.yml` runs `scripts/render.sh` on
+      every push to main and the resulting `dist/` is published.
+      The next successful site deploy after this branch merges
+      brings the live tree's CSS in sync (closing the
+      `mc-*` vs `mathc-*` class drift).
+
+assumptions:
+  - id: fenced-blocks-need-no-info-string
+    state: assumed
+    statement: |
+      The hand-rolled Markdown subset does not need to enforce
+      CommonMark's "info string" rule (the language token after
+      the opening fence). Any character sequence after the
+      opening fence that is not whitespace is treated as the
+      language tag (mirroring GFM).
+    owner: human:maintainer
+    consequence_if_false: |
+      If we adopt CommonMark strictly, then ```text and ```text foo
+      must render identically. The current renderer drops the
+      `foo`. Reopen this decision and either widen the info-string
+      rule or document the discrepancy in `site/README.md`.
+    review_on:
+      - signal: info-string-rule-tightened
+
+  - id: mathjax-off-default-is-acceptable
+    state: assumed
+    statement: |
+      No current or planned `site/*.md` page uses `$…$` or
+      `\[…\]` math; defaulting MathJax to off does not regress
+      any rendered page. Algebra 3.2 excerpts that show math
+      (e.g., `spec/algebra-3.2.md`) are not yet published to
+      `site/`.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future `site/*.md` page needs formulas, the page
+      author opts in via `--mathjax` for the local preview and
+      via a front-matter flag (added in a follow-up decision)
+      for production. The script tag is wired; only the default
+      is off.
+    review_on:
+      - signal: site-page-needs-formulas
+
+obligations:
+  - id: fenced-code-renders
+    statement: |
+      A fenced code block (`\`\`\`lang ... \`\`\``) in any
+      `md_parse` source renders as a single
+      `<pre><code class="language-lang">…</code></pre>` (or
+      `<pre><code>` when the language is empty, or
+      `<div class="mermaid">` when the language is `mermaid`).
+      Closing fence of length 3 is recognised; the previous
+      `String.length trimmed > 4` check is replaced by
+      `>= 3` on the trimmed prefix.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::fenced_code_renders
+          result: pass
+        - verifier: tests/render_kernel.ml::fenced_code_closing_fence_length_3
+          result: pass
+        - verifier: tests/render_kernel.ml::mermaid_fence_renders_as_div
+          result: pass
+        - verifier: dist/axioms/feedback.html has <pre><code class=\"language-text\">
+          result: pass
+
+  - id: list-continuation-renders
+    statement: |
+      A `- ` item whose continuation lines are not themselves
+      `- ` / `* ` / `1. ` / heading markers / blank lines is
+      rendered as one `<li>` with all continuation lines joined
+      by a single space, preserving the previous in-prose
+      behaviour.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::list_continuation_renders
+          result: pass
+        - verifier: tests/render_kernel.ml::list_single_item_still_one_li
+          result: pass
+        - verifier: dist/axioms/feedback.html contains one <li> per item with the joined continuation
+          result: pass
+
+  - id: italic-renders
+    statement: |
+      `*text*` (single asterisk) renders as `<em>text</em>`.
+      Lone asterisks without pairing stay literal. `_text_`
+      (underscore) is supported with the same rule.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::italic_renders
+          result: pass
+        - verifier: tests/render_kernel.ml::italic_lone_asterisk_literal
+          result: pass
+        - verifier: dist/axioms/feedback.html contains <em>
+          result: pass
+
+  - id: mathjax-default-off
+    statement: |
+      `Render.default_config.enable_mathjax` is `false`. The
+      MathJax `<script>` is still present in the code path
+      and can be turned on per-render via the
+      `--mathjax` CLI flag. `tests/render_kernel.ml::mathjax_in_head`
+      continues to assert the script is emitted when
+      `enable_mathjax = true`.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::mathjax_default_off
+          result: pass
+        - verifier: tests/render_kernel.ml::mathjax_in_head
+          result: pass
+        - verifier: grep -c mathjax dist/index.html == 0
+          result: pass
+
+  - id: packages-page-shows-grid
+    statement: |
+      `dist/packages.html` contains a `<section class="mathc-packages-section">`
+      wrapping the same HTML that `mathc packages --format=html`
+      emits. The grid sits below the prose from `site/packages.md`,
+      separated by a blank line in the rendered HTML.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::packages_page_has_grid
+          result: pass
+        - verifier: grep -qF 'class=\"mathc-packages' dist/packages.html
+          result: pass
+        - verifier: tests/cli/render.t packages-grid snapshot
+          result: pass
+
+  - id: ru-nav-points-to-existing-siblings
+    statement: |
+      The Russian nav links to `<name>.ru.html` only when
+      `site/<name>.ru.md` exists. For pages without a Russian
+      sibling (`methodology`, `workflow`, `faq`), the English
+      page's `RU` toggle is omitted (no `href` to a missing
+      sibling).
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::ru_nav_omits_missing_sibling
+          result: pass
+        - verifier: dist/methodology.html omits RU toggle
+          result: pass
+        - verifier: dist/foundations.ru.html exists
+          result: pass
+
+  - id: axiom-page-single-h1
+    statement: |
+      `dist/axioms/<id>.html` carries exactly one `<h1>`.
+      `render_axiom_page` strips a leading `# ` from the body
+      when the source already starts with a top-level heading,
+      so the kernel's synthetic `<h1>Axiom <id></h1>` is the
+      only one emitted.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::axiom_page_single_h1
+          result: pass
+        - verifier: dist/axioms/feedback.html has exactly one <h1>
+          result: pass
+
+  - id: footer-uses-mathc-render
+    statement: |
+      The rendered footer text reads "Built by
+      <code>mathc render</code> at build time." in both the
+      English and Russian pages. The previous hard-coded
+      `mc render` is gone.
+    acceptance:
+      all:
+        - verifier: grep -qF 'mathc render' dist/index.html
+          result: pass
+        - verifier: grep -qF 'mc render' dist/index.html exits non-zero
+          result: pass
+        - verifier: tests/render_kernel.ml::footer_mathc_render
+          result: pass
+
+  - id: base-href-configurable
+    statement: |
+      `<base href>` is configurable per render via the
+      `Render.config.site_base` field. The default value
+      remains `/math-coding/` for GitHub Pages; passing an
+      empty string disables the base tag (useful for local
+      preview). `tests/render_kernel.ml::base_href_default`
+      and a new `base_href_empty` test cover both branches.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::base_href_default
+          result: pass
+        - verifier: tests/render_kernel.ml::base_href_empty
+          result: pass
+
+reversal:
+  - signal: regression-fences
+    condition: |
+      After this revision lands, `dist/axioms/feedback.html`
+      no longer carries `<pre>` for the `commitment | v ...
+      | v revision` diagram. Resolution: investigate the
+      `collect_code` predicate; if it is the same length-check
+      bug, restore the fixed `String.length trimmed >= 3 &&
+      String.sub trimmed 0 3 = "\`\`\`"` form.
+    action: rework
+
+  - signal: regression-italic
+    condition: |
+      After this revision lands, `*italic*` no longer renders
+      as `<em>italic</em>` and the inline `_i_` in identifiers
+      like `$x_i$` is no longer italicised. Resolution: tighten
+      the inline italic rule to require word boundaries
+      (`[^A-Za-z0-9_]*(text)[^A-Za-z0-9_]*`).
+    action: rework
+
+counterexample: |
+  "Ten fixes is too many for one cycle; reviewers can't reason
+  about the bundle."
+
+  Counterargument: each fix is independent and individually
+  small (≤ 20 lines of `lib/render.ml`). The 10 fixtures in
+  `tests/render_kernel.ml` make each one reviewable in
+  isolation. The shared kernel surface is `md_parse` +
+  `render_lang_page` + `render_axiom_page`; the risks of
+  one fix break another's fixture are caught by the cram
+  snapshot at `tests/cli/render.t`.
+
+  "Disabling MathJax by default breaks the existing
+  `mathjax-wiring` obligation and forces a future page author
+  to opt in via CLI flag."
+
+  Counterargument: the obligation is amended, not retired
+  (see `mathjax-wiring` continuity in the commitment text).
+  The script remains wired; only the default is off. Future
+  page authors set `--mathjax` for preview or pass the
+  flag through their CI step. The site currently has zero
+  formulas, so the regression surface is empty.
+
+  "The hand-rolled Markdown parser is fundamentally limited;
+  this branch should switch to a real one (`omd` or
+  `markdown` opam package)."
+
+  Counterargument: the parser is ~450 lines by design
+  (`audit-0.0.21` audit confirms). Pulling in a third-party
+  parser adds transitive packages, breaks the auditable-100-line
+  goal, and risks new defects that outweigh the ten fixes
+  closed here. The cycle here is bounded; the parser-swap
+  decision lives in a separate protected-policy transition
+  per A3 Self-Application.
+
+risk:
+  declared_triggers:
+    - render-output-changes
+    - css-token-changes
+    - bilingual-content-drift
+    - mathjax-opt-in-misused
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - site-deploy@5
+  supersedes: []
+  superseded_by: []
