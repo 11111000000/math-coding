@@ -2426,7 +2426,7 @@ let[@warning "-32"] do_render () =
   let out_dir = ref "dist" in
   let lang_arg = ref "en" in
   let site_base = ref "/math-coding/" in
-  let enable_mathjax = ref true in
+  let enable_mathjax = ref false in
   let enable_mermaid = ref true in
   let set_lang s =
     match s with

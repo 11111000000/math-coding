@@ -28,6 +28,27 @@
 
 (* --- minimal Markdown subset --- *)
 
+(* Tiny string-set used by `build_pages` to track which article
+   names have a Russian sibling. Implemented as a sorted list of
+   strings; for the ≤ 16 entries `site/` carries this is faster
+   than pulling in `Set`. *)
+module String_set = struct
+  type t = string list
+
+  let empty = []
+
+  let rec add x = function
+    | [] -> [ x ]
+    | y :: rest ->
+        if x = y then y :: rest
+        else if x < y then x :: y :: rest
+        else y :: add x rest
+
+  let rec mem x = function
+    | [] -> false
+    | y :: rest -> if x = y then true else mem x rest
+end
+
 let[@warning "-32"] html_escape s =
   let len = String.length s in
   let buf = Buffer.create len in
@@ -151,6 +172,93 @@ let[@warning "-32"] rec md_inline_parse s =
           loop (i + 1)
         end
       end
+      else if c = '*' then begin
+        (* Italic: *text* → <em>text</em>. Tolerant: any non-empty
+           body not containing a literal `*` works. Lone asterisk
+           without a closing match stays literal. *)
+        let k = ref (i + 1) in
+        let found = ref false in
+        let body_start = i + 1 in
+        let body_end = ref body_start in
+        while !k < len && not !found do
+          if s.[!k] = '*' then begin
+            body_end := !k;
+            found := true
+          end
+          else incr k
+        done;
+        if !found && !body_end > body_start then begin
+          flush_inline ();
+          let body_str = String.sub s body_start (!body_end - body_start) in
+          let html =
+            Printf.sprintf "<em>%s</em>"
+              (html_of_fragments (md_inline_parse body_str))
+          in
+          fragments := (html, false) :: !fragments;
+          loop (!k + 1)
+        end
+        else begin
+          Buffer.add_char buf c;
+          loop (i + 1)
+        end
+      end
+      else if c = '_' && i + 1 < len && s.[i + 1] <> '_' then begin
+        (* Italic via underscore: _text_ → <em>text</em>. Word-
+           boundary rule: the opener must be preceded by whitespace
+           or string start, AND the body must not start with an
+           alphanumeric (so identifiers like `foo_bar` are not
+           italicised). This matches CommonMark's "intraword
+           underscore" exception and keeps `$x_i$` safe. *)
+        let prev_char_ok =
+          i = 0
+          ||
+          let pc = s.[i - 1] in
+          pc = ' ' || pc = '\n' || pc = '\t' || pc = '\r'
+        in
+        if not prev_char_ok then begin
+          Buffer.add_char buf c;
+          loop (i + 1)
+        end
+        else begin
+          let k = ref (i + 1) in
+          let found = ref false in
+          let body_start = i + 1 in
+          let body_end = ref body_start in
+          while !k < len && not !found do
+            if s.[!k] = '_' then begin
+              let next_idx = !k + 1 in
+              let next_ok =
+                next_idx >= len
+                ||
+                let nc = s.[next_idx] in
+                nc = ' ' || nc = '\n' || nc = '\t' || nc = '\r' || nc = '.'
+                || nc = ',' || nc = ';' || nc = ':' || nc = '!' || nc = '?'
+                || nc = ')'
+              in
+              if next_ok then begin
+                body_end := !k;
+                found := true
+              end
+              else incr k
+            end
+            else incr k
+          done;
+          if !found && !body_end > body_start then begin
+            flush_inline ();
+            let body_str = String.sub s body_start (!body_end - body_start) in
+            let html =
+              Printf.sprintf "<em>%s</em>"
+                (html_of_fragments (md_inline_parse body_str))
+            in
+            fragments := (html, false) :: !fragments;
+            loop (!k + 1)
+          end
+          else begin
+            Buffer.add_char buf c;
+            loop (i + 1)
+          end
+        end
+      end
       else if c = '[' then begin
         (* Inline link: [text](url). Tolerant: if no `]` followed by
            `(` is found, the `[` is literal. *)
@@ -255,7 +363,14 @@ let[@warning "-32"] md_parse source =
     | [] -> (List.rev acc, [])
     | l :: r ->
         let trimmed = String.trim l in
-        if String.length trimmed > 4 && String.sub trimmed 0 4 = "```" then
+        (* Closing fence is at least 3 backticks (CommonMark allows
+           longer, but our subset honours the minimum). Length check
+           is `>= 3` (not `> 4`) — the previous form silently missed
+           a 3-char "```" because "```" has length 3 but `String.sub
+           "```" 0 4` raised Invalid_argument on the unguarded form;
+           the `> 4` guard hid the bug behind "matches too few
+           lines". *)
+        if String.length trimmed >= 3 && String.sub trimmed 0 3 = "```" then
           (List.rev acc, r)
         else collect_code (l :: acc) r
   in
@@ -369,7 +484,7 @@ let[@warning "-32"] md_parse source =
               (md_inline (String.sub t 4 (String.length t - 4)));
             Buffer.add_string buf "</h3>\n";
             loop "" rest
-        | _ when String.length t > 4 && String.sub t 0 4 = "```" -> begin
+        | _ when String.length t >= 3 && String.sub t 0 3 = "```" -> begin
             push_para ();
             let tag = code_fence_tag line in
             let collected, after = collect_code [] rest in
@@ -437,11 +552,64 @@ let[@warning "-32"] md_parse source =
                 loop next rest)
         | _ when String.length t > 2 && String.sub t 0 2 = "- " ->
             push_para ();
-            Buffer.add_string buf "<ul>\n  <li>";
-            Buffer.add_string buf
-              (md_inline (String.sub t 2 (String.length t - 2)));
-            Buffer.add_string buf "</li>\n</ul>\n";
-            loop "" rest
+            Buffer.add_string buf "<ul>\n";
+            (* Collect a multi-line list: each `- ` line starts a new
+               item; subsequent non-blank lines that are NOT new list
+               markers / headings / fences / hr / blockquote are joined
+               into the previous item with a single space. This is the
+               "tight list with single-line continuation" used by all
+               `site/*.md` and `axioms/*.md` content; we do not honour
+               the indented-2-space hard-break rule (CommonMark §6). *)
+            let is_new_item_line tt =
+              String.length tt > 2 && String.sub tt 0 2 = "- "
+            in
+            let is_block_starter tt =
+              (* Anything that ends the list entirely. *)
+              (String.length tt >= 3 && String.sub tt 0 3 = "```")
+              || (String.length tt > 2 && String.sub tt 0 2 = "# ")
+              || (String.length tt > 3 && String.sub tt 0 3 = "## ")
+              || (String.length tt > 4 && String.sub tt 0 4 = "### ")
+              || (String.length tt > 0 && tt.[0] = '>')
+              || is_hr_line tt
+              || (String.length tt > 0 && tt.[0] = '|')
+            in
+            (* items_rev: list of (item_lines list) in reverse; the
+               first item_lines list is the lines of the FIRST item
+               currently being built (its first line is `line`). *)
+            let rec collect items_rev current_item rem =
+              match rem with
+              | [] -> (List.rev items_rev, List.rev current_item, [])
+              | l :: r ->
+                  let tt = String.trim l in
+                  if tt = "" then
+                    (List.rev items_rev, List.rev current_item, l :: r)
+                  else if is_new_item_line tt then begin
+                    let finished = List.rev current_item in
+                    collect ([ finished ] @ items_rev)
+                      [ String.sub tt 2 (String.length tt - 2) ]
+                      r
+                  end
+                  else if is_block_starter tt then
+                    (List.rev items_rev, List.rev current_item, l :: r)
+                  else collect items_rev (l :: current_item) r
+            in
+            let first_body = String.sub t 2 (String.length t - 2) in
+            let items, current, after = collect [] [ first_body ] rest in
+            let all_items =
+              match current with [] -> items | _ -> items @ [ current ]
+            in
+            List.iter
+              (fun item_lines ->
+                let joined =
+                  String.concat " "
+                    (List.map (fun s -> String.trim s) item_lines)
+                in
+                Buffer.add_string buf "  <li>";
+                Buffer.add_string buf (md_inline joined);
+                Buffer.add_string buf "</li>\n")
+              all_items;
+            Buffer.add_string buf "</ul>\n";
+            loop "" after
         | _ ->
             let next = if acc_para = "" then t else acc_para ^ " " ^ t in
             loop next rest)
@@ -488,15 +656,20 @@ let[@warning "-32"] nav_links_ru =
 let[@warning "-32"] nav_links_for lang =
   if lang = "ru" then nav_links_ru else nav_links_en
 
-let[@warning "-32"] sibling_translation_href ~lang ~page_key =
+let[@warning "-32"] sibling_translation_href ~lang ~page_key ~has_ru =
   (* Each English page links to its Russian sibling and vice versa.
-     If only one translation exists, the link is omitted. *)
+     If only one translation exists, the link is omitted. The
+     caller passes `has_ru` from `build_pages`, which knows whether
+     the Russian source `site/<name>.ru.md` exists. The previous
+     unconditional `Some (...)` returned a `<name>.ru.html` URL
+     that 404'd for methodology / workflow / faq — visible defect
+     in the audit on 2026-10-07. *)
   match lang with
   | "ru" -> Some (page_key ^ ".html") (* Russian -> English default *)
-  | _ when page_key = "home" -> Some "index.ru.html"
-  | _ -> Some (page_key ^ ".ru.html")
+  | _ when page_key = "home" -> if has_ru then Some "index.ru.html" else None
+  | _ -> if has_ru then Some (page_key ^ ".ru.html") else None
 
-let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle =
+let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~has_ru =
   let buf = Buffer.create 256 in
   let links = nav_links_for lang in
   Buffer.add_string buf "<nav class=\"site-nav\">\n";
@@ -516,7 +689,7 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle =
     links;
   Buffer.add_string buf "  </ul>\n";
   (if enable_lang_toggle then
-     match sibling_translation_href ~lang ~page_key with
+     match sibling_translation_href ~lang ~page_key ~has_ru with
      | Some h ->
          let other_lang = if lang = "ru" then "en" else "ru" in
          let other_label = if lang = "ru" then "EN" else "RU" in
@@ -593,7 +766,7 @@ let[@warning "-32"] render_head ~lang ~site_base ~title ~enable_mathjax
   Buffer.contents buf
 
 let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
-    ~enable_mathjax ~enable_mermaid ~enable_lang_toggle ~extra_head =
+    ~enable_mathjax ~enable_mermaid ~enable_lang_toggle ~has_ru ~extra_head =
   let head =
     render_head ~lang ~site_base ~title ~enable_mathjax ~enable_mermaid
       ~extra_head
@@ -632,7 +805,7 @@ let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
      </body>\n\
      </html>\n"
     lang head
-    (render_nav ~lang ~page_key ~enable_lang_toggle)
+    (render_nav ~lang ~page_key ~enable_lang_toggle ~has_ru)
     body (render_footer ~lang)
 
 let[@warning "-32"] render_axioms_section axioms =
@@ -706,12 +879,55 @@ let[@warning "-32"] render_decision_page ~decision_id ~obligation_html =
     decision_id obligation_html
 
 let[@warning "-32"] render_axiom_page ~axiom_id ~body =
+  (* If the source body starts with `# <title>`, strip that
+     leading heading — the synthetic `<h1>Axiom <id></h1>` we
+     emit is the only heading the page needs. Without this
+     strip, every per-axiom page carries two `<h1>` (e.g. on
+     `dist/axioms/feedback.html`: "Axiom feedback" from the
+     template + "Axiom A1 — Feedback" from the source). *)
+  let stripped_body =
+    let trimmed = String.trim body in
+    let len = String.length trimmed in
+    if len > 2 && String.sub trimmed 0 2 = "# " then begin
+      let prefix_len = 2 in
+      let after_hash = String.sub trimmed prefix_len (len - prefix_len) in
+      let nl_in_after =
+        let s = String.length after_hash in
+        let i = ref 0 in
+        while !i < s && after_hash.[!i] <> '\n' do
+          incr i
+        done;
+        if !i = s then s else !i
+      in
+      let first_line = String.sub after_hash 0 nl_in_after in
+      (* `rest_start` is an offset into `trimmed`; convert it back to
+         an offset into the original `body` by adding the leading
+         whitespace count. *)
+      let ws = ref 0 in
+      while !ws < String.length body
+            && (body.[!ws] = ' ' || body.[!ws] = '\n')
+      do
+        incr ws
+      done;
+      let rest_start_in_body =
+        !ws + prefix_len + nl_in_after + 1
+      in
+      let rest =
+        if rest_start_in_body < String.length body then
+          String.sub body rest_start_in_body
+            (String.length body - rest_start_in_body)
+        else ""
+      in
+      String.trim (Printf.sprintf "%s\n%s" first_line rest)
+    end
+    else body
+  in
   Printf.sprintf
     "<section class=\"mathc-axiom-page\">\n\
      <h1>Axiom %s</h1>\n\
      <div>%s</div>\n\
      </section>\n"
-    axiom_id (md_parse body)
+    axiom_id (md_parse stripped_body)
 
 (* --- render entry point --- *)
 
@@ -733,13 +949,38 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
     ~site_pages ~site_pages_ru ~axioms_data =
   let pages = ref [] in
 
+  (* Set of `name` keys that have a Russian sibling. Used by the
+     language toggle to decide whether to emit `<name>.ru.html`
+     link. Built once from `site_pages_ru`. *)
+  let ru_keys =
+    List.fold_left
+      (fun acc (name, _, _) -> String_set.add name acc)
+      String_set.empty site_pages_ru
+  in
+  let has_ru name = String_set.mem name ru_keys in
+
   let render_lang_page lang (name, title, body_md) =
     let page_path = if lang = "ru" then name ^ ".ru.html" else name ^ ".html" in
     let page_title = title ^ " — math-coding" in
     let body_md_parsed = md_parse body_md in
+    (* The `packages` page appends the live kernel package grid
+       below the prose. The grid is the same HTML that
+       `mathc packages --format=html` emits; embedding it here
+       means `dist/packages.html` is no longer prose-only. *)
+    let body_extra =
+      if name = "packages" then
+        Printf.sprintf
+          "\n\
+           <section class=\"mathc-packages-section\">\n\
+           <h2>Packages</h2>\n\
+           %s\n\
+           </section>\n"
+          package_html
+      else ""
+    in
     let body =
-      Printf.sprintf "<article class=\"mathc-article\">\n%s\n</article>\n"
-        body_md_parsed
+      Printf.sprintf "<article class=\"mathc-article\">\n%s%s\n</article>\n"
+        body_md_parsed body_extra
     in
     {
       path = page_path;
@@ -747,7 +988,8 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
         render_page ~lang ~page_key:name ~title:page_title ~body
           ~site_base:config.site_base ~enable_mathjax:config.enable_mathjax
           ~enable_mermaid:config.enable_mermaid
-          ~enable_lang_toggle:config.enable_lang_toggle ~extra_head:"";
+          ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:(has_ru name)
+          ~extra_head:"";
     }
   in
 
@@ -764,7 +1006,8 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
           ~body:index_body_en ~site_base:config.site_base
           ~enable_mathjax:config.enable_mathjax
           ~enable_mermaid:config.enable_mermaid
-          ~enable_lang_toggle:config.enable_lang_toggle ~extra_head:"";
+          ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:(has_ru "home")
+          ~extra_head:"";
     }
     :: !pages;
 
@@ -783,7 +1026,8 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
             ~body:index_body_ru ~site_base:config.site_base
             ~enable_mathjax:config.enable_mathjax
             ~enable_mermaid:config.enable_mermaid
-            ~enable_lang_toggle:config.enable_lang_toggle ~extra_head:"";
+            ~enable_lang_toggle:config.enable_lang_toggle
+            ~has_ru:(has_ru "home") ~extra_head:"";
       }
       :: !pages
   end;
@@ -805,7 +1049,8 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
               ~body ~site_base:config.site_base
               ~enable_mathjax:config.enable_mathjax
               ~enable_mermaid:config.enable_mermaid
-              ~enable_lang_toggle:config.enable_lang_toggle ~extra_head:"";
+              ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
+              ~extra_head:"";
         }
         :: !pages)
     decisions_data;
@@ -823,7 +1068,8 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
               ~body ~site_base:config.site_base
               ~enable_mathjax:config.enable_mathjax
               ~enable_mermaid:config.enable_mermaid
-              ~enable_lang_toggle:config.enable_lang_toggle ~extra_head:"";
+              ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
+              ~extra_head:"";
         }
         :: !pages)
     axioms_data;
@@ -835,7 +1081,15 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
 let[@warning "-32"] default_config =
   {
     site_base = "/math-coding/";
-    enable_mathjax = true;
+    (* MathJax 3 is wired in the code path but defaults OFF. The
+       site currently has zero pages with `$...$` or `\[...\]`
+       formulas; MathJax on every page aggressively typesets
+       parenthetical English like `(Honest status)` as math italics
+       (`<math>` tags wrap ordinary prose). The default-off keeps
+       the rendered output clean; pages that need formulas opt in
+       via the `--mathjax` flag or by setting
+       `Render.config.enable_mathjax = true` programmatically. *)
+    enable_mathjax = false;
     enable_mermaid = true;
     enable_lang_toggle = true;
     languages = [ "en" ];

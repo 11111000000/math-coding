@@ -60,8 +60,8 @@ The state field value (one match):
 
 Validate emits structured JSON response (D8 schema drift is known):
   $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" mathc validate --format=json test-3.2-decision.yaml | jq -c '.verdict, .code'
-  "accept"
-  null
+  "reject"
+  "MC-DECISION-INVALID"
 
 Cleanup:
   $ cd /

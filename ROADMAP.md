@@ -4,7 +4,7 @@
 > (commit `8fa7fcf`). The 3.0 kernel checks this repository and its
 > conformance corpus via `mathc self-check`, which is a **blocking** CI
 > step per `constitution.md` Invariant 14. The attestation store at
-> `attestations/` is populated (105 files). CLI surface: `validate`,
+> `attestations/` is populated (135 files). CLI surface: `validate`,
 > `context`, `explain`, `assess`, `attest`, `gate`, `session-start`,
 > `record`, `stats`, `time-estimate`, `self-check`, `version`, `render`,
 > `packages`.

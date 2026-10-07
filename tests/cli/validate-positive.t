@@ -8,4 +8,5 @@ machine's checkout location. The cram shell invokes mathc with
 in main, in worktrees, and on other machines.
 
   $ mathc validate --format=json "$DUNE_SOURCEROOT/fixtures/conformance/decision/positive-minimal.json" | jq -c '{verdict, decision, revision, obligations, assumptions}'
+  [warn] input/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 requires it for modes >= light; add a counterexample section naming the strongest objection
   {"verdict":"accept","decision":"redis-origin-fallback","revision":"rev:41aa92","obligations":1,"assumptions":1}
