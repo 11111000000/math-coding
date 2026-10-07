@@ -10,7 +10,9 @@ Last verified at: HEAD `7263814` + Step 5 of the 2026-10
 render-kernel-fixes cycle (lib/render.ml fenced-block / list-continuation
 / italic / MathJax-off / packages-grid / RU-nav / axiom-h1 / footer /
 base-href-empty + 14 new fixtures in tests/render_kernel.ml;
-2026-10-07).
+2026-10-07) + Step 6 of the 2026-10
+merlin-LSP infrastructure (hand-written `.merlin` + `ocaml-lsp`
+1.27.0 + `merlin` 5.8-505 in `flake.nix`; 2026-10-07).
 Attestation store at `attestations/` contains **135 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
 on every check); **`mathc packages` reports 38 active decisions / 149
@@ -117,6 +119,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/waiver-infrastructure-2026-10.yaml` | `waiver-infrastructure-2026-10` | 1 | 2 | META | introduces `lib/waiver.ml` + the consult step in `bin/Mathc.ml`; first waiver file `decisions/waivers/portable-linux-musl-2026-10.yaml`; not counted as active decision (no kernel surface) |
 | `decisions/parser-risk-owner-default.yaml` | `parser-risk-owner-default` | 1 | 3 | RESOLVED | documents the risk-block owner-default workaround for `decisions/decision.yaml`; proper kernel fix deferred to `kernel-default-owner-landed` reversal signal |
 | `decisions/agent-debug-infrastructure-2026-10.yaml` | `agent-debug-infrastructure-2026-10` | 1 | 4 | META | scripts/agent-debug + tests/traps.ml + tests/qcheck_parsers.ml + Jsonl.Parse_error verbosity; not counted as active decision (dev-infra, no kernel surface) |
+| `decisions/merlin-lsp-2026-10.yaml` | `merlin-lsp-2026-10` | 1 | 3 | META | hand-written `.merlin` + `ocaml-lsp` + `merlin` in `flake.nix` ocamlDeps; not counted as active decision (dev-infra, no kernel surface) |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision

@@ -43,6 +43,16 @@
           # the formatter backend for `dune fmt`. Pinned at 0.29.x by
           # the current nixpkgs revision.
           ocamlformat
+          # merlin + ocaml-lsp enable `.merlin`-driven IDE tooling.
+          # ocaml-lsp 1.27.0 wraps the merlin backend and exposes
+          # the LSP protocol; editors (VSCode ocaml-platform,
+          # neovim nvim-lspconfig, emacs lsp-mode) start this
+          # binary when opening *.ml files. `.merlin` at the
+          # project root is hand-written because the dune version
+          # pinned in this nixpkgs revision has the
+          # `(using merlin-conf ...)` extension removed.
+          merlin
+          ocaml-lsp
         ];
         buildTools = with pkgs; [
           bashInteractive
