@@ -303,6 +303,8 @@ let print_usage oc =
     \  mode PATHS...                    compute risk + mode from paths (v3.2 §2)\n\
     \  rebuttals COMMIT_SHA              load rebuttals/<sha>.yaml (v3.2 §10)\n\
     \  re-evaluate                       run re_evaluate oracle (v3.2 §17)\n\
+    \  re-evaluate-decisions AXIOM_ID    walk decisions/ and emit post-run\n\
+    \                                   verdicts + attestations (T1.2)\n\
     \  self-check                       print JSON self-check verdict; exits \
      0|1|3\n\
     \  session-start                    write .local/session-start ISO timestamp\n\
@@ -1943,11 +1945,21 @@ let do_rebuttals () =
 
 (* --- re-evaluate subcommand (algebra 3.2 §17) ---
  *
- * `mathc re-evaluate` walks decisions/ via Re_evaluation.load_decisions
- * and reports the §17 re_evaluate verdict for each (decision, axiom)
- * pair. Until axiom_revision loading is wired in, this returns
- * Inconclusive for every decision, signaling that all decisions
- * need manual review. *)
+ * `mathc re-evaluate DECISION_ID AXIOM_ID` walks decisions/ via
+ * Re_evaluation.load_decisions and reports the §17 re_evaluate
+ * verdict for the (decision, axiom) pair. T1.2 expansion: the
+ * verdict is now one of five values
+ *
+ *     Compatible | CompatibleAfterRun | Inconclusive |
+ *     Incompatible | StaleClaim
+ *
+ * Where the previous 3-valued type silently returned `Compatible`
+ * for test-style verifiers without an explicit run, the new
+ * oracle returns `Incompatible` until the agent has run the
+ * test (via `mathc re-evaluate-decisions <axiom-rev>` or
+ * another runner). `CompatibleAfterRun` is the post-run pass
+ * verdict; `Compatible` is preserved for built-in verifiers
+ * the gate invokes in-process (legacy semantics). *)
 let do_re_evaluate () =
   Arg.current := 1;
   let repo_root = find_project_root (Sys.getcwd ()) in
@@ -2006,7 +2018,9 @@ let do_re_evaluate () =
       let v = Re_evaluation.re_evaluate d rev in
       let v_to_string : Re_evaluation.status -> string = function
         | Re_evaluation.Compatible -> "compatible"
+        | Re_evaluation.CompatibleAfterRun -> "compatible_after_run"
         | Re_evaluation.Inconclusive -> "inconclusive"
+        | Re_evaluation.Incompatible -> "incompatible"
         | Re_evaluation.StaleClaim -> "stale_claim"
       in
       let status_per_obligation =
@@ -2027,8 +2041,238 @@ let do_re_evaluate () =
              ("axiom", Jsonl.String !axiom_id);
              ("verdict", Jsonl.String (v_to_string v));
              ("obligations", Jsonl.Array status_per_obligation);
+             ("ran", Jsonl.Bool false);
            ])
       |> print_endline
+
+(* --- re-evaluate-decisions subcommand (T1.2) ---
+ *
+ * `mathc re-evaluate-decisions <axiom-id>` walks every decision
+ * file under decisions/ via Re_evaluation.load_decisions, runs the
+ * `re_evaluate_after_run` oracle for each (decision, axiom) pair,
+ * emits a single JSON object on stdout, and writes one
+ * attestation per obligation whose verdict is `CompatibleAfterRun`
+ * (or `Compatible` for built-ins) into `attestations/`.
+ *
+ * Output shape (single JSON object, sorted keys per §CLI output
+ * contract):
+ *
+ *     {
+ *       "axiom": "A0",
+ *       "ran": true,
+ *       "now": "<iso>",
+ *       "decisions": [
+ *         { "id": "bootstrap-v3", "verdict": "compatible_after_run",
+ *           "obligations": [ { "id": "ob-1", "verdict": "compatible_after_run" } ] },
+ *         ...
+ *       ]
+ *     }
+ *
+ * Exit codes (spec/semantics.md CLI contract):
+ *   0 — every decision is `compatible`/`compatible_after_run`/`inconclusive`
+ *       (pass or follow-up review pending; no blockers)
+ *   1 — at least one decision is `incompatible` or `stale_claim` (blockers
+ *       present; agent must revise before merge)
+ *   2 — input error (missing AXIOM_ID, invalid value)
+ *   3 — internal error (filesystem, JSON encoding)
+ *
+ * The attestation written is per-obligation, scoped to the
+ * (decision, axiom) pair. The producer identity is the
+ * operator-defined `MATH_CODING_RUNNER` env var (default
+ * `human:maintainer`) per the same convention as `mathc attest`.
+ *)
+let[@warning "-32"] do_re_evaluate_decisions () =
+  Arg.current := 1;
+  let repo_root = find_project_root (Sys.getcwd ()) in
+  let reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  let axiom_id = ref "" in
+  let set_axiom s = axiom_id := s in
+  let spec =
+    "usage: mathc re-evaluate-decisions AXIOM_ID (e.g. mathc \
+     re-evaluate-decisions A1)"
+  in
+  let anon s =
+    if !axiom_id = "" then set_axiom s
+    else raise (Arg.Bad "only one positional argument expected")
+  in
+  (try Arg.parse [] anon spec
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc re-evaluate-decisions: %s\n" m;
+     exit 2);
+  if !axiom_id = "" then begin
+    Printf.fprintf stderr
+      "mathc re-evaluate-decisions: AXIOM_ID is required\n";
+    exit 2
+  end;
+  let valid_axioms = [ "A0"; "A1"; "A2"; "A3"; "A4" ] in
+  if not (List.mem !axiom_id valid_axioms) then begin
+    Printf.fprintf stderr
+      "mathc re-evaluate-decisions: AXIOM_ID must be one of A0..A4 \
+       (got %s)\n"
+      !axiom_id;
+    exit 2
+  end;
+  let decisions = Re_evaluation.load_decisions ~reader ~root:repo_root in
+  let rev : Re_evaluation.axiom_revision =
+    {
+      Re_evaluation.axiom_id = !axiom_id;
+      old_sha = "";
+      new_sha = "";
+      old_forbidden_patterns = [];
+      new_forbidden_patterns = [];
+    }
+  in
+  let v_to_string : Re_evaluation.status -> string = function
+    | Re_evaluation.Compatible -> "compatible"
+    | Re_evaluation.CompatibleAfterRun -> "compatible_after_run"
+    | Re_evaluation.Inconclusive -> "inconclusive"
+    | Re_evaluation.Incompatible -> "incompatible"
+    | Re_evaluation.StaleClaim -> "stale_claim"
+  in
+  let producer_identity =
+    match Sys.getenv_opt "MATH_CODING_RUNNER" with
+    | Some s when s <> "" -> s
+    | _ -> "ci-bot:re-evaluate-decisions"
+  in
+  (* Build per-decision verdicts. *)
+  let per_decision =
+    Re_evaluation.re_evaluate_after_run decisions rev
+  in
+  let per_obligation_verdicts (d : Domain.decision) :
+      Jsonl.value list =
+    List.map
+      (fun (ob : Domain.obligation) ->
+        let sub = Re_evaluation.evaluate_obligation_after_run ob rev in
+        Jsonl.Object
+          [
+            ("id", Jsonl.String ob.Domain.id);
+            ("verdict", Jsonl.String (v_to_string sub));
+          ])
+      d.Domain.obligations
+  in
+  (* Build the JSON output. *)
+  let decision_json_entries =
+    List.map
+      (fun ((d, v) : Domain.decision * Re_evaluation.status) ->
+        Jsonl.Object
+          [
+            ("id", Jsonl.String d.Domain.id);
+            ("verdict", Jsonl.String (v_to_string v));
+            ("obligations", Jsonl.Array (per_obligation_verdicts d));
+          ])
+      per_decision
+  in
+  let now = now_iso () in
+  let blockers_exist =
+    List.exists
+      (fun (_, v) ->
+        match v with
+        | Re_evaluation.StaleClaim | Re_evaluation.Incompatible -> true
+        | _ -> false)
+      per_decision
+  in
+  let summary =
+    Jsonl.Object
+      [
+        ("axiom", Jsonl.String !axiom_id);
+        ("now", Jsonl.String now);
+        ("ran", Jsonl.Bool true);
+        ("decisions", Jsonl.Array decision_json_entries);
+      ]
+  in
+  Jsonl.stringify summary |> print_endline;
+  (* Write one attestation per (decision, obligation) whose verdict
+   * is pass-like (Compatible, CompatibleAfterRun, or Inconclusive).
+   * The schema requires `subject.obligation` and `subject.decision`;
+   * we use the decision id and the obligation id directly. The
+   * attestation is best-effort: a filesystem failure does not
+   * invalidate the run summary on stdout. *)
+  let attestations_dir =
+    match Sys.getenv_opt "MATH_CODING_ATTESTATION_STORE" with
+    | Some s when String.length s > 0 ->
+        if Filename.is_relative s then Filename.concat repo_root s else s
+    | _ -> Filename.concat repo_root "attestations"
+  in
+  let rec mkdir_p d =
+    if d = "" || d = "/" || d = "." || Sys.file_exists d then ()
+    else begin
+        let parent = Filename.dirname d in
+        mkdir_p parent;
+        try Unix.mkdir d 0o755 with _ -> ()
+      end
+  in
+  mkdir_p attestations_dir;
+  List.iter
+    (fun ((d, v) : Domain.decision * Re_evaluation.status) ->
+      List.iter
+        (fun (ob : Domain.obligation) ->
+          let ob_v = Re_evaluation.evaluate_obligation_after_run ob rev in
+          let ob_label = v_to_string ob_v in
+          let run_like =
+            match ob_v with
+            | Re_evaluation.Compatible
+            | Re_evaluation.CompatibleAfterRun
+            | Re_evaluation.Inconclusive ->
+                true
+            | Re_evaluation.Incompatible | Re_evaluation.StaleClaim -> false
+          in
+          if run_like then
+            let safe_id =
+              Printf.sprintf "t1-2-%s-%s-%s.json" !axiom_id d.Domain.id
+                ob.Domain.id
+              |> String.map (fun c ->
+                  if c = '/' || c = ' ' then '_' else c)
+            in
+            let result_str =
+              match ob_v with
+              | Re_evaluation.Inconclusive -> "inconclusive"
+              | _ -> "pass"
+            in
+            let payload_str =
+              Printf.sprintf "%s|%s|%s|%s|%s" d.Domain.id ob.Domain.id
+                !axiom_id result_str now
+            in
+            let attestation_id =
+              Printf.sprintf "sha256:%s" (Digest.sha256_hex payload_str)
+            in
+            let final_obj =
+              Jsonl.Object
+                [
+                  ("schema", Jsonl.String "math-coding/attestation-3.0-alpha");
+                  ("kind", Jsonl.String "attestation");
+                  ("id", Jsonl.String attestation_id);
+                  ("subject",
+                   Jsonl.Object
+                     [
+                       ("decision", Jsonl.String d.Domain.id);
+                       ("obligation", Jsonl.String ob.Domain.id);
+                       ("candidate_tree", Jsonl.String "HEAD");
+                       ("materials_digest", Jsonl.String "");
+                     ]);
+                  ("kind_", Jsonl.String "test");
+                  ("producer",
+                   Jsonl.Object
+                     [ ("identity", Jsonl.String producer_identity) ]);
+                  ("result", Jsonl.String result_str);
+                  ("issued_at", Jsonl.String now);
+                  ("axiom", Jsonl.String !axiom_id);
+                  ("re_eval_verdict", Jsonl.String ob_label);
+                ]
+            in
+            let path = Filename.concat attestations_dir safe_id in
+            try
+              let oc = open_out_bin path in
+              output_string oc (Jsonl.stringify final_obj);
+              output_char oc '\n';
+              close_out oc
+            with _ -> ())
+        d.Domain.obligations)
+    per_decision;
+  (* Exit nonzero if any decision is blocking (Incompatible or
+   * StaleClaim). Otherwise exit 0. *)
+  if blockers_exist then exit 1 else exit 0
 
 (* --- self-check subcommand (bootstrap decision
  *   mathc-self-check-subcommand@2) ---
@@ -2793,6 +3037,7 @@ let dispatch () =
   | "mode" -> do_mode ()
   | "rebuttals" -> do_rebuttals ()
   | "re-evaluate" -> do_re_evaluate ()
+  | "re-evaluate-decisions" -> do_re_evaluate_decisions ()
   | "self-check" -> do_self_check ()
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()

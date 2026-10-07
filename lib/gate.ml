@@ -391,8 +391,18 @@ let[@warning "-32"] gate_v32 (c : commit_info)
     (re_eval_status : Re_evaluation.status) (rules : kernel_rule list) ~store
     ~decision_id : verdict =
   let rule_violated = List.exists (fun r -> not (apply_rule r c)) rules in
+  (* T1.2 expansion: the gate now blocks on `Incompatible` AS WELL
+   * as `StaleClaim`. `Incompatible` is the verdict the oracle
+   * returns when a test-style obligation has not been explicitly
+   * run; the previous 3-valued type silently returned `Compatible`
+   * in that case, which the A1 honesty audit flagged as a gap.
+   * `Compatible`, `CompatibleAfterRun`, and `Inconclusive` all
+   * permit Open (Inconclusive still surfaces a follow-up review
+   * list via the gap stream). *)
   let re_eval_blocks =
-    match re_eval_status with Re_evaluation.StaleClaim -> true | _ -> false
+    match re_eval_status with
+    | Re_evaluation.StaleClaim | Re_evaluation.Incompatible -> true
+    | _ -> false
   in
   let blocking_pre_merge =
     List.filter (fun ob -> ob.Domain.phase = `PreMerge) obligations
@@ -430,8 +440,10 @@ let gate_release_v32 (obligations : Domain.obligation list)
         | _ -> false)
       obligations
   in
+  (* T1.2 expansion: `Incompatible` now blocks the release gate
+   * alongside `StaleClaim` (the A1 honesty closure). *)
   match re_eval with
-  | Re_evaluation.StaleClaim -> Block
+  | Re_evaluation.StaleClaim | Re_evaluation.Incompatible -> Block
   | _ -> if List.length blocking > 0 then Unknown else Pass
 
 (* Post-release monitor: emit AssuranceGap stream, never blocking *)

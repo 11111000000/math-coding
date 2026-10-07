@@ -11,7 +11,9 @@
  * Alcotest.string can compare it. *)
 let[@warning "-32"] status_to_string = function
   | Re_evaluation.Compatible -> "compatible"
+  | Re_evaluation.CompatibleAfterRun -> "compatible_after_run"
   | Re_evaluation.Inconclusive -> "inconclusive"
+  | Re_evaluation.Incompatible -> "incompatible"
   | Re_evaluation.StaleClaim -> "stale"
 
 (* Render a gate verdict as a string. *)
@@ -89,24 +91,33 @@ let[@warning "-32"] empty_rev axiom_id =
 
 let[@warning "-32"] test_max_verdict () =
   Alcotest.(check string)
-    "empty -> compatible" "compatible"
+    "empty -> compatible_after_run (default no-run)" "compatible_after_run"
     (Re_evaluation.max_verdict [] |> status_to_string);
   Alcotest.(check string)
     "[compatible] -> compatible" "compatible"
     (Re_evaluation.max_verdict [ Re_evaluation.Compatible ] |> status_to_string);
   Alcotest.(check string)
+    "[compatible_after_run] -> compatible_after_run" "compatible_after_run"
+    (Re_evaluation.max_verdict [ Re_evaluation.CompatibleAfterRun ]
+    |> status_to_string);
+  Alcotest.(check string)
     "[inconclusive] -> inconclusive" "inconclusive"
     (Re_evaluation.max_verdict [ Re_evaluation.Inconclusive ]
+    |> status_to_string);
+  Alcotest.(check string)
+    "[incompatible] -> incompatible" "incompatible"
+    (Re_evaluation.max_verdict [ Re_evaluation.Incompatible ]
     |> status_to_string);
   Alcotest.(check string)
     "[stale] -> stale" "stale"
     (Re_evaluation.max_verdict [ Re_evaluation.StaleClaim ] |> status_to_string);
   Alcotest.(check string)
-    "max wins" "stale"
+    "max wins: stale over everything" "stale"
     (Re_evaluation.max_verdict
        [
-         Re_evaluation.Compatible;
+         Re_evaluation.CompatibleAfterRun;
          Re_evaluation.Inconclusive;
+         Re_evaluation.Incompatible;
          Re_evaluation.StaleClaim;
        ]
     |> status_to_string);
@@ -114,6 +125,16 @@ let[@warning "-32"] test_max_verdict () =
     "compatible doesn't beat inconclusive" "inconclusive"
     (Re_evaluation.max_verdict
        [ Re_evaluation.Compatible; Re_evaluation.Inconclusive ]
+    |> status_to_string);
+  Alcotest.(check string)
+    "incompatible doesn't beat stale" "stale"
+    (Re_evaluation.max_verdict
+       [ Re_evaluation.Incompatible; Re_evaluation.StaleClaim ]
+    |> status_to_string);
+  Alcotest.(check string)
+    "incompatible beats inconclusive" "incompatible"
+    (Re_evaluation.max_verdict
+       [ Re_evaluation.Inconclusive; Re_evaluation.Incompatible ]
     |> status_to_string)
 
 (* --- gate_verdict --- *)
@@ -123,20 +144,30 @@ let[@warning "-32"] test_gate_verdict () =
     "compatible -> pass" "pass"
     (Re_evaluation.gate_verdict Re_evaluation.Compatible |> gate_to_string);
   Alcotest.(check string)
+    "compatible_after_run -> pass" "pass"
+    (Re_evaluation.gate_verdict Re_evaluation.CompatibleAfterRun
+    |> gate_to_string);
+  Alcotest.(check string)
     "inconclusive -> pass" "pass"
     (Re_evaluation.gate_verdict Re_evaluation.Inconclusive |> gate_to_string);
+  Alcotest.(check string)
+    "incompatible -> block (T1.2 A1 closure)" "block"
+    (Re_evaluation.gate_verdict Re_evaluation.Incompatible |> gate_to_string);
   Alcotest.(check string)
     "stale -> block" "block"
     (Re_evaluation.gate_verdict Re_evaluation.StaleClaim |> gate_to_string)
 
 (* --- re_evaluate: per-obligation rules --- *)
 
-let[@warning "-32"] test_re_evaluate_test_verifier_compatible () =
+let[@warning "-32"] test_re_evaluate_test_verifier_incompatible_without_run () =
+  (* T1.2 A1 closure: a test-style verifier without an explicit
+   * run MUST NOT return Compatible. *)
   let ob = make_obligation ~verifier:"tests/x" ~claim:"hello world" () in
   let d = make_decision [ ob ] in
   let rev = empty_rev "A0" in
   Alcotest.(check string)
-    "test verifier + no forbidden pattern -> compatible" "compatible"
+    "test verifier + no forbidden pattern + no run -> incompatible"
+    "incompatible"
     (Re_evaluation.re_evaluate d rev |> status_to_string)
 
 let[@warning "-32"] test_re_evaluate_manual_verifier_inconclusive () =
@@ -194,8 +225,102 @@ let[@warning "-32"] test_re_evaluate_worst_across_obligations () =
     }
   in
   Alcotest.(check string)
-    "max over [compatible; stale] -> stale" "stale"
+    "max over [incompatible; stale] -> stale" "stale"
     (Re_evaluation.re_evaluate d rev |> status_to_string)
+
+(* --- re_evaluate_after_run: per-obligation rules --- *)
+
+let[@warning "-32"] test_after_run_test_verifier_compatible_after_run () =
+  let ob = make_obligation ~verifier:"tests/x" ~claim:"hello world" () in
+  let d = make_decision [ ob ] in
+  let rev = empty_rev "A0" in
+  Alcotest.(check string)
+    "test verifier after run -> compatible_after_run" "compatible_after_run"
+    (Stdlib.snd (Stdlib.List.hd (Re_evaluation.re_evaluate_after_run [ d ] rev))
+    |> status_to_string)
+
+let[@warning "-32"] test_after_run_builtin_still_compatible () =
+  let ob =
+    make_obligation ~verifier:"mathc-validate-self-check" ~claim:"hello world"
+      ()
+  in
+  let d = make_decision [ ob ] in
+  let rev = empty_rev "A0" in
+  Alcotest.(check string)
+    "builtin verifier after run -> compatible" "compatible"
+    (Stdlib.snd (Stdlib.List.hd (Re_evaluation.re_evaluate_after_run [ d ] rev))
+    |> status_to_string)
+
+let[@warning "-32"] test_after_run_manual_still_inconclusive () =
+  let ob = make_obligation ~verifier:"manual-review" ~claim:"hello world" () in
+  let d = make_decision [ ob ] in
+  let rev = empty_rev "A0" in
+  Alcotest.(check string)
+    "manual verifier after run -> inconclusive" "inconclusive"
+    (Stdlib.snd (Stdlib.List.hd (Re_evaluation.re_evaluate_after_run [ d ] rev))
+    |> status_to_string)
+
+let[@warning "-32"] test_after_run_stale_overrides_everything () =
+  let stale_ob =
+    make_obligation ~verifier:"tests/x"
+      ~claim:"contains the keyword forbidden-pattern-here today" ()
+  in
+  let d = make_decision [ stale_ob ] in
+  let rev =
+    {
+      Re_evaluation.axiom_id = "A0";
+      old_sha = "deadbeef";
+      new_sha = "feedface";
+      old_forbidden_patterns = [ "forbidden-pattern-here" ];
+      new_forbidden_patterns = [];
+    }
+  in
+  Alcotest.(check string)
+    "stale pattern + after-run -> stale (override)" "stale"
+    (Stdlib.snd (Stdlib.List.hd (Re_evaluation.re_evaluate_after_run [ d ] rev))
+    |> status_to_string)
+
+let[@warning "-32"] test_after_run_walks_list_in_order () =
+  let d_a = make_decision ~id:"alpha" [ make_obligation () ] in
+  let d_b = make_decision ~id:"beta" [ make_obligation () ] in
+  let rev = empty_rev "A0" in
+  let ids =
+    Re_evaluation.re_evaluate_after_run [ d_a; d_b ] rev
+    |> List.map (fun ((d : Domain.decision), _) -> d.Domain.id)
+  in
+  Alcotest.(check (list string))
+    "input order preserved" [ "alpha"; "beta" ] ids
+
+let[@warning "-32"] test_after_run_mixed_decisions () =
+  let d_test =
+    make_decision ~id:"test-dec" [ make_obligation ~verifier:"tests/x" () ]
+  in
+  let d_manual =
+    make_decision ~id:"manual-dec"
+      [ make_obligation ~verifier:"manual-review" () ]
+  in
+  let d_builtin =
+    make_decision ~id:"builtin-dec"
+      [ make_obligation ~verifier:"mathc-validate-self-check" () ]
+  in
+  let rev = empty_rev "A0" in
+  let results =
+    Re_evaluation.re_evaluate_after_run [ d_test; d_manual; d_builtin ] rev
+  in
+  let by_id (s : string) =
+    Stdlib.List.find
+      (fun ((d : Domain.decision), _) -> String.equal d.Domain.id s)
+      results
+  in
+  Alcotest.(check string)
+    "test-dec after run -> compatible_after_run" "compatible_after_run"
+    (snd (by_id "test-dec") |> status_to_string);
+  Alcotest.(check string)
+    "manual-dec after run -> inconclusive" "inconclusive"
+    (snd (by_id "manual-dec") |> status_to_string);
+  Alcotest.(check string)
+    "builtin-dec after run -> compatible" "compatible"
+    (snd (by_id "builtin-dec") |> status_to_string)
 
 (* --- impact_list / transitive_impact_list --- *)
 
@@ -295,8 +420,8 @@ let () =
         [ Alcotest.test_case "pass/block split" `Quick test_gate_verdict ] );
       ( "re_evaluate",
         [
-          Alcotest.test_case "test verifier -> compatible" `Quick
-            test_re_evaluate_test_verifier_compatible;
+          Alcotest.test_case "test verifier -> incompatible (no run)" `Quick
+            test_re_evaluate_test_verifier_incompatible_without_run;
           Alcotest.test_case "manual verifier -> inconclusive" `Quick
             test_re_evaluate_manual_verifier_inconclusive;
           Alcotest.test_case "builtin verifier -> compatible" `Quick
@@ -305,6 +430,21 @@ let () =
             test_re_evaluate_stale_claim;
           Alcotest.test_case "worst across obligations" `Quick
             test_re_evaluate_worst_across_obligations;
+        ] );
+      ( "re_evaluate_after_run",
+        [
+          Alcotest.test_case "test verifier -> compatible_after_run" `Quick
+            test_after_run_test_verifier_compatible_after_run;
+          Alcotest.test_case "builtin -> compatible" `Quick
+            test_after_run_builtin_still_compatible;
+          Alcotest.test_case "manual -> inconclusive" `Quick
+            test_after_run_manual_still_inconclusive;
+          Alcotest.test_case "stale pattern overrides run" `Quick
+            test_after_run_stale_overrides_everything;
+          Alcotest.test_case "walks list in order" `Quick
+            test_after_run_walks_list_in_order;
+          Alcotest.test_case "mixed decisions" `Quick
+            test_after_run_mixed_decisions;
         ] );
       ( "impact_list",
         [
