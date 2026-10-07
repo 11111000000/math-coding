@@ -22,6 +22,9 @@
 #   scripts/dev doctor               — opt-in health check (no compile):
 #                                     which/grep counts only. Exits 0
 #                                     if every check passes.
+#   scripts/dev edit-loop-detect      — opt-in: scan last 5 commits for
+#                                     files modified 3+ times; exit 1
+#                                     if edit-loop pattern detected.
 
 set -eu
 cd "$(dirname "$0")/.."
@@ -247,6 +250,27 @@ case "$cmd" in
     usage
     ;;
 
+  "edit-loop-detect")
+    echo "edit-loop-detect: scanning last 5 commits for edit-loop pattern..."
+    HOT=$(git log --name-only --pretty=format: -n 5 2>/dev/null \
+      | grep -E '\.(ml|ocaml|decisions/.*\.yaml)$' \
+      | sort | uniq -c | sort -rn | awk '$1 >= 3 {print $0}')
+    if [ -n "$HOT" ]; then
+      echo "POSSIBLE EDIT-LOOP: files modified 3+ times in last 5 commits:"
+      echo "$HOT"
+      echo ""
+      echo "Recommended actions:"
+      echo "  1. Write a probe executable: tests/probe_X.ml"
+      echo "  2. Build with: dune build"
+      echo "  3. Run: ./_build/default/tests/probe_X.exe"
+      echo "  4. Identify SYNTAX (1-3 line fix) vs STRUCTURE (refactor)"
+      echo ""
+      echo "See AGENTS.md:Edit-loop prevention for the full rule."
+      exit 1
+    fi
+    echo "edit-loop-detect: no edit-loop pattern detected"
+    exit 0
+    ;;
   *)
     echo "unknown subcommand: $cmd" >&2
     usage

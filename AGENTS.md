@@ -121,6 +121,30 @@ Apply the least sufficient response:
 Never block without naming the rule, affected subject, reason, and at
 least one remedy. Unknown is not Pass. A waiver is not Pass.
 
+## Edit-loop prevention
+
+If 3 consecutive `dune build` attempts fail with the same error
+class (paren mismatch, unbound value, type error in the same
+file), STOP. This is a signal the approach is wrong, not a
+transient syntax issue.
+
+Replan:
+
+1. Write `tests/probe_X.ml` that calls the failing function
+   directly with a debug print, run it via `dune build` then
+   `./_build/default/tests/probe_X.exe`.
+2. Identify whether the issue is a SYNTAX fix (1-3 lines) or a
+   STRUCTURE fix (refactor a deeply nested expression to a helper).
+3. For nested match expressions (>3 levels of parens), normalize
+   the INPUT in the outer wrapper rather than modifying the BODY
+   of the inner match. The body then becomes a 1-line call, not
+   a 100-line expansion.
+
+Use `bash scripts/dev edit-loop-detect` to check if recent
+commits show the pattern. See `decisions/process-principles.yaml:P8`
+for the formal rule. See `OCAML_BEST_PRACTICES.md:§11.24` for
+the OCaml-specific symptom.
+
 ## Decisions
 
 Create a decision only for a new commitment, tradeoff, assumption,

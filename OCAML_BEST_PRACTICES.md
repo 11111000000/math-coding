@@ -1720,3 +1720,39 @@ itself is documented in §9.3 ("New rule (post-§11.23, 2026-10)").
 without a preceding `i + N <= len` check. Most common in entity
 decoders, escape-sequence decoders, and literal-keyword matchers.
 
+
+### 11.24 Edit-and-build cycles in nested match
+
+**Symptom:** `dune build` returns `Syntax error: ) expected` on
+the line where you tried to add or remove a `match` arm in a
+deeply nested expression (≥3 levels of parens). The error appears
+at a `(` in `| Some rps -> (`, even when the body you are trying
+to add is in scope.
+
+**Cause:** Modifying an inner `match` shifts the paren-balance
+in a way the OCaml lexer cannot recover from automatically. The
+fix at the deep level is correct in isolation, but the
+surrounding 100+ lines don't close properly. A typical case is
+editing a 192-line function with 8 levels of nested match arms
+where every level is a tuple-returning expression; adding or
+removing a `(` at any level propagates the imbalance to all outer
+levels.
+
+**Fix:** Normalize the input at the outer wrapper, not the inner
+body. For a 5-level nested match that needs a default, add a
+helper function at the top of the file and call it from the outer
+`match ... with` arm. The body then becomes a 1-line call, not
+a 100-line expansion.
+
+**Reversal signal:** `edit-loop-detected` (see
+`decisions/process-principles.yaml:P8`). After 3 failed
+attempts at the same error class, switch to probe-driven
+debugging via a test executable.
+
+**Trigger:** Same OCaml file modified 3+ times in 5 commits
+with edits to deeply-nested match or let-in expressions.
+`bash scripts/dev edit-loop-detect` reports this condition
+before the build even runs.
+
+Cited from `AGENTS.md:§Edit-loop prevention` and
+`decisions/process-principles.yaml:P8`.
