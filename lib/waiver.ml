@@ -10,7 +10,10 @@
  * module adds:
  *
  *   - load: enumerate and parse all waivers under a root path
- *   - covers: pick the active waiver for a (subject, now) pair
+ *   - covers: pick the active waiver for a
+ *     (subject, obligation, now) triple; strict matching when the
+ *     waiver carries `unverified_obligation`, legacy global coverage
+ *     when the field is absent
  *   - effective_at: predicate — is the waiver still in effect?
  *
  * The module is pure: load takes a `reader` callback so the
@@ -116,19 +119,36 @@ let[@warning "-32"] iso_le a b = String.compare a b <= 0
 let[@warning "-32"] effective_at w ~now =
   iso_le w.Domain.issued_at now && iso_le now w.Domain.expires_at
 
-(* Find a waiver that covers the given subject and is still in
-   effect at `now`. Returns the first matching waiver; the
-   kernel does not require the most-recent or most-specific —
-   any one covering the subject is sufficient for the
+(* Find a waiver that covers the given (decision, obligation)
+   pair at the given moment. Strict matching when the waiver
+   carries an `unverified_obligation`; legacy global coverage
+   when the waiver omits that field.
+
+   Returns the first matching waiver; the kernel does not require
+   the most-recent or most-specific — any one covering the
+   (subject, obligation) pair is sufficient for the
    open-with-waiver disposition (constitution.md §Waivers).
    Returns None when no waiver matches.
 
-   Note: this is a SUBJECT-level query, not an OBLIGATION-level
-   one. The first waiver file we ship covers the entire
-   `portable-linux-musl` subject; finer-grained obligation
-   coverage is left to a future revision (a waiver can
-   optionally carry `unverified_obligation` for documentation;
-   the kernel does not currently enforce that field).
+   Strict matching rule (constitution.md §Self-application
+   item 11 "Waiver bounds: a waiver MUST apply only to its
+   named gap, scope" and spec/semantics.md §Waiver language
+   on "named obligation"):
+
+     - When `unverified_obligation = Some obl_id`, the waiver
+       covers ONLY the gap whose `(decision, obligation)` pair
+       equals `(w.subject, obl_id)`. A waiver named for
+       obligation A of decision D does NOT cover obligation B
+       of decision D, nor any obligation of decision E.
+
+     - When `unverified_obligation = None`, the waiver covers
+       EVERY obligation of its named decision (legacy global
+       behaviour). This preserves backward compatibility with
+       pre-existing waivers in `decisions/waivers/*.yaml` that
+       ship without `unverified_obligation` (the YAML front-
+       matter expresses it as a list; the JSON parser returns
+       None for non-scalar values, so the kernel reads these
+       as global).
 
    The explicit `(w : Domain.waiver)` annotation disambiguates
    `w.Domain.subject` from `Domain.gap.subject` and
@@ -136,8 +156,13 @@ let[@warning "-32"] effective_at w ~now =
    `id option`. Without the annotation OCaml's structural
    row polymorphism picks the wrong one (OCAML_BEST_PRACTICES
    §11.18). *)
-let[@warning "-32"] covers waivers ~decision_id ~now =
+let[@warning "-32"] covers waivers ~decision_id ~obligation_id ~now =
   List.find_opt
     (fun (w : Domain.waiver) ->
-      String.equal w.Domain.subject decision_id && effective_at w ~now)
+      String.equal w.Domain.subject decision_id
+      && effective_at w ~now
+      &&
+      match w.Domain.unverified_obligation with
+      | None -> true
+      | Some obl_id -> String.equal obl_id obligation_id)
     waivers

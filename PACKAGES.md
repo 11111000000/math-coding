@@ -182,6 +182,7 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `gate-pass.t` | gate returns pass when store has current attestation | `decisions/gate-attestation-store-fill.yaml` |
 | `gate-fail.t` | gate returns fail on decisive failed attestation | `decisions/gate-attestation-store-fill.yaml` |
 | `gate-stale.t` | gate returns stale on expired attestation | `decisions/gate-attestation-store-fill.yaml` |
+| `gate-waiver-scope.t` | Open_with_waiver lifts only the named (decision, obligation) gap (T3.2) | `decisions/plan-2026-10-improvements/t3-2.yaml` |
 | `gate-v32-wired.t` | §15 phase-aware verdict wired into mathc gate | `decisions/algebra-3.2.yaml` |
 | `gate-empty.t` | gate with empty store -> unknown verdict | `decisions/gate-attestation-store-fill.yaml` |
 | `mode.t` | mathc mode computes risk+mode for paths (v3.2 §2) | `decisions/3-2-cli-catalog.yaml` |

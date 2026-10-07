@@ -2102,15 +2102,13 @@ let[@warning "-32"] do_re_evaluate_decisions () =
      Printf.fprintf stderr "mathc re-evaluate-decisions: %s\n" m;
      exit 2);
   if !axiom_id = "" then begin
-    Printf.fprintf stderr
-      "mathc re-evaluate-decisions: AXIOM_ID is required\n";
+    Printf.fprintf stderr "mathc re-evaluate-decisions: AXIOM_ID is required\n";
     exit 2
   end;
   let valid_axioms = [ "A0"; "A1"; "A2"; "A3"; "A4" ] in
   if not (List.mem !axiom_id valid_axioms) then begin
     Printf.fprintf stderr
-      "mathc re-evaluate-decisions: AXIOM_ID must be one of A0..A4 \
-       (got %s)\n"
+      "mathc re-evaluate-decisions: AXIOM_ID must be one of A0..A4 (got %s)\n"
       !axiom_id;
     exit 2
   end;
@@ -2137,11 +2135,8 @@ let[@warning "-32"] do_re_evaluate_decisions () =
     | _ -> "ci-bot:re-evaluate-decisions"
   in
   (* Build per-decision verdicts. *)
-  let per_decision =
-    Re_evaluation.re_evaluate_after_run decisions rev
-  in
-  let per_obligation_verdicts (d : Domain.decision) :
-      Jsonl.value list =
+  let per_decision = Re_evaluation.re_evaluate_after_run decisions rev in
+  let per_obligation_verdicts (d : Domain.decision) : Jsonl.value list =
     List.map
       (fun (ob : Domain.obligation) ->
         let sub = Re_evaluation.evaluate_obligation_after_run ob rev in
@@ -2198,10 +2193,10 @@ let[@warning "-32"] do_re_evaluate_decisions () =
   let rec mkdir_p d =
     if d = "" || d = "/" || d = "." || Sys.file_exists d then ()
     else begin
-        let parent = Filename.dirname d in
-        mkdir_p parent;
-        try Unix.mkdir d 0o755 with _ -> ()
-      end
+      let parent = Filename.dirname d in
+      mkdir_p parent;
+      try Unix.mkdir d 0o755 with _ -> ()
+    end
   in
   mkdir_p attestations_dir;
   List.iter
@@ -2212,8 +2207,7 @@ let[@warning "-32"] do_re_evaluate_decisions () =
           let ob_label = v_to_string ob_v in
           let run_like =
             match ob_v with
-            | Re_evaluation.Compatible
-            | Re_evaluation.CompatibleAfterRun
+            | Re_evaluation.Compatible | Re_evaluation.CompatibleAfterRun
             | Re_evaluation.Inconclusive ->
                 true
             | Re_evaluation.Incompatible | Re_evaluation.StaleClaim -> false
@@ -2222,8 +2216,7 @@ let[@warning "-32"] do_re_evaluate_decisions () =
             let safe_id =
               Printf.sprintf "t1-2-%s-%s-%s.json" !axiom_id d.Domain.id
                 ob.Domain.id
-              |> String.map (fun c ->
-                  if c = '/' || c = ' ' then '_' else c)
+              |> String.map (fun c -> if c = '/' || c = ' ' then '_' else c)
             in
             let result_str =
               match ob_v with
@@ -2231,8 +2224,8 @@ let[@warning "-32"] do_re_evaluate_decisions () =
               | _ -> "pass"
             in
             let payload_str =
-              Printf.sprintf "%s|%s|%s|%s|%s" d.Domain.id ob.Domain.id
-                !axiom_id result_str now
+              Printf.sprintf "%s|%s|%s|%s|%s" d.Domain.id ob.Domain.id !axiom_id
+                result_str now
             in
             let attestation_id =
               Printf.sprintf "sha256:%s" (Digest.sha256_hex payload_str)
@@ -2243,18 +2236,18 @@ let[@warning "-32"] do_re_evaluate_decisions () =
                   ("schema", Jsonl.String "math-coding/attestation-3.0-alpha");
                   ("kind", Jsonl.String "attestation");
                   ("id", Jsonl.String attestation_id);
-                  ("subject",
-                   Jsonl.Object
-                     [
-                       ("decision", Jsonl.String d.Domain.id);
-                       ("obligation", Jsonl.String ob.Domain.id);
-                       ("candidate_tree", Jsonl.String "HEAD");
-                       ("materials_digest", Jsonl.String "");
-                     ]);
+                  ( "subject",
+                    Jsonl.Object
+                      [
+                        ("decision", Jsonl.String d.Domain.id);
+                        ("obligation", Jsonl.String ob.Domain.id);
+                        ("candidate_tree", Jsonl.String "HEAD");
+                        ("materials_digest", Jsonl.String "");
+                      ] );
                   ("kind_", Jsonl.String "test");
-                  ("producer",
-                   Jsonl.Object
-                     [ ("identity", Jsonl.String producer_identity) ]);
+                  ( "producer",
+                    Jsonl.Object
+                      [ ("identity", Jsonl.String producer_identity) ] );
                   ("result", Jsonl.String result_str);
                   ("issued_at", Jsonl.String now);
                   ("axiom", Jsonl.String !axiom_id);
@@ -2471,15 +2464,28 @@ let[@warning "-32"] load_decision_entry reader path =
    causes/remedies are empty too.
 
    Waiver consultation (math-coding 3.0, decision
-   waiver-infrastructure-2026-10): if the aggregated verdict is
-   `Unknown` and a waiver covers the subject at `now`, we
-   return `Open_with_waiver` instead. The CLI maps
-   `Open_with_waiver -> "pass"` in the verdict string (existing
-   behaviour at bin/Mathc.ml:1829-1833) but the gap list and
-   the cause/remedy remain in the JSON output — the gap is a
-   gap, the waiver is an acknowledgment, not an elimination
-   (constitution.md §Waivers line 102; spec/semantics.md
-   §Waiver "MUST NOT change the underlying assurance result").
+   waiver-infrastructure-2026-10; strict-scope T3.2): if the
+   aggregated verdict is `Unknown` and EVERY waivable gap is
+   covered by a waiver at `now`, we return `Open_with_waiver`
+   instead. The CLI maps `Open_with_waiver -> "pass"` in the
+   verdict string (existing behaviour at bin/Mathc.ml:1829-1833)
+   but the gap list and the cause/remedy remain in the JSON
+   output — the gap is a gap, the waiver is an acknowledgment,
+   not an elimination (constitution.md §Waivers line 102;
+   spec/semantics.md §Waiver "MUST NOT change the underlying
+   assurance result").
+
+   Strict per-obligation coverage (T3.2, A3-protected): a waiver
+   covers a gap iff its `(w.subject, w.unverified_obligation)`
+   equals the gap's `(decision_id, obligation_id)`. Waivers
+   without `unverified_obligation` retain their legacy global
+   coverage of every obligation of the named decision (backward
+   compat with pre-existing `decisions/waivers/*.yaml` files,
+   whose YAML front-matter expresses the field as a list and
+   therefore parses to None). If even one waivable gap lacks
+   a covering waiver, the verdict stays `Unknown` — the waiver
+   does NOT silently elevate the gate (constitution.md
+   Invariant 10 "honest status").
 
    A FailedEvidence gap is never waived: only MissingEvidence,
    StaleEvidence, and Unknown gaps can be lifted to
@@ -2499,19 +2505,24 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
   let verdict =
     match aggregate_verdict with
     | Gate.Unknown ->
-        let all_waivable =
-          List.for_all
+        let waivable_gaps =
+          List.filter
             (fun g ->
               match g.Gate.kind with
               | `MissingEvidence | `StaleEvidence | `Unknown -> true
               | `FailedEvidence | `MissingReview | `NoAttestationStore -> false)
             gaps
         in
-        if
-          all_waivable
-          && Option.is_some
-               (Waiver.covers waivers ~decision_id:entry.Memory.decision_id ~now)
-        then Gate.Open_with_waiver
+        let every_gap_waived =
+          List.for_all
+            (fun g ->
+              Option.is_some
+                (Waiver.covers waivers ~decision_id:entry.Memory.decision_id
+                   ~obligation_id:g.Gate.obligation_id ~now))
+            waivable_gaps
+        in
+        if List.length waivable_gaps > 0 && every_gap_waived then
+          Gate.Open_with_waiver
         else Gate.Unknown
     | v -> v
   in

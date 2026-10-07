@@ -76,30 +76,81 @@ let test_effective_at_boundary_expires () =
 
 let test_covers_match () =
   Alcotest.(check bool)
-    "matching subject at valid time is covered" true
+    "matching (subject, obligation) pair at valid time is covered" true
     (Option.is_some
        (Waiver.covers [ sample_waiver ] ~decision_id:"test-subject"
-          ~now:"2026-12-01T00:00:00Z"))
+          ~obligation_id:"obligation-x" ~now:"2026-12-01T00:00:00Z"))
 
 let test_covers_mismatch () =
   Alcotest.(check bool)
     "non-matching subject is not covered" false
     (Option.is_some
        (Waiver.covers [ sample_waiver ] ~decision_id:"different-subject"
-          ~now:"2026-12-01T00:00:00Z"))
+          ~obligation_id:"obligation-x" ~now:"2026-12-01T00:00:00Z"))
 
 let test_covers_expired () =
   Alcotest.(check bool)
     "expired waiver does not cover" false
     (Option.is_some
        (Waiver.covers [ sample_waiver ] ~decision_id:"test-subject"
-          ~now:"2027-05-01T00:00:00Z"))
+          ~obligation_id:"obligation-x" ~now:"2027-05-01T00:00:00Z"))
 
 let test_covers_empty () =
   Alcotest.(check bool)
     "empty waiver list covers nothing" false
     (Option.is_some
-       (Waiver.covers [] ~decision_id:"test-subject" ~now:"2026-12-01T00:00:00Z"))
+       (Waiver.covers [] ~decision_id:"test-subject" ~obligation_id:"any"
+          ~now:"2026-12-01T00:00:00Z"))
+
+(* T3.2: strict (decision, obligation) matching when
+   `unverified_obligation` is set. The positive case is already
+   covered by test_covers_match (sample_waiver has
+   `unverified_obligation = Some "obligation-x"` and the call
+   passes `~obligation_id:"obligation-x"`). The cases below
+   pin the negative contract. *)
+
+let test_covers_strict_obligation_mismatch () =
+  (* sample_waiver.unverified_obligation = Some "obligation-x";
+     a gap with obligation_id "obligation-y" must NOT be covered
+     even when subject and now match. *)
+  Alcotest.(check bool)
+    "strict waiver named for obligation-x does not cover obligation-y" false
+    (Option.is_some
+       (Waiver.covers [ sample_waiver ] ~decision_id:"test-subject"
+          ~obligation_id:"obligation-y" ~now:"2026-12-01T00:00:00Z"))
+
+(* Global waiver (unverified_obligation = None) covers EVERY
+   obligation of its named decision — the legacy behaviour
+   preserved for backward compatibility per the T3.2 contract. *)
+
+let[@warning "-32"] global_waiver =
+  {
+    sample_waiver with
+    Domain.id = "global-waiver-2026-10";
+    Domain.subject = "global-subject";
+    Domain.unverified_obligation = None;
+  }
+
+let test_covers_global_covers_every_obligation () =
+  Alcotest.(check bool)
+    "global waiver covers obligation-x of its subject" true
+    (Option.is_some
+       (Waiver.covers [ global_waiver ] ~decision_id:"global-subject"
+          ~obligation_id:"any-obligation" ~now:"2026-12-01T00:00:00Z"));
+  Alcotest.(check bool)
+    "global waiver covers obligation-y of its subject" true
+    (Option.is_some
+       (Waiver.covers [ global_waiver ] ~decision_id:"global-subject"
+          ~obligation_id:"a-different-obligation" ~now:"2026-12-01T00:00:00Z"))
+
+let test_covers_global_still_subject_scoped () =
+  (* A global waiver still does not cross decision boundaries;
+     the decision_id must match. *)
+  Alcotest.(check bool)
+    "global waiver does not cover a different subject" false
+    (Option.is_some
+       (Waiver.covers [ global_waiver ] ~decision_id:"other-subject"
+          ~obligation_id:"any-obligation" ~now:"2026-12-01T00:00:00Z"))
 
 let test_load_empty_dir () =
   (* Waiver.load uses Sys.readdir internally; the result on
@@ -160,14 +211,17 @@ let test_load_empty_file () =
     "empty file -> None" false
     (Option.is_some (Waiver.parse ""))
 
-(* Integration: covers after parse. *)
+(* Integration: covers after parse. The valid_yaml fixture
+   has no `unverified_obligation` field, so it is treated as a
+   global waiver that covers every obligation of the named
+   subject (T3.2 backward-compatibility clause). *)
 let test_covers_after_load () =
   match Waiver.parse valid_yaml with
   | None -> Alcotest.fail "expected valid YAML to parse"
   | Some w ->
       let result =
         Waiver.covers [ w ] ~decision_id:"roundtrip-subject"
-          ~now:"2026-12-01T00:00:00Z"
+          ~obligation_id:"any-obligation" ~now:"2026-12-01T00:00:00Z"
       in
       Alcotest.(check bool)
         "parsed waiver covers its subject" true (Option.is_some result)
@@ -178,7 +232,7 @@ let test_covers_after_load_expired () =
   | Some w ->
       let result =
         Waiver.covers [ w ] ~decision_id:"roundtrip-subject"
-          ~now:"2027-12-01T00:00:00Z"
+          ~obligation_id:"any-obligation" ~now:"2027-12-01T00:00:00Z"
       in
       Alcotest.(check bool)
         "parsed waiver does not cover after expiry" false
@@ -205,6 +259,12 @@ let () =
           Alcotest.test_case "subject mismatch" `Quick test_covers_mismatch;
           Alcotest.test_case "expired" `Quick test_covers_expired;
           Alcotest.test_case "empty list" `Quick test_covers_empty;
+          Alcotest.test_case "strict obligation mismatch (T3.2)" `Quick
+            test_covers_strict_obligation_mismatch;
+          Alcotest.test_case "global waiver covers every obligation (T3.2)"
+            `Quick test_covers_global_covers_every_obligation;
+          Alcotest.test_case "global waiver is subject-scoped (T3.2)" `Quick
+            test_covers_global_still_subject_scoped;
         ] );
       ( "load",
         [
