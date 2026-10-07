@@ -14,15 +14,27 @@ already have. The rule is stated up front; the reason follows.
 lib/
 ├── dune              (library mathcoding_core, wrapped false)
 ├── domain.ml         (Domain)         — pure type definitions only
-├── canonical.ml      (Canonical)      — JSON canonicalization
+├── canonical.ml      (Canonical)      — JSON canonicalization (RFC 8785)
 ├── jsonl.ml          (Jsonl)          — JSON value + parser + pretty-printer
 ├── schema.ml         (Schema)         — schema-aware field extractors
 ├── diagnostic.ml     (Diagnostic)     — Diagnostic.t record + renderers
-├── identifier.ml     (Identifier)     — id / timestamp / digest parsers
 ├── digest.ml         (Digest)         — SHA-256 (hand-rolled; see §5)
-├── scope.ml          (Scope)          — scope_target + covers
 ├── reference.ml      (Reference)      — Ref/Parent/Subject reference parser
-└── decision.ml       (Decision)       — Domain constructors from Jsonl.value
+├── codec.ml          (Codec)          — YAML/JSON loading + value parsing
+├── decision.ml       (Decision)       — Domain constructors from Jsonl.value
+├── memory.ml         (Memory)         — project memory index
+├── capsule.ml        (Capsule)        — context capsule builder + priority sort
+├── gate.ml           (Gate)           — gate verdict evaluator (v3.2 phase-aware)
+├── packages.ml       (Packages)       — `mathc packages` aggregator
+├── policy.ml         (Policy)         — per-path policy lookup
+├── re_evaluation.ml  (Re_evaluation)  — `re_evaluate(d, A_new)` oracle
+├── rebuttal.ml       (Rebuttal)       — hybrid rebuttal mechanism
+├── render.ml         (Render)         — static site generator
+├── risk.ml           (Risk)           — 12-entry path taxonomy (v3.2 §2)
+├── waiver.ml         (Waiver)         — waiver loader + consult step
+├── attestations/                     (sub-library mathcoding_attestations)
+├── git/                              (sub-library mathcoding_git)
+└── junit/                            (sub-library mathcoding_junit)
 ```
 
 **Rule.** Every kernel module lives under `lib/`. Every executable-only logic
@@ -34,19 +46,23 @@ dragging CLI baggage.
 
 `lib/dune:2` declares `(wrapped false)`. We chose this deliberately.
 
-**Reason.** The library exposes eleven modules that callers compose flat. With
-`(wrapped true)` every consumer would write `Mathcoding_core.Domain.foo` and
-the shadowing of `Domain` (it almost collides with the OCaml `Domain` syntax
-keyword in some contexts) would force ugly prefixes everywhere. Flat exposure
-lets `bin/Mathc.ml` write `Domain.Pass` directly — which we need, because
-`Domain` is both a module name and a type-name concept.
+**Reason.** The library exposes nineteen modules that callers compose flat
+(`lib/dune:2` lists them under `(modules ...)`; see §1.1 for the
+authoritative list). With `(wrapped true)` every consumer would write
+`Mathcoding_core.Domain.foo` and the shadowing of `Domain` (it almost
+collides with the OCaml `Domain` syntax keyword in some contexts) would
+force ugly prefixes everywhere. Flat exposure lets `bin/Mathc.ml` write
+`Domain.Pass` directly — which we need, because `Domain` is both a module
+name and a type-name concept.
 
 **Trade-off.** We lose namespace isolation. Future modules with generic names
 (`Digest`, `Jsonl`) will collide if we ever import another `Digest` lib.
 
-**Action.** When we add `lib/git.ml`, `lib/junit.ml`, `lib/mcp.ml`, prefix the
-filename to avoid collisions: `lib/git_diff.ml`, `lib/junit_render.ml`,
-`lib/mcp_server.ml`.
+**Action.** New adapter protocols land in their own sub-library at
+`lib/<name>/` (today: `attestations`, `git`, `junit`). The flat layout
+under `lib/` is the kernel; sub-libraries are separate OCaml libraries
+with their own `dune` and `name mathcoding_<x>`. See §10.1 for the
+rationale.
 
 **Boundary rules.**
 
@@ -230,26 +246,25 @@ type reversal = {
 
 ### 2.6 Avoid `class` as a field name — rename to `kind`
 
-We hit this. `diagnostic.ml:18-19` uses `class_`. The underscore is a wart.
+We hit this. Originally `Diagnostic.t.class_ : [...]` (with underscore
+suffix). The underscore was a wart.
 
-**Decision.** Rename `Diagnostic.class_` to `Diagnostic.kind`. Cascade to:
+**Status: DONE (v3.0.0.19).** The field is named `kind` today
+(`lib/diagnostic.ml:15`). All call sites — `Diagnostic.create`,
+`Diagnostic.ambiguous_acceptance`, `Diagnostic.malformed_acceptance`,
+and the JSON serializer — were updated in the same change. See
+`decisions/audit-0.0.21-fixes.yaml` for the conformance evidence.
 
-- `Diagnostic.string_of_class` → `string_of_kind`
-- `Diagnostic.class_of_string` → `kind_of_string`
-- All call sites in `bin/Mathc.ml` once it has any.
+**The original rationale** (kept for historical context): the `_` suffix
+was ugly, propagated to every constructor (`~class_:Input`), and JSON
+already used `"class"` for this field (`schemas/attestation.json:7`
+lists it, ironically, as `kind_` for *attestation kind*). Two name
+collisions (`class_` vs `kind_`) was a code smell.
 
-**Why now.** The `_` suffix is ugly, propagates to every constructor
-(`~class_:Input`), and JSON already uses `"class"` for this field
-(`schemas/attestation.json:7` lists it, ironically, as `kind_` for
-*attestation kind*). Two name collisions (`class_` vs `kind_`) is a code
-smell. Rename before v3.0-beta.
-
-The same applies to `scope.match_` (`domain.ml:44`) — `match` is a keyword.
-We added `_`. Prefer renaming to `scope_match`:
-
-```ocaml
-PathTarget { path : string; scope_match : Exact | Tree }
-```
+The same issue applied to `scope.match_` — `match` is a keyword, we
+added `_`. **Status: renamed to `scope_match`** in `domain.ml`'s
+`PathTarget` constructor. The `[`Exact | `Tree]` branch is now
+disambiguated by the field name.
 
 ---
 
@@ -742,8 +757,8 @@ sister diagnostic for items whose fields are right but values are
 unparseable (e.g., `result: "bogus"`). Positive fixtures:
 `fixtures/conformance/decision/positive-ambiguous-acceptance.json`,
 `fixtures/conformance/decision/positive-malformed-acceptance.json`;
-shell fixtures: `tests/fixtures/ambiguous-acceptance.sh`,
-`tests/fixtures/malformed-acceptance.sh`. The conformance runner
+cram tests: `tests/cli/ambiguous-acceptance.t`,
+`tests/cli/malformed-acceptance.t`. The conformance runner
 still classifies these as `Accept` because the decision parses;
 the diagnostics are the side-channel.
 
@@ -754,13 +769,17 @@ Originally `class : [...]`. Compiler accepted it because OCaml 5 reserves
 the field-name-as-keyword ambiguity makes every pattern match ugly:
 `{ class = Input }` works in records but not in some pattern positions.
 
-We renamed to `class_`. **Now rename to `kind`** (§2.5).
+We renamed to `class_`, then to `kind` (§2.6). **Status: DONE.** See
+`decisions/audit-0.0.21-fixes.yaml` for the conformance evidence.
 
 ### 9.3 `jsonl.ml` fragile indentation
 
-`lib/jsonl.ml:90-105` and `:107-130` have nested `if`/`else`/`begin`/`end`
-blocks at +1/+2 indent. We added `begin ... end` markers at `:93` and `:115`
-to make `else` branches unambiguous.
+The hand-rolled parser has nested `if`/`else`/`begin`/`end` blocks at
++1/+2 indent. `begin ... end` markers are used to make `else` branches
+unambiguous. (Specific line refs in earlier revisions of this section
+are stale after the 2026-10 rewrite of `lib/jsonl.ml`; see §11.23 for
+the post-rewrite convention that replaced fragile `String.sub` boundary
+checks with a single correctness rule.)
 
 **The rule, going forward:**
 
@@ -779,19 +798,40 @@ match foo with
 A match with longer bodies uses the `(* begin *)`/`end` brackets. We've done
 this; document it.
 
+**New rule (post-§11.23, 2026-10).** When `String.sub s i N` is called, the
+boundary check is `i + N <= len`, **not** `i + (N - 1) <= len`. The
+N-1 form is off-by-one: at the exact boundary `len - i == N - 1`, the
+check succeeds and `String.sub` raises `Invalid_argument` instead of
+falling through to the next branch. This pattern is the §11.23 trap;
+the historical instance was `lib/junit/junit.ml:74-90` where the
+entity handlers had it. All five branches were fixed; `tests/junit_test.ml`
+pins the regression.
+
 ### 9.4 `bin/dune` executable rename churn
 
 History (per git): `main.ml` → `mathc.ml` → `Mathc.ml`. Each time the module
 name changed, the binary exe name followed.
 
 **Settle on `Mathc.ml` (PascalCase) and never rename.** Update `bin/dune:2` if
-needed. Delete the stale `bin/mathc_main.ml` (currently identical to
-`bin/Mathc.ml`).
+needed.
+
+**Status (2026-10-07): the stale `bin/mathc_main.ml` referenced in earlier
+revisions of this section does not exist.** The `bin/` directory today
+contains only `data/`, `dune`, and `Mathc.ml`. The advice to "delete
+the stale `bin/mathc_main.ml`" is therefore obsolete; remove it from
+this section.
 
 ### 9.5 SHA-256 untested against vectors
 
 Already discussed (§5). Single biggest residual risk in the kernel. Ship
 `tests/digest_vectors.ml` before any digest participates in canonicalization.
+
+**Status (v3.0.0.19, commit `d77624b`): DONE.** `tests/digest_vectors.ml`
+covers RFC 6234 §4.1 (`""`, `abc`, 56-byte, 64-byte, 119-byte cases) plus
+the boundary cases listed in `decisions/audit-0.0.21-fixes.yaml`. The
+§4.4 1,000,000-byte "a" test is exercised separately as a long-running
+case. The hand-rolled `lib/digest.ml` matches all published vectors.
+This entry remains here as a historical record; D4 is closed.
 
 ---
 
@@ -799,26 +839,34 @@ Already discussed (§5). Single biggest residual risk in the kernel. Ship
 
 ### 10.1 Adapter convention
 
-When we add `lib/git.ml` (Git adapter), `lib/junit.ml` (JUnit import),
-`lib/mcp.ml` (MCP server), split into subdirectories:
+The adapter split has already happened. As of 2026-10-07, three
+sub-libraries exist under `lib/`:
 
 ```
 lib/
-├── kernel/                (* flat layout stays until v3.0-beta *)
-│   ├── domain.ml
-│   ├── canonical.ml
-│   └── ...
+├── (kernel)              (* flat layout, 19 modules *)
+│   ├── domain.ml, canonical.ml, ..., waiver.ml
+│   └── dune              (library mathcoding_core, depends on str)
+├── attestations/
+│   ├── attestations.ml
+│   └── dune              (library mathcoding_attestations, depends on mathcoding_core, unix)
 ├── git/
-│   ├── dune              (library mathcoding_git, depends on mathcoding_core)
-│   ├── diff.ml
-│   └── refs.ml
-├── junit/
-│   ├── dune              (library mathcoding_junit, depends on yojson)
-│   └── import.ml
-└── mcp/
-    ├── dune              (library mathcoding_mcp, depends on cohttp-lwt)
-    └── server.ml
+│   ├── git_diff.ml
+│   └── dune              (library mathcoding_git, depends on mathcoding_core)
+└── junit/
+    ├── junit.ml
+    └── dune              (library mathcoding_junit, depends on mathcoding_core; stdlib-only, no yojson)
 ```
+
+The `mcp/` sub-library referenced in earlier revisions of this
+section has not landed; it is deferred. See ROADMAP Tier-3.
+
+**Migration note.** The earlier text "flat layout is fine for 11
+modules. When we add the 12th-and-onward, split" is historical: the
+kernel has 19 modules today and three sub-libraries, so the split
+already happened during the 3.0-alpha cycle. The rule going forward
+is "any new adapter lands under `lib/<name>/`, not as a kernel
+module".
 
 **Rules.**
 
@@ -860,23 +908,51 @@ JUnit report goes through `Jsonl.stringify` first.
 
 ### 10.4 What we should write next — prioritized
 
-1. `tests/digest_vectors.ml` — gates SHA-256 against RFC vectors. Without
-   this, do not use `Digest.sha256` for canonicalization.
-2. `tests/decision_fixtures.ml` — walks `fixtures/conformance/decision/`.
-   Confirms kernel parses positives, rejects negatives.
-3. Rename `Diagnostic.class_` → `Diagnostic.kind`. Cascade.
-4. Refactor `parse_acceptance` into `parse_verifier` + `parse_review` +
-   `parse_acceptance_item` + `parse_acceptance`. Delete `to_acceptance`.
-5. Add `lib/codec.ml` with `parse_result`, `parse_kind`, `parse_phase`,
-   `parse_assumption_state`, `parse_action`, `parse_match`. Remove them
-   from `decision.ml`.
-6. Fix `flake.nix:40` to also build `@tests/runtest`.
-7. Introduce phantom-typed IDs in `lib/identifier.ml` (§2.3). Defer until
-   v3.0-beta.
+The original priority list was written before several items in it were
+shipped. This revision strikes done items and reorders.
+
+**Done (struck from the live list; see §9.1, §9.2, §9.5 for status).**
+
+1. ~~`tests/digest_vectors.ml` — gates SHA-256 against RFC vectors.~~
+   Shipped at v3.0.0.19, commit `d77624b`. See §9.5.
+2. ~~`tests/decision_fixtures.ml` — walks `fixtures/conformance/decision/`.~~
+   Shipped as `tests/conformance.ml` (full conformance walker) plus
+   `tests/decision_parser_yaml.ml` (YAML-form decision parser); both
+   live in `tests/dune`.
+3. ~~Rename `Diagnostic.class_` → `Diagnostic.kind`. Cascade.~~
+   Shipped. Field is `kind` today (`lib/diagnostic.ml:15`). See §2.6.
+4. ~~Refactor `parse_acceptance` into `parse_verifier` + `parse_review` +
+   `parse_acceptance_item` + `parse_acceptance`.~~ Shipped. See §9.1.
+5. ~~Add `lib/codec.ml` with `parse_result`, `parse_kind`, `parse_phase`,
+   `parse_assumption_state`, `parse_action`, `parse_match`.~~ Shipped.
+   `lib/codec.ml` exists; the helpers it owns have grown over time.
+9. ~~Move the 11 modules under `lib/kernel/`.~~ The split happened at
+   the sub-library level, not the directory level: `lib/attestations/`,
+   `lib/git/`, `lib/junit/` exist as separate OCaml libraries today.
+   See §10.1.
+
+**Still pending (live list).**
+
+6. Fix `flake.nix:40` to also build `@tests/runtest` so CI exercises
+   the conformance suite in `nix build` (the current `buildPhase`
+   builds only `bin/mathc.exe`). Status: pending.
+7. Introduce phantom-typed IDs in the kernel. Defer until v3.0-beta.
 8. Move polymorphic variants to concrete variants in `domain.ml` (§2.2).
-   Defer until 3.0-beta — touches every consumer.
-9. Move the 11 modules under `lib/kernel/` (§10.1) when the first adapter
-   lands.
+   Defer until v3.0-beta — touches every consumer.
+
+**New items added 2026-10.**
+
+10. (New) Fix the §11.23 off-by-one in any future `String.sub` boundary
+    check. The historical instance was `lib/junit/junit.ml:74-90`
+    (entity handlers), fixed in v3.0.0.20; `tests/junit_test.ml` pins
+    the regression. The rule is recorded in §9.3 and §11.23.
+11. (New) Add `.merlin` to the dev shell. Hand-written (because
+    dune 3.23.1 in the pinned nixpkgs has `(using merlin-conf ...)`
+    removed); `flake.nix` exposes `merlin` 5.8-505 and `ocaml-lsp`
+    1.27.0. See `decisions/merlin-lsp-2026-10.yaml`.
+12. (New) Reduce the trap log's surface area. The `scripts/agent-debug`
+    bash wrapper now resolves 10 of 22 §11 traps from a dune-build
+    error string. See `decisions/agent-debug-infrastructure-2026-10.yaml`.
 
 ### 10.5 Context-capsule priority order (for `mathc context`)
 
@@ -1579,4 +1655,68 @@ claims the result is portable. Cited in this session (2026-10-04)
 as the trigger for `decisions/portable-linux-musl.yaml`. Referenced
 from `decisions/portable-linux-musl.yaml` obligations
 `musl-binary-runs-version` and `release-yml-alpine-job-present`.
+
+### 11.23 Off-by-one in `String.sub` boundary check
+
+The OCaml stdlib `String.sub s off len` raises `Invalid_argument
+"String.substring"` when `off + len > String.length s`. The matching
+boundary check is therefore `i + N <= len` (equivalently `i + N - 1 <
+len`), **not** `i + N - 1 <= len`. The N-1 form is off-by-one: at the
+exact boundary `len - i == N - 1`, the check passes and `String.sub`
+raises the uncaught `Invalid_argument`, escaping the typed `Parse_error`
+layer.
+
+**Symptom.** A parser expecting a fixed-length token (entity reference,
+literal, numeric suffix, etc.) crashes with an uncaught
+`Invalid_argument` on input where the token lands at the very end of
+the buffer. The error is not part of the parser's documented exception
+contract, so the crash surprises both the parser's call-sites and
+`scripts/agent-debug`.
+
+**Real instance (2026-10-07).** `lib/junit/junit.ml:74-90` (entity
+handlers in `parse_attr_value`):
+
+```ocaml
+(* BEFORE — five off-by-one branches, all the same shape *)
+begin if i + 4 <= len && String.sub s i 5 = "&amp;" then begin
+  Buffer.add_char buf '&'; loop (i + 5)
+end
+else if i + 3 <= len && String.sub s i 4 = "&lt;" then begin
+  ...
+end
+... (* three more, all `i + (N-1) <= len && String.sub s i N` *)
+
+(* AFTER — boundary check equals read length *)
+begin if i + 5 <= len && String.sub s i 5 = "&amp;" then begin ... end
+else if i + 4 <= len && String.sub s i 4 = "&lt;" then begin ... end
+... (* symmetric fix on all five branches *)
+```
+
+The fix is mechanical: every `i + (N-1) <= len` paired with
+`String.sub s i N` becomes `i + N <= len`. No other change is needed.
+
+**Why it survived.** The conformance corpus does not contain an
+attributevalue whose entity reference ends at the buffer boundary,
+because real JUnit reports always close the value with `"`. The bug
+only fires on truncated input. The reproduction:
+
+```sh
+$ echo '<testsuite name="&amp' | nix develop .#test --command bash -c \
+    'dune exec bin/mathc.exe -- attest /dev/stdin'
+Invalid_argument("String.substring")
+```
+
+**Regression pin.** `tests/junit_test.ml` has two `trap_§11_23` cases
+(`truncated-amp-at-boundary`, `truncated-amp-full-input`) that assert
+the typed `Junit.Parse_error` is raised, not `Invalid_argument`.
+
+**Repro (real session, 2026-10-07).** Found by a structural pass over
+`String.sub s i N` boundary checks in `lib/`. The Python script that
+pairs the boundary constant with the read length and reports mismatches
+is the recommended lint for any future `String.sub` call. The pattern
+itself is documented in §9.3 ("New rule (post-§11.23, 2026-10)").
+
+**Trigger:** any hand-rolled parser that calls `String.sub s i N`
+without a preceding `i + N <= len` check. Most common in entity
+decoders, escape-sequence decoders, and literal-keyword matchers.
 

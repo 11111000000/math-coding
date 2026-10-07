@@ -16,5 +16,11 @@
   identity_uniqueness
   traps
   supersession_check
-  qcheck_parsers)
- (libraries mathcoding_core mathcoding_attestations alcotest qcheck))
+  qcheck_parsers
+  junit_test)
+ (libraries
+  mathcoding_core
+  mathcoding_attestations
+  mathcoding_junit
+  alcotest
+  qcheck))
