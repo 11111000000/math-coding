@@ -306,6 +306,89 @@ let[@warning "-32"] mathjax_in_head_when_enabled () =
     "MathJax CDN script emitted when flag on" true
     (has "mathjax@3" page.Render.body)
 
+let[@warning "-32"] mathjax_no_dollar_delimiters () =
+  (* `decisions/mathjax-delimiter-hardening-2026-10.yaml`
+     narrows MathJax to LaTeX-style delimiters: `\(..\)` and
+     `\[..\]`. The `$..$` and `$$..$$` pairs are NOT in the
+     emitted configuration, so a stray `$` in prose remains
+     a literal character even when MathJax is enabled. *)
+  let cfg : Render.config =
+    { Render.default_config with Render.enable_mathjax = true }
+  in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg
+      ~site_pages:[ ("methodology", "Methodology", "before") ]
+      ~site_pages_ru:[] ~axioms_data:[]
+  in
+  let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
+  Alcotest.(check bool)
+    "$..$ pair absent from inlineMath declaration" true
+    (not (has "['$','$']" page.Render.body));
+  Alcotest.(check bool)
+    "$$..$$ pair absent from displayMath declaration" true
+    (not (has "['$$','$$']" page.Render.body))
+
+let[@warning "-32"] mathjax_uses_latex_delimiters () =
+  (* The LaTeX-style delimiters `\(..\)` and `\[..\]` MUST be
+     present in the MathJax configuration when enabled. *)
+  let cfg : Render.config =
+    { Render.default_config with Render.enable_mathjax = true }
+  in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg
+      ~site_pages:[ ("methodology", "Methodology", "before") ]
+      ~site_pages_ru:[] ~axioms_data:[]
+  in
+  let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
+  Alcotest.(check bool)
+    "inlineMath declares `\\(..\\)`" true
+    (has "['\\(','\\)']" page.Render.body);
+  Alcotest.(check bool)
+    "displayMath declares `\\[..\\]`" true
+    (has "['\\[','\\]']" page.Render.body)
+
+let[@warning "-32"] css_has_math_rules () =
+  (* Read the live stylesheet and assert it ships rules for
+     MathJax containers. The rules are scoped to mjx-container
+     so a non-MathJax page is unaffected. *)
+  let css_path =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> Filename.concat p "assets/style.css"
+    | None -> "../assets/style.css"
+  in
+  let ic = open_in css_path in
+  let n = in_channel_length ic in
+  let css = really_input_string ic n in
+  close_in ic;
+  Alcotest.(check bool)
+    "mjx-container rule declared" true (has "mjx-container" css);
+  Alcotest.(check bool)
+    "display-math overflow rule declared" true
+    (has "mjx-container[display=\"true\"]" css && has "overflow-x: auto" css);
+  Alcotest.(check bool)
+    "math font stack declared" true (has "STIX Two Math" css)
+
+let[@warning "-32"] css_has_mermaid_svg_rules () =
+  (* Read the live stylesheet and assert it ships rules for
+     mermaid SVG diagrams. The .mermaid svg rule keeps diagrams
+     inside the 54-rem column on narrow viewports. *)
+  let css_path =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> Filename.concat p "assets/style.css"
+    | None -> "../assets/style.css"
+  in
+  let ic = open_in css_path in
+  let n = in_channel_length ic in
+  let css = really_input_string ic n in
+  close_in ic;
+  Alcotest.(check bool)
+    ".mermaid svg rule declared" true (has ".mermaid svg" css);
+  Alcotest.(check bool)
+    ".mermaid svg max-width: 100%" true
+    (has "max-width: 100%" css && has ".mermaid svg" css)
+
 let[@warning "-32"] packages_page_has_grid () =
   let cfg : Render.config = Render.default_config in
   let pkg_html =
@@ -500,6 +583,15 @@ let () =
         ] );
       ( "mathjax_default_off",
         [ Alcotest.test_case "off" `Quick mathjax_default_off ] );
+      ( "mathjax_no_dollar_delimiters",
+        [ Alcotest.test_case "no-dollar" `Quick mathjax_no_dollar_delimiters ]
+      );
+      ( "mathjax_uses_latex_delimiters",
+        [ Alcotest.test_case "latex" `Quick mathjax_uses_latex_delimiters ] );
+      ( "css_has_math_rules",
+        [ Alcotest.test_case "math" `Quick css_has_math_rules ] );
+      ( "css_has_mermaid_svg_rules",
+        [ Alcotest.test_case "mermaid" `Quick css_has_mermaid_svg_rules ] );
       ( "packages_page_has_grid",
         [ Alcotest.test_case "grid" `Quick packages_page_has_grid ] );
       ( "ru_nav_omits_missing_sibling",

@@ -517,6 +517,85 @@ footer.site-footer a:hover {
   border-bottom-color: var(--accent);
 }
 
+/* --- math (MathJax) ---
+
+   MathJax 3 is wired in lib/render.ml's render_head and is
+   activated per-page via the --mathjax CLI flag. When the
+   script tag is emitted, math output lands in a <mjx-container>
+   (inline) or <mjx-container display="true"> (display). The
+   previous stylesheet declared no rules for these containers,
+   so any future MathJax output would render in MathJax's
+   default font (STIX Two Math) without alignment to the page's
+   Charter / Georgia stack and without column-aware overflow.
+
+   Three rules suffice:
+
+     - font-family: math font stack that gracefully falls
+       back to Latin Modern Math or Cambria Math if STIX Two
+       Math is unavailable (e.g., on a thin mobile browser).
+
+     - display math margin + overflow: a [..\] block sits on
+       its own line with 1em of vertical breathing space,
+       and a wide formula scrolls horizontally inside the
+       54-rem column instead of breaking the layout.
+
+     - inline math: no special rule. The <mjx-container> tag
+       defaults to inline-block, which matches TeX expectations.
+
+   See decision mathjax-delimiter-hardening-2026-10 for the
+   rationale (narrowing MathJax to LaTeX-style delimiters
+   so a stray $ in prose is a literal $, not a math boundary).
+*/
+
+mjx-container,
+mjx-container[display="inline-math"] {
+  font-family: "STIX Two Math", "Latin Modern Math",
+               "Cambria Math", "Asana Math", "TeX Gyre Termes Math",
+               serif;
+  font-size: 1.05em;
+  /* Inline math hugs its baseline; let the surrounding prose
+     dictate line-height. No margin / padding here. */
+}
+
+mjx-container[display="true"] {
+  display: block;
+  margin: 1.1em 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* Cap the horizontal scroll to the Tufte column width
+     rather than the full viewport, so a wide display formula
+     on a 1280+ px screen still scrolls inside the prose
+     column rather than the gutter. */
+  max-width: 100%;
+  padding: 0.2em 0;
+}
+
+/* --- mermaid diagrams ---
+
+   Mermaid v10 is wired in lib/render.ml's render_head and
+   is loaded when enable_mermaid is true (the default). The
+   library emits an inline <svg> inside the .mermaid div.
+   Without a max-width the SVG renders at its intrinsic width
+   and breaks the 54-rem column on narrow viewports.
+*/
+
+.mermaid svg {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+
+/* The diagram text inherits the page's serif stack, but
+   mermaid's labels often look better in a monospace. Force
+   the node / edge labels onto Charter / Georgia for visual
+   consistency with the surrounding prose. */
+.mermaid .nodeLabel,
+.mermaid .edgeLabel,
+.mermaid .actor {
+  font-family: var(--serif-stack) !important;
+}
+
 /* --- print --- */
 
 @media print {
