@@ -1,0 +1,332 @@
+---
+schema: math-coding/3.0-alpha
+id: t3-1-gate-v30-risk-aware
+revision: 1
+state: active
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+intent: |
+  Wire `Risk.mode` into the v3.0 `lib/gate.ml::evaluate` path so
+  that commits whose risk classification lands at `strict` or
+  `exhaustive` surface rebuttal obligations in the gate verdict.
+  Before this change, rebuttal obligations were visible only to the
+  v3.2 `gate_v32` path; the v3.0 path silently returned `Unknown`
+  for axiom-touching commits that lacked rebuttals, an A1 honesty
+  gap (axiom A1 Feedback: every commitment must have a path to an
+  observation).
+
+  Algebra §10 mandates rebuttals for non-Unblocked verdict at
+  exhaustive mode; algebra §5 plus the `math-coding-axioms`
+  `mode_floor: exhaustive` policy floor in `policies.yaml` mean
+  any commit touching `axioms/**` lands at exhaustive mode and
+  therefore MUST carry a rebuttal file before the gate can pass.
+  The T3.1 wiring closes that gap at the kernel layer.
+
+  This is one of the 14 obligations authorised by the meta-decision
+  `decisions/plan-2026-10-improvements.yaml@1`; specifically
+  obligation `t3-1-gate-v30-risk-aware`. Scope is limited to
+  `lib/gate.ml::evaluate` and the corresponding `bin/Mathc.ml::do_gate`
+  rebuttal load. Other streams own the v3.2 `gate_v32`,
+  `aggregate` / `obligation_gap`, the diagnostics UX, and the
+  decision / site / spec surfaces.
+
+  History:
+    rev 1 (this commit): initial adoption under bootstrap-v3@2
+    policy. Closes meta-decision
+    `plan-2026-10-improvements` Tier 3 obligation
+    `t3-1-gate-v30-risk-aware`. NOT A3-protected: the gate verdict
+    surface changes only for axiom-touching commits that lack
+    rebuttals; existing cram fixtures that touch axioms/ without a
+    sibling decision were already blocked via the §20 kernel rules
+    in `gate_v32` (stream ζ T1.2 baseline) and remain blocked under
+    the T3.1 wiring.
+
+commitment: |
+  1. `lib/gate.ml::evaluate` takes a new labelled parameter
+     `~rebuttals : Rebuttal.rebuttal list` (no I/O inside `evaluate`;
+     the loader stays at `bin/Mathc.ml::do_gate` per
+     OCAML_BEST_PRACTICES §1.3). After the existing attestation-gap
+     computation, `evaluate` calls `Risk.mode changed_paths` and, for
+     modes ∈ {`Strict`, `Exhaustive`} with an empty rebuttal list,
+     overrides the verdict to `Block`. The helper
+     `rebuttal_gating_for_mode : Domain.mode -> [ `Required | `Optional ]`
+     makes the gate boundary explicit and unit-testable.
+
+  2. `bin/Mathc.ml::do_gate` loads rebuttals via
+     `Rebuttal.all_rebuttals !head` and passes them to
+     `Gate.evaluate`. The hybrid rebuttal mechanism (algebra §10)
+     remains YAML-authoritative: forge failure does NOT raise into
+     the gate.
+
+  3. The new cram fixture `tests/cli/gate-axiom-commit.t`
+     constructs a tmpdir repo whose second commit touches
+     `axioms/A0.md` AND a sibling `decisions/*.yaml` (so the §20
+     kernel rules in `gate_v32` pass via `has_sibling_yaml`) and
+     asserts `mathc gate HEAD~1 HEAD` emits `verdict:"block"`.
+     The sibling decision neutralises the §20 protected-path
+     rule so the v3.0 evaluate path is exercised in isolation;
+     without the sibling, the kernel-rule path `gate_v32` would
+     block independently of `evaluate`, masking the T3.1 wiring.
+
+  4. The previously-v3.2-only rebuttal obligation for axiom-
+     touching commits now blocks via the v3.0 path. Existing cram
+     fixtures that do NOT touch axioms/ and do NOT have rebuttals
+     continue to return `Unknown` (the gate-v32 rules do not fire
+     for unprotected paths in standard mode; the attestation-gap
+     stream remains the dominant signal).
+
+  5. The change preserves the v3.0 / v3.2 split per algebra §15:
+     `gate_v32`, `apply_rule`, `gate_release_v32`, and
+     `post_release_monitor` are NOT modified. Stream ζ (T3.2) owns
+     `aggregate` / `obligation_gap`; stream η (T4.1) owns
+     `next_actions` on `gap`. This sub-decision touches only
+     `lib/gate.ml::evaluate` (the function header and the rebuttal
+     gating block) plus the corresponding `bin/Mathc.ml::do_gate`
+     rebuttal load.
+
+  Boundaries:
+  - `lib/waiver.ml`, `lib/diagnostic.ml`, `lib/decision.ml`,
+    `lib/risk.ml`, `lib/policy.ml`, `lib/rebuttal.ml`,
+    `lib/re_evaluation.ml`, and `lib/attestations/attestations.ml`
+    are NOT modified (other streams own those).
+  - `lib/gate.ml::gate_v32`, `apply_rule`, `gate_release_v32`,
+    `post_release_monitor`, and `commit_info_of` are NOT modified.
+  - `bin/Mathc.ml::validate_with_counts`, `do_explain`,
+    `do_explain_diagnostic`, `do_re_evaluate`, `do_re_evaluate_decisions`,
+    `do_self_check`, and `do_context` are NOT modified. Only
+    `do_gate` is touched (one `let`-binding + one labelled argument).
+  - `schemas/decision.json` is NOT modified. The schema does not
+    carry the rebuttal obligation surface.
+  - `spec/algebra-3.2.md` is NOT modified. §10 already requires
+    rebuttals for non-Unblocked verdict at exhaustive mode; the
+    T3.1 wiring is the kernel-side closure of that requirement.
+  - `site/*.md` is NOT modified. Documentation drift on the site
+    surface is closed by a separate stream (T5.x).
+  - Existing decision files are NOT modified. The 14 constitution
+    invariants (I1–I14) and the 5 axioms (A0–A4) are preserved
+    verbatim.
+
+scope:
+  capabilities:
+    - gate-unification
+  paths:
+    - "lib/gate.ml"
+    - "bin/Mathc.ml"
+    - "tests/cli/gate-axiom-commit.t"
+    - "decisions/plan-2026-10-improvements/t3-1.yaml"
+    - "attestations/t3-1-*.json"
+    - "attestations/plan-2026-10-improvements-t3-1-*.json"
+  exclusions:
+    - "lib/waiver.ml"
+    - "lib/diagnostic.ml"
+    - "lib/decision.ml"
+    - "lib/risk.ml"
+    - "lib/policy.ml"
+    - "lib/rebuttal.ml"
+    - "lib/re_evaluation.ml"
+    - "lib/attestations/attestations.ml"
+    - "lib/gate.ml::gate_v32"
+    - "lib/gate.ml::apply_rule"
+    - "lib/gate.ml::gate_release_v32"
+    - "lib/gate.ml::post_release_monitor"
+    - "lib/gate.ml::commit_info_of"
+    - "lib/gate.ml::aggregate"
+    - "lib/gate.ml::obligation_gap"
+    - "bin/Mathc.ml::validate_with_counts"
+    - "bin/Mathc.ml::do_explain"
+    - "bin/Mathc.ml::do_explain_diagnostic"
+    - "bin/Mathc.ml::do_re_evaluate"
+    - "bin/Mathc.ml::do_re_evaluate_decisions"
+    - "bin/Mathc.ml::do_self_check"
+    - "bin/Mathc.ml::do_context"
+    - "schemas/**"
+    - "axioms/**"
+    - "site/**"
+    - "scripts/**"
+    - "decisions/*.yaml"
+    - "decisions/plan-2026-10-improvements.yaml"
+    - "decisions/plan-2026-10-improvements/*.yaml"
+
+outcomes:
+  - id: gate-v30-risk-aware
+    statement: |
+      `lib/gate.ml::evaluate` consults `Risk.mode changed_paths`
+      and promotes the verdict to `Block` when the mode is
+      `Strict` or `Exhaustive` and the rebuttal list is empty.
+      The `bin/Mathc.ml::do_gate` caller loads rebuttals via
+      `Rebuttal.all_rebuttals` and passes them through.
+
+  - id: cram-fixture-axiom-commit
+    statement: |
+      `tests/cli/gate-axiom-commit.t` constructs a tmpdir repo
+      whose second commit touches `axioms/A0.md` plus a sibling
+      `decisions/*.yaml` and asserts `mathc gate HEAD~1 HEAD`
+      emits `verdict:"block"`. The sibling decision neutralises
+      the §20 kernel-rule path so the v3.0 evaluate path is
+      exercised in isolation.
+
+counterexample: |
+  "The v3.2 `gate_v32` already blocks axiom-touching commits
+  without a sibling decision via the §20 `CoCommitDecision` rule;
+  adding a v3.0-side rebuttal gate is redundant."
+
+  Counterargument: the §20 `CoCommitDecision` rule fires only
+  when there is no sibling decision. Axiom-touching commits
+  WITH a sibling decision (a perfectly normal case: an axiom
+  change plus a CoCommit decision record) pass the kernel rules
+  and were previously evaluated as `Unknown` by the v3.0 path
+  because no attestation gaps existed for the small sibling
+  decision. The T3.1 wiring closes that gap: any axiom-touching
+  commit at exhaustive mode requires a rebuttal file (`rebuttals/
+  <sha>.yaml` or a forge mirror), independent of whether a
+  sibling decision is present. The cram fixture
+  `tests/cli/gate-axiom-commit.t` proves this by exercising the
+  sibling-decision case.
+
+  "Adding a labelled argument to `evaluate` breaks every existing
+  caller; downstream tools and tests will not compile."
+
+  Counterargument: the only direct caller of `evaluate` is
+  `bin/Mathc.ml::do_gate` (verified by `grep -rn 'Gate.evaluate'`
+  across `lib/`, `bin/`, `tests/`). That single call site is
+  updated in the same commit. The tests/ directory contains
+  unit tests for `obligation_gap`, `aggregate`, and
+  `commit_info_of`, but NOT for `evaluate` (the v3.0 kernel
+  function), so the signature change does not cascade.
+  `bin/Mathc.ml::do_gate` now passes `~rebuttals` explicitly,
+  matching the new contract.
+
+  "The `rebuttal_gating_for_mode` helper duplicates the gate
+  boundary check already in `Rebuttal.authority_required`. The
+  kernel should call `Rebuttal.authority_required mode` and
+  compare against the rebuttals' trust levels."
+
+  Counterargument: the gate boundary this sub-decision enforces
+  is NOT `trust-level meets authority-floor` (which is the §10
+  binding rule, already enforced in `Rebuttal.is_binding`). The
+  T3.1 boundary is simpler: at mode ≥ strict, does ANY rebuttal
+  exist for the candidate commit? The two checks are
+  complementary, not duplicate. Stream ζ (T3.2) owns the
+  per-obligation narrowing of `lib/waiver.ml`; T3.1 enforces
+  the per-commit rebuttal-presence requirement at the v3.0
+  surface.
+
+  "The `bin/Mathc.ml::do_gate` change touches a function that
+  stream η (T4.1) owns; this risks merge conflicts."
+
+  Counterargument: stream η (T4.1) owns only the
+  `validate_with_counts` portion of `bin/Mathc.ml` (per the
+  Round 3 cross-stream boundary in the coordinator's brief).
+  `do_gate` is a different function (gates, not validates) and
+  is unaffected by the T4.1 diagnostics-UX work. The T3.1
+  diff in `do_gate` is one `let`-binding plus a labelled
+  argument on the next `let`-binding; T4.1 cannot collide with
+  this scope.
+
+obligations:
+  - id: evaluate-calls-risk-mode
+    outcome: gate-v30-risk-aware
+    statement: |
+      `lib/gate.ml::evaluate` calls `Risk.mode changed_paths`
+      and overrides the verdict to `Block` when
+      `rebuttal_gating_for_mode mode = `Required and
+      `List.length rebuttals = 0`.
+    claim: |
+      `lib/gate.ml` contains a `let mode = Risk.mode changed_paths`
+      binding inside `evaluate` and a `let verdict = if
+      rebuttals_required then Block else base_verdict` binding
+      after `base_verdict` is computed. The helper
+      `rebuttal_gating_for_mode` returns `` `Required `` for
+      `` `Strict `` and `` `Exhaustive ``, and `` `Optional ``
+      for `` `Tiny ``, `` `Light ``, and `` `Standard ``.
+    acceptance:
+      all:
+        - verifier: text-scan-lib-gate-ml-evaluate-risk-mode-call
+          result: pass
+        - verifier: text-scan-lib-gate-ml-rebuttal-gating-helper
+          result: pass
+
+  - id: do-gate-loads-rebuttals
+    outcome: gate-v30-risk-aware
+    statement: |
+      `bin/Mathc.ml::do_gate` loads rebuttals via
+      `Rebuttal.all_rebuttals !head` and passes them to
+      `Gate.evaluate` as the new `~rebuttals` labelled argument.
+    claim: |
+      `bin/Mathc.ml` contains a `let rebuttals = Rebuttal.all_rebuttals
+      !head in` binding inside `do_gate`, immediately preceding
+      the `Gate.evaluate` call. The `Gate.evaluate` invocation
+      carries `~rebuttals` as a labelled argument.
+    acceptance:
+      all:
+        - verifier: text-scan-bin-mathc-ml-do-gate-rebuttals-binding
+          result: pass
+
+  - id: cram-fixture-axiom-commit
+    outcome: cram-fixture-axiom-commit
+    statement: |
+      `tests/cli/gate-axiom-commit.t` exists and asserts
+      `mathc gate HEAD~1 HEAD` emits `verdict:"block"` for a
+      commit touching `axioms/A0.md` plus a sibling
+      `decisions/*.yaml` at the math-coding project root.
+    claim: |
+      `tests/cli/gate-axiom-commit.t` exercises a tmpdir repo
+      with two commits: an initial commit containing a
+      placeholder file plus a `decisions/t3-1-axiom-toucher.yaml`
+      decision (no obligations), and a second commit modifying
+      `axioms/A0.md` and updating the decision. The `git diff
+      HEAD~1 HEAD --name-only` projection shows both files
+      modified. `mathc gate HEAD~1 HEAD` emits
+      `{"verdict":"block"}`.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-axiom-commit.t
+          result: pass
+
+reversal:
+  - signal: evaluate-signature-revert
+    condition: |
+      A future stream wants to revert `evaluate` to a
+      no-`~rebuttals` signature. Resolution: add a labelled-arg
+      alias `evaluate_legacy : now:base:head:memory:changed_paths:store:rebuttals:unit
+      -> t` that defaults `~rebuttals` to `[]`, and route legacy
+      tooling through that alias. The new `evaluate` keeps the
+      `~rebuttals` parameter; the T3.1 wiring stays live.
+    action: rework
+
+  - signal: rebuttal-gating-too-broad
+    condition: |
+      Operators observe that the v3.0 evaluate path is blocking
+      too many strict-mode commits (e.g. an internal `lib/`
+      refactor with no axiom-touching path is landing at strict
+      mode because the mode floor is `pci-strict`). Resolution:
+      narrow `rebuttal_gating_for_mode` to `` `Exhaustive `` only
+      and supersede this sub-decision with a T3.1b amendment
+      that ships the narrowed gate.
+    action: halt
+
+  - signal: gate-v32-now-redundant
+    condition: |
+      A future audit concludes that `gate_v32`'s rebuttal block
+      (which currently passes `binding_rebuttals = false`) is
+      fully superseded by the v3.0 evaluate wiring, and removing
+      `gate_v32`'s rebuttal block would be a strict simplification.
+      Resolution: stream ζ (T3.2) opens a follow-up sub-decision
+      to remove the `binding_rebuttals` parameter from
+      `gate_v32`'s signature; this sub-decision does NOT itself
+      touch `gate_v32`.
+    action: rework
+
+risk:
+  declared_triggers:
+    - kernel-verdict-surface-shift
+    - do-gate-rebuttal-load-failure
+    - cram-fixture-flake
+    - pre-existing-fixture-counter-regression
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []

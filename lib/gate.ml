@@ -223,7 +223,32 @@ let[@warning "-32"] aggregate gaps =
   let has_failed = List.exists (fun g -> g.kind = `FailedEvidence) gaps in
   match gaps with _ when has_failed -> Block | [] -> Pass | _ -> Unknown
 
-let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store =
+(* T3.1: v3.0 evaluate path now consults `Risk.mode files` and
+ * surfaces rebuttal obligations for `mode >= strict`, per algebra
+ * §10:
+ *
+ *   ∀ c, mode(c) ≥ strict: rebuttals(c) may exist (not required)
+ *   ∀ c, mode(c) = exhaustive: rebuttals(c) required for
+ *                              non-Unblocked verdict
+ *
+ * The previous v3.0 behaviour silently returned Unknown for
+ * axiom-touching commits that lacked rebuttals; the new behaviour
+ * mirrors gate_v32 by promoting to Block when rebuttals are empty
+ * and the mode demands them. Pure function — `rebuttals` is loaded
+ * by `bin/Mathc.ml::do_gate` (or a test fake) and passed in here
+ * as a typed value; no I/O inside `evaluate` (OCAML_BEST_PRACTICES
+ * §1.3).
+ *
+ * Kernel Invariant 14 (exit honesty): Block MUST exit non-zero,
+ * and the gate verdict MUST reflect the strongest signal in the
+ * store + the rebuttal binding. A rebuttal-less strict/exhaustive
+ * commit is, by the spec, a Block. *)
+let[@warning "-32"] rebuttal_gating_for_mode (m : Domain.mode) :
+    [ `Required | `Optional ] =
+  match m with `Strict | `Exhaustive -> `Required | _ -> `Optional
+
+let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
+    ~rebuttals =
   let materials = materials_digest_of changed_paths in
   let applicable_count =
     List.fold_left
@@ -241,11 +266,18 @@ let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store =
       memory.Memory.decisions
   in
   let obligation_count = applicable_count in
-  let verdict =
+  let base_verdict =
     match (changed_paths, obligation_count) with
     | [], _ | _, 0 -> Pass
     | _ -> aggregate gaps
   in
+  let mode = Risk.mode changed_paths in
+  let rebuttals_required =
+    match rebuttal_gating_for_mode mode with
+    | `Required -> List.length rebuttals = 0
+    | `Optional -> false
+  in
+  let verdict = if rebuttals_required then Block else base_verdict in
   { verdict; gaps; obligation_count; now; base; head }
 
 (* ============================================================================

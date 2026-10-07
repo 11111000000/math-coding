@@ -1777,9 +1777,16 @@ let do_gate () =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
   let store = Attestations.load ~reader:store_reader ~root:store_root in
+  (* T3.1: load rebuttals for the candidate tree's HEAD so the
+     v3.0 evaluate path can enforce the algebra §10 rebuttal
+     obligation when Risk.mode >= strict. Without this load the
+     new wiring in lib/gate.ml::evaluate would always see an
+     empty rebuttals list and over-block every strict/exhaustive
+     commit. *)
+  let rebuttals = Rebuttal.all_rebuttals !head in
   let result =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
-      ~changed_paths ~store
+      ~changed_paths ~store ~rebuttals
   in
   (* math-coding 3.2-ideal §15 wiring: phase-aware gate verdict on
      top of the v3.0 `evaluate`. gate_v32 honours obligation
