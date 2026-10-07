@@ -1,0 +1,44 @@
+# OCaml LSP / merlin configuration for math-coding 3.0-alpha.
+#
+# Hand-written, not dune-generated, because the nixpkgs revision
+# pinned in flake.nix (e94cb15, 2025-Q3) ships dune 3.23.1 with
+# the `(using merlin-conf 0.1)` stanza REMOVED — every variant
+# tried (0.0, 0.1, dune-merlin, ocaml-lsp-server) errors with
+# `Unknown extension "..."`. Until the dev shell moves to a nixpkgs
+# that has merlin-conf re-introduced, the hand-written .merlin is
+# the only path. See decisions/merlin-lsp-2026-10.yaml for the
+# reversal signal `nixpkgs-merlin-conf-available` that flips back
+# to dune-generated.
+#
+# Verified with:
+#   - ocaml-lsp 1.27.0 (LSP server, supersedes merlin's protocol
+#     layer; reads .merlin via dot-merlin-reader).
+#   - merlin 5.8-505 (raw merlin, used for editor-independent
+#     type queries; reads .merlin directly).
+#
+# Conventions used here mirror the dune layout of the project
+# (lib/ is the kernel with wrapped-false layout, lib/{attestations,
+# git,junit} are sub-libraries, bin/ is the mathc executable,
+# tests/ is the Alcotest + QCheck suite):
+
+# --- kernel -----------------------------------------------------------------
+S lib
+S lib/attestations
+S lib/git
+S lib/junit
+B _build/default/lib
+B _build/default/lib/attestations
+B _build/default/lib/git
+B _build/default/lib/junit
+
+# --- CLI --------------------------------------------------------------------
+S bin
+B _build/default/bin
+
+# --- tests ------------------------------------------------------------------
+S tests
+B _build/default/tests
+
+# --- package dependencies ----------------------------------------------------
+PKG str
+PKG alcotest qcheck qcheck-core

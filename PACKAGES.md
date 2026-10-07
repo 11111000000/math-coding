@@ -6,10 +6,9 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: HEAD `1879d53` + Step 4 of the 2026-10
-agent-debug infrastructure (scripts/agent-debug + tests/traps.ml +
-tests/qcheck_parsers.ml + Jsonl.Parse_error { line; col; msg; context };
-2026-10-07).
+Last verified at: HEAD `7263814` + Step 5 of the 2026-10
+merlin-LSP infrastructure (hand-written `.merlin` + `ocaml-lsp`
+1.27.0 + `merlin` 5.8-505 in `flake.nix`; 2026-10-07).
 Attestation store at `attestations/` contains **126 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
 on every check); **`mathc packages` reports 36 active decisions / 137
@@ -111,6 +110,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/waiver-infrastructure-2026-10.yaml` | `waiver-infrastructure-2026-10` | 1 | 2 | META | introduces `lib/waiver.ml` + the consult step in `bin/Mathc.ml`; first waiver file `decisions/waivers/portable-linux-musl-2026-10.yaml`; not counted as active decision (no kernel surface) |
 | `decisions/parser-risk-owner-default.yaml` | `parser-risk-owner-default` | 1 | 3 | RESOLVED | documents the risk-block owner-default workaround for `decisions/decision.yaml`; proper kernel fix deferred to `kernel-default-owner-landed` reversal signal |
 | `decisions/agent-debug-infrastructure-2026-10.yaml` | `agent-debug-infrastructure-2026-10` | 1 | 4 | META | scripts/agent-debug + tests/traps.ml + tests/qcheck_parsers.ml + Jsonl.Parse_error verbosity; not counted as active decision (dev-infra, no kernel surface) |
+| `decisions/merlin-lsp-2026-10.yaml` | `merlin-lsp-2026-10` | 1 | 3 | META | hand-written `.merlin` + `ocaml-lsp` + `merlin` in `flake.nix` ocamlDeps; not counted as active decision (dev-infra, no kernel surface) |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision
