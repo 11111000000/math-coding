@@ -1,0 +1,142 @@
+---
+schema: math-coding/3.0-alpha
+id: parser-risk-owner-default
+revision: 1
+state: active
+body_sha: "sha256:76a633f736939d429cb965e0ebbf23f3c7d32d156c4dc03cc5be12318678679d"
+yaml_sha: "sha256:76a633f736939d429cb965e0ebbf23f3c7d32d156c4dc03cc5be12318678679d"
+intent: |
+  Document a kernel parse bug surfaced by the 2026-10-05 audit
+  cycle, record the in-tree workaround, and bound the proper
+  fix as a follow-up. The bug: lib/decision.ml:parse_decision's
+  inner match `Schema.take_string rps "owner" with | Some owner ->`
+  has no `| None ->` arm. When a risk block declares
+  `declared_triggers:` but omits `owner:`, the kernel raises
+  Match_failure at runtime, parse_decision returns None, and
+  mathc validate reports the generic
+  `missing or invalid required field` instead of naming the
+  missing field. The bootstrap policy
+  (decisions/decision.yaml) is one such case.
+
+commitment: |
+  The kernel's parse_decision is bounded: a risk block MUST
+  either carry `owner: <string>` or be accepted as the
+  schema-default (human:maintainer). Today the kernel is
+  strict (no default); the in-tree workaround is
+  `owner: human:maintainer` on decisions/decision.yaml:121.
+  The proper fix is a single-line default in lib/decision.ml
+  (`let owner = match ... with | Some o -> o | None -> "human:maintainer" in`),
+  but the surgical edit kept breaking the surrounding nested-match
+  paren balance, so it is deferred to a dedicated refactor.
+
+counterexample: |
+  The fix is not implemented. The current workaround relies on
+  the author remembering to add `owner:` to every risk block;
+  a future decision authored without owner will be silently
+  dropped (not rejected with a clear diagnostic).
+
+scope:
+  paths:
+    - "lib/decision.ml"
+    - "decisions/decision.yaml"
+  exclusions:
+    - "lib/decision.ml:381-398"  (* current owner-match, see decision *)
+
+outcomes:
+  - id: bootstrap-policy-validates
+    statement: |
+      `mathc validate decisions/decision.yaml` exits 0 with the
+      workaround owner field. Without the workaround the file
+      would fail parse_decision with Match_failure (observed in
+      session 2026-10-06).
+  - id: workaround-documented
+    statement: |
+      The `owner: human:maintainer` line at
+      decisions/decision.yaml:121 is referenced in the
+      counterexample and intent of this decision.
+  - id: proper-fix-deferred
+    statement: |
+      The proper kernel fix (extract owner default outside
+      the inner match in parse_decision) is tracked in
+      reversal.signal kernel-default-owner-landed. Not
+      implemented in this decision's commit.
+
+counterexample: |
+  "Adding owner to decision.yaml is a workaround that masks a
+  kernel bug; the kernel should accept either form." Counterargument:
+  the schema marks `owner` as required, so the YAML file is
+  formally non-conformant without it. The workaround is a minimal
+  schema-aligned fix that keeps the bootstrap policy valid while
+  the kernel refactor is pending. A future kernel change that
+  makes `owner` truly optional would render this workaround
+  redundant; this decision would be superseded.
+
+assumptions:
+  - id: kernel-fix-deferrable
+    state: assumed
+    statement: |
+      The proper kernel fix in lib/decision.ml is mechanically
+      simple (one `let` binding outside the inner match) but
+      kept failing the surrounding nested-match paren balance
+      during the 2026-10-06 refactor cycle. It is deferred
+      to a dedicated commit where the inner match is restructured
+      before the default is extracted.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the kernel fix is needed urgently, the patch is
+      a 5-line addition to lib/decision.ml. Until then,
+      authors must remember to add `owner:` to every risk block.
+    review_on:
+      - signal: kernel-default-owner-landed
+
+obligations:
+  - id: bootstrap-validates
+    outcome: bootstrap-policy-validates
+    claim: |
+      `mathc validate decisions/decision.yaml` exits 0 with the
+      workaround. Without the workaround, parse_decision raises
+      Match_failure and the file is rejected.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-positive.t
+          result: pass
+  - id: workaround-line-present
+    outcome: workaround-documented
+    claim: |
+      The line `owner: human:maintainer` appears in
+      decisions/decision.yaml at the risk block.
+    acceptance:
+      all:
+        - verifier: rg -n '^    owner: human:maintainer' decisions/decision.yaml
+          result: pass
+  - id: proper-fix-not-implemented
+    outcome: proper-fix-deferred
+    claim: |
+      lib/decision.ml:381-398 still has the partial-match that
+      raises Match_failure on missing owner.
+    acceptance:
+      all:
+        - verifier: rg -n "let owner =" lib/decision.ml
+          result: fail
+
+reversal:
+  - signal: kernel-default-owner-landed
+    condition: |
+      lib/decision.ml:parse_decision is refactored to extract
+      the owner default outside the inner match
+      (`Schema.take_string rps "owner" with | Some owner ->`).
+      After this refactor, the workaround owner line is
+      redundant; the decision can be superseded and the line
+      removed from decisions/decision.yaml.
+    action: supersede-with-kernel-default
+
+risk:
+  declared_triggers:
+    - workaround-becomes-permanent
+  owner: human:maintainer
+
+relations:
+  supersedes: []
+  superseded_by: []
+  addresses:
+    - bootstrap-v3@3
