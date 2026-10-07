@@ -140,7 +140,10 @@ jobs:
           # inside the container.
           #
           # The alpine container runs (in order):
-          #   (a) apk add opam bash    (community repo, enabled in 3.20)
+          #   (a) apk add opam bash gcc musl-dev    (community repo,
+          #       enabled in 3.20; gcc+musl-dev needed to compile
+          #       the OCaml 5.4.0 compiler from source — opam 2.1.6
+          #       does not ship a pre-built switch for it)
           #   (b) opam init --bare --disable-sandboxing
           #   (c) opam update           (refreshes stale 2.1.6 index)
           #   (d) opam switch create 5.4.0 -y
@@ -160,7 +163,7 @@ jobs:
             -e HOME=/root \
             alpine:3.20 sh -c '
               set -eu
-              apk add --no-cache opam bash
+              apk add --no-cache opam bash gcc musl-dev
               opam --version
               opam init -y --bare --disable-sandboxing
               opam update
