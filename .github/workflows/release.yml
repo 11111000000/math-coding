@@ -125,13 +125,15 @@ jobs:
         run: |
           set -eu
           # Plain alpine:3.20 image. opam lives in the `community`
-          # repo (disabled by default). Pin the community URL, refresh
-          # the apk index, then install opam + bash. apk will pull
-          # opam's transitive deps (git, curl, ca-certificates) as
-          # needed; bubblewrap is intentionally not required — we
-          # pass --disable-sandboxing to opam init below.
-          printf 'https://dl-cdn.alpinelinux.org/alpine/v3.20/community\n' \
-            > /etc/apk/repositories.d/community.list
+          # repo (disabled by default — only `main` is enabled out of
+          # the box). Append the community URL to the apk config and
+          # refresh the index. Note: alpine:3.20 does NOT have an
+          # /etc/apk/repositories.d/ directory by default; the only
+          # supported config file is /etc/apk/repositories, which
+          # alpine ships with one `main` line and no trailing
+          # newline — hence the explicit leading newline in the echo.
+          printf '\nhttps://dl-cdn.alpinelinux.org/alpine/v3.20/community\n' \
+            >> /etc/apk/repositories
           apk update
           apk add --no-cache opam bash
           opam --version
