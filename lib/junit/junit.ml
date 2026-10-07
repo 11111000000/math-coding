@@ -71,23 +71,30 @@ let parse_attr_value s i =
     let c = String.unsafe_get s i in
     if c = '"' then i + 1
     else if c = '&' then
-      begin if i + 4 <= len && String.sub s i 5 = "&amp;" then begin
+      (* OCAML_BEST_PRACTICES §11.23: the boundary check must equal
+         the read length, not read length minus 1. The previous
+         `(i + N-1) <= len && String.sub s i N` form was an
+         off-by-one: when `len - i == N-1` exactly, the boundary
+         check succeeded and `String.sub` raised `Invalid_argument`
+         instead of falling through to "unknown entity reference".
+         All five entity branches below share this fix. *)
+      begin if i + 5 <= len && String.sub s i 5 = "&amp;" then begin
         Buffer.add_char buf '&';
         loop (i + 5)
       end
-      else if i + 3 <= len && String.sub s i 4 = "&lt;" then begin
+      else if i + 4 <= len && String.sub s i 4 = "&lt;" then begin
         Buffer.add_char buf '<';
         loop (i + 4)
       end
-      else if i + 3 <= len && String.sub s i 4 = "&gt;" then begin
+      else if i + 4 <= len && String.sub s i 4 = "&gt;" then begin
         Buffer.add_char buf '>';
         loop (i + 4)
       end
-      else if i + 5 <= len && String.sub s i 6 = "&quot;" then begin
+      else if i + 6 <= len && String.sub s i 6 = "&quot;" then begin
         Buffer.add_char buf '"';
         loop (i + 6)
       end
-      else if i + 5 <= len && String.sub s i 6 = "&apos;" then begin
+      else if i + 6 <= len && String.sub s i 6 = "&apos;" then begin
         Buffer.add_char buf '\'';
         loop (i + 6)
       end

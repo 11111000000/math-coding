@@ -1,0 +1,216 @@
+---
+schema: math-coding/3.0-alpha
+id: junit-entity-off-by-one-fix-2026-10
+revision: 1
+state: active
+body_sha: "sha256:54c428da1c2090b106ce8b720ecfa5a70b1540806d73c23e62602dcca7376c1e"
+yaml_sha: "sha256:54c428da1c2090b106ce8b720ecfa5a70b1540806d73c23e62602dcca7376c1e"
+intent: |
+  Fix the off-by-one in `lib/junit/junit.ml:parse_attr_value`: the
+  five entity-reference branches (`&amp;`, `&lt;`, `&gt;`, `&quot;`,
+  `&apos;`) had the boundary check `i + (N-1) <= len` paired with
+  `String.sub s i N`. At the exact boundary `len - i == N - 1`,
+  the check passed and `String.sub` raised `Invalid_argument`,
+  escaping the typed `Junit.Parse_error` layer.
+
+  This decision records:
+    1. The mechanical fix (5 one-character edits in
+       `lib/junit/junit.ml`).
+    2. A regression test (`tests/junit_test.ml`) that asserts the
+       typed `Junit.Parse_error` is raised, not `Invalid_argument`.
+    3. A new rule in `OCAML_BEST_PRACTICES.md §9.3` and a new
+       trap entry (§11.23) so the pattern does not regress.
+
+  This decision is RESOLVED (kernel change shipped, all four
+  verifiers pass at HEAD). It is the canonical record of the
+  2026-10-07 fix cycle; future traps of the same shape (§11.23
+  trigger list) should be filed as separate decisions.
+
+commitment: |
+  Three deliverables:
+
+    D1. `lib/junit/junit.ml:74-90` (entity-reference branches in
+        `parse_attr_value`) updated so the boundary check equals
+        the read length, not read length minus 1. Specifically:
+          - `&amp;`:  `i + 5 <= len` (was `i + 4 <= len`)
+          - `&lt;`:   `i + 4 <= len` (was `i + 3 <= len`)
+          - `&gt;`:   `i + 4 <= len` (was `i + 3 <= len`)
+          - `&quot;`: `i + 6 <= len` (was `i + 5 <= len`)
+          - `&apos;`: `i + 6 <= len` (was `i + 5 <= len`)
+
+    D2. `tests/junit_test.ml` is a new Alcotest executable that
+        covers:
+          - 5 entity-decode cases (`amp`, `lt`, `gt`, `quot`, `apos`)
+          - 2 `trap_§11_23` boundary cases (truncated entity at
+            the buffer end must produce typed `Junit.Parse_error`,
+            not `Invalid_argument`)
+          - 1 sanity case (token count for a simple XML fragment)
+        The executable is registered in `tests/dune` and the
+        `mathcoding_junit` library is added to the `(libraries …)`
+        stanza.
+
+    D3. `OCAML_BEST_PRACTICES.md` updated:
+          - §9.3 adds a "New rule (post-§11.23, 2026-10)" paragraph
+            stating the `String.sub` boundary convention.
+          - §11.23 is a new trap entry (Real instance) pinning the
+            historical location of the bug and the regression.
+
+  Boundaries:
+    - This decision does NOT introduce a new runtime dep —
+      `lib/junit/` is stdlib-only.
+    - This decision does NOT touch the main `mathcoding_core`
+      library; the change is in the `mathcoding_junit` sub-library.
+    - This decision does NOT bump the nixpkgs revision.
+
+scope:
+  capabilities:
+    - junit-adapter-entity-parsing
+  paths:
+    - "lib/junit/junit.ml"
+    - "tests/junit_test.ml"
+    - "tests/dune"
+    - "OCAML_BEST_PRACTICES.md"
+    - "decisions/junit-entity-off-by-one-fix-2026-10.yaml"
+    - "PACKAGES.md"
+  exclusions:
+    - "lib/kernel/**"   (* "kernel" = the 19 flat modules under lib/ *)
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "decisions/obligations.yaml"
+
+outcomes:
+  - id: junit-entity-off-by-one-fixed
+    statement: |
+      The five entity-reference branches in
+      `lib/junit/junit.ml:74-90` use the correct boundary check
+      `i + N <= len` for the read length N. The typed
+      `Junit.Parse_error` is raised for truncated entity references
+      rather than `Invalid_argument`.
+
+  - id: regression-pinned
+    statement: |
+      `tests/junit_test.ml` is registered in `tests/dune` and runs
+      8 cases (5 entity decode + 2 §11.23 boundary + 1 sanity).
+      Reverting the fix in `lib/junit/junit.ml` causes the two
+      §11.23 cases to fail with "expected typed Parse_error, got
+      Invalid_argument (off-by-one)"; restoring the fix re-passes
+      them.
+
+  - id: trap-log-updated
+    statement: |
+      `OCAML_BEST_PRACTICES.md §9.3` records the `String.sub`
+      boundary rule and `§11.23` is a new trap entry with the
+      historical instance, the fix, the repro, and the trigger
+      list.
+
+counterexample: |
+  "Junit XML reports always close attribute values with `\"`,
+  so the truncated-entity boundary is never reached in practice.
+  The fix is a theoretical change with no real impact." Counter-
+  argument: the bug is reachable from any malformed JUnit input
+  (truncated file, partial write, transport error). When it
+  triggers, the kernel crashes with `Invalid_argument` instead
+  of reporting a parse error. The conformance runner's
+  `mathc attest` command would propagate the crash, exit
+  non-zero, and lose the structured diagnostic that other
+  malformed inputs receive. The fix is small and mechanical;
+  the value is closing a robustness hole, not a hot-path
+  improvement.
+
+  "Why not wrap the call in a `try ... with Invalid_argument ->
+  Parse_error` block instead of fixing the boundary?" Counter-
+  argument: that masks the underlying defect, not just at this
+  one call-site but as a permission to write the same off-by-one
+  in other parsers. The boundary-fix is local, well-typed, and
+  reviewed by the new `§11.23` trap.
+
+obligations:
+  - id: junit-entity-off-by-one-fixed
+    outcome: junit-entity-off-by-one-fixed
+    claim: |
+      `lib/junit/junit.ml:74-90` uses the corrected boundary
+      checks. A grep for `i + [0-9]+ <= len && String.sub`
+      returns zero off-by-one matches in this file.
+    acceptance:
+      all:
+        - verifier: tests/junit_test.ml
+          result: pass
+        - verifier: grep -nE 'i \+ [0-9]+ <= len && String\.sub' lib/junit/junit.ml
+          result: pass
+
+  - id: regression-pinned
+    outcome: regression-pinned
+    claim: |
+      `tests/junit_test.ml` is registered in `tests/dune` with
+      `mathcoding_junit` in the `(libraries ...)` stanza. The
+      test executable contains 8 Alcotest cases and runs to
+      completion.
+    acceptance:
+      all:
+        - verifier: tests/junit_test.ml
+          result: pass
+
+  - id: trap-log-updated
+    outcome: trap-log-updated
+    claim: |
+      `OCAML_BEST_PRACTICES.md` contains a §11.23 entry titled
+      "Off-by-one in `String.sub` boundary check" and §9.3
+      contains a "New rule (post-§11.23, 2026-10)" paragraph.
+    acceptance:
+      all:
+        - verifier: grep -nE '^### 11\.23' OCAML_BEST_PRACTICES.md
+          result: pass
+        - verifier: grep -nE 'New rule \(post-§11\.23' OCAML_BEST_PRACTICES.md
+          result: pass
+
+assumptions:
+  - id: junit-input-is-malformed-tolerant
+    state: revised
+    statement: |
+      The kernel's expected contract is that any string input
+      to a parser produces a typed `Parse_error` (or a
+      `Diagnostic.t`), never an uncaught `Invalid_argument`
+      from stdlib. This is the contract the rest of the parser
+      suite (`lib/jsonl.ml`, `lib/codec.ml`) honours; the
+      junit adapter now matches.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the kernel ever adopts a "fail-fast on invalid input"
+      policy that exposes stdlib exceptions at the boundary,
+      the §11.23 fix becomes a deliberate choice rather than
+      a correctness fix. The decision stays correct under that
+      reading; the wording in §9.3 is the place to update.
+    review_on:
+      - signal: fail-fast-policy-adopted
+
+reversal:
+  - signal: junit-adapter-replaced
+    condition: |
+      The JUnit XML adapter is replaced by a different
+      implementation (e.g. `lib/junit_yojson.ml` using yojson
+      for entity decoding). The trap entry stays; the
+      reference location moves.
+    action: rework
+
+  - signal: stdlib-string-sub-becomes-total
+    condition: |
+      A future OCaml release makes `String.sub` total (does
+      not raise `Invalid_argument` at the boundary) and instead
+      returns a truncated substring. The §11.23 trigger is
+      retired.
+    action: retire
+
+risk:
+  declared_triggers:
+    - junit-adapter-replaced
+    - stdlib-string-sub-becomes-total
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []

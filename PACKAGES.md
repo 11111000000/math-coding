@@ -111,6 +111,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/parser-risk-owner-default.yaml` | `parser-risk-owner-default` | 1 | 3 | RESOLVED | documents the risk-block owner-default workaround for `decisions/decision.yaml`; proper kernel fix deferred to `kernel-default-owner-landed` reversal signal |
 | `decisions/agent-debug-infrastructure-2026-10.yaml` | `agent-debug-infrastructure-2026-10` | 1 | 4 | META | scripts/agent-debug + tests/traps.ml + tests/qcheck_parsers.ml + Jsonl.Parse_error verbosity; not counted as active decision (dev-infra, no kernel surface) |
 | `decisions/merlin-lsp-2026-10.yaml` | `merlin-lsp-2026-10` | 1 | 3 | META | hand-written `.merlin` + `ocaml-lsp` + `merlin` in `flake.nix` ocamlDeps; not counted as active decision (dev-infra, no kernel surface) |
+| `decisions/junit-entity-off-by-one-fix-2026-10.yaml` | `junit-entity-off-by-one-fix-2026-10` | 1 | 3 | RESOLVED | off-by-one in `lib/junit/junit.ml:74-90` entity-reference boundary check; `tests/junit_test.ml` regression; new §11.23 trap |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision
