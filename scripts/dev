@@ -236,10 +236,10 @@ case "$cmd" in
     else
       printf "  \033[32m✓\033[0m at least one attestation present\n"; ok=$((ok + 1))
     fi
-    if [ "${n_t:-0}" -lt 22 ]; then
-      printf "  \033[31m✗\033[0m trap log has 22+ entries (found %s)\n" "$n_t"; fail=$((fail + 1))
+    if [ "${n_t:-0}" -lt 25 ]; then
+      printf "  \033[31m✗\033[0m trap log has 25+ entries (found %s)\n" "$n_t"; fail=$((fail + 1))
     else
-      printf "  \033[32m✓\033[0m trap log has 22+ entries\n"; ok=$((ok + 1))
+      printf "  \033[32m✓\033[0m trap log has 25+ entries\n"; ok=$((ok + 1))
     fi
     echo ""
     printf "  %d passed, %d failed\n" "$ok" "$fail"

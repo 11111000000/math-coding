@@ -33,10 +33,11 @@ cd "$(dirname "$0")/.."
 fixture_dir="tests/fixtures"
 # `nullglob` lets an empty glob expand to nothing (avoids running
 # a literal '*' when the dir is empty). The `tests/fixtures/`
-# directory currently holds no shell fixtures (the historical
+# directory currently holds shell fixtures (the historical
 # process-principles.sh was subsumed into tests/process_principles.ml
-# in cli-cram-tests.yaml@2); the test executable is invoked
-# separately below.
+# in cli-cram-tests.yaml@2 but other fixtures remain, e.g.
+# 3-2-cli-catalog-rows-present.sh, close-branches-runs.sh,
+# pre-commit-*.sh); the test executable is invoked separately below.
 shopt -s nullglob
 fixtures=("$fixture_dir"/*.sh)
 shopt -u nullglob

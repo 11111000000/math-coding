@@ -62,7 +62,7 @@ will implement.
 ### Added
 
 - `spec/algebra-3.2.md` — formal mathematical specification
-  (30 sections) of the 3.2-ideal kernel. Normative alongside
+  (31 sections, §0–§30) of the 3.2-ideal kernel. Normative alongside
   `constitution.md`, `domain.md`, and `semantics.md`.
 - `decisions/algebra-3.2.yaml` — bootstrap decision adopting
   the algebra as the authoritative formal spec for the

@@ -22,7 +22,7 @@ are emitted by `scripts/dev-counters.py` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
 `mathc self-check` on a clean tree currently returns verdict `pass` with
-46 pass / 0 unknown out of 46 subjects. The previously-unknown subjects
+47 pass / 0 unknown out of 47 subjects. The previously-unknown subjects
 were closed in the 2026-10-07 integrity cycle:
 
 - `audit-0.0.21-fixes` — 8 of 9 obligations have attestations; the 9th,
@@ -41,7 +41,7 @@ were closed in the 2026-10-07 integrity cycle:
   `kind_` (`test` for test-backed obligations, `review` for META /
   dev-infra / manual-review obligations).
 
-The 46/46 pass figure is the live runtime value at HEAD `71d578a` +
+The 47/47 pass figure is the live runtime value at HEAD `7b5d60d` +
 this cycle (2026-10-07); `scripts/dev verify` runs the kernel against
 the live attestation store and reports this number.
 
@@ -230,23 +230,21 @@ is registered through `git config core.hooksPath`.
 | `jsonl.ml` | Hand-rolled JSON parser/printer | No |
 | `schema.ml` | Schema-aware field extractors | No |
 | `diagnostic.ml` | `Diagnostic.t` record + renderers | No |
-| `identifier.ml` | id / timestamp / digest parsers | No |
 | `digest.ml` | SHA-256 (hand-rolled; **RFC 6234 vectors green since v3.0.0.19**) | No |
-| `scope.ml` | Scope target parsing | No |
 | `reference.ml` | Reference parsing (`ref:`, `parent:`) | No |
 | `codec.ml` | YAML/JSON loading + value parsing (block-scalars + front-matter since v3.0.0.19) | No |
 | `decision.ml` | Decision decoder (mutually recursive parsers) | No |
 | `capsule.ml` | Context capsule builder + priority sort | No |
 | `memory.ml` | Project memory index | No |
 | `gate.ml` | Gate verdict evaluator (reads attestation store); **v3.2: `apply()` for kernel rules + phase-aware gates** | No (read-only FS reads under explicit allow-list) |
-| `attestations.ml` | Attestation store reader + freshness check; **v3.2: substrate fingerprint, env_class lattice, multi-CI aggregation** | No |
-| `self_check.ml` | (n/a — self-check logic lives in `bin/Mathc.ml`; see **v3.2** subcommand table below) | No |
+| `attestations/attestations.ml` | Attestation store reader + freshness check; **v3.2: substrate fingerprint, env_class lattice, multi-CI aggregation** | No |
 | `packages.ml` | `mathc packages` aggregator (decisions + obligations + verdicts) | No |
 | `render.ml` | Static site generator (HTML + nav + assets) | No (writes `dist/` via caller) |
 | `risk.ml` (v3.2 NEW) | Risk classifier: 12-entry path taxonomy, impact + irreversibility, risk-to-mode threshold | No (alg §2) |
 | `policy.ml` (v3.2 NEW) | Per-path policy lookup, multi-policy composition (union + data-flow transitive) | No (alg §9) |
 | `rebuttal.ml` (v3.2 NEW) | Hybrid rebuttal mechanism (sibling `rebuttals/<sha>.yaml` + forge mirror + trust binding) | No (alg §10) |
 | `re_evaluation.ml` (v3.2 NEW) | `re_evaluate(d, A_new)` oracle returning `Compatible | Inconclusive | StaleClaim` | No (alg §17) |
+| `waiver.ml` (2026-10) | Waiver consult step: `Open_with_waiver` mapping in `lib/gate.ml` | No |
 | `git/git_diff.ml` | `git diff --name-only` wrapper | Yes (syscall) |
 | `junit/junit.ml` | JUnit XML parser | No (pure on strings) |
 
@@ -279,7 +277,7 @@ This isolates I/O from the pure kernel (see `OCAML_BEST_PRACTICES §10.1`).
 | `constitution.md` | 14 invariants; the kernel MUST preserve these |
 | `domain.md` | Closed entity model; what kinds exist (prose; superseded by `algebra-3.2.md` §7) |
 | `semantics.md` | Operational rules (prose; superseded by `algebra-3.2.md` §15) |
-| `algebra-3.2.md` | Formal mathematical specification of the 3.2-ideal kernel (30 sections) |
+| `algebra-3.2.md` | Formal mathematical specification of the 3.2-ideal kernel (31 sections, §0–§30) |
 
 ## Axiom packages (`axioms/`)
 

@@ -10,7 +10,7 @@
 > `packages`.
 >
 > **Algebra 3.2-ideal**: accepted via `decisions/algebra-3.2.yaml`;
-> normative spec at `spec/algebra-3.2.md` (30 sections). Implementation
+> normative spec at `spec/algebra-3.2.md` (31 sections, §0–§30). Implementation
 > tracked in Tier 3.5 below.
 >
 > **Author:** Petr Kosov &lt;p.b.kosov@yandex.ru&gt;
@@ -77,7 +77,7 @@ without a `decisions/*.yaml` decision under the active policy.
 **Status**: ✅ LANDED between `ff9e738` and `fd7ea8b` (13/13 tasks).
 Schema extensions preserve backward compat (v3.0.0.20 → v3.1.0 alpha).
 
-`mathc self-check` verdict: `unknown` (46 subjects (39 pass + 7 unknown)).
+`mathc self-check` verdict: `pass` (47 subjects, 47 pass / 0 unknown).
 Runtime kernel behaviour is backward compatible: the existing
 `mathc validate`, `mathc gate`, `mathc packages`, `mathc explain`,
 `mathc self-check` keep working unchanged.
@@ -109,8 +109,8 @@ Runtime kernel behaviour is backward compatible: the existing
   **Status**: closed at this sync (verified by
   `grep -n 'subjects_len\|total_subjects\|pass_count' tests/cli/self-check-*.t`,
   2026-10-04). **Reopened and re-closed at the 2026-10-07
-  integrity cycle**: the live kernel reports 46 subjects with
-  39 pass + 7 unknown (`mathc self-check`); the cram snapshots
+  integrity cycle**: the live kernel reports 47 subjects with
+  47 pass / 0 unknown (`mathc self-check`); the cram snapshots
   lag the live state until regenerated. The current fix path
   is `dune promote` after a clean `dune build` on a host
   with a working toolchain.
@@ -190,8 +190,8 @@ this portably. The enforced test at
 `tests/process_principles.ml:332-348` checks only the OLD
 `tests/cram/` directory is absent; the live cram is in `tests/cli/`.
 
-**Correction (2026-10-04, refresh 2026-10-05):** `OCAML_BEST_PRACTICES.md` §11
-trap log has 22 entries (§11.1–§11.22, verified by
+**Correction (2026-10-04, refresh 2026-10-05, 2026-10-07):** `OCAML_BEST_PRACTICES.md` §11
+trap log has 25 entries (§11.1–§11.25, verified by
 `grep -c '^### 11\.' OCAML_BEST_PRACTICES.md`); the earlier
 "§11 has only its header" claim was stale. §11.22 (`nix develop`
 builds a non-portable `mathc` that fails) was added in `Unreleased`

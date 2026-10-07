@@ -8,8 +8,8 @@
 # Rule (per ROADMAP.md §P1 + §P2):
 #   Any commit that touches a "kernel/protected" file MUST also
 #   touch at least one of:
-#     - bootstrap/*.yaml    (a decision recorded)
-#     - bootstrap/*.md      (a decision recorded, markdown form)
+#     - decisions/*.yaml    (a decision recorded)
+#     - decisions/*.md      (a decision recorded, markdown form)
 #     - tests/fixtures/*.sh  (a shell fixture)
 #   unless the commit is a pure deferral (see is_pure_deferral).
 #
@@ -53,7 +53,7 @@ for path in "${staged[@]}"; do
       kernel_touched=1
       kernel_files+=("$path")
       ;;
-    bootstrap/*.yaml|bootstrap/*.md)
+    decisions/*.yaml|decisions/*.md)
       decision_touched=1
       decision_files+=("$path")
       ;;
@@ -61,7 +61,7 @@ for path in "${staged[@]}"; do
       fixture_touched=1
       fixture_files+=("$path")
       ;;
-    scripts/pre-commit/*|ROADMAP.md|bootstrap/yaml-block-scalars-impl-pending.yaml)
+    scripts/pre-commit/*|ROADMAP.md|decisions/yaml-block-scalars-impl-pending.yaml)
       # Process / roadmap / explicit-deferral files do not require
       # a co-decision.
       ;;
@@ -95,15 +95,15 @@ done
 echo "" >&2
 echo "  A commit that touches lib/*.ml, bin/Mathc.ml, spec/*.md, or" >&2
 echo "  schemas/*.json MUST also touch at least one of:" >&2
-echo "    - bootstrap/*.yaml or bootstrap/*.md  (decision)" >&2
+echo "    - decisions/*.yaml or decisions/*.md  (decision)" >&2
 echo "    - tests/fixtures/*.sh                 (fixture)" >&2
 echo "" >&2
 echo "  See ROADMAP.md §P1 (Decisions before kernel changes) and §P2" >&2
 echo "  (Decisions paired with fixtures) for the rationale." >&2
 echo "" >&2
 echo "  If this commit IS a deferral (e.g., bumping a decision's" >&2
-echo "  revision without implementing), add a bootstrap/*.md or .yaml" >&2
-echo "  that documents the deferral (see bootstrap/yaml-block-scalars-" >&2
+echo "  revision without implementing), add a decisions/*.md or .yaml" >&2
+echo "  that documents the deferral (see decisions/yaml-block-scalars-" >&2
 echo "  impl-pending.md for an example)." >&2
 
 exit 1

@@ -324,8 +324,8 @@ brief evidence.
 ## algebra-3.2 (v3.1.0-alpha; algebra 3.2-ideal implementation)
 
 - `algebra-3.2/spec-file-exists` -> `build` ; `ci:build:docs` ;
-  `spec/algebra-3.2.md` exists at HEAD and contains 30 sections
-  (per the v3.2-ideal formal spec).
+  `spec/algebra-3.2.md` exists at HEAD and contains 31 sections
+  (§0–§30, per the v3.2-ideal formal spec).
 - `algebra-3.2/cross-references-correct` -> `build` ; `ci:build:docs` ;
   spec cross-references resolve to existing files
   (axioms/, spec/constitution.md, spec/algebra-3.2.md).
