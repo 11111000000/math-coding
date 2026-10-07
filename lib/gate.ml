@@ -307,10 +307,89 @@ let apply_rule (rule : kernel_rule) (c : commit_info) : bool =
       (* algebra §15: every obligation needs verifier or review *)
       true (* obligation check happens in gate_v32 below *)
 
+(* Parse git-style trailer `Refs: decision:<id>@<rev>, decision:<id>@<rev>`
+   from a commit body. Returns the list of decision ids (without
+   the @rev suffix). Only `Refs:` line is parsed; other trailers
+   are ignored. *)
+let[@warning "-32"] parse_trailer_refs body =
+  let rec scan lines acc =
+    match lines with
+    | [] -> List.rev acc
+    | line :: rest ->
+        let is_trailer =
+          String.length line >= 5 && String.sub line 0 5 = "Refs:"
+        in
+        if not is_trailer then scan rest acc
+        else
+          (* strip the "Refs:" prefix and split on commas *)
+          let after = String.sub line 5 (String.length line - 5) in
+          let parts =
+            after |> String.split_on_char ',' |> List.map String.trim
+            |> List.filter (fun s -> String.length s > 0)
+          in
+          let ids =
+            List.filter_map
+              (fun p ->
+                let prefix = "decision:" in
+                let plen = String.length prefix in
+                if String.length p > plen && String.sub p 0 plen = prefix then
+                  (* strip @rev if present *)
+                  let s = String.sub p plen (String.length p - plen) in
+                  match String.index_opt s '@' with
+                  | Some ai -> Some (String.sub s 0 ai)
+                  | None -> Some s
+                else None)
+              parts
+          in
+          scan rest (List.rev_append ids acc)
+  in
+  scan (String.split_on_char '\n' body) []
+
+(* Detect whether a decision file is part of the changed files.
+   The commit_info.has_sibling_yaml flag tells apply_rule whether
+   the author paired the kernel change with a decisions/*.yaml
+   edit (per algebra §5). *)
+let[@warning "-32"] has_sibling_yaml files =
+  List.exists
+    (fun f ->
+      String.length f >= 12
+      && String.sub f 0 10 = "decisions/"
+      &&
+      let ext = Filename.extension f in
+      ext = ".yaml" || ext = ".yml")
+    files
+
+(* Build commit_info from the live gate inputs. *)
+let[@warning "-32"] commit_info_of ~changed_paths ~body =
+  let files = List.sort String.compare changed_paths in
+  let mode = Risk.mode files in
+  let has_sibling_yaml = has_sibling_yaml files in
+  let trailer_decision_refs =
+    if body = "" then [] else parse_trailer_refs body
+  in
+  { files; mode; has_sibling_yaml; trailer_decision_refs }
+
+(* Detect any FailedEvidence gap in the obligations. Used by
+   gate_v32 to honour the attestation check that the placeholder
+   (line 322, removed) used to skip. *)
+let[@warning "-32"] any_failed_attestation (obs_list : Domain.obligation list)
+    ~store ~decision_id : bool =
+  let f (ob : Domain.obligation) : bool =
+    let cands =
+      candidates_for ~store ~decision_id ~obligation_id:ob.Domain.id
+    in
+    List.exists
+      (fun (a : Domain.attestation) ->
+        match a.Domain.result with Domain.Fail -> true | _ -> false)
+      cands
+  in
+  List.exists f obs_list
+
 (* Extended gate verdict for 3.2-ideal (algebra §15) *)
-let gate_v32 (c : commit_info) (obligations : Domain.obligation list)
-    (binding_rebuttals : bool) (re_eval_status : Re_evaluation.status)
-    (rules : kernel_rule list) : verdict =
+let[@warning "-32"] gate_v32 (c : commit_info)
+    (obligations : Domain.obligation list) (binding_rebuttals : bool)
+    (re_eval_status : Re_evaluation.status) (rules : kernel_rule list) ~store
+    ~decision_id : verdict =
   let rule_violated = List.exists (fun r -> not (apply_rule r c)) rules in
   let re_eval_blocks =
     match re_eval_status with Re_evaluation.StaleClaim -> true | _ -> false
@@ -319,12 +398,22 @@ let gate_v32 (c : commit_info) (obligations : Domain.obligation list)
     List.filter (fun ob -> ob.Domain.phase = `PreMerge) obligations
   in
   let has_blocking_rebuttal = binding_rebuttals in
-  let any_failed_attestation = false in
-  (* Placeholder: full attestation check requires Memory + Attestations *)
+  let any_failed =
+    List.exists
+      (fun (ob : Domain.obligation) ->
+        let cands =
+          candidates_for ~store ~decision_id ~obligation_id:ob.Domain.id
+        in
+        List.exists
+          (fun a ->
+            match a.Domain.result with Domain.Fail -> true | _ -> false)
+          cands)
+      obligations
+  in
   if rule_violated then Block
   else if re_eval_blocks then Block
   else if has_blocking_rebuttal && List.length blocking_pre_merge > 0 then Block
-  else if any_failed_attestation then Block
+  else if any_failed then Block
   else Pass
 
 (* 3 gate phases from algebra §15 *)
