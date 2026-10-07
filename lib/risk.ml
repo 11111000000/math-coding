@@ -11,12 +11,12 @@
  *
  * Pure module: no I/O, no exceptions, safe defaults on empty input.
  *
- * Phase 2E will replace the `policy_override_probability` and
- * `mode_floor` stubs with calls into lib/policy.ml (per-path policy
- * parsing, union + transitive composition per algebra §9). Until
- * then, probability is the spec default (0.5) and mode_floor is
- * Standard — the gate still surfaces the classifier's output, but
- * no policy-driven floor or override can raise or lower it.
+ * `policy_override_probability` and `mode_floor` are wired to
+ * `lib/policy.ml` (per-path policy parsing, union + transitive
+ * composition per algebra §9); see decision
+ * `risk-policy-driven-floor-2026-10`. Probability is the spec
+ * default (0.5) and mode_floor is the policy default
+ * (`policies.yaml` at the repo root).
  *
  * Path matching is normalised before prefix comparison:
  *
@@ -102,11 +102,9 @@ let impact files =
 (* ---------- probability ---------- *)
 
 (* policy_override_probability(c) ∈ [-1, 1] from policies.yaml,
-   algebra §2. Default 0 ⇒ probability(c) = 0.5. Wired to
+   algebra §2. Default 0 ⇒ probability(c) = 0.5. Backed by
    `Policy.policy_override_of_files` (per decision
-   `risk-policy-driven-floor-2026-10`); before that decision
-   landed, the value was a constant 0.0 and the function
-   carried a "Phase 2E replaces this stub" comment. *)
+   `risk-policy-driven-floor-2026-10`). *)
 let policy_override_probability files =
   Policy.policy_override_of_files_cached files
 
@@ -154,11 +152,9 @@ let mode_floor_of_string (s : string) : Domain.mode option =
   | _ -> None
 
 (* mode_floor(c) = max{mode_floor(policy(p)) : p ∈ c.files ∪
-                       transitive_paths(c)}, algebra §2. Wired to
+                       transitive_paths(c)}, algebra §2. Backed by
    `Policy.mode_floor_of_cached` (per decision
-   `risk-policy-driven-floor-2026-10`); before that decision
-   landed, the value was a constant `Standard` and the function
-   carried a "Phase 2E will replace this stub" comment. *)
+   `risk-policy-driven-floor-2026-10`). *)
 let mode_floor (files : string list) : Domain.mode =
   Policy.mode_floor_of_cached files
 

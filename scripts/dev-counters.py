@@ -73,6 +73,12 @@ def main():
         # no kernel surface, only the loader and the consult step. Same
         # reasoning as the audit-0.0.21-fixes-self-check-waiver above.
         "waiver-infrastructure-2026-10.yaml",
+        # lib-stale-comments-cleanup-2026-10.yaml: removes dead-code
+        # narrative comments from lib/risk.ml and lib/packages.ml; the
+        # underlying logic is unchanged, so this is a documentation
+        # decision rather than a feature. Tracked in PACKAGES' main
+        # table as META but not counted toward active decisions.
+        "lib-stale-comments-cleanup-2026-10.yaml",
     }
     for p in yaml_files:
         counters["decisions"]["paths"].append(p.name)

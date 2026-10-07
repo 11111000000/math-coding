@@ -50,13 +50,15 @@
    * if the attestation's result is Fail -> "fail";
    * if the attestation's result is Inconclusive or
      InfrastructureError -> "unknown";
-   * if a waiver exists in `decisions/waivers/*.yaml` (future) ->
-     "waived" (not implemented in this revision; reserved);
-   * if the attestation's result is Pass -> "pass".
+* if a waiver exists in `decisions/waivers/*.yaml` -> "waived".
+      The consult step lives in `lib/waiver.ml` and is exercised
+      by `lib/gate.ml::gate_v32`; this module surfaces the verdict
+      as a string but does not invoke the consult itself.
+    * if the attestation's result is Pass -> "pass".
 
-   v1 of the module does not yet consult waivers; that is a
-   v3.0.0.30 task once `lib/waiver.ml` lands (Tier-3 close-out
-   for the multi-policy hierarchy).
+    Waiver support is implemented by `lib/waiver.ml` and adopted
+    by `decisions/waiver-infrastructure-2026-10`; the consult
+    step is wired into `lib/gate.ml::gate_v32` as `Open_with_waiver`.
 
    Verdict ladder is closed; multiple variants are distinct
    (Theorems 4, 7: distinction must be preserved at the type
@@ -255,11 +257,10 @@ let[@warning "-32"] remedies_of = function
   | _ -> []
 
 (* Render an obligation view as a structured record. The verifier
-   is captured at the structural level: in this revision we use
-   the obligation id as the verifier stub (real verifier
-   extraction is a v3.0.0.30 task once codec parses the
-   `acceptance` block; the stub is fine for the package-list
-   display). *)
+   is captured at the structural level: this revision uses the
+   obligation id as the verifier placeholder (real verifier
+   extraction from the `acceptance` block is future work; the
+   placeholder is fine for the package-list display). *)
 let[@warning "-32"] obligation_view ~now_iso ~obligation_id ~store ~has_store =
   let verdict = verdict_of ~now_iso ~obligation_id ~store ~has_store in
   let att_opt = latest_attestation ~store ~obligation_id in

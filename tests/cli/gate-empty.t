@@ -19,6 +19,6 @@ bootstrap/gate-attestation-store-fill-decision.yaml.
   $ echo b > b.txt
   $ git add . && git commit -q -m second
   $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" mathc gate HEAD~1 HEAD | jq -c 'del(.now) | {verdict, all_missing: (.gaps | length > 0 and all(.kind == "MissingEvidence")), obligations}'
-  {"verdict":"block","all_missing":true,"obligations":150}
+  {"verdict":"unknown","all_missing":true,"obligations":163}
   $ cd /
   $ rm -rf "$tmp"

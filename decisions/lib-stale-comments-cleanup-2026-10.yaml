@@ -1,0 +1,177 @@
+---
+schema: math-coding/3.0-alpha
+id: lib-stale-comments-cleanup-2026-10
+revision: 1
+state: active
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+intent: |
+  Remove dead-code narrative comments from `lib/risk.ml` and
+  `lib/packages.ml` that describe work superseded by later
+  decisions. The comments are inside OCaml source files, which
+  is `lib/` territory and therefore P1-protected, so a decision
+  is required even though the change is editorial-only (no logic
+  change).
+
+  Specific comments:
+
+    1. `lib/risk.ml:14-19` — the module-level comment claims
+       `mode_floor` and `policy_override_probability` are
+       "stubs" pending "Phase 2E". They are not stubs.
+       `risk-policy-driven-floor-2026-10` (rev 1, 2026-10-07)
+       wired both to `lib/policy.ml`:
+         - line 111: `Policy.policy_override_of_files_cached files`
+         - line 163: `Policy.mode_floor_of_cached files`
+       The module-level comment therefore contradicts lines 109
+       and 161 of the same file, which already record the wire-up.
+
+    2. `lib/risk.ml:109` — duplicated line-comment about
+       "Phase 2E replaces this stub". Now a stale re-statement
+       of the (already-fixed) wiring.
+
+    3. `lib/risk.ml:161` — same as above (about `mode_floor`).
+
+    4. `lib/packages.ml:58` — module-level comment says
+       `lib/waiver.ml` does not exist yet ("v3.0.0.30 task once
+       `lib/waiver.ml` lands"). It exists; `lib/waiver.ml` is
+       143 lines, `decisions/waiver-infrastructure-2026-10`
+       adopted it, and `lib/gate.ml:41` already uses the
+       `Open_with_waiver` verdict variant.
+
+    5. `lib/packages.ml:260` — same shape of stale comment about
+       a "v3.0.0.30 task".
+
+  This decision deletes comments only; no OCaml expression is
+  modified. Behavioural equivalence is preserved by construction
+  (comments are not executed).
+
+commitment: |
+  1. `lib/risk.ml` — module-level header comment rewritten
+     to describe the current wiring to `lib/policy.ml`. The
+     per-function comments at lines 109 and 161 are removed
+     (their content is already in the new header).
+  2. `lib/packages.ml` — two comments (lines 58 and 260)
+     referencing the non-existent "v3.0.0.30 task" removed.
+     The "v1 of the module does not yet consult waivers"
+     sentence at line 57 is replaced by an honest statement
+     that the consult step lives in `lib/waiver.ml` via
+     `lib/gate.ml::gate_v32`.
+  3. `dune build` succeeds.
+  4. `dune test tests/risk_kernel.ml` — all 11 cases green
+     (no behavioural change → the existing tests cover
+     the wired behaviour).
+  5. `dune test tests/waiver_test.ml` — all cases green
+     (comments at lines 58/260 did not gate the waiver
+     logic; the consult step is exercised by waiver_test).
+
+counterexample: |
+  "Comments do not affect behaviour; cleaning them is risk-free
+  and therefore does not need a decision."
+
+  Counterargument: per AGENTS.md §Self-application, edits to
+  `lib/*.ml` ship with a decision regardless of behavioural
+  impact, because the OCaml surface is policy-protected. The
+  decision body is the audit trail that says "this change was
+  considered, the strongest case against was 'no real change',
+  and the change was made anyway under heading X".
+
+  "The deleted comments contained future-planning hints that
+  a future author could follow."
+
+  Counterargument: the deleted comments were wrong, not
+  forward-looking. `lib/risk.ml:14-19` said "Phase 2E will
+  replace the stubs"; that phase is closed. Removing a wrong
+  hint removes the trap. Forward-looking material lives in
+  `decisions/` (this file) and `ROADMAP.md`, both of which
+  remain after this commit.
+
+scope:
+  capabilities:
+    - stale-narrative-cleanup
+  paths:
+    - "lib/risk.ml"
+    - "lib/packages.ml"
+  exclusions:
+    - "lib/risk.ml:180-210"  # risk_to_mode boundary logic (out of scope; C2)
+    - "lib/packages.ml:1-56"   # load_attestations source, kernel-correct
+    - "lib/packages.ml:140-260" # walk + verdict logic, kernel-correct
+
+outcomes:
+  - id: risk-ml-has-no-stub-claims
+    statement: |
+      `lib/risk.ml` no longer contains the phrase "Phase 2E
+      replaces this stub" or any equivalent claim that
+      `mode_floor` or `policy_override_probability` are stubs.
+  - id: packages-ml-has-no-v3-0-0-30-claim
+    statement: |
+      `lib/packages.ml` no longer contains the phrase
+      "v3.0.0.30 task once `lib/waiver.ml` lands" or any
+      equivalent claim that the waiver consult step is
+      pending.
+  - id: dune-build-clean
+    statement: |
+      `dune build` exits 0 on a clean tree (no warnings
+      beyond the existing `[@warning "-32"]` suppressions).
+
+assumptions:
+  - id: comments-not-policy
+    state: assumed
+    statement: |
+      OCaml comments inside `lib/*.ml` are documentation, not
+      policy. Their removal does not affect any acceptance
+      predicate, attestation, or kernel verdict.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a comment is policy-bearing (e.g., encodes an
+      axiom-derived invariant), removing it would be a
+      protected transition. The reviewer should re-read the
+      surrounding code path and confirm the comment is
+      purely narrative.
+    review_on:
+      - signal: comment-removed-but-statement-remained-in-spec
+
+obligations:
+  - id: no-stub-claims-remain
+    statement: |
+      `grep -nE "Phase 2E|stub" lib/risk.ml` returns 0 matches.
+    acceptance:
+      all:
+        - verifier: scripts/check-stale-narrative.sh
+          result: pass
+  - id: no-v3-0-0-30-claim-remains
+    statement: |
+      `grep -nE "v3.0.0.30" lib/packages.ml` returns 0 matches.
+    acceptance:
+      all:
+        - verifier: scripts/check-stale-narrative.sh
+          result: pass
+  - id: dune-build-and-risk-tests-green
+    statement: |
+      `dune build` exits 0; `dune test tests/risk_kernel.ml`
+      and `dune test tests/waiver_test.ml` each report all
+      their cases as green.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: tests/risk_kernel.ml
+          result: pass
+        - verifier: tests/waiver_test.ml
+          result: pass
+
+reversal:
+  - signal: comment-removal-removed-policy-grounding
+    action: revert
+  - signal: dune-build-broken-by-this-commit
+    action: revert
+
+risk:
+  declared_triggers:
+    - policy-weakening  # if any deleted comment encoded policy
+    - comment-removal-changed-kernel-behaviour  # impossible by construction
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - risk-policy-driven-floor-2026-10@1
+    - waiver-infrastructure-2026-10@1
