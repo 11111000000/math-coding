@@ -23,20 +23,27 @@ jobs:
           - { label: linux-aarch64,   runs-on: ubuntu-24.04-arm,  is_musl: false, exe: mathc-linux-aarch64,   ext: '' }
           # Linux — musl (alpine). RE-ENABLED 2026-10-07 per
           # decisions/portable-linux-musl.yaml (rev 3, state: retired).
-          # Previous failure (CI runs #81, #83, #84, #85 at the
-          # 'Init opam (Alpine musl container)' step with exit 127/1)
-          # was traced to two issues, both fixed in the step below:
+          # Previous failure (CI runs #81, #83, #84, #85, #125, #126
+          # at the 'Init opam (Alpine musl container)' step with exit
+          # 127/1) was traced to:
           #   1. ocaml/opam:alpine-* images do not put `opam` on
           #      $PATH at any of the canonical locations.
           #   2. plain alpine:3.20 ships `opam` only in the `community`
           #      repo (which is disabled by default) at version
           #      2.1.6-r0.
-          # The Alpine step now (a) pins the community repo,
-          # (b) runs `apk update`, (c) `apk add opam bash`,
-          # (d) `opam update` so the compiler index sees OCaml 5.4.0,
-          # (e) creates switch 5.4.0 from the apk-installed opam 2.1.6.
+          #   3. (Root cause #3, discovered 2026-10-07): the
+          #      `container: alpine:3.20` key in matrix.include is
+          #      SILENTLY IGNORED — GitHub Actions only honors
+          #      `container:` at the JOB level, not per-matrix-entry.
+          #      Our shell steps were running on the Ubuntu host, not
+          #      inside alpine. /etc/apk/repositories did not exist.
+          # The Alpine step below now uses `docker run alpine:3.20 …`
+          # from the Ubuntu runner (which has docker installed) to
+          # actually run inside the container. The `container:` field
+          # is left here only as documentation of intent — see OCAML
+          # BEST_PRACTICES §11.26 for the trap log entry.
           # aarch64-musl deferred to v2 (needs QEMU emulation).
-          - { label: linux-x86_64-musl, runs-on: ubuntu-latest, is_musl: true, container: alpine:3.20, exe: mathc-linux-x86_64-musl, ext: '' }
+          - { label: linux-x86_64-musl, runs-on: ubuntu-latest, is_musl: true, exe: mathc-linux-x86_64-musl, ext: '' }
           # macOS
           - { label: darwin-x86_64,   runs-on: macos-15-intel,    exe: mathc-darwin-x86_64,   ext: '' }
           - { label: darwin-aarch64,  runs-on: macos-latest,      exe: mathc-darwin-aarch64,  ext: '' }
@@ -119,45 +126,65 @@ jobs:
           [ -d "$OPAM_BIN" ] || OPAM_BIN="/c/Users/$USERNAME/.opam/5.4.0/bin"
           echo "PATH=$OPAM_BIN:$PATH" >> "$GITHUB_ENV"
 
-      - name: Init opam (Alpine musl container)
+      - name: Build mathc (Alpine musl container via docker run)
         if: matrix.is_musl
         shell: bash
         run: |
           set -eu
-          # Plain alpine:3.20 image. opam lives in the `community`
-          # repo (disabled by default — only `main` is enabled out of
-          # the box). Append the community URL to the apk config and
-          # refresh the index. Note: alpine:3.20 does NOT have an
-          # /etc/apk/repositories.d/ directory by default; the only
-          # supported config file is /etc/apk/repositories, which
-          # alpine ships with one `main` line and no trailing
-          # newline — hence the explicit leading newline in the echo.
-          printf '\nhttps://dl-cdn.alpinelinux.org/alpine/v3.20/community\n' \
-            >> /etc/apk/repositories
-          apk update
-          apk add --no-cache opam bash
-          opam --version
-          # Initialize opam. Sandbox is disabled: bubblewrap is
-          # unavailable on Alpine and would otherwise fail.
-          opam init -y --bare --disable-sandboxing
-          # Refresh the opam package index so `opam switch create 5.4.0`
-          # can resolve ocaml-base-compiler.5.4.0. The opam 2.1.6 from
-          # apk ships with an index snapshot that lags the upstream
-          # opam-repository; without `opam update` switch create
-          # fails with "unknown OCaml version '5.4.0'".
-          opam update
-          # Create the OCaml 5.4 switch from scratch (the apk opam
-          # does not pre-install a switch).
-          opam switch create 5.4.0 -y
-          opam switch set 5.4.0
-          eval "$(opam env --switch=5.4.0)"
-          OPAM_BIN="$HOME/.opam/5.4.0/bin"
-          echo "OPAM_BIN=$OPAM_BIN"
-          [ -d "$OPAM_BIN" ] || { echo "FATAL: switch bin dir not created" >&2; exit 1; }
-          echo "PATH=$OPAM_BIN:$PATH" >> "$GITHUB_ENV"
-          ocaml --version
+          # Per matrix-level container directives being silently ignored
+          # (see commit history), we run the entire Alpine build inside
+          # an explicit `docker run alpine:3.20 …` invocation from the
+          # Ubuntu runner. The runner ships with docker installed and
+          # the user can run it without sudo. The workspace is
+          # bind-mounted at /src so the same source files are compiled
+          # inside the container.
+          #
+          # The alpine container runs (in order):
+          #   (a) apk add opam bash    (community repo, enabled in 3.20)
+          #   (b) opam init --bare --disable-sandboxing
+          #   (c) opam update           (refreshes stale 2.1.6 index)
+          #   (d) opam switch create 5.4.0 -y
+          #   (e) opam install --yes dune
+          #   (f) opam exec -- dune build --profile=release --build-dir
+          #       /tmp/musl-build bin/mathc.exe
+          #   (g) stage mathc.exe to /src/dist-bin/mathc-linux-x86_64-musl
+          #   (h) defensive ldd check: must NOT link against libc.so.6
+          #   (i) ./mathc-linux-x86_64-musl version smoke test
+          #
+          # The `/tmp/musl-build` build dir isolates dune's state from
+          # any host _build/ that may already exist on the workspace.
+          docker run --rm \
+            --user root \
+            -v "${GITHUB_WORKSPACE}:/src" \
+            -w /src \
+            -e HOME=/root \
+            alpine:3.20 sh -c '
+              set -eu
+              apk add --no-cache opam bash
+              opam --version
+              opam init -y --bare --disable-sandboxing
+              opam update
+              opam switch create 5.4.0 -y
+              opam switch set 5.4.0
+              eval "$(opam env --switch=5.4.0)"
+              opam install --yes dune
+              opam exec -- dune build --profile=release \
+                --build-dir /tmp/musl-build bin/mathc.exe
+              mkdir -p dist-bin
+              cp /tmp/musl-build/default/bin/mathc.exe \
+                 dist-bin/mathc-linux-x86_64-musl
+              chmod +x dist-bin/mathc-linux-x86_64-musl
+              # Defensive: must NOT link against glibc
+              ldd dist-bin/mathc-linux-x86_64-musl 2>&1 | tee /tmp/ldd.out
+              if grep -q "libc\\.so\\.6" /tmp/ldd.out; then
+                echo "FATAL: musl variant links against glibc — aborting" >&2
+                exit 1
+              fi
+              ./dist-bin/mathc-linux-x86_64-musl version
+            '
 
       - name: Install dune
+        if: "!matrix.is_musl"
         shell: bash
         run: |
           set -eu
@@ -165,6 +192,7 @@ jobs:
           opam install --yes dune
 
       - name: Build mathc (release)
+        if: "!matrix.is_musl"
         shell: bash
         run: |
           set -eu
@@ -172,6 +200,7 @@ jobs:
           opam exec -- dune build --profile=release bin/mathc.exe
 
       - name: Stage binary
+        if: "!matrix.is_musl"
         shell: bash
         run: |
           set -eu
@@ -185,16 +214,19 @@ jobs:
         shell: bash
         run: |
           set -eu
-          # Defensive check: the produced binary MUST NOT link against
-          # glibc. If it does, the build environment was wrong and the
-          # artifact would be useless on Alpine/musl users' machines.
+          # Re-verify on the host (Ubuntu) that the artifact written
+          # by the docker-run step is actually musl-linked. The
+          # ./dist-bin/mathc-linux-x86_64-musl version smoke test
+          # was already run inside the container at the end of the
+          # 'Build mathc (Alpine musl container via docker run)'
+          # step; we don't repeat it here because the musl binary
+          # would fail to start on the Ubuntu glibc host.
           ldd dist-bin/${{ matrix.exe }} 2>&1 | tee /tmp/ldd.out
           if grep -q 'libc\.so\.6' /tmp/ldd.out; then
             echo "FATAL: musl variant links against glibc — aborting" >&2
             exit 1
           fi
-          # ./mathc version smoke-test inside the Alpine container.
-          ./dist-bin/${{ matrix.exe }} version
+          echo "musl linkage check passed on Ubuntu host"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
