@@ -1,0 +1,269 @@
+---
+schema: math-coding/3.0-alpha
+id: mathjax-delimiter-hardening-2026-10
+revision: 1
+state: active
+body_sha: "sha256:2d48c6b4badfb6355ca472ccf21d15d93edbd5f34481f652da0c49259b655743"
+yaml_sha: "sha256:2d48c6b4badfb6355ca472ccf21d15d93edbd5f34481f652da0c49259b655743"
+intent: |
+  Harden the MathJax 3 wiring in `lib/render.ml` so that
+  the dollar sign is no longer an active math delimiter.
+
+  The previous render-kernel cycle (`render-kernel-fixes-2026-10@1`)
+  defaults MathJax to OFF; the live site has zero `$..$` or
+  `\[..\]` formulas. The reason the cycle defaults MathJax OFF
+  rather than ON is that the previous configuration listed both
+  `$..$` and `\(..\)` as inline-math delimiters. With `$` active,
+  any future page that drops a `$` next to prose — for example
+  an inline price like `$100` or a CLI example like
+  `mathc packages --format=$X` — would be typeset as math, with
+  MathJax wrapping the surrounding prose in `<mjx-container>` and
+  italicising plain English words. This is the failure mode that
+  motivated the default-OFF stance.
+
+  This decision narrows the MathJax configuration to LaTeX-style
+  delimiters only: `\(..\)` for inline math, `\[..\]` for display
+  math. The `$..$` and `$$..$$` pairs are removed from the
+  inline-math and display-math declarations. With this change,
+  future pages that opt into MathJax (`enable_mathjax = true`)
+  are isolated from the surrounding prose: a stray `$` is a
+  literal `$`, not a math boundary.
+
+  Three artefacts change:
+
+    1. `lib/render.ml:759-761` — drop the `['$','$']` pair from
+       `inlineMath` and the `['$$','$$']` pair from `displayMath`.
+       The rendered inline/display block becomes a 4-line
+       declaration listing only `\(..\)` / `\[..\]`.
+
+    2. `assets/style.css` — add a small block of rules for
+       `mjx-container` and `.mermaid svg`. The pre-existing
+       stylesheet never declared a math container rule, so any
+       future MathJax output would render in MathJax's default
+       font (STIX Two Math), which does not match the page's
+       Charter / Georgia stack. Three rules suffice: a font
+       fallback for the math container, an overflow rule so
+       long formulas do not break the Tufte 54-rem column, and
+       a display-math vertical rhythm so a `[..\]` block sits
+       on its own line.
+
+    3. `assets/style.css` — add `max-width: 100%` and
+       `height: auto` for `.mermaid svg` so diagrams do not
+       overflow the column on narrow viewports.
+
+  History:
+    rev 1 (this commit): initial adoption. Closes the
+    "$`-`active MathJax delimiter" failure mode catalogued in
+    `decisions/render-kernel-fixes-2026-10.yaml` obligation
+    `mathjax-default-off` (assumption `mathjax-off-default-is-acceptable`).
+    The follow-up `t5-2-spec-mathjax` obligation in
+    `decisions/plan-2026-10-improvements.yaml:602-620` becomes
+    implementable without further delimiter work.
+
+commitment: |
+  `mathc render` emits MathJax 3 with LaTeX-style delimiters only
+  when `enable_mathjax = true`:
+
+    - `inlineMath`: `[['\\(', '\\)']]`
+    - `displayMath`: `[['\\[', '\\]']]`
+
+  No `$..$` or `$$..$$` pair is emitted in the rendered HTML
+  body or `<head>` script. A future page that contains literal
+  dollar signs in prose (CLI examples, prices, identifiers)
+  is unaffected when MathJax is enabled: those `$` are
+  literal characters, not math boundaries.
+
+  `assets/style.css` declares rules for `mjx-container`,
+  `mjx-container[display="true"]`, and `.mermaid svg`:
+
+    - `mjx-container` inherits a math font fallback
+      (STIX Two Math → Latin Modern Math → Cambria Math).
+    - `mjx-container[display="true"]` carries 1em vertical
+      margin and `overflow-x: auto` so a wide display formula
+      scrolls instead of overflowing the 54-rem column.
+    - `.mermaid svg` carries `max-width: 100%; height: auto`
+      and centres in the column.
+
+  Boundaries:
+    - The default `enable_mathjax = false` is unchanged. This
+      cycle does not retire the `mathjax-default-off` obligation
+      in `decisions/render-kernel-fixes-2026-10.yaml:235-250`;
+      it amends the configuration that obligation references.
+    - The CSS rules are scoped to math and mermaid containers;
+      no rule is changed for prose, code blocks, tables, or
+      navigation.
+    - The `decisions/plan-2026-10-improvements/t5-2-spec-mathjax`
+      obligation (algebra 3.2 spec on the site) is NOT closed
+      by this cycle. That cycle publishes `dist/algebra-3.2.html`;
+      this cycle only makes the MathJax wiring safe enough that
+      the algebra-3-page cycle can ship without further kernel
+      churn.
+
+scope:
+  capabilities:
+    - site-content-markup
+    - math-typesetting
+  paths:
+    - "lib/render.ml"
+    - "assets/style.css"
+    - "tests/render_kernel.ml"
+    - "decisions/mathjax-delimiter-hardening-2026-10.yaml"
+    - "attestations/mathjax-delimiter-hardening-2026-10-*.json"
+  exclusions:
+    - "lib/packages.ml"
+    - "lib/codec.ml"
+    - "lib/jsonl.ml"
+    - "lib/diagnostic.ml"
+    - "lib/decision.ml"
+    - "lib/risk.ml"
+    - "lib/policy.ml"
+    - "lib/gate.ml"
+    - "schemas/**"
+    - "spec/**"
+    - "site/**"
+    - "axioms/**"
+    - "bin/Mathc.ml"
+
+outcomes:
+  - id: mathjax-delimiters-narrowed-to-latex
+    statement: |
+      The MathJax `<script>` block in `lib/render.ml`'s
+      `render_head` declares `inlineMath: [['\(','\)']]` and
+      `displayMath: [['\[','\]']]` only. No `$..$` or `$$..$$`
+      pair is emitted in `<head>`. The default `enable_mathjax`
+      flag remains `false`.
+
+  - id: math-and-mermaid-css-shipped
+    statement: |
+      `assets/style.css` declares rules for `mjx-container`,
+      `mjx-container[display="true"]`, and `.mermaid svg` so
+      that any future MathJax output and any future mermaid
+      diagram respect the Tufte column rhythm.
+
+counterexample: |
+  "Removing `$..$` from inlineMath breaks the existing
+  `mathjax-wiring` obligation, which named `$..$` as a
+  supported delimiter."
+
+  Counterargument: the obligation in
+  `decisions/site-deploy.yaml:201-215` was worded as "every
+  `$..$` / `\[..\]` formula renders as TeX", which described
+  the supported delimiter set. The `render-kernel-fixes-2026-10@1`
+  cycle narrowed the default to OFF but kept the configuration
+  intact for the opt-in path. This cycle further narrows the
+  opt-in path to `\(..\)` / `\[..\]` only — the same set the
+  project's planned algebra-3.2 spec uses. Any future page
+  author that needs `$..$` can wrap their formulas in `\(..\)`;
+  the markdown surface does not change. The `mathjax-wiring`
+  obligation is amended, not retired: the obligation text is
+  rewritten in a follow-up amendment to `site-deploy.yaml`
+  (see `relations.amends` below).
+
+  "A single stray `\` in a markdown source (e.g., a Windows path
+  `C:\Users\foo` or a shell snippet `\$VAR`) will produce an
+  unbalanced `\(..\)` and break MathJax's render."
+
+  Counterargument: MathJax 3's tex-mml-chtml configuration
+  treats unbalanced `\(` as literal characters, exactly like
+  it already does for unbalanced `\$`. The same hazard exists
+  for `$..$` today; the previous default-OFF decision already
+  accepted that hazard. The 14 fixtures in
+  `tests/render_kernel.ml` already include pages with
+  backslashes in prose; none of them regress under this
+  change.
+
+assumptions:
+  - id: dollar-sign-in-prose-is-safe
+    state: assumed
+    statement: |
+      No `site/*.md` or `axioms/*.md` page contains a `$` that
+      is intended as a math boundary. The grep
+      `grep -nE '\$.+\$|\\\\\(.+\\\\\)' site/*.md axioms/*.md`
+      returns no matches at HEAD `4a3d14e`.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future page needs `$..$` math, the author wraps it
+      in `\(..\)` (one-time source change, no kernel work).
+    review_on:
+      - signal: dollar-math-added-to-source
+
+  - id: stix-is-acceptable-math-font
+    state: assumed
+    statement: |
+      MathJax 3's default font (STIX Two Math) is acceptable for
+      math display. STIX Two Math matches Charter / Georgia
+      for English text via shared Latin glyphs; Cyrillic digits
+      and identifiers render via the browser's fallback. A
+      future opt-in to Latin Modern Math (Computer Modern
+      glyphs) is a one-line CSS change.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future aesthetic audit rejects STIX, replace the
+      math-font stack in the CSS rule with "Latin Modern Math"
+      first.
+    review_on:
+      - signal: math-font-rejected-by-audit
+
+obligations:
+  - id: mathjax-no-dollar-delimiters
+    outcome: mathjax-delimiters-narrowed-to-latex
+    statement: |
+      The rendered MathJax `<script>` block does not declare
+      `'$','$'` or `'$$','$$'` as math delimiters. It declares
+      `'\(','\)'` for inline and `'\(','\)'` is **not** the
+      literal — declared delimiters are exactly `\(..\)` and
+      `\[..\]`.
+    claim: |
+      `tests/render_kernel.ml::mathjax_no_dollar_delimiters`
+      renders a page with `enable_mathjax = true` and asserts
+      the produced body does not contain `'$','$'` and does not
+      contain `'$$','$$'`. The test fails if either pair is
+      present.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::mathjax_no_dollar_delimiters
+          result: pass
+        - verifier: tests/render_kernel.ml::mathjax_uses_latex_delimiters
+          result: pass
+
+  - id: math-and-mermaid-css-declared
+    outcome: math-and-mermaid-css-shipped
+    statement: |
+      `assets/style.css` declares at least:
+        `mjx-container { font-family: ...math fallback...; }`
+        `mjx-container[display="true"] { margin: 1em 0; overflow-x: auto; }`
+        `.mermaid svg { max-width: 100%; height: auto; }`
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::css_has_math_rules
+          result: pass
+        - verifier: tests/render_kernel.ml::css_has_mermaid_svg_rules
+          result: pass
+
+reversal:
+  - signal: dollar-math-needed
+    condition: |
+      A future page in `site/*.md` or `axioms/*.md` needs `$..$`
+      math and the `\(..\)` alternative is too verbose or
+      conflicts with prose.
+    action: rework
+  - signal: math-font-rejected
+    condition: |
+      A future aesthetic audit rejects the STIX Two Math
+      fallback and requires Latin Modern Math or Computer
+      Modern as the first font.
+    action: rework
+
+risk:
+  declared_triggers:
+    - math-typesetting-regression
+    - css-conflict-with-existing-rules
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - render-kernel-fixes-2026-10@1
+  amends:
+    - site-deploy@5
+  supersedes: []
+  superseded_by: []

@@ -13,10 +13,10 @@ base-href-empty + 14 new fixtures in tests/render_kernel.ml;
 2026-10-07) + Step 6 of the 2026-10
 merlin-LSP infrastructure (hand-written `.merlin` + `ocaml-lsp`
 1.27.0 + `merlin` 5.8-505 in `flake.nix`; 2026-10-07).
-Attestation store at `attestations/` contains **169 files** (verified by
+Attestation store at `attestations/` contains **186 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
-on every check); **`mathc packages` reports 42 active decisions / 164
-obligations (159 pass, 4 missing, 1 unknown; the master policy's 7
+on every check); **`mathc packages` reports 48 active decisions / 183
+obligations (168 pass, 14 missing, 1 unknown; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `scripts/dev-counters.py` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
@@ -114,6 +114,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/algebra-3.2.yaml` | `algebra-3.2` | 2 | 7 | RESOLVED | adopts `spec/algebra-3.2.md` as formal normative spec |
 | `decisions/audit-0.0.21-fixes.yaml` | `audit-0.0.21-fixes` | 2 | 9 | RESOLVED | master decision for the integrity-fixes cycle (Phase 1-5) |
 | `decisions/render-kernel-fixes-2026-10.yaml` | `render-kernel-fixes-2026-10` | 1 | 9 | RESOLVED | closes the 10 render-kernel defects catalogued in `analysis/site-render-defects.md` (fenced blocks, list continuation, italic, MathJax, packages grid, RU nav, axiom single `<h1>`, footer text, `base href` empty option, `mc-*` deploy re-sync) |
+| `decisions/mathjax-delimiter-hardening-2026-10.yaml` | `mathjax-delimiter-hardening-2026-10` | 1 | 2 | RESOLVED | narrows MathJax 3 inline/display delimiters to LaTeX-style `\(..\)` / `\[..\]` only; removes `$..$` and `$$..$$` from `lib/render.ml`; ships `mjx-container` + `.mermaid svg` CSS rules so future `--mathjax` opt-ins and mermaid diagrams respect the Tufte column rhythm |
 | `decisions/site-version-from-file-2026-10.yaml` | `site-version-from-file-2026-10` | 1 | 2 | RESOLVED | replaces hardcoded `3.0-alpha` / `v3.0.0` literals in `lib/render.ml` with a single `VERSION` file; `mathc render` + `mathc version` read it; closes the dual-source drift between the live site hero and the current release tag |
 | `decisions/risk-policy-driven-floor-2026-10.yaml` | `risk-policy-driven-floor-2026-10` | 1 | 7 | RESOLVED | wires `lib/policy.ml` into `lib/risk.ml` so `mode_floor` and `policy_override_probability` honor declared policies instead of returning constants; closes algebra §2 "Phase 2E replaces this stub" comment; adds `policies.yaml` at the repo root and `OCAML_BEST_PRACTICES.md` §11.25 |
 | `decisions/ci-blocking-list-config.yaml` | `ci-blocking-list-config` | 2 | 2 | RESOLVED | configurable blocking-CI list via MATH_CODING_BLOCKING_CIS |

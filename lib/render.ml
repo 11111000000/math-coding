@@ -756,8 +756,8 @@ let[@warning "-32"] render_head ~lang ~site_base ~title ~enable_mathjax
        src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script>\n";
     Printf.bprintf buf
       "<script>\n\
-       window.MathJax = { tex: { inlineMath: [['\\(','\\)'], ['$','$']], \
-       displayMath: [['$$','$$'], ['\\[','\\]']] } };\n\
+       window.MathJax = { tex: { inlineMath: [['\\(','\\)']], displayMath: \
+       [['\\[','\\]']] } };\n\
        </script>\n"
   end;
   if enable_mermaid then begin
