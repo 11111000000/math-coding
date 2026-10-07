@@ -597,6 +597,47 @@ let[@warning "-32"] head_indent = function
   | { yindent; _ } :: _ -> yindent
   | [] -> -1
 
+(* Fold YAML 1.1 plain-scalar continuation: when a non-block
+   scalar value at indent `cur_indent` is followed by one or
+   more lines whose indent is greater than `cur_indent`,
+   those lines are appended to the scalar value with a
+   single space separator. Without this, `mathc validate
+   decisions/decision.yaml` rejects the bootstrap policy
+   itself: the `outcomes:` array contains a 2-line plain
+   scalar, the second line is at indent 6, parse_yaml_pairs
+   bails out at `head_indent tokens > cur_indent`, and
+   every subsequent top-level key (`assumptions:`,
+   `obligations:`, `risk:`, `relations:`) is silently dropped.
+
+   Implementation: scan forward while `head_indent tokens >
+   cur_indent` AND the line is not a key:value at a deeper
+   indent (i.e. the line does not start with `key:` followed
+   by a value at the same line). For our use case (decisions/
+   *.yaml), the simpler heuristic works: continuation lines
+   have indent > cur_indent AND do not contain a colon. *)
+let[@warning "-32"] rec fold_continuation tokens cur_indent =
+  match tokens with
+  | [] -> ("", [])
+  | { yindent; ycontent } :: rest when yindent > cur_indent ->
+      let stripped = String.trim ycontent in
+      let is_kv = String.index_opt stripped ':' <> None in
+      if
+        stripped = ""
+        || (String.length stripped > 0 && String.unsafe_get stripped 0 = '#')
+      then
+        (* blank/comment: skip and continue scanning *)
+        let _, rest2 = fold_continuation rest cur_indent in
+        ("", rest2)
+      else if is_kv then
+        (* looks like a nested key: stop *)
+        ("", tokens)
+      else
+        let suffix, rest2 = fold_continuation rest cur_indent in
+        if stripped = "" then ("", rest2)
+        else if suffix = "" then (stripped, rest2)
+        else (stripped ^ " " ^ suffix, rest2)
+  | _ -> ("", tokens)
+
 let[@warning "-32"] rec parse_yaml_pairs tokens cur_indent =
   let rec loop acc tokens =
     match tokens with
@@ -630,7 +671,20 @@ let[@warning "-32"] rec parse_yaml_pairs tokens cur_indent =
                     parse_yaml_block body_indent is_folded chomp rest
                   in
                   (Jsonl.String body, rest2)
-                else (parse_yaml_scalar vstr, rest)
+                else
+                  let base_value = parse_yaml_scalar vstr in
+                  let suffix, rest2 =
+                    if vstr = "" then ("", rest)
+                    else fold_continuation rest cur_indent
+                  in
+                  let value =
+                    if suffix = "" then base_value
+                    else
+                      match base_value with
+                      | Jsonl.String s -> Jsonl.String (s ^ " " ^ suffix)
+                      | other -> other
+                  in
+                  (value, rest2)
               in
               loop ((key, value) :: acc) rest2)
     | _ -> (List.rev acc, tokens)

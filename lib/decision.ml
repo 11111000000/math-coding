@@ -378,14 +378,16 @@ and parse_decision_yaml v =
       parse_decision (Jsonl.Object ps_with_risk)
   | _ -> parse_decision v
 
-and parse_obligation v =
+and[@warning "-32"] parse_obligation_with parent_id v =
   match v with
   | Jsonl.Object ps ->
       let id =
         match Schema.take_string ps "id" with Some s -> s | None -> ""
       in
       let decision =
-        match Schema.take_string ps "decision" with Some s -> s | None -> ""
+        match Schema.take_string ps "decision" with
+        | Some s -> s
+        | None -> parent_id
       in
       let claim =
         match Schema.take_string ps "claim" with
@@ -532,7 +534,9 @@ and parse_decision v =
                               in
                               let obligations =
                                 match Schema.take_array ps "obligations" with
-                                | Some xs -> List.filter_map parse_obligation xs
+                                | Some xs ->
+                                    List.filter_map (parse_obligation_with id)
+                                      xs
                                 | _ -> []
                               in
                               let reversal =
