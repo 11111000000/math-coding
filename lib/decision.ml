@@ -162,6 +162,97 @@ let[@warning "-32"] parse_reversal v =
         Some { Domain.signal; condition; Domain.action }
   | _ -> None
 
+(* === Axiom-link detection (algebra §17 "Inline axiom change")
+   ===
+   Helpers below `populate_axiom_addresses` are kept ABOVE the
+   mutually-recursive parser chain so the chain can extend all
+   the way down to `parse_decision` without `let` interrupting
+   `and`. The helpers do not call back into the parser chain. *)
+
+(* A token is "axiom-shaped" iff it starts with `A`, has digits,
+   optionally has `@rev` or `.sub` suffix. Mirrors the regex used
+   by the prior `lib/re_evaluation.ml::scan_axiom_ids` bridge so
+   the parser here accepts the same set of tokens. *)
+let[@warning "-32"] is_axiom_token s =
+  let n = String.length s in
+  if n < 2 then false
+  else if s.[0] <> 'A' then false
+  else
+    let re = Str.regexp "^A[0-9]+\\([@.][A-Za-z0-9_.-]*\\)?$" in
+    try
+      ignore (Str.search_forward re s 0);
+      true
+    with Not_found -> false
+
+(* Strip surrounding double or single quotes from a YAML scalar
+   that survived the loader unquoted. The kernel's loader does
+   not strip quotes automatically; we mirror `re_evaluation.ml`'s
+   helper so explicit `axiom: 'A0'` and `axiom: "A0"` survive
+   identically across the parser and the prior bridge. *)
+let[@warning "-32"] strip_quoted s =
+  let s = String.trim s in
+  let n = String.length s in
+  if n >= 2 && s.[0] = '"' && s.[n - 1] = '"' then String.sub s 1 (n - 2)
+  else if n >= 2 && s.[0] = '\'' && s.[n - 1] = '\'' then String.sub s 1 (n - 2)
+  else s
+
+(* Prose scan: extract every `\<A[0-9]+(\([@.][A-Za-z0-9_.-]*\)?\>`
+   token from a single string. Returns tokens in source order,
+   deduplicated. *)
+let[@warning "-32"] axiom_tokens_in_string s =
+  let re = Str.regexp "\\<A[0-9]+\\([@.][A-Za-z0-9_.-]*\\)?\\>" in
+  let rec scan pos acc =
+    try
+      ignore (Str.search_forward re s pos);
+      let tok = Str.matched_string s in
+      let acc' =
+        if is_axiom_token tok && not (List.mem tok acc) then tok :: acc else acc
+      in
+      scan (Str.match_end ()) acc'
+    with Not_found -> acc
+  in
+  scan 0 []
+
+(* Walk the Jsonl tree once; for every Object key that is one of
+   `axiom` / `axiom-id` / `axioms`, extract the scalar or list
+   value as axiom-shaped tokens (mirrors `collect_value` and the
+   `axiom` / `axiom-id` / `axioms` branches of `scan_axiom_ids`).
+   For every other key, recurse into the value (and arrays), so
+   prose tokens like "per A1 honesty" inside an obligation claim
+   are picked up regardless of where they live.
+
+   Order in the returned list is "key-derived first, prose
+   last", matching `scan_axiom_ids`'s reverse-occurrence order
+   semantics. *)
+let[@warning "-32"] rec collect_axiom_tokens_from_value = function
+  | Jsonl.String s -> axiom_tokens_in_string s
+  | Jsonl.Array xs -> List.concat_map collect_axiom_tokens_from_value xs
+  | Jsonl.Object ps ->
+      let from_key (k, v) =
+        if k = "axiom" || k = "axiom-id" || k = "axioms" then
+          match v with
+          | Jsonl.String s ->
+              let stripped = strip_quoted s in
+              if is_axiom_token stripped then [ stripped ] else []
+          | Jsonl.Array xs ->
+              List.concat_map
+                (fun x ->
+                  match x with
+                  | Jsonl.String s ->
+                      let stripped = strip_quoted s in
+                      if is_axiom_token stripped then [ stripped ] else []
+                  | _ -> [])
+                xs
+          | _ -> []
+        else []
+      in
+      let from_keys = List.concat_map from_key ps in
+      let from_strings =
+        List.concat_map (fun (_, v) -> collect_axiom_tokens_from_value v) ps
+      in
+      from_keys @ from_strings
+  | _ -> []
+
 let rec parse_assumption v =
   match v with
   | Jsonl.Object ps -> (
@@ -506,6 +597,26 @@ and parse_relations v =
         Domain.verifies = [];
       }
 
+(* Populate `relations.addresses` from the three sources listed
+   in the comment block above (YAML block, explicit keys, prose
+   tokens). Existing `relations.addresses` (already extracted
+   from the YAML block by `parse_relations`) is preserved
+   verbatim; the new sources are unioned in front, deduplicated.
+   The ordering matches `scan_axiom_ids` ∪ existing semantics so
+   the post-migration `relations.addresses` is set-equal (and
+   the list is order-stable for human readers) for every active
+   decision. *)
+and populate_axiom_addresses ps (relations : Domain.relations) :
+    Domain.relations =
+  let existing = relations.Domain.addresses in
+  let scanned = collect_axiom_tokens_from_value (Jsonl.Object ps) in
+  let merged =
+    List.fold_left
+      (fun acc id -> if List.mem id acc then acc else id :: acc)
+      existing scanned
+  in
+  { relations with Domain.addresses = merged }
+
 and parse_decision v =
   match v with
   | Jsonl.Object ps -> (
@@ -648,6 +759,9 @@ and parse_decision v =
                                         | Some rps ->
                                             parse_relations (Jsonl.Object rps)
                                         | _ -> parse_relations Jsonl.Null
+                                      in
+                                      let relations =
+                                        populate_axiom_addresses ps relations
                                       in
                                       let axiom_link =
                                         match

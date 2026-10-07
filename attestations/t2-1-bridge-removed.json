@@ -1,0 +1,1 @@
+{"id":"sha256:c8188fb36916502ceeae1579212ff01f8dccb4891936527d3523f76d166cbbfc","issued_at":"2026-10-07T22:12:31Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:build:dune-build"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"t2-1","materials_digest":"","obligation":"bridge-removed"}}
