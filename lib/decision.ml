@@ -776,34 +776,52 @@ and parse_decision v =
                                               xs
                                         | _ -> []
                                       in
-                                      Some
-                                        {
-                                          Domain.id;
-                                          Domain.rev = revision;
-                                          Domain.parents;
-                                          Domain.intent_source = source;
-                                          Domain.intent_text = text;
-                                          Domain.commitment;
-                                          Domain.scope;
-                                          Domain.outcomes;
-                                          Domain.obligations;
-                                          Domain.assumptions;
-                                          Domain.reversal;
-                                          Domain.risk =
-                                            {
-                                              Domain.declared_triggers =
-                                                triggers;
-                                              Domain.owner;
-                                            };
-                                          Domain.relations;
-                                          Domain.counterexample;
-                                          Domain.state;
-                                          Domain.mode;
-                                          Domain.mode_floor_used;
-                                          Domain.body_sha;
-                                          Domain.yaml_sha;
-                                          Domain.axiom_link;
-                                        }
+                                      (* T2.2: axiom_link is required for
+                                         state=active. The rule is enforced
+                                         at parser level so the kernel's
+                                         authoritative reading of a
+                                         Decision matches the schema
+                                         contract. Draft, Retired, and
+                                         Superseded decisions are exempt;
+                                         only active decisions carry the
+                                         contract. The CLI
+                                         (`bin/Mathc.ml::validate_with_counts`)
+                                         maps the None return into
+                                         diagnostic `MC-AXIOM-LINK-MISSING`
+                                         so the author sees a precise
+                                         next-step. See
+                                         `decisions/plan-2026-10-improvements/t2-2.yaml`. *)
+                                      if state = `Active && axiom_link = [] then
+                                        None
+                                      else
+                                        Some
+                                          {
+                                            Domain.id;
+                                            Domain.rev = revision;
+                                            Domain.parents;
+                                            Domain.intent_source = source;
+                                            Domain.intent_text = text;
+                                            Domain.commitment;
+                                            Domain.scope;
+                                            Domain.outcomes;
+                                            Domain.obligations;
+                                            Domain.assumptions;
+                                            Domain.reversal;
+                                            Domain.risk =
+                                              {
+                                                Domain.declared_triggers =
+                                                  triggers;
+                                                Domain.owner;
+                                              };
+                                            Domain.relations;
+                                            Domain.counterexample;
+                                            Domain.state;
+                                            Domain.mode;
+                                            Domain.mode_floor_used;
+                                            Domain.body_sha;
+                                            Domain.yaml_sha;
+                                            Domain.axiom_link;
+                                          }
                                   | _ -> None)
                               | _ -> None)
                           | _ -> None)

@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: D6-bootstrap-v3-verifiers-implemented
 revision: 2
 state: active
-body_sha: "sha256:0b2a55e09f82640328d5a9f47f18f04223a1b7be00d7d5bd345a57cee5f05ef2"
-yaml_sha: "sha256:0b2a55e09f82640328d5a9f47f18f04223a1b7be00d7d5bd345a57cee5f05ef2"
+body_sha: "sha256:d14932becb3bcc329e6db095c6e791b9a430b9a10dd90965a0d54f0f344dd0db"
+yaml_sha: "sha256:d14932becb3bcc329e6db095c6e791b9a430b9a10dd90965a0d54f0f344dd0db"
 intent: |
   Close audit deficit D6 (bootstrap-v3 manual-only verifiers).
   The bootstrap protocol expired at commit `8fa7fcf` (v3.0.0.19);
@@ -17,6 +17,8 @@ intent: |
   in the AGENTS.md sense: it bumps the active policy's
   obligation count, which is a normal revision event.
 
+axiom_link:
+  - A0
 commitment: |
   `decisions/obligations.yaml` is updated to remove the
   "manual-only" qualifier from every bootstrap-v3 obligation.

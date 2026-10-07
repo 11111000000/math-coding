@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t0-1-spec-notation
 revision: 1
 state: active
-body_sha: "sha256:6d03866ae2bdae447585aaa893cd0823b776627f72a774382f0c77586bc790c9"
-yaml_sha: "sha256:6d03866ae2bdae447585aaa893cd0823b776627f72a774382f0c77586bc790c9"
+body_sha: "sha256:9a6594854ebca08f382e57d35074a358115392d0da80a6e8d39ffa9114e5a6dd"
+yaml_sha: "sha256:9a6594854ebca08f382e57d35074a358115392d0da80a6e8d39ffa9114e5a6dd"
 intent: |
   Resolve the latent ambiguity in `spec/algebra-3.2.md` §2 (Risk
   function) that was flagged by `decisions/algebra-3.2-notation-flag-2026-10.yaml`
@@ -27,6 +27,8 @@ intent: |
     ambiguity in `spec/algebra-3.2.md` §2 by replacing the ceiling
     notation with the explicit `risk_to_mode` bucketing function.
 
+axiom_link:
+  - A0
 commitment: |
   `spec/algebra-3.2.md` §2 reads:
 

@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: algebra-3.2-notation-flag-2026-10
 revision: 2
 state: active
-body_sha: "sha256:14e9f676e13cd1aab320a698d21572ff56bc98eacba859318260e0b957bf4b99"
-yaml_sha: "sha256:14e9f676e13cd1aab320a698d21572ff56bc98eacba859318260e0b957bf4b99"
+body_sha: "sha256:473e17e75ec63a83846567c6a748a645aa8a3e3e3740af74a9c4a2164ace75d1"
+yaml_sha: "sha256:473e17e75ec63a83846567c6a748a645aa8a3e3e3740af74a9c4a2164ace75d1"
 intent: |
   Flag a latent ambiguity in `spec/algebra-3.2.md` §2 (Risk function)
   that an automated auditor caught in 2026-10-05 but which the agent
@@ -46,6 +46,8 @@ intent: |
 
 change_kind: editorial
 
+axiom_link:
+  - A0
 commitment: |
   The notation `⌈risk(c)⌉` is preserved verbatim in §2 (the
   ambiguity is real and the spec owner should resolve it), and a

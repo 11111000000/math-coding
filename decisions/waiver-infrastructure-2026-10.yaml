@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: waiver-infrastructure-2026-10
 revision: 1
 state: active
-body_sha: "sha256:bf7fd65d4169bd0264b30781291327a6b1e62d7cbda0fc707849e20c912df46a"
-yaml_sha: "sha256:bf7fd65d4169bd0264b30781291327a6b1e62d7cbda0fc707849e20c912df46a"
+body_sha: "sha256:89bf2e2bc5ea44370454ad0b157f9248833538293466189d9ee8fb0d30488927"
+yaml_sha: "sha256:89bf2e2bc5ea44370454ad0b157f9248833538293466189d9ee8fb0d30488927"
 intent: |
   Introduce waiver files (schema `math-coding/waiver-3.0-alpha`)
   as a first-class mechanism to mark specific (decision,
@@ -44,6 +44,8 @@ intent: |
     - per `constitution.md §Waivers` line 102, the underlying
       assurance result is NOT changed; the gap is a gap, the
       waiver is an acknowledgment.
+axiom_link:
+  - A0
 commitment: |
   `lib/waiver.ml` exposes `load`, `covers`, and `effective_at`.
   `bin/Mathc.ml`'s `do_self_check` consults the waiver store

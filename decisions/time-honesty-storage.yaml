@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: time-honesty-storage
 revision: 2
 state: active
-body_sha: "sha256:af4eec0bc5a5b6d9e833b632b909854b2ce4684b9140005dea6b50663d988246"
-yaml_sha: "sha256:af4eec0bc5a5b6d9e833b632b909854b2ce4684b9140005dea6b50663d988246"
+body_sha: "sha256:83cb2ec3a82bcf77ea2cf709f90296571e452e0ec1a71602697b4412409ca9d9"
+yaml_sha: "sha256:83cb2ec3a82bcf77ea2cf709f90296571e452e0ec1a71602697b4412409ca9d9"
 intent: |
   Close the read side of A1 (Feedback) for time claims. The prior
   decision time-honesty@v1 registered obligations on the forward-
@@ -12,6 +12,8 @@ intent: |
   side so that actual durations accumulate and an empirical
   distribution can close the loop.
 
+axiom_link:
+  - A0
 commitment: |
   Three new subcommands (mathc session-start, mathc record, mathc stats)
   write to two declared storage paths:

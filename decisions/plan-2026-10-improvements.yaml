@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: plan-2026-10-improvements
 revision: 1
 state: active
-body_sha: "sha256:1f4b642b1c6a45dad427b31f203e97822890dba987788a3ab1da3004c767fb0f"
-yaml_sha: "sha256:1f4b642b1c6a45dad427b31f203e97822890dba987788a3ab1da3004c767fb0f"
+body_sha: "sha256:b4208c5e490fa4fcb8ebeaf99a4e0e1f29386e4766796e2755079759afe33d5c"
+yaml_sha: "sha256:b4208c5e490fa4fcb8ebeaf99a4e0e1f29386e4766796e2755079759afe33d5c"
 intent: |
   Adopt the analysis-derived plan documented in chat 2026-10-07
   ("анализ math-coding как методологии"). The plan closes 14
@@ -70,6 +70,8 @@ intent: |
       ships under the same active policy bootstrap-v3 and includes
       dual-failure evidence per constitution.md §Self-Application.
 
+axiom_link:
+  - A0
 commitment: |
   The cycle closes when, for every T0.1 … T6.2 obligation below:
     (a) a sub-decision exists at

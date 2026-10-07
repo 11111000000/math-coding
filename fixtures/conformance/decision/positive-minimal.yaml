@@ -4,6 +4,8 @@ id: redis-origin-fallback
 revision: rev:41aa92
 parents:
   - rev:102abc
+axiom_link:
+  - A1
 intent:
   source: issue:143
   text: Search remains available when Redis is unavailable.

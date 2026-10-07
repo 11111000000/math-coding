@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: portable-linux-musl-retirement-record-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f0ba7dacc22de35a00df652c90300547ae78b0a2f229c7ab6ac0c319453fe3ba"
-yaml_sha: "sha256:f0ba7dacc22de35a00df652c90300547ae78b0a2f229c7ab6ac0c319453fe3ba"
+body_sha: "sha256:c111e09900bc36ffcfa5f3a30bbfa05a2c288d1d77e5604d7d0da83008bb5e8b"
+yaml_sha: "sha256:c111e09900bc36ffcfa5f3a30bbfa05a2c288d1d77e5604d7d0da83008bb5e8b"
 intent: |
   Record the retirement accounting of decisions/portable-linux-musl.yaml
   following the 2026-10-05 audit:
@@ -22,6 +22,8 @@ intent: |
   accounting so future readers know which obligations are structurally
   held by the reversal signal and which were attestable and are now
   attested.
+axiom_link:
+  - A0
 commitment: |
   The retirement accounting is recorded with full provenance: this
   decision file exists at HEAD, the three attestable obligations

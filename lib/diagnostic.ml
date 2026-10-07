@@ -86,6 +86,38 @@ let malformed_acceptance ?(obligation_id = "") ?(item_position = -1) reason =
   in
   create ~code:"MC-MALFORMED-ACCEPTANCE" ~kind:Input ~severity:Warn msg
 
+(* MC-AXIOM-LINK-MISSING: emitted by `mathc validate` (via
+   `lib/decision.ml::parse_decision`) when a decision carries
+   `state: active` with an empty `axiom_link` list. The
+   contract is set by spec/algebra-3.2.md §7 ("A decision must
+   name the axiom(s) it addresses via `axiom_link`") and
+   enforced by the parser-level check (lib/decision.ml:794).
+   Draft, Retired, and Superseded decisions are exempt; only
+   active decisions carry the contract. Author remediation:
+   add `axiom_link: [A0]` (or a more specific axiom list) to
+   the decision front-matter. This block-level emit is called
+   from `bin/Mathc.ml::validate_with_counts` (T2.2 stream). *)
+let axiom_link_missing ?(decision_id = "") () =
+  let prefix =
+    if decision_id = "" then "" else Printf.sprintf "%s: " decision_id
+  in
+  let msg =
+    Printf.sprintf
+      "%sdecision has state=active but empty axiom_link: spec/algebra-3.2.md \
+       §7 requires every active decision to name the axiom(s) it addresses via \
+       the axiom_link field; add one (e.g. axiom_link: [A0]) to the decision \
+       front-matter"
+      prefix
+  in
+  create ~code:"MC-AXIOM-LINK-MISSING" ~kind:Deficit ~severity:Block
+    ~policy_rule:(Some "spec/algebra-3.2.md §7")
+    ~next_actions:
+      [
+        ("add", "axiom_link: [A0]");
+        ("verify", "mathc validate <path-to-decision>");
+      ]
+    msg
+
 let severity_of_string = function
   | "info" -> Some Info
   | "warn" -> Some Warn
@@ -204,6 +236,27 @@ let explain (code : string) : string option =
          Add a `counterexample: |` block with one or two\n\
          sentences naming the strongest objection to the\n\
          decision. Re-run `mathc validate`."
+  | "MC-AXIOM-LINK-MISSING" ->
+      Some
+        "### Definition\n\
+         A `state: active` decision carries an empty\n\
+         `axiom_link` field. Spec/algebra-3.2.md §7 requires\n\
+         every active decision to name the axiom(s) it\n\
+         addresses via the `axiom_link` field (e.g.\n\
+         `axiom_link: [A0]`).\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` rejects the\n\
+         decision (returns None) because `state = Active` and\n\
+         `axiom_link = []`. The CLI surfaces this as\n\
+         `MC-AXIOM-LINK-MISSING` with verdict `reject` and\n\
+         exit code 1. Draft / Retired / Superseded decisions\n\
+         are exempt; only active decisions carry the contract.\n\n\
+         ### Remediation\n\
+         Add `axiom_link: [A<n>]` to the decision front-matter,\n\
+         listing the axiom(s) the decision addresses. If the\n\
+         decision is a transitional draft that should not be\n\
+         evaluated yet, change its state to `draft` instead.\n\
+         Re-run `mathc validate`."
   | _ -> None
 
 let render d =

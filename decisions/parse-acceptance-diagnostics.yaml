@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: parse-acceptance-diagnostics
 revision: 2
 state: active
-body_sha: "sha256:fd8aa6fbfac339c6067dcbe9c8c67e6dac864d0a2e403e010a2b0977772dd998"
-yaml_sha: "sha256:fd8aa6fbfac339c6067dcbe9c8c67e6dac864d0a2e403e010a2b0977772dd998"
+body_sha: "sha256:01aea19174027b7c4abaeac40cf26b5591a0b29b8eb9b5161985b57846ee61b4"
+yaml_sha: "sha256:01aea19174027b7c4abaeac40cf26b5591a0b29b8eb9b5161985b57846ee61b4"
 intent: |
   Close OCAML_BEST_PRACTICES §9.1: when an obligation's acceptance
   item carries both `verifier` and `review` fields on the same
@@ -14,6 +14,8 @@ intent: |
   author can disambiguate instead of wondering why their review
   is ignored.
 
+axiom_link:
+  - A0
 commitment: |
   Decision.classify_acceptance_item : Jsonl.value -> acceptance_shape
   returns one of ShapeVerifier | ShapeReview | ShapeAmbiguous |

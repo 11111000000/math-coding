@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t4-2-explain-diagnostic
 revision: 1
 state: active
-body_sha: "sha256:648724c1224c99446612068d97f98bcf7a22e371277be5d1e29f7b44b84e1eb1"
-yaml_sha: "sha256:648724c1224c99446612068d97f98bcf7a22e371277be5d1e29f7b44b84e1eb1"
+body_sha: "sha256:cac211db60c3bfdf056ae875bf88367f253b6bf80c08f5c8933e8fd6c4b33d7b"
+yaml_sha: "sha256:cac211db60c3bfdf056ae875bf88367f253b6bf80c08f5c8933e8fd6c4b33d7b"
 intent: |
   Authorise and bound the `mathc explain-diagnostic <CODE>` subcommand
   under meta-decision `plan-2026-10-improvements` (Tier 4, t4-2). The
@@ -35,6 +35,8 @@ intent: |
     - `mathc explain DETAIL_REF` (without `-diagnostic`) is
       unchanged in shape and exit code.
 
+axiom_link:
+  - A0
 commitment: |
   1. `lib/diagnostic.ml` exports `explain : string -> string option`
      returning the markdown-text body for a supported `MC-*` code, or

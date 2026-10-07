@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: kernel-conformance-runner
 revision: 2
 state: active
-body_sha: "sha256:a9b1e01e6c199fa42f3741af166d03afed4cb3317b386fd2a90bd9888435186e"
-yaml_sha: "sha256:a9b1e01e6c199fa42f3741af166d03afed4cb3317b386fd2a90bd9888435186e"
+body_sha: "sha256:cea9856a5883989e110706b699759f5f8de0c44110657e7645cc8b65a749cac1"
+yaml_sha: "sha256:cea9856a5883989e110706b699759f5f8de0c44110657e7645cc8b65a749cac1"
 intent: |
   Replace the ad-hoc `tests/conformance.ml.disabled` with a working
   conformance runner that walks fixtures/conformance/, exercises both
@@ -12,6 +12,8 @@ intent: |
   as exit codes. The previous attempt left a broken YAML loader and a
   shell-only test; this decision is the kernel-shape replacement.
 
+axiom_link:
+  - A0
 commitment: |
   tests/conformance.ml runs all positive and negative fixtures under
   fixtures/conformance/{decision,attestation}/. Positive fixtures

@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: algebra-3.2
 revision: 2
 state: active
-body_sha: "sha256:eb17fd06264eb174c7cc48aa101ec5127075e460df9b1709dcc3cfa16713198c"
-yaml_sha: "sha256:eb17fd06264eb174c7cc48aa101ec5127075e460df9b1709dcc3cfa16713198c"
+body_sha: "sha256:b7552e517b66cd476156f8e482b3129e730bc0fcae3f25b5abff20297137cd80"
+yaml_sha: "sha256:b7552e517b66cd476156f8e482b3129e730bc0fcae3f25b5abff20297137cd80"
 intent: |
   Adopt `spec/algebra-3.2.md` as the authoritative formal specification
   of the math-coding 3.2-ideal kernel, supplementing (not replacing)
@@ -18,6 +18,8 @@ intent: |
     uncertainty principle added, 8 relations enum explicit, 3
     obligation phases made normative)
 
+axiom_link:
+  - A0
 commitment: |
   The math-coding project formally adopts the 3.2 algebra as the
   mathematical specification of what the kernel MUST enforce.

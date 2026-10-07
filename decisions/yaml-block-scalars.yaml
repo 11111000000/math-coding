@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: yaml-block-scalars
 revision: 5
 state: active
-body_sha: "sha256:0ae11970dfb47194c8b9dd1a387652158d7b84f5c5a8eaf483f626e5cca97b62"
-yaml_sha: "sha256:0ae11970dfb47194c8b9dd1a387652158d7b84f5c5a8eaf483f626e5cca97b62"
+body_sha: "sha256:a25505150fb4ac6dad309bd0c367aa360da57f8445f4d0e3bba132fa31c17eb0"
+yaml_sha: "sha256:a25505150fb4ac6dad309bd0c367aa360da57f8445f4d0e3bba132fa31c17eb0"
 intent: |
   Close deficit D1 and D2 from doc/AUDIT-0.0.11.md by extending
   lib/codec.ml's hand-rolled YAML loader to recognise `|` and
@@ -30,6 +30,8 @@ intent: |
   closes the pre-existing `tests/process_principles.ml` P2
   failure on main HEAD `085f4e3`.
 
+axiom_link:
+  - A0
 commitment: |
   lib/codec.ml's load_yaml_string recognises a value starting
   with `|` or `>` (optionally followed by `-` or `+`) as a block

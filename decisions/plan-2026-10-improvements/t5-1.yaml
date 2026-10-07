@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t5-1-site-ru-en-synced
 revision: 1
 state: active
-body_sha: "sha256:4538fdc77b7667bb0c03de762c16cb86c66a7c317505e63810ea9a41825dbc3a"
-yaml_sha: "sha256:4538fdc77b7667bb0c03de762c16cb86c66a7c317505e63810ea9a41825dbc3a"
+body_sha: "sha256:fc7332ae7e574306cef8c30d8ce9cfbcacf64d6fb9e822d4ce00f012885690d8"
+yaml_sha: "sha256:fc7332ae7e574306cef8c30d8ce9cfbcacf64d6fb9e822d4ce00f012885690d8"
 intent: |
   Reconcile every `site/<name>.ru.md` with its English sibling
   `site/<name>.md` so that the bilingual content surface stays
@@ -35,6 +35,8 @@ intent: |
     record), and (c) landing the
     `bilingual_drift_under_threshold` regression test.
 
+axiom_link:
+  - A0
 commitment: |
   For every name `n` where both `site/<n>.md` and
   `site/<n>.ru.md` exist, the structural drift between the

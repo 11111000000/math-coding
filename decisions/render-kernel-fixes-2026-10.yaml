@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: render-kernel-fixes-2026-10
 revision: 1
 state: active
-body_sha: "sha256:5cf08a27fd02417142ae5b153771189e6ef0cc9b1507e5e7b7b45dbc760fb78f"
-yaml_sha: "sha256:5cf08a27fd02417142ae5b153771189e6ef0cc9b1507e5e7b7b45dbc760fb78f"
+body_sha: "sha256:c2a8773419f92e455ea7d6cd0c2526d70fa230f7b5e2d5e65d2737074f520e63"
+yaml_sha: "sha256:c2a8773419f92e455ea7d6cd0c2526d70fa230f7b5e2d5e65d2737074f520e63"
 intent: |
   Close the ten concrete render-kernel defects catalogued in
   `analysis/site-render-defects.md` (commit-diagnostic branch
@@ -38,6 +38,8 @@ intent: |
     rev 1 (this commit): initial adoption. Closes the 10
     defects listed in `analysis/site-render-defects.md` (2026-10-07).
 
+axiom_link:
+  - A0
 commitment: |
   `mathc render --out dist --lang=both` produces a static site
   in which:

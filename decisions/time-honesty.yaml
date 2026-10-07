@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: time-honesty
 revision: 2
 state: active
-body_sha: "sha256:7f19d866008f86b8314b704528185459e0b6c03e2df829a0806090e65fdba0df"
-yaml_sha: "sha256:7f19d866008f86b8314b704528185459e0b6c03e2df829a0806090e65fdba0df"
+body_sha: "sha256:ee8ab9fb3e7ce07cffb2cae53bff497a2872b5f0ff286db2506b9f3272301c4d"
+yaml_sha: "sha256:ee8ab9fb3e7ce07cffb2cae53bff497a2872b5f0ff286db2506b9f3272301c4d"
 intent: |
   Close the A1 (Feedback) deficit in math-coding 3.0-alpha for
   agent narratives about the duration of work. Without an observable
@@ -13,6 +13,8 @@ intent: |
   (Jones & Euske, 1991). This decision introduces three observable
   scales and a reproducible reference-class estimator.
 
+axiom_link:
+  - A0
 commitment: |
   Add an honest-time-reporting norm to AGENTS.md, a
   reference-class time estimator subcommand (mathc time-estimate)

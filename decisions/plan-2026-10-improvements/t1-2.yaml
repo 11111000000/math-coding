@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t1-2
 revision: 1
 state: active
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:fb30b95af897f1cbca9afbd3521f7721c9c9f92011ec775b4ad8ae90867a98db"
+yaml_sha: "sha256:fb30b95af897f1cbca9afbd3521f7721c9c9f92011ec775b4ad8ae90867a98db"
 intent: |
   Close the A1 honesty gap in `lib/re_evaluation.ml::re_evaluate`:
   the previous 3-valued status silently returned `Compatible` for
@@ -27,6 +27,8 @@ intent: |
       dual-failure evidence and a human maintainer must review
       before merge.
 
+axiom_link:
+  - A0
 commitment: |
   `lib/re_evaluation.ml::status` is the type
 

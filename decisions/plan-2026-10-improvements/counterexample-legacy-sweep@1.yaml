@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: counterexample-legacy-sweep
 revision: 1
 state: active
-body_sha: "sha256:a94d45be6eaf2ad0689bf59a08b4559b9f79eba28323576988e6ae913edec810"
-yaml_sha: "sha256:a94d45be6eaf2ad0689bf59a08b4559b9f79eba28323576988e6ae913edec810"
+body_sha: "sha256:0f800ce2a12236af1d18ef0532a13fb90b85d5317d5febe9ba5b64fad198d24a"
+yaml_sha: "sha256:0f800ce2a12236af1d18ef0532a13fb90b85d5317d5febe9ba5b64fad198d24a"
 intent: |
   Sub-decision under `decisions/plan-2026-10-improvements.yaml`
   obligation `t6-2-counterexample-required`, recording the
@@ -40,6 +40,8 @@ intent: |
   Per-file record lives in
     `decisions/plan-2026-10-improvements/t6-2-prep.yaml:notes`.
 
+axiom_link:
+  - A0
 commitment: |
   1. `scripts/counterexample-seed.py` exists and is idempotent
      (re-running on a tree whose counterexample is populated

@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t6-1-no-stub-without-tracking
 revision: 1
 state: active
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:df6373bdcd21bc0188ea552b0927ce42543b59cdd973abaa9cf69901379ec385"
+yaml_sha: "sha256:df6373bdcd21bc0188ea552b0927ce42543b59cdd973abaa9cf69901379ec385"
 intent: |
   Sub-decision under `decisions/plan-2026-10-improvements.yaml`
   obligation `t6-1-no-stub-without-tracking`. Bans stub markers
@@ -24,6 +24,8 @@ intent: |
   to the four files named below plus the new test executable
   it ships with.
 
+axiom_link:
+  - A0
 commitment: |
   1. `scripts/check.sh` runs a stub-lint pass against
      `lib/*.ml` and `bin/Mathc.ml`. The pass exits non-zero

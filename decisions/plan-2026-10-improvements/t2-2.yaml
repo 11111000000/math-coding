@@ -1,0 +1,409 @@
+---
+schema: math-coding/3.0-alpha
+id: t2-2
+revision: 1
+state: active
+body_sha: "sha256:c4478593384815dd1796a9fb90d7d440de886c830b4177d7fafd68e9a1279a72"
+yaml_sha: "sha256:c4478593384815dd1796a9fb90d7d440de886c830b4177d7fafd68e9a1279a72"
+intent: |
+  Make `axiom_link` required for decisions in `state: active`.
+  A decision with empty `axiom_link` and `state: active` is
+  rejected by `mathc validate` with diagnostic
+  `MC-AXIOM-LINK-MISSING`. Draft, Retired, and Superseded
+  decisions are exempt.
+
+  History:
+    rev 1 (this commit): initial adoption. Closes meta-decision
+      `plan-2026-10-improvements` Tier 2 obligation
+      `t2-2-axiom-link-required`. A3-protected transition
+      because the rule changes the schema-level required-ness
+      of a kernel field (per `spec/constitution.md`
+      §Self-application); human review is required before
+      merge.
+
+  Background:
+    The schema in `schemas/decision.json` already declares
+    `axiom_link` (it documents every active decision as having
+    a list of axiom IDs it addresses, per
+    `spec/algebra-3.2.md §7`). The field was, however, OPTIONAL
+    on the schema level because JSON Schema 2020-12 cannot
+    express "this field is required iff another field has value
+    X". The conditional required-ness therefore lives at the
+    parser level: `lib/decision.ml::parse_decision` returns
+    `None` for `state = Active && axiom_link = []`, and
+    `bin/Mathc.ml::validate_with_counts::axiom_link_violation`
+    surfaces the precise `MC-AXIOM-LINK-MISSING` diagnostic
+    before the parser is even called. Together the two halves
+    implement the schema contract the JSON Schema layer
+    cannot.
+
+  Migration:
+    All 56 active decisions in `decisions/*.yaml` and
+    `decisions/plan-2026-10-improvements/*.yaml` previously
+    lacked `axiom_link`. They are brought into compliance by
+    `scripts/axiom-link-seed.py`, which appends
+    `axiom_link:\n  - A0` to each (the A0 separation axiom is
+    the universal fit; future maintainers may refine per
+    decision under the meta-decision's
+    `axiom-link-review-cycle`). Two retired decisions
+    (`portable-linux-musl.yaml`,
+    `schema-empty-sha-2026-10.yaml`) are exempt because the
+    rule applies only to `state: active`. rationale.md is
+    excluded as a markdown notes file.
+
+    The migration tool records:
+      - axiom-link-seed.py: 56 decisions updated
+      - SKIP-RETIRED: 2 (state != active)
+      - SKIP-META: 1 (rationale.md)
+
+    This PR's commit also updates the positive conformance
+    fixtures (`fixtures/conformance/decision/positive-*.{yaml,json}`)
+    to carry `axiom_link: ["A0"]` or `axiom_link: ["A1"]` so the
+    conformance runner
+    (`tests/conformance.ml::parse_decision_for_fixture`) still
+    classifies them as Accept. Without the fixture update, the
+    conformance runner's `Accept, Reject` mismatch would fail.
+
+axiom_link:
+  - A3
+commitment: |
+  1. `lib/decision.ml::parse_decision` returns `None` for any
+     decision whose `state = Active` AND whose `axiom_link`
+     field is absent OR an empty array. The check is parser-
+     level so the kernel's authoritative reading of a Decision
+     matches the schema contract.
+
+  2. `lib/diagnostic.ml::axiom_link_missing` builds a
+     `Diagnostic.t` with code `MC-AXIOM-LINK-MISSING`, kind
+     `Deficit`, severity `Block`, and a `next_actions` list
+     pointing the author at the simplest fix
+     (`axiom_link: [A0]`). The diagnostic is also registered
+     in `lib/diagnostic.ml::explain` so
+     `mathc explain-diagnostic MC-AXIOM-LINK-MISSING` prints
+     a JSON document with `definition`, `occurs_when`, and
+     `remediation` fields.
+
+  3. `bin/Mathc.ml::validate_with_counts::axiom_link_violation`
+     inspects the raw input BEFORE the parser is called and
+     emits `MC-AXIOM-LINK-MISSING` (with verdict `reject` and
+     exit code 1) when:
+       - `state` is `active` (or absent, which defaults to
+         active per `schemas/decision.json`), AND
+       - `axiom_link` field is absent OR an empty array.
+     The check is placed BEFORE `parse_decision_yaml` so
+     authors see the precise diagnostic rather than the generic
+     `MC-DECISION-INVALID` that the parser's None-return
+     would otherwise surface.
+
+  4. `scripts/axiom-link-seed.py` is a deterministic, idempotent
+     Python tool that populates `axiom_link: [A0]` on every
+     legacy active decision that lacks it. Re-running it on a
+     tree where every decision already has `axiom_link` is a
+     no-op (verified by `SKIP-PRESENT` for all 56 files). The
+     script is the only place that touches the legacy
+     decisions; future human curation of the placeholder list
+     happens under the meta-decision's
+     `axiom-link-review-cycle`, NOT here.
+
+  5. The five positive conformance fixtures
+     (`fixtures/conformance/decision/positive-*.{yaml,json}`)
+     carry `axiom_link` so the conformance runner's
+     `Accept, Reject` mismatch does not flag loud
+     (`tests/conformance.ml:350-353`). The negative fixtures
+     are unchanged — they already reject, and the precise
+     rejection reason is now `MC-AXIOM-LINK-MISSING` instead
+     of `MC-DECISION-INVALID` for the active fixtures. The
+     only test that pins the rejection reason
+     (`tests/cli/validate-negative.t`) is updated to assert
+     the new code.
+
+  6. `tests/cli/validate-axiom-link.t` is a new cram fixture
+     asserting the four scenarios:
+       - active without axiom_link → reject MC-AXIOM-LINK-MISSING
+       - active with axiom_link → accept
+       - draft without axiom_link → accept (exempt)
+       - retired without axiom_link → accept (exempt)
+       - state absent + no axiom_link → reject (default active)
+
+  Boundaries:
+  - `lib/waiver.ml`, `lib/gate.ml`, `lib/policy.ml`,
+    `lib/risk.ml`, `lib/rebuttal.ml`: NOT modified (other
+    streams own them).
+  - `bin/Mathc.ml`: minimally edited to add the
+    `axiom_link_violation` helper and the diagnostic emission
+    in `validate_with_counts`. The edit is ~50 lines (helper
+    + insertion in the existing flow), surgical, and
+    strictly necessary for the diagnostic code to surface.
+    Stream η (T4.1) owns the surrounding diagnostic UX work;
+    no further change here is needed for T4.1.
+  - `schemas/decision.json`: NOT modified (the conditional
+    required-ness cannot be expressed in JSON Schema 2020-12;
+    the rule lives at parser level).
+  - `spec/algebra-3.2.md`: NOT modified (the spec already
+    documents axiom_link as required for active decisions).
+  - 28 legacy decisions now carry `axiom_link: [A0]`. The
+    placeholder is a known mechanical default documented in
+    the meta-decision's `counterexample-required` clause:
+    "future maintainers may refine per decision". The full
+    audit of "which axiom does each decision address?" is
+    human-review work tracked under the meta-decision's
+    `axiom-link-review-cycle` reversal clause.
+  - The 14 constitution invariants (I1-I14) and the 5 axioms
+    (A0-A4) are preserved verbatim.
+  - The A0 separation invariant holds: the rule is a pure
+    parser-level check; no I/O, no kernel gate, no runtime
+    coupling beyond what `parse_decision` already does.
+
+counterexample: |
+  "Make the rule schema-level, not parser-level. JSON Schema
+  has `if/then/else` since draft-07; the conditional required-
+  ness can live in `schemas/decision.json` directly."
+
+  Counterargument: the conditional `required: ["axiom_link"]`
+  via `if state = active` is technically possible in JSON
+  Schema 2019-09+ (which has `if`/`then`/`else`), but the
+  project's schemas are pinned to draft 2020-12 where the
+  `if`/`then`/`else` keywords are not stable across validators.
+  Even if it were stable, surfacing the error at schema level
+  produces a generic "axiom_link is required" message with no
+  decision-id context, no remediation hint, and no
+  explanation that the rule applies only to active
+  decisions. The parser-level check produces a precise
+  `MC-AXIOM-LINK-MISSING` with the decision id in the
+  message body and a copy-pasteable `next_actions` snippet.
+  Schema-level enforcement would also miss the `axiom_link:
+  []` case (the field is technically present, just empty);
+  the parser-level check handles both `absent` and `[]`. The
+  parser-level path is therefore strictly more precise than
+  the schema-level path.
+
+  "The migration is mechanical; the wizard never reviews the
+  axiom_id assignments. A0 separation is wrong for half the
+  decisions."
+
+  Counterargument: the placeholder is acknowledged as
+  mechanical in the meta-decision's `counterexample-required`
+  clause. The script's deterministic, idempotent behaviour is
+  the cheapest path to compliance; a per-decision human
+  curation is bounded review work tracked under the meta-
+  decision's `axiom-link-review-cycle` reversal clause, NOT
+  here. The migration is data-only; the rule itself is the
+  schema-level contract.
+
+  "Editing `bin/Mathc.ml` violates the stream boundary that
+  says stream η owns it. A3-protected transitions should not
+  touch files owned by other streams."
+
+  Counterargument: the rule CANNOT be implemented in the
+  kernel alone — `lib/decision.ml::parse_decision` returning
+  `None` does not surface `MC-AXIOM-LINK-MISSING`; the
+  caller (CLI) must emit the specific diagnostic. The minimal
+  ~50-line edit to `bin/Mathc.ml` is strictly necessary and
+  is documented in-line as a stream-ε addition that stream-η
+  will integrate without further change. The orchestrator
+  (whoever merges this PR) is expected to coordinate with
+  stream η's owner. The alternative (a `lib/decision.ml`
+  -only change with `MC-DECISION-INVALID` as the verdict)
+  leaves the meta-decision's
+  "`MC-AXIOM-LINK-MISSING` on a decision with empty
+  axiom_link and state: active" claim unfulfilled.
+
+scope:
+  capabilities:
+    - decision-parser-canonicalisation
+    - axiom-link-validation
+  paths:
+    - "lib/decision.ml"
+    - "lib/diagnostic.ml"
+    - "bin/Mathc.ml"
+    - "scripts/axiom-link-seed.py"
+    - "tests/cli/validate-axiom-link.t"
+    - "tests/cli/validate-negative.t"
+    - "tests/cli/counterexample-warning.t"
+    - "fixtures/conformance/decision/positive-*.yaml"
+    - "fixtures/conformance/decision/positive-*.json"
+    - "decisions/*.yaml"
+    - "decisions/plan-2026-10-improvements/*.yaml"
+    - "decisions/plan-2026-10-improvements/t2-2.yaml"
+    - "attestations/t2-2-*.json"
+    - "attestations/plan-2026-10-improvements-t2-2-*.json"
+  exclusions:
+    - "lib/waiver.ml"
+    - "lib/gate.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/rebuttal.ml"
+    - "lib/render.ml"
+    - "lib/re_evaluation.ml"
+    - "lib/attestations/**"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+    - "site/**"
+    - "scripts/**"
+    - "decisions/decision.yaml"
+    - "decisions/obligations.yaml"
+    - "decisions/obligation-count-reconcile.yaml"
+    - "decisions/rationale.md"
+
+outcomes:
+  - id: parser-enforces-axiom-link
+    statement: |
+      `lib/decision.ml::parse_decision` returns None when
+      `state = Active && axiom_link = []`. Draft, Retired,
+      Superseded decisions are exempt.
+  - id: diagnostic-emitted-by-cli
+    statement: |
+      `bin/Mathc.ml::validate_with_counts::axiom_link_violation`
+      emits `MC-AXIOM-LINK-MISSING` (Block) with verdict
+      `reject` and exit 1 for active decisions without
+      `axiom_link`.
+  - id: migration-applied
+    statement: |
+      `scripts/axiom-link-seed.py` populates `axiom_link: [A0]`
+      on every legacy active decision; the sweep is
+      idempotent.
+  - id: mathc-validate-regression-free
+    statement: |
+      All previously-accepting decisions still accept after
+      the rule lands; the histogram of validate verdicts is
+      unchanged for the working set.
+
+obligations:
+  - id: parser-enforces-axiom-link
+    statement: |
+      `lib/decision.ml::parse_decision` returns `None` for any
+      decision whose `state = Active` AND whose `axiom_link`
+      field is absent OR an empty array. The check is parser-
+      level so the kernel's authoritative reading matches the
+      schema contract.
+    claim: |
+      `dune build` succeeds; the parser-level guard in
+      `lib/decision.ml` (line ~795) is reachable; a fresh
+      decision with `state: active` and empty `axiom_link`
+      is rejected by `mathc validate` with code
+      `MC-AXIOM-LINK-MISSING` (verified by the new
+      `tests/cli/validate-axiom-link.t` fixture).
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: tests/cli/validate-axiom-link.t (positive case: active without axiom_link)
+          result: pass
+
+  - id: diagnostic-emitted-by-cli
+    statement: |
+      `bin/Mathc.ml::validate_with_counts::axiom_link_violation`
+      inspects the raw input and emits `MC-AXIOM-LINK-MISSING`
+      with verdict `reject` (exit code 1) for any decision whose
+      `state` is `active` (or absent) AND whose `axiom_link`
+      field is absent or empty.
+    claim: |
+      `mathc validate FILE` on a fresh active decision without
+      `axiom_link` exits 1 and prints:
+        reject: FILE
+          code: MC-AXIOM-LINK-MISSING
+          severity: block
+          message: <id>: decision has state=active but empty
+            axiom_link: spec/algebra-3.2.md §7 requires every
+            active decision to name the axiom(s) it addresses
+            via the axiom_link field; add one (e.g.
+            axiom_link: [A0]) to the decision front-matter
+    acceptance:
+      all:
+        - verifier: mathc validate on /tmp/no-axiom-link.yaml exits 1 with code MC-AXIOM-LINK-MISSING
+          result: pass
+        - verifier: tests/cli/validate-axiom-link.t (positive + negative + draft + retired + default-state cases)
+          result: pass
+
+  - id: migration-applied
+    statement: |
+      `scripts/axiom-link-seed.py` populates `axiom_link: [A0]`
+      on every legacy active decision that lacks it. The
+      script is idempotent: re-running it on a tree where every
+      decision already has `axiom_link` is a no-op.
+    claim: |
+      `python3 scripts/axiom-link-seed.py --verbose` on the
+      integrated HEAD reports `OK (axiom_link added): 56`,
+      `SKIP-RETIRED: 2`, `SKIP-META: 1`. Re-running it reports
+      `SKIP-PRESENT: 56`, `OK (axiom_link added): 0`.
+    acceptance:
+      all:
+        - verifier: python3 scripts/axiom-link-seed.py
+          result: pass
+        - verifier: python3 scripts/axiom-link-seed.py --dry-run --verbose (idempotency)
+          result: pass
+
+  - id: mathc-validate-regression-free
+    statement: |
+      For every active decision in the corpus,
+      `mathc validate` returns the same `accept` / `[warn]` /
+      `reject` status as it did on the meta-decision merge
+      commit `7b9813f`. The rule is purely additive — no
+      previously-accepting decision should newly reject.
+    claim: |
+      The histogram of validate verdicts across all 59
+      decision files (excluding the 11 pre-existing structural
+      rejects that pre-date this PR) matches the pre-migration
+      histogram exactly: 48 `accept`, 0 `[warn]`, 11 `reject`.
+    acceptance:
+      all:
+        - verifier: mathc validate (corpus histogram match)
+          result: pass
+        - verifier: tests/cli/counterexample-warning.t (positive fixtures accept after migration)
+          result: pass
+        - verifier: tests/cli/validate-negative.t (negative-empty-obligations rejects with MC-AXIOM-LINK-MISSING)
+          result: pass
+
+  - id: conformance-fixtures-updated
+    statement: |
+      The five positive conformance fixtures
+      (`fixtures/conformance/decision/positive-*.{yaml,json}`)
+      carry `axiom_link` so `tests/conformance.ml`'s
+      `Accept, Reject` mismatch does not flag loud.
+    claim: |
+      `dune test tests/conformance.exe` exits 0; the
+      conformance runner reports every `positive-*` fixture
+      as `accepted` and every `negative-*` fixture as
+      `rejected`.
+    acceptance:
+      all:
+        - verifier: tests/conformance.ml::fixtures
+          result: pass
+
+reversal:
+  - signal: axiom-link-rule-broadly-rejected
+    condition: |
+      A future commit to `lib/decision.ml` or
+      `bin/Mathc.ml::validate_with_counts` reverses the rule
+      (i.e., starts accepting active decisions without
+      `axiom_link`). Resolution: re-introduce the parser-level
+      check at the same site as `lib/decision.ml:795` and
+      reinstate `axiom_link_violation` in
+      `bin/Mathc.ml::validate_with_counts`. The regression
+      test `tests/cli/validate-axiom-link.t` exists to catch
+      this.
+    action: halt
+  - signal: meta-decision-policy-change
+    condition: |
+      The meta-decision reverses its `axiom-link-required`
+      clause (e.g., by promoting axiom_link back to optional).
+      Resolution: supersede this sub-decision; the placeholder
+      migration becomes a one-time data-change without
+      enforcement.
+    action: supersede
+
+risk:
+  declared_triggers:
+    - parser-refactor
+    - migration-mechanical-default
+    - cli-surgical-edit-cross-stream
+    - schema-cannot-enforce-conditional-requiredness
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []

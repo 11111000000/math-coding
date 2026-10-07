@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: obligation-count-reconcile
 revision: 3
 state: active
-body_sha: "sha256:e830fa3025523e9f9f5f2a82ee8a8cae5758320c4c5934d85364f693ed3eeda6"
-yaml_sha: "sha256:e830fa3025523e9f9f5f2a82ee8a8cae5758320c4c5934d85364f693ed3eeda6"
+body_sha: "sha256:ba6da28014089fea5d43d04879f6abd2acc595da6ec11dc76118be0846bc7a1b"
+yaml_sha: "sha256:ba6da28014089fea5d43d04879f6abd2acc595da6ec11dc76118be0846bc7a1b"
 intent: |
   Reconcile the obligation-count drift across four normative
   documents in the read-first set. At HEAD `9a16751`:
@@ -34,6 +34,8 @@ intent: |
                         Obligation `aggregator-7-of-7` and its
                         attestations are unaffected.
 
+axiom_link:
+  - A0
 commitment: |
   Promote `decisions/obligations.yaml` to revision 2 with the
   seven obligation ids that match `decisions/decision.yaml@2`

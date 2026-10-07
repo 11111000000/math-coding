@@ -274,6 +274,8 @@ let[@warning "-32"] test_empty_axiom_keys_dont_break_parser () =
         "id: t2-1-negative-probe";
         "revision: \"1\"";
         "state: active";
+        "axiom_link:";
+        "  - A0";
         "intent:";
         "  source: \"test\"";
         "  text: \"test\"";

@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: cli-canonical-name
 revision: 3
 state: active
-body_sha: "sha256:0e53dd18848a72f3e7d78149060b2d1d1a3c18a9275128529af3ee0ae702990a"
-yaml_sha: "sha256:0e53dd18848a72f3e7d78149060b2d1d1a3c18a9275128529af3ee0ae702990a"
+body_sha: "sha256:a6ff9872b8e790acc4639e3a16837124d41afb5e456a4911a4620181200860b7"
+yaml_sha: "sha256:a6ff9872b8e790acc4639e3a16837124d41afb5e456a4911a4620181200860b7"
 intent: |
   Collapse the project's three CLI referents (the legacy short
   alias `mc`, the public install name `mathc`, and the dune on-disk
@@ -22,6 +22,8 @@ intent: |
 
   and eliminates the cognitive load of three names for one binary.
 
+axiom_link:
+  - A0
 commitment: |
   Every `mathc` string that names the CLI invocation, every `mathc-`
   prefix that names a built-in verifier, every `mathc-*` decision

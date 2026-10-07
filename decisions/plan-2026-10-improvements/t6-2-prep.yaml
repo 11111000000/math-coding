@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t6-2-prep
 revision: 1
 state: active
-body_sha: "sha256:b35b088aeb330c3f109cd9ca6327cfa754077de44a809f29bc11d2de48b2e47d"
-yaml_sha: "sha256:b35b088aeb330c3f109cd9ca6327cfa754077de44a809f29bc11d2de48b2e47d"
+body_sha: "sha256:dc993b85c5fa47db8086253cfa83bbe6a3b2aa819b9efbb464718caaacb1ef1d"
+yaml_sha: "sha256:dc993b85c5fa47db8086253cfa83bbe6a3b2aa819b9efbb464718caaacb1ef1d"
 intent: |
   Pre-flight sweep that prepares the legacy decision corpus for
   the T6.2 enforcement rule which will land in Round 4 (ε/T6.2).
@@ -58,6 +58,8 @@ intent: |
       they follow a different schema family and are not part
       of the sweep.
 
+axiom_link:
+  - A0
 commitment: |
   1. A deterministic Python script
      `scripts/counterexample-seed.py` exists and is idempotent:

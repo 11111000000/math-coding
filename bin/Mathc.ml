@@ -128,6 +128,51 @@ let first_missing_required v =
       List.find_opt (fun f -> not (List.mem f keys)) decision_required_fields
   | _ -> None
 
+(* T2.2: detect axiom_link violations pre-parse. The parser
+   rejects active+empty axiom_link by returning None; the CLI
+   distinguishes that specific cause from the generic
+   "missing or invalid required field" reject by inspecting
+   the raw input FIRST. The check is:
+     state == active (or absent, which defaults to active per
+       schemas/decision.json), AND
+     axiom_link field is absent OR an empty array.
+   Draft / Retired / Superseded decisions are exempt. The
+   diagnostic id is `MC-AXIOM-LINK-MISSING` (registered in
+   `lib/diagnostic.ml::explain`); the helper that builds it is
+   `Diagnostic.axiom_link_missing`. The decision_id is read
+   for the message body; missing id is fine (the message is
+   informative without it). This block is the minimal
+   bin/Mathc.ml addition that stream ε (T2.2) needed; stream
+   η (T4.1) owns the surrounding diagnostic UX work and will
+   integrate the helper without further change here. *)
+let axiom_link_violation v =
+  match v with
+  | Jsonl.Object ps -> (
+      let state_str =
+        match Schema.take_string ps "state" with
+        | Some s -> s
+        | None -> "active"
+      in
+      let axiom_link_present =
+        match Schema.take_array ps "axiom_link" with
+        | Some xs ->
+            List.exists
+              (fun x ->
+                match x with
+                | Jsonl.String s when String.trim s <> "" -> true
+                | _ -> false)
+              xs
+        | None -> false
+      in
+      match state_str with
+      | "active" when not axiom_link_present ->
+          let decision_id =
+            match Schema.take_string ps "id" with Some s -> s | None -> ""
+          in
+          Some (Diagnostic.axiom_link_missing ~decision_id ())
+      | _ -> None)
+  | _ -> None
+
 let validate_with_counts path =
   match parse_file path with
   | Error (`Sys m) -> `Input_err m
@@ -148,57 +193,67 @@ let validate_with_counts path =
                 ~path:[ field ] msg,
               msg )
       | None -> (
-          try
-            match Decision.parse_decision_yaml v with
-            | Some d ->
-                let extra_diags = collect_ambiguous_acceptance_diagnostics v in
-                (* counterexample is required for modes >= light per
+          match axiom_link_violation v with
+          | Some diag ->
+              let msg = diag.Diagnostic.message in
+              `Reject (diag, msg)
+          | None -> (
+              try
+                match Decision.parse_decision_yaml v with
+                | Some d ->
+                    let extra_diags =
+                      collect_ambiguous_acceptance_diagnostics v
+                    in
+                    (* counterexample is required for modes >= light per
                    spec/algebra-3.2.md §11; emit a Warn diagnostic when
                    absent. The verdict remains 'accept' — counterexample
                    is a dialectical slot, not a hard requirement, so
                    older decisions without it stay valid. *)
-                let counterexample_diag =
-                  if d.Domain.counterexample = None then
-                    let msg =
-                      Printf.sprintf
-                        "missing counterexample: spec/algebra-3.2.md %s \
-                         requires it for modes >= light; add a counterexample \
-                         section naming the strongest objection"
-                        "§11"
+                    let counterexample_diag =
+                      if d.Domain.counterexample = None then
+                        let msg =
+                          Printf.sprintf
+                            "missing counterexample: spec/algebra-3.2.md %s \
+                             requires it for modes >= light; add a \
+                             counterexample section naming the strongest \
+                             objection"
+                            "§11"
+                        in
+                        Some
+                          (Diagnostic.create ~code:"MC-COUNTEREXAMPLE-MISSING"
+                             ~severity:Diagnostic.Warn ~retryable:false
+                             ~autofix_safe:false
+                             ~next_actions:
+                               [
+                                 ( "add",
+                                   "counterexample: |\n\
+                                   \                                 <one-line \
+                                    objection>" );
+                               ]
+                             msg)
+                      else None
                     in
-                    Some
-                      (Diagnostic.create ~code:"MC-COUNTEREXAMPLE-MISSING"
-                         ~severity:Diagnostic.Warn ~retryable:false
-                         ~autofix_safe:false
-                         ~next_actions:
-                           [
-                             ( "add",
-                               "counterexample: |\n\
-                               \                                 <one-line \
-                                objection>" );
-                           ]
-                         msg)
-                  else None
+                    let extra_diags =
+                      match counterexample_diag with
+                      | Some diag -> diag :: extra_diags
+                      | None -> extra_diags
+                    in
+                    `Accept (d, extra_diags)
+                | None ->
+                    let msg = "missing or invalid required field" in
+                    `Reject
+                      ( Diagnostic.create ~code:"MC-DECISION-INVALID"
+                          ~severity:Diagnostic.Warn ~retryable:false
+                          ~autofix_safe:false msg,
+                        msg )
+              with Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
+                let msg =
+                  Printf.sprintf "%s at line %d col %d" raw_msg line col
                 in
-                let extra_diags =
-                  match counterexample_diag with
-                  | Some diag -> diag :: extra_diags
-                  | None -> extra_diags
-                in
-                `Accept (d, extra_diags)
-            | None ->
-                let msg = "missing or invalid required field" in
                 `Reject
-                  ( Diagnostic.create ~code:"MC-DECISION-INVALID"
-                      ~severity:Diagnostic.Warn ~retryable:false
-                      ~autofix_safe:false msg,
-                    msg )
-          with Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
-            let msg = Printf.sprintf "%s at line %d col %d" raw_msg line col in
-            `Reject
-              ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
-                  ~retryable:false ~autofix_safe:false ~cause:context msg,
-                msg )))
+                  ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
+                      ~retryable:false ~autofix_safe:false ~cause:context msg,
+                    msg ))))
 
 let emit (format : output_format) path
     (outcome :
@@ -1777,9 +1832,16 @@ let do_gate () =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
   let store = Attestations.load ~reader:store_reader ~root:store_root in
+  (* T3.1: load rebuttals for the candidate tree's HEAD so the
+     v3.0 evaluate path can enforce the algebra §10 rebuttal
+     obligation when Risk.mode >= strict. Without this load the
+     new wiring in lib/gate.ml::evaluate would always see an
+     empty rebuttals list and over-block every strict/exhaustive
+     commit. *)
+  let rebuttals = Rebuttal.all_rebuttals !head in
   let result =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
-      ~changed_paths ~store
+      ~changed_paths ~store ~rebuttals
   in
   (* math-coding 3.2-ideal §15 wiring: phase-aware gate verdict on
      top of the v3.0 `evaluate`. gate_v32 honours obligation
@@ -2102,15 +2164,13 @@ let[@warning "-32"] do_re_evaluate_decisions () =
      Printf.fprintf stderr "mathc re-evaluate-decisions: %s\n" m;
      exit 2);
   if !axiom_id = "" then begin
-    Printf.fprintf stderr
-      "mathc re-evaluate-decisions: AXIOM_ID is required\n";
+    Printf.fprintf stderr "mathc re-evaluate-decisions: AXIOM_ID is required\n";
     exit 2
   end;
   let valid_axioms = [ "A0"; "A1"; "A2"; "A3"; "A4" ] in
   if not (List.mem !axiom_id valid_axioms) then begin
     Printf.fprintf stderr
-      "mathc re-evaluate-decisions: AXIOM_ID must be one of A0..A4 \
-       (got %s)\n"
+      "mathc re-evaluate-decisions: AXIOM_ID must be one of A0..A4 (got %s)\n"
       !axiom_id;
     exit 2
   end;
@@ -2137,11 +2197,8 @@ let[@warning "-32"] do_re_evaluate_decisions () =
     | _ -> "ci-bot:re-evaluate-decisions"
   in
   (* Build per-decision verdicts. *)
-  let per_decision =
-    Re_evaluation.re_evaluate_after_run decisions rev
-  in
-  let per_obligation_verdicts (d : Domain.decision) :
-      Jsonl.value list =
+  let per_decision = Re_evaluation.re_evaluate_after_run decisions rev in
+  let per_obligation_verdicts (d : Domain.decision) : Jsonl.value list =
     List.map
       (fun (ob : Domain.obligation) ->
         let sub = Re_evaluation.evaluate_obligation_after_run ob rev in
@@ -2198,10 +2255,10 @@ let[@warning "-32"] do_re_evaluate_decisions () =
   let rec mkdir_p d =
     if d = "" || d = "/" || d = "." || Sys.file_exists d then ()
     else begin
-        let parent = Filename.dirname d in
-        mkdir_p parent;
-        try Unix.mkdir d 0o755 with _ -> ()
-      end
+      let parent = Filename.dirname d in
+      mkdir_p parent;
+      try Unix.mkdir d 0o755 with _ -> ()
+    end
   in
   mkdir_p attestations_dir;
   List.iter
@@ -2212,8 +2269,7 @@ let[@warning "-32"] do_re_evaluate_decisions () =
           let ob_label = v_to_string ob_v in
           let run_like =
             match ob_v with
-            | Re_evaluation.Compatible
-            | Re_evaluation.CompatibleAfterRun
+            | Re_evaluation.Compatible | Re_evaluation.CompatibleAfterRun
             | Re_evaluation.Inconclusive ->
                 true
             | Re_evaluation.Incompatible | Re_evaluation.StaleClaim -> false
@@ -2222,8 +2278,7 @@ let[@warning "-32"] do_re_evaluate_decisions () =
             let safe_id =
               Printf.sprintf "t1-2-%s-%s-%s.json" !axiom_id d.Domain.id
                 ob.Domain.id
-              |> String.map (fun c ->
-                  if c = '/' || c = ' ' then '_' else c)
+              |> String.map (fun c -> if c = '/' || c = ' ' then '_' else c)
             in
             let result_str =
               match ob_v with
@@ -2231,8 +2286,8 @@ let[@warning "-32"] do_re_evaluate_decisions () =
               | _ -> "pass"
             in
             let payload_str =
-              Printf.sprintf "%s|%s|%s|%s|%s" d.Domain.id ob.Domain.id
-                !axiom_id result_str now
+              Printf.sprintf "%s|%s|%s|%s|%s" d.Domain.id ob.Domain.id !axiom_id
+                result_str now
             in
             let attestation_id =
               Printf.sprintf "sha256:%s" (Digest.sha256_hex payload_str)
@@ -2243,18 +2298,18 @@ let[@warning "-32"] do_re_evaluate_decisions () =
                   ("schema", Jsonl.String "math-coding/attestation-3.0-alpha");
                   ("kind", Jsonl.String "attestation");
                   ("id", Jsonl.String attestation_id);
-                  ("subject",
-                   Jsonl.Object
-                     [
-                       ("decision", Jsonl.String d.Domain.id);
-                       ("obligation", Jsonl.String ob.Domain.id);
-                       ("candidate_tree", Jsonl.String "HEAD");
-                       ("materials_digest", Jsonl.String "");
-                     ]);
+                  ( "subject",
+                    Jsonl.Object
+                      [
+                        ("decision", Jsonl.String d.Domain.id);
+                        ("obligation", Jsonl.String ob.Domain.id);
+                        ("candidate_tree", Jsonl.String "HEAD");
+                        ("materials_digest", Jsonl.String "");
+                      ] );
                   ("kind_", Jsonl.String "test");
-                  ("producer",
-                   Jsonl.Object
-                     [ ("identity", Jsonl.String producer_identity) ]);
+                  ( "producer",
+                    Jsonl.Object
+                      [ ("identity", Jsonl.String producer_identity) ] );
                   ("result", Jsonl.String result_str);
                   ("issued_at", Jsonl.String now);
                   ("axiom", Jsonl.String !axiom_id);

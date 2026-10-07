@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: risk-policy-driven-floor-2026-10
 revision: 1
 state: active
-body_sha: "sha256:3149be17f74ef85389ca2dc496b69042429625fec24874a5f90c4b1052c79929"
-yaml_sha: "sha256:3149be17f74ef85389ca2dc496b69042429625fec24874a5f90c4b1052c79929"
+body_sha: "sha256:3a6b146677f4fb3ac83a1069c942aa46c8310f2d31e1c50982ea1d7c8374d6ee"
+yaml_sha: "sha256:3a6b146677f4fb3ac83a1069c942aa46c8310f2d31e1c50982ea1d7c8374d6ee"
 intent: |
   Wire `lib/policy.ml` into `lib/risk.ml` so the risk classifier
   honors declared policies instead of returning constant
@@ -54,6 +54,8 @@ intent: |
     - This cycle does not add a `lib/policy_modes` file; the
       project keeps one policy module.
 
+axiom_link:
+  - A0
 commitment: |
   1. `lib/policy.ml` adds `policy_override_of_files : policy list
      -> string list -> float`. Default returns `0.0` (no override).
