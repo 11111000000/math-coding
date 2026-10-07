@@ -18,7 +18,8 @@
   traps
   supersession_check
   qcheck_parsers
-  junit_test)
+  junit_test
+  rebuttal_forge_stub)
  (libraries
   mathcoding_core
   mathcoding_attestations

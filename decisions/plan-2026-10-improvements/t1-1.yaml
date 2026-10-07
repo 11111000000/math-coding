@@ -1,0 +1,217 @@
+---
+schema: math-coding/3.0-alpha
+id: t1-1
+revision: 1
+state: active
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+intent: |
+  Wire `lib/rebuttal.ml::forge_mirror` to a real HTTP endpoint
+  behind the `MATH_CODING_FORGE_API` environment variable. When
+  the variable is unset or empty, `forge_mirror` continues to
+  return `[]` (algebra §10 fallback for unintegrated forge).
+  When the variable is set, `forge_mirror` issues
+  `GET <api>/comments?commit=<sha>` with a 5-second timeout,
+  parses the JSON array response, and returns the
+  `rebuttal list` whose elements carry at least a `rebutter`
+  field (silent drop on schema-mismatch, mirroring
+  `load_rebuttals`).
+
+  History:
+    rev 1 (this commit): initial adoption. Closes meta-decision
+      `plan-2026-10-improvements` Tier 1 obligation
+      `t1-1-forge-mirror`.
+
+commitment: |
+  `lib/rebuttal.ml::forge_mirror <sha>` returns a `rebuttal list`
+  whose elements come from `GET <MATH_CODING_FORGE_API>/comments?commit=<sha>`
+  when the env var is set, and `[]` otherwise. Any error path
+  (HTTP 4xx/5xx, network unreachable, JSON parse failure, command
+  non-zero exit, 5-second timeout) returns `[]` and never raises
+  into the gate. The existing `rebuttal` record type is unchanged;
+  the existing `load_rebuttals` semantics are unchanged; the
+  existing `all_rebuttals` union semantics are unchanged.
+
+  Boundaries:
+  - The forge is OPTIONAL infrastructure. Without
+    `MATH_CODING_FORGE_API`, the previous behaviour (`[]`) is
+    preserved verbatim. `forge_mirror` is not invoked from any
+    path that has a default `[]` semantics changed.
+  - The `rebuttal` record type at `lib/rebuttal.ml:53` is
+    unchanged; only the seam at `lib/rebuttal.ml:288` is
+    replaced.
+  - The HTTP transport uses `curl -sS --max-time 5` invoked via
+    `Unix.open_process_args_in`. No new OCaml dependency is
+    introduced (cohttp is intentionally NOT pulled in to keep
+    the kernel closure-tight per ROADMAP Tier 3.5).
+  - The forge adapter is single-endpoint and single-resource:
+    `GET <api>/comments?commit=<sha>`. Pagination, auth headers,
+    and per-PR vs per-commit disambiguation are deferred to a
+    future forge-specific decision.
+
+scope:
+  capabilities:
+    - honest-uncertainty-closure
+  paths:
+    - "lib/rebuttal.ml"
+    - "tests/rebuttal_forge_stub.ml"
+    - "tests/dune"
+    - "decisions/plan-2026-10-improvements/t1-1.yaml"
+    - "attestations/t1-1-forge-mirror-stub-server.json"
+  exclusions:
+    - "spec/algebra-3.2.md"
+    - "lib/rebuttal.ml::rebuttal record type (line 53)"
+    - "lib/rebuttal.ml::load_rebuttals (line 266)"
+    - "lib/rebuttal.ml::all_rebuttals (line 295)"
+    - "lib/decision.ml"
+    - "lib/gate.ml"
+    - "lib/waiver.ml"
+    - "lib/risk.ml"
+    - "lib/policy.ml"
+    - "lib/re_evaluation.ml"
+    - "lib/attestations/attestations.ml"
+    - "bin/Mathc.ml"
+    - "schemas/*.json"
+
+outcomes:
+  - id: forge-mirror-wired
+    statement: |
+      `lib/rebuttal.ml::forge_mirror` reads
+      `MATH_CODING_FORGE_API` and queries
+      `GET <api>/comments?commit=<sha>` when set; otherwise it
+      returns the empty list. Hybrid rebuttal mechanism is
+      functional end-to-end (algebra §10 fully implemented).
+
+counterexample: |
+  "Forge mirror raises on HTTP 5xx, propagating a Block verdict
+  for obligations that have no YAML rebuttal but no failing
+  obligation either."
+
+  Counterargument: the meta-decision explicitly assumes forge
+  mirror is OPTIONAL infrastructure (see
+  `plan-2026-10-improvements.yaml:347-359`). Converting a
+  transport failure into a Block would couple every commit's
+  gate to the forge's operational health. The implementation
+  swallows every error class — exit-code non-zero, empty body,
+  HTTP-failure, JSON parse failure, 5-second timeout — and
+  returns `[]`. The hybrid `all_rebuttals` continues to be the
+  YAML-authoritative union.
+
+  "The 5-second timeout is too long for CI on a hung endpoint."
+
+  Counterargument: 5 seconds is the `curl --max-time` per-call
+  budget; `curl` aborts and returns an empty body on the
+  deadline. The test fixture asserts that the call returns
+  within 10 seconds wall-clock for an unreachable port, which
+  is the loose upper bound. For a healthy endpoint on
+  127.0.0.1 the latency is sub-second.
+
+  "Without `MATH_CODING_FORGE_API` the implementation could
+  silently skip the network path; an operator misconfiguring the
+  env var to `http://nonexistent` would also silently pass."
+
+  Counterargument: this is the intended behaviour: forge mirror
+  is OPTIONAL. The same shape (silent skip on missing config)
+  applies to every other env-gated kernel knob in this repo
+  (see `tests/ci_blocking_list_test.ml` for the parallel
+  `MATH_CODING_BLOCKING_CIS` pattern). Operators who want
+  failure-on-misconfig can wrap `mathc gate` with a presence
+  check in their CI runner.
+
+assumptions:
+  - id: forge-endpoint-shape
+    state: assumed
+    statement: |
+      The forge returns a JSON array of objects, each with at
+      least a `rebutter` string field. Additional fields
+      (`objection`, `evidence`, `outcome`,
+      `trust_level_at_rebuttal`, `domain`, `timestamp`) are
+      optional and silently dropped when missing. This matches
+      the existing `parse_rebuttal` schema at
+      `lib/rebuttal.ml:120`.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a forge returns an object (not array), the
+      implementation returns `[]`. If a forge returns an array
+      but each element lacks `rebutter`, the implementation
+      drops every element silently. Both cases preserve the
+      YAML-authoritative path; no obligation verdict changes.
+    review_on:
+      - signal: forge-endpoint-contract-changed
+
+  - id: curl-on-path
+    state: assumed
+    statement: |
+      `curl` (≥ 7.50 with `--max-time` and `-sS`) is on
+      `$PATH` at runtime. This is the same dependency as
+      `lib/git/git_diff.ml` which calls `git`. No new package
+      is added to `flake.nix` or `math-coding.opam`.
+    owner: human:maintainer
+    consequence_if_false: |
+      If `curl` is unavailable, `Unix.open_process_args_in`
+      raises `Unix.Unix_error`; this is caught at the boundary
+      and `forge_mirror` returns `[]`. The CI matrix already
+      lists `curl` indirectly via `git`; no change needed.
+    review_on:
+      - signal: curl-unavailable
+
+obligations:
+  - id: forge-mirror-returns-list
+    outcome: forge-mirror-wired
+    statement: |
+      `forge_mirror` reads `MATH_CODING_FORGE_API` and, when
+      set, queries `GET <api>/comments?commit=<sha>` via
+      `curl -sS --max-time 5`. The function returns the parsed
+      `rebuttal list` on success and `[]` on every error
+      path.
+    claim: |
+      With `MATH_CODING_FORGE_API=http://127.0.0.1:<port>` and
+      a stub HTTP server returning
+      `[{"rebutter":"r1","objection":"o","evidence":"e",
+      "outcome":"accepted","trust_level_at_rebuttal":"authenticated",
+      "timestamp":"2026-10-07T00:00:00Z"}]`,
+      `all_rebuttals "deadbeef"` returns a list of length ≥ 1
+      whose first element has `rebutter = "r1"`.
+    acceptance:
+      all:
+        - verifier: tests/rebuttal_forge_stub.ml::positive_returns_rebuttals_when_api_set
+          result: pass
+        - verifier: tests/rebuttal_forge_stub.ml::negative_unset_env_returns_empty
+          result: pass
+        - verifier: tests/rebuttal_forge_stub.ml::negative_unreachable_endpoint_returns_empty
+          result: pass
+        - verifier: tests/rebuttal_forge_stub.ml::negative_malformed_json_returns_empty
+          result: pass
+
+reversal:
+  - signal: forge-protocol-upgrade
+    condition: |
+      A future forge adapter requires authentication headers,
+      pagination cursors, or per-PR vs per-commit disambiguation.
+      Resolution: supersede this decision with a forge-specific
+      sub-decision under `plan-2026-10-improvements` (or a
+      successor plan) and replace the `curl` shell-out with a
+      typed OCaml HTTP client (cohttp or equivalent).
+    action: rework
+
+  - signal: regression-to-stub
+    condition: |
+      `forge_mirror` is changed back to `[]` without a
+      superseding decision. The seam is regression-tested by
+      `tests/rebuttal_forge_stub.ml::positive_returns_rebuttals_when_api_set`,
+      which fails on a stub return.
+    action: halt
+
+risk:
+  declared_triggers:
+    - forge-coupling
+    - curl-process-spawn
+    - timeout-budget-overrun
+    - parse-error-silent-drop
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []

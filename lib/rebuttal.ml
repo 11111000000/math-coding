@@ -280,12 +280,53 @@ let[@warning "-32"] load_rebuttals sha =
           | None -> [])
       | _ -> []
 
-(* forge_mirror: stub. No forge is integrated in this revision;
-   algebra §10 says forge_api.comments_for returns ∅ when the
-   forge is not wired. The seam is left here so the future forge
-   adapter (ROADMAP Tier 3.5) can replace the body without
-   touching callers. *)
-let forge_mirror _sha = []
+(* forge_mirror: hybrid rebuttal seam (algebra §10).
+   Reads `MATH_CODING_FORGE_API`. When unset or empty, returns
+   `[]` (the §10 fallback for an unintegrated forge). When set,
+   issues `GET <api>/comments?commit=<sha>` via `curl
+   -sS --max-time 5` and parses the JSON array response via
+   `Jsonl.parse`. Each element is run through `parse_rebuttal`;
+   elements without a `rebutter` field are silently dropped.
+
+   All error paths (env unset, env empty, curl non-zero exit,
+   curl timeout, empty body, JSON parse failure, response not
+   a top-level array) return `[]`. The hybrid `all_rebuttals`
+   is YAML-authoritative: forge failure does NOT raise into the
+   gate. This is the meta-decision
+   `plan-2026-10-improvements@1` obligation `t1-1-forge-mirror`
+   and is closed by the matching sub-decision
+   `decisions/plan-2026-10-improvements/t1-1.yaml@1`.
+
+   No new OCaml dependency is introduced (cohttp is
+   intentionally NOT pulled in to keep the kernel
+   closure-tight per ROADMAP Tier 3.5); the HTTP transport
+   uses `curl` invoked through `Unix.open_process_args_in`,
+   the same pattern as `bin/Mathc.ml:run_git_command`. *)
+let forge_mirror sha =
+  match Sys.getenv_opt "MATH_CODING_FORGE_API" with
+  | None -> []
+  | Some api -> (
+      let api_trim = String.trim api in
+      if api_trim = "" then []
+      else
+        let url = api_trim ^ "/comments?commit=" ^ sha in
+        let argv = [| "curl"; "-sS"; "--max-time"; "5"; url |] in
+        let ic = Unix.open_process_args_in "curl" argv in
+        let buf = Buffer.create 4096 in
+        (try
+           while true do
+             Buffer.add_channel buf ic 4096
+           done
+         with End_of_file -> ());
+        let _status = Unix.close_process_in ic in
+        let body = Buffer.contents buf in
+        if body = "" then []
+        else
+          try
+            match Jsonl.parse body with
+            | Jsonl.Array xs -> List.filter_map parse_rebuttal xs
+            | _ -> []
+          with _ -> [])
 
 (* all_rebuttals: union of sibling YAML and forge mirror.
    The forge mirror is appended after the YAML rebuttals; if the
