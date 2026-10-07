@@ -1656,6 +1656,66 @@ let do_gate () =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
       ~changed_paths ~store
   in
+  (* math-coding 3.2-ideal §15 wiring: phase-aware gate verdict on
+     top of the v3.0 `evaluate`. gate_v32 honours obligation
+     `phase` (pre_merge vs pre_release), applies the three kernel
+     rules from §20, and now does a real attestation check (not
+     the placeholder). The verdict composition is:
+     gate_v32 wins if it returns Block (phase-aware is stricter);
+     otherwise fall back to evaluate's verdict (which honours
+     the attestation store freshness). This preserves v3.0
+     semantics for non-§15 callers and only tightens the bar
+     when §15 evidence is present. *)
+  let commit_body_raw =
+    try run_git_command !base !head [ "log"; "-1"; "--format=%B" ]
+    with _ -> ""
+  in
+  let c_info = Gate.commit_info_of ~changed_paths ~body:commit_body_raw in
+  let all_obligations =
+    let dec_dir = Filename.concat root "decisions" in
+    let dec_paths =
+      if Sys.file_exists dec_dir && Sys.is_directory dec_dir then
+        Array.to_list (Sys.readdir dec_dir)
+        |> List.filter (fun n -> Filename.check_suffix n ".yaml")
+        |> List.filter (fun n ->
+            not
+              (List.mem n
+                 [
+                   "decision.yaml";
+                   "obligations.yaml";
+                   "obligation-count-reconcile.yaml";
+                 ]))
+        |> List.map (fun n -> Filename.concat dec_dir n)
+      else []
+    in
+    List.concat_map
+      (fun p ->
+        let raw =
+          try In_channel.with_open_bin p In_channel.input_all with _ -> ""
+        in
+        match Codec.load_yaml_string raw with
+        | v -> (
+            match Decision.parse_decision_yaml v with
+            | Some d -> d.Domain.obligations
+            | None -> []))
+      dec_paths
+  in
+  let first_decision_id =
+    match memory.Memory.decisions with
+    | first :: _ -> first.Memory.decision_id
+    | [] -> ""
+  in
+  let v32 =
+    Gate.gate_v32 c_info all_obligations false Re_evaluation.Compatible
+      [
+        Gate.PreTemporalPrecedence; Gate.CoCommitDecision; Gate.CoCommitFixture;
+      ]
+      ~store ~decision_id:first_decision_id
+  in
+  let combined_verdict =
+    match v32 with Gate.Block -> Gate.Block | _ -> result.Gate.verdict
+  in
+  let result = { result with Gate.verdict = combined_verdict } in
   (* Verdict "block" -> exit 1; "pass" / "unknown" /
      "open-with-waiver" -> exit 0. Per constitution.md Invariant 14
      ("a blocking verdict MUST produce nonzero exit code") and
