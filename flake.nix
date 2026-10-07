@@ -28,6 +28,10 @@
         ocamlDeps = with ocamlPackages; [
           ocaml
           alcotest
+          ounit2
+          qcheck
+          qcheck-core
+          qcheck-ounit
           astring
           fmt
           cmdliner

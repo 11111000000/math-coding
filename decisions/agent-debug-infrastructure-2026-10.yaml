@@ -1,0 +1,293 @@
+---
+schema: math-coding/3.0-alpha
+id: agent-debug-infrastructure-2026-10
+revision: 1
+state: active
+body_sha: "sha256:6cc88b95616234140947c749fc5655e7403d7838110d051082f4c45d819463a6"
+yaml_sha: "sha256:6cc88b95616234140947c749fc5655e7403d7838110d051082f4c45d819463a6"
+intent: |
+  Convert OCAML_BEST_PRACTICES.md §11 trap log from a passive
+  documentation surface into an active helper for LLM agents
+  working on the math-coding kernel. §11 is empirically a
+  catalogue of LLM-on-OCaml pitfalls (22 entries, each observed
+  in a real session); today the trap log is only reachable if an
+  agent reads OCAML_BEST_PRACTICES.md on its own initiative, which
+  is rare. This decision records four concrete moves that make
+  the trap log executable and machine-assertable:
+
+    1. `scripts/agent-debug` — bash wrapper that reads dune-build
+       stderr on stdin and prints the matching §11 trap entry
+       with a fix hint. Covers 8 of the 22 traps (the ones whose
+       symptom is a recognisable substring of an error message:
+       §11.6, §11.5, §11.14, §11.18, §8.1, §11.10, §11.11, §11.21,
+       §11.22).
+
+    2. `tests/traps.ml` — Alcotest regression suite that pins each
+       reproducible trap (§11.1, §11.3, §11.8, §11.11, §11.12,
+       §11.15, §11.17, §11.19) as a unit test. Once added, an
+       agent (or human) re-introducing the bug fails CI; the bug
+       cannot return silently.
+
+    3. `tests/qcheck_parsers.ml` — QCheck property-based suite
+       (3500 iterations across 4 properties) that catches silent
+       parser losses like §11.15 ("JSON array loses last
+       element"). Property tests are the only systematic way to
+       surface silent losses; structural conformance tests are
+       not.
+
+    4. `lib/jsonl.ml` Parse_error signature change from
+       `(string * int)` to `{ line : int; col : int; msg : string;
+       context : string list }`. End-user-facing error messages
+       now include a 3-line source-context excerpt and a
+       human-readable location ("line N col M" instead of "byte
+       N"). Diagnostic.create's existing `cause : string list`
+       field is fed by the new context.
+
+  Why now: the trap log is the largest single source of
+  LLM-specific guidance in the repository (22 entries), but it
+  does not enter the agent's loop until the agent opens
+  OCAML_BEST_PRACTICES.md. The bash wrapper plus the regression
+  suite close that loop: every dune build error first goes to
+  agent-debug for a §11 hint, and every regression of a §11 bug
+  fails a test before it can reach main.
+
+  Scope discipline:
+  This decision does not introduce new runtime dependencies. The
+  only new dev-only dependency is qcheck + ounit2 (alcotest's
+  transitive dep, enumerated explicitly for nix). The qcheck
+  dev-dep is in `math-coding.opam` dev-deps only; the runtime
+  binary is unchanged.
+
+  This decision is META (per the META convention in PACKAGES.md):
+  it adds no obligations to `obligations.yaml` and does not
+  appear in `mathc packages` counts. It is recorded here so the
+  agent-debug infrastructure is discoverable as a single
+  decision artifact.
+
+commitment: |
+  Four deliverables, each pinned by an obligation:
+
+    D1. `scripts/agent-debug` exists at repository root and is
+        executable. At least 8 of the 22 trap entries in
+        OCAML_BEST_PRACTICES.md §11 are covered by case branches
+        that map a regex of the build error to a hint line.
+
+    D2. `tests/traps.ml` exists and registers in `tests/dune`.
+        The test file contains at least one Alcotest test_case
+        for each of §11.1, §11.3, §11.8, §11.11, §11.12,
+        §11.15, §11.17, §11.19 — that is, the 8 traps that are
+        reproducible as OCaml-runtime regressions.
+
+    D3. `tests/qcheck_parsers.ml` exists and registers in
+        `tests/dune`. It contains at least four QCheck
+        properties — one of which is a direct regression for
+        §11.15 (array length preservation across
+        stringify ∘ parse) — and runs at least 500 iterations
+        per property.
+
+    D4. `lib/jsonl.ml` exports `exception Parse_error of {
+        line : int; col : int; msg : string; context : string
+        list }` instead of the prior `(string * int)`. All
+        catch-sites in `lib/` and `bin/` either use the new
+        record pattern or the wildcard form. The kernel
+        produces at most one exception type for parse errors.
+
+  Boundaries:
+    - This decision does NOT change the public `Jsonl.parse`
+      function signature (still `string -> value`).
+    - This decision does NOT add `ppx_*` preprocessors.
+    - This decision does NOT change the schema for any
+      persisted artifact (no change to
+      `schemas/decision.json` etc.).
+    - This decision does NOT introduce runtime deps (only
+      dev-deps).
+
+scope:
+  capabilities:
+    - trap-log-resolver
+    - jsonl-error-verbosity
+    - jsonl-parser-regression
+  paths:
+    - "lib/jsonl.ml"
+    - "lib/attestations/attestations.ml"
+    - "bin/Mathc.ml"
+    - "tests/conformance.ml"
+    - "tests/traps.ml"
+    - "tests/qcheck_parsers.ml"
+    - "tests/dune"
+    - "scripts/agent-debug"
+    - "math-coding.opam"
+    - "flake.nix"
+  exclusions:
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/*.yaml"
+    - "decisions/obligations.yaml"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: agent-debug-resolver-shipped
+    statement: |
+      `scripts/agent-debug` is shipped, executable, and resolvable
+      from the project root. `dune build --root . 2>&1 | scripts/agent-debug`
+      prints a hint for any of the 8 covered trap entries.
+
+  - id: trap-regression-suite-shipped
+    statement: |
+      `tests/traps.ml` ships 8 regression cases and is registered
+      in `tests/dune`. `dune test --force` includes the `traps`
+      executable and all 8 cases pass.
+
+  - id: qcheck-property-suite-shipped
+    statement: |
+      `tests/qcheck_parsers.ml` ships 4 QCheck properties; the
+      suite runs in `dune test --force` and reports success
+      counts ≥500 for each property.
+
+  - id: jsonl-parse-error-verbose
+    statement: |
+      `Jsonl.Parse_error` carries `{ line; col; msg; context }`.
+      Bin-side catch in `bin/Mathc.ml` formats messages as
+      "msg at line N col M" with the 3-line source context
+      flowing into `Diagnostic.cause`.
+
+counterexample: |
+  "Trap log is already in OCAML_BEST_PRACTICES.md; an LLM
+  can read it before working. Wrapping it in a script adds
+  ceremony." Counterargument: in practice, agents do not
+  re-read documentation on every error. The §11 traps are
+  exactly the kind of thing an LLM forgets between turns
+  (Str.regexp doesn't match \n, Array.filter doesn't exist,
+  dune doesn't re-read modules). agent-debug fires from the
+  error itself, which is the moment the agent would otherwise
+  retry the same failing command.
+
+  "Property tests duplicate the structural conformance
+  tests in fixtures/conformance/." Counterargument: §11.15
+  went undetected for two years precisely because the
+  conformance runner checks `Some _ | None`, not list
+  length (OCAML_BEST_PRACTICES.md:1286). Property tests
+  are length-sensitive by default.
+
+  "Parse_error carrying context bloats the kernel." Counter
+  argument: context is computed only on the failure path (the
+  exception throw site), not on parse success. Success path
+  is unchanged.
+
+  "Why not bump OCAML_BEST_PRACTICES.md instead of writing
+  a script?" Counterargument: §11 is human-readable
+  documentation. The script is the executable form. The doc
+  is the source of truth for the resolutions; the script
+  only dispatches on regex substrings. The doc and the
+  script are complementary, not redundant.
+
+  "Adding qcheck + ounit2 to flake.nix increases the dev
+  closure." Counterargument: this is the standard cost of
+  dev-only property testing. Both packages are dev-deps
+  only; the runtime binary does not link them.
+
+obligations:
+  - id: agent-debug-script-shipped
+    outcome: agent-debug-resolver-shipped
+    claim: |
+      `scripts/agent-debug` exists and is executable; it covers
+      at least 8 of the 22 §11 trap entries via regex
+      dispatch. The script returns exit code 0 on at least
+      one match, 1 on no match, and 2 on usage error.
+    acceptance:
+      all:
+        - verifier: tests/traps.ml
+          result: pass
+
+  - id: trap-regression-suite-shipped
+    outcome: trap-regression-suite-shipped
+    claim: |
+      `tests/traps.ml` is registered in `tests/dune` (the
+      `traps` name is in the test stanza) and the suite
+      contains 8 test_cases, one per covered §11 entry.
+      `dune test --force` runs the executable and reports
+      8 passes.
+    acceptance:
+      all:
+        - verifier: tests/traps.ml
+          result: pass
+
+  - id: qcheck-property-suite-shipped
+    outcome: qcheck-property-suite-shipped
+    claim: |
+      `tests/qcheck_parsers.ml` is registered in `tests/dune`
+      (the `qcheck_parsers` name is in the test stanza) and
+      contains at least 4 QCheck properties. `dune test
+      --force` runs the executable with success ≥ 500 iters
+      per property.
+    acceptance:
+      all:
+        - verifier: tests/qcheck_parsers.ml
+          result: pass
+
+  - id: jsonl-parse-error-verbose
+    outcome: jsonl-parse-error-verbose
+    claim: |
+      `lib/jsonl.ml` declares `exception Parse_error of {
+      line : int; col : int; msg : string; context : string
+      list }` (verified via grep on `exception Parse_error`).
+      All catch-sites in `bin/` and `lib/` either bind the
+      record pattern or use the wildcard form
+      (`Jsonl.Parse_error _`).
+    acceptance:
+      all:
+        - verifier: grep -nE 'exception Parse_error' lib/jsonl.ml
+          result: pass
+        - verifier: grep -nE 'with Jsonl.Parse_error' bin/ lib/ -r
+          result: pass
+
+assumptions:
+  - id: dune-3-23-compatible
+    state: revised
+    statement: |
+      The project's dev shell pins dune 3.23.1 (per
+      `nix develop .#test` output at the time of this
+      commit). `tests/dune` syntax accepted by dune 3.23
+      is the target. The merlin-conf syntax
+      `(using merlin-conf 0.1)` is NOT supported by dune
+      3.23, so the LSP-config item of the agent-debug tier
+      is deferred (see ROADMAP).
+    owner: human:maintainer
+    consequence_if_false: |
+      If the dev shell is upgraded to dune ≥ 3.20 with
+      different `(using merlin-conf …)` syntax support,
+      a follow-up decision may add the merlin stanza and
+      a `.merlin` file. Until then, no LSP-aware tooling
+      is wired in this release.
+    review_on:
+      - signal: dune-upgrade-merged
+
+reversal:
+  - signal: trap-log-resolver-becomes-stale
+    condition: |
+      More than 30% of `scripts/agent-debug` regex
+      dispatch cases produce false-positive hints (verified
+      by hand-running on a corpus of real dune errors
+      captured over a month).
+    action: rework
+  - signal: qcheck-suite-flaky
+    condition: |
+      `tests/qcheck_parsers.ml` reports a failure at the
+      same count twice in a row, or fails in CI but passes
+      locally on the same commit. Causes = non-deterministic
+      generator or unstable stringify/parse roundtrip.
+    action: rework
+
+risk:
+  declared_triggers:
+    - dune-upgrade-merged
+    - trap-log-resolver-becomes-stale
+    - qcheck-suite-flaky
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []

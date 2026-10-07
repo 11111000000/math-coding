@@ -14,5 +14,7 @@
   confidence_preserve
   fixture_coverage
   identity_uniqueness
-  supersession_check)
- (libraries mathcoding_core mathcoding_attestations alcotest))
+  traps
+  supersession_check
+  qcheck_parsers)
+ (libraries mathcoding_core mathcoding_attestations alcotest qcheck))
