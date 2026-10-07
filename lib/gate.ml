@@ -51,6 +51,7 @@ type gap = {
     | `Unknown ];
   causes : string list;
   remedies : string list;
+  next_actions : (string * string) list;
 }
 
 type t = {
@@ -146,6 +147,20 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
               "or update the attestation's subject.materials_digest if the \
                method is genuinely digest-independent";
             ];
+          next_actions =
+            [
+              ( "run",
+                Printf.sprintf "mathc assess <base> <head>   # recompute digest"
+              );
+              ( "run",
+                Printf.sprintf
+                  "mathc gate <base> <head>          # re-evaluate the gate" );
+              ( "edit",
+                Printf.sprintf
+                  "attestations/<decision>-%s.json   # update \
+                   subject.materials_digest"
+                  obligation_id );
+            ];
         }
   | [], [] ->
       Some
@@ -162,6 +177,15 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
             [
               "produce an attestation that names this decision + obligation";
               "or add a waiver under decisions/*.yaml";
+            ];
+          next_actions =
+            [
+              ( "create",
+                Printf.sprintf
+                  "attestations/%s-%s.json   # add an attestation file"
+                  decision_id obligation_id );
+              ("create", "decisions/waivers/<decision>-<obligation>.yaml");
+              ("run", "mathc self-check");
             ];
         }
   | _, current ->
@@ -187,6 +211,18 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                 "revert the change that broke this obligation";
                 "or add a waiver under decisions/*.yaml";
               ];
+            next_actions =
+              [
+                ("run", "git revert <sha>   # revert the offending change");
+                ( "edit",
+                  Printf.sprintf "%s   # %s" decision_id
+                    "fix the underlying cause and re-evaluate" );
+                ( "create",
+                  Printf.sprintf
+                    "decisions/waivers/%s-%s.yaml   # add a waiver if \
+                     acceptable"
+                    decision_id obligation_id );
+              ];
           }
       else if not has_pass then
         Some
@@ -205,6 +241,18 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                 "investigate the inconclusive attestation; a fail or a new \
                  pass is required";
               ];
+next_actions =
+            [
+              ( "run",
+                Printf.sprintf
+                  "mathc re-evaluate-decisions A0   # run the oracle \
+                   explicitly" );
+              ( "edit",
+                Printf.sprintf
+                  "attestations/%s-%s.json   # re-author the inconclusive \
+                   attestation"
+                  decision_id obligation_id );
+            ];
           }
       else None
 

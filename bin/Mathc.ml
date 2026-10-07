@@ -134,19 +134,12 @@ let validate_with_counts path =
   | Error (`Other m) -> `Input_err m
   | Error (`Parse (m, line, col)) ->
       let msg = Printf.sprintf "%s at line %d col %d" m line col in
-      `Reject
-        ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
-            ~retryable:false ~autofix_safe:false msg,
-          msg )
+      `Reject (Diagnostic.mc_parse msg, msg)
   | Ok v -> (
       match first_missing_required v with
       | Some field ->
           let msg = Printf.sprintf "missing required field: %s" field in
-          `Reject
-            ( Diagnostic.create ~code:"MC-DECISION-INVALID"
-                ~severity:Diagnostic.Warn ~retryable:false ~autofix_safe:false
-                ~path:[ field ] msg,
-              msg )
+          `Reject (Diagnostic.mc_decision_invalid ~path:[ field ] msg, msg)
       | None -> (
           try
             match Decision.parse_decision_yaml v with
@@ -167,17 +160,8 @@ let validate_with_counts path =
                         "§11"
                     in
                     Some
-                      (Diagnostic.create ~code:"MC-COUNTEREXAMPLE-MISSING"
-                         ~severity:Diagnostic.Warn ~retryable:false
-                         ~autofix_safe:false
-                         ~next_actions:
-                           [
-                             ( "add",
-                               "counterexample: |\n\
-                               \                                 <one-line \
-                                objection>" );
-                           ]
-                         msg)
+                      (Diagnostic.mc_counterexample_missing
+                         ~decision_id:d.Domain.id msg)
                   else None
                 in
                 let extra_diags =
@@ -188,17 +172,10 @@ let validate_with_counts path =
                 `Accept (d, extra_diags)
             | None ->
                 let msg = "missing or invalid required field" in
-                `Reject
-                  ( Diagnostic.create ~code:"MC-DECISION-INVALID"
-                      ~severity:Diagnostic.Warn ~retryable:false
-                      ~autofix_safe:false msg,
-                    msg )
+                `Reject (Diagnostic.mc_decision_invalid msg, msg)
           with Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
             let msg = Printf.sprintf "%s at line %d col %d" raw_msg line col in
-            `Reject
-              ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
-                  ~retryable:false ~autofix_safe:false ~cause:context msg,
-                msg )))
+            `Reject (Diagnostic.mc_parse ~cause:context msg, msg)))
 
 let emit (format : output_format) path
     (outcome :
@@ -2102,15 +2079,13 @@ let[@warning "-32"] do_re_evaluate_decisions () =
      Printf.fprintf stderr "mathc re-evaluate-decisions: %s\n" m;
      exit 2);
   if !axiom_id = "" then begin
-    Printf.fprintf stderr
-      "mathc re-evaluate-decisions: AXIOM_ID is required\n";
+    Printf.fprintf stderr "mathc re-evaluate-decisions: AXIOM_ID is required\n";
     exit 2
   end;
   let valid_axioms = [ "A0"; "A1"; "A2"; "A3"; "A4" ] in
   if not (List.mem !axiom_id valid_axioms) then begin
     Printf.fprintf stderr
-      "mathc re-evaluate-decisions: AXIOM_ID must be one of A0..A4 \
-       (got %s)\n"
+      "mathc re-evaluate-decisions: AXIOM_ID must be one of A0..A4 (got %s)\n"
       !axiom_id;
     exit 2
   end;
@@ -2137,11 +2112,8 @@ let[@warning "-32"] do_re_evaluate_decisions () =
     | _ -> "ci-bot:re-evaluate-decisions"
   in
   (* Build per-decision verdicts. *)
-  let per_decision =
-    Re_evaluation.re_evaluate_after_run decisions rev
-  in
-  let per_obligation_verdicts (d : Domain.decision) :
-      Jsonl.value list =
+  let per_decision = Re_evaluation.re_evaluate_after_run decisions rev in
+  let per_obligation_verdicts (d : Domain.decision) : Jsonl.value list =
     List.map
       (fun (ob : Domain.obligation) ->
         let sub = Re_evaluation.evaluate_obligation_after_run ob rev in
@@ -2198,10 +2170,10 @@ let[@warning "-32"] do_re_evaluate_decisions () =
   let rec mkdir_p d =
     if d = "" || d = "/" || d = "." || Sys.file_exists d then ()
     else begin
-        let parent = Filename.dirname d in
-        mkdir_p parent;
-        try Unix.mkdir d 0o755 with _ -> ()
-      end
+      let parent = Filename.dirname d in
+      mkdir_p parent;
+      try Unix.mkdir d 0o755 with _ -> ()
+    end
   in
   mkdir_p attestations_dir;
   List.iter
@@ -2212,8 +2184,7 @@ let[@warning "-32"] do_re_evaluate_decisions () =
           let ob_label = v_to_string ob_v in
           let run_like =
             match ob_v with
-            | Re_evaluation.Compatible
-            | Re_evaluation.CompatibleAfterRun
+            | Re_evaluation.Compatible | Re_evaluation.CompatibleAfterRun
             | Re_evaluation.Inconclusive ->
                 true
             | Re_evaluation.Incompatible | Re_evaluation.StaleClaim -> false
@@ -2222,8 +2193,7 @@ let[@warning "-32"] do_re_evaluate_decisions () =
             let safe_id =
               Printf.sprintf "t1-2-%s-%s-%s.json" !axiom_id d.Domain.id
                 ob.Domain.id
-              |> String.map (fun c ->
-                  if c = '/' || c = ' ' then '_' else c)
+              |> String.map (fun c -> if c = '/' || c = ' ' then '_' else c)
             in
             let result_str =
               match ob_v with
@@ -2231,8 +2201,8 @@ let[@warning "-32"] do_re_evaluate_decisions () =
               | _ -> "pass"
             in
             let payload_str =
-              Printf.sprintf "%s|%s|%s|%s|%s" d.Domain.id ob.Domain.id
-                !axiom_id result_str now
+              Printf.sprintf "%s|%s|%s|%s|%s" d.Domain.id ob.Domain.id !axiom_id
+                result_str now
             in
             let attestation_id =
               Printf.sprintf "sha256:%s" (Digest.sha256_hex payload_str)
@@ -2243,18 +2213,18 @@ let[@warning "-32"] do_re_evaluate_decisions () =
                   ("schema", Jsonl.String "math-coding/attestation-3.0-alpha");
                   ("kind", Jsonl.String "attestation");
                   ("id", Jsonl.String attestation_id);
-                  ("subject",
-                   Jsonl.Object
-                     [
-                       ("decision", Jsonl.String d.Domain.id);
-                       ("obligation", Jsonl.String ob.Domain.id);
-                       ("candidate_tree", Jsonl.String "HEAD");
-                       ("materials_digest", Jsonl.String "");
-                     ]);
+                  ( "subject",
+                    Jsonl.Object
+                      [
+                        ("decision", Jsonl.String d.Domain.id);
+                        ("obligation", Jsonl.String ob.Domain.id);
+                        ("candidate_tree", Jsonl.String "HEAD");
+                        ("materials_digest", Jsonl.String "");
+                      ] );
                   ("kind_", Jsonl.String "test");
-                  ("producer",
-                   Jsonl.Object
-                     [ ("identity", Jsonl.String producer_identity) ]);
+                  ( "producer",
+                    Jsonl.Object
+                      [ ("identity", Jsonl.String producer_identity) ] );
                   ("result", Jsonl.String result_str);
                   ("issued_at", Jsonl.String now);
                   ("axiom", Jsonl.String !axiom_id);
