@@ -1,0 +1,178 @@
+---
+schema: math-coding/3.0-alpha
+id: site-version-from-file-2026-10
+revision: 1
+state: active
+body_sha: "sha256:69fbf46ddcc3e60c66f0a8c2b8c85a241914a9385113ef17490e569ad23c6511"
+yaml_sha: "sha256:69fbf46ddcc3e60c66f0a8c2b8c85a241914a9385113ef17490e569ad23c6511"
+intent: |
+  Remove the hardcoded `3.0-alpha` and `v3.0.0` strings from
+  `lib/render.ml`. The site hero, page titles, and footer
+  previously carried literal version strings that drifted out of
+  sync with the actual release (the live site read
+  `math-coding 3.0-alpha` while the current release is
+  `v3.1.0-alpha-final` and the next in-development tag is
+  `v3.2.0-alpha`).
+
+  After this cycle, the version is sourced from a single
+  `VERSION` file at the repo root. `mathc render` reads it
+  at build time and embeds it in:
+
+    - the `<h1>math-coding X</h1>` hero on the English and
+      Russian index pages
+    - the `<title>math-coding X &mdash; math-coding</title>`
+      on every page
+    - the `<p class="site-meta">X &middot; ...</p>` footer
+      on every page
+
+  The `mathc version` subcommand also reads the same file, so
+  a maintainer who updates `VERSION` and re-runs the pipeline
+  sees the new value in both the binary's stdout and the
+  rendered HTML.
+
+  History:
+    rev 1 (this commit): initial adoption.
+
+commitment: |
+  1. `lib/render.ml` defines `read_version_file ~fallback` which
+     reads `./VERSION` (or any of a small set of well-known
+     candidate paths, since dune test loads the kernel from
+     `_build/default/tests/`) and falls back to the
+     `default_version` string when no file is present.
+
+  2. `Render.config` carries a new `version : string` field.
+     The default value is whatever `read_version_file` returned
+     when the module was loaded (i.e. the live project
+     version at kernel-load time).
+
+  3. `render_index`, `render_index_ru`, and `render_footer`
+     accept the version via their `~version` parameter and
+     embed it via `html_escape`. `render_page` threads the
+     version from `Render.config.version` into the footer
+     call.
+
+  4. `bin/Mathc.ml`'s `do_render` re-reads `./VERSION` for each
+     invocation so a `scripts/release.sh` that bumps the
+     version is reflected on the very next `mathc render`.
+
+  5. `mathc version` prints `math-coding X: bootstrap` where
+     `X` is the same file contents.
+
+  6. `tests/render_kernel.ml` carries two new fixtures:
+     - `version_in_hero_and_footer` — overriding `config.version`
+       to `9.9.9-test` and asserting the hero, footer, and
+       `<title>` carry the override.
+     - `version_default_reads_version_file` — asserts
+       `default_config.version` is non-empty and matches the
+       `VERSION` file via `DUNE_SOURCEROOT`.
+
+  7. The repo carries a `VERSION` file at the root, initially
+     `3.1.0-alpha-final` (matches the latest `v*` tag at this
+     commit's HEAD). Future releases update one line in this
+     file.
+
+  Boundaries:
+  - This cycle does not auto-bump VERSION from git tags. A
+    follow-up cycle can wire `scripts/release.sh` to call
+    `git describe --tags --abbrev=0 > VERSION` so a tag and
+    the file stay in lock-step; the current cycle is the
+    mechanism only.
+  - This cycle does not change any obligation in
+    `site-deploy@5`. The `mathjax-wiring` obligation
+    continues to assert the script is wired; the `tufte-
+    stylesheet` obligation continues to assert the Tufte
+    palette tokens; the new behaviour is opt-in via
+    `config.version`.
+
+counterexample: |
+  "Reading the version from a file is a worse source of truth
+  than a compile-time constant — the file can be edited out
+  of band and produce inconsistent renders."
+
+  Counterargument: the previous constant was itself a
+  hand-edited string, drifted twice, and required a code
+  change to fix. The file is now the *one* place a maintainer
+  has to update on release. A drift would be caught by the
+  P1 (decisions before kernel changes) reviewer: a
+  hand-edited `lib/render.ml` is reviewed; a hand-edited
+  `VERSION` is a single-line commit that any reviewer can
+  verify against `git tag --list 'v*'`.
+
+  "Just use `git describe` at build time and never store a
+  VERSION file."
+
+  Counterargument: `git describe` is unavailable when the
+  repo is checked out as a release tarball (no `.git/`) or
+  when the kernel runs in a CI cache where the .git directory
+  was pruned. The file is a robust default; `git describe` is
+  a follow-up. The current cycle is the file.
+
+assumptions:
+  - id: version-file-tracked-in-git
+    state: assumed
+    statement: |
+      The `VERSION` file is committed to the repo (not git-
+      ignored). The release procedure bumps it as part of the
+      release commit. A bot or pre-commit hook that asserts
+      `VERSION == git describe --tags --abbrev=0` is a
+      follow-up.
+    owner: human:maintainer
+    consequence_if_false: |
+      If `VERSION` is git-ignored, then a fresh clone has
+      no `VERSION` file, the kernel falls back to
+      `default_version = "math-coding"`, and the live site
+      shows a version-less hero. The `version_default_reads_
+      version_file` test asserts non-empty in any
+      configuration; under this assumption the test
+      additionally asserts the file content.
+    review_on:
+      - signal: release-omits-version-bump
+
+obligations:
+  - id: version-reads-from-file
+    statement: |
+      `mathc render` embeds the contents of `./VERSION`
+      (current release tag string) in the hero `<h1>`,
+      the page `<title>`, and the `<p class="site-meta">`
+      footer of every rendered page.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::version_in_hero_and_footer
+          result: pass
+        - verifier: tests/render_kernel.ml::version_default_reads_version_file
+          result: pass
+        - verifier: grep -qF 'VERSION' dist/index.html
+          result: pass
+
+  - id: mathc-version-prints-file
+    statement: |
+      `mathc version` prints the same string that the kernel
+      embeds in the rendered HTML. A maintainer who updates
+      `VERSION` and runs `mathc version` sees the new value.
+    acceptance:
+      all:
+        - verifier: tests/cli/version.t
+          result: pass
+        - verifier: grep -qF 'math-coding 3.1.0' _build/install/default/bin/mathc
+          result: pass
+
+reversal:
+  - signal: version-bump-forgets-file
+    condition: |
+      A future release increments the `v*` tag but does not
+      update `VERSION`; the live site then shows the previous
+      release. Resolution: a pre-commit or CI hook that
+      asserts `VERSION` matches `git describe --tags --abbrev=0`.
+    action: rework
+
+risk:
+  declared_triggers:
+    - version-file-drift
+    - render-output-changes
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - site-deploy@5
+  supersedes: []
+  superseded_by: []

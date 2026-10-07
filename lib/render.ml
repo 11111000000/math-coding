@@ -703,20 +703,28 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~has_ru =
 
 (* --- footer --- *)
 
-let[@warning "-32"] render_footer ~lang =
+let[@warning "-32"] render_footer ~lang ~version =
+  (* The footer always carries the live project version so a viewer
+     who lands on the site can tell which build is live. The string
+     is whatever was passed via `config.version` — by default
+     this is the contents of the `VERSION` file at render-time. *)
   let site_meta =
     if lang = "ru" then
-      "<p class=\"site-meta\">v3.0.0 &middot; <a \
-       href=\"../AGENTS.html\">AGENTS.md</a> &middot; <a \
-       href=\"../ROADMAP.html\">ROADMAP.md</a> &middot; <a \
-       href=\"../PACKAGES.html\">PACKAGES.md</a> &middot; <a \
-       href=\"index.html\">EN</a></p>\n"
+      Printf.sprintf
+        "<p class=\"site-meta\">%s &middot; <a \
+         href=\"../AGENTS.html\">AGENTS.md</a> &middot; <a \
+         href=\"../ROADMAP.html\">ROADMAP.md</a> &middot; <a \
+         href=\"../PACKAGES.html\">PACKAGES.md</a> &middot; <a \
+         href=\"index.html\">EN</a></p>\n"
+        (html_escape version)
     else
-      "<p class=\"site-meta\">v3.0.0 &middot; <a \
-       href=\"../AGENTS.html\">AGENTS.md</a> &middot; <a \
-       href=\"../ROADMAP.html\">ROADMAP.md</a> &middot; <a \
-       href=\"../PACKAGES.html\">PACKAGES.md</a> &middot; <a \
-       href=\"index.ru.html\">RU</a></p>\n"
+      Printf.sprintf
+        "<p class=\"site-meta\">%s &middot; <a \
+         href=\"../AGENTS.html\">AGENTS.md</a> &middot; <a \
+         href=\"../ROADMAP.html\">ROADMAP.md</a> &middot; <a \
+         href=\"../PACKAGES.html\">PACKAGES.md</a> &middot; <a \
+         href=\"index.ru.html\">RU</a></p>\n"
+        (html_escape version)
   in
   Printf.sprintf
     "<footer class=\"site-footer\">\n\
@@ -766,7 +774,8 @@ let[@warning "-32"] render_head ~lang ~site_base ~title ~enable_mathjax
   Buffer.contents buf
 
 let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
-    ~enable_mathjax ~enable_mermaid ~enable_lang_toggle ~has_ru ~extra_head =
+    ~enable_mathjax ~enable_mermaid ~enable_lang_toggle ~has_ru ~version
+    ~extra_head =
   let head =
     render_head ~lang ~site_base ~title ~enable_mathjax ~enable_mermaid
       ~extra_head
@@ -806,7 +815,8 @@ let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
      </html>\n"
     lang head
     (render_nav ~lang ~page_key ~enable_lang_toggle ~has_ru)
-    body (render_footer ~lang)
+    body
+    (render_footer ~lang ~version)
 
 let[@warning "-32"] render_axioms_section axioms =
   let buf = Buffer.create 256 in
@@ -823,10 +833,11 @@ let[@warning "-32"] render_axioms_section axioms =
   Buffer.add_string buf "</section>\n";
   Buffer.contents buf
 
-let[@warning "-32"] render_index ~package_html ~axioms_html ~policy_id =
+let[@warning "-32"] render_index ~package_html ~axioms_html ~policy_id ~version
+    =
   Printf.sprintf
     "<section class=\"hero\">\n\
-     <h1>math-coding 3.0-alpha</h1>\n\
+     <h1>math-coding %s</h1>\n\
      <p class=\"lead\">A risk-adaptive assurance protocol for software \
      changes. Links <em>intent</em>, <em>decisions</em>, <em>obligations</em>, \
      <em>changes</em>, <em>attestations</em>, and <em>revisions</em> into a \
@@ -846,12 +857,13 @@ let[@warning "-32"] render_index ~package_html ~axioms_html ~policy_id =
      <p class=\"site-callout\">Every page on this site is produced by the \
      math-coding kernel. The methodology is the artifact; the artifact follows \
      the methodology.</p>\n"
-    (html_escape policy_id) package_html axioms_html
+    (html_escape version) (html_escape policy_id) package_html axioms_html
 
-let[@warning "-32"] render_index_ru ~package_html ~axioms_html ~policy_id =
+let[@warning "-32"] render_index_ru ~package_html ~axioms_html ~policy_id
+    ~version =
   Printf.sprintf
     "<section class=\"hero\">\n\
-     <h1>math-coding 3.0-alpha</h1>\n\
+     <h1>math-coding %s</h1>\n\
      <p class=\"lead\">Протокол assurance для изменений в программном \
      обеспечении, адаптированный к риску. Связывает <em>intent</em>, \
      <em>decisions</em>, <em>obligations</em>, <em>changes</em>, \
@@ -871,7 +883,7 @@ let[@warning "-32"] render_index_ru ~package_html ~axioms_html ~policy_id =
      </section>\n\
      <p class=\"site-callout\">Каждая страница этого сайта создаётся ядром \
      math-coding. Методология есть артефакт; артефакт следует методологии.</p>\n"
-    (html_escape policy_id) package_html axioms_html
+    (html_escape version) (html_escape policy_id) package_html axioms_html
 
 let[@warning "-32"] render_decision_page ~decision_id ~obligation_html =
   Printf.sprintf
@@ -904,14 +916,12 @@ let[@warning "-32"] render_axiom_page ~axiom_id ~body =
          an offset into the original `body` by adding the leading
          whitespace count. *)
       let ws = ref 0 in
-      while !ws < String.length body
-            && (body.[!ws] = ' ' || body.[!ws] = '\n')
+      while
+        !ws < String.length body && (body.[!ws] = ' ' || body.[!ws] = '\n')
       do
         incr ws
       done;
-      let rest_start_in_body =
-        !ws + prefix_len + nl_in_after + 1
-      in
+      let rest_start_in_body = !ws + prefix_len + nl_in_after + 1 in
       let rest =
         if rest_start_in_body < String.length body then
           String.sub body rest_start_in_body
@@ -940,7 +950,59 @@ type config = {
   enable_mermaid : bool;
   enable_lang_toggle : bool;
   languages : string list;
+  version : string;
 }
+
+(* Read the project version from a `VERSION` file. The file is the
+   single source of truth — release procedure writes it (or a
+   pre-commit hook keeps it in sync with the latest `v*` tag). We
+   try a small set of well-known paths because the CWD at module
+   load time is not always the repo root (it is, in the `mathc
+   render` invocation pattern; it is not, when the test harness
+   loads the kernel from `_build/default/tests/`). The `fallback`
+   argument is used when none of the candidates exist, so the
+   kernel does not crash on a clean install where the share-dir
+   VERSION is elsewhere. *)
+let[@warning "-32"] read_version_file ~fallback =
+  (* `dune test` exports the project root in `DUNE_SOURCEROOT`;
+     honour it first so test runs and `mathc render` invocations
+     agree on the same VERSION file. *)
+  let dune_root =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> Some (Filename.concat p "VERSION")
+    | None -> None
+  in
+  let candidates =
+    Option.to_list dune_root
+    @ [
+        "VERSION";
+        "../VERSION";
+        "../../VERSION";
+        "../../../VERSION";
+        "../../../../VERSION";
+      ]
+  in
+  let try_one path =
+    if Sys.file_exists path then begin
+      let ic = open_in path in
+      let n = in_channel_length ic in
+      let s = really_input_string ic n in
+      close_in ic;
+      Some (s |> String.trim)
+    end
+    else None
+  in
+  let rec loop = function
+    | [] -> fallback
+    | p :: rest -> ( match try_one p with Some v -> v | None -> loop rest)
+  in
+  loop candidates
+
+(* Default version used when no VERSION file is present. Kept
+   conservative — a render with an explicit version string
+   (e.g., `v3.1.0-alpha`) is preferred so a viewer who lands on
+   the site mid-release can tell which build is live. *)
+let[@warning "-32"] default_version = "math-coding"
 
 (* Build the per-language page list. The dispatcher is responsible
    for loading the article tuples from disk; this function only
@@ -948,6 +1010,7 @@ type config = {
 let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
     ~site_pages ~site_pages_ru ~axioms_data =
   let pages = ref [] in
+  let version = config.version in
 
   (* Set of `name` keys that have a Russian sibling. Used by the
      language toggle to decide whether to emit `<name>.ru.html`
@@ -989,7 +1052,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
           ~site_base:config.site_base ~enable_mathjax:config.enable_mathjax
           ~enable_mermaid:config.enable_mermaid
           ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:(has_ru name)
-          ~extra_head:"";
+          ~version ~extra_head:"";
     }
   in
 
@@ -997,17 +1060,19 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
   let axioms_overview_html = render_axioms_section axioms_data in
   let index_body_en =
     render_index ~package_html ~axioms_html:axioms_overview_html ~policy_id
+      ~version
   in
   pages :=
     {
       path = "index.html";
       body =
-        render_page ~lang:"en" ~page_key:"home" ~title:"math-coding 3.0-alpha"
+        render_page ~lang:"en" ~page_key:"home"
+          ~title:(Printf.sprintf "math-coding %s" version)
           ~body:index_body_en ~site_base:config.site_base
           ~enable_mathjax:config.enable_mathjax
           ~enable_mermaid:config.enable_mermaid
           ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:(has_ru "home")
-          ~extra_head:"";
+          ~version ~extra_head:"";
     }
     :: !pages;
 
@@ -1016,18 +1081,19 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
     let axioms_overview_html_ru = render_axioms_section axioms_data in
     let index_body_ru =
       render_index_ru ~package_html ~axioms_html:axioms_overview_html_ru
-        ~policy_id
+        ~policy_id ~version
     in
     pages :=
       {
         path = "index.ru.html";
         body =
-          render_page ~lang:"ru" ~page_key:"home" ~title:"math-coding 3.0-alpha"
+          render_page ~lang:"ru" ~page_key:"home"
+            ~title:(Printf.sprintf "math-coding %s" version)
             ~body:index_body_ru ~site_base:config.site_base
             ~enable_mathjax:config.enable_mathjax
             ~enable_mermaid:config.enable_mermaid
             ~enable_lang_toggle:config.enable_lang_toggle
-            ~has_ru:(has_ru "home") ~extra_head:"";
+            ~has_ru:(has_ru "home") ~version ~extra_head:"";
       }
       :: !pages
   end;
@@ -1050,7 +1116,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
               ~enable_mathjax:config.enable_mathjax
               ~enable_mermaid:config.enable_mermaid
               ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
-              ~extra_head:"";
+              ~version ~extra_head:"";
         }
         :: !pages)
     decisions_data;
@@ -1069,7 +1135,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
               ~enable_mathjax:config.enable_mathjax
               ~enable_mermaid:config.enable_mermaid
               ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
-              ~extra_head:"";
+              ~version ~extra_head:"";
         }
         :: !pages)
     axioms_data;
@@ -1093,4 +1159,11 @@ let[@warning "-32"] default_config =
     enable_mermaid = true;
     enable_lang_toggle = true;
     languages = [ "en" ];
+    (* Default version reads from `./VERSION` at render time. The
+       CLI dispatcher overrides this with whatever the current
+       working directory's VERSION file holds, so a site deployed
+       from a freshly-cut release tag carries the right version
+       automatically. The string here is a last-resort fallback
+       for callers that bypass the CLI. *)
+    version = read_version_file ~fallback:default_version;
   }

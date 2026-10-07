@@ -409,6 +409,51 @@ let[@warning "-32"] base_href_empty () =
     "empty site_base suppresses <base href>" true
     (not (has "<base href=" home.Render.body))
 
+let[@warning "-32"] version_in_hero_and_footer () =
+  let cfg : Render.config =
+    { Render.default_config with Render.version = "9.9.9-test" }
+  in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~axioms_data:[]
+  in
+  let home = List.find (fun p -> p.Render.path = "index.html") pages in
+  Alcotest.(check bool)
+    "index.html hero carries the configured version" true
+    (has "<h1>math-coding 9.9.9-test</h1>" home.Render.body);
+  Alcotest.(check bool)
+    "index.html footer carries the configured version" true
+    (has "9.9.9-test &middot;" home.Render.body);
+  Alcotest.(check bool)
+    "index.html <title> carries the configured version" true
+    (has "math-coding 9.9.9-test &mdash; math-coding" home.Render.body)
+
+let[@warning "-32"] version_default_reads_version_file () =
+  (* `default_config` is built once at module load. The build harness
+     that runs the tests in this directory is the math-coding repo
+     itself, which carries a `VERSION` file at the repo root. We
+     therefore expect the default config's `version` field to be
+     non-empty and to match the file's contents. *)
+  let v = Render.default_config.Render.version in
+  Alcotest.(check bool)
+    "default_config.version is non-empty" true
+    (String.length v > 0);
+  (* `dune test` exports DUNE_SOURCEROOT pointing at the project
+     root; fall back to ../VERSION from the test exe directory
+     for direct invocation. *)
+  let path =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> Filename.concat p "VERSION"
+    | None -> "../VERSION"
+  in
+  let ic = open_in path in
+  let n = in_channel_length ic in
+  let file_version = really_input_string ic n |> String.trim in
+  close_in ic;
+  Alcotest.(check string)
+    "default_config.version matches VERSION" file_version v
+
 let () =
   Alcotest.run "render"
     [
@@ -421,6 +466,11 @@ let () =
       ( "base_href_default",
         [ Alcotest.test_case "href" `Quick base_href_default ] );
       ("base_href_empty", [ Alcotest.test_case "empty" `Quick base_href_empty ]);
+      ( "version_in_hero_and_footer",
+        [ Alcotest.test_case "ver" `Quick version_in_hero_and_footer ] );
+      ( "version_default_reads_version_file",
+        [ Alcotest.test_case "vfile" `Quick version_default_reads_version_file ]
+      );
       ( "bilingual_pairs_complete",
         [ Alcotest.test_case "pairs" `Quick bilingual_pairs_complete ] );
       ("table_renders", [ Alcotest.test_case "table" `Quick table_renders ]);

@@ -275,7 +275,14 @@ let emit (format : output_format) path
             (Jsonl.stringify (Jsonl.String d.message)));
       exit 1
 
-let print_version () = print_endline "math-coding 3.0-alpha: bootstrap"
+(* `mathc version` prints the live project version. The string is
+   read from `./VERSION` at runtime so `scripts/release.sh` and
+   the build pipeline only need to update one file. *)
+let[@warning "-32"] read_cli_version () =
+  Render.read_version_file ~fallback:Render.default_version
+
+let[@warning "-32"] print_version () =
+  Printf.printf "math-coding %s: bootstrap\n" (read_cli_version ())
 
 let print_usage oc =
   Printf.fprintf oc
@@ -2549,6 +2556,12 @@ let[@warning "-32"] do_render () =
       Render.enable_mermaid = !enable_mermaid;
       Render.enable_lang_toggle = true;
       Render.languages;
+      (* The site footer / hero / page title all carry the live
+         project version. We re-read `./VERSION` here (the default
+         config already did so on startup) so a fresh `mathc
+         render` after `scripts/release.sh` updated VERSION sees
+         the new value without restarting anything. *)
+      Render.version = read_cli_version ();
     }
   in
 
