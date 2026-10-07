@@ -59,6 +59,7 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc mode PATH ...` | 3.2-ideal risk classification (algebra §2) |
 | `mathc rebuttals SHA` | Walk `rebuttals/<sha>.yaml` (algebra §10) |
 | `mathc re-evaluate DEC AXIOM` | Re-evaluation oracle (algebra §17) |
+| `mathc re-evaluate-decisions AXIOM` | Walk decisions/ and emit post-run verdicts + attestations (T1.2, algebra §17) |
 | `mathc version` | Print the bootstrap hello and exit 0 |
 | `mathc session-start` | Write `.local/session-start` ISO timestamp |
 | `mathc record --decision-id ID ...` | Append event to `decisions/execution-logs.jsonl` |

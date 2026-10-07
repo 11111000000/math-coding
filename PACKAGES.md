@@ -186,6 +186,7 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `gate-empty.t` | gate with empty store -> unknown verdict | `decisions/gate-attestation-store-fill.yaml` |
 | `mode.t` | mathc mode computes risk+mode for paths (v3.2 §2) | `decisions/3-2-cli-catalog.yaml` |
 | `re-evaluate.t` | mathc re-evaluate runs §17 oracle | `decisions/3-2-cli-catalog.yaml` |
+| `re-evaluate-decisions.t` | mathc re-evaluate-decisions emits post-run verdicts + attestations (T1.2) | `decisions/plan-2026-10-improvements.yaml` |
 | `rebuttals.t` | mathc rebuttals walks rebuttals/<sha>.yaml (v3.2 §10) | `decisions/3-2-cli-catalog.yaml` |
 | `migration-3.2-fields.t` | migrated decisions have state=active + sha fields | `decisions/algebra-3.2.yaml` |
 | `schema-extensions-3.2.t` | decisions with 3.2 fields parse via mathc validate | `decisions/algebra-3.2.yaml` |
@@ -256,7 +257,7 @@ is registered through `git config core.hooksPath`.
 
 | Module | Purpose |
 |---|---|
-| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, explain-diagnostic, assess, attest, gate, version, session-start, record, stats, time-estimate, self-check, render, packages, mode, rebuttals, re-evaluate) — 18 subcommands total |
+| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, explain-diagnostic, assess, attest, gate, version, session-start, record, stats, time-estimate, self-check, render, packages, mode, rebuttals, re-evaluate, re-evaluate-decisions) — 19 subcommands total |
 | `data/time-distribution.yaml` | SWE-bench Verified (n=500, 2025-Q4) reference class for `mathc time-estimate` |
 
 ## Adapter protocol (`lib/git/`, `lib/junit/`)

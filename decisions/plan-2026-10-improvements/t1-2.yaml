@@ -1,0 +1,370 @@
+---
+schema: math-coding/3.0-alpha
+id: t1-2
+revision: 1
+state: active
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+intent: |
+  Close the A1 honesty gap in `lib/re_evaluation.ml::re_evaluate`:
+  the previous 3-valued status silently returned `Compatible` for
+  test-style verifiers when no test had actually been run. This
+  decision extends `status` to five values
+  (`Compatible | CompatibleAfterRun | Inconclusive | Incompatible |
+  StaleClaim`) and ships a new CLI subcommand
+  `mathc re-evaluate-decisions <axiom-id>` that walks decisions/,
+  emits a post-run JSON summary, and writes one attestation per
+  obligation whose verdict is pass-like.
+
+  History:
+    rev 1 (this commit): initial adoption under
+      `bootstrap-v3@2` policy. Closes meta-decision
+      `plan-2026-10-improvements` Tier 1 obligation
+      `t1-2-re-evaluation-4-valued`. A3-protected transition
+      (see §"A3-protected transition" below) — the gate verdict
+      surface changes (a test-style obligation now blocks the
+      gate without an explicit run), so the sub-decision carries
+      dual-failure evidence and a human maintainer must review
+      before merge.
+
+commitment: |
+  `lib/re_evaluation.ml::status` is the type
+
+      type status =
+        | Compatible
+        | CompatibleAfterRun
+        | Inconclusive
+        | Incompatible
+        | StaleClaim
+
+  `re_evaluate d rev` (the no-run oracle) returns
+  `Incompatible` for any test-style verifier that has not been
+  run yet (T1.2 A1 closure). The gate verdict surface reflects
+  this: `gate_v32` and `gate_release_v32` in `lib/gate.ml`
+  block on `StaleClaim` OR `Incompatible`. The previously
+  silent `Compatible` for test-style is now reachable only
+  through the explicit-run oracle `re_evaluate_after_run`,
+  which the CLI subcommand `mathc re-evaluate-decisions` invokes.
+
+  The CLI subcommand
+  `mathc re-evaluate-decisions <axiom-id>` walks decisions/ via
+  `Re_evaluation.load_decisions` and emits a JSON object on
+  stdout of shape
+
+      {
+        "axiom": "A0",
+        "now": "<iso>",
+        "ran": true,
+        "decisions": [
+          { "id": "...",
+            "verdict": "compatible_after_run|incompatible|...",
+            "obligations": [{ "id": "...", "verdict": "..." }, ...] },
+          ...
+        ]
+      }
+
+  and writes one attestation per obligation whose post-run
+  verdict is pass-like (`Compatible`, `CompatibleAfterRun`, or
+  `Inconclusive`) into `$MATH_CODING_ATTESTATION_STORE` (default
+  `attestations/`). The exit code is 1 if any decision is
+  `Incompatible` or `StaleClaim`, 0 otherwise.
+
+  Boundaries:
+  - `lib/decision.ml`, `lib/risk.ml`, `lib/policy.ml`,
+    `lib/waiver.ml`, `lib/rebuttal.ml`, `lib/diagnostic.ml`,
+    `lib/attestations/attestations.ml` are NOT modified (those
+    streams own those files in Round 2).
+  - `lib/re_evaluation.ml::scan_axiom_ids`,
+    `lib/re_evaluation.ml::read_decision`, and the
+    `relations.addresses` merge logic are NOT modified by this
+    branch — stream ε (T2.1) owns those.
+  - `spec/algebra-3.2.md` is NOT modified — the algebra
+    specification already covers `re_evaluate`; the §17 verdict
+    enum is kernel-internal.
+  - `schemas/*.json` is NOT modified — the status type is
+    not part of the external schema.
+  - `site/*.md` is NOT modified — documentation drift on the
+    site surface is closed by a separate stream (T5.x).
+
+scope:
+  capabilities:
+    - honest-uncertainty-closure
+  paths:
+    - "lib/re_evaluation.ml"
+    - "lib/gate.ml"
+    - "bin/Mathc.ml"
+    - "tests/cli/re-evaluate.t"
+    - "tests/cli/re-evaluate-decisions.t"
+    - "tests/re_evaluation_test.ml"
+    - "decisions/plan-2026-10-improvements/t1-2.yaml"
+    - "attestations/t1-2-*.json"
+    - "README.md"
+    - "PACKAGES.md"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/re_evaluation.ml::scan_axiom_ids"
+    - "lib/re_evaluation.ml::read_decision"
+    - "spec/algebra-3.2.md"
+    - "schemas/*.json"
+    - "site/*.md"
+    - "scripts/*.sh"
+
+outcomes:
+  - id: re-evaluation-4-valued
+    statement: |
+      `lib/re_evaluation.ml::status` has five constructors
+      (Compatible, CompatibleAfterRun, Inconclusive, Incompatible,
+      StaleClaim). Test-style verifiers return `Incompatible`
+      without an explicit run. The CLI subcommand
+      `mathc re-evaluate-decisions <axiom-id>` exists and
+      produces a post-run JSON summary plus pass-like
+      attestations.
+
+  - id: gate-blocks-on-incompatible
+    statement: |
+      `lib/gate.ml::gate_v32` and `gate_release_v32` block the
+      gate on `Incompatible` (T1.2 closure of A1). Built-in
+      verifiers (`mathc-` prefix) remain `Compatible` without
+      a separate run because the gate invokes them in-process.
+
+counterexample: |
+  "The 4-valued (here 5-valued) status expansion breaks every
+  existing caller of `re_evaluate` that pattern-matches on
+  `Compatible`."
+
+  Counterargument: the only callers are `lib/gate.ml::gate_v32`,
+  `bin/Mathc.ml::do_re_evaluate`, and
+  `tests/re_evaluation_test.ml`. Both production callers are
+  updated in this branch; the tests are updated in this branch.
+  The two new constructors (`CompatibleAfterRun`, `Incompatible`)
+  are additive; `Inconclusive` is preserved as the fifth
+  constructor so manual-verifier obligations continue to
+  surface as a follow-up review list without blocking the
+  gate. The `Compatible` verdict remains reachable via
+  built-in verifiers without an explicit run (legacy pass).
+
+  "A test-style obligation now blocks the gate without an
+  explicit run; this regresses every existing decision whose
+  verifier is `tests/<...>`."
+
+  Counterargument: this is the intended behaviour. Before T1.2
+  every such decision silently produced `Compatible` without
+  evidence; the A1 honesty audit flagged this as a gap
+  (math-coding 3.0-alpha AGENTS.md §Honest time reporting).
+  Every decision whose verifier is `tests/<...>` now needs the
+  operator to invoke `mathc re-evaluate-decisions <axiom>`
+  (or another explicit run) before the gate is permitted to
+  Open. The migration path is `mathc re-evaluate-decisions A0`
+  followed by `mathc gate BASE HEAD` — both are in scope for
+  the merge-time review.
+
+  "The new `re-evaluate-decisions` subcommand writes one
+  attestation per pass-like obligation; that bloats
+  attestations/."
+
+  Counterargument: at 184 attestations at HEAD, the per-obligation
+  growth rate is bounded by the decision count. The
+  `MATH_CODING_ATTESTATION_STORE` env var lets operators
+  redirect the store; cram tests already use `mktemp -d` for
+  isolation. No new schema is introduced (the attestations are
+  `math-coding/attestation-3.0-alpha` with `kind_: test`,
+  matching the existing `t1-1-forge-mirror-*.json` shape).
+
+assumptions:
+  - id: axiom-revision-no-sha
+    state: assumed
+    statement: |
+      The `axiom_revision` record in `lib/re_evaluation.ml`
+      continues to be constructed with empty `old_sha`,
+      `new_sha`, `old_forbidden_patterns`, and
+      `new_forbidden_patterns` until a future stream wires
+      axiom-file diff extraction (the `rev` argument is purely
+      a placeholder in this revision). T1.2 closes A1
+      (test-run honesty) without requiring axiom-file
+      diffing; the forbidden-pattern side of the oracle is
+      unchanged.
+    owner: human:maintainer
+    consequence_if_false: |
+      If axiom-file diffing is added in a later stream, the
+      forbidden-pattern half of `re_evaluate` becomes live
+      and existing tests may surface `StaleClaim` verdicts
+      that were previously hidden. The migration is
+      additive and does not affect this sub-decision.
+    review_on:
+      - signal: axiom-file-diffing-shipped
+
+  - id: attestation-store-redirectable
+    state: assumed
+    statement: |
+      `MATH_CODING_ATTESTATION_STORE` env var is honoured by
+      `mathc re-evaluate-decisions` exactly as
+      `mathc gate` honours it (see `bin/Mathc.ml:1683`). The
+      default `attestations/` is the live store when the env
+      var is unset.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the env var is not honoured, `mathc
+      re-evaluate-decisions` pollutes the live attestation
+      store on every operator invocation. Test isolation
+      (the cram fixture uses `mktemp -d`) catches this.
+    review_on:
+      - signal: store-env-var-broken
+
+obligations:
+  - id: re-evaluate-status-5-valued
+    outcome: re-evaluation-4-valued
+    statement: |
+      `lib/re_evaluation.ml::status` is the five-constructor
+      type. `re_evaluate` returns `Incompatible` for test-style
+      verifiers that have not been run.
+    claim: |
+      `lib/re_evaluation.ml` declares a type `status` with
+      exactly five constructors in the given order:
+      Compatible, CompatibleAfterRun, Inconclusive,
+      Incompatible, StaleClaim. The pure `re_evaluate d rev`
+      returns `Incompatible` (not `Compatible`) when every
+      obligation has a `tests/`-prefixed verifier with no
+      forbidden-pattern match.
+    acceptance:
+      all:
+        - verifier: text-scan-lib-re-evaluation-ml-status-five-constructors
+          result: pass
+        - verifier: tests/re_evaluation_test.ml::test_re_evaluate_test_verifier_incompatible_without_run
+          result: pass
+        - verifier: tests/re_evaluation_test.ml::test_after_run_test_verifier_compatible_after_run
+          result: pass
+
+  - id: gate-blocks-on-incompatible
+    outcome: gate-blocks-on-incompatible
+    statement: |
+      `lib/gate.ml::gate_v32` and `gate_release_v32` block on
+      `Incompatible` (alongside `StaleClaim`).
+    claim: |
+      `lib/gate.ml` contains a match on
+      `Re_evaluation.status` that lists both `StaleClaim` and
+      `Incompatible` as block triggers in `gate_v32` and in
+      `gate_release_v32`.
+    acceptance:
+      all:
+        - verifier: text-scan-lib-gate-ml-re-eval-blocks-on-incompatible
+          result: pass
+        - verifier: tests/re_evaluation_test.ml::test_gate_verdict
+          result: pass
+
+  - id: re-evaluate-decisions-subcommand
+    outcome: re-evaluation-4-valued
+    statement: |
+      `mathc re-evaluate-decisions <axiom-id>` exists in the
+      dispatcher, walks decisions/, emits a post-run JSON
+      summary, and writes pass-like attestations.
+    claim: |
+      `bin/Mathc.ml::dispatch` contains the string literal
+      `"re-evaluate-decisions"` and dispatches to
+      `do_re_evaluate_decisions`. The function
+      `do_re_evaluate_decisions` calls
+      `Re_evaluation.re_evaluate_after_run` and emits the
+      documented JSON shape on stdout.
+    acceptance:
+      all:
+        - verifier: tests/cli/re-evaluate-decisions.t
+          result: pass
+        - verifier: text-scan-bin-mathc-ml-re-evaluate-decisions-dispatch
+          result: pass
+
+  - id: dual-failure-evidence-existing-fixture
+    outcome: re-evaluation-4-valued
+    statement: |
+      The pre-existing `tests/cli/re-evaluate.t` fixture is
+      updated to assert the new 5-valued output (positive case
+      + negative case).
+    claim: |
+      `tests/cli/re-evaluate.t` exists and asserts
+      `mathc re-evaluate 3-2-cli-catalog A0` returns
+      verdict `incompatible` with at least one obligation
+      carrying the same verdict (the negative case: test-style
+      verifier without run). The positive case
+      (`algebra-3.2-notation-flag-2026-10`) asserts that a
+      built-in verifier (`mathc-self-check-verdict`) still
+      returns `compatible` without an explicit run.
+    acceptance:
+      all:
+        - verifier: tests/cli/re-evaluate.t
+          result: pass
+
+  - id: dual-failure-evidence-new-fixture
+    outcome: re-evaluation-4-valued
+    statement: |
+      A new cram fixture `tests/cli/re-evaluate-decisions.t`
+      exercises both rejection paths (missing AXIOM_ID,
+      invalid AXIOM_ID) and the positive post-run path
+      (`mode-subcommand-spec-row` returns `compatible_after_run`).
+    claim: |
+      `tests/cli/re-evaluate-decisions.t` exists, calls
+      `mathc re-evaluate-decisions` with no args (exit 2),
+      with `BOGUS` (exit 2), and with `A0` against a tmpdir
+      attestation store (exit 0; the post-run JSON includes
+      `compatible_after_run` for `mode-subcommand-spec-row`).
+    acceptance:
+      all:
+        - verifier: tests/cli/re-evaluate-decisions.t
+          result: pass
+
+  - id: a3-protected-transition-human-review-marker
+    outcome: re-evaluation-4-valued
+    statement: |
+      Because the T1.2 expansion changes the gate verdict
+      surface (a test-style obligation now blocks without an
+      explicit run), this sub-decision carries a human-review
+      marker per AGENTS.md §Self-application and
+      `decisions/plan-2026-10-improvements.yaml` §Boundaries
+      (T1.2 is listed as A3-protected).
+    claim: |
+      This decision's `obligations` section includes BOTH the
+      positive case (post-run returns `compatible_after_run`
+      for a previously-blocking obligation) AND the negative case
+      (no-run returns `incompatible` for the same obligation).
+      A human maintainer (`human:maintainer`) must attest the
+      transition in `attestations/t1-2-a3-review-marker.json`
+      before merge. The dual-failure evidence is the
+      `dual-failure-evidence-existing-fixture` and
+      `dual-failure-evidence-new-fixture` obligations above.
+    acceptance:
+      all:
+        - verifier: text-scan-decisions-t1-2-yaml-dual-failure-obligations
+          result: pass
+        - verifier: attestations/t1-2-a3-review-marker.json exists
+          result: pass
+
+reversal:
+  - signal: regression-to-3-valued
+    condition: |
+      A future stream wants to collapse the type back to
+      `{Compatible | Inconclusive | StaleClaim}`. Resolution:
+      supersede this decision with a sibling sub-decision under
+      `plan-2026-10-improvements` (or its successor) and
+      deprecate `re_evaluate_after_run` and the
+      `mathc re-evaluate-decisions` subcommand.
+    action: rework
+
+  - signal: false-incompatible-flood
+    condition: |
+      `re_evaluate` reports `Incompatible` for too many
+      decisions at HEAD (i.e. the kernel closes its own gate).
+      This is the intended A1-closure behaviour but operators
+      may not have run `mathc re-evaluate-decisions` against
+      every axiom. The remedy is to ship the run automatically
+      in `mathc gate` (deferred to a follow-up stream).
+    action: rework
+
+risk:
+  declared_triggers:
+    - gate-verdict-surface-change
+    - test-fixture-bloat
+    - decision-parser-unchanged
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []

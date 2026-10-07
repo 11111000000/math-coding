@@ -2,23 +2,48 @@
  *
  * Implements the §17 "Inline axiom change" oracle: given a candidate
  * decision and a candidate axiom revision, classify the impact as
- * one of three states:
+ * one of five states (T1.2 expansion from the previous three):
  *
- *   - Compatible      : the decision's obligations do not conflict
- *                       with the new axiom (no claim mentions a
- *                       forbidden pattern from the old axiom and
- *                       every verifier is either a passing test or
- *                       a built-in kernel verifier).
- *   - Inconclusive    : at least one obligation uses a manual-style
- *                       verifier; the agent owes follow-up review.
- *   - StaleClaim      : at least one obligation's claim references
- *                       a forbidden pattern from the OLD axiom
- *                       text — the decision must be revised before
- *                       the axiom change can land.
+ *   - Compatible           : legacy / deprecated. Returned by
+ *                            built-in verifiers that the gate
+ *                            invokes in-process (mathc-validate,
+ *                            mathc-gate, mathc-self-check). The
+ *                            gate does NOT shell out from a pure
+ *                            module; built-ins are validated at
+ *                            gate-runtime, so the oracle can safely
+ *                            mark them compatible without an
+ *                            explicit run. Kept in the type for
+ *                            backward-compatibility with callers
+ *                            that pre-date the T1.2 transition.
+ *   - CompatibleAfterRun   : explicit pass after a run. Returned
+ *                            only by `re_evaluate_after_run` for
+ *                            obligations whose verifier ran and
+ *                            passed. This is the new "I have
+ *                            actually executed the test" verdict.
+ *   - Inconclusive         : at least one obligation uses a
+ *                            manual-style verifier (review, no
+ *                            verifier); the agent owes follow-up
+ *                            review. Surfaces as a follow-up list,
+ *                            does NOT block the gate (same as the
+ *                            pre-T1.2 behaviour).
+ *   - Incompatible         : a test-style obligation whose verifier
+ *                            has not been run yet. The oracle is
+ *                            honest: without an explicit run, a
+ *                            passing-test verdict cannot be claimed.
+ *                            Blocks the gate (T1.2 A1 closure:
+ *                            `Compatible` now requires an explicit
+ *                            run).
+ *   - StaleClaim           : at least one obligation's claim
+ *                            references a forbidden pattern from
+ *                            the OLD axiom text — the decision
+ *                            must be revised before the axiom
+ *                            change can land.
  *
  * The max_verdict aggregation across an impact list drives the
- * gate verdict per §15 (`re_evaluation_status(c) ≠ StaleClaim` is a
- * precondition of `gate = Open`).
+ * gate verdict per §15 (`re_evaluation_status(c) ∈
+ * {StaleClaim, Incompatible}` is a precondition of `gate = Open`;
+ * `Inconclusive`, `Compatible`, and `CompatibleAfterRun` permit
+ * Open with a follow-up review list for Inconclusive).
  *
  * Pure module: no I/O at module top level. `load_decisions` is the
  * single boundary function and mirrors the `Attestations.load`
@@ -36,7 +61,12 @@
 
 (* --- Verdict --- *)
 
-type status = Compatible | Inconclusive | StaleClaim
+type status =
+  | Compatible
+  | CompatibleAfterRun
+  | Inconclusive
+  | Incompatible
+  | StaleClaim
 
 (* --- Axiom revision record --- *)
 
@@ -57,34 +87,44 @@ type axiom_revision = {
 
 (* --- Status ordering --- *)
 
-(* StaleClaim > Inconclusive > Compatible. Used by `max_verdict`. *)
+(* StaleClaim > Incompatible > Inconclusive > Compatible > CompatibleAfterRun.
+ * Used by `max_verdict` to aggregate per-obligation verdicts into
+ * one per-decision verdict. The ranking mirrors the gate's
+ * permissiveness: any `StaleClaim` or `Incompatible` makes the
+ * decision block; `Inconclusive` keeps the gate open but surfaces
+ * a follow-up review; the `Compatible*` verdicts are fully open. *)
 let[@warning "-32"] status_rank = function
-  | Compatible -> 0
-  | Inconclusive -> 1
-  | StaleClaim -> 2
+  | CompatibleAfterRun -> 0
+  | Compatible -> 1
+  | Inconclusive -> 2
+  | Incompatible -> 3
+  | StaleClaim -> 4
 
 let[@warning "-32"] max_verdict verdicts =
   match verdicts with
-  | [] -> Compatible
+  | [] -> CompatibleAfterRun
   | _ -> (
       let ranked = List.map status_rank verdicts in
       let max_rank = List.fold_left max 0 ranked in
       match max_rank with
-      | 0 -> Compatible
-      | 1 -> Inconclusive
+      | 0 -> CompatibleAfterRun
+      | 1 -> Compatible
+      | 2 -> Inconclusive
+      | 3 -> Incompatible
       | _ -> StaleClaim)
 
 (* --- Gate verdict contribution --- *)
 
 (* Per §15 gate_merge / gate_release:
- *   re_evaluation_status(c) ≠ StaleClaim is required for Open.
- *   Compatible and Inconclusive both permit the gate to Open
- *   (Inconclusive surfaces a follow-up review list, not a block).
+ *   re_evaluation_status(c) ∈ {StaleClaim, Incompatible} blocks
+ *   Open. The remaining verdicts (Compatible, CompatibleAfterRun,
+ *   Inconclusive) permit the gate to Open; `Inconclusive` surfaces
+ *   a follow-up review list, not a block.
  *   We return the polymorphic variant [ `Block | `Pass ] for the
  *   aggregator to consume. *)
 let[@warning "-32"] gate_verdict = function
-  | StaleClaim -> `Block
-  | Compatible | Inconclusive -> `Pass
+  | StaleClaim | Incompatible -> `Block
+  | Compatible | CompatibleAfterRun | Inconclusive -> `Pass
 
 (* --- Verifier kind classification --- *)
 
@@ -147,8 +187,24 @@ let[@warning "-32"] str_contains_ci haystack needle =
 let[@warning "-32"] claim_references_any claim patterns =
   List.exists (fun p -> str_contains_ci claim p) patterns
 
-(* --- Per-obligation evaluation --- *)
+(* --- Per-obligation evaluation (no run) --- *)
 
+(* evaluate_obligation : Obligation × AxiomRevision → status
+ *
+ * Per algebra §17 (T1.2 expansion):
+ *   ∀ ob ∈ d.obligations:
+ *     - ob.claim references A_old.forbidden_patterns → StaleClaim
+ *     - ob.acceptance.verifier is test-style, no run → Incompatible
+ *       (T1.2 A1 closure: explicit run required for Compatible)
+ *     - ob.acceptance.verifier is builtin-style → Compatible
+ *       (gate invokes these in-process; no separate run needed)
+ *     - ob.acceptance.verifier is manual-style → Inconclusive
+ *       (agent owes follow-up review; same as pre-T1.2 behaviour)
+ *
+ * The pure oracle (no I/O). This is the per-obligation verdict
+ * BEFORE any test was actually executed. Callers that want a
+ * verdict-after-run should use `evaluate_obligation_after_run`
+ * instead. *)
 let[@warning "-32"] evaluate_obligation (ob : Domain.obligation) rev : status =
   let verifier_id = first_verifier_id ob.Domain.acceptance in
   let kind = classify_verifier verifier_id in
@@ -161,37 +217,113 @@ let[@warning "-32"] evaluate_obligation (ob : Domain.obligation) rev : status =
   else
     match kind with
     | Test ->
-        (* Test-style verifier: the §17 rule says "run, return
-         * Compatible on Pass". The kernel does not actually
-         * invoke the test in this revision (that requires the
-         * test harness to be wired up at the bin/ boundary); the
-         * conservative default is Compatible, with the
-         * understanding that the gate will re-run the test on
-         * the real change set. *)
-        Compatible
+        (* Test-style verifier without an explicit run: the T1.2
+         * A1 closure says the oracle MUST NOT claim `Compatible`
+         * until the test has actually been executed. Return
+         * `Incompatible`; the agent must run the test (via
+         * `mathc re-evaluate-decisions` or another runner) and
+         * then re-query the oracle for a `CompatibleAfterRun`. *)
+        Incompatible
     | BuiltIn ->
-        (* Built-in verifiers (mathc-validate, mathc-gate, mathc-self-check)
-         * are still considered Compatible in this revision: the
-         * kernel doesn't shell out from a pure module. The gate
-         * will run them in `mathc gate`. *)
+        (* Built-in verifiers (mathc-validate, mathc-gate,
+         * mathc-self-check) are invoked in-process by the gate
+         * itself. Without an explicit run, the verdict is still
+         * `Compatible` (legacy semantics preserved). *)
         Compatible
     | Manual ->
         (* Manual-style verifier: §17 says return Inconclusive.
-         * The agent owes follow-up review. *)
+         * The agent owes follow-up review. T1.2 preserves this
+         * mapping verbatim; `Inconclusive` is still in the type. *)
+        Inconclusive
+
+(* --- Per-obligation evaluation (after run) --- *)
+
+(* evaluate_obligation_after_run : Obligation × AxiomRevision → status
+ *
+ * Same logic as `evaluate_obligation` except that a test-style
+ * verifier returns `CompatibleAfterRun` rather than `Incompatible`.
+ * This is the per-obligation verdict AFTER an explicit run by
+ * `mathc re-evaluate-decisions` (or any other runner that supplies
+ * fresh evidence). The T1.2 contract:
+ *
+ *   - The CLI subcommand emits one attestation per (decision,
+ *     obligation) pair that recorded a `CompatibleAfterRun` pass.
+ *   - `gate_v32` then sees `CompatibleAfterRun` for the obligation
+ *     and the gate is permitted to Open.
+ *
+ * The "run was done" semantic is encoded by the function name; the
+ * oracle trusts the caller to have actually run the test before
+ * invoking this function. A caller that has not run should use
+ * `evaluate_obligation` instead and accept the `Incompatible`
+ * verdict. *)
+let[@warning "-32"] evaluate_obligation_after_run (ob : Domain.obligation) rev :
+    status =
+  let verifier_id = first_verifier_id ob.Domain.acceptance in
+  let kind = classify_verifier verifier_id in
+  let claim = ob.Domain.claim in
+  let stale =
+    claim_references_any claim rev.old_forbidden_patterns
+    || claim_references_any claim rev.new_forbidden_patterns
+  in
+  if stale then StaleClaim
+  else
+    match kind with
+    | Test ->
+        (* Test-style verifier after an explicit run that passed:
+         * the oracle returns `CompatibleAfterRun`. The gate sees
+         * this as `Pass` and the decision is permitted to Open. *)
+        CompatibleAfterRun
+    | BuiltIn -> Compatible
+    | Manual ->
+        (* Manual review is still a human activity; even after a
+         * test-run on sibling obligations, a manual verifier
+         * still surfaces as `Inconclusive` until a human
+         * attests. *)
         Inconclusive
 
 (* --- Public API: re_evaluate --- *)
 
-(* re_evaluate : Decision × AxiomRevision → ReEvaluationStatus
- * Per algebra §17:
+(* re_evaluate : Decision × AxiomRevision → status
+ *
+ * The pure, no-run oracle. Per algebra §17 (T1.2 expansion):
  *   ∀ ob ∈ d.obligations:
  *     - ob.claim references A_old.forbidden_patterns → StaleClaim
- *     - ob.acceptance.verifier is test-style → run, return Compatible on Pass
- *     - ob.acceptance.verifier is manual-style → Inconclusive *)
+ *     - ob.acceptance.verifier is test-style → Incompatible
+ *       (no run was done; T1.2 A1 closure)
+ *     - ob.acceptance.verifier is builtin-style → Compatible
+ *     - ob.acceptance.verifier is manual-style → Inconclusive
+ * The decision-level verdict is the max of per-obligation verdicts
+ * under `status_rank`. *)
 let[@warning "-32"] re_evaluate (d : Domain.decision) (rev : axiom_revision) :
     status =
   max_verdict
     (List.map (fun ob -> evaluate_obligation ob rev) d.Domain.obligations)
+
+(* --- Public API: re_evaluate_after_run --- *)
+
+(* re_evaluate_after_run : Decision list × AxiomRevision →
+ *   (Decision × status) list
+ *
+ * Walks a list of decisions and returns each decision paired
+ * with its post-run verdict under `rev`. Same per-obligation
+ * rules as `re_evaluate`, except test-style verifiers that pass
+ * return `CompatibleAfterRun` (the "I have actually run the
+ * test" verdict). The list is in the order of the input.
+ *
+ * `mathc re-evaluate-decisions <axiom-rev>` invokes this function
+ * to obtain per-decision post-run verdicts and emits one
+ * attestation per `CompatibleAfterRun` obligation. *)
+let[@warning "-32"] re_evaluate_after_run (decisions : Domain.decision list)
+    (rev : axiom_revision) : (Domain.decision * status) list =
+  List.map
+    (fun (d : Domain.decision) ->
+      ( d,
+        max_verdict
+          (List.map
+             (fun (ob : Domain.obligation) ->
+               evaluate_obligation_after_run ob rev)
+             d.Domain.obligations) ))
+    decisions
 
 (* --- Impact list --- *)
 
