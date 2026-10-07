@@ -705,11 +705,13 @@ let[@warning "-32"] test_portable_linux_musl_matrix () =
        intentionally removed, retire decisions/portable-linux-musl.yaml by \
        removing the file entirely instead of silently dropping the label from \
        the pipeline."
-  else if not (agent_contains "ocaml/opam:alpine" txt) then
+  else if not (agent_contains "container: alpine" txt) then
     Alcotest.failf
-      "release.yml references linux-x86_64-musl but not the ocaml/opam:alpine \
-       container; the commented matrix entry must preserve the container: \
-       field for re-enable."
+      "release.yml references linux-x86_64-musl but not the alpine container; \
+       the matrix entry must preserve the container: field for re-enable. \
+       (Historical: previously asserted 'ocaml/opam:alpine'; relaxed to any \
+       alpine-based image per the 2026-10-07 alpine-ci-build-fails recovery \
+       that switched to plain alpine:3.20 + apk-installed opam.)"
 
 let[@warning "-32"] test_no_unix_fork_in_kernel () =
   let ml = in_repo "bin/Mathc.ml" in
