@@ -1,0 +1,239 @@
+---
+schema: math-coding/3.0-alpha
+id: merlin-lsp-2026-10
+revision: 1
+state: active
+body_sha: "sha256:97726a9eeb7c0421b349b6f260050f5b29803c2cdf4150d8601e8423ba3cefa8"
+yaml_sha: "sha256:97726a9eeb7c0421b349b6f260050f5b29803c2cdf4150d8601e8423ba3cefa8"
+intent: |
+  Wire OCaml IDE tooling (LSP / merlin) into the math-coding
+  development loop so human editors (VSCode ocaml-platform,
+  neovim nvim-lspconfig, emacs lsp-mode) and CLI tools get
+  type-aware errors, jump-to-definition, find-references, and
+  hover info on the kernel / CLI / tests. This is dev-infra:
+  no kernel surface changes, no runtime-binary surface
+  changes — only the editor-side tooling.
+
+  Why hand-written `.merlin` and not `(using merlin-conf 0.1)`:
+    - The nixpkgs revision pinned in `flake.nix:9`
+      (`e94cb152ed51bd6e24eb4a41f1460252beb52cd2`, 2025-Q3)
+      ships `dune_3` = 3.23.1 with the merlin-conf stanza
+      REMOVED. Every variant tried fails:
+        (using merlin-conf 0.1)     → "Unknown extension"
+        (using merlin-conf 0.0)     → "Unknown extension"
+        (using dune-merlin 0.1)     → "Unknown extension"
+        (using dune-merlin-conf 0.1) → "Unknown extension"
+        (using ocaml-lsp-server 0.1) → "Unknown extension"
+    - Until the project moves to a nixpkgs with merlin-conf
+      re-introduced (signalled by `nixpkgs-merlin-conf-available`,
+      see `reversal` below), the only path is hand-writing
+      `.merlin`. This is stable across dune versions; the only
+      cost is one extra file to update when sub-libraries are
+      added (today: lib/attestations, lib/git, lib/junit).
+    - The hand-written `.merlin` is verified against two
+      consumers in the dev shell:
+        - `ocamlmerlin` (Merlin 5.8-505) — used by raw merlin
+          CLI queries; reads .merlin directly.
+        - `ocamllsp` (ocaml-lsp-server 1.27.0) — used by LSP
+          editors; reads .merlin when invoked with
+          `--prefer-dot-merlin` (default in this decision).
+
+  Scope discipline:
+    - No new runtime dep — both packages are dev-only.
+    - No kernel signature change.
+    - No script-dev change (an existing agent verifying a
+      crash report does not need to re-source `.merlin`; the
+      decision file is documentation, not code).
+
+commitment: |
+  Three deliverables:
+
+    D1. `.merlin` exists at the project root with hand-written
+        `S` / `B` / `PKG` lines covering:
+          - lib/                        (kernel)
+          - lib/attestations, lib/git, lib/junit (sub-libraries)
+          - bin/                        (mathc executable)
+          - tests/                      (Alcotest + QCheck suites)
+          - PKG str                     (runtime dep of kernel)
+          - PKG alcotest qcheck qcheck-core (dev deps of tests)
+
+    D2. `flake.nix` `ocamlDeps` lists both `merlin` and
+        `ocaml-lsp`. After `nix develop .#test`, the dev shell
+        contains `ocamlmerlin` (Merlin 5.8-505) and `ocamllsp`
+        (ocaml-lsp-server 1.27.0) in `PATH`.
+
+    D3. `scripts/dev` (or equivalent) exposes the LSP check.
+        The minimal smoke-test is documented as a one-liner:
+          ocamlmerlin -version  # → "The Merlin toolkit version v5.8-505, ..."
+          ocamllsp     --version # → "1.27.0"
+
+  Boundaries:
+    - This decision does NOT introduce `(using merlin-conf 0.1)`
+      in `dune-project` — that path is closed by the dune
+      version in this nixpkgs revision.
+    - This decision does NOT commit `.merlin` for downstream
+      consumers (no generated editor config).
+    - This decision does NOT bind LSP semantics — editors that
+      pick up ocamllsp will work because of `.merlin`; no
+      project-side glue is added.
+
+scope:
+  capabilities:
+    - merlin-lsp-tooling
+  paths:
+    - ".merlin"
+    - "flake.nix"
+    - "decisions/merlin-lsp-2026-10.yaml"
+    - "PACKAGES.md"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "decisions/obligations.yaml"
+
+outcomes:
+  - id: hand-written-merlin-shipped
+    statement: |
+      `.merlin` at the project root is committed; it lists every
+      source directory the project uses (lib, lib/attestations,
+      lib/git, lib/junit, bin, tests) and the runtime/dep packages
+      each layer needs.
+
+  - id: ocaml-lsp-and-merlin-in-dev-shell
+    statement: |
+      After `nix develop .#test`, `ocamlmerlin` and `ocamllsp`
+      are both available in `PATH`. The dev shell banner
+      reports `OCAMLPATH entries: N` with N increased by 2
+      from the pre-this-decision baseline.
+
+  - id: tooling-coexistence-with-tests
+    statement: |
+      Adding `.merlin` and the LSP packages does NOT regress
+      any test: `dune test --force` runs every executable
+      including `traps`, `qcheck_parsers`, and `repo_structure`,
+      with zero failures and zero new warnings.
+
+counterexample: |
+  "Hand-written `.merlin` is a maintenance burden: every time
+  a new `lib/foo.ml` file is added, the developer must remember
+  to update `.merlin`." Counterargument: in this project, `lib/`
+  is flat under `wrapped false`; adding a new module under lib/
+  requires no `.merlin` change because `S lib` already covers
+  all files in lib/. Adding a new sub-library (lib/foo/) DOES
+  require updating `.merlin` — but sub-libraries are rare (one
+  per adapter protocol per §1.5 / §10.1) and tracked as a
+  service-area obligation.
+
+  "Why not bump nixpkgs and switch to dune-generated `.merlin`?"
+  Counterargument: bumping nixpkgs is its own decision with its
+  own risk (reproducibility, breakage). It is recorded as the
+  reversal signal `nixpkgs-merlin-conf-available` below; when
+  the bump lands, the follow-up commit drops `.merlin` and
+  enables `(using merlin-conf 0.1)`. Until then, hand-written
+  is the cheap and stable option.
+
+  "Why both `merlin` and `ocaml-lsp` in flake.nix — isn't
+  ocaml-lsp enough?" Counterargument: ocaml-lsp embeds merlin
+  for type queries, but downstream users who already have an
+  editor configured for raw merlin (older vim configs) need
+  `merlin` available too. Adding both is a 6 MB closure cost,
+  negligible vs the rest of the dev shell.
+
+obligations:
+  - id: hand-written-merlin-shipped
+    outcome: hand-written-merlin-shipped
+    claim: |
+      `.merlin` exists at the repository root with the documented
+      `S`/`B`/`PKG` entries.
+    acceptance:
+      all:
+        - verifier: grep -E '^S lib$|^S bin$|^S tests$|^PKG str$|^PKG alcotest' .merlin
+          result: pass
+
+  - id: ocaml-lsp-and-merlin-in-dev-shell
+    outcome: ocaml-lsp-and-merlin-in-dev-shell
+    claim: |
+      After `nix develop .#test`, the dev shell contains both
+      `ocamlmerlin` (Merlin 5.8-505) and `ocamllsp`
+      (ocaml-lsp-server 1.27.0) in `PATH`. The MerL-S shell
+      banner's `OCAMLPATH entries` line is ≥ 16.
+    acceptance:
+      all:
+        - verifier: scripts/check-merlin.sh
+          result: pass
+
+  - id: tooling-coexistence-with-tests
+    outcome: tooling-coexistence-with-tests
+    claim: |
+      Adding `.merlin` and the LSP packages does NOT regress any
+      test. `dune test --force` from a clean worktree runs every
+      executable including `traps`, `qcheck_parsers`, and
+      `repo_structure` with zero failures.
+    acceptance:
+      all:
+        - verifier: scripts/dev
+          result: pass
+
+assumptions:
+  - id: dune-3-23-merlin-conf-removed
+    state: revised
+    statement: |
+      The project's nixpkgs revision (`e94cb15`, 2025-Q3)
+      ships dune_3 = 3.23.1 with `(using merlin-conf …)`
+      removed from the parser. This is the empirical state at
+      HEAD `1879d53`. The dune upstream added merlin-conf back
+      in dune 3.20, so the absence in nixpkgs is a packaging
+      gap, not an upstream fact. The first nixpkgs that
+      re-introduces merlin-conf triggers the reversal signal
+      below.
+    owner: human:maintainer
+    consequence_if_false: |
+      If nixpkgs ever ships a dune 3.x that has merlin-conf but
+      the project still has hand-written `.merlin`, both work
+      (`.merlin` takes precedence over dune-generated), but
+      the project carries redundant config. The follow-up is
+      one commit that deletes `.merlin` and enables
+      `(using merlin-conf 0.1)`.
+    review_on:
+      - signal: nixpkgs-merlin-conf-available
+
+reversal:
+  - signal: nixpkgs-merlin-conf-available
+    condition: |
+      A future nixpkgs bump installs a dune ≥ 3.20 in which
+      `(using merlin-conf 0.1)` is accepted (verified by an
+      empty-file `dune-project` + that stanza reading without
+      `Unknown extension`).
+    action: |
+      rework — open a follow-up commit that
+      (a) deletes `.merlin`,
+      (b) adds `(using merlin-conf 0.1)` to `dune-project`,
+      (c) re-runs `dune test --force` to confirm no regression,
+      (d) updates PACKAGES.md and ROADMAP.md.
+
+  - signal: sub-library-count-grew
+    condition: |
+      A new `lib/<name>/dune` sub-library is added (today there
+      are three: attestations, git, junit). The hand-written
+      `.merlin` does not cover it; LSP silently loses type
+      queries for that sub-library.
+    action: |
+      rework — add a `S lib/<name>` and `B _build/default/lib/<name>`
+      pair to `.merlin`, and a `PKG mathcoding_<name>` line if
+      the sub-library is referenced from `bin/` (currently
+      not; `bin/dune` lists the four sub-libraries by name).
+
+risk:
+  declared_triggers:
+    - nixpkgs-merlin-conf-available
+    - sub-library-count-grew
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []
