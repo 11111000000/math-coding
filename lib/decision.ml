@@ -361,12 +361,25 @@ and parse_decision_yaml v =
             ("scope", Jsonl.Array json_targets) :: List.remove_assoc "scope" ps'
         | _ -> ps'
       in
-      (* risk is optional per the updated schema. Default to
-         empty triggers and human:maintainer owner. *)
+      (* Risk: per parser-risk-owner-default decision (kernel-default-owner-landed),
+         the `owner` field in the risk object is treated as optional
+         and defaults to "human:maintainer" if absent. We normalise
+         the value here so the body of parse_decision sees a proper
+         `risk` object with both `declared_triggers` and `owner` fields
+         present. If the risk block is missing entirely, we inject
+         the schema default { declared_triggers = []; owner =
+         "human:maintainer" } (same as the schema's documented default). *)
       let ps_with_risk =
         match extract_field ps'' "risk" with
-        | Some _ -> ps''
-        | None ->
+        | Some (Jsonl.Object risk_pairs) ->
+            let owner_present = List.mem_assoc "owner" risk_pairs in
+            let risk_pairs' =
+              if owner_present then risk_pairs
+              else ("owner", Jsonl.String "human:maintainer") :: risk_pairs
+            in
+            ("risk", Jsonl.Object risk_pairs') :: List.remove_assoc "risk" ps''
+        | _ ->
+            (* risk missing or non-object: inject the default. *)
             ( "risk",
               Jsonl.Object
                 [
