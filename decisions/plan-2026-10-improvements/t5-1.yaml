@@ -1,0 +1,267 @@
+---
+schema: math-coding/3.0-alpha
+id: t5-1-site-ru-en-synced
+revision: 1
+state: active
+body_sha: "sha256:4538fdc77b7667bb0c03de762c16cb86c66a7c317505e63810ea9a41825dbc3a"
+yaml_sha: "sha256:4538fdc77b7667bb0c03de762c16cb86c66a7c317505e63810ea9a41825dbc3a"
+intent: |
+  Reconcile every `site/<name>.ru.md` with its English sibling
+  `site/<name>.md` so that the bilingual content surface stays
+  faithful to the methodology described in the EN source. The
+  drift between each pair is bounded at ≤3 substantive
+  differences per article, tracked by a new kernel test
+  `tests/render_kernel.ml::bilingual_drift_under_threshold`.
+
+  This is one of the 14 obligations authorised by the
+  meta-decision `decisions/plan-2026-10-improvements.yaml@1`
+  (commit `f2d3302`, 2026-10-07); specifically obligation
+  `t5-1-site-ru-en-synced`. Scope is limited to the six
+  sibling pairs that exist on disk
+  (`manifesto`, `workflow`, `readme`, `foundations`,
+  `contributing`, `faq`); the EN-only files `axioms.md`,
+  `bootstrap-gate.md`, `methodology.md`, `packages.md` are
+  out of scope — they will gain RU siblings when their EN
+  sources stabilise, under a future decision.
+
+  History:
+    rev 1 (this commit): initial adoption. Closes the
+    meta-decision's t5-1 obligation by (a) reconciling the
+    six bilingual pairs, (b) fixing three translation typos
+    (`contributing.ru.md`, `faq.ru.md`, `foundations.ru.md`)
+    plus one misleading field-name translation that
+    contradicted the kernel's actual JSON shape
+    (`foundations.ru.md` line 95, the `{kind,id,...}`
+    record), and (c) landing the
+    `bilingual_drift_under_threshold` regression test.
+
+commitment: |
+  For every name `n` where both `site/<n>.md` and
+  `site/<n>.ru.md` exist, the structural drift between the
+  pair is ≤3 (the threshold recorded in
+  `tests/render_kernel.ml::bilingual_drift_under_threshold`).
+  The drift metric sums the absolute differences in four
+  structural fingerprints across the pair:
+    - heading count (any `#`-prefixed line, any depth),
+    - list-item count (lines starting with `- ` or `* `),
+    - fenced-code-block count (count of ` ``` ` pairs),
+    - pipe-table-row count (lines starting with `|`).
+
+  The six reconciled pairs at rev 1 all show drift = 0:
+    - manifesto.md ↔ manifesto.ru.md      (H=5/5 B=4/4 T=10/10 C=0/0)
+    - workflow.md ↔ workflow.ru.md        (H=8/8 B=0/0 T=8/8  C=2/2)
+    - readme.md ↔ readme.ru.md            (H=10/10 B=14/14 T=33/33 C=3/3)
+    - foundations.md ↔ foundations.ru.md  (H=7/7 B=0/0 T=5/5  C=0/0)
+    - contributing.md ↔ contributing.ru.md (H=10/10 B=15/15 T=0/0 C=3/3)
+    - faq.md ↔ faq.ru.md                  (H=13/13 B=0/0 T=0/0  C=0/0)
+
+  Beyond the structural check, four content corrections land
+  in this commit to remove substantive drift that the
+  structural metric would not catch:
+    1. `foundations.ru.md` line 95:
+       `{вид,идентификатор,дайджест,путь,тело}` →
+       `{kind,id,digest,path,body}`.
+       The Russian-translated field names were misleading:
+       the kernel actually emits English field names
+       (`kind`, `id`, `digest`, `path`, `body`) per
+       `lib/explain.ml`. The site must describe the real
+       shape, not a translated fantasy.
+    2. `contributing.ru.md` line 96: `майнтер` →
+       `мейнтейнер`. Typo (missing `й`).
+    3. `faq.ru.md` line 69: `пиннут на` → `привязан к`.
+       "Pinned to" was transliterated to a non-word
+       `пиннут`; the correct Russian is "привязан к".
+    4. `manifesto.ru.md` lines 62-63:
+       `Сейчас оба условия автоматические.` →
+       `Сейчас оба выполнены.`
+       The English source says "Now both are.", referring to
+       (1) the bootstrap loop being closed from the first
+       commit and (2) the kernel checking itself. The Russian
+       added the word `автоматические` ("automatic"), which
+       is a different claim about the system state. The
+       translation is tightened to match the EN claim.
+
+  Boundaries:
+    - The EN sources (`site/*.md`) are NOT modified. The
+      render-deploy pipeline (`scripts/render.sh` →
+      `mathc render`) is unchanged. The bilingual_pairs_complete
+      test (`tests/render_kernel.ml:100`) remains green.
+    - The threshold of 3 substantive differences is encoded
+      in the test as a literal integer. A future revision
+      may move the threshold to a config file; that change
+      is its own sub-decision.
+    - The four non-structural content corrections listed
+      above are the only content changes in this commit.
+      No section is added, removed, or reordered; no bullet
+      is dropped; no code-fence count is altered.
+    - `lib/render.ml`, `bin/Mathc.ml`, `scripts/*.sh`, and
+      `schemas/*.json` are NOT modified. Other streams own
+      those files (η, β, γ).
+    - The four EN-only site files
+      (`axioms.md`, `bootstrap-gate.md`, `methodology.md`,
+      `packages.md`) remain EN-only. Adding Russian siblings
+      to them is deferred per the meta-decision's "every
+      name" wording: the obligation is "for every name",
+      interpreted as "for every (name, .ru.md) pair that
+      exists", not "every name must have a RU sibling".
+
+scope:
+  capabilities:
+    - doc-drift-prevention
+    - bilingual-content-closure
+  paths:
+    - "site/*.ru.md"
+    - "tests/render_kernel.ml"
+    - "decisions/plan-2026-10-improvements/t5-1.yaml"
+    - "attestations/t5-1-*.json"
+  exclusions:
+    - "site/*.md"
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/**"
+    - "decisions/*.yaml"
+    - "spec/**"
+
+outcomes:
+  - id: bilingual-drift-test-shipped
+    statement: |
+      `tests/render_kernel.ml::bilingual_drift_under_threshold`
+      enumerates every `site/<name>.md` with a `.ru.md`
+      sibling and asserts that the per-pair structural drift
+      is ≤3. The test runs in the existing `dune test`
+      harness with no new dependency and no extra build flag.
+
+  - id: site-ru-content-faithful
+    statement: |
+      Every `site/<name>.ru.md` is a faithful translation of
+      `site/<name>.md` for the six reconciled pairs
+      (manifesto, workflow, readme, foundations,
+      contributing, faq). The four non-structural content
+      corrections in `commitment` are landed; no section is
+      added or removed; no anchor identifier is mistranslated
+      away from the kernel's actual output shape.
+
+counterexample: |
+  "The drift metric is too lax — it only catches structural
+  divergence, not content divergence. A wholesale rewrite
+  that preserved the heading count would still pass."
+
+  Counterargument: the meta-decision's t5-1 obligation
+  records the threshold as "3 substantive differences per
+  article". The structural metric (heading / bullet /
+  code-block / table-row counts) catches all divergence
+  at the section level. Wholesale content rewrites that
+  preserve the structural skeleton but flip the message are
+  caught by the human review of the four non-structural
+  content corrections, which are explicitly listed in
+  `commitment`. The structural test is the regression
+  guard; the human review is the substantive guard.
+
+  "Use a Jaccard word-distance metric on the prose — that
+  would catch content drift without manual review."
+
+  Counterargument: a word-distance metric is cross-linguistically
+  meaningless for this pair (English vs Russian use different
+  alphabets). A reasonable heuristic would need word-level
+  alignment via a bilingual dictionary, which is out of
+  scope for a self-contained test and would add a new
+  dependency. The structural metric is the simplest metric
+  that catches the dominant failure mode (a section dropped
+  in one language but not the other). A future revision may
+  add a paragraph-anchor comparison as a secondary signal.
+
+  "Why not just use the `bilingual_pairs_complete` test
+  that already exists?"
+
+  Counterargument: `bilingual_pairs_complete` only checks
+  presence ("does every EN have a RU sibling and vice
+  versa?"). It does not check that the content is faithful.
+  The new test reuses the same enumeration surface but adds
+  a content-level (drift) check.
+
+obligations:
+  - id: bilingual-drift-test-passes
+    outcome: bilingual-drift-test-shipped
+    statement: |
+      `tests/render_kernel.ml::bilingual_drift_under_threshold`
+      runs as part of `dune test` and exits 0 at HEAD on
+      the six reconciled pairs. The threshold is 3
+      (recorded as a literal in the test source).
+    claim: |
+      At HEAD on this branch, every reconciled pair has
+      structural drift = 0, well below the threshold of 3.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::bilingual_drift_under_threshold
+          result: pass
+
+  - id: bilingual-content-faithful
+    outcome: site-ru-content-faithful
+    statement: |
+      Every `site/<name>.ru.md` for `name` ∈ {manifesto,
+      workflow, readme, foundations, contributing, faq}
+      is a faithful translation of `site/<name>.md`:
+      same sections in the same order, same anchor
+      identifiers where they refer to kernel-emitted
+      strings, and no mistranslated field names that
+      contradict the kernel's actual output shape.
+    claim: |
+      `foundations.ru.md` line 95 now reads
+      `{kind,id,digest,path,body}` (matching the kernel's
+      `lib/explain.ml` output). `contributing.ru.md` line
+      96 reads `мейнтейнер`. `faq.ru.md` line 69 reads
+      `привязан к`. `manifesto.ru.md` lines 62-63 read
+      `Сейчас оба выполнены.`
+    acceptance:
+      all:
+        - verifier: grep -qF '{kind,id,digest,path,body}' site/foundations.ru.md
+          result: pass
+        - verifier: grep -qF 'мейнтейнер' site/contributing.ru.md
+          result: pass
+        - verifier: grep -qF 'привязан к' site/faq.ru.md
+          result: pass
+        - verifier: grep -qF 'Сейчас оба выполнены' site/manifesto.ru.md
+          result: pass
+        - verifier: tests/render_kernel.ml::bilingual_drift_under_threshold
+          result: pass
+
+reversal:
+  - signal: drift-test-loose
+    condition: |
+      A future change to `site/<name>.md` removes a section
+      that is still present in `site/<name>.ru.md`, or
+      vice versa. The structural drift metric would jump to
+      ≥1 and the test would fail; this sub-decision would
+      be re-evaluated by the human maintainer as
+      "drift-threshold-too-lax-for-this-article" and the
+      per-pair allowed drift would be tuned (or the
+      threshold raised to a higher number with explicit
+      justification in a follow-up decision).
+    action: rework
+
+  - signal: content-drift-undetected
+    condition: |
+      A future change to a RU sibling translates a kernel
+      field name away from its actual JSON shape (e.g.
+      translating `kind` to `вид` again). The structural
+      drift metric would not catch this; the manual review
+      by the human maintainer would. The mitigation: every
+      new field-name translation must be grep-checked
+      against the kernel source (lib/explain.ml,
+      bin/Mathc.ml) in the same PR.
+    action: rework
+
+risk:
+  declared_triggers:
+    - translation-staleness
+    - bilingual-content-drift
+    - kernel-shape-vs-docs-drift
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []

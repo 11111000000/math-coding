@@ -92,7 +92,7 @@ self-check` возвращает «успех» на чистом `main`.
 
 | Расширение | Поверхность | Cram-фикстура |
 |------------|-------------|----------------|
-| `mathc-explain-subcommand` | `mathc explain decision:foo` → `{вид,идентификатор,дайджест,путь,тело}` | `explain-{positive,negative}.t` |
+| `mathc-explain-subcommand` | `mathc explain decision:foo` → `{kind,id,digest,path,body}` | `explain-{positive,negative}.t` |
 | `mathc-self-check-subcommand` | `mathc self-check` → JSON-вердикт | `self-check-{pass,fail,unknown}.t` |
 | `mathc-packages-subcommand` | `mathc packages --format=text\|json\|html` → список пакетов | `packages.t` |
 
