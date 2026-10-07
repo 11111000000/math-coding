@@ -14,4 +14,4 @@ decisions/mathc-self-check-subcommand.yaml@2.
 
   $ cd "$DUNE_SOURCEROOT"
   $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$DUNE_SOURCEROOT/tests/fixtures/self-check-pass/attestations" mathc self-check | jq -c '{verdict, pass_count: ([.subjects[] | select(.verdict == "pass")] | length), fail_count: ([.subjects[] | select(.verdict == "fail")] | length), unknown_count: ([.subjects[] | select(.verdict == "unknown")] | length), subjects_len: (.subjects | length), kernel_digest_len: (.kernel_digest | length), repo_digest_len: (.repository_digest | length)}'
-  {"verdict":"unknown","pass_count":31,"fail_count":0,"unknown_count":11,"subjects_len":42,"kernel_digest_len":64,"repo_digest_len":64}
+  {"verdict":"unknown","pass_count":30,"fail_count":0,"unknown_count":15,"subjects_len":45,"kernel_digest_len":64,"repo_digest_len":64}

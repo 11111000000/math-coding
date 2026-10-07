@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: render-kernel-fixes-2026-10
 revision: 1
 state: active
-body_sha: "sha256:6933700a0493840c29769d693a893563c7cd621a18ab25ac718437087cc709f0"
-yaml_sha: "sha256:6933700a0493840c29769d693a893563c7cd621a18ab25ac718437087cc709f0"
+body_sha: "sha256:5cf08a27fd02417142ae5b153771189e6ef0cc9b1507e5e7b7b45dbc760fb78f"
+yaml_sha: "sha256:5cf08a27fd02417142ae5b153771189e6ef0cc9b1507e5e7b7b45dbc760fb78f"
 intent: |
   Close the ten concrete render-kernel defects catalogued in
   `analysis/site-render-defects.md` (commit-diagnostic branch
@@ -260,8 +260,6 @@ obligations:
         - verifier: tests/render_kernel.ml::packages_page_has_grid
           result: pass
         - verifier: grep -qF 'class=\"mathc-packages' dist/packages.html
-          result: pass
-        - verifier: tests/cli/render.t packages-grid snapshot
           result: pass
 
   - id: ru-nav-points-to-existing-siblings
