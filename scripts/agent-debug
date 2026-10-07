@@ -7,6 +7,8 @@
 #   dune build --root . 2>&1 | scripts/agent-debug
 #   scripts/agent-debug < build.log
 #   scripts/agent-debug build.log
+#   scripts/agent-debug --explain §11.6
+#   scripts/agent-debug --explain 8.1
 
 set -eu
 cd "$(dirname "$0")/.."
@@ -17,7 +19,47 @@ usage() {
 }
 
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then usage; fi
-if [ $# -gt 1 ]; then usage; fi
+if [ $# -gt 2 ]; then usage; fi
+
+# --explain §11.N: print the full OCAML_BEST_PRACTICES.md trap entry
+# for the given section. Opt-in: a one-line hint is enough most of
+# the time, but when an agent wants the rationale, the repro, the
+# trigger list, and the fix in one place, `--explain` extracts the
+# section without forcing the agent to grep a 1600-line document.
+#
+# Usage:  scripts/agent-debug --explain §11.6
+#         scripts/agent-debug --explain 11.6
+#         scripts/agent-debug --explain 8.1
+# Exit:   0 if section found, 1 if not, 2 on usage error.
+if [ "${1:-}" = "--explain" ]; then
+  if [ $# -ne 2 ]; then usage; fi
+  arg="$2"
+  # Accept "§11.6", "11.6", "8.1", "§8.1" — normalise to "N.M"
+  if [[ "$arg" =~ ^§?([0-9]+\.[0-9]+)$ ]]; then
+    section="${BASH_REMATCH[1]}"
+  else
+    echo "agent-debug: --explain expects §N.M or N.M (got '$arg')" >&2
+    usage
+  fi
+  python3 - "$section" <<'PY' || exit 1
+import re, sys
+target = sys.argv[1]
+with open('OCAML_BEST_PRACTICES.md') as f:
+    text = f.read()
+# Match either "### 11.6 ..." (in §11) or "### 8.1 ..." (elsewhere).
+pattern = r'^### ' + re.escape(target) + r'(?:\s|$)'
+m = re.search(pattern, text, re.MULTILINE)
+if not m:
+    print(f"agent-debug: no section '{target}' in OCAML_BEST_PRACTICES.md",
+          file=sys.stderr)
+    sys.exit(1)
+# Find the next "### N.M" header (any other top-level section).
+end_m = re.search(r'^### \d+\.\d+', text[m.end():], re.MULTILINE)
+end = m.end() + end_m.start() if end_m else len(text)
+sys.stdout.write(text[m.start():end])
+PY
+  exit 0
+fi
 
 if [ $# -eq 1 ]; then
   if [ ! -r "$1" ]; then

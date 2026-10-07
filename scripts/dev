@@ -19,6 +19,9 @@
 #   scripts/dev lock-update          — refresh flake.lock
 #   scripts/dev shell                — drop into nix develop .#test
 #   scripts/dev run FILE             — build + run mathc.exe FILE
+#   scripts/dev doctor               — opt-in health check (no compile):
+#                                     which/grep counts only. Exits 0
+#                                     if every check passes.
 
 set -eu
 cd "$(dirname "$0")/.."
@@ -182,6 +185,62 @@ case "$cmd" in
     if [ $# -lt 1 ]; then usage; fi
     file="$1"
     run_in_shell "dune build --root . bin/mathc.exe && _build/default/bin/mathc.exe '$file'"
+    ;;
+
+  doctor)
+    # Lightweight health check for the dev environment. Opt-in:
+    # never runs as part of build/test/lint; a developer runs it
+    # when something feels off. No nix-shell dependency — uses
+    # `command -v` so it works in or out of the dev shell, and
+    # plain file/grep counts that are fast on a tree this size.
+    # Exits 0 if every check passes, 1 if any fails.
+    cd "$(dirname "$0")/.."
+    ok=0
+    fail=0
+    check() {
+      local name="$1"
+      local cmd="$2"
+      if eval "$cmd" >/dev/null 2>&1; then
+        printf "  \033[32m✓\033[0m %s\n" "$name"
+        ok=$((ok + 1))
+      else
+        printf "  \033[31m✗\033[0m %s\n" "$name"
+        fail=$((fail + 1))
+      fi
+    }
+    echo "math-coding 3.0-alpha — dev environment doctor"
+    echo "=================================================="
+    check "dune on PATH"          "command -v dune"
+    check "ocamlmerlin on PATH"   "command -v ocamlmerlin"
+    check "ocamllsp on PATH"      "command -v ocamllsp"
+    check "ocamlformat on PATH"   "command -v ocamlformat"
+    check "git on PATH"           "command -v git"
+    check "nix on PATH"           "command -v nix"
+    n_d=$(ls decisions/*.yaml 2>/dev/null | wc -l)
+    n_a=$(ls attestations/*.json 2>/dev/null | wc -l)
+    n_t=$(grep -cE '^### 11\.' OCAML_BEST_PRACTICES.md 2>/dev/null | head -1)
+    echo ""
+    echo "  decisions:    $n_d"
+    echo "  attestations: $n_a"
+    echo "  trap entries: $n_t"
+    if [ "$n_d" -eq 0 ]; then
+      printf "  \033[31m✗\033[0m at least one decision file present\n"; fail=$((fail + 1))
+    else
+      printf "  \033[32m✓\033[0m at least one decision file present\n"; ok=$((ok + 1))
+    fi
+    if [ "$n_a" -eq 0 ]; then
+      printf "  \033[31m✗\033[0m at least one attestation present\n"; fail=$((fail + 1))
+    else
+      printf "  \033[32m✓\033[0m at least one attestation present\n"; ok=$((ok + 1))
+    fi
+    if [ "${n_t:-0}" -lt 22 ]; then
+      printf "  \033[31m✗\033[0m trap log has 22+ entries (found %s)\n" "$n_t"; fail=$((fail + 1))
+    else
+      printf "  \033[32m✓\033[0m trap log has 22+ entries\n"; ok=$((ok + 1))
+    fi
+    echo ""
+    printf "  %d passed, %d failed\n" "$ok" "$fail"
+    [ "$fail" -eq 0 ]
     ;;
 
   ""|-h|--help|help)
