@@ -116,6 +116,96 @@ let string_of_kind = function
 
 let code s = s
 
+(* MC-* code registry used by `mathc explain-diagnostic <CODE>`.
+   Each entry is a markdown body with three sections, delimited
+   by `### Definition` / `### Occurs when` / `### Remediation`
+   (the binary CLI parses the body into those three fields and
+   emits them as JSON keys). The whitelist mirrors the codes
+   emitted by `bin/Mathc.ml:validate_with_counts` and the
+   conformance runner in `lib/decision.ml`. Adding a new code
+   to the kernel without registering it here leaves the CLI
+   unable to describe a code it itself emits; the registry
+   and the emitter MUST be updated together (see
+   decisions/plan-2026-10-improvements/t4-2.yaml reversal
+   clause `registry-async-with-codes`). *)
+
+let explain (code : string) : string option =
+  match code with
+  | "MC-AMBIGUOUS-ACCEPTANCE" ->
+      Some
+        "### Definition\n\
+         An obligation's acceptance list contains an item with both\n\
+         `verifier` + `result` AND `review` fields.\n\n\
+         ### Occurs when\n\
+         The kernel parses the verifier-half successfully and the\n\
+         review-half is silently dropped (per\n\
+         OCAML_BEST_PRACTICES §9.1 the verifier shape wins).\n\
+         Surfaced by `mathc validate` as an extra Warn diagnostic\n\
+         on the `accept` verdict.\n\n\
+         ### Remediation\n\
+         Remove either the `verifier`/`result` block or the `review`\n\
+         block so each acceptance item carries one shape only."
+  | "MC-MALFORMED-ACCEPTANCE" ->
+      Some
+        "### Definition\n\
+         An acceptance item has the right field structure\n\
+         (verifier+result OR review) but the values do not parse\n\
+         — e.g., `result: bogus` instead of `pass`/`fail`/\n\
+         `inconclusive`/`infrastructure-error`.\n\n\
+         ### Occurs when\n\
+         `mathc validate` walks every acceptance and reports each\n\
+         unparseable item. The verdict is still `accept` because\n\
+         the kernel typed the rest of the decision; the\n\
+         diagnostic tells the author the malformed item is ignored.\n\n\
+         ### Remediation\n\
+         Replace `result: <bad>` with one of\n\
+         `pass` | `fail` | `inconclusive` | `infrastructure-error`."
+  | "MC-PARSE" ->
+      Some
+        "### Definition\n\
+         The decision file could not be parsed by the kernel's\n\
+         hand-rolled JSON/YAML reader.\n\n\
+         ### Occurs when\n\
+         `mathc validate` rejects the file with this code when\n\
+         the parser hits a malformed token (unbalanced quotes,\n\
+         bad indentation in a block scalar, etc.). The exit\n\
+         code is 1.\n\n\
+         ### Remediation\n\
+         Re-read the parser error message (it carries `line` and\n\
+         `col`); fix the token; re-run `mathc validate`."
+  | "MC-DECISION-INVALID" ->
+      Some
+        "### Definition\n\
+         The decision file is parseable but is missing a required\n\
+         top-level field (`schema`, `id`, `intent`, `commitment`,\n\
+         `scope`, `outcomes`, `obligations`) or the body does\n\
+         not satisfy the schema constraints.\n\n\
+         ### Occurs when\n\
+         `mathc validate` surfaces the FIRST missing field\n\
+         (not all of them) so the author has a single actionable\n\
+         next step. Exit code is 1.\n\n\
+         ### Remediation\n\
+         Add the named field. For `obligations`, an empty list\n\
+         is acceptable but the field itself must be present.\n\
+         Re-run `mathc validate`."
+  | "MC-COUNTEREXAMPLE-MISSING" ->
+      Some
+        "### Definition\n\
+         A `state: active` decision carries an empty\n\
+         `counterexample` field. Spec/algebra-3.2.md §11 names\n\
+         the counterexample as a required dialectical slot for\n\
+         modes >= light.\n\n\
+         ### Occurs when\n\
+         `mathc validate` emits this as a Warn diagnostic; the\n\
+         verdict stays `accept` (counterexample is a dialectical\n\
+         slot, not a hard requirement) so legacy decisions stay\n\
+         valid. The diagnostic reminds the author to add it.\n\n\
+         ### Remediation\n\
+         Add a `counterexample: |` block with one or two\n\
+         sentences naming the strongest objection to the\n\
+         decision. Re-run `mathc validate`."
+  | _ -> None
+
 let render d =
   Printf.sprintf "[%s] %s/%s: %s"
     (string_of_severity d.severity)

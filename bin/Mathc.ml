@@ -293,6 +293,8 @@ let print_usage oc =
     \  context BASE HEAD --budget N     print a JSON context capsule\n\
     \  explain DETAIL_REF               print JSON {kind,id,digest,path,body} \
      for the ref\n\
+    \  explain-diagnostic <CODE>        print JSON {code,definition,occurs_when,\n\
+    \                                   remediation} for an MC-* diagnostic code\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
     \  attest FILE                      parse FILE as a JUnit XML report\n\
     \  time-estimate --class ...        print JSON forecast from declared \
@@ -745,6 +747,119 @@ let[@warning "-32"] do_explain () =
           let digest = Digest.sha256_hex body in
           print_string (explain_json kind id digest relpath body);
           exit 0)
+
+(* --- explain-diagnostic subcommand (Tier 4, t4-2) ---
+ *
+ * `mathc explain-diagnostic <CODE>` prints a JSON object with
+ * `{code, definition, occurs_when, remediation}` for the given
+ * diagnostic code. The registry lives in `lib/diagnostic.ml`
+ * (`Diagnostic.explain`). On an unknown code or a missing
+ * positional argument the handler prints a typed
+ * `MC-EXPLAIN-DIAGNOSTIC-UNKNOWN` diagnostic on stderr and
+ * exits 2. The JSON contract mirrors `mathc explain` (sorted
+ * keys, trailing newline). *)
+
+(* Split a `Diagnostic.explain` body into the three required
+   sections. The body uses `### Definition` / `### Occurs when`
+   / `### Remediation` as section headers; everything between
+   one header and the next is the section body, trimmed.
+   Returns a triple `(definition, occurs_when, remediation)`.
+   Falls back to the full text for the `Definition` slot when
+   a section header is missing (forward-compat with bodies
+   that lack the full marker set). *)
+let[@warning "-32"] split_records body =
+  let sections =
+    let cur = Buffer.create 256 in
+    let flush acc label =
+      let body = Buffer.contents cur |> String.trim in
+      Buffer.clear cur;
+      (label, body) :: acc
+    in
+    let rec walk acc label = function
+      | [] ->
+          let acc = flush acc label in
+          List.rev acc
+      | line :: rest ->
+          let t = String.trim line in
+          if t = "### Definition" then
+            let acc = flush acc label in
+            walk acc "definition" rest
+          else if t = "### Occurs when" then
+            let acc = flush acc label in
+            walk acc "occurs_when" rest
+          else if t = "### Remediation" then
+            let acc = flush acc label in
+            walk acc "remediation" rest
+          else begin
+            if label <> "" && Buffer.length cur > 0 then
+              Buffer.add_char cur '\n';
+            Buffer.add_string cur line;
+            walk acc label rest
+          end
+    in
+    walk [] "" (String.split_on_char '\n' body)
+  in
+  let get label =
+    match List.assoc_opt label sections with Some s -> s | None -> ""
+  in
+  (get "definition", get "occurs_when", get "remediation")
+
+let[@warning "-32"] explain_diagnostic_to_json code body =
+  let definition, occurs_when, remediation = split_records body in
+  let fields =
+    [
+      ("code", Jsonl.String code);
+      ("definition", Jsonl.String definition);
+      ("occurs_when", Jsonl.String occurs_when);
+      ("remediation", Jsonl.String remediation);
+    ]
+  in
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+  "{"
+  ^ String.concat ","
+      (List.map
+         (fun (k, v) ->
+           Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
+         sorted)
+  ^ "}\n"
+
+let[@warning "-32"] do_explain_diagnostic () =
+  let positionals : string list ref = ref [] in
+  let anon s = positionals := s :: !positionals in
+  Arg.current := 1;
+  (try Arg.parse [] anon "usage: mathc explain-diagnostic <CODE>"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc explain-diagnostic: %s\n" m;
+     exit 2);
+  let args = List.rev !positionals in
+  let code =
+    match args with
+    | [ c ] -> c
+    | [] ->
+        Printf.fprintf stderr "mathc explain-diagnostic: missing CODE\n";
+        Printf.fprintf stderr "usage: mathc explain-diagnostic <CODE>\n";
+        exit 2
+    | _ ->
+        Printf.fprintf stderr
+          "mathc explain-diagnostic: expected one CODE; got %d positional(s)\n"
+          (List.length args);
+        exit 2
+  in
+  match Diagnostic.explain code with
+  | None ->
+      let msg =
+        Printf.sprintf
+          "unknown diagnostic code '%s'; supported codes are listed by \
+           lib/diagnostic.ml::explain (MC-AMBIGUOUS-ACCEPTANCE, \
+           MC-MALFORMED-ACCEPTANCE, MC-PARSE, MC-DECISION-INVALID, \
+           MC-COUNTEREXAMPLE-MISSING)"
+          code
+      in
+      explain_diag "MC-EXPLAIN-DIAGNOSTIC-UNKNOWN" "diagnostic" code msg;
+      exit 2
+  | Some body ->
+      print_string (explain_diagnostic_to_json code body);
+      exit 0
 
 let do_context () =
   let base = ref "" and head = ref "" and budget = ref 8192 in
@@ -2670,6 +2785,7 @@ let dispatch () =
   | "version" -> do_version ()
   | "context" -> do_context ()
   | "explain" -> do_explain ()
+  | "explain-diagnostic" -> do_explain_diagnostic ()
   | "assess" -> do_assess ()
   | "attest" -> do_attest ()
   | "time-estimate" -> do_time_estimate ()

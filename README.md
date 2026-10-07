@@ -48,6 +48,7 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc validate FILE` | Schema check on a decision |
 | `mathc context BASE HEAD --budget N` | Bounded context capsule for an agent |
 | `mathc explain REF` | Resolve a `kind:id` reference to its body |
+| `mathc explain-diagnostic CODE` | Describe an `MC-*` diagnostic code |
 | `mathc assess BASE HEAD` | List changed files between two git refs |
 | `mathc attest FILE` | Import a JUnit XML report as JSON |
 | `mathc gate BASE HEAD` | Assurance verdict for the diff |
