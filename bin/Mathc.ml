@@ -470,7 +470,9 @@ let print_usage oc =
     \  render [--out DIR] [--lang en|ru|both]\n\
     \           [--site-base HREF] [--mathjax|--no-mathjax]\n\
     \           [--mermaid|--no-mermaid]\n\
-    \                                     render the static site under DIR\n\n\
+    \                                     render the static site under DIR\n\
+    \  counters                          emit JSON counts (decisions, obligations,\n\
+    \                                     attestations, self-check, cram, CLI)\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
@@ -3264,6 +3266,392 @@ let[@warning "-32"] do_forge_verify () =
   verdict_record queried;
   exit exit_code
 
+(* `mathc counters` — single source of truth for project counts
+   (decisions, obligations, attestations, self-check verdict, cram
+   count, CLI subcommand count). Replaces `scripts/dev-counters.py`
+   (which required a Python interpreter) and `scripts/check-counters-
+   drift.sh` (which used a 100-line Python heredoc to compare these
+   counts against prose in PACKAGES.md, ROADMAP.md, README.md).
+
+   The output schema is a strict superset of the old Python script's
+   schema; downstream consumers (`scripts/check-counters-drift.sh`
+   once it is rewritten, human maintainers, CI dashboards) can rely
+   on the same JSON keys.
+
+   The self-check sub-count is sourced by re-invoking
+   `mathc self-check` as a subprocess (same pattern as the old
+   `dev-counters.py`). This keeps `do_self_check`'s exit-code
+   semantics isolated to the child process — `mathc counters` itself
+   always exits 0 on a successful read, even when the live tree is
+   missing attestations (the verdict:unknown signal is preserved as
+   a JSON field, not promoted to an exit code). *)
+
+let[@warning "-32"] subcommand_names () : string list =
+  let cwd = Sys.getcwd () in
+  let path = Filename.concat cwd "bin/Mathc.ml" in
+  let text =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  (* OCaml `Str` regex semantics differ from Python re in
+     two ways that matter here: `|` is alternation (not a
+     literal), and `^` in `search_forward` anchors only to
+     the start of the whole string, not to each line. We
+     parse the fixed dispatcher line shape by hand. *)
+  let lines = String.split_on_char '\n' text in
+  let acc = ref [] in
+  List.iter
+    (fun line ->
+      let trimmed = String.trim line in
+      let tlen = String.length trimmed in
+      if tlen > 6
+         && String.unsafe_get trimmed 0 = '|'
+         && String.unsafe_get trimmed 1 = ' '
+         && String.unsafe_get trimmed 2 = '"' then begin
+        let after_open =
+          try String.sub trimmed 3 (tlen - 3) with Invalid_argument _ -> ""
+        in
+        let len_ao = String.length after_open in
+        let close =
+          let rec find i =
+            if i >= len_ao then -1
+            else if String.unsafe_get after_open i = '"' then i
+            else find (i + 1)
+          in
+          find 1
+        in
+        if close > 0 then begin
+          let name =
+            try String.sub after_open 0 close with Invalid_argument _ -> ""
+          in
+          let rest_start = close + 1 in
+          let rest_len = tlen - 3 - rest_start in
+          if rest_len > 0 then begin
+            let rest =
+              try String.sub after_open rest_start rest_len
+              with Invalid_argument _ -> ""
+            in
+            let rest_trimmed = String.trim rest in
+            let rtlen = String.length rest_trimmed in
+            if
+              rtlen >= 6
+              && (try
+                    String.sub rest_trimmed 0 3 = "-> "
+                    && String.sub rest_trimmed 3 3 = "do_"
+                  with Invalid_argument _ -> false)
+            then acc := name :: !acc
+          end
+        end
+      end)
+    lines;
+  List.rev !acc
+
+
+let[@warning "-32"] cram_test_files () : string list =
+  let dir = "tests/cli" in
+  if not (Sys.file_exists dir) then []
+  else
+    try
+      Sys.readdir dir
+      |> Array.to_list
+      |> List.filter (fun n -> Filename.check_suffix n ".t")
+      |> List.sort String.compare
+    with _ -> []
+
+(* Decisions enumeration: same rules as `dev-counters.py` for
+   `decisions.active` (the three meta-aggregators + 4 non-feature
+   schemas are excluded). *)
+let[@warning "-32"] decision_meta_files : string list =
+  [
+    "decision.yaml";
+    "obligations.yaml";
+    "obligation-count-reconcile.yaml";
+    "schema-empty-sha-2026-10.yaml";
+    "audit-0.0.21-fixes-self-check-waiver-2026-10.yaml";
+    "waiver-infrastructure-2026-10.yaml";
+    "lib-stale-comments-cleanup-2026-10.yaml";
+  ]
+
+let[@warning "-32"] enumerate_decisions () : string list * int =
+  let dir = "decisions" in
+  let files =
+    if Sys.file_exists dir && Sys.is_directory dir then
+      Sys.readdir dir
+      |> Array.to_list
+      |>       List.filter (fun f -> Filename.check_suffix f ".yaml")
+      |> List.sort String.compare
+    else []
+  in
+  let active =
+    List.filter (fun f -> not (List.mem f decision_meta_files)) files
+  in
+  (files, List.length active)
+
+(* Subprocess: run `mathc self-check` and parse the JSON. The
+   executable is `Sys.executable_name` (the current process's
+   binary) which works for both `nix develop` and `dune exec`
+   invocations. The output JSON is a strict superset of what
+   `do_self_check` prints; we extract subjects + verdict. *)
+let[@warning "-32"] read_self_check () : Jsonl.value =
+  let cmd =
+    Printf.sprintf "%s self-check 2>/dev/null" (Filename.quote Sys.executable_name)
+  in
+  let ic = Unix.open_process_in cmd in
+  let buf = Buffer.create 4096 in
+  let read_done = ref false in
+  let start = Unix.time () in
+  while not !read_done do
+    (try
+       Buffer.add_channel buf ic 4096;
+       if Unix.time () -. start > 30.0 then read_done := true
+     with End_of_file -> read_done := true);
+    if Buffer.length buf > 1_000_000 then read_done := true
+  done;
+  (* close_process_in only after we have all data; ignore
+     the wait status — the subprocess is internal to this
+     process tree and we only care about its stdout. *)
+  let _status = Unix.close_process_in ic in
+  let body = Buffer.contents buf in
+  try Jsonl.parse body with Jsonl.Parse_error _ ->
+    Jsonl.Object [ ("verdict", Jsonl.String "unknown") ]
+
+let[@warning "-32"] jsonl_string_field v name =
+  match v with
+  | Jsonl.Object ps -> (
+      match List.assoc_opt name ps with
+      | Some (Jsonl.String s) -> Some s
+      | _ -> None)
+  | _ -> None
+
+let[@warning "-32"] jsonl_int_field v name =
+  match v with
+  | Jsonl.Object ps -> (
+      match List.assoc_opt name ps with
+      | Some (Jsonl.Int n) -> n
+      | _ -> 0)
+  | _ -> 0
+
+let[@warning "-32"] jsonl_array_length v name =
+  match v with
+  | Jsonl.Object ps -> (
+      match List.assoc_opt name ps with
+      | Some (Jsonl.Array xs) -> List.length xs
+      | _ -> 0)
+  | _ -> 0
+
+let[@warning "-32"] jsonl_array_filter_count v name predicate =
+  match v with
+  | Jsonl.Object ps -> (
+      match List.assoc_opt name ps with
+      | Some (Jsonl.Array xs) -> List.filter predicate xs |> List.length
+      | _ -> 0)
+  | _ -> 0
+
+let[@warning "-32"] do_counters () =
+  let open Jsonl in
+  let root = find_project_root (Sys.getcwd ()) in
+  let restore_cwd = Sys.getcwd () in
+  Sys.chdir root;
+  Fun.protect
+    ~finally:(fun () -> try Sys.chdir restore_cwd with _ -> ())
+    (fun () ->
+      (* 1. decisions *)
+      let decision_files, decision_active = enumerate_decisions () in
+      let decision_files_json = List.map (fun s -> String s) decision_files in
+      let decisions_v =
+        Object
+          [
+            ("total", Int (List.length decision_files));
+            ("active", Int decision_active);
+            ("paths", Array decision_files_json);
+          ]
+      in
+      (* 2. obligations: from kernel packages walker *)
+      let obligations_v =
+        let reader path = In_channel.with_open_bin path In_channel.input_all in
+        let has_store = Sys.file_exists "attestations" in
+        let store =
+          if has_store then
+            try Attestations.load ~reader ~root:"attestations" with _ -> []
+          else []
+        in
+        let pkg =
+          Packages.walk ~reader ~decisions_root:"decisions" ~store ~has_store
+            ~now_iso:(now_iso ())
+            ~policy_id:"bootstrap-v3"
+        in
+        let pj = Packages.to_json pkg in
+        let counts_v =
+          match pj with
+          | Object ps -> (
+              match List.assoc_opt "counts" ps with
+              | Some v -> v
+              | None -> Object [])
+          | _ -> Object []
+        in
+        let get_int name = jsonl_int_field counts_v name in
+        let decisions_count = jsonl_array_length pj "decisions" in
+        Object
+          [
+            ("total", Int (get_int "total"));
+            ("pass", Int (get_int "pass"));
+            ("missing", Int (get_int "missing"));
+            ("no_store", Int (get_int "no_store"));
+            ("stale", Int (get_int "stale"));
+            ("waived", Int (get_int "waived"));
+            ("unknown", Int (get_int "unknown"));
+            ("fail", Int (get_int "fail"));
+            ("decision_count", Int decisions_count);
+          ]
+      in
+      (* 3. attestations (live store) *)
+      let live_store =
+        if Sys.file_exists "attestations" then
+          Sys.readdir "attestations"
+          |> Array.to_list
+          |> List.filter (fun f -> Filename.check_suffix f ".json")
+          |> List.length
+        else 0
+      in
+      let attestations_v = Object [ ("live_store", Int live_store) ] in
+      (* 4. self-check: subprocess call. The subprocess inherits
+         the same env; `cwd` is the project root by the time it
+         runs. *)
+      let self_check_v =
+        let sc =
+          try read_self_check ()
+          with _ -> Object [ ("verdict", String "unknown") ]
+        in
+        let sc_verdict =
+          match jsonl_string_field sc "verdict" with
+          | Some s -> s
+          | None -> "unknown"
+        in
+        let sc_subjects = jsonl_array_length sc "subjects" in
+        let is_verdict_eq want v =
+          match v with
+          | Object ps -> (
+              match List.assoc_opt "verdict" ps with
+              | Some (String s) -> s = want
+              | _ -> false)
+          | _ -> false
+        in
+        Object
+          [
+            ("verdict", String sc_verdict);
+            ("subjects", Int sc_subjects);
+            ("passing", Int (jsonl_array_filter_count sc "subjects" (is_verdict_eq "pass")));
+            ("unknown", Int (jsonl_array_filter_count sc "subjects" (is_verdict_eq "unknown")));
+            ("failing", Int (jsonl_array_filter_count sc "subjects" (is_verdict_eq "fail")));
+          ]
+      in
+      (* 5. CLI subcommand count (manual parse of bin/Mathc.ml's
+         dispatcher block). *)
+      let subs = subcommand_names () in
+      let subs_json = Array (List.map (fun s -> String s) subs) in
+      let cli_v =
+        Object
+          [
+            ("subcommands", subs_json);
+            ("subcommand_count", Int (List.length subs));
+          ]
+      in
+      (* 6. cram tests *)
+      let crams = cram_test_files () in
+      let crams_json = Array (List.map (fun s -> String s) crams) in
+      let tests_v =
+        Object
+          [
+            ("cram_files", crams_json);
+            ("cram_count", Int (List.length crams));
+          ]
+      in
+      (* 7. schema info (best-effort; do not fail the command) *)
+      let schema_v =
+        if not (Sys.file_exists "schemas/decision.json") then
+          Object [ ("error", String "schema missing") ]
+        else
+          let raw =
+            In_channel.with_open_bin "schemas/decision.json"
+              In_channel.input_all
+          in
+          try
+            let v = Jsonl.parse raw in
+            let string_list_field obj_path =
+              match obj_path with
+              | Object ps -> (
+                  match List.assoc_opt "required" ps with
+                  | Some (Array xs) ->
+                      List.map
+                        (fun x -> match x with String s -> s | _ -> "")
+                        xs
+                  | _ -> [])
+              | _ -> []
+            in
+            let string_list_from_nested obj_path =
+              let rec get v = function
+                | [] -> None
+                | k :: rest -> (
+                    match v with
+                    | Object ps -> (
+                        match List.assoc_opt k ps with
+                        | Some sub -> get sub rest
+                        | None -> None)
+                    | _ -> None)
+              in
+              match (get v obj_path) with
+              | Some (Array xs) ->
+                  List.map
+                    (fun x -> match x with String s -> s | _ -> "")
+                    xs
+              | _ -> []
+            in
+            let has_one_of obj_path =
+              let rec get v = function
+                | [] -> None
+                | k :: rest -> (
+                    match v with
+                    | Object ps -> (
+                        match List.assoc_opt k ps with
+                        | Some sub -> get sub rest
+                        | None -> None)
+                    | _ -> None)
+              in
+              match get v obj_path with
+              | Some (Object ps) -> List.mem_assoc "oneOf" ps
+              | _ -> false
+            in
+            Object
+              [
+                ( "decision_required_fields",
+                  Array
+                    (List.map
+                       (fun s -> String s)
+                       (string_list_field v)) );
+                ( "schema_enum",
+                  Array
+                    (List.map
+                       (fun s -> String s)
+                       (string_list_from_nested
+                          [ "properties"; "schema"; "enum" ])) );
+                ("intent_oneOf", Bool (has_one_of [ "properties"; "intent" ]));
+                ("scope_oneOf", Bool (has_one_of [ "properties"; "scope" ]));
+              ]
+          with _ -> Object [ ("error", String "schema parse failed") ]
+      in
+      let top =
+        Object
+          [
+            ("decisions", decisions_v);
+            ("obligations", obligations_v);
+            ("attestations", attestations_v);
+            ("self_check", self_check_v);
+            ("cli", cli_v);
+            ("tests", tests_v);
+            ("schema", schema_v);
+          ]
+      in
+      print_endline (Jsonl.stringify top);
+      exit 0)
 (* Render the package_list in the requested format. The JSON and
    HTML forms are emitted via lib/packages.ml renderers; text is
    a fixed-width table. *)
@@ -3348,6 +3736,7 @@ let dispatch () =
   | "stats" -> do_stats ()
   | "packages" -> do_packages ()
   | "render" -> do_render ()
+  | "counters" -> do_counters ()
   | "--help" | "-h" ->
       print_usage stdout;
       exit 0
