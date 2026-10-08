@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: process-principles
 revision: 3
 state: active
-body_sha: "sha256:709f41e0776e4f0dbde12a84be597845952449297c35b6fc6f3669ba9a38d6c5"
-yaml_sha: "sha256:709f41e0776e4f0dbde12a84be597845952449297c35b6fc6f3669ba9a38d6c5"
+body_sha: "sha256:3f1aaba75fe6f6c092d094cdb4d0dd12a932dfe14b50bb01900dfa37f322c82b"
+yaml_sha: "sha256:3f1aaba75fe6f6c092d094cdb4d0dd12a932dfe14b50bb01900dfa37f322c82b"
 intent: |
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as
@@ -26,6 +26,8 @@ intent: |
   be machine-checked; they are honest declarations of how the
   human and agents work").
 
+axiom_link:
+  - A0
 commitment: |
   Each of P1-P7 is recorded as a separate obligation in this
   decision file. For P1, P2, P5, P6, P7 the obligation's

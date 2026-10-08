@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: priority-drift
 revision: 3
 state: active
-body_sha: "sha256:344d43cb5b4860b5f6cabb2771f088d97135a7877a8b5a1804219ec6994d2059"
-yaml_sha: "sha256:344d43cb5b4860b5f6cabb2771f088d97135a7877a8b5a1804219ec6994d2059"
+body_sha: "sha256:9714e335e30e35c95781ca21e62e288eeb4ba49e843bffb0f5c386e75fd4979a"
+yaml_sha: "sha256:9714e335e30e35c95781ca21e62e288eeb4ba49e843bffb0f5c386e75fd4979a"
 intent: |
   Close deficit D3 from doc/AUDIT-0.0.11.md by adding a machine
   check that the priority table in spec/semantics.md
@@ -17,6 +17,8 @@ intent: |
   hand, will drift over time unless a fixture compares them on
   every check.sh run.
 
+axiom_link:
+  - A0
 commitment: |
   tests/repo_structure.ml:test_spec_vs_bp_priority exits OK
   (Alcotest) when the normative priority-ordering line in

@@ -1,0 +1,722 @@
+---
+schema: math-coding/3.0-alpha
+id: plan-2026-10-improvements
+revision: 1
+state: active
+body_sha: "sha256:b4208c5e490fa4fcb8ebeaf99a4e0e1f29386e4766796e2755079759afe33d5c"
+yaml_sha: "sha256:b4208c5e490fa4fcb8ebeaf99a4e0e1f29386e4766796e2755079759afe33d5c"
+intent: |
+  Adopt the analysis-derived plan documented in chat 2026-10-07
+  ("анализ math-coding как методологии"). The plan closes 14
+  specific deficits surfaced by that analysis (Tier 0–Tier 6,
+  binaries excluded — those run on a separate track).
+
+  Each T-point is a single obligation; each obligation closes by
+  producing the corresponding sub-decision under
+  `decisions/plan-2026-10-improvements/<t-id>.yaml` plus the
+  kernel change or spec change it commits to. The meta-decision
+  itself does not add new kernel behaviour; it authorises and
+  bounds the cycle that does.
+
+  Tier 0 — specification
+    T0.1  §2 notation: replace ambiguous `⌈risk(c)⌉` with explicit
+          `risk_to_mode` bucketing in spec/algebra-3.2.md
+    T0.2  sha-match enforced: `body_sha` and `yaml_sha` must agree
+          when both present, no retroactive exceptions
+
+  Tier 1 — honest-uncertainty closure
+    T1.1  wire forge_mirror adapter behind MATH_CODING_FORGE_API
+    T1.2  re_evaluate status becomes 4-valued:
+          Compatible | CompatibleAfterRun | Incompatible | StaleClaim
+          (was 3-valued; A1 closes the open Compatible-by-default
+          path)
+
+  Tier 2 — decision parser & relation graph
+    T2.1  remove scan_axiom_ids bridge in re_evaluation.ml; populate
+          relations.addresses in lib/decision.ml directly
+    T2.2  axiom_link becomes required for state=active (was optional)
+
+  Tier 3 — gate unification
+    T3.1  Risk.mode wired into v3.0 evaluate path (currently only
+          v3.2 gate_v32 sees risk classification)
+    T3.2  waiver scope narrows to specific (decision, obligation)
+          gap; blanket Open_with_waiver is forbidden
+
+  Tier 4 — diagnostics UX (audit D8)
+    T4.1  every MC-* diagnostic carries a copy-pasteable next_actions
+          snippet (extension of validator-actionable-error.yaml)
+    T4.2  mathc explain-diagnostic <CODE> subcommand
+
+  Tier 5 — documentation / site
+    T5.1  reconcile RU↔EN drift under site/*.ru.md
+    T5.2  MathJax audit on spec/algebra-3.2.md rendering
+
+  Tier 6 — process discipline
+    T6.1  ban stub constants carrying "Phase 2E" markers without a
+          tracking decision; enforced in scripts/check.sh
+    T6.2  counterexample becomes required for mode >= standard on
+          new decisions; one-shot strong migration sweep over
+          existing 28 legacy decisions
+
+  Boundaries:
+    - Binaries (portable-linux-musl) are NOT in scope; the user
+      is running that work on a separate track.
+    - Constitution invariants I1–I14 are preserved verbatim.
+    - 5 axioms A0–A4 are preserved verbatim.
+    - This decision does NOT itself edit spec/, lib/, or
+      schemas/. The sub-decisions do that work.
+    - Tier 1 (T1.2 status expansion) and Tier 6 (T6.2 counterexample
+      enforcement) are A3-protected transitions; each sub-decision
+      ships under the same active policy bootstrap-v3 and includes
+      dual-failure evidence per constitution.md §Self-Application.
+
+axiom_link:
+  - A0
+commitment: |
+  The cycle closes when, for every T0.1 … T6.2 obligation below:
+    (a) a sub-decision exists at
+        `decisions/plan-2026-10-improvements/<t-id>.yaml` with
+        `state: active` and at least one matching attestation in
+        `attestations/` whose `kind_` ∈ {test, build, review}
+        appropriate to the change;
+    (b) the kernel change or spec change the sub-decision commits
+        to has landed on main; and
+    (c) `mathc self-check` returns `verdict:"pass"` with the new
+        change-set, exit 0.
+
+  The meta-decision itself closes when every (a)–(c) holds for
+  every obligation. Until then, this decision carries 14
+  open-at-1-on-1 obligations and is reported as
+  `Open_with_waiver` only via explicit per-obligation waivers
+  in `decisions/waivers/`.
+
+  Excluded from this commitment:
+    - portable-linux-musl (separate track, see
+      `decisions/portable-linux-musl.yaml`)
+    - axiom-as-decision (P5; deferred per ROADMAP Tier 3)
+    - phantom-id types (deferred per ROADMAP Tier 3)
+
+scope:
+  capabilities:
+    - specification-correction
+    - honest-uncertainty-closure
+    - decision-parser-canonicalisation
+    - gate-unification
+    - diagnostics-ux
+    - doc-drift-prevention
+    - process-discipline
+  paths:
+    - "spec/algebra-3.2.md"
+    - "spec/constitution.md"
+    - "lib/decision.ml"
+    - "lib/gate.ml"
+    - "lib/re_evaluation.ml"
+    - "lib/rebuttal.ml"
+    - "lib/risk.ml"
+    - "lib/policy.ml"
+    - "lib/waiver.ml"
+    - "lib/attestations/attestations.ml"
+    - "lib/diagnostic.ml"
+    - "bin/Mathc.ml"
+    - "schemas/decision.json"
+    - "schemas/attestation.json"
+    - "schemas/obligation.json"
+    - "schemas/waiver.json"
+    - "scripts/check.sh"
+    - "scripts/dev"
+    - "site/*.md"
+    - "site/*.ru.md"
+    - "tests/cli/*.t"
+    - "tests/process_principles.ml"
+    - "tests/render_kernel.ml"
+    - "ROADMAP.md"
+    - "PACKAGES.md"
+    - "AGENTS.md"
+    - "decisions/plan-2026-10-improvements/"
+  exclusions:
+    - "axioms/**"
+    - ".github/workflows/release.yml"   # binaries live here, separate track
+    - "decisions/portable-linux-musl.yaml"
+    - "decisions/waivers/portable-linux-musl-2026-10.yaml"
+
+outcomes:
+  - id: spec-notation-fixed
+    statement: |
+      `spec/algebra-3.2.md §2` no longer contains the
+      mathematically ambiguous `mode(c) = max(⌈risk(c)⌉,
+      mode_floor(c))`. The notation is replaced by an explicit
+      bucketed function `risk_to_mode : [0,1] → 𝓜`.
+
+  - id: sha-match-enforced
+    statement: |
+      A decision whose `body_sha` and `yaml_sha` are both present
+      and unequal is rejected by `mathc validate`. The schema
+      relaxation `decisions/schema-empty-sha-2026-10.yaml` is
+      retired as a consequence.
+
+  - id: forge-mirror-wired
+    statement: |
+      `lib/rebuttal.ml::forge_mirror` reads
+      `MATH_CODING_FORGE_API` and queries
+      `GET <api>/comments?commit=<sha>` when set; otherwise it
+      returns the empty list. Hybrid rebuttal mechanism is
+      functional end-to-end (algebra §10 fully implemented).
+
+  - id: re-evaluation-4-valued
+    statement: |
+      `lib/re_evaluation.ml::status` is `Compatible |
+      CompatibleAfterRun | Incompatible | StaleClaim`.
+      `Compatible` is returned only after an explicit run by
+      `mathc re-evaluate-decisions <axiom-rev>` or by an
+      in-process test invocation that resolves to `Pass`.
+      `mathc re-evaluate <id> <axiom>` (the existing CLI
+      surface) returns `CompatibleAfterRun` once that path
+      runs; callers that did not run anything get
+      `Incompatible` rather than the previous silent
+      `Compatible`.
+
+  - id: decision-parser-addresses
+    statement: |
+      `lib/decision.ml::parse_decision` populates
+      `relations.addresses` from the YAML `relations.addresses`
+      block AND from explicit `axiom: A<id>` / `axiom-id:`
+      keys. The bridge `scan_axiom_ids` in
+      `lib/re_evaluation.ml:336` is removed.
+
+  - id: axiom-link-required
+    statement: |
+      A decision in `state: active` with empty
+      `axiom_link` is rejected by `mathc validate`. The
+      warning-vs-block transition requires A3 dual-failure
+      (decision under bootstrap-v3 ships the rule; under the
+      rule, no new active decision lacks axiom_link).
+
+  - id: gate-v30-risk-aware
+    statement: |
+      `lib/gate.ml::evaluate` (v3.0 path) consults
+      `Risk.mode files` and surfaces rebuttal obligations
+      for `mode >= strict`. The previous v3.0 behaviour
+      (rebuttal obligations only visible to v3.2
+      `gate_v32`) is removed; the two paths converge.
+
+  - id: waiver-scope-narrow
+    statement: |
+      A waiver named for obligation `A` of decision `D`
+      does not lift the gate for any other obligation of
+      any other decision. The `Open_with_waiver` mapping
+      in `lib/waiver.ml` requires the waiver's
+      `unverified_obligation` field to match the gap
+      exactly.
+
+  - id: diagnostics-actionable
+    statement: |
+      Every `MC-*` diagnostic emitted by the kernel
+      carries a `next_actions` list with at least one
+      copy-pasteable snippet. The list is verified by
+      `tests/diagnostic_ux.ml` against a whitelist of
+      codes.
+
+  - id: explain-diagnostic-subcommand
+    statement: |
+      `mathc explain-diagnostic <CODE>` prints the
+      definition, occurrence context, and remediation
+      snippet for a given diagnostic code.
+
+  - id: site-ru-en-synced
+    statement: |
+      Every `site/<name>.md` has a corresponding
+      `site/<name>.ru.md` whose drift relative to its
+      English sibling is below a recorded threshold (3
+      substantive differences per article, tracked in
+      `tests/render_kernel.ml::bilingual_drift_under_threshold`).
+
+  - id: spec-mathjax-rendered
+    statement: |
+      `dist/algebra-3.2.html` and any rendered page
+      under `dist/spec/` carry a `<script>` tag loading
+      MathJax 3 in defer mode, and every `$..$` /
+      `$$..$$` formula in the source renders as TeX.
+
+  - id: no-stub-without-tracking
+    statement: |
+      `scripts/check.sh` exits non-zero when any
+      `*.ml` file under `lib/` or `bin/` contains a
+      `Phase 2E` / `TODO` / `FIXME` / `XXX` / stub
+      marker without a paired
+      `decisions/<id>-stub-tracking.yaml` reference.
+
+  - id: counterexample-required
+    statement: |
+      A decision with `mode >= standard` and empty
+      `counterexample` is rejected by `mathc validate`.
+      One migration PR migrates all 28 existing legacy
+      decisions by appending a `counterexample: |
+        <strongest objection one-liner>` block to each.
+      The migration is itself a sub-decision
+      (`counterexample-legacy-sweep@1`) under this plan.
+
+counterexample: |
+  "The plan is too big. 14 obligations across 7 tiers is too
+  much for a single cycle."
+
+  Counterargument: this is a meta-decision; it carries the
+  obligations but does not implement them. Each sub-decision is
+  a normal-sized change with its own kernel-diff / spec-diff.
+  The meta-decision's job is to (a) record the 14 commitments
+  so the agent has an explicit compact contract, and (b) name
+  the reversal condition if any sub-decision reveals the plan
+  is wrong. Closing this decision before all 14 sub-decisions
+  land would itself be a deficit (P1 ROADMAP).
+
+  "Some items here duplicate existing decisions — for example,
+  T4.1 overlaps with `decisions/validator-actionable-error.yaml`."
+
+  Counterargument: that decision covers ONE diagnostic code
+  (missing field). T4.1 widens the rule to every `MC-*` code.
+  The relationship is `refines`, not duplicate. The
+  `validator-actionable-error.yaml` decision is referenced in
+  T4.1's sub-decision and is not modified.
+
+  "T6.2's strong-migration sweep risks introducing noise into
+  the audit chain."
+
+  Counterargument: T6.2 is a single bounded sweep; each
+  appended `counterexample` block is one line per decision and
+  carries the same epistemic marker (judgment) for all 28.
+  The sweep is itself a sub-decision with its own attestation
+  (`kind_: build`, producer: `ci:migration-script`). If any
+  appended block reads false on review, the human maintainer
+  rewrites that one line and re-attests; no other decision
+  is touched.
+
+  "T1.2's 4-valued status is a breaking change to `re_evaluate`
+  callers."
+
+  Counterargument: the call site is internal
+  (`lib/gate.ml:395`, `bin/Mathc.ml:2679`). Both are updated in
+  the same sub-decision. The CLI surface (`mathc re-evaluate`)
+  is mapped: `Compatible → CompatibleAfterRun` for the
+  `unknown-DECISION_ID` backward-compat case, otherwise the
+  caller must run tests first. The change is observable but
+  not catastrophic.
+
+  "T3.1 makes `Risk.mode` mandatory inside `evaluate`. Will
+  that regress existing cram tests?"
+
+  Counterargument: every cram test currently passes against
+  the v3.0 gate. If T3.1 surfaces a previously-v3.2-only
+  rebuttal obligation as a v3.0 block, that is the intended
+  change — the previous behaviour silently passed commits
+  that should have been blocked. The sub-decision is
+  responsible for updating affected cram snapshots in the
+  same PR (per P6 pre-commit verification).
+
+assumptions:
+  - id: sub-decisions-accepted
+    state: assumed
+    statement: |
+      Every sub-decision under
+      `decisions/plan-2026-10-improvements/` will itself be
+      authored under the active policy bootstrap-v3@2 (or its
+      successor), with the appropriate A3-protected-transition
+      procedure for items that change the gate verdict surface
+      (T1.2, T6.2, T3.2).
+    owner: human:maintainer
+    consequence_if_false: |
+      A sub-decision authored under a weaker policy than
+      bootstrap-v3 would weaken the gate for the changes it
+      introduces. The cycle halts; the offending sub-decision
+      is rejected or superseded.
+    review_on:
+      - signal: sub-decision-policy-drift
+
+  - id: legacy-sweep-reviewable
+    state: assumed
+    statement: |
+      The 28 legacy decisions can each receive a one-line
+      `counterexample` block in a single PR without requiring
+      substantive review of each appended line. The maintainer
+      reviews the script output; the human edits any
+      counterexample that reads false.
+    owner: human:maintainer
+    consequence_if_false: |
+      If individual review is required, T6.2 splits into 28
+      sub-decisions (one per legacy decision) and the cycle
+      stretches by ~6 hours of maintainer time.
+    review_on:
+      - signal: counterexample-migration-completed
+
+  - id: forge-mirror-optional
+    state: assumed
+    statement: |
+      The forge mirror is OPTIONAL infrastructure. Without
+      `MATH_CODING_FORGE_API`, `rebuttal.ml::forge_mirror`
+      returns `[]` and the existing YAML-only path remains
+      authoritative. T1.1 does not require any forge to be
+      available.
+    owner: human:maintainer
+    consequence_if_false: |
+      If forge mirror is mandatory, T1.1 blocks until a forge
+      is integrated. The cycle currently has no candidate
+      forge; deferring T1.1 indefinitely is acceptable.
+    review_on:
+      - signal: forge-mirror-required-for-merge
+
+obligations:
+  # ---- Tier 0 — specification ----
+
+  - id: t0-1-spec-notation
+    outcome: spec-notation-fixed
+    statement: |
+      `spec/algebra-3.2.md §2` uses `risk_to_mode(risk(c))`
+      instead of `⌈risk(c)⌉`. The function `risk_to_mode` is
+      defined explicitly with five thresholds. The implementation
+      in `lib/risk.ml:187` already matches; the spec now does.
+    claim: |
+      The literal string `⌈risk(c)⌉` does not appear in
+      `spec/algebra-3.2.md §2`. The five thresholds
+      (0.05 / 0.20 / 0.60 / 0.90 / 1.0) appear in the spec.
+    acceptance:
+      all:
+        - verifier: grep -qF 'risk_to_mode' spec/algebra-3.2.md
+          result: pass
+        - verifier: ! grep -qF '⌈risk(c)⌉' spec/algebra-3.2.md
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t0-1.yaml@1 exists
+          result: pass
+
+  - id: t0-2-sha-match-enforced
+    outcome: sha-match-enforced
+    statement: |
+      The schema relaxation in
+      `decisions/schema-empty-sha-2026-10.yaml` is retired. A
+      decision with both `body_sha` and `yaml_sha` present and
+      unequal is rejected by `mathc validate`. A decision with
+      one present and the other absent is rejected.
+    claim: |
+      `mathc validate` exits 1 with diagnostic
+      `MC-SHA-MISMATCH` on a decision whose `body_sha` and
+      `yaml_sha` are both non-empty and unequal.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-sha-match.t
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t0-2.yaml@1 exists
+          result: pass
+
+  # ---- Tier 1 — honest-uncertainty closure ----
+
+  - id: t1-1-forge-mirror
+    outcome: forge-mirror-wired
+    statement: |
+      `lib/rebuttal.ml::forge_mirror` reads
+      `MATH_CODING_FORGE_API` and queries the configured forge
+      for commit comments. Without the env var, returns `[]`.
+      Algebra §10 hybrid mechanism is fully wired.
+    claim: |
+      Setting `MATH_CODING_FORGE_API=http://...` plus a stub
+      HTTP server returns ≥1 rebuttal in
+      `all_rebuttals <sha>` for a commit that has comments
+      on the stub.
+    acceptance:
+      all:
+        - verifier: tests/rebuttal_forge_stub.t
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t1-1.yaml@1 exists
+          result: pass
+
+  - id: t1-2-re-evaluation-4-valued
+    outcome: re-evaluation-4-valued
+    statement: |
+      `lib/re_evaluation.ml::status` is `Compatible |
+      CompatibleAfterRun | Incompatible | StaleClaim`.
+      `Compatible` requires an explicit run; without a run
+      the oracle returns `Incompatible`. The CLI subcommand
+      `mathc re-evaluate-decisions <axiom-rev>` exists.
+    claim: |
+      Calling `re_evaluate d rev` on a decision whose
+      acceptance has a test-style verifier and no prior run
+      returns `Incompatible`. The new subcommand
+      `mathc re-evaluate-decisions` exits 0 and updates
+      attestation records.
+    acceptance:
+      all:
+        - verifier: tests/cli/re-evaluate.t
+          result: pass
+        - verifier: tests/cli/re-evaluate-decisions.t
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t1-2.yaml@1 exists
+          result: pass
+        - verifier: mathc-self-check-verdict-pass
+          result: pass
+
+  # ---- Tier 2 — decision parser & relation graph ----
+
+  - id: t2-1-decision-parser-addresses
+    outcome: decision-parser-addresses
+    statement: |
+      `lib/decision.ml::parse_decision` populates
+      `relations.addresses` from the YAML block AND from
+      `axiom: A<id>` / `axiom-id: A<id>` keys. The bridge
+      `scan_axiom_ids` in `lib/re_evaluation.ml:336` is
+      removed.
+    claim: |
+      For every active decision, the set of axiom IDs
+      returned by `parse_decision` equals the set previously
+      returned by `scan_axiom_ids`. After removal of the
+      bridge, `impact_list` returns the same decisions for
+      every axiom A0–A4 as before.
+    acceptance:
+      all:
+        - verifier: tests/decision_addresses_equality.ml
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t2-1.yaml@1 exists
+          result: pass
+
+  - id: t2-2-axiom-link-required
+    outcome: axiom-link-required
+    statement: |
+      A decision in `state: active` with empty `axiom_link`
+      is rejected by `mathc validate`. The schema field
+      becomes required for active decisions. Migration: the
+      first sub-decision records the rule; a follow-up
+      migration sub-decision under T6.2's parent brings
+      legacy decisions into compliance (covered separately).
+    claim: |
+      `mathc validate` exits 1 with diagnostic
+      `MC-AXIOM-LINK-MISSING` on a decision with empty
+      `axiom_link` and `state: active`.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-axiom-link.t
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t2-2.yaml@1 exists
+          result: pass
+        - verifier: mathc-self-check-verdict-pass
+          result: pass
+
+  # ---- Tier 3 — gate unification ----
+
+  - id: t3-1-gate-v30-risk-aware
+    outcome: gate-v30-risk-aware
+    statement: |
+      `lib/gate.ml::evaluate` consults `Risk.mode files`.
+      Rebuttal obligations for `mode >= strict` are
+      surfaced in the v3.0 verdict.
+    claim: |
+      A commit touching only `axioms/A0.md` (risk=0.95,
+      mode=Exhaustive) with no rebuttal file and no
+      `MATH_CODING_BLOCKING_CIS` override returns
+      `verdict: Block` from `evaluate`, not `Unknown`.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-axiom-commit.t
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t3-1.yaml@1 exists
+          result: pass
+
+  - id: t3-2-waiver-scope-narrow
+    outcome: waiver-scope-narrow
+    statement: |
+      The `Open_with_waiver` mapping in `lib/waiver.ml`
+      requires the waiver's `unverified_obligation` to
+      match the gap's `(decision, obligation)` pair
+      exactly. A waiver named for obligation A of decision
+      D does not lift the gate for any other obligation of
+      D or any obligation of any other decision.
+    claim: |
+      With a waiver `W` named for
+      `(bootstrap-v3, conformance-coverage)`, the gate
+      verdict is `Pass_with_waiver` for that obligation and
+      `Block` for any other obligation of any other
+      decision whose attestation is missing.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-waiver-scope.t
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t3-2.yaml@1 exists
+          result: pass
+
+  # ---- Tier 4 — diagnostics UX ----
+
+  - id: t4-1-diagnostics-actionable
+    outcome: diagnostics-actionable
+    statement: |
+      Every `MC-*` diagnostic emitted by the kernel carries
+      a `next_actions` list with at least one copy-pasteable
+      snippet. The list is verified by
+      `tests/diagnostic_ux.ml` against the whitelist of
+      codes in OCAML_BEST_PRACTICES §9.1 plus the codes
+      emitted in `bin/Mathc.ml:validate_with_counts` and
+      `lib/gate.ml`.
+    claim: |
+      `tests/diagnostic_ux.ml` runs every code in the
+      whitelist and asserts that each carries `next_actions`
+      whose first element verb is in
+      {add, run, create, edit, replace, supersede}.
+    acceptance:
+      all:
+        - verifier: tests/diagnostic_ux.ml
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t4-1.yaml@1 exists
+          result: pass
+
+  - id: t4-2-explain-diagnostic
+    outcome: explain-diagnostic-subcommand
+    statement: |
+      `mathc explain-diagnostic <CODE>` prints the
+      definition, occurrence context, and remediation
+      snippet for a given diagnostic code. The list of
+      supported codes mirrors `tests/diagnostic_ux.ml`'s
+      whitelist.
+    claim: |
+      `mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING`
+      exits 0 and prints a JSON document with at least
+      `definition`, `occurs_when`, `remediation` fields.
+    acceptance:
+      all:
+        - verifier: tests/cli/explain-diagnostic.t
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t4-2.yaml@1 exists
+          result: pass
+
+  # ---- Tier 5 — documentation / site ----
+
+  - id: t5-1-site-ru-en-synced
+    outcome: site-ru-en-synced
+    statement: |
+      `site/<name>.ru.md` is reconciled with
+      `site/<name>.md` for every name. The drift count
+      per article is below a recorded threshold (3
+      substantive differences).
+    claim: |
+      `tests/render_kernel.ml::bilingual_drift_under_threshold`
+      enumerates every `site/*.md` with a `.ru.md` sibling
+      and exits 0 when the drift count is below threshold
+      for every pair.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::bilingual_drift_under_threshold
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t5-1.yaml@1 exists
+          result: pass
+
+  - id: t5-2-spec-mathjax
+    outcome: spec-mathjax-rendered
+    statement: |
+      `dist/algebra-3.2.html` (or whatever the spec renders
+      as) loads MathJax 3 in defer mode. Every `$..$` and
+      `$$..$$` formula in `spec/algebra-3.2.md` source
+      renders as TeX.
+    claim: |
+      `grep -c '<script' dist/algebra-3.2.html` is ≥ 1 and
+      the script tag references `mathjax@3`. After
+      `mathc render`, every formula in §0–§30 is present
+      in the rendered HTML as a `<span class="math">`
+      element or equivalent.
+    acceptance:
+      all:
+        - verifier: tests/cli/render-mathjax-spec.t
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t5-2.yaml@1 exists
+          result: pass
+
+  # ---- Tier 6 — process discipline ----
+
+  - id: t6-1-no-stub-without-tracking
+    outcome: no-stub-without-tracking
+    statement: |
+      `scripts/check.sh` exits non-zero when any `*.ml`
+      file under `lib/` or `bin/` contains a stub marker
+      (`Phase 2E`, `TODO`, `FIXME`, `XXX`) without a paired
+      `decisions/<id>-stub-tracking.yaml` reference in a
+      neighbouring comment.
+    claim: |
+      Committing a `Phase 2E` marker to `lib/risk.ml`
+      without a tracking decision causes
+      `scripts/check.sh` to exit non-zero in the pre-commit
+      hook.
+    acceptance:
+      all:
+        - verifier: scripts/check.sh
+          result: pass
+        - verifier: tests/process_principles.ml::p8_no_stub_untracked
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t6-1.yaml@1 exists
+          result: pass
+
+  - id: t6-2-counterexample-required
+    outcome: counterexample-required
+    statement: |
+      A decision with `mode >= standard` and empty
+      `counterexample` is rejected by `mathc validate`.
+      A single migration PR appends a `counterexample: |
+        <one-line strongest objection>` field to every
+      active decision whose `counterexample` is currently
+      empty. The migration sub-decision
+      `counterexample-legacy-sweep@1` is its own commit
+      under this plan.
+    claim: |
+      After the migration PR lands, every active decision
+      in `decisions/*.yaml` carries a non-empty
+      `counterexample` field whose length is at least 8
+      characters. A new decision created with empty
+      `counterexample` and `mode: standard` is rejected
+      by `mathc validate` with diagnostic
+      `MC-COUNTEREXAMPLE-MISSING`.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-counterexample-required.t
+          result: pass
+        - verifier: tests/conformance.ml::legacy_counterexample_sweep
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/t6-2.yaml@1 exists
+          result: pass
+        - verifier: decisions/plan-2026-10-improvements/counterexample-legacy-sweep@1.yaml exists
+          result: pass
+        - verifier: mathc-self-check-verdict-pass
+          result: pass
+
+reversal:
+  - signal: plan-superseded
+    condition: |
+      A successor plan-2026-11-improvements or similar is
+      recorded with `supersedes: [plan-2026-10-improvements@1]`.
+      Migration path: every still-open sub-decision from
+      this plan is either closed under the successor or
+      recorded as waived.
+    action: rework
+
+  - signal: axiom-violation
+    condition: |
+      A sub-decision under this plan is found to violate
+      any of I1–I14 from `spec/constitution.md`. The
+      offending sub-decision is rejected; the corresponding
+      T-obligation here remains open.
+    action: halt
+
+  - signal: cycle-diverges
+    condition: |
+      The cycle exceeds 4 months without closing all 14
+      obligations. Resolution: split into
+      plan-2026-10-improvements-A (T0–T3) and
+      plan-2026-10-improvements-B (T4–T6) with explicit
+      per-cycle scope.
+    action: rework
+
+risk:
+  declared_triggers:
+    - spec-interpretation-drift
+    - kernel-api-shape-change
+    - diagnostic-ux-bloat
+    - forge-coupling
+    - legacy-migration-noise
+    - bilingual-translation-burden
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+    - algebra-3.2@2
+  supersedes: []
+  superseded_by: []

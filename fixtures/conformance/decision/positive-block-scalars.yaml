@@ -3,6 +3,8 @@ schema: "math-coding/3.0-alpha/decision"
 kind: decision
 id: block-scalar-fixture
 revision: rev:01abcd
+axiom_link:
+  - A1
 
 intent:
   source: "issue:200"
@@ -68,3 +70,7 @@ risk:
 relations:
   addresses:
     - "issue:200"
+
+counterexample: |
+  Block-scalar formatting may obscure the actual obligation
+  boundary; a reviewer scanning yaml will not see the structure.

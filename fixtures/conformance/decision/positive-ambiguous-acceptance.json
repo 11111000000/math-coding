@@ -3,6 +3,7 @@
   "kind": "decision",
   "id": "ambiguous-acceptance-demo",
   "revision": "rev:7f3a",
+  "axiom_link": ["A0"],
   "intent": {
     "source": "test:ambiguous-acceptance",
     "text": "Demonstrate MC-AMBIGUOUS-ACCEPTANCE detection: an acceptance item with both verifier and review fields."
@@ -53,5 +54,6 @@
   },
   "relations": {
     "addresses": ["bootstrap-v3"]
-  }
+  },
+  "counterexample": "An acceptance item that is dual-keyed (verifier+review) is silently parsed as verifier-only; the review half is lost without surface emission."
 }

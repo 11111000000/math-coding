@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: capsule-active-policy
 revision: 2
 state: active
-body_sha: "sha256:f02f36909dce5e4fac8f80a7b058051cdd2ac984d1528c9f073c1bc45acb76d7"
-yaml_sha: "sha256:f02f36909dce5e4fac8f80a7b058051cdd2ac984d1528c9f073c1bc45acb76d7"
+body_sha: "sha256:44586403d314c923662e7349e375bb3648cb54932578fa1fbcfed88d81870b1a"
+yaml_sha: "sha256:44586403d314c923662e7349e375bb3648cb54932578fa1fbcfed88d81870b1a"
 intent: |
   Close the spec/compliance gap noted in critical analysis
   2026-09-27: spec/semantics.md "context-prioritisation"
@@ -16,6 +16,8 @@ intent: |
   parameter and the convention that the active policy is
   bootstrap-v3.
 
+axiom_link:
+  - A0
 commitment: |
   Capsule.classify_decision takes ~active_policy_id and assigns
   RequiredForGate to the decision whose id matches. Capsule.build_capsule

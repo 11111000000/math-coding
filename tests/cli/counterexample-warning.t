@@ -1,17 +1,18 @@
 mathc validate emits an MC-COUNTEREXAMPLE-MISSING Warn diagnostic
-when a decision lacks the `counterexample` field. This closes the
-gap between spec/algebra-3.2.md §11 (counterexample required for
-modes >= light) and the kernel's prior behaviour of silently
-ignoring the field. The verdict remains `accept` — counterexample
-is a dialectical slot, not a hard requirement, so legacy
-decisions without it stay valid. The diagnostic is one surfaced
-next-step, not a reject.
+when a decision lacks the `counterexample` field AND the
+decision's `mode` is in {tiny, light}. Counterexample is a
+dialectical slot — when absent at tiny/light modes, the
+diagnostic is a Warn and the verdict stays `accept`. (For
+modes >= standard an empty counterexample is a Block; the
+T6.2 cram test `tests/cli/validate-counterexample-required.t`
+covers that separate rule.)
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmp=$(mktemp -d)
   $ cd "$tmp"
 
-A decision with counterexample: no warning, plain accept.
+A `mode: light` decision with counterexample: no warning,
+plain accept.
 
   $ cat > has-counterexample.yaml <<EOF
   > ---
@@ -19,6 +20,9 @@ A decision with counterexample: no warning, plain accept.
   > id: has-counterexample-demo
   > revision: 1
   > state: active
+  > mode: light
+  > axiom_link:
+  >   - A0
   > intent: |
   >   A test with counterexample present.
   > commitment: |
@@ -45,8 +49,9 @@ A decision with counterexample: no warning, plain accept.
   $ mathc validate --format=json has-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   ["accept",[]]
 
-A decision without counterexample: warning emitted, verdict still
-accept (dialectical slot, not a hard requirement).
+A `mode: light` decision without counterexample: warning
+emitted, verdict still accept (dialectical slot, not a hard
+requirement at light mode).
 
   $ cat > no-counterexample.yaml <<EOF
   > ---
@@ -54,6 +59,9 @@ accept (dialectical slot, not a hard requirement).
   > id: no-counterexample-demo
   > revision: 1
   > state: active
+  > mode: light
+  > axiom_link:
+  >   - A0
   > intent: |
   >   A test with no counterexample.
   > commitment: |
@@ -75,11 +83,12 @@ accept (dialectical slot, not a hard requirement).
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  [warn] input/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 requires it for modes >= light; add a counterexample section naming the strongest objection
+  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
   ["accept",["MC-COUNTEREXAMPLE-MISSING"]]
 
 JSON form: counterexample as an array of strings (one per
-dialectical objection) is also accepted without warning.
+dialectical objection) is also accepted without warning at
+`mode: light`.
 
   $ cat > counterexample-array.json <<EOF
   > {
@@ -88,6 +97,8 @@ dialectical objection) is also accepted without warning.
   >   "id": "json-counterexample-demo",
   >   "revision": "1",
   >   "state": "active",
+  >   "mode": "light",
+  >   "axiom_link": ["A0"],
   >   "intent": {"source": "test", "text": "JSON form demo"},
   >   "commitment": "JSON counterexample form.",
   >   "counterexample": ["objection one", "objection two"],

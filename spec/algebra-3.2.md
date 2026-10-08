@@ -105,7 +105,15 @@ irreversibility(c) = max{marker(path) : path ∈ c.files}
   schema-break → 0.95
   business-irreversible → 0.95
 
-mode(c) = max(⌈risk(c)⌉, mode_floor(c))
+mode(c) = max(risk_to_mode(risk(c)), mode_floor(c))
+
+risk_to_mode : [0, 1] → 𝓜
+  risk_to_mode(r) =
+    | tiny        if r < 0.05
+    | light       if 0.05 ≤ r < 0.20
+    | standard    if 0.20 ≤ r < 0.60
+    | strict      if 0.60 ≤ r < 0.90
+    | exhaustive  if r ≥ 0.90
 
 mode_floor(c) = max{mode_floor(policy(p)) : p ∈ c.files ∪ transitive_paths(c)}
   mode_floor declared in policy.yaml:
@@ -115,18 +123,13 @@ mode_floor(c) = max{mode_floor(policy(p)) : p ∈ c.files ∪ transitive_paths(c
     axiom-touching → exhaustive
 ```
 
-> **Notation note (2026-10-05, ref `decisions/algebra-3.2-notation-flag-2026-10.yaml`):**
-> the form `mode(c) = max(⌈risk(c)⌉, mode_floor(c))` is ambiguous given the
-> current type declaration `risk: 𝓒 → 𝓡` with `𝓡 ∈ [0, 1]`. The standard
-> ceiling function applied to a value in `[0, 1]` yields either `0` or `1`,
-> which collapses the mode enumeration. The intended mapping is presumed
-> to be a bucketed function `risk_to_mode : [0, 1] → 𝓜` (e.g. via
-> `5 ⌈risk · 5⌉` or an explicit piecewise table), but the spec does
-> not say so explicitly. This ambiguity is recorded but **not** silently
-> rewritten by this branch. The spec owner should either (a) replace
-> `⌈risk(c)⌉` with the explicit bucketed form, or (b) redefine `𝓡` as a
-> discrete set of values that the ceiling can map onto `𝓜`. See the linked
-> decision for counterexamples and the recommended resolution.
+> **Notation note (2026-10-07):** the form `mode(c) = max(risk_to_mode(risk(c)),
+> mode_floor(c))` with the explicit bucketed `risk_to_mode : [0, 1] → 𝓜`
+> is the canonical implementation per `lib/risk.ml:183-188` and decision
+> `decisions/plan-2026-10-improvements/t0-1.yaml`. The earlier ambiguous
+> notation flagged in `decisions/algebra-3.2-notation-flag-2026-10.yaml`
+> (2026-10-05) is superseded; the ambiguity the note recorded is closed
+> by the explicit bucketed form above.
 
 ---
 

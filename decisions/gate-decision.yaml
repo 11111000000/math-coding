@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: gate-decision
 revision: 2
 state: active
-body_sha: "sha256:8a9d1a69fc01d672f5de10a2888bcba9274a6e17759d1a1d2092f43ea3ae0369"
-yaml_sha: "sha256:8a9d1a69fc01d672f5de10a2888bcba9274a6e17759d1a1d2092f43ea3ae0369"
+body_sha: "sha256:776c5e7008283df6b169b2148512149b93f2763c0f1f38b37aeef0a087453ad6"
+yaml_sha: "sha256:776c5e7008283df6b169b2148512149b93f2763c0f1f38b37aeef0a087453ad6"
 intent: |
   Introduce the `mathc gate BASE HEAD` subcommand that evaluates a
   candidate tree against the active policy and produces a gate
@@ -16,6 +16,8 @@ intent: |
   Unknown with explicit reasons. Future revisions under
   obligation gate-attestation-store-fill extend the stub.
 
+axiom_link:
+  - A0
 commitment: |
   bin/Mathc.ml gains a `gate BASE HEAD` subcommand. It exits 0 on
   success, prints a JSON object on stdout containing at minimum

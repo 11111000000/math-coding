@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: mathc-explain-subcommand
 revision: 3
 state: active
-body_sha: "sha256:68effe03b1e9e3e4a3dea6ad55ed88e793eb93b1e81f969519b8b9331bf01530"
-yaml_sha: "sha256:68effe03b1e9e3e4a3dea6ad55ed88e793eb93b1e81f969519b8b9331bf01530"
+body_sha: "sha256:a4c9bd3c1c1c55efdabb3b54a3a4669131e3b1dc774b59daa8eba144a95ada6e"
+yaml_sha: "sha256:a4c9bd3c1c1c55efdabb3b54a3a4669131e3b1dc774b59daa8eba144a95ada6e"
 intent: |
   Close the broken promise in shipped code: `lib/capsule.ml:88`
   emits `mathc explain <detail_ref>` as the expansion command for
@@ -15,6 +15,8 @@ intent: |
   string `mathc explain`; if a user copies it to a shell today,
   nothing answers.
 
+axiom_link:
+  - A0
 commitment: |
   Add a normative row for `mathc explain DETAIL_REF` in
   `spec/semantics.md` §"CLI subcommands" so the catalog is
@@ -40,6 +42,9 @@ outcomes:
       a handler that resolves `kind:id` references and emits
       `{kind, id, digest, path, body}` JSON or a typed
       diagnostic on stderr.
+
+counterexample: |
+  Promoting the spec row commits to a follow-up revision that may not land.
 
 assumptions:
   - id: spec-before-impl

@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: infrastructure-honesty
 revision: 2
 state: active
-body_sha: "sha256:45042b0aeee3383e6564ce456eda72c5fbbb75a52b51ad73edfcdbb09b05d6b5"
-yaml_sha: "sha256:45042b0aeee3383e6564ce456eda72c5fbbb75a52b51ad73edfcdbb09b05d6b5"
+body_sha: "sha256:3629f4667d3ca11b8a7eca38d4be3089c202b0c9bf0b1af263b4b65233129101"
+yaml_sha: "sha256:3629f4667d3ca11b8a7eca38d4be3089c202b0c9bf0b1af263b4b65233129101"
 intent: |
   Repair four classes of dishonest infrastructure state that the v3-alpha
   bootstrap inherited: CI workflows that reference non-existent paths,
@@ -12,6 +12,8 @@ intent: |
   binaries downloaded without integrity checks, and conformance test
   sources that exist but are not wired into the test runner.
 
+axiom_link:
+  - A0
 commitment: |
   Restore honesty in the build pipeline and reproducibility claim. Each
   class of repair is committed separately with positive and negative

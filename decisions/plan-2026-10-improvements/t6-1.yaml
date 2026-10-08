@@ -1,0 +1,247 @@
+---
+schema: math-coding/3.0-alpha
+id: t6-1-no-stub-without-tracking
+revision: 1
+state: active
+body_sha: "sha256:df6373bdcd21bc0188ea552b0927ce42543b59cdd973abaa9cf69901379ec385"
+yaml_sha: "sha256:df6373bdcd21bc0188ea552b0927ce42543b59cdd973abaa9cf69901379ec385"
+intent: |
+  Sub-decision under `decisions/plan-2026-10-improvements.yaml`
+  obligation `t6-1-no-stub-without-tracking`. Bans stub markers
+  (`Phase 2E`, `Phase [0-9]+[A-Z]?`, `TODO`, `FIXME`, `XXX`,
+  `STUB`) inside `lib/*.ml` and `bin/Mathc.ml` that are not paired
+  with a tracking decision
+  (`decisions/<id>-stub-tracking.yaml`) or a same-line
+  `tracked:` acknowledgement.
+
+  The lint runs as a new step inside `scripts/check.sh` so the
+  ban is enforced on every pre-commit run, not only on full
+  rebuilds. A new `p8_no_stub_untracked` case in
+  `tests/process_principles.ml` is the persistent verifier.
+
+  This is process discipline only; no kernel surface changes,
+  no schema changes, no spec changes. The decision is bounded
+  to the four files named below plus the new test executable
+  it ships with.
+
+axiom_link:
+  - A0
+commitment: |
+  1. `scripts/check.sh` runs a stub-lint pass against
+     `lib/*.ml` and `bin/Mathc.ml`. The pass exits non-zero
+     on any untracked stub marker.
+  2. `tests/process_principles.ml` carries an Alcotest case
+     `p8_no_stub_untracked` that asserts the lint is wired
+     into `scripts/check.sh` and that the lint correctly
+     classifies a synthetic stub vs a tracked stub.
+  3. The stub-lint classification:
+     - markers `Phase 2E`, `Phase [0-9]+[A-Z]?` (whole word),
+       `TODO`, `FIXME`, `XXX`, `STUB` (whole word) are scanned
+       in non-comment, non-string content;
+     - section-header lines starting with `(* ===`, `(* ---`,
+       or `-- |` are exempt;
+     - content inside OCaml verbatim strings `{| ... |}` is
+       exempt (output-template text, not source);
+     - content inside multi-line OCaml comments `(* ... *)` is
+       exempt (documentation, not code);
+     - a marker on a line containing `tracked:` or referencing
+       a `decisions/<id>-stub-tracking.yaml` path is exempt.
+  4. On a clean main with no untracked stubs, `scripts/check.sh`
+     exits 0.
+  5. `mathc validate decisions/plan-2026-10-improvements/t6-1.yaml`
+     returns `accept`.
+  6. `mathc self-check` on the integrated HEAD returns
+     `verdict:"pass"`, exit `0`.
+
+counterexample: |
+  "Comments don't affect behaviour; the lint is overkill for a
+  documentation ban that humans can audit at review time."
+
+  Counterargument: the historical pattern shows comments
+  *do* affect behaviour indirectly: the `Phase 2E` and
+  `v3.0.0.30` comments in `lib/risk.ml:14-19` and
+  `lib/packages.ml:58` survived multiple review rounds and
+  only got removed in `lib-stale-comments-cleanup-2026-10`
+  (commit `8dc65dd`, 2026-10-07). A lint catches them at
+  commit time, before they accumulate.
+
+  "Tracking decisions for every stub is bureaucratic overhead;
+  legitimate TODOs would be over-regulated."
+
+  Counterargument: the rule only fires on the canonical stub
+  patterns (`Phase 2E`, `TODO:`, `FIXME`, etc.). A TODO that
+  is documentation about a closed item ("the original drop-on-Float
+  TODO that this closes", `lib/jsonl.ml:238`) sits inside a
+  multi-line OCaml comment and is exempt. The classification
+  intentionally distinguishes actionable stubs (in source
+  code, outside `{|...|}` strings and `(*...*)` comments) from
+  narrative prose (inside comments) and from output-template
+  text (inside verbatim strings). The expected annual count
+  of new tracking decisions is under five.
+
+  "What about the existing legitimate Phase 1 reference in
+  `lib/decision.ml:244` (`(* === Form-aware parsers (Phase 1) ===`)?"
+  Counterargument: that line starts with `(* ===`, which is
+  one of the three section-header prefixes the lint
+  treats as exempt. The lint does not flag it. Verified
+  empirically by running the rule on a clean tree.
+
+scope:
+  capabilities:
+    - process-discipline
+    - stub-lint-enforcement
+  paths:
+    - "scripts/check.sh"
+    - "scripts/check-stub-lint.sh"
+    - "scripts/check-stub-lint.py"
+    - "tests/process_principles.ml"
+    - "decisions/plan-2026-10-improvements/t6-1.yaml"
+    - "attestations/t6-1-no-stub-without-tracking-*.json"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+
+outcomes:
+  - id: stub-lint-enforced-in-check-sh
+    statement: |
+      `scripts/check.sh` runs a stub-lint pass over
+      `lib/*.ml` and `bin/Mathc.ml`. The pass exits 0 on a
+      clean tree and exits 1 on any untracked stub marker.
+  - id: p8-no-stub-untracked-alcotest
+    statement: |
+      `tests/process_principles.ml` carries an Alcotest case
+      `p8_no_stub_untracked` that asserts the lint rule is
+      wired into `scripts/check.sh` and that the classification
+      distinguishes tracked vs untracked markers. The case
+      passes on a clean tree.
+  - id: sub-decision-accepted
+    statement: |
+      `mathc validate decisions/plan-2026-10-improvements/t6-1.yaml`
+      returns `accept`.
+
+assumptions:
+  - id: python3-available
+    state: assumed
+    statement: |
+      `python3` is available in the `nix develop .#test`
+      shell and in any environment that runs `scripts/check.sh`.
+      The stub-lint implementation is a small Python script
+      (`scripts/check-stub-lint.py`); if python3 is unavailable
+      the script returns exit 2 and `scripts/check.sh` is
+      allowed to skip the step (with a printed notice) rather
+      than fail.
+    owner: human:maintainer
+    consequence_if_false: |
+      If python3 is unavailable in CI, the lint step is
+      a no-op and untracked stubs slip through. The fallback
+      is a rewrite to awk; deferred until the assumption
+      fails in CI.
+    review_on:
+      - signal: python3-missing-in-check-sh-run
+
+  - id: section-headers-stable
+    state: assumed
+    statement: |
+      The three section-header patterns
+      (`(* ===`, `(* ---`, `-- |`) remain stable in the
+      codebase. They are the established convention in
+      `lib/decision.ml`, `lib/re_evaluation.ml`, and
+      `lib/packages.ml` for marking the start of a thematic
+      block.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a new section-header convention emerges (e.g.
+      `(** ===`), the lint would need to grow a fourth
+      prefix. Easy follow-up: extend the prefix list.
+    review_on:
+      - signal: new-section-header-style
+
+obligations:
+  - id: stub-lint-step-in-check-sh
+    outcome: stub-lint-enforced-in-check-sh
+    statement: |
+      `scripts/check.sh` invokes a stub-lint pass on
+      `lib/*.ml` and `bin/Mathc.ml`. The pass exits non-zero
+      when any untracked stub marker is present. The pass
+      is implemented in `scripts/check-stub-lint.py` and
+      wrapped by `scripts/check-stub-lint.sh`.
+    claim: |
+      Committing a `Phase 2E will replace this` line to
+      `lib/risk.ml` without a paired tracking-decision
+      reference causes `scripts/check.sh` to exit 1.
+    acceptance:
+      all:
+        - verifier: scripts/check.sh
+          result: pass
+        - verifier: scripts/check-stub-lint.sh
+          result: pass
+
+  - id: p8-no-stub-untracked-test
+    outcome: p8-no-stub-untracked-alcotest
+    statement: |
+      `tests/process_principles.ml::p8_no_stub_untracked`
+      runs in the dune `runtest` target. The case asserts:
+      (a) `scripts/check.sh` invokes a step named
+      `stub-lint`; (b) the step is implemented in
+      `scripts/check-stub-lint.sh`; (c) on a synthetic test
+      fixture, an untracked stub causes exit 1 and a tracked
+      stub is accepted (exit 0).
+    claim: |
+      `dune test tests/process_principles.exe` reports
+      `p8_no_stub_untracked` as `pass` on a clean tree.
+    acceptance:
+      all:
+        - verifier: tests/process_principles.ml::p8_no_stub_untracked
+          result: pass
+
+  - id: sub-decision-validate-accept
+    outcome: sub-decision-accepted
+    statement: |
+      `mathc validate decisions/plan-2026-10-improvements/t6-1.yaml`
+      returns `accept` (exit 0, verdict `accept`).
+    claim: |
+      The sub-decision file has the required frontmatter
+      fields (`schema`, `id`, `revision`, `state`, `body_sha`,
+      `yaml_sha`) and the required body sections
+      (`intent`, `commitment`, `counterexample`, `scope`,
+      `outcomes`, `assumptions`, `obligations`).
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/plan-2026-10-improvements/t6-1.yaml
+          result: pass
+        - verifier: mathc-self-check-verdict-pass
+          result: pass
+
+reversal:
+  - signal: stub-lint-breaks-clean-tree
+    condition: |
+      Running `scripts/check.sh` on a clean tree returns
+      non-zero because the lint falsely flags a legitimate
+      marker. The flagging pattern is logged in
+      `bin/check-stub-lint.log`.
+    action: rework
+
+  - signal: python3-unavailable-in-ci
+    condition: |
+      A CI environment without `python3` blocks merge because
+      the lint step exits non-zero. Resolution: rewrite the
+      lint in awk so the only dependency is bash + coreutils,
+      and bump this decision's revision.
+    action: rework
+
+risk:
+  declared_triggers:
+    - false-positive-on-historical-comment
+    - python3-not-in-CI-image
+    - section-header-prefix-drift
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []

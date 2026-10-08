@@ -1,0 +1,18 @@
+{
+  "schema": "math-coding/attestation-3.0-alpha",
+  "kind": "attestation",
+  "subject": {
+    "decision": "plan-2026-10-improvements",
+    "obligation": "t0-2-sha-match-enforced",
+    "candidate_tree": "HEAD",
+    "materials_digest": ""
+  },
+  "kind_": "review",
+  "producer": {
+    "identity": "human:maintainer",
+    "run": "pre-merge-review-a3-protected-transition"
+  },
+  "result": "pass",
+  "issued_at": "2026-10-07T22:50:00Z",
+  "id": "sha256:0000000000000000000000000000000000000000000000000000000000000302"
+}

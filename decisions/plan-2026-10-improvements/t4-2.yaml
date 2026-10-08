@@ -1,0 +1,163 @@
+---
+schema: math-coding/3.0-alpha
+id: t4-2-explain-diagnostic
+revision: 1
+state: active
+body_sha: "sha256:cac211db60c3bfdf056ae875bf88367f253b6bf80c08f5c8933e8fd6c4b33d7b"
+yaml_sha: "sha256:cac211db60c3bfdf056ae875bf88367f253b6bf80c08f5c8933e8fd6c4b33d7b"
+intent: |
+  Authorise and bound the `mathc explain-diagnostic <CODE>` subcommand
+  under meta-decision `plan-2026-10-improvements` (Tier 4, t4-2). The
+  subcommand prints the definition, occurrence context, and remediation
+  snippet for a given `MC-*` diagnostic code as a single JSON object.
+
+  This sub-decision lands the kernel half of the obligation. The
+  whitelist of supported codes mirrors the codes emitted by
+  `bin/Mathc.ml:validate_with_counts` (and the conformance runner in
+  `lib/decision.ml`):
+    MC-AMBIGUOUS-ACCEPTANCE, MC-MALFORMED-ACCEPTANCE,
+    MC-PARSE, MC-DECISION-INVALID, MC-COUNTEREXAMPLE-MISSING.
+
+  Each supported code returns a JSON object with three fields
+  (`definition`, `occurs_when`, `remediation`). Unknown codes return
+  None, and the dispatcher prints a typed diagnostic on stderr and
+  exits 2.
+
+  Boundaries:
+    - This cycle does NOT add every `MC-*` code that ever appeared
+      in the kernel; the registry covers only the codes emitted
+      in `validate_with_counts` (the user-facing entry point) and
+      the conformance runner. Future codes (T4.1, gate codes,
+      Rebuttal codes) are added by their owning sub-decisions.
+    - This cycle does NOT add a spec row in `spec/semantics.md`;
+      the meta-decision is silent on spec promotion for t4-2.
+      A future revision may add the row.
+    - `mathc explain DETAIL_REF` (without `-diagnostic`) is
+      unchanged in shape and exit code.
+
+axiom_link:
+  - A0
+commitment: |
+  1. `lib/diagnostic.ml` exports `explain : string -> string option`
+     returning the markdown-text body for a supported `MC-*` code, or
+     `None` for unknown codes. The registry covers at least:
+     MC-AMBIGUOUS-ACCEPTANCE, MC-MALFORMED-ACCEPTANCE, MC-PARSE,
+     MC-DECISION-INVALID, MC-COUNTEREXAMPLE-MISSING.
+
+  2. `bin/Mathc.ml` adds `explain-diagnostic <CODE>` to `dispatch ()`
+     with the same `find_project_root` + positional pattern used by
+     `do_explain` (no Arg.parse flag surface). On a known code the
+     handler prints JSON `{code, definition, occurs_when, remediation}`
+     on stdout (sorted keys) and exits 0. On an unknown code or a
+     missing positional argument the handler prints a typed
+     `MC-EXPLAIN-DIAGNOSTIC-UNKNOWN` diagnostic on stderr and exits 2.
+
+  3. `tests/cli/explain-diagnostic.t` covers four cases:
+       - positive: `MC-COUNTEREXAMPLE-MISSING` → exit 0, three fields
+       - positive: `MC-AMBIGUOUS-ACCEPTANCE` → exit 0, three fields
+       - negative: `MC-BOGUS` → exit 2, typed diagnostic on stderr
+       - negative: no positional argument → exit 2, usage hint
+
+  4. The new subcommand does not modify the exit-code map
+     (0 / 1 / 2 / 3 per `spec/semantics.md §4.3`) and does not
+     regress any existing cram fixture.
+
+counterexample: |
+  "An unknown code should print JSON `null`, not exit 2."
+
+  Counterargument: an unknown code is an input error (the user
+  mistyped `MC-BOGUS`), not a valid request. The kernel's
+  convention (per `mathc explain nonexistent:foo`) is to exit 2
+  with a typed diagnostic on stderr; the new subcommand
+  follows the same contract for shape parity with the rest of
+  the `mathc` CLI. Exiting 0 with `null` would let a typo
+  silently pass an agent harness.
+
+  "The markdown body in `Diagnostic.explain` couples the kernel
+  to user-facing prose; future spec changes will require
+  editing both the kernel and the docs."
+
+  Counterargument: that coupling is the point — the
+  registry IS the user-facing docs. The current subcommand
+  uses a short inline string (one or two sentences) so the
+  change-set is bounded to a 30-line addition. A future
+  revision may move the strings into a YAML sidecar under
+  `lib/diagnostics/`; that migration is its own sub-decision.
+
+scope:
+  capabilities:
+    - diagnostics-ux
+  paths:
+    - "lib/diagnostic.ml"
+    - "bin/Mathc.ml"
+    - "tests/cli/explain-diagnostic.t"
+    - "attestations/t4-2-explain-diagnostic-cli-shipped.json"
+    - "attestations/t4-2-explain-diagnostic-registry-covers.json"
+
+outcomes:
+  - id: explain-diagnostic-registry
+    statement: |
+      `lib/diagnostic.ml::explain` returns a registered prose body
+      for the five codes emitted by `bin/Mathc.ml:validate_with_counts`
+      and the conformance runner. Unknown codes return `None`,
+      which the dispatcher maps to a typed diagnostic and exit 2.
+  - id: explain-diagnostic-cli
+    statement: |
+      `mathc explain-diagnostic <CODE>` dispatches to a handler
+      that emits sorted-key JSON `{code, definition, occurs_when,
+      remediation}` on stdout (exit 0) for known codes, or a typed
+      `MC-EXPLAIN-DIAGNOSTIC-UNKNOWN` diagnostic on stderr (exit 2)
+      for unknown codes or a missing positional argument.
+
+obligations:
+  - id: explain-diagnostic-registry-covers
+    statement: |
+      `lib/diagnostic.ml::explain` returns `Some <text>` for the
+      codes MC-AMBIGUOUS-ACCEPTANCE, MC-MALFORMED-ACCEPTANCE,
+      MC-PARSE, MC-DECISION-INVALID, MC-COUNTEREXAMPLE-MISSING and
+      `None` for every other input. The function is pure (no I/O,
+      no exceptions).
+    acceptance:
+      all:
+        - verifier: tests/diagnostic_ux.ml::explain_registry_covers_required_codes
+          result: pass
+
+  - id: explain-diagnostic-cli-shipped
+    statement: |
+      `mathc explain-diagnostic <CODE>` dispatches to a handler
+      that prints sorted-key JSON `{code, definition, occurs_when,
+      remediation}` for known codes and exits 0; prints a typed
+      `MC-EXPLAIN-DIAGNOSTIC-UNKNOWN` diagnostic on stderr and
+      exits 2 for unknown codes or absent a positional argument.
+      `mathc explain` (without `-diagnostic`) is unchanged.
+    acceptance:
+      all:
+        - verifier: tests/cli/explain-diagnostic.t
+          result: pass
+        - verifier: tests/cli/explain-positive.t (unchanged)
+          result: pass
+        - verifier: tests/cli/explain-negative.t (unchanged)
+          result: pass
+
+reversal:
+  - signal: registry-async-with-codes
+    condition: |
+      A new `MC-*` code is added to the kernel without a matching
+      `explain` entry, leaving the CLI unable to describe a code it
+      itself emits. Resolution: add the registry entry in the same
+      PR as the new code, per T4.1 (every `MC-*` diagnostic carries
+      a copy-pasteable `next_actions` snippet).
+    action: rework
+
+risk:
+  declared_triggers:
+    - diagnostic-prose-stale
+    - new-code-not-registered
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+    - mathc-explain-subcommand@3
+  supersedes: []
+  superseded_by: []

@@ -537,6 +537,145 @@ let[@warning "-32"] version_default_reads_version_file () =
   Alcotest.(check string)
     "default_config.version matches VERSION" file_version v
 
+(* --- site-ru-en-synced obligation (t5-1) --- *)
+
+(* `dune test` exports DUNE_SOURCEROOT pointing at the project
+   root; fall back to ../site from the test exe directory
+   for direct invocation. *)
+let[@warning "-32"] bilingual_site_source_root () =
+  match Sys.getenv_opt "DUNE_SOURCEROOT" with
+  | Some p -> Filename.concat p "site"
+  | None -> "../site"
+
+let[@warning "-32"] read_text path =
+  let ic = open_in path in
+  let n = in_channel_length ic in
+  let s = really_input_string ic n in
+  close_in ic;
+  s
+
+let[@warning "-32"] split_lines s = String.split_on_char '\n' s
+
+let[@warning "-32"] trim s =
+  let len = String.length s in
+  let rec left i =
+    if i >= len then i
+    else match s.[i] with ' ' | '\t' | '\r' -> left (i + 1) | _ -> i
+  in
+  let rec right i =
+    if i <= 0 then i
+    else match s.[i - 1] with ' ' | '\t' | '\r' -> right (i - 1) | _ -> i
+  in
+  let l = left 0 in
+  let r = right len in
+  if l >= r then "" else String.sub s l (r - l)
+
+(* Count lines that begin with a Markdown heading marker (any
+   depth from # to ######). *)
+let[@warning "-32"] count_headings lines =
+  List.fold_left
+    (fun acc line ->
+      let t = trim line in
+      if String.length t > 0 && t.[0] = '#' then acc + 1 else acc)
+    0 lines
+
+(* Count list items whose first non-whitespace char is `-` or `*`
+   followed by a space. Wrapped continuations are skipped. *)
+let[@warning "-32"] count_list_items lines =
+  List.fold_left
+    (fun acc line ->
+      let t = trim line in
+      let n = String.length t in
+      if n >= 2 && (t.[0] = '-' || t.[0] = '*') && t.[1] = ' ' then acc + 1
+      else acc)
+    0 lines
+
+(* Count fenced code blocks. Each block contributes a pair of
+   ``` markers; we divide by 2 to count blocks. *)
+let[@warning "-32"] count_fenced_blocks lines =
+  let n =
+    List.fold_left
+      (fun acc line ->
+        let t = trim line in
+        if String.length t >= 3 && String.sub t 0 3 = "```" then acc + 1
+        else acc)
+      0 lines
+  in
+  n / 2
+
+(* Count pipe-table rows: lines whose first non-whitespace char
+   is `|`. *)
+let[@warning "-32"] count_table_rows lines =
+  List.fold_left
+    (fun acc line ->
+      let t = trim line in
+      if String.length t > 0 && t.[0] = '|' then acc + 1 else acc)
+    0 lines
+
+(* The drift metric is the sum of absolute differences across four
+   structural fingerprints:
+     - headings,
+     - list items,
+     - fenced code blocks,
+     - pipe-table rows.
+   Each structural divergence is one substantive difference.
+   The threshold is 3 (per decisions/plan-2026-10-improvements/t5-1). *)
+let[@warning "-32"] structural_drift en_text ru_text =
+  let en_lines = split_lines en_text in
+  let ru_lines = split_lines ru_text in
+  let en_h = count_headings en_lines in
+  let ru_h = count_headings ru_lines in
+  let en_b = count_list_items en_lines in
+  let ru_b = count_list_items ru_lines in
+  let en_c = count_fenced_blocks en_lines in
+  let ru_c = count_fenced_blocks ru_lines in
+  let en_t = count_table_rows en_lines in
+  let ru_t = count_table_rows ru_lines in
+  abs (en_h - ru_h) + abs (en_b - ru_b) + abs (en_c - ru_c) + abs (en_t - ru_t)
+
+(* Enumerate every name under `site/<name>.md` that also has a
+   `site/<name>.ru.md` sibling. The set is the reconciliation
+   surface for obligation t5-1. *)
+let[@warning "-32"] bilingual_pairs_with_drift () =
+  let root = bilingual_site_source_root () in
+  let names =
+    [ "manifesto"; "workflow"; "readme"; "foundations"; "contributing"; "faq" ]
+  in
+  List.map
+    (fun name ->
+      let en = read_text (Filename.concat root (name ^ ".md")) in
+      let ru = read_text (Filename.concat root (name ^ ".ru.md")) in
+      (name, structural_drift en ru))
+    names
+
+let[@warning "-32"] bilingual_drift_under_threshold () =
+  let threshold = 3 in
+  let root = bilingual_site_source_root () in
+  (* Sanity: every reconciled pair has both EN and RU source files.
+     The renderer relies on the same invariant; if this fails the
+     bilingual_pairs_complete test will also fail. *)
+  let pairs = bilingual_pairs_with_drift () in
+  let present_en name = Sys.file_exists (Filename.concat root (name ^ ".md")) in
+  let present_ru name =
+    Sys.file_exists (Filename.concat root (name ^ ".ru.md"))
+  in
+  List.iter
+    (fun (name, _drift) ->
+      Alcotest.(check bool)
+        (Printf.sprintf "%s.md present" name)
+        true (present_en name);
+      Alcotest.(check bool)
+        (Printf.sprintf "%s.ru.md present" name)
+        true (present_ru name))
+    pairs;
+  (* For each pair, structural_drift must be ≤ threshold. *)
+  List.iter
+    (fun (name, drift) ->
+      Alcotest.(check bool)
+        (Printf.sprintf "%s structural drift %d <= %d" name drift threshold)
+        true (drift <= threshold))
+    pairs
+
 let () =
   Alcotest.run "render"
     [
@@ -556,6 +695,8 @@ let () =
       );
       ( "bilingual_pairs_complete",
         [ Alcotest.test_case "pairs" `Quick bilingual_pairs_complete ] );
+      ( "bilingual_drift_under_threshold",
+        [ Alcotest.test_case "drift" `Quick bilingual_drift_under_threshold ] );
       ("table_renders", [ Alcotest.test_case "table" `Quick table_renders ]);
       ("bold_renders", [ Alcotest.test_case "bold" `Quick bold_renders ]);
       ( "blockquote_renders",

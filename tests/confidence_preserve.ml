@@ -17,6 +17,8 @@ schema: math-coding/3.0-alpha
 id: conf-yaml-test
 revision: 1
 state: active
+axiom_link:
+  - A0
 intent: |
   test
 commitment: |
@@ -69,8 +71,10 @@ let[@warning "-32"] json_form () =
   "id": "conf-json-test",
   "revision": "1",
   "state": "active",
+  "axiom_link": ["A0"],
   "intent": {"source": "test", "text": "t"},
   "commitment": "c",
+  "counterexample": "test probe; parser-robustness check (T6.2 requires counterexample for mode >= standard).",
   "scope": [{"kind": "path", "path": "lib/**"}],
   "outcomes": [{"id": "o", "statement": "s"}],
   "obligations": [
@@ -115,6 +119,8 @@ schema: math-coding/3.0-alpha
 id: conf-missing-test
 revision: 1
 state: active
+axiom_link:
+  - A0
 intent: |
   test
 commitment: |

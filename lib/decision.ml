@@ -9,9 +9,24 @@
    Decision they must agree as strings. If either is absent the
    invariant is vacuously satisfied (no mismatch is possible).
    The string format is `sha256:<64 hex>` per schemas/decision.json,
-   so equality of the formatted strings is equality of the digests. *)
-let sha_match_check (d : Domain.decision) : bool =
-  match (d.body_sha, d.yaml_sha) with Some bs, Some ys -> bs = ys | _ -> true
+   so equality of the formatted strings is equality of the digests.
+
+   T0.2 (stream ε): the original `(d : Domain.decision) -> bool`
+   signature was strengthened to a `(bool, Diagnostic.t list) result`
+   accumulator so the CLI can surface a single precise
+   `MC-SHA-MISMATCH` diagnostic on reject, with the two offending
+   hashes embedded in the message and a `next_actions` snippet
+   pointing at the recompute algorithm. Callers that only need the
+   boolean (e.g., legacy tests) use the `_ignored` accumulator. *)
+let sha_match_check (d : Domain.decision) : bool * Diagnostic.t list =
+  match (d.body_sha, d.yaml_sha) with
+  | Some bs, Some ys when bs <> ys ->
+      let diag =
+        Diagnostic.mc_sha_mismatch ~decision_id:d.Domain.id ~body_sha:bs
+          ~yaml_sha:ys ()
+      in
+      (false, [ diag ])
+  | _ -> (true, [])
 
 (* Parse a single obligation acceptance item (verifier OR review). *)
 let[@warning "-32"] parse_verifier v =
@@ -161,6 +176,136 @@ let[@warning "-32"] parse_reversal v =
         in
         Some { Domain.signal; condition; Domain.action }
   | _ -> None
+
+(* === T6.2 helper: counterexample-mode-required.
+
+   Rule (spec/algebra-3.2.md §11 + decisions/plan-2026-10-improvements/t6-2.yaml):
+     - mode ∈ {tiny, light}  + empty counterexample → allowed (legacy soft
+       warning at most).
+     - mode ∈ {standard, strict, exhaustive} + empty counterexample → reject.
+
+   The check fires AFTER the counterexample field has been parsed (so we
+   know the value the author intended) and BEFORE the Decision record is
+   constructed. Returning None from `parse_decision` for the rule is the
+   same path the axiom_link rule uses (lib/decision.ml:845); the CLI's
+   `validate_with_counts` distinguishes the two specific causes by
+   inspecting the raw JSON BEFORE calling `parse_decision`, so the
+   surface diagnostic is precise (see
+   bin/Mathc.ml::axiom_link_violation and
+   bin/Mathc.ml::counterexample_violation). This split — parser-side
+   reject for the kernel's authoritative reading, CLI-side pre-check
+   for the precise diagnostic — matches the T0.2 (sha-match) and T2.2
+   (axiom_link) patterns. *)
+
+(* Counterexample is "present and meaningful" iff the parsed field is a
+   non-empty string after trimming. The parser supports two forms
+   (YAML scalar / JSON array); both reduce to a single `string option`
+   at this layer. Whitespace-only values are treated as empty so
+   authors cannot satisfy the rule with a literal " " placeholder.
+   Exposed publicly for use by `bin/Mathc.ml::counterexample_violation`
+   so the CLI's pre-parse check and the parser's enforcement agree
+   on what "empty" means. *)
+let counterexample_meaningful_opt (s : string option) : bool =
+  match s with Some t when String.trim t <> "" -> true | _ -> false
+
+(* mode >= standard: standard | strict | exhaustive. The order on the
+   mode sum type is intentional (Domain.mode definition), so a simple
+   OCaml polymorphic compare works for the floor check. *)
+let mode_geq_standard (m : Domain.mode) : bool =
+  match m with
+  | `Standard | `Strict | `Exhaustive -> true
+  | `Tiny | `Light -> false
+
+(* === Axiom-link detection (algebra §17 "Inline axiom change")
+   ===
+   Helpers below `populate_axiom_addresses` are kept ABOVE the
+   mutually-recursive parser chain so the chain can extend all
+   the way down to `parse_decision` without `let` interrupting
+   `and`. The helpers do not call back into the parser chain. *)
+
+(* A token is "axiom-shaped" iff it starts with `A`, has digits,
+   optionally has `@rev` or `.sub` suffix. Mirrors the regex used
+   by the prior `lib/re_evaluation.ml::scan_axiom_ids` bridge so
+   the parser here accepts the same set of tokens. *)
+let[@warning "-32"] is_axiom_token s =
+  let n = String.length s in
+  if n < 2 then false
+  else if s.[0] <> 'A' then false
+  else
+    let re = Str.regexp "^A[0-9]+\\([@.][A-Za-z0-9_.-]*\\)?$" in
+    try
+      ignore (Str.search_forward re s 0);
+      true
+    with Not_found -> false
+
+(* Strip surrounding double or single quotes from a YAML scalar
+   that survived the loader unquoted. The kernel's loader does
+   not strip quotes automatically; we mirror `re_evaluation.ml`'s
+   helper so explicit `axiom: 'A0'` and `axiom: "A0"` survive
+   identically across the parser and the prior bridge. *)
+let[@warning "-32"] strip_quoted s =
+  let s = String.trim s in
+  let n = String.length s in
+  if n >= 2 && s.[0] = '"' && s.[n - 1] = '"' then String.sub s 1 (n - 2)
+  else if n >= 2 && s.[0] = '\'' && s.[n - 1] = '\'' then String.sub s 1 (n - 2)
+  else s
+
+(* Prose scan: extract every `\<A[0-9]+(\([@.][A-Za-z0-9_.-]*\)?\>`
+   token from a single string. Returns tokens in source order,
+   deduplicated. *)
+let[@warning "-32"] axiom_tokens_in_string s =
+  let re = Str.regexp "\\<A[0-9]+\\([@.][A-Za-z0-9_.-]*\\)?\\>" in
+  let rec scan pos acc =
+    try
+      ignore (Str.search_forward re s pos);
+      let tok = Str.matched_string s in
+      let acc' =
+        if is_axiom_token tok && not (List.mem tok acc) then tok :: acc else acc
+      in
+      scan (Str.match_end ()) acc'
+    with Not_found -> acc
+  in
+  scan 0 []
+
+(* Walk the Jsonl tree once; for every Object key that is one of
+   `axiom` / `axiom-id` / `axioms`, extract the scalar or list
+   value as axiom-shaped tokens (mirrors `collect_value` and the
+   `axiom` / `axiom-id` / `axioms` branches of `scan_axiom_ids`).
+   For every other key, recurse into the value (and arrays), so
+   prose tokens like "per A1 honesty" inside an obligation claim
+   are picked up regardless of where they live.
+
+   Order in the returned list is "key-derived first, prose
+   last", matching `scan_axiom_ids`'s reverse-occurrence order
+   semantics. *)
+let[@warning "-32"] rec collect_axiom_tokens_from_value = function
+  | Jsonl.String s -> axiom_tokens_in_string s
+  | Jsonl.Array xs -> List.concat_map collect_axiom_tokens_from_value xs
+  | Jsonl.Object ps ->
+      let from_key (k, v) =
+        if k = "axiom" || k = "axiom-id" || k = "axioms" then
+          match v with
+          | Jsonl.String s ->
+              let stripped = strip_quoted s in
+              if is_axiom_token stripped then [ stripped ] else []
+          | Jsonl.Array xs ->
+              List.concat_map
+                (fun x ->
+                  match x with
+                  | Jsonl.String s ->
+                      let stripped = strip_quoted s in
+                      if is_axiom_token stripped then [ stripped ] else []
+                  | _ -> [])
+                xs
+          | _ -> []
+        else []
+      in
+      let from_keys = List.concat_map from_key ps in
+      let from_strings =
+        List.concat_map (fun (_, v) -> collect_axiom_tokens_from_value v) ps
+      in
+      from_keys @ from_strings
+  | _ -> []
 
 let rec parse_assumption v =
   match v with
@@ -506,6 +651,26 @@ and parse_relations v =
         Domain.verifies = [];
       }
 
+(* Populate `relations.addresses` from the three sources listed
+   in the comment block above (YAML block, explicit keys, prose
+   tokens). Existing `relations.addresses` (already extracted
+   from the YAML block by `parse_relations`) is preserved
+   verbatim; the new sources are unioned in front, deduplicated.
+   The ordering matches `scan_axiom_ids` ∪ existing semantics so
+   the post-migration `relations.addresses` is set-equal (and
+   the list is order-stable for human readers) for every active
+   decision. *)
+and populate_axiom_addresses ps (relations : Domain.relations) :
+    Domain.relations =
+  let existing = relations.Domain.addresses in
+  let scanned = collect_axiom_tokens_from_value (Jsonl.Object ps) in
+  let merged =
+    List.fold_left
+      (fun acc id -> if List.mem id acc then acc else id :: acc)
+      existing scanned
+  in
+  { relations with Domain.addresses = merged }
+
 and parse_decision v =
   match v with
   | Jsonl.Object ps -> (
@@ -649,6 +814,9 @@ and parse_decision v =
                                             parse_relations (Jsonl.Object rps)
                                         | _ -> parse_relations Jsonl.Null
                                       in
+                                      let relations =
+                                        populate_axiom_addresses ps relations
+                                      in
                                       let axiom_link =
                                         match
                                           Schema.take_array ps "axiom_link"
@@ -662,34 +830,72 @@ and parse_decision v =
                                               xs
                                         | _ -> []
                                       in
-                                      Some
-                                        {
-                                          Domain.id;
-                                          Domain.rev = revision;
-                                          Domain.parents;
-                                          Domain.intent_source = source;
-                                          Domain.intent_text = text;
-                                          Domain.commitment;
-                                          Domain.scope;
-                                          Domain.outcomes;
-                                          Domain.obligations;
-                                          Domain.assumptions;
-                                          Domain.reversal;
-                                          Domain.risk =
-                                            {
-                                              Domain.declared_triggers =
-                                                triggers;
-                                              Domain.owner;
-                                            };
-                                          Domain.relations;
-                                          Domain.counterexample;
-                                          Domain.state;
-                                          Domain.mode;
-                                          Domain.mode_floor_used;
-                                          Domain.body_sha;
-                                          Domain.yaml_sha;
-                                          Domain.axiom_link;
-                                        }
+                                      (* T2.2: axiom_link is required for
+                                         state=active. The rule is enforced
+                                         at parser level so the kernel's
+                                         authoritative reading of a
+                                         Decision matches the schema
+                                         contract. Draft, Retired, and
+                                         Superseded decisions are exempt;
+                                         only active decisions carry the
+                                         contract. The CLI
+                                         (`bin/Mathc.ml::validate_with_counts`)
+                                         maps the None return into
+                                         diagnostic `MC-AXIOM-LINK-MISSING`
+                                         so the author sees a precise
+                                         next-step. See
+                                         `decisions/plan-2026-10-improvements/t2-2.yaml`.
+                                         T6.2: counterexample is required
+                                         for mode >= standard. Same
+                                         parser-level pattern: when the
+                                         rule fires, parse_decision
+                                         returns None; the CLI pre-parse
+                                         check
+                                         (`bin/Mathc.ml::counterexample_violation`)
+                                         distinguishes the cause from the
+                                         axiom_link violation and emits
+                                         `MC-COUNTEREXAMPLE-MISSING` with
+                                         Block severity. Tiny / light
+                                         modes are exempt. *)
+                                      let counterexample_required_missing =
+                                        mode_geq_standard mode
+                                        && not
+                                             (counterexample_meaningful_opt
+                                                counterexample)
+                                      in
+                                      if state = `Active && axiom_link = [] then
+                                        None
+                                      else if counterexample_required_missing
+                                      then None
+                                      else
+                                        Some
+                                          {
+                                            Domain.id;
+                                            Domain.rev = revision;
+                                            Domain.parents;
+                                            Domain.intent_source = source;
+                                            Domain.intent_text = text;
+                                            Domain.commitment;
+                                            Domain.scope;
+                                            Domain.outcomes;
+                                            Domain.obligations;
+                                            Domain.assumptions;
+                                            Domain.reversal;
+                                            Domain.risk =
+                                              {
+                                                Domain.declared_triggers =
+                                                  triggers;
+                                                Domain.owner;
+                                              };
+                                            Domain.relations;
+                                            Domain.counterexample;
+                                            Domain.state;
+                                            Domain.mode;
+                                            Domain.mode_floor_used;
+                                            Domain.body_sha;
+                                            Domain.yaml_sha;
+                                            Domain.axiom_link;
+                                          }
                                   | _ -> None)
                               | _ -> None)
                           | _ -> None)

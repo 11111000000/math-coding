@@ -125,6 +125,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/render-kernel-fixes-2026-10.yaml` | `render-kernel-fixes-2026-10` | 1 | 9 | RESOLVED | closes the 10 render-kernel defects catalogued in `analysis/site-render-defects.md` (fenced blocks, list continuation, italic, MathJax, packages grid, RU nav, axiom single `<h1>`, footer text, `base href` empty option, `mc-*` deploy re-sync) |
 | `decisions/mathjax-delimiter-hardening-2026-10.yaml` | `mathjax-delimiter-hardening-2026-10` | 1 | 2 | RESOLVED | narrows MathJax 3 inline/display delimiters to LaTeX-style `\(..\)` / `\[..\]` only; removes `$..$` and `$$..$$` from `lib/render.ml`; ships `mjx-container` + `.mermaid svg` CSS rules so future `--mathjax` opt-ins and mermaid diagrams respect the Tufte column rhythm |
 | `decisions/site-version-from-file-2026-10.yaml` | `site-version-from-file-2026-10` | 1 | 2 | RESOLVED | replaces hardcoded `3.0-alpha` / `v3.0.0` literals in `lib/render.ml` with a single `VERSION` file; `mathc render` + `mathc version` read it; closes the dual-source drift between the live site hero and the current release tag |
+| `decisions/plan-2026-10-improvements/t1-1.yaml` | `t1-1` | 1 | 1 | RESOLVED | wires `lib/rebuttal.ml::forge_mirror` to `MATH_CODING_FORGE_API`; algebra §10 hybrid mechanism is functional end-to-end; closes `plan-2026-10-improvements@1` Tier 1 obligation `t1-1-forge-mirror` |
 | `decisions/risk-policy-driven-floor-2026-10.yaml` | `risk-policy-driven-floor-2026-10` | 1 | 7 | RESOLVED | wires `lib/policy.ml` into `lib/risk.ml` so `mode_floor` and `policy_override_probability` honor declared policies instead of returning constants; closes algebra §2 "Phase 2E replaces this stub" comment; adds `policies.yaml` at the repo root and `OCAML_BEST_PRACTICES.md` §11.25 |
 | `decisions/ci-blocking-list-config.yaml` | `ci-blocking-list-config` | 2 | 2 | RESOLVED | configurable blocking-CI list via MATH_CODING_BLOCKING_CIS |
 | `decisions/process-principles-close-branches.yaml` | `process-principles-close-branches` | 3 | 3 | RESOLVED | close-branches subcommand and pre-commit hook (process-principles@2 P2 detail) |
@@ -141,6 +142,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/agent-debug-infrastructure-2026-10.yaml` | `agent-debug-infrastructure-2026-10` | 1 | 4 | META | scripts/agent-debug + tests/traps.ml + tests/qcheck_parsers.ml + Jsonl.Parse_error verbosity; not counted as active decision (dev-infra, no kernel surface) |
 | `decisions/merlin-lsp-2026-10.yaml` | `merlin-lsp-2026-10` | 1 | 3 | META | hand-written `.merlin` + `ocaml-lsp` + `merlin` in `flake.nix` ocamlDeps; not counted as active decision (dev-infra, no kernel surface) |
 | `decisions/junit-entity-off-by-one-fix-2026-10.yaml` | `junit-entity-off-by-one-fix-2026-10` | 1 | 3 | RESOLVED | off-by-one in `lib/junit/junit.ml:74-90` entity-reference boundary check; `tests/junit_test.ml` regression; new §11.23 trap |
+| `decisions/plan-2026-10-improvements/t4-2.yaml` | `t4-2-explain-diagnostic` | 1 | 2 | RESOLVED | Tier-4 #2: `mathc explain-diagnostic <CODE>` subcommand; registry in `lib/diagnostic.ml::explain`; positive+negative cram fixture |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision
@@ -190,10 +192,12 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `gate-pass.t` | gate returns pass when store has current attestation | `decisions/gate-attestation-store-fill.yaml` |
 | `gate-fail.t` | gate returns fail on decisive failed attestation | `decisions/gate-attestation-store-fill.yaml` |
 | `gate-stale.t` | gate returns stale on expired attestation | `decisions/gate-attestation-store-fill.yaml` |
+| `gate-waiver-scope.t` | Open_with_waiver lifts only the named (decision, obligation) gap (T3.2) | `decisions/plan-2026-10-improvements/t3-2.yaml` |
 | `gate-v32-wired.t` | §15 phase-aware verdict wired into mathc gate | `decisions/algebra-3.2.yaml` |
 | `gate-empty.t` | gate with empty store -> unknown verdict | `decisions/gate-attestation-store-fill.yaml` |
 | `mode.t` | mathc mode computes risk+mode for paths (v3.2 §2) | `decisions/3-2-cli-catalog.yaml` |
 | `re-evaluate.t` | mathc re-evaluate runs §17 oracle | `decisions/3-2-cli-catalog.yaml` |
+| `re-evaluate-decisions.t` | mathc re-evaluate-decisions emits post-run verdicts + attestations (T1.2) | `decisions/plan-2026-10-improvements.yaml` |
 | `rebuttals.t` | mathc rebuttals walks rebuttals/<sha>.yaml (v3.2 §10) | `decisions/3-2-cli-catalog.yaml` |
 | `migration-3.2-fields.t` | migrated decisions have state=active + sha fields | `decisions/algebra-3.2.yaml` |
 | `schema-extensions-3.2.t` | decisions with 3.2 fields parse via mathc validate | `decisions/algebra-3.2.yaml` |
@@ -202,6 +206,7 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `self-check-unknown.t` | self-check returns unknown on infrastructure error | `decisions/mathc-self-check-subcommand.yaml` |
 | `explain-positive.t` | explain resolves `decision:foo` to body | `decisions/mathc-explain-subcommand.yaml` |
 | `explain-negative.t` | explain emits `MC-REF-UNKNOWN` on bad ref | `decisions/mathc-explain-subcommand.yaml` |
+| `explain-diagnostic.t` | explain-diagnostic resolves `MC-*` codes to JSON | `decisions/plan-2026-10-improvements/t4-2.yaml` |
 | `git-adapter.t` | assess runs git diff --name-only | `decisions/adapters.yaml` |
 | `junit-adapter.t` | attest parses JUnit XML | `decisions/adapters.yaml` |
 | `cli-time-estimate.t` | time-estimate 4 documented paths | `decisions/time-honesty.yaml` |
@@ -263,7 +268,7 @@ is registered through `git config core.hooksPath`.
 
 | Module | Purpose |
 |---|---|
-| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, assess, attest, gate, version, session-start, record, stats, time-estimate, self-check, render, packages, mode, rebuttals, re-evaluate) — 17 subcommands total |
+| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, explain-diagnostic, assess, attest, gate, version, session-start, record, stats, time-estimate, self-check, render, packages, mode, rebuttals, re-evaluate, re-evaluate-decisions) — 19 subcommands total |
 | `data/time-distribution.yaml` | SWE-bench Verified (n=500, 2025-Q4) reference class for `mathc time-estimate` |
 
 ## Adapter protocol (`lib/git/`, `lib/junit/`)

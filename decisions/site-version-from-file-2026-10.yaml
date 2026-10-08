@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: site-version-from-file-2026-10
 revision: 1
 state: active
-body_sha: "sha256:09ec90c2dc6544cad7df788604afdb91213cb1b3038a9ecb7401303b75250b5d"
-yaml_sha: "sha256:09ec90c2dc6544cad7df788604afdb91213cb1b3038a9ecb7401303b75250b5d"
+body_sha: "sha256:fed15b6848976ec3ebc058267725ac77a2bad879cd82926b4d251de572692983"
+yaml_sha: "sha256:fed15b6848976ec3ebc058267725ac77a2bad879cd82926b4d251de572692983"
 intent: |
   Remove the hardcoded `3.0-alpha` and `v3.0.0` strings from
   `lib/render.ml`. The site hero, page titles, and footer
@@ -33,6 +33,8 @@ intent: |
   History:
     rev 1 (this commit): initial adoption.
 
+axiom_link:
+  - A0
 commitment: |
   1. `lib/render.ml` defines `read_version_file ~fallback` which
      reads `./VERSION` (or any of a small set of well-known

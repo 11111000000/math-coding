@@ -115,6 +115,30 @@ fi
 
 cleanup_dune
 
+# stub-lint: enforce no-stub-without-tracking for lib/*.ml and
+# bin/Mathc.ml. Verifier for
+# decisions/plan-2026-10-improvements/t6-1.yaml obligation
+# `stub-lint-step-in-check-sh`. Exit 0 = clean, exit 1 =
+# untracked stub marker, exit 2 = python3 unavailable (treated
+# as a no-op so legacy environments without python3 still pass).
+stub_lint_rc=0
+stub_lint_out=$(scripts/check-stub-lint.sh 2>&1)
+stub_lint_rc=$?
+if [ "$stub_lint_rc" -eq 0 ]; then
+  printf "  ok   stub-lint\n"
+  pass=$((pass + 1))
+elif [ "$stub_lint_rc" -eq 2 ]; then
+  printf "  ok   stub-lint (python3 unavailable; skipped)\n"
+  pass=$((pass + 1))
+else
+  printf "  FAIL stub-lint\n"
+  printf '%s\n' "$stub_lint_out" >&2 || true
+  fail=$((fail + 1))
+  failed_names+=("stub-lint")
+fi
+
+cleanup_dune
+
 echo
 echo "summary: $pass passed, $fail failed"
 

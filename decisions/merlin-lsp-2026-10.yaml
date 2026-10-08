@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: merlin-lsp-2026-10
 revision: 1
 state: active
-body_sha: "sha256:97726a9eeb7c0421b349b6f260050f5b29803c2cdf4150d8601e8423ba3cefa8"
-yaml_sha: "sha256:97726a9eeb7c0421b349b6f260050f5b29803c2cdf4150d8601e8423ba3cefa8"
+body_sha: "sha256:c7625e2b0e6f23ce71a43332b978215df732cba4b253de524ba89193ba7bab60"
+yaml_sha: "sha256:c7625e2b0e6f23ce71a43332b978215df732cba4b253de524ba89193ba7bab60"
 intent: |
   Wire OCaml IDE tooling (LSP / merlin) into the math-coding
   development loop so human editors (VSCode ocaml-platform,
@@ -45,6 +45,8 @@ intent: |
       crash report does not need to re-source `.merlin`; the
       decision file is documentation, not code).
 
+axiom_link:
+  - A0
 commitment: |
   Three deliverables:
 

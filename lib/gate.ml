@@ -51,6 +51,7 @@ type gap = {
     | `Unknown ];
   causes : string list;
   remedies : string list;
+  next_actions : (string * string) list;
 }
 
 type t = {
@@ -146,6 +147,20 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
               "or update the attestation's subject.materials_digest if the \
                method is genuinely digest-independent";
             ];
+          next_actions =
+            [
+              ( "run",
+                Printf.sprintf "mathc assess <base> <head>   # recompute digest"
+              );
+              ( "run",
+                Printf.sprintf
+                  "mathc gate <base> <head>          # re-evaluate the gate" );
+              ( "edit",
+                Printf.sprintf
+                  "attestations/<decision>-%s.json   # update \
+                   subject.materials_digest"
+                  obligation_id );
+            ];
         }
   | [], [] ->
       Some
@@ -162,6 +177,15 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
             [
               "produce an attestation that names this decision + obligation";
               "or add a waiver under decisions/*.yaml";
+            ];
+          next_actions =
+            [
+              ( "create",
+                Printf.sprintf
+                  "attestations/%s-%s.json   # add an attestation file"
+                  decision_id obligation_id );
+              ("create", "decisions/waivers/<decision>-<obligation>.yaml");
+              ("run", "mathc self-check");
             ];
         }
   | _, current ->
@@ -187,6 +211,18 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                 "revert the change that broke this obligation";
                 "or add a waiver under decisions/*.yaml";
               ];
+            next_actions =
+              [
+                ("run", "git revert <sha>   # revert the offending change");
+                ( "edit",
+                  Printf.sprintf "%s   # %s" decision_id
+                    "fix the underlying cause and re-evaluate" );
+                ( "create",
+                  Printf.sprintf
+                    "decisions/waivers/%s-%s.yaml   # add a waiver if \
+                     acceptable"
+                    decision_id obligation_id );
+              ];
           }
       else if not has_pass then
         Some
@@ -205,6 +241,18 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                 "investigate the inconclusive attestation; a fail or a new \
                  pass is required";
               ];
+next_actions =
+            [
+              ( "run",
+                Printf.sprintf
+                  "mathc re-evaluate-decisions A0   # run the oracle \
+                   explicitly" );
+              ( "edit",
+                Printf.sprintf
+                  "attestations/%s-%s.json   # re-author the inconclusive \
+                   attestation"
+                  decision_id obligation_id );
+            ];
           }
       else None
 
@@ -223,7 +271,32 @@ let[@warning "-32"] aggregate gaps =
   let has_failed = List.exists (fun g -> g.kind = `FailedEvidence) gaps in
   match gaps with _ when has_failed -> Block | [] -> Pass | _ -> Unknown
 
-let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store =
+(* T3.1: v3.0 evaluate path now consults `Risk.mode files` and
+ * surfaces rebuttal obligations for `mode >= strict`, per algebra
+ * §10:
+ *
+ *   ∀ c, mode(c) ≥ strict: rebuttals(c) may exist (not required)
+ *   ∀ c, mode(c) = exhaustive: rebuttals(c) required for
+ *                              non-Unblocked verdict
+ *
+ * The previous v3.0 behaviour silently returned Unknown for
+ * axiom-touching commits that lacked rebuttals; the new behaviour
+ * mirrors gate_v32 by promoting to Block when rebuttals are empty
+ * and the mode demands them. Pure function — `rebuttals` is loaded
+ * by `bin/Mathc.ml::do_gate` (or a test fake) and passed in here
+ * as a typed value; no I/O inside `evaluate` (OCAML_BEST_PRACTICES
+ * §1.3).
+ *
+ * Kernel Invariant 14 (exit honesty): Block MUST exit non-zero,
+ * and the gate verdict MUST reflect the strongest signal in the
+ * store + the rebuttal binding. A rebuttal-less strict/exhaustive
+ * commit is, by the spec, a Block. *)
+let[@warning "-32"] rebuttal_gating_for_mode (m : Domain.mode) :
+    [ `Required | `Optional ] =
+  match m with `Strict | `Exhaustive -> `Required | _ -> `Optional
+
+let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
+    ~rebuttals =
   let materials = materials_digest_of changed_paths in
   let applicable_count =
     List.fold_left
@@ -241,11 +314,18 @@ let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store =
       memory.Memory.decisions
   in
   let obligation_count = applicable_count in
-  let verdict =
+  let base_verdict =
     match (changed_paths, obligation_count) with
     | [], _ | _, 0 -> Pass
     | _ -> aggregate gaps
   in
+  let mode = Risk.mode changed_paths in
+  let rebuttals_required =
+    match rebuttal_gating_for_mode mode with
+    | `Required -> List.length rebuttals = 0
+    | `Optional -> false
+  in
+  let verdict = if rebuttals_required then Block else base_verdict in
   { verdict; gaps; obligation_count; now; base; head }
 
 (* ============================================================================
@@ -391,8 +471,18 @@ let[@warning "-32"] gate_v32 (c : commit_info)
     (re_eval_status : Re_evaluation.status) (rules : kernel_rule list) ~store
     ~decision_id : verdict =
   let rule_violated = List.exists (fun r -> not (apply_rule r c)) rules in
+  (* T1.2 expansion: the gate now blocks on `Incompatible` AS WELL
+   * as `StaleClaim`. `Incompatible` is the verdict the oracle
+   * returns when a test-style obligation has not been explicitly
+   * run; the previous 3-valued type silently returned `Compatible`
+   * in that case, which the A1 honesty audit flagged as a gap.
+   * `Compatible`, `CompatibleAfterRun`, and `Inconclusive` all
+   * permit Open (Inconclusive still surfaces a follow-up review
+   * list via the gap stream). *)
   let re_eval_blocks =
-    match re_eval_status with Re_evaluation.StaleClaim -> true | _ -> false
+    match re_eval_status with
+    | Re_evaluation.StaleClaim | Re_evaluation.Incompatible -> true
+    | _ -> false
   in
   let blocking_pre_merge =
     List.filter (fun ob -> ob.Domain.phase = `PreMerge) obligations
@@ -430,8 +520,10 @@ let gate_release_v32 (obligations : Domain.obligation list)
         | _ -> false)
       obligations
   in
+  (* T1.2 expansion: `Incompatible` now blocks the release gate
+   * alongside `StaleClaim` (the A1 honesty closure). *)
   match re_eval with
-  | Re_evaluation.StaleClaim -> Block
+  | Re_evaluation.StaleClaim | Re_evaluation.Incompatible -> Block
   | _ -> if List.length blocking > 0 then Unknown else Pass
 
 (* Post-release monitor: emit AssuranceGap stream, never blocking *)

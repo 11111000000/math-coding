@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: attestation-store-fill
 revision: 3
 state: active
-body_sha: "sha256:1fc2d876067ccb6ccdedf77aa21bca6f226d648225d2a7ed18db3ac27edf8555"
-yaml_sha: "sha256:1fc2d876067ccb6ccdedf77aa21bca6f226d648225d2a7ed18db3ac27edf8555"
+body_sha: "sha256:005a5b0b9d8b2c699b926b122f9d93efec814db65c9fc034facaf93910e2cd0d"
+yaml_sha: "sha256:005a5b0b9d8b2c699b926b122f9d93efec814db65c9fc034facaf93910e2cd0d"
 intent: |
   Close the AGENTS.md §Bootstrap-gate expiry condition for
   v3.0.0.19 by populating the filesystem-backed attestation
@@ -29,6 +29,8 @@ intent: |
   false` to make the bootstrap-gate verdict block merges per
   constitution.md Invariant 14.
 
+axiom_link:
+  - A0
 commitment: |
   1. Create attestations/ directory at the project root.
   2. Populate attestations/<decision>-<obligation>.json for every
@@ -88,6 +90,9 @@ obligations:
       all:
         - verifier: mathc-self-check-verdict
           result: pass
+
+counterexample: |
+  Self-attestations certify a kernel that cannot yet check itself; this loop is structurally weak.
 
 reversal:
   - signal: attestations-stale-or-wrong

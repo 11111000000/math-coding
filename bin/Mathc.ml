@@ -128,77 +128,228 @@ let first_missing_required v =
       List.find_opt (fun f -> not (List.mem f keys)) decision_required_fields
   | _ -> None
 
+(* T2.2: detect axiom_link violations pre-parse. The parser
+   rejects active+empty axiom_link by returning None; the CLI
+   distinguishes that specific cause from the generic
+   "missing or invalid required field" reject by inspecting
+   the raw input FIRST. The check is:
+     state == active (or absent, which defaults to active per
+       schemas/decision.json), AND
+     axiom_link field is absent OR an empty array.
+   Draft / Retired / Superseded decisions are exempt. The
+   diagnostic id is `MC-AXIOM-LINK-MISSING` (registered in
+   `lib/diagnostic.ml::explain`); the helper that builds it is
+   `Diagnostic.axiom_link_missing`. The decision_id is read
+   for the message body; missing id is fine (the message is
+   informative without it). This block is the surgical
+   bin/Mathc.ml addition that stream ε (T2.2) needed; stream
+   η (T4.1) refactored it out by mistake and stream ε (T6.2)
+   restores it as part of the same A3-protected transition
+   pipeline.
+*)
+let axiom_link_violation v =
+  match v with
+  | Jsonl.Object ps -> (
+      let state_str =
+        match Schema.take_string ps "state" with
+        | Some s -> s
+        | None -> "active"
+      in
+      let axiom_link_present =
+        match Schema.take_array ps "axiom_link" with
+        | Some xs ->
+            List.exists
+              (fun x ->
+                match x with
+                | Jsonl.String s when String.trim s <> "" -> true
+                | _ -> false)
+              xs
+        | None -> false
+      in
+      match state_str with
+      | "active" when not axiom_link_present ->
+          let decision_id =
+            match Schema.take_string ps "id" with Some s -> s | None -> ""
+          in
+          Some (Diagnostic.axiom_link_missing ~decision_id ())
+      | _ -> None)
+  | _ -> None
+
+(* T6.2: detect counterexample violations pre-parse. The parser
+   rejects decisions whose mode is >= standard with an empty
+   counterexample by returning None; the CLI distinguishes that
+   specific cause from the generic "missing or invalid required
+   field" reject (and from the T2.2 axiom_link violation) by
+   inspecting the raw input FIRST. The check is:
+     mode >= standard (i.e. mode ∈ {standard, strict, exhaustive};
+       mode absent defaults to `standard` per Codec.parse_mode's
+       default and Domain.mode encoding in lib/domain.ml:43),
+       AND
+     counterexample field is absent OR is a YAML scalar that
+       trims to the empty string OR is a JSON array where every
+       element trims to the empty string.
+
+   Tiny / light modes are exempt (counterexample remains a soft
+   Warn at most for those modes; the legacy soft-warning path
+   below `validate_with_counts` is unchanged). The diagnostic
+   id is `MC-COUNTEREXAMPLE-MISSING` (registered in
+   `lib/diagnostic.ml::explain`); the helper that builds it is
+   `Diagnostic.mc_counterexample_missing` with the new
+   `~severity:Block` parameter. The decision_id is read for the
+   message body. The rule is A3-protected (per
+   `spec/constitution.md` §Self-application and the A3
+   separation axiom: a contract change cannot authorize its own
+   adoption); human review is required before merge (see the
+   dual attestations `attestations/t6-2-*.json` and
+   `attestations/plan-2026-10-improvements-t6-2-*.json`). *)
+let counterexample_violation v =
+  match v with
+  | Jsonl.Object ps -> (
+      let mode_str =
+        match Schema.take_string ps "mode" with
+        | Some s -> s
+        | None -> "standard"
+      in
+      let mode_exempt =
+        match mode_str with "tiny" | "light" -> true | _ -> false
+      in
+      let counterexample_meaningful =
+        match Schema.take_string ps "counterexample" with
+        | Some s when String.trim s <> "" -> true
+        | _ -> (
+            match Schema.take_array ps "counterexample" with
+            | Some xs ->
+                List.exists
+                  (fun x ->
+                    match x with
+                    | Jsonl.String s when String.trim s <> "" -> true
+                    | _ -> false)
+                  xs
+            | None -> false)
+      in
+      match mode_exempt with
+      | true -> None
+      | false when not counterexample_meaningful ->
+          let decision_id =
+            match Schema.take_string ps "id" with Some s -> s | None -> ""
+          in
+          let msg =
+            Printf.sprintf "%s%s%s"
+              (if decision_id = "" then "" else decision_id ^ ": ")
+              "decision has mode="
+              (if mode_str = "" then "standard" else mode_str)
+            ^
+            match mode_str with
+            | "light" -> ""
+            | _ ->
+                " but empty counterexample: spec/algebra-3.2.md §11 requires \
+                 the counterexample dialectical slot for modes >= standard; \
+                 add a counterexample section naming the strongest objection \
+                 (or downgrade to mode: light if a documented soft slot is "
+                ^ "appropriate)"
+          in
+          Some
+            (Diagnostic.mc_counterexample_missing ~decision_id
+               ~severity:Diagnostic.Block msg)
+      | _ -> None)
+  | _ -> None
+
 let validate_with_counts path =
   match parse_file path with
   | Error (`Sys m) -> `Input_err m
   | Error (`Other m) -> `Input_err m
   | Error (`Parse (m, line, col)) ->
       let msg = Printf.sprintf "%s at line %d col %d" m line col in
-      `Reject
-        ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
-            ~retryable:false ~autofix_safe:false msg,
-          msg )
+      `Reject (Diagnostic.mc_parse msg, msg)
   | Ok v -> (
       match first_missing_required v with
       | Some field ->
           let msg = Printf.sprintf "missing required field: %s" field in
-          `Reject
-            ( Diagnostic.create ~code:"MC-DECISION-INVALID"
-                ~severity:Diagnostic.Warn ~retryable:false ~autofix_safe:false
-                ~path:[ field ] msg,
-              msg )
+          `Reject (Diagnostic.mc_decision_invalid ~path:[ field ] msg, msg)
       | None -> (
-          try
-            match Decision.parse_decision_yaml v with
-            | Some d ->
-                let extra_diags = collect_ambiguous_acceptance_diagnostics v in
-                (* counterexample is required for modes >= light per
-                   spec/algebra-3.2.md §11; emit a Warn diagnostic when
-                   absent. The verdict remains 'accept' — counterexample
-                   is a dialectical slot, not a hard requirement, so
-                   older decisions without it stay valid. *)
-                let counterexample_diag =
-                  if d.Domain.counterexample = None then
+          (* T6.2: counterexample-mode-required runs BEFORE
+             parse_decision_yaml so we get a precise Block-level
+             `MC-COUNTEREXAMPLE-MISSING` diagnostic and the right exit
+             code (1). The parser also returns None for the same
+             rule; this pre-check is what determines which exact
+             diagnostic code/severity reaches the user.
+             T2.2: same trick is used for `MC-AXIOM-LINK-MISSING` —
+             we restored the helper that stream η (T4.1) had
+             refactored out by mistake.
+             Order axiom -> counterexample: axiom_link is enforced
+             first because it was the earlier rule (T2.2 vs T6.2);
+             keeping the prior order means we emit axiom_link first
+             when both fire, which is the more general message. *)
+          match axiom_link_violation v with
+          | Some diag ->
+              let msg = diag.Diagnostic.message in
+              `Reject (diag, msg)
+          | None -> (
+              match counterexample_violation v with
+              | Some diag ->
+                  let msg = diag.Diagnostic.message in
+                  `Reject (diag, msg)
+              | None -> (
+                  try
+                    match Decision.parse_decision_yaml v with
+                    | Some d -> (
+                        (* T0.2: sha-match enforcement (spec/algebra-3.2.md §7,
+                           schemas/decision.json: when both `body_sha` and
+                           `yaml_sha` are present, the digests must agree.
+                           sha_match_check returns `(bool, Diagnostic.t list)`;
+                           the bool is non-binding here — the diagnostic list
+                           is the single source of truth for surface emission.
+                           A Block diagnostic still rejects the file. *)
+                        let _, sha_match_diags = Decision.sha_match_check d in
+                        match sha_match_diags with
+                        | first :: _ ->
+                            let msg =
+                              Printf.sprintf "body_sha ≠ yaml_sha (see %s)"
+                                first.Diagnostic.code
+                            in
+                            `Reject (first, msg)
+                        | [] ->
+                            let extra_diags =
+                              collect_ambiguous_acceptance_diagnostics v
+                            in
+                            (* T6.2: counterexample is required for
+                               modes >= standard (Block); for modes in
+                               {tiny, light} the counterexample field is
+                               optional and missing-ness becomes a soft
+                               Warn (the legacy soft-warning path
+                               preserved from the pre-T6.2 kernel). The
+                               Block case is already rejected by the
+                               pre-parse check above; here we only emit
+                               the Warn for tiny / light modes. *)
+                            let counterexample_diag =
+                              if d.Domain.counterexample = None then
+                                Some
+                                  (Diagnostic.mc_counterexample_missing
+                                     ~decision_id:d.Domain.id
+                                     "missing counterexample: \
+                                      spec/algebra-3.2.md §11 names it as a \
+                                      dialectical slot for modes >= light; add \
+                                      a counterexample section naming the \
+                                      strongest objection (legacy soft \
+                                      warning; the Block path was already \
+                                      rejected before parse)")
+                              else None
+                            in
+                            let extra_diags =
+                              match counterexample_diag with
+                              | Some diag -> diag :: extra_diags
+                              | None -> extra_diags
+                            in
+                            `Accept (d, extra_diags))
+                    | None ->
+                        let msg = "missing or invalid required field" in
+                        `Reject (Diagnostic.mc_decision_invalid msg, msg)
+                  with
+                  | Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
                     let msg =
-                      Printf.sprintf
-                        "missing counterexample: spec/algebra-3.2.md %s \
-                         requires it for modes >= light; add a counterexample \
-                         section naming the strongest objection"
-                        "§11"
+                      Printf.sprintf "%s at line %d col %d" raw_msg line col
                     in
-                    Some
-                      (Diagnostic.create ~code:"MC-COUNTEREXAMPLE-MISSING"
-                         ~severity:Diagnostic.Warn ~retryable:false
-                         ~autofix_safe:false
-                         ~next_actions:
-                           [
-                             ( "add",
-                               "counterexample: |\n\
-                               \                                 <one-line \
-                                objection>" );
-                           ]
-                         msg)
-                  else None
-                in
-                let extra_diags =
-                  match counterexample_diag with
-                  | Some diag -> diag :: extra_diags
-                  | None -> extra_diags
-                in
-                `Accept (d, extra_diags)
-            | None ->
-                let msg = "missing or invalid required field" in
-                `Reject
-                  ( Diagnostic.create ~code:"MC-DECISION-INVALID"
-                      ~severity:Diagnostic.Warn ~retryable:false
-                      ~autofix_safe:false msg,
-                    msg )
-          with Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
-            let msg = Printf.sprintf "%s at line %d col %d" raw_msg line col in
-            `Reject
-              ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
-                  ~retryable:false ~autofix_safe:false ~cause:context msg,
-                msg )))
+                    `Reject (Diagnostic.mc_parse ~cause:context msg, msg)))))
 
 let emit (format : output_format) path
     (outcome :
@@ -293,6 +444,8 @@ let print_usage oc =
     \  context BASE HEAD --budget N     print a JSON context capsule\n\
     \  explain DETAIL_REF               print JSON {kind,id,digest,path,body} \
      for the ref\n\
+    \  explain-diagnostic <CODE>        print JSON {code,definition,occurs_when,\n\
+    \                                   remediation} for an MC-* diagnostic code\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
     \  attest FILE                      parse FILE as a JUnit XML report\n\
     \  time-estimate --class ...        print JSON forecast from declared \
@@ -301,6 +454,8 @@ let print_usage oc =
     \  mode PATHS...                    compute risk + mode from paths (v3.2 §2)\n\
     \  rebuttals COMMIT_SHA              load rebuttals/<sha>.yaml (v3.2 §10)\n\
     \  re-evaluate                       run re_evaluate oracle (v3.2 §17)\n\
+    \  re-evaluate-decisions AXIOM_ID    walk decisions/ and emit post-run\n\
+    \                                   verdicts + attestations (T1.2)\n\
     \  self-check                       print JSON self-check verdict; exits \
      0|1|3\n\
     \  session-start                    write .local/session-start ISO timestamp\n\
@@ -745,6 +900,119 @@ let[@warning "-32"] do_explain () =
           let digest = Digest.sha256_hex body in
           print_string (explain_json kind id digest relpath body);
           exit 0)
+
+(* --- explain-diagnostic subcommand (Tier 4, t4-2) ---
+ *
+ * `mathc explain-diagnostic <CODE>` prints a JSON object with
+ * `{code, definition, occurs_when, remediation}` for the given
+ * diagnostic code. The registry lives in `lib/diagnostic.ml`
+ * (`Diagnostic.explain`). On an unknown code or a missing
+ * positional argument the handler prints a typed
+ * `MC-EXPLAIN-DIAGNOSTIC-UNKNOWN` diagnostic on stderr and
+ * exits 2. The JSON contract mirrors `mathc explain` (sorted
+ * keys, trailing newline). *)
+
+(* Split a `Diagnostic.explain` body into the three required
+   sections. The body uses `### Definition` / `### Occurs when`
+   / `### Remediation` as section headers; everything between
+   one header and the next is the section body, trimmed.
+   Returns a triple `(definition, occurs_when, remediation)`.
+   Falls back to the full text for the `Definition` slot when
+   a section header is missing (forward-compat with bodies
+   that lack the full marker set). *)
+let[@warning "-32"] split_records body =
+  let sections =
+    let cur = Buffer.create 256 in
+    let flush acc label =
+      let body = Buffer.contents cur |> String.trim in
+      Buffer.clear cur;
+      (label, body) :: acc
+    in
+    let rec walk acc label = function
+      | [] ->
+          let acc = flush acc label in
+          List.rev acc
+      | line :: rest ->
+          let t = String.trim line in
+          if t = "### Definition" then
+            let acc = flush acc label in
+            walk acc "definition" rest
+          else if t = "### Occurs when" then
+            let acc = flush acc label in
+            walk acc "occurs_when" rest
+          else if t = "### Remediation" then
+            let acc = flush acc label in
+            walk acc "remediation" rest
+          else begin
+            if label <> "" && Buffer.length cur > 0 then
+              Buffer.add_char cur '\n';
+            Buffer.add_string cur line;
+            walk acc label rest
+          end
+    in
+    walk [] "" (String.split_on_char '\n' body)
+  in
+  let get label =
+    match List.assoc_opt label sections with Some s -> s | None -> ""
+  in
+  (get "definition", get "occurs_when", get "remediation")
+
+let[@warning "-32"] explain_diagnostic_to_json code body =
+  let definition, occurs_when, remediation = split_records body in
+  let fields =
+    [
+      ("code", Jsonl.String code);
+      ("definition", Jsonl.String definition);
+      ("occurs_when", Jsonl.String occurs_when);
+      ("remediation", Jsonl.String remediation);
+    ]
+  in
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+  "{"
+  ^ String.concat ","
+      (List.map
+         (fun (k, v) ->
+           Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
+         sorted)
+  ^ "}\n"
+
+let[@warning "-32"] do_explain_diagnostic () =
+  let positionals : string list ref = ref [] in
+  let anon s = positionals := s :: !positionals in
+  Arg.current := 1;
+  (try Arg.parse [] anon "usage: mathc explain-diagnostic <CODE>"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc explain-diagnostic: %s\n" m;
+     exit 2);
+  let args = List.rev !positionals in
+  let code =
+    match args with
+    | [ c ] -> c
+    | [] ->
+        Printf.fprintf stderr "mathc explain-diagnostic: missing CODE\n";
+        Printf.fprintf stderr "usage: mathc explain-diagnostic <CODE>\n";
+        exit 2
+    | _ ->
+        Printf.fprintf stderr
+          "mathc explain-diagnostic: expected one CODE; got %d positional(s)\n"
+          (List.length args);
+        exit 2
+  in
+  match Diagnostic.explain code with
+  | None ->
+      let msg =
+        Printf.sprintf
+          "unknown diagnostic code '%s'; supported codes are listed by \
+           lib/diagnostic.ml::explain (MC-AMBIGUOUS-ACCEPTANCE, \
+           MC-MALFORMED-ACCEPTANCE, MC-PARSE, MC-DECISION-INVALID, \
+           MC-COUNTEREXAMPLE-MISSING, MC-AXIOM-LINK-MISSING, MC-SHA-MISMATCH)"
+          code
+      in
+      explain_diag "MC-EXPLAIN-DIAGNOSTIC-UNKNOWN" "diagnostic" code msg;
+      exit 2
+  | Some body ->
+      print_string (explain_diagnostic_to_json code body);
+      exit 0
 
 let do_context () =
   let base = ref "" and head = ref "" and budget = ref 8192 in
@@ -1660,9 +1928,16 @@ let do_gate () =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
   let store = Attestations.load ~reader:store_reader ~root:store_root in
+  (* T3.1: load rebuttals for the candidate tree's HEAD so the
+     v3.0 evaluate path can enforce the algebra §10 rebuttal
+     obligation when Risk.mode >= strict. Without this load the
+     new wiring in lib/gate.ml::evaluate would always see an
+     empty rebuttals list and over-block every strict/exhaustive
+     commit. *)
+  let rebuttals = Rebuttal.all_rebuttals !head in
   let result =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
-      ~changed_paths ~store
+      ~changed_paths ~store ~rebuttals
   in
   (* math-coding 3.2-ideal §15 wiring: phase-aware gate verdict on
      top of the v3.0 `evaluate`. gate_v32 honours obligation
@@ -1828,11 +2103,21 @@ let do_rebuttals () =
 
 (* --- re-evaluate subcommand (algebra 3.2 §17) ---
  *
- * `mathc re-evaluate` walks decisions/ via Re_evaluation.load_decisions
- * and reports the §17 re_evaluate verdict for each (decision, axiom)
- * pair. Until axiom_revision loading is wired in, this returns
- * Inconclusive for every decision, signaling that all decisions
- * need manual review. *)
+ * `mathc re-evaluate DECISION_ID AXIOM_ID` walks decisions/ via
+ * Re_evaluation.load_decisions and reports the §17 re_evaluate
+ * verdict for the (decision, axiom) pair. T1.2 expansion: the
+ * verdict is now one of five values
+ *
+ *     Compatible | CompatibleAfterRun | Inconclusive |
+ *     Incompatible | StaleClaim
+ *
+ * Where the previous 3-valued type silently returned `Compatible`
+ * for test-style verifiers without an explicit run, the new
+ * oracle returns `Incompatible` until the agent has run the
+ * test (via `mathc re-evaluate-decisions <axiom-rev>` or
+ * another runner). `CompatibleAfterRun` is the post-run pass
+ * verdict; `Compatible` is preserved for built-in verifiers
+ * the gate invokes in-process (legacy semantics). *)
 let do_re_evaluate () =
   Arg.current := 1;
   let repo_root = find_project_root (Sys.getcwd ()) in
@@ -1891,7 +2176,9 @@ let do_re_evaluate () =
       let v = Re_evaluation.re_evaluate d rev in
       let v_to_string : Re_evaluation.status -> string = function
         | Re_evaluation.Compatible -> "compatible"
+        | Re_evaluation.CompatibleAfterRun -> "compatible_after_run"
         | Re_evaluation.Inconclusive -> "inconclusive"
+        | Re_evaluation.Incompatible -> "incompatible"
         | Re_evaluation.StaleClaim -> "stale_claim"
       in
       let status_per_obligation =
@@ -1912,8 +2199,231 @@ let do_re_evaluate () =
              ("axiom", Jsonl.String !axiom_id);
              ("verdict", Jsonl.String (v_to_string v));
              ("obligations", Jsonl.Array status_per_obligation);
+             ("ran", Jsonl.Bool false);
            ])
       |> print_endline
+
+(* --- re-evaluate-decisions subcommand (T1.2) ---
+ *
+ * `mathc re-evaluate-decisions <axiom-id>` walks every decision
+ * file under decisions/ via Re_evaluation.load_decisions, runs the
+ * `re_evaluate_after_run` oracle for each (decision, axiom) pair,
+ * emits a single JSON object on stdout, and writes one
+ * attestation per obligation whose verdict is `CompatibleAfterRun`
+ * (or `Compatible` for built-ins) into `attestations/`.
+ *
+ * Output shape (single JSON object, sorted keys per §CLI output
+ * contract):
+ *
+ *     {
+ *       "axiom": "A0",
+ *       "ran": true,
+ *       "now": "<iso>",
+ *       "decisions": [
+ *         { "id": "bootstrap-v3", "verdict": "compatible_after_run",
+ *           "obligations": [ { "id": "ob-1", "verdict": "compatible_after_run" } ] },
+ *         ...
+ *       ]
+ *     }
+ *
+ * Exit codes (spec/semantics.md CLI contract):
+ *   0 — every decision is `compatible`/`compatible_after_run`/`inconclusive`
+ *       (pass or follow-up review pending; no blockers)
+ *   1 — at least one decision is `incompatible` or `stale_claim` (blockers
+ *       present; agent must revise before merge)
+ *   2 — input error (missing AXIOM_ID, invalid value)
+ *   3 — internal error (filesystem, JSON encoding)
+ *
+ * The attestation written is per-obligation, scoped to the
+ * (decision, axiom) pair. The producer identity is the
+ * operator-defined `MATH_CODING_RUNNER` env var (default
+ * `human:maintainer`) per the same convention as `mathc attest`.
+ *)
+let[@warning "-32"] do_re_evaluate_decisions () =
+  Arg.current := 1;
+  let repo_root = find_project_root (Sys.getcwd ()) in
+  let reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  let axiom_id = ref "" in
+  let set_axiom s = axiom_id := s in
+  let spec =
+    "usage: mathc re-evaluate-decisions AXIOM_ID (e.g. mathc \
+     re-evaluate-decisions A1)"
+  in
+  let anon s =
+    if !axiom_id = "" then set_axiom s
+    else raise (Arg.Bad "only one positional argument expected")
+  in
+  (try Arg.parse [] anon spec
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc re-evaluate-decisions: %s\n" m;
+     exit 2);
+  if !axiom_id = "" then begin
+    Printf.fprintf stderr "mathc re-evaluate-decisions: AXIOM_ID is required\n";
+    exit 2
+  end;
+  let valid_axioms = [ "A0"; "A1"; "A2"; "A3"; "A4" ] in
+  if not (List.mem !axiom_id valid_axioms) then begin
+    Printf.fprintf stderr
+      "mathc re-evaluate-decisions: AXIOM_ID must be one of A0..A4 (got %s)\n"
+      !axiom_id;
+    exit 2
+  end;
+  let decisions = Re_evaluation.load_decisions ~reader ~root:repo_root in
+  let rev : Re_evaluation.axiom_revision =
+    {
+      Re_evaluation.axiom_id = !axiom_id;
+      old_sha = "";
+      new_sha = "";
+      old_forbidden_patterns = [];
+      new_forbidden_patterns = [];
+    }
+  in
+  let v_to_string : Re_evaluation.status -> string = function
+    | Re_evaluation.Compatible -> "compatible"
+    | Re_evaluation.CompatibleAfterRun -> "compatible_after_run"
+    | Re_evaluation.Inconclusive -> "inconclusive"
+    | Re_evaluation.Incompatible -> "incompatible"
+    | Re_evaluation.StaleClaim -> "stale_claim"
+  in
+  let producer_identity =
+    match Sys.getenv_opt "MATH_CODING_RUNNER" with
+    | Some s when s <> "" -> s
+    | _ -> "ci-bot:re-evaluate-decisions"
+  in
+  (* Build per-decision verdicts. *)
+  let per_decision = Re_evaluation.re_evaluate_after_run decisions rev in
+  let per_obligation_verdicts (d : Domain.decision) : Jsonl.value list =
+    List.map
+      (fun (ob : Domain.obligation) ->
+        let sub = Re_evaluation.evaluate_obligation_after_run ob rev in
+        Jsonl.Object
+          [
+            ("id", Jsonl.String ob.Domain.id);
+            ("verdict", Jsonl.String (v_to_string sub));
+          ])
+      d.Domain.obligations
+  in
+  (* Build the JSON output. *)
+  let decision_json_entries =
+    List.map
+      (fun ((d, v) : Domain.decision * Re_evaluation.status) ->
+        Jsonl.Object
+          [
+            ("id", Jsonl.String d.Domain.id);
+            ("verdict", Jsonl.String (v_to_string v));
+            ("obligations", Jsonl.Array (per_obligation_verdicts d));
+          ])
+      per_decision
+  in
+  let now = now_iso () in
+  let blockers_exist =
+    List.exists
+      (fun (_, v) ->
+        match v with
+        | Re_evaluation.StaleClaim | Re_evaluation.Incompatible -> true
+        | _ -> false)
+      per_decision
+  in
+  let summary =
+    Jsonl.Object
+      [
+        ("axiom", Jsonl.String !axiom_id);
+        ("now", Jsonl.String now);
+        ("ran", Jsonl.Bool true);
+        ("decisions", Jsonl.Array decision_json_entries);
+      ]
+  in
+  Jsonl.stringify summary |> print_endline;
+  (* Write one attestation per (decision, obligation) whose verdict
+   * is pass-like (Compatible, CompatibleAfterRun, or Inconclusive).
+   * The schema requires `subject.obligation` and `subject.decision`;
+   * we use the decision id and the obligation id directly. The
+   * attestation is best-effort: a filesystem failure does not
+   * invalidate the run summary on stdout. *)
+  let attestations_dir =
+    match Sys.getenv_opt "MATH_CODING_ATTESTATION_STORE" with
+    | Some s when String.length s > 0 ->
+        if Filename.is_relative s then Filename.concat repo_root s else s
+    | _ -> Filename.concat repo_root "attestations"
+  in
+  let rec mkdir_p d =
+    if d = "" || d = "/" || d = "." || Sys.file_exists d then ()
+    else begin
+      let parent = Filename.dirname d in
+      mkdir_p parent;
+      try Unix.mkdir d 0o755 with _ -> ()
+    end
+  in
+  mkdir_p attestations_dir;
+  List.iter
+    (fun ((d, v) : Domain.decision * Re_evaluation.status) ->
+      List.iter
+        (fun (ob : Domain.obligation) ->
+          let ob_v = Re_evaluation.evaluate_obligation_after_run ob rev in
+          let ob_label = v_to_string ob_v in
+          let run_like =
+            match ob_v with
+            | Re_evaluation.Compatible | Re_evaluation.CompatibleAfterRun
+            | Re_evaluation.Inconclusive ->
+                true
+            | Re_evaluation.Incompatible | Re_evaluation.StaleClaim -> false
+          in
+          if run_like then
+            let safe_id =
+              Printf.sprintf "t1-2-%s-%s-%s.json" !axiom_id d.Domain.id
+                ob.Domain.id
+              |> String.map (fun c -> if c = '/' || c = ' ' then '_' else c)
+            in
+            let result_str =
+              match ob_v with
+              | Re_evaluation.Inconclusive -> "inconclusive"
+              | _ -> "pass"
+            in
+            let payload_str =
+              Printf.sprintf "%s|%s|%s|%s|%s" d.Domain.id ob.Domain.id !axiom_id
+                result_str now
+            in
+            let attestation_id =
+              Printf.sprintf "sha256:%s" (Digest.sha256_hex payload_str)
+            in
+            let final_obj =
+              Jsonl.Object
+                [
+                  ("schema", Jsonl.String "math-coding/attestation-3.0-alpha");
+                  ("kind", Jsonl.String "attestation");
+                  ("id", Jsonl.String attestation_id);
+                  ( "subject",
+                    Jsonl.Object
+                      [
+                        ("decision", Jsonl.String d.Domain.id);
+                        ("obligation", Jsonl.String ob.Domain.id);
+                        ("candidate_tree", Jsonl.String "HEAD");
+                        ("materials_digest", Jsonl.String "");
+                      ] );
+                  ("kind_", Jsonl.String "test");
+                  ( "producer",
+                    Jsonl.Object
+                      [ ("identity", Jsonl.String producer_identity) ] );
+                  ("result", Jsonl.String result_str);
+                  ("issued_at", Jsonl.String now);
+                  ("axiom", Jsonl.String !axiom_id);
+                  ("re_eval_verdict", Jsonl.String ob_label);
+                ]
+            in
+            let path = Filename.concat attestations_dir safe_id in
+            try
+              let oc = open_out_bin path in
+              output_string oc (Jsonl.stringify final_obj);
+              output_char oc '\n';
+              close_out oc
+            with _ -> ())
+        d.Domain.obligations)
+    per_decision;
+  (* Exit nonzero if any decision is blocking (Incompatible or
+   * StaleClaim). Otherwise exit 0. *)
+  if blockers_exist then exit 1 else exit 0
 
 (* --- self-check subcommand (bootstrap decision
  *   mathc-self-check-subcommand@2) ---
@@ -2150,8 +2660,12 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
         in
         if
           all_waivable
-          && Option.is_some
-               (Waiver.covers waivers ~decision_id:entry.Memory.decision_id ~now)
+          && List.for_all
+               (fun g ->
+                 Option.is_some
+                   (Waiver.covers waivers ~decision_id:entry.Memory.decision_id
+                      ~obligation_id:g.Gate.obligation_id ~now))
+               gaps
         then Gate.Open_with_waiver
         else Gate.Unknown
     | v -> v
@@ -2670,6 +3184,7 @@ let dispatch () =
   | "version" -> do_version ()
   | "context" -> do_context ()
   | "explain" -> do_explain ()
+  | "explain-diagnostic" -> do_explain_diagnostic ()
   | "assess" -> do_assess ()
   | "attest" -> do_attest ()
   | "time-estimate" -> do_time_estimate ()
@@ -2677,6 +3192,7 @@ let dispatch () =
   | "mode" -> do_mode ()
   | "rebuttals" -> do_rebuttals ()
   | "re-evaluate" -> do_re_evaluate ()
+  | "re-evaluate-decisions" -> do_re_evaluate_decisions ()
   | "self-check" -> do_self_check ()
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()

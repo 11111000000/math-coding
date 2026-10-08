@@ -1,0 +1,280 @@
+---
+schema: math-coding/3.0-alpha
+id: t4-1-diagnostics-actionable
+revision: 1
+state: active
+body_sha: "sha256:304c1dbd88489ec02342792b1b700058d67d0e5296404ba8516f8badbc921bff"
+yaml_sha: "sha256:304c1dbd88489ec02342792b1b700058d67d0e5296404ba8516f8badbc921bff"
+intent: |
+  Close the second half of audit finding D8: every `MC-*`
+  diagnostic code emitted by the kernel carries a
+  `next_actions : (string * string) list` with at least one
+  copy-pasteable snippet. The verb of each snippet MUST be in
+  the whitelist {add, run, create, edit, replace, supersede}.
+
+  This sub-decision is the stream-eta (T4.1) of
+  meta-decision `plan-2026-10-improvements`. It widens the rule
+  from `decisions/validator-actionable-error.yaml` (which
+  applies to ONE `MC-DECISION-INVALID` case) to every `MC-*` code
+  emitted by the kernel.
+
+  The intent is the same gap the manifests surfaced under "Every
+  diagnostic must point to the next concrete step." Snippets are
+  rendered alongside the existing prose explanations from
+  `mathc explain-diagnostic <CODE>`; they are the
+  copy-pasteable companion. The convention is documented in
+  `lib/diagnostic.ml::verb_is_known` and `default_next_actions`.
+
+outcomes:
+  - id: t4-1-diagnostic-ux-coverage
+    statement: |
+      Every `MC-*` diagnostic code emitted by the kernel
+      carries a non-empty `next_actions` list with verbs in
+      the whitelist {add, run, create, edit, replace,
+      supersede}.
+
+  - id: t4-1-validate-with-counts-emits-actions
+    statement: |
+      `bin/Mathc.ml::validate_with_counts` constructs every
+      `MC-PARSE`, `MC-DECISION-INVALID`, and
+      `MC-COUNTEREXAMPLE-MISSING` diagnostic via the
+      corresponding helper; the verdict, exit code, and JSON
+      shape are unchanged.
+
+  - id: t4-1-obligation-gap-gaps-have-actions
+    statement: |
+      `lib/gate.ml::gap` and `obligation_gap` populate a
+      `next_actions` field on every emitted gap.
+
+commitment: |
+  1. `lib/diagnostic.ml` extends every `MC-*` helper to populate
+     `next_actions` by default. The verb set is the whitelist
+     {add, run, create, edit, replace, supersede}. Helpers:
+     `mc_parse`, `mc_decision_invalid`, `mc_counterexample_missing`,
+     `mc_ambiguous_acceptance` (alias of `ambiguous_acceptance`),
+     `mc_malformed_acceptance` (alias of `malformed_acceptance`).
+
+  2. `lib/diagnostic.ml` exposes the public predicates
+     `verb_is_known : string -> bool` and
+     `safe_action : string -> string -> 'a * 'b` so other kernel
+     modules and tests can validate a verb without depending on
+     a private list literal.
+
+  4. `lib/gate.ml::gap` gains a `next_actions` field.
+     `obligation_gap` populates it for every gap kind
+     (`MissingEvidence`, `StaleEvidence`, `FailedEvidence`,
+     `Unknown`).
+
+  5. `bin/Mathc.ml::validate_with_counts` invokes the
+     `mc_parse`, `mc_decision_invalid`,
+     `mc_counterexample_missing` helpers (not the bare
+     `Diagnostic.create` with `MC-PARSE` / `MC-DECISION-INVALID` /
+     `MC-COUNTEREXAMPLE-MISSING` codes). The verdict, JSON
+     shape, and exit code are unchanged.
+
+  6. `tests/diagnostic_ux.ml` covers every helper plus the
+     parity paths in `validate_with_counts` and
+     `obligation_gap`. The whitelist verbs are tested positively
+     and negatively; `default_next_actions` is tested for
+     unknown codes.
+
+  7. The diagnostic stream is backward-compatible: callers that
+     construct `Diagnostic.t` records without `next_actions` (or
+     with empty `next_actions`) are unaffected. Only the
+     `mathc validate` and `mathc gate` user-facing surfaces
+     have changed.
+
+  Boundaries:
+    - `lib/waiver.ml`, `lib/render.ml`, `site/spec/**`, the gate
+      `evaluate` function, the decision parser, and the schemas
+      are NOT modified by this sub-decision; those streams are
+      owned by other T-points in this cycle.
+    - The `mc_` prefix on `mc_ambiguous_acceptance` and
+      `mc_malformed_acceptance` is an alias of the existing
+      unprefixed names (per OCAML_BEST_PRACTICES section 7.2
+      the unprefixed form is preserved for back-compat with
+      `bin/Mathc.ml::collect_ambiguous_acceptance_diagnostics`).
+
+scope:
+  capabilities:
+    - diagnostics-ux
+  paths:
+    - "lib/diagnostic.ml"
+    - "lib/gate.ml"
+    - "bin/Mathc.ml"
+    - "tests/diagnostic_ux.ml"
+    - "tests/dune"
+    - "decisions/plan-2026-10-improvements/t4-1.yaml"
+    - "attestations/t4-1-diagnostics-actionable-*.json"
+    - "attestations/plan-2026-10-improvements-t4-1-*.json"
+  exclusions:
+    - "lib/waiver.ml"
+    - "lib/render.ml"
+    - "lib/decision.ml"
+    - "schemas/*.json"
+    - "site/spec/**"
+    - "spec/**/*.md"
+
+obligations:
+  - id: t4-1-diagnostic-ux-whitelist
+    statement: |
+      Every `MC-*` diagnostic helper in `lib/diagnostic.ml`
+      emits a non-empty `next_actions` whose verbs are all in
+      the whitelist {add, run, create, edit, replace, supersede}.
+      The default actions for unknown codes (e.g., `MC-BOGUS`)
+      also use only whitelist verbs.
+    claim: |
+      For each helper in `lib/diagnostic.ml` --
+      `mc_parse`, `mc_decision_invalid`,
+      `mc_counterexample_missing`, `mc_ambiguous_acceptance`,
+      `mc_malformed_acceptance` -- calling the helper with no
+      `next_actions` argument returns a `Diagnostic.t` whose
+      `next_actions` field is non-empty AND every (verb, body)
+      pair has `verb` in {add, run, create, edit, replace,
+      supersede}.
+    acceptance:
+      all:
+        - verifier: tests/diagnostic_ux.ml::ambiguous_acceptance.has actions
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::malformed_acceptance.has actions
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::mc_parse.has actions
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::mc_decision_invalid.has actions
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::mc_counterexample_missing.has actions
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::verb_whitelist.accepts whitelist
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::verb_whitelist.rejects unknown
+          result: pass
+
+  - id: t4-1-validate-with-counts-emits-actions
+    statement: |
+      `bin/Mathc.ml::validate_with_counts` uses the new helpers
+      (`Diagnostic.mc_parse`, `Diagnostic.mc_decision_invalid`,
+      `Diagnostic.mc_counterexample_missing`) so every diagnostic
+      in the parse-error / missing-field / counterexample branches
+      has a non-empty `next_actions`. The verdict, exit code, and
+      JSON output shape are unchanged.
+    claim: |
+      `bin/Mathc.ml::validate_with_counts` does NOT contain a
+      bare `Diagnostic.create ~code:"MC-PARSE"` or
+      `Diagnostic.create ~code:"MC-DECISION-INVALID"` or
+      `Diagnostic.create ~code:"MC-COUNTEREXAMPLE-MISSING"`
+      invocation. Every diagnostic of those codes is constructed
+      via the corresponding helper.
+    acceptance:
+      all:
+        - verifier: tests/diagnostic_ux.ml::parity_validate_with_counts.MC-PARSE
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::parity_validate_with_counts.MC-DECISION-INVALID
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::parity_validate_with_counts.MC-COUNTEREXAMPLE-MISSING
+          result: pass
+
+  - id: t4-1-obligation-gap-gaps-have-actions
+    statement: |
+      `lib/gate.ml::gap` carries a `next_actions : (string *
+      string) list` field, and every branch of `obligation_gap`
+      populates it with at least one copy-pasteable snippet.
+    claim: |
+      `lib/gate.ml::gap` declares a `next_actions` field.
+      `obligation_gap` populates that field in every
+      `Some { ... }` it returns (MissingEvidence, StaleEvidence,
+      FailedEvidence, Unknown).
+    acceptance:
+      all:
+        - verifier: tests/diagnostic_ux.ml::gate_gap_next_actions.missing evidence
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::gate_gap_next_actions.stale evidence
+          result: pass
+
+  - id: t4-1-ko-explain-registry-unchanged
+    statement: |
+      The explain registry in `lib/diagnostic.ml::explain` still
+      covers the five codes emitted by `validate_with_counts`
+      (regression-check for t4-2 / explain-diagnostic).
+    claim: |
+      `lib/diagnostic.ml::explain code` returns `Some <body>`
+      for `code` in {MC-AMBIGUOUS-ACCEPTANCE, MC-MALFORMED-ACCEPTANCE,
+      MC-PARSE, MC-DECISION-INVALID, MC-COUNTEREXAMPLE-MISSING}.
+    acceptance:
+      all:
+        - verifier: tests/diagnostic_ux.ml::registry.covers required codes
+          result: pass
+
+reversal:
+  - signal: verb-creep
+    condition: |
+      The whitelist grows beyond the six verbs to allow verbs
+      like "delete", "fix", "rewrite" that overlap with the
+      existing six. Resolution: revert any new verb to one of
+      the existing six; new semantics warrant a new sub-decision.
+    action: revert
+  - signal: helper-divergence
+    condition: |
+      Future `MC-*` codes are added without a helper in
+      `lib/diagnostic.ml`, leaving the bare `Diagnostic.create`
+      path as the only emission site. Resolution: every new
+      `MC-*` code MUST ship with a helper per the convention
+      codified in `lib/diagnostic.ml::verbs_for_ks`.
+    action: rework
+
+risk:
+  declared_triggers:
+    - snippet-out-of-sync
+    - verb-creep
+    - cli-shape-changed
+  owner: human:maintainer
+
+counterexample: |
+  "A new `MC-*` code is added without a helper in
+  `lib/diagnostic.ml`, so the only emission site is the bare
+  `Diagnostic.create` call in `bin/Mathc.ml`."
+
+  Counterargument: the convention codified in
+  `lib/diagnostic.ml::verbs_for_ks` and the reversal clause
+  `helper-divergence` make every new `MC-*` code a contract
+  violation; the failure mode is detectable in code review (a
+  bare `Diagnostic.create ~code:"MC-NEW"` invocation would
+  stand out). Resolution: rename the helper to match, or add a
+  helper if the code is genuinely new.
+
+  "Snippets become stale when the kernel CLI changes (e.g.,
+  `mathc validate` renamed to `mathc check`)."
+
+  Counterargument: snippet drift is a Snippet field. The
+  helper's `default_actions` lists are kept in sync with the
+  CLI surface through the same change that renames the command;
+  this is a routine co-update, not a decision reversal.
+
+  "The whitelist grows to include verbs like `delete`, `fix`,
+  `rewrite` that overlap with the existing six and confuse
+  callers."
+
+  Counterargument: the reversal clause `verb-creep` explicitly
+  forbids this; new semantics warrant a new sub-decision.
+
+assumptions:
+  - id: helper-prefix-style
+    state: assumed
+    statement: |
+      The `mc_` prefix on `mc_ambiguous_acceptance` and
+      `mc_malformed_acceptance` is an alias of the unprefixed
+      names already used in `bin/Mathc.ml:collect_ambiguous_acceptance_diagnostics`.
+      Both names refer to the same function; new code should
+      prefer the `mc_` form.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the alias is removed, every existing call site breaks.
+      Pick the canonical form at the time of removal.
+    review_on:
+      - signal: alias-removed
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+    - validator-actionable-error@1
+  supersedes: []
+  superseded_by: []

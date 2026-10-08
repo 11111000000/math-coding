@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: gate-attestation-store-fill
 revision: 2
 state: active
-body_sha: "sha256:1ec335a8927d656cce436b87e6d825674060c111ace6ac6c103b833247f3e843"
-yaml_sha: "sha256:1ec335a8927d656cce436b87e6d825674060c111ace6ac6c103b833247f3e843"
+body_sha: "sha256:45149212ff79eb86075d19a6050e5a749c7c5642e73a402dfedfcea103487348"
+yaml_sha: "sha256:45149212ff79eb86075d19a6050e5a749c7c5642e73a402dfedfcea103487348"
 intent: |
   Close ROADMAP Tier-1 #1 (`gate-attestation-store-fill`). The
   v3-alpha-0.0.19 `mathc gate` is a SCAFFOLD: lib/gate.ml:84-87
@@ -14,6 +14,8 @@ intent: |
   backed attestation store and emits Pass / Fail / Unknown per
   spec/semantics.md §"Evaluation".
 
+axiom_link:
+  - A0
 commitment: |
   1. New library `mathcoding_attestations` under `lib/attestations/`
      with a pure module `Attestations` exposing `load : reader ->

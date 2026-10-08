@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: mathc-packages-subcommand
 revision: 3
 state: active
-body_sha: "sha256:72086b5cfc96e7346a46d8e30d8649f14e3bd70a9addfd0616eb98f91a44a93a"
-yaml_sha: "sha256:72086b5cfc96e7346a46d8e30d8649f14e3bd70a9addfd0616eb98f91a44a93a"
+body_sha: "sha256:7a3812c50ab5addd73b8d12f2d9619e570f752e45e09eb90bc2a3157f888a809"
+yaml_sha: "sha256:7a3812c50ab5addd73b8d12f2d9619e570f752e45e09eb90bc2a3157f888a809"
 intent: |
   Add `mathc packages` — a kernel-level subcommand that enumerates
   every package (decision + obligation pair) in the repository,
@@ -19,6 +19,8 @@ intent: |
   so the subcommand also serves as the bridge between the
   kernel and the project's published surface.
 
+axiom_link:
+  - A0
 commitment: |
   `bin/Mathc.ml` dispatches `mathc packages [--format=text|json|html]`.
   The dispatcher invokes a pure function in `lib/packages.ml`

@@ -1,0 +1,196 @@
+---
+schema: math-coding/3.0-alpha
+id: t0-1-spec-notation
+revision: 1
+state: active
+body_sha: "sha256:9a6594854ebca08f382e57d35074a358115392d0da80a6e8d39ffa9114e5a6dd"
+yaml_sha: "sha256:9a6594854ebca08f382e57d35074a358115392d0da80a6e8d39ffa9114e5a6dd"
+intent: |
+  Resolve the latent ambiguity in `spec/algebra-3.2.md` §2 (Risk
+  function) that was flagged by `decisions/algebra-3.2-notation-flag-2026-10.yaml`
+  on 2026-10-05: the literal notation `mode(c) = max(⌈risk(c)⌉,
+  mode_floor(c))` is mathematically ill-defined when `risk(c) ∈ [0, 1]`
+  and the target type `𝓜` has five elements. This sub-decision closes
+  that ambiguity by replacing the ceiling notation with the explicit
+  bucketed function `risk_to_mode : [0, 1] → 𝓜` whose five thresholds
+  match the kernel implementation in `lib/risk.ml:183-188`.
+
+  This is one of the 14 obligations authorised by the meta-decision
+  `decisions/plan-2026-10-improvements.yaml@1` (commit `f2d3302`,
+  2026-10-07); specifically obligation `t0-1-spec-notation`. Scope is
+  limited to §2 of the algebra spec and the matching cram test; the
+  kernel implementation is already correct and is NOT modified by
+  this branch.
+
+  History:
+    rev 1 (this commit): initial adoption. Closes the notation
+    ambiguity in `spec/algebra-3.2.md` §2 by replacing the ceiling
+    notation with the explicit `risk_to_mode` bucketing function.
+
+axiom_link:
+  - A0
+commitment: |
+  `spec/algebra-3.2.md` §2 reads:
+
+      mode(c) = max(risk_to_mode(risk(c)), mode_floor(c))
+
+      risk_to_mode : [0, 1] → 𝓜
+        risk_to_mode(r) =
+          | tiny        if r < 0.05
+          | light       if 0.05 ≤ r < 0.20
+          | standard    if 0.20 ≤ r < 0.60
+          | strict      if 0.60 ≤ r < 0.90
+          | exhaustive  if r ≥ 0.90
+
+  The five thresholds (0.05 / 0.20 / 0.60 / 0.90 / 1.0) match the
+  kernel implementation in `lib/risk.ml:183-188` exactly (line-by-line,
+  inclusive of the open-vs-closed boundary rule: a value at exactly
+  0.05 lands in `light`, at 0.20 lands in `standard`, at 0.60 lands
+  in `strict`, at 0.90 lands in `exhaustive`). The literal string
+  `⌈risk(c)⌉` does not appear anywhere in `spec/algebra-3.2.md`.
+
+  Boundaries:
+    - `lib/risk.ml` is NOT modified. The kernel implementation was
+      already correct and authoritative prior to this branch.
+    - `lib/policy.ml`, `lib/decision.ml`, `lib/gate.ml`,
+      `lib/waiver.ml`, `lib/rebuttal.ml`, `lib/re_evaluation.ml`,
+      `lib/diagnostic.ml`, and `bin/Mathc.ml` are NOT modified.
+      Other streams own those files.
+    - `schemas/*` are NOT modified. The decision schema does not
+      change; the `relations.addresses` block already covers
+      `plan-2026-10-improvements@1`.
+    - The notation-flag decision
+      `decisions/algebra-3.2-notation-flag-2026-10.yaml` is NOT
+      modified. Its `notation-note-present` obligation continues to
+      pass because the spec still references that decision file in
+      the (now-resolved) notation breadcrumb. The
+      `notation-ambiguity-recorded` outcome is now a historical
+      record; its reversal signal `notation-resolved` has fired
+      (this branch), so the meta-decision should be retired in a
+      follow-up decision by the human maintainer (out of scope for
+      stream α).
+    - The 14 constitution invariants (I1–I14) and the 5 axioms
+      (A0–A4) are preserved verbatim.
+    - The 5-mode enumeration `𝓜 = {tiny, light, standard, strict,
+      exhaustive}` is preserved verbatim.
+
+scope:
+  capabilities:
+    - specification-correction
+  paths:
+    - "spec/algebra-3.2.md"
+    - "tests/cli/risk-bucketing.t"
+    - "attestations/t0-1-*.json"
+    - "decisions/plan-2026-10-improvements/t0-1.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "site/**"
+    - "decisions/algebra-3.2-notation-flag-2026-10.yaml"
+    - "decisions/plan-2026-10-improvements.yaml"
+    - "scripts/**"
+
+outcomes:
+  - id: spec-notation-resolved
+    statement: |
+      The literal notation `⌈risk(c)⌉` does not appear in
+      `spec/algebra-3.2.md`. The function `risk_to_mode : [0, 1] → 𝓜`
+      is declared in §2 with the five thresholds 0.05 / 0.20 / 0.60 /
+      0.90 / 1.0. The kernel implementation in `lib/risk.ml:183-188`
+      matches the spec bit-for-bit.
+
+  - id: kernel-unchanged
+    statement: |
+      `lib/risk.ml` is bit-for-bit unchanged relative to commit
+      `f2d3302` (meta-decision merge). `mathc self-check` exits with
+      the same code it would have without this branch, and the
+      `risk_to_mode` subject verification in any existing cram test
+      (notably `tests/cli/mode.t`) continues to pass.
+
+counterexample: |
+  "The kernel already implements `risk_to_mode` correctly. Just
+  copy the spec to match the kernel — no decision required."
+
+  Counterargument: replacing the spec notation with a bucketed
+  function is a protected policy transition per AGENTS.md
+  §Self-application. The kernel change that produced
+  `risk_to_mode` predates the `f2d3302` meta-decision (see commit
+  history for `lib/risk.ml:183-188`); the spec was left ambiguous
+  because the 2026-10-05 audit could not silently rewrite it.
+  This sub-decision is the formal closure of that audit gap and is
+  the only way the meta-decision's t0-1 obligation can record a
+  `pass` outcome under the active policy bootstrap-v3@3.
+
+  "Just declare `risk_to_mode` as a one-line alias for the kernel
+  function — no need for the bucketing table in the spec."
+
+  Counterargument: the spec is normative, not descriptive. A reader
+  who cannot see `lib/risk.ml` (e.g. someone reading the published
+  PDF on a forge mirror) must still be able to compute the mode
+  from the risk. The bucketing table is the minimum self-contained
+  declaration. The kernel link is a secondary cross-reference.
+
+obligations:
+  - id: spec-no-ceiling-notation
+    outcome: spec-notation-resolved
+    claim: |
+      `spec/algebra-3.2.md` does not contain the literal
+      `⌈risk(c)⌉`. The function `risk_to_mode : [0, 1] → 𝓜` is
+      declared in §2 with five thresholds. The thresholds in the
+      spec (0.05 / 0.20 / 0.60 / 0.90 / 1.0) match
+      `lib/risk.ml:183-188` bit-for-bit.
+    acceptance:
+      all:
+        - verifier: grep -qF 'risk_to_mode' spec/algebra-3.2.md
+          result: pass
+        - verifier: ! grep -qF '⌈risk(c)⌉' spec/algebra-3.2.md
+          result: pass
+        - verifier: grep -c '^## §2. Risk function' spec/algebra-3.2.md | awk '{exit !($1 == 1)}'
+          result: pass
+        - verifier: tests/cli/risk-bucketing.t
+          result: pass
+        - verifier: mathc-self-check-verdict
+          result: pass
+
+  - id: kernel-bit-identical
+    outcome: kernel-unchanged
+    claim: |
+      `lib/risk.ml` is bit-for-bit unchanged relative to the
+      meta-decision merge commit `f2d3302`. `mathc self-check`
+      reports no regression.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-verdict
+          result: pass
+
+reversal:
+  - signal: spec-thresholds-mismatch-kernel
+    condition: |
+      A future change to `lib/risk.ml` (e.g. shifting a threshold
+      from 0.05 to 0.06) lands without a matching spec update.
+      Resolution: this sub-decision records the kernel-vs-spec
+      equality; the kernel change must come with its own
+      sub-decision under `plan-2026-10-improvements` (or successor)
+      that bumps the spec thresholds in lockstep.
+    action: halt
+  - signal: notation-flag-decision-stale
+    condition: |
+      After this branch merges, the human maintainer retires
+      `decisions/algebra-3.2-notation-flag-2026-10.yaml` (its
+      `reversal.signal: notation-resolved` has fired). No action
+      here; just a follow-up reminder.
+    action: rework
+
+risk:
+  declared_triggers:
+    - spec-threshold-drift
+    - notation-breadcrumb-stale
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []

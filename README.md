@@ -48,6 +48,7 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc validate FILE` | Schema check on a decision |
 | `mathc context BASE HEAD --budget N` | Bounded context capsule for an agent |
 | `mathc explain REF` | Resolve a `kind:id` reference to its body |
+| `mathc explain-diagnostic CODE` | Describe an `MC-*` diagnostic code |
 | `mathc assess BASE HEAD` | List changed files between two git refs |
 | `mathc attest FILE` | Import a JUnit XML report as JSON |
 | `mathc gate BASE HEAD` | Assurance verdict for the diff |
@@ -58,6 +59,7 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc mode PATH ...` | 3.2-ideal risk classification (algebra §2) |
 | `mathc rebuttals SHA` | Walk `rebuttals/<sha>.yaml` (algebra §10) |
 | `mathc re-evaluate DEC AXIOM` | Re-evaluation oracle (algebra §17) |
+| `mathc re-evaluate-decisions AXIOM` | Walk decisions/ and emit post-run verdicts + attestations (T1.2, algebra §17) |
 | `mathc version` | Print the bootstrap hello and exit 0 |
 | `mathc session-start` | Write `.local/session-start` ISO timestamp |
 | `mathc record --decision-id ID ...` | Append event to `decisions/execution-logs.jsonl` |
