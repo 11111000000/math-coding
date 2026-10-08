@@ -3,6 +3,8 @@ schema: math-coding/3.0-alpha
 id: t3-2
 revision: 1
 state: active
+axiom_link:
+  - A0
 body_sha: "sha256:63a9ed8c39c2ac1ca3e024580b41a14749f342f2daffb6bdf34a12596cc02701"
 yaml_sha: "sha256:63a9ed8c39c2ac1ca3e024580b41a14749f342f2daffb6bdf34a12596cc02701"
 intent: |
@@ -133,7 +135,7 @@ counterexample: |
   `decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml`
   are byte-identical in their effect: every obligation of
   their named decision is lifted to `Open_with_waiver`. The
-  `tests/cli/self-check-pass.t` and the live `mathc self-check`
+  `tests/cli/repo-check-pass.t` and the live `mathc self-check`
   verdicts are unchanged for those subjects.
 
   "A waiver for (D, A) leaves obligation (D, B) Unknown, so the

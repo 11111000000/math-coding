@@ -55,7 +55,7 @@ commitment: |
   the JSON output. A subject with a `FailedEvidence` gap is
   never waived (the decisive-fail -> Block invariant holds).
   Test coverage is `tests/waiver_test.ml` (15 Alcotest cases)
-  and the `tests/cli/self-check-pass.t` snapshot regen.
+  and the `tests/cli/repo-check-pass.t` snapshot regen.
 scope:
   paths:
     - "lib/waiver.ml"
@@ -79,7 +79,7 @@ outcomes:
       `effective_at`. The pure parser (`Waiver.parse`) is
       covered by `tests/waiver_test.ml` (15 cases). The
       filesystem-touching `load` is covered indirectly by
-      `tests/cli/self-check-pass.t`, which runs the CLI
+      `tests/cli/repo-check-pass.t`, which runs the CLI
       against a real `decisions/waivers/` directory.
   - id: self-check-uses-waivers
     statement: |
@@ -143,11 +143,12 @@ counterexample: |
   decision extends the explicit pattern from
   decision-of-waiver to a separable file-of-waiver.
 unknowns:
-  - "Whether obligation-level waiver matching (vs. the
+  - |
+     Whether obligation-level waiver matching (vs. the
      current subject-level) will be needed for future
      waivers. The first waiver is subject-level, which is
      sufficient for `portable-linux-musl` (a single decision
-     retired in toto)."
+     retired in toto).
 obligations:
   - id: waiver-loader-tested
     outcome: waiver-loader-works
@@ -163,7 +164,7 @@ obligations:
   - id: self-check-emits-pass-with-waiver
     outcome: self-check-uses-waivers
     claim: |
-      `tests/cli/self-check-pass.t` runs `mathc self-check`
+      `tests/cli/repo-check-pass.t` runs `mathc self-check`
       against the populated fixture store. The snapshot
       reflects the new state: 30 pass / 0 fail / 1 unknown
       (the remaining unknown is `audit-0.0.21-fixes`, whose

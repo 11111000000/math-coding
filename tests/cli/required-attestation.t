@@ -7,7 +7,7 @@ expects the verdict to reflect the gap.
 
 This decision lands in the active `lib/gate.ml::evaluate`
 path so both `mathc gate BASE HEAD` (v3.0) and
-`mathc self-check` (v3.2) pick up the new field automatically.
+`mathc repo-check` (v3.2) pick up the new field automatically.
 
 Acceptance gates for `decisions/decision-required-attestations-2026-10.yaml`:
 - obligation `gate-emits-gap-on-missing-required-attestation`

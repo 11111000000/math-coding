@@ -79,7 +79,7 @@ commitment: |
     `git describe --tags --abbrev=0 > VERSION` so a tag and
     the file stay in lock-step; the current cycle is the
     mechanism only.
-- This cycle does not change any obligation in
+  This cycle does not change any obligation in
       `site-deploy@5`. The `mathjax-wiring` obligation
       continues to assert the script is wired; the `tufte-
       stylesheet` obligation continues to assert the Tufte
@@ -153,6 +153,11 @@ assumptions:
     review_on:
       - signal: release-omits-version-bump
 
+outcomes:
+  - id: kernel-reads-version-file
+    statement: |
+      The version displayed in the rendered site is read from the VERSION
+      file at build time, not hardcoded in lib/render.ml.
 obligations:
   - id: version-reads-from-file
     statement: |

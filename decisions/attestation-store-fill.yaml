@@ -59,11 +59,11 @@ scope:
 
 outcomes:
   - id: attestations-populated
-    statement: Every obligation enumerated by `mathc self-check` on
+    statement: |
       HEAD b36572f has a corresponding attestation file in
       attestations/ that the kernel gate evaluator accepts.
   - id: self-check-returns-pass
-    statement: `mathc self-check` against attestations/ returns
+    statement: |
       verdict=pass and exit 0 on HEAD b36572f.
 
 obligations:

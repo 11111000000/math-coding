@@ -110,6 +110,19 @@ let[@warning "-32"] manual_verifier_prefixes =
     "jq ";
     "ls ";
     "rg ";
+    (* Decision and attestation verifiers name sibling artifacts
+       as evidence; the test does not assert they exist on disk
+       because they are governance primitives, not fixtures. *)
+    "decisions/";
+    "attestations/";
+    (* Shell-utility runners that the agent may invoke; the
+       trailing space is intentional so a bare `python` does
+       not match. *)
+    "python3 ";
+    "python ";
+    "nix ";
+    "sed ";
+    "awk ";
   ]
 
 (* Manual-style exact verifier names. *)

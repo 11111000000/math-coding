@@ -4,33 +4,81 @@
   "type": "object",
   "additionalProperties": false,
   "required": [
-    "schema", "kind", "id", "subject", "kind_", "producer",
-    "result", "issued_at"
+    "schema",
+    "kind",
+    "id",
+    "subject",
+    "kind_",
+    "producer",
+    "result",
+    "issued_at"
   ],
   "properties": {
-    "schema": {"const": "math-coding/attestation-3.0-alpha"},
-    "kind": {"const": "attestation"},
-    "id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "schema": {
+      "const": "math-coding/attestation-3.0-alpha"
+    },
+    "kind": {
+      "const": "attestation"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
     "subject": {
-      "type": "object", "additionalProperties": false,
-      "required": ["decision", "obligation", "candidate_tree", "materials_digest"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "decision",
+        "obligation",
+        "candidate_tree",
+        "materials_digest"
+      ],
       "properties": {
-        "decision": {"type": "string"},
-        "decision_revision": {"type": "string"},
-        "decision_digest": {"type": "string"},
-        "obligation": {"type": "string"},
-        "obligation_digest": {"type": "string"},
-        "candidate_tree": {"type": "string"},
-        "materials_digest": {"type": "string"}
+        "decision": {
+          "type": "string"
+        },
+        "decision_revision": {
+          "type": "string"
+        },
+        "decision_digest": {
+          "type": "string"
+        },
+        "obligation": {
+          "type": "string"
+        },
+        "obligation_digest": {
+          "type": "string"
+        },
+        "candidate_tree": {
+          "type": "string"
+        },
+        "materials_digest": {
+          "type": "string"
+        }
       }
     },
-    "kind_": {"enum": ["test", "review", "build", "analysis", "observation"]},
+    "kind_": {
+      "enum": [
+        "test",
+        "review",
+        "build",
+        "analysis",
+        "observation"
+      ]
+    },
     "producer": {
-      "type": "object", "additionalProperties": false,
-      "required": ["identity"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "identity"
+      ],
       "properties": {
-        "identity": {"type": "string"},
-        "run": {"type": "string"}
+        "identity": {
+          "type": "string"
+        },
+        "run": {
+          "type": "string"
+        }
       }
     },
     "environment_class": {
@@ -38,52 +86,97 @@
       "type": "string"
     },
     "environment_class_level": {
-      "description": "Numeric environment class level 0..4. See spec/algebra-3.2.md §13 and §14 (decisive_threshold).",
+      "description": "Numeric environment class level 0..4. See spec/algebra-3.2.md \u00a713 and \u00a714 (decisive_threshold).",
       "$ref": "common.json#/definitions/environment_class_level"
     },
     "environment_class_label": {
-      "description": "Coarse environment class label. See spec/algebra-3.2.md §13.",
+      "description": "Coarse environment class label. See spec/algebra-3.2.md \u00a713.",
       "$ref": "common.json#/definitions/environment_class_label"
     },
     "ci_run_id": {
-      "description": "Identifier of the CI run that produced this attestation. Used as input to attestation id derivation. See spec/algebra-3.2.md §13.",
+      "description": "Identifier of the CI run that produced this attestation. Used as input to attestation id derivation. See spec/algebra-3.2.md \u00a713.",
       "type": "string",
       "minLength": 1
     },
     "substrate_digest": {
-      "description": "sha256 of (kernel version || ocaml version || dependency digests). See spec/algebra-3.2.md §13, §16.",
+      "description": "sha256 of (kernel version || ocaml version || dependency digests). See spec/algebra-3.2.md \u00a713, \u00a716.",
       "type": "string",
       "pattern": "^sha256:[0-9a-f]{64}$"
     },
     "substrate_fingerprint": {
-      "description": "Identifier (𝓢.id) of the substrate declaration this attestation was produced against. See spec/algebra-3.2.md §13, §16.",
+      "description": "Identifier (\ud835\udce2.id) of the substrate declaration this attestation was produced against. See spec/algebra-3.2.md \u00a713, \u00a716.",
       "type": "string",
       "minLength": 1
     },
-    "result": {"enum": ["pass", "fail", "inconclusive", "infrastructure-error"]},
-    "issued_at": {"$ref": "common.json#/definitions/timestamp"},
-    "valid_until": {"$ref": "common.json#/definitions/timestamp"},
-    "evidence_digest": {"type": "string"},
+    "result": {
+      "enum": [
+        "pass",
+        "fail",
+        "inconclusive",
+        "infrastructure-error"
+      ]
+    },
+    "issued_at": {
+      "$ref": "common.json#/definitions/timestamp"
+    },
+    "valid_until": {
+      "$ref": "common.json#/definitions/timestamp"
+    },
+    "evidence_digest": {
+      "type": "string"
+    },
     "signature": {
-      "type": "object", "additionalProperties": false,
-      "required": ["format", "key_id", "value"],
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "key_id",
+        "value"
+      ],
       "properties": {
-        "format": {"const": "dsse"},
-        "key_id": {"type": "string"},
-        "value": {"type": "string", "minLength": 1}
+        "format": {
+          "const": "dsse"
+        },
+        "key_id": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
       }
     },
     "time_observed": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Optional wall-clock / token-budget / step-count observation closed against a corresponding Decision.time.estimate. Required: scale, value. Optional: observed_at, observed_by. See AGENTS.md §Honest time reporting and bootstrap/time-honesty.yaml.",
-      "required": ["scale", "value"],
+      "description": "Optional wall-clock / token-budget / step-count observation closed against a corresponding Decision.time.estimate. Required: scale, value. Optional: observed_at, observed_by. See AGENTS.md \u00a7Honest time reporting and bootstrap/time-honesty.yaml.",
+      "required": [
+        "scale",
+        "value"
+      ],
       "properties": {
-        "scale": {"enum": ["wall-clock-minutes", "token-budget", "step-count"]},
-        "value": {"type": "number", "minimum": 0},
-        "observed_at": {"$ref": "common.json#/definitions/timestamp"},
-        "observed_by": {"type": "string"}
+        "scale": {
+          "enum": [
+            "wall-clock-minutes",
+            "token-budget",
+            "step-count"
+          ]
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0
+        },
+        "observed_at": {
+          "$ref": "common.json#/definitions/timestamp"
+        },
+        "observed_by": {
+          "type": "string"
+        }
       }
+    },
+    "reason": {
+      "description": "Free-form explanation of the attestation, used by waived and inconclusive attestations to record why the obligation is deferred or why the evidence is partial. Not part of the bounded-evidence contract: see axiom A1.",
+      "type": "string"
     }
   }
 }

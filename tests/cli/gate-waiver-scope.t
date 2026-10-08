@@ -1,4 +1,4 @@
-mathc self-check with strict waiver-scope matching (T3.2, A3-protected):
+mathc repo-check with strict waiver-scope matching (T3.2, A3-protected):
 a waiver named for `(decision, obligation) = (D, A)` lifts the
 gate ONLY for that specific gap. A gap `(D, B)` of the same
 decision remains Unknown even when the `(D, A)` waiver is in
@@ -90,7 +90,7 @@ Scenario 1 — positive (every gap has a named waiver):
   >   T3.2 fixture: strict waiver for beta-obligation only.
   > unverified_obligation: beta-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc repo-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
   {"name":"t3-2-test-decision","verdict":"pass"}
   $ cd /
   $ rm -rf "$tmp"
@@ -146,7 +146,7 @@ Scenario 2 — strict negative (only alpha waiver; beta stays Unknown):
   >   T3.2 fixture: strict waiver for alpha-obligation only.
   > unverified_obligation: alpha-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc repo-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
   {"name":"t3-2-test-decision","verdict":"unknown"}
   $ cd /
   $ rm -rf "$tmp"
@@ -201,7 +201,7 @@ covers every obligation of its decision):
   >   T3.2 fixture: legacy global waiver (no unverified_obligation
   >   field). Must cover every obligation of t3-2-test-decision.
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc repo-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
   {"name":"t3-2-test-decision","verdict":"pass"}
   $ cd /
   $ rm -rf "$tmp"
@@ -258,7 +258,7 @@ the gate for t3-2-test-decision):
   >   names one of our obligations (decision boundary check).
   > unverified_obligation: alpha-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc repo-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
   {"name":"t3-2-test-decision","verdict":"unknown"}
   $ cd /
   $ rm -rf "$tmp"

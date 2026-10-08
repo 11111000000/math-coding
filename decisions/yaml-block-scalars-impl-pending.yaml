@@ -60,13 +60,13 @@ scope:
   capabilities:
     - yaml-block-scalars-impl-deferred
   paths:
-    - "lib/codec.ml" (unchanged in this revision)
+    - "lib/codec.ml" # unchanged in this revision
     - "tests/repo_structure.ml:test_yaml_block_scalars_structural"
-      (replaces the deleted tests/fixtures/yaml-block-scalars.sh
-      which had subsumed into the OCaml/Alcotest suite during the
-      shell-to-OCaml migration in cli-cram-tests.yaml@1).
+      # replaces the deleted tests/fixtures/yaml-block-scalars.sh
+      # which had subsumed into the OCaml/Alcotest suite during the
+      # shell-to-OCaml migration in cli-cram-tests.yaml@1.
   exclusions:
-    - "bootstrap/yaml-block-scalars.yaml" (decision @rev2 unchanged)
+    - "bootstrap/yaml-block-scalars.yaml" # decision @rev2 unchanged
 
 outcomes:
   - id: deferral-recorded

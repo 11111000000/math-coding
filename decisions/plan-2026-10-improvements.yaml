@@ -380,7 +380,7 @@ obligations:
       all:
         - verifier: grep -qF 'risk_to_mode' spec/algebra-3.2.md
           result: pass
-        - verifier: ! grep -qF '⌈risk(c)⌉' spec/algebra-3.2.md
+        - verifier: bash -c "! grep -qF '⌈risk(c)⌉' spec/algebra-3.2.md"
           result: pass
         - verifier: decisions/plan-2026-10-improvements/t0-1.yaml@1 exists
           result: pass
@@ -420,7 +420,7 @@ obligations:
       on the stub.
     acceptance:
       all:
-        - verifier: tests/rebuttal_forge_stub.t
+        - verifier: tests/rebuttal_forge_stub.ml
           result: pass
         - verifier: decisions/plan-2026-10-improvements/t1-1.yaml@1 exists
           result: pass
@@ -668,7 +668,7 @@ obligations:
       all:
         - verifier: tests/cli/validate-counterexample-required.t
           result: pass
-        - verifier: tests/conformance.ml::legacy_counterexample_sweep
+        - verifier: tests/conformance.ml legacy_counterexample_sweep
           result: pass
         - verifier: decisions/plan-2026-10-improvements/t6-2.yaml@1 exists
           result: pass

@@ -71,12 +71,12 @@ scope:
 
 outcomes:
   - id: env-var-readable
-    statement: a function-call to `Attestations.blocking_cis ()`
+    statement: |
       in any kernel module or test reads the current value
       of `MATH_CODING_BLOCKING_CIS` and falls back to
       `blocking_cis_default` when the env var is unset.
   - id: default-preserved
-    statement: the historical default list
+    statement: |
       `["payments-ci"; "orders-ci"; "integration-ci"]` is
       preserved as a constant and is what the function
       returns when the env var is unset or empty.
@@ -95,7 +95,7 @@ assumptions:
       whose blocking CIs are named differently from
       `blocking_cis_default`.
     owner: human:maintainer
-    consequence_if_false: a future project with multiple
+    consequence_if_false: |
       blocking-CI lists (per service) needs a
       `decisions/policy.yaml` row that maps path patterns
       to blocking-CI lists. The follow-up decision is

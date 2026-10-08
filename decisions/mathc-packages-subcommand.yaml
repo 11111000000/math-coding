@@ -90,6 +90,12 @@ counterexample: |
       the same key. Any schema drift shows up as a conformance
       runner failure before it reaches the site.
 
+outcomes:
+  - id: kernel-checks-listed
+    statement: |
+      The decision's commitment is realized by the kernel, tests, or scripts
+      named in this decision, and the verification path is documented in
+      acceptance.
 obligations:
   - id: packages-kernel-walker
     statement: |

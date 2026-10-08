@@ -109,7 +109,7 @@ def main():
     # 4. self-check
     if MATHC.exists():
         try:
-            d = read_json([str(MATHC), "self-check"])
+            d = read_json([str(MATHC), "repo-check"])
             counters["self_check"] = {
                 "verdict": d.get("verdict"),
                 "subjects": len(d.get("subjects", [])),

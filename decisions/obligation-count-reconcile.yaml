@@ -53,10 +53,10 @@ scope:
 
 outcomes:
   - id: aggregator-matches-parent
-    statement: obligations.yaml lists exactly the seven obligations of
+    statement: |
       decisions/decision.yaml@2 with identical ids in the same order.
   - id: assumption-ids-spelled-correctly
-    statement: Every assumption id and review_on signal in this
+    statement: |
       decision file is spelled correctly. The "packages" word
       carries the canonical spelling across the project; the
       misspelling "packges" is not allowed anywhere in
@@ -71,7 +71,7 @@ assumptions:
       line 99 "13 obligations" is an audit-text error; decision.yaml
       carries seven and obligations.yaml@2 matches.
     owner: human:maintainer
-    consequence_if_false: a future reconcile would rename the
+    consequence_if_false: |
       `Obs` column or drop it.
     review_on:
       - signal: packages-audit-tool-defined
@@ -120,6 +120,20 @@ risk:
     - aggregator-points-at-superseded-revision
     - obligation-count-diverges-across-documents
     - assumption-id-typo-recurs
+
+counterexample: |
+  The strongest objection: an obligation-count aggregator
+  that names one set of obligations but the live decisions
+  carry another is a silent drift. Any reader that trusts
+  the aggregator over the decisions will be wrong; any
+  reader that ignores the aggregator will lose the
+  reconciled view. The mitigation is the per-decision
+  `acceptance.all` block plus the kernel's own
+  `mathc packages` enumerator: the aggregator is for
+  humans, the kernel's enumeration is authoritative. This
+  decision itself is reconcilable; the only failure mode
+  is silent divergence across normative documents, which
+  this counterexample names explicitly.
 
 relations:
   addresses:

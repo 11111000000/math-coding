@@ -3,6 +3,8 @@ schema: math-coding/3.0-alpha
 id: t5-2-spec-mathjax
 revision: 1
 state: active
+axiom_link:
+  - A0
 body_sha: "sha256:42f571ce898fa1a75f5bb3d6cecc08054ab029329ae7cc934b53de13a85a2ed9"
 yaml_sha: "sha256:42f571ce898fa1a75f5bb3d6cecc08054ab029329ae7cc934b53de13a85a2ed9"
 intent: |

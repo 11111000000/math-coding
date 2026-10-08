@@ -773,8 +773,7 @@ let () =
         [ Alcotest.test_case "footer" `Quick footer_mathc_render ] );
       ( "mermaid_in_seven_pages",
         [
-          Alcotest.test_case "mermaid" `Quick
-            (fun () ->
+          Alcotest.test_case "mermaid" `Quick (fun () ->
               (* Editorial obligation: every site page and per-axiom
                  page that declares a mermaid diagram must surface
                  it as `<div class="mermaid">…</div>` in the
@@ -788,8 +787,7 @@ let () =
               let ec = Sys.command script in
               if ec <> 0 then
                 Alcotest.failf
-                  "scripts/render.sh exited %d; cannot verify mermaid \
-                   output" ec;
+                  "scripts/render.sh exited %d; cannot verify mermaid output" ec;
               let dist = Filename.concat root "dist" in
               let pages =
                 [
@@ -807,15 +805,15 @@ let () =
                   let path = Filename.concat dist rel in
                   let html = read_text path in
                   Alcotest.(check bool)
-                    (Printf.sprintf
-                       "dist/%s contains <div class=\"mermaid\">" rel)
-                    true (has "<div class=\"mermaid\">" html))
-                pages)
+                    (Printf.sprintf "dist/%s contains <div class=\"mermaid\">"
+                       rel)
+                    true
+                    (has "<div class=\"mermaid\">" html))
+                pages);
         ] );
       ( "axiom_has_formalization_section",
         [
-          Alcotest.test_case "formalization" `Quick
-            (fun () ->
+          Alcotest.test_case "formalization" `Quick (fun () ->
               (* Editorial obligation: each of the five axiom pages
                  must end with a `## Formalization` section that
                  references the formal algebra. *)
@@ -839,9 +837,8 @@ let () =
                   let path = Filename.concat dist rel in
                   let html = read_text path in
                   Alcotest.(check bool)
-                    (Printf.sprintf
-                       "dist/%s contains Formalization section" rel)
+                    (Printf.sprintf "dist/%s contains Formalization section" rel)
                     true (has "Formalization" html))
-                axioms)
+                axioms);
         ] );
     ]

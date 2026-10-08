@@ -55,7 +55,7 @@ commitment: |
         `tests/cli/gate-unknown-exit-3.t` asserts the
         `Unknown -> 3` mapping end-to-end via a temp git repo
         with no attestation store, mirroring
-        `tests/cli/self-check-unknown.t`.
+        `tests/cli/repo-check-unknown.t`.
 
   No schema field changes. No gate verdict surface changes.
   No new attestation kind. No `Question` artifact kind (this
@@ -198,9 +198,9 @@ obligations:
           result: pass
         - verifier: tests/cli/gate-fail.t
           result: pass
-        - verifier: tests/cli/self-check-pass.t
+        - verifier: tests/cli/repo-check-pass.t
           result: pass
-        - verifier: tests/cli/self-check-unknown.t
+        - verifier: tests/cli/repo-check-unknown.t
           result: pass
 
   - id: constitution-14b-added
@@ -243,13 +243,13 @@ obligations:
     outcome: gate-exit-unknown-is-3
     claim: |
       `mathc self-check` against the existing
-      `tests/fixtures/self-check-pass/attestations` store
+      `tests/fixtures/repo-check-pass/attestations` store
       continues to return `verdict:"pass"` and exit 0 after the
       kernel change. The change to `verdict_to_exit` does NOT
       affect the `do_self_check` exit-code mapping.
     acceptance:
       all:
-        - verifier: tests/cli/self-check-pass.t
+        - verifier: tests/cli/repo-check-pass.t
           result: pass
         - verifier: mathc-self-check-verdict-pass
           result: pass

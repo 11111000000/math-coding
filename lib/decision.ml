@@ -177,7 +177,8 @@ let[@warning "-32"] parse_scope_paths ra_obj =
   match Schema.take_array ra_obj "scope_paths" with
   | Some xs ->
       List.filter_map
-        (function Jsonl.String s when String.trim s <> "" -> Some s | _ -> None)
+        (function
+          | Jsonl.String s when String.trim s <> "" -> Some s | _ -> None)
         xs
   | _ -> []
 
@@ -185,10 +186,10 @@ let[@warning "-32"] parse_required_attestations v =
   match v with
   | Jsonl.Object ps -> (
       match Schema.take_array ps "required_attestations" with
-      | Some items ->
+      | Some items -> (
           let rec loop = function
             | [] -> []
-            | item :: rest ->
+            | item :: rest -> (
                 match item with
                 | Jsonl.Object item_ps ->
                     let k =
@@ -209,11 +210,9 @@ let[@warning "-32"] parse_required_attestations v =
                         ra_scope_paths = parse_scope_paths item_ps;
                       }
                       :: loop rest
-                | _ -> loop rest
-              in
-          (match loop items with
-           | _ :: _ as xs -> Some xs
-           | [] -> None)
+                | _ -> loop rest)
+          in
+          match loop items with _ :: _ as xs -> Some xs | [] -> None)
       | None -> None)
   | _ -> None
 
@@ -275,6 +274,35 @@ let mode_geq_standard (m : Domain.mode) : bool =
   match m with
   | `Standard | `Strict | `Exhaustive -> true
   | `Tiny | `Light -> false
+
+(* Structural validation that a parsed Decision satisfies the
+   schema-required rules for the gate (algebra §7 + §15).
+   Returns `Ok ()` when the decision is well-formed, `Error msgs`
+   with the human-readable rejection reasons otherwise.
+   Used by `lib/gate.ml::apply_rule` so the gate verdict composes
+   the per-file `mathc validate` check with the attestation-coverage
+   check; without this, a decision that fails its own validator
+   can still report `pass` from `mathc self-check` because the
+   attestation store happens to carry a pass attestation. *)
+let structural_violations (d : Domain.decision) : (unit, string list) result =
+  let errs = ref [] in
+  let push s = errs := s :: !errs in
+  if d.Domain.id = "" then push "missing id";
+  if d.Domain.intent_text = "" then push "missing intent";
+  if d.Domain.commitment = "" then push "missing commitment";
+  if d.Domain.scope = [] then push "missing scope";
+  if d.Domain.outcomes = [] then push "missing outcomes";
+  if d.Domain.obligations = [] then push "missing obligations";
+  if d.Domain.risk.declared_triggers = [] then push "missing risk";
+  (match d.Domain.state with
+  | `Active ->
+      if d.Domain.axiom_link = [] then push "state=active but empty axiom_link";
+      if
+        mode_geq_standard d.Domain.mode
+        && not (counterexample_meaningful_opt d.Domain.counterexample)
+      then push "mode>=standard but empty counterexample"
+  | `Draft | `Retired | `Superseded -> ());
+  match !errs with [] -> Ok () | errs -> Error errs
 
 (* === Axiom-link detection (algebra §17 "Inline axiom change")
    ===

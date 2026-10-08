@@ -3,6 +3,8 @@ schema: math-coding/3.0-alpha
 id: mathjax-delimiter-hardening-2026-10
 revision: 1
 state: active
+axiom_link:
+  - A0
 body_sha: "sha256:2d48c6b4badfb6355ca472ccf21d15d93edbd5f34481f652da0c49259b655743"
 yaml_sha: "sha256:2d48c6b4badfb6355ca472ccf21d15d93edbd5f34481f652da0c49259b655743"
 intent: |

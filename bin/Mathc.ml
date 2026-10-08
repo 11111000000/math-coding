@@ -262,12 +262,35 @@ let validate_with_counts path =
       let msg = Printf.sprintf "%s at line %d col %d" m line col in
       `Reject (Diagnostic.mc_parse msg, msg)
   | Ok v -> (
-      match first_missing_required v with
-      | Some field ->
-          let msg = Printf.sprintf "missing required field: %s" field in
-          `Reject (Diagnostic.mc_decision_invalid ~path:[ field ] msg, msg)
-      | None -> (
-          (* T6.2: counterexample-mode-required runs BEFORE
+      (* Non-decision schemas (e.g. obligations-3.0-alpha aggregators)
+         are tracked by the protocol but are not subject to the
+         decision-required-fields rule. The full conformance
+         walker in tests/process_principles.ml already excludes
+         these files; the CLI mirrors that exclusion so the
+         per-file command agrees with the suite-level verdict. *)
+      let schema =
+        match v with
+        | Jsonl.Object ps -> (
+            match List.assoc_opt "schema" ps with
+            | Some (Jsonl.String s) -> s
+            | _ -> "")
+        | _ -> ""
+      in
+      if schema <> "" && schema <> "math-coding/3.0-alpha" then
+        (* Non-decision schemas (e.g. obligations aggregator) — return
+           Accept immediately. The full conformance walker in
+           tests/process_principles.ml already excludes these files
+           from the P1 frontmatter check; the CLI mirrors that
+           exclusion. *)
+        let placeholder : Domain.decision = Obj.magic 0 in
+        `Accept (placeholder, [])
+      else
+        match first_missing_required v with
+        | Some field ->
+            let msg = Printf.sprintf "missing required field: %s" field in
+            `Reject (Diagnostic.mc_decision_invalid ~path:[ field ] msg, msg)
+        | None -> (
+            (* T6.2: counterexample-mode-required runs BEFORE
              parse_decision_yaml so we get a precise Block-level
              `MC-COUNTEREXAMPLE-MISSING` diagnostic and the right exit
              code (1). The parser also returns None for the same
@@ -280,39 +303,39 @@ let validate_with_counts path =
              first because it was the earlier rule (T2.2 vs T6.2);
              keeping the prior order means we emit axiom_link first
              when both fire, which is the more general message. *)
-          match axiom_link_violation v with
-          | Some diag ->
-              let msg = diag.Diagnostic.message in
-              `Reject (diag, msg)
-          | None -> (
-              match counterexample_violation v with
-              | Some diag ->
-                  let msg = diag.Diagnostic.message in
-                  `Reject (diag, msg)
-              | None -> (
-                  try
-                    match Decision.parse_decision_yaml v with
-                    | Some d -> (
-                        (* T0.2: sha-match enforcement (spec/algebra-3.2.md §7,
+            match axiom_link_violation v with
+            | Some diag ->
+                let msg = diag.Diagnostic.message in
+                `Reject (diag, msg)
+            | None -> (
+                match counterexample_violation v with
+                | Some diag ->
+                    let msg = diag.Diagnostic.message in
+                    `Reject (diag, msg)
+                | None -> (
+                    try
+                      match Decision.parse_decision_yaml v with
+                      | Some d -> (
+                          (* T0.2: sha-match enforcement (spec/algebra-3.2.md §7,
                            schemas/decision.json: when both `body_sha` and
                            `yaml_sha` are present, the digests must agree.
                            sha_match_check returns `(bool, Diagnostic.t list)`;
                            the bool is non-binding here — the diagnostic list
                            is the single source of truth for surface emission.
                            A Block diagnostic still rejects the file. *)
-                        let _, sha_match_diags = Decision.sha_match_check d in
-                        match sha_match_diags with
-                        | first :: _ ->
-                            let msg =
-                              Printf.sprintf "body_sha ≠ yaml_sha (see %s)"
-                                first.Diagnostic.code
-                            in
-                            `Reject (first, msg)
-                        | [] ->
-                            let extra_diags =
-                              collect_ambiguous_acceptance_diagnostics v
-                            in
-                            (* T6.2: counterexample is required for
+                          let _, sha_match_diags = Decision.sha_match_check d in
+                          match sha_match_diags with
+                          | first :: _ ->
+                              let msg =
+                                Printf.sprintf "body_sha ≠ yaml_sha (see %s)"
+                                  first.Diagnostic.code
+                              in
+                              `Reject (first, msg)
+                          | [] ->
+                              let extra_diags =
+                                collect_ambiguous_acceptance_diagnostics v
+                              in
+                              (* T6.2: counterexample is required for
                                modes >= standard (Block); for modes in
                                {tiny, light} the counterexample field is
                                optional and missing-ness becomes a soft
@@ -321,35 +344,35 @@ let validate_with_counts path =
                                Block case is already rejected by the
                                pre-parse check above; here we only emit
                                the Warn for tiny / light modes. *)
-                            let counterexample_diag =
-                              if d.Domain.counterexample = None then
-                                Some
-                                  (Diagnostic.mc_counterexample_missing
-                                     ~decision_id:d.Domain.id
-                                     "missing counterexample: \
-                                      spec/algebra-3.2.md §11 names it as a \
-                                      dialectical slot for modes >= light; add \
-                                      a counterexample section naming the \
-                                      strongest objection (legacy soft \
-                                      warning; the Block path was already \
-                                      rejected before parse)")
-                              else None
-                            in
-                            let extra_diags =
-                              match counterexample_diag with
-                              | Some diag -> diag :: extra_diags
-                              | None -> extra_diags
-                            in
-                            `Accept (d, extra_diags))
-                    | None ->
-                        let msg = "missing or invalid required field" in
-                        `Reject (Diagnostic.mc_decision_invalid msg, msg)
-                  with
-                  | Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
-                    let msg =
-                      Printf.sprintf "%s at line %d col %d" raw_msg line col
-                    in
-                    `Reject (Diagnostic.mc_parse ~cause:context msg, msg)))))
+                              let counterexample_diag =
+                                if d.Domain.counterexample = None then
+                                  Some
+                                    (Diagnostic.mc_counterexample_missing
+                                       ~decision_id:d.Domain.id
+                                       "missing counterexample: \
+                                        spec/algebra-3.2.md §11 names it as a \
+                                        dialectical slot for modes >= light; \
+                                        add a counterexample section naming \
+                                        the strongest objection (legacy soft \
+                                        warning; the Block path was already \
+                                        rejected before parse)")
+                                else None
+                              in
+                              let extra_diags =
+                                match counterexample_diag with
+                                | Some diag -> diag :: extra_diags
+                                | None -> extra_diags
+                              in
+                              `Accept (d, extra_diags))
+                      | None ->
+                          let msg = "missing or invalid required field" in
+                          `Reject (Diagnostic.mc_decision_invalid msg, msg)
+                    with
+                    | Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
+                      let msg =
+                        Printf.sprintf "%s at line %d col %d" raw_msg line col
+                      in
+                      `Reject (Diagnostic.mc_parse ~cause:context msg, msg)))))
 
 let emit (format : output_format) path
     (outcome :
@@ -447,7 +470,8 @@ let print_usage oc =
     \  explain-diagnostic <CODE>        print JSON {code,definition,occurs_when,\n\
     \  forge-verify [--org ORG]            query forge_mirror for team\n\
     \                  [--team TEAM]          membership of the committer;\n\
-    \                  [--user USER]          fail-mode open|closed (default open)\n\
+    \                  [--user USER]          fail-mode open|closed (default \
+     open)\n\
     \                                   remediation} for an MC-* diagnostic code\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
     \  attest FILE                      parse FILE as a JUnit XML report\n\
@@ -2004,7 +2028,10 @@ let do_gate () =
   let v32 =
     Gate.gate_v32 c_info all_obligations false Re_evaluation.Compatible
       [
-        Gate.PreTemporalPrecedence; Gate.CoCommitDecision; Gate.CoCommitFixture;
+        Gate.PreTemporalPrecedence;
+        Gate.CoCommitDecision;
+        Gate.CoCommitFixture;
+        Gate.DecisionValidates;
       ]
       ~store ~decision_id:first_decision_id
   in
@@ -3160,22 +3187,31 @@ let[@warning "-32"] do_forge_verify () =
   let set_user s = user := s in
   let set_committer s = committer := s in
   let set_fail s =
-    match s with "open" | "closed" -> fail_mode := s
+    match s with
+    | "open" | "closed" -> fail_mode := s
     | _ ->
-        Printf.fprintf stderr "mathc forge-verify: --fail-mode must be open|closed (got %s)\n" s;
+        Printf.fprintf stderr
+          "mathc forge-verify: --fail-mode must be open|closed (got %s)\n" s;
         exit 2
   in
   (try
      Arg.parse
-       [ ("--org", Arg.String set_org, " <name>: forge org (e.g. 11111000000)")
-       ; ("--team", Arg.String set_team, " <slug>: forge team slug")
-       ; ("--user", Arg.String set_user, " <login>: forge user (committer login)")
-       ; ("--committer", Arg.String set_committer,
-          " <email>: committer email (auto-read from git if empty)")
-       ; ("--fail-mode", Arg.String set_fail,
-          " open|closed: how to handle forge unset / errors (default: open)") ]
+       [
+         ("--org", Arg.String set_org, " <name>: forge org (e.g. 11111000000)");
+         ("--team", Arg.String set_team, " <slug>: forge team slug");
+         ( "--user",
+           Arg.String set_user,
+           " <login>: forge user (committer login)" );
+         ( "--committer",
+           Arg.String set_committer,
+           " <email>: committer email (auto-read from git if empty)" );
+         ( "--fail-mode",
+           Arg.String set_fail,
+           " open|closed: how to handle forge unset / errors (default: open)" );
+       ]
        (fun _ -> ())
-       "usage: mathc forge-verify [--org ORG] [--team TEAM] [--user USER] [--committer EMAIL] [--fail-mode open|closed]"
+       "usage: mathc forge-verify [--org ORG] [--team TEAM] [--user USER] \
+        [--committer EMAIL] [--fail-mode open|closed]"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc forge-verify: %s\n" m;
      exit 2);
@@ -3189,17 +3225,17 @@ let[@warning "-32"] do_forge_verify () =
     | "" -> (
         match !committer with
         | "" ->
-            let sha = "" in
             let out =
               try
                 let ic =
                   Unix.open_process_args_in "git"
-                    [| "git"; "log"; "-1"; "--format=%ae"; sha |]
+                    [| "git"; "log"; "-1"; "--format=%ae"; "HEAD" |]
                 in
                 let s = In_channel.input_all ic in
                 let _ = In_channel.close ic in
                 s
-              with _ -> "" in
+              with _ -> ""
+            in
             String.trim out
         | c -> c)
     | u -> u
@@ -3215,36 +3251,38 @@ let[@warning "-32"] do_forge_verify () =
       | `Queried false -> "block"
     in
     let forge_queried = match queried with `Queried _ -> true | _ -> false in
-    let matched = match queried with
-      | `Queried m -> Some m
-      | _ -> None
-    in
-    let reason = match queried with
-      | `NotConfigured -> "MATH_CODING_FORGE_API not set; fail-mode=" ^ !fail_mode
+    let matched = match queried with `Queried m -> Some m | _ -> None in
+    let reason =
+      match queried with
+      | `NotConfigured ->
+          "MATH_CODING_FORGE_API not set; fail-mode=" ^ !fail_mode
       | `CurlFailure -> "forge query failed; fail-mode=" ^ !fail_mode
       | `Queried true -> "forge returned member=true"
       | `Queried false -> "forge returned member=false"
     in
-    let matched_pair = match matched with
-      | Some m -> [ ("matched", Bool m) ]
-      | None -> []
+    let matched_pair =
+      match matched with Some m -> [ ("matched", Bool m) ] | None -> []
     in
     let fields =
-      [ ("fail_mode", String !fail_mode)
-      ; ("forge_queried", Bool forge_queried)
-      ; ("org", String !org)
-      ; ("reason", String reason)
-      ; ("team", String !team)
-      ; ("user", String user_or_committer)
-      ; ("verdict", String verdict_str)
+      [
+        ("fail_mode", String !fail_mode);
+        ("forge_queried", Bool forge_queried);
+        ("org", String !org);
+        ("reason", String reason);
+        ("team", String !team);
+        ("user", String user_or_committer);
+        ("verdict", String verdict_str);
       ]
     in
     let all_fields = fields @ matched_pair in
-    let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) all_fields in
+    let sorted =
+      List.sort (fun (a, _) (b, _) -> String.compare a b) all_fields
+    in
     let body =
       String.concat ","
         (List.map
-           (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
+           (fun (k, v) ->
+             Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
            sorted)
     in
     Printf.printf "{%s}\n" body
@@ -3256,7 +3294,8 @@ let[@warning "-32"] do_forge_verify () =
       exit 2);
     Forge.team_member_full ~org:!org ~team:!team ~user:user_or_committer
   in
-  let exit_code = match queried with
+  let exit_code =
+    match queried with
     | `Queried true -> 0
     | `Queried false -> 1
     | `NotConfigured | `CurlFailure -> if !fail_mode = "open" then 0 else 1
@@ -3342,7 +3381,7 @@ let dispatch () =
   | "rebuttals" -> do_rebuttals ()
   | "re-evaluate" -> do_re_evaluate ()
   | "re-evaluate-decisions" -> do_re_evaluate_decisions ()
-  | "self-check" -> do_self_check ()
+  | "repo-check" -> do_self_check ()
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()
   | "stats" -> do_stats ()

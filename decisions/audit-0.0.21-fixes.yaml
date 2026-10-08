@@ -64,9 +64,9 @@ scope:
     - "lib/memory.ml"
     - "bin/Mathc.ml"
     - "tests/cli/*.t"
-    - "tests/fixtures/self-check-pass/attestations/"
-    - "tests/fixtures/self-check-fail/attestations/"
-    - "tests/fixtures/self-check-unknown/attestations/"
+    - "tests/fixtures/repo-check-pass/attestations/"
+    - "tests/fixtures/repo-check-fail/attestations/"
+    - "tests/fixtures/repo-check-unknown/attestations/"
     - "tests/decision_parser_yaml.ml"
     - "tests/counters_drift.ml"
     - "scripts/dev"
@@ -235,7 +235,7 @@ obligations:
   - id: self-check-pass-fixture-covers-all
     outcome: kernel-self-check-passes
     claim: |
-      `tests/fixtures/self-check-pass/attestations/` contains
+      `tests/fixtures/repo-check-pass/attestations/` contains
       a pass attestation for every (decision_id, obligation_id)
       pair enumerated by `mathc packages --format=json`, with
       the single exception of `portable-linux-musl`, which is
@@ -254,7 +254,7 @@ obligations:
       issued for retired subjects).
     acceptance:
       all:
-        - verifier: tests/cli/self-check-pass.t
+        - verifier: tests/cli/repo-check-pass.t
           result: pass
         - verifier: mathc-self-check-verdict-pass
           result: pass

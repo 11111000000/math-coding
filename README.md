@@ -52,7 +52,7 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc assess BASE HEAD` | List changed files between two git refs |
 | `mathc attest FILE` | Import a JUnit XML report as JSON |
 | `mathc gate BASE HEAD` | Assurance verdict for the diff |
-| `mathc self-check` | Kernel passes its own repository + corpus |
+| `mathc repo-check` | Kernel passes its own repository + corpus |
 | `mathc packages` | Index of decisions, obligations, verdicts |
 | `mathc render` | Build the static site under `dist/` |
 | `mathc time-estimate` | Honest duration claim from a reference class |
@@ -64,6 +64,7 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc session-start` | Write `.local/session-start` ISO timestamp |
 | `mathc record --decision-id ID ...` | Append event to `decisions/execution-logs.jsonl` |
 | `mathc stats [--class N] [--scale S]` | Emit empirical aggregate JSON |
+| `mathc forge-verify [--org ORG] [--team TEAM] [--user USER]` | Query forge_mirror for team membership of the committer |
 
 Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
 

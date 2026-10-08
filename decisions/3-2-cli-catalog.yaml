@@ -72,15 +72,15 @@ scope:
 
 outcomes:
   - id: spec-catalog-complete
-    statement: spec/semantics.md §CLI subcommands lists every
+    statement: |
       subcommand the dispatcher recognises at HEAD; the spec
       and the implementation no longer disagree.
   - id: readme-catalog-complete
-    statement: README.md's CLI table lists every subcommand
+    statement: |
       the dispatcher recognises at HEAD; readers of the
       README no longer see "missing" subcommands in `mathc --help`.
   - id: fixtures-positive-and-negative
-    statement: every 3.2 subcommand has both a positive cram
+    statement: |
       fixture (exit 0 with the documented output) and a
       negative one (exit 2 on missing arguments).
 
@@ -97,7 +97,7 @@ assumptions:
       3.5 batch). Without this assumption the spec rows would
       describe behaviour that does not exist.
     owner: human:maintainer
-    consequence_if_false: the spec rows become aspirational;
+    consequence_if_false: |
       the 3 subcommands would have to be removed from the
       dispatcher.
     review_on:

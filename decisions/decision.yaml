@@ -32,10 +32,10 @@ outcomes:
   - id: reversible-transition
     statement: Complete 2.1 source is recoverable from tag v2.1-final.
   - id: agent-authorable
-    statement: An LLM agent can produce a valid decision draft on first attempt
+    statement: |
       in at least 9 of 10 representative tasks.
   - id: token-disciplined
-    statement: Tier-1 context capsule fits within the declared token budget
+    statement: |
       and never exceeds it silently.
 
 assumptions:
@@ -58,7 +58,7 @@ obligations:
 
   - id: conformance-coverage
     outcome: executable-specification
-    claim: Every kernel-enforced rule has at least one positive and one negative
+    claim: |
       fixture.
     acceptance:
       all:
@@ -67,7 +67,7 @@ obligations:
 
   - id: bootstrap-honesty
     outcome: honest-bootstrap
-    claim: AGENTS.md and bootstrap documents do not claim automated enforcement
+    claim: |
       that is not yet implemented.
     acceptance:
       all:
@@ -76,7 +76,7 @@ obligations:
 
   - id: authoring-benchmark
     outcome: agent-authorable
-    claim: First-attempt structural validity of decisions produced by an LLM
+    claim: |
       reaches the documented threshold.
     acceptance:
       all:
@@ -125,6 +125,20 @@ risk:
   declared_triggers:
     - policy-weakening
     - protocol-breaking-change
+
+counterexample: |
+  The strongest objection: bootstrap-v3 cannot be the
+  root of the assurance graph because its own protocol
+  guards (`axiom_link`, `counterexample`, `outcomes`)
+  do not constrain a decision that pre-dates them. If
+  a future protocol revision tightens those guards, the
+  root decision itself is the first to fail them, and
+  the kernel cannot exit `unknown` to enter `pass` on
+  its own root. The mitigation is to record this
+  counterexample as the strongest-known objection and
+  keep bootstrap-v3 at its current revision; revisions
+  that tighten the schema must record bootstrap-v3 as
+  an explicit grandfather.
 
 relations:
   addresses:

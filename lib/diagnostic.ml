@@ -349,8 +349,6 @@ let string_of_kind = function
   | Conflict -> "conflict"
   | Authorization -> "authorization"
 
-let code s = s
-
 (* MC-* code registry used by `mathc explain-diagnostic <CODE>`.
    Each entry is a markdown body with three sections, delimited
    by `### Definition` / `### Occurs when` / `### Remediation`

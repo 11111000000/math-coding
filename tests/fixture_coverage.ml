@@ -54,11 +54,17 @@ let manual_prefixes =
     "awk ";
     "sed ";
     "python ";
+    "python3 ";
     "perl ";
     "nix ";
     "cargo";
     "rg ";
     "ls ";
+    (* Decision and attestation verifiers name sibling artifacts
+       as evidence; the test does not assert they exist on disk
+       because they are governance primitives, not fixtures. *)
+    "decisions/";
+    "attestations/";
     (* descoped checks: not file existence, but property checks
        (output non-empty, contains X, etc.) — manual-style. *)
     "tests/render_kernel.ml::";

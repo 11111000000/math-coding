@@ -13,7 +13,7 @@ base-href-empty + 14 new fixtures in tests/render_kernel.ml;
 2026-10-07) + Step 6 of the 2026-10
 merlin-LSP infrastructure (hand-written `.merlin` + `ocaml-lsp`
 1.27.0 + `merlin` 5.8-505 in `flake.nix`; 2026-10-07).
-Attestation store at `attestations/` contains **258 files** (verified by
+Attestation store at `attestations/` contains **260 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
 on every check); **`mathc packages` reports 50 active decisions / 189
 obligations (188 pass, 0 missing, 1 unknown; the master policy's 7
@@ -22,7 +22,7 @@ are emitted by `scripts/dev-counters.py` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
 `mathc self-check` on a clean tree currently returns verdict `unknown`
-with 49 pass / 1 unknown out of 50 subjects. The single unknown is
+with 51 pass / 3 unknown out of 54 subjects. The single unknown is
 `plan-2026-10-improvements`, the meta-decision whose 14 T-obligations
 are still being closed by the parallel improvement cycle (5 active
 worktrees at HEAD). The previously-unknown subjects
@@ -147,6 +147,8 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/merlin-lsp-2026-10.yaml` | `merlin-lsp-2026-10` | 1 | 3 | META | hand-written `.merlin` + `ocaml-lsp` + `merlin` in `flake.nix` ocamlDeps; not counted as active decision (dev-infra, no kernel surface) |
 | `decisions/junit-entity-off-by-one-fix-2026-10.yaml` | `junit-entity-off-by-one-fix-2026-10` | 1 | 3 | RESOLVED | off-by-one in `lib/junit/junit.ml:74-90` entity-reference boundary check; `tests/junit_test.ml` regression; new §11.23 trap |
 | `decisions/plan-2026-10-improvements/t4-2.yaml` | `t4-2-explain-diagnostic` | 1 | 2 | RESOLVED | Tier-4 #2: `mathc explain-diagnostic <CODE>` subcommand; registry in `lib/diagnostic.ml::explain`; positive+negative cram fixture |
+| `decisions/decision-required-attestations-2026-10.yaml` | `decision-required-attestations` | 1 | 3 | RESOLVED | schema field `required_attestations`; gate emits `MissingRequiredAttestation` gap; closes A1.3 (per-decision attestation contract) |
+| `decisions/forge-principal-verification-2026-10.yaml` | `forge-principal-verification` | 1 | 3 | RESOLVED | `mathc forge-verify` consults `MATH_CODING_FORGE_API` for the committer's team membership; closes A4 (principal verification) |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision
@@ -225,6 +227,8 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `render.t` | render produces the full dist/ tree | `decisions/site-deploy.yaml` |
 | `render-mathjax-spec.t` | mathc render emits MathJax 3 deferred on spec pages (T5.2) | `decisions/plan-2026-10-improvements.yaml` |
 | `applicability-envelope.t` | applicability decision tree surfaces in docs | `decisions/algebra-3.2.yaml` |
+| `forge-verify.t` | forge-verify consults MATH_CODING_FORGE_API | `decisions/forge-principal-verification-2026-10.yaml` |
+| `required-attestation.t` | gate emits MissingRequiredAttestation gap | `decisions/decision-required-attestations-2026-10.yaml` |
 
 ## Process-principles test (`tests/process_principles.ml`)
 

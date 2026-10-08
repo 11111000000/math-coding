@@ -103,7 +103,7 @@ assumptions:
       other than its own adoption SKILL, which already references a
       non-existent asset. `git grep -E '\bmc\b'` is the scope.
     owner: human:maintainer
-    consequence_if_false: external scripts invoking `mathc validate`
+    consequence_if_false: |
       or `mathc gate` fail post-rename; mitigation is out of scope
       (consumers must update their scripts to `mathc`).
     review_on:
@@ -118,7 +118,7 @@ assumptions:
       CI steps are unaffected by the rename because they already
       invoke `mathc` (the `mathc` form does not exist in CI yml).
     owner: human:maintainer
-    consequence_if_false: a CI step that invoked `mathc` could
+    consequence_if_false: |
       hit Midnight Commander on a runner that has it preinstalled
       in a higher-priority PATH entry. Mitigation: rename the
       GitHub Action install step to place `mathc` at `/usr/local/bin`,
@@ -135,7 +135,7 @@ assumptions:
       `MC-UNKNOWN`) are stable public identifiers emitted in JSON
       output and are out of scope for this rename.
     owner: human:maintainer
-    consequence_if_false: external tools grep for `MC-` codes and
+    consequence_if_false: |
       would break silently. The user has been asked separately and
       has not authorised renaming the `MC-*` family.
     review_on:

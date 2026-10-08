@@ -78,7 +78,7 @@ assumptions:
     state: assumed
     statement: GitHub Actions remain the project's CI provider.
     owner: human:maintainer
-    consequence_if_false: workflows may need rewriting for a different
+    consequence_if_false: |
       provider.
     review_on:
       - signal: ci-provider-change

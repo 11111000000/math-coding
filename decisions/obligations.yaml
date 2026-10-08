@@ -1,5 +1,8 @@
 ---
 schema: math-coding/obligations-3.0-alpha
+id: obligations-aggregator
+revision: 1
+state: active
 decision:
   id: bootstrap-v3
   revision: 2
@@ -28,7 +31,7 @@ obligations:
     evidence: manual-git-verification
   - id: conformance-coverage
     kind: acceptance
-    statement: Every kernel-enforced rule has at least one positive and one
+    statement: |
       negative fixture.
     evidence: conformance-suite
   - id: bootstrap-honesty
@@ -37,12 +40,12 @@ obligations:
     evidence: review
   - id: authoring-benchmark
     kind: acceptance
-    statement: First-attempt structural validity of decisions produced by an
+    statement: |
       LLM reaches the documented threshold.
     evidence: manual-benchmark
   - id: context-budget
     kind: invariant
-    statement: Tier-1 context capsule never silently exceeds its declared
+    statement: |
       budget.
     evidence: tests/cli/context-budget-bound.t
   - id: developer-practices-binding

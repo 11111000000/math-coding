@@ -132,8 +132,11 @@ let[@warning "-32"] fresh_against ~attestations ~materials_digest =
    in the attestation's `subject.candidate_tree` field — the
    simplest predicate the existing schema carries. *)
 let[@warning "-32"] attestation_kind_to_string = function
-  | `Test -> "test" | `Review -> "review" | `Build -> "build"
-  | `Analysis -> "analysis" | `Observation -> "observation"
+  | `Test -> "test"
+  | `Review -> "review"
+  | `Build -> "build"
+  | `Analysis -> "analysis"
+  | `Observation -> "observation"
 
 (* The `kind` field of `Domain.attestation` collides with the
    top-level type alias `Domain.kind = Decision | Obligation | ...`.
@@ -155,12 +158,11 @@ let[@warning "-32"] attestation_kind_str (a : Domain.attestation) : string =
   | { kind = `Analysis; _ } -> "analysis"
   | { kind = `Observation; _ } -> "observation"
 
-let[@warning "-32"] required_attestation_satisfied (ra : Decision.required_attestation) store =
+let[@warning "-32"] required_attestation_satisfied
+    (ra : Decision.required_attestation) store =
   List.exists
     (fun a ->
-      String.equal
-        (attestation_kind_str a)
-        ra.ra_kind
+      String.equal (attestation_kind_str a) ra.ra_kind
       && String.equal a.Domain.producer_identity ra.ra_producer)
     store
 
@@ -174,42 +176,52 @@ let[@warning "-32"] required_attestation_satisfied (ra : Decision.required_attes
    the gate ties each gap back to its source for traceability. *)
 let[@warning "-32"] required_attestation_gap entry store =
   match entry.Memory.source with
-  | source when source <> "" ->
-      (match
-         Decision.parse_required_attestations
-           (match Codec.load_yaml_string source with | v -> v)
-       with
-       | Some [] | None -> []
-       | Some requireds ->
-           List.filter_map
-             (fun (ra : Decision.required_attestation) ->
-               let k = ra.ra_kind in
-               let p = ra.ra_producer in
-               let scope_suffix =
-                 match ra.ra_scope_paths with
-                 | [] -> ""
-                 | paths -> Printf.sprintf " (scope: %s)" (String.concat ", " paths)
-               in
-               let cause_msg =
-                 Printf.sprintf "required_attestation unfulfilled: %s from %s%s" k p scope_suffix
-               in
-               if required_attestation_satisfied ra store then None
-               else
-                 let gap =
-                   {
-                     obligation_id = Printf.sprintf "%s/required-attestation:%s:%s" entry.Memory.decision_id k p;
-                     kind = `MissingReview;
-                     causes = [ cause_msg ];
-                     remedies =
-                       [ "produce the listed attestation in attestations/"
-                       ; "or remove the requirement from the decision" ];
-                     next_actions =
-                       [ ( "run",
-                           Printf.sprintf "mathc attest --kind %s --producer %s %s.md" k p entry.Memory.decision_id ) ];
-                   }
-                 in
-                 Some gap)
-             requireds)
+  | source when source <> "" -> (
+      match
+        Decision.parse_required_attestations
+          (match Codec.load_yaml_string source with v -> v)
+      with
+      | Some [] | None -> []
+      | Some requireds ->
+          List.filter_map
+            (fun (ra : Decision.required_attestation) ->
+              let k = ra.ra_kind in
+              let p = ra.ra_producer in
+              let scope_suffix =
+                match ra.ra_scope_paths with
+                | [] -> ""
+                | paths ->
+                    Printf.sprintf " (scope: %s)" (String.concat ", " paths)
+              in
+              let cause_msg =
+                Printf.sprintf "required_attestation unfulfilled: %s from %s%s"
+                  k p scope_suffix
+              in
+              if required_attestation_satisfied ra store then None
+              else
+                let gap =
+                  {
+                    obligation_id =
+                      Printf.sprintf "%s/required-attestation:%s:%s"
+                        entry.Memory.decision_id k p;
+                    kind = `MissingReview;
+                    causes = [ cause_msg ];
+                    remedies =
+                      [
+                        "produce the listed attestation in attestations/";
+                        "or remove the requirement from the decision";
+                      ];
+                    next_actions =
+                      [
+                        ( "run",
+                          Printf.sprintf
+                            "mathc attest --kind %s --producer %s %s.md" k p
+                            entry.Memory.decision_id );
+                      ];
+                  }
+                in
+                Some gap)
+            requireds)
   | _ -> []
 
 let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
@@ -451,8 +463,19 @@ let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
  * `gate_v32` and `apply_rule` functions.
  *)
 
-(* Kernel rule kinds (algebra §20) *)
-type kernel_rule = PreTemporalPrecedence | CoCommitDecision | CoCommitFixture
+(* Kernel rule kinds (algebra §20). `DecisionValidates` is the
+   3.0-3.2 bridge: every decision in the changed set must satisfy
+   `Decision.structural_violations` (the kernel-level equivalent of
+   the `mathc validate` CLI). Without this rule the gate verdict
+   can be `pass` for a decision whose own validator rejects it,
+   because the attestation store happens to carry a pass attestation.
+   The rule is intentionally cheap: a single structural pass over
+   the parsed decision. *)
+type kernel_rule =
+  | PreTemporalPrecedence
+  | CoCommitDecision
+  | CoCommitFixture
+  | DecisionValidates
 
 (* Commit info (minimal subset for rule application) *)
 type commit_info = {
@@ -499,6 +522,36 @@ let apply_rule (rule : kernel_rule) (c : commit_info) : bool =
   | CoCommitFixture ->
       (* algebra §15: every obligation needs verifier or review *)
       true (* obligation check happens in gate_v32 below *)
+  | DecisionValidates ->
+      (* every decision file in the changed set must be structurally
+         valid per Decision.structural_violations. The parsed decision
+         is loaded from the same source the validator sees; if it
+         fails to parse we conservatively return false. *)
+      let is_decision_file p =
+        let len = String.length p in
+        len > 4
+        && String.sub p (len - 5) 5 = ".yaml"
+        &&
+        let prefix = "decisions/" in
+        let pl = String.length prefix in
+        len >= pl && String.sub p 0 pl = prefix
+      in
+      let validate_one f =
+        if not (is_decision_file f) then true
+        else if not (Sys.file_exists f) then true
+        else
+          try
+            let raw = In_channel.with_open_bin f In_channel.input_all in
+            let yaml = Codec.load_yaml_string raw in
+            match Decision.parse_decision_yaml yaml with
+            | Some d -> (
+                match Decision.structural_violations d with
+                | Ok () -> true
+                | Error _ -> false)
+            | None -> false
+          with _ -> false
+      in
+      List.for_all validate_one c.files
 
 (* Parse git-style trailer `Refs: decision:<id>@<rev>, decision:<id>@<rev>`
    from a commit body. Returns the list of decision ids (without
@@ -561,22 +614,6 @@ let[@warning "-32"] commit_info_of ~changed_paths ~body =
     if body = "" then [] else parse_trailer_refs body
   in
   { files; mode; has_sibling_yaml; trailer_decision_refs }
-
-(* Detect any FailedEvidence gap in the obligations. Used by
-   gate_v32 to honour the attestation check that the placeholder
-   (line 322, removed) used to skip. *)
-let[@warning "-32"] any_failed_attestation (obs_list : Domain.obligation list)
-    ~store ~decision_id : bool =
-  let f (ob : Domain.obligation) : bool =
-    let cands =
-      candidates_for ~store ~decision_id ~obligation_id:ob.Domain.id
-    in
-    List.exists
-      (fun (a : Domain.attestation) ->
-        match a.Domain.result with Domain.Fail -> true | _ -> false)
-      cands
-  in
-  List.exists f obs_list
 
 (* Extended gate verdict for 3.2-ideal (algebra §15) *)
 let[@warning "-32"] gate_v32 (c : commit_info)

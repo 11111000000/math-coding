@@ -61,11 +61,13 @@ For applicable projects. The full ceremony is justified.
   (`mathc-linux-x86_64`, `mathc-linux-aarch64`). On systems with
   older glibc or musl-libc (Alpine), the glibc binary may fail
   with `GLIBC_X.Y not found`. A musl-linked variant
-  (`mathc-linux-x86_64-musl`) was attempted via `feature/portable-musl-build`
-  but reverted in v3.2 (see `decisions/portable-linux-musl.yaml`
-  reversal signal `alpine-ci-build-fails`); the CI build pipeline
-  was unable to drive the Alpine container's opam setup end-to-end.
-  A future release will re-attempt.
+  (`mathc-linux-x86_64-musl`) is now built on every release
+  via the `portable-linux-musl@4` decision (rev 4, 2026-10-07);
+  CI run #129 is the first end-to-end green Alpine/musl build.
+  The artifact is currently uploaded to GitHub Actions artifacts
+  but is not yet in the published release `files:` list — that
+  wiring lands once the `fix-alpine-musl-2026-10` branch is
+  merged to main.
 - Use the AI-agent skill from
   [`adoption/SKILL.md`](adoption/SKILL.md) (preferred) or follow the
   four steps in it manually.

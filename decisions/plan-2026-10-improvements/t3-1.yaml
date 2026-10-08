@@ -3,6 +3,8 @@ schema: math-coding/3.0-alpha
 id: t3-1-gate-v30-risk-aware
 revision: 1
 state: active
+axiom_link:
+  - A0
 body_sha: "sha256:3f40a8175b6e6de38dfb402fa0daf4db5c1a37ad9ec98f3f7cd3c93b16155699"
 yaml_sha: "sha256:3f40a8175b6e6de38dfb402fa0daf4db5c1a37ad9ec98f3f7cd3c93b16155699"
 intent: |

@@ -34,11 +34,11 @@ scope:
 
 outcomes:
   - id: spec-row-promoted
-    statement: spec/semantics.md §"CLI subcommands" has a
+    statement: |
       `### explain DETAIL_REF` row with synopsis, input,
       output, exit code, and bootstrap justification.
   - id: dispatcher-shipped
-    statement: bin/Mathc.ml dispatches `mathc explain DETAIL_REF` to
+    statement: |
       a handler that resolves `kind:id` references and emits
       `{kind, id, digest, path, body}` JSON or a typed
       diagnostic on stderr.
@@ -54,7 +54,7 @@ assumptions:
       spec row is the load-bearing artifact; the dispatcher
       is its consumer.
     owner: human:maintainer
-    consequence_if_false: the dispatcher would land without a
+    consequence_if_false: |
       spec backing, violating `semantics.md:152-155` ("an
       implementation MUST NOT add a new subcommand without
       first adding a row here").

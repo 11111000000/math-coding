@@ -770,9 +770,9 @@ let[@warning "-32"] render_head ~lang ~site_base ~title ~enable_mathjax
     Printf.bprintf buf
       "<script>\n\
        window.MathJax = { tex: { inlineMath: [['\\\\(', '\\\\)']], \
-       displayMath: [['\\\\[', '\\\\]']] }, options: { \
-       skipHtmlTags: ['script', 'noscript', 'style', 'textarea', \
-       'pre', 'code', 'div.mermaid'] } };\n\
+       displayMath: [['\\\\[', '\\\\]']] }, options: { skipHtmlTags: \
+       ['script', 'noscript', 'style', 'textarea', 'pre', 'code', \
+       'div.mermaid'] } };\n\
        </script>\n"
   end;
   if enable_mermaid then begin
@@ -1246,7 +1246,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
    from CLI flags. *)
 let[@warning "-32"] default_config =
   {
-      site_base = "/math-coding/";
+    site_base = "/math-coding/";
     (* MathJax 3 defaults ON. The previous default-OFF workaround
        in `render-kernel-fixes-2026-10@1` (`mathjax-default-off`,
        assumption `mathjax-off-default-is-acceptable`) is retired:

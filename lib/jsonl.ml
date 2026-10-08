@@ -114,9 +114,20 @@ let parse_string s i =
           let hex = String.sub s (i + 2) 4 in
           let code = int_of_string_opt ("0x" ^ hex) in
           match code with
-          | Some c when c >= 0 && c <= 0x10FFFF ->
+          | Some c when c >= 0 && c <= 0xFF ->
               Buffer.add_char buf (Char.chr c);
               loop (i + 6)
+          | Some c
+            when (c > 0xFF && c <= 0xD7FF) || (c >= 0xE000 && c <= 0x10FFFF) ->
+              (* higher code points are not representable in the
+                 current Latin-1 string model; reject with a
+                 precise message rather than crash on Char.chr *)
+              parse_error_at s
+                (Printf.sprintf
+                   "non-Latin-1 unicode escape U+%04X is not supported by this \
+                    build"
+                   c)
+                i
           | _ -> parse_error_at s "bad unicode escape" i)
       | _ -> parse_error_at s "bad escape" i
     end

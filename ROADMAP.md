@@ -2,7 +2,7 @@
 
 > **Status (2026-09-30, post-v3.0.0.20):** bootstrap protocol **expired**
 > (commit `8fa7fcf`). The 3.0 kernel checks this repository and its
-> conformance corpus via `mathc self-check`, which is a **blocking** CI
+> conformance corpus via `mathc repo-check`, which is a **blocking** CI
 > step per `constitution.md` Invariant 14. The attestation store at
 > `attestations/` is populated (135 files). CLI surface: `validate`,
 > `context`, `explain`, `assess`, `attest`, `gate`, `session-start`,
@@ -39,7 +39,7 @@ without a `decisions/*.yaml` decision under the active policy.
 | # | Task | Decision | Status |
 |---|---|---|---|
 | ~~1~~ | `gate-attestation-store-fill` | `gate-attestation-store-fill@1` | **closed** in commit `ed42290` |
-| ~~2~~ | `mathc self-check` | `mathc-self-check-subcommand@2` | **closed** in commit `758f340`; blocking CI in `8fa7fcf` |
+| ~~2~~ | `mathc repo-check` | `mathc-self-check-subcommand@2` | **closed** in commit `758f340`; blocking CI in `8fa7fcf` |
 | ~~A~~ | `mathc explain` dispatcher | `mathc-explain-subcommand@1` | **closed** in commit `6e922d3` (broken promise from `omitted[].expansion` resolved) |
 | ~~B~~ | D1/D2 (YAML block-scalars + front-matter) | `yaml-block-scalars@3` | **closed** in commit `79d138b` (v3.0.0.19) |
 | ~~C~~ | D4 (SHA-256 RFC vectors) | `kernel-conformance-runner@1` | **closed** in commit `d77624b` |
@@ -58,7 +58,7 @@ without a `decisions/*.yaml` decision under the active policy.
 
 | # | Deficit | Status | Notes |
 |---|---|---|---|
-| 6 | D6 (bootstrap-v3 manual-only verifiers) | **closed** in v3.0.0.20 | `mathc self-check` is blocking; manual-only verifiers move to machine-checked |
+| 6 | D6 (bootstrap-v3 manual-only verifiers) | **closed** in v3.0.0.20 | `mathc repo-check` is blocking; manual-only verifiers move to machine-checked |
 | 7 | D5 (stale `bin/mathc_main.ml`) | **closed** in commit `191d1af` | |
 | 8 | D7 (adapters decision covers two obligations) | **closed** in commit `be5c4bd` | |
 | 9 | D3 (priority-drift detector) | **closed** in commit `4855a57` | |
@@ -77,10 +77,10 @@ without a `decisions/*.yaml` decision under the active policy.
 **Status**: ✅ LANDED between `ff9e738` and `fd7ea8b` (13/13 tasks).
 Schema extensions preserve backward compat (v3.0.0.20 → v3.1.0 alpha).
 
-`mathc self-check` verdict: `pass` (47 subjects, 47 pass / 0 unknown).
+`mathc repo-check` verdict: `pass` (54 subjects, 51 pass / 3 unknown).
 Runtime kernel behaviour is backward compatible: the existing
 `mathc validate`, `mathc gate`, `mathc packages`, `mathc explain`,
-`mathc self-check` keep working unchanged.
+`mathc repo-check` keep working unchanged.
 
 | # | Task | Decision | Status |
 |---|---|---|---|
@@ -109,8 +109,8 @@ Runtime kernel behaviour is backward compatible: the existing
   **Status**: closed at this sync (verified by
   `grep -n 'subjects_len\|total_subjects\|pass_count' tests/cli/self-check-*.t`,
   2026-10-04). **Reopened and re-closed at the 2026-10-07
-  integrity cycle**: the live kernel reports 47 subjects with
-  47 pass / 0 unknown (`mathc self-check`); the cram snapshots
+  integrity cycle**: the live kernel reports 54 subjects with
+  51 pass / 3 unknown (`mathc repo-check`); the cram snapshots
   lag the live state until regenerated. The current fix path
   is `dune promote` after a clean `dune build` on a host
   with a working toolchain.
@@ -203,7 +203,7 @@ this portably. The enforced test at
 `tests/cram/` directory is absent; the live cram is in `tests/cli/`.
 
 **Correction (2026-10-04, refresh 2026-10-05, 2026-10-07):** `OCAML_BEST_PRACTICES.md` §11
-trap log has 25 entries (§11.1–§11.25, verified by
+trap log has 26 entries (§11.1–§11.26, verified by
 `grep -c '^### 11\.' OCAML_BEST_PRACTICES.md`); the earlier
 "§11 has only its header" claim was stale. §11.22 (`nix develop`
 builds a non-portable `mathc` that fails) was added in `Unreleased`

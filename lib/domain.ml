@@ -291,7 +291,6 @@ type diagnostic = {
   next_actions : (string * string) list;
 }
 
-
 (* `lib/gate.ml::attestation_kind_str` is the live implementation
    of the attestation-kind-to-string mapping. It is colocated
    with `required_attestation_satisfied` because the kind field
