@@ -288,8 +288,7 @@ let[@warning "-32"] test_after_run_walks_list_in_order () =
     Re_evaluation.re_evaluate_after_run [ d_a; d_b ] rev
     |> List.map (fun ((d : Domain.decision), _) -> d.Domain.id)
   in
-  Alcotest.(check (list string))
-    "input order preserved" [ "alpha"; "beta" ] ids
+  Alcotest.(check (list string)) "input order preserved" [ "alpha"; "beta" ] ids
 
 let[@warning "-32"] test_after_run_mixed_decisions () =
   let d_test =

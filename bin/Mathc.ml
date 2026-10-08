@@ -2526,15 +2526,28 @@ let[@warning "-32"] load_decision_entry reader path =
    causes/remedies are empty too.
 
    Waiver consultation (math-coding 3.0, decision
-   waiver-infrastructure-2026-10): if the aggregated verdict is
-   `Unknown` and a waiver covers the subject at `now`, we
-   return `Open_with_waiver` instead. The CLI maps
-   `Open_with_waiver -> "pass"` in the verdict string (existing
-   behaviour at bin/Mathc.ml:1829-1833) but the gap list and
-   the cause/remedy remain in the JSON output — the gap is a
-   gap, the waiver is an acknowledgment, not an elimination
-   (constitution.md §Waivers line 102; spec/semantics.md
-   §Waiver "MUST NOT change the underlying assurance result").
+   waiver-infrastructure-2026-10; strict-scope T3.2): if the
+   aggregated verdict is `Unknown` and EVERY waivable gap is
+   covered by a waiver at `now`, we return `Open_with_waiver`
+   instead. The CLI maps `Open_with_waiver -> "pass"` in the
+   verdict string (existing behaviour at bin/Mathc.ml:1829-1833)
+   but the gap list and the cause/remedy remain in the JSON
+   output — the gap is a gap, the waiver is an acknowledgment,
+   not an elimination (constitution.md §Waivers line 102;
+   spec/semantics.md §Waiver "MUST NOT change the underlying
+   assurance result").
+
+   Strict per-obligation coverage (T3.2, A3-protected): a waiver
+   covers a gap iff its `(w.subject, w.unverified_obligation)`
+   equals the gap's `(decision_id, obligation_id)`. Waivers
+   without `unverified_obligation` retain their legacy global
+   coverage of every obligation of the named decision (backward
+   compat with pre-existing `decisions/waivers/*.yaml` files,
+   whose YAML front-matter expresses the field as a list and
+   therefore parses to None). If even one waivable gap lacks
+   a covering waiver, the verdict stays `Unknown` — the waiver
+   does NOT silently elevate the gate (constitution.md
+   Invariant 10 "honest status").
 
    A FailedEvidence gap is never waived: only MissingEvidence,
    StaleEvidence, and Unknown gaps can be lifted to
@@ -2554,19 +2567,24 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
   let verdict =
     match aggregate_verdict with
     | Gate.Unknown ->
-        let all_waivable =
-          List.for_all
+        let waivable_gaps =
+          List.filter
             (fun g ->
               match g.Gate.kind with
               | `MissingEvidence | `StaleEvidence | `Unknown -> true
               | `FailedEvidence | `MissingReview | `NoAttestationStore -> false)
             gaps
         in
-        if
-          all_waivable
-          && Option.is_some
-               (Waiver.covers waivers ~decision_id:entry.Memory.decision_id ~now)
-        then Gate.Open_with_waiver
+        let every_gap_waived =
+          List.for_all
+            (fun g ->
+              Option.is_some
+                (Waiver.covers waivers ~decision_id:entry.Memory.decision_id
+                   ~obligation_id:g.Gate.obligation_id ~now))
+            waivable_gaps
+        in
+        if List.length waivable_gaps > 0 && every_gap_waived then
+          Gate.Open_with_waiver
         else Gate.Unknown
     | v -> v
   in

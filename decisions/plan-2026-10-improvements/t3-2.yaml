@@ -1,0 +1,410 @@
+---
+schema: math-coding/3.0-alpha
+id: t3-2
+revision: 1
+state: active
+body_sha: "sha256:63a9ed8c39c2ac1ca3e024580b41a14749f342f2daffb6bdf34a12596cc02701"
+yaml_sha: "sha256:63a9ed8c39c2ac1ca3e024580b41a14749f342f2daffb6bdf34a12596cc02701"
+intent: |
+  Narrow the `Open_with_waiver` mapping in `lib/waiver.ml` so that
+  a waiver lifts the gate ONLY for the gap whose
+  `(decision, obligation)` pair matches the waiver's
+  `(subject, unverified_obligation)`. A waiver named for
+  obligation A of decision D no longer lifts the gate for
+  obligation B of decision D or for any obligation of any other
+  decision. Pre-existing waivers that ship without
+  `unverified_obligation` (the YAML front-matter expresses the
+  field as a list; the parser returns `None` for non-scalar
+  values) retain their legacy global coverage of every
+  obligation of the named decision — backward compatibility is
+  preserved per AGENTS.md §Self-application.
+
+  History:
+    rev 1 (this commit): initial adoption under `bootstrap-v3@2`
+      policy. Closes meta-decision `plan-2026-10-improvements`
+      Tier 3 obligation `t3-2-waiver-scope-narrow`. A3-protected
+      transition (see §"A3-protected transition" below) — the
+      `Open_with_waiver` mapping semantics change (a waiver
+      named for one obligation can no longer lift the gate for
+      another obligation of the same decision), so the
+      sub-decision carries dual-failure evidence and a human
+      maintainer must review before merge.
+
+commitment: |
+  `lib/waiver.ml::covers` accepts an `~obligation_id` parameter
+  and applies strict `(decision, obligation)` matching when the
+  waiver's `unverified_obligation` field is `Some id`. When
+  the waiver omits `unverified_obligation` (the legacy global
+  form), coverage is unchanged — every obligation of the named
+  decision is lifted. `bin/Mathc.ml::evaluate_decision` calls
+  `Waiver.covers` once per gap with the gap's `(decision_id,
+  obligation_id)` pair; the gate verdict becomes
+  `Open_with_waiver` iff EVERY waivable gap (MissingEvidence,
+  StaleEvidence, Unknown) is covered by at least one waiver. If
+  even one waivable gap lacks a covering waiver, the verdict
+  stays `Unknown` (Kernel Invariant 10, honest status — the
+  waiver does NOT silently elevate the gate).
+
+  The pre-existing waiver files under `decisions/waivers/` are
+  unchanged. Because their YAML front-matter expresses
+  `unverified_obligation` as a list (e.g.
+  `decisions/waivers/portable-linux-musl-2026-10.yaml`), the
+  parser (`Schema.take_string`) returns `None` and the kernel
+  reads them as legacy global waivers. The two currently-shipped
+  global waivers continue to lift every obligation of their
+  named decision; the change is forward-only for new waivers
+  that opt into strict matching via a scalar
+  `unverified_obligation:` value.
+
+  Boundaries:
+  - `lib/gate.ml::evaluate`, `lib/gate.ml::aggregate`, and the
+    `evaluate_decision` function in `bin/Mathc.ml` are the only
+    call sites of `Waiver.covers`. The kernel read API
+    (`Waiver.parse`, `Waiver.load`, `Waiver.effective_at`) is
+    unchanged.
+  - The waiver JSON schema (`schemas/waiver.json`) is unchanged:
+    `unverified_obligation` remains an optional string; a YAML
+    list value still parses as `None`.
+  - `spec/algebra-3.2.md`, `spec/constitution.md`,
+    `spec/semantics.md` are NOT modified. The change is a
+    tighter interpretation of the existing §Self-application
+    item 11 ("a waiver MUST apply only to its named gap, scope")
+    rather than a normative spec edit.
+  - The decision surface (`lib/decision.ml`, `lib/risk.ml`,
+    `lib/policy.ml`, `lib/rebuttal.ml`, `lib/diagnostic.ml`) is
+    NOT modified. Stream ε owns those files in Round 2.
+  - The live attestation store at `attestations/` is NOT
+    modified. No new attestations are required for this change
+    (the kernel surface already exists and is exercised by
+    `tests/cli/gate-waiver-scope.t`).
+
+scope:
+  capabilities:
+    - waiver-scope-narrow
+  paths:
+    - "lib/waiver.ml"
+    - "bin/Mathc.ml"
+    - "tests/waiver_test.ml"
+    - "tests/cli/gate-waiver-scope.t"
+    - "decisions/plan-2026-10-improvements/t3-2.yaml"
+    - "attestations/t3-2-*.json"
+    - "attestations/plan-2026-10-improvements-t3-2-*.json"
+    - "PACKAGES.md"
+  exclusions:
+    - "lib/gate.ml::evaluate"
+    - "lib/gate.ml::aggregate"
+    - "lib/diagnostic.ml"
+    - "lib/decision.ml"
+    - "lib/risk.ml"
+    - "lib/policy.ml"
+    - "lib/rebuttal.ml"
+    - "lib/re_evaluation.ml"
+    - "lib/attestations/attestations.ml"
+    - "lib/render.ml"
+    - "schemas/*.json"
+    - "spec/**"
+    - "decisions/waivers/*.yaml"
+    - "site/**"
+    - "axioms/**"
+    - "decisions/plan-2026-10-improvements.yaml"
+
+outcomes:
+  - id: waiver-scope-narrow
+    statement: |
+      `Waiver.covers` accepts `~obligation_id` and applies
+      strict `(decision, obligation)` matching when the waiver
+      carries a scalar `unverified_obligation`. Pre-existing
+      global waivers retain their legacy behaviour. The gate
+      verdict stays `Unknown` if even one waivable gap lacks a
+      covering waiver.
+
+counterexample: |
+  "The strict matching rule silently regresses every waiver
+  that ships today, because every existing waiver file
+  expresses `unverified_obligation` as a YAML list."
+
+  Counterargument: the parser returns `None` for a YAML-list
+  value at `unverified_obligation:` (`Codec.parse_waiver` uses
+  `Schema.take_string`, which returns `None` for non-scalar
+  values). The strict-matching branch is only taken when the
+  parsed value is `Some id`; legacy waivers continue to take
+  the `None -> true` global branch. The pre-existing
+  `decisions/waivers/portable-linux-musl-2026-10.yaml` and
+  `decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml`
+  are byte-identical in their effect: every obligation of
+  their named decision is lifted to `Open_with_waiver`. The
+  `tests/cli/self-check-pass.t` and the live `mathc self-check`
+  verdicts are unchanged for those subjects.
+
+  "A waiver for (D, A) leaves obligation (D, B) Unknown, so the
+  gate stops passing on every decision that has more than one
+  obligation. This is a regression in the human-acceptance UX
+  for decisions that did not bother to enumerate obligations."
+
+  Counterargument: this is the intended behaviour per
+  constitution.md §Self-application item 11 ("a waiver MUST
+  apply only to its named gap, scope") and per
+  spec/semantics.md §Waiver ("MUST apply only to its named
+  obligation"). The previous global-coverage interpretation was
+  a deliberate scope-narrowing gap (A1 honesty audit, T6.1).
+  Decisions that ship a single global waiver for many
+  obligations must now either enumerate one waiver per
+  obligation (the strict form) or omit `unverified_obligation`
+  from the waiver file (the legacy global form, which is the
+  default and requires no per-obligation ceremony). The cram
+  fixture `tests/cli/gate-waiver-scope.t` documents all four
+  outcomes (positive, strict negative, global back-compat,
+  cross-decision negative) so a future maintainer can confirm
+  the regression-free path.
+
+  "The `Waiver.covers` signature change breaks every external
+  caller that pattern-matches on the old arity."
+
+  Counterargument: the only callers are `bin/Mathc.ml::evaluate_decision`
+  (updated in this branch), `tests/waiver_test.ml` (updated in
+  this branch), and `tests/conformance.ml` (does not use
+  `covers`). The `lib/waiver.ml` module is internal to
+  math-coding_core; no external consumer exists.
+
+assumptions:
+  - id: schema-take-string-on-list-returns-none
+    state: assumed
+    statement: |
+      `Schema.take_string` returns `None` when the JSON value at
+      the named key is a YAML/JSON list (not a scalar). This is
+      the established behaviour per the existing
+      `tests/decision_parser_yaml.ml` conformance case, and
+      matches the `decisions/waivers/portable-linux-musl-2026-10.yaml`
+      file in HEAD: the YAML front-matter has
+      `unverified_obligation: [...]` (a list) and the kernel
+      reads it as `unverified_obligation = None`. After this
+      commit the legacy global branch is unchanged for that
+      file.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future refactor of `Schema.take_string` starts to
+      accept list values (or to coerce them to a JSON string),
+      every existing `decisions/waivers/*.yaml` would suddenly
+      become a strict waiver for an arbitrary obligation of
+      the list — a regression. The unit tests
+      `tests/waiver_test.ml::test_load_malformed` and
+      `tests/waiver_test.ml::test_covers_global_*` pin the
+      expected behaviour at the value of `Waiver.parse`
+      against the live YAML files.
+    review_on:
+      - signal: schema-take-string-coercion-changed
+  - id: every-waivable-gap-must-be-covered
+    state: assumed
+    statement: |
+      A gap is "waivable" iff its kind is `MissingEvidence`,
+      `StaleEvidence`, or `Unknown`. `FailedEvidence`,
+      `MissingReview`, and `NoAttestationStore` are NEVER waived
+      (the gate verdict stays `Block`/`Unknown` respectively,
+      never `Open_with_waiver`). The new
+      `every_gap_waived` check in `bin/Mathc.ml::evaluate_decision`
+      iterates only the waivable subset; a single
+      non-waivable gap turns the aggregate to `Block`/`Unknown`
+      upstream of the waiver consult.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future change extends the waivable-gap enum, the
+      `every_gap_waived` check must be updated to match. The
+      list is a one-line `match` block in
+      `bin/Mathc.ml:evaluate_decision` and is exercised by
+      `tests/waiver_test.ml::test_covers_strict_obligation_mismatch`
+      (positive case: every waivable gap covered -> pass) and
+      by the cram fixture's scenario 2 (negative case: only one
+      waivable gap covered -> unknown).
+    review_on:
+      - signal: waivable-gap-enum-extended
+
+obligations:
+  - id: waiver-covers-strict
+    outcome: waiver-scope-narrow
+    statement: |
+      `lib/waiver.ml::covers` accepts an `~obligation_id`
+      parameter and applies strict `(decision, obligation)`
+      matching when the waiver carries a scalar
+      `unverified_obligation`. When the waiver omits
+      `unverified_obligation`, coverage is global (every
+      obligation of the named decision).
+    claim: |
+      `lib/waiver.ml::covers` declares the parameter
+      `~obligation_id` and matches the waiver's
+      `unverified_obligation` against it via
+      `match w.Domain.unverified_obligation with | None -> true |
+      Some obl_id -> String.equal obl_id obligation_id`. The
+      pre-existing tests in `tests/waiver_test.ml` (positive
+      match, subject mismatch, expired, empty list) plus three
+      new T3.2 cases (strict obligation mismatch, global waiver
+      covers every obligation, global waiver is subject-scoped)
+      pin the contract.
+    acceptance:
+      all:
+        - verifier: tests/waiver_test.ml::test_covers_strict_obligation_mismatch
+          result: pass
+        - verifier: tests/waiver_test.ml::test_covers_global_covers_every_obligation
+          result: pass
+        - verifier: tests/waiver_test.ml::test_covers_global_still_subject_scoped
+          result: pass
+        - verifier: text-scan-lib-waiver-ml-covers-signature-includes-obligation-id
+          result: pass
+  - id: evaluate-decision-every-gap-waived
+    outcome: waiver-scope-narrow
+    statement: |
+      `bin/Mathc.ml::evaluate_decision` lifts the gate to
+      `Open_with_waiver` iff EVERY waivable gap is covered by a
+      matching waiver; a single uncovered waivable gap keeps
+      the verdict at `Unknown`.
+    claim: |
+      `bin/Mathc.ml::evaluate_decision` filters the gap list to
+      `waivable_gaps` (`MissingEvidence`, `StaleEvidence`,
+      `Unknown` only), then calls `Waiver.covers` with the
+      gap's `(decision_id, obligation_id)` for every gap, and
+      only returns `Open_with_waiver` when ALL gaps are covered.
+      When `waivable_gaps` is empty, the verdict stays `Unknown`
+      (no waiver is consulted, no spurious promotion).
+    acceptance:
+      all:
+        - verifier: text-scan-bin-mathc-ml-evaluate-decision-every-gap-waived
+          result: pass
+        - verifier: tests/cli/gate-waiver-scope.t
+          result: pass
+  - id: dual-failure-evidence-positive
+    outcome: waiver-scope-narrow
+    statement: |
+      Positive case: a strict waiver for `(D, A)` lifts the
+      gate for `(D, A)`; a second strict waiver for `(D, B)`
+      also lifts `(D, B)`; the decision's per-subject verdict
+      becomes `pass`.
+    claim: |
+      `tests/cli/gate-waiver-scope.t` scenario 1 builds a
+      fixture decision `t3-2-test-decision` with obligations
+      `alpha-obligation` and `beta-obligation`, two strict
+      waivers (one per obligation), an empty attestation store,
+      and asserts the jq projection
+      `{name, verdict} = {"name":"t3-2-test-decision","verdict":"pass"}`.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-waiver-scope.t scenario 1 (positive)
+          result: pass
+  - id: dual-failure-evidence-negative
+    outcome: waiver-scope-narrow
+    statement: |
+      Negative case: a strict waiver for `(D, A)` does NOT
+      lift the gate for `(D, B)`; the decision's per-subject
+      verdict stays `unknown`.
+    claim: |
+      `tests/cli/gate-waiver-scope.t` scenario 2 builds a
+      fixture with ONLY the alpha-obligation waiver; the
+      assertion is
+      `{name, verdict} = {"name":"t3-2-test-decision","verdict":"unknown"}`.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-waiver-scope.t scenario 2 (strict negative)
+          result: pass
+  - id: legacy-global-back-compat
+    outcome: waiver-scope-narrow
+    statement: |
+      A waiver whose YAML front-matter omits
+      `unverified_obligation` (legacy global form) retains its
+      existing behaviour of lifting every obligation of the
+      named decision.
+    claim: |
+      `tests/cli/gate-waiver-scope.t` scenario 3 builds a
+      fixture with a single waiver file that omits
+      `unverified_obligation`; the assertion is
+      `{name, verdict} = {"name":"t3-2-test-decision","verdict":"pass"}`.
+      This pins the back-compat clause: existing
+      `decisions/waivers/*.yaml` files keep working unchanged.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-waiver-scope.t scenario 3 (legacy global)
+          result: pass
+  - id: cross-decision-negative
+    outcome: waiver-scope-narrow
+    statement: |
+      A strict waiver for `(other-decision, alpha-obligation)`
+      does NOT lift the gate for `t3-2-test-decision`. The
+      decision boundary check is non-trivial: `unverified_obligation`
+      alone is not enough; `subject` must also match.
+    claim: |
+      `tests/cli/gate-waiver-scope.t` scenario 4 builds a
+      fixture whose only waiver names `subject: other-decision`;
+      the assertion is
+      `{name, verdict} = {"name":"t3-2-test-decision","verdict":"unknown"}`.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-waiver-scope.t scenario 4 (cross-decision negative)
+          result: pass
+  - id: a3-protected-transition-human-review-marker
+    outcome: waiver-scope-narrow
+    statement: |
+      Because the T3.2 change tightens the
+      `Open_with_waiver` mapping (a waiver named for one
+      obligation can no longer lift the gate for another
+      obligation of the same decision), this sub-decision
+      carries a human-review marker per AGENTS.md
+      §Self-application and
+      `decisions/plan-2026-10-improvements.yaml` §Boundaries
+      (T3.2 is listed as A3-protected).
+    claim: |
+      This decision's `obligations` section includes BOTH the
+      positive case (every gap named -> pass) AND the negative
+      case (only some gaps named -> unknown) AND the
+      cross-decision negative case (subject boundary). A human
+      maintainer (`human:maintainer`) must attest the
+      transition in
+      `attestations/t3-2-a3-review-marker.json` before merge.
+      The dual-failure evidence is the
+      `dual-failure-evidence-positive` and
+      `dual-failure-evidence-negative` obligations above.
+    acceptance:
+      all:
+        - verifier: text-scan-decisions-t3-2-yaml-dual-failure-obligations
+          result: pass
+        - verifier: attestations/t3-2-a3-review-marker.json exists
+          result: pass
+
+reversal:
+  - signal: regression-to-global-waivers
+    condition: |
+      A future stream wants to restore the previous
+      "one-waiver-covers-every-obligation" behaviour
+      silently. The strict-matching branch would have to be
+      removed from `Waiver.covers` and the
+      `every_gap_waived` check deleted from
+      `bin/Mathc.ml::evaluate_decision`. Resolution: supersede
+      this decision with a sibling sub-decision under
+      `plan-2026-10-improvements` (or its successor) that
+      explicitly accepts the A1 honesty regression and ships
+      new fixtures that pin the relaxed behaviour.
+    action: halt
+  - signal: false-positive-on-stale-evidence
+    condition: |
+      A `StaleEvidence` gap (an attestation whose
+      materials_digest no longer matches the candidate tree)
+      is lifted by a strict waiver that names only its
+      obligation, even when the attestation's
+      materials_digest has changed since the waiver was
+      issued. This is the intended behaviour (waivers are
+      expiring and explicit, not freshness-coupled) but the
+      operator may want to surface a follow-up
+      `materials-digest-stale-but-waived` review list. The
+      remedy is a follow-up T3.x sub-decision that couples
+      waiver issuance to the materials digest at issue time.
+    action: rework
+
+risk:
+  declared_triggers:
+    - waiver-scope-regression
+    - legacy-waiver-parser-coercion
+    - cross-decision-waiver-leak
+    - dual-failure-fixture-staleness
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []
