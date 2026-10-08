@@ -445,6 +445,9 @@ let print_usage oc =
     \  explain DETAIL_REF               print JSON {kind,id,digest,path,body} \
      for the ref\n\
     \  explain-diagnostic <CODE>        print JSON {code,definition,occurs_when,\n\
+    \  forge-verify [--org ORG]            query forge_mirror for team\n\
+    \                  [--team TEAM]          membership of the committer;\n\
+    \                  [--user USER]          fail-mode open|closed (default open)\n\
     \                                   remediation} for an MC-* diagnostic code\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
     \  attest FILE                      parse FILE as a JUnit XML report\n\
@@ -3128,6 +3131,139 @@ let[@warning "-32"] do_render () =
  * to the project root; the dispatcher reads them via the same
  * filesystem_read callback as mathc self-check. *)
 
+(* `mathc forge-verify [--org ORG] [--team TEAM] [--user USER]
+ *   [--committer EMAIL] [--fail-mode open|closed]` queries
+ * `lib/forge.ml::team_member` to verify a committer's
+ * membership in a forge team. Designed to be a gate-side
+ * precheck that the kernel runs *outside* the attestation
+ * store, so it does not require a populated store. The
+ * verifier prints JSON with `verdict` (`pass`/`block`),
+ * `forge_queried` (boolean — false when
+ * `MATH_CODING_FORGE_API` is unset), `matched` (the
+ * boolean the forge replied with, or absent), and `reason`
+ * (a human-readable string explaining the verdict).
+ *
+ * `--fail-mode` toggles behaviour when the forge is unset
+ * OR errors (the "fail-open" default): `open` (default)
+ * returns `pass` with `forge_queried:false` and a reason;
+ * `closed` returns `block` and exit 1 instead. The flag is
+ * an A4 obligation; see
+ * `decisions/forge-principal-verification-2026-10.yaml`. *)
+let[@warning "-32"] do_forge_verify () =
+  let org = ref "" in
+  let team = ref "" in
+  let user = ref "" in
+  let committer = ref "" in
+  let fail_mode = ref "open" in
+  let set_org s = org := s in
+  let set_team s = team := s in
+  let set_user s = user := s in
+  let set_committer s = committer := s in
+  let set_fail s =
+    match s with "open" | "closed" -> fail_mode := s
+    | _ ->
+        Printf.fprintf stderr "mathc forge-verify: --fail-mode must be open|closed (got %s)\n" s;
+        exit 2
+  in
+  (try
+     Arg.parse
+       [ ("--org", Arg.String set_org, " <name>: forge org (e.g. 11111000000)")
+       ; ("--team", Arg.String set_team, " <slug>: forge team slug")
+       ; ("--user", Arg.String set_user, " <login>: forge user (committer login)")
+       ; ("--committer", Arg.String set_committer,
+          " <email>: committer email (auto-read from git if empty)")
+       ; ("--fail-mode", Arg.String set_fail,
+          " open|closed: how to handle forge unset / errors (default: open)") ]
+       (fun _ -> ())
+       "usage: mathc forge-verify [--org ORG] [--team TEAM] [--user USER] [--committer EMAIL] [--fail-mode open|closed]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc forge-verify: %s\n" m;
+     exit 2);
+  (* When --committer is empty, read it from `git log -1
+     --format=%ae` of HEAD (matching the gate's committer
+     resolution). The forge is queried with the
+     email-as-username heuristic; the user's local forge policy
+     determines the actual mapping. *)
+  let user_or_committer =
+    match !user with
+    | "" -> (
+        match !committer with
+        | "" ->
+            let sha = "" in
+            let out =
+              try
+                let ic =
+                  Unix.open_process_args_in "git"
+                    [| "git"; "log"; "-1"; "--format=%ae"; sha |]
+                in
+                let s = In_channel.input_all ic in
+                let _ = In_channel.close ic in
+                s
+              with _ -> "" in
+            String.trim out
+        | c -> c)
+    | u -> u
+  in
+  let verdict_record queried =
+    let open Jsonl in
+    let open_str = "open" in
+    let verdict_str =
+      match queried with
+      | `NotConfigured | `CurlFailure ->
+          if !fail_mode = open_str then "pass" else "block"
+      | `Queried true -> "pass"
+      | `Queried false -> "block"
+    in
+    let forge_queried = match queried with `Queried _ -> true | _ -> false in
+    let matched = match queried with
+      | `Queried m -> Some m
+      | _ -> None
+    in
+    let reason = match queried with
+      | `NotConfigured -> "MATH_CODING_FORGE_API not set; fail-mode=" ^ !fail_mode
+      | `CurlFailure -> "forge query failed; fail-mode=" ^ !fail_mode
+      | `Queried true -> "forge returned member=true"
+      | `Queried false -> "forge returned member=false"
+    in
+    let matched_pair = match matched with
+      | Some m -> [ ("matched", Bool m) ]
+      | None -> []
+    in
+    let fields =
+      [ ("fail_mode", String !fail_mode)
+      ; ("forge_queried", Bool forge_queried)
+      ; ("org", String !org)
+      ; ("reason", String reason)
+      ; ("team", String !team)
+      ; ("user", String user_or_committer)
+      ; ("verdict", String verdict_str)
+      ]
+    in
+    let all_fields = fields @ matched_pair in
+    let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) all_fields in
+    let body =
+      String.concat ","
+        (List.map
+           (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
+           sorted)
+    in
+    Printf.printf "{%s}\n" body
+  in
+  let queried =
+    if !org = "" || !team = "" || user_or_committer = "" then (
+      Printf.fprintf stderr
+        "mathc forge-verify: --org, --team, --user (or --committer) are required\n";
+      exit 2);
+    Forge.team_member_full ~org:!org ~team:!team ~user:user_or_committer
+  in
+  let exit_code = match queried with
+    | `Queried true -> 0
+    | `Queried false -> 1
+    | `NotConfigured | `CurlFailure -> if !fail_mode = "open" then 0 else 1
+  in
+  verdict_record queried;
+  exit exit_code
+
 (* Render the package_list in the requested format. The JSON and
    HTML forms are emitted via lib/packages.ml renderers; text is
    a fixed-width table. *)
@@ -3197,6 +3333,7 @@ let dispatch () =
   | "context" -> do_context ()
   | "explain" -> do_explain ()
   | "explain-diagnostic" -> do_explain_diagnostic ()
+  | "forge-verify" -> do_forge_verify ()
   | "assess" -> do_assess ()
   | "attest" -> do_attest ()
   | "time-estimate" -> do_time_estimate ()

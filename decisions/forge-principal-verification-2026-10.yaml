@@ -1,0 +1,258 @@
+---
+schema: math-coding/3.0-alpha
+id: forge-principal-verification
+revision: 1
+state: active
+body_sha: "sha256:187250771f87769844f54f35b182500b066e9fd519ec1087844bfe006cf063ba"
+yaml_sha: "sha256:187250771f87769844f54f35b182500b066e9fd519ec1087844bfe006cf063ba"
+axiom_link:
+  - A1
+  - A4
+commitment: |
+  After this decision lands on main:
+
+    (a) `lib/forge.ml` exposes `team_member ~org ~team ~user : bool`
+        and `team_member_full : [> outcome ]` where outcome
+        is `NotConfigured | Queried of bool | CurlFailure`. The
+        module reads `MATH_CODING_FORGE_API`; when unset, every
+        check returns `false` (the no-forge fallback per
+        spec/algebra-3.2.md §13). HTTP transport uses `curl`
+        via `Unix.open_process_args_in` (no new OCaml dep).
+    (b) `bin/Mathc.ml::do_forge_verify` is a new subcommand
+        accepting `--org`, `--team`, `--user`, `--committer`,
+        and `--fail-mode open|closed`. Default fail-mode is
+        `open`: when the forge is unset or the call errors,
+        the verdict is `pass` and exit 0. `--fail-mode closed`
+        flips the same conditions to `block` / exit 1.
+    (c) `MATH_CODING_FORGE_API` is the same env var the T1.1
+        forge-mirror already reads; the new code reuses it
+        without introducing a new env contract.
+    (d) `tests/cli/forge-verify.t` covers three cases:
+        member=true, member=false, forge-unset. The negative
+        case asserts `--fail-mode closed` plus unset forge
+        yields non-zero exit; the positive case asserts the
+        same fixture returns verdict=pass with the member
+        field present.
+
+  No schema migration on existing Decisions (the `required_principals:`
+  block is a future extension, not in this revision). No
+  changes to `lib/gate.ml`. The `lib/policy.ml` extension
+  (declaring `required_principals` per path) is scoped for a
+  follow-up T-point; this decision only adds the kernel-side
+  primitives.
+
+intent: |
+  Add a forge-membership gate as a thin layer over the existing
+  GitHub v3 API. The protocol currently lacks any way to assert
+  that a committer belongs to a forge team (e.g.,
+  `team:kernel-reviewers`) at gate time. Without this, a
+  reviewer can edit any file and bypass team-level review.
+
+  This is a **thin layer over existing primitives**: the
+  protocol's T1.1 cycle already wired
+  `lib/rebuttal.ml::forge_mirror` against
+  `MATH_CODING_FORGE_API`. A4 reuses that contract (same env
+  var) but adds a different question: **is this committer in
+  this team?** — answered by the teams-membership endpoint,
+  not the comments-for-commit endpoint. The kernel stays
+  closure-tight: no `cohttp`, no async runtime, just a curl
+  pipe through `Unix.open_process_args_in` mirroring
+  `lib/rebuttal.ml`.
+
+scope:
+  capabilities:
+    - forge-membership-check
+    - committer-authority-attestation
+  paths:
+    - "lib/forge.ml"
+    - "lib/dune"
+    - "bin/Mathc.ml"
+    - "tests/cli/forge-verify.t"
+    - "decisions/forge-principal-verification-2026-10.yaml"
+  exclusions:
+    - "lib/gate.ml"
+    - "lib/policy.ml"
+    - "lib/rebuttal.ml"
+    - "schemas/**"
+    - "axioms/**"
+    - "spec/**"
+    - "decisions/plan-2026-10-improvements/**"
+
+outcomes:
+  - id: forge-team-member-endpoint
+    statement: |
+      `mathc forge-verify --org ORG --team SLUG --user LOGIN`
+      returns a JSON object with `verdict`, `forge_queried`,
+      `matched` (when forge_queried is true), `org`, `team`,
+      `user`, `fail_mode`, and `reason`. The endpoint is total:
+      no exceptions, no network failures escape the process.
+
+  - id: fail-open-default
+    statement: |
+      `--fail-mode open` (default) returns verdict=pass and
+      exit 0 when `MATH_CODING_FORGE_API` is unset or the
+      curl call fails. `--fail-mode closed` flips to
+      verdict=block and exit 1. The flag is required; an
+      unknown value is rejected with exit 2.
+
+  - id: 1-hour-cache
+    statement: |
+      Results are cached in-memory for 3600 seconds keyed on
+      `(api, org, team, user)`. The cache is per-process and
+      lifetime-bound to a single `mathc` invocation; file-based
+      caching is out of scope (could be added by setting
+      `MATH_CODING_FORGE_CACHE` to a path; reserved for a
+      follow-up).
+
+counterexample: |
+  "The forge integration should fail-closed by default — a
+  missing team check must block the merge, not silently
+  pass-through."
+
+  Counterargument: the protocol is a lightweight layer over
+  CI; the merge-gate (`mathc gate`) already runs `mathc
+  self-check` which fails closed (unknown == exit 3). The
+  forge-membership is a *meta* check, not a primary one.
+  Fail-open by default keeps the protocol usable on
+  self-hosted runners that don't have `curl`, on forks that
+  don't have `$MATH_CODING_FORGE_API` secrets, and on
+  contributors who just want to validate decisions. The
+  fail-closed path is opt-in via `--fail-mode closed` for
+  installations that have it configured and want the strict
+  posture. Reversal signal `post-flood-of-fail-mode-closed-bugs`
+  in the `reversal:` block makes this explicit: if production
+  turnup is painful, we make closed the default and the open
+  path the override.
+
+  "`team_member` is not a 'gate' — it lives in bin/ as a
+  one-shot tool, not in lib/gate.ml::evaluate."
+
+  Counterargument: the tool IS the gate-kernel extension
+  point. The kernel can call `Forge.team_member_full` and
+  feed its outcome into the gate verdict. A follow-up T-point
+  will thread this into `lib/gate.ml::evaluate` via a
+  `required_principals:` block on Decision (this decision
+  excludes that path explicitly per `scope.exclusions: lib/gate.ml`,
+  but the foundation is laid). The current subcommand is the
+  CLI surface; the gate integration is the next step.
+
+assumptions:
+  - id: curl-on-runner
+    state: assumed
+    statement: |
+      The CI runner (ubuntu-22.04) and most developer
+      workstations have `curl` preinstalled. The fail-open
+      path makes missing-curl non-blocking.
+    owner: human:maintainer
+    consequence_if_false: |
+      On a runner without `curl`, the CurlFailure path
+      fires. With fail-mode=open, the verdict is pass and
+      CI continues. With fail-mode=closed, the build blocks.
+      This is the right semantic; document the assumption.
+    review_on:
+      - signal: curl-missing
+
+  - id: forge-api-typically-set
+    state: assumed
+    statement: |
+      On the project's own CI (`11111000000/math-coding`),
+      `MATH_CODING_FORGE_API` is set to
+      `https://api.github.com/repos` (or equivalent). The
+      fail-open path covers forks and self-hosted runners
+      that don't propagate the secret.
+    owner: human:maintainer
+    consequence_if_false: |
+      Forks do not receive repo secrets, so a fork PR's CI
+      always reports `NotConfigured`. The fix is to either
+      run the gate on a privileged runner OR explicitly opt
+      into fail-mode=closed on fork PRs. Both are policy,
+      not protocol.
+    review_on:
+      - signal: fork-pr-rate-limit-issues
+
+obligations:
+  - id: forge-team-member-endpoint
+    outcome: forge-team-member-endpoint
+    claim: |
+      `tests/cli/forge-verify.t` asserts that the JSON shape is
+      `verdict`/`forge_queried`/`matched?`/`org`/`team`/`user`/
+      `fail_mode`/`reason`, and that the verdict follows the
+      fail-mode contract.
+    acceptance:
+      all:
+        - verifier: tests/cli/forge-verify.t
+          result: pass
+        - verifier: mathc-validate
+          result: pass
+
+  - id: fail-open-default
+    outcome: fail-open-default
+    claim: |
+      `tests/cli/forge-verify.t` asserts that `--fail-mode open`
+      plus unset `MATH_CODING_FORGE_API` returns verdict=pass
+      and exit 0; `--fail-mode closed` plus unset forge returns
+      verdict=block and exit 1.
+    acceptance:
+      all:
+        - verifier: tests/cli/forge-verify.t
+          result: pass
+
+  - id: 1-hour-cache
+    outcome: 1-hour-cache
+    claim: |
+      `lib/forge.ml::team_member_full` uses an in-memory
+      `Hashtbl.t` keyed on `(api, org, team, user)` with a
+      3600-second TTL. The cache is per-process; a
+      `clear_cache` helper is exposed for test teardown only.
+    acceptance:
+      all:
+        - verifier: tests/cli/forge-verify.t
+          result: pass
+
+reversal:
+  - signal: post-flood-of-fail-mode-closed-bugs
+    condition: |
+      After 2 months in production, more than 20% of PRs
+      legitimately trip the fail-closed path because their
+      fork-of-origin doesn't propagate the forge secret. The
+      symptom is a flood of "block" verdicts on otherwise-valid
+      contributions. Resolution: swap the default to
+      `--fail-mode closed` and make `open` the opt-in
+      override, OR remove the gate-side check entirely in
+      favor of a per-org `policies.yaml` requirement.
+    action: rework
+
+  - signal: forge-api-rate-limit
+    condition: |
+      GitHub returns 403 / 429 for the teams-membership
+      endpoint, and the 1-hour cache TTL is too short to
+      absorb the spike. The verifier becomes a
+      fail-mode-sensitive point of failure. Resolution: add
+      exponential backoff on `CurlFailure` (cache the failure
+      for 60s on first 5xx, 5min on second 5xx, 30min on
+      third).
+    action: rework
+
+  - signal: cache-misses-every-merge
+    condition: |
+      The 1-hour cache TTL plus per-process reset means
+      each `mathc` invocation re-fetches the same
+      membership. With a high-traffic repo and slow forge
+      responses, the median gate latency rises. Resolution:
+      opt-in file-based cache keyed on
+      `MATH_CODING_FORGE_CACHE` (path) with the same TTL.
+    action: rework
+
+risk:
+  declared_triggers:
+    - curl-missing-on-runner
+    - fork-pr-rate-limit-issues
+    - forge-api-5xx
+    - secret-leakage
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []

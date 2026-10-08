@@ -20,5 +20,6 @@
   rebuttal
   render
   risk
-  waiver)
+  waiver
+  forge)
  (libraries str unix))
