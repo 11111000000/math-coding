@@ -1866,9 +1866,19 @@ let[@warning "-32"] gap_to_json (g : Gate.gap) =
          sorted)
   ^ "}"
 
+(* Map a Gate verdict to the process exit code. Per constitution.md
+   Invariant 14 ("a blocking verdict MUST produce nonzero exit code")
+   and the symmetric Invariant 14b ("exit 0 MUST imply verdict = Pass
+   or Open_with_waiver"). `Unknown` uses exit 3, the existing
+   `internal/infrastructure` slot per OCAML_BEST_PRACTICES §4.3, and
+   matches the `do_self_check` mapping at lines 2670-2673. The previous
+   mapping (`Unknown -> 0`) collapsed unknown to pass for outside
+   observers — see decisions/exit-code-symmetry-2026-10.yaml for the
+   audit chain. *)
 let[@warning "-32"] verdict_to_exit = function
-  | Gate.Pass | Gate.Open_with_waiver | Gate.Unknown -> 0
+  | Gate.Pass | Gate.Open_with_waiver -> 0
   | Gate.Block -> 1
+  | Gate.Unknown -> 3
 
 let[@warning "-32"] gate_to_json (g : Gate.t) =
   let fields =
@@ -1999,12 +2009,14 @@ let do_gate () =
     match v32 with Gate.Block -> Gate.Block | _ -> result.Gate.verdict
   in
   let result = { result with Gate.verdict = combined_verdict } in
-  (* Verdict "block" -> exit 1; "pass" / "unknown" /
-     "open-with-waiver" -> exit 0. Per constitution.md Invariant 14
-     ("a blocking verdict MUST produce nonzero exit code") and
-     spec/semantics.md:306-310 (the forward-looking clause).
-     `unknown` stays 0 because blocking on infrastructure (no
-     attestation, stale store) is not yet warranted. *)
+  (* Verdict "block" -> exit 1; "pass" / "open-with-waiver" -> exit 0;
+     "unknown" -> exit 3. Per constitution.md Invariants 14 and 14b
+     (exit honesty + symmetric exit honesty) and
+     decisions/exit-code-symmetry-2026-10.yaml. Unknown is
+     non-zero because collapsing unknown to 0 would be
+     `unknown != pass` laundering: a script that gates on the exit
+     code would silently treat a kernel that could not determine a
+     verdict as if it had determined "pass". *)
   print_string (gate_to_json result);
   exit (verdict_to_exit result.verdict)
 

@@ -241,18 +241,18 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                 "investigate the inconclusive attestation; a fail or a new \
                  pass is required";
               ];
-next_actions =
-            [
-              ( "run",
-                Printf.sprintf
-                  "mathc re-evaluate-decisions A0   # run the oracle \
-                   explicitly" );
-              ( "edit",
-                Printf.sprintf
-                  "attestations/%s-%s.json   # re-author the inconclusive \
-                   attestation"
-                  decision_id obligation_id );
-            ];
+            next_actions =
+              [
+                ( "run",
+                  Printf.sprintf
+                    "mathc re-evaluate-decisions A0   # run the oracle \
+                     explicitly" );
+                ( "edit",
+                  Printf.sprintf
+                    "attestations/%s-%s.json   # re-author the inconclusive \
+                     attestation"
+                    decision_id obligation_id );
+              ];
           }
       else None
 

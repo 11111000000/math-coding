@@ -18,6 +18,6 @@ case) in bootstrap/gate-attestation-store-fill-decision.yaml.
   $ echo b > b.txt
   $ git add . && git commit -q -m second
   $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$DUNE_SOURCEROOT/tests/fixtures/gate-pass/attestations" mathc gate HEAD~1 HEAD | jq -c 'del(.now) | {verdict, gaps_count: (.gaps | length), obligations}'
-  {"verdict":"unknown","gaps_count":167,"obligations":177}
+  {"verdict":"unknown","gaps_count":173,"obligations":183}
   $ cd /
   $ rm -rf "$tmp"

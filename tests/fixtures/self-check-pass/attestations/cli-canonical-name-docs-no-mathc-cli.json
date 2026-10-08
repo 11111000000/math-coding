@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"cli-canonical-name","obligation":"docs-no-mathc-cli","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:9b900cce1f53d253d585a8e88fb107508f697403a8ea06fca05c15366f369d59"}

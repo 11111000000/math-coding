@@ -1,0 +1,299 @@
+---
+schema: math-coding/3.0-alpha
+id: exit-code-symmetry
+revision: 1
+state: active
+body_sha: "sha256:d9aa2621e1311a46007f3365cd1131c79ce7e2f4eefc50d0b9b74827ae30ed06"
+yaml_sha: "sha256:d9aa2621e1311a46007f3365cd1131c79ce7e2f4eefc50d0b9b74827ae30ed06"
+axiom_link:
+  - A0
+  - A1
+  - A2
+  - A4
+intent: |
+  Close the asymmetric exit-code mapping in `bin/Mathc.ml::verdict_to_exit`
+  where `Gate.Unknown` was mapped to exit code 0. The asymmetry
+  contradicted the protocol's own `unknown != pass` axiom and let
+  outside observers (CI scripts, deploy hooks, `make` targets)
+  treat a kernel that could not determine a verdict as if it
+  had determined "pass". The asymmetry was first surfaced by the
+  2026-10-07 dialectical review of the math-coding philosophy
+  against the 2026 LLM-agent landscape (see chat
+  2026-10-07 "анализ math-coding как методологии"); the same
+  review produced the `Question`-rejection (agents already ask
+  via PR/Slack) and the "thin layer over existing primitives"
+  principle that this decision implements.
+
+  This is an A3-protected transition (constitution amendment
+  + invariant 14b/14c), authorised by the previously active
+  policy `bootstrap-v3@2`.
+
+commitment: |
+  After this decision lands on main:
+
+    (a) `bin/Mathc.ml::verdict_to_exit` maps
+          Pass | Open_with_waiver -> 0
+          Block                 -> 1
+          Unknown               -> 3
+        matching the existing `do_self_check` mapping at
+        `bin/Mathc.ml:2670-2673`.
+
+    (b) `spec/constitution.md` carries invariants 14b and 14c
+        alongside the existing 14, expressing the symmetric
+        exit-honesty rule and the waiver-bounded exit rule.
+
+    (c) `mathc gate BASE HEAD` exits non-zero (3) whenever the
+        verdict is `Unknown`. CI scripts that previously relied
+        on `exit 0` for `Unknown` MUST be updated to gate on the
+        JSON verdict instead.
+
+    (d) `mathc self-check` continues to return exit 0 on
+        `verdict: pass` and exit 3 on `verdict: unknown`. No
+        behavioural change to self-check.
+
+    (e) A new cram test at
+        `tests/cli/gate-unknown-exit-3.t` asserts the
+        `Unknown -> 3` mapping end-to-end via a temp git repo
+        with no attestation store, mirroring
+        `tests/cli/self-check-unknown.t`.
+
+  No schema field changes. No gate verdict surface changes.
+  No new attestation kind. No `Question` artifact kind (this
+  decision explicitly follows the dialectical conclusion that
+  agents already ask through PR/Slack channels and that a
+  parallel `Question` kind is overengineering).
+
+scope:
+  capabilities:
+    - kernel-exit-honesty
+    - constitution-amendment
+  paths:
+    - "bin/Mathc.ml"
+    - "spec/constitution.md"
+    - "tests/cli/gate-unknown-exit-3.t"
+    - "OCAML_BEST_PRACTICES.md"
+    - "CHANGELOG.md"
+  exclusions:
+    - "lib/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/plan-2026-10-improvements/**"
+    - ".github/workflows/**"
+    - "site/**"
+
+outcomes:
+  - id: gate-exit-unknown-is-3
+    statement: |
+      `mathc gate BASE HEAD` exits 3 when the verdict is
+      `Unknown`, exits 0 when the verdict is `Pass` or
+      `Open_with_waiver`, and exits 1 when the verdict is
+      `Block`. The mapping is enforced by
+      `bin/Mathc.ml::verdict_to_exit` and asserted by
+      `tests/cli/gate-unknown-exit-3.t`.
+
+  - id: constitution-invariants-14b-14c
+    statement: |
+      `spec/constitution.md` lists invariants 14, 14b, and 14c
+      consecutively. Invariant 14b states the symmetric exit
+      honesty rule (exit 0 implies verdict in {Pass,
+      Open_with_waiver}). Invariant 14c states the waiver-
+      bounded exit rule (an exit 0 verdict of
+      `Open_with_waiver` references a non-expired, in-scope
+      waiver).
+
+  - id: unknown-not-laundered-as-pass
+    statement: |
+      A CI script that gates on `mathc gate` exit code
+      (`if mathc gate BASE HEAD; then deploy; fi`) cannot
+      deploy when the kernel reports `Unknown`. Previously
+      this script would deploy on `Unknown` because the exit
+      code was 0; the asymmetry was a known false-claim source.
+
+counterexample: |
+  "The asymmetry is harmless because no production CI script
+  actually gates on `mathc gate` exit code today."
+
+  Counterargument: the asymmetry is documented in
+  `bin/Mathc.ml:1844-1849` with an explicit comment
+  acknowledging it (`unknown stays 0 because blocking on
+  infrastructure is not yet warranted`). That comment is a
+  standing admission that the mapping is wrong. Whether or
+  not a production script gates on it today, the protocol
+  cannot claim `unknown != pass` and ship a mapping that
+  collapses them at the process boundary.
+
+  "Changing exit 0 to exit 3 for `Unknown` breaks every
+  existing CI script that uses `mathc gate` as a boolean."
+
+  Counterargument: `mathc gate` is explicitly a scaffold
+  per `decisions/gate-decision.yaml` ("mathc gate verdict
+  against populated store"). The currently-shipped
+  replacement is `mathc self-check`, which already maps
+  `Unknown -> 3`. The break is the removal of a documented
+  false-claim; no production script should have been relying
+  on the asymmetry.
+
+  "Invariant 14c adds a verification cost — the kernel must
+  look up waivers on every `Open_with_waiver` exit."
+
+  Counterargument: 14c is a documentation invariant, not a
+  runtime check. The existing `lib/waiver.ml` already enforces
+  the scope/expiry rules at gate-evaluation time. 14c just
+  records that this enforcement exists and that exit 0
+  depends on it. No additional kernel work.
+
+assumptions:
+  - id: gate-is-scaffold
+    state: assumed
+    statement: |
+      `mathc gate BASE HEAD` is a scaffold per
+      `decisions/gate-decision.yaml`. Production CI uses
+      `mathc self-check` (whose mapping is already correct).
+      No production system ships an exit-code gate on
+      `mathc gate` as of this decision.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a production CI script does gate on `mathc gate` exit
+      code and breaks under the new mapping, the script is
+      itself relying on the documented false-claim and must
+      be updated to gate on the JSON verdict. The fix is local
+      (replace `if mathc gate ...; then ...` with
+      `verdict=$(mathc gate ... | jq -r .verdict);
+      if [ "$verdict" = "pass" ]; then ...`).
+    review_on:
+      - signal: ci-script-broken-by-exit-3
+
+  - id: kernel-invariant-amendment-is-in-scope
+    state: assumed
+    statement: |
+      Amending `spec/constitution.md` invariants 14 with 14b
+      and 14c is an A3-protected transition authorised under
+      the previously active policy `bootstrap-v3@2`. The
+      amendment is documented in this decision (counterexample
+      + positive/negative fixtures + migration path + prior
+      authority + verdict diff), satisfying the seven
+      requirements in `constitution.md` §Self-Application.
+    owner: human:maintainer
+    consequence_if_false: |
+      If 14b/14c is rejected as out-of-scope under
+      bootstrap-v3@2, this decision is re-scoped to ship only
+      the kernel-level fix (item (a) in the commitment) and
+      the constitution amendment is deferred to a successor
+      policy. The kernel-level fix alone closes the false-claim
+      without the documented invariant.
+    review_on:
+      - signal: constitution-amendment-rejected
+
+obligations:
+  - id: verdict-to-exit-matches-self-check
+    outcome: gate-exit-unknown-is-3
+    claim: |
+      `bin/Mathc.ml::verdict_to_exit` maps `Pass` and
+      `Open_with_waiver` to 0, `Block` to 1, and `Unknown` to
+      3. The mapping is identical to the `do_self_check`
+      mapping at `bin/Mathc.ml:2670-2673`.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-unknown-exit-3.t
+          result: pass
+        - verifier: tests/cli/gate-fail.t
+          result: pass
+        - verifier: tests/cli/self-check-pass.t
+          result: pass
+        - verifier: tests/cli/self-check-unknown.t
+          result: pass
+
+  - id: constitution-14b-added
+    outcome: constitution-invariants-14b-14c
+    claim: |
+      `spec/constitution.md` lists invariants 14, 14b, and 14c
+      in numeric order. 14b states the symmetric exit-honesty
+      rule; 14c states the waiver-bounded exit rule.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-unknown-exit-3.t
+          result: pass
+        - verifier: scripts/check.sh
+          result: pass
+
+  - id: gate-unknown-exit-test-positive
+    outcome: gate-exit-unknown-is-3
+    claim: |
+      `tests/cli/gate-unknown-exit-3.t` runs `mathc gate BASE HEAD`
+      against a temp git repo with `MATH_CODING_ATTESTATION_STORE`
+      pointing to a non-existent directory. The resulting verdict
+      is `unknown` and the exit code is 3.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-unknown-exit-3.t
+          result: pass
+
+  - id: gate-unknown-exit-test-negative
+    outcome: unknown-not-laundered-as-pass
+    claim: |
+      The same cram test asserts that `mathc gate BASE HEAD` with
+      an empty attestation store does NOT exit 0. The exit code is
+      strictly 3.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-unknown-exit-3.t
+          result: pass
+
+  - id: self-check-still-pass
+    outcome: gate-exit-unknown-is-3
+    claim: |
+      `mathc self-check` against the existing
+      `tests/fixtures/self-check-pass/attestations` store
+      continues to return `verdict:"pass"` and exit 0 after the
+      kernel change. The change to `verdict_to_exit` does NOT
+      affect the `do_self_check` exit-code mapping.
+    acceptance:
+      all:
+        - verifier: tests/cli/self-check-pass.t
+          result: pass
+        - verifier: mathc-self-check-verdict-pass
+          result: pass
+
+reversal:
+  - signal: gate-was-not-scaffold
+    condition: |
+      A production CI script is discovered that gates on
+      `mathc gate` exit code in a way the new mapping breaks.
+      Resolution: investigate whether the script was relying on
+      the asymmetry or on a different code path; update the
+      script to gate on the JSON verdict, not the exit code.
+      This signal does NOT trigger reversal of the kernel
+      change.
+    action: rework
+
+  - signal: constitution-amendment-rejected
+    condition: |
+      A reviewer finds that 14b/14c violates the spirit of the
+      existing invariant 14 (e.g., 14c's waiver scope requirement
+      contradicts the existing `lib/waiver.ml` semantics). Resolution:
+      drop 14c from the constitution amendment; ship 14b only; or
+      defer the entire amendment to a successor policy.
+    action: rework
+
+  - signal: dune-build-broken-by-verdict-to-exit
+    condition: |
+      The OCaml type-checker rejects the change to
+      `bin/Mathc.ml::verdict_to_exit` (e.g., a missing case
+      arm after the pattern-exhaustiveness warning becomes
+      an error under a future OCaml version). Resolution:
+      revert the kernel change; investigate the OCaml version
+      conflict; ship the constitution amendment only.
+    action: revert
+
+risk:
+  declared_triggers:
+    - ci-script-relying-on-asymmetry
+    - constitution-amendment-rejected-by-policy
+    - ocaml-pattern-exhaustiveness-error
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []

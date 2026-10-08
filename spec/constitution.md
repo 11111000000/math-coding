@@ -149,3 +149,14 @@ deterministic kernel result.
 13. Fixture coverage: every kernel-enforced MUST have at least one
     accepting and one rejecting conformance fixture.
 14. Exit honesty: a blocking verdict MUST produce nonzero exit code.
+14b. Symmetric exit honesty: exit code 0 MUST imply verdict `Pass` or
+     `Open_with_waiver`. Verdict `Block` produces exit code 1;
+     verdict `Unknown` produces exit code 3 (the
+     `internal/infrastructure` slot per OCAML_BEST_PRACTICES §4.3).
+     `unknown != pass` and `exit 0 != verdict:Unknown` are the same
+     invariant stated twice — collapsing them in either direction
+     is `unknown != pass` laundering.
+14c. Waiver-bounded exit: a verdict `Open_with_waiver` that produces
+     exit 0 MUST reference a waiver whose `expires_at` is strictly
+     greater than the evaluation time and whose scope covers every
+     gap in the verdict.

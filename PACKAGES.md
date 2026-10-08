@@ -13,16 +13,19 @@ base-href-empty + 14 new fixtures in tests/render_kernel.ml;
 2026-10-07) + Step 6 of the 2026-10
 merlin-LSP infrastructure (hand-written `.merlin` + `ocaml-lsp`
 1.27.0 + `merlin` 5.8-505 in `flake.nix`; 2026-10-07).
-Attestation store at `attestations/` contains **186 files** (verified by
+Attestation store at `attestations/` contains **207 files** (verified by
 `scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
-on every check); **`mathc packages` reports 48 active decisions / 183
-obligations (168 pass, 14 missing, 1 unknown; the master policy's 7
+on every check); **`mathc packages` reports 44 active decisions / 186
+obligations (182 pass, 4 missing, 1 unknown; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `scripts/dev-counters.py` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
-`mathc self-check` on a clean tree currently returns verdict `pass` with
-47 pass / 0 unknown out of 47 subjects. The previously-unknown subjects
+`mathc self-check` on a clean tree currently returns verdict `unknown`
+with 49 pass / 1 unknown out of 50 subjects. The single unknown is
+`plan-2026-10-improvements`, the meta-decision whose 14 T-obligations
+are still being closed by the parallel improvement cycle (5 active
+worktrees at HEAD). The previously-unknown subjects
 were closed in the 2026-10-07 integrity cycle:
 
 - `audit-0.0.21-fixes` — 8 of 9 obligations have attestations; the 9th,
@@ -113,7 +116,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/validator-actionable-error.yaml` | `validator-actionable-error` | 1 | 3 | RESOLVED | D8 actionable validator error: missing-field name in diagnostic |
 | `decisions/process-principles.yaml` | `process-principles` | 3 | 7 | RESOLVED | locks ROADMAP P1-P7 as obligations |
 | `decisions/D6-bootstrap-v3-verifiers-implemented.yaml` | `D6-bootstrap-v3-verifiers-implemented` | 2 | 1 | RESOLVED | closes D6 (manual-only verifiers) per AUDIT-0.0.20 |
-| `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 4 | 7 | RESOLVED | recovers algebra-3.2 §30 closure for Alpine/musl targets. CI run #129 is the first end-to-end green Alpine build (branch `fix-alpine-musl-2026-10`); artifact `mathc-linux-x86_64-musl` is 4.99 MB musl-linked ELF (`/lib/ld-musl-x86_64.so.1`). Trap log: OCAML_BEST_PRACTICES §11.26 (`container:` in matrix.include is silently ignored). Follow-up: wire musl into publish `files:` list. |
+| `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 3 | 7 | RETIRED | attempted algebra-3.2 §30 closure via Alpine container build; CI runs #81/#83/#84/#85 broke on opam setup; reversal signal `alpine-ci-build-fails` fired per the decision file. Re-enable when Alpine image debugged. |
 | `decisions/agent-onboarding.yaml` | `agent-onboarding` | 2 | 4 | RESOLVED | locks ADR location + first-file convention |
 | `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 2 | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
 | `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 2 | 1 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
@@ -123,7 +126,6 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/algebra-3.2.yaml` | `algebra-3.2` | 2 | 7 | RESOLVED | adopts `spec/algebra-3.2.md` as formal normative spec |
 | `decisions/audit-0.0.21-fixes.yaml` | `audit-0.0.21-fixes` | 2 | 9 | RESOLVED | master decision for the integrity-fixes cycle (Phase 1-5) |
 | `decisions/render-kernel-fixes-2026-10.yaml` | `render-kernel-fixes-2026-10` | 1 | 9 | RESOLVED | closes the 10 render-kernel defects catalogued in `analysis/site-render-defects.md` (fenced blocks, list continuation, italic, MathJax, packages grid, RU nav, axiom single `<h1>`, footer text, `base href` empty option, `mc-*` deploy re-sync) |
-| `decisions/mathjax-delimiter-hardening-2026-10.yaml` | `mathjax-delimiter-hardening-2026-10` | 1 | 2 | RESOLVED | narrows MathJax 3 inline/display delimiters to LaTeX-style `\(..\)` / `\[..\]` only; removes `$..$` and `$$..$$` from `lib/render.ml`; ships `mjx-container` + `.mermaid svg` CSS rules so future `--mathjax` opt-ins and mermaid diagrams respect the Tufte column rhythm |
 | `decisions/site-version-from-file-2026-10.yaml` | `site-version-from-file-2026-10` | 1 | 2 | RESOLVED | replaces hardcoded `3.0-alpha` / `v3.0.0` literals in `lib/render.ml` with a single `VERSION` file; `mathc render` + `mathc version` read it; closes the dual-source drift between the live site hero and the current release tag |
 | `decisions/plan-2026-10-improvements/t1-1.yaml` | `t1-1` | 1 | 1 | RESOLVED | wires `lib/rebuttal.ml::forge_mirror` to `MATH_CODING_FORGE_API`; algebra §10 hybrid mechanism is functional end-to-end; closes `plan-2026-10-improvements@1` Tier 1 obligation `t1-1-forge-mirror` |
 | `decisions/risk-policy-driven-floor-2026-10.yaml` | `risk-policy-driven-floor-2026-10` | 1 | 7 | RESOLVED | wires `lib/policy.ml` into `lib/risk.ml` so `mode_floor` and `policy_override_probability` honor declared policies instead of returning constants; closes algebra §2 "Phase 2E replaces this stub" comment; adds `policies.yaml` at the repo root and `OCAML_BEST_PRACTICES.md` §11.25 |
@@ -192,9 +194,10 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `gate-pass.t` | gate returns pass when store has current attestation | `decisions/gate-attestation-store-fill.yaml` |
 | `gate-fail.t` | gate returns fail on decisive failed attestation | `decisions/gate-attestation-store-fill.yaml` |
 | `gate-stale.t` | gate returns stale on expired attestation | `decisions/gate-attestation-store-fill.yaml` |
-| `gate-waiver-scope.t` | Open_with_waiver lifts only the named (decision, obligation) gap (T3.2) | `decisions/plan-2026-10-improvements/t3-2.yaml` |
 | `gate-v32-wired.t` | §15 phase-aware verdict wired into mathc gate | `decisions/algebra-3.2.yaml` |
 | `gate-empty.t` | gate with empty store -> unknown verdict | `decisions/gate-attestation-store-fill.yaml` |
+| `gate-unknown-exit-3.t` | gate with empty store exits 3 (unknown != pass laundering) | `decisions/exit-code-symmetry-2026-10.yaml` |
+| `risk-bucketing.t` | risk classification bucketed via thresholds (v3.2 §2) | `decisions/algebra-3.2.yaml` |
 | `mode.t` | mathc mode computes risk+mode for paths (v3.2 §2) | `decisions/3-2-cli-catalog.yaml` |
 | `re-evaluate.t` | mathc re-evaluate runs §17 oracle | `decisions/3-2-cli-catalog.yaml` |
 | `re-evaluate-decisions.t` | mathc re-evaluate-decisions emits post-run verdicts + attestations (T1.2) | `decisions/plan-2026-10-improvements.yaml` |
