@@ -52,16 +52,25 @@ required=(
 )
 
 # Per-decision pages — meta files excluded (matches lib/packages.ml)
+# Uses the YAML `id:` field, not the filename, because some
+# decisions keep a `-<date>` suffix in the filename but the
+# render path strips it (e.g., `exit-code-symmetry-2026-10.yaml`
+# with `id: exit-code-symmetry` produces
+# `dist/decisions/exit-code-symmetry.html`).
 for d in decisions/*.yaml decisions/*.yml decisions/*.json; do
   [ -f "$d" ] || continue
   base=$(basename "$d")
   case "$base" in
     decision.yaml|obligations.yaml|obligation-count-reconcile.yaml|gate-attestation-store-fill-decision.yaml|ONBOARDING.md|rationale.md) continue ;;
   esac
-  base=$(basename "$d" .yaml)
-  base=$(basename "$base" .yml)
-  base=$(basename "$base" .json)
-  required+=( "dist/decisions/${base}.html" )
+  decision_id=$(awk '/^id:[[:space:]]/{print $2; exit}' "$d" 2>/dev/null)
+  if [ -z "$decision_id" ]; then
+    # Fall back to filename for non-YAML/legacy files.
+    decision_id=$(basename "$d" .yaml)
+    decision_id=$(basename "$decision_id" .yml)
+    decision_id=$(basename "$decision_id" .json)
+  fi
+  required+=( "dist/decisions/${decision_id}.html" )
 done
 
 # Per-axiom pages — index.md excluded
