@@ -349,7 +349,11 @@ let[@warning "-32"] mathjax_no_dollar_delimiters () =
 
 let[@warning "-32"] mathjax_uses_latex_delimiters () =
   (* The LaTeX-style delimiters `\(..\)` and `\[..\]` MUST be
-     present in the MathJax configuration when enabled. *)
+     present in the MathJax configuration when enabled. MathJax 3
+     TeX-unescapes delimiter strings, so the JS source must
+     contain TeX-escaped backslashes (`\\(` to yield `\(` after
+     unescape) — which is what makes every parenthetical in the
+     page NOT be typeset as math. *)
   let cfg : Render.config =
     { Render.default_config with Render.enable_mathjax = true }
   in
@@ -361,11 +365,14 @@ let[@warning "-32"] mathjax_uses_latex_delimiters () =
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
-    "inlineMath declares `\\(..\\)`" true
-    (has "['\\(','\\)']" page.Render.body);
+    "inlineMath declares TeX-escaped \\\\(" true
+    (has "['\\\\(', '\\\\)']" page.Render.body);
   Alcotest.(check bool)
-    "displayMath declares `\\[..\\]`" true
-    (has "['\\[','\\]']" page.Render.body)
+    "displayMath declares TeX-escaped \\\\[\\]" true
+    (has "['\\\\[', '\\\\]']" page.Render.body);
+  Alcotest.(check bool)
+    "skipHtmlTags includes div.mermaid" true
+    (has "'div.mermaid'" page.Render.body)
 
 let[@warning "-32"] css_has_math_rules () =
   (* Read the live stylesheet and assert it ships rules for
