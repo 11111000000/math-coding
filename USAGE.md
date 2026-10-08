@@ -73,6 +73,19 @@ For applicable projects. The full ceremony is justified.
   [`.github/workflows/ci.yml`](https://github.com/11111000000/math-coding/blob/main/.github/workflows/ci.yml).
 - Populate the attestation store on day one so the gate goes green.
 
+### Site publish one-time setup
+
+The protocol's published surface lives at
+[11111000000.github.io/math-coding/](https://11111000000.github.io/math-coding/).
+On a fresh repo the site pipeline needs a single one-time enablement
+in **Settings → Pages → Build and deployment → Source**: pick
+**GitHub Actions** (not "Deploy from a branch"). Once set, every push
+to `main` triggers `.github/workflows/site.yml`, which runs
+`scripts/render.sh` and publishes `dist/` to Pages via
+`actions/deploy-pages@v4`. The Pages environment binding is
+`github-pages` with OIDC (`id-token: write`). No branch selection,
+no `gh-pages` branch, no personal token.
+
 ### Path B — regular ADR plus counterexamples
 
 For low-applicability projects. A standard architectural decision
