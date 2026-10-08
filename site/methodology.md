@@ -13,8 +13,9 @@ a code-review tool, not a documentation tool. It is the discipline
 that links intent, decisions, obligations, changes, attestations,
 and revisions into one chain:
 
-```text
-intent -> decision -> obligation -> change -> attestation -> revision
+```mermaid
+flowchart LR
+    intent --> decision --> obligation --> change --> attestation --> revision
 ```
 
 The chain is enforced by a kernel. The kernel does not write new
@@ -77,6 +78,11 @@ silent < record < ask < block
 
 The kernel chooses the least sufficient level. A kernel may raise
 friction but never lower it.
+
+```mermaid
+flowchart LR
+    silent --> record --> ask --> block
+```
 
 ## Adoption
 

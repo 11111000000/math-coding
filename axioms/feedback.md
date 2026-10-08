@@ -9,17 +9,17 @@
 For every commitment in the system, there exists a *path* by which the
 world tells the system whether the commitment holds.
 
-```text
-commitment
-   |
-   v
-prediction   (the decision states what will be observable if it holds)
-   |
-   v
-observation  (the system receives a signal about the actual state)
-   |
-   v
-revision     (the system decides whether to keep, modify, or retire)
+```mermaid
+flowchart TB
+    commitment["commitment<br/>the decision under test"]
+    prediction["prediction<br/>what will be observable if it holds"]
+    observation["observation<br/>the system receives a signal about the actual state"]
+    revision["revision<br/>keep, modify, or retire"]
+
+    commitment --> prediction
+    prediction --> observation
+    observation --> revision
+    revision -. revise or retire the commitment .-> commitment
 ```
 
 The loop is closed iff every commitment has at least one path to an
@@ -51,6 +51,39 @@ observation.
 - `schemas/attestation.json` — `result` enum.
 - `OCAML_BEST_PRACTICES.md` §1.3 — kernel stays offline so that
   observations can be replayed deterministically.
+
+## Formalization
+
+The honest-uncertainty result type and the gate-phase schedule live
+in [`spec/algebra-3.2.md`](../spec/algebra-3.2.md) §0
+("Honest uncertainty principle (A1-derived)") and §15
+("Gate verdict (phase-aware)").
+
+The result of an attestation is one of four distinct values; the
+absence of an attestation is itself a fifth value, never aliased to
+Pass:
+
+```text
+result(c) ∈ {Pass, Fail, Inconclusive, InfrastructureError}
+Pass ≠ Fail ≠ Inconclusive ≠ InfrastructureError
+absence(c) ⟹ c is Inconclusive, never Pass
+```
+
+An obligation is enforced at the phase declared on the obligation
+itself; `pre_merge` blocks the merge gate, `pre_release` blocks the
+release gate, and `post_release` is monitoring-only (it never blocks
+either gate, but emits an `AssuranceGap` when violated). The
+per-phase remedy sets are distinct:
+
+```text
+phase(pre_merge)    : {add_trailer_ref, create_sibling_yaml, downgrade_mode}
+phase(pre_release)  : {supersede_decision_per_impact_list, add_release_attestation}
+phase(post_release) : informational only, no block
+```
+
+The invariant \( \text{exit} \neq 0 \land \text{remedies} \neq \varnothing \)
+(algebra §15, marked I14 in §19) restates the prose: every blocked
+merge must name at least one authorized remedy.
 
 ## Counter-example that would violate this axiom
 

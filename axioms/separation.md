@@ -8,14 +8,9 @@
 
 There exist objects of the following kinds:
 
-```text
-intent
-decision
-obligation
-change
-attestation
-observation
-revision
+```mermaid
+flowchart LR
+    intent --> decision --> obligation --> change --> attestation --> observation --> revision
 ```
 
 No two of them are the same object. Specifically:
@@ -75,6 +70,32 @@ which is decided by an explicit `Decision` carrying a `supersedes` relation.
   cases.
 - `OCAML_BEST_PRACTICES.md` §3.2 — `parse_acceptance` refactor target
   (don't conflate Verifier and Review into one match).
+
+## Formalization
+
+The seven kinds live in [`spec/algebra-3.2.md`](../spec/algebra-3.2.md) as the
+universal sets of §1 (`𝓒-rule`, `𝓓-flow`, `𝓡-axiom`, `𝓡-trail`) and the
+`Decision` record of §7. Counter-example requirements follow §11.
+
+The kinds set is closed under the eight relations of §7; revision,
+supersession, refinement, and dependency are all required to be
+acyclic on the relation graph (the `revises* ∪ supersedes* ∪
+refines* ∪ depends_on*` subgraph).
+
+```text
+Kinds = {Intent, Decision, Obligation, Change, Attestation,
+         Observation, Revision}
+
+∀ D ∈ Decision:
+  acyclic(revises*(D) ∪ supersedes*(D) ∪ refines*(D) ∪ depends_on*(D))
+```
+
+Each kind is a sealed variant in `lib/domain.ml`; the JSON Schemas
+under `schemas/` declare `additionalProperties: false` so a payload
+that names an unknown field is rejected before the parser sees it.
+The counterexample obligation \(|C(D)| \ge 1\) for every decision
+at mode \(\ne \text{tiny}\) (algebra §11) is the formal restatement
+of the prose "no object of one kind implies another".
 
 ## Counter-example that would violate this axiom
 

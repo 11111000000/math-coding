@@ -764,4 +764,77 @@ let () =
         [ Alcotest.test_case "h1" `Quick axiom_page_single_h1 ] );
       ( "footer_mathc_render",
         [ Alcotest.test_case "footer" `Quick footer_mathc_render ] );
+      ( "mermaid_in_seven_pages",
+        [
+          Alcotest.test_case "mermaid" `Quick
+            (fun () ->
+              (* Editorial obligation: every site page and per-axiom
+                 page that declares a mermaid diagram must surface
+                 it as `<div class="mermaid">…</div>` in the
+                 rendered HTML. *)
+              let root =
+                match Sys.getenv_opt "DUNE_SOURCEROOT" with
+                | Some p -> p
+                | None -> ".."
+              in
+              let script = Filename.concat root "scripts/render.sh" in
+              let ec = Sys.command script in
+              if ec <> 0 then
+                Alcotest.failf
+                  "scripts/render.sh exited %d; cannot verify mermaid \
+                   output" ec;
+              let dist = Filename.concat root "dist" in
+              let pages =
+                [
+                  "axioms/separation.html";
+                  "axioms/feedback.html";
+                  "axioms/self-application.html";
+                  "methodology.html";
+                  "workflow.html";
+                  "bootstrap-gate.html";
+                  "foundations.html";
+                ]
+              in
+              List.iter
+                (fun rel ->
+                  let path = Filename.concat dist rel in
+                  let html = read_text path in
+                  Alcotest.(check bool)
+                    (Printf.sprintf
+                       "dist/%s contains <div class=\"mermaid\">" rel)
+                    true (has "<div class=\"mermaid\">" html))
+                pages)
+        ] );
+      ( "axiom_has_formalization_section",
+        [
+          Alcotest.test_case "formalization" `Quick
+            (fun () ->
+              (* Editorial obligation: each of the five axiom pages
+                 must end with a `## Formalization` section that
+                 references the formal algebra. *)
+              let root =
+                match Sys.getenv_opt "DUNE_SOURCEROOT" with
+                | Some p -> p
+                | None -> ".."
+              in
+              let dist = Filename.concat root "dist" in
+              let axioms =
+                [
+                  "axioms/separation.html";
+                  "axioms/feedback.html";
+                  "axioms/invariants.html";
+                  "axioms/self-application.html";
+                  "axioms/care.html";
+                ]
+              in
+              List.iter
+                (fun rel ->
+                  let path = Filename.concat dist rel in
+                  let html = read_text path in
+                  Alcotest.(check bool)
+                    (Printf.sprintf
+                       "dist/%s contains Formalization section" rel)
+                    true (has "Formalization" html))
+                axioms)
+        ] );
     ]
