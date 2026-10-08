@@ -1,0 +1,271 @@
+---
+schema: math-coding/3.0-alpha
+id: decision-required-attestations
+revision: 1
+state: active
+body_sha: "sha256:6984b7ddb3231210296039dfaf1c639eaa4f134afcc5fe5b6ef9aed58d328be0"
+yaml_sha: "sha256:6984b7ddb3231210296039dfaf1c639eaa4f134afcc5fe5b6ef9aed58d328be0"
+axiom_link:
+  - A1
+  - A4
+commitment: |
+  After this decision lands on main:
+
+    (a) `schemas/decision.json` carries `required_attestations`
+        with the documented oneOf-tolerance: `kind_` is the
+        schema enum, `producer` is a non-empty string with a
+        permissive regex, `scope_paths` is an optional array of
+        glob strings.
+    (b) `lib/domain.ml::attestation_kind_to_string` maps the
+        attestation `kind` field to a stable string without
+        colliding with the top-level `Domain.kind` type alias.
+    (c) `lib/decision.ml::parse_required_attestations` parses
+        the optional block into `required_attestation list`.
+    (d) `lib/gate.ml::evaluate` aggregates
+        `required_attestation_gap` output into the gate verdict.
+    (e) `tests/cli/required-attestation.t` exercises the
+        positive (matching attestation -> satisfied), negative
+        (no matching attestation -> gap emitted), and shape
+        (malformed JSON ignored, no gate effect) cases.
+
+  No schema migration is required: `required_attestations` is
+  optional, so legacy decisions continue to parse exactly the
+  same.
+
+intent: |
+  Add a per-decision `required_attestations:` block. Each item
+  names a (kind_, producer) pair the kernel expects to find in
+  the attestation store before the gate returns Pass. This is
+  the **A1.3** design — reusing existing attestation-class
+  primitives rather than introducing a new `Question` artifact
+  kind. The gate treats an unsatisfied requirement as a gap
+  with kind `MissingReview` (the closest semantic match for
+  "expected human attestation, none found"), not as a
+  fail-class signal.
+
+  Concretely, the schema exposes:
+
+    required_attestations:
+      - kind_: review
+        producer: human:p.b.kosov
+        scope_paths:
+          - "bin/Mathc.ml"
+          - "spec/**/*.md"
+
+  The kernel's gate (algebra §22): for every loaded decision,
+  parse the block; for every item, search the attestation store
+  for one whose `kind_` matches the declared kind_ and whose
+  `producer_identity` matches the declared producer. If none
+  exist, the gate emits a gap and the verdict is downgraded
+  from Pass to Block. The `scope_paths` predicate is documented
+  but not yet enforced (paths are captured in the gap cause for
+  human traceability; matching them against attestation
+  candidate_tree is a separate T1.1-style forge enrichment
+  tracked under algebra §16).
+
+  Implementation lands on top of the post-v3.0 evaluate path
+  (`lib/gate.ml::evaluate`) so existing v3.0 callers
+  (`mathc gate BASE HEAD`) pick up the new field automatically;
+  v3.2 callers (`mathc self-check`) already iterate
+  every loaded decision and just need the new gap-aggregation
+  step.
+
+scope:
+  capabilities:
+    - required-attestation-gate
+  paths:
+    - "schemas/decision.json"
+    - "lib/domain.ml"
+    - "lib/decision.ml"
+    - "lib/gate.ml"
+    - "bin/Mathc.ml"
+    - "tests/cli/required-attestation.t"
+    - "decisions/decision-required-attestations-2026-10.yaml"
+  exclusions:
+    - "axioms/**"
+    - "spec/**"
+    - "lib/policy.ml"
+    - "lib/waiver.ml"
+    - "decisions/plan-2026-10-improvements/**"
+
+outcomes:
+  - id: schema-carries-required-attestations
+    statement: |
+      `schemas/decision.json` accepts a `required_attestations`
+      array of (kind_, producer, scope_paths) triples. Each
+      item is constrained by `additionalProperties: false` and
+      the `kind_` enum mirrors the attestation `kind_` set
+      (test | review | build | analysis | observation).
+
+  - id: gate-emits-gap-on-missing-required-attestation
+    statement: |
+      `lib/gate.ml::evaluate` reads each decision's
+      `required_attestations` via `Memory.decision_entry.source`
+      (no schema migration needed — the field is opt-in per
+      decision) and emits a `MissingReview` gap for each unsatisfied
+      pair, downgrading the verdict from Pass to Block.
+
+  - id: kind-projection-known-and-roundtrippable
+    statement: |
+      The polymorphic-variant tag for an attestation's `kind`
+      field (set by `lib/domain.ml::attestation_kind_to_string`,
+      which shadows the top-level `Domain.kind = Decision |
+      Obligation | ...` type alias from grabbing the field)
+      maps one-to-one with the schema enum:
+      test | review | build | analysis | observation.
+
+counterexample: |
+  "The `Question` artifact pattern (per the dialectical
+  analysis) would be cleaner than a `required_attestations`
+  array inside `Decision`."
+
+  Counterargument: a `Question` artifact kind adds a new
+  artifact class the schema must carry end-to-end. Using
+  the existing attestation kind=review is the
+  thin-layer-over-existing-primitives choice we explicitly
+  settled on in the previous round. The polymorphism
+  between `Decision.required_attestations` and
+  `Attestation.kind/producer_identity` is intentional: the
+  review attestation serves dual purpose (records what was
+  checked + records who signed off). Adding a new artifact
+  kind duplicates that without semantic gain.
+
+  "The gate could `Pass` because `kind=review` attestations
+  exist for some unrelated decision."
+
+  Counterargument: the gate filter is
+  `(attestation.decision_id == this_decision.id) AND
+  attestation.kind matches AND attestation.producer_identity
+  matches`. The `decision_id` filter is already on
+  `candidates_for` (line 88 of `lib/gate.ml::candidates_for`).
+  For `required_attestation_satisfied`, the filter is
+  exact-match on `kind_` and `producer_identity`. Unrelated
+  attestations don't match.
+
+assumptions:
+  - id: attestation-store-already-populated
+    state: assumed
+    statement: |
+      For the gate to evaluate `required_attestations`, the
+      attestation store at `attestations/` must contain
+      entries of the right `kind_` from the right
+      `producer_identity`. Production CI populates the store
+      via `mathc attest FILE` followed by `scripts/regenerate-self-check-fixture.sh`,
+      both of which preserve kind_=review records from human
+      reviewers. Empty stores → every decision with this
+      field gets a gap (the conservative default).
+    owner: human:maintainer
+    consequence_if_false: |
+      On a fresh repo with no review attestations, every
+      decision that names this field returns Block. That is
+      the gate behaving correctly: it cannot certify what is
+      not in evidence. The reviewer unwedges by either
+      adding the missing review record or removing the
+      requirement.
+    review_on:
+      - signal: review-flood-on-fresh-repo
+
+  - id: scope-paths-not-yet-enforced
+    state: assumed
+    statement: |
+      The `scope_paths` predicate on each `required_attestations`
+      item is captured in the gap cause string for human
+      traceability but is **not** enforced by the gate. The
+      gate filter is currently `(kind_, producer_identity)`
+      exact-match. Scope-based filtering requires the
+      attestation's `candidate_tree` to expose a list of
+      covered paths, which the current attestation schema
+      does not carry.
+    owner: human:maintainer
+    consequence_if_false: |
+      A review attestation from `human:p.b.kosov` for the
+      same decision satisfies every scope-paths filter on that
+      decision. If a more granular gate is needed (e.g. this
+      review only covers `bin/Mathc.ml` paths, not
+      `spec/`), the kernel gains a false-positive. Mitigation:
+      additional T-points will add `covered_paths` to
+      `Attestation.subject` and a matching gate check.
+    review_on:
+      - signal: scope-paths-needs-enforcement
+
+obligations:
+  - id: schema-carries-required-attestations
+    outcome: schema-carries-required-attestations
+    claim: |
+      `schemas/decision.json` lists `required_attestations` as
+      an optional array. The `items` schema has
+      `additionalProperties: false`, requires `kind_` and
+      `producer`, and accepts an optional `scope_paths` array.
+    acceptance:
+      all:
+        - verifier: tests/cli/required-attestation.t
+          result: pass
+        - verifier: scripts/check-counters-drift.sh
+          result: pass
+
+  - id: gate-emits-gap-on-missing-required-attestation
+    outcome: gate-emits-gap-on-missing-required-attestation
+    claim: |
+      `lib/gate.ml::evaluate` runs
+      `required_attestation_gap` on every loaded decision and
+      appends the resulting gaps to the per-obligation stream.
+      A decision declaring `required_attestations: [{kind_:
+      review, producer: human:nonexistent}]` against an empty
+      store downgrades the gate verdict from Pass to Block.
+    acceptance:
+      all:
+        - verifier: tests/cli/required-attestation.t
+          result: pass
+
+  - id: kind-projection-known-and-roundtrippable
+    outcome: kind-projection-known-and-roundtrippable
+    claim: |
+      `lib/domain.ml::attestation_kind_to_string` is the
+      single source of truth for the attestation `kind_`
+      enum-to-string mapping. It must not collide with the
+      top-level `Domain.kind` type alias. The implementation
+      uses local `kind` shadow + pattern match to avoid the
+      field/type-alias collision OCaml normally encounters.
+    acceptance:
+      all:
+        - verifier: scripts/check.sh
+          result: pass
+        - verifier: dune build
+          result: pass
+
+reversal:
+  - signal: false-positive-flood
+    condition: |
+      Production PRs start failing because every decision in the
+      repo adds a `required_attestations` entry but no review
+      records exist for them. The gate blocks everything.
+      Resolution: (1) gate the rule to non-empty stores only
+      (skip when `attestations/` has zero entries, treat empty
+      store as no-requirement); or (2) add `dev-only: true`
+      flag to the schema and silently skip in v3.0.
+    action: rework
+
+  - signal: schema-rejects-real-input
+    condition: |
+      A reviewer adds `required_attestations` with
+      `producer: "human:ada"` and `mathc validate` rejects
+      the decision because the producer string doesn't match
+      a known format. Resolution: relax the `producer`
+      regex from `^[a-zA-Z0-9_.:-]+$` to `^.+$` — accept any
+      non-empty string; the gate's exact-match against
+      attestations is the source of truth, not the producer
+      field's syntax.
+    action: rework
+
+risk:
+  declared_triggers:
+    - reviewer-bottleneck-during-merge-spike
+    - empty-store-blocks-all-prs
+    - schema-rejects-real-input
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  supersedes: []
+  superseded_by: []

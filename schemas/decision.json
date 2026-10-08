@@ -102,6 +102,33 @@
       "uniqueItems": true,
       "items": {"type": "string", "minLength": 1}
     },
+    "required_attestations": {
+      "description": "Per-decision declaration of attestations that must exist for the gate to return Pass. Each item is a (kind_, producer) pair that the kernel will look for in the attestation store on commit-tree evaluation. Closed by decisions/decision-required-attestations-2026-10.yaml. See also spec/algebra-3.2.md §22 (\"Required-attestation gate\"): a decision declaring this field rejects any clean tree unless every (kind_, producer) pair is satisfied by at least one matching attestation in the store.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind_", "producer"],
+        "properties": {
+          "kind_": {
+            "description": "Required attestation source class. Matches the attestation `kind_` field (test|review|build|analysis|observation).",
+            "enum": ["test", "review", "build", "analysis", "observation"]
+          },
+          "producer": {
+            "description": "Required attestation producer identity (e.g. `human:p.b.kosov`, `ci:bot`, `team:kernel-reviewers`). Matches the attestation `producer.identity` field exactly.",
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_.:-]+$"
+          },
+          "scope_paths": {
+            "description": "Optional path glob(s) the attestation must cover. Empty / omitted means any path of this decision. Format: same as decision.scope.paths.",
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
     "outcomes": {
       "type": "array", "minItems": 1, "uniqueItems": true,
       "items": {
