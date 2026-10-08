@@ -311,6 +311,7 @@ jobs:
             dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
             dist-bin/mathc-windows-x86_64.exe
+            dist-bin/mathc-linux-x86_64-musl
             dist-bin/dist-adoption.tar.gz
 
       - name: Publish on main / manual dispatch — rolling edge
@@ -326,6 +327,7 @@ jobs:
             dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
             dist-bin/mathc-windows-x86_64.exe
+            dist-bin/mathc-linux-x86_64-musl
             dist-bin/dist-adoption.tar.gz
           body: |
             Rolling prerelease built from the latest commit on `main`.
