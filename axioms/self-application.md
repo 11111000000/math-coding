@@ -14,6 +14,23 @@ For every transition of the system's governing rules
 
 the transition MUST satisfy:
 
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> KnPn: prior state (K_n, P_n)
+    KnPn --> Knp1Pnp1: transition
+    Knp1Pnp1 --> [*]: commit (guards pass)
+
+    note right of Knp1Pnp1
+      Guard conditions (ALL must hold):
+      • Gate = Open
+      • Conformance = Pass
+      • Migration = Pass
+      • VerdictDiff ⊆ DeclaredSemanticChanges
+      • SelfVerify = Pass
+    end note
+```
+
 ```text
 Gate_{K_n, P_n}(transition) = Open
 Conformance(K_{n+1}) = Pass
@@ -51,6 +68,45 @@ In particular:
   *current* rules before the next rules take effect.
 - `OCAML_BEST_PRACTICES.md` §10 — adapter conventions explicitly forbid
   adapters from weakening kernel invariants.
+
+## Formalization
+
+The transition guard, the three-valued status, and the
+`max_verdict` ordering live in
+[`spec/algebra-3.2.md`](../spec/algebra-3.2.md) §15 ("Gate verdict"),
+§17 ("Inline axiom change"), and §20 ("Kernel rules") respectively.
+
+The merge gate is *Open* when every pre-merge obligation is `Pass`
+and no kernel rule rejects the commit; otherwise the gate is
+`Blocked`:
+
+```text
+gate_merge(c, p, t, rules):
+  Open iff ∀ ob ∈ blocking_obligations(c): result(ob) = Pass
+        ∧ ∀ r ∈ rules: apply(r, c, t)
+        ∧ re_evaluation_status(c) ≠ StaleClaim
+  Blocked otherwise
+```
+
+An axiom revision (algebra §17) re-evaluates every decision whose
+obligations cite the old axiom's forbidden patterns. The status is
+one of three values; ordering matters because the kernel combines
+per-decision statuses by taking the maximum:
+
+```text
+re_evaluate: Decision × AxiomRevision → ReEvaluationStatus
+re_evaluate(d, A_new):
+  - ob.claim references A_old.forbidden_patterns → StaleClaim
+  - ob.acceptance.verifier is test-style → run, return Compatible on Pass
+  - ob.acceptance.verifier is manual-style → Inconclusive
+
+max_verdict: Compatible < Inconclusive < StaleClaim
+```
+
+The total order means a single `StaleClaim` blocks the entire
+release regardless of how many `Compatible` decisions exist (algebra
+§17). This is the formal counterpart of the prose rule "P_{n+1}
+MUST NOT contribute to the authorization of its own adoption".
 
 ## Counter-example that would violate this axiom
 

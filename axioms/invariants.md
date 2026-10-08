@@ -51,6 +51,32 @@ operations bounded by time and authority.
   `OCAML_BEST_PRACTICES.md` §2.6).
 - `OCAML_BEST_PRACTICES.md` §4.3 — exit codes 0/1/2/3.
 
+## Formalization
+
+The fourteen invariants live in [`spec/algebra-3.2.md`](../spec/algebra-3.2.md)
+§19. Six of the fourteen are stated below verbatim; together they
+span determinism, identity, the revision DAG, status honesty, prior
+authority, fixture coverage, and the exit-honesty rule that pairs
+with this axiom's recovery operator.
+
+```text
+(I1)  ∀ c, p, t₁=t₂: gate(c, p, t₁, ∅) = gate(c, p, t₂, ∅)
+(I2)  ∀ ref: resolve(ref) ≠ ∅
+(I6)  ∀ rev: parents(rev) < rev ∧ acyclic(revisions)
+(I10) Pass ≠ Unknown ≠ Waived ≠ Reviewed ≠ Observed
+(I12) ∀ protected τ: authorized_by(previous(P))
+(I13) ∀ MUST ∈ kernel: ∃ f⁺, f⁻ ∈ Fixtures
+(I14) gate = Blocked ⇒ exit ≠ 0
+```
+
+The pair (I13, I14) is the formal core of this axiom: every
+`MUST` in the kernel must have both a positive fixture \(f^+\) and
+a negative fixture \(f^-\) (I13), and a blocked gate must produce
+a non-zero exit code (I14). The remedy operator \(R\) required by
+this axiom is exactly the non-zero-exit obligation written into I14:
+"a blocking decision that names no remedy" violates both prose and
+formal invariant.
+
 ## Counter-example that would violate this axiom
 
 A merge gate that returns `Blocked` with `causes: ["missing review"]`

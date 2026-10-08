@@ -52,6 +52,26 @@ From this commit forward, **assessment verdicts produced by
 `mathc gate`, `mathc self-check`, and `mathc assess` are automated
 guarantees, not manual declarations**.
 
+```mermaid
+sequenceDiagram
+    participant Agent
+    participant Manual as Manual regime<br/>(bootstrap gate)
+    participant Auto as Automated regime<br/>(post-expiry)
+
+    Note over Manual: v3-alpha-0.0.1 → 8fa7fcf<br/>(8 manual checks per PR)
+
+    Agent->>Manual: propose change
+    Manual->>Agent: 8 checks<br/>(intent, counterexample,<br/>evidence, recovery, …)
+
+    Note over Auto: 8fa7fcf (v3.0.0.19) → present<br/>(kernel enforces routine checks)
+
+    Agent->>Auto: git push
+    Auto->>Auto: mathc self-check<br/>75 attestations<br/>(subjects_count = 23, all pass)
+    Auto-->>Agent: gate exit 0 ⇒ merge allowed
+
+    Note over Manual,Auto: For protected policy transitions<br/>(constitution, schemas, kernel,<br/>gate/authority/waiver rules):<br/>8 manual checks remain additive
+```
+
 ## The eight checks, post-expiry
 
 For protected policy transitions the eight manual checks remain
