@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: adapters
 revision: 3
 state: active
-body_sha: "sha256:c8c09dffd5856d5155e8f4b51a0b742b5a58c6533d063b10e7fed57c8d84e4ef"
-yaml_sha: "sha256:c8c09dffd5856d5155e8f4b51a0b742b5a58c6533d063b10e7fed57c8d84e4ef"
+body_sha: "sha256:fc64471e9628c09f001cc1e3602fdf46dd67477f6af707b77e3d30266a7adfe3"
+yaml_sha: "sha256:fc64471e9628c09f001cc1e3602fdf46dd67477f6af707b77e3d30266a7adfe3"
 intent: |
   Add the first non-CLI adapters to the math-coding 3.0-alpha
   protocol: a JUnit XML importer and a Git changed-files
@@ -36,6 +36,8 @@ intent: |
   decision file covering both obligations and document that fact
   in the audit; this revision adopts that remedy.
 
+axiom_link:
+  - A0
 commitment: |
   bin/Mathc.ml gains two new subcommands: `attest FILE` and
   `assess BASE HEAD`.

@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: junit-entity-off-by-one-fix-2026-10
 revision: 1
 state: active
-body_sha: "sha256:54c428da1c2090b106ce8b720ecfa5a70b1540806d73c23e62602dcca7376c1e"
-yaml_sha: "sha256:54c428da1c2090b106ce8b720ecfa5a70b1540806d73c23e62602dcca7376c1e"
+body_sha: "sha256:c4e819e8fb2f4dfcab1b8aef87bb79ece82b23fdcee0d88764e4f07ee4f3b5b6"
+yaml_sha: "sha256:c4e819e8fb2f4dfcab1b8aef87bb79ece82b23fdcee0d88764e4f07ee4f3b5b6"
 intent: |
   Fix the off-by-one in `lib/junit/junit.ml:parse_attr_value`: the
   five entity-reference branches (`&amp;`, `&lt;`, `&gt;`, `&quot;`,
@@ -26,6 +26,8 @@ intent: |
   2026-10-07 fix cycle; future traps of the same shape (§11.23
   trigger list) should be filed as separate decisions.
 
+axiom_link:
+  - A0
 commitment: |
   Three deliverables:
 

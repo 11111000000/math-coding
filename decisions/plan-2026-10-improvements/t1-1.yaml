@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t1-1
 revision: 1
 state: active
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:adc3fc65a317ee77092b988b07c4b924981f324c7248d0acb59ba2723833b13d"
+yaml_sha: "sha256:adc3fc65a317ee77092b988b07c4b924981f324c7248d0acb59ba2723833b13d"
 intent: |
   Wire `lib/rebuttal.ml::forge_mirror` to a real HTTP endpoint
   behind the `MATH_CODING_FORGE_API` environment variable. When
@@ -22,6 +22,8 @@ intent: |
       `plan-2026-10-improvements` Tier 1 obligation
       `t1-1-forge-mirror`.
 
+axiom_link:
+  - A0
 commitment: |
   `lib/rebuttal.ml::forge_mirror <sha>` returns a `rebuttal list`
   whose elements come from `GET <MATH_CODING_FORGE_API>/comments?commit=<sha>`

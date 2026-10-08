@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: formal-verifier-conventions
 revision: 2
 state: active
-body_sha: "sha256:b9a3c5942ede25c0d47166164313016a19fa62f9ca10129138ec871d517aed40"
-yaml_sha: "sha256:b9a3c5942ede25c0d47166164313016a19fa62f9ca10129138ec871d517aed40"
+body_sha: "sha256:078bacfefb846ec985fa37543b73bcb81b86703f72b024f362e08c18f6b439a7"
+yaml_sha: "sha256:078bacfefb846ec985fa37543b73bcb81b86703f72b024f362e08c18f6b439a7"
 intent: |
   Codify the convention for formal-verifier artefacts (TLA+, Coq,
   Alloy) without adding any runtime dependency. The project's
@@ -22,6 +22,8 @@ intent: |
   codifies is "record conventions as decisions in decisions/".
   A3 self-application.
 
+axiom_link:
+  - A0
 commitment: |
   The convention is:
 

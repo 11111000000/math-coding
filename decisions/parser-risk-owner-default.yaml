@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: parser-risk-owner-default
 revision: 1
 state: active
-body_sha: "sha256:76a633f736939d429cb965e0ebbf23f3c7d32d156c4dc03cc5be12318678679d"
-yaml_sha: "sha256:76a633f736939d429cb965e0ebbf23f3c7d32d156c4dc03cc5be12318678679d"
+body_sha: "sha256:d90610fb8c01e378a22387951e2e88ffc4fbebed27c5ae5e7508763988e68ec6"
+yaml_sha: "sha256:d90610fb8c01e378a22387951e2e88ffc4fbebed27c5ae5e7508763988e68ec6"
 intent: |
   Document a kernel parse bug surfaced by the 2026-10-05 audit
   cycle, record the in-tree workaround, and bound the proper
@@ -18,6 +18,8 @@ intent: |
   missing field. The bootstrap policy
   (decisions/decision.yaml) is one such case.
 
+axiom_link:
+  - A0
 commitment: |
   The kernel's parse_decision is bounded: a risk block MUST
   either carry `owner: <string>` or be accepted as the

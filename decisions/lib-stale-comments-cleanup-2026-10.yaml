@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: lib-stale-comments-cleanup-2026-10
 revision: 1
 state: active
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:8ad2fe89ec7c07ff749416f03a889534fe3f24b552eb45d513e845881a4a4863"
+yaml_sha: "sha256:8ad2fe89ec7c07ff749416f03a889534fe3f24b552eb45d513e845881a4a4863"
 intent: |
   Remove dead-code narrative comments from `lib/risk.ml` and
   `lib/packages.ml` that describe work superseded by later
@@ -45,6 +45,8 @@ intent: |
   modified. Behavioural equivalence is preserved by construction
   (comments are not executed).
 
+axiom_link:
+  - A0
 commitment: |
   1. `lib/risk.ml` — module-level header comment rewritten
      to describe the current wiring to `lib/policy.ml`. The

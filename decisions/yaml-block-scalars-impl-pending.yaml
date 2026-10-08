@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: yaml-block-scalars-impl-pending
 revision: 3
 state: active
-body_sha: "sha256:1a451ac975bd15c928808afe08cb307202a3fd30c4c46f719e26648d36b05280"
-yaml_sha: "sha256:1a451ac975bd15c928808afe08cb307202a3fd30c4c46f719e26648d36b05280"
+body_sha: "sha256:6f3057be64239e1866eed2d3e575423c906d74c043a468c4e97994c9f889054e"
+yaml_sha: "sha256:6f3057be64239e1866eed2d3e575423c906d74c043a468c4e97994c9f889054e"
 intent: |
   Record that the parent obligation `yaml-block-scalars-supported`
   (from `bootstrap/yaml-block-scalars.yaml@2`, now
@@ -22,6 +22,8 @@ intent: |
   `yaml-block-scalars.yaml@3` and is retained for audit
   continuity.
 
+axiom_link:
+  - A0
 commitment: |
   This decision does NOT close the obligation; it records the
   deferral. The deferral is justified by:

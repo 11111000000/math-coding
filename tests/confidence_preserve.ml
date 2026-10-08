@@ -17,6 +17,8 @@ schema: math-coding/3.0-alpha
 id: conf-yaml-test
 revision: 1
 state: active
+axiom_link:
+  - A0
 intent: |
   test
 commitment: |
@@ -69,6 +71,7 @@ let[@warning "-32"] json_form () =
   "id": "conf-json-test",
   "revision": "1",
   "state": "active",
+  "axiom_link": ["A0"],
   "intent": {"source": "test", "text": "t"},
   "commitment": "c",
   "scope": [{"kind": "path", "path": "lib/**"}],
@@ -115,6 +118,8 @@ schema: math-coding/3.0-alpha
 id: conf-missing-test
 revision: 1
 state: active
+axiom_link:
+  - A0
 intent: |
   test
 commitment: |

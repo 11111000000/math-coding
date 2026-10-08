@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t2-1
 revision: 1
 state: active
-body_sha: "sha256:880d7ace3d567349f453f4f61512bfe5eb1dc3852f8bd0931fa7d304150d99aa"
-yaml_sha: "sha256:880d7ace3d567349f453f4f61512bfe5eb1dc3852f8bd0931fa7d304150d99aa"
+body_sha: "sha256:d25a19055b8554f9ae6f5b3b3112535956faf978cc8c3493668fb318bfe087dd"
+yaml_sha: "sha256:d25a19055b8554f9ae6f5b3b3112535956faf978cc8c3493668fb318bfe087dd"
 intent: |
   Migrate axiom-id detection out of the raw-YAML bridge in
   `lib/re_evaluation.ml::scan_axiom_ids` and into the
@@ -31,6 +31,8 @@ intent: |
       `plan-2026-10-improvements` Tier 2 obligation
       `t2-1-decision-parser-addresses`.
 
+axiom_link:
+  - A0
 commitment: |
   `lib/decision.ml::parse_decision` populates
   `relations.addresses` from the three sources listed in the

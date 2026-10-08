@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: audit-0.0.21-fixes
 revision: 2
 state: active
-body_sha: "sha256:ea7bb41ed2670a994f533639db884d43d8ddaeafff6a7895b98708edb02930d8"
-yaml_sha: "sha256:ea7bb41ed2670a994f533639db884d43d8ddaeafff6a7895b98708edb02930d8"
+body_sha: "sha256:c23abf00b9741591d72c1b1f835ee30ab6b70fd6753efc72fef1778b063b120f"
+yaml_sha: "sha256:c23abf00b9741591d72c1b1f835ee30ab6b70fd6753efc72fef1778b063b120f"
 intent: |
   Authorise and bound a single cycle of fixes that closes the
   13 specific deficits catalogued in `doc/AUDIT-0.0.21.md`
@@ -26,6 +26,8 @@ intent: |
   History:
     rev 1 (this commit): initial adoption.
 
+axiom_link:
+  - A0
 commitment: |
   The kernel's `mathc self-check` on the integrated HEAD MUST
   return `verdict:"pass"`, exit `0`, with every active decision's

@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: process-principles-close-branches
 revision: 3
 state: active
-body_sha: "sha256:7919f9221993e46cccd018389cee4c936d5662ed3ade68ef3241beb9daa09552"
-yaml_sha: "sha256:7919f9221993e46cccd018389cee4c936d5662ed3ade68ef3241beb9daa09552"
+body_sha: "sha256:b02daeabd8b5ef96969df0fad2d41a44ad1da18e005956ca8ac9fa96c4ad70db"
+yaml_sha: "sha256:b02daeabd8b5ef96969df0fad2d41a44ad1da18e005956ca8ac9fa96c4ad70db"
 intent: |
   Implement `scripts/dev close-branches`, the long-promised
   branch-hygiene utility from ROADMAP Tier-2 #4. Closes audit
@@ -39,6 +39,8 @@ intent: |
                         records the contract, with positive and
                         negative fixtures in tests/fixtures/.
 
+axiom_link:
+  - A0
 commitment: |
   `scripts/dev close-branches [--yes]` enumerates branches
   whose merge-base with `main` equals the branch HEAD and

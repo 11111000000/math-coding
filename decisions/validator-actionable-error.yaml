@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: validator-actionable-error
 revision: 1
 state: active
-body_sha: "sha256:034ed4c3b491f5838413ed5bcd5648188ad3bebcc07aa9436b66ad48aaa087f4"
-yaml_sha: "sha256:034ed4c3b491f5838413ed5bcd5648188ad3bebcc07aa9436b66ad48aaa087f4"
+body_sha: "sha256:9747c3f43051e7b9019c407c6d09192e018277c8a56cf6a7c600983a786c43d4"
+yaml_sha: "sha256:9747c3f43051e7b9019c407c6d09192e018277c8a56cf6a7c600983a786c43d4"
 intent: |
   Close D8 (actionable validator error): when `mathc validate FILE`
   rejects a decision because a required top-level field is absent,
@@ -19,6 +19,8 @@ intent: |
   The spec uses underscore; the kernel accepts both for
   back-compat but the canonical form is underscore.
 
+axiom_link:
+  - A0
 commitment: |
   The kernel-side precheck in `bin/Mathc.ml` (function
   `first_missing_required`) lists top-level fields required by

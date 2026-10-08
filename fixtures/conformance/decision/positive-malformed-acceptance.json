@@ -3,6 +3,7 @@
   "kind": "decision",
   "id": "malformed-acceptance-demo",
   "revision": "rev:8c4b",
+  "axiom_link": ["A0"],
   "intent": {
     "source": "test:malformed-acceptance",
     "text": "Demonstrate MC-MALFORMED-ACCEPTANCE detection: an acceptance item with verifier field but unparseable result value."

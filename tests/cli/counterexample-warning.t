@@ -19,6 +19,8 @@ A decision with counterexample: no warning, plain accept.
   > id: has-counterexample-demo
   > revision: 1
   > state: active
+  > axiom_link:
+  >   - A0
   > intent: |
   >   A test with counterexample present.
   > commitment: |
@@ -54,6 +56,8 @@ accept (dialectical slot, not a hard requirement).
   > id: no-counterexample-demo
   > revision: 1
   > state: active
+  > axiom_link:
+  >   - A0
   > intent: |
   >   A test with no counterexample.
   > commitment: |
@@ -88,6 +92,7 @@ dialectical objection) is also accepted without warning.
   >   "id": "json-counterexample-demo",
   >   "revision": "1",
   >   "state": "active",
+  >   "axiom_link": ["A0"],
   >   "intent": {"source": "test", "text": "JSON form demo"},
   >   "commitment": "JSON counterexample form.",
   >   "counterexample": ["objection one", "objection two"],

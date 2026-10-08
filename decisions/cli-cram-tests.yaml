@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: cli-cram-tests
 revision: 2
 state: active
-body_sha: "sha256:f8f4f6959e3d0a9431d76e1d2b2b536a1dbd359df60a6ae26d35fb66caf7e9b0"
-yaml_sha: "sha256:f8f4f6959e3d0a9431d76e1d2b2b536a1dbd359df60a6ae26d35fb66caf7e9b0"
+body_sha: "sha256:ec1638c0c58603e66d1d6faae09e57bc4d7eab739b113c9f5673b5d955ee473d"
+yaml_sha: "sha256:ec1638c0c58603e66d1d6faae09e57bc4d7eab739b113c9f5673b5d955ee473d"
 intent: |
   Replace the per-subcommand shell fixtures under tests/fixtures/
   (ambiguous-acceptance.sh, malformed-acceptance.sh,
@@ -46,6 +46,8 @@ intent: |
   follow-up commit migrates them to OCaml/Alcotest in a new
   tests/repo_structure.ml.
 
+axiom_link:
+  - A0
 commitment: |
   bin/Mathc.ml gains a public install handle: (public_name
   mathc) in bin/dune causes dune to install mathc to

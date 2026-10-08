@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: attestation-store-fill
 revision: 3
 state: active
-body_sha: "sha256:e47bcde6635a7310ccad158287a0a2f8746249ab998cf331da2c818ecf85906b"
-yaml_sha: "sha256:e47bcde6635a7310ccad158287a0a2f8746249ab998cf331da2c818ecf85906b"
+body_sha: "sha256:005a5b0b9d8b2c699b926b122f9d93efec814db65c9fc034facaf93910e2cd0d"
+yaml_sha: "sha256:005a5b0b9d8b2c699b926b122f9d93efec814db65c9fc034facaf93910e2cd0d"
 intent: |
   Close the AGENTS.md §Bootstrap-gate expiry condition for
   v3.0.0.19 by populating the filesystem-backed attestation
@@ -29,6 +29,8 @@ intent: |
   false` to make the bootstrap-gate verdict block merges per
   constitution.md Invariant 14.
 
+axiom_link:
+  - A0
 commitment: |
   1. Create attestations/ directory at the project root.
   2. Populate attestations/<decision>-<obligation>.json for every
