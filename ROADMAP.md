@@ -96,7 +96,7 @@ Runtime kernel behaviour is backward compatible: the existing
 | 10 | Cram fixtures: rebuttal.t, multi-policy.t, axiom-change.t, applic.t, trailer-formats.t | `algebra-3.2@1` | ⚠️ partial: 3 new (schema-extensions-3.2, migration-3.2-fields, applicability-envelope). Pre-existing self-check-{pass,unknown}.t expect 23 (pre-v3.0.0.20 snapshot). Snapshot regen deferred. |
 | 11 | Migration: state=active on 28 existing decisions; body_sha/yaml_sha stubs | `algebra-3.2@1` | ✅ done (`scripts/migrate-decisions-3.2.py`) |
 | 12 | ROADMAP.md, PACKAGES.md, CHANGELOG.md, USAGE.md sync (applicability envelope, two-tier model) | `algebra-3.2@1` | ✅ done |
-| 13 | Portable binary build (anti-property fix in §30): musl-based or static-link, no nix-store paths | `algebra-3.2@1` | ❌ deferred (Tier 3.5+) |
+| 13 | Portable binary build (anti-property fix in §30): musl-based or static-link, no nix-store paths | `algebra-3.2@1` | ✅ done (rev 4, 2026-10-07) |
 
 ### Remaining for v3.1.0 stabilisation
 
@@ -114,18 +114,30 @@ Runtime kernel behaviour is backward compatible: the existing
   lag the live state until regenerated. The current fix path
   is `dune promote` after a clean `dune build` on a host
   with a working toolchain.
-- **Portable binary build** (Tier 3.5+ #13): **DEFERRED via reversal
-  signal** at HEAD `f60c971d` (rev 2 of `decisions/portable-linux-musl.yaml`).
-  First push attempted `linux-x86_64-musl` Alpine container build
-  in `release.yml`; CI runs #81/#83/#84/#85 all failed at the
-  `Init opam (Alpine musl container)` step (exit 127/1). The
-  matrix entry is commented out. Re-enable when the Alpine image's
-  opam setup is debugged end-to-end with authenticated log access.
-  Closure signal: first green Alpine CI run that publishes a
-  binary linking against musl-libc (no `libc.so.6` in `ldd` output).
-  The glibc pipeline (`mathc-linux-x86_64`, `mathc-linux-aarch64`,
-  `mathc-darwin-*`, `mathc-windows-x86_64.exe`) is unaffected and
-  continues to publish every release.
+- **Portable binary build** (Tier 3.5+ #13): **RESOLVED** at
+  rev 4 of `decisions/portable-linux-musl.yaml`
+  (state: active, 2026-10-07). CI run #129
+  (https://github.com/11111000000/math-coding/actions/runs/
+  37696302997) is the first end-to-end green Alpine/musl
+  build. Root cause of the 6 prior failures (#81, #83, #84,
+  #85, #125, #126, #127, #128): `container: alpine:3.20`
+  under `strategy.matrix.include` is silently ignored by
+  GitHub Actions (only honored at the job level), so shell
+  steps ran on the Ubuntu runner. OCaml-Best-Practices
+  §11.26 documents the trap. Fix: explicit `docker run
+  alpine:3.20 …` invocation in release.yml line ~122 with
+  `apk add build-base musl-dev opam bash`, `opam update`,
+  and an OCaml-5.4.0-from-source build. Closure: artifact
+  `mathc-linux-x86_64-musl` is 4.99 MB, ELF with
+  interpreter `/lib/ld-musl-x86_64.so.1` and NEEDED
+  `libc.musl-x86_64.so.1` (no `libc.so.6`). Remaining
+  follow-ups (not blocking §30 closure): the musl artifact
+  is currently uploaded as a CI artifact but NOT in the
+  GitHub release `files:` list — wired separately once main
+  receives the fix-alpine-musl-2026-10 branch. The glibc
+  pipeline (`mathc-linux-x86_64`, `mathc-linux-aarch64`,
+  `mathc-darwin-*`, `mathc-windows-x86_64.exe`) is unaffected
+  and continues to publish every release.
 
 **Out of scope for 3.2** (deferred to 3.2.1 or 3.3):
 - Axiom-as-decision (P5 from earlier plan; separate feature)

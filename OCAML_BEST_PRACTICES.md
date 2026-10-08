@@ -1796,3 +1796,56 @@ can grep for the unclamped pattern; today the check is manual.
 Cited from `decisions/risk-policy-driven-floor-2026-10.yaml`
 (assumptions: `policy-override-clamp-contracts-stable`,
 obligations: `policy_override_of_files`).
+
+### 11.26 `container:` under `matrix.include` is silently ignored
+
+**Symptom.** CI run fails with `/etc/apk/repositories: No such
+file or directory` (or any other path that should exist inside
+the alpine container but doesn't on the Ubuntu runner). All
+shell steps show `shell: /usr/bin/bash --noprofile --norc -e -o
+pipefail {0}` — i.e. the host shell, not a shell inside the
+container. `apk add`, `apt-get`, `ldd` and other
+container-specific commands fail because the host's
+filesystem is being used.
+
+**Fix.** The `container:` key in GitHub Actions is honored at
+the **job** level only. Putting `container: alpine:3.20` under
+`strategy.matrix.include` does NOT override the job container
+per-matrix-entry — the field is just merged into the matrix as
+an arbitrary string and silently ignored.
+
+Two correct patterns:
+
+1. **Run the entire build inside `docker run <image> sh -c '…'`.**
+   Use this when the rest of the matrix does not need the
+   container's filesystem. The Ubuntu runner has docker
+   installed and runs as a user that can drive it without sudo.
+   Bind-mount the workspace: `-v "${GITHUB_WORKSPACE}:/src"
+   -w /src`. Inside the container, run everything that needs
+   the alpine toolchain (apk + opam + dune build + smoke
+   tests). The artifact is written to `/src/dist-bin/...` and
+   becomes visible on the host for the `actions/upload-artifact`
+   step. See `.github/workflows/release.yml` step
+   `Build mathc (Alpine musl container via docker run)`.
+
+2. **Split into a separate job** (`build-musl`) with
+   `runs-on: ubuntu-latest` and `container: alpine:3.20` at the
+   job level, sharing `needs` with the glibc job. Use this when
+   you also want job-level concurrency, separate concurrency
+   limits, or a separate runner image.
+
+After the fix, drop any per-matrix `container:` field and add a
+short comment explaining why; future contributors should not
+re-add it.
+
+**Trigger.** Any new CI matrix entry that tries to put
+`container: <image>` under `strategy.matrix.include` will
+silently fail the same way. Cited from this session
+(2026-10-07, runs #81, #83, #84, #85, #125, #126 all hit this
+trap) as the final root cause for the
+`alpine-ci-build-fails` reversal signal in
+`decisions/portable-linux-musl.yaml`. Referenced from
+`decisions/portable-linux-musl.yaml` obligations
+`release-yml-alpine-job-present`,
+`musl-binary-runs-version`,
+`glibc-binary-still-works`.
