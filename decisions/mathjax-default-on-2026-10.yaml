@@ -1,0 +1,286 @@
+---
+schema: math-coding/3.0-alpha
+id: mathjax-default-on-2026-10
+revision: 1
+state: active
+body_sha: "sha256:c8cd5e49184082a819e5b38d677aa7460ab2a215def6310768f6ffff897cb0d8"
+yaml_sha: "sha256:c8cd5e49184082a819e5b38d677aa7460ab2a215def6310768f6ffff897cb0d8"
+intent: |
+  Reverse the MathJax default-OFF workaround documented in
+  `decisions/render-kernel-fixes-2026-10@1` obligation
+  `mathjax-default-off` (assumption
+  `mathjax-off-default-is-acceptable`).
+
+  That assumption no longer holds. The previous cycle defaulted
+  MathJax to OFF as a workaround for MathJax aggressively
+  typesetting English parentheticals as math italics: under the
+  old configuration, `$..$` and `\(..\)` were both active
+  inline-math delimiters, so a stray `$` next to prose (a CLI
+  example like `mathc packages --format=$X`, a price like
+  `$100`) would be typeset as math. With `$` active, every
+  rendered page risked MathJax wrapping ordinary prose in
+  `<mjx-container>` and italicising English words.
+
+  `decisions/mathjax-delimiter-hardening-2026-10@1` (already on
+  main) narrows the MathJax configuration to LaTeX-style
+  delimiters only: `inlineMath: [['\(','\)']]` and
+  `displayMath: [['\[','\]']]`. The `$..$` and `$$..$$` pairs
+  are no longer declared. With `$` no longer an active
+  delimiter, a literal `$` in prose is a literal character even
+  when MathJax is enabled: the original failure mode no longer
+  exists, and the assumption
+  `mathjax-off-default-is-acceptable` is no longer justified.
+
+  This decision flips the default the other way. The MathJax
+  script tag is now emitted on every page rendered with the
+  default configuration (prose + axiom + spec). Pages that need
+  MathJax off (a future operator that wants a script-free page
+  for offline PDF generation, or a debug build that strips CDN
+  references) opt out via `--no-mathjax` on the CLI or by
+  setting `Render.config.enable_mathjax = false` programmatically.
+
+  The reversal does not touch the MathJax delimiter
+  configuration. That configuration is owned by
+  `mathjax-delimiter-hardening-2026-10@1`. This cycle changes
+  only the default of the boolean flag.
+
+commitment: |
+  `mathc render` emits the MathJax 3 `<script>` block on every
+  page when the configuration is the default. The five
+  guarantees that follow are the closure of this commitment.
+
+    1. `Render.default_config.enable_mathjax` is `true`.
+
+       `lib/render.ml`'s `default_config` record carries
+       `enable_mathjax = true`. Callers that bypass the CLI
+       dispatcher and read `Render.default_config` directly see
+       MathJax wired in.
+
+    2. `bin/Mathc.ml`'s `do_render` dispatcher's `--mathjax`
+       flag is now the default.
+
+       The dispatcher's mutable reference `enable_mathjax` is
+       initialised to `true`. The `--mathjax` flag still calls
+       `Arg.Set` (idempotent — already true). The `--no-mathjax`
+       flag still calls `Arg.Clear` (sets to false for the
+       opt-out path).
+
+    3. The MathJax script tag is emitted on every page in the
+       default render path.
+
+       `dist/index.html`, `dist/methodology.html`, every
+       `dist/axioms/*.html`, every rendered `dist/*.ru.html`,
+       and (once `t5-2-spec-mathjax` ships) every
+       `dist/spec/*.html` carries the `<script>` tag with
+       `mathjax@3` in its `src`.
+
+    4. Spec pages still get `enable_mathjax: true` forced.
+
+       The `t5-2-spec-mathjax` obligation in
+       `decisions/plan-2026-10-improvements/t5-2.yaml` forces
+       `enable_mathjax: true` on the spec render. With this
+       decision flipping the default to `true`, the spec cycle
+       no longer needs to override anything: the default is
+       already what the spec needs. No regression.
+
+    5. `tests/render_kernel.ml::mathjax_default_off` is renamed
+       to `mathjax_default_on` with the assertion flipped.
+
+       The previous test asserted
+       `not cfg.Render.enable_mathjax`. After this commit the
+       renamed test asserts `cfg.Render.enable_mathjax`. The
+       `Alcotest.run` registration list at the bottom of the
+       file uses the new name and the new case label `"on"`.
+
+scope:
+  capabilities:
+    - site-content-markup
+    - math-typesetting
+  paths:
+    - "lib/render.ml"
+    - "bin/Mathc.ml"
+    - "tests/render_kernel.ml"
+    - "decisions/mathjax-default-on-2026-10.yaml"
+    - "attestations/mathjax-default-on-2026-10-*.json"
+  exclusions:
+    - "lib/packages.ml"
+    - "lib/codec.ml"
+    - "lib/jsonl.ml"
+    - "lib/diagnostic.ml"
+    - "lib/decision.ml"
+    - "lib/risk.ml"
+    - "lib/policy.ml"
+    - "lib/gate.ml"
+    - "schemas/**"
+    - "spec/**"
+    - "site/**"
+    - "axioms/**"
+    - "assets/**"
+    - "decisions/mathjax-delimiter-hardening-2026-10.yaml"
+
+outcomes:
+  - id: mathjax-default-flip
+    statement: |
+      `Render.default_config.enable_mathjax` is `true` and the
+      `bin/Mathc.ml` dispatcher's initial `ref` is `true`. The
+      MathJax `<script>` tag with `mathjax@3` is present on
+      `dist/index.html` after a default-config render. The
+      `mathjax-default-off` obligation in
+      `decisions/render-kernel-fixes-2026-10@1` is retired.
+
+counterexample: |
+  "Disabling the mathjax-off default breaks the existing
+  `mathjax-wiring` obligation in `decisions/site-deploy@5`,
+  which expects MathJax to be wired but only emitted on opt-in."
+
+  Counterargument: this decision IS the path to restore
+  `mathjax-wiring`. The `mathjax-default-off` obligation was a
+  workaround, not a fix: it shipped with the project on the
+  understanding that MathJax would be re-enabled when the
+  delimiter hazard was closed. That hazard was closed by
+  `decisions/mathjax-delimiter-hardening-2026-10@1`, and the
+  follow-up `t5-2-spec-mathjax` obligation in
+  `decisions/plan-2026-10-improvements/t5-2.yaml:602-620` is now
+  implementable. Reversing the default IS the move that
+  restores `mathjax-wiring` to a true positive form. The
+  `mathjax-default-off` obligation is retired; the
+  `mathjax-wiring` obligation is restored.
+
+  "MathJax on every page adds ~120 KB of deferred CDN script
+  per page-load, slowing first-paint on slow networks."
+
+  Counterargument: the script is loaded with `async` and
+  `defer` attributes, so it does not block parsing or
+  first-paint. The Tufte stylesheet already declares a math
+  font fallback (`mjx-container { font-family: ...math
+  fallback...; }`) so the page renders identically until a
+  reader actually expands a formula. The `prose-pages-can-absorb-script-load`
+  assumption documents the same conclusion explicitly.
+
+assumptions:
+  - id: latex-delimiters-stay-launched
+    state: assumed
+    statement: |
+      The MathJax configuration in `lib/render.ml:759-761`
+      continues to declare only `\(..\)` (inline) and `\[..\]`
+      (display) as math delimiters. The `$..$` and `$$..$$`
+      pairs are not reintroduced by any future change unless
+      this assumption is explicitly reviewed. The
+      `decisions/mathjax-delimiter-hardening-2026-10` cycle
+      owns the delimiter configuration and remains active.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future cycle reintroduces `$..$` as a delimiter,
+      this default-ON decision exposes the original failure
+      mode: every page with a stray `$` in prose would be
+      typeset as math. The right remediation is to revert
+      `mathjax-delimiter-hardening-2026-10` and reset
+      `enable_mathjax` to `false`, NOT to add per-page
+      workarounds.
+    review_on:
+      - signal: mathjax-delimiter-hardening-2026-10 reverted
+
+  - id: prose-pages-can-absorb-script-load
+    state: assumed
+    statement: |
+      Every prose page (`site/*.md`, `axioms/*.md`, future
+      `spec/*.md`) is willing to carry a deferred ~120 KB
+      MathJax 3 CDN script on page-load. The script is loaded
+      with `async defer` and does not block first-paint. The
+      Tufte stylesheet's `mjx-container` rule (added in
+      `mathjax-delimiter-hardening-2026-10`) ensures the page
+      renders identically until a reader expands a formula.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future performance audit rejects the ~120 KB
+      footprint, two paths are available: (a) move MathJax to
+      a self-hosted bundle and serve it from `assets/` (one
+      `cp` in `scripts/render.sh`), or (b) reintroduce a
+      per-page opt-out via the `Render.config.enable_mathjax`
+      boolean (the kernel already supports this).
+    review_on:
+      - signal: mathjax-script-load-rejected-by-audit
+
+obligations:
+  - id: mathjax-default-on
+    outcome: mathjax-default-flip
+    statement: |
+      `Render.default_config.enable_mathjax` is `true`. The
+      `bin/Mathc.ml` dispatcher's `enable_mathjax` reference is
+      initialised to `true` (so a flagless `mathc render`
+      emits the script tag). The `mathjax-default-off`
+      obligation in `decisions/render-kernel-fixes-2026-10@1`
+      is retired.
+    claim: |
+      `tests/render_kernel.ml::mathjax_default_on` reads
+      `Render.default_config` and asserts
+      `cfg.Render.enable_mathjax = true`. The previous
+      `mathjax_default_off` test is renamed (assertion flip)
+      and re-registered in the `Alcotest.run` list at the
+      bottom of `tests/render_kernel.ml`.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::mathjax_default_on
+          result: pass
+        - verifier: grep -c 'enable_mathjax.*true' lib/render.ml == 1
+          result: pass
+        - verifier: grep -c 'enable_mathjax = ref true' bin/Mathc.ml == 1
+          result: pass
+
+  - id: mathjax-script-on-prose-pages
+    outcome: mathjax-default-flip
+    statement: |
+      `scripts/render.sh` (a flagless `mathc render` followed
+      by an `assert` of expected paths) produces a
+      `dist/index.html` that contains the MathJax 3 `<script>`
+      tag — specifically the `mathjax@3` substring in the
+      `src`. The same holds for every other rendered prose
+      page; the obligation tests the prose path explicitly
+      because it is the case the previous default-OFF
+      workaround was suppressing.
+    claim: |
+      `tests/render_kernel.ml::mathjax_script_on_prose_page_when_enabled`
+      calls `Render.build_pages` with `Render.default_config`
+      (no flag override) and asserts the rendered `index.html`
+      page body contains the `mathjax@3` substring. The test
+      reuses the same harness as `mathjax_in_head_when_enabled`
+      but does NOT override `enable_mathjax` — the default
+      itself is the asserted behaviour.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::mathjax_script_on_prose_page_when_enabled
+          result: pass
+        - verifier: grep -c mathjax@3 dist/index.html >= 1
+          result: pass
+
+reversal:
+  - signal: math-typesetting-regression-reappears
+    condition: |
+      A future page that contains a `$` in prose is rendered
+      with italicised text, `<mjx-container>` wrapping ordinary
+      English, or any other symptom of `$..$` being an active
+      delimiter. This is the failure mode that motivated the
+      default-OFF workaround and was supposed to be closed by
+      `decisions/mathjax-delimiter-hardening-2026-10@1`.
+    action: |
+      First, audit whether the delimiter configuration was
+      regressed (the `latex-delimiters-stay-launched`
+      assumption failed). If so, restore the delimiter
+      configuration. If the delimiter configuration is intact,
+      then revert this decision and reset the default to
+      `false`.
+
+risk:
+  declared_triggers:
+    - math-typesetting-regression
+    - performance-budget-exceeded
+    - prose-pages-accidentally-italicised
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - render-kernel-fixes-2026-10@1
+  amends: []
+  supersedes:
+    - mathjax-default-off (render-kernel-fixes-2026-10@1)
+  superseded_by: []

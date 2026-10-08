@@ -1231,21 +1231,20 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
    from CLI flags. *)
 let[@warning "-32"] default_config =
   {
-    site_base = "/math-coding/";
-    (* MathJax 3 is wired in the code path but defaults OFF. The
-       `site/*.md` articles carry no `$...$` or `\[...\]` formulas;
-       MathJax on every prose page aggressively typesets
-       parenthetical English like `(Honest status)` as math italics
-       (`<math>` tags wrap ordinary prose). The default-off keeps
-       prose pages clean; the dispatcher opts pages in via the
-       `--mathjax` flag or by setting
-       `Render.config.enable_mathjax = true` programmatically.
-       Spec pages (`spec/algebra-3.2.md`, `constitution.md`,
-       `domain.md`, `semantics.md`) force `enable_mathjax:true`
-       per-page inside `build_pages` regardless of this default —
-       the normative spec is the only consumer that actually
-       needs TeX typesetting. *)
-    enable_mathjax = false;
+      site_base = "/math-coding/";
+    (* MathJax 3 defaults ON. The previous default-OFF workaround
+       in `render-kernel-fixes-2026-10@1` (`mathjax-default-off`,
+       assumption `mathjax-off-default-is-acceptable`) is retired:
+       the `$` is no longer an active math delimiter thanks to
+       `mathjax-delimiter-hardening-2026-10@1`, which narrowed the
+       configuration to LaTeX-only (`\(..\)` / `\[..\]`). A stray
+       `$` in prose is a literal character even when MathJax is
+       on. The script tag is therefore emitted on every page
+       (prose + axiom + spec) by default; pages that need
+       MathJax off opt out via the `--no-mathjax` CLI flag or by
+       setting `Render.config.enable_mathjax = false`
+       programmatically. *)
+    enable_mathjax = true;
     enable_mermaid = true;
     enable_lang_toggle = true;
     languages = [ "en" ];

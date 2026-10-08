@@ -285,11 +285,10 @@ let[@warning "-32"] italic_underscore_inside_identifier_safe () =
     "no <em> for intraword underscore" true
     (not (has "<em>" html))
 
-let[@warning "-32"] mathjax_default_off () =
+let[@warning "-32"] mathjax_default_on () =
   let cfg : Render.config = Render.default_config in
   Alcotest.(check bool)
-    "default_config.enable_mathjax is false" true
-    (not cfg.Render.enable_mathjax)
+    "default_config.enable_mathjax is true" true cfg.Render.enable_mathjax
 
 let[@warning "-32"] mathjax_in_head_when_enabled () =
   let cfg : Render.config =
@@ -305,6 +304,25 @@ let[@warning "-32"] mathjax_in_head_when_enabled () =
   Alcotest.(check bool)
     "MathJax CDN script emitted when flag on" true
     (has "mathjax@3" page.Render.body)
+
+let[@warning "-32"] mathjax_script_on_prose_page_when_enabled () =
+  (* Reverses `mathjax-default-off` from `render-kernel-fixes-2026-10@1`.
+     The default config now has `enable_mathjax = true`, so a
+     flagless `Render.build_pages` call must emit the MathJax
+     script tag on the prose path (`index.html`). The test
+     mirrors `mathjax_in_head_when_enabled` but uses the default
+     config without overriding `enable_mathjax` — the default
+     itself is the asserted behaviour. *)
+  let cfg : Render.config = Render.default_config in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~axioms_data:[]
+  in
+  let home = List.find (fun p -> p.Render.path = "index.html") pages in
+  Alcotest.(check bool)
+    "MathJax script tag emitted on prose index by default" true
+    (has "mathjax@3" home.Render.body)
 
 let[@warning "-32"] mathjax_no_dollar_delimiters () =
   (* `decisions/mathjax-delimiter-hardening-2026-10.yaml`
@@ -722,8 +740,13 @@ let () =
           Alcotest.test_case "id" `Quick
             italic_underscore_inside_identifier_safe;
         ] );
-      ( "mathjax_default_off",
-        [ Alcotest.test_case "off" `Quick mathjax_default_off ] );
+      ( "mathjax_default_on",
+        [ Alcotest.test_case "on" `Quick mathjax_default_on ] );
+      ( "mathjax_script_on_prose_page_when_enabled",
+        [
+          Alcotest.test_case "prose-default" `Quick
+            mathjax_script_on_prose_page_when_enabled;
+        ] );
       ( "mathjax_no_dollar_delimiters",
         [ Alcotest.test_case "no-dollar" `Quick mathjax_no_dollar_delimiters ]
       );
@@ -741,4 +764,77 @@ let () =
         [ Alcotest.test_case "h1" `Quick axiom_page_single_h1 ] );
       ( "footer_mathc_render",
         [ Alcotest.test_case "footer" `Quick footer_mathc_render ] );
+      ( "mermaid_in_seven_pages",
+        [
+          Alcotest.test_case "mermaid" `Quick
+            (fun () ->
+              (* Editorial obligation: every site page and per-axiom
+                 page that declares a mermaid diagram must surface
+                 it as `<div class="mermaid">…</div>` in the
+                 rendered HTML. *)
+              let root =
+                match Sys.getenv_opt "DUNE_SOURCEROOT" with
+                | Some p -> p
+                | None -> ".."
+              in
+              let script = Filename.concat root "scripts/render.sh" in
+              let ec = Sys.command script in
+              if ec <> 0 then
+                Alcotest.failf
+                  "scripts/render.sh exited %d; cannot verify mermaid \
+                   output" ec;
+              let dist = Filename.concat root "dist" in
+              let pages =
+                [
+                  "axioms/separation.html";
+                  "axioms/feedback.html";
+                  "axioms/self-application.html";
+                  "methodology.html";
+                  "workflow.html";
+                  "bootstrap-gate.html";
+                  "foundations.html";
+                ]
+              in
+              List.iter
+                (fun rel ->
+                  let path = Filename.concat dist rel in
+                  let html = read_text path in
+                  Alcotest.(check bool)
+                    (Printf.sprintf
+                       "dist/%s contains <div class=\"mermaid\">" rel)
+                    true (has "<div class=\"mermaid\">" html))
+                pages)
+        ] );
+      ( "axiom_has_formalization_section",
+        [
+          Alcotest.test_case "formalization" `Quick
+            (fun () ->
+              (* Editorial obligation: each of the five axiom pages
+                 must end with a `## Formalization` section that
+                 references the formal algebra. *)
+              let root =
+                match Sys.getenv_opt "DUNE_SOURCEROOT" with
+                | Some p -> p
+                | None -> ".."
+              in
+              let dist = Filename.concat root "dist" in
+              let axioms =
+                [
+                  "axioms/separation.html";
+                  "axioms/feedback.html";
+                  "axioms/invariants.html";
+                  "axioms/self-application.html";
+                  "axioms/care.html";
+                ]
+              in
+              List.iter
+                (fun rel ->
+                  let path = Filename.concat dist rel in
+                  let html = read_text path in
+                  Alcotest.(check bool)
+                    (Printf.sprintf
+                       "dist/%s contains Formalization section" rel)
+                    true (has "Formalization" html))
+                axioms)
+        ] );
     ]

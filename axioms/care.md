@@ -36,6 +36,56 @@ about an outcome*.
 - `OCAML_BEST_PRACTICES.md` §2.4 (Tagged arguments) and §2.6 (Records
   over tuples) ensure these fields cannot be silently dropped.
 
+## Formalization
+
+The five epistemic markers on `assumption` (and the `Decision`
+record that contains them) live in
+[`spec/algebra-3.2.md`](../spec/algebra-3.2.md) §7. The trust
+dynamics that decide *who is accountable* over time live in §12.
+
+Each `assumption` is a record with nine fields; `state` is one of
+five epistemic markers, and the presence of `confidence`,
+`evidence`, and `consequence_if_false` is conditional on the
+marker:
+
+```text
+assumption = ⟨id,
+              state: epistemic_marker,
+              statement: String,
+              owner: String,
+              consequence_if_false: String?,
+              review_on: (signal, timestamp?)*,
+              evidence: String?,
+              confidence: [0.0, 1.0]?⟩
+
+epistemic_marker = fact | hypothesis | judgment | unknown | proven
+
+∀ A ∈ assumption:
+  if A.state ∈ {fact, hypothesis}: A.confidence ∈ [0.0, 1.0] required
+  if A.state = judgment:            A.evidence is required
+  if A.state = unknown:            consequence_if_false must enumerate risks
+  if A.state = proven:             ∃ attestation a with a.decision = A.owner ∧ a.result = Pass
+```
+
+Trust is a function of two monotone arguments — the agent's
+historical record on the obligation's domain, and the density of
+attestations that the agent has signed. The four-tier trust lattice
+is partially ordered; rebuttal dynamics move an agent up or down
+within it:
+
+```text
+trust: 𝓐 × ObligationDomain → 𝓣
+𝓣 = {Untrusted < Authenticated < Delegated < Authoritative}
+trust(a, d) = f(history(a, d), attestation-density(a, d))
+trust dynamics:
+  rebuttal.accepted              → trust(a, d) ↑
+  rebuttal.rejected_with_reason  → trust(a, d) ↓
+```
+
+The `owner` field on `assumption` and the `trust(a, d)` result
+together cover the prose quartet: who benefits, who suffers, who is
+accountable, and when the accountability was last revisited.
+
 ## Counter-example that would violate this axiom
 
 An `assumptions` entry that says "the system is fast" with no

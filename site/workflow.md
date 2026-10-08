@@ -4,6 +4,18 @@
 > five-state FSM from `decisions/decision.yaml` applied
 > as a discipline. Six steps, one binary.
 
+```mermaid
+stateDiagram-v2
+    direction LR
+    [*] --> intent
+    intent --> commit: write decision + obligation
+    commit --> implement: ship the code change
+    implement --> attest: produce attestations/*.json
+    attest --> gate: mathc gate BASE HEAD
+    gate --> self_verify: mathc self-check
+    self_verify --> [*]: merge to main
+```
+
 ## 1. State intent
 
 Open a `decisions/<id>.yaml` with `intent:`. The intent is

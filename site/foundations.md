@@ -99,3 +99,12 @@ five foundations:
 The kernel at v3.1.0-alpha ships the eight foundations. The
 site at [Packages](packages.html) is the live verdict of all
 29 active decisions.
+
+```mermaid
+flowchart LR
+    A0[A0 Separation] --> bootstrap-v3[bootstrap-v3]
+    A1[A1 Feedback] --> attestation-store-fill[attestation-store-fill]
+    A2[A2 Invariants] --> kernel-conformance-runner[kernel-conformance-runner]
+    A3[A3 Self-application] --> mathc-self-check-subcommand[mathc-self-check-subcommand]
+    A4[A4 Care] --> validate-and-context[validate-and-context]
+```
