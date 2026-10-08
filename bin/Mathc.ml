@@ -143,33 +143,52 @@ let validate_with_counts path =
       | None -> (
           try
             match Decision.parse_decision_yaml v with
-            | Some d ->
-                let extra_diags = collect_ambiguous_acceptance_diagnostics v in
-                (* counterexample is required for modes >= light per
-                   spec/algebra-3.2.md §11; emit a Warn diagnostic when
-                   absent. The verdict remains 'accept' — counterexample
-                   is a dialectical slot, not a hard requirement, so
-                   older decisions without it stay valid. *)
-                let counterexample_diag =
-                  if d.Domain.counterexample = None then
+            | Some d -> (
+                (* T0.2: sha-match enforcement (spec/algebra-3.2.md §7,
+                   schemas/decision.json: when both `body_sha` and
+                   `yaml_sha` are present, the digests must agree.
+                   sha_match_check returns `(bool, Diagnostic.t list)`;
+                   the bool is non-binding here — the diagnostic list
+                   is the single source of truth for surface emission.
+                   A Block diagnostic still rejects the file. *)
+                let _, sha_match_diags = Decision.sha_match_check d in
+                match sha_match_diags with
+                | first :: _ ->
                     let msg =
-                      Printf.sprintf
-                        "missing counterexample: spec/algebra-3.2.md %s \
-                         requires it for modes >= light; add a counterexample \
-                         section naming the strongest objection"
-                        "§11"
+                      Printf.sprintf "body_sha ≠ yaml_sha (see %s)"
+                        first.Diagnostic.code
                     in
-                    Some
-                      (Diagnostic.mc_counterexample_missing
-                         ~decision_id:d.Domain.id msg)
-                  else None
-                in
-                let extra_diags =
-                  match counterexample_diag with
-                  | Some diag -> diag :: extra_diags
-                  | None -> extra_diags
-                in
-                `Accept (d, extra_diags)
+                    `Reject (first, msg)
+                | [] ->
+                    let extra_diags =
+                      collect_ambiguous_acceptance_diagnostics v
+                    in
+                    (* counterexample is required for modes >= light per
+                       spec/algebra-3.2.md §11; emit a Warn diagnostic when
+                       absent. The verdict remains 'accept' — counterexample
+                       is a dialectical slot, not a hard requirement, so
+                       older decisions without it stay valid. *)
+                    let counterexample_diag =
+                      if d.Domain.counterexample = None then
+                        let msg =
+                          Printf.sprintf
+                            "missing counterexample: spec/algebra-3.2.md %s \
+                             requires it for modes >= light; add a \
+                             counterexample section naming the strongest \
+                             objection"
+                            "§11"
+                        in
+                        Some
+                          (Diagnostic.mc_counterexample_missing
+                             ~decision_id:d.Domain.id msg)
+                      else None
+                    in
+                    let extra_diags =
+                      match counterexample_diag with
+                      | Some diag -> diag :: extra_diags
+                      | None -> extra_diags
+                    in
+                    `Accept (d, extra_diags))
             | None ->
                 let msg = "missing or invalid required field" in
                 `Reject (Diagnostic.mc_decision_invalid msg, msg)
@@ -831,7 +850,7 @@ let[@warning "-32"] do_explain_diagnostic () =
           "unknown diagnostic code '%s'; supported codes are listed by \
            lib/diagnostic.ml::explain (MC-AMBIGUOUS-ACCEPTANCE, \
            MC-MALFORMED-ACCEPTANCE, MC-PARSE, MC-DECISION-INVALID, \
-           MC-COUNTEREXAMPLE-MISSING)"
+           MC-COUNTEREXAMPLE-MISSING, MC-AXIOM-LINK-MISSING, MC-SHA-MISMATCH)"
           code
       in
       explain_diag "MC-EXPLAIN-DIAGNOSTIC-UNKNOWN" "diagnostic" code msg;
@@ -2489,8 +2508,7 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
           && List.for_all
                (fun g ->
                  Option.is_some
-                   (Waiver.covers waivers
-                      ~decision_id:entry.Memory.decision_id
+                   (Waiver.covers waivers ~decision_id:entry.Memory.decision_id
                       ~obligation_id:g.Gate.obligation_id ~now))
                gaps
         then Gate.Open_with_waiver

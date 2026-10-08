@@ -251,6 +251,53 @@ let axiom_link_missing ?(decision_id = "") () =
       ]
     msg
 
+(* MC-SHA-MISMATCH: emitted when a Decision carries both
+   `body_sha` and `yaml_sha` and the two values disagree. Per
+   spec/algebra-3.2.md §7 ("if D.body_sha ≠ ∅ ∧ D.yaml_sha ≠ ∅
+   then D.body_sha = D.yaml_sha") and the schema contract in
+   schemas/decision.json (both fields share the pattern
+   `^sha256:[0-9a-f]{64}$`). The check is parser-side:
+   `lib/decision.ml::sha_match_check` returns a `(bool, Diagnostic.t list)`
+   accumulator; when both hashes are present and not string-equal,
+   `mc_sha_mismatch` emits a Block diagnostic. Either field absent
+   makes the invariant vacuously true (no mismatch is possible) and
+   no diagnostic is emitted. Author remediation: re-run
+   `scripts/axiom-link-seed.py --dry-run --verbose` (or a future
+   `scripts/sha-recompute.py`) to recompute BOTH fields from the
+   placeholder-substitution algorithm recorded in
+   scripts/axiom-link-seed.py:105-123. This block-level emit is
+   called from `bin/Mathc.ml::validate_with_counts` (T0.2 stream ε). *)
+let mc_sha_mismatch ?(decision_id = "") ?(body_sha = "") ?(yaml_sha = "")
+    ?(next_actions = []) () =
+  let prefix =
+    if decision_id = "" then "" else Printf.sprintf "%s: " decision_id
+  in
+  let body = if body_sha = "" then "<absent>" else body_sha in
+  let yaml = if yaml_sha = "" then "<absent>" else yaml_sha in
+  let msg =
+    Printf.sprintf
+      "%sbody_sha (%s) and yaml_sha (%s) disagree: spec/algebra-3.2.md §7 \
+       requires both hashes to be equal when both are present. Recompute via \
+       the placeholder-substitution algorithm (sha256 of the decision with \
+       both fields replaced by 'sha256:' + 64 zeros); see \
+       scripts/axiom-link-seed.py:105-123 for the canonical implementation."
+      prefix body yaml
+  in
+  let default_actions =
+    [
+      ( "replace",
+        "body_sha and yaml_sha with the recomputed digest (both fields must \
+         carry the SAME value when both are present)" );
+      ("run", "scripts/axiom-link-seed.py --dry-run --verbose  # reference impl");
+      ("verify", "mathc validate <path-to-decision>");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-SHA-MISMATCH" ~kind:Deficit ~severity:Block
+    ~policy_rule:(Some "spec/algebra-3.2.md §7") ~next_actions:actions msg
+
 let severity_of_string = function
   | "info" -> Some Info
   | "warn" -> Some Warn
@@ -390,6 +437,34 @@ let explain (code : string) : string option =
          decision is a transitional draft that should not be\n\
          evaluated yet, change its state to `draft` instead.\n\
          Re-run `mathc validate`."
+  | "MC-SHA-MISMATCH" ->
+      Some
+        "### Definition\n\
+         A Decision carries BOTH `body_sha` and `yaml_sha` and\n\
+         the two values disagree. Spec/algebra-3.2.md §7\n\
+         requires `if D.body_sha ≠ ∅ ∧ D.yaml_sha ≠ ∅ then\n\
+         D.body_sha = D.yaml_sha`. Either field alone is\n\
+         permitted (the invariant is vacuously satisfied); the\n\
+         mismatch only triggers when BOTH are present and not\n\
+         string-equal.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::sha_match_check` returns false\n\
+         for a parsed Decision. `bin/Mathc.ml::validate_with_counts`\n\
+         converts the disagreement into an `MC-SHA-MISMATCH`\n\
+         diagnostic with verdict `reject` and exit code 1. The\n\
+         check is parser-side; it DOES NOT re-hash the file\n\
+         (the schema contract is that the embedded hashes\n\
+         agree, not that they were computed at validate time).\n\n\
+         ### Remediation\n\
+         Recompute BOTH `body_sha` and `yaml_sha` using the\n\
+         placeholder-substitution algorithm: replace each\n\
+         field's value with the placeholder `sha256:` + 64\n\
+         zeros (same length as a real digest), sha256 the\n\
+         resulting file content, and set BOTH fields to the\n\
+         resulting hex digest. The reference implementation\n\
+         lives in `scripts/axiom-link-seed.py:105-123`. Re-run\n\
+         `mathc validate` to confirm `MC-SHA-MISMATCH` is\n\
+         gone."
   | _ -> None
 
 let render d =
