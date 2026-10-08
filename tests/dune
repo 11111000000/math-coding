@@ -20,7 +20,8 @@
   qcheck_parsers
   junit_test
   rebuttal_forge_stub
-  decision_addresses_equality)
+  decision_addresses_equality
+  diagnostic_ux)
  (libraries
   mathcoding_core
   mathcoding_attestations

@@ -50,6 +50,34 @@ let infra code message =
 
 let authorization code message = create ~code ~kind:Authorization message
 
+(* Standard verb set for next_actions snippets. Every snippet is a
+   (verb, body) pair where the verb names the action and the body
+   is a literal block the author can paste into their editor or
+   shell. Whitelist: add, run, create, edit, replace, supersede.
+   See decisions/plan-2026-10-improvements/t4-1.yaml for the
+   rationale and the meta-decision audit. *)
+let verbs_for_ks : string list =
+  [ "add"; "run"; "create"; "edit"; "replace"; "supersede" ]
+
+let verb_is_known v = List.mem v verbs_for_ks
+
+(* Default next_actions for an MC-* code that has no code-specific
+   snippet (the explain registry documents prose remediation; the
+   snippet is the copy-pasteable companion). The default points the
+   author at `mathc explain-diagnostic <CODE>` and the README
+   troubleshooting section. *)
+let default_next_actions code =
+  [
+    ("run", "mathc explain-diagnostic " ^ code);
+    ("edit", "README.md#troubleshooting");
+  ]
+
+(* Build a (verb, body) entry after validating the verb. Returns
+   a list so callers can add many entries; an unknown verb becomes
+   `edit` (the OCaml entry says: do not silently drop a clause). *)
+let safe_action verb body =
+  if verb_is_known verb then (verb, body) else ("edit", body)
+
 (* MC-AMBIGUOUS-ACCEPTANCE: emitted by the conformance runner when
    an obligation's `all` or `any` list contains an item with both
    `verifier` + `result` AND `review` fields. Per
@@ -60,7 +88,8 @@ let authorization code message = create ~code ~kind:Authorization message
    well-typed Domain.acceptance for the verifier half — the
    alternative would be to refuse the whole obligation, which is
    heavier than the spec requires. *)
-let ambiguous_acceptance ?(obligation_id = "") ?(item_position = -1) () =
+let ambiguous_acceptance ?(obligation_id = "") ?(item_position = -1)
+    ?(next_actions = []) () =
   let pos_str =
     if item_position >= 0 then Printf.sprintf " (all[%d])" item_position else ""
   in
@@ -70,13 +99,32 @@ let ambiguous_acceptance ?(obligation_id = "") ?(item_position = -1) () =
        verifier wins, review is dropped"
       obligation_id pos_str
   in
-  create ~code:"MC-AMBIGUOUS-ACCEPTANCE" ~kind:Conflict ~severity:Warn msg
+  let default_actions =
+    [
+      ( "edit",
+        Printf.sprintf
+          "obligations:\n\
+          \  - id: %s\n\
+          \    acceptance:\n\
+          \      all:\n\
+          \        - verifier: oracles\n\
+          \          result: pass    # or review: <text>"
+          obligation_id );
+      ("run", "mathc validate decisions/<file>.yaml");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-AMBIGUOUS-ACCEPTANCE" ~kind:Conflict ~severity:Warn
+    ~next_actions:actions msg
 
 (* MC-MALFORMED-ACCEPTANCE: emitted when an acceptance item has the
    right field shape (verifier+result OR review) but the values do
    not parse. E.g., verifier="x" with result="bogus" — `result` is
    not one of pass/fail/inconclusive/infrastructure-error. *)
-let malformed_acceptance ?(obligation_id = "") ?(item_position = -1) reason =
+let malformed_acceptance ?(obligation_id = "") ?(item_position = -1)
+    ?(next_actions = []) reason =
   let pos_str =
     if item_position >= 0 then Printf.sprintf " (all[%d])" item_position else ""
   in
@@ -84,7 +132,92 @@ let malformed_acceptance ?(obligation_id = "") ?(item_position = -1) reason =
     Printf.sprintf "obligation %s: acceptance item%s is malformed: %s"
       obligation_id pos_str reason
   in
-  create ~code:"MC-MALFORMED-ACCEPTANCE" ~kind:Input ~severity:Warn msg
+  let default_actions =
+    [
+      ( "replace",
+        "result: pass    # one of: pass | fail | inconclusive | \
+         infrastructure-error" );
+      ( "edit",
+        Printf.sprintf
+          "obligations:\n  - id: %s\n    acceptance:\n      all: []"
+          obligation_id );
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-MALFORMED-ACCEPTANCE" ~kind:Input ~severity:Warn
+    ~next_actions:actions msg
+
+(* MC-PARSE: emitted when the kernel's hand-rolled JSON/YAML reader
+   hits a malformed token. The diagnostic carries the parser's
+   line/col context; the snippet points the author at the affected
+   file path and at `mathc validate`. *)
+let mc_parse ?(path = []) ?(cause = []) ?(next_actions = []) message =
+  let code = "MC-PARSE" in
+  let default_actions =
+    [
+      ("edit", "open the file at the line/col printed in `message`");
+      ("run", "mathc validate <file>");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code ~kind:Input ~severity:Warn ~path ~cause ~next_actions:actions
+    ~retryable:false ~autofix_safe:false message
+
+(* MC-DECISION-INVALID: emitted when a parseable file is missing a
+   required top-level field. The diagnostic's `path` carries the
+   field name; the snippet shows the YAML key the author should
+   add. *)
+let mc_decision_invalid ?(path = []) ?(next_actions = []) message =
+  let code = "MC-DECISION-INVALID" in
+  let field = match path with [ f ] -> f | _ -> "<field>" in
+  let default_actions =
+    [
+      ("add", Printf.sprintf "%s: |\n  <one-line description>" field);
+      ("run", "mathc validate decisions/<file>.yaml");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code ~kind:Input ~severity:Warn ~path ~next_actions:actions
+    ~retryable:false ~autofix_safe:false message
+
+(* MC-COUNTEREXAMPLE-MISSING: emitted when a `state: active`
+   decision has no `counterexample` field (a dialectical slot
+   required for mode >= light per spec/algebra-3.2.md §11).
+   Verdict stays `accept`; the diagnostic is a Warn. *)
+let mc_counterexample_missing ?(decision_id = "") ?(next_actions = []) message =
+  let code = "MC-COUNTEREXAMPLE-MISSING" in
+  let default_actions =
+    [
+      ( "add",
+        Printf.sprintf
+          "counterexample: |\n\
+          \  %s\n\
+          \  A known failing case that would falsify this commitment.\n\
+          \  Resolution: name the strongest objection to the decision."
+          (if decision_id = "" then "<decision-id>" else decision_id) );
+      ("edit", "spec/algebra-3.2.md §11 (dialectical slots)");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code ~kind:Deficit ~severity:Warn ~next_actions:actions
+    ~retryable:false ~autofix_safe:false message
+
+(* Aliases — the stream η (T4.1) compact contract refers to the
+   `mc_` prefix; the existing call sites in bin/Mathc.ml use the
+   unprefixed names. Both names refer to the same function so that
+   old and new code can coexist; new code should prefer the `mc_`
+   form per the convention codified in
+   decisions/plan-2026-10-improvements/t4-1.yaml. *)
+let mc_ambiguous_acceptance = ambiguous_acceptance
+let mc_malformed_acceptance = malformed_acceptance
 
 (* MC-AXIOM-LINK-MISSING: emitted by `mathc validate` (via
    `lib/decision.ml::parse_decision`) when a decision carries

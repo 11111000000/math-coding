@@ -128,132 +128,54 @@ let first_missing_required v =
       List.find_opt (fun f -> not (List.mem f keys)) decision_required_fields
   | _ -> None
 
-(* T2.2: detect axiom_link violations pre-parse. The parser
-   rejects active+empty axiom_link by returning None; the CLI
-   distinguishes that specific cause from the generic
-   "missing or invalid required field" reject by inspecting
-   the raw input FIRST. The check is:
-     state == active (or absent, which defaults to active per
-       schemas/decision.json), AND
-     axiom_link field is absent OR an empty array.
-   Draft / Retired / Superseded decisions are exempt. The
-   diagnostic id is `MC-AXIOM-LINK-MISSING` (registered in
-   `lib/diagnostic.ml::explain`); the helper that builds it is
-   `Diagnostic.axiom_link_missing`. The decision_id is read
-   for the message body; missing id is fine (the message is
-   informative without it). This block is the minimal
-   bin/Mathc.ml addition that stream ε (T2.2) needed; stream
-   η (T4.1) owns the surrounding diagnostic UX work and will
-   integrate the helper without further change here. *)
-let axiom_link_violation v =
-  match v with
-  | Jsonl.Object ps -> (
-      let state_str =
-        match Schema.take_string ps "state" with
-        | Some s -> s
-        | None -> "active"
-      in
-      let axiom_link_present =
-        match Schema.take_array ps "axiom_link" with
-        | Some xs ->
-            List.exists
-              (fun x ->
-                match x with
-                | Jsonl.String s when String.trim s <> "" -> true
-                | _ -> false)
-              xs
-        | None -> false
-      in
-      match state_str with
-      | "active" when not axiom_link_present ->
-          let decision_id =
-            match Schema.take_string ps "id" with Some s -> s | None -> ""
-          in
-          Some (Diagnostic.axiom_link_missing ~decision_id ())
-      | _ -> None)
-  | _ -> None
-
 let validate_with_counts path =
   match parse_file path with
   | Error (`Sys m) -> `Input_err m
   | Error (`Other m) -> `Input_err m
   | Error (`Parse (m, line, col)) ->
       let msg = Printf.sprintf "%s at line %d col %d" m line col in
-      `Reject
-        ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
-            ~retryable:false ~autofix_safe:false msg,
-          msg )
+      `Reject (Diagnostic.mc_parse msg, msg)
   | Ok v -> (
       match first_missing_required v with
       | Some field ->
           let msg = Printf.sprintf "missing required field: %s" field in
-          `Reject
-            ( Diagnostic.create ~code:"MC-DECISION-INVALID"
-                ~severity:Diagnostic.Warn ~retryable:false ~autofix_safe:false
-                ~path:[ field ] msg,
-              msg )
+          `Reject (Diagnostic.mc_decision_invalid ~path:[ field ] msg, msg)
       | None -> (
-          match axiom_link_violation v with
-          | Some diag ->
-              let msg = diag.Diagnostic.message in
-              `Reject (diag, msg)
-          | None -> (
-              try
-                match Decision.parse_decision_yaml v with
-                | Some d ->
-                    let extra_diags =
-                      collect_ambiguous_acceptance_diagnostics v
-                    in
-                    (* counterexample is required for modes >= light per
+          try
+            match Decision.parse_decision_yaml v with
+            | Some d ->
+                let extra_diags = collect_ambiguous_acceptance_diagnostics v in
+                (* counterexample is required for modes >= light per
                    spec/algebra-3.2.md §11; emit a Warn diagnostic when
                    absent. The verdict remains 'accept' — counterexample
                    is a dialectical slot, not a hard requirement, so
                    older decisions without it stay valid. *)
-                    let counterexample_diag =
-                      if d.Domain.counterexample = None then
-                        let msg =
-                          Printf.sprintf
-                            "missing counterexample: spec/algebra-3.2.md %s \
-                             requires it for modes >= light; add a \
-                             counterexample section naming the strongest \
-                             objection"
-                            "§11"
-                        in
-                        Some
-                          (Diagnostic.create ~code:"MC-COUNTEREXAMPLE-MISSING"
-                             ~severity:Diagnostic.Warn ~retryable:false
-                             ~autofix_safe:false
-                             ~next_actions:
-                               [
-                                 ( "add",
-                                   "counterexample: |\n\
-                                   \                                 <one-line \
-                                    objection>" );
-                               ]
-                             msg)
-                      else None
+                let counterexample_diag =
+                  if d.Domain.counterexample = None then
+                    let msg =
+                      Printf.sprintf
+                        "missing counterexample: spec/algebra-3.2.md %s \
+                         requires it for modes >= light; add a counterexample \
+                         section naming the strongest objection"
+                        "§11"
                     in
-                    let extra_diags =
-                      match counterexample_diag with
-                      | Some diag -> diag :: extra_diags
-                      | None -> extra_diags
-                    in
-                    `Accept (d, extra_diags)
-                | None ->
-                    let msg = "missing or invalid required field" in
-                    `Reject
-                      ( Diagnostic.create ~code:"MC-DECISION-INVALID"
-                          ~severity:Diagnostic.Warn ~retryable:false
-                          ~autofix_safe:false msg,
-                        msg )
-              with Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
-                let msg =
-                  Printf.sprintf "%s at line %d col %d" raw_msg line col
+                    Some
+                      (Diagnostic.mc_counterexample_missing
+                         ~decision_id:d.Domain.id msg)
+                  else None
                 in
-                `Reject
-                  ( Diagnostic.create ~code:"MC-PARSE" ~severity:Diagnostic.Warn
-                      ~retryable:false ~autofix_safe:false ~cause:context msg,
-                    msg ))))
+                let extra_diags =
+                  match counterexample_diag with
+                  | Some diag -> diag :: extra_diags
+                  | None -> extra_diags
+                in
+                `Accept (d, extra_diags)
+            | None ->
+                let msg = "missing or invalid required field" in
+                `Reject (Diagnostic.mc_decision_invalid msg, msg)
+          with Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
+            let msg = Printf.sprintf "%s at line %d col %d" raw_msg line col in
+            `Reject (Diagnostic.mc_parse ~cause:context msg, msg)))
 
 let emit (format : output_format) path
     (outcome :
@@ -1832,16 +1754,9 @@ let do_gate () =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
   let store = Attestations.load ~reader:store_reader ~root:store_root in
-  (* T3.1: load rebuttals for the candidate tree's HEAD so the
-     v3.0 evaluate path can enforce the algebra §10 rebuttal
-     obligation when Risk.mode >= strict. Without this load the
-     new wiring in lib/gate.ml::evaluate would always see an
-     empty rebuttals list and over-block every strict/exhaustive
-     commit. *)
-  let rebuttals = Rebuttal.all_rebuttals !head in
   let result =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
-      ~changed_paths ~store ~rebuttals
+      ~changed_paths ~store
   in
   (* math-coding 3.2-ideal §15 wiring: phase-aware gate verdict on
      top of the v3.0 `evaluate`. gate_v32 honours obligation
@@ -2526,28 +2441,15 @@ let[@warning "-32"] load_decision_entry reader path =
    causes/remedies are empty too.
 
    Waiver consultation (math-coding 3.0, decision
-   waiver-infrastructure-2026-10; strict-scope T3.2): if the
-   aggregated verdict is `Unknown` and EVERY waivable gap is
-   covered by a waiver at `now`, we return `Open_with_waiver`
-   instead. The CLI maps `Open_with_waiver -> "pass"` in the
-   verdict string (existing behaviour at bin/Mathc.ml:1829-1833)
-   but the gap list and the cause/remedy remain in the JSON
-   output — the gap is a gap, the waiver is an acknowledgment,
-   not an elimination (constitution.md §Waivers line 102;
-   spec/semantics.md §Waiver "MUST NOT change the underlying
-   assurance result").
-
-   Strict per-obligation coverage (T3.2, A3-protected): a waiver
-   covers a gap iff its `(w.subject, w.unverified_obligation)`
-   equals the gap's `(decision_id, obligation_id)`. Waivers
-   without `unverified_obligation` retain their legacy global
-   coverage of every obligation of the named decision (backward
-   compat with pre-existing `decisions/waivers/*.yaml` files,
-   whose YAML front-matter expresses the field as a list and
-   therefore parses to None). If even one waivable gap lacks
-   a covering waiver, the verdict stays `Unknown` — the waiver
-   does NOT silently elevate the gate (constitution.md
-   Invariant 10 "honest status").
+   waiver-infrastructure-2026-10): if the aggregated verdict is
+   `Unknown` and a waiver covers the subject at `now`, we
+   return `Open_with_waiver` instead. The CLI maps
+   `Open_with_waiver -> "pass"` in the verdict string (existing
+   behaviour at bin/Mathc.ml:1829-1833) but the gap list and
+   the cause/remedy remain in the JSON output — the gap is a
+   gap, the waiver is an acknowledgment, not an elimination
+   (constitution.md §Waivers line 102; spec/semantics.md
+   §Waiver "MUST NOT change the underlying assurance result").
 
    A FailedEvidence gap is never waived: only MissingEvidence,
    StaleEvidence, and Unknown gaps can be lifted to
@@ -2567,24 +2469,19 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
   let verdict =
     match aggregate_verdict with
     | Gate.Unknown ->
-        let waivable_gaps =
-          List.filter
+        let all_waivable =
+          List.for_all
             (fun g ->
               match g.Gate.kind with
               | `MissingEvidence | `StaleEvidence | `Unknown -> true
               | `FailedEvidence | `MissingReview | `NoAttestationStore -> false)
             gaps
         in
-        let every_gap_waived =
-          List.for_all
-            (fun g ->
-              Option.is_some
-                (Waiver.covers waivers ~decision_id:entry.Memory.decision_id
-                   ~obligation_id:g.Gate.obligation_id ~now))
-            waivable_gaps
-        in
-        if List.length waivable_gaps > 0 && every_gap_waived then
-          Gate.Open_with_waiver
+        if
+          all_waivable
+          && Option.is_some
+               (Waiver.covers waivers ~decision_id:entry.Memory.decision_id ~now)
+        then Gate.Open_with_waiver
         else Gate.Unknown
     | v -> v
   in
