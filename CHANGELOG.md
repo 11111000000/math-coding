@@ -5,10 +5,16 @@
 
 ## Unreleased — v3.2.0-alpha (in development)
 
-**Status:** §30 closure attempted; reversal signal fired on the
-Alpine build leg. The musl-linux binary does NOT ship in this
-release; the glibc pipeline is unchanged. See
-`decisions/portable-linux-musl.yaml` rev 2 for the reversal chain.
+**Status:** §30 closure recovered on 2026-10-07. CI run #129
+on branch `fix-alpine-musl-2026-10` is the first end-to-end
+green Alpine/musl build; `mathc-linux-x86_64-musl` is a 4.99 MB
+musl-linked ELF (`/lib/ld-musl-x86_64.so.1`, NEEDED
+`libc.musl-x86_64.so.1`). `decisions/portable-linux-musl.yaml`
+now at rev 4 / state: active. The musl artifact is uploaded
+to GitHub Actions artifacts but is not yet in the published
+release `files:` list — that wiring lands with the merge to
+main. See ROADMAP §"Remaining for v3.1.0 stabilisation" and
+OCAML_BEST_PRACTICES §11.26.
 
 ### Added
 
@@ -21,6 +27,13 @@ release; the glibc pipeline is unchanged. See
   is not portable when built under `nix develop .#test`. CI is
   the only honest portability check; local builds via nix-store
   glibc are a red herring.
+- §11.26 — `container:` under `strategy.matrix.include` is
+  silently ignored by GitHub Actions (only honored at the
+  job level). Trap added after 7 CI attempts (#81, #83, #84,
+  #85, #125, #126, #127, #128) on the alpine-musl pipeline
+  hit `command not found` / `No such file or directory` on the
+  Ubuntu host instead of inside alpine. The fix: explicit
+  `docker run alpine:3.20 …` from the runner.
 - CI fixes (parallel to commit 4b623c2 in site.yml):
   - `ci.yml`: disable `cachix/cachix-action@v15` step
     (`fail-on-cache-miss` is no longer a valid input).

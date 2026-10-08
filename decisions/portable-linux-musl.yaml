@@ -1,24 +1,54 @@
 ---
 schema: math-coding/3.0-alpha
 id: portable-linux-musl
-revision: 3
-# state: retired  (reversal signal 'alpine-ci-build-fails' fired 2026-10-04
-#                  after CI runs #81, #83, #84, #85 all failed at the
-#                  'Init opam (Alpine musl container)' step in
-#                  release.yml. The release.yml change (matrix entry
-#                  linux-x86_64-musl) has been commented out per this
-#                  decision's reversal clause. The glibc pipeline is
-#                  unaffected. Re-enable by bumping revision and
-#                  uncommenting the matrix entry once the Alpine
-#                  container's opam setup is debugged end-to-end.)
+revision: 4
+# state: active  (rev 4, 2026-10-07: recovery from rev 2 retirement.)
 #
-# History:
-#   rev 1 (2026-10-04): state: draft, adopted Alpine/musl pipeline
-#                       (user-authorized promotion to active).
-#   rev 2 (2026-10-04): state: retired, reversal signal fired.
-state: retired
-body_sha: "sha256:0733a3341cc873613a0aadaae1805da36382935bde07375f43293c0c698ec3f4"
-yaml_sha: "sha256:0733a3341cc873613a0aadaae1805da36382935bde07375f43293c0c698ec3f4"
+#                 Rev 1 (2026-10-04): state: draft → active. Adopted
+#                 the Alpine/musl pipeline via ocaml/opam:alpine-*
+#                 prebuilt images.
+#
+#                 Rev 2 (2026-10-04): state: retired. Reversal signal
+#                 'alpine-ci-build-fails' fired after CI runs #81,
+#                 #83, #84, #85 all failed at the 'Init opam (Alpine
+#                 musl container)' step with exit 127/1. The original
+#                 root cause was diagnosed 2026-10-07 (see
+#                 OCAML_BEST_PRACTICES.md §11.26): `container:
+#                 alpine:3.20` under strategy.matrix.include is
+#                 silently ignored — GitHub Actions only honors
+#                 `container:` at the JOB level. The four rebuild
+#                 attempts (#125, #126, #127, #128) on the now-fixed
+#                 release.yml line still failed because they tried to
+#                 write to /etc/apk/repositories.d/ (which does not
+#                 exist) before we realized the shell steps were
+#                 running on the Ubuntu host, not inside alpine.
+#
+#                 Rev 3 (2026-10-06): state: retired (no behavior
+#                 change from rev 2). Recorded the retirement
+#                 accounting in decisions/portable-linux-musl-
+#                 retirement-record-2026-10.yaml.
+#
+#                 Rev 4 (2026-10-07): state: active. Recovery PR
+#                 pushed as branch `fix-alpine-musl-2026-10`:
+#                 release.yml now runs `docker run alpine:3.20`
+#                 explicitly from the Ubuntu runner, apk-installs
+#                 build-base + musl-dev + opam + bash, refreshes
+#                 the opam index, builds OCaml 5.4.0 from source,
+#                 installs dune, and produces a musl-linked
+#                 mathc.exe. CI run #129
+#                 (https://github.com/11111000000/math-coding/
+#                 actions/runs/37696302997) is the first end-to-end
+#                 green Alpine build; the artifact is a 4.99 MB
+#                 ELF with interpreter /lib/ld-musl-x86_64.so.1
+#                 and NEEDED libc.musl-x86_64.so.1
+#
+#                 Closes the algebra-3.2 §30 anti-property
+#                 "bind kernel to single OS or architecture" for
+#                 Alpine/musl targets. The glibc pipeline and the
+#                 §30 violation history are unchanged.
+state: active
+body_sha: "sha256:57c097f539aec254954a7ba7d088bf69c2036882225bc96ae87cf4f3459f0070"
+yaml_sha: "sha256:57c097f539aec254954a7ba7d088bf69c2036882225bc96ae87cf4f3459f0070"
 intent: |
   Adopt a musl-based Linux build pipeline alongside the existing
   glibc-based Ubuntu pipeline, so math-coding's Linux binaries are
