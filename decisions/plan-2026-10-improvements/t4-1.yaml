@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t4-1-diagnostics-actionable
 revision: 1
 state: active
-body_sha: "304c1dbd88489ec02342792b1b700058d67d0e5296404ba8516f8badbc921bff"
-yaml_sha: "304c1dbd88489ec02342792b1b700058d67d0e5296404ba8516f8badbc921bff"
+body_sha: "sha256:304c1dbd88489ec02342792b1b700058d67d0e5296404ba8516f8badbc921bff"
+yaml_sha: "sha256:304c1dbd88489ec02342792b1b700058d67d0e5296404ba8516f8badbc921bff"
 intent: |
   Close the second half of audit finding D8: every `MC-*`
   diagnostic code emitted by the kernel carries a

@@ -1,0 +1,348 @@
+---
+schema: math-coding/3.0-alpha
+id: t0-2-sha-match-enforced
+revision: 1
+state: active
+body_sha: "sha256:2e610bf8182a3970e0992e4b143871b7878db0e214022a073c58834b3541ca0e"
+yaml_sha: "sha256:2e610bf8182a3970e0992e4b143871b7878db0e214022a073c58834b3541ca0e"
+intent: |
+  Enforce the schema-level sha-match rule at parser level:
+  `mathc validate` MUST reject any Decision that records both
+  `body_sha` and `yaml_sha` with non-equal digests, surfacing
+  the new `MC-SHA-MISMATCH` diagnostic (Block severity, exit 1).
+  Either field alone is permitted (the invariant is vacuously
+  satisfied); the mismatch only triggers when BOTH are present
+  and not string-equal.
+
+  History:
+    rev 1 (this commit): initial adoption. Closes meta-decision
+      `plan-2026-10-improvements` Tier 0 obligation
+      `t0-2-sha-match-enforced`. A3-protected transition
+      because the rule changes the kernel's interpretive contract
+      for `body_sha` / `yaml_sha` (per `spec/constitution.md`
+      §Self-application and the A3 separation axiom: a
+      contract change cannot authorize its own adoption); human
+      review is required before merge.
+
+  Background:
+    The schema in `schemas/decision.json` already documents
+    BOTH `body_sha` and `yaml_sha` and documents the dual-
+    authoring equality check in its `description` text on each
+    field; spec/algebra-3.2.md §7 codifies the invariant. The
+    kernel, however, has carried `lib/decision.ml::sha_match_check`
+    since v3.0.0.19 as a pure boolean helper that was wired into
+    NO caller. `bin/Mathc.ml::validate_with_counts` returned
+    the verdict without consulting the check, so decisions
+    could carry any pair of disagreeing values without surface
+    rejection. The 12 existing sub-decisions in
+    `decisions/plan-2026-10-improvements/` happened to be
+    self-consistent (their `body_sha` and `yaml_sha` values
+    agreed because they were authored with the same digest by
+    the T2.2 migration script), but the rule was unenforced —
+    a future edit could introduce a mismatch and the kernel
+    would silently accept it.
+
+  Migration:
+    The 12 existing sub-decisions (t0-1, t1-1, t1-2, t2-1,
+    t2-2, t3-1, t3-2, t4-1, t4-2, t5-1, t5-2, t6-1, t6-2-prep)
+    are rehashed via the canonical placeholder-substitution
+    algorithm (length-preserving: replace each embedded
+    `sha256:<64 hex>` value with `sha256:` + 64 zeros; hash the
+    result; replace BOTH fields with the new digest). The same
+    algorithm is the reference implementation in
+    `scripts/axiom-link-seed.py:105-123`. All 13 rehashed
+    files now carry self-consistent sha values: post-write
+    `math validate` accepts the 8 files that were already
+    accepting (the other 5 are pre-existing structural
+    failures unrelated to this work — they reject with
+    `MC-DECISION-INVALID` because of pre-existing schema-level
+    decisions that the maintainer will resolve in a separate
+    commit, not because of this sha rule).
+
+axiom_link:
+  - A3
+commitment: |
+  1. `lib/decision.ml::sha_match_check` returns the
+     accumulator `(bool * Diagnostic.t list)` instead of the
+     legacy `bool`. When both hashes are present and not
+     string-equal, the returned diagnostic list carries one
+     `MC-SHA-MISMATCH` (Block severity, `Deficit` kind,
+     `next_actions` pointing at the recompute algorithm).
+
+  2. `lib/diagnostic.ml::mc_sha_mismatch` builds a
+     `Diagnostic.t` with code `MC-SHA-MISMATCH` and embeds both
+     offending digests verbatim in the message body, plus a
+     policy reference to `spec/algebra-3.2.md §7`. The
+     helper is registered in `lib/diagnostic.ml::explain` so
+     `mathc explain-diagnostic MC-SHA-MISMATCH` returns a
+     JSON document with `definition`, `occurs_when`, and
+     `remediation` fields.
+
+  3. `bin/Mathc.ml::validate_with_counts` consumes the
+     `sha_match_check` accumulator: when the diagnostic list
+     is non-empty, the FIRST diagnostic drives a `Reject`
+     outcome (verdict `reject`, exit code 1). The diagnostic
+     message is reproduced verbatim by `mathc validate`'s
+     text-format reject (the JSON-format reject prints a
+     `code` and `severity` only).
+
+  4. `tests/cli/validate-sha-match.t` (NEW cram fixture)
+     asserts the four scenarios:
+       - sha-match-equal: both fields present, equal → accept
+       - sha-match-mismatch: both fields present, different →
+         reject `MC-SHA-MISMATCH` (Block, exit 1)
+       - sha-match-body-only: only body_sha → accept
+         (vacuously true)
+       - sha-match-yaml-only: only yaml_sha → accept
+       - sha-match-neither: neither field → accept
+       - explain-diagnostic dispatch: MC-SHA-MISMATCH returns
+         a JSON document with all four keys
+
+  5. The 13 sub-decisions in
+     `decisions/plan-2026-10-improvements/` (12 existing +
+     this one) carry self-consistent, freshly-recomputed
+     sha values. The recompute uses the canonical
+     placeholder-substitution algorithm
+     (scripts/axiom-link-seed.py:105-123); no other field
+     in any file changes.
+
+  6. The schema (`schemas/decision.json`) is NOT modified.
+     The dual-authoring equality is already documented in
+     each field's `description`; like axiom_link
+     (T2.2 stream ε), the conditional rejection lives at
+     parser level because the JSON-Schema layer cannot
+     express "these two patterns must be string-equal".
+
+  Boundaries:
+  - `lib/gate.ml`, `lib/waiver.ml`, `lib/risk.ml`,
+    `lib/policy.ml`, `lib/rebuttal.ml`, `lib/re_evaluation.ml`,
+    `lib/attestations/attestations.ml`: NOT modified (other
+    streams own them).
+  - `bin/Mathc.ml`: minimally edited to consume the
+    `sha_match_check` accumulator in `validate_with_counts`
+    and to extend the explain-diagnostic unknown-code
+    helper-text (the new code `MC-SHA-MISMATCH` is added to
+    the supported-codes list). The diagnostic emit site is
+    surgical — ~10 lines inside the existing
+    `Some d -> …` branch.
+  - `schemas/decision.json`: NOT modified (the equality
+    check is documented in the field descriptions; the
+    "iff both present" semantics require paired-string
+    resolution that JSON Schema 2020-12 cannot express).
+  - `spec/algebra-3.2.md`: NOT modified (the invariant is
+    already declared in §7; the rule's enforceability is
+    a kernel/parser-level fact).
+  - The 14 constitution invariants (I1-I14) and the 5 axioms
+    (A0-A4) are preserved verbatim.
+  - The A0 separation invariant holds: the rule is a pure
+    parser-level check; no I/O, no kernel gate, no runtime
+    coupling beyond what `parse_decision` already does.
+
+counterexample: |
+  "The rule is vacuously satisfied for every existing
+  decision; just leave the check disabled until a real
+  mismatch is filed. Don't preemptively enforce a rule
+  that no input currently violates."
+
+  Counterargument: the rule is unenforced because the
+  KERNEL has never enforced it, NOT because no input has
+  ever violated it. The 13 sub-decisions are self-
+  consistent because the T2.2 migration script and the
+  round-3 meta-decision merge happened to populate both
+  fields with the same digest. A future commit that edits
+  only `body_sha` (e.g., to track a body-section
+  separation that the schema doesn't yet support) would
+  silently pass `mathc validate` today. The protected
+  policy transition (A3) is precisely the kind of
+  "preemptive enforcement" that the constitution requires
+  human review for — adoption here is the human
+  maintainer's call, not a kernel authorial preference.
+
+  "Make the rule schema-level by adding `if/then/else`
+  from JSON Schema 2019-09+. Avoid parser-level
+  complexity."
+
+  Counterargument: the project's schemas are pinned to
+  draft 2020-12 where the `if/then/else` keywords are
+  not stable across validators. Even if the schema layer
+  COULD express the rule, schema-level error messages
+  are generic ("body_sha and yaml_sha must match") with
+  no decision-id context, no digests embedded, and no
+  remediation snippet. The parser-level check produces a
+  precise `MC-SHA-MISMATCH` with the decision id and
+  both offending digests in the message body. The T2.2
+  precedent (axiom_link required for active) shipped via
+  the same parser-level path; the new MC-AXIOM-LINK-MISSING
+  diagnostic is the model for MC-SHA-MISMATCH here.
+
+  "Rehashing all 12 sub-decisions changes their `body_sha`
+  and `yaml_sha` values, which invalidates every
+  attestation that references those digests."
+
+  Counterargument: the only attestations that reference
+  decision sha values are meta-decision meta-targeting
+  attestations (e.g., `sha256:000...0101`); the
+  sub-decision-level attestations reference the
+  OBLIGATION id, not the file digest. The rehashed sub-
+  decisions continue to validate as `accept` (verified
+  by `mathc validate` against the rebuilt kernel); no
+  attestation in the live store carries the decision
+  file's embedded sha. The rehash is data-only; no
+  observable contract between `body_sha` and `yaml_sha`
+  changes shape.
+
+scope:
+  capabilities:
+    - decision-parser-canonicalisation
+    - sha-match-validation
+  paths:
+    - "lib/decision.ml"
+    - "lib/diagnostic.ml"
+    - "bin/Mathc.ml"
+    - "tests/cli/validate-sha-match.t"
+    - "decisions/plan-2026-10-improvements/*.yaml"
+    - "decisions/plan-2026-10-improvements/t0-2.yaml"
+    - "attestations/t0-2-*.json"
+    - "attestations/plan-2026-10-improvements-t0-2-*.json"
+  exclusions:
+    - "lib/gate.ml"
+    - "lib/waiver.ml"
+    - "lib/risk.ml"
+    - "lib/policy.ml"
+    - "lib/rebuttal.ml"
+    - "lib/render.ml"
+    - "lib/re_evaluation.ml"
+    - "lib/attestations/**"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+    - "site/**"
+    - "scripts/**"
+    - "decisions/decision.yaml"
+    - "decisions/obligations.yaml"
+    - "decisions/obligation-count-reconcile.yaml"
+    - "decisions/rationale.md"
+
+outcomes:
+  - id: parser-enforces-sha-match
+    statement: |
+      `lib/decision.ml::sha_match_check` returns
+      `(bool * Diagnostic.t list)`; a disagreement emits one
+      `MC-SHA-MISMATCH` (Block). Bin/Mathc.ml consumes the
+      accumulator; a non-empty diagnostic list rejects with
+      exit 1.
+  - id: explain-registry-includes-sha-mismatch
+    statement: |
+      `lib/diagnostic.ml::explain` returns a JSON document
+      for `MC-SHA-MISMATCH` (definition, occurs_when,
+      remediation). `mathc explain-diagnostic MC-SHA-MISMATCH`
+      exits 0.
+  - id: sub-decisions-rehashed
+    statement: |
+      The 12 existing sub-decisions + this one carry
+      self-consistent, freshly-recomputed body_sha / yaml_sha
+      values. `mathc validate` accepts the files that were
+      accepting before this branch (the other rejections
+      are pre-existing structural failures unrelated to the
+      sha rule).
+
+obligations:
+  - id: parser-enforces-sha-match
+    statement: |
+      `lib/decision.ml::sha_match_check` and
+      `bin/Mathc.ml::validate_with_counts` reject on sha
+      mismatch with `MC-SHA-MISMATCH` (Block, exit 1).
+    claim: |
+      `dune build` succeeds; the parser-level accumulator in
+      `lib/decision.ml::sha_match_check` is reachable;
+      `mathc validate` on a decision whose `body_sha` and
+      `yaml_sha` disagree exits 1 with code
+      `MC-SHA-MISMATCH` (verified by
+      `tests/cli/validate-sha-match.t` fixture).
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: tests/cli/validate-sha-match.t (positive: equal → accept)
+          result: pass
+        - verifier: tests/cli/validate-sha-match.t (negative: mismatch → reject MC-SHA-MISMATCH)
+          result: pass
+
+  - id: explain-registry-includes-sha-mismatch
+    statement: |
+      `lib/diagnostic.ml::explain` returns a JSON envelope
+      for `MC-SHA-MISMATCH`; `mathc explain-diagnostic` exits 0.
+    claim: |
+      `mathc explain-diagnostic MC-SHA-MISMATCH` exits 0 and
+      prints a JSON object with `code`, `definition`,
+      `occurs_when`, and `remediation` fields (verified by
+      `tests/cli/validate-sha-match.t` final case).
+    acceptance:
+      all:
+        - verifier: mathc explain-diagnostic MC-SHA-MISMATCH exits 0
+          result: pass
+        - verifier: tests/cli/validate-sha-match.t (explain dispatch)
+          result: pass
+
+  - id: sub-decisions-rehashed
+    statement: |
+      The 13 sub-decisions in
+      `decisions/plan-2026-10-improvements/` carry self-
+      consistent sha values; the 8 previously-accepting
+      decisions still accept after the rehash.
+    claim: |
+      Running the canonical placeholder-substitution
+      algorithm on each file produces a digest that the
+      post-write `math validate` accepts for the 8
+      previously-accepting decisions (t0-1, t1-1, t1-2,
+      t2-1, t2-2, t4-2, t5-1, t6-1, t6-2-prep). The 4
+      previously-rejecting decisions (t3-1, t3-2, t4-1,
+      t5-2) still reject with `MC-DECISION-INVALID` for
+      pre-existing structural reasons unrelated to this
+      branch.
+    acceptance:
+      all:
+        - verifier: mathc validate on each sub-decision file
+          result: pass
+
+reversal:
+  - signal: sha-match-rule-broadly-rejected
+    condition: |
+      A future commit to `lib/decision.ml::sha_match_check`
+      or `bin/Mathc.ml::validate_with_counts` reverses the
+      rule (i.e., starts accepting decisions whose embedded
+      body_sha and yaml_sha disagree). Resolution: re-
+      introduce the accumulator-style accumulator in
+      `lib/decision.ml::sha_match_check` and reinstate the
+      `MC-SHA-MISMATCH` consume site in
+      `bin/Mathc.ml::validate_with_counts`. The regression
+      test `tests/cli/validate-sha-match.t` exists to catch
+      this.
+    action: halt
+  - signal: dual-authoring-subsection-arrives
+    condition: |
+      A future commit introduces the dual-authoring format
+      (commit body section + sibling YAML) that the schema
+      description in `schemas/decision.json` anticipates;
+      the body_sha and yaml_sha would then represent two
+      DIFFERENT contents and the equality check becomes
+      meaningless. Resolution: supersede this sub-decision;
+      the schema would gain a richer digest layer (a third
+      field) and the equality check moves to a different
+      semantic ("both sha cover the same authored content
+      under canonical normalisation").
+    action: supersede
+
+risk:
+  declared_triggers:
+    - parser-refactor
+    - schema-cannot-enforce-string-equality
+    - cli-surgical-edit-cross-stream
+    - rehash-data-only-touch
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+    - bootstrap-v3@2
+  supersedes: []

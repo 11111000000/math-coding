@@ -9,9 +9,24 @@
    Decision they must agree as strings. If either is absent the
    invariant is vacuously satisfied (no mismatch is possible).
    The string format is `sha256:<64 hex>` per schemas/decision.json,
-   so equality of the formatted strings is equality of the digests. *)
-let sha_match_check (d : Domain.decision) : bool =
-  match (d.body_sha, d.yaml_sha) with Some bs, Some ys -> bs = ys | _ -> true
+   so equality of the formatted strings is equality of the digests.
+
+   T0.2 (stream ε): the original `(d : Domain.decision) -> bool`
+   signature was strengthened to a `(bool, Diagnostic.t list) result`
+   accumulator so the CLI can surface a single precise
+   `MC-SHA-MISMATCH` diagnostic on reject, with the two offending
+   hashes embedded in the message and a `next_actions` snippet
+   pointing at the recompute algorithm. Callers that only need the
+   boolean (e.g., legacy tests) use the `_ignored` accumulator. *)
+let sha_match_check (d : Domain.decision) : bool * Diagnostic.t list =
+  match (d.body_sha, d.yaml_sha) with
+  | Some bs, Some ys when bs <> ys ->
+      let diag =
+        Diagnostic.mc_sha_mismatch ~decision_id:d.Domain.id ~body_sha:bs
+          ~yaml_sha:ys ()
+      in
+      (false, [ diag ])
+  | _ -> (true, [])
 
 (* Parse a single obligation acceptance item (verifier OR review). *)
 let[@warning "-32"] parse_verifier v =
