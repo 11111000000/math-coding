@@ -345,6 +345,49 @@ brief evidence.
   `ci:build:docs` ; ROADMAP.md Tier 3.5 enumerates 13 implementation
   tasks, all marked landed.
 
+## portable-linux-musl (rev 4, state active, 2026-10-07)
+
+Closes algebra §30 anti-property for Alpine/musl targets. CI run
+#13 on branch fix-alpine-musl-2026-10 (dbId 37696302997) is the
+first end-to-end green alpine build; release/tag/edge now
+publishes mathc-linux-x86_64-musl (4.99 MB musl-linked ELF,
+interpreter /lib/ld-musl-x86_64.so.1, NEEDED libc.musl-x86_64.so.1).
+Trap log: OCAML_BEST_PRACTICES.md §11.26 (matrix.include
+container silently ignored).
+
+- `portable-linux-musl/no-fork-in-kernel` -> `test` ;
+  `ci:fixture:conformance` ; `grep -cE 'Unix\.(fork|exec|create_process|waitpid)'
+  bin/Mathc.ml` returns 0. Pre-existing attestation.
+- `portable-linux-musl/docs-name-install` -> `observation` ;
+  `human:maintainer` ; USAGE.md + adoption/SKILL.md explicitly
+  call out the `-musl` suffix. Pre-existing attestation.
+- `portable-linux-musl/schema-unchanged` -> `test` ;
+  `ci:fixture:conformance` ; `mathc validate` accepts the
+  schemas/*.json unchanged. Pre-existing attestation.
+- `portable-linux-musl/release-yml-alpine-job-present` -> `build` ;
+  `ci:build:release-musl` ; `.github/workflows/release.yml` has
+  the `linux-x86_64-musl` matrix entry uncommented at line ~37;
+  `tests/repo_structure.ml:test_portable_linux_musl_matrix`
+  passes; the lint-resilient substring is `container: alpine`
+  (relaxed from `ocaml/opam:alpine` per §11.26).
+- `portable-linux-musl/musl-binary-runs-version` -> `build` ;
+  `ci:build:release-musl` ; downloaded artifact from CI run
+  #13 is a 4.99 MB ELF with NEEDED libc.musl-x86_64.so.1 and
+  no libc.so.6; `./mathc-linux-x86_64-musl version` is run
+  inside the alpine:3.20 container at the end of the
+  Build-mathc step. SHA256 4744d89f0d501e8ce01c495854fc15156a45c39d303b503056e42aef61a0fff0.
+- `portable-linux-musl/ci-evidence-recorded` -> `build` ;
+  `ci:build:release-musl` ; `actions/upload-artifact@v4`
+  publishes `dist-bin/mathc-linux-x86_64-musl` from every green
+  release run; the artifact is re-published to release/tag/edge
+  on every green CI run on main.
+- `portable-linux-musl/glibc-binary-still-works` -> `build` ;
+  `ci:build:release-musl` ; the same CI run also produces
+  mathc-linux-x86_64 (Ubuntu 22.04 glibc), mathc-linux-aarch64
+  (Ubuntu 24.04 arm), mathc-darwin-x86_64, mathc-darwin-aarch64,
+  mathc-windows-x86_64.exe in addition to the musl binary; all
+  five legacy artifacts publish unchanged.
+
 ## Notes for the generating agent
 
 - Set `kind_` per the row above.
