@@ -3513,35 +3513,24 @@ let[@warning "-32"] do_counters () =
         else 0
       in
       let attestations_v = Object [ ("live_store", Int live_store) ] in
-      (* 4. self-check: subprocess call. The subprocess inherits
-         the same env; `cwd` is the project root by the time it
-         runs. *)
+      (* 4. self-check: we deliberately do NOT spawn a subprocess
+         here (the old dev-counters.py did, and the subprocess
+         pattern is what hung `dune test` when self-check took too
+         long or landed in a state where the kernel path
+         blocked). Run `mathc self-check` directly if you need
+         those numbers; counters exposes the path in
+         `self_check.hint` for shell wrappers. *)
       let self_check_v =
-        let sc =
-          try read_self_check ()
-          with _ -> Object [ ("verdict", String "unknown") ]
-        in
-        let sc_verdict =
-          match jsonl_string_field sc "verdict" with
-          | Some s -> s
-          | None -> "unknown"
-        in
-        let sc_subjects = jsonl_array_length sc "subjects" in
-        let is_verdict_eq want v =
-          match v with
-          | Object ps -> (
-              match List.assoc_opt "verdict" ps with
-              | Some (String s) -> s = want
-              | _ -> false)
-          | _ -> false
-        in
         Object
           [
-            ("verdict", String sc_verdict);
-            ("subjects", Int sc_subjects);
-            ("passing", Int (jsonl_array_filter_count sc "subjects" (is_verdict_eq "pass")));
-            ("unknown", Int (jsonl_array_filter_count sc "subjects" (is_verdict_eq "unknown")));
-            ("failing", Int (jsonl_array_filter_count sc "subjects" (is_verdict_eq "fail")));
+            ( "hint",
+              String
+                "run `mathc self-check` directly for verdict + per-subject counts" );
+            ("verdict", String "skipped");
+            ("subjects", Int 0);
+            ("passing", Int 0);
+            ("unknown", Int 0);
+            ("failing", Int 0);
           ]
       in
       (* 5. CLI subcommand count (manual parse of bin/Mathc.ml's

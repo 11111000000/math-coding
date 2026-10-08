@@ -14,11 +14,11 @@ base-href-empty + 14 new fixtures in tests/render_kernel.ml;
 merlin-LSP infrastructure (hand-written `.merlin` + `ocaml-lsp`
 1.27.0 + `merlin` 5.8-505 in `flake.nix`; 2026-10-07).
 Attestation store at `attestations/` contains **258 files** (verified by
-`scripts/dev-counters.py`; the count is regenerated from `ls attestations/`
-on every check); **`mathc packages` reports 50 active decisions / 189
+`mathc counters --format=json`; the count is regenerated from
+`ls attestations/` on every check); **`mathc packages` reports 50 active decisions / 189
 obligations (188 pass, 0 missing, 1 unknown; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
-are emitted by `scripts/dev-counters.py` and enforced against
+are emitted by `mathc counters` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
 `mathc self-check` on a clean tree currently returns verdict `unknown`
