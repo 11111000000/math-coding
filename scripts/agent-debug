@@ -41,23 +41,21 @@ if [ "${1:-}" = "--explain" ]; then
     echo "agent-debug: --explain expects §N.M or N.M (got '$arg')" >&2
     usage
   fi
-  python3 - "$section" <<'PY' || exit 1
-import re, sys
-target = sys.argv[1]
-with open('OCAML_BEST_PRACTICES.md') as f:
-    text = f.read()
-# Match either "### 11.6 ..." (in §11) or "### 8.1 ..." (elsewhere).
-pattern = r'^### ' + re.escape(target) + r'(?:\s|$)'
-m = re.search(pattern, text, re.MULTILINE)
-if not m:
-    print(f"agent-debug: no section '{target}' in OCAML_BEST_PRACTICES.md",
-          file=sys.stderr)
-    sys.exit(1)
-# Find the next "### N.M" header (any other top-level section).
-end_m = re.search(r'^### \d+\.\d+', text[m.end():], re.MULTILINE)
-end = m.end() + end_m.start() if end_m else len(text)
-sys.stdout.write(text[m.start():end])
-PY
+  # Pure-awk section extractor: prints from the first "### N.M" header
+  # to the next "### N.M" header (or EOF). OCAML_BEST_PRACTICES.md
+  # is hand-written so headers are line-anchored and well-formed.
+  out=$(awk -v target="### $section" '
+    $0 ~ "^### [0-9]+\\.[0-9]+" {
+      if (seen) { exit }
+      if ($0 ~ ("^" target "( |$)")) { seen = 1 }
+    }
+    seen { print }
+  ' OCAML_BEST_PRACTICES.md)
+  if [ -z "$out" ]; then
+    echo "agent-debug: no section '$section' in OCAML_BEST_PRACTICES.md" >&2
+    exit 1
+  fi
+  printf '%s\n' "$out"
   exit 0
 fi
 
