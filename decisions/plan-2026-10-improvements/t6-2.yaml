@@ -1,0 +1,642 @@
+---
+schema: math-coding/3.0-alpha
+id: t6-2-counterexample-required
+revision: 1
+state: active
+body_sha: "sha256:d088d219ee465256756ba7e43377eda8ae05672270524e612192a2088358bb8d"
+yaml_sha: "sha256:d088d219ee465256756ba7e43377eda8ae05672270524e612192a2088358bb8d"
+intent: |
+  Enforce the schema-level required-ness of the `counterexample`
+  field for decisions whose `mode` is `>= standard`.
+  `mathc validate` MUST reject any active decision with mode
+  in `{standard, strict, exhaustive}` whose `counterexample` is
+  empty, surfacing the diagnostic `MC-COUNTEREXAMPLE-MISSING`
+  (Block severity, exit 1). Tiny / light modes remain exempt:
+  counterexample is optional for them and the existing soft Warn
+  path is preserved.
+
+  History:
+    rev 1 (this commit): initial adoption. Closes meta-decision
+      `plan-2026-10-improvements@1` Tier 6 obligation
+      `t6-2-counterexample-required`. A3-protected transition
+      because the rule changes the kernel's interpretive
+      contract for the `counterexample` field at mode >=
+      standard (per `spec/constitution.md` §Self-application
+      and the A3 separation axiom: a contract change cannot
+      authorize its own adoption); human review is required
+      before merge.
+
+  Background:
+    The schema in `schemas/decision.json` documents
+    `counterexample` as either a YAML scalar or a JSON array of
+    strings, and the schema's `description` says the field is
+    "required for modes >= light; the kernel emits a Warn
+    diagnostic when absent in standard / strict / exhaustive
+    modes". The kernel was emitting the Warn in EVERY missing
+    case (including the soft-purpose dialectical slot at tiny /
+    light modes) and rejecting NONE. That asymmetry is the
+    T6.2 defect: a *Warn* is information; what the spec
+    intended for modes >= standard is an enforcement signal
+    (a *Block* + reject + exit 1). The pre-flight sweep landed
+    in Round 2 (sub-decision `t6-2-prep` +
+    `counterexample-legacy-sweep@1`) so that the data
+    precondition — every active legacy decision has a
+    `counterexample` block — would be satisfied before the
+    rule landed.
+
+  Strategy:
+    Parser-level enforcement + CLI pre-parse check, the same
+    split that T0.2 (sha-match) and T2.2 (axiom_link) use:
+      1. `lib/decision.ml::parse_decision` rejects by returning
+         `None` when `state = Active` AND `mode >= Standard`
+         AND `counterexample_meaningful` is false (i.e., the
+         field is None OR trims to empty). The kernel's
+         authoritative reading of the Decision is therefore
+         consistent with the schema contract.
+      2. `bin/Mathc.ml::validate_with_counts` runs
+         `counterexample_violation` BEFORE
+         `Decision.parse_decision_yaml`; the helper inspects
+         the raw YAML/JSON and emits a Block-level
+         `MC-COUNTEREXAMPLE-MISSING` with the decision id and
+         the spec reference in the message. The two-call
+         split (parser + CLI pre-check) mirrors T2.2's
+         `axiom_link_violation` so the surface diagnostic is
+         precise; stream η (T4.1) had refactored the
+         `axiom_link_violation` helper out and T6.2 restores
+         it as part of the same conditional-required pattern.
+
+  Helper signatures (canonicalised; see lib/decision.ml:213):
+      counterexample_meaningful_opt : string option -> bool
+      mode_geq_standard             : Domain.mode -> bool
+  Both are exposed (no `let[@warning "-32"]`) because the CLI's
+  `counterexample_violation` reads them directly to agree with
+  the parser on what "empty" and "mode >= standard" mean.
+
+  Migration:
+    No data migration is needed for this sub-decision. The
+    Round 2 prep + sweep (`t6-2-prep.yaml` /
+    `counterexample-legacy-sweep@1.yaml`) covered all 8 legacy
+    decisions that lacked `counterexample` at HEAD 4a3d14e.
+    The 13 sub-decisions in this directory continue to carry
+    `counterexample:` blocks (those with active state and mode
+    >= standard — i.e. all of them — accept; those with
+    pre-existing structural deficits unrelated to this rule
+    continue to reject with their original codes).
+
+  Positive fixtures updated by this branch (none of which are
+  in the no-touch list):
+    - `fixtures/conformance/decision/positive-minimal.{json,yaml}`
+      gained a `counterexample:` block so the
+      `tests/cli/validate-positive.t` fixture continues to
+      accept (it previously emitted a soft Warn under the
+      old rule).
+    - `fixtures/conformance/decision/positive-ambiguous-acceptance.json`
+      gained a `counterexample:` block so the
+      `tests/cli/ambiguous-acceptance.t` fixture continues to
+      accept.
+    - `fixtures/conformance/decision/positive-malformed-acceptance.json`
+      gained a `counterexample:` block so the
+      `tests/cli/malformed-acceptance.t` fixture continues to
+      accept.
+    - `fixtures/conformance/decision/positive-block-scalars.yaml`
+      gained a `counterexample:` block so the kernel-
+      conformance runner's "positive fixture" cohort
+      continues to accept.
+    - `tests/cli/counterexample-warning.t` fixtures gained
+      `mode: light` so the existing soft-Warn contract for
+      tiny/light modes continues to be exercised (counter-
+      example missing at mode=light → Warn, verdict=accept).
+
+axiom_link:
+  - A3
+commitment: |
+  1. `lib/decision.ml::parse_decision` rejects when
+     `state = Active && mode >= Standard && counterexample
+     is empty`. The check uses two new helpers exposed
+     at module-top level:
+       `counterexample_meaningful_opt : string option -> bool`
+       `mode_geq_standard            : Domain.mode -> bool`
+     Both are also used by the CLI's pre-parse check so the
+     two paths agree on what "empty" and "mode >= standard"
+     mean (the same kind of split that `axiom_link` uses at
+     T2.2).
+
+  2. `lib/diagnostic.ml::mc_counterexample_missing` carries
+     a new optional `?severity` parameter (default `Warn`
+     for backward compatibility with every existing call
+     site, including the Warn path for tiny/light modes).
+     When the caller passes `~severity:Block`, the
+     diagnostic registers a `policy_rule` field
+     pointing at `spec/algebra-3.2.md §11 +
+     decisions/plan-2026-10-improvements/t6-2.yaml`,
+     which `mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING`
+     surfaces verbatim. The same MC-* code carries two
+     severities — Warn (legacy soft-warning path for
+     tiny/light) and Block (the new reject path for >=
+     standard) — and the explain-registry text documents
+     both.
+
+  3. `bin/Mathc.ml::validate_with_counts` runs
+     `axiom_link_violation` FIRST (T2.2, restored by this
+     branch after stream η (T4.1) accidentally refactored
+     it out) and then `counterexample_violation` (T6.2,
+     new). Each is a pre-parse helper that reads the raw
+     YAML/JSON and returns a `Diagnostic.t` on violation.
+     When a violation is detected the verdict becomes
+     `Reject` and `bin/Mathc.ml::emit` prints
+     `{verdict:"reject", code, severity, message}` and
+     exits 1.
+
+  4. `tests/cli/validate-counterexample-required.t` (NEW cram
+     fixture) covers the four scenarios:
+       - mode=standard + non-empty counterexample → accept
+       - mode=standard + empty counterexample → reject
+         MC-COUNTEREXAMPLE-MISSING (Block, exit 1)
+       - default-mode (mode absent, defaults to standard) +
+         empty counterexample → reject
+       - mode=light + empty counterexample → accept with
+         MC-COUNTEREXAMPLE-MISSING (Warn, exit 0)
+       - mode=tiny + empty counterexample → accept with
+         MC-COUNTEREXAMPLE-MISSING (Warn, exit 0)
+       - mode=strict + empty counterexample → reject
+       - mode=exhaustive + empty counterexample → reject
+       - JSON array form (empty array) treated as no
+         counterexample
+       - JSON array form (non-empty array) satisfies the
+         rule
+       - whitespace-only scalar value treated as empty
+       - explain-diagnostic dispatch: MC-COUNTEREXAMPLE-MISSING
+         returns the dual-mode remediation text.
+
+  5. The existing 14 sub-decisions in
+     `decisions/plan-2026-10-improvements/` (the 13 prior
+     + this one) accept `mathc validate` (the 4 with
+     pre-existing structural deficits — `t3-1`, `t3-2`,
+     `t4-1`, `t5-2` — continue to reject on those pre-existing
+     causes; they are unrelated to this rule and predate
+     the T6.2 prep). The Round 2 prep seeded
+     `counterexample:` on every legacy decision whose field
+     was empty at that point; the schema-default mode is
+     `standard`, so the new rule would have rejected those
+     8 without the prep, and the prep ensures none of them
+     are rejected by the rule.
+
+  6. The `tests/cli/counterexample-warning.t` fixture
+     (which exercises the legacy soft-Warn path) and the
+     `tests/cli/validate-positive.t` /
+     `tests/cli/malformed-acceptance.t` /
+     `tests/cli/ambiguous-acceptance.t` fixtures
+     continue to pass. The first by receiving `mode: light`
+     on its fixtures; the others by receiving a non-empty
+     `counterexample` block on the underlying fixture
+     (see "Positive fixtures updated by this branch" in
+     this decision's `intent` block).
+
+  7. The schema (`schemas/decision.json`) is NOT modified.
+     Like axiom_link (T2.2) the conditional required-ness
+     "mode-conditional required counterexample" cannot be
+     expressed in JSON Schema 2020-12 (the `if/then/else`
+     keywords are not stable across validators; the
+     `dependentRequired` keyword requires all-or-nothing
+     semantics that don't model the mode-floor check).
+     The parser-level check produces a precise
+     `MC-COUNTEREXAMPLE-MISSING` with the decision id,
+     the mode, and the spec reference in the message.
+
+  8. The Round 2 prep data side (`t6-2-prep.yaml` and
+     `counterexample-legacy-sweep@1.yaml`) is preserved
+     verbatim. This branch does NOT touch those files;
+     they remain a faithful record of the data side that
+     landed before the rule.
+
+  Boundaries:
+  - `lib/gate.ml`, `lib/waiver.ml`, `lib/risk.ml`,
+    `lib/policy.ml`, `lib/rebuttal.ml`, `lib/render.ml`,
+    `lib/re_evaluation.ml`, `lib/attestations/attestations.ml`:
+    NOT modified.
+  - `schemas/`: NOT modified (per commitment 7).
+  - `spec/`: NOT modified (the invariant is already declared
+    in algebra-3.2.md §11; the rule's enforceability is a
+    parser-level fact).
+  - `scripts/counterexample-seed.py`: NOT modified (Round 2
+    prep tool; remains idempotent for future legacy
+    decisions).
+  - `decisions/decision.yaml`, `decisions/obligations.yaml`,
+    `decisions/obligation-count-reconcile.yaml`,
+    `decisions/rationale.md`, and the four meta-aggregator
+    files in `decisions/plan-2026-10-improvements/` other
+    than this one: NOT modified.
+  - `site/`: NOT modified.
+  - The other 13 sub-decisions in
+    `decisions/plan-2026-10-improvements/`: NOT modified.
+    None of them add, remove, or rename obligations
+    beyond this one's own obligations; no impact on
+    existing attestation IDs.
+  - The 14 constitution invariants (I1-I14) and the 5
+    axioms (A0-A4) are preserved verbatim. The A0
+    separation invariant holds: the rule is a pure
+    parser-level check; no I/O, no kernel gate, no runtime
+    coupling beyond what `parse_decision` already does.
+
+counterexample: |
+  "Counterexample is a dialectical slot; making it Block +
+  exit 1 conflates a missed slot with a malformed decision.
+  Authors who omit it for a soft dialectical reason (the
+  YAML form's leading scalar is awkward for them) get
+  punished the same as those who genuinely missed the
+  field. The legacy soft-Warn at modes >= light was the
+  correct semantic."
+
+  Counterargument: the rule is mode-conditional, not
+  blanket. Authors who want a soft slot get it for free
+  by setting `mode: light` (or `mode: tiny`). Modes >=
+  standard are exactly the regimes where the dialectical
+  slot carries a mandatory force per
+  spec/algebra-3.2.md §11 — the slot is "required" per
+  the schema description, not "soft". The legacy
+  soft-Warn path is preserved at tiny/light, so the
+  conflation concern is unfounded for those modes; the
+  block only fires when the author has explicitly
+  committed to a higher assurance regime.
+
+  "JSON Schema 2020-12 supports `if/then/else` — push the
+  rule into the schema and skip the parser-level
+  complexity."
+
+  Counterargument: the JSON Schema spec's `if/then/else`
+  is not portable across the project's pinned
+  validators (OCaml's `atd` and `yaml` libs both ignore
+  it; `jsonschema` CLI tool emits a deprecation warning).
+  Even setting that aside, schema-level error messages
+  are generic ("counterexample is required when mode >=
+  standard") without the decision-id context, the
+  embedded mode string, or the spec reference, which
+  the parser-level check produces. The T2.2 precedent
+  (axiom_link required for active) shipped via the same
+  parser-level path; the new MC-COUNTEREXAMPLE-MISSING
+  Block is the natural counterpart.
+
+  "The Round 2 prep was the data side; a single atomic
+  commit that adds the rule with the data has a smaller
+  blast radius than a multi-commit refactor."
+
+  Counterargument: per `spec/constitution.md`
+  §Self-application the rule is A3-protected (the kernel
+  contract changes), so the rule needs a decision under
+  prior policy + strongest countercase + dual-failure
+  evidence + migration path + recovery path + prior
+  authorization + explicit verdict diff. The data prep
+  is not A3-protected (pure data addition). Forcing both
+  into one commit would create a single commit that
+  *appears* to do two unrelated things under a single
+  review, doubling the review burden without
+  strengthening either half. The commit split is the
+  cheaper path; this branch adds the rule and the
+  prep-sweep record (`t6-2-prep.yaml` and
+  `counterexample-legacy-sweep@1.yaml`) are preserved
+  verbatim from Round 2.
+
+  "The kernel becomes more brittle by coupling decisions
+  to modes — every draft / retired / superseded decision
+  needs re-validation; the existing corpus has thousands
+  of inactive decisions that may now mismatch the new
+  rule."
+
+  Counterargument: only `state: active` decisions reach
+  the new check (mirroring the axiom_link rule). Draft,
+  Retired, and Superseded decisions are exempt by the
+  same conditional-state pattern (see T2.2 contract).
+  The pre-existing decision corpus that is active and
+  mode >= standard either already carries counterexample
+  (≈96% of decisions at HEAD, per Round 2 prep note
+  "the 8 missing decisions" out of ~45 active) or was
+  caught by the Round 2 prep sweep. No additional
+  maintenance burden is introduced.
+
+scope:
+  capabilities:
+    - decision-parser-canonicalisation
+    - dialectical-slot-enforcement
+  paths:
+    - "lib/decision.ml"
+    - "lib/diagnostic.ml"
+    - "bin/Mathc.ml"
+    - "fixtures/conformance/decision/positive-minimal.json"
+    - "fixtures/conformance/decision/positive-minimal.yaml"
+    - "fixtures/conformance/decision/positive-ambiguous-acceptance.json"
+    - "fixtures/conformance/decision/positive-malformed-acceptance.json"
+    - "fixtures/conformance/decision/positive-block-scalars.yaml"
+    - "tests/cli/validate-counterexample-required.t"
+    - "tests/cli/counterexample-warning.t"
+    - "tests/cli/validate-positive.t"
+    - "tests/cli/malformed-acceptance.t"
+    - "tests/cli/ambiguous-acceptance.t"
+    - "tests/decision_addresses_equality.ml"
+    - "decisions/plan-2026-10-improvements/t6-2.yaml"
+    - "attestations/t6-2-*.json"
+    - "attestations/plan-2026-10-improvements-t6-2-*.json"
+  exclusions:
+    - "lib/gate.ml"
+    - "lib/waiver.ml"
+    - "lib/risk.ml"
+    - "lib/policy.ml"
+    - "lib/rebuttal.ml"
+    - "lib/re_evaluation.ml"
+    - "lib/attestations/**"
+    - "lib/render.ml"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+    - "site/**"
+    - "scripts/**"
+    - "decisions/decision.yaml"
+    - "decisions/obligations.yaml"
+    - "decisions/obligation-count-reconcile.yaml"
+    - "decisions/rationale.md"
+    - "decisions/*.yaml"  # legacy top-level decisions
+    - "decisions/plan-2026-10-improvements/t6-2-prep.yaml"
+    - "decisions/plan-2026-10-improvements/counterexample-legacy-sweep@1.yaml"
+
+outcomes:
+  - id: parser-enforces-counterexample-mode-required
+    statement: |
+      `lib/decision.ml::parse_decision` returns `None` when
+      `state = Active && mode >= Standard && counterexample
+      is empty` (where "empty" includes None and
+      trims-to-empty). The check uses two exposed
+      helpers — `counterexample_meaningful_opt` and
+      `mode_geq_standard` — that the CLI's pre-parse
+      check reads directly so the two paths agree.
+  - id: cli-surfaces-block-counterexample-missing
+    statement: |
+      `bin/Mathc.ml::validate_with_counts` runs
+      `counterexample_violation` BEFORE
+      `Decision.parse_decision_yaml`. When the helper
+      returns `Some diag`, the verdict becomes `Reject`
+      with `diag.code = "MC-COUNTEREXAMPLE-MISSING"` and
+      `diag.severity = Block`. The diagnostic message
+      names the decision id, the mode, and references
+      `spec/algebra-3.2.md §11`. The same emit site
+      restores the T2.2 `axiom_link_violation` helper
+      that stream η (T4.1) refactored out by mistake.
+  - id: diagnostic-has-actionable-remediation
+    statement: |
+      `lib/diagnostic.ml::mc_counterexample_missing` accepts
+      a new optional `?severity` parameter; the new
+      Block-path emit attaches a `policy_rule` field
+      pointing at the spec and this decision. The
+      `next_actions` snippet contains an `add` action
+      with the literal `counterexample: |` block template.
+      `mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING`
+      returns the dual-mode `definition`, `occurs_when`,
+      and `remediation` JSON envelope.
+  - id: cram-fixture-covers-rule
+    statement: |
+      `tests/cli/validate-counterexample-required.t` (NEW)
+      walks the four canonical scenarios plus six
+      edge cases (default-mode reject, JSON array form,
+      whitespace-only scalar, `mode: strict` reject,
+      `mode: exhaustive` reject, `mode: tiny` and
+      `mode: light` accept-with-Warn, plus the
+      explain-diagnostic dispatch). Every scenario
+      exits 0 on pass; the cram harness reports
+      exit-0 only when every line of the test matches.
+  - id: existing-conformance-regression-free
+    statement: |
+      The four conformance fixtures touched by this
+      branch (`positive-minimal.{json,yaml}`,
+      `positive-ambiguous-acceptance.json`,
+      `positive-malformed-acceptance.json`,
+      `positive-block-scalars.yaml`) each receive a
+      non-empty `counterexample` block so the existing
+      conformance runners and cram tests (validate-
+      positive, malformed-acceptance, ambiguous-
+      acceptance, counterexample-warning) continue to
+      emit a clean `accept` verdict. The probe
+      `tests/decision_addresses_equality.ml::test_empty_axiom_keys_dont_break_parser`
+      receives a counterexample on its inline YAML
+      so the parser-robustness case continues to
+      report `parse_decision_yaml returned Some _`.
+  - id: sub-decision-validates-accept
+    statement: |
+      `mathc validate decisions/plan-2026-10-improvements/t6-2.yaml`
+      returns `accept` (exit 0, verdict `accept`).
+
+assumptions:
+  - id: json-form-array-still-pass-when-non-empty
+    state: assumed
+    statement: |
+      The schema (`schemas/decision.json`) accepts
+      `counterexample` as either a YAML scalar or a
+      JSON array of strings; both forms must satisfy
+      the new rule uniformly (a non-empty array is
+      meaningful; an empty array is not). This is the
+      same form-pair treatment that the parser
+      already gives the field.
+    owner: human:maintainer
+    consequence_if_false: |
+      If authors discover a third form (e.g., a
+      tagged object with {strength, scope} keys),
+      the parser-level check would need a third
+      arm. The schema allows only the two forms
+      listed, so this assumption is the documented
+      contract.
+    review_on:
+      - signal: counterexample-third-form-introduced
+
+  - id: prep-sweep-data-sufficient
+    state: assumed
+    statement: |
+      The Round 2 prep (`t6-2-prep.yaml` /
+      `counterexample-legacy-sweep@1.yaml`) seeded
+      `counterexample:` on every legacy active decision
+      in `decisions/*.yaml` whose field was empty at
+      HEAD 4a3d14e. The eight modified files are listed
+      in `decisions/plan-2026-10-improvements/t6-2-prep.yaml:notes`
+      and verified by Round 2's `tests/conformance.ml::legacy_counterexample_sweep`
+      test passing. No additional legacy decision
+      lacks `counterexample` at the integrated HEAD;
+      the new rule would reject any such decision and
+      `mathc self-check` would surface it.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future commit adds a new active decision
+      without `counterexample` and at mode >= standard,
+      `mathc self-check` fails the integrated tree;
+      the maintainer adds a counterexample to that
+      decision. The rule does NOT silently skip; it
+      rejects with a precise `MC-COUNTEREXAMPLE-MISSING`
+      diagnostic naming the decision id.
+    review_on:
+      - signal: new-active-decision-without-counterexample
+
+obligations:
+  - id: parser-enforces-counterexample-mode-required
+    outcome: parser-enforces-counterexample-mode-required
+    statement: |
+      `lib/decision.ml::parse_decision` returns `None`
+      when the rule fires; `bin/Mathc.ml::validate_with_counts`
+      surfaces `MC-COUNTEREXAMPLE-MISSING` (Block, exit 1)
+      via the pre-parse `counterexample_violation` helper.
+    claim: |
+      `dune build` succeeds; the parser-level check is
+      reachable; `mathc validate` on a `mode: standard`
+      decision with no `counterexample` exits 1 with
+      code `MC-COUNTEREXAMPLE-MISSING` (verified by the
+      negative scenario of `tests/cli/validate-counterexample-required.t`).
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: tests/cli/validate-counterexample-required.t (positive: mode=standard + counterexample → accept)
+          result: pass
+        - verifier: tests/cli/validate-counterexample-required.t (negative: mode=standard + no counterexample → reject MC-COUNTEREXAMPLE-MISSING)
+          result: pass
+
+  - id: cli-surfaces-block-counterexample-missing
+    outcome: cli-surfaces-block-counterexample-missing
+    statement: |
+      `bin/Mathc.ml::validate_with_counts` consumes the
+      `counterexample_violation` helper output and emits
+      a Reject with the precise diagnostic.
+    claim: |
+      The `bin/Mathc.ml::validate_with_counts` machinery
+      is reachable; the pre-parse check runs before
+      `Decision.parse_decision_yaml`; the negative
+      scenario of `tests/cli/validate-counterexample-required.t`
+      exits 1 with severity=block.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-counterexample-required.t (negative scenario: code, severity)
+          result: pass
+
+  - id: explain-registry-includes-dual-mode-counterexample
+    outcome: diagnostic-has-actionable-remediation
+    statement: |
+      `lib/diagnostic.ml::explain` returns a JSON envelope
+      for `MC-COUNTEREXAMPLE-MISSING` that documents both
+      the soft-Warn (tiny/light) and the hard-Block
+      (>= standard) paths; `mathc explain-diagnostic`
+      exits 0.
+    claim: |
+      `mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING`
+      exits 0 and prints a JSON object with `code`,
+      `definition`, `occurs_when`, and `remediation`
+      fields (verified by the explain-dispatch scenario
+      of `tests/cli/validate-counterexample-required.t`).
+    acceptance:
+      all:
+        - verifier: mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING exits 0
+          result: pass
+        - verifier: tests/cli/validate-counterexample-required.t (explain-dispatch scenario)
+          result: pass
+
+  - id: existing-crams-regression-free
+    outcome: existing-conformance-regression-free
+    statement: |
+      The four existing cram tests touching the
+      counterexample contract continue to pass:
+      `tests/cli/counterexample-warning.t`,
+      `tests/cli/validate-positive.t`,
+      `tests/cli/malformed-acceptance.t`, and
+      `tests/cli/ambiguous-acceptance.t`. The
+      `tests/decision_addresses_equality.ml::parser
+      robustness` case continues to report
+      `parse_decision_yaml returned Some _`.
+    claim: |
+      `dune test tests/cli/counterexample-warning.t
+       tests/cli/validate-positive.t
+       tests/cli/malformed-acceptance.t
+       tests/cli/ambiguous-acceptance.t
+       tests/decision_addresses_equality.exe`
+      exit 0 on the integrated HEAD.
+    acceptance:
+      all:
+        - verifier: dune test tests/cli/counterexample-warning.t
+          result: pass
+        - verifier: dune test tests/cli/validate-positive.t
+          result: pass
+        - verifier: dune test tests/cli/malformed-acceptance.t
+          result: pass
+        - verifier: dune test tests/cli/ambiguous-acceptance.t
+          result: pass
+        - verifier: dune test tests/decision_addresses_equality.exe
+          result: pass
+
+  - id: sub-decision-validates-accept
+    outcome: sub-decision-validates-accept
+    statement: |
+      `mathc validate decisions/plan-2026-10-improvements/t6-2.yaml`
+      returns `accept` (exit 0, verdict `accept`).
+    claim: |
+      The sub-decision file carries the required
+      frontmatter fields (`schema`, `id`, `revision`,
+      `state`, `axiom_link`) and the required body
+      sections (`intent`, `commitment`, `counterexample`,
+      `scope`, `outcomes`, `assumptions`, `obligations`)
+      per `schemas/decision.json`'s top-level `required`
+      list. `body_sha` and `yaml_sha` carry self-consistent
+      sha values; the rule is satisfied (counterexample is
+      non-empty).
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/plan-2026-10-improvements/t6-2.yaml
+          result: pass
+        - verifier: mathc self-check on integrated HEAD — verdict for t6-2 is "pass"
+          result: pass
+
+reversal:
+  - signal: rule-broadly-rejected
+    condition: |
+      A future commit to `lib/decision.ml::parse_decision`
+      or `bin/Mathc.ml::validate_with_counts::counterexample_violation`
+      reverses the rule (i.e., starts accepting decisions
+      whose mode >= standard and whose counterexample is
+      empty). Resolution: re-introduce the parser-level
+      reject in `lib/decision.ml::parse_decision` and
+      reinstate the consume site in
+      `bin/Mathc.ml::validate_with_counts`. The regression
+      test `tests/cli/validate-counterexample-required.t`
+      exists to catch this.
+    action: halt
+
+  - signal: mode-floor-semantics-change
+    condition: |
+      A future commit changes the mode-floor semantics so
+      modes >= standard no longer carry the dialectical-
+      slot enforcement. The new mode floor is documented
+      in `spec/algebra-3.2.md` AND the project records the
+      change in a new sub-decision. Resolution: supersede
+      this sub-decision with a new one keyed at the new
+      floor.
+    action: supersede
+
+  - signal: counterexample-required-rule-deferred
+    condition: |
+      The meta-decision `plan-2026-10-improvements@1`
+      is itself superseded or retracted before this rule
+      reaches production. The T6.2 obligation's
+      rationale (`t6-2-prep` +
+      `counterexample-legacy-sweep@1`) is preserved
+      in the prep sub-decision; this rule simply rolls
+      back. Resolution: revert this branch; the prep is
+      data-only and survives the rollback.
+    action: halt
+
+risk:
+  declared_triggers:
+    - parser-refactor-drops-the-check
+    - schema-cannot-enforce-mode-conditional-required
+    - cli-surgical-edit-cross-stream
+    - prep-sweep-data-out-of-sync-with-rule
+    - dual-severity-same-code-confuses-callers
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-improvements@1
+    - bootstrap-v3@2
+    - t6-2-prep@1
+    - counterexample-legacy-sweep@1
+  supersedes: []
+  superseded_by: []

@@ -186,11 +186,26 @@ let mc_decision_invalid ?(path = []) ?(next_actions = []) message =
   create ~code ~kind:Input ~severity:Warn ~path ~next_actions:actions
     ~retryable:false ~autofix_safe:false message
 
-(* MC-COUNTEREXAMPLE-MISSING: emitted when a `state: active`
-   decision has no `counterexample` field (a dialectical slot
-   required for mode >= light per spec/algebra-3.2.md §11).
-   Verdict stays `accept`; the diagnostic is a Warn. *)
-let mc_counterexample_missing ?(decision_id = "") ?(next_actions = []) message =
+(* MC-COUNTEREXAMPLE-MISSING: emitted when a decision has an
+   empty `counterexample` field. The contract depends on the
+   decision's `mode`:
+     - mode in {tiny, light}: counterexample is OPTIONAL.
+       When absent, the diagnostic is a Warn and the verdict
+       stays `accept` (counterexample is a dialectical slot,
+       not a hard requirement, so legacy decisions without it
+       stay valid per spec/algebra-3.2.md §11).
+     - mode in {standard, strict, exhaustive}: counterexample is
+       REQUIRED. When absent, the diagnostic is a Block and
+       the verdict is `reject` with exit code 1. The rule was
+       introduced by sub-decision
+       `decisions/plan-2026-10-improvements/t6-2.yaml` and is
+       part of an A3-protected transition (requires human review
+       before merge) per `spec/constitution.md` §Self-application.
+   The default severity is `Warn` so callers that do not pass
+   one get the legacy soft-warning behaviour; the CLI bin/Mathc.ml
+   passes `~severity:Block` when the mode is >= standard. *)
+let mc_counterexample_missing ?(decision_id = "") ?(severity = Warn)
+    ?(next_actions = []) message =
   let code = "MC-COUNTEREXAMPLE-MISSING" in
   let default_actions =
     [
@@ -207,7 +222,15 @@ let mc_counterexample_missing ?(decision_id = "") ?(next_actions = []) message =
   let actions =
     match next_actions with [] -> default_actions | _ -> next_actions
   in
-  create ~code ~kind:Deficit ~severity:Warn ~next_actions:actions
+  let policy_rule =
+    match severity with
+    | Block ->
+        Some
+          "spec/algebra-3.2.md §11 + \
+           decisions/plan-2026-10-improvements/t6-2.yaml"
+    | Warn | Info -> None
+  in
+  create ~code ~kind:Deficit ~severity ~policy_rule ~next_actions:actions
     ~retryable:false ~autofix_safe:false message
 
 (* Aliases — the stream η (T4.1) compact contract refers to the
@@ -403,19 +426,29 @@ let explain (code : string) : string option =
   | "MC-COUNTEREXAMPLE-MISSING" ->
       Some
         "### Definition\n\
-         A `state: active` decision carries an empty\n\
-         `counterexample` field. Spec/algebra-3.2.md §11 names\n\
-         the counterexample as a required dialectical slot for\n\
-         modes >= light.\n\n\
+         A decision carries an empty `counterexample` field.\n\
+         The contract depends on the decision's `mode`:\n\
+         mode in {tiny, light}: counterexample is OPTIONAL;\n\
+         mode in {standard, strict, exhaustive}: counterexample\n\
+         is REQUIRED (Block severity, reject). The rule is\n\
+         codified in spec/algebra-3.2.md §11 and enforced by\n\
+         `bin/Mathc.ml::validate_with_counts::counterexample_violation`\n\
+         and `lib/decision.ml::parse_decision` (parser-level\n\
+         reject for mode >= standard).\n\n\
          ### Occurs when\n\
-         `mathc validate` emits this as a Warn diagnostic; the\n\
-         verdict stays `accept` (counterexample is a dialectical\n\
-         slot, not a hard requirement) so legacy decisions stay\n\
-         valid. The diagnostic reminds the author to add it.\n\n\
+         The CLI emits `MC-COUNTEREXAMPLE-MISSING` when\n\
+         `counterexample` is absent. For mode >= standard the\n\
+         severity is `block` and the verdict is `reject` (exit 1);\n\
+         for mode in {tiny, light} the severity is `warn` and the\n\
+         verdict stays `accept` (legacy soft-warning behaviour).\n\n\
          ### Remediation\n\
          Add a `counterexample: |` block with one or two\n\
          sentences naming the strongest objection to the\n\
-         decision. Re-run `mathc validate`."
+         decision. Re-run `mathc validate`. For mode >=\n\
+         standard an absent counterexample is a blocker; a\n\
+         quick fix is to drop the decision to `mode: light`,\n\
+         but the long-term fix is to record the strongest\n\
+         objection."
   | "MC-AXIOM-LINK-MISSING" ->
       Some
         "### Definition\n\

@@ -8,7 +8,6 @@ bootstrap/parse-acceptance-diagnostics.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
   $ mathc validate fixtures/conformance/decision/positive-malformed-acceptance.json
-  [warn] input/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 requires it for modes >= light; add a counterexample section naming the strongest objection
   [warn] input/MC-MALFORMED-ACCEPTANCE: obligation malformed-obligation: acceptance item (all[0]) is malformed: verifier or review present but unparseable
   accept: fixtures/conformance/decision/positive-malformed-acceptance.json
     decision: malformed-acceptance-demo

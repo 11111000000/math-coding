@@ -74,6 +74,7 @@ let[@warning "-32"] json_form () =
   "axiom_link": ["A0"],
   "intent": {"source": "test", "text": "t"},
   "commitment": "c",
+  "counterexample": "test probe; parser-robustness check (T6.2 requires counterexample for mode >= standard).",
   "scope": [{"kind": "path", "path": "lib/**"}],
   "outcomes": [{"id": "o", "statement": "s"}],
   "obligations": [

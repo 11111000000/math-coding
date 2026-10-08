@@ -289,6 +289,10 @@ let[@warning "-32"] test_empty_axiom_keys_dont_break_parser () =
         "risk:";
         "  declared_triggers: []";
         "  owner: human:maintainer";
+        "counterexample: |";
+        "  Test probe; a counterexample is required for";
+        "  mode >= standard (T6.2) and the test only checks";
+        "  parser robustness.";
         "axiom:";
         "axiom-id:";
         "axioms:";

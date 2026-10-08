@@ -128,6 +128,132 @@ let first_missing_required v =
       List.find_opt (fun f -> not (List.mem f keys)) decision_required_fields
   | _ -> None
 
+(* T2.2: detect axiom_link violations pre-parse. The parser
+   rejects active+empty axiom_link by returning None; the CLI
+   distinguishes that specific cause from the generic
+   "missing or invalid required field" reject by inspecting
+   the raw input FIRST. The check is:
+     state == active (or absent, which defaults to active per
+       schemas/decision.json), AND
+     axiom_link field is absent OR an empty array.
+   Draft / Retired / Superseded decisions are exempt. The
+   diagnostic id is `MC-AXIOM-LINK-MISSING` (registered in
+   `lib/diagnostic.ml::explain`); the helper that builds it is
+   `Diagnostic.axiom_link_missing`. The decision_id is read
+   for the message body; missing id is fine (the message is
+   informative without it). This block is the surgical
+   bin/Mathc.ml addition that stream ε (T2.2) needed; stream
+   η (T4.1) refactored it out by mistake and stream ε (T6.2)
+   restores it as part of the same A3-protected transition
+   pipeline.
+*)
+let axiom_link_violation v =
+  match v with
+  | Jsonl.Object ps -> (
+      let state_str =
+        match Schema.take_string ps "state" with
+        | Some s -> s
+        | None -> "active"
+      in
+      let axiom_link_present =
+        match Schema.take_array ps "axiom_link" with
+        | Some xs ->
+            List.exists
+              (fun x ->
+                match x with
+                | Jsonl.String s when String.trim s <> "" -> true
+                | _ -> false)
+              xs
+        | None -> false
+      in
+      match state_str with
+      | "active" when not axiom_link_present ->
+          let decision_id =
+            match Schema.take_string ps "id" with Some s -> s | None -> ""
+          in
+          Some (Diagnostic.axiom_link_missing ~decision_id ())
+      | _ -> None)
+  | _ -> None
+
+(* T6.2: detect counterexample violations pre-parse. The parser
+   rejects decisions whose mode is >= standard with an empty
+   counterexample by returning None; the CLI distinguishes that
+   specific cause from the generic "missing or invalid required
+   field" reject (and from the T2.2 axiom_link violation) by
+   inspecting the raw input FIRST. The check is:
+     mode >= standard (i.e. mode ∈ {standard, strict, exhaustive};
+       mode absent defaults to `standard` per Codec.parse_mode's
+       default and Domain.mode encoding in lib/domain.ml:43),
+       AND
+     counterexample field is absent OR is a YAML scalar that
+       trims to the empty string OR is a JSON array where every
+       element trims to the empty string.
+
+   Tiny / light modes are exempt (counterexample remains a soft
+   Warn at most for those modes; the legacy soft-warning path
+   below `validate_with_counts` is unchanged). The diagnostic
+   id is `MC-COUNTEREXAMPLE-MISSING` (registered in
+   `lib/diagnostic.ml::explain`); the helper that builds it is
+   `Diagnostic.mc_counterexample_missing` with the new
+   `~severity:Block` parameter. The decision_id is read for the
+   message body. The rule is A3-protected (per
+   `spec/constitution.md` §Self-application and the A3
+   separation axiom: a contract change cannot authorize its own
+   adoption); human review is required before merge (see the
+   dual attestations `attestations/t6-2-*.json` and
+   `attestations/plan-2026-10-improvements-t6-2-*.json`). *)
+let counterexample_violation v =
+  match v with
+  | Jsonl.Object ps -> (
+      let mode_str =
+        match Schema.take_string ps "mode" with
+        | Some s -> s
+        | None -> "standard"
+      in
+      let mode_exempt =
+        match mode_str with "tiny" | "light" -> true | _ -> false
+      in
+      let counterexample_meaningful =
+        match Schema.take_string ps "counterexample" with
+        | Some s when String.trim s <> "" -> true
+        | _ -> (
+            match Schema.take_array ps "counterexample" with
+            | Some xs ->
+                List.exists
+                  (fun x ->
+                    match x with
+                    | Jsonl.String s when String.trim s <> "" -> true
+                    | _ -> false)
+                  xs
+            | None -> false)
+      in
+      match mode_exempt with
+      | true -> None
+      | false when not counterexample_meaningful ->
+          let decision_id =
+            match Schema.take_string ps "id" with Some s -> s | None -> ""
+          in
+          let msg =
+            Printf.sprintf "%s%s%s"
+              (if decision_id = "" then "" else decision_id ^ ": ")
+              "decision has mode="
+              (if mode_str = "" then "standard" else mode_str)
+            ^
+            match mode_str with
+            | "light" -> ""
+            | _ ->
+                " but empty counterexample: spec/algebra-3.2.md §11 requires \
+                 the counterexample dialectical slot for modes >= standard; \
+                 add a counterexample section naming the strongest objection \
+                 (or downgrade to mode: light if a documented soft slot is "
+                ^ "appropriate)"
+          in
+          Some
+            (Diagnostic.mc_counterexample_missing ~decision_id
+               ~severity:Diagnostic.Block msg)
+      | _ -> None)
+  | _ -> None
+
 let validate_with_counts path =
   match parse_file path with
   | Error (`Sys m) -> `Input_err m
@@ -141,60 +267,89 @@ let validate_with_counts path =
           let msg = Printf.sprintf "missing required field: %s" field in
           `Reject (Diagnostic.mc_decision_invalid ~path:[ field ] msg, msg)
       | None -> (
-          try
-            match Decision.parse_decision_yaml v with
-            | Some d -> (
-                (* T0.2: sha-match enforcement (spec/algebra-3.2.md §7,
-                   schemas/decision.json: when both `body_sha` and
-                   `yaml_sha` are present, the digests must agree.
-                   sha_match_check returns `(bool, Diagnostic.t list)`;
-                   the bool is non-binding here — the diagnostic list
-                   is the single source of truth for surface emission.
-                   A Block diagnostic still rejects the file. *)
-                let _, sha_match_diags = Decision.sha_match_check d in
-                match sha_match_diags with
-                | first :: _ ->
+          (* T6.2: counterexample-mode-required runs BEFORE
+             parse_decision_yaml so we get a precise Block-level
+             `MC-COUNTEREXAMPLE-MISSING` diagnostic and the right exit
+             code (1). The parser also returns None for the same
+             rule; this pre-check is what determines which exact
+             diagnostic code/severity reaches the user.
+             T2.2: same trick is used for `MC-AXIOM-LINK-MISSING` —
+             we restored the helper that stream η (T4.1) had
+             refactored out by mistake.
+             Order axiom -> counterexample: axiom_link is enforced
+             first because it was the earlier rule (T2.2 vs T6.2);
+             keeping the prior order means we emit axiom_link first
+             when both fire, which is the more general message. *)
+          match axiom_link_violation v with
+          | Some diag ->
+              let msg = diag.Diagnostic.message in
+              `Reject (diag, msg)
+          | None -> (
+              match counterexample_violation v with
+              | Some diag ->
+                  let msg = diag.Diagnostic.message in
+                  `Reject (diag, msg)
+              | None -> (
+                  try
+                    match Decision.parse_decision_yaml v with
+                    | Some d -> (
+                        (* T0.2: sha-match enforcement (spec/algebra-3.2.md §7,
+                           schemas/decision.json: when both `body_sha` and
+                           `yaml_sha` are present, the digests must agree.
+                           sha_match_check returns `(bool, Diagnostic.t list)`;
+                           the bool is non-binding here — the diagnostic list
+                           is the single source of truth for surface emission.
+                           A Block diagnostic still rejects the file. *)
+                        let _, sha_match_diags = Decision.sha_match_check d in
+                        match sha_match_diags with
+                        | first :: _ ->
+                            let msg =
+                              Printf.sprintf "body_sha ≠ yaml_sha (see %s)"
+                                first.Diagnostic.code
+                            in
+                            `Reject (first, msg)
+                        | [] ->
+                            let extra_diags =
+                              collect_ambiguous_acceptance_diagnostics v
+                            in
+                            (* T6.2: counterexample is required for
+                               modes >= standard (Block); for modes in
+                               {tiny, light} the counterexample field is
+                               optional and missing-ness becomes a soft
+                               Warn (the legacy soft-warning path
+                               preserved from the pre-T6.2 kernel). The
+                               Block case is already rejected by the
+                               pre-parse check above; here we only emit
+                               the Warn for tiny / light modes. *)
+                            let counterexample_diag =
+                              if d.Domain.counterexample = None then
+                                Some
+                                  (Diagnostic.mc_counterexample_missing
+                                     ~decision_id:d.Domain.id
+                                     "missing counterexample: \
+                                      spec/algebra-3.2.md §11 names it as a \
+                                      dialectical slot for modes >= light; add \
+                                      a counterexample section naming the \
+                                      strongest objection (legacy soft \
+                                      warning; the Block path was already \
+                                      rejected before parse)")
+                              else None
+                            in
+                            let extra_diags =
+                              match counterexample_diag with
+                              | Some diag -> diag :: extra_diags
+                              | None -> extra_diags
+                            in
+                            `Accept (d, extra_diags))
+                    | None ->
+                        let msg = "missing or invalid required field" in
+                        `Reject (Diagnostic.mc_decision_invalid msg, msg)
+                  with
+                  | Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
                     let msg =
-                      Printf.sprintf "body_sha ≠ yaml_sha (see %s)"
-                        first.Diagnostic.code
+                      Printf.sprintf "%s at line %d col %d" raw_msg line col
                     in
-                    `Reject (first, msg)
-                | [] ->
-                    let extra_diags =
-                      collect_ambiguous_acceptance_diagnostics v
-                    in
-                    (* counterexample is required for modes >= light per
-                       spec/algebra-3.2.md §11; emit a Warn diagnostic when
-                       absent. The verdict remains 'accept' — counterexample
-                       is a dialectical slot, not a hard requirement, so
-                       older decisions without it stay valid. *)
-                    let counterexample_diag =
-                      if d.Domain.counterexample = None then
-                        let msg =
-                          Printf.sprintf
-                            "missing counterexample: spec/algebra-3.2.md %s \
-                             requires it for modes >= light; add a \
-                             counterexample section naming the strongest \
-                             objection"
-                            "§11"
-                        in
-                        Some
-                          (Diagnostic.mc_counterexample_missing
-                             ~decision_id:d.Domain.id msg)
-                      else None
-                    in
-                    let extra_diags =
-                      match counterexample_diag with
-                      | Some diag -> diag :: extra_diags
-                      | None -> extra_diags
-                    in
-                    `Accept (d, extra_diags))
-            | None ->
-                let msg = "missing or invalid required field" in
-                `Reject (Diagnostic.mc_decision_invalid msg, msg)
-          with Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
-            let msg = Printf.sprintf "%s at line %d col %d" raw_msg line col in
-            `Reject (Diagnostic.mc_parse ~cause:context msg, msg)))
+                    `Reject (Diagnostic.mc_parse ~cause:context msg, msg)))))
 
 let emit (format : output_format) path
     (outcome :

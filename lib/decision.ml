@@ -177,6 +177,45 @@ let[@warning "-32"] parse_reversal v =
         Some { Domain.signal; condition; Domain.action }
   | _ -> None
 
+(* === T6.2 helper: counterexample-mode-required.
+
+   Rule (spec/algebra-3.2.md §11 + decisions/plan-2026-10-improvements/t6-2.yaml):
+     - mode ∈ {tiny, light}  + empty counterexample → allowed (legacy soft
+       warning at most).
+     - mode ∈ {standard, strict, exhaustive} + empty counterexample → reject.
+
+   The check fires AFTER the counterexample field has been parsed (so we
+   know the value the author intended) and BEFORE the Decision record is
+   constructed. Returning None from `parse_decision` for the rule is the
+   same path the axiom_link rule uses (lib/decision.ml:845); the CLI's
+   `validate_with_counts` distinguishes the two specific causes by
+   inspecting the raw JSON BEFORE calling `parse_decision`, so the
+   surface diagnostic is precise (see
+   bin/Mathc.ml::axiom_link_violation and
+   bin/Mathc.ml::counterexample_violation). This split — parser-side
+   reject for the kernel's authoritative reading, CLI-side pre-check
+   for the precise diagnostic — matches the T0.2 (sha-match) and T2.2
+   (axiom_link) patterns. *)
+
+(* Counterexample is "present and meaningful" iff the parsed field is a
+   non-empty string after trimming. The parser supports two forms
+   (YAML scalar / JSON array); both reduce to a single `string option`
+   at this layer. Whitespace-only values are treated as empty so
+   authors cannot satisfy the rule with a literal " " placeholder.
+   Exposed publicly for use by `bin/Mathc.ml::counterexample_violation`
+   so the CLI's pre-parse check and the parser's enforcement agree
+   on what "empty" means. *)
+let counterexample_meaningful_opt (s : string option) : bool =
+  match s with Some t when String.trim t <> "" -> true | _ -> false
+
+(* mode >= standard: standard | strict | exhaustive. The order on the
+   mode sum type is intentional (Domain.mode definition), so a simple
+   OCaml polymorphic compare works for the floor check. *)
+let mode_geq_standard (m : Domain.mode) : bool =
+  match m with
+  | `Standard | `Strict | `Exhaustive -> true
+  | `Tiny | `Light -> false
+
 (* === Axiom-link detection (algebra §17 "Inline axiom change")
    ===
    Helpers below `populate_axiom_addresses` are kept ABOVE the
@@ -805,9 +844,29 @@ and parse_decision v =
                                          diagnostic `MC-AXIOM-LINK-MISSING`
                                          so the author sees a precise
                                          next-step. See
-                                         `decisions/plan-2026-10-improvements/t2-2.yaml`. *)
+                                         `decisions/plan-2026-10-improvements/t2-2.yaml`.
+                                         T6.2: counterexample is required
+                                         for mode >= standard. Same
+                                         parser-level pattern: when the
+                                         rule fires, parse_decision
+                                         returns None; the CLI pre-parse
+                                         check
+                                         (`bin/Mathc.ml::counterexample_violation`)
+                                         distinguishes the cause from the
+                                         axiom_link violation and emits
+                                         `MC-COUNTEREXAMPLE-MISSING` with
+                                         Block severity. Tiny / light
+                                         modes are exempt. *)
+                                      let counterexample_required_missing =
+                                        mode_geq_standard mode
+                                        && not
+                                             (counterexample_meaningful_opt
+                                                counterexample)
+                                      in
                                       if state = `Active && axiom_link = [] then
                                         None
+                                      else if counterexample_required_missing
+                                      then None
                                       else
                                         Some
                                           {

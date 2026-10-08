@@ -54,5 +54,6 @@
   },
   "relations": {
     "addresses": ["bootstrap-v3"]
-  }
+  },
+  "counterexample": "An acceptance item that is dual-keyed (verifier+review) is silently parsed as verifier-only; the review half is lost without surface emission."
 }

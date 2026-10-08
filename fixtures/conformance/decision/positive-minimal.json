@@ -49,6 +49,7 @@
   "reversal": [
     {"signal": "origin-error-rate", "condition": "value > 0.05", "action": "revert"}
   ],
+  "counterexample": "Origin capacity is bounded by hard resource limits that have not been empirically measured at projected load levels.",
   "risk": {
     "declared_triggers": ["external-service-dependency"],
     "owner": "team:search"

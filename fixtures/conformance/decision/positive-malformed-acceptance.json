@@ -50,5 +50,6 @@
   },
   "relations": {
     "addresses": ["bootstrap-v3"]
-  }
+  },
+  "counterexample": "An acceptance item with a non-enum result value is silently dropped without surface emission."
 }
