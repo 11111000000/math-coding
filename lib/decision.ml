@@ -157,6 +157,66 @@ let[@warning "-32"] parse_outcome v =
       | _ -> None)
   | _ -> None
 
+(* `parse_required_attestations` reads the optional
+   `required_attestations:` block on a Decision. Each item is a
+   (kind_, producer) pair that the kernel will look for in the
+   attestation store. Implementation lives here (not in `parse_decision`)
+   because `Memory.decision_entry` does not carry the field — the
+   gate retrieves it on demand via a parser pass. Kept optional:
+   absence → empty list, which is a no-op for the gate. The
+   shape-validation (kind enum + producer string) is in
+   `bin/Mathc.ml::required_attestations_violation`, mirroring the
+   axiom_link/counterexample pattern. *)
+type required_attestation = {
+  ra_kind : string;
+  ra_producer : string;
+  ra_scope_paths : string list;
+}
+
+let[@warning "-32"] parse_scope_paths ra_obj =
+  match Schema.take_array ra_obj "scope_paths" with
+  | Some xs ->
+      List.filter_map
+        (function Jsonl.String s when String.trim s <> "" -> Some s | _ -> None)
+        xs
+  | _ -> []
+
+let[@warning "-32"] parse_required_attestations v =
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_array ps "required_attestations" with
+      | Some items ->
+          let rec loop = function
+            | [] -> []
+            | item :: rest ->
+                match item with
+                | Jsonl.Object item_ps ->
+                    let k =
+                      match Schema.take_string item_ps "kind_" with
+                      | Some s -> s
+                      | None -> ""
+                    in
+                    let p =
+                      match Schema.take_string item_ps "producer" with
+                      | Some s -> s
+                      | None -> ""
+                    in
+                    if k = "" || p = "" then loop rest
+                    else
+                      {
+                        ra_kind = k;
+                        ra_producer = p;
+                        ra_scope_paths = parse_scope_paths item_ps;
+                      }
+                      :: loop rest
+                | _ -> loop rest
+              in
+          (match loop items with
+           | _ :: _ as xs -> Some xs
+           | [] -> None)
+      | None -> None)
+  | _ -> None
+
 let[@warning "-32"] parse_reversal v =
   match v with
   | Jsonl.Object ps ->

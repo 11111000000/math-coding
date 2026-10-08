@@ -290,3 +290,14 @@ type diagnostic = {
   autofix_safe : bool;
   next_actions : (string * string) list;
 }
+
+
+(* `lib/gate.ml::attestation_kind_str` is the live implementation
+   of the attestation-kind-to-string mapping. It is colocated
+   with `required_attestation_satisfied` because the kind field
+   of `Domain.attestation` collides with the top-level
+   `Domain.kind` type alias; the record pattern
+   `match a with | { kind = \`Review; _ } -> ...` works because
+   in pattern context the label `kind` resolves to the record
+   field, not the type alias. Moving the helper into
+   `lib/domain.ml` would re-introduce the same collision. *)

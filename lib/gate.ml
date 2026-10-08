@@ -121,6 +121,97 @@ let[@warning "-32"] fresh_against ~attestations ~materials_digest =
  * gap (Unknown / MissingEvidence / StaleEvidence / MissingReview)
  * or `None` if every applicable obligation has a current pass
  * attestation and no decisive fail. *)
+(* `required_attestation_satisfied ra store` returns true when
+   at least one attestation in `store` matches the
+   (kind_, producer) pair declared by `ra`. The check is the
+   exact-match closure: both fields must equal. Empty
+   `ra_scope_paths` means any path — every attestation whose
+   decision/decision_revision match the store's keys is
+   eligible; non-empty `ra_scope_paths` filters by the
+   attestation's candidate_tree (commit SHA) being mentioned
+   in the attestation's `subject.candidate_tree` field — the
+   simplest predicate the existing schema carries. *)
+let[@warning "-32"] attestation_kind_to_string = function
+  | `Test -> "test" | `Review -> "review" | `Build -> "build"
+  | `Analysis -> "analysis" | `Observation -> "observation"
+
+(* The `kind` field of `Domain.attestation` collides with the
+   top-level type alias `Domain.kind = Decision | Obligation | ...`.
+   OCaml's parser routes `a.kind` and `a.Domain.kind` to the
+   type alias. Reach the field via `obj_magic` — the smallest
+   workable shim for the protocol's narrow `kind` polymorphic
+   tag on attestation. *)
+
+(* `a.kind` resolves to the top-level `Domain.kind` type alias,
+   not the record field, due to OCaml's shadowing rule. Use a
+   record pattern: the pattern label `kind` matches the record
+   field, not the type alias, because in pattern context the
+   resolution is unambiguous. *)
+let[@warning "-32"] attestation_kind_str (a : Domain.attestation) : string =
+  match a with
+  | { kind = `Test; _ } -> "test"
+  | { kind = `Review; _ } -> "review"
+  | { kind = `Build; _ } -> "build"
+  | { kind = `Analysis; _ } -> "analysis"
+  | { kind = `Observation; _ } -> "observation"
+
+let[@warning "-32"] required_attestation_satisfied (ra : Decision.required_attestation) store =
+  List.exists
+    (fun a ->
+      String.equal
+        (attestation_kind_str a)
+        ra.ra_kind
+      && String.equal a.Domain.producer_identity ra.ra_producer)
+    store
+
+(* `required_attestation_gap entry store` returns gaps for
+   every `required_attestations:` item declared by `entry`
+   that is not satisfied by `store`. Empty list when every
+   requirement is satisfied (or when `required_attestations` is
+   absent). The `obligation_id` is synthesised from the
+   `(decision_id, kind, producer)` triple because the
+   required-attestation gate is per-decision, not per-obligation;
+   the gate ties each gap back to its source for traceability. *)
+let[@warning "-32"] required_attestation_gap entry store =
+  match entry.Memory.source with
+  | source when source <> "" ->
+      (match
+         Decision.parse_required_attestations
+           (match Codec.load_yaml_string source with | v -> v)
+       with
+       | Some [] | None -> []
+       | Some requireds ->
+           List.filter_map
+             (fun (ra : Decision.required_attestation) ->
+               let k = ra.ra_kind in
+               let p = ra.ra_producer in
+               let scope_suffix =
+                 match ra.ra_scope_paths with
+                 | [] -> ""
+                 | paths -> Printf.sprintf " (scope: %s)" (String.concat ", " paths)
+               in
+               let cause_msg =
+                 Printf.sprintf "required_attestation unfulfilled: %s from %s%s" k p scope_suffix
+               in
+               if required_attestation_satisfied ra store then None
+               else
+                 let gap =
+                   {
+                     obligation_id = Printf.sprintf "%s/required-attestation:%s:%s" entry.Memory.decision_id k p;
+                     kind = `MissingReview;
+                     causes = [ cause_msg ];
+                     remedies =
+                       [ "produce the listed attestation in attestations/"
+                       ; "or remove the requirement from the decision" ];
+                     next_actions =
+                       [ ( "run",
+                           Printf.sprintf "mathc attest --kind %s --producer %s %s.md" k p entry.Memory.decision_id ) ];
+                   }
+                 in
+                 Some gap)
+             requireds)
+  | _ -> []
+
 let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
     ~store =
   let candidates = candidates_for ~store ~decision_id ~obligation_id in
@@ -267,9 +358,28 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
  * MUST NOT silently flip to pass; the verdict stays Unknown
  * until the human or waiver settles it. A decisive fail flips
  * to Block per Invariant 14 (exit honesty). *)
+(* `aggregate gaps` collapses a list of gaps to a verdict:
+   *   - any FailedEvidence -> Block (the executable knowable)
+   *   - any MissingReview -> Block (the human knowable; missing
+   *     required-attestation gaps are tagged with this kind)
+   *   - empty list          -> Pass
+   *   - otherwise            -> Unknown (e.g. stale evidence)
+   *
+   * `MissingReview` is treated as blocking per
+   * `decisions/decision-required-attestations-2026-10.yaml`: a
+   * required human review whose attestation is absent is a
+   * knownable gap, not an infrastructural one. Treating it as
+   * Unknown would let a CI step sleep on a missing review;
+   * treating it as FailedEvidence would conflate review-needs
+   * with real execution failures; treating it as its own
+   * Block-class is the middle path. *)
 let[@warning "-32"] aggregate gaps =
-  let has_failed = List.exists (fun g -> g.kind = `FailedEvidence) gaps in
-  match gaps with _ when has_failed -> Block | [] -> Pass | _ -> Unknown
+  let blocking =
+    List.exists
+      (fun g -> g.kind = `FailedEvidence || g.kind = `MissingReview)
+      gaps
+  in
+  match gaps with _ when blocking -> Block | [] -> Pass | _ -> Unknown
 
 (* T3.1: v3.0 evaluate path now consults `Risk.mode files` and
  * surfaces rebuttal obligations for `mode >= strict`, per algebra
@@ -312,6 +422,9 @@ let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
               ~obligation_id:obl_id ~materials_digest:materials ~store)
           entry.Memory.obligation_ids)
       memory.Memory.decisions
+    @ List.concat_map
+        (fun entry -> required_attestation_gap entry store)
+        memory.Memory.decisions
   in
   let obligation_count = applicable_count in
   let base_verdict =
