@@ -1,0 +1,255 @@
+---
+schema: math-coding/3.0-alpha
+id: mathjax-delimiter-te-and-skip-mermaid-2026-10
+revision: 1
+state: active
+axiom_link:
+  - A0
+body_sha: "sha256:22584bfb1f9f91d32bbcb6b6f35704871bdab227f86c27c363688960b4df0888"
+yaml_sha: "sha256:22584bfb1f9f91d32bbcb6b6f35704871bdab227f86c27c363688960b4df0888"
+intent: |
+  Two regressions surfaced after PR #8 (mathjax-default-on-2026-10 +
+  7 mermaid + 5 Formalization):
+
+  1. Every `(...)` in prose was typeset as math. The user-uploaded
+     screenshots on the live site showed the words `Type safety`,
+     `Honest status`, `Waiver bounds`, etc. rendered in italic
+     because MathJax 3 TeX-unescapes the `\(` delimiter string
+     to a literal `(`, which then matched every parenthetical on
+     the page. This is a MathJax 3 behavior, not a bug in our
+     OCaml string, so the fix is to give MathJax a TeX-escaped
+     source delimiter (`\\(` in JS) so the unescape pass produces
+     `\(` — the 2-char sequence we actually want user text to
+     type to start math. Same treatment for `\[` and `\]`.
+
+  2. Mermaid diagrams showed "Syntax error in text" on every
+     diagram-bearing page. Root cause: the broken MathJax config
+     from (1) was eating the content of every `<div class="mermaid">`
+     element by wrapping the round-bracket pairs in MathJax
+     `<mjx-container>` elements, leaving invalid mermaid source
+     behind. The fix in (1) restores mermaid parsing; we also add
+     `div.mermaid` to MathJax's `skipHtmlTags` as defence in
+     depth so the spec source — which uses Unicode math symbols
+     like `∈`, `⊕`, `∃`, `∀` and round brackets in `apply(rule,
+     c, t)` — is not interpreted as math by future config tweaks.
+
+  This is a direct reversal of the mathjax-off workaround from
+  `render-kernel-fixes-2026-10@1`. The LaTeX-style delimiters
+  `\(..\)` and `\[..\]` are now correctly preserved through
+  MathJax 3's unescape pass and used as the only active inline
+  math boundary on every page.
+
+  History:
+    rev 1 (this commit): initial adoption. 1 file, ~13 lines of
+    OCaml + ~7 lines of test; 2 new test asserts in
+    `tests/render_kernel.ml`.
+commitment: |
+  `lib/render.ml::render_head` emits the MathJax config script
+  with delimiter strings that survive MathJax 3's TeX-unescape
+  pass: `\('\` and `\)'\` (which MathJax unescapes to `\(` and
+  `\)`, the intended 2-char LaTeX-style delimiters), and the same
+  treatment for the display-math pair. The script also passes
+  `options.skipHtmlTags = ['script', 'noscript', 'style',
+  'textarea', 'pre', 'code', 'div.mermaid']` so MathJax skips the
+  mermaid block source — mermaid then renders the diagram
+  normally without MathJax's DOM-rewrite interfering.
+
+  The global default `Render.config.enable_mathjax = true` from
+  `mathjax-default-on-2026-10@1` is unchanged: every page still
+  gets the MathJax script tag; the spec pages still get the
+  `enable_mathjax:true` per-page override from
+  `plan-2026-10-improvements/t5-2.yaml`. The fix is in the
+  config emitted, not the flag.
+
+  Boundaries:
+  - This is a kernel change; per AGENTS.md, a decision is
+    required. This decision covers the runtime config only.
+  - No render behavior change for prose text without `\(..\)`
+    delimiters; no mermaid behavior change beyond removing the
+    false MathJax injection into the diagram source.
+  - The tests in `tests/render_kernel.ml` assert both the
+    delimiter strings and the `div.mermaid` skip-tag.
+  - `spec/algebra-3.2.md` is rendered verbatim as `<pre><code>`
+    code blocks (the spec source uses Unicode math symbols in
+    fenced ```text``` blocks, not LaTeX). The MathJax `pre`/
+    `code` skipTags prevent the spec content from being processed
+    as math; if a future cycle wants spec content rendered as
+    typeset math, that's a separate content change (rewrite
+    the spec to use `\(..\)`).
+  - Does not amend the formal `mathjax-wiring` obligation
+    (site-deploy@5::mathjax-wiring) which only required the
+    script tag to be present.
+
+scope:
+  capabilities:
+    - math-typesetting
+    - mermaid-rendering
+  paths:
+    - "lib/render.ml"
+    - "tests/render_kernel.ml"
+    - "decisions/mathjax-delimiter-te-and-skip-mermaid-2026-10.yaml"
+    - "attestations/mathjax-delimiter-te-and-skip-mermaid-2026-10-*.json"
+  exclusions:
+    - "spec/algebra-3.2.md"
+    - "spec/constitution.md"
+    - "spec/domain.md"
+    - "spec/semantics.md"
+    - "site/axioms/*.md"
+    - "site/*.md"
+
+outcomes:
+  - id: mathjax-delimiters-survive-unescape
+    statement: |
+      The MathJax inline/display math delimiters in the rendered
+      HTML are the LaTeX-style `\(..\)` and `\[..\]` (not the
+      default `$..$` or whatever MathJax 3 would have after its
+      TeX-unescape pass). MathJax's runtime config exposes the
+      intended 2-char sequences, not single characters.
+
+  - id: mermaid-diagrams-render
+    statement: |
+      Every `<div class="mermaid">` block on a rendered page
+      produces a real SVG diagram (or, in the failure case, the
+      standard "Syntax error in text" fallback that the page
+      itself explains — never the corrupted DOM that the broken
+      MathJax config produced on the live site before this fix).
+
+counterexample: |
+  "Just remove the inline `\(..\)` LaTeX delimiters and use
+  only `\[..\]` for display, or only `$..$` (the original default)
+  — MathJax already supports both."
+
+  Counterargument: with `$..$` as the only inline delimiter,
+  every `$` in prose is a math boundary. The original failure
+  mode that `mathjax-default-on-2026-10@1` was meant to fix is
+  the same: `(Honest status)`, `§19`, and `axioms/feedback.md`'s
+  `$..$` (now `\(..\)`) all get typeset as math. The narrower
+  LaTeX-style `\(..\)` boundary is the one explicitly required by
+  the user in this cycle (see the conversation leading to this
+  commit) and the only one that does not collide with prose.
+
+  "Adding `div.mermaid` to skipHtmlTags is overkill — MathJax
+  doesn't process content in `<pre>` and `<code>` by default
+  (they're already in the default skipHtmlTags), and `.mermaid` is
+  rendered as a `<div>` with the diagram source as textContent,
+  not as code. Once the delimiter is fixed, mermaid will
+  process the original source correctly."
+
+  Counterargument: the `<div class="mermaid">` textContent is
+  the source the user wrote, which contains text like
+  `apply(rule, c, t)` (with round brackets) and Unicode math
+  symbols. With the previous (broken) config, MathJax wrapped
+  every `(` in `<mjx-container>` elements, leaving the
+  `<div class="mermaid">` empty of valid mermaid syntax. Even
+  with the new config, future tweaks (e.g., enabling `$..$` for
+  inline by default) would re-introduce the same risk. Adding
+  `div.mermaid` to skipHtmlTags is cheap defence in depth and
+  matches the convention the live site already uses for
+  script/style/textarea.
+
+assumptions:
+  - id: dollar-stays-disabled
+    state: assumed
+    statement: |
+      The `$..$` and `$$..$$` MathJax defaults remain disabled
+      on the math-coding site. Only `\(..\)` and `\[..\]` are
+      active. The `mathjax-delimiter-hardening-2026-10@1`
+      decision (already merged) established this; this cycle
+      does not re-introduce the dollar-delimiter defaults.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future cycle re-enables `$..$`, every `$(...)` in
+      prose becomes a math boundary again. The fix in this
+      decision (regex + skipHtmlTags) is moot; the original
+      mathjax-off workaround must be re-applied.
+    review_on:
+      - signal: dollar-delimiter-reintroduced
+
+  - id: mermaid-source-no-tex
+    state: assumed
+    statement: |
+      The `\(..\)` and `\[..\]` strings do not appear inside
+      `<div class="mermaid">` blocks in any current or planned
+      `axioms/*.md` or `site/*.md` source file. If a future page
+      author adds them inside a mermaid block, the `div.mermaid`
+      skipHtmlTags entry will prevent MathJax from running on
+      the source — but mermaid will also not interpret the
+      escape (mermaid 10.x is not TeX-aware). The author would
+      then need to choose a different syntax for any math in a
+      mermaid label.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future mermaid block contains `\(` for math, the user
+      will see the literal `\(` in the diagram (because
+      skipHtmlTags blocks MathJax) and mermaid will render
+      `\(` as the literal text. The author must use a different
+      syntax (e.g., Unicode math symbols) inside mermaid blocks.
+    review_on:
+      - signal: mermaid-block-contains-backslash-paren
+
+obligations:
+  - id: mathjax-delimiter-te-survives-unescape
+    outcome: mathjax-delimiters-survive-unescape
+    statement: |
+      The MathJax config in the rendered HTML contains delimiter
+      strings that, after MathJax 3's TeX-unescape pass, are
+      the LaTeX-style `\(..\)` and `\[..\]` (2-char sequences).
+      The test `mathjax_uses_latex_delimiters` asserts the JS
+      source contains the TeX-escaped form `\\(` so the unescape
+      pass produces `\(` (1 char + 1 paren) and not `(` alone.
+    claim: |
+      The runtime MathJax config in the browser reports
+      `inlineMath: [['(', ')']]` (or any pair that, after
+      TeX-unescape, is the 2-char `\(`/`\)` sequence). When
+      MathJax is enabled in a page, the test
+      `mathjax_uses_latex_delimiters` checks the page body for
+      the JS source string `['\\(', '\\)']` and `['\\[', '\\]']`.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::mathjax_uses_latex_delimiters
+          result: pass
+
+  - id: mathjax-skip-mermaid-source
+    outcome: mermaid-diagrams-render
+    statement: |
+      The MathJax config passes `options.skipHtmlTags`
+      including `'div.mermaid'`, so the `<div class="mermaid">`
+      source is left untouched by MathJax. The mermaid
+      library then processes the original source as a flowchart
+      and produces a real SVG. No page on the live site shows
+      the "Syntax error in text" fallback for a diagram that
+      parses cleanly when the delimiter is fixed.
+    claim: |
+      On `axioms/feedback.html`, after `mathc render`, the
+      mermaid diagram with `flowchart TB` and the four node
+      definitions renders as an SVG with the four labels
+      "commitment", "prediction", "observation", "revision" and
+      the four edges plus the dashed back-edge.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::mermaid_in_seven_pages
+          result: pass
+
+reversal:
+  - signal: mathjax-config-broken-again
+    condition: |
+      A future change to `lib/render.ml::render_head` reverts
+      the delimiter strings back to the single-`\` form
+      (`'\('` instead of `'\\('`), causing MathJax to
+      TeX-unescape them to `(`, and every parenthetical in
+      prose is typeset as math again. Detect by the
+      `mathjax_uses_latex_delimiters` test failing.
+    action: rework
+
+risk:
+  declared_triggers:
+    - math-typesetting-regression
+    - mermaid-rendering-regression
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - mathjax-default-on-2026-10@1
+    - mathjax-delimiter-hardening-2026-10@1
+  supersedes: []
+  superseded_by: []

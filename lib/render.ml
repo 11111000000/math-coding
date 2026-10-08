@@ -754,10 +754,25 @@ let[@warning "-32"] render_head ~lang ~site_base ~title ~enable_mathjax
     Printf.bprintf buf
       "<script defer \
        src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script>\n";
+    (* MathJax 3 TeX-unescapes the inlineMath/displayMath delimiter
+       strings. To make the final delimiter the LaTeX sequence
+       \`\('\` (which is what user text must contain to start
+       math), the source must be \`\\\\('\` (4 chars: \`\\\` is
+       TeX-escape for \`\\`, then literal \`(\`). MathJax
+       unescapes to \`\\(\` then to \`\('\`. In OCaml source,
+       \`\\\\\('\` is 6 source chars (4 backslashes) and emits
+       the 3-char runtime string \`\\\\\('\` = \`\\\\\('\`
+       in JS, which the TeX-unescape pass converts to
+       \`\\(\` = \`\('\` (the 2-char delimiter we want). Tested
+       empirically: with this string, MathJax's runtime
+       config shows the delimiter as \`\('\` and the
+       `\`t.replace is not a function\` error is gone. *)
     Printf.bprintf buf
       "<script>\n\
-       window.MathJax = { tex: { inlineMath: [['\\(','\\)']], displayMath: \
-       [['\\[','\\]']] } };\n\
+       window.MathJax = { tex: { inlineMath: [['\\\\(', '\\\\)']], \
+       displayMath: [['\\\\[', '\\\\]']] }, options: { \
+       skipHtmlTags: ['script', 'noscript', 'style', 'textarea', \
+       'pre', 'code', 'div.mermaid'] } };\n\
        </script>\n"
   end;
   if enable_mermaid then begin
