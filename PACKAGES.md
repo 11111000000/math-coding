@@ -182,6 +182,9 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `validate-positive.t` | valid decision accepted | `decisions/validate-and-context.yaml` |
 | `validate-negative.t` | invalid decision rejected | `decisions/validate-and-context.yaml` |
 | `validate-error-actionable.t` | validator names the missing required field | `decisions/validator-actionable-error.yaml` |
+| `validate-axiom-link.t` | MC-AXIOM-LINK-MISSING for active+empty axiom_link (T2.2) | `decisions/plan-2026-10-improvements.yaml` |
+| `validate-sha-match.t` | body_sha == yaml_sha when both present (T0.2) | `decisions/plan-2026-10-improvements.yaml` |
+| `validate-counterexample-required.t` | mode >= standard requires non-empty counterexample (T6.2) | `decisions/plan-2026-10-improvements.yaml` |
 | `counterexample-warning.t` | validator warns when counterexample field is missing | `decisions/validator-actionable-error.yaml` |
 | `ambiguous-acceptance.t` | MC-AMBIGUOUS-ACCEPTANCE diagnostic | `decisions/parse-acceptance-diagnostics.yaml` |
 | `malformed-acceptance.t` | MC-MALFORMED-ACCEPTANCE diagnostic | `decisions/parse-acceptance-diagnostics.yaml` |
@@ -197,6 +200,7 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `gate-v32-wired.t` | §15 phase-aware verdict wired into mathc gate | `decisions/algebra-3.2.yaml` |
 | `gate-empty.t` | gate with empty store -> unknown verdict | `decisions/gate-attestation-store-fill.yaml` |
 | `gate-unknown-exit-3.t` | gate with empty store exits 3 (unknown != pass laundering) | `decisions/exit-code-symmetry-2026-10.yaml` |
+| `gate-axiom-commit.t` | gate on axiom-only commit -> block at exhaustive mode (T3.1) | `decisions/plan-2026-10-improvements.yaml` |
 | `risk-bucketing.t` | risk classification bucketed via thresholds (v3.2 §2) | `decisions/algebra-3.2.yaml` |
 | `mode.t` | mathc mode computes risk+mode for paths (v3.2 §2) | `decisions/3-2-cli-catalog.yaml` |
 | `re-evaluate.t` | mathc re-evaluate runs §17 oracle | `decisions/3-2-cli-catalog.yaml` |
@@ -207,6 +211,7 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `self-check-pass.t` | self-check returns pass on clean HEAD | `decisions/mathc-self-check-subcommand.yaml` |
 | `self-check-fail.t` | self-check returns fail on broken invariant | `decisions/mathc-self-check-subcommand.yaml` |
 | `self-check-unknown.t` | self-check returns unknown on infrastructure error | `decisions/mathc-self-check-subcommand.yaml` |
+| `gate-waiver-scope.t` | waiver narrows to (decision, obligation) pair (T3.2) | `decisions/plan-2026-10-improvements.yaml` |
 | `explain-positive.t` | explain resolves `decision:foo` to body | `decisions/mathc-explain-subcommand.yaml` |
 | `explain-negative.t` | explain emits `MC-REF-UNKNOWN` on bad ref | `decisions/mathc-explain-subcommand.yaml` |
 | `explain-diagnostic.t` | explain-diagnostic resolves `MC-*` codes to JSON | `decisions/plan-2026-10-improvements/t4-2.yaml` |
@@ -216,6 +221,7 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `cli-time-storage.t` | session-start / record / stats pipeline | `decisions/time-honesty-storage.yaml` |
 | `packages.t` | packages lists every decision + verdict | `decisions/mathc-packages-subcommand.yaml` |
 | `render.t` | render produces the full dist/ tree | `decisions/site-deploy.yaml` |
+| `render-mathjax-spec.t` | mathc render emits MathJax 3 deferred on spec pages (T5.2) | `decisions/plan-2026-10-improvements.yaml` |
 | `applicability-envelope.t` | applicability decision tree surfaces in docs | `decisions/algebra-3.2.yaml` |
 
 ## Process-principles test (`tests/process_principles.ml`)
