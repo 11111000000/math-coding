@@ -62,7 +62,24 @@ let[@warning "-32"] candidates () =
    `Unix.close_process_in` (which double-forks internally) to
    reap the child cleanly. *)
 let[@warning "-32"] spawn_stub ~response_body ~port =
-  let stub_path = "_build/default/tests/support/forge_stub/forge_stub.exe" in
+  (* The dune test runs each `.exe` from `_build/default/tests/`
+     — using a relative path here would resolve against that
+     cwd and miss the binary. Resolve an absolute path from
+     the file's own location: the test source lives at
+     `<project>/tests/rebuttal_forge_stub.ml`, so the binary
+     is `<project>/_build/default/tests/support/forge_stub/forge_stub.exe`,
+     three parents up from `tests/` into the project root. *)
+  let test_dir = Filename.dirname Sys.argv.(0) in
+  let rec up d n =
+    if n = 0 then d
+    else up (Filename.dirname d) (n - 1)
+  in
+  let project_root = up test_dir 2 in
+  let stub_path =
+    Filename.concat
+      (Filename.concat project_root "_build/default/tests/support/forge_stub")
+      "forge_stub.exe"
+  in
   let argv = [| stub_path; string_of_int port; response_body |] in
   let pid = Unix.create_process argv.(0) argv Unix.stdin Unix.stdout Unix.stderr in
   pid
