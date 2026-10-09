@@ -1,0 +1,5 @@
+(executable
+ (name forge_stub)
+ (public_name forge_stub)
+ (modules forge_stub)
+ (libraries unix))

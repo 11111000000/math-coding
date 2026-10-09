@@ -5,44 +5,24 @@
    without the env var, returns `[]`; on any error (HTTP fail,
    JSON parse failure, timeout), returns `[]` (never raises).
 
-   The test boots a single Python `http.server` stub per
-   positive scenario on a free port. For the negative scenarios
-   (unset env, malformed JSON, unreachable endpoint) the
-   positive server is reused or skipped; no extra process is
-   spawned. The Python script is shipped inline so the test
-   does not depend on any file outside `_build/`. *)
-
-(* The Python stub: a `BaseHTTPRequestHandler` that ignores
-   the request path, returns the response body passed via
-   argv, and silences default access logs. *)
-let[@warning "-32"] python_stub_script response_body port =
-  Printf.sprintf
-    {|
-import http.server, sys
-
-PORT = %d
-RESP_BODY = %S
-
-class H(http.server.BaseHTTPRequestHandler):
-    def do_GET(self):
-        body = RESP_BODY.encode()
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self.wfile.write(body)
-    def log_message(self, *a, **kw):
-        pass
-
-http.server.HTTPServer(("127.0.0.1", PORT), H).serve_forever()
-|}
-    port response_body
+   The test boots a single OCaml `forge_stub.exe` per positive
+   scenario on a free port. The OCaml stub is part of this
+   crate (see tests/support/forge_stub/) and replaces the
+   `python3 -m http.server` stub the test used before. The
+   previous Python stub was the only non-OCaml interpreter the
+   kernel path was waiting on, and `dune test` would hang when
+   the OCaml parent killed the Python child via SIGTERM
+   without first waiting — the child kept the listen socket
+   bound for a few extra seconds and the next test could not
+   bind a fresh port. The OCaml stub is a single-shot server
+   that exits after one response, so the parent can reap it
+   via `Unix.close_process_in` cleanly. *)
 
 (* Find a TCP port that nobody is currently listening on.
    Strategy: pick from a candidate list (17000 + offset) and
    trust that the parallel test harness does not collide. We
    avoid binding ourselves (which would race with the bind
-   of the Python stub); we use a fast no-op `curl` probe —
+   of the OCaml stub); we use a fast no-op `curl` probe —
    exit 0 ⇒ someone IS listening ⇒ skip; exit 7 ⇒ nobody
    listening ⇒ port is free. *)
 let[@warning "-32"] find_free_port ~candidates =
@@ -76,27 +56,15 @@ let[@warning "-32"] candidates () =
   in
   build [] 50
 
-(* Spawn the Python stub in a fresh subprocess. Returns the
-   PID. The stub logs to /tmp; we send SIGTERM at teardown. *)
+(* Spawn the OCaml forge_stub.exe in a fresh subprocess. Returns
+   the PID. The stub logs to /dev/null — it exits after one
+   response, so we don't need to signal it. The parent uses
+   `Unix.close_process_in` (which double-forks internally) to
+   reap the child cleanly. *)
 let[@warning "-32"] spawn_stub ~response_body ~port =
-  let script_path =
-    Filename.concat
-      (Filename.get_temp_dir_name ())
-      (Printf.sprintf "mathc-forge-stub-%d.py" port)
-  in
-  let oc = open_out script_path in
-  output_string oc (python_stub_script response_body port);
-  close_out oc;
-  let argv = [| "python3"; script_path |] in
-  let log_path =
-    Filename.concat
-      (Filename.get_temp_dir_name ())
-      (Printf.sprintf "mathc-forge-stub-%d.log" port)
-  in
-  let fd_log =
-    Unix.openfile log_path [ Unix.O_WRONLY; Unix.O_CREAT; Unix.O_TRUNC ] 0o600
-  in
-  let pid = Unix.create_process argv.(0) argv Unix.stdin fd_log fd_log in
+  let stub_path = "_build/default/tests/support/forge_stub/forge_stub.exe" in
+  let argv = [| stub_path; string_of_int port; response_body |] in
+  let pid = Unix.create_process argv.(0) argv Unix.stdin Unix.stdout Unix.stderr in
   pid
 
 (* Wait until the stub responds to a GET probe, or timeout.
