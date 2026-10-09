@@ -37,9 +37,12 @@ scope:
     - "tests/rebuttal_forge_stub.ml"
     - "tests/qcheck_parsers.ml"
     - "tests/junit_test.ml"
+    - "docs/upstream-bugs/dune-3.23.1-rpc-hang.md"
+    - "scripts/dune-test-with-timeout.sh"
 outcomes:
   - id: o
-    statement: four tests gated off in tests/dune
+    statement: four tests gated off in tests/dune; workaround
+      documented in docs/upstream-bugs/dune-3.23.1-rpc-hang.md
 obligations:
   - id: hanging-tests-disabled
     claim: tests/dune omits four suite names with a
@@ -54,6 +57,16 @@ obligations:
           result: pass
         - verifier: grep '^  ; junit_test' tests/dune
           result: pass
+  - id: upstream-bug-tracked
+    claim: docs/upstream-bugs/dune-3.23.1-rpc-hang.md cites
+      https://github.com/ocaml/dune/issues/12900 and the
+      fix at https://github.com/ocaml/dune/pull/12979.
+    acceptance:
+      all:
+        - verifier: grep 'issues/12900' docs/upstream-bugs/dune-3.23.1-rpc-hang.md
+          result: pass
+        - verifier: grep 'pull/12979' docs/upstream-bugs/dune-3.23.1-rpc-hang.md
+          result: pass
 risk:
   declared_triggers: []
   owner: human:maintainer
@@ -66,7 +79,8 @@ relations:
   refines: []
   depends_on: []
   conflicts_with: []
-  addresses: []
+  addresses:
+    - dune-3.23.1-rpc-hang
   implements: []
   verifies: []
 counterexample: |

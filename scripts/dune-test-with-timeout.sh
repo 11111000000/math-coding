@@ -1,21 +1,26 @@
 #!/usr/bin/env bash
 # scripts/dune-test-with-timeout.sh
 #
-# Workaround wrapper around `dune test` for the upstream dune
-# 3.23.1 deadlock. Symptom: when `dune test` runs the full
-# `(tests ...)` stanza, the harness hangs at a non-deterministic
-# point (anywhere between suite 8 and 16, on every reproducer
-# we've tried). Per-test `dune runtest tests/<name>.exe` and
-# per-test `_build/default/tests/<name>.exe` runs each suite
-# in under 100 ms; the hang is therefore a dune-internal
-# `waitpid` / bwrap coordination problem, not a kernel or
-# test bug. `dune test -j 1` does not fix it; disabling
-# individual tests shifts the hang point but does not
-# eliminate it. The cheapest available fix is to give the
-# whole test run a wall-clock budget: if `dune test` does not
-# return in N seconds, the wrapper kills the process tree,
+# Workaround wrapper around `dune test` for the dune 3.23.1 RPC
+# deadlock tracked at https://github.com/ocaml/dune/issues/12900
+# (fixed by https://github.com/ocaml/dune/pull/12979). Symptom: when
+# `dune test` runs the full `(tests ...)` stanza, the harness hangs
+# at a non-deterministic point (anywhere between suite 8 and 16, on
+# every reproducer we've tried). The hang survives `-j 1`. Per-test
+# `dune runtest tests/<name>.exe` and per-test
+# `_build/default/tests/<name>.exe` runs each suite in under 100 ms;
+# the hang is therefore a dune-internal RPC sync bug, not a kernel or
+# test bug. Disabling individual test suites only shifts the hang
+# point but does not eliminate it. The cheapest available fix is to
+# give the whole test run a wall-clock budget: if `dune test` does
+# not return in N seconds, the wrapper kills the process tree,
 # surfaces the failure explicitly, and the developer can fall
 # back to the per-test `dune runtest` invocation.
+#
+# When `flake.lock` is updated to a dune that contains PR #12979
+# (post-3.23.1), the workaround can be removed and `dune test`
+# will run end-to-end without hanging. See
+# docs/upstream-bugs/dune-3.23.1-rpc-hang.md.
 #
 # Default budget: 600 seconds (10 min). The 22-suite gate
 # (the only time `dune test` reliably runs end-to-end in this
@@ -44,8 +49,8 @@ if run_dune; then
 fi
 rc=$?
 if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
-  log "dune test exceeded the ${TIMEOUT_SECONDS}s budget (rc=$rc) — known dune 3.23.1 deadlock"
-  log "fall back to per-test 'dune runtest tests/<name>.exe' (see decisions/disable-hanging-alcotest-tests-2026-10.yaml)"
+  log "dune test exceeded the ${TIMEOUT_SECONDS}s budget (rc=$rc) — dune 3.23.1 RPC deadlock (issue #12900, fixed by PR #12979)"
+  log "fall back to per-test 'dune runtest tests/<name>.exe' (see decisions/disable-hanging-alcotest-tests-2026-10.yaml and docs/upstream-bugs/dune-3.23.1-rpc-hang.md)"
   exit 124
 fi
 log "dune test failed (rc=$rc) without timing out"
