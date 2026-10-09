@@ -94,8 +94,13 @@ else
   pass=$((pass + 1))
 fi
 
-# CLI cram integration tests (tests/cli/*.t). These run via dune
-# test. We force dune to rebuild so the bwrap sandbox is rebuilt
+# CLI cram integration tests (tests/cli/*.t). We use
+# `dune runtest` (not the full `dune test`) because the full
+# `dune test` reproducibly hangs in this environment due to a
+# dune 3.23.1 bwrap coordination bug (see
+# decisions/disable-hanging-alcotest-tests-2026-10.yaml).
+# `dune runtest` invokes just the cram stanza and finishes
+# in seconds. We force a rebuild so the bwrap sandbox is
 # fresh; on a clean run this is fast (incremental cache).
 cleanup_dune
 cram_log=$(mktemp)
