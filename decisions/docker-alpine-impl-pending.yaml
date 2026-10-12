@@ -1,0 +1,173 @@
+---
+schema: math-coding/3.0-alpha
+id: docker-alpine-impl-pending
+revision: 1
+state: active
+intent: |
+  Record the deferral of the Alpine-based Docker image to
+  Phase 3. Phase 1 of install-tooling-2026-10 ships only
+  `Dockerfile.debian-slim` (multi-stage build, glibc-based,
+  compatible with the existing `mathc-linux-x86_64` and
+  `mathc-linux-aarch64` release assets).
+
+  `Dockerfile.alpine` requires the
+  `mathc-linux-x86_64-musl` variant, which only landed in
+  CI run #129 (2026-10-07) and is not yet in the release
+  `files:` list of `.github/workflows/release.yml:308-314`.
+  Without the musl release asset, the Alpine image's final
+  stage has no binary to copy in; the build produces an
+  empty container.
+
+  Audit reference: `decisions/portable-linux-musl.yaml`
+  rev 4 (state: active, but the musl release asset wiring
+  is pending); `CHANGELOG.md` v3.2.0-alpha "Unreleased"
+  §"Reverted" (CI runs #81–#85 broke on the Alpine
+  container); `OCAML_BEST_PRACTICES.md` §11.26 (trap log
+  for `container:` under `matrix.include`).
+axiom_link:
+  - A0
+  - A3
+antithesis: |
+  The counter-position considered and rejected: "Ship
+  `Dockerfile.alpine` in Phase 1 alongside `debian-slim`
+  because Alpine is the smallest, fastest-starting image and
+  most users on Alpine would benefit immediately." The
+  author engaged with this position and rejected it on three
+  grounds: (a) `mathc-linux-x86_64-musl` only landed in
+  CI run #129 (2026-10-07) and is not in the release
+  `files:` list yet — a Phase-1 Alpine image would build from
+  an empty final stage and exit `command not found` on
+  `docker run`; (b) `OCAML_BEST_PRACTICES` §11.26 documents
+  that `container:` under `matrix.include` is silently
+  ignored — Phase-1 has no CI experience yet with the Alpine
+  pipeline, and adding it now risks reproducing the same
+  trap; (c) `debian-slim` uses the same glibc ABI as the five
+  already-released binaries, so users on glibc distros get a
+  working image immediately; Alpine users can use
+  `mathc-linux-x86_64-musl` directly from the GitHub
+  Actions artifacts tab until the Phase-3 worktree lands.
+commitment: |
+  This decision does NOT close the obligation; it records
+  the deferral. The Alpine image requires:
+
+  1. `mathc-linux-x86_64-musl` in the release `files:`
+     list (currently uploaded as a CI artifact only; see
+     `release.yml:308-314` and `release.yml:130-220`).
+  2. Cross-arch musl support (aarch64-musl deferred to
+     v2 of the musl pipeline; would need QEMU emulation).
+  3. Verify against the `OCAML_BEST_PRACTICES` §11.26
+     trap: `container:` at job level only, never inside
+     `strategy.matrix.include`.
+
+  Boundaries (A3 self-application):
+
+  - This decision does NOT modify `lib/`, `bin/`,
+    `schemas/`, `spec/`, `axioms/`, or
+    `Dockerfile.debian-slim` (which is owned by
+    install-tooling-2026-10 in Phase 1).
+  - `Dockerfile.alpine` does not exist at HEAD; the
+    Phase-3 worktree introduces it.
+  - `decisions/portable-linux-musl.yaml` is read-only
+    reference; this deferral does NOT modify its state.
+scope:
+  capabilities:
+    - docker-alpine-deferred
+  paths:
+    - "Dockerfile.alpine"   # not yet present in the repo
+    - ".github/workflows/docker.yml"   # not yet present; the Phase-1 file targets debian-slim only
+  exclusions:
+    - "Dockerfile.debian-slim"   # owned by install-tooling-2026-10
+    - ".github/workflows/release.yml"   # musl-release-asset wiring is a separate worktree
+outcomes:
+  - id: deferral-recorded
+    statement: |
+      The Alpine Docker deferral is documented with
+      priority queue position, justification, and
+      reversal signal. Future agents encountering the
+      absence of `Dockerfile.alpine` find this decision
+      and do not re-attempt the implementation without
+      checking the musl release asset first.
+counterexample: |
+  "Users on Alpine already have mathc-linux-x86_64-musl
+   via direct download from the GitHub Actions artifacts
+   tab." Counterargument: a Docker image is the
+  sandbox-friendly fallback for users who cannot install
+  to `~/.local/` (corporate restrictions, no sudo,
+  immutable filesystem, ephemeral CI runners). Alpine
+  users typically fall into this case, and the direct
+  download path is not the affordance they need.
+
+  "Why not just point Dockerfile.alpine at the
+   mathc-linux-x86_64 release asset?" Counterargument:
+  Alpine uses musl-libc, not glibc. A glibc-linked
+  binary on Alpine raises `GLIBC_X.Y not found` at
+  startup. The Alpine image must use the musl variant.
+assumptions:
+  - id: musl-release-asset-published
+    state: assumed
+    statement: |
+      `mathc-linux-x86_64-musl` ships as a release asset
+      (in the GitHub release `files:` list) before
+      `Dockerfile.alpine` can be built on top of it.
+    owner: human:maintainer
+    consequence_if_false: |
+      `Dockerfile.alpine` would build from an empty
+      stage; the resulting image has no `mathc` binary
+      and exits with `command not found` on `docker run`.
+    review_on:
+      - signal: musl-asset-published
+  - id: alpine-trap-§11.26-respected
+    state: assumed
+    statement: |
+      The Phase-3 worktree respects
+      `OCAML_BEST_PRACTICES` §11.26: `container:`
+      is at the job level in `.github/workflows/`,
+      never inside `strategy.matrix.include`.
+    owner: human:maintainer
+    consequence_if_false: |
+      Silent failure: shell steps run on the Ubuntu
+      runner instead of inside Alpine, mirroring the
+      trap documented at §11.26.
+    review_on:
+      - signal: alpine-ci-build-flake
+obligations:
+  - id: deferral-recorded
+    outcome: deferral-recorded
+    claim: |
+      A decision file in `decisions/` documents the
+      deferral with rationale and reversal signal.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+reversal:
+  - signal: docker-alpine-impl-pending-resolved
+    condition: |
+      Both of:
+
+      (a) `mathc-linux-x86_64-musl` ships as a release
+          asset in the GitHub release `files:` list (the
+          current status: uploaded as CI artifact only).
+          Wiring point is `.github/workflows/release.yml`
+          `softprops/action-gh-release@v2` `files:`.
+
+      AND
+
+      (b) a Phase-3 worktree targets `Dockerfile.alpine`
+          that respects the §11.26 trap (job-level
+          `container:`, no matrix `include`).
+    action: implement-and-supersede
+risk:
+  declared_triggers:
+    - alpine-without-musl-binary
+    - alpine-without-musl-release-asset
+    - trap-§11.26-violated
+  owner: human:maintainer
+relations:
+  addresses:
+    - bootstrap-v3
+    - portable-linux-musl@4   # read-only reference; Phase-3 worktree reads its reversal signal
+  addresses-future:
+    - docker-alpine-2026-10   # the parent decision to be written in Phase 3
+  supersedes: []
+  superseded_by: []

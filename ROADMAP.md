@@ -103,6 +103,25 @@ Runtime kernel behaviour is backward compatible: the existing
 | 12 | ROADMAP.md, PACKAGES.md, CHANGELOG.md, USAGE.md sync (applicability envelope, two-tier model) | `algebra-3.2@1` | ✅ done |
 | 13 | Portable binary build (anti-property fix in §30): musl-based or static-link, no nix-store paths | `algebra-3.2@1` | ✅ done (rev 4, 2026-10-07) |
 
+### Tier 4 — install-tooling deferred work (Phase 2/3)
+
+Three Phase-2/3 deferral decisions live in `decisions/` with
+`state: active` and `reversal.signal:` blocks. They do not
+block Tier 1 work; they record that the implementation is
+sequenced after the install-tooling-2026-10 surface lands.
+See `PACKAGES.md` §"Bootstrap packages (by file)" for status.
+
+| # | Deferral | Phase | Reversal signal | Decision |
+|---|---|---|---|---|
+| 1 | MCP server (`lib/mcp/` + `bin/mathc_mcp.ml`) | Phase 2 | `mcp-server-impl-pending-resolved` | `mcp-server-impl-pending@1` |
+| 2 | `Dockerfile.alpine` (depends on `mathc-linux-x86_64-musl` as release asset) | Phase 3 | `docker-alpine-impl-pending-resolved` | `docker-alpine-impl-pending@1` |
+| 3 | Auto-update per-user skill (silent mutation prevention) | Phase 3+ | `auto-update-per-user-skill-impl-pending-resolved` | `auto-update-per-user-skill-impl-pending@1` |
+
+All three decisions carry `kind_: review, producer: human:maintainer`
+attestations under `attestations/<id>-deferral-recorded.json`
+(verifier: `this-decision-file-present`). The deferrals are
+bounded, not open-ended; future agents see when to re-engage.
+
 ### Remaining for v3.1.0 stabilisation
 
 - **Cram snapshot regeneration**: as of HEAD `4ef31f7`, the

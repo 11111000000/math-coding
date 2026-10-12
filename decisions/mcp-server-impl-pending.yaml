@@ -1,0 +1,193 @@
+---
+schema: math-coding/3.0-alpha
+id: mcp-server-impl-pending
+revision: 1
+state: active
+intent: |
+  Record the deferral of the MCP server obligation to Phase 2
+  of the install-tooling-2026-10 work. The MCP adapter split
+  is ready per `OCAML_BEST_PRACTICES.md` §10.1 (sub-library
+  pattern like `lib/git/` and `lib/junit/`); the obligation
+  is not yet realized at HEAD.
+
+  Phase 1 of install-tooling-2026-10 delivers four install
+  channels (release binary, docker image, nix run, source
+  build) with a POSIX-sh `install.sh`, SHA-256 verification,
+  per-repo + per-user skill pipeline. MCP server tunnels on
+  top of those channels and is sequenced after the install
+  surface stabilises: an MCP tool can only be useful once
+  `mathc` is reliably installed in the host environment.
+
+  Audit reference: `doc/AUDIT-0.0.11.md:539, 623`,
+  `OCAML_BEST_PRACTICES.md:42` (mentions MCP as future
+  adapter alongside Git, JUnit), `OCAML_BEST_PRACTICES.md`
+  §10.1 (sub-library split is ready).
+
+  This decision is the canonical deferral record. The
+  eventual implementation will land as
+  `decisions/mcp-server-2026-10.yaml` (rev 1, state: active)
+  in a Phase-2 worktree, which supersedes this one.
+axiom_link:
+  - A0
+  - A3
+antithesis: |
+  The counter-position considered and rejected: "Sequencing the
+  MCP server to Phase 1 in parallel with install-tooling-2026-10
+  is the right call because opencode users — who are the
+  primary install-channel audience — already understand MCP and
+  would adopt math-coding faster if the deepest integration is
+  available from day one." The author engaged with this
+  position and rejected it on three grounds: (a) MCP tunnels on
+  top of install surfaces that do not yet exist, so a Phase-1
+  MCP server would have no validated `mathc` to talk to; (b)
+  the kernel surface for MCP is the largest new piece of
+  install-tooling work (~300 lines OCaml + new binary + new CI
+  matrix entry), and combining it with four install channels
+  violates ROADMAP P3 (time-box); (c) the demand for MCP is
+  hypothetical — opencode, Claude Code, and Cursor support it,
+  but no community signal exists yet, while demand for the four
+  install channels is concrete and observed.
+commitment: |
+  This decision does NOT close the obligation; it records
+  the deferral. The deferral is justified by:
+
+  1. Priority. MCP server is the deepest integration with
+     agent platforms but adds the most kernel surface
+     (~300 lines OCaml + new `bin/mathc_mcp.ml` binary +
+     new CI matrix entry). The Phase-1 install-tooling
+     surface must be stable at HEAD before MCP wires on
+     top of it; sequencing MCP in Phase 1 would block the
+     install channels on an unproven kernel surface.
+
+  2. Kernel surface. Per `OCAML_BEST_PRACTICES` §10.1, the
+     MCP adapter lands in `lib/mcp/` as its own sub-library
+     with its own `dune` file (library name
+     `mathcoding_mcp`); the kernel under `lib/` stays pure.
+     The split is already proven for `lib/git/` and
+     `lib/junit/`, so the design pattern is known.
+
+  3. Adoption uncertainty. Demand for MCP is hypothetical:
+     opencode, Claude Code, and Cursor all support MCP, but
+     no community signal exists yet. Phase 1 install
+     channels cover all current adoption cases without MCP.
+
+  4. Bounded deferral. Per the `reversal` block below, the
+     deferral has a machine-readable signal that fires when
+     install-tooling-2026-10 lands. This is sequencing
+     discipline, not avoidance.
+
+  Boundaries (A3 self-application):
+
+  - This decision does NOT modify `lib/`, `bin/Mathc.ml`,
+    `schemas/`, `spec/`, or `axioms/`.
+  - This decision does NOT introduce `lib/mcp/` or
+    `bin/mathc_mcp.ml`; both files are absent at HEAD and
+    will be added by the Phase-2 worktree.
+  - The reversal signal is the only path to the next
+    revision. There is no "manual override" for the
+    deferral.
+scope:
+  capabilities:
+    - mcp-server-impl-deferred
+  paths:
+    - "lib/mcp/"   # not yet present in the repo
+    - "bin/mathc_mcp.ml"   # not yet present
+  exclusions:
+    - "lib/**"  # MCP server is its own sub-library
+    - "bin/mathc.ml"  # the main dispatcher is unchanged in Phase 2
+    - "spec/**"
+    - "axioms/**"
+    - "schemas/**"
+outcomes:
+  - id: deferral-recorded
+    statement: |
+      The MCP server deferral is documented with priority
+      queue position, justification, and reversal signal.
+      Future agents encountering the absence of `lib/mcp/`
+      or `bin/mathc_mcp.ml` find this decision and do not
+      re-attempt the implementation without checking the
+      priority queue first.
+counterexample: |
+  "Sequencing MCP to Phase 2 is technical debt."
+  Counterargument: Phase-1 install-tooling is the necessary
+  precondition for MCP to be useful (agents need `mathc`
+  installed before they can talk to it via MCP). Sequencing
+  is dependency-driven, not priority avoidance. The
+  reversal signal below makes the precondition explicit.
+
+  "Why record a deferral at all instead of just creating
+   a placeholder directory?" Counterargument: a
+  placeholder directory without a decision does not
+  produce an attestation and is therefore invisible to
+  `mathc self-check`. The deferral decision is the
+  auditable form of "we know this is missing".
+assumptions:
+  - id: install-tooling-stable-first
+    state: assumed
+    statement: |
+      The Phase-1 install-tooling-2026-10 surface is
+      stable at HEAD before MCP wires on top of it.
+    owner: human:maintainer
+    consequence_if_false: |
+      The MCP server depends on `lib/` (kernel API) and
+      on installation contracts (`install.sh` exits,
+      `mathc version` shape). If install-tooling changes
+      break either contract, the MCP server needs
+      re-validation in Phase 2.
+    review_on:
+      - signal: install-tooling-bumped
+  - id: kernel-sub-library-pattern-stable
+    state: assumed
+    statement: |
+      The sub-library pattern documented in
+      `OCAML_BEST_PRACTICES` §10.1 (each adapter gets its
+      own `lib/<name>/dune` with library name
+      `mathcoding_<x>`) is the canonical MCP layout.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the kernel switches to a different adapter
+      pattern (e.g. shared library, monorepo), the MCP
+      sub-library layout needs re-design.
+    review_on:
+      - signal: adapter-pattern-changed
+obligations:
+  - id: deferral-recorded
+    outcome: deferral-recorded
+    claim: |
+      A decision file in `decisions/` documents the
+      deferral with rationale and reversal signal.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+reversal:
+  - signal: mcp-server-impl-pending-resolved
+    condition: |
+      Either:
+
+      (a) `install-tooling-2026-10` lands (the Phase-1
+          surface ships at HEAD) AND the MCP server
+          becomes exercisable end-to-end (a JSON-RPC
+          `initialize` + `tools/call` round-trip works
+          against the released `mathc` binary), OR
+
+      (b) a priority change promotes MCP earlier than
+          install-tooling (e.g. an external user commits
+          to MCP adoption in writing before Phase 1
+          finishes). In that case this decision is
+          superseded and a Phase-1.5 worktree lands MCP
+          ahead of schedule.
+    action: implement-and-supersede
+risk:
+  declared_triggers:
+    - mcp-without-stable-install
+    - kernel-api-changes-break-mcp
+    - agent-platform-mcp-removal
+  owner: human:maintainer
+relations:
+  addresses:
+    - bootstrap-v3
+  addresses-future:
+    - mcp-server-2026-10   # the parent decision to be written in Phase 2
+  supersedes: []
+  superseded_by: []
