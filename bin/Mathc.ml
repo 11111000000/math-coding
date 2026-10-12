@@ -396,7 +396,7 @@ let validate_with_counts path =
                     let msg =
                       Printf.sprintf "%s at line %d col %d" raw_msg line col
                     in
-                    `Reject (Diagnostic.mc_parse ~cause:context msg, msg)))))
+                    `Reject (Diagnostic.mc_parse ~cause:context msg, msg))))))
 
 let emit (format : output_format) path
     (outcome :
