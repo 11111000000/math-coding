@@ -1213,27 +1213,63 @@ let[@warning "-32"] render_yaml_object_list_section ~heading ~pairs =
     Buffer.add_string buf "</ol>\n";
     Buffer.contents buf
 
-(* Strip the `id:` line from a YAML body_md so the rendered
-   `<li><code>id</code>...` pair does not duplicate the id. *)
-let[@warning "-32"] strip_id_line body_md =
+(* Strip the boilerplate lines from an obligation body so the
+   rendered `<li><code>id</code>...` pair does not duplicate
+   fields that the surrounding HTML already carries (id is in
+   the `<code>` pill; outcome belongs to the obligation
+   grouping, not the claim text; acceptance is verification
+   machinery, not prose). We strip:
+     - `id: ...`
+     - `outcome: ...` (the obligation→outcome cross-link)
+     - `acceptance:` block (the verifier list)
+   The `claim:` block is kept verbatim — it is the obligation's
+   public prose and belongs on the page. *)
+let[@warning "-32"] strip_boilerplate body_md =
   let lines = String.split_on_char '\n' body_md in
-  let rec drop = function
-    | [] -> []
+  let starts_with prefix t =
+    String.length t >= String.length prefix
+    && String.sub t 0 (String.length prefix) = prefix
+  in
+  let rec drop_outcome_and_id acc = function
+    | [] -> List.rev acc
     | line :: rest ->
         let t = String.trim line in
-        if String.length t > 3 && String.sub t 0 3 = "id" then begin
-          let rest_t = String.trim t in
-          if String.length rest_t >= 3
-             && (String.sub rest_t 0 3 = "id:"
-                 || (String.length rest_t >= 4
-                     && String.sub rest_t 0 4 = "id: "))
-          then drop rest
-          else line :: rest
-        end
-        else line :: rest
+        let is_id = starts_with "id:" t || starts_with "id: " t in
+        let is_outcome = starts_with "outcome:" t || starts_with "outcome: " t in
+        if is_id || is_outcome then drop_outcome_and_id acc rest
+        else drop_outcome_and_id (line :: acc) rest
   in
-  let kept = drop lines in
-  String.concat "\n" kept
+  (* Second pass: drop the `acceptance:` block. Once we see
+     `acceptance:`, drop every indented continuation that follows
+     until we return to indent 0. *)
+  let rec drop_acceptance acc = function
+    | [] -> List.rev acc
+    | line :: rest ->
+        let t = String.trim line in
+        if t = "acceptance:" then begin
+          let rec consume_indented = function
+            | [] -> []
+            | l :: r ->
+                let tl = String.trim l in
+                let ind =
+                  let len = String.length l in
+                  let i = ref 0 in
+                  while !i < len && l.[!i] = ' ' do
+                    incr i
+                  done;
+                  !i
+                in
+                if tl = "" then consume_indented r
+                else if ind > 0 then consume_indented r
+                else l :: r
+          in
+          drop_acceptance acc (consume_indented rest)
+        end
+        else drop_acceptance (line :: acc) rest
+  in
+  let stripped1 = drop_outcome_and_id [] lines in
+  let stripped2 = drop_acceptance [] stripped1 in
+  String.concat "\n" stripped2
 
 let[@warning "-32"] render_yaml_obligations_section ~heading ~pairs ~verdict_by_id
     =
@@ -1256,7 +1292,7 @@ let[@warning "-32"] render_yaml_obligations_section ~heading ~pairs ~verdict_by_
            </div>\n    <div class=\"mathc-decision-obligation-body\">%s</div>\n  \
            </li>\n"
           (html_escape id) verdict verdict
-          (md_parse (strip_id_line body_md)))
+          (md_parse (strip_boilerplate body_md)))
       pairs;
     Buffer.add_string buf "</ol>\n";
     Buffer.contents buf
