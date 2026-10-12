@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="a3-title">
+  <title id="a3-title">Axiom A3 -- Self-application: the rules govern their own changes.</title>
+  <defs>
+    <style>
+      .a3-spiral { fill: none; stroke: #8b3a3a; stroke-width: 1.75; }
+      .a3-node { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.5; }
+      .a3-arrow { fill: #8b3a3a; }
+    </style>
+    <marker id="a3h" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+  <!-- Outer ring: the policy transition -->
+  <circle class="a3-spiral" cx="40" cy="40" r="26"/>
+  <!-- Outer arrowhead indicating direction of transition -->
+  <path class="a3-spiral" d="M64,32 A26,26 0 0 1 56,58" marker-end="url(#a3h)"/>
+  <!-- Inner node: the kernel under its own rules -->
+  <circle class="a3-node" cx="40" cy="40" r="10"/>
+  <text x="40" y="43" text-anchor="middle" font-family="Georgia, serif" font-size="8" fill="#1a1a1a">kernel</text>
+  <!-- Three small ticks around the ring: gate, conformance, self-verify -->
+  <circle class="a3-node" cx="40" cy="12" r="3"/>
+  <circle class="a3-node" cx="64" cy="46" r="3"/>
+  <circle class="a3-node" cx="16" cy="46" r="3"/>
+</svg>

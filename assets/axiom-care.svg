@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="a4-title">
+  <title id="a4-title">Axiom A4 -- Care: owner, consequence, accountability, expiry.</title>
+  <defs>
+    <style>
+      .a4-palm { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.75; }
+      .a4-finger { stroke: #8b3a3a; stroke-width: 1.75; fill: none; stroke-linecap: round; }
+      .a4-dot { fill: #8b3a3a; }
+    </style>
+  </defs>
+  <!-- A cradled palm: the care commitment. The palm holds four small
+       dots representing the four C's: who, who, who, when. -->
+  <!-- palm base: open hand -->
+  <path class="a4-palm" d="M14,52 Q14,40 22,38 L22,28 Q22,24 26,24 Q30,24 30,28 L30,36
+                          L34,18 Q34,14 38,14 Q42,14 42,18 L42,36
+                          L46,22 Q46,18 50,18 Q54,18 54,22 L54,40
+                          L58,32 Q58,28 62,28 Q66,28 66,32 L66,52
+                          Q66,66 50,70 L30,70 Q14,66 14,52 Z"/>
+  <!-- the four C's as dots cradled in the palm -->
+  <circle class="a4-dot" cx="28" cy="48" r="2.5"/>
+  <circle class="a4-dot" cx="38" cy="48" r="2.5"/>
+  <circle class="a4-dot" cx="48" cy="48" r="2.5"/>
+  <circle class="a4-dot" cx="58" cy="48" r="2.5"/>
+</svg>

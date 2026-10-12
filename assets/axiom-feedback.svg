@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="a1-title">
+  <title id="a1-title">Axiom A1 -- Feedback: every commitment has a path to an observation.</title>
+  <defs>
+    <style>
+      .a1-arc { stroke: #8b3a3a; stroke-width: 2; fill: none; }
+      .a1-arrow { fill: #8b3a3a; }
+      .a1-dot { fill: #8b3a3a; }
+      .a1-line { stroke: #8b3a3a; stroke-width: 1; fill: none; }
+    </style>
+    <marker id="a1h" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+  <!-- commitment node -->
+  <circle class="a1-dot" cx="40" cy="20" r="4"/>
+  <text x="40" y="12" text-anchor="middle" font-family="Georgia, serif" font-size="8" fill="#1a1a1a">commitment</text>
+  <!-- prediction -->
+  <circle class="a1-dot" cx="60" cy="40" r="4"/>
+  <text x="74" y="42" text-anchor="end" font-family="Georgia, serif" font-size="8" fill="#1a1a1a">prediction</text>
+  <!-- observation -->
+  <circle class="a1-dot" cx="40" cy="60" r="4"/>
+  <text x="40" y="74" text-anchor="middle" font-family="Georgia, serif" font-size="8" fill="#1a1a1a">observation</text>
+  <!-- revision -->
+  <circle class="a1-dot" cx="20" cy="40" r="4"/>
+  <text x="6" y="42" font-family="Georgia, serif" font-size="8" fill="#1a1a1a">revision</text>
+  <!-- feedback loop: commitment -> prediction -> observation -> revision -> commitment -->
+  <path class="a1-arc" d="M44,22 Q56,28 58,38" marker-end="url(#a1h)"/>
+  <path class="a1-arc" d="M58,44 Q56,52 44,58" marker-end="url(#a1h)"/>
+  <path class="a1-arc" d="M36,58 Q24,52 22,44" marker-end="url(#a1h)"/>
+  <path class="a1-arc" d="M22,36 Q24,28 36,22" marker-end="url(#a1h)"/>
+</svg>

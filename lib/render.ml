@@ -861,6 +861,11 @@ let[@warning "-32"] render_index ~package_html ~axioms_html ~policy_id ~version
     "<section class=\"hero\">\n\
      <h1>math-coding</h1>\n\
      <p class=\"version\">%s</p>\n\
+     <figure class=\"mathc-figure mathc-figure-home\">\n\
+      <img src=\"assets/chain.svg\" \
+       alt=\"The math-coding assurance chain: intent, decision, \
+       obligation, change, attestation, revision.\">\n\
+     </figure>\n\
      <p class=\"lead\">A risk-adaptive assurance protocol for software \
      changes. Links <em>intent</em>, <em>decisions</em>, <em>obligations</em>, \
      <em>changes</em>, <em>attestations</em>, and <em>revisions</em> into a \
@@ -888,6 +893,11 @@ let[@warning "-32"] render_index_ru ~package_html ~axioms_html ~policy_id
     "<section class=\"hero\">\n\
      <h1>math-coding</h1>\n\
      <p class=\"version\">%s</p>\n\
+     <figure class=\"mathc-figure mathc-figure-home\">\n\
+      <img src=\"assets/chain.svg\" \
+       alt=\"Цепочка assurance math-coding: intent, decision, \
+       obligation, change, attestation, revision.\">\n\
+     </figure>\n\
      <p class=\"lead\">Протокол assurance для изменений в программном \
      обеспечении, адаптированный к риску. Связывает <em>intent</em>, \
      <em>decisions</em>, <em>obligations</em>, <em>changes</em>, \
@@ -1499,12 +1509,28 @@ let[@warning "-32"] render_axiom_page ~axiom_id ~body =
     end
     else body
   in
+  (* Axiom icon (Phase 2 of site-quality-illustrations-2026-10).
+     Each axiom carries a hand-rolled 80x80 SVG in
+     `assets/axiom-<id>.svg` that encodes the axiom's
+     essence. The mapping is fixed: A0 = separation,
+     A1 = feedback, A2 = invariants, A3 = self-application,
+     A4 = care. *)
+  let axiom_icon_html =
+    Printf.sprintf
+      "<figure class=\"mathc-axiom-figure\">\n\
+      <img class=\"mathc-axiom-icon\" src=\"../../assets/axiom-%s.svg\" \
+       alt=\"Axiom %s icon\">\n\
+      <figcaption>Axiom %s</figcaption>\n\
+      </figure>\n"
+      axiom_id axiom_id axiom_id
+  in
   Printf.sprintf
     "<section class=\"mathc-axiom-page\">\n\
      <h1>Axiom %s</h1>\n\
+     %s\
      <div>%s</div>\n\
      </section>\n"
-    axiom_id (md_parse stripped_body)
+    axiom_id axiom_icon_html (md_parse stripped_body)
 
 (* --- render entry point --- *)
 
@@ -1648,17 +1674,42 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
     (* The `packages` page appends the live kernel package grid
        below the prose. The grid is the same HTML that
        `mathc packages --format=html` emits; embedding it here
-       means `dist/packages.html` is no longer prose-only. *)
+       means `dist/packages.html` is no longer prose-only.
+       The `methodology` and `foundations` pages each carry
+       a hand-rolled SVG diagram (Phase 2 of
+       site-quality-illustrations-2026-10). *)
     let body_extra =
-      if name = "packages" then
-        Printf.sprintf
-          "\n\
-           <section class=\"mathc-packages-section\">\n\
-           <h2>Packages</h2>\n\
-           %s\n\
-           </section>\n"
-          package_html
-      else ""
+      match name with
+      | "packages" ->
+          Printf.sprintf
+            "\n\
+             <section class=\"mathc-packages-section\">\n\
+             <h2>Packages</h2>\n\
+             %s\n\
+             </section>\n"
+            package_html
+      | "methodology" ->
+          Printf.sprintf
+            "\n\
+             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
+             <img src=\"../assets/kernel-architecture.svg\" \
+              alt=\"The math-coding kernel pipeline: input -> schema \
+              -> parser -> attestation join -> self-check -> gate.\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
+             <img src=\"../assets/chain.svg\" \
+              alt=\"The math-coding assurance chain: intent, decision, \
+              obligation, change, attestation, revision.\">\n\
+             </figure>\n"
+      | "foundations" ->
+          Printf.sprintf
+            "\n\
+             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
+             <img src=\"../assets/kernel-architecture.svg\" \
+              alt=\"The math-coding kernel pipeline: input -> schema \
+              -> parser -> attestation join -> self-check -> gate.\">\n\
+             </figure>\n"
+      | _ -> ""
     in
     let body =
       Printf.sprintf "<article class=\"mathc-article\">\n%s%s\n</article>\n"

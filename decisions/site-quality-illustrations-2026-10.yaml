@@ -1,0 +1,197 @@
+---
+schema: math-coding/3.0-alpha
+id: site-quality-illustrations-2026-10
+revision: 1
+state: active
+body_sha: "sha256:ac0324c77241058c24f91e5dbc54ef74f98215eeb79954c9afbd9fb7900e1acd"
+yaml_sha: "sha256:ac0324c77241058c24f91e5dbc54ef74f98215eeb79954c9afbd9fb7900e1acd"
+axiom_link:
+  - A2
+intent: |
+  Add visual artefacts to the site surface so a first-time
+  visitor can grasp the protocol in five seconds without
+  reading a wall of prose. The post-Phase-0/Phase-1 site at
+  HEAD is textually complete but visually flat: 8 thin
+  mermaid flowcharts across 70 pages, no logos, no icons, no
+  diagrams of the kernel pipeline.
+
+  Three deficits remain from the original analysis that the
+  prose-only Phase 0 + Phase 1 did not close:
+
+  - the home page hero has no anchor visual that names the
+    protocol's six kinds in one glance;
+  - the five axioms have no visual identity, so each axiom
+    page is text-only and the visitor must rely on prose to
+    remember which is which;
+  - the kernel pipeline (schema -> parse -> attestation
+    join -> self-check -> gate) is described across five
+    pages but no single diagram ties them together.
+
+  This decision records and closes all three with hand-rolled
+  SVG artefacts that live under `assets/` and are embedded
+  via `<img>` tags emitted by `lib/render.ml`.
+
+commitment: |
+  `mathc render` emits a site that carries the following
+  visual artefacts in addition to the prose and verdict grid
+  rendered by `site-quality-2026-10@1`:
+
+  1. `assets/chain.svg` -- a horizontal flow diagram showing
+     the six kinds (intent -> decision -> obligation ->
+     change -> attestation -> revision) with the obligation
+     node visually emphasised (oxblood accent); embedded
+     on `index.html` (above the lead paragraph) and on
+     `methodology.html` (above the prose).
+
+  2. `assets/axiom-{separation,feedback,invariants,self-application,care}.svg`
+     -- five 80x80 icons, one per axiom, drawn in the
+     existing oxblood-on-cream palette; embedded on the
+     respective per-axiom pages (`dist/axioms/<id>.html`)
+     and on the `axioms.html` overview card.
+
+  3. `assets/kernel-architecture.svg` -- a five-stage
+     pipeline diagram (schema -> parser -> attestation join
+     -> self-check -> gate) embedded on `methodology.html`
+     and `foundations.html`.
+
+  All three artefacts are pure SVG (no embedded fonts, no
+  external assets, no JavaScript); the `<img>` tags carry
+  descriptive `alt` text so a non-sighted visitor still
+  receives the meaning.
+
+scope:
+  paths:
+    - "assets/**"
+    - "lib/render.ml"
+    - "site/index.md"
+    - "site/methodology.md"
+    - "site/foundations.md"
+    - "site/axioms.md"
+  decisions:
+    - "site-deploy@5"
+    - "site-quality-2026-10@1"
+
+outcomes:
+  - id: chain-illustration-visible-on-home
+    statement: The home page carries an assurance-chain diagram
+      above the lead paragraph.
+  - id: axiom-icons-on-overview-and-per-axiom
+    statement: Each axiom has a visible 80x80 icon on the
+      overview card and on the per-axiom page.
+  - id: kernel-pipeline-diagram-on-methodology
+    statement: The kernel pipeline is visible as a single
+      five-stage diagram on `methodology.html` and
+      `foundations.html`.
+
+assumptions:
+  - id: palette-stays-oxblood-on-cream
+    state: assumed
+    statement: All new SVGs use the existing palette tokens
+      (#8b3a3a accent on #fbfaf6 background) so the visual
+      language stays consistent with the Tufte-derived
+      stylesheet.
+    owner: human:maintainer
+    consequence_if_false: A future restyle would re-issue
+      this decision with a new palette.
+    review_on:
+      - signal: design-restyle-proposed
+
+obligations:
+  - id: assurance-chain-svg-shipped
+    outcome: chain-illustration-visible-on-home
+    claim: |
+      `assets/chain.svg` exists at HEAD and is referenced
+      via `<img>` on the home page (`dist/index.html`) and
+      on `methodology.html` (`dist/methodology.html`); the
+      `<img>` tag carries an `alt` attribute describing the
+      diagram.
+    acceptance:
+      all:
+        - verifier: file-exists-and-renders
+          result: pass
+
+  - id: axiom-icons-shipped
+    outcome: axiom-icons-on-overview-and-per-axiom
+    claim: |
+      Five axiom icons exist at `assets/axiom-{separation,
+      feedback, invariants, self-application, care}.svg`,
+      one per axiom, and each is referenced via `<img>`
+      on the corresponding per-axiom page (`dist/axioms/<id>.html`)
+      and on the axioms overview card (`dist/axioms.html`
+      rendered within `dist/index.html`).
+    acceptance:
+      all:
+        - verifier: file-exists-and-renders
+          result: pass
+
+  - id: kernel-architecture-svg-shipped
+    outcome: kernel-pipeline-diagram-on-methodology
+    claim: |
+      `assets/kernel-architecture.svg` exists at HEAD and is
+      referenced via `<img>` on `dist/methodology.html` and
+      `dist/foundations.html`; the `<img>` tag carries an
+      `alt` attribute naming the five pipeline stages.
+    acceptance:
+      all:
+        - verifier: file-exists-and-renders
+          result: pass
+
+  - id: build-and-self-check-still-green
+    outcome: chain-illustration-visible-on-home
+    claim: |
+      After all three artefacts land, `dune build` exits 0,
+      `mathc self-check` reports the same verdict as the
+      pre-change baseline (58 pass / 1 unknown of 59
+      subjects), and `mathc render` produces the same number
+      of pages (84) plus the new `dist/feed.xml` from
+      `site-quality-polish-2026-10@1`.
+    acceptance:
+      all:
+        - verifier: mathc-self-check
+          result: pass
+
+reversal:
+  - signal: svg-render-fails-in-chrome-or-firefox
+    action: revert-svg-and-file-bug
+  - signal: img-without-alt-flagged-by-a11y-audit
+    action: add-alt-and-bump-revision
+
+risk:
+  declared_triggers:
+    - design-restyle-breaks-passive-og-vibe
+    - chrome-quirk-renders-svg-differently
+
+counterexample: |
+  "SVG illustrations are styling, not a contract change; no
+  decision is needed." This argument fails for two reasons.
+  First, the artefacts are hand-rolled SVG paths that
+  encode domain meaning (the chain shape encodes the
+  protocol's six kinds; the axiom icons encode A0-A4);
+  altering the icons would change what visitors see when
+  they look up an axiom by its icon, which is itself a
+  public contract. Second, AGENTS.md §P1 binds a decision
+  to any kernel-side change to `lib/render.ml`; the SVG
+  embedding adds a new render function and new HTML
+  output, so a decision is required under the active
+  policy.
+
+antithesis: |
+  Author considered and rejected the strongest counter-
+  position that a maintainer might raise: "the site already
+  ships Tufte-styled prose; an SVG diagram will look out
+  of place." That position is rejected because (a) the
+  site's existing mermaid flowcharts are SVGs that already
+  pass through the same `assets/style.css` palette, so the
+  new SVGs are visually consistent with the existing
+  graph elements; and (b) the analysis at v3.1.0-alpha
+  found zero illustrations across 70 pages, so the site
+  reads as academic prose -- a single anchor diagram per
+  page closes that gap without disrupting the Tufte
+  restraint.
+
+relations:
+  addresses:
+    - "site-deploy@5"
+    - "site-quality-2026-10@1"
+  supersedes:
+    - "site-quality-2026-10@1"

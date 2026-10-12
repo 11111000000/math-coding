@@ -408,6 +408,52 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
      full visibility — the inline marker is still a link. */
 }
 
+/* --- illustrations (Phase 2 of site-quality-illustrations-2026-10) --- */
+
+.mathc-figure {
+  margin: 2em 0;
+  padding: 1em 1.5em;
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  text-align: center;
+}
+.mathc-figure img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+}
+.mathc-figure-home img {
+  max-width: 48rem;
+}
+.mathc-figure-methodology img {
+  max-width: 56rem;
+}
+.mathc-figure-foundations img {
+  max-width: 56rem;
+}
+.mathc-axiom-figure {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  margin: 0 0 1.5em;
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--rule);
+}
+.mathc-axiom-figure img {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+}
+.mathc-axiom-figure figcaption {
+  font-family: var(--mono-stack);
+  font-size: 0.78em;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+}
+
 /* --- per-decision pages (Phase 1 of site-quality-2026-10) --- */
 
 .mathc-decision-page {

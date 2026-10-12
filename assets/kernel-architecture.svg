@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" role="img" aria-labelledby="kernel-title" preserveAspectRatio="xMidYMid meet">
+  <title id="kernel-title">The math-coding kernel: input -> schema -> parser -> attestation join -> self-check -> gate -> verdict.</title>
+  <defs>
+    <style>
+      .kern-box { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .kern-box-emph { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 2; }
+      .kern-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; }
+      .kern-text-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .kern-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .kern-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8a8a8a; text-anchor: middle; }
+    </style>
+    <marker id="karrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+  </defs>
+
+  <!-- pipeline: 5 stages + input/output labels -->
+  <g transform="translate(20, 60)">
+
+    <!-- input: repository state (commit + decisions + attestations) -->
+    <g transform="translate(0, 0)">
+      <text class="kern-label" x="40" y="-12">repository state</text>
+      <rect class="kern-box" x="0" y="0" width="80" height="50" rx="4"/>
+      <text class="kern-text" x="40" y="22">git diff</text>
+      <text class="kern-label" x="40" y="38">BASE..HEAD</text>
+    </g>
+    <path class="kern-arrow" d="M80,25 L100,25" marker-end="url(#karrow)"/>
+
+    <!-- stage 1: schema -->
+    <g transform="translate(105, 0)">
+      <text class="kern-label" x="55" y="-12">I2 -- every reference resolves</text>
+      <rect class="kern-box" x="0" y="0" width="110" height="50" rx="4"/>
+      <text class="kern-text" x="55" y="22">schema</text>
+      <text class="kern-label" x="55" y="38">decisions/*.yaml</text>
+    </g>
+    <path class="kern-arrow" d="M215,25 L235,25" marker-end="url(#karrow)"/>
+
+    <!-- stage 2: parser (decision + obligation) -->
+    <g transform="translate(240, 0)">
+      <text class="kern-label" x="55" y="-12">A0 -- kinds are distinct</text>
+      <rect class="kern-box" x="0" y="0" width="110" height="50" rx="4"/>
+      <text class="kern-text" x="55" y="22">parser</text>
+      <text class="kern-label" x="55" y="38">decision + obligation</text>
+    </g>
+    <path class="kern-arrow" d="M350,25 L370,25" marker-end="url(#karrow)"/>
+
+    <!-- stage 3: attestation join (emphasis: where observations meet obligations) -->
+    <g transform="translate(375, 0)">
+      <text class="kern-label" x="55" y="-12">A1 -- commitment -> observation</text>
+      <rect class="kern-box-emph" x="0" y="0" width="110" height="50" rx="4"/>
+      <text class="kern-text-emph" x="55" y="22">attestation join</text>
+      <text class="kern-label" x="55" y="38">verdict per obligation</text>
+    </g>
+    <path class="kern-arrow" d="M485,25 L505,25" marker-end="url(#karrow)"/>
+
+    <!-- stage 4: self-check (emphasis: applies rules to itself) -->
+    <g transform="translate(510, 0)">
+      <text class="kern-label" x="55" y="-12">A3 -- rules govern their own changes</text>
+      <rect class="kern-box-emph" x="0" y="0" width="110" height="50" rx="4"/>
+      <text class="kern-text-emph" x="55" y="22">self-check</text>
+      <text class="kern-label" x="55" y="38">every decision</text>
+    </g>
+    <path class="kern-arrow" d="M620,25 L640,25" marker-end="url(#karrow)"/>
+
+    <!-- stage 5: gate -> verdict -->
+    <g transform="translate(645, 0)">
+      <text class="kern-label" x="55" y="-12">I14 -- exit honesty</text>
+      <rect class="kern-box" x="0" y="0" width="110" height="50" rx="4"/>
+      <text class="kern-text" x="55" y="22">gate</text>
+      <text class="kern-label" x="55" y="38">pass / unknown / fail</text>
+    </g>
+
+    <!-- annotation row below the pipeline -->
+    <text class="kern-label" x="380" y="80">reads-only; the kernel is offline except for the attestation store</text>
+  </g>
+</svg>

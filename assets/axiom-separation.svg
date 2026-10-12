@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="a0-title">
+  <title id="a0-title">Axiom A0 -- Separation: kinds are distinct, the chain goes one way.</title>
+  <defs>
+    <style>
+      .a0-fill { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.5; }
+      .a0-line { stroke: #8b3a3a; stroke-width: 1.25; fill: none; }
+      .a0-tick { stroke: #8b3a3a; stroke-width: 1; }
+    </style>
+  </defs>
+  <!-- Two boxes separated by a divider: kinds are distinct -->
+  <rect class="a0-fill" x="10" y="18" width="22" height="44" rx="2"/>
+  <rect class="a0-fill" x="48" y="18" width="22" height="44" rx="2"/>
+  <!-- divider line (the kind boundary) -->
+  <line class="a0-line" x1="40" y1="10" x2="40" y2="70"/>
+  <!-- directional arrow on the right box: chain goes one way -->
+  <line class="a0-line" x1="52" y1="40" x2="66" y2="40" marker-end="url(#a0h)"/>
+  <line class="a0-line" x1="16" y1="40" x2="28" y2="40"/>
+  <!-- crosses: the two kinds do not overlap -->
+  <line class="a0-tick" x1="14" y1="14" x2="30" y2="14"/>
+  <line class="a0-tick" x1="14" y1="66" x2="30" y2="66"/>
+  <line class="a0-tick" x1="50" y1="14" x2="66" y2="14"/>
+  <line class="a0-tick" x1="50" y1="66" x2="66" y2="66"/>
+  <defs>
+    <marker id="a0h" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+</svg>
