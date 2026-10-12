@@ -148,11 +148,16 @@
         # -- <args>`. Closes `decisions/install-tooling-2026-10.yaml`
         # outcome `nix-run-derivation-exists`. The same `mathc`
         # binary ships as `packages.default`; the `apps` stanza is
-        # the no-install entry path for Nix users.
+        # the no-install entry path for Nix users. The
+        # `self.packages.${system}.default` reference is explicit
+        # so the evaluator resolves to the top-level packages
+        # attr rather than the inner `packages` field of
+        # `devShells.default = pkgs.mkShell { packages = [...]; }`
+        # at line 87 (which would otherwise shadow the path lookup).
         apps = rec {
           mathc = {
             type = "app";
-            program = "${packages.${system}.default}/bin/mathc";
+            program = "${self.packages.${system}.default}/bin/mathc";
           };
           default = mathc;
         };
