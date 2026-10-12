@@ -659,17 +659,11 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
   border-radius: 2px;
   letter-spacing: 0.06em;
 }
-/* `pass` is the protocol's healthy state; the visual signal
-   on the page is the non-pass verdicts (unknown/fail/etc).
-   So `pass` is neutral (cream + oxblood outline) and the
-   non-pass states keep their semantic colour (Phase 3 of
-   site-quality-polish-2026-10). */
-.mathc-verdict-pass .mathc-verdict-label {
-  background: var(--bg);
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  padding: 0.1em 0.5em;
-}
+/* `pass` is the protocol's healthy state; pass pills use
+   the existing green palette token (--pass: #2f7a3a). The
+   non-pass verdicts retain their semantic colour so the
+   actual signal (fail/unknown/etc.) stays distinct. */
+.mathc-verdict-pass .mathc-verdict-label { background: var(--pass); color: #fff; }
 .mathc-verdict-fail .mathc-verdict-label    { background: var(--fail);   color: #fff; }
 .mathc-verdict-unknown .mathc-verdict-label { background: var(--unknown); color: #fff; }
 .mathc-verdict-stale .mathc-verdict-label   { background: var(--stale);  color: #fff; }

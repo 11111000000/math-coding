@@ -1,0 +1,18 @@
+{
+  "evidence": "Replaces the prior neutral (cream + oxblood) verdict pill with the existing green palette token. assets/style.css::.mathc-verdict-pass .mathc-verdict-label uses var(--pass) background (green) with white text so a passing obligation is the universal verified signal; the remaining verdict labels (fail, unknown, stale, missing, waived) retain their semantic colour palette. Old attestation filename is renamed to the new obligation id.",
+  "id": "sha256:2b4a637386a3299108cfe800fc2eb6c72e0bdedc57b4f7b16c1811d63118ae94",
+  "issued_at": "2026-10-12T23:10:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "agent:opencode:site-quality-polish-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-polish-2026-10",
+    "materials_digest": "",
+    "obligation": "verdict-pill-pass-is-green"
+  }
+}

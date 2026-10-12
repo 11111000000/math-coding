@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: site-quality-polish-2026-10
 revision: 1
 state: active
-body_sha: "sha256:9ddc21204697a152d3a39c62bfe2295b7c6e6fa2809c96659276ed2aff2caf79"
-yaml_sha: "sha256:9ddc21204697a152d3a39c62bfe2295b7c6e6fa2809c96659276ed2aff2caf79"
+body_sha: "sha256:57698a326bd42a59612b6c0d4e2d69dee14f2cbdcecc3d1834ffc3820e2b9ef1"
+yaml_sha: "sha256:57698a326bd42a59612b6c0d4e2d69dee14f2cbdcecc3d1834ffc3820e2b9ef1"
 axiom_link:
   - A1
 intent: |
@@ -134,14 +134,16 @@ obligations:
         - verifier: live-counter-script-emits
           result: pass
 
-  - id: verdict-pill-pass-is-neutral
+  - id: verdict-pill-pass-is-green
     outcome: verdict-pills-neutral-for-pass
     claim: |
-      `assets/style.css::.mathc-verdict-label.pass` carries
-      a neutral background (warm cream + oxblood outline)
-      instead of a saturated green; the remaining verdict
-      labels (`fail`, `unknown`, `stale`, `missing`,
-      `waived`) retain their semantic colour palette.
+      `assets/style.css::.mathc-verdict-pass .mathc-verdict-label`
+      keeps the existing green palette token
+      (`--pass: #2f7a3a`) on a white-text background so a
+      passing obligation is the universal "verified"
+      signal; the remaining verdict labels (`fail`,
+      `unknown`, `stale`, `missing`, `waived`) retain
+      their semantic colour palette.
     acceptance:
       all:
         - verifier: verdict-pill-css-rule-changed

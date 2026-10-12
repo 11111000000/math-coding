@@ -32,6 +32,14 @@ echo "[3/4] copying assets..."
 mkdir -p dist/assets
 cp -f assets/style.css dist/assets/style.css
 cp -f assets/site.js dist/assets/site.js 2>/dev/null || true
+# Copy any SVG illustrations (Phase 2 of site-quality-illustrations-2026-10
+# plus future additions). The list is glob-derived so a new
+# asset/*.svg is picked up without a script change; the verify
+# pass at [4/4] catches missing files.
+for svg in assets/*.svg; do
+  [ -f "$svg" ] || continue
+  cp -f "$svg" "dist/assets/$(basename "$svg")"
+done
 
 echo "[4/4] verifying dist/..."
 
