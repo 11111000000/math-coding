@@ -1,0 +1,18 @@
+{
+  "evidence": "nav_links_en and nav_links_ru add a 'spec/algebra-3.2' entry pointing at spec/algebra-3.2.html (the most-visited spec surface); nav block renders on every page; sample evidence: dist/index.html, dist/axioms.html, dist/methodology.html, dist/packages.html each contain exactly one Algebra nav-link",
+  "id": "sha256:5dddd179c0cee1f6e4dfacebd319d055d3d34a9f4ad9dfea9d59262e01d1adc3",
+  "issued_at": "2026-10-12T13:30:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "agent:opencode:site-quality-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-2026-10",
+    "materials_digest": "",
+    "obligation": "spec-in-nav"
+  }
+}

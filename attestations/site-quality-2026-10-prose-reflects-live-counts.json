@@ -1,0 +1,18 @@
+{
+  "evidence": "grep -rn 'eight principles|23 subjects|29 active decisions' site/*.md returns zero hits; numbers now reference live 52/207/58/260 figures",
+  "id": "sha256:e84dc8b9200f42b29824f2e98fe4c99e9c454c33347ba6aedb81b2064b980a70",
+  "issued_at": "2026-10-12T13:30:00Z",
+  "kind": "attestation",
+  "kind_": "analysis",
+  "producer": {
+    "identity": "agent:opencode:site-quality-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-2026-10",
+    "materials_digest": "",
+    "obligation": "prose-reflects-live-counts"
+  }
+}

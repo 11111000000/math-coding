@@ -3068,9 +3068,20 @@ let[@warning "-32"] do_render () =
   in
   let package_html = Packages.to_html pkg in
   let axioms_data = read_axioms axioms_root in
+  (* Per-decision pages now render the full YAML body (intent,
+     commitment, outcomes, obligations-with-claims, counterexample,
+     risk, relations, scope, axiom_link) in addition to the
+     verdict grid. The kernel-side `decision_view` carries the
+     raw YAML body verbatim; the renderer pulls the sections it
+     needs and falls back to "no body" prose when a decision is
+     non-textual (a pure-architecture decision with no prose
+     fields). *)
   let decisions_data =
     List.map
-      (fun d -> (d.Packages.decision_id, per_decision_obligation_html d))
+      (fun d ->
+        ( d.Packages.decision_id,
+          per_decision_obligation_html d,
+          d.Packages.yaml_body ))
       pkg.Packages.decisions
   in
 

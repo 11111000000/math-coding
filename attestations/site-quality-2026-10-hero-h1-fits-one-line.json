@@ -1,0 +1,18 @@
+{
+  "evidence": "lib/render.ml splits hero h1 from version string; CSS hero h1 font-size clamp(2.2rem,5vw,3rem) and adds .hero .version rule; dist/index.html now emits <h1>math-coding</h1><p class=version>3.1.0-alpha-final</p>",
+  "id": "sha256:89c8e18640cba704d42a09aace572a64a5dd5b39294d14f2f043b9d58a980b0f",
+  "issued_at": "2026-10-12T13:30:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "agent:opencode:site-quality-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-2026-10",
+    "materials_digest": "",
+    "obligation": "hero-h1-fits-one-line"
+  }
+}

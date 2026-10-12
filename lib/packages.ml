@@ -79,6 +79,15 @@ type decision_view = {
   decision_id : string;
   decision_revision : string option;
   obligations : obligation_view list;
+  (* Raw YAML body of the decision file. The site renderer
+     (lib/render.ml::render_decision_page_full) consumes this
+     to surface intent / commitment / outcomes / obligations-
+     with-claims / counterexample / risk / relations on the
+     per-decision page; the verdict-grid alone never did. The body
+     is the file contents verbatim (front-matter included) so the
+     renderer can reuse the existing yaml-block-scalars-aware
+     parser. *)
+  yaml_body : string option;
 }
 
 type counts = {
@@ -206,7 +215,14 @@ let[@warning "-32"] load_decision ~reader ~path =
     | Some decision_id ->
         let obligation_ids = extract_obligation_ids lines in
         let decision_revision = None in
-        Some (decision_id, decision_revision, obligation_ids)
+        (* Carry the raw YAML body verbatim so the site renderer
+           can emit the decision's `intent`, `commitment`, etc.
+           The body is small (~6 KB) per decision; we keep the
+           full text rather than a hand-rolled subset so a
+           future site surface that wants, say, `risk.owner` or
+           `outcome.statement` does not need another parser
+           pass. *)
+        Some (decision_id, decision_revision, obligation_ids, Some raw)
 
 (* --- attestation join --- *)
 
@@ -307,14 +323,20 @@ let[@warning "-32"] walk ~reader ~decisions_root ~store ~has_store ~now_iso
       (fun path ->
         match load_decision ~reader ~path with
         | None -> None
-        | Some (decision_id, decision_revision, obligation_ids) ->
+        | Some (decision_id, decision_revision, obligation_ids, yaml_body) ->
             let obs =
               List.map
                 (fun oid ->
                   obligation_view ~now_iso ~obligation_id:oid ~store ~has_store)
                 obligation_ids
             in
-            Some { decision_id; decision_revision; obligations = obs })
+            Some
+              {
+                decision_id;
+                decision_revision;
+                obligations = obs;
+                yaml_body;
+              })
       decisions_paths
   in
   let counts =
@@ -419,6 +441,10 @@ let[@warning "-32"] decision_to_json (d : decision_view) =
       ("decision_id", Jsonl.String d.decision_id);
       ("decision_revision", option_to_json d.decision_revision);
       ("obligations", obligations_json);
+      (* `yaml_body` is intentionally absent from the JSON form
+         to keep `mathc packages --format=json` payload size
+         bounded; the site renderer consumes the body directly
+         from the in-memory record. *)
     ]
   in
   json_value_of_obj (List.sort (fun (a, _) (b, _) -> String.compare a b) kvs)

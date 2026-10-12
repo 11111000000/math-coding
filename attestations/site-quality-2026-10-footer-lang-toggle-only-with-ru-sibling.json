@@ -1,0 +1,18 @@
+{
+  "evidence": "render_footer takes sibling_href via sibling_translation_href; RU link only emitted when has_ru is true; index.html correctly shows index.ru.html while packages.html, decisions/, axioms/, spec/ hide it",
+  "id": "sha256:359ab662fbf5f2449aaaa3a1c51c689ae032b809ac3c40dabc0cf45f69c28406",
+  "issued_at": "2026-10-12T13:30:00Z",
+  "kind": "attestation",
+  "kind_": "test",
+  "producer": {
+    "identity": "agent:opencode:site-quality-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-2026-10",
+    "materials_digest": "",
+    "obligation": "footer-lang-toggle-only-with-ru-sibling"
+  }
+}

@@ -332,11 +332,18 @@ table.mathc-table code {
   margin-bottom: 4rem;
 }
 .hero h1 {
-  font-size: 3.25rem;
+  font-size: clamp(2.2rem, 5vw, 3rem);
   font-weight: 400;
   margin: 0 0 0.5rem;
   letter-spacing: -0.025em;
   line-height: 1.1;
+}
+.hero .version {
+  font-family: var(--mono-stack);
+  font-size: 0.78rem;
+  color: var(--fg-faint);
+  letter-spacing: 0.04em;
+  margin: 0 0 0.6rem;
 }
 .hero .lead {
   font-size: 1.15rem;
@@ -399,6 +406,89 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
   /* When the sidenote is paired with an inline marker via JS
      toggling, hide the inline body until hovered. Default to
      full visibility — the inline marker is still a link. */
+}
+
+/* --- per-decision pages (Phase 1 of site-quality-2026-10) --- */
+
+.mathc-decision-page {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 2.5rem 1rem 4rem;
+}
+.mathc-decision-page > h1 {
+  font-family: var(--mono-stack);
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin: 0 0 1.5rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--rule);
+  color: var(--fg);
+}
+.mathc-decision-page h2 {
+  font-size: 1.25rem;
+  font-style: normal;
+  font-weight: 600;
+  margin: 2.2em 0 0.6em;
+  padding-bottom: 0.25em;
+  border-bottom: 1px solid var(--rule);
+  color: var(--fg);
+}
+.mathc-decision-section {
+  margin: 0 0 1.6em;
+}
+.mathc-decision-section > p:first-child {
+  margin-top: 0;
+}
+.mathc-decision-list,
+.mathc-decision-object-list,
+.mathc-decision-obligations,
+.mathc-decision-relations {
+  list-style: none;
+  padding-left: 0;
+  margin: 0.5em 0 1.5em;
+}
+.mathc-decision-object-list > li,
+.mathc-decision-obligations > li {
+  padding: 0.85em 1em;
+  margin: 0.7em 0;
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+.mathc-decision-obligation-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  flex-wrap: wrap;
+  margin-bottom: 0.4em;
+}
+.mathc-decision-obligation-body {
+  color: var(--fg-muted);
+  font-size: 0.96em;
+}
+.mathc-decision-id {
+  font-family: var(--mono-stack);
+  font-size: 0.92em;
+  background: var(--code-bg);
+  padding: 0.15em 0.5em;
+  border-radius: 3px;
+}
+.mathc-decision-relations > li {
+  font-family: var(--mono-stack);
+  font-size: 0.92em;
+  padding: 0.25em 0;
+}
+.mathc-decision-axiom-link {
+  font-family: var(--mono-stack);
+  font-size: 0.95em;
+}
+.mathc-decision-axiom-link a {
+  background: var(--code-bg);
+  padding: 0.15em 0.5em;
+  border-radius: 3px;
+  border-bottom: 0;
+  color: var(--link);
 }
 
 /* --- package grid + verdicts --- */

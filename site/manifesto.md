@@ -37,10 +37,13 @@ has a path to an observation, every observation has a known
 source class, every source class is bounded by subject,
 inputs, and time.
 
-## Eight principles at v3.0
+## Principles at v3.0
 
-The kernel verifies eight principles, all documented as
-packets under `decisions/`:
+The kernel verifies the obligations declared in every active
+decision (52 active decisions / 207 obligations on a clean
+`main` HEAD as of the live build), all documented as packets
+under `decisions/`. Eight of those packets form the minimum
+set that closes the bootstrap loop:
 
 | Group | Principle | What it asserts |
 |-------|-----------|-----------------|
@@ -57,6 +60,7 @@ The eight are not arbitrary. They are the minimum set that
 closes the bootstrap loop: from the first commit (`v3-alpha-0.0.1`)
 to the moment the kernel can check itself (commit `8fa7fcf`),
 every change had to be admitted by all eight. Now both are.
+The full live inventory is at [Packages](packages.html).
 
 ## How to read this site
 

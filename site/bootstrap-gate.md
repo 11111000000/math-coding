@@ -38,12 +38,18 @@ The gate expired at commit `8fa7fcf` (v3.0.0.19). Concretely:
 
 - `mathc self-check` is a blocking CI step. On a clean `main` HEAD
   the step prints `self-check exit=0` and the JSON payload
-  contains `verdict=pass`, `subjects_count=23`,
-  `pass_count=23`. PRs that yield `fail` (exit 1) or
-  `unknown` (exit 3) block the merge.
-- The attestation store at `attestations/` contains 75 JSON
-  files — one per decision-obligation pair enumerated by
-  `scripts/generate-attestations.py`.
+  contains `verdict=pass` for every obligation whose verdict
+  is `Pass` or `Open_with_waiver`. PRs that yield `fail`
+  (exit 1) or `unknown` (exit 3) block the merge. The live
+  build currently reports 57 pass / 1 unknown of 58 subjects;
+  the one `unknown` is `audit-0.0.21-fixes::self-check-verdict-is-pass`,
+  structurally inconclusive by construction (it can never be
+  `pass` while any other subject contributes to `unknown`),
+  and is mapped to `Open_with_waiver` by the kernel's
+  waiver-consult step.
+- The attestation store at `attestations/` contains one JSON
+  file per decision-obligation pair enumerated by the kernel
+  walker. The live build carries 260 attestations.
 - `mathc gate BASE HEAD` reports verdicts against the populated
   store: `gate-pass.t`, `gate-fail.t`, `gate-stale.t` are
   green.
@@ -66,7 +72,7 @@ sequenceDiagram
     Note over Auto: 8fa7fcf (v3.0.0.19) → present<br/>(kernel enforces routine checks)
 
     Agent->>Auto: git push
-    Auto->>Auto: mathc self-check<br/>75 attestations<br/>(subjects_count = 23, all pass)
+    Auto->>Auto: mathc self-check<br/>~260 attestations<br/>(subjects = 58, 57 pass / 1 unknown)
     Auto-->>Agent: gate exit 0 ⇒ merge allowed
 
     Note over Manual,Auto: For protected policy transitions<br/>(constitution, schemas, kernel,<br/>gate/authority/waiver rules):<br/>8 manual checks remain additive

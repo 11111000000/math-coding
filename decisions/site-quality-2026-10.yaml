@@ -1,0 +1,227 @@
+---
+schema: math-coding/3.0-alpha
+id: site-quality-2026-10
+revision: 1
+state: active
+body_sha: "sha256:6206925b7c475c1c3bfcc0ccb0297ed343927d4056b0e49b87a07e7bb16caa89"
+yaml_sha: "sha256:6206925b7c475c1c3bfcc0ccb0297ed343927d4056b0e49b87a07e7bb16caa89"
+axiom_link:
+  - A1
+intent: |
+  Close the gap between the kernel's promise — that the protocol's
+  published surface lives under its own gate — and the
+  on-the-ground state of the site as of 2026-10-12.
+
+  The bootstrap protocol expired at commit `8fa7fcf`; routine
+  guarantees now apply. Three gaps survive the expiration:
+
+  - **Visual**: the hero `<h1>` wraps to five lines on a 1400-px
+    viewport because the title literal concatenates the version
+    string into the heading.
+  - **Content**: per-decision pages (`dist/decisions/<id>.html`,
+    56 of them) render only the verdict grid. The decision YAML
+    that the page is named after carries `intent`, `commitment`,
+    `scope`, `outcomes`, obligations-with-claims, `counterexample`,
+    `risk`, and `relations`; none of it is shown.
+  - **Navigation**: the spec pages under `dist/spec/*.html` are
+    rendered but live outside the top-level navigation, and the
+    FOOTER language toggle advertises a Russian sibling that does
+    not exist for `packages.html`.
+
+  This decision records and closes all three.
+
+commitment: |
+  `mathc render` emits a site that:
+
+  1. Keeps the version string out of the hero `<h1>` so the heading
+     stays on one line on standard viewports (≥ 360 px).
+  2. Reflects live kernel numbers on the prose pages
+     (`manifesto.md`, `foundations.md`, `bootstrap-gate.md`) so
+     stale figures ("eight principles", "23 subjects", "29 active
+     decisions") no longer ship.
+  3. Adds the spec surface to the top navigation as a single entry
+     pointing at the algebra-3.2 page, the most-visited spec.
+  4. Renders every per-decision page with the full YAML body —
+     intent, commitment, scope, outcomes, obligations-with-claims,
+     counterexample, risk, relations — between the page title and
+     the obligation verdict grid.
+  5. Hides the FOOTER language toggle on pages whose `has_ru` is
+     `false`, so the toggle never links to a 404 sibling.
+
+scope:
+  paths:
+    - "site/**"
+    - "assets/**"
+    - "lib/render.ml"
+    - "lib/packages.ml"
+    - "bin/Mathc.ml"
+    - "tests/render_kernel.ml"
+    - "tests/counters_drift.ml"
+  decisions:
+    - "site-deploy@5"
+    - "render-kernel-fixes-2026-10@1"
+    - "mathjax-default-on-2026-10@1"
+    - "site-version-from-file-2026-10@1"
+
+outcomes:
+  - id: hero-fits-one-line
+    statement: The home page hero no longer wraps to multiple lines on
+      standard desktop viewports.
+  - id: prose-reflects-live-state
+    statement: Documented counts (decisions, obligations, subjects) on
+      prose pages match the live kernel reading on a clean `main` HEAD.
+  - id: spec-in-nav
+    statement: The spec surface is reachable from the top navigation
+      in one click.
+  - id: per-decision-narrative
+    statement: Every per-decision page renders the YAML body sections
+      that the protocol defines (intent, commitment, scope, outcomes,
+      obligations-with-claims, counterexample, risk, relations).
+  - id: footer-lang-toggle-honest
+    statement: The footer language toggle only appears on pages whose
+      Russian sibling actually exists.
+  - id: kernel-build-and-self-check-still-green
+    statement: After all of the above, `dune build` and `mathc
+      self-check` both exit 0; the live site-pass count does not
+      regress.
+
+assumptions:
+  - id: live-counts-known
+    state: assumed
+    statement: The live kernel reading on a clean `main` HEAD produces
+      52 active decisions, 207 obligations (206 pass + 1 unknown), and
+      58 self-check subjects (57 pass + 1 unknown).
+    owner: human:maintainer
+    consequence_if_false: A prose page would carry a stale count even
+      after the edits in this decision land; rerun `mathc counters`
+      on the live HEAD before regenerating the prose.
+    review_on:
+      - signal: mathc-counters-counts-moved
+
+obligations:
+  - id: hero-h1-fits-one-line
+    outcome: hero-fits-one-line
+    claim: |
+      On a 1400-px viewport, the home page hero `<h1>` is at most
+      two lines; the version string does not appear inside the
+      `<h1>` text.
+    acceptance:
+      all:
+        - verifier: mathc-render-hero-element
+          result: pass
+
+  - id: prose-reflects-live-counts
+    outcome: prose-reflects-live-state
+    claim: |
+      The prose pages `manifesto.md`, `foundations.md`, and
+      `bootstrap-gate.md` carry figures consistent with the live
+      kernel output on a clean `main` HEAD. The literal strings
+      "eight principles" (manifesto), "23 subjects" / "subjects
+      _count = 23" (bootstrap-gate), and "29 active decisions"
+      (foundations) no longer appear in the rendered text.
+    acceptance:
+      all:
+        - verifier: mathc-render-prose-numbers
+          result: pass
+
+  - id: spec-in-nav
+    outcome: spec-in-nav
+    claim: |
+      The site top navigation carries an "Algebra" link pointing at
+      `spec/algebra-3.2.html` from every page that has the full
+      nav.
+    acceptance:
+      all:
+        - verifier: mathc-render-nav-spec-link
+          result: pass
+
+  - id: per-decision-narrative-rendered
+    outcome: per-decision-narrative
+    claim: |
+      Every per-decision page (`dist/decisions/<id>.html`,
+      56 pages) renders the YAML body sections in addition to
+      the verdict grid. Specifically: each page carries the
+      decision's `intent`, `commitment` (if non-empty), `scope`
+      (if non-empty), `outcomes` (if non-empty), `obligations`
+      (each with `id` + `claim` + `verdict`), `counterexample`
+      (if non-empty), `risk` (if non-empty), and `relations`
+      (if non-empty).
+    acceptance:
+      all:
+        - verifier: mathc-render-decision-page-section
+          result: pass
+
+  - id: footer-lang-toggle-only-with-ru-sibling
+    outcome: footer-lang-toggle-honest
+    claim: |
+      The FOOTER language toggle is hidden on pages whose
+      `has_ru` is `false` (e.g. `packages.html`,
+      `decisions/<id>.html`, `axioms/<id>.html`,
+      `spec/<name>.html`). On every other prose page
+      (`index.html`, `axioms.html`, `manifesto.html`,
+      `foundations.md`-siblings, etc.) the toggle still renders
+      and links to the correct sibling.
+    acceptance:
+      all:
+        - verifier: mathc-render-footer-lang-toggle
+          result: pass
+
+  - id: build-and-self-check-green
+    outcome: kernel-build-and-self-check-still-green
+    claim: |
+      After the changes land, `nix develop .#test --command
+      "dune build && dune test"` exits 0 and `mathc self-check`
+      reports a verdict at least as good as the pre-change
+      baseline (57 pass / 1 unknown of 58 subjects).
+    acceptance:
+      all:
+        - verifier: mathc-self-check
+          result: pass
+
+reversal:
+  - signal: live-counts-moved-and-prose-not-refreshed
+    action: refresh-prose-and-bump-revision
+  - signal: mathc-render-decision-page-section-fails
+    action: revert-render-decision-page-to-revert
+
+risk:
+  declared_triggers:
+    - per-decision-yaml-shape-changes
+    - site-prose-numbers-drift
+
+antithesis: |
+  Author considered and rejected the strongest counter-position
+  that a maintainer might raise: "these six gaps are tiny and
+  each is reversible by hand; a decision is overkill for what is
+  effectively editorial cleanup." That position is rejected
+  because (a) three of the six changes touch kernel-side code
+  (`lib/render.ml`, `bin/Mathc.ml`, `lib/packages.ml`), and the
+  protocol's `bootstrap-v3@3` developer-practices obligation
+  binds a decision to any kernel-side change; and (b) the
+  per-decision narrative change is not editorial — it adds new
+  public surface (risk blocks, counterexamples, claims) that
+  visitors can read; per A3 self-application the change to the
+  rules that govern what readers see must itself be governed
+  by a recorded commitment. The distinction between
+  `counterexample` (the strongest reader-facing objection)
+  and `antithesis` (the strongest maintainer-facing objection
+  the author considered and rejected) is preserved.
+
+counterexample: |
+  "The per-decision narrative change is purely additive — it does
+  not affect the kernel's verdict logic, so no decision is needed."
+  This argument fails for two reasons. First, the change touches
+  `lib/render.ml` and `bin/Mathc.ml` (kernel-side), not just
+  `site/*.md` (content); per `decisions/decision.yaml`
+  (`bootstrap-v3`) developer-practices obligation, kernel changes
+  ship with a decision. Second, the rendered surface is part of
+  the project's public contract — visitors can now see risk
+  blocks, counterexamples, and obligations-with-claims that the
+  verdict grid alone never revealed; the protocol's
+  self-application principle requires that the public surface
+  acknowledge the change explicitly.
+
+relations:
+  addresses:
+    - "site-deploy@5"
+    - "render-kernel-fixes-2026-10@1"
