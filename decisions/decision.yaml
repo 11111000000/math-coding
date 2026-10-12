@@ -121,6 +121,19 @@ reversal:
   - signal: conformance-failure
     action: revert
 
+counterexample: |
+  "Replace v2.1 with a fresh protocol; the v2 source is preserved
+  by tag and is not actually lost." The counterargument fails for
+  three reasons: (a) the cutover is irreversible in practice even
+  though v2.1-final is recoverable from git, because no tooling
+  reads v2.1 packets anymore and the renderer is removed at v3.0;
+  (b) removing v2.1 implementation while v2.1 kernels are still
+  in production use breaks any agent that consults them; (c) the
+  protocol cannot claim A2 (Invariants and Recovery) if the recovery
+  path is theoretical. The mitigation recorded in this decision is
+  the tag itself plus the `preserve-v2` obligation; the disagreement
+  is whether that mitigation is sufficient for a real recovery.
+
 risk:
   declared_triggers:
     - policy-weakening

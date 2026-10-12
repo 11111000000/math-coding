@@ -115,6 +115,19 @@ reversal:
   - signal: aggregator-id-drift
     action: re-reconcile with a new decision revision
 
+counterexample: |
+  "The count drift is cosmetic; agents reading the docs will not
+  act on the discrepancy." The counterargument fails because
+  `mathc self-check` (active since v3.0.0.19) is a blocking CI step
+  that emits a verdict against the live attestation store; an
+  aggregator file whose ids do not match its parent decision will
+  be flagged at self-check time, and the discrepancy is therefore
+  not cosmetic but consequential. The mitigation in this decision
+  is the line-for-line reconciliation between obligations.yaml@2
+  and decision.yaml@2; the meta-feedback is that the PACKAGES.md
+  `Obs` column comes from a separate audit tool and is not part
+  of the obligation count.
+
 risk:
   declared_triggers:
     - aggregator-points-at-superseded-revision

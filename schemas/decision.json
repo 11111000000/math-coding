@@ -50,6 +50,11 @@
         {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
       ]
     },
+    "antithesis": {
+      "description": "Coherent counter-position the author considered and rejected. Per spec/algebra-3.2.md §11 (v3 dialectic method), antithesis is required for mode=considered (binary mode), parallel to counterexample. Distinct from counterexample: antithesis is the position the author engaged with; counterexample is the strongest objection the kernel will surface to a future reader.",
+      "type": "string",
+      "minLength": 80
+    },
     "scope": {
       "description": "Decision scope. Two forms: (a) YAML form — object with `paths` (globs), `capabilities` (string list), `exclusions` (globs); (b) JSON form — array of scope_target objects. The YAML form is the canonical source-of-truth; the JSON form is the explicit form for tooling that needs every entry as a self-describing record.",
       "oneOf": [

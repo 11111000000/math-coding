@@ -1,0 +1,183 @@
+---
+schema: math-coding/3.0-alpha
+id: dialectic-method-v3
+revision: 1
+state: active
+body_sha: ""
+yaml_sha: ""
+axiom_link:
+  - A0
+  - A1
+  - A4
+mode: considered
+intent: |
+  Establish the v3 dialectic method. Three dialectic moves (thesis,
+  antithesis, synthesis) live in three existing fields: intent (thesis,
+  implicit), antithesis (counter-position, explicit, new field),
+  commitment (synthesis, implicit). The existing counterexample slot
+  continues as a parallel machine-checkable forcing function. Antithesis
+  is required for mode=considered; counterexample remains required for
+  mode != tiny (per §11 / spec/algebra-3.2.md).
+
+commitment: |
+  After this decision lands on main:
+
+    (a) `schemas/decision.json` declares `antithesis` as a string
+        field with minLength 80.
+
+    (b) `spec/algebra-3.2.md` §11 names antithesis as the v3 dialectic
+        slot; §11.1 records the rationale (intent=thesis, antithesis,
+        commitment=synthesis; counterexample parallel forcing).
+
+    (c) `lib/domain.ml` Decision record carries `antithesis : string
+        option`; `lib/decision.ml` parses the field.
+
+    (d) Empty `counterexample` sweep closes the existing deficit on
+        `decisions/decision.yaml` (bootstrap-v3) and
+        `decisions/obligation-count-reconcile.yaml`.
+
+    (e) Cram fixtures under `tests/cli/` assert:
+        - `decision-with-antithesis.t`: mode=considered decision with
+          antithesis + counterexample + commitment passes validate.
+        - `decision-missing-antithesis.t`: mode=considered decision
+          without antithesis is rejected with diagnostic
+          MC-ANTITHESIS-MISSING.
+
+scope:
+  capabilities:
+    - dialectic-method-v3
+  paths:
+    - "schemas/decision.json"
+    - "spec/algebra-3.2.md"
+    - "lib/domain.ml"
+    - "lib/decision.ml"
+    - "decisions/decision.yaml"
+    - "decisions/obligation-count-reconcile.yaml"
+    - "tests/cli/"
+  exclusions:
+    - "lib/risk.ml"
+    - "lib/canonical.ml"
+    - "axioms/"
+
+outcomes:
+  - id: antithesis-field-declared
+    statement: schemas/decision.json declares antithesis as string, minLength 80.
+  - id: spec-11-names-antithesis
+    statement: spec/algebra-3.2.md §11 (and §11.1) name antithesis and the v3
+      dialectic method.
+  - id: kernel-parses-antithesis
+    statement: lib/domain.ml carries antithesis; lib/decision.ml parses it.
+  - id: counterexample-sweep-closed
+    statement: decisions/decision.yaml and decisions/obligation-count-reconcile.yaml
+      both carry non-empty counterexample.
+  - id: fixtures-cover-antithesis
+    statement: tests/cli/decision-with-antithesis.t and
+      decision-missing-antithesis.t assert the kernel contract.
+
+counterexample: |
+  "Three dialectic moves are over-engineering for a protocol whose
+  only authors are the project owners." The counterargument fails for
+  three reasons: (a) the dialectical method in v2.1 was not over-
+  engineered; it was enforced on 30 register=judgment packets via V7
+  and produced the project's published surface (verified in
+  `math/dialectic-tas/packet.md` and `core/check.ml:158-171`); (b) the
+  v3 narrowing to one slot (counterexample only) created the deficit
+  we are now closing (three active decisions lack counterexample,
+  including the active policy itself); (c) A4 (Care) requires formal
+  correctness for any rule that affects how decisions are recorded,
+  and the dialectical method is one of those rules.
+
+assumptions:
+  - id: dialectic-tas-precedent
+    state: assumed
+    statement: |
+      v2.1 enforced `## Why / ## Antithesis / ## Synthesis` body
+      sections for register=judgment packets via V7 enforcement
+      (`core/check.ml:158-171`, `core/main.ml:118-121, 738`). The
+      precedent exists and is recorded; this decision does not
+      invent a new pattern, it ports an existing one to v3.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the v2.1 enforcement did not actually run on register=judgment
+      packets, this decision introduces a new pattern instead of
+      porting. The change is still net-positive (the dialectical method
+      is needed), but the rationale must be updated and the migration
+      story reframed.
+    review_on:
+      - signal: v2-enforcement-unverified
+
+  - id: field-additive-only
+    state: assumed
+    statement: |
+      Adding `antithesis : string option` to the Decision record is
+      additive. Existing decisions that don't set antithesis still
+      parse correctly. The new field is only validated when mode is
+      considered.
+    owner: human:maintainer
+    consequence_if_false: |
+      If existing decisions fail to parse after the field is added,
+      the migration is incomplete and the build breaks. The fix is
+      to ensure all constructors of Decision pass `antithesis = None`
+      as default.
+    review_on:
+      - signal: build-broken-by-addition
+
+obligations:
+  - id: antithesis-field-present
+    outcome: antithesis-field-declared
+    claim: schemas/decision.json declares antithesis with minLength 80.
+    acceptance:
+      all:
+        - verifier: tests/schemas_must_lint.sh
+          result: pass
+  - id: spec-11-updated
+    outcome: spec-11-names-antithesis
+    claim: spec/algebra-3.2.md §11 mentions antithesis; §11.1 records rationale.
+    acceptance:
+      all:
+        - verifier: text-scan-contains-antithesis-in-section-11
+          result: pass
+  - id: kernel-parses
+    outcome: kernel-parses-antithesis
+    claim: lib/decision.ml accepts the antithesis key from YAML/JSON.
+    acceptance:
+      all:
+        - verifier: dune-build
+          result: pass
+  - id: counterexample-sweep
+    outcome: counterexample-sweep-closed
+    claim: decisions/decision.yaml and decisions/obligation-count-reconcile.yaml
+      carry non-empty counterexample.
+    acceptance:
+      all:
+        - verifier: grep-counterexample-non-empty
+          result: pass
+  - id: fixtures
+    outcome: fixtures-cover-antithesis
+    claim: tests/cli/decision-with-antithesis.t and
+      decision-missing-antithesis.t exist and assert the contract.
+    acceptance:
+      all:
+        - verifier: dune-runtest
+          result: pass
+
+reversal:
+  - signal: dialectic-method-reverted
+    action: |
+      restore pre-this-commit state by removing `antithesis` field
+      from schemas/decision.json and Decision record; the empty
+      counterexamples already swept remain as the closed deficit.
+
+risk:
+  declared_triggers:
+    - schema-migration-friction
+    - kernel-parsing-regression
+    - over-engineering-on-moderate-decisions
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - algebra-3.2@2
+  supersedes: []
+  superseded_by: []

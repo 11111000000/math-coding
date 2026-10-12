@@ -342,15 +342,46 @@ rebuttals live in rebuttals/<sha>.yaml + forge mirror, NOT in body
 
 ---
 
-## §11. Counterexample
+## §11. Dialectic slots (counterexample, antithesis)
 
 ```
 counterexample: Decision → String*
+antithesis:     Decision → String?
 
 ∀ D ∈ Decision, mode(D) ≠ tiny:
   |counterexample(D)| ≥ 1
-  rebuttals extend this thread via rebuttals/<sha>.yaml
+
+∀ D ∈ Decision, mode(D) = considered:
+  antithesis(D) ≠ ∅ ∧ |antithesis(D)| ≥ 80
+
+role(counterexample) = strongest objection surfaced to a future reader
+role(antithesis)     = coherent counter-position the author engaged with
+role(commitment)     = synthesis
+role(intent)         = thesis (implicit, no separate field)
+
+rebuttals extend this thread via rebuttals/<sha>.yaml
 ```
+
+### §11.1 Rationale (dialectic method, v3)
+
+Three dialectic moves live in three existing fields:
+
+- `intent` carries the **thesis** implicitly — the position the author
+  starts from.
+- `antithesis` (new field, required for `mode=considered`) is the
+  **counter-position** the author considered and rejected. Distinct from
+  `counterexample`: `antithesis` is the position the author engaged
+  with; `counterexample` is the strongest objection the kernel surfaces
+  to a future reader regardless of what the author considered.
+- `commitment` carries the **synthesis** implicitly — the resolved
+  position after considering both.
+- `counterexample` is the parallel machine-checkable forcing function
+  on top of the dialectic triad.
+
+The triad (intent / antithesis / commitment) is the dialectic. The slot
+(counterexample) is the forcing function. Both are needed: the triad
+shapes the author's thinking; the slot prevents regression in future
+readers.
 
 ---
 
