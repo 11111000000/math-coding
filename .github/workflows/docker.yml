@@ -1,0 +1,125 @@
+name: docker
+
+# Per `decisions/install-tooling-2026-10.yaml` outcome
+# `docker-image-publishes-ghcr`. Builds and publishes the
+# `Dockerfile.debian-slim` image to GHCR.
+#
+# TRAP (OCAML_BEST_PRACTICES §11.26): `container:` is honored at
+# the JOB level only. Per-matrix `container:` is silently ignored.
+# This workflow uses a separate job (`build-image`) so the
+# `container: ghcr.io/.../...` field applies to the whole job.
+#
+# On every push to main, on every tag, and on workflow_dispatch:
+#   - build the image with the current VERSION file
+#   - tag as `latest`, `${VERSION}`, `${VERSION}-debian-slim`
+#   - push to `ghcr.io/11111000000/mathc`
+#   - smoke-test via `docker run --rm ... mathc version`
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write  # for cosign keyless signing (future; see reversal signal)
+
+jobs:
+  build-image:
+    name: build mathc image (debian-slim)
+    runs-on: ubuntu-latest
+    # Per OCAML_BEST_PRACTICES §11.26: container at the JOB level only.
+    # We use the Ubuntu runner as the build host (it has docker
+    # installed and can run `docker build` natively) instead of running
+    # inside a container; the Debian-slim image is the artifact, not
+    # the build environment.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read VERSION
+        id: version
+        run: |
+          if [ ! -s VERSION ]; then
+            echo "VERSION file missing or empty" >&2
+            exit 2
+          fi
+          VERSION=$(head -n1 VERSION | tr -d '[:space:]')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Using VERSION=${VERSION}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.debian-slim
+          push: false
+          load: true
+          tags: mathc:dev
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+          # No QEMU cross-arch for rev 1 (decision-install-tooling-2026-10.yaml
+          # reversals). arm64 image is `if: false` below until QEMU is wired.
+
+      - name: Smoke test (CI build)
+        run: |
+          set -eu
+          # The smoke test runs the locally-loaded image and asserts
+          # `mathc version` exits 0 with the expected version string.
+          output=$(docker run --rm mathc:dev version)
+          case "$output" in
+            *"math-coding ${{ steps.version.outputs.version }}"*)
+              echo "ok: smoke test passed: $output"
+              ;;
+            *)
+              echo "FAIL: smoke test output mismatch: $output" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Build and push (amd64)
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.debian-slim
+          push: true
+          tags: |
+            ghcr.io/11111000000/mathc:latest
+            ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}
+            ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}-debian-slim
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+          platforms: linux/amd64
+          # cosign keyless signing: deferred to follow-up cycle when the
+          # release-pipeline-trusted assumption is revisited. Recorded
+          # in `decisions/install-tooling-2026-10.yaml` reversal
+          # signals (`cosign-signature-missing`).
+
+      # arm64 image: deferred. The current `Dockerfile.debian-slim`
+      # does not cross-compile; QEMU emulation would slow CI by ~5x
+      # for a niche audience. A follow-up cycle (`docker-alpine-2026-10`
+      # or a separate `docker-arm64-2026-10`) wires this in.
+      - name: Build and push (arm64) [DEFERRED]
+        if: false
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.debian-slim
+          push: true
+          tags: ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}-arm64
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+          platforms: linux/arm64

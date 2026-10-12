@@ -16,7 +16,95 @@ release `files:` list — that wiring lands with the merge to
 main. See ROADMAP §"Remaining for v3.1.0 stabilisation" and
 OCAML_BEST_PRACTICES §11.26.
 
+**Status (2026-10-12):** Phase 1 of the install-tooling-2026-10
+work landed on `add/deferral-records-phase-2-3-2026-10`. The
+release now ships `install.sh`, `SHA256SUMS`, and `install.sh`
+as release assets; `ghcr.io/11111000000/mathc:<VERSION>` is
+built by `.github/workflows/docker.yml`; `flake.nix` exposes
+`apps.default` for `nix run`; `scripts/sync-version.sh`
+keeps the install script and the skill in sync with `VERSION`.
+Three impl-pending decisions (mcp-server, docker-alpine,
+auto-update-per-user-skill) record Phase 2/3 deferrals with
+machine-readable reversal signals.
+
 ### Added
+
+- `decisions/install-tooling-2026-10.yaml` — A3-protected
+  meta-decision that introduces the four install channels
+  (release binary / docker image / nix run / source build)
+  and the per-user skill pipeline. 10 obligations; 3
+  assumptions; 11 outcomes.
+- `scripts/install-tooling/install.sh` — POSIX-sh installer
+  (~300 lines) with `--user-skill`, `--upgrade`,
+  `--with-docker`, `--print-nix-command`, `--version=<X>`,
+  `--check`, `--help`; exits 0/1/2/124 per the documented
+  contract.
+- `scripts/install-tooling/templates/active-policy.yaml` —
+  bootstrap policy that new projects copy into their
+  `decisions/decision.yaml`; passes `mathc validate`.
+- `Dockerfile.debian-slim` — multi-stage build (nix build →
+  debian:bookworm-slim runtime); ENTRYPOINT `["mathc"]`;
+  ~80 MB.
+- `.github/workflows/docker.yml` — publishes
+  `ghcr.io/11111000000/mathc:<VERSION>` on every push to
+  main, every tag, and on workflow_dispatch. Respects
+  `OCAML_BEST_PRACTICES` §11.26 (job-level `container:`).
+- `flake.nix` — `apps.<system>.default` enables `nix run
+  github:11111000000/math-coding -- <args>`.
+- `decisions/version-sync-2026-10.yaml` — `VERSION` is the
+  single source of truth; `scripts/sync-version.sh
+  --check|--write` keeps `adoption/SKILL.md` and
+  `scripts/install-tooling/install.sh` derived version
+  strings in sync with `VERSION`. Closes the follow-up
+  announced at `site-version-from-file-2026-10.yaml:76-81`.
+- `decisions/mcp-server-impl-pending.yaml`,
+  `decisions/docker-alpine-impl-pending.yaml`,
+  `decisions/auto-update-per-user-skill-impl-pending.yaml`
+  — three Phase 2/3 deferral records with machine-readable
+  reversal signals and `state: active`. The MCP server
+  (Phase 2), the Alpine Docker image (Phase 3, blocked on
+  musl release asset), and per-user skill auto-update
+  (Phase 3+, blocked on agent-platform version-pinning
+  protocol) are sequenced after `install-tooling-2026-10`
+  lands.
+- `site/install.md` (en+ru) — long-form install guide:
+  four-channel decision tree, per-repo vs per-user skill
+  paths, version-pin contract, NixOS/glibc trap notes.
+  Rendered to `dist/install.html` and `.ru.html`; verified
+  by the `scripts/render.sh` allowlist.
+- `OCAML_BEST_PRACTICES.md` §11.27 (`VERSION drift between
+  skill and binary`), §11.28 (`curl | sh install script
+  needs -fSL`), §11.29 (`Dockerfile COPY cannot reach
+  outside the build context`).
+- `tests/fixtures/impl-pending-files-present.sh` —
+  positive + negative (file-missing, state-retired) fixture
+  for the three Phase 2/3 deferral records.
+- `tests/fixtures/sync-version-clean-passes.sh` /
+  `sync-version-stale-fails.sh` — fixtures for the
+  `version-sync-2026-10` obligations; both reentrant.
+- `tests/cli/install.t` — cram fixture covering install.sh
+  `--help`, `--with-docker`, `--print-nix-command`,
+  `--check`, `--bogus-flag`, `--user-skill --upgrade`.
+
+### Changed
+
+- `USAGE.md` §"Install" — replaced "Two ways to get mathc"
+  with the four-channel table; added concrete shell
+  snippets and a pointer to `site/install.md`.
+- `.github/workflows/release.yml` — adds `SHA256SUMS` and
+  `install.sh` to the `files:` list (existing
+  `dist-adoption.tar.gz` already present).
+- `bin/Mathc.ml` — `articles` list (the `mathc render`
+  page registry) gains `install.md` between
+  `bootstrap-gate.md` and `packages.md`.
+- `scripts/render.sh` — allowlist gains `dist/install.html`.
+- `OCAML_BEST_PRACTICES.md` trap-log grows to 30 entries.
+
+### Verification
+
+`mathc self-check`: 62 pass / 1 unknown
+(`audit-0.0.21-fixes` pre-existing waiver). No new
+unknowns introduced by this batch.
 
 - `tests/repo_structure.ml` — new `portable-linux-musl` test
   group with four cases (matrix entry, no Unix.fork in kernel,

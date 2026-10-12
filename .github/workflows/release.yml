@@ -298,6 +298,31 @@ jobs:
             tar -czf dist-bin/dist-adoption.tar.gz -C dist adoption
             ls -la dist-bin/dist-adoption.tar.gz
 
+      - name: Generate SHA256SUMS + install.sh
+        run: |
+            set -eu
+            # SHA256SUMS: one line per mathc-* binary. The line format is
+            # `<hex-digest>  <basename>` (two spaces) per the convention
+            # `sha256sum -c` expects. `install.sh` reads this file at
+            # install time and refuses on tamper.
+            : > dist-bin/SHA256SUMS
+            for exe in dist-bin/mathc-*; do
+              [ -f "$exe" ] || continue
+              # Skip non-binaries (tar.gz, .txt, .sh)
+              case "$exe" in
+                *.tar.gz|*.txt|*.sh|*.exe) ;;
+                *) sha256sum "$exe" >> dist-bin/SHA256SUMS ;;
+              esac
+            done
+            cat dist-bin/SHA256SUMS
+            # install.sh: verbatim copy of the source script, marked
+            # executable. The script is in scripts/install-tooling/
+            # and is independent of the build matrix; the same file
+            # is shared by every release.
+            cp scripts/install-tooling/install.sh dist-bin/install.sh
+            chmod +x dist-bin/install.sh
+            ls -la dist-bin/SHA256SUMS dist-bin/install.sh
+
       - name: Publish on tag — official release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -312,6 +337,8 @@ jobs:
             dist-bin/mathc-darwin-aarch64
             dist-bin/mathc-windows-x86_64.exe
             dist-bin/mathc-linux-x86_64-musl
+            dist-bin/SHA256SUMS
+            dist-bin/install.sh
             dist-bin/dist-adoption.tar.gz
 
       - name: Publish on main / manual dispatch — rolling edge
@@ -328,6 +355,8 @@ jobs:
             dist-bin/mathc-darwin-aarch64
             dist-bin/mathc-windows-x86_64.exe
             dist-bin/mathc-linux-x86_64-musl
+            dist-bin/SHA256SUMS
+            dist-bin/install.sh
             dist-bin/dist-adoption.tar.gz
           body: |
             Rolling prerelease built from the latest commit on `main`.

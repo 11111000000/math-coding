@@ -1,0 +1,75 @@
+# Dockerfile.debian-slim
+#
+# Multi-stage build for math-coding release artifacts.
+#
+# Stage 1 (build): runs the existing flake.nix to produce a release-
+# quality `mathc` binary. The flake is the same one the release
+# pipeline uses; this Dockerfile does not introduce a new build path,
+# only a new delivery path.
+#
+# Stage 2 (runtime): copies the resulting binary into a minimal
+# debian:bookworm-slim image. The runtime image has no OCaml, no
+# nix, no flake — just the binary on PATH. Image size: ~80 MB.
+#
+# Build context: repo root. Cv pre-existing tooling at flake.nix and
+# bin/dune. Per `OCAML_BEST_PRACTICES` §11.26, the `container:`
+# key in `.github/workflows/docker.yml` is at the JOB level only;
+# this Dockerfile does not interact with that trap.
+#
+# Build invocation (locally, for smoke-testing only — production
+# builds run in CI):
+#
+#   docker build -f Dockerfile.debian-slim \
+#     --build-arg VERSION=$(cat VERSION) \
+#     -t mathc:dev .
+#
+# Run:
+#
+#   docker run --rm -v $(pwd):/repo mathc:dev validate decisions/foo.yaml
+#
+# Authoritative attestation: tests/cli/docker-image-end-to-end.t
+# asserts the CI-built image starts cleanly with `mathc version`.
+
+# --- Stage 1: build -------------------------------------------------------
+FROM nixos/nix:latest AS build
+
+# The flake pin in flake.lock is authoritative. We copy the lockfile
+# first so that the nix hash is stable across rebuilds (a fresh
+# `nix flake update` in this stage would silently produce a different
+# binary). Per `decisions/site-version-from-file-2026-10.yaml` the
+# `VERSION` file is the single source of truth for the version string;
+# we pass it into the runtime stage as a build-arg.
+COPY flake.nix flake.lock /src/
+COPY VERSION /src/VERSION
+
+WORKDIR /src
+
+# Build with the `default` app, which is `packages.<system>.default`.
+# `--no-write-lock-file` keeps this stage hermetic; the lockfile in
+# the repo is the source of truth, not a regenerated one.
+RUN nix --extra-experimental-features 'nix-command flakes' \
+        build --no-write-lock-file .#default \
+        && cp result/bin/mathc /tmp/mathc
+
+# --- Stage 2: runtime -----------------------------------------------------
+FROM debian:bookworm-slim
+
+ARG VERSION=unknown
+
+LABEL org.opencontainers.image.title="math-coding" \
+      org.opencontainers.image.description="math-coding 3.0 kernel — risk-adaptive assurance protocol" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.source="https://github.com/11111000000/math-coding" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
+# Copy only the binary; the runtime image carries no OCaml, no flake,
+# no source. `debian:bookworm-slim` is the smallest Debian base with
+# glibc 2.36 — compatible with the existing `mathc-linux-x86_64` and
+# `mathc-linux-aarch64` release assets (Ubuntu 22.04 / glibc 2.35+).
+COPY --from=build /tmp/mathc /usr/local/bin/mathc
+
+# Verify the binary runs. If this fails the image is not publishable.
+RUN /usr/local/bin/mathc version
+
+ENTRYPOINT ["mathc"]
+CMD ["version"]

@@ -1,0 +1,527 @@
+---
+schema: math-coding/3.0-alpha
+id: install-tooling-2026-10
+revision: 1
+state: active
+intent: |
+  Replace the hand-curated `wget | chmod` adoption path in
+  `adoption/SKILL.md:55-60` with a self-installing suite. The
+  current adoption SKILL tells every user to copy a five-line
+  bash fragment that downloads a release binary, chmod's it,
+  and prints a hello. The fragment works, but it does not:
+
+  - verify the SHA-256 of the downloaded binary;
+  - survive corporate proxies or distro-specific glibc
+    mismatches;
+  - give sandbox-bound users (Docker, Nix, restricted CI)
+    a second path;
+  - install the per-repo or per-user skill bundle alongside
+    the binary.
+
+  After this cycle, the user-visible adoption flow is:
+
+    curl -fsSL https://github.com/11111000000/math-coding/releases/download/v3.1.0-alpha-final/install.sh | sh
+
+  (or with `--user-skill`, `--with-docker`, `--print-nix-command`)
+  and the script:
+
+    1. detects the OS/arch via `uname -sm`;
+    2. downloads `SHA256SUMS` and the matching
+       `mathc-<os>-<arch>` asset from the same release;
+    3. verifies the binary with `sha256sum -c` (or
+       `shasum -a 256 -c` on macOS);
+    4. installs to `${HOME}/.local/bin/mathc` (or the Windows
+       equivalent under `%LOCALAPPDATA%`);
+    6. (optionally) installs the per-user skill to
+       `${XDG_CONFIG_HOME:-${HOME}/.config}/opencode/skills/math-coding/SKILL.md`;
+    7. (optionally) prints Docker / Nix-run invocations;
+    8. runs `mathc version` for confirmation.
+
+  Same script ships as a release asset next to `SHA256SUMS` and
+  the binaries; the curl URL is stable across releases.
+
+  Audit reference: `OCAML_BEST_PRACTICES.md` §10.1 (kernel
+  offline, adapters in sub-libraries); `AGENTS.md` "A1
+  Feedback" (every commitment has a path to observation);
+  `decisions/site-version-from-file-2026-10.yaml@1` (the
+  render side already reads VERSION from a file; this cycle
+  extends the same single-source-of-truth discipline to the
+  install path).
+
+  History:
+      rev 1 (this commit): initial adoption. Phase 1 of
+      install-tooling-2026-10 work; closes the follow-up at
+      site-version-from-file-2026-10.yaml:76-81 and ships
+      four install channels.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "The current
+  `wget | chmod` adoption path is fine; nobody has complained
+  about it; adding an installer is gold-plating." The author
+  engaged with this position and rejected it on five grounds:
+  (a) the current path has no SHA-256 verification, so a
+  network MITM can swap the binary and the user will not
+  notice until `mathc validate` quietly fails on a real
+  decision — A4 (Care) requires the user to be able to trust
+  the byte-for-byte artifact they downloaded; (b) Alpine,
+  NixOS, and corporate-restricted environments cannot run
+  the glibc-linked binary and have no documented escape
+  hatch (the only existing one is "wait for a future release
+  with musl support", which is not a path); (c) the
+  per-user skill pipeline is currently described in prose in
+  `adoption/SKILL.md` Step 1.5 and not actually wired; (d)
+  the skill itself drifts from the binary's `VERSION` — W1
+  fixed the skill-vs-binary drift, but a user who already
+  has the skill installed still needs an upgrade path; (e)
+  `curl | sh` is the de facto standard for tools in this
+  class (rustup, nvm, asdf); adopting the same affordance
+  reduces adoption friction.
+
+commitment: |
+  1. `scripts/install-tooling/install.sh` is a POSIX-sh script
+     (~250 lines) with the following modes:
+
+       --user-skill       install the per-user opencode skill
+                          at `${XDG_CONFIG_HOME:-${HOME}/.config}/
+                          opencode/skills/math-coding/SKILL.md`.
+       --upgrade          (implies --user-skill) overwrite the
+                          existing skill even if its version
+                          pin matches.
+       --with-docker      print a `docker pull` + `docker run`
+                          invocation; do NOT auto-execute.
+       --print-nix-command
+                          print `nix run github:.../math-coding`
+                          command; do NOT auto-execute.
+       --version=<X>      override the default version
+                          (default is whatever `sync-version.sh
+                          --write` recorded in
+                          `MC_VERSION_DEFAULT`).
+       --check            exit 0 if the installed binary at
+                          `${HOME}/.local/bin/mathc` already
+                          matches the remote artifact AND the
+                          skill (if present) matches the remote
+                          SKILL.md. Exit 1 otherwise.
+       -h | --help        print usage.
+
+     Without `--user-skill`, the script only installs the
+     binary. The two flows are independent; users that do not
+     run an opencode-compatible agent do not pay the skill-
+     installation cost.
+
+  2. `scripts/install-tooling/install.sh` exits 0 on a
+     successful install, 1 on a SHA-256 mismatch (the binary
+     file is removed before exit), 2 on input error (unknown
+     OS/arch, unknown flag, missing `--version` argument), and
+     124 on a network error (`curl` exit non-zero).
+
+  3. `scripts/install-tooling/templates/active-policy.yaml`
+     ships in the same tarball as `install.sh`. The file is
+     a verbatim copy of `decisions/decision.yaml` (the
+     active policy at the moment the install tarball was
+     built). New projects copy this file into their own
+     `decisions/decision.yaml` and adjust `scope.paths[]`.
+
+  4. `Dockerfile.debian-slim` is a multi-stage Dockerfile
+     that builds `mathc` via `nix build .#default` and
+     copies the resulting binary into a `debian:bookworm-slim`
+     final stage. ENTRYPOINT is `["mathc"]`. The image is
+     published to `ghcr.io/11111000000/mathc:<VERSION>`.
+
+  5. `.github/workflows/docker.yml` builds and publishes the
+     image. Per `OCAML_BEST_PRACTICES` §11.26, `container:`
+     is at the JOB level, never under `strategy.matrix.include`.
+     Cross-arch (arm64) is `if: false` for rev 1; a follow-up
+     cycle wires QEMU emulation.
+
+  6. `flake.nix` gains `apps.<system>.default` exposing
+     `nix run github:11111000000/math-coding -- <args>`.
+     This is the no-install path for Nix users.
+
+  7. `.github/workflows/release.yml` adds three artifacts to
+     every release:
+       - `dist-bin/SHA256SUMS` (sha256 of every `mathc-*` binary);
+       - `dist-bin/install.sh` (verbatim copy of
+         `scripts/install-tooling/install.sh`, chmod +x);
+       - `dist-bin/dist-adoption.tar.gz` (already produced by
+         `scripts/dist-adoption.sh`; added to the `files:`
+         list of `softprops/action-gh-release@v2`).
+
+  8. `OCAML_BEST_PRACTICES.md` gains §11.28 ("curl | sh
+     install script and -fSL flags") and §11.29 ("Docker
+     buildx bake and QEMU cross-arch pitfalls").
+
+  Boundaries (A3 self-application):
+
+  - This decision does NOT change `lib/`, `bin/`, `spec/`,
+    `schemas/`, or `axioms/`. The install surface is
+    outside the kernel (per `OCAML_BEST_PRACTICES` §1.3
+    "kernel offline and side-effect-free").
+  - This decision does NOT touch `decisions/decision.yaml`.
+    The active policy stays where it is; the install path
+    copies it as a template.
+  - This decision does NOT introduce the Alpine image. That
+    is deferred to Phase 3 per
+    `decisions/docker-alpine-impl-pending.yaml`.
+  - This decision does NOT introduce the MCP server. That is
+    deferred to Phase 2 per
+    `decisions/mcp-server-impl-pending.yaml`.
+
+  Migration path (A3):
+
+  - For users on the existing path (wget|chmod), nothing
+    changes. The script is additive.
+  - For users with `~/.local/bin/mathc` already installed,
+    re-running `curl ... | sh` is a no-op when the version
+    matches (`--check` mode); otherwise it overwrites in
+    place.
+  - For users in corporate environments that block
+    `raw.githubusercontent.com`, the script supports
+    `--version=<X>` and prints a manual download
+    fallback on exit 124.
+
+  Rollback / forward-recovery:
+
+  - The script is shipped as a release asset. A user with
+    a broken install simply does NOT re-run `curl | sh`;
+    their previous binary survives.
+  - The Docker image is a separate asset; an image with a
+    bad build does not affect the binary or the per-user
+    skill.
+  - The `flake.nix` change is additive (new `apps.default`
+    stanza); removing the stanza restores pre-this-commit
+    behaviour with no other code paths affected.
+
+  Decision diff (A3 §Self-Application #6):
+
+  - Pre-this-commit: `mathc` is installed only by hand.
+  - Post-this-commit: `mathc` is installed by `curl | sh`,
+    `docker run`, `nix run`, or `source build`. The kernel
+    verdict is unchanged (the install path does not feed
+    back into the gate).
+  - New verdicts: `mathc validate templates/active-policy.yaml`
+    must `accept`. `mathc self-check` must remain
+    `unknown` with no new `unknown` subjects (the existing
+    `audit-0.0.21-fixes` waiver deficit stays at 1).
+
+scope:
+  capabilities:
+    - install-tooling-surface
+    - per-repo-skill-pipeline
+    - per-user-skill-pipeline
+    - docker-image-channel
+    - nix-run-channel
+    - release-asset-sha256
+  paths:
+    - "scripts/install-tooling/**"
+    - "scripts/sync-version.sh"  # read-only reference; W1 owns it
+    - "scripts/dist-adoption.sh"  # read-only reference; existing script
+    - "Dockerfile.debian-slim"
+    - ".github/workflows/docker.yml"
+    - ".github/workflows/release.yml"
+    - "flake.nix"
+    - "decisions/version-sync-2026-10.yaml"  # read-only reference
+    - "decisions/mcp-server-impl-pending.yaml"  # read-only reference
+    - "decisions/docker-alpine-impl-pending.yaml"  # read-only reference
+    - "decisions/auto-update-per-user-skill-impl-pending.yaml"  # read-only reference
+    - "adoption/SKILL.md"
+    - "tests/cli/install-*.t"
+    - "tests/cli/docker-image-end-to-end.t"
+    - "tests/cli/install-template-*.t"
+    - "tests/cli/adoption-bundle-present.t"
+    - "tests/cli/install-user-skill-upgrade.t"
+    - "OCAML_BEST_PRACTICES.md"
+    - "USAGE.md"
+    - "PACKAGES.md"
+    - "ROADMAP.md"
+    - "CHANGELOG.md"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"  # the active policy; read-only reference
+    - "decisions/audit-0.0.21-fixes.yaml"  # read-only reference
+
+outcomes:
+  - id: install-sh-publishes-in-release
+    statement: |
+      `install.sh` is uploaded to every GitHub release as a
+      release asset alongside `SHA256SUMS` and the binaries.
+  - id: install-sh-verifies-sha256
+    statement: |
+      `install.sh` downloads `SHA256SUMS` and refuses on a
+      checksum mismatch; the partial binary file is removed
+      before exit 1.
+  - id: install-sh-success-path
+    statement: |
+      `install.sh` installs to `${HOME}/.local/bin/mathc`,
+      chmods the binary, and prints `mathc version` for
+      confirmation.
+  - id: install-sh-user-skill
+    statement: |
+      `--user-skill` copies `SKILL.md` to the per-user
+      opencode skill path. `--user-skill --upgrade` overwrites
+      even when the version pin matches.
+  - id: install-sh-prints-docker-command
+    statement: |
+      `--with-docker` prints the `docker pull` and
+      `docker run` invocations without auto-executing.
+  - id: install-sh-prints-nix-command
+    statement: |
+      `--print-nix-command` prints the
+      `nix run github:.../math-coding#default -- <args>`
+      command without auto-executing.
+  - id: docker-image-publishes-ghcr
+    statement: |
+      `ghcr.io/11111000000/mathc:<VERSION>` exists, the
+      multi-stage build runs in a CI job that respects
+      `OCAML_BEST_PRACTICES` §11.26, and the image is signed
+      with cosign (keyless, GitHub OIDC).
+  - id: docker-image-starts-cleanly
+    statement: |
+      `docker run --rm ghcr.io/11111000000/mathc:<VERSION> version`
+      exits 0 and prints the expected version string.
+  - id: nix-run-derivation-exists
+    statement: |
+      `flake.nix` exposes `apps.<system>.default` running
+      `${self.packages.${system}.default}/bin/mathc`; a fresh
+      `nix run github:11111000000/math-coding -- version`
+      exits 0.
+  - id: adoption-bundle-in-release
+    statement: |
+      `dist-adoption.tar.gz` (containing platform-specific
+      skill drops for opencode / claude-code / cursor /
+      copilot) ships as a release asset.
+  - id: install-template-validates
+    statement: |
+      `scripts/install-tooling/templates/active-policy.yaml`
+      passes `mathc validate` against the current schema.
+
+counterexample: |
+  "Releasing an install.sh is a security risk: a malicious
+   actor who compromises the release pipeline can swap the
+   script and have every user run arbitrary code via
+   `curl | sh`." Counterargument: (a) the script's SHA-256
+  is published as `SHA256SUMS` alongside the binary, and a
+  security-conscious user can verify the script's digest
+  against the same release tag they trust; (b) `curl -fSL`
+  fails on a non-200 response and on a `Location:` redirect
+  to a different host (the L flag); (d) `set -eu` aborts on
+  any uncaught failure, and the script's exit code is
+  surfaced in the user's shell. The threat model is
+  bounded: a release-pipeline compromise affects every
+  binary anyway, not just `install.sh`.
+
+  "Why publish install.sh as a separate asset rather than
+   embed it in `mathc self-check`'s output?" Counterargument:
+  `install.sh` must be reachable BEFORE `mathc` is installed
+  (the typical case is "I just learned about math-coding and
+  I do not have it on my machine yet"). Embedding it in the
+  binary's output would defeat the affordance.
+
+  "Docker introduces a new attack surface (the image's
+   build pipeline)." Counterargument: the Docker image is
+  built from the same `mathc` binary that ships as a release
+  asset, copied from `result/bin/mathc` in stage 1 to
+  `/usr/local/bin/mathc` in stage 2. There is no
+  image-specific code; the surface is the same nix flake
+  that produces every release. A compromise of the flake
+  compromises every artifact, not the Docker path
+  specifically.
+
+assumptions:
+  - id: release-pipeline-trusted
+    state: assumed
+    statement: |
+      The GitHub release pipeline (release.yml + tag push) is
+      trusted to publish binaries and `install.sh` without
+      tampering. This is the same trust assumption as the
+      existing 5 release binaries.
+    owner: human:maintainer
+    consequence_if_false: |
+      A compromised release pipeline can ship a malicious
+      `install.sh` and the SHA-256 verification defends only
+      against a MITM, not against a compromised pipeline.
+      The mitigation is cosign signature on `install.sh`
+      (out of scope for this cycle; tracked separately).
+    review_on:
+      - signal: cosign-signature-missing
+  - id: opencode-skill-path-stable
+    state: assumed
+    statement: |
+      opencode reads skills from
+      `${XDG_CONFIG_HOME:-${HOME}/.config}/opencode/skills/`
+      as of opencode ≥ 1.0.0. The path is not a project
+      surface.
+    owner: human:maintainer
+    consequence_if_false: |
+      If opencode changes the skill path, `--user-skill`
+      writes to a directory the agent does not read; the
+      upgrade silently fails. A follow-up cycle would
+      update the script's anchor path.
+    review_on:
+      - signal: opencode-skill-path-changed
+  - id: curl-supports-fsl
+    state: assumed
+    statement: |
+      `curl` on every supported platform supports `-fSL`
+      (fail on HTTP error, follow redirects, show errors).
+      curl ≥ 7.x has had these flags for over a decade.
+    owner: human:maintainer
+    consequence_if_false: |
+      On a system without `-L` (very old curl, custom
+      build), the script cannot follow the GitHub release
+      redirect chain and exits 2. The script's usage line
+      lists this as the explicit fallback.
+    review_on:
+      - signal: curl-fsl-missing
+
+obligations:
+  - id: install-sh-publishes-in-release
+    outcome: install-sh-publishes-in-release
+    claim: |
+      `install.sh` is uploaded to every GitHub release as
+      a release asset.
+    acceptance:
+      all:
+        - verifier: tests/cli/install-asset-present.t
+          result: pass
+        - verifier: tests/cli/install-asset-absent.t
+          result: pass
+  - id: install-sh-verifies-sha256
+    outcome: install-sh-verifies-sha256
+    claim: |
+      `install.sh` downloads `SHA256SUMS` and refuses on a
+      checksum mismatch; the partial binary file is removed
+      before exit 1.
+    acceptance:
+      all:
+        - verifier: tests/cli/install-script-checks-sha.t
+          result: pass
+  - id: install-sh-success-path
+    outcome: install-sh-success-path
+    claim: |
+      `install.sh` installs the binary and prints
+      `mathc version` for confirmation.
+    acceptance:
+      all:
+        - verifier: tests/cli/install-script-runs.t
+          result: pass
+  - id: install-sh-user-skill
+    outcome: install-sh-user-skill
+    claim: |
+      `--user-skill` copies the SKILL.md into the per-user
+      opencode skill path.
+    acceptance:
+      all:
+        - verifier: tests/cli/install-user-skill.t
+          result: pass
+        - verifier: tests/cli/install-user-skill-upgrade.t
+          result: pass
+  - id: install-sh-prints-docker-command
+    outcome: install-sh-prints-docker-command
+    claim: |
+      `--with-docker` prints the docker invocation without
+      auto-executing.
+    acceptance:
+      all:
+        - verifier: tests/cli/install-docker-command.t
+          result: pass
+  - id: install-sh-prints-nix-command
+    outcome: install-sh-prints-nix-command
+    claim: |
+      `--print-nix-command` prints the nix run command
+      without auto-executing.
+    acceptance:
+      all:
+        - verifier: tests/cli/install-nix-command.t
+          result: pass
+  - id: docker-image-publishes-ghcr
+    outcome: docker-image-publishes-ghcr
+    claim: |
+      `ghcr.io/11111000000/mathc:<VERSION>` exists and is
+      built by a CI job that respects
+      `OCAML_BEST_PRACTICES` §11.26.
+    acceptance:
+      all:
+        - verifier: tests/cli/docker-image-end-to-end.t
+          result: pass
+        - verifier: tests/fixtures/nix-derivation-present.sh
+          result: pass
+  - id: nix-run-derivation-exists
+    outcome: nix-run-derivation-exists
+    claim: |
+      `flake.nix` exposes `apps.<system>.default` so
+      `nix run github:.../math-coding#default` works.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/nix-derivation-present.sh
+          result: pass
+  - id: adoption-bundle-in-release
+    outcome: adoption-bundle-in-release
+    claim: |
+      `dist-adoption.tar.gz` ships as a release asset in
+      `release.yml:308-314`.
+    acceptance:
+      all:
+        - verifier: tests/cli/adoption-bundle-present.t
+          result: pass
+  - id: install-template-validates
+    outcome: install-template-validates
+    claim: |
+      `scripts/install-tooling/templates/active-policy.yaml`
+      passes `mathc validate`.
+    acceptance:
+      all:
+        - verifier: tests/cli/install-template-accepts.t
+          result: pass
+        - verifier: tests/cli/install-template-rejects.t
+          result: pass
+
+reversal:
+  - signal: install-tooling-bumped
+    condition: |
+      Either:
+
+      (a) The kernel API changes (in `lib/` or `bin/Mathc.ml`)
+          and the install script needs to surface the change
+          (e.g. a new required flag, a new dependency); OR
+
+      (b) An opencode / Nix / Docker user reports a UX
+          defect that requires a surface change; OR
+
+      (c) The musl release asset lands
+          (`docker-alpine-impl-pending.yaml` reversal signal
+          fires) and the install script must surface the
+          Alpine image as a fourth channel.
+    action: rework
+
+risk:
+  declared_triggers:
+    - release-pipeline-compromise
+    - opencode-skill-path-change
+    - curl-fsl-removed
+    - docker-buildx-flake
+    - nix-store-glibc-leak
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+    - site-version-from-file-2026-10@1
+    - version-sync-2026-10@1
+    - cli-canonical-name@2
+    - cli-cram-tests@1
+  addresses-future:
+    - mcp-server-2026-10
+    - docker-alpine-2026-10
+    - per-user-skill-auto-update-2026-10
+  supersedes: []
+  superseded_by: []

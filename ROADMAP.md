@@ -53,6 +53,8 @@ without a `decisions/*.yaml` decision under the active policy.
 | 3 | Site deploy (`.github/workflows/site.yml`) | `site-deploy@1` | small | brings the protocol's published surface under its own gate |
 | 4 | `mathc packages` subcommand | `mathc-packages-subcommand@1` | small | first kernel decision without an HTTP round-trip |
 | 5 | `mathc render` (site generator) | `site-deploy@1` | medium | brings v2.1's `core/render.ml` capability back under the 3.0 kernel |
+| 6 | `scripts/sync-version.sh` (Phase 1 install-tooling W1) | `version-sync-2026-10@1` | small | closes follow-up at `site-version-from-file-2026-10.yaml:76-81`; CI rejects drift between `VERSION` and `adoption/SKILL.md` |
+| 7 | `scripts/install-tooling/install.sh` (Phase 1 install-tooling W2) | `install-tooling-2026-10@1` | medium | four install channels (release binary / docker image / nix run / source build) + per-user skill pipeline; POSIX-sh; SHA-256 verification |
 
 ### Tier 2 — close specific audit deficits
 
@@ -102,6 +104,25 @@ Runtime kernel behaviour is backward compatible: the existing
 | 11 | Migration: state=active on 28 existing decisions; body_sha/yaml_sha stubs | `algebra-3.2@1` | ✅ done (`scripts/migrate-decisions-3.2.py`) |
 | 12 | ROADMAP.md, PACKAGES.md, CHANGELOG.md, USAGE.md sync (applicability envelope, two-tier model) | `algebra-3.2@1` | ✅ done |
 | 13 | Portable binary build (anti-property fix in §30): musl-based or static-link, no nix-store paths | `algebra-3.2@1` | ✅ done (rev 4, 2026-10-07) |
+
+### Tier 4 — install-tooling deferred work (Phase 2/3)
+
+Three Phase-2/3 deferral decisions live in `decisions/` with
+`state: active` and `reversal.signal:` blocks. They do not
+block Tier 1 work; they record that the implementation is
+sequenced after the install-tooling-2026-10 surface lands.
+See `PACKAGES.md` §"Bootstrap packages (by file)" for status.
+
+| # | Deferral | Phase | Reversal signal | Decision |
+|---|---|---|---|---|
+| 1 | MCP server (`lib/mcp/` + `bin/mathc_mcp.ml`) | Phase 2 | `mcp-server-impl-pending-resolved` | `mcp-server-impl-pending@1` |
+| 2 | `Dockerfile.alpine` (depends on `mathc-linux-x86_64-musl` as release asset) | Phase 3 | `docker-alpine-impl-pending-resolved` | `docker-alpine-impl-pending@1` |
+| 3 | Auto-update per-user skill (silent mutation prevention) | Phase 3+ | `auto-update-per-user-skill-impl-pending-resolved` | `auto-update-per-user-skill-impl-pending@1` |
+
+All three decisions carry `kind_: review, producer: human:maintainer`
+attestations under `attestations/<id>-deferral-recorded.json`
+(verifier: `this-decision-file-present`). The deferrals are
+bounded, not open-ended; future agents see when to re-engage.
 
 ### Remaining for v3.1.0 stabilisation
 

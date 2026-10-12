@@ -1,0 +1,205 @@
+---
+schema: math-coding/3.0-alpha
+id: auto-update-per-user-skill-impl-pending
+revision: 1
+state: active
+intent: |
+  Record the deferral of automatic per-user skill updates
+  to a future cycle. Phase 1 of install-tooling-2026-10
+  ships per-user skill as a manual operation:
+
+    curl -fsSL https://.../install.sh | bash -s -- --user-skill
+
+  installs `~/.config/opencode/skills/math-coding/SKILL.md`
+  at the version of the script. To refresh, the user
+  re-runs with `--upgrade`:
+
+    curl -fsSL https://.../install.sh | bash -s -- --user-skill --upgrade
+
+  Auto-update on every opencode launch is an anti-pattern
+  (silent mutation of user state at every agent invocation;
+  surprise upgrade during a long-running session). Defer
+  until either:
+
+    (a) an agent-platform cooperation: a version-pinning
+        protocol that lets the agent refuse a too-new
+        skill, OR
+
+    (b) a Phase-3 worktree explicitly opts in with a
+        documented safety contract (e.g. an opt-in
+        `auto-upgrade: true` line in
+        `~/.config/opencode/skills/math-coding/config.yaml`).
+
+  Audit reference: per-user skill installation is
+  introduced by the Phase-1 worktree
+  `install-tooling-2026-10`; this deferral decision is
+  its sibling and ships in the same cycle.
+axiom_link:
+  - A0
+  - A4
+antithesis: |
+  The counter-position considered and rejected: "Auto-update
+  per-user skill on every opencode launch — the friction of
+  manual upgrade (`install.sh --user-skill --upgrade`) is too
+  high and the user base will silently drift, defeating the
+  whole point of pinning `compatible_with: mathc@>=X.Y.Z`."
+  The author engaged with this position and rejected it on
+  three grounds: (a) silent mutation of user state mid-session
+  is a much wider blast radius than install channels (which
+  the user explicitly invokes) — A4 (Care) is best served by
+  explicit user invocation; (b) the `compatible_with` pin is
+  not defeated by manual-upgrade drift — `mathc validate`
+  rejects decisions authored with newer CLI flags, and drift
+  becomes observable through `mathc version`, not silent;
+  (c) a future Phase-3 worktree can introduce an opt-in
+  `auto-upgrade: true` flag with a documented safety
+  contract (off by default, upgrade at a documented
+  lifecycle point, removable by the user), which preserves
+  the user's agency without forcing silent mutation on every
+  agent session.
+commitment: |
+  This decision does NOT close the obligation; it records
+  the deferral. Auto-update requires either agent-platform
+  cooperation (a version-pinning protocol) or an opt-in flag
+  on the user side; neither exists at HEAD.
+
+  The deferral is bounded by the `reversal` block below
+  and explicitly recorded so that:
+
+  - Future agents see the manual-upgrade contract as
+    intentional, not as missing functionality.
+  - The cost of the deferral (per-user skill drift) is
+    mitigated by the skill's `compatible_with: mathc@>=X`
+    frontmatter: if the installed binary is older than the
+    pin, `mathc validate` rejects decisions that the agent
+    authored with newer flags. Drift is observable, not
+    silent.
+
+  Boundaries (A4 care):
+
+  - This decision does NOT modify `lib/`, `bin/`,
+    `schemas/`, `spec/`, `axioms/`, or
+    `scripts/install-tooling/install.sh` (which is owned
+    by install-tooling-2026-10 in Phase 1).
+  - The Phase-3 worktree, if any, will add an opt-in flag
+    to `install.sh`; this deferral does not constrain the
+    implementation beyond the safety contract.
+scope:
+  capabilities:
+    - per-user-skill-auto-update-deferred
+  paths:
+    - "scripts/install-tooling/install.sh"   # present after Phase 1 but no auto-update flag
+    - "~/.config/opencode/skills/math-coding/"   # user-side, runtime
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+outcomes:
+  - id: deferral-recorded
+    statement: |
+      The per-user-skill auto-update deferral is
+      documented with rationale and reversal signal.
+      Future agents encountering the absence of an
+      auto-update hook find this decision and do not
+      re-implement auto-update without checking the
+      safety contract.
+counterexample: |
+  "Per-user skill will silently drift between releases."
+  Counterargument: the skill's
+  `compatible_with: mathc@>=X.Y.Z` frontmatter is the
+  version pin; if the installed binary is older than the
+  pin, `mathc validate` rejects decisions that the agent
+  authored with newer CLI flags. Drift is observable
+  through `mathc version` (printed at end of `install.sh`)
+  and through `mathc validate` diagnostics, not silent.
+
+  "Why not auto-update on every opencode launch?"
+  Counterargument: agent sessions are long-running. A
+  silent mutation of `~/.config/opencode/skills/` in the
+  middle of a session can change the agent's behaviour
+  mid-task. The blast radius is wider than the install
+  channels (which the user explicitly invokes), and the
+  surprise cost is high. Manual upgrade is the
+  least-surprise contract until version-pinning lands.
+assumptions:
+  - id: manual-upgrade-is-acceptable
+    state: assumed
+    statement: |
+      Manual upgrade (`install.sh --user-skill --upgrade`)
+      is an acceptable UX until a better mechanism exists.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the maintainer decides manual upgrade is too
+      much friction, this decision needs to be
+      superseded by an auto-update implementation in
+      Phase 3, with a documented safety contract.
+    review_on:
+      - signal: per-user-skill-drift-reported
+  - id: skill-pinning-via-compatible-with
+    state: assumed
+    statement: |
+      The skill's
+      `compatible_with: mathc@>=X.Y.Z` frontmatter
+      functions as a version pin: an agent that
+      operates against a `mathc` binary older than the
+      pin sees a clear diagnostic when its newly-authored
+      decision is rejected.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the kernel stops honouring `compatible_with`
+      (a future decision removes the pin), drift becomes
+      silent and this deferral loses its mitigation.
+      That hypothetical is itself a protected transition
+      and would need its own decision.
+    review_on:
+      - signal: compatible-with-removed
+obligations:
+  - id: deferral-recorded
+    outcome: deferral-recorded
+    claim: |
+      A decision file in `decisions/` documents the
+      deferral with rationale and reversal signal.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+reversal:
+  - signal: auto-update-per-user-skill-impl-pending-resolved
+    condition: |
+      Either:
+
+      (a) An agent platform (opencode, Claude Code,
+          Cursor) ships a version-pinning protocol that
+          lets the agent refuse a too-new skill, AND
+          this deferral is superseded by a Phase-3
+          decision that wires the protocol to
+          `install.sh --user-skill`. The protocol's
+          safety contract must be cited verbatim in the
+          new decision.
+
+      OR
+
+      (b) A Phase-3 worktree introduces an explicit
+          opt-in flag (e.g.
+          `auto-upgrade: true` in
+          `~/.config/opencode/skills/math-coding/config.yaml`)
+          with a documented safety contract: the flag is
+          off by default, the upgrade happens at a
+          documented point in the agent's lifecycle
+          (not mid-session), and the user can disable it
+          by removing the line.
+    action: implement-and-supersede
+risk:
+  declared_triggers:
+    - silent-skill-mutation
+    - per-user-skill-drift
+    - mid-session-surprise-upgrade
+  owner: human:maintainer
+relations:
+  addresses:
+    - bootstrap-v3
+    - install-tooling-2026-10   # the Phase-1 worktree that introduces per-user skill
+  addresses-future:
+    - per-user-skill-auto-update-2026-10   # the parent decision to be written in Phase 3
+  supersedes: []
+  superseded_by: []

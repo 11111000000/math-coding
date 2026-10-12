@@ -144,6 +144,18 @@
             runHook postInstall
           '';
         };
+        # apps.default: enables `nix run github:11111000000/math-coding
+        # -- <args>`. Closes `decisions/install-tooling-2026-10.yaml`
+        # outcome `nix-run-derivation-exists`. The same `mathc`
+        # binary ships as `packages.default`; the `apps` stanza is
+        # the no-install entry path for Nix users.
+        apps = rec {
+          mathc = {
+            type = "app";
+            program = "${packages.${system}.default}/bin/mathc";
+          };
+          default = mathc;
+        };
 
         checks.default = pkgs.stdenv.mkDerivation {
           name = "math-coding-tests";
