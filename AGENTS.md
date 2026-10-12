@@ -77,6 +77,34 @@ Before adding a workaround or running `rm -rf _build`:
    append a new entry to §11 before merging.
 3. Never `rm -rf _build` directly. Use `./scripts/dev rebuild`.
 
+## Toolchain preference (OCaml ecosystem over Python)
+
+When modifying `.ml`/`.mli` source files, prefer the OCaml toolchain.
+Python string handling mangles OCaml continuation strings
+(`\<newline>`) and the resulting file fails to compile in non-obvious
+ways. Recorded here because the failure mode is recurring
+(`OCAML_BEST_PRACTICES.md` §11 trap log).
+
+- **For source edits**: use `awk`/`sed` line-anchored edits, or write
+  the new function to `/tmp/foo.ml` with a `cat <<EOF` heredoc that
+  quotes OCaml syntax correctly, then splice it in. Verify the splice
+  visually (`sed -n 'A,Bp'`) before moving on.
+- **For builds**: `dune build`, `dune runtest`, `dune cram`. The
+  wrapper `scripts/dev` exposes them.
+- **For validation**: use `mathc validate` / `mathc self-check` — the
+  project's own OCaml CLI. Not Python validators.
+- **For OCaml-aware editing**: `merlin` (config at `.merlin`).
+
+Python is acceptable when the project itself uses Python for that
+task — data migrations in `scripts/*.py`, the cram harness for
+fixtures that need shell orchestration, occasional parsing of
+decision YAML when no OCaml alternative exists. New Python that
+touches `.ml` source is the anti-pattern; if you find yourself
+writing `python3 <<PYEOF ... open("lib/...") ... PYEOF`, stop and
+use the OCaml toolchain instead.
+
+The trap log at `OCAML_BEST_PRACTICES.md` §11 will record this as
+a recurring failure mode if it becomes routine.
 ## Purpose
 
 Math-coding links a concrete change to the obligations it may affect and

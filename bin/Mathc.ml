@@ -254,6 +254,48 @@ let counterexample_violation v =
       | _ -> None)
   | _ -> None
 
+(* Antithesis violation: parallel to `counterexample_violation` for the
+   antithesis slot (v3 dialectic method). A decision with mode >= standard
+   must carry a non-empty antithesis. See
+   `decisions/dialectic-method-v3-2026-10.yaml` and
+   `spec/algebra-3.2.md` §11. The kernel-side check in
+   `lib/decision.ml::parse_decision` returns None when antithesis is
+   missing; this CLI-side check surfaces a precise diagnostic so the
+   author knows whether the missing field is counterexample or antithesis. *)
+let antithesis_violation v =
+  match v with
+  | Jsonl.Object ps -> (
+      let mode_str =
+        match Schema.take_string ps "mode" with
+        | Some s -> s
+        | None -> "standard"
+      in
+      let mode_exempt =
+        match mode_str with "tiny" | "light" -> true | _ -> false
+      in
+      let antithesis_meaningful =
+        match Schema.take_string ps "antithesis" with
+        | Some s when String.trim s <> "" -> true
+        | _ -> false
+      in
+      match mode_exempt with
+      | true -> None
+      | false when not antithesis_meaningful ->
+          let decision_id =
+            match Schema.take_string ps "id" with Some s -> s | None -> ""
+          in
+          let msg =
+            Printf.sprintf
+              "%sdecision has mode=%s but empty antithesis: spec/algebra-3.2.md §11 (v3 dialectic method) requires the antithesis dialectical slot for modes >= standard; add an antithesis section naming the coherent counter-position the author considered and rejected (distinct from counterexample, which is the strongest objection surfaced to future readers)"
+              (if decision_id = "" then "" else decision_id ^ ": ")
+              (if mode_str = "" then "standard" else mode_str)
+          in
+          Some
+            (Diagnostic.mc_antithesis_missing ~decision_id
+               ~severity:Diagnostic.Block msg)
+      | _ -> None)
+  | _ -> None
+
 let validate_with_counts path =
   match parse_file path with
   | Error (`Sys m) -> `Input_err m
@@ -290,6 +332,11 @@ let validate_with_counts path =
                   let msg = diag.Diagnostic.message in
                   `Reject (diag, msg)
               | None -> (
+                  match antithesis_violation v with
+                  | Some diag ->
+                      let msg = diag.Diagnostic.message in
+                      `Reject (diag, msg)
+                  | None -> (
                   try
                     match Decision.parse_decision_yaml v with
                     | Some d -> (

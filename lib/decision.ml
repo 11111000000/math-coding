@@ -268,6 +268,12 @@ let[@warning "-32"] parse_reversal v =
 let counterexample_meaningful_opt (s : string option) : bool =
   match s with Some t when String.trim t <> "" -> true | _ -> false
 
+(* Antithesis (v3 dialectic slot, per spec/algebra-3.2.md §11):
+   same "present and meaningful" check as counterexample. Authors cannot
+   satisfy the rule with whitespace-only strings. *)
+let antithesis_meaningful_opt (s : string option) : bool =
+  match s with Some t when String.trim t <> "" -> true | _ -> false
+
 (* mode >= standard: standard | strict | exhaustive. The order on the
    mode sum type is intentional (Domain.mode definition), so a simple
    OCaml polymorphic compare works for the floor check. *)
@@ -860,6 +866,9 @@ and parse_decision v =
                                             | None -> None)
                                         | None -> None
                                       in
+                                      let antithesis =
+                                        Schema.take_string ps "antithesis"
+                                      in
                                       let body_sha =
                                         Schema.take_string ps "body_sha"
                                       in
@@ -923,8 +932,23 @@ and parse_decision v =
                                              (counterexample_meaningful_opt
                                                 counterexample)
                                       in
+
+                                      (* Antithesis: required for mode >= standard.
+                                         Parallel to counterexample; the field
+                                         is a coherent counter-position the
+                                         author considered. See
+                                         spec/algebra-3.2.md §11 and
+                                         decisions/dialectic-method-v3-2026-10.yaml. *)
+                                      let antithesis_required_missing =
+                                        mode_geq_standard mode
+                                        && not
+                                             (antithesis_meaningful_opt
+                                                antithesis)
+                                      in
                                       if state = `Active && axiom_link = [] then
                                         None
+                                      else if antithesis_required_missing
+                                      then None
                                       else if counterexample_required_missing
                                       then None
                                       else
@@ -949,6 +973,7 @@ and parse_decision v =
                                               };
                                             Domain.relations;
                                             Domain.counterexample;
+                                            Domain.antithesis;
                                             Domain.state;
                                             Domain.mode;
                                             Domain.mode_floor_used;

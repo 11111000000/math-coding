@@ -70,6 +70,7 @@ let[@warning "-32"] make_decision ?(id = "dec-test") ?(rev = "1")
         verifies = [];
       };
     counterexample = None;
+    antithesis = None;
     state = `Active;
     mode = `Standard;
     mode_floor_used = None;

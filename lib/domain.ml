@@ -166,6 +166,7 @@ type decision = {
   risk : risk;
   relations : relations;
   counterexample : string option;
+  antithesis : string option;
   state : [ `Draft | `Active | `Retired | `Superseded ];
   mode : mode;
   mode_floor_used : mode option;

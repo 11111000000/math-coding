@@ -233,6 +233,49 @@ let mc_counterexample_missing ?(decision_id = "") ?(severity = Warn)
   create ~code ~kind:Deficit ~severity ~policy_rule ~next_actions:actions
     ~retryable:false ~autofix_safe:false message
 
+(* MC-ANTITHESIS-MISSING: emitted by `mathc validate` (via
+   `lib/decision.ml::parse_decision`) when a decision with
+   `mode >= standard` carries no antithesis. Mirrors
+   `mc_counterexample_missing` for the antithesis slot. The contract
+   is set by spec/algebra-3.2.md §11 (v3 dialectic method) and
+   introduced by `decisions/dialectic-method-v3-2026-10.yaml`.
+   Distinct from counterexample: antithesis is the coherent
+   counter-position the author considered; counterexample is the
+   strongest objection the kernel surfaces to a future reader.
+   Author remediation: add `antithesis: | <one paragraph>` to the
+   decision front-matter. *)
+let mc_antithesis_missing ?(decision_id = "") ?(severity = Warn)
+    ?(next_actions = []) message =
+  let code = "MC-ANTITHESIS-MISSING" in
+  let default_actions =
+    [
+      ( "add",
+        Printf.sprintf
+          "antithesis: |\n\
+          \  %s\n\
+          \  A coherent counter-position the author considered and\n\
+          \  rejected. Distinct from counterexample: antithesis is the\n\
+          \  position the author engaged with; counterexample is the\n\
+          \  strongest objection the kernel surfaces to a future reader\n\
+          \  regardless of what the author considered."
+          (if decision_id = "" then "<decision-id>" else decision_id) );
+      ("edit", "spec/algebra-3.2.md §11 (dialectic slots)");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  let policy_rule =
+    match severity with
+    | Block ->
+        Some
+          "spec/algebra-3.2.md §11 + \
+           decisions/dialectic-method-v3-2026-10.yaml"
+    | Warn | Info -> None
+  in
+  create ~code ~kind:Deficit ~severity ~policy_rule ~next_actions:actions
+    ~retryable:false ~autofix_safe:false message
+
 (* Aliases — the stream η (T4.1) compact contract refers to the
    `mc_` prefix; the existing call sites in bin/Mathc.ml use the
    unprefixed names. Both names refer to the same function so that
