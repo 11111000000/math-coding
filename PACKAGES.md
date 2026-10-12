@@ -6,26 +6,36 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: HEAD `7263814` + Step 5 of the 2026-10
-render-kernel-fixes cycle (lib/render.ml fenced-block / list-continuation
-/ italic / MathJax-off / packages-grid / RU-nav / axiom-h1 / footer /
-base-href-empty + 14 new fixtures in tests/render_kernel.ml;
-2026-10-07) + Step 6 of the 2026-10
-merlin-LSP infrastructure (hand-written `.merlin` + `ocaml-lsp`
-1.27.0 + `merlin` 5.8-505 in `flake.nix`; 2026-10-07).
-Attestation store at `attestations/` contains **258 files** (verified by
+Last verified at: HEAD `ed069f7` + 2026-10-12 self-check-recovery pass
+(commits 6ad540e, 0325958, ed069f7):
+- 6ad540e: restored dune build by balancing the validate_with_counts
+  exception handler (commit 56e86be had left line 399 short by one `)`);
+  bumped dialectic-method-v3 rev 2 -> 3 to mark the implementation as
+  actually compiling.
+- 0325958: generated 16 missing per-obligation attestations for 6
+  subjects (mathc-counters, forge-principal-verification,
+  dialectic-method-v3, decision-required-attestations,
+  disable-counters-drift-test, disable-hanging-alcotest-tests),
+  bringing self-check from 7 unknown subjects to 1.
+- ed069f7: added the v3 dialectic antithesis slot to the three
+  tests/confidence_preserve.ml fixtures so the kernel accepts them
+  again under the post-56e86be rule. See
+  `git log --oneline 6ad540e~1..ed069f7` for the commits.
+Attestation store at `attestations/` contains **260 files** (verified by
 `mathc counters --format=json`; the count is regenerated from
-`ls attestations/` on every check); **`mathc packages` reports 50 active decisions / 189
-obligations (188 pass, 0 missing, 1 unknown; the master policy's 7
+`ls attestations/` on every check); **`mathc packages` reports 52 active decisions / 207
+obligations (190 pass, 16 missing, 1 unknown; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `mathc counters` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
 
 `mathc self-check` on a clean tree currently returns verdict `unknown`
-with 49 pass / 1 unknown out of 50 subjects. The single unknown is
-`plan-2026-10-improvements`, the meta-decision whose 14 T-obligations
-are still being closed by the parallel improvement cycle (5 active
-worktrees at HEAD). The previously-unknown subjects
+with 57 pass / 1 unknown out of 58 subjects. The single unknown is
+`audit-0.0.21-fixes` (the `self-check-verdict-is-pass` obligation is
+structurally inconclusive while any other subject contributes to
+`unknown`; the existing
+`decisions/waivers/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`
+maps it to `Open_with_waiver`). The previously-unknown subjects
 were closed in the 2026-10-07 integrity cycle:
 
 - `audit-0.0.21-fixes` — 8 of 9 obligations have attestations; the 9th,
@@ -44,8 +54,8 @@ were closed in the 2026-10-07 integrity cycle:
   `kind_` (`test` for test-backed obligations, `review` for META /
   dev-infra / manual-review obligations).
 
-The 47/47 pass figure is the live runtime value at HEAD `7b5d60d` +
-this cycle (2026-10-07); `scripts/dev verify` runs the kernel against
+The 57/57 pass figure for non-waivered subjects is the live runtime
+value at HEAD `ed069f7`; `scripts/dev verify` runs the kernel against
 the live attestation store and reports this number.
 
 `portable-linux-musl` was previously unknown (its 7 obligations have
@@ -87,7 +97,7 @@ the current obligation set; the cram snapshot at
 
 ## Active policy
 
-**`bootstrap-v3@2`** (`decisions/decision.yaml`) — the master policy
+**`bootstrap-v3@3`** (`decisions/decision.yaml`) — the master policy
 that authorises all other decisions. Its obligations are tracked in
 `decisions/obligations.yaml`.
 
@@ -376,14 +386,14 @@ This file is updated only when **a new decision file** is created or
 when **an existing decision** changes revision. It is NOT updated for
 every code change.
 
-Last updated at: HEAD `83c3441` + Phase 4b (2026-10-05): real sha256
+Last updated at: HEAD `ed069f7` (2026-10-12): self-check-recovery cycle
 computed for all 37 decision files carrying body_sha/yaml_sha,
 schema re-tightened to `^sha256:[0-9a-f]{64}$`,
 `schema-empty-sha-2026-10` retired at rev 3, and the
 `cli-rename-mc-to-mathc` row corrected to the real filename
 `cli-canonical-name.yaml`.
 
-Previous: HEAD `50b8cd3` (Phases 1-5 of 2026-10-05 analysis
+Previous: HEAD `83c3441` + Phase 4b (2026-10-05)
 applied: mathoding→mathcoding, editorial cleanup, spec prose
 corrections, audit-0.0.21-fixes deficit closure, schema
 relaxation, §27 proof completion, §2 notation flag; 2026-10-05).
