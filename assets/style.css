@@ -633,6 +633,22 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
   font-style: normal;
   margin: 0 0 0.5em;
 }
+/* Per-package heading is now a link to the per-decision
+   page (added 2026-10-12 in response to UX feedback that
+   the home grid looked inert). Style the link as a
+   plain monospace heading rather than an underlined
+   inline element so the grid stays scannable. */
+.mathc-decision-link {
+  color: var(--fg);
+  text-decoration: none;
+  border-bottom: 0;
+  font-family: var(--mono-stack);
+  font-size: 1em;
+}
+.mathc-decision-link:hover {
+  color: var(--accent);
+  border-bottom: 1px solid var(--accent);
+}
 .mathc-obligations {
   list-style: none;
   margin: 0;

@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" role="img" aria-labelledby="chain-title" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 160" role="img" aria-labelledby="chain-title" preserveAspectRatio="xMidYMid meet">
   <title id="chain-title">The math-coding chain: intent, decision, obligation, change, attestation, revision.</title>
   <defs>
     <style>
@@ -7,15 +7,21 @@
       .chain-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 14px; fill: #1a1a1a; text-anchor: middle; }
       .chain-text-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 14px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
       .chain-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .chain-cycle { stroke: #8b3a3a; stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
       .chain-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8a8a8a; text-anchor: middle; }
+      .chain-cycle-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
     </style>
     <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
       <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
     </marker>
+    <marker id="arrowhead-cycle" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#8b3a3a"/>
+    </marker>
   </defs>
 
   <!-- horizontal flow: 6 boxes -->
-  <g transform="translate(0, 60)">
+  <g transform="translate(0, 50)">
+
     <!-- intent -->
     <g transform="translate(0, 0)">
       <rect class="chain-box" x="0" y="0" width="100" height="50" rx="4"/>
@@ -63,8 +69,16 @@
       <text class="chain-label" x="50" y="38">next decision</text>
     </g>
 
-    <!-- return arrow under the line -->
-    <path class="chain-arrow" d="M735,80 L735,160 L65,160 L65,85" marker-end="url(#arrowhead)"/>
-    <text class="chain-label" x="400" y="172">revision extends commitment into the next decision</text>
+    <!--
+      The cycle back from `revision` to `intent`. A dashed
+      oxblood arc leaves the right edge of the revision box,
+      goes up and to the left across the top of the diagram,
+      and lands on the top edge of the intent box. The arc
+      has an arrowhead at its end so the direction is
+      unambiguous, and a single small caption below the
+      diagram names it.
+    -->
+    <path class="chain-cycle" d="M735,30 C735,-30 250,-30 50,30" marker-end="url(#arrowhead-cycle)"/>
+    <text class="chain-cycle-label" x="400" y="115">revision extends commitment into the next decision</text>
   </g>
 </svg>

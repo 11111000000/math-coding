@@ -1726,12 +1726,12 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
           Printf.sprintf
             "\n\
              <figure class=\"mathc-figure mathc-figure-methodology\">\n\
-             <img src=\"../assets/kernel-architecture.svg\" \
+             <img src=\"assets/kernel-architecture.svg\" \
               alt=\"The math-coding kernel pipeline: input -> schema \
               -> parser -> attestation join -> self-check -> gate.\">\n\
              </figure>\n\
              <figure class=\"mathc-figure mathc-figure-methodology\">\n\
-             <img src=\"../assets/chain.svg\" \
+             <img src=\"assets/chain.svg\" \
               alt=\"The math-coding assurance chain: intent, decision, \
               obligation, change, attestation, revision.\">\n\
              </figure>\n"
@@ -1739,7 +1739,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
           Printf.sprintf
             "\n\
              <figure class=\"mathc-figure mathc-figure-foundations\">\n\
-             <img src=\"../assets/kernel-architecture.svg\" \
+             <img src=\"assets/kernel-architecture.svg\" \
               alt=\"The math-coding kernel pipeline: input -> schema \
               -> parser -> attestation join -> self-check -> gate.\">\n\
              </figure>\n"

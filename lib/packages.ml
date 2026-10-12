@@ -518,7 +518,17 @@ let[@warning "-32"] to_html (p : package_list) =
   List.iter
     (fun d ->
       Printf.bprintf buf "<article class=\"mathc-decision\">\n";
-      Printf.bprintf buf "<h3>%s</h3>\n" (html_escape d.decision_id);
+      (* The decision heading is now a link to the per-decision
+         page (already emitted by `render_decision_page_full` in
+         lib/render.ml). Without the link, a visitor sees the
+         decision id on the home page but has no in-page cue
+         that the full YAML body (intent, commitment,
+         outcomes, obligations-with-claims, counter-example,
+         risk, relations) lives at decisions/<id>.html. *)
+      Printf.bprintf buf
+        "<h3><a class=\"mathc-decision-link\" \
+         href=\"decisions/%s.html\">%s</a></h3>\n"
+        (html_escape d.decision_id) (html_escape d.decision_id);
       Printf.bprintf buf "<ul class=\"mathc-obligations\">\n";
       List.iter
         (fun o ->
