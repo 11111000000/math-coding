@@ -1,10 +1,10 @@
 # Math-coding 3.0-alpha — ROADMAP
 
-> **Status (2026-09-30, post-v3.0.0.20):** bootstrap protocol **expired**
+> **Status (2026-10-12, post self-check-recovery):** bootstrap protocol **expired**
 > (commit `8fa7fcf`). The 3.0 kernel checks this repository and its
 > conformance corpus via `mathc self-check`, which is a **blocking** CI
 > step per `constitution.md` Invariant 14. The attestation store at
-> `attestations/` is populated (135 files). CLI surface: `validate`,
+> `attestations/` is populated (260 files). CLI surface: `validate`,
 > `context`, `explain`, `assess`, `attest`, `gate`, `session-start`,
 > `record`, `stats`, `time-estimate`, `self-check`, `version`, `render`,
 > `packages`.
@@ -15,7 +15,7 @@
 >
 > **Author:** Petr Kosov &lt;p.b.kosov@yandex.ru&gt;
 > **License:** Apache-2.0 (see `LICENSE`, `NOTICE`)
-> **Active policy:** `bootstrap-v3@2` (see `decisions/decision.yaml`)
+> **Active policy:** `bootstrap-v3@3` (see `decisions/decision.yaml`)
 
 This document is the **single source of truth** for what math-coding 3.0
 is doing, what it is not yet doing, and in what order the remaining
@@ -77,7 +77,12 @@ without a `decisions/*.yaml` decision under the active policy.
 **Status**: ✅ LANDED between `ff9e738` and `fd7ea8b` (13/13 tasks).
 Schema extensions preserve backward compat (v3.0.0.20 → v3.1.0 alpha).
 
-`mathc self-check` verdict: `pass` (47 subjects, 47 pass / 0 unknown).
+`mathc self-check` verdict at the time 3.5 landed: `pass`
+(47 subjects, 47 pass / 0 unknown). The current live verdict
+at HEAD ed069f7 is `unknown` with 57 pass / 1 unknown out of 58
+subjects; the 1 unknown is `audit-0.0.21-fixes::self-check-verdict-is-pass`
+(structurally inconclusive per `decisions/waivers/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`).
+
 Runtime kernel behaviour is backward compatible: the existing
 `mathc validate`, `mathc gate`, `mathc packages`, `mathc explain`,
 `mathc self-check` keep working unchanged.
