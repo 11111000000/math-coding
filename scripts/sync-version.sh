@@ -106,7 +106,6 @@ install_sh=scripts/install-tooling/install.sh
 # Expected derived strings:
 expected_compatible="compatible_with: mathc@>=${VERSION_SEMVER}"
 expected_mc_version="MC_VERSION=${VERSION_FULL}"
-expected_install_default="MC_VERSION_DEFAULT=${VERSION_FULL}"
 
 # --- Diff/check machinery ----------------------------------------------
 # Each check_* function reads a file and compares the current value
@@ -149,9 +148,13 @@ check_install_sh() {
     echo "(info) $install_sh absent; Phase-1 W2 not yet landed (skipping)" >&2
     return 0
   fi
-  if ! grep -qF "$expected_install_default" "$install_sh"; then
+  # Tolerant of optional quoting: accept both
+  #   MC_VERSION_DEFAULT=3.1.0-alpha-final
+  #   MC_VERSION_DEFAULT="3.1.0-alpha-final"
+  if ! grep -qE "^MC_VERSION_DEFAULT=[\"]?${VERSION_FULL}[\"]?\$" "$install_sh"; then
     echo "drift: $install_sh does not contain:" >&2
-    echo "  $expected_install_default" >&2
+    echo "  MC_VERSION_DEFAULT=${VERSION_FULL}" >&2
+    echo "  (or MC_VERSION_DEFAULT=\"${VERSION_FULL}\")" >&2
     return 1
   fi
   return 0
@@ -222,12 +225,14 @@ write_install_sh() {
   tmp=$(mktemp) || { echo "sync-version: mktemp failed" >&2; exit 2; }
   trap 'rm -f "$tmp"' EXIT INT TERM
 
-  awk -v def="$expected_install_default" '
+  # Match either quoting style (with or without quotes) and rewrite
+  # to the canonical `MC_VERSION_DEFAULT="<X>"` form.
+  awk -v ver="$VERSION_FULL" '
     BEGIN { done = 0 }
     {
       line = $0
       if (done == 0 && line ~ /^MC_VERSION_DEFAULT=/) {
-        print def
+        printf "MC_VERSION_DEFAULT=\"%s\"\n", ver
         done = 1
         next
       }
@@ -240,8 +245,8 @@ write_install_sh() {
     }
   ' "$install_sh" > "$tmp"
 
-  if ! grep -qF "$expected_install_default" "$tmp"; then
-    echo "sync-version: write failed: $install_sh lacks $expected_install_default after rewrite" >&2
+  if ! grep -qF "MC_VERSION_DEFAULT=\"${VERSION_FULL}\"" "$tmp"; then
+    echo "sync-version: write failed: $install_sh lacks MC_VERSION_DEFAULT after rewrite" >&2
     return 1
   fi
 
