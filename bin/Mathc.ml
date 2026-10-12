@@ -3090,6 +3090,7 @@ let[@warning "-32"] do_render () =
       ("readme", "README", "readme.md");
       ("contributing", "Contributing", "contributing.md");
       ("bootstrap-gate", "Bootstrap Gate", "bootstrap-gate.md");
+      ("install", "Install", "install.md");
       ("packages", "Packages", "packages.md");
     ]
   in

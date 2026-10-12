@@ -6,12 +6,45 @@ math-coding protocol. For AI-agent adoption see the canonical skill at
 
 ## Install
 
-Two ways to get `mathc` (`bin/mathc.exe` once compiled):
+Four ways to get `mathc` (`bin/mathc.exe` once compiled); see
+[`site/install.md`](site/install.md) for the long-form guide
+with sandbox notes and migration steps.
 
-- Download a release binary from the project's GitHub releases page
-  (Linux or macOS).
-- Build locally with `nix develop .#test` then `dune build`; the
-  binary lands at `_build/install/default/bin/mathc`.
+- **Release binary** (recommended). One-line install:
+  ```sh
+  curl -fsSL https://github.com/11111000000/math-coding/releases/download/v3.1.0-alpha-final/install.sh | sh
+  ```
+  The script downloads `SHA256SUMS` and the matching
+  `mathc-<os>-<arch>` from the same release, verifies the
+  binary's digest, and installs to `~/.local/bin/mathc`. On
+  Linux it installs to `sha256sum`; on macOS to `shasum -a 256`.
+  Pass `--user-skill` to also install the per-user opencode
+  skill (`~/.config/opencode/skills/math-coding/SKILL.md`).
+  See [`scripts/install-tooling/install.sh`](scripts/install-tooling/install.sh)
+  for the full flag set.
+- **Docker image** (sandbox-friendly). No sudo required:
+  ```sh
+  docker run --rm -v "$PWD:/repo" ghcr.io/11111000000/mathc:3.1.0-alpha-final \
+    validate decisions/foo.yaml
+  ```
+  The image is built from `Dockerfile.debian-slim` (multi-stage:
+  nix-build → debian:bookworm-slim runtime).
+- **Nix run** (zero-install for Nix users):
+  ```sh
+  nix run github:11111000000/math-coding -- validate decisions/foo.yaml
+  ```
+  `flake.nix` exposes `apps.<system>.default` for this path.
+- **Source build** (kernel developers):
+  ```sh
+  nix develop .#test && dune build --root . bin/mathc.exe
+  ```
+  The resulting binary lands at
+  `_build/install/default/bin/mathc`. **Warning:** per
+  [`OCAML_BEST_PRACTICES.md`](OCAML_BEST_PRACTICES.md) §11.22,
+  the locally-built binary links against nix-store glibc and
+  is **not portable** across hosts whose system glibc is older
+  than the nix-store version. Always download from the GitHub
+  release for cross-host portability.
 
 ## Quick start
 

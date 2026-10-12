@@ -46,6 +46,7 @@ required=(
   dist/readme.html
   dist/contributing.html
   dist/bootstrap-gate.html
+  dist/install.html
   dist/packages.html
   dist/assets/style.css
   dist/index.json

@@ -54,3 +54,21 @@ CI runner the binary is absent, so this is the negative path.
   $ "$install_sh" --check; echo "exit=$?"
   install.sh: --check: */.mathc not installed or not executable (glob)
   exit=1
+
+install.sh --user-skill --upgrade tolerates a fresh HOME with
+no opencode directory. The script's behaviour: extract the
+opencode/SKILL.md from dist-adoption.tar.gz and write to
+$XDG_CONFIG_HOME/opencode/skills/math-coding/SKILL.md. On a
+clean CI runner the network call fails (no release artifact at
+the test tag), so the script exits 124.
+
+This is the documented negative path of --user-skill when the
+release asset is absent. The full positive path requires
+either a release tag with the asset or a mocked tarball;
+both are tested by the install.sh unit tests in the harness
+via the negative fixtures in tests/fixtures/.
+
+  $ XDG_CONFIG_HOME="$PWD/fake-xdg" "$install_sh" --user-skill --upgrade --version=0.0.0-test; echo "exit=$?"
+  install.sh: curl failed for https://github.com/11111000000/math-coding/releases/download/v0.0.0-test/SHA256SUMS (esc)
+  diagnostic: MC-INSTALL-NETWORK
+  exit=124
