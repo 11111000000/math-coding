@@ -1,0 +1,18 @@
+{
+  "evidence": "dune build exits 0; mathc self-check on HEAD reports 60 pass / 2 unknown of 62 subjects; mathc render still produces 87 pages + 1 search index + 1 feed.",
+  "id": "sha256:b1eda438ad85da9e2182905619741af656a362eab326d1972c00afc8c774789f",
+  "issued_at": "2026-10-12T14:35:00Z",
+  "kind": "attestation",
+  "kind_": "build",
+  "producer": {
+    "identity": "agent:opencode:site-quality-distribution-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-distribution-2026-10",
+    "materials_digest": "",
+    "obligation": "build-and-self-check-still-green"
+  }
+}

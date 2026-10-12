@@ -428,6 +428,55 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
      full visibility — the inline marker is still a link. */
 }
 
+/* --- onboarding CTA (Phase 4 of site-quality-distribution-2026-10) --- */
+
+.mathc-onboarding {
+  margin: 2.5em 0;
+  padding: 1.5em 1.75em;
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+}
+.mathc-onboarding h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0 0 0.6em;
+  padding: 0;
+  border: 0;
+}
+.mathc-onboarding p {
+  margin: 0 0 0.9em;
+  color: var(--fg-muted);
+}
+.mathc-onboarding-cta {
+  display: inline-block;
+  margin-right: 0.6em;
+  padding: 0.45em 0.9em;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  font-family: var(--mono-stack);
+  font-size: 0.82em;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  background: var(--bg);
+  text-decoration: none;
+}
+.mathc-onboarding-cta:hover {
+  background: var(--accent);
+  color: var(--bg);
+  border-bottom-color: var(--accent);
+}
+.mathc-onboarding-cta-secondary {
+  border-color: var(--rule-strong);
+  color: var(--fg-muted);
+}
+.mathc-onboarding-cta-secondary:hover {
+  background: var(--fg-muted);
+  color: var(--bg);
+  border-color: var(--fg-muted);
+}
+
 /* --- illustrations (Phase 2 of site-quality-illustrations-2026-10) --- */
 
 .mathc-figure {

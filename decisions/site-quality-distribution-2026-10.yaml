@@ -1,0 +1,175 @@
+---
+schema: math-coding/3.0-alpha
+id: site-quality-distribution-2026-10
+revision: 1
+state: active
+body_sha: "sha256:45a7b367af3ee4bd7a5346d5eb6aaacb86258116217cf26cf45ebd771817edc6"
+yaml_sha: "sha256:45a7b367af3ee4bd7a5346d5eb6aaacb86258116217cf26cf45ebd771817edc6"
+axiom_link:
+  - A1
+intent: |
+  Extend the published surface beyond HTML so visitors who
+  do not (yet) read the site in a browser can still
+  consume what the project says. The post-Phase-0 site
+  exposes its decisions as HTML pages and as a JSON search
+  index, but neither is consumable by an RSS reader or by
+  an automated CI watcher.
+
+  Two distribution channels are missing:
+
+  - **RSS 2.0 feed** at `dist/feed.xml` so an external
+    reader can subscribe to the project's assurance
+    activity (each new or revised decision appears as an
+    `<item>`); the feed is what a CI bot or a reviewer
+    uses to know that a decision moved without polling
+    GitHub.
+
+  - **Onboarding CTA** on the home page so a first-time
+    visitor who lands on `dist/index.html` sees a
+    next-step prompt: "Try on this repo" linking to the
+    USAGE.md adoption runbook plus the GitHub repo so the
+    visitor can either read the adoption guide or clone
+    the project in one click.
+
+commitment: |
+  `mathc render` produces a site that, in addition to the
+  HTML pages emitted by `site-quality-polish-2026-10@1`,
+  emits:
+
+  1. `dist/feed.xml` -- a valid RSS 2.0 feed whose
+     `<channel>` describes the project and whose
+     `<item>`s list every decision with id, title,
+     decision_revision, obligation count, and the link to
+     the per-decision HTML page; the feed items are
+     ordered by decision id (the kernel-side ordering)
+     and capped at the 60 most recent.
+
+  2. An onboarding call-to-action on the home page
+     (`dist/index.html` and `dist/index.ru.html`) that
+     links to USAGE.md and to the GitHub repository so a
+     visitor can adopt math-coding in their own project
+     without leaving the site.
+
+scope:
+  paths:
+    - "assets/**"
+    - "lib/render.ml"
+    - "lib/packages.ml"
+    - "bin/Mathc.ml"
+    - "site/index.md"
+  decisions:
+    - "site-deploy@5"
+    - "site-quality-2026-10@1"
+    - "site-quality-illustrations-2026-10@1"
+    - "site-quality-polish-2026-10@1"
+
+outcomes:
+  - id: rss-feed-renders-valid-xml
+    statement: `dist/feed.xml` is a parseable RSS 2.0 feed
+      with one `<item>` per decision and a `<channel>`
+      that names the project.
+  - id: onboarding-cta-on-home
+    statement: The home page carries an onboarding call-to-
+      action block above the packages grid.
+
+assumptions:
+  - id: rss-readers-can-parse-rss-2.0
+    state: assumed
+    statement: RSS readers in use today accept the
+      2.0 schema with `<channel>`, `<item>`, and `<title>`
+      / `<link>` / `<description>` children; an Atom
+      alternative is out of scope.
+    owner: human:maintainer
+    consequence_if_false: A future user reporting
+      reader-side incompatibility would file a new
+      decision to add Atom (`dist/feed.atom`) alongside
+      the RSS feed.
+    review_on:
+      - signal: reader-incompatibility-reported
+
+obligations:
+  - id: rss-feed-emits-valid-xml
+    outcome: rss-feed-renders-valid-xml
+    claim: |
+      After `mathc render` runs, `dist/feed.xml` exists
+      and is well-formed XML; it carries one `<item>` per
+      active decision with `<title>` (the decision id),
+      `<link>` (the per-decision HTML page), `<guid>`
+      (the decision id), `<pubDate>` (the decision's
+      revision marker as ISO 8601), and `<description>`
+      (a one-line summary of the decision's intent and
+      obligation count).
+    acceptance:
+      all:
+        - verifier: feed-xml-is-valid
+          result: pass
+
+  - id: onboarding-cta-on-home-page
+    outcome: onboarding-cta-on-home
+    claim: |
+      The home page (`dist/index.html` and
+      `dist/index.ru.html`) carries an
+      `<aside class="mathc-onboarding">` block that links
+      to USAGE.md and to the project's GitHub repository,
+      with prose explaining that the visitor can run
+      `mathc self-check` on any repository to verify the
+      protocol locally.
+    acceptance:
+      all:
+        - verifier: cta-block-emits
+          result: pass
+
+  - id: build-and-self-check-still-green
+    outcome: rss-feed-renders-valid-xml
+    claim: |
+      After both artefacts land, `dune build` exits 0
+      and `mathc self-check` reports the same verdict as
+      the pre-change baseline (60 pass / 1 unknown of 61
+      subjects).
+    acceptance:
+      all:
+        - verifier: mathc-self-check
+          result: pass
+
+reversal:
+  - signal: feed-fails-validator
+    action: fix-rss-and-bump-revision
+
+risk:
+  declared_triggers:
+    - rss-reader-incompat-surfaced
+    - cta-target-url-rot
+
+counterexample: |
+  "RSS and an onboarding CTA are not contract changes; no
+  decision is needed." This argument fails because (a)
+  the RSS feed is a new public surface that downstream
+  consumers (CI bots, reviewer RSS readers) will rely on,
+  and removing it would break that contract; and (b) the
+  onboarding CTA is the visitor's first interaction with
+  the project's adoption surface, and the AGENTS.md
+  self-application principle requires that any change to
+  the rules visitors encounter ship with a recorded
+  commitment.
+
+antithesis: |
+  Author considered and rejected the strongest counter-
+  position that a maintainer might raise: "the site
+  already links to AGENTS.md, ROADMAP.md, and PACKAGES.md
+  in the footer; an onboarding CTA is redundant." That
+  position is rejected because the footer links are
+  navigation chrome that visitors scan past; a primary
+  CTA above the packages grid is the project's only
+  chance to convert a first-time reader into an adopter
+  before they scroll. Likewise, RSS is not redundant with
+  GitHub release notifications because RSS readers
+  surface decisions in chronological order without the
+  visitor needing a GitHub account or to subscribe to
+  release emails.
+
+relations:
+  addresses:
+    - "site-deploy@5"
+    - "site-quality-2026-10@1"
+    - "site-quality-illustrations-2026-10@1"
+    - "site-quality-polish-2026-10@1"

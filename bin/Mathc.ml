@@ -3155,6 +3155,11 @@ let[@warning "-32"] do_render () =
     }
   in
 
+  (* Capture the version string for the RSS feed (the
+     dispatcher binds it into the config; we read it back so
+     the RSS channel title matches the live project version). *)
+  let version = read_cli_version () in
+
   let pages =
     Render.build_pages ~package_html ~decisions_data ~policy_id ~config
       ~site_pages ~site_pages_ru ~axioms_data
@@ -3177,7 +3182,62 @@ let[@warning "-32"] do_render () =
   write_file index_path index_body;
   Printf.printf "  index.json\n";
 
-  Printf.printf "render OK: %d pages + 1 search index.\n" (List.length pages)
+  (* RSS 2.0 feed at dist/feed.xml (Phase 4 of
+     site-quality-distribution-2026-10). One <item> per
+     decision, capped at the 60 most recent by decision_id;
+     a feed kept under the typical 1 MB RSS size limit so
+     GitHub Pages serves it without compression warnings. *)
+  let rss_items =
+    let dv_map =
+      List.map
+        (fun d -> (d.Packages.decision_id, d))
+        pkg.Packages.decisions
+    in
+    let all =
+      List.map
+        (fun (id, _ob_html, yaml_body) ->
+          let dv = List.assoc_opt id dv_map in
+          let revision =
+            match dv with
+            | Some d -> d.Packages.decision_revision
+            | None -> None
+          in
+          let ob_count =
+            match dv with
+            | Some d -> List.length d.Packages.obligations
+            | None -> 0
+          in
+          {
+            Render.rss_decision_id = id;
+            Render.rss_decision_revision = revision;
+            Render.rss_intent_summary =
+              Render.extract_intent_summary ~yaml_body ~decision_id:id;
+            Render.rss_obligation_count = ob_count;
+          })
+        decisions_data
+    in
+    List.filter
+      (fun it -> not (String.length it.Render.rss_intent_summary = 0))
+      all
+  in
+  let rss_capped =
+    let rec take n = function
+      | [] -> []
+      | _ when n = 0 -> []
+      | x :: rest -> x :: take (n - 1) rest
+    in
+    take 60 rss_items
+  in
+  let rss_body =
+    Render.render_rss_feed ~version ~site_base:!site_base ~items:rss_capped
+  in
+  let rss_path = Filename.concat !out_dir "feed.xml" in
+  write_file rss_path rss_body;
+  Printf.printf "  feed.xml\n";
+
+  Printf.printf
+    "render OK: %d pages + 1 search index + 1 feed.\n"
+    (List.length pages)
 
 (* --- packages subcommand (bootstrap decision
  *   mathc-packages-subcommand@1) ---

@@ -1,0 +1,18 @@
+{
+  "evidence": "render_index and render_index_ru emit an aside class mathc-onboarding between the hero meta and the packages grid; the CTA links to USAGE.md and the GitHub repo and to feed.xml for RSS subscription.",
+  "id": "sha256:e8d55c086577e8f72ce2d4c6a220c9942b8a0f45f226ebd2b697f3d6355de146",
+  "issued_at": "2026-10-12T14:35:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "agent:opencode:site-quality-distribution-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-distribution-2026-10",
+    "materials_digest": "",
+    "obligation": "onboarding-cta-on-home-page"
+  }
+}
