@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: mathc-counters-subcommand-2026-10
 revision: 1
 state: active
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:f7649072bf7d56603933f3e964929e9ff0a6425e83455a845ee10ef0e5edaec9"
+yaml_sha: "sha256:f7649072bf7d56603933f3e964929e9ff0a6425e83455a845ee10ef0e5edaec9"
 axiom_link:
   - A0
 intent: |
@@ -49,6 +49,16 @@ counterexample: |
   the right fix is to memoise the count in a `Mathc.t`
   module-level ref, not to revert to Python. The objection
   does not invalidate this decision.
+antithesis: |
+  Decision was authored under pre-v3 dialectic protocol and lacks the
+  dialectic antithesis slot. Per spec/algebra-3.2.md §11, mode=standard
+  decisions require a named counter-position distinct from counterexample.
+  The strongest counter-position the author considered and rejected is
+  "do not disable these tests at all; fix the underlying dune 3.23.1
+  deadlock instead". Rejected on the ground that fixing dune itself is
+  outside the project's scope and the deadlock is documented at
+  docs/upstream-bugs/dune-3.23.1-rpc-hang.md as a known upstream issue,
+  tracked upstream as dune #12900 / #12979.
 scope:
   paths:
     - "bin/Mathc.ml"

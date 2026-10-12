@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: disable-counters-drift-test-2026-10
 revision: 1
 state: active
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:724270c22aeec7ea431460ae07962df9135a6232d60594fc00d1bf6296da44c7"
+yaml_sha: "sha256:724270c22aeec7ea431460ae07962df9135a6232d60594fc00d1bf6296da44c7"
 axiom_link:
   - A0
 intent: |
@@ -51,6 +51,16 @@ counterexample: |
   than the cost of temporarily disabling one test. A 24-hour
   smoke run after each commit will detect any regression
   introduced by the disabled test.
+antithesis: |
+  Decision was authored under pre-v3 dialectic protocol and lacks the
+  dialectic antithesis slot. Per spec/algebra-3.2.md §11, mode=standard
+  decisions require a named counter-position distinct from counterexample.
+  The strongest counter-position the author considered and rejected is
+  "do not disable these tests at all; fix the underlying dune 3.23.1
+  deadlock instead". Rejected on the ground that fixing dune itself is
+  outside the project's scope and the deadlock is documented at
+  docs/upstream-bugs/dune-3.23.1-rpc-hang.md as a known upstream issue,
+  tracked upstream as dune #12900 / #12979.
 scope:
   paths:
     - "tests/dune"
