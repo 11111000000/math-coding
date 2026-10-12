@@ -1900,3 +1900,82 @@ decision's obligations
 `sync-version-stale-detected`,
 `sync-version-write-idempotent`,
 `trap-log-entry-present`.
+
+
+### 11.28 `curl | sh` install script needs `-fSL`, not `-s`
+
+**Symptom.** `curl https://...install.sh | sh` succeeds
+silently even when the URL returns an HTTP 4xx/5xx error,
+because plain `curl -s` swallows the status code. A user
+who mistypes the URL or fetches a deleted release page
+runs an empty script body, which the shell treats as
+no-op success.
+
+```
+$ curl https://github.com/foo/bar/releases/download/v9.9.9/install.sh | sh
+$ echo $?
+0
+```
+
+The script ran nothing and exited 0; the user believes
+math-coding is installed.
+
+**Fix** (`scripts/install-tooling/install.sh` in this repo):
+the `dl()` helper uses `curl -fSL --retry 3 --connect-timeout 10`.
+The three flags:
+
+- `-f` — fail on HTTP ≥400, do not write the response body
+  to the output file.
+- `-S` — show errors on stderr even when `-s` is also set.
+- `-L` — follow GitHub's release redirect chain (the
+  `releases/download/v<X>/...` URL is a 302 to the actual
+  asset host).
+
+Without `-L`, GitHub's 302 sends the request to
+`objects.githubusercontent.com` and the user sees a
+"file not found" because the original path was wrong
+relative to the new host. Without `-f`, the user sees
+the HTML 404 page written to the binary path.
+
+**Trigger.** Any `curl | sh` install path that does not
+use `-fSL`. Cited from this session (2026-10-12) as the
+trigger for `decisions/install-tooling-2026-10.yaml`.
+Referenced from that decision's commitment #1 and the
+`dl()` helper at `scripts/install-tooling/install.sh`.
+
+### 11.29 Dockerfile COPY cannot reach outside the build context
+
+**Symptom.** A multi-stage Dockerfile fails at
+`COPY --from=build /tmp/mathc /usr/local/bin/mathc` with
+`ERROR: failed to solve: failed to compute cache key` or
+`forbidden path outside the build context`. The Nix store
+path `/nix/store/<hash>-mathc/bin/mathc` is reachable inside
+the build stage but the runtime stage cannot see it because
+`/nix/store` is on the build stage's mount, not the runtime
+stage's.
+
+**Fix** (`Dockerfile.debian-slim` in this repo): copy the
+binary to a known location inside the build stage before
+switching stages:
+
+```dockerfile
+RUN nix build --no-write-lock-file .#default \
+    && cp result/bin/mathc /tmp/mathc
+
+FROM debian:bookworm-slim
+COPY --from=build /tmp/mathc /usr/local/bin/mathc
+```
+
+`/tmp/mathc` is on the build stage's filesystem and is
+inherited by the `COPY` instruction because Docker's
+stage-to-stage copy is filesystem-level, not path-level.
+Do not try to copy directly from `/nix/store/...` — the
+path is not stable across `nix` versions and is rewritten
+on every `nix build`.
+
+**Trigger.** Any multi-stage Dockerfile that builds with
+Nix and copies the resulting binary into a slim runtime
+image. Cited from this session (2026-10-12) as the
+trigger for `decisions/install-tooling-2026-10.yaml`.
+Referenced from that decision's commitment #4 and
+`Dockerfile.debian-slim` (the cp-then-COPY pattern).

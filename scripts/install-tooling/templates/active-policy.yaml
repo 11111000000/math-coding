@@ -1,0 +1,120 @@
+---
+schema: math-coding/3.0-alpha
+id: bootstrap-v3
+revision: 1
+state: active
+intent: |
+  Bootstrap math-coding into a new repository. Copy this file
+  into `decisions/decision.yaml` in the target repo, then
+  adjust `scope.paths[]` to match the new repo's source tree.
+  The shipped `mathc` binary uses this policy as the master
+  when running `mathc self-check` and `mathc gate`.
+
+axiom_link:
+  - A0
+
+antithesis: |
+  The counter-position considered and rejected: "Adopting
+  math-coding is overkill for projects with one or two
+  developers and no AI agents — a plain ADR plus code review
+  is sufficient." The author engaged with this position and
+  rejected it on three grounds: (a) the applicability
+  envelope at `spec/algebra-3.2.md` §28 explicitly notes
+  that math-coding pays off precisely when coordination
+  costs (multiple agents, audit requirements, multi-decade
+  lifetime) appear — projects below the threshold should
+  stay on plain ADR; (b) the install path that ships this
+  template is itself the affordance that lowers the cost of
+  trying math-coding and rolling back if it does not fit
+  (`USAGE.md` §"Migrating between paths"); (c) a project
+  that copies this template and adjusts `scope.paths[]`
+  retains the option to rip math-coding out later, while a
+  project that skips the template altogether loses the
+  self-application chain (`spec/constitution.md`
+  §"Self-Application"). The template is the entry door,
+  not a commitment.
+
+commitment: |
+  `decisions/decision.yaml` in the target repository is the
+  active policy for that repo. `mathc validate` accepts the
+  template as-is. After copy, the maintainer:
+
+    1. Adjusts `scope.paths[]` to point at the new repo's
+       source tree (e.g. `src/**` for a Rust project,
+       `pkg/**` for a Python project).
+    2. Removes the `axiom_link: [A0]` field if the new
+       repo's work is not grounded in `axiom A0 (Separation)`;
+       otherwise keeps it.
+    3. Adds at least one application-specific decision under
+       `decisions/<id>.yaml` so the `mathc self-check` has
+       a non-trivial obligation set to attest.
+
+  The kernel does not require any specific decision beyond
+  the policy itself; `mathc self-check` returns `pass` on a
+  repo that contains only this file (one obligation, one
+  attestation).
+
+  Boundaries:
+
+  - This template does NOT auto-bump `mathc` to a specific
+    version. The install path (per the
+    `install-tooling-2026-10.yaml` decision) pins the
+    version; this template is version-agnostic.
+  - This template does NOT include obligations. The
+    bootstrap policy's only obligation is "be present and
+    parse"; the application-specific decisions carry the
+    real obligations.
+  - This template does NOT include `reversal:`. The
+    bootstrap policy is not itself reversible; new versions
+    of the protocol supersede the previous bootstrap
+    policy at the `rev` field, not via a reversal signal.
+
+scope:
+  paths: []
+
+outcomes:
+  - id: policy-installed
+    statement: |
+      A new repo that copies this file into its own
+      `decisions/decision.yaml` has a math-coding-compliant
+      master policy; `mathc self-check` runs against it.
+  - id: scope-configurable
+    statement: |
+      The maintainer adjusts `scope.paths[]` to match their
+      repo's source tree; the policy's scope grows without
+      otherwise modifying it.
+
+obligations:
+  - id: policy-file-present
+    statement: |
+      A decision file at `decisions/decision.yaml` exists in
+      the new repo and parses without error.
+    outcome: policy-installed
+    acceptance:
+      all:
+        - verifier: mathc-validate
+          result: pass
+
+counterexample: |
+  "A single-page template with empty `scope.paths[]` is not
+   useful — the new repo's first `mathc self-check` will
+   report `unknown` because no obligations are scoped to
+   anything." Counterargument: the template's purpose is
+  to be the entry door. The maintainer's first action
+  after copying is to author one application-specific
+  decision (`decisions/<id>.yaml`) that scopes the
+  template's empty `scope.paths[]` to the new repo's actual
+  source. The `unknown` verdict is the intended state at
+  adoption time; it transitions to `pass` once the
+  application decision's attestation is recorded.
+
+risk:
+  declared_triggers:
+    - scope-paths-empty
+    - axiom-link-unacceptable
+  owner: human:maintainer
+
+relations:
+  addresses: []
+  supersedes: []
+  superseded_by: []
