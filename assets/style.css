@@ -213,6 +213,26 @@ nav.site-nav a.nav-link:hover {
   color: var(--theorem-rule);
 }
 
+/* --- focus-visible (Phase 3 of site-quality-polish-2026-10) ---
+   Keyboard-only navigation exposes a visible focus ring on
+   every interactive element. The outline is a 2px oxblood
+   ring with a 2px cream offset so the ring is visible
+   against both cream backgrounds and the dark navigation
+   bar. We rely on :focus-visible rather than :focus so
+   mouse clicks do not paint the ring. */
+a:focus-visible,
+button:focus-visible,
+.mathc-axiom-figure:focus-visible,
+.mathc-verdict-label:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+nav.site-nav a.nav-link:focus-visible {
+  outline: 2px solid var(--theorem-rule);
+  outline-offset: 2px;
+}
+
 nav.site-nav a.nav-link.active {
   opacity: 1;
   color: var(--theorem-rule);
@@ -590,7 +610,17 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
   border-radius: 2px;
   letter-spacing: 0.06em;
 }
-.mathc-verdict-pass .mathc-verdict-label    { background: var(--pass);   color: #fff; }
+/* `pass` is the protocol's healthy state; the visual signal
+   on the page is the non-pass verdicts (unknown/fail/etc).
+   So `pass` is neutral (cream + oxblood outline) and the
+   non-pass states keep their semantic colour (Phase 3 of
+   site-quality-polish-2026-10). */
+.mathc-verdict-pass .mathc-verdict-label {
+  background: var(--bg);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  padding: 0.1em 0.5em;
+}
 .mathc-verdict-fail .mathc-verdict-label    { background: var(--fail);   color: #fff; }
 .mathc-verdict-unknown .mathc-verdict-label { background: var(--unknown); color: #fff; }
 .mathc-verdict-stale .mathc-verdict-label   { background: var(--stale);  color: #fff; }
@@ -732,11 +762,69 @@ mjx-container[display="true"] {
   font-family: var(--serif-stack) !important;
 }
 
-/* --- print --- */
+/* --- print (Phase 3 of site-quality-polish-2026-10) --- */
 
 @media print {
-  body { background: #fff; color: #000; }
-  nav.site-nav, footer.site-footer { display: none; }
-  .sidenote { display: block; padding-left: 1em; border-left: 2px solid #999; }
-  a { color: #000; border-bottom: 0; }
+  body {
+    background: #fff;
+    color: #000;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+  /* Hide nav and footer; they are navigation chrome that
+     does not belong on a printed page. */
+  nav.site-nav,
+  footer.site-footer {
+    display: none;
+  }
+  /* Widen the prose column to the page; the cream-on-cream
+     surface is unnecessary on paper. */
+  main, .container {
+    max-width: 100%;
+    padding: 0.5cm 1cm 1cm;
+    margin: 0;
+  }
+  /* Keep sidenotes and callouts visible; they carry
+     meaning the reader must not lose. */
+  .sidenote {
+    display: block;
+    padding: 0.2em 1em;
+    border-left: 2px solid #999;
+    font-style: italic;
+    color: #000;
+  }
+  blockquote.site-callout {
+    color: #000;
+    border-color: #999;
+  }
+  /* Reset link colour: on paper the URL is what matters. */
+  a {
+    color: #000;
+    border-bottom: 0;
+    text-decoration: underline;
+  }
+  /* Verdict grids as compact one-per-line lists. */
+  .mathc-obligation {
+    padding: 0.2em 0;
+    gap: 0.5em;
+    font-size: 0.85em;
+  }
+  .mathc-decision-page > h1 {
+    font-size: 1.4rem;
+    margin-bottom: 1rem;
+  }
+  /* Avoid breaking pages inside h2 headings and code blocks. */
+  h2, h3, pre {
+    page-break-after: avoid;
+  }
+  pre {
+    border: 1px solid #999;
+    font-size: 0.85em;
+    white-space: pre-wrap;
+  }
+  /* Avoid awkward orphan rows in the package grid. */
+  article.mathc-decision,
+  article.mathc-axiom {
+    page-break-inside: avoid;
+  }
 }

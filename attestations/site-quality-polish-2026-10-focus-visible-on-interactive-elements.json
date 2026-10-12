@@ -1,0 +1,18 @@
+{
+  "evidence": "assets/style.css carries :focus-visible rule with 2px oxblood outline + 2px offset on a/button/.mathc-axiom-figure/.mathc-verdict-label; tabbing through dist/index.html, dist/axioms.html, dist/decisions/<id>.html leaves no link or pill without a visible focus ring (manual keyboard walk).",
+  "id": "sha256:074e084112c0963a5ab31bdbabe6fdd934ae2d250df4ef9de96abd79ad218906",
+  "issued_at": "2026-10-12T14:30:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "agent:opencode:site-quality-polish-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-polish-2026-10",
+    "materials_digest": "",
+    "obligation": "focus-visible-on-interactive-elements"
+  }
+}

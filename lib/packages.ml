@@ -502,8 +502,13 @@ let[@warning "-32"] to_html (p : package_list) =
   let buf = Buffer.create 512 in
   Printf.bprintf buf
     "<section class=\"mathc-packages\" data-mathc-package-count=\"%d\" \
+     data-mathc-pass-count=\"%d\" data-mathc-unknown-count=\"%d\" \
+     data-mathc-fail-count=\"%d\" data-mathc-stale-count=\"%d\" \
+     data-mathc-missing-count=\"%d\" data-mathc-waived-count=\"%d\" \
      data-mathc-as-of=\"%s\" data-mathc-policy=\"%s\">\n"
-    p.counts.total (html_escape p.as_of) (html_escape p.policy_id);
+    p.counts.total p.counts.pass p.counts.unknown p.counts.fail
+    p.counts.stale p.counts.missing p.counts.waived
+    (html_escape p.as_of) (html_escape p.policy_id);
   Printf.bprintf buf "<h2>math-coding packages</h2>\n";
   Printf.bprintf buf
     "<p class=\"mathc-counts\">total=%d pass=%d fail=%d unknown=%d stale=%d \

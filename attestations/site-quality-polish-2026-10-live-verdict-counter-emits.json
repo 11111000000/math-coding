@@ -1,0 +1,18 @@
+{
+  "evidence": "assets/site.js#updateLiveCounters reads data-mathc-package-count, data-mathc-pass-count, data-mathc-unknown-count, data-mathc-fail-count from the package-grid wrapper and rewrites the hero .meta paragraph on dist/index.html and dist/index.ru.html with the live numbers; the kernel emits all four attributes on the wrapper.",
+  "id": "sha256:3fce79d0217c29e8e434a41ee19820e4e83a0be1f1c9a65819bd6c3ef50cc6ce",
+  "issued_at": "2026-10-12T14:30:00Z",
+  "kind": "attestation",
+  "kind_": "test",
+  "producer": {
+    "identity": "agent:opencode:site-quality-polish-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-polish-2026-10",
+    "materials_digest": "",
+    "obligation": "live-verdict-counter-emits"
+  }
+}

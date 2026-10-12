@@ -1,0 +1,18 @@
+{
+  "evidence": "assets/kernel-architecture.svg exists; dist/methodology.html and dist/foundations.html each reference it once; img has alt text naming the five pipeline stages.",
+  "id": "sha256:bf89fcc9876d3acec6218a6202813e1af3a4a5e9c3b8d9a4fc51f5dc4b74e468",
+  "issued_at": "2026-10-12T14:30:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "agent:opencode:site-quality-illustrations-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-illustrations-2026-10",
+    "materials_digest": "",
+    "obligation": "kernel-architecture-svg-shipped"
+  }
+}

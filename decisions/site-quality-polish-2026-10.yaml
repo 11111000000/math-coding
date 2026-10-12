@@ -1,0 +1,219 @@
+---
+schema: math-coding/3.0-alpha
+id: site-quality-polish-2026-10
+revision: 1
+state: active
+body_sha: "sha256:9ddc21204697a152d3a39c62bfe2295b7c6e6fa2809c96659276ed2aff2caf79"
+yaml_sha: "sha256:9ddc21204697a152d3a39c62bfe2295b7c6e6fa2809c96659276ed2aff2caf79"
+axiom_link:
+  - A1
+intent: |
+  Apply the polish and quality improvements that the
+  pre-Phase-0 / pre-Phase-1 site-quality analysis flagged
+  but that Phase 1 (content) and Phase 2 (illustrations)
+  did not close. Four gaps remain:
+
+  - the site ships no accessible focus indicators; keyboard
+    users tabbing through the nav or verdict-pill links
+    see no visual cue for the current focus target
+    (a Lighthouse accessibility run scored ~80 before
+    Phase 0);
+  - the home page carries a static verdict summary that
+    has to be regenerated whenever the kernel runs;
+    visitors on a stale branch see numbers that may lag
+    the live build by hours;
+  - the verdict pill on every decision and every package
+    uses the same saturated green for `pass`, which makes
+    a passing site look like a green-tinted dashboard and
+    buries the actual signal (which is the non-pass
+    verdicts);
+  - the print stylesheet inherited from Phase 0 is
+    minimal: nav and footer print but sidenotes and
+    blockquote-callouts disappear; the long axiom pages
+    are hard to read on paper.
+
+commitment: |
+  `mathc render` produces a site that:
+
+  1. Exposes a `:focus-visible` outline on every
+     interactive element (nav links, verdict pills, axiom
+     icons, anchor links), meeting the WCAG 2.1 2.4.7
+     "Focus Visible" success criterion.
+
+  2. Carries a tiny client-side counter on the home page
+     that reads the live `data-mathc-package-count`,
+     `data-mathc-pass-count`, and `data-mathc-unknown-count`
+     attributes (the kernel already emits these on the
+     package grid) and surfaces them in the hero meta
+     paragraph in place of the static "207 obligations"
+     text.
+
+  3. Renders the `pass` verdict label in a neutral
+     background (warm cream + oxblood outline) instead of
+     saturated green; `fail`, `unknown`, `stale`,
+     `missing`, and `waived` retain their semantic
+     colours so non-pass verdicts remain the visual
+     signal.
+
+  4. Prints the long-form articles (axiom home, manifesto,
+     workflow, foundations, methodology) with a
+     print-friendly layout: nav and footer are hidden;
+     sidenotes and callouts are kept; the prose column is
+     widened to the page; per-decision verdict grids are
+     emitted as compact type=3 lists so each verdict is
+     on a single line.
+
+scope:
+  paths:
+    - "assets/**"
+    - "lib/render.ml"
+    - "lib/packages.ml"
+    - "bin/Mathc.ml"
+    - "tests/render_kernel.ml"
+  decisions:
+    - "site-deploy@5"
+    - "site-quality-2026-10@1"
+    - "site-quality-illustrations-2026-10@1"
+
+outcomes:
+  - id: focus-visible-across-the-site
+    statement: Every interactive element on every page
+      exposes a visible focus ring when reached by keyboard.
+  - id: live-verdict-counter-on-home
+    statement: The home page hero carries a counter that
+      updates from the live package-grid data attributes
+      without a full page reload.
+  - id: verdict-pills-neutral-for-pass
+    statement: A passing package reads as "the protocol
+      is healthy" rather than as a green dashboard;
+      non-pass verdicts retain their semantic colour.
+  - id: print-stylesheet-readable
+    statement: Long-form articles print to paper with nav
+      and footer hidden and the prose column widened.
+
+assumptions:
+  - id: no-third-party-a11y-audit
+    state: assumed
+    statement: The focus-visible rule and the neutral
+      verdict pills are validated by manual keyboard tab
+      order rather than by an automated audit tool.
+    owner: human:maintainer
+    consequence_if_false: A future audit (Lighthouse, axe)
+      may flag additional gaps that this decision does not
+      close; that audit would file a new decision.
+    review_on:
+      - signal: a11y-audit-fails
+
+obligations:
+  - id: focus-visible-on-interactive-elements
+    outcome: focus-visible-across-the-site
+    claim: |
+      `assets/style.css` carries a `:focus-visible` rule
+      that paints a 2px oxblood outline with a 2px cream
+      offset on every interactive element (nav links,
+      verdict pills, axiom figures, anchor links,
+      buttons). Tabbing through `dist/index.html`,
+      `dist/axioms.html`, and `dist/decisions/<id>.html`
+      leaves no link or pill without a visible focus ring.
+    acceptance:
+      all:
+        - verifier: focus-visible-rule-present
+          result: pass
+
+  - id: live-verdict-counter-emits
+    outcome: live-verdict-counter-on-home
+    claim: |
+      `assets/site.js` reads the package-grid wrapper's
+      `data-mathc-package-count`, `data-mathc-pass-count`,
+      and `data-mathc-unknown-count` attributes and
+      surfaces them in the hero meta paragraph on the home
+      page (`dist/index.html`) and on the index.html
+      RU sibling (`dist/index.ru.html`).
+    acceptance:
+      all:
+        - verifier: live-counter-script-emits
+          result: pass
+
+  - id: verdict-pill-pass-is-neutral
+    outcome: verdict-pills-neutral-for-pass
+    claim: |
+      `assets/style.css::.mathc-verdict-label.pass` carries
+      a neutral background (warm cream + oxblood outline)
+      instead of a saturated green; the remaining verdict
+      labels (`fail`, `unknown`, `stale`, `missing`,
+      `waived`) retain their semantic colour palette.
+    acceptance:
+      all:
+        - verifier: verdict-pill-css-rule-changed
+          result: pass
+
+  - id: print-stylesheet-readable
+    outcome: print-stylesheet-readable
+    claim: |
+      `assets/style.css::@media print` hides `nav.site-nav`
+      and `footer.site-footer`, widens the prose column
+      to the page, keeps `blockquote.site-callout` and
+      `.sidenote` visible, and emits the per-decision
+      verdict grid as a compact `font-size: 0.8em`
+      list so each verdict pill stays on one line.
+    acceptance:
+      all:
+        - verifier: print-rules-present
+          result: pass
+
+  - id: build-and-self-check-still-green
+    outcome: focus-visible-across-the-site
+    claim: |
+      After all four artefacts land, `dune build` exits
+      0, `mathc self-check` reports the same verdict as
+      the pre-change baseline (58 pass / 1 unknown of 59
+      subjects), and `mathc render` still produces 85
+      pages + 1 search index.
+    acceptance:
+      all:
+        - verifier: mathc-self-check
+          result: pass
+
+reversal:
+  - signal: focus-ring-breaks-grounded-routes
+    action: relax-rule-and-bump-revision
+
+risk:
+  declared_triggers:
+    - lighthouse-audit-fails-after-phase-3
+    - print-css-renders-extra-empty-pages
+
+counterexample: |
+  "Polish is editorial; no decision is needed." This
+  argument fails because (a) the focus-visible rule is a
+  new contract: a keyboard-only visitor receives a visible
+  cue for the first time; (b) the live counter introduces
+  client-side JavaScript that did not exist before, which
+  is a new runtime behaviour; and (c) the verdict-pill
+  colour change is a visual contract change for the
+  rendered HTML. Per the project policy, any kernel-side
+  or site-surface change that a visitor can perceive
+  ships with a decision under the active policy.
+
+antithesis: |
+  Author considered and rejected the strongest counter-
+  position that a maintainer might raise: "the existing
+  visitors do not need keyboard navigation; the verdict
+  pills already convey their meaning; the print page is
+  rarely used; the live counter adds JavaScript that
+  bloats every page." That position is rejected because
+  (a) keyboard navigation is a documented accessibility
+  requirement (WCAG 2.1) that the site currently fails;
+  (b) the live counter is 25 lines of JavaScript that
+  reads attributes the kernel already emits, so it
+  costs nothing at render time and adds nothing to pages
+  that do not opt in; and (c) the print stylesheet
+  matters when an LLM agent or human maintainer prints
+  the long-form prose for offline review, which is a
+  documented use case in USAGE.md.
+
+relations:
+  addresses:
+    - "site-deploy@5"
+    - "site-quality-2026-10@1"
+    - "site-quality-illustrations-2026-10@1"

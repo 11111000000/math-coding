@@ -1,0 +1,18 @@
+{
+  "evidence": "All five axiom SVGs in assets/. dist/axioms/{separation,feedback,invariants,self-application,care}.html each contain exactly one axiom-X.svg reference with alt text 'Axiom X icon.'",
+  "id": "sha256:8d6eabb678bcd5d19129f438271119b3b53b5378a240755fbfdfacfd30933e6a",
+  "issued_at": "2026-10-12T14:30:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "agent:opencode:site-quality-illustrations-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-illustrations-2026-10",
+    "materials_digest": "",
+    "obligation": "axiom-icons-shipped"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "evidence": "assets/style.css::@media print hides nav.site-nav and footer.site-footer; widens main/.container; keeps blockquote.site-callout and .sidenote visible; emits the per-decision verdict grid as a compact font-size:0.85em list; adds page-break-inside: avoid for article.mathc-decision and article.mathc-axiom.",
+  "id": "sha256:b02c4ddd30c9f4c7f651b8b26969dee3e67999a5c4fabc68de3ab9d1454c65ef",
+  "issued_at": "2026-10-12T14:30:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "agent:opencode:site-quality-polish-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-polish-2026-10",
+    "materials_digest": "",
+    "obligation": "print-stylesheet-readable"
+  }
+}

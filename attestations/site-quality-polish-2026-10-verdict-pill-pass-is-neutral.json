@@ -1,0 +1,18 @@
+{
+  "evidence": "assets/style.css::.mathc-verdict-pass .mathc-verdict-label uses var(--bg) background + var(--accent) outline + 1px border; remaining verdict labels (fail, unknown, stale, missing, waived) retain their semantic colour palette.",
+  "id": "sha256:08775c6a7d93514383b30577fc60d466a72fdf81fad5743c7b0081a4cbf5b545",
+  "issued_at": "2026-10-12T14:30:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "agent:opencode:site-quality-polish-2026-10"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "site-quality-polish-2026-10",
+    "materials_digest": "",
+    "obligation": "verdict-pill-pass-is-neutral"
+  }
+}
