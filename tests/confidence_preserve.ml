@@ -25,6 +25,11 @@ commitment: |
   test
 counterexample: |
   none
+antithesis: |
+  test fixture; the v3 dialectic antithesis slot is not the subject of
+  this confidence-preservation test. The decision exists only to assert
+  that lib/jsonl.ml::Float parses 0.85 and that lib/decision.ml carries
+  the value into Domain.assumption.confidence.
 scope:
   paths: ["lib/**"]
 outcomes:
@@ -75,6 +80,7 @@ let[@warning "-32"] json_form () =
   "intent": {"source": "test", "text": "t"},
   "commitment": "c",
   "counterexample": "test probe; parser-robustness check (T6.2 requires counterexample for mode >= standard).",
+  "antithesis": "test fixture; the v3 dialectic antithesis slot is not the subject of this confidence-preservation test. The decision exists only to assert that lib/jsonl.ml Float parses 0.5 and that lib/decision.ml carries the value into Domain.assumption.confidence.",
   "scope": [{"kind": "path", "path": "lib/**"}],
   "outcomes": [{"id": "o", "statement": "s"}],
   "obligations": [
@@ -127,6 +133,11 @@ commitment: |
   test
 counterexample: |
   none
+antithesis: |
+  test fixture; the v3 dialectic antithesis slot is not the subject of
+  this confidence-preservation test. The decision exists only to assert
+  that lib/jsonl.ml::Float parses 0.85 and that lib/decision.ml carries
+  the value into Domain.assumption.confidence.
 scope:
   paths: ["lib/**"]
 outcomes:
