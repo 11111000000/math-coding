@@ -6,7 +6,7 @@ description: |
   decisions", "we need an audit trail", or mentions obligations,
   attestations, or waiver in a project context. Do not trigger on casual
   uses of "decision" or "obligation" in ordinary conversation.
-compatible_with: mathc@>=3.0.0.20
+compatible_with: mathc@>=3.1.0
 ---
 
 # math-coding
@@ -52,7 +52,7 @@ schema. The migration cost is one decision and one CI change.
 #   nix develop .#test
 #   dune build --root . bin/mathc.exe
 # or wait for a future release with musl support.
-MC_VERSION=3.0.0.20
+MC_VERSION=3.1.0-alpha-final
 URL="https://github.com/11111000000/math-coding/releases/download/v${MC_VERSION}"
 wget -qO ~/.local/bin/mathc "${URL}/mathc-linux-x86_64"
 chmod +x ~/.local/bin/mathc

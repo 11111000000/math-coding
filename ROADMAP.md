@@ -53,6 +53,8 @@ without a `decisions/*.yaml` decision under the active policy.
 | 3 | Site deploy (`.github/workflows/site.yml`) | `site-deploy@1` | small | brings the protocol's published surface under its own gate |
 | 4 | `mathc packages` subcommand | `mathc-packages-subcommand@1` | small | first kernel decision without an HTTP round-trip |
 | 5 | `mathc render` (site generator) | `site-deploy@1` | medium | brings v2.1's `core/render.ml` capability back under the 3.0 kernel |
+| 6 | `scripts/sync-version.sh` (Phase 1 install-tooling W1) | `version-sync-2026-10@1` | small | closes follow-up at `site-version-from-file-2026-10.yaml:76-81`; CI rejects drift between `VERSION` and `adoption/SKILL.md` |
+| 7 | `scripts/install-tooling/install.sh` (Phase 1 install-tooling W2) | `install-tooling-2026-10@1` | medium | four install channels (release binary / docker image / nix run / source build) + per-user skill pipeline; POSIX-sh; SHA-256 verification |
 
 ### Tier 2 — close specific audit deficits
 

@@ -1849,3 +1849,54 @@ trap) as the final root cause for the
 `release-yml-alpine-job-present`,
 `musl-binary-runs-version`,
 `glibc-binary-still-works`.
+
+
+### 11.27 VERSION drift between skill and binary
+
+**Symptom.** `adoption/SKILL.md` advertises one version string
+(`MC_VERSION=3.0.0.20` on line 55 and `compatible_with: mathc@>=3.0.0.20`
+on line 9), while the `VERSION` file at the repo root reads
+`3.1.0-alpha-final`. A user who reads the skill and runs
+`mathc version` against the current binary sees a different
+string than the skill led them to expect. The drift is silent:
+no compile error, no test failure, no CI signal.
+
+This pattern was observed twice between v3.0.0.20 and
+v3.1.0-alpha-final (the live kernel ships `3.1.0-alpha-final`
+but every reader of the skill sees `3.0.0.20`).
+
+**Cause.** `VERSION` was made the single source of truth for
+`mathc render` and `mathc version` in
+`decisions/site-version-from-file-2026-10.yaml@1`, but the
+skill (`adoption/SKILL.md`) and the future install script
+(`scripts/install-tooling/install.sh`) still hardcode their
+own version literals. The follow-up cycle announced at
+`site-version-from-file-2026-10.yaml:76-81` was deferred
+because the install surface did not yet exist; Phase-1 W1
+`decisions/version-sync-2026-10.yaml` closes it.
+
+**Fix.** `scripts/sync-version.sh` is the canonical repair.
+Two modes:
+
+- `--check`: exit 0 if `adoption/SKILL.md` derived points
+  match `VERSION`, exit 1 with a diff on stdout otherwise.
+  Wired into CI on every push; CI rejects drift PRs.
+- `--write`: rewrite the derived lines to match `VERSION`.
+  Maintainer invokes explicitly before each release commit.
+  Idempotent: re-running on a clean tree produces no diff.
+
+The derived points are anchored on the literal field names
+(`compatible_with:` / `MC_VERSION=`) so the script survives
+comment additions and docstring changes.
+
+**Trigger.** Any future cycle that introduces a new in-tree
+string with a version literal (e.g. a new install script, a
+new release-asset URL prefix). The new surface must be
+listed in `sync-version.sh` as a third derived point.
+Cited from this session (2026-10-12) as the trigger for
+`decisions/version-sync-2026-10.yaml`. Referenced from that
+decision's obligations
+`version-single-source-of-truth`,
+`sync-version-stale-detected`,
+`sync-version-write-idempotent`,
+`trap-log-entry-present`.
