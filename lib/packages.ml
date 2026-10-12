@@ -483,6 +483,51 @@ let[@warning "-32"] to_text (p : package_list) =
     p.decisions;
   Buffer.contents buf
 
+(* --- intent preview for the home grid ---
+   Walk the YAML body, find the `intent:` key, and return the
+   first non-empty content line (one-line summary for the
+   home grid). Mirrors the same tolerance as the renderer. *)
+let[@warning "-32"] intent_preview yaml_body =
+  match yaml_body with
+  | None -> ""
+  | Some body ->
+      let lines = String.split_on_char '\n' body in
+      let idx =
+        let rec scan i =
+          if i >= List.length lines then -1
+          else
+            let l = List.nth lines i in
+            if String.length (String.trim l) > 7
+               && String.sub (String.trim l) 0 7 = "intent:"
+            then i
+            else scan (i + 1)
+        in
+        scan 0
+      in
+      if idx < 0 then ""
+      else begin
+        let raw = List.nth lines idx in
+        let prefix_len = 7 in
+        let rest =
+          String.sub raw prefix_len (String.length raw - prefix_len)
+          |> String.trim
+        in
+        if rest = "|" || rest = "" then begin
+          let len = List.length lines in
+          let rec first_non_empty i =
+            if i >= len then ""
+            else
+              let l = List.nth lines i in
+              let t = String.trim l in
+              if t = "" then first_non_empty (i + 1) else t
+          in
+          let first = first_non_empty (idx + 1) in
+          if first = "" then "" else first
+        end
+        else if rest = "" then ""
+        else rest
+      end
+
 (* --- HTML renderer (self-contained fragment) --- *)
 
 let[@warning "-32"] html_escape s =
@@ -529,6 +574,18 @@ let[@warning "-32"] to_html (p : package_list) =
         "<h3><a class=\"mathc-decision-link\" \
          href=\"decisions/%s.html\">%s</a></h3>\n"
         (html_escape d.decision_id) (html_escape d.decision_id);
+      (* One-line intent preview so the home grid shows what
+         each decision is about without opening the per-decision
+         page. Truncated to 240 chars to keep the grid scannable. *)
+      let preview = intent_preview d.yaml_body in
+      let preview_trimmed =
+        let len = String.length preview in
+        if len > 240 then String.sub preview 0 240 ^ "..." else preview
+      in
+      if String.length preview_trimmed > 0 then
+        Printf.bprintf buf
+          "<p class=\"mathc-decision-intent\">%s</p>\n"
+          (html_escape preview_trimmed);
       Printf.bprintf buf "<ul class=\"mathc-obligations\">\n";
       List.iter
         (fun o ->
