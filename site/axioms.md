@@ -7,6 +7,10 @@
 
 ## A0 — Separation
 
+<figure class="mathc-axiom-figure">
+<img src="../assets/axiom-separation.svg" alt="Axiom A0 — Separation: kinds are distinct, the chain goes one way.">
+</figure>
+
 Kinds are distinct; the chain goes one way.
 
 There exist objects of the following kinds:
@@ -23,6 +27,10 @@ explicit `Decision.supersedes`.
 
 ## A1 — Feedback
 
+<figure class="mathc-axiom-figure">
+<img src="../assets/axiom-feedback.svg" alt="Axiom A1 — Feedback: every commitment has a path to an observation.">
+</figure>
+
 Every commitment has a path to an observation.
 
 For every commitment in the system, there exists a path by
@@ -31,6 +39,10 @@ The path is `commitment -> prediction -> observation ->
 revision`. Without an observation the commitment is a wish.
 
 ## A2 — Invariants and recovery
+
+<figure class="mathc-axiom-figure">
+<img src="../assets/axiom-invariants.svg" alt="Axiom A2 — Invariants and Recovery: every invariant is paired with a recovery path.">
+</figure>
 
 Every invariant is paired with a recovery path.
 
@@ -41,6 +53,10 @@ existing principal can execute it. A blocking decision that
 names no remedy is itself a deficit.
 
 ## A3 — Self-application
+
+<figure class="mathc-axiom-figure">
+<img src="../assets/axiom-self-application.svg" alt="Axiom A3 — Self-application: the rules govern their own changes.">
+</figure>
 
 The rules govern their own changes.
 
@@ -60,6 +76,10 @@ authorization of its own adoption. A candidate policy cannot
 authorize its own adoption.
 
 ## A4 — Care
+
+<figure class="mathc-axiom-figure">
+<img src="../assets/axiom-care.svg" alt="Axiom A4 — Care: owner, consequence, accountability, expiry.">
+</figure>
 
 Owner, consequence, accountability, expiry.
 

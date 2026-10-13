@@ -123,3 +123,30 @@ This is the failure mode described in `OCAML_BEST_PRACTICES.md` §10.1
    - a new obligation that requires the missing field, or
    - a manual review by an accountable authority.
 4. Do not proceed until the deficit has an accepted remedy.
+
+## Epistemic separation (A0 applied to assurance sources)
+
+The axiom's strict separation extends to the *sources* of assurance
+claims. The five epistemic classes — `declared`, `derived`, `attested`,
+`reviewed`, `observed` — are distinct. A `declared` claim (an advisor's
+statement) is not an `attested` claim (a test report). A `reviewed`
+claim (human sign-off) is not an `observed` claim (runtime signal).
+The kernel cannot promote a claim from a weaker class to a stronger
+one without an artifact that establishes the stronger class — see
+[spec/constitution.md §Epistemic Separation](../spec/constitution.md)
+and [`spec/algebra-3.2.md §0 honest_uncertainty`](../spec/algebra-3.2.md).
+
+<figure class="mathc-figure mathc-figure-epistemic">
+<img src="../assets/epistemic-separation.svg"
+     alt="Epistemic Separation: declared ≠ derived ≠ attested ≠ reviewed ≠ observed; a result MUST NOT be promoted to a stronger class without an artifact.">
+</figure>
+
+The diagram above visualises the inequality chain as a vertical
+ladder with `OBSERVED` (runtime signal, strongest) at the bottom and
+`DECLARED` (advisor statement, weakest) at the top. The forbidden
+up-arrows between layers mark the boundary that an artifact must cross:
+absent an artifact, a claim stays where it was produced. The
+`honest_uncertainty` principle (algebra §0) makes the same point in
+the verdict space — `Pass ≠ Fail ≠ Inconclusive ≠ InfrastructureError`
+— so that absence of evidence is reported as `Inconclusive`, never
+`Pass`.

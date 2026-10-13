@@ -502,6 +502,9 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
 .mathc-figure-foundations img {
   max-width: 56rem;
 }
+.mathc-figure-epistemic img {
+  max-width: 60rem;
+}
 .mathc-axiom-figure {
   display: flex;
   align-items: center;
