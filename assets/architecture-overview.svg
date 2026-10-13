@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" role="img" aria-labelledby="arch-title" preserveAspectRatio="xMidYMid meet">
+  <title id="arch-title">math-coding architecture: five concentric layers around a human — axioms, kernel, protocol objects, site and tools, user projects.</title>
+  <defs>
+    <style>
+      .arch-box        { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .arch-box-faint  { fill: #fbfaf6; stroke: #8a8a8a; stroke-width: 1; }
+      .arch-box-emph   { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.5; }
+      .arch-kernel-out { fill: none; stroke: #8b3a3a; stroke-width: 2.25; }
+      .arch-kernel-in  { fill: none; stroke: #8b3a3a; stroke-width: 1; }
+      .arch-outer      { fill: none; stroke: #8a8a8a; stroke-width: 1; stroke-dasharray: 6 4; }
+      .arch-text       { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; }
+      .arch-text-emph  { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .arch-text-small { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; }
+      .arch-text-tiny  { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8px; fill: #5a5a5a; text-anchor: middle; }
+      .arch-label-emph { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8b3a3a; text-anchor: start; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+      .arch-label-faint{ font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #5a5a5a; text-anchor: start; letter-spacing: 0.08em; text-transform: uppercase; font-weight: 600; }
+      .arch-caption    { font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; fill: #5a5a5a; text-anchor: middle; font-style: italic; }
+      .arch-arrow      { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .arch-arrow-emph { stroke: #8b3a3a; stroke-width: 1.25; fill: none; stroke-dasharray: 4 3; }
+      .arch-human-line { stroke: #1a1a1a; stroke-width: 1.5; fill: none; stroke-linecap: round; }
+      .arch-human-fill { fill: #1a1a1a; }
+      .arch-axiom-fill { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .arch-axiom-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 9px; fill: #8b3a3a; text-anchor: middle; font-weight: 600; }
+    </style>
+    <marker id="arch-arrow-head" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="arch-arrow-head-emph" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+
+  <!-- LAYER 5: USER PROJECTS (outermost) - dashed, faint, with three sample project rects -->
+  <g>
+    <rect class="arch-outer" x="60" y="20" width="880" height="640" rx="6"/>
+    <text class="arch-label-faint" x="80" y="42">user projects</text>
+    <rect class="arch-box-faint" x="100" y="55" width="120" height="32" rx="3"/>
+    <text class="arch-text-small" x="160" y="75">a/repo</text>
+    <rect class="arch-box-faint" x="440" y="55" width="120" height="32" rx="3"/>
+    <text class="arch-text-small" x="500" y="75">b/svc</text>
+    <rect class="arch-box-faint" x="780" y="55" width="120" height="32" rx="3"/>
+    <text class="arch-text-small" x="840" y="75">c/cli</text>
+  </g>
+
+  <!-- LAYER 4: SITE + TOOLS - this website, install.sh, the skill -->
+  <g>
+    <rect class="arch-box" x="150" y="110" width="700" height="510" rx="4"/>
+    <text class="arch-label-emph" x="170" y="132">site + tools</text>
+    <rect class="arch-box-emph" x="200" y="148" width="140" height="36" rx="3"/>
+    <text class="arch-text" x="270" y="171">website</text>
+    <rect class="arch-box-emph" x="430" y="148" width="140" height="36" rx="3"/>
+    <text class="arch-text" x="500" y="171">install.sh</text>
+    <rect class="arch-box-emph" x="660" y="148" width="140" height="36" rx="3"/>
+    <text class="arch-text" x="730" y="171">skill</text>
+  </g>
+
+  <!-- LAYER 3: PROTOCOL OBJECTS - decision, obligation, attestation, waiver at the four corners -->
+  <g>
+    <rect class="arch-box-emph" x="220" y="205" width="560" height="420" rx="4"/>
+    <text class="arch-label-emph" x="240" y="227">protocol objects</text>
+    <g><!-- decision (top-left, rect with corner fold) -->
+      <rect class="arch-box" x="245" y="248" width="115" height="55" rx="3"/>
+      <path d="M348,248 L360,248 L360,260 Z" fill="#fbfaf6" stroke="#8b3a3a" stroke-width="1.25"/>
+      <text class="arch-text" x="302" y="282">decision</text>
+    </g>
+    <g><!-- obligation (top-right, emphasised - the kernel-checked node) -->
+      <rect class="arch-box" x="640" y="248" width="115" height="55" rx="3"/>
+      <path d="M743,248 L755,248 L755,260 Z" fill="#fbfaf6" stroke="#8b3a3a" stroke-width="1.25"/>
+      <text class="arch-text-emph" x="697" y="282">obligation</text>
+    </g>
+    <g><!-- attestation (bottom-left, stamp motif) -->
+      <rect class="arch-box" x="245" y="540" width="115" height="55" rx="3"/>
+      <circle cx="302" cy="568" r="13" fill="none" stroke="#8b3a3a" stroke-width="1.5"/>
+      <circle cx="302" cy="568" r="8" fill="none" stroke="#8b3a3a" stroke-width="1"/>
+      <text class="arch-text" x="302" y="588">attestation</text>
+    </g>
+    <g><!-- waiver (bottom-right) -->
+      <rect class="arch-box" x="640" y="540" width="115" height="55" rx="3"/>
+      <path d="M743,540 L755,540 L755,552 Z" fill="#fbfaf6" stroke="#8b3a3a" stroke-width="1.25"/>
+      <text class="arch-text" x="697" y="573">waiver</text>
+    </g>
+  </g>
+
+  <!-- LAYER 2: KERNEL - double-bordered rectangle with five sub-modules at bottom and AXIOMS at top -->
+  <g>
+    <rect class="arch-kernel-out" x="320" y="320" width="360" height="200" rx="4"/>
+    <rect class="arch-kernel-in" x="326" y="326" width="348" height="188" rx="3"/>
+    <text class="arch-label-emph" x="340" y="343">kernel</text>
+    <text class="arch-text" x="500" y="358" font-style="italic" fill="#5a5a5a">mathc binary</text>
+    <!-- 5 sub-modules in a row at the bottom of the kernel box -->
+    <rect class="arch-box" x="340" y="475" width="62" height="38" rx="2"/>
+    <text class="arch-text-tiny" x="371" y="498">validate</text>
+    <rect class="arch-box" x="408" y="475" width="62" height="38" rx="2"/>
+    <text class="arch-text-tiny" x="439" y="498">gate</text>
+    <rect class="arch-box" x="476" y="475" width="62" height="38" rx="2"/>
+    <text class="arch-text-tiny" x="507" y="498">attest</text>
+    <rect class="arch-box" x="544" y="475" width="62" height="38" rx="2"/>
+    <text class="arch-text-tiny" x="575" y="498">self-check</text>
+    <rect class="arch-box" x="612" y="475" width="62" height="38" rx="2"/>
+    <text class="arch-text-tiny" x="643" y="498">render</text>
+  </g>
+
+  <!-- LAYER 1: AXIOMS - five axiom circles in a pentagon around the human (top of kernel box) -->
+  <g>
+    <rect class="arch-box" x="400" y="335" width="200" height="120" rx="4"/>
+    <text class="arch-label-emph" x="415" y="354">axioms</text>
+    <!-- A0 top -->
+    <circle class="arch-axiom-fill" cx="500" cy="370" r="11"/>
+    <text class="arch-axiom-text" x="500" y="374">A0</text>
+    <!-- A1 top-right -->
+    <circle class="arch-axiom-fill" cx="552" cy="395" r="11"/>
+    <text class="arch-axiom-text" x="552" y="399">A1</text>
+    <!-- A2 bottom-right -->
+    <circle class="arch-axiom-fill" cx="532" cy="438" r="11"/>
+    <text class="arch-axiom-text" x="532" y="442">A2</text>
+    <!-- A3 bottom-left -->
+    <circle class="arch-axiom-fill" cx="468" cy="438" r="11"/>
+    <text class="arch-axiom-text" x="468" y="442">A3</text>
+    <!-- A4 top-left -->
+    <circle class="arch-axiom-fill" cx="448" cy="395" r="11"/>
+    <text class="arch-axiom-text" x="448" y="399">A4</text>
+    <!-- HUMAN stick figure at center -->
+    <circle class="arch-human-fill" cx="500" cy="404" r="5"/>
+    <line class="arch-human-line" x1="500" y1="409" x2="500" y2="426"/>
+    <line class="arch-human-line" x1="500" y1="415" x2="492" y2="422"/>
+    <line class="arch-human-line" x1="500" y1="415" x2="508" y2="422"/>
+    <line class="arch-human-line" x1="500" y1="426" x2="494" y2="436"/>
+    <line class="arch-human-line" x1="500" y1="426" x2="506" y2="436"/>
+  </g>
+
+  <!-- DATA FLOW arrows: thin arcs on the sides, not crossing the inner diagram -->
+  <g>
+    <!-- commit arrow: from outer top-left project down through layers to kernel -->
+    <path class="arch-arrow" d="M160,90 C160,260 220,360 320,420" marker-end="url(#arch-arrow-head)"/>
+    <!-- verdict arrow: from kernel back up to outer top-right project -->
+    <path class="arch-arrow-emph" d="M680,420 C780,360 840,260 840,90" marker-end="url(#arch-arrow-head-emph)"/>
+    <!-- labels for the flows -->
+    <text class="arch-caption" x="180" y="240">commit</text>
+    <text class="arch-caption" x="820" y="240" fill="#8b3a3a">verdict</text>
+  </g>
+
+  <!-- AUDIENCE LEGEND -->
+  <g>
+    <text class="arch-caption" x="500" y="638" fill="#8b3a3a" font-style="normal" font-weight="600">kernel devs · protocol designers · adopters · contributors · operators</text>
+    <text class="arch-caption" x="500" y="654">a reader who only sees the kernel sees half the project; the human is in every layer</text>
+  </g>
+</svg>

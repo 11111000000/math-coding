@@ -1,0 +1,180 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 470" role="img" aria-labelledby="hr-title" preserveAspectRatio="xMidYMid meet">
+  <title id="hr-title">Human roles vs object kinds: which role touches which of the seven kinds. Author creates, reviewer reviews, operator operates; the kernel handles the rest.</title>
+  <defs>
+    <style>
+      .hr-title      { font-family: Georgia, "Iowan Old Style", serif; font-size: 16px; fill: #1a1a1a; text-anchor: middle; font-style: italic; }
+      .hr-subtitle   { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8a8a8a; text-anchor: middle; letter-spacing: 0.06em; text-transform: uppercase; }
+      .hr-col-head   { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #8b3a3a; text-anchor: middle; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+      .hr-row-label  { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: end; font-style: italic; }
+      .hr-grid       { stroke: #d4d0c8; stroke-width: 1; fill: none; }
+      .hr-cell-text  { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #5a5a5a; text-anchor: middle; }
+      .hr-caption    { font-family: Georgia, "Iowan Old Style", serif; font-size: 12px; fill: #5a5a5a; text-anchor: middle; font-style: italic; }
+      .hr-icon-fill  { fill: #8b3a3a; }
+      .hr-icon-stroke{ stroke: #8b3a3a; stroke-width: 1.5; fill: none; stroke-linecap: round; }
+      .hr-icon-creates-check { stroke: #fbfaf6; stroke-width: 1.75; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .hr-icon-ops-fill { fill: #1a1a1a; }
+      .hr-icon-null-stroke { stroke: #8a8a8a; stroke-width: 1.5; fill: none; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text class="hr-title" x="400" y="25">human roles vs object kinds</text>
+  <text class="hr-subtitle" x="400" y="44">seven kinds · three roles · the kernel handles the rest</text>
+
+  <!-- Column headers (above the table) -->
+  <text class="hr-col-head" x="310" y="78">author</text>
+  <text class="hr-col-head" x="460" y="78">reviewer</text>
+  <text class="hr-col-head" x="610" y="78">operator</text>
+
+  <!-- Vertical grid lines -->
+  <line class="hr-grid" x1="160" y1="90" x2="160" y2="300"/>
+  <line class="hr-grid" x1="385" y1="90" x2="385" y2="300"/>
+  <line class="hr-grid" x1="535" y1="90" x2="535" y2="300"/>
+  <line class="hr-grid" x1="685" y1="90" x2="685" y2="300"/>
+
+  <!-- Horizontal grid lines (one per row boundary) -->
+  <line class="hr-grid" x1="160" y1="90"  x2="685" y2="90"/>
+  <line class="hr-grid" x1="160" y1="120" x2="685" y2="120"/>
+  <line class="hr-grid" x1="160" y1="150" x2="685" y2="150"/>
+  <line class="hr-grid" x1="160" y1="180" x2="685" y2="180"/>
+  <line class="hr-grid" x1="160" y1="210" x2="685" y2="210"/>
+  <line class="hr-grid" x1="160" y1="240" x2="685" y2="240"/>
+  <line class="hr-grid" x1="160" y1="270" x2="685" y2="270"/>
+  <line class="hr-grid" x1="160" y1="300" x2="685" y2="300"/>
+
+  <!-- Row labels (kinds) - centered vertically in each 30-px row -->
+  <text class="hr-row-label" x="150" y="109">intent</text>
+  <text class="hr-row-label" x="150" y="139">decision</text>
+  <text class="hr-row-label" x="150" y="169">obligation</text>
+  <text class="hr-row-label" x="150" y="199">change</text>
+  <text class="hr-row-label" x="150" y="229">attestation</text>
+  <text class="hr-row-label" x="150" y="259">observation</text>
+  <text class="hr-row-label" x="150" y="289">revision</text>
+
+  <!-- ROW 1: intent (row center y=105) -->
+  <g><!-- author: creates -->
+    <circle class="hr-icon-fill" cx="310" cy="105" r="9"/>
+    <path class="hr-icon-creates-check" d="M305,105 L309,109 L316,100"/>
+  </g>
+  <g><!-- reviewer: reviews (3/4 circle + arrow) -->
+    <path class="hr-icon-stroke" d="M460,97 A8,8 0 1,1 452,105"/>
+    <path class="hr-icon-stroke" d="M460,97 L457,101 M460,97 L464,101"/>
+  </g>
+  <g><!-- operator: kernel-only -->
+    <circle class="hr-icon-null-stroke" cx="610" cy="105" r="9"/>
+    <line class="hr-icon-null-stroke" x1="603" y1="98" x2="617" y2="112"/>
+  </g>
+
+  <!-- ROW 2: decision (y=135) -->
+  <g>
+    <circle class="hr-icon-fill" cx="310" cy="135" r="9"/>
+    <path class="hr-icon-creates-check" d="M305,135 L309,139 L316,130"/>
+  </g>
+  <g>
+    <path class="hr-icon-stroke" d="M460,127 A8,8 0 1,1 452,135"/>
+    <path class="hr-icon-stroke" d="M460,127 L457,131 M460,127 L464,131"/>
+  </g>
+  <g>
+    <circle class="hr-icon-null-stroke" cx="610" cy="135" r="9"/>
+    <line class="hr-icon-null-stroke" x1="603" y1="128" x2="617" y2="142"/>
+  </g>
+
+  <!-- ROW 3: obligation (y=165) -->
+  <g><!-- author: kernel-only -->
+    <circle class="hr-icon-null-stroke" cx="310" cy="165" r="9"/>
+    <line class="hr-icon-null-stroke" x1="303" y1="158" x2="317" y2="172"/>
+  </g>
+  <g>
+    <path class="hr-icon-stroke" d="M460,157 A8,8 0 1,1 452,165"/>
+    <path class="hr-icon-stroke" d="M460,157 L457,161 M460,157 L464,161"/>
+  </g>
+  <g><!-- operator: operates -->
+    <polygon class="hr-icon-ops-fill" points="610,157 618,162 618,170 610,175 602,170 602,162"/>
+    <circle cx="610" cy="166" r="1.6" fill="#fbfaf6"/>
+  </g>
+
+  <!-- ROW 4: change (y=195) -->
+  <g>
+    <circle class="hr-icon-fill" cx="310" cy="195" r="9"/>
+    <path class="hr-icon-creates-check" d="M305,195 L309,199 L316,190"/>
+  </g>
+  <g>
+    <path class="hr-icon-stroke" d="M460,187 A8,8 0 1,1 452,195"/>
+    <path class="hr-icon-stroke" d="M460,187 L457,191 M460,187 L464,191"/>
+  </g>
+  <g>
+    <polygon class="hr-icon-ops-fill" points="610,187 618,192 618,200 610,205 602,200 602,192"/>
+    <circle cx="610" cy="196" r="1.6" fill="#fbfaf6"/>
+  </g>
+
+  <!-- ROW 5: attestation (y=225) -->
+  <g>
+    <circle class="hr-icon-fill" cx="310" cy="225" r="9"/>
+    <path class="hr-icon-creates-check" d="M305,225 L309,229 L316,220"/>
+  </g>
+  <g>
+    <path class="hr-icon-stroke" d="M460,217 A8,8 0 1,1 452,225"/>
+    <path class="hr-icon-stroke" d="M460,217 L457,221 M460,217 L464,221"/>
+  </g>
+  <g>
+    <polygon class="hr-icon-ops-fill" points="610,217 618,222 618,230 610,235 602,230 602,222"/>
+    <circle cx="610" cy="226" r="1.6" fill="#fbfaf6"/>
+  </g>
+
+  <!-- ROW 6: observation (y=255) -->
+  <g><!-- author: kernel-only -->
+    <circle class="hr-icon-null-stroke" cx="310" cy="255" r="9"/>
+    <line class="hr-icon-null-stroke" x1="303" y1="248" x2="317" y2="262"/>
+  </g>
+  <g><!-- reviewer: kernel-only -->
+    <circle class="hr-icon-null-stroke" cx="460" cy="255" r="9"/>
+    <line class="hr-icon-null-stroke" x1="453" y1="248" x2="467" y2="262"/>
+  </g>
+  <g>
+    <polygon class="hr-icon-ops-fill" points="610,247 618,252 618,260 610,265 602,260 602,252"/>
+    <circle cx="610" cy="256" r="1.6" fill="#fbfaf6"/>
+  </g>
+
+  <!-- ROW 7: revision (y=285) -->
+  <g>
+    <circle class="hr-icon-fill" cx="310" cy="285" r="9"/>
+    <path class="hr-icon-creates-check" d="M305,285 L309,289 L316,280"/>
+  </g>
+  <g>
+    <path class="hr-icon-stroke" d="M460,277 A8,8 0 1,1 452,285"/>
+    <path class="hr-icon-stroke" d="M460,277 L457,281 M460,277 L464,281"/>
+  </g>
+  <g>
+    <circle class="hr-icon-null-stroke" cx="610" cy="285" r="9"/>
+    <line class="hr-icon-null-stroke" x1="603" y1="278" x2="617" y2="292"/>
+  </g>
+
+  <!-- Legend separator -->
+  <line class="hr-grid" x1="20" y1="335" x2="780" y2="335"/>
+
+  <!-- Mini legend: 4 symbols in a row, each with a short label -->
+  <g transform="translate(80,365)">
+    <circle class="hr-icon-fill" cx="0" cy="0" r="7"/>
+    <path class="hr-icon-creates-check" d="M-4,0 L-1,3 L4,-3"/>
+    <text class="hr-cell-text" x="30" y="3" text-anchor="start">creates</text>
+  </g>
+  <g transform="translate(280,365)">
+    <path class="hr-icon-stroke" d="M0,-7 A7,7 0 1,1 -7,0"/>
+    <path class="hr-icon-stroke" d="M0,-7 L-3,-4 M0,-7 L3,-4"/>
+    <text class="hr-cell-text" x="30" y="3" text-anchor="start">reviews</text>
+  </g>
+  <g transform="translate(440,365)">
+    <polygon class="hr-icon-ops-fill" points="0,-7 6,-3.5 6,3.5 0,7 -6,3.5 -6,-3.5"/>
+    <circle cx="0" cy="0" r="1.4" fill="#fbfaf6"/>
+    <text class="hr-cell-text" x="30" y="3" text-anchor="start">operates</text>
+  </g>
+  <g transform="translate(610,365)">
+    <circle class="hr-icon-null-stroke" cx="0" cy="0" r="7"/>
+    <line class="hr-icon-null-stroke" x1="-5" y1="-5" x2="5" y2="5"/>
+    <text class="hr-cell-text" x="30" y="3" text-anchor="start">kernel-only</text>
+  </g>
+
+  <!-- Caption -->
+  <text class="hr-caption" x="400" y="410">four verbs · seven kinds · the kernel does not author decisions or observations</text>
+  <text class="hr-caption" x="400" y="430">a row with all kernel-only cells is the kernel's alone (e.g. observation)</text>
+</svg>

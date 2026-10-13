@@ -1,0 +1,198 @@
+---
+schema: math-coding/3.2
+id: site-svg-manifesto-2026-10
+revision: 1
+state: active
+body_sha: "sha256:c469498f5d43f09c3c8d64e8e2f95f644f31d58185b64da27612265253f3c051"
+yaml_sha: "sha256:c469498f5d43f09c3c8d64e8e2f95f644f31d58185b64da27612265253f3c051"
+axiom_link:
+  - A4
+intent: |
+  Add four hand-rolled SVG figures to the manifesto page so a
+  visitor who lands on `manifesto.html` sees the architecture
+  layering, the human-in-the-loop, the human-roles-vs-kinds,
+  and the kernel-vs-human boundary as first-class artefacts
+  alongside the existing prose and the eight-packet table.
+
+  The current `dist/manifesto.html` is textually complete
+  (the eight-packet table, the "what it is not" list, the
+  "how to read this site" closer) but visually flat: no
+  diagram of where the human sits in the protocol, no
+  diagram of which role touches which kind, and no diagram
+  of the authority boundary the constitution enforces.
+  A first-time visitor who arrives from the home hero or a
+  search result lands on prose and has to construct the
+  mental model of the protocol before they can read the
+  eight-packet table usefully.
+
+  All four SVGs are pure, accessibility-tagged
+  (`role="img"` + `aria-labelledby` + `<title>`), and live
+  under `assets/`. Each is embedded by `lib/render.ml`'s
+  `body_extra` match for the `manifesto` page key, so
+  `mathc render` emits a `<figure class="mathc-figure
+  mathc-figure-manifesto">` wrapper for each. The wrapper
+  is sized by a new CSS rule
+  `.mathc-figure-manifesto img { max-width: 56rem; }` in
+  `assets/style.css`.
+
+  Scope: the four figures, the `body_extra` extension in
+  `lib/render.ml`, the new CSS rule, and the obligation
+  that pins them closed.
+
+commitment: |
+  `mathc render` emits a `dist/manifesto.html` that
+  carries, in addition to the existing two figures, five
+  `<figure class="mathc-figure mathc-figure-manifesto">`
+  wrappers for `assets/architecture-overview.svg`,
+  `assets/human-in-the-loop.svg`,
+  `assets/human-roles.svg`, `assets/kernel-vs-human.svg`,
+  and `assets/verdict-flow.svg`, in that order. Each
+  `<figure>` wraps an `<img>` with a non-empty `alt=`
+  attribute and a `title` element in the source SVG.
+
+scope:
+  capabilities:
+    - site-illustration
+  paths:
+    - "assets/architecture-overview.svg"
+    - "assets/human-in-the-loop.svg"
+    - "assets/human-roles.svg"
+    - "assets/kernel-vs-human.svg"
+    - "assets/verdict-flow.svg"
+    - "lib/render.ml"
+    - "dist/manifesto.html"
+
+outcomes:
+  - id: manifesto-svgs-render
+    statement: The rendered `dist/manifesto.html` carries all
+      seven `<figure class="mathc-figure
+      mathc-figure-manifesto">` wrappers (the two
+      pre-existing plus the five new) in source order, and
+      each new `<img>` resolves to a present file in
+      `dist/assets/`. The five new SVGs are
+      accessibility-tagged (`role="img"` +
+      `aria-labelledby` + non-empty `<title>`) at the
+      source level.
+
+counterexample: |
+  "Four diagrams on the manifesto page is visual noise;
+  the eight-packet table already tells the story."
+
+  Counterargument: the table is a list of decision
+  identifiers, not a visual map. A visitor who is new to
+  the project needs to know (a) where the kernel sits in
+  the architecture (architecture-overview), (b) where the
+  human sits in the protocol (human-in-the-loop),
+  (c) which role touches which kind (human-roles), and
+  (d) which decisions the kernel may make and which only
+  a human may make (kernel-vs-human). The eight-packet
+  table answers "what decisions exist", not "where do I
+  fit". The four diagrams together answer the "where do
+  I fit" question at one screenful.
+
+  "The kernel-vs-human diagram duplicates the constitution."
+
+  Counterargument: the constitution's §Authority Boundary
+  is normative text; the diagram is a visual map of the
+  same boundary. The diagram carries no new information
+  that the constitution does not; what it adds is a way
+  for a reader to see the boundary at a glance, which the
+  prose cannot do in a single paragraph.
+
+antithesis: |
+  Author considered and rejected the strongest counter-
+  position: "The five SVGs are too much for one decision;
+  split into five `site-svg-<figure>-2026-XX` decisions
+  with one obligation each."
+
+  That position is rejected because (a) the SVGs are
+  embedded by a single `body_extra` match in
+  `lib/render.ml`; five decisions would produce five
+  `body_extra` patches that have to land in the same
+  file, increasing review cost without a corresponding
+  gain in clarity; (b) the five SVGs share a common
+  CSS wrapper (`.mathc-figure-manifesto`) and a common
+  reasoning-tied-to-algebra-sections style; (c) the five
+  SVGs are introduced as a coordinated set in the
+  methodology page, not as five independent editorial
+  additions.
+
+  A counter-decision that wanted five separate cycles
+  would have to argue that the five SVGs are introduced
+  in five temporally separate review-and-reverse paths;
+  the author sees no such axis and prefers the bundled
+  cycle.
+
+assumptions:
+  - id: site-base-stays-subpath
+    state: assumed
+    statement: |
+      The site's `<base href>` remains a subpath
+      (`/math-coding/`) rather than becoming the host
+      root. The relative-URL semantics that the new
+      `<img src="assets/foo.svg">` references rely on
+      the base href overriding the document URL.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future cycle sets `site_base = "/"`, the
+      `assets/foo.svg` references on `manifesto.html`
+      resolve to `/foo.svg` (404) rather than
+      `/math-coding/assets/foo.svg`. A follow-up
+      decision would rewire the body_extra entries.
+    review_on:
+      - signal: deployment-target-moves-to-host-root
+
+obligations:
+  - id: manifesto-svgs-render
+    outcome: manifesto-svgs-render
+    claim: |
+      The rendered `dist/manifesto.html` carries all
+      seven `<figure class="mathc-figure
+      mathc-figure-manifesto">` wrappers (the two
+      pre-existing plus the five new) in source order,
+      and each `<img>` resolves to a present file in
+      `dist/assets/`. The five new SVGs are
+      accessibility-tagged (`role="img"` +
+      `aria-labelledby` + non-empty `<title>`) at the
+      source level.
+    acceptance:
+      all:
+        - verifier: ! grep -F '<img src="assets/architecture-overview.svg"' dist/manifesto.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/human-in-the-loop.svg"' dist/manifesto.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/human-roles.svg"' dist/manifesto.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/kernel-vs-human.svg"' dist/manifesto.html
+          result: pass
+                - verifier: ! test -f dist/assets/architecture-overview.svg && test -f dist/assets/human-in-the-loop.svg && test -f dist/assets/human-roles.svg && test -f dist/assets/kernel-vs-human.svg
+          result: pass        - verifier: ! grep -lE 'role="img" aria-labelledby' assets/architecture-overview.svg assets/human-in-the-loop.svg assets/human-roles.svg assets/kernel-vs-human.svg
+          result: pass
+reversal:
+  - signal: manifesto-page-becomes-text-only
+    condition: |
+      A future maintainer moves to a text-only manifesto
+      page (no figures) for bandwidth or stylistic reasons;
+      the kernel would then either drop the five SVGs from
+      `body_extra` and remove the corresponding wrapper
+      CSS, or retire this decision in favour of a
+      `site-quality-no-figures-2026-XX` decision.
+
+risk:
+  impact: low
+  probability: low
+  irreversibility: low
+  mode_floor: tiny
+  rationale: |
+    The change is purely additive: a new body-extra block
+    in `lib/render.ml`, five new files in `assets/`, and
+    one decision record. No existing obligation changes,
+    no public contract changes, no kernel semantics change.
+    The cost of reversal is one revert commit.
+
+relations:
+  supersedes: []
+  depends_on:
+    - site-quality-illustrations-2026-10
+  refines: []
+  contradicts: []

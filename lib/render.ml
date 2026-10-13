@@ -1816,6 +1816,25 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
               alt=\"The math-coding kernel pipeline: input -> schema \
               -> parser -> attestation join -> self-check -> gate.\">\n\
              </figure>\n"
+      | "manifesto" ->
+          Printf.sprintf
+            "\n\
+             <figure class=\"mathc-figure mathc-figure-manifesto\">\n\
+             <img src=\"assets/architecture-overview.svg\" \
+              alt=\"math-coding architecture: five concentric layers around a human -- axioms, kernel, protocol objects, site and tools, user projects.\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-manifesto\">\n\
+             <img src=\"assets/human-in-the-loop.svg\" \
+              alt=\"The human in the loop: three roles (author, reviewer, operator) touch five points in the protocol. The fifth (sign attestation or grant waiver) is the only one the kernel cannot replace.\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-manifesto\">\n\
+             <img src=\"assets/human-roles.svg\" \
+              alt=\"Human roles vs object kinds: which role touches which of the seven kinds. Author creates, reviewer reviews, operator operates; the kernel handles the rest.\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-manifesto\">\n\
+             <img src=\"assets/kernel-vs-human.svg\" \
+              alt=\"The boundary between kernel-determined and human-determined. The kernel may check six things; six things only a human may decide. Verbatim from spec/constitution.md section Authority Boundary.\">\n\
+             </figure>\n"
       | _ -> ""
     in
     let body =

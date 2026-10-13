@@ -1,0 +1,157 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" role="img" aria-labelledby="hil-title" preserveAspectRatio="xMidYMid meet">
+  <title id="hil-title">The human in the loop: three roles (author, reviewer, operator) touch five points in the protocol. The fifth (sign attestation or grant waiver) is the only one the kernel cannot replace.</title>
+  <defs>
+    <style>
+      .hil-title       { font-family: Georgia, "Iowan Old Style", serif; font-size: 16px; fill: #1a1a1a; text-anchor: middle; font-style: italic; }
+      .hil-subtitle    { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8a8a8a; text-anchor: middle; letter-spacing: 0.06em; text-transform: uppercase; }
+      .hil-lane-label  { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #1a1a1a; text-anchor: middle; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+      .hil-lane-bg     { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1; stroke-dasharray: 3 3; }
+      .hil-box         { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .hil-box-empty   { fill: #fbfaf6; stroke: #8a8a8a; stroke-width: 1; stroke-dasharray: 2 2; }
+      .hil-box-emph    { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 2; }
+      .hil-box-text    { font-family: Georgia, "Iowan Old Style", serif; font-size: 12px; fill: #1a1a1a; text-anchor: middle; }
+      .hil-box-num     { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8px; fill: #8a8a8a; text-anchor: middle; }
+      .hil-box-text-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 12px; fill: #8b3a3a; text-anchor: middle; font-style: italic; font-weight: 600; }
+      .hil-arrow       { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .hil-arrow-emph  { stroke: #8b3a3a; stroke-width: 1.5; fill: none; }
+      .hil-human-line  { stroke: #1a1a1a; stroke-width: 1.5; fill: none; stroke-linecap: round; }
+      .hil-human-fill  { fill: #1a1a1a; }
+      .hil-caption     { font-family: Georgia, "Iowan Old Style", serif; font-size: 12px; fill: #5a5a5a; text-anchor: middle; font-style: italic; }
+      .hil-emph-text   { font-family: Georgia, "Iowan Old Style", serif; font-size: 12px; fill: #8b3a3a; text-anchor: middle; font-style: italic; font-weight: 600; }
+    </style>
+    <marker id="hil-arrow-head" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="hil-arrow-head-emph" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text class="hil-title" x="450" y="28">the human in the loop</text>
+  <text class="hil-subtitle" x="450" y="48">three roles · five touch points · touch point five is human-only</text>
+
+  <!-- Column headers (touch point numbers + names) -->
+  <g>
+    <text class="hil-box-num" x="200" y="65">1</text>
+    <text class="hil-box-num" x="330" y="65">2</text>
+    <text class="hil-box-num" x="460" y="65">3</text>
+    <text class="hil-box-num" x="590" y="65">4</text>
+    <text class="hil-box-num" x="720" y="65">5</text>
+  </g>
+
+  <!-- LANE 1: AUTHOR (y=70-180) -->
+  <g>
+    <rect class="hil-lane-bg" x="20" y="70" width="860" height="105" rx="4"/>
+    <text class="hil-lane-label" x="65" y="122">author</text>
+    <!-- stick figure at x=65 -->
+    <circle class="hil-human-fill" cx="65" cy="105" r="5"/>
+    <line class="hil-human-line" x1="65" y1="110" x2="65" y2="135"/>
+    <line class="hil-human-line" x1="65" y1="118" x2="55" y2="128"/>
+    <line class="hil-human-line" x1="65" y1="118" x2="75" y2="128"/>
+    <line class="hil-human-line" x1="65" y1="135" x2="58" y2="148"/>
+    <line class="hil-human-line" x1="65" y1="135" x2="72" y2="148"/>
+    <!-- arrows from human to each touch box -->
+    <path class="hil-arrow" d="M82,118 C100,118 110,118 128,118" marker-end="url(#hil-arrow-head)"/>
+    <path class="hil-arrow" d="M82,124 C150,124 220,124 258,124" marker-end="url(#hil-arrow-head)"/>
+    <path class="hil-arrow" d="M82,130 C200,130 320,130 388,130" marker-end="url(#hil-arrow-head)"/>
+    <path class="hil-arrow" d="M82,136 C250,136 410,136 518,136" marker-end="url(#hil-arrow-head)"/>
+    <path class="hil-arrow-emph" d="M82,142 C300,142 540,142 648,142" marker-end="url(#hil-arrow-head-emph)"/>
+    <!-- 5 touch boxes -->
+    <rect class="hil-box" x="130" y="85" width="140" height="80" rx="3"/>
+    <text class="hil-box-text" x="200" y="120">write</text>
+    <text class="hil-box-text" x="200" y="138">intent</text>
+    <text class="hil-box-num" x="200" y="155">why</text>
+    <rect class="hil-box" x="260" y="85" width="140" height="80" rx="3"/>
+    <text class="hil-box-text" x="330" y="120">write</text>
+    <text class="hil-box-text" x="330" y="138">decision.yaml</text>
+    <text class="hil-box-num" x="330" y="155">commitment</text>
+    <rect class="hil-box" x="390" y="85" width="140" height="80" rx="3"/>
+    <text class="hil-box-text" x="460" y="120">write</text>
+    <text class="hil-box-text" x="460" y="138">code</text>
+    <text class="hil-box-num" x="460" y="155">diff</text>
+    <rect class="hil-box" x="520" y="85" width="140" height="80" rx="3"/>
+    <text class="hil-box-text" x="590" y="120">read</text>
+    <text class="hil-box-text" x="590" y="138">verdict</text>
+    <text class="hil-box-num" x="590" y="155">mathc self-check</text>
+    <rect class="hil-box-emph" x="650" y="85" width="140" height="80" rx="3"/>
+    <text class="hil-box-text-emph" x="720" y="120">sign</text>
+    <text class="hil-box-text-emph" x="720" y="138">attestation</text>
+    <text class="hil-box-num" x="720" y="155" fill="#8b3a3a">kernel cannot</text>
+  </g>
+
+  <!-- LANE 2: REVIEWER (y=185-295) -->
+  <g>
+    <rect class="hil-lane-bg" x="20" y="185" width="860" height="105" rx="4"/>
+    <text class="hil-lane-label" x="65" y="237">reviewer</text>
+    <circle class="hil-human-fill" cx="65" cy="220" r="5"/>
+    <line class="hil-human-line" x1="65" y1="225" x2="65" y2="250"/>
+    <line class="hil-human-line" x1="65" y1="233" x2="55" y2="243"/>
+    <line class="hil-human-line" x1="65" y1="233" x2="75" y2="243"/>
+    <line class="hil-human-line" x1="65" y1="250" x2="58" y2="263"/>
+    <line class="hil-human-line" x1="65" y1="250" x2="72" y2="263"/>
+    <!-- reviewer reads intent (arrow to box 1) but doesn't write it -->
+    <path class="hil-arrow" d="M82,233 C100,233 110,233 128,233" marker-end="url(#hil-arrow-head)"/>
+    <path class="hil-arrow" d="M82,239 C150,239 220,239 258,239" marker-end="url(#hil-arrow-head)"/>
+    <!-- no code-writing arrow for reviewer (skipped) -->
+    <path class="hil-arrow" d="M82,245 C250,245 410,245 518,245" marker-end="url(#hil-arrow-head)"/>
+    <path class="hil-arrow-emph" d="M82,251 C300,251 540,251 648,251" marker-end="url(#hil-arrow-head-emph)"/>
+    <!-- 5 touch boxes: empty (kernel does not read by human) for code box, else same -->
+    <rect class="hil-box" x="130" y="200" width="140" height="80" rx="3"/>
+    <text class="hil-box-text" x="200" y="232">read</text>
+    <text class="hil-box-text" x="200" y="250">intent</text>
+    <text class="hil-box-num" x="200" y="270">why</text>
+    <rect class="hil-box" x="260" y="200" width="140" height="80" rx="3"/>
+    <text class="hil-box-text" x="330" y="232">read</text>
+    <text class="hil-box-text" x="330" y="250">decision.yaml</text>
+    <text class="hil-box-num" x="330" y="270">commitment</text>
+    <rect class="hil-box-empty" x="390" y="200" width="140" height="80" rx="3"/>
+    <text class="hil-box-num" x="460" y="232">code</text>
+    <text class="hil-box-num" x="460" y="250" fill="#5a5a5a">kernel handles</text>
+    <rect class="hil-box" x="520" y="200" width="140" height="80" rx="3"/>
+    <text class="hil-box-text" x="590" y="232">read</text>
+    <text class="hil-box-text" x="590" y="250">verdict</text>
+    <text class="hil-box-num" x="590" y="270">mathc self-check</text>
+    <rect class="hil-box-emph" x="650" y="200" width="140" height="80" rx="3"/>
+    <text class="hil-box-text-emph" x="720" y="232">co-sign</text>
+    <text class="hil-box-text-emph" x="720" y="250">attestation</text>
+    <text class="hil-box-num" x="720" y="270" fill="#8b3a3a">kernel cannot</text>
+  </g>
+
+  <!-- LANE 3: OPERATOR (y=300-410) -->
+  <g>
+    <rect class="hil-lane-bg" x="20" y="300" width="860" height="105" rx="4"/>
+    <text class="hil-lane-label" x="65" y="352">operator</text>
+    <circle class="hil-human-fill" cx="65" cy="335" r="5"/>
+    <line class="hil-human-line" x1="65" y1="340" x2="65" y2="365"/>
+    <line class="hil-human-line" x1="65" y1="348" x2="55" y2="358"/>
+    <line class="hil-human-line" x1="65" y1="348" x2="75" y2="358"/>
+    <line class="hil-human-line" x1="65" y1="365" x2="58" y2="378"/>
+    <line class="hil-human-line" x1="65" y1="365" x2="72" y2="378"/>
+    <!-- operator: reads verdict, may grant waiver -->
+    <path class="hil-arrow" d="M82,348 C250,348 410,348 518,348" marker-end="url(#hil-arrow-head)"/>
+    <path class="hil-arrow-emph" d="M82,354 C300,354 540,354 648,354" marker-end="url(#hil-arrow-head-emph)"/>
+    <!-- 5 touch boxes: empty for author-actions, populated for read/sign -->
+    <rect class="hil-box-empty" x="130" y="315" width="140" height="80" rx="3"/>
+    <text class="hil-box-num" x="200" y="347">intent</text>
+    <text class="hil-box-num" x="200" y="365" fill="#5a5a5a">author did this</text>
+    <rect class="hil-box-empty" x="260" y="315" width="140" height="80" rx="3"/>
+    <text class="hil-box-num" x="330" y="347">decision.yaml</text>
+    <text class="hil-box-num" x="330" y="365" fill="#5a5a5a">author did this</text>
+    <rect class="hil-box-empty" x="390" y="315" width="140" height="80" rx="3"/>
+    <text class="hil-box-num" x="460" y="347">code</text>
+    <text class="hil-box-num" x="460" y="365" fill="#5a5a5a">author did this</text>
+    <rect class="hil-box" x="520" y="315" width="140" height="80" rx="3"/>
+    <text class="hil-box-text" x="590" y="347">read</text>
+    <text class="hil-box-text" x="590" y="365">verdict</text>
+    <text class="hil-box-num" x="590" y="385">mathc self-check</text>
+    <rect class="hil-box-emph" x="650" y="315" width="140" height="80" rx="3"/>
+    <text class="hil-box-text-emph" x="720" y="347">grant</text>
+    <text class="hil-box-text-emph" x="720" y="365">waiver</text>
+    <text class="hil-box-num" x="720" y="385" fill="#8b3a3a">kernel cannot</text>
+  </g>
+
+  <!-- Bottom caption -->
+  <text class="hil-emph-text" x="450" y="437">human stays the actor; the kernel only checks</text>
+  <text class="hil-caption" x="450" y="455">touch point five (signature or waiver) is human-only — no attestation is auto-attested</text>
+</svg>

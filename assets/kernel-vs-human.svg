@@ -1,0 +1,123 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 560" role="img" aria-labelledby="kvh-title" preserveAspectRatio="xMidYMid meet">
+  <title id="kvh-title">The boundary between kernel-determined and human-determined. The kernel may check six things; six things only a human may decide. Verbatim from spec/constitution.md §Authority Boundary.</title>
+  <defs>
+    <style>
+      .kvh-title       { font-family: Georgia, "Iowan Old Style", serif; font-size: 16px; fill: #1a1a1a; text-anchor: middle; font-style: italic; }
+      .kvh-subtitle    { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8a8a8a; text-anchor: middle; letter-spacing: 0.06em; text-transform: uppercase; }
+      .kvh-col-head    { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; fill: #8b3a3a; text-anchor: middle; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+      .kvh-col-head-emph { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; fill: #8b3a3a; text-anchor: middle; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; font-style: italic; }
+      .kvh-col-bg-left  { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1; stroke-dasharray: 4 3; }
+      .kvh-col-bg-right { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1; stroke-dasharray: 4 3; }
+      .kvh-divider     { stroke: #8b3a3a; stroke-width: 2.5; }
+      .kvh-quote       { font-family: Georgia, "Iowan Old Style", serif; font-size: 12px; fill: #8b3a3a; text-anchor: middle; font-style: italic; font-weight: 600; }
+      .kvh-item-num    { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8a8a8a; text-anchor: start; }
+      .kvh-item-text   { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: start; }
+      .kvh-item-text-right { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: start; font-style: italic; }
+      .kvh-tick        { stroke: #8b3a3a; stroke-width: 1.75; fill: none; stroke-linecap: round; }
+      .kvh-x           { stroke: #8b3a3a; stroke-width: 1.75; fill: none; stroke-linecap: round; }
+      .kvh-caption     { font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; fill: #5a5a5a; text-anchor: middle; font-style: italic; }
+      .kvh-source      { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8a8a8a; text-anchor: middle; letter-spacing: 0.05em; text-transform: uppercase; }
+    </style>
+  </defs>
+
+  <!-- Title -->
+  <text class="kvh-title" x="360" y="28">the boundary</text>
+  <text class="kvh-subtitle" x="360" y="46">kernel-determined vs human-determined · paraphrased from spec/constitution.md §Authority Boundary</text>
+
+  <!-- Column backgrounds (subtle dashed border) -->
+  <rect class="kvh-col-bg-left"  x="20"  y="65"  width="320" height="420" rx="6"/>
+  <rect class="kvh-col-bg-right" x="380" y="65"  width="320" height="420" rx="6"/>
+
+  <!-- Column headers -->
+  <text class="kvh-col-head" x="180" y="92">kernel may determine</text>
+  <text class="kvh-col-head-emph" x="540" y="92">kernel may not determine</text>
+  <text class="kvh-subtitle" x="180" y="108" fill="#5a5a5a">mechanically computable</text>
+  <text class="kvh-subtitle" x="540" y="108" fill="#5a5a5a">human judgement required</text>
+
+  <!-- Vertical divider line -->
+  <line class="kvh-divider" x1="360" y1="65" x2="360" y2="485"/>
+
+  <!-- Verbatim quote on the divider (rotated 90°) -->
+  <g transform="translate(360,290) rotate(-90)">
+    <text class="kvh-quote" x="0" y="0" text-anchor="middle">kernel only checks; humans judge</text>
+  </g>
+
+  <!-- LEFT items: kernel CAN (each item: number + tick + text, row height ~46) -->
+  <g>
+    <!-- 1. Schema validity -->
+    <text class="kvh-item-num" x="35" y="142">1</text>
+    <path class="kvh-tick" d="M55,138 L60,143 L72,131"/>
+    <text class="kvh-item-text" x="80" y="143">schema, identifier and reference validity</text>
+    <!-- 2. Identifier & reference resolution -->
+    <text class="kvh-item-num" x="35" y="187">2</text>
+    <path class="kvh-tick" d="M55,183 L60,188 L72,176"/>
+    <text class="kvh-item-text" x="80" y="188">relation typing and graph acyclicity</text>
+    <!-- 3. Type safety (relations) -->
+    <text class="kvh-item-num" x="35" y="232">3</text>
+    <path class="kvh-tick" d="M55,228 L60,233 L72,221"/>
+    <text class="kvh-item-text" x="80" y="233">revision DAG structure</text>
+    <!-- 4. Digest equality / freshness / expiry -->
+    <text class="kvh-item-num" x="35" y="277">4</text>
+    <path class="kvh-tick" d="M55,273 L60,278 L72,266"/>
+    <text class="kvh-item-text" x="80" y="278">digest equality, freshness and expiry</text>
+    <!-- 5. Gate verdict (Open / Blocked) -->
+    <text class="kvh-item-num" x="35" y="322">5</text>
+    <path class="kvh-tick" d="M55,318 L60,323 L72,311"/>
+    <text class="kvh-item-text" x="80" y="323">satisfaction of mechanically declared</text>
+    <text class="kvh-item-text" x="80" y="338">gate predicates (Open / Blocked)</text>
+    <!-- 6. Waiver scope matching -->
+    <text class="kvh-item-num" x="35" y="382">6</text>
+    <path class="kvh-tick" d="M55,378 L60,383 L72,371"/>
+    <text class="kvh-item-text" x="80" y="383">authorization by the currently</text>
+    <text class="kvh-item-text" x="80" y="398">active policy</text>
+    <!-- 7 (extra): waiver scope matching -->
+    <text class="kvh-item-num" x="35" y="442">7</text>
+    <path class="kvh-tick" d="M55,438 L60,443 L72,431"/>
+    <text class="kvh-item-text" x="80" y="443">waiver scope matching</text>
+  </g>
+
+  <!-- RIGHT items: kernel CANNOT (each item: number + X + text, italic) -->
+  <g>
+    <!-- 1. Whether an intent is desirable -->
+    <text class="kvh-item-num" x="395" y="142">1</text>
+    <path class="kvh-x" d="M413,134 L425,146 M425,134 L413,146"/>
+    <text class="kvh-item-text-right" x="435" y="143">whether an intent is desirable</text>
+    <!-- 2. Whether a decision is wise -->
+    <text class="kvh-item-num" x="395" y="187">2</text>
+    <path class="kvh-x" d="M413,179 L425,191 M425,179 L413,191"/>
+    <text class="kvh-item-text-right" x="435" y="188">whether a decision is wise</text>
+    <!-- 3. Whether obligations are complete -->
+    <text class="kvh-item-num" x="395" y="232">3</text>
+    <path class="kvh-x" d="M413,224 L425,236 M425,224 L413,236"/>
+    <text class="kvh-item-text-right" x="435" y="233">whether obligations are complete</text>
+    <!-- 4. Whether a counterexample is the strongest -->
+    <text class="kvh-item-num" x="395" y="277">4</text>
+    <path class="kvh-x" d="M413,269 L425,281 M425,269 L413,281"/>
+    <text class="kvh-item-text-right" x="435" y="278">whether a countercase is the</text>
+    <text class="kvh-item-text-right" x="435" y="293">strongest practical countercase</text>
+    <!-- 5. Whether a risk is acceptable -->
+    <text class="kvh-item-num" x="395" y="327">5</text>
+    <path class="kvh-x" d="M413,319 L425,331 M425,319 L413,331"/>
+    <text class="kvh-item-text-right" x="435" y="328">whether a risk, reversal or</text>
+    <text class="kvh-item-text-right" x="435" y="343">waiver is acceptable</text>
+    <!-- 6. Whether a waiver is justified -->
+    <text class="kvh-item-num" x="395" y="382">6</text>
+    <path class="kvh-x" d="M413,374 L425,386 M425,374 L413,386"/>
+    <text class="kvh-item-text-right" x="435" y="383">whether a program semantically</text>
+    <text class="kvh-item-text-right" x="435" y="398">satisfies an obligation beyond its</text>
+    <text class="kvh-item-text-right" x="435" y="413">attestations</text>
+    <!-- 7 (extra): substantive accountability -->
+    <text class="kvh-item-num" x="395" y="442">7</text>
+    <path class="kvh-x" d="M413,434 L425,446 M425,434 L413,446"/>
+    <text class="kvh-item-text-right" x="435" y="443">whether an actor is substantively</text>
+    <text class="kvh-item-text-right" x="435" y="458">accountable beyond an identifier</text>
+  </g>
+
+  <!-- Bottom captions -->
+  <text class="kvh-caption" x="180" y="510" fill="#8b3a3a" font-style="normal" font-weight="600">the kernel says pass / block</text>
+  <text class="kvh-caption" x="180" y="525">it cannot say desirable or wise</text>
+  <text class="kvh-caption" x="540" y="510" fill="#8b3a3a" font-style="normal" font-weight="600">the human decides</text>
+  <text class="kvh-caption" x="540" y="525">desirability, wisdom, completeness, acceptability</text>
+
+  <text class="kvh-source" x="360" y="550">spec/constitution.md · §Authority Boundary · §Epistemic Separation</text>
+</svg>
