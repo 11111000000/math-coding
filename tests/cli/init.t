@@ -13,7 +13,7 @@ Empty directory: init succeeds and creates the expected files.
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ mathc init "$tmpdir" --no-install
-  mathc init: created /tmp/nix-shell.gEZJKk/build_9b7da0_dune/tmp.KIXkqrZ4H6/decisions, /tmp/nix-shell.gEZJKk/build_9b7da0_dune/tmp.KIXkqrZ4H6/attestations
+  mathc init: created /tmp/nix-shell.U1N979/build_feb560_dune/tmp.KPL1rmmOsi/decisions, /tmp/nix-shell.U1N979/build_feb560_dune/tmp.KPL1rmmOsi/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
   $ test -d "$tmpdir/decisions" && echo "decisions/: ok"
@@ -48,7 +48,7 @@ Brownfield with --merge: init proceeds.
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/docs/arc42"
   $ mathc init "$tmpdir" --merge --no-install
-  mathc init: created /tmp/nix-shell.gEZJKk/build_9b7da0_dune/tmp.cPAiUml2ZU/decisions, /tmp/nix-shell.gEZJKk/build_9b7da0_dune/tmp.cPAiUml2ZU/attestations
+  mathc init: created /tmp/nix-shell.U1N979/build_feb560_dune/tmp.TxfDto0ing/decisions, /tmp/nix-shell.U1N979/build_feb560_dune/tmp.TxfDto0ing/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
   $ test -f "$tmpdir/decisions/decision.yaml" && echo "decision.yaml created with --merge"

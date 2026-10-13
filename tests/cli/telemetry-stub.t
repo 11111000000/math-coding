@@ -12,39 +12,43 @@ Default: MATHCODING_TELEMETRY unset -> "off".
   $ cd "$DUNE_SOURCEROOT"
   $ unset MATHCODING_TELEMETRY
   $ mathc telemetry status
-  mathc: command not found
-  [127]
+  mathc telemetry: off
+    transport: not configured (Phase 2 stub)
+    See decisions/ux-3-telemetry-stub-2026-10.yaml.
+    No data is collected or transmitted by this build.
 
 Opt-in: MATHCODING_TELEMETRY=on -> "on" (no actual emission).
 
   $ cd "$DUNE_SOURCEROOT"
   $ MATHCODING_TELEMETRY=on mathc telemetry status
-  mathc: command not found
-  [127]
+  mathc telemetry: on
+    transport: not configured (Phase 2 stub)
+    See decisions/ux-3-telemetry-stub-2026-10.yaml.
+    No data is collected or transmitted by this build.
 
 Other truthy values (1, true) also resolve to "on".
 
   $ cd "$DUNE_SOURCEROOT"
   $ MATHCODING_TELEMETRY=1 mathc telemetry status | head -1
-  mathc: command not found
+  mathc telemetry: on
   $ MATHCODING_TELEMETRY=true mathc telemetry status | head -1
-  mathc: command not found
+  mathc telemetry: on
 
 Falsy values (off, 0, false) resolve to "off".
 
   $ cd "$DUNE_SOURCEROOT"
   $ MATHCODING_TELEMETRY=off mathc telemetry status | head -1
-  mathc: command not found
+  mathc telemetry: off
   $ MATHCODING_TELEMETRY=0 mathc telemetry status | head -1
-  mathc: command not found
+  mathc telemetry: off
   $ MATHCODING_TELEMETRY=false mathc telemetry status | head -1
-  mathc: command not found
+  mathc telemetry: off
 
 Unknown values: reported verbatim as `unknown (VALUE)`.
 
   $ cd "$DUNE_SOURCEROOT"
   $ MATHCODING_TELEMETRY=maybe mathc telemetry status | head -1
-  mathc: command not found
+  mathc telemetry: unknown (maybe)
 
 Unknown subcommand: exit 2 with help.
 
@@ -54,7 +58,7 @@ Unknown subcommand: exit 2 with help.
   > else
   >   echo "unknown subcommand refused (exit $?)"
   > fi
-  unknown subcommand refused (exit 127)
+  unknown subcommand refused (exit 2)
 
 No data file is written or read.
 

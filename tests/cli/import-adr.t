@@ -113,7 +113,7 @@ is left as a placeholder glob).
   $ test -f "$tmpdir/decisions/sample.yaml" && echo "decisions/sample.yaml: ok"
   decisions/sample.yaml: ok
   $ mathc validate "$tmpdir/decisions/sample.yaml" | head -3
-  accept: /tmp/nix-shell.tv1VBa/build_9f6c48_dune/tmp.7uqeQXip4o/decisions/sample.yaml
+  accept: /tmp/nix-shell.U1N979/build_feb560_dune/tmp.o4XbUgj12f/decisions/sample.yaml
     decision: sample
     revision: 1
   $ rm -rf "$tmpdir"
