@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" role="img" aria-labelledby="ws-title" preserveAspectRatio="xMidYMid meet">
+  <title id="ws-title">Waiver state machine: requested → reviewed → granted (with expiry) → consumed / expired / cancelled. A waiver defers a check; it does not cancel it (constitution §Waivers; A1 Feedback closure).</title>
+  <desc>Six state nodes. The forward path is requested → reviewed → granted. From granted, three terminal states fan out: consumed (gate ran), expired (past expiry), cancelled (manual close). Expiry and cancellation are marked in the --waived colour so they are visually distinct from ordinary verdict states.</desc>
+  <defs>
+    <style>
+      .ws-state { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .ws-state-emph { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 2; }
+      .ws-state-waived { fill: #fbfaf6; stroke: #6f4a9e; stroke-width: 2; }
+      .ws-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; }
+      .ws-text-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #8b3a3a; text-anchor: middle; font-weight: 500; font-style: italic; }
+      .ws-text-waived { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #6f4a9e; text-anchor: middle; font-weight: 600; }
+      .ws-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .ws-arrow-waived { stroke: #6f4a9e; stroke-width: 1.25; fill: none; }
+      .ws-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8a8a8a; text-anchor: middle; }
+      .ws-label-waived { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #6f4a9e; text-anchor: middle; }
+      .ws-section { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #5a5a5a; letter-spacing: 0.06em; text-anchor: start; }
+      .ws-rule { stroke: #d4d0c8; stroke-width: 1; fill: none; }
+      .ws-note { fill: #5a5a5a; font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; text-anchor: start; font-style: italic; }
+      .ws-cap { font-family: Georgia, "Iowan Old Style", serif; font-size: 10px; fill: #5a5a5a; text-anchor: middle; font-style: italic; }
+    </style>
+    <marker id="ws-head" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="ws-head-waived" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#6f4a9e"/>
+    </marker>
+  </defs>
+
+  <text class="ws-section" x="20" y="24">constitution §Waivers + I11  waiver.state : requested → reviewed → granted (expiry) → ∗</text>
+
+  <!-- TOP ROW: requested -> reviewed -> granted
+       Widths: 160 + 160 + 180 ; gaps 25 ; total 550 ; start x=20.
+       Centres: 100, 285, 480 -->
+
+  <g transform="translate(20, 70)">
+    <text class="ws-label" x="270" y="-12">lifecycle · forward path</text>
+
+    <!-- initial state dot -->
+    <circle cx="-4" cy="32" r="4" fill="#8b3a3a"/>
+    <text class="ws-label" x="-4" y="14" text-anchor="middle">[*]</text>
+
+    <!-- requested -->
+    <g>
+      <rect class="ws-state" x="0" y="0" width="160" height="56" rx="4"/>
+      <text class="ws-text" x="80" y="22">requested</text>
+      <text class="ws-label" x="80" y="40">scope, rationale, authority</text>
+      <text class="ws-label" x="80" y="52">issue_time recorded</text>
+    </g>
+    <path class="ws-arrow" d="M160,28 L185,28" marker-end="url(#ws-head)"/>
+    <text class="ws-cap" x="172" y="20">accept</text>
+
+    <!-- reviewed -->
+    <g transform="translate(190, 0)">
+      <rect class="ws-state" x="0" y="0" width="160" height="56" rx="4"/>
+      <text class="ws-text" x="80" y="22">reviewed</text>
+      <text class="ws-label" x="80" y="40">authority accepts/rejects scope</text>
+      <text class="ws-label" x="80" y="52">non-waivable rules checked</text>
+    </g>
+    <path class="ws-arrow" d="M350,28 L375,28" marker-end="url(#ws-head)"/>
+    <text class="ws-cap" x="362" y="20">authorize</text>
+
+    <!-- granted -->
+    <g transform="translate(380, 0)">
+      <rect class="ws-state-emph" x="0" y="0" width="180" height="56" rx="4"/>
+      <text class="ws-text-emph" x="90" y="22">granted</text>
+      <text class="ws-label" x="90" y="40">+ expires_at recorded</text>
+      <text class="ws-label" x="90" y="52">gate may bind to Open_with_waiver</text>
+    </g>
+  </g>
+
+  <!-- FAN-OUT FROM granted (top edge) to the three terminal states
+       granted box is at (20+380=400, 70+0=70), occupies 180 wide → bottom edge at y=126,
+       centre bottom edge at (490, 126). The bottom terminal row is at y=270. -->
+
+  <!-- Routing: route out from granted centre-bottom (490, 126).
+       - consumed: straight down (490 → 250).
+       - expired:  down then left to (160, 250).
+       - cancelled: down then right to (660, 250).
+       We pre-route around consumed by sending the side branches at x=380 (left) and x=600 (right), passing the consumed box at y=210 (above it). -->
+
+  <g transform="translate(0, 0)">
+    <!-- centre branch: granted -> consumed -->
+    <path class="ws-arrow" d="M490,126 L490,250" marker-end="url(#ws-head)"/>
+    <text class="ws-cap" x="500" y="190">gate ran</text>
+
+    <!-- left branch: granted -> expired (routed to the left, around consumed box) -->
+    <path class="ws-arrow-waived" d="M490,126 Q490,180 360,180 Q160,180 160,250" marker-end="url(#ws-head-waived)"/>
+    <text class="ws-label-waived" x="270" y="174">now &gt; expires_at</text>
+
+    <!-- right branch: granted -> cancelled (routed to the right) -->
+    <path class="ws-arrow-waived" d="M490,126 Q490,180 660,180 Q660,180 660,250" marker-end="url(#ws-head-waived)"/>
+    <text class="ws-label-waived" x="600" y="174">authority revokes</text>
+  </g>
+
+  <!-- TERMINAL STATES (positions centred at x=160, 490, 660, y=250 (top of box)) -->
+  <g transform="translate(20, 250)">
+    <!-- expired (left) -->
+    <g>
+      <rect class="ws-state-waived" x="60" y="0" width="180" height="48" rx="4"/>
+      <text class="ws-text-waived" x="150" y="20">expired</text>
+      <text class="ws-label-waived" x="150" y="36">post expiry · waiver no</text>
+      <text class="ws-label-waived" x="150" y="48">longer shields the gap</text>
+    </g>
+
+    <!-- consumed (centre) -->
+    <g transform="translate(290, 0)">
+      <rect class="ws-state" x="0" y="0" width="180" height="48" rx="4"/>
+      <text class="ws-text" x="90" y="20">consumed</text>
+      <text class="ws-label" x="90" y="36">gate ran with the deferred check;</text>
+      <text class="ws-label" x="90" y="48">terminal · audit trail complete</text>
+    </g>
+
+    <!-- cancelled (right) -->
+    <g transform="translate(580, 0)">
+      <rect class="ws-state-waived" x="0" y="0" width="180" height="48" rx="4"/>
+      <text class="ws-text-waived" x="90" y="20">cancelled</text>
+      <text class="ws-label-waived" x="90" y="36">authority revoked manually;</text>
+      <text class="ws-label-waived" x="90" y="48">scope gap remains open</text>
+    </g>
+  </g>
+
+  <!-- bottom note row -->
+  <g transform="translate(20, 320)">
+    <line class="ws-rule" x1="0" y1="0" x2="720" y2="0"/>
+    <text class="ws-note" x="0" y="22">A1 feedback: a waiver defers a check, it does not cancel it.</text>
+    <text class="ws-note" x="0" y="40">I11: scope(w) ⊆ scope(gap); the gap reopens when the waiver reaches a terminal state.</text>
+  </g>
+</svg>

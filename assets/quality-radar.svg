@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 620" role="img" aria-labelledby="qr-title" preserveAspectRatio="xMidYMid meet">
+  <title id="qr-title">Quality radar — fourteen dimensions of math-coding as axes: correctness, explicitness, recovery, coordination, auditability, evolution, zero-friction-user, no-retrofit, cross-cutting, substrate-honesty, sha-consistency, transitive-policy, axiom-safety, applicability-fit (algebra §22). Illustrative placeholder scores between 0.5 and 1.0.</title>
+  <desc>A polar radar chart with 14 axes radiating from a centre, each labelled with one of the protocol's 14 quality dimensions. Concentric grid rings mark 0.25, 0.50, 0.75, and 1.00 levels. A filled polygon connects an illustrative project score on each axis. The minimum over the 14 dimensions is the protocol's quality score (algebra §22).</desc>
+  <defs>
+    <style>
+      .qr-axis { stroke: #8b3a3a; stroke-width: 1; fill: none; }
+      .qr-ring { stroke: #d4d0c8; stroke-width: 0.75; fill: none; }
+      .qr-ring-outer { stroke: #b0a99c; stroke-width: 1; fill: none; }
+      .qr-spoke-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #1a1a1a; text-anchor: middle; }
+      .qr-ring-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8px; fill: #8a8a8a; text-anchor: middle; }
+      .qr-poly { fill: #8b3a3a; fill-opacity: 0.18; stroke: #8b3a3a; stroke-width: 1.25; }
+      .qr-poly-vertex { fill: #8b3a3a; }
+      .qr-section { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #5a5a5a; letter-spacing: 0.06em; text-anchor: start; }
+      .qr-caption { fill: #5a5a5a; font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; text-anchor: middle; font-style: italic; }
+      .qr-rule { stroke: #d4d0c8; stroke-width: 1; fill: none; }
+    </style>
+  </defs>
+
+  <text class="qr-section" x="20" y="24">§22  quality(protocol P) for project P = min over 14 dimensions</text>
+
+  <!-- geometric centre and radii -->
+  <!-- centre = (350, 320), outer radius = 220, ring radii = 55, 110, 165, 220 -->
+
+  <!-- grid rings -->
+  <circle class="qr-ring" cx="350" cy="320" r="55"/>
+  <circle class="qr-ring" cx="350" cy="320" r="110"/>
+  <circle class="qr-ring" cx="350" cy="320" r="165"/>
+  <circle class="qr-ring-outer" cx="350" cy="320" r="220"/>
+
+  <!-- ring labels (right side, 0.25/0.50/0.75/1.00) -->
+  <text class="qr-ring-label" x="405" y="324">0.25</text>
+  <text class="qr-ring-label" x="460" y="324">0.50</text>
+  <text class="qr-ring-label" x="515" y="324">0.75</text>
+  <text class="qr-ring-label" x="574" y="324">1.00</text>
+
+  <!-- 14 axes at equal 360/14 = 25.714° intervals, starting at top (-90°) -->
+  <!-- index, angle in radians, label, score (illustrative) -->
+  <!-- axis endpoints are at (350 + r*cos(theta), 320 + r*sin(theta)) -->
+
+  <!-- We compute the 14 axes here as static lines + labels + scored points.
+       Scoring convention: 14 dimensions, ordered as listed in §22.
+       We render them clockwise starting from 12 o'clock. -->
+
+  <!-- The 14 spokes: angle = -PI/2 + 2*PI*k/14 -->
+  <!-- k=0  correctness          angle -90°  endpoint (350, 100)   -->
+  <!-- k=1  explicitness         angle -64.3° endpoint (350+220cosθ) -->
+  <!-- ... computed below in the draw. To keep this self-contained, each spoke/label/vertex
+       is drawn inline below. We use angle references written out for readability. -->
+
+  <!-- Concentric scoring polygon: list of (cos, sin, score, label) where score ∈ [0,1].
+       14 axes; vertices at radius = 220 * score. -->
+
+  <g id="qr-axes">
+
+    <!-- spoke 0: correctness (top) -->
+    <line class="qr-axis" x1="350" y1="320" x2="350" y2="100"/>
+    <text class="qr-spoke-label" x="350" y="90">correctness</text>
+
+    <!-- spoke 1: explicitness, theta = -90 + 25.714 = -64.286° ; cos = 0.4339, sin = -0.9009
+         endpoint = (350 + 220*0.4339, 320 + 220*-0.9009) = (445.5, 121.8)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="446" y2="122"/>
+    <text class="qr-spoke-label" x="463" y="118">explicitness</text>
+
+    <!-- spoke 2: recovery, theta = -90 + 2*25.714 = -38.571° ; cos = 0.7818, sin = -0.6235
+         endpoint = (350 + 220*0.7818, 320 + 220*-0.6235) = (522.0, 182.8)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="522" y2="183"/>
+    <text class="qr-spoke-label" x="540" y="180">recovery</text>
+
+    <!-- spoke 3: coordination, theta = -12.857° ; cos = 0.9749, sin = -0.2225
+         endpoint = (350 + 220*0.9749, 320 + 220*-0.2225) = (564.5, 271.0)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="564" y2="271"/>
+    <text class="qr-spoke-label" x="582" y="275">coordination</text>
+
+    <!-- spoke 4: auditability, theta = 12.857° ; cos = 0.9749, sin = 0.2225
+         endpoint = (564.5, 369.0)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="564" y2="369"/>
+    <text class="qr-spoke-label" x="582" y="374">auditability</text>
+
+    <!-- spoke 5: evolution, theta = 38.571° ; cos = 0.7818, sin = 0.6235
+         endpoint = (522.0, 457.2)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="522" y2="457"/>
+    <text class="qr-spoke-label" x="540" y="464">evolution</text>
+
+    <!-- spoke 6: zero-friction-user, theta = 64.286° ; cos = 0.4339, sin = 0.9009
+         endpoint = (445.5, 518.2)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="446" y2="518"/>
+    <text class="qr-spoke-label" x="463" y="528">zero-friction-user</text>
+
+    <!-- spoke 7: no-retrofit, theta = 90° ; (350, 540)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="350" y2="540"/>
+    <text class="qr-spoke-label" x="350" y="554">no-retrofit</text>
+
+    <!-- spoke 8: cross-cutting, theta = 115.714° ; cos = -0.4339, sin = 0.9009
+         endpoint = (254.5, 518.2)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="254" y2="518"/>
+    <text class="qr-spoke-label" x="237" y="528">cross-cutting</text>
+
+    <!-- spoke 9: substrate-honesty, theta = 141.429° ; cos = -0.7818, sin = 0.6235
+         endpoint = (178.0, 457.2)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="178" y2="457"/>
+    <text class="qr-spoke-label" x="160" y="464">substrate-honesty</text>
+
+    <!-- spoke 10: sha-consistency, theta = 167.143° ; cos = -0.9749, sin = 0.2225
+         endpoint = (135.5, 369.0)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="136" y2="369"/>
+    <text class="qr-spoke-label" x="118" y="374">sha-consistency</text>
+
+    <!-- spoke 11: transitive-policy, theta = 192.857° ; cos = -0.9749, sin = -0.2225
+         endpoint = (135.5, 271.0)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="136" y2="271"/>
+    <text class="qr-spoke-label" x="118" y="275">transitive-policy</text>
+
+    <!-- spoke 12: axiom-safety, theta = 218.571° ; cos = -0.7818, sin = -0.6235
+         endpoint = (178.0, 182.8)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="178" y2="183"/>
+    <text class="qr-spoke-label" x="160" y="180">axiom-safety</text>
+
+    <!-- spoke 13: applicability-fit, theta = 244.286° ; cos = -0.4339, sin = -0.9009
+         endpoint = (254.5, 121.8)  -->
+    <line class="qr-axis" x1="350" y1="320" x2="254" y2="122"/>
+    <text class="qr-spoke-label" x="237" y="118">applicability-fit</text>
+  </g>
+
+  <!-- Illustrative scores (placeholder values between 0.5 and 1.0). The polygon vertex
+       for each axis is at (cx + 220*score*cos, cy + 220*score*sin). -->
+  <polygon class="qr-poly"
+    points="350,120 436,141 506,200 540,282 540,380 502,448 412,500 350,460 290,500 200,448 162,380 162,282 196,200 266,141" />
+  <!-- Score points (cx,cy)+(220*score*cos,sin) per spoke.
+       Composed using same angles as spokes; these values are illustrative. -->
+
+  <!-- vertex dots -->
+  <circle class="qr-poly-vertex" cx="350" cy="120" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="436" cy="141" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="506" cy="200" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="540" cy="282" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="540" cy="380" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="502" cy="448" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="412" cy="500" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="350" cy="460" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="290" cy="500" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="200" cy="448" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="162" cy="380" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="162" cy="282" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="196" cy="200" r="2.5"/>
+  <circle class="qr-poly-vertex" cx="266" cy="141" r="2.5"/>
+
+  <!-- bottom caption -->
+  <line class="qr-rule" x1="20" y1="568" x2="680" y2="568"/>
+  <text class="qr-caption" x="350" y="588">protocol quality = min over the 14 dimensions — placeholder scores; drop in this repo's computed values</text>
+  <text class="qr-caption" x="350" y="606">note: applicability-fit returns True for any project that adopts 3.2; False requires an explicit rationale</text>
+</svg>
