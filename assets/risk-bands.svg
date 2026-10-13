@@ -1,0 +1,163 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 600" role="img" aria-labelledby="rb-title" preserveAspectRatio="xMidYMid meet">
+  <title id="rb-title">Risk bands: five coloured bands from tiny to exhaustive, mapped to example changes, gate posture, and who signs.</title>
+  <desc id="rb-desc">A horizontal spectrum from risk 0 to risk 1 divided into five bands. From left to right: tiny (pale gray), light (pale cream), standard (pale oxblood), strict (deeper oxblood), exhaustive (solid oxblood). Each band lists the friction envelope, a representative commit kind, the gate posture, and the signer required by AGENTS.md friction ladder and A3 self-application.</desc>
+  <defs>
+    <style>
+      .rb-title { font-family: Georgia, "Iowan Old Style", serif; font-size: 14px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .rb-sub { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: middle; letter-spacing: 0.04em; }
+      .rb-sub-left { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: start; letter-spacing: 0.04em; }
+      .rb-axis-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; }
+      .rb-band-tiny { fill: #ece8df; stroke: #b0a99c; stroke-width: 0.5; }
+      .rb-band-light { fill: #fbfaf6; stroke: #b0a99c; stroke-width: 0.5; }
+      .rb-band-standard { fill: #f1e6dd; stroke: #c49859; stroke-width: 0.5; }
+      .rb-band-strict { fill: #e8d2c9; stroke: #8b3a3a; stroke-width: 0.75; }
+      .rb-band-exhaustive { fill: #8b3a3a; stroke: #5a1f1f; stroke-width: 1; }
+      .rb-band-name { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; }
+      .rb-band-name-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #fbfaf6; text-anchor: middle; font-style: italic; }
+      .rb-band-range { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; }
+      .rb-band-range-light { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #fbfaf6; text-anchor: middle; }
+      .rb-band-friction { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #1a1a1a; text-anchor: middle; }
+      .rb-band-friction-light { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #fbfaf6; text-anchor: middle; }
+      .rb-row-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: end; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+      .rb-row-cell { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #1a1a1a; text-anchor: middle; }
+      .rb-row-cell-light { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #fbfaf6; text-anchor: middle; font-weight: 600; }
+      .rb-rule { stroke: #d4d0c8; stroke-width: 0.5; fill: none; }
+      .rb-tick { stroke: #8b3a3a; stroke-width: 1; fill: none; }
+      .rb-divider { stroke: #b0a99c; stroke-width: 0.5; fill: none; stroke-dasharray: 2 2; }
+      .rb-bg-exhaustive-cell { fill: #8b3a3a; }
+    </style>
+    <marker id="rb-arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+
+  <text class="rb-title" x="460" y="22">risk = impact &#215; probability &#215; irreversibility (algebra-3.2 &#167;2)</text>
+  <text class="rb-sub" x="460" y="38">risk_to_mode maps [0, 1] &#8594; {tiny, light, standard, strict, exhaustive}</text>
+
+  <line class="rb-tick" x1="80" y1="60" x2="840" y2="60" marker-end="url(#rb-arrow)"/>
+  <text class="rb-axis-label" x="78" y="64" text-anchor="end">0.0</text>
+  <text class="rb-axis-label" x="460" y="64">0.5</text>
+  <text class="rb-axis-label" x="842" y="64" text-anchor="start">1.0</text>
+
+  <g transform="translate(80, 110)">
+    <rect class="rb-band-tiny" x="0" y="0" width="152" height="80" rx="2"/>
+    <rect class="rb-band-light" x="152" y="0" width="152" height="80" rx="2"/>
+    <rect class="rb-band-standard" x="304" y="0" width="152" height="80" rx="2"/>
+    <rect class="rb-band-strict" x="456" y="0" width="152" height="80" rx="2"/>
+    <rect class="rb-band-exhaustive" x="608" y="0" width="152" height="80" rx="2"/>
+
+    <text class="rb-band-name" x="76" y="22">tiny</text>
+    <text class="rb-band-name" x="228" y="22">light</text>
+    <text class="rb-band-name" x="380" y="22">standard</text>
+    <text class="rb-band-name" x="532" y="22">strict</text>
+    <text class="rb-band-name-emph" x="684" y="22">exhaustive</text>
+
+    <text class="rb-band-range" x="76" y="38">[0.00, 0.05)</text>
+    <text class="rb-band-range" x="228" y="38">[0.05, 0.20)</text>
+    <text class="rb-band-range" x="380" y="38">[0.20, 0.60)</text>
+    <text class="rb-band-range" x="532" y="38">[0.60, 0.90)</text>
+    <text class="rb-band-range-light" x="684" y="38">[0.90, 1.00]</text>
+
+    <text class="rb-band-friction" x="76" y="56">&#8804; 0 lines</text>
+    <text class="rb-band-friction" x="228" y="56">&#8804; 10 lines</text>
+    <text class="rb-band-friction" x="380" y="56">&#8804; 60 lines</text>
+    <text class="rb-band-friction" x="532" y="56">&#8804; 130 lines</text>
+    <text class="rb-band-friction-light" x="684" y="56">&#8804; 300 lines</text>
+
+    <text class="rb-band-friction" x="76" y="70">no trailer</text>
+    <text class="rb-band-friction" x="228" y="70">body only</text>
+    <text class="rb-band-friction" x="380" y="70">+ trailer 1</text>
+    <text class="rb-band-friction" x="532" y="70">+ rebuttals</text>
+    <text class="rb-band-friction-light" x="684" y="70">+ formal</text>
+  </g>
+
+  <g transform="translate(80, 220)">
+    <text class="rb-row-label" x="-12" y="36">EXAMPLE</text>
+    <text class="rb-row-label" x="-12" y="86">POSTURE</text>
+    <text class="rb-row-label" x="-12" y="136">SIGNER</text>
+
+    <line class="rb-rule" x1="0" y1="20" x2="760" y2="20"/>
+
+    <rect class="rb-bg-exhaustive-cell" x="608" y="22" width="152" height="36"/>
+    <rect class="rb-bg-exhaustive-cell" x="608" y="72" width="152" height="36"/>
+    <rect class="rb-bg-exhaustive-cell" x="608" y="122" width="152" height="36"/>
+
+    <text class="rb-row-cell" x="76" y="36">typo fix</text>
+    <text class="rb-row-cell" x="76" y="48">docs/** &#183; classify=0.05</text>
+
+    <text class="rb-row-cell" x="228" y="36">refactor utils</text>
+    <text class="rb-row-cell" x="228" y="48">lib/utils/** &#183; classify=0.2</text>
+
+    <text class="rb-row-cell" x="380" y="36">new endpoint</text>
+    <text class="rb-row-cell" x="380" y="48">lib/core/** &#183; classify=0.5</text>
+
+    <text class="rb-row-cell" x="532" y="36">public API change</text>
+    <text class="rb-row-cell" x="532" y="48">lib/security/** &#183; 0.8</text>
+
+    <text class="rb-row-cell-light" x="684" y="36">axiom revision</text>
+    <text class="rb-row-cell-light" x="684" y="48">axioms/** &#183; 0.95</text>
+
+    <line class="rb-rule" x1="0" y1="68" x2="760" y2="68"/>
+
+    <text class="rb-row-cell" x="76" y="86">silent</text>
+    <text class="rb-row-cell" x="76" y="98">deterministic checks</text>
+
+    <text class="rb-row-cell" x="228" y="86">record</text>
+    <text class="rb-row-cell" x="228" y="98">decision + obligation</text>
+
+    <text class="rb-row-cell" x="380" y="86">ask</text>
+    <text class="rb-row-cell" x="380" y="98">reviewer weighs in</text>
+
+    <text class="rb-row-cell" x="532" y="86">ask</text>
+    <text class="rb-row-cell" x="532" y="98">reviewer + reviewer</text>
+
+    <text class="rb-row-cell-light" x="684" y="86">block</text>
+    <text class="rb-row-cell-light" x="684" y="98">explicit policy gap</text>
+
+    <line class="rb-rule" x1="0" y1="118" x2="760" y2="118"/>
+
+    <text class="rb-row-cell" x="76" y="136">kernel</text>
+    <text class="rb-row-cell" x="76" y="148">auto-attested</text>
+
+    <text class="rb-row-cell" x="228" y="136">kernel</text>
+    <text class="rb-row-cell" x="228" y="148">under existing decision</text>
+
+    <text class="rb-row-cell" x="380" y="136">human + kernel</text>
+    <text class="rb-row-cell" x="380" y="148">human reviews; kernel checks</text>
+
+    <text class="rb-row-cell" x="532" y="136">human + kernel</text>
+    <text class="rb-row-cell" x="532" y="148">add-rule requires strict</text>
+
+    <text class="rb-row-cell-light" x="684" y="136">human + authority</text>
+    <text class="rb-row-cell-light" x="684" y="148">prior-policy auth (A3)</text>
+
+    <line class="rb-rule" x1="0" y1="168" x2="760" y2="168"/>
+  </g>
+
+  <g transform="translate(80, 460)">
+    <text class="rb-sub-left" x="0" y="0">mode_floor(c) = max over declared policy.mode_floor along c.files &#8855; transitive_paths(c)</text>
+    <text class="rb-sub-left" x="0" y="14">mode(c) = max(risk_to_mode(risk(c)), mode_floor(c)) &#183; lib/risk.ml:183-188</text>
+  </g>
+
+  <g transform="translate(80, 110)">
+    <line class="rb-divider" x1="152" y1="-30" x2="152" y2="80"/>
+    <line class="rb-divider" x1="304" y1="-30" x2="304" y2="80"/>
+    <line class="rb-divider" x1="456" y1="-30" x2="456" y2="80"/>
+    <line class="rb-divider" x1="608" y1="-30" x2="608" y2="80"/>
+  </g>
+
+  <g transform="translate(80, 86)">
+    <line class="rb-tick" x1="0" y1="0" x2="0" y2="6"/>
+    <line class="rb-tick" x1="76" y1="0" x2="76" y2="6"/>
+    <line class="rb-tick" x1="228" y1="0" x2="228" y2="6"/>
+    <line class="rb-tick" x1="380" y1="0" x2="380" y2="6"/>
+    <line class="rb-tick" x1="532" y1="0" x2="532" y2="6"/>
+    <line class="rb-tick" x1="608" y1="0" x2="608" y2="6"/>
+    <line class="rb-tick" x1="684" y1="0" x2="684" y2="6"/>
+    <line class="rb-tick" x1="760" y1="0" x2="760" y2="6"/>
+    <text class="rb-axis-label" x="76" y="20">0.05</text>
+    <text class="rb-axis-label" x="228" y="20">0.20</text>
+    <text class="rb-axis-label" x="380" y="20">0.60</text>
+    <text class="rb-axis-label" x="532" y="20">0.90</text>
+  </g>
+</svg>

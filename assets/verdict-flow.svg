@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 620" role="img" aria-labelledby="vf-title" preserveAspectRatio="xMidYMid meet">
+  <title id="vf-title">Verdict flow: from decision.yaml and attestations to gate_merge and exit code. Six steps grounded in algebra-3.2 sections 7, 8, 2, 9, 14, 15.</title>
+  <desc id="vf-desc">A vertical pipeline. Input row at the top names decisions, attestations, and active policy. Six numbered step boxes run downward: parse decisions with identity I4; infer obligations per section 8; classify mode via the risk function per section 2; compose direct and transitive obligations per section 9; collect attestations across running CIs per section 14; gate_merge per section 15 plus A2 invariants. The output row at the bottom lists the four verdict colours and their exit codes from spec/semantics.md section 4.3.</desc>
+  <defs>
+    <style>
+      .vf-card { fill: #ffffff; stroke: #d4d0c8; stroke-width: 1; }
+      .vf-card-emph { fill: #ffffff; stroke: #8b3a3a; stroke-width: 2; }
+      .vf-step-num { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8b3a3a; text-anchor: start; font-weight: 600; }
+      .vf-step-name { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: start; }
+      .vf-step-ref { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: start; letter-spacing: 0.03em; }
+      .vf-step-detail { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: start; }
+      .vf-arrow { stroke: #5a5a5a; stroke-width: 1.25; fill: none; }
+      .vf-arrow-faint { stroke: #b0a99c; stroke-width: 1; fill: none; stroke-dasharray: 3 2; }
+      .vf-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8a8a8a; text-anchor: middle; letter-spacing: 0.06em; text-transform: uppercase; }
+      .vf-axis { font-family: Georgia, "Iowan Old Style", serif; font-size: 12px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .vf-pass { fill: #2f7a3a; }
+      .vf-fail { fill: #9a2929; }
+      .vf-unk { fill: #b07a1a; }
+      .vf-stale { fill: #6e6e6e; }
+      .vf-sw-name { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #1a1a1a; text-anchor: start; font-weight: 600; }
+      .vf-sw-detail { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: start; }
+      .vf-input-title { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: middle; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+    </style>
+    <marker id="vf-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="vf-faint-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#b0a99c"/>
+    </marker>
+  </defs>
+
+  <text class="vf-axis" x="460" y="22">verdict flow &#8212; input to exit code</text>
+
+  <g transform="translate(140, 50)">
+    <text class="vf-input-title" x="320" y="-2">INPUT</text>
+    <line x1="0" y1="0" x2="640" y2="0" stroke="#d4d0c8" stroke-width="1"/>
+
+    <g transform="translate(20, 14)">
+      <rect class="vf-card" x="0" y="0" width="180" height="32" rx="3"/>
+      <text class="vf-step-name" x="14" y="14">decisions/*.yaml</text>
+      <text class="vf-step-detail" x="14" y="27">schemas/decision.json</text>
+    </g>
+
+    <g transform="translate(230, 14)">
+      <rect class="vf-card" x="0" y="0" width="180" height="32" rx="3"/>
+      <text class="vf-step-name" x="14" y="14">attestations/*.json</text>
+      <text class="vf-step-detail" x="14" y="27">schemas/attestation.json</text>
+    </g>
+
+    <g transform="translate(440, 14)">
+      <rect class="vf-card" x="0" y="0" width="180" height="32" rx="3"/>
+      <text class="vf-step-name" x="14" y="14">active policy</text>
+      <text class="vf-step-detail" x="14" y="27">decisions/decision.yaml</text>
+    </g>
+  </g>
+
+  <g transform="translate(140, 130)">
+
+    <g transform="translate(0, 0)">
+      <rect class="vf-card" x="0" y="0" width="640" height="48" rx="4"/>
+      <text class="vf-step-num" x="14" y="18">1</text>
+      <text class="vf-step-name" x="34" y="18">parse decisions</text>
+      <text class="vf-step-ref" x="34" y="33">lib/decision.ml &#183; identity per constitution I4 (kind, id, revision)</text>
+      <text class="vf-step-detail" x="34" y="42">closed additionalProperties; trailer_decision_sha validated</text>
+    </g>
+    <path class="vf-arrow" d="M320,48 L320,68" marker-end="url(#vf-arrow)"/>
+
+    <g transform="translate(0, 70)">
+      <rect class="vf-card" x="0" y="0" width="640" height="48" rx="4"/>
+      <text class="vf-step-num" x="14" y="18">2</text>
+      <text class="vf-step-name" x="34" y="18">infer obligations</text>
+      <text class="vf-step-ref" x="34" y="33">infer: &#120106; &#215; &#120099; &#8594; P(Obligation) &#183; algebra-3.2 &#167;8</text>
+      <text class="vf-step-detail" x="34" y="42">classify_obligation(path, mode) keyed by path glob and risk mode</text>
+    </g>
+    <path class="vf-arrow" d="M320,118 L320,138" marker-end="url(#vf-arrow)"/>
+
+    <g transform="translate(0, 140)">
+      <rect class="vf-card" x="0" y="0" width="640" height="48" rx="4"/>
+      <text class="vf-step-num" x="14" y="18">3</text>
+      <text class="vf-step-name" x="34" y="18">classify mode(c)</text>
+      <text class="vf-step-ref" x="34" y="33">risk(c) = impact &#215; probability &#215; irreversibility &#183; algebra-3.2 &#167;2</text>
+      <text class="vf-step-detail" x="34" y="42">risk_to_mode: [0,1] &#8594; {tiny, light, standard, strict, exhaustive} &#183; lib/risk.ml</text>
+    </g>
+    <path class="vf-arrow" d="M320,188 L320,208" marker-end="url(#vf-arrow)"/>
+
+    <g transform="translate(0, 210)">
+      <rect class="vf-card" x="0" y="0" width="640" height="48" rx="4"/>
+      <text class="vf-step-num" x="14" y="18">4</text>
+      <text class="vf-step-name" x="34" y="18">compose obligations</text>
+      <text class="vf-step-ref" x="34" y="33">direct &#8855; transitive &#183; algebra-3.2 &#167;9 (multi-policy per path)</text>
+      <text class="vf-step-detail" x="34" y="42">obligations(c) = direct_obligations(c) &#8855; transitive_obligations(c)</text>
+    </g>
+    <path class="vf-arrow" d="M320,258 L320,278" marker-end="url(#vf-arrow)"/>
+
+    <g transform="translate(0, 280)">
+      <rect class="vf-card" x="0" y="0" width="640" height="48" rx="4"/>
+      <text class="vf-step-num" x="14" y="18">5</text>
+      <text class="vf-step-name" x="34" y="18">collect attestations</text>
+      <text class="vf-step-ref" x="34" y="33">attestations(c) = &#8899; attest_ci(c, k) &#183; algebra-3.2 &#167;14</text>
+      <text class="vf-step-detail" x="34" y="42">blocking_CIs(c) per policy.ci_blocking; default: wait_for_all_blocking_CIs</text>
+    </g>
+    <path class="vf-arrow" d="M320,328 L320,348" marker-end="url(#vf-arrow)"/>
+
+    <g transform="translate(0, 350)">
+      <rect class="vf-card-emph" x="0" y="0" width="640" height="58" rx="4"/>
+      <text class="vf-step-num" x="14" y="18">6</text>
+      <text class="vf-step-name" x="34" y="18">gate_merge(c, p, t, rules)</text>
+      <text class="vf-step-ref" x="34" y="33">algebra-3.2 &#167;15 + A2 invariants (every invariant paired with recovery)</text>
+      <text class="vf-step-detail" x="34" y="42">Open iff &#8704; ob &#8712; blocking_obligations(c): result(ob) = Pass &#8743; re_evaluation_status &#8800; StaleClaim</text>
+      <text class="vf-step-detail" x="34" y="52">remedies &#8800; &#8709; when exit &#8800; 0 &#183; constitution I14 (exit honesty)</text>
+    </g>
+  </g>
+
+  <g transform="translate(140, 552)">
+    <text class="vf-input-title" x="320" y="-2">OUTPUT</text>
+    <line x1="0" y1="0" x2="640" y2="0" stroke="#d4d0c8" stroke-width="1"/>
+
+    <g transform="translate(20, 14)">
+      <rect class="vf-pass" x="0" y="0" width="14" height="14" rx="2"/>
+      <text class="vf-sw-name" x="22" y="11">Pass</text>
+      <text class="vf-sw-detail" x="22" y="26">exit 0 &#183; green</text>
+    </g>
+
+    <g transform="translate(170, 14)">
+      <rect class="vf-fail" x="0" y="0" width="14" height="14" rx="2"/>
+      <text class="vf-sw-name" x="22" y="11">Fail</text>
+      <text class="vf-sw-detail" x="22" y="26">exit 1 &#183; red</text>
+    </g>
+
+    <g transform="translate(310, 14)">
+      <rect class="vf-unk" x="0" y="0" width="14" height="14" rx="2"/>
+      <text class="vf-sw-name" x="22" y="11">Inconclusive</text>
+      <text class="vf-sw-detail" x="22" y="26">exit 3 &#183; amber</text>
+    </g>
+
+    <g transform="translate(470, 14)">
+      <rect class="vf-stale" x="0" y="0" width="14" height="14" rx="2"/>
+      <text class="vf-sw-name" x="22" y="11">InfrastructureError</text>
+      <text class="vf-sw-detail" x="22" y="26">exit 3 &#183; grey</text>
+    </g>
+  </g>
+
+  <path class="vf-arrow-faint" d="M790,182 C860,182 860,535 790,535" marker-end="url(#vf-faint-arrow)"/>
+  <text class="vf-label" x="800" y="350">remediation</text>
+  <text class="vf-step-detail" x="800" y="362" text-anchor="middle">&#167;15 lists remedies</text>
+  <text class="vf-step-detail" x="800" y="374" text-anchor="middle">per blocked obligation</text>
+</svg>

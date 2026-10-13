@@ -1787,6 +1787,26 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
              <img src=\"assets/chain.svg\" \
               alt=\"The math-coding assurance chain: intent, decision, \
               obligation, change, attestation, revision.\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
+             <img src=\"assets/lifecycle-fsm.svg\" \
+              alt=\"Lifecycle FSM of a single math-coding record: 7 states (draft, committed, implemented, attested, monitored, contested, retired), 6 main transitions, 4 block markers (violation, grace, stale, waiver-expiry).\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
+             <img src=\"assets/friction-ladder.svg\" \
+              alt=\"Friction ladder: silent (top, kernel chooses) below ask (human reviews) to block (bottom, kernel refuses). Friction budget on the right, drawn from algebra section 21.\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
+             <img src=\"assets/attestation-lifecycle.svg\" \
+              alt=\"Attestation lifecycle: production, store, join, verdict, expiry. Five stages from a CI run to a gate verdict.\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
+             <img src=\"assets/risk-bands.svg\" \
+              alt=\"Risk bands: five coloured bands from tiny to exhaustive, mapped to example changes, gate posture, and who signs.\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
+             <img src=\"assets/verdict-flow.svg\" \
+              alt=\"Verdict flow: from decision.yaml and attestations to gate_merge and exit code. Six steps grounded in algebra-3.2 sections 7, 8, 2, 9, 14, 15.\">\n\
              </figure>\n"
       | "foundations" ->
           Printf.sprintf

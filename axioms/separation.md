@@ -133,8 +133,8 @@ statement) is not an `attested` claim (a test report). A `reviewed`
 claim (human sign-off) is not an `observed` claim (runtime signal).
 The kernel cannot promote a claim from a weaker class to a stronger
 one without an artifact that establishes the stronger class — see
-[spec/constitution.md §Epistemic Separation](../spec/constitution.md)
-and [`spec/algebra-3.2.md §0 honest_uncertainty`](../spec/algebra-3.2.md).
+[spec/constitution.md §Epistemic Separation](spec/constitution.html)
+and [`spec/algebra-3.2.md §0 honest_uncertainty`](spec/algebra-3.2.html).
 
 <figure class="mathc-figure mathc-figure-epistemic">
 <img src="../assets/epistemic-separation.svg"
