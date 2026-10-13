@@ -1,0 +1,321 @@
+---
+schema: math-coding/3.0-alpha
+id: d8-coarse-diagnostics
+revision: 1
+state: active
+body_sha: "sha256:e76a8ef380a20361c30fdbbd0aea3d7ca999ca9375bd94d75a6c1d4e90aec941"
+yaml_sha: "sha256:e76a8ef380a20361c30fdbbd0aea3d7ca999ca9375bd94d75a6c1d4e90aec941"
+axiom_link:
+  - A0
+  - A1
+mode: standard
+intent: |
+  Close audit deficit D8 (doc/AUDIT-0.0.11.md:465): `mathc validate`
+  synthesises a single coarse diagnostic ("missing or invalid required
+  field") when `Decision.parse_decision` returns None, without naming
+  the specific field that caused the reject. Today, the kernel returns
+  `Some Domain.decision | None`; the CLI's coarse fallback
+  (`bin/Mathc.ml:391-393`) emits `MC-DECISION-INVALID` with the literal
+  message "missing or invalid required field" — no `path` field, no
+  `next_actions` snippet pointing at the schema field the author needs
+  to add.
+
+  After this decision lands:
+
+    (a) `lib/decision.ml::parse_decision` returns
+        `Diagnostic.t option` (Some = accept; None is reserved for the
+        future case of "no input"). On reject, the diagnostic carries
+        the specific `MC-*` code, the missing/invalid field name in
+        `path`, and a `next_actions` snippet that names the YAML key.
+
+    (b) The CLI's coarse fallback path is removed; the surface
+        diagnostic always carries a specific code.
+
+    (c) New `MC-*` codes register the precise cause for each parser-
+        level reject: `MC-MISSING-SCHEMA`, `MC-MISSING-ID`,
+        `MC-MISSING-REVISION`, `MC-MISSING-INTENT`, `MC-MISSING-COMMITMENT`,
+        `MC-MISSING-SCOPE`, `MC-MISSING-OUTCOMES`, `MC-MISSING-OBLIGATIONS`,
+        `MC-MISSING-RISK-OWNER`, `MC-INVALID-ID-FORMAT`,
+        `MC-INVALID-REVISION-FORMAT`, `MC-INVALID-AXIOM-LINK`.
+
+    (d) `lib/diagnostic.ml::explain` registers the new codes so
+        `mathc explain-diagnostic <CODE>` resolves them.
+
+    (e) `tests/conformance.ml` and a new `tests/diagnostic_ux.ml` (or
+        extension of the existing one) carry one positive and one
+        negative fixture per new code; the negative fixtures exercise
+        the specific code path, not just `Reject`.
+
+  Scope boundary: this decision changes the parser return type but does
+  NOT change the schema. The new codes are added alongside
+  `MC-DECISION-INVALID` (which the CLI's first-missing-required check
+  still emits for parseable files missing the seven top-level fields
+  the JSON schema requires). The CLI's pre-parse checks for
+  `axiom_link`, `counterexample`, and `antithesis` are unchanged; this
+  decision only converts the post-parse coarse fallback into per-field
+  diagnostics.
+
+commitment: |
+  After this decision lands on main:
+
+    1. `lib/decision.ml::parse_decision` has signature
+       `val parse_decision : Jsonl.value -> Diagnostic.t option`.
+       `Some (Ok d)` carries the parsed `Domain.decision` and means
+       accept; `Some (Error diag)` carries the actionable
+       `Diagnostic.t` the CLI surfaces directly on reject; `None` is
+       reserved for the future "no input" sentinel and is not
+       returned by any current code path. A small helper
+       `parse_decision_for_tests : Jsonl.value -> Diagnostic.t`
+       flattens this to a single `Diagnostic.t` (the success-parse
+       carries an empty/Info diagnostic; the reject carries the
+       actionable one).
+
+    2. `lib/diagnostic.ml` carries new constructor helpers for each
+       `MC-*` code below. Each helper's `path` parameter carries the
+       field name (e.g. `~path:["id"]`) and `next_actions` defaults to
+       a snippet that names the YAML key the author should add.
+
+    3. `bin/Mathc.ml::validate_with_counts` no longer has the
+       `None -> MC-DECISION-INVALID "missing or invalid required
+       field"` coarse fallback. When the parser rejects, the CLI
+       surfaces the parser-supplied `Diagnostic.t` directly.
+
+    4. `lib/diagnostic.ml::explain` registers every new code so
+       `mathc explain-diagnostic <CODE>` resolves them with a
+       Definition / Occurs when / Remediation body.
+
+    5. `fixtures/conformance/decision/negative-missing-<field>.json`
+       carries a negative fixture for each new top-level-field code,
+       and `fixtures/conformance/decision/positive-minimal-with-axis.json`
+       plus a malformed-format pair exercise the format codes.
+
+    6. `tests/diagnostic_ux.ml` carries a positive and negative test
+       per new code (12 new test cases; existing 5 codes preserved).
+
+    7. `mathc self-check` still reports 67 pass / 1 unknown (no new
+       unknowns; no new failures).
+
+  Boundaries:
+    - This decision does not touch `lib/decision.ml::parse_decision_yaml`
+      (form-aware entry point). Its return type stays
+      `Domain.decision option`; it is updated to translate the new
+      `Diagnostic.t option` to the legacy shape.
+    - This decision does not touch `lib/memory.ml::parse_decision_yaml`
+      (the stub variant). Stub returns the legacy shape.
+    - This decision does not touch `lib/re_evaluation.ml`'s
+      `parse_decision_yaml` call site. That call site is updated to
+      translate the new shape.
+    - This decision does not touch the `axiom_link` /
+      `counterexample` / `antithesis` pre-parse checks in
+      `bin/Mathc.ml`. Those checks emit `MC-AXIOM-LINK-MISSING`,
+      `MC-COUNTEREXAMPLE-MISSING`, `MC-ANTITHESIS-MISSING` already.
+
+scope:
+  capabilities:
+    - decision-parser-fidelity
+    - diagnostic-surface-precision
+  paths:
+    - "lib/decision.ml"
+    - "lib/diagnostic.ml"
+    - "bin/Mathc.ml"
+    - "tests/diagnostic_ux.ml"
+    - "tests/conformance.ml"
+    - "fixtures/conformance/decision/negative-missing-schema.json"
+    - "fixtures/conformance/decision/positive-with-axis-and-counterexample.json"
+    - "fixtures/conformance/decision/negative-invalid-id-format.json"
+    - "fixtures/conformance/decision/negative-invalid-revision-format.json"
+    - "fixtures/conformance/decision/negative-invalid-axiom-link.json"
+    - "fixtures/conformance/decision/negative-missing-risk-owner.json"
+  exclusions:
+    - "lib/memory.ml"
+    - "lib/codec.ml"
+    - "lib/jsonl.ml"
+    - "lib/domain.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/re_evaluation.ml"
+    - "lib/render.ml"
+    - "lib/capsule.ml"
+    - "lib/attestations/*"
+    - "decisions/*.yaml"
+    - "schemas/**"
+    - "spec/**"
+    - "attestations/**"
+    - "axioms/**"
+
+outcomes:
+  - id: parse-decision-returns-diagnostic
+    statement: |
+      `lib/decision.ml::parse_decision` returns `Diagnostic.t option`.
+      `Some d` means accept (where `d` is a successful-parse
+      confirmation; today the CLI treats Some as accept regardless of
+      payload). `None` is reserved; today's code paths emit
+      `Diagnostic.t` in the Some-arm and use the new return convention
+      of `Some (Ok decision) | Some (Error diag) | None` (see
+      commitment §2).
+  - id: cli-surfaces-stale-precision
+    statement: |
+      `bin/Mathc.ml::validate_with_counts` always surfaces the
+      parser-supplied `Diagnostic.t` on reject. The coarse fallback
+      at lines 391-393 is removed.
+  - id: registry-covers-new-coords
+    statement: |
+      `lib/diagnostic.ml::explain` registers every new `MC-*` code
+      with a Definition / Occurs when / Remediation body.
+  - id: fixtures-cover-new-coords
+    statement: |
+      `fixtures/conformance/decision/` carries one positive and one
+      negative fixture per new code. The conformance runner
+      (`tests/conformance.ml`) classifies them by basename and
+      asserts on the specific code.
+
+assumptions:
+  - id: signature-change-is-local
+    state: assumed
+    statement: |
+      Changing `parse_decision` from `(Jsonl.value -> Domain.decision option)`
+      to `(Jsonl.value -> Diagnostic.t option)` is local: only five
+      call sites exist (`bin/Mathc.ml:341`, `bin/Mathc.ml:2043`,
+      `lib/decision.ml` (the YAML form-aware wrapper),
+      `tests/conformance.ml:282`, plus the recursive call from
+      `parse_obligation_with` which does not invoke `parse_decision`).
+      Each call site is updated; legacy decisions removed; the
+      no-shims migration is complete.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a hidden call site exists that does not surface the new
+      `Diagnostic.t`, the kernel regresses to a coarse unknown-reject.
+      The fix is to grep for `Decision\.parse_decision[^_]` and
+      update every match; this assumption is the verification path
+      (verifier below).
+    review_on:
+      - signal: parse-decision-call-site-missed
+  - id: codes-disjoint-and-parallel
+    state: assumed
+    statement: |
+      The new codes (`MC-MISSING-*`, `MC-INVALID-*`) are disjoint
+      from the existing CLI pre-parse codes
+      (`MC-AXIOM-LINK-MISSING`, `MC-COUNTEREXAMPLE-MISSING`,
+      `MC-ANTITHESIS-MISSING`) and from `MC-DECISION-INVALID`. The
+      existing CLI pre-parse checks stay first (they surface a more
+      precise context); the new parser-level codes surface only when
+      the CLI pre-parse check does not fire.
+    owner: human:maintainer
+    consequence_if_false: |
+      If two codes fire simultaneously, the CLI's pre-parse ordering
+      axiom → counterexample → antithesis applies; the new codes
+      surface only when those checks all pass. This is the existing
+      invariant from D8-predecessor decisions (T2.2, T6.2).
+    review_on:
+      - signal: code-emit-order-regressed
+  - id: explain-registry-is-authoritative
+    state: assumed
+    statement: |
+      `lib/diagnostic.ml::explain` is the authoritative registry for
+      MC-* codes. Adding a new code without registering it makes the
+      CLI emit a code that `mathc explain-diagnostic <CODE>` cannot
+      describe. The meta-decision t4-2 codifies this; we honour it.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the registry falls behind, `mathc explain-diagnostic
+      MC-MISSING-ID` returns nothing. The fix is to add the registry
+      entry; this assumption is the verification path.
+    review_on:
+      - signal: explain-registry-stale
+
+obligations:
+  - id: parse-decision-returns-diagnostic
+    outcome: parse-decision-returns-diagnostic
+    statement: |
+      `lib/decision.ml::parse_decision : Jsonl.value -> Diagnostic.t option`.
+      `Some d` means the parser accepted and `d.message` describes the
+      parse (or is empty for a clean accept); rejecting branches
+      return `Some (Diagnostic.t of <code>)` with the field name in
+      `path` and `next_actions` populated. `None` is reserved.
+    acceptance:
+      all:
+        - verifier: dune-build
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::test_parse_decision_signature
+          result: pass
+        - verifier: tests/diagnostic_ux.ml::test_parse_decision_rejects_with_field
+          result: pass
+  - id: cli-surfaces-precision
+    outcome: cli-surfaces-stale-precision
+    statement: |
+      `bin/Mathc.ml::validate_with_counts` does not contain the
+      literal "missing or invalid required field" string. Every reject
+      path surfaces a parser-supplied `Diagnostic.t`.
+    acceptance:
+      all:
+        - verifier: tests/diagnostic_ux.ml::test_cli_no_coarse_fallback
+          result: pass
+        - verifier: mathc validate fixtures/conformance/decision/positive-minimal.json --format=json
+          result: pass
+  - id: registry-covers-new-coords
+    outcome: registry-covers-new-coords
+    statement: |
+      `lib/diagnostic.ml::explain` returns `Some <body>` for every new
+      `MC-MISSING-*` and `MC-INVALID-*` code listed in this
+      decision's `commitment §3`.
+    acceptance:
+      all:
+        - verifier: tests/diagnostic_ux.ml::test_explain_registry_covers_new_codes
+          result: pass
+  - id: fixtures-cover-new-coords
+    outcome: fixtures-cover-new-coords
+    statement: |
+      For each new `MC-*` code, a positive and a negative fixture
+      exists under `fixtures/conformance/decision/`. The negative
+      fixture triggers the specific code (verified by inspecting
+      the `Diagnostic.code` field on parse_decision's return).
+    acceptance:
+      all:
+        - verifier: tests/diagnostic_ux.ml::test_per_code_fixture_pair
+          result: pass
+        - verifier: tests/conformance.ml::collect_cases (existing runner, all fixtures classify correctly)
+          result: pass
+
+counterexample: |
+  "Diagnostic surface precision is a polish item; the existing coarse
+  message has worked for two years and no author has complained."
+  The counterargument fails for three reasons: (a) the audit
+  (doc/AUDIT-0.0.11.md:465) explicitly tagged D8 as a documented
+  deficit and the audit's `Recommended remedy` says
+  "Promote `Decision.parse_decision` to return `Diagnostic.t option`
+  in 3.0-beta; until then, the coarse diagnostic is documented" — the
+  coarse path is a known contract gap, not a non-issue; (b) the meta-
+  decision audit (tested in `tests/diagnostic_ux.ml`) requires every
+  emitted code to carry `next_actions`, and the coarse path emits a
+  code with no `path` and no `next_actions` — the meta-decision audit
+  fails today; (c) A1 (Honesty / Conflict / Care) requires the
+  diagnostic surface to be informative; an MC-DECISION-INVALID with
+  no `path` is the same as no diagnostic.
+
+antithesis: |
+  "The new codes add API surface area without commensurate
+  value." The author considered and rejected this counter-position:
+  the new codes are internal — they replace the existing coarse
+  MC-DECISION-INVALID code, not add to it. The number of public
+  MC-* codes the kernel can emit grows by N (the new codes) but
+  the existing coarse fallback path is removed, so the CLI's
+  surface count is the same minus one. The author further considered
+  and rejected the stronger position that the coarse path should be
+  retained as a "last resort" fallback: the meta-decision audit
+  forbids codes without `next_actions`, and the coarse path is
+  precisely such a code.
+
+risk:
+  declared_triggers:
+    - parser-api-surface-change
+    - diagnostic-cod-emit-additions
+    - fixture-coverage-gap
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - algebra-3.2@2
+    - audit-0.0.21-fixes@1
+  supersedes: []
+  superseded_by: []

@@ -186,6 +186,142 @@ let mc_decision_invalid ?(path = []) ?(next_actions = []) message =
   create ~code ~kind:Input ~severity:Warn ~path ~next_actions:actions
     ~retryable:false ~autofix_safe:false message
 
+(* === Slice A (D8 audit closure): per-field parser-level helpers ===
+ *
+ * Each helper builds a `Diagnostic.t` for one specific `MC-*` code.
+ * The helper's `path` parameter carries the field name (e.g.
+ * `~path:["id"]`); `next_actions` defaults to a snippet that names
+ * the YAML key the author should add. Severity is `Block` because
+ * every one of these rejects the file (the schema requires the
+ * field); the CLI's pre-parse checks for axiom_link, counterexample,
+ * and antithesis run first and emit their own codes when they fire.
+ *
+ * The pre-parse check on the seven top-level fields still exists
+ * in `bin/Mathc.ml::first_missing_required`; when that check fires,
+ * the CLI emits the same `MC-DECISION-INVALID` as today. The new
+ * helpers here apply when `first_missing_required` does NOT fire
+ * (the field exists in raw form but is not a string/int/etc.) —
+ * a case that today falls into the coarse "missing or invalid
+ * required field" fallback and that the audit D8 documented. *)
+
+let mc_missing_field ~code ~field ?(next_actions = []) message =
+  let default_actions =
+    [
+      ( "add",
+        Printf.sprintf "%s: |\n  <one-line description>" field );
+      ("run", "mathc validate decisions/<file>.yaml");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code ~kind:Deficit ~severity:Block ~path:[ field ]
+    ~policy_rule:(Some "schemas/decision.json")
+    ~next_actions:actions ~retryable:false ~autofix_safe:false message
+
+let mc_missing_schema ?(next_actions = []) message =
+  mc_missing_field ~code:"MC-MISSING-SCHEMA" ~field:"schema"
+    ~next_actions message
+
+let mc_missing_id ?(next_actions = []) message =
+  mc_missing_field ~code:"MC-MISSING-ID" ~field:"id"
+    ~next_actions message
+
+let mc_missing_revision ?(next_actions = []) message =
+  mc_missing_field ~code:"MC-MISSING-REVISION" ~field:"revision"
+    ~next_actions message
+
+let mc_missing_intent ?(next_actions = []) message =
+  mc_missing_field ~code:"MC-MISSING-INTENT" ~field:"intent"
+    ~next_actions message
+
+let mc_missing_commitment ?(next_actions = []) message =
+  mc_missing_field ~code:"MC-MISSING-COMMITMENT" ~field:"commitment"
+    ~next_actions message
+
+let mc_missing_scope ?(next_actions = []) message =
+  mc_missing_field ~code:"MC-MISSING-SCOPE" ~field:"scope"
+    ~next_actions message
+
+let mc_missing_outcomes ?(next_actions = []) message =
+  mc_missing_field ~code:"MC-MISSING-OUTCOMES" ~field:"outcomes"
+    ~next_actions message
+
+let mc_missing_obligations ?(next_actions = []) message =
+  mc_missing_field ~code:"MC-MISSING-OBLIGATIONS" ~field:"obligations"
+    ~next_actions message
+
+let mc_missing_risk_owner ?(next_actions = []) message =
+  mc_missing_field ~code:"MC-MISSING-RISK-OWNER" ~field:"risk.owner"
+    ~next_actions message
+
+(* Format validation: id and revision have a documented shape (id is
+   one of "short-string", "short-string@rev"; revision is a string or
+   int). The kernel emits a Block diagnostic with a specific code
+   when the value is present but does not match. *)
+let mc_invalid_id_format ?(id = "") ?(next_actions = []) message =
+  let default_actions =
+    [
+      ("edit",
+       Printf.sprintf
+         "id: |\n  %s\n  The id field should be a short lower-snake-case \
+          string (e.g. `redis-origin-fallback`), optionally suffixed with \
+          `@rev` to pin a specific revision (e.g. `redis-origin-fallback@3`)."
+         (if id = "" then "<short-id>" else id) );
+      ("run", "mathc validate decisions/<file>.yaml");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-INVALID-ID-FORMAT" ~kind:Deficit ~severity:Block
+    ~path:[ "id" ]
+    ~policy_rule:(Some "schemas/decision.json / decision.id")
+    ~next_actions:actions ~retryable:false ~autofix_safe:false message
+
+let mc_invalid_revision_format ?(revision = "") ?(next_actions = [])
+    message =
+  let default_actions =
+    [
+      ("edit",
+       Printf.sprintf
+         "revision: |\n  %s\n  The revision field is a string (e.g. \"5\") \
+          or a sha256-prefixed digest (e.g. \"rev:41aa92\")."
+         (if revision = "" then "<revision>" else revision) );
+      ("run", "mathc validate decisions/<file>.yaml");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-INVALID-REVISION-FORMAT" ~kind:Deficit ~severity:Block
+    ~path:[ "revision" ]
+    ~policy_rule:(Some "schemas/decision.json / decision.revision")
+    ~next_actions:actions ~retryable:false ~autofix_safe:false message
+
+(* Axiom link: a value that does not match the axiom-shaped regex
+   `^A[0-9]+(\([@.][A-Za-z0-9_.-]*\)?$` is rejected. The diagnostic
+   names the offending token. *)
+let mc_invalid_axiom_link ?(token = "") ?(next_actions = []) message =
+  let default_actions =
+    [
+      ("edit",
+       Printf.sprintf
+         "axiom_link:\n  - %s\n  Axiom-shaped tokens start with `A`, have \
+          digits, optionally have `@rev` or `.sub` suffix (e.g. `A0`, \
+          `A1@2`, `A3.sub`)."
+         (if token = "" then "<A0>" else token) );
+      ("run", "mathc validate decisions/<file>.yaml");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-INVALID-AXIOM-LINK" ~kind:Deficit ~severity:Block
+    ~path:[ "axiom_link" ]
+    ~policy_rule:(Some "spec/algebra-3.2.md §17 + lib/decision.ml:is_axiom_token")
+    ~next_actions:actions ~retryable:false ~autofix_safe:false message
+
 (* MC-COUNTEREXAMPLE-MISSING: emitted when a decision has an
    empty `counterexample` field. The contract depends on the
    decision's `mode`:
@@ -541,6 +677,196 @@ let explain (code : string) : string option =
          lives in `scripts/axiom-link-seed.py:105-123`. Re-run\n\
          `mathc validate` to confirm `MC-SHA-MISMATCH` is\n\
          gone."
+  | "MC-MISSING-SCHEMA" ->
+      Some
+        "### Definition\n\
+         The decision file is parseable but is missing the top-level\n\
+         `schema` field. The `schemas/decision.json` schema contract\n\
+         requires every decision to declare its schema family (e.g.\n\
+         `math-coding/3.0-alpha`).\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` does not find a `schema`\n\
+         key at the top level. The CLI emits `MC-MISSING-SCHEMA`\n\
+         with verdict `reject` and exit code 1. The diagnostic's\n\
+         `path` is `[\"schema\"]`.\n\n\
+         ### Remediation\n\
+         Add `schema: math-coding/3.0-alpha` (or the schema family\n\
+         the decision targets) to the front-matter. Re-run\n\
+         `mathc validate`."
+  | "MC-MISSING-ID" ->
+      Some
+        "### Definition\n\
+         The decision file is parseable but is missing the top-level\n\
+         `id` field. The schema contract requires every decision\n\
+         to declare an id.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` does not find an `id`\n\
+         key at the top level. The CLI emits `MC-MISSING-ID` with\n\
+         verdict `reject` and exit code 1. The diagnostic's `path`\n\
+         is `[\"id\"]`.\n\n\
+         ### Remediation\n\
+         Add `id: <short-id>` (e.g. `redis-origin-fallback`) to the\n\
+         front-matter. Re-run `mathc validate`."
+  | "MC-MISSING-REVISION" ->
+      Some
+        "### Definition\n\
+         The decision file is parseable but is missing the\n\
+         top-level `revision` field.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` does not find a\n\
+         `revision` key at the top level. The CLI emits\n\
+         `MC-MISSING-REVISION` with verdict `reject` and exit\n\
+         code 1. The diagnostic's `path` is `[\"revision\"]`.\n\n\
+         ### Remediation\n\
+         Add `revision: <rev>` (string or sha256-prefixed digest,\n\
+         e.g. `revision: 5` or `revision: rev:41aa92`) to the\n\
+         front-matter. Re-run `mathc validate`."
+  | "MC-MISSING-INTENT" ->
+      Some
+        "### Definition\n\
+         The decision file is parseable but is missing the\n\
+         top-level `intent` field.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` does not find an\n\
+         `intent` key at the top level (the YAML form expects a\n\
+         scalar string; the JSON form expects an object with\n\
+         `source` and `text` keys). The CLI emits\n\
+         `MC-MISSING-INTENT` with verdict `reject` and exit code\n\
+         1. The diagnostic's `path` is `[\"intent\"]`.\n\n\
+         ### Remediation\n\
+         Add an `intent:` block (YAML form: scalar string; JSON\n\
+         form: `{source, text}` object). Re-run `mathc validate`."
+  | "MC-MISSING-COMMITMENT" ->
+      Some
+        "### Definition\n\
+         The decision file is parseable but is missing the\n\
+         top-level `commitment` field.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` does not find a\n\
+         `commitment` key at the top level. The CLI emits\n\
+         `MC-MISSING-COMMITMENT` with verdict `reject` and exit\n\
+         code 1. The diagnostic's `path` is\n\
+         `[\"commitment\"]`.\n\n\
+         ### Remediation\n\
+         Add a `commitment: |` block (one or more sentences\n\
+         stating the commitment the decision makes). Re-run\n\
+         `mathc validate`."
+  | "MC-MISSING-SCOPE" ->
+      Some
+        "### Definition\n\
+         The decision file is parseable but is missing the\n\
+         top-level `scope` field.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` does not find a\n\
+         `scope` key at the top level (YAML form: object with\n\
+         `capabilities` / `paths` / `exclusions`; JSON form:\n\
+         array of `{kind, path|capability}`). The CLI emits\n\
+         `MC-MISSING-SCOPE` with verdict `reject` and exit code\n\
+         1. The diagnostic's `path` is `[\"scope\"]`.\n\n\
+         ### Remediation\n\
+         Add a `scope:` block (YAML or JSON form). Re-run\n\
+         `mathc validate`."
+  | "MC-MISSING-OUTCOMES" ->
+      Some
+        "### Definition\n\
+         The decision file is parseable but is missing the\n\
+         top-level `outcomes` field.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` does not find an\n\
+         `outcomes` key at the top level. The CLI emits\n\
+         `MC-MISSING-OUTCOMES` with verdict `reject` and exit\n\
+         code 1. The diagnostic's `path` is `[\"outcomes\"]`.\n\n\
+         ### Remediation\n\
+         Add `outcomes: []` (empty list is acceptable but the\n\
+         field itself must be present) or a list of outcomes\n\
+         with `id` and `statement` keys. Re-run `mathc validate`."
+  | "MC-MISSING-OBLIGATIONS" ->
+      Some
+        "### Definition\n\
+         The decision file is parseable but is missing the\n\
+         top-level `obligations` field.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` does not find an\n\
+         `obligations` key at the top level. The CLI emits\n\
+         `MC-MISSING-OBLIGATIONS` with verdict `reject` and\n\
+         exit code 1. The diagnostic's `path` is\n\
+         `[\"obligations\"]`.\n\n\
+         ### Remediation\n\
+         Add `obligations: []` (empty list is acceptable but\n\
+         the field itself must be present) or a list of\n\
+         obligation items. Re-run `mathc validate`."
+  | "MC-MISSING-RISK-OWNER" ->
+      Some
+        "### Definition\n\
+         The decision file is parseable but the `risk` object is\n\
+         missing its `owner` key.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision_yaml` injects the\n\
+         schema default `human:maintainer` if the entire risk\n\
+         block is missing, but if `risk` is present without\n\
+         `owner` (e.g. `risk: {declared_triggers: [...]}`), the\n\
+         parser returns `MC-MISSING-RISK-OWNER` with verdict\n\
+         `reject` and exit code 1. The diagnostic's `path` is\n\
+         `[\"risk.owner\"]`.\n\n\
+         ### Remediation\n\
+         Add `owner: human:maintainer` (or another owner id)\n\
+         to the `risk:` block. Re-run `mathc validate`."
+  | "MC-INVALID-ID-FORMAT" ->
+      Some
+        "### Definition\n\
+         The decision's `id` field is present but does not match\n\
+         the schema regex `^[a-z][a-z0-9-]*(@[A-Za-z0-9_.-]+)?$`\n\
+         (short lower-snake-case, optionally suffixed with `@rev`).\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` finds a value at the\n\
+         `id` key but the value is empty, or contains characters\n\
+         the regex forbids (e.g. uppercase, `_`). The CLI emits\n\
+         `MC-INVALID-ID-FORMAT` with verdict `reject` and exit\n\
+         code 1. The diagnostic's `path` is `[\"id\"]` and the\n\
+         message carries the offending value.\n\n\
+         ### Remediation\n\
+         Replace `id:` with a short lower-snake-case string, e.g.\n\
+         `id: redis-origin-fallback`. If you need to pin a\n\
+         specific revision, suffix with `@rev` (e.g.\n\
+         `id: redis-origin-fallback@3`). Re-run `mathc validate`."
+  | "MC-INVALID-REVISION-FORMAT" ->
+      Some
+        "### Definition\n\
+         The decision's `revision` field is present but does not\n\
+         match the schema contract (a string or sha256-prefixed\n\
+         digest, never null).\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` finds a value at the\n\
+         `revision` key but the value is a JSON null, an array,\n\
+         or an object — none of which the schema accepts. The CLI\n\
+         emits `MC-INVALID-REVISION-FORMAT` with verdict `reject`\n\
+         and exit code 1. The diagnostic's `path` is\n\
+         `[\"revision\"]` and the message carries the offending\n\
+         value.\n\n\
+         ### Remediation\n\
+         Replace `revision:` with a string or sha256-prefixed\n\
+         digest, e.g. `revision: 5` or `revision: rev:41aa92`.\n\
+         Re-run `mathc validate`."
+  | "MC-INVALID-AXIOM-LINK" ->
+      Some
+        "### Definition\n\
+         The decision's `axiom_link` field contains a token that\n\
+         does not match the axiom-shaped regex\n\
+         `^A[0-9]+(@[A-Za-z0-9_.-]+)?$` (starts with `A`,
+         has digits, optionally has `@rev` or `.sub` suffix).\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision` finds an `axiom_link`\n\
+         value but a token is not axiom-shaped (e.g. `foo`,\n\
+         `A`, or `A-1`). The CLI emits `MC-INVALID-AXIOM-LINK`\n\
+         with verdict `reject` and exit code 1. The diagnostic's\n\
+         `path` is `[\"axiom_link\"]` and the message carries the\n\
+         offending token.\n\n\
+         ### Remediation\n\
+         Replace the offending token with an axiom-shaped one\n\
+         (e.g. `A0`, `A1@2`, `A3.sub`). If the value was meant\n\
+         to be a non-axiom identifier, remove it from the\n\
+         `axiom_link` list and put it under `relations.addresses`\n\
+         instead. Re-run `mathc validate`."
   | _ -> None
 
 let render d =

@@ -18,6 +18,32 @@
    hashes embedded in the message and a `next_actions` snippet
    pointing at the recompute algorithm. Callers that only need the
    boolean (e.g., legacy tests) use the `_ignored` accumulator. *)
+(* === Slice A (D8 audit closure): typed reject diagnostics ===
+ *
+ * The parser-level reject reason is now a typed Diagnostic.t. The
+ * full parse result is a sum type so the CLI can get both the parsed
+ * Domain.decision (on accept) and the actionable Diagnostic.t (on
+ * reject). The pure-validation view, `parse_decision`, returns
+ * Diagnostic.t option:
+ *   - Some diag  → reject; diag is the actionable diagnostic with
+ *                  the specific MC-* code, the field name in `path`,
+ *                  and a `next_actions` snippet.
+ *   - None       → accept (parsing completed without a defect).
+ *
+ * The full parse view, `parse_decision_value`, returns the typed
+ * sum so callers can recover the parsed Domain.decision on accept.
+ *
+ * Pre-existing binary-reject rules (axiom_link-required,
+ * counterexample-required, antithesis-required) keep their current
+ * parser-level Reject emit; the CLI pre-parse checks
+ * (`bin/Mathc.ml::axiom_link_violation`, etc.) run BEFORE
+ * `parse_decision_value` and emit the more specific codes when they
+ * fire. The parser still emits its own Reject so the diagnostic
+ * surface is informative if the CLI path is bypassed (e.g. unit
+ * tests that call `parse_decision_value` directly). *)
+
+type decision_parse = Accept of Domain.decision | Reject of Diagnostic.t
+
 let sha_match_check (d : Domain.decision) : bool * Diagnostic.t list =
   match (d.body_sha, d.yaml_sha) with
   | Some bs, Some ys when bs <> ys ->
@@ -27,6 +53,9 @@ let sha_match_check (d : Domain.decision) : bool * Diagnostic.t list =
       in
       (false, [ diag ])
   | _ -> (true, [])
+
+(* Pure-validation view: maps parse_decision_value into
+   Diagnostic.t option. Some diag = reject; None = accept. *)
 
 (* Parse a single obligation acceptance item (verifier OR review). *)
 let[@warning "-32"] parse_verifier v =
@@ -599,8 +628,13 @@ and parse_decision_yaml v =
                 ] )
             :: ps''
       in
-      parse_decision (Jsonl.Object ps_with_risk)
-  | _ -> parse_decision v
+      (match parse_decision_value (Jsonl.Object ps_with_risk) with
+       | Accept d -> Some d
+       | Reject _ -> None)
+  | _ ->
+      (match parse_decision_value v with
+       | Accept d -> Some d
+       | Reject _ -> None)
 
 and[@warning "-32"] parse_obligation_with parent_id v =
   match v with
@@ -737,12 +771,31 @@ and populate_axiom_addresses ps (relations : Domain.relations) :
   in
   { relations with Domain.addresses = merged }
 
-and parse_decision v =
+and parse_decision_value v =
   match v with
   | Jsonl.Object ps -> (
       match Schema.take_string ps "id" with
+      | None ->
+          Reject
+            (Diagnostic.mc_missing_id
+               "decision is missing the required top-level field: id")
+      | Some id when String.trim id = "" ->
+          Reject
+            (Diagnostic.mc_invalid_id_format ~id
+               "id is present but empty: schemas/decision.json requires a \
+                short lower-snake-case id, optionally suffixed with @rev")
       | Some id -> (
           match Schema.take_string ps "revision" with
+          | None ->
+              Reject
+                (Diagnostic.mc_missing_revision
+                   "decision is missing the required top-level field: \
+                    revision")
+          | Some revision when String.trim revision = "" ->
+              Reject
+                (Diagnostic.mc_invalid_revision_format ~revision
+                   "revision is present but empty: schemas/decision.json \
+                    requires a non-empty revision string")
           | Some revision -> (
               let parents =
                 match Schema.take_array ps "parents" with
@@ -754,12 +807,34 @@ and parse_decision v =
                 | _ -> []
               in
               match Schema.take_object ps "intent" with
+              | None ->
+                  Reject
+                    (Diagnostic.mc_missing_intent
+                       "decision is missing the required top-level field: \
+                        intent (expected {source, text} object or YAML \
+                        scalar)")
               | Some ips -> (
                   match Schema.take_string ips "source" with
+                  | None ->
+                      Reject
+                        (Diagnostic.mc_missing_intent
+                           "intent.source is missing: schemas/decision.json \
+                            requires intent to declare a source key (e.g. \
+                            {source: \"issue:1\", text: \"...\"})")
                   | Some source -> (
                       match Schema.take_string ips "text" with
+                      | None ->
+                          Reject
+                            (Diagnostic.mc_missing_intent
+                               "intent.text is missing: schemas/decision.json \
+                                requires intent to declare a text key")
                       | Some text -> (
                           match Schema.take_string ps "commitment" with
+                          | None ->
+                              Reject
+                                (Diagnostic.mc_missing_commitment
+                                   "decision is missing the required \
+                                    top-level field: commitment")
                           | Some commitment -> (
                               let scope =
                                 match Schema.take_array ps "scope" with
@@ -773,14 +848,15 @@ and parse_decision v =
                               in
                               let assumptions =
                                 match Schema.take_array ps "assumptions" with
-                                | Some xs -> List.filter_map parse_assumption xs
+                                | Some xs ->
+                                    List.filter_map parse_assumption xs
                                 | _ -> []
                               in
                               let obligations =
                                 match Schema.take_array ps "obligations" with
                                 | Some xs ->
-                                    List.filter_map (parse_obligation_with id)
-                                      xs
+                                    List.filter_map
+                                      (parse_obligation_with id) xs
                                 | _ -> []
                               in
                               let reversal =
@@ -789,10 +865,17 @@ and parse_decision v =
                                 | _ -> []
                               in
                               match Schema.take_object ps "risk" with
+                              | None ->
+                                  Reject
+                                    (Diagnostic.mc_missing_risk_owner
+                                       "decision is missing the required \
+                                        top-level field: risk (with \
+                                        declared_triggers and owner)")
                               | Some rps -> (
                                   let triggers =
                                     match
-                                      Schema.take_array rps "declared_triggers"
+                                      Schema.take_array rps
+                                        "declared_triggers"
                                     with
                                     | Some xs ->
                                         List.filter_map
@@ -804,17 +887,23 @@ and parse_decision v =
                                     | _ -> []
                                   in
                                   match Schema.take_string rps "owner" with
+                                  | None ->
+                                      Reject
+                                        (Diagnostic.mc_missing_risk_owner
+                                           "risk.owner is missing: \
+                                            schemas/decision.json requires the \
+                                            risk block to declare an owner \
+                                            key (e.g. owner: \
+                                            human:maintainer)")
                                   | Some owner ->
                                       (* counterexample: two forms.
                                          YAML form: scalar string.
-                                         JSON form: array of strings
-                                         (one entry per dialectical
-                                         objection). Accept both, since
-                                         schemas/decision.json oneOf
-                                         allows either. *)
+                                         JSON form: array of strings.
+                                         Accept both. *)
                                       let counterexample =
                                         match
-                                          Schema.take_string ps "counterexample"
+                                          Schema.take_string ps
+                                            "counterexample"
                                         with
                                         | Some s -> Some s
                                         | None -> (
@@ -826,7 +915,8 @@ and parse_decision v =
                                                 List.filter_map
                                                   (fun x ->
                                                     match x with
-                                                    | Jsonl.String s -> Some s
+                                                    | Jsonl.String s ->
+                                                        Some s
                                                     | _ -> None)
                                                   xs
                                                 |> String.concat "\n"
@@ -834,19 +924,23 @@ and parse_decision v =
                                             | _ -> None)
                                       in
                                       let state_str =
-                                        match Schema.take_string ps "state" with
+                                        match
+                                          Schema.take_string ps "state"
+                                        with
                                         | Some s -> s
                                         | None -> "active"
                                       in
                                       let state =
                                         match
-                                          Codec.parse_decision_state state_str
+                                          Codec.parse_decision_state
+                                            state_str
                                         with
                                         | Some s -> s
                                         | None -> `Active
                                       in
                                       let mode_str =
-                                        match Schema.take_string ps "mode" with
+                                        match Schema.take_string ps "mode"
+                                        with
                                         | Some s -> s
                                         | None -> "standard"
                                       in
@@ -880,7 +974,8 @@ and parse_decision v =
                                           Schema.take_object ps "relations"
                                         with
                                         | Some rps ->
-                                            parse_relations (Jsonl.Object rps)
+                                            parse_relations
+                                              (Jsonl.Object rps)
                                         | _ -> parse_relations Jsonl.Null
                                       in
                                       let relations =
@@ -899,94 +994,101 @@ and parse_decision v =
                                               xs
                                         | _ -> []
                                       in
-                                      (* T2.2: axiom_link is required for
-                                         state=active. The rule is enforced
-                                         at parser level so the kernel's
-                                         authoritative reading of a
-                                         Decision matches the schema
-                                         contract. Draft, Retired, and
-                                         Superseded decisions are exempt;
-                                         only active decisions carry the
-                                         contract. The CLI
-                                         (`bin/Mathc.ml::validate_with_counts`)
-                                         maps the None return into
-                                         diagnostic `MC-AXIOM-LINK-MISSING`
-                                         so the author sees a precise
-                                         next-step. See
-                                         `decisions/plan-2026-10-improvements/t2-2.yaml`.
-                                         T6.2: counterexample is required
-                                         for mode >= standard. Same
-                                         parser-level pattern: when the
-                                         rule fires, parse_decision
-                                         returns None; the CLI pre-parse
-                                         check
-                                         (`bin/Mathc.ml::counterexample_violation`)
-                                         distinguishes the cause from the
-                                         axiom_link violation and emits
-                                         `MC-COUNTEREXAMPLE-MISSING` with
-                                         Block severity. Tiny / light
-                                         modes are exempt. *)
+                                      (* axiom_link format: every token must
+                                         match the axiom-shaped regex. *)
+                                      let bad_axiom_token =
+                                        List.find_opt
+                                          (fun tok -> not (is_axiom_token tok))
+                                          axiom_link
+                                      in
                                       let counterexample_required_missing =
                                         mode_geq_standard mode
                                         && not
                                              (counterexample_meaningful_opt
                                                 counterexample)
                                       in
-
-                                      (* Antithesis: required for mode >= standard.
-                                         Parallel to counterexample; the field
-                                         is a coherent counter-position the
-                                         author considered. See
-                                         spec/algebra-3.2.md §11 and
-                                         decisions/dialectic-method-v3-2026-10.yaml. *)
                                       let antithesis_required_missing =
                                         mode_geq_standard mode
                                         && not
                                              (antithesis_meaningful_opt
                                                 antithesis)
                                       in
-                                      if state = `Active && axiom_link = [] then
-                                        None
-                                      else if antithesis_required_missing
-                                      then None
-                                      else if counterexample_required_missing
-                                      then None
-                                      else
-                                        Some
-                                          {
-                                            Domain.id;
-                                            Domain.rev = revision;
-                                            Domain.parents;
-                                            Domain.intent_source = source;
-                                            Domain.intent_text = text;
-                                            Domain.commitment;
-                                            Domain.scope;
-                                            Domain.outcomes;
-                                            Domain.obligations;
-                                            Domain.assumptions;
-                                            Domain.reversal;
-                                            Domain.risk =
+                                      match bad_axiom_token with
+                                      | Some tok ->
+                                          Reject
+                                            (Diagnostic.mc_invalid_axiom_link
+                                               ~token:tok
+                                               (Printf.sprintf
+                                                  "axiom_link contains a \
+                                                   non-axiom-shaped token: \
+                                                   `%s` (expected form is \
+                                                   `A<digits>` optionally \
+                                                   suffixed with `@rev` or \
+                                                   `.sub`)"
+                                                  tok))
+                                      | None -> (
+                                          if
+                                            state = `Active && axiom_link = []
+                                          then
+                                            Reject
+                                              (Diagnostic.axiom_link_missing
+                                                 ~decision_id:id ())
+                                          else if antithesis_required_missing
+                                          then
+                                            Reject
+                                              (Diagnostic.mc_antithesis_missing
+                                                 ~decision_id:id
+                                                 ~severity:Diagnostic.Block
+                                                 "antithesis is required \
+                                                  for mode >= standard")
+                                          else if
+                                            counterexample_required_missing
+                                          then
+                                            Reject
+                                              (Diagnostic.mc_counterexample_missing
+                                                 ~decision_id:id
+                                                 ~severity:Diagnostic.Block
+                                                 "counterexample is \
+                                                  required for mode >= \
+                                                  standard")
+                                          else
+                                            Accept
                                               {
-                                                Domain.declared_triggers =
-                                                  triggers;
-                                                Domain.owner;
-                                              };
-                                            Domain.relations;
-                                            Domain.counterexample;
-                                            Domain.antithesis;
-                                            Domain.state;
-                                            Domain.mode;
-                                            Domain.mode_floor_used;
-                                            Domain.body_sha;
-                                            Domain.yaml_sha;
-                                            Domain.axiom_link;
-                                          }
-                                  | _ -> None)
-                              | _ -> None)
-                          | _ -> None)
-                      | _ -> None)
-                  | _ -> None)
-              | _ -> None)
-          | _ -> None)
-      | _ -> None)
-  | _ -> None
+                                                Domain.id;
+                                                Domain.rev = revision;
+                                                Domain.parents;
+                                                Domain.intent_source =
+                                                  source;
+                                                Domain.intent_text = text;
+                                                Domain.commitment;
+                                                Domain.scope;
+                                                Domain.outcomes;
+                                                Domain.obligations;
+                                                Domain.assumptions;
+                                                Domain.reversal;
+                                                Domain.risk =
+                                                  {
+                                                    Domain.declared_triggers =
+                                                      triggers;
+                                                    Domain.owner;
+                                                  };
+                                                Domain.relations;
+                                                Domain.counterexample;
+                                                Domain.antithesis;
+                                                Domain.state;
+                                                Domain.mode;
+                                                Domain.mode_floor_used;
+                                                Domain.body_sha;
+                                                Domain.yaml_sha;
+                                                Domain.axiom_link;
+                                              })))))))))
+  | _ ->
+      Reject
+        (Diagnostic.mc_decision_invalid
+           "input is not a JSON object: mathc validate expects a top-level \
+            mapping (YAML or JSON); got a scalar/array/null")
+
+and parse_decision v =
+  match parse_decision_value v with
+  | Accept _ -> None
+  | Reject diag -> Some diag

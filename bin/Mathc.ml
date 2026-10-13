@@ -388,9 +388,25 @@ let validate_with_counts path =
                               | None -> extra_diags
                             in
                             `Accept (d, extra_diags))
-                    | None ->
-                        let msg = "missing or invalid required field" in
-                        `Reject (Diagnostic.mc_decision_invalid msg, msg)
+                    | None -> (
+                        (* D8 (Slice A): the parser now returns a typed
+                           Diagnostic.t option. When parse_decision_yaml
+                           rejects, surface the parser-level Diagnostic.t
+                           so the author sees the specific MC-* code (e.g.
+                           MC-MISSING-ID) instead of the coarse legacy
+                           "missing or invalid required field" string. *)
+                        let diag =
+                          match Decision.parse_decision v with
+                          | Some d -> d
+                          | None ->
+                              Diagnostic.mc_decision_invalid
+                                "missing or invalid required field (parser \
+                                 rejected without a specific MC-* code; \
+                                 check the schema contract in \
+                                 schemas/decision.json)"
+                        in
+                        let msg = diag.Diagnostic.message in
+                        `Reject (diag, msg))
                   with
                   | Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
                     let msg =

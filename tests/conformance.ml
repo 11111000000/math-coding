@@ -280,8 +280,8 @@ let[@warning "-32"] classify name =
 let[@warning "-32"] parse_decision_for_fixture path =
   let v = load_fixture path in
   match Decision.parse_decision v with
-  | Some _ -> Accept
-  | None -> Reject
+  | None -> Accept
+  | Some _ -> Reject
   | exception Jsonl.Parse_error _ -> Reject
 
 let[@warning "-32"] parse_attestation_for_fixture path =
