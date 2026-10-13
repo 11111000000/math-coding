@@ -74,3 +74,16 @@ relations:
 counterexample: |
   Block-scalar formatting may obscure the actual obligation
   boundary; a reviewer scanning yaml will not see the structure.
+
+antithesis: |
+  This conformance fixture exists to assert that the parser
+  accepts a decision whose every multi-line string is
+  expressed as a YAML literal block scalar. The v3 dialectic
+  antithesis slot is unrelated to that assertion; the author
+  considered and rejected the counter-position that a
+  block-scalar formatting demo need not carry dialectic
+  content because its purpose is a YAML parser test, not a
+  dialectic test. The kernel requires antithesis for
+  mode >= standard regardless of fixture intent, so the
+  fixture carries a documentary antithesis block naming the
+  position considered and rejected.

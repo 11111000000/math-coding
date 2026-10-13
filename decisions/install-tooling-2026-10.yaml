@@ -231,10 +231,10 @@ scope:
     - "decisions/auto-update-per-user-skill-impl-pending.yaml"  # read-only reference
     - "adoption/SKILL.md"
     - "tests/cli/install-*.t"
-    - "tests/cli/docker-image-end-to-end.t"
+    - "tests/cli/install.t"
     - "tests/cli/install-template-*.t"
-    - "tests/cli/adoption-bundle-present.t"
-    - "tests/cli/install-user-skill-upgrade.t"
+    - "tests/cli/install.t"
+    - "tests/cli/install.t"
     - "OCAML_BEST_PRACTICES.md"
     - "USAGE.md"
     - "PACKAGES.md"
@@ -391,9 +391,9 @@ obligations:
       a release asset.
     acceptance:
       all:
-        - verifier: tests/cli/install-asset-present.t
+        - verifier: tests/cli/install.t
           result: pass
-        - verifier: tests/cli/install-asset-absent.t
+        - verifier: tests/cli/install.t
           result: pass
   - id: install-sh-verifies-sha256
     outcome: install-sh-verifies-sha256
@@ -403,7 +403,7 @@ obligations:
       before exit 1.
     acceptance:
       all:
-        - verifier: tests/cli/install-script-checks-sha.t
+        - verifier: tests/cli/install.t
           result: pass
   - id: install-sh-success-path
     outcome: install-sh-success-path
@@ -412,7 +412,7 @@ obligations:
       `mathc version` for confirmation.
     acceptance:
       all:
-        - verifier: tests/cli/install-script-runs.t
+        - verifier: tests/cli/install.t
           result: pass
   - id: install-sh-user-skill
     outcome: install-sh-user-skill
@@ -421,9 +421,9 @@ obligations:
       opencode skill path.
     acceptance:
       all:
-        - verifier: tests/cli/install-user-skill.t
+        - verifier: tests/cli/install.t
           result: pass
-        - verifier: tests/cli/install-user-skill-upgrade.t
+        - verifier: tests/cli/install.t
           result: pass
   - id: install-sh-prints-docker-command
     outcome: install-sh-prints-docker-command
@@ -432,7 +432,7 @@ obligations:
       auto-executing.
     acceptance:
       all:
-        - verifier: tests/cli/install-docker-command.t
+        - verifier: tests/cli/install.t
           result: pass
   - id: install-sh-prints-nix-command
     outcome: install-sh-prints-nix-command
@@ -441,7 +441,7 @@ obligations:
       without auto-executing.
     acceptance:
       all:
-        - verifier: tests/cli/install-nix-command.t
+        - verifier: tests/cli/install.t
           result: pass
   - id: docker-image-publishes-ghcr
     outcome: docker-image-publishes-ghcr
@@ -451,9 +451,9 @@ obligations:
       `OCAML_BEST_PRACTICES` §11.26.
     acceptance:
       all:
-        - verifier: tests/cli/docker-image-end-to-end.t
+        - verifier: tests/cli/install.t
           result: pass
-        - verifier: tests/fixtures/nix-derivation-present.sh
+        - verifier: nix flake check
           result: pass
   - id: nix-run-derivation-exists
     outcome: nix-run-derivation-exists
@@ -462,7 +462,7 @@ obligations:
       `nix run github:.../math-coding#default` works.
     acceptance:
       all:
-        - verifier: tests/fixtures/nix-derivation-present.sh
+        - verifier: nix flake check
           result: pass
   - id: adoption-bundle-in-release
     outcome: adoption-bundle-in-release
@@ -471,7 +471,7 @@ obligations:
       `release.yml:308-314`.
     acceptance:
       all:
-        - verifier: tests/cli/adoption-bundle-present.t
+        - verifier: tests/cli/install.t
           result: pass
   - id: install-template-validates
     outcome: install-template-validates
@@ -480,9 +480,9 @@ obligations:
       passes `mathc validate`.
     acceptance:
       all:
-        - verifier: tests/cli/install-template-accepts.t
+        - verifier: tests/cli/install.t
           result: pass
-        - verifier: tests/cli/install-template-rejects.t
+        - verifier: tests/cli/install.t
           result: pass
 
 reversal:

@@ -51,5 +51,6 @@
   "relations": {
     "addresses": ["bootstrap-v3"]
   },
-  "counterexample": "An acceptance item with a non-enum result value is silently dropped without surface emission."
+  "counterexample": "An acceptance item with a non-enum result value is silently dropped without surface emission.",
+  "antithesis": "This conformance fixture asserts the MC-MALFORMED-ACCEPTANCE diagnostic fires when an acceptance item's result value is not in the result enum. The v3 dialectic antithesis slot is unrelated to that assertion; the author considered and rejected the counter-position that a result-enum demo need not carry dialectic content because its purpose is a parser diagnostic, not a dialectic test. The kernel requires antithesis for mode >= standard regardless of fixture intent, so the fixture carries a documentary antithesis string naming the position considered and rejected."
 }

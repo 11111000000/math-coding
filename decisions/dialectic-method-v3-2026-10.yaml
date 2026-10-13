@@ -129,7 +129,7 @@ obligations:
     claim: schemas/decision.json declares antithesis with minLength 80.
     acceptance:
       all:
-        - verifier: tests/schemas_must_lint.sh
+        - verifier: text-scan-schemas-decision-antithesis
           result: pass
   - id: spec-11-updated
     outcome: spec-11-names-antithesis

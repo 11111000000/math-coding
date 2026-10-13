@@ -55,5 +55,6 @@
   "relations": {
     "addresses": ["bootstrap-v3"]
   },
-  "counterexample": "An acceptance item that is dual-keyed (verifier+review) is silently parsed as verifier-only; the review half is lost without surface emission."
+  "counterexample": "An acceptance item that is dual-keyed (verifier+review) is silently parsed as verifier-only; the review half is lost without surface emission.",
+  "antithesis": "This conformance fixture asserts the MC-AMBIGUOUS-ACCEPTANCE diagnostic fires when an acceptance item carries both verifier and review fields. The v3 dialectic antithesis slot is unrelated to that assertion; the author considered and rejected the counter-position that an acceptance-shape demo need not carry dialectic content because its purpose is a parser diagnostic, not a dialectic test. The kernel requires antithesis for mode >= standard regardless of fixture intent, so the fixture carries a documentary antithesis string naming the position considered and rejected."
 }

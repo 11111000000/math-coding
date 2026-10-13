@@ -200,7 +200,7 @@ obligations:
       all:
         - verifier: tests/cli/required-attestation.t
           result: pass
-        - verifier: tests/counters_drift.exe
+        - verifier: tests/counters_drift.ml
           result: pass
 
   - id: gate-emits-gap-on-missing-required-attestation

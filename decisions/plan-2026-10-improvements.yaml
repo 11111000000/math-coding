@@ -420,7 +420,7 @@ obligations:
       on the stub.
     acceptance:
       all:
-        - verifier: tests/rebuttal_forge_stub.t
+        - verifier: tests/rebuttal_forge_stub.ml
           result: pass
         - verifier: decisions/plan-2026-10-improvements/t1-1.yaml@1 exists
           result: pass

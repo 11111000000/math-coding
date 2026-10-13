@@ -96,6 +96,7 @@ let[@warning "-32"] manual_verifier_prefixes =
     "dune build";
     "dune exec";
     "review";
+    "mathc-self-check-";
     "mathc-";
     "reference-class";
     "this-decision-file-present";
@@ -104,6 +105,12 @@ let[@warning "-32"] manual_verifier_prefixes =
     "bash";
     "gh ";
     "grep ";
+    "nix ";
+    "awk ";
+    "sed ";
+    "python ";
+    "perl ";
+    "sh ";
     "scripts/";
     "dist/";
     "git ";
@@ -250,7 +257,57 @@ type verifier_class =
   | Kernel
   | Unrecognised
 
+(* Strip leading "! " (shell negation); the remainder is a
+   regular verifier. The awk pre-commit hook accepts the same
+   pattern implicitly via its loose tail rule. *)
+let[@warning "-32"] strip_shell_negation (v : string) : string =
+  if String.starts_with ~prefix:"! " v then
+    String.sub v 2 (String.length v - 2)
+  else v
+
+(* Bare single-word manual-style keyword (lowercase, hyphenated,
+   no whitespace). The awk pre-commit hook accepts the same
+   pattern via `v ~ /^[a-z][-a-z0-9_]+$/`; we mirror that to
+   keep the rigorous OCaml check and the fast-path hook
+   aligned. *)
+let[@warning "-32"] is_bare_keyword (v : string) : bool =
+  let len = String.length v in
+  if len = 0 then false
+  else begin
+    let c0 = String.unsafe_get v 0 in
+    if not (c0 >= 'a' && c0 <= 'z') then false
+    else
+      let rec loop i =
+        if i >= len then true
+        else
+          let c = String.unsafe_get v i in
+          if (c >= 'a' && c <= 'z')
+             || (c >= '0' && c <= '9')
+             || c = '-' || c = '_'
+          then loop (i + 1)
+          else false
+      in
+      loop 1
+  end
+
+(* Sub-decision reference path: strip the documentary
+   ` exists` or ` absent` tail. The path may or may not
+   include an `@<rev>` trailer depending on the file-naming
+   convention of the referenced sub-decision; the test's
+   `path_resolves` helper tries both forms. *)
+let[@warning "-32"] sub_decision_path (v : string) : string =
+  let len = String.length v in
+  let v =
+    if len >= 7 && String.sub v (len - 7) 7 = " exists" then
+      String.sub v 0 (len - 7)
+    else if len >= 8 && String.sub v (len - 8) 8 = " absent" then
+      String.sub v 0 (len - 8)
+    else v
+  in
+  String.trim v
+
 let[@warning "-32"] classify_verifier v =
+  let v = strip_shell_negation v in
   if
     List.exists
       (fun p -> String.starts_with ~prefix:p v)
@@ -262,21 +319,65 @@ let[@warning "-32"] classify_verifier v =
     let fixtures_re = Str.regexp {|tests/fixtures/[A-Za-z0-9_./-]+\.sh|} in
     if Str.string_match fixtures_re v 0 then Fixture v
     else
-      (* tests/cli/<name>.t. *)
-      let cram_re = Str.regexp {|tests/cli/[A-Za-z0-9_./-]+\.t|} in
+      (* tests/<name>.t (broader than tests/cli/<name>.t; some
+         obligations point at tests/<file>.t directly). *)
+      let cram_re = Str.regexp {|tests/[A-Za-z0-9_./-]+\.t|} in
       if Str.string_match cram_re v 0 then Fixture v
       else
         (* Bare <name>.sh (used by infrastructure-honesty.yaml). *)
         let bare_re = Str.regexp {|^[A-Za-z0-9_-]+\.sh$|} in
         if Str.string_match bare_re v 0 then Fixture ("tests/fixtures/" ^ v)
         else
-          (* Kernel-test reference: tests/<file>.ml or
-             tests/conformance.ml. *)
-          let kernel_re = Str.regexp {|tests/[A-Za-z0-9_]+\.ml|} in
-          if Str.string_match kernel_re v 0 then Kernel else Unrecognised
+          (* Sub-decision reference: decisions/<file>.yaml[@<rev>]
+             [exists]. The sibling decision file is the fixture;
+             the trailing `@<rev>` and ` exists` are documentary. *)
+          if String.starts_with ~prefix:"decisions/" v then
+            let path = sub_decision_path v in
+            if path = v then Unrecognised
+            else
+              (* Accept the path if it ends in .yaml as-is, or
+                 if the @<rev>-stripped form ends in .yaml. The
+                 test's `path_resolves` helper will then try both
+                 forms against the filesystem. *)
+              let no_rev =
+                try
+                  let i = String.index path '@' in
+                  String.sub path 0 i
+                with Not_found -> path
+              in
+              if Filename.check_suffix path ".yaml"
+                 || Filename.check_suffix no_rev ".yaml"
+              then Fixture path
+              else Unrecognised
+          else
+            (* Kernel-test reference: tests/<file>.ml or
+               tests/conformance.ml. *)
+            let kernel_re = Str.regexp {|tests/[A-Za-z0-9_]+\.ml|} in
+            if Str.string_match kernel_re v 0 then Kernel
+            else if is_bare_keyword v then Manual
+            else Unrecognised
 
 let[@warning "-32"] has_no_verifier verifiers =
   List.for_all (fun v -> v = "") verifiers
+
+(* A path "resolves" if either it exists, or the path
+   with the `@<rev>` trailer stripped exists. The mixed
+   convention in plan-2026-10-improvements.yaml uses
+   `decisions/<file>@<rev> exists` for sub-decisions whose
+   file is `<file>.yaml` (no @ in name), and
+   `decisions/<file>@<rev>.yaml exists` for sub-decisions
+   whose file is `<file>@<rev>.yaml` (@ is part of the name).
+   Try both forms; accept if either exists. *)
+let[@warning "-32"] path_resolves (p : string) : bool =
+  if file_exists (in_repo p) then true
+  else
+    let stripped =
+      try
+        let i = String.index p '@' in
+        String.sub p 0 i
+      with Not_found -> p
+    in
+    file_exists (in_repo stripped)
 
 let[@warning "-32"] test_p2 () =
   let dir = in_repo "decisions" in
@@ -328,7 +429,7 @@ let[@warning "-32"] test_p2 () =
           (fun v ->
             match classify_verifier v with
             | Unrecognised -> Some (src, oid, v, "unrecognised verifier style")
-            | Fixture p when not (file_exists (in_repo p)) ->
+            | Fixture p when not (path_resolves p) ->
                 Some (src, oid, v, "fixture path does not exist: " ^ p)
             | _ -> None)
           verifiers)

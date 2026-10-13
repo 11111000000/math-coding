@@ -1,0 +1,359 @@
+---
+schema: math-coding/3.0-alpha
+id: tier-1-closure-2026-10
+revision: 1
+state: active
+body_sha: "sha256:0cf1b212ec4f3abe038f985cb36514ae4e80752f2fac4014625bbc7cfcb49ea2"
+yaml_sha: "sha256:0cf1b212ec4f3abe038f985cb36514ae4e80752f2fac4014625bbc7cfcb49ea2"
+axiom_link:
+  - A1
+  - A3
+intent: |
+  Close ROADMAP Tier 1 ("process hardening") by fixing the
+  three live enforcement failures and recording the closure
+  in ROADMAP.md.
+
+  As of HEAD 177ec8c the seven Tier 1 tasks are RESOLVED in
+  PACKAGES.md with decisions, fixtures, and implementations
+  on main, but two enforcement backstops still fire on a clean
+  tree:
+
+  1. tests/conformance.ml::fixtures — five positive decision
+     fixtures (positive-minimal.{yaml,json},
+     positive-ambiguous-acceptance.json,
+     positive-malformed-acceptance.json,
+     positive-block-scalars.yaml) lack the v3 dialectic
+     `antithesis` field that lib/decision.ml has required
+     for mode >= standard since commit 56e86be. The fixtures
+     pre-date the dialectic feature; the missing field trips
+     MC-ANTITHESIS-MISSING in the parser and the conformance
+     test fails.
+
+  2. tests/process_principles.ml::P2 (46 bad verifiers) and
+     tests/fixture_coverage.ml::walker (1 missing/unknown)
+     — verifier strings in decisions/plan-2026-10-improvements.yaml
+     use three patterns the OCaml classifiers do not yet
+     recognise: "decisions/<file>@<rev> exists" (sub-decision
+     reference), "! <shell command>" (shell negation), and
+     "mathc-self-check-<name>" (keyword markers). The pre-
+     commit hook (.githooks/pre-commit) is permissive on these
+     strings; the rigorous OCaml check is not.
+
+  This decision closes both gaps, updates ROADMAP.md to
+  mirror Tier 0's "closed" treatment, and records the closure
+  in PACKAGES.md.
+
+commitment: |
+  After this decision lands on main:
+
+    (a) The five conformance fixtures under
+        fixtures/conformance/decision/ carry a non-empty
+        `antithesis` field. The dialectic field is unrelated
+        to what the conformance test asserts (parser
+        robustness on positive inputs); the new field is
+        documentary, naming the position the fixture author
+        considered and rejected. tests/conformance.ml::
+        fixtures reports 0 failures.
+
+    (b) tests/process_principles.ml::classify_verifier and
+        tests/fixture_coverage.ml::classify accept three
+        additional verifier patterns that are already in use
+        in the current tree:
+          - `decisions/<file>@<rev> exists` (sub-decision
+            reference) — pattern prefix `decisions/`.
+          - `! <shell command>` (shell negation; the leading
+            `! ` is stripped before the rest is classified)
+            — handled by stripping then re-classifying.
+          - `mathc-self-check-<name>` (keyword marker) —
+            pattern prefix `mathc-self-check-`.
+        The acceptance criteria are: 0 unrecognised verifiers
+        reported by P2; 0 unknown / 0 missing reported by
+        fixture_coverage.
+
+    (c) ROADMAP.md §"Priority queue" mirrors Tier 0: Tier 1
+        is renumbered to "Tier 1 — process hardening: closed"
+        and every task is struck through with its closing
+        commit. A new section "Tier 1.5 — install-tooling
+        follow-up (Phase 2/3)" carries the three deferral
+        records (mcp-server, docker-alpine,
+        auto-update-per-user-skill) that were created under
+        install-tooling-2026-10@1.
+
+    (d) `dune test` exits 0; `mathc self-check` reports
+        66 pass / 1 unknown (no regression on the structural
+        `audit-0.0.21-fixes::self-check-verdict-is-pass`
+        waiver from the prior cycle).
+
+scope:
+  capabilities:
+    - tier-1-closure
+  paths:
+    - "fixtures/conformance/decision/"
+    - "tests/process_principles.ml"
+    - "tests/fixture_coverage.ml"
+    - "ROADMAP.md"
+    - "PACKAGES.md"
+  decisions:
+    - "process-principles@3"
+    - "process-principles-close-branches@3"
+    - "dialectic-method-v3-2026-10@1"
+    - "plan-2026-10-improvements@1"
+    - "audit-0.0.21-fixes@2"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/canonical.ml"
+
+outcomes:
+  - id: conformance-fixtures-have-antithesis
+    statement: |
+      All five positive decision fixtures under
+      fixtures/conformance/decision/ carry a non-empty
+      `antithesis` field. The fixtures parse via
+      `mathc validate` without MC-ANTITHESIS-MISSING.
+  - id: process-principles-p2-classifier-accepts-current-verifiers
+    statement: |
+      tests/process_principles.ml::classify_verifier
+      recognises the three patterns in use in
+      decisions/plan-2026-10-improvements.yaml
+      (sub-decision references, shell-negated grep, and
+      mathc-self-check keyword markers). The P2 test
+      reports 0 unrecognised verifiers on a clean tree.
+  - id: fixture-coverage-walker-accepts-current-verifiers
+    statement: |
+      tests/fixture_coverage.ml::classify recognises the
+      same three patterns. The walker reports 0 unknown /
+      0 missing on a clean tree.
+  - id: roadmap-tier-1-formally-closed
+    statement: |
+      ROADMAP.md §"Priority queue" shows Tier 1 as
+      "process hardening: closed", every task struck
+      through with its closing commit, matching Tier 0's
+      structure. A new "Tier 1.5" section carries the three
+      Phase-2/3 install-tooling deferrals.
+  - id: dune-test-and-self-check-green
+    statement: |
+      `dune test` exits 0. `mathc self-check` reports
+      66 pass / 1 unknown (no regression). The 1 unknown
+      is the structural
+      `audit-0.0.21-fixes::self-check-verdict-is-pass`
+      waiver from the prior cycle.
+
+assumptions:
+  - id: conformance-fixtures-purpose-unrelated-to-dialectic
+    state: assumed
+    statement: |
+      The five positive fixtures exist to assert parser
+      robustness (positive parses), not to assert
+      dialectic completeness. Adding the `antithesis`
+      field to each is documentary; the original
+      assertion still holds because
+      `antithesis_meaningful_opt` is a separate parser
+      check from the structural parser test the
+      fixtures target.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future change tightens the dialectic surface
+      and these fixtures need additional fields, this
+      decision would need revision. The fixtures are
+      anchored to spec/algebra-3.2.md §11 (current v3
+      dialectic method), not to a snapshot.
+    review_on:
+      - signal: dialectic-v4
+  - id: sub-decision-references-are-fixture-existence-checks
+    state: assumed
+    statement: |
+      The pattern `decisions/<file>@<rev> exists` is the
+      canonical way to express "the sibling decision file
+      must exist for this obligation to hold" in
+      plan-2026-10-improvements.yaml. Each such verifier
+      names a real file in the decisions/ tree; the OCaml
+      classifier will treat the path as a fixture
+      reference and call `Sys.file_exists` on it (it is
+      not a manual-style review).
+    owner: human:maintainer
+    consequence_if_false: |
+      If a verifier of this form points at a file that
+      does not exist, the P2 test should report it as a
+      missing fixture, not silently pass. The P2 test
+      must call `Sys.file_exists` on the path before
+      classifying.
+    review_on:
+      - signal: sub-decision-ref-shape-changes
+  - id: shell-negation-is-allowed
+    state: assumed
+    statement: |
+      A verifier of the form `! <command>` is a valid
+      shell invocation: `!` is shell-level negation, the
+      rest is a regular command. The P2 classifier strips
+      the leading `! ` and classifies the remainder; a
+      verifier whose remainder is unrecognised after the
+      strip is still rejected.
+    owner: human:maintainer
+    consequence_if_false: |
+      If shell negation is not used in practice, the
+      strip step is dead code; if it is, the strip is
+      necessary because no recognised prefix starts with
+      `! `.
+    review_on:
+      - signal: shell-negation-use-expands
+  - id: mathc-self-check-keyword-markers
+    state: assumed
+    statement: |
+      The pattern `mathc-self-check-<name>` is a
+      manual-style verifier for properties of
+      `mathc self-check` itself (e.g.,
+      `mathc-self-check-verdict-pass`). The classifier
+      treats the prefix as manual; the obligation's
+      acceptance is the caller's responsibility to wire
+      through an attestation.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future refactor moves these checks out of
+      `mathc self-check`, the prefix becomes dead. The
+      classifier does not file-check it.
+    review_on:
+      - signal: self-check-keyword-markers-move
+
+obligations:
+  - id: conformance-fixtures-have-antithesis
+    outcome: conformance-fixtures-have-antithesis
+    claim: |
+      Each of the five positive decision fixtures under
+      fixtures/conformance/decision/ carries a non-empty
+      `antithesis` field. `mathc validate` accepts each
+      without MC-ANTITHESIS-MISSING. The conformance test
+      reports 0 failures on the `fixtures` case.
+    acceptance:
+      all:
+        - verifier: mathc validate fixtures/conformance/decision/positive-minimal.yaml
+          result: pass
+        - verifier: mathc validate fixtures/conformance/decision/positive-minimal.json
+          result: pass
+        - verifier: mathc validate fixtures/conformance/decision/positive-ambiguous-acceptance.json
+          result: pass
+        - verifier: mathc validate fixtures/conformance/decision/positive-malformed-acceptance.json
+          result: pass
+        - verifier: mathc validate fixtures/conformance/decision/positive-block-scalars.yaml
+          result: pass
+        - verifier: tests/conformance.ml::fixtures case
+          result: pass
+
+  - id: process-principles-p2-accepts-current-verifiers
+    outcome: process-principles-p2-classifier-accepts-current-verifiers
+    claim: |
+      tests/process_principles.ml::P2 reports 0
+      unrecognised verifiers on a clean tree. The 46
+      currently-failing verifiers in
+      decisions/plan-2026-10-improvements.yaml are
+      accepted by the updated classifier.
+    acceptance:
+      all:
+        - verifier: tests/process_principles.ml::P2
+          result: pass
+        - verifier: bash -n tests/process_principles.ml
+          result: pass
+
+  - id: fixture-coverage-walker-accepts-current-verifiers
+    outcome: fixture-coverage-walker-accepts-current-verifiers
+    claim: |
+      tests/fixture_coverage.ml::walker reports
+      0 unknown / 0 missing on a clean tree. The same
+      46 verifiers in
+      decisions/plan-2026-10-improvements.yaml are
+      accepted by the updated classifier.
+    acceptance:
+      all:
+        - verifier: tests/fixture_coverage.ml::walker
+          result: pass
+
+  - id: roadmap-tier-1-closed
+    outcome: roadmap-tier-1-formally-closed
+    claim: |
+      ROADMAP.md §"Priority queue" lists Tier 1 as
+      "process hardening: closed" with every task
+      struck through and its closing commit recorded,
+      matching Tier 0's structure. The new "Tier 1.5"
+      section carries the three Phase-2/3 install-tooling
+      deferrals (mcp-server, docker-alpine,
+      auto-update-per-user-skill).
+    acceptance:
+      all:
+        - verifier: text-scan-ROADMAP-tier-1-closed
+          result: pass
+        - verifier: text-scan-ROADMAP-tier-1-5-section
+          result: pass
+
+  - id: dune-test-and-self-check-green
+    outcome: dune-test-and-self-check-green
+    claim: |
+      `dune test` exits 0. `mathc self-check` reports
+      66 pass / 1 unknown. The 1 unknown is the
+      structural `audit-0.0.21-fixes::self-check-verdict-is-pass`
+      waiver from the prior cycle, not a regression.
+    acceptance:
+      all:
+        - verifier: dune test exits 0
+          result: pass
+        - verifier: mathc self-check 66 pass / 1 unknown
+          result: pass
+
+reversal:
+  - signal: dialectic-v4-changes-required-fields
+    action: bump-revision-and-refresh-fixtures
+  - signal: classifier-extension-regresses-p2-coverage
+    action: revert-classifier-and-treat-verifiers-as-manual
+
+risk:
+  declared_triggers:
+    - conformance-fixture-drift-after-dialectic-bump
+    - classifier-extension-masks-actual-p2-violations
+  owner: human:maintainer
+
+antithesis: |
+  Author considered and rejected the strongest
+  counter-position that a maintainer might raise: "this
+  is three independent fixes (fixtures, classifiers,
+  ROADMAP); one decision is overload, and a single
+  obligation that lumps them together loses the per-fix
+  evidence trail." That position is rejected because
+  (a) the three changes are causally linked — the v3
+  dialectic feature is the root cause of the fixture
+  failure, and the classifier extension is a structural
+  acknowledgement of the patterns the dialectic feature
+  introduced through plan-2026-10-improvements — and
+  (b) one decision with five outcomes gives a single
+  future-agent summary: "Tier 1 closure landed in this
+  decision, with five independently-verifiable
+  obligations backing the closure." The pattern matches
+  the recent audit-0.0.21-fixes@2 /
+  site-quality-2026-10@1 / install-tooling-2026-10@1
+  decisions, which all carry multi-outcome closures.
+
+counterexample: |
+  "Why is the pre-commit hook not catching the
+  conformance fixture drift? Adding the dialectic field
+  should have been blocked at commit time, not at
+  dune-test time." This counterargument has two answers.
+  First, the pre-commit hook enforces P1 (kernel change
+  → decision) and P2 (decision → fixture) by structural
+  file-existence checks on the staged file list; it
+  does not run `mathc validate` on the staged fixtures.
+  Second, the dialectic feature (commit 56e86be)
+  extended lib/decision.ml, which triggered P1, and
+  updated tests/confidence_preserve.ml which triggered
+  P2; the five conformance fixtures were not in the
+  staged set of that commit, so P1/P2 did not see them.
+  The structural fix is a follow-up: AGENTS.md should
+  add an explicit "dialectic feature → fixture sweep"
+  review step; this decision defers that AGENTS.md change
+  to keep its scope on Tier 1 closure.
+
+relations:
+  addresses:
+    - "process-principles@3"
+    - "process-principles-close-branches@3"
+    - "dialectic-method-v3-2026-10@1"
+    - "plan-2026-10-improvements@1"
+    - "audit-0.0.21-fixes@2"

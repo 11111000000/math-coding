@@ -50,6 +50,7 @@
     {"signal": "origin-error-rate", "condition": "value > 0.05", "action": "revert"}
   ],
   "counterexample": "Origin capacity is bounded by hard resource limits that have not been empirically measured at projected load levels.",
+  "antithesis": "This conformance fixture (JSON form) exists to assert that the parser accepts a minimal decision with mode=standard, scope, outcomes, obligations, assumptions, reversal, counterexample, risk, and relations. The v3 dialectic antithesis slot is unrelated to that assertion; the author considered and rejected the counter-position that a minimal fixture need not carry dialectic content because the test target is structural parser robustness. The kernel requires antithesis for mode >= standard regardless of fixture intent, so the fixture carries a documentary antithesis string naming the position considered and rejected.",
   "risk": {
     "declared_triggers": ["external-service-dependency"],
     "owner": "team:search"
