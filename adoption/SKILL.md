@@ -81,9 +81,9 @@ curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/decisi
 $EDITOR decisions/decision.yaml
 ```
 
-`mathc version` should print `math-coding 3.0-alpha: bootstrap` and exit 0
-on the current release. If it does not, the binary you downloaded is
-not the same release as this skill; see `compatible_with` in the
+`mathc version` should print `math-coding 3.1.0-alpha-final: bootstrap` and
+exit 0 on the current release. If it does not, the binary you downloaded
+is not the same release as this skill; see `compatible_with` in the
 frontmatter above.
 
 ## Step 3. First decision
@@ -94,7 +94,7 @@ with a kebab-case identifier (lowercase letters, digits, dashes; 1 to
 
 ```yaml
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: <id>
 revision: 1
 
@@ -104,6 +104,11 @@ intent: |
 commitment: |
   Two sentences max. What is promised. If you cannot phrase it in two
   sentences, the decision is not ready.
+
+outcomes:
+  - id: <outcome-id>
+    statement: |
+      One sentence. The observable property this decision delivers.
 
 scope:
   paths:
@@ -125,7 +130,7 @@ risk:
 
 relations:
   addresses:
-    - bootstrap-v3@2
+    - bootstrap-v3@3
 ```
 
 ## Step 4. Validate and self-check
@@ -134,6 +139,10 @@ relations:
 mathc validate decisions/<id>.yaml   # exits 0 on accept, 1 on reject, 2 on input
 mathc self-check                     # exits 0 on pass; non-zero blocks merge
 ```
+
+On a non-zero exit, the stderr line starts with an `MC-*` code. Run
+`mathc explain-diagnostic <CODE>` to get the remediation steps (Definition,
+Occurs when, Remediation) for that code.
 
 The first `mathc self-check` after a fresh bootstrap may return `stale`
 because no attestation has been recorded yet. That is expected; the
