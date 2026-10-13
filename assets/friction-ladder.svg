@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 540" role="img" aria-labelledby="ladder-title" preserveAspectRatio="xMidYMid meet">
+  <title id="ladder-title">Friction ladder: silent (top, kernel chooses) below ask (human reviews) to block (bottom, kernel refuses). Friction budget on the right, drawn from algebra §21.</title>
+  <desc>Four rungs from least to most severe. Silent — typo fix, comment, refactor that adds no behavior. Record — new endpoint, dependency upgrade. Ask — API change, public-contract change. Block — constitution, schema, kernel rule. The kernel chooses the least sufficient level; it may raise friction but never lower it. For each rung the right side lists the corresponding mode budget from algebra §21: tiny ≤ 0, light ≤ 10, standard ≤ 60, strict ≤ 130, exhaustive ≤ 300 lines.</desc>
+  <defs>
+    <style>
+      .rung-silent { fill: #f1ede5; stroke: #b0a99c; stroke-width: 1.25; }
+      .rung-record { fill: #ffffff; stroke: #8b3a3a; stroke-width: 1.25; }
+      .rung-ask { fill: #ffffff; stroke: #8b3a3a; stroke-width: 1.5; }
+      .rung-block { fill: #8b3a3a; stroke: #8b3a3a; stroke-width: 1.5; }
+      .rung-label-silent { font-family: Georgia, serif; font-size: 14px; fill: #5a5a5a; text-anchor: middle; font-weight: 600; font-style: italic; }
+      .rung-label-block { font-family: Georgia, serif; font-size: 14px; fill: #fbfaf6; text-anchor: middle; font-weight: 600; }
+      .rung-label { font-family: Georgia, serif; font-size: 14px; fill: #1a1a1a; text-anchor: middle; font-weight: 600; }
+      .rung-sub-silent { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; }
+      .rung-sub-block { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #fbfaf6; text-anchor: middle; }
+      .rung-sub { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; }
+      .side-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .side-arrow-ox { stroke: #8b3a3a; stroke-width: 1.25; fill: none; }
+      .side-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; letter-spacing: 0.06em; text-transform: uppercase; }
+      .side-label-emit { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: middle; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
+      .budget-mode { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #1a1a1a; font-weight: 600; }
+      .budget-mode-mute { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8a8a8a; }
+      .budget-limit { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; }
+      .footer-text { font-family: Georgia, serif; font-size: 10px; fill: #5a5a5a; text-anchor: middle; font-style: italic; }
+      .title-text { font-family: Georgia, serif; font-size: 15px; fill: #1a1a1a; font-weight: 600; }
+      .subtitle-text { font-family: Georgia, serif; font-size: 11px; fill: #5a5a5a; font-style: italic; }
+    </style>
+    <marker id="arr-side" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="arr-side-ox" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+
+  <text class="title-text" x="40" y="28">Friction ladder</text>
+  <text class="subtitle-text" x="40" y="46">silent &lt; record &lt; ask &lt; block — kernel may raise, never lower</text>
+
+  <line class="side-arrow" x1="35" y1="80" x2="35" y2="380" marker-end="url(#arr-side)"/>
+  <text class="side-label" x="20" y="80">kernel</text>
+  <text class="side-label" x="20" y="92">chooses</text>
+  <line class="side-arrow-ox" x1="35" y1="160" x2="35" y2="460" marker-end="url(#arr-side-ox)"/>
+  <text class="side-label-emit" x="62" y="120">human</text>
+  <text class="side-label-emit" x="62" y="132">chooses</text>
+
+  <g>
+    <rect class="rung-silent" x="140" y="80" width="200" height="70" rx="3"/>
+    <text class="rung-label-silent" x="240" y="110">silent</text>
+    <text class="rung-sub-silent" x="240" y="128">typo, comment, refactor</text>
+    <text class="rung-sub-silent" x="240" y="140">adds no behavior</text>
+  </g>
+
+  <g>
+    <rect class="rung-record" x="140" y="170" width="200" height="70" rx="3"/>
+    <text class="rung-label" x="240" y="200">record</text>
+    <text class="rung-sub" x="240" y="218">new endpoint,</text>
+    <text class="rung-sub" x="240" y="230">dependency upgrade</text>
+  </g>
+
+  <g>
+    <rect class="rung-ask" x="140" y="260" width="200" height="70" rx="3"/>
+    <text class="rung-label" x="240" y="290">ask</text>
+    <text class="rung-sub" x="240" y="308">API change,</text>
+    <text class="rung-sub" x="240" y="320">public-contract change</text>
+  </g>
+
+  <g>
+    <rect class="rung-block" x="140" y="350" width="200" height="70" rx="3"/>
+    <text class="rung-label-block" x="240" y="380">block</text>
+    <text class="rung-sub-block" x="240" y="398">constitution, schema,</text>
+    <text class="rung-sub-block" x="240" y="410">kernel rule</text>
+  </g>
+
+  <g>
+    <text class="budget-mode" x="380" y="115">tiny</text>
+    <text class="budget-limit" x="380" y="128">≤ 0 lines</text>
+    <text class="budget-mode-mute" x="380" y="138" font-size="8">(commit message only)</text>
+
+    <text class="budget-mode" x="380" y="205">light</text>
+    <text class="budget-limit" x="380" y="218">≤ 10 lines</text>
+    <text class="budget-mode-mute" x="380" y="228" font-size="8">(body + counterexample)</text>
+
+    <text class="budget-mode" x="380" y="295">standard</text>
+    <text class="budget-limit" x="380" y="308">≤ 60 lines</text>
+    <text class="budget-mode-mute" x="380" y="318" font-size="8">(body + trailer + yaml)</text>
+
+    <text class="budget-mode" x="380" y="370">strict</text>
+    <text class="budget-limit" x="380" y="383">≤ 130 lines</text>
+    <text class="budget-mode-mute" x="380" y="393" font-size="8">(+ rebuttals)</text>
+
+    <text class="budget-mode" x="380" y="412">exhaustive</text>
+    <text class="budget-limit" x="380" y="425">≤ 300 lines</text>
+    <text class="budget-mode-mute" x="380" y="435" font-size="8">(+ formal proofs)</text>
+  </g>
+
+  <text class="footer-text" x="240" y="490">friction budget per commit — algebra §21</text>
+</svg>

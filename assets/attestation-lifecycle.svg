@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 380" role="img" aria-labelledby="al-title" preserveAspectRatio="xMidYMid meet">
+  <title id="al-title">Attestation lifecycle: production, store, join, verdict, expiry. Five stages from a CI run to a gate verdict.</title>
+  <desc id="al-desc">A horizontal flow with five stages. Production captures the substrate fingerprint inside a CI run. Store writes the attestation document. Join reads the store and pairs attestations with obligations. Verdict composes per-obligation results into a single disposition. Expiry flips an obligation to Inconclusive when its valid_until is reached. The legend below names the four verdict colours.</desc>
+  <defs>
+    <style>
+      .al-box { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .al-box-emph { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 2; }
+      .al-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; }
+      .al-text-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .al-mono { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; }
+      .al-mono-left { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: start; }
+      .al-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .al-arrow-faint { stroke: #8a8a8a; stroke-width: 1; fill: none; stroke-dasharray: 3 2; }
+      .al-stage { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: middle; letter-spacing: 0.04em; }
+      .al-axis { font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .al-axis-left { font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; fill: #8b3a3a; text-anchor: start; font-style: italic; }
+      .al-pass { fill: #2f7a3a; }
+      .al-fail { fill: #9a2929; }
+      .al-unk { fill: #b07a1a; }
+      .al-stale { fill: #6e6e6e; }
+      .al-sw { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #1a1a1a; text-anchor: start; }
+      .al-legend-title { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: start; letter-spacing: 0.06em; text-transform: uppercase; }
+    </style>
+    <marker id="al-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="al-faint-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#8a8a8a"/>
+    </marker>
+  </defs>
+
+  <text class="al-axis" x="460" y="22">attestation lifecycle &#8212; CI run to gate verdict</text>
+
+  <g transform="translate(20, 60)">
+    <g transform="translate(0, 0)">
+      <text class="al-stage" x="80" y="-12">1 &#183; PRODUCTION</text>
+      <rect class="al-box" x="0" y="0" width="160" height="80" rx="4"/>
+      <text class="al-text" x="80" y="20">CI run</text>
+      <text class="al-mono" x="80" y="36">substrate_fingerprint</text>
+      <text class="al-mono" x="80" y="48">env_class_level</text>
+      <text class="al-mono" x="80" y="60">kind_ &#8712; 5 kinds</text>
+      <text class="al-mono" x="80" y="72">test | review | build | ...</text>
+    </g>
+    <path class="al-arrow" d="M160,40 L180,40" marker-end="url(#al-arrow)"/>
+
+    <g transform="translate(185, 0)">
+      <text class="al-stage" x="80" y="-12">2 &#183; STORE</text>
+      <rect class="al-box" x="0" y="0" width="160" height="80" rx="4"/>
+      <text class="al-text" x="80" y="20">attestations/</text>
+      <text class="al-mono" x="80" y="36">&lt;decision&gt;-&lt;ob&gt;.json</text>
+      <text class="al-mono" x="80" y="48">issued_at &#8230;</text>
+      <text class="al-mono" x="80" y="60">valid_until</text>
+      <text class="al-mono" x="80" y="72">id = sha256(&#8230;)</text>
+    </g>
+    <path class="al-arrow" d="M345,40 L365,40" marker-end="url(#al-arrow)"/>
+
+    <g transform="translate(370, 0)">
+      <text class="al-stage" x="80" y="-12">3 &#183; JOIN</text>
+      <rect class="al-box-emph" x="0" y="0" width="160" height="80" rx="4"/>
+      <text class="al-text-emph" x="80" y="20">kernel reads store</text>
+      <text class="al-mono" x="80" y="36">per-obligation match</text>
+      <text class="al-mono" x="80" y="48">multi-CI aggregation</text>
+      <text class="al-mono" x="80" y="60">lib/attestations/attestations.ml</text>
+      <text class="al-mono" x="80" y="72">A1 feedback</text>
+    </g>
+    <path class="al-arrow" d="M530,40 L550,40" marker-end="url(#al-arrow)"/>
+
+    <g transform="translate(555, 0)">
+      <text class="al-stage" x="80" y="-12">4 &#183; VERDICT</text>
+      <rect class="al-box" x="0" y="0" width="160" height="80" rx="4"/>
+      <text class="al-text" x="80" y="20">gate_merge</text>
+      <text class="al-mono" x="80" y="36">Pass | Fail |</text>
+      <text class="al-mono" x="80" y="48">Inconclusive |</text>
+      <text class="al-mono" x="80" y="60">InfraError</text>
+      <text class="al-mono" x="80" y="72">algebra &#167;15</text>
+    </g>
+    <path class="al-arrow" d="M715,40 L735,40" marker-end="url(#al-arrow)"/>
+
+    <g transform="translate(740, 0)">
+      <text class="al-stage" x="80" y="-12">5 &#183; EXPIRY</text>
+      <rect class="al-box" x="0" y="0" width="160" height="80" rx="4"/>
+      <text class="al-text" x="80" y="20">valid_until</text>
+      <text class="al-mono" x="80" y="36">stale &#8594; Inconclusive</text>
+      <text class="al-mono" x="80" y="48">re-attest on next run</text>
+      <text class="al-mono" x="80" y="60">current(a) :=</text>
+      <text class="al-mono" x="80" y="72">issued_at &#8804; now &#8804; valid</text>
+    </g>
+  </g>
+
+  <g transform="translate(20, 170)">
+    <text class="al-stage" x="80" y="0">$ mathc attest</text>
+    <text class="al-stage" x="265" y="0">$ mathc validate attestations/</text>
+    <text class="al-stage" x="450" y="0">lib/attestations/attestations.ml:load</text>
+    <text class="al-stage" x="635" y="0">$ mathc gate BASE HEAD</text>
+    <text class="al-stage" x="820" y="0">$ mathc self-check</text>
+  </g>
+
+  <g transform="translate(20, 200)">
+    <text class="al-mono" x="80" y="0">algebra &#167;13 auto-attestation</text>
+    <text class="al-mono" x="265" y="0">schemas/attestation.json</text>
+    <text class="al-mono" x="450" y="0">A1 feedback: commit &#8594; observe</text>
+    <text class="al-mono" x="635" y="0">algebra &#167;15 gate verdict</text>
+    <text class="al-mono" x="820" y="0">constitution.md I14</text>
+  </g>
+
+  <g transform="translate(20, 250)">
+    <text class="al-legend-title" x="0" y="0">Verdict palette &#8212; spec/semantics.md &#167;4.3</text>
+
+    <g transform="translate(0, 18)">
+      <rect class="al-pass" x="0" y="0" width="14" height="14" rx="2"/>
+      <text class="al-sw" x="22" y="11">Pass</text>
+      <text class="al-mono-left" x="22" y="26">exit 0 &#183; green &#183; all blocking Pass</text>
+    </g>
+
+    <g transform="translate(220, 18)">
+      <rect class="al-fail" x="0" y="0" width="14" height="14" rx="2"/>
+      <text class="al-sw" x="22" y="11">Fail</text>
+      <text class="al-mono-left" x="22" y="26">exit 1 &#183; red &#183; any decisive Fail</text>
+    </g>
+
+    <g transform="translate(440, 18)">
+      <rect class="al-unk" x="0" y="0" width="14" height="14" rx="2"/>
+      <text class="al-sw" x="22" y="11">Inconclusive</text>
+      <text class="al-mono-left" x="22" y="26">exit 3 &#183; amber &#183; stale or undecisive</text>
+    </g>
+
+    <g transform="translate(660, 18)">
+      <rect class="al-stale" x="0" y="0" width="14" height="14" rx="2"/>
+      <text class="al-sw" x="22" y="11">InfrastructureError</text>
+      <text class="al-mono-left" x="22" y="26">exit 3 &#183; grey &#183; CI unreachable</text>
+    </g>
+  </g>
+
+  <g transform="translate(20, 320)">
+    <text class="al-axis-left" x="0" y="0">A0 reminder &#8212; declared &#8800; derived &#8800; attested &#8800; reviewed &#8800; observed. kind_ is part of the attestation source class, not the verdict.</text>
+  </g>
+
+  <path class="al-arrow-faint" d="M820,140 C820,180 100,180 100,140" marker-end="url(#al-faint-arrow)"/>
+  <text class="al-mono" x="460" y="184">re-attest on next substrate fingerprint &#183; algebra &#167;15 post_release_monitor</text>
+</svg>

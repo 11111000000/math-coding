@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" role="img" aria-labelledby="lifecycle-title" preserveAspectRatio="xMidYMid meet">
+  <title id="lifecycle-title">Lifecycle FSM of a single math-coding record: 7 states (draft, committed, implemented, attested, monitored, contested, retired), 6 main transitions, 4 block markers (violation, grace, stale, waiver-expiry).</title>
+  <desc>Draft transitions to committed when a human writes decisions/&lt;id&gt;.yaml. Committed transitions to implemented when code is pushed. Implemented transitions to attested when CI produces attestations. Attested transitions to monitored on release. Attested and monitored transition to contested when a binding rebuttal is filed. Contested transitions back to committed when a rebuttal is accepted and the decision is superseded. Any state transitions to retired when the decision is superseded, expires, or its waiver expires.</desc>
+  <defs>
+    <style>
+      .state-box { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.5; }
+      .state-box-emph { fill: #ffffff; stroke: #8b3a3a; stroke-width: 2; }
+      .state-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 14px; fill: #1a1a1a; text-anchor: middle; font-weight: 600; }
+      .state-sub { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; }
+      .arrow { stroke: #5a5a5a; stroke-width: 1.25; fill: none; }
+      .arrow-emit { stroke: #8b3a3a; stroke-width: 1.25; fill: none; stroke-dasharray: 5 3; }
+      .arrow-violation { stroke: #9a2929; stroke-width: 1.5; fill: none; }
+      .tr-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9.5px; fill: #1a1a1a; text-anchor: middle; }
+      .tr-label-emit { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9.5px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .legend-title { font-family: Georgia, serif; font-size: 12px; fill: #1a1a1a; font-weight: 600; }
+      .legend-text { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #5a5a5a; }
+      .footer-text { font-family: Georgia, serif; font-size: 11px; fill: #5a5a5a; text-anchor: middle; font-style: italic; }
+      .title-text { font-family: Georgia, serif; font-size: 15px; fill: #1a1a1a; font-weight: 600; }
+      .subtitle-text { font-family: Georgia, serif; font-size: 11px; fill: #5a5a5a; font-style: italic; }
+    </style>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="arr-ox" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#8b3a3a"/>
+    </marker>
+    <marker id="arr-red" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#9a2929"/>
+    </marker>
+  </defs>
+
+  <text class="title-text" x="40" y="30">Lifecycle FSM</text>
+  <text class="subtitle-text" x="40" y="48">states &amp; transitions of a single math-coding record</text>
+
+  <g transform="translate(0, 80)">
+
+    <rect class="state-box" x="40" y="100" width="110" height="70" rx="4"/>
+    <text class="state-text" x="95" y="128">draft</text>
+    <text class="state-sub" x="95" y="146">intent captured</text>
+    <text class="state-sub" x="95" y="159">no commitment yet</text>
+
+    <rect class="state-box" x="190" y="100" width="110" height="70" rx="4"/>
+    <text class="state-text" x="245" y="128">committed</text>
+    <text class="state-sub" x="245" y="146">falsifiable claim</text>
+    <text class="state-sub" x="245" y="159">exists</text>
+
+    <rect class="state-box" x="340" y="100" width="110" height="70" rx="4"/>
+    <text class="state-text" x="395" y="128">implemented</text>
+    <text class="state-sub" x="395" y="146">code is</text>
+    <text class="state-sub" x="395" y="159">in the tree</text>
+
+    <rect class="state-box" x="490" y="100" width="110" height="70" rx="4"/>
+    <text class="state-text" x="545" y="128">attested</text>
+    <text class="state-sub" x="545" y="146">verification</text>
+    <text class="state-sub" x="545" y="159">artifact exists</text>
+
+    <rect class="state-box" x="640" y="100" width="110" height="70" rx="4"/>
+    <text class="state-text" x="695" y="128">monitored</text>
+    <text class="state-sub" x="695" y="146">live kernel</text>
+    <text class="state-sub" x="695" y="159">reports</text>
+
+    <rect class="state-box" x="820" y="100" width="110" height="70" rx="4"/>
+    <text class="state-text" x="875" y="128">retired</text>
+    <text class="state-sub" x="875" y="146">replaced by</text>
+    <text class="state-sub" x="875" y="159">a successor</text>
+
+    <path class="arrow" d="M150,135 L188,135" marker-end="url(#arr)"/>
+    <text class="tr-label" x="169" y="124">human writes</text>
+    <text class="tr-label" x="169" y="89">decisions/&lt;id&gt;.yaml</text>
+
+    <path class="arrow" d="M300,135 L338,135" marker-end="url(#arr)"/>
+    <text class="tr-label" x="319" y="124">git push</text>
+    <text class="tr-label" x="319" y="89">mathc gate Open</text>
+
+    <path class="arrow" d="M450,135 L488,135" marker-end="url(#arr)"/>
+    <text class="tr-label" x="469" y="124">CI runs</text>
+    <text class="tr-label" x="469" y="89">attestations/*.json</text>
+
+    <path class="arrow" d="M600,135 L638,135" marker-end="url(#arr)"/>
+    <text class="tr-label" x="619" y="124">release</text>
+    <text class="tr-label" x="619" y="89">env_class ≥ thresh</text>
+    <circle cx="619" cy="105" r="5" fill="#b07a1a" stroke="#fbfaf6" stroke-width="1.25"/>
+    <text class="legend-text" x="619" y="75" text-anchor="middle">grace</text>
+
+    <path class="arrow-emit" d="M245,170 Q600,250 875,170"/>
+    <path class="arrow-emit" d="M545,170 Q740,260 875,170"/>
+    <path class="arrow-emit" d="M740,170 Q820,200 875,170" marker-end="url(#arr-ox)"/>
+    <circle cx="875" cy="170" r="5" fill="#6f4a9e" stroke="#fbfaf6" stroke-width="1.25"/>
+    <text class="tr-label-emit" x="720" y="240">any state → retired</text>
+    <text class="tr-label-emit" x="720" y="252">supersedes / expires / waiver expired</text>
+    <text class="legend-text" x="900" y="190" text-anchor="middle">waiver-expiry</text>
+
+    <rect class="state-box" x="490" y="300" width="110" height="70" rx="4"/>
+    <text class="state-text" x="545" y="328">contested</text>
+    <text class="state-sub" x="545" y="346">objection raised</text>
+    <text class="state-sub" x="545" y="359">binding or not</text>
+
+    <path class="arrow-violation" d="M545,170 L545,298" marker-end="url(#arr-red)"/>
+    <circle cx="565" cy="230" r="5" fill="#9a2929" stroke="#fbfaf6" stroke-width="1.25"/>
+    <text class="tr-label" x="585" y="225" fill="#9a2929">rebuttal filed</text>
+    <text class="tr-label" x="585" y="237" fill="#9a2929">trust ≥ authority</text>
+
+    <path class="arrow-violation" d="M695,170 C 695,235 615,265 595,300" marker-end="url(#arr-red)"/>
+    <circle cx="660" cy="270" r="5" fill="#9a2929" stroke="#fbfaf6" stroke-width="1.25"/>
+    <text class="legend-text" x="690" y="295" text-anchor="middle">violation</text>
+
+    <path class="arrow" d="M490,335 C 350,400 230,400 245,170" marker-end="url(#arr)"/>
+    <circle cx="370" cy="395" r="5" fill="#6e6e6e" stroke="#fbfaf6" stroke-width="1.25"/>
+    <text class="tr-label" x="370" y="383">rebuttal accepted → supersede</text>
+    <text class="legend-text" x="370" y="413" text-anchor="middle">stale</text>
+
+    <circle cx="22" cy="135" r="8" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+    <line x1="22" y1="135" x2="40" y2="135" stroke="#1a1a1a" stroke-width="1.5"/>
+
+  </g>
+
+  <g transform="translate(40, 470)">
+    <text class="legend-title" x="0" y="0">block markers</text>
+    <circle cx="6" cy="22" r="5" fill="#9a2929"/>
+    <text class="legend-text" x="18" y="26">violation — a CI/observational check returns fail</text>
+    <circle cx="6" cy="42" r="5" fill="#b07a1a"/>
+    <text class="legend-text" x="18" y="46">grace — release proceeds despite an outstanding warning</text>
+    <circle cx="380" cy="22" r="5" fill="#6e6e6e"/>
+    <text class="legend-text" x="392" y="26">stale — material digest has shifted since the attestation</text>
+    <circle cx="380" cy="42" r="5" fill="#6f4a9e"/>
+    <text class="legend-text" x="392" y="46">waiver-expiry — the waiver’s time bound has elapsed</text>
+  </g>
+
+  <text class="footer-text" x="500" y="548">state ∈ {active, draft, retired, superseded} — algebra §7</text>
+</svg>
