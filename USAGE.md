@@ -159,6 +159,10 @@ A `no` on any of these is a block, not a waiver. AI agents walking
 the same checks find the questions enumerated at the top of
 [`adoption/SKILL.md`](adoption/SKILL.md) §"Step 4".
 
+If `mathc validate` or `mathc self-check` exits non-zero, the stderr
+line starts with an `MC-*` code. Run `mathc explain-diagnostic <CODE>`
+to get the remediation steps for that code.
+
 ## What the kernel refuses
 
 The constitution lists 14 invariants; the most common refusals are
