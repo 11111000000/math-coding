@@ -535,7 +535,9 @@ let print_usage oc =
     \           [--mermaid|--no-mermaid]\n\
     \                                     render the static site under DIR\n\
     \  counters                          emit JSON counts (decisions, obligations,\n\
-    \                                     attestations, self-check, cram, CLI)\n\n\
+    \                                     attestations, self-check, cram, CLI)\n\
+    \  telemetry status                   print current telemetry state (Phase 2\n\
+    \                                     stub; no transport, no data emission).\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
@@ -3864,6 +3866,52 @@ let[@warning "-32"] do_packages () =
  *                    would do (a one-step assist) without touching
  *                    the disk; without `--dry-run`, writes happen.
  *)
+(* --- telemetry subcommand ------------------------------------------ *)
+
+(* `mathc telemetry status`
+ *
+ * Phase-2 stub per decision ux-3-telemetry-stub-2026-10. The
+ * command reads the `MATHCODING_TELEMETRY` environment variable
+ * and prints the current mode. No transport is configured;
+ * no data is collected or transmitted. The full telemetry
+ * transport (HTTPS POST, retention, GDPR architecture) is a
+ * separate decision deferred to Phase 3+; this slice only
+ * plumbs the opt-in flag and the user-visible status command.
+ *
+ * Exit codes: 0 on success, 2 on unknown subcommand. *)
+let[@warning "-32"] do_telemetry () =
+  Arg.current := 1;
+  let action = ref "" in
+  let set_action s = action := s in
+  (try Arg.parse
+    []
+    set_action
+    "usage: mathc telemetry status"
+  with Arg.Bad m ->
+    Printf.fprintf stderr "mathc telemetry: %s\n" m;
+    exit 2);
+  let sub = String.lowercase_ascii (String.trim !action) in
+  if sub <> "status" && sub <> "" then begin
+    Printf.fprintf stderr
+      "mathc telemetry: unknown subcommand: %s\n\
+       \  (only `status` is implemented in this slice; transport is Phase 3+)\n"
+      (String.trim !action);
+    exit 2
+  end;
+  let mode =
+    match Sys.getenv_opt "MATHCODING_TELEMETRY" with
+    | None -> "off"
+    | Some s ->
+        let t = String.lowercase_ascii (String.trim s) in
+        if t = "on" || t = "1" || t = "true" then "on"
+        else if t = "off" || t = "0" || t = "false" then "off"
+        else Printf.sprintf "unknown (%s)" s
+  in
+  Printf.printf "mathc telemetry: %s\n" mode;
+  Printf.printf "  transport: not configured (Phase 2 stub)\n";
+  Printf.printf "  See decisions/ux-3-telemetry-stub-2026-10.yaml.\n";
+  Printf.printf "  No data is collected or transmitted by this build.\n"
+
 let[@warning "-32"] do_migrate () =
   Arg.current := 1;
   let from_arg = ref (None : string option) in
@@ -4117,6 +4165,7 @@ let dispatch () =
   | "packages" -> do_packages ()
   | "render" -> do_render ()
   | "counters" -> do_counters ()
+  | "telemetry" -> do_telemetry ()
   | "migrate" -> do_migrate ()
   | "--help" | "-h" ->
       print_usage stdout;
