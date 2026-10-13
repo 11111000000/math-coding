@@ -9,3 +9,12 @@
   mathcoding_attestations
   str
   unix))
+
+(executable
+ (name mathc_mcp)
+ (public_name mathc_mcp)
+ (modules mathc_mcp)
+ (libraries
+  mathcoding_mcp
+  str
+  unix))
