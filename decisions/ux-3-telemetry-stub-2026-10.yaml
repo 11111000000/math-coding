@@ -1,0 +1,193 @@
+---
+schema: math-coding/3.2
+id: ux-3-telemetry-stub-2026-10
+revision: 1
+state: active
+body_sha: "954acfa841c584ff1b357b61a6f543232ec95be86e586732e6bfdf036bfde35e"
+yaml_sha: "954acfa841c584ff1b357b61a6f543232ec95be86e586732e6bfdf036bfde35e"
+intent: |
+  Phase 2 of the ux-3 workstream. Land a stub for the
+  MATHCODING_TELEMETRY opt-in flag and a `mathc telemetry
+  status` subcommand that reports the current mode. No
+  transport is configured; no data is collected or
+  transmitted by this build. The full telemetry transport
+  (HTTPS endpoint, retention, GDPR architecture, axiom
+  amendment) is a separate decision deferred to Phase 3+;
+  this slice only plumbs the opt-in surface.
+
+  Per the user's confirmed answer to FR-7 (Q2 on telemetry
+  transport): "Только stub-flag" — the variable exists, the
+  status subcommand reports it, and no network code is added.
+  This sidesteps the privacy/axiomatic-basis questions of
+  full telemetry without leaving the on/off decision
+  permanently undeclared.
+
+  No kernel surface changes. The implementation lives in
+  `bin/Mathc.ml::do_telemetry` — no new sub-library, no
+  schema change, no axiom amendment. Touches:
+
+    bin/Mathc.ml                                (do_telemetry + dispatch
+                                                 entry + print_usage update)
+    tests/cli/telemetry-stub.t                 (cram fixture)
+    decisions/ux-3-telemetry-stub-2026-10.yaml (this file)
+
+  This decision is META per the PACKAGES.md META convention
+  (no kernel surface). It does not appear in `mathc packages`
+  counts.
+
+axiom_link:
+  - A0
+
+antithesis: |
+  The counter-position considered and rejected: "Adding a
+  telemetry stub is over-engineering for a no-op feature; the
+  env var can be added in Phase 3 when the actual transport
+  lands, and the status command is dead code until then."
+  The author engaged with this position and rejected it on
+  three grounds: (a) the on/off decision is the load-bearing
+  one — without the env var plumbed, every future agent that
+  asks "is telemetry on?" has to read the source, which is
+  not a discoverable surface; (b) the status command costs
+  ~30 lines of OCaml and one cram fixture, well below the
+  threshold where a follow-up cycle becomes cheaper than a
+  pre-emptive slice; (c) the user's confirmed answer to Q2
+  was "Только stub-flag" — they explicitly asked for the
+  stub now, not later. The minimum fix is one subcommand
+  with one helper, which is what this file records.
+
+commitment: |
+  One deliverable, pinned by an obligation:
+
+    D1. `mathc telemetry status` reads the
+        MATHCODING_TELEMETRY environment variable and prints
+        the current mode ("on" | "off" | `unknown (VALUE)`).
+        No transport is configured. No data is collected
+        or transmitted. Exit 0 on success, 2 on unknown
+        subcommand.
+
+  Boundaries (A3 self-application):
+    - No kernel surface changes.
+    - No `lib/`, no `spec/`, no `schemas/`, no `axioms/` are
+      touched.
+    - This decision does NOT introduce any axiom amendment
+      (telemetry is opt-in, not a kernel obligation).
+    - This decision does NOT introduce a transport (HTTPS
+      endpoint, libp2p, etc.) — the transport is a separate
+      Phase-3+ decision.
+    - This decision does NOT introduce persistence (no
+      `.local/telemetry.jsonl` is written).
+
+counterexample: |
+  "The stub is a YAGNI feature; nobody asked for a
+   `mathc telemetry status` command." The counterargument
+   fails because the user's confirmed answer to FR-7 was
+   "Только stub-flag" — they explicitly asked for the stub.
+   "Without a transport, the env var is meaningless." This
+   fails because the env var is the on/off contract: when
+   the transport lands in Phase 3+, it reads the same
+   `MATHCODING_TELEMETRY` env var and the existing
+   `mathc telemetry status` subcommand already reports the
+   state. The stub is the contract surface; the transport
+   is the data path.
+
+scope:
+  capabilities:
+    - telemetry-opt-in-flag
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/cli/telemetry-stub.t"
+    - "decisions/ux-3-telemetry-stub-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - ".local/**"
+
+outcomes:
+  - id: telemetry-stub-reports-mode
+    statement: |
+      `mathc telemetry status` exits 0 and prints one of:
+      `mathc telemetry: on` (env = on/1/true),
+      `mathc telemetry: off` (env unset, off, 0, or false),
+      `mathc telemetry: unknown (VALUE)` (env = anything
+      else). No transport, no persistence.
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/ux-3-telemetry-stub-2026-10.yaml` exits 0.
+
+assumptions:
+  - id: env-var-stable
+    state: assumed
+    statement: |
+      The POSIX environment-variable interface
+      (`Sys.getenv_opt`) is stable and is the right
+      surface for an opt-in flag. The variable name
+      `MATHCODING_TELEMETRY` follows the project's
+      existing convention (other `MATH_CODING_*` env vars
+      are used in tests; `MATHCODING_TELEMETRY` is the
+      parallel name for user-facing opt-ins).
+    owner: human:maintainer
+    consequence_if_false: |
+      If POSIX env vars become inaccessible (e.g. the
+      binary is sandboxed in a way that strips env), the
+      flag silently stays "off" — the conservative default.
+      Resolution: surface a kernel-side default in
+      `policies.yaml` if the env-stripped case becomes
+      common.
+    review_on:
+      - signal: env-stripped-sandbox
+
+obligations:
+  - id: telemetry-stub-reports-mode
+    outcome: telemetry-stub-reports-mode
+    claim: |
+      `mathc telemetry status` reads MATHCODING_TELEMETRY and
+      prints the current mode. No data is written or read.
+    acceptance:
+      all:
+        - verifier: tests/cli/telemetry-stub.t
+          result: pass
+
+  - id: this-decision-validates
+    outcome: this-decision-validates
+    claim: |
+      `mathc validate
+      decisions/ux-3-telemetry-stub-2026-10.yaml` exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ux-3-telemetry-stub-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: transport-lands
+    condition: |
+      A future decision introduces the actual telemetry
+      transport (HTTPS POST, libp2p, etc.) and starts
+      collecting data. Resolution: this decision is
+      superseded; the env var and the status subcommand
+      become the on/off surface for the transport.
+    action: supersede-with-transport
+  - signal: env-var-removed
+    condition: |
+      The opt-in flag is removed (telemetry is decided
+      out-of-band, or the project moves to a different
+      opt-in surface). Resolution: a follow-up decision
+      removes the env var and the status subcommand.
+    action: rework
+
+risk:
+  declared_triggers:
+    - env-stripped-sandbox
+    - telemetry-read-by-mistake
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - install-tooling-2026-10@1
+    - ux-3-adoption-doc-freshen-2026-10@1
+  supersedes: []
+  superseded_by: []
