@@ -9,6 +9,7 @@
   mathcoding_attestations
   mathcoding_init
   mathcoding_import_adr
+  mathcoding_adopt
   str
   unix))
 

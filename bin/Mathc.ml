@@ -4007,6 +4007,141 @@ let[@warning "-32"] do_telemetry () =
   Printf.printf "  See decisions/ux-3-telemetry-stub-2026-10.yaml.\n";
   Printf.printf "  No data is collected or transmitted by this build.\n"
 
+(* --- adopt subcommand --------------------------------------------- *)
+
+(* `mathc adopt [PATH] [--agent NAME] [--no-install] [--dry-run]
+ *                 [--only=CONV] [--merge]`
+ *
+ * Brownfield adoption: detect the project's existing ADR
+ * convention (arc42 / MADR / adr-tools / mixed / none) and
+ * wire up math-coding accordingly. The detection logic
+ * lives in `lib/adopt/detect.ml` (decision
+ * `ux-3-adopt-detect-2026-10@1`); this dispatcher
+ * orchestrates the response.
+ *
+ * Behavior per detection result:
+ *   Empty:           `mathc init PATH` (greenfield, no --merge)
+ *   Arc42:           `mathc init PATH --merge`
+ *   Madr:            `mathc init PATH --merge` + import every
+ *                    `docs/adr/*.md` via `mathc import-adr --write`
+ *   AdrTools:        `mathc init PATH --merge` + import every
+ *                    `adr/*.md` via `mathc import-adr --write`
+ *   Mixed_*:         same per detected convention
+ *
+ * `--only=arc42|madr|adr-tools` restricts the response to one
+ * convention. `--dry-run` prints what would be done without
+ * running anything. `--agent NAME` and `--no-install` are
+ * forwarded to `mathc init` (the inner scaffold call). *)
+
+let[@warning "-32"] do_adopt () =
+  let path = ref "" in
+  let agent = ref "" in
+  let no_install = ref false in
+  let dry_run = ref false in
+  let merge = ref false in
+  let only = ref "" in
+  let set_path s = path := s in
+  let set_agent s = agent := s in
+  let set_only s = only := s in
+  Arg.current := 1;
+  Arg.parse
+    [
+      ("--agent", Arg.String set_agent,
+       " Forward to mathc init (--agent NAME)");
+      ("--no-install", Arg.Set no_install,
+       " Forward to mathc init (--no-install)");
+      ("--dry-run", Arg.Set dry_run,
+       " Print what would be done; do not run init or import-adr");
+      ("--merge", Arg.Set merge,
+       " Force proceed even when no brownfield is detected");
+      ("--only", Arg.String set_only,
+       " Restrict to one convention: arc42|madr|adr-tools");
+    ]
+    set_path
+    "usage: mathc adopt [PATH] [--agent NAME] [--no-install] [--dry-run] [--only=CONV] [--merge]";
+  let target =
+    if !path = "" then Sys.getcwd () else !path in
+  let kind = Detect.detect_classify target in
+  Printf.printf "mathc adopt: detected %s at %s\n"
+    (Detect.string_of_brownfield kind)
+    target;
+  let needs_init, needs_madr, needs_adr_tools =
+    match !only with
+    | "arc42" -> true, false, false
+    | "madr" -> true, true, false
+    | "adr-tools" -> true, false, true
+    | "" ->
+        (* No --only: do whatever the detection found. *)
+        (match kind with
+         | Detect.Empty -> true, false, false
+         | Detect.Arc42 -> true, false, false
+         | Detect.Madr -> true, true, false
+         | Detect.AdrTools -> true, false, true
+         | Detect.Mixed_Arc42_Madr -> true, true, false
+         | Detect.Mixed_Arc42_AdrTools -> true, false, true
+         | Detect.Mixed_Madr_AdrTools -> true, true, true
+         | Detect.Mixed_All_Three -> true, true, true)
+    | _ ->
+        Printf.eprintf
+          "mathc adopt: unknown --only value: %s (expected: arc42|madr|adr-tools)\n"
+          !only;
+        exit 2
+  in
+  let pass_merge = match kind with
+    | Detect.Empty -> true
+    | _ -> !merge
+  in
+  if not pass_merge && needs_init then begin
+    Printf.eprintf
+      "mathc adopt: refusing to proceed in brownfield project; pass --merge to override.\n";
+    exit 3
+  end;
+  (* Use the running binary's path to shell out to its subcommands
+   * (init, import-adr). This avoids relying on PATH; the same
+   * binary that dispatches to `do_adopt` is the binary that
+   * does the work. *)
+  let mathc_bin = Sys.executable_name in
+  let run_argv argv =
+    let cmdline = String.concat " " (List.map Filename.quote argv) in
+    Sys.command cmdline
+  in
+  if needs_init then begin
+    Printf.printf "  step 1/2: mathc init (scaffold math-coding in %s)\n"
+      target;
+    if !dry_run then ()
+    else begin
+      let init_argv = ref [ mathc_bin; "init"; target ] in
+      (match kind with
+       | Detect.Empty -> ()
+       | _ -> init_argv := !init_argv @ [ "--merge" ]);
+      (match !agent with "" -> () | a -> init_argv := !init_argv @ [ "--agent"; a ]);
+      (match !no_install with true -> init_argv := !init_argv @ [ "--no-install" ] | false -> ());
+      let rc = run_argv !init_argv in
+      if rc <> 0 then begin
+        Printf.eprintf "mathc adopt: init failed (exit %d)\n" rc;
+        exit 3
+      end
+    end
+  end;
+  let import_one rel =
+    let abs = Filename.concat target rel in
+    Printf.printf "  step 2/2: mathc import-adr %s --write\n" abs;
+    if !dry_run then ()
+    else begin
+      let argv = [ mathc_bin; "import-adr"; abs; "--write" ] in
+      let rc = run_argv argv in
+      if rc <> 0 then begin
+        Printf.eprintf "mathc adopt: import-adr %s failed (exit %d)\n" abs rc;
+        exit 3
+      end
+    end
+  in
+  if needs_madr then
+    List.iter import_one (Detect.madr_files target);
+  if needs_adr_tools then
+    List.iter import_one (Detect.adrtools_files target);
+  Printf.printf "mathc adopt: done\n"
+
 let[@warning "-32"] do_migrate () =
   Arg.current := 1;
   let from_arg = ref (None : string option) in
@@ -4262,6 +4397,7 @@ let dispatch () =
   | "counters" -> do_counters ()
   | "init" -> do_init ()
   | "import-adr" -> do_import_adr ()
+  | "adopt" -> do_adopt ()
   | "telemetry" -> do_telemetry ()
   | "migrate" -> do_migrate ()
   | "--help" | "-h" ->
