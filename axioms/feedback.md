@@ -55,7 +55,7 @@ observation.
 ## Formalization
 
 The honest-uncertainty result type and the gate-phase schedule live
-in [`spec/algebra-3.2.html`](../spec/algebra-3.2.html) §0
+in [`spec/algebra-3.2.html`](spec/algebra-3.2.html) §0
 ("Honest uncertainty principle (A1-derived)") and §15
 ("Gate verdict (phase-aware)").
 

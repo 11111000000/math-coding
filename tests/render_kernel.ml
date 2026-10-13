@@ -825,7 +825,11 @@ let[@warning "-32"] axioms_link_html_not_md () =
      links were `../spec/algebra-3.2.md`, which 404'd because
      `mathc render` ships the spec as `dist/spec/algebra-3.2.html`.
      Per `decisions/site-broken-links-2026-10@1`, obligation
-     `axiom-pages-link-rendered-spec`. *)
+     `axiom-pages-link-rendered-spec`. The link is the bare
+     `spec/algebra-3.2.html` (no `../` prefix) because `<base
+     href="/math-coding/">` overrides the document URL as the
+     base for relative URL resolution, so `../X` resolves
+     outside the site. *)
   let root =
     match Sys.getenv_opt "DUNE_SOURCEROOT" with
     | Some p -> p
@@ -839,15 +843,22 @@ let[@warning "-32"] axioms_link_html_not_md () =
       let path = Filename.concat root ("axioms/" ^ name ^ ".md") in
       let md = read_text path in
       Alcotest.(check bool)
-        (Printf.sprintf "axioms/%s.md does NOT link to spec/algebra-3.2.md"
+        (Printf.sprintf "axioms/%s.md does NOT link to ../spec/algebra-3.2.md"
            name)
         true
         (not (has "../spec/algebra-3.2.md" md));
       Alcotest.(check bool)
-        (Printf.sprintf "axioms/%s.md DOES link to ../spec/algebra-3.2.html"
+        (Printf.sprintf
+           "axioms/%s.md does NOT link to ../spec/algebra-3.2.html"
            name)
         true
-        (has "../spec/algebra-3.2.html" md))
+        (not (has "../spec/algebra-3.2.html" md));
+      Alcotest.(check bool)
+        (Printf.sprintf
+           "axioms/%s.md DOES link to spec/algebra-3.2.html"
+           name)
+        true
+        (has "spec/algebra-3.2.html" md))
     axiom_files;
   (* Render `dist/` afresh and verify the rendered axiom pages
      carry the link to the rendered spec. *)
@@ -865,7 +876,7 @@ let[@warning "-32"] axioms_link_html_not_md () =
       Alcotest.(check bool)
         (Printf.sprintf "dist/%s carries spec/algebra-3.2.html link" rel)
         true
-        (has "../spec/algebra-3.2.html" html);
+        (has "spec/algebra-3.2.html" html);
       Alcotest.(check bool)
         (Printf.sprintf
            "dist/%s does NOT carry the raw spec/algebra-3.2.md link" rel)
