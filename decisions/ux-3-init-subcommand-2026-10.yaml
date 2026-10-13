@@ -1,0 +1,291 @@
+---
+schema: math-coding/3.2
+id: ux-3-init-subcommand-2026-10
+revision: 1
+state: active
+body_sha: "dface25df477573f125dfa6b0870d94e8f4ece64b65fc528b8b268acb693de40"
+yaml_sha: "dface25df477573f125dfa6b0870d94e8f4ece64b65fc528b8b268acb693de40"
+intent: |
+  Phase 1 of the ux-3 workstream. Land a `mathc init` subcommand
+  that scaffolds a new math-coding project in a target directory.
+  The command creates `decisions/` and `attestations/` directories,
+  writes a `decisions/decision.yaml` master policy from an
+  in-binary minimal template, and installs a pre-commit hook at
+  `.githooks/pre-commit` (unless `--no-install` is passed). The
+  default flags `--agent` (opencode | claude-code | cursor |
+  continue | generic) and `--from-adr` are accepted but `--from-adr`
+  is a no-op stub in this slice; ADR import is the
+  `ux-3-import-adr-subcommand-2026-10` decision.
+
+  Brownfield behavior: refuses to scaffold on top of an existing
+  arc42 (`docs/arc42/`), MADR (`docs/adr/`), or adr-tools
+  (`adr/`) project unless `--merge` is passed. The refuse message
+  names the detected convention and points the user at
+  `mathc import-adr` (Phase 1 follow-up) as the brownfield path.
+  This is the Q5 "Refuse + explicit --merge" answer.
+
+  No kernel surface changes — the kernel under `lib/` stays pure
+  per OCAML_BEST_PRACTICES §1.3. The init implementation lives in
+  the new sub-library `lib/init/` (per §10.1 adapter convention),
+  which is the only I/O surface for this slice. Touches:
+
+    lib/init/dune                          (new sub-library)
+    lib/init/init.ml                       (the implementation)
+    bin/dune                               (add mathcoding_init to libs)
+    bin/Mathc.ml                           (do_init + dispatch entry
+                                            + print_usage update)
+    tests/cli/init.t                       (cram fixture)
+    decisions/ux-3-init-subcommand-2026-10.yaml   (this file)
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+antithesis: |
+  The counter-position considered and rejected: "`mathc init` is
+  shell-script territory; a 200-line OCaml sub-library is overkill
+  for what amounts to `mkdir -p decisions attestations && cat
+  >decision.yaml`. Keep the install path in `install.sh` (per
+  `install-tooling-2026-10@1`) and skip the new subcommand." The
+  author engaged with this position and rejected it on five
+  grounds: (a) `install.sh` covers the *release tarball* flow
+  (per-user install of the binary plus skill), not the
+  *greenfield-project-scaffold* flow; today, a developer who
+  wants to start a new project has to follow four manual
+  steps in `adoption/SKILL.md:67-87` (mkdir, curl policy,
+  $EDITOR scope.paths) — that is the gap `mathc init` closes;
+  (b) the brownfield-detection rule (refuse on `docs/arc42/`
+  etc.) needs the kernel to read the filesystem, not a POSIX
+  shell script — `arc42` lives at `docs/arc42/`, but other
+  variants live elsewhere, and a shell heuristic would
+  silently miss them; (c) the sub-library pattern is the
+  project convention (per OCAML_BEST_PRACTICES §10.1 — every
+  new I/O surface gets `lib/<name>/dune`); a 200-line
+  sub-library is the expected cost, not over-engineering;
+  (d) A3 self-application requires a decision for any change
+  to the kernel API (new subcommand + new sub-library), and
+  the obligation pair is the only way to record and verify
+  the scope; (e) the `install.sh` flow stays as the
+  per-user install path and is unchanged by this decision —
+  the two flows are complementary, not redundant.
+
+commitment: |
+  One kernel surface, one binary, one new sub-library. Six
+  deliverables, each pinned by an obligation or fixture:
+
+    D1. `mathc init [PATH]` creates `decisions/` and
+        `attestations/` directories in PATH (default cwd).
+
+    D2. `decisions/decision.yaml` is written with the minimal
+        master-policy template (`schema: math-coding/3.2`,
+        `id: bootstrap-v3`, `scope.paths` editable, one
+        `acceptance: mathc self-check` obligation).
+
+    D3. `.githooks/pre-commit` is installed (executable,
+        validates every staged `decisions/*.yaml` then runs
+        `mathc self-check`) unless `--no-install` is passed.
+
+    D4. Brownfield detection: refuses with exit 3 on
+        `docs/arc42/`, `docs/adr/`, or `adr/` presence unless
+        `--merge` is passed. Error message names the
+        detected convention and points at `mathc import-adr`.
+
+    D5. Flags: `--agent` accepts generic|opencode|claude-code|
+        cursor|continue (currently a no-op beyond printing the
+        selection — full per-agent behavior is a follow-up);
+        `--from-adr` is accepted but no-op (deferred to
+        `ux-3-import-adr-subcommand-2026-10`); `--no-install`
+        skips the pre-commit hook; `--merge` allows init in
+        brownfield directories.
+
+    D6. The kernel under `lib/` stays offline and pure per
+        OCAML_BEST_PRACTICES §1.3. The init sub-library is
+        the only I/O surface.
+
+  Boundaries (A3 self-application):
+    - `lib/init/` is the only new sub-library.
+    - `bin/Mathc.ml` is touched only to add the `do_init`
+      function, the `| "init" -> do_init ()` dispatch arm,
+      and the `init` line in `print_usage`. No other
+      subcommand is changed.
+    - `bin/dune` is touched only to add `mathcoding_init`
+      to the `mathc` executable's libraries list.
+    - `spec/`, `schemas/`, `axioms/`, the existing
+      `install.sh`, the existing `install-tooling-2026-10`
+      flow, the per-user skill pipeline — all unchanged.
+    - No telemetry, no live HTTP server, no new CLI flags
+      outside the `init` subcommand's argv.
+
+counterexample: |
+  "`mathc init` is just `mkdir + cat`; an OCaml sub-library
+   is over-engineering." The counterargument fails because the
+   brownfield detection is the load-bearing feature: without
+   it, a user running `mathc init` in a project that already
+   has `docs/arc42/` would silently overwrite their master
+   plan, and the resulting decisions/ would be inconsistent
+   with arc42 — a silent-promotion violation of A1. The
+   sub-library exists to keep the brownfield heuristic
+   next to the kernel API where future agents (and tests)
+   can reach it; a shell script would couple the heuristic
+   to the install-tooling release artifact and make it
+   impossible to evolve. "The four-step manual procedure in
+   `adoption/SKILL.md` is fine; nobody needs a new
+   subcommand." This fails because the user feedback that
+   triggered the ux-3 workstream is exactly that the manual
+   procedure is the adoption bottleneck. `mathc init`
+   replaces four manual steps with one; the four-step doc
+   stays as the educational artifact.
+
+scope:
+  capabilities:
+    - mathc-init-subcommand
+  paths:
+    - "lib/init/dune"
+    - "lib/init/init.ml"
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "tests/cli/init.t"
+    - "decisions/ux-3-init-subcommand-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/diagnostic.ml"
+    - "lib/canonical.ml"
+    - "lib/render.ml"
+    - "lib/migrate.ml"
+    - "lib/waiver.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/mcp/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+    - "decisions/mcp-server-impl-2026-10.yaml"
+    - "decisions/install-tooling-2026-10.yaml"
+
+outcomes:
+  - id: init-scaffolds-greenfield
+    statement: |
+      `mathc init [PATH]` in an empty (or `--merge`-bypassed)
+      directory creates `decisions/`, `attestations/`, a valid
+      `decisions/decision.yaml`, and (unless `--no-install`) a
+      `.githooks/pre-commit` script. Exits 0 on success, 3 on
+      brownfield refusal, 2 on input error.
+  - id: init-refuses-brownfield
+    statement: |
+      `mathc init` in a directory containing `docs/arc42/`,
+      `docs/adr/`, or `adr/` exits 3 with a stderr message that
+      names the detected convention and points the user at
+      `mathc import-adr` (Phase 1 follow-up). `--merge`
+      overrides the refusal.
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/ux-3-init-subcommand-2026-10.yaml` exits 0.
+
+assumptions:
+  - id: kernel-api-stable
+    state: assumed
+    statement: |
+      The `lib/` kernel API (Domain, Decision, Memory, etc.) is
+      stable for this slice. The new sub-library depends only
+      on `mathcoding_core` plus standard library `Unix` and
+      `Str` (per OCAML_BEST_PRACTICES §10.1 adapter rules).
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future kernel change breaks the init sub-library
+      deps, the build fails and this decision is revised.
+    review_on:
+      - signal: init-build-broken
+  - id: pre-commit-hook-format-stable
+    state: assumed
+    statement: |
+      git's pre-commit hook format (a file at
+      `.git/hooks/pre-commit` or `core.hooksPath/pre-commit`
+      marked executable) is stable. The hook body uses only
+      POSIX-sh features and `mathc` (assumed on PATH in the
+      commit-time environment).
+    owner: human:maintainer
+    consequence_if_false: |
+      If git changes the hook format or drops `core.hooksPath`
+      semantics, the installed hook silently fails. Resolution:
+      a follow-up decision updates the hook body and re-runs
+      init on affected repos.
+    review_on:
+      - signal: git-hooks-path-changed
+
+obligations:
+  - id: cram-test-passes
+    outcome: init-scaffolds-greenfield
+    claim: |
+      `tests/cli/init.t` exercises the four user-visible
+      surfaces (empty dir, brownfield refuse, `--merge`,
+      refuse-on-overwrite) and the `--agent` input-error
+      surface. Each case asserts the right exit code and the
+      right filesystem state.
+    acceptance:
+      all:
+        - verifier: tests/cli/init.t
+          result: pass
+
+  - id: brownfield-detection-active
+    outcome: init-refuses-brownfield
+    claim: |
+      `mathc init` in a directory with `docs/arc42/`,
+      `docs/adr/`, or `adr/` exits 3 with a stderr line that
+      contains the literal `refusing to init in brownfield
+      project` and the literal `pass --merge`.
+    acceptance:
+      all:
+        - verifier: tests/cli/init.t::Brownfield
+          result: pass
+
+  - id: this-decision-validates
+    outcome: this-decision-validates
+    claim: |
+      `mathc validate
+      decisions/ux-3-init-subcommand-2026-10.yaml` exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ux-3-init-subcommand-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: init-subcommand-removed
+    condition: |
+      The `mathc init` subcommand is removed (e.g. folded back
+      into `install.sh --init` per an install-tooling follow-up).
+      Resolution: this decision is superseded; the kernel
+      surface (`lib/init/`, `bin/Mathc.ml::do_init`) is deleted
+      via a follow-up decision.
+    action: supersede-with-install-tooling-init
+  - signal: pre-commit-hook-format-broken
+    condition: |
+      git's pre-commit hook format changes in a way that
+      breaks the installed hook (e.g. core.hooksPath is
+      removed). Resolution: update the hook body in
+      `lib/init/init.ml::pre_commit_hook_body` and re-run
+      init on affected repos; this decision is revised.
+    action: rework
+
+risk:
+  declared_triggers:
+    - init-build-broken
+    - git-hooks-path-changed
+    - brownfield-detector-false-positive
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - install-tooling-2026-10@1
+    - agent-onboarding@2
+    - ux-3-adoption-doc-freshen-2026-10@1
+  supersedes: []
+  superseded_by: []

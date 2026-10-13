@@ -1,0 +1,5 @@
+(library
+ (name mathcoding_init)
+ (wrapped false)
+ (modules init)
+ (libraries mathcoding_core str unix))

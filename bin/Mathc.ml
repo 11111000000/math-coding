@@ -535,7 +535,13 @@ let print_usage oc =
     \           [--mermaid|--no-mermaid]\n\
     \                                     render the static site under DIR\n\
     \  counters                          emit JSON counts (decisions, obligations,\n\
-    \                                     attestations, self-check, cram, CLI)\n\n\
+    \                                     attestations, self-check, cram, CLI)\n\
+    \  init [PATH] [--agent NAME]        scaffold a new math-coding project:\n\
+    \                  [--from-adr PATH]     create decisions/, attestations/, write\n\
+    \                  [--no-install]        decisions/decision.yaml, install the\n\
+    \                  [--merge]             pre-commit hook. Refuses on arc42/MADR\n\
+    \                                       unless --merge; --from-adr is a no-op\n\
+    \                                       stub (deferred to ux-3-import-adr).\n\n\
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
@@ -3861,9 +3867,54 @@ let[@warning "-32"] do_packages () =
  *                    exclusive (--write always emits a per-file
  *                    JSON summary of what was applied). With
  *                    `--dry-run` the kernel prints what `--write`
- *                    would do (a one-step assist) without touching
- *                    the disk; without `--dry-run`, writes happen.
- *)
+  *                    would do (a one-step assist) without touching
+  *                    the disk; without `--dry-run`, writes happen.
+  *)
+
+(* --- init subcommand ----------------------------------------------- *)
+
+(* `mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] [--merge]`
+ *
+ * Scaffolds a new math-coding project. The implementation lives
+ * in `lib/init/init.ml` per the sub-library convention
+ * (OCAML_BEST_PRACTICES §10.1); the dispatcher only parses argv
+ * and forwards to `Init.run`. Exit codes follow the existing
+ * convention: 0 on success, 3 on refused brownfield or I/O error. *)
+let[@warning "-32"] do_init () =
+  let path = ref "" in
+  let agent = ref "generic" in
+  let from_adr = ref None in
+  let no_install = ref false in
+  let merge = ref false in
+  let set_path s = path := s in
+  let set_agent s = agent := s in
+  let set_from_adr s = from_adr := Some s in
+  Arg.current := 1;
+  Arg.parse
+    [
+      ("--agent", Arg.String set_agent,
+       " Target agent (generic|opencode|claude-code|cursor|continue)");
+      ("--from-adr", Arg.String set_from_adr,
+       " (no-op stub; deferred to ux-3-import-adr-subcommand-2026-10)");
+      ("--no-install", Arg.Set no_install,
+       " Skip pre-commit hook installation");
+      ("--merge", Arg.Set merge,
+       " Allow init in a directory with arc42/MADR/adr-tools present");
+    ]
+    set_path "usage: mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] [--merge]";
+  let root = if !path = "" then Sys.getcwd () else !path in
+  match Init.agent_of_string !agent with
+  | Error m ->
+      Printf.fprintf stderr "mathc init: %s\n" m;
+      exit 2
+  | Ok agent ->
+      Init.run
+        { Init.root;
+          agent;
+          from_adr = !from_adr;
+          no_install = !no_install;
+          merge = !merge }
+
 let[@warning "-32"] do_migrate () =
   Arg.current := 1;
   let from_arg = ref (None : string option) in
@@ -4117,6 +4168,7 @@ let dispatch () =
   | "packages" -> do_packages ()
   | "render" -> do_render ()
   | "counters" -> do_counters ()
+  | "init" -> do_init ()
   | "migrate" -> do_migrate ()
   | "--help" | "-h" ->
       print_usage stdout;
