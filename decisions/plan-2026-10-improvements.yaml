@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: plan-2026-10-improvements
 revision: 1
 state: active
-body_sha: "sha256:b4208c5e490fa4fcb8ebeaf99a4e0e1f29386e4766796e2755079759afe33d5c"
-yaml_sha: "sha256:b4208c5e490fa4fcb8ebeaf99a4e0e1f29386e4766796e2755079759afe33d5c"
+body_sha: "sha256:6b0bcfa65c26366dabb3c921bf9de741a5549b80de6f88feb87b8235bfc11997"
+yaml_sha: "sha256:6b0bcfa65c26366dabb3c921bf9de741a5549b80de6f88feb87b8235bfc11997"
 intent: |
   Adopt the analysis-derived plan documented in chat 2026-10-07
   ("анализ math-coding как методологии"). The plan closes 14

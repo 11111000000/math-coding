@@ -9,8 +9,13 @@
   ],
   "properties": {
     "schema": {
-      "description": "Schema family identifier. Both forms are accepted: the canonical `math-coding/3.0-alpha/decision` (JSON) and the family-only `math-coding/3.0-alpha` (YAML). They denote the same form.",
-      "enum": ["math-coding/3.0-alpha", "math-coding/3.0-alpha/decision"]
+      "description": "Schema family identifier. Both forms are accepted for each accepted family: the canonical `math-coding/<family>/decision` (JSON) and the family-only `math-coding/<family>` (YAML). The accepted families are `3.0-alpha` (legacy, soft-deprecated per `decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml`) and `3.2` (current).",
+      "enum": [
+        "math-coding/3.0-alpha",
+        "math-coding/3.0-alpha/decision",
+        "math-coding/3.2",
+        "math-coding/3.2/decision"
+      ]
     },
     "kind": {
       "description": "Document kind. Required only for JSON form; YAML form omits it (the document is a decision by convention).",

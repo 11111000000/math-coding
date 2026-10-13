@@ -1,8 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: auto-update-per-user-skill-impl-pending
 revision: 1
 state: active
+body_sha: "sha256:648c8ce5623adfa98190749e686a05d49fccd71b354b795fac21366943ec1d88"
+yaml_sha: "sha256:648c8ce5623adfa98190749e686a05d49fccd71b354b795fac21366943ec1d88"
 intent: |
   Record the deferral of automatic per-user skill updates
   to a future cycle. Phase 1 of install-tooling-2026-10

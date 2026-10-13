@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: mathc-explain-subcommand
 revision: 3
 state: active
-body_sha: "sha256:a4c9bd3c1c1c55efdabb3b54a3a4669131e3b1dc774b59daa8eba144a95ada6e"
-yaml_sha: "sha256:a4c9bd3c1c1c55efdabb3b54a3a4669131e3b1dc774b59daa8eba144a95ada6e"
+body_sha: "sha256:9d8fdee03f346fa15a93824b21112f500e675041609c59e7df76727fdfda6f9a"
+yaml_sha: "sha256:9d8fdee03f346fa15a93824b21112f500e675041609c59e7df76727fdfda6f9a"
 intent: |
   Close the broken promise in shipped code: `lib/capsule.ml:88`
   emits `mathc explain <detail_ref>` as the expansion command for

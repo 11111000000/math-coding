@@ -1,0 +1,315 @@
+---
+schema: math-coding/3.2
+id: schema-string-bump-3.0-alpha-to-3.2
+revision: 1
+state: active
+body_sha: "sha256:6157657d00029866ae62db688073a6c3d131b38b46703bb5f5dce6aa164b203a"
+yaml_sha: "sha256:6157657d00029866ae62db688073a6c3d131b38b46703bb5f5dce6aa164b203a"
+intent: |
+  Close the schema-string drift between `decisions/*.yaml`
+  (which have carried `math-coding/3.0-alpha` since v3.0.0.19)
+  and the algebra-3.2 specification (formally adopted in
+  `decisions/algebra-3.2.yaml@1` and recorded as the kernel's
+  normative spec in `spec/algebra-3.2.md`). The two have
+  converged on every other field — `state`, `body_sha`,
+  `yaml_sha`, `counterexample`, `antithesis`, `axiom_link`,
+  `required_attestations` — but the `schema:` field remained
+  at `math-coding/3.0-alpha`, which makes the
+  schema-string an unreliable single-source-of-truth for
+  "what version is this decision against".
+
+  The bump is an A3-protected transition (AGENTS.md
+  §Self-application): it touches `schemas/decision.json`
+  (a protected policy control) and 72 decision files
+  (each is a policy control in its own right for the
+  obligations it carries). Per the same section, this
+  decision records:
+
+    1. the strongest practical countercase below;
+    2. positive and negative fixtures (see tests/cli/
+       validate-schema-string-*);
+    3. the migration path: `decisions/migrations/
+       3.0-alpha-to-3.2.yaml`;
+    4. the recovery path: every bump is a content change
+       under git, reversible via `git revert <commit>`;
+       `body_sha` and `yaml_sha` recompute to keep
+       self-consistency;
+    5. authorisation by the previously active policy
+       `bootstrap-v3@3` (unchanged from HEAD); and
+    6. an explicit list of changed verdicts (none —
+       self-check produced pass/x verifiers the same
+       before and after the bump).
+
+  After this commit:
+
+    - `mathc validate decisions/<file>.yaml` returns
+      `accept` for every live decision;
+    - `mathc self-check` runs to its existing verdict
+      (no obligation verdicts flip);
+    - `mathc migrate --from=math-coding/3.0-alpha
+      --to=math-coding/3.2 --format=json` emits one plan
+      per live decision with the `bump-schema-string`
+      action listed; rerunning it as a dry-run is a
+      no-op-after-bump idempotency test.
+
+axiom_link:
+  - A0
+  - A3
+
+commitment: |
+  The bump is a single coherent change broken into:
+
+    1. Loosen `schemas/decision.json`'s `schema` enum to
+       accept BOTH `math-coding/3.0-alpha` (legacy form)
+       and `math-coding/3.2` (current form). Both forms
+       exist for one cycle to ease the migration of
+       archived decisions; a future decision (`decision-
+       archive-3.0-alpha-form`, not yet authored) will
+       drop the legacy form.
+    2. Author `decisions/migrations/3.0-alpha-to-3.2.yaml`
+       with a single `bump-schema-string` action. This is
+       the audit trail that a future agent can replay to
+       understand what changed and why.
+    3. For each of the 72 live `decisions/*.yaml` files
+       EXCEPT `decisions/obligations.yaml` (which has a
+       dedicated aggregator schema-string
+       `math-coding/obligations-3.0-alpha`):
+         a. Rewrite the `schema:` line from
+            `math-coding/3.0-alpha` to `math-coding/3.2`;
+         b. Recompute `body_sha` and `yaml_sha` against
+            the post-rewrite content via the algorithm
+            documented in algebra §7 (placeholder
+            `sha256:000…0` substituted for both hash
+            fields, then SHA-256 of that).
+       No other field changes; no comment stripping; no
+       YAML key reorder.
+    4. Run `mathc validate` on every modified file and
+       confirm `accept` in the commit-message narration
+       (the per-file verdict is recorded in the commit
+       body, not as a separate artefact).
+    5. Add positive + negative fixtures
+       (`tests/cli/validate-schema-string-3.2.t`,
+       `tests/cli/validate-schema-string-unknown.t`).
+
+  The kernel never mutates YAML itself; `mathc migrate`
+  is the design point and it stays that way. The bulk
+  bump here is an agent-driven application of the
+  manifest recorded in step 2, exactly the workflow
+  `decisions/migration-mechanism-2026-10.yaml`
+  contemplated.
+
+scope:
+  capabilities:
+    - schema-string-3.2
+  paths:
+    - "schemas/decision.json"
+    - "decisions/migrations/3.0-alpha-to-3.2.yaml"
+    - "decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml"
+    - "decisions/*.yaml"
+    - "tests/cli/validate-schema-string-3.2.t"
+    - "tests/cli/validate-schema-string-unknown.t"
+    - "PACKAGES.md"
+    - "ROADMAP.md"
+    - "CHANGELOG.md"
+  exclusions:
+    - "decisions/obligations.yaml"
+    - "lib/**"
+    - "bin/**"
+    - "attestations/**"
+    - "spec/**"
+
+outcomes:
+  - id: schema-3.2-accepted
+    statement: |
+      Every live decisions/*.yaml (except obligations.yaml)
+      carries `schema: math-coding/3.2` and `mathc validate`
+      returns accept for each.
+  - id: schema-3.0-alpha-still-accepted
+    statement: |
+      `schemas/decision.json`'s `schema` enum accepts BOTH
+      `math-coding/3.0-alpha` and `math-coding/3.2` (and
+      the canonical `/decision` forms). The 3.0-alpha
+      form remains accepted for one cycle so that
+      archived decisions can still be read without a
+      schema migration.
+  - id: first-real-migration-cycle
+    statement: |
+      `decisions/migrations/3.0-alpha-to-3.2.yaml` is a
+      non-empty manifest with a `bump-schema-string`
+      action. `mathc migrate --from=math-coding/3.0-alpha
+      --to=math-coding/3.2` returns a plan listing the
+      `bump-schema-string` action for each live decision
+      pre-bump, and a no-op plan post-bump.
+  - id: fixtures-record-the-bump
+    statement: |
+      `tests/cli/validate-schema-string-3.2.t` accepts a
+      minimal decision with `schema: math-coding/3.2`;
+      `tests/cli/validate-schema-string-unknown.t` rejects
+      `schema: foo/bar` with the documented diagnostic
+      (verifier recorded: `MC-UNKNOWN-SCHEMA`).
+
+assumptions:
+  - id: 3.0-alpha-form-soft-deprecation
+    state: assumed
+    statement: |
+      The `math-coding/3.0-alpha` schema-string form
+      remains in the validator enum for one cycle
+      (~2026-10 → 2027-Q1). Archived decisions still use
+      the legacy form. A future "archive-3.0-alpha-form"
+      decision will move them to `decisions/legacy/` and
+      drop the form from the enum.
+    owner: human:maintainer
+    consequence_if_false: >
+      Live decisions can no longer reference the
+      3.0-alpha form; archived decisions (tag v3.0.0.20
+      and earlier) cannot be revalidated without first
+      bumping their schema-string.
+    review_on:
+      - signal: archive-3.0-alpha-form-decision-authored
+
+  - id: bulk-application-stays-minimal
+    state: assumed
+    statement: |
+      The bulk bump is the only content change per file
+      (schema-string + the two sha256 fields). No comment
+      edits, no reordering, no field additions.
+    owner: human:maintainer
+    consequence_if_false: >
+      A diff of decisions/decision.yaml would show a
+      bulk schema-string bump alongside an unrelated
+      change, breaking the audit chain.
+    review_on:
+      - signal: bulk-bump-second-pass-required
+
+obligations:
+  - id: schemas-decision-json-accepts-3.2
+    statement: |
+      `schemas/decision.json` lists `math-coding/3.2`
+      (and `math-coding/3.2/decision`) in the `schema`
+      property enum. Live decisions may declare either
+      form; verify with `mathc validate` against a
+      fixture carrying each form (the live `decision.yaml`
+      post-bump validates against the new form).
+    outcome: schema-3.2-accepted
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/decision.yaml
+          result: pass
+
+  - id: seventy-two-decisions-bumped
+    statement: |
+      All 72 live decisions/*.yaml (every file in
+      `decisions/` except `decisions/obligations.yaml`)
+      carry `schema: math-coding/3.2`. `mathc validate`
+      returns `accept` for each. The bulk bump preserves
+      every other field; `body_sha` and `yaml_sha`
+      recompute against the post-rewrite content.
+    outcome: schema-3.2-accepted
+    acceptance:
+      all:
+        - verifier: bash -c "for f in decisions/*.yaml; do [ \"\$f\" = \"decisions/obligations.yaml\" ] && continue; head -3 \"\$f\" | grep -q '^schema: math-coding/3\\\\.2$' || { echo \"FAIL: \$f\"; exit 1; }; done; echo 72-of-72 bumped; exit 0"
+          result: pass
+
+  - id: migration-manifest-non-empty
+    statement: |
+      `decisions/migrations/3.0-alpha-to-3.2.yaml` exists
+      and is a non-empty migration manifest (a real,
+      replayable bump — not the empty proof-of-mechanism
+      shipped in `migration-mechanism-2026-10.yaml@1`).
+    outcome: first-real-migration-cycle
+    acceptance:
+      all:
+        - verifier: bash -c "test -s decisions/migrations/3.0-alpha-to-3.2.yaml && grep -q 'bump-schema-string' decisions/migrations/3.0-alpha-to-3.2.yaml"
+          result: pass
+
+  - id: bulk-bump-replayable
+    statement: |
+      `mathc migrate --from=math-coding/3.0-alpha
+      --to=math-coding/3.2 --format=json` against a
+      pre-bump fixture tree (recorded at
+      `tests/cli/fixtures/migrate-bump/`) emits one plan
+      per file with the `bump-schema-string` action.
+      Same command against the live tree (post-bump)
+      emits zero plans.
+    outcome: first-real-migration-cycle
+    acceptance:
+      all:
+        - verifier: tests/cli/migrate-bump-replay.t
+          result: pass
+
+risk:
+  declared_triggers:
+    - schema-enum-too-restrictive
+    - bulk-bump-skips-a-file
+    - sha-self-consistency-broken
+  owner: human:maintainer
+counterexample: |
+  Two strongest countercases:
+
+  1. "Loosen the schema enum AND rewrite every file in
+     one commit; what's the rollback path?" The rollback
+     path is `git revert <commit>`. Every file change is
+     a content edit under git; the legacy form remains
+     accepted by the validator, so a `git revert` produces
+     72 files carrying `math-coding/3.0-alpha` that the
+     validator still accepts. No state-machine rollback
+     is required. Concretely: revert succeeds because
+     the validator's enum accepts both forms for the
+     deprecation cycle.
+
+  2. "Why bump now instead of waiting for the next
+     minor (3.2.1)?" Because the kernel has already
+     formally adopted `spec/algebra-3.2.md` (via
+     `decisions/algebra-3.2.yaml@1`) and the field set
+     in every decision already matches that spec. The
+     schema-string is the lone divergent element; leaving
+     it at `math-coding/3.0-alpha` makes the
+     schema-string a proxy for "decision written during
+     the v3.0.0.20 cycle" rather than "decision
+     conforming to algebra-3.2". The bump collapses
+     that proxy, which is what agents and forge-verify
+     queries want when they ask "is this a 3.2
+     decision?".
+
+antithesis: |
+  The coherent counter-position the author considered and
+  rejected: keep the schema-string at the legacy form for
+  one more cycle (until 3.2.1 ships some materially new
+  field) and bump the string only alongside a real
+  semantic change, so a single commit captures both the
+  field-shape and the schema-string's evolution. This
+  fails because (a) the bump is informationally cheap —
+  one line per file plus two hash recomputations — and
+  carries no semantic risk; (b) waiting means the
+  divergence widens over time, since the kernel already
+  accepts the algebra-3.2 shape; (c) agents asking
+  `mathc explain decisions/X.yaml` get a misleading
+  "3.0-alpha" reading that doesn't match what the kernel
+  actually accepts. The small, well-scoped, audit-trail-
+  heavy bump here is preferred over the larger coupled
+  change of waiting.
+
+relations:
+  implements:
+    - bootstrap-v3
+  addresses:
+    - A3
+  refines:
+    - algebra-3.2
+    - migration-mechanism
+
+reversal:
+  - signal: schema-string-bump-reverted
+    condition: >
+      After this commit lands, `git revert` is exercised
+      on `origin/main` to test recovery; all 72 decisions
+      re-validate with the legacy form, and
+      `mathc self-check` returns the same verdict as
+      before the bump.
+    action: halt
+  - signal: schema-string-bump-broke-self-check
+    condition: >
+      `mathc self-check` returns a different verdict
+      post-bump than pre-bump (modulo the existing
+      known-unknown subjects).
+    action: halt

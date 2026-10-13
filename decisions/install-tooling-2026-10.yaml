@@ -1,8 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: install-tooling-2026-10
 revision: 1
 state: active
+body_sha: "sha256:fa8b58d968278c3925deed9ad4b9fa1dd7a52dee3a339abb2ecaf07efc4b0571"
+yaml_sha: "sha256:fa8b58d968278c3925deed9ad4b9fa1dd7a52dee3a339abb2ecaf07efc4b0571"
 intent: |
   Replace the hand-curated `wget | chmod` adoption path in
   `adoption/SKILL.md:55-60` with a self-installing suite. The

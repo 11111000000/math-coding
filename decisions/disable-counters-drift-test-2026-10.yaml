@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: disable-counters-drift-test-2026-10
 revision: 1
 state: active
-body_sha: "sha256:724270c22aeec7ea431460ae07962df9135a6232d60594fc00d1bf6296da44c7"
-yaml_sha: "sha256:724270c22aeec7ea431460ae07962df9135a6232d60594fc00d1bf6296da44c7"
+body_sha: "sha256:6b6b09fd1127e833588d6975cc9d74799ea7c9a3c3a1c4579912bb0e7d70f0a7"
+yaml_sha: "sha256:6b6b09fd1127e833588d6975cc9d74799ea7c9a3c3a1c4579912bb0e7d70f0a7"
 axiom_link:
   - A0
 intent: |

@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: decision-required-attestations
 revision: 1
 state: active
-body_sha: "sha256:6984b7ddb3231210296039dfaf1c639eaa4f134afcc5fe5b6ef9aed58d328be0"
-yaml_sha: "sha256:6984b7ddb3231210296039dfaf1c639eaa4f134afcc5fe5b6ef9aed58d328be0"
+body_sha: "sha256:65df0c051995a0f6dfe8d104f21224ef4e5d9537be038068fb616cfdf320dfca"
+yaml_sha: "sha256:65df0c051995a0f6dfe8d104f21224ef4e5d9537be038068fb616cfdf320dfca"
 axiom_link:
   - A1
   - A4

@@ -1,5 +1,5 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: portable-linux-musl
 revision: 4
 axiom_link:
@@ -49,8 +49,8 @@ axiom_link:
 #                 Alpine/musl targets. The glibc pipeline and the
 #                 §30 violation history are unchanged.
 state: active
-body_sha: "sha256:b6f4b09b7f6601186cd29221d3ed92e6033fae83aae7dffc9c91e0a52ef33975"
-yaml_sha: "sha256:b6f4b09b7f6601186cd29221d3ed92e6033fae83aae7dffc9c91e0a52ef33975"
+body_sha: "sha256:7443ce1311e89734641c5b1030e9ae27c9ee330eadd61c400d8b5b1d671ea5e4"
+yaml_sha: "sha256:7443ce1311e89734641c5b1030e9ae27c9ee330eadd61c400d8b5b1d671ea5e4"
 intent: |
   Adopt a musl-based Linux build pipeline alongside the existing
   glibc-based Ubuntu pipeline, so math-coding's Linux binaries are

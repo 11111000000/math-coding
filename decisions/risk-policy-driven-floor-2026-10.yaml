@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: risk-policy-driven-floor-2026-10
 revision: 1
 state: active
-body_sha: "sha256:3a6b146677f4fb3ac83a1069c942aa46c8310f2d31e1c50982ea1d7c8374d6ee"
-yaml_sha: "sha256:3a6b146677f4fb3ac83a1069c942aa46c8310f2d31e1c50982ea1d7c8374d6ee"
+body_sha: "sha256:84189de0c3a62422e866bd47716901e82d1b44124b60156ed4978002fd337c2e"
+yaml_sha: "sha256:84189de0c3a62422e866bd47716901e82d1b44124b60156ed4978002fd337c2e"
 intent: |
   Wire `lib/policy.ml` into `lib/risk.ml` so the risk classifier
   honors declared policies instead of returning constant

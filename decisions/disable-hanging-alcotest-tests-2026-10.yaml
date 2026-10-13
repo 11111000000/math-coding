@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: disable-hanging-alcotest-tests-2026-10
 revision: 1
 state: active
-body_sha: "sha256:2b67ce29983809e0b93e145474caa610578a2f38323470ac701adb7c5a49dd9c"
-yaml_sha: "sha256:2b67ce29983809e0b93e145474caa610578a2f38323470ac701adb7c5a49dd9c"
+body_sha: "sha256:70f5757c48cd607bc960712cb3d9953048dd00d293d1ecf82010a9545bd74b72"
+yaml_sha: "sha256:70f5757c48cd607bc960712cb3d9953048dd00d293d1ecf82010a9545bd74b72"
 axiom_link:
   - A0
 intent: |

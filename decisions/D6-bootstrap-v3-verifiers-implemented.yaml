@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: D6-bootstrap-v3-verifiers-implemented
 revision: 2
 state: active
-body_sha: "sha256:d14932becb3bcc329e6db095c6e791b9a430b9a10dd90965a0d54f0f344dd0db"
-yaml_sha: "sha256:d14932becb3bcc329e6db095c6e791b9a430b9a10dd90965a0d54f0f344dd0db"
+body_sha: "sha256:9ec5e767238a7beae080e26bc21ea70f3b80143c9113955698c59bce694ccf2f"
+yaml_sha: "sha256:9ec5e767238a7beae080e26bc21ea70f3b80143c9113955698c59bce694ccf2f"
 intent: |
   Close audit deficit D6 (bootstrap-v3 manual-only verifiers).
   The bootstrap protocol expired at commit `8fa7fcf` (v3.0.0.19);

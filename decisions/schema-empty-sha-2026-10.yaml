@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: schema-empty-sha-2026-10
 revision: 3
 state: retired
-body_sha: "sha256:64cace87246c275ed5fd15e48520f9a20c845c6a6aae58b825d469727b79e2e9"
-yaml_sha: "sha256:64cace87246c275ed5fd15e48520f9a20c845c6a6aae58b825d469727b79e2e9"
+body_sha: "sha256:5cb8fec0c04a10b9fe890cf56463f9ec980e0f2c3de0854f299942884f758ee1"
+yaml_sha: "sha256:5cb8fec0c04a10b9fe890cf56463f9ec980e0f2c3de0854f299942884f758ee1"
 intent: |
   This decision recorded an interim approach (2026-10-05, rev 1-2):
   bring `schemas/decision.json` into alignment with the actual state

@@ -1,0 +1,38 @@
+---
+schema: math-coding/3.0-alpha
+id: pre-bump-sample
+revision: 1
+state: active
+intent: |
+  Pre-bump synthetic decision fixture used by
+  tests/cli/migrate-bump-replay.t. Declares the legacy
+  schema-string `math-coding/3.0-alpha` and is otherwise
+  minimal so the manifest
+  `decisions/migrations/3.0-alpha-to-3.2.yaml` produces
+  exactly one `bump-schema-string` action for it.
+commitment: |
+  Be a fixture that demonstrates the planner emits the
+  bump action for legacy-format decisions.
+scope:
+  paths:
+    - tests/cli/fixtures/migrate-bump/decisions/pre-bump.yaml
+outcomes:
+  - id: fixture-purpose
+    statement: tests/cli/migrate-bump-replay.t uses this file.
+obligations:
+  - id: fixture-non-empty
+    statement: at least one obligation is required to satisfy schema validation.
+    outcome: fixture-purpose
+    acceptance:
+      all:
+        - verifier: tests/cli/migrate-bump-replay.t
+          result: pass
+risk:
+  declared_triggers:
+    - fixture-removal
+  owner: human:maintainer
+counterexample: |
+  Planners that ignore the schema-string mismatch would
+  claim zero actions for this file, masking the bulk
+  bump. The fixture proves the planner distinguishes
+  legacy-schema-strings from current.

@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: formal-verifier-conventions
 revision: 2
 state: active
-body_sha: "sha256:078bacfefb846ec985fa37543b73bcb81b86703f72b024f362e08c18f6b439a7"
-yaml_sha: "sha256:078bacfefb846ec985fa37543b73bcb81b86703f72b024f362e08c18f6b439a7"
+body_sha: "sha256:ba736492a2163162820ed42f25b47cd257f037f456104ad26e6227ab4f2b8013"
+yaml_sha: "sha256:ba736492a2163162820ed42f25b47cd257f037f456104ad26e6227ab4f2b8013"
 intent: |
   Codify the convention for formal-verifier artefacts (TLA+, Coq,
   Alloy) without adding any runtime dependency. The project's

@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: audit-0.0.21-fixes-self-check-waiver-2026-10
 revision: 2
 state: active
-body_sha: "sha256:ffe0e85f3d9bdac028ad88c3a1f7f04b1e7829014408ec45745a3bdd08fc3724"
-yaml_sha: "sha256:ffe0e85f3d9bdac028ad88c3a1f7f04b1e7829014408ec45745a3bdd08fc3724"
+body_sha: "sha256:60946ef2f9c9232cdbec1cbf51792b9f943fff7980723ee8844d546d97f86a15"
+yaml_sha: "sha256:60946ef2f9c9232cdbec1cbf51792b9f943fff7980723ee8844d546d97f86a15"
 intent: |
   Record the structural deficit that prevents
   `decisions/audit-0.0.21-fixes.yaml` obligation

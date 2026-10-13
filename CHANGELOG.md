@@ -47,6 +47,25 @@ machine-readable reversal signals.
   `scripts/migrate-decisions-3.2.py` and
   `scripts/migrate-decisions-3.2-phase2.py`; their git history
   at `a215ef9` / `e21fdf0` is the audit trail.
+- `decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml`
+  (rev 1) — A3-protected transition that bumps the
+  `schema:` field on every live decision from
+  `math-coding/3.0-alpha` to `math-coding/3.2` (matches the
+  field set `spec/algebra-3.2.md` already formalises). 72
+  decision YAML files bulk-bumped; 6 of those were missing
+  `body_sha`/`yaml_sha` because they predate the v3.0.0.19
+  schema tightening, and now carry freshly-computed values
+  per algebra §7. `schemas/decision.json`'s `schema` enum
+  now accepts both forms for one cycle (soft-deprecated
+  `3.0-alpha` form is read-accepted so archived decisions
+  still validate; a future `archive-3.0-alpha-form`
+  decision will move them to `decisions/legacy/`). First
+  non-trivial migration cycle of `lib/migrate.ml` is
+  `decisions/migrations/3.0-alpha-to-3.2.yaml` (a single
+  `bump-schema-string` action); fixture
+  `tests/cli/migrate-bump-replay.t` exercises the replay
+  against a synthetic legacy tree and asserts a no-op
+  plan against the live post-bump tree.
 - `decisions/install-tooling-2026-10.yaml` — A3-protected
   meta-decision that introduces the four install channels
   (release binary / docker image / nix run / source build)

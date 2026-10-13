@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: mathjax-default-on-2026-10
 revision: 1
 state: active
-body_sha: "sha256:c8cd5e49184082a819e5b38d677aa7460ab2a215def6310768f6ffff897cb0d8"
-yaml_sha: "sha256:c8cd5e49184082a819e5b38d677aa7460ab2a215def6310768f6ffff897cb0d8"
+body_sha: "sha256:6c7ac0607be74457efe4a81df631c69bf874527729a9b66ea3fae2f931339128"
+yaml_sha: "sha256:6c7ac0607be74457efe4a81df631c69bf874527729a9b66ea3fae2f931339128"
 intent: |
   Reverse the MathJax default-OFF workaround documented in
   `decisions/render-kernel-fixes-2026-10@1` obligation

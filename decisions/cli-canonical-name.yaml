@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: cli-canonical-name
 revision: 3
 state: active
-body_sha: "sha256:a6ff9872b8e790acc4639e3a16837124d41afb5e456a4911a4620181200860b7"
-yaml_sha: "sha256:a6ff9872b8e790acc4639e3a16837124d41afb5e456a4911a4620181200860b7"
+body_sha: "sha256:b068ea23942b502618145d9848996224a281bebf5398297ce639ca73fd0e9256"
+yaml_sha: "sha256:b068ea23942b502618145d9848996224a281bebf5398297ce639ca73fd0e9256"
 intent: |
   Collapse the project's three CLI referents (the legacy short
   alias `mc`, the public install name `mathc`, and the dune on-disk

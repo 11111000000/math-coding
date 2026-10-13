@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: site-version-from-file-2026-10
 revision: 1
 state: active
-body_sha: "sha256:fed15b6848976ec3ebc058267725ac77a2bad879cd82926b4d251de572692983"
-yaml_sha: "sha256:fed15b6848976ec3ebc058267725ac77a2bad879cd82926b4d251de572692983"
+body_sha: "sha256:5aea00e7f7fab0bcee7b913f8b1ca7917fb4d87dbcea51fb60e48111631e15f7"
+yaml_sha: "sha256:5aea00e7f7fab0bcee7b913f8b1ca7917fb4d87dbcea51fb60e48111631e15f7"
 intent: |
   Remove the hardcoded `3.0-alpha` and `v3.0.0` strings from
   `lib/render.ml`. The site hero, page titles, and footer

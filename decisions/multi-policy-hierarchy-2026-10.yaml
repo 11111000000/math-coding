@@ -1,11 +1,11 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: multi-policy-hierarchy-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:f57caa5c65a12badd7a8711ff2c696891f4e4099b482114205dc089b00bbb33a"
-yaml_sha: "sha256:f57caa5c65a12badd7a8711ff2c696891f4e4099b482114205dc089b00bbb33a"
+body_sha: "sha256:e9f6d87fc6a0e2e2b4b9ae3754f81cbecbac2b70d6b46fbff51e584630eccf75"
+yaml_sha: "sha256:e9f6d87fc6a0e2e2b4b9ae3754f81cbecbac2b70d6b46fbff51e584630eccf75"
 axiom_link:
   - A0
 intent: |

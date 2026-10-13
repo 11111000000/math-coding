@@ -1,8 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: mcp-server-impl-2026-10
 revision: 1
 state: active
+body_sha: "sha256:32cef01023ff53050e10205f432ef0cfe1dc6fc5a06a9b489024a664f2fa077a"
+yaml_sha: "sha256:32cef01023ff53050e10205f432ef0cfe1dc6fc5a06a9b489024a664f2fa077a"
 intent: |
   Land the MCP server stub the Phase-2 deferral
   `mcp-server-impl-pending@1` was waiting for. The

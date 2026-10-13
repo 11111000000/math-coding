@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: site-quality-2026-10
 revision: 1
 state: active
-body_sha: "sha256:6206925b7c475c1c3bfcc0ccb0297ed343927d4056b0e49b87a07e7bb16caa89"
-yaml_sha: "sha256:6206925b7c475c1c3bfcc0ccb0297ed343927d4056b0e49b87a07e7bb16caa89"
+body_sha: "sha256:62c2ed062c411cad7d137206b2aec02b3b2539806a6c081a6d0827cf4ce3be5c"
+yaml_sha: "sha256:62c2ed062c411cad7d137206b2aec02b3b2539806a6c081a6d0827cf4ce3be5c"
 axiom_link:
   - A1
 intent: |

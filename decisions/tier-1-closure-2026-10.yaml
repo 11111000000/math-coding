@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: tier-1-closure-2026-10
 revision: 1
 state: active
-body_sha: "sha256:0cf1b212ec4f3abe038f985cb36514ae4e80752f2fac4014625bbc7cfcb49ea2"
-yaml_sha: "sha256:0cf1b212ec4f3abe038f985cb36514ae4e80752f2fac4014625bbc7cfcb49ea2"
+body_sha: "sha256:cb9007b00ac62ad018346adb59d6949cbdd7b9150b40321f7a7bb2c8e8637080"
+yaml_sha: "sha256:cb9007b00ac62ad018346adb59d6949cbdd7b9150b40321f7a7bb2c8e8637080"
 axiom_link:
   - A1
   - A3

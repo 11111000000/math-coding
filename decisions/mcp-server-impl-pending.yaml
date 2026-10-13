@@ -1,8 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: mcp-server-impl-pending
 revision: 1
 state: active
+body_sha: "sha256:6c96df0b6898b0c1bfff9449fbee21d149c25a593cfd702e23d1afa5f68bc132"
+yaml_sha: "sha256:6c96df0b6898b0c1bfff9449fbee21d149c25a593cfd702e23d1afa5f68bc132"
 intent: |
   Record the deferral of the MCP server obligation to Phase 2
   of the install-tooling-2026-10 work. The MCP adapter split

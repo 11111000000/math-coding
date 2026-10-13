@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: validator-actionable-error
 revision: 1
 state: active
-body_sha: "sha256:9747c3f43051e7b9019c407c6d09192e018277c8a56cf6a7c600983a786c43d4"
-yaml_sha: "sha256:9747c3f43051e7b9019c407c6d09192e018277c8a56cf6a7c600983a786c43d4"
+body_sha: "sha256:e0c25ed6397c7320fe47f2695b91b87e7a8eabe056774bb19511533a1e520edc"
+yaml_sha: "sha256:e0c25ed6397c7320fe47f2695b91b87e7a8eabe056774bb19511533a1e520edc"
 intent: |
   Close D8 (actionable validator error): when `mathc validate FILE`
   rejects a decision because a required top-level field is absent,

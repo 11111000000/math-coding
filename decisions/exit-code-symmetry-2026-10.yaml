@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: exit-code-symmetry
 revision: 1
 state: active
-body_sha: "sha256:d9aa2621e1311a46007f3365cd1131c79ce7e2f4eefc50d0b9b74827ae30ed06"
-yaml_sha: "sha256:d9aa2621e1311a46007f3365cd1131c79ce7e2f4eefc50d0b9b74827ae30ed06"
+body_sha: "sha256:b797d49c5217242d042cb800c93253e96fadf6997bbf900589851a1ea53371f1"
+yaml_sha: "sha256:b797d49c5217242d042cb800c93253e96fadf6997bbf900589851a1ea53371f1"
 axiom_link:
   - A0
   - A1

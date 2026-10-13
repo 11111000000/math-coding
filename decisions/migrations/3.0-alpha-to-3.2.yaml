@@ -1,0 +1,32 @@
+---
+schema: math-coding/migration-manifest
+from: math-coding/3.0-alpha
+to: math-coding/3.2
+intent: |
+  Bring the schema-string on every live decision forward from
+  `math-coding/3.0-alpha` to `math-coding/3.2`. The bump aligns
+  the `schema:` field in decisions/*.yaml with the algebra
+  formalised in `spec/algebra-3.2.md` (which the kernel has
+  implemented since `decisions/algebra-3.2.yaml@1`); the
+  schema-string is the only divergent element left over from the
+  v3.0.0.20 cycles.
+
+  This manifest is the agent's source-of-truth for the bump; a
+  future `mathc migrate --from=math-coding/3.0-alpha
+  --to=math-coding/3.2` invocation re-derives the same
+  per-file plan and would replay the bulk transform
+  deterministically. The bulk application in commit
+  `feat/schema-string-bump-3.2` ran the equivalent transform
+  out-of-band; the recorded manifest is the audit trail.
+
+  This is the first non-trivial migration cycle of
+  `lib/migrate.ml`; until now the only manifest shipped was
+  `decisions/migrations/3.2-to-3.2.1.yaml`, declared empty
+  as a proof-of-mechanism for the new subcommand (per
+  `decisions/migration-mechanism-2026-10.yaml`
+  obligation `first-manifest-declared`).
+
+migrations:
+  - kind: bump-schema-string
+    from: math-coding/3.0-alpha
+    to: math-coding/3.2

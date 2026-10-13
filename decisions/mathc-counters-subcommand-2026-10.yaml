@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: mathc-counters-subcommand-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f7649072bf7d56603933f3e964929e9ff0a6425e83455a845ee10ef0e5edaec9"
-yaml_sha: "sha256:f7649072bf7d56603933f3e964929e9ff0a6425e83455a845ee10ef0e5edaec9"
+body_sha: "sha256:009bace2d912325835067c56140793652a346f192ab743e3319e1a82121ce209"
+yaml_sha: "sha256:009bace2d912325835067c56140793652a346f192ab743e3319e1a82121ce209"
 axiom_link:
   - A0
 intent: |

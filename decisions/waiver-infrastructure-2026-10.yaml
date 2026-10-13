@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: waiver-infrastructure-2026-10
 revision: 1
 state: active
-body_sha: "sha256:89bf2e2bc5ea44370454ad0b157f9248833538293466189d9ee8fb0d30488927"
-yaml_sha: "sha256:89bf2e2bc5ea44370454ad0b157f9248833538293466189d9ee8fb0d30488927"
+body_sha: "sha256:40fd4ea9132495c3ae379ba41c3c7b2ae4fe27aa0cff5fca69918efb32d29628"
+yaml_sha: "sha256:40fd4ea9132495c3ae379ba41c3c7b2ae4fe27aa0cff5fca69918efb32d29628"
 intent: |
   Introduce waiver files (schema `math-coding/waiver-3.0-alpha`)
   as a first-class mechanism to mark specific (decision,

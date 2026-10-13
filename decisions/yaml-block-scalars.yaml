@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: yaml-block-scalars
 revision: 5
 state: active
-body_sha: "sha256:a25505150fb4ac6dad309bd0c367aa360da57f8445f4d0e3bba132fa31c17eb0"
-yaml_sha: "sha256:a25505150fb4ac6dad309bd0c367aa360da57f8445f4d0e3bba132fa31c17eb0"
+body_sha: "sha256:54beba520e4344aef36bdc75dc72795374e83aac8dee7b9b420ef8c66cf71f06"
+yaml_sha: "sha256:54beba520e4344aef36bdc75dc72795374e83aac8dee7b9b420ef8c66cf71f06"
 intent: |
   Close deficit D1 and D2 from doc/AUDIT-0.0.11.md by extending
   lib/codec.ml's hand-rolled YAML loader to recognise `|` and

@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: agent-debug-infrastructure-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f4fc3ac8c70102f6bccfd53d514385d25874edcf73a2447d1e62034a2f62c087"
-yaml_sha: "sha256:f4fc3ac8c70102f6bccfd53d514385d25874edcf73a2447d1e62034a2f62c087"
+body_sha: "sha256:793ddbca38ca69049661298310f8633c973cd0912c58ec06425c9a4d0865e282"
+yaml_sha: "sha256:793ddbca38ca69049661298310f8633c973cd0912c58ec06425c9a4d0865e282"
 intent: |
   Convert OCAML_BEST_PRACTICES.md §11 trap log from a passive
   documentation surface into an active helper for LLM agents

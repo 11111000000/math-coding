@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: spec-cli-catalog
 revision: 2
 state: active
-body_sha: "sha256:3e4068fe87c170d7fef07d5628751a746967a2dce0e9814ffabf932778c9051b"
-yaml_sha: "sha256:3e4068fe87c170d7fef07d5628751a746967a2dce0e9814ffabf932778c9051b"
+body_sha: "sha256:c63773341261fd1b165effe463d2ab7ebd09327fe37d22da152ccfb384b8c543"
+yaml_sha: "sha256:c63773341261fd1b165effe463d2ab7ebd09327fe37d22da152ccfb384b8c543"
 intent: |
   Close the doc/AUDIT-0.0.11.md "Promote `mathc validate`, `mathc
   context`, `mathc assess`, `mathc attest` in `spec/semantics.md`" gap

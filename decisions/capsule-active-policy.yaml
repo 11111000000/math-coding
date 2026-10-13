@@ -1,10 +1,10 @@
 ---
-schema: math-coding/3.0-alpha
+schema: math-coding/3.2
 id: capsule-active-policy
 revision: 2
 state: active
-body_sha: "sha256:44586403d314c923662e7349e375bb3648cb54932578fa1fbcfed88d81870b1a"
-yaml_sha: "sha256:44586403d314c923662e7349e375bb3648cb54932578fa1fbcfed88d81870b1a"
+body_sha: "sha256:7f66128d964a0c048008f9c3cd7dd3fcd90a005e92285ec84cf43702b7e8ca06"
+yaml_sha: "sha256:7f66128d964a0c048008f9c3cd7dd3fcd90a005e92285ec84cf43702b7e8ca06"
 intent: |
   Close the spec/compliance gap noted in critical analysis
   2026-09-27: spec/semantics.md "context-prioritisation"
