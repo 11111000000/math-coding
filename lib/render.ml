@@ -1863,9 +1863,16 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
              <img src=\"assets/human-roles.svg\" \
               alt=\"Human roles vs object kinds: which role touches which of the seven kinds. Author creates, reviewer reviews, operator operates; the kernel handles the rest.\">\n\
              </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-manifesto\">\n\
-             <img src=\"assets/kernel-vs-human.svg\" \
-              alt=\"The boundary between kernel-determined and human-determined. The kernel may check six things; six things only a human may decide. Verbatim from spec/constitution.md section Authority Boundary.\">\n\
+              <figure class=\"mathc-figure mathc-figure-manifesto\">\n\
+              <img src=\"assets/kernel-vs-human.svg\" \
+               alt=\"The boundary between kernel-determined and human-determined. The kernel may check six things; six things only a human may decide. Verbatim from spec/constitution.md section Authority Boundary.\">\n\
+              </figure>\n"
+      | "workflow" ->
+          Printf.sprintf
+            "\n\
+             <figure class=\"mathc-figure mathc-figure-workflow\">\n\
+             <img src=\"assets/bootstrap-timeline.svg\" \
+              alt=\"Bootstrap timeline: v3-alpha-0.0.1 to 8fa7fcf (v3.0.0.19) to today. Manual regime ends at 8fa7fcf; automated regime begins the same commit.\">\n\
              </figure>\n"
       | _ -> ""
     in

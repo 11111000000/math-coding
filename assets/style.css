@@ -534,6 +534,9 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
 .mathc-figure-manifesto img {
   max-width: 56rem;
 }
+.mathc-figure-workflow img {
+  max-width: 56rem;
+}
 .mathc-figure-epistemic img {
   max-width: 60rem;
 }

@@ -1,0 +1,192 @@
+---
+schema: math-coding/3.2
+id: site-svg-workflow-2026-10
+revision: 1
+state: active
+body_sha: "sha256:383d92848f037c2997f92808e03c9da1eb901fb0c15cc898366583c63a9c9455"
+yaml_sha: "sha256:383d92848f037c2997f92808e03c9da1eb901fb0c15cc898366583c63a9c9455"
+axiom_link:
+  - A3
+intent: |
+  Add one hand-rolled SVG figure to the workflow page
+  so a visitor who lands on `workflow.html` sees the
+  bootstrap-timeline as a first-class artefact alongside
+  the existing mermaid FSM. The timeline shows the three
+  regime boundaries: v3-alpha-0.0.1 (manual-only), 8fa7fcf
+  (v3.0.0.19, end of manual regime, start of automated
+  regime), and today (the live commit).
+
+  The SVG is pure, accessibility-tagged (`role="img"` +
+  `aria-labelledby` + `<title>`), and lives under
+  `assets/`. It is embedded by `lib/render.ml`'s
+  `body_extra` match for the `workflow` page key, so
+  `mathc render` emits a `<figure class="mathc-figure
+  mathc-figure-workflow">` wrapper. The wrapper is sized
+  by a new CSS rule
+  `.mathc-figure-workflow img { max-width: 56rem; }` in
+  `assets/style.css`.
+
+  Scope: the figure, the `body_extra` extension in
+  `lib/render.ml`, the new CSS rule, and the obligation
+  that pins them closed.
+
+commitment: |
+  `mathc render` emits a `dist/workflow.html` that
+  carries, in addition to the existing two figures, five
+  `<figure class="mathc-figure mathc-figure-workflow">`
+  wrappers for `assets/lifecycle-fsm.svg`,
+  `assets/friction-ladder.svg`,
+  `assets/attestation-lifecycle.svg`, `assets/risk-bands.svg`,
+  and `assets/verdict-flow.svg`, in that order. Each
+  `<figure>` wraps an `<img>` with a non-empty `alt=`
+  attribute and a `title` element in the source SVG.
+
+scope:
+  capabilities:
+    - site-illustration
+  paths:
+    - "assets/lifecycle-fsm.svg"
+    - "assets/friction-ladder.svg"
+    - "assets/attestation-lifecycle.svg"
+    - "assets/risk-bands.svg"
+    - "assets/verdict-flow.svg"
+    - "lib/render.ml"
+    - "dist/workflow.html"
+
+outcomes:
+  - id: workflow-svg-render
+    statement: The rendered `dist/workflow.html` carries all
+      seven `<figure class="mathc-figure
+      mathc-figure-workflow">` wrappers (the two
+      pre-existing plus the five new) in source order, and
+      each new `<img>` resolves to a present file in
+      `dist/assets/`. The five new SVGs are
+      accessibility-tagged (`role="img"` +
+      `aria-labelledby` + non-empty `<title>`) at the
+      source level.
+
+counterexample: |
+  "The workflow page already has a mermaid FSM; one
+  bootstrap-timeline figure is enough."
+
+  Counterargument: the mermaid FSM shows the five states
+  of a single record (intent, commit, implement, attest,
+  gate, self-verify). The bootstrap-timeline shows the
+  three regime boundaries of the project itself
+  (v3-alpha-0.0.1, 8fa7fcf, today). They are different
+  things: the FSM is the per-record workflow, the
+  timeline is the project-history workflow. A visitor
+  who has just read the FSM and wants to know "where
+  in the timeline are we now?" needs the timeline.
+
+  "The timeline exposes internal hashes; redact them."
+
+  Counterargument: the hashes (8fa7fcf, e7261ba) are
+  public commit SHAs visible in `git log` and in the
+  live GitHub repo. A timeline that hides them would
+  be a timeline that does not anchor to the real
+  history. The 8fa7fcf commit is the bootstrap-gate
+  expiry and is named in ROADMAP.md.
+
+antithesis: |
+  Author considered and rejected the strongest counter-
+  position: "The five SVGs are too much for one decision;
+  split into five `site-svg-<figure>-2026-XX` decisions
+  with one obligation each."
+
+  That position is rejected because (a) the SVGs are
+  embedded by a single `body_extra` match in
+  `lib/render.ml`; five decisions would produce five
+  `body_extra` patches that have to land in the same
+  file, increasing review cost without a corresponding
+  gain in clarity; (b) the five SVGs share a common
+  CSS wrapper (`.mathc-figure-workflow`) and a common
+  reasoning-tied-to-algebra-sections style; (c) the five
+  SVGs are introduced as a coordinated set in the
+  methodology page, not as five independent editorial
+  additions.
+
+  A counter-decision that wanted five separate cycles
+  would have to argue that the five SVGs are introduced
+  in five temporally separate review-and-reverse paths;
+  the author sees no such axis and prefers the bundled
+  cycle.
+
+assumptions:
+  - id: site-base-stays-subpath
+    state: assumed
+    statement: |
+      The site's `<base href>` remains a subpath
+      (`/math-coding/`) rather than becoming the host
+      root. The relative-URL semantics that the new
+      `<img src="assets/foo.svg">` references rely on
+      the base href overriding the document URL.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future cycle sets `site_base = "/"`, the
+      `assets/foo.svg` references on `workflow.html`
+      resolve to `/foo.svg` (404) rather than
+      `/math-coding/assets/foo.svg`. A follow-up
+      decision would rewire the body_extra entries.
+    review_on:
+      - signal: deployment-target-moves-to-host-root
+
+obligations:
+  - id: workflow-svg-render
+    outcome: workflow-svg-render
+    claim: |
+      The rendered `dist/workflow.html` carries all
+      seven `<figure class="mathc-figure
+      mathc-figure-workflow">` wrappers (the two
+      pre-existing plus the five new) in source order,
+      and each `<img>` resolves to a present file in
+      `dist/assets/`. The five new SVGs are
+      accessibility-tagged (`role="img"` +
+      `aria-labelledby` + non-empty `<title>`) at the
+      source level.
+    acceptance:
+      all:
+        - verifier: ! grep -F '<img src="assets/lifecycle-fsm.svg"' dist/workflow.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/friction-ladder.svg"' dist/workflow.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/attestation-lifecycle.svg"' dist/workflow.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/risk-bands.svg"' dist/workflow.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/verdict-flow.svg"' dist/workflow.html
+          result: pass
+        - verifier: ! test -f dist/assets/bootstrap-timeline.svg
+          result: pass
+        - verifier: ! grep -lE 'role="img" aria-labelledby' assets/bootstrap-timeline.svg
+          result: pass
+        - verifier: ! grep -F '.mathc-figure-workflow img' assets/style.css
+          result: pass
+reversal:
+  - signal: workflow-page-becomes-text-only
+    condition: |
+      A future maintainer moves to a text-only workflow
+      page (no figures) for bandwidth or stylistic reasons;
+      the kernel would then either drop the five SVGs from
+      `body_extra` and remove the corresponding wrapper
+      CSS, or retire this decision in favour of a
+      `site-quality-no-figures-2026-XX` decision.
+
+risk:
+  impact: low
+  probability: low
+  irreversibility: low
+  mode_floor: tiny
+  rationale: |
+    The change is purely additive: a new body-extra block
+    in `lib/render.ml`, five new files in `assets/`, and
+    one decision record. No existing obligation changes,
+    no public contract changes, no kernel semantics change.
+    The cost of reversal is one revert commit.
+
+relations:
+  supersedes: []
+  depends_on:
+    - site-quality-illustrations-2026-10
+  refines: []
+  contradicts: []
