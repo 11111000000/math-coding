@@ -86,6 +86,9 @@ sequenced after the install-tooling-2026-10 surface lands.
 - Decision validation against schema (currently parser-only)
 - Multi-policy hierarchy (activation boundary per `spec/semantics.md` §"Protected Policy Transition")
 - **D5: body-vs-wrapper canonicalization in `spec/algebra-3.2.md` §7** (2026-10-05 audit). Phase 4b uses the trivial YAML-only case (both fields = file digest); dual-authored decisions need a formal definition. A3-protected transition when picked up.
+- **`mathc migrate` declarative migration mechanism** (LANDED in v3.2.0-alpha, commit `81afd39` via `decisions/migration-mechanism-2026-10.yaml`). Pure `lib/migrate.ml` parses a `decisions/migrations/<from>-to-<to>.yaml` manifest with a four-kind vocabulary (`rename-field`, `add-field`, `bump-schema-string`, `manual-review`) and emits a per-file plan; the kernel never mutates YAML. First manifest `decisions/migrations/3.2-to-3.2.1.yaml` ships empty (proof-of-mechanism). Outstanding follow-ups still tracked here, NOT in `decisions/migration-mechanism-2026-10.yaml`, because each is itself a separate workstream:
+  - **`--write` mode** that emits a sibling `<file>.migrated.yaml` (preserves the agent-review gate but provides a one-step assist); variant B from the original A/B/C analysis.
+  - **Bump schema-string in all 68 live decisions** from `math-coding/3.0-alpha` to `math-coding/3.2` — A3-protected transition (`schemas/decision.json` enum tightens; each of 68 files' `body_sha` + `yaml_sha` recompute; one new migration manifest becomes non-trivial). Tracked as `reversal-signal: migration-schema-string-bumped` once a decision file under `bootstrap-v3@3` is authored.
 
 ### Tier 3.5 — math-coding 3.2-ideal implementation
 
