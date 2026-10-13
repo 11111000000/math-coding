@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-foundations-2026-10
 revision: 1
 state: active
-body_sha: "sha256:960a12c6ddf00ec91e20a439a35b06605468334b1b8d0a39a85872b8f67dc48d"
-yaml_sha: "sha256:960a12c6ddf00ec91e20a439a35b06605468334b1b8d0a39a85872b8f67dc48d"
+body_sha: "sha256:32a61dc31c78296157f2d6de6236eb121adf3481df30a3643a2037c59a4cbe28"
+yaml_sha: "sha256:32a61dc31c78296157f2d6de6236eb121adf3481df30a3643a2037c59a4cbe28"
 axiom_link:
   - A2
 intent: |
@@ -181,7 +181,21 @@ obligations:
           result: pass
         - verifier: ! grep -F '<img src="assets/waiver-state-machine.svg"' dist/foundations.html
           result: pass
-        - verifier: ! test -f dist/assets/axiom-transition.svg && test -f dist/assets/counterexample-flow.svg && test -f dist/assets/friction-envelope-plot.svg && test -f dist/assets/quality-radar.svg && test -f dist/assets/reasoning-budget.svg && test -f dist/assets/substrate-fingerprint.svg && test -f dist/assets/trust-dynamics.svg && test -f dist/assets/waiver-state-machine.svg
+        - verifier: dist/assets/axiom-transition.svg
+          result: pass
+        - verifier: dist/assets/counterexample-flow.svg
+          result: pass
+        - verifier: dist/assets/friction-envelope-plot.svg
+          result: pass
+        - verifier: dist/assets/quality-radar.svg
+          result: pass
+        - verifier: dist/assets/reasoning-budget.svg
+          result: pass
+        - verifier: dist/assets/substrate-fingerprint.svg
+          result: pass
+        - verifier: dist/assets/trust-dynamics.svg
+          result: pass
+        - verifier: dist/assets/waiver-state-machine.svg
           result: pass
         - verifier: ! grep -lE 'role="img" aria-labelledby' assets/axiom-transition.svg assets/counterexample-flow.svg assets/friction-envelope-plot.svg assets/quality-radar.svg assets/reasoning-budget.svg assets/substrate-fingerprint.svg assets/trust-dynamics.svg assets/waiver-state-machine.svg
           result: pass

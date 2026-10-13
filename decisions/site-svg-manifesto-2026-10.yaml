@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-manifesto-2026-10
 revision: 1
 state: active
-body_sha: "sha256:c469498f5d43f09c3c8d64e8e2f95f644f31d58185b64da27612265253f3c051"
-yaml_sha: "sha256:c469498f5d43f09c3c8d64e8e2f95f644f31d58185b64da27612265253f3c051"
+body_sha: "sha256:227aa60dbc5e612744784c00908185313646c91ed842691ae757f5423ce2d29e"
+yaml_sha: "sha256:227aa60dbc5e612744784c00908185313646c91ed842691ae757f5423ce2d29e"
 axiom_link:
   - A4
 intent: |
@@ -165,8 +165,15 @@ obligations:
           result: pass
         - verifier: ! grep -F '<img src="assets/kernel-vs-human.svg"' dist/manifesto.html
           result: pass
-                - verifier: ! test -f dist/assets/architecture-overview.svg && test -f dist/assets/human-in-the-loop.svg && test -f dist/assets/human-roles.svg && test -f dist/assets/kernel-vs-human.svg
-          result: pass        - verifier: ! grep -lE 'role="img" aria-labelledby' assets/architecture-overview.svg assets/human-in-the-loop.svg assets/human-roles.svg assets/kernel-vs-human.svg
+        - verifier: dist/assets/architecture-overview.svg
+          result: pass
+        - verifier: dist/assets/human-in-the-loop.svg
+          result: pass
+        - verifier: dist/assets/human-roles.svg
+          result: pass
+        - verifier: dist/assets/kernel-vs-human.svg
+          result: pass
+        - verifier: ! grep -lE 'role="img" aria-labelledby' assets/architecture-overview.svg assets/human-in-the-loop.svg assets/human-roles.svg assets/kernel-vs-human.svg
           result: pass
 reversal:
   - signal: manifesto-page-becomes-text-only

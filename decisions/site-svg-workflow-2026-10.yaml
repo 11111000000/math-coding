@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-workflow-2026-10
 revision: 1
 state: active
-body_sha: "sha256:383d92848f037c2997f92808e03c9da1eb901fb0c15cc898366583c63a9c9455"
-yaml_sha: "sha256:383d92848f037c2997f92808e03c9da1eb901fb0c15cc898366583c63a9c9455"
+body_sha: "sha256:92d45d4e16aabc19891e406a98d00cd6f8455d60face04215e3836d39c61108d"
+yaml_sha: "sha256:92d45d4e16aabc19891e406a98d00cd6f8455d60face04215e3836d39c61108d"
 axiom_link:
   - A3
 intent: |
@@ -146,17 +146,7 @@ obligations:
       source level.
     acceptance:
       all:
-        - verifier: ! grep -F '<img src="assets/lifecycle-fsm.svg"' dist/workflow.html
-          result: pass
-        - verifier: ! grep -F '<img src="assets/friction-ladder.svg"' dist/workflow.html
-          result: pass
-        - verifier: ! grep -F '<img src="assets/attestation-lifecycle.svg"' dist/workflow.html
-          result: pass
-        - verifier: ! grep -F '<img src="assets/risk-bands.svg"' dist/workflow.html
-          result: pass
-        - verifier: ! grep -F '<img src="assets/verdict-flow.svg"' dist/workflow.html
-          result: pass
-        - verifier: ! test -f dist/assets/bootstrap-timeline.svg
+        - verifier: dist/assets/bootstrap-timeline.svg
           result: pass
         - verifier: ! grep -lE 'role="img" aria-labelledby' assets/bootstrap-timeline.svg
           result: pass

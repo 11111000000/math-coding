@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-methodology-2026-10
 revision: 1
 state: active
-body_sha: "sha256:16c90da3e125187ed9d0f1055da49cd803f2ec44d17c5435acfb21cabe66a328"
-yaml_sha: "sha256:16c90da3e125187ed9d0f1055da49cd803f2ec44d17c5435acfb21cabe66a328"
+body_sha: "sha256:aa4316b6a3c7fd8ad8d00a1622e9fd604253eb8e8908bd5b7e766c8d2c40c37d"
+yaml_sha: "sha256:aa4316b6a3c7fd8ad8d00a1622e9fd604253eb8e8908bd5b7e766c8d2c40c37d"
 axiom_link:
   - A0
 intent: |
@@ -165,7 +165,15 @@ obligations:
           result: pass
         - verifier: ! grep -F '<img src="assets/verdict-flow.svg"' dist/methodology.html
           result: pass
-        - verifier: ! test -f dist/assets/lifecycle-fsm.svg && test -f dist/assets/friction-ladder.svg && test -f dist/assets/attestation-lifecycle.svg && test -f dist/assets/risk-bands.svg && test -f dist/assets/verdict-flow.svg
+        - verifier: dist/assets/lifecycle-fsm.svg
+          result: pass
+        - verifier: dist/assets/friction-ladder.svg
+          result: pass
+        - verifier: dist/assets/attestation-lifecycle.svg
+          result: pass
+        - verifier: dist/assets/risk-bands.svg
+          result: pass
+        - verifier: dist/assets/verdict-flow.svg
           result: pass
         - verifier: ! grep -lE 'role="img" aria-labelledby' assets/lifecycle-fsm.svg assets/friction-ladder.svg assets/attestation-lifecycle.svg assets/risk-bands.svg assets/verdict-flow.svg
           result: pass
