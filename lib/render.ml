@@ -665,11 +665,30 @@ let[@warning "-32"] sibling_translation_href ~lang ~page_key ~has_ru =
      the Russian source `site/<name>.ru.md` exists. The previous
      unconditional `Some (...)` returned a `<name>.ru.html` URL
      that 404'd for methodology / workflow / faq — visible defect
-     in the audit on 2026-10-07. *)
+     in the audit on 2026-10-07. The `home` page_key is special:
+     `page_key ^ ".html"` would produce `home.html` (which does
+     not exist), so the Russian home page's English sibling is
+     hardcoded to `index.html` — the file the renderer actually
+     ships at the site root. *)
   match lang with
+  | "ru" when page_key = "home" -> Some "index.html"
   | "ru" -> Some (page_key ^ ".html") (* Russian -> English default *)
   | _ when page_key = "home" -> if has_ru then Some "index.ru.html" else None
   | _ -> if has_ru then Some (page_key ^ ".ru.html") else None
+
+(* The canonical upstream GitHub origin. Footer and nav links
+   point here for meta-docs (AGENTS.md, ROADMAP.md, PACKAGES.md,
+   spec/algebra-3.2.md) and the bare repository URL, so the
+   site does not depend on the math-coding HTTP deployment to
+   host these references. The previous footer emitted
+   `../AGENTS.html`, `../ROADMAP.html`, `../PACKAGES.html`,
+   which resolved under `<base href="/math-coding/">` to
+   `/AGENTS.html`, etc. — none of which existed; every footer
+   link was a 404. Per `decisions/site-broken-links-2026-10@1`,
+   those URLs are now GitHub blob URLs. *)
+let github_origin = "https://github.com/11111000000/math-coding"
+
+let github_blob ~path = Printf.sprintf "%s/blob/main/%s" github_origin path
 
 let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~has_ru =
   let buf = Buffer.create 256 in
@@ -690,6 +709,27 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~has_ru =
       Printf.bprintf buf "    <li><a%s href=\"%s\">%s</a></li>\n" cls href label)
     links;
   Buffer.add_string buf "  </ul>\n";
+  (* Persistent GitHub anchor. Lives in the nav on every rendered
+     page so a visitor landing on any non-home page has a top-
+     of-page affordance for the upstream repository. Per
+     `decisions/site-broken-links-2026-10@1`. The icon is an
+     inline SVG to avoid an extra HTTP round-trip; the visible
+     text is "GitHub" so a keyboard-only visitor can reach the
+     link without depending on the SVG's accessibility tree. *)
+  Printf.bprintf buf
+    "  <a class=\"github-link\" href=\"%s\" \
+     aria-label=\"%s\"><svg class=\"github-icon\" viewBox=\"0 0 16 16\" \
+     width=\"20\" height=\"20\" aria-hidden=\"true\" \
+     focusable=\"false\"><path fill=\"currentColor\" \
+     d=\"M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 \
+     0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 \
+     1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 \
+     0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 \
+     2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 \
+     2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 \
+     1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 \
+     8c0-4.42-3.58-8-8-8z\"/></svg><span class=\"github-label\">GitHub</span></a>\n"
+    github_origin "math-coding on GitHub";
   (if enable_lang_toggle then
      match sibling_translation_href ~lang ~page_key ~has_ru with
      | Some h ->
@@ -713,7 +753,11 @@ let[@warning "-32"] render_footer ~lang ~version ~has_ru ~sibling_href =
      The language toggle is only emitted when the page actually
      has a Russian sibling; otherwise the toggle would advertise
      a 404 link. The link target is the sibling's path, computed
-     by the caller via `sibling_translation_href`. *)
+     by the caller via `sibling_translation_href`. The meta-doc
+     anchors (AGENTS.md, ROADMAP.md, PACKAGES.md) and the algebra
+     spec link point at the canonical GitHub blob URL — the
+     GitHub UI renders the markdown so a visitor lands on a
+     rendered page, not raw source. *)
   let lang_link =
     match sibling_href with
     | None -> ""
@@ -721,13 +765,22 @@ let[@warning "-32"] render_footer ~lang ~version ~has_ru ~sibling_href =
         let other_label = if lang = "ru" then "EN" else "RU" in
         Printf.sprintf "<a href=\"%s\">%s</a>" (html_escape href) other_label
   in
+  let agents_href = github_blob ~path:"AGENTS.md" in
+  let roadmap_href = github_blob ~path:"ROADMAP.md" in
+  let packages_href = github_blob ~path:"PACKAGES.md" in
+  let algebra_href = github_blob ~path:"spec/algebra-3.2.md" in
   let site_meta =
     Printf.sprintf
       "<p class=\"site-meta\">%s &middot; <a \
-       href=\"../AGENTS.html\">AGENTS.md</a> &middot; <a \
-       href=\"../ROADMAP.html\">ROADMAP.md</a> &middot; <a \
-       href=\"../PACKAGES.html\">PACKAGES.md</a>%s%s</p>\n"
+       href=\"%s\">AGENTS.md</a> &middot; <a \
+       href=\"%s\">ROADMAP.md</a> &middot; <a \
+       href=\"%s\">PACKAGES.md</a> &middot; <a \
+       href=\"%s\">spec/algebra-3.2.md</a>%s%s</p>\n"
       (html_escape version)
+      (html_escape agents_href)
+      (html_escape roadmap_href)
+      (html_escape packages_href)
+      (html_escape algebra_href)
       (if lang_link = "" then "" else " &middot; ")
       lang_link
   in
