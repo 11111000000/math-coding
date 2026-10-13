@@ -1,0 +1,32 @@
+---
+schema: math-coding/3.2
+id: sample-a
+revision: 1
+state: active
+intent: |
+  Synthetic decision fixture used by tests/cli/migrate-dry-run.t.
+  This file declares schema: math-coding/3.2 and DOES NOT carry a
+  counterexample field, so the migration manifest
+  tests/cli/fixtures/migrate/migrations/3.2-to-3.2.1.yaml should
+  surface an add-field action for it.
+commitment: |
+  Be a fixture that demonstrates the planner emits add-field
+  actions only for files that lack the target field.
+scope:
+  paths:
+    - tests/cli/fixtures/migrate/a.yaml
+outcomes:
+  - id: fixture-purpose
+    statement: tests/cli/migrate-dry-run.t uses this file.
+obligations:
+  - id: fixture-non-empty
+    statement: At least one obligation is required to satisfy schema validation.
+    outcome: fixture-purpose
+    acceptance:
+      all:
+        - verifier: tests/cli/migrate-dry-run.t
+          result: pass
+risk:
+  declared_triggers:
+    - fixture-removal
+  owner: human:maintainer

@@ -21,5 +21,6 @@
   render
   risk
   waiver
-  forge)
+  forge
+  migrate)
  (libraries str unix))

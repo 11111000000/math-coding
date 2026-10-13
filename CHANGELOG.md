@@ -29,6 +29,24 @@ machine-readable reversal signals.
 
 ### Added
 
+- `decisions/migration-mechanism-2026-10.yaml` (rev 1) —
+  declarative, kernel-observed migration mechanism. New
+  `mathc migrate --from=X --to=Y [--root=DIR]
+  [--format=text|json] [--explain] [--manifest=PATH]`
+  subcommand backed by pure `lib/migrate.ml`. The kernel
+  never mutates decision files; it reads a migration manifest
+  under `decisions/migrations/<from>-to-<to>.yaml` and prints
+  a per-file plan listing the auto-translatable transforms
+  (rename-field, add-field, bump-schema-string) plus any
+  manual-review items. First manifest shipped:
+  `decisions/migrations/3.2-to-3.2.1.yaml` (empty list, a
+  no-op proof of the mechanism against the future schema-string
+  bump). Cram fixtures: `tests/cli/migrate-{dry-run,
+  no-changes,malformed}.t` plus the synthetic tree at
+  `tests/cli/fixtures/migrate/`. Removes
+  `scripts/migrate-decisions-3.2.py` and
+  `scripts/migrate-decisions-3.2-phase2.py`; their git history
+  at `a215ef9` / `e21fdf0` is the audit trail.
 - `decisions/install-tooling-2026-10.yaml` — A3-protected
   meta-decision that introduces the four install channels
   (release binary / docker image / nix run / source build)

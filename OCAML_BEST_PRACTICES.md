@@ -2020,3 +2020,30 @@ is a smell; the regression pin lives in
 
 Cited from `decisions/multi-policy-hierarchy-2026-10.yaml`
 (assumptions: `child-zero-does-not-erase-parent`).
+
+### 11.31 Schema take_object cannot extract a YAML list value
+
+**Symptom.** `lib/migrate.ml::parse_manifest_yaml` calls
+`Schema.take_object pairs "migrations"` expecting to get the
+nested object body, but `Schema.take_object` is typed as
+returning `(string * value) list` — it matches only
+`Jsonl.Object` values. The `migrations:` key in a migration
+manifest is a YAML list (`Jsonl.Array`), so `take_object`
+returns `None` and the parser silently treats the manifest as
+having zero migrations. The error surfaces only at runtime as
+"plan emits zero actions when it should emit two"; the kernel
+does not reject the manifest at parse-time.
+
+**Fix.** Use `Schema.take_array pairs "migrations"` (matches
+`Jsonl.Array xs -> Some xs`) instead of `take_object`. The
+two helpers look interchangeable but differ on the JSON
+discriminator; a glance at `lib/schema.ml:23-27` makes the
+distinction obvious. The kernel's `parse_manifest_yaml` was
+reworked end-to-end in this revision to use `take_array`.
+
+**Trigger.** Any new kernel parser that reads a YAML list at
+a top-level key and treats it as an object. Cited from
+this session (2026-10-13) as the trigger for
+`decisions/migration-mechanism-2026-10.yaml`. Referenced
+from that decision's `commitment` block and the §11 trap
+log.

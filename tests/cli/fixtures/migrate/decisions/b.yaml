@@ -1,0 +1,36 @@
+---
+schema: math-coding/3.2.1
+id: sample-b
+revision: 1
+state: active
+intent: |
+  Synthetic decision fixture used by tests/cli/migrate-dry-run.t.
+  This file already declares schema: math-coding/3.2.1 (post-migration)
+  AND already carries a `counterexample` field with a non-empty value,
+  so the same manifest should produce zero actions for it.
+commitment: |
+  Be a fixture that demonstrates the planner is idempotent: a file
+  already at the target schema-string with all required fields
+  produces a plan with actions=[].
+scope:
+  paths:
+    - tests/cli/fixtures/migrate/b.yaml
+outcomes:
+  - id: fixture-purpose
+    statement: tests/cli/migrate-dry-run.t uses this file.
+obligations:
+  - id: fixture-non-empty
+    statement: At least one obligation is required to satisfy schema validation.
+    outcome: fixture-purpose
+    acceptance:
+      all:
+        - verifier: tests/cli/migrate-dry-run.t
+          result: pass
+risk:
+  declared_triggers:
+    - fixture-removal
+  owner: human:maintainer
+counterexample: |
+  Planners that re-surface "add counterexample" for files that
+  already have one would produce useless churn. The dry-run
+  fixture proves that does not happen.

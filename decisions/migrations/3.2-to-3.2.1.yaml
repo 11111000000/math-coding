@@ -1,0 +1,24 @@
+---
+schema: math-coding/migration-manifest
+from: math-coding/3.2
+to: math-coding/3.2.1
+intent: |
+  Forward-looking migration manifest for the planned schema-string bump
+  from `math-coding/3.2` to `math-coding/3.2.1`. Declared empty as a
+  proof-of-mechanism (see decisions/migration-mechanism-2026-10.yaml
+  obligation `first-manifest-declared`): the next migration cycle will
+  populate this list when 3.2.1 introduces its first non-trivial
+  change. Today the live tree is still at `math-coding/3.0-alpha`, so
+  this manifest matches nothing in the live tree; `mathc migrate
+  --from=math-coding/3.2 --to=math-coding/3.2.1` over the live tree
+  emits a per-file warning that the live tree's schema-string does not
+  match `from`. That behavior is correct: agents must reconcile the
+  schema-string bump separately before applying any 3.2 -> 3.2.1
+  transforms.
+
+  Migration vocabulary (see lib/migrate.ml):
+    - rename-field
+    - add-field
+    - bump-schema-string
+    - manual-review
+migrations: []

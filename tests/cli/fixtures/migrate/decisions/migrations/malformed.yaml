@@ -1,0 +1,11 @@
+---
+schema: math-coding/migration-manifest
+from: math-coding/3.2
+to: math-coding/3.2.1
+intent: |
+  NEGATIVE fixture: unknown migration kind. Tests that
+  lib/migrate.ml::parse_migration refuses unknown kinds
+  with a parse error containing the offending kind name.
+migrations:
+  - kind: quantum-flip
+    field: lucky

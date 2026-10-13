@@ -3822,6 +3822,161 @@ let[@warning "-32"] do_packages () =
   | `Json -> print_endline (Jsonl.stringify (Packages.to_json pkg))
   | `Html -> print_string (Packages.to_html pkg)
 
+(* mathc migrate — declarative, kernel-observed migration plan.
+ *
+ * The kernel NEVER mutates decision files on disk. It only:
+ *   1. reads the migration manifest,
+ *   2. walks the requested root for *.yaml files,
+ *   3. prints a per-file plan (text or JSON) describing what each
+ *      file would need under the manifest.
+ * An agent (or human) does the actual edit, then re-runs
+ * `mathc validate` to confirm. This isolates the kernel's role:
+ * it only describes; the agent decides whether and how to act.
+ *
+ * Flags:
+ *   --from=X         (required unless --manifest is set explicitly)
+ *   --to=Y           (required unless --manifest is set explicitly)
+ *   --manifest=PATH  (override; defaults to
+ *                     <root>/decisions/migrations/<from>-to-<to>.yaml)
+ *   --root=DIR       (defaults to the project root)
+ *   --format=text|json
+ *   --explain        (also print the manifest's intent before the plan)
+ *
+ * Exit codes follow OCAML_BEST_PRACTICES.md §4.3:
+ *   0  plan emitted (success); warnings inside the plan do not change exit
+ *   2  input error (missing flag, manifest parse failure, no manifest file)
+ *)
+let[@warning "-32"] do_migrate () =
+  Arg.current := 1;
+  let from_arg = ref (None : string option) in
+  let to_arg = ref (None : string option) in
+  let manifest_override = ref (None : string option) in
+  let root_arg = ref "" in
+  let output_format = ref `Text in
+  let explain_flag = ref false in
+  let set_from s = from_arg := Some s in
+  let set_to s = to_arg := Some s in
+  let set_manifest s = manifest_override := Some s in
+  let set_root s = root_arg := s in
+  let set_format s =
+    match s with
+    | "text" -> output_format := `Text
+    | "json" -> output_format := `Json
+    | _ ->
+        Printf.fprintf stderr "mathc migrate: unknown --format: %s\n" s;
+        exit 2
+  in
+  let set_explain () = explain_flag := true in
+  (try
+     Arg.parse
+       [
+         ("--from", Arg.String set_from, "source schema-string (e.g. math-coding/3.2)");
+         ("--to", Arg.String set_to, "target schema-string (e.g. math-coding/3.2.1)");
+         ("--manifest", Arg.String set_manifest, "override manifest path");
+         ("--root", Arg.String set_root, "root directory (defaults to project root)");
+         ("--format", Arg.String set_format, "output format (text|json)");
+         ("--explain", Arg.Unit set_explain, "print manifest intent before the plan");
+       ]
+       (fun _ -> ())
+       "usage: mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json] [--explain] [--manifest=PATH]"
+   with
+   | Arg.Bad m ->
+       Printf.fprintf stderr "mathc migrate: %s\n" m;
+       exit 2
+   | Arg.Help _ ->
+       print_string
+         "mathc migrate: read a migration manifest, walk *.yaml files, \
+          print a per-file plan. The kernel never mutates files. \
+          Re-run `mathc validate` after applying any edits.\n";
+       exit 0);
+  let project_root = find_project_root (Sys.getcwd ()) in
+  let root =
+    if !root_arg = "" then project_root
+    else if Filename.is_relative !root_arg then
+      Filename.concat project_root !root_arg
+    else !root_arg
+  in
+  let manifest_path =
+    match !manifest_override with
+    | Some p ->
+        (* `--manifest=PATH` is resolved against the project root
+           when given as a relative path, NOT against `--root`, so
+           that fixtures under `tests/cli/fixtures/...` can pass
+           paths relative to the project root while still
+           constraining `--root` to a small synthetic tree. *)
+        if Filename.is_relative p then Filename.concat project_root p
+        else p
+    | None -> begin
+        match !from_arg, !to_arg with
+        | Some f, Some t ->
+            let strip_ns s =
+              let prefix = "math-coding/" in
+              let slen = String.length s in
+              let plen = String.length prefix in
+              if slen > plen && String.sub s 0 plen = prefix then
+                String.sub s plen (slen - plen)
+              else s
+            in
+            let safe s =
+              String.map
+                (function
+                  | '/' | ':' | ' ' -> '-'
+                  | c -> c)
+                s
+            in
+            let fname =
+              (safe (strip_ns f)) ^ "-to-" ^ (safe (strip_ns t)) ^ ".yaml"
+            in
+            Filename.concat project_root
+              (Filename.concat "decisions/migrations" fname)
+        | _ ->
+            Printf.fprintf stderr
+              "mathc migrate: either --manifest=PATH or both --from=X and --to=Y are required\n";
+            exit 2
+      end
+  in
+  if not (Sys.file_exists manifest_path) then begin
+    Printf.fprintf stderr
+      "mathc migrate: manifest not found: %s\n" manifest_path;
+    exit 2
+  end;
+  let reader path = In_channel.with_open_bin path In_channel.input_all in
+  let manifest_res = Migrate.parse_manifest_yaml ~reader ~path:manifest_path in
+  let manifest =
+    match manifest_res with
+    | Migrate.Parsed m -> m
+    | Migrate.Parse_error e ->
+        Printf.fprintf stderr "mathc migrate: %s\n" e;
+        exit 2
+  in
+  if !explain_flag then
+    Printf.printf "manifest %s -> %s\n  intent: %s\n\n"
+      manifest.from manifest.to_ manifest.intent;
+  let decisions_dir = Filename.concat root "decisions" in
+  let yaml_files =
+    if Sys.file_exists decisions_dir then
+      Array.to_list
+        (Sys.readdir decisions_dir)
+      |> List.filter (fun n -> Filename.check_suffix n ".yaml")
+      |> List.map (fun n -> Filename.concat decisions_dir n)
+    else []
+  in
+  let plans =
+    List.map
+      (fun path ->
+        let content = reader path in
+        Migrate.plan_file ~manifest ~file:path ~content)
+      yaml_files
+  in
+  match !output_format with
+  | `Text ->
+      if plans = [] then
+        Printf.printf "no .yaml files found under %s\n" decisions_dir
+      else
+        print_string (Migrate.render_text plans)
+  | `Json ->
+      print_endline (Jsonl.stringify (Migrate.render_json plans))
+
 let dispatch () =
   if Array.length Sys.argv < 2 then begin
     print_usage stderr;
@@ -3861,6 +4016,7 @@ let dispatch () =
   | "packages" -> do_packages ()
   | "render" -> do_render ()
   | "counters" -> do_counters ()
+  | "migrate" -> do_migrate ()
   | "--help" | "-h" ->
       print_usage stdout;
       exit 0

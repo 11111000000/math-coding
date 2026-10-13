@@ -1,0 +1,16 @@
+---
+schema: math-coding/migration-manifest
+from: math-coding/3.2
+to: math-coding/3.2.1
+intent: |
+  Demo manifest for tests/cli/migrate-dry-run.t. Demonstrates
+  two auto-translatable transforms:
+    - add-field counterexample for files that lack it
+    - bump-schema-string from 3.2 to 3.2.1
+migrations:
+  - kind: add-field
+    path: counterexample
+    default: "(none on file)"
+  - kind: bump-schema-string
+    from: math-coding/3.2
+    to: math-coding/3.2.1

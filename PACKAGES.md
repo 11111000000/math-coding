@@ -162,6 +162,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/agent-debug-infrastructure-2026-10.yaml` | `agent-debug-infrastructure-2026-10` | 1 | 4 | META | scripts/agent-debug + tests/traps.ml + tests/qcheck_parsers.ml + Jsonl.Parse_error verbosity; not counted as active decision (dev-infra, no kernel surface) |
 | `decisions/merlin-lsp-2026-10.yaml` | `merlin-lsp-2026-10` | 1 | 3 | META | hand-written `.merlin` + `ocaml-lsp` + `merlin` in `flake.nix` ocamlDeps; not counted as active decision (dev-infra, no kernel surface) |
 | `decisions/junit-entity-off-by-one-fix-2026-10.yaml` | `junit-entity-off-by-one-fix-2026-10` | 1 | 3 | RESOLVED | off-by-one in `lib/junit/junit.ml:74-90` entity-reference boundary check; `tests/junit_test.ml` regression; new §11.23 trap |
+| `decisions/migration-mechanism-2026-10.yaml` | `migration-mechanism` | 1 | 5 | RESOLVED | `mathc migrate --from=X --to=Y [--root=DIR] [--format=text\|json] [--explain] [--manifest=PATH]` is a new declarative subcommand in `bin/Mathc.ml` backed by pure `lib/migrate.ml`; the kernel never mutates YAML on disk, it only reads a `decisions/migrations/<from>-to-<to>.yaml` manifest and prints a per-file plan; ships the first manifest `decisions/migrations/3.2-to-3.2.1.yaml` as a no-op proof-of-mechanism; deletes `scripts/migrate-decisions-3.2.py` and `scripts/migrate-decisions-3.2-phase2.py` (their git history at `a215ef9`/`e21fdf0` is the audit trail); fixtures: `tests/cli/migrate-{dry-run,no-changes,malformed}.t` plus `tests/cli/fixtures/migrate/` |
 | `decisions/plan-2026-10-improvements/t4-2.yaml` | `t4-2-explain-diagnostic` | 1 | 2 | RESOLVED | Tier-4 #2: `mathc explain-diagnostic <CODE>` subcommand; registry in `lib/diagnostic.ml::explain`; positive+negative cram fixture |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
@@ -241,6 +242,9 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 | `render.t` | render produces the full dist/ tree | `decisions/site-deploy.yaml` |
 | `render-mathjax-spec.t` | mathc render emits MathJax 3 deferred on spec pages (T5.2) | `decisions/plan-2026-10-improvements.yaml` |
 | `applicability-envelope.t` | applicability decision tree surfaces in docs | `decisions/algebra-3.2.yaml` |
+| `migrate-dry-run.t` | `mathc migrate --manifest=PATH --format=json` emits auto-translatable plan per file | `decisions/migration-mechanism-2026-10.yaml` |
+| `migrate-no-changes.t` | `mathc migrate` on a tree already at the target schema is a no-op | `decisions/migration-mechanism-2026-10.yaml` |
+| `migrate-malformed.t` | `mathc migrate` rejects unknown migration kind + incomplete rename-field with exit 2 | `decisions/migration-mechanism-2026-10.yaml` |
 
 ## Process-principles test (`tests/process_principles.ml`)
 
@@ -288,6 +292,7 @@ is registered through `git config core.hooksPath`.
 | `rebuttal.ml` (v3.2 NEW) | Hybrid rebuttal mechanism (sibling `rebuttals/<sha>.yaml` + forge mirror + trust binding) | No (alg §10) |
 | `re_evaluation.ml` (v3.2 NEW) | `re_evaluate(d, A_new)` oracle returning `Compatible | Inconclusive | StaleClaim` | No (alg §17) |
 | `waiver.ml` (2026-10) | Waiver consult step: `Open_with_waiver` mapping in `lib/gate.ml` | No |
+| `migrate.ml` (2026-10) | Migration manifest parser + per-file planner; pure, no I/O; drives `mathc migrate` (read-only side: the kernel never writes to decision files) | No |
 | `git/git_diff.ml` | `git diff --name-only` wrapper | Yes (syscall) |
 | `junit/junit.ml` | JUnit XML parser | No (pure on strings) |
 
@@ -295,7 +300,7 @@ is registered through `git config core.hooksPath`.
 
 | Module | Purpose |
 |---|---|
-| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, explain-diagnostic, assess, attest, gate, version, session-start, record, stats, time-estimate, self-check, render, packages, mode, rebuttals, re-evaluate, re-evaluate-decisions) — 19 subcommands total |
+| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, explain-diagnostic, assess, attest, gate, version, session-start, record, stats, time-estimate, self-check, render, packages, mode, rebuttals, re-evaluate, re-evaluate-decisions, **migrate**) — 20 subcommands total |
 | `data/time-distribution.yaml` | SWE-bench Verified (n=500, 2025-Q4) reference class for `mathc time-estimate` |
 
 ## Adapter protocol (`lib/git/`, `lib/junit/`)
