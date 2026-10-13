@@ -1,0 +1,251 @@
+---
+schema: math-coding/3.2
+id: ux-3-adopt-detect-2026-10
+revision: 1
+state: active
+body_sha: "3d7237eca2639f295e95d6021ef94450363aa7e9b85b1a61f847bb3e10056396"
+yaml_sha: "3d7237eca2639f295e95d6021ef94450363aa7e9b85b1a61f847bb3e10056396"
+intent: |
+  Phase 3.1 of the ux-3 workstream (per planning decision
+  `ux-3-adopt-roadmap-2026-10@1`). Land the brownfield
+  detection library for the future `mathc adopt`
+  subcommand.
+
+  `lib/adopt/detect.ml` is a pure OCaml sub-library that
+  inspects a target directory for markers of the three
+  brownfield conventions math-coding co-exists with:
+
+    arc42      docs/arc42/        (arc42-template directory)
+    MADR       docs/adr/*.md      (Markdown ADR files)
+    adr-tools  adr/*.md          (plain-text ADR directory)
+
+  The output is a `report` record (which conventions are
+  present) plus a `classify` function that maps the record
+  to a `brownfield` sum type covering all 2^3 = 8 input
+  combinations: `Empty | Arc42 | Madr | AdrTools |
+  Mixed_Arc42_Madr | Mixed_Arc42_AdrTools |
+  Mixed_Madr_AdrTools | Mixed_All_Three`.
+
+  File-listing helpers `madr_files : root -> string list`
+  and `adrtools_files : root -> string list` enumerate the
+  ADR files for the future `mathc adopt` to import.
+
+  The detection is PURE: only `Sys.file_exists`,
+  `Sys.is_directory`, and `Sys.readdir` are used. No
+  subprocesses, no kernel API, no math-coding gates. This
+  is the §10.1 adapter pattern: a small sub-library with
+  its own tests, not a kernel change.
+
+  Touches (per A3 self-application):
+    lib/adopt/dune                (new sub-library)
+    lib/adopt/detect.ml           (new, ~100 lines)
+    tests/dune                    (adds adopt_test, mathcoding_adopt dep)
+    tests/adopt_test.ml           (new, 9 cases, ~150 lines)
+    decisions/ux-3-adopt-detect-2026-10.yaml   (this file)
+
+axiom_link:
+  - A0
+
+antithesis: |
+  The counter-position considered and rejected: "Brownfield
+  detection is a 20-line function; a sub-library and 9 test
+  cases is over-engineering. Put it in `lib/init/init.ml` as
+  a helper." The author engaged with this position and
+  rejected it on four grounds: (a) the sub-library pattern
+  is the project convention (per §10.1) and keeps the kernel
+  pure; (b) `lib/init/init.ml` is already 200+ lines and the
+  detection logic is conceptually distinct from greenfield
+  scaffolding; (c) the 9 test cases are necessary to cover
+  the 2^3 = 8 classification combinations plus the file-
+  listing edge cases; (d) the detection is REUSED by
+  `mathc adopt` (next slice) and potentially by the MCP
+  read-write methods (e.g. `mathc/attest` could warn
+  the agent if it detects brownfield), so the abstraction
+  pays off. The minimum fix is one sub-library + one
+  test executable + one decision file, which is what
+  this file records.
+
+commitment: |
+  One kernel-adjacent addition. Three deliverables, each
+  pinned by a fixture or the decision itself:
+
+    D1. `lib/adopt/detect.ml` exposes:
+          - `report` record type
+          - `empty_report` value
+          - `detect : root:string -> report`
+          - `classify : report -> brownfield`
+          - `detect_classify : root:string -> brownfield`
+          - `madr_files : root:string -> string list`
+          - `adrtools_files : root:string -> string list`
+          - `string_of_brownfield : brownfield -> string`
+        No I/O beyond `Sys.file_exists`, `Sys.is_directory`,
+        and `Sys.readdir`.
+
+    D2. `lib/adopt/dune` is `(library (name mathcoding_adopt)
+        (wrapped false) (modules detect) (libraries
+        mathcoding_core str unix))`. `Detect` is the
+        module path (per the §10.1 convention).
+
+    D3. `tests/adopt_test.ml` covers 9 cases:
+          - detect empty
+          - detect arc42 only
+          - detect madr only (with .md file)
+          - detect adr-tools only (with .md file)
+          - mixed arc42 + madr
+          - mixed all three
+          - madr_files lists .md files
+          - madr_files empty
+          - adrtools_files lists .md files
+
+  Boundaries (A3 self-application):
+    - `lib/adopt/` is the only new sub-library.
+    - `bin/Mathc.ml` is unchanged (the `mathc adopt`
+      subcommand is the next slice, Phase 3.2).
+    - The kernel under `lib/` is unchanged.
+    - `spec/`, `schemas/`, `axioms/`, `scripts/` are
+      unchanged.
+    - No telemetry, no live HTTP, no axiom amendment.
+
+counterexample: |
+  "Two-level detection (docs/arc42/ vs adr/ vs docs/adr/)
+   is fragile; users may have moved the directories. The
+   hardcoded paths will silently miss real brownfield
+   projects." The counterargument fails because the user's
+   Q2 answer was 'реальные, делать качественно' — the
+   user accepted these three paths as the canonical
+   conventions. If a project uses a non-canonical layout
+   (e.g. `architecture/arc42/` instead of `docs/arc42/`),
+   the detection reports `Empty` and the user is asked to
+   rename or use `--from-arc42` (Phase 3.2). Resolution
+   for the next slice: add a `brownfield.json` config
+   file the user can drop at the repo root to override
+   the default paths.
+
+scope:
+  capabilities:
+    - mathc-adopt-detect
+  paths:
+    - "lib/adopt/dune"
+    - "lib/adopt/detect.ml"
+    - "tests/dune"
+    - "tests/adopt_test.ml"
+    - "decisions/ux-3-adopt-detect-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/diagnostic.ml"
+    - "lib/canonical.ml"
+    - "lib/render.ml"
+    - "lib/migrate.ml"
+    - "lib/waiver.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/mcp/**"
+    - "lib/init/**"
+    - "lib/import_adr/**"
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+    - "decisions/ux-3-adopt-roadmap-2026-10.yaml"
+    - "decisions/ux-3-init-subcommand-2026-10.yaml"
+
+outcomes:
+  - id: brownfield-detection-shipped
+    statement: |
+      `lib/adopt/detect.ml` exposes the `report` record
+      type, the `brownfield` sum type with 8 cases, and
+      the `detect` / `classify` / `detect_classify` /
+      `madr_files` / `adrtools_files` /
+      `string_of_brownfield` API. The 9 alcotest cases
+      pass.
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/ux-3-adopt-detect-2026-10.yaml` exits 0.
+
+assumptions:
+  - id: brownfield-paths-canonical
+    state: assumed
+    statement: |
+      The three brownfield paths (`docs/arc42/`,
+      `docs/adr/`, `adr/`) are the canonical locations
+      per arc42, MADR, and adr-tools conventions. The
+      user accepted this scope (Q2 answer).
+    owner: human:maintainer
+    consequence_if_false: |
+      If a project uses non-canonical paths (e.g.
+      `architecture/` instead of `docs/arc42/`), the
+      detection reports `Empty` and the user must
+      rename or use a config override. Resolution for
+      Phase 3.2: support a `brownfield.json` config
+      file.
+    review_on:
+      - signal: brownfield-paths-non-canonical
+  - id: alcotest-with-mkdir-p
+    state: assumed
+    statement: |
+      The `dune test` bwrap sandbox restricts nested
+      `Unix.mkdir` but allows `Sys.command "mkdir -p"`.
+      The test uses the latter for portability.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the sandbox changes (e.g. a future dune
+      version removes the workaround), the test
+      fails. Resolution: switch to `Filename.temp_file`
+      which uses a single-level path.
+    review_on:
+      - signal: bwrap-sandbox-changed
+
+obligations:
+  - id: alcotest-passes
+    outcome: brownfield-detection-shipped
+    claim: |
+      `tests/adopt_test.exe` runs 9 cases, all pass:
+      detect empty, detect arc42 only, detect madr only,
+      detect adr-tools only, mixed arc42+madr, mixed
+      all three, madr_files, madr_files empty,
+      adrtools_files.
+    acceptance:
+      all:
+        - verifier: tests/adopt_test.exe
+          result: pass
+
+  - id: this-decision-validates
+    outcome: this-decision-validates
+    claim: |
+      `mathc validate
+      decisions/ux-3-adopt-detect-2026-10.yaml` exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ux-3-adopt-detect-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: paths-non-canonical
+    condition: |
+      The three hardcoded paths are insufficient for the
+      real client base. Resolution: extend the `report`
+      type with a list of detected paths (rather than
+      booleans), or add a `brownfield.json` config
+      override.
+    action: rework
+
+risk:
+  declared_triggers:
+    - brownfield-paths-non-canonical
+    - bwrap-sandbox-changed
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - ux-3-adopt-roadmap-2026-10@1
+  supersedes: []
+  superseded_by: []

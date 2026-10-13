@@ -16,6 +16,7 @@
   ; tests/counters_drift.exe; the (tests) stanza simply
   ; omits it. See decisions/disable-counters-drift-test-2026-10.yaml.
   waiver_test
+  adopt_test
   confidence_preserve
   fixture_coverage
   identity_uniqueness
@@ -28,6 +29,7 @@
   diagnostic_ux)
  (libraries
   mathcoding_core
+  mathcoding_adopt
   mathcoding_attestations
   mathcoding_junit
   alcotest
