@@ -167,6 +167,17 @@ let allowed_methods =
     "mathc/re-evaluate";
     "mathc/rebuttals";
     "mathc/self-check";
+    (* Read-write methods (decision ux-3-mcp-read-write-2026-10).
+     * These produce side effects: gate/attest append to
+     * attestations/, record appends to
+     * decisions/execution-logs.jsonl, re-evaluate-decisions
+     * walks decisions/ and emits new attestations. The MCP
+     * server is local (stdio), so the caller is a trusted
+     * AI agent (opencode / Claude Code / etc.). *)
+    "mathc/gate";
+    "mathc/attest";
+    "mathc/record";
+    "mathc/re-evaluate-decisions";
   ]
 
 let is_allowed_method (m : string) : bool = List.mem m allowed_methods
@@ -223,7 +234,50 @@ let build_rebuttals (params : Jsonl.value option) :
 
 let build_self_check (_params : Jsonl.value option) :
     (string list, Protocol.rpc_error) result =
-  Ok [ "self-check" ]
+  Ok [ "self-check"; "--format=json" ]
+
+let build_gate (params : Jsonl.value option) :
+    (string list, Protocol.rpc_error) result =
+  match
+    (Protocol.string_param params "base",
+     Protocol.string_param params "head")
+  with
+  | Ok b, Ok h -> Ok [ "gate"; b; h; "--format=json" ]
+  | Error e, _ -> Error e
+  | _, Error e -> Error e
+
+let build_attest (params : Jsonl.value option) :
+    (string list, Protocol.rpc_error) result =
+  match Protocol.string_param params "path" with
+  | Ok p -> Ok [ "attest"; p ]
+  | Error e -> Error e
+
+let build_record (params : Jsonl.value option) :
+    (string list, Protocol.rpc_error) result =
+  (* `mathc record --decision-id ID --scale S [--class C] [--value N]`.
+   * The MCP caller must supply decision-id and scale; class and
+   * value are optional. We forward whatever is present. *)
+  match Protocol.string_param params "decision_id" with
+  | Error e -> Error e
+  | Ok did ->
+      let argv = ref [ "record"; "--decision-id"; did ] in
+      (match Protocol.string_param params "scale" with
+       | Ok s -> argv := !argv @ [ "--scale"; s ]
+       | Error _ -> ());
+      (match Protocol.string_param params "class" with
+       | Ok c -> argv := !argv @ [ "--class"; c ]
+       | Error _ -> ());
+      (match Protocol.string_param params "value" with
+       | Ok v -> argv := !argv @ [ "--value"; v ]
+       | Error _ -> ());
+      Ok !argv
+
+let build_re_evaluate_decisions (params : Jsonl.value option) :
+    (string list, Protocol.rpc_error) result =
+  match Protocol.string_param params "axiom_id" with
+  | Ok a -> Ok [ "re-evaluate-decisions"; a ]
+  | Error e -> Error e
+
 
 (* --- argv dispatch --- *)
 
@@ -237,6 +291,10 @@ let build_argv (req : Protocol.request) :
   | "mathc/re-evaluate" -> build_re_evaluate req.params
   | "mathc/rebuttals" -> build_rebuttals req.params
   | "mathc/self-check" -> build_self_check req.params
+  | "mathc/gate" -> build_gate req.params
+  | "mathc/attest" -> build_attest req.params
+  | "mathc/record" -> build_record req.params
+  | "mathc/re-evaluate-decisions" -> build_re_evaluate_decisions req.params
   | m ->
       Error
         {
@@ -279,7 +337,7 @@ let parse_or_echo (req : Protocol.request) (raw : string) : Jsonl.value =
 let handle (req : Protocol.request) : Protocol.response =
   if not (is_allowed_method req.method_) then
     Protocol.response_error ~id:req.id Protocol.method_not_found_code
-      (Printf.sprintf "Method not found: \"%s\" (only mathc/{validate,explain,packages,mode,re-evaluate,rebuttals,self-check} are exposed by the MCP stub)" req.method_)
+      (Printf.sprintf "Method not found: \"%s\" (only mathc/{validate,explain,packages,mode,re-evaluate,rebuttals,self-check,gate,attest,record,re-evaluate-decisions} are exposed by the MCP server)" req.method_)
   else
     let program = find_mathc () in
     match build_argv req with
