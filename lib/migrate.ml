@@ -353,3 +353,210 @@ let plan_to_json (p : file_plan) : Jsonl.value =
 
 let render_json (plans : file_plan list) : Jsonl.value =
   Jsonl.Array (List.map plan_to_json plans)
+
+(* --- apply_actions: text-level edits for --write mode ---------------- *)
+
+(* True iff `line` (which has had leading whitespace stripped)
+   starts with the YAML scalar key `key:` followed by either
+   end-of-line or a single space. Anchors to the start of the
+   stripped line so we don't pick up keys embedded inside
+   block scalars. *)
+let line_starts_with_key line key =
+  let n = String.length line in
+  let kl = String.length key in
+  if n < kl + 1 then false
+  else
+    let s = String.sub line 0 kl in
+    if s <> key then false
+    else
+      let c1 = line.[kl] in
+      c1 = ':' || c1 = ' ' || c1 = '\t'
+
+let trim_leading_ws line =
+  let rec loop i =
+    if i >= String.length line then i
+    else
+      match line.[i] with
+      | ' ' | '\t' -> loop (i + 1)
+      | _ -> i
+  in
+  loop 0
+
+(* Apply a single action to one line. Returns Some new_line if
+   the action applied to this line; None if no edit was made.
+   The caller passes `line` verbatim (no leading-whitespace
+   stripping); we strip internally so block-scalar continuations
+   (which start with whitespace) are not mistaken for keys. *)
+let apply_one_to_line action line =
+  let stripped_pos = trim_leading_ws line in
+  let stripped =
+    if stripped_pos = 0 then line
+    else String.sub line stripped_pos (String.length line - stripped_pos)
+  in
+  match action with
+  | Manual_review _ -> None
+  | Bump_schema { from = bs_from; to_ = bs_to } ->
+      let prefix = "schema: " ^ bs_from in
+      let pl = String.length prefix in
+      let sl = String.length stripped in
+      if sl < pl then None
+      else if String.sub stripped 0 pl = prefix then
+        let rest_start = pl in
+        let rest =
+          if rest_start >= sl then ""
+          else String.sub stripped rest_start (sl - rest_start)
+        in
+        let valid_suffix =
+          rest = ""
+          || (String.length rest >= 1
+              && (rest.[0] = ' ' || rest.[0] = '\t'))
+        in
+        if valid_suffix then
+          let indent = String.sub line 0 stripped_pos in
+          let new_line = indent ^ "schema: " ^ bs_to ^ rest in
+          Some new_line
+        else None
+      else None
+  | Add_field _ -> None (* add-field is appended at end-of-file, not on a line *)
+  | Rename_field { from_; to_ } ->
+      let prefix = from_ ^ ":" in
+      let pl = String.length prefix in
+      let sl = String.length stripped in
+      if sl < pl then None
+      else if String.sub stripped 0 pl = prefix then
+        let rest =
+          if pl >= sl then ""
+          else String.sub stripped pl (sl - pl)
+        in
+        let valid_suffix =
+          rest = ""
+          || (String.length rest >= 1
+              && (rest.[0] = ' ' || rest.[0] = '\t'))
+        in
+        if valid_suffix then
+          let indent = String.sub line 0 stripped_pos in
+          let new_line = indent ^ to_ ^ ":" ^ rest in
+          Some new_line
+        else None
+      else None
+
+(* For an add-field action: emit the text-form line to append.
+   Caller is responsible for trailing newline. *)
+let add_field_line action =
+  match action with
+  | Add_field { path; default_ } -> Some (path ^ ": " ^ default_)
+  | _ -> None
+
+(* Result of attempting one action against one line. *)
+type line_result =
+  | Hit of string            (* the new line content; replaces this line *)
+  | Miss                     (* action did not apply to this line *)
+  | Already_present          (* action is Add_field, but path already exists *)
+
+let classify_line action line =
+  match action with
+  | Add_field { path; _ } ->
+      if line_starts_with_key line path then Already_present
+      else Miss
+  | Manual_review _ -> Miss
+  | Bump_schema _ | Rename_field _ ->
+      match apply_one_to_line action line with
+      | Some new_line -> Hit new_line
+      | None -> Miss
+
+(* Apply a list of pending actions to the given file content.
+   Line-level edits (bump-schema-string, rename-field) are
+   applied at the first matching line. add-field actions are
+   applied by appending a single line (skipped if the path
+   was already present in the file). manual-review actions
+   are skipped silently.
+   The returned `applied` lists the actions that were applied;
+   `skipped` lists the rest. *)
+let apply_actions
+    ~(actions : migration list)
+    ~(content : string) :
+    string * migration list * migration list =
+  let lines =
+    Array.of_list (String.split_on_char '\n' content)
+  in
+  let pending = ref actions in
+  let applied = ref [] in
+  let skipped = ref [] in
+  let rec step_line i =
+    if i >= Array.length lines then ()
+    else
+      match !pending with
+      | [] -> ()
+      | first :: rest ->
+          let line = lines.(i) in
+          match classify_line first line with
+          | Hit new_line ->
+              lines.(i) <- new_line;
+              applied := first :: !applied;
+              pending := rest;
+              step_line (i + 1)
+          | Already_present ->
+              (* Path/key already present in the file:
+                 the action is "applied" by being a no-op. *)
+              applied := first :: !applied;
+              pending := rest;
+              step_line (i + 1)
+          | Miss -> begin
+              match first with
+              | Bump_schema _ | Rename_field _ ->
+                  (* Line-edit action; keep `first` pending and try
+                     the next line. *)
+                  step_line (i + 1)
+              | Add_field _ | Manual_review _ ->
+                  (* add-field is end-of-file; manual-review never
+                     applies. Carry them to the post-loop drain,
+                     but advance i. *)
+                  (match first with
+                   | Manual_review _ -> skipped := first :: !skipped
+                   | Add_field _ -> skipped := first :: !skipped
+                   | _ -> ());
+                  pending := rest;
+                  step_line (i + 1)
+            end
+  in
+  step_line 0;
+  (* After line loop: collect remaining pending and apply
+     the rest as end-of-file additions (only add-field
+     applies here) or carry-over skips. *)
+  let rec drain rest =
+    match rest with
+    | [] -> ()
+    | action :: remaining -> begin
+        match add_field_line action with
+        | Some line -> begin
+            applied := action :: !applied;
+            pending := action :: !pending;
+            drain remaining
+          end
+        | None ->
+            skipped := action :: !skipped;
+            drain remaining
+      end
+  in
+  drain !pending;
+  (* Build output buffer: original lines with the line-level
+     edits already applied, then any add-field appendices. *)
+  let buf = Buffer.create (String.length content + 128) in
+  Array.iteri
+    (fun i line ->
+      Buffer.add_string buf line;
+      if i < Array.length lines - 1 then Buffer.add_char buf '\n')
+    lines;
+  let rec append = function
+    | [] -> ()
+    | action :: rest -> begin
+        match add_field_line action with
+        | Some line ->
+            Buffer.add_char buf '\n';
+            Buffer.add_string buf line;
+            append rest
+        | None -> append rest
+      end
+  in
+  append !pending;
+  Buffer.contents buf, List.rev !applied, List.rev !skipped

@@ -117,6 +117,8 @@ let[@warning "-32"] manual_verifier_prefixes =
     "jq ";
     "ls ";
     "rg ";
+    "json-schema-";
+    "Diagnostic.";
   ]
 
 (* Manual-style exact verifier names. *)
