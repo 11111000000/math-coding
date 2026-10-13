@@ -59,11 +59,22 @@ let md_files (dir : string) : string list =
       entries
     |> List.sort String.compare
 
+(* `md_files_rel root sub` returns the *.md files in
+ * `root/sub` as paths relative to `root` (e.g.
+ * `docs/adr/0001-foo.md`). The caller concatenates with
+ * `root` to get the absolute path. *)
+let md_files_rel (root : string) (sub : string) : string list =
+  let dir = Filename.concat root sub in
+  if not (is_dir dir) then []
+  else
+    let entries = md_files dir in
+    List.map (fun n -> Filename.concat sub n) entries
+
 let madr_files (root : string) : string list =
-  md_files (Filename.concat root "docs/adr")
+  md_files_rel root "docs/adr"
 
 let adrtools_files (root : string) : string list =
-  md_files (Filename.concat root "adr")
+  md_files_rel root "adr"
 
 (* --- detection ---------------------------------------------------- *)
 
