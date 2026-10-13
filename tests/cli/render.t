@@ -42,5 +42,11 @@ subpath deployment, and the bilingual EN+RU page set
   $ grep -qF '<table class="mathc-table"' dist/manifesto.html
   $ grep -qF '<strong>' dist/manifesto.html
   $ grep -qF '<a href="axioms.html"' dist/workflow.html
+  $ grep -qF 'class="github-link"' dist/index.html
+  $ grep -qF 'href="https://github.com/11111000000/math-coding"' dist/index.html
+  $ grep -qF 'github.com/11111000000/math-coding/blob/main/AGENTS.md' dist/index.html
+  $ grep -qF 'github.com/11111000000/math-coding/blob/main/ROADMAP.md' dist/index.html
+  $ grep -qF 'github.com/11111000000/math-coding/blob/main/PACKAGES.md' dist/index.html
+  $ grep -qF 'github.com/11111000000/math-coding/blob/main/spec/algebra-3.2.md' dist/index.html
   $ rm -rf dist
 

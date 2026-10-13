@@ -1,0 +1,381 @@
+---
+schema: math-coding/3.2
+id: site-broken-links-2026-10
+revision: 1
+state: active
+body_sha: "sha256:512046da0bdd3c332275853f147e21827731c0704a9fdfd4f3711170631542dc"
+yaml_sha: "sha256:512046da0bdd3c332275853f147e21827731c0704a9fdfd4f3711170631542dc"
+axiom_link:
+  - A1
+intent: |
+  Close four classes of 404 link that the live site at
+  https://11111000000.github.io/math-coding/ currently ships:
+
+  1. **Footer meta links** (`../AGENTS.html`, `../ROADMAP.html`,
+     `../PACKAGES.html`). The render kernel emits these as
+     siblings of the deployed page; resolved against
+     `<base href="/math-coding/">` they land at
+     `/AGENTS.html`, `/ROADMAP.html`, `/PACKAGES.html` —
+     none of which exists. The `<base href>` makes `../`
+     escape the site root.
+
+  2. **Russian home page language toggle** (`href="home.html"`).
+     `lib/render.ml::sibling_translation_href` builds the
+     English-sibling URL by `page_key ^ ".html"`; for
+     `page_key = "home"` that yields `home.html` instead of
+     `index.html`. The toggle therefore 404s from
+     `dist/index.ru.html` in two places (nav and footer).
+
+  3. **Axiom pages linking to spec markdown** (`../spec/algebra-3.2.md`).
+     Each of `axioms/*.md` has a relative link to the source
+     spec markdown at `../spec/algebra-3.2.md`; rendered to
+     `dist/axioms/<name>.html` with `<base href="/math-coding/">`
+     the link resolves to `/math-coding/spec/algebra-3.2.md`
+     — which 404s because `mathc render` ships the spec as
+     `dist/spec/algebra-3.2.html`, not as raw markdown.
+
+  4. **No persistent GitHub link in the top nav.** Every
+     rendered page carries a `<nav>` with brand, links, and
+     language toggle, but no link to the upstream repository
+     from the nav itself. The home page hero carries a
+     "Clone on GitHub" CTA, and the footer carries the
+     meta-docs that point to GitHub after this cycle, but
+     a visitor landing on any non-home page has no nav-level
+     cue to the project repository. A link should live at
+     the top of every page.
+
+  Scope of this cycle: the four gaps above, plus the
+  fixtures that pin them closed.
+
+commitment: |
+  1. `lib/render.ml::sibling_translation_href` returns
+     `"index.html"` when `lang = "ru"` and
+     `page_key = "home"`. The Russian home page's English
+     sibling toggle and footer sibling both stop pointing
+     at the non-existent `home.html`.
+
+  2. `lib/render.ml::render_footer` no longer emits
+     `../AGENTS.html`, `../ROADMAP.html`, `../PACKAGES.html`.
+     The three meta-doc links point instead at
+     `https://github.com/11111000000/math-coding/blob/main/<NAME>.md`,
+     the canonical rendered-by-GitHub preview. The same
+     GitHub origin replaces the `<base href>`-escaping
+     `../spec/algebra-3.2.md` link that is now removed from
+     the footer (the spec lives at
+     `https://github.com/11111000000/math-coding/blob/main/spec/algebra-3.2.md`).
+
+  3. `lib/render.ml::render_nav` emits a small GitHub link
+     inside the `<nav>` element on every page, alongside
+     the language toggle. The link is `<a class="github-link"
+     href="https://github.com/11111000000/math-coding"
+     aria-label="GitHub repository">…</a>` — visible on a
+     1400-px viewport and present in the DOM on every
+     rendered page. Its href is the bare repository URL
+     (no `/blob/main` suffix); the GitHub homepage is the
+     top-of-funnel entry point for a visitor who has never
+     seen the project before.
+
+  4. `axioms/care.md`, `axioms/feedback.md`,
+     `axioms/invariants.md`, `axioms/self-application.md`,
+     `axioms/separation.md` change their relative spec
+     link from `../spec/algebra-3.2.md` to
+     `../spec/algebra-3.2.html`. The HTML file is what
+     `mathc render` ships under `dist/spec/`, so the
+     resolved URL is live content.
+
+  5. `tests/render_kernel.ml` ships five new fixtures:
+     - `ru_home_sibling_is_index_html` — calls
+       `sibling_translation_href ~lang:"ru" ~page_key:"home" ~has_ru:true`
+       and asserts `Some "index.html"` (positive) and
+       `Some "home.html"` is NOT returned (negative).
+     - `footer_links_github_origin` — calls
+       `render_footer ~lang:"en" ~version:"X" ~has_ru:false
+       ~sibling_href:None` and asserts the body contains
+       `github.com/11111000000/math-coding/blob/main/AGENTS.md`,
+       `…/ROADMAP.md`, `…/PACKAGES.md`, and `…/spec/algebra-3.2.md`
+       (positive) AND does NOT contain the substring
+       `../AGENTS.html`, `../ROADMAP.html`, `../PACKAGES.html`
+       (negative).
+     - `nav_has_github_link` — builds a synthetic page with
+       `Render.build_pages` and asserts every page body
+       carries `<a class="github-link"` and the bare
+       GitHub origin as its `href` (positive) AND does
+       NOT carry the placeholder href
+       `href="./github"` (negative, guards against a
+       self-link bug).
+     - `axioms_link_html_not_md` — reads `axioms/*.md`
+       under `DUNE_SOURCEROOT` and asserts no axiom file
+       still references `../spec/algebra-3.2.md` after
+       the change (negative); AND the rendered
+       `dist/axioms/care.html`, `dist/axioms/feedback.html`,
+       `dist/axioms/invariants.html`,
+       `dist/axioms/self-application.html`,
+       `dist/axioms/separation.html` (generated by
+       `scripts/render.sh` in the test) carry the link
+       `../spec/algebra-3.2.html` (positive).
+
+  6. The crate's `tests/cli/render.t` fixture grows one
+     line: a `grep -qF 'href="https://github.com/11111000000/math-coding'
+     dist/index.html` that pins the GitHub link's presence
+     on the deployed surface.
+
+  7. `scripts/render.sh` continues to regenerate `dist/`
+     and the verifier pass at step `[4/4]` continues to
+     confirm the file allowlist. No change to that script
+     is required by this cycle.
+
+  Boundaries:
+  - This cycle does not render AGENTS.md / ROADMAP.md /
+    PACKAGES.md into `dist/` as HTML; the GitHub link is
+    the canonical source for those meta-docs.
+  - This cycle does not add a search feature, RSS-per-axiom,
+    or any new top-level surface. Only the four gaps
+    above are touched.
+  - This cycle does not change the link destinations of
+    the nav-internal links (`axioms.html`, `methodology.html`,
+    etc.) — those resolve correctly under `<base href>`
+    and are not 404s.
+
+scope:
+  capabilities:
+    - site-link-integrity
+    - site-footer-meta-doc-origin
+    - site-nav-github-presence
+  paths:
+    - "lib/render.ml"
+    - "axioms/care.md"
+    - "axioms/feedback.md"
+    - "axioms/invariants.md"
+    - "axioms/self-application.md"
+    - "axioms/separation.md"
+    - "tests/render_kernel.ml"
+    - "tests/cli/render.t"
+  exclusions:
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/decision.ml"
+    - "lib/codec.ml"
+    - "lib/jsonl.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "attestations/**"
+    - "decisions/decision.yaml"
+    - "site/**"
+
+outcomes:
+  - id: ru-home-sibling-resolves
+    statement: The Russian home page's English sibling toggle and footer
+      both link to `index.html`; `home.html` does not appear anywhere
+      on `dist/index.ru.html`.
+  - id: footer-meta-docs-link-github
+    statement: Every rendered page's footer carries AGENTS, ROADMAP,
+      PACKAGES, and the algebra spec as GitHub blob URLs; no footer
+      carries the old `../<NAME>.html` / `../spec/algebra-3.2.md` pattern.
+  - id: nav-has-github-link
+    statement: Every rendered page's `<nav>` carries a GitHub anchor
+      that points at the bare repository URL.
+  - id: axiom-pages-link-rendered-spec
+    statement: All five axiom pages reference
+      `../spec/algebra-3.2.html` (the rendered spec), not
+      `../spec/algebra-3.2.md` (the raw markdown source).
+
+counterexample: |
+  "Footer and nav links are editorial; a hot-fix to the
+  render kernel is enough — no decision needed."
+
+  Counterargument: the broken-link classes enumerated
+  in `intent` are observable defects that any visitor
+  encounters within two clicks. Each class has its own
+  root cause (sibling_translation_href arity, base-href
+  vs. relative URL semantics, missing GitHub nav entry,
+  markdown-vs-HTML link target); closing them in a
+  single commit under a single decision keeps the
+  obligation tree reviewable, and the four fixtures in
+  `commitment §5` keep them from regressing.
+
+  "Just point the broken links at GitHub Pages and call
+  it done."
+
+  Counterargument: the four defects have different
+  remediations. The footer is a meta-doc anchor → the
+  natural target is the GitHub source preview (a single
+  `blob/main/<NAME>.md` URL). The axiom links to
+  `spec/algebra-3.2.md` are mid-document cross-references
+  to the rendered site spec — pointing them at the
+  rendered `dist/spec/algebra-3.2.html` keeps the reader
+  inside the site's reading surface. The Russian home
+  toggle is a sibling-resolution bug that does not
+  involve GitHub at all; the fix is in
+  `sibling_translation_href`. Collapsing them into a
+  single "point everything at GitHub" patch would
+  (a) leave the toggle bug in place, (b) lose the
+  in-site spec cross-reference that the axioms use, and
+  (c) defeat the purpose of `<base href>` for relative
+  URLs that already resolve correctly.
+
+  "The new GitHub nav entry is bikeshedding; remove
+  it."
+
+  Counterargument: the user's request explicitly named
+  "there should be a link to GitHub at the top of the
+  site". The nav is the only persistent top-of-page
+  surface that lives on every rendered page. A reader
+  who lands on `dist/axioms/invariants.html` currently
+  has no nav-level GitHub affordance; adding one is the
+  minimum cost of fulfilling the request and is reversible
+  by removing the link in a follow-up cycle if a maintainer
+  disagrees with the placement.
+
+antithesis: |
+  Author considered and rejected the strongest counter-
+  position that a maintainer might raise: "The four gaps
+  are independent; ship four separate decisions; one
+  cycle per defect is the project convention."
+
+  That position is rejected because (a) every gap lives
+  in the same render kernel or in five tightly-coupled
+  axiom markdown files; (b) the four fixtures in
+  `commitment §5` are small (≈80 lines total) and cover
+  all four classes together; (c) the four defects share
+  the same root cause pattern (relative URL semantics
+  plus `<base href>` and the file layout under `dist/`),
+  so a single decision makes the trade-off legible;
+  (d) splitting into four decisions quadruples the
+  review cost without a corresponding gain in clarity.
+
+  A counter-decision that wanted four separate cycles
+  would have to argue that one of the four is independent
+  of the others in a way that justifies a separate
+  review-and-reverse path; the author sees no such axis
+  and prefers the bundled cycle.
+
+assumptions:
+  - id: github-origin-stable
+    state: assumed
+    statement: |
+      The GitHub repository
+      `https://github.com/11111000000/math-coding` remains
+      the canonical upstream and the project does not
+      relocate to a different forge during the lifetime
+      of this decision.
+    owner: human:maintainer
+    consequence_if_false: |
+      The GitHub nav link and the footer meta-doc
+      links all 404 on a forge move. A follow-up
+      decision (`site-...-forge-relocate-...`) would
+      rewire every constant.
+    review_on:
+      - signal: forge-ownership-changes
+
+  - id: base-href-stays-subpath
+    state: assumed
+    statement: |
+      The site's `<base href>` remains a subpath
+      (`/math-coding/`) rather than becoming the host
+      root. The relative-URL semantics that this cycle
+      relies on depend on the base href overriding the
+      document URL.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future cycle sets `site_base = "/"` (host
+      root), then `href="index.html"` resolves to
+      `/index.html` (the host's homepage, not the math-
+      coding homepage). The current cycle does not
+      change `default_config.site_base`; a future move
+      to host root would require its own decision and
+      its own link audit.
+    review_on:
+      - signal: deployment-target-moves-to-host-root
+
+obligations:
+  - id: ru-home-sibling-resolves
+    outcome: site-link-integrity
+    claim: |
+      The Russian home page (`dist/index.ru.html`) carries
+      exactly two `<a>` elements whose target is the
+      English home page; both targets are `index.html`
+      (no `home.html` anywhere on the page).
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::ru_home_sibling_is_index_html
+          result: pass
+        - verifier: ! grep -qF 'home.html' dist/index.ru.html
+          result: pass
+
+  - id: footer-meta-docs-link-github
+    outcome: site-footer-meta-doc-origin
+    claim: |
+      Every rendered page's footer carries the three
+      meta-doc anchors (AGENTS, ROADMAP, PACKAGES) and
+      they all point at
+      `https://github.com/11111000000/math-coding/blob/main/<NAME>.md`.
+      No footer carries `../AGENTS.html`, `../ROADMAP.html`,
+      `../PACKAGES.html`, or `../spec/algebra-3.2.md`.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::footer_links_github_origin
+          result: pass
+        - verifier: ! grep -RFq '../AGENTS.html\|../ROADMAP.html\|../PACKAGES.html\|../spec/algebra-3.2.md' dist/
+          result: pass
+
+  - id: nav-has-github-link
+    outcome: site-nav-github-presence
+    claim: |
+      Every rendered page's `<nav>` element carries a
+      GitHub anchor `<a class="github-link"
+      href="https://github.com/11111000000/math-coding"
+      …>…</a>`.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::nav_has_github_link
+          result: pass
+        - verifier: tests/cli/render.t
+          result: pass
+
+  - id: axiom-pages-link-rendered-spec
+    outcome: site-link-integrity
+    claim: |
+      The five axiom pages (`dist/axioms/care.html`,
+      `…/feedback.html`, `…/invariants.html`,
+      `…/self-application.html`, `…/separation.html`)
+      carry the rendered spec link
+      `../spec/algebra-3.2.html` and do NOT carry the
+      raw-markdown link `../spec/algebra-3.2.md`.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::axioms_link_html_not_md
+          result: pass
+        - verifier: ! grep -RqF '../spec/algebra-3.2.md' dist/axioms/
+          result: pass
+
+reversal:
+  - signal: github-link-becomes-noise
+    condition: |
+      A maintainer audit (e.g. Lighthouse, axe, or a
+      manual review) finds the GitHub nav link
+      redundant with the existing "Clone on GitHub" CTA
+      on the home page, or a user survey shows visitors
+      ignore it.
+    action: remove-nav-link-and-bump-revision
+
+  - signal: github-anchor-changes-host
+    condition: |
+      The repository moves to a different forge (GitLab,
+      Codeberg, self-hosted). The hardcoded `github.com`
+      URLs all 404.
+    action: rework-as-forge-relocation-decision
+
+risk:
+  declared_triggers:
+    - github-origin-relocates
+    - subpath-deployment-moves-to-host-root
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - "site-deploy@5"
+    - "site-quality-2026-10@1"
+    - "site-quality-polish-2026-10@1"
+  supersedes: []
+  superseded_by: []

@@ -73,7 +73,7 @@ In particular:
 
 The transition guard, the three-valued status, and the
 `max_verdict` ordering live in
-[`spec/algebra-3.2.md`](../spec/algebra-3.2.md) §15 ("Gate verdict"),
+[`spec/algebra-3.2.html`](spec/algebra-3.2.html) §15 ("Gate verdict"),
 §17 ("Inline axiom change"), and §20 ("Kernel rules") respectively.
 
 The merge gate is *Open* when every pre-merge obligation is `Pass`
