@@ -1,17 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="a2-title">
-  <title id="a2-title">Axiom A2 -- Invariants and Recovery: every invariant is paired with a recovery path.</title>
+  <title id="a2-title">Axiom A2 — Invariants and Recovery: every invariant is paired with a recovery path.</title>
   <defs>
     <style>
       .a2-shield { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.75; }
       .a2-check { stroke: #8b3a3a; stroke-width: 1.75; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-      .a2-plus { stroke: #8b3a3a; stroke-width: 1.25; fill: none; stroke-linecap: round; }
+      .a2-rail { stroke: #8b3a3a; stroke-width: 1.75; fill: none; stroke-linecap: round; }
+      .a2-rung { stroke: #8b3a3a; stroke-width: 1.75; fill: none; stroke-linecap: round; }
     </style>
   </defs>
-  <!-- Shield outline (the invariant under protection) -->
-  <path class="a2-shield" d="M40,10 L62,18 L62,40 Q62,58 40,72 Q18,58 18,40 L18,18 Z"/>
-  <!-- Check-mark inside: invariant holds -->
-  <path class="a2-check" d="M28,40 L36,48 L52,30"/>
-  <!-- Cross-hatch at the base: recovery path beneath the shield -->
-  <line class="a2-plus" x1="26" y1="60" x2="54" y2="60"/>
-  <line class="a2-plus" x1="30" y1="64" x2="50" y2="64"/>
+  <!-- Shield: the invariant under protection -->
+  <path class="a2-shield" d="M40,6 L60,14 L60,38 Q60,52 40,64 Q20,52 20,38 L20,14 Z"/>
+  <!-- Check-mark: invariant holds -->
+  <path class="a2-check" d="M28,34 L36,42 L52,24"/>
+  <!-- Ladder: the recovery path -->
+  <line class="a2-rail" x1="34" y1="70" x2="34" y2="78"/>
+  <line class="a2-rail" x1="46" y1="70" x2="46" y2="78"/>
+  <line class="a2-rung" x1="34" y1="73" x2="46" y2="73"/>
+  <line class="a2-rung" x1="34" y1="76" x2="46" y2="76"/>
 </svg>

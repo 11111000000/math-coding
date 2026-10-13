@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" role="img" aria-labelledby="epi-title">
+  <title id="epi-title">Epistemic Separation: declared ≠ derived ≠ attested ≠ reviewed ≠ observed; a result MUST NOT be promoted to a stronger class without an artifact.</title>
+  <desc>Five horizontal layers stack vertically: DECLARED at the top (weakest), then DERIVED, ATTESTED, REVIEWED, and OBSERVED at the bottom (strongest). Between each layer, a forbidden up-arrow with a "no promotion without an artifact" label marks that a result MUST NOT be promoted to a stronger class. The header cites the inequality chain and the honest_uncertainty principle; the footer states the verdict inequality Pass ≠ Fail ≠ Inconclusive ≠ InfrastructureError ≠ Waived.</desc>
+  <defs>
+    <style>
+      .epi-box { fill: #ffffff; stroke: #8b3a3a; stroke-width: 1; }
+      .epi-class { font-family: "SF Mono", "Menlo", "Consolas", "Courier New", monospace; font-size: 14px; fill: #8b3a3a; letter-spacing: 0.06em; font-weight: 500; }
+      .epi-sub { font-family: "Charter", "Iowan Old Style", "Georgia", serif; font-size: 12px; fill: #1a1a1a; font-style: italic; }
+      .epi-tag { font-family: "SF Mono", "Menlo", monospace; font-size: 9px; fill: #6e6e6e; letter-spacing: 0.05em; }
+      .epi-arrow-line { stroke: #8b3a3a; stroke-width: 1.5; fill: none; }
+      .epi-arrow-head { fill: #8b3a3a; stroke: none; }
+      .epi-arrow-label { font-family: "Charter", "Georgia", serif; font-size: 9.5px; fill: #8b3a3a; font-style: italic; }
+      .epi-header { font-family: "SF Mono", "Menlo", monospace; font-size: 11px; fill: #1a1a1a; letter-spacing: 0.04em; }
+      .epi-side { font-family: "SF Mono", "Menlo", monospace; font-size: 10px; fill: #6e6e6e; letter-spacing: 0.03em; }
+      .epi-footer { font-family: "Charter", "Georgia", serif; font-size: 11px; fill: #1a1a1a; font-style: italic; }
+      .epi-mono-foot { font-family: "SF Mono", "Menlo", monospace; font-size: 9px; fill: #5a5a5a; letter-spacing: 0.05em; }
+    </style>
+  </defs>
+
+  <!-- Header: the inequality chain -->
+  <text class="epi-header" x="80" y="22">declared ≠ derived ≠ attested ≠ reviewed ≠ observed</text>
+  <text class="epi-side" x="780" y="22" text-anchor="end">honest_uncertainty principle</text>
+
+  <!-- Layer 1 (top, weakest): DECLARED -->
+  <rect class="epi-box" x="80" y="34" width="640" height="28"/>
+  <text class="epi-class" x="96" y="53">DECLARED</text>
+  <text class="epi-sub" x="220" y="53">— human or advisor statement</text>
+  <text class="epi-tag" x="780" y="53" text-anchor="end">weakest</text>
+
+  <!-- Gap 1: forbidden up-arrow -->
+  <g transform="translate(110, 62)">
+    <line class="epi-arrow-line" x1="0" y1="32" x2="0" y2="6"/>
+    <path class="epi-arrow-head" d="M -4 10 L 0 4 L 4 10 Z"/>
+  </g>
+  <text class="epi-arrow-label" x="124" y="86">no promotion without an artifact</text>
+
+  <!-- Layer 2: DERIVED -->
+  <rect class="epi-box" x="80" y="94" width="640" height="28"/>
+  <text class="epi-class" x="96" y="113">DERIVED</text>
+  <text class="epi-sub" x="220" y="113">— kernel computation (≠ attested)</text>
+
+  <!-- Gap 2 -->
+  <g transform="translate(110, 122)">
+    <line class="epi-arrow-line" x1="0" y1="32" x2="0" y2="6"/>
+    <path class="epi-arrow-head" d="M -4 10 L 0 4 L 4 10 Z"/>
+  </g>
+  <text class="epi-arrow-label" x="124" y="146">no promotion without an artifact</text>
+
+  <!-- Layer 3: ATTESTED -->
+  <rect class="epi-box" x="80" y="154" width="640" height="28"/>
+  <text class="epi-class" x="96" y="173">ATTESTED</text>
+  <text class="epi-sub" x="220" y="173">— test report (≠ reviewed)</text>
+
+  <!-- Gap 3 -->
+  <g transform="translate(110, 182)">
+    <line class="epi-arrow-line" x1="0" y1="32" x2="0" y2="6"/>
+    <path class="epi-arrow-head" d="M -4 10 L 0 4 L 4 10 Z"/>
+  </g>
+  <text class="epi-arrow-label" x="124" y="206">no promotion without an artifact</text>
+
+  <!-- Layer 4: REVIEWED -->
+  <rect class="epi-box" x="80" y="214" width="640" height="28"/>
+  <text class="epi-class" x="96" y="233">REVIEWED</text>
+  <text class="epi-sub" x="220" y="233">— human review (≠ observed)</text>
+
+  <!-- Gap 4 -->
+  <g transform="translate(110, 242)">
+    <line class="epi-arrow-line" x1="0" y1="32" x2="0" y2="6"/>
+    <path class="epi-arrow-head" d="M -4 10 L 0 4 L 4 10 Z"/>
+  </g>
+  <text class="epi-arrow-label" x="124" y="266">no promotion without an artifact</text>
+
+  <!-- Layer 5 (bottom, strongest): OBSERVED -->
+  <rect class="epi-box" x="80" y="274" width="640" height="28"/>
+  <text class="epi-class" x="96" y="293">OBSERVED</text>
+  <text class="epi-sub" x="220" y="293">— runtime signal</text>
+  <text class="epi-tag" x="780" y="293" text-anchor="end">strongest</text>
+
+  <!-- Footer: verbatim constitution text + verdict inequality -->
+  <text class="epi-footer" x="80" y="324">A result MUST NOT be promoted to a stronger class without an artifact</text>
+  <text class="epi-mono-foot" x="80" y="346">Pass ≠ Fail ≠ Inconclusive ≠ InfrastructureError ≠ Waived</text>
+</svg>
