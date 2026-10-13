@@ -64,6 +64,47 @@ repository and reports pass/unknown/fail. `mathc validate`
 checks a single decision file against the schema; the exit
 code is 0 on accept, 1 on reject, 2 on input error.
 
+## Scaffold a new project
+
+Once `mathc` is on the PATH, the recommended adoption path for
+a new project is:
+
+```bash
+cd /path/to/new-project
+mathc init .                 # scaffolds decisions/, attestations/,
+                              # decisions/decision.yaml, .githooks/
+```
+
+`mathc init` (decision `ux-3-init-subcommand-2026-10`):
+
+- Creates `decisions/` and `attestations/` in the target dir.
+- Writes `decisions/decision.yaml` with the active policy
+  (verbatim copy of the install-tooling template, which is
+  `math-coding/3.2`).
+- Installs `.githooks/pre-commit` (unless `--no-install`).
+- **Refuses** on `docs/arc42/`, `docs/adr/`, or `adr/`
+  presence unless `--merge` is passed. The refuse message
+  names the detected convention and points at
+  `mathc import-adr` (below) as the brownfield path.
+- Flags: `--agent` (per-platform skill placement, currently
+  a no-op beyond input validation), `--from-adr` (deferred),
+  `--no-install`, `--merge`.
+
+For a project with existing MADR or adr-tools ADRs, use
+`mathc import-adr` per file (decision
+`ux-3-import-adr-subcommand-2026-10`):
+
+```bash
+# Single file (prints YAML to stdout)
+mathc import-adr docs/adr/0001-use-postgres.md
+
+# All MADR files (writes to decisions/<id>.yaml; reviewer
+# fills in scope.paths[] before mathc validate accepts)
+for f in docs/adr/*.md; do
+  mathc import-adr "$f" --write
+done
+```
+
 ## Migrate from earlier version
 
 Re-running `install.sh` on a host that already has `mathc`

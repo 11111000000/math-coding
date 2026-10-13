@@ -58,6 +58,55 @@ bootstrap the repo, author one decision, run `mathc self-check`.
 
 For manual adoption, follow the same four steps by reading the skill.
 
+### Greenfield: `mathc init`
+
+The fastest path for a new project. `mathc init` scaffolds a
+math-coding project in one command:
+
+```sh
+cd /path/to/new-project
+mathc init . --no-install         # scaffold without pre-commit hook
+mathc validate decisions/decision.yaml   # verify the scaffolded policy
+```
+
+What `mathc init` does:
+
+- creates `decisions/` and `attestations/`
+- writes `decisions/decision.yaml` with the active policy
+  (a verbatim copy of
+  `scripts/install-tooling/templates/active-policy.yaml`,
+  which is `math-coding/3.2`)
+- installs `.githooks/pre-commit` (unless `--no-install`) that
+  runs `mathc validate` on staged decisions and `mathc self-check`
+- **refuses** on `docs/arc42/`, `docs/adr/`, or `adr/` presence
+  unless `--merge` is passed (use `--merge` for the brownfield
+  arc42 / MADR / adr-tools path; see below)
+
+### Brownfield: `mathc import-adr`
+
+For projects that already track decisions in MADR
+(`docs/adr/NNNN-title.md`) or adr-tools
+(`adr/NNNN-title.md` with `## Status` / `## Context` /
+`## Decision` / `## Consequences` sections), `mathc import-adr`
+emits a math-coding decision YAML for each existing ADR:
+
+```sh
+# Single file
+mathc import-adr docs/adr/0001-use-postgres.md
+
+# All MADR files in docs/adr/ (loop in your shell)
+for f in docs/adr/*.md; do
+  mathc import-adr "$f" --write   # writes to decisions/<id>.yaml
+done
+```
+
+The output passes `mathc validate` after the reviewer fills in
+`scope.paths[]` (left as a placeholder glob in the template).
+The mapping is best-effort, not lossless; the reviewer
+adjusts fields like `commitment` and `outcomes[]` to capture
+the original ADR's intent. The decision retains a
+`kind_: review` attestation of provenance in `assumptions[]`.
+
 ## Choose your adoption path
 
 Math-coding pays off when its applicability envelope is positive; for
