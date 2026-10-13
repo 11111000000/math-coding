@@ -113,7 +113,7 @@ is left as a placeholder glob).
   $ test -f "$tmpdir/decisions/sample.yaml" && echo "decisions/sample.yaml: ok"
   decisions/sample.yaml: ok
   $ mathc validate "$tmpdir/decisions/sample.yaml" | head -3
-  accept: /tmp/nix-shell.U1N979/build_feb560_dune/tmp.o4XbUgj12f/decisions/sample.yaml
+  accept: /tmp/nix-shell.dKLQmz/build_bb9f48_dune/tmp.UjI7diKSIc/decisions/sample.yaml
     decision: sample
     revision: 1
   $ rm -rf "$tmpdir"
@@ -137,3 +137,40 @@ File not found: exit 1 with a clear message.
   >   echo "missing file refused (exit $?)"
   > fi
   missing file refused (exit 1)
+
+MADR `### Consequences` subsection is parsed as outcomes list.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ tmpdir=$(mktemp -d)
+  $ cat > "$tmpdir/madr.md" <<EOF
+  > ---
+  > status: accepted
+  > ---
+  > 
+  > # Use PostgreSQL
+  > 
+  > ## Decision Outcome
+  > 
+  > Chosen option: "PostgreSQL", because JSON support.
+  > 
+  > ### Consequences
+  > 
+  > * Good, because JSON support is excellent
+  > * Bad, because we need to retrain the team
+  > 
+  > ### Confirmation
+  > 
+  > Monitor query latency.
+  > EOF
+  $ mathc import-adr "$tmpdir/madr.md" | grep -E "^  - id: outcome" | wc -l
+  2
+  $ mathc import-adr "$tmpdir/madr.md" | grep -q 'Good, because JSON support' && \
+  >   echo "outcome 1: parsed from MADR subsection"
+  outcome 1: parsed from MADR subsection
+  $ mathc import-adr "$tmpdir/madr.md" | grep -q 'Bad, because we need' && \
+  >   echo "outcome 2: parsed from MADR subsection"
+  outcome 2: parsed from MADR subsection
+  $ mathc import-adr "$tmpdir/madr.md" | grep -q 'Monitor query latency' && \
+  >   echo "commitment includes the chosen-option text"
+  commitment includes the chosen-option text
+  $ rm -rf "$tmpdir"

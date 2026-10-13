@@ -1,0 +1,212 @@
+---
+schema: math-coding/3.2
+id: ux-3-import-adr-parser-2026-10
+revision: 1
+state: active
+body_sha: "f1f87bb9a4383ba70b772517a8d89f4279c71c38824264cc95618f3a60d0aeba"
+yaml_sha: "f1f87bb9a4383ba70b772517a8d89f4279c71c38824264cc95618f3a60d0aeba"
+intent: |
+  Fix two parser issues in `mathc import-adr` flagged as
+  quality issues in the original decision
+  `ux-3-import-adr-subcommand-2026-10@1`:
+
+  1. MADR `### Consequences` (a subsection of
+     `## Decision Outcome`) was not being parsed into
+     the `outcomes[]` list. The parser looked for
+     `## Consequences` (top-level) but MADR puts it as
+     a subsection. The result was that
+     `outcomes: ["Imported from ADR; consequences not
+     detected"]` for every MADR import — silent
+     information loss.
+
+  2. The `commitment` field captured the entire
+     `## Decision Outcome` body, including the
+     `### Consequences` and `### Confirmation`
+     subsections. The Commitment text is the
+     "Chosen option" line, not the whole block.
+
+  This decision adds:
+  - `subsection_body body header` — extract a `### <header>`
+    subsection from an already-extracted section body
+  - `bullets body` — split a body into a list of bullet
+    items, supporting both MADR (`* `) and CommonMark
+    (`- `) markers
+  - The MADR parse path tries `subsection_body
+    "Consequences"` first, falls back to the top-level
+    `## Consequences` section
+
+  The `commitment` field is unchanged (still captures the
+  whole `## Decision Outcome` body for the MADR case);
+  trimming subsections is a follow-up.
+
+  Touches (per A3 self-application):
+    lib/import_adr/import_adr.ml        (subsection_body, bullets,
+                                        updated parse)
+    tests/cli/import-adr.t              (new cram case)
+    decisions/ux-3-import-adr-parser-2026-10.yaml   (this file)
+
+axiom_link:
+  - A0
+
+antithesis: |
+  The counter-position considered and rejected: "Best-effort
+  parsers don't need to be perfect; the user reviews the
+  output. Leave the MADR `### Consequences` for the user to
+  fill in by hand." The author engaged with this position
+  and rejected it on three grounds: (a) the original ТЗ
+  promised "best-effort mapping" — `### Consequences` is
+  the standard MADR place for outcomes, and not mapping it
+  is not "best effort", it's "no effort"; (b) the user
+  review-time cost is non-trivial — the reviewer has to
+  copy 3-5 bullet points from the source ADR into the
+  decision YAML by hand, every time; (c) the parser
+  machinery is already line-based and the change is ~30
+  lines, well below the threshold where a follow-up cycle
+  becomes cheaper than a pre-emptive slice. The minimum
+  fix is `subsection_body` + `bullets`, which is what
+  this file records.
+
+commitment: |
+  One kernel polish. Two deliverables, each pinned by a
+  fixture:
+
+    D1. MADR `### Consequences` (subsection of
+        `## Decision Outcome`) is parsed into the
+        `outcomes[]` list. The bullet markers
+        (`* ` MADR / `- ` CommonMark) are stripped; each
+        bullet becomes one outcome.
+
+    D2. The adr-tools `## Consequences` top-level section
+        is still parsed as a fallback (no regression).
+
+  Boundaries (A3 self-application):
+    - `lib/import_adr/import_adr.ml` is the only sub-library
+      touched.
+    - The CLI surface (`mathc import-adr PATH`) is unchanged.
+    - The YAML template (id, intent, commitment,
+      counterexample, etc.) is unchanged.
+    - The MADR `commitment` field is unchanged (still
+      captures the whole `## Decision Outcome` body);
+      trimming subsections is a follow-up.
+
+counterexample: |
+  "The new parser is more complex and has more failure modes
+   than the old one." The counterargument fails because the
+   new code is a strict superset: when `### Consequences`
+   is absent, the parser falls back to the old behavior
+   (`section_body lines "Consequences"` returns empty,
+   the bullet list is empty, and the fallback message is
+   emitted). The new code is two helper functions
+   (`subsection_body`, `bullets`) of ~30 lines total, both
+   with explicit boundary checks.
+
+scope:
+  capabilities:
+    - mathc-import-adr-parser-madr-subsection
+  paths:
+    - "lib/import_adr/import_adr.ml"
+    - "tests/cli/import-adr.t"
+    - "decisions/ux-3-import-adr-parser-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/diagnostic.ml"
+    - "lib/canonical.ml"
+    - "lib/render.ml"
+    - "lib/migrate.ml"
+    - "lib/waiver.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/mcp/**"
+    - "lib/init/**"
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+    - "decisions/ux-3-import-adr-subcommand-2026-10.yaml"
+
+outcomes:
+  - id: madr-consequences-parsed
+    statement: |
+      MADR `### Consequences` (subsection of
+      `## Decision Outcome`) is parsed into the
+      `outcomes[]` list. The fixture
+      `tests/cli/import-adr.t` exercises a MADR file with
+      2 consequences and asserts both are emitted.
+  - id: adrtools-consequences-unchanged
+    statement: |
+      adr-tools `## Consequences` top-level section is
+      still parsed (no regression from
+      `ux-3-import-adr-subcommand-2026-10@1`).
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/ux-3-import-adr-parser-2026-10.yaml` exits 0.
+
+assumptions:
+  - id: bullet-markers-stable
+    state: assumed
+    statement: |
+      MADR uses `* ` as the bullet marker; CommonMark allows
+      `* `, `- `, or `+ `. The parser supports `* ` and
+      `- ` (covers MADR and adr-tools). The `+ ` marker
+      (a CommonMark variant) is rare in practice and not
+      currently supported.
+    owner: human:maintainer
+    consequence_if_false: |
+      A decision file that uses `+ ` bullets is parsed
+      as a single block (no bullet split). Resolution:
+      add `+ ` to the bullet patterns in `bullets`.
+    review_on:
+      - signal: plus-bullet-marked
+
+obligations:
+  - id: cram-test-passes
+    outcome: madr-consequences-parsed
+    claim: |
+      `tests/cli/import-adr.t` exercises a MADR file with
+      `### Consequences` containing 2 bullets and asserts
+      both are emitted as outcomes.
+    acceptance:
+      all:
+        - verifier: tests/cli/import-adr.t
+          result: pass
+
+  - id: this-decision-validates
+    outcome: this-decision-validates
+    claim: |
+      `mathc validate
+      decisions/ux-3-import-adr-parser-2026-10.yaml` exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ux-3-import-adr-parser-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: parser-strict-mode
+    condition: |
+      A future decision adds a strict mode to
+      `mathc import-adr` that fails on unrecognized
+      structure (instead of best-effort with fallback).
+      Resolution: this decision's `subsection_body` and
+      `bullets` are absorbed into the strict parser; the
+      best-effort behavior is the fallback.
+    action: supersede-with-strict
+
+risk:
+  declared_triggers:
+    - plus-bullet-marked
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - ux-3-import-adr-subcommand-2026-10@1
+  supersedes: []
+  superseded_by: []
