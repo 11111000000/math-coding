@@ -233,8 +233,113 @@ let print_summary (opts : options) : unit =
          ux-3-import-adr-subcommand-2026-10).\n"
   end
 
+(* --- per-user agent skill install ---------------------------------- *)
+
+(* Per `install-tooling-2026-10@1`, the per-user opencode skill
+ * lives at ${XDG_CONFIG_HOME:-${HOME}/.config}/opencode/skills/
+ * math-coding/SKILL.md. The source for the skill is the
+ * in-repo `.opencode/skills/math-coding/SKILL.md` file
+ * (decision `ux-3-repo-tracked-opencode-skill-2026-10@1`).
+ *
+ * `mathc init --agent opencode` copies the source to the
+ * per-user path. We resolve the source relative to the
+ * running binary: for an in-tree build at
+ * `_build/default/bin/mathc.exe`, the source is at
+ * `<binary_dir>/../../.opencode/skills/math-coding/SKILL.md`.
+ * For an installed binary (via `install.sh`), the source is
+ * NOT bundled with the binary; the per-user install is
+ * already covered by `install.sh --user-skill`, so we
+ * print an instruction.
+ *
+ * Other agent values (claude-code, cursor, continue, generic)
+ * are TODO in this slice. We print a one-liner pointing at
+ * the relevant platform install. *)
+
+let xdg_config_home () : string =
+  match Sys.getenv_opt "XDG_CONFIG_HOME" with
+  | Some p when p <> "" -> p
+  | _ ->
+      (match Sys.getenv_opt "HOME" with
+       | Some h -> Filename.concat h ".config"
+       | None -> Filename.concat (Sys.getcwd ()) ".config")
+
+let find_source_skill () : string option =
+  (* Walk up from the binary's directory looking for the
+   * in-repo `.opencode/skills/math-coding/SKILL.md`. The binary
+   * lives at `<src>/_build/<ctx>/bin/mathc.exe`; the source
+   * is at `<src>/.opencode/skills/math-coding/SKILL.md`. The
+   * walk also covers the case where the binary is at
+   * `<src>/_build/install/default/bin/mathc.exe` (4 levels up)
+   * and an installed-binary case (no source found). *)
+  let exe = Sys.executable_name in
+  let rec walk dir =
+    if dir = "/" || dir = "." || dir = "" then None
+    else begin
+      let candidate =
+        Filename.concat
+          (Filename.concat dir ".opencode")
+          (Filename.concat "skills"
+             (Filename.concat "math-coding" "SKILL.md"))
+      in
+      if Sys.file_exists candidate then Some candidate
+      else walk (Filename.concat dir "..")
+    end
+  in
+  walk (Filename.dirname exe)
+
+let per_user_opencode_skill () : string =
+  let xdg = xdg_config_home () in
+  Filename.concat
+    (Filename.concat (Filename.concat xdg "opencode") "skills")
+    (Filename.concat "math-coding" "SKILL.md")
+
+let maybe_install_agent_skill (opts : options) : unit =
+  match opts.agent with
+  | Generic -> ()
+  | Opencode ->
+      let src = find_source_skill () in
+      let dst = per_user_opencode_skill () in
+      begin match src with
+      | Some s ->
+          (try Unix.mkdir (Filename.dirname dst) 0o755 with
+           | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+          let ic = open_in s in
+          let n = in_channel_length ic in
+          let content = really_input_string ic n in
+          close_in ic;
+          let oc = open_out dst in
+          output_string oc content;
+          close_out oc;
+          Printf.printf
+            "  per-user opencode skill: installed at %s\n" dst
+      | None ->
+          Printf.eprintf
+            "mathc init: --agent opencode: source skill not found; \
+             run \xC2\xABinstall.sh --user-skill\xC2\xBB to install the \
+             per-user skill (or use a math-coding source build where \
+             \xC2\xAB.opencode/skills/math-coding/SKILL.md\xC2\xBB is \
+             present).\n"
+      end
+  | ClaudeCode ->
+      Printf.eprintf
+        "mathc init: --agent claude-code: per-user install is TODO; \
+         copy \xC2\xABdist/adoption/claude-code/instructions.md\xC2\xBB from \
+         a math-coding release tarball to your \xC2\xAB.claude/\xC2\xBB \
+         directory.\n"
+  | Cursor ->
+      Printf.eprintf
+        "mathc init: --agent cursor: per-user install is TODO; \
+         copy \xC2\xABdist/adoption/cursor/rules.md\xC2\xBB from a \
+         math-coding release tarball to \xC2\xAB.cursor/rules/math-coding.md\xC2\xBB.\n"
+  | Continue ->
+      Printf.eprintf
+        "mathc init: --agent continue: Continue does not have a \
+         per-user rules directory; the skill is per-repo \
+         (\xC2\xAB.opencode/skills/math-coding/SKILL.md\xC2\xBB).\n"
+
 let run (opts : options) : unit =
   check_brownfield opts;
   check_scaffold opts.root;
   maybe_install_hook opts;
-  print_summary opts
+  print_summary opts;
+  maybe_install_agent_skill opts
