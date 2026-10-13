@@ -1,0 +1,232 @@
+---
+schema: math-coding/3.2
+id: ux-3-adopt-real-arc42-2026-10
+revision: 1
+state: active
+body_sha: "d14189b78b5ff1a7c7f1cd71393560ae2bb9745dec86b12aa98e3257dac04490"
+yaml_sha: "d14189b78b5ff1a7c7f1cd71393560ae2bb9745dec86b12aa98e3257dac04490"
+intent: |
+  Phase 3.3 of the ux-3 workstream (per planning decision
+  `ux-3-adopt-roadmap-2026-10@1`). Land a real-shaped arc42
+  integration test for `mathc adopt`. The fixture is a
+  snapshot of a real arc42 v2 layout (5 canonical sections:
+  introduction, architecture goals, system scope and
+  context, solution strategy, design decisions) at
+  `tests/fixtures/arc42-snapshot/docs/arc42/`, plus one
+  MADR file at `docs/adr/0001-use-ocaml.md` and one
+  adr-tools file at `adr/0001-format.md`. The mixed layout
+  exercises the full `mathc adopt` flow on a real client.
+
+  In addition, this decision adds a side-decision
+  generation: when `mathc adopt` detects `docs/arc42/`,
+  it writes a `decisions/bootstrap-v3-arc42-compatibility.yaml`
+  side-decision that records the arc42 layout coexistence.
+  The side-decision has `scope.paths = ["docs/arc42/**"]`,
+  an `assumptions[]` block that mentions the section count,
+  and a `counterexample` + `antithesis` for the dialectic
+  method. This makes the coexistence explicit: math-coding
+  handles code-level decisions; arc42 handles architecture
+  documentation; the two systems do not overlap.
+
+  Touches (per A3 self-application):
+    tests/fixtures/arc42-snapshot/         (new: 5 arc42 sections,
+                                            1 MADR, 1 adr-tools)
+    tests/cli/adopt-real-arc42.t          (new cram fixture, 3 cases)
+    bin/Mathc.ml                          (do_adopt: add side-decision
+                                           generation for arc42)
+    decisions/ux-3-adopt-real-arc42-2026-10.yaml   (this file)
+
+axiom_link:
+  - A0
+  - A1
+
+antithesis: |
+  The counter-position considered and rejected: "A
+  real-shaped arc42 fixture is test infrastructure, not a
+  decision; ship the fixture and the test, no new decision
+  needed. The side-decision generation in `mathc adopt` is
+  scope creep — the user can manually create a
+  `bootstrap-v3-arc42-compatibility` decision if they
+  want." The author engaged with this position and
+  rejected it on three grounds: (a) the planning decision
+  `ux-3-adopt-roadmap-2026-10@1` explicitly scoped this
+  slice as "ux-3-adopt-real-arc42-2026-10 with own
+  decision file" — the decision records the integration
+  intent and the test infrastructure is a follow-up
+  artifact; (b) the side-decision is a real quality
+  improvement: a real client running `mathc adopt` should
+  not have to remember to create a separate decision file
+  to record the arc42 coexistence — the orchestrator does
+  it, the reviewer just attests; (c) without a recorded
+  decision, the arc42 coexistence is implicit and the
+  reviewer has no obligation to verify the layout is
+  compatible with math-coding. The minimum fix is the
+  fixture + the test + the side-decision generation, all
+  in this slice.
+
+commitment: |
+  One test + one side-decision feature. Three deliverables:
+
+    D1. `tests/fixtures/arc42-snapshot/` is a snapshot of
+        a real arc42 v2 layout: `docs/arc42/` with 5
+        canonical sections, `docs/adr/0001-use-ocaml.md`
+        (MADR), and `adr/0001-format.md` (adr-tools). The
+        mixed layout exercises the full adopt flow.
+
+    D2. `mathc adopt` generates
+        `decisions/bootstrap-v3-arc42-compatibility.yaml`
+        when `docs/arc42/` is detected. The side-decision
+        passes `mathc validate` and includes the section
+        count in its `assumptions[]` block.
+
+    D3. `tests/cli/adopt-real-arc42.t` covers 3 cases:
+        arc42 + MADR + adr-tools (full flow), validate
+        all decisions (acceptance), self-check still runs
+        (no regression).
+
+  Boundaries (A3 self-application):
+    - `lib/` is unchanged.
+    - `bin/Mathc.ml` is touched only inside `do_adopt`
+      (the side-decision generation block).
+    - `bin/dune` is unchanged.
+    - The side-decision is a new file in the project
+      (not a math-coding kernel file), so this is a
+      side-effect of `mathc adopt` on the user's repo,
+      not on math-coding itself.
+    - `spec/`, `schemas/`, `axioms/`, `scripts/` are
+      unchanged.
+
+counterexample: |
+  "A side-decision that just records the arc42 layout is
+   paper-weight — the reviewer can't act on it." The
+  counterargument fails because the side-decision's
+  obligation (`arc42-compatibility-recorded`) is
+  `kind_: review` per the v3 dialectic; the reviewer
+  signs off that the arc42 sections are recorded, the
+  arc42-vs-math-coding scope separation is clear, and the
+  coexistence is a deliberate choice (not a forgotten
+  conflict). The reviewer might also edit the file to
+  add the actual section names if they want; the default
+  lists just the count.
+
+scope:
+  capabilities:
+    - mathc-adopt-real-arc42-integration
+  paths:
+    - "tests/fixtures/arc42-snapshot/**"
+    - "tests/cli/adopt-real-arc42.t"
+    - "bin/Mathc.ml"
+    - "decisions/ux-3-adopt-real-arc42-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/dune"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+    - "decisions/ux-3-adopt-detect-2026-10.yaml"
+    - "decisions/ux-3-adopt-subcommand-2026-10.yaml"
+    - "decisions/ux-3-adopt-roadmap-2026-10.yaml"
+
+outcomes:
+  - id: real-arc42-fixture-shipped
+    statement: |
+      `tests/fixtures/arc42-snapshot/` is committed with
+      5 arc42 sections, 1 MADR, 1 adr-tools. The cram
+      fixture at `tests/cli/adopt-real-arc42.t` exercises
+      the full `mathc adopt` flow.
+  - id: side-decision-generated
+    statement: |
+      `mathc adopt` writes
+      `decisions/bootstrap-v3-arc42-compatibility.yaml`
+      when arc42 is detected. The file passes
+      `mathc validate`.
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/ux-3-adopt-real-arc42-2026-10.yaml`
+      exits 0.
+
+assumptions:
+  - id: snapshot-frozen
+    state: assumed
+    statement: |
+      The arc42-snapshot fixture is frozen at this
+      commit. Future arc42 v3 (or similar) changes do
+      not affect this test. The fixture exists as a
+      real-shaped sample, not as a live reflection of
+      arc42.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the fixture diverges from real arc42 (e.g. the
+      fixture is updated to v3 but the test still expects
+      v2), the test is misleading. Resolution: a
+      follow-up commits a new fixture version and the
+      test is updated to match.
+    review_on:
+      - signal: arc42-version-changed
+  - id: side-decision-deterministic
+    state: assumed
+    statement: |
+      The side-decision content is deterministic: same
+      arc42 layout, same section count, same content.
+      Two consecutive `mathc adopt` invocations on the
+      same project produce side-decisions that differ
+      only in the section count (which may change if the
+      user adds or removes sections between runs).
+    owner: human:maintainer
+    consequence_if_false: |
+      If the side-decision is non-deterministic, the
+      test becomes flaky. Resolution: make the content
+      pure (no time-dependent fields).
+    review_on:
+      - signal: side-decision-flaky
+
+obligations:
+  - id: cram-test-passes
+    outcome: real-arc42-fixture-shipped
+    claim: |
+      `tests/cli/adopt-real-arc42.t` covers 3 cases: full
+      arc42 + MADR + adr-tools flow, validate all
+      decisions, self-check still runs. All cases pass.
+    acceptance:
+      all:
+        - verifier: tests/cli/adopt-real-arc42.t
+          result: pass
+
+  - id: this-decision-validates
+    outcome: this-decision-validates
+    claim: |
+      `mathc validate
+      decisions/ux-3-adopt-real-arc42-2026-10.yaml`
+      exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ux-3-adopt-real-arc42-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: side-decision-becomes-optional
+    condition: |
+      A future maintainer decides the side-decision is
+      unnecessary and removes it from `mathc adopt`.
+      Resolution: this decision is revised; the fixture
+      still exercises the arc42 detection path but the
+      side-decision assertion is removed from the test.
+    action: rework
+
+risk:
+  declared_triggers:
+    - arc42-version-changed
+    - side-decision-flaky
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - ux-3-adopt-detect-2026-10@1
+    - ux-3-adopt-subcommand-2026-10@1
+    - ux-3-adopt-roadmap-2026-10@1
+  supersedes: []
+  superseded_by: []
