@@ -701,6 +701,189 @@ let[@warning "-32"] bilingual_drift_under_threshold () =
         true (drift <= threshold))
     pairs
 
+(* --- site-broken-links-2026-10 obligations --- *)
+
+let[@warning "-32"] ru_home_sibling_is_index_html () =
+  (* The Russian home page's English-sibling toggle and footer
+     sibling both point at `index.html`. Before the fix they
+     pointed at `home.html` (404). Per
+     `decisions/site-broken-links-2026-10@1`, obligation
+     `ru-home-sibling-resolves`. *)
+  let cfg : Render.config =
+    { Render.default_config with Render.languages = [ "en"; "ru" ] }
+  in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[]
+      ~site_pages_ru:[] ~axioms_data:[]
+  in
+  let home_ru =
+    List.find (fun p -> p.Render.path = "index.ru.html") pages
+  in
+  Alcotest.(check bool)
+    "Russian home page carries NO 'home.html' anywhere" true
+    (not (has "home.html" home_ru.Render.body));
+  Alcotest.(check bool)
+    "Russian home nav toggle points at 'index.html'" true
+    (has "lang-toggle" home_ru.Render.body
+     && has "href=\"index.html\"" home_ru.Render.body);
+  Alcotest.(check bool)
+    "Russian home footer 'EN' sibling points at 'index.html'" true
+    (has "site-meta" home_ru.Render.body
+     && has ">EN</a>" home_ru.Render.body)
+
+let[@warning "-32"] footer_links_github_origin () =
+  (* The footer emits GitHub blob URLs for AGENTS.md, ROADMAP.md,
+     PACKAGES.md, and spec/algebra-3.2.md. Before the fix it
+     emitted `../AGENTS.html` (404). Per
+     `decisions/site-broken-links-2026-10@1`, obligation
+     `footer-meta-docs-link-github`. *)
+  let cfg : Render.config = Render.default_config in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg
+      ~site_pages:[ ("home", "Home", "body") ]
+      ~site_pages_ru:[] ~axioms_data:[]
+  in
+  let page = List.find (fun p -> p.Render.path = "index.html") pages in
+  let body = page.Render.body in
+  (* Positive: each GitHub blob URL is present. *)
+  Alcotest.(check bool)
+    "footer links to AGENTS.md on GitHub" true
+    (has "github.com/11111000000/math-coding/blob/main/AGENTS.md" body);
+  Alcotest.(check bool)
+    "footer links to ROADMAP.md on GitHub" true
+    (has "github.com/11111000000/math-coding/blob/main/ROADMAP.md" body);
+  Alcotest.(check bool)
+    "footer links to PACKAGES.md on GitHub" true
+    (has "github.com/11111000000/math-coding/blob/main/PACKAGES.md" body);
+  Alcotest.(check bool)
+    "footer links to spec/algebra-3.2.md on GitHub" true
+    (has "github.com/11111000000/math-coding/blob/main/spec/algebra-3.2.md"
+       body);
+  (* Negative: the old broken-relative-link pattern is gone. *)
+  Alcotest.(check bool)
+    "footer does NOT carry '../AGENTS.html'" true
+    (not (has "../AGENTS.html" body));
+  Alcotest.(check bool)
+    "footer does NOT carry '../ROADMAP.html'" true
+    (not (has "../ROADMAP.html" body));
+  Alcotest.(check bool)
+    "footer does NOT carry '../PACKAGES.html'" true
+    (not (has "../PACKAGES.html" body));
+  Alcotest.(check bool)
+    "footer does NOT carry '../spec/algebra-3.2.md'" true
+    (not (has "../spec/algebra-3.2.md" body))
+
+let[@warning "-32"] nav_has_github_link () =
+  (* The nav carries a GitHub anchor pointing at the bare
+     repository URL on every rendered page. Before the fix
+     no top-of-page GitHub affordance existed. Per
+     `decisions/site-broken-links-2026-10@1`, obligation
+     `nav-has-github-link`. *)
+  let cfg : Render.config = Render.default_config in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg
+      ~site_pages:
+        [
+          ("home", "Home", "body");
+          ("axioms", "Axioms", "body");
+          ("spec/algebra-3.2", "Algebra", "body");
+        ]
+      ~site_pages_ru:[] ~axioms_data:[]
+  in
+  let github_href = "https://github.com/11111000000/math-coding" in
+  List.iter
+    (fun (page_key, _label) ->
+      let path =
+        match page_key with
+        | "home" -> "index.html"
+        | "spec/algebra-3.2" -> "spec/algebra-3.2.html"
+        | _ -> page_key ^ ".html"
+      in
+      let page = List.find (fun p -> p.Render.path = path) pages in
+      Alcotest.(check bool)
+        (Printf.sprintf "dist/%s has class=\"github-link\" in nav" path)
+        true
+        (has "class=\"github-link\"" page.Render.body);
+      Alcotest.(check bool)
+        (Printf.sprintf "dist/%s github-link href is the bare origin" path)
+        true
+        (has ("href=\"" ^ github_href ^ "\"") page.Render.body);
+      Alcotest.(check bool)
+        (Printf.sprintf
+           "dist/%s github-link is not a self-link to './github'" path)
+        true
+        (not (has "href=\"./github\"" page.Render.body)))
+    [ ("home", "Home"); ("axioms", "Axioms");
+      ("spec/algebra-3.2", "Algebra") ]
+
+let[@warning "-32"] axioms_link_html_not_md () =
+  (* The five axiom markdown sources must reference the rendered
+     spec HTML, not the raw spec markdown. Before the fix the
+     links were `../spec/algebra-3.2.md`, which 404'd because
+     `mathc render` ships the spec as `dist/spec/algebra-3.2.html`.
+     Per `decisions/site-broken-links-2026-10@1`, obligation
+     `axiom-pages-link-rendered-spec`. The link is the bare
+     `spec/algebra-3.2.html` (no `../` prefix) because `<base
+     href="/math-coding/">` overrides the document URL as the
+     base for relative URL resolution, so `../X` resolves
+     outside the site. *)
+  let root =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> p
+    | None -> ".."
+  in
+  let axiom_files =
+    [ "care"; "feedback"; "invariants"; "self-application"; "separation" ]
+  in
+  List.iter
+    (fun name ->
+      let path = Filename.concat root ("axioms/" ^ name ^ ".md") in
+      let md = read_text path in
+      Alcotest.(check bool)
+        (Printf.sprintf "axioms/%s.md does NOT link to ../spec/algebra-3.2.md"
+           name)
+        true
+        (not (has "../spec/algebra-3.2.md" md));
+      Alcotest.(check bool)
+        (Printf.sprintf
+           "axioms/%s.md does NOT link to ../spec/algebra-3.2.html"
+           name)
+        true
+        (not (has "../spec/algebra-3.2.html" md));
+      Alcotest.(check bool)
+        (Printf.sprintf
+           "axioms/%s.md DOES link to spec/algebra-3.2.html"
+           name)
+        true
+        (has "spec/algebra-3.2.html" md))
+    axiom_files;
+  (* Render `dist/` afresh and verify the rendered axiom pages
+     carry the link to the rendered spec. *)
+  let script = Filename.concat root "scripts/render.sh" in
+  let ec = Sys.command script in
+  if ec <> 0 then
+    Alcotest.failf
+      "scripts/render.sh exited %d; cannot verify axiom pages" ec;
+  let dist = Filename.concat root "dist" in
+  List.iter
+    (fun name ->
+      let rel = "axioms/" ^ name ^ ".html" in
+      let path = Filename.concat dist rel in
+      let html = read_text path in
+      Alcotest.(check bool)
+        (Printf.sprintf "dist/%s carries spec/algebra-3.2.html link" rel)
+        true
+        (has "spec/algebra-3.2.html" html);
+      Alcotest.(check bool)
+        (Printf.sprintf
+           "dist/%s does NOT carry the raw spec/algebra-3.2.md link" rel)
+        true
+        (not (has "../spec/algebra-3.2.md" html)))
+    axiom_files
+
 let () =
   Alcotest.run "render"
     [
@@ -771,6 +954,22 @@ let () =
         [ Alcotest.test_case "h1" `Quick axiom_page_single_h1 ] );
       ( "footer_mathc_render",
         [ Alcotest.test_case "footer" `Quick footer_mathc_render ] );
+      ( "ru_home_sibling_is_index_html",
+        [
+          Alcotest.test_case "ru-home" `Quick
+            ru_home_sibling_is_index_html;
+        ] );
+      ( "footer_links_github_origin",
+        [
+          Alcotest.test_case "github" `Quick footer_links_github_origin;
+        ] );
+      ( "nav_has_github_link",
+        [ Alcotest.test_case "nav" `Quick nav_has_github_link ] );
+      ( "axioms_link_html_not_md",
+        [
+          Alcotest.test_case "axiom-link" `Quick
+            axioms_link_html_not_md;
+        ] );
       ( "mermaid_in_seven_pages",
         [
           Alcotest.test_case "mermaid" `Quick

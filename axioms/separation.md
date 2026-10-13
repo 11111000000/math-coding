@@ -73,7 +73,7 @@ which is decided by an explicit `Decision` carrying a `supersedes` relation.
 
 ## Formalization
 
-The seven kinds live in [`spec/algebra-3.2.md`](../spec/algebra-3.2.md) as the
+The seven kinds live in [`spec/algebra-3.2.html`](spec/algebra-3.2.html) as the
 universal sets of §1 (`𝓒-rule`, `𝓓-flow`, `𝓡-axiom`, `𝓡-trail`) and the
 `Decision` record of §7. Counter-example requirements follow §11.
 

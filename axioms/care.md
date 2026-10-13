@@ -40,7 +40,7 @@ about an outcome*.
 
 The five epistemic markers on `assumption` (and the `Decision`
 record that contains them) live in
-[`spec/algebra-3.2.md`](../spec/algebra-3.2.md) §7. The trust
+[`spec/algebra-3.2.html`](spec/algebra-3.2.html) §7. The trust
 dynamics that decide *who is accountable* over time live in §12.
 
 Each `assumption` is a record with nine fields; `state` is one of
