@@ -1,0 +1,268 @@
+---
+schema: math-coding/3.2
+id: ux-3-init-agent-skill-2026-10
+revision: 1
+state: active
+body_sha: "1ba181c5a6b0d78ff2ba605a1b7ea7c36522a8597389facc40abbbb072770262"
+yaml_sha: "1ba181c5a6b0d78ff2ba605a1b7ea7c36522a8597389facc40abbbb072770262"
+intent: |
+  Wire up `mathc init --agent` so that the per-user opencode
+  skill is installed alongside the per-repo scaffold. The
+  `--agent` flag was accepted as a no-op in
+  `ux-3-init-subcommand-2026-10@1`; this decision supplies
+  the missing behavior for `opencode` (the first-class
+  target per FR-1) and prints a one-liner for the other
+  agent values (which are TODO in this slice).
+
+  Per-user opencode install copies the in-repo
+  `.opencode/skills/math-coding/SKILL.md` (locked by
+  `scripts/check-opencode-skill.sh` to be byte-identical
+  with `adoption/SKILL.md`) to
+  `${XDG_CONFIG_HOME:-${HOME}/.config}/opencode/skills/
+  math-coding/SKILL.md`. The source is resolved by walking
+  up from the running binary's directory looking for
+  `.opencode/skills/math-coding/SKILL.md`. For an in-tree
+  build (`_build/default/bin/mathc.exe`) the source is
+  three levels up; for an installed binary the walk fails
+  gracefully and the kernel prints an instruction pointing
+  at `install.sh --user-skill` (which is the canonical
+  per-user install path for installed binaries, per
+  `install-tooling-2026-10@1`).
+
+  Other agent values (claude-code, cursor, continue) are
+  no-op in this slice; each prints a one-liner pointing at
+  the relevant dist tarball or per-repo path. Adding
+  per-user installs for those agents is a follow-up that
+  requires the dist-tarball-as-binary-resource pattern
+  (deferred to a separate decision).
+
+  Touches (per A3 self-application):
+    lib/init/init.ml            (find_source_skill, xdg_config_home,
+                                 per_user_opencode_skill,
+                                 maybe_install_agent_skill)
+    tests/cli/init-agent.t     (cram fixture, 5 cases)
+    decisions/ux-3-init-agent-skill-2026-10.yaml   (this file)
+
+axiom_link:
+  - A0
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "Per-user
+  skill install belongs in `install.sh`, not in `mathc init`.
+  Adding it to init creates two code paths for the same
+  operation and risks drift." The author engaged with this
+  position and rejected it on three grounds: (a) `install.sh`
+  covers the per-user install for the **installed binary**
+  path (release tarball), but `mathc init` covers the
+  **in-source-build** path (developer running `mathc` from
+  the source repo); the two paths are complementary, not
+  redundant; (b) the developer workflow is `git clone →
+  dune build → mathc init`, and at that point `install.sh`
+  is not on the PATH — `mathc init --agent opencode` is
+  the only way to get the per-user skill; (c) the source
+  resolution walks up from the binary's directory, so an
+  in-tree build at `_build/default/bin/mathc.exe` finds
+  the source at `../../.opencode/...`; an installed
+  binary at `~/.local/bin/mathc` falls through to the
+  install.sh instruction, which is the canonical fallback
+  — no drift because the source is locked by
+  `scripts/check-opencode-skill.sh`. The minimum fix is
+  one walk + one copy + one fallback message, which is
+  what this file records.
+
+commitment: |
+  One kernel surface, one sub-library. Three deliverables,
+  each pinned by an obligation or fixture:
+
+    D1. `mathc init --agent opencode` walks up from the
+        binary's directory to find the in-repo source
+        `.opencode/skills/math-coding/SKILL.md`, copies it
+        to `${XDG_CONFIG_HOME:-${HOME}/.config}/opencode/
+        skills/math-coding/SKILL.md`, and prints a one-liner
+        confirming the install. If the source is not found
+        (installed binary case), the kernel prints a
+        one-liner pointing at `install.sh --user-skill`.
+
+    D2. `mathc init --agent {claude-code,cursor,continue,
+        generic}` is no-op: the kernel prints a one-liner
+        describing the right install path for that agent
+        (claude-code / cursor point at the dist tarball;
+        continue points at per-repo; generic is silent).
+
+    D3. `tests/cli/init-agent.t` covers all five agent
+        values: opencode (file installed), generic
+        (no install), claude-code / cursor / continue
+        (one-liner printed).
+
+  Boundaries (A3 self-application):
+    - `lib/init/init.ml` is the only sub-library touched.
+    - `bin/Mathc.ml` is unchanged (the `--agent` flag
+      plumbing is from `ux-3-init-subcommand-2026-10@1`).
+    - `bin/dune` is unchanged.
+    - `spec/`, `schemas/`, `axioms/`, the per-repo
+      `.opencode/skills/math-coding/SKILL.md`, the
+      `install.sh` per-user pipeline — all unchanged.
+    - No telemetry; no axiom amendment; no schema change.
+
+counterexample: |
+  "Source-resolution by walking up from the binary's
+   directory is fragile: an installed binary in
+   `~/.nix-profile/bin/mathc` (Nix profile) has the source
+   in the Nix store, not in a parent directory." The
+   counterargument fails because the walk fails gracefully
+   (it stops at `/` and returns `None`), the kernel prints
+   the `install.sh --user-skill` instruction, and the user
+   is on the canonical per-user install path. "Two code
+   paths for per-user install (`install.sh` and `mathc init
+   --agent`) will drift." This fails because the source is
+   locked by `scripts/check-opencode-skill.sh` (byte-
+   equality between in-repo `.opencode/.../SKILL.md` and
+   `adoption/SKILL.md`); both paths copy the same content;
+   drift is impossible.
+
+scope:
+  capabilities:
+    - mathc-init-per-user-agent-skill
+  paths:
+    - "lib/init/init.ml"
+    - "tests/cli/init-agent.t"
+    - "decisions/ux-3-init-agent-skill-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/diagnostic.ml"
+    - "lib/canonical.ml"
+    - "lib/render.ml"
+    - "lib/migrate.ml"
+    - "lib/waiver.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/mcp/**"
+    - "lib/import_adr/**"
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+    - "decisions/ux-3-init-subcommand-2026-10.yaml"
+    - "adoption/SKILL.md"
+    - ".opencode/skills/math-coding/SKILL.md"
+
+outcomes:
+  - id: per-user-opencode-skill-installed
+    statement: |
+      `mathc init --agent opencode` in a directory where
+      `mathc` was built from a source tree containing
+      `.opencode/skills/math-coding/SKILL.md` causes that
+      file to appear at `${XDG_CONFIG_HOME:-${HOME}/
+      .config}/opencode/skills/math-coding/SKILL.md` and
+      the kernel prints a one-line confirmation.
+  - id: installed-binary-falls-through
+    statement: |
+      `mathc init --agent opencode` from an installed
+      binary (where the source walk fails) does NOT create
+      a half-written file; the kernel prints an instruction
+      pointing at `install.sh --user-skill` and exits 0.
+  - id: other-agents-noop
+    statement: |
+      `mathc init --agent {claude-code,cursor,continue,
+      generic}` is no-op (no file copy); the kernel prints
+      a one-liner describing the right install path for
+      that agent value.
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/ux-3-init-agent-skill-2026-10.yaml` exits 0.
+
+assumptions:
+  - id: source-tree-contains-skill
+    state: assumed
+    statement: |
+      For the in-tree build path, the math-coding source
+      tree contains `.opencode/skills/math-coding/SKILL.md`
+      at the repo root (per `ux-3-repo-tracked-opencode-skill-2026-10@1`).
+      The kernel walks up from `<binary_dir>` to find it.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the source is moved (e.g. to `share/math-coding/
+      .opencode/`), the walk fails and the kernel prints
+      the `install.sh --user-skill` instruction. Resolution:
+      update `find_source_skill` to also try the new path.
+    review_on:
+      - signal: source-skill-moved
+  - id: xdg-config-home-stable
+    state: assumed
+    statement: |
+      The XDG Base Directory Specification is stable;
+      `XDG_CONFIG_HOME` is the right env var to honor for
+      per-user XDG paths. Default `~/.config` is the
+      fallback when `XDG_CONFIG_HOME` is unset.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the XDG spec changes (unlikely), the path
+      resolution breaks. Resolution: update the lookup.
+    review_on:
+      - signal: xdg-spec-changed
+
+obligations:
+  - id: cram-test-passes
+    outcome: per-user-opencode-skill-installed
+    claim: |
+      `tests/cli/init-agent.t` exercises all five agent
+      values: opencode (file installed), generic (no
+      install), claude-code / cursor / continue
+      (one-liner printed).
+    acceptance:
+      all:
+        - verifier: tests/cli/init-agent.t
+          result: pass
+
+  - id: this-decision-validates
+    outcome: this-decision-validates
+    claim: |
+      `mathc validate
+      decisions/ux-3-init-agent-skill-2026-10.yaml` exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ux-3-init-agent-skill-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: dist-tarball-bundles-skill
+    condition: |
+      A future decision bundles the per-user skill
+      content into the mathc binary as a resource (via
+      `dune` rules or ocaml-crunch). Resolution: this
+      decision is superseded; the kernel reads the
+      bundled resource and the walk-up logic is removed.
+    action: supersede-with-bundled-resource
+  - signal: install-sh-user-skill-deprecated
+    condition: |
+      `install.sh --user-skill` is removed (the per-user
+      install is fully covered by `mathc init --agent`).
+      Resolution: this decision is revised; the
+      `install.sh --user-skill` instruction in the
+      fallback message is replaced with a different
+      fallback.
+    action: rework
+
+risk:
+  declared_triggers:
+    - source-skill-moved
+    - xdg-spec-changed
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - ux-3-init-subcommand-2026-10@1
+    - ux-3-repo-tracked-opencode-skill-2026-10@1
+    - install-tooling-2026-10@1
+  supersedes: []
+  superseded_by: []
