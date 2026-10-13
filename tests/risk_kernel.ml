@@ -30,6 +30,7 @@ let[@warning "-32"] empty_policy_list = []
 let[@warning "-32"] default_policy =
   {
     Policy.policy_id = "test-default";
+    Policy.parent = None;
     scope_paths = [ "lib/**"; "bin/**"; "tests/**" ];
     obligations = [];
     mode_floor = `Standard;
@@ -41,6 +42,7 @@ let[@warning "-32"] default_policy =
 let[@warning "-32"] axioms_policy =
   {
     Policy.policy_id = "test-axioms";
+    Policy.parent = None;
     scope_paths = [ "axioms/**" ];
     obligations = [];
     mode_floor = `Exhaustive;
@@ -48,10 +50,10 @@ let[@warning "-32"] axioms_policy =
     transitive_into = [];
     data_flow_edges = [];
   }
-
 let[@warning "-32"] pci_policy =
   {
     Policy.policy_id = "test-pci";
+    Policy.parent = None;
     scope_paths = [ "payments/**" ];
     obligations = [];
     mode_floor = `Strict;
@@ -63,6 +65,7 @@ let[@warning "-32"] pci_policy =
 let[@warning "-32"] override_pos_policy =
   {
     Policy.policy_id = "test-override-pos";
+    Policy.parent = None;
     scope_paths = [ "lib/**" ];
     obligations = [];
     mode_floor = `Standard;
@@ -70,10 +73,10 @@ let[@warning "-32"] override_pos_policy =
     transitive_into = [];
     data_flow_edges = [];
   }
-
 let[@warning "-32"] override_neg_policy =
   {
     Policy.policy_id = "test-override-neg";
+    Policy.parent = None;
     scope_paths = [ "lib/**" ];
     obligations = [];
     mode_floor = `Standard;

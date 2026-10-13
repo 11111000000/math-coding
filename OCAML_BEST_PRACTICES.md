@@ -1979,3 +1979,44 @@ image. Cited from this session (2026-10-12) as the
 trigger for `decisions/install-tooling-2026-10.yaml`.
 Referenced from that decision's commitment #4 and
 `Dockerfile.debian-slim` (the cp-then-COPY pattern).
+
+### 11.30 Default-zero `override_probability` in a child never erases the parent's value
+
+**Symptom.** A `parent:` chain in `policies.yaml` (decision
+`multi-policy-hierarchy-2026-10`, `lib/policy.ml::resolve_policy`)
+silently zeroes out the parent's `override_probability` when the
+child declares `override_probability: 0.0` (the default-zero
+omission). The resolved policy then reports `0.0` even though
+the parent set `0.5`, and `probability(c) = 0.5` for every
+commit in the child path — bypassing the parent's gate
+intention. Authors see the right value when they read
+`policies.yaml` and the wrong value when they read the resolved
+policy.
+
+**Fix.** `merge_chain`'s `override_probability` accumulator
+must be: "first non-zero value scanning root → leaf". Equivalently
+the fold seeds the accumulator at `0.0` and updates it only when
+`policy.override_probability ≠ 0.0`. The default-zero child
+NEVER replaces an explicit non-zero parent value. Concretely,
+`lib/policy.ml::merge_chain` implements this; a regression
+that switched to "last-wins" (i.e., always update on every step)
+would re-introduce the trap.
+
+The companion contract: an explicit child-`override_probability:
+0.0` (i.e., the policy author intentionally wrote the zero)
+is indistinguishable from "the field was omitted". The kernel
+preserves the parent's value in BOTH cases. To silence a parent's
+override, the child must either (a) rename `parent:` to a sibling
+policy and avoid the chain, or (b) accept the parent's value as
+correct. There is no current kernel API for "child forcibly
+clears parent override"; adding one is a follow-up decision.
+
+**Trigger.** Any future patch to `merge_chain` (or its callers)
+that changes the fold step to "always replace" instead of
+"replace only on non-zero". The grep trigger
+`grep -n 'override_probability' lib/policy.ml` in a new diff
+is a smell; the regression pin lives in
+`tests/policy_test.ml::resolve_policy_one_level_inherits_parent`.
+
+Cited from `decisions/multi-policy-hierarchy-2026-10.yaml`
+(assumptions: `child-zero-does-not-erase-parent`).

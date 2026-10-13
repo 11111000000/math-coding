@@ -49,6 +49,11 @@
           "kind": {"enum": ["import", "export"]}
         }
       }
+    },
+    "parent": {
+      "description": "Optional parent policy_id. When set, this policy inherits all obligations, scope_paths, and a raised mode_floor from the parent. See spec/algebra-3.2.md §9 (hierarchical axis, decision `multi-policy-hierarchy-2026-10`).",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
     }
   }
 }

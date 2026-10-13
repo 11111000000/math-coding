@@ -37,6 +37,7 @@
   data_flow_edges: []
 
 - policy_id: math-coding-axioms
+  parent: math-coding-default
   scope_paths:
     - "axioms/**"
   mode_floor: exhaustive

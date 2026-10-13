@@ -316,8 +316,40 @@ data_flow_targets(p):
   - transitive closure: data_flow_targets*(p) = ⋃ₙ data_flow_targetsⁿ(p)
 ```
 
----
+### §9.1 — composition axes (clarifying note)
 
+The §9 algebra names three composition axes; each is a
+distinct step in the kernel's resolution pipeline:
+
+  (a) **union** — multiple policies matching the same path
+      are merged: `obligations` are unioned (deduplicated by
+      (kind, namespace)), `mode_floor` is the max, and
+      `override_probability` is the sum clamped to `[-1, 1]`.
+      Implemented by `merge_policies` / `compose` /
+      `mode_floor_of` in `lib/policy.ml`.
+
+  (b) **transitive** — `data_flow_targets*` reaches every
+      path reachable via one or more imports/exports edges.
+      The transitive closure drives `transitive_obligations(c)`
+      and the `mode_floor_of` extension. Implemented by
+      `data_flow_targets` in `lib/policy.ml`.
+
+  (c) **hierarchical** — a `parent: <policy_id>` field walks
+      the parent chain; the resolved policy is the cumulative
+      union of obligations + `scope_paths` across every
+      ancestor and the child itself, with `mode_floor`
+      taking the max. The chain MUST terminate (acyclic);
+      cycles surface `MC-POLICY-CYCLE`. Implemented by
+      `resolve_policy` in `lib/policy.ml` (decision
+      `multi-policy-hierarchy-2026-10`).
+
+The three axes compose in this order: hierarchical first
+(resolve), then union (merge paths → policy), then transitive
+(data-flow expansion). `compose` and `mode_floor_of` see the
+resolved policies; the raw `parent:` chain is collapsed by
+`resolve_policy` before the union/transitive steps run.
+
+---
 ## §10. Rebuttal mechanism
 
 ```

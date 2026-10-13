@@ -7,7 +7,7 @@
   re_evaluation_test
   render_kernel
   risk_kernel
-  yaml_block_scalars
+  policy_test
   ci_blocking_list_test
   decision_parser_yaml
   ; counters_drift is gated off until the dune-test hang

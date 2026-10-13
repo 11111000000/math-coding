@@ -1,45 +1,66 @@
 (* lib/policy.ml — multi-policy per path with union + transitive
-   composition.
+   + hierarchical composition.
 
-   Implements spec/algebra-3.2.md §9 (Multi-policy per path):
+   Implements spec/algebra-3.2.md §9 (Multi-policy per path).
+   The algebra names three composition axes (decision
+   `multi-policy-hierarchy-2026-10`):
 
-     policy(p) = declared(p) if exists else default-policy
-     direct_obligations(c) = ⋃{obligations(policy(p)) : p ∈ c.files}
-     transitive_paths(c)   = data_flow_targets*(c.files)
-     transitive_obligations(c) = ⋃{obligations(policy(p))
-                                   : p ∈ transitive_paths(c)}
-     obligations(c) = direct_obligations(c) ⊕ transitive_obligations(c)
+     (a) union       — Σ obligations across policies matching
+         the same path; max(mode_floor); summed
+         override_probability clamped to [-1, 1].
+     (b) transitive  — data-flow reachability via imports/exports;
+         the closure `data_flow_targets*(p)` is the union of all
+         paths reachable from `p`.
+     (c) hierarchical — `parent: <id>` walks the chain; obligations
+         and scope_paths are unioned, mode_floor is max'd,
+         `override_probability` is the child's non-zero value
+         (else parent's). See `resolve_policy` below.
 
-   data_flow_targets(p):
-     - imports(p) → q: q ∈ data_flow_targets(p)
-     - exports(p) → q: q ∈ data_flow_targets(p)
-     - transitive closure: data_flow_targets*(p) = ⋃ₙ data_flow_targetsⁿ(p)
 
-   The kernel stays offline (OCAML_BEST_PRACTICES §1.3): the pure
-   parsing API is `parse_policies : string -> (policy list, string)`.
-   `load_policies_from_file` is a thin wrapper that reads via
-   `In_channel.with_open_text`; tests and the kernel itself should
-   call the pure API with a `reader` callback or a fixed string.
+  Algebra §9 formulation:
 
-   Path matching is glob-like: scope_paths support three forms:
-     "services/payments"      → exact equality
-     "services/payments/*"    → one path segment under "services/payments"
-     "services/payments/**"   → any path at or under "services/payments"
-   Bare "*" or "**" prefixes (e.g. "**") are NOT supported; this
-   mirrors §2 risk-function conventions where classify() uses explicit
-   path prefixes rather than a single top-level wildcard.
+    policy(p) = declared(p) if exists else default-policy
+    direct_obligations(c) = ⋃{obligations(policy(p)) : p ∈ c.files}
+    transitive_paths(c)   = data_flow_targets*(c.files)
+    transitive_obligations(c) = ⋃{obligations(policy(p))
+                                  : p ∈ transitive_paths(c)}
+    obligations(c) = direct_obligations(c) ⊕ transitive_obligations(c)
 
-   Schema: schemas/policy.json (mirrored here as the policy record).
-   Obligations are stored as `obligation_ref` (kind, namespace) pairs
-   for the multi-policy composition step; the full Obligation record
-   is not needed by the gate (§15) at compose-time, only by the
-   per-obligation attestation lookup, which lives outside this module.
+  data_flow_targets(p):
+    - imports(p) → q: q ∈ data_flow_targets(p)
+    - exports(p) → q: q ∈ data_flow_targets(p)
+    - transitive closure: data_flow_targets*(p) = ⋃ₙ data_flow_targetsⁿ(p)
 
-   Mode ordering (algebra §3): tiny < light < standard < strict <
-   exhaustive. `mode_floor_of` returns the maximum mode_floor across
-   the direct AND transitive policies. `default_policy.mode_floor`
-   is `Tiny`, so paths that match no declared policy default to the
-   floor of "tiny" — the silent baseline. *)
+  The kernel stays offline (OCAML_BEST_PRACTICES §1.3): the pure
+  parsing API is `parse_policies : string -> (policy list, string)`.
+  `load_policies_from_file` is a thin wrapper that reads via
+  `In_channel.with_open_text`; tests and the kernel itself should
+  call the pure API with a `reader` callback or a fixed string.
+
+  Path matching is glob-like: scope_paths support three forms:
+    "services/payments"      → exact equality
+    "services/payments/*"    → one path segment under "services/payments"
+    "services/payments/**"   → any path at or under "services/payments"
+  Bare "*" or "**" prefixes (e.g. "**") are NOT supported; this
+  mirrors §2 risk-function conventions where classify() uses explicit
+  path prefixes rather than a single top-level wildcard.
+
+  Schema: schemas/policy.json (mirrored here as the policy record).
+  Obligations are stored as `obligation_ref` (kind, namespace) pairs
+  for the multi-policy composition step; the full Obligation record
+  is not needed by the gate (§15) at compose-time, only by the
+  per-obligation attestation lookup, which lives outside this module.
+
+  Mode ordering (algebra §3): tiny < light < standard < strict <
+  exhaustive. `mode_floor_of` returns the maximum mode_floor across
+  the direct AND transitive policies. `default_policy.mode_floor`
+  is `Tiny`, so paths that match no declared policy default to the
+  floor of "tiny" — the silent baseline. *)
+(* Path matching is glob-like: scope_paths support three forms:
+   "services/payments"      → exact equality
+   "services/payments/*"    → one path segment under "services/payments"
+   "services/payments/**"   → any path at or under "services/payments"
+   Bare "*" or "**" prefixes (e.g. "**") are NOT supported. *)
 
 (* --- types --- *)
 
@@ -55,8 +76,14 @@ type data_flow_edge = {
   kind : data_flow_kind;
 }
 
+(* parent: optional policy_id this policy inherits from. The
+   hierarchical composition axis (decision
+   `multi-policy-hierarchy-2026-10`) walks the parent chain,
+   unioning obligations + scope_paths and max'ing mode_floor.
+   None means "no parent; this policy stands on its own". *)
 type policy = {
   policy_id : string;
+  parent : string option;
   scope_paths : string list;
   obligations : obligation_ref list;
   mode_floor : Domain.mode;
@@ -66,10 +93,10 @@ type policy = {
 }
 
 (* --- defaults --- *)
-
 let default_policy =
   {
     policy_id = "default";
+    parent = None;
     scope_paths = [];
     obligations = [];
     mode_floor = `Tiny;
@@ -198,6 +225,7 @@ let[@warning "-32"] merge_policies ps =
   let data_flow_edges = List.concat_map (fun p -> p.data_flow_edges) ps in
   {
     policy_id = "merged";
+    parent = None;
     scope_paths = dedup_strings (List.concat_map (fun p -> p.scope_paths) ps);
     obligations;
     mode_floor;
@@ -293,7 +321,140 @@ let policy_override_of_files policies files =
   in
   clamp_override sum
 
-(* --- JSON / YAML parsers --- *)
+
+(* resolve_policy: hierarchical composition axis (decision
+   `multi-policy-hierarchy-2026-10`). Walks the `parent` chain
+   starting from the policy whose `policy_id = id`, accumulating
+   obligations + scope_paths and max'ing mode_floor across every
+   ancestor and the child itself.
+
+   Resolution rules (mirrors the decision's commitment §3):
+
+     - obligations = union of (parent obligations + child
+       obligations), deduplicated by (kind, namespace).
+     - scope_paths = union of (parent scope_paths + child
+       scope_paths), deduplicated as strings.
+     - mode_floor = max(parent.mode_floor, child.mode_floor).
+     - override_probability = child's value when non-zero,
+       else parent's value. The default-zero child never
+       erases an explicit parent override (OCAML_BEST_PRACTICES
+       §11.26 — TRAP).
+     - transitive_into, data_flow_edges = child's values
+       (transitive data-flow stays with the child; the parent
+       chain does not propagate these fields).
+
+   Cycle detection: the visited set records every `policy_id`
+   seen along the chain. A repeat ⇒ `Error (Diagnostic.t with
+   code "MC-POLICY-CYCLE")`.
+
+   Missing policy: when the target `id` is not in `policies`,
+   returns `Error (Diagnostic.t with code "MC-POLICY-NOT-FOUND")`.
+
+   Pure: no I/O, no exceptions, no state mutation. The
+   Diagnostic is a value; callers surface it themselves. *)
+(* find_policy_by_id: linear scan over the policy registry. The
+   list is small (one file, one decision per project) so a linear
+   scan is cheaper than building a side table. *)
+let[@warning "-32"] find_policy_by_id policies id =
+  List.find_opt (fun p -> String.equal p.policy_id id) policies
+
+(* cycle_in_chain: given the chain walked so far (ordered from
+   root-most ancestor down to the most recent policy), does the
+   `target` policy_id already appear? If yes, walking the parent
+   pointer would close a loop; `resolve_policy` returns a cycle
+   diagnostic. The chain list always ends with the policy whose
+   `parent` is being inspected, so we look up the full chain. *)
+let[@warning "-32"] cycle_in_chain chain target_id =
+  List.exists
+    (fun p -> String.equal p.policy_id target_id)
+    chain
+
+(* walk_chain: build a flat, root-first list of policies along
+   the parent chain, terminating on a missing parent or on a
+   repeat (cycle). Returns `(chain_opt, cycle_target)` where
+   `cycle_target = Some id` when the cycle is detected at `id`.
+   The chain is root-first; the leaf (the original target) is
+   the LAST element. *)
+let[@warning "-32"] rec walk_chain policies chain =
+  match chain with
+  | [] -> (chain, None)
+  | last :: _ -> (
+      match last.parent with
+      | None -> (chain, None)
+      | Some parent_id -> (
+          if cycle_in_chain chain parent_id then
+            (chain, Some parent_id)
+          else
+            match find_policy_by_id policies parent_id with
+            | None -> (chain, None)
+            | Some parent -> walk_chain policies (parent :: chain)))
+
+(* merge_chain: fold the chain (root-first) into one resolved
+   policy. mode_floor is max'd; obligations and scope_paths are
+   union+dedup; `override_probability` is the first non-zero
+   value scanning root → leaf (child wins, but default-zero
+   never erases a parent's non-zero override — TRAP §11.26);
+   `transitive_into` and `data_flow_edges` are taken from the
+   LEAF (the child's data-flow edges do not propagate through
+   the parent chain). The resolved policy's `parent` is `None`
+   (the chain has been flattened). *)
+let[@warning "-32"] merge_chain chain =
+  match List.rev chain with
+  | [] ->
+      (* Unreachable: resolve_policy guards against this with
+         the `find_policy_by_id` check. *)
+      {
+        policy_id = "";
+        parent = None;
+        scope_paths = [];
+        obligations = [];
+        mode_floor = `Tiny;
+        override_probability = 0.0;
+        transitive_into = [];
+        data_flow_edges = [];
+      }
+  | leaf :: _ ->
+      let obligations =
+        dedup_refs (List.concat_map (fun p -> p.obligations) chain)
+      in
+      let scope_paths =
+        dedup_strings (List.concat_map (fun p -> p.scope_paths) chain)
+      in
+      let mode_floor =
+        max_mode_floor (List.map (fun p -> p.mode_floor) chain)
+      in
+      let override_probability =
+        List.fold_left
+          (fun acc p -> if acc = 0.0 then p.override_probability else acc)
+          0.0 chain
+      in
+      {
+        policy_id = leaf.policy_id;
+        parent = None;
+        scope_paths;
+        obligations;
+        mode_floor;
+        override_probability;
+        transitive_into = leaf.transitive_into;
+        data_flow_edges = leaf.data_flow_edges;
+      }
+
+let resolve_policy policies id =
+  match find_policy_by_id policies id with
+  | None ->
+      let msg =
+        Printf.sprintf "policy not found in registry: %s" id
+      in
+      Error (Diagnostic.create ~code:"MC-POLICY-NOT-FOUND" ~kind:Input msg)
+  | Some target ->
+      let chain, cycle_at = walk_chain policies [ target ] in
+      match cycle_at with
+      | Some _ ->
+          let msg =
+            Printf.sprintf "policy cycle detected starting at: %s" id
+          in
+          Error (Diagnostic.create ~code:"MC-POLICY-CYCLE" ~kind:Input msg)
+      | None -> Ok (merge_chain chain)
 
 let[@warning "-32"] parse_data_flow_kind s =
   match s with "import" -> Some `Import | "export" -> Some `Export | _ -> None
@@ -362,6 +523,7 @@ let[@warning "-32"] parse_policy v =
   | Jsonl.Object ps -> (
       match Schema.take_string ps "policy_id" with
       | Some policy_id ->
+          let parent = Schema.take_string ps "parent" in
           let scope_paths = parse_string_list ps "scope_paths" in
           let obligations = parse_obligations ps in
           let mode_str =
@@ -382,6 +544,7 @@ let[@warning "-32"] parse_policy v =
           Some
             {
               policy_id;
+              parent;
               scope_paths;
               obligations;
               mode_floor;

@@ -1,0 +1,413 @@
+---
+schema: math-coding/3.0-alpha
+id: multi-policy-hierarchy-2026-10
+revision: 1
+state: active
+mode: standard
+body_sha: "sha256:f57caa5c65a12badd7a8711ff2c696891f4e4099b482114205dc089b00bbb33a"
+yaml_sha: "sha256:f57caa5c65a12badd7a8711ff2c696891f4e4099b482114205dc089b00bbb33a"
+axiom_link:
+  - A0
+intent: |
+  Extend the multi-policy algebra (spec/algebra-3.2.md §9) with a
+  third composition axis: hierarchical policy composition. Current
+  §9 covers two axes — union (sum of obligations across policies
+  matching the same path) and transitive (data-flow reachability
+  through imports/exports). Hierarchy is the missing third axis:
+  a policy may declare `parent: <policy_id>` and inherit all
+  obligations, scope paths, and a raised mode_floor from its
+  parent, then narrow them in the child.
+
+  The three composition axes are:
+
+    (a) union       — multiple policies on one path: sum
+        obligations, max(mode_floor), summed override (algebra §9
+        direct_obligations + §2 mode_floor_of).
+    (b) transitive  — data-flow reachability: obligations follow
+        imports/exports to closure (algebra §9 transitive_paths,
+        data_flow_targets*).
+    (c) hierarchical — parent inheritance: a policy's parent is
+        walked, accumulating parent's obligations + scope_paths,
+        max'ing mode_floor, and using CHILD's override_probability
+        (not parent's).
+
+  This decision closes the gap left by algebra §9: §9 names the
+  union and transitive axes but not the hierarchy axis. With this
+  change a project can express "default policy catches every path,
+  payments policy inherits from default and adds strict mode_floor
+  + PCI obligation references" without duplicating the default's
+  scope_paths in the child.
+
+  Boundaries:
+    - This cycle does not change the four algebraic closure
+      definitions in §9; it adds a third axis (hierarchy) and names
+      it in a clarifying §9.1 note. Parent inheritance is a
+      preprocessing step that runs BEFORE the union/transitive
+      composition of §9; the resolved policy is what flows through
+      compose(), mode_floor_of(), policy_override_of_files().
+    - The cycle does not allow multiple inheritance (a list of
+      parents). Single parent is sufficient for the documented
+      use cases (default → specialised). Multiple inheritance is
+      a follow-up decision if needed.
+    - The cycle does not change how the kernel reads or caches
+      `policies.yaml` at startup; the new field is optional and
+      existing policies parse unchanged.
+
+commitment: |
+  After this decision lands:
+
+  1. `lib/policy.ml::policy` record gains `parent : string option`
+     field. Existing record constructions are updated to default
+     the field to `None`.
+
+  2. `lib/policy.ml::resolve_policy : policy list -> string ->
+     (policy, Diagnostic.t) result` walks the parent chain,
+     accumulating obligations, scope_paths, and mode_floor across
+     parents and child. The function:
+       - Returns `Ok merged_policy` when the chain terminates
+         cleanly (no cycles, root reached).
+       - Returns `Error (Diagnostic.t with code "MC-POLICY-CYCLE")`
+         when a cycle is detected (a parent appears twice in
+         the chain).
+       - Returns `Error` when the target policy_id is not in the
+         input list (with `code "MC-POLICY-NOT-FOUND"`).
+     The resolved policy's `policy_id` is the child's id; the
+     resolved policy's `parent` field is `None` (the chain has
+     been flattened; the resolved policy stands on its own).
+
+  3. Resolution rules:
+       - obligations  = union(parent_obligations, child_obligations),
+         deduplicated by (kind, namespace).
+       - scope_paths  = union(parent_scope_paths, child_scope_paths),
+         deduplicated as strings.
+       - mode_floor   = max(parent_mode_floor, child_mode_floor).
+       - override_probability = child's value (child wins; parent
+         is overridden by the child, mirroring §2 "override
+         probability overrides" semantics). When the child's
+         override_probability is 0.0 but the parent's is non-zero,
+         the parent's value is preserved (the default-zero child
+         does not erase an explicit parent override).
+
+  4. The schema `schemas/policy.json` gains an OPTIONAL
+     `parent : { "type": "string" }` property. Existing policy
+     files parse unchanged (parent absent ⇒ None).
+
+  5. The `policies.yaml` parser in `lib/policy.ml::parse_policy`
+     accepts an optional `parent:` string field and threads it
+     into the record.
+
+  6. `lib/policy.ml::default_policy` and all sample policies used
+     by `tests/risk_kernel.ml` are updated to set `parent = None`.
+
+  7. `tests/policy_test.ml` is added (registered in `tests/dune`)
+     with five test cases:
+
+       (a) `resolve_policy_no_parent_returns_same`: a policy with
+           `parent = None` resolves to itself (modulo field
+           normalisation; same obligations, scope_paths,
+           mode_floor).
+       (b) `resolve_policy_one_level_inherits_parent`: parent ∪
+           child — the resolved policy carries the union of
+           obligations and scope_paths and the max of mode_floor.
+       (c) `resolve_policy_three_level_chain_returns_cumulative`:
+           grandparent → parent → child; the resolved policy
+           carries the cumulative union across all three.
+       (d) `resolve_policy_cycle_returns_MC_POLICY_CYCLE`: a ↔ b
+           (cycle) returns `Error` carrying code
+           `"MC-POLICY-CYCLE"`.
+       (e) `resolve_policy_mode_floor_takes_max`: parent.mode_floor
+           = Strict, child.mode_floor = Exhaustive → resolved
+           mode_floor = Exhaustive.
+
+  8. `spec/algebra-3.2.md` §9 is annotated with a clarifying note
+     naming the three axes (union, transitive, hierarchical) and
+     pointing to `resolve_policy` as the preprocessing step.
+
+  9. The `MC-POLICY-CYCLE` and `MC-POLICY-NOT-FOUND` diagnostic
+     codes are registered in `lib/diagnostic.ml::explain` so
+     `mathc explain-diagnostic <CODE>` returns a Definition /
+     Occurs-when / Remediation body.
+
+  10. `OCAML_BEST_PRACTICES.md §11` gains a new entry documenting
+      the "parent inheritance overrides child only when child
+      is the explicit default-zero" rule (the trap is: a future
+      regression where the child's 0.0 silences the parent's
+      non-zero override).
+
+  11. `mathc self-check` still returns 67 pass / 1 unknown / 0
+      fail (no regression).
+
+scope:
+  capabilities:
+    - multi-policy-composition
+    - hierarchical-policy-inheritance
+    - cycle-detection
+  paths:
+    - "lib/policy.ml"
+    - "lib/diagnostic.ml"
+    - "tests/policy_test.ml"
+    - "tests/dune"
+    - "tests/risk_kernel.ml"
+    - "schemas/policy.json"
+    - "spec/algebra-3.2.md"
+    - "OCAML_BEST_PRACTICES.md"
+    - "policies.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/codec.ml"
+    - "lib/jsonl.ml"
+    - "lib/gate.ml"
+    - "lib/risk.ml"
+    - "bin/Mathc.ml"
+    - "lib/canonical.ml"
+    - "lib/memory.ml"
+    - "schemas/decision.json"
+    - "schemas/attestation.json"
+    - "schemas/obligation.json"
+    - "decisions/decision.yaml"
+    - "decisions/algebra-3.2.yaml"
+
+outcomes:
+  - id: parent-field-added
+    statement: |
+      `lib/policy.ml::policy` record gains `parent : string option`
+      and every existing constructor (default_policy, tests, parser)
+      threads `None` as the default.
+  - id: resolve_policy-implemented
+    statement: |
+      `lib/policy.ml::resolve_policy : policy list -> string ->
+      (policy, Diagnostic.t) result` is implemented, walks the
+      parent chain with cycle detection, and returns the cumulative
+      union of obligations + scope_paths with max'd mode_floor.
+  - id: cycle-detection-emits-diagnostic
+    statement: |
+      A policy cycle (a ↔ b or a → b → c → a) returns
+      `Error (Diagnostic.t with code "MC-POLICY-CYCLE")` and the
+      diagnostic is explainable via `mathc explain-diagnostic
+      MC-POLICY-CYCLE`.
+  - id: schema-accepts-parent-key
+    statement: |
+      `schemas/policy.json` declares an optional `parent : string`
+      property; existing policy files (no parent field) still parse.
+  - id: spec-note-three-axes
+    statement: |
+      `spec/algebra-3.2.md §9` carries a clarifying note naming
+      the three composition axes and pointing to resolve_policy
+      as the hierarchy-axis preprocessing step.
+
+counterexample: |
+  "Hierarchy is over-engineered. The §9 union + transitive axes
+  already cover every multi-policy case the project needs; adding
+  parent inheritance introduces a third composition rule with
+  subtle override semantics (does the child's 0.0 erase the
+  parent's non-zero override?) that future maintainers must
+  learn. The kernel is simpler without it."
+
+  Counterargument: §9 calls out "policy(p) = declared(p) if exists
+  else default-policy" but the spec is silent on declared-vs-
+  default ordering. Today, `policies.yaml` projects have to
+  re-declare every default-policy scope_path in every specialised
+  policy to keep the math sound (`axioms/**` policy re-list the
+  whole tree below axioms/). That duplication is the gap §9
+  leaves open; hierarchy closes it. The override semantics have
+  exactly one ambiguous case (child 0.0 vs parent non-zero),
+  addressed in rule 3 above (child's 0.0 does NOT erase parent's
+  non-zero — default-zero never overrides explicit value).
+
+  "Cycle detection turns `resolve_policy` into a parser, not a
+  pure resolver. The function's purity (algebra §9) is the value
+  — diagnostic emissions are a side effect that belongs in the
+  gate layer."
+
+  Counterargument: cycle detection is total (no exception, no
+  I/O, no state mutation). The result-type `Ok | Error of
+  Diagnostic.t` keeps the function pure: the Diagnostic is a
+  value, not a side effect. The gate layer that consumes the
+  result can decide whether the cycle is a blocker (mode >=
+  standard) or a warning (mode tiny/light); the resolver itself
+  is pure. This mirrors `lib/decision.ml::parse_decision` which
+  already returns `Diagnostic.t` lists from a pure function.
+
+  "Self-application: this decision changes a kernel module
+  (`lib/policy.ml`) that ALL other kernel modules depend on.
+  A3-protected transitions require human review before merge."
+  This change is NOT a constitutional amendment (axioms A0-A4
+  preserved), only an additive kernel extension (a new field and
+  a new function). Bootstrap-v3 admissibility is preserved;
+  reviewer sign-off is tracked under `outcomes.acceptance`.
+
+antithesis: |
+  Maintaining three composition axes (union + transitive + hierarchical)
+  is a maintenance burden proportional to 3× the test surface. The
+  third axis is justified by use case but creates new failure modes —
+  parent linking mistakes, deep chains, override ambiguity — that the
+  kernel must defend against. A simpler alternative is to encode
+  hierarchy via a SECOND `policies.yaml` file imported by the first,
+  with the gate layer merging the two lists before §9 composition.
+  This pushes hierarchy out of the kernel and into the loader, keeping
+  resolve_policy ≈ identity and avoiding new diagnostic codes in
+  `lib/diagnostic.ml`. The trade-off is a YAML loader convention
+  (import: <file>) instead of a typed `parent` field; the maintainer's
+  authoring cost is similar but the kernel stays smaller. The
+  hierarchical-axis decision is therefore a deliberate choice to grow
+  the kernel to grow the expressiveness, not the smallest diff that
+  closes the gap.
+
+assumptions:
+  - id: single-parent-sufficient
+    state: assumed
+    statement: |
+      A policy has at most ONE parent. Multiple inheritance (a list
+      of parents) is out of scope for this cycle; the
+      `parent : string option` field encodes exactly one parent.
+    owner: human:maintainer
+    consequence_if_false: |
+      If multiple inheritance becomes a requirement, the field
+      widens to `parents : string list` and the resolution rule
+      becomes union-of-parents before child. A separate decision
+      documents the merge order (left-to-right vs priority key).
+    review_on:
+      - signal: multiple-inheritance-required
+
+  - id: child-zero-does-not-erase-parent
+    state: assumed
+    statement: |
+      When `child.override_probability = 0.0` and
+      `parent.override_probability ≠ 0.0`, the resolved policy
+      inherits the parent's non-zero value. Default-zero NEVER
+      overrides an explicit value.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the rule is reversed, a child policy that does not name
+      `override_probability` silently drops the parent's setting.
+      Future regressions where a policy author forgets to set
+      override_probability on the child produce surprise zero-overrides.
+    review_on:
+      - signal: override-default-semantics-changed
+
+  - id: diag-emission-is-pure-result
+    state: assumed
+    statement: |
+      `resolve_policy` returns `(policy, Diagnostic.t) result`
+      rather than raising or logging. The Diagnostic is a value
+      in the OCaml heap; the function is total and pure. Callers
+      that wish to log surface the diagnostic themselves (the
+      gate layer does this for cycle cases).
+    owner: human:maintainer
+    consequence_if_false: |
+      If cycle detection mutates a ref or logs to stderr, the
+      function loses purity and `tests/policy_test.ml` becomes
+      hard to assert against. The result-type keeps the API
+      honest; callers see the diagnostic explicitly.
+    review_on:
+      - signal: diag-side-effect-introduced
+
+obligations:
+  - id: parent-field-defaulted
+    outcome: parent-field-added
+    claim: |
+      Every existing `policy` record construction in
+      `lib/policy.ml`, `tests/risk_kernel.ml`, and the YAML
+      parser threads `parent = None` (or `parent = Some id`),
+      and the existing dune build succeeds.
+    acceptance:
+      all:
+        - verifier: dune build --root .
+          result: pass
+
+  - id: resolve_policy_signature
+    outcome: resolve_policy-implemented
+    claim: |
+      `lib/policy.ml::resolve_policy : policy list -> string ->
+      (policy, Diagnostic.t) result` is exported; the signature
+      is documented in a kernel-level comment block.
+    acceptance:
+      all:
+        - verifier: tests/policy_test.ml::resolve_policy_signature_introspectable
+          result: pass
+
+  - id: cycle-detection
+    outcome: cycle-detection-emits-diagnostic
+    claim: |
+      `resolve_policy` returns `Error (Diagnostic.t with code
+      "MC-POLICY-CYCLE")` when the parent chain contains a cycle.
+      The diagnostic is registered in `lib/diagnostic.ml::explain`.
+    acceptance:
+      all:
+        - verifier: tests/policy_test.ml::resolve_policy_cycle_returns_MC_POLICY_CYCLE
+          result: pass
+        - verifier: Diagnostic.explain "MC-POLICY-CYCLE" = Some _body
+          result: pass
+
+  - id: schema-parent-optional
+    outcome: schema-accepts-parent-key
+    claim: |
+      `schemas/policy.json` declares an optional `parent : string`
+      property and the policies YAML parser accepts it; existing
+      policies without `parent` parse unchanged.
+    acceptance:
+      all:
+        - verifier: json-schema-validation passes
+          result: pass
+        - verifier: tests/policy_test.ml::parse_policy_with_parent_round_trips
+          result: pass
+
+  - id: spec-note-three-axes
+    outcome: spec-note-three-axes
+    claim: |
+      `spec/algebra-3.2.md §9` carries a clarifying note naming
+      the three composition axes (union, transitive, hierarchical)
+      and pointing to `resolve_policy` as the preprocessing step.
+    acceptance:
+      all:
+        - verifier: text-scan-contains-three-axes-in-section-9
+          result: pass
+
+  - id: trap-log-11-26
+    claim: |
+      `OCAML_BEST_PRACTICES.md §11` gains entry §11.26
+      documenting "parent override_probability child-zero does
+      not erase parent-non-zero" contract.
+    acceptance:
+      all:
+        - verifier: grep -q '### 11.26' OCAML_BEST_PRACTICES.md
+          result: pass
+
+  - id: self-check-no-regression
+    claim: |
+      `mathc self-check` returns 67 pass / 1 unknown / 0 fail
+      after this change.
+    acceptance:
+      all:
+        - verifier: mathc self-check >= 67 pass
+          result: pass
+        - verifier: mathc self-check == 0 fail
+          result: pass
+
+reversal:
+  - signal: hierarchy-superseded-by-loader-convention
+    condition: |
+      If a future decision supersedes this one with
+      `import: <file>` semantics that pushes hierarchy out of
+      the kernel into the YAML loader.
+    action: |
+      Remove `parent` field from `policy`; remove
+      `resolve_policy`; remove `MC-POLICY-CYCLE` /
+      `MC-POLICY-NOT-FOUND` codes; remove the §9 hierarchy
+      note; gate layer keeps `compose`, `mode_floor_of`,
+      `policy_override_of_files` unchanged.
+
+risk:
+  declared_triggers:
+    - parent-chain-too-deep
+    - cycle-detection-too-permissive
+    - child-zero-eats-parent-non-zero
+    - schema-migration-friction
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - algebra-3.2@2
+    - policy-driven-floor-2026-10@1
+  supersedes: []
+  superseded_by: []

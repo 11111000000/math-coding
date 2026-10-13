@@ -672,8 +672,8 @@ let explain (code : string) : string option =
          placeholder-substitution algorithm: replace each\n\
          field's value with the placeholder `sha256:` + 64\n\
          zeros (same length as a real digest), sha256 the\n\
-         resulting file content, and set BOTH fields to the\n\
-         resulting hex digest. The reference implementation\n\
+         resulting file content, and set BOTH fields to\n\
+         the resulting hex digest. The reference implementation\n\
          lives in `scripts/axiom-link-seed.py:105-123`. Re-run\n\
          `mathc validate` to confirm `MC-SHA-MISMATCH` is\n\
          gone."
@@ -867,7 +867,56 @@ let explain (code : string) : string option =
          to be a non-axiom identifier, remove it from the\n\
          `axiom_link` list and put it under `relations.addresses`\n\
          instead. Re-run `mathc validate`."
+  | "MC-POLICY-CYCLE" ->
+      Some
+        "### Definition\n\
+         A `parent:` chain in `policies.yaml` contains a\n\
+         cycle (a → b → a). `lib/policy.ml::resolve_policy` walks\n\
+         the chain to compute the resolved policy; cycles\n\
+         terminate the walk early and surface this diagnostic.\n\
+         The decision in scope is\n\
+         `decisions/multi-policy-hierarchy-2026-10`.\n\n\
+         ### Occurs when\n\
+         `Policy.resolve_policy` is called on a policy whose\n\
+         `parent` field transitively points back to itself\n\
+         (direct cycle a → a or 2-step a → b → a). The\n\
+         function returns `Error (Diagnostic.t)` carrying this\n\
+         code rather than infinite-looping.\n\n\
+         ### Remediation\n\
+         Trace the `parent:` references in `policies.yaml`\n\
+         from the named cycle root and break the loop. The\n\
+         simplest fix is to remove the `parent:` line from one\n\
+         of the policies; if the relationship is genuinely\n\
+         parent-child, restructure it into a 3-tier chain\n\
+         (grandparent → parent → child) without re-pointing\n\
+         to a previously-on-path ancestor. Re-run\n\
+         `mathc explain-diagnostic MC-POLICY-CYCLE` is not\n\
+         relevant to the fix; the diagnostic is removed once\n\
+         the chain is acyclic."
+  | "MC-POLICY-NOT-FOUND" ->
+      Some
+        "### Definition\n\
+         `lib/policy.ml::resolve_policy` was called with a\n\
+         `policy_id` that is not in the registry. The\n\
+         resolution function returns `Error (Diagnostic.t)`\n\
+         with this code rather than returning `default_policy`.\n\
+         The decision in scope is\n\
+         `decisions/multi-policy-hierarchy-2026-10`.\n\n\
+         ### Occurs when\n\
+         `Policy.resolve_policy policies id` is called and\n\
+         no policy in `policies` has `policy_id = id`. This\n\
+         is distinct from `MC-POLICY-CYCLE`: a missing-id is\n\
+         an input error; a cycle is a structural loop in the\n\
+         registry. Both are emitted by the same function\n\
+         under different conditions.\n\n\
+         ### Remediation\n\
+         Confirm that the `policy_id` matches one in\n\
+         `policies.yaml` exactly (the registry uses\n\
+         exact-string equality). Add a stub policy entry\n\
+         with the missing id if the call site is correct;\n\
+         otherwise, fix the call site to use a known id."
   | _ -> None
+
 
 let render d =
   Printf.sprintf "[%s] %s/%s: %s"
