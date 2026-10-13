@@ -1,0 +1,241 @@
+---
+schema: math-coding/3.2
+id: ux-3-adopt-roadmap-2026-10
+revision: 1
+state: active
+body_sha: "6d3ca2ead680e2b08b40ae643ac401d1b018d94427e71b45ddf6d5881440c2fd"
+yaml_sha: "6d3ca2ead680e2b08b40ae643ac401d1b018d94427e71b45ddf6d5881440c2fd"
+intent: |
+  Phase 3 planning for brownfield adoption. Records the
+  decision to land a separate `mathc adopt` subcommand
+  (NOT an extension of `mathc init --merge`) and the three
+  sub-decisions it comprises. This file is META: no kernel
+  surface change, no new code, no fixtures. The actual work
+  is the three sub-decisions; this decision is the roadmap
+  for them.
+
+  Per the user's answer to Q2: brownfield clients are real
+  (arc42, MADR, adr-tools are all in active use in the
+  project ecosystem) and the work should be quality
+  (auto-detect, auto-import, not just refuse-and-pray). Per
+  the user's classification: this is a Phase 3 workstream,
+  planned but not started in the current ux-3 iteration.
+
+  This file is superseded when the first sub-decision
+  (`ux-3-adopt-detect-2026-10`) lands; until then, it is the
+  authoritative plan.
+
+axiom_link:
+  - A0
+
+antithesis: |
+  The counter-position considered and rejected: "Brownfield
+  can be handled by `mathc init --merge` (which already
+  exists) plus a follow-up loop of `mathc import-adr`.
+  Adding a separate `mathc adopt` is over-engineering."
+  The author engaged with this position and rejected it on
+  five grounds: (a) `mathc init --merge` refuses brownfield
+  but does not auto-import; the user has to discover and
+  invoke `mathc import-adr` per ADR file — for a project
+  with 30 MADR ADRs that's 30 commands plus a loop wrapper;
+  (b) the brownfield-detection logic is non-trivial
+  (arc42, MADR, adr-tools, mixed) and deserves its own
+  sub-library per the §10.1 adapter convention; mixing it
+  into `lib/init/init.ml` makes the file longer without
+  making the test boundary cleaner; (c) the Phase 3 work
+  is large enough (detection + subcommand + real-arc42
+  fixture) that one decision would be a kitchen-sink
+  decision; three sub-decisions match the project's
+  "atomic change" principle; (d) the user explicitly
+  classified this as a Phase 3 workstream with a separate
+  planning step, signalling that the work is too large
+  for a single commit; (e) the existing
+  `mathc init --merge` behavior is preserved (no
+  regression); `mathc adopt` is an additive command.
+  The minimum fix is one planning decision now, three
+  sub-decisions later.
+
+commitment: |
+  One planning commitment, documented in `outcomes:`
+  below. Three Phase-3 sub-decisions are scoped:
+
+    D1. `ux-3-adopt-detect-2026-10` (Phase 3, 1st slice).
+        `lib/adopt/detect.ml` — the brownfield detection
+        logic. Pure function:
+          `detect : root:string -> brownfield_report`
+        where `brownfield_report` is a sum type covering
+        `Empty | Arc42 | Madr | AdrTools | Mixed Arc42+Madr
+        | Mixed Arc42+AdrTools | Mixed Madr+AdrTools |
+        Mixed all-three`. Plus the file-listing helpers
+        (`madr_files : root:string -> string list`,
+        `adrtools_files : root:string -> string list`).
+        ~100 lines of OCaml, no I/O beyond `Sys.file_exists`
+        and `Sys.readdir`. Cram fixture exercises each
+        detection case on a tmpfs-shaped dir tree.
+
+    D2. `ux-3-adopt-subcommand-2026-10` (Phase 3, 2nd slice).
+        `lib/adopt/adopt.ml` + `do_adopt ()` dispatch entry
+        in `bin/Mathc.ml`. The command's behavior depends
+        on the detection:
+          - Empty: equivalent to `mathc init`
+          - Arc42 only: `mathc init --merge`; add a note to
+            the active policy that arc42 sections stay
+            as the architecture doc
+          - Madr: `mathc init --merge` + for each
+            `docs/adr/*.md`, run `mathc import-adr --write`
+          - AdrTools: same with `adr/*.md`
+          - Mixed: same per-convention, with an
+            `--only=<arc42|madr|adr-tools>` filter for
+            power users
+        Exit codes: 0 on success, 2 on input error
+        (e.g. unknown flag), 3 on brownfield refusal
+        (only when `--from-X` is explicit and conflicts
+        with the detected set).
+        Cram fixture: empty / arc42-only / madr-only /
+        adrtools-only / arc42+madr / no-arc42-dir-but-
+        has-decisions. ~150 lines of OCaml.
+
+    D3. `ux-3-adopt-real-arc42-2026-10` (Phase 3, 3rd slice).
+        Integration test on a real-shaped arc42 project
+        (not a synthetic tmpfs). The test fixture is a
+        snapshot of an actual arc42 layout: `docs/arc42/`
+        with `01_introduction.md`, `02_architecture_goals.md`,
+        `03_system_scope_and_context.md`, etc. (arc42 v2
+        canonical sections). The fixture runs `mathc adopt`
+        on the snapshot and asserts:
+          - `decisions/decision.yaml` is created
+          - `decisions/bootstrap-v3-arc42-compatibility.md`
+            (or similar) records the arc42-section mapping
+            in the `assumptions[]` block
+          - `mathc self-check` still passes (no regression)
+        This is the "real client" coverage; without it
+        the brownfield work is theoretical.
+
+  Boundaries (A3 self-application):
+    - This decision is META: no kernel surface change.
+    - `lib/`, `bin/`, `spec/`, `schemas/`, `axioms/` are
+      unchanged by this decision (only by the three
+      sub-decisions when they land).
+    - No new sub-library; no schema change; no axiom
+      amendment.
+    - The three sub-decisions each carry their own
+      A3 self-application compliance; this file
+      records the plan but not the contracts.
+
+counterexample: |
+  "Three sub-decisions for one user-facing command is
+   over-engineering. One decision, one PR, ship it." The
+   counterargument fails because the three slices are
+   naturally atomic: (1) detection is pure logic, no
+   command surface; (2) the command wires detection to
+   the existing subcommands; (3) the real-arc42
+   integration is its own test, its own fixture, and
+   its own evidence. Lumping them into one decision
+   would either make the diff unreadable or make the
+   reviewer's job impossible.
+
+scope:
+  capabilities:
+    - phase-3-brownfield-planning
+  paths:
+    - "decisions/ux-3-adopt-roadmap-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: phase-3-plan-recorded
+    statement: |
+      Three Phase-3 sub-decisions are scoped and named:
+      `ux-3-adopt-detect-2026-10`,
+      `ux-3-adopt-subcommand-2026-10`, and
+      `ux-3-adopt-real-arc42-2026-10`. Each is atomic
+      (own decision, own worktree, own fixtures, own
+      review attestation).
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/ux-3-adopt-roadmap-2026-10.yaml` exits 0.
+
+assumptions:
+  - id: brownfield-clients-active
+    state: assumed
+    statement: |
+      arc42, MADR, and adr-tools are all in active use in
+      the project ecosystem (the original ux-3 ТЗ cited
+      this as the adoption bottleneck). The Phase-3 work
+      is real, not speculative.
+    owner: human:maintainer
+    consequence_if_false: |
+      If brownfield adoption turns out to be rare, the
+      Phase-3 work is still useful (any project with
+      existing ADRs benefits from the auto-import), but
+      the priority drops. Resolution: defer to a later
+      phase if Q3-Q4 2027 telemetry shows <5% of new
+      adopters hitting the brownfield path.
+    review_on:
+      - signal: brownfield-adoption-rate-low
+  - id: separate-subcommand-wins
+    state: assumed
+    statement: |
+      A separate `mathc adopt` subcommand is the right
+      surface for brownfield, NOT an extension of
+      `mathc init --merge`. The user confirmed this in
+      Q2 ("реальные, делай качественно"). The three
+      sub-decisions are scoped around this shape.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future maintainer decides `mathc init --merge`
+      is the right shape, the three sub-decisions are
+      rescoped: detection becomes a private helper, the
+      command becomes a flag, the integration test
+      becomes a flag test.
+    review_on:
+      - signal: design-shape-changed
+
+obligations:
+  - id: this-decision-validates
+    outcome: this-decision-validates
+    claim: |
+      `mathc validate
+      decisions/ux-3-adopt-roadmap-2026-10.yaml` exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ux-3-adopt-roadmap-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: phase-3-starts
+    condition: |
+      The first Phase-3 sub-decision
+      (`ux-3-adopt-detect-2026-10`) lands. Resolution:
+      this decision is superseded; the implementation
+      lives in the new file.
+    action: supersede-with-detect-decision
+  - signal: design-shape-changed
+    condition: |
+      A future maintainer decides the design shape is
+      different (e.g. `mathc init --merge` is preferred
+      to a separate command). Resolution: this decision
+      is revised with the new shape; the three
+      sub-decisions are rescoped accordingly.
+    action: rework
+
+risk:
+  declared_triggers:
+    - brownfield-adoption-rate-low
+    - design-shape-changed
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - ux-3-init-subcommand-2026-10@1
+    - ux-3-import-adr-subcommand-2026-10@1
+  supersedes: []
+  superseded_by: []
