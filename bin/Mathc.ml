@@ -3862,11 +3862,11 @@ let[@warning "-32"] do_packages () =
  *   --explain        (also print the manifest's intent before the plan)
  *   --write          apply auto-translatable actions to a sibling
  *                    <file>.migrated.yaml alongside each input;
- *                    the original file is NEVER overwritten. The
- *                    `--format` and `--write` flags are mutually
- *                    exclusive (--write always emits a per-file
- *                    JSON summary of what was applied). With
- *                    `--dry-run` the kernel prints what `--write`
+  *                    the original file is NEVER overwritten. The
+  *                    `--format` and `--write` flags are mutually
+  *                    exclusive (--write always emits a per-file
+  *                    JSON summary of what was applied). With
+  *                    `--dry-run` the kernel prints what `--write`
   *                    would do (a one-step assist) without touching
   *                    the disk; without `--dry-run`, writes happen.
   *)
@@ -3914,6 +3914,44 @@ let[@warning "-32"] do_init () =
           from_adr = !from_adr;
           no_install = !no_install;
           merge = !merge }
+
+(* --- import-adr subcommand ---------------------------------------- *)
+
+(* `mathc import-adr PATH [--write]`
+ *
+ * Imports an existing ADR file (MADR or adr-tools shape) and
+ * emits a math-coding decision YAML to stdout (default) or
+ * to `decisions/<id>.yaml` (with `--write`). The implementation
+ * lives in `lib/import_adr/import_adr.ml` per the sub-library
+ * convention (OCAML_BEST_PRACTICES §10.1). The dispatcher only
+ * parses argv and forwards to `Import_adr.run`. Exit codes:
+ * 0 on success, 1 on file not found, 2 on input error. *)
+let[@warning "-32"] do_import_adr () =
+  let path = ref "" in
+  let write = ref false in
+  let set_path s = path := s in
+  Arg.current := 1;
+  Arg.parse
+    [
+      ("--write", Arg.Set write,
+       " Write the imported decision to decisions/<id>.yaml");
+    ]
+    set_path "usage: mathc import-adr PATH [--write]";
+  if !path = "" then begin
+    Printf.fprintf stderr "mathc import-adr: missing PATH\n";
+    print_usage stderr;
+    exit 2
+  end;
+  if not (Sys.file_exists !path) then begin
+    Printf.fprintf stderr
+      "mathc import-adr: file not found: %s\n" !path;
+    exit 1
+  end;
+  (match Import_adr.run !path !write with
+   | Ok () -> ()
+   | Error (`Msg m) ->
+       Printf.fprintf stderr "mathc import-adr: %s\n" m;
+       exit 3)
 
 let[@warning "-32"] do_migrate () =
   Arg.current := 1;
@@ -4169,6 +4207,7 @@ let dispatch () =
   | "render" -> do_render ()
   | "counters" -> do_counters ()
   | "init" -> do_init ()
+  | "import-adr" -> do_import_adr ()
   | "migrate" -> do_migrate ()
   | "--help" | "-h" ->
       print_usage stdout;
