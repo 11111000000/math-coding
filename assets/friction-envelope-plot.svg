@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 480" role="img" aria-labelledby="fe-title" preserveAspectRatio="xMidYMid meet">
+  <title id="fe-title">Friction envelope plot: X axis is risk(r), Y axis is friction_user(c) in lines. Band heights are proportional to the mode thresholds in algebra §21 (tiny ≤ 0, light ≤ 10, standard ≤ 60, strict ≤ 130, exhaustive ≤ 300); five example diff kinds are plotted within their mode band, and the ideal_3.2 budget (fu ≤ baseline for mode ≤ standard) is dashed across the diagram (§21 + §27).</title>
+  <desc>A 2D plot on banded background showing the five mode tiers proportional to their §21 envelopes. Five example points are plotted within their actual mode band. The reference line marks the ideal_3.2 budget boundary.</desc>
+  <defs>
+    <style>
+      .fe-axis { stroke: #1a1a1a; stroke-width: 1; fill: none; }
+      .fe-tick { stroke: #1a1a1a; stroke-width: 1; }
+      .fe-tick-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #1a1a1a; text-anchor: middle; }
+      .fe-axis-label { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; font-style: italic; }
+      .fe-band-tiny      { fill: #f5f0e0; }
+      .fe-band-light     { fill: #f0ebd8; }
+      .fe-band-standard  { fill: #ebe6d0; }
+      .fe-band-strict    { fill: #e6e0c5; }
+      .fe-band-exhaustive{ fill: #e0d9b3; }
+      .fe-band-label    { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: start; }
+      .fe-baseline { stroke: #8b3a3a; stroke-width: 1.25; stroke-dasharray: 6 4; fill: none; }
+      .fe-baseline-label { fill: #8b3a3a; font-family: Georgia, "Iowan Old Style", serif; font-size: 10px; font-style: italic; text-anchor: start; }
+      .fe-point { fill: #8b3a3a; stroke: #fbfaf6; stroke-width: 1.25; }
+      .fe-point-label { font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; fill: #1a1a1a; text-anchor: start; font-weight: 500; }
+      .fe-point-mono { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: start; }
+      .fe-section { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #5a5a5a; letter-spacing: 0.06em; text-anchor: start; }
+      .fe-rule { stroke: #d4d0c8; stroke-width: 1; fill: none; }
+    </style>
+  </defs>
+
+  <text class="fe-section" x="20" y="24">§21 + §27  friction_user(c) by risk(r); band heights proportional to mode ceilings</text>
+
+  <!-- plot frame: x=90..650 (width 560), y=70..390 (height 320, fu 0..300) -->
+  <!-- Y mapping: 1 fu = 320/300 = 1.0667 px ; y(fu) = 390 - fu*1.0667
+
+       Mode ceilings per §21: tiny=0, light=10, standard=60, strict=130, exhaustive=300.
+       Band boundaries (y-coordinates) per spec:
+         tiny:        fu 0       → y = 390
+         light:       fu 0..10   → y = 379..390   (height 11)
+         standard:    fu 10..60  → y = 326..379   (height 53)
+         strict:      fu 60..130 → y = 251..326   (height 75)
+         exhaustive:  fu 130..300→ y = 70..251    (height 181)
+  -->
+
+  <!-- mode bands (drawn top-to-bottom in svg coords; band order from top to bottom in the spec is
+       exhaustive → strict → standard → light → tiny.
+       Drawing in that z-order means later rectangles cover earlier ones.) -->
+  <rect class="fe-band-exhaustive" x="90" y="70"  width="560" height="181"/>
+  <rect class="fe-band-strict"     x="90" y="251" width="560" height="75"/>
+  <rect class="fe-band-standard"   x="90" y="326" width="560" height="53"/>
+  <rect class="fe-band-light"      x="90" y="379" width="560" height="11"/>
+  <!-- tiny has 0 height; we omit its rect, the axis line IS the boundary. -->
+
+  <!-- band labels along the right axis, just outside the plot -->
+  <text class="fe-band-label" x="655" y="92">exhaustive · fu ≤ 300</text>
+  <text class="fe-band-label" x="655" y="262">strict · fu ≤ 130</text>
+  <text class="fe-band-label" x="655" y="338">standard · fu ≤ 60</text>
+  <text class="fe-band-label" x="655" y="388">light · fu ≤ 10</text>
+
+  <!-- baseline reference line: ideal_3.2 budget at fu = baseline for mode ≤ standard.
+       We draw it across the lower part of the diagram as a visual aid. -->
+  <line class="fe-baseline" x1="90" y1="326" x2="650" y2="326"/>
+  <text class="fe-baseline-label" x="98" y="320">ideal_3.2 budget: fu ≤ baseline for mode ≤ standard (§27)</text>
+
+  <!-- plot frame top + left -->
+  <line class="fe-rule" x1="90" y1="70" x2="90" y2="390"/>
+
+  <!-- Y axis -->
+  <line class="fe-axis" x1="90" y1="390" x2="90" y2="60"/>
+  <line class="fe-axis" x1="88" y1="62" x2="90" y2="58"/>
+
+  <!-- X axis -->
+  <line class="fe-axis" x1="90" y1="390" x2="660" y2="390"/>
+  <line class="fe-axis" x1="656" y1="388" x2="664" y2="392"/>
+
+  <!-- X ticks (x = 90 + risk*93.33) -->
+  <line class="fe-tick" x1="90"  y1="390" x2="90"  y2="395"/>
+  <text class="fe-tick-label" x="90"  y="408">0</text>
+  <line class="fe-tick" x1="183" y1="390" x2="183" y2="395"/>
+  <text class="fe-tick-label" x="183" y="408">1</text>
+  <line class="fe-tick" x1="277" y1="390" x2="277" y2="395"/>
+  <text class="fe-tick-label" x="277" y="408">2</text>
+  <line class="fe-tick" x1="370" y1="390" x2="370" y2="395"/>
+  <text class="fe-tick-label" x="370" y="408">3</text>
+  <line class="fe-tick" x1="463" y1="390" x2="463" y2="395"/>
+  <text class="fe-tick-label" x="463" y="408">4</text>
+  <line class="fe-tick" x1="557" y1="390" x2="557" y2="395"/>
+  <text class="fe-tick-label" x="557" y="408">5</text>
+  <line class="fe-tick" x1="650" y1="390" x2="650" y2="395"/>
+  <text class="fe-tick-label" x="650" y="408">6</text>
+
+  <!-- axis labels -->
+  <text class="fe-axis-label" x="370" y="430">risk(r)</text>
+  <text class="fe-axis-label" x="42"  y="230" transform="rotate(-90,42,230)">friction_user(c) [lines]</text>
+
+  <!-- 5 example points
+       (cx, cy) = (90 + r*93.33, 390 - fu*1.0667)
+       point 1: typo · r=0.3 · fu=0    → (118, 390)
+       point 2: new endpoint · r=1.8 · fu=10  → (258, 379) — sits ON the light/standard boundary
+       point 3: API change · r=3.5 · fu=60  → (416, 326) — sits ON the standard/strict boundary
+       point 4: constitution · r=5.0 · fu=130 → (556, 251) — sits ON the strict/exhaustive boundary
+       point 5: axiom rev · r=6.0 · fu=300 → (650, 70) — top-right corner
+  -->
+
+  <g>
+    <circle class="fe-point" cx="118" cy="390" r="5"/>
+    <text class="fe-point-label" x="130" y="383">typo</text>
+    <text class="fe-point-mono" x="130" y="372">tiny · r=0.3 · fu=0</text>
+  </g>
+
+  <g>
+    <circle class="fe-point" cx="258" cy="379" r="5"/>
+    <text class="fe-point-label" x="270" y="349">new endpoint</text>
+    <text class="fe-point-mono" x="270" y="338">light · r=1.8 · fu=10</text>
+  </g>
+
+  <g>
+    <circle class="fe-point" cx="416" cy="326" r="5"/>
+    <text class="fe-point-label" x="428" y="312">API change</text>
+    <text class="fe-point-mono" x="428" y="300">standard · r=3.5 · fu=60</text>
+  </g>
+
+  <g>
+    <circle class="fe-point" cx="556" cy="251" r="5"/>
+    <text class="fe-point-label" x="568" y="237">constitution</text>
+    <text class="fe-point-mono" x="568" y="225">strict · r=5.0 · fu=130</text>
+  </g>
+
+  <g>
+    <circle class="fe-point" cx="630" cy="92" r="5"/>
+    <text class="fe-point-label" x="620" y="86" text-anchor="end">axiom rev.</text>
+    <text class="fe-point-mono" x="620" y="74" text-anchor="end">exh. · r=6.0 · fu=300</text>
+  </g>
+</svg>

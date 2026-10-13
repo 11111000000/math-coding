@@ -1,0 +1,216 @@
+---
+schema: math-coding/3.2
+id: site-svg-foundations-2026-10
+revision: 1
+state: active
+body_sha: "sha256:960a12c6ddf00ec91e20a439a35b06605468334b1b8d0a39a85872b8f67dc48d"
+yaml_sha: "sha256:960a12c6ddf00ec91e20a439a35b06605468334b1b8d0a39a85872b8f67dc48d"
+axiom_link:
+  - A2
+intent: |
+  Add eight hand-rolled SVG specialist diagrams to the
+  foundations page. The foundations page (dist/foundations.html)
+  is the OCaml mapping of the algebra-3.2 spec; each section
+  pairs an axiom with a kernel mechanism and a verification.
+  The eight diagrams add visual summaries of the most
+  cross-cutting algebra sections that are otherwise only
+  text:
+
+  - counterexample-flow.svg: the forcing-function that blocks
+    a merge when |C(D)| = 0 (algebra section 11, 11.1)
+  - axiom-transition.svg: the re_evaluate(d, A_new) oracle
+    (algebra section 17)
+  - trust-dynamics.svg: the four trust tiers and the four
+    rebuttal outcomes (algebra section 12)
+  - substrate-fingerprint.svg: kernel.ver + ocaml.ver +
+    dep.digests hashed per CI run (algebra sections 13, 14, 16)
+  - waiver-state-machine.svg: requested, reviewed, granted,
+    consumed/expired/cancelled (constitution section Waivers)
+  - friction-envelope-plot.svg: the mode-tier budget bands
+    (algebra sections 21, 27)
+  - quality-radar.svg: the 14 quality dimensions (algebra
+    section 22)
+  - reasoning-budget.svg: the three independent time-reporting
+    scales (AGENTS.md section Honest time reporting; algebra
+    section 18)
+
+  All eight are pure SVG, accessibility-tagged (role=img +
+  aria-labelledby + <title>), and live under assets/. Each
+  is embedded by lib/render.ml's body_extra match for the
+  'foundations' page key, so mathc render emits a
+  <figure class="mathc-figure mathc-figure-foundations">
+  wrapper for each. The wrapper inherits the existing CSS
+  rule .mathc-figure-foundations img { max-width: 56rem; }
+  from assets/style.css; no CSS change is required.
+
+  Scope: the eight figures, the body_extra extension in
+  lib/render.ml, and the obligation that pins them closed.
+
+commitment: |
+  `mathc render` emits a `dist/foundations.html` that
+  carries, in addition to the existing two figures, five
+  `<figure class="mathc-figure mathc-figure-foundations">`
+  wrappers for `assets/axiom-transition.svg`,
+  `assets/counterexample-flow.svg`,
+  `assets/friction-envelope-plot.svg`, `assets/quality-radar.svg`,
+  and `assets/reasoning-budget.svg`, in that order. Each
+  `<figure>` wraps an `<img>` with a non-empty `alt=`
+  attribute and a `title` element in the source SVG.
+
+scope:
+  capabilities:
+    - site-illustration
+  paths:
+    - "assets/axiom-transition.svg"
+    - "assets/counterexample-flow.svg"
+    - "assets/friction-envelope-plot.svg"
+    - "assets/quality-radar.svg"
+    - "assets/reasoning-budget.svg"
+    - "lib/render.ml"
+    - "dist/foundations.html"
+
+outcomes:
+  - id: foundations-svgs-render
+    statement: The rendered `dist/foundations.html` carries all
+      seven `<figure class="mathc-figure
+      mathc-figure-foundations">` wrappers (the two
+      pre-existing plus the five new) in source order, and
+      each new `<img>` resolves to a present file in
+      `dist/assets/`. The five new SVGs are
+      accessibility-tagged (`role="img"` +
+      `aria-labelledby` + non-empty `<title>`) at the
+      source level.
+
+counterexample: |
+  "Eight specialist diagrams on the foundations page is
+  visual noise; prose alone is enough."
+
+  Counterargument: each diagram is a visual summary of an
+  algebra section that is dense and quantitative; the
+  reader who is already an algebra-3.2 expert does not
+  need the diagrams, but the reader who is learning the
+  algebra can use the diagram as an entry point. The
+  counterexample-flow and friction-envelope-plot are the
+  two most-cited diagrams in design discussions; without
+  them the foundations page forces the reader to follow
+  a paragraph of algebra to understand a single decision.
+
+  "These diagrams are spec content and should live in
+  spec/algebra-3.2.md, not in the foundations page."
+
+  Counterargument: spec/algebra-3.2.md is the normative
+  text; the foundations page is the OCaml mapping. The
+  diagrams are visual aids to the OCaml mapping, not to
+  the algebra itself. The <title> and <desc> elements
+  on each SVG cite the algebra section number, so a
+  reader who wants depth navigates from the diagram to
+  the spec; the diagrams are a UI affordance, not a
+  competing source of truth.
+
+antithesis: |
+  Author considered and rejected the strongest counter-
+  position: "The five SVGs are too much for one decision;
+  split into five `site-svg-<figure>-2026-XX` decisions
+  with one obligation each."
+
+  That position is rejected because (a) the SVGs are
+  embedded by a single `body_extra` match in
+  `lib/render.ml`; five decisions would produce five
+  `body_extra` patches that have to land in the same
+  file, increasing review cost without a corresponding
+  gain in clarity; (b) the five SVGs share a common
+  CSS wrapper (`.mathc-figure-foundations`) and a common
+  reasoning-tied-to-algebra-sections style; (c) the five
+  SVGs are introduced as a coordinated set in the
+  methodology page, not as five independent editorial
+  additions.
+
+  A counter-decision that wanted five separate cycles
+  would have to argue that the five SVGs are introduced
+  in five temporally separate review-and-reverse paths;
+  the author sees no such axis and prefers the bundled
+  cycle.
+
+assumptions:
+  - id: site-base-stays-subpath
+    state: assumed
+    statement: |
+      The site's `<base href>` remains a subpath
+      (`/math-coding/`) rather than becoming the host
+      root. The relative-URL semantics that the new
+      `<img src="assets/foo.svg">` references rely on
+      the base href overriding the document URL.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future cycle sets `site_base = "/"`, the
+      `assets/foo.svg` references on `foundations.html`
+      resolve to `/foo.svg` (404) rather than
+      `/math-coding/assets/foo.svg`. A follow-up
+      decision would rewire the body_extra entries.
+    review_on:
+      - signal: deployment-target-moves-to-host-root
+
+obligations:
+  - id: foundations-svgs-render
+    outcome: foundations-svgs-render
+    claim: |
+      The rendered `dist/foundations.html` carries all
+      seven `<figure class="mathc-figure
+      mathc-figure-foundations">` wrappers (the two
+      pre-existing plus the five new) in source order,
+      and each `<img>` resolves to a present file in
+      `dist/assets/`. The five new SVGs are
+      accessibility-tagged (`role="img"` +
+      `aria-labelledby` + non-empty `<title>`) at the
+      source level.
+    acceptance:
+      all:
+        - verifier: ! grep -F '<img src="assets/axiom-transition.svg"' dist/foundations.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/counterexample-flow.svg"' dist/foundations.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/friction-envelope-plot.svg"' dist/foundations.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/quality-radar.svg"' dist/foundations.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/reasoning-budget.svg"' dist/foundations.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/substrate-fingerprint.svg"' dist/foundations.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/trust-dynamics.svg"' dist/foundations.html
+          result: pass
+        - verifier: ! grep -F '<img src="assets/waiver-state-machine.svg"' dist/foundations.html
+          result: pass
+        - verifier: ! test -f dist/assets/axiom-transition.svg && test -f dist/assets/counterexample-flow.svg && test -f dist/assets/friction-envelope-plot.svg && test -f dist/assets/quality-radar.svg && test -f dist/assets/reasoning-budget.svg && test -f dist/assets/substrate-fingerprint.svg && test -f dist/assets/trust-dynamics.svg && test -f dist/assets/waiver-state-machine.svg
+          result: pass
+        - verifier: ! grep -lE 'role="img" aria-labelledby' assets/axiom-transition.svg assets/counterexample-flow.svg assets/friction-envelope-plot.svg assets/quality-radar.svg assets/reasoning-budget.svg assets/substrate-fingerprint.svg assets/trust-dynamics.svg assets/waiver-state-machine.svg
+          result: pass
+
+reversal:
+  - signal: foundations-page-becomes-text-only
+    condition: |
+      A future maintainer moves to a text-only foundations
+      page (no figures) for bandwidth or stylistic reasons;
+      the kernel would then either drop the five SVGs from
+      `body_extra` and remove the corresponding wrapper
+      CSS, or retire this decision in favour of a
+      `site-quality-no-figures-2026-XX` decision.
+
+risk:
+  impact: low
+  probability: low
+  irreversibility: low
+  mode_floor: tiny
+  rationale: |
+    The change is purely additive: a new body-extra block
+    in `lib/render.ml`, five new files in `assets/`, and
+    one decision record. No existing obligation changes,
+    no public contract changes, no kernel semantics change.
+    The cost of reversal is one revert commit.
+
+relations:
+  supersedes: []
+  depends_on:
+    - site-quality-illustrations-2026-10
+  refines: []
+  contradicts: []

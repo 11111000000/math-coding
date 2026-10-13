@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 320" role="img" aria-labelledby="sf-title" preserveAspectRatio="xMidYMid meet">
+  <title id="sf-title">Substrate fingerprint: kernel.ver ⊕ ocaml.ver ⊕ dep.digests hashed per CI run; aggregated across blocking CIs to be substrate-honest (algebra §13 + §14, §16).</title>
+  <desc>Three inputs (kernel version, OCaml version, dependency digests) feed a SHA-256 digest. Each attestation captures this fingerprint; multi-CI aggregation joins attestations whose substrate_fingerprint matches the policy's known_substrates, preserving substrate honesty across heterogeneous CI environments.</desc>
+  <defs>
+    <style>
+      .sf-box { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .sf-box-emph { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 2; }
+      .sf-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; }
+      .sf-text-mono { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #1a1a1a; text-anchor: middle; }
+      .sf-text-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .sf-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .sf-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8a8a8a; text-anchor: middle; }
+      .sf-emph-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: middle; }
+      .sf-op { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 18px; fill: #8b3a3a; text-anchor: middle; font-weight: 600; }
+      .sf-section { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #5a5a5a; letter-spacing: 0.06em; text-anchor: start; }
+    </style>
+    <marker id="sf-arrow-head" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+  </defs>
+
+  <text class="sf-section" x="20" y="24">§13 + §16  substrate_fingerprint = sha256(kernel.ver ⊕ ocaml.ver ⊕ dep.digests)</text>
+
+  <!-- LEFT: three inputs feeding the SHA-256 -->
+  <g transform="translate(20, 60)">
+    <text class="sf-label" x="60" y="-12">inputs · recorded per attestation</text>
+
+    <g transform="translate(0, 0)">
+      <rect class="sf-box" x="0" y="0" width="120" height="36" rx="4"/>
+      <text class="sf-text-mono" x="60" y="16">kernel.ver</text>
+      <text class="sf-label" x="60" y="30">e.g. v3.0.0.19-8fa7fcf</text>
+    </g>
+
+    <g transform="translate(0, 60)">
+      <rect class="sf-box" x="0" y="0" width="120" height="36" rx="4"/>
+      <text class="sf-text-mono" x="60" y="16">ocaml.ver</text>
+      <text class="sf-label" x="60" y="30">e.g. 5.1.1</text>
+    </g>
+
+    <g transform="translate(0, 120)">
+      <rect class="sf-box" x="0" y="0" width="120" height="36" rx="4"/>
+      <text class="sf-text-mono" x="60" y="16">dep.digests</text>
+      <text class="sf-label" x="60" y="30">opam-tree · dune.lock · flake.lock</text>
+    </g>
+  </g>
+
+  <!-- operator column ⊕ ⊕ -->
+  <g transform="translate(150, 60)">
+    <text class="sf-op" x="10" y="22">⊕</text>
+    <text class="sf-op" x="10" y="82">⊕</text>
+    <!-- ⊕ visualised as a flowing arrow merge: lines from the three boxes converge -->
+    <line x1="0" y1="18" x2="0" y2="156" stroke="#d4d0c8" stroke-width="1" stroke-dasharray="2 3"/>
+    <text class="sf-label" x="10" y="170">⊕ = concat</text>
+  </g>
+
+  <!-- middle: SHA digest -->
+  <g transform="translate(190, 70)">
+    <text class="sf-label" x="80" y="-10">deterministic digest</text>
+    <rect class="sf-box-emph" x="0" y="0" width="160" height="64" rx="4"/>
+    <text class="sf-text-emph" x="80" y="22">sha256(·)</text>
+    <text class="sf-text-mono" x="80" y="42" font-size="9" fill="#5a5a5a">3f9a...c812</text>
+    <text class="sf-label" x="80" y="58">256-bit · byte-stable</text>
+  </g>
+
+  <path class="sf-arrow" d="M310,112 L350,112" marker-end="url(#sf-arrow-head)"/>
+
+  <!-- right: attestation storage + multi-CI aggregation -->
+  <g transform="translate(360, 60)">
+    <text class="sf-label" x="160" y="-12">per-CI attestation</text>
+
+    <g transform="translate(0, 0)">
+      <rect class="sf-box" x="0" y="0" width="320" height="48" rx="4"/>
+      <text class="sf-text" x="160" y="18">attestation substrate_fingerprint</text>
+      <text class="sf-label" x="160" y="34">captures digest + substrate_digest ∈ known_substrates(policy)</text>
+      <text class="sf-label" x="160" y="46">same fingerprint ⇒ same observable substrate</text>
+    </g>
+
+    <!-- three CI rows collecting attestations -->
+    <g transform="translate(0, 96)">
+      <text class="sf-emph-label" x="0" y="-4">multi-CI aggregation (§14)</text>
+
+      <g transform="translate(0, 0)">
+        <rect class="sf-box" x="0" y="0" width="160" height="28" rx="4"/>
+        <text class="sf-text-mono" x="80" y="18" font-size="10">github-actions</text>
+      </g>
+      <g transform="translate(0, 36)">
+        <rect class="sf-box" x="0" y="0" width="160" height="28" rx="4"/>
+        <text class="sf-text-mono" x="80" y="18" font-size="10">buildkite</text>
+      </g>
+      <g transform="translate(0, 72)">
+        <rect class="sf-box" x="0" y="0" width="160" height="28" rx="4"/>
+        <text class="sf-text-mono" x="80" y="18" font-size="10">local-runner</text>
+      </g>
+
+      <!-- join arrow -->
+      <path class="sf-arrow" d="M160,52 L190,52" marker-end="url(#sf-arrow-head)"/>
+
+      <!-- joined result box -->
+      <g transform="translate(200, 24)">
+        <rect class="sf-box-emph" x="0" y="0" width="120" height="68" rx="4"/>
+        <text class="sf-text-emph" x="60" y="20">gate</text>
+        <text class="sf-label" x="60" y="36">wait_for_all_blocking_CIs</text>
+        <text class="sf-label" x="60" y="50">∀ matching substrate_fingerprint</text>
+        <text class="sf-label" x="60" y="62">result = ⋂ {a.result}</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- bottom note -->
+  <text class="sf-label" x="350" y="262" text-anchor="middle">substrate-honest: a Pass on an unknown substrate is not transitively trusted</text>
+</svg>

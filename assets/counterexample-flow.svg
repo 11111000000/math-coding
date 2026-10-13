@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 400" role="img" aria-labelledby="cf-title" preserveAspectRatio="xMidYMid meet">
+  <title id="cf-title">The counterexample flow: author writes a counterexample set in decision.yaml; the kernel checks |C(D)| ≥ 1 for any decision whose mode is not tiny; on absence the gate blocks the merge and emits a remediation. Counterexample is the machine-checkable forcing function; antithesis is the coherent counter-position the author engaged with (algebra §11, §11.1).</title>
+  <desc>A top row carries the four-stage flow author → |C(D)| check → gate decision → allow or block. The block path descends to a remediation box. A bottom contrast row distinguishes counterexample (forcing function, machine-checkable) from antithesis (the position the author engaged with, prose-only).</desc>
+  <defs>
+    <style>
+      .cf-box { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .cf-box-emph { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 2; }
+      .cf-box-warn { fill: #fbfaf6; stroke: #9a2929; stroke-width: 1.25; stroke-dasharray: 4 3; }
+      .cf-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; }
+      .cf-text-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .cf-text-warn { font-family: Georgia, "Iowan Old Style", serif; font-size: 12px; fill: #9a2929; text-anchor: middle; font-style: italic; font-weight: 600; }
+      .cf-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .cf-arrow-block { stroke: #9a2929; stroke-width: 1.25; fill: none; }
+      .cf-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8a8a8a; text-anchor: middle; }
+      .cf-emph-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: middle; }
+      .cf-section { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #5a5a5a; letter-spacing: 0.06em; text-anchor: start; }
+      .cf-pair-key { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #8b3a3a; text-anchor: start; font-style: italic; font-weight: 600; }
+      .cf-pair-key-mute { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #5a5a5a; text-anchor: start; font-style: italic; font-weight: 600; }
+      .cf-pair-val { font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; fill: #1a1a1a; text-anchor: start; }
+      .cf-remedy { font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; fill: #9a2929; text-anchor: middle; font-style: italic; }
+      .cf-rule { stroke: #d4d0c8; stroke-width: 1; fill: none; }
+    </style>
+    <marker id="cf-arrow-head" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="cf-arrow-block-head" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#9a2929"/>
+    </marker>
+  </defs>
+
+  <text class="cf-section" x="20" y="24">§11  counterexample obligation</text>
+
+  <!-- TOP ROW: 4 stages + outcome box layout.
+       Stage widths: stage1=170, stage2=170, stage3=180, gap 20.
+       Total x range: 20 + 170 + 20 + 170 + 20 + 180 + 30 = 590.
+       Stage top-edges at y=60, height 60.
+       The outcome box is on the right side at y=60..96, leaving y=170..220 for the block box.
+       The remediation box is centred below at y=250..300. -->
+
+  <g transform="translate(20, 60)">
+    <text class="cf-label" x="85" y="-12">1.  author</text>
+    <g>
+      <rect class="cf-box" x="0" y="0" width="170" height="60" rx="4"/>
+      <text class="cf-text" x="85" y="20">counterexample</text>
+      <text class="cf-label" x="85" y="38">decision.yaml · counterexample[]</text>
+      <text class="cf-label" x="85" y="51">strongest objection in prose</text>
+    </g>
+    <path class="cf-arrow" d="M170,30 L190,30" marker-end="url(#cf-arrow-head)"/>
+
+    <text class="cf-label" x="255" y="-12">2.  kernel reads</text>
+    <g transform="translate(195, 0)">
+      <rect class="cf-box" x="0" y="0" width="170" height="60" rx="4"/>
+      <text class="cf-text" x="85" y="20">|C(D)|</text>
+      <text class="cf-label" x="85" y="38">cardinality of counterexample set</text>
+      <text class="cf-label" x="85" y="51">mode(D) ≠ tiny → ≥ 1 required</text>
+    </g>
+    <path class="cf-arrow" d="M365,30 L385,30" marker-end="url(#cf-arrow-head)"/>
+
+    <text class="cf-label" x="475" y="-12">3.  gate</text>
+    <g transform="translate(390, 0)">
+      <rect class="cf-box-emph" x="0" y="0" width="180" height="60" rx="4"/>
+      <text class="cf-text-emph" x="90" y="20">|C(D)| ≥ 1 ?</text>
+      <text class="cf-emph-label" x="90" y="38">decision is gated by §11</text>
+      <text class="cf-emph-label" x="90" y="51">counterexample is a forcing fn.</text>
+    </g>
+
+    <!-- branch: pass -> allow (right, top) ; fail -> block (down) -->
+    <path class="cf-arrow" d="M570,30 L600,30 L600,30 L620,30" marker-end="url(#cf-arrow-head)"/>
+    <text class="cf-label" x="600" y="20">yes</text>
+    <path class="cf-arrow-block" d="M570,30 Q580,30 580,90 L580,150" marker-end="url(#cf-arrow-block-head)"/>
+    <text class="cf-label" x="592" y="100" fill="#9a2929">no</text>
+
+    <text class="cf-label" x="700" y="-12">4.  outcome</text>
+    <g transform="translate(625, 12)">
+      <rect class="cf-box" x="0" y="0" width="170" height="36" rx="4"/>
+      <text class="cf-text" x="85" y="14">allow</text>
+      <text class="cf-label" x="85" y="28">counterexample set is non-empty</text>
+    </g>
+    <g transform="translate(495, 150)">
+      <rect class="cf-box-warn" x="0" y="0" width="170" height="36" rx="4"/>
+      <text class="cf-text-warn" x="85" y="14">block · remediation</text>
+      <text class="cf-label" x="85" y="28" fill="#9a2929">|C(D)| = 0  →  MC-OBLIG-CTEXAMPLE</text>
+    </g>
+  </g>
+
+  <!-- remediation line below block -->
+  <g transform="translate(20, 270)">
+    <line class="cf-rule" x1="0" y1="0" x2="780" y2="0"/>
+    <text class="cf-remedy" x="390" y="22">remedy options for the author (any one): add ≥ 1 counterexample · set mode = tiny · attach a Waiver to the gap</text>
+  </g>
+
+  <!-- BOTTOM CONTRAST ROW -->
+  <g transform="translate(20, 308)">
+    <text class="cf-section" x="0" y="0">contrast · §11.1  counterexample vs antithesis</text>
+    <line class="cf-rule" x1="0" y1="6" x2="780" y2="6"/>
+
+    <g transform="translate(0, 14)">
+      <rect class="cf-box-emph" x="0" y="0" width="380" height="60" rx="4"/>
+      <text class="cf-pair-key" x="14" y="20">counterexample (C)</text>
+      <text class="cf-pair-val" x="14" y="38" font-style="italic">machine-checkable forcing function</text>
+      <text class="cf-pair-val" x="14" y="54" font-style="italic">the strongest objection the kernel surfaces to a future reader.</text>
+    </g>
+
+    <g transform="translate(400, 14)">
+      <rect class="cf-box" x="0" y="0" width="380" height="60" rx="4"/>
+      <text class="cf-pair-key-mute" x="14" y="20">antithesis (A)</text>
+      <text class="cf-pair-val" x="14" y="38" font-style="italic">coherent counter-position the author engaged with</text>
+      <text class="cf-pair-val" x="14" y="54" font-style="italic">required only for mode = considered (|A| ≥ 80 chars).</text>
+    </g>
+  </g>
+</svg>

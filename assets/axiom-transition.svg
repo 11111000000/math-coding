@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 420" role="img" aria-labelledby="at-title" preserveAspectRatio="xMidYMid meet">
+  <title id="at-title">Axiom transition: the re_evaluate(d, A_new) oracle returns one of three ReEvaluationStatus values — Compatible, Inconclusive, StaleClaim — and the gate verdict is the max_verdict across the impact-list (algebra §17).</title>
+  <desc>Top row shows the five-stage flow: axiom-revision commit → impact-list → re_evaluate oracle → max_verdict aggregator → gate verdict. Three callout panels at the bottom enumerate the three oracle outcomes, each coloured to match its gate verdict: green Open (Compatible), amber Open + follow-up (Inconclusive), red Blocked + remediation (StaleClaim).</desc>
+  <defs>
+    <style>
+      .at-box { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .at-box-emph { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 2; }
+      .at-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; }
+      .at-text-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .at-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .at-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8a8a8a; text-anchor: middle; }
+      .at-section { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #5a5a5a; letter-spacing: 0.06em; text-anchor: start; }
+      .at-panel { fill: #fbfaf6; stroke-width: 1.25; }
+      .at-panel-compat { stroke: #2f7a3a; }
+      .at-panel-incon { stroke: #b07a1a; }
+      .at-panel-stale { stroke: #9a2929; }
+      .at-panel-title-compat { fill: #2f7a3a; font-family: Georgia, "Iowan Old Style", serif; font-size: 14px; font-weight: 600; text-anchor: start; font-style: italic; }
+      .at-panel-title-incon { fill: #b07a1a; font-family: Georgia, "Iowan Old Style", serif; font-size: 14px; font-weight: 600; text-anchor: start; font-style: italic; }
+      .at-panel-title-stale { fill: #9a2929; font-family: Georgia, "Iowan Old Style", serif; font-size: 14px; font-weight: 600; text-anchor: start; font-style: italic; }
+      .at-panel-body { fill: #1a1a1a; font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; text-anchor: start; }
+      .at-panel-mono { fill: #5a5a5a; font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; text-anchor: start; }
+      .at-panel-verdict { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; text-anchor: start; }
+      .at-rule { stroke: #d4d0c8; stroke-width: 1; fill: none; }
+    </style>
+    <marker id="at-head" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+  </defs>
+
+  <text class="at-section" x="20" y="24">§17  re_evaluate : Decision × AxiomRevision → ReEvaluationStatus · max_verdict → gate verdict</text>
+
+  <!-- TOP ROW: 5 stages along the axiom transition flow
+       Layout: each stage box 168 wide; gap 12; total = 5*168 + 4*12 = 888; start x=20.
+       Stage centres: (20+84=104, 196+84=280, 376+84=460, 564+84=648, 752+74=826). -->
+  <g transform="translate(20, 60)">
+
+    <!-- 1. commit c -->
+    <g>
+      <text class="at-label" x="84" y="-12">1. axiom-revision commit</text>
+      <rect class="at-box" x="0" y="0" width="168" height="68" rx="4"/>
+      <text class="at-text" x="84" y="22">commit c</text>
+      <text class="at-label" x="84" y="40">ax-revision with old_sha, new_sha,</text>
+      <text class="at-label" x="84" y="52">counterexample, impact-list,</text>
+      <text class="at-label" x="84" y="64">trailer_ref: axiom:A@&lt;old_rev&gt;</text>
+    </g>
+    <path class="at-arrow" d="M168,34 L184,34" marker-end="url(#at-head)"/>
+
+    <!-- 2. impact-list -->
+    <g transform="translate(188, 0)">
+      <text class="at-label" x="84" y="-12">2. affected decisions</text>
+      <rect class="at-box" x="0" y="0" width="168" height="68" rx="4"/>
+      <text class="at-text" x="84" y="22">impact-list(d)</text>
+      <text class="at-label" x="84" y="40">{d' : A ∈ d'.referenced_axioms</text>
+      <text class="at-label" x="84" y="52">∪ transitive_referenced(d')}</text>
+      <text class="at-label" x="84" y="64">closed under transitivity</text>
+    </g>
+    <path class="at-arrow" d="M356,34 L372,34" marker-end="url(#at-head)"/>
+
+    <!-- 3. re_evaluate (emphasis) -->
+    <g transform="translate(376, 0)">
+      <text class="at-label" x="84" y="-12">3. oracle</text>
+      <rect class="at-box-emph" x="0" y="0" width="168" height="68" rx="4"/>
+      <text class="at-text-emph" x="84" y="22">re_evaluate(d, A_new)</text>
+      <text class="at-label" x="84" y="40" fill="#8b3a3a">∀ d ∈ impact-list</text>
+      <text class="at-label" x="84" y="52">per-obligation check</text>
+      <text class="at-label" x="84" y="64">→ ReEvaluationStatus</text>
+    </g>
+    <path class="at-arrow" d="M544,34 L560,34" marker-end="url(#at-head)"/>
+
+    <!-- 4. max_verdict -->
+    <g transform="translate(564, 0)">
+      <text class="at-label" x="84" y="-12">4. aggregate</text>
+      <rect class="at-box" x="0" y="0" width="168" height="68" rx="4"/>
+      <text class="at-text" x="84" y="22">max_verdict</text>
+      <text class="at-label" x="84" y="40">Compatible  &lt;  Inconclusive</text>
+      <text class="at-label" x="84" y="52">         &lt;  StaleClaim</text>
+      <text class="at-label" x="84" y="64">highest value across impact-list</text>
+    </g>
+    <path class="at-arrow" d="M732,34 L748,34" marker-end="url(#at-head)"/>
+
+    <!-- 5. gate verdict -->
+    <g transform="translate(752, 0)">
+      <text class="at-label" x="74" y="-12">5. gate</text>
+      <rect class="at-box" x="0" y="0" width="148" height="68" rx="4"/>
+      <text class="at-text" x="74" y="22">verdict(c)</text>
+      <text class="at-label" x="74" y="40">Open / Open+follow-up</text>
+      <text class="at-label" x="74" y="52">/ Blocked</text>
+      <text class="at-label" x="74" y="64">per outcome (see below)</text>
+    </g>
+  </g>
+
+  <!-- branching arrows from re_evaluate box (absolute centre bottom ≈ (480, 128))
+       drawn AFTER the panels so they sit on top; routed cleanly from (480,128) → (480,170)
+       → out to each panel-top-centre (145, 230), (455, 230), (750, 230). -->
+
+  <!-- BOTTOM ROW: three outcome panels -->
+  <g transform="translate(20, 200)">
+    <text class="at-section" x="0" y="0">three outcomes · branching from re_evaluate</text>
+    <line class="at-rule" x1="0" y1="6" x2="880" y2="6"/>
+
+    <!-- Compatible panel -->
+    <g transform="translate(0, 30)">
+      <rect class="at-panel at-panel-compat" x="0" y="0" width="290" height="170" rx="4"/>
+      <rect class="at-panel at-panel-compat" x="14" y="14" width="262" height="2"/>
+      <text class="at-panel-title-compat" x="20" y="40">Compatible</text>
+      <text class="at-panel-mono" x="20" y="60">ob.acceptance.verifier = test-style</text>
+      <text class="at-panel-mono" x="20" y="72">→ run, return Compatible on Pass</text>
+
+      <text class="at-panel-body" x="20" y="100">Examples</text>
+      <text class="at-panel-body" x="20" y="118" font-style="italic">· ob.claim does not reference</text>
+      <text class="at-panel-body" x="20" y="132" font-style="italic">  forbidden patterns in A_old</text>
+      <text class="at-panel-body" x="20" y="148" font-style="italic">· test runs against post-rev. code</text>
+
+      <text class="at-panel-verdict" x="20" y="166" fill="#2f7a3a">gate → Open (allowed)</text>
+    </g>
+
+    <!-- Inconclusive panel -->
+    <g transform="translate(310, 30)">
+      <rect class="at-panel at-panel-incon" x="0" y="0" width="290" height="170" rx="4"/>
+      <rect class="at-panel at-panel-incon" x="14" y="14" width="262" height="2"/>
+      <text class="at-panel-title-incon" x="20" y="40">Inconclusive</text>
+      <text class="at-panel-mono" x="20" y="60">ob.acceptance.verifier = manual-style;</text>
+      <text class="at-panel-mono" x="20" y="72">no automatic oracle exists</text>
+
+      <text class="at-panel-body" x="20" y="100">Examples</text>
+      <text class="at-panel-body" x="20" y="118" font-style="italic">· review-typed obligations need</text>
+      <text class="at-panel-body" x="20" y="132" font-style="italic">  a human reviewer</text>
+      <text class="at-panel-body" x="20" y="148" font-style="italic">· aesthetic or judgment-based accept</text>
+
+      <text class="at-panel-verdict" x="20" y="166" fill="#b07a1a">gate → Open + follow-up list</text>
+    </g>
+
+    <!-- StaleClaim panel -->
+    <g transform="translate(620, 30)">
+      <rect class="at-panel at-panel-stale" x="0" y="0" width="260" height="170" rx="4"/>
+      <rect class="at-panel at-panel-stale" x="14" y="14" width="232" height="2"/>
+      <text class="at-panel-title-stale" x="20" y="40">StaleClaim</text>
+      <text class="at-panel-mono" x="20" y="60">ob.claim references</text>
+      <text class="at-panel-mono" x="20" y="72">A_old.forbidden_patterns</text>
+
+      <text class="at-panel-body" x="20" y="100">Examples</text>
+      <text class="at-panel-body" x="20" y="118" font-style="italic">· obligation text mentions a</text>
+      <text class="at-panel-body" x="20" y="132" font-style="italic">  removed rule</text>
+      <text class="at-panel-body" x="20" y="148" font-style="italic">· pattern name changed; ref dead</text>
+
+      <text class="at-panel-verdict" x="20" y="166" fill="#9a2929">gate → Blocked + remediation</text>
+    </g>
+
+    <!-- branch lines: from re_evaluate absolute (480, 128) downward to (480, 178),
+         then horizontal to each panel centre-top (absolute 165, 230 / 475, 230 / 770, 230).
+         We translate everything by (20, 200), so within this group:
+           re_evaluate centre bottom → relative (460, 128) — wait that's wrong.
+         Let's recompute: re_evaluate absolute centre-bottom is at (480, 128).
+         Within this group, translate(20, 200), so relative coords for re_evaluate centre-bottom
+         are (480-20=460, 128-200=-72). That's above the group's origin, which is fine.
+         Panel centres (relative): 165, 200 ; 475, 200 ; 770, 200 (panel top is 230-200=30, height 0 to 170 — so first label sits at y=40 from panel-top).
+         Let's just route lines visually only from (460, -72) relative to here, but conceptually
+         we want them to come from somewhere visible inside the SVG. Place them above the panels. -->
+    <path class="at-arrow" d="M165,-50 L165,28" marker-end="url(#at-head)"/>
+    <path class="at-arrow" d="M475,-50 L475,28" marker-end="url(#at-head)"/>
+    <path class="at-arrow" d="M770,-50 L770,28" marker-end="url(#at-head)"/>
+    <text class="at-label" x="320" y="-50">↓</text>
+    <text class="at-label" x="320" y="-38" fill="#5a5a5a">three outcomes above (panels below carry the details)</text>
+  </g>
+
+  <!-- caption / footer -->
+  <line class="at-rule" x1="20" y1="395" x2="900" y2="395"/>
+  <text class="at-label" x="460" y="412" text-anchor="middle">A3 self-application: a candidate axiom revision may NOT authorize its own adoption (authorization chain required)</text>
+</svg>

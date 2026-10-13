@@ -1815,6 +1815,38 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
              <img src=\"assets/kernel-architecture.svg\" \
               alt=\"The math-coding kernel pipeline: input -> schema \
               -> parser -> attestation join -> self-check -> gate.\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
+             <img src=\"assets/counterexample-flow.svg\" \
+              alt=\"The counterexample flow: author writes a counterexample set in decision.yaml; the kernel checks |C(D)| >= 1 for any decision whose mode is not tiny; on absence the gate blocks the merge and emits a remediation. Counterexample is the machine-checkable forcing function; antithesis is the coherent counter-position the author engaged with (algebra section 11, 11.1).\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
+             <img src=\"assets/axiom-transition.svg\" \
+              alt=\"Axiom transition: the re_evaluate(d, A_new) oracle returns one of three ReEvaluationStatus values -- Compatible, Inconclusive, StaleClaim -- and the gate verdict is the max_verdict across the impact-list (algebra section 17).\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
+             <img src=\"assets/trust-dynamics.svg\" \
+              alt=\"Trust dynamics: four tiers (Untrusted, Authenticated, Delegated, Authoritative). Trust(a, d) shifts only on rebuttal outcome -- accepted raises it, rejected_with_reason lowers it, ignored_non_binding and never_resolved leave it unchanged (algebra section 12).\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
+             <img src=\"assets/substrate-fingerprint.svg\" \
+              alt=\"Substrate fingerprint: kernel.ver xor ocaml.ver xor dep.digests hashed per CI run; aggregated across blocking CIs to be substrate-honest (algebra sections 13, 14, 16).\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
+             <img src=\"assets/waiver-state-machine.svg\" \
+              alt=\"Waiver state machine: requested to reviewed to granted (with expiry) to consumed / expired / cancelled. A waiver defers a check; it does not cancel it (constitution section Waivers; A1 Feedback closure).\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
+             <img src=\"assets/friction-envelope-plot.svg\" \
+              alt=\"Friction envelope plot: X axis is risk(r), Y axis is friction_user(c) in lines. Band heights are proportional to the mode thresholds in algebra section 21 (tiny to 0, light to 10, standard to 60, strict to 130, exhaustive to 300); five example diff kinds are plotted within their mode band, and the ideal_3.2 budget (fu <= baseline for mode <= standard) is dashed across the diagram (sections 21, 27).\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
+             <img src=\"assets/quality-radar.svg\" \
+              alt=\"Quality radar -- fourteen dimensions of math-coding as axes: correctness, explicitness, recovery, coordination, auditability, evolution, zero-friction-user, no-retrofit, cross-cutting, substrate-honesty, sha-consistency, transitive-policy, axiom-safety, applicability-fit (algebra section 22). Illustrative placeholder scores between 0.5 and 1.0.\">\n\
+             </figure>\n\
+             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
+             <img src=\"assets/reasoning-budget.svg\" \
+              alt=\"Three independent time-reporting scales: wall-clock-minutes, token-budget, step-count. The three are independently observable and may not be combined into a single natural-language estimate (AGENTS.md section Honest time reporting; algebra section 18).\">\n\
              </figure>\n"
       | "manifesto" ->
           Printf.sprintf

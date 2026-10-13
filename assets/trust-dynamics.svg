@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 400" role="img" aria-labelledby="td-title" preserveAspectRatio="xMidYMid meet">
+  <title id="td-title">Trust dynamics: four tiers (Untrusted, Authenticated, Delegated, Authoritative). Trust(a, d) shifts only on rebuttal outcome — accepted raises it, rejected_with_reason lowers it, ignored_non_binding and never_resolved leave it unchanged (algebra §12).</title>
+  <desc>A vertical ladder of four trust tiers; between-tier arrows carry the rebuttal labels that move the tier. A central column enumerates the four rebuttal-outcome cases; a right panel summarises the trust formula f(history, attestation-density).</desc>
+  <defs>
+    <style>
+      .td-tier { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .td-tier-emph { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 2; }
+      .td-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 14px; fill: #1a1a1a; text-anchor: middle; font-weight: 500; }
+      .td-text-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 14px; fill: #8b3a3a; text-anchor: middle; font-weight: 600; }
+      .td-arrow-up { stroke: #2f7a3a; stroke-width: 1.5; fill: none; }
+      .td-arrow-down { stroke: #9a2929; stroke-width: 1.5; fill: none; }
+      .td-arrow-uneffected { stroke: #8a8a8a; stroke-width: 1; fill: none; stroke-dasharray: 3 3; }
+      .td-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8a8a8a; text-anchor: middle; }
+      .td-side { font-family: Georgia, "Iowan Old Style", serif; font-size: 11px; fill: #1a1a1a; text-anchor: start; }
+      .td-side-key { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8b3a3a; text-anchor: start; }
+      .td-side-key-mute { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8a8a8a; text-anchor: start; }
+      .td-section { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #5a5a5a; letter-spacing: 0.06em; text-anchor: start; }
+      .td-rule { stroke: #d4d0c8; stroke-width: 1; fill: none; }
+      .td-cap { font-family: Georgia, "Iowan Old Style", serif; font-size: 10px; fill: #5a5a5a; text-anchor: middle; font-style: italic; }
+    </style>
+    <marker id="td-up-head" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#2f7a3a"/>
+    </marker>
+    <marker id="td-down-head" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#9a2929"/>
+    </marker>
+  </defs>
+
+  <text class="td-section" x="20" y="24">§12  trust(agent, domain) ∈ {Untrusted, Authenticated, Delegated, Authoritative}; monotone in history</text>
+
+  <!-- LEFT COLUMN: 4 tiers, 200 wide; tier box height 44, gap 30 (arrow + label). -->
+  <g transform="translate(20, 60)">
+    <text class="td-label" x="100" y="-8">trust(agent, domain)</text>
+
+    <!-- tier 4: Authoritative (top) -->
+    <g transform="translate(0, 0)">
+      <rect class="td-tier-emph" x="0" y="0" width="200" height="44" rx="4"/>
+      <text class="td-text-emph" x="100" y="20">Authoritative</text>
+      <text class="td-label" x="100" y="36">highest tier · expertise verified</text>
+    </g>
+
+    <!-- between 4 and 3 -->
+    <g transform="translate(0, 44)">
+      <path class="td-arrow-down" d="M100,12 L100,28" marker-end="url(#td-down-head)"/>
+      <text class="td-cap" x="100" y="22">rejected_with_reason ↓</text>
+    </g>
+
+    <!-- tier 3: Delegated -->
+    <g transform="translate(0, 80)">
+      <rect class="td-tier" x="0" y="0" width="200" height="44" rx="4"/>
+      <text class="td-text" x="100" y="20">Delegated</text>
+      <text class="td-label" x="100" y="36">can sign for the domain</text>
+    </g>
+
+    <g transform="translate(0, 124)">
+      <path class="td-arrow-down" d="M100,12 L100,28" marker-end="url(#td-down-head)"/>
+      <text class="td-cap" x="100" y="22">rejected_with_reason ↓</text>
+    </g>
+
+    <!-- tier 2: Authenticated -->
+    <g transform="translate(0, 160)">
+      <rect class="td-tier" x="0" y="0" width="200" height="44" rx="4"/>
+      <text class="td-text" x="100" y="20">Authenticated</text>
+      <text class="td-label" x="100" y="36">signed identity only</text>
+    </g>
+
+    <g transform="translate(0, 204)">
+      <path class="td-arrow-down" d="M100,12 L100,28" marker-end="url(#td-down-head)"/>
+      <text class="td-cap" x="100" y="22">rejected_with_reason ↓</text>
+    </g>
+
+    <!-- tier 1: Untrusted (bottom) -->
+    <g transform="translate(0, 240)">
+      <rect class="td-tier" x="0" y="0" width="200" height="44" rx="4"/>
+      <text class="td-text" x="100" y="20">Untrusted</text>
+      <text class="td-label" x="100" y="36">no signed history yet</text>
+    </g>
+  </g>
+
+  <!-- MIDDLE COLUMN: 5 outcome cases
+       positioned at x=300 (well clear of the left column which ends at x=220).
+       labels left-anchored at x=20 inside the column so they don't bleed left. -->
+  <g transform="translate(300, 60)">
+    <text class="td-label" x="180" y="-12">effects of rebuttal outcome on tier</text>
+    <text class="td-label" x="180" y="0">only one of four cases moves the tier</text>
+
+    <!-- accepted: trust ↑ -->
+    <g transform="translate(0, 0)">
+      <path class="td-arrow-up" d="M10,28 L10,4" marker-end="url(#td-up-head)"/>
+      <text class="td-side-key" x="28" y="14">rebuttal.accepted</text>
+      <text class="td-side" x="28" y="30">trust ↑ one tier</text>
+    </g>
+
+    <!-- rejected_with_reason: trust ↓ -->
+    <g transform="translate(0, 60)">
+      <path class="td-arrow-down" d="M10,4 L10,28" marker-end="url(#td-down-head)"/>
+      <text class="td-side-key" x="28" y="14" fill="#9a2929">rebuttal.rejected_with_reason</text>
+      <text class="td-side" x="28" y="30">trust ↓ one tier</text>
+    </g>
+
+    <!-- ignored_non_binding: unchanged -->
+    <g transform="translate(0, 120)">
+      <line class="td-arrow-uneffected" x1="0" y1="14" x2="22" y2="14"/>
+      <text class="td-side-key-mute" x="28" y="14">rebuttal.ignored_non_binding</text>
+      <text class="td-side" x="28" y="30">trust unchanged</text>
+    </g>
+
+    <!-- never_resolved: unchanged -->
+    <g transform="translate(0, 158)">
+      <line class="td-arrow-uneffected" x1="0" y1="14" x2="22" y2="14"/>
+      <text class="td-side-key-mute" x="28" y="14">rebuttal.never_resolved</text>
+      <text class="td-side" x="28" y="30">trust unchanged</text>
+    </g>
+
+    <!-- review(claim_expertise) verified by forge raises one tier -->
+    <g transform="translate(0, 200)">
+      <path class="td-arrow-up" d="M10,4 L10,28" marker-end="url(#td-up-head)"/>
+      <text class="td-side-key" x="28" y="14" fill="#2f7a3a">review(claim_expertise) verified</text>
+      <text class="td-side" x="28" y="30">raises one tier (§12)</text>
+    </g>
+  </g>
+
+  <!-- RIGHT COLUMN: f(history, attestation-density) -->
+  <g transform="translate(600, 60)">
+    <text class="td-section" x="0" y="0">f(history, attestation-density)</text>
+    <line class="td-rule" x1="0" y1="6" x2="200" y2="6"/>
+
+    <text class="td-side" x="0" y="30">history:</text>
+    <text class="td-side-key" x="0" y="46">  recent_commits_signed</text>
+    <text class="td-side-key" x="0" y="62">  recent_rebuttals_accepted</text>
+
+    <text class="td-side" x="0" y="92">attestation-density:</text>
+    <text class="td-side-key" x="0" y="108">  signed / reviewed</text>
+
+    <text class="td-side" x="0" y="140">f monotone in both:</text>
+    <text class="td-side" x="12" y="158" font-style="italic">denser attestations</text>
+    <text class="td-side" x="12" y="172" font-style="italic">&amp; accepted rebuttals</text>
+    <text class="td-side" x="12" y="186" font-style="italic">lift tier.</text>
+  </g>
+
+  <!-- bottom note -->
+  <text class="td-label" x="410" y="372" text-anchor="middle">silence ≠ demotion: a non-binding rebuttal must not lower trust (A1 feedback closure)</text>
+</svg>
