@@ -7,6 +7,8 @@
   mathcoding_junit
   mathcoding_git
   mathcoding_attestations
+  mathcoding_init
+  mathcoding_import_adr
   str
   unix))
 

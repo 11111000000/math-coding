@@ -535,7 +535,21 @@ let print_usage oc =
     \           [--mermaid|--no-mermaid]\n\
     \                                     render the static site under DIR\n\
     \  counters                          emit JSON counts (decisions, obligations,\n\
-    \                                     attestations, self-check, cram, CLI)\n\n\
+    \                                     attestations, self-check, cram, CLI)\n\
+    \  init [PATH] [--agent NAME]        scaffold a new math-coding project:\n\
+    \                  [--from-adr PATH]     create decisions/, attestations/, write\n\
+    \                  [--no-install]        decisions/decision.yaml, install the\n\
+    \                  [--merge]             pre-commit hook. Refuses on arc42/MADR\n\
+    \                                       unless --merge; --from-adr is a no-op\n\
+    \                                       stub (deferred to ux-3-import-adr).\n\
+    \  import-adr PATH                    import an existing ADR file (MADR or\n\
+    \                                       [--write]                       adr-tools shape) and emit a math-coding decision\n\
+    \                                       YAML to stdout (or to decisions/<id>.yaml\n\
+    \                                       with --write). Best-effort; the user\n\
+    \                                       reviews the output before mathc validate.\n\
+    \  telemetry status                   print current telemetry state (Phase 2\n\
+    \                                     stub; no transport, no data emission).\n\n\
+
      options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
@@ -3853,17 +3867,146 @@ let[@warning "-32"] do_packages () =
  *                     <root>/decisions/migrations/<from>-to-<to>.yaml)
  *   --root=DIR       (defaults to the project root)
  *   --format=text|json
- *   --explain        (also print the manifest's intent before the plan)
- *   --write          apply auto-translatable actions to a sibling
- *                    <file>.migrated.yaml alongside each input;
- *                    the original file is NEVER overwritten. The
- *                    `--format` and `--write` flags are mutually
- *                    exclusive (--write always emits a per-file
- *                    JSON summary of what was applied). With
- *                    `--dry-run` the kernel prints what `--write`
- *                    would do (a one-step assist) without touching
- *                    the disk; without `--dry-run`, writes happen.
- *)
+  *   --explain        (also print the manifest's intent before the plan)
+  *   --write          apply auto-translatable actions to a sibling
+  *                    <file>.migrated.yaml alongside each input;
+  *                    the original file is NEVER overwritten. The
+  *                    `--format` and `--write` flags are mutually
+  *                    exclusive (--write always emits a per-file
+  *                    JSON summary of what was applied). With
+  *                    `--dry-run` the kernel prints what `--write`
+  *                    would do (a one-step assist) without touching
+  *                    the disk; without `--dry-run`, writes happen.
+  *)
+
+(* --- init subcommand ----------------------------------------------- *)
+
+(* `mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] [--merge]`
+ *
+ * Scaffolds a new math-coding project. The implementation lives
+ * in `lib/init/init.ml` per the sub-library convention
+ * (OCAML_BEST_PRACTICES §10.1); the dispatcher only parses argv
+ * and forwards to `Init.run`. Exit codes follow the existing
+ * convention: 0 on success, 3 on refused brownfield or I/O error. *)
+let[@warning "-32"] do_init () =
+  let path = ref "" in
+  let agent = ref "generic" in
+  let from_adr = ref None in
+  let no_install = ref false in
+  let merge = ref false in
+  let set_path s = path := s in
+  let set_agent s = agent := s in
+  let set_from_adr s = from_adr := Some s in
+  Arg.current := 1;
+  Arg.parse
+    [
+      ("--agent", Arg.String set_agent,
+       " Target agent (generic|opencode|claude-code|cursor|continue)");
+      ("--from-adr", Arg.String set_from_adr,
+       " (no-op stub; deferred to ux-3-import-adr-subcommand-2026-10)");
+      ("--no-install", Arg.Set no_install,
+       " Skip pre-commit hook installation");
+      ("--merge", Arg.Set merge,
+       " Allow init in a directory with arc42/MADR/adr-tools present");
+    ]
+    set_path "usage: mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] [--merge]";
+  let root = if !path = "" then Sys.getcwd () else !path in
+  match Init.agent_of_string !agent with
+  | Error m ->
+      Printf.fprintf stderr "mathc init: %s\n" m;
+      exit 2
+  | Ok agent ->
+      Init.run
+        { Init.root;
+          agent;
+          from_adr = !from_adr;
+          no_install = !no_install;
+          merge = !merge }
+
+(* --- import-adr subcommand ---------------------------------------- *)
+
+(* `mathc import-adr PATH [--write]`
+ *
+ * Imports an existing ADR file (MADR or adr-tools shape) and
+ * emits a math-coding decision YAML to stdout (default) or
+ * to `decisions/<id>.yaml` (with `--write`). The implementation
+ * lives in `lib/import_adr/import_adr.ml` per the sub-library
+ * convention (OCAML_BEST_PRACTICES §10.1). The dispatcher only
+ * parses argv and forwards to `Import_adr.run`. Exit codes:
+ * 0 on success, 1 on file not found, 2 on input error. *)
+let[@warning "-32"] do_import_adr () =
+  let path = ref "" in
+  let write = ref false in
+  let set_path s = path := s in
+  Arg.current := 1;
+  Arg.parse
+    [
+      ("--write", Arg.Set write,
+       " Write the imported decision to decisions/<id>.yaml");
+    ]
+    set_path "usage: mathc import-adr PATH [--write]";
+  if !path = "" then begin
+    Printf.fprintf stderr "mathc import-adr: missing PATH\n";
+    print_usage stderr;
+    exit 2
+  end;
+  if not (Sys.file_exists !path) then begin
+    Printf.fprintf stderr
+      "mathc import-adr: file not found: %s\n" !path;
+    exit 1
+  end;
+  (match Import_adr.run !path !write with
+   | Ok () -> ()
+   | Error (`Msg m) ->
+        Printf.fprintf stderr "mathc import-adr: %s\n" m;
+        exit 3)
+
+(* --- telemetry subcommand ------------------------------------------ *)
+
+(* `mathc telemetry status`
+ *
+ * Phase-2 stub per decision ux-3-telemetry-stub-2026-10. The
+ * command reads the `MATHCODING_TELEMETRY` environment variable
+ * and prints the current mode. No transport is configured;
+ * no data is collected or transmitted. The full telemetry
+ * transport (HTTPS POST, retention, GDPR architecture) is a
+ * separate decision deferred to Phase 3+; this slice only
+ * plumbs the opt-in flag and the user-visible status command.
+ *
+ * Exit codes: 0 on success, 2 on unknown subcommand. *)
+let[@warning "-32"] do_telemetry () =
+  Arg.current := 1;
+  let action = ref "" in
+  let set_action s = action := s in
+  (try Arg.parse
+    []
+    set_action
+    "usage: mathc telemetry status"
+  with Arg.Bad m ->
+    Printf.fprintf stderr "mathc telemetry: %s\n" m;
+    exit 2);
+  let sub = String.lowercase_ascii (String.trim !action) in
+  if sub <> "status" && sub <> "" then begin
+    Printf.fprintf stderr
+      "mathc telemetry: unknown subcommand: %s\n\
+       \  (only `status` is implemented in this slice; transport is Phase 3+)\n"
+      (String.trim !action);
+    exit 2
+  end;
+  let mode =
+    match Sys.getenv_opt "MATHCODING_TELEMETRY" with
+    | None -> "off"
+    | Some s ->
+        let t = String.lowercase_ascii (String.trim s) in
+        if t = "on" || t = "1" || t = "true" then "on"
+        else if t = "off" || t = "0" || t = "false" then "off"
+        else Printf.sprintf "unknown (%s)" s
+  in
+  Printf.printf "mathc telemetry: %s\n" mode;
+  Printf.printf "  transport: not configured (Phase 2 stub)\n";
+  Printf.printf "  See decisions/ux-3-telemetry-stub-2026-10.yaml.\n";
+  Printf.printf "  No data is collected or transmitted by this build.\n"
+
 let[@warning "-32"] do_migrate () =
   Arg.current := 1;
   let from_arg = ref (None : string option) in
@@ -4117,6 +4260,9 @@ let dispatch () =
   | "packages" -> do_packages ()
   | "render" -> do_render ()
   | "counters" -> do_counters ()
+  | "init" -> do_init ()
+  | "import-adr" -> do_import_adr ()
+  | "telemetry" -> do_telemetry ()
   | "migrate" -> do_migrate ()
   | "--help" | "-h" ->
       print_usage stdout;
