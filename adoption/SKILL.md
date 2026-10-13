@@ -154,10 +154,27 @@ To record an attestation when one is owed, write a file under
 
 ```json
 {
-  "schema": "math-coding/3.0-alpha",
+  "schema": "math-coding/attestation-3.0-alpha",
   "kind": "attestation",
-  "id": "<decision-id>-<obligation-id>",
-  "decision": "<decision-id>@1",
+  "subject": {
+    "decision": "<decision-id>@1",
+    "obligation": "<obligation-id>",
+    "candidate_tree": "HEAD",
+    "materials_digest": ""
+  },
+  "kind_": "test",
+  "producer": { "identity": "ci:bot" },
+  "result": "pass",
+  "issued_at": "<ISO-8601 timestamp>",
+  "id": "sha256:<64 hex chars>"
+}
+```
+
+The attestation `id` is the SHA-256 of the file content with the
+`id` field treated as a 64-zero placeholder (the same convention
+as the decision `body_sha`); `mathc attest` writes the field
+correctly. See `lib/attestations/attestations.ml` for the parser
+and `attestations/ux-3-*.json` for canonical examples.
   "obligation": "<obligation-id>",
   "method": "dune-runtest",
   "result": "pass",
