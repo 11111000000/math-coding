@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: migration-mechanism
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:d79f1fa097278df46193eb3350d7a91ae6a5e2fbea1bee3ffc1b65c7ef03c74a"
-yaml_sha: "sha256:d79f1fa097278df46193eb3350d7a91ae6a5e2fbea1bee3ffc1b65c7ef03c74a"
+body_sha: "sha256:9885e4e79dd472c7194c2f2e68db842b77929be32d41b8ecdf2ca4388582ae8b"
+yaml_sha: "sha256:9885e4e79dd472c7194c2f2e68db842b77929be32d41b8ecdf2ca4388582ae8b"
 intent: |
   Give math-coding agents a deterministic, reproducible, kernel-driven
   way to migrate decisions/*.yaml between minor versions of the schema
@@ -74,6 +74,25 @@ commitment: |
   with signature and flags documented inline (see also
   `OCAML_BEST_PRACTICES.md` §4.3 exit codes: 0 = plan emitted,
   2 = input error including manifest parse failure).
+
+  Revision 2 (2026-10-13) adds `--write` and `--dry-run` flags.
+  `--write` applies the auto-translatable actions to a sibling
+  `<file>.migrated.yaml` next to each input file, NEVER
+  overwriting the original. The kernel can describe AND apply,
+  but the apply path is opt-in: the default behaviour remains
+  "describe only", and the apply path uses a sibling file so
+  that `git diff` and `git checkout` always see the original
+  untouched. `--dry-run` (paired with `--write`) prints the
+  per-file JSON summary without touching the disk; this is
+  the one-step assist an agent runs before deciding whether
+  to commit the sibling files via `git add` + `git commit`.
+  Implementation lives in `lib/migrate.ml::apply_actions`
+  (line-edit apply for bump-schema-string and rename-field,
+  end-of-file append for add-field, no-op for manual-review)
+  and in `bin/Mathc.ml::do_migrate` (~30 LOC addition: flag
+  parsing, sibling-file IO, JSON summary record). Fixture:
+  `tests/cli/migrate-write.t` (positive for the apply path +
+  negative for the dry-run no-disk-touch property).
 
   First declared manifest under `decisions/migrations/`:
 
@@ -230,6 +249,20 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-no-changes.t
+          result: pass
+
+  - id: write-mode-ships-sibling-files-not-overwrites
+    statement: |
+      `mathc migrate --write` applies auto-translatable
+      actions to a sibling `<file>.migrated.yaml`; the
+      original file is never overwritten. With `--dry-run`,
+      no file is created. Verified by
+      `tests/cli/migrate-write.t` against
+      `tests/cli/fixtures/migrate-bump/decisions/pre-bump.yaml`.
+    outcome: kernel-migration-subcommand
+    acceptance:
+      all:
+        - verifier: tests/cli/migrate-write.t
           result: pass
 
 risk:

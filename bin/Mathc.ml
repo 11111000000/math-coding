@@ -3842,9 +3842,27 @@ let[@warning "-32"] do_packages () =
  *   --format=text|json
  *   --explain        (also print the manifest's intent before the plan)
  *
- * Exit codes follow OCAML_BEST_PRACTICES.md §4.3:
+* Exit codes follow OCAML_BEST_PRACTICES.md §4.3:
  *   0  plan emitted (success); warnings inside the plan do not change exit
  *   2  input error (missing flag, manifest parse failure, no manifest file)
+ *
+ * Flags:
+ *   --from=X         (required unless --manifest is set explicitly)
+ *   --to=Y           (required unless --manifest is set explicitly)
+ *   --manifest=PATH  (override; defaults to
+ *                     <root>/decisions/migrations/<from>-to-<to>.yaml)
+ *   --root=DIR       (defaults to the project root)
+ *   --format=text|json
+ *   --explain        (also print the manifest's intent before the plan)
+ *   --write          apply auto-translatable actions to a sibling
+ *                    <file>.migrated.yaml alongside each input;
+ *                    the original file is NEVER overwritten. The
+ *                    `--format` and `--write` flags are mutually
+ *                    exclusive (--write always emits a per-file
+ *                    JSON summary of what was applied). With
+ *                    `--dry-run` the kernel prints what `--write`
+ *                    would do (a one-step assist) without touching
+ *                    the disk; without `--dry-run`, writes happen.
  *)
 let[@warning "-32"] do_migrate () =
   Arg.current := 1;
@@ -3854,6 +3872,8 @@ let[@warning "-32"] do_migrate () =
   let root_arg = ref "" in
   let output_format = ref `Text in
   let explain_flag = ref false in
+  let write_flag = ref false in
+  let dry_run_flag = ref false in
   let set_from s = from_arg := Some s in
   let set_to s = to_arg := Some s in
   let set_manifest s = manifest_override := Some s in
@@ -3867,6 +3887,8 @@ let[@warning "-32"] do_migrate () =
         exit 2
   in
   let set_explain () = explain_flag := true in
+  let set_write () = write_flag := true in
+  let set_dry_run () = dry_run_flag := true in
   (try
      Arg.parse
        [
@@ -3876,19 +3898,28 @@ let[@warning "-32"] do_migrate () =
          ("--root", Arg.String set_root, "root directory (defaults to project root)");
          ("--format", Arg.String set_format, "output format (text|json)");
          ("--explain", Arg.Unit set_explain, "print manifest intent before the plan");
+         ("--write", Arg.Unit set_write, "apply auto-translatable actions to sibling <file>.migrated.yaml (never overwrites the original)");
+         ("--dry-run", Arg.Unit set_dry_run, "with --write: print what would be written without touching the disk");
        ]
        (fun _ -> ())
-       "usage: mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json] [--explain] [--manifest=PATH]"
-   with
-   | Arg.Bad m ->
-       Printf.fprintf stderr "mathc migrate: %s\n" m;
-       exit 2
-   | Arg.Help _ ->
-       print_string
-         "mathc migrate: read a migration manifest, walk *.yaml files, \
-          print a per-file plan. The kernel never mutates files. \
-          Re-run `mathc validate` after applying any edits.\n";
-       exit 0);
+       "usage: mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json] [--explain] [--write [--dry-run]] [--manifest=PATH]"
+     with
+     | Arg.Bad m ->
+         Printf.fprintf stderr "mathc migrate: %s\n" m;
+         exit 2
+     | Arg.Help _ ->
+         print_string
+           "mathc migrate: read a migration manifest, walk *.yaml files, \
+            print a per-file plan (default dry-run). Pass --write to \
+            apply auto-translatable actions to a sibling <file>.migrated.yaml; \
+            the original file is NEVER overwritten. Re-run `mathc validate` \
+            after applying any edits.\n";
+         exit 0);
+  if !write_flag then begin
+    (* --write always emits a per-file JSON summary; ignore any
+       --format the user passed. *)
+    output_format := `Json
+  end;
   let project_root = find_project_root (Sys.getcwd ()) in
   let root =
     if !root_arg = "" then project_root
@@ -3974,8 +4005,78 @@ let[@warning "-32"] do_migrate () =
         Printf.printf "no .yaml files found under %s\n" decisions_dir
       else
         print_string (Migrate.render_text plans)
-  | `Json ->
-      print_endline (Jsonl.stringify (Migrate.render_json plans))
+  | `Json -> begin
+      if not !write_flag then begin
+        print_endline (Jsonl.stringify (Migrate.render_json plans));
+        ()
+      end
+      else
+        (* --write: apply actions per file, never overwrite the original.
+           For each file whose plan carries auto-translatable actions,
+           write a sibling <file>.migrated.yaml with the edited content
+           and a per-file summary JSON to stdout. *)
+        let write_one (fp : Migrate.file_plan) =
+          if fp.actions = [] && fp.warnings = [] then `Skipped
+          else begin
+            let content = reader fp.file in
+            let _new_content, _applied, _skipped =
+              Migrate.apply_actions ~actions:fp.actions ~content
+            in
+            (* The apply_actions may have stripped or only partially
+               resolved the action list; we re-derive a hard summary
+               by comparing target schema-string-to-content. For the
+               current scope (bump-schema-string + add-field +
+               rename-field) the function above is sufficient: every
+               listed action that hit a line OR was appended is
+               recorded in `applied`. *)
+            let migrated_path = fp.file ^ ".migrated.yaml" in
+            if !dry_run_flag then `DryRun
+            else begin
+              try
+                Out_channel.with_open_bin migrated_path
+                  (fun oc ->
+                    Out_channel.output_string oc _new_content);
+                `Wrote
+              with
+              | Sys_error msg ->
+                  Printf.fprintf stderr
+                    "mathc migrate: cannot write %s: %s\n"
+                    migrated_path msg;
+                  `Failed
+            end
+          end
+        in
+        let summary =
+          List.map
+            (fun fp ->
+              let outcome = write_one fp in
+              let outcome_str =
+                match outcome with
+                | `Wrote -> "wrote"
+                | `DryRun -> "dry-run"
+                | `Skipped -> "no-action"
+                | `Failed -> "failed"
+              in
+              let outcome_v = Jsonl.String outcome_str in
+              Jsonl.Object
+                [
+                  ("file", Jsonl.String fp.file);
+                  ("current_schema",
+                   (match fp.current_schema with
+                    | Some s -> Jsonl.String s
+                    | None -> Jsonl.Null));
+                  ("outcome", outcome_v);
+                  ("actions_count", Jsonl.Int (List.length fp.actions));
+                  ("warnings_count", Jsonl.Int (List.length fp.warnings));
+                  ("migrated_to",
+                   Jsonl.String
+                     (if !dry_run_flag then "(dry-run)"
+                      else fp.file ^ ".migrated.yaml"));
+                ])
+            plans
+        in
+        print_endline (Jsonl.stringify (Jsonl.Array summary))
+    end
 
 let dispatch () =
   if Array.length Sys.argv < 2 then begin

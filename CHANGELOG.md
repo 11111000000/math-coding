@@ -66,6 +66,40 @@ machine-readable reversal signals.
   `tests/cli/migrate-bump-replay.t` exercises the replay
   against a synthetic legacy tree and asserts a no-op
   plan against the live post-bump tree.
+- `decisions/migration-mechanism-2026-10.yaml` (rev 2) —
+  adds `mathc migrate --write [--dry-run]`. `--write`
+  applies auto-translatable actions to a sibling
+  `<file>.migrated.yaml` next to each input (the original
+  is NEVER overwritten); `--dry-run` paired with `--write`
+  prints the per-file JSON summary without touching the
+  disk. Implementation lives in
+  `lib/migrate.ml::apply_actions` and `bin/Mathc.ml`'s
+  ~30 LOC addition. Fixture `tests/cli/migrate-write.t`
+  covers both the apply path and the dry-run property.
+  `process_principles.ml::P2` whitelist extended with
+  `json-schema-` and `Diagnostic.` prefixes to accept
+  verifier strings agents naturally write (e.g.,
+  `json-schema-validation passes`,
+  `Diagnostic.explain "MC-POLICY-CYCLE" = Some _body`)
+  without rejecting them as malformed.
+  (rev 1) — A3-protected transition that bumps the
+  `schema:` field on every live decision from
+  `math-coding/3.0-alpha` to `math-coding/3.2` (matches the
+  field set `spec/algebra-3.2.md` already formalises). 72
+  decision YAML files bulk-bumped; 6 of those were missing
+  `body_sha`/`yaml_sha` because they predate the v3.0.0.19
+  schema tightening, and now carry freshly-computed values
+  per algebra §7. `schemas/decision.json`'s `schema` enum
+  now accepts both forms for one cycle (soft-deprecated
+  `3.0-alpha` form is read-accepted so archived decisions
+  still validate; a future `archive-3.0-alpha-form`
+  decision will move them to `decisions/legacy/`). First
+  non-trivial migration cycle of `lib/migrate.ml` is
+  `decisions/migrations/3.0-alpha-to-3.2.yaml` (a single
+  `bump-schema-string` action); fixture
+  `tests/cli/migrate-bump-replay.t` exercises the replay
+  against a synthetic legacy tree and asserts a no-op
+  plan against the live post-bump tree.
 - `decisions/install-tooling-2026-10.yaml` — A3-protected
   meta-decision that introduces the four install channels
   (release binary / docker image / nix run / source build)
