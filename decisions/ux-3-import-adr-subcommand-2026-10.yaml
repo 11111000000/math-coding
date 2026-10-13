@@ -1,0 +1,273 @@
+---
+schema: math-coding/3.2
+id: ux-3-import-adr-subcommand-2026-10
+revision: 1
+state: active
+body_sha: "57fc01cba6aeae51acdaecb5f20982915942687e00ed523bfd992975bb4ae4ce"
+yaml_sha: "57fc01cba6aeae51acdaecb5f20982915942687e00ed523bfd992975bb4ae4ce"
+intent: |
+  Phase 1 of the ux-3 workstream. Land a `mathc import-adr` subcommand
+  that reads an existing ADR file (MADR-shaped or adr-tools-shaped)
+  and emits a math-coding decision YAML to stdout (default) or to
+  `decisions/<id>.yaml` (with `--write`). The output is a
+  best-effort mapping:
+
+    - title (first `#` heading)        -> id (kebab-case) + intent
+    - status (MADR/adr-tools)          -> state
+    - context section                   -> assumptions[]
+    - decision section                  -> commitment
+    - consequences section              -> outcomes[]
+
+  Brownfield adoption use case: a project that already has
+  `docs/adr/` (MADR) or `adr/` (adr-tools) can run
+  `mathc import-adr path/to/adr.md [--write]` and get a
+  math-coding decision draft for each ADR. The reviewer then
+  fills in `scope.paths[]`, refines the mapping, and commits.
+  The import is deliberately lossy: the reviewer is the
+  ground truth; the import only reduces the typing.
+
+  No kernel surface changes. The implementation lives in the
+  new sub-library `lib/import_adr/` (per OCAML_BEST_PRACTICES
+  §10.1 adapter convention). Touches:
+
+    lib/import_adr/dune                       (new sub-library)
+    lib/import_adr/import_adr.ml              (the implementation)
+    bin/Mathc.ml                              (do_import_adr + dispatch
+                                               entry + print_usage update)
+    bin/dune                                  (add mathcoding_import_adr
+                                               to libs)
+    tests/cli/import-adr.t                   (cram fixture)
+    decisions/ux-3-import-adr-subcommand-2026-10.yaml   (this file)
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+antithesis: |
+  The counter-position considered and rejected: "ADR import is
+  a one-off data-migration job; it should be a Python script in
+  `scripts/import_adr.py` that runs once, not a kernel
+  subcommand that ships in the binary." The author engaged with
+  this position and rejected it on four grounds: (a) the import
+  is a recurring need — every project that adopts math-coding
+  in a brownfield environment will run it, and a one-off script
+  forces every such project to re-derive the parser; (b) the
+  parsing rules (MADR `## Decision Outcome` + `### Consequences`,
+  adr-tools `## Decision`) are non-trivial enough that the
+  parser is worth a sub-library per OCAML_BEST_PRACTICES §10.1
+  (the cost of `lib/import_adr/` is ~250 lines of OCaml, which
+  is on the low end for an adapter); (c) a kernel subcommand
+  gives the import the same `mathc validate` contract as every
+  other decision, so the reviewer can run `mathc validate` on
+  the import output and see exactly which fields need
+  adjustment — a Python script would have to ship its own
+  contract; (d) the import-adr surface is the *only* way to
+  close the brownfield gap, and a deferred Python script would
+  leave the gap open for users who only have the binary. The
+  minimum fix is one sub-library + one subcommand, which is
+  what this file records.
+
+commitment: |
+  One kernel surface, one binary, one new sub-library. Five
+  deliverables, each pinned by an obligation or fixture:
+
+    D1. `mathc import-adr PATH` reads PATH as a MADR-shaped or
+        adr-tools-shaped ADR markdown file. Emits the
+        resulting math-coding decision YAML to stdout.
+
+    D2. `mathc import-adr PATH --write` writes the YAML to
+        `decisions/<id>.yaml` (creating `decisions/` if
+        absent) and prints a one-line summary
+        (`wrote decisions/<id>.yaml (id=<id>, source_kind=<madr|adr-tools|unknown>)`).
+
+    D3. The output YAML passes `mathc validate` after the
+        reviewer fills in `scope.paths[]` (the importer leaves
+        a placeholder `<path/glob/that/this/decision/touches/**>`).
+
+    D4. MADR detection: file has frontmatter with a `status:`
+        key. adr-tools detection: file has `## Status` section
+        but no `status:` frontmatter. Unknown: neither.
+
+    D5. Exit codes: 0 on success, 1 on file not found, 2 on
+        missing PATH or unknown flag, 3 on internal I/O error.
+
+  Boundaries (A3 self-application):
+    - `lib/import_adr/` is the only new sub-library.
+    - `bin/Mathc.ml` is touched only to add the `do_import_adr`
+      function, the `| "import-adr" -> do_import_adr ()`
+      dispatch arm, and the `import-adr` line in
+      `print_usage`. No other subcommand is changed.
+    - `bin/dune` is touched only to add `mathcoding_import_adr`
+      to the `mathc` executable's libraries list.
+    - `spec/`, `schemas/`, `axioms/`, the existing `install.sh`,
+      the per-user skill pipeline — all unchanged.
+    - No new ADR shape is invented; the importer handles MADR
+      and adr-tools and falls back to `Unknown` for everything
+      else (with a sensible default id derived from the title).
+
+counterexample: |
+  "The MADR parser is fragile; one shape change in MADR breaks
+   the importer and silently produces a wrong decision." The
+   counterargument fails because the import is best-effort by
+   contract: the reviewer reads the output, sees that the
+   `commitment` field is the wrong section's body, and fixes
+   it. A wrong import does not silently corrupt a project; it
+   surfaces a `mathc validate` rejection (missing fields) or
+   a visible mismatch in `git diff` after the reviewer runs
+   `mathc init` to scaffold the rest of the project. "Why not
+   just call `mathc init` and skip import-adr entirely?" This
+   fails because `mathc init` is greenfield (refuses on
+   `docs/adr/` per the Q5 answer); import-adr is the brownfield
+   path. The two subcommands are complementary, not redundant.
+
+scope:
+  capabilities:
+    - mathc-import-adr-subcommand
+  paths:
+    - "lib/import_adr/dune"
+    - "lib/import_adr/import_adr.ml"
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "tests/cli/import-adr.t"
+    - "decisions/ux-3-import-adr-subcommand-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/diagnostic.ml"
+    - "lib/canonical.ml"
+    - "lib/render.ml"
+    - "lib/migrate.ml"
+    - "lib/waiver.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/mcp/**"
+    - "lib/init/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+    - "decisions/mcp-server-impl-2026-10.yaml"
+    - "decisions/install-tooling-2026-10.yaml"
+    - "decisions/ux-3-init-subcommand-2026-10.yaml"
+
+outcomes:
+  - id: import-adr-reads-adr
+    statement: |
+      `mathc import-adr PATH` reads PATH, parses the MADR or
+      adr-tools shape, and prints a math-coding decision YAML
+      to stdout. Exit 0 on success, 1 on file-not-found, 2 on
+      input error, 3 on internal I/O error.
+  - id: import-adr-writes-decision
+    statement: |
+      `mathc import-adr PATH --write` writes the parsed
+      decision YAML to `decisions/<id>.yaml` (creating
+      `decisions/` if absent) such that `mathc validate` on
+      the resulting file accepts (after the reviewer fills in
+      `scope.paths[]`).
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/ux-3-import-adr-subcommand-2026-10.yaml` exits 0.
+
+assumptions:
+  - id: kernel-api-stable
+    state: assumed
+    statement: |
+      The `lib/` kernel API (Domain, Decision, Memory, etc.) is
+      stable for this slice. The new sub-library depends only
+      on `mathcoding_core` plus standard library `Str` and
+      `Unix` (per OCAML_BEST_PRACTICES §10.1).
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future kernel change breaks the import-adr sub-library
+      deps, the build fails and this decision is revised.
+    review_on:
+      - signal: import-adr-build-broken
+  - id: adr-shapes-stable
+    state: assumed
+    statement: |
+      MADR and adr-tools formats are stable. MADR is the
+      de-facto Markdown ADR format since ~2018; adr-tools is
+      the de-facto plain-text ADR format since ~2014. Both
+      format conventions are documented in their respective
+      repos and rarely change.
+    owner: human:maintainer
+    consequence_if_false: |
+      If MADR or adr-tools add new mandatory sections, the
+      parser will silently drop them and the reviewer will see
+      a `mathc validate` rejection. Resolution: extend the
+      parser in a follow-up decision.
+    review_on:
+      - signal: madr-new-section
+
+obligations:
+  - id: cram-test-passes
+    outcome: import-adr-reads-adr
+    claim: |
+      `tests/cli/import-adr.t` exercises MADR detection,
+      adr-tools detection, the `--write` flag, missing-PATH
+      (exit 2), and file-not-found (exit 1) paths. Each case
+      asserts the right output and exit code.
+    acceptance:
+      all:
+        - verifier: tests/cli/import-adr.t
+          result: pass
+
+  - id: write-produces-valid-decision
+    outcome: import-adr-writes-decision
+    claim: |
+      `mathc import-adr PATH --write` writes a decision YAML
+      to `decisions/<id>.yaml` that passes `mathc validate`
+      after the reviewer fills in `scope.paths[]`.
+    acceptance:
+      all:
+        - verifier: tests/cli/import-adr.t::write
+          result: pass
+
+  - id: this-decision-validates
+    outcome: this-decision-validates
+    claim: |
+      `mathc validate
+      decisions/ux-3-import-adr-subcommand-2026-10.yaml` exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ux-3-import-adr-subcommand-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: import-adr-subcommand-removed
+    condition: |
+      The `mathc import-adr` subcommand is removed (e.g. folded
+      into a one-off Python script under `scripts/`). Resolution:
+      this decision is superseded; the kernel surface
+      (`lib/import_adr/`, `bin/Mathc.ml::do_import_adr`) is
+      deleted via a follow-up decision.
+    action: supersede-with-script
+  - signal: adr-shapes-broken
+    condition: |
+      MADR or adr-tools change their canonical shape in a way
+      that breaks the parser. Resolution: extend the parser
+      in `lib/import_adr/import_adr.ml`; this decision is
+      revised.
+    action: rework
+
+risk:
+  declared_triggers:
+    - import-adr-build-broken
+    - madr-new-section
+    - parser-edge-case-undiscovered
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - install-tooling-2026-10@1
+    - agent-onboarding@2
+    - ux-3-adoption-doc-freshen-2026-10@1
+  supersedes: []
+  superseded_by: []
