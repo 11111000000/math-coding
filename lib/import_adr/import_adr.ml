@@ -34,29 +34,102 @@ type parsed = {
 
 (* --- section extraction ------------------------------------------- *)
 
+(* `is_top_section s` is true when `s` starts with `## ` (two
+ * hash + space) but NOT `### ` (three). This matches the
+ * boundary between top-level sections like `## Decision` and
+ * the first subsection like `### Consequences`. *)
+let is_top_section (s : string) : bool =
+  String.length s >= 3
+  && String.sub s 0 3 = "## "
+  && (String.length s < 4 || String.sub s 3 1 <> "#")
+
+(* `is_subsection s` is true when `s` starts with `### `. *)
+let is_subsection (s : string) : bool =
+  String.length s >= 4
+  && String.sub s 0 4 = "### "
+
+(* `section_body lines header` extracts the body of a top-level
+ * `## <header>` section. The body runs until the next `## `
+ * header (exclusive). MADR subsections (`### ...`) are
+ * included in the body so the caller can re-parse them with
+ * `subsection_body`. *)
 let section_body (lines : string list) (header : string) : string =
   let rec aux = function
     | [] -> ""
     | h :: t ->
-        if String.length h >= 3 && String.sub h 0 3 = "## " then
+        if is_top_section h then
           let rest = String.sub h 3 (String.length h - 3) in
           if rest = header then
-            let rec take_until_section = function
+            let rec take_until = function
               | [] -> ""
               | h2 :: t2 ->
-                  if String.length h2 >= 3 && String.sub h2 0 3 = "## " then
-                    ""
-                  else
-                    h2 ^ "\n" ^ take_until_section t2
+                  if is_top_section h2 then ""
+                  else h2 ^ "\n" ^ take_until t2
             in
-            take_until_section t
+            take_until t
           else
             aux t
         else
           aux t
   in
-  let body = aux lines in
-  String.trim body
+  String.trim (aux lines)
+
+(* `subsection_body body header` extracts a `### <header>`
+ * subsection from an already-extracted section body. *)
+let subsection_body (body : string) (header : string) : string =
+  let lines = Str.split (Str.regexp "\n") body in
+  let rec aux = function
+    | [] -> ""
+    | h :: t ->
+        if is_subsection h then
+          let rest = String.sub h 4 (String.length h - 4) in
+          if rest = header then
+            let rec take_until = function
+              | [] -> ""
+              | h2 :: t2 ->
+                  if is_subsection h2 || is_top_section h2 then ""
+                  else h2 ^ "\n" ^ take_until t2
+            in
+            take_until t
+          else
+            aux t
+        else
+          aux t
+  in
+  String.trim (aux lines)
+
+(* `bullets body` splits a body into a list of bullet items.
+ * Each bullet starts with `* ` (MADR) or `- ` (CommonMark).
+ * The leading bullet marker is stripped; the result is a
+ * list of trimmed strings. *)
+let bullets (body : string) : string list =
+  let lines = Str.split (Str.regexp "\n") body in
+  let is_bullet s =
+    let t = String.trim s in
+    (String.length t >= 2
+     && (String.sub t 0 2 = "* " || String.sub t 0 2 = "- "))
+    || (String.length t >= 3 && String.sub t 0 3 = "*  ")
+  in
+  let strip_bullet s =
+    let t = String.trim s in
+    let len = String.length t in
+    if String.length t >= 2 && String.sub t 0 2 = "* " then
+      String.sub t 2 (len - 2)
+    else if String.length t >= 2 && String.sub t 0 2 = "- " then
+      String.sub t 2 (len - 2)
+    else if String.length t >= 3 && String.sub t 0 3 = "*  " then
+      String.sub t 3 (len - 3)
+    else t
+  in
+  let rec aux = function
+    | [] -> []
+    | h :: t ->
+        if is_bullet h then
+          strip_bullet h :: aux t
+        else
+          aux t
+  in
+  aux lines
 
 let first_h1 (lines : string list) : string option =
   let rec aux = function
@@ -200,19 +273,25 @@ let parse (text : string) : parsed =
     | AdrTools | Unknown -> "Decision"
   in
   let decision = section_body lines decision_section in
-  let consequences = section_body lines "Consequences" in
+  (* For MADR, the consequences live in the `### Consequences`
+   * subsection of `## Decision Outcome` (or as a top-level
+   * `## Consequences` section for adr-tools). Try the
+   * subsection first, fall back to the top-level. *)
+  let consequences =
+    match kind with
+    | Madr ->
+        let decision_body =
+          section_body lines "Decision Outcome"
+        in
+        let sub = subsection_body decision_body "Consequences" in
+        if sub <> "" then sub
+        else section_body lines "Consequences"
+    | AdrTools | Unknown ->
+        section_body lines "Consequences"
+  in
   let outcomes =
-    let items =
-      Str.split (Str.regexp_string "* ") consequences
-    in
-    let trimmed =
-      List.filter (fun s -> String.trim s <> "") items
-    in
-    let rec skip_first = function
-      | [] -> []
-      | _ :: t -> t
-    in
-    skip_first trimmed
+    let items = bullets consequences in
+    List.filter (fun s -> String.trim s <> "") items
   in
   {
     id;
