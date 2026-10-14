@@ -1,7 +1,7 @@
 # math-coding 3.3
 
 > Author: Petr Kosov <p.b.kosov@yandex.ru>
-> Status: 3.0-alpha, current release v3.1.0-alpha. Bootstrap gate
+> Status: 3.3.0-alpha, current release v3.3.0-alpha. Bootstrap gate
 > expired at v3.0.0.19 (2026-09-29). The 3.2-ideal algebra
 > (`spec/algebra-3.2.md`) is normative alongside the prose specs.
 > License: Apache-2.0 (see `LICENSE`, `NOTICE`).
@@ -64,6 +64,14 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc session-start` | Write `.local/session-start` ISO timestamp |
 | `mathc record --decision-id ID ...` | Append event to `decisions/execution-logs.jsonl` |
 | `mathc stats [--class N] [--scale S]` | Emit empirical aggregate JSON |
+| `mathc forge-verify [--org ORG] [--team TEAM] [--user USER]` | Query forge_mirror for committer team membership |
+| `mathc counters` | Live counters JSON (decisions, obligations, attestations, cram, CLI) |
+| `mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] [--merge]` | Scaffold new math-coding project |
+| `mathc import-adr PATH [--write]` | Convert existing MADR/adr-tools ADR to a math-coding decision |
+| `mathc adopt [PATH] [--only=CONV] [--dry-run]` | Detect existing ADR corpus and offer merge path |
+| `mathc new-decision <id> [--write] [--interactive] [--force]` | Scaffold a decision YAML from canonical template |
+| `mathc telemetry status` | Print telemetry state (Phase 2 stub) |
+| `mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json] [--explain] [--manifest=PATH] [--write|--dry-run]` | Declarative migration plan reader |
 
 Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
 
