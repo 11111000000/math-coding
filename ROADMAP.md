@@ -80,6 +80,28 @@ sequenced after the install-tooling-2026-10 surface lands.
 | 10 | D4 (spec-cli-catalog) | **closed** in commit `2c2a032` | |
 | 11 | D8 (`mathc validate` coarse diagnostics) | open | tracked for 3.0-beta |
 
+### Tier 2.5 — onboarding-fixes-2026-10 (closed in this branch)
+
+| # | Task | Decision | Status |
+|---|---|---|---|
+| 1 | install-tooling default tag edge | `install-tooling-default-tag-edge-2026-10` | closed in commit `65c2270` |
+| 2 | install.sh --user-skill tarball path sync | `install-tooling-2026-10@1` (rev) | closed in commit `9d6dc64` |
+| 3 | release.yml drop 404 rawgithub URL | `install-tooling-2026-10@1` | closed in commit `70b0719` |
+| 4 | print_usage adopt/migrate/telemetry | `print-usage-complete-2026-10` | closed in commit `2ac9b41` |
+| 5 | adoption/SKILL.md sync to install.sh --user-skill | `ux-3-adoption-doc-freshen-2026-10@2` (rev) | closed in commit `d6acff8` |
+| 6 | mathc new-decision <id> subcommand | `ux-3-new-decision-subcommand-2026-10` | closed in commit `465ec3c` |
+| 7 | templates/ci.yml blocking-CI workflow | `install-tooling-2026-10` | closed in commit `1b70fb2` |
+| 8 | mcp-server-impl-pending retired | `mcp-server-impl-pending@2` (rev) | closed in commit `5260bd9` |
+| 9 | MCP integration docs in adoption/SKILL.md | `mcp-agent-auto-connect-2026-10` | closed in commit `87a2dde` |
+| 10 | init-release-binary-noop-skill documentation | `ux-3-init-release-binary-noop-skill-2026-10` | closed in commit `63dd8df` |
+
+### Tier 2.6 — design recorded, OCaml impl deferred (this branch)
+
+| # | Task | Decision | Status |
+|---|---|---|---|
+| 1 | mathc update-check / auto-update per-user skill | `update-check-notify-2026-10` | design recorded (deferred; OCaml impl needs dune) |
+| 2 | mathc init auto-wire templates/ci.yml | `ux-3-init-copies-ci-workflow-2026-10` | design recorded (deferred; OCaml impl needs dune) |
+
 ### Tier 3 — kernel enrichment (after Tier 1)
 
 - OCaml types to replace `lib/domain.ml` strings (`id` phantom types)

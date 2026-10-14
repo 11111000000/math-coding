@@ -224,6 +224,35 @@ unknowns introduced by this batch.
   on the cachix-runner. Fix in this release at `f016a4d`
   (cachix step disabled).
 
+### Onboarding fixes (this branch)
+
+#### P0 (closes first-touch 404)
+* `install-tooling-default-tag-edge` (commit `65c2270`): `MC_VERSION_DEFAULT="edge"` so the
+  single-line install URL resolves to a published release.
+* `install.sh --user-skill` tarball path (commit `9d6dc64`): `tar -xzOf dist-adoption.tar.gz`
+  now extracts `adoption/opencode/SKILL.md` (not `dist/adoption/.../SKILL.md`).
+* `release.yml` drop 404 rawgithub URL (commit `70b0719`): prerelease body now points at
+  `/releases/download/edge/install.sh`.
+
+#### P1 (UX hardening)
+* `print_usage` (commit `2ac9b41`): `mathc --help` now names `adopt`, `migrate`, `telemetry`.
+* `adoption/SKILL.md` sync (commit `d6acff8`): Step 1 uses `curl | sh --user-skill`,
+  rev-bumps `ux-3-adoption-doc-freshen-2026-10` from @1 to @2.
+* `mathc new-decision` (commit `465ec3c`): new subcommand scaffolds `decisions/<id>.yaml`.
+* `init-release-binary-noop-skill` (commit `63dd8df`): documents the release-binary vs
+  in-source-build split for `--agent opencode`.
+* `MCP integration docs` (commit `87a2dde`): `adoption/SKILL.md` §"MCP integration"
+  describes the JSON-RPC stdio protocol and 11 method names.
+* `templates/ci.yml` (commit `1b70fb2`): blocking-CI workflow for adopter repos.
+
+#### Meta cleanup
+* `mcp-server-impl-pending` retired (commit `5260bd9`): `state: active` → `state: retired`;
+  MCP server already landed via `mcp-server-impl-2026-10@1` + `ux-3-mcp-read-write-2026-10@1`.
+
+#### Deferred (design recorded only; OCaml impl needs dune)
+* `update-check-notify` (commit `57481bf`): opt-in version notification design.
+* `init-copies-ci-workflow` (commit `ec9464e`): `mathc init` auto-wire templates/ci.yml.
+
 ## v3.1.0-alpha — 2026-09-30 — current
 
 **Status:** algebra 3.2-ideal adopted as forward-looking formal
