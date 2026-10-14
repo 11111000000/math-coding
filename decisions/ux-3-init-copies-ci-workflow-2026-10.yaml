@@ -1,0 +1,182 @@
+---
+schema: math-coding/3.2
+id: ux-3-init-copies-ci-workflow-2026-10
+revision: 1
+state: deferred
+body_sha: "sha256:e1404a78fdff9c6c763988570c26b5d1efd2095e156be2c2d7063b2631214b38"
+yaml_sha: "sha256:e1404a78fdff9c6c763988570c26b5d1efd2095e156be2c2d7063b2631214b38"
+
+intent: |
+  Wire `mathc init` to copy the per-repo CI workflow template
+  `templates/ci.yml` (shipped at this same commit) into the
+  adopter repo's `.github/workflows/mathc.yml`. After this
+  cycle, `mathc init .` produces a project that is wired
+  end-to-end: decisions/, decisions/decision.yaml, the
+  pre-commit hook, AND a workflow that runs `mathc
+  self-check` on every push.
+
+  Today (without this cycle) the maintainer has to copy
+  `templates/ci.yml` to `.github/workflows/mathc.yml` by
+  hand. That is a manual step that first-time adopters
+  routinely forget; the merged result is a repo that has
+  decisions/ but no CI gate.
+
+axiom_link:
+  - A0
+  - A1
+
+antithesis: |
+  The counter-position considered and rejected: "Adopters
+  can copy the workflow by hand; `mathc init` should not
+  install blueprints from outside the four canonical
+  directories (decisions/, attestations/, .githooks/).
+  Adding CI to init breaks the principle of init = 4 seed
+  files." The author engaged with this position and
+  rejected it on four grounds: (a) the principle is not
+  four directories; it is "the minimum to pass `mathc
+  self-check`"; a project without CI does not pass
+  self-check on every push, only locally; (b) per axiom
+  A4 (Care), every commitment must have a path to
+  observation; copying the workflow by hand is the
+  absence of a path; (c) the cost of copying is ~30
+  lines of YAML; the cost of forgetting is a repo that
+  passes local self-check but fails CI; (d) `--no-install`
+  already covers the maintainer's preference for skipping
+  the pre-commit hook; the same flag covers skipping
+  the CI workflow.
+
+commitment: |
+  Two deliverables:
+
+  D1. `mathc init [PATH]` (without `--no-install`)
+      copies `templates/ci.yml` from the running binary's
+      source location to `<PATH>/.github/workflows/mathc.yml`.
+      Parent directories are created if absent. The file
+      is created with mode 0644.
+
+  D2. `mathc init [PATH] --no-install` does NOT copy
+      the CI workflow. The maintainer who passes
+      `--no-install` is opting out of all automatic
+      wiring (pre-commit hook + CI workflow + per-repo
+      skill). The print_summary at the end of init
+      surfaces which wires were skipped.
+
+  Boundaries (A3 self-application):
+  - `lib/init/init.ml` is the only sub-library touched.
+  - `bin/Mathc.ml` is unchanged (the `--no-install`
+    flag already exists).
+  - `lib/`, `spec/`, `axioms/` are NOT touched beyond
+    `lib/init/`.
+
+  Implementation note: the source template is resolved
+  relative to `Sys.executable_name` (same walk as
+  `find_source_skill`). For an in-source build, the
+  source is at `<repo>/templates/ci.yml` (3 levels up
+  from `_build/default/bin/mathc.exe`). For a release
+  binary, the source is NOT bundled with the binary;
+  the user copies the template by hand or by re-running
+  `mathc init` from a source-build binary. This is the
+  same split as `init --agent opencode` per
+  `ux-3-init-release-binary-noop-skill-2026-10@1`.
+
+scope:
+  capabilities:
+    - init-copies-ci-workflow
+  paths:
+    - "lib/init/init.ml"
+    - "tests/cli/init.t"
+    - "decisions/ux-3-init-copies-ci-workflow-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/canonical.ml"
+    - "bin/Mathc.ml"
+    - "spec/**"
+    - "axioms/**"
+
+outcomes:
+  - id: init-wires-ci
+    statement: |
+      `mathc init .` (without `--no-install`) creates
+      `.github/workflows/mathc.yml` in the target
+      directory, with the content of `templates/ci.yml`.
+  - id: --no-install-skips-ci
+    statement: |
+      `mathc init . --no-install` does NOT create
+      `.github/workflows/mathc.yml`; the print_summary
+      at the end of init surfaces the skip.
+
+counterexample: |
+  "What if the user already has a `.github/workflows/`
+      directory?" Counterargument: the kernel creates the
+      intermediate directories with `mkdir -p`; if the
+      workflow file already exists, the kernel prints a
+      one-line note ('workflow already present, skipping')
+      and exits 0. The user can manually reconcile.
+
+  "What if the running binary is a release binary (no
+      templates/ci.yml next to it)?" Counterargument:
+      the source walk fails gracefully; the kernel
+      prints a one-line note ('CI template not found
+      in source; see templates/ci.yml in the math-coding
+      repo or in dist-adoption.tar.gz') and exits 0.
+      Same split as `--agent opencode` for release
+      binaries.
+
+assumptions:
+  - id: templates-ci-yml-shipped
+    state: assumed
+    statement: |
+      `templates/ci.yml` is shipped at the math-coding
+      repo root and is in every release tarball's
+      `dist/adoption/templates/` (or similar).
+    owner: human:maintainer
+    consequence_if_false: |
+      If the template is not shipped, `mathc init` is a
+      no-op for the CI workflow step and exits 0.
+      A follow-up decision ships the template.
+    review_on:
+      - signal: templates-ci-yml-missing
+
+obligations:
+  - id: init-wires-ci-workflow
+    outcome: init-wires-ci
+    claim: |
+      `mathc init .` (without `--no-install`) creates
+      `.github/workflows/mathc.yml` in the target
+      directory.
+    acceptance:
+      all:
+        - verifier: tests/cli/init.t
+          result: pass
+  - id: no-install-skips-ci-workflow
+    outcome: --no-install-skips-ci
+    claim: |
+      `mathc init . --no-install` does NOT create
+      `.github/workflows/mathc.yml`.
+    acceptance:
+      all:
+        - verifier: tests/cli/init.t
+          result: pass
+
+reversal:
+  - signal: ci-template-deprecated
+    condition: |
+    The blocking-CI template is no longer the
+    recommended workflow shape; a follow-up decision
+    removes the copy step from init.
+    action: rework
+
+risk:
+  declared_triggers:
+    - templates-ci-yml-missing
+    - workflow-already-exists
+    - dir-create-permission-failed
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - install-tooling-2026-10@1
+    - ux-3-init-subcommand-2026-10@1
+    - ux-3-init-release-binary-noop-skill-2026-10@1
+  supersedes: []
+  superseded_by: []
