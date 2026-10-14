@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.2
 id: ux-3-init-subcommand-2026-10
-revision: 1
+revision: 2
 state: active
 body_sha: "dface25df477573f125dfa6b0870d94e8f4ece64b65fc528b8b268acb693de40"
 yaml_sha: "dface25df477573f125dfa6b0870d94e8f4ece64b65fc528b8b268acb693de40"
@@ -289,3 +289,7 @@ relations:
     - ux-3-adoption-doc-freshen-2026-10@1
   supersedes: []
   superseded_by: []
+
+rev-history:
+  - "rev 1: initial mathc init scaffold (Phase 2 of ux-3 workstream)"
+  - "rev 2: --merge accepts existing decision.yaml without re-write (commit <pending>)"

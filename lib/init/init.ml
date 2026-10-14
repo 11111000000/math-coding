@@ -194,9 +194,15 @@ let check_brownfield (opts : options) : unit =
         (string_of_brownfield bf);
       exit 3
 
-let check_scaffold (root : string) : unit =
+let check_scaffold ~merge (root : string) : unit =
   match scaffold ~root with
   | `Ok -> ()
+  | `Refuse_existing p when merge ->
+      (* --merge: existing decision.yaml stays untouched; the rest of
+         init (per-repo skill, .githooks, decisions/, attestations/) is
+         still wired. Print a note so the maintainer knows. *)
+      Printf.printf
+        "mathc init: keeping existing %s (--merge); proceeding\n" p
   | `Refuse_existing p ->
       Printf.eprintf
         "mathc init: refusing to overwrite existing %s; remove it or \
@@ -339,7 +345,7 @@ let maybe_install_agent_skill (opts : options) : unit =
 
 let run (opts : options) : unit =
   check_brownfield opts;
-  check_scaffold opts.root;
+  check_scaffold ~merge:opts.merge opts.root;
   maybe_install_hook opts;
   print_summary opts;
   maybe_install_agent_skill opts
