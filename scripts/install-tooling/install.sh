@@ -36,7 +36,6 @@ MC_VERSION_DEFAULT="edge"
 MC_REPO="11111000000/math-coding"
 MC_RELEASE_BASE="https://github.com/${MC_REPO}/releases/download"
 MC_BINARY_BASENAME="mathc"
-MC_SKILL_REMOTE_PATH="dist/adoption/opencode/SKILL.md"
 MC_TEMPLATE_REMOTE_PATH="scripts/install-tooling/templates/active-policy.yaml"
 MC_TARBALL_NAME="dist-adoption.tar.gz"
 
@@ -295,9 +294,9 @@ install_user_skill_file() {
   if ! dl "$url" "$tmpdir/adoption.tar.gz"; then
     return 124
   fi
-  # The tarball contains `dist/adoption/opencode/SKILL.md` plus the
+  # The tarball contains `adoption/opencode/SKILL.md` plus the
   # other platform drops. We extract only the opencode one.
-  if ! tar -xzOf "$tmpdir/adoption.tar.gz" dist/adoption/opencode/SKILL.md > "$tmpdir/SKILL.md" 2>/dev/null; then
+  if ! tar -xzOf "$tmpdir/adoption.tar.gz" adoption/opencode/SKILL.md > "$tmpdir/SKILL.md" 2>/dev/null; then
     echo "install.sh: cannot extract opencode/SKILL.md from tarball" >&2
     echo "diagnostic: MC-INSTALL-SKILL-EXTRACT" >&2
     return 2
