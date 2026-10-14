@@ -362,7 +362,7 @@ jobs:
             Rolling prerelease built from the latest commit on `main`.
 
             ```sh
-            curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/skills/install.sh | sh
+            curl -fsSL https://github.com/11111000000/math-coding/releases/download/edge/install.sh | sh
             ```
 
             No toolchain required: downloads `mathc` for your OS/arch.
