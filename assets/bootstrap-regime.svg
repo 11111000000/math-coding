@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" role="img" aria-labelledby="br-title br-desc">
+  <title id="br-title">Bootstrap regime transition: from manual to automated kernel-enforced gate.</title>
+  <desc id="br-desc">Two horizontal swim-lanes: a manual regime lane (top, eight manual checks per PR, active from v3-alpha-0.0.1 to 8fa7fcf) and an automated regime lane (bottom, kernel-driven self-check and gate, active from 8fa7fcf forward). Two arrows cross between them: a human-to-human proposal from the manual lane, and a kernel-driven self-check from the automated lane. The transition commit 8fa7fcf (v3.0.0.19) is the boundary.</desc>
+  <defs>
+    <style>
+      .br-lane-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #5a5a5a; text-anchor: end; }
+      .br-lane { fill: #fbfaf6; stroke: #d4d0c8; stroke-width: 1; }
+      .br-lane-auto { fill: #f5e9d8; stroke: #c49859; stroke-width: 1; }
+      .br-note { font-family: Georgia, "Iowan Old Style", serif; font-size: 12px; fill: #1a1a1a; }
+      .br-step { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8b3a3a; }
+      .br-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .br-arrow-kernel { stroke: #8b3a3a; stroke-width: 1.5; fill: none; }
+      .br-boundary { stroke: #8b3a3a; stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+      .br-boundary-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8b3a3a; font-style: italic; text-anchor: middle; }
+    </style>
+    <marker id="br-arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="br-arrowhead-kernel" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+
+  <!-- manual regime lane (top) -->
+  <g transform="translate(20, 20)">
+    <rect class="br-lane" x="0" y="0" width="760" height="80"/>
+    <text class="br-lane-label" x="750" y="20">Manual regime</text>
+    <text class="br-note" x="20" y="22">v3-alpha-0.0.1 to 8fa7fcf — 8 manual checks per PR</text>
+    <text class="br-step" x="20" y="50">Agent — propose change</text>
+    <text class="br-step" x="220" y="50">Human reviewer — 8 checks</text>
+    <text class="br-step" x="500" y="50">(intent, counterexample, evidence, recovery, ...)</text>
+    <text class="br-step" x="20" y="70">Checks are part of the protocol; not the kernel.</text>
+  </g>
+
+  <!-- automated regime lane (bottom) -->
+  <g transform="translate(20, 110)">
+    <rect class="br-lane-auto" x="0" y="0" width="760" height="80"/>
+    <text class="br-lane-label" x="750" y="20">Automated regime</text>
+    <text class="br-note" x="20" y="22">8fa7fcf (v3.0.0.19) onward — kernel-enforced routine checks</text>
+    <text class="br-step" x="20" y="50">Agent — git push</text>
+    <text class="br-step" x="220" y="50">mathc self-check</text>
+    <text class="br-step" x="500" y="50">~260 attestations, 57 pass / 1 unknown</text>
+    <text class="br-step" x="20" y="70">mathc gate BASE HEAD blocks the merge if needed.</text>
+  </g>
+
+  <!-- arrows crossing between lanes -->
+  <path class="br-arrow" d="M150,100 L150,110" marker-end="url(#br-arrowhead)"/>
+  <path class="br-arrow-kernel" d="M380,190 L380,200" marker-end="url(#br-arrowhead-kernel)"/>
+
+  <!-- boundary marker (the 8fa7fcf commit) -->
+  <line class="br-boundary" x1="400" y1="100" x2="400" y2="110"/>
+  <text class="br-boundary-label" x="400" y="106">8fa7fcf (v3.0.0.19) — bootstrap gate expires</text>
+</svg>

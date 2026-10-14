@@ -1,4 +1,4 @@
-// assets/site.js -- site navigation, mermaid init, search index loader,
+// assets/site.js -- site navigation, search index loader,
 // live verdict counter.
 (function () {
   'use strict';

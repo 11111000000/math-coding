@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 110" role="img" aria-labelledby="a0-title a0-desc">
+  <title id="a0-title">A0 Separation: the seven kinds of object, in their canonical order.</title>
+  <desc id="a0-desc">A horizontal flow of seven boxes connected by arrows: intent leads to decision leads to obligation leads to change leads to attestation leads to observation leads to revision. Each box is a distinct kind; the arrows show only the direction of inference, not equivalence. A0 forbids conflating any two of these. A small cycle at the bottom (dashed oxblood) shows revision extending commitment into the next intent.</desc>
+  <defs>
+    <style>
+      .a0-box { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .a0-box-emph { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 2; }
+      .a0-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; }
+      .a0-text-emph { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #8b3a3a; text-anchor: middle; font-style: italic; }
+      .a0-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .a0-cycle { stroke: #8b3a3a; stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+      .a0-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; }
+    </style>
+    <marker id="a0-arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="a0-arrowhead-cycle" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+
+  <g transform="translate(0, 30)">
+    <!-- intent -->
+    <g transform="translate(0, 0)">
+      <rect class="a0-box" x="0" y="0" width="98" height="40" rx="3"/>
+      <text class="a0-text" x="49" y="18">intent</text>
+      <text class="a0-label" x="49" y="32">what to do</text>
+    </g>
+    <path class="a0-arrow" d="M98,20 L116,20" marker-end="url(#a0-arrowhead)"/>
+
+    <!-- decision -->
+    <g transform="translate(120, 0)">
+      <rect class="a0-box" x="0" y="0" width="98" height="40" rx="3"/>
+      <text class="a0-text" x="49" y="18">decision</text>
+      <text class="a0-label" x="49" y="32">commitment</text>
+    </g>
+    <path class="a0-arrow" d="M218,20 L236,20" marker-end="url(#a0-arrowhead)"/>
+
+    <!-- obligation (emphasised) -->
+    <g transform="translate(240, 0)">
+      <rect class="a0-box-emph" x="0" y="0" width="98" height="40" rx="3"/>
+      <text class="a0-text-emph" x="49" y="18">obligation</text>
+      <text class="a0-label" x="49" y="32">kernel checks</text>
+    </g>
+    <path class="a0-arrow" d="M338,20 L356,20" marker-end="url(#a0-arrowhead)"/>
+
+    <!-- change -->
+    <g transform="translate(360, 0)">
+      <rect class="a0-box" x="0" y="0" width="98" height="40" rx="3"/>
+      <text class="a0-text" x="49" y="18">change</text>
+      <text class="a0-label" x="49" y="32">diff</text>
+    </g>
+    <path class="a0-arrow" d="M458,20 L476,20" marker-end="url(#a0-arrowhead)"/>
+
+    <!-- attestation -->
+    <g transform="translate(480, 0)">
+      <rect class="a0-box" x="0" y="0" width="98" height="40" rx="3"/>
+      <text class="a0-text" x="49" y="18">attestation</text>
+      <text class="a0-label" x="49" y="32">test/review</text>
+    </g>
+    <path class="a0-arrow" d="M578,20 L596,20" marker-end="url(#a0-arrowhead)"/>
+
+    <!-- observation -->
+    <g transform="translate(600, 0)">
+      <rect class="a0-box" x="0" y="0" width="98" height="40" rx="3"/>
+      <text class="a0-text" x="49" y="18">observation</text>
+      <text class="a0-label" x="49" y="32">world signal</text>
+    </g>
+    <path class="a0-arrow" d="M698,20 L716,20" marker-end="url(#a0-arrowhead)"/>
+
+    <!-- revision -->
+    <g transform="translate(720, 0)">
+      <rect class="a0-box" x="0" y="0" width="80" height="40" rx="3"/>
+      <text class="a0-text" x="40" y="18">revision</text>
+      <text class="a0-label" x="40" y="32">next</text>
+    </g>
+
+    <!-- cycle back from revision to intent (dashed oxblood) -->
+    <path class="a0-cycle" d="M760,25 C760,-15 200,-15 49,25" marker-end="url(#a0-arrowhead-cycle)"/>
+  </g>
+</svg>

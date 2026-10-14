@@ -1,0 +1,175 @@
+---
+schema: math-coding/3.2
+id: site-diagrams-as-svg-2026-10
+revision: 1
+state: active
+body_sha: "sha256:84805957a9f21d3083801dbc918d9dde0415faca3652f3f6be438022c9f6ec39"
+yaml_sha: "sha256:84805957a9f21d3083801dbc918d9dde0415faca3652f3f6be438022c9f6ec39"
+axiom_link:
+  - A3
+intent: |
+  Mermaid-rendered diagrams on the site look off-palette and
+  break the Tufte rhythm, and several diagram-bearing pages
+  (methodology, foundations) trail their figures in a lump at
+  the end instead of placing each figure next to the paragraph
+  it illustrates. This decision removes Mermaid from the render
+  pipeline entirely and replaces every diagram with a
+  hand-rolled, accessibility-tagged SVG in the unified Tufte
+  palette (oxblood / cream). Each figure is embedded inline via
+  the `![alt](assets/foo.svg)` markdown form, positioned at the
+  paragraph it illustrates, and surrounded by explanatory prose
+  so a reader who skims the figures still follows the argument.
+
+  This supersedes the body_extra + mermaid approach of
+  `site-svg-methodology-2026-10`,
+  `site-svg-foundations-2026-10`, `site-svg-manifesto-2026-10`,
+  and `site-svg-workflow-2026-10`, whose per-page
+  `.mathc-figure-<page>` wrappers are replaced by the shared
+  `.mathc-figure-inline` wrapper and whose mermaid FSM is
+  retired.
+
+commitment: |
+  `mathc render` no longer emits Mermaid markup and no longer
+  loads the Mermaid CDN. `lib/render.ml`, `bin/Mathc.ml`, and
+  `assets/style.css` carry no Mermaid support, and the eight
+  diagram pages (methodology, foundations, manifesto, workflow,
+  bootstrap-gate, axioms/separation, axioms/feedback,
+  axioms/self-application) render every diagram as
+  `<figure class="mathc-figure mathc-figure-inline">` wrapping
+  an `<img>` to a present `assets/*.svg`.
+
+scope:
+  capabilities:
+    - site-illustration
+  paths:
+    - "lib/render.ml"
+    - "bin/Mathc.ml"
+    - "assets/style.css"
+    - "assets/site.js"
+    - "tests/render_kernel.ml"
+    - "site/methodology.md"
+    - "site/foundations.md"
+    - "site/manifesto.md"
+    - "site/workflow.md"
+    - "site/bootstrap-gate.md"
+    - "axioms/separation.md"
+    - "axioms/feedback.md"
+    - "axioms/self-application.md"
+    - "assets/a0-separation.svg"
+    - "assets/a1-feedback.svg"
+    - "assets/a3-self-application-flow.svg"
+    - "assets/axiom-graph.svg"
+    - "assets/bootstrap-regime.svg"
+
+outcomes:
+  - id: mermaid-removed-from-renderer
+    statement: |
+      `lib/render.ml`, `bin/Mathc.ml`, and `assets/style.css`
+      contain no Mermaid support: no `mermaid` code-fence
+      branch, no `enable_mermaid` config field or CLI flag, no
+      Mermaid CDN script, and no `.mermaid` CSS rules.
+  - id: inline-figures-render-on-eight-pages
+    statement: |
+      The rendered `dist/` pages for methodology, foundations,
+      manifesto, workflow, bootstrap-gate, axioms/separation,
+      axioms/feedback, and axioms/self-application each carry
+      at least one `<figure class="mathc-figure
+      mathc-figure-inline">` and zero Mermaid `<div
+      class="mermaid">` elements.
+
+obligations:
+  - id: mermaid-removed-from-renderer
+    outcome: mermaid-removed-from-renderer
+    claim: |
+      No Mermaid support remains in the render pipeline: the
+      `mermaid` code-fence branch, the `enable_mermaid` config
+      field, the `--mermaid` CLI flag, and the Mermaid CDN
+      script are all absent from `lib/render.ml` and
+      `bin/Mathc.ml`.
+    acceptance:
+      all:
+        - verifier: ! grep -rq 'mermaid' lib/render.ml bin/Mathc.ml; test $? -eq 1
+          result: pass
+        - verifier: tests/render_kernel.ml::inline_figure_renders
+          result: pass
+        - verifier: tests/render_kernel.ml::css_has_inline_figure_rules
+          result: pass
+  - id: inline-figures-render-on-eight-pages
+    outcome: inline-figures-render-on-eight-pages
+    claim: |
+      The eight diagram pages render their figures as inline
+      SVG `<figure class="mathc-figure mathc-figure-inline">`
+      wrappers and contain no Mermaid `<div class="mermaid">`.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::inline_svg_figures_in_seven_pages
+          result: pass
+        - verifier: ! grep -rn 'mermaid.min.js' assets/ lib/ bin/ | grep -v _build; test $? -eq 1
+          result: pass
+
+counterexample: |
+  "Removing Mermaid loses the ability to write a quick diagram
+  in a fenced block without hand-authoring an SVG; the author
+  is now forced to hand-roll every diagram."
+
+  Counterargument: the hand-rolled SVGs are the point. Mermaid's
+  default palette and typography do not respect the Tufte
+  style, and the kernel's own self-application axiom (A3) is
+  best shown by a site whose diagrams are as auditable as its
+  prose. A quick diagram is still cheap to write as SVG now
+  that `assets/` already holds the shared palette and layout
+  conventions; the marginal cost is one file per figure, which
+  the accessibility tags (`role="img"` + `aria-labelledby`)
+  justify.
+
+antithesis: |
+  The strongest counter-position: "keep Mermaid and style it
+  with CSS overrides instead of replacing it."
+
+  That position is rejected because (a) Mermaid's SVG is
+  generated client-side from its own source grammar, so the
+  kernel cannot validate the output without a browser; (b)
+  overriding Mermaid's internals (`.mermaid .nodeLabel`,
+  `.mermaid .edgeLabel`, `.mermaid .actor`) is exactly the
+  fragile, undocumented surface that already produced the
+  "Syntax error in text" regressions recorded in
+  `mathjax-delimiter-te-and-skip-mermaid-2026-10`; (c) a
+  hand-rolled SVG is a static, diff-able artifact that the
+  kernel's own renderer emits unchanged — the diagram becomes
+  data the methodology can inspect, not a runtime side effect.
+
+assumptions:
+  - id: site-base-stays-subpath
+    state: assumed
+    statement: |
+      The site's `<base href>` remains a subpath
+      (`/math-coding/`). The relative `assets/foo.svg` URLs in
+      the inline figures resolve through the base href.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future cycle sets `site_base = "/"`, the
+      `assets/foo.svg` references resolve to `/foo.svg` (404).
+    review_on:
+      - signal: deployment-target-moves-to-host-root
+
+risk:
+  impact: low
+  probability: low
+  irreversibility: low
+  mode_floor: tiny
+  rationale: |
+    The change removes a third-party dependency (Mermaid CDN),
+    which is strictly a reduction in runtime surface. The SVG
+    figures are additive artifacts; the renderer change is a
+    deletion plus a small inline-figure branch. Reversal is one
+    revert commit.
+
+relations:
+  supersedes:
+    - site-svg-methodology-2026-10
+    - site-svg-foundations-2026-10
+    - site-svg-manifesto-2026-10
+    - site-svg-workflow-2026-10
+  depends_on:
+    - site-quality-illustrations-2026-10
+  refines: []

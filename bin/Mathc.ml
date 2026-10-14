@@ -530,10 +530,9 @@ let print_usage oc =
     \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\
     \  packages [--format=...]         list decisions + verdicts \
      (text|json|html)\n\
-    \  render [--out DIR] [--lang en|ru|both]\n\
-    \           [--site-base HREF] [--mathjax|--no-mathjax]\n\
-    \           [--mermaid|--no-mermaid]\n\
-    \                                     render the static site under DIR\n\
+     \  render [--out DIR] [--lang en|ru|both]\n\
+     \           [--site-base HREF] [--mathjax|--no-mathjax]\n\
+     \                                     render the static site under DIR\n\
     \  counters                          emit JSON counts (decisions, obligations,\n\
     \                                     attestations, self-check, cram, CLI)\n\
     \  init [PATH] [--agent NAME]        scaffold a new math-coding project:\n\
@@ -2941,12 +2940,12 @@ let[@warning "-32"] do_self_check () =
 
 (* --- render subcommand (bootstrap decision site-deploy@2) ---
  *
- * `mathc render [--out DIR] [--lang en|ru|both] [--site-base HREF]
- * [--mathjax|--no-mathjax] [--mermaid|--no-mermaid]` renders the
- * static site under DIR (default `dist/`). The render reads
- * articles from `site/`, walks decisions via lib/packages.ml, and
- * writes one .html file per page. The dispatcher's I/O is the
- * boundary; lib/render.ml is pure.
+  * `mathc render [--out DIR] [--lang en|ru|both] [--site-base HREF]
+  * [--mathjax|--no-mathjax]` renders the
+  * static site under DIR (default `dist/`). The render reads
+  * articles from `site/`, walks decisions via lib/packages.ml, and
+  * writes one .html file per page. The dispatcher's I/O is the
+  * boundary; lib/render.ml is pure.
  *
  * Bilingual mode (`--lang=both`) renders both English and Russian
  * pages when `site/<name>.ru.md` exists; the Russian page is
@@ -3060,7 +3059,6 @@ let[@warning "-32"] do_render () =
   let lang_arg = ref "en" in
   let site_base = ref "/math-coding/" in
   let enable_mathjax = ref true in
-  let enable_mermaid = ref true in
   let set_lang s =
     match s with
     | "en" | "ru" | "both" -> lang_arg := s
@@ -3079,14 +3077,12 @@ let[@warning "-32"] do_render () =
          ( "--site-base",
            Arg.String set_base,
            " <base href> value (default /math-coding/)" );
-         ("--mathjax", Arg.Set enable_mathjax, "load MathJax 3 (default on)");
-         ("--no-mathjax", Arg.Clear enable_mathjax, "do not load MathJax");
-         ("--mermaid", Arg.Set enable_mermaid, "load mermaid 10 (default on)");
-         ("--no-mermaid", Arg.Clear enable_mermaid, "do not load mermaid");
-       ]
-       (fun _ -> ())
-       "usage: mathc render [--out DIR] [--lang en|ru|both] [--site-base HREF] \
-        [--mathjax|--no-mathjax] [--mermaid|--no-mermaid]"
+          ("--mathjax", Arg.Set enable_mathjax, "load MathJax 3 (default on)");
+          ("--no-mathjax", Arg.Clear enable_mathjax, "do not load MathJax");
+        ]
+        (fun _ -> ())
+        "usage: mathc render [--out DIR] [--lang en|ru|both] [--site-base HREF] \
+         [--mathjax|--no-mathjax]"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc render: %s\n" m;
      exit 2);
@@ -3191,7 +3187,6 @@ let[@warning "-32"] do_render () =
     {
       Render.site_base = !site_base;
       Render.enable_mathjax = !enable_mathjax;
-      Render.enable_mermaid = !enable_mermaid;
       Render.enable_lang_toggle = true;
       Render.languages;
       (* The site footer / hero / page title all carry the live

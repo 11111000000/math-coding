@@ -219,15 +219,24 @@ let[@warning "-32"] fenced_code_closing_fence_length_3 () =
   Alcotest.(check bool)
     "<p>after</p> present after fence" true (has "after" html)
 
-let[@warning "-32"] mermaid_fence_renders_as_div () =
-  let src = "```mermaid\ngraph TD; A-->B;\n```\n" in
+let[@warning "-32"] inline_figure_renders () =
+  (* Inline image ![alt](url) becomes a
+     `<figure class="mathc-figure mathc-figure-inline">` wrapping an
+     `<img>`. This is the SVG-diagram syntax that replaced Mermaid
+     (diagrams-as-svg-2026-10). *)
+  let src = "before\n\n![A diagram](assets/foo.svg)\n\nafter\n" in
   let html = Render.md_parse src in
   Alcotest.(check bool)
-    "<div class=\"mermaid\"> present" true
-    (has "<div class=\"mermaid\">" html);
+    "<figure class=\"mathc-figure mathc-figure-inline\"> present" true
+    (has "<figure class=\"mathc-figure mathc-figure-inline\">" html);
   Alcotest.(check bool)
-    "no <pre><code> for mermaid" true
-    (not (has "<pre><code class=\"language-mermaid\">" html))
+    "<img src=\"assets/foo.svg\"> present" true
+    (has "<img src=\"assets/foo.svg\"" html);
+  Alcotest.(check bool)
+    "alt text preserved" true (has "A diagram" html);
+  Alcotest.(check bool)
+    "no mermaid div emitted" true
+    (not (has "<div class=\"mermaid\">" html))
 
 let[@warning "-32"] list_continuation_renders () =
   (* Multi-line list item: continuation lines joined into one <li>. *)
@@ -371,8 +380,8 @@ let[@warning "-32"] mathjax_uses_latex_delimiters () =
     "displayMath declares TeX-escaped \\\\[\\]" true
     (has "['\\\\[', '\\\\]']" page.Render.body);
   Alcotest.(check bool)
-    "skipHtmlTags includes div.mermaid" true
-    (has "'div.mermaid'" page.Render.body)
+    "skipHtmlTags does not include div.mermaid" true
+    (not (has "'div.mermaid'" page.Render.body))
 
 let[@warning "-32"] css_has_math_rules () =
   (* Read the live stylesheet and assert it ships rules for
@@ -395,10 +404,11 @@ let[@warning "-32"] css_has_math_rules () =
   Alcotest.(check bool)
     "math font stack declared" true (has "STIX Two Math" css)
 
-let[@warning "-32"] css_has_mermaid_svg_rules () =
+let[@warning "-32"] css_has_inline_figure_rules () =
   (* Read the live stylesheet and assert it ships rules for
-     mermaid SVG diagrams. The .mermaid svg rule keeps diagrams
-     inside the 54-rem column on narrow viewports. *)
+     the inline SVG figures that replaced Mermaid
+     (diagrams-as-svg-2026-10). The .mathc-figure-inline rule
+     keeps a diagram inside the prose column. *)
   let css_path =
     match Sys.getenv_opt "DUNE_SOURCEROOT" with
     | Some p -> Filename.concat p "assets/style.css"
@@ -409,10 +419,13 @@ let[@warning "-32"] css_has_mermaid_svg_rules () =
   let css = really_input_string ic n in
   close_in ic;
   Alcotest.(check bool)
-    ".mermaid svg rule declared" true (has ".mermaid svg" css);
+    ".mathc-figure-inline rule declared" true
+    (has ".mathc-figure-inline" css);
   Alcotest.(check bool)
-    ".mermaid svg max-width: 100%" true
-    (has "max-width: 100%" css && has ".mermaid svg" css)
+    ".mathc-figure-inline img max-width: 100%" true
+    (has "max-width: 100%" css && has ".mathc-figure-inline img" css);
+  Alcotest.(check bool)
+    "no .mermaid rules remain" true (not (has ".mermaid" css))
 
 let[@warning "-32"] packages_page_has_grid () =
   let cfg : Render.config = Render.default_config in
@@ -529,7 +542,7 @@ let[@warning "-32"] version_in_hero_and_footer () =
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
     "index.html hero carries the configured version" true
-    (has "<h1>math-coding 9.9.9-test</h1>" home.Render.body);
+    (has "<p class=\"mathc-hero-version\">9.9.9-test</p>" home.Render.body);
   Alcotest.(check bool)
     "index.html footer carries the configured version" true
     (has "9.9.9-test &middot;" home.Render.body);
@@ -916,8 +929,8 @@ let () =
       ( "fenced_code_closing_fence_length_3",
         [ Alcotest.test_case "len-3" `Quick fenced_code_closing_fence_length_3 ]
       );
-      ( "mermaid_fence_renders_as_div",
-        [ Alcotest.test_case "mermaid" `Quick mermaid_fence_renders_as_div ] );
+      ( "inline_figure_renders",
+        [ Alcotest.test_case "figure" `Quick inline_figure_renders ] );
       ( "list_continuation_renders",
         [ Alcotest.test_case "cont" `Quick list_continuation_renders ] );
       ( "list_single_item_still_one_li",
@@ -944,8 +957,8 @@ let () =
         [ Alcotest.test_case "latex" `Quick mathjax_uses_latex_delimiters ] );
       ( "css_has_math_rules",
         [ Alcotest.test_case "math" `Quick css_has_math_rules ] );
-      ( "css_has_mermaid_svg_rules",
-        [ Alcotest.test_case "mermaid" `Quick css_has_mermaid_svg_rules ] );
+      ( "css_has_inline_figure_rules",
+        [ Alcotest.test_case "figure" `Quick css_has_inline_figure_rules ] );
       ( "packages_page_has_grid",
         [ Alcotest.test_case "grid" `Quick packages_page_has_grid ] );
       ( "ru_nav_omits_missing_sibling",
@@ -970,14 +983,16 @@ let () =
           Alcotest.test_case "axiom-link" `Quick
             axioms_link_html_not_md;
         ] );
-      ( "mermaid_in_seven_pages",
+      ( "inline_svg_figures_in_seven_pages",
         [
-          Alcotest.test_case "mermaid" `Quick
+          Alcotest.test_case "figures" `Quick
             (fun () ->
               (* Editorial obligation: every site page and per-axiom
-                 page that declares a mermaid diagram must surface
-                 it as `<div class="mermaid">…</div>` in the
-                 rendered HTML. *)
+                 page that carries a diagram must surface it as an
+                 inline SVG `<figure class="mathc-figure
+                 mathc-figure-inline">` in the rendered HTML — and
+                 must NOT emit any Mermaid `<div class="mermaid">`.
+                 (diagrams-as-svg-2026-10) *)
               let root =
                 match Sys.getenv_opt "DUNE_SOURCEROOT" with
                 | Some p -> p
@@ -987,8 +1002,8 @@ let () =
               let ec = Sys.command script in
               if ec <> 0 then
                 Alcotest.failf
-                  "scripts/render.sh exited %d; cannot verify mermaid \
-                   output" ec;
+                  "scripts/render.sh exited %d; cannot verify inline \
+                   figure output" ec;
               let dist = Filename.concat root "dist" in
               let pages =
                 [
@@ -1007,8 +1022,13 @@ let () =
                   let html = read_text path in
                   Alcotest.(check bool)
                     (Printf.sprintf
-                       "dist/%s contains <div class=\"mermaid\">" rel)
-                    true (has "<div class=\"mermaid\">" html))
+                       "dist/%s contains inline figure" rel)
+                    true
+                    (has "<figure class=\"mathc-figure mathc-figure-inline\">"
+                       html);
+                  Alcotest.(check bool)
+                    (Printf.sprintf "dist/%s has no mermaid div" rel)
+                    true (not (has "<div class=\"mermaid\">" html)))
                 pages)
         ] );
       ( "axiom_has_formalization_section",
