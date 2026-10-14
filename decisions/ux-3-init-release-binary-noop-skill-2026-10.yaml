@@ -1,0 +1,195 @@
+---
+schema: math-coding/3.2
+id: ux-3-init-release-binary-noop-skill-2026-10
+revision: 1
+state: active
+body_sha: "sha256:a2dba0c4c4388ad07d3a3c95392bc9de273a5cf269f314361d15fa2bbd892f71"
+yaml_sha: "sha256:a2dba0c4c4388ad07d3a3c95392bc9de273a5cf269f314361d15fa2bbd892f71"
+
+intent: |
+  Document the deliberate no-op behavior of
+  `mathc init --agent opencode` when invoked from a
+  release-installed binary (e.g. `~/.local/bin/mathc`),
+  as opposed to an in-source build at
+  `_build/default/bin/mathc.exe`.
+
+  Background: `lib/init/init.ml::find_source_skill` walks
+  up from the binary's directory looking for the in-repo
+  `.opencode/skills/math-coding/SKILL.md`. On an in-source
+  build the walk finds the source (it lives three levels
+  up from `_build/default/bin/mathc.exe`); on a release
+  binary the walk terminates without finding it and the
+  kernel prints a one-liner instructing the user to run
+  `install.sh --user-skill`.
+
+  This is the canonical path per `install-tooling-2026-10@1`
+  (commitment 6): `install.sh --user-skill` is the
+  per-user install path for installed binaries. Bundling
+  the skill inside the release binary would duplicate
+  this affordance and risk drift between the bundled copy
+  and the canonical `adoption/SKILL.md`.
+
+  Today this split is correct: an in-source-build developer
+  (running `dune build` then `./_build/default/bin/mathc.exe`)
+  gets the per-user skill via the in-repo copy path; a
+  release-installed user (running `~/.local/bin/mathc`) gets
+  it via `install.sh --user-skill`. This decision records
+  the split explicitly so future agents do not re-attempt
+  to bundle the skill inside the release binary or shift
+  the workaround.
+
+axiom_link:
+  - A0
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "Bundle the
+  skill inside the release binary via a `tar -xzOf` against
+  the `dist-adoption.tar.gz` URL, just like `install.sh`
+  does. That way `mathc init --agent opencode` works
+  everywhere." The author engaged with this position and
+  rejected it on three grounds: (a) it duplicates the
+  `install.sh --user-skill` path and creates two source-of-
+  truth copies (the bundled byte and `adoption/SKILL.md`),
+  with no machine-checked sync between them; (b) it adds
+  network I/O to a subcommand that today runs in 0 ms on
+  the developer path, regressing the in-source-build UX;
+  (c) `find_source_skill` is a pure local-filesystem helper
+  with no kernel API surface; reaching outside to GitHub Releases
+  from `lib/init/init.ml` would couple the init subcommand
+  to network state, which is what `install.sh` exists to
+  abstract. The minimum change is to record the split, not
+  to bridge it.
+
+commitment: |
+  This decision does NOT modify any kernel source. It records:
+
+  1. On a release-installed binary (e.g. `~/.local/bin/mathc`),
+     `mathc init --agent opencode` invokes
+     `lib/init/init.ml::find_source_skill`, the walk
+     terminates without finding a source, and the kernel
+     prints a one-liner instructing the user to run
+     `install.sh --user-skill`. Exit code 0.
+
+  2. On an in-source build (e.g. `_build/default/bin/mathc.exe`
+     in a checkout of this repo), the same invocation finds
+     the source at the canonical in-repo path
+     `.opencode/skills/math-coding/SKILL.md`, copies it to
+     the per-user location, and prints a confirmation
+     message. Exit code 0.
+
+  3. The per-repo skill remains committed at
+     `.opencode/skills/math-coding/SKILL.md` per
+     `ux-3-repo-tracked-opencode-skill-2026-10@1`,
+     byte-for-byte identical with `adoption/SKILL.md`
+     (verified by `scripts/check-opencode-skill.sh`).
+
+  4. The per-user install path remains
+     `install.sh --user-skill` per
+     `install-tooling-2026-10@1`.
+
+  5. No new subcommand, no new flag, no new library is
+     introduced.
+
+boundaries (a3 self-application):
+  - No `lib/**`, `bin/**`, `spec/**`, `schemas/**`,
+    `axioms/**` is touched.
+  - The kernel verdict is unchanged.
+  - No new attestation is required; the per-user install
+    flow remains attested via
+    `attestations/install-tooling-2026-10-install-sh-user-skill.json`.
+
+scope:
+  capabilities:
+    - init-agent-skill-release-binary-noop
+  paths:
+    - "decisions/ux-3-init-release-binary-noop-skill-2026-10.yaml"
+    - "scripts/check-opencode-skill.sh"  # read-only verification
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+
+outcomes:
+  - id: split-documented
+    statement: |
+      The release-binary / in-source-developer split for
+      `mathc init --agent opencode` is documented in a
+      decision; future agents do not re-attempt to bundle
+      the skill inside the release binary.
+  - id: install-sh-canonical
+    statement: |
+      The per-user install path remains `install.sh
+      --user-skill`; no parallel install path is added
+      to `mathc init`.
+
+counterexample: |
+  "What if a fresh user runs `~/.local/bin/mathc init .
+       --agent opencode` and gets a one-liner instead of
+       the per-user skill installed?" Counterargument: the
+       same fresh user just downloaded `mathc` via
+       `install.sh` (the canonical adoption affordance).
+       That script does the per-user install with
+       `--user-skill`. The user has to opt-in to the per-user
+       install once anyway; the fallback message in
+       `mathc init` is documentation, not a workaround.
+
+  "What if the per-repo skill drifts from `adoption/SKILL.md`?"
+       Counterargument: `scripts/check-opencode-skill.sh`
+       asserts byte-equality. The in-source-build path uses
+       the in-repo copy which is gated by this verifier;
+       the release-binary path uses the canonical
+       `adoption/SKILL.md` via `install.sh --user-skill`.
+       Drift in either direction is caught by
+       `scripts/check.sh` (which runs the verifier).
+
+obligations:
+  - id: split-recorded
+    outcome: split-documented
+    claim: |
+      The release-binary / in-source-developer split is
+      recorded in this decision file.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+  - id: install-sh-canonical-recorded
+    outcome: install-sh-canonical
+    claim: |
+      The per-user install path is recorded as
+      `install.sh --user-skill` and the kernel-side
+      fallback message points the user at the same
+      script.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+
+reversal:
+  - signal: per-user-skill-init-released
+    condition: |
+      Either:
+      (a) `lib/init/init.ml::find_source_skill` is changed
+          to reach outside (e.g. via `dist-adoption.tar.gz`)
+          so the release binary path also copies the skill;
+          OR
+      (b) `install.sh --user-skill` is removed and a
+          kernel-side equivalent takes its place.
+    action: rework
+
+risk:
+  declared_triggers:
+    - in-source-build-walk-fails
+    - per-repo-skill-removed
+    - install.sh-skills-removal
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - install-tooling-2026-10@1
+    - ux-3-init-agent-skill-2026-10@1
+    - ux-3-repo-tracked-opencode-skill-2026-10@1
+  supersedes: []
+  superseded_by: []
