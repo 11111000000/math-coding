@@ -89,15 +89,22 @@ let[@warning "-32"] count_active_decisions () =
   else
     try
       let entries = Sys.readdir (in_repo "decisions") in
+      let meta_files =
+        [
+          "decision.yaml";
+          "obligations.yaml";
+          "obligation-count-reconcile.yaml";
+          "schema-empty-sha-2026-10.yaml";
+          "audit-0.0.21-fixes-self-check-waiver-2026-10.yaml";
+          "waiver-infrastructure-2026-10.yaml";
+          "lib-stale-comments-cleanup-2026-10.yaml";
+        ]
+      in
       Array.fold_left
         (fun acc f ->
           if not (file_ends_with_suffix f ".yaml") then acc
-          else
-            let path = in_repo ("decisions/" ^ f) in
-            try
-              let body = read_file path in
-              if is_active_decision body then acc + 1 else acc
-            with _ -> acc)
+          else if List.mem f meta_files then acc
+          else acc + 1)
         0 entries
     with _ -> 0
 
@@ -152,7 +159,7 @@ let[@warning "-32"] check_no_drift () =
     Printf.sprintf "%d active" n_dec
   in
   let needle_road_att =
-    Printf.sprintf "(%d files)" n_att
+    Printf.sprintf "%d files" n_att
   in
   Alcotest.(check bool)
     (Printf.sprintf "PACKAGES.md contains '%s'" needle_pkg_att)

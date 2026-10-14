@@ -4,7 +4,10 @@
 > (commit `8fa7fcf`). The 3.3 kernel checks this repository and its
 > conformance corpus via `mathc self-check`, which is a **blocking** CI
 > step per `constitution.md` Invariant 14. The attestation store at
-> `attestations/` is populated (857 files post-2026-10-14 parallel-fix-batch). CLI surface: `validate`,
+> `attestations/` is populated (804 files after the 2026-10-14
+> parallel-fix-batch added 118 review-class attestations and the
+> deep-audit-fix commit removed 53 duplicates from H's batch). CLI
+> surface: `validate`,
 > `context`, `explain`, `explain-diagnostic`, `assess`, `attest`, `gate`,
 > `session-start`, `record`, `stats`, `time-estimate`, `self-check`,
 > `version`, `render`, `packages`, `mode`, `rebuttals`, `re-evaluate`,
