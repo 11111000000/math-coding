@@ -951,7 +951,7 @@ shipped. This revision strikes done items and reorders.
     removed); `flake.nix` exposes `merlin` 5.8-505 and `ocaml-lsp`
     1.27.0. See `decisions/merlin-lsp-2026-10.yaml`.
 12. (New) Reduce the trap log's surface area. The `scripts/agent-debug`
-    bash wrapper now resolves 10 of 22 §11 traps from a dune-build
+    bash wrapper now resolves 8 of 34 §11 traps from a dune-build
     error string. See `decisions/agent-debug-infrastructure-2026-10.yaml`.
 
 ### 10.5 Context-capsule priority order (for `mathc context`)
