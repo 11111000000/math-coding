@@ -1,0 +1,259 @@
+---
+schema: math-coding/3.3
+id: mathc-validate-skip-non-decisions-fix-2026-10
+revision: 1
+state: active
+body_sha: "sha256:280062501ecb89e126b688dea081339f2b07750cd122c2ef763016f333c58fce"
+yaml_sha: "sha256:280062501ecb89e126b688dea081339f2b07750cd122c2ef763016f333c58fce"
+intent: |
+  Reverts the deferral recorded at
+  `decisions/mathc-validate-skip-non-decisions-deferral-2026-10.yaml@1`
+  by teaching `mathc validate` to dispatch on the top-level
+  `schema:` field before running the decision required-field
+  check. Two non-decision schema families live under
+  `decisions/`: `math-coding/waiver-*` (waivers in
+  `decisions/waivers/`) and `math-coding/obligations-*` (the
+  obligations aggregator at `decisions/obligations.yaml`).
+  Both fail the decision required-field check today with
+  `MC-DECISION-INVALID: missing required field: <id|intent>`
+  even though they are well-formed for their own schema family.
+  At HEAD `8b9a060` the user has no way to validate these
+  files.
+
+  Resolution: a new helper `lib/decision.ml::peek_schema_family`
+  returns `Some (kind, id)` when the top-level `schema:` field
+  starts with `math-coding/waiver-` (and the file declares
+  `kind: waiver`) or with `math-coding/obligations-`. Anything
+  else returns `None` and the caller falls through to the
+  decision parser unchanged — the decision path is not
+  weakened, only the reject set is narrowed for the two
+  known non-decision families.
+
+  Strongest countercase considered:
+    "Add a `--type=decision|waiver|aggregator` flag to
+    `mathc validate` and let the user pick the parser. Auto-
+    dispatch on the schema field is convenient but hides the
+    family boundary; explicit is better than implicit."
+    Rejected because: the project's counter-example and
+    attestation codebases already auto-dispatch on the file's
+    `schema:` field (e.g. `lib/codec.ml::decode_yaml` and the
+    attestation-subject family in `lib/attestations/`), so the
+    auto-dispatch is the established pattern. A `--type` flag
+    would be a second surface that the user has to learn and
+    that future schema families (when added) would have to
+    teach.
+
+change_kind: implementation
+
+axiom_link:
+  - A0
+  - A3
+
+commitment: |
+  1. `lib/decision.ml` introduces the `non_decision_kind` type
+     (`Waiver | Obligations`) and the `peek_schema_family`
+     helper that returns `Some (kind, id)` for the two
+     recognised non-decision schema families and `None` for
+     everything else.
+  2. `bin/Mathc.ml::validate_with_counts` consults
+     `Decision.peek_schema_family` BEFORE the
+     `first_missing_required` check. On `Some (Waiver, id)`
+     it emits `Accept_aggregate { kind = "waiver"; id;
+     extra_diags = [] }`; on `Some (Obligations, id)` it
+     emits `Accept_aggregate { kind = "obligations"; id;
+     extra_diags = [] }`; on `None` the existing decision
+     parser runs unchanged.
+  3. `bin/Mathc.ml::emit` gains the `Accept_aggregate` arm
+     so the new outcome renders correctly in both `--format
+     text` and `--format json` modes.
+  4. `mathc validate decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml`
+     exits 0 with `accept:` (was: exit 1 with
+     `MC-DECISION-INVALID`).
+  5. `mathc validate decisions/obligations.yaml` exits 0 with
+     `accept:` (was: exit 1 with `MC-DECISION-INVALID`).
+  6. Every existing decision file continues to pass
+     `mathc validate` (regression: the decision parser
+     still fires for all 100 decision files at HEAD).
+  7. A truncated YAML file still exits non-zero.
+
+counterexample: |
+  "Just teach `mathc validate` to ignore waivers and the
+  obligations aggregator by their file path (e.g.
+  `decisions/waivers/*` and `decisions/obligations.yaml`).
+  Path-based dispatch is simpler than schema-based dispatch
+  and avoids changing `lib/decision.ml`."
+
+  Counterargument: a future `decisions/migrations/<file>.yaml`
+  or a `decisions/aggregators/<name>.yaml` would also need
+  path-based dispatch rules, and the rule set grows as the
+  schema family grows. The schema-based dispatch auto-extends
+  to any new non-decision family whose `schema:` field follows
+  the `math-coding/<family>-<version>` naming convention. The
+  naming-convention check is the established pattern in the
+  project (see `lib/codec.ml::decode_yaml` and the attestation
+  family in `lib/attestations/`); the path-based alternative
+  is local to the validator and does not generalise.
+
+  "Auto-dispatch on `schema:` is a magic-string check; what
+  if a future schema family does not follow the
+  `math-coding/<family>-<version>` convention?"
+  Counterargument: the project's schema-string-bump discipline
+  (see `decisions/schema-string-bump-3.0-alpha-to-3.3-2026-10`)
+  mandates the convention; every new family passes through a
+  protected transition that records the naming pattern in
+  `schemas/*.json`. The dispatch is robust to the project
+  discipline, not orthogonal to it.
+
+scope:
+  capabilities:
+    - mathc-validate-skip-non-decisions
+  paths:
+    - "lib/decision.ml"
+    - "bin/Mathc.ml"
+    - "tests/cli/validate-non-decisions.t"
+
+outcomes:
+  - id: peek-schema-family-helper
+    statement: |
+      `lib/decision.ml` defines a `peek_schema_family` helper
+      that returns `Some (kind, id)` for waivers and the
+      obligations aggregator, `None` otherwise.
+  - id: dispatcher-consults-peek
+    statement: |
+      `bin/Mathc.ml::validate_with_counts` consults the
+      helper before the decision required-field check; the
+      accept path emits `Accept_aggregate { kind; id;
+      extra_diags = [] }`.
+  - id: emit-handles-aggregate
+    statement: |
+      `bin/Mathc.ml::emit` adds the `Accept_aggregate` arm
+      so the new outcome renders in both text and JSON
+      modes.
+  - id: waiver-file-accepts
+    statement: |
+      `mathc validate decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml`
+      exits 0 with `accept:`.
+  - id: obligations-aggregator-accepts
+    statement: |
+      `mathc validate decisions/obligations.yaml` exits 0
+      with `accept:`.
+  - id: decision-files-still-validate
+    statement: |
+      Every decision file at HEAD (100 files) continues to
+      pass `mathc validate`; the dispatch does not weaken
+      the decision path.
+  - id: bad-yaml-still-rejects
+    statement: |
+      A truncated YAML file still exits non-zero.
+
+assumptions:
+  - id: schema-naming-stable
+    state: assumed
+    statement: |
+      The schema naming convention
+      `math-coding/<family>-<version>` is stable for
+      every non-decision family; a future waiver or
+      aggregator family will continue to follow the
+      convention.
+    owner: human:maintainer
+    consequence_if_false: |
+      A future family that does not follow the convention
+      would be missed by `peek_schema_family` and fall
+      through to the decision parser, which would reject
+      it. The remediation is to add the new family to
+      the helper's prefix list (one line change) and ship
+      a follow-up decision.
+    review_on:
+      - signal: new-non-decision-schema-family
+
+obligations:
+  - id: peek-schema-family-helper-present
+    statement: |
+      `grep -nE 'peek_schema_family' lib/decision.ml` returns
+      at least one match on a function definition line.
+    acceptance:
+      all:
+        - verifier: text-scan-peek-schema-family
+          result: pass
+  - id: dispatcher-consults-peek
+    statement: |
+      `grep -nE 'peek_schema_family' bin/Mathc.ml` returns at
+      least one match in `validate_with_counts`.
+    acceptance:
+      all:
+        - verifier: text-scan-dispatcher-peek
+          result: pass
+  - id: emit-handles-aggregate
+    statement: |
+      `grep -nE 'Accept_aggregate' bin/Mathc.ml` returns at
+      least one match in the `emit` function.
+    acceptance:
+      all:
+        - verifier: text-scan-emit-aggregate
+          result: pass
+  - id: cram-fixture-pass
+    statement: |
+      `tests/cli/validate-non-decisions.t` exits 0 (the cram
+      assertion is a clean run with the expected snippets
+      match).
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-non-decisions.t
+          result: pass
+  - id: live-decisions-still-validate
+    statement: |
+      `mathc validate decisions/decision.yaml` exits 0 with
+      `accept:`; same for `decisions/algebra-3.2.yaml`. The
+      decision path is not weakened.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-positive.t
+          result: pass
+  - id: dune-build-and-tests-green
+    statement: |
+      `dune build --root . && dune test --root .` exits 0
+      on the post-commit tree.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: dune test
+          result: pass
+
+reversal:
+  - signal: dune-build-broken-by-this-commit
+    action: halt
+  - signal: live-decision-now-rejects
+    action: revert
+  - signal: bad-yaml-now-accepts
+    action: halt
+
+risk:
+  declared_triggers:
+    - auto-dispatch-misses-new-family
+    - decision-parser-changed-by-mistake
+  owner: human:maintainer
+
+relations:
+  supersedes:
+    - mathc-validate-skip-non-decisions-deferral-2026-10@1
+
+antithesis: |
+  "Just teach `mathc validate` to ignore non-decisions by
+  their file path (`decisions/waivers/*` and
+  `decisions/obligations.yaml`). Path-based dispatch is
+  simpler than schema-based dispatch and avoids changing
+  `lib/decision.ml`."
+
+  Rejected because: a future
+  `decisions/migrations/<file>.yaml` or
+  `decisions/aggregators/<name>.yaml` would also need
+  path-based dispatch rules, and the rule set grows as the
+  schema family grows. The schema-based dispatch auto-extends
+  to any new non-decision family whose `schema:` field follows
+  the `math-coding/<family>-<version>` naming convention. The
+  naming-convention check is the established pattern in the
+  project (see `lib/codec.ml::decode_yaml` and the
+  attestation-subject family in `lib/attestations/`); the
+  path-based alternative is local to the validator and does
+  not generalise.

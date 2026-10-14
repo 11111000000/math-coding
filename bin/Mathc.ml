@@ -304,6 +304,29 @@ let validate_with_counts path =
       let msg = Printf.sprintf "%s at line %d col %d" m line col in
       `Reject (Diagnostic.mc_parse msg, msg)
   | Ok v -> (
+      (* mathc-validate-skip-non-decisions-fix-2026-10: dispatch
+         on the top-level `schema:` field BEFORE the decision
+         required-field check. Waiver and obligations-aggregator
+         files live under `decisions/` and are well-formed for
+         their own schema family, but they lack the decision-
+         required fields (intent, commitment, scope, outcomes,
+         obligations). Without the dispatch, the decision parser
+         rejects them with `MC-DECISION-INVALID: missing required
+         field: <id|intent>` and there is no way for the user to
+         validate them.
+
+         The dispatch returns Some (kind, id) for the two known
+         non-decision families (`math-coding/waiver-*` and
+         `math-coding/obligations-*`); for waivers the helper also
+         verifies `kind: waiver`. Anything else returns None and
+         falls through to the decision parser unchanged — the
+         decision path is not weakened. *)
+      match Decision.peek_schema_family v with
+      | Some (Decision.Waiver, id) ->
+          `Accept_aggregate { kind = "waiver"; id; extra_diags = [] }
+      | Some (Decision.Obligations, id) ->
+          `Accept_aggregate { kind = "obligations"; id; extra_diags = [] }
+      | None -> (
       match first_missing_required v with
       | Some field ->
           let msg = Printf.sprintf "missing required field: %s" field in
@@ -412,12 +435,16 @@ let validate_with_counts path =
                     let msg =
                       Printf.sprintf "%s at line %d col %d" raw_msg line col
                     in
-                    `Reject (Diagnostic.mc_parse ~cause:context msg, msg))))))
+                    `Reject (Diagnostic.mc_parse ~cause:context msg, msg))))))))
 
 let emit (format : output_format) path
     (outcome :
       [ `Input_err of string
       | `Accept of Domain.decision * Diagnostic.t list
+      | `Accept_aggregate of
+        { kind : string
+        ; id : string
+        ; extra_diags : Diagnostic.t list }
       | `Reject of Diagnostic.t * string ]) =
   match outcome with
   | `Input_err m ->
@@ -464,6 +491,51 @@ let emit (format : output_format) path
          stderr. The verdict is still "accept" because the kernel
          DID parse the verifier-half; the diagnostic tells the
          author that their review half is silently dropped. *)
+      List.iter
+        (fun diag ->
+          Printf.fprintf stderr "[%s] %s/%s: %s\n"
+            (Diagnostic.string_of_severity diag.Diagnostic.severity)
+            (Diagnostic.string_of_kind diag.kind)
+            diag.Diagnostic.code diag.message)
+        extra_diags;
+      exit 0
+  | `Accept_aggregate { kind; id; extra_diags } ->
+      (* mathc-validate-skip-non-decisions-fix-2026-10: waiver and
+         obligations files take a permissive fast path through
+         `Decision.peek_schema_family`. The verdict is "accept"
+         with a `kind:` annotation; no decision-shaped fields
+         (revision, obligations, assumptions) are reported because
+         those concepts do not exist on the waiver/aggregator
+         family. The author of a waiver should not be told the
+         waiver has zero obligations. *)
+      (match format with
+      | Text ->
+          Printf.printf
+            "accept: %s\n\
+             \  kind: %s\n\
+             \  id: %s\n"
+            path kind id
+      | Json ->
+          let extras =
+            if extra_diags = [] then ""
+            else
+              Printf.sprintf ",\"diagnostics\":[%s]"
+                (String.concat ","
+                   (List.map
+                      (fun d ->
+                        Printf.sprintf
+                          "{\"code\":\"%s\",\"severity\":\"%s\",\"message\":%s}"
+                          d.Diagnostic.code
+                          (Diagnostic.string_of_severity d.severity)
+                          (Jsonl.stringify (Jsonl.String d.message)))
+                      extra_diags))
+          in
+          Printf.printf
+            "{\"verdict\":\"accept\",\"path\":%s,\"kind\":%s,\"id\":%s%s}\n"
+            (Jsonl.stringify (Jsonl.String path))
+            (Jsonl.stringify (Jsonl.String kind))
+            (Jsonl.stringify (Jsonl.String id))
+            extras);
       List.iter
         (fun diag ->
           Printf.fprintf stderr "[%s] %s/%s: %s\n"
