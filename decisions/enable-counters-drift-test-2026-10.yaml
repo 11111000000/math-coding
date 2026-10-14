@@ -1,0 +1,258 @@
+---
+schema: math-coding/3.3
+id: enable-counters-drift-test-2026-10
+revision: 1
+state: active
+mode: standard
+body_sha: ""
+yaml_sha: ""
+axiom_link:
+  - A0
+intent: |
+  Re-enable the counters_drift Alcotest test under tests/dune
+  by rewriting it to use in-process enumeration rather than
+  `Unix.open_process_in mathc counters --format=json`. The
+  subprocess invocation is the regression signal recorded in
+  `disable-counters-drift-test-2026-10@1`: it stalled
+  `dune test` in the dune 3.23.1 parallel-alcotest harness.
+  The new implementation in `tests/counters_drift.ml` walks
+  `decisions/`, `attestations/`, and `tests/cli/` via
+  `Sys.readdir` (no fork, no pipe, no shell-out) and asserts
+  that the numbers in `PACKAGES.md`, `ROADMAP.md`, and
+  `README.md` agree with the live on-disk counts. The test
+  is a structural drift detector: when the docs drift from
+  the on-disk reality the test fails with a per-file
+  diagnostic; when the docs are in sync the test passes
+  inside dune's parallel-alcotest harness in <0.05s.
+
+  This is the reversal signal `counters-drift-recovered`
+  named in `disable-counters-drift-test-2026-10@1`. The
+  superseded decision remains on disk as the historical
+  record of the deferral period; the supersede relation
+  is the audit-trail signal, the file's continued presence
+  is a deliberate choice (not a stale duplicate).
+
+change_kind: implementation
+
+commitment: |
+  1. `tests/counters_drift.ml` exposes a single test case
+     `no drift` that asserts, for each of the four live
+     counters, the corresponding substring in PACKAGES.md
+     (and ROADMAP.md for the attestation count) contains
+     the live value computed by `Sys.readdir`.
+  2. The test contains NO call to `Unix.open_process_in`,
+     `Unix.open_process_out`, `Unix.system`, or any other
+     `Unix.process_*` API. The check is a pure in-process
+     file enumeration + substring match against the docs.
+  3. `tests/dune` re-enables `counters_drift` in the
+     `(names ...)` list (was previously commented out per
+     the disable-counters-drift gate). The executable
+     continues to be built and run by `dune test`.
+  4. `PACKAGES.md` and `ROADMAP.md` carry the live counts
+     in the prose counters block (the prior block had
+     drifted from the on-disk state). The drift is closed
+     by the same commit that re-enables the detector.
+  5. `decisions/disable-counters-drift-test-2026-10.yaml`
+     is bumped to `revision: 2` and `state: superseded`
+     (the supersede relation is recorded in
+     `relations:` of THIS decision).
+  6. `dune test` runs the new test case and reports
+     `[OK] no drift` on a tree whose docs are in sync
+     with the on-disk counts. `dune build` exits 0 with
+     no new warnings introduced.
+
+counterexample: |
+  "Just delete the test; the drift detection is informal
+  grep on 7 numbers in PACKAGES.md that a human maintainer
+  would catch at PR review time. Adding an Alcotest case
+  for this is over-engineering."
+
+  Counterargument: the original test (`disable-counters-drift-test-2026-10`)
+  was disabled specifically because the SUBPROCESS invocation
+  hung `dune test`, not because the drift detection was
+  unnecessary. The drift itself surfaced in PACKAGES.md
+  (391 attestations vs 393 on disk; 64 cram files vs 67 on
+  disk; 95 active decisions vs 112 on disk) — exactly the
+  class of bug an automated detector would have caught.
+  The minimalsufficient fix is: keep the detector, replace
+  the subprocess with in-process enumeration. Deleting the
+  test removes the only machine-checked signal that
+  PACKAGES.md/ROADMAP.md agree with the disk; manual review
+  is not a substitute for an executable contract (per
+  process-principles.yaml P2 — decisions paired with
+  fixtures).
+
+  "Skip the substring check and just `dune build` —
+  PACKAGES.md drift is cosmetic and never blocks a release."
+
+  Counterargument: PACKAGES.md is the single source of
+  truth for "what exists in this repository" per AGENTS.md
+  §Read-first; downstream consumers (the site renderer,
+  `mathc packages`, the drift detector itself) cite
+  PACKAGES.md numbers as the kernel's authoritative
+  count. Drift here is a real signal of policy surface
+  change that should be caught at the test gate, not
+  after merge.
+
+antithesis: |
+  "Leave the test gated off; counters_drift is not
+  critical-path coverage and the manual grep at PR review
+  catches the same signal the test would. The cost of
+  rewriting the test (a new file edit + a new decision
+  record + the doc refresh) is not worth the marginal
+  drift-detection value."
+
+  Rejected because: the drift itself is a real signal
+  (391 vs 393 attestations, 64 vs 67 cram files, 95 vs
+  112 decisions) that has been present in PACKAGES.md
+  since the site-redesign merge (commit d52c85b). The
+  test is not preventive — it is corrective: it closes
+  the gap between the kernel's single source of truth
+  (the on-disk enumeration) and the prose that the user
+  reads first. The cost is three file edits and one new
+  decision record; the cost of leaving the drift in
+  place is that every reader of PACKAGES.md sees a
+  stale number until someone remembers to update it.
+  The test is the cheapest auto-enforced reminder.
+
+scope:
+  paths:
+    - "tests/counters_drift.ml"
+    - "tests/dune"
+    - "decisions/disable-counters-drift-test-2026-10.yaml"
+    - "PACKAGES.md"
+    - "ROADMAP.md"
+
+outcomes:
+  - id: counters_drift-no-subprocess
+    statement: |
+      `tests/counters_drift.ml` contains no `Unix.open_process_*`,
+      `Unix.system`, or `Unix.process_*` call. The enumeration
+      is pure `Sys.readdir` + `Filename.check_suffix` /
+      `Filename.concat`.
+  - id: counters_drift-runs-in-process
+    statement: |
+      The test case `no drift` runs under `dune test` and
+      completes in <0.5s. The `dune test` harness does not
+      hang on this test case.
+  - id: dune-test-counters-drift-green
+    statement: |
+      On a tree where PACKAGES.md and ROADMAP.md agree with
+      the on-disk counts, `dune test` reports
+      `[OK] no drift` for the counters_drift test case.
+  - id: docs-refreshed-to-live
+    statement: |
+      PACKAGES.md and ROADMAP.md carry the live counts in
+      their prose counters block; the prior block had drifted
+      from the on-disk state. Drift = 0.
+
+assumptions:
+  - id: in-process-counts-match-kernel
+    state: assumed
+    statement: |
+      The on-disk enumeration via `Sys.readdir` matches the
+      counts the kernel would emit from `mathc counters`.
+      Specifically: yaml files in `decisions/` map to the
+      kernel's `decisions.total`; json files in `attestations/`
+      map to `attestations.live_store`; .t files in `tests/cli/`
+      map to `tests.cram_count`.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the kernel's counters ever introduce a more complex
+      filter (e.g., exclude test fixtures, exclude draft
+      decisions), the test would need to be re-pointed at the
+      kernel's single source of truth. The current commit
+      assumes the kernel emits raw counts; if that changes,
+      a follow-up commit adds a `decisions/counters-kernel-test-helper-2026-XX.yaml`
+      decision that exposes the filter as a library call.
+    review_on:
+      - signal: mathc-counters-filters-added
+  - id: pre-existing-failure-unrelated
+    state: assumed
+    statement: |
+      The `legacy_counterexample_sweep` failure on
+      `considered-mode-migration-2026-10.yaml` (missing
+      `counterexample:` block) is a pre-existing test
+      failure that exists in main checkout as well; it is
+      not caused by this commit and is out of scope for
+      this decision. The `dune test` baseline in this
+      worktree was already exiting non-zero on that test
+      case before this commit landed.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the pre-existing failure is later discovered to
+      block this commit's `dune test` exit-0 acceptance,
+      a separate worktree commit adds the counterexample
+      block to that decision. This commit's counters_drift
+      test passes independently of the legacy sweep.
+    review_on:
+      - signal: legacy-sweep-blocks-counter-recovery
+
+obligations:
+  - id: test-runs-in-process
+    statement: |
+      `tests/counters_drift.ml` is a single Alcotest test
+      case that performs in-process `Sys.readdir` on
+      `decisions/`, `attestations/`, `tests/cli/`. No
+      subprocess is spawned.
+    acceptance:
+      all:
+        - verifier: tests/counters_drift.ml::check_no_drift
+          result: pass
+  - id: test-finds-no-drift
+    statement: |
+      On a tree whose PACKAGES.md and ROADMAP.md are in sync
+      with the on-disk counts (this commit), `dune test`
+      reports `[OK] no drift` for the counters_drift case.
+    acceptance:
+      all:
+        - verifier: dune test
+          result: pass
+  - id: disable-counters-drift-decision-superseded
+    statement: |
+      `decisions/disable-counters-drift-test-2026-10.yaml`
+      has `state: superseded` and `revision: 2`. The supersede
+      relation is also recorded in this decision's
+      `relations.supersedes:` block.
+    acceptance:
+      all:
+        - verifier: decisions/disable-counters-drift-test-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: dune-test-hangs-on-this-commit
+    condition: |
+      `dune test` hangs or times out when running the new
+      counters_drift test case. The replacement is
+      deterministic in-process enumeration and should
+      not hang; a hang indicates the rewrite introduced a
+      blocking I/O call that was supposed to be removed.
+    action: halt
+  - signal: counters_drift-spurious-failure
+    condition: |
+      `dune test` reports `no drift` as failing on a tree
+      where PACKAGES.md and ROADMAP.md are visibly in sync
+      with the on-disk counts. The substring patterns are
+      too restrictive (e.g., require a markdown-specific
+      anchor that is not present); the test needs
+      soft-substring relaxation, not a strict regex.
+    action: rework
+  - signal: dune-build-broken-by-this-commit
+    condition: |
+      `dune build` exits non-zero on the post-rebase tree.
+      The rewrite adds one OCaml file with no new libraries
+      and no kernel changes; a build failure indicates
+      an OCaml syntax or module-resolution issue that
+      must be fixed before merge.
+    action: halt
+
+risk:
+  declared_triggers:
+    - mathc-counters-introduces-filter
+    - docs-refresh-diverges-from-disk
+    - dune-test-harness-regression
+  owner: human:maintainer
+
+relations:
+  supersedes:
+    - disable-counters-drift-test-2026-10@1

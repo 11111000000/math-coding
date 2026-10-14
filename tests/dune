@@ -10,11 +10,7 @@
   policy_test
   ci_blocking_list_test
   decision_parser_yaml
-  ; counters_drift is gated off until the dune-test hang
-  ; on its subprocess invocation is reproduced and fixed in
-  ; a follow-up commit. The executable remains in
-  ; tests/counters_drift.exe; the (tests) stanza simply
-  ; omits it. See decisions/disable-counters-drift-test-2026-10.yaml.
+  counters_drift
   waiver_test
   adopt_test
   confidence_preserve
