@@ -554,6 +554,10 @@ let print_usage oc =
      [--dry-run]\n\
      [--only=CONV]\n\
      [--merge]\n\
+     new-decision <id>                            scaffold a decision file from the canonical\n\
+                  [--write]                        template; --write writes decisions/<id>.yaml;\n\
+                  [--interactive]                  --interactive is a stub in this slice.\n\
+                  [--force]\n\
     \  telemetry status                   print current telemetry state (Phase 2\n\
     \                                     stub; no transport, no data emission).\n\n\
      migrate --from=X --to=Y                        declarative migration plan reader; emit a\n\
@@ -4488,6 +4492,45 @@ let[@warning "-32"] do_migrate () =
         print_endline (Jsonl.stringify (Jsonl.Array summary))
     end
 
+(* --- new-decision subcommand ----------------------------------- *)
+
+(* `mathc new-decision <id> [--write] [--interactive] [--force]`
+ *
+ * Scaffolds a new decision file from a canonical template.
+ * The implementation lives in `lib/new_decision/new_decision.ml`
+ * per the sub-library convention (OCAML_BEST_PRACTICES §10.1);
+ * the dispatcher only parses argv and forwards to
+ * `New_decision.run`. Exit codes: 0 on success, 1 on file
+ * already exists, 2 on invalid `<id>`. *)
+let[@warning "-32"] do_new_decision () =
+  let id = ref "" in
+  let write = ref false in
+  let interactive = ref false in
+  let force = ref false in
+  let set_id s = id := s in
+  Arg.current := 1;
+  Arg.parse
+    [
+      ("--write", Arg.Set write,
+       " Write the rendered template to decisions/<id>.yaml");
+      ("--interactive", Arg.Set interactive,
+       " (no-op stub; the printed scaffold is the scaffold)");
+      ("--force", Arg.Set force,
+       " Overwrite decisions/<id>.yaml if it exists (with --write)");
+    ]
+    set_id "usage: mathc new-decision <id> [--write] [--interactive] [--force]";
+  if !id = "" then begin
+    Printf.fprintf stderr "mathc new-decision: missing <id>\n";
+    print_usage stderr;
+    exit 2
+  end;
+  let mode =
+    if !interactive then New_decision.Interactive_mode
+    else if !write then New_decision.Write_mode
+    else New_decision.Print_mode
+  in
+  New_decision.run { New_decision.id = !id; mode; force = !force }
+
 let dispatch () =
   if Array.length Sys.argv < 2 then begin
     print_usage stderr;
@@ -4530,6 +4573,7 @@ let dispatch () =
   | "init" -> do_init ()
   | "import-adr" -> do_import_adr ()
   | "adopt" -> do_adopt ()
+  | "new-decision" -> do_new_decision ()
   | "telemetry" -> do_telemetry ()
   | "migrate" -> do_migrate ()
   | "--help" | "-h" ->

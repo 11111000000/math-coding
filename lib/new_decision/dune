@@ -1,0 +1,5 @@
+(library
+ (name mathcoding_new_decision)
+ (wrapped false)
+ (modules new_decision)
+ (libraries mathcoding_core str unix))

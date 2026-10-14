@@ -1,0 +1,223 @@
+---
+schema: math-coding/3.2
+id: ux-3-new-decision-subcommand-2026-10
+revision: 1
+state: active
+body_sha: "sha256:b2eb568c26e0a6d83d882351b0785f54c6f91f1ac564ee0817edf7e3a9b99909"
+yaml_sha: "sha256:b2eb568c26e0a6d83d882351b0785f54c6f91f1ac564ee0817edf7e3a9b99909"
+
+intent: |
+  Phase 4 of the ux-3 workstream. Land a `mathc new-decision
+  <id>` subcommand that scaffolds a new decision file from a
+  canonical template. Today, after `mathc init`, the user must
+  hand-author `decisions/<id>.yaml` by copying the example from
+  `adoption/SKILL.md` §"Step 3" and filling in the
+  `intent/commitment/outcomes/obligations/risk.relations` blocks
+  manually. The Step-3 template is 47 lines long and the schema
+  is tight; first-time adopters routinely forget the
+  `outcomes:` block (which is required by the live schema) or
+  emit `body_sha: "sha256:..."` placeholders with the wrong
+  length, both of which fail `mathc validate` on the first
+  attempt.
+
+  After this decision, `mathc new-decision <id>` prints a
+  valid template to stdout (default) or writes it to
+  `decisions/<id>.yaml` with `--write`. The template is
+  identical to the example in `adoption/SKILL.md` §"Step 3"
+  but with `<id>` substituted and `id: <id>` baked into the
+  YAML. Interactive flags (`--interactive`, `--from-scope`)
+  are accepted as no-ops in this slice; a follow-up decision
+  wires them through.
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "The
+  adoption/SKILL.md §\"Step 3\" template is 47 lines long
+  but well-tested; asking users to copy-paste is the
+  lowest-cost path. Adding a kernel subcommand for what's
+  fundamentally `cp template.md foo.yaml` is over-engineering."
+  The author engaged with this position and rejected it on
+  three grounds: (a) per AGENTS.md §\"Decisions\", a `decisions/`
+  file is a written commitment; the user should not be
+  hand-authoring that artifact when the kernel can stamp out a
+  known-good template; (b) per OCAML_BEST_PRACTICES §10.1,
+  every new I/O surface lives in its own sub-library; a
+  `lib/new_decision/` sub-library with one `run` function is
+  the expected shape, not over-engineering; (c) without the
+  subcommand, every first-time adopter runs `mathc validate`
+  against their hand-typed file and hits `MC-OUTCOMES-MISSING`
+  or `MC-SHA-INVALID-LENGTH` on the first try. Each failed
+  validate is a fresh reminder that the onboarding flow has
+  friction; the subcommand closes it.
+
+commitment: |
+  One kernel surface addition. Six deliverables:
+
+  D1. `mathc new-decision <id> [--write] [--interactive]
+      [--from-scope PATH]` is a new subcommand in
+      `bin/Mathc.ml`'s dispatcher. `<id>` is a kebab-case
+      identifier (validated: lowercase ASCII + digits +
+      dashes, 1..128 chars).
+
+  D2. Without `--write`, the subcommand prints a valid
+      `decisions/<id>.yaml` template to stdout. The
+      template is the same shape as `adoption/SKILL.md`
+      §\"Step 3\" but with `<id>` substituted in the YAML.
+
+  D3. With `--write`, the subcommand writes the template
+      to `decisions/<id>.yaml` in the project root (the
+      same root resolution as `mathc validate`). The
+      parent directory is created if absent. The file is
+      created with mode 0644.
+
+  D4. `--interactive` and `--from-scope PATH` are accepted
+      as no-op stubs that exit 0 with a one-line note: the
+      interactive scope-filling form is sequenced to a
+      follow-up decision.
+
+  D5. `lib/new_decision/new_decision.ml` is a new
+      sub-library per OCAML_BEST_PRACTICES §10.1 (own
+      `dune` file, library name `mathcoding_new_decision`).
+      The library exposes one pure function `template
+      ~id : string` that returns the rendered template
+      string.
+
+  D6. `tests/cli/new-decision.t` is a new cram fixture
+      with three positive cases (print, --write,
+      --interactive) and one negative case (`<id>` that
+      violates the kebab-case regex).
+
+  Boundaries (A3 self-application):
+  - `bin/Mathc.ml`'s dispatcher gains one arm.
+  - `bin/dune` adds `mathcoding_new_decision` to the
+    `mathc` executable's libraries list.
+  - `lib/decision.ml`, `lib/canonical.ml`, `lib/schema.ml`
+    are NOT touched. The template is a string literal in
+    `lib/new_decision/`, not a parsed decision.
+  - `spec/`, `axioms/`, `schemas/` are NOT touched.
+  - This decision does NOT introduce a `mathc new-policy`
+    subcommand (which would set the active policy); that
+    is sequenced to a follow-up.
+
+scope:
+  capabilities:
+    - new-decision-scaffold
+  paths:
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "lib/new_decision/"
+    - "tests/cli/new-decision.t"
+    - "decisions/ux-3-new-decision-subcommand-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/canonical.ml"
+    - "lib/schema.ml"
+    - "lib/codec.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+
+outcomes:
+  - id: new-decision-subcommand-lands
+    statement: |
+      `mathc new-decision <id>` prints a valid
+      `decisions/<id>.yaml` template to stdout.
+  - id: new-decision-write-lands
+    statement: |
+      `mathc new-decision <id> --write` writes a valid
+      template to `decisions/<id>.yaml` in the project
+      root.
+  - id: cram-fixture-exists
+    statement: |
+      `tests/cli/new-decision.t` covers the print / write /
+      interactive / negative-id cases; `dune runtest
+      tests/cli` exits 0.
+
+counterexample: |
+  \"What if the user passes an empty `<id>`?\" Counterargument:
+   the dispatcher calls `validate_id` which rejects empty
+   strings (regex requires at least one char). The negative
+   cram case in D6 covers this.
+
+  \"What if the user passes an `<id>` that already exists in
+   `decisions/`?\" Counterargument: with `--write`, the
+   kernel exits 1 with the message 'decision file already
+   exists; pass --force to overwrite' (or similar). The
+   policy is to NOT overwrite by default; the user can
+   manually delete or rename the existing file.
+
+  \"What if the user passes an `<id>` that contains an upper
+   case letter?\" Counterargument: the regex
+   `^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$` rejects
+   upper-case. The negative cram case covers this.
+
+assumptions:
+  - id: id-kebab-case-stable
+    state: assumed
+    statement: |
+      The kebab-case regex for `<id>` is the same regex
+      used by `mathc validate` for decision `id`
+      validation. Any change to that regex is mirrored
+      in `mathc new-decision`.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the validate regex is widened, the new-decision
+      regex must follow; otherwise the user gets a
+      template that fails validate.
+    review_on:
+      - signal: id-regex-widened
+
+obligations:
+  - id: new-decision-print-template
+    outcome: new-decision-subcommand-lands
+    claim: |
+      `mathc new-decision <id>` exits 0 and prints a YAML
+      template with `id: <id>` and `schema: math-coding/3.2`.
+    acceptance:
+      all:
+        - verifier: tests/cli/new-decision.t
+          result: pass
+  - id: new-decision-write-file
+    outcome: new-decision-write-lands
+    claim: |
+      `mathc new-decision <id> --write` exits 0 and
+      writes `decisions/<id>.yaml` with the rendered
+      template.
+    acceptance:
+      all:
+        - verifier: tests/cli/new-decision.t
+          result: pass
+  - id: cram-fixture-covers-cases
+    outcome: cram-fixture-exists
+    claim: |
+      `tests/cli/new-decision.t` runs without error in
+      `dune runtest tests/cli`.
+    acceptance:
+      all:
+        - verifier: tests/cli/new-decision.t
+          result: pass
+
+reversal:
+  - signal: new-decision-reverted
+    condition: |
+    The interactive scope-filling form lands and the
+    print/write form is redundant.
+    action: rework
+
+risk:
+  declared_triggers:
+    - id-regex-drift
+    - template-staleness
+    - kebab-case-false
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - install-tooling-default-tag-edge@1
+  supersedes: []
+  superseded_by: []
