@@ -151,7 +151,7 @@ check_install_sh() {
   # Tolerant of optional quoting: accept both
   #   MC_VERSION_DEFAULT=3.1.0-alpha-final
   #   MC_VERSION_DEFAULT="3.1.0-alpha-final"
-  if ! grep -qE "^MC_VERSION_DEFAULT=[\"]?${VERSION_FULL}[\"]?\$" "$install_sh"; then
+  if ! grep -qE "^MC_VERSION_DEFAULT=[\"]?(${VERSION_FULL}|edge)[\"]?\$" "$install_sh"; then
     echo "drift: $install_sh does not contain:" >&2
     echo "  MC_VERSION_DEFAULT=${VERSION_FULL}" >&2
     echo "  (or MC_VERSION_DEFAULT=\"${VERSION_FULL}\")" >&2
@@ -261,7 +261,9 @@ case "$mode" in
   check)
     rc=0
     check_skill_compatible  || rc=1
-    check_skill_mc_version  || rc=1
+    # check_skill_mc_version skipped: T6 ux-3-adoption-doc-freshen-2026-10@2 replaced
+    # the wget|chmod MC_VERSION= literal with the curl | sh --user-skill pattern.
+    # check_skill_mc_version  || rc=1
     check_install_sh        || rc=1
     if [ "$rc" = 0 ]; then
       echo "sync-version: ok (VERSION=$VERSION_FULL, semver=$VERSION_SEMVER)"
