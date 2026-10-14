@@ -296,6 +296,8 @@ let antithesis_violation v =
       | _ -> None)
   | _ -> None
 
+type aggregate_evidence = { kind : string; id : string; extra_diags : Diagnostic.t list }
+
 let validate_with_counts path =
   match parse_file path with
   | Error (`Sys m) -> `Input_err m
@@ -411,7 +413,7 @@ let validate_with_counts path =
                               | None -> extra_diags
                             in
                             `Accept (d, extra_diags))
-                    | None -> (
+                    | None ->
                         (* D8 (Slice A): the parser now returns a typed
                            Diagnostic.t option. When parse_decision_yaml
                            rejects, surface the parser-level Diagnostic.t
@@ -429,22 +431,19 @@ let validate_with_counts path =
                                  schemas/decision.json)"
                         in
                         let msg = diag.Diagnostic.message in
-                        `Reject (diag, msg))
+                        `Reject (diag, msg)
                   with
                   | Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
                     let msg =
                       Printf.sprintf "%s at line %d col %d" raw_msg line col
                     in
-                    `Reject (Diagnostic.mc_parse ~cause:context msg, msg))))))))
+                    `Reject (Diagnostic.mc_parse ~cause:context msg, msg)))))))
 
 let emit (format : output_format) path
     (outcome :
       [ `Input_err of string
       | `Accept of Domain.decision * Diagnostic.t list
-      | `Accept_aggregate of
-        { kind : string
-        ; id : string
-        ; extra_diags : Diagnostic.t list }
+      | `Accept_aggregate of aggregate_evidence
       | `Reject of Diagnostic.t * string ]) =
   match outcome with
   | `Input_err m ->
@@ -2224,7 +2223,7 @@ let do_mode () =
     match m with
     | `Tiny -> "tiny"
     | `Light -> "light"
-    | `Standard -> "standard"
+    | `Standard | `Considered -> "standard"
     | `Strict -> "strict"
     | `Exhaustive -> "exhaustive"
   in

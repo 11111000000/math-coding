@@ -1,0 +1,146 @@
+---
+schema: math-coding/3.2
+id: paren-balance-fix-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+axiom_link:
+  - A3
+intent: |
+  Commit 3ee3cd0 (D8 fix) rewrote the `| None ->` arm of
+  `bin/Mathc.ml::validate_with_counts` to surface the
+  parser-level Diagnostic.t via `Decision.parse_decision` instead
+  of the legacy coarse `MC-DECISION-INVALID` string. The new
+  body introduced a wrapped form `| None -> ( ... )` and a multi-line
+  `let diag = ... in let msg = ... in \`Reject ...` chain. The
+  commit author added a closing `))` on line 432 to match the new
+  inner tuple, but the wrap-`(` itself was never closed: the
+  original six-paren close on line 438 (set by 6ad540e for the
+  pre-D8 simpler body) was left in place, but the new structure
+  needs seven. As a result `dune build` has been failing on
+  origin/main HEAD with:
+
+      File "bin/Mathc.ml", line 306, characters 12-13:
+      306 |   | Ok v -> (
+                        ^
+        This ( might be unmatched
+
+  This decision records the fix that restores the pre-D8 simple
+  `| None ->` body, relying on the `type aggregate_evidence = { ... }`
+  declaration that the D8 fix also added for the record-typed
+  variant. The D8 contract (surface specific MC-* codes via the
+  parser-level Diagnostic.t) is preserved; only the redundant
+  paren wrapping is removed.
+
+commitment: |
+  1. `bin/Mathc.ml::validate_with_counts` builds cleanly with
+     `dune build` on a clean tree at HEAD.
+  2. `mathc self-check` returns the same verdict (`unknown`) and
+     the same per-subject counts as before the fix.
+  3. `mathc validate decisions/site-redesign-2026-10.yaml`
+     continues to return `accept`.
+  4. `mathc validate decisions/d8-coarse-diagnostics-2026-10.yaml`
+     continues to return `accept` (the decision that introduced
+     the broken paren shape).
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+  decisions:
+    - "d8-coarse-diagnostics-2026-10@1"
+
+outcomes:
+  - id: dune-build-succeeds
+    statement: |
+      `dune build` on a clean tree returns exit code 0.
+  - id: mathc-self-check-verdict-unchanged
+    statement: |
+      The overall self-check verdict and per-subject counts are
+      unchanged from the pre-fix state.
+  - id: mathc-validate-d8-decision-unchanged
+    statement: |
+      The D8 fix decision
+      `decisions/d8-coarse-diagnostics-2026-10.yaml` still
+      validates.
+
+obligations:
+  - id: dune-build-succeeds
+    statement: |
+      `dune build` on a clean tree returns exit code 0 with no
+      errors after this fix is applied.
+    acceptance:
+      verifier: shell
+      result: pass
+      detail: |
+        `scripts/dev build` exits 0; the success line "build: ok"
+        appears in the output.
+  - id: mathc-self-check-verdict-unchanged
+    statement: |
+      The overall self-check verdict and the per-subject pass /
+      unknown / fail counts are unchanged from the pre-fix
+      state.
+    acceptance:
+      verifier: shell
+      result: pass
+      detail: |
+        `_build/install/default/bin/mathc self-check` returns the
+        same JSON verdict as before the fix; only the `unknown`
+        subjects that existed prior remain `unknown`, no new
+        `fail` or new `unknown` is introduced.
+  - id: mathc-validate-d8-decision-unchanged
+    statement: |
+      The D8 fix decision
+      `decisions/d8-coarse-diagnostics-2026-10.yaml` still
+      validates.
+    acceptance:
+      verifier: shell
+      result: pass
+      detail: |
+        `_build/install/default/bin/mathc validate
+         decisions/d8-coarse-diagnostics-2026-10.yaml` returns
+         verdict `accept`.
+
+reversal: |
+  If a future fix wants to keep the `| None -> (` wrap
+  (e.g. to add more sub-expressions to the body), it must also
+  add the matching close paren — i.e. bump the line 438 close
+  count from 6 to 7. The pre-fix test script for `dune build`
+  would surface the imbalance immediately.
+
+risk:
+  - level: low
+    statement: |
+      If the D8 body ever grows beyond the simple
+      `let diag = ... in let msg = ... in \`Reject` chain
+      (e.g. another nested match), the simple-body form will
+      not be enough. The current single-arm D8 surface is a
+      lookup-then-emit, so it is unlikely to need to grow.
+    remedies:
+      - "Restore the wrap-paren form AND add the matching
+         close paren on line 438. Run \`scripts/dev build\`
+         to confirm."
+
+counterexample: |
+  The strongest counterargument to this fix is that it touches
+  a `bin/Mathc.ml` arm that was very recently rewritten by 3ee3cd0
+  (the D8 fix). Reshuffling parens in a 20-line-old change could
+  inadvertently undo the D8 contract. Mitigated by:
+  - the body of the rewritten `| None ->` arm is preserved
+    verbatim (just the surrounding paren wrapping is dropped);
+  - the `type aggregate_evidence = { ... }` declaration that
+    the D8 fix also added is preserved;
+  - the D8 fix decision
+    `decisions/d8-coarse-diagnostics-2026-10.yaml` still
+    validates after this fix.
+
+antithesis: |
+  The fix could be skipped in favor of fixing the structure
+  further down (e.g. by introducing a helper that builds the
+  Diagnostic.t). That path is more invasive and was rejected
+  because the present change is the minimum sufficient response
+  to a clear compile error that has been blocking `dune build`
+  on origin/main since 3ee3cd0 landed.
+
+relations: []
