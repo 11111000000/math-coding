@@ -1,0 +1,188 @@
+---
+schema: math-coding/3.2
+id: print-usage-complete-2026-10
+revision: 1
+state: active
+body_sha: "sha256:5317ac0d89d8941f47ec61414690dfa544eec0d677c542472ce46624e55c3451"
+yaml_sha: "sha256:5317ac0d89d8941f47ec61414690dfa544eec0d677c542472ce46624e55c3451"
+
+intent: |
+  Bring the `mathc --help` text emitted from `bin/Mathc.ml`'s
+  `print_usage` function in sync with the dispatcher in
+  `bin/Mathc.ml:4495-4520`. Today the dispatcher handles 26
+  subcommands (`validate`, `context`, `explain`, ...,
+  `init`, `import-adr`, `adopt`, `telemetry`, `migrate`)
+  but the `print_usage` block stops at `telemetry status`
+  and never lists `adopt` or `migrate`. A user who runs
+  `mathc --help` cannot discover either subcommand from the
+  help output alone, even though both are reachable through
+  `mathc adopt` and `mathc migrate`.
+
+  After this decision, `print_usage` lists all 26 subcommands
+  in the same order as the dispatcher, with the same one-line
+  description each. No new kernel surface, no new subcommand
+  or flag; the change is editorial to the existing CLI help.
+
+axiom_link:
+  - A0
+  - A1
+
+antithesis: |
+  The counter-position considered and rejected: "`mathc --help`
+  has been intentionally pruned to keep the surface short;
+  every command is documented in `site/install.md` and
+  `USAGE.md`, and adding help lines is what motivated this
+  layer of curation." The author engaged with this position
+  and rejected it on three grounds: (a) the help text is
+  auto-generated from the dispatcher's arg table (each
+  `let do_X ()` arm); leaving it stale for three new
+  subcommands means the help lies; (c) per AGENTS.md, the
+  `--help` output is part of the kernel CLI surface, so a
+  documented command that the help does not name is a deficit
+  visible to every fresh user with `mathc` installed; (d) the
+  fix is one OCaml string literal update — it has the same
+  risk profile as a typo fix and does not warrant a major
+  rework of the help subsystem.
+
+commitment: |
+  1. `bin/Mathc.ml:501-557`'s `print_usage` block adds two
+     new entries: one for `adopt` and one for `migrate`. Each
+     entry is a one-paragraph OCaml string-continuation line
+     ending with `\n\` so the existing line-break pattern is
+     preserved.
+
+  2. The new entries appear in the same order as the
+     dispatcher in `bin/Mathc.ml:4495-4520`: `init`,
+     `import-adr`, `adopt`, `telemetry`, `migrate`. The
+     blank line that today separates the `telemetry status`
+     paragraph from the `options:` section moves to after
+     the new `migrate` paragraph.
+
+  3. The 24 already-listed subcommands are unchanged byte for
+     byte; no rewrapping, no punctuation drift. Reviewer
+     can confirm with `git diff -U0 -- bin/Mathc.ml`.
+
+boundaries (a3 self-application):
+  - This decision does NOT add a new subcommand or new flag.
+  - This decision does NOT change `bin/Mathc.ml:4495-4520`
+    (the dispatcher) — only `bin/Mathc.ml:501-557` (the
+    help text).
+  - This decision does NOT touch `lib/`, `spec/`,
+    `schemas/`, `axioms/`.
+  - The help text is a `let`-bound `string` literal inside
+    `print_usage`; it is non-executable surface (no kernel
+    API, no gate impact). A reviewer with `dune` access
+    must run `dune build @runtest` to confirm the string
+    literal still parses (no syntax error). A passing run is
+    not gated on this decision; it is gated on the kernel
+    conformance runner, which already covers `print_usage`.
+
+scope:
+  capabilities:
+    - cli-help-text
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/cli/help.t"  # if the help.t cram fixture exists; otherwise tests/cli/help-not-yet-existent.t is created
+    - "decisions/print-usage-complete-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "bin/Mathc.ml"  # only print_usage block; dispatcher lines 4495-4520 untouched
+
+outcomes:
+  - id: help-text-26-subcommands
+    statement: |
+      `mathc --help` text names `adopt` and `migrate` in
+      addition to the 24 subcommands already listed.
+  - id: help-text-order
+    statement: |
+      The new `adopt` entry appears after `import-adr` and
+      before `telemetry`; the new `migrate` entry appears
+      after `telemetry` and before the `options:` section.
+
+counterexample: |
+  "What if a future subcommand is added and the help text
+   drifts again?" Counterargument: that drift is the same
+   kind of editorial bug this decision closes. Per P1,
+   every new subcommand ships with a decision that owns the
+   obligation to update `print_usage`; the obligation pair
+   makes the drift visible at the next self-check. Today
+   the obligation is implicit (`mathc-self-check-subcommand@2`
+   enumerates known subcommands); after this decision, the
+   obligation becomes explicit.
+
+  "What if `mathc --help` becomes too long?" Counterargument:
+   the current block lists 24 subcommands at ~3 lines each
+   and is already past the comfortable terminal length; two
+   more lines do not change the operator's ability to read
+   it. A future `mathc help <command>` subcommand for
+   per-command help is sequenced separately (out of scope).
+
+assumptions:
+  - id: help-text-is-non-fiscal
+    state: assumed
+    statement: |
+      The help text is non-fiscal surface — it does not
+      feed back into the kernel gate. A typo in the help
+      text is a documentation drift, not a kernel drift.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future revision of the kernel parses
+      `print_usage` for subcommand metadata (e.g. for
+      per-subcommand help dispatch), this decision would
+      not be sufficient and a richer schema would be required.
+    review_on:
+      - signal: print-usage-parsed-by-kernel
+
+obligations:
+  - id: help-text-names-adopt-migrate
+    outcome: help-text-26-subcommands
+    claim: |
+      `bin/Mathc.ml`'s `print_usage` literal contains the
+      strings "adopt" and "migrate" as command names.
+    acceptance:
+      all:
+        - verifier: tests/process_principles.ml
+          result: pass
+  - id: help-text-order-matches-dispatcher
+    outcome: help-text-order
+    claim: |
+      In `bin/Mathc.ml`'s `print_usage`, the line listing
+      `adopt` appears after the line listing `import-adr`
+      and before the line listing `telemetry`; the line
+      listing `migrate` appears after the line listing
+      `telemetry` and before the `options:` marker.
+    acceptance:
+      all:
+        - verifier: grep-order-check
+          result: pass
+
+reversal:
+  - signal: print-usage-shrinks
+    condition: |
+      Either:
+      (a) `mathc help <command>` subcommand ships and
+          `print_usage` collapses to a top-level usage banner;
+      (b) `adopt` / `migrate` are removed from the
+          dispatcher (their decisions retired).
+    action: rework
+
+risk:
+  declared_triggers:
+    - help-string-typo
+    - line-continuation-malformed
+    - order-drift-from-dispatcher
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - cli-canonical-name@2
+    - cli-cram-tests@1
+    - 3-2-cli-catalog@2
+    - ux-3-telemetry-stub-2026-10@1
+    - ux-3-adopt-subcommand-2026-10@1
+    - migration-mechanism-2026-10@2
+  supersedes: []
+  superseded_by: []

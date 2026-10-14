@@ -547,8 +547,22 @@ let print_usage oc =
     \                                       YAML to stdout (or to decisions/<id>.yaml\n\
     \                                       with --write). Best-effort; the user\n\
     \                                       reviews the output before mathc validate.\n\
+     adopt [PATH]                                    brownfield adoption: detect arc42/MADR/adr-tools;\n\
+                                                     orchestrate init + per-file import-adr via\n\
+     [--agent NAME]                                  Sys.executable_name (no PATH lookup);\n\
+     [--no-install]                                  see ux-3-adopt-subcommand-2026-10.\n\
+     [--dry-run]\n\
+     [--only=CONV]\n\
+     [--merge]\n\
     \  telemetry status                   print current telemetry state (Phase 2\n\
     \                                     stub; no transport, no data emission).\n\n\
+     migrate --from=X --to=Y                        declarative migration plan reader; emit a\n\
+                                                     per-file plan from\n\
+     [--root=DIR]                                    decisions/migrations/<from>-to-<to>.yaml;\n\
+     [--format=text|json]                            --write writes sibling <file>.migrated.yaml\n\
+     [--explain]                                     (kernel never mutates the original).\n\
+     [--manifest=PATH]                               See migration-mechanism-2026-10.\n\
+     [--write|--dry-run]\n\
 
      options:\n\
     \  --format=text (default) or --format=json\n\
