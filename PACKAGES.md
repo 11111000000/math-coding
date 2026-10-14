@@ -23,8 +23,8 @@ Last verified at: HEAD `ed069f7` + 2026-10-12 self-check-recovery pass
   `git log --oneline 6ad540e~1..ed069f7` for the commits.
 Attestation store at `attestations/` contains **260 files** (verified by
 `mathc counters --format=json`; the count is regenerated from
-`ls attestations/` on every check); **`mathc packages` reports 52 active decisions / 207
-obligations (190 pass, 16 missing, 1 unknown; the master policy's 7
+`ls attestations/` on every check); **`mathc packages` reports 53 active decisions / 213
+obligations (190 pass, 22 missing, 1 unknown; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `mathc counters` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
@@ -178,6 +178,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/site-svg-manifesto-2026-10.yaml` | `site-svg-manifesto-2026-10` | 1 | 1 | RESOLVED | adds 4 hand-rolled SVG figures to the manifesto page (`architecture-overview`, `human-in-the-loop`, `human-roles`, `kernel-vs-human`); new `body_extra` match for the `manifesto` page key in `lib/render.ml`; new `.mathc-figure-manifesto img { max-width: 56rem; }` CSS rule in `assets/style.css` |
 | `decisions/site-svg-foundations-2026-10.yaml` | `site-svg-foundations-2026-10` | 1 | 1 | RESOLVED | adds 8 hand-rolled specialist diagrams to the foundations page (`counterexample-flow`, `axiom-transition`, `trust-dynamics`, `substrate-fingerprint`, `waiver-state-machine`, `friction-envelope-plot`, `quality-radar`, `reasoning-budget`); extends `lib/render.ml::body_extra` for the `foundations` page key; covers algebra §11, §12, §13–14, §16, §17, §18, §21, §22, §27 |
 | `decisions/site-svg-workflow-2026-10.yaml` | `site-svg-workflow-2026-10` | 1 | 1 | RESOLVED | adds the `bootstrap-timeline` SVG to the workflow page; new `body_extra` match for the `workflow` page key; new `.mathc-figure-workflow img { max-width: 56rem; }` CSS rule; the timeline shows the three regime boundaries (v3-alpha-0.0.1 → 8fa7fcf → today) |
+| `decisions/site-redesign-2026-10.yaml` | `site-redesign-2026-10` | 1 | 6 | RESOLVED | groups the 12 top-level nav links into 4 intent-bearing dropdowns (Concept, Methodology, Adopt, Reference) plus a Home anchor, adds an SVG logo (assets/logo.svg, two brackets around a check, oxblood on the Tufte palette) to the brand anchor, and rewrites `dist/index.html` + `dist/index.ru.html` as 5 sections (hero, quick start, moderation with a `mathc gate` terminal, methodology cards, adopt CTAs); the inline package grid and axiom list move to `/packages.html` and `/axioms.html`; the unused 22-rem right sidenote gutter is removed from `main` since no site page emits `.sidenote`; CSS reset restores the hero to the full main column on ≥1280 px viewports |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision

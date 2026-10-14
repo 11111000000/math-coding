@@ -1,0 +1,244 @@
+---
+schema: math-coding/3.2
+id: site-redesign-2026-10
+revision: 1
+state: active
+mode: standard
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+axiom_link:
+  - A0
+  - A1
+intent: |
+  The math-coding landing page no longer served its two main readers:
+  a first-time visitor evaluating the methodology, and a maintainer
+  considering adoption.  Three concrete defects closed:
+
+  - **Nav overflow.** The flat 12-link top navigation broke into two
+    lines on viewports between 1024 px and 1440 px, so the typical
+    developer laptop displayed "Concept / Methodology / Workflow /
+    FAQ / README / Contributing / Bootstrap Gate" followed by a
+    second row of "Packages / Algebra".  The visible chrome did not
+    match the page hierarchy.
+
+  - **Hero composition.** The hero contained an h1 + an inline
+    version literal + a chain diagram + a one-paragraph lead.  It
+    offered no call to action and no quick-start affordance; the
+    only call to action was a single "Clone on GitHub / Subscribe
+    via RSS" pair in a sidebar far below the fold.
+
+  - **Homepage duplication.** The homepage repeated the entire package
+    grid (313 packets) and the axiom set inline, so a first-time
+    visitor saw a flood of obligation rows before they saw the
+    methodology.  The dedicated `/packages.html` and `/axioms.html`
+    pages already exist and serve this purpose.
+
+  This decision records and closes all three.
+
+commitment: |
+  `mathc render` ships a landing page that:
+
+  1. Groups the twelve top-level nav links into four intent-bearing
+     dropdowns (Concept, Methodology, Adopt, Reference), each with
+     a caret button.  Home stays a direct anchor.  The 12-link
+     overflow at developer-laptop viewports is closed.
+
+  2. Adds an SVG logo (assets/logo.svg, viewBox 0 0 64 64) to
+     the brand anchor.  The mark is two brackets around a check
+     (`[✓]`), reading as "the kernel verifies" — directly the
+     vocabulary of spec/algebra-3.2.md §15 (verdicts).  The mark
+     is single-color oxblood (#8b3a3a) so it inherits the
+     project's existing Tufte palette and renders crisply at
+     favicon sizes (16 px through 72 px).
+
+  3. Restructures `dist/index.html` and `dist/index.ru.html` into
+     five sections — hero, quick start, moderation, methodology
+     (cards), adopt — and drops the inline package grid and
+     axiom list.  Each section is centered with `max-width: 56rem`
+     and uses `.mathc-section` so the prose page chrome (sidenote
+     gutters, theorem styling) does not bleed in.  The moderation
+     section renders a `mathc gate` terminal output in a
+     pre/code block to show the verdict the user gets at PR time.
+
+scope:
+  paths:
+    - "lib/render.ml"
+    - "assets/style.css"
+    - "assets/site.js"
+    - "assets/logo.svg"
+  decisions:
+    - "site-quality-2026-10@1"
+    - "site-quality-polish-2026-10@1"
+    - "site-broken-links-2026-10@1"
+    - "site-deploy@5"
+
+outcomes:
+  - id: nav-fits-developer-laptop
+    statement: |
+      The four-menu nav row fits a single line at 1280 px and
+      1440 px viewports with 14-px mono text and a 1.0 em
+      gutter.  Measured by visual diff.
+  - id: logo-crisp-at-favicon-size
+    statement: |
+      assets/logo.svg renders at 16 px with all three primitives
+      (left bracket, check mark, right bracket) legible.
+  - id: homepage-first-viewport-shows-only-hero
+    statement: |
+      The first viewport on `/` on a 1440 x 900 window shows
+      only the hero.  The package grid no longer appears on `/`
+      at all; it lives at `/packages.html`.
+  - id: moderation-section-renders-terminal
+    statement: |
+      The Moderation section contains a `<pre class="mathc-terminal">`
+      with a sample `mathc gate main feature/auth-fix` transcript.
+      Verdicts use the existing `.mathc-verdict-unknown` /
+      `.mathc-check` classes so the visual matches the live
+      verdict pills on /packages.html.
+  - id: russian-page-mirrors-english-structure
+    statement: |
+      `dist/index.ru.html` carries the same five sections with
+      Russian translations; structural classes match English so
+      CSS and JS carry all logic over without per-language
+      selectors.
+  - id: hero-width-uses-prose-column
+    statement: |
+      On viewports ≥ 1280 px the hero uses the full main column
+      (1024 px) rather than the 608-px column with the unused
+      22-rem right gutter.  The `.mathc-hero` CSS overrides the
+      Tufte gutter via the wider `main` padding change recorded
+      in this decision; the unused 22-rem gutter is also
+      documented as no longer reserved for sidenotes (no
+      `.sidenote` is emitted by any current site page).
+
+obligations:
+  - id: nav-fits-developer-laptop
+    statement: |
+      The four-menu nav row fits a single line at 1280 px and
+      1440 px viewports with 14-px mono text and a 1.0 em
+      gutter.
+    acceptance:
+      verifier: visual-diff
+      result: pass
+      detail: |
+        screenshots/site-redesign/nav-1280.png and
+        nav-1440.png show the nav in a single row with no
+        wrap.
+  - id: logo-crisp-at-favicon-size
+    statement: |
+      assets/logo.svg renders at 16 px with all three
+      primitives (left bracket, check mark, right bracket)
+      legible.
+    acceptance:
+      verifier: render-and-compare
+      result: pass
+      detail: |
+        Render the SVG to PNG at 16x16 with a 2x device-pixel
+        ratio and verify the bracket-corner and check-mark
+        remain distinguishable.
+  - id: homepage-first-viewport-shows-only-hero
+    statement: |
+      The first viewport on `/` on a 1440 x 900 window shows
+      only the hero.
+    acceptance:
+      verifier: visual-diff
+      result: pass
+      detail: |
+        The screenshot at 1440 x 900 of `/` shows only the
+        hero (logo, h1, tagline, two CTAs) and the first
+        divider line above the next section.
+  - id: moderation-section-renders-terminal
+    statement: |
+      The Moderation section contains a `<pre class="mathc-terminal">`
+      with a sample `mathc gate main feature/auth-fix`
+      transcript.
+    acceptance:
+      verifier: file-grep
+      result: pass
+      detail: |
+        grep 'mathc gate main feature/auth-fix' dist/index.html
+        returns a non-empty result.
+  - id: russian-page-mirrors-english-structure
+    statement: |
+      `dist/index.ru.html` carries the same five sections and
+      structural classes as `dist/index.html`.
+    acceptance:
+      verifier: file-grep
+      result: pass
+      detail: |
+        grep -c -e 'mathc-hero' -e 'mathc-section mathc-quickstart' -e 'mathc-section mathc-moderation' -e 'mathc-section mathc-methodology' -e 'mathc-section mathc-adopt' dist/index.html
+        and the same on dist/index.ru.html return the same
+        count.
+  - id: hero-width-uses-prose-column
+    statement: |
+      On viewports ≥ 1280 px the hero uses the full main
+      column.
+    acceptance:
+      verifier: browser-eval
+      result: pass
+      detail: |
+        At 1440 x 900, evaluate in the browser:
+        document.querySelector('.mathc-hero').offsetWidth
+        is greater than 800.
+
+antithesis: |
+  The flat 12-link nav was a defensible default: every page
+  name is one second away. The grouped nav trades that for
+  less wrapping at developer-laptop viewports and a stronger
+  page hierarchy. The author considered keeping the flat
+  list and adding a single "More ▾" overflow menu only; the
+  grouped structure was chosen because the four groups map
+  cleanly to the four jobs the site does (read the ideas,
+  learn the methodology, adopt the protocol, look up a
+  reference).
+
+reversal: |
+  The four-menu group taxonomy (Concept, Methodology, Adopt,
+  Reference) is reversible if a future page does not fit any
+  group.  Add it to the closest existing group first; only
+  introduce a fifth group if a page is genuinely orthogonal to
+  all four.
+
+  The logo is reversible by replacing assets/logo.svg; the
+  Russian mirroring is reversible by editing `render_index_ru`
+  in `lib/render.ml`.
+
+risk:
+  declared_triggers:
+    - reader-muscle-memory-loss-after-dropdown-restructuring
+    - future-page-doesnt-fit-any-of-the-four-groups
+  owner: human:site-maintainer
+
+counterexample: |
+  The strongest counter-argument to this redesign is the
+  discoverability loss: under the previous flat nav a returning
+  visitor could read every page name in one second.  Under
+  the new four-group dropdowns, eight of the twelve links are
+  hidden behind a click.  Someone who lands on the site
+  intending to read "Workflow" will not see "Workflow" in the
+  nav row — only "Methodology" with a caret.
+
+  Mitigations tried:
+
+  - The four category labels (Concept / Methodology / Adopt /
+    Reference) are all real nouns the visitor is likely to
+    know, and each opens on hover without requiring a click.
+  - The hero "How it works" CTA points at methodology.html,
+    the page a reader of "Workflow" likely wants; "Install
+    mathc" points at the GitHub release; "Clone on GitHub"
+    in the Adopt section points at README.md and USAGE.md.
+  - On ≤ 760 px the hamburger expands the full panel grid so
+    no link is more than one expansion away.
+
+  Residual risk: a reader who has muscle memory for
+  "Workflow" in the top nav will look for it, not find it,
+  and bounce.  This is the strongest reason to time-box the
+  change to one release cycle and measure the click-through
+  on "Concept / Methodology / Adopt / Reference" before
+  committing to the structure for v3.0 stable.
+
+  The moderation sample output (`mathc gate main feature/auth-fix`)
+  could also be misread as a documented CLI shape rather
+  than a sample.  Mitigated by the surrounding sentence —
+  "math-coding gives a reviewer *exactly one screen*" — and
+  the absence of any claim that this output is canonical.
+
