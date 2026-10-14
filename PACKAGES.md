@@ -1,42 +1,66 @@
-# Math-coding 3.0 — Packages
+# Math-coding 3.3 — Packages
 
-> **Single source of truth for "what exists in math-coding 3.0".**
+> **Single source of truth for "what exists in math-coding 3.3".**
 > If you are a new agent picking up this repository, this is the file
 > you read first (after `ROADMAP.md`, which is the priority queue).
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: HEAD `ed069f7` + 2026-10-12 self-check-recovery pass
-(commits 6ad540e, 0325958, ed069f7):
-- 6ad540e: restored dune build by balancing the validate_with_counts
-  exception handler (commit 56e86be had left line 399 short by one `)`);
-  bumped dialectic-method-v3 rev 2 -> 3 to mark the implementation as
-  actually compiling.
-- 0325958: generated 16 missing per-obligation attestations for 6
-  subjects (mathc-counters, forge-principal-verification,
-  dialectic-method-v3, decision-required-attestations,
-  disable-counters-drift-test, disable-hanging-alcotest-tests),
-  bringing self-check from 7 unknown subjects to 1.
-- ed069f7: added the v3 dialectic antithesis slot to the three
-  tests/confidence_preserve.ml fixtures so the kernel accepts them
-  again under the post-56e86be rule. See
-  `git log --oneline 6ad540e~1..ed069f7` for the commits.
-Attestation store at `attestations/` contains **260 files** (verified by
+Last verified at: HEAD `d52c85b` + 2026-10-14 kernel-fixes + site-redesign cycle:
+
+- `8b9a060` (counters-fix) + `131735c` (validate-fix): two
+  kernel fixes landed after the v3.3 brand cutover. The
+  `mathc counters` schema block (schema_enum, intent_oneOf,
+  scope_oneOf) now reports the live values; `mathc validate`
+  now dispatches on the top-level `schema:` field and accepts
+  waiver/aggregator files. Two deferral records
+  (counters-schema-introspection-deferral-2026-10 and
+  mathc-validate-skip-non-decisions-deferral-2026-10) are
+  superseded by their fix decisions and removed at commit
+  `a84031b`.
+- `c56bd35`: chore(version): bumped the published brand from
+  `3.1.0-alpha-final` to `3.3.0-alpha`. The 3.2-ideal algebra
+  (`spec/algebra-3.2.md`, accepted via `algebra-3.2.yaml`) is now
+  shipped under the `math-coding 3.3` brand. The spec filename is
+  preserved (it is the version of the *spec*, not the project).
+- Prior sync (2026-10-12, HEAD `ed069f7`): self-check-recovery cycle
+  closed the v3 dialectic antithesis slot. See git for the
+  pre-3.3 sync chain.
+
+Attestation store at `attestations/` contains **391 files** (verified by
 `mathc counters --format=json`; the count is regenerated from
-`ls attestations/` on every check); **`mathc packages` reports 53 active decisions / 213
-obligations (190 pass, 22 missing, 1 unknown; the master policy's 7
+`ls attestations/` on every check); **`mathc packages` reports 95 active
+decisions / 102 total decision files / 332 obligations
+(315 pass, 16 missing, 1 unknown; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `mathc counters` and enforced against
-`PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
+`PACKAGES.md`, `ROADMAP.md`, `README.md` by
+`tests/counters_drift.ml`. Total decision files on disk: 100
+(`decisions/*.yaml`, of which 7 are waivers / obligations-aggregator /
+migrations-history). 64 cram files in `tests/cli/`. 27 CLI
+subcommands.
 
-`mathc self-check` on a clean tree currently returns verdict `unknown`
-with 57 pass / 1 unknown out of 58 subjects. The single unknown is
-`audit-0.0.21-fixes` (the `self-check-verdict-is-pass` obligation is
-structurally inconclusive while any other subject contributes to
-`unknown`; the existing
-`decisions/waivers/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`
-maps it to `Open_with_waiver`). The previously-unknown subjects
-were closed in the 2026-10-07 integrity cycle:
+> Note: at HEAD `d52c85b` the `mathc counters` `schema`
+> block reports the live values (schema_enum lists the six
+> accepted families; intent_oneOf and scope_oneOf are true).
+> The under-report recorded at
+> `decisions/counters-schema-introspection-deferral-2026-10`
+> is fixed at
+> `decisions/counters-schema-introspection-fix-2026-10` (see
+> commit `3310234` and merge `8b9a060`).
+
+`mathc self-check` on a clean tree currently returns verdict
+`unknown`. The non-waivered subject pass count is the live runtime
+value; the 9 structurally-unknown subjects as of HEAD are:
+`print-usage-complete-2026-10` (1 obligation), `ux-3-init-release-binary-noop-skill-2026-10`
+(1), `install-tooling-default-tag-edge` (2), `migration-mechanism`
+(6), `update-check-notify-2026-10` (2), `ux-3-adopt-roadmap-2026-10`
+(1), `schema-string-bump-3.0-alpha-to-3.2` (4),
+`ux-3-init-copies-ci-workflow-2026-10` (2), `audit-0.0.21-fixes`
+(1, structurally inconclusive per
+`decisions/waivers/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`,
+maps to `Open_with_waiver`). Previously-unknown subjects closed in
+the 2026-10-07 integrity cycle:
 
 - `audit-0.0.21-fixes` — 8 of 9 obligations have attestations; the 9th,
   `self-check-verdict-is-pass`, has an `inconclusive` attestation
@@ -53,10 +77,6 @@ were closed in the 2026-10-07 integrity cycle:
   by generating 27 attestations, each tagged with the appropriate
   `kind_` (`test` for test-backed obligations, `review` for META /
   dev-infra / manual-review obligations).
-
-The 57/57 pass figure for non-waivered subjects is the live runtime
-value at HEAD `ed069f7`; `scripts/dev verify` runs the kernel against
-the live attestation store and reports this number.
 
 `portable-linux-musl` was previously unknown (its 7 obligations have
 no attestations because the Alpine CI build never succeeded and the
@@ -178,7 +198,6 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/site-svg-manifesto-2026-10.yaml` | `site-svg-manifesto-2026-10` | 1 | 1 | RESOLVED | adds 4 hand-rolled SVG figures to the manifesto page (`architecture-overview`, `human-in-the-loop`, `human-roles`, `kernel-vs-human`); new `body_extra` match for the `manifesto` page key in `lib/render.ml`; new `.mathc-figure-manifesto img { max-width: 56rem; }` CSS rule in `assets/style.css` |
 | `decisions/site-svg-foundations-2026-10.yaml` | `site-svg-foundations-2026-10` | 1 | 1 | RESOLVED | adds 8 hand-rolled specialist diagrams to the foundations page (`counterexample-flow`, `axiom-transition`, `trust-dynamics`, `substrate-fingerprint`, `waiver-state-machine`, `friction-envelope-plot`, `quality-radar`, `reasoning-budget`); extends `lib/render.ml::body_extra` for the `foundations` page key; covers algebra §11, §12, §13–14, §16, §17, §18, §21, §22, §27 |
 | `decisions/site-svg-workflow-2026-10.yaml` | `site-svg-workflow-2026-10` | 1 | 1 | RESOLVED | adds the `bootstrap-timeline` SVG to the workflow page; new `body_extra` match for the `workflow` page key; new `.mathc-figure-workflow img { max-width: 56rem; }` CSS rule; the timeline shows the three regime boundaries (v3-alpha-0.0.1 → 8fa7fcf → today) |
-| `decisions/site-redesign-2026-10.yaml` | `site-redesign-2026-10` | 1 | 6 | RESOLVED | groups the 12 top-level nav links into 4 intent-bearing dropdowns (Concept, Methodology, Adopt, Reference) plus a Home anchor, adds an SVG logo (assets/logo.svg, two brackets around a check, oxblood on the Tufte palette) to the brand anchor, and rewrites `dist/index.html` + `dist/index.ru.html` as 5 sections (hero, quick start, moderation with a `mathc gate` terminal, methodology cards, adopt CTAs); the inline package grid and axiom list move to `/packages.html` and `/axioms.html`; the unused 22-rem right sidenote gutter is removed from `main` since no site page emits `.sidenote`; CSS reset restores the hero to the full main column on ≥1280 px viewports |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
 **Column key.** `Obl` = current obligation count for that decision
@@ -272,7 +291,7 @@ labelled Alcotest case:
 
 | Principle | What the case checks |
 |---|---|
-| P1 (decisions before kernel changes) | every non-meta `decisions/*.yaml`/`.md` has `schema`, `id`, `revision` frontmatter + `intent`, `commitment`, `scope`, `obligations`, `risk` body sections |
+| P1 (decisions before kernel changes) | every non-meta `decisions/*.yaml`/`.md` has `schema`, `id`, `revision` frontmatter + `intent`, `commitment`, `scope`, `obligations`, `risk` body sections (per `tests/process_principles.ml:75-78`); the JSON-schema validator additionally requires `outcomes` (per `schemas/decision.json:6-9`); the two checks are independent |
 | P2 (decisions paired with fixtures) | every obligation has a verifier; the verifier is a present fixture path, a kernel-test reference, a cram `.t` path, or a recognised manual-style prefix |
 | P5 (cram retired) | `tests/cram/*.t` does not exist |
 | P6 (pre-commit verification) | `scripts/check.sh` exists and is executable |
@@ -414,7 +433,15 @@ This file is updated only when **a new decision file** is created or
 when **an existing decision** changes revision. It is NOT updated for
 every code change.
 
-Last updated at: HEAD `ed069f7` (2026-10-12): self-check-recovery cycle
+Last updated at: HEAD `c56bd35` (2026-10-14): version-bump to
+math-coding 3.3 (semver `3.3.0`). Header renames across ROADMAP,
+PACKAGES, README, AGENTS, USAGE, OCAML_BEST_PRACTICES,
+axioms/index.md, `bin/data/time-distribution.yaml`; CHANGELOG
+opens a `v3.3.0-alpha` section. Counters refreshed to
+93 active decisions / 330 obligations / 391 attestations / 64 cram
+files / 27 CLI subcommands.
+
+Previous: HEAD `ed069f7` (2026-10-12): self-check-recovery cycle
 computed for all 37 decision files carrying body_sha/yaml_sha,
 schema re-tightened to `^sha256:[0-9a-f]{64}$`,
 `schema-empty-sha-2026-10` retired at rev 3, and the
