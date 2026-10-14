@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-default-tag-edge
 revision: 1
 state: active
-body_sha: "sha256:e81644d95a4ce961a5f2de04e58dee30a8aec042e5bf482778398ab1d1e5607d"
-yaml_sha: "sha256:e81644d95a4ce961a5f2de04e58dee30a8aec042e5bf482778398ab1d1e5607d"
+body_sha: "sha256:d38d23d523720d29f494483ad2a69cbaebf9fca46b22ba1c4b8caf9c4f052bc2"
+yaml_sha: "sha256:d38d23d523720d29f494483ad2a69cbaebf9fca46b22ba1c4b8caf9c4f052bc2"
 
 intent: |
   Change `MC_VERSION_DEFAULT` in `scripts/install-tooling/install.sh`
@@ -79,8 +79,6 @@ commitment: |
      that `adoption/SKILL.md` does NOT contain the literal
      `3.1.0-alpha-final`; that assertion remains green.
 
-boundaries (a3 self-application):
-  - No `lib/**`, `bin/Mathc.ml`, `spec/**`, `schemas/**`,
     `axioms/**` are touched.
   - The kernel verdict is unchanged: `mathc validate` on the
     new decision file accepts; `mathc self-check` does not see

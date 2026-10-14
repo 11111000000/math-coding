@@ -7,7 +7,8 @@ mode: light
 change_kind: editorial
 body_sha: ""
 yaml_sha: ""
-axiom_link: [A3]
+axiom_link:
+  - A3
 intent: |
   Bump the constitution header from "3.0-alpha" to "3.3.0-alpha"
   to match the published brand. No semantic change; the 14
@@ -23,6 +24,14 @@ counterexample: |
   decision file." Rejected per AGENTS.md §P1: spec/ is
   policy-protected; any staged change to spec/*.md requires
   a paired decision/*.yaml, regardless of behavioural impact.
+commitment: |
+  1. `head -1 spec/constitution.md` matches
+     `^# Math-coding 3\.3\.0-alpha constitution$`.
+  2. No semantic change to the 14 invariants; only the
+     version literal in the H1 changes.
+  3. The change is editorial (per AGENTS.md §Before work
+     "provably editorial" exemption), recorded under
+     `change_kind: editorial` for audit-trail purposes.
 scope:
   paths: [spec/constitution.md]
 outcomes:

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: process-principles-close-branches
 revision: 3
 state: active
-body_sha: "sha256:eaf133a54809795a069dce524103788f6662a81b0470637272a5d3fba1b857fc"
-yaml_sha: "sha256:eaf133a54809795a069dce524103788f6662a81b0470637272a5d3fba1b857fc"
+body_sha: "sha256:0f313320af2f3cce9072986256cdc5d03414f984280713c0f1c3d24b8bf283e7"
+yaml_sha: "sha256:0f313320af2f3cce9072986256cdc5d03414f984280713c0f1c3d24b8bf283e7"
 intent: |
   Implement `scripts/dev close-branches`, the long-promised
   branch-hygiene utility from ROADMAP Tier-2 #4. Closes audit
@@ -82,6 +82,13 @@ scope:
     - tests/process_principles.ml
     - decisions/process-principles.yaml
     - decisions/process-principles-close-branches.yaml
+
+
+outcomes:
+  - id: close-branches-implemented
+    statement: |
+      `scripts/dev close-branches` removes merged branches and
+      their worktrees; `.githooks/pre-commit` enforces P1 + P2.
 
 risk:
   declared_triggers:

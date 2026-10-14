@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-init-release-binary-noop-skill-2026-10
 revision: 1
 state: active
-body_sha: "sha256:a2dba0c4c4388ad07d3a3c95392bc9de273a5cf269f314361d15fa2bbd892f71"
-yaml_sha: "sha256:a2dba0c4c4388ad07d3a3c95392bc9de273a5cf269f314361d15fa2bbd892f71"
+body_sha: "sha256:0f4dfaddb2d6ee8500392663360142fbf4e45923507d00cb7d44a7ad13b59700"
+yaml_sha: "sha256:0f4dfaddb2d6ee8500392663360142fbf4e45923507d00cb7d44a7ad13b59700"
 
 intent: |
   Document the deliberate no-op behavior of
@@ -91,8 +91,6 @@ commitment: |
   5. No new subcommand, no new flag, no new library is
      introduced.
 
-boundaries (a3 self-application):
-  - No `lib/**`, `bin/**`, `spec/**`, `schemas/**`,
     `axioms/**` is touched.
   - The kernel verdict is unchanged.
   - No new attestation is required; the per-user install

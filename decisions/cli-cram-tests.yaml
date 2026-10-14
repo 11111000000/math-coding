@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: cli-cram-tests
 revision: 2
 state: active
-body_sha: "sha256:650f7ef572436d97b24c51b2a8c61473bcfb12300fdad8788cec83c6a1035ff4"
-yaml_sha: "sha256:650f7ef572436d97b24c51b2a8c61473bcfb12300fdad8788cec83c6a1035ff4"
+body_sha: "sha256:0f75a75bc7dbb946c42843c90cc1af8d1f757f61cc88bccb028bd4f621a13316"
+yaml_sha: "sha256:0f75a75bc7dbb946c42843c90cc1af8d1f757f61cc88bccb028bd4f621a13316"
 intent: |
   Replace the per-subcommand shell fixtures under tests/fixtures/
   (ambiguous-acceptance.sh, malformed-acceptance.sh,
@@ -83,6 +83,13 @@ scope:
     - schemas/**
     - axioms/**
     - fixtures/conformance/**
+
+
+outcomes:
+  - id: cram-tests-shipped
+    statement: |
+      `tests/cli/*.t` exercises the mathc CLI via dune cram;
+      `dune test` runs the suite and exits 0 on a clean tree.
 
 risk:
   declared_triggers:

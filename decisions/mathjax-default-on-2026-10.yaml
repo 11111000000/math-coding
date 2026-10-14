@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathjax-default-on-2026-10
 revision: 1
 state: active
-body_sha: "sha256:6c7ac0607be74457efe4a81df631c69bf874527729a9b66ea3fae2f931339128"
-yaml_sha: "sha256:6c7ac0607be74457efe4a81df631c69bf874527729a9b66ea3fae2f931339128"
+body_sha: "sha256:f070925fae152e9e907936aa9d08b1ce908a0db6203fb1f3d77a8e480ddd36e8"
+yaml_sha: "sha256:f070925fae152e9e907936aa9d08b1ce908a0db6203fb1f3d77a8e480ddd36e8"
 intent: |
   Reverse the MathJax default-OFF workaround documented in
   `decisions/render-kernel-fixes-2026-10@1` obligation
@@ -44,6 +44,8 @@ intent: |
   `mathjax-delimiter-hardening-2026-10@1`. This cycle changes
   only the default of the boolean flag.
 
+axiom_link:
+  - A0
 commitment: |
   `mathc render` emits the MathJax 3 `<script>` block on every
   page when the configuration is the default. The five

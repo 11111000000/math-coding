@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: print-usage-complete-2026-10
 revision: 1
 state: active
-body_sha: "sha256:5317ac0d89d8941f47ec61414690dfa544eec0d677c542472ce46624e55c3451"
-yaml_sha: "sha256:5317ac0d89d8941f47ec61414690dfa544eec0d677c542472ce46624e55c3451"
+body_sha: "sha256:dae3eb715799f019343fadc7cf5459366d0ba89f8aab3963d5e8794c95beecaf"
+yaml_sha: "sha256:dae3eb715799f019343fadc7cf5459366d0ba89f8aab3963d5e8794c95beecaf"
 
 intent: |
   Bring the `mathc --help` text emitted from `bin/Mathc.ml`'s
@@ -62,9 +62,6 @@ commitment: |
      byte; no rewrapping, no punctuation drift. Reviewer
      can confirm with `git diff -U0 -- bin/Mathc.ml`.
 
-boundaries (a3 self-application):
-  - This decision does NOT add a new subcommand or new flag.
-  - This decision does NOT change `bin/Mathc.ml:4495-4520`
     (the dispatcher) — only `bin/Mathc.ml:501-557` (the
     help text).
   - This decision does NOT touch `lib/`, `spec/`,

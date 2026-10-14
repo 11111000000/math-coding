@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: considered-mode-migration-2026-10
 revision: 1
 state: retired
-body_sha: "sha256:3458380be25485b24014c6f94cf503ee30bf2f950cddcffc532f08dbf52068a1"
-yaml_sha: "sha256:3458380be25485b24014c6f94cf503ee30bf2f950cddcffc532f08dbf52068a1"
+body_sha: "sha256:59c869f857fb921fd35e9851cb929b75cf76ee23038e98b8c625996a272af345"
+yaml_sha: "sha256:59c869f857fb921fd35e9851cb929b75cf76ee23038e98b8c625996a272af345"
 
 intent: |
   Document the partial migration of the 'Considered' mode variant
@@ -20,6 +20,11 @@ scope:
     - "lib/risk.ml"
     - "tests/policy_test.ml"
     - "tests/risk_kernel.ml"
+
+commitment: |
+  This decision is a partial F4 closure; the F5 deficit in
+  `bin/Mathc.ml` (mode-floor ordering under `mode = considered`)
+  remains open. Recording the partial work.
 
 outcomes:
   - id: considered-closed-in-lib

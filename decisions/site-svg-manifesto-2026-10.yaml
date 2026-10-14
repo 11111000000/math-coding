@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-manifesto-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:ba533bc513ce465f92b1669590ce3a6d9b05a444859976c176bd3c2e5e38c79d"
-yaml_sha: "sha256:ba533bc513ce465f92b1669590ce3a6d9b05a444859976c176bd3c2e5e38c79d"
+body_sha: "sha256:06a65f9ae3e55e2fcadbd866a55ec7a2b65f3bc5e5c4ac9fb7f72fa79158152f"
+yaml_sha: "sha256:06a65f9ae3e55e2fcadbd866a55ec7a2b65f3bc5e5c4ac9fb7f72fa79158152f"
 axiom_link:
   - A4
 intent: |
@@ -96,25 +96,25 @@ counterexample: |
 
 antithesis: |
   Author considered and rejected the strongest counter-
-  position: "The five SVGs are too much for one decision;
-  split into five `site-svg-<figure>-2026-XX` decisions
+  position: "The four SVGs are too much for one decision;
+  split into four `site-svg-<figure>-2026-XX` decisions
   with one obligation each."
 
   That position is rejected because (a) the SVGs are
   embedded by a single `body_extra` match in
-  `lib/render.ml`; five decisions would produce five
+  `lib/render.ml`; four decisions would produce four
   `body_extra` patches that have to land in the same
   file, increasing review cost without a corresponding
-  gain in clarity; (b) the five SVGs share a common
+  gain in clarity; (b) the four SVGs share a common
   CSS wrapper (`.mathc-figure-manifesto`) and a common
   reasoning-tied-to-algebra-sections style; (c) the five
   SVGs are introduced as a coordinated set in the
-  methodology page, not as five independent editorial
+  methodology page, not as four independent editorial
   additions.
 
-  A counter-decision that wanted five separate cycles
-  would have to argue that the five SVGs are introduced
-  in five temporally separate review-and-reverse paths;
+  A counter-decision that wanted four separate cycles
+  would have to argue that the four SVGs are introduced
+  in four temporally separate review-and-reverse paths;
   the author sees no such axis and prefers the bundled
   cycle.
 
@@ -142,11 +142,11 @@ obligations:
     outcome: manifesto-svgs-render
     claim: |
       The rendered `dist/manifesto.html` carries all
-      seven `<figure class="mathc-figure
+      four `<figure class="mathc-figure
       mathc-figure-manifesto">` wrappers (the two
-      pre-existing plus the five new) in source order,
+      pre-existing plus the four new) in source order,
       and each `<img>` resolves to a present file in
-      `dist/assets/`. The five new SVGs are
+      `dist/assets/`. The four new SVGs are
       accessibility-tagged (`role="img"` +
       `aria-labelledby` + non-empty `<title>`) at the
       source level.
@@ -175,7 +175,7 @@ reversal:
     condition: |
       A future maintainer moves to a text-only manifesto
       page (no figures) for bandwidth or stylistic reasons;
-      the kernel would then either drop the five SVGs from
+      the kernel would then either drop the four SVGs from
       `body_extra` and remove the corresponding wrapper
       CSS, or retire this decision in favour of a
       `site-quality-no-figures-2026-XX` decision.
@@ -187,7 +187,7 @@ risk:
   mode_floor: tiny
   rationale: |
     The change is purely additive: a new body-extra block
-    in `lib/render.ml`, five new files in `assets/`, and
+    in `lib/render.ml`, four new files in `assets/`, and
     one decision record. No existing obligation changes,
     no public contract changes, no kernel semantics change.
     The cost of reversal is one revert commit.

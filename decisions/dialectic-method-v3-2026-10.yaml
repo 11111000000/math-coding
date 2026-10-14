@@ -19,6 +19,13 @@ intent: |
   is required for mode=considered; counterexample remains required for
   mode != tiny (per §11 / spec/algebra-3.2.md).
 
+antithesis: |
+  The v3 dialectic method (antithesis-required) is bureaucratic
+  overhead for non-policy decisions. Author considered and rejected
+  this position: the dialectical slot is the load-bearing
+  distinguishing feature of the v3 method, and removing it for
+  convenience reverses the design.
+
 commitment: |
   After this decision lands on main:
 

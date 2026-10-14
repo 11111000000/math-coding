@@ -50,17 +50,20 @@ subcommands.
 > commit `3310234` and merge `8b9a060`).
 
 `mathc self-check` on a clean tree currently returns verdict
-`unknown`. The non-waivered subject pass count is the live runtime
-value; the 9 structurally-unknown subjects as of HEAD are:
-`print-usage-complete-2026-10` (1 obligation), `ux-3-init-release-binary-noop-skill-2026-10`
-(1), `install-tooling-default-tag-edge` (2), `migration-mechanism`
-(6), `update-check-notify-2026-10` (2), `ux-3-adopt-roadmap-2026-10`
-(1), `schema-string-bump-3.0-alpha-to-3.2` (4),
-`ux-3-init-copies-ci-workflow-2026-10` (2), `audit-0.0.21-fixes`
-(1, structurally inconclusive per
-`decisions/waivers/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`,
-maps to `Open_with_waiver`). Previously-unknown subjects closed in
-the 2026-10-07 integrity cycle:
+`unknown`. The 5 unknown subjects as of HEAD (all from the
+2026-10-14 parallel-fix-batch — 5 new decisions whose
+attestations have not yet been generated) are:
+`placeholder-sha-cleanup-2026-10` (3 obligations),
+`enable-counters-drift-test-2026-10` (3 obligations),
+`constitution-header-3-3-update-2026-10` (1 obligation),
+`re-eval-remediation-todo-fix-2026-10` (2 obligations),
+`attestation-waiver-policy-schema-bump-3-3-2026-10` (6 obligations).
+
+`audit-0.0.21-fixes` is structurally inconclusive per
+`decisions/waivers/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`
+(maps to `Open_with_waiver`); this is not counted in the 5 above.
+
+Previously-unknown subjects closed in the 2026-10-07 integrity cycle:
 
 - `audit-0.0.21-fixes` — 8 of 9 obligations have attestations; the 9th,
   `self-check-verdict-is-pass`, has an `inconclusive` attestation

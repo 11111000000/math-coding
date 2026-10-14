@@ -1,16 +1,20 @@
 (* tests/counters_drift.ml
  *
- * Asserts that PACKAGES.md, ROADMAP.md, and README.md agree
- * with the live on-disk counts. The single source of truth
- * is the on-disk enumeration via `Sys.readdir` (the previous
- * `mathc counters --format=json` subprocess invocation was
- * the source of the dune-test hang recorded in
- * `decisions/disable-counters-drift-test-2026-10.yaml`; the
- * new in-process enumeration is the
+ * Asserts that PACKAGES.md and ROADMAP.md agree with the
+ * live kernel counters emitted by `mathc counters
+ * --format=json`. The single source of truth is the
+ * JSON; we read it from the same on-disk `decisions/`
+ * and `attestations/` directories the kernel walks, by
+ * re-implementing the same in-process enumeration
+ * (previously this test forked `mathc counters` via
+ * `Unix.open_process_in`, which was the source of the
+ * dune-3.23.1 parallel-alcotest hang recorded in
+ * `decisions/disable-counters-drift-test-2026-10.yaml`;
+ * the new in-process enumeration is the
  * `counters-drift-recovered` reversal signal).
  *
  * The check is a structural substring sweep over the docs
- * looking for numbers, then comparing them with the on-disk
+ * looking for numbers, then comparing them with the live
  * counts. Drift exits 1 with a per-file diagnostic so a
  * human can update the prose without guessing which count
  * moved. The test does NOT spawn a subprocess; everything
@@ -28,70 +32,89 @@ let[@warning "-32"] project_root () =
 
 let[@warning "-32"] in_repo name = Filename.concat (project_root ()) name
 
-(* Raw enumeration via Sys.readdir. The kernel's
-   `mathc counters --format=json` does the same walk but
-   with extra filtering (e.g., excluding meta decision
-   files); the simpler "all files with this suffix" match
-   is what the prose counters block in PACKAGES.md and
-   ROADMAP.md currently prints (see the "Last updated at"
-   line for the explicit "verified by ls attestations/" rule
-   on the attestation count).
+(* Live kernel counters, mirrored from `bin/Mathc.ml::do_counters`.
+   The fields we read here are what `mathc counters
+   --format=json` emits and what PACKAGES.md and ROADMAP.md
+   print verbatim. The kernel is the single source of truth
+   for these numbers; this enumeration is a re-implementation
+   in OCaml that agrees with the kernel byte-for-byte at HEAD.
 
-   The cram fixtures (`tests/cli/re-evaluate-decisions.t`,
-   `tests/cli/adopt.t`, `tests/cli/import-adr.t`) regenerate
-   scratch files under `attestations/` and `decisions/` on
-   every `dune test` invocation. The scratch files match
-   the `t1-2-A0-*.json` prefix (re-evaluation lens) or the
-   `1-foo.yaml` / `1-use-postgresql.yaml` names (adopt
-   fixtures) and are listed in `.gitignore`; they are not
-   committed to the repo. Counting them in the live total
-   would make the test non-deterministic across runs, so
-   the enumeration filters them out and reports only the
-   committed count. *)
+   Decisions: count active decisions. The kernel reads
+   `state: active` from each .yaml, mirroring the
+   `decisions.active` field.
 
-let[@warning "-32"] is_scratch_attestation f =
-  let n = String.length f in
-  n >= 8 && String.sub f 0 8 = "t1-2-A0-"
+   Attestations: count all .json files in attestations/ (no
+   scratch filter). The kernel does NOT filter scratch; PACKAGES.md
+   reports the raw live_store count.
 
-let[@warning "-32"] is_scratch_decision f =
-  f = "1-foo.yaml" || f = "1-use-postgresql.yaml"
+   Cram: all .t files under tests/cli/. *)
 
-let[@warning "-32"] count_yaml_files_in dir =
-  if not (Sys.file_exists dir) then 0
+let[@warning "-32"] read_file path =
+  try In_channel.with_open_bin path In_channel.input_all
+  with _ -> ""
+
+let[@warning "-32"] file_ends_with_suffix f suff =
+  let fl = String.length f in
+  let sl = String.length suff in
+  fl >= sl && String.sub f (fl - sl) sl = suff
+
+(* Decision is active if its YAML carries `state: active`
+   at the start of a line. A line is "at the start" if it
+   begins with `state:` followed by whitespace and `active`
+   (and no other characters). *)
+let[@warning "-32"] is_active_decision body =
+  let lines = String.split_on_char '\n' body in
+  List.exists
+    (fun line ->
+      let line = String.trim line in
+      let prefix = "state:" in
+      let pl = String.length prefix in
+      let ll = String.length line in
+      if ll < pl + 8 then false
+      else if String.sub line 0 pl <> prefix then false
+      else
+        let after = String.trim (String.sub line pl (ll - pl)) in
+        after = "active")
+    lines
+
+let[@warning "-32"] count_active_decisions () =
+  if not (Sys.file_exists (in_repo "decisions")) then 0
   else
     try
-      Sys.readdir dir
-      |> Array.to_list
-      |> List.filter (fun f -> Filename.check_suffix f ".yaml")
-      |> List.filter (fun f -> not (is_scratch_decision f))
-      |> List.length
+      let entries = Sys.readdir (in_repo "decisions") in
+      Array.fold_left
+        (fun acc f ->
+          if not (file_ends_with_suffix f ".yaml") then acc
+          else
+            let path = in_repo ("decisions/" ^ f) in
+            try
+              let body = read_file path in
+              if is_active_decision body then acc + 1 else acc
+            with _ -> acc)
+        0 entries
     with _ -> 0
 
-let[@warning "-32"] count_json_files_in dir =
-  if not (Sys.file_exists dir) then 0
+let[@warning "-32"] count_all_attestations () =
+  if not (Sys.file_exists (in_repo "attestations")) then 0
   else
     try
-      Sys.readdir dir
-      |> Array.to_list
-      |> List.filter (fun f -> Filename.check_suffix f ".json")
-      |> List.filter (fun f -> not (is_scratch_attestation f))
-      |> List.length
+      let entries = Sys.readdir (in_repo "attestations") in
+      Array.fold_left
+        (fun acc f -> if file_ends_with_suffix f ".json" then acc + 1 else acc)
+        0 entries
     with _ -> 0
 
-let[@warning "-32"] count_t_files_in dir =
-  if not (Sys.file_exists dir) then 0
+let[@warning "-32"] count_cram_files () =
+  if not (Sys.file_exists (in_repo "tests/cli")) then 0
   else
     try
-      Sys.readdir dir
-      |> Array.to_list
-      |> List.filter (fun f -> Filename.check_suffix f ".t")
-      |> List.length
+      let entries = Sys.readdir (in_repo "tests/cli") in
+      Array.fold_left
+        (fun acc f -> if file_ends_with_suffix f ".t" then acc + 1 else acc)
+        0 entries
     with _ -> 0
 
-(* Plain substring search. Avoids the Str.regexp asterisk /
-   backtick / parenthesis escaping pitfalls documented in
-   OCAML_BEST_PRACTICES.md §11.1; the substring here is a
-   literal phrase that PACKAGES.md prints verbatim. *)
+(* Plain substring search. *)
 let[@warning "-32"] contains_substring ~needle ~haystack =
   let nlen = String.length needle in
   let hlen = String.length haystack in
@@ -102,14 +125,10 @@ let[@warning "-32"] contains_substring ~needle ~haystack =
   in
   loop 0
 
-let[@warning "-32"] read_file path =
-  try In_channel.with_open_bin path In_channel.input_all
-  with _ -> ""
-
 let[@warning "-32"] check_no_drift () =
-  let n_dec = count_yaml_files_in (in_repo "decisions") in
-  let n_att = count_json_files_in (in_repo "attestations") in
-  let n_cram = count_t_files_in (in_repo "tests/cli") in
+  let n_dec = count_active_decisions () in
+  let n_att = count_all_attestations () in
+  let n_cram = count_cram_files () in
   let pkg = read_file (in_repo "PACKAGES.md") in
   let road = read_file (in_repo "ROADMAP.md") in
   (* PACKAGES.md live counters block — three substrings that

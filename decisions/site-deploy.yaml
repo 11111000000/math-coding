@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-deploy
 revision: 5
 state: active
-body_sha: "sha256:82072c20c88cffeae24e2072e9e0d7b319e19eecccf53619a0a09a49d8cab1c0"
-yaml_sha: "sha256:82072c20c88cffeae24e2072e9e0d7b319e19eecccf53619a0a09a49d8cab1c0"
+body_sha: "sha256:c1ca23edfe1886657196560743acebf92bd749fd32acf93117e1680c04539550"
+yaml_sha: "sha256:c1ca23edfe1886657196560743acebf92bd749fd32acf93117e1680c04539550"
 intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own
@@ -78,6 +78,13 @@ scope:
     - lib/git/**
     - lib/junit/**
     - attestations/**
+
+
+outcomes:
+  - id: site-deploys-on-push
+    statement: |
+      `.github/workflows/site.yml` runs on every push to main and
+      publishes `dist/` to GitHub Pages via `actions/deploy-pages@v4`.
 
 risk:
   declared_triggers:

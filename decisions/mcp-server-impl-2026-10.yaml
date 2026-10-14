@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mcp-server-impl-2026-10
 revision: 1
 state: active
-body_sha: "sha256:32cef01023ff53050e10205f432ef0cfe1dc6fc5a06a9b489024a664f2fa077a"
-yaml_sha: "sha256:32cef01023ff53050e10205f432ef0cfe1dc6fc5a06a9b489024a664f2fa077a"
+body_sha: "sha256:28fca20d3082b41373b17213c4e5386b3efc718315beae8af91dced5528ebffb"
+yaml_sha: "sha256:28fca20d3082b41373b17213c4e5386b3efc718315beae8af91dced5528ebffb"
 intent: |
   Land the MCP server stub the Phase-2 deferral
   `mcp-server-impl-pending@1` was waiting for. The
@@ -60,6 +60,13 @@ antithesis:
   values is a much larger change whose fix does not
   belong in a stub slice — it is the next slice's
   work, sequenced behind this one.
+
+commitment: |
+  The MCP server (lib/mcp/ + bin/mathc_mcp.ml) is the OCaml
+  binary's JSON-RPC 2.0 server. MCP-aware agents launch it as a
+  stdio server and call mathc::validate, mathc::self-check, etc.
+  as direct tool calls.
+
 commitment: |
   This slice delivers a thin JSON-RPC 2.0 server
   over stdio. The server exposes exactly seven
