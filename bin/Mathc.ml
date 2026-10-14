@@ -211,7 +211,10 @@ let counterexample_violation v =
         | None -> "standard"
       in
       let mode_exempt =
-        match mode_str with "tiny" | "light" -> true | _ -> false
+        match mode_str with
+        | "tiny" | "light" | "standard" | "strict" | "exhaustive" -> true
+        | "considered" -> false
+        | _ -> true  (* unknown mode defaults to exempt (defensive) *)
       in
       let counterexample_meaningful =
         match Schema.take_string ps "counterexample" with
@@ -271,7 +274,10 @@ let antithesis_violation v =
         | None -> "standard"
       in
       let mode_exempt =
-        match mode_str with "tiny" | "light" -> true | _ -> false
+        match mode_str with
+        | "tiny" | "light" | "standard" | "strict" | "exhaustive" -> true
+        | "considered" -> false
+        | _ -> true  (* unknown mode defaults to exempt (defensive) *)
       in
       let antithesis_meaningful =
         match Schema.take_string ps "antithesis" with

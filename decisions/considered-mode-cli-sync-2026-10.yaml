@@ -1,0 +1,130 @@
+---
+schema: math-coding/3.3/decision
+id: considered-mode-cli-sync-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:TODO"
+yaml_sha: "sha256:TODO"
+intent: |
+  Sync the CLI pre-check in bin/Mathc.ml::antithesis_violation
+  with the kernel-side change that introduced mode = considered
+  (algebra §11). The CLI pre-check rejected every mode except
+  tiny/light, contradicting the spec which only requires
+  antithesis for mode = considered. The kernel parser
+  (lib/decision.ml) was already correct; this commit closes the
+  CLI-side gap.
+
+change_kind: implementation
+
+axiom_link:
+  - A0
+
+commitment: |
+  1. bin/Mathc.ml::antithesis_violation's mode_exempt now treats
+     { tiny, light, standard, strict, exhaustive } as exempt
+     and only { considered } as requiring the antithesis field.
+  2. `mathc validate` on a decision with mode = standard and
+     no antithesis field accepts.
+  3. `mathc validate` on a decision with mode = considered and
+     no antithesis field still rejects with MC-ANTITHESIS-MISSING.
+  4. The 100 live decisions at HEAD (none of which declare
+     mode = considered) all accept at the CLI.
+  5. dune build exits 0.
+
+counterexample: |
+  "Just delete the CLI pre-check; the kernel parser is
+  authoritative."
+
+  Counterargument: the CLI pre-check exists precisely to give
+  the author a precise diagnostic (e.g. MC-ANTITHESIS-MISSING)
+  before the parser runs; without it, the rejection becomes
+  the parser's coarse "missing required field". The
+  diagnostic precision is part of the public surface per
+  decisions/validator-actionable-error.yaml.
+
+  "Update the message text in the pre-check to say 'modes >=
+  considered' instead of 'modes >= standard'."
+  Counterargument: the message text in this commit does not
+  change; the dialectic §11 message wording is governed by
+  decisions/validator-actionable-error and downstream
+  translations. This commit only changes the guard
+  predicate, not the diagnostic.
+
+scope:
+  capabilities:
+    - considered-mode-cli-sync
+  paths:
+    - "bin/Mathc.ml"
+
+outcomes:
+  - id: cli-mode-exempt-widened
+    statement: |
+      `mode_exempt` in `antithesis_violation` returns true
+      for tiny, light, standard, strict, exhaustive; false
+      for considered; true for unknown mode (defensive).
+  - id: standard-without-antithesis-accepts
+    statement: |
+      `mathc validate` on a synthetic probe with
+      `mode: standard` and no `antithesis:` field accepts.
+  - id: considered-without-antithesis-still-rejects
+    statement: |
+      `mathc validate` on a synthetic probe with
+      `mode: considered` and no `antithesis:` field rejects
+      with `MC-ANTITHESIS-MISSING`.
+
+assumptions:
+  - id: spec-mode-table-stable
+    state: assumed
+    statement: |
+      The 5-mode `tiny | light | considered | standard | strict
+      | exhaustive` ordering is the final form; a future
+      addition would re-derive this commit.
+    owner: human:maintainer
+    consequence_if_false: |
+      A new mode that does not match the explicit branches in
+      `mode_exempt` would default to `true` (the `_` branch),
+      which is permissive. The opposite default would
+      require a code change.
+    review_on:
+      - signal: new-mode-added
+
+obligations:
+  - id: cli-mode-exempt-widened
+    statement: |
+      `git show HEAD:bin/Mathc.ml` shows the widened
+      `mode_exempt` match.
+    acceptance:
+      all:
+        - verifier: text-scan-mode-exempt
+          result: pass
+  - id: standard-without-antithesis-accepts
+    statement: |
+      A synthetic probe fixture asserts the post-fix
+      behaviour for mode = standard.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-considered-antithesis.t
+          result: pass
+  - id: dune-build-clean
+    statement: |
+      `dune build --root .` exits 0.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+
+reversal:
+  - signal: cli-now-rejects-standard
+    action: halt
+  - signal: considered-now-accepts
+    action: halt
+
+risk:
+  declared_triggers:
+    - spec-mode-table-revision
+  owner: human:maintainer
+
+relations:
+  refines:
+    - antithesis-mode-considered-2026-10@1
