@@ -1,0 +1,153 @@
+---
+schema: math-coding/3.2
+id: counters-schema-introspection-deferral-2026-10
+revision: 1
+state: active
+body_sha: "sha256:12d43c722037687128fafd322b4624c618dd55968060a584670cf10f6e838da0"
+yaml_sha: "sha256:12d43c722037687128fafd322b4624c618dd55968060a584670cf10f6e838da0"
+intent: |
+  Defer fixing the bug in `mathc counters --format=json`
+  where the keys `schema.schema_enum`, `schema.intent_oneOf`,
+  and `schema.scope_oneOf` report empty values
+  (`[]` / `false`) instead of the live values parsed out of
+  `schemas/decision.json`. The bug is in
+  `bin/Mathc.ml::do_counters` (the `string_list_from_nested`
+  and `has_one_of` helpers used in section 7, "schema info"):
+  a fingerprint of the live output at HEAD `c56bd35` is
+  `decision_required_fields: ["schema", "id", "intent",
+  "commitment", "scope", "outcomes", "obligations"]` (correct,
+  pulled from the schema's top-level `required`) but
+  `schema_enum: []` and both `intent_oneOf` / `scope_oneOf`
+  are `false`, even though `properties.schema.enum` and the two
+  `oneOf` arrays are visible to a Python-side read of the same
+  file.
+
+  The counter command is the single source of truth for the
+  counters block in PACKAGES.md (per `tests/counters_drift.ml`,
+  currently gated off). The bug means the schema field of that
+  block is silently under-reported. PACKAGES.md (this commit)
+  adds a one-line note that `schema.schema_enum` reports the
+  three value shapes; once the fix lands, the note is removed.
+
+  The fix is non-trivial because (i) the offending code lives
+  in `bin/Mathc.ml`, a kernel-protected file per
+  AGENTS.md §Self-application; (ii) reproducing the bug
+  requires rebuilding and running the affected executable on a
+  machine with the OCaml toolchain (nix-shell or system ocaml
+  + dune), which is not available in this branch's CI; (iii)
+  the fix should ship with a regression fixture that pins the
+  live output for the post-fix tree.
+
+change_kind: implementation
+
+axiom_link:
+  - A0
+
+commitment: |
+  1. The counters-schema-introspection-deferral record exists
+     in `decisions/` with `state: active`.
+  2. PACKAGES.md has a one-line note under the counters block
+     that the `schema.schema_enum` field is currently under-
+     reported (`[]`) and is fixed when the reversal signal fires.
+  3. The reversal-signal entry below is reachable from the
+     live `mathc self-check` after the fix lands.
+
+counterexample: |
+  "Just fix it inline in this commit; the bug is small."
+
+  Counterargument: the reproduction step requires rebuilding
+  `mathc` in this worktree, and `dune` is unavailable in this
+  session (the install-tooling `dune availability` is part of the
+  broader CI matrix, not this branch). Fixing it blind risks
+  a regression in a kernel-protected file (bin/Mathc.ml)
+  without an in-process regression fixture, which is exactly
+  the kind of change AGENTS.md §Self-application says must
+  ship with positive and negative conformance fixtures plus a
+  decision under the active policy. The same shape of
+  rationale is recorded in
+  `decisions/update-check-notify-2026-10.yaml` (deferred
+  because dune is unavailable in this session).
+
+scope:
+  capabilities:
+    - counters-schema-introspection-deferral
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/counters_drift.ml"
+
+outcomes:
+  - id: deferral-record-filed
+    statement: |
+      `decisions/counters-schema-introspection-deferral-2026-10.yaml`
+      exists and parses via `mathc validate`.
+  - id: packages-md-note-added
+    statement: |
+      PACKAGES.md has a one-line note in the counters block
+      acknowledging the under-reported `schema.schema_enum`
+      and pointing at the reversal signal.
+  - id: reversal-signal-recorded
+    statement: |
+      The reversal signal
+      `counters-schema-introspection-fix-landed` is declared
+      below and is reachable from the next kernel rebuild.
+
+assumptions:
+  - id: dune-required-for-repro
+    state: assumed
+    statement: |
+      Reproducing and fixing the under-reported `schema_enum`
+      field requires the OCaml toolchain (`dune build` then
+      running `bin/mathc.exe`), which is unavailable in the
+      current CI run and this branch's working environment.
+    owner: human:maintainer
+    consequence_if_false: |
+      If `dune` becomes available, this deferral can be
+      resolved by a follow-up commit that ships the fix and a
+      regression fixture (see reversal signal below).
+    review_on:
+      - signal: dune-available-in-chore-version-bump-3-3
+
+obligations:
+  - id: deferral-record-present
+    statement: |
+      `decisions/counters-schema-introspection-deferral-2026-10.yaml`
+      exists and parses via `mathc validate`.
+    acceptance:
+      all:
+        - verifier: mathc validate
+          result: pass
+
+reversal:
+  - signal: counters-schema-introspection-fix-landed
+    action: revert
+
+risk:
+  declared_triggers:
+    - counters-schema-introspection-bug-uncaught
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - mathc-counters-subcommand-2026-10@1
+
+antithesis: |
+  "Inline the fix in this commit. The bug is small and the
+  reader of the live `mathc counters --format=json` output
+  already knows it is best-effort; shipping a 'deferred' note
+  in PACKAGES.md is more visible disruption than the
+  under-report itself."
+
+  Rejected because: AGENTS.md §Self-application makes bin/Mathc.ml
+  a protected-policy file. An inline fix in a branch where the
+  toolchain to reproduce the bug is absent is exactly the shape
+  of change that the project has been bitten by twice
+  (per decisions/disable-counters-drift-test-2026-10.yaml the
+  counters_drift regression was the first; per
+  decisions/update-check-notify-2026-10.yaml the
+  update-check-notify OCaml impl was the second). Both
+  precedents led to silent regressions or drift that took a
+  follow-up cycle to unwind. Filing a deferral record and
+  surfacing the under-report in PACKAGES.md is the honest
+  path; the live reviewer can then read `mathc counters`
+  knowing the schema_enum field is currently empty and waiting
+  for the reversal signal to fire.

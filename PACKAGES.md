@@ -29,6 +29,16 @@ exact numbers are emitted by `mathc counters` and enforced against
 migrations-history). 64 cram files in `tests/cli/`. 27 CLI
 subcommands.
 
+> Note: at HEAD `c56bd35` the `mathc counters` `schema`
+> block reports `schema_enum: []` and both `intent_oneOf` and
+> `scope_oneOf` as `false`. This is a known under-report bug in
+> the schema-introspection helpers at `bin/Mathc.ml::do_counters`
+> section 7 (`string_list_from_nested` and `has_one_of`). The
+> `decision_required_fields` value is correct because it is read
+> from the schema's top-level `required` via a different helper.
+> Filed as `decisions/counters-schema-introspection-deferral-2026-10`
+> with reversal signal `counters-schema-introspection-fix-landed`.
+
 `mathc self-check` on a clean tree currently returns verdict
 `unknown`. The non-waivered subject pass count is the live runtime
 value; the 9 structurally-unknown subjects as of HEAD are:
