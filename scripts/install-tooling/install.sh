@@ -195,7 +195,17 @@ verify_sha256() {
     darwin) actual=$(shasum -a 256 "$binary" | awk '{print $1}') ;;
     *)      actual=$(sha256sum "$binary" | awk '{print $1}') ;;
   esac
-  expected=$(awk -v b="$base" '$2 == b {print $1}' "$sums")
+  # SHA256SUMS lists the relative path (e.g. dist-bin/mathc-linux-x86_64);
+  # install.sh names the binary by basename (e.g. mathc-linux-x86_64).
+  # Match by basename suffix: strip any leading path-prefix.
+  expected=$(awk -v b="$base" '{
+    n = split($0, parts, " ")
+    if (n >= 2) {
+      p = parts[2]
+      sub(/.*\//, "", p)
+      if (p == b) print parts[1]
+    }
+  }' "$sums")
   if [ -z "$expected" ]; then
     echo "install.sh: SHA256SUMS does not list $base" >&2
     echo "diagnostic: MC-INSTALL-SHA-LISTING-MISSING" >&2
