@@ -160,13 +160,17 @@ let mode_floor (files : string list) : Domain.mode =
 
 (* ---------- mode arithmetic ---------- *)
 
-(* Mode ordering: Tiny < Light < Standard < Strict < Exhaustive.
-   Used only by max_mode; the rank itself is not exposed. *)
+(* Mode ordering: Tiny < Light < [Considered == Standard] < Strict < Exhaustive.
+   `Considered` carries the same kernel-rules assurance strength
+   as `Standard` per `decisions/antithesis-mode-considered-2026-10`,
+   so both rank to the same integer. The dialectic `antithesis`
+   slot requirement is enforced separately in the validator, not
+   in the integer rank. Used only by max_mode. *)
 let rank (m : Domain.mode) : int =
   match m with
   | `Tiny -> 0
   | `Light -> 1
-  | `Standard -> 2
+  | `Standard | `Considered -> 2
   | `Strict -> 3
   | `Exhaustive -> 4
 

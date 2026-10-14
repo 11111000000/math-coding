@@ -156,7 +156,7 @@ let[@warning "-32"] resolve_policy_no_parent_returns_same () =
         match resolved.mode_floor with
         | `Tiny -> "Tiny"
         | `Light -> "Light"
-        | `Standard -> "Standard"
+        | `Standard | `Considered -> "Standard"
         | `Strict -> "Strict"
         | `Exhaustive -> "Exhaustive"
       in

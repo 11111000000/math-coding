@@ -1,0 +1,60 @@
+---
+schema: math-coding/3.2
+id: considered-mode-migration-2026-10
+revision: 1
+state: retired
+body_sha: "sha256:3458380be25485b24014c6f94cf503ee30bf2f950cddcffc532f08dbf52068a1"
+yaml_sha: "sha256:3458380be25485b24014c6f94cf503ee30bf2f950cddcffc532f08dbf52068a1"
+
+intent: |
+  Document the partial migration of the 'Considered' mode variant
+  (introduced in commit aae7943) across lib/{gate,policy,risk}.ml
+  and the tests that exercise mode-floor ordering. This decision
+  records the F4 closure in this commit and the F5 deficit
+  that remains in bin/Mathc.ml.
+
+scope:
+  paths:
+    - "lib/gate.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "tests/policy_test.ml"
+    - "tests/risk_kernel.ml"
+
+outcomes:
+  - id: considered-closed-in-lib
+    statement: |
+      The 'Considered' variant is wired through lib/policy.ml::max_mode_floor
+      and through the commit_info.mode field in lib/gate.ml. The mode-floor
+      helpers (mode_floor in policy.ml, max_mode in policy.ml, mode_to_int
+      in risk.ml) all carry the polymorphic Domain.mode type so the open
+      variant is accepted at every call site.
+  - id: mathc-ml-paren-deficit-documented
+    statement: |
+      bin/Mathc.ml:438 has 8 close parens where the validate_with_counts
+      function expects 7. This is a pre-existing aae7943 typo that causes
+      'dune build @install' to fail with 'Syntax error' at line 438
+      characters 79-80. A follow-up commit will need OCaml-parser-aware
+      surgery in bin/Mathc.ml.
+
+obligations:
+  - id: considered-closed-in-lib
+    outcome: considered-closed-in-lib
+    claim: |
+      With this commit applied, 'dune build lib/mathcoding_core.cmxa'
+      succeeds. The 'Considered is not compatible with type' error
+      (lib/policy.ml:215 in HEAD) no longer fires.
+    acceptance:
+      all:
+        - verifier: dune build lib/mathcoding_core.cmxa
+          result: pass
+  - id: mathc-ml-paren-deficit-followup
+    outcome: mathc-ml-paren-deficit-documented
+    claim: |
+      A follow-up decision records the planned surgery in
+      bin/Mathc.ml:438 (remove 1 extra close paren and re-verify
+      that P_outer, P2, and P4 close cleanly).
+    acceptance:
+      all:
+        - verifier: followup-decision-filed
+          result: pass

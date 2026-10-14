@@ -147,15 +147,17 @@ let rec path_matches scope path =
 
 (* --- mode ordering --- *)
 
-(* mode_to_int: tiny < light < standard < strict < exhaustive *)
+(* mode_to_int: tiny < light < [considered == standard] < strict < exhaustive.
+   `Considered` carries the same kernel-rules assurance strength
+   as `Standard` per `decisions/antithesis-mode-considered-2026-10`. *)
 let mode_to_int = function
   | `Tiny -> 0
   | `Light -> 1
-  | `Standard -> 2
+  | `Standard | `Considered -> 2
   | `Strict -> 3
   | `Exhaustive -> 4
 
-let max_mode a b = if mode_to_int a >= mode_to_int b then a else b
+let max_mode : Domain.mode -> Domain.mode -> Domain.mode = fun a b -> if mode_to_int a >= mode_to_int b then a else b
 
 (* max_mode_floor: fold over a list, take the maximum mode. *)
 let[@warning "-32"] max_mode_floor ms =

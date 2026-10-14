@@ -3,7 +3,7 @@ let[@warning "-32"] mode_to_string m =
   match m with
   | `Tiny -> "Tiny"
   | `Light -> "Light"
-  | `Standard -> "Standard"
+  | `Standard | `Considered -> "Standard"
   | `Strict -> "Strict"
   | `Exhaustive -> "Exhaustive"
 

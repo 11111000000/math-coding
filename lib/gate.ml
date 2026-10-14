@@ -457,7 +457,7 @@ type kernel_rule = PreTemporalPrecedence | CoCommitDecision | CoCommitFixture
 (* Commit info (minimal subset for rule application) *)
 type commit_info = {
   files : string list;
-  mode : [ `Tiny | `Light | `Standard | `Strict | `Exhaustive ];
+  mode : Domain.mode;
   has_sibling_yaml : bool;
   trailer_decision_refs : string list;
 }
