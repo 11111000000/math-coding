@@ -17,8 +17,8 @@ without auto-executing. The user explicitly asked to see what the
 command would be; the script prints and exits 0.
 
   $ "$install_sh" --with-docker
-  docker pull ghcr.io/11111000-11111000/mathc:3.1.0-alpha-final (esc)
-  docker run --rm -v "$(pwd):/repo" ghcr.io/11111000-11111000/mathc:3.1.0-alpha-final --help (esc)
+  docker pull ghcr.io/11111000-11111000/mathc:edge (esc)
+  docker run --rm -v "$(pwd):/repo" ghcr.io/11111000-11111000/mathc:edge --help (esc)
   install.sh: --with-docker printed; nothing was installed
 
 The actual printed owner is `11111000000`; the cram pattern

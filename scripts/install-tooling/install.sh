@@ -32,7 +32,7 @@
 # `sync-version.sh --write` updates it.
 
 # shellcheck disable=SC2034  # variables exported for clarity
-MC_VERSION_DEFAULT="3.1.0-alpha-final"
+MC_VERSION_DEFAULT="edge"
 MC_REPO="11111000000/math-coding"
 MC_RELEASE_BASE="https://github.com/${MC_REPO}/releases/download"
 MC_BINARY_BASENAME="mathc"
@@ -58,7 +58,7 @@ Options:
 Examples:
   curl -fsSL https://github.com/${MC_REPO}/releases/download/v\${VERSION}/install.sh | sh
   curl ... | sh -s -- --user-skill
-  curl ... | sh -s -- --version=3.1.0-alpha-final --with-docker
+  curl ... | sh -s -- --version=edge --with-docker
 
 Exit codes: 0=ok, 1=checksum-mismatch, 2=input-error, 124=network-error.
 USAGE

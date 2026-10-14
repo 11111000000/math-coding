@@ -1,0 +1,235 @@
+---
+schema: math-coding/3.2
+id: install-tooling-default-tag-edge
+revision: 1
+state: active
+body_sha: "sha256:e81644d95a4ce961a5f2de04e58dee30a8aec042e5bf482778398ab1d1e5607d"
+yaml_sha: "sha256:e81644d95a4ce961a5f2de04e58dee30a8aec042e5bf482778398ab1d1e5607d"
+
+intent: |
+  Change `MC_VERSION_DEFAULT` in `scripts/install-tooling/install.sh`
+  from the unpublished string `3.1.0-alpha-final` to the published
+  rolling tag `edge`, so the documented single-line install
+  command (`curl ... install.sh | sh`) resolves to a release
+  asset without the user having to pass `--version=<X>` explicitly.
+
+  Today, every instruction in `USAGE.md`, `site/install.md`,
+  `site/install.html`, and `adoption/SKILL.md` quotes the
+  `v3.1.0-alpha-final/install.sh` URL, but that tag does not
+  exist on GitHub Releases — the only published release is the
+  prerelease `edge` (created 2026-09-26, refreshed nightly).
+  The result: a fresh user who follows any documented path gets
+  a `404` from `curl` for `SHA256SUMS` (the install script's
+  first network call), so the single-line adoption affordance
+  fails on first touch.
+
+  After the change, the same `curl ... install.sh | sh` invocation
+  resolves to `v${VERSION}/install.sh` where `VERSION` is the
+  published tag. The four documented exit codes (0/1/2/124),
+  the `--check`, `--with-docker`, `--print-nix-command`,
+  `--user-skill`, and `--upgrade` flags are unchanged. The
+  `MC_REPO`, `MC_RELEASE_BASE`, `MC_BINARY_BASENAME`,
+  `MC_TARBALL_NAME` constants are unchanged. Only the literal
+  default value at `install.sh:35` and the corresponding usage
+  example at `install.sh:61` are touched.
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+antithesis: |
+  Counter-position: "Use a SemVer like `3.1.0` or `v3.1.0` and
+  release under that tag." Rejected on (a) the project is at
+  3.1.0-alpha and shipping a stable 3.1.0 release under a
+  non-prerelease tag is a public-contract change that requires
+  its own A3-protected transition; (b) the only currently
+  published artifact is the `edge` prerelease, and inventing a
+  new stable tag here would create a contract gap. Counter-
+  position: "Skip the version default entirely; require the
+  user to pass `--version=<X>`." Rejected on (a) that drops the
+  single-line affordance that the entire install-tooling surface
+  was built around, and (b) it makes `install.sh --check`
+  useless without a manual `--version` override.
+
+commitment: |
+  1. `MC_VERSION_DEFAULT` in
+     `scripts/install-tooling/install.sh:35` is changed from
+     `"3.1.0-alpha-final"` to `"edge"`. One shell substitution,
+     no surrounding whitespace changes.
+
+  2. The usage-example line at `install.sh:61` (`curl ... |
+     sh -s -- --version=3.1.0-alpha-final --with-docker`) is
+     updated to `--version=edge --with-docker` so that the
+     example still demonstrates a working invocation.
+
+  3. The cram snapshot at `tests/cli/install.t:20-21` (the
+      `--with-docker` expected output) is updated from
+      `ghcr.io/.../mathc:3.1.0-alpha-final` to
+      `ghcr.io/.../mathc:edge` in both the `docker pull` and
+      `docker run` lines. The `[...]` glob in the `--help`
+      snapshot at `tests/cli/install.t:11` already absorbs the
+      usage-example change; no other cram line is touched.
+
+  4. The negative fixtures (`--bogus-flag`, `--check`, and
+     `--user-skill --upgrade --version=0.0.0-test` at
+     `tests/cli/install.t:39-74`) are unchanged.
+
+  5. `scripts/check-adoption-doc-freshen.sh:43` already asserts
+     that `adoption/SKILL.md` does NOT contain the literal
+     `3.1.0-alpha-final`; that assertion remains green.
+
+boundaries (a3 self-application):
+  - No `lib/**`, `bin/Mathc.ml`, `spec/**`, `schemas/**`,
+    `axioms/**` are touched.
+  - The kernel verdict is unchanged: `mathc validate` on the
+    new decision file accepts; `mathc self-check` does not see
+    any new subject.
+  - This decision does NOT release `v3.1.0-alpha-final` as a
+    new tag. That is sequenced behind this fix in a follow-up
+    cycle; until then, the only published tag is `edge`.
+  - `MC_VERSION_DEFAULT` does NOT auto-detect the latest tag.
+    A user who wants a non-edge release still passes
+    `--version=<X>` explicitly.
+
+scope:
+  capabilities:
+    - install-tooling-default-version
+  paths:
+    - "scripts/install-tooling/install.sh"
+    - "tests/cli/install.t"
+    - "PACKAGES.md"
+    - "decisions/install-tooling-default-tag-edge-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: default-tag-publishes
+    statement: |
+      `MC_VERSION_DEFAULT` resolves to a tag that exists on
+      `https://github.com/11111000000/math-coding/releases`
+      at the moment the install script is invoked. Today
+      that tag is `edge`.
+  - id: single-line-install-succeeds
+    statement: |
+      `curl -fsSL https://github.com/.../math-coding/releases/
+       download/v${MC_VERSION_DEFAULT}/install.sh | sh`
+      downloads a `SHA256SUMS` and a binary without a 404 on
+      the first network call.
+  - id: cram-snapshot-matches
+    statement: |
+      `tests/cli/install.t:20-21` expected snapshot matches
+      the actual output of `install.sh --with-docker` after
+      the version-default change.
+
+counterexample: |
+  "What if GitHub removes the prerelease tag `edge` and replaces
+   it with a stable tag like `v3.1.0`?" Counterargument: the
+   decision documents this risk in `assumptions`; the
+   `reversal` block fires when the latest published non-prerelease
+   tag is not `edge` (or when `edge` no longer exists). At that
+   point this decision is rev-bumped with a new default.
+
+  "What if a user pinned to the old `v3.1.0-alpha-final`
+   release tag explicitly via `--version=" re-runs? That
+   command still succeeds, the script's `MC_VERSION_DEFAULT`
+   change is overridden by the user's explicit
+   `--version=<X>`. No regression on the user-driven path.
+
+  "What about the site docs and the `release.yml` description
+   that quote `v3.1.0-alpha-final`?" Counterargument: those
+   drift is in scope for `install-tooling-release-desc-cleanup`
+   in the same workstream. This decision closes the install-
+   script surface first; the release-description cleanup is
+   its sibling decision and ships in the same merge
+   (`install-tooling-release-desc-cleanup-2026-10`).
+
+assumptions:
+  - id: edge-tag-publishes
+    state: assumed
+    statement: |
+      The `edge` prerelease tag exists on
+      `https://github.com/11111000000/math-coding/releases`
+      and is refreshed nightly from `main`. The single
+      release artifact set (6 binaries + `SHA256SUMS` +
+      `install.sh` + `dist-adoption.tar.gz`) is published
+      on every refresh.
+    owner: human:maintainer
+    consequence_if_false: |
+      If `edge` is unpublished or stale, the single-line
+      install path falls back to the documented `--version=<X>`
+      flow. A user who has already downloaded `install.sh`
+      via the rolling tag can re-run with an explicit
+      `--version=<other-tag>`.
+    review_on:
+      - signal: edge-tag-missing
+  - id: ghcr-edge-image-exists
+    state: assumed
+    statement: |
+      The Docker image `ghcr.io/11111000000/mathc:edge` is
+      published alongside the rolling prerelease; the
+      `--with-docker` printed line resolves to a real image.
+    owner: human:maintainer
+    consequence_if_false: |
+      `--with-docker` would print a broken tag; the user
+      notices immediately and falls back to the curl-pipe
+      path. This decision does not own the Docker publish,
+      which is sequenced separately.
+    review_on:
+      - signal: ghcr-edge-missing
+
+obligations:
+  - id: install-sh-default-tag-is-edge
+    outcome: default-tag-publishes
+    claim: |
+      `MC_VERSION_DEFAULT` at `scripts/install-tooling/install.sh:35`
+      equals the string `edge`, and a later usage example at
+      `install.sh:61` references the same string.
+    acceptance:
+      all:
+        - verifier: tests/cli/install.t
+          result: pass
+        - verifier: scripts/check-adoption-doc-freshen.sh
+          result: pass
+  - id: cram-snapshot-matches-edge
+    outcome: cram-snapshot-matches
+    claim: |
+      The cram snapshot at `tests/cli/install.t:20-21` shows
+      `mathc:edge` in both the `docker pull` and `docker run`
+      expected lines.
+    acceptance:
+      all:
+        - verifier: tests/cli/install.t
+          result: pass
+
+reversal:
+  - signal: install-tooling-default-tag-bumped
+    condition: |
+      Either:
+      (a) A stable SemVer tag like `v3.1.0` is published
+          on GitHub Releases and the rolling `edge` is
+          retired; OR
+      (b) The `edge` tag is removed and no replacement is
+          available within 24h; OR
+      (c) A security policy mandates a non-prerelease
+          default for production installers.
+    action: rework-with-stable-tag
+
+risk:
+  declared_triggers:
+    - edge-tag-unpublished
+    - ghcr-edge-image-missing
+    - shell-quoting-on-default-version
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - install-tooling-2026-10@1
+    - version-sync-2026-10@1
+  supersedes: []
+  superseded_by: []
