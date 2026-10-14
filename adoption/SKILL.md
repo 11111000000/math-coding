@@ -89,7 +89,7 @@ with a kebab-case identifier (lowercase letters, digits, dashes; 1 to
 
 ```yaml
 ---
-schema: math-coding/3.2
+schema: math-coding/3.3
 id: <id>
 revision: 1
 
@@ -149,7 +149,7 @@ To record an attestation when one is owed, write a file under
 
 ```json
 {
-  "schema": "math-coding/attestation-3.3",
+  "schema": "math-coding/attestation-3.0-alpha",
   "kind": "attestation",
   "subject": {
     "decision": "<decision-id>@1",
