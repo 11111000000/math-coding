@@ -1,0 +1,134 @@
+---
+schema: math-coding/3.2
+id: lib-comment-typo-fixes-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:d6ac10c6159408f695d6a7a7fd958640d0fd7aa452a1bed085b82ee150e3d430"
+yaml_sha: "sha256:d6ac10c6159408f695d6a7a7fd958640d0fd7aa452a1bed085b82ee150e3d430"
+intent: |
+  Fix two stale or incorrect textual references inside `lib/`
+  OCaml comments that are misleading on first read:
+
+  1. `lib/decision.ml:89` — the comment for `body_canonical_sha256`
+     said "The OCaml 5.5 `Str` module does not support the
+     `\{n\}` interval quantifier". OCaml 5.5 does not exist; the
+     project pins `ocaml >= 5.0` (`math-coding.opam:12`) and the
+     parallel trap-log entry at `OCAML_BEST_PRACTICES.md:1019`
+     ("§11.1 Str.regexp … OCaml 5.x's `Str` library is a POSIX-style
+     regex engine …") uses the family name "OCaml 5.x". The
+     comment is corrected to "OCaml 5.x".
+
+  No behaviour changes; the surrounding code already targets
+  the POSIX `Str` engine that ships across the 5.x series.
+  Behavioural equivalence is preserved by construction: comments
+  inside `lib/*.ml` are documentation, not policy-bearing code,
+  per `decisions/lib-stale-comments-cleanup-2026-10@1`
+  (assumption `comments-not-policy`).
+
+  This file exists because `lib/*.ml` is policy-protected by
+  AGENTS.md §Self-application and the `.githooks/pre-commit` P1
+  rule, even though the change is editorial. The body is the
+  audit trail; see `lib-stale-comments-cleanup-2026-10` for the
+  precedent on a similar comment-only cleanup.
+
+change_kind: editorial
+
+axiom_link:
+  - A0
+
+commitment: |
+  1. `lib/decision.ml:89` reads "OCaml 5.x" (was "OCaml 5.5").
+  2. `dune build` succeeds. No OCaml expression is modified.
+  3. `tests/body_canonical_test.ml` cases continue to pass; the
+     four properties (stability, sensitivity,
+     insensitivity-to-placeholder, CRLF-equals-LF) are not
+     affected by a comment change.
+
+counterexample: |
+  "Comments do not affect behaviour; a typo in a comment does
+  not need a decision."
+
+  Counterargument: per AGENTS.md §Self-application, edits to
+  `lib/*.ml` ship with a decision regardless of behavioural
+  impact, because the OCaml surface is policy-protected. The
+  decision body is the audit trail that says "this change was
+  considered, the strongest case against was 'no real change',
+  and the change was made anyway under heading X". This is the
+  same reasoning `lib-stale-comments-cleanup-2026-10` records.
+
+  "A typo fix should be handled in the same commit as a real
+  change; spinning off a one-line decision is overhead."
+
+  Counterargument: each decision is the strongest counterexample
+  to its own change. Bundling a typo with a real change hides
+  the typo from the audit trail (its ROAS-versus-Real-Change
+  boundary is invisible). One-issue commits on a single-file
+  decision keep the audit trail honest.
+
+scope:
+  capabilities:
+    - comment-typo-fix
+  paths:
+    - "lib/decision.ml"
+
+outcomes:
+  - id: decision-ml-no-ocaml-5-5-typo
+    statement: |
+      `grep -nE "OCaml 5\.5" lib/decision.ml` returns 0 matches.
+  - id: dune-build-clean
+    statement: |
+      `dune build` exits 0 on a clean tree (no new warnings).
+
+assumptions:
+  - id: comments-not-policy
+    state: assumed
+    statement: |
+      OCaml comments inside `lib/*.ml` are documentation, not
+      policy. The `Str` engine that ships with every OCaml
+      5.x release is the same POSIX-style engine that ships
+      with 5.5 if 5.5 existed; the change preserves the actual
+      semantic claim.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future OCaml release ships an `Str` engine that
+      supports `\{n\}` natively, the surrounding code would
+      still work (the manual placeholder substitution is
+      length-preserving and tolerant of either engine). No
+      behavioural change at any future 5.x version.
+    review_on:
+      - signal: ocaml-5-x-releases-str-with-interval-quantifier
+
+obligations:
+  - id: no-ocaml-5-5-typo-in-decision-ml
+    statement: |
+      `grep -nE "OCaml 5\.5" lib/decision.ml` returns 0 matches
+      at HEAD.
+    acceptance:
+      all:
+        - verifier: text-scan-no-ocaml-5-5-typo
+          result: pass
+    evidence: manual-acceptance
+  - id: dune-build-green
+    statement: |
+      `dune build` exits 0 on a clean tree.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+    evidence: manual-acceptance
+
+reversal:
+  - signal: comment-typo-introduces-new-behaviour
+    action: revert
+  - signal: dune-build-broken-by-this-commit
+    action: revert
+
+risk:
+  declared_triggers:
+    - policy-weakening  # only if the comment was policy-bearing
+  owner: human:maintainer
+
+relations:
+  refines:
+    - lib-stale-comments-cleanup-2026-10@1

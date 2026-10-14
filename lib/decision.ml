@@ -86,7 +86,7 @@ let[@warning "-32"] body_canonical_sha256 (bytes : string) : string =
     done;
     Buffer.contents buf
   in
-  (* The OCaml 5.5 `Str` module does not support the
+  (* The OCaml 5.x `Str` module does not support the
      `\{n\}` interval quantifier (only `*`, `+`, `?`), so
      the placeholder substitution is implemented with
      String.index + manual character checks rather than
