@@ -1,0 +1,44 @@
+---
+schema: math-coding/3.3
+id: constitution-header-3-3-update-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: editorial
+body_sha: ""
+yaml_sha: ""
+axiom_link: [A3]
+intent: |
+  Bump the constitution header from "3.0-alpha" to "3.3.0-alpha"
+  to match the published brand. No semantic change; the 14
+  invariants are unchanged. Editorial header refresh.
+antithesis: |
+  The header version number is decorative — leaving it stale
+  is documentation debt, not behavioural one. Rejected: the
+  published brand is 3.3.0-alpha, and the constitution should
+  name the version it currently governs to avoid ambiguity
+  during a kernel v3.2 → v3.3 boundary review.
+counterexample: |
+  "Bumping the header is a one-line typo fix, not worth a
+  decision file." Rejected per AGENTS.md §P1: spec/ is
+  policy-protected; any staged change to spec/*.md requires
+  a paired decision/*.yaml, regardless of behavioural impact.
+scope:
+  paths: [spec/constitution.md]
+outcomes:
+  - id: constitution-header-uses-3-3
+    statement: |
+      `head -1 spec/constitution.md` is
+      `# Math-coding 3.3.0-alpha constitution`.
+obligations:
+  - id: constitution-header-bumped
+    claim: |
+      `head -1 spec/constitution.md` matches
+      `^# Math-coding 3\.3\.0-alpha constitution$`.
+    acceptance:
+      all:
+        - verifier: text-scan-constitution-header
+          result: pass
+risk:
+  declared_triggers: [constitution-version-drift]
+  owner: human:maintainer
