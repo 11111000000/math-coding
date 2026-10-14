@@ -55,7 +55,7 @@ Options:
   -h | --help             show this help
 
 Examples:
-  curl -fsSL https://github.com/${MC_REPO}/releases/download/v\${VERSION}/install.sh | sh
+  curl -fsSL https://github.com/${MC_REPO}/releases/download/${VERSION}/install.sh | sh
   curl ... | sh -s -- --user-skill
   curl ... | sh -s -- --version=edge --with-docker
 
@@ -222,7 +222,11 @@ download_binary() {
   # Binary name on the release: mathc-<os>-<arch> (.exe on Windows,
   # but Windows isn't supported here).
   bin_basename="mathc-${os}-${arch}"
-  url="${MC_RELEASE_BASE}/v${version}/${bin_basename}"
+  case "$version" in
+    edge|latest) url="${MC_RELEASE_BASE}/${version}/${bin_basename}" ;;
+    v*)         url="${MC_RELEASE_BASE}/${version}/${bin_basename}" ;;
+    *)          url="${MC_RELEASE_BASE}/v${version}/${bin_basename}" ;;
+  esac
   if ! dl "$url" "$out"; then
     return 124
   fi
@@ -284,7 +288,11 @@ install_user_skill_file() {
   upgrade="$2"
   skill_dir=$(pick_skill_dir)
   skill_dst="$skill_dir/SKILL.md"
-  url="${MC_RELEASE_BASE}/v${version}/${MC_TARBALL_NAME}"
+  case "$version" in
+    edge|latest) url="${MC_RELEASE_BASE}/${version}/${MC_TARBALL_NAME}" ;;
+    v*)          url="${MC_RELEASE_BASE}/${version}/${MC_TARBALL_NAME}" ;;
+    *)           url="${MC_RELEASE_BASE}/v${version}/${MC_TARBALL_NAME}" ;;
+  esac
   tmpdir=$(mktemp -d) || {
     echo "install.sh: mktemp failed" >&2
     return 2
@@ -428,7 +436,11 @@ main() {
   bin_tmp=$(mktemp) || { echo "install.sh: mktemp failed" >&2; rm -f "$sums_tmp"; return 2; }
   trap 'rm -f "$sums_tmp" "$bin_tmp"' EXIT INT TERM
 
-  sums_url="${MC_RELEASE_BASE}/v${version}/SHA256SUMS"
+  case "$version" in
+    edge|latest) sums_url="${MC_RELEASE_BASE}/${version}/SHA256SUMS" ;;
+    v*)          sums_url="${MC_RELEASE_BASE}/${version}/SHA256SUMS" ;;
+    *)           sums_url="${MC_RELEASE_BASE}/v${version}/SHA256SUMS" ;;
+  esac
   if ! dl "$sums_url" "$sums_tmp"; then
     return 124
   fi
