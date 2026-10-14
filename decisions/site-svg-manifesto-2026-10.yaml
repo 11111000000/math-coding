@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-manifesto-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:b281a8db7ecf7cf25b74d83f9eb5d1eec64b1831eaa72d5f3ef9cd1a9b218e33"
-yaml_sha: "sha256:b281a8db7ecf7cf25b74d83f9eb5d1eec64b1831eaa72d5f3ef9cd1a9b218e33"
+body_sha: "sha256:ba533bc513ce465f92b1669590ce3a6d9b05a444859976c176bd3c2e5e38c79d"
+yaml_sha: "sha256:ba533bc513ce465f92b1669590ce3a6d9b05a444859976c176bd3c2e5e38c79d"
 axiom_link:
   - A4
 intent: |
@@ -41,14 +41,12 @@ intent: |
 
 commitment: |
   `mathc render` emits a `dist/manifesto.html` that
-  carries, in addition to the existing two figures, five
-  `<figure class="mathc-figure mathc-figure-manifesto">`
+  carries four `<figure class="mathc-figure mathc-figure-inline">`
   wrappers for `assets/architecture-overview.svg`,
   `assets/human-in-the-loop.svg`,
-  `assets/human-roles.svg`, `assets/kernel-vs-human.svg`,
-  and `assets/verdict-flow.svg`, in that order. Each
-  `<figure>` wraps an `<img>` with a non-empty `alt=`
-  attribute and a `title` element in the source SVG.
+  `assets/human-roles.svg`, and `assets/kernel-vs-human.svg`,
+  in that order. Each `<figure>` wraps an `<img>` with a non-empty
+  `alt=` attribute and a `title` element in the source SVG.
 
 scope:
   capabilities:
@@ -58,19 +56,16 @@ scope:
     - "assets/human-in-the-loop.svg"
     - "assets/human-roles.svg"
     - "assets/kernel-vs-human.svg"
-    - "assets/verdict-flow.svg"
     - "lib/render.ml"
     - "dist/manifesto.html"
 
 outcomes:
   - id: manifesto-svgs-render
     statement: The rendered `dist/manifesto.html` carries all
-      seven `<figure class="mathc-figure
-      mathc-figure-manifesto">` wrappers (the two
-      pre-existing plus the five new) in source order, and
-      each new `<img>` resolves to a present file in
-      `dist/assets/`. The five new SVGs are
-      accessibility-tagged (`role="img"` +
+      four `<figure class="mathc-figure mathc-figure-inline">`
+      wrappers in source order, and each `<img>` resolves
+      to a present file in `dist/assets/`. The four SVGs
+      are accessibility-tagged (`role="img"` +
       `aria-labelledby` + non-empty `<title>`) at the
       source level.
 
