@@ -27,15 +27,15 @@ Last verified at: HEAD `d52c85b` + 2026-10-14 kernel-fixes + site-redesign cycle
   closed the v3 dialectic antithesis slot. See git for the
   pre-3.3 sync chain.
 
-Attestation store at `attestations/` contains **739 files** (verified by
+Attestation store at `attestations/` contains **857 files** (verified by
 `mathc counters --format=json`; the count is regenerated from
-`ls attestations/` on every check); **`mathc packages` reports 107 active
-decisions / 114 total decision files / 380 obligations
-(213 pass, 152 unknown, 15 missing; the master policy's 7
+`ls attestations/` on every check); **`mathc packages` reports 112 active
+decisions / 119 total decision files / 395 obligations
+(271 pass, 112 unknown, 12 missing; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `mathc counters` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by
-`tests/counters_drift.ml`. Total decision files on disk: 100
+`tests/counters_drift.ml`. Total decision files on disk: 119
 (`decisions/*.yaml`, of which 7 are waivers / obligations-aggregator /
 migrations-history). 67 cram files in `tests/cli/`. 27 CLI
 subcommands.
@@ -433,17 +433,19 @@ This file is updated only when **a new decision file** is created or
 when **an existing decision** changes revision. It is NOT updated for
 every code change.
 
-Last updated at: HEAD `d52c85b` (2026-10-14): site-redesign
-merge brought in the new landing chrome (grouped nav, logo,
-5-section homepage); the counters/notes blocks above were
-re-anchored to the live HEAD after the merge reset PACKAGES.md
-to a stale snapshot. Counters: 107 active decisions / 114 total
-decision files / 380 obligations / 739 attestations / 67 cram
-files / 27 CLI subcommands. New cram fixtures
-(`tests/cli/counters-schema-introspection.t`,
-`tests/cli/validate-non-decisions.t`,
-`tests/cli/validate-considered-antithesis.t`) pin the three
-post-fix behaviours.
+Last updated at: HEAD `3c64970` (2026-10-14): 14-branch parallel
+fix batch merged. Counters: 112 active decisions / 119 total
+decision files / 395 obligations / 857 attestations / 67 cram
+files / 27 CLI subcommands. Branches shipped: docs-only
+fixes (readme, flake, skill, roadmap, ocaml-best-practices,
+changelog, constitution), placeholder-sha-cleanup, schema
+bump for attestation/waiver/policy, re-eval TODO literal,
+counters-drift decision dedupe, counters-drift test re-enable,
+PACKAGES counters refresh, and 118 review-class attestations
+for the 19 originally-unknown decisions. `mathc self-check`
+verdict on this HEAD: `unknown` (5 new decisions from this
+batch need their own attestations; not a regression — the
+19 pre-batch unknowns are now `pass`).
 
 Previous: HEAD `a84031b` (2026-10-14): two kernel fixes
 landed. `mathc counters` schema block (schema_enum,
