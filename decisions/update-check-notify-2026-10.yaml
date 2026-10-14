@@ -1,0 +1,213 @@
+---
+schema: math-coding/3.2
+id: update-check-notify-2026-10
+revision: 1
+state: deferred
+body_sha: "sha256:d794fa5f69805eceeed69e7afa706747e9cf4fdd8842bad7cb0c5b9a57861821"
+yaml_sha: "sha256:d794fa5f69805eceeed69e7afa706747e9cf4fdd8842bad7cb0c5b9a57861821"
+
+intent: |
+  Land a soft, opt-in update notification: when a user runs
+  `mathc version` (or `mathc self-check`), the kernel checks
+  the remote release manifest and prints a one-line note
+  when a newer version is available:
+
+      math-coding <local-version>: bootstrap
+      note: math-coding <remote-version> is available;
+            run `install.sh --user-skill --upgrade`
+
+  This closes the silent-rotation deficit: today, after
+  the per-user skill is installed, the user has to remember
+  to re-run `install.sh --user-skill --upgrade` after
+  every release. Per `decisions/auto-update-per-user-skill-impl-pending@1`,
+  silent auto-update is out of scope (Phase 3+) because of
+  the silent-mutation risk; the principled intermediate is
+  a notification that the user can choose to act on.
+
+  The notification is opt-in via the env var
+  `MATH_CODING_UPDATE_CHECK=off|on` (default `off`). When
+  `off`, the kernel performs no network call. When `on`,
+  the kernel makes a single `curl`-style HTTP HEAD against
+  `https://github.com/11111000000/math-coding/releases/latest`
+  (or a similar manifest URL); the call is short-circuited
+  if it would block for more than ~250 ms.
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "Silent
+  auto-update is the right affordance; a notification is
+  half-measure. Ship the silent version with the
+  uninstall-recovery roll-back path." The author engaged
+  with this position and rejected it on four grounds:
+  (a) per AGENTS.md and axiom A4 (Care), every commitment
+  that mutates user state (the per-user skill file at
+  `~/.config/opencode/skills/math-coding/SKILL.md`) must
+  have owner/consequence/recovery; silent mutation is the
+  exact failure mode A4 forbids; (b) per axiom A0
+  (Separation), the mathc binary and the per-user skill
+  are two distinct surfaces; coupling them silently
+  collapses the separation; (c) per
+  `auto-update-per-user-skill-impl-pending@1`, the
+  reversal condition `cosign-signature-missing` requires
+  signature verification before auto-update ships; that
+  is sequenced to Phase 3+; (d) the notification is the
+  principled intermediate: it gives the user the
+  information without taking the action, and only when
+  explicitly enabled.
+
+commitment: |
+  Three deliverables, in this order:
+
+  D1. New env var `MATH_CODING_UPDATE_CHECK` with values
+      `off` (default) and `on`. When `off`, the kernel
+      performs no network call and prints no note. The
+      existing `mathc version` / `mathc self-check`
+      output is unchanged.
+
+  D2. New sub-library `lib/update_check/update_check.ml`
+      with one function
+        `check_now : ~current:string -> string option`
+      that returns `Some` `<remote-version>` if the
+      remote is strictly newer than `current`, or `None`
+      if equal / older / unreachable. The function is
+      pure on its inputs; the I/O boundary (curl HEAD)
+      lives in `lib/update_check/transport.ml`. The
+      transport short-circuits at 250 ms.
+
+  D3. `bin/Mathc.ml::do_version` (and `do_self_check`)
+      consult `MATH_CODING_UPDATE_CHECK`. When `on`,
+      they call `check_now` and print the one-line
+      reminder below the version banner. When `off`,
+      they print the banner unchanged.
+
+  Boundaries (A3 self-application):
+  - New kernel surface: new env var, new sub-library,
+    new dispatcher arm? (No new subcommand; do_version
+    gets a new conditional emit.)
+  - `lib/`, `schemas/`, `axioms/` touched only by adding
+    `lib/update_check/`. No existing `lib/*.ml` is
+    modified beyond the dispatcher entry.
+  - The notification is opt-in; default `off`; no user
+    state changes without explicit `--upgrade`.
+  - Cosign signature verification is NOT in scope; the
+    reversal condition
+    `auto-update-per-user-skill-impl-pending-resolved`
+    still gates the auto-update path.
+
+scope:
+  capabilities:
+    - update-check-notify
+  paths:
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "lib/update_check/"
+    - "tests/cli/update-check.t"
+    - "decisions/update-check-notify-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/canonical.ml"
+    - "lib/schema.ml"
+    - "lib/codec.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+
+outcomes:
+  - id: env-var-respected
+    statement: |
+      `MATH_CODING_UPDATE_CHECK=off` (or unset) produces no
+      network call from `mathc version`; the existing
+      banner prints unchanged.
+  - id: env-var-prints-reminder
+    statement: |
+      `MATH_CODING_UPDATE_CHECK=on` causes `mathc version`
+      to print a one-line `note: math-coding <X.Y.Z> is
+      available; run 'install.sh --user-skill --upgrade'`
+      when a strictly newer version is published.
+
+counterexample: |
+  "What if the user is offline?" Counterargument:
+  `lib/update_check/transport.ml` short-circuits at
+  250 ms and returns `None` on any network failure;
+  the existing banner is printed unchanged.
+
+  "What if the network call is slow and `mathc version`
+   blocks the user?" Counterargument: the transport's
+  250 ms timeout prevents that; the call is opt-in
+  (`off` by default).
+
+  "What if the remote manifest is malformed?"
+  Counterargument: the transport returns `None` on any
+  parse failure; no fallback path is needed.
+
+assumptions:
+  - id: github-releases-api-stable
+    state: assumed
+    statement: |
+      `https://github.com/11111000000/math-coding/releases/latest`
+      returns an HTTP 302 to the latest release, whose URL
+      contains the tag name in the path segment. The
+      transport parses the tag name from the URL.
+    owner: human:maintainer
+    consequence_if_false: |
+      If GitHub changes the redirect chain, the
+      transport falls back to `None` and the
+      notification is silent; a follow-up rev-bump
+      updates the transport.
+    review_on:
+      - signal: github-redirect-shape-changed
+
+obligations:
+  - id: env-var-default-off
+    outcome: env-var-respected
+    claim: |
+      `MATH_CODING_UPDATE_CHECK` defaults to `off`; no
+      network call when unset.
+    acceptance:
+      all:
+        - verifier: tests/cli/update-check.t
+          result: pass
+  - id: env-var-on-prints-reminder
+    outcome: env-var-prints-reminder
+    claim: |
+      `MATH_CODING_UPDATE_CHECK=on` causes `mathc version`
+      to print a one-line reminder when a newer version
+      is published.
+    acceptance:
+      all:
+        - verifier: tests/cli/update-check.t
+          result: pass
+
+reversal:
+  - signal: cosign-signature-verified
+    condition: |
+      The Phase-3+ `auto-update-per-user-skill` lands
+      with cosign signature verification. Resolution:
+      supersede this decision; the auto-update path
+      replaces the notification.
+    action: rework-and-supersede
+  - signal: notification-noise
+    condition: |
+      More than 10% of `mathc version` invocations print
+      a reminder (per telemetry, when telemetry lands).
+      Resolution: roll back to silent mode.
+    action: rework
+
+risk:
+  declared_triggers:
+    - github-redirect-shape-changed
+    - manifest-malformed
+    - network-flaky
+    - 250ms-timeout-unreached
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - install-tooling-2026-10@1
+    - auto-update-per-user-skill-impl-pending@1
+  supersedes: []
+  superseded_by: []
