@@ -8,7 +8,7 @@
     "issuer", "issued_at", "expires_at", "reason"
   ],
   "properties": {
-    "schema": {"const": "math-coding/waiver-3.0-alpha"},
+    "schema": {"enum": ["math-coding/waiver-3.0-alpha", "math-coding/waiver-3.3"]},
     "kind": {"const": "waiver"},
     "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
     "policy_id": {"type": "string"},
