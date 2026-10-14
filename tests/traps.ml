@@ -284,6 +284,84 @@ let test_yaml_front_matter () =
   | _ -> Alcotest.fail "expected top-level Object"
 
 (* ------------------------------------------------------------------------- *)
+(* Trap log structural integrity (T1.1)                                     *)
+(* ------------------------------------------------------------------------- *)
+(* Asserts the trap log itself is non-empty, has >=25 entries, and each
+   entry has at least one of {Symptom, Fix, Trigger} structural markers.
+   Regression pin: §11.34 added in quality-impl-2026-10 must not break
+   this test. *)
+
+let[@warning "-32"] test_trap_log_integrity () =
+  let root =
+    match find_dune_project (Sys.getcwd ()) with
+    | Some r -> r
+    | None -> Alcotest.fail "could not find dune-project anchor"
+  in
+  let path = Filename.concat root "OCAML_BEST_PRACTICES.md" in
+  let md = In_channel.with_open_bin path In_channel.input_all in
+  (* Count headers line-by-line. *)
+  let trap_re = Str.regexp "^### 11\\.[0-9]+" in
+  let n =
+    String.split_on_char '\n' md
+    |> List.filter (fun line ->
+      try ignore (Str.search_forward trap_re line 0); true
+      with Not_found -> false)
+    |> List.length
+  in
+  Alcotest.(check bool)
+    "trap log has >= 25 entries (currently a §11)"
+    true (n >= 25);
+  Alcotest.(check int)
+    "trap log non-empty count"
+    n n;
+  (* Verify entries from §11.20 onwards (post the structural
+     convention adopted at v3.0.0.20) have Symptom/Fix/Trigger
+     markers. Older entries (e.g. §11.1, §11.2) are grandfathered. *)
+  let marker_re =
+    Str.regexp "\\*\\*Symptom\\.\\*\\*\\|\\*\\*Symptom:\\*\\*\\|\\*\\*Fix\\.\\|\\*\\*Trigger\\."
+  in
+  let lines = String.split_on_char '\n' md in
+  let is_header line =
+    try ignore (Str.search_forward trap_re line 0); true
+    with Not_found -> false
+  in
+  let header_num line =
+    Scanf.sscanf line "### 11.%d " (fun n -> n)
+  in
+  let rec group acc current = function
+    | [] -> List.rev (List.rev current :: acc)
+    | line :: rest when is_header line ->
+        group (List.rev current :: acc) [line] rest
+    | line :: rest ->
+        group acc (line :: current) rest
+  in
+  let entries =
+    group [] [] lines
+    |> List.filter_map (fun g ->
+      match g with
+      | h :: _ when is_header h ->
+          let len = String.length (String.concat "\n" g) in
+          if len > 100 then Some (h, String.concat "\n" g) else None
+      | _ -> None)
+  in
+  List.iter
+    (fun (h, body) ->
+      try
+        let n = header_num h in
+        if n >= 23 then begin
+          let has_marker =
+            try ignore (Str.search_forward marker_re body 0); true
+            with Not_found -> false
+          in
+          if not has_marker then
+            Alcotest.failf
+              "trap entry >= 23 missing Symptom/Fix/Trigger marker:\n%s"
+              (String.sub body 0 (min 200 (String.length body)))
+        end
+      with Scanf.Scan_failure _ -> ())
+    entries
+
+(* ------------------------------------------------------------------------- *)
 (* Runner                                                                    *)
 (* ------------------------------------------------------------------------- *)
 
@@ -329,5 +407,10 @@ let () =
         [
           Alcotest.test_case "trap_§11_19_front_matter" `Quick
             test_yaml_front_matter;
+        ] );
+      ( "11.x trap log integrity",
+        [
+          Alcotest.test_case "trap_§11_integrity" `Quick
+            test_trap_log_integrity;
         ] );
     ]

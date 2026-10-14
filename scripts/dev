@@ -16,6 +16,11 @@
 #                                     [--yes] also delete + push to origin
 #   scripts/dev init-hooks           — one-time: git config core.hooksPath
 #                                     .githooks
+#   scripts/dev precommit            — activate .githooks/ (idempotent)
+#                                     then exec git commit with the
+#                                     same args
+#   scripts/dev ready                — Definition-of-Done aggregator:
+#                                     8 stages; halts on first failure
 #   scripts/dev lock-update          — refresh flake.lock
 #   scripts/dev shell                — drop into nix develop .#test
 #   scripts/dev run FILE             — build + run mathc.exe FILE
@@ -252,6 +257,64 @@ case "$cmd" in
     echo ""
     printf "  %d passed, %d failed\n" "$ok" "$fail"
     [ "$fail" -eq 0 ]
+    ;;
+
+  precommit)
+    # Guarantee .githooks/pre-commit is active, then exec git commit.
+    # Idempotent: activates the hook if missing or pointing elsewhere,
+    # then runs `git commit` with the caller's args verbatim. Required
+    # because ad-hoc `git commit` on a fresh clone bypasses the
+    # pre-commit verifier (see decisions/init-hooks-installer-2026-10).
+    cd "$(dirname "$0")/.."
+    if [ "$(git config core.hooksPath 2>/dev/null)" != ".githooks" ]; then
+      echo "scripts/dev precommit: activating .githooks/ (was: $(git config core.hooksPath 2>/dev/null || echo '<unset>'))"
+      git config core.hooksPath .githooks
+    fi
+    exec git commit "$@"
+    ;;
+
+  ready)
+    # Definition-of-Done aggregator (AGENTS.md §Definition of Done).
+    # Runs every check in deterministic order; halts on first
+    # failure with the failing stage's exit code. Each stage
+    # prints a header so CI logs identify the failing sub-step.
+    cd "$(dirname "$0")/.."
+    # Resolve the mathc binary at outer scope so the inner bash
+    # passed to `nix develop --command bash -c "..."` inherits a
+    # working path. Prefer the local build artifact; fall back
+    # to a `mathc` symlink on PATH (~/.local/bin/mathc); bail
+    # with a clear error if neither exists.
+    if [ -x ./_build/default/bin/mathc.exe ]; then
+      mathc_bin=./_build/default/bin/mathc.exe
+    elif command -v mathc >/dev/null 2>&1; then
+      mathc_bin=$(command -v mathc)
+    else
+      echo "scripts/dev ready: cannot find mathc binary (build with 'scripts/dev build' first, or install ~/.local/bin/mathc)" >&2
+      exit 1
+    fi
+    MATHC_BIN="$mathc_bin" run_in_shell 'set -e; \
+      echo "ready: stage 1/8 = scripts/dev verify"; \
+      scripts/dev verify; \
+      echo "ready: stage 2/8 = mathc validate (all decisions)"; \
+      for d in decisions/*.yaml; do \
+        case "$d" in \
+          decisions/decision.yaml|decisions/obligations.yaml|decisions/rationale.md) ;; \
+          *) "$MATHC_BIN" validate "$d" ;; \
+        esac; \
+      done; \
+      echo "ready: stage 3/8 = mathc self-check"; \
+      "$MATHC_BIN" self-check; \
+      echo "ready: stage 4/8 = sync-version.sh --check"; \
+      scripts/sync-version.sh --check; \
+      echo "ready: stage 5/8 = check-merlin.sh"; \
+      scripts/check-merlin.sh; \
+      echo "ready: stage 6/8 = stub-lint (real-diff)"; \
+      scripts/check-stub-lint.sh --mode=real-diff; \
+      echo "ready: stage 7/8 = check-adoption-doc-freshen.sh"; \
+      scripts/check-adoption-doc-freshen.sh; \
+      echo "ready: stage 8/8 = check-opencode-skill.sh"; \
+      scripts/check-opencode-skill.sh; \
+      echo "ready: all checks passed"'
     ;;
 
   ""|-h|--help|help)
