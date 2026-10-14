@@ -414,9 +414,9 @@ This decision references axiom %s which has been changed.
 
 ### Suggested new commitment
 
-[TODO: depends on the specific axiom change — open the new axiom
+(depends on the specific axiom change; open the new axiom
 text in `axioms/%s.md`, identify which phrases in the current
-commitment are now stale, and rewrite them.]
+commitment are now stale, and rewrite them.)
 |}
     d.Domain.id axiom_id axiom_id d.Domain.id d.Domain.commitment axiom_id
 

@@ -1,0 +1,169 @@
+---
+schema: math-coding/3.3
+id: re-eval-remediation-todo-fix-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: ""
+yaml_sha: ""
+change_kind: editorial
+
+axiom_link:
+  - A0
+
+intent: |
+  `lib/re_evaluation.ml:417` ships a literal `[TODO: depends on
+  the specific axiom change — ...]` inside the `remediation`
+  function's Printf template. That literal is not a real
+  developer note — it lives inside a `%s`-style format string that
+  `mathc re-evaluate` emits to the operator as actionable text.
+  A TODO marker reaching the operator's terminal is a documented
+  trap: per AGENTS.md §Definition of Done, the build fails if a
+  `stub`/`FIXME`/`Phase <N>` literal appears in `lib/` or `bin/`
+  without a paired decision (run via `scripts/check-stub-lint.sh`).
+
+  The placeholder is replaced with a non-TODO parenthetical that
+  keeps the operator's instructions intact:
+  `(depends on the specific axiom change; open the new axiom
+  text in `axioms/%s.md`, identify which phrases in the current
+  commitment are now stale, and rewrite them.)`.
+
+  This decision exists because `lib/re_evaluation.ml` is
+  P1-protected (per AGENTS.md §Self-application and
+  `decisions/process-principles.yaml:P1`). The change is
+  editorial (no OCaml expression evaluates the `[TODO: ...]`
+  text differently; only the literal string the function returns)
+  changes), but the P1 rule requires a decision regardless of
+  behavioural impact, following the precedent set by
+  `lib-stale-comments-cleanup-2026-10@1` and
+  `lib-comment-typo-fixes-2026-10@1`.
+
+antithesis: |
+  The strongest counterargument is to simply delete the entire
+  `remediation` function (or its `### Suggested new commitment`
+  block). Without a remediation template, `mathc re-evaluate`
+  would emit a shorter, cleaner report and operators would have
+  one fewer thing to skim. Rejected because:
+    (a) the template is the operator-facing narration that tells
+        the user how to author a new commitment after a
+        axiom-induced invalidation — removing it pushes the
+        knowledge burden onto `ROADMAP.md` and out of the
+        tool's output;
+    (b) `re-evaluate` is a public contract; deleting it
+        silently would be a breaking change with no migration
+        path. The minimum sufficient response is to fix the
+        literal, not to remove the surface.
+  Therefore the placeholder is rewritten in place, leaving the
+  surrounding Printf template and `%s` substitution points
+  untouched.
+
+commitment: |
+  1. `lib/re_evaluation.ml:415-420` — the literal `[TODO: ...]`
+     inside the `remediation` Printf template is replaced with
+     `(depends on the specific axiom change; open the new axiom
+     text in `axioms/%s.md`, identify which phrases in the current
+     commitment are now stale, and rewrite them.)`. No `%s`
+     substitution point, surrounding block, or `d.Domain.*`
+     call site is touched.
+  2. `dune build` succeeds.
+  3. `grep -nE "\[TODO" lib/re_evaluation.ml` returns 0 matches.
+  4. The pre-existing tests (`dune test`) that exercise the
+     `remediation` function (if any) continue to pass; the
+     change preserves the operator-facing instructions
+     semantically.
+
+counterexample: |
+  "The `[TODO:` literal is just a developer note; it doesn't
+  affect runtime behaviour and therefore doesn't need a
+  decision."
+
+  Counterargument: per AGENTS.md §Self-application and the
+  `scripts/check-stub-lint.sh` rule cited in §Definition of
+  Done, ANY `stub`/`FIXME`/`Phase <N>` marker in `lib/` or
+  `bin/` without a paired `decisions/<id>.yaml` is a build
+  blocker. A TODO literal that ships into operator-facing output
+  is the same class of marker and trips the same rule. The
+  decision body is the audit trail that pairs the marker with
+  its resolution.
+
+  "Just remove the `### Suggested new commitment` block; nobody
+  reads it."
+
+  Counterargument: that is the antithesis above, not the
+  counterexample. The counterexample is the case where the
+  simplest reading is "markers are inert". The marker is not
+  inert here: it is the operator's literal text after
+  `mathc re-evaluate` finishes.
+
+scope:
+  capabilities:
+    - remediation-template-cleanup
+  paths:
+    - "lib/re_evaluation.ml"
+  exclusions:
+    - "lib/codec.ml"   # contains a separate TODO literal; out of scope (other package)
+    - "lib/decision.ml" # contains a separate TODO literal; out of scope (other package)
+
+outcomes:
+  - id: remediation-tpl-no-todo-literal
+    statement: |
+      The `remediation` function in `lib/re_evaluation.ml` no
+      longer contains the literal `[TODO:` (or any equivalent
+      marker of the form `[TODO`, `TODO:`, `FIXME`, `Phase <N>`,
+      or `stub`) inside its Printf template.
+
+assumptions:
+  - id: comments-not-policy
+    state: assumed
+    statement: |
+      The bracketed TODO literal was a developer's placeholder
+      marker inside a string literal, not policy-bearing content.
+      Its removal does not affect any acceptance predicate,
+      attestation, or kernel verdict.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the marker was in fact policy-bearing (e.g., encoded
+      an axiom-derived invariant that operators are expected to
+      copy verbatim), rewriting it would lose information. The
+      replacement text preserves the operator-facing instructions
+      semantically: "open the new axiom text, identify stale
+      phrases, rewrite them" — the same workflow the original
+      marker described.
+    review_on:
+      - signal: operator-comments-that-remediation-text-is-wrong
+
+obligations:
+  - id: remediation-tpl-no-todo-literal
+    statement: |
+      `grep -nE "\[TODO" lib/re_evaluation.ml` returns 0 matches.
+    acceptance:
+      all:
+        - verifier: text-scan-no-todo-in-remediation-tpl
+          result: pass
+    evidence: manual-acceptance
+  - id: dune-build-green
+    statement: |
+      `dune build` exits 0 on a clean tree after the
+      `lib/re_evaluation.ml` change is applied.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+    evidence: manual-acceptance
+
+reversal:
+  - signal: removal-changes-operator-facing-text-meaningfully
+    action: revert
+  - signal: dune-build-broken-by-this-commit
+    action: revert
+
+risk:
+  declared_triggers:
+    - policy-weakening  # only if the marker was policy-bearing
+  owner: human:maintainer
+
+relations:
+  refines:
+    - lib-stale-comments-cleanup-2026-10@1
+  addresses:
+    - lib-comment-typo-fixes-2026-10@1
