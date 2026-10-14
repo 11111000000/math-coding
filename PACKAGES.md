@@ -27,17 +27,17 @@ Last verified at: HEAD `d52c85b` + 2026-10-14 kernel-fixes + site-redesign cycle
   closed the v3 dialectic antithesis slot. See git for the
   pre-3.3 sync chain.
 
-Attestation store at `attestations/` contains **391 files** (verified by
+Attestation store at `attestations/` contains **739 files** (verified by
 `mathc counters --format=json`; the count is regenerated from
-`ls attestations/` on every check); **`mathc packages` reports 95 active
-decisions / 102 total decision files / 332 obligations
-(315 pass, 16 missing, 1 unknown; the master policy's 7
+`ls attestations/` on every check); **`mathc packages` reports 107 active
+decisions / 114 total decision files / 380 obligations
+(213 pass, 152 unknown, 15 missing; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `mathc counters` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by
 `tests/counters_drift.ml`. Total decision files on disk: 100
 (`decisions/*.yaml`, of which 7 are waivers / obligations-aggregator /
-migrations-history). 64 cram files in `tests/cli/`. 27 CLI
+migrations-history). 67 cram files in `tests/cli/`. 27 CLI
 subcommands.
 
 > Note: at HEAD `d52c85b` the `mathc counters` `schema`
@@ -437,8 +437,8 @@ Last updated at: HEAD `d52c85b` (2026-10-14): site-redesign
 merge brought in the new landing chrome (grouped nav, logo,
 5-section homepage); the counters/notes blocks above were
 re-anchored to the live HEAD after the merge reset PACKAGES.md
-to a stale snapshot. Counters: 95 active decisions / 102 total
-decision files / 332 obligations / 391 attestations / 64 cram
+to a stale snapshot. Counters: 107 active decisions / 114 total
+decision files / 380 obligations / 739 attestations / 67 cram
 files / 27 CLI subcommands. New cram fixtures
 (`tests/cli/counters-schema-introspection.t`,
 `tests/cli/validate-non-decisions.t`,
@@ -462,7 +462,7 @@ math-coding 3.3 (semver `3.3.0`). Header renames across ROADMAP,
 PACKAGES, README, AGENTS, USAGE, OCAML_BEST_PRACTICES,
 axioms/index.md, `bin/data/time-distribution.yaml`; CHANGELOG
 opens a `v3.3.0-alpha` section. Counters refreshed to
-93 active decisions / 330 obligations / 391 attestations / 64 cram
+107 active decisions / 380 obligations / 739 attestations / 67 cram
 files / 27 CLI subcommands.
 
 Previous: HEAD `ed069f7` (2026-10-12): self-check-recovery cycle
