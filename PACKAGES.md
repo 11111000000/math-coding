@@ -1,6 +1,6 @@
-# Math-coding 3.0 — Packages
+# Math-coding 3.3 — Packages
 
-> **Single source of truth for "what exists in math-coding 3.0".**
+> **Single source of truth for "what exists in math-coding 3.3".**
 > If you are a new agent picking up this repository, this is the file
 > you read first (after `ROADMAP.md`, which is the priority queue).
 > Every other decision document can be read in isolation; this one

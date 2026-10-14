@@ -22,7 +22,7 @@ intent: |
 
   After this cycle, the user-visible adoption flow is:
 
-    curl -fsSL https://github.com/11111000000/math-coding/releases/download/v3.1.0-alpha-final/install.sh | sh
+    curl -fsSL https://github.com/11111000000/math-coding/releases/download/v3.3/install.sh | sh
 
   (or with `--user-skill`, `--with-docker`, `--print-nix-command`)
   and the script:

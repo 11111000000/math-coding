@@ -1,4 +1,4 @@
-# math-coding 3.0-alpha
+# math-coding 3.3
 
 > Author: Petr Kosov <p.b.kosov@yandex.ru>
 > Status: 3.0-alpha, current release v3.1.0-alpha. Bootstrap gate

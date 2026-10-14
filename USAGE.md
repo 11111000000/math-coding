@@ -133,7 +133,7 @@ applicability as a sum over signals:
 > more contributors?
 > Yes → Path A. No → Path B.
 
-### Path A — full math-coding 3.2
+### Path A — full math-coding 3.3
 
 For applicable projects. The full ceremony is justified.
 
@@ -144,7 +144,7 @@ For applicable projects. The full ceremony is justified.
   older glibc or musl-libc (Alpine), the glibc binary may fail
   with `GLIBC_X.Y not found`. A musl-linked variant
   (`mathc-linux-x86_64-musl`) was attempted via `feature/portable-musl-build`
-  but reverted in v3.2 (see `decisions/portable-linux-musl.yaml`
+  but reverted in v3.3 (see `decisions/portable-linux-musl.yaml`
   reversal signal `alpine-ci-build-fails`); the CI build pipeline
   was unable to drive the Alpine container's opam setup end-to-end.
   A future release will re-attempt.

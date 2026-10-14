@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# math-coding 3.0-alpha: dune fmt --check wrapper.
+# math-coding 3.3: dune fmt --check wrapper.
 #
 # obligation ocamlformat-fmt-clean: exposes `dune fmt --preview`
 # (dune 3.23 has no `--check` flag) as a pass/fail script for the

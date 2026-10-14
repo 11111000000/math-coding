@@ -1,10 +1,10 @@
-# math-coding 3.0-alpha — time reference-class distribution.
+# math-coding 3.3 — time reference-class distribution.
 #
 # This file is a DECLARED distribution. It is NOT derived from
 # math-coding itself. It is the floor of the reference class that
 # `mathc time-estimate` (bin/Mathc.ml) uses for outside-view forecasting.
 #
-# Schema: math-coding/time-distribution-3.0-alpha
+# Schema: math-coding/time-distribution-3.3
 # Source: SWE-bench Verified (n=500, 2025-Q4 frontier models)
 # URL:    https://www.swebench.com/verified
 # Declared: 2026-09-26 by human:maintainer
