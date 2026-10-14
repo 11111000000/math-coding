@@ -27,9 +27,9 @@ Last verified at: HEAD `d52c85b` + 2026-10-14 kernel-fixes + site-redesign cycle
   closed the v3 dialectic antithesis slot. See git for the
   pre-3.3 sync chain.
 
-Attestation store at `attestations/` contains **857 files** (verified by
+Attestation store at `attestations/` contains **804 files** (verified by
 `mathc counters --format=json`; the count is regenerated from
-`ls attestations/` on every check); **`mathc packages` reports 112 active
+`ls attestations/` on every check); **`mathc packages` reports 107 active
 decisions / 119 total decision files / 395 obligations
 (271 pass, 112 unknown, 12 missing; the master policy's 7
 obligations are enumerated separately)**. The exact numbers

@@ -59,22 +59,29 @@ let[@warning "-32"] file_ends_with_suffix f suff =
   fl >= sl && String.sub f (fl - sl) sl = suff
 
 (* Decision is active if its YAML carries `state: active`
-   at the start of a line. A line is "at the start" if it
-   begins with `state:` followed by whitespace and `active`
-   (and no other characters). *)
+   at the start of a line (column 0, no leading whitespace).
+   A line is "at the start" if it begins with `state:` followed
+   by a single space and `active` (and no other characters).
+   Lines inside nested blocks (e.g. `assumptions:` carry
+   `state: assumed` per assumption) are filtered out by the
+   column-0 check. *)
 let[@warning "-32"] is_active_decision body =
   let lines = String.split_on_char '\n' body in
   List.exists
     (fun line ->
-      let line = String.trim line in
       let prefix = "state:" in
       let pl = String.length prefix in
       let ll = String.length line in
-      if ll < pl + 8 then false
+      (* "state: active" is 13 chars. pl+1=7 is start of "active".
+         Allow exactly 13 (active) or more (with trailing whitespace). *)
+      if ll < 13 then false
+      else if line.[0] <> 's' then false
       else if String.sub line 0 pl <> prefix then false
       else
-        let after = String.trim (String.sub line pl (ll - pl)) in
-        after = "active")
+        if line.[pl] <> ' ' then false
+        else
+          let after = String.sub line (pl + 1) (ll - pl - 1) in
+          after = "active")
     lines
 
 let[@warning "-32"] count_active_decisions () =
