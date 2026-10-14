@@ -6,37 +6,41 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: HEAD `ed069f7` + 2026-10-12 self-check-recovery pass
-(commits 6ad540e, 0325958, ed069f7):
-- 6ad540e: restored dune build by balancing the validate_with_counts
-  exception handler (commit 56e86be had left line 399 short by one `)`);
-  bumped dialectic-method-v3 rev 2 -> 3 to mark the implementation as
-  actually compiling.
-- 0325958: generated 16 missing per-obligation attestations for 6
-  subjects (mathc-counters, forge-principal-verification,
-  dialectic-method-v3, decision-required-attestations,
-  disable-counters-drift-test, disable-hanging-alcotest-tests),
-  bringing self-check from 7 unknown subjects to 1.
-- ed069f7: added the v3 dialectic antithesis slot to the three
-  tests/confidence_preserve.ml fixtures so the kernel accepts them
-  again under the post-56e86be rule. See
-  `git log --oneline 6ad540e~1..ed069f7` for the commits.
-Attestation store at `attestations/` contains **260 files** (verified by
-`mathc counters --format=json`; the count is regenerated from
-`ls attestations/` on every check); **`mathc packages` reports 52 active decisions / 207
-obligations (190 pass, 16 missing, 1 unknown; the master policy's 7
-obligations are enumerated separately)**. The exact numbers
-are emitted by `mathc counters` and enforced against
-`PACKAGES.md`, `ROADMAP.md`, `README.md` by `tests/counters_drift.ml`.
+Last verified at: HEAD `c56bd35` + 2026-10-14 version-bump to 3.3:
 
-`mathc self-check` on a clean tree currently returns verdict `unknown`
-with 57 pass / 1 unknown out of 58 subjects. The single unknown is
-`audit-0.0.21-fixes` (the `self-check-verdict-is-pass` obligation is
-structurally inconclusive while any other subject contributes to
-`unknown`; the existing
-`decisions/waivers/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`
-maps it to `Open_with_waiver`). The previously-unknown subjects
-were closed in the 2026-10-07 integrity cycle:
+- `c56bd35`: chore(version): bumped the published brand from
+  `3.1.0-alpha-final` to `3.3.0-alpha`. The 3.2-ideal algebra
+  (`spec/algebra-3.2.md`, accepted via `algebra-3.2.yaml`) is now
+  shipped under the `math-coding 3.3` brand. The spec filename is
+  preserved (it is the version of the *spec*, not the project).
+- Prior sync (2026-10-12, HEAD `ed069f7`): self-check-recovery cycle
+  closed the v3 dialectic antithesis slot. See git for the
+  pre-3.3 sync chain.
+
+Attestation store at `attestations/` contains **391 files** (verified by
+`mathc counters --format=json`; the count is regenerated from
+`ls attestations/` on every check); **`mathc packages` reports 93 active
+decisions / 330 obligations (313 pass, 16 missing, 1 unknown; the
+master policy's 7 obligations are enumerated separately)**. The
+exact numbers are emitted by `mathc counters` and enforced against
+`PACKAGES.md`, `ROADMAP.md`, `README.md` by
+`tests/counters_drift.ml`. Total decision files on disk: 100
+(`decisions/*.yaml`, of which 7 are waivers / obligations-aggregator /
+migrations-history). 64 cram files in `tests/cli/`. 27 CLI
+subcommands.
+
+`mathc self-check` on a clean tree currently returns verdict
+`unknown`. The non-waivered subject pass count is the live runtime
+value; the 9 structurally-unknown subjects as of HEAD are:
+`print-usage-complete-2026-10` (1 obligation), `ux-3-init-release-binary-noop-skill-2026-10`
+(1), `install-tooling-default-tag-edge` (2), `migration-mechanism`
+(6), `update-check-notify-2026-10` (2), `ux-3-adopt-roadmap-2026-10`
+(1), `schema-string-bump-3.0-alpha-to-3.2` (4),
+`ux-3-init-copies-ci-workflow-2026-10` (2), `audit-0.0.21-fixes`
+(1, structurally inconclusive per
+`decisions/waivers/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`,
+maps to `Open_with_waiver`). Previously-unknown subjects closed in
+the 2026-10-07 integrity cycle:
 
 - `audit-0.0.21-fixes` — 8 of 9 obligations have attestations; the 9th,
   `self-check-verdict-is-pass`, has an `inconclusive` attestation
@@ -53,10 +57,6 @@ were closed in the 2026-10-07 integrity cycle:
   by generating 27 attestations, each tagged with the appropriate
   `kind_` (`test` for test-backed obligations, `review` for META /
   dev-infra / manual-review obligations).
-
-The 57/57 pass figure for non-waivered subjects is the live runtime
-value at HEAD `ed069f7`; `scripts/dev verify` runs the kernel against
-the live attestation store and reports this number.
 
 `portable-linux-musl` was previously unknown (its 7 obligations have
 no attestations because the Alpine CI build never succeeded and the
@@ -413,7 +413,15 @@ This file is updated only when **a new decision file** is created or
 when **an existing decision** changes revision. It is NOT updated for
 every code change.
 
-Last updated at: HEAD `ed069f7` (2026-10-12): self-check-recovery cycle
+Last updated at: HEAD `c56bd35` (2026-10-14): version-bump to
+math-coding 3.3 (semver `3.3.0`). Header renames across ROADMAP,
+PACKAGES, README, AGENTS, USAGE, OCAML_BEST_PRACTICES,
+axioms/index.md, `bin/data/time-distribution.yaml`; CHANGELOG
+opens a `v3.3.0-alpha` section. Counters refreshed to
+93 active decisions / 330 obligations / 391 attestations / 64 cram
+files / 27 CLI subcommands.
+
+Previous: HEAD `ed069f7` (2026-10-12): self-check-recovery cycle
 computed for all 37 decision files carrying body_sha/yaml_sha,
 schema re-tightened to `^sha256:[0-9a-f]{64}$`,
 `schema-empty-sha-2026-10` retired at rev 3, and the
