@@ -13,21 +13,38 @@
    `mathc validate` uses for decision `id` validation. We
    mirror it here so the user gets a template that
    `mathc validate` will accept. *)
-let id_regex =
-  let open Str in
-  regexp "^[a-z0-9][a-z0-9-]*[a-z0-9]$|^[a-z0-9]$"
+(* Pure-OCaml id validation: 1..128 chars, all in [a-z0-9-], no
+   leading or trailing dash. We avoid Str.regexp to sidestep the
+   POSIX ERE interaction with shell-passed strings. *)
+let is_id_char c = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c = '-'
 
 let validate_id id =
-  if String.length id = 0 then
+  let len = String.length id in
+  if len = 0 then
     Error "decision id is empty"
-  else if String.length id > 128 then
+  else if len > 128 then
     Error "decision id exceeds 128 chars"
-  else if Str.string_match id_regex id 0 then
-    Ok id
-  else
+  else if not (is_id_char id.[0]) || id.[0] = '-' then
     Error
       ("invalid decision id: " ^ id
-       ^ " (expected kebab-case: lowercase ASCII + digits + dashes)")
+       ^ " (expected kebab-case: must start with [a-z0-9])")
+  else if not (is_id_char id.[len - 1]) || id.[len - 1] = '-' then
+    Error
+      ("invalid decision id: " ^ id
+       ^ " (expected kebab-case: must end with [a-z0-9])")
+  else
+    begin
+      try
+        for i = 0 to len - 1 do
+          if not (is_id_char id.[i]) then
+            raise Exit
+        done;
+        Ok id
+      with Exit ->
+        Error
+          ("invalid decision id: " ^ id
+           ^ " (expected kebab-case: only [a-z0-9-] allowed)")
+    end
 
 (* --- template ------------------------------------------------- *)
 
@@ -127,7 +144,7 @@ let run (opts : options) =
              the printed template below is the scaffold.\n";
           print_string contents;
           flush stdout;
-          Printf.fprintf
+          Printf.fprintf stdout
             "mathc new-decision: --write would write to %s/decisions/%s.yaml\n"
             (project_root ())
             id
@@ -138,7 +155,7 @@ let run (opts : options) =
            | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
           let target = Filename.concat path (id ^ ".yaml") in
           if Sys.file_exists target && not opts.force then begin
-            Printf.fprintf
+            Printf.fprintf stderr
               "mathc new-decision: %s already exists; pass --force to overwrite\n"
               target;
             exit 1

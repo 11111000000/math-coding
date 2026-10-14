@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: ux-3-new-decision-subcommand-2026-10
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:b2eb568c26e0a6d83d882351b0785f54c6f91f1ac564ee0817edf7e3a9b99909"
-yaml_sha: "sha256:b2eb568c26e0a6d83d882351b0785f54c6f91f1ac564ee0817edf7e3a9b99909"
+body_sha: "sha256:e34435483172746692248c4b6fd1af75b130575f010b4617093e1699db862089"
+yaml_sha: "sha256:e34435483172746692248c4b6fd1af75b130575f010b4617093e1699db862089"
 
 intent: |
   Phase 4 of the ux-3 workstream. Land a `mathc new-decision
@@ -221,3 +221,7 @@ relations:
     - install-tooling-default-tag-edge@1
   supersedes: []
   superseded_by: []
+
+rev-history:
+  - "rev 1: initial implementation of mathc new-decision subcommand (T7) at commit 465ec3c"
+  - "rev 2: pure-OCaml id validation; Printf.fprintf out_channel fix; 2026-10-14"
