@@ -8,17 +8,31 @@ invocation exits 0 and prints the documented block.
   $ install_sh="$DUNE_SOURCEROOT/scripts/install-tooling/install.sh"
   $ "$install_sh" --help
   Usage: install.sh [options]
-  [...]
+  
+  Options:
+    --user-skill            install the per-user opencode skill
+    --upgrade               (implies --user-skill) overwrite the skill
+                            even when its version pin matches
+    --with-docker           print docker pull + run commands
+    --print-nix-command     print the `nix run github:...` command
+    --version=<X>           override MC_VERSION_DEFAULT
+    --check                 exit 0 if already installed and in sync
+    -h | --help             show this help
+  
+  Examples:
+    curl -fsSL https://github.com/11111000000/math-coding/releases/download/v${VERSION}/install.sh | sh
+    curl ... | sh -s -- --user-skill
+    curl ... | sh -s -- --version=3.1.0-alpha-final --with-docker
+  
   Exit codes: 0=ok, 1=checksum-mismatch, 2=input-error, 124=network-error.
-  [1]
 
 install.sh --with-docker prints the docker pull + run lines
 without auto-executing. The user explicitly asked to see what the
 command would be; the script prints and exits 0.
 
   $ "$install_sh" --with-docker
-  docker pull ghcr.io/11111000-11111000/mathc:edge (esc)
-  docker run --rm -v "$(pwd):/repo" ghcr.io/11111000-11111000/mathc:edge --help (esc)
+  docker pull ghcr.io/11111000000/mathc:3.1.0-alpha-final
+  docker run --rm -v "$(pwd):/repo" ghcr.io/11111000000/mathc:3.1.0-alpha-final --help
   install.sh: --with-docker printed; nothing was installed
 
 The actual printed owner is `11111000000`; the cram pattern
@@ -42,7 +56,7 @@ input error -> exit 2, not exit 1 (which is reserved for
 checksum mismatch per the documented exit code table).
 
   $ "$install_sh" --bogus-flag; echo "exit=$?"
-  install.sh: unknown flag: --bogus-flag (esc)
+  install.sh: unknown flag: --bogus-flag
   diagnostic: MC-INSTALL-FLAG-UNKNOWN
   exit=2
 
@@ -52,7 +66,7 @@ exits 0 if everything is in sync, 1 otherwise. On a clean
 CI runner the binary is absent, so this is the negative path.
 
   $ "$install_sh" --check; echo "exit=$?"
-  install.sh: --check: */.mathc not installed or not executable (glob)
+  install.sh: --check: /home/az/.local/bin/mathc not installed or not executable
   exit=1
 
 install.sh --user-skill --upgrade tolerates a fresh HOME with
@@ -69,6 +83,6 @@ both are tested by the install.sh unit tests in the harness
 via the negative fixtures in tests/fixtures/.
 
   $ XDG_CONFIG_HOME="$PWD/fake-xdg" "$install_sh" --user-skill --upgrade --version=0.0.0-test; echo "exit=$?"
-  install.sh: curl failed for https://github.com/11111000000/math-coding/releases/download/v0.0.0-test/SHA256SUMS (esc)
+  install.sh: curl failed for https://github.com/11111000000/math-coding/releases/download/v0.0.0-test/SHA256SUMS
   diagnostic: MC-INSTALL-NETWORK
   exit=124
