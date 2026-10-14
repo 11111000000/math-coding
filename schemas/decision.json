@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://math-coding.org/schema/3.0-alpha/decision.json",
+  "$id": "https://math-coding.org/schema/3.3/decision.json",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -9,12 +9,14 @@
   ],
   "properties": {
     "schema": {
-      "description": "Schema family identifier. Both forms are accepted for each accepted family: the canonical `math-coding/<family>/decision` (JSON) and the family-only `math-coding/<family>` (YAML). The accepted families are `3.0-alpha` (legacy, soft-deprecated per `decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml`) and `3.2` (current).",
+      "description": "Schema family identifier. Both forms are accepted for each accepted family: the canonical `math-coding/<family>/decision` (JSON) and the family-only `math-coding/<family>` (YAML). The accepted families are `3.0-alpha` (legacy, soft-deprecated per `schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml`), `3.2` (intermediate, soft-deprecated per the same), and `3.3` (current, adopted by `schema-string-bump-3.0-alpha-to-3.3-2026-10.yaml`).",
       "enum": [
         "math-coding/3.0-alpha",
         "math-coding/3.0-alpha/decision",
         "math-coding/3.2",
-        "math-coding/3.2/decision"
+        "math-coding/3.2/decision",
+        "math-coding/3.3",
+        "math-coding/3.3/decision"
       ]
     },
     "kind": {

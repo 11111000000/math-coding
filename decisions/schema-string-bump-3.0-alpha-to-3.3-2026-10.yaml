@@ -1,0 +1,265 @@
+---
+schema: math-coding/3.2
+id: schema-string-bump-3.0-alpha-to-3.3-2026-10
+revision: 1
+state: active
+body_sha: "sha256:1145fb46ee8b78d48203f7a873d1dc298e5de6ba8e13cd78f3cdf0dbcb491d14"
+yaml_sha: "sha256:1145fb46ee8b78d48203f7a873d1dc298e5de6ba8e13cd78f3cdf0dbcb491d14"
+intent: |
+  Bring the JSON-schema `$id` family from `3.0-alpha` to `3.3`,
+  matching the published brand that this release cycle adopts.
+  Concretely: every `schemas/*.json` `$id` URL changes from
+  `https://math-coding.org/schema/3.0-alpha/<name>.json` to
+  `https://math-coding.org/schema/3.3/<name>.json`. The
+  `schemas/decision.json` `properties.schema.enum` is widened
+  to accept the new family `math-coding/3.3` (and the JSON
+  form `math-coding/3.3/decision`); the legacy families
+  `math-coding/3.0-alpha` and `math-coding/3.0-alpha/decision`
+  remain accepted for one release cycle, alongside the
+  intermediate `math-coding/3.2` and `math-coding/3.2/decision`
+  that the prior `schema-string-bump-3.0-alpha-to-3.2-2026-10`
+  introduced.
+
+  This is the schema-string-bump half of the v3.3 brand cutover
+  (`decisions/version-sync-2026-10` handles the `VERSION`-filed
+  side; `chore/version-bump-3.3` handles the file-header side).
+  Each live decision file currently declares either
+  `schema: math-coding/3.0-alpha` or `schema: math-coding/3.2`;
+  the new manifest `decisions/migrations/3.0-alpha-to-3.3.yaml`
+  ships the per-file action that brings each legacy form
+  forward to `math-coding/3.3`.
+
+change_kind: implementation
+
+axiom_link:
+  - A0
+  - A3
+
+commitment: |
+  1. Every `schemas/*.json` `$id` reads
+     `https://math-coding.org/schema/3.3/<name>.json`.
+  2. `schemas/decision.json` `properties.schema.enum` lists:
+       - `math-coding/3.0-alpha`
+       - `math-coding/3.0-alpha/decision`
+       - `math-coding/3.2`
+       - `math-coding/3.2/decision`
+       - `math-coding/3.3`                   (new — current)
+       - `math-coding/3.3/decision`          (new — current JSON form)
+  3. `schemas/attestation.json` is unaffected for the
+     `properties.schema` (it has no enum on schema — only the
+     historic `math-coding/attestation-3.0-alpha` literal in
+     the 391 attestation files in the live store). The new
+     accepted attestation-schema form is
+     `math-coding/attestation-3.3`, parallel to the prior
+     3.0-alpha form; both forms are accepted for one release
+     cycle. `schemas/attestation.json` does not gate the
+     `schema` field today; the next spec/codec iteration
+     decides whether to add the enum.
+  4. `decisions/migrations/3.0-alpha-to-3.3.yaml` declares
+     a single `bump-schema-string` action that maps
+     `math-coding/3.0-alpha` and `math-coding/3.2` to
+     `math-coding/3.3` in place. `mathc migrate --from=3.0-alpha
+     --to=3.3 [--root=.]` emits a no-op plan against the live
+     post-bump tree.
+  5. `mathc validate` still accepts every existing decision
+     file (legacy forms are accepted during the one-cycle
+     grace period).
+  6. `mathc self-check` returns the same verdict (pass/unknown
+     distribution unchanged).
+
+scope:
+  capabilities:
+    - schema-bump-3-3
+  paths:
+    - "schemas/decision.json"
+    - "schemas/common.json"
+    - "schemas/obligation.json"
+    - "schemas/attestation.json"
+    - "schemas/policy.json"
+    - "schemas/waiver.json"
+    - "decisions/migrations/3.0-alpha-to-3.3.yaml"
+
+outcomes:
+  - id: schema-id-uses-3.3
+    statement: |
+      Every `schemas/*.json` `$id` matches
+      `^https://math-coding.org/schema/3\.3/.*\.json$`.
+  - id: schema-enum-accepts-3-3-and-legacy
+    statement: |
+      `schemas/decision.json` `properties.schema.enum`
+      contains both `math-coding/3.3` and the four legacy
+      values (3.0-alpha, 3.0-alpha/decision, 3.2, 3.2/decision).
+  - id: migration-manifest-shipped
+    statement: |
+      `decisions/migrations/3.0-alpha-to-3.3.yaml` exists
+      and parses via `mathc migrate --explain`.
+  - id: migrate-bump-replay-green
+    statement: |
+      `tests/cli/migrate-bump-replay.t` passes against the
+      post-bump tree.
+  - id: live-decisions-still-validate
+    statement: |
+      `mathc validate decisions/*.yaml` (via
+      `tests/cli/validate-*.t` and the existing
+      `t2-1-mathc-validate-regression-free` attestation) still
+      accepts every live decision file.
+  - id: self-check-verdict-unchanged
+    statement: |
+      `mathc self-check` returns the same verdict class
+      (unknown) with the same per-subject pass/unknown
+      distribution.
+
+assumptions:
+  - id: legacy-forms-still-load
+    state: assumed
+    statement: |
+      During the one-cycle grace period, every existing
+      decision file declaring `schema: math-coding/3.0-alpha`
+      or `schema: math-coding/3.2` is still valid input for
+      `mathc validate` because the enum retains those forms.
+    owner: human:maintainer
+    consequence_if_false: |
+      Any decision that fails validation after the enum
+      widening must be either (a) bumped to `math-coding/3.3`
+      via the migration manifest, or (b) explicitly waived.
+      This is the recovery path — neither should be needed
+      because the enum retains all legacy forms.
+    review_on:
+      - signal: a-live-decision-rejects-after-the-bump
+
+  - id: attestation-store-not-rewritten
+    state: assumed
+    statement: |
+      The 391 attestation files in `attestations/` continue
+      to declare `schema: math-coding/attestation-3.0-alpha`.
+      Their stored attestation-kind and producer match the
+      subject's required attestation at the time they were
+      recorded. Rewriting the attestation schema field is
+      not part of this bump; rewriting would invalidate
+      every attestation's stable identity.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future release requires bumping the attestation
+      schema string, a separate A3-protected decision would
+      audit fields and `managing-load` field; this decision
+      does not touch them.
+    review_on:
+      - signal: attestation-schema-string-deprecation-target
+
+obligations:
+  - id: schema-id-uses-3-3
+    statement: |
+      `grep -nE '"\\$id":' schemas/*.json` returns six lines,
+      each starting with `https://math-coding.org/schema/3.3/`.
+    acceptance:
+      all:
+        - verifier: text-scan-schema-id
+          result: pass
+  - id: schema-enum-accepts-3-3
+    statement: |
+      `python3 -c "import json; d=json.load(open('schemas/decision.json')); \
+      assert 'math-coding/3.3' in d['properties']['schema']['enum']; \
+      assert 'math-coding/3.3/decision' in d['properties']['schema']['enum']"`
+      exits 0.
+    acceptance:
+      all:
+        - verifier: text-scan-schema-enum
+          result: pass
+  - id: migration-manifest-ships
+    statement: |
+      `decisions/migrations/3.0-alpha-to-3.3.yaml` exists and
+      parses via `mathc migrate --explain --manifest=<path>`.
+    acceptance:
+      all:
+        - verifier: tests/cli/migrate-bump-replay.t
+          result: pass
+  - id: live-decisions-still-validate
+    statement: |
+      `tests/cli/validate-positive.t` passes; the
+      `t2-1-mathc-validate-regression-free` attestation
+      continues to record `kind_: test, producer: ci:fixture:
+      mathc-validate-corpus` with `result: pass`.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-positive.t
+          result: pass
+        - verifier: tests/t2-1-mathc-validate-regression-free
+          result: pass
+  - id: self-check-verdict-unchanged
+    statement: |
+      `mathc self-check` on a clean tree at HEAD returns the
+      same verdict (`unknown`) and the same per-subject
+      pass/unknown distribution as before the bump.
+    acceptance:
+      all:
+        - verifier: mathc self-check
+          result: pass
+
+reversal:
+  - signal: a-live-decision-rejects-after-the-bump
+    action: revert
+  - signal: dune-build-broken-by-this-commit
+    action: halt
+  - signal: self-check-verdict-changed-by-this-commit
+    action: halt
+
+risk:
+  declared_triggers:
+    - schema-mismatch-with-live-decisions
+    - attestation-store-identity-loss
+  owner: human:maintainer
+
+counterexample: |
+  "Bumping the schema string is purely cosmetic; the kernel
+  does not actually use the enum values during validation."
+  Counterargument: per the schema-string-bump prior
+  (`schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml`),
+  `mathc validate` does consult the enum when the input
+  is JSON form; even in YAML form, an out-of-enum `schema:`
+  value is rejected as `MC-SCHEMA-INVALID`. The enum is
+  not cosmetic; it is the admission predicate.
+
+  "Adding `math-coding/3.3` to the enum and leaving the
+  legacy forms in place means we ship three active families
+  simultaneously, which is confusing."
+  Counterargument: this is the same one-cycle grace
+  pattern that `schema-string-bump-3.0-alpha-to-3.2-2026-10`
+  used; it gives adopters a release to migrate their
+  decisions without breaking the build. The trailing
+  `math-coding/3.0-alpha` removal is a future transition
+  recorded by `decisions/waivers/portable-linux-musl-2026-10`-
+  style deferral if needed.
+
+relations:
+  refines:
+    - algebra-3.2@1
+  addresses:
+    - site-version-from-file-2026-10@1
+  supersedes:
+    - schema-string-bump-3.0-alpha-to-3.2-2026-10@1
+      # the 3.2 bump is the intermediate state; this 3.3
+      # bump supersedes it for the published brand. The
+      # 3.2 decision file remains in decisions/ as the
+      # historical record.
+
+antithesis: |
+  "Hold a separate math-coding/3.2 release cycle that ships
+  the algebra-3.2-ideal kernel under its own v3.2.0-alpha tag,
+  defer the schema-string bump from 3.0-alpha to 3.3 until after
+  that v3.2.0-alpha cycle has stabilised, and let the published
+  brand trail the spec brand by exactly one cycle."
+
+  Rejected because: the 3.2-ideal algebra has lived in
+  `spec/algebra-3.2.md` and `decisions/algebra-3.2.yaml` since
+  2026-09-30 (commit `ff9e738`) without a separate 3.2
+  release. The intervening seven weeks (2026-09-30 to
+  2026-10-14) shipped schema-string migrations, install-tooling,
+  MCP integration, and the diali-synth antithesis slot
+  without a published v3.2.0-alpha tag. The branch
+  `chore/version-bump-3.3` is the first published cycle
+  that bundles the algebra-3.2-ideal spec with the kernel
+  under a single brand; introducing a v3.2.0-alpha step in
+  between would create a public surface that no CI run ever
+  produced and no attestation store ever recorded. The
+  one-cycle grace pattern (legacy forms accepted alongside
+  the new family) already de-risks the bump for adopters.

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://math-coding.org/schema/3.0-alpha/policy.json",
+  "$id": "https://math-coding.org/schema/3.3/policy.json",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "kind", "policy_id", "scope_paths", "obligations"],
