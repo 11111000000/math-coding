@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 380" role="img" aria-labelledby="a1-title a1-desc">
+  <title id="a1-title">A1 Feedback: every commitment has a path to observation.</title>
+  <desc id="a1-desc">A top-to-bottom flow of four nodes connected by arrows. At the top: commitment (the decision under test). Below it: prediction (what will be observable if it holds). Below that: observation (the system receives a signal about the actual state). At the bottom: revision (keep, modify, or retire). An arrow loops back from revision to commitment to close the loop. Each node is a different kind; A1 forbids treating any two as the same thing. The point of the loop is that the next commitment is informed by the last revision.</desc>
+  <defs>
+    <style>
+      .a1-box { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .a1-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; text-anchor: middle; }
+      .a1-kind { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; }
+      .a1-arrow { stroke: #5a5a5a; stroke-width: 1; fill: none; }
+      .a1-loop { stroke: #8b3a3a; stroke-width: 1; fill: none; stroke-dasharray: 4 3; }
+    </style>
+    <marker id="a1-arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#5a5a5a"/>
+    </marker>
+    <marker id="a1-arrowhead-loop" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+
+  <!-- commitment (top) -->
+  <g transform="translate(150, 20)">
+    <rect class="a1-box" x="0" y="0" width="200" height="50" rx="4"/>
+    <text class="a1-text" x="100" y="22">commitment</text>
+    <text class="a1-kind" x="100" y="38">the decision under test</text>
+  </g>
+  <path class="a1-arrow" d="M250,70 L250,90" marker-end="url(#a1-arrowhead)"/>
+
+  <!-- prediction -->
+  <g transform="translate(150, 100)">
+    <rect class="a1-box" x="0" y="0" width="200" height="50" rx="4"/>
+    <text class="a1-text" x="100" y="22">prediction</text>
+    <text class="a1-kind" x="100" y="38">what will be observable if it holds</text>
+  </g>
+  <path class="a1-arrow" d="M250,150 L250,170" marker-end="url(#a1-arrowhead)"/>
+
+  <!-- observation -->
+  <g transform="translate(150, 180)">
+    <rect class="a1-box" x="0" y="0" width="200" height="50" rx="4"/>
+    <text class="a1-text" x="100" y="22">observation</text>
+    <text class="a1-kind" x="100" y="38">a signal about the actual state</text>
+  </g>
+  <path class="a1-arrow" d="M250,230 L250,250" marker-end="url(#a1-arrowhead)"/>
+
+  <!-- revision (bottom) -->
+  <g transform="translate(150, 260)">
+    <rect class="a1-box" x="0" y="0" width="200" height="50" rx="4"/>
+    <text class="a1-text" x="100" y="22">revision</text>
+    <text class="a1-kind" x="100" y="38">keep, modify, or retire</text>
+  </g>
+
+  <!-- loop back from revision to commitment (dashed oxblood) -->
+  <path class="a1-loop" d="M350,285 C450,285 450,45 350,45" marker-end="url(#a1-arrowhead-loop)"/>
+</svg>

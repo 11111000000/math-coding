@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 320" role="img" aria-labelledby="a3-title a3-desc">
+  <title id="a3-title">A3 Self-application: the (kernel, policy) pair is its own gate.</title>
+  <desc id="a3-desc">A state diagram with two states connected by a transition. The left state is (K_n, P_n) — the current kernel and policy pair. The right state is (K_{n+1}, P_{n+1}) — the next pair. The transition is gated: Gate = Open, Conformance = Pass, Migration = Pass, VerdictDiff subset of DeclaredSemanticChanges, SelfVerify = Pass. A3 forbids any kernel change whose transition fails any guard. The diagram and the guards text come verbatim from spec/constitution.md Self-application.</desc>
+  <defs>
+    <style>
+      .a3-state { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 2; }
+      .a3-state-label { font-family: Georgia, "Iowan Old Style", serif; font-size: 16px; fill: #1a1a1a; text-anchor: middle; font-style: italic; }
+      .a3-state-sub { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #5a5a5a; text-anchor: middle; }
+      .a3-arrow { stroke: #8b3a3a; stroke-width: 2; fill: none; }
+      .a3-arrow-label { font-family: Georgia, "Iowan Old Style", serif; font-size: 12px; fill: #1a1a1a; }
+      .a3-guard { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #5a5a5a; }
+    </style>
+    <marker id="a3-arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+
+  <!-- left state: (K_n, P_n) -->
+  <g transform="translate(80, 130)">
+    <ellipse class="a3-state" cx="80" cy="30" rx="70" ry="30"/>
+    <text class="a3-state-label" x="80" y="28">(K_n, P_n)</text>
+    <text class="a3-state-sub" x="80" y="46">prior kernel + policy</text>
+  </g>
+
+  <!-- right state: (K_{n+1}, P_{n+1}) -->
+  <g transform="translate(450, 130)">
+    <ellipse class="a3-state" cx="80" cy="30" rx="90" ry="30"/>
+    <text class="a3-state-label" x="80" y="28">(K_{n+1}, P_{n+1})</text>
+    <text class="a3-state-sub" x="80" y="46">next kernel + policy</text>
+  </g>
+
+  <!-- transition arrow -->
+  <path class="a3-arrow" d="M240,160 L450,160" marker-end="url(#a3-arrowhead)"/>
+  <text class="a3-arrow-label" x="345" y="155" text-anchor="middle">transition</text>
+
+  <!-- guard conditions (below) -->
+  <g transform="translate(20, 220)">
+    <text class="a3-guard" x="0" y="0">Guard conditions (ALL must hold):</text>
+    <text class="a3-guard" x="20" y="20">• Gate(K_n, P_n, transition) = Open</text>
+    <text class="a3-guard" x="20" y="36">• Conformance(K_{n+1}) = Pass</text>
+    <text class="a3-guard" x="20" y="52">• Migration(K_n, K_{n+1}) = Pass</text>
+    <text class="a3-guard" x="20" y="68">• VerdictDiff(K_n, K_{n+1}) subset DeclaredSemanticChanges</text>
+    <text class="a3-guard" x="20" y="84">• SelfVerify(K_{n+1}, P_{n+1}) = Pass</text>
+  </g>
+</svg>

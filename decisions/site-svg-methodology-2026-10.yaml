@@ -2,9 +2,9 @@
 schema: math-coding/3.2
 id: site-svg-methodology-2026-10
 revision: 1
-state: active
-body_sha: "sha256:aa4316b6a3c7fd8ad8d00a1622e9fd604253eb8e8908bd5b7e766c8d2c40c37d"
-yaml_sha: "sha256:aa4316b6a3c7fd8ad8d00a1622e9fd604253eb8e8908bd5b7e766c8d2c40c37d"
+state: superseded
+body_sha: "sha256:5f870c94defed5c3012b7e71ce7a7a8789fc9e4d50555ea60d6c401261b061c8"
+yaml_sha: "sha256:5f870c94defed5c3012b7e71ce7a7a8789fc9e4d50555ea60d6c401261b061c8"
 axiom_link:
   - A0
 intent: |
@@ -202,6 +202,8 @@ risk:
 
 relations:
   supersedes: []
+  superseded_by:
+    - site-diagrams-as-svg-2026-10
   depends_on:
     - site-quality-illustrations-2026-10
   refines: []

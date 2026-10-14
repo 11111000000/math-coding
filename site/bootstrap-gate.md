@@ -58,25 +58,16 @@ From this commit forward, **assessment verdicts produced by
 `mathc gate`, `mathc self-check`, and `mathc assess` are automated
 guarantees, not manual declarations**.
 
-```mermaid
-sequenceDiagram
-    participant Agent
-    participant Manual as Manual regime<br/>(bootstrap gate)
-    participant Auto as Automated regime<br/>(post-expiry)
+![Bootstrap regime transition: from manual to automated kernel-enforced gate. Two swim-lanes: a manual regime (top, 8 checks per PR, active from v3-alpha-0.0.1 to 8fa7fcf) and an automated regime (bottom, kernel-driven self-check and gate, active from 8fa7fcf forward). The transition commit 8fa7fcf is the boundary; protected policy transitions still require the eight manual checks.](assets/bootstrap-regime.svg)
 
-    Note over Manual: v3-alpha-0.0.1 → 8fa7fcf<br/>(8 manual checks per PR)
-
-    Agent->>Manual: propose change
-    Manual->>Agent: 8 checks<br/>(intent, counterexample,<br/>evidence, recovery, …)
-
-    Note over Auto: 8fa7fcf (v3.0.0.19) → present<br/>(kernel enforces routine checks)
-
-    Agent->>Auto: git push
-    Auto->>Auto: mathc self-check<br/>~260 attestations<br/>(subjects = 58, 57 pass / 1 unknown)
-    Auto-->>Agent: gate exit 0 ⇒ merge allowed
-
-    Note over Manual,Auto: For protected policy transitions<br/>(constitution, schemas, kernel,<br/>gate/authority/waiver rules):<br/>8 manual checks remain additive
-```
+The sequence diagram above is the bootstrap-gate's signature
+visual. Two swim-lanes: a manual regime (top, eight manual
+checks per PR) and an automated regime (bottom, kernel-driven
+self-check and gate). The arrows crossing between them show
+the transition path: an Agent proposes a change in either
+regime, and the gate's verdict (manual eight checks or
+automated `mathc self-check` exit=0) determines whether the
+merge is allowed.
 
 ## The eight checks, post-expiry
 
@@ -85,6 +76,15 @@ binding. They are documented in `AGENTS.md §Self-application` and
 governed by axiom A3 (the rules govern their own changes). The
 kernel enforces routine checks automatically; humans enforce
 constitutional ones. The two regimes coexist.
+
+The eight manual checks are an *additive* obligation on protected
+transitions, not a competing one. A change to the kernel, the
+gate rules, the schemas, the constitution, or the waiver rules
+is still gated by humans; a change to a user-project (the
+95% of practical cases) is gated by `mathc self-check`. The
+diagram above shows both regimes in the same image; that is
+the point. The bootstrap gate did not remove the eight checks.
+It added the automated regime on top of them.
 
 ## What this site is
 

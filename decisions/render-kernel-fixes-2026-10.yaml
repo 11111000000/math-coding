@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: render-kernel-fixes-2026-10
 revision: 1
 state: active
-body_sha: "sha256:5efb87a1185808dbe0cc6e436d7c0f44bdeef8ef98376b3810865d5c7bff4e82"
-yaml_sha: "sha256:5efb87a1185808dbe0cc6e436d7c0f44bdeef8ef98376b3810865d5c7bff4e82"
+body_sha: "sha256:fdd4ddc954d48ade9e077e53d842420e9acae693cceb09b4677feec1fe6d9894"
+yaml_sha: "sha256:fdd4ddc954d48ade9e077e53d842420e9acae693cceb09b4677feec1fe6d9894"
 intent: |
   Close the ten concrete render-kernel defects catalogued in
   `analysis/site-render-defects.md` (commit-diagnostic branch
@@ -47,8 +47,7 @@ commitment: |
     1. Every fenced code block (```` ```lang ... ``` ````) in
        `site/*.md`, `axioms/*.md`, and `decisions/*.md` excerpts
        renders as `<pre><code class="language-lang">...</code>`
-       (or `<pre><code>` when no language is given, or
-       `<div class="mermaid">` for `mermaid` fences). ASCII art
+       (or `<pre><code>` when no language is given). ASCII art
        diagrams in `axioms/*.md` keep their line breaks.
 
     2. Multi-line list items in `site/*.md` render as one
@@ -188,8 +187,10 @@ obligations:
       A fenced code block (`\`\`\`lang ... \`\`\``) in any
       `md_parse` source renders as a single
       `<pre><code class="language-lang">…</code></pre>` (or
-      `<pre><code>` when the language is empty, or
-      `<div class="mermaid">` when the language is `mermaid`).
+      `<pre><code>` when the language is empty). Mermaid fence
+      special-casing is retired by
+      `site-diagrams-as-svg-2026-10`; a `mermaid` fence now
+      renders as an ordinary `<pre><code class="language-mermaid">`.
       Closing fence of length 3 is recognised; the previous
       `String.length trimmed > 4` check is replaced by
       `>= 3` on the trimmed prefix.
@@ -198,8 +199,6 @@ obligations:
         - verifier: tests/render_kernel.ml::fenced_code_renders
           result: pass
         - verifier: tests/render_kernel.ml::fenced_code_closing_fence_length_3
-          result: pass
-        - verifier: tests/render_kernel.ml::mermaid_fence_renders_as_div
           result: pass
         - verifier: dist/axioms/feedback.html has <pre><code class=\"language-text\">
           result: pass

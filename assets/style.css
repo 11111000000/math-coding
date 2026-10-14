@@ -5,7 +5,7 @@
  *   - Sidenotes (margin notes) on wide viewports, in-flow on narrow
  *   - Single accent colour (oxblood) used sparingly
  *   - Thin rules, soft borders, no decorative shadows
- *   - MathJax and mermaid respect the same typography
+ *   - MathJax respects the same typography
  *
  * Reference: Edward Tufte's CSS guide and "The Visual Display
  * of Quantitative Information" principles — clarity, restraint,
@@ -860,6 +860,16 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
 .mathc-figure-methodology img {
   max-width: 56rem;
 }
+.mathc-figure-inline {
+  display: block;
+  margin: 1.5em auto;
+  max-width: 36rem;
+  text-align: center;
+}
+.mathc-figure-inline img {
+  max-width: 100%;
+  height: auto;
+}
 .mathc-figure-foundations img {
   max-width: 56rem;
 }
@@ -1083,18 +1093,6 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
   padding: 0;
 }
 
-/* --- mermaid diagrams --- */
-
-.mermaid {
-  margin: 2em auto;
-  text-align: center;
-  font-family: var(--serif-stack);
-  background: var(--bg-card);
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  padding: 1.2em;
-}
-
 /* --- footer --- */
 
 footer.site-footer {
@@ -1171,32 +1169,6 @@ mjx-container[display="true"] {
      column rather than the gutter. */
   max-width: 100%;
   padding: 0.2em 0;
-}
-
-/* --- mermaid diagrams ---
-
-   Mermaid v10 is wired in lib/render.ml's render_head and
-   is loaded when enable_mermaid is true (the default). The
-   library emits an inline <svg> inside the .mermaid div.
-   Without a max-width the SVG renders at its intrinsic width
-   and breaks the 54-rem column on narrow viewports.
-*/
-
-.mermaid svg {
-  display: block;
-  margin: 0 auto;
-  max-width: 100%;
-  height: auto;
-}
-
-/* The diagram text inherits the page's serif stack, but
-   mermaid's labels often look better in a monospace. Force
-   the node / edge labels onto Charter / Georgia for visual
-   consistency with the surrounding prose. */
-.mermaid .nodeLabel,
-.mermaid .edgeLabel,
-.mermaid .actor {
-  font-family: var(--serif-stack) !important;
 }
 
 /* --- print (Phase 3 of site-quality-polish-2026-10) --- */

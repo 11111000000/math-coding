@@ -14,22 +14,7 @@ For every transition of the system's governing rules
 
 the transition MUST satisfy:
 
-```mermaid
-stateDiagram-v2
-    direction LR
-    [*] --> KnPn: prior state (K_n, P_n)
-    KnPn --> Knp1Pnp1: transition
-    Knp1Pnp1 --> [*]: commit (guards pass)
-
-    note right of Knp1Pnp1
-      Guard conditions (ALL must hold):
-      • Gate = Open
-      • Conformance = Pass
-      • Migration = Pass
-      • VerdictDiff ⊆ DeclaredSemanticChanges
-      • SelfVerify = Pass
-    end note
-```
+![A3 Self-application: the (kernel, policy) pair is its own gate. Two states (K_n, P_n) and (K_{n+1}, P_{n+1}) connected by a transition. Guard conditions: Gate = Open, Conformance = Pass, Migration = Pass, VerdictDiff subset of DeclaredSemanticChanges, SelfVerify = Pass.](assets/a3-self-application-flow.svg)
 
 ```text
 Gate_{K_n, P_n}(transition) = Open

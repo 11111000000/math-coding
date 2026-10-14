@@ -8,10 +8,7 @@
 
 There exist objects of the following kinds:
 
-```mermaid
-flowchart LR
-    intent --> decision --> obligation --> change --> attestation --> observation --> revision
-```
+![A0 Separation: the seven kinds of object, in their canonical order. A horizontal flow of seven boxes connected by arrows: intent leads to decision leads to obligation leads to change leads to attestation leads to observation leads to revision. A small dashed oxblood arc loops back from revision to intent, showing the closure property: a revision extends commitment into the next intent.](assets/a0-separation.svg)
 
 No two of them are the same object. Specifically:
 

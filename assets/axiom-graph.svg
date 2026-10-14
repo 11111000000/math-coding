@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" role="img" aria-labelledby="ax-title ax-desc">
+  <title id="ax-title">The five axioms and the bootstrap-related decisions they enforce.</title>
+  <desc id="ax-desc">Two columns of five boxes. Left column: the five axioms (A0 Separation, A1 Feedback, A2 Invariants, A3 Self-application, A4 Care). Right column: the bootstrap-related decisions each axiom enforces. Arrows connect each axiom to the decision it grounds. The right column lists bootstrap-v3, attestation-store-fill, kernel-conformance-runner, mathc-self-check-subcommand, validate-and-context. The pairing shows that the axioms are not aspirational; they are operationalised by specific decisions the kernel checks.</desc>
+  <defs>
+    <style>
+      .ax-axiom-box { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }
+      .ax-decision-box { fill: #f5e9d8; stroke: #c49859; stroke-width: 1.25; }
+      .ax-text { font-family: Georgia, "Iowan Old Style", serif; font-size: 13px; fill: #1a1a1a; }
+      .ax-mono { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 11px; fill: #8b3a3a; }
+      .ax-mono-small { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; }
+      .ax-arrow { stroke: #8b3a3a; stroke-width: 1; fill: none; }
+    </style>
+    <marker id="ax-arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#8b3a3a"/>
+    </marker>
+  </defs>
+
+  <!-- header labels -->
+  <text class="ax-mono-small" x="160" y="18" text-anchor="middle">axiom (what must hold)</text>
+  <text class="ax-mono-small" x="640" y="18" text-anchor="middle">decision (what enforces it)</text>
+
+  <!-- Row 1: A0 -->
+  <g transform="translate(40, 30)">
+    <rect class="ax-axiom-box" x="0" y="0" width="240" height="22" rx="3"/>
+    <text class="ax-text" x="10" y="16">A0 Separation</text>
+  </g>
+  <g transform="translate(520, 30)">
+    <rect class="ax-decision-box" x="0" y="0" width="240" height="22" rx="3"/>
+    <text class="ax-mono" x="10" y="16">bootstrap-v3</text>
+  </g>
+  <path class="ax-arrow" d="M280,41 L520,41" marker-end="url(#ax-arrowhead)"/>
+
+  <!-- Row 2: A1 -->
+  <g transform="translate(40, 60)">
+    <rect class="ax-axiom-box" x="0" y="0" width="240" height="22" rx="3"/>
+    <text class="ax-text" x="10" y="16">A1 Feedback</text>
+  </g>
+  <g transform="translate(520, 60)">
+    <rect class="ax-decision-box" x="0" y="0" width="240" height="22" rx="3"/>
+    <text class="ax-mono" x="10" y="16">attestation-store-fill</text>
+  </g>
+  <path class="ax-arrow" d="M280,71 L520,71" marker-end="url(#ax-arrowhead)"/>
+
+  <!-- Row 3: A2 -->
+  <g transform="translate(40, 90)">
+    <rect class="ax-axiom-box" x="0" y="0" width="240" height="22" rx="3"/>
+    <text class="ax-text" x="10" y="16">A2 Invariants</text>
+  </g>
+  <g transform="translate(520, 90)">
+    <rect class="ax-decision-box" x="0" y="0" width="240" height="22" rx="3"/>
+    <text class="ax-mono" x="10" y="16">kernel-conformance-runner</text>
+  </g>
+  <path class="ax-arrow" d="M280,101 L520,101" marker-end="url(#ax-arrowhead)"/>
+
+  <!-- Row 4: A3 -->
+  <g transform="translate(40, 120)">
+    <rect class="ax-axiom-box" x="0" y="0" width="240" height="22" rx="3"/>
+    <text class="ax-text" x="10" y="16">A3 Self-application</text>
+  </g>
+  <g transform="translate(520, 120)">
+    <rect class="ax-decision-box" x="0" y="0" width="240" height="22" rx="3"/>
+    <text class="ax-mono" x="10" y="16">mathc-self-check-subcommand</text>
+  </g>
+  <path class="ax-arrow" d="M280,131 L520,131" marker-end="url(#ax-arrowhead)"/>
+
+  <!-- Row 5: A4 -->
+  <g transform="translate(40, 150)">
+    <rect class="ax-axiom-box" x="0" y="0" width="240" height="22" rx="3"/>
+    <text class="ax-text" x="10" y="16">A4 Care</text>
+  </g>
+  <g transform="translate(520, 150)">
+    <rect class="ax-decision-box" x="0" y="0" width="240" height="22" rx="3"/>
+    <text class="ax-mono" x="10" y="16">validate-and-context</text>
+  </g>
+  <path class="ax-arrow" d="M280,161 L520,161" marker-end="url(#ax-arrowhead)"/>
+
+  <!-- footer note -->
+  <text class="ax-mono-small" x="400" y="190" text-anchor="middle">Each axiom is operationalised by a specific decision the kernel checks; the axioms are not aspirational.</text>
+</svg>

@@ -7,10 +7,11 @@
  *   2. `site/*.md` — the prose articles (axioms, methodology,
  *      bootstrap-gate, packages). The articles are written in
  *      a subset of Markdown: headings, paragraphs, lists, code
- *      blocks (incl. `mermaid`), inline code, links, and inline
- *      `^[sidenote]` markers. We deliberately do NOT pull in a
- *      full Markdown library; the protocol's published prose
- *      uses a narrow subset and a 100-line parser is auditable.
+ *      blocks, inline code, links, inline `![alt](url)` figures,
+ *      and inline `^[sidenote]` markers. We deliberately do NOT
+ *      pull in a full Markdown library; the protocol's published
+ *      prose uses a narrow subset and a 100-line parser is
+ *      auditable.
  *   3. `site/*.ru.md` (and any future `<name>.<lang>.md`) — the
  *      bilingual siblings. Each English page is rendered twice
  *      (once per available language); each rendering carries
@@ -259,6 +260,76 @@ let[@warning "-32"] rec md_inline_parse s =
           end
         end
       end
+      else if c = '!' && i + 1 < len && s.[i + 1] = '[' then begin
+        (* Inline image: ![alt](url). Mirrors the link grammar
+           above. If the bracketed alt text is not followed by
+           `(...)`, the `!` and `[` are emitted literally. The
+           result is a `<figure class="mathc-figure mathc-figure-inline">`
+           containing an `<img>` with the given alt text — the
+           same wrapper used by the page-level body_extra
+           appends, but classed as `inline` so CSS can render it
+           inline in the prose flow rather than as a full-width
+           band. Sites use this to drop an illustration next
+           to the paragraph that names the concept it shows
+           (see site/methodology.md, site/foundations.md). *)
+        let k = ref (i + 2) in
+        let depth = ref 1 in
+        let found_text = ref false in
+        let text_end = ref 0 in
+        while !k < len && not !found_text do
+          if s.[!k] = '[' then incr depth
+          else if s.[!k] = ']' then begin
+            decr depth;
+            if !depth = 0 then begin
+              text_end := !k;
+              found_text := true
+            end
+          end;
+          if not !found_text then incr k
+        done;
+        if !found_text && !text_end + 1 < len && s.[!text_end + 1] = '(' then begin
+          let m = ref (!text_end + 2) in
+          let depth_p = ref 1 in
+          let url_end = ref 0 in
+          let found_url = ref false in
+          while !m < len && not !found_url do
+            if s.[!m] = '(' then incr depth_p
+            else if s.[!m] = ')' then begin
+              decr depth_p;
+              if !depth_p = 0 then begin
+                url_end := !m;
+                found_url := true
+              end
+            end;
+            if not !found_url then incr m
+          done;
+          if !found_url then begin
+            let alt = String.sub s (i + 2) (!text_end - i - 2) in
+            let url =
+              String.trim
+                (String.sub s (!text_end + 2) (!url_end - !text_end - 2))
+            in
+            flush_inline ();
+            let html =
+              Printf.sprintf
+                "<figure class=\"mathc-figure mathc-figure-inline\">\
+                 <img src=\"%s\" alt=\"%s\">\
+                 </figure>"
+                (html_escape url) (html_escape alt)
+            in
+            fragments := (html, true) :: !fragments;
+            loop (!url_end + 1)
+          end
+          else begin
+            Buffer.add_char buf c;
+            loop (i + 1)
+          end
+        end
+        else begin
+          Buffer.add_char buf c;
+          loop (i + 1)
+        end
+      end
       else if c = '[' then begin
         (* Inline link: [text](url). Tolerant: if no `]` followed by
            `(` is found, the `[` is literal. *)
@@ -490,10 +561,6 @@ let[@warning "-32"] md_parse source =
             let collected, after = collect_code [] rest in
             let code = String.concat "\n" collected in
             (match tag with
-            | Some "mermaid" ->
-                Buffer.add_string buf "<div class=\"mermaid\">";
-                Buffer.add_string buf (html_escape code);
-                Buffer.add_string buf "</div>\n"
             | Some lang ->
                 Buffer.add_string buf "<pre><code class=\"language-";
                 Buffer.add_string buf (html_escape lang);
@@ -928,10 +995,11 @@ let[@warning "-32"] render_footer ~lang ~version ~has_ru ~sibling_href =
 (* --- page renderer --- *)
 
 (* `<head>` carries: charset, viewport, <base href>, title, the
-   stylesheet, optional MathJax script, optional mermaid script,
-   and any caller-supplied extra head. *)
+   stylesheet, optional MathJax script, and any caller-supplied
+   extra head. (Mermaid was removed in diagrams-as-svg-2026-10;
+   diagrams are now inline SVGs under `![alt](assets/foo.svg)`.) *)
 let[@warning "-32"] render_head ~lang ~site_base ~title ~enable_mathjax
-    ~enable_mermaid ~extra_head =
+     ~extra_head =
   let buf = Buffer.create 256 in
   Printf.bprintf buf "<meta charset=\"utf-8\">\n";
   Printf.bprintf buf
@@ -955,43 +1023,33 @@ let[@warning "-32"] render_head ~lang ~site_base ~title ~enable_mathjax
        src=\"https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js\"></script>\n";
     (* MathJax 3 TeX-unescapes the inlineMath/displayMath delimiter
        strings. To make the final delimiter the LaTeX sequence
-       \`\('\` (which is what user text must contain to start
-       math), the source must be \`\\\\('\` (4 chars: \`\\\` is
-       TeX-escape for \`\\`, then literal \`(\`). MathJax
-       unescapes to \`\\(\` then to \`\('\`. In OCaml source,
-       \`\\\\\('\` is 6 source chars (4 backslashes) and emits
-       the 3-char runtime string \`\\\\\('\` = \`\\\\\('\`
+       `\('\` (which is what user text must contain to start
+       math), the source must be `\\('` (4 chars: `\\` is
+       TeX-escape for `\`, then literal `(`). MathJax
+       unescapes to `\\(` then to `\(` and to `\(`.
+       In OCaml source, `\\\\('` is 6 source chars (4 backslashes) and emits
+       the 3-char runtime string `\\\\('` = `\\\\('`
        in JS, which the TeX-unescape pass converts to
-       \`\\(\` = \`\('\` (the 2-char delimiter we want). Tested
+       `\\(` = `\(` (the 2-char delimiter we want). Tested
        empirically: with this string, MathJax's runtime
-       config shows the delimiter as \`\('\` and the
-       `\`t.replace is not a function\` error is gone. *)
+       config shows the delimiter as `\(` and the
+       `t.replace is not a function` error is gone. *)
     Printf.bprintf buf
       "<script>\n\
        window.MathJax = { tex: { inlineMath: [['\\\\(', '\\\\)']], \
        displayMath: [['\\\\[', '\\\\]']] }, options: { \
        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', \
-       'pre', 'code', 'div.mermaid'] } };\n\
-       </script>\n"
-  end;
-  if enable_mermaid then begin
-    Printf.bprintf buf
-      "<script defer \
-       src=\"https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js\"></script>\n";
-    Printf.bprintf buf
-      "<script>\n\
-       document.addEventListener('DOMContentLoaded', function () { if \
-       (window.mermaid) mermaid.initialize({startOnLoad: true}); });\n\
+       'pre', 'code'] } };\n\
        </script>\n"
   end;
   if extra_head <> "" then Printf.bprintf buf "%s\n" extra_head;
   Buffer.contents buf
 
 let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
-    ~enable_mathjax ~enable_mermaid ~enable_lang_toggle ~has_ru ~version
+    ~enable_mathjax ~enable_lang_toggle ~has_ru ~version
     ~extra_head =
   let head =
-    render_head ~lang ~site_base ~title ~enable_mathjax ~enable_mermaid
+    render_head ~lang ~site_base ~title ~enable_mathjax
       ~extra_head
   in
   Printf.sprintf
@@ -1915,7 +1973,6 @@ type page = { path : string; body : string }
 type config = {
   site_base : string;
   enable_mathjax : bool;
-  enable_mermaid : bool;
   enable_lang_toggle : bool;
   languages : string list;
   version : string;
@@ -2050,9 +2107,9 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
        below the prose. The grid is the same HTML that
        `mathc packages --format=html` emits; embedding it here
        means `dist/packages.html` is no longer prose-only.
-       The `methodology` and `foundations` pages each carry
-       a hand-rolled SVG diagram (Phase 2 of
-       site-quality-illustrations-2026-10). *)
+       Diagrams on the prose pages are now inline SVG figures in
+       the markdown source (`![alt](assets/foo.svg)`), so no
+       other page needs a body_extra append (diagrams-as-svg-2026-10). *)
     let body_extra =
       match name with
       | "packages" ->
@@ -2063,105 +2120,6 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
              %s\n\
              </section>\n"
             package_html
-      | "methodology" ->
-          Printf.sprintf
-            "\n\
-             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
-             <img src=\"assets/kernel-architecture.svg\" \
-              alt=\"The math-coding kernel pipeline: input -> schema \
-              -> parser -> attestation join -> self-check -> gate.\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
-             <img src=\"assets/chain.svg\" \
-              alt=\"The math-coding assurance chain: intent, decision, \
-              obligation, change, attestation, revision.\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
-             <img src=\"assets/lifecycle-fsm.svg\" \
-              alt=\"Lifecycle FSM of a single math-coding record: 7 states (draft, committed, implemented, attested, monitored, contested, retired), 6 main transitions, 4 block markers (violation, grace, stale, waiver-expiry).\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
-             <img src=\"assets/friction-ladder.svg\" \
-              alt=\"Friction ladder: silent (top, kernel chooses) below ask (human reviews) to block (bottom, kernel refuses). Friction budget on the right, drawn from algebra section 21.\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
-             <img src=\"assets/attestation-lifecycle.svg\" \
-              alt=\"Attestation lifecycle: production, store, join, verdict, expiry. Five stages from a CI run to a gate verdict.\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
-             <img src=\"assets/risk-bands.svg\" \
-              alt=\"Risk bands: five coloured bands from tiny to exhaustive, mapped to example changes, gate posture, and who signs.\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-methodology\">\n\
-             <img src=\"assets/verdict-flow.svg\" \
-              alt=\"Verdict flow: from decision.yaml and attestations to gate_merge and exit code. Six steps grounded in algebra-3.2 sections 7, 8, 2, 9, 14, 15.\">\n\
-             </figure>\n"
-      | "foundations" ->
-          Printf.sprintf
-            "\n\
-             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
-             <img src=\"assets/kernel-architecture.svg\" \
-              alt=\"The math-coding kernel pipeline: input -> schema \
-              -> parser -> attestation join -> self-check -> gate.\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
-             <img src=\"assets/counterexample-flow.svg\" \
-              alt=\"The counterexample flow: author writes a counterexample set in decision.yaml; the kernel checks |C(D)| >= 1 for any decision whose mode is not tiny; on absence the gate blocks the merge and emits a remediation. Counterexample is the machine-checkable forcing function; antithesis is the coherent counter-position the author engaged with (algebra section 11, 11.1).\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
-             <img src=\"assets/axiom-transition.svg\" \
-              alt=\"Axiom transition: the re_evaluate(d, A_new) oracle returns one of three ReEvaluationStatus values -- Compatible, Inconclusive, StaleClaim -- and the gate verdict is the max_verdict across the impact-list (algebra section 17).\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
-             <img src=\"assets/trust-dynamics.svg\" \
-              alt=\"Trust dynamics: four tiers (Untrusted, Authenticated, Delegated, Authoritative). Trust(a, d) shifts only on rebuttal outcome -- accepted raises it, rejected_with_reason lowers it, ignored_non_binding and never_resolved leave it unchanged (algebra section 12).\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
-             <img src=\"assets/substrate-fingerprint.svg\" \
-              alt=\"Substrate fingerprint: kernel.ver xor ocaml.ver xor dep.digests hashed per CI run; aggregated across blocking CIs to be substrate-honest (algebra sections 13, 14, 16).\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
-             <img src=\"assets/waiver-state-machine.svg\" \
-              alt=\"Waiver state machine: requested to reviewed to granted (with expiry) to consumed / expired / cancelled. A waiver defers a check; it does not cancel it (constitution section Waivers; A1 Feedback closure).\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
-             <img src=\"assets/friction-envelope-plot.svg\" \
-              alt=\"Friction envelope plot: X axis is risk(r), Y axis is friction_user(c) in lines. Band heights are proportional to the mode thresholds in algebra section 21 (tiny to 0, light to 10, standard to 60, strict to 130, exhaustive to 300); five example diff kinds are plotted within their mode band, and the ideal_3.2 budget (fu <= baseline for mode <= standard) is dashed across the diagram (sections 21, 27).\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
-             <img src=\"assets/quality-radar.svg\" \
-              alt=\"Quality radar -- fourteen dimensions of math-coding as axes: correctness, explicitness, recovery, coordination, auditability, evolution, zero-friction-user, no-retrofit, cross-cutting, substrate-honesty, sha-consistency, transitive-policy, axiom-safety, applicability-fit (algebra section 22). Illustrative placeholder scores between 0.5 and 1.0.\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-foundations\">\n\
-             <img src=\"assets/reasoning-budget.svg\" \
-              alt=\"Three independent time-reporting scales: wall-clock-minutes, token-budget, step-count. The three are independently observable and may not be combined into a single natural-language estimate (AGENTS.md section Honest time reporting; algebra section 18).\">\n\
-             </figure>\n"
-      | "manifesto" ->
-          Printf.sprintf
-            "\n\
-             <figure class=\"mathc-figure mathc-figure-manifesto\">\n\
-             <img src=\"assets/architecture-overview.svg\" \
-              alt=\"math-coding architecture: five concentric layers around a human -- axioms, kernel, protocol objects, site and tools, user projects.\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-manifesto\">\n\
-             <img src=\"assets/human-in-the-loop.svg\" \
-              alt=\"The human in the loop: three roles (author, reviewer, operator) touch five points in the protocol. The fifth (sign attestation or grant waiver) is the only one the kernel cannot replace.\">\n\
-             </figure>\n\
-             <figure class=\"mathc-figure mathc-figure-manifesto\">\n\
-             <img src=\"assets/human-roles.svg\" \
-              alt=\"Human roles vs object kinds: which role touches which of the seven kinds. Author creates, reviewer reviews, operator operates; the kernel handles the rest.\">\n\
-             </figure>\n\
-              <figure class=\"mathc-figure mathc-figure-manifesto\">\n\
-              <img src=\"assets/kernel-vs-human.svg\" \
-               alt=\"The boundary between kernel-determined and human-determined. The kernel may check six things; six things only a human may decide. Verbatim from spec/constitution.md section Authority Boundary.\">\n\
-              </figure>\n"
-      | "workflow" ->
-          Printf.sprintf
-            "\n\
-             <figure class=\"mathc-figure mathc-figure-workflow\">\n\
-             <img src=\"assets/bootstrap-timeline.svg\" \
-              alt=\"Bootstrap timeline: v3-alpha-0.0.1 to 8fa7fcf (v3.0.0.19) to today. Manual regime ends at 8fa7fcf; automated regime begins the same commit.\">\n\
-             </figure>\n"
       | _ -> ""
     in
     let body =
@@ -2173,7 +2131,6 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
       body =
         render_page ~lang ~page_key:name ~title:page_title ~body
           ~site_base:config.site_base ~enable_mathjax:config.enable_mathjax
-          ~enable_mermaid:config.enable_mermaid
           ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:(has_ru name)
           ~version ~extra_head:"";
     }
@@ -2193,7 +2150,6 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
           ~title:(Printf.sprintf "math-coding %s" version)
           ~body:index_body_en ~site_base:config.site_base
           ~enable_mathjax:config.enable_mathjax
-          ~enable_mermaid:config.enable_mermaid
           ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:(has_ru "home")
           ~version ~extra_head:"";
     }
@@ -2214,7 +2170,6 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
             ~title:(Printf.sprintf "math-coding %s" version)
             ~body:index_body_ru ~site_base:config.site_base
             ~enable_mathjax:config.enable_mathjax
-            ~enable_mermaid:config.enable_mermaid
             ~enable_lang_toggle:config.enable_lang_toggle
             ~has_ru:(has_ru "home") ~version ~extra_head:"";
       }
@@ -2308,7 +2263,6 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
               ~title:(Printf.sprintf "%s — math-coding" decision_id)
               ~body ~site_base:config.site_base
               ~enable_mathjax:config.enable_mathjax
-              ~enable_mermaid:config.enable_mermaid
               ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
               ~version ~extra_head:"";
         }
@@ -2327,7 +2281,6 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
               ~title:(Printf.sprintf "Axiom %s" axiom_id)
               ~body ~site_base:config.site_base
               ~enable_mathjax:config.enable_mathjax
-              ~enable_mermaid:config.enable_mermaid
               ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
               ~version ~extra_head:"";
         }
@@ -2354,7 +2307,6 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
             render_page ~lang:"en" ~page_key:("spec/" ^ name)
               ~title:(Printf.sprintf "%s — math-coding spec" name)
               ~body ~site_base:config.site_base ~enable_mathjax:true
-              ~enable_mermaid:config.enable_mermaid
               ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
               ~version ~extra_head:"";
         }
@@ -2513,7 +2465,6 @@ let[@warning "-32"] default_config =
        setting `Render.config.enable_mathjax = false`
        programmatically. *)
     enable_mathjax = true;
-    enable_mermaid = true;
     enable_lang_toggle = true;
     languages = [ "en" ];
     (* Default version reads from `./VERSION` at render time. The

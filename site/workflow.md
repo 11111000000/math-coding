@@ -4,17 +4,14 @@
 > five-state FSM from `decisions/decision.yaml` applied
 > as a discipline. Six steps, one binary.
 
-```mermaid
-stateDiagram-v2
-    direction LR
-    [*] --> intent
-    intent --> commit: write decision + obligation
-    commit --> implement: ship the code change
-    implement --> attest: produce attestations/*.json
-    attest --> gate: mathc gate BASE HEAD
-    gate --> self_verify: mathc self-check
-    self_verify --> [*]: merge to main
-```
+![Lifecycle FSM of a single math-coding record: 7 states (draft, committed, implemented, attested, monitored, contested, retired), 6 main transitions, 4 block markers (violation, grace, stale, waiver-expiry).](assets/lifecycle-fsm.svg)
+
+The diagram above is the workflow. Each of the six steps
+below corresponds to one transition in the FSM: state
+intent → commit → implement → attest → gate → self_verify
+→ merge to main. The block markers (violation, grace, stale,
+waiver-expiry) are the four conditions that can interrupt a
+state and force a transition back to an earlier one.
 
 ## 1. State intent
 
@@ -46,6 +43,15 @@ obligation:
           result: pass
 ```
 
+The transition from `commit` to `implement` is gated by the
+"every obligation has a positive + negative fixture" rule.
+The obligation above has a positive acceptance clause
+(`verifier: mathc packages --format=json, result: pass`);
+a matching negative clause (a `result: fail` test that
+asserts the verifier rejects a malformed decision) is added
+in step 4 (Attest) before the `implement → attest` transition
+becomes reachable.
+
 ## 3. Implement
 
 `lib/packages.ml` and `bin/Mathc.ml` change to honour the
@@ -72,6 +78,15 @@ graph. Its exit code gates merge to `main`. The
 self-check's JSON carries `verdict`, `subjects_count`,
 `pass_count`, and the `kernel_digest` (SHA-256 of the
 binary that produced the verdict).
+
+![Bootstrap timeline: v3-alpha-0.0.1 to 8fa7fcf (v3.0.0.19) to today. Manual regime ends at 8fa7fcf; automated regime begins the same commit.](assets/bootstrap-timeline.svg)
+
+The bootstrap timeline above shows the same workflow applied
+to the project itself. From `v3-alpha-0.0.1` to commit
+`8fa7fcf` every transition was admitted by a human reviewer
+(manual regime); from `8fa7fcf` onward, the kernel is the
+admitter. The boundary between the two regimes is the
+`mathc self-check` step in this workflow.
 
 ## A worked example
 

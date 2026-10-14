@@ -9,18 +9,7 @@
 For every commitment in the system, there exists a *path* by which the
 world tells the system whether the commitment holds.
 
-```mermaid
-flowchart TB
-    commitment["commitment<br/>the decision under test"]
-    prediction["prediction<br/>what will be observable if it holds"]
-    observation["observation<br/>the system receives a signal about the actual state"]
-    revision["revision<br/>keep, modify, or retire"]
-
-    commitment --> prediction
-    prediction --> observation
-    observation --> revision
-    revision -. revise or retire the commitment .-> commitment
-```
+![A1 Feedback: every commitment has a path to observation. A top-to-bottom flow of four nodes connected by arrows. At the top: commitment (the decision under test). Below it: prediction (what will be observable if it holds). Below that: observation (the system receives a signal about the actual state). At the bottom: revision (keep, modify, or retire). An arrow loops back from revision to commitment to close the loop.](assets/a1-feedback.svg)
 
 The loop is closed iff every commitment has at least one path to an
 observation.
