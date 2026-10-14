@@ -427,6 +427,30 @@ let[@warning "-32"] css_has_inline_figure_rules () =
   Alcotest.(check bool)
     "no .mermaid rules remain" true (not (has ".mermaid" css))
 
+let[@warning "-32"] mermaid_support_removed () =
+  (* Assert the renderer source no longer carries Mermaid
+     support (diagrams-as-svg-2026-10): no `enable_mermaid`
+     config field, no Mermaid code-fence branch, no Mermaid CDN
+     script in lib/render.ml or bin/Mathc.ml. *)
+  let read path =
+    let ic = open_in path in
+    let n = in_channel_length ic in
+    let s = really_input_string ic n in
+    close_in ic;
+    s
+  in
+  let root =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> p
+    | None -> ".."
+  in
+  let render_ml = read (Filename.concat root "lib/render.ml") in
+  let mathc_ml = read (Filename.concat root "bin/Mathc.ml") in
+  Alcotest.(check bool)
+    "lib/render.ml has no mermaid" true (not (has "mermaid" render_ml));
+  Alcotest.(check bool)
+    "bin/Mathc.ml has no mermaid" true (not (has "mermaid" mathc_ml))
+
 let[@warning "-32"] packages_page_has_grid () =
   let cfg : Render.config = Render.default_config in
   let pkg_html =
@@ -959,6 +983,8 @@ let () =
         [ Alcotest.test_case "math" `Quick css_has_math_rules ] );
       ( "css_has_inline_figure_rules",
         [ Alcotest.test_case "figure" `Quick css_has_inline_figure_rules ] );
+      ( "mermaid_support_removed",
+        [ Alcotest.test_case "removed" `Quick mermaid_support_removed ] );
       ( "packages_page_has_grid",
         [ Alcotest.test_case "grid" `Quick packages_page_has_grid ] );
       ( "ru_nav_omits_missing_sibling",

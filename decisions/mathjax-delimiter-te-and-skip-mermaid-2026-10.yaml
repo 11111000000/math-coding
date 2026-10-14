@@ -2,11 +2,11 @@
 schema: math-coding/3.2
 id: mathjax-delimiter-te-and-skip-mermaid-2026-10
 revision: 1
-state: active
+state: superseded
 axiom_link:
   - A0
-body_sha: "sha256:7636ee4f1261a62be42dc05d21e331b08915238d9543e7de1d781d2fb4eccaa7"
-yaml_sha: "sha256:7636ee4f1261a62be42dc05d21e331b08915238d9543e7de1d781d2fb4eccaa7"
+body_sha: "sha256:80465e503153c6e8363470246e85562f47a96fa8a521785c3b129dff4a405023"
+yaml_sha: "sha256:80465e503153c6e8363470246e85562f47a96fa8a521785c3b129dff4a405023"
 intent: |
   Two regressions surfaced after PR #8 (mathjax-default-on-2026-10 +
   7 mermaid + 5 Formalization):
@@ -252,4 +252,5 @@ relations:
     - mathjax-default-on-2026-10@1
     - mathjax-delimiter-hardening-2026-10@1
   supersedes: []
-  superseded_by: []
+  superseded_by:
+    - site-diagrams-as-svg-2026-10

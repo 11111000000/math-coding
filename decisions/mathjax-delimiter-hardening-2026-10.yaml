@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathjax-delimiter-hardening-2026-10
 revision: 1
 state: active
-body_sha: "sha256:18fc5504dd2e8f08d8e15dbe1681f970f853a0f6eb73a5637782f6bbba196e10"
-yaml_sha: "sha256:18fc5504dd2e8f08d8e15dbe1681f970f853a0f6eb73a5637782f6bbba196e10"
+body_sha: "sha256:c5810c7b942f3150488c92f5754a9f8e68859642d8232e41fd5913d3f2b87d66"
+yaml_sha: "sha256:c5810c7b942f3150488c92f5754a9f8e68859642d8232e41fd5913d3f2b87d66"
 intent: |
   Harden the MathJax 3 wiring in `lib/render.ml` so that
   the dollar sign is no longer an active math delimiter.
@@ -135,10 +135,11 @@ outcomes:
 
   - id: math-and-mermaid-css-shipped
     statement: |
-      `assets/style.css` declares rules for `mjx-container`,
-      `mjx-container[display="true"]`, and `.mermaid svg` so
-      that any future MathJax output and any future mermaid
-      diagram respect the Tufte column rhythm.
+      `assets/style.css` declares rules for `mjx-container` and
+      `mjx-container[display="true"]` so that any future MathJax
+      output respects the Tufte column rhythm. The `.mermaid svg`
+      rule that this outcome originally shipped is retired by
+      `site-diagrams-as-svg-2026-10`.
 
 counterexample: |
   "Removing `$..$` from inlineMath breaks the existing
@@ -232,12 +233,12 @@ obligations:
       `assets/style.css` declares at least:
         `mjx-container { font-family: ...math fallback...; }`
         `mjx-container[display="true"] { margin: 1em 0; overflow-x: auto; }`
-        `.mermaid svg { max-width: 100%; height: auto; }`
+      The `.mermaid svg` rule is retired by
+      `site-diagrams-as-svg-2026-10` (Mermaid is removed from
+      the render pipeline).
     acceptance:
       all:
         - verifier: tests/render_kernel.ml::css_has_math_rules
-          result: pass
-        - verifier: tests/render_kernel.ml::css_has_mermaid_svg_rules
           result: pass
 
 reversal:

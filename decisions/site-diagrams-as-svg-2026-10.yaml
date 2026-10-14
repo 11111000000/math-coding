@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-diagrams-as-svg-2026-10
 revision: 1
 state: active
-body_sha: "sha256:84805957a9f21d3083801dbc918d9dde0415faca3652f3f6be438022c9f6ec39"
-yaml_sha: "sha256:84805957a9f21d3083801dbc918d9dde0415faca3652f3f6be438022c9f6ec39"
+body_sha: "sha256:33b0ca2045ebc5f60b0c0a5fcaf7b01ac98307e16015b14fc9ba96eef31bfd91"
+yaml_sha: "sha256:33b0ca2045ebc5f60b0c0a5fcaf7b01ac98307e16015b14fc9ba96eef31bfd91"
 axiom_link:
   - A3
 intent: |
@@ -85,12 +85,11 @@ obligations:
       `mermaid` code-fence branch, the `enable_mermaid` config
       field, the `--mermaid` CLI flag, and the Mermaid CDN
       script are all absent from `lib/render.ml` and
-      `bin/Mathc.ml`.
+      `bin/Mathc.ml`, and no `.mermaid` CSS rule remains in
+      `assets/style.css`.
     acceptance:
       all:
-        - verifier: ! grep -rq 'mermaid' lib/render.ml bin/Mathc.ml; test $? -eq 1
-          result: pass
-        - verifier: tests/render_kernel.ml::inline_figure_renders
+        - verifier: tests/render_kernel.ml::mermaid_support_removed
           result: pass
         - verifier: tests/render_kernel.ml::css_has_inline_figure_rules
           result: pass
@@ -103,8 +102,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/render_kernel.ml::inline_svg_figures_in_seven_pages
-          result: pass
-        - verifier: ! grep -rn 'mermaid.min.js' assets/ lib/ bin/ | grep -v _build; test $? -eq 1
           result: pass
 
 counterexample: |
@@ -170,6 +167,7 @@ relations:
     - site-svg-foundations-2026-10
     - site-svg-manifesto-2026-10
     - site-svg-workflow-2026-10
+    - mathjax-delimiter-te-and-skip-mermaid-2026-10
   depends_on:
     - site-quality-illustrations-2026-10
   refines: []
