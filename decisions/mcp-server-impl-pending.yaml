@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: mcp-server-impl-pending
-revision: 1
-state: active
-body_sha: "sha256:6c96df0b6898b0c1bfff9449fbee21d149c25a593cfd702e23d1afa5f68bc132"
-yaml_sha: "sha256:6c96df0b6898b0c1bfff9449fbee21d149c25a593cfd702e23d1afa5f68bc132"
+revision: 2
+state: retired
+body_sha: "sha256:2eb2ee12001cadf084af52bf5b870186188622c0d7a2c867bd20aeea684b9885"
+yaml_sha: "sha256:2eb2ee12001cadf084af52bf5b870186188622c0d7a2c867bd20aeea684b9885"
 intent: |
   Record the deferral of the MCP server obligation to Phase 2
   of the install-tooling-2026-10 work. The MCP adapter split
@@ -30,15 +30,7 @@ intent: |
   `decisions/mcp-server-2026-10.yaml` (rev 1, state: active)
   in a Phase-2 worktree, which supersedes this one.
 
-  Status (2026-10-13, post-Phase-1+2-of-ux-3): the deferral
-  is resolved. The MCP server stub landed as
-  `decisions/mcp-server-impl-2026-10.yaml@1` (rev 1, 7
-  read-only methods). The read-write expansion landed as
-  `decisions/ux-3-mcp-read-write-2026-10.yaml@1` (rev 1,
-  4 additional methods). This deferral record stays as
-  `state: active` for audit traceability but is functionally
-  superseded by the two implementation files. Update the
-  `relations:` block below to reflect the chain.
+    `relations:` block below to reflect the chain.
 axiom_link:
   - A0
   - A3
@@ -196,11 +188,25 @@ risk:
     - kernel-api-changes-break-mcp
     - agent-platform-mcp-removal
   owner: human:maintainer
+    - mcp-server-impl-2026-10
+    - ux-3-mcp-read-write-2026-10
+
+closure:
+  closed_by:
+    - mcp-server-impl-2026-10@1
+    - ux-3-mcp-read-write-2026-10@1
+  note: |
+    This deferral record is functionally retired: the MCP server
+    landed as `mcp-server-impl-2026-10.yaml@1` (7 read-only
+    methods) on 2026-10-13 and was extended by
+    `ux-3-mcp-read-write-2026-10.yaml@1` (4 additional methods).
+    The file remains in `decisions/` for audit traceability but
+    is no longer the authoritative record of MCP-server state.
+    A new decision will be authored if the MCP server is removed
+    or its contract changes.
+
 relations:
-  addresses:
-    - bootstrap-v3
-  addresses-future:
-    - mcp-server-2026-10   # the parent decision to be written in Phase 2
+  addresses: []
   supersedes: []
   superseded_by:
     - mcp-server-impl-2026-10
