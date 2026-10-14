@@ -1204,3 +1204,79 @@ and parse_decision v =
   match parse_decision_value v with
   | Accept _ -> None
   | Reject diag -> Some diag
+
+(* peek_schema_family: dispatch helper for `mathc validate`.
+   The decision parser (`parse_decision_value` above) enforces the
+   decision-required fields (intent, commitment, scope, outcomes,
+   obligations). Two other schema families live under `decisions/`:
+   `math-coding/waiver-<X>` (waivers in `decisions/waivers/`) and
+   `math-coding/obligations-<X>` (the obligations aggregator at
+   `decisions/obligations.yaml`). Both fail the decision required-
+   field check today with `MC-DECISION-INVALID: missing required
+   field: <id|intent>` even though they are well-formed for their
+   own schema family.
+
+   This helper peeks at the top-level `schema:` field of an already-
+   parsed Jsonl.value and returns `Some (kind, id)` when the
+   schema family is a recognised non-decision family. The CLI
+   (bin/Mathc.ml::validate_with_counts) takes the fast path on
+   Some and emits `accept:` with a `kind:` annotation; the
+   decision parser is not invoked.
+
+   Anything else returns `None` and the caller falls through to
+   the decision parser. A missing or unrecognised `schema:` is
+   therefore rejected by the decision parser as before — this
+   helper does not widen the accept set, only narrows the reject
+   set for the two known non-decision families.
+
+   For waivers: the helper verifies `kind: waiver` is present
+   (the schema in `schemas/waiver.json:12` constrains it to a
+   constant). The id is read from the top-level `id:` field.
+
+   For obligations aggregators: the helper does NOT require a
+   `kind:` field (the obligations aggregator carries none; see
+   `decisions/obligations.yaml:1-3`). The id is read from
+   `decision.id:` (the aggregator's reference to its parent
+   decision). If the parent decision id is missing, the id is
+   the empty string — the verdict is still `accept` per the
+   permissive policy for this family.
+
+   The dispatch is consulted BEFORE the decision required-field
+   check in `bin/Mathc.ml::validate_with_counts`. The list of
+   recognised decision schema families is the same as the
+   `schema:` enum in `schemas/decision.json` (3.0-alpha, 3.2,
+   3.3 — both `/decision` and bare forms). All of those fall
+   through to the decision parser unchanged. *)
+type non_decision_kind = Waiver | Obligations
+
+let[@warning "-32"] peek_schema_family (v : Jsonl.value) :
+    (non_decision_kind * string) option =
+  let has_prefix ~prefix s =
+    let pl = String.length prefix in
+    String.length s >= pl && String.sub s 0 pl = prefix
+  in
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_string ps "schema" with
+      | Some s when has_prefix ~prefix:"math-coding/waiver-" s -> (
+          match Schema.take_string ps "kind" with
+          | Some k when k = "waiver" ->
+              let id =
+                match Schema.take_string ps "id" with
+                | Some i -> i
+                | None -> ""
+              in
+              Some (Waiver, id)
+          | _ -> None)
+      | Some s when has_prefix ~prefix:"math-coding/obligations-" s ->
+          let id =
+            match Schema.take_object ps "decision" with
+            | Some dps -> (
+                match Schema.take_string dps "id" with
+                | Some i -> i
+                | None -> "")
+            | None -> ""
+          in
+          Some (Obligations, id)
+      | _ -> None)
+  | _ -> None
