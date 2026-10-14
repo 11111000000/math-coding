@@ -1,0 +1,18 @@
+{
+  "schema": "math-coding/attestation-3.0-alpha",
+  "kind": "attestation",
+  "subject": {
+    "decision": "d5-body-vs-wrapper-canonical-2026-10",
+    "obligation": "kernel-test-asserts-algorithm",
+    "candidate_tree": "HEAD",
+    "materials_digest": ""
+  },
+  "kind_": "test",
+  "producer": {
+    "identity": "ci:coordinator",
+    "run": "d5-merge-round-1-stream-d5"
+  },
+  "result": "pass",
+  "issued_at": "2026-10-13T18:00:00Z",
+  "id": "sha256:0000000000000000000000000000000000000000000000000000000000000403"
+}
