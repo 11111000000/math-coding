@@ -32,11 +32,11 @@ jobs:
 
       - name: Install mathc
         env:
-          MATH_CODING_VERSION: 3.1.0-alpha-final  # pin to your install-toolkit
+          MATH_CODING_VERSION: edge  # pin to your install-toolkit
         run: |
           curl -fsSL \
-            "https://github.com/11111000000/math-coding/releases/download/v${MATH_CODING_VERSION}/install.sh" \
-            | sh -s -- --version="v${MATH_CODING_VERSION}"
+            "https://github.com/11111000000/math-coding/releases/download/${MATH_CODING_VERSION}/install.sh" \
+            | sh -s -- --version="${MATH_CODING_VERSION}"
 
       - name: Validate staged decisions
         run: |

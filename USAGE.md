@@ -12,7 +12,7 @@ with sandbox notes and migration steps.
 
 - **Release binary** (recommended). One-line install:
   ```sh
-  curl -fsSL https://github.com/11111000000/math-coding/releases/download/v3.1.0-alpha-final/install.sh | sh
+  curl -fsSL https://github.com/11111000000/math-coding/releases/download/edge/install.sh | sh
   ```
   The script downloads `SHA256SUMS` and the matching
   `mathc-<os>-<arch>` from the same release, verifies the
@@ -24,7 +24,7 @@ with sandbox notes and migration steps.
   for the full flag set.
 - **Docker image** (sandbox-friendly). No sudo required:
   ```sh
-  docker run --rm -v "$PWD:/repo" ghcr.io/11111000000/mathc:3.1.0-alpha-final \
+  docker run --rm -v "$PWD:/repo" ghcr.io/11111000000/mathc:edge \
     validate decisions/foo.yaml
   ```
   The image is built from `Dockerfile.debian-slim` (multi-stage:

@@ -2087,3 +2087,42 @@ as the trigger for
 `decisions/d5-body-vs-wrapper-canonical-2026-10.yaml`.
 Referenced from that decision's
 `commitment::body_canonical_sha256` block.
+
+### 11.33 OCaml string-continuation byte-level splice
+
+**Symptom.** Editing a multi-line OCaml string literal
+(e.g. `lib/render.ml::body_extra` or `bin/Mathc.ml::print_usage`)
+via Python `str.replace()` silently produces syntactically
+invalid OCaml source: the inserted line has a `\` (continuation)
+immediately followed by a SPACE (the leading whitespace of the
+new source line), with no newline between. The OCaml parser
+sees the `\` not as a continuation but as a literal backslash in
+the string content, and the entire string literal collapses
+into one long line at the wrong indent. `dune build` then
+fails with "unterminated string" or "this is not a string" at a
+fancy parser position.
+
+**Cause.** Naive marker matching used 3 bytes `\\`, `n`, `\\` —
+the `\\n` (escape newline) + `\\` (continuation) — but missed
+the **file newline** (4th byte) which OCaml also consumes
+before the next source line begins. Without the file newline,
+the `\\n\\` literal is followed by SPACE, not by `\\<file-newline>`, so the parser sees `\\` + space + ...
+
+**Fix.** Always include the trailing file newline in the Python marker:
+
+```python
+end_marker = b'reviews the output before mathc validate.\\n\\\n'  # 4 bytes
+```
+
+The 4th byte `\\n` is the file newline. Splicing with this
+marker preserves the line structure. `cat -A` output
+should show `\\n\\$` (escape-newline + continuation + file-newline)
+at the end of each OCaml source line.
+
+This trap was observed on 2026-10-14 in commit `2ac9b41`
+("fix(print-usage): list adopt and migrate in mathc --help")
+when adding the adopt/migrate entries to
+`bin/Mathc.ml::print_usage`; the first attempt produced
+nearby `validate.\\n\\     adopt [PATH]` (continuation
+followed by space) instead of nearby `validate.\\n\\\\$     adopt`
+(continuation followed by file-newline).

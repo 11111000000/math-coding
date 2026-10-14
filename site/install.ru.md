@@ -14,8 +14,8 @@ math-coding поставляется в виде четырёх независи
 
 | Канал | Когда использовать | Команда установки |
 |---|---|---|
-| Release binary | По умолчанию. Linux glibc ≥ 2.35, macOS или WSL. | `curl -fsSL https://github.com/11111000000/math-coding/releases/download/v${VERSION}/install.sh \| sh` |
-| Docker image | Нет sudo, нет записи в `~/.local/`, ограниченный CI-раннер или нужен герметичный запуск. | `docker run --rm -v "$PWD:/repo" ghcr.io/11111000000/mathc:${VERSION} validate decisions/foo.yaml` |
+| Release binary | По умолчанию. Linux glibc ≥ 2.35, macOS или WSL. | `curl -fsSL https://github.com/11111000000/math-coding/releases/download/edge/install.sh \| sh` |
+| Docker image | Нет sudo, нет записи в `~/.local/`, ограниченный CI-раннер или нужен герметичный запуск. | `docker run --rm -v "$PWD:/repo" ghcr.io/11111000000/mathc:edge validate decisions/foo.yaml` |
 | Nix run | У вас есть Nix ≥ 2.18 с включёнными flakes, и вы предпочитаете zero-install. | `nix run github:11111000000/math-coding -- validate decisions/foo.yaml` |
 | Source build | Вы модифицируете `lib/` или `bin/`. | `nix develop .#test && dune build --root . bin/mathc.exe` |
 
@@ -98,6 +98,39 @@ pin в frontmatter — задокументированный источник �
 следующего цикла (см. `decisions/docker-alpine-impl-pending.yaml`).
 До тех пор пользователи Alpine скачивают musl-бинарь
 напрямую из `assets/` релиза.
+
+## Интеграция через MCP
+
+`mathc` поставляется вместе с компаньоном `mathc_mcp` — JSON-RPC 2.0 сервером по stdio.
+Сервер экспонирует 11 методов `mathc/<name>`:
+
+`mathc/validate`, `mathc/explain`, `mathc/packages`, `mathc/mode`,
+`mathc/re-evaluate`, `mathc/rebuttals`, `mathc/self-check`,
+`mathc/gate`, `mathc/attest`, `mathc/record`,
+`mathc/re-evaluate-decisions`.
+
+Read-only методы перечислены в
+`decisions/mcp-server-impl-2026-10.yaml`, read-write методы — в
+`ux-3-mcp-read-write-2026-10.yaml`. Обе категории
+эмитятся из одного allowlist в `lib/mcp/dispatch.ml`.
+
+Протокол: один JSON-RPC запрос на строку stdin, один ответ на
+строку stdout. stderr зарезервирован для диагностики сервера.
+EOF на stdin приводит к чистому выходу с кодом 0.
+
+Запуск сервера напрямую:
+
+  $ ~/.local/bin/mathc_mcp     # читает JSON-RPC из stdin, пишет в stdout
+
+MCP-aware агент (opencode, Claude Code, Cursor) может запустить
+этот бинарь как stdio MCP-сервер. Агент увидит `mathc::validate`
+и другие методы как прямые вызовы tools, без обращения через `bash`.
+
+## AI-агенты
+
+Агент в opencode/Claude Code/Cursor может либо запустить `mathc`
+через `bash`, либо подключиться к `mathc_mcp` через JSON-RPC stdio
+(см. §"Интеграция через MCP" выше).
 
 ## См. также
 
