@@ -108,20 +108,35 @@ main, .container {
   overflow-x: hidden;
 }
 
-/* --- navigation --- */
+/* --- navigation (site-redesign-2026-10) ---
+ *
+ * Four categorised dropdowns + Home + GitHub + lang toggle.
+ * On desktop the row is a single line; the panels open on
+ * hover, focus-within, or aria-expanded="true" (toggled by
+ * JS for keyboard / touch). On mobile (≤760 px) the entire
+ * row collapses under the hamburger.
+ */
 
 nav.site-nav {
   background: #1a1a1a;
   color: #fbfaf6;
-  padding: 0.875rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   border-bottom: 1px solid var(--accent);
   display: flex;
   align-items: center;
-  gap: 1.75rem;
+  gap: 0.25rem;
   position: relative;
+  flex-wrap: nowrap;
 }
 
+/* --- brand with logo --- */
+
 nav.site-nav .brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.05rem 0.6rem 0.05rem 0;
+  margin-right: 0.6rem;
   font-family: var(--serif-stack);
   font-size: 1.15rem;
   font-weight: 600;
@@ -132,10 +147,17 @@ nav.site-nav .brand {
   flex-shrink: 0;
   border-bottom: 0;
 }
-
-nav.site-nav .brand:hover {
-  color: var(--theorem-rule);
+nav.site-nav .brand:hover { color: var(--theorem-rule); }
+nav.site-nav .brand-logo {
+  width: 28px;
+  height: 28px;
+  display: inline-block;
+  flex-shrink: 0;
 }
+nav.site-nav .brand:hover .brand-logo { filter: brightness(1.15); }
+nav.site-nav .brand-text { white-space: nowrap; }
+
+/* --- hamburger toggle (mobile only) --- */
 
 nav.site-nav .nav-toggle {
   display: none;
@@ -151,40 +173,138 @@ nav.site-nav .nav-toggle {
   border: 0;
   appearance: none;
 }
-
 nav.site-nav .nav-toggle:hover { color: var(--theorem-rule); }
+
+/* --- inner: the visible row --- */
 
 nav.site-nav .nav-inner {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 1.5rem;
+  gap: 0.1rem;
   flex: 1;
   min-width: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-nav.site-nav .lang-toggle {
-  margin-left: auto;
+nav.site-nav .nav-item-direct,
+nav.site-nav .nav-group {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+nav.site-nav a.nav-link,
+nav.site-nav .nav-group-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
   font-family: var(--mono-stack);
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: lowercase;
   color: #fbfaf6;
-  opacity: 0.7;
+  opacity: 0.78;
+  background: transparent;
+  border: 0;
+  border-bottom: 0;
+  border-radius: 3px;
+  cursor: pointer;
+  text-decoration: none;
+  appearance: none;
+  transition: opacity 0.15s, color 0.15s, background 0.15s;
 }
-nav.site-nav .lang-toggle:hover { opacity: 1; color: var(--theorem-rule); }
 
-/* GitHub nav anchor (per decisions/site-broken-links-2026-10@1).
-   Lives between `.nav-inner` and `.lang-toggle` so a visitor
-   landing on any non-home page has a top-of-page affordance for
-   the upstream repository. The icon is inline SVG; the visible
-   text label is "GitHub" so keyboard-only visitors can reach
-   the link without depending on the SVG accessibility tree. */
+nav.site-nav a.nav-link:hover,
+nav.site-nav .nav-group-toggle:hover,
+nav.site-nav .nav-group:hover .nav-group-toggle,
+nav.site-nav .nav-group:focus-within .nav-group-toggle {
+  opacity: 1;
+  color: var(--theorem-rule);
+}
+
+nav.site-nav a.nav-link.active,
+nav.site-nav .nav-group.is-active > .nav-group-toggle {
+  opacity: 1;
+  color: var(--theorem-rule);
+  box-shadow: inset 0 -2px 0 0 var(--accent-soft);
+}
+
+nav.site-nav a.nav-link:focus-visible,
+nav.site-nav .nav-group-toggle:focus-visible {
+  outline: 2px solid var(--theorem-rule);
+  outline-offset: 2px;
+}
+
+/* caret next to the dropdown label */
+nav.site-nav .nav-group-caret {
+  font-size: 0.7em;
+  opacity: 0.6;
+  transition: transform 0.15s;
+}
+
+/* --- dropdown panel --- */
+
+nav.site-nav .nav-group-panel {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  min-width: 11rem;
+  margin: 0;
+  padding: 0.4rem 0;
+  list-style: none;
+  background: #23211d;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 50;
+  /* closed by default; opened on hover, focus-within, or
+     aria-expanded="true" (set by JS) */
+  display: none;
+}
+
+nav.site-nav .nav-group:hover > .nav-group-panel,
+nav.site-nav .nav-group:focus-within > .nav-group-panel,
+nav.site-nav .nav-group > .nav-group-toggle[aria-expanded="true"] + .nav-group-panel {
+  display: block;
+}
+
+nav.site-nav .nav-group:hover .nav-group-caret,
+nav.site-nav .nav-group:focus-within .nav-group-caret,
+nav.site-nav .nav-group-toggle[aria-expanded="true"] .nav-group-caret {
+  transform: rotate(180deg);
+}
+
+nav.site-nav .nav-group-panel .nav-link {
+  display: block;
+  padding: 0.5rem 1rem;
+  border-radius: 0;
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+nav.site-nav .nav-group-panel .nav-link:hover,
+nav.site-nav .nav-group-panel .nav-link:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 1;
+}
+
+nav.site-nav .nav-group-panel .nav-link.active {
+  background: rgba(139, 58, 58, 0.25);
+  box-shadow: none;
+}
+
+/* --- github + lang on the right --- */
+
 nav.site-nav .github-link {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   margin-left: auto;
+  padding: 0.4rem 0.6rem;
   color: #fbfaf6;
   opacity: 0.78;
   text-decoration: none;
@@ -192,6 +312,7 @@ nav.site-nav .github-link {
   font-size: 0.72rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  flex-shrink: 0;
 }
 nav.site-nav .github-link:hover { opacity: 1; color: var(--theorem-rule); }
 nav.site-nav .github-link:focus-visible {
@@ -201,45 +322,68 @@ nav.site-nav .github-link:focus-visible {
 nav.site-nav .github-icon { display: inline-block; vertical-align: middle; }
 nav.site-nav .github-label { display: inline; }
 
+nav.site-nav .lang-toggle {
+  padding: 0.4rem 0.6rem;
+  font-family: var(--mono-stack);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fbfaf6;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+nav.site-nav .lang-toggle:hover { opacity: 1; color: var(--theorem-rule); }
+
+/* --- mobile (≤ 760 px): collapse everything under the hamburger --- */
+
 @media (max-width: 760px) {
   nav.site-nav {
-    gap: 0.5rem;
-    padding: 0.75rem 1rem;
     flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
   }
-  nav.site-nav .nav-toggle { display: block; order: 3; }
+  nav.site-nav .brand { font-size: 1rem; }
+  nav.site-nav .brand-logo { width: 24px; height: 24px; }
+  nav.site-nav .nav-toggle {
+    display: block;
+    order: 4;
+    margin-left: auto;
+  }
+  nav.site-nav .github-link { order: 1; margin-left: 0; padding: 0.3rem 0.4rem; }
+  nav.site-nav .github-label { display: none; }
+  nav.site-nav .lang-toggle { order: 2; padding: 0.3rem 0.4rem; }
+
   nav.site-nav .nav-inner {
     display: none;
-    order: 4;
+    order: 5;
     flex-basis: 100%;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
-    padding: 0.8rem 0 0.4rem;
+    align-items: stretch;
+    gap: 0.1rem;
+    padding: 0.5rem 0 0.2rem;
   }
   nav.site-nav .nav-toggle[aria-expanded="true"] + .nav-inner {
     display: flex;
   }
-  nav.site-nav .brand { font-size: 1rem; }
-  nav.site-nav .lang-toggle { order: 2; }
-  nav.site-nav .github-link { order: 1; margin-left: auto; }
-  nav.site-nav .github-label { display: none; }
-}
 
-nav.site-nav a.nav-link {
-  font-family: var(--mono-stack);
-  font-size: 0.78rem;
-  letter-spacing: 0.06em;
-  text-transform: lowercase;
-  color: #fbfaf6;
-  opacity: 0.72;
-  border-bottom: 0;
-  transition: opacity 0.15s, color 0.15s;
-}
-
-nav.site-nav a.nav-link:hover {
-  opacity: 1;
-  color: var(--theorem-rule);
+  /* on mobile every group is a vertical stack; no dropdown
+     overlay — the panel sits just below the toggle */
+  nav.site-nav .nav-group-panel {
+    position: static;
+    background: transparent;
+    border: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: none;
+    padding: 0.2rem 0 0.4rem 0.6rem;
+    min-width: 0;
+    margin-left: 0.8rem;
+    display: block;
+  }
+  nav.site-nav .nav-group-panel .nav-link {
+    padding: 0.35rem 0.4rem;
+    text-transform: lowercase;
+    font-size: 0.78rem;
+  }
 }
 
 /* --- focus-visible (Phase 3 of site-quality-polish-2026-10) ---
@@ -256,17 +400,6 @@ button:focus-visible,
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: 2px;
-}
-nav.site-nav a.nav-link:focus-visible {
-  outline: 2px solid var(--theorem-rule);
-  outline-offset: 2px;
-}
-
-nav.site-nav a.nav-link.active {
-  opacity: 1;
-  color: var(--theorem-rule);
-  border-bottom: 1px solid var(--theorem-rule);
-  padding-bottom: 1px;
 }
 
 /* --- typography --- */
@@ -372,36 +505,228 @@ table.mathc-table code {
   font-size: 0.92em;
 }
 
-/* --- hero / front page --- */
+/* --- hero / front page (site-redesign-2026-10) --- */
 
-.hero {
+.mathc-hero {
   text-align: center;
   padding: 5rem 1rem 3rem;
+  margin: 0 auto 3rem;
+  max-width: 56rem;
   border-bottom: 1px solid var(--rule);
-  margin-bottom: 4rem;
 }
-.hero h1 {
-  font-size: clamp(2.2rem, 5vw, 3rem);
+.mathc-hero-logo {
+  width: 72px;
+  height: 72px;
+  display: block;
+  margin: 0 auto 1.5rem;
+}
+.mathc-hero h1 {
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
   font-weight: 400;
   margin: 0 0 0.5rem;
   letter-spacing: -0.025em;
-  line-height: 1.1;
+  line-height: 1.05;
 }
-.hero .version {
+.mathc-hero-version {
   font-family: var(--mono-stack);
   font-size: 0.78rem;
   color: var(--fg-faint);
   letter-spacing: 0.04em;
-  margin: 0 0 0.6rem;
+  margin: 0 0 1.2rem;
 }
-.hero .lead {
-  font-size: 1.15rem;
-  font-style: italic;
+.mathc-hero-tagline {
+  font-size: 1.2rem;
   color: var(--fg-muted);
   max-width: 38em;
-  margin: 0.4em auto 1em;
+  margin: 0 auto 2rem;
+  line-height: 1.5;
 }
-.hero .meta {
+.mathc-hero-cta {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin: 0 0 1rem;
+}
+
+/* --- CTAs --- */
+
+.mathc-cta {
+  display: inline-block;
+  padding: 0.65em 1.4em;
+  border-radius: 3px;
+  font-family: var(--mono-stack);
+  font-size: 0.88rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  border-bottom: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.mathc-cta-primary {
+  background: var(--accent);
+  color: #fbfaf6;
+  border: 1px solid var(--accent);
+}
+.mathc-cta-primary:hover {
+  background: #6f2b2b;
+  border-color: #6f2b2b;
+  color: #fbfaf6;
+}
+.mathc-cta-secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent-soft);
+}
+.mathc-cta-secondary:hover {
+  background: rgba(139, 58, 58, 0.08);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+/* --- section blocks on the home page --- */
+
+.mathc-section {
+  max-width: 56rem;
+  margin: 0 auto 3.5rem;
+  padding: 0 1rem;
+}
+.mathc-section h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--rule);
+}
+.mathc-section-lede {
+  font-size: 1.05rem;
+  color: var(--fg-muted);
+  margin: 0 0 1.5rem;
+}
+.mathc-section-more {
+  margin-top: 1.5rem;
+  font-size: 0.95rem;
+  color: var(--fg-muted);
+}
+.mathc-section code {
+  background: var(--code-bg);
+  padding: 0.1em 0.35em;
+  border-radius: 2px;
+  font-size: 0.88em;
+}
+
+/* --- quick start steps --- */
+
+.mathc-steps {
+  list-style: none;
+  counter-reset: step;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 1rem;
+}
+.mathc-steps li {
+  position: relative;
+  padding: 1.1rem 1.2rem 1.1rem 3.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  counter-increment: step;
+}
+.mathc-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 1rem;
+  top: 1.1rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: #fbfaf6;
+  border-radius: 50%;
+  font-family: var(--mono-stack);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.mathc-steps li code {
+  background: var(--code-bg);
+  padding: 0.18em 0.45em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+
+/* --- moderation: terminal block --- */
+
+.mathc-terminal {
+  background: #1a1a1a;
+  color: #d4d0c8;
+  padding: 1.1rem 1.4rem;
+  border-radius: 4px;
+  border: 1px solid #2a2724;
+  font-family: var(--mono-stack);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  overflow-x: auto;
+  margin: 1.2rem 0;
+}
+.mathc-terminal code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+.mathc-check { color: var(--pass); }
+.mathc-verdict-unknown { color: #d4a857; font-weight: 600; }
+
+/* --- methodology cards --- */
+
+.mathc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+.mathc-card {
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 4px 4px 0;
+  padding: 1.1rem 1.2rem;
+}
+.mathc-card h3 {
+  font-family: var(--mono-stack);
+  font-size: 0.95rem;
+  font-style: normal;
+  margin: 0 0 0.4rem;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.mathc-card p {
+  font-size: 0.95rem;
+  color: var(--fg-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* --- final callout + meta --- */
+
+.mathc-callout {
+  max-width: 38em;
+  margin: 4rem auto;
+  text-align: center;
+  font-style: italic;
+  color: var(--fg-muted);
+  padding: 1.5em 1em;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+.mathc-meta {
+  max-width: 56rem;
+  margin: 0 auto 4rem;
+  text-align: center;
   font-family: var(--mono-stack);
   font-size: 0.78rem;
   color: var(--fg-faint);
@@ -437,10 +762,17 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
 /* On viewports wide enough to host a margin column, push the
    sidenote into the gutter next to its anchor. */
 @media (min-width: 1280px) {
+  /* No site page uses Tufte sidenotes yet; the 22-rem right
+     gutter reserved for them is unused space. Keep the
+     gutters symmetric so the prose column can carry a
+     wider hero (site-redesign-2026-10) without breaking
+     out of `main`. The sidenote styles remain so a future
+     page can re-introduce them by restoring an asymmetric
+     padding here. */
   main, .container {
     max-width: 64rem;
     padding-left: calc((100vw - 64rem) / 2 + 4rem);
-    padding-right: calc((100vw - 64rem) / 2 + 22rem);
+    padding-right: calc((100vw - 64rem) / 2 + 4rem);
   }
   .sidenote {
     display: block;

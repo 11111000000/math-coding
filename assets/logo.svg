@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="logo-title">
+  <title id="logo-title">math-coding</title>
+  <g fill="none" stroke="#8b3a3a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Left bracket: short top horizontal, full vertical, short bottom horizontal -->
+    <path d="M22 10 L10 10 L10 54 L22 54"/>
+    <!-- Right bracket -->
+    <path d="M42 10 L54 10 L54 54 L42 54"/>
+    <!-- Verdict check inside: short downstroke + long upstroke -->
+    <polyline points="20,33 30,43 46,23"/>
+  </g>
+</svg>

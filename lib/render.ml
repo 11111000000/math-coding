@@ -617,46 +617,137 @@ let[@warning "-32"] md_parse source =
   loop "" lines;
   Buffer.contents buf
 
-(* --- navigation --- *)
+(* --- navigation (site-redesign-2026-10) ---
+ *
+ * The 12 flat top-level links of the v3 site overflowed the
+ * desktop row and broke into two lines on every viewport
+ * between 1024 px and 1440 px (the typical developer laptop
+ * range). The fix groups the same pages into four intent-
+ * bearing categories under dropdown panels, with the Home
+ * link staying a direct anchor.
+ *
+ * Categories:
+ *   - Concept      — the why and the philosophical anchors
+ *                    (Manifesto, Foundations, Axioms).
+ *   - Methodology  — the how: how the chain is built, how it
+ *                    lands, how it survives a protocol change
+ *                    (Methodology, Workflow, Bootstrap Gate).
+ *   - Adopt        — practical entry points for new users
+ *                    (README, Install, FAQ, Contributing).
+ *   - Reference    — the technical surface
+ *                    (Packages, Algebra).
+ *
+ * The mapping is closed in this file so a future page can be
+ * added by appending to exactly one list per language. *)
 
-(* The site's English navigation. Every key also has a Russian
-   counterpart when the corresponding site/<key>.ru.md exists.
-   The dispatcher decides which languages to render; this list
-   is the union of all available pages. *)
-let[@warning "-32"] nav_links_en =
+type nav_link = { key : string; label : string; href : string }
+
+type nav_group = {
+  group_key : string;
+  group_label : string;
+  links : nav_link list;
+}
+
+let[@warning "-32"] nav_groups_en : nav_group list =
   [
-    ("home", "Home", "index.html");
-    ("axioms", "Axioms", "axioms.html");
-    ("manifesto", "Manifesto", "manifesto.html");
-    ("foundations", "Foundations", "foundations.html");
-    ("methodology", "Methodology", "methodology.html");
-    ("workflow", "Workflow", "workflow.html");
-    ("faq", "FAQ", "faq.html");
-    ("readme", "README", "readme.html");
-    ("contributing", "Contributing", "contributing.html");
-    ("bootstrap-gate", "Bootstrap Gate", "bootstrap-gate.html");
-    ("packages", "Packages", "packages.html");
-    ("spec/algebra-3.2", "Algebra", "spec/algebra-3.2.html");
+    {
+      group_key = "concept";
+      group_label = "Concept";
+      links =
+        [
+          { key = "manifesto"; label = "Manifesto"; href = "manifesto.html" };
+          { key = "foundations"; label = "Foundations";
+            href = "foundations.html" };
+          { key = "axioms"; label = "Axioms"; href = "axioms.html" };
+        ];
+    };
+    {
+      group_key = "methodology";
+      group_label = "Methodology";
+      links =
+        [
+          { key = "methodology"; label = "Methodology";
+            href = "methodology.html" };
+          { key = "workflow"; label = "Workflow"; href = "workflow.html" };
+          { key = "bootstrap-gate"; label = "Bootstrap Gate";
+            href = "bootstrap-gate.html" };
+        ];
+    };
+    {
+      group_key = "adopt";
+      group_label = "Adopt";
+      links =
+        [
+          { key = "readme"; label = "README"; href = "readme.html" };
+          { key = "install"; label = "Install"; href = "install.html" };
+          { key = "faq"; label = "FAQ"; href = "faq.html" };
+          { key = "contributing"; label = "Contributing";
+            href = "contributing.html" };
+        ];
+    };
+    {
+      group_key = "reference";
+      group_label = "Reference";
+      links =
+        [
+          { key = "packages"; label = "Packages"; href = "packages.html" };
+          { key = "spec/algebra-3.2"; label = "Algebra";
+            href = "spec/algebra-3.2.html" };
+        ];
+    };
   ]
 
-let[@warning "-32"] nav_links_ru =
+let[@warning "-32"] nav_groups_ru : nav_group list =
   [
-    ("home", "Главная", "index.html");
-    ("axioms", "Аксиомы", "axioms.html");
-    ("manifesto", "Манифест", "manifesto.ru.html");
-    ("foundations", "Основания", "foundations.ru.html");
-    ("methodology", "Методология", "methodology.html");
-    ("workflow", "Workflow", "workflow.html");
-    ("faq", "FAQ", "faq.html");
-    ("readme", "README", "readme.ru.html");
-    ("contributing", "Contributing", "contributing.html");
-    ("bootstrap-gate", "Bootstrap-ворота", "bootstrap-gate.html");
-    ("packages", "Пакеты", "packages.html");
-    ("spec/algebra-3.2", "Алгебра", "spec/algebra-3.2.html");
+    {
+      group_key = "concept";
+      group_label = "Идея";
+      links =
+        [
+          { key = "manifesto"; label = "Манифест"; href = "manifesto.ru.html" };
+          { key = "foundations"; label = "Основания";
+            href = "foundations.ru.html" };
+          { key = "axioms"; label = "Аксиомы"; href = "axioms.html" };
+        ];
+    };
+    {
+      group_key = "methodology";
+      group_label = "Методология";
+      links =
+        [
+          { key = "methodology"; label = "Методология";
+            href = "methodology.html" };
+          { key = "workflow"; label = "Workflow"; href = "workflow.html" };
+          { key = "bootstrap-gate"; label = "Bootstrap-ворота";
+            href = "bootstrap-gate.html" };
+        ];
+    };
+    {
+      group_key = "adopt";
+      group_label = "Внедрить";
+      links =
+        [
+          { key = "readme"; label = "README"; href = "readme.ru.html" };
+          { key = "install"; label = "Установка"; href = "install.ru.html" };
+          { key = "faq"; label = "FAQ"; href = "faq.html" };
+          { key = "contributing"; label = "Contributing";
+            href = "contributing.html" };
+        ];
+    };
+    {
+      group_key = "reference";
+      group_label = "Справочник";
+      links =
+        [
+          { key = "packages"; label = "Пакеты"; href = "packages.html" };
+          { key = "spec/algebra-3.2"; label = "Алгебра";
+            href = "spec/algebra-3.2.html" };
+        ];
+    };
   ]
 
-let[@warning "-32"] nav_links_for lang =
-  if lang = "ru" then nav_links_ru else nav_links_en
+let[@warning "-32"] nav_groups_for lang =
+  if lang = "ru" then nav_groups_ru else nav_groups_en
 
 let[@warning "-32"] sibling_translation_href ~lang ~page_key ~has_ru =
   (* Each English page links to its Russian sibling and vice versa.
@@ -691,23 +782,65 @@ let github_origin = "https://github.com/11111000000/math-coding"
 let github_blob ~path = Printf.sprintf "%s/blob/main/%s" github_origin path
 
 let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~has_ru =
-  let buf = Buffer.create 256 in
-  let links = nav_links_for lang in
+  let buf = Buffer.create 512 in
+  let groups = nav_groups_for lang in
   Buffer.add_string buf "<nav class=\"site-nav\">\n";
-  Buffer.add_string buf "  <a class=\"brand\" href=\"./\">math-coding</a>\n";
+  (* Brand: logo + name. The logo is an inline-friendly SVG so a
+     keyboard user still gets the visible "math-coding" text
+     label inside the same anchor. *)
+  Buffer.add_string buf
+    "  <a class=\"brand\" href=\"./\">\
+     <img class=\"brand-logo\" src=\"assets/logo.svg\" alt=\"\" \
+     aria-hidden=\"true\">\
+     <span class=\"brand-text\">math-coding</span></a>\n";
+  (* The hamburger toggle collapses the inner into a column on
+     narrow viewports. On desktop the inner is the visible row;
+     the toggle is hidden visually but kept in the DOM so the
+     mobile behaviour is preserved. *)
   Buffer.add_string buf
     "  <button type=\"button\" class=\"nav-toggle\" aria-label=\"Toggle \
      navigation\" aria-controls=\"nav-inner\" aria-expanded=\"false\"><span \
      aria-hidden=\"true\">&#9776;</span></button>\n";
   Buffer.add_string buf "  <ul class=\"nav-inner\" id=\"nav-inner\">\n";
+  (* Home as a direct anchor. The four categorical groups follow. *)
+  let home_active_cls =
+    if page_key = "home" then " class=\"nav-link active\""
+    else " class=\"nav-link\""
+  in
+  let home_href = if lang = "ru" then "index.ru.html" else "index.html" in
+  let home_label = if lang = "ru" then "Главная" else "Home" in
+  Printf.bprintf buf "    <li class=\"nav-item-direct\">\
+     <a%s href=\"%s\">%s</a></li>\n"
+    home_active_cls home_href home_label;
   List.iter
-    (fun (key, label, href) ->
-      let cls =
-        if key = page_key then " class=\"nav-link active\""
-        else " class=\"nav-link\""
+    (fun group ->
+      let group_active =
+        List.exists (fun l -> l.key = page_key) group.links
       in
-      Printf.bprintf buf "    <li><a%s href=\"%s\">%s</a></li>\n" cls href label)
-    links;
+      Printf.bprintf buf
+        "    <li class=\"nav-group%s\">\n\
+         \      <button type=\"button\" class=\"nav-group-toggle\" \
+         aria-haspopup=\"true\" aria-expanded=\"false\">\
+         <span class=\"nav-group-label\">%s</span>\
+         <span class=\"nav-group-caret\" aria-hidden=\"true\">&#9662;</span>\
+         </button>\n\
+         \      <ul class=\"nav-group-panel\" role=\"menu\">\n"
+        (if group_active then " is-active" else "")
+        (html_escape group.group_label);
+      List.iter
+        (fun link ->
+          let cls =
+            if link.key = page_key then
+              " class=\"nav-link nav-group-link active\""
+            else
+              " class=\"nav-link nav-group-link\""
+          in
+          Printf.bprintf buf
+            "        <li role=\"none\"><a role=\"menuitem\"%s href=\"%s\">%s</a></li>\n"
+            cls link.href link.label)
+        group.links;
+      Buffer.add_string buf "      </ul>\n    </li>\n")
+    groups;
   Buffer.add_string buf "  </ul>\n";
   (* Persistent GitHub anchor. Lives in the nav on every rendered
      page so a visitor landing on any non-home page has a top-
@@ -916,95 +1049,250 @@ let[@warning "-32"] render_axioms_section axioms =
   Buffer.add_string buf "</section>\n";
   Buffer.contents buf
 
-let[@warning "-32"] render_index ~package_html ~axioms_html ~policy_id ~version
+let[@warning "-32"] render_index ~package_html:_ ~axioms_html:_ ~policy_id ~version
     =
+  let check = "\xe2\x9c\x94" in
   Printf.sprintf
-    "<section class=\"hero\">\n\
+    "<section class=\"mathc-hero\">\n\
+     <img class=\"mathc-hero-logo\" src=\"assets/logo.svg\" alt=\"\">\n\
      <h1>math-coding</h1>\n\
-     <p class=\"version\">%s</p>\n\
-     <figure class=\"mathc-figure mathc-figure-home\">\n\
-      <img src=\"assets/chain.svg\" \
-       alt=\"The math-coding assurance chain: intent, decision, \
-       obligation, change, attestation, revision.\">\n\
-     </figure>\n\
-     <p class=\"lead\">A risk-adaptive assurance protocol for software \
-     changes. Links <em>intent</em>, <em>decisions</em>, <em>obligations</em>, \
-     <em>changes</em>, <em>attestations</em>, and <em>revisions</em> into a \
-     single traceable chain. The site you are reading was built by the same \
-     kernel that the protocol describes.</p>\n\
-     <p class=\"meta\">Active policy: <code>%s</code>. The package grid below \
-     is the live output of <code>mathc packages --format=html</code>.</p>\n\
+     <p class=\"mathc-hero-version\">%s</p>\n\
+     <p class=\"mathc-hero-tagline\">A risk-adaptive assurance protocol \
+     for software changes. Every architectural commitment is written\n\
+     <em>before</em> the code lands, and the kernel checks it on every\n\
+     merge.</p>\n\
+     <div class=\"mathc-hero-cta\">\n\
+     <a class=\"mathc-cta mathc-cta-primary\" \
+     href=\"https://github.com/11111000000/math-coding#install\">Install mathc</a>\n\
+     <a class=\"mathc-cta mathc-cta-secondary\" \
+     href=\"methodology.html\">How it works</a>\n\
+     </div>\n\
      </section>\n\
-     <aside class=\"mathc-onboarding\">\n\
-      <h2>Adopt math-coding in your repo</h2>\n\
-      <p>The protocol is small: every change writes a \
-      <code>decisions/&lt;id&gt;.yaml</code> packet before the code lands. \
-      Read the <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">adoption \
-      runbook</a> for a 10-minute walk-through, or run \
-      <code>mathc self-check</code> on any repository to verify the \
-      protocol locally.</p>\n\
-      <p><a class=\"mathc-onboarding-cta\" \
-       href=\"https://github.com/11111000000/math-coding\">Clone on GitHub</a>\
-      <a class=\"mathc-onboarding-cta mathc-onboarding-cta-secondary\" \
-       href=\"feed.xml\">Subscribe via RSS</a></p>\n\
-     </aside>\n\
-     <section class=\"mathc-packages-section\">\n\
-     <h2>Packages</h2>\n\
-     %s\n\
+     <section class=\"mathc-section mathc-quickstart\">\n\
+     <h2>Quick start &mdash; 60&nbsp;seconds</h2>\n\
+     <ol class=\"mathc-steps\">\n\
+     <li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>\n\
+     Installs the <code>mathc</code> binary and drops a user-skill \
+     into <code>~/.config/opencode/skills/</code>.</li>\n\
+     <li><code>mathc new-decision my-first-change</code><br>\n\
+     Creates <code>decisions/my-first-change.yaml</code> with the \
+     template, validates it, and tells you what is missing.</li>\n\
+     <li><code>mathc self-check</code><br>\n\
+     Reads the decision store, walks every obligation, and prints \
+     one verdict per row: <code>pass</code>, <code>fail</code>, \
+     <code>unknown</code>, <code>stale</code> or <code>missing</code>. \
+     CI exits non-zero on any non-pass.</li>\n\
+     </ol>\n\
      </section>\n\
-     <section class=\"mathc-axioms-section\">\n\
-     <h2>Axioms</h2>\n\
-     %s\n\
+     <section class=\"mathc-section mathc-moderation\">\n\
+     <h2>Moderation in one screen</h2>\n\
+     <p>math-coding gives a reviewer <em>exactly one screen</em>: the \
+     claim the author made, the evidence that backs it, and a single\n\
+     verdict. No more scrolling through a 30-file PR to see whether\n\
+     the change actually does what the commit message says.</p>\n\
+     <pre class=\"mathc-terminal\"><code>$ mathc gate main feature/auth-fix\n\
+\n\
+\n\
+\n  policy:    bootstrap-v3\n\
+\n  obligations:  17\n\
+\n  verdicts:\n\
+\n    pass:    14   %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n\
+\n    unknown:  2   (waiver: vendor:openssl-3.0-rc4)\n\
+\n    missing:  1   obligation:back-compat-test\n\
+\n  verdict:   <span class=\"mathc-verdict-unknown\">unknown</span>\n\
+\n  exit:      1</code></pre>\n\
+     <p>The <code>gate</code> subcommand evaluates the change against \
+     the active policy. The <code>self-check</code> subcommand is the \
+     machine-readable version, designed to run in CI on every push \
+     and every merge.</p>\n\
      </section>\n\
-     <p class=\"site-callout\">Every page on this site is produced by the \
-     math-coding kernel. The methodology is the artifact; the artifact follows \
-     the methodology.</p>\n"
-    (html_escape version) (html_escape policy_id) package_html axioms_html
+     <section class=\"mathc-section mathc-methodology\">\n\
+     <h2>The methodology</h2>\n\
+     <p class=\"mathc-section-lede\">Four primitives, each one a plain\n\
+     file you can grep, review and revert:</p>\n\
+     <div class=\"mathc-cards\">\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Intent</h3>\n\
+     <p>Every change begins with one sentence in plain language: \
+     what should become true?</p>\n\
+     </article>\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Decision</h3>\n\
+     <p>The intent becomes a YAML packet in <code>decisions/</code> \
+     that names the obligations it creates, the risks it accepts, \
+     and the counter-example that would falsify it.</p>\n\
+     </article>\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Obligation</h3>\n\
+     <p>A claim that can be checked by code: a fixture, a property, \
+     a benchmark, a static rule. Each one has a verdict.</p>\n\
+     </article>\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Attestation</h3>\n\
+     <p>Evidence that the obligation was met on a specific commit. \
+     Tests, reviewers, audits &mdash; all stored as first-class \
+     artefacts, never as screenshots.</p>\n\
+     </article>\n\
+     </div>\n\
+     <p class=\"mathc-section-more\">\n\
+     The working chain in full:\n\
+     <code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>.\n\
+     Read the <a href=\"methodology.html\">methodology</a> for the \
+     formal algebra, or <a href=\"foundations.html\">foundations</a> \
+     for the philosophical anchors.</p>\n\
+     </section>\n\
+     <section class=\"mathc-section mathc-adopt\">\n\
+     <h2>Adopt math-coding in your repo</h2>\n\
+     <p>The protocol is small: every change writes a\n\
+     <code>decisions/&lt;id&gt;.yaml</code> packet before the code\n\
+     lands. Read the\n\
+     <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">adoption runbook</a>\n\
+     for a 10-minute walk-through, or clone the repo and run\n\
+     <code>mathc self-check</code> against a sample decision to see\n\
+     the verdicts on your machine.</p>\n\
+     <div class=\"mathc-hero-cta\">\n\
+     <a class=\"mathc-cta mathc-cta-primary\" \
+     href=\"https://github.com/11111000000/math-coding\">Clone on GitHub</a>\n\
+     <a class=\"mathc-cta mathc-cta-secondary\" \
+     href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">Read the runbook</a>\n\
+     <a class=\"mathc-cta mathc-cta-secondary\" \
+     href=\"feed.xml\">Subscribe via RSS</a>\n\
+     </div>\n\
+     </section>\n\
+     <p class=\"mathc-callout\">\n\
+     Every page on this site is produced by the math-coding kernel. \
+     The methodology is the artifact; the artifact follows the \
+     methodology.</p>\n\
+     <p class=\"mathc-meta\">Active policy: <code>%s</code>. The full\n\
+     obligation store lives at <a href=\"packages.html\">packages</a> \
+     and the axioms in <a href=\"axioms.html\">axioms</a>.</p>\n"
+    (html_escape version)
+    check check check check check check check check check check check
+    check check check
+    (html_escape policy_id)
 
-let[@warning "-32"] render_index_ru ~package_html ~axioms_html ~policy_id
+let[@warning "-32"] render_index_ru ~package_html:_ ~axioms_html:_ ~policy_id
     ~version =
+  let check = "\xe2\x9c\x94" in
   Printf.sprintf
-    "<section class=\"hero\">\n\
+    "<section class=\"mathc-hero\">\n\
+     <img class=\"mathc-hero-logo\" src=\"assets/logo.svg\" alt=\"\">\n\
      <h1>math-coding</h1>\n\
-     <p class=\"version\">%s</p>\n\
-     <figure class=\"mathc-figure mathc-figure-home\">\n\
-      <img src=\"assets/chain.svg\" \
-       alt=\"Цепочка assurance math-coding: intent, decision, \
-       obligation, change, attestation, revision.\">\n\
-     </figure>\n\
-     <p class=\"lead\">Протокол assurance для изменений в программном \
-     обеспечении, адаптированный к риску. Связывает <em>intent</em>, \
-     <em>decisions</em>, <em>obligations</em>, <em>changes</em>, \
-     <em>attestations</em> и <em>revisions</em> в одну прослеживаемую цепочку. \
-     Сайт, который вы читаете, построен тем же ядром, которое описывает \
-     протокол.</p>\n\
-     <p class=\"meta\">Активная политика: <code>%s</code>. Сетка пакетов ниже \
-     — живой вывод <code>mathc packages --format=html</code>.</p>\n\
+     <p class=\"mathc-hero-version\">%s</p>\n\
+     <p class=\"mathc-hero-tagline\">\xd0\x9f\xd1\x80\xd0\xbe\xd1\x82\xd0\xbe\xd0\xba\xd0\xbe\xd0\xbb \
+     assurance \xd0\xb4\xd0\xbb\xd1\x8f \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb9 \xd0\xb2\n\
+     \xd0\xbf\xd1\x80\xd0\xbe\xd0\xb3\xd1\x80\xd0\xb0\xd0\xbc\xd0\xbc\xd0\xbd\xd0\xbe\xd0\xbc \xd0\xbe\xd0\xb1\xd0\xb5\xd1\x81\xd0\xbf\xd0\xb5\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb8. \
+     \xd0\x9a\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xb0\xd1\x80\xd1\x85\xd0\xb8\xd1\x82\xd0\xb5\xd0\xba\xd1\x82\xd1\x83\xd1\x80\xd0\xbd\xd0\xbe\xd0\xb5\n\
+     \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xb7\xd0\xb0\xd0\xbf\xd0\xb8\xd1\x81\xd1\x8b\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \
+     <em>\xd0\xb4\xd0\xbe</em> \xd1\x82\xd0\xbe\xd0\xb3\xd0\xbe, \xd0\xba\xd0\xb0\xd0\xba \xd0\xba\xd0\xbe\xd0\xb4 \xd0\xbf\xd0\xbe\xd0\xbf\xd0\xb0\xd0\xb4\xd1\x91\xd1\x82\n\
+     \xd0\xb2 \xd0\xbe\xd1\x81\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xbd\xd1\x83\xd1\x8e \xd0\xb2\xd0\xb5\xd1\x82\xd0\xba\xd1\x83, \xd0\xb8 \xd1\x8f\xd0\xb4\xd1\x80\xd0\xbe \xd0\xbf\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x80\xd1\x8f\xd0\xb5\xd1\x82 \
+     \xd0\xb5\xd0\xb3\xd0\xbe \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xbc merge.</p>\n\
+     <div class=\"mathc-hero-cta\">\n\
+     <a class=\"mathc-cta mathc-cta-primary\" \
+     href=\"https://github.com/11111000000/math-coding#install\">\xd0\xa3\xd1\x81\xd1\x82\xd0\xb0\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xb8\xd1\x82\xd1\x8c mathc</a>\n\
+     <a class=\"mathc-cta mathc-cta-secondary\" \
+     href=\"methodology.html\">\xd0\x9a\xd0\xb0\xd0\xba \xd1\x8d\xd1\x82\xd0\xbe \xd1\x80\xd0\xb0\xd0\xb1\xd0\xbe\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82</a>\n\
+     </div>\n\
      </section>\n\
-     <aside class=\"mathc-onboarding\">\n\
-      <h2>Внедрите math-coding в свой репозиторий</h2>\n\
-      <p>Протокол прост: каждое изменение записывает пакет \
-      <code>decisions/&lt;id&gt;.yaml</code> до того, как код попадёт в основную \
-      ветку. Прочитайте <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">руководство \
-      по внедрению</a> (10 минут) или запустите \
-      <code>mathc self-check</code> в любом репозитории, чтобы проверить \
-      протокол локально.</p>\n\
-      <p><a class=\"mathc-onboarding-cta\" \
-       href=\"https://github.com/11111000000/math-coding\">Клонировать на GitHub</a>\
-      <a class=\"mathc-onboarding-cta mathc-onboarding-cta-secondary\" \
-       href=\"feed.xml\">Подписаться через RSS</a></p>\n\
-     </aside>\n\
-     <section class=\"mathc-packages-section\">\n\
-     <h2>Пакеты</h2>\n\
-     %s\n\
+     <section class=\"mathc-section mathc-quickstart\">\n\
+     <h2>\xd0\x91\xd1\x8b\xd1\x81\xd1\x82\xd1\x80\xd1\x8b\xd0\xb9 \xd1\x81\xd1\x82\xd0\xb0\xd1\x80\xd1\x82 &mdash; 60&nbsp;\xd1\x81\xd0\xb5\xd0\xba\xd1\x83\xd0\xbd\xd0\xb4</h2>\n\
+     <ol class=\"mathc-steps\">\n\
+     <li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>\n\
+     \xd0\xa3\xd1\x81\xd1\x82\xd0\xb0\xd0\xbd\xd0\xb0\xd0\xb2\xd0\xbb\xd0\xb8\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xb1\xd0\xb8\xd0\xbd\xd0\xb0\xd1\x80\xd0\xbd\xd0\xb8\xd0\xba <code>mathc</code> \xd0\xb8 \xd0\xba\xd0\xbb\xd0\xb0\xd0\xb4\xd1\x91\xd1\x82 \
+     user-skill \xd0\xb2 <code>~/.config/opencode/skills/</code>.</li>\n\
+     <li><code>mathc new-decision my-first-change</code><br>\n\
+     \xd0\xa1\xd0\xbe\xd0\xb7\xd0\xb4\xd0\xb0\xd1\x91\xd1\x82 <code>decisions/my-first-change.yaml</code> \xd0\xbf\xd0\xbe \xd1\x88\xd0\xb0\xd0\xb1\xd0\xbb\xd0\xbe\xd0\xbd\xd1\x83, \
+     \xd0\xb2\xd0\xb0\xd0\xbb\xd0\xb8\xd0\xb4\xd0\xb8\xd1\x80\xd1\x83\xd0\xb5\xd1\x82 \xd0\xb5\xd0\xb3\xd0\xbe \xd0\xb8 \xd1\x81\xd0\xbe\xd0\xbe\xd0\xb1\xd1\x89\xd0\xb0\xd0\xb5\xd1\x82, \xd1\x87\xd0\xb5\xd0\xb3\xd0\xbe \xd0\xbd\xd0\xb5 \xd1\x85\xd0\xb2\xd0\xb0\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82.</li>\n\
+     <li><code>mathc self-check</code><br>\n\
+     \xd0\xa7\xd0\xb8\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82 \xd1\x85\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xbb\xd0\xb8\xd1\x89\xd0\xb5 \xd1\x80\xd0\xb5\xd1\x88\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb9, \xd0\xbe\xd0\xb1\xd1\x85\xd0\xbe\xd0\xb4\xd0\xb8\xd1\x82 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xb8 \xd0\xbf\xd0\xb5\xd1\x87\xd0\xb0\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82\n\
+     \xd0\xbf\xd0\xbe \xd1\x81\xd1\x82\xd1\x80\xd0\xbe\xd0\xba\xd0\xb5 \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82\xd0\xb0: <code>pass</code>, <code>fail</code>, \
+     <code>unknown</code>, <code>stale</code> \xd0\xb8\xd0\xbb\xd0\xb8 <code>missing</code>. \
+     CI \xd0\xb7\xd0\xb0\xd0\xb2\xd0\xb5\xd1\x80\xd1\x88\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \xd1\x81 \xd0\xbd\xd0\xb5\xd0\xbd\xd1\x83\xd0\xbb\xd0\xb5\xd0\xb2\xd1\x8b\xd0\xbc \xd0\xba\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbc \xd0\xbf\xd1\x80\xd0\xb8 \xd0\xbb\xd1\x8e\xd0\xb1\xd0\xbe\xd0\xbc \xd0\xbd\xd0\xb5-pass.</li>\n\
+     </ol>\n\
      </section>\n\
-     <section class=\"mathc-axioms-section\">\n\
-     <h2>Аксиомы</h2>\n\
-     %s\n\
+     <section class=\"mathc-section mathc-moderation\">\n\
+     <h2>\xd0\x9c\xd0\xbe\xd0\xb4\xd0\xb5\xd1\x80\xd0\xb0\xd1\x86\xd0\xb8\xd1\x8f &mdash; \xd0\xbe\xd0\xb4\xd0\xb8\xd0\xbd \xd1\x8d\xd0\xba\xd1\x80\xd0\xb0\xd0\xbd</h2>\n\
+     <p>math-coding \xd0\xb4\xd0\xb0\xd1\x91\xd1\x82 \xd1\x80\xd0\xb5\xd0\xb2\xd1\x8c\xd1\x8e\xd0\xb5\xd1\x80\xd1\x83 <em>\xd1\x80\xd0\xbe\xd0\xb2\xd0\xbd\xd0\xbe \xd0\xbe\xd0\xb4\xd0\xb8\xd0\xbd \xd1\x8d\xd0\xba\xd1\x80\xd0\xb0\xd0\xbd</em>: \xd0\xb7\xd0\xb0\xd1\x8f\xd0\xb2\xd0\xbb\xd0\xb5\xd0\xbd\xd0\xbd\xd0\xbe\xd0\xb5\n\
+     \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5, \xd0\xb4\xd0\xbe\xd0\xba\xd0\xb0\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xb0, \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd1\x8b\xd1\x85 \xd0\xbe\xd0\xbd\xd0\xbe \xd0\xb4\xd0\xb5\xd1\x80\xd0\xb6\xd0\xb8\xd1\x82\xd1\x81\xd1\x8f, \xd0\xb8 \xd0\xbe\xd0\xb4\xd0\xb8\xd0\xbd\n\
+     \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82. \xd0\x91\xd0\xbe\xd0\xbb\xd1\x8c\xd1\x88\xd0\xb5 \xd0\xbd\xd0\xb5 \xd0\xbd\xd1\x83\xd0\xb6\xd0\xbd\xd0\xbe \xd0\xbf\xd1\x80\xd0\xbe\xd0\xbb\xd0\xb8\xd1\x81\xd1\x82\xd1\x8b\xd0\xb2\xd0\xb0\xd1\x82\xd1\x8c PR \xd0\xbd\xd0\xb0 30 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xbe\xd0\xb2, \xd1\x87\xd1\x82\xd0\xbe\xd0\xb1\xd1\x8b\n\
+     \xd0\xbf\xd0\xbe\xd0\xbd\xd1\x8f\xd1\x82\xd1\x8c, \xd0\xb4\xd0\xb5\xd0\xbb\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xbb\xd0\xb8 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x82\xd0\xbe, \xd1\x87\xd1\x82\xd0\xbe \xd0\xbe\xd0\xb1\xd0\xb5\xd1\x89\xd0\xb0\xd0\xb5\xd1\x82 commit-message.</p>\n\
+     <pre class=\"mathc-terminal\"><code>$ mathc gate main feature/auth-fix\n\
+\n\
+\n\
+\n  policy:    bootstrap-v3\n\
+\n  obligations:  17\n\
+\n  verdicts:\n\
+\n    pass:    14   %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n\
+\n    unknown:  2   (waiver: vendor:openssl-3.0-rc4)\n\
+\n    missing:  1   obligation:back-compat-test\n\
+\n  verdict:   <span class=\"mathc-verdict-unknown\">unknown</span>\n\
+\n  exit:      1</code></pre>\n\
+     <p>\xd0\x9f\xd0\xbe\xd0\xb4\xd0\xba\xd0\xbe\xd0\xbc\xd0\xb0\xd0\xbd\xd0\xb4\xd0\xb0 <code>gate</code> \xd0\xbe\xd1\x86\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd0\xbf\xd0\xbe \xd0\xb0\xd0\xba\xd1\x82\xd0\xb8\xd0\xb2\xd0\xbd\xd0\xbe\xd0\xb9\n\
+     \xd0\xbf\xd0\xbe\xd0\xbb\xd0\xb8\xd1\x82\xd0\xb8\xd0\xba\xd0\xb5. <code>self-check</code> &mdash; \xd0\xb5\xd1\x91 \xd0\xbc\xd0\xb0\xd1\x88\xd0\xb8\xd0\xbd\xd0\xbe\xd1\x87\xd0\xb8\xd1\x82\xd0\xb0\xd0\xb5\xd0\xbc\xd1\x8b\xd0\xb9\n\
+     \xd0\xb2\xd0\xb0\xd1\x80\xd0\xb8\xd0\xb0\xd0\xbd\xd1\x82, \xd1\x80\xd0\xb0\xd1\x81\xd1\x81\xd1\x87\xd0\xb8\xd1\x82\xd0\xb0\xd0\xbd\xd0\xbd\xd1\x8b\xd0\xb9 \xd0\xbd\xd0\xb0 \xd0\xb7\xd0\xb0\xd0\xbf\xd1\x83\xd1\x81\xd0\xba \xd0\xb2 CI \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xbc push \xd0\xb8 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xbc merge.</p>\n\
      </section>\n\
-     <p class=\"site-callout\">Каждая страница этого сайта создаётся ядром \
-     math-coding. Методология есть артефакт; артефакт следует методологии.</p>\n"
-    (html_escape version) (html_escape policy_id) package_html axioms_html
+     <section class=\"mathc-section mathc-methodology\">\n\
+     <h2>\xd0\x9c\xd0\xb5\xd1\x82\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbb\xd0\xbe\xd0\xb3\xd0\xb8\xd1\x8f</h2>\n\
+     <p class=\"mathc-section-lede\">\xd0\xa7\xd0\xb5\xd1\x82\xd1\x8b\xd1\x80\xd0\xb5 \xd0\xbf\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb8\xd1\x82\xd0\xb8\xd0\xb2\xd0\xb0, \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd1\x8b\xd0\xb9 &mdash; \xd0\xbe\xd0\xb1\xd1\x8b\xd1\x87\xd0\xbd\xd1\x8b\xd0\xb9 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb, \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd1\x8b\xd0\xb9 \xd0\xbc\xd0\xbe\xd0\xb6\xd0\xbd\xd0\xbe\n\
+     \xd0\xb3\xd1\x80\xd0\xb5\xd0\xbf\xd0\xb0\xd1\x82\xd1\x8c, \xd1\x80\xd0\xb5\xd0\xb2\xd1\x8c\xd1\x8e\xd0\xb8\xd1\x82\xd1\x8c \xd0\xb8 \xd0\xbe\xd1\x82\xd0\xba\xd0\xb0\xd1\x82\xd1\x8b\xd0\xb2\xd0\xb0\xd1\x82\xd1\x8c:</p>\n\
+     <div class=\"mathc-cards\">\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Intent</h3>\n\
+     <p>\xd0\x9a\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd0\xbd\xd0\xb0\xd1\x87\xd0\xb8\xd0\xbd\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \xd1\x81 \xd0\xbe\xd0\xb4\xd0\xbd\xd0\xbe\xd0\xb3\xd0\xbe \xd0\xbf\xd1\x80\xd0\xb5\xd0\xb4\xd0\xbb\xd0\xbe\xd0\xb6\xd0\xb5\xd0\xbd\xd0\xb8\xd1\x8f \xd0\xbd\xd0\xb0\n\
+     \xd1\x87\xd0\xb5\xd0\xbb\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x87\xd0\xb5\xd1\x81\xd0\xba\xd0\xbe\xd0\xbc \xd1\x8f\xd0\xb7\xd1\x8b\xd0\xba\xd0\xb5: \xd1\x87\xd1\x82\xd0\xbe \xd0\xb4\xd0\xbe\xd0\xbb\xd0\xb6\xd0\xbd\xd0\xbe \xd1\x81\xd1\x82\xd0\xb0\xd1\x82\xd1\x8c \xd0\xbf\xd1\x80\xd0\xb0\xd0\xb2\xd0\xb4\xd0\xbe\xd0\xb9?</p>\n\
+     </article>\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Decision</h3>\n\
+     <p>Intent \xd0\xbf\xd1\x80\xd0\xb5\xd0\xb2\xd1\x80\xd0\xb0\xd1\x89\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \xd0\xb2 YAML-\xd0\xbf\xd0\xb0\xd0\xba\xd0\xb5\xd1\x82 \xd0\xb2 <code>decisions/</code>, \
+     \xd0\xb3\xd0\xb4\xd0\xb5 \xd0\xbf\xd0\xb5\xd1\x80\xd0\xb5\xd1\x87\xd0\xb8\xd1\x81\xd0\xbb\xd0\xb5\xd0\xbd\xd1\x8b \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xb0, \xd0\xbf\xd1\x80\xd0\xb8\xd0\xbd\xd1\x8f\xd1\x82\xd1\x8b\xd0\xb5 \xd1\x80\xd0\xb8\xd1\x81\xd0\xba\xd0\xb8 \xd0\xb8 \xd0\xba\xd0\xbe\xd0\xbd\xd1\x82\xd1\x80\xd0\xbf\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x80,\n\
+     \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd1\x8b\xd0\xb9 \xd0\xb5\xd0\xb3\xd0\xbe \xd0\xbe\xd0\xbf\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x80\xd0\xb3\xd0\xbd\xd0\xb5\xd1\x82.</p>\n\
+     </article>\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Obligation</h3>\n\
+     <p>\xd0\xa3\xd1\x82\xd0\xb2\xd0\xb5\xd1\x80\xd0\xb6\xd0\xb4\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5, \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd0\xbe\xd0\xb5 \xd0\xbc\xd0\xbe\xd0\xb6\xd0\xbd\xd0\xbe \xd0\xbf\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x80\xd0\xb8\xd1\x82\xd1\x8c \xd0\xba\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbc: \xd1\x84\xd0\xb8\xd0\xba\xd1\x81\xd1\x82\xd1\x83\xd1\x80\xd0\xb0, \
+     \xd1\x81\xd0\xb2\xd0\xbe\xd0\xb9\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe, \xd0\xb1\xd0\xb5\xd0\xbd\xd1\x87\xd0\xbc\xd0\xb0\xd1\x80\xd0\xba, \xd1\x81\xd1\x82\xd0\xb0\xd1\x82\xd0\xb8\xd1\x87\xd0\xb5\xd1\x81\xd0\xba\xd0\xbe\xd0\xb5 \xd0\xbf\xd1\x80\xd0\xb0\xd0\xb2\xd0\xb8\xd0\xbb\xd0\xbe. \xd0\xa3 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb3\xd0\xbe \xd0\xb5\xd1\x81\xd1\x82\xd1\x8c \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82.</p>\n\
+     </article>\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Attestation</h3>\n\
+     <p>\xd0\x94\xd0\xbe\xd0\xba\xd0\xb0\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe, \xd1\x87\xd1\x82\xd0\xbe \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xb2\xd1\x8b\xd0\xbf\xd0\xbe\xd0\xbb\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xbe \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xbe\xd0\xbd\xd0\xba\xd1\x80\xd0\xb5\xd1\x82\xd0\xbd\xd0\xbe\xd0\xbc\n\
+     \xd0\xba\xd0\xbe\xd0\xbc\xd0\xbc\xd0\xb8\xd1\x82\xd0\xb5. \xd0\xa2\xd0\xb5\xd1\x81\xd1\x82\xd1\x8b, \xd1\x80\xd0\xb5\xd0\xb2\xd1\x8c\xd1\x8e, \xd0\xb0\xd1\x83\xd0\xb4\xd0\xb8\xd1\x82\xd1\x8b &mdash; \xd0\xb2\xd1\x81\xd1\x91 \xd1\x85\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x82\xd1\x81\xd1\x8f \xd0\xba\xd0\xb0\xd0\xba\n\
+     first-class \xd0\xb0\xd1\x80\xd1\x82\xd0\xb5\xd1\x84\xd0\xb0\xd0\xba\xd1\x82\xd1\x8b, \xd0\xbd\xd0\xb5 \xd0\xba\xd0\xb0\xd0\xba \xd1\x81\xd0\xba\xd1\x80\xd0\xb8\xd0\xbd\xd1\x88\xd0\xbe\xd1\x82\xd1\x8b.</p>\n\
+     </article>\n\
+     </div>\n\
+     <p class=\"mathc-section-more\">\n\
+     \xd0\x9f\xd0\xbe\xd0\xbb\xd0\xbd\xd0\xb0\xd1\x8f \xd1\x80\xd0\xb0\xd0\xb1\xd0\xbe\xd1\x87\xd0\xb0\xd1\x8f \xd1\x86\xd0\xb5\xd0\xbf\xd0\xbe\xd1\x87\xd0\xba\xd0\xb0:\n\
+     <code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>.\n\
+     \xd0\xa4\xd0\xbe\xd1\x80\xd0\xbc\xd0\xb0\xd0\xbb\xd1\x8c\xd0\xbd\xd0\xb0\xd1\x8f \xd0\xb0\xd0\xbb\xd0\xb3\xd0\xb5\xd0\xb1\xd1\x80\xd0\xb0 &mdash; \xd0\xb2 <a href=\"methodology.html\">methodology</a>,\n\
+     \xd1\x84\xd0\xb8\xd0\xbb\xd0\xbe\xd1\x81\xd0\xbe\xd1\x84\xd1\x81\xd0\xba\xd0\xb8\xd0\xb5 \xd0\xbe\xd1\x81\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x8f &mdash; \xd0\xb2 <a href=\"foundations.html\">foundations</a>.</p>\n\
+     </section>\n\
+     <section class=\"mathc-section mathc-adopt\">\n\
+     <h2>\xd0\x92\xd0\xbd\xd0\xb5\xd0\xb4\xd1\x80\xd0\xb8\xd1\x82\xd0\xb5 math-coding \xd0\xb2 \xd1\x81\xd0\xb2\xd0\xbe\xd0\xb9 \xd1\x80\xd0\xb5\xd0\xbf\xd0\xbe\xd0\xb7\xd0\xb8\xd1\x82\xd0\xbe\xd1\x80\xd0\xb8\xd0\xb9</h2>\n\
+     <p>\xd0\x9f\xd1\x80\xd0\xbe\xd1\x82\xd0\xbe\xd0\xba\xd0\xbe\xd0\xbb \xd0\xbf\xd1\x80\xd0\xbe\xd1\x81\xd1\x82: \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd0\xb7\xd0\xb0\xd0\xbf\xd0\xb8\xd1\x81\xd1\x8b\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xbf\xd0\xb0\xd0\xba\xd0\xb5\xd1\x82\n\
+     <code>decisions/&lt;id&gt;.yaml</code> \xd0\xb4\xd0\xbe \xd1\x82\xd0\xbe\xd0\xb3\xd0\xbe, \xd0\xba\xd0\xb0\xd0\xba \xd0\xba\xd0\xbe\xd0\xb4 \xd0\xbf\xd0\xbe\xd0\xbf\xd0\xb0\xd0\xb4\xd1\x91\xd1\x82 \xd0\xb2 \xd0\xbe\xd1\x81\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xbd\xd1\x83\xd1\x8e \xd0\xb2\xd0\xb5\xd1\x82\xd0\xba\xd1\x83. \xd0\x9f\xd1\x80\xd0\xbe\xd1\x87\xd0\xb8\xd1\x82\xd0\xb0\xd0\xb9\xd1\x82\xd0\xb5\n\
+     <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">\xd1\x80\xd1\x83\xd0\xba\xd0\xbe\xd0\xb2\xd0\xbe\xd0\xb4\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xbf\xd0\xbe \xd0\xb2\xd0\xbd\xd0\xb5\xd0\xb4\xd1\x80\xd0\xb5\xd0\xbd\xd0\xb8\xd1\x8e</a>\n\
+     (10 \xd0\xbc\xd0\xb8\xd0\xbd\xd1\x83\xd1\x82) \xd0\xb8\xd0\xbb\xd0\xb8 \xd1\x81\xd0\xba\xd0\xbb\xd0\xbe\xd0\xbd\xd0\xb8\xd1\x80\xd1\x83\xd0\xb9\xd1\x82\xd0\xb5 \xd1\x80\xd0\xb5\xd0\xbf\xd0\xbe\xd0\xb7\xd0\xb8\xd1\x82\xd0\xbe\xd1\x80\xd0\xb8\xd0\xb9 \xd0\xb8 \xd0\xb7\xd0\xb0\xd0\xbf\xd1\x83\xd1\x81\xd1\x82\xd0\xb8\xd1\x82\xd0\xb5\n\
+     <code>mathc self-check</code> \xd0\xbd\xd0\xb0 \xd0\xbf\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x80\xd0\xb5 \xd1\x80\xd0\xb5\xd1\x88\xd0\xb5\xd0\xbd\xd0\xb8\xd1\x8f, \xd1\x87\xd1\x82\xd0\xbe\xd0\xb1\xd1\x8b \xd1\x83\xd0\xb2\xd0\xb8\xd0\xb4\xd0\xb5\xd1\x82\xd1\x8c\n\
+     \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82\xd1\x8b \xd0\xbd\xd0\xb0 \xd1\x81\xd0\xb2\xd0\xbe\xd0\xb5\xd0\xb9 \xd0\xbc\xd0\xb0\xd1\x88\xd0\xb8\xd0\xbd\xd0\xb5.</p>\n\
+     <div class=\"mathc-hero-cta\">\n\
+     <a class=\"mathc-cta mathc-cta-primary\" \
+     href=\"https://github.com/11111000000/math-coding\">\xd0\x9a\xd0\xbb\xd0\xbe\xd0\xbd\xd0\xb8\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb0\xd1\x82\xd1\x8c \xd0\xbd\xd0\xb0 GitHub</a>\n\
+     <a class=\"mathc-cta mathc-cta-secondary\" \
+     href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">\xd0\xa0\xd1\x83\xd0\xba\xd0\xbe\xd0\xb2\xd0\xbe\xd0\xb4\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe</a>\n\
+     <a class=\"mathc-cta mathc-cta-secondary\" \
+     href=\"feed.xml\">\xd0\x9f\xd0\xbe\xd0\xb4\xd0\xbf\xd0\xb8\xd1\x81\xd0\xb0\xd1\x82\xd1\x8c\xd1\x81\xd1\x8f \xd1\x87\xd0\xb5\xd1\x80\xd0\xb5\xd0\xb7 RSS</a>\n\
+     </div>\n\
+     </section>\n\
+     <p class=\"mathc-callout\">\n\
+     \xd0\x9a\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xb0\xd1\x8f \xd1\x81\xd1\x82\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x86\xd0\xb0 \xd1\x8d\xd1\x82\xd0\xbe\xd0\xb3\xd0\xbe \xd1\x81\xd0\xb0\xd0\xb9\xd1\x82\xd0\xb0 \xd1\x81\xd0\xbe\xd0\xb7\xd0\xb4\xd0\xb0\xd1\x91\xd1\x82\xd1\x81\xd1\x8f \xd1\x8f\xd0\xb4\xd1\x80\xd0\xbe\xd0\xbc math-coding. \
+     \xd0\x9c\xd0\xb5\xd1\x82\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbb\xd0\xbe\xd0\xb3\xd0\xb8\xd1\x8f &mdash; \xd1\x8d\xd1\x82\xd0\xbe \xd0\xb0\xd1\x80\xd1\x82\xd0\xb5\xd1\x84\xd0\xb0\xd0\xba\xd1\x82; \xd0\xb0\xd1\x80\xd1\x82\xd0\xb5\xd1\x84\xd0\xb0\xd0\xba\xd1\x82 \xd1\x81\xd0\xbb\xd0\xb5\xd0\xb4\xd1\x83\xd0\xb5\xd1\x82 \xd0\xbc\xd0\xb5\xd1\x82\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbb\xd0\xbe\xd0\xb3\xd0\xb8\xd0\xb8.</p>\n\
+     <p class=\"mathc-meta\">\xd0\x90\xd0\xba\xd1\x82\xd0\xb8\xd0\xb2\xd0\xbd\xd0\xb0\xd1\x8f \xd0\xbf\xd0\xbe\xd0\xbb\xd0\xb8\xd1\x82\xd0\xb8\xd0\xba\xd0\xb0: <code>%s</code>. \xd0\x9f\xd0\xbe\xd0\xbb\xd0\xbd\xd0\xbe\xd0\xb5\n\
+     \xd1\x85\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xbb\xd0\xb8\xd1\x89\xd0\xb5 \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2 &mdash; \xd0\xbd\xd0\xb0 \xd1\x81\xd1\x82\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x86\xd0\xb5\n\
+     <a href=\"packages.html\">packages</a>, \xd0\xb0\xd0\xba\xd1\x81\xd0\xb8\xd0\xbe\xd0\xbc\xd1\x8b &mdash; \xd0\xbd\xd0\xb0\n\
+     <a href=\"axioms.html\">axioms</a>.</p>\n"
+    (html_escape version)
+    check check check check check check check check check check check
+    check check check
+    (html_escape policy_id)
 
 let[@warning "-32"] render_decision_page ~decision_id ~obligation_html =
   Printf.sprintf
