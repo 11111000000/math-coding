@@ -3,14 +3,14 @@ schema: math-coding/3.2
 id: yaml-block-scalars-impl-pending
 revision: 3
 state: active
-body_sha: "sha256:92d25be4d0f1d1e65d1d52a8e00c75793ee3350aacb3dcab96fb1cb6949b5c25"
-yaml_sha: "sha256:92d25be4d0f1d1e65d1d52a8e00c75793ee3350aacb3dcab96fb1cb6949b5c25"
+body_sha: "sha256:f8f4fc09704c0e23600ed8568b2314d083a03561ce6a1cf9273f0bacb439ae8c"
+yaml_sha: "sha256:f8f4fc09704c0e23600ed8568b2314d083a03561ce6a1cf9273f0bacb439ae8c"
 intent: |
   Record that the parent obligation `yaml-block-scalars-supported`
   (from `bootstrap/yaml-block-scalars.yaml@2`, now
   `decisions/yaml-block-scalars.yaml@3`) and its sub-obligation
   `yaml-block-scalars-loader-extended` are deferred past
-  v3-alpha-0.0.12. The deficit D1/D2 from doc/AUDIT-0.0.11.md
+  v3-alpha-0.0.12. The deficit D1/D2 from docs/AUDIT-0.0.11.md
   remains open until the implementation lands.
 
   Revision 2 records the resolution. The implementation

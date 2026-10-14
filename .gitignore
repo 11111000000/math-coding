@@ -21,6 +21,13 @@ scripts/__pycache__/
 # screenshots, traces). Regenerated on every browser run.
 .playwright-mcp/
 
+# The historical /doc/ directory was merged into /docs/ as
+# of commit 65d3015's follow-up. Any stray file dropped into
+# /doc/ by a future tool is a mistake; the canonical location
+# for audits, historical notes, and upstream-bug records is
+# /docs/.
+/doc/
+
 # `mathc re-evaluate-decisions A0` emits one JSON per
 # (decision, obligation) it walks under the A0 axiom lens.
 # These are re-evaluation scratch output, regenerated on

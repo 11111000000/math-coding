@@ -3,14 +3,14 @@ schema: math-coding/3.2
 id: d8-coarse-diagnostics
 revision: 1
 state: active
-body_sha: "sha256:ff325ed2bd7ebd81ee0dafd36e54ee7c756d20ec57972c4cdec6257cfc65550f"
-yaml_sha: "sha256:ff325ed2bd7ebd81ee0dafd36e54ee7c756d20ec57972c4cdec6257cfc65550f"
+body_sha: "sha256:610b2ecaa63de524f1b1bb1594d7a0f11b7cb59d7ac5a5de5c9fb67e9bbda2d1"
+yaml_sha: "sha256:610b2ecaa63de524f1b1bb1594d7a0f11b7cb59d7ac5a5de5c9fb67e9bbda2d1"
 axiom_link:
   - A0
   - A1
 mode: standard
 intent: |
-  Close audit deficit D8 (doc/AUDIT-0.0.11.md:465): `mathc validate`
+  Close audit deficit D8 (docs/AUDIT-0.0.11.md:465): `mathc validate`
   synthesises a single coarse diagnostic ("missing or invalid required
   field") when `Decision.parse_decision` returns None, without naming
   the specific field that caused the reject. Today, the kernel returns
@@ -280,7 +280,7 @@ counterexample: |
   "Diagnostic surface precision is a polish item; the existing coarse
   message has worked for two years and no author has complained."
   The counterargument fails for three reasons: (a) the audit
-  (doc/AUDIT-0.0.11.md:465) explicitly tagged D8 as a documented
+  (docs/AUDIT-0.0.11.md:465) explicitly tagged D8 as a documented
   deficit and the audit's `Recommended remedy` says
   "Promote `Decision.parse_decision` to return `Diagnostic.t option`
   in 3.0-beta; until then, the coarse diagnostic is documented" — the

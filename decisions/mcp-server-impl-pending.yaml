@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mcp-server-impl-pending
 revision: 2
 state: retired
-body_sha: "sha256:2eb2ee12001cadf084af52bf5b870186188622c0d7a2c867bd20aeea684b9885"
-yaml_sha: "sha256:2eb2ee12001cadf084af52bf5b870186188622c0d7a2c867bd20aeea684b9885"
+body_sha: "sha256:1d4f42178be3320d1081f0a39f763ea932d0a5ccd072b54ecac6f204a59c896d"
+yaml_sha: "sha256:1d4f42178be3320d1081f0a39f763ea932d0a5ccd072b54ecac6f204a59c896d"
 intent: |
   Record the deferral of the MCP server obligation to Phase 2
   of the install-tooling-2026-10 work. The MCP adapter split
@@ -20,7 +20,7 @@ intent: |
   surface stabilises: an MCP tool can only be useful once
   `mathc` is reliably installed in the host environment.
 
-  Audit reference: `doc/AUDIT-0.0.11.md:539, 623`,
+  Audit reference: `docs/AUDIT-0.0.11.md:539, 623`,
   `OCAML_BEST_PRACTICES.md:42` (mentions MCP as future
   adapter alongside Git, JUnit), `OCAML_BEST_PRACTICES.md`
   §10.1 (sub-library split is ready).

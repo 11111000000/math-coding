@@ -3,10 +3,10 @@ schema: math-coding/3.2
 id: yaml-block-scalars
 revision: 5
 state: active
-body_sha: "sha256:54beba520e4344aef36bdc75dc72795374e83aac8dee7b9b420ef8c66cf71f06"
-yaml_sha: "sha256:54beba520e4344aef36bdc75dc72795374e83aac8dee7b9b420ef8c66cf71f06"
+body_sha: "sha256:8696bd4dd234f3c2a8a1534500a3a142b4c86010b64545fdb722c1b4117beb34"
+yaml_sha: "sha256:8696bd4dd234f3c2a8a1534500a3a142b4c86010b64545fdb722c1b4117beb34"
 intent: |
-  Close deficit D1 and D2 from doc/AUDIT-0.0.11.md by extending
+  Close deficit D1 and D2 from docs/AUDIT-0.0.11.md by extending
   lib/codec.ml's hand-rolled YAML loader to recognise `|` and
   `>` block scalars with the standard chomping indicators
   (`|-`, `|+`, `>-`, `>+`) and the default clip behaviour. The
@@ -56,8 +56,8 @@ scope:
     - "tests/repo_structure.ml"
     - "tests/conformance.ml"
     - "OCAML_BEST_PRACTICES.md"
-    - "doc/AUDIT-0.0.11.md"
-    - "doc/AUDIT-0.0.19.md"
+    - "docs/AUDIT-0.0.11.md"
+    - "docs/AUDIT-0.0.19.md"
     - "decisions/yaml-block-scalars.yaml"
     - "decisions/yaml-block-scalars-impl-pending.yaml"
     - "fixtures/conformance/decision/positive-block-scalars.yaml"
@@ -285,8 +285,8 @@ risk:
 
 relations:
   addresses:
-    - doc/AUDIT-0.0.11.md#D1
-    - doc/AUDIT-0.0.11.md#D2
+    - docs/AUDIT-0.0.11.md#D1
+    - docs/AUDIT-0.0.11.md#D2
   supersedes:
     - yaml-block-scalars-impl-pending@1
   superseded_by: []

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathc-packages-subcommand
 revision: 3
 state: active
-body_sha: "sha256:fbf16d8e5b5512f659576a9d1d66ee15a55aa8ed6e7470866bc6fd9e45a66eaf"
-yaml_sha: "sha256:fbf16d8e5b5512f659576a9d1d66ee15a55aa8ed6e7470866bc6fd9e45a66eaf"
+body_sha: "sha256:00a1c1fdee0615e44732613dba54df61e04efd69479328f5feb26268f6f30dd9"
+yaml_sha: "sha256:00a1c1fdee0615e44732613dba54df61e04efd69479328f5feb26268f6f30dd9"
 intent: |
   Add `mathc packages` — a kernel-level subcommand that enumerates
   every package (decision + obligation pair) in the repository,
@@ -12,7 +12,7 @@ intent: |
   attestation status. This is the operator's single-pane view
   of the project's assurance surface; without it, callers must
   manually walk `decisions/*.yaml`, `attestations/*.json`, and
-  `doc/AUDIT-*.md` to recover the same picture.
+  `docs/AUDIT-*.md` to recover the same picture.
 
   The site at `cmd/members/site/index.md` reads this output via
   `mathc packages --format=html` to render the package grid page,

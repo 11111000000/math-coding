@@ -773,7 +773,7 @@ let[@warning "-32"] load_yaml_string raw =
      decisions/*.yaml files start with `---`; without stripping,
      the first token would be `---` and parse_yaml_pairs would
      reject it (no `:`), so the loader returns an empty object.
-     This closes audit deficit D2 (see doc/AUDIT-0.0.11.md).
+     This closes audit deficit D2 (see docs/AUDIT-0.0.11.md).
 
      Skip any leading blank lines first: an OCaml raw string
      `{|...|}` keeps any leading newline, so the first line is

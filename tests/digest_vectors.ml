@@ -9,7 +9,7 @@
    loop, and rotr not masked to 32 bits on a 63-bit OCaml int). All
    three are fixed. The decision to keep the hand-rolled implementation
    rather than switch to digestif is recorded in the commit message;
-   the closure is the closure of D4 from doc/AUDIT-0.0.11.md.
+   the closure is the closure of D4 from docs/AUDIT-0.0.11.md.
 
    §4.4 (1,000,000-byte "a" test) is checked separately as a long-running
    case to keep the unit suite fast.

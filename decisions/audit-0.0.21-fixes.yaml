@@ -3,11 +3,11 @@ schema: math-coding/3.2
 id: audit-0.0.21-fixes
 revision: 2
 state: active
-body_sha: "sha256:97dab24da0369839a37c4085a9fcee0bce39d0e6eee91307e40cbc2ee11f2089"
-yaml_sha: "sha256:97dab24da0369839a37c4085a9fcee0bce39d0e6eee91307e40cbc2ee11f2089"
+body_sha: "sha256:777301c1aa85d255d812adc4a82dc51d34dc3de6702ff207f62c3f9a4b438548"
+yaml_sha: "sha256:777301c1aa85d255d812adc4a82dc51d34dc3de6702ff207f62c3f9a4b438548"
 intent: |
   Authorise and bound a single cycle of fixes that closes the
-  13 specific deficits catalogued in `doc/AUDIT-0.0.21.md`
+  13 specific deficits catalogued in `docs/AUDIT-0.0.21.md`
   (D21.1 … D21.13). The cycle is committed as five sequential
   phases:
 
@@ -77,7 +77,7 @@ scope:
     - "README.md"
     - "USAGE.md"
     - "CHANGELOG.md"
-    - "doc/AUDIT-0.0.21.md"
+    - "docs/AUDIT-0.0.21.md"
     - "spec/constitution.md"
   exclusions:
     - "axioms/**"
@@ -121,7 +121,7 @@ outcomes:
       The counters in `PACKAGES.md` (Obs column, decisions,
       obligations, attestations, cram tests), `ROADMAP.md`
       (status block, Tier counters), `README.md` (CLI table
-      row count), and `doc/AUDIT-0.0.21.md` (final state
+      row count), and `docs/AUDIT-0.0.21.md` (final state
       section) all equal the values reported by
       `mathc packages --format=json` and `mathc self-check`.
 
@@ -276,7 +276,7 @@ obligations:
     claim: |
       Every numeric count in `AGENTS.md`, `ROADMAP.md`,
       `PACKAGES.md`, `README.md`, `USAGE.md`, `CHANGELOG.md`,
-      `doc/AUDIT-0.0.21.md` equals the corresponding output
+      `docs/AUDIT-0.0.21.md` equals the corresponding output
       of `scripts/dev counters` (within an explicit, recorded
       tolerance if rounding is unavoidable).
     acceptance:

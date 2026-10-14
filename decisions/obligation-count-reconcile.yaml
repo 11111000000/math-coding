@@ -3,16 +3,16 @@ schema: math-coding/3.2
 id: obligation-count-reconcile
 revision: 3
 state: active
-body_sha: "sha256:f451d6345a1a2918e108dde75868f3f1f063de7842a433ff655971554087f98a"
-yaml_sha: "sha256:f451d6345a1a2918e108dde75868f3f1f063de7842a433ff655971554087f98a"
+body_sha: "sha256:5de68d455fb6206a91ab4cb8bf7d8a69c5247b370a2a4c724dc815e294312da8"
+yaml_sha: "sha256:5de68d455fb6206a91ab4cb8bf7d8a69c5247b370a2a4c724dc815e294312da8"
 intent: |
   Reconcile the obligation-count drift across four normative
   documents in the read-first set. At HEAD `9a16751`:
     - decisions/decision.yaml@2 lists 7 obligations;
     - decisions/obligations.yaml@1 lists 5;
     - decisions/ONBOARDING.md line 272 and
-      doc/AUDIT-0.0.11.md line 463 say 8;
-    - doc/AUDIT-0.0.18.md line 99 and PACKAGES.md line 35 say 13.
+      docs/AUDIT-0.0.11.md line 463 say 8;
+    - docs/AUDIT-0.0.18.md line 99 and PACKAGES.md line 35 say 13.
   The bootstrap kernel cannot enumerate its own obligations while
   these disagree, so D6 (manual-only verifiers at AUDIT-0.0.11.md
   line 463) cannot expire with any class better than `unknown`.

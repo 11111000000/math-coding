@@ -3,10 +3,10 @@ schema: math-coding/3.2
 id: priority-drift
 revision: 3
 state: active
-body_sha: "sha256:16bc4504436061907e7db41397d66d5fc08093e2f644e046aed0e27412d0a3c1"
-yaml_sha: "sha256:16bc4504436061907e7db41397d66d5fc08093e2f644e046aed0e27412d0a3c1"
+body_sha: "sha256:0ebf35f2780f149dc93bc019526df4ee52b3ef5616f5e34ba532cd9ad0a64913"
+yaml_sha: "sha256:0ebf35f2780f149dc93bc019526df4ee52b3ef5616f5e34ba532cd9ad0a64913"
 intent: |
-  Close deficit D3 from doc/AUDIT-0.0.11.md by adding a machine
+  Close deficit D3 from docs/AUDIT-0.0.11.md by adding a machine
   check that the priority table in spec/semantics.md
   ("context-prioritisation") and the mirror table in
   OCAML_BEST_PRACTICES.md §10.5 stay byte-equivalent. The spec
@@ -45,7 +45,7 @@ scope:
     - "tests/repo_structure.ml"
     - "bootstrap/priority-drift.yaml"
     - "OCAML_BEST_PRACTICES.md"
-    - "doc/AUDIT-0.0.11.md"
+    - "docs/AUDIT-0.0.11.md"
   exclusions:
     - "lib/**"
     - "bin/**"
@@ -71,7 +71,7 @@ counterexample: |
   protected policy transition (spec/semantics.md line 178: "A
   change to the priority order is itself a protected policy
   transition"), and code review alone has already allowed one
-  audit (doc/AUDIT-0.0.11.md D3) to flag this gap.
+  audit (docs/AUDIT-0.0.11.md D3) to flag this gap.
 
   Why not put the table only in OCAML_BEST_PRACTICES.md and
   delete it from the spec? Because spec/semantics.md names the
@@ -194,6 +194,6 @@ risk:
 
 relations:
   addresses:
-    - doc/AUDIT-0.0.11.md#D3
+    - docs/AUDIT-0.0.11.md#D3
     - bootstrap/validate-and-context.yaml#risk.priority-order-drift-between-spec-and-implementation
   superseded_by: []

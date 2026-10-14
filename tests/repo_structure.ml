@@ -367,7 +367,7 @@ let[@warning "-32"] test_yaml_block_scalars_structural () =
      and the audit doc references the fixture. *)
   let yaml = in_repo "decisions/yaml-block-scalars.yaml" in
   let pending = in_repo "decisions/yaml-block-scalars-impl-pending.yaml" in
-  let audit = in_repo "doc/AUDIT-0.0.11.md" in
+  let audit = in_repo "docs/AUDIT-0.0.11.md" in
   let has_id =
     file_exists yaml
     &&
@@ -423,7 +423,7 @@ let[@warning "-32"] test_yaml_block_scalars_structural () =
   in
   if not has_audit_ref then
     Alcotest.fail
-      "doc/AUDIT-0.0.11.md does not reference yaml-block-scalars.sh fixture"
+      "docs/AUDIT-0.0.11.md does not reference yaml-block-scalars.sh fixture"
 
 (* ------------------------------------------------------------------------- *)
 (* enumerate (conformance runner)                                             *)

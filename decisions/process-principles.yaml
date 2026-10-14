@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: process-principles
 revision: 3
 state: active
-body_sha: "sha256:1be7a52a429d87d106527e41cd2eccd118de7402accd725e5f8befdf8d4f4555"
-yaml_sha: "sha256:1be7a52a429d87d106527e41cd2eccd118de7402accd725e5f8befdf8d4f4555"
+body_sha: "sha256:2c257e5c4ee85654b06a00b2dd38b4e290a473e5e9bd486d94788d21468b3683"
+yaml_sha: "sha256:2c257e5c4ee85654b06a00b2dd38b4e290a473e5e9bd486d94788d21468b3683"
 intent: |
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as
@@ -52,7 +52,7 @@ scope:
     - "tests/process_principles.ml"
     - "tests/dune"
     - "PACKAGES.md"
-    - "doc/AUDIT-0.0.11.md"
+    - "docs/AUDIT-0.0.11.md"
   exclusions:
     - "ROADMAP.md"
     - "lib/**"

@@ -4,8 +4,8 @@ id: d5-body-vs-wrapper-canonical-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:c44c8fc9d3a182e0c22984a82a5b717f339811c71e8f6bd61c7e6bd5204ebc6f"
-yaml_sha: "sha256:c44c8fc9d3a182e0c22984a82a5b717f339811c71e8f6bd61c7e6bd5204ebc6f"
+body_sha: "sha256:a572a85f05b04bbce1e947eb721d90aea5e1a2a5b2958a64aa127a46c839dc62"
+yaml_sha: "sha256:a572a85f05b04bbce1e947eb721d90aea5e1a2a5b2958a64aa127a46c839dc62"
 axiom_link:
   - A0
   - A3
@@ -48,7 +48,7 @@ intent: |
       adoption); human review is required before merge.
 
   Background:
-    The 2026-10-05 audit (`doc/AUDIT-0.0.20.md` D5) recorded
+    The 2026-10-05 audit (`docs/AUDIT-0.0.20.md` D5) recorded
     that `spec/algebra-3.2.md` §7 declares the equality
     invariant but does not specify the exact byte-range the
     hash covers. The implementation in

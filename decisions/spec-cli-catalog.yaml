@@ -3,10 +3,10 @@ schema: math-coding/3.2
 id: spec-cli-catalog
 revision: 2
 state: active
-body_sha: "sha256:c63773341261fd1b165effe463d2ab7ebd09327fe37d22da152ccfb384b8c543"
-yaml_sha: "sha256:c63773341261fd1b165effe463d2ab7ebd09327fe37d22da152ccfb384b8c543"
+body_sha: "sha256:fc1b6c6071c6fe065dbf48cea29772a930b2f9430ba6ebc70234153b55729424"
+yaml_sha: "sha256:fc1b6c6071c6fe065dbf48cea29772a930b2f9430ba6ebc70234153b55729424"
 intent: |
-  Close the doc/AUDIT-0.0.11.md "Promote `mathc validate`, `mathc
+  Close the docs/AUDIT-0.0.11.md "Promote `mathc validate`, `mathc
   context`, `mathc assess`, `mathc attest` in `spec/semantics.md`" gap
   (recommendation §Process improvements item 13) by adding a
   normative "CLI subcommands" section to spec/semantics.md that
@@ -46,7 +46,7 @@ scope:
     - "spec/semantics.md"
     - "bootstrap/spec-cli-catalog.yaml"
     - "tests/repo_structure.ml"
-    - "doc/AUDIT-0.0.11.md"
+    - "docs/AUDIT-0.0.11.md"
   exclusions:
     - "bin/Mathc.ml"
     - "lib/**"

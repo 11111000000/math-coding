@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: adapters
 revision: 3
 state: active
-body_sha: "sha256:e84c903e2a0ac72d24b484abfc40c3bc2d682c8e127040e56cd04eeaea82581e"
-yaml_sha: "sha256:e84c903e2a0ac72d24b484abfc40c3bc2d682c8e127040e56cd04eeaea82581e"
+body_sha: "sha256:1283e4181cbbad0196fc6a9f9950aa5dbaaa7bef0af32ad5514b2334aaf18a00"
+yaml_sha: "sha256:1283e4181cbbad0196fc6a9f9950aa5dbaaa7bef0af32ad5514b2334aaf18a00"
 intent: |
   Add the first non-CLI adapters to the math-coding 3.0-alpha
   protocol: a JUnit XML importer and a Git changed-files
@@ -32,7 +32,7 @@ intent: |
   Both adapters landed in v0.0.8 (commits 5486c13 and bcce74d);
   the original decision (revision 1, v0.0.8) recorded only the
   JUnit obligation explicitly. Per audit D7 from
-  doc/AUDIT-0.0.11.md, the cheaper remedy is to keep a single
+  docs/AUDIT-0.0.11.md, the cheaper remedy is to keep a single
   decision file covering both obligations and document that fact
   in the audit; this revision adopts that remedy.
 
@@ -314,7 +314,7 @@ obligations:
       5486c13 (the implementation commit) and recorded
       explicitly in this decision at revision 2; the original
       revision 1 grouped it implicitly under the JUnit
-      obligation, which audit D7 in doc/AUDIT-0.0.11.md
+      obligation, which audit D7 in docs/AUDIT-0.0.11.md
       flagged as a documentation gap.
     acceptance:
       all:
@@ -339,5 +339,5 @@ risk:
 relations:
   addresses:
     - bootstrap-v3@2
-    - doc/AUDIT-0.0.11.md#D7
+    - docs/AUDIT-0.0.11.md#D7
   superseded_by: []
