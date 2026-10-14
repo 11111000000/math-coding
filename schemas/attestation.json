@@ -8,7 +8,7 @@
     "result", "issued_at"
   ],
   "properties": {
-    "schema": {"const": "math-coding/attestation-3.0-alpha"},
+    "schema": {"enum": ["math-coding/attestation-3.0-alpha", "math-coding/attestation-3.3"]},
     "kind": {"const": "attestation"},
     "id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
     "subject": {

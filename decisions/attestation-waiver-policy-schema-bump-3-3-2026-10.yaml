@@ -1,0 +1,164 @@
+---
+schema: math-coding/3.3
+id: attestation-waiver-policy-schema-bump-3-3-2026-10
+revision: 1
+state: active
+body_sha: "sha256:e3004e5cf091d121ab223149bf73d26f5bf2b1fb724d373329e3d5bcd294e999"
+yaml_sha: "sha256:e3004e5cf091d121ab223149bf73d26f5bf2b1fb724d373329e3d5bcd294e999"
+mode: standard
+change_kind: implementation
+axiom_link:
+  - A0
+  - A3
+intent: |
+  Widen `const` → `enum` in three schema files (attestation,
+  waiver, policy) to accept the new `math-coding/3.3` family
+  alongside the historical `math-coding/3.0-alpha` literal.
+  Parallel to `schema-string-bump-3.0-alpha-to-3.3-2026-10`
+  which already widened `schemas/decision.json`. Soft-deprecated
+  period: both `3.0-alpha` and `3.3` accepted for one
+  release cycle; existing attestations/waivers/policies on
+  `3.0-alpha` continue to validate unchanged.
+
+  This is a self-application of the schema-string bump
+  decision to the three schemas it originally excluded
+  (attestation/waiver/policy). A3-protected transition.
+
+antithesis: |
+  The decision schema is the only one that meaningfully needs
+  a 3.3 family; the other three schemas are operational
+  artifacts (attestation/waiver/policy) and their `3.0-alpha`
+  literal is a stable identity, not a citation. Adding a
+  parallel `3.3` literal doubles the surface for no
+  observable benefit. Rejected: `adoption/SKILL.md:152` is
+  already teaching the `3.3` form for attestations
+  (the example is forward-looking), and the migration
+  manifest at `decisions/migrations/3.0-alpha-to-3.3.yaml`
+  enumerates per-file actions that the kernel would emit
+  only if the schema enum accepts the new family.
+
+counterexample: |
+  "Both `3.0-alpha` and `3.3` literals coexisting is half-
+  baked; users with old attestations will see validation
+  failures during the strict-deprecation window in 3.4."
+  Counterargument: the soft-deprecated period is exactly
+  the contract AGENTS.md §Self-application requires. The
+  previous `schema-string-bump-3.0-alpha-to-3.2-2026-10`
+  followed the same pattern and shipped 72 decisions on
+  dual forms without incident.
+
+commitment: |
+  1. `schemas/attestation.json:11` declares `schema` as
+     `{"enum": ["math-coding/attestation-3.0-alpha", "math-coding/attestation-3.3"]}`.
+  2. `schemas/waiver.json:11` declares `schema` as
+     `{"enum": ["math-coding/waiver-3.0-alpha", "math-coding/waiver-3.3"]}`.
+  3. `schemas/policy.json:8` declares `schema` as
+     `{"enum": ["math-coding/3.0-alpha/policy", "math-coding/3.3/policy"]}`.
+  4. `decisions/migrations/3.0-alpha-to-3.3.yaml` declares
+     three additional `bump-schema-string` actions mapping
+     `attestation-3.0-alpha → attestation-3.3`,
+     `waiver-3.0-alpha → waiver-3.3`, and
+     `3.0-alpha/policy → 3.3/policy`.
+  5. All existing attestations/waivers/policies continue to
+     validate against the post-bump schemas.
+  6. `mathc self-check` exit code is unchanged (no regression
+     in pass/unknown distribution).
+
+scope:
+  capabilities:
+    - schema-bump-3-3-attestation
+    - schema-bump-3-3-waiver
+    - schema-bump-3-3-policy
+  paths:
+    - "schemas/attestation.json"
+    - "schemas/waiver.json"
+    - "schemas/policy.json"
+    - "decisions/migrations/3.0-alpha-to-3.3.yaml"
+
+outcomes:
+  - id: attestation-json-enum-3-0-alpha-and-3-3
+    statement: |
+      `schemas/attestation.json:11` declares `schema` as
+      `{"enum": ["math-coding/attestation-3.0-alpha", "math-coding/attestation-3.3"]}`.
+  - id: waiver-json-enum-3-0-alpha-and-3-3
+    statement: |
+      `schemas/waiver.json:11` declares `schema` as
+      `{"enum": ["math-coding/waiver-3.0-alpha", "math-coding/waiver-3.3"]}`.
+  - id: policy-json-enum-3-0-alpha-and-3-3
+    statement: |
+      `schemas/policy.json:8` declares `schema` as
+      `{"enum": ["math-coding/3.0-alpha/policy", "math-coding/3.3/policy"]}`.
+  - id: migration-manifest-extended
+    statement: |
+      `decisions/migrations/3.0-alpha-to-3.3.yaml` declares
+      three additional `bump-schema-string` actions mapping
+      `attestation-3.0-alpha → attestation-3.3`,
+      `waiver-3.0-alpha → waiver-3.3`, and
+      `3.0-alpha/policy → 3.3/policy`.
+
+obligations:
+  - id: attestation-enum-accepts-3-3
+    claim: |
+      `mathc validate decisions/<existing>.yaml` exits 0
+      against the post-bump `schemas/attestation.json`,
+      including for files with attestation `schema: math-coding/attestation-3.0-alpha`.
+    acceptance:
+      all:
+        - verifier: text-scan-attestation-enum
+          result: pass
+  - id: waiver-enum-accepts-3-3
+    claim: |
+      `mathc validate decisions/waivers/<existing>.yaml` exits 0.
+    acceptance:
+      all:
+        - verifier: text-scan-waiver-enum
+          result: pass
+  - id: policy-enum-accepts-3-3
+    claim: |
+      `mathc validate decisions/<policy>.yaml` exits 0.
+    acceptance:
+      all:
+        - verifier: text-scan-policy-enum
+          result: pass
+  - id: migration-manifest-extended
+    claim: |
+      `decisions/migrations/3.0-alpha-to-3.3.yaml` lists 8
+      `bump-schema-string` actions (4 for decision schema,
+      1 for attestation, 1 for waiver, 1 for policy, plus
+      the prior 4 for decision families).
+    acceptance:
+      all:
+        - verifier: text-scan-migration-actions
+          result: pass
+  - id: existing-attestations-still-validate
+    claim: |
+      `mathc validate` against an attestation sample from
+      `attestations/` with `schema: math-coding/attestation-3.0-alpha`
+      continues to accept.
+    acceptance:
+      all:
+        - verifier: mathc validate
+          result: pass
+  - id: self-check-verdict-unchanged
+    claim: |
+      `mathc self-check` exit code is unchanged after the
+      schema-bump (pass/unknown distribution not regressed).
+    acceptance:
+      all:
+        - verifier: mathc self-check
+          result: pass
+
+reversal:
+  - signal: strict-deprecation-3-4-trigger
+    action: revert-attestation-waiver-policy-const
+
+risk:
+  declared_triggers:
+    - attestation-validator-regression
+    - waiver-validator-regression
+    - policy-validator-regression
+  owner: human:maintainer
+
+relations:
+  refines:
+    - schema-string-bump-3.0-alpha-to-3.3-2026-10@1

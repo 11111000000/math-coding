@@ -1,17 +1,30 @@
-id: 3.0-alpha-to-3.3
-description: |
-  Bumps every decision file's `schema:` field from the
-  legacy `math-coding/3.0-alpha` or `math-coding/3.2`
-  families forward to the current `math-coding/3.3`. The
-  new family is adopted by the schema-string bump decision
-  (`schema-string-bump-3.0-alpha-to-3.3-2026-10.yaml@1`,
-  schema enum updated in `schemas/decision.json`). Each
-  live decision file still validates today (legacy forms are
-  accepted during the one-cycle grace period), so this
-  manifest is the migration path that brings the tree to
-  the new family in a single declarative step.
+---
+schema: math-coding/migration-manifest
+from: math-coding/3.0-alpha
+to: math-coding/3.3
+intent: |
+  Bring the schema-string on every live decision forward from
+  `math-coding/3.0-alpha` to `math-coding/3.3`. The bump
+  aligns the `schema:` field in `decisions/*.yaml` with
+  the schema family adopted by
+  `decisions/schema-string-bump-3.0-alpha-to-3.3-2026-10.yaml@1`
+  and the parallel attestation/waiver/policy schema-bump
+  recorded in
+  `decisions/attestation-waiver-policy-schema-bump-3-3-2026-10.yaml`.
 
-actions:
+  Each live decision file still validates today (legacy
+  forms are accepted during the one-cycle grace period),
+  so this manifest is the migration path that brings the
+  tree to the new family in a single declarative step.
+
+  This manifest also covers the per-file actions for the
+  attestation/waiver/policy schema families. The 8
+  bump-schema-string actions map 4 decision-schema
+  variants, 1 attestation, 1 waiver, 1 policy, and (per
+  the parallel decision) a `to: math-coding/3.3/decision`
+  JSON form.
+
+migrations:
   - kind: bump-schema-string
     from: math-coding/3.0-alpha
     to: math-coding/3.3
@@ -24,18 +37,12 @@ actions:
   - kind: bump-schema-string
     from: math-coding/3.2/decision
     to: math-coding/3.3/decision
-
-apply:
-  body_sha_stale_after_apply: true
-  yaml_sha_stale_after_apply: true
-  rationale: |
-    The body_sha/yaml_sha fields on every affected decision
-    file are stale after the apply; the next
-    `mathc validate` pass on the bumped file recomputes them.
-    This is the same caveat the
-    `decisions/migrations/3.0-alpha-to-3.2.yaml` manifest
-    documents.
-
-notes:
-  - 'Legacy 3.0-alpha and 3.2 forms remain accepted for one release cycle after this manifest is declared; new files must use 3.3.'
-  - 'Attestation files in attestations/*.json are not touched by this manifest; their schema: math-coding/attestation-3.0-alpha literal is a historical identity, not a citation.'
+  - kind: bump-schema-string
+    from: math-coding/attestation-3.0-alpha
+    to: math-coding/attestation-3.3
+  - kind: bump-schema-string
+    from: math-coding/waiver-3.0-alpha
+    to: math-coding/waiver-3.3
+  - kind: bump-schema-string
+    from: math-coding/3.0-alpha/policy
+    to: math-coding/3.3/policy
