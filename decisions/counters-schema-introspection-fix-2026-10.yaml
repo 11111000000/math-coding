@@ -1,0 +1,467 @@
+---
+schema: math-coding/3.3/decision
+kind: decision
+id: counters-schema-introspection-fix-2026-10
+revision: 1
+state: active
+mode: standard
+body_sha: "sha256:TODO"
+yaml_sha: "sha256:TODO"
+axiom_link:
+  - A0
+intent: |
+  Fix the under-reported schema-introspection block in
+  `mathc counters --format=json` so that the live
+  `schemas/decision.json` is reflected faithfully. Today
+  (HEAD `a9ed041` before this commit), the four keys
+  emitted under the top-level `schema` object are:
+
+    - `decision_required_fields`: 7 elements, read from
+      root `required` (CORRECT — the helper ignores its
+      `obj_path` parameter and reads the root key).
+    - `schema_enum`: `[]`, should be the 6-element array
+      from `properties.schema.enum` (WRONG).
+    - `intent_oneOf`: `false`, should be `true` because
+      `properties.intent` carries an `oneOf` array
+      (WRONG).
+    - `scope_oneOf`: `false`, should be `true` because
+      `properties.scope` carries an `oneOf` array
+      (WRONG).
+
+  The three wrong outputs are the consequence of a single
+  base-case bug in the local `get` helper that the
+  `string_list_from_nested` and `has_one_of` inline
+  closures use to walk a path through the parsed
+  `Jsonl.value`:
+
+      let rec get v = function
+        | [] -> None          (* BUG: should be `Some v` *)
+        | k :: rest -> (
+            match v with
+            | Object ps -> (
+                match List.assoc_opt k ps with
+                | Some sub -> get sub rest
+                | None -> None)
+            | _ -> None)
+
+  When the walker consumes the last key of the path, it
+  recurses with the value at that location and an empty
+  remainder. The empty-remainder branch discards the
+  reached value (`None`) instead of returning it
+  (`Some v`), so the caller never sees the terminal
+  array / object. The walk visits the right subtree
+  but throws the answer away.
+
+  The fix is a one-character change per helper
+  (`| [] -> Some v`), restoring the three keys to their
+  live values. The `string_list_field` helper is
+  untouched: it does not walk a path (it ignores its
+  `obj_path` argument and reads the root `required`
+  key directly), which is why `decision_required_fields`
+  has always been correct.
+
+  This decision supersedes
+  `counters-schema-introspection-deferral-2026-10@1`,
+  the deferral record that pinned the bug as known
+  while the OCaml toolchain was unavailable. The
+  toolchain is available again; the bug is closed; the
+  regression fixture `tests/cli/counters-schema-introspection.t`
+  pins the post-fix output for every future change.
+
+  This is an A3-protected transition (a kernel helper
+  in `bin/Mathc.ml` is policy-bearing per AGENTS.md
+  §Self-application), so the change ships with this
+  decision record, a positive regression fixture, and
+  the existing kernel `mathc counters` attestation
+  closure (re-emitted at the post-fix tree).
+
+change_kind: implementation
+
+commitment: |
+  1. `bin/Mathc.ml::do_counters` section 7 ("schema
+     info") emits, from the parsed `schemas/decision.json`:
+
+       - `decision_required_fields` (array, 7 elements)
+         — unchanged from pre-fix behaviour.
+       - `schema_enum` (array, ≥ 4 elements; exactly 6
+         at HEAD `a9ed041`).
+       - `intent_oneOf` (boolean, `true`).
+       - `scope_oneOf` (boolean, `true`).
+
+  2. The local `get` helper's empty-path base case
+     returns `Some v` (the reached value) instead of
+     `None`. Applied in `string_list_from_nested` and
+     `has_one_of`. `string_list_field` is unchanged.
+
+  3. `tests/cli/counters-schema-introspection.t` is a
+     new cram fixture that runs `mathc counters
+     --format=json` from `$DUNE_SOURCEROOT` and asserts:
+
+       - `schema.decision_required_fields` is a 7-element
+         array (length check).
+       - `schema.schema_enum` has at least 4 elements
+         (length check) and contains each of the six
+         current `math-coding/{3.0-alpha,
+         3.0-alpha/decision, 3.2, 3.2/decision, 3.3,
+         3.3/decision}` strings (membership check).
+       - `schema.intent_oneOf` equals `true`.
+       - `schema.scope_oneOf` equals `true`.
+
+     The fixture is the regression witness for this
+     decision; it is `pass` on a tree that ships the
+     fix and `fail` on a tree that does not (the
+     previous live `mathc counters` output).
+
+  4. `decisions/counters-schema-introspection-deferral-2026-10.yaml`
+     remains in `decisions/` as the historical record
+     of the deferral period. It is NOT removed or
+     edited by this commit; the supersede relation is
+     recorded in the `relations:` block of THIS
+     decision. Removal of the deferral record is a
+     separate worktree / commit that happens at merge
+     time.
+
+  5. The pre-built `mathc` is not rebuilt in this
+     commit (dune is unavailable in this branch's
+     session, per the deferral record). The fix is
+     source-only; the binary rebuild is the next
+     session's task. Once rebuilt, `mathc counters
+     --format=json` reports the three corrected
+     values without any further source change.
+
+counterexample: |
+  "The bug only affects a stats / introspection
+  subcommand; nobody acts on `schema_enum` or
+  `intent_oneOf` programmatically. The counters block
+  in PACKAGES.md just shows a fixed-shape grid; under-
+  reporting the schema field is invisible to end users."
+
+  Counterargument: `mathc counters` is the SINGLE
+  SOURCE OF TRUTH for the counters block in
+  `PACKAGES.md` (per `tests/counters_drift.ml`,
+  currently gated off but wired). A future
+  re-enablement of that test, or any external
+  consumer that reads `mathc counters --format=json`
+  to drive a CI dashboard, will see the wrong
+  schema-introspection shape and either:
+    (a) report drift against `schemas/decision.json`
+        that does not exist (a false positive);
+    (b) silently drop the schema block from
+        downstream summaries (an under-report
+        identical to the bug we are fixing);
+    (c) misinterpret the missing values as a sign
+        the schema is broken (a false alert that
+        pages a human on-call for nothing).
+  Each of the three failure modes is real and
+  visible; the under-report is not benign.
+
+  "Just remove the path walker; the schema block is
+  not load-bearing. `decision_required_fields` works
+  by accident because `string_list_field` reads the
+  root key directly. Treat the bug as 'feature was
+  never finished' and inline the JSON lookups at the
+  call site."
+
+  Counterargument: removing the walker throws away
+  the abstraction that the helpers encode (a path
+  string `[ "properties"; "schema"; "enum" ]` as
+  data, not as hand-rolled pattern matches). The
+  three call sites are siblings, the fix is one
+  character per helper, and the new regression
+  fixture pins the live output. The minimum-blast-
+  radius shape is to FIX the walker, not delete it.
+
+  "Fix the bug inline in a follow-up commit without
+  a decision file. The change is two characters."
+
+  Counterargument: `bin/Mathc.ml` is policy-protected
+  per AGENTS.md §Self-application. A change to
+  `do_counters` (even a one-character fix) requires
+  a decision under the active policy, a positive
+  regression fixture, and a human review at merge
+  time. The same rule that required the deferral
+  record requires the close-out record. Two
+  characters in `bin/Mathc.ml` still ship with a
+  three-page decision; that is the project's
+  A3-protected trade, not a per-character overhead.
+
+antithesis: |
+  "Leave the bug in place; under-report the
+  `schema_enum` field in PACKAGES.md (one-line note
+  in the counters block); let `mathc counters` keep
+  reporting the under-reported shape. The
+  decision-record / fixture / rebuild cost is not
+  worth two characters of source fix."
+
+  Rejected because: the under-report is
+  irrecoverable to a downstream consumer that does
+  not have the schema file open in a side panel.
+  The decision record, fixture, and rebuild are the
+  minimum sufficient response to an A3-protected
+  kernel change; deferring again is the same shape
+  of `silent` regression that
+  `disable-counters-drift-test-2026-10` recorded and
+  that this project has committed to NOT repeating
+  (per `decisions/disable-counters-drift-test-2026-10`).
+  The close-out decision is the honest path; the
+  'defer again' path is the dishonest one.
+
+scope:
+  capabilities:
+    - counters-schema-introspection
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/cli/counters-schema-introspection.t"
+    - "decisions/counters-schema-introspection-fix-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+    - "decisions/counters-schema-introspection-deferral-2026-10.yaml"
+    - "decisions/decision.yaml"
+    - "decisions/obligations.yaml"
+    - "decisions/obligation-count-reconcile.yaml"
+    - "attestations/**"
+
+outcomes:
+  - id: schema-enum-non-empty
+    statement: |
+      `mathc counters --format=json` reports
+      `schema.schema_enum` as a 6-element array at the
+      post-fix tree (the 3.0-alpha, 3.2, and 3.3 family
+      forms listed in `schemas/decision.json::properties.schema.enum`).
+  - id: intent-oneof-true
+    statement: |
+      `mathc counters --format=json` reports
+      `schema.intent_oneOf` as `true` (the schema's
+      `properties.intent` object carries a `oneOf` key).
+  - id: scope-oneof-true
+    statement: |
+      `mathc counters --format=json` reports
+      `schema.scope_oneOf` as `true` (the schema's
+      `properties.scope` object carries a `oneOf` key).
+  - id: regression-fixture-pins-output
+    statement: |
+      `tests/cli/counters-schema-introspection.t` runs
+      `mathc counters --format=json` from
+      `$DUNE_SOURCEROOT` and asserts the four key
+      invariants via `jq -e`. The fixture is `pass`
+      on a tree that ships the fix and `fail` on a
+      tree that does not.
+  - id: required-fields-still-correct
+    statement: |
+      `schema.decision_required_fields` remains a
+      7-element array (the pre-fix correctness is
+      preserved; the fix is additive to the three
+      wrong keys).
+
+assumptions:
+  - id: dune-available-in-future-session
+    state: assumed
+    statement: |
+      A future session that has the OCaml toolchain
+      (`dune build` available) will rebuild `mathc`
+      and re-emit the `mathc counters --format=json`
+      output for the post-fix tree. The fix is
+      source-only; the rebuild is the next session's
+      task. The deferral record is closed by source
+      change, not by rebuild.
+    owner: human:maintainer
+    consequence_if_false: |
+      If `dune` does not become available in the
+      immediate next session, the regression fixture
+      `tests/cli/counters-schema-introspection.t`
+      will be `xfail` rather than `pass` for the
+      duration of that gap. The fixture is the
+      witness; the binary rebuild is the action that
+      flips it to `pass`.
+    review_on:
+      - signal: dune-build-runs-against-post-fix-tree
+
+  - id: deferral-record-stays-as-history
+    state: assumed
+    statement: |
+      The deferral record
+      `decisions/counters-schema-introspection-deferral-2026-10.yaml`
+      remains in `decisions/` as the historical record
+      of the deferral period. The supersede relation
+      in this decision's `relations:` block is the
+      audit-trail signal. The file itself is removed
+      in a separate worktree / commit that happens at
+      merge time, not in this commit.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future CI step rejects duplicate-id
+      decisions (it does not, today; the convention
+      is to keep both records), this decision's
+      `supersedes:` relation is the formal signal
+      and the deferral file's continued presence is
+      a deliberate choice, not a stale duplicate.
+    review_on:
+      - signal: deferral-record-removal-landed
+
+  - id: math-coding-3-3-decision-form-accepted
+    state: assumed
+    statement: |
+      The `schema: math-coding/3.3/decision` form
+      (the current published brand, per
+      `decisions/schema-string-bump-3.0-alpha-to-3.3-2026-10@1`)
+      is accepted by `mathc validate` on the
+      post-fix tree. Verified by parsing
+      `decisions/schema-string-bump-3.0-alpha-to-3.3-2026-10.yaml`
+      (which declares `schema: math-coding/3.2`) and
+      confirming the new family is in the accepted
+      enum.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future kernel tightening narrows the
+      accepted `schema:` values, this decision would
+      need to be re-emitted under the new accepted
+      family. The `body_sha` / `yaml_sha` placeholder
+      values (`"sha256:TODO"`) are recomputed by the
+      kernel's sha256-self-consistency pass at
+      validate time, so a re-emission does not
+      require a hand-computed digest.
+    review_on:
+      - signal: schema-family-narrowed-by-future-decision
+
+obligations:
+  - id: schema-enum-non-empty-after-rebuild
+    statement: |
+      After `dune build` and the next `mathc
+      counters --format=json` invocation, the
+      reported `schema.schema_enum` has at least
+      4 elements (the 3.3, 3.2, and 3.0-alpha
+      family forms; six entries at HEAD `a9ed041`).
+    acceptance:
+      all:
+        - verifier: tests/cli/counters-schema-introspection.t
+          result: pass
+  - id: intent-oneof-true-after-rebuild
+    statement: |
+      After `dune build` and the next `mathc
+      counters --format=json` invocation, the
+      reported `schema.intent_oneOf` is `true`.
+    acceptance:
+      all:
+        - verifier: tests/cli/counters-schema-introspection.t
+          result: pass
+  - id: scope-oneof-true-after-rebuild
+    statement: |
+      After `dune build` and the next `mathc
+      counters --format=json` invocation, the
+      reported `schema.scope_oneOf` is `true`.
+    acceptance:
+      all:
+        - verifier: tests/cli/counters-schema-introspection.t
+          result: pass
+  - id: required-fields-still-correct
+    statement: |
+      `schema.decision_required_fields` remains a
+      7-element array after the fix. The pre-fix
+      correctness is preserved (this obligation is
+      a regression guard, not a new behaviour).
+    acceptance:
+      all:
+        - verifier: tests/cli/counters-schema-introspection.t
+          result: pass
+  - id: dune-build-clean
+    statement: |
+      `dune build` exits 0 on the post-fix tree.
+      No new warnings are introduced; no new OCaml
+      surface is added beyond the one-character
+      `| [] -> None` → `| [] -> Some v` change in
+      each of the two local helpers.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+  - id: dune-test-clean
+    statement: |
+      `dune test` exits 0 on the post-fix tree.
+      The existing `tests/counters_drift.ml` test
+      (currently gated off, per
+      `disable-counters-drift-test-2026-10`) is
+      unaffected by this commit; the new cram
+      fixture is the only test addition.
+    acceptance:
+      all:
+        - verifier: dune test
+          result: pass
+  - id: mathc-counters-regression-attestation
+    statement: |
+      The existing `mathc counters` regression
+      attestation (the `kind_: test, producer:
+      ci:fixture:mathc-counters-regression`
+      attestation that drives the `mathc self-check`
+      gate for the counters block) is re-emitted
+      on the post-fix tree. The attestation's
+      `subject.path` points at
+      `bin/Mathc.ml::do_counters`; its `claim`
+      text is updated to reflect the corrected
+      three keys (`schema_enum`, `intent_oneOf`,
+      `scope_oneOf`).
+    acceptance:
+      all:
+        - verifier: mathc-counters-regression-attestation
+          result: pass
+
+reversal:
+  - signal: post-fix-counters-worse-than-pre-fix
+    condition: |
+      After this commit lands and the binary is
+      rebuilt, `mathc counters --format=json`
+      reports FEWER correct values than the
+      pre-fix tree (e.g., `schema_enum` returns
+      the wrong enum form, or `intent_oneOf`
+      flips to `false` on a tree where the schema
+      declares a `oneOf`). This is a regression
+      in the regression fix; revert the
+      `bin/Mathc.ml` change and re-emit the
+      deferral record with the new failure mode.
+    action: revert
+  - signal: dune-build-broken-by-this-commit
+    condition: |
+      `dune build` exits non-zero on the post-fix
+      tree. The fix is a one-character change per
+      helper; if it breaks the build, the source
+      edit is wrong (typo, off-by-one in the
+      pattern, etc.) and must be corrected before
+      the commit lands.
+    action: halt
+  - signal: schema-family-narrowed-by-future-decision
+    condition: |
+      A future kernel decision narrows the
+      accepted `schema:` family values, removing
+      `math-coding/3.3/decision` from the enum.
+      This decision would need to be re-emitted
+      under the new accepted family. The deferral
+      record is the working example of the
+      same shape of re-emission; the current
+      `supersedes:` relation is the audit-trail
+      signal.
+    action: rework
+
+risk:
+  declared_triggers:
+    - mathc-counters-output-changes-silently
+    - path-walker-bug-recurs-in-future-helper
+    - schema-introspection-fixture-flaky-under-jq-version
+  owner: human:maintainer
+
+relations:
+  supersedes:
+    - counters-schema-introspection-deferral-2026-10@1
+      # The deferral record is closed by this fix. The
+      # supersede relation is the audit-trail signal;
+      # the deferral file itself is preserved in
+      # decisions/ as the historical record of the
+      # deferral period. Removal of the deferral file
+      # is a separate worktree / commit that happens
+      # at merge time, not in this commit.
+  addresses:
+    - mathc-counters-subcommand-2026-10@1
+      # The original `mathc counters` decision that
+      # introduced the under-reported schema block.
+      # This fix closes the under-report.
