@@ -3,9 +3,19 @@
 > Single-source-of-truth for releases. Mirrors the `v3.x.y` git
 > tags. The current release is highlighted.
 
-## Unreleased — v3.2.0-alpha (in development)
+## v3.3.0-alpha — 2026-10-14 — current
 
-**Status:** §30 closure recovered on 2026-10-07. CI run #129
+**Brand:** math-coding 3.3. **VERSION file** + `math-coding.opam`
+bumped from `3.1.0-alpha-final` to `3.3.0-alpha` (semver `3.3.0`).
+Header of ROADMAP, PACKAGES, README, AGENTS, USAGE, OCAML_BEST_PRACTICES,
+axioms/index.md, and `bin/data/time-distribution.yaml` all renamed to
+`3.3`. `mathc version` now prints `math-coding 3.3.0-alpha: bootstrap`.
+This is the published brand for the algebra-3.2-ideal kernel
+(`spec/algebra-3.2.md`); the spec filename is preserved (it is the
+version of the *spec*, not the project).
+
+**Continuing on from v3.2.0-alpha (which was not separately
+released):** §30 closure recovered on 2026-10-07. CI run #129
 on branch `fix-alpine-musl-2026-10` is the first end-to-end
 green Alpine/musl build; `mathc-linux-x86_64-musl` is a 4.99 MB
 musl-linked ELF (`/lib/ld-musl-x86_64.so.1`, NEEDED
@@ -253,7 +263,7 @@ unknowns introduced by this batch.
 * `update-check-notify` (commit `57481bf`): opt-in version notification design.
 * `init-copies-ci-workflow` (commit `ec9464e`): `mathc init` auto-wire templates/ci.yml.
 
-## v3.1.0-alpha — 2026-09-30 — current
+## v3.1.0-alpha — 2026-09-30
 
 **Status:** algebra 3.2-ideal adopted as forward-looking formal
 spec. The runtime kernel is unchanged (still v3.0.0.20); the

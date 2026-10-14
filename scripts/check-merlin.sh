@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# math-coding 3.0-alpha — verify merlin/ocaml-lsp are wired.
+# math-coding 3.3 — verify merlin/ocaml-lsp are wired.
 #
 # Exits 0 if both binaries are present in `nix develop .#test`
 # and report the expected versions; non-zero if either is missing

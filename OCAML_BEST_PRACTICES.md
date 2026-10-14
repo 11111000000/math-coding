@@ -1,4 +1,4 @@
-# math-coding 3.0-alpha — OCaml Best Practices (project-specific)
+# math-coding 3.3 — OCaml Best Practices (project-specific)
 
 This is **not** generic OCaml advice. It is the convention we are standardizing
 on for `lib/`, `bin/`, `tests/`, and the build, derived from the code we

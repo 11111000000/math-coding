@@ -96,11 +96,11 @@ five foundations:
 | `mathc-self-check-subcommand` | `mathc self-check` → JSON verdict | `self-check-{pass,fail,unknown}.t` |
 | `mathc-packages-subcommand` | `mathc packages --format=text\|json\|html` → package list | `packages.t` |
 
-The kernel at v3.1.0-alpha ships the eight foundations plus
+The kernel at v3.3.0-alpha ships the eight foundations plus
 the 3.2-ideal algebra on top of them. The site at
 [Packages](packages.html) is the live verdict of every
-active decision; the live build currently reports 52 active
-decisions / 207 obligations (206 pass / 1 unknown).
+active decision; the live build currently reports 93 active
+decisions / 330 obligations (313 pass / 16 missing / 1 unknown).
 
 ```mermaid
 flowchart LR

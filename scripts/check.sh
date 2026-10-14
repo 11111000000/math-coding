@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# math-coding 3.0-alpha: run all remaining repo-state shell
+# math-coding 3.3: run all remaining repo-state shell
 # fixtures and report per-fixture status, then run the dune cram
 # CLI tests. The kernel conformance, digest conformance, and repo
 # structure (OCaml/Alcotest) suites are exercised separately by

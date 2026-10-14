@@ -1,13 +1,15 @@
-# Math-coding 3.0-alpha — ROADMAP
+# Math-coding 3.3 — ROADMAP
 
-> **Status (2026-10-12, post self-check-recovery):** bootstrap protocol **expired**
-> (commit `8fa7fcf`). The 3.0 kernel checks this repository and its
+> **Status (2026-10-14, post version-bump):** bootstrap protocol **expired**
+> (commit `8fa7fcf`). The 3.3 kernel checks this repository and its
 > conformance corpus via `mathc self-check`, which is a **blocking** CI
 > step per `constitution.md` Invariant 14. The attestation store at
-> `attestations/` is populated (260 files). CLI surface: `validate`,
-> `context`, `explain`, `assess`, `attest`, `gate`, `session-start`,
-> `record`, `stats`, `time-estimate`, `self-check`, `version`, `render`,
-> `packages`.
+> `attestations/` is populated (391 files). CLI surface: `validate`,
+> `context`, `explain`, `explain-diagnostic`, `assess`, `attest`, `gate`,
+> `session-start`, `record`, `stats`, `time-estimate`, `self-check`,
+> `version`, `render`, `packages`, `mode`, `rebuttals`, `re-evaluate`,
+> `re-evaluate-decisions`, `migrate`, `counters`, `init`, `import-adr`,
+> `adopt`, `new-decision`, `telemetry` — 27 subcommands.
 >
 > **Algebra 3.2-ideal**: accepted via `decisions/algebra-3.2.yaml`;
 > normative spec at `spec/algebra-3.2.md` (31 sections, §0–§30). Implementation
@@ -17,7 +19,7 @@
 > **License:** Apache-2.0 (see `LICENSE`, `NOTICE`)
 > **Active policy:** `bootstrap-v3@3` (see `decisions/decision.yaml`)
 
-This document is the **single source of truth** for what math-coding 3.0
+This document is the **single source of truth** for what math-coding 3.3
 is doing, what it is not yet doing, and in what order the remaining
 work should land. It supersedes ad-hoc "critical analysis" reports and
 inline AGENTS.md priority lists; AGENTS.md defers to this file.
@@ -293,7 +295,7 @@ captured failure output is not a passing fixture; it's a self-referential
 lie (see OCAML_BEST_PRACTICES §11.20 RETIRED). Fixtures assert positive
 and negative cases; otherwise they don't test the obligation.
 
-## What math-coding 3.0 is NOT
+## What math-coding 3.3 is NOT
 
 To prevent scope creep and clarify the protocol's stance:
 

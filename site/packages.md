@@ -1,6 +1,6 @@
 # Packages
 
-> The package surface of math-coding 3.0.0.20. Every row below
+> The package surface of math-coding 3.3.0-alpha. Every row below
 > is a decision-obligation pair the kernel knows about; every
 > verdict is the kernel's current assessment.
 

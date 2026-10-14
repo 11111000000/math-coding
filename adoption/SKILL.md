@@ -6,7 +6,7 @@ description: |
   decisions", "we need an audit trail", or mentions obligations,
   attestations, or waiver in a project context. Do not trigger on casual
   uses of "decision" or "obligation" in ordinary conversation.
-compatible_with: mathc@>=3.1.0
+compatible_with: mathc@>=3.3.0
 ---
 
 # math-coding
@@ -149,7 +149,7 @@ To record an attestation when one is owed, write a file under
 
 ```json
 {
-  "schema": "math-coding/attestation-3.0-alpha",
+  "schema": "math-coding/attestation-3.3",
   "kind": "attestation",
   "subject": {
     "decision": "<decision-id>@1",
