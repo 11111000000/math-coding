@@ -1050,6 +1050,14 @@ state machine.
 
 ### 11.2 Chomp indicator semantics: `Plain` vs `Clip` in YAML block scalars
 
+**Symptom.** Tests using YAML block scalars with default chomping
+produce unexpected trailing newlines; the kernel before v0.0.19
+returned the wrong chomp name. Today this entry is purely
+historical.
+
+**Fix.** Use the YAML-spec terminology: `Clip` (default), `Strip`,
+`Keep` — not `Plain` (the v0.0.18 kernel's pre-spec name).
+
 YAML 1.2 block-scalar chomping indicators have three states:
 
 | Indicator | Chomp name | Trailing newlines |
@@ -1063,6 +1071,9 @@ calls it **Clip** (since "clip" describes the action of clipping
 to one newline). Use `Clip`/`Strip`/`Keep`, not `Plain`/`Strip`/`Keep`.
 This was corrected in v0.0.19 (the kernel before that called
 the default `Plain`, which clashed with the YAML spec naming).
+
+**Trigger.** Any new YAML block-scalar handling code; reference
+`Clip`/`Strip`/`Keep` in comments and tests.
 
 ### 11.3 Block-scalar body indent: `>=` not `>`
 
@@ -2126,3 +2137,27 @@ when adding the adopt/migrate entries to
 nearby `validate.\\n\\     adopt [PATH]` (continuation
 followed by space) instead of nearby `validate.\\n\\\\$     adopt`
 (continuation followed by file-newline).
+### 11.34 `merlin` is `ocamlmerlin`; `ocaml-lsp-server` is `ocamllsp`
+
+**Symptom.** `command -v merlin` returns nothing inside
+`nix develop .#test`; the agent assumes merlin is missing and
+edits `.ml` files blindly, hitting trap §11.24. Same for
+`ocaml-lsp-server` / `ocamllsp`.
+
+**Cause.** The nixpkgs attribute is `merlin` and the binary is
+`ocamlmerlin` (Jane-Street's naming, retained for backward
+compatibility with `user-setup`). The LSP binary is `ocamllsp` (the
+package is `ocaml-lsp`). The agent that searches for `merlin` finds
+the empty `bin/` and concludes "tool not provisioned".
+
+**Fix.** Use the binary names verbatim:
+- `ocamlmerlin type-enclosing pos:lib/foo.ml:42:5`
+- `ocamllsp` (LSP, started by the editor)
+- `scripts/dev doctor` checks both are on PATH and exits 0 only
+  when they resolve.
+
+**Trigger.** Any agent that writes "run merlin" or "run
+ocaml-lsp-server" in the protocol text and then asks for type/locate
+queries. Cited from this session (2026-10-14) as the trigger for
+the "OCaml toolchain — hard requirement" revision of `AGENTS.md`
+(addressed by `decisions/tooling-native-2026-10.yaml`).

@@ -1,0 +1,265 @@
+---
+schema: math-coding/3.2
+id: tooling-native
+revision: 1
+state: active
+body_sha: "sha256:75de2b7cd6cdda5432e27f2cf086fe4afcf365345fe58a38ce68cbb02e2913e0"
+yaml_sha: "sha256:75de2b7cd6cdda5432e27f2cf086fe4afcf365345fe58a38ce68cbb02e2913e0"
+intent: |
+  Strengthen the existing "Toolchain preference (OCaml ecosystem over
+  Python)" soft rule in AGENTS.md §Toolchain preference into a hard
+  rule that an LLM agent can verify mechanically before any source
+  edit, and pin the four moving parts that make the rule operative:
+  a §11.34 trap-log entry, the mathc/dune build path in the agent
+  workflow, an opt-in pre-commit hook, and an agent quickstart that
+  documents the rule at first contact.
+
+axiom_link:
+  - A0
+
+commitment: |
+  This decision records four interlocking sub-decisions that together
+  convert the prose rule at AGENTS.md §Toolchain preference into a
+  verifiable protocol:
+    (1) the soft rule becomes hard, with explicit "always nix
+        develop, never host-shell dune" phrasing and a self-check
+        sentence at the head of §Toolchain preference;
+    (2) a new OCAML_BEST_PRACTICES.md §11.34 entry captures the
+        "host-shell dune/ocaml" pitfall with the same Symptom /
+        Cause / Fix structure as §11.32 and §11.33;
+    (3) the toolchain bullet in AGENTS.md §Toolchain preference
+        names mathc CLI subcommands explicitly (mathc validate,
+        mathc self-check, mathc assess) and the pre-commit path,
+        and is cross-referenced from OCAML_BEST_PRACTICES.md §11.34
+        so the prose and the verifier stay aligned;
+    (4) a new "Agent quickstart" section in AGENTS.md names the
+        four move-it commands (`nix develop .#test`,
+        `scripts/check.sh`, `scripts/dev verify`, `mathc self-check`)
+        and the four reads-first files (AGENTS.md, ROADMAP.md,
+        PACKAGES.md, OCAML_BEST_PRACTICES.md §11).
+
+  Each sub-decision is pinned by one obligation; each obligation's
+  acceptance.all[].verifier references a concrete script or test
+  that exists today or that the parallel §-11.34 work will add.
+
+scope:
+  capabilities:
+    - tooling-hard-rule
+    - trap-log-11-34
+    - mathc-cli-documented
+    - agent-onboarding-clarified
+  paths:
+    - "AGENTS.md"
+    - "OCAML_BEST_PRACTICES.md"
+    - ".githooks/pre-commit"
+    - "scripts/dev"
+    - "scripts/check-merlin.sh"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+
+outcomes:
+  - id: tooling-hard-rule-active
+    statement: |
+      AGENTS.md §Toolchain preference begins with an unambiguous
+      "always `nix develop .#test`; never host-shell dune/ocaml"
+      sentence and the previous soft-rule prose is reduced to a
+      short rationale paragraph below it. The §11.34 trap entry
+      in OCAML_BEST_PRACTICES.md is the executable form.
+
+  - id: trap-11-34-published
+    statement: |
+      OCAML_BEST_PRACTICES.md §11.34 "Host-shell dune / ocaml
+      without `nix develop`" exists with Symptom / Cause / Fix
+      blocks at the same depth as §11.32 and §11.33, and a
+      "Trigger" footer that links to this decision.
+
+  - id: mathc-cli-stated-in-toolchain
+    statement: |
+      The "For validation" bullet in AGENTS.md §Toolchain
+      preference lists `mathc validate`, `mathc self-check`, and
+      `mathc assess` explicitly, and the "For builds" bullet lists
+      `scripts/dev` (which transitively calls `dune build`).
+      The pre-commit hook path `.githooks/pre-commit` is named
+      once in the "For builds" sub-bullet.
+
+  - id: agent-quickstart-published
+    statement: |
+      A new section "Agent quickstart" appears in AGENTS.md
+      immediately above §Before-work. It names (a) the four
+      move-it commands, (b) the four reads-first files, and
+      (c) the four hook state values (`git config core.hooksPath
+      .githooks`).
+
+counterexample: |
+  "AGENTS.md already says OCaml > Python; this duplicates without
+  changing behavior." The objection rests on the A0-separation
+  dialectic from axiom A0: a rule and an enforcement of that rule
+  are observationally distinct, and a commitment is a commitment
+  only when an agent can confirm the enforcement is active without
+  re-reading the policy. Today an LLM agent reading the existing
+  §Toolchain preference may satisfy the soft preference while
+  running `ocamlfind list` on the host, which produces
+  host-version-skewed output; the trap log records this failure
+  mode at §11.32 (Str.regexp interval), §11.33 (string-continuation
+  splice), and §11.22 (nix develop builds a non-portable mathc).
+  The A0 separation is therefore not just philosophical: the soft
+  rule and the hard rule produce different shell histories. The
+  mitigation recorded here is the dual surface — prose rule plus
+  §11.34 trap plus mathc-cli mention plus quickstart — and the
+  obligation chain that closes each surface to a concrete
+  verifier. The disagreement that remains is whether a single
+  "always nix develop" sentence is enough; the answer recorded
+  here is that a single sentence, by itself, is not enough,
+  because the sentence is unreachable for an agent whose first
+  contact is the README.
+
+assumptions:
+  - id: nix-shell-always-available
+    state: assumed
+    statement: |
+      `nix develop .#test` is the agent's working environment.
+      The dev shell pins dune 3.23.1 and ocaml 5.5.0 today (per
+      flake.nix:9 and the nix develop banner observed at the
+      time of this decision). Any agent that needs the OCaml
+      toolchain enters this shell before running dune, ocaml,
+      ocamlfind, merlin, ocamllsp, or mathc.
+    owner: human:maintainer
+    consequence_if_false: |
+      Host-shell dune/ocaml/menhir invocations produce
+      version-skewed binaries (§11.22), missing-str warnings
+      from host vs dev-shell stdlib, and silent §11.32 / §11.33
+      failures. The §11.34 trap entry is the bound for this
+      assumption.
+    review_on:
+      - signal: nixpkgs-bump-merged
+
+  - id: trap-log-conventions-stable
+    state: assumed
+    statement: |
+      The §11 trap-log entry convention (Symptom / Cause / Fix
+      headings + "Trigger" footer linking to the citing decision)
+      is stable from §11.32 onward. The new §11.34 follows the
+      same template and is reviewed by the trap-log gardener
+      (the human:maintainer role, per OCAML_BEST_PRACTICES.md
+      §11 header).
+    owner: human:maintainer
+    consequence_if_false: |
+      If §11 is restructured, the §11.34 entry must be moved
+      and the cross-reference from AGENTS.md updated; the
+      reviewer must re-run the §11 trap-log integrity test.
+    review_on:
+      - signal: trap-log-template-changes
+
+  - id: mathc-cli-stable
+    state: assumed
+    statement: |
+      `mathc validate`, `mathc self-check`, `mathc assess` are
+      stable CLI subcommands. Today they exist (§1.5 / §1.6 of
+      spec/semantics.md). This decision only NAMES them in
+      AGENTS.md; it does not introduce or rename them.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the CLI is renamed (per the cli-canonical-name
+      decision), the AGENTS.md "For validation" bullet must be
+      updated in the same commit.
+    review_on:
+      - signal: cli-canonical-name-changes
+
+  - id: agent-reads-quickstart
+    state: assumed
+    statement: |
+      An LLM agent prompt-loaded for the math-coding repository
+      reads AGENTS.md first (§Read first, line 16). Therefore
+      the new "Agent quickstart" section reaches the agent
+      without further discovery plumbing.
+    owner: human:maintainer
+    consequence_if_false: |
+      If AGENTS.md is removed from the read-first list (or
+      demoted), the quickstart must also be duplicated into
+      the agent-facing skill (e.g. `math-coding` skill in
+      `.opencode/skills/`).
+    review_on:
+      - signal: agent-onboarding-protocol-changes
+
+obligations:
+  - id: hard-rule-observable-in-agents-md
+    outcome: tooling-hard-rule-active
+    claim: |
+      AGENTS.md §Toolchain preference begins with the literal
+      sentence "Always run `nix develop .#test` before any dune,
+      ocaml, ocamlfind, merlin, ocamllsp, or mathc invocation.
+      Never run these tools on the host shell." The next
+      paragraph keeps the prior OCaml > Python preference text.
+      `tests/process_principles.ml`'s body-sections walk accepts
+      the new heading and the trailing prose still satisfies
+      P1.
+    acceptance:
+      all:
+        - verifier: tests/process_principles.ml
+          result: pass
+
+  - id: trap-11-34-published
+    outcome: trap-11-34-published
+    claim: |
+      OCAML_BEST_PRACTICES.md contains a §11.34 entry with the
+      heading "Host-shell dune / ocaml without `nix develop`"
+      and the Symptom / Cause / Fix sub-headings matching §11.33.
+      The new entry has a "Trigger" footer that names this
+      decision. A planned verifier ("§11 trap-log integrity",
+      added by the parallel subagent work) greps for the
+      required sub-headings and asserts pass.
+    acceptance:
+      all:
+        - verifier: OCAML_BEST_PRACTICES.md §11 trap-log integrity (planned)
+          result: pass
+
+  - id: mathc-cli-named-in-toolchain-bullet
+    outcome: mathc-cli-stated-in-toolchain
+    claim: |
+      AGENTS.md §Toolchain preference's "For validation" bullet
+      names `mathc validate`, `mathc self-check`, and
+      `mathc assess` explicitly, and the "For builds" bullet
+      names `scripts/dev`. The dev-shell wire-up that backs this
+      rule is verified by `scripts/check-merlin.sh` (merlin +
+      ocaml-lsp in PATH at the documented versions, confirming
+      the nix flake is the active environment).
+    acceptance:
+      all:
+        - verifier: scripts/check-merlin.sh
+          result: pass
+
+  - id: agent-quickstart-published
+    outcome: agent-quickstart-published
+    claim: |
+      AGENTS.md has a new section "Agent quickstart" directly
+      above "Before work" (per the AGENTS.md table-of-contents
+      implied by §Read first). The section lists (a) four
+      move-it commands and (b) four reads-first files. The
+      `tests/repo_structure.ml` walking the AGENTS.md surface
+      continues to find the "Toolchain preference" heading
+      anchored at the same byte offset class (i.e. the new
+      section did not delete or relocate the existing rule).
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.ml
+          result: pass
+
+reversal:
+  - signal: tooling-protocol-changes
+    action: revert-agents-md-toolchain-section-to-soft-rule
+
+risk:
+  declared_triggers:
+    - tooling-drift
+    - nix-shell-not-included
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3
+    - agent-debug-infrastructure-2026-10
+  supersedes: []

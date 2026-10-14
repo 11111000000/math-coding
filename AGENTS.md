@@ -17,6 +17,13 @@ source classes, not as an undifferentiated guarantee.
 The complete v2.1 source is preserved by the remote Git tag
 `v2.1-final`. Do not use v2 packet fields, commands, or lifecycle rules
 for new work.
+> **OCaml toolchain — host shell forbidden.**
+> All `dune`, `ocamlformat`, `ocamlmerlin`, `ocamlfind`,
+> `ocamllsp`, `mathc` MUST run inside `nix develop .#test`
+> (or via `scripts/dev`). The host shell has none of these tools
+> at versions matching `flake.nix`. See §OCaml toolchain — hard
+> requirement below and trap §11.34.
+
 
 > Bootstrap history: between `v3-alpha-0.0.1` and `8fa7fcf` (Sep
 > 26–29, 2026) every change had to satisfy the eight manual
@@ -25,6 +32,22 @@ for new work.
 > kernel still decides schema/reference/identity/freshness;
 > agents still owe counterexamples, evidence plans, and
 > recovery paths. See `ROADMAP.md` v3.0.0.20 for status.
+
+## Quickstart (you are inside math-coding)
+
+You're at the math-coding kernel repository. You're a new agent. Do this in order:
+
+  1. `date` — confirm today; the file is dated 2026-10-14.
+  2. `cat ROADMAP.md | head -100` — last status snapshot.
+  3. `cat AGENTS.md | head -100` — this file's top + Read-first list.
+  4. `cat PACKAGES.md | head -100` — what's in the repo.
+  5. `cat OCAML_BEST_PRACTICES.md | head -60` — §1-§3 skim.
+  6. `nix develop .#test --command bash -c 'scripts/dev doctor'` — verify your shell.
+  7. `nix develop .#test --command bash -c 'scripts/dev ready'` — baseline green.
+  8. `cat decisions/process-principles.yaml | head -200` — P1-P8.
+  9. Pick a Tier-2 task from ROADMAP.md, create a worktree, follow §Definition of Done.
+
+Total budget: 30 minutes wall-clock before any kernel change.
 
 ## Read first
 
@@ -56,6 +79,32 @@ Before changing anything in this repository, read in order:
 If any of these contradict each other, the contradiction is a deficit.
 Report it; do not silently resolve it.
 
+## Worktree-first (hard requirement)
+
+Every change ships from a dedicated git worktree. The main checkout
+(`/home/az/Projects/math-coding`) is read-only. Paseo worktrees,
+farm-created `~/.paseo/worktrees/<...>/<branch>/`, and manual
+`git worktree add` are all acceptable.
+
+**Branch name:** `<topic>-<YYYY-MM>` format (kebab-case + month).
+Examples: `d5-body-canonical-2026-10`, `site-redesign-2026-10`.
+
+**Lifecycle:**
+  1. Create worktree (`paseo_create_workspace`, `git worktree add`, or `paseo` agent flow)
+  2. Work in that worktree only; do not touch the main checkout
+  3. Before push: `scripts/dev ready` inside the worktree
+  4. PR or fast-forward to main when reviewer approved
+  5. Cleanup: `scripts/dev close-branches` removes merged worktrees
+
+**Convention enforcement:** `.githooks/pre-commit` warns when a
+non-YYYY-MM branch is committed (see §Edit-loop prevention for the
+broader pattern).
+
+Exceptions: emergency hotfixes that must touch `main` directly (file
+via `decisions/hotfix/<date>-<short>.yaml`); pure-doc edits to
+`doc/`, `adoption/`, `README.md`, `PACKAGES.md`, `ROADMAP.md`,
+`AGENTS.md`, `OCAML_BEST_PRACTICES.md`.
+
 ## Before picking work
 
 Read `ROADMAP.md` §"Priority queue" for the active tier ordering.
@@ -77,34 +126,70 @@ Before adding a workaround or running `rm -rf _build`:
    append a new entry to §11 before merging.
 3. Never `rm -rf _build` directly. Use `./scripts/dev rebuild`.
 
-## Toolchain preference (OCaml ecosystem over Python)
+## OCaml toolchain — hard requirement
 
-When modifying `.ml`/`.mli` source files, prefer the OCaml toolchain.
+Every command that reads, writes, formats, type-checks, lints, or
+compiles an OCaml source file MUST run inside `nix develop .#test`
+(or via the `scripts/dev` subcommand wrappers). The host shell has
+neither `ocamlformat` nor `ocamlmerlin` nor `ocaml` matching the
+project's pinned version; running them outside the nix shell is a
+guaranteed mismatch with `flake.nix`. Trap §11.22 documents one
+failure mode; trap §11.7 documents another.
+
+**Tool names — use these exactly:**
+
+| Task             | Command (run in nix shell)                     |
+|------------------|------------------------------------------------|
+| Compile          | `dune build`                                   |
+| Test             | `dune test`                                    |
+| Format           | `dune fmt`   (uses ocamlformat 0.29.0)         |
+| Format-check     | `DUNE_DISABLE_PROMOTION=1 dune fmt --preview`  |
+| Type at a point  | `ocamlmerlin type-enclosing pos:file:line:col` |
+| Locate a symbol  | `ocamlmerlin locate -look-for definition ...` |
+| Occurrences      | `ocamlmerlin occurrences`                      |
+| LSP              | `ocamllsp` (editor integration)                |
+
+**Common pitfalls — these names do NOT exist:**
+
+- `merlin` (the binary is `ocamlmerlin`)
+- `ocaml-lsp-server` (the binary is `ocamllsp`)
+
+If `command -v ocamlmerlin` fails inside `nix develop .#test`, the
+flake is broken; rerun `nix develop .#test` to refresh the shell
+closure. Run `scripts/dev doctor` to surface missing tools.
+
+## mathc CLI (the project's own OCaml binary)
+
+Build via `nix develop .#test` or `scripts/dev shell`. Then:
+
+- `mathc validate <file>` — schema check (exit 0/1/2)
+- `mathc self-check` — full attestation store verdict (exit 0/1/3)
+- `mathc attest <decision.yaml> --obligation <id> --kind test --method dune-runtest --result pass` — record an attestation (writes the SHA-256 id automatically)
+- `mathc explain-diagnostic MC-CODE` — remediation for diagnostic codes
+- `mathc time-estimate --class <name> --count N --percentile p50|p80|p95|p99` — outside-view forecast per `bin/data/time-distribution.yaml`
+
+## No Python for source edits
+
 Python string handling mangles OCaml continuation strings
-(`\<newline>`) and the resulting file fails to compile in non-obvious
-ways. Recorded here because the failure mode is recurring
-(`OCAML_BEST_PRACTICES.md` §11 trap log).
+(`\<newline>`); see trap §11.33 for a real instance. Do not write
+`python3 <<PYEOF ... open("lib/...") ... PYEOF` to edit `.ml`
+files. Use:
 
-- **For source edits**: use `awk`/`sed` line-anchored edits, or write
-  the new function to `/tmp/foo.ml` with a `cat <<EOF` heredoc that
-  quotes OCaml syntax correctly, then splice it in. Verify the splice
-  visually (`sed -n 'A,Bp'`) before moving on.
-- **For builds**: `dune build`, `dune runtest`, `dune cram`. The
-  wrapper `scripts/dev` exposes them.
-- **For validation**: use `mathc validate` / `mathc self-check` — the
-  project's own OCaml CLI. Not Python validators.
-- **For OCaml-aware editing**: `merlin` (config at `.merlin`).
+- For one-line edits: `awk` or `sed` line-anchored substitutions.
+- For new functions: write the function to `/tmp/foo.ml` via
+  `cat <<'EOF'` heredoc (single-quoted to suppress shell expansion),
+  then splice into the target file. Verify the splice visually
+  (`sed -n 'A,Bp' file.ml`).
+- For whole-file rewrites: write the whole file with `cat` heredoc,
+  then `mv /tmp/foo.ml path/to/file.ml`, then `dune build` to
+  validate.
 
-Python is acceptable when the project itself uses Python for that
-task — data migrations in `scripts/*.py`, the cram harness for
-fixtures that need shell orchestration, occasional parsing of
-decision YAML when no OCaml alternative exists. New Python that
-touches `.ml` source is the anti-pattern; if you find yourself
-writing `python3 <<PYEOF ... open("lib/...") ... PYEOF`, stop and
-use the OCaml toolchain instead.
+Python is acceptable for: bulk YAML/JSON data sweeps over `decisions/`
+or `fixtures/` (see `scripts/counterexample-seed.py`,
+`scripts/axiom-link-seed.py`, `scripts/generate-attestations.py`),
+and for cram-harness shell orchestration. It is NOT acceptable for
+editing, generating, or rewriting OCaml source.
 
-The trap log at `OCAML_BEST_PRACTICES.md` §11 will record this as
-a recurring failure mode if it becomes routine.
 ## Purpose
 
 Math-coding links a concrete change to the obligations it may affect and
@@ -221,6 +306,25 @@ remaining_unknowns: []
 
 Run all available relevant checks. If a check cannot run, state why.
 
+## Definition of Done (checklist)
+
+Before opening a PR or marking work complete, verify:
+
+- [ ] `scripts/dev ready` exits 0 (full aggregator)
+- [ ] `mathc validate decisions/<id>.yaml` exits 0
+- [ ] `mathc self-check` exits 0 OR new obligation has `evidence: manual-acceptance` with named owner
+- [ ] New obligation paired with attestation at `attestations/<decision-id>-<obligation>.json` (use `mathc attest decisions/<id>.yaml --obligation <obligation-id> --kind test --method dune-runtest --result pass`)
+- [ ] If version literal changed: `scripts/sync-version.sh --check` exits 0
+- [ ] If schema changed: `tests/conformance.ml` updated; positive + negative fixture in `fixtures/conformance/<family>/`
+- [ ] If kernel/CLI changed: cram snapshot regenerated via `dune promote` (in worktree)
+- [ ] PACKAGES.md counters block re-anchored if decision counts changed
+- [ ] No `stub`/`FIXME`/`Phase <N>` in lib/ or bin/ without paired `decisions/<id>.yaml` (run `scripts/check-stub-lint.sh`)
+- [ ] Branch is a worktree, not main checkout
+- [ ] Commit subject uses Conventional Commits prefix
+
+Each item references an existing verifier; the checklist is not
+additional ceremony, it lists the existing checks in order.
+
 ## Agent conduct
 
 - Use project memory and a bounded context capsule instead of reading
@@ -285,6 +389,31 @@ This norm is normative (see axiom A1 Feedback — every commitment
 must have a path to an observation). The agent's duration claims
 are commitments. Without an observable scale + reference class they
 are wishes.
+
+## Honest time reference-class table
+
+Reference classes (from `bin/data/time-distribution.yaml`, SWE-bench
+Verified n=500, 2025-Q4 frontier models; unit = minutes):
+
+| Class              | P50 | P95 | When to use |
+|--------------------|-----|-----|-------------|
+| `trivial`          |   1 |   3 | Single-line typo fix |
+| `docs-only`        |   2 |   6 | Markdown/AGENTS.md edit, no code |
+| `single-file-edit` |   3 |  10 | One .ml file, no kernel change |
+| `bug-diagnosis`    |   5 |  18 | Find root cause of an existing bug |
+| `multi-file-edit`  |   9 |  30 | 2-5 .ml files, additive |
+| `refactor`         |  12 |  45 | Same behaviour, restructured code |
+| `feature-add`      |  20 |  70 | New CLI subcommand or capability |
+| `schema-change`    |  25 |  90 | JSON-schema + fixture pair |
+| `kernel-change`    |  40 | 150 | lib/* type/checking logic |
+
+Multipliers (opt-in; agent must name them): `per_artifact_over_first`,
+`mixed_class_scope`, `cross_language_non_ocaml`, `test_required_with_runtime`.
+For a 5-file change with mixed scope and tests required:
+40 (kernel-change) × 2.2 (per_artifact 4-5) × 1.3 (mixed_class) × 1.2
+(test_required) ≈ 137 min (P50 × multipliers). P95 ≈ 515 min.
+
+Reference: `mathc time-estimate --class <name> --count N --percentile p50|p80|p95|p99`.
 
 ## Self-application
 

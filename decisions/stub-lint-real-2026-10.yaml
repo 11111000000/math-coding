@@ -1,0 +1,186 @@
+---
+schema: math-coding/3.2
+id: stub-lint-real-2026-10
+revision: 1
+state: active
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+intent: |
+  Strengthen the P8 stub-lint (decisions/plan-2026-10-improvements/t6-1)
+  from "lint-once with a synthetic-fixture proof" to "lint-on-real-diff":
+  for every new stub marker added to `lib/**` or `bin/Mathc.ml`, a paired
+  `decisions/<id>.yaml` whose `scope.paths` includes the affected file
+  must exist. Today the only proof that stub-markers are tracked is
+  tests/process_principles.ml::p8, which writes two scratch files and
+  asserts the lint exits 1 / 0 on them. Real untracked stubs added to
+  `lib/*.ml` or `bin/Mathc.ml` between revisions of t6-1 therefore slip
+  past the verifier until the next pre-commit run rebuilds and re-lints;
+  this decision closes that gap by parsing `git diff` against the same
+  files and reclassifying each new marker against the live
+  decision-store.
+
+axiom_link:
+  - A0
+commitment: |
+  scripts/check-stub-lint.sh grows a new `--mode=real-diff` flag
+  implemented in scripts/check-stub-lint.py: given `git diff` against
+  `lib/**` and `bin/Mathc.ml`, the pass classifies each new stub marker
+  as `tracked` (a `decisions/<id>.yaml` exists with `state: active`
+  and `scope.paths` covering the file) or `untracked` (no such decision
+  exists), and exits non-zero on the latter. The existing synthetic
+  lint is preserved (the default mode is unchanged). The regression
+  pin in tests/process_principles.ml::p8 continues to pass on the
+  synthetic fixture, so the strengthening is additive.
+
+counterexample: |
+  "P8 stub-lint already exists (decisions/plan-2026-10-improvements/t6-1);
+  this decision duplicates the same check." The counterargument fails
+  for two reasons. (a) The existing lint scans the on-disk files and
+  exits 1 on the current main: there are 3 untracked Phase stubs in
+  `bin/Mathc.ml` (lines 638, 4087, 4101) that the t6-1 lint already
+  flags today, but the synthetic fixture used by tests/process_principles.ml
+  proves only that the *classifier* works, not that real diffs are
+  tracked. The new `--mode=real-diff` flag closes that gap by parsing
+  `git diff` and reclassifying each new marker against the live
+  decision-store, which is a different signal. (b) Duplication would
+  require the same inputs, outputs, and acceptance predicate; this
+  decision uses `git diff` as input, decision-store resolution as
+  the classifier, and the new stub files as output — three different
+  surfaces, not three identical ones.
+
+scope:
+  capabilities:
+    - stub-marker-tracked-on-real-diff
+  paths:
+    - "scripts/check-stub-lint.sh"
+    - "scripts/check-stub-lint.py"
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "decisions/**"
+  exclusions:
+    - "spec/**"
+    - "schemas/**"
+    - "tests/**"
+    - "axioms/**"
+    - "attestations/**"
+
+outcomes:
+  - id: stub-lint-parses-real-diff
+    statement: |
+      scripts/check-stub-lint.sh --mode=real-diff accepts a staged
+      diff against lib/** and bin/Mathc.ml and classifies each new
+      stub marker as `tracked` (a paired decision exists) or
+      `untracked` (no paired decision). Exit 0 on all-tracked,
+      exit 1 on any untracked.
+  - id: regression-pin-for-synthetic
+    statement: |
+      tests/process_principles.ml::p8 still passes on the synthetic
+      fixture (untracked stub → exit 1, tracked stub → exit 0). The
+      strengthening is additive; the synthetic pin is preserved.
+
+assumptions:
+  - id: all-current-stubs-tracked
+    state: assumed
+    statement: |
+      Every stub marker currently in lib/** and bin/Mathc.ml has a
+      paired `decisions/<id>.yaml` with `state: active` and
+      `scope.paths` covering the file. Verified by `grep -rEn
+      "STUB|FIXME|XXX|Phase [0-9]|TODO" lib/ bin/Mathc.ml`: 16 matches
+      in 6 files (lib/decision.ml, lib/init/init.ml, lib/re_evaluation.ml,
+      lib/render.ml, lib/jsonl.ml, bin/Mathc.ml), all either exempt
+      (section header `(* ===`/`(* ---`, OCaml comment `(* ... *)`,
+      OCaml verbatim string `{| ... |}`) or paired (e.g. the 3 Phase
+      stubs in bin/Mathc.ml:638,4087,4101 are paired with
+      decisions/ux-3-telemetry-stub-2026-10 whose scope.paths includes
+      bin/Mathc.ml; the 2 TODO stubs in lib/init/init.ml:331,337 are
+      paired with decisions/ux-3-init-agent-skill-2026-10 whose
+      scope.paths includes lib/init/init.ml).
+    owner: human:maintainer
+    consequence_if_false: |
+      If any current stub is genuinely untracked (no paired decision),
+      the `--mode=real-diff` lint will exit 1 on the current main
+      because the lint scans the post-diff tree, not just the staged
+      additions. Resolution is to land the missing paired decision
+      first; this decision does not authorise retroactive cleanups.
+    review_on:
+      - signal: real-diff-lint-fails-on-clean-main
+  - id: stub-marker-regex-stable
+    state: assumed
+    statement: |
+      The stub-marker regex `STUB|FIXME|XXX|Phase <digit>|TODO`
+      (whole-word) covers what we care about. The full set of
+      CODE_MARKERS and COMMENT_MARKERS in scripts/check-stub-lint.py
+      (Phase 2E always, Phase N[A-Z]? in code, TODO/FIXME/XXX/STUB in
+      code) is the canonical list and does not drift between revisions
+      of this decision.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a new stub marker appears in real code (e.g. `WIP`, `HACK`)
+      that the regex misses, the lint will not flag it and a paired
+      decision will not be required. Resolution: extend the regex in
+      scripts/check-stub-lint.py and bump this decision's revision.
+    review_on:
+      - signal: new-stub-marker-pattern
+  - id: paired-decision-resolution-via-scope-paths
+    state: assumed
+    statement: |
+      A decision "covers" a stub marker iff its `state: active` and
+      `scope.paths` includes the file containing the stub (e.g.
+      `lib/render.ml` or `bin/Mathc.ml`). The filename-must-end-in
+      `-stub-tracking.yaml` heuristic in scripts/check-stub-lint.py is
+      NOT used for the real-diff mode; the resolution is by
+      scope.paths, matching the existing PACKAGES.md "active policy"
+      convention. The `--mode=real-diff` resolver reads
+      `decisions/*.yaml`, parses frontmatter, and matches `scope.paths`
+      as a glob against the stub's file path.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a stub's paired decision uses a different scoping mechanism
+      (e.g. capability-name match, no scope.paths at all), the resolver
+      will report it as untracked. Resolution: standardise the
+      scope.paths glob in the paired decision, or extend the resolver
+      to read the existing t6-1 filename heuristic as a fallback.
+    review_on:
+      - signal: paired-decision-scoping-mechanism-drift
+
+obligations:
+  - id: stub-lint-real-diff
+    outcome: stub-lint-parses-real-diff
+    claim: |
+      A staged diff that adds `(* Phase 4 of foo *)` to a new file
+      under `lib/`, when a paired `decisions/foo-2026-10.yaml` exists
+      with `scope.paths: ["lib/<file>.ml"]`, exits 0 under
+      `scripts/check-stub-lint.sh --mode=real-diff`. The same diff
+      without a paired decision exits 1.
+    acceptance:
+      all:
+        - verifier: scripts/check-stub-lint.sh --mode=real-diff
+          result: pass
+  - id: regression-pin-p8
+    outcome: regression-pin-for-synthetic
+    claim: |
+      tests/process_principles.ml::p8 still passes on the synthetic
+      fixture (untracked stub → exit 1, tracked stub → exit 0) after
+      the new flag is added. The synthetic pin is preserved.
+    acceptance:
+      all:
+        - verifier: tests/process_principles.ml::p8
+          result: pass
+
+reversal:
+  - signal: stub-lint-real-too-noisy
+    action: revert-scripts-check-stub-lint-sh-to-synthetic-only-mode
+
+risk:
+  declared_triggers:
+    - stub-marker-undetected
+    - paired-decision-stale
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3
+    - process-principles@3
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []
