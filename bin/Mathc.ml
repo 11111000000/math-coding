@@ -3745,7 +3745,7 @@ let[@warning "-32"] do_counters () =
             in
             let string_list_from_nested obj_path =
               let rec get v = function
-                | [] -> None
+                | [] -> Some v
                 | k :: rest -> (
                     match v with
                     | Object ps -> (
@@ -3763,7 +3763,7 @@ let[@warning "-32"] do_counters () =
             in
             let has_one_of obj_path =
               let rec get v = function
-                | [] -> None
+                | [] -> Some v
                 | k :: rest -> (
                     match v with
                     | Object ps -> (
