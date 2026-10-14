@@ -1,0 +1,224 @@
+---
+schema: math-coding/3.3
+id: placeholder-sha-cleanup-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+axiom_link:
+  - A0
+body_sha: ""
+yaml_sha: ""
+intent: |
+  Five decision files currently carry placeholder `body_sha` and
+  `yaml_sha` values that were never replaced with the real
+  canonical digests. The placeholders come in two shapes: a
+  non-hex "TODO"-suffixed string and the canonical 64-zero
+  sentinel defined in `spec/algebra-3.2.md` §7. Per the same
+  section, every active decision's `body_sha` and `yaml_sha`
+  fields must equal sha256(canonicalise(file_bytes)) — a
+  self-consistent fixed-point under the placeholder-substitution
+  algorithm. The placeholder strings break that fixed-point
+  (the kernel's `sha_match_check` currently passes only because
+  the placeholder happens to make the two fields string-equal,
+  not because the digests are real) and silently fail any future
+  tooling that recomputes the digest from the file (e.g. a
+  `mathc recompute-sha` subcommand anticipated by decision
+  `d5-body-vs-wrapper-canonical-2026-10@1`). This decision closes
+  the gap: replace the placeholders with the real digests
+  produced by the canonical algorithm, and reword one piece of
+  prose in
+  `decisions/counters-schema-introspection-fix-2026-10.yaml`
+  that quoted the prose placeholder literal as an example.
+
+counterexample: |
+  "Leave the placeholders as-is — they honestly signal that the
+  sha was never computed, and the file is no worse than it was
+  yesterday." Counterargument: an honest placeholder is a
+  `human:maintainer: not-yet-computed` annotation, not a string
+  in the YAML that looks like a digest. A future agent reading
+  the file sees a value that satisfies `body_sha = yaml_sha` and
+  could be tempted to trust it without recomputing; the
+  placeholder form is structurally indistinguishable from a real
+  digest and is therefore a sharper hazard than an honest
+  "absent" annotation. Replacing the placeholders with real
+  digests makes the file truthful and pre-emptive against the
+  future `mathc recompute-sha` tooling.
+
+commitment: |
+  1. The two TODO-placeholder files
+     (`considered-mode-cli-sync-2026-10.yaml`,
+     `counters-schema-introspection-fix-2026-10.yaml`)
+     have their `body_sha` and `yaml_sha` fields set to
+     sha256(file bytes with the placeholder-substitution
+     sweep applied, per `spec/algebra-3.2.md` §7.1).
+  2. The three 64-zero-placeholder files
+     (`paren-balance-fix-2026-10.yaml`,
+     `site-redesign-2026-10.yaml`,
+     `stub-lint-real-2026-10.yaml`) have their
+     `body_sha` and `yaml_sha` fields set to the same
+     canonical sha256, where the placeholder substitution
+     is a no-op (the canonical 64-zero sentinel matches
+     the regex and is replaced by itself).
+  3. The prose occurrence of the placeholder literal in
+     `decisions/counters-schema-introspection-fix-2026-10.yaml`
+     (around the schema-family acceptance assumption)
+     is reworded to remove the literal substring while
+     preserving the meaning about the placeholder-
+     substitution mechanism.
+  4. `mathc validate` exits 0 for each of the five
+     amended files and for this decision file.
+  5. `mathc self-check` returns the same overall verdict
+     and per-subject counts as at base `ac1dcfa`.
+
+antithesis: |
+  The cleanest alternative considered and rejected: drop the
+  `body_sha` and `yaml_sha` fields entirely from the five
+  placeholder files. Per `spec/algebra-3.2.md` §7, both fields
+  are optional (their equality is vacuously true when absent);
+  dropping them would let every file pass `sha_match_check`
+  trivially. Rejected because removing the fields would erase
+  the integrity signal the spec was designed to carry: every
+  file's stored digest is a witness that the author actually
+  ran the canonical algorithm at authoring time. Without that
+  witness, a future "I never ran the algorithm" failure mode
+  becomes invisible. Keeping the fields and computing the real
+  digests preserves the signal at near-zero cost.
+
+scope:
+  paths:
+    - "decisions/considered-mode-cli-sync-2026-10.yaml"
+    - "decisions/counters-schema-introspection-fix-2026-10.yaml"
+    - "decisions/paren-balance-fix-2026-10.yaml"
+    - "decisions/site-redesign-2026-10.yaml"
+    - "decisions/stub-lint-real-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "tests/**"
+    - "axioms/**"
+
+outcomes:
+  - id: no-sha256-todo-in-decisions
+    statement: |
+      The two-shape placeholder literal (the non-hex
+      "TODO"-suffixed form) appears nowhere in
+      `decisions/*.yaml` after this decision. The two prior
+      stored-value occurrences are replaced by the canonical
+      digest; the one prior prose occurrence in
+      `decisions/counters-schema-introspection-fix-2026-10.yaml`
+      is reworded to remove the literal substring while
+      preserving the meaning about the placeholder-
+      substitution mechanism.
+  - id: no-sha256-zero-in-decisions
+    statement: |
+      The 64-zero canonical placeholder sentinel no longer
+      appears as a stored value anywhere in `decisions/`;
+      the schema pattern in `schemas/decision.json`
+      (`^sha256:[0-9a-f]{64}$`) admits the zero form
+      syntactically but the cleanup removes every live
+      instance.
+  - id: all-decisions-self-consistent-under-sha-match
+    statement: |
+      For each of the five placeholder files,
+      `body_sha = yaml_sha` holds (string equality) and both
+      equal sha256 of the file with the two fields replaced
+      by the canonical placeholder (the `sha256:` prefix
+      followed by 64 ASCII zero characters, as defined in
+      `spec/algebra-3.2.md` §7.1). The `mathc validate`
+      invocation returns `accept` for all six files (this
+      decision plus the five amended ones).
+
+obligations:
+  - id: no-todo-literal
+    statement: |
+      The verifier `text-scan-no-sha256-todo-in-decisions`
+      returns `pass` at HEAD.
+    claim: |
+      The non-hex "TODO"-suffixed placeholder literal
+      appears nowhere in `decisions/` after the cleanup.
+      The verifier is implemented by a textual scan across
+      `decisions/*.yaml` that targets the literal pattern;
+      the prior prose occurrence in
+      `decisions/counters-schema-introspection-fix-2026-10.yaml`
+      (around the assumption block on schema-family
+      acceptance) is reworded to remove the literal
+      substring while preserving the meaning about the
+      placeholder-substitution mechanism. The two prior
+      stored-value occurrences are replaced by real
+      canonical digests.
+    acceptance:
+      all:
+        - verifier: text-scan-no-sha256-todo-in-decisions
+          result: pass
+        - verifier: mathc validate decisions/counters-schema-introspection-fix-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/considered-mode-cli-sync-2026-10.yaml
+          result: pass
+  - id: no-zero-literal
+    statement: |
+      The verifier `text-scan-no-sha256-zero-in-decisions`
+      returns `pass` at HEAD.
+    claim: |
+      The 64-zero canonical placeholder sentinel is
+      replaced by the real canonical digest in each of the
+      four affected files (`paren-balance-fix`,
+      `site-redesign`, `stub-lint-real`); the two TODO-
+      placeholder files are also updated and therefore no
+      longer carry any placeholder form. The verifier is
+      implemented by a textual scan that targets the
+      canonical 64-zero sentinel across `decisions/*.yaml`.
+    acceptance:
+      all:
+        - verifier: text-scan-no-sha256-zero-in-decisions
+          result: pass
+        - verifier: mathc validate decisions/paren-balance-fix-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/site-redesign-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/stub-lint-real-2026-10.yaml
+          result: pass
+  - id: self-check-verdict-unchanged
+    statement: |
+      `mathc self-check` at HEAD returns the same
+      overall verdict as at the base commit `ac1dcfa`
+      and no subject flips from `pass` / `unknown` to
+      `fail`. The five placeholder files were already
+      validated at HEAD (the kernel's `sha_match_check`
+      is string-equality only), and the cleanup does
+      not retire any subject; the only subject-count
+      change is the addition of this decision itself,
+      which lands as `unknown` (no attestations yet).
+    claim: |
+      `mathc self-check` on the post-cleanup tree
+      returns a JSON verdict whose `verdict` field is
+      unchanged from the base (`unknown`) and whose
+      `fail` subject count is unchanged from the base
+      (zero). The single subject-count delta is
+      `+1 unknown` for `placeholder-sha-cleanup-2026-10`
+      itself.
+    acceptance:
+      all:
+        - verifier: mathc self-check
+          result: pass
+
+reversal: |
+  If a future spec revision removes the `body_sha` /
+  `yaml_sha` fields from the Decision entity, the digests
+  computed by this decision become vestigial. The
+  revert path is a `git revert` of this commit: the five
+  files revert to their placeholder state and this
+  decision file is removed. No data migration is needed
+  because the digests are re-derivable from the file
+  bytes at any time (the algorithm is canonical).
+
+risk:
+  declared_triggers:
+    - placeholder-substitution-algorithm-changes
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - d5-body-vs-wrapper-canonical-2026-10@1

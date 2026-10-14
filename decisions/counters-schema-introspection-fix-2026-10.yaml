@@ -5,8 +5,8 @@ id: counters-schema-introspection-fix-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:TODO"
-yaml_sha: "sha256:TODO"
+body_sha: "sha256:3c013c30f64668d0e99d7a9028d6ae702200a1217ff61a45d7ca52e0d7a846a1"
+yaml_sha: "sha256:3c013c30f64668d0e99d7a9028d6ae702200a1217ff61a45d7ca52e0d7a846a1"
 axiom_link:
   - A0
 intent: |
@@ -318,11 +318,14 @@ assumptions:
       If a future kernel tightening narrows the
       accepted `schema:` values, this decision would
       need to be re-emitted under the new accepted
-      family. The `body_sha` / `yaml_sha` placeholder
-      values (`"sha256:TODO"`) are recomputed by the
-      kernel's sha256-self-consistency pass at
-      validate time, so a re-emission does not
-      require a hand-computed digest.
+      family. The `body_sha` / `yaml_sha` values are
+      recomputed by the kernel's
+      sha256-self-consistency pass at validate time
+      (the placeholder-substitution sweep that
+      `spec/algebra-3.2.md` §7.1 names; see also
+      `scripts/axiom-link-seed.py:105-123`), so a
+      re-emission does not require a hand-computed
+      digest.
     review_on:
       - signal: schema-family-narrowed-by-future-decision
 
