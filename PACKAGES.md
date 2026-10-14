@@ -433,7 +433,31 @@ This file is updated only when **a new decision file** is created or
 when **an existing decision** changes revision. It is NOT updated for
 every code change.
 
-Last updated at: HEAD `c56bd35` (2026-10-14): version-bump to
+Last updated at: HEAD `d52c85b` (2026-10-14): site-redesign
+merge brought in the new landing chrome (grouped nav, logo,
+5-section homepage); the counters/notes blocks above were
+re-anchored to the live HEAD after the merge reset PACKAGES.md
+to a stale snapshot. Counters: 95 active decisions / 102 total
+decision files / 332 obligations / 391 attestations / 64 cram
+files / 27 CLI subcommands. New cram fixtures
+(`tests/cli/counters-schema-introspection.t`,
+`tests/cli/validate-non-decisions.t`,
+`tests/cli/validate-considered-antithesis.t`) pin the three
+post-fix behaviours.
+
+Previous: HEAD `a84031b` (2026-10-14): two kernel fixes
+landed. `mathc counters` schema block (schema_enum,
+intent_oneOf, scope_oneOf) now reports the live values; the
+counters-schema-introspection-deferral-2026-10 record is
+superseded by counters-schema-introspection-fix-2026-10 and
+removed. `mathc validate` now dispatches on the top-level
+schema: field and accepts `decisions/waivers/*.yaml` and
+`decisions/obligations.yaml`; the
+mathc-validate-skip-non-decisions-deferral-2026-10 record is
+superseded by mathc-validate-skip-non-decisions-fix-2026-10
+and removed.
+
+Previous: HEAD `c56bd35` (2026-10-14): version-bump to
 math-coding 3.3 (semver `3.3.0`). Header renames across ROADMAP,
 PACKAGES, README, AGENTS, USAGE, OCAML_BEST_PRACTICES,
 axioms/index.md, `bin/data/time-distribution.yaml`; CHANGELOG
