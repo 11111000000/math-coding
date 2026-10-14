@@ -401,13 +401,27 @@ let counterexample_meaningful_opt (s : string option) : bool =
 let antithesis_meaningful_opt (s : string option) : bool =
   match s with Some t when String.trim t <> "" -> true | _ -> false
 
-(* mode >= standard: standard | strict | exhaustive. The order on the
-   mode sum type is intentional (Domain.mode definition), so a simple
-   OCaml polymorphic compare works for the floor check. *)
+(* mode >= standard: standard | strict | exhaustive | considered. The
+   order on the mode sum type is intentional (Domain.mode
+   definition), so a simple OCaml polymorphic compare works for the
+   floor check. The `Considered` constructor joins the modern floor
+   because it carries the same assurance strength as Standard
+   (see `decisions/antithesis-mode-considered-2026-10`). *)
 let mode_geq_standard (m : Domain.mode) : bool =
   match m with
-  | `Standard | `Strict | `Exhaustive -> true
+  | `Standard | `Strict | `Exhaustive | `Considered -> true
   | `Tiny | `Light -> false
+
+(* mode >= considered: only `Considered` triggers the antithesis
+   requirement (algebra §11). The `mode_geq_considered` predicate
+   replaces the prior `mode_geq_standard` guard on
+   `antithesis_required_missing`. See
+   `decisions/antithesis-mode-considered-2026-10` for the rationale
+   and the strongest countercase. *)
+let mode_geq_considered (m : Domain.mode) : bool =
+  match m with
+  | `Considered -> true
+  | `Tiny | `Light | `Standard | `Strict | `Exhaustive -> false
 
 (* === Axiom-link detection (algebra §17 "Inline axiom change")
    ===
@@ -1106,7 +1120,7 @@ and parse_decision_value v =
                                                 counterexample)
                                       in
                                       let antithesis_required_missing =
-                                        mode_geq_standard mode
+                                        mode_geq_considered mode
                                         && not
                                              (antithesis_meaningful_opt
                                                 antithesis)

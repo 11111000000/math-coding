@@ -1,0 +1,312 @@
+---
+schema: math-coding/3.2
+id: antithesis-mode-considered-2026-10
+revision: 1
+state: active
+body_sha: "sha256:85d031e928ebf1d7143d1d17d292ca0da8f3b55f97cd5d9d1d6cda17d9055446"
+yaml_sha: "sha256:85d031e928ebf1d7143d1d17d292ca0da8f3b55f97cd5d9d1d6cda17d9055446"
+intent: |
+  Resolve the spec/code contradiction in
+  `spec/algebra-3.2.md:422-423` vs
+  `lib/decision.ml:1108-1113` for the `antithesis` dialectic
+  slot. The spec says `antithesis` is required only for
+  `mode = considered`; the parser-level check uses
+  `mode_geq_standard` (Standard | Strict | Exhaustive),
+  which means 61 of 100 live decision files at HEAD `c56bd35`
+  are rejected with `MC-ANTITHESIS-MISSING` despite the
+  spec saying they should be accepted.
+
+  Resolution direction (spec → code):
+    1. Extend `lib/domain.ml::type mode` with the
+       `Considered` constructor. The order on the polymorphic
+       variant sum remains the same; `mode_geq_considered`
+       is the new predicate, distinct from
+       `mode_geq_standard`.
+    2. Replace the `mode_geq_standard` guard on
+       `antithesis_required_missing` with
+       `mode_geq_considered` in `lib/decision.ml`.
+    3. Keep `mode_geq_standard` on
+       `counterexample_required_missing` (counterexample is
+       required for `mode ≠ tiny` per algebra §11; antithesis
+       is required only for `mode = considered` per the same
+       section).
+    4. No live decision file is forced to bump to
+       `mode: considered`. `considered` is opt-in for authors
+       who commit to the v3 dialectic method
+       (antithesis-bearing); the existing 100 files continue
+       to validate as before.
+
+  Strongest countercase considered:
+    "Adding a new mode constructor is the most invasive
+    direction; instead, drop the `mode = considered` branch
+    from the spec and require antithesis for `mode >= standard`
+    in the parser."
+    This would touch 60+ decision files (each would need to
+    gain an antithesis section) and is the opposite direction
+    from what the spec says. The chosen direction is the
+    minimal one: the parser is brought into line with the
+    spec; the spec is preserved.
+
+change_kind: implementation
+
+axiom_link:
+  - A0
+  - A3
+
+commitment: |
+  1. `lib/domain.ml::type mode` lists six constructors:
+     `Tiny | Light | Standard | Strict | Exhaustive | Considered`.
+  2. `lib/decision.ml` introduces `mode_geq_considered`
+     (helper that returns true only for `Considered`).
+  3. The `antithesis_required_missing` branch in
+     `lib/decision.ml::parse_decision_value` is guarded by
+     `mode_geq_considered`, not `mode_geq_standard`.
+  4. The `counterexample_required_missing` branch keeps the
+     `mode_geq_standard` guard.
+  5. The legacy `mode_geq_standard` helper is preserved
+     (still used by the counterexample check).
+  6. No live decision file changes its `mode:` value as
+     part of this commit. The new `Considered` constructor
+     is opt-in.
+  7. `mathc validate decisions/*.yaml` continues to
+     accept every existing decision file at HEAD
+     (none of them have `mode: considered` today, so the
+     new guard has zero effect on them).
+  8. `mathc validate` on a synthetic fixture with
+     `mode: considered` and an empty `antithesis:` block
+     emits `MC-ANTITHESIS-MISSING`.
+  9. `mathc validate` on a synthetic fixture with
+     `mode: considered` and a non-empty `antithesis:` block
+     accepts the file.
+
+counterexample: |
+  "Adding a new mode constructor is more invasive than
+  tightening the antithesis rule to `mode >= standard`. A
+  seventh mode in the type forces every mode-aware switch
+  in the kernel (risk.ml, gate.ml, mode.ml, packages.ml,
+  policy.ml) to either explicitly handle Considered or fall
+  through the default branch; the surface area of the
+  change is much larger than the targeted parser fix
+  looks."
+
+  Counterargument: every mode-aware switch in the kernel
+  uses either (a) explicit OCaml pattern matching on the
+  polymorphic variant sum, where the OCaml exhaustiveness
+  checker will flag the new constructor at compile time
+  (each switch becomes a deliberate `| Considered ->` line);
+  or (b) the polymorphic compare, which already orders the
+  six existing constructors and would order Considered
+  wherever its declaration sits in `lib/domain.ml:44`. The
+  exhaustiveness check is the right safety net: it forces
+  every reviewer of this commit to look at every switch and
+  decide whether Considered should fall through to
+  Standard (the chosen semantics: Considered is a synonym
+  for Standard with the extra antithesis requirement) or
+  get a dedicated branch. None of the kernel switches
+  today are subtle enough that one missed mode constructor
+  would silently mishandle a verdict. The same shape of
+  reasoning was used in `algebra-3.2@1` when the kernel
+  gained the Strict and Exhaustive constructors; that
+  change was net-positive.
+
+  "The spec text at algebra-3.2.md:422 ('∀ D ∈ Decision,
+  mode(D) = considered') is a typo for
+  `mode(D) >= standard`; the original v3 dialectic method
+  paper the spec references did not propose a sixth mode."
+  Counterargument: the spec text was authored in commit
+  `7a5a070` (feat(dialectic): add antithesis field,
+  close counterexample sweep deficit) which also added
+  the antithesis-required check to the spec at the same
+  time. The two edits are paired; reading either one
+  without the other is misleading. The `Considered` mode
+  was an oversight in that commit, but the spec text is
+  what the project published; the parser is what should
+  move.
+
+scope:
+  capabilities:
+    - antithesis-mode-considered
+  paths:
+    - "lib/domain.ml"
+    - "lib/decision.ml"
+    - "tests/repo_structure.ml"
+    - "tests/fixture_coverage.ml"
+
+outcomes:
+  - id: mode-has-considered-constructor
+    statement: |
+      `grep -nE 'type mode' lib/domain.ml` shows a
+      polymorphic variant that includes `Considered` as
+      the sixth constructor.
+  - id: parser-uses-mode-geq-considered
+    statement: |
+      `lib/decision.ml::antithesis_required_missing` is
+      guarded by a check on `Considered`, not
+      `Standard | Strict | Exhaustive`.
+  - id: legacy-decisions-still-validate
+    statement: |
+      Every file in `decisions/*.yaml` (100 files at HEAD)
+      continues to pass `mathc validate` after this commit.
+      Specifically, none of the 60+ files that previously
+      failed with `MC-ANTITHESIS-MISSING` are affected
+      (their `mode` is the default Standard, and the
+      antithesis guard no longer fires for Standard).
+  - id: synthetic-considered-rejected
+    statement: |
+      A synthetic test fixture declaring
+      `mode: considered` and an empty `antithesis:` block
+      fails `mathc validate` with `MC-ANTITHESIS-MISSING`.
+  - id: synthetic-considered-accepted
+    statement: |
+      A synthetic test fixture declaring
+      `mode: considered` and a non-empty `antithesis:`
+      block passes `mathc validate`.
+
+assumptions:
+  - id: mode-aware-switches-revisit
+    state: assumed
+    statement: |
+      Every mode-aware switch in the kernel will be
+      revisited by the reviewer of this commit; the OCaml
+      exhaustiveness checker flags the new `Considered`
+      constructor at every relevant call site.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a switch in `lib/risk.ml`, `lib/gate.ml`,
+      `lib/mode.ml`, `lib/packages.ml`, `lib/policy.ml`, or
+      `bin/Mathc.ml` falls through to a default branch for
+      `Considered`, the verdict for a `Considered` decision
+      could be silently mishandled. The mitigation is the
+      exhaustiveness checker + a `tests/risk_kernel.ml` /
+      `tests/re_evaluation_test.ml` smoke run that covers
+      the post-commit tree.
+    review_on:
+      - signal: dune-warns-of-non-exhaustive-match
+
+  - id: spec-unchanged
+    state: assumed
+    statement: |
+      The spec text at `spec/algebra-3.2.md:422-423`
+      (antithesis is required only for `mode = considered`)
+      is preserved verbatim. This decision brings the
+      parser into line with the spec, not the other way
+      around.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a follow-up commit rewrites the spec to require
+      `antithesis` for `mode >= standard` (a separate A3-
+      protected transition), this commit's fix becomes
+      obsolete. The separate decision would then need to
+      either (a) add antithesis blocks to 60+ decision
+      files, or (b) argue that Considered is the right
+      floor and update the parser.
+    review_on:
+      - signal: spec-rewrite-of-algebra-3-2-11
+
+obligations:
+  - id: mode-has-considered
+    statement: |
+      `grep -nE 'Considered' lib/domain.ml` returns at
+      least one match on a line containing
+      `type mode`.
+    acceptance:
+      all:
+        - verifier: text-scan-mode-considered
+          result: pass
+  - id: parser-uses-considered-guard
+    statement: |
+      `grep -nE 'antithesis_required_missing' lib/decision.ml`
+      shows the guard referring to a `Considered` check,
+      not the older Standard check.
+    acceptance:
+      all:
+        - verifier: text-scan-considered-guard
+          result: pass
+  - id: legacy-decisions-still-validate
+    statement: |
+      Every file under `decisions/*.yaml` (100 files)
+      passes `mathc validate` after this commit. Verified
+      via the existing `tests/cli/validate-positive.t` cram
+      fixture and the `t2-1-mathc-validate-regression-free`
+      attestation.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-positive.t
+          result: pass
+        - verifier: tests/t2-1-mathc-validate-regression-free
+          result: pass
+  - id: synthetic-considered-rejected
+    statement: |
+      A cram fixture `tests/cli/validate-considered-missing-antithesis.t`
+      runs `mathc validate` against a synthetic
+      `tests/cli/fixtures/considered-missing-antithesis.yaml`
+      fixture and asserts that the CLI exits non-zero with
+      `MC-ANTITHESIS-MISSING` on stderr.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-considered-missing-antithesis.t
+          result: pass
+  - id: synthetic-considered-accepted
+    statement: |
+      A cram fixture `tests/cli/validate-considered-with-antithesis.t`
+      runs `mathc validate` against a synthetic
+      `tests/cli/fixtures/considered-with-antithesis.yaml`
+      fixture and asserts that the CLI exits 0 with
+      `accept:` on stdout.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-considered-with-antithesis.t
+          result: pass
+  - id: dune-build-and-tests-green
+    statement: |
+      `dune build --root . && dune test --root .` exits 0
+      on the post-commit tree.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: dune test
+          result: pass
+
+reversal:
+  - signal: dune-build-broken-by-this-commit
+    action: halt
+  - signal: legacy-decisions-now-reject
+    action: revert
+  - signal: considered-mode-mishandled-by-switch
+    action: halt
+
+risk:
+  declared_triggers:
+    - mode-aware-switch-falls-through-on-considered
+    - spec-rewrite-of-30-forces-redesign
+  owner: human:maintainer
+
+relations:
+  supersedes:
+    - dialectic-method-v3-2026-10@1
+      # the v3 dialectic method decision added the antithesis
+      # slot to the spec but did not introduce the `Considered`
+      # mode; this decision closes that gap.
+
+antithesis: |
+  "Just tighten the parser's `mode_geq_standard` check on
+  `antithesis_required_missing` to `mode_geq_light`, so every
+  decision at or above Light needs an antithesis block. Skip
+  the new mode constructor entirely; the kernel switches do
+  not need to be revisited."
+
+  Rejected because: tightening the parser floor to `Light`
+  would still force antithesis into the same 60+ decision
+  files that the spec today does not require antithesis for.
+  The chosen direction (introduce Considered and guard by it)
+  is the minimal-blast-radius shape: existing files keep
+  validating as before; the v3 dialectic method is opt-in
+  via `mode: considered`; the spec text is preserved verbatim.
+  The "tighten to Light" path would have the same outcome for
+  legacy files but require no spec change; that is its only
+  advantage, and it is outweighed by the inaccuracy of the
+  spec saying `mode = considered` while the parser implements
+  `mode >= standard`. The honest answer is to either rewrite
+  the spec (which this transition does not do, by design) or
+  introduce Considered, so the spec and the code agree.

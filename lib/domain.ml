@@ -40,8 +40,16 @@ type freshness = Fresh | Stale | AtRisk | Unknown
 type phase = [ `PreMerge | `PreRelease | `PostRelease ]
 
 (* Assurance mode. Used as a floor on what the kernel will demand
-   (algebra §3, §7). Five levels, monotonically increasing. *)
-type mode = [ `Tiny | `Light | `Standard | `Strict | `Exhaustive ]
+   (algebra §3, §7). Five levels plus the v3-dialectic `Considered`
+   level introduced by `decisions/antithesis-mode-considered-2026-10`.
+   The `Considered` constructor carries the same assurance strength as
+   `Standard` for kernel rules (risk, gate, policy, mode) but adds
+   the dialectic `antithesis` slot requirement; this decision
+   specifically chose this shape over "tighten the antithesis floor
+   to Standard" so that no existing live decision file is forced to
+   gain an antithesis block. See the decision file for the strongest
+   countercase. *)
+type mode = [ `Tiny | `Light | `Standard | `Strict | `Exhaustive | `Considered ]
 
 (* Trust level (algebra §1 universal set 𝓣, §10 rebuttal binding,
    §12 trust dynamics). Monotonic: Untrusted < Authenticated <
