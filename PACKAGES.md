@@ -271,7 +271,7 @@ labelled Alcotest case:
 
 | Principle | What the case checks |
 |---|---|
-| P1 (decisions before kernel changes) | every non-meta `decisions/*.yaml`/`.md` has `schema`, `id`, `revision` frontmatter + `intent`, `commitment`, `scope`, `obligations`, `risk` body sections |
+| P1 (decisions before kernel changes) | every non-meta `decisions/*.yaml`/`.md` has `schema`, `id`, `revision` frontmatter + `intent`, `commitment`, `scope`, `obligations`, `risk` body sections (per `tests/process_principles.ml:75-78`); the JSON-schema validator additionally requires `outcomes` (per `schemas/decision.json:6-9`); the two checks are independent |
 | P2 (decisions paired with fixtures) | every obligation has a verifier; the verifier is a present fixture path, a kernel-test reference, a cram `.t` path, or a recognised manual-style prefix |
 | P5 (cram retired) | `tests/cram/*.t` does not exist |
 | P6 (pre-commit verification) | `scripts/check.sh` exists and is executable |
