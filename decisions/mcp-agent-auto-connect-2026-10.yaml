@@ -1,0 +1,197 @@
+---
+schema: math-coding/3.2
+id: mcp-agent-auto-connect-2026-10
+revision: 1
+state: active
+body_sha: "sha256:9c0ec769bb3ae6d9a4a204bbc89bf627c0badfb72cfdaa445784a141e63122f3"
+yaml_sha: "sha256:9c0ec769bb3ae6d9a4a204bbc89bf627c0badfb72cfdaa445784a141e63122f3"
+
+intent: |
+  Document the documented-but-not-yet-wired path that lets
+  an opencode (or other MCP-aware) agent run math-coding
+  validation, self-check, and explanation as direct tool
+  calls against a running `mathc_mcp` server, without going
+  through a `bash` shell call to the mathc binary.
+
+  The MCP server (`bin/mathc_mcp.ml` + `lib/mcp/`) is
+  already implemented and ships 11 methods (7 read-only
+  in `mcp-server-impl-2026-10@1`, plus 4 read-write in
+  `ux-3-mcp-read-write-2026-10@1`). It speaks JSON-RPC 2.0
+  over stdio: one request per line on stdin, one response
+  per line on stdout. The mathc binary is auto-resolved
+  via `Sys.executable_name` so an installed `mathc_mcp`
+  picks up the co-located `mathc`.
+
+  Today this server is reachable but not advertised. An
+  opencode user would have to read `bin/mathc_mcp.ml` and
+  hand-configure an MCP stdio client. This decision
+  documents the integration in
+  `adoption/SKILL.md` §"MCP integration" so a fresh
+  opencode session can `mathc::validate` etc. without a
+  shell round-trip.
+
+axiom_link:
+  - A0
+  - A1
+
+antithesis: |
+  The counter-position considered and rejected: "The MCP
+  server is shipped but unadvertised; that is the correct
+  posture until the install-tooling surface stabilises.
+  Documenting an MCP integration path is premature and
+  creates a public commitment we may have to retract."
+  The author engaged with this position and rejected it
+  on three grounds: (a) the server is already in the
+  shipped binary (`bin/mathc_mcp.exe`); unadvertising the
+  installed capability does not retire it, it only hides
+  it from users; (b) the install-tooling-2026-10 surface
+  is now stable (per `decisions/install-tooling-2026-10@1`
+  closure); the MCP server's only consumer path (agent
+  tool calls) is unblocked; (c) per axiom A1, every
+  commitment must have a path to observation. The
+  unadvertised MCP server has no path to observation;
+  this decision documents the path.
+
+commitment: |
+  Three deliverables:
+
+  D1. `adoption/SKILL.md` gains a new \u00a7"MCP integration"
+      section that describes how to launch
+      `bin/mathc_mcp` and how an MCP-aware agent can
+      call `mathc/validate`, `mathc/self-check`,
+      `mathc/explain`, `mathc/packages`, etc. via
+      JSON-RPC over stdio.
+
+  D2. The `.opencode/skills/math-coding/SKILL.md` is
+      byte-synced with `adoption/SKILL.md` (per
+      `ux-3-repo-tracked-opencode-skill-2026-10@1`).
+
+  D3. `USAGE.md` §"AI agents" is updated to reference
+      the MCP integration section.
+
+  Boundaries (A3 self-application):
+  - No kernel, no `bin/Mathc.ml`, no `lib/**`,
+    `spec/**`, `schemas/**`, `axioms/**` touched.
+  - The MCP server implementation is unchanged; this
+    decision only documents it.
+  - The agent client configuration (opencode.json) is
+    per-host, not part of this repo, and is not changed.
+
+scope:
+  capabilities:
+    - mcp-agent-integration-docs
+  paths:
+    - "adoption/SKILL.md"
+    - ".opencode/skills/math-coding/SKILL.md"
+    - "USAGE.md"
+    - "decisions/mcp-agent-auto-connect-2026-10.yaml"
+  exclusions:
+    - "lib/mcp/**"
+    - "bin/mathc_mcp.ml"
+    - "lib/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+
+outcomes:
+  - id: mcp-integration-documented
+    statement: |
+      `adoption/SKILL.md` \u00a7"MCP integration" describes
+      the JSON-RPC stdio protocol, the 11 method names,
+      and the launch command for `bin/mathc_mcp`.
+  - id: per-repo-skill-synced
+    statement: |
+      `.opencode/skills/math-coding/SKILL.md` is byte-
+      identical with `adoption/SKILL.md`.
+  - id: usage-md-cross-references
+    statement: |
+      `USAGE.md` references the new \u00a7"MCP integration"
+      section.
+
+counterexample: |
+  "What if a user runs an MCP server in the same shell as
+   their agent session and exposes the mathc binary path
+   wrongly?" Counterargument: `lib/mcp/dispatch.ml::find_mathc`
+   resolves the mathc binary from `Sys.executable_name`
+   (stripping the `_mcp` suffix); this is the same
+   resolution used by the mathc CLI dispatcher. A
+   misconfigured `MATHC_BIN` escape hatch is the only
+   way to point the server at a different mathc, and
+   that variable is documented.
+
+  "What if `bin/mathc_mcp.exe` is not in the user's PATH?"
+   Counterargument: the mathc install path installs both
+   `mathc` and `mathc_mcp` (per `bin/dune`'s
+   `public_name` declarations); the launch command in
+   the doc references the absolute install path.
+
+assumptions:
+  - id: mcp-server-stable
+    state: assumed
+    statement: |
+      The MCP server (`mcp-server-impl-2026-10@1` +
+      `ux-3-mcp-read-write-2026-10@1`) ships in every
+      release as `bin/mathc_mcp`.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the MCP server is retired, this decision's
+      documentation is stale; a follow-up removes the
+      \u00a7"MCP integration" section from
+      `adoption/SKILL.md`.
+    review_on:
+      - signal: mcp-server-retired
+
+obligations:
+  - id: mcp-section-in-skill-md
+    outcome: mcp-integration-documented
+    claim: |
+      `adoption/SKILL.md` \u00a7"MCP integration" describes
+      the JSON-RPC stdio protocol and the launch command.
+    acceptance:
+      all:
+        - verifier: scripts/check-opencode-skill.sh
+          result: pass
+  - id: per-repo-skill-synced
+    outcome: per-repo-skill-synced
+    claim: |
+      `.opencode/skills/math-coding/SKILL.md` is byte-
+      identical with `adoption/SKILL.md`.
+    acceptance:
+      all:
+        - verifier: scripts/check-opencode-skill.sh
+          result: pass
+  - id: usage-md-cross-references
+    outcome: usage-md-cross-references
+    claim: |
+      `USAGE.md` \u00a7"AI agents" references the new
+      \u00a7"MCP integration" section.
+    acceptance:
+      all:
+        - verifier: grep -q 'MCP integration' USAGE.md
+          result: pass
+
+reversal:
+  - signal: mcp-server-retired
+    condition: |
+      The MCP server is removed from the release binary.
+      Resolution: a follow-up decision removes the
+      \u00a7"MCP integration" section from
+      `adoption/SKILL.md` and the cross-reference from
+      `USAGE.md`.
+    action: rework
+
+risk:
+  declared_triggers:
+    - mcp-server-retired
+    - json-rpc-stdio-protocol-changed
+    - method-allowlist-drift
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - install-tooling-2026-10@1
+    - mcp-server-impl-2026-10@1
+    - ux-3-mcp-read-write-2026-10@1
+    - ux-3-repo-tracked-opencode-skill-2026-10@1
+  supersedes: []
+  superseded_by: []

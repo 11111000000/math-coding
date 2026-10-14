@@ -193,6 +193,16 @@ shrinks, the audit requirement ends), rip out `decisions/`,
 `attestations/`, and the gate workflow. A clean revert is itself
 evidence that the kernel did not capture you.
 
+## AI agents
+
+The `mathc` binary ships with a companion `mathc_mcp` JSON-RPC 2.0
+server over stdio. The server exposes 11 `mathc/<name>` methods
+(see `adoption/SKILL.md` §"MCP integration" for the full list and
+the launch command). An MCP-aware agent (opencode, Claude Code,
+Cursor) can launch `mathc_mcp` as a stdio MCP server and call
+`mathc::validate`, `mathc::self-check`, etc. as direct tool calls
+without a `bash` shell round-trip.
+
 ## Review-time questions
 
 Before declaring a change ready, a reviewer should answer four

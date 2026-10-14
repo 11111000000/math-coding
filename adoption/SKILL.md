@@ -221,3 +221,35 @@ under `dist/adoption/<platform>/` into the matching path:
 If you cannot copy a file (the agent session is read-only), ask the
 user to paste the file from `dist/adoption/<platform>/` into the path
 above. The agent must not edit the source repository's internal docs.
+## MCP integration
+
+The `mathc` binary ships with a companion `mathc_mcp` JSON-RPC 2.0 server
+over stdio. The server exposes 11 `mathc/<name>` methods:
+
+  mathc/validate, mathc/explain, mathc/packages, mathc/mode,
+  mathc/re-evaluate, mathc/rebuttals, mathc/self-check,
+  mathc/gate, mathc/attest, mathc/record,
+  mathc/re-evaluate-decisions
+
+Read-only methods (validate, explain, packages, mode, re-evaluate,
+rebuttals, self-check) are listed at
+`decisions/mcp-server-impl-2026-10.yaml`. Read-write methods (gate,
+attest, record, re-evaluate-decisions) are listed at
+`ux-3-mcp-read-write-2026-10.yaml`. Both are emitted from the same
+allowlist in `lib/mcp/dispatch.ml`.
+
+Wire protocol: one JSON-RPC request per line on stdin, one response
+per line on stdout. stderr is reserved for server diagnostics.
+EOF-on-stdin exits cleanly with code 0.
+
+The MCP server shell-out to the `mathc` binary is resolved via
+`Sys.executable_name` (strip the `_mcp` suffix); the mathc install
+path installs both `mathc` and `mathc_mcp` side-by-side. Launch
+the server directly:
+
+  $ ~/.local/bin/mathc_mcp     # reads JSON-RPC from stdin, writes to stdout
+
+An MCP-aware agent (opencode, Claude Code, Cursor) can launch this
+binary as a stdio MCP server. The agent then sees `mathc::validate`
+et al. as direct tool calls, without a `bash` shell round-trip.
+
