@@ -2041,9 +2041,49 @@ discriminator; a glance at `lib/schema.ml:23-27` makes the
 distinction obvious. The kernel's `parse_manifest_yaml` was
 reworked end-to-end in this revision to use `take_array`.
 
-**Trigger.** Any new kernel parser that reads a YAML list at
-a top-level key and treats it as an object. Cited from
+**Trigger.** Any new kernel parser that reads a YAML list at a
+top-level key and treats it as an object. Cited from
 this session (2026-10-13) as the trigger for
 `decisions/migration-mechanism-2026-10.yaml`. Referenced
 from that decision's `commitment` block and the §11 trap
 log.
+
+### 11.32 `Str.regexp` does not support the `\{n\}` interval quantifier
+
+**Symptom.** A pattern like `"body_sha: \"sha256:[a-f0-9]\\{64\\}\""`
+silently fails to match the expected string. `Str.string_match r
+input 0` returns `false`; `Str.global_replace r replacement input`
+leaves `input` unchanged. There is no compile-time or runtime
+warning; the pattern is accepted by `Str.regexp` and quietly
+treated as a literal sequence. The substring `\{64\}` does not
+match the 64-char hex run; the pattern instead needs every
+character written out (`aaaa...a` × 64) or a different approach.
+
+**Why we haven't hit this before.** The kernel's other regex
+use-cases either bound the matched shape with character classes
+plus `*` / `+` / `?` (e.g., the trailer regex in
+`lib/codec.ml`) or anchor against the OCaml stdlib (e.g.,
+`lib/jsonl.ml` operates on already-parsed JSON values, not on
+raw bytes). The byte-range algorithm in
+`lib/decision.ml::body_canonical_sha256` is the first place the
+kernel needs to match a fixed-length alphanumeric run as a
+sub-pattern; the missing interval support is therefore a
+first-encountered trap.
+
+**Fix.** Replace the regex with a small String-scanning helper
+that walks the input, looks for the field prefix
+(`body_sha: "sha256:` or `yaml_sha: "sha256:`), checks the next
+64 characters are hex via an inline `is_hex` predicate, and
+replaces the matched span with the placeholder. The
+`lib/decision.ml::body_canonical_sha256` implementation
+documents this trade-off in its leading comment. The
+regression pin is `tests/body_canonical_test.ml::insensitivity_to_placeholder`
+(without the fix, the test fails because the substitution is
+a no-op).
+
+**Trigger.** Any new kernel code that needs a fixed-length
+sub-pattern in a regex. Cited from this session (2026-10-13)
+as the trigger for
+`decisions/d5-body-vs-wrapper-canonical-2026-10.yaml`.
+Referenced from that decision's
+`commitment::body_canonical_sha256` block.

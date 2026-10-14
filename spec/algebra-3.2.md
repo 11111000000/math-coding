@@ -274,6 +274,42 @@ relations: ⟨
   revises ≠ supersedes: revises updates form; supersedes replaces meaning
 ```
 
+### §7.1 Byte-range and canonicalisation
+
+```
+body_sha(D) = yaml_sha(D) = "sha256:" + sha256_hex(canonicalise(file_bytes(D)))
+
+canonicalise(bytes) =
+  let normalised = replace_all("\r\n", "\n", bytes) in   # line-ending normalisation
+  let substituted_body = replace_all(
+    re_body, "body_sha: \"" + placeholder, normalised
+  ) in
+  let substituted_yaml = replace_all(
+    re_yaml, "yaml_sha: \"" + placeholder, substituted_body
+  ) in
+  substituted_yaml
+
+placeholder = "sha256:" + "0" * 64 + "\""
+re_body = body_sha: "sha256:[a-f0-9]{64}"
+re_yaml = yaml_sha: "sha256:[a-f0-9]{64}"
+```
+
+The algorithm has four normative properties:
+
+1. **Stability.** Hashing the same file bytes twice produces the same digest. (Powers the equality of every stored `body_sha` and `yaml_sha` on the 72 active decisions.)
+
+2. **Sensitivity.** Changing one byte in the file body (anywhere outside the matched `body_sha` or `yaml_sha` value) produces a different digest.
+
+3. **Insensitivity to placeholder.** Changing the value of `body_sha` (or `yaml_sha`) while keeping the field pattern valid does NOT change the resulting digest; the placeholder-substitution sweep absorbs the change. This is what makes the algorithm a fixed-point: a file's stored digest equals the algorithm's output for the same file.
+
+4. **CRLF-equals-LF.** A file with CRLF line endings and an otherwise-identical file with LF line endings produce the same digest (line-ending normalisation).
+
+The reference implementation is `scripts/axiom-link-seed.py:105-123` (Python); the kernel-side implementation is `lib/decision.ml::body_canonical_sha256` (OCaml). The two MUST agree on every input. The conformance test in `tests/body_canonical_test.ml` pins the four properties.
+
+The `D.body_sha = D.yaml_sha` invariant (when both are present) is a COROLLARY of the algorithm, not an additional rule: both fields name the same digest.
+
+**Dual-authored case (algebra §6 sibling YAML):** this decision formalises only the single-file case. The dual-authored case has zero live consumers and at least three open design questions (wrapper-marker line-anchor vs byte-anchor, YAML anchor / merge-key boundary behaviour, whether the body excludes the YAML front-matter). A follow-up decision `d5-dual-authored-canonical-2026-XX` is anticipated; its `reversal.signal` is `first-dual-authored-decision-drafted`. Until that lands, the dual case remains anticipated but not formalised here, and the kernel's `sha_match_check` continues to enforce the equality as a string check on the two stored fields (T0.2).
+
 ---
 
 ## §8. Auto-inferred obligations

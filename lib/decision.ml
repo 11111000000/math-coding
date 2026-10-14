@@ -11,6 +11,18 @@
    The string format is `sha256:<64 hex>` per schemas/decision.json,
    so equality of the formatted strings is equality of the digests.
 
+   The byte-range and canonicalisation algorithm that produces the
+   two stored hashes is defined in spec/algebra-3.2.md §7.1
+   (placeholder-substitution sweep on UTF-8 bytes after CRLF→LF
+   normalisation, then sha256, prefixed with `sha256:`). See
+   decision `d5-body-vs-wrapper-canonical-2026-10` for the
+   normative reference; the reference implementation lives in
+   scripts/axiom-link-seed.py:105-123 (Python). The OCaml helper
+   `body_canonical_sha256` below implements the same algorithm in
+   the kernel so future migration tools (and the test in
+   tests/body_canonical_test.ml) can compute the digest from raw
+   bytes without depending on the Python script.
+
    T0.2 (stream ε): the original `(d : Domain.decision) -> bool`
    signature was strengthened to a `(bool, Diagnostic.t list) result`
    accumulator so the CLI can surface a single precise
@@ -43,6 +55,92 @@
  * tests that call `parse_decision_value` directly). *)
 
 type decision_parse = Accept of Domain.decision | Reject of Diagnostic.t
+
+(* body_canonical_sha256 — implements the byte-range and
+   canonicalisation algorithm named in spec/algebra-3.2.md §7.1
+   and decision `d5-body-vs-wrapper-canonical-2026-10`. The input
+   is the raw file bytes (UTF-8, LF or CRLF); the output is the
+   `sha256:` + 64 hex digest form used in `body_sha` / `yaml_sha`
+   fields. The function is pure (no I/O, no allocation beyond the
+   result string); the four properties tested in
+   tests/body_canonical_test.ml (stability, sensitivity,
+   insensitivity-to-placeholder, CRLF-equals-LF) follow from the
+   definition. The single-file (trivial) case in the spec
+   produces `body_sha = yaml_sha`; the dual-authored case
+   (algebra §6, sibling YAML) is deferred to a follow-up
+   decision. *)
+let[@warning "-32"] body_canonical_sha256 (bytes : string) : string =
+  let crlf_to_lf s =
+    let len = String.length s in
+    let buf = Buffer.create len in
+    let i = ref 0 in
+    while !i < len do
+      let c = s.[!i] in
+      if c = '\r' && !i + 1 < len && s.[!i + 1] = '\n' then begin
+        Buffer.add_char buf '\n';
+        i := !i + 2
+      end else begin
+        Buffer.add_char buf c;
+        incr i
+      end
+    done;
+    Buffer.contents buf
+  in
+  (* The OCaml 5.5 `Str` module does not support the
+     `\{n\}` interval quantifier (only `*`, `+`, `?`), so
+     the placeholder substitution is implemented with
+     String.index + manual character checks rather than
+     a regex. The matched shape is:
+       `body_sha: "sha256:` + 64 hex chars + `"`
+     (total 83 chars). The replacement is the same length
+     (length-preserving). Same for `yaml_sha:`. *)
+  let placeholder = "sha256:" ^ String.make 64 '0' ^ "\"" in
+  let[@warning "-32"] replace_field ~prefix s =
+    let prefix_len = String.length prefix in
+    let hex_len = 64 in
+    let s_len = String.length s in
+    let buf = Buffer.create s_len in
+    let i = ref 0 in
+    let[@warning "-32"] is_hex c =
+      (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+    in
+    let matched_len = prefix_len + hex_len + 1 in
+    while !i < s_len do
+      if !i + matched_len <= s_len
+         && String.sub s !i prefix_len = prefix
+      then begin
+        let hex_start = !i + prefix_len in
+        let hex_end = hex_start + hex_len in
+        let all_hex =
+          let[@warning "-32"] rec loop k =
+            if k >= hex_end then true
+            else if is_hex s.[k] then loop (k + 1)
+            else false
+          in
+          loop hex_start
+        in
+        let closing_quote = s.[hex_end] in
+        if all_hex && closing_quote = '"' then begin
+          Buffer.add_string buf prefix;
+          Buffer.add_string buf placeholder;
+          i := !i + matched_len
+        end else begin
+          Buffer.add_char buf s.[!i];
+          incr i
+        end
+      end else begin
+        Buffer.add_char buf s.[!i];
+        incr i
+      end
+    done;
+    Buffer.contents buf
+  in
+  let normalized = crlf_to_lf bytes in
+  let substituted =
+    replace_field ~prefix:"body_sha: \"sha256:" normalized
+    |> replace_field ~prefix:"yaml_sha: \"sha256:"
+  in
+  "sha256:" ^ Digest.sha256_hex substituted
 
 let sha_match_check (d : Domain.decision) : bool * Diagnostic.t list =
   match (d.body_sha, d.yaml_sha) with
