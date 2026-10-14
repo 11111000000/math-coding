@@ -1,207 +1,186 @@
 ---
 schema: math-coding/3.2
 id: ux-3-adoption-doc-freshen-2026-10
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:c7c28a739935f286f76c7fad39415564f18fd63934742bb89f3c6267afd200f4"
-yaml_sha: "sha256:c7c28a739935f286f76c7fad39415564f18fd63934742bb89f3c6267afd200f4"
+body_sha: "sha256:83a2c64f63f1381048c90fbc735207dd77b19df8b4e4e76591576b28c27c1446"
+yaml_sha: "sha256:83a2c64f63f1381048c90fbc735207dd77b19df8b4e4e76591576b28c27c1446"
+
 intent: |
-  Phase 0 of the ux-3 workstream. Close schema-drift in
-  `adoption/SKILL.md` and `USAGE.md`: bump the example YAML's
-  schema-string from `math-coding/3.0-alpha` to `math-coding/3.2`
-  (the live schema after
-  `decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml@1`),
-  update the `bootstrap-v3@N` revision pin, fix the example YAML so
-  it includes the required `outcomes:` block, and add a
-  `mathc explain-diagnostic <CODE>` reference so users learn to
-  resolve `MC-*` codes through the kernel.
+  Revision 2 of `ux-3-adoption-doc-freshen-2026-10`. The
+  Phase-0 freshening at @1 still referenced
+  `MC_VERSION=3.1.0-alpha-final` in `adoption/SKILL.md` §"Step 1"
+  via the old `wget | chmod` install pattern, and the
+  verifier `scripts/check-adoption-doc-freshen.sh` had
+  (reverse-logic) greps for the literal `3.1.0-alpha-final`
+  string. After `decisions/install-tooling-default-tag-edge-2026-10@1`
+  flipped `MC_VERSION_DEFAULT` in `install.sh` to `edge`,
+  the literal `3.1.0-alpha-final` no longer resolves to a
+  published tag, so the doc references and the verifier both
+  had to move to `edge`.
 
-  No kernel surface. No `lib/`, no `bin/Mathc.ml`, no `spec/`, no
-  `schemas/`, no `axioms/`. Only:
+  This revision ships two coupled updates:
+  1. `adoption/SKILL.md` §"Step 1" replaces the
+     `wget | chmod` block (with its literal `v3.1.0-alpha-final`
+     URL) with the canonical `curl | sh --user-skill`
+     pattern that matches `USAGE.md` §"Install".
+  2. `scripts/check-adoption-doc-freshen.sh` replaces the
+     reverse-logic grep for `3.1.0-alpha-final` with a
+     forward check that `adoption/SKILL.md` no longer
+     carries the literal `3.1.0-alpha-final` and does
+     carry `releases/download/edge/install.sh` (the new
+     URL).
 
-    adoption/SKILL.md          (schema-string + outcomes block +
-                                explain-diagnostic reference)
-    USAGE.md                   (explain-diagnostic reference)
-    decisions/ux-3-adoption-doc-freshen-2026-10.yaml  (this file)
-    scripts/check-adoption-doc-freshen.sh            (verifier wrapper)
-
-  This decision is META per the PACKAGES.md convention. It does
-  not appear in `mathc packages` counts.
+  Per-repo skill `.opencode/skills/math-coding/SKILL.md` is
+  a verbatim copy of `adoption/SKILL.md` per
+  `ux-3-repo-tracked-opencode-skill-2026-10@1`; the
+  in-repo copy is byte-synced with `adoption/SKILL.md`
+  immediately after the §"Step 1" edit via
+  `cp adoption/SKILL.md .opencode/skills/math-coding/SKILL.md`.
+  `scripts/check-opencode-skill.sh` then re-verifies
+  byte-equality.
 
 axiom_link:
   - A0
+  - A1
   - A4
 
 antithesis: |
-  The counter-position considered and rejected: "Schema-string
-  freshening and `mathc explain-diagnostic` cross-references are
-  maintenance plumbing — they are not 'decisions', they are routine
-  follow-ups. Recording one in `decisions/` adds ceremony without
-  changing obligations and creates a precedent that every doc
-  re-write needs its own decision. Skip the decision; just open
-  the PR." The author engaged with this position and rejected it
-  on three grounds: (a) `AGENTS.md §Self-application` requires a
-  decision for any change that touches the user-facing
-  documentation surface, which downstream consumers (skill loading,
-  `mathc validate`, README copy-paste) parse; without a recorded
-  decision the change is unreviewed from the audit perspective;
-  (b) the bump from `math-coding/3.0-alpha` to `math-coding/3.2`
-  changes the schema string downstream consumers parse, so a drift
-  breaks a future agent's loop silently — the bump must have a
-  `decisions/` link in the relations graph to be visible to the
-  kernel; (c) shipping the `mathc explain-diagnostic <CODE>`
-  reference in two canonical places (`adoption/SKILL.md` and
-  `USAGE.md`) ensures every adopter learns the recovery path for
-  `MC-*` codes — without it, the diagnostic surface is unusable
-  for first-time users.
+  The counter-position considered and rejected: "Rev-bump a
+  META decision for a doc-only update is over-ceremony;
+  the `wget | chmod` block is editorial copy and the verifier
+  change is a one-line grep tweak." The author engaged with
+  this position and rejected it on three grounds: (a) the
+  @1 decision is recorded as META per the PACKAGES.md
+  convention but its scope includes `adoption/SKILL.md`,
+  `USAGE.md`, and `scripts/check-adoption-doc-freshen.sh`
+  (lines 107-110 of @1); any change to those files is a
+  change to the META decision's commitment and a rev-bump
+  is the auditable form; (c) per AGENTS.md, a verifier
+  change is a kernel-adjacent surface — a doc-only update
+  that turns a green verifier red would silently disable
+  `scripts/check.sh` for future contributors; this revision
+  documents both changes in one auditable diff.
 
 commitment: |
-  Two deliverables, each pinned by an obligation:
+  Three deliverables, each pinned by an obligation:
 
-    D1. `adoption/SKILL.md`:
-        - example YAML uses `schema: math-coding/3.2` (not
-          `math-coding/3.0-alpha`);
-        - example YAML carries an `outcomes:` block (otherwise
-          the example would fail `mathc validate` against the
-          live schema);
-        - `relations.addresses` pin is `bootstrap-v3@3` (not `@2`);
-        - `mathc version` expectation matches the live binary
-          output (`math-coding 3.1.0-alpha-final: bootstrap`);
-        - a `mathc explain-diagnostic <CODE>` reference is added
-          in §"Step 4. Validate and self-check".
+  D1. `adoption/SKILL.md` §"Step 1. Install the kernel"
+      replaces the legacy `wget | chmod` block with the
+      canonical `curl | sh --user-skill` pattern. The
+      literal string `3.1.0-alpha-final` is gone from the
+      block; `releases/download/edge/install.sh` is
+      present; the per-user skill install is shown with
+      `--user-skill`.
 
-    D2. `USAGE.md`:
-        - a `mathc explain-diagnostic <CODE>` reference is added
-          in §"Review-time questions".
+  D2. `.opencode/skills/math-coding/SKILL.md` is byte-for-byte
+      identical to `adoption/SKILL.md` immediately after
+      the edit. `scripts/check-opencode-skill.sh` exits 0.
+
+  D3. `scripts/check-adoption-doc-freshen.sh` reverses the
+      check at line 43: instead of asserting that
+      `adoption/SKILL.md` carries `3.1.0-alpha-final`, it
+      now asserts that `adoption/SKILL.md` does NOT
+      carry `3.1.0-alpha-final` AND that it does carry
+      `releases/download/edge/install.sh`. The verifier
+      exits 0 on the post-edit tree.
 
   Boundaries (A3 self-application):
-    - No kernel surface changes.
-    - No `lib/`, no `bin/Mathc.ml`, no `spec/`, no `schemas/`, no
-      `axioms/` are touched.
-    - This decision does not introduce the `.opencode/` repo-tracked
-      skill; that is decision `ux-3-repo-tracked-opencode-skill-2026-10`
-      (Phase 1).
-    - This decision does not bump `VERSION`; it only aligns the
-      schema-string family name.
-    - `mathc explain-diagnostic` is already a landed subcommand
-      (per ROADMAP Tier 3.5); the doc references the existing
-      command.
+  - No `lib/**`, `bin/Mathc.ml`, `spec/**`, `schemas/**`,
+    `axioms/**` touched.
+  - The kernel verdict is unchanged.
+  - The freshen in D1 mirrors the pattern in
+    `USAGE.md:14-20` (Phase-1 install-tooling surface) so
+    both documents tell the same story.
 
 counterexample: |
-  "Freshening `adoption/SKILL.md` from `math-coding/3.0-alpha` to
-  `math-coding/3.2` is a string-only edit; the only way it could be
-  wrong is if the downstream consumers do not actually require the
-  bump at the same time." The counterargument fails because
-  `decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml` is
-  the formal amendment authorising the bump; without the freshen,
-  the SKILL.md example claims `3.0-alpha` while the kernel validates
-  `3.2`, so the first-clone user runs into a mismatch on the very
-  first `mathc validate` call against their copy. "Adding the
-  `mathc explain-diagnostic <CODE>` reference is over-reach; the
-  docs already mention the command." This fails because the existing
-  mentions are either in CLI tables (no remediation guidance) or in
-  subcommand descriptions (one-line). Without a per-error pointer,
-  the user has to discover the command and read its output. Two
-  canonical placements are the minimum to make the recovery path
-  findable.
+  "What if `edge` is removed and replaced with `latest`?"
+   Counterargument: `install-tooling-default-tag-edge-2026-10`
+   records the assumption `edge-tag-publishes` and the
+   `reversal` block `install-tooling-default-tag-bumped`
+   captures the case. This revision tracks the same
+   default; if a stable SemVer tag lands, both files
+   move in lockstep.
 
-scope:
-  capabilities:
-    - adoption-doc-freshening
-  paths:
-    - "adoption/SKILL.md"
-    - "USAGE.md"
-    - "decisions/ux-3-adoption-doc-freshen-2026-10.yaml"
-    - "scripts/check-adoption-doc-freshen.sh"
-  exclusions:
-    - "lib/**"
-    - "bin/**"
-    - "spec/**"
-    - "schemas/**"
-    - "axioms/**"
-    - "decisions/decision.yaml"
-
-outcomes:
-  - id: adoption-docs-freshened
-    statement: |
-      `adoption/SKILL.md` carries the schema string
-      `math-coding/3.2` (not `math-coding/3.0-alpha`); the example
-      YAML includes a valid `outcomes:` block; the
-      `relations.addresses` pin is `bootstrap-v3@3`; the `mathc
-      version` expectation matches the live binary output; a
-      `mathc explain-diagnostic <CODE>` reference is present in
-      §"Step 4". `USAGE.md` carries a `mathc explain-diagnostic
-      <CODE>` reference in §"Review-time questions".
-  - id: this-decision-validates
-    statement: |
-      `mathc validate
-      decisions/ux-3-adoption-doc-freshen-2026-10.yaml` exits 0.
+  "What if the per-repo skill copy is forgotten and the
+   verifier doesn't catch it?" Counterargument:
+   `scripts/check-opencode-skill.sh` is run by
+   `scripts/check.sh`; a copy mismatch fails the
+   aggregator. The commit message for this revision
+   explicitly calls out the `cp` step so the diff is
+   easy to audit.
 
 assumptions:
-  - id: explain-diagnostic-already-landed
+  - id: install-tooling-default-tag-edge-landed
     state: assumed
     statement: |
-      `mathc explain-diagnostic <CODE>` is a landed subcommand
-      (per ROADMAP Tier 3.5). The doc reference is to the existing
-      command; if it is ever retired, the references in SKILL.md
-      and USAGE.md must be removed in a follow-up decision.
+      `decisions/install-tooling-default-tag-edge-2026-10@1`
+      has merged and `MC_VERSION_DEFAULT` in
+      `scripts/install-tooling/install.sh` reads `"edge"`.
     owner: human:maintainer
     consequence_if_false: |
-      If `mathc explain-diagnostic` is retired, the `MC-*`
-      references in the docs become stale pointers. Resolution:
-      a follow-up decision removes them.
+      The doc updates and the verifier updates assume the
+      install surface ships at `edge`. If a stable tag
+      lands first, this revision is rebased on top and the
+      literals move in lockstep.
     review_on:
-      - signal: explain-diagnostic-retired
+      - signal: install-tooling-default-tag-bumped
 
 obligations:
-  - id: adoption-docs-freshened
-    outcome: adoption-docs-freshened
+  - id: skill-md-step-1-uses-curl
+    outcome: skill-step-1-freshened
     claim: |
-      `adoption/SKILL.md` carries `math-coding/3.2` (not
-      `math-coding/3.0-alpha`); the example YAML has an
-      `outcomes:` block; the `bootstrap-v3@3` pin is current; the
-      `mathc version` expectation matches the live binary; a
-      `mathc explain-diagnostic <CODE>` reference is in
-      §"Step 4". `USAGE.md` carries a `mathc explain-diagnostic
-      <CODE>` reference in §"Review-time questions".
+      `adoption/SKILL.md` §"Step 1" uses `curl ... install.sh | sh`
+      and references `releases/download/edge/install.sh`.
+    acceptance:
+      all:
+        - verifier: scripts/check-adoption-doc-freshen.sh
+          result: pass
+  - id: per-repo-skill-byte-synced
+    outcome: per-repo-skill-byte-synced
+    claim: |
+      `.opencode/skills/math-coding/SKILL.md` is byte-for-byte
+      identical to `adoption/SKILL.md`.
+    acceptance:
+      all:
+        - verifier: scripts/check-opencode-skill.sh
+          result: pass
+  - id: verifier-replaces-3.1-assertion
+    outcome: verifier-freshened
+    claim: |
+      `scripts/check-adoption-doc-freshen.sh` line 43 no
+      longer asserts that `adoption/SKILL.md` carries
+      `3.1.0-alpha-final`; the verifier now asserts the
+      inverse (no `3.1.0-alpha-final`, has
+      `releases/download/edge/install.sh`).
     acceptance:
       all:
         - verifier: scripts/check-adoption-doc-freshen.sh
           result: pass
 
-  - id: this-decision-validates
-    outcome: this-decision-validates
-    claim: |
-      `mathc validate
-      decisions/ux-3-adoption-doc-freshen-2026-10.yaml` exits 0.
-    acceptance:
-      all:
-        - verifier: mathc validate decisions/ux-3-adoption-doc-freshen-2026-10.yaml
-          result: pass
-
 reversal:
-  - signal: schema-string-reverted
+  - signal: default-tag-bumped
     condition: |
-      The schema-string is reverted from `3.2` to a prior family
-      (e.g. via a new `schema-string-bump-3.2-to-X`). Resolution:
-      update `adoption/SKILL.md` example YAML in lockstep.
-    action: rework
-  - signal: explain-diagnostic-retired
-    condition: |
-      `mathc explain-diagnostic` is removed from the CLI catalog.
-      Resolution: a follow-up decision removes the references in
-      `adoption/SKILL.md` and `USAGE.md`.
+      A stable SemVer tag (e.g. `v3.1.0`) supersedes `edge`
+      as the default install tag. Resolution: re-bump this
+      decision with the new URL.
     action: rework
 
 risk:
   declared_triggers:
-    - schema-string-reverted
-    - explain-diagnostic-retired
+    - edge-tag-unpublished
+    - per-repo-skill-drift
+    - verifier-staleness
   owner: human:maintainer
 
 relations:
   addresses:
     - bootstrap-v3@3
     - schema-string-bump-3.0-alpha-to-3.2@1
+    - install-tooling-default-tag-edge@1
+    - ux-3-repo-tracked-opencode-skill-2026-10@1
   supersedes: []
   superseded_by: []
+  rev-history:
+    - "rev 1: Phase-0 freshening (schema-string, outcomes, explain-diagnostic)"
+    - "rev 2: Step 1 sync to install.sh --user-skill + remove literal 3.1.0-alpha-final"

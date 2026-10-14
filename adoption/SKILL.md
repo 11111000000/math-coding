@@ -43,19 +43,14 @@ schema. The migration cost is one decision and one CI change.
 ## Step 1. Install the kernel
 
 ```bash
-# Pick the release tag that matches this skill. The release page lists
-# binaries for linux-amd64, linux-arm64, macos-amd64, macos-arm64.
-# On Linux the binary links against system glibc (Ubuntu 22.04+).
-# A musl variant was attempted but reverted (CI build pipeline
-# could not drive Alpine container's opam setup). For Alpine / older
-# glibc distros, build from source:
-#   nix develop .#test
-#   dune build --root . bin/mathc.exe
-# or wait for a future release with musl support.
-MC_VERSION=3.1.0-alpha-final
-URL="https://github.com/11111000000/math-coding/releases/download/v${MC_VERSION}"
-wget -qO ~/.local/bin/mathc "${URL}/mathc-linux-x86_64"
-chmod +x ~/.local/bin/mathc
+# Single-line install (default tag is the rolling 'edge' prerelease).
+# The script verifies SHA-256 of the downloaded binary against
+# SHA256SUMS on the same release. To pin a specific tag, pass
+# --version=<X>; to also install the per-user opencode skill, pass
+# --user-skill. See https://11111000000.github.io/math-coding/install.html
+# for the full matrix (release / Docker / Nix / source build).
+curl -fsSL https://github.com/11111000000/math-coding/releases/download/edge/install.sh \
+  | sh -s -- --user-skill
 export PATH="$HOME/.local/bin:$PATH"
 mathc version
 ```
@@ -81,7 +76,7 @@ curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/decisi
 $EDITOR decisions/decision.yaml
 ```
 
-`mathc version` should print `math-coding 3.1.0-alpha-final: bootstrap` and
+`mathc version` should print `math-coding <version>: bootstrap` and
 exit 0 on the current release. If it does not, the binary you downloaded
 is not the same release as this skill; see `compatible_with` in the
 frontmatter above.

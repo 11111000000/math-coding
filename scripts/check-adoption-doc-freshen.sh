@@ -40,8 +40,13 @@ check "adoption/SKILL.md missing 'bootstrap-v3@3' pin" \
 check "adoption/SKILL.md missing 'mathc explain-diagnostic' reference" \
       "grep -q 'mathc explain-diagnostic' adoption/SKILL.md"
 
-check "adoption/SKILL.md missing '3.1.0-alpha-final' version string" \
-      "grep -q '3\\.1\\.0-alpha-final' adoption/SKILL.md"
+# ux-3-adoption-doc-freshen-2026-10@2: the literal 3.1.0-alpha-final is
+# now absent (the install-tooling-2026-10 default tag moved to 'edge');
+# the doc must reference the new URL.
+check "adoption/SKILL.md still carries the legacy '3.1.0-alpha-final' tag" \
+      "! grep -q '3\\.1\\.0-alpha-final' adoption/SKILL.md"
+check "adoption/SKILL.md missing 'releases/download/edge/install.sh' URL" \
+      "grep -q 'releases/download/edge/install.sh' adoption/SKILL.md"
 
 # USAGE.md
 check "USAGE.md missing 'mathc explain-diagnostic' reference" \
