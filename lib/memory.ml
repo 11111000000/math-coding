@@ -16,6 +16,14 @@
  * `Memory.load_memory` is pure: same reader + same root -> same
  * Memory.t. *)
 
+(* Lifecycle state parsed from the `state:` field. Mirrors
+   Domain.decision_state (lib/domain.ml:178) at construction time
+   so the gate can filter retired/superseded decisions without
+   re-parsing the YAML. Default [Active] when the field is
+   absent or unrecognised; the kernel parser in lib/decision.ml
+   treats the same string as Active. *)
+type decision_state = [ `Draft | `Active | `Retired | `Superseded ]
+
 type decision_entry = {
   decision_id : string;
   revision : string option;
@@ -24,6 +32,7 @@ type decision_entry = {
   obligation_ids : string list;
   assumptions : int;
   risk_triggers : string list;
+  state : decision_state;
 }
 
 type spec_doc = { path : string; body : string }
@@ -162,6 +171,14 @@ let[@warning "-32"] parse_decision_yaml raw =
           | Some rps -> string_list_field rps "declared_triggers"
           | None -> []
         in
+        let state =
+          match extract_string_field ps [ "state" ] with
+          | Some s -> (
+              match Codec.parse_decision_state s with
+              | Some parsed -> parsed
+              | None -> `Active)
+          | None -> `Active
+        in
         if id = "" then None
         else
           Some
@@ -173,6 +190,7 @@ let[@warning "-32"] parse_decision_yaml raw =
               obligation_ids;
               assumptions;
               risk_triggers;
+              state;
             }
     | _ -> None
   with _ -> None
@@ -225,6 +243,7 @@ let[@warning "-32"] load_decisions reader root =
                   obligation_ids = [];
                   assumptions = 0;
                   risk_triggers = [];
+                  state = `Active;
                 }))
     paths
 

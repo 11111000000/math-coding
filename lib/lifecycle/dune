@@ -1,0 +1,5 @@
+(library
+ (name mathcoding_lifecycle)
+ (wrapped false)
+ (modules lifecycle)
+ (libraries mathcoding_core))

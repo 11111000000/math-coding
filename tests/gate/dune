@@ -1,0 +1,3 @@
+(test
+ (name state_filter)
+ (libraries mathcoding_core mathcoding_attestations alcotest))

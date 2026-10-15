@@ -1,0 +1,254 @@
+---
+schema: math-coding/3.3
+id: lifecycle-commands-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+intent: |
+  Phase 6 of the ux-3 workstream. Add a focused YAML editor
+  for a single decision's lifecycle state plus a kernel-side
+  filter that drops retired and superseded decisions from the
+  gate's obligation walk. The current state-of-the-world
+  treats every decision in `decisions/*.yaml` (regardless of
+  its declared state) as part of the active set the gate
+  walks. A retired decision that has been replaced by a
+  superseder should not contribute obligation gaps every
+  commit; historical decisions must still be readable but
+  must not block forward progress.
+
+  After this decision:
+
+    D1. `lib/gate.ml::evaluate` filters out decisions whose
+        `state` is `Retired` or `Superseded`. The 4-state
+        enum in `lib/codec.ml::parse_decision_state`
+        (algebra §7) is unchanged — the enum stays
+        `draft | active | retired | superseded`. The filter
+        is an obligation-gate concern, not a kernel-state
+        concern.
+
+    D2. `mathc decision-state <id> <action> [--by=<id>@<rev>]`
+        is a new subcommand that performs a targeted YAML
+        edit + re-validate. Actions: `mark-superseded
+        --by=<new-id>@<rev>`, `mark-retired`, `set <state>`.
+        Exit codes follow OCAML_BEST_PRACTICES.md §4.3:
+        0 on accept, 1 on reject (idempotent re-issue or
+        kernel validation failure), 2 on input error (no
+        such id, bad kebab, missing args).
+
+    D3. The user-facing names "obsolete" and "archive" are
+        NOT accepted by the CLI; they map to `Retired` and
+        `Superseded` respectively but widening the enum for
+        a single user-facing alias is forbidden (see
+        counterexample).
+
+    D4. Cram test `tests/cli/decision-state.t` covers the
+        five documented behaviors (positive mark-superseded,
+        positive mark-retired, idempotency reject,
+        missing-id input error, non-kebab input error).
+
+    D5. Conformance test `tests/gate/state_filter.ml` covers
+        the kernel filter behavior (drop retired / drop
+        superseded / keep active / keep draft / cycle
+        detector still independent of filter).
+
+  Boundaries (A3 self-application):
+    - lib/decision.ml, lib/codec.ml, lib/mcp/dispatch.ml
+      unchanged (parser, dispatch, and other agents'
+      territory).
+    - lib/check/, lib/find/, lib/graph/, lib/init/,
+      lib/new_decision/, lib/import_adr/, lib/render.ml
+      unchanged (other agents' territory in this ux-3
+      workstream).
+    - lib/waiver.ml, lib/migrate.ml, lib/policy.ml,
+      lib/risk.ml, lib/canonical.ml, lib/diagnostic.ml,
+      lib/attestations/**, lib/git/**, lib/junit/**,
+      lib/mcp/, spec/**, schemas/**, axioms/** unchanged.
+    - The 4-state `state:` enum is preserved verbatim.
+      No widening, no new variants.
+
+  Implementation notes for the agent reading this: the kernel
+  filter is implemented in `lib/gate.ml::evaluate` via a
+  helper `active_entries` that drops retired/superseded
+  entries from `Memory.t.decisions` before the obligation
+  walk. The Memory type itself is extended with a
+  `state : [Draft | Active | Retired | Superseded]` field on
+  `decision_entry`; `lib/memory.ml::parse_decision_yaml`
+  populates it via `Codec.parse_decision_state`. The branch
+  stub in `bin/Mathc.ml::load_decision_entry` defaults to
+  `Active` (mirroring the kernel parser default).
+
+axiom_link:
+  - A0
+  - A3
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "The CLI is
+  fine; just have the user edit the YAML by hand and re-run
+  `mathc validate`." Engaged with this on three grounds:
+  (a) the script edits in lib/lifecycle/lifecycle.ml are
+  pure text rewrites that preserve front-matter, body
+  scalars, and trailing whitespace — the kernel's
+  body-vs-wrapper canonicalization algorithm
+  (`lib/decision.ml::body_canonical_sha256`) treats the
+  byte-faithful rewrite as the same content even when the
+  next `mathc validate` runs and recomputes the SHA, which
+  yields a clean accept; (b) hand edits are reliable enough
+  for the author, but the `idempotent re-issue is reject`
+  rule is kernel-side: the human who copy-pastes
+  `state: superseded` into an already-superseded YAML
+  deserves a non-zero exit, not a silent pass; and
+  (c) `decisions/*.yaml` already accommodates user-supplied
+  edit primitives (see `--write` on `mathc new-decision`,
+  `--mark-superseded` does the same with a smaller blast
+  radius — one file, no schema changes).
+
+commitment: |
+  Five deliverables:
+
+    D1. `lib/gate.ml` filters `Retired` and `Superseded`
+        decisions from the obligation walk that
+        `lib/gate.ml::evaluate` performs. The change is
+        scoped to `evaluate`; `do_self_check` is unchanged
+        (it walks decisions directly via `load_decision_entry`,
+        not through `evaluate`).
+
+    D2. `lib/memory.ml` extends `decision_entry` with a
+        `state` field populated from
+        `Codec.parse_decision_state`. The fallback for
+        unparseable or absent `state:` is `Active` (mirroring
+        the kernel parser default).
+
+    D3. New subcommand `mathc decision-state <id> <action>
+        [--by=<id>@<rev>]`. Implemented in a new sub-library
+        `lib/lifecycle/lifecycle.ml` (~90 LOC) per
+        OCAML_BEST_PRACTICES §10.1; the dispatcher at
+        `bin/Mathc.ml::do_decision_state` parses argv and
+        forwards to `Lifecycle.transition`. The
+        `bin/Mathc.ml` and `bin/dune` files are updated to
+        declare the new library; no other file in `lib/` is
+        touched.
+
+    D4. Cram test `tests/cli/decision-state.t` (5 cases)
+        passes when `dune runtest tests/cli/decision-state.t`
+        runs in the worktree.
+
+    D5. Conformance test `tests/gate/state_filter.ml`
+        (5 alcotest cases) passes when
+        `dune runtest tests/gate/state_filter.exe` runs in
+        the worktree.
+
+counterexample: |
+  "Just add `state: obsolete` and `state: archived` to the
+  4-state enum. Two new values, easy." Rejected: the
+  4-state enum in `lib/codec.ml::parse_decision_state` is
+  normative per spec/algebra-3.2.md §7; widening it for a
+  single use case sets a precedent that grows unbounded
+  (regulatory carve-out: "yes, we have `regulatory_archived`;
+  but what about `legal_hold`?"; partner-vendor commit:
+  "but our vendors use `vendor_deprecated` not `superseded`
+  because their convention is different"). The user-facing
+  names "obsolete" and "archive" are translated at the CLI
+  layer to the existing `Retired` and `Superseded` values;
+  the algebra is preserved. The cost is a strict CLI surface
+  that rejects `--action=archive` outright (exit 2 with
+  the documented diagnostic) — users who need a private
+  alias can add it as a separate decision file with a
+  tailor-made alias policy without touching the kernel.
+
+scope:
+  capabilities:
+    - mathc-decision-state-subcommand
+    - gate-state-filter
+  paths:
+    - "lib/lifecycle/**"
+    - "lib/gate.ml"
+    - "lib/memory.ml"
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "tests/cli/decision-state.t"
+    - "tests/gate/**"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/codec.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/canonical.ml"
+    - "lib/diagnostic.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/migrate.ml"
+    - "lib/waiver.ml"
+    - "lib/init/**"
+    - "lib/new_decision/**"
+    - "lib/find/**"
+    - "lib/graph/**"
+    - "lib/check/**"
+    - "lib/import_adr/**"
+    - "lib/render.ml"
+    - "lib/mcp/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/**"
+    - "decisions/decision.yaml"
+    - "adoption/**"
+
+outcomes:
+  - id: state-filter-honours-retired-and-superseded
+    statement: |
+      After this commit, `lib/gate.ml::evaluate` produces
+      zero obligation gaps for retired or superseded
+      decisions; active and draft decisions continue to
+      contribute gaps as before. Verified by
+      `tests/gate/state_filter.ml` (alcotest, 5 cases)
+      and by `mathc self-check` verdict stability on the
+      production decision corpus.
+  - id: mathc-decision-state-cli-shipped
+    statement: |
+      `mathc decision-state <id> <action> [--by=<id>@<rev>]`
+      exists in the dispatcher; user-facing surface matches
+      the orchestration prompt spec; idempotency rejects
+      with exit 1, input errors reject with exit 2, accept
+      with exit 0. Verified by `tests/cli/decision-state.t`
+      (cram, 5 cases).
+  - id: enum-preserved
+    statement: |
+      The 4-state `state:` enum in `lib/codec.ml` is
+      unchanged: still `draft | active | retired |
+      superseded`. The CLI surface accepts the enum's four
+      values and rejects `obsolete` / `archive` aliases.
+
+obligations:
+  - id: lifecycle-commands-impl
+    claim: |
+      `tests/cli/decision-state.t` covers mark-superseded
+      (positive), mark-retired (positive), mark-retired
+      idempotency reject (exit 1), missing-id input error
+      (exit 2), and non-kebab input error (exit 2). All
+      five cases pass. `tests/gate/state_filter.exe` covers
+      gate-filter drops-retired, drops-superseded,
+      keeps-active, keeps-draft, and cycle-still-blocks;
+      all five pass. The mathc self-check verdict before
+      and after the change is identical (same unknown
+      subjects, no new unknowns).
+    acceptance:
+      all:
+        - verifier: tests/cli/decision-state.t
+          result: pass
+        - verifier: tests/gate/state_filter.exe
+          result: pass
+
+risk:
+  declared_triggers:
+    - agent-confuses-archive-and-superseded
+    - agent-widens-state-enum
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - ux-3-graph-viewer-2026-10@1

@@ -1,0 +1,17 @@
+{
+  "id": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "issued_at": "2026-10-15T00:00:00Z",
+  "kind": "attestation",
+  "kind_": "test",
+  "producer": {
+    "identity": "ci:test:tests/cli/decision-state.t"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "lifecycle-commands-2026-10",
+    "materials_digest": "",
+    "obligation": "lifecycle-commands-impl"
+  }
+}

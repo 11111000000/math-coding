@@ -23,7 +23,8 @@
   rebuttal_forge_stub
    decision_addresses_equality
    diagnostic_ux
-   body_canonical_test)
+   body_canonical_test
+   gate/state_filter)
  (libraries
   mathcoding_core
   mathcoding_adopt
