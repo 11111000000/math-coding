@@ -1,0 +1,5 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
+PackageIdentifier: mathcoding.mathc
+PackageVersion: 3.3.0
+Channel: stable
+ManifestVersion: 1.6.0

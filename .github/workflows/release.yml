@@ -310,30 +310,41 @@ jobs:
             tar -czf dist-bin/dist-adoption.tar.gz -C dist adoption
             ls -la dist-bin/dist-adoption.tar.gz
 
-      - name: Generate SHA256SUMS + install.sh
+      - name: Generate SHA256SUMS + install.sh + install.ps1
         run: |
             set -eu
             # SHA256SUMS: one line per mathc-* binary. The line format is
-            # `<hex-digest>  <basename>` (two spaces) per the convention
-            # `sha256sum -c` expects. `install.sh` reads this file at
-            # install time and refuses on tamper.
+            # `<hex-digest>  <relative-path>` (two spaces) per the
+            # convention `sha256sum -c` expects. install.sh, install.ps1,
+            # and any future installer read this file at install time
+            # and refuse on tamper.
+            #
+            # D4 (commit dist/2026-10/ux-3-distro-friction-2026-10):
+            # the previous logic skipped every *.exe entry, which
+            # silently excluded the Windows binary from verification.
+            # We now use a positive-list iterator: every dist-bin/mathc-*
+            # is hashed regardless of extension, with a separate
+            # positive exclusion only for non-binary metadata files
+            # (tar.gz, txt, sh). The install.sh and install.ps1 are
+            # published separately, NEVER hashed here.
             : > dist-bin/SHA256SUMS
             for exe in dist-bin/mathc-*; do
               [ -f "$exe" ] || continue
-              # Skip non-binaries (tar.gz, .txt, .sh)
               case "$exe" in
-                *.tar.gz|*.txt|*.sh|*.exe) ;;
+                *.tar.gz|*.txt) ;;  # explicitly excluded: metadata only
                 *) sha256sum "$exe" >> dist-bin/SHA256SUMS ;;
               esac
             done
             cat dist-bin/SHA256SUMS
-            # install.sh: verbatim copy of the source script, marked
-            # executable. The script is in scripts/install-tooling/
-            # and is independent of the build matrix; the same file
-            # is shared by every release.
+            # installers: verbatim copies of the source scripts, marked
+            # executable. They live in scripts/install-tooling/ and are
+            # independent of the build matrix; the same files are
+            # shared by every release.
             cp scripts/install-tooling/install.sh dist-bin/install.sh
             chmod +x dist-bin/install.sh
-            ls -la dist-bin/SHA256SUMS dist-bin/install.sh
+            cp scripts/install-tooling/install.ps1 dist-bin/install.ps1
+            chmod +x dist-bin/install.ps1 || true
+            ls -la dist-bin/SHA256SUMS dist-bin/install.sh dist-bin/install.ps1
 
       - name: Publish on tag — official release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -351,6 +362,7 @@ jobs:
             dist-bin/mathc-linux-x86_64-musl
             dist-bin/SHA256SUMS
             dist-bin/install.sh
+            dist-bin/install.ps1
             dist-bin/dist-adoption.tar.gz
 
       - name: Publish on main / manual dispatch — rolling edge
@@ -369,6 +381,7 @@ jobs:
             dist-bin/mathc-linux-x86_64-musl
             dist-bin/SHA256SUMS
             dist-bin/install.sh
+            dist-bin/install.ps1
             dist-bin/dist-adoption.tar.gz
           body: |
             Rolling prerelease built from the latest commit on `main`.
