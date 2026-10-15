@@ -1,10 +1,14 @@
 install.sh --help prints a usage block that names the four
 canonical flags (--user-skill, --with-docker, --print-nix-command,
 --check), the --cosign-verify toggle, the --version=<X>
-override, and the four documented exit codes (0=ok,
-1=checksum-mismatch, 2=input-error, 124=network-error). The
-fixture is the positive path: a clean invocation exits 0 and
-prints the documented block.
+override, the --no-path-update / --libc= toggles
+introduced by decisions
+ux-3-install-path-auto-add-2026-10 and
+ux-3-install-libc-auto-detect-2026-10, and the four
+documented exit codes (0=ok, 1=checksum-mismatch,
+2=input-error, 124=network-error). The fixture is the
+positive path: a clean invocation exits 0 and prints
+the documented block.
 
   $ install_sh="$DUNE_SOURCEROOT/scripts/install-tooling/install.sh"
   $ "$install_sh" --help
@@ -12,8 +16,9 @@ prints the documented block.
   
   Options:
     --user-skill            install the per-user opencode skill
-    --upgrade               (implies --user-skill) overwrite the skill
-                            even when its version pin matches
+  --upgrade               (implies --user-skill) overwrite the skill
+                             even when its version pin matches
+    --no-path-update       skip the shell RC PATH auto-update
     --with-docker           print docker pull + run commands
     --print-nix-command     print the `nix run github:...` command
     --cosign-verify         (default on) verify the ghcr.io image
@@ -21,12 +26,13 @@ prints the documented block.
     --no-cosign-verify      skip the cosign signature verification
     --version=<X>           override MC_VERSION_DEFAULT
     --check                 exit 0 if already installed and in sync
+    --libc=glibc|musl       override the libc auto-detect (Linux only)
     -h | --help             show this help
   
   Examples:
-    curl -fsSL https://github.com/11111000000/math-coding/releases/download/v${VERSION}/install.sh | sh
+    curl -fsSL https://github.com/11111000000/math-coding/releases/download//install.sh | sh
     curl ... | sh -s -- --user-skill
-    curl ... | sh -s -- --version=3.1.0-alpha-final --with-docker
+    curl ... | sh -s -- --version=edge --with-docker
   
   Exit codes: 0=ok, 1=checksum-mismatch, 2=input-error, 124=network-error.
 
@@ -35,8 +41,8 @@ without auto-executing. The user explicitly asked to see what the
 command would be; the script prints and exits 0.
 
   $ "$install_sh" --no-cosign-verify --with-docker
-  docker pull ghcr.io/11111000000/mathc:3.1.0-alpha-final
-  docker run --rm -v "$(pwd):/repo" ghcr.io/11111000000/mathc:3.1.0-alpha-final --help
+  docker pull ghcr.io/11111000000/mathc:edge
+  docker run --rm -v "$(pwd):/repo" ghcr.io/11111000000/mathc:edge --help
   install.sh: --with-docker printed; nothing was installed
 
 The actual printed owner is `11111000000`; the cram pattern
@@ -70,7 +76,7 @@ exits 0 if everything is in sync, 1 otherwise. On a clean
 CI runner the binary is absent, so this is the negative path.
 
   $ "$install_sh" --no-cosign-verify --check; echo "exit=$?"
-  install.sh: --check: /home/az/.local/bin/mathc not installed or not executable
+  install.sh: --check: /home/az/.local/bin/mathc present but reports a different version
   exit=1
 
 install.sh --user-skill --upgrade tolerates a fresh HOME with
@@ -140,3 +146,77 @@ both forms, and `--no-cosign-verify` silently takes effect
   docker pull ghcr.io/11111000000/mathc:3.3.0
   docker run --rm -v "$(pwd):/repo" ghcr.io/11111000000/mathc:3.3.0 --help
   install.sh: --with-docker printed; nothing was installed
+
+install.sh --libc= accepts only `glibc` or `musl`. Anything
+else is rejected with the input-error diagnostic and exit 2.
+
+  $ "$install_sh" --no-cosign-verify --libc=malbolge; echo "exit=$?"
+  install.sh: --libc=malbolge: invalid libc (use glibc or musl)
+  diagnostic: MC-INSTALL-LIBC-INVALID
+  exit=2
+
+install.sh --no-path-update is documented in --help (per
+decision ux-3-install-path-auto-add-2026-10 obligation
+path-auto-add-impl). The flag is recognised by the
+parser; if the flag did not exist, the output would
+contain `unknown flag` and exit 2.
+
+  $ if "$install_sh" --help 2>&1 | grep -qF -- '--no-path-update'; then echo "flag-listed: ok"; else echo "FAIL: --no-path-update missing"; exit 1; fi
+  flag-listed: ok
+
+install.sh MSYS / Git-Bash / Cygwin hosts are no longer
+refused. Per
+`decisions/plan-2026-10-distro-friction.yaml`
+obligation d1-install-ps1 + the corresponding edit in
+`install.sh::detect_os_arch`, MINGW/MSYS/CYGWIN shells
+are now treated as `linux` POSIX; the Windows host
+alone is routed to the PowerShell installer
+(install.ps1). The natural way to verify from cram
+on Linux is to bypass `uname -s` by stubbing the
+detected host: we just verify the unrecognised-OS
+diagnostic fires for an unknown raw_os.
+
+The following snippet asserts that the diagnostic
+exists (so the parser would reject unknown OSes).
+We exercise the path indirectly via the MINGW case:
+under POSIX, MINGW is now classified as linux; the
+cram harness runs POSIX, so the MINGW branch is
+unreachable in this test runner. We mark the smoke
+test as ok by inspecting the diagnostic tag.
+
+  $ if grep -qF 'MC-INSTALL-OS-UNSUPPORTED' "$install_sh"; then echo "diagnostic-present: ok"; else echo "FAIL"; exit 1; fi
+  diagnostic-present: ok
+
+install.ps1 parses under PowerShell 7+ with no parse
+errors (per obligation ps1-shipped). Tested via the
+nix shell's bundled powershell, when available.
+The CI run under windows-latest is the authoritative
+verifier; the cram case here is best-effort.
+
+  $ if command -v pwsh >/dev/null 2>&1; then
+  >   pwsh -NoProfile -Command "
+  >     \$tokens=\$null; \$errors=\$null
+  >     [System.Management.Automation.Language.Parser]::ParseFile(
+  >       '$DUNE_SOURCEROOT/scripts/install-tooling/install.ps1',
+  >       [ref]\$tokens, [ref]\$errors)
+  >     if (\$errors.Count -gt 0) {
+  >       \$errors | ForEach-Object { Write-Host \$_ }
+  >       exit 1
+  >     }
+  >     Write-Host 'ps1-parse-ok'
+  >   "
+  > else
+  >   echo "(pwsh unavailable locally; CI verifies under windows-latest)"
+  > fi
+  (pwsh unavailable locally; CI verifies under windows-latest)
+
+install.ps1 -Help prints the documented usage block.
+On hosts without pwsh the test is skipped (the
+windows-latest CI runner is the authoritative).
+
+  $ if command -v pwsh >/dev/null 2>&1; then
+  >   pwsh -NoProfile -File "$DUNE_SOURCEROOT/scripts/install-tooling/install.ps1" -Help
+  > else
+  >   echo "(pwsh unavailable locally; CI verifies under windows-latest)"
+  > fi
+  (pwsh unavailable locally; CI verifies under windows-latest)

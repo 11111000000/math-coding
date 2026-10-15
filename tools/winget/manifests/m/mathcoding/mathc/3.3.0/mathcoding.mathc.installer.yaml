@@ -1,0 +1,24 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.6.0.schema.json
+PackageIdentifier: mathcoding.mathc
+PackageVersion: 3.3.0
+PackageLocale: en-US
+InstallerType: zip
+Scope: user
+InstallModes:
+  - silent
+UpgradeBehavior: install
+Commands:
+  - mathc
+FileExtensions:
+  - .mc-decision
+InstallerAbortsTerminal: false
+InstallLocation: %LOCALAPPDATA%\Programs\mathc
+ExpectedReturnCodes:
+  - ReturnCode: 0
+    ReturnResponse: success
+Installers:
+  - Architecture: x64
+    InstallerUrl: https://github.com/11111000000/math-coding/releases/download/v3.3.0/mathc-windows-x86_64.exe
+    InstallerSha256: 202a09d8a114c1eb9cc0ab3c94500898737c24ee7287778d6adb8bf79e3a6a3d
+    InstallerType: exe
+    NestedInstallerType: portable

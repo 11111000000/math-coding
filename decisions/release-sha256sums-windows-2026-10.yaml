@@ -1,0 +1,159 @@
+---
+schema: math-coding/3.3
+id: release-sha256sums-windows-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+
+body_sha: "sha256:e2df5ac10cc5cf286c96967841eba80df27f3ff18206f9d0c295681509d40ee9"
+yaml_sha: "sha256:e2df5ac10cc5cf286c96967841eba80df27f3ff18206f9d0c295681509d40ee9"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  Fix a latent bug in the release pipeline: the
+  `Generate SHA256SUMS + install.sh` step in
+  `.github/workflows/release.yml` skipped any
+  `*.exe` entry, which silently excluded the Windows
+  binary (`mathc-windows-x86_64.exe`) from
+  verification. The pre-D4 release artefacts shipped
+  with a 5-line `SHA256SUMS` (linux glibc x86_64 /
+  aarch64 / x86_64-musl, darwin x86_64 / aarch64) — no
+  Windows. The fix: switch to a positive-list iterator
+  that hashes every `mathc-*` regardless of extension
+  (excluding only metadata files like `*.tar.gz`,
+  `*.txt`), and also publish `install.ps1` alongside
+  `install.sh`.
+
+commitment: |
+  The release pipeline's publish step generates
+  `SHA256SUMS` that includes:
+    - `mathc-linux-x86_64`
+    - `mathc-linux-aarch64`
+    - `mathc-linux-x86_64-musl`
+    - `mathc-darwin-x86_64`
+    - `mathc-darwin-aarch64`
+    - `mathc-windows-x86_64.exe` ← added
+    - (future) `mathc-windows-aarch64.exe` ← placeholder
+      for the D7 sub-decision's matrix entry
+
+  The `softprops/action-gh-release` `files:` list is
+  extended to include `dist-bin/install.ps1` on both
+  the tag release and the `edge` prerelease. The
+  `install.ps1` script is treated as an installer
+  (copied verbatim, marked executable) and is NOT
+  hashed into `SHA256SUMS` (it has its own verifier
+  path).
+
+  The change is mechanical (one bash for-loop case
+  pattern, plus two `files:` lines). No kernel- or
+  spec-touching change. The verifier
+  `verify_sha256()` in `install.sh` and
+  `Test-Sha256` in `install.ps1` already accept any
+  `mathc-*` basename listed in `SHA256SUMS`; they
+  simply had nothing to verify against for `*.exe`.
+
+scope:
+  capabilities:
+    - release-pipeline
+  paths:
+    - ".github/workflows/release.yml"
+    - "scripts/install-tooling/install.ps1"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "scripts/install-tooling/install.sh"
+
+outcomes:
+  - id: all-platforms-verifiable
+    statement: |
+      Every `mathc-*` release artifact has a SHA-256
+      line in `SHA256SUMS`; the SHA matches the
+      downloaded binary.
+
+counterexample: |
+  "Hashing `*.exe` defeats Windows SmartScreen
+   heuristics." Counterargument: `SHA256SUMS` is
+   fetched by `install.sh` / `install.ps1` itself; it
+   is not scanned by SmartScreen. The download is
+   direct from GitHub's CDN over HTTPS, and the
+   binary's SHA is verified before any I/O on the
+   user's filesystem.
+
+  "The fix is a no-op cosmetically; v3.3.0's
+   `SHA256SUMS` shipped without Windows because the
+   Windows binary wasn't tested at install time."
+   Counterargument: the D1 install.ps1 depends on
+   `SHA256SUMS` listing the Windows binary; without
+   the fix, `Test-Sha256` returns `2` on the Windows
+   binary (no listing found), causing the install to
+   fail. The bug is a coupling defect that becomes
+   user-visible the moment install.ps1 ships.
+
+obligations:
+  - id: sums-windows-fixed
+    outcome: all-platforms-verifiable
+    claim: |
+      The release.yml `SHA256SUMS` generator step
+      includes the Windows binary.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/release-sha256sums-windows-2026-10.yaml
+          result: pass
+        - verifier: yq '.jobs.publish.steps[]|select(.name=="Generate SHA256SUMS + install.sh + install.ps1")|.run' .github/workflows/release.yml | grep -v '*.exe'
+          result: pass
+
+  - id: install-ps1-published
+    outcome: all-platforms-verifiable
+    claim: |
+      The release pipeline publishes `install.ps1`
+      alongside `install.sh`.
+    acceptance:
+      all:
+        - verifier: grep -q 'install.ps1' .github/workflows/release.yml
+          result: pass
+
+  - id: sums-windows-cram
+    outcome: all-platforms-verifiable
+    claim: |
+      A cram test
+      (`tests/scripts/release-sha256sums-windows.t`)
+      asserts the SHA256SUMS file at a sample tag
+      contains a Windows binary line.
+    acceptance:
+      all:
+        - verifier: tests/scripts/release-sha256sums-windows.t exists
+          result: pass
+        - verifier: tests/scripts/release-sha256sums-windows.t runs via dune test
+          result: pass
+
+reversal:
+  - signal: sums-windows-fallback
+    condition: |
+      A user reports that hashing `*.exe` files on a
+      macOS runner mis-routes due to file-magic
+      confusion. Resolution: switch to an even more
+      positive list (`*.exe-and-binaries-only`).
+    action: rework
+
+risk:
+  declared_triggers:
+    - windows-binary-staging-rename
+    - sums-format-divergence
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-distro-friction@1
+  supersedes: []
+  superseded_by: []

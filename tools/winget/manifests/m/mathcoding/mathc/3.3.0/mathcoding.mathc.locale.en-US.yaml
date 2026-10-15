@@ -1,0 +1,32 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.locale.1.6.0.schema.json
+PackageIdentifier: mathcoding.mathc
+PackageVersion: 3.3.0
+PackageLocale: en-US
+Publisher: MathCoding
+PublisherUrl: https://github.com/11111000000/math-coding
+PublisherSupportUrl: https://github.com/11111000000/math-coding/issues
+PrivacyUrl: https://github.com/11111000000/math-coding/blob/main/ETHICS.md
+Author: MathCoding
+PackageName: mathc
+License: Apache-2.0
+LicenseUrl: https://github.com/11111000000/math-coding/blob/main/LICENSE
+ShortDescription: Risk-adaptive assurance protocol for software changes
+Description: |
+  math-coding links a concrete change to the obligations it may
+  affect and to bounded evidence about those obligations. It does
+  not prove software correctness. Once installed, run `mathc init`
+  in a project root to scaffold the decisions/ tree, then write a
+  decision file and run `mathc self-check`.
+Moniker: mathc
+ReleaseNotes: https://github.com/11111000000/math-coding/releases/tag/v3.3.0
+ReleaseNotesUrl: https://github.com/11111000000/math-coding/releases/tag/v3.3.0
+PurchaseUrl: ~
+DiscoveryVersion: 1.6.0
+ReleaseDate: 2026-10-15T00:00:00Z
+Tags:
+  - math
+  - assurance
+  - cli
+  - developer-tools
+  - decision-tracking
+ManifestType: defaultLocale

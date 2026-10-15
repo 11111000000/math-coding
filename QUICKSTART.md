@@ -6,16 +6,34 @@ full runbook, see [USAGE.md](USAGE.md). For the AI-agent skill, see
 
 ## Install
 
+Linux / macOS / WSL / Git-Bash / MSYS / Cygwin / Alpine — one
+command, auto-detects libc and shell RC:
+
 ```sh
-curl -fsSL https://github.com/11111000000/math-coding/releases/download/edge/install.sh \
+curl -fsSL https://github.com/11111000000/math-coding/releases/latest/download/install.sh \
   | sh -s -- --user-skill
-export PATH="$HOME/.local/bin:$PATH"
 mathc version
 ```
 
+Windows (PowerShell 5.1+ / 7+):
+
+```powershell
+irm https://github.com/11111000000/math-coding/releases/latest/download/install.ps1 | iex
+mathc version
+```
+
+The shell installer:
+- downloads `SHA256SUMS` and verifies the binary;
+- installs to `~/.local/bin/mathc` (Linux/macOS) or
+  `%LOCALAPPDATA%\Programs\mathc` (Windows);
+- idempotently appends `export PATH=…` to `~/.bashrc` /
+  `~/.zshrc` / `~/.profile` (Windows: user `Path`);
+- on Alpine / Void / Chimera, downloads the musl-linked
+  binary automatically.
+
 Other channels (Docker, Nix, source build) live in
-[site/install.md](site/install.md); use them when `curl | sh` is
-blocked or you need a hermetic runner.
+[site/install.md](site/install.md); use them when `curl | sh`
+is blocked or you need a hermetic runner.
 
 ## First decision
 

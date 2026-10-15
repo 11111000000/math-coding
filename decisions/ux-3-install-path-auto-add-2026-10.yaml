@@ -1,0 +1,151 @@
+---
+schema: math-coding/3.3
+id: ux-3-install-path-auto-add-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+
+body_sha: "sha256:c938bf154cd24edd33e53cd28bfd74f651eb0132c5ec944be343ae8e3ba249c9"
+yaml_sha: "sha256:c938bf154cd24edd33e53cd28bfd74f651eb0132c5ec944be343ae8e3ba249c9"
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+intent: |
+  After a successful install via `install.sh`, idempotently
+  update the user's shell RC files so the chosen
+  `$install_dir` is on `$PATH` for new login shells. The
+  current script only PRINTS a hint ("ensure $install_dir
+  is on $PATH"), forcing the user to manually edit
+  `~/.bashrc` / `~/.zshrc` on clean containers / fresh
+  distros. The new path auto-add closes that gap.
+
+commitment: |
+  `scripts/install-tooling/install.sh` includes a new
+  `update_path_in_rc()` function that, on a successful
+  install:
+    1. Detects the user's shell from `${SHELL}` and
+       resolves the corresponding RC files (bash →
+       `~/.bashrc` + `~/.profile`; zsh → `~/.zshrc` +
+       `~/.zshenv` + `~/.zprofile`; ksh → `~/.kshrc`; else
+       → `~/.profile`).
+    2. For each candidate RC file that exists and is
+       writable: skips the append if the literal
+       `$install_dir` is already present on a non-comment
+       line (idempotency); otherwise appends a comment
+       `# Added by math-coding install.sh (<UTC-timestamp>)`
+       and an `export PATH="$dir:$PATH"` line.
+    3. Reports per-file success to stderr (e.g.,
+       `install.sh: PATH appended to /home/user/.bashrc`).
+    4. Best-effort: RC files that fail to update are
+       warned but do not propagate to a non-zero exit;
+       the binary itself is already installed.
+    5. Opt-out via `--no-path-update` flag (default is
+       update).
+
+  The path-auto-add follows the "no surprises" principle:
+  it NEVER overwrites a line; it ONLY appends. Re-running
+  the install (same or new version) never produces
+  duplicate export lines; the grep guard catches existing
+  instances.
+
+scope:
+  capabilities:
+    - installer-distro
+    - shell-compat
+  paths:
+    - "scripts/install-tooling/install.sh"
+    - "USAGE.md"
+    - "site/install.md"
+    - "OCAML_BEST_PRACTICES.md"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: first-install-no-manual-edit
+    statement: |
+      After `curl ... | sh`, the user's next login shell
+      sees `mathc` on $PATH without any manual shell
+      configuration.
+
+counterexample: |
+  "Editing a user's shell RC without consent is rude;
+   the user must opt in." Counterargument: the
+   default-on behavior matches every other cross-platform
+   CLI installer (rustup, fnm, deno, bun, uv, gitleaks);
+   the user can opt out per-install via --no-path-update.
+   The append is append-only and trivial to remove. The
+   hint already printed pre-change is also less actionable
+   ("ensure X is on $PATH") than the auto-add.
+
+  "The shell detection is brittle; users on fish or nushell
+   should be added." Counterargument: fish and nushell
+   do not set `$SHELL` to themselves on `/etc/passwd`
+   entries pointing at them; we conservatively fall back
+   to `$HOME/.profile` for any unknown shell. Adding fish
+   and nushell follows the same pattern; deferred to a
+   follow-up decision if there is user demand.
+
+obligations:
+  - id: path-auto-add-impl
+    outcome: first-install-no-manual-edit
+    claim: |
+      `update_path_in_rc()` and `path_contains_install_dir()`
+      are defined in `install.sh`. Default-on
+      `install_path_update=1` is set in flag parsing.
+      `--no-path-update` flag is honoured.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ux-3-install-path-auto-add-2026-10.yaml
+          result: pass
+        - verifier: shellcheck scripts/install-tooling/install.sh runs clean (no new SC errors vs main)
+          result: pass
+        - verifier: bash -n scripts/install-tooling/install.sh
+          result: pass
+
+  - id: path-auto-add-tests
+    outcome: first-install-no-manual-edit
+    claim: |
+      A cram test
+      (`tests/scripts/install-path-auto-add.t`) exercises
+      both paths of the RC update.
+    acceptance:
+      all:
+        - verifier: tests/scripts/install-path-auto-add.t exists
+          result: pass
+        - verifier: tests/scripts/install-path-auto-add.t runs via dune test
+          result: pass
+
+reversal:
+  - signal: path-auto-add-broke-shell
+    condition: |
+      A user reports (via GitHub issue or telemetry) that
+      `update_path_in_rc()` corrupted their shell RC.
+      Resolution: make the flag default-off
+      (`install_path_update=0`), require explicit opt-in
+      via `install.sh --update-path`.
+    action: rework
+
+risk:
+  declared_triggers:
+    - shell-rc-corrupt-write
+    - permission-denied-on-rc
+    - unknown-shell-misroute
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-distro-friction@1
+  supersedes: []
+  superseded_by: []

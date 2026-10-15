@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"ux-3-install-ps1-2026-10","obligation":"ps1-shipped","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-10-15T00:00:00Z","id":"sha256:8611eca2f7868806e59a2528a77ecbd94d6817a684c7a76f9626e7afb121ce3b"}

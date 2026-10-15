@@ -1,0 +1,628 @@
+---
+schema: math-coding/3.3
+id: plan-2026-10-distro-friction
+revision: 1
+state: active
+mode: standard
+change_kind: editorial
+
+body_sha: "sha256:e2f7c00cbabdf2cb8e8c8fc9a3f96f3631c6f5c3d28b871d4099cfe9d550c632"
+yaml_sha: "sha256:e2f7c00cbabdf2cb8e8c8fc9a3f96f3631c6f5c3d28b871d4099cfe9d550c632"
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+  - A4
+
+intent: |
+  Cut first-run friction on Windows, macOS, and Linux to
+  "one command → `mathc version` exits 0". Today's install
+  surface (4 channels: release binary, Docker image, Nix
+  run, source build) is correct but uneven: Linux glibc
+  has a working `curl | sh`; macOS has the same; Windows
+  is unaddressed (install.sh explicitly refuses
+  MINGW/MSYS/CYGWIN hosts); Alpine picks the wrong
+  libc variant by default; `~/.local/bin` isn't auto-added
+  to the user's shell RC; the Windows binary is shipped
+  but not in SHA256SUMS; no package-manager manifests
+  ship in the repo; no `mathc update` self-update; no
+  `mathc doctor` diagnostic; no signed-binary cosign
+  (only the Docker image is signed); no ARM64 Windows
+  variant; no ARM64 Docker manifest.
+
+  This plan is the meta-decision covering 13 sub-decisions
+  across three batches (critical-distro / mid-distro /
+  long-tail-distro) so that each sub-decision is small,
+  reviewable, and revert-able in one commit, while the
+  dialectical resolution for each (counterexample +
+  considered antithesis) is captured here for the audit
+  trail. The 5 critical items (D1-D5) land in this worktree
+  on this branch; the remaining 8 (D6-D13) land in
+  dedicated subagent worktrees in parallel, each opening
+  its own PR against main after merge of the meta-decision.
+
+commitment: |
+  The cycle closes when, for every obligation below:
+
+    (a) a sub-decision exists at
+        `decisions/<id>.yaml` with `state: active` and at
+        least one matching attestation in `attestations/`
+        whose `kind_` in {test, build, review} appropriate
+        to the change;
+    (b) the surface change the sub-decision commits to has
+        landed on main and is exercised by a cram test or
+        conformance suite where the change is executable;
+    (c) `mathc self-check` returns `verdict: "unknown"`
+        with the SAME 5 pre-existing unknown subjects
+        (placeholder-sha-cleanup, enable-counters-drift-test,
+        constitution-header-3-3-update,
+        re-eval-remediation-todo-fix,
+        attestation-waiver-policy-schema-bump-3-3) and
+        zero NEW unknown subjects.
+
+  Boundaries (A3 self-application):
+    - This meta-decision does NOT itself touch any
+      kernel file (`lib/`, `bin/Mathc.ml`, `spec/`,
+      `schemas/`, `axioms/`); it is a planning artifact.
+    - Each sub-decision is independently revert-able in
+      one commit; the plan survives any single sub-revert.
+    - The 5 pre-existing unknown subjects are NOT in this
+      plan's scope.
+
+  Reversal of the existing
+  `install-tooling-default-tag-edge-2026-10` decision
+  (D13 obligation below) is the one meta-policy change in
+  this plan; it follows A3 protocol — a separate decision
+  (`install-tooling-default-tag-stable-2026-10.yaml`)
+  revises the prior under the current active policy, with
+  the prior decision explicitly listed in
+  `relations.revises`.
+
+scope:
+  capabilities:
+    - installer-distro
+    - shell-compat
+    - package-managers
+    - bootstrap-windows
+    - binary-signing
+    - cli-surface
+  paths:
+    - "decisions/<id>-2026-10.yaml"   # 13 sub-decisions
+    - "attestations/<id>-*.json"     # the attestations
+    - "scripts/install-tooling/install.sh"   # D2, D3
+    - "scripts/install-tooling/install.ps1"  # D1 (new)
+    - ".github/workflows/release.yml"      # D4, D6
+    - ".github/workflows/docker.yml"       # D8
+    - "tools/winget/**"            # D5 (new)
+    - "tools/scoop/**"             # D11 (new, subagent)
+    - "tools/homebrew/**"          # D12 (new, subagent)
+    - "QUICKSTART.md"              # surface update
+    - "USAGE.md"                   # surface update
+    - "site/install.md"            # surface update
+    - "templates/install.*"        # CI templates
+  exclusions:
+    - "lib/**"        # per-sub-decision; never collective
+    - "bin/Mathc.ml"  # per-sub-decision (D9, D10 only)
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"   # the active policy
+    - "decisions/plan-2026-10-improvements.yaml"  # the prior plan
+    - "decisions/plan-2026-10-ux-friction.yaml"   # the parallel plan
+
+outcomes:
+  - id: thirteen-distro-improvements-shipped
+    statement: |
+      13 sub-decisions landed on main via this meta-decision.
+      The 5 critical (D1-D5) land in this branch /
+      worktree; the 8 long-tail (D6-D13) land in dedicated
+      subagent worktrees opened from main after this
+      branch is merged. Each sub-decision is a separate
+      `decisions/<id>.yaml` with its own attestation. The
+      user's first `curl|sh` (or `irm|iex`) command exits 0
+      with `mathc version` on Linux, macOS, Windows,
+      WSL, Git-Bash, MSYS, Cygwin, and Alpine, without
+      manual PATH editing, without manual SHA-256
+      verification, and without manual downloading.
+
+counterexample: |
+  "13 sub-decisions is too many; this is gold-plating.
+   The friction is in the agent's prompt, not in the
+   user-facing surface." Counterargument: each
+   sub-decision is measurable in user time per first
+   install (curl|sh on Windows = "doesn't work"; first
+   install on clean container = "binary links wrong
+   libc"; first install on Ubuntu LTS without
+   ~/.local/bin on PATH = "command not found"). The
+   cumulative effect is a single command that works on
+   all 4 host families. Per-sub-decision reversibility
+   is preserved: any D6-D13 may individually revert
+   without invalidating the others.
+
+  "Subagent delegation introduces nondeterminism; this
+   plan should be implemented serially." Counterargument:
+   the subagents run in dedicated worktrees (no
+   shared file state), produce separate commits on
+   separate branches, and are bounded by the obligation
+   YAML in this decision. Each subagent's work is
+   reviewer-checkable independently. Parallel wall-clock
+   for D6-D13 is ~30-50 minutes vs. 80-150 minutes
+   serially (table in AGENTS.md §"Honest time reference
+   class", worst-case combinations).
+
+  "Winget / scoop / brew taps are out of scope for a
+   math-coding release; they require external review."
+   Counterargument: the math-coding repo holds the
+   manifest source under `tools/<packager>/` so a
+   maintainer can submit the PRs to upstream without
+   ad-hoc authorship. The external review latency
+   (Microsoft: 1-7 days; Homebrew: hours; Scoop:
+   hours) is bounded; the meta-decision obligation
+   closes on PR-submission, not on PR-merge.
+
+  "Reversing the channel-default decision is
+   unprotected A3 work." Counterargument: the
+   reversal is its OWN sub-decision
+   (`install-tooling-default-tag-stable-2026-10.yaml`)
+   under the active policy, with `relations.revises`
+   naming the prior. The reversal decision and its
+   attestation land in the same commit as the code
+   change; this is the standard A3 procedure, not a
+   bypass.
+
+assumptions:
+  - id: per-sub-decision-policy
+    state: assumed
+    statement: |
+      Each sub-decision is authored under the active
+      policy `bootstrap-v3@3` (or its successor) with
+      the appropriate A3-protected transition for
+      kernel-touching changes. The four sub-decisions
+      that touch the kernel (D9 `mathc update`, D10
+      `mathc doctor`) carry the kernel exclusions and
+      `axiom_link: A0, A3` per convention.
+    owner: human:maintainer
+    consequence_if_false: |
+      A sub-decision authored under a weaker policy
+      would weaken the gate for the changes it
+      introduces. The cycle halts; the offending
+      sub-decision is rejected or superseded.
+    review_on:
+      - signal: sub-decision-policy-drift
+
+  - id: verdict-stability-precondition
+    state: assumed
+    statement: |
+      The 5 pre-existing unknown subjects in
+      `mathc self-check` (placeholder-sha-cleanup,
+      enable-counters-drift-test,
+      constitution-header-3-3-update,
+      re-eval-remediation-todo-fix,
+      attestation-waiver-policy-schema-bump-3-3) are
+      not in this plan's scope.
+    owner: human:maintainer
+    consequence_if_false: |
+      If any change in this plan causes a regression on
+      the 5 pre-existing unknown subjects, that change
+      is reverted and the corresponding obligation stays
+      open.
+
+  - id: parallel-subagent-isolation
+    state: assumed
+    statement: |
+      Each subagent for D6-D13 operates in its own
+      Paseo-managed worktree, branched from `main` at
+      the post-merge commit of this meta-decision. No
+      two subagents edit the same file simultaneously.
+    owner: human:maintainer
+    consequence_if_false: |
+      Two subagents may simultaneously edit
+      `release.yml` (e.g., D6 cosign + D8 ARM64 docker
+      both touch it). Resolution: one subagent's PR
+      blocks until the other merges; the blocked PR
+      rebases, then merges. No data loss.
+
+obligations:
+  # ─── BATCH 1 — Critical (land in this branch) ──────────────────────────
+
+  - id: d1-install-ps1
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/ux-3-install-ps1-2026-10.yaml` exists
+      with state: active. `scripts/install-tooling/install.ps1`
+      implements the PowerShell one-liner installer for
+      Windows hosts. The script: (a) takes no argument
+      by default and downloads the latest tagged release;
+      (b) downloads `SHA256SUMS` and the matching
+      `mathc-windows-x86_64.exe` from the same release;
+      (c) verifies the binary's SHA-256 against the
+      SUMS via `Get-FileHash -Algorithm SHA256`; (d)
+      installs to `%LOCALAPPDATA%\Programs\mathc\mathc.exe`;
+      (e) idempotently adds that directory to the user
+      PATH via `[Environment]::SetEnvironmentVariable(
+      'Path', …, 'User')`; (f) prints the version from
+      `mathc version` for confirmation. Invoked via
+      `irm https://…/install.ps1 | iex`. Exits 0 on
+      success.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ux-3-install-ps1-2026-10.yaml
+          result: pass
+        - verifier: bash -n scripts/install-tooling/install.ps1
+          result: pass
+        - verifier: shellcheck scripts/install-tooling/install.ps1
+          result: pass
+        - verifier: pwsh -NoProfile -Command "& { ./scripts/install-tooling/install.ps1 -WhatIf }"
+          result: pass
+        - verifier: USAGE.md and site/install.md mention `irm|iex` for Windows
+          result: pass
+
+  - id: d2-path-auto-add
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/ux-3-install-path-auto-add-2026-10.yaml`
+      exists. The `install.sh` script, after a successful
+      install, detects whether the chosen `$install_dir`
+      is already on `$PATH`; if not, and the user's shell
+      is `bash`/`zsh`/`ksh`/etc., it idempotently appends
+      `export PATH="$install_dir:$PATH"` to the matching
+      shell RC (`~/.bashrc`, `~/.zshenv`, `~/.kshrc`,
+      `~/.profile` as fallback). The append is gated
+      behind a `--no-path-update` flag (default = on).
+      Idempotent: re-running does not produce duplicates
+      (`grep -q 'install_dir' <rc>` guard). On
+      installation failure, no shell RC is modified.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ux-3-install-path-auto-add-2026-10.yaml
+          result: pass
+        - verifier: shellcheck scripts/install-tooling/install.sh
+          result: pass
+        - verifier: tests/scripts/install-path-auto-add.t
+          result: pass
+
+  - id: d3-libc-auto-detect
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/ux-3-install-libc-auto-detect-2026-10.yaml`
+      exists. On Linux hosts, `install.sh` detects
+      glibc vs musl by reading `ldd --version 2>&1`
+      (BusyBox / musl signature) or running
+      `getconf GNU_LIBC_VERSION` (glibc signature); and
+      selects `mathc-linux-x86_64` (glibc) or
+      `mathc-linux-x86_64-musl` accordingly. The
+      detection result is logged to stderr with a
+      diagnostic tag (e.g., `install.sh: libc detect:
+      musl`). An override flag `--libc=glibc|musl` is
+      honoured. SHA256SUMS verification uses the
+      matching basename.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ux-3-install-libc-auto-detect-2026-10.yaml
+          result: pass
+        - verifier: shellcheck scripts/install-tooling/install.sh
+          result: pass
+        - verifier: tests/scripts/install-libc-auto-detect.t
+          result: pass
+
+  - id: d4-sha256sums-windows
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/release-sha256sums-windows-2026-10.yaml`
+      exists. The `release.yml` publish step generates
+      `SHA256SUMS` including the Windows binary
+      (`mathc-windows-x86_64.exe`). The bash glob
+      `*.{exe}` case which currently hashes `*.exe`
+      files is replaced with a positive list iteration
+      that hits each `mathc-*` artifact deterministically,
+      regardless of extension.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/release-sha256sums-windows-2026-10.yaml
+          result: pass
+        - verifier: yq '.spec' .github/workflows/release.yml
+          result: pass
+        - verifier: tests/scripts/release-sha256sums-windows.t
+          result: pass
+
+  - id: d5-winget-manifest
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/winget-manifest-pr-2026-10.yaml` exists.
+      `tools/winget/manifests/m/mathcoding/mathc/<version>/`
+      contains the four required YAML files
+      (`mathcoding.mathc.installer.yaml`,
+      `mathcoding.mathc.locale.en-US.yaml`,
+      `mathcoding.mathc.defaultLocale.yaml`, and a
+      `Versions/<version>.yaml`). A `tools/winget/PUBLISH.md`
+      records the upstream PR procedure for
+      microsoft/winget-pkgs. The repo's own
+      `scripts/release-winget-pr.sh` (or equivalent)
+      generates the manifest set from the live release
+      tags so the published manifest is reproducible
+      from source.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/winget-manifest-pr-2026-10.yaml
+          result: pass
+        - verifier: tools/winget/manifests/m/mathcoding/mathc/3.3.0/mathcoding.mathc.installer.yaml is valid against winget schema 1.6.0
+          result: pass
+        - verifier: python3 -m py_compile tools/winget/scripts/*.py
+          result: pass
+
+  # ─── BATCH 2 — Mid-distro (parallel subagents) ─────────────────────────
+
+  - id: d6-cosign-sign-blob-binaries
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/release-cosign-blob-sign-2026-10.yaml`
+      exists. `.github/workflows/release.yml` adds a
+      `cosign sign-blob` step after the
+      `Generate SHA256SUMS + install.sh` step. Each
+      `mathc-*` binary is signed individually with keyless
+      cosign + GitHub Actions OIDC, producing
+      `mathc-<os>-<arch>.sig` and
+      `mathc-<os>-<arch>.pem` files in the same release.
+      `install.sh` and `install.ps1` are extended to
+      verify the signature with `cosign verify-blob` before
+      installing (with `--no-cosign-verify` skip flag,
+      default on).
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/release-cosign-blob-sign-2026-10.yaml
+          result: pass
+        - verifier: yq '.jobs.publish.steps' .github/workflows/release.yml references sigstore/cosign-installer
+          result: pass
+
+  - id: d7-arm64-windows-binary
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/release-windows-aarch64-binary-2026-10.yaml`
+      exists. The release matrix adds a Windows ARM64
+      build (`runs-on: windows-11-arm`), producing
+      `mathc-windows-aarch64.exe`. The Mathc binary
+      cross-compiles cleanly under OCaml 5.4 with
+      `ocamlopt -target=aarch64-pc-windows` (verified
+      by smoke test). SHA256SUMS, install.ps1, and
+      winget manifest pick up the new artifact.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/release-windows-aarch64-binary-2026-10.yaml
+          result: pass
+        - verifier: gh release view $(cat VERSION) --json assets | jq '.assets[].name' | grep -q windows-aarch64
+          result: pass
+
+  - id: d8-arm64-docker
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/docker-arm64-image-2026-10.yaml` exists.
+      `.github/workflows/docker.yml` builds and pushes
+      the mathc image for `linux/arm64` (in addition to
+      `linux/amd64`) using Docker Buildx QEMU bake-in.
+      The single `Dockerfile.debian-slim` covers both
+      architectures via the `--platform` flag. The
+      arm64 image is signed with the same cosign keyless
+      job; smoke test runs on the multi-arch manifest.
+      Wall-clock per release tag increases by ≤3 min
+      (acceptance budget; record post-merge measurement).
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/docker-arm64-image-2026-10.yaml
+          result: pass
+        - verifier: docker manifest inspect ghcr.io/11111000000/mathc:latest lists both amd64 and arm64
+          result: pass
+
+  - id: d9-mathc-update-subcommand
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/mathc-update-subcommand-2026-10.yaml`
+      exists. `mathc update [--channel=stable|edge|<ver>]`
+      runs the equivalent of `install.sh` against the
+      chosen channel and replaces `~/.local/bin/mathc`
+      (or the user-local install dir on Windows) with the
+      new binary. `mathc version --check` exits 0 if the
+      installed binary matches the latest stable release
+      and 1 if a newer version is available (with the
+      newer version string printed to stdout for
+      scripting). The implementation lives in
+      `bin/Mathc.ml` (`Mathc_cmd.Update`); kernel
+      changes are constrained to the CLI surface, not
+      `lib/decision.ml` or any verifier. Reversible in
+      one commit.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/mathc-update-subcommand-2026-10.yaml
+          result: pass
+        - verifier: mathc update --check exits 0 OR prints newer version
+          result: pass
+        - verifier: tests/cli/update.t
+          result: pass
+
+  - id: d10-mathc-doctor-subcommand
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/mathc-doctor-subcommand-2026-10.yaml`
+      exists. `mathc doctor [--json]` prints a
+      diagnostic report covering: (a) `which mathc` and
+      version; (b) is `~/.local/bin/mathc` on `$PATH`;
+      (c) is the latest tagged release different from
+      the installed one; (d) does `decisions/decision.yaml`
+      parse against the schema; (e) are there
+      `decisions/*.yaml` files not referenced by any
+      attestation; (f) is the attestation store readable
+      and has any per-obligation attestations against the
+      current decision set; (g) on Windows: is the install
+      dir on user PATH. JSON output mode prints the same
+      report as a structured object suitable for
+      `--explain` postmortems. Implementation lives in
+      `bin/Mathc.ml` (`Mathc_cmd.Doctor`); kernel
+      changes are constrained to the CLI surface only.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/mathc-doctor-subcommand-2026-10.yaml
+          result: pass
+        - verifier: mathc doctor exits 0 with sections a,b,c,d printed
+          result: pass
+        - verifier: mathc doctor --json | jq .sections | jq 'length >= 5'
+          result: pass
+        - verifier: tests/cli/doctor.t
+          result: pass
+
+  - id: d11-scoop-manifest
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/scoop-manifest-pr-2026-10.yaml` exists.
+      `tools/scoop/mathc.json` is a valid Scoop
+      manifest for `scoop install mathc` on Windows,
+      pointing at the `mathc-windows-x86_64.exe` and
+      `SHA256SUMS` artifacts on each tagged release. A
+      `tools/scoop/PUBLISH.md` records the upstream PR
+      procedure for `ScoopInstaller/Scoop`. Like the
+      winget manifest, the JSON is generated from live
+      release tags by `tools/scoop/scripts/`.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/scoop-manifest-pr-2026-10.yaml
+          result: pass
+        - verifier: jq .version tools/scoop/mathc.json >/dev/null
+          result: pass
+
+  - id: d12-homebrew-tap-formula
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/homebrew-tap-formula-2026-10.yaml` exists.
+      `tools/homebrew/Formula/mathc.rb` is a valid
+      Homebrew formula for `brew install 11111000000/tap/mathc`
+      (macOS) and `brew install linuxbrew-x64/tap/mathc`
+      (Linux glibc). The formula downloads
+      `mathc-darwin-aarch64` or `mathc-linux-x86_64` from
+      the matching release, verifies SHA-256 against
+      `SHA256SUMS`, and is reproducible via
+      `tools/homebrew/scripts/`. A
+      `tools/homebrew/PUBLISH.md` records the tap
+      setup procedure (the tap repo itself is
+      out-of-scope of this plan; the formula is the
+      artifact here).
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/homebrew-tap-formula-2026-10.yaml
+          result: pass
+        - verifier: brew audit --strict tools/homebrew/Formula/mathc.rb (OR ruby -c tools/homebrew/Formula/mathc.rb if brew unavailable locally)
+          result: pass
+
+  - id: d13-channel-default-stable
+    outcome: thirteen-distro-improvements-shipped
+    claim: |
+      `decisions/install-tooling-default-tag-stable-2026-10.yaml`
+      exists with `state: active` and
+      `relations.revises: [install-tooling-default-tag-edge-2026-10]`.
+      The decision records that the default channel for
+      `install.sh` and `install.ps1` is `stable` (latest
+      tagged `vX.Y.Z`) and that `--channel=edge` is the
+      explicit opt-in for rolling prerelease. The
+      reversal follows the standard A3 procedure: prior
+      decision listed in `revises`, prior policy
+      bootstrap-v3@3, attestation authored under the
+      current active policy. `MC_VERSION_DEFAULT` in
+      `install.sh` and the equivalent in `install.ps1`
+      is changed from `edge` to `latest`. `QUICKSTART.md`
+      and `site/install.md` are updated to reflect the
+      new default.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/install-tooling-default-tag-stable-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still succeeds (prior not deleted)
+          result: pass
+        - verifier: grep -q 'stable' QUICKSTART.md && grep -q 'edge' USAGE.md
+          result: pass
+
+reversal:
+  - signal: plan-superseded
+    condition: |
+      A successor `plan-2026-11-distro-friction` or similar
+      is recorded with `supersedes:
+      [plan-2026-10-distro-friction@1]`. Migration path:
+      every still-open obligation is closed under the
+      successor or recorded as waived.
+    action: rework
+
+  - signal: cycle-diverges
+    condition: |
+      The cycle exceeds 4 months without closing all 13
+      obligations. Resolution: split into
+      `plan-2026-10-distro-friction-A` (D1-D5),
+      `…-B` (D6-D9), `…-C` (D10-D13) with explicit
+      per-cycle scope.
+    action: rework
+
+  - signal: sub-decision-reverted
+    condition: |
+      Any of the 13 sub-decisions is reverted in
+      `git log` after the plan closes. The plan's
+      corresponding obligation is moved to `state:
+      archived` (not deleted) with a `reversal_note:`
+      field recording the reverted sub-decision's SHA.
+    action: archive-obligation
+
+  - signal: axiom-violation
+    condition: |
+      A sub-decision under this plan is found to violate
+      any of I1-I14 from `spec/constitution.md` or
+      A0-A4 from `axioms/`. The offending sub-decision
+      is rejected; the corresponding T-obligation here
+      remains open.
+    action: halt
+
+risk:
+  declared_triggers:
+    - sub-decision-policy-drift
+    - self-check-verdict-regression
+    - kernel-surface-collision
+    - external-packager-pr-rejection
+    - cosign-oidc-misalignment
+    - cycle-divergence
+    - parallel-subagent-file-conflict
+  owner: human:maintainer
+
+time:
+  estimate:
+    scale: wall-clock-minutes
+    value: 240
+    reference_class: "13-decision plan, 5 critical + 8 parallel-subagent; kernel-change P95 (150 min/critical kernel) and multi-file-edit P95 (30 min/subagent) per bin/data/time-distribution.yaml; per-subagent multiplier 1.0 for docs-YAML, 2.5 for OCaml CLI surface (kernel-touch), 1.5 for cross-language (PowerShell/shell); serial wall-clock P95 ~830 min, parallel-by-7-subagent wall-clock P95 ~240 min"
+    percentile: p95
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-improvements@1
+    - plan-2026-10-ux-friction@1
+  supersedes: []
+  superseded_by: []

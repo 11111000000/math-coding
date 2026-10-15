@@ -13,7 +13,8 @@ much of the host environment the channel assumes.
 
 | Channel | When to use | Install command |
 |---|---|---|
-| Release binary | Default. Linux glibc ≥ 2.35, macOS, or WSL. | `curl -fsSL https://github.com/11111000000/math-coding/releases/download/v${VERSION}/install.sh \| sh` |
+| Release binary (POSIX) | Default. Linux (glibc **and** musl auto-detect), macOS, WSL, Git-Bash, MSYS, Cygwin. | `curl -fsSL https://github.com/11111000000/math-coding/releases/latest/download/install.sh \| sh` |
+| Release binary (Windows) | Windows 10+ / Windows 11 with PowerShell 5.1+ / 7+. | `irm https://github.com/11111000000/math-coding/releases/latest/download/install.ps1 \| iex` |
 | Docker image | No sudo, no writable `~/.local/`, restricted CI runner, or you want a hermetic run. Fallback for environments where `curl \| sh` is blocked. | `docker run --rm -v "$PWD:/repo" ghcr.io/11111000000/mathc:${VERSION} validate decisions/foo.yaml` |
 | Nix run | You have Nix ≥ 2.18 with flakes enabled and prefer zero-install. | `nix run github:11111000000/math-coding -- validate decisions/foo.yaml` |
 | Source build | You are modifying `lib/` or `bin/`. | `nix develop .#test && dune build --root . bin/mathc.exe` |
@@ -63,6 +64,30 @@ mathc validate decisions/<your-first-decision>.yaml
 repository and reports pass/unknown/fail. `mathc validate`
 checks a single decision file against the schema; the exit
 code is 0 on accept, 1 on reject, 2 on input error.
+
+## What the installer does on your machine
+
+1. Detects OS / arch (`linux|darwin`, `x86_64|aarch64`).
+   On Linux Git-Bash / MSYS / Cygwin shells, treats them
+   as Linux POSIX and downloads the matching glibc binary;
+   the native Windows host is routed to `install.ps1`
+   (PowerShell).
+2. On Linux, auto-detects glibc vs musl via
+   `getconf GNU_LIBC_VERSION` and `ldd --version`; selects
+   `mathc-linux-<arch>` or `mathc-linux-<arch>-musl` accordingly.
+   Override with `--libc=glibc` or `--libc=musl`.
+3. Downloads `SHA256SUMS` from the same release; refuses on
+   `MC-INSTALL-CHECKSUM-MISMATCH`.
+4. Idempotently appends `export PATH="$dir:$PATH"` to
+   `~/.bashrc` / `~/.zshrc` / `~/.kshrc` / `~/.profile`
+   (whichever is writable). Use `--no-path-update` to skip.
+5. Optional `--user-skill`: also extracts
+   `adoption/opencode/SKILL.md` from `dist-adoption.tar.gz`
+   and writes to `${XDG_CONFIG_HOME:-${HOME}/.config}/opencode/skills/math-coding/SKILL.md`.
+6. Default-on `--cosign-verify` runs `cosign verify` against
+   the ghcr.io Docker image signature. Falls back to a
+   warning when `cosign` is absent; use `--no-cosign-verify`
+   to suppress.
 
 ## Scaffold a new project
 
