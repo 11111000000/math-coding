@@ -616,6 +616,20 @@ let print_usage oc =
      \                                       `mathc validate` per file. Exit 0 if all
      \                                       accept, 1 if any reject, 2 if any input
      \                                       error. No attestation store, no git diff.
+     \  decision-state <id>                transition a single decision's lifecycle
+     \                  <action>           state. Actions: mark-superseded
+     \                  [--by=<id>@<rev>]  --by=<id>@<rev>, mark-retired, set
+     \                                       <active|draft|retired|superseded>.
+     \                                       Writes the patched YAML back to
+     \                                       decisions/<id>.yaml, then re-runs
+     \                                       `mathc validate`. Exit 0 on accept,
+     \                                       1 on reject (idempotent re-issue or
+     \                                       kernel validation failure), 2 on
+     \                                       input error (no such id, bad kebab,
+     \                                       missing args). The user-facing
+     \                                       aliases obsolete and archive are
+     \                                       NOT accepted; see
+     \                                       lib/lifecycle/lifecycle.ml preamble.
      \  render [--out DIR] [--lang en|ru|zh|both|all]
      \           [--site-base HREF] [--mathjax|--no-mathjax]\n\
      \                                     render the static site under DIR\n\
@@ -2811,6 +2825,7 @@ let[@warning "-32"] load_decision_entry reader path =
             Memory.obligation_ids;
             Memory.assumptions = 0;
             Memory.risk_triggers = [];
+            Memory.state = `Active;
           }
         in
         Some stub
@@ -4216,6 +4231,202 @@ let[@warning "-32"] do_graph () =
       print_endline (Jsonl.stringify g);
       exit 0
 
+(* `mathc decision-state <id> <action> [--by=<id>@<rev>]` (decision
+ * lifecycle-commands-2026-10).
+ *
+ * Transitions a single decision's lifecycle state by editing
+ * its YAML file in `decisions/` and re-running `mathc validate`
+ * on the result. The kernel parser (lib/decision.ml) is NOT
+ * modified; the dispatcher reads the file, calls
+ * `Lifecycle.transition` to compute the new YAML, writes the
+ * result back, and runs `mathc validate` to confirm
+ * the kernel accepts the rewrite.
+ *
+ * Exit codes:
+ *   0  kernel accepted the rewrite; `state:` and (if
+ *      applicable) `superseded_by:` were updated.
+ *   1  kernel rejected the rewrite (idempotent re-issue, or
+ *      `mathc validate` rejects the result).
+ *   2  input error (no such id, missing args, bad kebab,
+ *      malformed `--by=<id>@<rev>`).
+ *
+ * The action surface is intentionally narrow:
+ *   - mark-superseded --by=<id>@<rev>
+ *   - mark-retired
+ *   - set <state>    where <state> in {active,draft,retired,superseded}
+ *
+ * User-facing aliases "obsolete" / "archive" are NOT accepted
+ * (see lib/lifecycle/lifecycle.ml preamble; widening the
+ * 4-state enum is forbidden by algebra §7). *)
+let[@warning "-32"] do_decision_state () =
+  Arg.current := 1;
+  let pos = ref [] in
+  let by_arg = ref (None : string option) in
+  let anon s = pos := s :: !pos in
+  let set_by s = by_arg := Some s in
+  (try
+     Arg.parse
+       [ ("--by", Arg.String set_by, "<id>@<rev> replacement target") ]
+       anon
+       "usage: mathc decision-state <id> <action> [--by=<id>@<rev>]"
+   with
+   | Arg.Bad m ->
+       Printf.fprintf stderr "mathc decision-state: %s\n" m;
+       exit 2
+   | Arg.Help _ ->
+       print_usage stderr;
+       exit 0);
+  let args = List.rev !pos in
+  (* Parse positional. Two shapes:
+     (a) `decision-state <id> mark-superseded [--by=X]`
+     (b) `decision-state <id> mark-retired`
+     (c) `decision-state <id> set <state>`
+     The first element is the id; the second is the action; for
+     `set` a third element names the target state. *)
+  let id_str, action_str, third_str =
+    match args with
+    | [ id; a; s ] -> (id, a, Some s)
+    | [ id; a ] -> (id, a, None)
+    | [ id ] -> (id, "", None)
+    | _ ->
+        Printf.fprintf stderr
+          "mathc decision-state: expected <id> <action>; got %d positional arg(s)\n"
+          (List.length args);
+        exit 2
+  in
+  (* Validate id (kebab-case) early; this catches the cram case (e)
+     before any file I/O. *)
+  (match Lifecycle.validate_id id_str with
+   | Error m ->
+       Printf.fprintf stderr "mathc decision-state: %s\n" m;
+       exit 2
+   | Ok _ -> ());
+  (* Resolve the on-disk path under decisions/. *)
+  let root = find_project_root (Sys.getcwd ()) in
+  let path =
+    Filename.concat (Filename.concat root "decisions") (id_str ^ ".yaml")
+  in
+  let reader p =
+    try In_channel.with_open_bin p In_channel.input_all
+    with Sys_error _ -> ""
+  in
+  (* Read the existing source. Missing file -> exit 2 (input error). *)
+  let source = reader path in
+  if source = "" then begin
+    Printf.fprintf stderr
+      "mathc decision-state: decision not found: %s (no %s)\n" id_str path;
+    exit 2
+  end;
+  (* Parse the current state from the YAML via Codec.parse_decision_state.
+     Fall back to `Active` (kernel default). *)
+  let current =
+    let stripped =
+      let lines = String.split_on_char '\n' source in
+      let rec drop acc = function
+        | [] -> List.rev acc
+        | line :: rest when String.trim line = "---" -> (
+            match rest with
+            | line2 :: _ when String.trim line2 = "---" -> rest
+            | _ -> drop acc rest)
+        | line :: rest -> drop (line :: acc) rest
+      in
+      drop [] lines |> String.concat "\n"
+    in
+    let v = try Codec.load_yaml_string stripped with _ -> Jsonl.Object [] in
+    let state_str =
+      match v with
+      | Jsonl.Object ps -> (
+          match Schema.take_string ps "state" with
+          | Some s -> s
+          | None -> "active")
+      | _ -> "active"
+    in
+    match Codec.parse_decision_state state_str with
+    | Some s -> s
+    | None -> `Active
+  in
+  (* Build the action. *)
+  let action : Lifecycle.action =
+    match action_str with
+    | "mark-superseded" ->
+        let by =
+          match !by_arg with
+          | None ->
+              Printf.fprintf stderr
+                "mathc decision-state: mark-superseded requires --by=<id>@<rev>\n";
+              exit 2
+          | Some v -> (
+              match Lifecycle.parse_by_arg v with
+              | Ok parsed -> parsed
+              | Error m ->
+                  Printf.fprintf stderr "mathc decision-state: %s\n" m;
+                  exit 2)
+        in
+        Lifecycle.MarkSuperseded { by }
+    | "mark-retired" ->
+        if !by_arg <> None then begin
+          Printf.fprintf stderr
+            "mathc decision-state: mark-retired does not accept --by=<id>@<rev>\n";
+          exit 2
+        end;
+        Lifecycle.MarkRetired
+    | "set" -> (
+        match third_str with
+        | None ->
+            Printf.fprintf stderr
+              "mathc decision-state: set <state> requires a state value\n";
+            exit 2
+        | Some "active" -> Lifecycle.SetState `Active
+        | Some "draft" -> Lifecycle.SetState `Draft
+        | Some "retired" -> Lifecycle.SetState `Retired
+        | Some "superseded" -> Lifecycle.SetState `Superseded
+        | Some other ->
+            Printf.fprintf stderr
+              "mathc decision-state: invalid state %s (expected active|draft|retired|superseded)\n"
+              other;
+            exit 2)
+    | "" ->
+        Printf.fprintf stderr
+          "mathc decision-state: missing <action> (mark-superseded|mark-retired|set)\n";
+        exit 2
+    | other ->
+        Printf.fprintf stderr
+          "mathc decision-state: invalid action %s (expected mark-superseded|mark-retired|set)\n"
+          other;
+        exit 2
+  in
+  (* Compute the new YAML via the pure transition. *)
+  let result = Lifecycle.transition ~source ~current action in
+  match result with
+  | Rejected { reason; verdict_exit } ->
+      Printf.fprintf stderr "mathc decision-state: %s\n" reason;
+      exit verdict_exit
+  | Transitioned { new_yaml; diff_summary; _ } ->
+      (* Write the new YAML atomically: stage to a sibling .tmp,
+         then rename. The rename is atomic on POSIX. The kernel
+         will not see a half-written file. *)
+      let tmp = path ^ ".tmp" in
+      let oc = open_out tmp in
+      output_string oc new_yaml;
+      close_out oc;
+      Unix.rename tmp path;
+      Printf.printf "mathc decision-state: %s\n" diff_summary;
+      (* Re-validate by calling the kernel parser directly. Same
+         binary, no fork/exec. The `validate` text path reports
+         `accept:` or `reject:` on stdout; the user's experience
+         mirrors `mathc validate FILE --format=text`. *)
+      match validate_with_counts path with
+      | `Accept _ | `Accept_aggregate _ ->
+          Printf.printf "validate: accept\n";
+          exit 0
+      | `Reject (diag, _) ->
+          Printf.fprintf stderr "validate: reject (%s)\n"
+            diag.Diagnostic.code;
+          exit 1
+      | `Input_err m ->
+          Printf.fprintf stderr "validate: input error (%s)\n" m;
+          exit 2
+
 (* mathc migrate — declarative, kernel-observed migration plan.
  *
  * The kernel NEVER mutates decision files on disk. It only:
@@ -4961,6 +5172,7 @@ let dispatch () =
   | "find" -> do_find ()
   | "precommit" -> do_precommit ()
   | "graph" -> do_graph ()
+  | "decision-state" -> do_decision_state ()
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()
   | "stats" -> do_stats ()

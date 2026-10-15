@@ -132,8 +132,11 @@ let[@warning "-32"] fresh_against ~attestations ~materials_digest =
    in the attestation's `subject.candidate_tree` field — the
    simplest predicate the existing schema carries. *)
 let[@warning "-32"] attestation_kind_to_string = function
-  | `Test -> "test" | `Review -> "review" | `Build -> "build"
-  | `Analysis -> "analysis" | `Observation -> "observation"
+  | `Test -> "test"
+  | `Review -> "review"
+  | `Build -> "build"
+  | `Analysis -> "analysis"
+  | `Observation -> "observation"
 
 (* The `kind` field of `Domain.attestation` collides with the
    top-level type alias `Domain.kind = Decision | Obligation | ...`.
@@ -155,12 +158,11 @@ let[@warning "-32"] attestation_kind_str (a : Domain.attestation) : string =
   | { kind = `Analysis; _ } -> "analysis"
   | { kind = `Observation; _ } -> "observation"
 
-let[@warning "-32"] required_attestation_satisfied (ra : Decision.required_attestation) store =
+let[@warning "-32"] required_attestation_satisfied
+    (ra : Decision.required_attestation) store =
   List.exists
     (fun a ->
-      String.equal
-        (attestation_kind_str a)
-        ra.ra_kind
+      String.equal (attestation_kind_str a) ra.ra_kind
       && String.equal a.Domain.producer_identity ra.ra_producer)
     store
 
@@ -174,42 +176,52 @@ let[@warning "-32"] required_attestation_satisfied (ra : Decision.required_attes
    the gate ties each gap back to its source for traceability. *)
 let[@warning "-32"] required_attestation_gap entry store =
   match entry.Memory.source with
-  | source when source <> "" ->
-      (match
-         Decision.parse_required_attestations
-           (match Codec.load_yaml_string source with | v -> v)
-       with
-       | Some [] | None -> []
-       | Some requireds ->
-           List.filter_map
-             (fun (ra : Decision.required_attestation) ->
-               let k = ra.ra_kind in
-               let p = ra.ra_producer in
-               let scope_suffix =
-                 match ra.ra_scope_paths with
-                 | [] -> ""
-                 | paths -> Printf.sprintf " (scope: %s)" (String.concat ", " paths)
-               in
-               let cause_msg =
-                 Printf.sprintf "required_attestation unfulfilled: %s from %s%s" k p scope_suffix
-               in
-               if required_attestation_satisfied ra store then None
-               else
-                 let gap =
-                   {
-                     obligation_id = Printf.sprintf "%s/required-attestation:%s:%s" entry.Memory.decision_id k p;
-                     kind = `MissingReview;
-                     causes = [ cause_msg ];
-                     remedies =
-                       [ "produce the listed attestation in attestations/"
-                       ; "or remove the requirement from the decision" ];
-                     next_actions =
-                       [ ( "run",
-                           Printf.sprintf "mathc attest --kind %s --producer %s %s.md" k p entry.Memory.decision_id ) ];
-                   }
-                 in
-                 Some gap)
-             requireds)
+  | source when source <> "" -> (
+      match
+        Decision.parse_required_attestations
+          (match Codec.load_yaml_string source with v -> v)
+      with
+      | Some [] | None -> []
+      | Some requireds ->
+          List.filter_map
+            (fun (ra : Decision.required_attestation) ->
+              let k = ra.ra_kind in
+              let p = ra.ra_producer in
+              let scope_suffix =
+                match ra.ra_scope_paths with
+                | [] -> ""
+                | paths ->
+                    Printf.sprintf " (scope: %s)" (String.concat ", " paths)
+              in
+              let cause_msg =
+                Printf.sprintf "required_attestation unfulfilled: %s from %s%s"
+                  k p scope_suffix
+              in
+              if required_attestation_satisfied ra store then None
+              else
+                let gap =
+                  {
+                    obligation_id =
+                      Printf.sprintf "%s/required-attestation:%s:%s"
+                        entry.Memory.decision_id k p;
+                    kind = `MissingReview;
+                    causes = [ cause_msg ];
+                    remedies =
+                      [
+                        "produce the listed attestation in attestations/";
+                        "or remove the requirement from the decision";
+                      ];
+                    next_actions =
+                      [
+                        ( "run",
+                          Printf.sprintf
+                            "mathc attest --kind %s --producer %s %s.md" k p
+                            entry.Memory.decision_id );
+                      ];
+                  }
+                in
+                Some gap)
+            requireds)
   | _ -> []
 
 let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
@@ -405,13 +417,29 @@ let[@warning "-32"] rebuttal_gating_for_mode (m : Domain.mode) :
     [ `Required | `Optional ] =
   match m with `Strict | `Exhaustive -> `Required | _ -> `Optional
 
+(* Lifecycle filter (decision lifecycle-commands-2026-10):
+   only active and draft decisions are part of the active set
+   that contributes obligation gaps to the gate verdict.
+   Retired and superseded decisions are historical; their
+   obligations remain in the source YAML but the gate does not
+   ask the user to attest to them every commit. *)
+let[@warning "-32"] active_entries (memory : Memory.t) :
+    Memory.decision_entry list =
+  List.filter
+    (fun (entry : Memory.decision_entry) ->
+      match entry.Memory.state with
+      | `Active | `Draft -> true
+      | `Retired | `Superseded -> false)
+    memory.Memory.decisions
+
 let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
     ~rebuttals =
   let materials = materials_digest_of changed_paths in
+  let active_decisions = active_entries memory in
   let applicable_count =
     List.fold_left
       (fun acc entry -> acc + List.length entry.Memory.obligation_ids)
-      0 memory.Memory.decisions
+      0 active_decisions
   in
   let gaps =
     List.concat_map
@@ -421,10 +449,10 @@ let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
             obligation_gap ~decision_id:entry.Memory.decision_id
               ~obligation_id:obl_id ~materials_digest:materials ~store)
           entry.Memory.obligation_ids)
-      memory.Memory.decisions
+      active_decisions
     @ List.concat_map
         (fun entry -> required_attestation_gap entry store)
-        memory.Memory.decisions
+        active_decisions
   in
   let obligation_count = applicable_count in
   let base_verdict =
