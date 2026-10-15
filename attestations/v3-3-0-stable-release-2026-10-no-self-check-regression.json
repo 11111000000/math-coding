@@ -1,1 +1,20 @@
-{"id":"sha256:20c0d1fa0e029f57df8df8e40d6e45a5dc67a9ecf5ba31e34b9385ba22b72c11","issued_at":"2026-10-15T05:25:00Z","kind":"attestation","kind_":"analysis","method":"mathc self-check","outcome":"verdict unknown (baseline preserved), unknown subjects 7","producer":{"identity":"agent:release-3.3.0"},"result":"pass","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"v3-3-0-stable-release-2026-10","materials_digest":"","obligation":"no-self-check-regression"},"target":"repository"}
+{
+  "id": "sha256:a861e533a02ce588659b65841a870ec6314b997cdf547f3ec7f24dbd2cb9db9f",
+  "issued_at": "2026-10-15T06:12:00Z",
+  "kind": "attestation",
+  "kind_": "analysis",
+  "method": "mathc self-check",
+  "outcome": "verdict unknown (baseline preserved), unknown subjects 5 (all pre-existing on main: placeholder-sha-cleanup-2026-10, enable-counters-drift-test-2026-10, constitution-header-3-3-update-2026-10, re-eval-remediation-todo-fix-2026-10, attestation-waiver-policy-schema-bump-3-3-2026-10); v3-3-0-stable-release-2026-10 now reports pass after github-release attestation landed",
+  "producer": {
+    "identity": "agent:release-3.3.0"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "v3-3-0-stable-release-2026-10",
+    "materials_digest": "",
+    "obligation": "no-self-check-regression"
+  },
+  "target": "repository"
+}

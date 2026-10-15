@@ -1,1 +1,20 @@
-{"id":"sha256:4d8e8dbcc8871d6137aaff62d7f16bbef2f1cb67573a8b7ce0f41890c6a31bde","issued_at":"2026-10-15T05:25:00Z","kind":"attestation","kind_":"observation","producer":{"identity":"agent:release-3.3.0"},"result":"inconclusive","review_note":"deferred until v3.3.0 git tag lands and release workflow publishes","schema":"math-coding/attestation-3.0-alpha","subject":{"candidate_tree":"HEAD","decision":"v3-3-0-stable-release-2026-10","materials_digest":"","obligation":"github-release-v3-3-0-published"}}
+{
+  "id": "sha256:be8d6dfeface98b8522212f0fcef627633440fc441d7c2865d5305507c84daeb",
+  "issued_at": "2026-10-15T06:12:00Z",
+  "kind": "attestation",
+  "kind_": "observation",
+  "method": "gh release view v3.3.0 --repo 11111000000/math-coding --json isDraft,isPrerelease,tagName,assets",
+  "outcome": "tag=v3.3.0, isDraft=false, isPrerelease=false, asset_count=9 (install.sh, SHA256SUMS, mathc-{linux-x86_64,linux-aarch64,linux-x86_64-musl,darwin-x86_64,darwin-aarch64,windows-x86_64.exe}, dist-adoption.tar.gz)",
+  "producer": {
+    "identity": "agent:release-3.3.0"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "v3-3-0-stable-release-2026-10",
+    "materials_digest": "",
+    "obligation": "github-release-v3-3-0-published"
+  },
+  "target": "github-release:v3.3.0"
+}
