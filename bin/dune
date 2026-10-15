@@ -4,6 +4,7 @@
  (modules Mathc)
  (libraries
   mathcoding_core
+  mathcoding_find
   mathcoding_junit
   mathcoding_git
   mathcoding_attestations
@@ -18,7 +19,4 @@
  (name mathc_mcp)
  (public_name mathc_mcp)
  (modules mathc_mcp)
- (libraries
-  mathcoding_mcp
-  str
-  unix))
+ (libraries mathcoding_mcp str unix))

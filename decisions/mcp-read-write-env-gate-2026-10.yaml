@@ -1,0 +1,274 @@
+---
+schema: math-coding/3.3
+id: mcp-read-write-env-gate-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+axiom_link:
+  - A0
+  - A3
+intent: |
+  Gate the four `mathc_mcp` read-write methods
+  (`mathc/gate`, `mathc/attest`, `mathc/record`,
+  `mathc/re-evaluate-decisions`) behind the `MCP_READ_WRITE`
+  environment variable. By default (env unset; or set to
+  `on`, `true`, `1`, or empty) the full 11-method surface
+  remains available — the historical behaviour preserved.
+  When `MCP_READ_WRITE` is set to anything else (e.g.
+  `off`, `no`, `0`, `false`, or any other string), the four
+  read-write methods return `-32601 Method not found` with a
+  message that names the env var, and the dispatcher emits a
+  one-shot stderr warning so operators can spot a mis-set
+  variable. The seven read-only methods plus `mathc/find`
+  remain reachable in every state.
+
+  The pre-existing decision `ux-3-mcp-read-write-2026-10@1`
+  already opened the read-write surface under the trust
+  model "local MCP server, trusted AI agent on the same
+  host". The reversal signal for that decision (a network
+  MCP transport) recommended gating the read-write surface
+  behind a separate knob. This file realises that knob
+  concretely: `MCP_READ_WRITE=off` is the configuration a
+  strict agent host runs in to refuse the side-effectful
+  four methods while still receiving the read-only seven.
+
+  Touches (per A3 self-application):
+    lib/mcp/dispatch.ml                (env check helper +
+                                       read-only / read-write
+                                       list split + is_allowed_method
+                                       + warn + error-message update)
+    tests/cli/mcp-read-write-env-gate.t (new cram fixture,
+                                       4 cases)
+    adoption/SKILL.md                  (paragraph about the
+                                       env var)
+
+  Boundaries (A3 self-application):
+    - `lib/mcp/dispatch.ml` is the only sub-library touched.
+    - `lib/mcp/protocol.ml` and `lib/mcp/transport.ml` are
+      unchanged; the wire protocol and the stdio transport
+      are not affected by the gate.
+    - `bin/mathc_mcp.ml` is unchanged.
+    - The kernel under `lib/` is unchanged.
+    - No new sub-library; no schema change; no axiom
+      amendment beyond A0/A3 (A0 = separation, A3 = self-
+      application; the existing attestation kinds are
+      reused).
+    - The `mathc/<x>` CLI subcommands are unchanged; the
+      gate is MCP-only.
+antithesis: |
+  The counter-position considered and rejected: "The
+  read-write surface is already gated by the trust model
+  (local MCP server, trusted AI agent); an additional
+  env-var gate is belt-and-suspenders and the default
+  must be `off` to match the deferral history." The
+  author engaged with this position and rejected it on
+  three grounds: (a) the default is `on` so the
+  opencode/Claude Code/Cursor agent hosts that already use
+  the read-write surface keep working with no
+  configuration change; (b) the env var is opt-in for
+  stricter agent hosts — it is the operator's knob, not
+  the kernel's; (c) the trust model is enumerated in
+  `ux-3-mcp-read-write-2026-10@1` and the gate is the
+  additive mechanism that decision's reversal signal
+  recommended. The minimum-blast-radius shape is an
+  env-var opt-in with the historical default preserved.
+commitment: |
+  One kernel-surface knob. Pinned by one new cram fixture
+  (`tests/cli/mcp-read-write-env-gate.t`):
+
+    D1. `lib/mcp/dispatch.ml::is_allowed_method` returns
+        true iff the method is in `read_only_methods`, OR
+        the method is in `read_write_methods` AND
+        `read_write_enabled ()` returns true.
+
+    D2. `read_write_enabled ()` reads `MCP_READ_WRITE`
+        via `Sys.getenv_opt`. Absent / empty / `on` /
+        `true` / `1` (case-insensitive) => true. Any other
+        value => false.
+
+    D3. When a read-write method is called and the gate is
+        off, `dispatch.handle` returns `-32601 Method not
+        found` with the message
+        `Method not found: "<m>" (read-write methods are
+        disabled via MCP_READ_WRITE=off; set
+        MCP_READ_WRITE=on to enable)` and emits a one-shot
+        stderr line
+        `mathc_mcp: MCP_READ_WRITE=<value> — read-write
+        methods disabled.`.
+
+    D4. `allowed_methods` is the concatenation
+        `read_only_methods @ read_write_methods`. The
+        full 11-name list is still the source of truth for
+        the help-text portion of the error message for
+        methods that are neither in read-only nor in
+        read-write (e.g. `mathc/secret`).
+
+    D5. `tests/cli/mcp-read-write-env-gate.t` exercises:
+        (a) default env: `mathc/gate` is reachable;
+        (b) `MCP_READ_WRITE=off`: `mathc/gate` returns
+            -32601 with the disabled message;
+            `mathc/validate` (read-only) still works;
+        (c) `MCP_READ_WRITE=garbage`: same as off plus a
+            stderr warning that names the env var value;
+        (d) `mathc/secret` (not in allowlist) returns
+            -32601 under both gate states.
+
+    D6. `adoption/SKILL.md` adds one paragraph (10 lines)
+        describing the env var, the default, the disable
+        signal, and the stderr warning.
+
+  Boundaries (A3 self-application):
+    - `lib/mcp/dispatch.ml` is the only sub-library touched.
+    - `lib/mcp/protocol.ml` and `lib/mcp/transport.ml` are
+      unchanged.
+    - `bin/mathc_mcp.ml` is unchanged.
+    - The kernel under `lib/` is unchanged.
+    - No new sub-library; no schema change; no axiom
+      amendment.
+counterexample: |
+  "Just make all 11 methods always read-write and remove
+   the gate. The agent trust model is already local."
+
+  Counterargument: the read-write methods produce side
+  effects in `attestations/` and
+  `decisions/execution-logs.jsonl`; the env gate is the
+  explicit knob for users who want stricter isolation
+  (e.g. an agent host that crashes on accidental writes,
+  or a CI runner that should never mutate the
+  attestation store). The default is `on` (back-compat),
+  so no behaviour change for existing users. The knob
+  is opt-in, exactly the contract the pre-existing
+  decision's reversal signal recommended.
+
+  "The env var should be `MCP_READ_ONLY=off` with
+   default off, mirroring network-firewall defaults."
+
+  Counterargument: the default must preserve the
+  historical behaviour (all 11 methods reachable). The
+  negation `MCP_READ_ONLY` would invert the default and
+  require every existing opencode / Claude Code / Cursor
+  configuration to set an additional env var to keep
+  working. The chosen name (`MCP_READ_WRITE`) keeps the
+  default unambiguous and the disable signal explicit.
+
+  "Wire the gate through mathc validate / mathc
+   policies.yaml, not an env var."
+
+  Counterargument: the policy file is per-project; the
+  MCP server is per-process. A per-process env var is
+  the right knob for the per-process boundary that the
+  MCP server already is. A future iteration could
+  expose the gate through `policies.yaml` too; this
+  decision is the minimum sufficient response.
+scope:
+  capabilities:
+    - mcp-env-gate
+  paths:
+    - "lib/mcp/dispatch.ml"
+    - "tests/cli/mcp-read-write-env-gate.t"
+    - "adoption/SKILL.md"
+    - "decisions/mcp-read-write-env-gate-2026-10.yaml"
+  exclusions:
+    - "lib/mcp/protocol.ml"
+    - "lib/mcp/transport.ml"
+    - "bin/mathc_mcp.ml"
+    - "lib/check/**"
+    - "lib/init/**"
+    - "lib/decision.ml"
+    - "lib/policy.ml"
+    - "lib/memory.ml"
+    - "lib/packages.ml"
+    - "lib/gate.ml"
+    - "lib/risk.ml"
+    - "lib/canonical.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/import_adr/**"
+    - "lib/find/**"
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+    - "decisions/mcp-server-impl-2026-10.yaml"
+    - "decisions/ux-3-mcp-read-write-2026-10.yaml"
+    - "decisions/mcp-server-impl-pending.yaml"
+outcomes:
+  - id: read-write-methods-gated-by-env-var
+    statement: |
+      Setting `MCP_READ_WRITE` to a value other than
+      `on` / `true` / `1` / empty / unset causes the four
+      read-write methods to return -32601 Method not found
+      with a message that names the env var. The seven
+      read-only methods plus `mathc/find` continue to
+      work.
+assumptions:
+  - id: default-on-preserves-back-compat
+    state: assumed
+    statement: |
+      The historical behaviour — all 11 methods reachable
+      without any env var — is preserved by the default
+      (env unset). Existing opencode / Claude Code /
+      Cursor agent hosts that already call the read-write
+      methods require no configuration change.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the default is ever flipped to `off`, every
+      existing agent host that calls a read-write method
+      breaks. Resolution: emit a one-release deprecation
+      note first; bump `mcp-read-write-env-gate-2026-10`
+      to revision 2 with the flipped default; let users
+      migrate. The reversal block records this explicitly.
+    review_on:
+      - signal: default-flip-requested
+obligations:
+  - id: read-write-env-gate-implemented
+    outcome: read-write-methods-gated-by-env-var
+    claim: |
+      `tests/cli/mcp-read-write-env-gate.t` exercises the
+      three cases (default / off / garbage) and asserts
+      the documented behaviour. The fixture passes on a
+      tree that ships the gate and would fail on a tree
+      that does not.
+    acceptance:
+      all:
+        - verifier: tests/cli/mcp-read-write-env-gate.t
+          result: pass
+reversal:
+  - signal: default-flip-requested
+    condition: |
+      The default-off mode is requested (e.g. a stricter
+      organisation wants new installs to ship with the
+      gate off). Resolution: bump this decision to
+      revision 2; flip the `read_write_enabled ()` default
+      to false; add a one-line deprecation note in
+      `adoption/SKILL.md`; ship a 1-release warning before
+      the flip.
+    action: rework
+  - signal: gate-not-needed
+    condition: |
+      The trust-model review concludes the env gate is
+      unnecessary (e.g. the MCP transport is always local
+      and the allowlist is the only barrier needed).
+      Resolution: delete the gate helper from
+      `lib/mcp/dispatch.ml` and remove the env-var
+      paragraph from `adoption/SKILL.md`; this decision is
+      superseded by a `mcp-read-write-env-gate-rollback-...`
+      decision.
+    action: supersede-with-rollback
+risk:
+  declared_triggers:
+    - default-on-stops-being-correct
+    - env-var-name-conflict
+    - one-shot-stderr-leaks-into-logs
+  owner: human:maintainer
+relations:
+  addresses:
+    - ux-3-mcp-read-write-2026-10@1
+    - bootstrap-v3@3

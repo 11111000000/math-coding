@@ -276,3 +276,20 @@ An MCP-aware agent (opencode, Claude Code, Cursor) can launch this
 binary as a stdio MCP server. The agent then sees `mathc::validate`
 et al. as direct tool calls, without a `bash` shell round-trip.
 
+### Read-write gating via `MCP_READ_WRITE`
+
+The four read-write methods (`mathc/gate`, `mathc/attest`,
+`mathc/record`, `mathc/re-evaluate-decisions`) produce side
+effects (writes to `attestations/` and `decisions/execution-logs.jsonl`).
+A strict agent host can disable them by setting
+`MCP_READ_WRITE=off` (or any value other than `on`, `true`,
+`1`, or unset) before launching `mathc_mcp`. The four methods
+then return `-32601 Method not found` with a message that
+names the env var; the seven read-only methods plus
+`mathc/find` continue to work. The default (env unset) keeps
+all 11 methods reachable, so existing agent hosts are
+unaffected. Operators who want a one-shot warning when the
+gate is off can also inspect stderr — the server prints
+`mathc_mcp: MCP_READ_WRITE=<value> — read-write methods disabled.`
+exactly once per process.
+

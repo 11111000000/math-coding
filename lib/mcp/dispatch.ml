@@ -3,10 +3,8 @@
  * This is the heart of the MCP server stub. Given a JSON-RPC
  * `request`, it:
  *
- *   1) Checks the method name against a 7-name allowlist
- *      (`mathc/validate`, `mathc/explain`, `mathc/packages`,
- *      `mathc/mode`, `mathc/re-evaluate`, `mathc/rebuttals`,
- *      `mathc/self-check`). Anything else returns
+ *   1) Checks the method name against an 11-name allowlist
+ *      (7 read-only + 4 read-write). Anything else returns
  *      -32601 Method not found.
  *
  *   2) Builds the matching `mathc <subcommand> [args]` argv from
@@ -32,10 +30,16 @@
  *   JSON-RPC errors.
  *
  * Read-write methods (gate, attest, record, re-evaluate-decisions)
- * are explicitly OUT OF SCOPE for this slice. They would have
- * side effects (attestations/.jsonl, decisions/execution-logs.jsonl)
- * if invoked via the mathc binary; the allowlist is the only
- * barrier. *)
+ * have side effects (attestations/.jsonl, decisions/execution-logs.jsonl)
+ * (decision `ux-3-mcp-read-write-2026-10`). They are gated
+ * behind the `MCP_READ_WRITE` env var (decision
+ * `mcp-read-write-env-gate-2026-10`). Default behaviour
+ * (env unset, `on`, `true`, `1`) keeps the full surface
+ * available; setting `MCP_READ_WRITE=off` (or any other value)
+ * disables the four read-write methods and they return -32601
+ * Method not found with a message that names the env var.
+ * The seven read-only methods plus `mathc/find` are always
+ * reachable. *)
 
 (* --- mathc binary resolution --- *)
 
@@ -156,9 +160,46 @@ let run_with_args (program : string) (argv : string list) : outcome =
     stderr_tail = cap_string (Buffer.contents stderr) 4096;
   }
 
+(* --- read-write env gate --- *)
+
+(* Read-write methods (gate / attest / record /
+   re-evaluate-decisions) are gated behind the MCP_READ_WRITE
+   env var per decision `mcp-read-write-env-gate-2026-10`.
+   The default (env unset, empty, `on`, `true`, `1`)
+   preserves the historical behaviour: full surface
+   available. Setting MCP_READ_WRITE to any other value
+   disables the four read-write methods and they return
+   -32601 Method not found. The seven read-only methods
+   plus `mathc/find` are always reachable.
+
+   The stderr warning is emitted exactly once per process
+   so that operators can spot a mis-set env var without
+   per-request spam. *)
+let read_write_enabled () : bool =
+  match Sys.getenv_opt "MCP_READ_WRITE" with
+  | None -> true
+  | Some "" -> true
+  | Some v -> (
+      match String.lowercase_ascii v with
+      | "on" | "true" | "1" -> true
+      | _ -> false)
+
+let read_write_warned = ref false
+
+let warn_read_write_disabled () : unit =
+  if not !read_write_warned then begin
+    read_write_warned := true;
+    (match Sys.getenv_opt "MCP_READ_WRITE" with
+     | Some v ->
+         Printf.fprintf stderr
+           "mathc_mcp: MCP_READ_WRITE=%s — read-write methods disabled.\n%!"
+           v
+     | None -> ())
+  end
+
 (* --- method name allowlist --- *)
 
-let allowed_methods =
+let read_only_methods =
   [
     "mathc/validate";
     "mathc/explain";
@@ -167,6 +208,11 @@ let allowed_methods =
     "mathc/re-evaluate";
     "mathc/rebuttals";
     "mathc/self-check";
+    "mathc/find";
+  ]
+
+let read_write_methods =
+  [
     (* Read-write methods (decision ux-3-mcp-read-write-2026-10).
      * These produce side effects: gate/attest append to
      * attestations/, record appends to
@@ -180,7 +226,18 @@ let allowed_methods =
     "mathc/re-evaluate-decisions";
   ]
 
-let is_allowed_method (m : string) : bool = List.mem m allowed_methods
+let allowed_methods = read_only_methods @ read_write_methods
+
+let is_allowed_method (m : string) : bool =
+  if List.mem m read_only_methods then true
+  else if List.mem m read_write_methods then
+    let enabled = read_write_enabled () in
+    if not enabled then warn_read_write_disabled ();
+    enabled
+  else false
+
+let is_read_write_method (m : string) : bool =
+  List.mem m read_write_methods
 
 (* --- argv builders per method --- *)
 
@@ -278,6 +335,27 @@ let build_re_evaluate_decisions (params : Jsonl.value option) :
   | Ok a -> Ok [ "re-evaluate-decisions"; a ]
   | Error e -> Error e
 
+(* `mathc/find` — search the decisions corpus for a keyword
+   substring, or look up a single obligation by id. The MCP
+   caller may pass either `obligation` (an obligation id; the
+   canonical lookup path) or `keyword` (free-form text). If
+   both are present, `obligation` wins. *)
+let build_find (params : Jsonl.value option) :
+    (string list, Protocol.rpc_error) result =
+  match Protocol.string_param params "obligation" with
+  | Ok ob -> Ok [ "find"; "--obligation"; ob; "--format=json" ]
+  | Error _ -> (
+      match Protocol.string_param params "keyword" with
+      | Ok kw -> Ok [ "find"; kw; "--format=json" ]
+      | Error e ->
+          Error
+            {
+              Protocol.code = Protocol.invalid_params_code;
+              message =
+                "Invalid params: \"keyword\" or \"obligation\" is required";
+              data = None;
+            })
+
 
 (* --- argv dispatch --- *)
 
@@ -291,6 +369,7 @@ let build_argv (req : Protocol.request) :
   | "mathc/re-evaluate" -> build_re_evaluate req.params
   | "mathc/rebuttals" -> build_rebuttals req.params
   | "mathc/self-check" -> build_self_check req.params
+  | "mathc/find" -> build_find req.params
   | "mathc/gate" -> build_gate req.params
   | "mathc/attest" -> build_attest req.params
   | "mathc/record" -> build_record req.params
@@ -333,12 +412,24 @@ let parse_or_echo (req : Protocol.request) (raw : string) : Jsonl.value =
  *                          data: {exit_code, stdout, stderr_tail}}
  *                 (negative exit = signal-killed, never a verdict)
  *   params shape wrong → error = {code: -32602, message, data}
- *   method unknown → error = {code: -32601, message} *)
+ *   method unknown → error = {code: -32601, message}
+ *   read-write method gated off → error = {code: -32601, message}
+ *     (the message names the env var so the client can re-enable) *)
 let handle (req : Protocol.request) : Protocol.response =
-  if not (is_allowed_method req.method_) then
-    Protocol.response_error ~id:req.id Protocol.method_not_found_code
-      (Printf.sprintf "Method not found: \"%s\" (only mathc/{validate,explain,packages,mode,re-evaluate,rebuttals,self-check,gate,attest,record,re-evaluate-decisions} are exposed by the MCP server)" req.method_)
-  else
+  if not (is_allowed_method req.method_) then begin
+    let msg =
+      if is_read_write_method req.method_ && not (read_write_enabled ()) then
+        Printf.sprintf
+          "Method not found: \"%s\" (read-write methods are disabled via MCP_READ_WRITE=off; set MCP_READ_WRITE=on to enable)"
+          req.method_
+      else
+        Printf.sprintf
+          "Method not found: \"%s\" (only mathc/{validate,explain,packages,mode,re-evaluate,rebuttals,self-check,find,gate,attest,record,re-evaluate-decisions} are exposed by the MCP server)"
+          req.method_
+    in
+    let _ = warn_read_write_disabled () in
+    Protocol.response_error ~id:req.id Protocol.method_not_found_code msg
+  end else
     let program = find_mathc () in
     match build_argv req with
     | Error e ->

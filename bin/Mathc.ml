@@ -607,7 +607,11 @@ let print_usage oc =
     \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\
     \  packages [--format=...]         list decisions + verdicts \
      (text|json|html)\n\
-     \  render [--out DIR] [--lang en|ru|zh|both|all]\n\
+     \  find KEYWORD [--obligation=ID]    case-insensitive substring search across
+     \                  [--format=json]      decisions/ (or single-obligation lookup).
+     \                                       Output is a `mathc packages`-shaped JSON
+     \                                       object with `decisions[]` filtered.
+     \  render [--out DIR] [--lang en|ru|zh|both|all]
      \           [--site-base HREF] [--mathjax|--no-mathjax]\n\
      \                                     render the static site under DIR\n\
     \  counters                          emit JSON counts (decisions, obligations,\n\
@@ -3957,6 +3961,100 @@ let[@warning "-32"] do_packages () =
   | `Json -> print_endline (Jsonl.stringify (Packages.to_json pkg))
   | `Html -> print_string (Packages.to_html pkg)
 
+(* mathc find KEYWORD [--obligation=ID] [--format=json]
+ *
+ * Keyword / obligation-id search across the decisions corpus
+ * (decision `mathc-find-subcommand-2026-10`). The output is a
+ * `mathc packages`-shaped JSON object with the `decisions`
+ * array filtered to the matches. Exit codes:
+ *
+ *   0  matches emitted (including the empty-match case)
+ *   2  input error (missing keyword, missing --obligation,
+ *      malformed --format).
+ *
+ * The implementation reuses `mathc packages` so the input shape
+ * to `Find.search` / `Find.lookup_obligation` is the same
+ * JSON tree the kernel already produces. `lib/find/find.ml` is
+ * pure and side-effect-free; this CLI is the I/O boundary. *)
+let[@warning "-32"] do_find () =
+  let obligation = ref None in
+  let format = ref `Json in
+  let keyword = ref (None : string option) in
+  let set_obligation s = obligation := Some s in
+  let set_format s =
+    match s with
+    | "json" -> format := `Json
+    | _ ->
+        Printf.fprintf stderr "mathc find: unknown --format: %s\n" s;
+        exit 2
+  in
+  let takes = ref true in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [
+         ( "--obligation",
+           Arg.String set_obligation,
+           "<id> lookup an obligation id (returns its enclosing decision)" );
+         ("--format", Arg.String set_format, "json (default)");
+       ]
+       (fun s ->
+         if !takes then begin
+          keyword := Some s;
+          takes := false
+        end
+        else begin
+          Printf.fprintf stderr "mathc find: unexpected argument: %s\n" s;
+          exit 2
+        end)
+       "usage: mathc find KEYWORD [--obligation=ID] [--format=json]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc find: %s\n" m;
+     exit 2);
+  let decisions_root = "decisions" in
+  let attestations_root = "attestations" in
+  let reader path = In_channel.with_open_bin path In_channel.input_all in
+  let has_store = Sys.file_exists attestations_root in
+  let store =
+    if has_store then
+      try Attestations.load ~reader ~root:attestations_root with _ -> []
+    else []
+  in
+  let now_iso =
+    let tm = Unix.gmtime (Unix.time ()) in
+    Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ" (tm.tm_year + 1900)
+      (tm.tm_mon + 1) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
+  in
+  let pkg =
+    Packages.walk ~reader ~decisions_root ~store ~has_store ~now_iso
+      ~policy_id:"bootstrap-v3"
+  in
+  let json = Packages.to_json pkg in
+  let filtered =
+    match !obligation with
+    | Some oid -> Find.lookup_obligation ~obligation_id:oid json
+    | None -> (
+        match !keyword with
+        | Some kw -> Find.search ~keyword:kw json
+        | None ->
+            Printf.fprintf stderr "mathc find: KEYWORD or --obligation=ID is required\n";
+            exit 2)
+  in
+  match !format with
+  | `Json ->
+      let n =
+        match filtered with
+        | Jsonl.Object ps -> (
+            match List.assoc_opt "decisions" ps with
+            | Some (Jsonl.Array xs) -> List.length xs
+            | _ -> 0)
+        | _ -> 0
+      in
+      print_endline (Jsonl.stringify filtered);
+      (* Zero matches is success, not failure: callers inspect the
+         `decisions` array. *)
+      if n = 0 then exit 0 else exit 0
+
 (* mathc migrate — declarative, kernel-observed migration plan.
  *
  * The kernel NEVER mutates decision files on disk. It only:
@@ -4694,6 +4792,7 @@ let dispatch () =
   | "re-evaluate" -> do_re_evaluate ()
   | "re-evaluate-decisions" -> do_re_evaluate_decisions ()
   | "self-check" -> do_self_check ()
+  | "find" -> do_find ()
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()
   | "stats" -> do_stats ()

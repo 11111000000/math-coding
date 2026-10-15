@@ -1,0 +1,280 @@
+---
+schema: math-coding/3.3
+id: mathc-find-subcommand-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+axiom_link:
+  - A0
+  - A4
+intent: |
+  Add a `mathc find` subcommand (CLI) and a `mathc/find`
+  MCP method that search the decisions corpus for case-
+  insensitive substring matches and look up single
+  obligation ids. The output is a `mathc packages`-shaped
+  JSON object with the `decisions[]` array filtered to the
+  matches. The implementation lives in `lib/find/find.ml`
+  as a new sub-library (the same one-library-per-concern
+  pattern that `lib/mcp/` follows per
+  `OCAML_BEST_PRACTICES.md` §10.1); the helper library is
+  pure (no I/O) and operates on Jsonl.value trees.
+
+  Two entry points ship in this slice:
+    1. `mathc find KEYWORD [--format=json]` — case-
+       insensitive substring match across the fields the
+       kernel emits on each decision (decision id, plus
+       per-obligation fields id, verifier, verdict).
+       Returns a `mathc packages`-shaped JSON object whose
+       `decisions[]` array contains only matches.
+    2. `mathc find --obligation=<id>` — find the decision
+       whose `obligations[]` contains an entry with
+       `id == <id>`. The matched obligation is enriched
+       with an `attestation_path` field naming the
+       conventional attestation file path
+       (`attestations/<decision-id>-<obligation-id>.json`)
+       so the caller can locate the evidence in one
+       tool call.
+
+  The MCP surface exposes the read-only method
+  `mathc/find` with params `{"keyword": "<s>"}` or
+  `{"obligation": "<id>"}`. `mathc/find` is added to the
+  read-only allowlist in `lib/mcp/dispatch.ml`; it is
+  never touched by the `MCP_READ_WRITE` gate (decision
+  `mcp-read-write-env-gate-2026-10`).
+
+  Touches (per A3 self-application):
+    lib/find/find.ml                   (new, ~50 LOC, pure)
+    lib/find/dune                      (new library
+                                        mathcoding_find)
+    bin/Mathc.ml                       (do_find + dispatcher
+                                        arm + print_usage update)
+    lib/mcp/dispatch.ml                (add mathc/find to
+                                        read_only_methods +
+                                        build_find + build_argv
+                                        arm)
+    tests/cli/find.t                   (new cram fixture,
+                                        4 cases)
+    tests/mcp/find-readonly.t          (new cram fixture,
+                                        2 cases)
+
+  Boundaries (A3 self-application):
+    - The kernel under `lib/` (decision / packages /
+      memory / gate / policy / risk / canonical /
+      attestations / git / junit / init / import_adr) is
+      unchanged. `lib/packages.ml::to_json` already
+      returns the shape this module consumes; no kernel
+      change is required to ship.
+    - `lib/mcp/dispatch.ml` is amended only inside the
+      already-decided allowlist (`ux-3-mcp-read-write-
+      2026-10`) and decision-arm map; the wire protocol
+      and the stdio transport are unchanged.
+    - `spec/`, `schemas/`, and `axioms/` are unchanged.
+antithesis: |
+  The counter-position considered and rejected: "A
+  keyword search across decisions/ is what `grep -r
+  <keyword> decisions/` is for; adding a kernel
+  subcommand duplicates a tool the agent already has."
+  The author engaged with this position and rejected it
+  on three grounds: (a) the MCP allowlist needs
+  structured access — `mathc/find` is the natural
+  read-only method for an agent to enumerate matching
+  decisions without a shell round-trip; (b) `grep | jq`
+  is not reachable from a remote agent without shell
+  access; the MCP-tier API is the only surface that
+  meets the "remote-friendly" requirement; (c) the
+  kernel cost is one pure module (~50 LOC) plus one CLI
+  dispatcher arm, with the existing `mathc packages`
+  payload shape reused verbatim — no schema change, no
+  axiom amendment beyond A0 (separation) and A4 (search
+  is a kind of intent). The minimum sufficient response
+  is one sub-library and one CLI/MCP method.
+commitment: |
+  One kernel-surface addition. Pinned by two cram
+  fixtures (`tests/cli/find.t`, `tests/mcp/find-readonly.t`):
+
+    D1. `lib/find/find.ml::search ~keyword packages`:
+        filter `packages.decisions[]` to entries whose
+        decision-level (`decision_id`) or obligation-level
+        (`id`, `verifier`, optional `claim`) fields
+        contain `keyword` as a case-insensitive substring.
+        Returns a Jsonl.value with the same shape as the
+        input.
+
+    D2. `lib/find/find.ml::lookup_obligation
+        ~obligation_id packages`: filter `packages
+        .decisions[]` to entries whose `obligations[]`
+        contains an entry with `id == obligation_id`.
+        Enrich each matched obligation with
+        `attestation_path: "attestations/<decision-id>-
+        <obligation-id>.json"`. Returns a Jsonl.value
+        with the same shape as the input.
+
+    D3. `bin/Mathc.ml::do_find` parses `KEYWORD` and
+        optional `--obligation=<id>` and `--format=json`
+        (default `json`); calls `Packages.walk` on
+        `decisions/` to obtain the input Jsonl.value;
+        calls `Find.search` or `Find.lookup_obligation`;
+        prints the JSON on stdout. Exit 0 on success
+        (including zero matches); exit 2 on missing
+        keyword or unknown --format.
+
+    D4. `lib/mcp/dispatch.ml` adds `mathc/find` to the
+        read-only allowlist; the existing
+        `build_argv` match gains a `mathc/find` arm
+        that calls `build_find`. `build_find` parses
+        `params.obligation` (preferred) or
+        `params.keyword` and returns either
+        `[ "find"; "--obligation"; id; "--format=json" ]`
+        or `[ "find"; kw; "--format=json" ]`. If neither
+        param is present, returns `-32602 Invalid
+        params`.
+
+    D5. `bin/Mathc.ml::dispatch` adds an arm
+        `| "find" -> do_find ()`. `print_usage` adds
+        one line for the new subcommand.
+
+    D6. `bin/dune` adds `mathcoding_find` to the
+        executable's library list.
+
+    D7. `tests/cli/find.t` exercises:
+        (a) `mathc find mcp` returns JSON with at least
+            two expected mcp-related decisions;
+        (b) `mathc find this-string-does-not-exist-
+            anywhere` returns an empty `decisions[]`
+            array (exit 0);
+        (c) `mathc find --obligation=<id>` returns the
+            enclosing decision + `attestation_path`;
+        (d) `mathc find` exits 2 with the usage error.
+
+    D8. `tests/mcp/find-readonly.t` exercises:
+        (a) `mathc/find` MCP method returns a packages-
+            shaped JSON;
+        (b) `mathc/find` is in the read-only allowlist:
+            under `MCP_READ_WRITE=off` the method still
+            works while `mathc/gate` returns -32601.
+
+  Boundaries (A3 self-application):
+    - `lib/decision.ml`, `lib/packages.ml`,
+      `lib/memory.ml`, `lib/gate.ml`, `lib/policy.ml`,
+      `lib/risk.ml`, `lib/canonical.ml`,
+      `lib/attestations/**`, `lib/git/**`,
+      `lib/junit/**`, `lib/init/**`,
+      `lib/import_adr/**` are unchanged.
+    - `spec/**`, `schemas/**`, `axioms/**` are
+      unchanged.
+counterexample: |
+  "Just use `grep` + `jq` on `decisions/*.yaml`; no need
+   for a kernel subcommand."
+
+  Counterargument: the MCP allowlist needs structured
+  access — `mathc/find` is the natural read-only method
+  for an agent to enumerate matching decisions without a
+  shell round-trip. `grep | jq` is not reachable from a
+  remote MCP caller without shell access; the MCP-tier
+  API is the only surface that meets the remote-friendly
+  requirement. The kernel cost is one pure module plus
+  one CLI arm.
+
+  "The `intent` / `commitment` / `claim` fields are not
+   in the JSON output of `mathc packages --format=json`;
+   the search is incomplete without them."
+
+  Counterargument: `lib/packages.ml::to_json` intentionally
+  omits `intent`, `commitment`, and the per-obligation
+  `claim` to keep the package-list payload bounded (per
+  lib/packages.ml:443-448). `lib/find/find.ml` is written
+  to be tolerant: any additional string field on a
+  decision (`intent`, `commitment`) or obligation
+  (`claim`) is also scanned if the caller injects them
+  into the input. The shipped `mathc find` flow uses the
+  package-list shape and matches on the fields that are
+  present; `intent` / `commitment` / `claim` matching
+  is a follow-up if a future iteration extends the
+  package-list payload. The minimum sufficient response
+  for this slice is one sub-library + one CLI arm.
+
+  "Add `mathc/find` to the read-write allowlist (or
+   the gate-controlled list) for symmetry with the
+   existing MCP surface."
+
+  Counterargument: `mathc/find` is a read-only operation;
+  it produces no side effects (no writes to
+  `attestations/`, `decisions/execution-logs.jsonl`, or
+  otherwise). It belongs in the read-only allowlist, like
+  the seven existing read-only methods. The MCP read-
+  write gate (decision `mcp-read-write-env-gate-2026-10`)
+  does not gate `mathc/find`.
+scope:
+  capabilities:
+    - mathc-find-subcommand
+    - mathc-find-mcp-method
+  paths:
+    - "lib/find/"
+    - "lib/mcp/dispatch.ml"
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "tests/cli/find.t"
+    - "tests/mcp/find-readonly.t"
+    - "decisions/mathc-find-subcommand-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/packages.ml"
+    - "lib/memory.ml"
+    - "lib/gate.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/canonical.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/init/**"
+    - "lib/import_adr/**"
+    - "lib/check/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+outcomes:
+  - id: find-subcommand-ships
+    statement: |
+      `mathc find KEYWORD [--format=json]` and `mathc find
+      --obligation=<id>` exit 0 on a fresh tree and emit
+      a `mathc packages`-shaped JSON object with the
+      `decisions[]` array filtered appropriately.
+obligations:
+  - id: find-subcommand-impl
+    outcome: find-subcommand-ships
+    claim: |
+      `tests/cli/find.t` exercises the four cases
+      (single match / no match / obligation lookup /
+      missing-keyword input error). The fixture passes
+      on a tree that ships the subcommand and would fail
+      on a tree that does not.
+    acceptance:
+      all:
+        - verifier: tests/cli/find.t
+          result: pass
+reversal:
+  - signal: find-not-needed
+    condition: |
+      The agent hosts that use the MCP server converge on
+      an alternative search surface (e.g. a Grep/Edit
+      tool or a forge search API). Resolution: delete
+      `lib/find/`, remove `find` from `bin/Mathc.ml`,
+      remove `mathc/find` from the MCP allowlist; this
+      decision is superseded.
+    action: supersede-with-removal
+risk:
+  declared_triggers:
+    - intent-commitment-claim-not-in-output
+    - mcp-finder-creates-side-effect
+    - find-subcommand-payload-blows-up-on-large-corpus
+  owner: human:maintainer
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - mcp-server-impl-2026-10@1
