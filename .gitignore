@@ -43,3 +43,9 @@ attestations/t1-2-A0-*.json
 # commitments, and should never be committed.
 decisions/1-foo.yaml
 decisions/1-use-postgresql.yaml
+
+# `scripts/render-svgs.sh` emits PNG snapshots of every
+# assets/*.svg here. The snapshots are visual-verification
+# scratch — regenerated on every render — and should never
+# be committed.
+assets/_renders/

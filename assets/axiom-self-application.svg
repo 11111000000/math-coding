@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="a3-title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="a3-title a3-desc">
   <title id="a3-title">Axiom A3 — Self-application: the rules govern their own changes.</title>
+  <desc id="a3-desc">A square frame with a spiral inside, the spiral's tail converging on a small filled dot at the centre. The frame is the rule set; the spiral is the rule set applied to itself; the dot is the fixed point. A3 forbids rules that exempt themselves from revision.</desc>
   <defs>
     <style>
       .a3-square { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.75; }

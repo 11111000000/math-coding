@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="logo-title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="logo-title logo-desc">
   <title id="logo-title">math-coding</title>
+  <desc id="logo-desc">Two oxblood brackets facing inward around a small check-mark stroke: the math-coding mark. The brackets echo the canonical fences used throughout the spec, and the inner check represents the gate verdict.</desc>
   <g fill="none" stroke="#8b3a3a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
     <!-- Left bracket: short top horizontal, full vertical, short bottom horizontal -->
     <path d="M22 10 L10 10 L10 54 L22 54"/>

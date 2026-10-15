@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="a1-title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" role="img" aria-labelledby="a1-title a1-desc">
   <title id="a1-title">Axiom A1 — Feedback: every commitment has a path to an observation.</title>
+  <desc id="a1-desc">A circular arrow looped around a small filled dot at the centre, indicating a closed path from commitment back to observation. The loop is the path that links every declared intent to a concrete observed attestation; A1 forbids commitments without such a path.</desc>
   <defs>
     <style>
       .a1-loop { stroke: #8b3a3a; stroke-width: 1.75; fill: none; }

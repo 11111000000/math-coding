@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 470" role="img" aria-labelledby="hr-title" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 470" role="img" aria-labelledby="hr-title hr-desc" preserveAspectRatio="xMidYMid meet">
   <title id="hr-title">Human roles vs object kinds: which role touches which of the seven kinds. Author creates, reviewer reviews, operator operates; the kernel handles the rest.</title>
+  <desc id="hr-desc">A seven-row grid: rows are the seven object kinds (intent, decision, obligation, change, attestation, observation, revision) and columns are the three human roles plus the kernel. A filled dot marks a role-kind pair the role touches; an empty cell marks a pair it does not. The author column is the densest; the kernel column has dots for the kinds it handles on its own.</desc>
   <defs>
     <style>
       .hr-title      { font-family: Georgia, "Iowan Old Style", serif; font-size: 16px; fill: #1a1a1a; text-anchor: middle; font-style: italic; }

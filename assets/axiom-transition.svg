@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 420" role="img" aria-labelledby="at-title" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 420" role="img" aria-labelledby="at-title" preserveAspectRatio="xMidYMid meet">
   <title id="at-title">Axiom transition: the re_evaluate(d, A_new) oracle returns one of three ReEvaluationStatus values — Compatible, Inconclusive, StaleClaim — and the gate verdict is the max_verdict across the impact-list (algebra §17).</title>
   <desc>Top row shows the five-stage flow: axiom-revision commit → impact-list → re_evaluate oracle → max_verdict aggregator → gate verdict. Three callout panels at the bottom enumerate the three oracle outcomes, each coloured to match its gate verdict: green Open (Compatible), amber Open + follow-up (Inconclusive), red Blocked + remediation (StaleClaim).</desc>
   <defs>

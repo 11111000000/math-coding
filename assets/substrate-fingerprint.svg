@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 320" role="img" aria-labelledby="sf-title" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 320" role="img" aria-labelledby="sf-title" preserveAspectRatio="xMidYMid meet">
   <title id="sf-title">Substrate fingerprint: kernel.ver ⊕ ocaml.ver ⊕ dep.digests hashed per CI run; aggregated across blocking CIs to be substrate-honest (algebra §13 + §14, §16).</title>
   <desc>Three inputs (kernel version, OCaml version, dependency digests) feed a SHA-256 digest. Each attestation captures this fingerprint; multi-CI aggregation joins attestations whose substrate_fingerprint matches the policy's known_substrates, preserving substrate honesty across heterogeneous CI environments.</desc>
   <defs>
@@ -23,7 +23,7 @@
 
   <!-- LEFT: three inputs feeding the SHA-256 -->
   <g transform="translate(20, 60)">
-    <text class="sf-label" x="60" y="-12">inputs · recorded per attestation</text>
+    <text class="sf-label" x="80" y="-12">inputs · recorded per attestation</text>
 
     <g transform="translate(0, 0)">
       <rect class="sf-box" x="0" y="0" width="120" height="36" rx="4"/>
@@ -40,7 +40,7 @@
     <g transform="translate(0, 120)">
       <rect class="sf-box" x="0" y="0" width="120" height="36" rx="4"/>
       <text class="sf-text-mono" x="60" y="16">dep.digests</text>
-      <text class="sf-label" x="60" y="30">opam-tree · dune.lock · flake.lock</text>
+      <text class="sf-label" x="80" y="30">opam-tree · dune.lock · flake.lock</text>
     </g>
   </g>
 
