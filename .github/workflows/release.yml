@@ -346,6 +346,69 @@ jobs:
             chmod +x dist-bin/install.ps1 || true
             ls -la dist-bin/SHA256SUMS dist-bin/install.sh dist-bin/install.ps1
 
+      # D6 (commit dist/2026-10/distro-d6-cosign-blob-2026-10):
+      # keyless cosign + GitHub Actions OIDC signature for every
+      # `mathc-*` binary. Produces `<asset>.sig` and `<asset>.pem`
+      # alongside each binary. Both the IMAGE cosign workflow
+      # (`.github/workflows/docker.yml::cosign-sign`) and the install
+      # scripts (`scripts/install-tooling/install.sh::verify_cosign_blob`,
+      # `scripts/install-tooling/install.ps1::Test-CosignBlob`) verify
+      # against the same identity regexp +
+      # `https://token.actions.githubusercontent.com` issuer, so the
+      # CI-side signer identity and the user-side verifier identity
+      # match as a single string. Per OCAML_BEST_PRACTICES §11.36 the
+      # `id-token: write` workflow-level permission is already declared
+      # above; this step consumes that grant. The `if:` clause mirrors
+      # the existing release publishing surfaces: tag push, main push,
+      # and manual dispatch — every release that already publishes
+      # binaries also signs them.
+      - name: Install cosign
+        if: |
+          startsWith(github.ref, 'refs/tags/v') ||
+          github.ref == 'refs/heads/main' ||
+          github.event_name == 'workflow_dispatch'
+        uses: sigstore/cosign-installer@v3
+        with:
+          cosign-release: 'v2.4.1'
+
+      - name: cosign sign-blob (each mathc-* binary)
+        if: |
+          startsWith(github.ref, 'refs/tags/v') ||
+          github.ref == 'refs/heads/main' ||
+          github.event_name == 'workflow_dispatch'
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          set -eu
+          # Iterate every `dist-bin/mathc-*` binary and run `cosign
+          # sign-blob --yes` with keyless + GitHub Actions OIDC. The
+          # bash case pattern matches the SHA256SUMS step's exclusion
+          # list (so a binary that ships in SHA256SUMS ships with a
+          # signature) and adds `*.sig` / `*.pem` to the exclusion so
+          # the loop does not re-sign its own outputs across
+          # iterations. `--output-signature` and `--output-certificate`
+          # write the SAME basename as the binary, which matches the
+          # cosign convention and the verify-blob path on the install
+          # side. The `id-token: write` permission at workflow level
+          # is required; see OCAML_BEST_PRACTICES §11.36.
+          cd "$GITHUB_WORKSPACE"
+          for exe in dist-bin/mathc-*; do
+            [ -f "$exe" ] || continue
+            case "$exe" in
+              *.tar.gz|*.txt|*.sig|*.pem) ;;  # excluded: metadata or own output
+              *)
+                echo "::group::cosign sign-blob $exe"
+                cosign sign-blob --yes \
+                  --output-signature "${exe}.sig" \
+                  --output-certificate "${exe}.pem" \
+                  "$exe"
+                echo "::endgroup::"
+                ;;
+            esac
+          done
+          echo "signed artefacts:"
+          ls -la dist-bin/*.sig dist-bin/*.pem 2>/dev/null || true
+
       - name: Publish on tag — official release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
@@ -355,11 +418,23 @@ jobs:
           generate_release_notes: true
           files: |
             dist-bin/mathc-linux-x86_64
+            dist-bin/mathc-linux-x86_64.sig
+            dist-bin/mathc-linux-x86_64.pem
             dist-bin/mathc-linux-aarch64
+            dist-bin/mathc-linux-aarch64.sig
+            dist-bin/mathc-linux-aarch64.pem
             dist-bin/mathc-darwin-x86_64
+            dist-bin/mathc-darwin-x86_64.sig
+            dist-bin/mathc-darwin-x86_64.pem
             dist-bin/mathc-darwin-aarch64
+            dist-bin/mathc-darwin-aarch64.sig
+            dist-bin/mathc-darwin-aarch64.pem
             dist-bin/mathc-windows-x86_64.exe
+            dist-bin/mathc-windows-x86_64.exe.sig
+            dist-bin/mathc-windows-x86_64.exe.pem
             dist-bin/mathc-linux-x86_64-musl
+            dist-bin/mathc-linux-x86_64-musl.sig
+            dist-bin/mathc-linux-x86_64-musl.pem
             dist-bin/SHA256SUMS
             dist-bin/install.sh
             dist-bin/install.ps1
@@ -374,11 +449,23 @@ jobs:
           prerelease: true
           files: |
             dist-bin/mathc-linux-x86_64
+            dist-bin/mathc-linux-x86_64.sig
+            dist-bin/mathc-linux-x86_64.pem
             dist-bin/mathc-linux-aarch64
+            dist-bin/mathc-linux-aarch64.sig
+            dist-bin/mathc-linux-aarch64.pem
             dist-bin/mathc-darwin-x86_64
+            dist-bin/mathc-darwin-x86_64.sig
+            dist-bin/mathc-darwin-x86_64.pem
             dist-bin/mathc-darwin-aarch64
+            dist-bin/mathc-darwin-aarch64.sig
+            dist-bin/mathc-darwin-aarch64.pem
             dist-bin/mathc-windows-x86_64.exe
+            dist-bin/mathc-windows-x86_64.exe.sig
+            dist-bin/mathc-windows-x86_64.exe.pem
             dist-bin/mathc-linux-x86_64-musl
+            dist-bin/mathc-linux-x86_64-musl.sig
+            dist-bin/mathc-linux-x86_64-musl.pem
             dist-bin/SHA256SUMS
             dist-bin/install.sh
             dist-bin/install.ps1

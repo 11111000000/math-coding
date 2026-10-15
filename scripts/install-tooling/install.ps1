@@ -206,6 +206,62 @@ function Test-CosignImage {
   return 1
 }
 
+# Test-CosignBlob — verify the downloaded binary's keyless cosign
+# signature against its matching .sig / .pem pair. Per
+# `decisions/release-cosign-blob-sign-2026-10.yaml` outcome
+# `install-ps1-verifies-cosign-blob`. The pair is published as
+# release assets by `.github/workflows/release.yml`'s `cosign
+# sign-blob` step.
+#
+# Behavior (mirrors Test-CosignImage):
+#   - $NoCosignVerify set: no-op, exit 0.
+#   - cosign not on PATH: warning to stderr, exit 0.
+#   - $Sig or $Cert path absent (e.g. a pre-D6 release):
+#     warning to stderr, exit 0 (no signature to verify).
+#   - cosign verify-blob exits 0: confirmation to stderr, exit 0.
+#   - cosign verify-blob exits non-zero: error to stderr,
+#     emit `diagnostic: MC-INSTALL-COSIGN-VERIFY-BLOB-FAIL`,
+#     exit 1.
+#
+# Args: $Binary (full path to the downloaded mathc-*.exe),
+#       $Sig (full path to the matching .sig, or ""),
+#       $Cert (full path to the matching .pem, or "").
+function Test-CosignBlob {
+  param(
+    [string]$Binary,
+    [string]$Sig,
+    [string]$Cert
+  )
+  if ($NoCosignVerify) { return 0 }
+  $cosign = (Get-Command cosign -ErrorAction SilentlyContinue)
+  if (-not $cosign) {
+    Write-Warning "install.ps1: cosign not installed; skipping binary signature verification (use -NoCosignVerify to suppress this warning)"
+    return 0
+  }
+  if (-not $Sig -or -not (Test-Path $Sig) -or -not $Cert -or -not (Test-Path $Cert)) {
+    Write-Warning "install.ps1: cosign signature/certificate not published for $(Split-Path -Leaf $Binary) (pre-D6 release?); skipping verify"
+    return 0
+  }
+  try {
+    cosign verify-blob `
+      --signature $Sig `
+      --certificate $Cert `
+      --certificate-identity-regexp $MC_COSIGN_IDENTITY_REGEXP `
+      --certificate-oidc-issuer $MC_COSIGN_OIDC_ISSUER `
+      $Binary | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+      Write-Warning "install.ps1: cosign verify-blob: ok: $(Split-Path -Leaf $Binary)"
+      return 0
+    }
+  } catch {}
+  Write-Error "install.ps1: cosign verify-blob: FAIL: $(Split-Path -Leaf $Binary)"
+  Write-Error "  the binary signature does not match the math-coding GitHub Actions OIDC issuer."
+  Write-Error "  this can indicate a release-asset compromise, a pre-sign release, or a tampered binary."
+  Write-Error "  retry with -NoCosignVerify only if you explicitly trust the release CDN for this version."
+  Write-Error "diagnostic: MC-INSTALL-COSIGN-VERIFY-BLOB-FAIL"
+  return 1
+}
+
 function Install-BinaryToDir {
   param(
     [string]$Tmp,
@@ -328,6 +384,13 @@ if ($Check) {
 $installDir = Pick-InstallDir
 $sumsTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("mathc-sums-$([System.Guid]::NewGuid()).txt")
 $binTmp  = Join-Path ([System.IO.Path]::GetTempPath()) ("mathc-bin-$([System.Guid]::NewGuid()).exe")
+# D6: cosign blob signature + certificate scratch paths. Mirrored
+# from the install.sh flow (`download_cosign_blob_assets` +
+# `verify_cosign_blob`). Best-effort: a pre-D6 release that does not
+# publish .sig / .pem yields empty paths, which `Test-CosignBlob`
+# treats as "skip" with a warning to stderr.
+$sigTmp   = Join-Path ([System.IO.Path]::GetTempPath()) ("mathc-bin-$([System.Guid]::NewGuid()).sig")
+$certTmp  = Join-Path ([System.IO.Path]::GetTempPath()) ("mathc-bin-$([System.Guid]::NewGuid()).pem")
 
 $sumsUrl = Resolve-SumsUrl -Version $Version
 $rc = Download-File -Url $sumsUrl -Out $sumsTmp
@@ -339,13 +402,48 @@ if ($rc -ne 0) {
 $assetUrl = Resolve-AssetUrl -Version $Version -AssetName $assetName
 $rc = Download-File -Url $assetUrl -Out $binTmp
 if ($rc -ne 0) {
-  Remove-Item -Force $sumsTmp, $binTmp -ErrorAction SilentlyContinue
+Remove-Item -Force $sumsTmp, $binTmp, $sigTmp, $certTmp -ErrorAction SilentlyContinue
+  return $rc
+}
+
+# D6: download the cosign signature + certificate for the binary
+# (best-effort). Skipped silently when -NoCosignVerify or cosign
+# not on PATH. A pre-D6 release that does not publish .sig / .pem
+# leaves the temp files empty; Test-CosignBlob then warns-and-skips.
+if (-not $NoCosignVerify) {
+  $cosignCmd = Get-Command cosign -ErrorAction SilentlyContinue
+  if ($cosignCmd) {
+    $sigUrl  = Resolve-AssetUrl -Version $Version -AssetName "$assetName.sig"
+    $certUrl = Resolve-AssetUrl -Version $Version -AssetName "$assetName.pem"
+    # Tolerate 404 / network error on each file individually; a
+    # pre-D6 release that does not publish .sig / .pem is the
+    # common case. We DO print a brief warning when the file is
+    # absent (404 → NOT_FOUND), but only when cosign is installed
+    # and verification is enabled (i.e., the user opted in).
+    $sigRc = Download-File -Url $sigUrl  -Out $sigTmp
+    if ($sigRc -ne 0) { Remove-Item -Force $sigTmp  -ErrorAction SilentlyContinue; New-Item -ItemType File -Path $sigTmp  -Force | Out-Null }
+    $certRc = Download-File -Url $certUrl -Out $certTmp
+    if ($certRc -ne 0) { Remove-Item -Force $certTmp -ErrorAction SilentlyContinue; New-Item -ItemType File -Path $certTmp -Force | Out-Null }
+  } else {
+    # No cosign on PATH; create empty placeholders so Test-CosignBlob
+    # sees "missing" and prints its own warning. (Faster than the
+    # if-tree because we don't actually need the temp files.)
+    New-Item -ItemType File -Path $sigTmp  -Force | Out-Null
+    New-Item -ItemType File -Path $certTmp -Force | Out-Null
+  }
+}
+
+# D6: cosign blob verify (auth check). Runs BEFORE SHA-256 verify
+# (integrity check); both gates are independently closed.
+$rc = Test-CosignBlob -Binary $binTmp -Sig $sigTmp -Cert $certTmp
+if ($rc -ne 0) {
+  Remove-Item -Force $sumsTmp, $binTmp, $sigTmp, $certTmp -ErrorAction SilentlyContinue
   return $rc
 }
 
 $rc = Test-Sha256 -Sums $sumsTmp -Binary $binTmp -Base $assetName
 if ($rc -ne 0) {
-  Remove-Item -Force $sumsTmp, $binTmp -ErrorAction SilentlyContinue
+  Remove-Item -Force $sumsTmp, $binTmp, $sigTmp, $certTmp -ErrorAction SilentlyContinue
   return $rc
 }
 
