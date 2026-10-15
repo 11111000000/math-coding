@@ -2190,3 +2190,82 @@ end-user-facing invocation pattern), `lib/waiver.ml::load`
 new CVE ticket is filed in the incident tracker (creation
 surface). Cited from this session (2026-10-15) as the trigger
 for `decisions/ux-3-hotfix-waiver-procedure-2026-10.yaml`.
+
+### 11.36 cosign keyless sign requires `id-token: write` permission
+
+**Symptom.** A `cosign sign --yes ghcr.io/<owner>/<image>:<tag>`
+step in a GitHub Actions workflow fails at runtime with one of:
+
+```
+Error: getting signer: getting key from GitHub Actions OIDC: no token
+```
+
+```
+Error: failed to sign: no signing keys configured
+```
+
+```
+warning: Using ephemeral keys for signing. Cosign generates and
+manages these keys; they persist only for the duration of the
+run.
+```
+
+The first two are the typical hard failures; the third is a
+"soft" warning that the cosign-installer action emits when it
+falls back to ephemeral keys (which Silo's transparency log
+treats as unsigned). In all cases the image is silently NOT
+signed the way the workflow author expected — the signature
+either fails to land or is recorded against a key the
+transparency log will not honour for the OIDC-identity match
+on the verifier side.
+
+**Fix.** Add `permissions: id-token: write` to the workflow
+OR to the specific job that runs `cosign sign`. The flag is
+at the workflow level by default (most secure, recommended):
+
+```yaml
+permissions:
+  contents: read
+  packages: write
+  id-token: write  # for cosign keyless signing (OCaml §11.36)
+```
+
+— or at the job level as a less-broad override:
+
+```yaml
+jobs:
+  cosign-sign:
+    permissions:
+      id-token: write
+    steps:
+      - uses: sigstore/cosign-installer@v3
+      - run: cosign sign --yes ghcr.io/...
+```
+
+`packages: write` is NOT a substitute; it grants the GITHUB_TOKEN
+permission to push container images but does not surface the
+OIDC identity token that cosign's `--keyless` (default) flow
+needs to fetch the Sigstore-signed-certificate identity claim.
+
+**Referenced from.**
+`.github/workflows/docker.yml` (the workflow-level
+`permissions: id-token: write` on lines 25-28 satisfies the
+new `cosign-sign` job without per-job overrides);
+`.github/workflows/release.yml` (the workflow-level grant
+on lines 11-22 is the equivalent for any future cosign step
+targeting release assets);
+`decisions/ux-3-cosign-image-2026-10.yaml`
+(`outcomes[].cosign-image-signed` and `obligations[].cosign-
+image-signed`); `scripts/install-tooling/install.sh`
+(`MC_COSIGN_OIDC_ISSUER = 'https://token.actions.githubuser
+content.com'` — the OIDC issuer the verifier pins).
+
+**Trigger.** Any new GitHub Actions workflow that runs
+`cosign sign` (or `cosign attest`, `cosign attach signature`)
+without `id-token: write` at either the workflow or job
+level. The cosign-installer action (`sigstore/cosign-
+installer@v3`) and cosign-installer-action composite do NOT
+auto-grant the permission; they document the requirement
+and silently fall back to ephemeral keys otherwise. Cited
+from this session (2026-10-15) as the trigger for
+`decisions/ux-3-cosign-image-2026-10.yaml`.

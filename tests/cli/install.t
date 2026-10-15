@@ -1,9 +1,10 @@
 install.sh --help prints a usage block that names the four
 canonical flags (--user-skill, --with-docker, --print-nix-command,
---check), the --version=<X> override, and the four documented
-exit codes (0=ok, 1=checksum-mismatch, 2=input-error,
-124=network-error). The fixture is the positive path: a clean
-invocation exits 0 and prints the documented block.
+--check), the --cosign-verify toggle, the --version=<X>
+override, and the four documented exit codes (0=ok,
+1=checksum-mismatch, 2=input-error, 124=network-error). The
+fixture is the positive path: a clean invocation exits 0 and
+prints the documented block.
 
   $ install_sh="$DUNE_SOURCEROOT/scripts/install-tooling/install.sh"
   $ "$install_sh" --help
@@ -15,6 +16,9 @@ invocation exits 0 and prints the documented block.
                             even when its version pin matches
     --with-docker           print docker pull + run commands
     --print-nix-command     print the `nix run github:...` command
+    --cosign-verify         (default on) verify the ghcr.io image
+                            signature; --no-cosign-verify to skip
+    --no-cosign-verify      skip the cosign signature verification
     --version=<X>           override MC_VERSION_DEFAULT
     --check                 exit 0 if already installed and in sync
     -h | --help             show this help
@@ -30,7 +34,7 @@ install.sh --with-docker prints the docker pull + run lines
 without auto-executing. The user explicitly asked to see what the
 command would be; the script prints and exits 0.
 
-  $ "$install_sh" --with-docker
+  $ "$install_sh" --no-cosign-verify --with-docker
   docker pull ghcr.io/11111000000/mathc:3.1.0-alpha-final
   docker run --rm -v "$(pwd):/repo" ghcr.io/11111000000/mathc:3.1.0-alpha-final --help
   install.sh: --with-docker printed; nothing was installed
@@ -46,7 +50,7 @@ flake's default app. Per `decisions/install-tooling-2026-10.yaml`
 outcome `nix-run-derivation-exists`, the flake ships
 `apps.<system>.default = ${packages.<system>.default}/bin/mathc`.
 
-  $ "$install_sh" --print-nix-command
+  $ "$install_sh" --no-cosign-verify --print-nix-command
   nix run github:11111000000/math-coding#default -- --help
   install.sh: --print-nix-command printed; nothing was installed
 
@@ -65,7 +69,7 @@ documented behaviour: --check reports the install state and
 exits 0 if everything is in sync, 1 otherwise. On a clean
 CI runner the binary is absent, so this is the negative path.
 
-  $ "$install_sh" --check; echo "exit=$?"
+  $ "$install_sh" --no-cosign-verify --check; echo "exit=$?"
   install.sh: --check: /home/az/.local/bin/mathc not installed or not executable
   exit=1
 
@@ -82,7 +86,7 @@ either a release tag with the asset or a mocked tarball;
 both are tested by the install.sh unit tests in the harness
 via the negative fixtures in tests/fixtures/.
 
-  $ XDG_CONFIG_HOME="$PWD/fake-xdg" "$install_sh" --user-skill --upgrade --version=0.0.0-test; echo "exit=$?"
+  $ XDG_CONFIG_HOME="$PWD/fake-xdg" "$install_sh" --no-cosign-verify --user-skill --upgrade --version=0.0.0-test; echo "exit=$?"
   install.sh: curl failed for https://github.com/11111000000/math-coding/releases/download/v0.0.0-test/SHA256SUMS
   diagnostic: MC-INSTALL-NETWORK
   exit=124
@@ -119,3 +123,20 @@ hotfix-cve.sh refuses to write when the ticket id has shell metacharacters
   $ ! test -f decisions/waivers/hotfix-bad.yaml && echo "no file written: ok"
   no file written: ok
 
+install.sh --cosign-verify / --no-cosign-verify toggle the
+signature-verification default. Per
+`decisions/ux-3-cosign-image-2026-10.yaml` outcome
+`cosign-verify-runs-on-install`, the flag is on by default
+and falls back to a warning when `cosign` is not on PATH.
+This is the positive-path cram case: the help output lists
+both forms, and `--no-cosign-verify` silently takes effect
+(does NOT print the cosign-missing warning).
+
+  $ if "$install_sh" --help 2>&1 | grep -qF -- '--cosign-verify' && "$install_sh" --help 2>&1 | grep -qF -- '--no-cosign-verify'; then echo "both-flags-listed: ok"; else echo "FAIL: flag missing"; exit 1; fi
+  both-flags-listed: ok
+  $ if "$install_sh" --with-docker --version=3.3.0 2>&1 | grep -qF 'cosign not installed'; then echo "default-on-warns: ok"; else echo "FAIL: default should warn"; exit 1; fi
+  default-on-warns: ok
+  $ "$install_sh" --no-cosign-verify --with-docker --version=3.3.0 2>&1
+  docker pull ghcr.io/11111000000/mathc:3.3.0
+  docker run --rm -v "$(pwd):/repo" ghcr.io/11111000000/mathc:3.3.0 --help
+  install.sh: --with-docker printed; nothing was installed

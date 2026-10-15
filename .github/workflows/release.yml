@@ -9,6 +9,18 @@ on:
 
 permissions:
   contents: write
+  # `id-token: write` is required for keyless Sigstore cosign
+  # signing of release assets (e.g. `cosign sign --yes
+  # ghcr.io/11111000000/mathc:${VERSION}-install.sh`).
+  # The `ux-3-cosign-image-2026-10` cycle gates the IMAGE
+  # signature in `.github/workflows/docker.yml`, where the
+  # permission is also declared; this grant is the equivalent
+  # for any future cosign step targeting release assets in
+  # this workflow. Per OCAML_BEST_PRACTICES §11.36, the
+  # permission is the documented trap: omit it and cosign
+  # sign errors with "getting key from GitHub Actions OIDC:
+  # no token".
+  id-token: write
 
 jobs:
   build:
