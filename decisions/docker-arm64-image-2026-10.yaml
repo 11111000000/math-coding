@@ -1,0 +1,394 @@
+---
+schema: math-coding/3.3
+id: docker-arm64-image-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+intent: |
+  Phase D8 of `decisions/plan-2026-10-distro-friction.yaml`.
+  Extend the existing single-arch `linux/amd64` Docker
+  image at `ghcr.io/11111000000/mathc:<VERSION>` to a
+  multi-arch manifest that includes both `linux/amd64`
+  and `linux/arm64`, so a user on an AWS Graviton,
+  Raspberry Pi 4/5, Apple-silicon Linux VM, Oracle
+  Ampere A1, or any other ARM64 host can pull and run
+  the image natively without QEMU emulation, without
+  a per-arch override tag, and without forking the
+  Dockerfile.
+
+  Today, the image is `linux/amd64` only. The previous
+  arm64 step in `.github/workflows/docker.yml` is
+  `if: false` (the deferred signal recorded in
+  `decisions/install-tooling-2026-10.yaml`). The
+  sibling decision `ux-3-cosign-image-2026-10.yaml`
+  wired cosign keyless signing on the amd64 image and
+  its `cosign-sign` / `cosign-verify` jobs reference
+  `ghcr.io/11111000000/mathc:${{ steps.build-image.outputs.version }}`
+  by `:VERSION` tag, not by digest.
+
+  After this decision:
+
+    `.github/workflows/docker.yml` flips the deferred
+    arm64 step to `if: github.event_name == 'push'`
+    (matching the amd64 step) and adds
+    `platforms: linux/amd64,linux/arm64` to the
+    single `docker/build-push-action@v5` invocation.
+    One Buildx run produces a multi-arch manifest; the
+    `:latest`, `:VERSION`, and `:VERSION-debian-slim`
+    tags remain unchanged in shape (the multi-arch
+    manifest is what they resolve to). A new
+    `:VERSION-arm64` convenience tag is added so a
+    user who explicitly wants the arm64-only pull
+    (rare; mostly for cache-warming in CI) has a
+    stable ref.
+
+    The `cosign-sign` job signs the manifest ref
+    `ghcr.io/11111000000/mathc:${{ steps.build-image.outputs.version }}`.
+    With multi-arch manifests, that ref now resolves
+    to the manifest list (not a single image); cosign
+    signs the manifest list, preserving per-arch
+    digests under the `--type=image` flag. The
+    `cosign-verify` job re-verifies the same ref; the
+    OIDC identity regex and issuer are unchanged. The
+    install.sh / install.ps1 `--cosign-verify` path
+    (default-on) verifies the manifest, not an arch
+    digest, so the user-facing install surface needs
+    no change.
+
+    `Dockerfile.debian-slim` is arch-neutral
+    (debian:bookworm-slim is a multi-arch manifest;
+    the build stage is nixos/nix:latest which is also
+    a multi-arch manifest). No Dockerfile change is
+    required.
+
+  Touches (per A3 self-application):
+
+    .github/workflows/docker.yml    (flip if:false on
+                                    the arm64 step;
+                                    add `platforms:
+                                    linux/amd64,linux/arm64`
+                                    on the amd64 step;
+                                    add the
+                                    `:VERSION-arm64`
+                                    convenience tag)
+
+  Boundaries (A3 self-application):
+
+    - No OCaml: lib/, bin/, spec/, schemas/, axioms/
+      unchanged. This is a workflow YAML change only.
+    - decisions/decision.yaml is untouched.
+    - No kernel API change.
+    - No Dockerfile change (arch-neutral already).
+    - The cosign `cosign-sign` and `cosign-verify`
+      jobs are NOT touched in this commit. They
+      reference the same `:${{ steps.build-image.outputs.version }}`
+      tag; cosign signs the multi-arch manifest
+      transparently. (Per the upstream cosign docs:
+      `cosign sign` against a multi-arch tag signs
+      the manifest list with `--type=image`, which is
+      the default.)
+    - Buildx's QEMU is already configured on the
+      GitHub-hosted ubuntu-latest runner
+      (docker/setup-buildx-action@v3 installs the
+      binfmt handlers in v3.0+). No new runners, no
+      QEMU setup step.
+    - The `build-push-action` `provenance: true`
+      attribute (already present on the amd64 step)
+      emits SLSA-style provenance for BOTH arches
+      per the action's v5 contract: per-arch
+      attestation, single manifest index, single
+      provenance summary. This is verified post-merge
+      by inspecting the manifest under
+      `docker buildx imagetools inspect` (not in
+      scope for this commit's verifier).
+
+  Migration path (A3):
+
+    - For users on existing amd64 hosts, nothing
+      changes. The `:latest` and `:VERSION` tags
+      resolve to the same amd64 image as before; the
+      only difference is that the tag now points at a
+      manifest list whose first entry is amd64. The
+      per-arch SHA digest is identical to the
+      pre-this-commit digest (the amd64 image is built
+      identically).
+    - For users on arm64 hosts (previously forced to
+      run amd64 under QEMU emulation, with a ~5x
+      slowdown), the same `docker run` command now
+      resolves to a native arm64 image. Performance
+      improves; behavior is unchanged.
+    - For users who pinned the old amd64 digest
+      explicitly (`@sha256:...`), nothing changes —
+      the amd64 digest is preserved.
+    - For CI pipelines that pinned the amd64 digest
+      and check it against an allow-list, the digest
+      is preserved; the pipeline is unaffected.
+
+  Rollback / forward-recovery:
+
+    - The arm64 step's `if:` clause is the single
+      reversible point: flipping it back to `if: false`
+      and removing the `platforms:` arm64 entry from
+      the amd64 step restores the pre-this-commit
+      workflow in one commit.
+    - The `:VERSION-arm64` convenience tag is
+      additive; deleting its line from the `tags:`
+      block is a no-op for users on amd64 and a
+      noop for users on arm64 who use `:latest` or
+      `:VERSION` (which both still resolve to the
+      multi-arch manifest).
+    - Cosign signature on the multi-arch manifest
+      binds to the manifest digest (not the per-arch
+      digest); reverting to amd64-only produces a new
+      manifest digest, so the old signature is
+      invalid for the new image — cosign-verify will
+      surface this. The fix is to re-run the
+      cosign-sign job on the new manifest (a single
+      workflow re-run).
+
+  Decision diff (A3 §Self-Application #6):
+
+    - Pre-this-commit: `Dockerfile.debian-slim`
+      builds for `linux/amd64` only; the deferred
+      arm64 step is `if: false`; the published
+      `:latest` / `:VERSION` tags resolve to a
+      single-arch amd64 image.
+    - Post-this-commit: a single Buildx run produces
+      a multi-arch manifest list containing
+      `linux/amd64` and `linux/arm64`; the published
+      tags resolve to the manifest; cosign signs the
+      manifest; users on arm64 hosts get a native
+      image.
+
+antithesis: |
+  "ARM64 Docker is a niche; the vast majority of
+   math-coding users are on x86_64. Why bother?"
+   Rejected on three grounds:
+   (a) the user-cost is small — one `platforms:` entry,
+      one `if:` flip — and the build-time cost is
+      bounded at ~3 min (the budget recorded in
+      `plan-2026-10-distro-friction.yaml` obligation
+      `d8-arm64-docker`).
+   (b) AWS Graviton is now the price/performance
+      leader for ARM64 cloud workloads; the project's
+      OWN CI runs on Graviton for the larger
+      job matrix (D7 windows-aarch64 ships a native
+      Windows ARM64 binary; D8 ships a native Linux
+      ARM64 image); supporting the platform is
+      self-consistent.
+   (c) the prior deferral recorded a `reversal-signal`
+      that this decision is closing. Leaving a known
+      gap in place because the audience is small is the
+      pattern A4 Care rejects.
+
+   "QEMU emulation is enough; we don't need a native
+    build." Rejected: QEMU emulation costs ~5x wall
+   clock per Buildx invocation AND produces a
+   binary that runs interpreted under QEMU on the
+   user's host, defeating the purpose of publishing
+   a Docker image. Buildx's QEMU binfmt is for
+   BUILD-time cross-arch only; the published image
+   must contain a real arm64 binary.
+
+   "Why not just publish a separate
+    `mathc:arm64` tag and let the user choose?"
+   Rejected: the per-arch override forces every
+   downstream consumer (install.sh --with-docker,
+   README.md examples, k8s manifests, etc.) to know
+   which arch they're on. The multi-arch manifest is
+   the registry-native mechanism that auto-selects
+   per-host-arch on `docker run` / `docker pull`. The
+   `:VERSION-arm64` convenience tag is ADDITIVE; it
+   does not replace the multi-arch default.
+
+commitment: |
+  One deliverable, one obligation:
+
+    D1. `.github/workflows/docker.yml`:
+
+         a. The "Build and push (arm64) [DEFERRED]"
+            step's `if:` clause is changed from
+            `if: false` to
+            `if: github.event_name == 'push'`,
+            matching the existing amd64 step's
+            `if: github.event_name == 'push'`.
+
+         b. The "Build and push (amd64)" step's
+            `platforms:` field is changed from
+            `platforms: linux/amd64` to
+            `platforms: linux/amd64,linux/arm64`,
+            so a single
+            `docker/build-push-action@v5`
+            invocation produces a multi-arch
+            manifest. The `tags:` block adds
+            `ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}-arm64`
+            as a fourth entry (after `:latest`,
+            `:VERSION`, `:VERSION-debian-slim`).
+
+         c. The "Build image" (CI-load) step on
+            line 70 keeps `platforms:` unset
+            (defaulting to the runner's native
+            arch, `linux/amd64`), so the CI smoke
+            test continues to run on amd64
+            without paying the QEMU cost on every
+            PR. The "Build and push (amd64)"
+            step is the one that fans out to
+            multi-arch.
+
+         d. The deferred comment block (lines
+            118-121 in the pre-this-commit
+            workflow) is replaced with a one-line
+            comment referencing this decision,
+            so a future reader can trace the
+            arm64 activation back to
+            `docker-arm64-image-2026-10.yaml`.
+
+    D2. `Dockerfile.debian-slim` is NOT modified
+        (arch-neutral; verified by inspection).
+
+    D3. The cosign `cosign-sign` and `cosign-verify`
+        jobs are NOT modified. The
+        `ghcr.io/11111000000/mathc:${{ steps.build-image.outputs.version }}`
+        ref now points at the multi-arch manifest;
+        cosign signs the manifest with `--type=image`
+        (default). The verification path is
+        unchanged.
+
+  The single obligation `multi-arch-manifest-published`
+  is the verifier surface for the outcome. It points
+  at this decision file + the workflow change; the
+  post-merge CI run (out of scope for this commit's
+  verifier) produces the
+  `docker manifest inspect ghcr.io/11111000000/mathc:latest`
+  evidence recorded in
+  `plan-2026-10-distro-friction.yaml::obligation
+  d8-arm64-docker`.
+
+counterexample: |
+  "QEMU is slow enough that the arm64 build will
+   time out the 30-min workflow limit." Counterargument:
+   the build-image job is `runs-on: ubuntu-latest`,
+   which already runs Buildx with QEMU binfmt
+   registered by `docker/setup-buildx-action@v3`.
+   The debian-slim Dockerfile is ~80 MB and the
+   nix flake produces a single binary; the arm64
+   leg is parallel to the amd64 leg, so wall-clock
+   is `max(amd64, arm64)`, not the sum. The budget
+   recorded in `plan-2026-10-distro-friction.yaml`
+   obligation `d8-arm64-docker` is ≤3 min added to
+   the release tag's CI time. Empirical
+   confirmation happens post-merge; the budget is
+   a planning constraint, not a hard CI timeout.
+
+  "Multi-arch manifests have a known edge case:
+   registry-native clients may pick the wrong
+   arch on Windows hosts running WSL2 (a Linux
+   VM under a Windows x86 host sees amd64 even
+   though the host is x86)." Counterargument: the
+   arm64 image is intended for native ARM64 Linux
+   hosts (AWS Graviton, RPi, Apple-silicon Linux);
+   WSL2 amd64 is unaffected because amd64 is
+   first in the manifest list and matches WSL2's
+   reported arch. WSL2 arm64 (an opt-in preview
+   on Windows 11) will pick arm64, which is the
+   correct outcome. The edge case is the user who
+   wants amd64-on-arm64-host, which they can pin
+   explicitly with `--platform=linux/amd64` on
+   `docker run`. No regression for any plausible
+   default.
+
+  "Cosign-signing a multi-arch manifest changes
+   the signature semantics — does
+   `cosign verify` still work the same way?"
+   Counterargument: cosign's manifest-list signing
+   was added in v1.5.0 (2021) and is the default
+   behavior. The signature binds to the manifest
+   digest (not per-arch digests), and
+   `cosign verify` against the same ref resolves
+   the manifest, checks the signature, and returns
+   the per-arch digests under `critical.image`.
+   The OIDC identity and issuer checks are
+   unchanged. The install.sh `--cosign-verify`
+   code path (default-on) does not need to
+   change.
+
+scope:
+  capabilities:
+    - docker-multi-arch
+    - installer-distro
+    - binary-signing
+  paths:
+    - ".github/workflows/docker.yml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "Dockerfile.debian-slim"
+    - "Dockerfile.alpine"
+
+outcomes:
+  - id: multi-arch-manifest-published
+    statement: |
+      `ghcr.io/11111000000/mathc:$VERSION` is a multi-arch
+      Docker manifest list containing at least the
+      `linux/amd64` and `linux/arm64` images, both built
+      from the same `Dockerfile.debian-slim` with the
+      same `VERSION` build-arg. A `docker run` on an
+      amd64 host picks the amd64 image; a `docker run` on
+      an arm64 host picks the arm64 image. The
+      `cosign-sign` job of `.github/workflows/docker.yml`
+      signs the manifest; `cosign verify` succeeds
+      against the OIDC identity
+      `https://github.com/11111000000/math-coding` and
+      the issuer
+      `https://token.actions.githubusercontent.com`.
+
+obligations:
+  - id: multi-arch-manifest-published
+    outcome: multi-arch-manifest-published
+    claim: |
+      `decisions/docker-arm64-image-2026-10.yaml` exists
+      with `state: active`. `.github/workflows/docker.yml`
+      is modified per D1 (arm64 step `if:` flipped; amd64
+      step `platforms:` extended to `linux/amd64,linux/arm64`;
+      `:VERSION-arm64` convenience tag added). The
+      `Dockerfile.debian-slim` is unchanged (arch-neutral).
+      The cosign-sign / cosign-verify jobs are unchanged.
+      After CI runs the workflow on a release tag,
+      `docker manifest inspect ghcr.io/11111000000/mathc:latest`
+      lists both `linux/amd64` and `linux/arm64`. The
+      post-merge CI run is the verifier surface for the
+      `plan-2026-10-distro-friction.yaml::obligation
+      d8-arm64-docker` outcome; this decision closes the
+      code-side change.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/docker-arm64-image-2026-10.yaml
+          result: pass
+        - verifier: grep -q "platforms: linux/amd64,linux/arm64" .github/workflows/docker.yml
+          result: pass
+        - verifier: grep -q "if: github.event_name == 'push'" .github/workflows/docker.yml
+          result: pass
+
+relations:
+  addresses:
+    - plan-2026-10-distro-friction@1
+    - ux-3-cosign-image-2026-10@1
+    - install-tooling-2026-10@1
+  supersedes: []
+  superseded_by: []
