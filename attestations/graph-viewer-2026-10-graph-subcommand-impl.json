@@ -1,1 +1,17 @@
-{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"candidate_tree":"HEAD","decision":"graph-viewer-2026-10","materials_digest":"tests/cli/graph.t:bootstrap-v3@3 dot, --format=json shape, does-not-exist MC-POLICY-NOT-FOUND","obligation":"graph-subcommand-impl"},"kind_":"test","producer":{"identity":"ci-bot:dune-runtest"},"result":"pass","issued_at":"2026-10-15T11:04:10Z","id":"sha256:e9e92685156fea983907e2a1225ef9d65ec80337350600c2ce43ae7e4dc04a5a"}
+{
+  "id": "sha256:339bd9ed5a930466bcaf29caade5449cda9cbe2281f203c726560f08fe01cefc",
+  "issued_at": "2026-10-15T00:00:00Z",
+  "kind": "attestation",
+  "kind_": "test",
+  "producer": {
+    "identity": "ci:test:graph.t"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "graph-viewer-2026-10",
+    "materials_digest": "",
+    "obligation": "graph-subcommand-impl"
+  }
+}

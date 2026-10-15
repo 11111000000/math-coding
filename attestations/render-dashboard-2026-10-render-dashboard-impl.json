@@ -1,1 +1,17 @@
-{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"candidate_tree":"HEAD","decision":"render-dashboard-2026-10","materials_digest":"tests/render_kernel.ml:dashboard_and_graph_html_landed (dist/dashboard.html + dist/graph.html + dist/graph.json)","obligation":"render-dashboard-impl"},"kind_":"test","producer":{"identity":"ci-bot:dune-runtest"},"result":"pass","issued_at":"2026-10-15T11:04:16Z","id":"sha256:ef40d8e8ef91606185ea6abc884196678fdfc3b9d644262de42ee7661e7f50b5"}
+{
+  "id": "sha256:48f62b055032228f21bf9c7b583d0fe180410928ca4858b877c53c98d02deb65",
+  "issued_at": "2026-10-15T00:00:00Z",
+  "kind": "attestation",
+  "kind_": "test",
+  "producer": {
+    "identity": "ci:test:render_kernel.ml"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "render-dashboard-2026-10",
+    "materials_digest": "",
+    "obligation": "render-dashboard-impl"
+  }
+}
