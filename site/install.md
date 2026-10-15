@@ -14,7 +14,7 @@ much of the host environment the channel assumes.
 | Channel | When to use | Install command |
 |---|---|---|
 | Release binary | Default. Linux glibc ≥ 2.35, macOS, or WSL. | `curl -fsSL https://github.com/11111000000/math-coding/releases/download/v${VERSION}/install.sh \| sh` |
-| Docker image | No sudo, no writable `~/.local/`, restricted CI runner, or you want a hermetic run. | `docker run --rm -v "$PWD:/repo" ghcr.io/11111000000/mathc:${VERSION} validate decisions/foo.yaml` |
+| Docker image | No sudo, no writable `~/.local/`, restricted CI runner, or you want a hermetic run. Fallback for environments where `curl \| sh` is blocked. | `docker run --rm -v "$PWD:/repo" ghcr.io/11111000000/mathc:${VERSION} validate decisions/foo.yaml` |
 | Nix run | You have Nix ≥ 2.18 with flakes enabled and prefer zero-install. | `nix run github:11111000000/math-coding -- validate decisions/foo.yaml` |
 | Source build | You are modifying `lib/` or `bin/`. | `nix develop .#test && dune build --root . bin/mathc.exe` |
 
