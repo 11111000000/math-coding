@@ -6,6 +6,12 @@ full runbook, see [USAGE.md](USAGE.md). For the AI-agent skill, see
 
 ## Install
 
+The default channel is **stable** (the latest tagged
+`vX.Y.Z` release, or the most recently published release
+artifact if no stable tag exists yet). The `--channel=edge`
+opt-in (`-Version edge` in PowerShell) installs the
+rolling nightly prerelease.
+
 Linux / macOS / WSL / Git-Bash / MSYS / Cygwin / Alpine — one
 command, auto-detects libc and shell RC:
 
@@ -30,6 +36,17 @@ The shell installer:
   `~/.zshrc` / `~/.profile` (Windows: user `Path`);
 - on Alpine / Void / Chimera, downloads the musl-linked
   binary automatically.
+
+Want the rolling prerelease instead of stable? Pass the
+`edge` opt-in explicitly:
+
+```sh
+curl ... | sh -s -- --version=edge
+```
+
+```powershell
+irm ... | iex -Version edge
+```
 
 Other channels (Docker, Nix, source build) live in
 [site/install.md](site/install.md); use them when `curl | sh`

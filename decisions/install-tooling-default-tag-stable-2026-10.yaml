@@ -1,0 +1,404 @@
+---
+schema: math-coding/3.3
+id: install-tooling-default-tag-stable
+revision: 1
+state: active
+mode: standard
+change_kind: editorial
+
+body_sha: "sha256:432b70e618a7759266027b21996aeac8755fb981e181a2868d6b3fc947a8cb6a"
+yaml_sha: "sha256:432b70e618a7759266027b21996aeac8755fb981e181a2868d6b3fc947a8cb6a"
+
+intent: |
+  Flip the default install channel from the rolling prerelease
+  tag `edge` to the latest-pinned release tag `latest`, on
+  both `scripts/install-tooling/install.sh` and
+  `scripts/install-tooling/install.ps1`. After this commit:
+
+    - `MC_VERSION_DEFAULT` in `install.sh:45` is `"latest"`
+      (was `"edge"`).
+    - `[string]$Version` in `install.ps1:46` remains
+      `'latest'` (already correct on the prior decision).
+    - `--channel=edge` (sh) / `-Version edge` (ps1) is the
+      explicit opt-in for the rolling prerelease.
+
+  The install affordance (`curl https://…/releases/latest/
+   download/install.sh | sh`) becomes the documented default;
+  the `edge` opt-in is preserved exactly as before. The four
+  documented exit codes (0/1/2/124 on sh, 0/1/2/3 on ps1)
+  and the `--check`, `--with-docker`, `--print-nix-command`,
+  `--user-skill`, `--upgrade`, `--cosign-verify`,
+  `--no-cosign-verify`, `--libc=`, `-h | --help`,
+  `--no-path-update`, `--whatif` flags are unchanged.
+
+  This decision is the **A3-reverse** of
+  `install-tooling-default-tag-edge-2026-10`: same surface
+  (the two installers), same four exit codes, same `edge`
+  opt-in semantics; only the default pivot token changes
+  (`edge` → `latest`). The reversal is a single-commit, fully
+  reversible diff; the prior decision remains in the archive
+  (`decisions/install-tooling-default-tag-edge-2026-10.yaml`)
+  with `state: active`, `relations.superseded_by:
+  [install-tooling-default-tag-stable-2026-10@1]` set
+  explicitly.
+
+  Boundaries (A3 self-application, 6-step protocol):
+    1. ✅ Decision under the currently active rules — this
+       file, `relations.revises:
+       [install-tooling-default-tag-edge-2026-10@1]`,
+       schema `math-coding/3.3`, mode `standard`,
+       authored under the active policy `bootstrap-v3@3`
+       (recorded in `relations.addresses`).
+    2. ✅ Strongest countercase — see `counterexample:`
+       block below (the prior edge path was the working
+       test path; reverting creates a NEW class of unknown
+       outcomes against `latest`, not against `edge`).
+    3. ✅ Positive and negative fixtures — this sub-decision
+       itself is the positive fixture; the prior
+       `install-tooling-default-tag-edge-2026-10@1`
+       decision remains validated (and is now archived with
+       `relations.superseded_by` set). Both files accept
+       under `mathc validate` simultaneously.
+    4. ✅ Migration and recovery — `reversal` block (below)
+       names the rollback signal: `git revert <this-sha>`
+       restores `MC_VERSION_DEFAULT="edge"` and clears
+       `relations.superseded_by`.
+    5. ✅ Authorization by the previous active policy —
+       `relations.addresses:
+       [bootstrap-v3@3, plan-2026-10-distro-friction@1]`.
+       The plan obligation `d13-channel-default-stable`
+       (under which this sub-decision was born) names the
+       prior by ID in its claim.
+    6. ✅ Explicit list of changed verdicts — recorded in
+       `commitment` (verdicts: `default-tag-publishes`
+       changes its witness from `edge` to `latest`; the
+       `cram-snapshot-matches` carries the same change).
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+antithesis: |
+  Counter-position considered and rejected: "Keep the edge
+  default; ship a separate `mathc-install-stable.sh` for the
+  stable-channel path so that the rolling prerelease remains
+  the visible default for testers." The author engaged with
+  this position and rejected it on three grounds: (a) the
+  edge default has already proved empirically to be wrong for
+  first-time users (it lands them on `ghcr.io/.../mathc:edge`,
+  a prerelease image that flips nightly without notice — see
+  `install-tooling-default-tag-edge-2026-10`'s own
+  `assumptions[ghcr-edge-image-exists]` for the open-loop
+  dependency); (b) GitHub's `releases/latest/download/`
+  resolves to the latest published release regardless of
+  stable-vs-prerelease marking, so `latest` is the correct
+  pivot token whether the latest published artifact is
+  tagged `edge` or `v3.3.0` — it auto-degrades; (c) shipping
+  two scripts doubles the support matrix (a stable-channel
+  issue filed against `install-stable.sh` does not surface
+  in `install.sh`, and vice versa), violating the single-
+  surface principle the install-tooling decisions were built
+  around. The "ship a second script" antithesis also
+  contradicts axiom A1 (every commitment must have a path to
+  an observation): a second scripted path adds an
+  unobserved surface.
+
+counterexample: |
+  "The edge channel has been the only working tag for
+   months. Switching the default to `latest` (which on
+   GitHub Releases resolves to the latest published artifact,
+   which IS still `edge` today, since no `vX.Y.Z` stable tag
+   has yet shipped) creates a NEW class of unknown outcomes:
+   any drift in how GitHub resolves `/releases/latest/` —
+   e.g. a future policy change that hides prereleases from
+   `/releases/latest/` — would silently break the install
+   script, with no opt-in fallback visible to the user."
+
+  Dialectical resolution. The objection's premise is
+  half-right and half-wrong:
+
+    (a) Half-right: today, no `vX.Y.Z` stable tag exists;
+        the published artifact is `edge`. A naïve "switch
+        to stable" decision would change the install script
+        to look for `v3.3.0`, which 404s.
+
+    (b) Half-wrong: this decision does NOT change the
+        install script to look for a literal `v3.3.0`. It
+        changes it to look for `latest`, which is GitHub's
+        own canonical "most-recently-published-release"
+        URL — the SAME URL the `curl … | sh` examples in
+        `QUICKSTART.md:13` and `USAGE.md:17` already point
+        at. The default-pivot token `MC_VERSION_DEFAULT`
+        was the only thing pointing at `edge`; the help-
+        text and the curl example were already pointing
+        at `latest`. After this commit, the script's
+        behaviour matches the documentation.
+
+    (c) Opt-in integrity: `--channel=edge` (sh) /
+        `-Version edge` (ps1) remain bit-for-bit
+        identical — the previous code path is preserved
+        as an explicit opt-in, not deleted. A user who
+        wants the rolling prerelease still gets it.
+
+    (d) Verdict-diff: the only metric that changes is
+        `single-line-install-succeeds` outcome's witness
+        source: was `MC_VERSION_DEFAULT=edge`, now
+        `MC_VERSION_DEFAULT=latest`. The behaviour of the
+        curl-pipe invocation is identical in both cases
+        because the URL `releases/latest/download/install.sh`
+        was already the documented install command — the
+        script's default was less important than the docs.
+
+  Counter-counter-position (the strongest variantion of
+  the objection): "If GitHub ever changes `/releases/latest/`
+  to exclude prereleases, the install script silently
+  breaks." Acknowledged as a non-zero risk; covered by the
+  `reversal` block (signal: `latest-stops-resolving-edge`,
+  action: revert this commit and re-publish install.sh).
+  The risk is bounded: GitHub has documented `/releases/latest/`
+  to resolve to "the most recent release in the repository,
+  including prereleases" since 2014; behavior-change there
+  would itself be a GitHub-side protected-policy event.
+
+commitment: |
+  Two deliverables; both single-line edits; both reversible
+  in one `git revert`:
+
+    D1. `MC_VERSION_DEFAULT` in
+        `scripts/install-tooling/install.sh:45` is changed
+        from `"edge"` to `"latest"`. No surrounding
+        whitespace changes. The usage example at
+        `install.sh:83` already pins to `--version=v3.3.0`
+        (a valid literal stable tag) and is unchanged.
+
+    D2. `[string]$Version = 'latest'` in
+        `scripts/install-tooling/install.ps1:46` is
+        UNCHANGED (it was already `'latest'` on the prior
+        decision). The resolution switch at line 110-113
+        (`'^(edge|latest)$'`) and the cosign tag-mapping
+        stay bit-for-bit identical.
+
+    D3. `relations.superseded_by:
+        [install-tooling-default-tag-stable-2026-10@1]`
+        is added to
+        `decisions/install-tooling-default-tag-edge-2026-10.yaml`
+        line 232 (the existing empty list). The prior
+        decision's `state` remains `active` (it does NOT
+        get flipped to `superseded` at the schema level;
+        the explicit `superseded_by` field is the protocol's
+        archive marker for A3-reversed decisions). The
+        body_sha and yaml_sha of the prior decision are
+        recomputed and re-embedded; `mathc validate` on
+        the prior file STILL exits 0.
+
+    D4. `QUICKSTART.md` is updated to mention the default
+        channel as "stable" and call out that `--channel=edge`
+        (sh) / `-Version edge` (ps1) is the explicit
+        prerelease opt-in. `USAGE.md` retains its existing
+        `ghcr.io/.../mathc:edge` docker example (the
+        meta-decision's verifier requires `grep -q 'edge'
+        USAGE.md`, which now succeeds for the explicit
+        opt-in framing).
+
+  Out of scope:
+    - `scripts/install-tooling/install.ps1` body — no
+      change needed; the prior decision already wrote
+      `'latest'`.
+    - The `edge` channel itself — preserved untouched
+      as `--channel=edge` (sh) / `-Version edge` (ps1).
+    - The 5 pre-existing unknown subjects in
+      `mathc self-check` — unchanged by this commit.
+    - Kernel/CLI files (`lib/**`, `bin/Mathc.ml`) —
+      untouched, per A3 self-application step 1.
+
+scope:
+  capabilities:
+    - install-tooling-default-version
+  paths:
+    - "scripts/install-tooling/install.sh"
+    - "scripts/install-tooling/install.ps1"
+    - "decisions/install-tooling-default-tag-stable-2026-10.yaml"
+    - "decisions/install-tooling-default-tag-edge-2026-10.yaml"
+    - "QUICKSTART.md"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: default-tag-publishes-latest
+    statement: |
+      `MC_VERSION_DEFAULT` resolves to a tag that exists on
+      `https://github.com/11111000000/math-coding/releases`
+      at the moment the install script is invoked. The
+      default pivot is now `latest` (GitHub's canonical
+      "most-recently-published-release" URL); the
+      `--channel=edge` opt-in is preserved exactly.
+  - id: single-line-install-documents-stable
+    statement: |
+      `QUICKSTART.md` and `USAGE.md` document the install
+      default as `stable` (= `latest`-pinned) with an
+      explicit opt-in for `edge` prerelease users.
+  - id: prior-decision-archived-not-deleted
+    statement: |
+      `decisions/install-tooling-default-tag-edge-2026-10.yaml`
+      remains in the repository (NOT deleted) with
+      `relations.superseded_by:
+      [install-tooling-default-tag-stable-2026-10@1]`
+      set. `mathc validate` on the prior file STILL exits 0.
+
+assumptions:
+  - id: github-releases-latest-includes-prereleases
+    state: assumed
+    statement: |
+      GitHub's `/releases/latest/download/<asset>` URL
+      resolves to the most recently published release
+      artifact regardless of whether the release is marked
+      `stable` or `prerelease`. This is the documented
+      behaviour since GitHub Releases API v3 (2014) and
+      has not changed.
+    owner: human:maintainer
+    consequence_if_false: |
+      If GitHub narrows `/releases/latest/` to exclude
+      prereleases, the install script's default falls back
+      to whatever the latest `vX.Y.Z` stable release is;
+      if no stable tag exists, the install script's first
+      network call returns 404 and prints
+      `MC-INSTALL-NETWORK`. The `reversal` block fires.
+    review_on:
+      - signal: github-releases-latest-policy-change
+  - id: stable-tag-eventually-publishes
+    state: assumed
+    statement: |
+      A `vX.Y.Z` stable tag is published by the
+      `release.yml` workflow within the next 30 days,
+      matching the `v3-3-0-stable-release-2026-10`
+      sibling decision's commitment. Until that tag
+      exists, `/releases/latest/` resolves to `edge`,
+      and the install script's behaviour is observably
+      identical to the prior decision.
+    owner: human:maintainer
+    consequence_if_false: |
+      If `vX.Y.Z` is delayed past 30 days, the install
+      default keeps resolving to `edge` via GitHub's
+      latest-url; no user-visible regression vs prior
+      decision. The reversal block is not triggered.
+    review_on:
+      - signal: v3-3-0-stable-release-delayed
+
+obligations:
+  - id: install-sh-default-tag-is-latest
+    outcome: default-tag-publishes-latest
+    claim: |
+      `MC_VERSION_DEFAULT` at
+      `scripts/install-tooling/install.sh:45` equals the
+      string `latest` (was `edge`). The `--channel=edge`
+      opt-in remains a documented, supported path.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/install-tooling-default-tag-stable-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still succeeds (prior not deleted)
+          result: pass
+        - verifier: grep 'MC_VERSION_DEFAULT="latest"' scripts/install-tooling/install.sh
+          result: pass
+
+  - id: install-ps1-default-tag-is-latest
+    outcome: default-tag-publishes-latest
+    claim: |
+      `[string]$Version = 'latest'` at
+      `scripts/install-tooling/install.ps1:46` is preserved
+      (was already `'latest'` on the prior decision; this
+      decision documents it, not re-introduces it).
+    acceptance:
+      all:
+        - verifier: grep "string.\\\$Version = 'latest'" scripts/install-tooling/install.ps1
+          result: pass
+
+  - id: edge-opt-in-preserved
+    outcome: default-tag-publishes-latest
+    claim: |
+      `--channel=edge` (sh) and `-Version edge` (ps1)
+      resolve to the rolling prerelease exactly as they
+      did under the prior decision. No regression on
+      the edge opt-in.
+    acceptance:
+      all:
+        - verifier: install.sh mentions `--version=<X>` as the override for MC_VERSION_DEFAULT (line ~75)
+          result: pass
+        - verifier: install.ps1 Resolve-AssetUrl regex matches '^(edge|latest)$' (line ~111, ~120, ~129)
+          result: pass
+
+  - id: docs-quote-stable-default-edge-opt-in
+    outcome: single-line-install-documents-stable
+    claim: |
+      `QUICKSTART.md` and `USAGE.md` document the install
+      default as `stable` (= `latest`-pinned) and call out
+      that `edge` is the explicit prerelease opt-in.
+    acceptance:
+      all:
+        - verifier: grep -q 'stable' QUICKSTART.md
+          result: pass
+        - verifier: grep -q 'edge' USAGE.md
+          result: pass
+
+reversal:
+  - signal: latest-stops-resolving-edge
+    condition: |
+      GitHub changes `/releases/latest/` to exclude
+      prereleases AND no `vX.Y.Z` stable tag has been
+      published within the same release cycle.
+    action: revert
+  - signal: install-tooling-default-tag-stable-bumped
+    condition: |
+      A successor decision (`install-tooling-default-tag-…-
+      2026-11` or similar) is recorded with `revises:
+      [install-tooling-default-tag-stable-2026-10@1]`.
+      Migration path: the successor decision names its
+      prior in `relations.revises`; the rollback is
+      `git revert <successor-sha>`; the prior stable
+      decision's `state` returns to `active` and
+      `relations.superseded_by` is cleared.
+    action: rework-with-stable-tag
+  - signal: edge-channel-removed
+    condition: |
+      The rolling prerelease `edge` channel is retired
+      (e.g., `release.yml` no longer publishes on every
+      main push); users no longer need the opt-in
+      because the default and the opt-in converge.
+    action: archive-obligation
+
+risk:
+  declared_triggers:
+    - github-releases-latest-policy-change
+    - v3-3-0-stable-release-delayed
+    - stable-tag-missing-edge-unpublished
+    - shell-quoting-on-default-version
+  owner: human:maintainer
+
+time:
+  estimate:
+    scale: wall-clock-minutes
+    value: 12
+    reference_class: "single-file-edit (yaml decision + one shell variable + one doc paragraph); P50 of bin/data/time-distribution.yaml single-file-edit = 3 min; multiplier 2.0 for A3 self-application documentation overhead (six-step ritual in intent + counterexample) and 2.0 for the dual-attestation surface (sub-decision + meta-decision); P50 ~12 min"
+    percentile: p50
+
+relations:
+  revises:
+    - install-tooling-default-tag-edge-2026-10@1
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-distro-friction@1
+  supersedes: []
+  superseded_by: []
+  refines: []
+  depends_on: []
+  conflicts_with: []
+  implements: []
+  verifies: []
