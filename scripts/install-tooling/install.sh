@@ -11,6 +11,15 @@
 #   --with-docker        print docker pull + run commands
 #   --print-nix-command  print `nix run github:.../math-coding`
 #                        command
+#   --cosign-verify      (default: on) before the install /
+#                        docker / nix branches, run
+#                        `cosign verify` against
+#                        `ghcr.io/11111000000/mathc:${version}`
+#                        (the Docker image tag for this
+#                        version). Exits 1 on verification
+#                        failure. Skipped when `cosign` is not
+#                        installed (warning to stderr).
+#   --no-cosign-verify   disable the verify step
 #   --version=<X>        override the default version
 #                        (default = MC_VERSION_DEFAULT below)
 #   --check              exit 0 if installed binary and skill
@@ -38,6 +47,14 @@ MC_RELEASE_BASE="https://github.com/${MC_REPO}/releases/download"
 MC_BINARY_BASENAME="mathc"
 MC_TEMPLATE_REMOTE_PATH="scripts/install-tooling/templates/active-policy.yaml"
 MC_TARBALL_NAME="dist-adoption.tar.gz"
+# Per `decisions/ux-3-cosign-image-2026-10.yaml` outcome
+# `cosign-verify-runs-on-install`. The Docker image signature
+# is checked by default; pass `--no-cosign-verify` to skip.
+# The two flags below match the cosign-sign/cosign-verify jobs
+# in `.github/workflows/docker.yml` (keyless, GitHub OIDC).
+MC_COSIGN_IDENTITY_REGEXP='https://github.com/11111000000/math-coding'
+MC_COSIGN_OIDC_ISSUER='https://token.actions.githubusercontent.com'
+MC_COSIGN_IMAGE_PREFIX='ghcr.io/11111000000/mathc'
 
 # --- Usage ----------------------------------------------------------------
 print_usage() {
@@ -50,6 +67,9 @@ Options:
                           even when its version pin matches
   --with-docker           print docker pull + run commands
   --print-nix-command     print the \`nix run github:...\` command
+  --cosign-verify         (default on) verify the ghcr.io image
+                          signature; --no-cosign-verify to skip
+  --no-cosign-verify      skip the cosign signature verification
   --version=<X>           override MC_VERSION_DEFAULT
   --check                 exit 0 if already installed and in sync
   -h | --help             show this help
@@ -71,6 +91,9 @@ install_print_nix=0
 install_version="${MC_VERSION_DEFAULT}"
 install_check_only=0
 install_print_help=0
+# Default-on per `decisions/ux-3-cosign-image-2026-10.yaml`.
+# Flipped to 0 by `--no-cosign-verify`.
+install_cosign_verify=1
 
 parse_flags() {
   while [ $# -gt 0 ]; do
@@ -79,6 +102,8 @@ parse_flags() {
       --upgrade)           install_user_skill=1; install_upgrade=1 ;;
       --with-docker)       install_print_docker=1 ;;
       --print-nix-command) install_print_nix=1 ;;
+      --cosign-verify)     install_cosign_verify=1 ;;
+      --no-cosign-verify)  install_cosign_verify=0 ;;
       --check)             install_check_only=1 ;;
       --version=*)         install_version="${1#--version=}" ;;
       -h|--help)           install_print_help=1 ;;
@@ -242,6 +267,57 @@ download_binary() {
   fi
   printf '%s\n' "$bin_basename"
   return 0
+}
+
+# --- Cosign signature verification (Docker image) -------------------------
+# Per `decisions/ux-3-cosign-image-2026-10.yaml` outcome
+# `cosign-verify-runs-on-install`. Verifies the ghcr.io image
+# signature using keyless cosign + GitHub Actions OIDC issuer,
+# matching the `cosign-sign` / `cosign-verify` jobs in
+# `.github/workflows/docker.yml` so user-side and CI-side
+# checks use the same identity + issuer.
+#
+# Behavior:
+#   - install_cosign_verify = 0 (--no-cosign-verify): no-op, exit 0.
+#   - cosign not on PATH: print a warning to stderr and exit 0
+#     (most users do not install cosign; the flag is on by
+#     default but missing-cosign is a warning, not a failure).
+#   - cosign verify exits 0: print a one-line confirmation to
+#     stderr ("cosign verify: ok: ...") and exit 0.
+#   - cosign verify exits non-zero: print an error to stderr,
+#     emit `diagnostic: MC-INSTALL-COSIGN-VERIFY-FAIL`, and
+#     return 1 (mapped to exit 1 by the caller).
+#
+# Args: $1=version (the tag suffix; e.g. `3.3.0` or `edge`).
+# Returns: 0 on success / skipped / missing-cosign; 1 on verify fail.
+verify_cosign() {
+  version="$1"
+  if [ "$install_cosign_verify" = "0" ]; then
+    return 0
+  fi
+  # POSIX-sh `command -v` is the portable test (NOT `which`,
+  # which is not in POSIX).
+  if ! command -v cosign >/dev/null 2>&1; then
+    echo "install.sh: cosign not installed; skipping image signature verification (use --no-cosign-verify to suppress this warning)" >&2
+    return 0
+  fi
+  image_tag="${MC_COSIGN_IMAGE_PREFIX}:${version}"
+  # Suppress cosign's stdout; we surface result via our own
+  # one-liner. cosign writes verify-success metadata to stdout,
+  # which would clutter the install script's normal output.
+  if cosign verify \
+        --certificate-identity-regexp "${MC_COSIGN_IDENTITY_REGEXP}" \
+        --certificate-oidc-issuer "${MC_COSIGN_OIDC_ISSUER}" \
+        "${image_tag}" >/dev/null 2>&1; then
+    echo "install.sh: cosign verify: ok: ${image_tag}" >&2
+    return 0
+  fi
+  echo "install.sh: cosign verify: FAIL: ${image_tag}" >&2
+  echo "  the image signature does not match the math-coding GitHub Actions OIDC issuer." >&2
+  echo "  this can indicate a registry compromise, a pre-sign release, or a missing signature." >&2
+  echo "  retry with --no-cosign-verify only if you explicitly trust the registry for this version." >&2
+  echo "diagnostic: MC-INSTALL-COSIGN-VERIFY-FAIL" >&2
+  return 1
 }
 
 # --- Print docker / nix commands (no I/O) --------------------------------
@@ -418,6 +494,19 @@ main() {
       echo "install.sh: --version '$version' has illegal characters" >&2
       return 2 ;;
   esac
+
+  # Cosign signature verification (Docker image). Runs BEFORE any
+  # print/install branches so a failed verify halts the install
+  # before any I/O. `--print-help` and `--check` skip this step
+  # (those are introspection / reporting modes, not actual installs);
+  # `--with-docker` and `--print-nix-command` and a real binary
+  # install all pass through it.
+  if [ "$install_cosign_verify" = "1" ] \
+       && [ "$install_print_help" != "1" ]; then
+    if ! verify_cosign "$version"; then
+      return 1
+    fi
+  fi
 
   # --with-docker / --print-nix-command are no-I/O modes; print and exit.
   if [ "$install_print_docker" = "1" ]; then

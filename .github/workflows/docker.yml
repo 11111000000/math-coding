@@ -25,12 +25,17 @@ on:
 permissions:
   contents: read
   packages: write
-  id-token: write  # for cosign keyless signing (future; see reversal signal)
+  id-token: write  # for cosign keyless signing; required by the cosign-sign job (OCAML_BEST_PRACTICES §11.36)
 
 jobs:
   build-image:
     name: build mathc image (debian-slim)
     runs-on: ubuntu-latest
+    outputs:
+      # Exposed to downstream jobs (cosign-sign, cosign-verify)
+      # per GitHub Actions' job-output protocol. Set by the
+      # Read VERSION step below.
+      version: ${{ steps.version.outputs.version }}
     # Per OCAML_BEST_PRACTICES §11.26: container at the JOB level only.
     # We use the Ubuntu runner as the build host (it has docker
     # installed and can run `docker build` natively) instead of running
@@ -103,10 +108,12 @@ jobs:
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
           platforms: linux/amd64
-          # cosign keyless signing: deferred to follow-up cycle when the
-          # release-pipeline-trusted assumption is revisited. Recorded
-          # in `decisions/install-tooling-2026-10.yaml` reversal
-          # signals (`cosign-signature-missing`).
+          # cosign keyless signing wired by `decisions/ux-3-cosign-
+          # image-2026-10.yaml`; the cosign-sign job below runs
+          # immediately after this step completes. The earlier
+          # "deferred" comment refers to the cycle that closed in
+          # `decisions/install-tooling-2026-10.yaml` reversal
+          # signal `cosign-signature-missing`.
 
       # arm64 image: deferred. The current `Dockerfile.debian-slim`
       # does not cross-compile; QEMU emulation would slow CI by ~5x
@@ -123,3 +130,65 @@ jobs:
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
           platforms: linux/arm64
+
+  # Per `decisions/ux-3-cosign-image-2026-10.yaml` outcome
+  # `cosign-image-signed`. Runs after the image is published by
+  # the `build-image` job; signs the image with keyless cosign
+  # (Sigstore + GitHub Actions OIDC), with no `--key` flag and
+  # no secret keys stored in the repository. Gates on release
+  # tag push (matching `publish`'s `softprops/action-gh-release`
+  # trigger on the same tag shape) so every release tag produces
+  # a signed image.
+  #
+  # TRAP (OCAML_BEST_PRACTICES §11.36): cosign sign WITHOUT
+  # `permissions: id-token: write` at the workflow or job level
+  # fails with "getting signer: getting key from GitHub
+  # Actions OIDC: no token". The workflow-level grant on
+  # line 25-28 (this file) is sufficient for the new job.
+  cosign-sign:
+    name: cosign sign ghcr.io/mathc image (keyless)
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: build-image
+    runs-on: ubuntu-latest
+    # id-token: write is inherited from the workflow-level
+    # permissions block. The job does NOT need packages: write
+    # because the image is already published by build-image.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image (keyless, GitHub OIDC)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          cosign sign --yes \
+            "ghcr.io/11111000000/mathc:${{ needs.build-image.outputs.version }}"
+
+  # Smoke test: re-verify the freshly-signed image in CI on every
+  # release tag push. Asserts exit 0 so a registry compromise OR
+  # a missing signature both fail the release gate. Mirrors the
+  # `cosign verify` invocation used by `install.sh --cosign-verify`
+  # (default-on in `scripts/install-tooling/install.sh`) so the
+  # user-side and CI-side checks use the same identity + issuer.
+  cosign-verify:
+    name: cosign verify ghcr.io/mathc image (smoke test)
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: cosign-sign
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Verify image signature
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          set -eu
+          cosign verify \
+            --certificate-identity-regexp 'https://github.com/11111000000/math-coding' \
+            --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+            "ghcr.io/11111000000/mathc:${{ needs.build-image.outputs.version }}"
