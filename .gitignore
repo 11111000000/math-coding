@@ -49,3 +49,4 @@ decisions/1-use-postgresql.yaml
 # scratch — regenerated on every render — and should never
 # be committed.
 assets/_renders/
+tools/winget/scripts/__pycache__/

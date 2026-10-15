@@ -14,16 +14,29 @@ with sandbox notes and migration steps.
 
 - **Release binary** (recommended). One-line install:
   ```sh
-  curl -fsSL https://github.com/11111000000/math-coding/releases/download/edge/install.sh | sh
+  curl -fsSL https://github.com/11111000000/math-coding/releases/latest/download/install.sh | sh
   ```
-  The script downloads `SHA256SUMS` and the matching
-  `mathc-<os>-<arch>` from the same release, verifies the
-  binary's digest, and installs to `~/.local/bin/mathc`. On
-  Linux it installs to `sha256sum`; on macOS to `shasum -a 256`.
-  Pass `--user-skill` to also install the per-user opencode
+  Cross-platform — works on Linux (glibc + musl auto-detect),
+  macOS, WSL, Git-Bash, MSYS, Cygwin. The script downloads
+  `SHA256SUMS` and the matching `mathc-<os>-<arch>` from the
+  same release, verifies the binary's digest, installs to
+  `~/.local/bin/mathc`, and idempotently appends a PATH line
+  to `~/.bashrc` / `~/.zshrc` / `~/.profile`. Pass
+  `--user-skill` to also install the per-user opencode
   skill (`~/.config/opencode/skills/math-coding/SKILL.md`).
+  Use `--no-path-update` to skip the shell RC edit.
   See [`scripts/install-tooling/install.sh`](scripts/install-tooling/install.sh)
   for the full flag set.
+- **PowerShell** (Windows 10+ / 11). One-liner:
+  ```powershell
+  irm https://github.com/11111000000/math-coding/releases/latest/download/install.ps1 | iex
+  ```
+  Mirrors `install.sh`: downloads `SHA256SUMS`, verifies the
+  Windows binary, installs to
+  `%LOCALAPPDATA%\Programs\mathc\mathc.exe`, adds the dir
+  to user `Path`. Optional `-UserSkill`, `-Upgrade`,
+  `-NoCosignVerify`, `-NoPathUpdate`, `-Check`, `-WhatIf`.
+  See [`scripts/install-tooling/install.ps1`](scripts/install-tooling/install.ps1).
 - **Docker image** (sandbox-friendly). No sudo required:
   ```sh
   docker run --rm -v "$PWD:/repo" ghcr.io/11111000000/mathc:edge \
