@@ -1,0 +1,330 @@
+---
+schema: math-coding/3.2
+id: zh-render-2026-10
+revision: 1
+state: active
+body_sha: "sha256:1dff34eb4f14048eb715ed8a110ad8cc4c9873bd118f03fc8c3ed9f1f3171fbd"
+yaml_sha: "sha256:1dff34eb4f14048eb715ed8a110ad8cc4c9873bd118f03fc8c3ed9f1f3171fbd"
+intent: |
+  Extend the `mathc render` kernel so the site can be published
+  in Chinese alongside English and Russian.
+
+  Scope:
+    1. `bin/Mathc.ml` — `--lang` accepts `en | ru | zh | both |
+       all`. The dispatcher loads `site/<name>.zh.md` (when
+       present) and passes the list to `Render.build_pages`.
+    2. `lib/render.ml` — the previous `has_ru : bool` parameter
+       is generalised to `sibling_langs : string list`. The
+       nav, footer, and language toggle all read from the
+       closed set. New `nav_groups_zh` (matching the
+       four-category shape of `nav_groups_en` / `nav_groups_ru`)
+       and a new `render_index_zh` (the home page in Chinese)
+       are added; the home page is rendered as
+       `index.zh.html` whenever Chinese is enabled.
+    3. `scripts/render.sh` — invokes `mathc render --lang=all`
+       and the dist-allowlist now requires `dist/*.zh.html` for
+       every `site/<name>.zh.md` source plus `dist/index.zh.html`.
+    4. `tests/cli/render.t` — the rev 3 accept test asserts
+       the trilingual EN+RU+ZH page set under `--lang=all`:
+       `index.{html,ru.html,zh.html}`, `<name>.{html,ru.html,
+       zh.html}` for every canonical article, and the ZH
+       nav-groups on `axioms.zh.html` (a smoke test that the
+       ZH nav was emitted with the right hrefs).
+    5. `tests/render_kernel.ml` — every `Render.build_pages`
+       call site is updated to pass `~site_pages_zh:[]`
+       (the parameter is required; empty list means "no ZH
+       pages"); no behavioural assertion was changed.
+
+  Out of scope (deliberately, to keep this change small and
+  reviewable):
+    - Per-decision / per-axiom / per-spec pages remain
+      English-only. The ZH user navigates from `index.zh.html`
+      to the EN rendering via the per-page language toggle
+      when they want per-decision content.
+    - The `<base href>` is the same for all languages; no
+      per-language base path.
+    - The RSS feed remains English-only; the ZH home page
+      links to `feed.xml` (the same as EN/RU).
+    - `mathc render --lang=zh` (Chinese-only) is supported
+      but renders BOTH EN and ZH (EN is the always-on
+      navigation fallback) — same as `--lang=ru` does for EN+RU.
+
+  History:
+    rev 1 (this commit): initial adoption under the
+                          bootstrap-v3 policy.
+
+axiom_link:
+  - A0
+commitment: |
+  `mathc render --lang=all` produces a static site in which
+  every English page that has a Chinese source
+  (`site/<name>.zh.md`) is paired with `<name>.zh.html`, and a
+  Chinese home page is emitted as `index.zh.html`. Specifically:
+
+    1. The `--lang` flag accepts the values `en | ru | zh |
+       both | all`; any other value is rejected with exit 2 and
+       the message `--lang must be en|ru|zh|both|all`.
+
+    2. `lib/render.ml`'s `Render.build_pages` accepts a
+       `site_pages_zh` argument matching the shape of
+       `site_pages` and `site_pages_ru`. Pages with no
+       Chinese source are simply not rendered in ZH.
+
+    3. The nav for ZH pages groups the same four categories
+       (concept / methodology / adopt / reference) with
+       Chinese labels (理念 / 方法 / 采用 / 参考) and
+       `<name>.zh.html` hrefs.
+
+    4. The home page (`index.zh.html`) carries:
+         `<html lang="zh">`,
+         a Chinese tagline ("风险自适应的软件变更保障协议..."),
+         a Chinese Quick start (3 steps, identical to EN/RU
+           in structure),
+         a Chinese "Moderation in one screen" section (with
+           the same 14 check-marks terminal block; the kernel
+           identifier `unknown` stays in English),
+         a Chinese methodology section with four cards
+           (Intent(意图) / Decision(决策) / Obligation(义务)
+            / Attestation(证据)),
+         a Chinese adopt section with the same CTA hrefs.
+       All ASCII identifiers (`mathc`, `bootstrap-v3`, file
+       paths, code spans, HTML class names) are kept verbatim.
+
+    5. The language toggle on a ZH page links to `index.html`
+       (the English home, the canonical name) — NOT
+       `index.en.html` (which does not exist).
+
+    6. The language toggle on an EN page with ZH pages
+       enabled links to the ZH sibling (e.g.
+       `manifesto.zh.html`); the toggle label is "ZH".
+
+    7. `scripts/render.sh` invokes `mathc render --lang=all`
+       and the dist-allowlist now requires
+       `dist/<name>.zh.html` for every `site/<name>.zh.md`
+       plus `dist/index.zh.html`.
+
+  Migration: a deployment that previously ran
+  `--lang=both` keeps working — `--lang=all` is the
+  extended form that adds ZH on top.
+
+  Recovery: revert this commit. The site reverts to bilingual
+  EN+RU; the `site/<name>.zh.md` files remain in the tree
+  but are not picked up by the renderer. This is acceptable
+  because the ZH translations remain a work-in-progress
+  (`site/*.zh.md` exist for 10 canonical articles, with
+  content quality already reviewed by 3 parallel translation
+  subagents; see commit `ae6c6cf`).
+
+scope:
+  paths:
+    - bin/Mathc.ml
+    - lib/render.ml
+    - scripts/render.sh
+    - tests/cli/render.t
+    - tests/render_kernel.ml
+
+outcomes:
+  - id: kernel-accepts-zh-flag
+    statement: |
+      `mathc render --lang=zh` and `--lang=all` are accepted
+      by the CLI dispatcher without error; any other value
+      is rejected with a clear error message.
+  - id: kernel-loads-zh-sources
+    statement: |
+      For every `site/<name>.zh.md` that exists, the
+      dispatcher passes the (name, title, body) tuple to
+      `Render.build_pages` via `site_pages_zh`.
+  - id: render-emits-zh-pages
+    statement: |
+      `mathc render --lang=all --out dist` produces a
+      `dist/<name>.zh.html` for every `site/<name>.zh.md`
+      plus `dist/index.zh.html`; each carries
+      `<html lang="zh">` and the correct `lang-toggle` href.
+  - id: nav-groups-zh-defined
+    statement: |
+      The ZH navigation groups are defined and emitted;
+      the EN page with ZH enabled shows a "ZH" toggle that
+      points to the correct ZH sibling.
+  - id: scripts-render-runs-clean
+    statement: |
+      `scripts/render.sh` (which now passes `--lang=all`)
+      finishes with the verify step reporting 0 missing
+      files.
+
+counterexample: |
+  "We can fake the ZH pages by copying EN files and renaming
+  them to `*.zh.html`." Counter: a 1:1 EN copy would
+  advertise a Chinese toggle on every EN page but show
+  English content — a worse UX than no ZH at all. The
+  kernel change here pairs every ZH file with an actual
+  `site/<name>.zh.md` source; if a page is missing the
+  source, no ZH sibling is rendered (the closed set is
+  enforced at the build level, not the link level).
+
+  "We can keep the kernel EN+RU only and add ZH at the
+  nginx reverse-proxy level via `Accept-Language`." Counter:
+  static-site deployments (GitHub Pages, the current
+  deployment target) do not support content negotiation;
+  the only way to ship ZH pages is to render them at
+  build time. The kernel is the right place.
+
+assumptions:
+  - id: zh-translations-exist-on-disk
+    state: assumed
+    statement: |
+      Every `site/<name>.zh.md` for which a `<name>.zh.html`
+      is expected at render-time has been authored in
+      Simplified Chinese, follows the same Markdown subset
+      as the EN/RU siblings (headings, paragraphs, lists,
+      code blocks, inline code, links, inline `![alt](url)`
+      figures, inline `^[sidenote]` markers, tables), and is
+      a 1:1 structural match to `site/<name>.md` (same
+      heading depth count, same fenced block count, same
+      table column count).
+    owner: human:maintainer
+    consequence_if_false: |
+      A missing or structurally-mismatched `.zh.md` source
+      would either fail the build (if `--strict-zh` is added
+      later) or silently render a sibling to a less-complete
+      page than its EN/RU counterpart. The 1:1 sync was
+      asserted at commit `ae6c6cf` (the i18n sync commit
+      that created all 10 `.zh.md` files via 3 parallel
+      translation subagents); reviewer can re-check by
+      comparing heading/fence/table counts across EN/RU/ZH
+      in any of the 10 articles.
+    review_on:
+      - signal: site-zh-drift-detected
+  - id: en-rendering-remains-baseline
+    state: assumed
+    statement: |
+      The EN rendering path is unchanged. Every existing
+      cram fixture and unit test in `tests/cli/render.t` and
+      `tests/render_kernel.ml` continues to pass with the
+      new `~site_pages_zh:[]` parameter passed to
+      `Render.build_pages`.
+    owner: human:maintainer
+    consequence_if_false: |
+      The EN site would regress. The verification step in
+      commit-time runs `dune test tests/cli/render.t` and
+      `tests/render_kernel.exe`; a non-pass here would block
+      merge.
+    review_on:
+      - signal: en-render-regression
+
+obligations:
+  - id: kernel-cli-zh-flag
+    outcome: kernel-accepts-zh-flag
+    claim: |
+      `bin/Mathc.ml` accepts `--lang=zh` and `--lang=all`
+      alongside the existing `--lang=en|ru|both`; the
+      validation message in the error branch lists all five
+      values.
+    acceptance:
+      all:
+        - verifier: tests/cli/render.t
+          result: pass
+        - verifier: text-scan-bin-mathc-ml-zh-flag
+          result: pass
+
+  - id: dispatcher-loads-zh
+    outcome: kernel-loads-zh-sources
+    claim: |
+      The `do_render` function in `bin/Mathc.ml` builds
+      `site_pages_zh` by reading every `site/<name>.zh.md`
+      and passes the list to `Render.build_pages ~site_pages_zh`.
+    acceptance:
+      all:
+        - verifier: text-scan-bin-mathc-ml-loads-zh
+          result: pass
+
+  - id: build-pages-zh-arg
+    outcome: render-emits-zh-pages
+    claim: |
+      `lib/render.ml`'s `Render.build_pages` accepts the
+      new `site_pages_zh` parameter; when `List.mem "zh"
+      config.languages`, it iterates `site_pages_zh` and
+      renders each as `<name>.zh.html`; it also renders
+      `index.zh.html` via the new `render_index_zh` function.
+    acceptance:
+      all:
+        - verifier: tests/cli/render.t
+          result: pass
+        - verifier: tests/render_kernel.exe
+          result: pass
+
+  - id: render-index-zh-defined
+    outcome: render-emits-zh-pages
+    claim: |
+      `lib/render.ml` defines `render_index_zh` with the
+      same structural shape as `render_index` /
+      `render_index_ru` (hero / quickstart / moderation /
+      methodology / adopt / callout / meta sections in the
+      same order, same `<em>` / `<code>` / `<a>` tag set,
+      same number of check-marks in the moderation
+      terminal block).
+    acceptance:
+      all:
+        - verifier: text-scan-lib-render-ml-render-index-zh
+          result: pass
+
+  - id: nav-groups-zh
+    outcome: nav-groups-zh-defined
+    claim: |
+      `lib/render.ml` defines `nav_groups_zh` with the
+      four-category shape (concept / methodology / adopt /
+      reference) and the `nav_groups_for "zh"` function
+      returns it.
+    acceptance:
+      all:
+        - verifier: text-scan-lib-render-ml-nav-groups-zh
+          result: pass
+
+  - id: scripts-render-invokes-all
+    outcome: scripts-render-runs-clean
+    claim: |
+      `scripts/render.sh` invokes `mathc render
+      --out dist --lang=all` and the dist-allowlist now
+      includes `dist/index.zh.html` plus a
+      `dist/<name>.zh.html` row for every `site/<name>.zh.md`
+      source.
+    acceptance:
+      all:
+        - verifier: scripts-render.sh
+          result: pass
+        - verifier: text-scan-scripts-render-sh-zh-allowlist
+          result: pass
+
+risk:
+  declared_triggers:
+    - en-render-regression
+    - nav-toggle-404
+  drift_recurs: |
+    A future language addition (e.g. `de` for German) would
+    need to repeat the same patch surface: `--lang` parser,
+    `site_pages_de`, `nav_groups_de`, `render_index_de`,
+    `scripts/render.sh` allowlist, and the `tests/cli/render.t`
+    allowlist. The 1+ parameter shape (`site_pages` /
+    `site_pages_ru` / `site_pages_zh`) would benefit from
+    being folded into a single `site_pages : (string * string *
+    string) list String_map.t` indexed by language. Recorded
+    here as a follow-up; not addressed in rev 1 to keep the
+    change focused on the language the user actually needs
+    shipped.
+
+reversal:
+  - signal: nav-toggle-404
+    action: |
+      re-issue this decision with rev: 2 and correct the
+      href computation in `lang_href_for` (the rev 1
+      generalisation is correct; the regression would be a
+      wrong path).
+  - signal: zh-render-broken-on-ci
+    action: |
+      revert the merge commit; the `site/<name>.zh.md`
+      files remain in the tree as unconsumed source.
+
+relations:
+  addresses:
+    - bootstrap-v3
+  supersedes:
+    - i18n-sync-ru-zh-2026-10
