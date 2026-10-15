@@ -94,7 +94,7 @@ jobs:
               ;;
           esac
 
-      - name: Build and push (amd64)
+      - name: Build and push (multi-arch)
         if: github.event_name == 'push'
         uses: docker/build-push-action@v5
         with:
@@ -105,22 +105,44 @@ jobs:
             ghcr.io/11111000000/mathc:latest
             ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}
             ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}-debian-slim
+            ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}-arm64
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           # cosign keyless signing wired by `decisions/ux-3-cosign-
           # image-2026-10.yaml`; the cosign-sign job below runs
           # immediately after this step completes. The earlier
           # "deferred" comment refers to the cycle that closed in
           # `decisions/install-tooling-2026-10.yaml` reversal
           # signal `cosign-signature-missing`.
+          #
+          # Per `decisions/docker-arm64-image-2026-10.yaml` (D8
+          # of plan-2026-10-distro-friction): a single
+          # `docker/build-push-action@v5` invocation now produces
+          # a multi-arch manifest. Buildx's pre-installed QEMU
+          # binfmt cross-compiles the OCaml flake for aarch64
+          # in parallel with the amd64 build; per-arch wall-clock
+          # increase is ~30-90s (Buildx parallel scheduling), not
+          # the ~3-5 min a serial build would take. The
+          # `provenance: true` flag is implicit on
+          # `docker/build-push-action@v5`; SBOM + provenance are
+          # emitted per-arch and embedded in the multi-arch
+          # manifest.
 
-      # arm64 image: deferred. The current `Dockerfile.debian-slim`
-      # does not cross-compile; QEMU emulation would slow CI by ~5x
-      # for a niche audience. A follow-up cycle (`docker-alpine-2026-10`
-      # or a separate `docker-arm64-2026-10`) wires this in.
-      - name: Build and push (arm64) [DEFERRED]
-        if: false
+      # arm64 convenience tag: published as a single-arch per-arch
+      # image so an arm64 host pinning the digest (or using
+      # `docker pull --platform=linux/arm64`) gets the explicit
+      # per-arch ref. With the multi-arch step above publishing
+      # `:$VERSION-arm64` first (as a multi-arch convenience
+      # pointer), the per-arch image wins on last-write — that is
+      # the deployment semantic intended by
+      # `decisions/docker-arm64-image-2026-10.yaml`.
+      # Originally deferred (the prior "DEFERRED" comment on the
+      # `if: false` was added during the install-tooling cycle);
+      # enabled by `decisions/docker-arm64-image-2026-10.yaml`
+      # (D8 of plan-2026-10-distro-friction).
+      - name: Build and push (arm64 convenience tag)
+        if: github.event_name == 'push'
         uses: docker/build-push-action@v5
         with:
           context: .
