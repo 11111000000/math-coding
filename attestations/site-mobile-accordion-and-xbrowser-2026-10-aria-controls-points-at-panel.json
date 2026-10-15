@@ -1,0 +1,19 @@
+{
+  "schema": "math-coding/attestation-3.0-alpha",
+  "kind": "attestation",
+  "subject": {
+    "decision": "site-mobile-accordion-and-xbrowser-2026-10",
+    "obligation": "aria-controls-points-at-panel",
+    "candidate_tree": "HEAD",
+    "materials_digest": ""
+  },
+  "kind_": "observation",
+  "producer": {
+    "identity": "agent:opencode-m3"
+  },
+  "result": "pass",
+  "issued_at": "2026-10-15T10:37:03Z",
+  "observation": "grep \"aria-controls=\"nav-panel-\" dist/index.html returned 4 matches (Concept, Methodology, Adopt, Reference). grep \"id=\"nav-panel-\" dist/index.html returned 4 matches (nav-panel-1..4). Counts equal. grep -R \"role=\"menu\"\" dist/ assets/  0 matches. grep -R \"role=\"menuitem\"\"  0 matches. grep -R \"role=\"none\"\"  0 matches. ARIA roles removed.",
+  "axiom": "A0",
+  "id": "sha256:618415f9fe3711d2807d17eda361b583a6fbe03bc5eeda75ba4475ac8f732092"
+}
