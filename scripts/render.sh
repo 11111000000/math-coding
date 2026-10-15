@@ -64,6 +64,9 @@ required=(
   dist/packages.html
   dist/assets/style.css
   dist/index.json
+  dist/dashboard.html
+  dist/graph.html
+  dist/graph.json
 )
 
 # Per-decision pages — meta files excluded (matches lib/packages.ml)

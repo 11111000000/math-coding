@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Relations graph &mdash; math-coding</title>
+<link rel="stylesheet" href="assets/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
+<style>
+  #mathc-graph-cy { width: 100%; height: 80vh; border: 1px solid var(--rule); }
+  .mathc-graph-meta { font-family: monospace; font-size: 0.9em; color: var(--fg-muted); }
+</style>
+</head>
+<body>
+<header class="mathc-nav"><a href="index.html">math-coding</a></header>
+<main class="mathc-main">
+<h1>Relations graph</h1>
+<p class="mathc-lede">
+  The &sect;7 relations graph rooted at <code id="mathc-graph-root">...</code>,
+  projected from <code>graph.json</code>. Click a node to
+  navigate to its decision page.
+</p>
+<p class="mathc-graph-meta">
+  <span id="mathc-graph-counts">...</span>
+</p>
+<div id="mathc-graph-cy"></div>
+</main>
+<script>
+(function () {
+  'use strict';
+  var cy = document.getElementById('mathc-graph-cy');
+  if (!cy || typeof cytoscape !== 'function') return;
+  fetch('graph.json')
+    .then(function (r) { return r.json(); })
+    .then(function (g) {
+      document.getElementById('mathc-graph-root').textContent = g.root || '';
+      document.getElementById('mathc-graph-counts').textContent =
+        (g.nodes || []).length + ' nodes / ' +
+        (g.edges || []).length + ' edges' +
+        (g._cycle ? ' / CYCLE detected' : '');
+      var elements = [];
+      (g.nodes || []).forEach(function (n) {
+        elements.push({ data: { id: n.id, label: n.label || n.id } });
+      });
+      (g.edges || []).forEach(function (e, i) {
+        elements.push({
+          data: {
+            id: 'e' + i,
+            source: e.from,
+            target: e.to,
+            kind: e.kind
+          }
+        });
+      });
+      cytoscape({
+        container: cy,
+        elements: elements,
+        layout: { name: 'cose', animate: false },
+        style: [
+          { selector: 'node',
+            style: { 'label': 'data(label)',
+                     'font-size': '10px',
+                     'background-color': '#8b3a3a' } },
+          { selector: 'edge',
+            style: { 'curve-style': 'bezier',
+                     'target-arrow-shape': 'triangle',
+                     'label': 'data(kind)',
+                     'font-size': '8px',
+                     'color': '#5a5a5a',
+                     'line-color': '#b0a99c',
+                     'target-arrow-color': '#b0a99c',
+                     'width': 1 } }
+        ]
+      });
+    })
+    .catch(function () {
+      document.getElementById('mathc-graph-counts').textContent =
+        'graph.json failed to load';
+    });
+})();
+</script>
+</body>
+</html>

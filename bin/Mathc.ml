@@ -4128,6 +4128,94 @@ let[@warning "-32"] do_precommit () =
         else if summary.input_err > 0 then exit 2
         else exit 0
 
+(* --- graph subcommand (decision graph-viewer-2026-10@1) --- *)
+
+(* `mathc graph --decision=<id> [--format=dot|json]`
+ *
+ * Walk the relations graph starting from `decision_id` (using
+ * the existing `lib/re_evaluation.ml::load_decisions` reader)
+ * and print either a Graphviz DOT serialization or a
+ * canonical JSON projection. The DOT form is the default;
+ * pass `--format=json` for the structural form consumed by
+ * `dist/graph.html`.
+ *
+ * Exit codes:
+ *   0  graph emitted (success); an empty graph (root not
+ *      found) still exits 0 in DOT mode and emits only the
+ *      `digraph {}` header line; `--format=json` exits 1
+ *      and emits MC-POLICY-NOT-FOUND when the root id is
+ *      unknown to the corpus.
+ *   1  decision id not found (kernel-side reject; the JSON
+ *      shape explicitly states `_cycle` so the consumer can
+ *      detect a cycle in the relations graph).
+ *   2  input error (unknown --format value, missing --decision).
+ *
+ * The cycle flag is propagated from `lib/graph/graph.ml::build`
+ * (the kernel annotates a back-edge to an ancestor in the
+ * BFS path). The projection is digraph-style and the
+ * `superseded_by` relation is folded into `supersedes` (the
+ * existing `lib/re_evaluation.ml::transitive_impact_list`
+ * walker uses the same convention). *)
+let[@warning "-32"] do_graph () =
+  let decision_id = ref "" in
+  let format = ref `Dot in
+  let set_id s = decision_id := s in
+  let set_format s =
+    match s with
+    | "dot" -> format := `Dot
+    | "json" -> format := `Json
+    | _ ->
+        Printf.fprintf stderr "mathc graph: unknown --format: %s\n" s;
+        exit 2
+  in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [
+         ("--decision", Arg.String set_id, "<id> root of the relations graph");
+         ("--format", Arg.String set_format, "dot (default) or json");
+       ]
+       (fun _ -> ())
+       "usage: mathc graph --decision=<id> [--format=dot|json]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc graph: %s\n" m;
+     exit 2);
+  let id = !decision_id in
+  if id = "" then begin
+    Printf.fprintf stderr "mathc graph: --decision=<id> is required\n";
+    exit 2
+  end;
+  let reader p = In_channel.with_open_bin p In_channel.input_all in
+  let repo_root = find_project_root (Sys.getcwd ()) in
+  let decisions = Re_evaluation.load_decisions ~reader ~root:repo_root in
+  match !format with
+  | `Dot ->
+      Printf.printf "%s" (Graph.to_dot ~decision_id:id decisions);
+      exit 0
+  | `Json ->
+      let g = Graph.to_json ~decision_id:id decisions in
+      (* Empty graph — emit MC-POLICY-NOT-FOUND via
+         Diagnostic.t, then exit 1. *)
+      let empty =
+        match g with
+        | Jsonl.Object ps -> (
+            match List.assoc_opt "nodes" ps with
+            | Some (Jsonl.Array xs) -> List.length xs = 0
+            | _ -> true)
+        | _ -> false
+      in
+      if empty then begin
+        let diag =
+          Diagnostic.input "MC-POLICY-NOT-FOUND"
+            (Printf.sprintf "decision not found: %s" id)
+        in
+        Printf.fprintf stderr "[error] %s: %s\n" diag.Diagnostic.code
+          diag.Diagnostic.message;
+        exit 1
+      end;
+      print_endline (Jsonl.stringify g);
+      exit 0
+
 (* mathc migrate — declarative, kernel-observed migration plan.
  *
  * The kernel NEVER mutates decision files on disk. It only:
@@ -4872,6 +4960,7 @@ let dispatch () =
   | "self-check" -> do_self_check ()
   | "find" -> do_find ()
   | "precommit" -> do_precommit ()
+  | "graph" -> do_graph ()
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()
   | "stats" -> do_stats ()

@@ -1089,4 +1089,70 @@ let () =
                     true (has "Formalization" html))
                 axioms)
         ] );
+      ( "dashboard_and_graph_html_landed",
+        [
+          Alcotest.test_case "ship" `Quick
+            (fun () ->
+              (* Decision `render-dashboard-2026-10@1`
+                 asserts that `mathc render` writes
+                 `dist/dashboard.html` (fuse.js search
+                 panel) and `dist/graph.html` (cytoscape.js
+                 relations viewer) alongside the existing
+                 site. The two files are produced by the
+                 same `mathc render` pipeline that the
+                 existing `scripts/render.sh` exercises; we
+                 re-render and assert. *)
+              let root =
+                match Sys.getenv_opt "DUNE_SOURCEROOT" with
+                | Some p -> p
+                | None -> ".."
+              in
+              (* Re-render via scripts/render.sh so we exercise
+                 the same allowlist the operator's local
+                 build runs. *)
+              let out_dir = Filename.concat root "dist" in
+              let script_path =
+                Filename.concat root "scripts/render.sh"
+              in
+              let ec = Sys.command script_path in
+              if ec <> 0 then
+                Alcotest.failf
+                  "scripts/render.sh exited %d; cannot verify \
+                   dashboard/graph output" ec;
+              let dashboard_html =
+                read_text
+                  (Filename.concat out_dir "dashboard.html")
+              in
+              Alcotest.(check bool)
+                "dist/dashboard.html exists and is non-empty"
+                true (String.length dashboard_html > 0);
+              Alcotest.(check bool)
+                "dist/dashboard.html includes fuse.js CDN tag"
+                true
+                (has "fuse" dashboard_html
+                 && has "<script" dashboard_html);
+              Alcotest.(check bool)
+                "dist/dashboard.html fetches index.json"
+                true (has "index.json" dashboard_html);
+              let graph_html =
+                read_text (Filename.concat out_dir "graph.html")
+              in
+              Alcotest.(check bool)
+                "dist/graph.html exists and is non-empty"
+                true (String.length graph_html > 0);
+              Alcotest.(check bool)
+                "dist/graph.html includes cytoscape.js CDN tag"
+                true
+                (has "cytoscape" graph_html
+                 && has "<script" graph_html);
+              Alcotest.(check bool)
+                "dist/graph.html fetches graph.json"
+                true (has "graph.json" graph_html);
+              let graph_json_path =
+                Filename.concat out_dir "graph.json"
+              in
+              Alcotest.(check bool)
+                "dist/graph.json exists"
+                true (Sys.file_exists graph_json_path))
+        ] );
     ]
