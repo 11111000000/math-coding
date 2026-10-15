@@ -1,0 +1,231 @@
+---
+schema: math-coding/3.2
+id: fix-wide-screen-padding-2026-10
+revision: 1
+state: active
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+axiom_link:
+  - A0
+  - A1
+intent: |
+  The live `https://11111000000.github.io/math-coding/` site
+  ships a `@media (min-width: 1280px)` block whose
+  `padding-left/right: calc((100vw - 64rem) / 2 + 4rem)`
+  formula is meant to mirror the prose column symmetrically
+  inside the viewport. The formula assumes `max-width` is
+  independent of `padding`, but `* { box-sizing: border-box }`
+  means `max-width: 64rem` already INCLUDES it. Concretely, at
+  `100vw = 1920` the formula evaluates to
+  `448 px + 64 px = 512 px` per side → `1024 px` total
+  padding → content area collapses to `0 px`. Any child
+  element (h1/h2, `.mathc-hero`, `<pre>`, paragraphs) ends up
+  with `width: 0-46 px`, so words fall back to character-by-
+  character wrapping.
+
+  The defect is reproducible in Chromium 149 / Firefox at any
+  viewport ≥ 1152 px (the breakpoint where
+  `2 * ((100vw - 64rem) / 2 + 4rem) ≥ 64rem`), and visually
+  degrades the home page hero (logo OK because it's `display:
+  block` and absolutely sized; h1 still on one line), the
+  quick-start list, the moderation `<pre>` terminal, and every
+  per-decision page's prose column.
+
+  A reporter saw the symptom first in Safari 17 because Safari
+  on a wide retina Mac opens the page at `100vw = 1920` and
+  ships it left-justified, where the broken narrow column is
+  most visible; Chromium and Firefox reproduce identically at
+  the same viewport. This is a CSS-only surface bug, not a
+  browser bug.
+
+  Scope of this cycle: replace the asymmetric `calc(...)`
+  gutter with `margin: auto` centring and a baseline `2 rem`
+  side padding on every viewport ≥ 1280 px; verify the hero
+  re-grows to its declared `max-width: 56rem` and every child
+  re-acquires a real content width.
+commitment: |
+  1. `assets/style.css` rule
+     `@media (min-width: 1280px) { main, .container { ... } }`
+     replaces its two `padding-{left,right}: calc((100vw -
+     64rem) / 2 + 4rem)` lines with `margin: 0 auto; padding:
+     2rem` on each side. The `max-width: 64rem` declaration
+     stays. The accompanying explanatory comment is rewritten
+     to name the box-sizing trap.
+
+  2. The comment block describing the dropped Tufte sidenote
+     gutter is updated to record why the previous calc was
+     unsafe (it relied on `box-sizing: content-box` semantics,
+     which the stylesheet never adopted).
+
+  3. Two acceptance fixtures pin the fix closed:
+     - `tests/site_layout.ml::wide_viewport_content_width`
+       — opens `tests/fixtures/site_realm.html` in
+       `js_of_ocaml`'s Dom_html wrapper (or, if that's
+       out-of-scope for this cycle, asserts via the static
+       `grep` below) at viewport `1920 × 1080` and asserts
+       `main.clientWidth === 64` rem (1024 px) AND
+       `main.children[0].clientWidth ≥ 56` rem (896 px),
+       proving content is no longer collapsed.
+     - `tests/cli/render.t` gains one line:
+       `! grep -qF 'padding-left: calc((100vw' dist/assets/style.css`
+       — pins the buggy formula OUT of the rendered
+       `dist/assets/style.css` (i.e., the fix actually
+       shipped through `mathc render`).
+
+  4. The fix is observable from the gh-pages surface within
+     one redeploy: any visitor at `100vw ≥ 1280 px` sees the
+     hero at its declared width and the prose column at
+     `≥ 60 rem`.
+
+  Boundaries:
+    - No change to the render kernel (`lib/render.ml`),
+      schema, spec, or any decision document other than this
+      one. The defect is a single CSS rule.
+    - The Tufte sidenote styles (`.sidenote`) are left in
+      place but unused. A future cycle that wants asymmetric
+      gutter margins for sidenotes must restore the trap-aware
+      formula (e.g. `padding-right: max(2rem, calc((100vw -
+      64rem) / 2 + 4rem))`) under its own decision.
+    - No new dependency on `js_of_ocaml` if the existing test
+      harness already has a way to assert viewport metrics
+      on rendered HTML; if not, the grep in `render.t` is
+      sufficient evidence the fix shipped.
+scope:
+  capabilities:
+    - site-layout-wide-screen
+  paths:
+    - "assets/style.css"
+    - "tests/cli/render.t"
+  exclusions:
+    - "lib/**"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "site/**"
+outcomes:
+  - id: prose-column-centred-on-wide-viewports
+    statement: At any viewport ≥ 1280 px, `<main>` is 64 rem
+      wide, centred, with a 2 rem baseline breathing margin on
+      each side; its children expand to fill the resulting
+      `≥ 60 rem` content area.
+  - id: calc-padding-formula-removed
+    statement: The shipped `dist/assets/style.css` no longer
+      carries the old calc-based side-padding formula (the one
+      with `(100vw - 64rem) / 2 + 4rem`) at all.
+counterexample: |
+  "Just bump `max-width` to 80 rem and call it a day —
+  the column was too narrow anyway."
+
+  Counterargument: bumping `max-width` does not repair the
+  box-sizing interaction; the new `max-width` would still
+  include the symmetric padding and would still collapse
+  the content area on every viewport that satisfies
+  `100vw ≥ max-width + 2 × 4 rem + max-width × 0`. The
+  defect is in the padding formula, not in the max-width
+  constant. Also, the home page hero (`max-width: 56 rem`)
+  is intentionally narrower than the prose column (`64 rem`)
+  for visual rhythm; bumping `max-width` would erase that
+  rhythm.
+
+  "Safari-specific layout bugs belong in a user-stylesheet
+  override, not in the upstream stylesheet."
+
+  Counterargument: the bug reproduces in Chromium and Firefox
+  at `100vw ≥ 1152 px`. Safari is the symptom, not the cause.
+  Patching the upstream stylesheet is the only repair that
+  reaches every visitor.
+
+  "Add `box-sizing: content-box` to `main` to make the
+  formula work as written."
+
+  Counterargument: switching the global box model breaks
+  every other `width`-and-`padding` interaction in the
+  stylesheet (form inputs, card borders, hero blocks). The
+  marginal fix is wrong; the right fix is the one in
+  `commitment §1`.
+antithesis: |
+  Author considered and rejected the strongest counter-
+  position: "A 1-line CSS tweak on a published surface
+  doesn't need a decision; ship and move on."
+
+  That position is rejected because (a) the broken formula
+  is in the stylesheet at HEAD and is live on
+  `11111000000.github.io/math-coding/`, so the cycle
+  operates on the protected / shipped surface; (b) the fix
+  changes an authored constraint that the project comments
+  describe as intentional Tufte behaviour, so a future
+  contributor may try to "restore" the buggy formula; the
+  decision + the `render.t` grep pin the intent and the fix
+  together; (c) without a decision the bootstrap gate
+  continues to mark this gap as missing evidence.
+assumptions:
+  - id: gh-pages-redeploy-within-24h
+    state: assumed
+    statement: |
+      The `math-coding` gh-pages branch picks up the
+      `assets/style.css` change within 24 hours of the
+      merge landing on `main` (via `scripts/render.sh`
+      or the equivalent).
+    owner: human:maintainer
+    consequence_if_false: |
+      Visitors continue to see the collapsed layout until
+      a manual redeploy runs. Recovery: re-run
+      `scripts/render.sh` from a clean worktree and the
+      artefact is back in line with HEAD.
+    review_on:
+      - signal: deploy-pipeline-stalled
+obligations:
+  - id: prose-column-centred-on-wide-viewports
+    outcome: prose-column-centred-on-wide-viewports
+    claim: |
+      At viewport `1920 × 1080`, `<main>` measures
+      `1024 px` (= 64 rem) and its first child
+      (`.mathc-hero`) measures `≥ 896 px` (= 56 rem). The
+      hero's `h1` carries its declared `font-size:
+      clamp(2.4 rem, 5 vw, 3.4 rem)` on a single line.
+    acceptance:
+      all:
+        - verifier: scripts/dev ready
+          result: pass
+        - verifier: tests/cli/render.t::grep_no_calc_padding
+          result: pass
+  - id: calc-padding-formula-removed
+    outcome: calc-padding-formula-removed
+    claim: |
+      The string `padding-left: calc((100vw - 64rem) / 2 +
+      4rem)` does not appear anywhere in
+      `dist/assets/style.css` after the change.
+    acceptance:
+      all:
+        - verifier: tests/cli/render.t::grep_no_calc_padding
+          result: pass
+        - verifier: ! grep -RqF 'calc((100vw - 64rem)' assets/style.css dist/assets/style.css
+          result: pass
+reversal:
+  - signal: prose-column-too-narrow-on-1280-1499
+    condition: |
+      A maintainer audit on viewports in `1280 ≤ 100vw <
+      1500` finds the new `2 rem` baseline padding
+      noticeably tighter than the previous gutter; the
+      visitor looks "left-justified with dead space".
+    action: bump-baseline-padding-to-3-rem-or-4-rem
+  - signal: sidenotes-return
+    need: |
+      A future cycle reintroduces Tufte sidenotes
+      (`.sidenote`) and needs the asymmetric gutter
+      back; the calc-based formula is unsafe under
+      `border-box`, so the replacement must use
+      `padding-right: max(2 rem, calc((100vw - 64rem)
+      / 2 + 4 rem))` or move to `box-sizing: content-box`
+      for `.sidenote` only.
+    action: rework-as-sidenotes-decision
+risk:
+  declared_triggers:
+    - regression-of-formula-by-future-contributor
+  owner: human:maintainer
+relations:
+  addresses:
+    - "site-redesign-2026-10@1"
+  supersedes: []
+  superseded_by: []
