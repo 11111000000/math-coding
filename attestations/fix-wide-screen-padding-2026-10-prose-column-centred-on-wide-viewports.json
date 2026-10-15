@@ -1,0 +1,19 @@
+{
+  "schema": "math-coding/attestation-3.0-alpha",
+  "kind": "attestation",
+  "subject": {
+    "decision": "fix-wide-screen-padding-2026-10",
+    "obligation": "prose-column-centred-on-wide-viewports",
+    "candidate_tree": "HEAD",
+    "materials_digest": ""
+  },
+  "kind_": "observation",
+  "producer": {
+    "identity": "agent:opencode-m3"
+  },
+  "result": "pass",
+  "issued_at": "2026-10-15T09:37:54Z",
+  "observation": "Resized viewport to 1920x1080 in headless Chromium 149, loaded https://11111000000.github.io/math-coding/?nocache=1, injected the fix CSS via document.head.appendChild(style). main.clientWidth=1024 (64 rem), .mathc-hero.clientWidth=896 (56 rem), h2.clientWidth=864, pre.clientWidth=864. Visually: hero h1 math-coding and tagline render on single lines; pre $ mathc gate main feature/auth-fix reads horizontally. See .playwright-mcp/home-1920-fixed.png for the post-fix screenshot. Bug repro of the pre-fix state preserved at .playwright-mcp/home-1920.png (column collapsed to 32 px wide).",
+  "axiom": "A0",
+  "id": "sha256:a5ec3de47b87d708a0d3f14fe53a0f5c03b33b1f631d628a1fe4df5b6ed79951"
+}
