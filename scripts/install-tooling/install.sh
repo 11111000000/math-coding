@@ -24,6 +24,7 @@
 #                        (default = MC_VERSION_DEFAULT below)
 #   --check              exit 0 if installed binary and skill
 #                        already match the remote artifacts
+#   --libc=glibc|musl    override the libc auto-detect (Linux only)
 #   -h | --help          usage
 #
 # Exit codes:
@@ -65,19 +66,21 @@ Options:
   --user-skill            install the per-user opencode skill
   --upgrade               (implies --user-skill) overwrite the skill
                           even when its version pin matches
+  --no-path-update       skip the shell RC PATH auto-update
   --with-docker           print docker pull + run commands
-  --print-nix-command     print the \`nix run github:...\` command
+  --print-nix-command     print the `nix run github:...` command
   --cosign-verify         (default on) verify the ghcr.io image
                           signature; --no-cosign-verify to skip
   --no-cosign-verify      skip the cosign signature verification
   --version=<X>           override MC_VERSION_DEFAULT
   --check                 exit 0 if already installed and in sync
+  --libc=glibc|musl       override the libc auto-detect (Linux only)
   -h | --help             show this help
 
 Examples:
-  curl -fsSL https://github.com/${MC_REPO}/releases/download/${VERSION}/install.sh | sh
+  curl -fsSL https://github.com/${MC_REPO}/releases/latest/download/install.sh | sh
   curl ... | sh -s -- --user-skill
-  curl ... | sh -s -- --version=edge --with-docker
+  curl ... | sh -s -- --version=v3.3.0 --with-docker
 
 Exit codes: 0=ok, 1=checksum-mismatch, 2=input-error, 124=network-error.
 USAGE
@@ -86,10 +89,18 @@ USAGE
 # --- Flag parsing ---------------------------------------------------------
 install_user_skill=0
 install_upgrade=0
+# D2: auto-add $install_dir to user's PATH via shell RC files.
+# Default on. Override with --no-path-update. Failure to update
+# a shell RC is a warning, not a fatal error (the binary itself
+# installed successfully; PATH-update is a convenience).
+install_path_update=1
 install_print_docker=0
 install_print_nix=0
 install_version="${MC_VERSION_DEFAULT}"
 install_check_only=0
+# CLI override for libc auto-detect. Empty = use detect_libc().
+# Set by --libc=glibc or --libc=musl in parse_flags() below.
+install_libc_override=""
 install_print_help=0
 # Default-on per `decisions/ux-3-cosign-image-2026-10.yaml`.
 # Flipped to 0 by `--no-cosign-verify`.
@@ -100,11 +111,13 @@ parse_flags() {
     case "$1" in
       --user-skill)        install_user_skill=1 ;;
       --upgrade)           install_user_skill=1; install_upgrade=1 ;;
+      --no-path-update)    install_path_update=0 ;;
       --with-docker)       install_print_docker=1 ;;
       --print-nix-command) install_print_nix=1 ;;
       --cosign-verify)     install_cosign_verify=1 ;;
       --no-cosign-verify)  install_cosign_verify=0 ;;
       --check)             install_check_only=1 ;;
+      --libc=*) install_libc_override="${1#--libc=}" ;;
       --version=*)         install_version="${1#--version=}" ;;
       -h|--help)           install_print_help=1 ;;
       --)                  shift; break ;;
@@ -125,25 +138,24 @@ parse_flags() {
 }
 
 # --- OS/arch detection ----------------------------------------------------
-# Returns: os="linux|darwin|windows", arch="x86_64|aarch64".
+# Returns: os="linux|darwin", arch="x86_64|aarch64".
 # Normalizes: amd64 -> x86_64, arm64 -> aarch64, x86_64i -> x86_64.
+# Windows hosts are routed to the native PS1 installer
+# (`install.ps1`); under Git-Bash / MSYS / Cygwin, the
+# underlying OS is Linux-class POSIX, so we treat them
+# as `linux` and download the matching glibc binary.
 detect_os_arch() {
   uname_sm=$(uname -sm 2>/dev/null || echo "unknown unknown")
   raw_os=$(printf '%s\n' "$uname_sm" | awk '{print $1}')
   raw_arch=$(printf '%s\n' "$uname_sm" | awk '{print $2}')
 
   case "$raw_os" in
-    Linux|GNU) os=linux ;;
-    Darwin)    os=darwin ;;
-    MINGW*|MSYS*|CYGWIN*)
-      echo "install.sh: Windows hosts are not supported by this script." >&2
-      echo "hint: use Git-Bash on Windows; WSL on Windows Subsystem for Linux; or the" >&2
-      echo "      binary directly (https://github.com/${MC_REPO}/releases)." >&2
-      echo "diagnostic: MC-INSTALL-OS-UNSUPPORTED" >&2
-      return 2
-      ;;
+    Linux|GNU|MINGW*|MSYS*|CYGWIN*) os=linux ;;
+    Darwin)                        os=darwin ;;
     *)
       echo "install.sh: unknown OS: $raw_os" >&2
+      echo "hint: native Windows hosts should use the PowerShell installer:" >&2
+          echo "      irm https://github.com/${MC_REPO}/releases/latest/download/install.ps1 | iex" >&2
       echo "diagnostic: MC-INSTALL-OS-UNSUPPORTED" >&2
       return 2
       ;;
@@ -160,6 +172,34 @@ detect_os_arch() {
   esac
 
   printf 'os=%s\narch=%s\n' "$os" "$arch"
+  return 0
+}
+
+# --- libc detection (Linux only) -----------------------------------------
+# Returns one line: "libc=glibc" or "libc=musl".
+# Used to pick between mathc-linux-<arch> (glibc) and
+# mathc-linux-<arch>-musl (alpine / Void / Chimera / etc.).
+# Order of probes:
+#   1. CLI override --libc=glibc|musl (checked in main()).
+#   2. `getconf GNU_LIBC_VERSION` returns "glibc <ver>" → glibc.
+#   3. `ldd --version 2>&1` first line contains "musl"    → musl.
+#   4. ldd absence with no getconf → glibc (default; matches
+#      the runner-vendored release matrix).
+detect_libc() {
+  if command -v getconf >/dev/null 2>&1; then
+    glibc_ver=$(getconf GNU_LIBC_VERSION 2>/dev/null || printf '')
+    case "$glibc_ver" in
+      glibc*) printf 'libc=glibc\n'; return 0 ;;
+    esac
+  fi
+  if command -v ldd >/dev/null 2>&1; then
+    ldd_first=$(ldd --version 2>&1 | head -n 1 || printf '')
+    case "$ldd_first" in
+      *musl*) printf 'libc=musl\n'; return 0 ;;
+      *GNU*|*GLIBC*) printf 'libc=glibc\n'; return 0 ;;
+    esac
+  fi
+  printf 'libc=glibc\n'
   return 0
 }
 
@@ -247,16 +287,21 @@ verify_sha256() {
 }
 
 # --- Download the binary --------------------------------------------------
-# Args: $1=version, $2=os, $3=arch, $4=out_path.
+# Args: $1=version, $2=os, $3=arch, $4=libc, $5=out_path.
+# $4 may be empty (= "glibc" implied for non-Linux); for Linux hosts
+# it is "glibc" or "musl" (default "glibc"). Result: bin_basename
+# (mathc-<os>-<arch>[-musl]) printed to stdout for SHA-256 lookup.
 # Returns 0 on success; non-zero on any failure (caller maps to exit code).
 download_binary() {
   version="$1"
   os="$2"
   arch="$3"
-  out="$4"
-  # Binary name on the release: mathc-<os>-<arch> (.exe on Windows,
-  # but Windows isn't supported here).
+  libc="${4:-glibc}"
+  out="$5"
   bin_basename="mathc-${os}-${arch}"
+  case "$os:$libc" in
+    linux:musl) bin_basename="${bin_basename}-musl" ;;
+  esac
   case "$version" in
     edge|latest) url="${MC_RELEASE_BASE}/${version}/${bin_basename}" ;;
     v*)         url="${MC_RELEASE_BASE}/${version}/${bin_basename}" ;;
@@ -428,6 +473,76 @@ install_user_skill_file() {
   return 0
 }
 
+# --- PATH auto-add (D2) ---------------------------------------------------
+# Idempotently update the user's shell RC files so that
+# $install_dir is on $PATH for new login shells. Supported
+# shells and RC paths:
+#   bash:   ~/.bashrc, ~/.profile (login)
+#   zsh:    ~/.zshrc, ~/.zshenv (login)
+#   ksh:    ~/.kshrc
+#   posix:  ~/.profile (fallback)
+# Idempotency: a grep guard checks for the literal install_dir
+# on a non-comment line; re-running never appends a duplicate.
+# Args: $1=install_dir. Returns 0 if any RC was updated or
+# already in sync; returns 1 if all candidate RCs failed.
+update_path_in_rc() {
+  dir="$1"
+  rc_files=""
+  # bash: ~/.bashrc is the interactive, non-login default.
+  # ~/.profile is the POSIX-login (and bash --login) default.
+  case "${SHELL:-}" in
+    */bash)
+      rc_files="${HOME}/.bashrc ${HOME}/.profile" ;;
+    */zsh)
+      # zsh reads .zshrc for interactive; .zshenv for all.
+      # We update .zshrc; .zshenv is rarely edited manually.
+      rc_files="${HOME}/.zshrc ${HOME}/.zshenv ${HOME}/.zprofile" ;;
+    */ksh|*/ksh93|*/mksh)
+      rc_files="${HOME}/.kshrc" ;;
+    *)
+      # Unknown SHELL — fall back to POSIX ~/.profile only.
+      rc_files="${HOME}/.profile" ;;
+  esac
+
+  updated_any=0
+  for rc in $rc_files; do
+    if [ ! -f "$rc" ] || [ ! -w "$rc" ]; then
+      continue
+    fi
+    # Idempotency guard: skip if this install_dir already appears
+    # in rc on a non-comment line.
+    if grep -qE "(^|[^#]*[[:space:]])${dir}([[:space:]]|:|\$)" "$rc" 2>/dev/null; then
+      updated_any=1
+      continue
+    fi
+    if {
+      printf '\n# Added by math-coding install.sh (%s)\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null || printf unknown)"
+      printf 'export PATH="%s:$PATH"\n' "$dir"
+    } >> "$rc"; then
+      echo "install.sh: PATH appended to $rc" >&2
+      updated_any=1
+    else
+      echo "install.sh: cannot append to $rc (filesystem error)" >&2
+    fi
+  done
+
+  if [ "$updated_any" = "1" ]; then
+    return 0
+  fi
+  echo "install.sh: no shell RC updated for $dir (none were writable)" >&2
+  return 1
+}
+
+# Returns 0 if $install_dir is on $PATH (or is exactly PATH).
+# Pure inspection; no I/O. Used by the final report.
+path_contains_install_dir() {
+  dir="$1"
+  case ":${PATH}:" in
+    *":${dir}:"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # --- --check mode ----------------------------------------------------------
 check_installed() {
   version="$1"
@@ -544,7 +659,29 @@ main() {
     return 124
   fi
 
-  if ! bin_basename=$(download_binary "$version" "$os" "$arch" "$bin_tmp"); then
+  # libc detect (Linux only). Honors --libc override; falls back
+  # to auto-detect via getconf / ldd for alpine / void.
+  libc="glibc"
+  if [ -n "${install_libc_override:-}" ]; then
+    # explicit override; we validate the value below
+    libc="$install_libc_override"
+  elif [ "$os" = "linux" ]; then
+    libc_line=$(detect_libc)
+    # shellcheck disable=SC2162  # we want the bare value
+    libc=$(printf '%s\n' "$libc_line" | awk -F= '/^libc=/{print $2}')
+  fi
+  case "$libc" in
+    glibc|musl) ;;
+    *)
+      echo "install.sh: --libc=$libc: invalid libc (use glibc or musl)" >&2
+      echo "diagnostic: MC-INSTALL-LIBC-INVALID" >&2
+      return 2 ;;
+  esac
+  if [ "$os" = "linux" ]; then
+    echo "install.sh: libc detect: ${libc}" >&2
+  fi
+
+  if ! bin_basename=$(download_binary "$version" "$os" "$arch" "$libc" "$bin_tmp"); then
     return 124
   fi
 
@@ -568,11 +705,25 @@ main() {
   trap - EXIT INT TERM
   rm -f "$sums_tmp" "$bin_tmp"
 
+  # D2: idempotent PATH update across shell RC files. Best-effort:
+  # if update_path_in_rc fails for some but not all RC files, we
+  # still report the binary installed correctly. Caller asserts
+  # success on the binary; the PATH update is convenience.
+  if [ "$install_path_update" = "1" ]; then
+    if ! update_path_in_rc "$install_dir"; then
+      echo "install.sh: some shell RC files were not updated (manual PATH edit may be needed)" >&2
+    fi
+  fi
+
   # Final report: run `mathc version` for confirmation.
   echo "install.sh: installed to $dest"
   if [ -x "$dest" ]; then
     "$dest" version
-    echo "install.sh: PATH hint: ensure $install_dir is on \$PATH"
+    if path_contains_install_dir "$install_dir"; then
+      echo "install.sh: PATH: $install_dir already on \$PATH"
+    else
+      echo "install.sh: PATH hint: ensure $install_dir is on \$PATH (restart the shell)"
+    fi
   fi
   return 0
 }
