@@ -1,0 +1,157 @@
+---
+schema: math-coding/3.2
+id: differences-page-2026-10
+revision: 1
+state: active
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  Add a `differences` page to the published site that names how
+  mathcoding relates to the methodologies that look most like it:
+  TDD, BDD, DDD, FDD, MDD/MDA, Spec-Driven Development, ADR/MADR,
+  arc42, C4 Model, Living Documentation, Specification by Example,
+  OpenAPI, Design by Contract, Formal Methods, TOGAF, ISO/IEC
+  42010, Team Topologies, SAFe, OWASP SAMM, and NIST SSDF. Each
+  comparison names what the other methodology does well and what
+  mathcoding adds, refuses, or changes. The page closes a
+  repeated question visitors ask after reading the methodology
+  page: "how is this different from what I already do?".
+
+commitment: |
+  `mathc render` emits `dist/differences.html`,
+  `dist/differences.ru.html`, and `dist/differences.zh.html` from
+  the corresponding `site/differences*.md` sources; the page
+  covers the 20 methodologies named in the intent, in three
+  languages, and is linked from the navigation rendered by
+  `lib/render.ml` without any further configuration.
+
+scope:
+  paths:
+    - "site/differences.md"
+    - "site/differences.ru.md"
+    - "site/differences.zh.md"
+    - "scripts/render.sh"
+    - "bin/Mathc.ml"
+    - "lib/render.ml"
+  decisions:
+    - "site-deploy@5"
+    - "site-redesign-2026-10@1"
+
+outcomes:
+  - id: differences-page-renders-in-three-languages
+    statement: The differences page is rendered as
+      `dist/differences.html`, `dist/differences.ru.html`, and
+      `dist/differences.zh.html` and is reachable from the
+      navigation emitted by `mathc render`.
+
+assumptions:
+  - id: render-sh-allowlist-extended
+    state: assumed
+    statement: The `scripts/render.sh` allowlist names every
+      `site/*.md` article that the kernel must produce; the
+      addition of `dist/differences.html` to that list is the
+      only `scripts/render.sh` change required for the new
+      page.
+    owner: human:site-maintainer
+    consequence_if_false: |
+      A future contributor who adds a sixth `site/*.md` and
+      forgets to extend the allowlist will see a `MISSING`
+      line from `scripts/render.sh`. The decision is closed by
+      the test in this same decision; future additions live
+      their own.
+    review_on:
+      - signal: render-allowlist-stale
+  - id: bilingual-policy-holds
+    state: assumed
+    statement: The site ships `*.ru.md` and `*.zh.md` siblings
+      for every prose article; adding three siblings keeps the
+      bilingual policy intact.
+    owner: human:site-maintainer
+    consequence_if_false: |
+      If the bilingual policy is later retired, the
+      `dist/differences.ru.html` and `dist/differences.zh.html`
+      files become unused; the kernel still renders them but
+      the navigation does not surface them.
+    review_on:
+      - signal: bilingual-policy-retired
+
+obligations:
+  - id: differences-page-renders-clean
+    claim: |
+      After the new article and the `scripts/render.sh`
+      allowlist extension land, `nix develop .#test --command
+      bash -c 'scripts/render.sh'` exits 0 with no `MISSING`
+      line in the output; specifically
+      `dist/differences.html`, `dist/differences.ru.html`, and
+      `dist/differences.zh.html` exist at the end of the run.
+    acceptance:
+      all:
+        - verifier: render-missing-file-check
+          result: pass
+
+  - id: differences-page-content-covers-twenty-methodologies
+    claim: |
+      The English `site/differences.md` source contains one
+      named section per methodology in the following list:
+      TDD, BDD, DDD, FDD, MDD/MDA, Spec-Driven Development,
+      ADR/MADR, arc42, C4 Model, Living Documentation,
+      Specification by Example, OpenAPI, Design by Contract,
+      Formal Methods, TOGAF, ISO/IEC 42010, Team Topologies,
+      SAFe, OWASP SAMM, NIST SSDF. Each section has a heading
+      line that begins with `##` and contains the methodology
+      name.
+    acceptance:
+      all:
+        - verifier: section-coverage-check
+          result: pass
+
+  - id: mathc-self-check-still-passes
+    claim: |
+      After the new article and the allowlist change land,
+      `mathc self-check` exits 0 on a clean tree with this
+      decision included; no other obligation's verdict
+      regresses from `Pass` to `Fail` or `Unknown`.
+    acceptance:
+      all:
+        - verifier: mathc-self-check
+          result: pass
+
+risk:
+  declared_triggers:
+    - render-sh-allowlist-becomes-stale-on-next-article-addition
+    - bilingual-policy-retired
+    - kernel-render-changes-navigation-shape
+  owner: human:site-maintainer
+
+counterexample: |
+  "Documentation pages do not need a decision; they are editorial
+  changes." This argument fails for two reasons. First, the
+  differences page is a *contract surface* — it makes public
+  claims about what mathcoding inherits and refuses from
+  twenty other methodologies, and those claims are referenced
+  from the methodology page and from the manifesto. Second,
+  `scripts/render.sh` is an allowlist that the site pipeline
+  enforces; a change to the allowlist is, by the AGENTS.md
+  P1 rule, a kernel-adjacent change that requires a decision.
+
+antithesis: |
+  A maintainer could argue that a 20-methodology comparison
+  page makes the protocol look defensive ("look how we differ
+  from everyone else") rather than confident. That position is
+  rejected because visitors who already use one of those
+  methodologies need an explicit, name-by-name translation
+  between what they know and what mathcoding proposes; the
+  page is the bridge, not the wall. A shorter page that only
+  names the closest competitors (SDD, ADR, arc42, SAMM, DbC)
+  was considered and rejected because visitors on a shorter
+  path would still ask about the longer-tail methodologies
+  and the page would not be self-contained.
+
+relations:
+  addresses:
+    - "site-deploy@5"
+    - "site-redesign-2026-10@1"
