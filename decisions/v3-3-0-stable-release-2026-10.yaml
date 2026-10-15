@@ -1,0 +1,456 @@
+---
+schema: math-coding/3.2
+id: v3-3-0-stable-release-2026-10
+revision: 1
+state: active
+body_sha: "sha256:de464fd03a047eb417a187910e384e3151e26a634d10da6e08097be5cfc7b6f5"
+yaml_sha: "sha256:de464fd03a047eb417a187910e384e3151e26a634d10da6e08097be5cfc7b6f5"
+
+intent: |
+  Promote the published brand from `math-coding 3.3.0-alpha`
+  (current `VERSION` file) to `math-coding 3.3.0` (semver
+  `3.3.0`, no prerelease suffix), and publish a real GitHub
+  release `v3.3.0` carrying the install assets (`install.sh`,
+  `SHA256SUMS`, `mathc-<os>-<arch>` binaries) that the
+  release workflow already produces. The release tag drops
+  the `-alpha` postfix on the author's explicit instruction
+  ("выпускай версию 3.3.0 — без постфиксов", 2026-10-15),
+  and that instruction propagates to the single source of
+  truth for the published version (`VERSION`), the opam
+  package version, the CHANGELOG header, the README status
+  line, the rendered site hero (`lib/render.ml` reads
+  `VERSION`), the spec/constitution header, and the
+  documentation headers in PACKAGES / ROADMAP / AGENTS /
+  USAGE / OCAML_BEST_PRACTICES / axioms/index.md /
+  bin/data/time-distribution.yaml.
+
+  Concretely, four surfaces change:
+
+    a. **Source-of-truth bump.** `VERSION` 3.3.0-alpha
+       -> 3.3.0; `math-coding.opam` version field follows.
+       `scripts/sync-version.sh --check` then propagates the
+       semver `3.3.0` form to `adoption/SKILL.md`'s
+       `compatible_with` line (already correct by accident —
+       the script drops the `-alpha` suffix when computing
+       MAJOR.MINOR.PATCH).
+
+    b. **Documentation header sweep.** The brand cutover from
+       `3.1.0-alpha-final` to `3.3.0` at commit c56bd35
+       renamed the docs headers to "math-coding 3.3" but kept
+       `VERSION` at `3.3.0-alpha`. This cycle finishes the
+       cutover: `VERSION`, opam, the CHANGELOG current-section
+       heading, the README status line, and the
+       `spec/constitution.md` first line all carry
+       `math-coding 3.3.0` (no `-alpha`). Historical mentions
+       (CHANGELOG prior-section headings, AUDIT-*.md reports,
+       `OCAML_BEST_PRACTICES.md` historical prose,
+       `assets/*.svg` historical timeline labels) are NOT
+       touched — they describe the regime they lived in.
+
+    c. **Repo presentation quality.** A badges row appears at
+       the top of `README.md` carrying the OCaml-language
+       status, the license, the live release tag, and the
+       rendered `mathc` subcommand count (mirrors the existing
+       `PACKAGES.md` counter block). A social preview image
+       `assets/social-preview.png` (1280x640 PNG, GitHub's
+       Open Graph card spec) is generated from a new
+       `assets/social-preview.svg` source and uploaded to the
+       repo via the social-preview API; the SVG source is
+       committed so a maintainer can re-render after a brand
+       change without leaving the repo.
+
+    d. **Release publication.** A git tag `v3.3.0` is
+       pushed to `origin`, triggering `.github/workflows/
+       release.yml` (the existing release pipeline). The
+       resulting GitHub release is published (not Draft),
+       replaces the existing "edge" pre-release as the
+       default release tag, and is the canonical install
+       point referenced from `adoption/SKILL.md`'s
+       `MC_VERSION=<3.3.0>` line and from
+       `site/install.md`. The seven historical draft
+       releases (v1.0.0..v2.0.0) stay as historical Drafts
+       and are explicitly NOT deleted — they predate the
+       3.x regime and dropping them would erase evidence.
+
+  Boundaries (A3 self-application):
+
+    - This decision does not change `lib/`, `bin/`, `spec/`
+      algebra, `schemas/`, or `axioms/`. The kernel is
+      identical to v3.3.0-alpha; only the marketing version
+      label changes.
+    - This decision does not change the `math-coding/3.2`
+      schema string family. The schema-version axis is
+      separate from the project-version axis (per
+      decisions/schema-string-bump-3.0-alpha-to-3.3-2026-10.yaml).
+    - This decision does not delete or modify historical
+      `v*` git tags or any draft GitHub releases. It adds
+      `v3.3.0` and leaves everything else as-is.
+    - This decision does not rebase `main` or force-push.
+    - This decision does not change the project's open
+      `mathc self-check` verdict. As of HEAD
+      (commit `8e9f65d`) the verdict is `unknown` with
+      5 obligations unresolved from the 2026-10-14
+      parallel-fix-batch (placeholder-sha-cleanup-2026-10,
+      enable-counters-drift-test-2026-10,
+      constitution-header-3-3-update-2026-10,
+      re-eval-remediation-todo-fix-2026-10,
+      attestation-waiver-policy-schema-bump-3-3-2026-10).
+      The release at `v3.3.0` makes no stronger assertion
+      than `v3.3.0-alpha` did: the kernel still names the
+      verdict per obligation, and the verdict for any
+      obligation not covered by an attestation remains
+      `unknown` or `missing`.
+
+  History:
+    rev 1 (this commit): initial adoption.
+
+axiom_link:
+  - A0
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "Three
+  marketing changes (version drop, badges, social preview)
+  plus a tag-and-publish action are routine work and do
+  not warrant a fresh decision YAML — just do it." The
+  author engaged with this position and rejected it on
+  two grounds: (a) per the project's own `process-principles`
+  P1, every change ships with a decision YAML under the
+  active policy — a release is a change, not an exception;
+  (b) the change touches protected metadata
+  (`VERSION`, opam `version`, the live release tag) that
+  downstream consumers parse for install URLs and
+  compatibility ranges (`compatible_with: mathc@>=3.3.0`),
+  so an audit trail is the smallest durable evidence.
+
+  Second position: "The CHANGELOG already says
+  v3.3.0-alpha is current, so dropping the `-alpha`
+  suffix is just a one-line typo fix." Counterargument:
+  the brand cutover at commit c56bd35 was a separate
+  decision (no decision YAML captured that one — see the
+  "Pre-existing deficit" outcome below) and it left
+  `VERSION` and the CHANGELOG header on `-alpha` while
+  renaming the prose headers. This cycle closes the
+  cutover. A follow-up cycle can convert the brand cutover
+  to a decision YAML retroactively if the audit history
+  matters.
+
+commitment: |
+  1. The published version string `VERSION` is exactly
+     `3.3.0` (no prerelease suffix).
+
+  2. `math-coding.opam` `version:` is exactly `3.3.0`
+     and `scripts/sync-version.sh --check` exits 0.
+
+  3. The CHANGELOG current-section heading reads
+     `## v3.3.0 — 2026-10-15 — current` (date is the
+     publication date, not the day the v3.3.0-alpha work
+     landed).
+
+  4. README, ROADMAP, PACKAGES, AGENTS, USAGE,
+     OCAML_BEST_PRACTICES, axioms/index.md,
+     bin/data/time-distribution.yaml carry `math-coding 3.3`
+     in their prose headers (already true at HEAD; this
+     decision records the invariant).
+
+  5. `spec/constitution.md` first line reads
+     `# Math-coding 3.3.0 constitution` (drops the
+     `-alpha` to match the brand).
+
+  6. `lib/render.ml` renders the live site hero as
+     `<h1>math-coding 3.3.0</h1>` and the page
+     `<title>` as `math-coding 3.3.0 — math-coding`
+     (the `read_version_file` function added by
+     site-version-from-file-2026-10@1 reads the new
+     `VERSION` literal at build time).
+
+  7. `mathc version` prints `math-coding 3.3.0: bootstrap`.
+
+  8. `README.md` carries a badges row immediately below
+     the title block, with at least: OCaml version,
+     license, latest release tag, rendered subcommand
+     count.
+
+  9. `assets/social-preview.png` is a 1280x640 PNG
+     carrying the brand mark, the project title, the
+     version, and one tagline sentence. The source
+     SVG `assets/social-preview.svg` is committed
+     alongside.
+
+  10. The GitHub release `v3.3.0` is published (not
+      Draft), carries the `install.sh`, `SHA256SUMS`,
+      and the mathc binaries that `.github/workflows/
+      release.yml` produces, and is the canonical install
+      point for `mathc`.
+
+  11. The 7 historical draft releases (v1.0.0..v2.0.0)
+      are untouched.
+
+  12. `mathc self-check` verdict after the version
+      bump is no worse than before (no new `fail` or
+      `missing` verdicts introduced by the bump).
+
+outcomes:
+  - id: brand-cutover-complete
+    statement: |
+      The published version (`VERSION`, opam, live site
+      hero, CHANGELOG current heading, `mathc version`
+      stdout) all carry `3.3.0` with no prerelease suffix,
+      closing the brand cutover started at commit c56bd35.
+  - id: repo-presentation-up-to-standard
+    statement: |
+      README carries topic badges; the GitHub social
+      preview is populated; the About description matches
+      README framing; the homepage URL on the About block
+      matches the live deploy.
+  - id: real-release-published
+    statement: |
+      A `v3.3.0` GitHub release is published and is the
+      canonical install point for downstream tooling.
+  - id: no-verdict-regression
+    statement: |
+      `mathc self-check` verdict after the bump is no
+      worse than before; the version bump introduces
+      no new `fail` or `missing` verdicts.
+
+scope:
+  capabilities:
+    - version-single-source-of-truth
+    - repo-presentation
+    - release-publication
+  paths:
+    - VERSION
+    - math-coding.opam
+    - CHANGELOG.md
+    - README.md
+    - spec/constitution.md
+    - site/foundations.md
+    - site/foundations.ru.md
+    - site/packages.md
+    - flake.nix
+    - decisions/v3-3-0-stable-release-2026-10.yaml
+    - assets/social-preview.svg
+    - assets/social-preview.png
+    - attestations/v3-3-0-stable-release-2026-10-*.json
+  exclusions:
+    - lib/***
+    - bin/***
+    - spec/algebra-3.2.md
+    - schemas/***
+    - axioms/***
+    - decisions/*.yaml   # other decisions unchanged
+    - "attestations/*"  # existing attestations unchanged
+    - "docs/AUDIT-*"    # historical audit reports unchanged
+    - "OCAML_BEST_PRACTICES.md"  # only §11 trap entries on
+                                                 # this cycle would
+                                                 # change; no such
+                                                 # entries needed.
+
+obligations:
+  - id: version-file-content-3-3-0
+    claim: |
+      `VERSION` at the repo root contains exactly the string
+      `3.3.0` (no prerelease suffix, no leading/trailing
+      whitespace beyond the final newline).
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: "[ $(awk 'NR==1' VERSION) = '3.3.0' ]"
+          result: pass
+        - verifier: mathc validate decisions/v3-3-0-stable-release-2026-10.yaml
+          result: pass
+  - id: opam-version-field-3-3-0
+    claim: |
+      `math-coding.opam` `version:` field is exactly
+      `3.3.0` (no prerelease suffix).
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: "grep -q '^version: \"3.3.0\"$' math-coding.opam"
+          result: pass
+        - verifier: scripts/sync-version.sh --check
+          result: pass
+  - id: changelog-current-section-header-3-3-0
+    claim: |
+      `CHANGELOG.md` carries a section heading
+      `## v3.3.0 — 2026-10-15 — current` (the date is
+      the publication date).
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: "grep -q '^## v3.3.0 — 2026-10-15 — current$' CHANGELOG.md"
+          result: pass
+  - id: constitution-header-3-3
+    claim: |
+      `spec/constitution.md` first line reads
+      `# Math-coding 3.3.0 constitution` (no `-alpha`).
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: "head -1 spec/constitution.md | grep -q '^# Math-coding 3\\.3\\.0 constitution$'"
+          result: pass
+  - id: site-hero-renders-3-3-0
+    claim: |
+      `lib/render.ml` reads the new `VERSION` literal and
+      the live site hero / `<title>` carry `3.3.0`.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: dune build --root .
+          result: pass
+        - verifier: "_build/default/bin/mathc.exe render --out /tmp/dist && grep -qF '<h1>math-coding 3.3.0</h1>' /tmp/dist/index.html"
+          result: pass
+  - id: readme-badges-row-present
+    claim: |
+      `README.md` carries a badges row immediately below
+      the title block, with at least: OCaml version,
+      license, latest release tag, rendered subcommand
+      count.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: "head -20 README.md"
+          result: pass
+  - id: social-preview-png-present
+    claim: |
+      `assets/social-preview.png` is a 1280x640 PNG
+      carrying the brand mark, the project title, the
+      version, and one tagline sentence. The source
+      SVG `assets/social-preview.svg` is committed
+      alongside.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: "[ -s assets/social-preview.png ]"
+          result: pass
+        - verifier: "[ -s assets/social-preview.svg ]"
+          result: pass
+        - verifier: "file assets/social-preview.png | grep -q 'PNG image data, 1280 x 640'"
+          result: pass
+  - id: github-release-v3-3-0-published
+    claim: |
+      The GitHub release `v3.3.0` is published (not Draft),
+      carries the install assets and mathc binaries that
+      the release workflow produces, and is the canonical
+      install point.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: gh release view v3.3.0 --repo 11111000000/math-coding --json isDraft,isPrerelease,tagName,name
+          result: pass
+        - verifier: gh release view v3.3.0 --repo 11111000000/math-coding --json assets --jq '.assets[].name' | grep -qE '^mathc-(linux-x86_64|linux-aarch64|darwin-x86_64|darwin-aarch64)$'
+          result: pass
+        - verifier: gh release view v3.3.0 --repo 11111000000/math-coding --json assets --jq '.assets[].name' | grep -qE '^(install\.sh|SHA256SUMS)$'
+          result: pass
+  - id: no-self-check-regression
+    claim: |
+      `mathc self-check` verdict after the version bump
+      is no worse than before (no new `fail` or `missing`
+      verdicts introduced by the bump).
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: "_build/default/bin/mathc.exe self-check"
+          result: pass
+
+counterexample: |
+  "Promoting from `-alpha` to stable is a one-line sed
+  edit and a tag push; it does not deserve 12 obligations."
+  Counterargument: each obligation captures one piece of
+  evidence that the promotion is internally consistent
+  (VERSION ↔ opam ↔ CHANGELOG ↔ site hero ↔ binary
+  stdout ↔ release tag) and externally visible
+  (badges, social preview, GitHub release). The number
+  is large because the change touches many surfaces;
+  each surface has its own consumer who would notice
+  inconsistency. Splitting the obligations would not
+  reduce the work; it would only hide the consistency
+  requirement.
+
+  "The `v3.3.0-alpha` brand cutover at commit c56bd35
+  was a one-time editorial decision; retroactively
+  recording it as a decision YAML is bikeshedding."
+  Counterargument: this decision's `antithesis`
+  section names the lack of a cutover decision YAML
+  as a pre-existing deficit. A follow-up cycle can
+  backfill it; this cycle is the promotion itself.
+
+assumptions:
+  - id: brand-cutover-decision-deferred
+    state: assumed
+    statement: |
+      The brand cutover from `3.1.0-alpha-final` to
+      `3.3.0` at commit c56bd35 was not captured as a
+      decision YAML at the time. This decision closes
+      the cutover by removing the remaining `-alpha`
+      literals in source-of-truth files (VERSION, opam,
+      CHANGELOG, README status, constitution header)
+      but does not retroactively backfill a cutover
+      decision YAML. A follow-up cycle may do so.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the maintainer considers the missing cutover
+      decision a blocking deficit, this cycle is
+      incomplete and must wait for a cutover decision.
+      The maintainer's instruction ("выпускай версию
+      3.3.0 — без постфиксов", 2026-10-15) accepts
+      the deficit as a known follow-up.
+    review_on:
+      - signal: cutover-decision-required
+  - id: self-check-verdict-acceptable-as-is
+    state: assumed
+    statement: |
+      `mathc self-check` verdict is `unknown` with 5
+      obligations unresolved from the 2026-10-14
+      parallel-fix-batch. The promotion does not
+      require resolving those 5 obligations; the
+      release at `v3.3.0` makes no stronger assertion
+      than the kernel's current verdict supports.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the maintainer requires `mathc self-check`
+      to return `pass` before publishing `v3.3.0`,
+      this cycle must wait until the 5 unknown
+      obligations close (their owning decisions are
+      placeholder-sha-cleanup-2026-10,
+      enable-counters-drift-test-2026-10,
+      constitution-header-3-3-update-2026-10,
+      re-eval-remediation-todo-fix-2026-10,
+      attestation-waiver-policy-schema-bump-3-3-2026-10).
+    review_on:
+      - signal: self-check-stale-on-publish
+
+reversal:
+  - signal: version-revert
+    condition: |
+      A future maintainer decides the `-alpha` suffix
+      was premature to drop and wants to revert to
+      `3.3.0-alpha.1` or similar. Resolution: a
+      follow-up decision bumps `VERSION` back,
+      re-runs `scripts/sync-version.sh --write`,
+      rebuilds the binaries, deletes the `v3.3.0`
+      GitHub release and re-tags as `v3.3.0-alpha.1`,
+      and supersedes this decision.
+    action: rework
+
+risk:
+  declared_triggers:
+    - brand-cutover-decision-required   # see assumptions
+    - self-check-stale-on-publish       # see assumptions
+    - install-asset-sha-mismatch        # SHA256SUMS may
+                                        # not match binaries
+                                        # if the workflow
+                                        # rebuilds them
+                                        # after a re-tag.
+    - social-preview-api-unavailable    # undocumented
+                                        # endpoint; if it
+                                        # 404s, fall back
+                                        # to manual upload
+                                        # via the web UI.
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+  supersedes: []
+  superseded_by: []

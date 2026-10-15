@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1280 640" role="img" aria-labelledby="og-title og-desc">
+  <title id="og-title">math-coding 3.3.0</title>
+  <desc id="og-desc">Risk-adaptive assurance protocol: every change ships with a written decision, named obligations, and bounded evidence; the OCaml kernel gates the merge.</desc>
+
+  <!-- Background: warm cream (matches site palette background token) -->
+  <rect width="1280" height="640" fill="#fbfaf6"/>
+
+  <!-- Subtle hairline frame -->
+  <rect x="32" y="32" width="1216" height="576" fill="none" stroke="#d4d0c8" stroke-width="1"/>
+
+  <!-- Top-left small caps label -->
+  <text x="80" y="100" font-family="'SF Mono','Menlo','Consolas','Courier New',monospace" font-size="16" font-weight="600" fill="#8b3a3a" letter-spacing="2">RISK-ADAPTIVE ASSURANCE PROTOCOL</text>
+
+  <!-- Logo: scaled-up version of assets/logo.svg -->
+  <g transform="translate(80,140) scale(2)" fill="none" stroke="#8b3a3a" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M22 10 L10 10 L10 54 L22 54"/>
+    <path d="M42 10 L54 10 L54 54 L42 54"/>
+    <polyline points="20,33 30,43 46,23"/>
+  </g>
+
+  <!-- Title: math-coding -->
+  <text x="80" y="380" font-family="'Charter','Iowan Old Style','Georgia','Times New Roman',serif" font-size="76" font-weight="600" fill="#1a1a1a" letter-spacing="-1">math-coding</text>
+
+  <!-- Version chip -->
+  <rect x="80" y="400" width="140" height="40" rx="6" ry="6" fill="none" stroke="#8b3a3a" stroke-width="2"/>
+  <text x="150" y="427" font-family="'SF Mono','Menlo','Consolas','Courier New',monospace" font-size="20" font-weight="600" fill="#8b3a3a" text-anchor="middle">v3.3.0</text>
+
+  <!-- Vertical separator -->
+  <line x1="640" y1="100" x2="640" y2="500" stroke="#d4d0c8" stroke-width="1"/>
+
+  <!-- Right column header -->
+  <text x="700" y="120" font-family="'SF Mono','Menlo','Consolas','Courier New',monospace" font-size="14" font-weight="600" fill="#8b3a3a" letter-spacing="2">THE CHAIN</text>
+
+  <!-- Chain: two rows -->
+  <text x="700" y="170" font-family="'Charter','Iowan Old Style','Georgia','Times New Roman',serif" font-size="22" fill="#1a1a1a">intent <tspan fill="#8b3a3a" font-weight="600">→</tspan> decision</text>
+  <text x="700" y="206" font-family="'Charter','Iowan Old Style','Georgia','Times New Roman',serif" font-size="22" fill="#1a1a1a">obligation <tspan fill="#8b3a3a" font-weight="600">→</tspan> change</text>
+  <text x="700" y="242" font-family="'Charter','Iowan Old Style','Georgia','Times New Roman',serif" font-size="22" fill="#1a1a1a">attestation <tspan fill="#8b3a3a" font-weight="600">→</tspan> revision</text>
+
+  <!-- Body: 4 lines, explicit y positions -->
+  <text x="700" y="320" font-family="'Charter','Iowan Old Style','Georgia','Times New Roman',serif" font-size="26" fill="#1a1a1a">Tie every change to a</text>
+  <text x="700" y="356" font-family="'Charter','Iowan Old Style','Georgia','Times New Roman',serif" font-size="26" fill="#1a1a1a">written decision, named</text>
+  <text x="700" y="392" font-family="'Charter','Iowan Old Style','Georgia','Times New Roman',serif" font-size="26" fill="#1a1a1a">obligations, and bounded</text>
+  <text x="700" y="428" font-family="'Charter','Iowan Old Style','Georgia','Times New Roman',serif" font-size="26" fill="#1a1a1a">evidence.</text>
+
+  <!-- Italic lines, well below body -->
+  <text x="700" y="490" font-family="'Charter','Iowan Old Style','Georgia','Times New Roman',serif" font-size="20" fill="#5a5a5a" font-style="italic">The kernel gates the merge on a named rule,</text>
+  <text x="700" y="518" font-family="'Charter','Iowan Old Style','Georgia','Times New Roman',serif" font-size="20" fill="#5a5a5a" font-style="italic">not a vague feeling.</text>
+
+  <!-- Bottom hairline -->
+  <line x1="80" y1="540" x2="1200" y2="540" stroke="#d4d0c8" stroke-width="1"/>
+
+  <!-- Footer -->
+  <text x="80" y="580" font-family="'SF Mono','Menlo','Consolas','Courier New',monospace" font-size="16" fill="#1a1a1a">$ curl -sSfL https://math-coding.sh/install.sh | sh</text>
+  <text x="1200" y="580" text-anchor="end" font-family="'SF Mono','Menlo','Consolas','Courier New',monospace" font-size="16" fill="#5a5a5a">github.com/11111000000/math-coding</text>
+</svg>

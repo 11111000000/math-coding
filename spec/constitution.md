@@ -1,4 +1,4 @@
-# Math-coding 3.3.0-alpha constitution
+# Math-coding 3.3.0 constitution
 
 ## Scope
 

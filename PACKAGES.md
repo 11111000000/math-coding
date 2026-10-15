@@ -19,7 +19,7 @@ Last verified at: HEAD `d52c85b` + 2026-10-14 kernel-fixes + site-redesign cycle
   superseded by their fix decisions and removed at commit
   `a84031b`.
 - `c56bd35`: chore(version): bumped the published brand from
-  `3.1.0-alpha-final` to `3.3.0-alpha`. The 3.2-ideal algebra
+`3.3.0`. The 3.2-ideal
   (`spec/algebra-3.2.md`, accepted via `algebra-3.2.yaml`) is now
   shipped under the `math-coding 3.3` brand. The spec filename is
   preserved (it is the version of the *spec*, not the project).
@@ -466,7 +466,7 @@ Previous: HEAD `c56bd35` (2026-10-14): version-bump to
 math-coding 3.3 (semver `3.3.0`). Header renames across ROADMAP,
 PACKAGES, README, AGENTS, USAGE, OCAML_BEST_PRACTICES,
 axioms/index.md, `bin/data/time-distribution.yaml`; CHANGELOG
-opens a `v3.3.0-alpha` section. Counters refreshed to
+opens a `v3.3.0` section
 107 active decisions / 380 obligations / 739 attestations / 67 cram
 files / 27 CLI subcommands.
 

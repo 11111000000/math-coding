@@ -143,7 +143,7 @@ five foundations:
 | `mathc-self-check-subcommand` | `mathc self-check` → JSON verdict | `self-check-{pass,fail,unknown}.t` |
 | `mathc-packages-subcommand` | `mathc packages --format=text\|json\|html` → package list | `packages.t` |
 
-The kernel at v3.3.0-alpha ships the eight foundations plus
+The kernel at v3.3.0 ships
 the 3.2-ideal algebra on top of them. The site at
 [Packages](packages.html) is the live verdict of every
 active decision; the live build currently reports 93 active
