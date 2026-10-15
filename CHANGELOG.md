@@ -3,7 +3,7 @@
 > Single-source-of-truth for releases. Mirrors the `v3.x.y` git
 > tags. The current release is highlighted.
 
-## v3.3.0-alpha — 2026-10-14 — current
+## v3.3.0 — 2026-10-15 — current
 
 **Brand:** math-coding 3.3. **VERSION file** + `math-coding.opam`
 bumped from `3.1.0-alpha-final` to `3.3.0-alpha` (semver `3.3.0`).

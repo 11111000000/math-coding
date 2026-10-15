@@ -96,6 +96,6 @@ self-check` возвращает «успех» на чистом `main`.
 | `mathc-self-check-subcommand` | `mathc self-check` → JSON-вердикт | `self-check-{pass,fail,unknown}.t` |
 | `mathc-packages-subcommand` | `mathc packages --format=text\|json\|html` → список пакетов | `packages.t` |
 
-Ядро на v3.3.0-alpha поставляет все восемь оснований. Сайт
+Ядро на v3.3.0
 [Packages](packages.html) — живой вердикт всех 93 активных
 решений / 330 обязательств.
