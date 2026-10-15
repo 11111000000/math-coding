@@ -1,0 +1,17 @@
+{
+  "id": "DEV",
+  "name": "Dev",
+  "pages": [
+    {
+      "id": "1",
+      "title": "Use Postgres for new billing service",
+      "version": {"when": "2026-10-01T10:00:00.000Z"},
+      "body": {
+        "storage": {
+          "value": "<p>We decided to use <strong>Postgres</strong> for the new billing service.</p><p>Reasons: ACID, JSON support, mature tooling.</p>",
+          "representation": "storage"
+        }
+      }
+    }
+  ]
+}
