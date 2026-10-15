@@ -86,3 +86,36 @@ via the negative fixtures in tests/fixtures/.
   install.sh: curl failed for https://github.com/11111000000/math-coding/releases/download/v0.0.0-test/SHA256SUMS
   diagnostic: MC-INSTALL-NETWORK
   exit=124
+
+hotfix-cve.sh stamps a 24h waiver at decisions/waivers/hotfix-<ticket>.yaml
+when called with a kebab-case ticket id; the resulting YAML validates under
+the live waiver schema (math-coding/waiver-3.3). This is the positive path.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ hotfix_sh="$DUNE_SOURCEROOT/scripts/hotfix-cve.sh"
+  $ ticket="cve-test-foo"
+  $ waiver="$DUNE_SOURCEROOT/decisions/waivers/hotfix-$ticket.yaml"
+  $ rm -f "$waiver"
+  $ "$hotfix_sh" "$ticket" >/dev/null && echo "wrote: ok"
+  wrote: ok
+  $ test -f "$waiver" && echo "waiver file: ok"
+  waiver file: ok
+  $ mathc validate "$waiver" 2>&1 | grep -q '^accept:' \
+  >   && echo "validate: ok"
+  validate: ok
+  $ rm -f "$waiver"
+
+hotfix-cve.sh refuses to write when the ticket id has shell metacharacters
+(`/`, `;`, space). The negative path exits 2 and leaves no waiver file.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ hotfix_sh="$DUNE_SOURCEROOT/scripts/hotfix-cve.sh"
+  $ if "$hotfix_sh" "bad/path" 2>/dev/null; then
+  >   echo "FAIL: expected exit 2 on invalid ticket id"; exit 1
+  > else
+  >   echo "invalid ticket refused (exit $?)"
+  > fi
+  invalid ticket refused (exit 2)
+  $ ! test -f decisions/waivers/hotfix-bad.yaml && echo "no file written: ok"
+  no file written: ok
+

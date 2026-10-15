@@ -4598,18 +4598,28 @@ let[@warning "-32"] do_migrate () =
 (* --- new-decision subcommand ----------------------------------- *)
 
 (* `mathc new-decision <id> [--write] [--interactive] [--force]`
+ *                      [--template=<minimal|full>]
  *
  * Scaffolds a new decision file from a canonical template.
  * The implementation lives in `lib/new_decision/new_decision.ml`
  * per the sub-library convention (OCAML_BEST_PRACTICES §10.1);
  * the dispatcher only parses argv and forwards to
  * `New_decision.run`. Exit codes: 0 on success, 1 on file
- * already exists, 2 on invalid `<id>`. *)
+ * already exists, 2 on invalid `<id>` or `--template=<X>` value.
+ *
+ * `--template=minimal` selects the 5-7 user-editable field stub
+ * on schema `math-coding/3.3` (per decision
+ * `ux-3-new-decision-template-minimal-2026-10`); `--template=full`
+ * (the default) preserves the 47-line adoption/SKILL.md-shaped
+ * output on schema `math-coding/3.2` first shipped by
+ * `ux-3-new-decision-subcommand-2026-10@1`. Unknown values for
+ * `--template=<X>` exit 2. *)
 let[@warning "-32"] do_new_decision () =
   let id = ref "" in
   let write = ref false in
   let interactive = ref false in
   let force = ref false in
+  let template_kind = ref "" in
   let set_id s = id := s in
   Arg.current := 1;
   Arg.parse
@@ -4620,19 +4630,36 @@ let[@warning "-32"] do_new_decision () =
        " (no-op stub; the printed scaffold is the scaffold)");
       ("--force", Arg.Set force,
        " Overwrite decisions/<id>.yaml if it exists (with --write)");
+      ("--template",
+       Arg.String (fun s -> template_kind := s),
+       " <minimal|full>  Template variant (default: full)");
     ]
-    set_id "usage: mathc new-decision <id> [--write] [--interactive] [--force]";
+    set_id
+    "usage: mathc new-decision <id> [--write] [--interactive] [--force] \
+     [--template=<minimal|full>]";
   if !id = "" then begin
     Printf.fprintf stderr "mathc new-decision: missing <id>\n";
     print_usage stderr;
     exit 2
   end;
+  let kind =
+    match !template_kind with
+    | "" -> New_decision.Full
+    | "minimal" -> New_decision.Minimal
+    | "full" -> New_decision.Full
+    | other ->
+        Printf.fprintf stderr
+          "mathc new-decision: invalid --template=%s (expected minimal|full)\n"
+          other;
+        exit 2
+  in
   let mode =
     if !interactive then New_decision.Interactive_mode
     else if !write then New_decision.Write_mode
     else New_decision.Print_mode
   in
-  New_decision.run { New_decision.id = !id; mode; force = !force }
+  New_decision.run
+    { New_decision.id = !id; mode; force = !force; template_kind = kind }
 
 let dispatch () =
   if Array.length Sys.argv < 2 then begin

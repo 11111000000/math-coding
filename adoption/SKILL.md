@@ -131,6 +131,26 @@ relations:
     - bootstrap-v3@3
 ```
 
+### Step 3.5. Minimal form
+
+For a one-shot decision (5-7 user-editable fields), use
+`--template=minimal` to emit the 13-line stub on schema
+`math-coding/3.3`:
+
+```bash
+mathc new-decision my-id --template=minimal
+```
+
+The stub has the same shape as the canonical template above but
+emits TODO markers in every field the user must fill in. The
+stub passes `mathc validate` (with the
+`deficit/MC-COUNTEREXAMPLE-MISSING` soft warning) because the
+kernel-required defaults (`mode: light`, `axiom_link: [A0]`,
+`risk.owner`) are baked in. The user is expected to fill in
+the TODO markers and re-run `mathc validate` after their first
+edit. The full template (`--template=full`, the default) is
+preserved for backward compatibility with existing adopters.
+
 ## Step 4. Validate and self-check
 
 ```bash

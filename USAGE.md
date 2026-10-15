@@ -230,6 +230,34 @@ shrinks, the audit requirement ends), rip out `decisions/`,
 `attestations/`, and the gate workflow. A clean revert is itself
 evidence that the kernel did not capture you.
 
+### Hotfix procedure
+
+When the SLA is the developer: a CVE needs a fix in < 1h, or
+an incident demands an urgent merge before the post-hoc decision
++ attestation can be authored. The `scripts/hotfix-cve.sh` wrapper
+stamps a 24h waiver at `decisions/waivers/hotfix-<ticket>.yaml`
+under the existing `math-coding/waiver-3.3` schema (the kernel
+loader is `lib/waiver.ml`).
+
+```bash
+scripts/hotfix-cve.sh CVE-2026-1234     # writes a 24h waiver
+mathc validate decisions/waivers/hotfix-CVE-2026-1234.yaml   # exit 0
+```
+
+Within the 24h window the developer MUST follow up with:
+
+1. `decisions/<id>.yaml` — the post-hoc decision describing the
+   change. Use `mathc new-decision <id>` (or
+   `--template=minimal` for short forms).
+2. `attestations/<id>-<obligation>.json` — the matching
+   attestation (kind `test` / `review` / `build` / `analysis`).
+
+If the post-hoc pair does not land before `expires_at`, the
+waiver stops being effective_at and the next `mathc gate` returns
+Block on this subject. The compensating control surface is
+`decisions/waivers/hotfix-*.yaml` in the next-actions report; a
+hotfix older than 24h is a remediation item, not a clean tree.
+
 ## AI agents
 
 The `mathc` binary ships with a companion `mathc_mcp` JSON-RPC 2.0
