@@ -1,0 +1,160 @@
+---
+schema: math-coding/3.3
+id: homebrew-tap-formula-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+
+body_sha: "sha256:886f484ad7f0d8f0e159b6e28801e8853a1096a963756b39a6e3acb4ffb51de0"
+yaml_sha: "sha256:886f484ad7f0d8f0e159b6e28801e8853a1096a963756b39a6e3acb4ffb51de0"
+
+
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+intent: |
+  Ship the `mathc` formula in a personal Homebrew tap
+  (`github.com/11111000000/homebrew-tap:Formula/mathc.rb`)
+  so macOS / Linuxbrew users can run
+  `brew install 11111000000/tap/mathc` and land at
+  `mathc version`. The macOS / Linuxbrew artifact
+  pair (`mathc-darwin-aarch64`, `mathc-darwin-x86_64`,
+  `mathc-linux-x86_64`) ships every release today;
+  the missing piece is the upstream formula PR.
+
+commitment: |
+  `tools/homebrew/` exists in the math-coding repository
+  and contains:
+    - `Formula/mathc.rb` — the formula Ruby class,
+      populated for `v3.3.0` (Apple Silicon default
+      arch with `livecheck` for upstream tracking).
+      The `url` and `sha256` track the latest tagged
+      release.
+    - `PUBLISH.md` — the operator runbook for opening
+      the upstream tap PR (creates the personal tap
+      repo on first publish, copies the formula into
+      `Formula/mathc.rb`, opens a PR).
+    - `scripts/render-homebrew-formula.py` — generator
+      that produces the Ruby class deterministically
+      from `--version` and SHA-256 arguments.
+
+scope:
+  capabilities:
+    - installer-distro
+    - bootstrap-windows
+    - package-managers
+  paths:
+    - "tools/homebrew/**"
+    - "USAGE.md"
+    - "site/install.md"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: brew-discoverable
+    statement: |
+      `brew install 11111000000/tap/mathc` on
+      macOS / Linuxbrew returns 0 and lands at
+      `mathc version`.
+
+counterexample: |
+  "Personal taps are vendor-locked to one owner;
+   we should target Homebrew/core."
+   Counterargument: Homebrew/core has a 200-reviewer
+   acceptance bar and a 1-2 week review cycle; a
+   personal tap merges in hours. Personal taps
+   ARE the recommended path for niche tooling like
+   this until core promotion, which requires
+   sustained usage evidence (typically 30+ forks
+   and 30+ stars on the upstream project).
+   The decision records Homebrew/core promotion as a
+   follow-up signal (similar to winget's
+   `Packager accumulates 25+ downloads before
+   core-eligible` heuristic).
+
+obligations:
+  - id: brew-generator-shipped
+    outcome: brew-discoverable
+    claim: |
+      `tools/homebrew/scripts/render-homebrew-formula.py`
+      exists, has a working `--help`, and produces a
+      valid `mathc.rb` for a sample invocation.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/homebrew-tap-formula-2026-10.yaml
+          result: pass
+        - verifier: tools/homebrew/scripts/render-homebrew-formula.py --version 3.3.0 --sha256-darwin-aarch64 202a09d8a114c1eb9cc0ab3c94500898737c24ee7287778d6adb8bf79e3a6a3d --out /tmp/brew-test.rb exits 0
+          result: pass
+        - verifier: python3 -m py_compile tools/homebrew/scripts/render-homebrew-formula.py
+          result: pass
+
+  - id: brew-v330-shipped
+    outcome: brew-discoverable
+    claim: |
+      The `v3.3.0` formula is committed at
+      `tools/homebrew/Formula/mathc.rb`. The
+      `url` points at `mathc-darwin-aarch64` (default
+      Apple Silicon arch); the `sha256` matches the
+      live `SHA256SUMS` line for that binary
+      (`202a09d8a114c1eb9cc0ab3c94500898737c24ee7287778d6adb8bf79e3a6a3d`).
+    acceptance:
+      all:
+        - verifier: tools/homebrew/Formula/mathc.rb exists
+          result: pass
+        - verifier: grep -q '202a09d8a114c1eb9cc0ab3c94500898737c24ee7287778d6adb8bf79e3a6a3d' tools/homebrew/Formula/mathc.rb
+          result: pass
+
+  - id: brew-publish-md
+    outcome: brew-discoverable
+    claim: |
+      `tools/homebrew/PUBLISH.md` documents the
+      tap setup procedure (creating
+      `11111000000/homebrew-tap` on first publish,
+      copy + PR flow on subsequent updates).
+    acceptance:
+      all:
+        - verifier: tools/homebrew/PUBLISH.md exists
+          result: pass
+        - verifier: head -3 tools/homebrew/PUBLISH.md mentions homebrew-tap
+          result: pass
+
+reversal:
+  - signal: brew-promoted-to-core
+    condition: |
+      `mathc` reaches Homebrew/core eligibility
+      (sustained downloads, project stars, no security
+      advisories). Promotion to core supersedes the
+      personal tap pathway.
+    action: archive-obligation
+
+  - signal: brew-pr-stuck
+    condition: |
+      The personal-tap PR is rejected twice for
+      upstream-policy reasons. Resolution: replace
+      with a sha256-bottled formula or wait for
+      core-eligibility evidence.
+    action: rework
+
+risk:
+  declared_triggers:
+    - personal-tap-orphaned-ownership
+    - formula-sha-stale-with-release
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-distro-friction@1
+  supersedes: []
+  superseded_by: []

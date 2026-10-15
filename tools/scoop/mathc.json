@@ -1,0 +1,30 @@
+{
+  "$schema": "https://raw.githubusercontent.com/ScoopInstaller/Scoop/master/schema.json",
+  "version": "3.3.1",
+  "description": "math-coding CLI: risk-adaptive assurance protocol for software changes",
+  "homepage": "https://github.com/11111000000/math-coding",
+  "license": "Apache-2.0",
+  "depends": null,
+  "url": "https://github.com/11111000000/math-coding/releases/download/v3.3.1/mathc-windows-x86_64.exe",
+  "hash": "0000000000000000000000000000000000000000000000000000000000000000",
+  "bin": [
+    [
+      "mathc.exe",
+      "mathc"
+    ]
+  ],
+  "checkver": {
+    "url": "https://api.github.com/repos/11111000000/math-coding/releases/latest",
+    "jsonpath": "$.tag_name",
+    "regex": "v([\\d.]+)"
+  },
+  "autoupdate": {
+    "url": "https://github.com/11111000000/math-coding/releases/download/v$version/mathc-windows-x86_64.exe",
+    "hash": {
+      "url": "https://github.com/11111000000/math-coding/releases/latest",
+      "kind": "sha256"
+    }
+  },
+  "persist_dir": null,
+  "_comment": "This v3.3.1 scoop manifest is a placeholder; the hash and URL are filled by tools/scoop/scripts/render-scoop-manifest.py at every release tag. mathc-windows-x86_64.exe SHA-256 is computed by .github/workflows/release.yml (post-D4 step adds *.exe to SHA256SUMS)."
+}
