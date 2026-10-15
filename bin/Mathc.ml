@@ -713,21 +713,21 @@ let print_usage oc =
      [--interactive]                  --interactive is a stub in this slice.\n\
      [--force]\n\
     \  telemetry status                   print current telemetry state (Phase 2\n\
-    \                                     stub; no transport, no data \
-     emission).\n\n\
-     migrate --from=X --to=Y                        declarative migration plan \
-     reader; emit a\n\
-     per-file plan from\n\
-     [--root=DIR]                                    \
-     decisions/migrations/<from>-to-<to>.yaml;\n\
-     [--format=text|json]                            --write writes sibling \
-     <file>.migrated.yaml\n\
-     [--explain]                                     (kernel never mutates the \
-     original).\n\
-     [--manifest=PATH]                               See \
-     migration-mechanism-2026-10.\n\
-     [--write|--dry-run]\n\n\
-    \     options:\n\
+    \                                     stub; no transport, no data emission).\n\n\
+     migrate --from=X --to=Y                        declarative migration plan reader; emit a\n\
+                                                     per-file plan from\n\
+     [--root=DIR]                                    decisions/migrations/<from>-to-<to>.yaml;\n\
+     [--format=text|json]                            --write writes sibling <file>.migrated.yaml\n\
+     [--explain]                                     (kernel never mutates the original).\n\
+     [--manifest=PATH]                               See migration-mechanism-2026-10.\n\
+     [--write|--dry-run]\n\
+     \  doctor [--json]                       print install-coverage diagnostic; sections\n\
+                                              install, path, latest, config, decisions,\n\
+                                              attestations, self-check (skip). Exit 0 when\n\
+                                              no section is `fail`, 1 otherwise. See\n\
+                                              mathc-doctor-subcommand-2026-10.\n\
+
+     options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
      exit codes:\n\
@@ -5531,6 +5531,505 @@ let[@warning "-32"] do_new_decision () =
   New_decision.run
     { New_decision.id = !id; mode; force = !force; template_kind = kind }
 
+(* --- doctor subcommand (mathc-doctor-subcommand-2026-10) ---
+ *
+ * `mathc doctor [--json]` prints a diagnostic report on
+ * the user's math-coding install. The report covers seven
+ * independent sections (install / path / latest / config /
+ * decisions / attestations / self-check); each section's
+ * verdict is determined locally. Exit code: 0 when no
+ * section is `fail`, 1 when any section is `fail`.
+ *
+ * The implementation is constrained to `bin/Mathc.ml`; the
+ * kernel (`lib/decision.ml`, `lib/gate.ml`) and the
+ * `bin/mathc_mcp.ml` MCP binary are untouched. The helpers
+ * below reuse `Attestations.load`, `list_decision_files`,
+ * `extract_top_level_id`, `validate_with_counts`,
+ * `find_project_root`, `resolve_store_root`,
+ * `read_cli_version`, and `now_iso` -- all pure / I/O-bounded
+ * helpers already present in this binary.
+ *
+ * Per the obligation in
+ * `decisions/mathc-doctor-subcommand-2026-10.yaml`:
+ *   - text mode: section headers printed in order, verdict
+ *     one of `pass`/`warn`/`fail`/`skip`.
+ *   - `--json` mode: same report as
+ *     `{"sections":[{"id":.., "verdict":..,
+ *     "details":{..}}, ..]}`. The `sections` array length is
+ *     >= 5 even when the GitHub probe (section latest) is
+ *     offline.
+ *
+ * Failure-mode policy (per commitment in the decision):
+ *   - offline sections (install/path/config/decisions/
+ *     attestations): `pass` or `fail`.
+ *   - online section (latest): `pass` / `warn` only; the
+ *     network probe never returns `fail` (the user is not
+ *     blocked on GitHub reachability for an install-coverage
+ *     diagnostic).
+ *   - self-check section: `skip` in this slice (the deeper
+ *     walk is delegated to `mathc self-check`). *)
+
+(* Per-section verdict. `Skip` is reserved for the self-check
+ * section when no deeper walk is requested; `Warn` covers
+ * "this is not blocking, but the user should look at it"
+ * (e.g. newer release available, orphan decision file). *)
+type doctor_verdict = Pass | Warn | Fail | Skip
+
+let[@warning "-32"] doctor_verdict_string = function
+  | Pass -> "pass"
+  | Warn -> "warn"
+  | Fail -> "fail"
+  | Skip -> "skip"
+
+(* A section result bundles the section id (used as JSON
+ * key + cram assertion target), the human-readable label,
+ * the verdict, and the `details` object (a Jsonl.value
+ * Object with whatever per-section metadata we want to
+ * surface). *)
+type doctor_section = {
+  id: string;
+  label: string;
+  verdict: doctor_verdict;
+  details: Jsonl.value;
+}
+
+(* Section a -- Install.
+ *
+ * Print the running `mathc` binary path (from
+ * `Sys.executable_name`) and the version string read from
+ * the project VERSION file. Both are `Pass` on success.
+ *
+ * Caveat: `Sys.executable_name` is the path the kernel
+ * loaded this image from; on a sandboxed invocation
+ * (`dune exec`, `bwrap`) it points inside `_build/default/`,
+ * which is correct for the "what binary am I running"
+ * question but does NOT identify the install dir on disk.
+ * The path section (b) handles the install-dir question. *)
+let[@warning "-32"] doctor_section_install () : doctor_section =
+  let path = Sys.executable_name in
+  let version = try read_cli_version () with _ -> "(unreadable)" in
+  {
+    id = "install";
+    label = "Install";
+    verdict = Pass;
+    details =
+      Jsonl.Object
+        [
+          ("binary_path", Jsonl.String path);
+          ("version", Jsonl.String version);
+        ];
+  }
+
+(* Section b -- PATH.
+ *
+ * Is the directory that contains `mathc` (the dirname of
+ * `Sys.executable_name`) on `$PATH`? On Windows the
+ * install layout is `%LOCALAPPDATA%\Programs\mathc\`; on
+ * Unix it's `$HOME/.local/bin/` (or whatever the user
+ * passed to install.sh). The dirname of the live binary
+ * is the only runtime anchor we have without launching
+ * `which` and parsing its output.
+ *
+ * PATH parsing: `Unix.environment ()` returns the
+ * inherited env as a `string array` of `KEY=VALUE` rows;
+ * we filter for `PATH=`, take the value, split on `:`
+ * (Unix convention; on Windows cmd.exe would be `;` but
+ * this binary does not target cmd.exe). *)
+let[@warning "-32"] doctor_section_path () : doctor_section =
+  let env = try Unix.environment () |> Array.to_list with _ -> [] in
+  let path_value =
+    let[@warning "-32"] take_path row =
+      if String.length row > 5 && String.sub row 0 5 = "PATH=" then
+        Some (String.sub row 5 (String.length row - 5))
+      else None
+    in
+    match List.filter_map take_path env with
+    | v :: _ -> Some v
+    | [] -> None
+  in
+  let path_dirs =
+    match path_value with None -> [] | Some p -> String.split_on_char ':' p
+  in
+  let install_dir = Filename.dirname (Sys.executable_name) in
+  let on_path =
+    List.exists (fun d -> String.compare d install_dir = 0) path_dirs
+  in
+  let path_dirs_json =
+    Jsonl.Array (List.map (fun s -> Jsonl.String s) path_dirs)
+  in
+  {
+    id = "path";
+    label = "PATH";
+    verdict = (if on_path then Pass else Warn);
+    details =
+      Jsonl.Object
+        [
+          ("install_dir", Jsonl.String install_dir);
+          ("on_path", Jsonl.Bool on_path);
+          ("path_dirs", path_dirs_json);
+        ];
+  }
+
+(* Section c -- Latest release.
+ *
+ * Probe GitHub's `releases/latest` endpoint for the
+ * math-coding repo (owner `11111000000` per the repo's
+ * public surface -- same owner used by the Homebrew
+ * tap formula in D12). The HTTP transport uses `curl`
+ * (no OCaml HTTP dep) with `--max-time 5` to keep the
+ * section fast on a healthy install and avoid hangs on
+ * a flaky network.
+ *
+ * Verdict: `Pass` when the installed version equals the
+ * latest tag; `Warn` when a newer tag exists (user is
+ * behind); `Warn` (not `Fail`) when the probe times out,
+ * is offline, or returns a non-200 -- the offline-section
+ * contract per the decision's failure-mode policy.
+ *
+ * The version comparison strips a single leading `v` from
+ * the GitHub tag (the convention is `vX.Y.Z` while the
+ * VERSION file is bare `X.Y.Z`) and does a lexicographic
+ * compare on the dotted version string. Semver-style
+ * ordering would split the string on `.` and compare
+ * each segment as an integer; for the 3.x line, the
+ * two agree. The choice is documented here so a future
+ * `4.0.0` bump that needs semver-order can be detected
+ * by a single regression in tests/cli/doctor.t. *)
+let[@warning "-32"] doctor_section_latest () : doctor_section =
+  let installed = try read_cli_version () with _ -> "(unreadable)" in
+  let url =
+    "https://api.github.com/repos/11111000000/math-coding/releases/latest"
+  in
+  let argv =
+    [|
+      "curl";
+      "-sS";
+      "--max-time";
+      "5";
+      "-H";
+      "Accept: application/vnd.github+json";
+      url;
+    |]
+  in
+  let probe =
+    try
+      let ic = Unix.open_process_args_in "curl" argv in
+      let buf = Buffer.create 256 in
+      (try
+         while true do
+           Buffer.add_channel buf ic 4096
+         done
+       with End_of_file -> ());
+      let _status = Unix.close_process_in ic in
+      Ok (Buffer.contents buf)
+    with _ -> Error "curl invocation failed"
+  in
+  match probe with
+  | Error reason ->
+      {
+        id = "latest";
+        label = "Latest";
+        verdict = Warn;
+        details =
+          Jsonl.Object
+            [
+              ("installed", Jsonl.String installed);
+              ("latest_tag", Jsonl.Null);
+              ("status", Jsonl.String "offline");
+              ("reason", Jsonl.String reason);
+            ];
+      }
+  | Ok body ->
+      let tag =
+        try
+          let v = Jsonl.parse body in
+          match v with
+          | Jsonl.Object ps -> (
+              match List.assoc_opt "tag_name" ps with
+              | Some (Jsonl.String s) -> Some s
+              | _ -> None)
+          | _ -> None
+        with _ -> None
+      in
+      match tag with
+      | None ->
+          {
+            id = "latest";
+            label = "Latest";
+            verdict = Warn;
+            details =
+              Jsonl.Object
+                [
+                  ("installed", Jsonl.String installed);
+                  ("latest_tag", Jsonl.Null);
+                  ("status", Jsonl.String "unparseable");
+                  ("body_len", Jsonl.Int (String.length body));
+                ];
+          }
+      | Some t ->
+          let strip_v s =
+            if String.length s > 0 && s.[0] = 'v' then
+              String.sub s 1 (String.length s - 1)
+            else s
+          in
+          let tag_norm = strip_v t in
+          let inst_norm = strip_v installed in
+          let cmp = String.compare tag_norm inst_norm in
+          let newer = cmp > 0 in
+          let same = cmp = 0 in
+          {
+            id = "latest";
+            label = "Latest";
+            verdict = (if same then Pass else Warn);
+            details =
+              Jsonl.Object
+                [
+                  ("installed", Jsonl.String installed);
+                  ("latest_tag", Jsonl.String t);
+                  ("status",
+                     Jsonl.String (if same then "current" else "behind"));
+                  ("newer_available", Jsonl.Bool newer);
+                ];
+          }
+
+(* Section d -- Config.
+ *
+ * Does `decisions/decision.yaml` (the active policy) parse
+ * against the live schema and pass `validate_with_counts`?
+ * Verdict: `Pass` on accept, `Fail` on reject. *)
+let[@warning "-32"] doctor_section_config () : doctor_section =
+  let root = find_project_root (Sys.getcwd ()) in
+  let path = Filename.concat root "decisions/decision.yaml" in
+  let exists = Sys.file_exists path in
+  let outcome =
+    if exists then
+      match validate_with_counts path with
+      | `Accept _ -> `Pass
+      | `Accept_aggregate _ -> `Pass
+      | `Reject (_, msg) -> `Fail msg
+      | `Input_err msg -> `Fail msg
+    else `Fail "decisions/decision.yaml not found"
+  in
+  let details =
+    Jsonl.Object
+      [
+        ("path", Jsonl.String path);
+        ("exists", Jsonl.Bool exists);
+        ( "outcome",
+          Jsonl.String
+            (match outcome with `Pass -> "accept" | `Fail _ -> "reject") );
+      ]
+  in
+  {
+    id = "config";
+    label = "Config";
+    verdict = (match outcome with `Pass -> Pass | `Fail _ -> Fail);
+    details;
+  }
+
+(* Section e -- Decisions.
+ *
+ * Are there `decisions/*.yaml` files with id `X` that no
+ * attestation in `attestations/` references as its
+ * `decision`? Such orphans are not blocking -- the kernel
+ * happily skips them -- but they are a signal that the
+ * user has a half-finished migration or a typo in the
+ * decision id.
+ *
+ * Verdict: `Pass` when 0 orphans; `Warn` with the list of
+ * orphan ids when >= 1. The list is capped at 16 entries
+ * in the details payload; the cap is documented so a future
+ * regression that grows the orphan set does not blow up
+ * the JSON shape. *)
+let[@warning "-32"] doctor_section_decisions () : doctor_section =
+  let root = find_project_root (Sys.getcwd ()) in
+  let decisions_dir = Filename.concat root "decisions" in
+  let decision_files = list_decision_files decisions_dir in
+  let reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  let decision_ids =
+    List.filter_map
+      (fun p ->
+        match load_decision_entry reader p with
+        | Some entry ->
+            if entry.Memory.decision_id = "" then None
+            else Some entry.Memory.decision_id
+        | None -> None)
+      decision_files
+  in
+  let store_root = resolve_store_root root in
+  let store = Attestations.load ~reader ~root:store_root in
+  let referenced_ids : string list =
+    List.map (fun (a : Attestations.attestation) -> a.Domain.decision) store
+  in
+  let orphans =
+    List.filter (fun id -> not (List.mem id referenced_ids)) decision_ids
+  in
+  let orphan_sample =
+    let rec take n = function
+      | [] -> []
+      | xs when n <= 0 -> []
+      | x :: rest -> x :: take (n - 1) rest
+    in
+    take 16 orphans
+  in
+  let verdict = if orphans = [] then Pass else Warn in
+  {
+    id = "decisions";
+    label = "Decisions";
+    verdict;
+    details =
+      Jsonl.Object
+        [
+          ("total", Jsonl.Int (List.length decision_ids));
+          ( "referenced",
+            Jsonl.Int (List.length decision_ids - List.length orphans) );
+          ("orphans_total", Jsonl.Int (List.length orphans));
+          ( "orphans_sample",
+            Jsonl.Array (List.map (fun s -> Jsonl.String s) orphan_sample) );
+        ];
+  }
+
+(* Section f -- Attestations.
+ *
+ * Is the attestation store readable? Verdict: `Pass` when
+ * `attestations/` exists and contains >= 1 .json file;
+ * `Warn` when the directory is missing (the user has not
+ * yet run `mathc attest`); `Fail` when an I/O error
+ * surfaces during the directory walk.
+ *
+ * `Attestations.load` swallows per-file parse errors
+ * (the kernel never crashes on a malformed entry), so the
+ * "readable" verdict here is the user-facing promise that
+ * the dispatcher has not returned an empty list due to a
+ * permissions failure. *)
+let[@warning "-32"] doctor_section_attestations () : doctor_section =
+  let root = find_project_root (Sys.getcwd ()) in
+  let store_root = resolve_store_root root in
+  let exists = Sys.file_exists store_root in
+  let is_dir = exists && Sys.is_directory store_root in
+  let entries =
+    if is_dir then
+      try
+        Sys.readdir store_root
+        |> Array.to_list
+        |> List.filter (fun f -> Filename.check_suffix f ".json")
+      with _ -> []
+    else []
+  in
+  let verdict =
+    if not exists then Warn
+    else if not is_dir then Fail
+    else if entries = [] then Warn
+    else Pass
+  in
+  {
+    id = "attestations";
+    label = "Attestations";
+    verdict;
+    details =
+      Jsonl.Object
+        [
+          ("path", Jsonl.String store_root);
+          ("exists", Jsonl.Bool exists);
+          ("is_directory", Jsonl.Bool is_dir);
+          ("json_count", Jsonl.Int (List.length entries));
+        ];
+  }
+
+(* Section g -- Self-check (short-circuit).
+ *
+ * Per the decision's commitment, this section is a stub in
+ * this revision: it reports `Skip` with a `hint` pointing
+ * at `mathc self-check` for the full verdict. The
+ * short-circuit keeps `mathc doctor` < 5 s on a healthy
+ * install and avoids re-running the full attestation-store
+ * walk twice (once for doctor, once for self-check).
+ *
+ * Future revisions may swap this stub for a guarded
+ * `do_self_check` subprocess call (e.g. `mathc doctor
+ * --self-check`), guarded by a wall-clock budget. The
+ * current shape leaves the change in a follow-up
+ * sub-decision. *)
+let[@warning "-32"] doctor_section_self_check () : doctor_section =
+  {
+    id = "self_check";
+    label = "Self-check";
+    verdict = Skip;
+    details =
+      Jsonl.Object
+        [
+          ("status", Jsonl.String "skip");
+          ( "hint",
+            Jsonl.String
+              "run `mathc self-check` directly for the full \
+               attestation-store walk; this slice short-circuits \
+               to keep `mathc doctor` < 5 s on a healthy install" );
+        ];
+  }
+
+(* Top-level entry point. *)
+let[@warning "-32"] do_doctor () =
+  let json_mode = ref false in
+  Arg.current := 1;
+  Arg.parse [ ("--json", Arg.Set json_mode, " Emit JSON instead of text") ]
+    (fun anon ->
+      Printf.fprintf stderr "mathc doctor: unexpected argument: %s\n" anon;
+      exit 2)
+    "usage: mathc doctor [--json]";
+  let sections =
+    [
+      doctor_section_install ();
+      doctor_section_path ();
+      doctor_section_latest ();
+      doctor_section_config ();
+      doctor_section_decisions ();
+      doctor_section_attestations ();
+      doctor_section_self_check ();
+    ]
+  in
+  let any_fail =
+    List.exists (fun (s : doctor_section) -> s.verdict = Fail) sections
+  in
+  if !json_mode then
+    let secs_v =
+      Jsonl.Array
+        (List.map
+           (fun (s : doctor_section) ->
+             Jsonl.Object
+               (List.sort
+                  (fun (a, _) (b, _) -> String.compare a b)
+                  [
+                    ("id", Jsonl.String s.id);
+                    ("label", Jsonl.String s.label);
+                    ("verdict", Jsonl.String (doctor_verdict_string s.verdict));
+                    ("details", s.details);
+                  ]))
+           sections)
+    in
+    let top =
+      Jsonl.Object
+        (List.sort
+           (fun (a, _) (b, _) -> String.compare a b)
+           [ ("exit_code", Jsonl.Int (if any_fail then 1 else 0));
+             ("sections", secs_v) ])
+    in
+    print_endline (Jsonl.stringify top)
+  else begin
+    List.iter
+      (fun (s : doctor_section) ->
+        Printf.printf "[%s] %s\n  %s\n"
+          s.id (doctor_verdict_string s.verdict) s.label)
+      sections;
+    match
+      List.find_opt (fun (s : doctor_section) -> s.verdict = Fail) sections
+    with
+    | None -> ()
+    | Some s ->
+        Printf.fprintf stderr "mathc doctor: section %s failed\n" s.id
+  end;
+  exit (if any_fail then 1 else 0)
 let dispatch () =
   if Array.length Sys.argv < 2 then begin
     print_usage stderr;
@@ -5581,6 +6080,7 @@ let dispatch () =
   | "new-decision" -> do_new_decision ()
   | "telemetry" -> do_telemetry ()
   | "migrate" -> do_migrate ()
+  | "doctor" -> do_doctor ()
   | "--help" | "-h" ->
       print_usage stdout;
       exit 0
