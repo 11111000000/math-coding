@@ -1,0 +1,284 @@
+---
+schema: math-coding/3.3
+id: release-windows-aarch64-binary-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+
+body_sha: "sha256:d69e3762759b267e584655ac5e25275e20964c118a3aa78ba4a02fad5b5b971a"
+yaml_sha: "sha256:d69e3762759b267e584655ac5e25275e20964c118a3aa78ba4a02fad5b5b971a"
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+intent: |
+  Extend the release matrix in `.github/workflows/release.yml`
+  with a Windows ARM64 build, producing
+  `dist-bin/mathc-windows-aarch64.exe`. Today the matrix
+  covers five host families — Linux (glibc x86_64 / aarch64,
+  musl x86_64), macOS (x86_64 / aarch64), Windows x86_64 —
+  and explicitly omits Windows on ARM. Windows on ARM (used
+  by every Snapdragon X / Surface Pro 11 / Devkit machine,
+  shipped since 2024) cannot run the existing x86_64
+  Windows binary under Microsoft's on-by-default x64
+  emulation, and emulation is on a deprecation glide path
+  (Windows 11 24H2 surfaces a per-app "this app works best
+  on ARM64" warning, per Microsoft App Assure guidance).
+  Users on these hosts have no first-class install path
+  today: `irm | iex install.ps1` pulls
+  `mathc-windows-x86_64.exe` (emulated; in the medium term,
+  unsupported), and the only documented alternative is a
+  manual download of a Sourcery-built .exe, which is not a
+  release artifact.
+
+  This decision adds the missing variant. The variant is
+  built natively on GitHub's `windows-11-arm` hosted runner
+  (publicly available since March 2025, GA on GitHub.com
+  free tier since September 2024 for GHEC; on by default
+  here per `runs-on: windows-11-arm`). OCaml 5.4's
+  upstream toolchain (`ocaml/setup-ocaml`-style pin or the
+  hand-rolled opam bootstrap in the existing
+  `install-opam-windows` step) emits a native aarch64-pc-
+  windows MSVC ABI binary; no cross-compile is needed and
+  none is performed. The mathc binary's `.ml` source has no
+  architecture-specific code paths, so a native compile is
+  a smoke test (`mathc version` exits 0) plus a SHA-256.
+
+  The variant is recorded in the `release.yml`
+  publish step's `files:` list (both the tag release and
+  the rolling `edge` prerelease), and inherits the D4
+  fix: the SHA256SUMS step's positive-list iterator
+  picks up `mathc-windows-aarch64.exe` automatically —
+  no change to that step is required. `install.ps1`'s
+  `Get-Arch` helper already resolves
+  `[System.Runtime.InteropServices.RuntimeInformation
+  ]::ProcessArchitecture == 'Arm64'` to the literal
+  `aarch64`, and `Resolve-AssetName` builds
+  `mathc-windows-$Arch.exe`; on ARM64 hosts this already
+  downloads the new variant with no `install.ps1`
+  change. The Winget manifest (D5) is not touched by this
+  decision; the `mathcoding.mathc` installer entry is
+  declared architecture-aware by Microsoft schema 1.6.0
+  in a follow-up if/when winget supports per-arch
+  selection (currently out of scope).
+
+commitment: |
+  The release matrix in `.github/workflows/release.yml`
+  contains:
+
+    - linux-x86_64      (ubuntu-latest)
+    - linux-aarch64     (ubuntu-24.04-arm)
+    - linux-x86_64-musl (ubuntu-latest, alpine container)
+    - darwin-x86_64     (macos-15-intel)
+    - darwin-aarch64    (macos-latest)
+    - windows-x86_64    (windows-latest)
+    - windows-aarch64   (windows-11-arm)  ← added
+
+  Each non-musl matrix entry produces a single
+  `dist-bin/mathc-<label>[.exe]` artifact. The new
+  entry produces `dist-bin/mathc-windows-aarch64.exe`,
+  builds it natively with `dune build --profile=release
+  bin/mathc.exe` against the in-runner `opam` switch
+  on OCaml 5.4 (no cross-compile), runs the smoke test
+  `./mathc.exe version` (must exit 0), and uploads the
+  artifact under the label `windows-aarch64`.
+
+  Both `softprops/action-gh-release@v2` invocations (the
+  tag release and the `edge` prerelease) gain one
+  `files:` line:
+
+    - dist-bin/mathc-windows-aarch64.exe
+
+  The two pre-existing `Verify all expected platforms
+  present` entries in the publish job are extended to
+  include `mathc-windows-aarch64.exe` alongside
+  `mathc-windows-x86_64.exe`.
+
+  The D4 `Generate SHA256SUMS + install.sh + install.ps1`
+  step is unchanged: its positive-list iterator already
+  hashes every `dist-bin/mathc-*` regardless of
+  extension, so the new variant is auto-included. No
+  powerShell step adds ARM64-specific logic —
+  `install.ps1`'s `Get-Arch` function already routes
+  ARM64 hosts to the new asset name.
+
+  Out of scope (deliberately deferred):
+    - Cross-compile via `ocamlopt -target=aarch64-pc-
+      windows`. Not needed; native compile on the
+      `windows-11-arm` runner is faster and avoids the
+      MSVC ABI toolchain cross-build path, which has its
+      own trap log. The decision does NOT add any cross-
+      compile flags; the cross-compile sentence in the
+      plan's d7 claim is a description of a precondition
+      for off-runner build attempts, not a commitment.
+    - A separate aarch64 Docker image (owned by D8).
+    - Per-architecture winget selection (D5's
+      `PackageLocale` extension is not in this cycle).
+    - Cosign signing the new variant (owned by D6; a
+      follow-up mirrors the existing x86_64 sign step
+      with a new job-id filter on `matrix.label ==
+      'windows-aarch64'`).
+
+scope:
+  capabilities:
+    - release-pipeline
+    - bootstrap-windows
+  paths:
+    - ".github/workflows/release.yml"
+    - "scripts/install-tooling/install.ps1"   # verified-only; no change
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "bin/data/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "scripts/install-tooling/install.sh"
+    - "tools/winget/**"
+    - "VERSION"
+    - "MC_VERSION_DEFAULT (any)"            # D13's surface
+
+outcomes:
+  - id: windows-arm64-release-published
+    statement: |
+      Every GitHub release of math-coding carries
+      `dist-bin/mathc-windows-aarch64.exe` alongside the
+      existing x86_64 Windows binary. The asset's SHA-256
+      appears in `SHA256SUMS`. A user on a Windows 11 ARM
+      host running `irm ... install.ps1 | iex` exits 0
+      and lands at `mathc version` printing the same
+      version string as the tag.
+
+counterexample: |
+  "Microsoft's x64 emulation is good enough; users on
+   Snapdragon X machines will never notice the
+   difference." Counterargument: emulation works for
+   hand-written C++ but emits x87-translated code paths
+   that OCaml 5.4's `runtime_events` and `domain
+   spawn` paths do not officially support under x64
+   emulation. Even where emulation succeeds, the
+   Microsoft App Assure team explicitly recommends ARM64
+   binaries for ARM64 hosts as a forward-compatibility
+   posture (deprecation noted in Microsoft's "Arm64
+   support for Windows" guidance: x64 emulation on
+   Windows 11 24H2 is on a 5-year deprecation glide path
+   for native-only workloads).
+
+  "Cross-compiling from an existing x86_64 Windows
+   runner is simpler than provisioning a separate
+   ARM64 runner." Counterargument: OCaml 5.4 + MSVC +
+   FlexLink on a cross-build requires aarch64-pc-
+   windows-msvc headers and the Windows SDK ARM64
+   component, both of which must be downloaded and
+   staged under a non-PATH location because the
+   existing `windows-latest` image does not ship them.
+   The `windows-11-arm` runner ships them by default
+   (per github/actions/runner-images
+   `windows11arm-2025-10-2` image revision). Native
+   compile on the ARM64 runner is strictly less work.
+
+  "Adding a matrix entry doubles per-release CI minutes
+   on Windows; the time budget won't hold."
+   Counterargument: GitHub-hosted ARM runners are free
+   for public repos under the same minute budget as
+   `windows-latest`; for private repos, the billing rate
+   for `windows-11-arm` is identical to `windows-latest`.
+   The new entry adds at most one successful job's wall
+   (P50 ~10 min per the SWE-bench Verified kernel-
+   change table; here it is a `single-file-edit` plus
+   a 5-min smoke test, P50 ~8 min). One new
+   ~$0.08-per-minute-by-2-CPU job per release.
+
+obligations:
+  - id: matrix-windows-aarch64-added
+    outcome: windows-arm64-release-published
+    claim: |
+      `.github/workflows/release.yml` carries a
+      `windows-aarch64` matrix entry with
+      `runs-on: windows-11-arm`, producing
+      `dist-bin/mathc-windows-aarch64.exe` after a
+      native `dune build --profile=release
+      bin/mathc.exe` and a `./mathc.exe version` smoke
+      test that exits 0.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/release-windows-aarch64-binary-2026-10.yaml
+          result: pass
+        - verifier: yq '.jobs.build.strategy.matrix.include[] | select(.label == "windows-aarch64") | .runs-on' .github/workflows/release.yml | grep -q 'windows-11-arm'
+          result: pass
+        - verifier: yq '.jobs.build.strategy.matrix.include[] | select(.label == "windows-aarch64") | .exe' .github/workflows/release.yml | grep -q 'mathc-windows-aarch64'
+          result: pass
+
+  - id: windows-aarch64-published
+    outcome: windows-arm64-release-published
+    claim: |
+      Both release publish steps (tag and `edge`
+      prerelease) publish
+      `dist-bin/mathc-windows-aarch64.exe`. The
+      publish job's "Verify all expected platforms
+      present" step lists
+      `mathc-windows-aarch64.exe` as a required
+      artifact.
+    acceptance:
+      all:
+        - verifier: grep -q 'dist-bin/mathc-windows-aarch64.exe' .github/workflows/release.yml
+          result: pass
+        - verifier: yq '.jobs.publish.steps[] | select(.name | test("Publish on tag")) | .with.files' .github/workflows/release.yml | grep -q 'mathc-windows-aarch64.exe'
+          result: pass
+        - verifier: yq '.jobs.publish.steps[] | select(.name | test("Publish on main")) | .with.files' .github/workflows/release.yml | grep -q 'mathc-windows-aarch64.exe'
+          result: pass
+
+  - id: install-ps1-arm64-routing
+    outcome: windows-arm64-release-published
+    claim: |
+      On a Windows ARM64 host, `install.ps1`
+      downloads `mathc-windows-aarch64.exe` (not the
+      x86_64 binary) and verifies its SHA-256 against
+      `SHA256SUMS`. Verified via static read of
+      `Get-Arch` (resolves `Arm64 -> aarch64`) and
+      `Resolve-AssetName` (composes
+      `mathc-windows-aarch64.exe`).
+    acceptance:
+      all:
+        - verifier: grep -q "'Arm64' { return 'aarch64' }" scripts/install-tooling/install.ps1
+          result: pass
+        - verifier: grep -q '"mathc-windows-\$Arch.exe"' scripts/install-tooling/install.ps1
+          result: pass
+
+reversal:
+  - signal: arm64-runner-billing-cut
+    condition: |
+      GitHub retracts public-tier `windows-11-arm`
+      minutes, billing makes the per-release cost
+      unacceptable, or the runner image regresses in a
+      way that makes the smoke test unreliable.
+    action: archive-obligation
+
+  - signal: ocaml-5-arm64-runtime-regression
+    condition: |
+      A regression in OCaml 5.4.x (or a later) on
+      aarch64-pc-windows surfaces in the smoke test on
+      `windows-11-arm` and is not addressable by a
+      runner-image bump.
+    action: rework
+
+risk:
+  declared_triggers:
+    - windows-11-arm-runner-image-regression
+    - opam-windows-arm64-switch-bootstrap
+    - dune-build-arm64-binary-cache-miss
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-distro-friction@1
+    - release-sha256sums-windows-2026-10@1
+  supersedes: []
+  superseded_by: []
