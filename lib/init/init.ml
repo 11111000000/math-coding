@@ -23,6 +23,7 @@ type options = {
   from_adr : string option;
   no_install : bool;
   merge : bool;
+  with_ci_workflow : bool;
 }
 
 (* --- brownfield detection ----------------------------------------- *)
@@ -123,6 +124,20 @@ let master_policy_template =
    \  supersedes: []\n\
    \  superseded_by: []\n"
 
+(* --- file I/O helpers --------------------------------------------- *)
+
+let write_file ~path ~contents =
+  let oc = open_out path in
+  output_string oc contents;
+  close_out oc
+
+let[@warning "-32"] read_file_text path : string =
+  let ic = open_in_bin path in
+  let n = in_channel_length ic in
+  let s = really_input_string ic n in
+  close_in ic;
+  s
+
 (* --- pre-commit hook ---------------------------------------------- *)
 
 let pre_commit_hook_body =
@@ -155,12 +170,61 @@ let install_pre_commit_hook ~root =
   close_out oc;
   Unix.chmod path 0o755
 
-(* --- scaffold ----------------------------------------------------- *)
+(* --- CI workflow -------------------------------------------------- *)
 
-let write_file ~path ~contents =
-  let oc = open_out path in
-  output_string oc contents;
-  close_out oc
+(* Walk up from the binary's directory looking for
+ * `templates/ci.yml`. The binary lives at
+ * `<src>/_build/<ctx>/bin/mathc.exe`; the source is at
+ * `<src>/templates/ci.yml`. The walk covers both the
+ * default-context path and the install-context path
+ * (`_build/install/default/bin/mathc.exe`, 4 levels up),
+ * and falls back to None when running from a release
+ * tarball that does not bundle templates/. *)
+let[@warning "-32"] find_source_ci_workflow () : string option =
+  let exe = Sys.executable_name in
+  let rec walk dir =
+    if dir = "/" || dir = "." || dir = "" then None
+    else begin
+      let candidate = Filename.concat (Filename.concat dir "templates") "ci.yml" in
+      if Sys.file_exists candidate then Some candidate
+      else walk (Filename.concat dir "..")
+    end
+  in
+  walk (Filename.dirname exe)
+
+(* Install the CI workflow file. Walks up from the binary's
+   directory to find templates/ci.yml (same walk as
+   `find_source_skill`). When the source is absent (release
+   tarball), prints a one-line note and exits 0. *)
+let[@warning "-32"] install_ci_workflow ~root : bool =
+  match find_source_ci_workflow () with
+  | None ->
+      Printf.printf
+        "  ci workflow: source not found (release binary?); \
+         see templates/ci.yml in the math-coding repo\n";
+      false
+  | Some src ->
+      let dir = Filename.concat root ".github" in
+      let wf_dir = Filename.concat dir "workflows" in
+      let dst = Filename.concat wf_dir "ci.yml" in
+      (try Unix.mkdir dir 0o755 with
+       | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+      (try Unix.mkdir wf_dir 0o755 with
+       | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+      if Sys.file_exists dst then begin
+        Printf.printf
+          "  ci workflow: %s already exists, skipping (remove it first to \
+           regenerate)\n" dst;
+        false
+      end
+      else begin
+        let contents = read_file_text src in
+        write_file ~path:dst ~contents;
+        Printf.printf "  ci workflow: copied %s -> %s\n" src dst;
+        true
+      end
+
+(* --- scaffold ----------------------------------------------------- *)
 
 let scaffold ~root =
   let dec_dir = Filename.concat root "decisions" in
@@ -230,6 +294,10 @@ let print_summary (opts : options) : unit =
     Printf.printf "  pre-commit hook: installed at .githooks/pre-commit\n"
   else
     Printf.printf "  pre-commit hook: skipped (--no-install)\n";
+  if opts.with_ci_workflow then
+    Printf.printf
+      "  ci workflow: installed at .github/workflows/ci.yml \
+       (see `install_ci_workflow` notes above)\n";
   begin match opts.from_adr with
   | None -> ()
   | Some _ ->
@@ -343,9 +411,22 @@ let maybe_install_agent_skill (opts : options) : unit =
          per-user rules directory; the skill is per-repo \
          (\xC2\xAB.opencode/skills/math-coding/SKILL.md\xC2\xBB).\n"
 
+let maybe_install_ci_workflow (opts : options) : unit =
+  if opts.with_ci_workflow then
+    try
+      let _installed = install_ci_workflow ~root:opts.root in
+      ()
+    with
+    | e ->
+        Printf.eprintf
+          "mathc init: ci workflow install failed: %s\n"
+          (Printexc.to_string e);
+        exit 3
+
 let run (opts : options) : unit =
   check_brownfield opts;
   check_scaffold ~merge:opts.merge opts.root;
   maybe_install_hook opts;
+  maybe_install_ci_workflow opts;
   print_summary opts;
   maybe_install_agent_skill opts

@@ -5,6 +5,7 @@
  (libraries
   mathcoding_core
   mathcoding_find
+  mathcoding_check
   mathcoding_junit
   mathcoding_git
   mathcoding_attestations
