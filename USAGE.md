@@ -1,5 +1,7 @@
 # Adopting math-coding
 
+> New here? Read [QUICKSTART.md](QUICKSTART.md) first.
+
 A short guide for bringing an existing repository under the
 math-coding protocol. For AI-agent adoption see the canonical skill at
 [`adoption/SKILL.md`](adoption/SKILL.md).

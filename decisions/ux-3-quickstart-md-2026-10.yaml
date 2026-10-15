@@ -1,0 +1,188 @@
+---
+schema: math-coding/3.3
+id: ux-3-quickstart-md-2026-10
+revision: 1
+state: active
+body_sha: "sha256:ff4c0188a67137d751e1839389c1cef67bf2cc42743087c4b5e6c6ff742ab483"
+yaml_sha: "sha256:ff4c0188a67137d751e1839389c1cef67bf2cc42743087c4b5e6c6ff742ab483"
+
+intent: |
+  Phase 1 of the ux-3 adoption-doc freshening. Ship a one-page
+  QUICKSTART.md as the first surface a new reader lands on, and
+  add four cross-references that route that reader from the
+  existing canonical narrative (README.md, USAGE.md,
+  adoption/SKILL.md, site/install.md) toward the new entry
+  point. The QUICKSTART is a strict subset of USAGE.md:1-70 —
+  three commands (install, first decision, self-check) and a
+  forward to USAGE.md for the full runbook. No new install
+  channel, no new subcommand, no kernel surface.
+
+axiom_link:
+  - A0
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "QUICKSTART.md
+  is a new document surface; the existing USAGE.md is already
+  the adoption entry point, and adding a third canonical doc
+  (QUICKSTART, USAGE, adoption/SKILL) will cause readers to
+  land on the wrong one." The author engaged with this position
+  and rejected it on three grounds: (a) USAGE.md is 231 lines
+  and front-loads four install channels, a decision question,
+  two path descriptions, and an MCP section — by the time a
+  reader who only wants "give me the three commands" reaches
+  `mathc init`, they have already given up; (b) the QUICKSTART
+  is a strict subset of USAGE.md:1-70, not new content, so
+  drift between the two is bounded by the brief's
+  "≤ 100 lines" and "no rewrites of existing prose" rules; the
+  doc-only obligation pair (cram test + wc -l) catches
+  accidental expansion; (c) cross-references flow in one
+  direction (QUICKSTART → USAGE.md → adoption/SKILL.md), so
+  the read paths are unambiguous: first read QUICKSTART, then
+  USAGE.md for the full runbook, then adoption/SKILL.md for
+  the agent skill.
+
+commitment: |
+  Six deliverables, each pinned by an obligation:
+
+    D1. `QUICKSTART.md` (new file, ≤ 100 lines) lands at the
+        repo root with three sections: Install (one-line
+        `curl | sh --user-skill`), First decision (`mathc
+        init .` or `mathc import-adr`), Self-check
+        (`mathc self-check` exit codes), and a forward to
+        USAGE.md for the full runbook.
+
+    D2. `README.md` §"Pointers" (line 94 area) replaces the
+        single `USAGE.md` line with two lines:
+        `QUICKSTART.md: first read.` and
+        `USAGE.md: full adoption runbook.`
+
+    D3. `USAGE.md` (line 1, title area) gains a forward
+        banner: `> New here? Read [QUICKSTART.md] first.`
+        The title remains "Adopting math-coding".
+
+    D4. `site/install.md` (line 17, Docker table row) gains
+        a parenthetical: "Fallback for environments where
+        `curl | sh` is blocked." The table structure is
+        unchanged.
+
+    D5. `adoption/SKILL.md` §"Step 1. Install the kernel"
+        (line 56 area, after the curl example) gains a
+        forward: `> For Docker or Nix: see USAGE.md
+        §Install.`
+
+    D6. `tests/cli/quickstart-md-exists.t` (new cram test)
+        asserts QUICKSTART.md exists, has ≤ 100 lines, and
+        is cross-referenced from README.md, USAGE.md, and
+        adoption/SKILL.md.
+
+  Boundaries (A3 self-application):
+  - No `lib/**`, `bin/Mathc.ml`, `spec/**`, `schemas/**`,
+    `axioms/**` touched.
+  - No new subcommand, no new install channel, no kernel
+    surface.
+  - USAGE.md and adoption/SKILL.md gain only forward
+    references; no existing prose is rewritten.
+  - The kernel verdict is unchanged on this commit.
+  - This decision does not authorise removal of USAGE.md
+    (USAGE.md remains the long-form runbook).
+
+counterexample: |
+  "QUICKSTART.md will drift from USAGE.md within a release
+   cycle, and the cross-references will silently rot." The
+   counterargument: this is a known risk, captured in
+   `risk.declared_triggers.quickstart-drift` and bounded by
+   the cram test in D6 — a > 100-line QUICKSTART or a broken
+   cross-link fails CI. A future `ux-3-quickstart-md-sync-`
+   decision (out of scope for this slice) is the recovery
+   path.
+
+  "The reader lands on QUICKSTART.md by accident and never
+   finds USAGE.md or adoption/SKILL.md." Counterargument:
+   the four cross-references point back from USAGE.md,
+   adoption/SKILL.md, and site/install.md to QUICKSTART.md;
+   every other read path goes QUICKSTART → USAGE.md →
+   adoption/SKILL.md. The forward chain is the only intended
+   traversal; no doc is hidden.
+
+  "A first-time adopter needs the decision question
+   (USAGE.md §'Choose your adoption path') to know if
+   math-coding even applies; hiding that on a deeper page
+   loses readers." Counterargument: QUICKSTART.md's
+   `Next` section explicitly forwards to USAGE.md, and
+   USAGE.md:131-134 contains the decision question. The
+   question is a one-sentence blockquote in USAGE.md, not
+   a sprawling page.
+
+scope:
+  capabilities:
+    - adoption-doc-quickstart
+  paths:
+    - "QUICKSTART.md"
+    - "README.md"
+    - "USAGE.md"
+    - "site/install.md"
+    - "adoption/SKILL.md"
+    - "tests/cli/quickstart-md-exists.t"
+    - "decisions/ux-3-quickstart-md-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+
+outcomes:
+  - id: quickstart-md-published
+    statement: |
+      `QUICKSTART.md` exists at the repo root, has at most
+      100 lines, and is cross-referenced from `README.md`,
+      `USAGE.md`, and `adoption/SKILL.md`. `mathc self-check`
+      verdict is unchanged on the commit that adds this
+      decision.
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/ux-3-quickstart-md-2026-10.yaml` exits 0.
+
+obligations:
+  - id: quickstart-md-published
+    outcome: quickstart-md-published
+    claim: |
+      `QUICKSTART.md` exists, has at most 100 lines, and is
+      cross-referenced from README.md, USAGE.md (top 5
+      lines), and adoption/SKILL.md. A passing cram test
+      `tests/cli/quickstart-md-exists.t` attests the file
+      presence, line count, and three cross-references.
+    acceptance:
+      all:
+        - verifier: tests/cli/quickstart-md-exists.t
+          result: pass
+  - id: this-decision-validates
+    outcome: this-decision-validates
+    claim: |
+      `mathc validate
+      decisions/ux-3-quickstart-md-2026-10.yaml` exits 0
+      after `body_sha` and `yaml_sha` are filled by the
+      kernel.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ux-3-quickstart-md-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - quickstart-drift
+    - cross-link-rot
+    - us-md-quickstart-discoverability-loss
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - tooling-native@1
+  supersedes: []
+  superseded_by: []
+
+rev-history:
+  - "rev 1: initial QUICKSTART.md + four cross-references (Phase 1 of ux-3 workstream)"
