@@ -42,7 +42,12 @@
 # `sync-version.sh --write` updates it.
 
 # shellcheck disable=SC2034  # variables exported for clarity
-MC_VERSION_DEFAULT="edge"
+# Default channel is "stable" (latest tagged vX.Y.Z, GitHub's
+# canonical /releases/latest/ URL); the rolling prerelease
+# "edge" is the explicit opt-in via --channel=edge. See
+# decisions/install-tooling-default-tag-stable-2026-10.yaml
+# (which revises install-tooling-default-tag-edge-2026-10).
+MC_VERSION_DEFAULT="latest"
 MC_REPO="11111000000/math-coding"
 MC_RELEASE_BASE="https://github.com/${MC_REPO}/releases/download"
 MC_BINARY_BASENAME="mathc"

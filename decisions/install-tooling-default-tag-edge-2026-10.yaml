@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-default-tag-edge
 revision: 1
 state: active
-body_sha: "sha256:d38d23d523720d29f494483ad2a69cbaebf9fca46b22ba1c4b8caf9c4f052bc2"
-yaml_sha: "sha256:d38d23d523720d29f494483ad2a69cbaebf9fca46b22ba1c4b8caf9c4f052bc2"
+body_sha: "sha256:412be89e3392a68e0cbf179db110b73dc6f6c2323da5086a22a691f1f83d3d00"
+yaml_sha: "sha256:412be89e3392a68e0cbf179db110b73dc6f6c2323da5086a22a691f1f83d3d00"
 
 intent: |
   Change `MC_VERSION_DEFAULT` in `scripts/install-tooling/install.sh`
@@ -230,4 +230,5 @@ relations:
     - install-tooling-2026-10@1
     - version-sync-2026-10@1
   supersedes: []
-  superseded_by: []
+  superseded_by:
+    - install-tooling-default-tag-stable-2026-10@1
