@@ -214,7 +214,7 @@ let counterexample_violation v =
         match mode_str with
         | "tiny" | "light" | "standard" | "strict" | "exhaustive" -> true
         | "considered" -> false
-        | _ -> true  (* unknown mode defaults to exempt (defensive) *)
+        | _ -> true (* unknown mode defaults to exempt (defensive) *)
       in
       let counterexample_meaningful =
         match Schema.take_string ps "counterexample" with
@@ -277,7 +277,7 @@ let antithesis_violation v =
         match mode_str with
         | "tiny" | "light" | "standard" | "strict" | "exhaustive" -> true
         | "considered" -> false
-        | _ -> true  (* unknown mode defaults to exempt (defensive) *)
+        | _ -> true (* unknown mode defaults to exempt (defensive) *)
       in
       let antithesis_meaningful =
         match Schema.take_string ps "antithesis" with
@@ -292,7 +292,12 @@ let antithesis_violation v =
           in
           let msg =
             Printf.sprintf
-              "%sdecision has mode=%s but empty antithesis: spec/algebra-3.2.md §11 (v3 dialectic method) requires the antithesis dialectical slot for modes >= standard; add an antithesis section naming the coherent counter-position the author considered and rejected (distinct from counterexample, which is the strongest objection surfaced to future readers)"
+              "%sdecision has mode=%s but empty antithesis: \
+               spec/algebra-3.2.md §11 (v3 dialectic method) requires the \
+               antithesis dialectical slot for modes >= standard; add an \
+               antithesis section naming the coherent counter-position the \
+               author considered and rejected (distinct from counterexample, \
+               which is the strongest objection surfaced to future readers)"
               (if decision_id = "" then "" else decision_id ^ ": ")
               (if mode_str = "" then "standard" else mode_str)
           in
@@ -302,7 +307,11 @@ let antithesis_violation v =
       | _ -> None)
   | _ -> None
 
-type aggregate_evidence = { kind : string; id : string; extra_diags : Diagnostic.t list }
+type aggregate_evidence = {
+  kind : string;
+  id : string;
+  extra_diags : Diagnostic.t list;
+}
 
 let validate_with_counts path =
   match parse_file path with
@@ -335,12 +344,12 @@ let validate_with_counts path =
       | Some (Decision.Obligations, id) ->
           `Accept_aggregate { kind = "obligations"; id; extra_diags = [] }
       | None -> (
-      match first_missing_required v with
-      | Some field ->
-          let msg = Printf.sprintf "missing required field: %s" field in
-          `Reject (Diagnostic.mc_decision_invalid ~path:[ field ] msg, msg)
-      | None -> (
-          (* T6.2: counterexample-mode-required runs BEFORE
+          match first_missing_required v with
+          | Some field ->
+              let msg = Printf.sprintf "missing required field: %s" field in
+              `Reject (Diagnostic.mc_decision_invalid ~path:[ field ] msg, msg)
+          | None -> (
+              (* T6.2: counterexample-mode-required runs BEFORE
              parse_decision_yaml so we get a precise Block-level
              `MC-COUNTEREXAMPLE-MISSING` diagnostic and the right exit
              code (1). The parser also returns None for the same
@@ -353,44 +362,47 @@ let validate_with_counts path =
              first because it was the earlier rule (T2.2 vs T6.2);
              keeping the prior order means we emit axiom_link first
              when both fire, which is the more general message. *)
-          match axiom_link_violation v with
-          | Some diag ->
-              let msg = diag.Diagnostic.message in
-              `Reject (diag, msg)
-          | None -> (
-              match counterexample_violation v with
+              match axiom_link_violation v with
               | Some diag ->
                   let msg = diag.Diagnostic.message in
                   `Reject (diag, msg)
               | None -> (
-                  match antithesis_violation v with
+                  match counterexample_violation v with
                   | Some diag ->
                       let msg = diag.Diagnostic.message in
                       `Reject (diag, msg)
                   | None -> (
-                  try
-                    match Decision.parse_decision_yaml v with
-                    | Some d -> (
-                        (* T0.2: sha-match enforcement (spec/algebra-3.2.md §7,
+                      match antithesis_violation v with
+                      | Some diag ->
+                          let msg = diag.Diagnostic.message in
+                          `Reject (diag, msg)
+                      | None -> (
+                          try
+                            match Decision.parse_decision_yaml v with
+                            | Some d -> (
+                                (* T0.2: sha-match enforcement (spec/algebra-3.2.md §7,
                            schemas/decision.json: when both `body_sha` and
                            `yaml_sha` are present, the digests must agree.
                            sha_match_check returns `(bool, Diagnostic.t list)`;
                            the bool is non-binding here — the diagnostic list
                            is the single source of truth for surface emission.
                            A Block diagnostic still rejects the file. *)
-                        let _, sha_match_diags = Decision.sha_match_check d in
-                        match sha_match_diags with
-                        | first :: _ ->
-                            let msg =
-                              Printf.sprintf "body_sha ≠ yaml_sha (see %s)"
-                                first.Diagnostic.code
-                            in
-                            `Reject (first, msg)
-                        | [] ->
-                            let extra_diags =
-                              collect_ambiguous_acceptance_diagnostics v
-                            in
-                            (* T6.2: counterexample is required for
+                                let _, sha_match_diags =
+                                  Decision.sha_match_check d
+                                in
+                                match sha_match_diags with
+                                | first :: _ ->
+                                    let msg =
+                                      Printf.sprintf
+                                        "body_sha ≠ yaml_sha (see %s)"
+                                        first.Diagnostic.code
+                                    in
+                                    `Reject (first, msg)
+                                | [] ->
+                                    let extra_diags =
+                                      collect_ambiguous_acceptance_diagnostics v
+                                    in
+                                    (* T6.2: counterexample is required for
                                modes >= standard (Block); for modes in
                                {tiny, light} the counterexample field is
                                optional and missing-ness becomes a soft
@@ -399,51 +411,56 @@ let validate_with_counts path =
                                Block case is already rejected by the
                                pre-parse check above; here we only emit
                                the Warn for tiny / light modes. *)
-                            let counterexample_diag =
-                              if d.Domain.counterexample = None then
-                                Some
-                                  (Diagnostic.mc_counterexample_missing
-                                     ~decision_id:d.Domain.id
-                                     "missing counterexample: \
-                                      spec/algebra-3.2.md §11 names it as a \
-                                      dialectical slot for modes >= light; add \
-                                      a counterexample section naming the \
-                                      strongest objection (legacy soft \
-                                      warning; the Block path was already \
-                                      rejected before parse)")
-                              else None
-                            in
-                            let extra_diags =
-                              match counterexample_diag with
-                              | Some diag -> diag :: extra_diags
-                              | None -> extra_diags
-                            in
-                            `Accept (d, extra_diags))
-                    | None ->
-                        (* D8 (Slice A): the parser now returns a typed
+                                    let counterexample_diag =
+                                      if d.Domain.counterexample = None then
+                                        Some
+                                          (Diagnostic.mc_counterexample_missing
+                                             ~decision_id:d.Domain.id
+                                             "missing counterexample: \
+                                              spec/algebra-3.2.md §11 names it \
+                                              as a dialectical slot for modes \
+                                              >= light; add a counterexample \
+                                              section naming the strongest \
+                                              objection (legacy soft warning; \
+                                              the Block path was already \
+                                              rejected before parse)")
+                                      else None
+                                    in
+                                    let extra_diags =
+                                      match counterexample_diag with
+                                      | Some diag -> diag :: extra_diags
+                                      | None -> extra_diags
+                                    in
+                                    `Accept (d, extra_diags))
+                            | None ->
+                                (* D8 (Slice A): the parser now returns a typed
                            Diagnostic.t option. When parse_decision_yaml
                            rejects, surface the parser-level Diagnostic.t
                            so the author sees the specific MC-* code (e.g.
                            MC-MISSING-ID) instead of the coarse legacy
                            "missing or invalid required field" string. *)
-                        let diag =
-                          match Decision.parse_decision v with
-                          | Some d -> d
-                          | None ->
-                              Diagnostic.mc_decision_invalid
-                                "missing or invalid required field (parser \
-                                 rejected without a specific MC-* code; \
-                                 check the schema contract in \
-                                 schemas/decision.json)"
-                        in
-                        let msg = diag.Diagnostic.message in
-                        `Reject (diag, msg)
-                  with
-                  | Jsonl.Parse_error { line; col; msg = raw_msg; context } ->
-                    let msg =
-                      Printf.sprintf "%s at line %d col %d" raw_msg line col
-                    in
-                    `Reject (Diagnostic.mc_parse ~cause:context msg, msg)))))))
+                                let diag =
+                                  match Decision.parse_decision v with
+                                  | Some d -> d
+                                  | None ->
+                                      Diagnostic.mc_decision_invalid
+                                        "missing or invalid required field \
+                                         (parser rejected without a specific \
+                                         MC-* code; check the schema contract \
+                                         in schemas/decision.json)"
+                                in
+                                let msg = diag.Diagnostic.message in
+                                `Reject (diag, msg)
+                          with
+                          | Jsonl.Parse_error
+                              { line; col; msg = raw_msg; context }
+                          ->
+                            let msg =
+                              Printf.sprintf "%s at line %d col %d" raw_msg line
+                                col
+                            in
+                            `Reject (Diagnostic.mc_parse ~cause:context msg, msg)
+                          ))))))
 
 let emit (format : output_format) path
     (outcome :
@@ -514,12 +531,7 @@ let emit (format : output_format) path
          family. The author of a waiver should not be told the
          waiver has zero obligations. *)
       (match format with
-      | Text ->
-          Printf.printf
-            "accept: %s\n\
-             \  kind: %s\n\
-             \  id: %s\n"
-            path kind id
+      | Text -> Printf.printf "accept: %s\n  kind: %s\n  id: %s\n" path kind id
       | Json ->
           let extras =
             if extra_diags = [] then ""
@@ -579,15 +591,22 @@ let print_usage oc =
   Printf.fprintf oc
     "usage: mathc <command> [args]\n\n\
      commands:\n\
-    \  version                          print the bootstrap hello and exit 0\n\
+    \  version [--check]                print the bootstrap hello (with --check,\n\
+    \                                   exit 1 + newer version on stdout when an\n\
+    \                                   upgrade is available)\n\
     \  validate FILE [--format=...]     parse FILE as a decision\n\
+    \  update [--channel=...] [--yes]   self-update the mathc binary by shelling\n\
+    \                                   out to \
+     scripts/install-tooling/install.{sh,\n\
+    \                                   ps1} with --version=<resolved>.\n\
     \  context BASE HEAD --budget N     print a JSON context capsule\n\
     \  explain DETAIL_REF               print JSON {kind,id,digest,path,body} \
      for the ref\n\
     \  explain-diagnostic <CODE>        print JSON {code,definition,occurs_when,\n\
     \  forge-verify [--org ORG]            query forge_mirror for team\n\
     \                  [--team TEAM]          membership of the committer;\n\
-    \                  [--user USER]          fail-mode open|closed (default open)\n\
+    \                  [--user USER]          fail-mode open|closed (default \
+     open)\n\
     \                                   remediation} for an MC-* diagnostic code\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
     \  attest FILE                      parse FILE as a JUnit XML report\n\
@@ -607,70 +626,108 @@ let print_usage oc =
     \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\
     \  packages [--format=...]         list decisions + verdicts \
      (text|json|html)\n\
-     \  find KEYWORD [--obligation=ID]    case-insensitive substring search across
-     \                  [--format=json]      decisions/ (or single-obligation lookup).
-     \                                       Output is a `mathc packages`-shaped JSON
-     \                                       object with `decisions[]` filtered.
-     \  precommit [PATH...]               batch-validate decisions/*.yaml (or the
-     \                  [--format=text|json]   listed paths) by shelling out to
-     \                                       `mathc validate` per file. Exit 0 if all
-     \                                       accept, 1 if any reject, 2 if any input
-     \                                       error. No attestation store, no git diff.
-     \  decision-state <id>                transition a single decision's lifecycle
-     \                  <action>           state. Actions: mark-superseded
-     \                  [--by=<id>@<rev>]  --by=<id>@<rev>, mark-retired, set
-     \                                       <active|draft|retired|superseded>.
-     \                                       Writes the patched YAML back to
-     \                                       decisions/<id>.yaml, then re-runs
-     \                                       `mathc validate`. Exit 0 on accept,
-     \                                       1 on reject (idempotent re-issue or
-     \                                       kernel validation failure), 2 on
-     \                                       input error (no such id, bad kebab,
-     \                                       missing args). The user-facing
-     \                                       aliases obsolete and archive are
-     \                                       NOT accepted; see
-     \                                       lib/lifecycle/lifecycle.ml preamble.
-     \  render [--out DIR] [--lang en|ru|zh|both|all]
-     \           [--site-base HREF] [--mathjax|--no-mathjax]\n\
-     \                                     render the static site under DIR\n\
-    \  counters                          emit JSON counts (decisions, obligations,\n\
+    \  find KEYWORD [--obligation=ID]    case-insensitive substring search \
+     across\n\
+    \                       [--format=json]      decisions/ (or \
+     single-obligation lookup).\n\
+    \                                            Output is a `mathc \
+     packages`-shaped JSON\n\
+    \                                            object with `decisions[]` \
+     filtered.\n\
+    \       precommit [PATH...]               batch-validate decisions/*.yaml \
+     (or the\n\
+    \                       [--format=text|json]   listed paths) by shelling \
+     out to\n\
+    \                                            `mathc validate` per file. \
+     Exit 0 if all\n\
+    \                                            accept, 1 if any reject, 2 if \
+     any input\n\
+    \                                            error. No attestation store, \
+     no git diff.\n\
+    \       decision-state <id>                transition a single decision's \
+     lifecycle\n\
+    \                       <action>           state. Actions: mark-superseded\n\
+    \                       [--by=<id>@<rev>]  --by=<id>@<rev>, mark-retired, \
+     set\n\
+    \                                            \
+     <active|draft|retired|superseded>.\n\
+    \                                            Writes the patched YAML back to\n\
+    \                                            decisions/<id>.yaml, then \
+     re-runs\n\
+    \                                            `mathc validate`. Exit 0 on \
+     accept,\n\
+    \                                            1 on reject (idempotent \
+     re-issue or\n\
+    \                                            kernel validation failure), 2 \
+     on\n\
+    \                                            input error (no such id, bad \
+     kebab,\n\
+    \                                            missing args). The user-facing\n\
+    \                                            aliases obsolete and archive \
+     are\n\
+    \                                            NOT accepted; see\n\
+    \                                            lib/lifecycle/lifecycle.ml \
+     preamble.\n\
+    \       render [--out DIR] [--lang en|ru|zh|both|all]\n\
+    \                [--site-base HREF] [--mathjax|--no-mathjax]\n\
+    \                                     render the static site under DIR\n\
+    \  counters                          emit JSON counts (decisions, \
+     obligations,\n\
     \                                     attestations, self-check, cram, CLI)\n\
     \  init [PATH] [--agent NAME]        scaffold a new math-coding project:\n\
-    \                  [--from-adr PATH]     create decisions/, attestations/, write\n\
-    \                  [--no-install]        decisions/decision.yaml, install the\n\
-    \                  [--merge]             pre-commit hook. Refuses on arc42/MADR\n\
-    \                  [--with-ci-workflow]  unless --merge; --from-adr is a no-op\n\
+    \                  [--from-adr PATH]     create decisions/, attestations/, \
+     write\n\
+    \                  [--no-install]        decisions/decision.yaml, install \
+     the\n\
+    \                  [--merge]             pre-commit hook. Refuses on \
+     arc42/MADR\n\
+    \                  [--with-ci-workflow]  unless --merge; --from-adr is a \
+     no-op\n\
     \                                       stub (deferred to ux-3-import-adr).\n\
     \                                       --with-ci-workflow copies\n\
     \                                       templates/ci.yml to\n\
-    \                                       .github/workflows/ci.yml (off by default).\n\
+    \                                       .github/workflows/ci.yml (off by \
+     default).\n\
     \  import-adr PATH                    import an existing ADR file (MADR or\n\
-    \                                       [--write]                       adr-tools shape) and emit a math-coding decision\n\
-    \                                       YAML to stdout (or to decisions/<id>.yaml\n\
+    \                                       [--write]                       \
+     adr-tools shape) and emit a math-coding decision\n\
+    \                                       YAML to stdout (or to \
+     decisions/<id>.yaml\n\
     \                                       with --write). Best-effort; the user\n\
-    \                                       reviews the output before mathc validate.\n\
-     adopt [PATH]                                    brownfield adoption: detect arc42/MADR/adr-tools;\n\
-                                                     orchestrate init + per-file import-adr via\n\
-     [--agent NAME]                                  Sys.executable_name (no PATH lookup);\n\
-     [--no-install]                                  see ux-3-adopt-subcommand-2026-10.\n\
+    \                                       reviews the output before mathc \
+     validate.\n\
+     adopt [PATH]                                    brownfield adoption: \
+     detect arc42/MADR/adr-tools;\n\
+     orchestrate init + per-file import-adr via\n\
+     [--agent NAME]                                  Sys.executable_name (no \
+     PATH lookup);\n\
+     [--no-install]                                  see \
+     ux-3-adopt-subcommand-2026-10.\n\
      [--dry-run]\n\
      [--only=CONV]\n\
      [--merge]\n\
-     new-decision <id>                            scaffold a decision file from the canonical\n\
-                  [--write]                        template; --write writes decisions/<id>.yaml;\n\
-                  [--interactive]                  --interactive is a stub in this slice.\n\
-                  [--force]\n\
+     new-decision <id>                            scaffold a decision file \
+     from the canonical\n\
+     [--write]                        template; --write writes \
+     decisions/<id>.yaml;\n\
+     [--interactive]                  --interactive is a stub in this slice.\n\
+     [--force]\n\
     \  telemetry status                   print current telemetry state (Phase 2\n\
-    \                                     stub; no transport, no data emission).\n\n\
-     migrate --from=X --to=Y                        declarative migration plan reader; emit a\n\
-                                                     per-file plan from\n\
-     [--root=DIR]                                    decisions/migrations/<from>-to-<to>.yaml;\n\
-     [--format=text|json]                            --write writes sibling <file>.migrated.yaml\n\
-     [--explain]                                     (kernel never mutates the original).\n\
-     [--manifest=PATH]                               See migration-mechanism-2026-10.\n\
-     [--write|--dry-run]\n\
-
-     options:\n\
+    \                                     stub; no transport, no data \
+     emission).\n\n\
+     migrate --from=X --to=Y                        declarative migration plan \
+     reader; emit a\n\
+     per-file plan from\n\
+     [--root=DIR]                                    \
+     decisions/migrations/<from>-to-<to>.yaml;\n\
+     [--format=text|json]                            --write writes sibling \
+     <file>.migrated.yaml\n\
+     [--explain]                                     (kernel never mutates the \
+     original).\n\
+     [--manifest=PATH]                               See \
+     migration-mechanism-2026-10.\n\
+     [--write|--dry-run]\n\n\
+    \     options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
      exit codes:\n\
@@ -701,8 +758,6 @@ let do_validate () =
     exit 2
   end;
   emit !format path (validate_with_counts path)
-
-let do_version () = print_version ()
 
 (* --- context subcommand --- *)
 
@@ -789,6 +844,328 @@ let[@warning "-32"] now_iso () =
   let tm = Unix.gmtime (Unix.time ()) in
   Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ" (tm.tm_year + 1900)
     (tm.tm_mon + 1) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
+
+(* --- mathc update subcommand (d9-mathc-update-subcommand) ---
+ *
+ * `mathc update [--channel=stable|edge|<ver>] [--yes]` shells out
+ * to scripts/install-tooling/install.sh (POSIX) or install.ps1
+ * (Windows) with --version=<resolved>. The install script
+ * already replaces ~/.local/bin/mathc on Linux/macOS or
+ * %LOCALAPPDATA%\Programs\mathc\mathc.exe on Windows; the
+ * subcommand is a UX wrapper.
+ *
+ * `mathc version --check` reads the locally installed version
+ * (from ./VERSION), queries the upstream tag list via
+ * `git ls-remote --tags`, and exits 1 (printing the newer
+ * version) when an upgrade is available.
+ *
+ * Touches only bin/Mathc.ml. No kernel change. Network errors
+ * degrade to exit 3 (input-error class per OCAML_BEST_PRACTICES
+ * §4.3). Functions here `exit` directly; the dispatcher arm
+ * never returns. *)
+
+(* Run an external command with captured stdout; returns
+   (status, stdout_text). Mirrors the run_git_command helper at
+   line 731. *)
+let[@warning "-32"] update_run_proc prog argv : Unix.process_status * string =
+  let a = Array.of_list (prog :: argv) in
+  let ic = Unix.open_process_args_in prog a in
+  let buf = Buffer.create 256 in
+  (try
+     while true do
+       Buffer.add_channel buf ic 4096
+     done
+   with End_of_file -> ());
+  let status = Unix.close_process_in ic in
+  (status, Buffer.contents buf)
+
+(* Scan stdout line-by-line; helper for update_fetch_latest_tag. *)
+let[@warning "-32"] update_each_line s f =
+  let n = String.length s in
+  let i = ref 0 in
+  let start = ref 0 in
+  while !i < n do
+    if s.[!i] = '\n' then begin
+      let line = String.sub s !start (!i - !start) in
+      f line;
+      i := !i + 1;
+      start := !i
+    end
+    else i := !i + 1
+  done;
+  if !start < n then f (String.sub s !start (n - !start))
+
+(* Fetch the latest `vX.Y.Z` tag for the math-coding repo.
+   Strategy: `git ls-remote --tags --sort=-v:refname
+   https://github.com/11111000000/math-coding`, then take the
+   first matching `vN.N.N` line (sort is descending). Returns
+   None on any subprocess or parse error so callers can degrade
+   gracefully. *)
+let[@warning "-32"] update_fetch_latest_tag () : string option =
+  let url = "https://github.com/11111000000/math-coding" in
+  let argv = [ "ls-remote"; "--tags"; "--sort=-v:refname"; url ] in
+  try
+    let status, body = update_run_proc "git" argv in
+    if status <> Unix.WEXITED 0 then None
+    else
+      let v_re = Str.regexp "^v[0-9]+\\.[0-9]+\\.[0-9]+$" in
+      let found = ref None in
+      update_each_line body (fun ln ->
+          match !found with
+          | Some _ -> ()
+          | None -> (
+              match Str.split (Str.regexp "\t") ln with
+              | [ _sha; refstr ] ->
+                  let prefix = "refs/tags/" in
+                  let pl = String.length prefix in
+                  if
+                    String.length refstr > pl && String.sub refstr 0 pl = prefix
+                  then begin
+                    let tag =
+                      String.sub refstr pl (String.length refstr - pl)
+                    in
+                    let stripped =
+                      let ll = String.length tag in
+                      if ll > 2 && String.sub tag (ll - 2) 2 = "^{}" then
+                        String.sub tag 0 (ll - 2)
+                      else tag
+                    in
+                    if Str.string_match v_re stripped 0 then
+                      found := Some stripped
+                  end
+              | _ -> ()));
+      !found
+  with _ -> None
+
+(* Strip leading `v` from `vX.Y.Z` to get `X.Y.Z`. *)
+let[@warning "-32"] update_strip_v s =
+  if String.length s > 1 && s.[0] = 'v' then String.sub s 1 (String.length s - 1)
+  else s
+
+(* Elementwise version compare for `X.Y.Z` strings; -1/0/1. *)
+let[@warning "-32"] update_cmp_version a b : int =
+  let split_v s = Str.split (Str.regexp "\\.") s in
+  let rec loop la lb =
+    match (la, lb) with
+    | [], [] -> 0
+    | [], _ -> -1
+    | _, [] -> 1
+    | x :: xs, y :: ys -> (
+        match (int_of_string_opt x, int_of_string_opt y) with
+        | Some n, Some m ->
+            let c = compare n m in
+            if c <> 0 then c else loop xs ys
+        | _ ->
+            let c = String.compare x y in
+            if c <> 0 then c else loop xs ys)
+  in
+  loop (split_v a) (split_v b)
+
+(* Compose the documented --help block; exits 0 when invoked. *)
+let[@warning "-32"] update_print_help () =
+  print_string
+    "usage: mathc update [--channel=stable|edge|<ver>] [--yes]\n\n\
+     Replaces the installed mathc binary by shelling out to\n\
+     scripts/install-tooling/install.sh (POSIX) or install.ps1\n\
+     (Windows) with --version=<resolved>.\n\n\
+     options:\n\
+    \  --channel=stable        default; resolves to the latest v*.*.* tag\n\
+    \  --channel=edge          install the rolling `edge` build\n\
+    \  --channel=vX.Y.Z        pin to a specific tag\n\
+    \  --yes                   skip the confirmation prompt\n\n\
+     exit codes:\n\
+    \  0   install succeeded\n\
+    \  1   user declined (no --yes)\n\
+    \  2   input error (unknown --channel value)\n\
+    \  3   network or filesystem error\n";
+  exit 0
+
+(* Detect --help/-h in Sys.argv before invoking Arg.parse (which
+   would otherwise raise Arg.Bad "no help available"). Returns
+   true after printing help and exiting when --help is present
+   in the slice starting at offset. *)
+let[@warning "-32"] update_has_help offset =
+  let n = Array.length Sys.argv in
+  let rec loop i =
+    if i >= n then false
+    else if Sys.argv.(i) = "--help" || Sys.argv.(i) = "-h" then true
+    else loop (i + 1)
+  in
+  loop offset
+
+(* Channel ADT: default = stable (resolved at call time via HTTP /
+   git ls-remote), edge = literal "edge" tag, pinned = `vX.Y.Z`. *)
+type update_channel = Update_stable | Update_edge | Update_pinned of string
+
+let[@warning "-32"] update_label_of_channel = function
+  | Update_stable -> "stable"
+  | Update_edge -> "edge"
+  | Update_pinned s -> s
+
+let[@warning "-32"] update_parse_channel s : update_channel =
+  match s with
+  | "" -> Update_stable
+  | "stable" -> Update_stable
+  | "edge" -> Update_edge
+  | _ ->
+      let ok =
+        String.length s > 1
+        && s.[0] = 'v'
+        && (function '0' .. '9' -> true | _ -> false) (String.get s 1)
+      in
+      if ok then Update_pinned s
+      else begin
+        Printf.fprintf stderr
+          "mathc update: unknown channel: %s (expected stable|edge|v<X.Y.Z>)\n"
+          s;
+        exit 2
+      end
+
+(* Resolve the channel ADT into a concrete tag string. *)
+let[@warning "-32"] update_resolve c : string =
+  match c with
+  | Update_stable -> (
+      match update_fetch_latest_tag () with
+      | Some s -> s
+      | None ->
+          Printf.eprintf
+            "mathc update: could not reach upstream; falling back to installed \
+             version\n";
+          "v" ^ read_cli_version ())
+  | Update_edge -> "edge"
+  | Update_pinned s -> s
+
+(* Confirmation prompt; true on y/yes, false otherwise. *)
+let[@warning "-32"] update_prompt () =
+  Printf.printf "mathc update: replace the installed mathc binary? [y/N] ";
+  flush stdout;
+  try
+    let line = input_line stdin in
+    let s = String.trim (String.lowercase_ascii line) in
+    match s with "y" | "yes" -> true | _ -> false
+  with End_of_file -> false
+
+(* Build argv for the platform's installer. POSIX uses bash -c on
+   sh; Windows uses powershell.exe on install.ps1. *)
+let[@warning "-32"] update_installer_argv ~root ~version =
+  let script_dir = Filename.concat root "scripts/install-tooling" in
+  if Sys.os_type = "Win32" then
+    let ps1 = Filename.concat script_dir "install.ps1" in
+    [
+      "powershell.exe";
+      "-NoProfile";
+      "-ExecutionPolicy";
+      "Bypass";
+      "-File";
+      ps1;
+      "-Version";
+      update_strip_v version;
+    ]
+  else
+    let sh = Filename.concat script_dir "install.sh" in
+    [ sh; "--version=" ^ version ]
+
+(* Shell out to the installer; translate its exit into ours. *)
+let[@warning "-32"] update_invoke_and_exit ~root ~version =
+  let argv = update_installer_argv ~root ~version in
+  let prog = List.hd argv in
+  let args = List.tl argv in
+  match update_run_proc prog args with
+  | Unix.WEXITED 0, _ -> exit 0
+  | Unix.WEXITED 1, _ ->
+      Printf.eprintf "mathc update: installer declined or user-cancelled\n";
+      exit 1
+  | Unix.WEXITED 2, _ ->
+      Printf.eprintf "mathc update: installer rejected the input\n";
+      exit 2
+  | Unix.WEXITED n, _ ->
+      Printf.eprintf "mathc update: installer failed with exit %d\n" n;
+      exit 3
+  | _ ->
+      Printf.eprintf "mathc update: installer terminated abnormally\n";
+      exit 3
+
+(* `mathc update [--channel=<s>] [--yes]` — top-level arm.
+   --help / -h are recognized before Arg.parse (which would
+   otherwise raise Arg.Bad "no help available"). *)
+let[@warning "-32"] do_update () =
+  Arg.current := 1;
+  if update_has_help 2 then update_print_help ();
+  let channel = ref "" in
+  let yes = ref false in
+  let set_channel s = channel := s in
+  (try
+     Arg.parse
+       [
+         ( "--channel",
+           Arg.String set_channel,
+           "<s> what to install (stable|edge|vX.Y.Z); default stable" );
+         ("--yes", Arg.Set yes, " skip the confirmation prompt");
+       ]
+       (fun s ->
+         Printf.fprintf stderr "mathc update: unexpected argument: %s\n" s;
+         exit 2)
+       "usage: mathc update [--channel=stable|edge|<ver>] [--yes]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc update: %s\n" m;
+     exit 2);
+  let c = update_parse_channel !channel in
+  let resolved = update_resolve c in
+  let root = find_project_root (Sys.getcwd ()) in
+  if not !yes then
+    if not (update_prompt ()) then begin
+      Printf.eprintf "mathc update: declined; no changes made\n";
+      exit 1
+    end;
+  Printf.printf "mathc update: installing channel=%s version=%s\n"
+    (update_label_of_channel c)
+    resolved;
+  flush stdout;
+  update_invoke_and_exit ~root ~version:resolved
+
+(* `mathc version [--check]`. Default behavior is preserved; the
+   new --check flag exits 1 (printing the newer version) when an
+   upgrade is available, 0 otherwise (including no-network). *)
+let[@warning "-32"] do_version () =
+  Arg.current := 1;
+  if update_has_help 2 then begin
+    print_version ();
+    exit 0
+  end;
+  let check = ref false in
+  (try
+     Arg.parse
+       [ ("--check", Arg.Set check, " compare with the latest stable release") ]
+       (fun s ->
+         Printf.fprintf stderr "mathc version: unexpected argument: %s\n" s;
+         exit 2)
+       "usage: mathc version [--check]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc version: %s\n" m;
+     exit 2);
+  if !check then
+    begin match update_fetch_latest_tag () with
+    | None -> exit 0
+    | Some tag ->
+        let installed = read_cli_version () in
+        let latest = update_strip_v tag in
+        if update_cmp_version installed latest < 0 then begin
+          print_endline tag;
+          exit 1
+        end;
+        exit 0
+    end;
+  print_version ()
+
+(* Mathc_cmd.Update namespace alias. The Update logic lives in
+   the top-level helpers above (`update_*`); this module exposes
+   `Mathc_cmd.Update.run` per spec/algebra-3.2.md §15 CLI catalog
+   convention. *)
+module Mathc_cmd = struct
+  module Update = struct
+    let run ~channel ~yes () = do_update ()
+  end
+end
 
 (* Build the Memory.t for the context subcommand. All file I/O
    happens here; the kernel stays offline. *)
@@ -3173,8 +3550,7 @@ let[@warning "-32"] do_render () =
     match s with
     | "en" | "ru" | "zh" | "both" | "all" -> lang_arg := s
     | _ ->
-        Printf.fprintf stderr
-          "mathc render: --lang must be en|ru|zh|both|all\n";
+        Printf.fprintf stderr "mathc render: --lang must be en|ru|zh|both|all\n";
         exit 2
   in
   let set_base s = site_base := s in
@@ -3184,13 +3560,12 @@ let[@warning "-32"] do_render () =
        [
          ("-o", Arg.String (fun s -> out_dir := s), "output directory");
          ("--out", Arg.String (fun s -> out_dir := s), "output directory");
-         ("--lang", Arg.String set_lang,
-          "page languages: en|ru|zh|both|all");
+         ("--lang", Arg.String set_lang, "page languages: en|ru|zh|both|all");
          ( "--site-base",
            Arg.String set_base,
            " <base href> value (default /math-coding/)" );
-          ("--mathjax", Arg.Set enable_mathjax, "load MathJax 3 (default on)");
-          ("--no-mathjax", Arg.Clear enable_mathjax, "do not load MathJax");
+         ("--mathjax", Arg.Set enable_mathjax, "load MathJax 3 (default on)");
+         ("--no-mathjax", Arg.Clear enable_mathjax, "do not load MathJax");
        ]
        (fun _ -> ())
        "usage: mathc render [--out DIR] [--lang en|ru|zh|both|all] \
@@ -3277,7 +3652,9 @@ let[@warning "-32"] do_render () =
       articles
   in
 
-  let ru_enabled = !lang_arg = "ru" || !lang_arg = "both" || !lang_arg = "all" in
+  let ru_enabled =
+    !lang_arg = "ru" || !lang_arg = "both" || !lang_arg = "all"
+  in
   let site_pages_ru =
     if not ru_enabled then []
     else
@@ -3368,9 +3745,7 @@ let[@warning "-32"] do_render () =
      GitHub Pages serves it without compression warnings. *)
   let rss_items =
     let dv_map =
-      List.map
-        (fun d -> (d.Packages.decision_id, d))
-        pkg.Packages.decisions
+      List.map (fun d -> (d.Packages.decision_id, d)) pkg.Packages.decisions
     in
     let all =
       List.map
@@ -3414,8 +3789,7 @@ let[@warning "-32"] do_render () =
   write_file rss_path rss_body;
   Printf.printf "  feed.xml\n";
 
-  Printf.printf
-    "render OK: %d pages + 1 search index + 1 feed.\n"
+  Printf.printf "render OK: %d pages + 1 search index + 1 feed.\n"
     (List.length pages)
 
 (* --- packages subcommand (bootstrap decision
@@ -3460,22 +3834,31 @@ let[@warning "-32"] do_forge_verify () =
   let set_user s = user := s in
   let set_committer s = committer := s in
   let set_fail s =
-    match s with "open" | "closed" -> fail_mode := s
+    match s with
+    | "open" | "closed" -> fail_mode := s
     | _ ->
-        Printf.fprintf stderr "mathc forge-verify: --fail-mode must be open|closed (got %s)\n" s;
+        Printf.fprintf stderr
+          "mathc forge-verify: --fail-mode must be open|closed (got %s)\n" s;
         exit 2
   in
   (try
      Arg.parse
-       [ ("--org", Arg.String set_org, " <name>: forge org (e.g. 11111000000)")
-       ; ("--team", Arg.String set_team, " <slug>: forge team slug")
-       ; ("--user", Arg.String set_user, " <login>: forge user (committer login)")
-       ; ("--committer", Arg.String set_committer,
-          " <email>: committer email (auto-read from git if empty)")
-       ; ("--fail-mode", Arg.String set_fail,
-          " open|closed: how to handle forge unset / errors (default: open)") ]
+       [
+         ("--org", Arg.String set_org, " <name>: forge org (e.g. 11111000000)");
+         ("--team", Arg.String set_team, " <slug>: forge team slug");
+         ( "--user",
+           Arg.String set_user,
+           " <login>: forge user (committer login)" );
+         ( "--committer",
+           Arg.String set_committer,
+           " <email>: committer email (auto-read from git if empty)" );
+         ( "--fail-mode",
+           Arg.String set_fail,
+           " open|closed: how to handle forge unset / errors (default: open)" );
+       ]
        (fun _ -> ())
-       "usage: mathc forge-verify [--org ORG] [--team TEAM] [--user USER] [--committer EMAIL] [--fail-mode open|closed]"
+       "usage: mathc forge-verify [--org ORG] [--team TEAM] [--user USER] \
+        [--committer EMAIL] [--fail-mode open|closed]"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc forge-verify: %s\n" m;
      exit 2);
@@ -3499,7 +3882,8 @@ let[@warning "-32"] do_forge_verify () =
                 let s = In_channel.input_all ic in
                 let _ = In_channel.close ic in
                 s
-              with _ -> "" in
+              with _ -> ""
+            in
             String.trim out
         | c -> c)
     | u -> u
@@ -3515,36 +3899,38 @@ let[@warning "-32"] do_forge_verify () =
       | `Queried false -> "block"
     in
     let forge_queried = match queried with `Queried _ -> true | _ -> false in
-    let matched = match queried with
-      | `Queried m -> Some m
-      | _ -> None
-    in
-    let reason = match queried with
-      | `NotConfigured -> "MATH_CODING_FORGE_API not set; fail-mode=" ^ !fail_mode
+    let matched = match queried with `Queried m -> Some m | _ -> None in
+    let reason =
+      match queried with
+      | `NotConfigured ->
+          "MATH_CODING_FORGE_API not set; fail-mode=" ^ !fail_mode
       | `CurlFailure -> "forge query failed; fail-mode=" ^ !fail_mode
       | `Queried true -> "forge returned member=true"
       | `Queried false -> "forge returned member=false"
     in
-    let matched_pair = match matched with
-      | Some m -> [ ("matched", Bool m) ]
-      | None -> []
+    let matched_pair =
+      match matched with Some m -> [ ("matched", Bool m) ] | None -> []
     in
     let fields =
-      [ ("fail_mode", String !fail_mode)
-      ; ("forge_queried", Bool forge_queried)
-      ; ("org", String !org)
-      ; ("reason", String reason)
-      ; ("team", String !team)
-      ; ("user", String user_or_committer)
-      ; ("verdict", String verdict_str)
+      [
+        ("fail_mode", String !fail_mode);
+        ("forge_queried", Bool forge_queried);
+        ("org", String !org);
+        ("reason", String reason);
+        ("team", String !team);
+        ("user", String user_or_committer);
+        ("verdict", String verdict_str);
       ]
     in
     let all_fields = fields @ matched_pair in
-    let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) all_fields in
+    let sorted =
+      List.sort (fun (a, _) (b, _) -> String.compare a b) all_fields
+    in
     let body =
       String.concat ","
         (List.map
-           (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
+           (fun (k, v) ->
+             Jsonl.stringify (Jsonl.String k) ^ ":" ^ Jsonl.stringify v)
            sorted)
     in
     Printf.printf "{%s}\n" body
@@ -3556,7 +3942,8 @@ let[@warning "-32"] do_forge_verify () =
       exit 2);
     Forge.team_member_full ~org:!org ~team:!team ~user:user_or_committer
   in
-  let exit_code = match queried with
+  let exit_code =
+    match queried with
     | `Queried true -> 0
     | `Queried false -> 1
     | `NotConfigured | `CurlFailure -> if !fail_mode = "open" then 0 else 1
@@ -3601,10 +3988,12 @@ let[@warning "-32"] subcommand_names () : string list =
     (fun line ->
       let trimmed = String.trim line in
       let tlen = String.length trimmed in
-      if tlen > 6
-         && String.unsafe_get trimmed 0 = '|'
-         && String.unsafe_get trimmed 1 = ' '
-         && String.unsafe_get trimmed 2 = '"' then begin
+      if
+        tlen > 6
+        && String.unsafe_get trimmed 0 = '|'
+        && String.unsafe_get trimmed 1 = ' '
+        && String.unsafe_get trimmed 2 = '"'
+      then begin
         let after_open =
           try String.sub trimmed 3 (tlen - 3) with Invalid_argument _ -> ""
         in
@@ -3632,10 +4021,11 @@ let[@warning "-32"] subcommand_names () : string list =
             let rtlen = String.length rest_trimmed in
             if
               rtlen >= 6
-              && (try
-                    String.sub rest_trimmed 0 3 = "-> "
-                    && String.sub rest_trimmed 3 3 = "do_"
-                  with Invalid_argument _ -> false)
+              &&
+                try
+                  String.sub rest_trimmed 0 3 = "-> "
+                  && String.sub rest_trimmed 3 3 = "do_"
+                with Invalid_argument _ -> false
             then acc := name :: !acc
           end
         end
@@ -3643,14 +4033,12 @@ let[@warning "-32"] subcommand_names () : string list =
     lines;
   List.rev !acc
 
-
 let[@warning "-32"] cram_test_files () : string list =
   let dir = "tests/cli" in
   if not (Sys.file_exists dir) then []
   else
     try
-      Sys.readdir dir
-      |> Array.to_list
+      Sys.readdir dir |> Array.to_list
       |> List.filter (fun n -> Filename.check_suffix n ".t")
       |> List.sort String.compare
     with _ -> []
@@ -3673,9 +4061,8 @@ let[@warning "-32"] enumerate_decisions () : string list * int =
   let dir = "decisions" in
   let files =
     if Sys.file_exists dir && Sys.is_directory dir then
-      Sys.readdir dir
-      |> Array.to_list
-      |>       List.filter (fun f -> Filename.check_suffix f ".yaml")
+      Sys.readdir dir |> Array.to_list
+      |> List.filter (fun f -> Filename.check_suffix f ".yaml")
       |> List.sort String.compare
     else []
   in
@@ -3691,7 +4078,8 @@ let[@warning "-32"] enumerate_decisions () : string list * int =
    `do_self_check` prints; we extract subjects + verdict. *)
 let[@warning "-32"] read_self_check () : Jsonl.value =
   let cmd =
-    Printf.sprintf "%s self-check 2>/dev/null" (Filename.quote Sys.executable_name)
+    Printf.sprintf "%s self-check 2>/dev/null"
+      (Filename.quote Sys.executable_name)
   in
   let ic = Unix.open_process_in cmd in
   let buf = Buffer.create 4096 in
@@ -3709,7 +4097,8 @@ let[@warning "-32"] read_self_check () : Jsonl.value =
      process tree and we only care about its stdout. *)
   let _status = Unix.close_process_in ic in
   let body = Buffer.contents buf in
-  try Jsonl.parse body with Jsonl.Parse_error _ ->
+  try Jsonl.parse body
+  with Jsonl.Parse_error _ ->
     Jsonl.Object [ ("verdict", Jsonl.String "unknown") ]
 
 let[@warning "-32"] jsonl_string_field v name =
@@ -3723,9 +4112,7 @@ let[@warning "-32"] jsonl_string_field v name =
 let[@warning "-32"] jsonl_int_field v name =
   match v with
   | Jsonl.Object ps -> (
-      match List.assoc_opt name ps with
-      | Some (Jsonl.Int n) -> n
-      | _ -> 0)
+      match List.assoc_opt name ps with Some (Jsonl.Int n) -> n | _ -> 0)
   | _ -> 0
 
 let[@warning "-32"] jsonl_array_length v name =
@@ -3774,8 +4161,7 @@ let[@warning "-32"] do_counters () =
         in
         let pkg =
           Packages.walk ~reader ~decisions_root:"decisions" ~store ~has_store
-            ~now_iso:(now_iso ())
-            ~policy_id:"bootstrap-v3"
+            ~now_iso:(now_iso ()) ~policy_id:"bootstrap-v3"
         in
         let pj = Packages.to_json pkg in
         let counts_v =
@@ -3804,8 +4190,7 @@ let[@warning "-32"] do_counters () =
       (* 3. attestations (live store) *)
       let live_store =
         if Sys.file_exists "attestations" then
-          Sys.readdir "attestations"
-          |> Array.to_list
+          Sys.readdir "attestations" |> Array.to_list
           |> List.filter (fun f -> Filename.check_suffix f ".json")
           |> List.length
         else 0
@@ -3823,7 +4208,8 @@ let[@warning "-32"] do_counters () =
           [
             ( "hint",
               String
-                "run `mathc self-check` directly for verdict + per-subject counts" );
+                "run `mathc self-check` directly for verdict + per-subject \
+                 counts" );
             ("verdict", String "skipped");
             ("subjects", Int 0);
             ("passing", Int 0);
@@ -3848,8 +4234,7 @@ let[@warning "-32"] do_counters () =
       let tests_v =
         Object
           [
-            ("cram_files", crams_json);
-            ("cram_count", Int (List.length crams));
+            ("cram_files", crams_json); ("cram_count", Int (List.length crams));
           ]
       in
       (* 7. schema info (best-effort; do not fail the command) *)
@@ -3885,11 +4270,9 @@ let[@warning "-32"] do_counters () =
                         | None -> None)
                     | _ -> None)
               in
-              match (get v obj_path) with
+              match get v obj_path with
               | Some (Array xs) ->
-                  List.map
-                    (fun x -> match x with String s -> s | _ -> "")
-                    xs
+                  List.map (fun x -> match x with String s -> s | _ -> "") xs
               | _ -> []
             in
             let has_one_of obj_path =
@@ -3910,10 +4293,7 @@ let[@warning "-32"] do_counters () =
             Object
               [
                 ( "decision_required_fields",
-                  Array
-                    (List.map
-                       (fun s -> String s)
-                       (string_list_field v)) );
+                  Array (List.map (fun s -> String s) (string_list_field v)) );
                 ( "schema_enum",
                   Array
                     (List.map
@@ -3939,6 +4319,7 @@ let[@warning "-32"] do_counters () =
       in
       print_endline (Jsonl.stringify top);
       exit 0)
+
 (* Render the package_list in the requested format. The JSON and
    HTML forms are emitted via lib/packages.ml renderers; text is
    a fixed-width table. *)
@@ -4024,13 +4405,13 @@ let[@warning "-32"] do_find () =
        ]
        (fun s ->
          if !takes then begin
-          keyword := Some s;
-          takes := false
-        end
-        else begin
-          Printf.fprintf stderr "mathc find: unexpected argument: %s\n" s;
-          exit 2
-        end)
+           keyword := Some s;
+           takes := false
+         end
+         else begin
+           Printf.fprintf stderr "mathc find: unexpected argument: %s\n" s;
+           exit 2
+         end)
        "usage: mathc find KEYWORD [--obligation=ID] [--format=json]"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc find: %s\n" m;
@@ -4061,7 +4442,8 @@ let[@warning "-32"] do_find () =
         match !keyword with
         | Some kw -> Find.search ~keyword:kw json
         | None ->
-            Printf.fprintf stderr "mathc find: KEYWORD or --obligation=ID is required\n";
+            Printf.fprintf stderr
+              "mathc find: KEYWORD or --obligation=ID is required\n";
             exit 2)
   in
   match !format with
@@ -4120,29 +4502,27 @@ let[@warning "-32"] do_precommit () =
   let files = List.rev !paths in
   let summary = Check.run_staged ~root ~paths:files in
   match !format with
-    | Text ->
-        Printf.printf "%s\n" (Check.summary_to_text summary);
-        List.iter
-          (fun (r : Check.file_result) ->
-            Printf.printf "  %s: %s\n"
-              r.path
-              (match r.exit_code with
-               | 0 -> "accept"
-               | 1 -> "reject"
-               | 2 -> "input_err"
-               | _ -> Printf.sprintf "exit=%d" r.exit_code))
-          summary.files;
-        (* Exit code: 0 if all accept, 1 if any reject, 2 if any
+  | Text ->
+      Printf.printf "%s\n" (Check.summary_to_text summary);
+      List.iter
+        (fun (r : Check.file_result) ->
+          Printf.printf "  %s: %s\n" r.path
+            (match r.exit_code with
+            | 0 -> "accept"
+            | 1 -> "reject"
+            | 2 -> "input_err"
+            | _ -> Printf.sprintf "exit=%d" r.exit_code))
+        summary.files;
+      (* Exit code: 0 if all accept, 1 if any reject, 2 if any
            input error and no reject (input_err is the worst). *)
-        if summary.rejected > 0 then exit 1
-        else if summary.input_err > 0 then exit 2
-        else exit 0
-    | Json ->
-        print_endline
-          (Jsonl.stringify (Check.summary_to_json summary));
-        if summary.rejected > 0 then exit 1
-        else if summary.input_err > 0 then exit 2
-        else exit 0
+      if summary.rejected > 0 then exit 1
+      else if summary.input_err > 0 then exit 2
+      else exit 0
+  | Json ->
+      print_endline (Jsonl.stringify (Check.summary_to_json summary));
+      if summary.rejected > 0 then exit 1
+      else if summary.input_err > 0 then exit 2
+      else exit 0
 
 (* --- graph subcommand (decision graph-viewer-2026-10@1) --- *)
 
@@ -4268,15 +4648,14 @@ let[@warning "-32"] do_decision_state () =
   (try
      Arg.parse
        [ ("--by", Arg.String set_by, "<id>@<rev> replacement target") ]
-       anon
-       "usage: mathc decision-state <id> <action> [--by=<id>@<rev>]"
+       anon "usage: mathc decision-state <id> <action> [--by=<id>@<rev>]"
    with
-   | Arg.Bad m ->
-       Printf.fprintf stderr "mathc decision-state: %s\n" m;
-       exit 2
-   | Arg.Help _ ->
-       print_usage stderr;
-       exit 0);
+  | Arg.Bad m ->
+      Printf.fprintf stderr "mathc decision-state: %s\n" m;
+      exit 2
+  | Arg.Help _ ->
+      print_usage stderr;
+      exit 0);
   let args = List.rev !pos in
   (* Parse positional. Two shapes:
      (a) `decision-state <id> mark-superseded [--by=X]`
@@ -4291,25 +4670,25 @@ let[@warning "-32"] do_decision_state () =
     | [ id ] -> (id, "", None)
     | _ ->
         Printf.fprintf stderr
-          "mathc decision-state: expected <id> <action>; got %d positional arg(s)\n"
+          "mathc decision-state: expected <id> <action>; got %d positional \
+           arg(s)\n"
           (List.length args);
         exit 2
   in
   (* Validate id (kebab-case) early; this catches the cram case (e)
      before any file I/O. *)
   (match Lifecycle.validate_id id_str with
-   | Error m ->
-       Printf.fprintf stderr "mathc decision-state: %s\n" m;
-       exit 2
-   | Ok _ -> ());
+  | Error m ->
+      Printf.fprintf stderr "mathc decision-state: %s\n" m;
+      exit 2
+  | Ok _ -> ());
   (* Resolve the on-disk path under decisions/. *)
   let root = find_project_root (Sys.getcwd ()) in
   let path =
     Filename.concat (Filename.concat root "decisions") (id_str ^ ".yaml")
   in
   let reader p =
-    try In_channel.with_open_bin p In_channel.input_all
-    with Sys_error _ -> ""
+    try In_channel.with_open_bin p In_channel.input_all with Sys_error _ -> ""
   in
   (* Read the existing source. Missing file -> exit 2 (input error). *)
   let source = reader path in
@@ -4383,16 +4762,19 @@ let[@warning "-32"] do_decision_state () =
         | Some "superseded" -> Lifecycle.SetState `Superseded
         | Some other ->
             Printf.fprintf stderr
-              "mathc decision-state: invalid state %s (expected active|draft|retired|superseded)\n"
+              "mathc decision-state: invalid state %s (expected \
+               active|draft|retired|superseded)\n"
               other;
             exit 2)
     | "" ->
         Printf.fprintf stderr
-          "mathc decision-state: missing <action> (mark-superseded|mark-retired|set)\n";
+          "mathc decision-state: missing <action> \
+           (mark-superseded|mark-retired|set)\n";
         exit 2
     | other ->
         Printf.fprintf stderr
-          "mathc decision-state: invalid action %s (expected mark-superseded|mark-retired|set)\n"
+          "mathc decision-state: invalid action %s (expected \
+           mark-superseded|mark-retired|set)\n"
           other;
         exit 2
   in
@@ -4402,7 +4784,7 @@ let[@warning "-32"] do_decision_state () =
   | Rejected { reason; verdict_exit } ->
       Printf.fprintf stderr "mathc decision-state: %s\n" reason;
       exit verdict_exit
-  | Transitioned { new_yaml; diff_summary; _ } ->
+  | Transitioned { new_yaml; diff_summary; _ } -> (
       (* Write the new YAML atomically: stage to a sibling .tmp,
          then rename. The rename is atomic on POSIX. The kernel
          will not see a half-written file. *)
@@ -4421,12 +4803,11 @@ let[@warning "-32"] do_decision_state () =
           Printf.printf "validate: accept\n";
           exit 0
       | `Reject (diag, _) ->
-          Printf.fprintf stderr "validate: reject (%s)\n"
-            diag.Diagnostic.code;
+          Printf.fprintf stderr "validate: reject (%s)\n" diag.Diagnostic.code;
           exit 1
       | `Input_err m ->
           Printf.fprintf stderr "validate: input error (%s)\n" m;
-          exit 2
+          exit 2)
 
 (* mathc migrate — declarative, kernel-observed migration plan.
  *
@@ -4493,19 +4874,23 @@ let[@warning "-32"] do_init () =
   Arg.current := 1;
   Arg.parse
     [
-      ("--agent", Arg.String set_agent,
-       " Target agent (generic|opencode|claude-code|cursor|continue)");
-      ("--from-adr", Arg.String set_from_adr,
-       " (no-op stub; deferred to ux-3-import-adr-subcommand-2026-10)");
-      ("--no-install", Arg.Set no_install,
-       " Skip pre-commit hook installation");
-      ("--merge", Arg.Set merge,
-       " Allow init in a directory with arc42/MADR/adr-tools present");
-      ("--with-ci-workflow", Arg.Set with_ci_workflow,
-       " Copy templates/ci.yml to .github/workflows/ci.yml");
+      ( "--agent",
+        Arg.String set_agent,
+        " Target agent (generic|opencode|claude-code|cursor|continue)" );
+      ( "--from-adr",
+        Arg.String set_from_adr,
+        " (no-op stub; deferred to ux-3-import-adr-subcommand-2026-10)" );
+      ("--no-install", Arg.Set no_install, " Skip pre-commit hook installation");
+      ( "--merge",
+        Arg.Set merge,
+        " Allow init in a directory with arc42/MADR/adr-tools present" );
+      ( "--with-ci-workflow",
+        Arg.Set with_ci_workflow,
+        " Copy templates/ci.yml to .github/workflows/ci.yml" );
     ]
     set_path
-    "usage: mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] [--merge] [--with-ci-workflow]";
+    "usage: mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] \
+     [--merge] [--with-ci-workflow]";
   let root = if !path = "" then Sys.getcwd () else !path in
   match Init.agent_of_string !agent with
   | Error m ->
@@ -4513,12 +4898,14 @@ let[@warning "-32"] do_init () =
       exit 2
   | Ok agent ->
       Init.run
-        { Init.root;
+        {
+          Init.root;
           agent;
           from_adr = !from_adr;
           no_install = !no_install;
           merge = !merge;
-          with_ci_workflow = !with_ci_workflow }
+          with_ci_workflow = !with_ci_workflow;
+        }
 
 (* --- import-adr subcommand ---------------------------------------- *)
 
@@ -4538,8 +4925,9 @@ let[@warning "-32"] do_import_adr () =
   Arg.current := 1;
   Arg.parse
     [
-      ("--write", Arg.Set write,
-       " Write the imported decision to decisions/<id>.yaml");
+      ( "--write",
+        Arg.Set write,
+        " Write the imported decision to decisions/<id>.yaml" );
     ]
     set_path "usage: mathc import-adr PATH [--write]";
   if !path = "" then begin
@@ -4548,15 +4936,14 @@ let[@warning "-32"] do_import_adr () =
     exit 2
   end;
   if not (Sys.file_exists !path) then begin
-    Printf.fprintf stderr
-      "mathc import-adr: file not found: %s\n" !path;
+    Printf.fprintf stderr "mathc import-adr: file not found: %s\n" !path;
     exit 1
   end;
-  (match Import_adr.run !path !write with
-   | Ok () -> ()
-   | Error (`Msg m) ->
-        Printf.fprintf stderr "mathc import-adr: %s\n" m;
-        exit 3)
+  match Import_adr.run !path !write with
+  | Ok () -> ()
+  | Error (`Msg m) ->
+      Printf.fprintf stderr "mathc import-adr: %s\n" m;
+      exit 3
 
 (* --- telemetry subcommand ------------------------------------------ *)
 
@@ -4575,18 +4962,15 @@ let[@warning "-32"] do_telemetry () =
   Arg.current := 1;
   let action = ref "" in
   let set_action s = action := s in
-  (try Arg.parse
-    []
-    set_action
-    "usage: mathc telemetry status"
-  with Arg.Bad m ->
-    Printf.fprintf stderr "mathc telemetry: %s\n" m;
-    exit 2);
+  (try Arg.parse [] set_action "usage: mathc telemetry status"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc telemetry: %s\n" m;
+     exit 2);
   let sub = String.lowercase_ascii (String.trim !action) in
   if sub <> "status" && sub <> "" then begin
     Printf.fprintf stderr
       "mathc telemetry: unknown subcommand: %s\n\
-       \  (only `status` is implemented in this slice; transport is Phase 3+)\n"
+      \  (only `status` is implemented in this slice; transport is Phase 3+)\n"
       (String.trim !action);
     exit 2
   end;
@@ -4643,54 +5027,56 @@ let[@warning "-32"] do_adopt () =
   Arg.current := 1;
   Arg.parse
     [
-      ("--agent", Arg.String set_agent,
-       " Forward to mathc init (--agent NAME)");
-      ("--no-install", Arg.Set no_install,
-       " Forward to mathc init (--no-install)");
-      ("--dry-run", Arg.Set dry_run,
-       " Print what would be done; do not run init or import-adr");
-      ("--merge", Arg.Set merge,
-       " Force proceed even when no brownfield is detected");
-      ("--only", Arg.String set_only,
-       " Restrict to one convention: arc42|madr|adr-tools");
+      ("--agent", Arg.String set_agent, " Forward to mathc init (--agent NAME)");
+      ( "--no-install",
+        Arg.Set no_install,
+        " Forward to mathc init (--no-install)" );
+      ( "--dry-run",
+        Arg.Set dry_run,
+        " Print what would be done; do not run init or import-adr" );
+      ( "--merge",
+        Arg.Set merge,
+        " Force proceed even when no brownfield is detected" );
+      ( "--only",
+        Arg.String set_only,
+        " Restrict to one convention: arc42|madr|adr-tools" );
     ]
     set_path
-    "usage: mathc adopt [PATH] [--agent NAME] [--no-install] [--dry-run] [--only=CONV] [--merge]";
-  let target =
-    if !path = "" then Sys.getcwd () else !path in
+    "usage: mathc adopt [PATH] [--agent NAME] [--no-install] [--dry-run] \
+     [--only=CONV] [--merge]";
+  let target = if !path = "" then Sys.getcwd () else !path in
   let kind = Detect.detect_classify target in
   Printf.printf "mathc adopt: detected %s at %s\n"
     (Detect.string_of_brownfield kind)
     target;
   let needs_init, needs_madr, needs_adr_tools =
     match !only with
-    | "arc42" -> true, false, false
-    | "madr" -> true, true, false
-    | "adr-tools" -> true, false, true
-    | "" ->
+    | "arc42" -> (true, false, false)
+    | "madr" -> (true, true, false)
+    | "adr-tools" -> (true, false, true)
+    | "" -> (
         (* No --only: do whatever the detection found. *)
-        (match kind with
-         | Detect.Empty -> true, false, false
-         | Detect.Arc42 -> true, false, false
-         | Detect.Madr -> true, true, false
-         | Detect.AdrTools -> true, false, true
-         | Detect.Mixed_Arc42_Madr -> true, true, false
-         | Detect.Mixed_Arc42_AdrTools -> true, false, true
-         | Detect.Mixed_Madr_AdrTools -> true, true, true
-         | Detect.Mixed_All_Three -> true, true, true)
+        match kind with
+        | Detect.Empty -> (true, false, false)
+        | Detect.Arc42 -> (true, false, false)
+        | Detect.Madr -> (true, true, false)
+        | Detect.AdrTools -> (true, false, true)
+        | Detect.Mixed_Arc42_Madr -> (true, true, false)
+        | Detect.Mixed_Arc42_AdrTools -> (true, false, true)
+        | Detect.Mixed_Madr_AdrTools -> (true, true, true)
+        | Detect.Mixed_All_Three -> (true, true, true))
     | _ ->
         Printf.eprintf
-          "mathc adopt: unknown --only value: %s (expected: arc42|madr|adr-tools)\n"
+          "mathc adopt: unknown --only value: %s (expected: \
+           arc42|madr|adr-tools)\n"
           !only;
         exit 2
   in
-  let pass_merge = match kind with
-    | Detect.Empty -> true
-    | _ -> !merge
-  in
-  if not pass_merge && needs_init then begin
+  let pass_merge = match kind with Detect.Empty -> true | _ -> !merge in
+  if (not pass_merge) && needs_init then begin
     Printf.eprintf
-      "mathc adopt: refusing to proceed in brownfield project; pass --merge to override.\n";
+      "mathc adopt: refusing to proceed in brownfield project; pass --merge to \
+       override.\n";
     exit 3
   end;
   (* Use the running binary's path to shell out to its subcommands
@@ -4703,16 +5089,19 @@ let[@warning "-32"] do_adopt () =
     Sys.command cmdline
   in
   if needs_init then begin
-    Printf.printf "  step 1/2: mathc init (scaffold math-coding in %s)\n"
-      target;
+    Printf.printf "  step 1/2: mathc init (scaffold math-coding in %s)\n" target;
     if !dry_run then ()
     else begin
       let init_argv = ref [ mathc_bin; "init"; target ] in
       (match kind with
-       | Detect.Empty -> ()
-       | _ -> init_argv := !init_argv @ [ "--merge" ]);
-      (match !agent with "" -> () | a -> init_argv := !init_argv @ [ "--agent"; a ]);
-      (match !no_install with true -> init_argv := !init_argv @ [ "--no-install" ] | false -> ());
+      | Detect.Empty -> ()
+      | _ -> init_argv := !init_argv @ [ "--merge" ]);
+      (match !agent with
+      | "" -> ()
+      | a -> init_argv := !init_argv @ [ "--agent"; a ]);
+      (match !no_install with
+      | true -> init_argv := !init_argv @ [ "--no-install" ]
+      | false -> ());
       let rc = run_argv !init_argv in
       if rc <> 0 then begin
         Printf.eprintf "mathc adopt: init failed (exit %d)\n" rc;
@@ -4726,21 +5115,19 @@ let[@warning "-32"] do_adopt () =
        * section list per the project's actual use. *)
       let has_arc42 =
         match kind with
-        | Detect.Arc42
-        | Detect.Mixed_Arc42_Madr
-        | Detect.Mixed_Arc42_AdrTools
-        | Detect.Mixed_All_Three -> true
+        | Detect.Arc42 | Detect.Mixed_Arc42_Madr | Detect.Mixed_Arc42_AdrTools
+        | Detect.Mixed_All_Three ->
+            true
         | _ -> false
       in
       if has_arc42 then begin
-        Printf.printf
-          "  step 1b/2: writing arc42-coexistence side-decision\n";
+        Printf.printf "  step 1b/2: writing arc42-coexistence side-decision\n";
         let arc42_dir = Filename.concat target "docs/arc42" in
         let sections_count =
           if Sys.file_exists arc42_dir && Sys.is_directory arc42_dir then
             Array.to_list (Sys.readdir arc42_dir)
             |> List.filter (fun n ->
-              Filename.check_suffix n ".md" || Filename.check_suffix n ".adoc")
+                Filename.check_suffix n ".md" || Filename.check_suffix n ".adoc")
             |> List.length
           else 0
         in
@@ -4752,84 +5139,84 @@ let[@warning "-32"] do_adopt () =
              revision: 1\n\
              state: active\n\
              intent: |\n\
-             \  Records the arc42 layout of this project. The\n\
-             \  math-coding master policy is the source of truth\n\
-             \  for code-level decisions; this file records the\n\
-             \  architecture documentation convention that\n\
-             \  co-exists with math-coding.\n\
+            \  Records the arc42 layout of this project. The\n\
+            \  math-coding master policy is the source of truth\n\
+            \  for code-level decisions; this file records the\n\
+            \  architecture documentation convention that\n\
+            \  co-exists with math-coding.\n\
              antithesis: |\n\
-             \  The counter-position considered and rejected:\n\
-             \  co-existence of math-coding and arc42 creates\n\
-             \  two parallel decision stores. The maintainer\n\
-             \  must keep them in sync. The author rejected this\n\
-             \  position: the two stores serve different scopes\n\
-             \  (architecture vs code) and the math-coding master\n\
-             \  policy is the canonical source for code changes\n\
-             \  while arc42 remains the canonical source for\n\
-             \  architecture documentation. The reviewer is\n\
-             \  responsible for spotting contradictions between\n\
-             \  the two; this decision records the separation.\n\
-             \n\
-             \  Generated by mathc adopt (decision\n\
-             \  ux-3-adopt-subcommand-2026-10@1) when\n\
-             \  docs/arc42/ is detected.\n\
+            \  The counter-position considered and rejected:\n\
+            \  co-existence of math-coding and arc42 creates\n\
+            \  two parallel decision stores. The maintainer\n\
+            \  must keep them in sync. The author rejected this\n\
+            \  position: the two stores serve different scopes\n\
+            \  (architecture vs code) and the math-coding master\n\
+            \  policy is the canonical source for code changes\n\
+            \  while arc42 remains the canonical source for\n\
+            \  architecture documentation. The reviewer is\n\
+            \  responsible for spotting contradictions between\n\
+            \  the two; this decision records the separation.\n\n\
+            \  Generated by mathc adopt (decision\n\
+            \  ux-3-adopt-subcommand-2026-10@1) when\n\
+            \  docs/arc42/ is detected.\n\
              axiom_link:\n\
-             \  - A0\n\
+            \  - A0\n\
              commitment: |\n\
-             \  The arc42 sections in docs/arc42/ are the\n\
-             \  authoritative source of architecture\n\
-             \  documentation for this project. math-coding\n\
-             \  decisions recorded in decisions/ cover\n\
-             \  code-level changes; the two systems do not\n\
-             \  overlap.\n\
+            \  The arc42 sections in docs/arc42/ are the\n\
+            \  authoritative source of architecture\n\
+            \  documentation for this project. math-coding\n\
+            \  decisions recorded in decisions/ cover\n\
+            \  code-level changes; the two systems do not\n\
+            \  overlap.\n\
              counterexample: |\n\
-             \  The strongest objection to co-existence is\n\
-             \  that the two systems might contradict each\n\
-             \  other: an arc42 decision that conflicts with a\n\
-             \  math-coding decision. The mitigation is the\n\
-             \  explicit scope separation in the scope field:\n\
-             \  docs/arc42 for architecture, decisions/ for\n\
-             \  code. A reviewer who sees a conflict files a\n\
-             \  decision that supersedes the older one; the\n\
-             \  relationships field in the newer decision\n\
-             \  records the conflict.\n\
+            \  The strongest objection to co-existence is\n\
+            \  that the two systems might contradict each\n\
+            \  other: an arc42 decision that conflicts with a\n\
+            \  math-coding decision. The mitigation is the\n\
+            \  explicit scope separation in the scope field:\n\
+            \  docs/arc42 for architecture, decisions/ for\n\
+            \  code. A reviewer who sees a conflict files a\n\
+            \  decision that supersedes the older one; the\n\
+            \  relationships field in the newer decision\n\
+            \  records the conflict.\n\
              scope:\n\
-             \  paths:\n\
-             \    - \"docs/arc42/**\"\n\
-             \  exclusions: []\n\
+            \  paths:\n\
+            \    - \"docs/arc42/**\"\n\
+            \  exclusions: []\n\
              assumptions:\n\
-             \  - state: assumed\n\
-             \    statement: |\n\
-             \      The arc42-template layout in docs/arc42/\n\
-             \      contains the projects architecture\n\
-             \      documentation. %d sections currently\n\
-             \      present. The reviewer can re-run mathc\n\
-             \      adopt to refresh this record.\n\
+            \  - state: assumed\n\
+            \    statement: |\n\
+            \      The arc42-template layout in docs/arc42/\n\
+            \      contains the projects architecture\n\
+            \      documentation. %d sections currently\n\
+            \      present. The reviewer can re-run mathc\n\
+            \      adopt to refresh this record.\n\
              outcomes:\n\
-             \  - id: arc42-coexistence\n\
-             \    statement: |\n\
-             \      The projects arc42 sections stay\n\
-             \      authoritative for architecture\n\
-             \      documentation. math-coding decisions do\n\
-             \      not duplicate or contradict them.\n\
+            \  - id: arc42-coexistence\n\
+            \    statement: |\n\
+            \      The projects arc42 sections stay\n\
+            \      authoritative for architecture\n\
+            \      documentation. math-coding decisions do\n\
+            \      not duplicate or contradict them.\n\
              obligations:\n\
-             \  - id: arc42-compatibility-recorded\n\
-             \    claim: |\n\
-             \      The arc42 layout in docs/arc42/ is recorded\n\
-             \      in this decisions assumptions block.\n\
-             \    acceptance:\n\
-             \      all:\n\
-             \        - verifier: mathc validate\n\
-             \          result: pass\n\
+            \  - id: arc42-compatibility-recorded\n\
+            \    claim: |\n\
+            \      The arc42 layout in docs/arc42/ is recorded\n\
+            \      in this decisions assumptions block.\n\
+            \    acceptance:\n\
+            \      all:\n\
+            \        - verifier: mathc validate\n\
+            \          result: pass\n\
              relations:\n\
-             \  addresses:\n\
-             \    - bootstrap-v3\n\
-             \  supersedes: []\n\
-             \  superseded_by: []\n"
+            \  addresses:\n\
+            \    - bootstrap-v3\n\
+            \  supersedes: []\n\
+            \  superseded_by: []\n"
             sections_count
         in
         let side_path =
-          Filename.concat target "decisions/bootstrap-v3-arc42-compatibility.yaml"
+          Filename.concat target
+            "decisions/bootstrap-v3-arc42-compatibility.yaml"
         in
         let oc = open_out side_path in
         output_string oc side_dec_template;
@@ -4851,10 +5238,8 @@ let[@warning "-32"] do_adopt () =
       end
     end
   in
-  if needs_madr then
-    List.iter import_one (Detect.madr_files target);
-  if needs_adr_tools then
-    List.iter import_one (Detect.adrtools_files target);
+  if needs_madr then List.iter import_one (Detect.madr_files target);
+  if needs_adr_tools then List.iter import_one (Detect.adrtools_files target);
   Printf.printf "mathc adopt: done\n"
 
 let[@warning "-32"] do_migrate () =
@@ -4885,29 +5270,44 @@ let[@warning "-32"] do_migrate () =
   (try
      Arg.parse
        [
-         ("--from", Arg.String set_from, "source schema-string (e.g. math-coding/3.2)");
-         ("--to", Arg.String set_to, "target schema-string (e.g. math-coding/3.2.1)");
+         ( "--from",
+           Arg.String set_from,
+           "source schema-string (e.g. math-coding/3.2)" );
+         ( "--to",
+           Arg.String set_to,
+           "target schema-string (e.g. math-coding/3.2.1)" );
          ("--manifest", Arg.String set_manifest, "override manifest path");
-         ("--root", Arg.String set_root, "root directory (defaults to project root)");
+         ( "--root",
+           Arg.String set_root,
+           "root directory (defaults to project root)" );
          ("--format", Arg.String set_format, "output format (text|json)");
-         ("--explain", Arg.Unit set_explain, "print manifest intent before the plan");
-         ("--write", Arg.Unit set_write, "apply auto-translatable actions to sibling <file>.migrated.yaml (never overwrites the original)");
-         ("--dry-run", Arg.Unit set_dry_run, "with --write: print what would be written without touching the disk");
+         ( "--explain",
+           Arg.Unit set_explain,
+           "print manifest intent before the plan" );
+         ( "--write",
+           Arg.Unit set_write,
+           "apply auto-translatable actions to sibling <file>.migrated.yaml \
+            (never overwrites the original)" );
+         ( "--dry-run",
+           Arg.Unit set_dry_run,
+           "with --write: print what would be written without touching the disk"
+         );
        ]
        (fun _ -> ())
-       "usage: mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json] [--explain] [--write [--dry-run]] [--manifest=PATH]"
-     with
-     | Arg.Bad m ->
-         Printf.fprintf stderr "mathc migrate: %s\n" m;
-         exit 2
-     | Arg.Help _ ->
-         print_string
-           "mathc migrate: read a migration manifest, walk *.yaml files, \
-            print a per-file plan (default dry-run). Pass --write to \
-            apply auto-translatable actions to a sibling <file>.migrated.yaml; \
-            the original file is NEVER overwritten. Re-run `mathc validate` \
-            after applying any edits.\n";
-         exit 0);
+       "usage: mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json] \
+        [--explain] [--write [--dry-run]] [--manifest=PATH]"
+   with
+  | Arg.Bad m ->
+      Printf.fprintf stderr "mathc migrate: %s\n" m;
+      exit 2
+  | Arg.Help _ ->
+      print_string
+        "mathc migrate: read a migration manifest, walk *.yaml files, print a \
+         per-file plan (default dry-run). Pass --write to apply \
+         auto-translatable actions to a sibling <file>.migrated.yaml; the \
+         original file is NEVER overwritten. Re-run `mathc validate` after \
+         applying any edits.\n";
+      exit 0);
   if !write_flag then begin
     (* --write always emits a per-file JSON summary; ignore any
        --format the user passed. *)
@@ -4928,10 +5328,9 @@ let[@warning "-32"] do_migrate () =
            that fixtures under `tests/cli/fixtures/...` can pass
            paths relative to the project root while still
            constraining `--root` to a small synthetic tree. *)
-        if Filename.is_relative p then Filename.concat project_root p
-        else p
-    | None -> begin
-        match !from_arg, !to_arg with
+        if Filename.is_relative p then Filename.concat project_root p else p
+    | None ->
+        begin match (!from_arg, !to_arg) with
         | Some f, Some t ->
             let strip_ns s =
               let prefix = "math-coding/" in
@@ -4942,26 +5341,23 @@ let[@warning "-32"] do_migrate () =
               else s
             in
             let safe s =
-              String.map
-                (function
-                  | '/' | ':' | ' ' -> '-'
-                  | c -> c)
-                s
+              String.map (function '/' | ':' | ' ' -> '-' | c -> c) s
             in
             let fname =
-              (safe (strip_ns f)) ^ "-to-" ^ (safe (strip_ns t)) ^ ".yaml"
+              safe (strip_ns f) ^ "-to-" ^ safe (strip_ns t) ^ ".yaml"
             in
             Filename.concat project_root
               (Filename.concat "decisions/migrations" fname)
         | _ ->
             Printf.fprintf stderr
-              "mathc migrate: either --manifest=PATH or both --from=X and --to=Y are required\n";
+              "mathc migrate: either --manifest=PATH or both --from=X and \
+               --to=Y are required\n";
             exit 2
-      end
+        end
   in
   if not (Sys.file_exists manifest_path) then begin
-    Printf.fprintf stderr
-      "mathc migrate: manifest not found: %s\n" manifest_path;
+    Printf.fprintf stderr "mathc migrate: manifest not found: %s\n"
+      manifest_path;
     exit 2
   end;
   let reader path = In_channel.with_open_bin path In_channel.input_all in
@@ -4974,13 +5370,12 @@ let[@warning "-32"] do_migrate () =
         exit 2
   in
   if !explain_flag then
-    Printf.printf "manifest %s -> %s\n  intent: %s\n\n"
-      manifest.from manifest.to_ manifest.intent;
+    Printf.printf "manifest %s -> %s\n  intent: %s\n\n" manifest.from
+      manifest.to_ manifest.intent;
   let decisions_dir = Filename.concat root "decisions" in
   let yaml_files =
     if Sys.file_exists decisions_dir then
-      Array.to_list
-        (Sys.readdir decisions_dir)
+      Array.to_list (Sys.readdir decisions_dir)
       |> List.filter (fun n -> Filename.check_suffix n ".yaml")
       |> List.map (fun n -> Filename.concat decisions_dir n)
     else []
@@ -4996,10 +5391,9 @@ let[@warning "-32"] do_migrate () =
   | `Text ->
       if plans = [] then
         Printf.printf "no .yaml files found under %s\n" decisions_dir
-      else
-        print_string (Migrate.render_text plans)
-  | `Json -> begin
-      if not !write_flag then begin
+      else print_string (Migrate.render_text plans)
+  | `Json ->
+      begin if not !write_flag then begin
         print_endline (Jsonl.stringify (Migrate.render_json plans));
         ()
       end
@@ -5024,19 +5418,16 @@ let[@warning "-32"] do_migrate () =
                recorded in `applied`. *)
             let migrated_path = fp.file ^ ".migrated.yaml" in
             if !dry_run_flag then `DryRun
-            else begin
-              try
-                Out_channel.with_open_bin migrated_path
-                  (fun oc ->
+            else
+              begin try
+                Out_channel.with_open_bin migrated_path (fun oc ->
                     Out_channel.output_string oc _new_content);
                 `Wrote
-              with
-              | Sys_error msg ->
-                  Printf.fprintf stderr
-                    "mathc migrate: cannot write %s: %s\n"
-                    migrated_path msg;
-                  `Failed
-            end
+              with Sys_error msg ->
+                Printf.fprintf stderr "mathc migrate: cannot write %s: %s\n"
+                  migrated_path msg;
+                `Failed
+              end
           end
         in
         let summary =
@@ -5054,22 +5445,22 @@ let[@warning "-32"] do_migrate () =
               Jsonl.Object
                 [
                   ("file", Jsonl.String fp.file);
-                  ("current_schema",
-                   (match fp.current_schema with
+                  ( "current_schema",
+                    match fp.current_schema with
                     | Some s -> Jsonl.String s
-                    | None -> Jsonl.Null));
+                    | None -> Jsonl.Null );
                   ("outcome", outcome_v);
                   ("actions_count", Jsonl.Int (List.length fp.actions));
                   ("warnings_count", Jsonl.Int (List.length fp.warnings));
-                  ("migrated_to",
-                   Jsonl.String
-                     (if !dry_run_flag then "(dry-run)"
-                      else fp.file ^ ".migrated.yaml"));
+                  ( "migrated_to",
+                    Jsonl.String
+                      (if !dry_run_flag then "(dry-run)"
+                       else fp.file ^ ".migrated.yaml") );
                 ])
             plans
         in
         print_endline (Jsonl.stringify (Jsonl.Array summary))
-    end
+      end
 
 (* --- new-decision subcommand ----------------------------------- *)
 
@@ -5100,15 +5491,18 @@ let[@warning "-32"] do_new_decision () =
   Arg.current := 1;
   Arg.parse
     [
-      ("--write", Arg.Set write,
-       " Write the rendered template to decisions/<id>.yaml");
-      ("--interactive", Arg.Set interactive,
-       " (no-op stub; the printed scaffold is the scaffold)");
-      ("--force", Arg.Set force,
-       " Overwrite decisions/<id>.yaml if it exists (with --write)");
-      ("--template",
-       Arg.String (fun s -> template_kind := s),
-       " <minimal|full>  Template variant (default: full)");
+      ( "--write",
+        Arg.Set write,
+        " Write the rendered template to decisions/<id>.yaml" );
+      ( "--interactive",
+        Arg.Set interactive,
+        " (no-op stub; the printed scaffold is the scaffold)" );
+      ( "--force",
+        Arg.Set force,
+        " Overwrite decisions/<id>.yaml if it exists (with --write)" );
+      ( "--template",
+        Arg.String (fun s -> template_kind := s),
+        " <minimal|full>  Template variant (default: full)" );
     ]
     set_id
     "usage: mathc new-decision <id> [--write] [--interactive] [--force] \
@@ -5157,6 +5551,7 @@ let dispatch () =
   match Sys.argv.(1) with
   | "validate" -> do_validate ()
   | "version" -> do_version ()
+  | "update" -> do_update ()
   | "context" -> do_context ()
   | "explain" -> do_explain ()
   | "explain-diagnostic" -> do_explain_diagnostic ()
