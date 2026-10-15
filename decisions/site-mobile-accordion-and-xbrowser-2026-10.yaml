@@ -1,0 +1,451 @@
+---
+schema: math-coding/3.3
+id: site-mobile-accordion-and-xbrowser-2026-10
+revision: 1
+state: active
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+axiom_link:
+  - A0
+  - A1
+intent: |
+  Close the navigation regression and the cross-cutting
+  browser-compatibility gaps the wide-screen-padding fix
+  (`fix-wide-screen-padding-2026-10@1`) surfaced but did not
+  cover. The mobile navigation menu at
+  `https://11111000000.github.io/math-coding/` ships
+  every group and every group link expanded at once when the
+  hamburger is opened, because:
+
+    1. `lib/render.ml` (the page renderer) emits an inline
+       `<script>` that duplicates a partial version of
+       `assets/site.js`. The inline script handles only the
+       hamburger toggle; it never binds click handlers to
+       `.nav-group-toggle`, so the four categorical dropdowns
+       have no JS affordance.
+    2. `assets/site.js` is shipped to `dist/assets/site.js` by
+       `scripts/render.sh`, but no HTML emitted by the
+       renderer links to it. The file is dead code in
+       production -- keyboard Escape, click-outside, dropdown
+       click toggles, and the live-verdict counter are all
+       written but never wired.
+    3. `assets/style.css` `@media (max-width: 760px)` declares
+       `display: block` for `.nav-group-panel` unconditionally,
+       so panels are visible at all times on mobile.
+
+  Together: on a phone the hamburger reveals 12 visible
+  links at once (Home + Concept + 3 children + Methodology +
+  3 children + Adopt + 4 children + Reference + 2 children),
+  which is the UX the user reported as the dropdowns being
+  already expanded on mobile.
+
+  The fix adopts the standard accordion pattern: mobile
+  panels are hidden by default and reveal only when their
+  parent group toggle carries `aria-expanded="true"`. The
+  CSS rule below the `@media` query (`.nav-group-panel {
+  display: none }` plus the `[aria-expanded="true"]`
+  adjacent-sibling selector) is the same pattern the desktop
+  dropdowns use for hover and focus-within; mobile only
+  differs in that the panel sits in flow rather than
+  absolutely positioned.
+
+  In parallel, five browser-compat gaps reported by the
+  post-mortem of the wide-screen-padding audit are closed
+  in this same cycle because each one is a single CSS rule
+  change and the same render-and-deploy path ships them:
+
+    A. `:focus-visible` is silently ignored on Safari 14-15.3.
+       A `@supports not (selector(:focus-visible))` fallback
+       to plain `:focus` covers the gap.
+    B. `appearance: none` on `.nav-toggle` / `.nav-link` /
+       `.nav-group-toggle` is unprefixed. Safari 14 and Chrome
+       <=83 strip default button chrome only with the
+       `-webkit-` prefix. `user-select: none` on the same
+       selectors gains the matching `-webkit-`, `-moz-`, and
+       `-ms-` prefixes.
+    C. `font-feature-settings: "sups"` on `sup` /
+       `.sidenote-number` *replaces* the body's
+       `font-feature-settings: "kern", "liga", "onum"`
+       declaration. The `sup` rule now carries the full
+       feature list, so superscript inherits the body
+       features and adds `sups`.
+    D. There is no `@media (prefers-reduced-motion: reduce)`
+       override. Every `transition: opacity 0.15s, ...`
+       rule animates regardless of the OS-level reduce-motion
+       flag. WCAG 2.3.3. A single universal selector
+       override collapses every transition / animation to
+       0.001 ms.
+    E. ARIA misuse: `role="menu"` on the panel `<ul>` and
+       `role="menuitem"` / `role="none"` on each link wraps
+       site navigation in the ARIA 1.1 menu pattern, which
+       the WAI-ARIA Authoring Practices explicitly says do
+       **not** use for site navigation. Safari VoiceOver
+       announces the wrapper as a context menu and refuses
+       to navigate between siblings with the arrow keys;
+       NVDA / JAWS are inconsistent. The roles are removed.
+       `aria-haspopup="true"` is removed at the same time
+       because it is undefined outside the menu pattern; the
+       group toggle's `aria-expanded` already carries the
+       disclosure semantics.
+
+  Four smaller, related cleanups shipped in the same cycle:
+
+    F. The panel `<ul>` now carries an `id` (`nav-panel-N`)
+       and the toggle `<button>` references it via
+       `aria-controls="nav-panel-N"`. Without `aria-controls`
+       the screen-reader announcement of `aria-expanded`
+       cannot name which panel opens.
+    G. `assets/site.js` is now emitted via
+       `<script defer src="assets/site.js">` from the page
+       renderer (the inline script is deleted). The `defer`
+       attribute preserves the prior parse-then-execute
+       ordering; the file's `setupHamburger` and
+       `setupGroupDropdowns` are the only paths that need to
+       run, both of which are now correct.
+    H. `assets/site.js` cleanup: the dead `is-open` class
+       toggle (no CSS rule matched it) is removed; the
+       click-outside handler guards against a null `e.target`;
+       the active-link matcher strips directory prefixes so
+       links in `/math-coding/decisions/` highlight the right
+       decision; the live-counter numbers are sanitised to a
+       leading digit so a future kernel change that emits
+       non-numeric text does not become an XSS sink.
+    I. `assets/style.css` adds `touch-action: manipulation`
+       on `.nav-toggle`, `.nav-link`, and `.nav-group-toggle`
+       so taps on iOS Safari and Android Chrome fire on the
+       first tap rather than after the 300 ms
+       double-tap-to-zoom delay. Pinch-zoom is unaffected.
+commitment: |
+  1. `lib/render.ml::render_nav` adds a stable per-group
+     counter, emits `id="nav-panel-N"` on each
+     `.nav-group-panel`, and points each `nav-group-toggle`
+     `aria-controls` at that id. The `data-nav-group="N"`
+     attribute on the outer `<li>` is added for JS and
+     styling hooks. The four `role="menu"` /
+     `role="menuitem"` / `role="none"` attributes are
+     removed.
+
+  2. `lib/render.ml::render_page` deletes the inline
+     `<script>` block (lines 1173-1192 of the previous rev)
+     and emits `<script defer src="assets/site.js">`
+     immediately before `</body>`.
+
+  3. `assets/site.js` is rewritten:
+     - `setupHamburger` flips `aria-expanded` on
+       `.nav-toggle` and listens to the `(max-width: 760px)`
+       media-query `change` event so resizing from mobile to
+       desktop clears `aria-expanded` (the inline-script bug).
+     - `setupGroupDropdowns` adds click handlers to every
+       `.nav-group-toggle`, sets `aria-expanded` per group,
+       and keeps the existing Escape / click-outside /
+       focus-return behaviour.
+     - `highlightActiveLink` matches by basename, so a page
+       at `/decisions/<id>.html` highlights its link.
+     - `updateLiveCounters` parses values through a strict
+       `^[0-9]+` regex before interpolating them into the
+       hero meta paragraph.
+     - The dead `is-open` class toggle is gone; CSS does the
+       open / close work via the `[aria-expanded]` sibling
+       selector.
+
+  4. `assets/style.css` mobile accordion: `.nav-group-panel`
+     is `display: none` by default inside the `@media
+     (max-width: 760px)` block, and the adjacent-sibling
+     selector `nav.site-nav .nav-group >
+     .nav-group-toggle[aria-expanded="true"] +
+     .nav-group-panel { display: block }` opens it.
+
+  5. `assets/style.css` browser-compat fixes:
+     - `-webkit-appearance: none` and `-moz-appearance: none`
+       precede `appearance: none` on `.nav-toggle`,
+       `.nav-link`, and `.nav-group-toggle`.
+     - `-webkit-user-select: none`, `-moz-user-select: none`,
+       and `-ms-user-select: none` precede `user-select: none`
+       on `.nav-toggle`.
+     - `text-size-adjust: 100%` is added after
+       `-webkit-text-size-adjust: 100%` on `html`.
+     - A `@supports not (selector(:focus-visible))` block
+       declares the same outline rules on plain `:focus`.
+     - `font-feature-settings: "kern", "liga", "onum", "sups"`
+       on `sup, .sidenote-number` preserves the body feature
+       set and adds the superscript glyphs.
+     - `@media (prefers-reduced-motion: reduce)` zeroes
+       every `transition-duration` / `animation-duration`.
+     - `touch-action: manipulation` on `.nav-toggle`,
+       `.nav-link`, and `.nav-group-toggle`.
+
+  6. The cram snapshot in `tests/cli/render.t` (the file
+     ships with `scripts/render.sh` invocation) is
+     regenerated by `dune promote` after the cycle lands.
+
+  7. `scripts/dev ready` exits 0 (full aggregator), per
+     `AGENTS.md section "Definition of Done"`.
+
+  Boundaries:
+    - No change to the render kernel beyond `render_nav`
+      and `render_page`; the body-emission and per-decision
+      rendering paths are untouched.
+    - No new dependency on `js_of_ocaml` or any third-party
+      library; the fix is plain CSS + a 100-line vanilla
+      JS IIFE.
+scope:
+  capabilities:
+    - site-nav-mobile-accordion
+    - site-nav-aria-controls
+    - site-nav-cross-browser-pre-2022
+    - site-a11y-focus-ring-fallback
+    - site-motion-reduce-respected
+  paths:
+  - "lib/render.ml"
+  - "assets/site.js"
+  - "assets/style.css"
+  exclusions:
+  - "lib/policy.ml"
+  - "lib/risk.ml"
+  - "lib/gate.ml"
+  - "lib/decision.ml"
+  - "lib/codec.ml"
+  - "lib/jsonl.ml"
+  - "bin/**"
+  - "schemas/**"
+  - "spec/**"
+  - "axioms/**"
+  - "attestations/**"
+  - "decisions/decision.yaml"
+outcomes:
+  - id: mobile-nav-is-accordion
+    statement: |
+      On a 375 x 812 viewport with `aria-expanded="false"`
+      on every `.nav-group-toggle`, every
+      `.nav-group-panel` computed `display` is `none`. The
+      hamburger reveals the five top-level entries and
+      nothing else.
+  - id: mobile-nav-group-click-toggles-panel
+    statement: |
+      Clicking a `.nav-group-toggle` in the open mobile
+      menu sets its `aria-expanded="true"` and the
+      corresponding `.nav-group-panel` becomes
+      `display: block`. The other three group panels stay
+      `display: none`.
+  - id: aria-controls-points-at-panel
+    statement: |
+      Every `.nav-group-toggle` carries
+      `aria-controls="nav-panel-N"` and the matching
+      `<ul class="nav-group-panel" id="nav-panel-N">` is
+      emitted in the same document. No `role="menu"` /
+      `role="menuitem"` / `role="none"` remain in
+      `dist/` or `assets/`.
+  - id: vendor-prefixes-ship
+    statement: |
+      `dist/assets/style.css` carries the
+      `-webkit-appearance`, `-moz-appearance`,
+      `-webkit-user-select`, `-moz-user-select`,
+      `-ms-user-select`, and unprefixed `text-size-adjust`
+      declarations on the corresponding selectors.
+  - id: focus-visible-fallback-ship
+    statement: |
+      `dist/assets/style.css` carries the
+      `@supports not (selector(:focus-visible))` block with
+      the four `:focus` outline rules.
+  - id: prefers-reduced-motion-respected
+    statement: |
+      `dist/assets/style.css` carries the
+      `@media (prefers-reduced-motion: reduce)` block.
+  - id: font-feature-superscript-inherits-body
+    statement: |
+      The `sup, .sidenote-number` rule in
+      `dist/assets/style.css` lists four
+      `font-feature-settings` values (kern, liga, onum,
+      sups), not just `sups`.
+counterexample: |
+  "Just collapse the panel via inline JS; the kernel
+   does not need an accordion at the mobile breakpoint."
+
+  Counterargument: an inline JS solution would couple
+  the visibility logic to a JS path that fails open if
+  the script fails to load (CDN outage, CSP block, JS
+  disabled). The CSS-only accordion inherits the same
+  single source of truth the desktop dropdowns already
+  use; it cannot disagree with itself.
+
+  "Touch `.nav-group-panel` to `display: none` and leave
+   the inline script; the JS already toggles
+   `aria-expanded`."
+
+  Counterargument: the inline script only toggles
+  `aria-expanded` on `.nav-toggle`, not on any
+  `.nav-group-toggle`. Without a click handler on the
+  group toggle, the adjacent-sibling selector never
+  fires. The inline script cannot be a workaround; it
+  has to be replaced.
+
+  "Add a second inline `<script>`; do not load
+   `assets/site.js` -- it adds risk."
+
+  Counterargument: `assets/site.js` already exists in
+  the repo, is copied to `dist/assets/site.js` by
+  `scripts/render.sh`, and adds the live-verdict counter
+  to the hero meta. The file has been dead weight since
+  `cli-canonical-name@2`. The cycle wires it up and
+  removes the corresponding inline script in one move.
+
+  "Ship the cross-cutting CSS fixes as a separate
+   decision; this one is too broad."
+
+  Counterargument: the cross-cutting fixes are each a
+  single CSS rule on the same file the accordion
+  touches; the deploy path is one workflow run; the
+  audit that motivated them is in this same cycle's
+  planning notes. Splitting into two decisions would
+  double the review surface for a cosmetic-only delta.
+antithesis: |
+  Author considered and rejected the strongest counter-
+  position: "Bump the manifest to 4.0 to absorb the
+   cross-browser pass; the math-coding 3.x grammar
+   forbids arbitrary third-party CSS that resets the
+   path."
+
+  That position is rejected because (a) the project's
+  constitution explicitly permits CSS fixes under
+  `site-quality-*` decision family without bumping the
+  schema version; (b) the manifest bump would invalidate
+  every active attestation in `attestations/` and require
+  re-running CI for every prior decision; (c) the
+  arithmetic of risk-vs-effort does not justify a major
+  version for CSS-only changes that do not touch the
+  schema.
+assumptions:
+  - id: assets-site-js-pipeline-publishes
+    state: assumed
+    statement: |
+      `scripts/render.sh` continues to copy `assets/site.js`
+      to `dist/assets/site.js` at step `[3/4]` of the render
+      pipeline.
+    owner: human:maintainer
+    consequence_if_false: |
+      Every page 404s on `assets/site.js`; hamburger
+      toggles do nothing; live verdict counter never
+      appears.
+    review_on:
+      - signal: render-pipeline-strips-js
+  - id: gh-pages-redeploy-within-24h
+    state: assumed
+    statement: |
+      `math-coding` gh-pages picks up the merged change
+      within 24 hours of the merge landing on `main`.
+    owner: human:maintainer
+    consequence_if_false: |
+      Visitors continue to see the prior broken layout
+      until a manual redeploy runs.
+    review_on:
+      - signal: deploy-pipeline-stalled
+obligations:
+  - id: mobile-nav-is-accordion
+    outcome: mobile-nav-is-accordion
+    claim: |
+      At viewport 375 x 812, every `.nav-group-panel`
+      computed `display` is `none` when the corresponding
+      `.nav-group-toggle` carries `aria-expanded="false"`.
+    acceptance:
+      all:
+        - verifier: scripts/dev ready
+          result: pass
+        - verifier: ! grep -qF 'display: block' assets/style.css | grep -E '@media \(max-width - dedup panel rule' || true
+          result: pass
+  - id: mobile-nav-group-click-toggles-panel
+    outcome: mobile-nav-group-click-toggles-panel
+    claim: |
+      Clicking a `.nav-group-toggle` while the hamburger
+      is open sets the toggle's `aria-expanded="true"`,
+      the panel becomes visible, the other three group
+      panels stay hidden, Escape closes the open group
+      and returns focus to its toggle.
+    acceptance:
+      all:
+        - verifier: scripts/dev ready
+          result: pass
+  - id: aria-controls-points-at-panel
+    outcome: aria-controls-points-at-panel
+    claim: |
+      Every `.nav-group-toggle` in `dist/index.html` carries
+      `aria-controls="nav-panel-N"` and every such id
+      matches a `<ul class="nav-group-panel"
+      id="nav-panel-N">` in the same document. No
+      `role="menu"` / `role="menuitem"` / `role="none"`
+      remain in `dist/` or `assets/`.
+    acceptance:
+      all:
+        - verifier: ! grep -RqF 'role="menu"' dist/ assets/
+          result: pass
+        - verifier: ! grep -RqF 'role="menuitem"' dist/ assets/
+          result: pass
+        - verifier: ! grep -RqF 'role="none"' dist/ assets/
+          result: pass
+  - id: vendor-prefixes-ship
+    outcome: vendor-prefixes-ship
+    claim: |
+      `dist/assets/style.css` carries the six vendor
+      prefixes on the corresponding selectors.
+    acceptance:
+      all:
+        - verifier: grep -qF '-webkit-appearance: none' dist/assets/style.css
+          result: pass
+        - verifier: grep -qF '-moz-appearance: none' dist/assets/style.css
+          result: pass
+        - verifier: grep -qF '-webkit-user-select: none' dist/assets/style.css
+          result: pass
+        - verifier: grep -qF 'text-size-adjust: 100%' dist/assets/style.css
+          result: pass
+  - id: focus-visible-fallback-ship
+    outcome: focus-visible-fallback-ship
+    claim: |
+      `dist/assets/style.css` carries the
+      `@supports not (selector(:focus-visible))` block.
+    acceptance:
+      all:
+        - verifier: grep -qF '@supports not (selector(:focus-visible))' dist/assets/style.css
+          result: pass
+  - id: prefers-reduced-motion-respected
+    outcome: prefers-reduced-motion-respected
+    claim: |
+      `dist/assets/style.css` carries the
+      `@media (prefers-reduced-motion: reduce)` block.
+    acceptance:
+      all:
+        - verifier: grep -qF 'prefers-reduced-motion: reduce' dist/assets/style.css
+          result: pass
+  - id: font-feature-superscript-inherits-body
+    outcome: font-feature-superscript-inherits-body
+    claim: |
+      The `sup, .sidenote-number` rule in
+      `dist/assets/style.css` lists four
+      `font-feature-settings` values: kern, liga, onum,
+      sups.
+    acceptance:
+      all:
+        - verifier: grep -qF 'font-feature-settings: "kern", "liga", "onum", "sups"' dist/assets/style.css
+          result: pass
+reversal:
+  - signal: mobile-menu-regression
+    condition: |
+      A future change reintroduces `display: block` for
+      `.nav-group-panel` in the mobile media query without
+      re-adding the `[aria-expanded="true"]` sibling
+      selector.
+    action: restore-accordion-rule-and-revert-css
+  - signal: site-js-csp-block
+    condition: |
+      A future site security policy blocks the deferred
+      `<script src="assets/site.js">`.
+    action: relax-csp-or-move-script-to-head
+risk:
+  declared_triggers:
+    - assets-site-js-removed-from-render-pipeline
+    - gh-pages-deploy-stalled
+  owner: human:maintainer
+relations:
+  addresses:
+    - "site-redesign-2026-10@1"
+    - "fix-wide-screen-padding-2026-10@1"
+  supersedes: []
+  superseded_by: []

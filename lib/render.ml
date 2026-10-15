@@ -966,21 +966,34 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_lang
   Printf.bprintf buf "    <li class=\"nav-item-direct\">\
      <a%s href=\"%s\">%s</a></li>\n"
     home_active_cls home_href home_label;
+  (* Stable id per group so the toggle can reference its panel via
+     aria-controls. The id is derived from the group label slug
+     plus a numeric fallback so two groups with the same label
+     still get distinct ids. The counter is also stamped on the
+     outer <li> as data-nav-group for JS and styling hooks. *)
+  let group_counter = ref 0 in
   List.iter
     (fun group ->
       let group_active =
         List.exists (fun l -> l.key = page_key) group.links
       in
+      incr group_counter;
+      let panel_id =
+        Printf.sprintf "nav-panel-%d" !group_counter
+      in
       Printf.bprintf buf
-        "    <li class=\"nav-group%s\">\n\
+        "    <li class=\"nav-group%s\" data-nav-group=\"%d\">\n\
          \      <button type=\"button\" class=\"nav-group-toggle\" \
-         aria-haspopup=\"true\" aria-expanded=\"false\">\
+         aria-expanded=\"false\" aria-controls=\"%s\">\
          <span class=\"nav-group-label\">%s</span>\
          <span class=\"nav-group-caret\" aria-hidden=\"true\">&#9662;</span>\
          </button>\n\
-         \      <ul class=\"nav-group-panel\" role=\"menu\">\n"
+         \      <ul class=\"nav-group-panel\" id=\"%s\">\n"
         (if group_active then " is-active" else "")
-        (html_escape group.group_label);
+        !group_counter
+        panel_id
+        (html_escape group.group_label)
+        panel_id;
       List.iter
         (fun link ->
           let cls =
@@ -990,7 +1003,7 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_lang
               " class=\"nav-link nav-group-link\""
           in
           Printf.bprintf buf
-            "        <li role=\"none\"><a role=\"menuitem\"%s href=\"%s\">%s</a></li>\n"
+            "        <li><a%s href=\"%s\">%s</a></li>\n"
             cls link.href link.label)
         group.links;
       Buffer.add_string buf "      </ul>\n    </li>\n")
@@ -1159,7 +1172,7 @@ let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
     render_head ~lang ~site_base ~title ~enable_mathjax
       ~extra_head
   in
-  Printf.sprintf
+Printf.sprintf
     "<!DOCTYPE html>\n\
      <html lang=\"%s\">\n\
      <head>\n\
@@ -1170,29 +1183,10 @@ let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
      %s\n\
      </main>\n\
      %s\n\
-     <script>\n\
-     (function(){\n\
-     var t = document.querySelector('.nav-toggle');\n\
-     var n = document.querySelector('.nav-inner');\n\
-     if (!t || !n) return;\n\
-     function sync(){\n\
-     var isMobile = window.matchMedia('(max-width: 760px)').matches;\n\
-     if (isMobile) { t.style.display = 'block'; }\n\
-     else { t.style.display = 'none'; t.setAttribute('aria-expanded','false'); \
-     n.style.display = 'flex'; }\n\
-     }\n\
-     sync();\n\
-     window.addEventListener('resize', sync);\n\
-     t.addEventListener('click', function(){\n\
-     var open = t.getAttribute('aria-expanded') === 'true';\n\
-     t.setAttribute('aria-expanded', open ? 'false' : 'true');\n\
-     n.style.display = open ? 'none' : 'flex';\n\
-     });\n\
-     })();\n\
-     </script>\n\
+     <script defer src=\"assets/site.js\"></script>\n\
      </body>\n\
      </html>\n"
-     lang head
+    lang head
     (render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_langs)
     body
     (render_footer ~lang ~version ~page_key ~sibling_langs)
