@@ -1,29 +1,41 @@
 ---
 schema: math-coding/3.2
 id: ux-3-init-copies-ci-workflow-2026-10
-revision: 1
-state: deferred
+revision: 2
+state: active
 body_sha: "sha256:e1404a78fdff9c6c763988570c26b5d1efd2095e156be2c2d7063b2631214b38"
 yaml_sha: "sha256:e1404a78fdff9c6c763988570c26b5d1efd2095e156be2c2d7063b2631214b38"
 
 intent: |
-  Wire `mathc init` to copy the per-repo CI workflow template
-  `templates/ci.yml` (shipped at this same commit) into the
-  adopter repo's `.github/workflows/mathc.yml`. After this
-  cycle, `mathc init .` produces a project that is wired
-  end-to-end: decisions/, decisions/decision.yaml, the
-  pre-commit hook, AND a workflow that runs `mathc
-  self-check` on every push.
+  Wire `mathc init --with-ci-workflow` to copy the per-repo
+  CI workflow template `templates/ci.yml` (shipped at this
+  same commit) into the adopter repo's
+  `.github/workflows/ci.yml`. After this cycle, `mathc
+  init . --with-ci-workflow` produces a project that is
+  wired end-to-end: decisions/, decisions/decision.yaml,
+  the pre-commit hook (unless --no-install), AND a workflow
+  that runs `mathc self-check` on every push.
 
-  Today (without this cycle) the maintainer has to copy
-  `templates/ci.yml` to `.github/workflows/mathc.yml` by
-  hand. That is a manual step that first-time adopters
-  routinely forget; the merged result is a repo that has
-  decisions/ but no CI gate.
+  Today (without this slice) the maintainer has to copy
+  `templates/ci.yml` to `.github/workflows/ci.yml` by
+  hand after `mathc init`. That is a manual step that
+  first-time adopters routinely forget; the merged result
+  is a repo that has decisions/ but no CI gate.
+
+  Rev 2 (this revision): the flag is now opt-in
+  (`--with-ci-workflow`) rather than the unconditional copy
+  described in rev 1. Rationale: an existing project that
+  runs `mathc init --merge` to layer math-coding on top of
+  an existing ADR convention must NOT have its
+  `.github/workflows/` rewritten without consent. The
+  flag preserves the rev 1 capability while restoring the
+  "no surprise writes" guarantee. See counterexample
+  below.
 
 axiom_link:
   - A0
   - A1
+  - A4
 
 antithesis: |
   The counter-position considered and rejected: "Adopters
@@ -42,29 +54,39 @@ antithesis: |
   lines of YAML; the cost of forgetting is a repo that
   passes local self-check but fails CI; (d) `--no-install`
   already covers the maintainer's preference for skipping
-  the pre-commit hook; the same flag covers skipping
-  the CI workflow.
+  the pre-commit hook; a separate `--with-ci-workflow`
+  flag is the positive counterpart that mirrors the same
+  opt-in/opt-out shape.
 
 commitment: |
-  Two deliverables:
+  Two deliverables (rev 2 shape; rev 1 was unconditional):
 
-  D1. `mathc init [PATH]` (without `--no-install`)
-      copies `templates/ci.yml` from the running binary's
-      source location to `<PATH>/.github/workflows/mathc.yml`.
-      Parent directories are created if absent. The file
-      is created with mode 0644.
+    D1. `mathc init [PATH] --with-ci-workflow` walks up
+        from `Sys.executable_name` to find `templates/ci.yml`
+        (same walk as `find_source_skill`). When the
+        source is found, copies it byte-for-byte to
+        `<PATH>/.github/workflows/ci.yml`, creating
+        parent directories as needed. The destination
+        file is created with mode 0644. When the
+        destination already exists, prints a one-line
+        note ("ci workflow: <path> already exists,
+        skipping") and exits 0. When the source is not
+        found (release-binary case), prints a one-line
+        note and exits 0.
 
-  D2. `mathc init [PATH] --no-install` does NOT copy
-      the CI workflow. The maintainer who passes
-      `--no-install` is opting out of all automatic
-      wiring (pre-commit hook + CI workflow + per-repo
-      skill). The print_summary at the end of init
-      surfaces which wires were skipped.
+    D2. `mathc init [PATH]` (default, no flag) does NOT
+        write to `.github/`. The flag is opt-in; a
+        pre-init adopter with an existing CI workflow
+        is not silently overwritten. The print_summary
+        surfaces "ci workflow: installed at
+        .github/workflows/ci.yml" only when the flag is
+        set.
 
   Boundaries (A3 self-application):
   - `lib/init/init.ml` is the only sub-library touched.
-  - `bin/Mathc.ml` is unchanged (the `--no-install`
-    flag already exists).
+  - `bin/Mathc.ml` is touched only to add the
+    `--with-ci-workflow` arg + the `Init.options` field
+    + the print_usage line.
   - `lib/`, `spec/`, `axioms/` are NOT touched beyond
     `lib/init/`.
 
@@ -84,43 +106,72 @@ scope:
     - init-copies-ci-workflow
   paths:
     - "lib/init/init.ml"
+    - "bin/Mathc.ml"
     - "tests/cli/init.t"
+    - "templates/ci.yml"
     - "decisions/ux-3-init-copies-ci-workflow-2026-10.yaml"
+    - "decisions/ux-3-init-with-ci-workflow-2026-10.yaml"
   exclusions:
     - "lib/decision.ml"
     - "lib/canonical.ml"
-    - "bin/Mathc.ml"
+    - "lib/codec.ml"
+    - "lib/schema.ml"
+    - "lib/waiver.ml"
+    - "lib/gate.ml"
+    - "lib/risk.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/mcp/**"
+    - "lib/render.ml"
+    - "lib/check/**"
+    - "lib/find/**"
+    - "lib/graph/**"
+    - "lib/import_adr/**"
+    - "lib/new_decision/**"
     - "spec/**"
     - "axioms/**"
 
 outcomes:
-  - id: init-wires-ci
+  - id: init-wires-ci-on-flag
     statement: |
-      `mathc init .` (without `--no-install`) creates
-      `.github/workflows/mathc.yml` in the target
-      directory, with the content of `templates/ci.yml`.
-  - id: --no-install-skips-ci
+      `mathc init . --with-ci-workflow` creates
+      `.github/workflows/ci.yml` in the target directory,
+      with the content of `templates/ci.yml`.
+  - id: init-skips-ci-on-default
     statement: |
-      `mathc init . --no-install` does NOT create
-      `.github/workflows/mathc.yml`; the print_summary
-      at the end of init surfaces the skip.
+      `mathc init .` (default, no flag) does NOT create
+      `.github/workflows/ci.yml`; the print_summary at
+      the end of init surfaces that the wire was skipped.
 
 counterexample: |
+  "Just always copy the CI workflow; init is a one-time
+   bootstrap step." Rejected (rev 2): the rev 1 wording
+   said "init always copies"; but an existing project
+   that runs `mathc init --merge` (the documented escape
+   hatch for arc42/MADR/adr-tools detection) must NOT
+   have its `.github/workflows/` rewritten without
+   consent. The flag preserves the capability for greenfield
+   adopters while restoring the no-surprise-writes
+   guarantee for brownfield adopters. The atomic unit of
+   init is the greenfield case; the brownfield case is
+   explicitly opt-in per surface.
+
   "What if the user already has a `.github/workflows/`
-      directory?" Counterargument: the kernel creates the
-      intermediate directories with `mkdir -p`; if the
-      workflow file already exists, the kernel prints a
-      one-line note ('workflow already present, skipping')
-      and exits 0. The user can manually reconcile.
+   directory?" Counterargument: the kernel creates the
+   intermediate directories with `mkdir -p`; if the
+   workflow file already exists, the kernel prints a
+   one-line note ('workflow already present, skipping')
+   and exits 0. The user can manually reconcile.
 
   "What if the running binary is a release binary (no
-      templates/ci.yml next to it)?" Counterargument:
-      the source walk fails gracefully; the kernel
-      prints a one-line note ('CI template not found
-      in source; see templates/ci.yml in the math-coding
-      repo or in dist-adoption.tar.gz') and exits 0.
-      Same split as `--agent opencode` for release
-      binaries.
+   templates/ci.yml next to it)?" Counterargument:
+   the source walk fails gracefully; the kernel
+   prints a one-line note ('CI template not found
+   in source; see templates/ci.yml in the math-coding
+   repo or in dist-adoption.tar.gz') and exits 0.
+   Same split as `--agent opencode` for release
+   binaries.
 
 assumptions:
   - id: templates-ci-yml-shipped
@@ -131,28 +182,29 @@ assumptions:
       `dist/adoption/templates/` (or similar).
     owner: human:maintainer
     consequence_if_false: |
-      If the template is not shipped, `mathc init` is a
-      no-op for the CI workflow step and exits 0.
-      A follow-up decision ships the template.
+      If the template is not shipped, `mathc init
+      --with-ci-workflow` is a no-op for the CI workflow
+      step and exits 0. A follow-up decision ships the
+      template.
     review_on:
       - signal: templates-ci-yml-missing
 
 obligations:
-  - id: init-wires-ci-workflow
-    outcome: init-wires-ci
+  - id: init-wires-ci-workflow-on-flag
+    outcome: init-wires-ci-on-flag
     claim: |
-      `mathc init .` (without `--no-install`) creates
-      `.github/workflows/mathc.yml` in the target
+      `mathc init . --with-ci-workflow` creates
+      `.github/workflows/ci.yml` in the target
       directory.
     acceptance:
       all:
         - verifier: tests/cli/init.t
           result: pass
-  - id: no-install-skips-ci-workflow
-    outcome: --no-install-skips-ci
+  - id: init-skips-ci-workflow-on-default
+    outcome: init-skips-ci-on-default
     claim: |
-      `mathc init . --no-install` does NOT create
-      `.github/workflows/mathc.yml`.
+      `mathc init .` (default, no flag) does NOT create
+      `.github/workflows/ci.yml`.
     acceptance:
       all:
         - verifier: tests/cli/init.t
@@ -176,7 +228,12 @@ risk:
 relations:
   addresses:
     - install-tooling-2026-10@1
-    - ux-3-init-subcommand-2026-10@1
+    - ux-3-init-subcommand-2026-10@2
     - ux-3-init-release-binary-noop-skill-2026-10@1
+    - ux-3-init-with-ci-workflow-2026-10@1
   supersedes: []
   superseded_by: []
+
+rev-history:
+  - "rev 1: initial decision (deferred); unconditional CI copy on `mathc init`"
+  - "rev 2: activation slice (this commit); the CI copy is opt-in via --with-ci-workflow; the brownfield case no longer surprises adopters with a `.github/` rewrite; see ux-3-init-with-ci-workflow-2026-10@1 for the activation surface"
