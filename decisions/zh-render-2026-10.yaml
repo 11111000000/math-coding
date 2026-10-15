@@ -1,13 +1,32 @@
 ---
 schema: math-coding/3.2
 id: zh-render-2026-10
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:1dff34eb4f14048eb715ed8a110ad8cc4c9873bd118f03fc8c3ed9f1f3171fbd"
-yaml_sha: "sha256:1dff34eb4f14048eb715ed8a110ad8cc4c9873bd118f03fc8c3ed9f1f3171fbd"
+body_sha: "sha256:83667343f404cfc9e3f247fb0147899f86a70bd01bad665f9c592264b775fc15"
+yaml_sha: "sha256:83667343f404cfc9e3f247fb0147899f86a70bd01bad665f9c592264b775fc15"
 intent: |
   Extend the `mathc render` kernel so the site can be published
   in Chinese alongside English and Russian.
+
+  Revision history:
+    rev 1 (dc3eaa4, 2026-10-15): initial adoption. Wired the
+      dispatcher to load `site/*.zh.md` and the renderer to
+      emit `<name>.zh.html` and `index.zh.html`. Added
+      `nav_groups_zh` and `render_index_zh`.
+    rev 2 (this commit): UX fix for the language toggle.
+      After rev 1, the nav and footer emitted a SINGLE toggle
+      per page, pointing at the first non-source sibling
+      (EN -> RU only; ZH was reachable only via RU). With
+      three languages this UX gap required a 2-hop click
+      (EN -> RU -> ZH). The fix: emit ONE toggle per
+      non-source sibling, so the EN home shows both "RU" and
+      "ZH"; the ZH home shows both "EN" and "RU". Also
+      refactors `render_footer` to take `sibling_langs`
+      (list) instead of `sibling_href` (single link) and
+      emit one footer language link per sibling, matching
+      the nav. No new obligations; the rev 1 obligations
+      still pass.
 
   Scope:
     1. `bin/Mathc.ml` — `--lang` accepts `en | ru | zh | both |

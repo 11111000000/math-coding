@@ -1018,73 +1018,59 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_lang
      8c0-4.42-3.58-8-8-8z\"/></svg><span class=\"github-label\">GitHub</span></a>\n"
     github_origin "math-coding on GitHub";
   (if enable_lang_toggle then
-     match sibling_translation_href ~lang ~page_key ~sibling_langs with
-     | Some h ->
-         (* The toggle label is the language the link POINTS TO
-            (not the current language), in uppercase ASCII so
-            `<a class="lang-toggle">EN</a>` reads unambiguously on
-            any sibling page. *)
-         let other_lang_opt =
-           List.find_opt (fun l -> l <> lang) sibling_langs
-         in
-         (match other_lang_opt with
-          | Some other_lang ->
-              let other_label = String.uppercase_ascii other_lang in
-              Printf.bprintf buf
-                "  <a class=\"lang-toggle\" href=\"%s\" hreflang=\"%s\" \
-                 lang=\"%s\">%s</a>\n"
-                h other_lang other_lang other_label
-          | None -> ())
-     | None -> ());
+     (* One toggle per non-source sibling. With two languages
+        (EN+RU) this renders a single "RU" / "EN" toggle, the
+        same UX as the previous build. With three languages
+        (EN+RU+ZH), the EN home emits both "RU" and "ZH"
+        toggles so a visitor lands on EN and can reach ZH
+        without first visiting RU. The order is the natural
+        alternation order built by `sibling_langs_for`: RU
+        first (canonical alternate), then ZH, then EN. Each
+        toggle carries the `hreflang` and `lang` attributes
+        for accessibility / SEO; the visible label is the
+        two-letter language id in upper case (e.g. "RU"). *)
+     List.iter
+       (fun other_lang ->
+         if other_lang <> lang then
+           let href = lang_href_for ~lang:other_lang ~page_key in
+           let other_label = String.uppercase_ascii other_lang in
+           Printf.bprintf buf
+             "  <a class=\"lang-toggle\" href=\"%s\" hreflang=\"%s\" \
+              lang=\"%s\">%s</a>\n"
+             href other_lang other_lang other_label)
+       sibling_langs);
   Buffer.add_string buf "</nav>\n";
   Buffer.contents buf
 
 (* --- footer --- *)
 
-let[@warning "-32"] render_footer ~lang ~version ~sibling_href =
+let[@warning "-32"] render_footer ~lang ~version ~page_key ~sibling_langs =
   (* The footer always carries the live project version so a viewer
      who lands on the site can tell which build is live. The string
      is whatever was passed via `config.version` — by default
      this is the contents of the `VERSION` file at render-time.
-     The language toggle is only emitted when the page actually
-     has a sibling; otherwise the toggle would advertise a 404
-     link. The link target is the sibling's path, computed by
-     the caller via `sibling_translation_href`. The meta-doc
+     The language links in the footer mirror the nav toggles: one
+     `<a>` per non-source sibling. The order is the natural
+     alternation order built by `sibling_langs_for`: RU first
+     (canonical alternate), then ZH, then EN. The meta-doc
      anchors (AGENTS.md, ROADMAP.md, PACKAGES.md) and the algebra
      spec link point at the canonical GitHub blob URL — the
      GitHub UI renders the markdown so a visitor lands on a
      rendered page, not raw source. *)
   let lang_link =
-    match sibling_href with
-    | None -> ""
-    | Some href ->
-        (* The link target is the same alternate the nav-toggle
-           advertises. The caller (render_page) computed the href
-           by picking the first non-source entry in
-           `sibling_langs`, so the language id encoded in the
-           href's path (`<name>.<lang>.html`) is the language of
-           the link. We re-derive the label from the href so the
-           footer always agrees with the nav. *)
-        let other_label =
-          (* The href ends with `<lang>.html`; extract the lang
-             segment. *)
-          let stem_len = String.length ".html" in
-          let s_len = String.length href in
-          if s_len > stem_len then
-            let without_ext =
-              String.sub href 0 (s_len - stem_len)
-            in
-            match String.rindex_opt without_ext '.' with
-            | Some dot ->
-                let lang_seg =
-                  String.sub without_ext (dot + 1)
-                    (String.length without_ext - dot - 1)
-                in
-                String.uppercase_ascii lang_seg
-            | None -> "EN"
-          else "EN"
-        in
-        Printf.sprintf "<a href=\"%s\">%s</a>" (html_escape href) other_label
+    let links =
+      List.filter_map
+        (fun other_lang ->
+          if other_lang = lang then None
+          else
+            let href = lang_href_for ~lang:other_lang ~page_key in
+            let other_label = String.uppercase_ascii other_lang in
+            Some
+              (Printf.sprintf "<a href=\"%s\">%s</a>"
+                 (html_escape href) other_label))
+        sibling_langs
+    in
+    String.concat " &middot; " links
   in
   let agents_href = github_blob ~path:"AGENTS.md" in
   let roadmap_href = github_blob ~path:"ROADMAP.md" in
@@ -1173,9 +1159,6 @@ let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
     render_head ~lang ~site_base ~title ~enable_mathjax
       ~extra_head
   in
-  let sibling_href =
-    sibling_translation_href ~lang ~page_key ~sibling_langs
-  in
   Printf.sprintf
     "<!DOCTYPE html>\n\
      <html lang=\"%s\">\n\
@@ -1209,11 +1192,10 @@ let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
      </script>\n\
      </body>\n\
      </html>\n"
-    lang head
+     lang head
     (render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_langs)
     body
-    (render_footer ~lang ~version
-       ~sibling_href)
+    (render_footer ~lang ~version ~page_key ~sibling_langs)
 
 let[@warning "-32"] render_axioms_section axioms =
   let buf = Buffer.create 256 in
