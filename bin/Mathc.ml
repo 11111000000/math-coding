@@ -607,7 +607,7 @@ let print_usage oc =
     \  stats [--class N] [--scale S]    emit empirical aggregate JSON\n\
     \  packages [--format=...]         list decisions + verdicts \
      (text|json|html)\n\
-     \  render [--out DIR] [--lang en|ru|both]\n\
+     \  render [--out DIR] [--lang en|ru|zh|both|all]\n\
      \           [--site-base HREF] [--mathjax|--no-mathjax]\n\
      \                                     render the static site under DIR\n\
     \  counters                          emit JSON counts (decisions, obligations,\n\
@@ -3017,25 +3017,31 @@ let[@warning "-32"] do_self_check () =
 
 (* --- render subcommand (bootstrap decision site-deploy@2) ---
  *
-  * `mathc render [--out DIR] [--lang en|ru|both] [--site-base HREF]
-  * [--mathjax|--no-mathjax]` renders the
-  * static site under DIR (default `dist/`). The render reads
-  * articles from `site/`, walks decisions via lib/packages.ml, and
-  * writes one .html file per page. The dispatcher's I/O is the
-  * boundary; lib/render.ml is pure.
+ * `mathc render [--out DIR] [--lang en|ru|zh|both|all] [--site-base HREF]
+ * [--mathjax|--no-mathjax]` renders the
+ * static site under DIR (default `dist/`). The render reads
+ * articles from `site/`, walks decisions via lib/packages.ml, and
+ * writes one .html file per page. The dispatcher's I/O is the
+ * boundary; lib/render.ml is pure.
  *
  * Bilingual mode (`--lang=both`) renders both English and Russian
  * pages when `site/<name>.ru.md` exists; the Russian page is
- * omitted otherwise. The `--site-base` value is emitted as
+ * omitted otherwise. `--lang=zh` renders only the Chinese pages,
+ * `--lang=all` renders every language for which a source file
+ * exists. The `--site-base` value is emitted as
  * `<base href="…">` so the same dist/ tree serves under any
  * subpath (default `/math-coding/` for GitHub Pages).
  *
  * Per spec/semantics.md §`render`, the allowlist is the union of
- * the English and Russian page sets:
- *   index.{html,ru.html}, axioms.html, methodology.html,
- *   bootstrap-gate.html, packages.html, manifesto.{html,ru.html},
- *   foundations.{html,ru.html}, workflow.html, faq.html,
- *   contributing.html, readme.{html,ru.html},
+ * the English, Russian, and Chinese page sets:
+ *   index.{html,ru.html,zh.html}, axioms.html, methodology.html,
+ *   bootstrap-gate.html, packages.html,
+ *   manifesto.{html,ru.html,zh.html},
+ *   foundations.{html,ru.html,zh.html},
+ *   workflow.{html,ru.html,zh.html}, faq.{html,ru.html,zh.html},
+ *   contributing.{html,ru.html,zh.html},
+ *   readme.{html,ru.html,zh.html},
+ *   install.{html,ru.html,zh.html},
  *   decisions/*.html, axioms/*.html, assets/style.css, index.json.
  * Missing any file is exit 2. *)
 
@@ -3138,9 +3144,10 @@ let[@warning "-32"] do_render () =
   let enable_mathjax = ref true in
   let set_lang s =
     match s with
-    | "en" | "ru" | "both" -> lang_arg := s
+    | "en" | "ru" | "zh" | "both" | "all" -> lang_arg := s
     | _ ->
-        Printf.fprintf stderr "mathc render: --lang must be en|ru|both\n";
+        Printf.fprintf stderr
+          "mathc render: --lang must be en|ru|zh|both|all\n";
         exit 2
   in
   let set_base s = site_base := s in
@@ -3150,16 +3157,17 @@ let[@warning "-32"] do_render () =
        [
          ("-o", Arg.String (fun s -> out_dir := s), "output directory");
          ("--out", Arg.String (fun s -> out_dir := s), "output directory");
-         ("--lang", Arg.String set_lang, "page languages: en|ru|both");
+         ("--lang", Arg.String set_lang,
+          "page languages: en|ru|zh|both|all");
          ( "--site-base",
            Arg.String set_base,
            " <base href> value (default /math-coding/)" );
           ("--mathjax", Arg.Set enable_mathjax, "load MathJax 3 (default on)");
           ("--no-mathjax", Arg.Clear enable_mathjax, "do not load MathJax");
-        ]
-        (fun _ -> ())
-        "usage: mathc render [--out DIR] [--lang en|ru|both] [--site-base HREF] \
-         [--mathjax|--no-mathjax]"
+       ]
+       (fun _ -> ())
+       "usage: mathc render [--out DIR] [--lang en|ru|zh|both|all] \
+        [--site-base HREF] [--mathjax|--no-mathjax]"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc render: %s\n" m;
      exit 2);
@@ -3209,8 +3217,9 @@ let[@warning "-32"] do_render () =
   (* Article catalogue. Each entry: (name, title, source-file).
      The first 4 entries existed at rev 1; the next 6 are new at
      rev 2 (MANIFESTO, FOUNDATIONS, WORKFLOW, FAQ, CONTRIBUTING,
-     README). Each entry optionally has a `<name>.ru.md` sibling
-     that the dispatcher loads if `--lang=ru|both`. *)
+     README). Each entry optionally has a `<name>.ru.md` and/or
+     `<name>.zh.md` sibling that the dispatcher loads when the
+     corresponding language is enabled. *)
   let articles =
     [
       ("axioms", "Axioms", "axioms.md");
@@ -3240,7 +3249,7 @@ let[@warning "-32"] do_render () =
       articles
   in
 
-  let ru_enabled = !lang_arg = "ru" || !lang_arg = "both" in
+  let ru_enabled = !lang_arg = "ru" || !lang_arg = "both" || !lang_arg = "all" in
   let site_pages_ru =
     if not ru_enabled then []
     else
@@ -3252,11 +3261,33 @@ let[@warning "-32"] do_render () =
         articles
   in
 
+  let zh_enabled = !lang_arg = "zh" || !lang_arg = "all" in
+  let site_pages_zh =
+    if not zh_enabled then []
+    else
+      List.filter_map
+        (fun (name, title, _) ->
+          let fname = name ^ ".zh.md" in
+          let body = load_md fname in
+          if body = "" then None else Some (name, title ^ " / ZH", body))
+        articles
+  in
+
+  (* The `languages` list drives the kernel-side iteration. The
+     order is canonical: English first, then Russian, then ZH.
+     `--lang=en` only emits EN; `--lang=ru` only emits RU
+     (back-compat: the previous code made `--lang=ru` skip EN);
+     `--lang=zh` only emits ZH; `--lang=both` emits EN+RU;
+     `--lang=all` emits EN+RU+ZH. The home page is always
+     generated in any enabled language; article pages are
+     generated only when the source file exists. *)
   let languages =
     match !lang_arg with
     | "en" -> [ "en" ]
     | "ru" -> [ "ru" ]
+    | "zh" -> [ "zh" ]
     | "both" -> [ "en"; "ru" ]
+    | "all" -> [ "en"; "ru"; "zh" ]
     | _ -> [ "en" ]
   in
 
@@ -3282,7 +3313,7 @@ let[@warning "-32"] do_render () =
 
   let pages =
     Render.build_pages ~package_html ~decisions_data ~policy_id ~config
-      ~site_pages ~site_pages_ru ~axioms_data
+      ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data
   in
 
   Printf.printf "[render] writing %d pages to %s/\n" (List.length pages)

@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"zh-render-2026-10","obligation":"nav-groups-zh","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"dune:test"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:e375e629a1f6bc4e3581f619120fd3b17c59dce69841baa174654106851f4aa2"}
