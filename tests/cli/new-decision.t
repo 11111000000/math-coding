@@ -71,3 +71,67 @@ violation message.
   >   echo "invalid id refused (exit $?)"
   > fi
   invalid id refused (exit 2)
+
+Minimal template: `--template=minimal` emits the 5-7 user-editable
+field stub on schema `math-coding/3.3`. The output includes
+`state: active` and links `bootstrap-v3@3` via `relations.addresses`.
+The output passes `mathc validate` (the soft
+`deficit/MC-COUNTEREXAMPLE-MISSING` warning is expected because
+the user fills the stub in).
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ tmpdir=$(mktemp -d)
+  $ stub=$tmpdir/min-stub.yaml
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-min-id --template=minimal > "$stub"
+  $ grep -q '^schema: math-coding/3.3' "$stub" && echo "schema 3.3: ok"
+  schema 3.3: ok
+  $ grep -q '^state: active' "$stub" && echo "state active: ok"
+  state active: ok
+  $ grep -q '^  addresses:' "$stub" && grep -q '^    - bootstrap-v3@3' "$stub" \
+  >   && echo "relations.bootstrap-v3: ok"
+  relations.bootstrap-v3: ok
+  $ mathc validate "$stub" 2>&1 | grep -q '^accept:' && echo "validate: ok"
+  validate: ok
+  $ rm -rf "$tmpdir"
+
+Full template default: the existing 47-line output structure is
+preserved on schema `math-coding/3.2` (the shape ships from
+`ux-3-new-decision-subcommand-2026-10@1`). `--template=full`
+explicit and the bare default emit the same content.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ tmpdir=$(mktemp -d)
+  $ stub=$tmpdir/full-stub.yaml
+  $ default=$tmpdir/full-default.yaml
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-full-id --template=full > "$stub"
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-full-id > "$default"
+  $ diff -u "$stub" "$default" >/dev/null && echo "default == --template=full: ok"
+  default == --template=full: ok
+  $ grep -q '^schema: math-coding/3.2' "$stub" && echo "schema 3.2: ok"
+  schema 3.2: ok
+  $ rm -rf "$tmpdir"
+
+Invalid --template value: `--template=invalid` exits 2 with the
+"expected minimal|full" diagnostic.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ if mathc new-decision test-id --template=invalid 2>/dev/null; then
+  >   echo "FAIL: expected exit 2 on invalid --template"; exit 1
+  > else
+  >   echo "invalid template refused (exit $?)"
+  > fi
+  invalid template refused (exit 2)
+
+Minimal-pipes-validation round-trip: the minimal stub round-trips
+through `mathc validate --format=json` (via a temp file because
+`mathc validate` takes FILE not stdin) and exits 0 with verdict
+`accept`. The output is filtered to the JSON verdict line so
+the soft warn line does not appear in the matched block.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ tmpdir=$(mktemp -d)
+  $ stub=$tmpdir/min-stub.yaml
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-id --template=minimal > "$stub"
+  $ mathc validate --format=json "$stub" 2>/dev/null | jq -r '.verdict' 2>/dev/null || echo "no jq available"
+  accept
+  $ rm -rf "$tmpdir"

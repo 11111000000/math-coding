@@ -2161,3 +2161,32 @@ ocaml-lsp-server" in the protocol text and then asks for type/locate
 queries. Cited from this session (2026-10-14) as the trigger for
 the "OCaml toolchain — hard requirement" revision of `AGENTS.md`
 (addressed by `decisions/tooling-native-2026-10.yaml`).
+
+### 11.35 hotfix-cve.sh waiver pattern
+
+**Symptom.** Developer needs to merge an urgent CVE / SLA-bound
+fix in < 1h. `mathc gate` returns Block because the post-hoc
+decision + attestation do not yet exist; the developer has no
+documented escape valve. Hand-authoring a YAML that matches
+`scheams/waiver.json` is too slow under SLA pressure.
+
+**Fix.** Run `scripts/hotfix-cve.sh <ticket-id>` to stamp a 24h
+waiver at `decisions/waivers/hotfix-<ticket>.yaml`. The script
+writes a waiver under the existing `math-coding/waiver-3.3`
+schema (loaded by `lib/waiver.ml`); the resulting file passes
+`mathc validate` (exit 0, verdict `accept: kind=waiver`). Within
+the 24h window the developer MUST follow up with a
+`decisions/<id>.yaml` + `attestations/<id>-<obligation>.json`
+pair. Once `expires_at` passes, the waiver stops being
+effective_at and the next `mathc gate` returns Block on this
+subject.
+
+**Referenced from.** `USAGE.md` §"Hotfix procedure" (the
+end-user-facing invocation pattern), `lib/waiver.ml::load`
+(the kernel loader consulted by the gate).
+
+**Trigger.** Any `decisions/waivers/hotfix-*.yaml` exists with
+`expires_at` within the next hour (remediation surface), or a
+new CVE ticket is filed in the incident tracker (creation
+surface). Cited from this session (2026-10-15) as the trigger
+for `decisions/ux-3-hotfix-waiver-procedure-2026-10.yaml`.
