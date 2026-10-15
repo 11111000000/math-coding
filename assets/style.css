@@ -763,16 +763,20 @@ sup, .sidenote-number { font-feature-settings: "sups"; }
    sidenote into the gutter next to its anchor. */
 @media (min-width: 1280px) {
   /* No site page uses Tufte sidenotes yet; the 22-rem right
-     gutter reserved for them is unused space. Keep the
-     gutters symmetric so the prose column can carry a
-     wider hero (site-redesign-2026-10) without breaking
-     out of `main`. The sidenote styles remain so a future
-     page can re-introduce them by restoring an asymmetric
-     padding here. */
+     gutter reserved for them is unused space. Centre the
+     prose column with auto margins and a baseline 2 rem
+     breathing room on each side (the previous calc-based
+     gutters ate the entire content area once 100vw grew
+     past ~1152 px because `max-width` includes it under
+     `box-sizing: border-box`). The sidenote styles remain
+     so a future page can re-introduce them by restoring
+     an asymmetric padding here. */
   main, .container {
     max-width: 64rem;
-    padding-left: calc((100vw - 64rem) / 2 + 4rem);
-    padding-right: calc((100vw - 64rem) / 2 + 4rem);
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 2rem;
+    padding-right: 2rem;
   }
   .sidenote {
     display: block;
