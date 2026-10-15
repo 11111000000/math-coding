@@ -1,0 +1,302 @@
+---
+schema: math-coding/3.3
+id: graph-viewer-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+axiom_link:
+  - A0
+  - A4
+intent: |
+  Add a `mathc graph` subcommand (CLI) and a `mathc/graph`
+  MCP method that walk the relations graph starting from a
+  decision id (algebra §7's eight kinds) and project the
+  reachable subgraph in two forms:
+
+  1. Graphviz DOT (`digraph "<id>" { ... }`) for offline
+     visualization;
+  2. canonical JSON (`{root, nodes[], edges[], _cycle}`)
+     consumed by `dist/graph.html` and the cytoscape.js
+     renderer.
+
+  The implementation lives in `lib/graph/graph.ml` as a
+  new sub-library (the `one-library-per-concern` pattern
+  per `OCAML_BEST_PRACTICES.md` §10.1). The helper is
+  pure: it takes a `Domain.decision list` (the full
+  record with the nine-field `relations` per algebra §7)
+  and returns the projection; no I/O at module top level.
+
+  Entry points ship in this slice:
+    - `mathc graph --decision=<id> [--format=dot|json]`
+      - DOT (default) emits a stable `digraph` for any
+        reachable subgraph; the optional `--format=json`
+        emits the canonical projection;
+      - `@<rev>` suffixes on the root id are stripped per
+        algebra §7 so `bootstrap-v3@3` and `bootstrap-v3`
+        are the same root.
+    - `mathc/graph` MCP method — read-only; takes
+      `decision_id` and returns the JSON projection.
+
+  Cycle detection: the walker bounds itself with the
+  visited node set; on a back-edge (an outgoing edge whose
+  target is already on the current DFS ancestor path)
+  the result is annotated with `_cycle: true` (or the
+  DOT form emits a `// cycle detected` comment). This is
+  the read-side analogue of the `MC-POLICY-CYCLE` diagnostic
+  that `lib/policy.ml::resolve_policy` raises for cycle
+  chains in `policies.yaml`. The kernel records the
+  observation; the surface is descriptive, not enforcing.
+
+  The "decision not found" case is signalled in the JSON
+  path by exiting 1 with the `MC-POLICY-NOT-FOUND`
+  diagnostic. The DOT path emits an empty digraph header
+  and exits 0 (the operator's drawing tool will show an
+  empty graph, which is the conventional affordance
+  for an empty input).
+
+  Touches (per A3 self-application):
+    lib/graph/graph.ml             (new, ~250 LOC, pure)
+    lib/graph/dune                 (new library
+                                    mathcoding_graph)
+    bin/Mathc.ml                   (do_graph + dispatcher
+                                    arm + print_usage update)
+    bin/dune                       (add mathcoding_graph to
+                                    the executable's library
+                                    list)
+    lib/mcp/dispatch.ml            (add mathc/graph to
+                                    read_only_methods +
+                                    build_graph + build_argv
+                                    arm)
+    tests/cli/graph.t              (new cram fixture, 3
+                                    cases: DOT emit, JSON
+                                    emit, unknown-id diagnostic)
+
+  Boundaries (A3 self-application):
+    - The kernel under `lib/` is unchanged. The walker
+      reads `Domain.decision list` produced by the
+      existing `lib/re_evaluation.ml::load_decisions`; no
+      kernel change is required to ship.
+    - `lib/mcp/dispatch.ml` is amended only inside the
+      already-decided allowlist and decision-arm map;
+      the wire protocol and the stdio transport are
+      unchanged.
+    - `spec/`, `schemas/`, and `axioms/` are unchanged.
+antithesis: |
+  The counter-position considered and rejected: "Just
+  use `lib/packages.ml --format=html`; the graph is
+  implicit in the rendered package grid."
+
+  The author engaged with this position and rejected it
+  on three grounds: (a) `packages --format=html` emits a
+  *table*, not a graph; the relations are present in the
+  underlying JSON but there is no layout — a manually
+  traced adjacency matrix is not a graph; (b) Graphviz /
+  cytoscape-style viewers need a structural projection
+  (`nodes[]` + `edges[]`) the package-list output does
+  not carry without a custom post-processor; (c) the
+  `lib/graph/graph.ml` walker is a thin reader over the
+  existing `Domain.decision.relations` field — no new
+  data, just a new projection. The kernel cost is one
+  pure module plus one CLI/MCP arm.
+
+  "Bake the graph into the existing `mathc render` site
+   output instead of adding a subcommand."
+
+  Rejected: the MCP allowlist needs structured access;
+  `mathc/graph` is the natural read-only method for an
+  agent to fetch a relations subgraph without parsing
+  the site-dist. The static site consumes the same JSON
+  projection (`dist/graph.json`) that the CLI emits with
+  `--format=json`, so a single kernel projection
+  services both surfaces.
+commitment: |
+  One kernel-surface addition (read-only, no side
+  effects). Pinned by one cram fixture
+  (`tests/cli/graph.t`):
+
+    D1. `lib/graph/graph.ml::to_dot ~decision_id
+        decisions`: BFS-walk from `decision_id` across
+        all eight §7 relations (`addresses`,
+        `supersedes`, `revises`, `refines`, `depends_on`,
+        `conflicts_with`, `implements`, `verifies`);
+        `superseded_by` is folded into `supersedes` with
+        the same label. Emit `digraph "<id>" { ... }` with
+        one node per visited decision and one edge per
+        relation target. A back-edge to an ancestor on
+        the DFS path emits a `// cycle detected` comment.
+
+    D2. `lib/graph/graph.ml::to_json ~decision_id
+        decisions`: same BFS, structural JSON projection
+        `{root, nodes: [{id, label}], edges: [{from, to,
+        kind}], _cycle: bool}`. Sorted keys per
+        OCAML_BEST_PRACTICES.md §10.2.
+
+    D3. `bin/Mathc.ml::do_graph` parses `--decision=<id>`
+        and `--format=dot|json` (default `dot`); calls
+        `Re_evaluation.load_decisions` on the project
+        root, calls `Graph.to_dot` or `Graph.to_json`,
+        prints the result. Exit 0 on DOT success, exit
+        1 with `MC-POLICY-NOT-FOUND` on JSON when the
+        root id is unknown, exit 2 on missing
+        `--decision` or unknown `--format`.
+
+    D4. `lib/mcp/dispatch.ml` adds `mathc/graph` to the
+        read-only allowlist; the existing `build_argv`
+        match gains a `mathc/graph` arm that calls
+        `build_graph`. `build_graph` parses
+        `params.decision_id` and returns `[ "graph";
+        "--decision"; id; "--format=json" ]`.
+
+    D5. `bin/Mathc.ml::dispatch` adds an arm
+        `| "graph" -> do_graph ()`. `print_usage` adds
+        one block for the new subcommand.
+
+    D6. `bin/dune` adds `mathcoding_graph` to the
+        executable's library list.
+
+    D7. `tests/cli/graph.t` exercises three cases:
+        (a) `mathc graph --decision=bootstrap-v3@3`
+            emits DOT containing both
+            `bootstrap-v3` and `infrastructure-honesty`
+            nodes plus the `addresses`-labelled edge
+            between them;
+        (b) `mathc graph --decision=bootstrap-v3@3
+            --format=json` emits JSON carrying `root`,
+            `from`, and the `kind=addresses` edge;
+        (c) `mathc graph --decision=does-not-exist
+            --format=json` exits 1 and emits
+            `MC-POLICY-NOT-FOUND` on stderr.
+
+  Boundaries (A3 self-application):
+    - Kernel modules other than the new `lib/graph/`
+      sub-library are unchanged.
+    - `spec/**`, `schemas/**`, `axioms/**` are
+      unchanged.
+counterexample: |
+  "Just use `lib/packages.ml --format=html`; the graph
+   is implicit in the JSON."
+
+  Counterargument: `packages --format=html` emits a
+  table, not a graph; the relations are present in the
+  JSON but no layout. `mathc graph` is a thin reader
+  over the existing `Domain.decision.relations` field
+  — no new data, just a new projection. Graphviz /
+  cytoscape-style viewers need a structural projection
+  (`nodes[]` + `edges[]`) the package-list output does
+  not carry without a custom post-processor.
+
+  "Bake the graph into the existing `mathc render`
+   output instead of adding a subcommand."
+
+  Counterargument: the MCP allowlist needs structured
+  access — `mathc/graph` is the natural read-only method
+  for an agent to fetch a relations subgraph without
+  parsing the site-dist. The static site
+  (`dist/graph.html`) consumes the same JSON projection
+  (`dist/graph.json`) the CLI emits with
+  `--format=json`, so a single kernel projection
+  services both surfaces. Adding a subcommand is a
+  clean way to express "give me the reachable subgraph
+  rooted at this id" without a custom stack on top of
+  `mathc render`.
+
+  "Adopt the D3.js force-directed layout instead of
+   cytoscape.js."
+
+  Counterargument: cytoscape.js is the established
+  JS-graph library for static-site decision-graph
+  renderers (the static site chooses CDN-loaded JS to
+  avoid nix-closure bloat). Switching libraries is out
+  of scope for this slice and not in the blast radius;
+  the dashboard / graph.html pair picks cytoscape.js
+  for visual parity.
+
+  "Cycle detection should be a hard reject
+   (`exit 1`) like `policy.ml::resolve_policy`."
+
+  Counterargument: `MC-POLICY-CYCLE` is a *policy*
+  reject because the policy chain is a control
+  surface. The relations graph is a *visualization*
+  surface; the operator wants to see what the cycle is
+  (so they can break it by hand), not be told "no".
+  The kernel records `_cycle: true` on the JSON
+  projection and the DOT form annotates with `//
+  cycle detected`; the consumer can ignore the flag
+  if they want the raw graph.
+scope:
+  capabilities:
+    - mathc-graph-subcommand
+    - mathc-graph-mcp-method
+  paths:
+    - "lib/graph/"
+    - "lib/mcp/dispatch.ml"
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "tests/cli/graph.t"
+    - "decisions/graph-viewer-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/diagnostic.ml"
+    - "lib/canonical.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/migrate.ml"
+    - "lib/waiver.ml"
+    - "lib/init/**"
+    - "lib/new_decision/**"
+    - "lib/find/**"
+    - "lib/import_adr/**"
+    - "lib/check/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+outcomes:
+  - id: graph-subcommand-ships
+    statement: |
+      `mathc graph --decision=<id> [--format=dot|json]`
+      and the `mathc/graph` MCP method exit 0 on a fresh
+      tree, walk the relations graph correctly across
+      all eight §7 relation kinds, strip the optional
+      `@<rev>` suffix on the root id, and emit the
+      `_cycle` annotation when a back-edge is found.
+obligations:
+  - id: graph-subcommand-impl
+    outcome: graph-subcommand-ships
+    claim: |
+      `tests/cli/graph.t` exercises the three cases
+      (DOT emit, JSON emit, unknown-id MC-POLICY-NOT-FOUND).
+      The fixture passes on a tree that ships the
+      subcommand and would fail on a tree that does not.
+    acceptance:
+      all:
+        - verifier: tests/cli/graph.t
+          result: pass
+reversal:
+  - signal: graph-not-needed
+    condition: |
+      A future site redesign adopts a different graph
+      renderer (D3 force-directed, Mermaid, etc.) and
+      the CLI arm is no longer the canonical access
+      point. Resolution: delete `lib/graph/`, remove
+      `graph` from `bin/Mathc.ml`, remove `mathc/graph`
+      from the MCP allowlist; this decision is
+      superseded.
+    action: supersede-with-removal
+risk:
+  declared_triggers:
+    - graph-walker-creates-side-effect
+    - graph-cycle-annotation-causes-consumer-fail
+    - graph-mcp-attestation-flood-on-large-graph
+  owner: human:maintainer
+relations:
+  addresses:
+    - bootstrap-v3@3

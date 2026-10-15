@@ -208,9 +208,10 @@ let read_only_methods =
     "mathc/re-evaluate";
     "mathc/rebuttals";
     "mathc/self-check";
-    "mathc/find";
-    "mathc/precommit";
-  ]
+     "mathc/find";
+     "mathc/precommit";
+     "mathc/graph";
+   ]
 
 let read_write_methods =
   [
@@ -398,6 +399,18 @@ let build_precommit (params : Jsonl.value option) :
   | Ok ps -> Ok ("precommit" :: "--format=json" :: ps)
   | Error e -> Error e
 
+(* `mathc/graph` — walk the relations graph starting from a
+   decision id. The MCP caller passes `decision_id` (the
+   root id, optionally suffixed `@<rev>`; the kernel strips
+   the suffix per algebra §7). Returns JSON (the JSON form
+   is the only one consumable by an MCP caller; the DOT form
+   is a CLI-only surface). *)
+let build_graph (params : Jsonl.value option) :
+    (string list, Protocol.rpc_error) result =
+  match Protocol.string_param params "decision_id" with
+  | Ok d -> Ok [ "graph"; "--decision"; d; "--format=json" ]
+  | Error e -> Error e
+
 (* --- argv dispatch --- *)
 
 let build_argv (req : Protocol.request) :
@@ -412,6 +425,7 @@ let build_argv (req : Protocol.request) :
   | "mathc/self-check" -> build_self_check req.params
   | "mathc/find" -> build_find req.params
   | "mathc/precommit" -> build_precommit req.params
+  | "mathc/graph" -> build_graph req.params
   | "mathc/gate" -> build_gate req.params
   | "mathc/attest" -> build_attest req.params
   | "mathc/record" -> build_record req.params

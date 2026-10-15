@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dashboard &mdash; math-coding</title>
+<link rel="stylesheet" href="assets/style.css" />
+<script src="https://cdn.jsdelivr.net/npm/fuse@7.0.0/dist/fuse.min.js"></script>
+</head>
+<body>
+<header class="mathc-nav"><a href="index.html">math-coding</a></header>
+<main class="mathc-main">
+<h1>Dashboard</h1>
+<p class="mathc-lede">
+  Full-text search across decisions, obligations, axioms,
+  and articles shipped by <code>mathc render</code>. The
+  index is loaded from <code>index.json</code>; matching
+  pages link directly to the rendered site.
+</p>
+<input id="mathc-dashboard-q" type="search"
+       placeholder="search decisions, axioms, articles..."
+       autocomplete="off" autofocus
+       class="mathc-input mathc-input-wide" />
+<ul id="mathc-dashboard-results" class="mathc-list"></ul>
+<p id="mathc-dashboard-empty" class="mathc-muted" hidden>
+  No matches.
+</p>
+</main>
+<script>
+(function () {
+  'use strict';
+  var input = document.getElementById('mathc-dashboard-q');
+  var results = document.getElementById('mathc-dashboard-results');
+  var empty = document.getElementById('mathc-dashboard-empty');
+  if (!input || !results) return;
+
+  function render(items) {
+    while (results.firstChild) results.removeChild(results.firstChild);
+    if (items.length === 0) { empty.hidden = false; return; }
+    empty.hidden = true;
+    items.slice(0, 50).forEach(function (it) {
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.href = it.path;
+      a.textContent = it.title || it.path;
+      li.appendChild(a);
+      results.appendChild(li);
+    });
+  }
+
+  fetch('index.json')
+    .then(function (r) { return r.json(); })
+    .then(function (idx) {
+      var fuse = new Fuse(idx, {
+        keys: ['title', 'path'],
+        threshold: 0.35,
+        ignoreLocation: true
+      });
+      input.addEventListener('input', function () {
+        var q = input.value.trim();
+        if (q.length === 0) { render([]); return; }
+        render(fuse.search(q).map(function (m) { return m.item; }));
+      });
+    })
+    .catch(function () {
+      empty.hidden = false;
+      empty.textContent = 'index.json failed to load';
+    });
+})();
+</script>
+</body>
+</html>

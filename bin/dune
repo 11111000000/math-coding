@@ -13,6 +13,7 @@
   mathcoding_import_adr
   mathcoding_adopt
   mathcoding_new_decision
+  mathcoding_graph
   str
   unix))
 

@@ -1,0 +1,314 @@
+---
+schema: math-coding/3.3
+id: render-dashboard-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+axiom_link:
+  - A0
+  - A4
+intent: |
+  Extend the existing `mathc render` static-site pipeline
+  to ship two new operator-facing pages that exercise the
+  JSON projections already emitted alongside the site:
+
+  1. `dist/dashboard.html` — a fuse.js-powered search panel
+     that reads the existing `dist/index.json` (emitted by
+     `bin/Mathc.ml::render_search_index`). The user types a
+     query; matching `title` / `path` pairs are scored by
+     fuse.js (threshold 0.35, location-agnostic); the top
+     50 are listed, each linking back to the rendered
+     `.html` page.
+
+  2. `dist/graph.html` — a cytoscape.js-powered relations
+     viewer that reads `dist/graph.json` (computed by
+     `lib/graph/graph.ml::to_json`, the new graph-projection
+     helper). The seed root is `bootstrap-v3` (the live
+     site's canonical axiom-graph anchor); the relationships
+     graph is laid out with cytoscape's `cose` (force-
+     directed) layout. The `_cycle` flag from the kernel
+     surfaces as a textual annotation.
+
+  Both pages are pure static HTML; the kernel emits them
+  with no further dispatching — the JS dependencies load
+  from public CDNs (fuse@7, cytoscape@3), mirroring the
+  existing MathJax 3 wiring in `lib/render.ml::render_head`.
+
+  The HTML template strings live in `lib/render.ml` next
+  to the existing `render_*` functions (per
+  OCAML_BEST_PRACTICES.md §10.1 boundary: the page
+  templates are an addition to the render kernel, not a
+  new sub-library); a sibling copy sits under `assets/` so
+  the templates can be reviewed without re-rendering.
+  Both copies carry identical content; the kernel writes
+  the `lib/render.ml` template at `mathc render` time.
+
+  Touches:
+    lib/render.ml                     (add render_dashboard +
+                                      render_graph_html; no
+                                      change to existing
+                                      render_* entry points)
+    bin/Mathc.ml                      (do_render: write
+                                      dist/dashboard.html and
+                                      dist/graph.html after
+                                      the existing dist/
+                                      files)
+    scripts/render.sh                 (add dashboard.html,
+                                      graph.html, and
+                                      graph.json to the
+                                      dist/ allowlist)
+    assets/dashboard.html             (new, ~70 LOC, review-
+                                      friendly mirror of the
+                                      kernel template)
+    assets/graph.html                 (new, ~85 LOC, review-
+                                      friendly mirror of the
+                                      kernel template)
+    tests/render_kernel.ml            (one new test case
+                                      asserting both files
+                                      land and carry the
+                                      expected <script> tags)
+
+  Boundaries (A3 self-application):
+    - No new external dependency. fuse.js and cytoscape.js
+      are loaded from public CDNs at runtime; no cohttp,
+      no node_modules, no bundler, no nix closure bloat.
+    - The existing `dist/index.json` shape is unchanged.
+    - `lib/graph/` is unchanged at this revision (the
+      P12 graph-viewer decision ships the projection; this
+      decision only consumes it).
+    - `spec/`, `schemas/`, and `axioms/` are unchanged.
+    - Kernel modules outside `lib/render.ml` are unchanged.
+antithesis: |
+  The counter-position considered and rejected: "Add a
+  `mathc serve` HTTP server that dynamically queries the
+  live tree."
+
+  The author engaged with this position and rejected it on
+  four grounds: (a) nix closure bloat — a `cohttp` /
+  `lwt` stack is large and the static-site extension is
+  one `lib/render.ml` addition; (b) separate install
+  surface — `mathc serve` would touch `flake.nix`, the
+  install paths, the Docker image, and the musl build;
+  (c) separate security model — a localhost port is a
+  network surface the rest of the kernel doesn't have;
+  (d) "no dynamic state needed" — every datum the
+  dashboard / graph viewer needs is already emitted as
+  JSON next to the HTML. A live server duplicates the
+  data flow without changing the user-visible result.
+
+  "Generate the dashboard and graph views lazily
+   client-side from a single combined JSON."
+
+  Rejected: the existing `dist/index.json` shape
+  (`{title, path}` array, per `render_search_index`) is
+  shipped by 400+ pages. Re-emitting as a different shape
+  would mean re-rendering every page; the dashboard
+  reads the existing shape verbatim. The graph viewer
+  reads the new `dist/graph.json` (added by this slice)
+  since the existing `dist/index.json` does not carry
+  edges.
+
+  "Render the dashboard in pure server-side HTML (no
+   fuse.js; the kernel's `mathc find` already does this)."
+
+  Rejected: `mathc find` is the read-only MCP / CLI
+  surface (decision `mathc-find-subcommand-2026-10@1`).
+  The dashboard is the *browser* surface — the operator
+  opens a tab in a static-server context (e.g.
+  `python3 -m http.server -d dist/` per the render.sh
+  epilogue) and types a query. fuse.js is one CDN tag;
+  avoiding it means re-implementing the scoring rules
+  server-side (a different design).
+commitment: |
+  One render-kernel extension. Pinned by one new test
+  case in `tests/render_kernel.ml`:
+
+    D1. `lib/render.ml::render_dashboard ~pages`:
+        emits a self-contained HTML page with a
+        `<script src="fuse@7">` CDN tag, a search
+        `<input>`, and a results `<ul>`. The init
+        script fetches `index.json`, builds a fuse
+        index over `{title, path}`, and matches on
+        user input.
+
+    D2. `lib/render.ml::render_graph_html ~graph`:
+        emits a self-contained HTML page with a
+        `<script src="cytoscape@3">` CDN tag, a
+        `<div id="mathc-graph-cy">` host, and init
+        script that fetches `graph.json` and renders the
+        relations graph with the `cose` layout.
+
+    D3. `bin/Mathc.ml::do_render`: after writing
+        `dist/index.json`, `dist/feed.xml`, etc., call
+        `Render.render_dashboard ~pages` and write to
+        `dist/dashboard.html`; compute `graph.json` via
+        `Graph.to_json ~decision_id:"bootstrap-v3"
+         decisions` (where `decisions` is the
+         `Re_evaluation.load_decisions` reader's output,
+         which sees `decision.yaml`); write
+        `dist/graph.json`; call
+        `Render.render_graph_html ~graph` and write
+        `dist/graph.html`.
+
+    D4. `scripts/render.sh`: include
+        `dist/dashboard.html`, `dist/graph.html`, and
+        `dist/graph.json` in the verify-allowlist.
+
+    D5. `tests/render_kernel.ml::dashboard_and_graph_html_landed`:
+        re-runs `scripts/render.sh` (which exercises
+        `mathc render`), then asserts that:
+        (a) `dist/dashboard.html` exists, is non-empty,
+            contains the `fuse` CDN script tag, and
+            fetches `index.json`;
+        (b) `dist/graph.html` exists, is non-empty,
+            contains the `cytoscape` CDN script tag, and
+            fetches `graph.json`;
+        (c) `dist/graph.json` exists.
+
+  Boundaries (A3 self-application):
+    - Kernel modules other than `lib/render.ml` are
+      unchanged.
+    - `lib/graph/`, `lib/find/`, `lib/init/`, etc.
+      remain at their shipped revisions.
+    - `spec/**`, `schemas/**`, `axioms/**` are unchanged.
+counterexample: |
+  "Add a `mathc serve` HTTP server that dynamically
+   queries the live tree."
+
+  Counterargument: nix closure bloat (cohttp/lwt stack),
+  separate install surface, separate security model. The
+  static-site extension is one `lib/render.ml` extension;
+  `mathc serve` would touch `flake.nix`, the install paths,
+  the Docker image, and introduce a localhost port. The
+  rendered dashboard reads `dist/index.json` (already
+  shipped by `render_search_index`); the graph viewer
+  reads `dist/graph.json` (computed by the new
+  `lib/graph/graph.ml::to_json` projection). No server
+  is needed; the operator opens `dist/dashboard.html`
+  via the existing `python3 -m http.server -d dist/`
+  workflow documented in `scripts/render.sh:131-134`.
+
+  "Generate the dashboard and graph views lazily
+   client-side from a single combined JSON."
+
+  Counterargument: the existing `dist/index.json` shape
+  (`{title, path}` array, per `render_search_index`) is
+  shipped by 400+ pages; re-emitting as a different shape
+  would invalidate every consumer. The dashboard reads
+  the existing shape verbatim. The graph viewer reads
+  the new `dist/graph.json` because the existing
+  `dist/index.json` does not carry edges — the graph is
+  inherently a different shape.
+
+  "Render the dashboard in pure server-side HTML (no
+   fuse.js; the kernel's `mathc find` already does this)."
+
+  Counterargument: `mathc find` is the read-only CLI/MCP
+  surface; the dashboard is the browser surface — the
+  operator opens a tab in a static-server context and
+  types. fuse.js is one CDN tag (~10 KB gzipped); avoiding
+  it means re-implementing the scoring rules server-side,
+  which requires a server (the rejected alternative
+  above). The min sufficient response is fuse.js + the
+  existing `dist/index.json`.
+
+  "Promote the templates in `assets/dashboard.html` and
+   `assets/graph.html` to the kernel (do not embed them
+   in `lib/render.ml`)."
+
+  Counterargument: the existing `Render.render_*`
+  functions emit HTML inline (e.g. `render_nav`,
+  `render_head`, `render_yaml_section`); the dashboard
+  and graph viewer are extensions in the same idiom.
+  Carrying them as separate OCaml string literals
+  matches the surrounding code; the `assets/` siblings
+  are review-friendly mirrors (they are not read at
+  build / render time — the kernel emits its inline
+  strings). Promoting the asset files to the kernel
+  would require a new string-loading convention that
+  the rest of the kernel does not have; that's a
+  second decision.
+scope:
+  capabilities:
+    - mathc-render-dashboard
+    - mathc-render-graph
+  paths:
+    - "lib/render.ml"
+    - "assets/dashboard.html"
+    - "assets/graph.html"
+    - "tests/render_kernel.ml"
+    - "scripts/render.sh"
+    - "decisions/render-dashboard-2026-10.yaml"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/diagnostic.ml"
+    - "lib/canonical.ml"
+    - "lib/attestations/**"
+    - "lib/git/**"
+    - "lib/junit/**"
+    - "lib/migrate.ml"
+    - "lib/waiver.ml"
+    - "lib/init/**"
+    - "lib/new_decision/**"
+    - "lib/find/**"
+    - "lib/graph/**"
+    - "lib/import_adr/**"
+    - "lib/check/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+outcomes:
+  - id: render-dashboard-ships
+    statement: |
+      `mathc render` writes `dist/dashboard.html` (fuse.js
+      search panel) and `dist/graph.html` (cytoscape.js
+      relations viewer) alongside the existing site
+      without breaking the existing render pipeline.
+obligations:
+  - id: render-dashboard-impl
+    outcome: render-dashboard-ships
+    claim: |
+      `tests/render_kernel.ml::dashboard_and_graph_html_landed`
+      re-runs `scripts/render.sh` and asserts both
+      `dist/dashboard.html` and `dist/graph.html` exist,
+      are non-empty, and carry the expected fuse /
+      cytoscape CDN script tags. The test passes on a
+      tree that ships the extension and would fail on a
+      tree that does not.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml:dashboard_and_graph_html_landed
+          result: pass
+reversal:
+  - signal: dashboard-not-needed
+    condition: |
+      A future site redesign adopts a different search
+      surface (forge search, server-side index) and the
+      static fuse panel is no longer canonical. Resolution:
+      revert `bin/Mathc.ml::do_render` (drop the calls
+      to `Render.render_dashboard` / `render_graph_html`);
+      revert `lib/render.ml` to drop the two functions;
+      remove the `assets/dashboard.html`,
+      `assets/graph.html`, and the
+      `dashboard_and_graph_html_landed` test case; this
+      decision is superseded.
+    action: supersede-with-removal
+risk:
+  declared_triggers:
+    - cdn-dependency-broken
+    - fuse-no-matches-found
+    - cytoscape-loads-but-renders-blank
+    - dashboard-html-too-large-for-cdn-cache
+  owner: human:maintainer
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - site-deploy@5

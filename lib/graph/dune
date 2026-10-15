@@ -1,0 +1,5 @@
+(library
+ (name mathcoding_graph)
+ (wrapped false)
+ (modules graph)
+ (libraries mathcoding_core))
