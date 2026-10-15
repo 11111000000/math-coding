@@ -61,6 +61,18 @@ jobs:
           - { label: darwin-aarch64,  runs-on: macos-latest,      exe: mathc-darwin-aarch64,  ext: '' }
           # Windows
           - { label: windows-x86_64,  runs-on: windows-latest,    exe: mathc-windows-x86_64,  ext: '.exe' }
+          # Windows ARM64 — hosted `windows-11-arm` runner
+          # (public GA 2025-03, on-by-default on github.com
+          # free + paid tiers; per github/actions/runner-
+          # images `windows11arm-*` ships the MSVC ARM64
+          # headers and Windows SDK ARM64 component out of
+          # the box, so OCaml 5.4 native-compiles without
+          # any cross-compile flag). Linked to the
+          # release-windows-aarch64-binary-2026-10 (D7)
+          # sub-decision; matrix entry earns a native
+          # `mathc-windows-aarch64.exe` artifact (no extra
+          # nix/dune option set).
+          - { label: windows-aarch64, runs-on: windows-11-arm,     exe: mathc-windows-aarch64, ext: '.exe' }
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -232,6 +244,30 @@ jobs:
           chmod +x "dist-bin/${{ matrix.exe }}${{ matrix.ext }}" 2>/dev/null || true
           ls -la dist-bin
 
+      # D7 smoke test for Windows variants (x86_64 + aarch64). The
+      # binary is built natively on the runner; running `mathc.exe
+      # version` here proves that the produced artifact is a working
+      # Windows PE for the runner's ABI. Exits non-zero if the binary
+      # is the wrong arch, missing a runtime dep, or otherwise broken.
+      # Skipped on Linux/macOS (their smoke test runs inside the
+      # matrix-specific container for musl, and is otherwise redundant
+      # with `dune build`'s exit code on glibc/macOS hosts).
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bin = "dist-bin/${{ matrix.exe }}${{ matrix.ext }}"
+          if (-not (Test-Path $bin)) {
+            Write-Error "smoke test: $bin not found"
+            exit 1
+          }
+          & $bin version
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "smoke test: $bin version exited $LASTEXITCODE"
+            exit 1
+          }
+
       - name: Verify musl linkage (Alpine)
         if: matrix.is_musl
         shell: bash
@@ -286,14 +322,15 @@ jobs:
       - name: Verify all expected platforms present
         run: |
           set -eu
-          # Required artifacts: 5 platforms.
+          # Required artifacts: 6 platforms (D7 adds windows-aarch64).
           # mathc-linux-x86_64-musl is OPTIONAL — it is built only
           # when the linux-x86_64-musl matrix entry is enabled
           # (currently disabled per decisions/portable-linux-musl.yaml
           # reversal signal 'alpine-ci-build-fails', 2026-10-04).
           for exe in mathc-linux-x86_64 mathc-linux-aarch64 \
                     mathc-darwin-x86_64 mathc-darwin-aarch64 \
-                    mathc-windows-x86_64.exe; do
+                    mathc-windows-x86_64.exe \
+                    mathc-windows-aarch64.exe; do
             [ -f "dist-bin/$exe" ] || { echo "missing: $exe"; exit 1; }
           done
           if [ -f "dist-bin/mathc-linux-x86_64-musl" ]; then
@@ -359,6 +396,7 @@ jobs:
             dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
             dist-bin/mathc-windows-x86_64.exe
+            dist-bin/mathc-windows-aarch64.exe
             dist-bin/mathc-linux-x86_64-musl
             dist-bin/SHA256SUMS
             dist-bin/install.sh
@@ -378,6 +416,7 @@ jobs:
             dist-bin/mathc-darwin-x86_64
             dist-bin/mathc-darwin-aarch64
             dist-bin/mathc-windows-x86_64.exe
+            dist-bin/mathc-windows-aarch64.exe
             dist-bin/mathc-linux-x86_64-musl
             dist-bin/SHA256SUMS
             dist-bin/install.sh
