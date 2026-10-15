@@ -1,0 +1,146 @@
+The release.yml publish step references the
+`sigstore/cosign-installer` GitHub Action. Per
+`decisions/release-cosign-blob-sign-2026-10.yaml`
+obligation `cosign-blob-step-installed`, the `cosign
+sign-blob` step installs cosign via this action (the
+IMAGE cosign workflow in `.github/workflows/docker.yml`
+already uses the same action; the release.yml instance
+is the mirror for binary assets).
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ grep -q 'sigstore/cosign-installer' .github/workflows/release.yml && \
+  >   echo "release.yml references sigstore/cosign-installer"
+  release.yml references sigstore/cosign-installer
+
+  $ yq '.jobs.publish.steps[]|select(.name=="Install cosign")|.uses' \
+  >   .github/workflows/release.yml
+  "sigstore/cosign-installer@v3"
+
+The release.yml publish steps (both tag-push and
+edge-prerelease) add the `.sig` and `.pem` files for
+each `mathc-*` binary alongside the binary itself. Per
+the `cosign-blob-step-installed` obligation, the
+per-binary asset count rises from 1 to 3
+(`<bin>`, `<bin>.sig`, `<bin>.pem`).
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ yq '.jobs.publish.steps[]|select(.name=="Publish on tag — official release").with.files' .github/workflows/release.yml | \
+  >   grep -oE '\.sig|\.pem' | wc -l
+  12
+
+  $ yq '.jobs.publish.steps[]|select(.name=="Publish on main / manual dispatch — rolling edge").with.files' .github/workflows/release.yml | \
+  >   grep -oE '\.sig|\.pem' | wc -l
+  12
+
+The release.yml `cosign sign-blob` step iterates every
+`dist-bin/mathc-*` binary and runs
+`cosign sign-blob --yes --output-signature … --output-certificate …`.
+The bash case pattern excludes `*.tar.gz`, `*.txt`,
+`*.sig`, `*.pem` so the loop signs every binary exactly
+once (and does not re-sign its own outputs).
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ grep -A 6 'name: cosign sign-blob (each mathc-\* binary)' .github/workflows/release.yml | \
+  >   grep -q 'cosign sign-blob' && echo "step body runs cosign sign-blob"
+  step body runs cosign sign-blob
+
+  $ grep -A 20 'name: cosign sign-blob (each mathc-\* binary)' .github/workflows/release.yml | \
+  >   grep -q -- '--output-signature' && \
+  >   grep -A 20 'name: cosign sign-blob (each mathc-\* binary)' .github/workflows/release.yml | \
+  >   grep -q -- '--output-certificate' && \
+  >   echo "step uses --output-signature and --output-certificate"
+  step uses --output-signature and --output-certificate
+
+install.sh contains the new `verify_cosign_blob`
+helper and a `cosign verify-blob` invocation. Per
+obligation `install-sh-cosign-blob-flags`, the
+existing `--cosign-verify` / `--no-cosign-verify`
+flag pair (originally gating the IMAGE cosign verify)
+is extended to also gate the binary blob verify.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ grep -q 'verify_cosign_blob()' scripts/install-tooling/install.sh && \
+  >   echo "install.sh defines verify_cosign_blob"
+  install.sh defines verify_cosign_blob
+
+  $ grep -q 'cosign verify-blob' scripts/install-tooling/install.sh && \
+  >   echo "install.sh calls cosign verify-blob"
+  install.sh calls cosign verify-blob
+
+  $ grep -q 'MC-INSTALL-COSIGN-VERIFY-BLOB-FAIL' scripts/install-tooling/install.sh && \
+  >   echo "install.sh emits MC-INSTALL-COSIGN-VERIFY-BLOB-FAIL on failure"
+  install.sh emits MC-INSTALL-COSIGN-VERIFY-BLOB-FAIL on failure
+
+The existing `--cosign-verify` / `--no-cosign-verify`
+flag pair continues to gate both the IMAGE cosign
+verify and the new BLOB cosign verify. A user who
+passes `--no-cosign-verify` skips both checks; a user
+who does not pass either flag runs both.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ grep -q -- '--cosign-verify' scripts/install-tooling/install.sh && \
+  >   grep -q -- '--no-cosign-verify' scripts/install-tooling/install.sh && \
+  >   echo "install.sh flag pair --cosign-verify/--no-cosign-verify present"
+  install.sh flag pair --cosign-verify/--no-cosign-verify present
+
+install.ps1 mirrors the same change in PowerShell. Per
+obligation `install-ps1-cosign-blob-flags`, a new
+`Test-CosignBlob` function runs `cosign verify-blob`
+against the downloaded binary's `.sig` and `.pem`
+triple, gated by `-NoCosignVerify` (the existing
+default-on switch for both image and blob verify).
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ grep -q 'function Test-CosignBlob' scripts/install-tooling/install.ps1 && \
+  >   echo "install.ps1 defines Test-CosignBlob"
+  install.ps1 defines Test-CosignBlob
+
+  $ grep -q 'cosign verify-blob' scripts/install-tooling/install.ps1 && \
+  >   echo "install.ps1 calls cosign verify-blob"
+  install.ps1 calls cosign verify-blob
+
+  $ grep -q 'MC-INSTALL-COSIGN-VERIFY-BLOB-FAIL' scripts/install-tooling/install.ps1 && \
+  >   echo "install.ps1 emits MC-INSTALL-COSIGN-VERIFY-BLOB-FAIL on failure"
+  install.ps1 emits MC-INSTALL-COSIGN-VERIFY-BLOB-FAIL on failure
+
+The CI-side signer identity and the user-side
+verifier identity are the SAME string. Both
+`MC_COSIGN_IDENTITY_REGEXP` (in install.sh) and
+`$MC_COSIGN_IDENTITY_REGEXP` (in install.ps1) carry
+`https://github.com/11111000000/math-coding`; the
+release.yml workflow does NOT pass any
+`--certificate-identity-regexp` (keyless + OIDC is
+the default), and the install scripts use that exact
+regexp on the verify side.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ grep -q 'https://github.com/11111000000/math-coding' scripts/install-tooling/install.sh && \
+  >   echo "install.sh identity regexp matches the signer identity"
+  install.sh identity regexp matches the signer identity
+
+  $ grep -q 'https://github.com/11111000000/math-coding' scripts/install-tooling/install.ps1 && \
+  >   echo "install.ps1 identity regexp matches the signer identity"
+  install.ps1 identity regexp matches the signer identity
+
+OCAML_BEST_PRACTICES.md §11.37 documents the
+`cosign sign-blob` trap per obligation
+`cosign-blob-trap-log`. The trap log entry follows
+the §11 format with symptom/fix/trigger sections.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ grep -q '^### 11\.37' OCAML_BEST_PRACTICES.md && \
+  >   echo "OCAML_BEST_PRACTICES.md has §11.37 trap entry"
+  OCAML_BEST_PRACTICES.md has §11.37 trap entry
+
+The new sub-decision
+`decisions/release-cosign-blob-sign-2026-10.yaml`
+exists with `state: active` and `mode: standard`.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ grep -E '^state:|^mode:' decisions/release-cosign-blob-sign-2026-10.yaml
+  state: active
+  mode: standard
+
+  $ grep -q 'id: release-cosign-blob-sign-2026-10' decisions/release-cosign-blob-sign-2026-10.yaml && \
+  >   echo "decision id matches the meta-decision obligation"
+  decision id matches the meta-decision obligation
