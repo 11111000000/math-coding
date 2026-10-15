@@ -3260,6 +3260,7 @@ let[@warning "-32"] do_render () =
       ("bootstrap-gate", "Bootstrap Gate", "bootstrap-gate.md");
       ("install", "Install", "install.md");
       ("packages", "Packages", "packages.md");
+      ("differences", "Differences", "differences.md");
     ]
   in
 
