@@ -310,7 +310,59 @@ download_binary() {
   if ! dl "$url" "$out"; then
     return 124
   fi
-  printf '%s\n' "$bin_basename"
+  # Echo the basename + the original URL on a second line, so the
+  # caller can derive the matching .sig / .pem URLs without
+  # recomputing the version / os / arch / libc convention.
+  # Format: "<bin_basename>\n<bin_url>".
+  printf '%s\n%s\n' "$bin_basename" "$url"
+  return 0
+}
+
+# --- Download the binary's cosign signature and certificate ---------------
+# Per `decisions/release-cosign-blob-sign-2026-10.yaml`. The release
+# workflow publishes `<bin>.sig` and `<bin>.pem` alongside every
+# `mathc-*` binary. Args:
+#   $1 = binary URL (e.g.
+#        https://github.com/.../mathc-linux-x86_64)
+#   $2 = sig out_path
+#   $3 = cert out_path
+# Behavior:
+#   - install_cosign_verify = 0 OR cosign not installed:
+#     no-op; sets $2 / $3 to empty strings and exits 0. The
+#     caller passes empty paths to verify_cosign_blob, which
+#     short-circuits to "skipped".
+#   - .sig or .pem download fails (e.g. pre-D6 release, 404):
+#     sets the corresponding path to empty string and exits 0.
+#     The verify_cosign_blob call site then warns-and-skips.
+#   - Both succeed: exits 0 with $2 / $3 set to the temp paths.
+# Returns: 0 always (network errors on .sig/.pem are tolerated,
+# the binary itself is still installed and SHA-256 verified).
+download_cosign_blob_assets() {
+  bin_url="$1"
+  sig_out="$2"
+  cert_out="$3"
+  if [ "$install_cosign_verify" = "0" ]; then
+    : > "$sig_out" 2>/dev/null || true
+    : > "$cert_out" 2>/dev/null || true
+    return 0
+  fi
+  if ! command -v cosign >/dev/null 2>&1; then
+    : > "$sig_out" 2>/dev/null || true
+    : > "$cert_out" 2>/dev/null || true
+    return 0
+  fi
+  sig_url="${bin_url}.sig"
+  cert_url="${bin_url}.pem"
+  # Tolerate 404 / network error on each file individually:
+  # a pre-D6 release that does not publish .sig / .pem is the
+  # common case. `dl` returns 124 on network errors; the OR
+  # short-circuit on `dl` failure empties the path.
+  if ! dl "$sig_url" "$sig_out" 2>/dev/null; then
+    : > "$sig_out" 2>/dev/null || true
+  fi
+  if ! dl "$cert_url" "$cert_out" 2>/dev/null; then
+    : > "$cert_out" 2>/dev/null || true
+  fi
   return 0
 }
 
@@ -362,6 +414,71 @@ verify_cosign() {
   echo "  this can indicate a registry compromise, a pre-sign release, or a missing signature." >&2
   echo "  retry with --no-cosign-verify only if you explicitly trust the registry for this version." >&2
   echo "diagnostic: MC-INSTALL-COSIGN-VERIFY-FAIL" >&2
+  return 1
+}
+
+# --- Cosign signature verification (binary blob) --------------------------
+# Per `decisions/release-cosign-blob-sign-2026-10.yaml` outcome
+# `install-sh-verifies-cosign-blob`. Verifies the released binary's
+# keyless cosign signature against the matching `<bin>.sig` /
+# `<bin>.pem` pair. The pair is published as release assets by
+# `.github/workflows/release.yml`'s `cosign sign-blob (each mathc-*
+# binary)` step, using the workflow's GitHub Actions OIDC token
+# (keyless, no `--key` flag). The same identity regexp +
+# `MC_COSIGN_OIDC_ISSUER` are used here as in the IMAGE cosign
+# verify (`verify_cosign` above) so user-side and CI-side checks
+# agree as a single string.
+#
+# Behavior (mirrors `verify_cosign`):
+#   - install_cosign_verify = 0 (--no-cosign-verify): no-op, exit 0.
+#   - cosign not on PATH: print a warning to stderr and exit 0
+#     (most users do not install cosign; the flag is on by
+#     default but missing-cosign is a warning, not a failure).
+#   - .sig or .pem absent (e.g. a pre-D6 release that did not
+#     publish signatures): print a warning to stderr and exit 0
+#     (no signature to verify against; SHA-256 remains the
+#     fallback integrity check).
+#   - cosign verify-blob exits 0: print a one-line confirmation
+#     to stderr ("cosign verify-blob: ok: <bin>") and exit 0.
+#   - cosign verify-blob exits non-zero: print an error to stderr,
+#     emit `diagnostic: MC-INSTALL-COSIGN-VERIFY-BLOB-FAIL`, and
+#     return 1 (mapped to exit 1 by the caller).
+#
+# Args: $1=binary_path, $2=signature_path, $3=certificate_path.
+# Returns: 0 on success / skipped / missing-cosign / pre-D6 release;
+# 1 on verify failure.
+verify_cosign_blob() {
+  bin="$1"
+  sig="$2"
+  cert="$3"
+  if [ "$install_cosign_verify" = "0" ]; then
+    return 0
+  fi
+  if ! command -v cosign >/dev/null 2>&1; then
+    echo "install.sh: cosign not installed; skipping binary signature verification (use --no-cosign-verify to suppress this warning)" >&2
+    return 0
+  fi
+  if [ -z "$sig" ] || [ ! -f "$sig" ] || [ -z "$cert" ] || [ ! -f "$cert" ]; then
+    echo "install.sh: cosign signature/certificate not published for $(basename "$bin") (pre-D6 release?); skipping verify" >&2
+    return 0
+  fi
+  # Suppress cosign's stdout; we surface the result via our own
+  # one-liner. cosign writes verify-success metadata to stdout,
+  # which would clutter the install script's normal output.
+  if cosign verify-blob \
+        --signature "$sig" \
+        --certificate "$cert" \
+        --certificate-identity-regexp "${MC_COSIGN_IDENTITY_REGEXP}" \
+        --certificate-oidc-issuer "${MC_COSIGN_OIDC_ISSUER}" \
+        "$bin" >/dev/null 2>&1; then
+    echo "install.sh: cosign verify-blob: ok: $(basename "$bin")" >&2
+    return 0
+  fi
+  echo "install.sh: cosign verify-blob: FAIL: $(basename "$bin")" >&2
+  echo "  the binary signature does not match the math-coding GitHub Actions OIDC issuer." >&2
+  echo "  this can indicate a release-asset compromise, a pre-sign release, or a tampered binary." >&2
+  echo "  retry with --no-cosign-verify only if you explicitly trust the release CDN for this version." >&2
+  echo "diagnostic: MC-INSTALL-COSIGN-VERIFY-BLOB-FAIL" >&2
   return 1
 }
 
@@ -681,9 +798,31 @@ main() {
     echo "install.sh: libc detect: ${libc}" >&2
   fi
 
-  if ! bin_basename=$(download_binary "$version" "$os" "$arch" "$libc" "$bin_tmp"); then
+  if ! bin_meta=$(download_binary "$version" "$os" "$arch" "$libc" "$bin_tmp"); then
     return 124
   fi
+  bin_basename=$(printf '%s\n' "$bin_meta" | sed -n '1p')
+  bin_url=$(printf '%s\n' "$bin_meta" | sed -n '2p')
+
+  # D6: download the cosign signature + certificate for the
+  # binary (best-effort). Skipped silently when --no-cosign-verify
+  # or cosign not on PATH. A pre-D6 release that does not publish
+  # .sig / .pem yields empty temp files, which `verify_cosign_blob`
+  # treats as "skip" with a warning to stderr.
+  sig_tmp=$(mktemp) || { echo "install.sh: mktemp failed" >&2; return 2; }
+  cert_tmp=$(mktemp) || { echo "install.sh: mktemp failed" >&2; rm -f "$sig_tmp"; return 2; }
+  download_cosign_blob_assets "$bin_url" "$sig_tmp" "$cert_tmp"
+
+  # D6: cosign blob verify (auth check). Runs BEFORE SHA-256
+  # verify (integrity check); both gates are independently
+  # closed. verify_cosign_blob is silent on success (one-line
+  # "ok" to stderr) and on skip (warning); returns 1 on real
+  # signature mismatch.
+  if ! verify_cosign_blob "$bin_tmp" "$sig_tmp" "$cert_tmp"; then
+    rm -f "$bin_tmp" "$sig_tmp" "$cert_tmp"  # remove partials
+    return 1
+  fi
+  rm -f "$sig_tmp" "$cert_tmp"  # cleanup cosign scratch files
 
   if ! verify_sha256 "$sums_tmp" "$bin_tmp" "$bin_basename"; then
     rm -f "$bin_tmp"  # remove the partial before exit

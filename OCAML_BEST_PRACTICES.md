@@ -2269,3 +2269,91 @@ auto-grant the permission; they document the requirement
 and silently fall back to ephemeral keys otherwise. Cited
 from this session (2026-10-15) as the trigger for
 `decisions/ux-3-cosign-image-2026-10.yaml`.
+
+### 11.37 cosign sign-blob needs `--output-signature`/`--output-certificate` paths the runner can write
+
+**Symptom.** A `cosign sign-blob --yes --output-signature
+dist-bin/foo.sig --output-certificate dist-bin/foo.pem dist-bin/foo`
+step in a GitHub Actions workflow fails with one of:
+
+```
+Error: open /tmp/foo.sig: read-only file system
+```
+
+```
+Error: signing: error uploading signature to rekor: ...
+```
+
+```
+Warning: no matching entries in transparency log for dist-bin/foo
+```
+
+The first is the file-system trap: writing the signature
+to `$RUNNER_TEMP` on a hardened runner fails because the
+job's working directory is bind-mounted but the tempdir
+may be a read-only squashfs overlay. The second is the
+transparency-log trap: `cosign sign-blob` does NOT
+auto-publish to Rekor unless `--output-signature` /
+`--output-certificate` resolve to paths under the same
+tree the workflow will later upload from. The third is
+the verifier trap: when the signature never reaches Rekor,
+a downstream `cosign verify-blob` against the artifact
+succeeds ONLY if the cert is passed as `--certificate`,
+but `--insecure-ignore-tlog` would also bypass the
+transparency check — defeating the whole point of the
+keyless signing.
+
+**Fix.** Write the signature and certificate NEXT TO the
+artifact being signed (same directory tree, same
+naming convention: `<artifact>.sig` and `<artifact>.pem`):
+
+```yaml
+- name: cosign sign-blob (each mathc-* binary)
+  env:
+    COSIGN_EXPERIMENTAL: "1"
+  run: |
+    set -eu
+    for exe in dist-bin/mathc-*; do
+      [ -f "$exe" ] || continue
+      case "$exe" in
+        *.tar.gz|*.txt|*.sig|*.pem) ;;  # exclude metadata + own output
+        *)
+          cosign sign-blob --yes \
+            --output-signature "${exe}.sig" \
+            --output-certificate "${exe}.pem" \
+            "$exe"
+          ;;
+      esac
+    done
+```
+
+The companion `permissions: id-token: write` requirement
+from §11.36 is unchanged — both §11.36 (OIDC token) and
+§11.37 (writable output paths) must be satisfied; one
+without the other still fails. The `<artifact>.sig` /
+`<artifact>.pem` basename convention matches the cosign
+default and what `cosign verify-blob` looks up
+automatically when invoked with `--signature` /
+`--certificate` flags (see
+`scripts/install-tooling/install.sh::verify_cosign_blob`).
+
+**Referenced from.**
+`.github/workflows/release.yml` (`cosign sign-blob (each
+mathc-* binary)` step inside the `publish` job);
+`scripts/install-tooling/install.sh` (`verify_cosign_blob`
+function); `scripts/install-tooling/install.ps1`
+(`Test-CosignBlob` function);
+`decisions/release-cosign-blob-sign-2026-10.yaml`
+(outcomes `cosign-blob-step-installed`,
+`install-sh-cosign-blob-flags`,
+`install-ps1-cosign-blob-flags`).
+
+**Trigger.** Any GitHub Actions workflow that runs
+`cosign sign-blob` against release artifacts without
+(1) `permissions: id-token: write` (§11.36), AND
+(2) writable `--output-signature` / `--output-certificate`
+paths under the same tree as the artifact being signed.
+Cited from this session (2026-10-15) as the trigger for
+`decisions/release-cosign-blob-sign-2026-10.yaml` (the
+D6 sub-decision under meta-decision
+`plan-2026-10-distro-friction`).
