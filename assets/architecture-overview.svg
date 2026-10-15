@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" role="img" aria-labelledby="arch-title" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 680" role="img" aria-labelledby="arch-title arch-desc" preserveAspectRatio="xMidYMid meet">
   <title id="arch-title">math-coding architecture: five concentric layers around a human — axioms, kernel, protocol objects, site and tools, user projects.</title>
+  <desc id="arch-desc">Five concentric rings around a central human figure: axioms at the core, then kernel, protocol objects, site and tools, then user projects on the outside. Lines link the human to each ring, showing which artefacts each layer produces and consumes. A legend along the bottom names each ring and its role.</desc>
   <defs>
     <style>
       .arch-box        { fill: #fbfaf6; stroke: #8b3a3a; stroke-width: 1.25; }

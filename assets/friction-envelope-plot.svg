@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 480" role="img" aria-labelledby="fe-title" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 540" role="img" aria-labelledby="fe-title" preserveAspectRatio="xMidYMid meet">
   <title id="fe-title">Friction envelope plot: X axis is risk(r), Y axis is friction_user(c) in lines. Band heights are proportional to the mode thresholds in algebra §21 (tiny ≤ 0, light ≤ 10, standard ≤ 60, strict ≤ 130, exhaustive ≤ 300); five example diff kinds are plotted within their mode band, and the ideal_3.2 budget (fu ≤ baseline for mode ≤ standard) is dashed across the diagram (§21 + §27).</title>
   <desc>A 2D plot on banded background showing the five mode tiers proportional to their §21 envelopes. Five example points are plotted within their actual mode band. The reference line marks the ideal_3.2 budget boundary.</desc>
   <defs>

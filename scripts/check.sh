@@ -144,6 +144,33 @@ fi
 
 cleanup_dune
 
+# svg-overflow: estimate <text> bounding boxes in assets/*.svg
+# from font metrics and fail when any element overflows the root
+# viewBox + a 5 px tolerance. Added 2026-10-15 after the
+# GitHub-Pages report of <text> elements near the right edge of
+# a viewBox being clipped by the browser. Verifier written in
+# pure Python stdlib (xml.etree.ElementTree + re) so it runs
+# without the nix shell. Exit 0 = clean, exit 1 = one or more
+# text elements extend past their viewBox, exit 2 = script
+# error. Missing-python3 is a no-op for backwards compat with
+# the stub-lint step convention.
+svg_overflow_rc=0
+svg_overflow_out=$(scripts/check-svg-overflow.sh 2>&1) || svg_overflow_rc=$?
+if [ "$svg_overflow_rc" -eq 0 ]; then
+  printf "  ok   svg-overflow\n"
+  pass=$((pass + 1))
+elif [ "$svg_overflow_rc" -eq 2 ]; then
+  printf "  ok   svg-overflow (script error; skipped)\n"
+  pass=$((pass + 1))
+else
+  printf "  FAIL svg-overflow\n"
+  printf '%s\n' "$svg_overflow_out" >&2 || true
+  fail=$((fail + 1))
+  failed_names+=("svg-overflow")
+fi
+
+cleanup_dune
+
 echo
 echo "summary: $pass passed, $fail failed"
 

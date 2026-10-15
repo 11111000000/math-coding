@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" role="img" aria-labelledby="hil-title" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 470" role="img" aria-labelledby="hil-title hil-desc" preserveAspectRatio="xMidYMid meet">
   <title id="hil-title">The human in the loop: three roles (author, reviewer, operator) touch five points in the protocol. The fifth (sign attestation or grant waiver) is the only one the kernel cannot replace.</title>
+  <desc id="hil-desc">Three horizontal swim-lanes — author, reviewer, operator — each dotted at the protocol points they touch. Five protocol points are arranged left-to-right across the page. The rightmost point, sign attestation or grant waiver, has dots only in the reviewer and operator lanes; it is the single point the kernel cannot replace.</desc>
   <defs>
     <style>
       .hil-title       { font-family: Georgia, "Iowan Old Style", serif; font-size: 16px; fill: #1a1a1a; text-anchor: middle; font-style: italic; }

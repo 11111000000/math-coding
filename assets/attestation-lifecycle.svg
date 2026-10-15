@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 380" role="img" aria-labelledby="al-title" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 380" role="img" aria-labelledby="al-title" preserveAspectRatio="xMidYMid meet">
   <title id="al-title">Attestation lifecycle: production, store, join, verdict, expiry. Five stages from a CI run to a gate verdict.</title>
   <desc id="al-desc">A horizontal flow with five stages. Production captures the substrate fingerprint inside a CI run. Store writes the attestation document. Join reads the store and pairs attestations with obligations. Verdict composes per-obligation results into a single disposition. Expiry flips an obligation to Inconclusive when its valid_until is reached. The legend below names the four verdict colours.</desc>
   <defs>

@@ -75,6 +75,7 @@ Before changing anything in this repository, read in order:
    you must satisfy.
 9. `axioms/` — the philosophical and mathematical foundations. Every
    non-trivial change MUST be derivable from at least one axiom.
+10. `assets/*.svg` — site illustrations. 33 files, all have viewBox + <title>/<desc>; referenced from `site/*.md`. After editing any SVG, render it via `scripts/render-svgs.sh <name>.svg` (output in `assets/_renders/`) and visually verify no text overflows the right edge. The preventive verifier `scripts/check-svg-overflow.sh` runs in CI; the 2026-10-15 GitHub Pages report (this branch) motivated both.
 
 If any of these contradict each other, the contradiction is a deficit.
 Report it; do not silently resolve it.

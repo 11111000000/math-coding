@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" role="img" aria-labelledby="br-title br-desc">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 840 200" role="img" aria-labelledby="br-title br-desc">
   <title id="br-title">Bootstrap regime transition: from manual to automated kernel-enforced gate.</title>
   <desc id="br-desc">Two horizontal swim-lanes: a manual regime lane (top, eight manual checks per PR, active from v3-alpha-0.0.1 to 8fa7fcf) and an automated regime lane (bottom, kernel-driven self-check and gate, active from 8fa7fcf forward). Two arrows cross between them: a human-to-human proposal from the manual lane, and a kernel-driven self-check from the automated lane. The transition commit 8fa7fcf (v3.0.0.19) is the boundary.</desc>
   <defs>

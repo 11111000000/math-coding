@@ -1,5 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 560" role="img" aria-labelledby="kvh-title" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 560" role="img" aria-labelledby="kvh-title kvh-desc" preserveAspectRatio="xMidYMid meet">
   <title id="kvh-title">The boundary between kernel-determined and human-determined. The kernel may check six things; six things only a human may decide. Verbatim from spec/constitution.md §Authority Boundary.</title>
+  <desc id="kvh-desc">Two parallel columns separated by a vertical divider. The left column, 'Kernel may check', lists six items — schema, freshness, identity, reference, evidence presence, and substrate. The right column, 'Only a human may decide', lists six items — waiver, ambiguity, override, scope, regime transition, and recovery. The divider marks the authority boundary.</desc>
   <defs>
     <style>
       .kvh-title       { font-family: Georgia, "Iowan Old Style", serif; font-size: 16px; fill: #1a1a1a; text-anchor: middle; font-style: italic; }

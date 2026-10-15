@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 540" role="img" aria-labelledby="ladder-title" preserveAspectRatio="xMidYMid meet">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 540" role="img" aria-labelledby="ladder-title" preserveAspectRatio="xMidYMid meet">
   <title id="ladder-title">Friction ladder: silent (top, kernel chooses) below ask (human reviews) to block (bottom, kernel refuses). Friction budget on the right, drawn from algebra §21.</title>
   <desc>Four rungs from least to most severe. Silent — typo fix, comment, refactor that adds no behavior. Record — new endpoint, dependency upgrade. Ask — API change, public-contract change. Block — constitution, schema, kernel rule. The kernel chooses the least sufficient level; it may raise friction but never lower it. For each rung the right side lists the corresponding mode budget from algebra §21: tiny ≤ 0, light ≤ 10, standard ≤ 60, strict ≤ 130, exhaustive ≤ 300 lines.</desc>
   <defs>
@@ -18,7 +18,7 @@
       .side-label { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; text-anchor: middle; letter-spacing: 0.06em; text-transform: uppercase; }
       .side-label-emit { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #8b3a3a; text-anchor: middle; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; }
       .budget-mode { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #1a1a1a; font-weight: 600; }
-      .budget-mode-mute { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8a8a8a; }
+      .budget-mode-mute { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 10px; fill: #8a8a8a; text-anchor: start; }
       .budget-limit { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 9px; fill: #5a5a5a; }
       .footer-text { font-family: Georgia, serif; font-size: 10px; fill: #5a5a5a; text-anchor: middle; font-style: italic; }
       .title-text { font-family: Georgia, serif; font-size: 15px; fill: #1a1a1a; font-weight: 600; }
@@ -73,23 +73,23 @@
   <g>
     <text class="budget-mode" x="380" y="115">tiny</text>
     <text class="budget-limit" x="380" y="128">≤ 0 lines</text>
-    <text class="budget-mode-mute" x="380" y="138" font-size="8">(commit message only)</text>
+    <text class="budget-mode-mute" x="345" y="138" font-size="8">(commit message only)</text>
 
     <text class="budget-mode" x="380" y="205">light</text>
     <text class="budget-limit" x="380" y="218">≤ 10 lines</text>
-    <text class="budget-mode-mute" x="380" y="228" font-size="8">(body + counterexample)</text>
+    <text class="budget-mode-mute" x="345" y="228" font-size="8">(body + counterexample)</text>
 
     <text class="budget-mode" x="380" y="295">standard</text>
     <text class="budget-limit" x="380" y="308">≤ 60 lines</text>
-    <text class="budget-mode-mute" x="380" y="318" font-size="8">(body + trailer + yaml)</text>
+    <text class="budget-mode-mute" x="345" y="318" font-size="8">(body + trailer + yaml)</text>
 
     <text class="budget-mode" x="380" y="370">strict</text>
     <text class="budget-limit" x="380" y="383">≤ 130 lines</text>
-    <text class="budget-mode-mute" x="380" y="393" font-size="8">(+ rebuttals)</text>
+    <text class="budget-mode-mute" x="345" y="393" font-size="8">(+ rebuttals)</text>
 
     <text class="budget-mode" x="380" y="412">exhaustive</text>
     <text class="budget-limit" x="380" y="425">≤ 300 lines</text>
-    <text class="budget-mode-mute" x="380" y="435" font-size="8">(+ formal proofs)</text>
+    <text class="budget-mode-mute" x="345" y="435" font-size="8">(+ formal proofs)</text>
   </g>
 
   <text class="footer-text" x="240" y="490">friction budget per commit — algebra §21</text>
