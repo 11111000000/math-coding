@@ -120,6 +120,22 @@ obligations:
         - verifier: mathc-self-check
           result: pass
 
+  - id: render-sh-emits-dashboard-and-graph-artefacts
+    claim: |
+      `scripts/render.sh` produces `dist/dashboard.html`,
+      `dist/graph.html`, and `dist/graph.json` in addition
+      to the prose pages; the [4/4] verify pass reports
+      'render OK' with no MISSING line for those three
+      files. The dashboard wraps the `mathc packages
+      --format=html` section in a full HTML document; the
+      graph.json is the canonical relations-graph projection
+      for the bootstrap policy; graph.html is a static
+      cytoscape.js viewer that fetches graph.json.
+    acceptance:
+      all:
+        - verifier: render-missing-file-check
+          result: pass
+
 risk:
   declared_triggers:
     - render-sh-allowlist-becomes-stale-on-next-article-addition

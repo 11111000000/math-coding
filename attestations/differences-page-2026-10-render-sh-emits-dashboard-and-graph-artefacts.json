@@ -1,0 +1,16 @@
+{
+  "id": "sha256:5c3611bf74711da86beb48c79c097da451f5395ba3cfb959384194e2cbf97c70",
+  "issued_at": "2026-10-15T13:50:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {"identity": "human:maintainer"},
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "differences-page-2026-10",
+    "materials_digest": "",
+    "obligation": "render-sh-emits-dashboard-and-graph-artefacts"
+  },
+  "evidence": "After scripts/render.sh gains a [3.5/4] step that wraps `mathc packages --format=html` into dist/dashboard.html, writes `mathc graph --decision=bootstrap-v3 --format=json` to dist/graph.json, and emits a static cytoscape.js viewer at dist/graph.html, the local run reports 'render OK: dist/ contains 193 files' with no MISSING line for the three artefacts; the previously-failing .github/workflows/site.yml run #38743784410 (pre-existing bug from commit d7f0334) is unblocked by the same change."
+}
