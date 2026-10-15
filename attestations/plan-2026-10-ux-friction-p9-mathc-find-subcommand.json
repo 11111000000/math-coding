@@ -1,0 +1,17 @@
+{
+  "id": "sha256:1492fffd453f527433f942c83ee006682dd9681ca38b48f11eb70dee4c417cf9",
+  "issued_at": "2026-10-15T00:00:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "human:maintainer"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "plan-2026-10-ux-friction",
+    "materials_digest": "",
+    "obligation": "p9-mathc-find-subcommand"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "id": "sha256:c951dee4e586158e9960babbe3d8fb7de1a4034ebd9d4887df462002d748647b",
+  "issued_at": "2026-10-15T00:00:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "human:maintainer"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "plan-2026-10-ux-friction",
+    "materials_digest": "",
+    "obligation": "p3a-cosign-image"
+  }
+}

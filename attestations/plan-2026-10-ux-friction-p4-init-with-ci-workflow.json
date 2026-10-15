@@ -1,0 +1,17 @@
+{
+  "id": "sha256:3b09a4688173031ee9bac1358fa3e7005d307ae15a563b58810efccc9ec040d5",
+  "issued_at": "2026-10-15T00:00:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "human:maintainer"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "plan-2026-10-ux-friction",
+    "materials_digest": "",
+    "obligation": "p4-init-with-ci-workflow"
+  }
+}

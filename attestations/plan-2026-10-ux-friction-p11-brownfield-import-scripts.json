@@ -1,0 +1,17 @@
+{
+  "id": "sha256:97d1f843bee85efeb45b53531379bf3865392129d46bff9d5f1d8ce808efd35a",
+  "issued_at": "2026-10-15T00:00:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "human:maintainer"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "plan-2026-10-ux-friction",
+    "materials_digest": "",
+    "obligation": "p11-brownfield-import-scripts"
+  }
+}

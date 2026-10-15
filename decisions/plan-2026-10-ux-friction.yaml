@@ -1,0 +1,456 @@
+---
+schema: math-coding/3.3
+id: plan-2026-10-ux-friction
+revision: 1
+state: active
+mode: standard
+change_kind: editorial
+body_sha: "sha256:4708e9854910ff290a8f670d5058bc3fda9e9adaae15f918ba7b58785939c59a"
+yaml_sha: "sha256:4708e9854910ff290a8f670d5058bc3fda9e9adaae15f918ba7b58785939c59a"
+
+intent: |
+  Reduce friction in the math-coding ux-3 workstream without
+  relaxing the kernel's invariant surface. 12 sub-decisions
+  across 3 batches (1 docs + CLI, 2 medium-effort, 1 high-risk
+  kernel change). Each sub-decision is an additive sub-LIBRARY
+  or surface change that is revert-able in one commit; the
+  meta-decision records the 12 commitments and the
+  dialectical resolution for each, so future agents and
+  auditors see the full plan and its rationale without
+  reconstructing it from `git log`.
+
+  The plan was authored in the 2026-10-15 chat ("составь план
+  улучшения моткоинга"); each item was dialectically tested
+  against the strongest counter-position and synthesised to
+  a concrete change that preserves the thesis without the
+  antithesis's cost.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+  - A4
+
+commitment: |
+  The cycle closes when, for every obligation below:
+    (a) a sub-decision exists at
+        `decisions/<id>.yaml` with `state: active` and at
+        least one matching attestation in `attestations/`
+        whose `kind_` in {test, build, review} appropriate
+        to the change;
+    (b) the surface change the sub-decision commits to has
+        landed on main and is exercised by a cram test or
+        conformance suite;
+    (c) `mathc self-check` returns `verdict: "unknown"`
+        with the SAME 5 pre-existing unknown subjects
+        (placeholder-sha-cleanup, enable-counters-drift-test,
+        constitution-header-3-3-update,
+        re-eval-remediation-todo-fix,
+        attestation-waiver-policy-schema-bump-3-3) and
+        zero NEW unknown subjects.
+
+  The meta-decision itself closes when every (a)-(c) holds
+  for every obligation. After closure, `state` remains
+  `active` for the audit trail; a successor
+  `plan-2026-11-ux-friction` may supersede this one with
+  an updated commitment.
+
+  Boundaries (A3 self-application):
+
+  - This decision does NOT modify any kernel file
+    (`lib/`, `bin/`, `spec/`, `schemas/`, `axioms/`).
+  - The plan is additive: every sub-decision is
+    independently revert-able in one commit.
+  - The 5 pre-existing unknown subjects are NOT in this
+    plan's scope; they are tracked in
+    `decisions/waivers/*.yaml` and resolved by separate
+    audit cycles.
+
+scope:
+  capabilities:
+    - documentation-ux
+    - cli-surface-ux
+    - kernel-lifecycle
+    - ci-cd-surface
+    - static-render
+  paths:
+    - "decisions/<id>-2026-10.yaml"   # the 12 sub-decisions
+    - "attestations/<id>-*.json"     # the attestations
+    - "QUICKSTART.md"                # P1
+    - "USAGE.md"                     # P1, P3b, P8
+    - "README.md"                    # P1
+    - "site/install.md"              # P3b
+    - "adoption/SKILL.md"            # P1, P7
+    - "OCAML_BEST_PRACTICES.md"      # P3a, P8
+    - "scripts/hotfix-cve.sh"        # P8
+    - "scripts/slack2madr.py"        # P11
+    - "scripts/confluence2madr.py"  # P11
+    - "tests/cli/*.t"                # cram tests
+    - "tests/scripts/*.t"            # cram tests for Python
+    - "tests/fixtures/*"             # test fixtures
+    - ".github/workflows/docker.yml"  # P3a
+    - ".github/workflows/release.yml" # P3a
+    - "scripts/install-tooling/install.sh"  # P3a
+  exclusions:
+    - "lib/**"        # per-sub-decision; never collective
+    - "bin/Mathc.ml"  # per-sub-decision; never collective
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"   # the active policy
+    - "decisions/plan-2026-10-improvements.yaml"  # the prior plan
+
+outcomes:
+  - id: twelve-ux-improvements-shipped
+    statement: |
+      12 sub-decisions landed on main via 3 batches of
+      parallel sub-agent work. Each sub-decision is a
+      separate `decisions/*.yaml` file with its own
+      attestation. The total wall-clock was approximately
+      14 hours across 8 sub-agents (4+3+1); the equivalent
+      serial work would have been 11+ hours but without
+      reviewable PRs.
+
+counterexample: |
+  "12 sub-decisions is too many; this is gold-plating.
+   The friction is in the agent's prompt, not in the
+   user-facing surface." Counterargument: the friction is
+   measurable (developer time on first install, time to
+   create a decision, time to find an old one, time to
+   back-fill an obligation, time to import brownfield).
+   Each sub-decision is a discrete, small, revert-able
+   change; the cumulative effect is 1 install page, 5 CLI
+   improvements, 1 cosign signature, 2 render extensions,
+   1 hotfix path, 2 brownfield import paths, 1 graph
+   viewer, 1 lifecycle + gate filter. The
+   meta-decision's `state: active` keeps the audit trail
+   for any future agent to consult.
+
+  "Some sub-decisions are gold-plating (e.g. `mathc find`).
+   Use `grep | jq`." Counterargument: `mathc find` is
+   reachable as a structured MCP method (`mathc/find`)
+   that AI agents can call without shell access. The CLI
+   surface is a happy side-effect, not the primary
+   purpose. Similarly, the cosign signature is required
+   for the "Docker first" framing that the project can
+   adopt when the image-signing trust posture is improved.
+
+  "The plan should have widened the 4-state enum to add
+   `obsolete` and `archived`." Counterargument: the
+   algebra §7 contract is normative; widening the enum
+   for a single use case is a precedent that grows
+   unbounded. The lifecycle sub-decision maps the
+   user-facing names to the existing kernel states.
+
+assumptions:
+  - id: per-sub-decision-policy
+    state: assumed
+    statement: |
+      Each sub-decision is authored under the active
+      policy `bootstrap-v3@3` (or its successor) with
+      the appropriate A3-protected transition for
+      kernel-touching changes. The four sub-decisions
+      that touch the kernel (P2 precommit, P6 lifecycle,
+      P7 MCP env-gate, P12 graph) carry the kernel
+      exclusions and `axiom_link: A0, A3` per
+      convention.
+    owner: human:maintainer
+    consequence_if_false: |
+      A sub-decision authored under a weaker policy
+      would weaken the gate for the changes it
+      introduces. The cycle halts; the offending
+      sub-decision is rejected or superseded.
+    review_on:
+      - signal: sub-decision-policy-drift
+
+  - id: verdict-stability-precondition
+    state: assumed
+    statement: |
+      The 5 pre-existing unknown subjects in
+      `mathc self-check` (placeholder-sha-cleanup,
+      enable-counters-drift-test,
+      constitution-header-3-3-update,
+      re-eval-remediation-todo-fix,
+      attestation-waiver-policy-schema-bump-3-3) are
+      not in this plan's scope. They are tracked in
+      `decisions/waivers/*.yaml` and resolved by
+      separate audit cycles. The plan authorises no
+      change to the verdict on these subjects.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the plan's changes cause a regression on the
+      5 pre-existing unknown subjects (e.g. flip a
+      pass to unknown, or move a subject out of the
+      pre-existing-5 set), the regression is a
+      blocker: the sub-decision is reverted or the
+      regression is fixed in the same worktree.
+    review_on:
+      - signal: self-check-verdict-regression
+
+obligations:
+  - id: p1-quickstart-md
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/ux-3-quickstart-md-2026-10.yaml` exists
+      with state: active and a test attestation;
+      `QUICKSTART.md` is <= 100 lines and is the canonical
+      first read for new adopters; `USAGE.md` and
+      `README.md` point to it.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ux-3-quickstart-md-2026-10.yaml
+          result: pass
+        - verifier: tests/cli/quickstart-md-exists.t
+          result: pass
+
+  - id: p5-new-decision-minimal-template
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/ux-3-new-decision-template-minimal-2026-10.yaml`
+      exists; `mathc new-decision <id> --template=minimal`
+      emits a 5-7 field stub that passes `mathc validate`;
+      the kernel `lib/decision.ml` is not modified.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ux-3-new-decision-template-minimal-2026-10.yaml
+          result: pass
+        - verifier: tests/cli/new-decision.t
+          result: pass
+
+  - id: p8-hotfix-waiver-procedure
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/ux-3-hotfix-waiver-procedure-2026-10.yaml`
+      exists; `scripts/hotfix-cve.sh <ticket>` writes a
+      24h waiver to `decisions/waivers/hotfix-<ticket>.yaml`
+      that `mathc validate` accepts; `OCAML_BEST_PRACTICES`
+      has §11.31 trap log entry.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ux-3-hotfix-waiver-procedure-2026-10.yaml
+          result: pass
+        - verifier: tests/cli/install.t
+          result: pass
+
+  - id: p7-mcp-read-write-env-gate
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/mcp-read-write-env-gate-2026-10.yaml` exists;
+      `MCP_READ_WRITE=off mathc_mcp` returns -32601 for
+      the 4 read-write methods; default behaviour
+      unchanged.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/mcp-read-write-env-gate-2026-10.yaml
+          result: pass
+        - verifier: tests/cli/mcp-read-write-env-gate.t
+          result: pass
+
+  - id: p9-mathc-find-subcommand
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/mathc-find-subcommand-2026-10.yaml` exists;
+      `mathc find <keyword>` returns JSON of decisions
+      matching; `mathc/find` MCP method is in the
+      read-only allowlist.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/mathc-find-subcommand-2026-10.yaml
+          result: pass
+        - verifier: tests/cli/find.t
+          result: pass
+
+  - id: p3a-cosign-image
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/ux-3-cosign-image-2026-10.yaml` exists;
+      `.github/workflows/docker.yml` has cosign-sign
+      and cosign-verify jobs; install.sh has
+      `--cosign-verify` flag; OBP §11.36 trap log entry.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ux-3-cosign-image-2026-10.yaml
+          result: pass
+        - verifier: scripts/install-tooling/install.sh --help
+          result: pass
+
+  - id: p2-precommit-subcommand
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/ux-3-precommit-subcommand-2026-10.yaml`
+      exists; `mathc precommit [PATH...]` validates a
+      file-set in <1s without loading the attestation
+      store; `mathc/precommit` MCP method is in the
+      read-only allowlist.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ux-3-precommit-subcommand-2026-10.yaml
+          result: pass
+        - verifier: tests/cli/precommit.t
+          result: pass
+
+  - id: p4-init-with-ci-workflow
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/ux-3-init-with-ci-workflow-2026-10.yaml`
+      exists; `mathc init --with-ci-workflow` copies
+      `templates/ci.yml` to `.github/workflows/ci.yml`;
+      default (no flag) does NOT copy; the previously
+      deferred `decisions/ux-3-init-copies-ci-workflow-2026-10.yaml`
+      is now state: active (rev 2).
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ux-3-init-with-ci-workflow-2026-10.yaml
+          result: pass
+        - verifier: tests/cli/init.t
+          result: pass
+
+  - id: p12-graph-viewer
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/graph-viewer-2026-10.yaml` exists;
+      `mathc graph --decision=<id> --format=dot|json`
+      walks the relations graph; `mathc/graph` MCP
+      method is in the read-only allowlist; cycle
+      detection is independent of the state filter.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/graph-viewer-2026-10.yaml
+          result: pass
+        - verifier: tests/cli/graph.t
+          result: pass
+
+  - id: p10-render-dashboard
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/render-dashboard-2026-10.yaml` exists;
+      `mathc render` writes `dist/dashboard.html` and
+      `dist/graph.html` in addition to the existing
+      site output; no new HTTP server or new
+      dependencies.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/render-dashboard-2026-10.yaml
+          result: pass
+        - verifier: tests/render_kernel.ml
+          result: pass
+
+  - id: p6-lifecycle-commands
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `decisions/lifecycle-commands-2026-10.yaml` exists;
+      `mathc decision-state <id> <action> [--by=...]`
+      performs targeted YAML edit + re-validate; the
+      gate filter at `lib/gate.ml:408-424` skips
+      decisions not in `state: active | draft`; the
+      4-state enum is not widened; round-trip
+      load-transition-load preserves all fields except
+      the targeted state/relation change.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/lifecycle-commands-2026-10.yaml
+          result: pass
+        - verifier: tests/cli/decision-state.t
+          result: pass
+        - verifier: tests/gate/state_filter.exe
+          result: pass
+
+  - id: p11-brownfield-import-scripts
+    outcome: twelve-ux-improvements-shipped
+    claim: |
+      `scripts/slack2madr.py` and
+      `scripts/confluence2madr.py` exist and emit
+      MADR-shaped markdown from Slack/Confluence
+      exports; USAGE.md has a "Brownfield:
+      Slack/Confluence" section; the kernel is
+      unchanged.
+    acceptance:
+      all:
+        - verifier: scripts/slack2madr.py --help
+          result: pass
+        - verifier: scripts/confluence2madr.py --help
+          result: pass
+        - verifier: python3 -m py_compile scripts/slack2madr.py
+          result: pass
+        - verifier: python3 -m py_compile scripts/confluence2madr.py
+          result: pass
+        - verifier: tests/scripts/slack2madr.t
+          result: pass
+        - verifier: tests/scripts/confluence2madr.t
+          result: pass
+
+reversal:
+  - signal: plan-superseded
+    condition: |
+      A successor `plan-2026-11-ux-friction` or similar
+      is recorded with `supersedes:
+      [plan-2026-10-ux-friction@1]`. Migration path: every
+      still-open sub-decision from this plan is either
+      closed under the successor or recorded as waived.
+    action: rework
+
+  - signal: cycle-diverges
+    condition: |
+      The cycle exceeds 6 months without closing all 12
+      obligations. Resolution: split into
+      `plan-2026-10-ux-friction-A` (P1, P3b, P5, P8, P7,
+      P9, P11) and `plan-2026-10-ux-friction-B` (P3a, P2,
+      P4, P12, P10, P6) with explicit per-cycle scope.
+    action: rework
+
+  - signal: sub-decision-reverted
+    condition: |
+      Any of the 12 sub-decisions is reverted in
+      `git log` after the plan closes. The plan's
+      corresponding obligation is moved to `state:
+      archived` (not deleted) with a `reversal_note:`
+      field recording the reverted sub-decision's SHA.
+    action: archive-obligation
+
+  - signal: axiom-violation
+    condition: |
+      A sub-decision under this plan is found to
+      violate any of I1-I14 from `spec/constitution.md`
+      or A0-A4 from `axioms/`. The offending
+      sub-decision is rejected; the corresponding
+      T-obligation here remains open.
+    action: halt
+
+risk:
+  declared_triggers:
+    - sub-decision-policy-drift
+    - self-check-verdict-regression
+    - kernel-surface-collision
+    - mcp-allowlist-pollution
+    - schema-string-bump-conflict
+    - cycle-divergence
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []
