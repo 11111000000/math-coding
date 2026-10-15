@@ -1,0 +1,198 @@
+---
+schema: math-coding/3.3
+id: winget-manifest-pr-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+
+body_sha: "sha256:55e66e09ba7eb3337b5db61537bcc63f14943742a560b4f9774eefce60b775a5"
+yaml_sha: "sha256:55e66e09ba7eb3337b5db61537bcc63f14943742a560b4f9774eefce60b775a5"
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+intent: |
+  Ship the `mathcoding.mathc` package in the
+  Microsoft `winget-pkgs` repository so Windows 10+ /
+  Windows 11 users can run `winget install
+  mathcoding.mathc` and land at `mathc version`. The
+  installer artifact (mathc-windows-x86_64.exe + SHA-256)
+  ships every release today; the missing piece is the
+  upstream manifest submission that makes winget
+  discover it.
+
+  Per Microsoft's contribution rules, the manifests
+  live in
+  `microsoft/winget-pkgs/manifests/<publisher-letter>/<publisher>/<package>/<version>/`.
+  We pre-build these from a Python generator in this
+  repo (`tools/winget/scripts/render-winget-manifest.py`)
+  so the maintainer's submission step is a copy +
+  push.
+
+commitment: |
+  `tools/winget/` exists in the math-coding repository
+  and contains:
+    - `PUBLISH.md` — the operator runbook for opening
+      the upstream PR (steps, fork setup, validation).
+    - `manifests/m/mathcoding/mathc/` — the versioned
+      manifest set, one folder per `vX.Y.Z` release.
+      Each folder carries:
+        - `mathcoding.mathc.installer.yaml`
+        - `mathcoding.mathc.locale.en-US.yaml`
+        - `mathcoding.mathc.defaultLocale.yaml`
+        - `Versions/X.Y.Z.yaml`
+    - `scripts/render-winget-manifest.py` — the
+      generator that produces the four files
+      deterministically from
+      `--version`, `--sha256-windows-x86_64`, and
+      `--release-date`.
+
+  The first manifest set (v3.3.0) is committed
+  alongside this decision; the maintainer's manual
+  step is to push them to a fork of
+  `microsoft/winget-pkgs` and open the PR. The PR
+  review and merge is owned by Microsoft; the
+  decision's obligation closes on PR submission,
+  not PR merge.
+
+  Schema conformance: the YAML files conform to
+  winget schema 1.6.0
+  (https://aka.ms/winget-manifest.installer.1.6.0.schema.json,
+  .locale.1.6.0.schema.json,
+  .version.1.6.0.schema.json). Strict conformance is
+  verified on a Windows host running
+  `winget validate`; the repo does not embed schema
+  validators.
+
+scope:
+  capabilities:
+    - installer-distro
+    - bootstrap-windows
+    - package-managers
+  paths:
+    - "tools/winget/**"
+    - "USAGE.md"
+    - "site/install.md"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: winget-discoverable
+    statement: |
+      `winget install mathcoding.mathc` on Windows 10+
+      / Windows 11 with winget-client 1.6+ returns 0 and
+      lands at `mathc version`.
+
+counterexample: |
+  "winget and Scoop both exist; we should not duplicate
+   the upstream-PR model." Counterargument: the two
+   packages serve different user populations;
+   Microsoft's winget preinstalls on Windows 11 +
+   ships via `App Installer`, while Scoop is opt-in.
+   Submission latency also differs (winget: 1-7 days;
+   Scoop: hours). Bundling both manifest generators
+   keeps the maintenance cost low (one Python
+   generator per packager).
+
+  "The manifest files belong in
+   microsoft/winget-pkgs, not here." Counterargument:
+   the source-of-truth for the manifest schema is
+   microsoft/winget-pkgs; the source-of-truth for
+   "what version, what SHA-256, what release date"
+   is math-coding's release tag. Keeping the generator
+   here lets a maintainer regenerate a past manifest
+   on a backport commit; storing the rendered files
+   here (under `tools/winget/manifests/`) keeps the
+   math-coding release reproducible.
+
+  "Microsoft reviews wingset submissions and may reject
+   math-coding for tagging or naming choices."
+   Counterargument: the rejection pattern typically
+   resolves in 1 round-trip PR comments; Microsoft
+   treats first-time submitters with leeway. If the
+   submission stalls, the decision is recorded under
+   `reversal.rejection-stuck` and a follow-up cycle
+   handles re-submission.
+
+obligations:
+  - id: winget-generator-shipped
+    outcome: winget-discoverable
+    claim: |
+      `tools/winget/scripts/render-winget-manifest.py`
+      exists, has a working `--help`, and produces
+      a syntactically valid four-file set for a sample
+      invocation.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/winget-manifest-pr-2026-10.yaml
+          result: pass
+        - verifier: tools/winget/scripts/render-winget-manifest.py --version 3.3.0 --sha256-windows-x86_64 0000000000000000000000000000000000000000000000000000000000000000 --release-date 2026-10-15 --out /tmp/winget-test exits 0
+          result: pass
+        - verifier: python3 -m py_compile tools/winget/scripts/render-winget-manifest.py
+          result: pass
+
+  - id: winget-v330-shipped
+    outcome: winget-discoverable
+    claim: |
+      The `v3.3.0` manifest set is committed at
+      `tools/winget/manifests/m/mathcoding/mathc/3.3.0/`
+      with the four files. SHA-256 matches the
+      `mathc-windows-x86_64.exe` from the `v3.3.0`
+      release (`202a09d8…6a3d`).
+    acceptance:
+      all:
+        - verifier: tools/winget/manifests/m/mathcoding/mathc/3.3.0/mathcoding.mathc.installer.yaml exists
+          result: pass
+        - verifier: grep 'InstallerSha256: 202a09d8a114c1eb9cc0ab3c94500898737c24ee7287778d6adb8bf79e3a6a3d' tools/winget/manifests/m/mathcoding/mathc/3.3.0/mathcoding.mathc.installer.yaml
+          result: pass
+
+  - id: winget-publish-md
+    outcome: winget-discoverable
+    claim: |
+      `tools/winget/PUBLISH.md` documents the PR
+      submission procedure.
+    acceptance:
+      all:
+        - verifier: tools/winget/PUBLISH.md exists
+          result: pass
+        - verifier: head -3 tools/winget/PUBLISH.md mentions microsoft/winget-pkgs
+          result: pass
+
+reversal:
+  - signal: winget-rejection-stuck
+    condition: |
+      Microsoft rejects the manifest submission twice
+      and PR feedback cannot be actioned in a single
+      round.
+    action: rework
+
+  - signal: winget-replaced-by-msix
+    condition: |
+      A native math-coding MSI / MSIX installer ships
+      and ships through Microsoft Store, superseding
+      the winget manifest.
+    action: archive-obligation
+
+risk:
+  declared_triggers:
+    - winget-schema-versioning-drift
+    - microsoft-pr-review-stuck
+    - manifest-sha-mismatch-with-release
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-distro-friction@1
+  supersedes: []
+  superseded_by: []

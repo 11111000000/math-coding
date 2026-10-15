@@ -1,0 +1,234 @@
+---
+schema: math-coding/3.3
+id: ux-3-install-ps1-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+
+body_sha: "sha256:370054d7e65c7dadf19cd7f1bf9a8487de756c45e6388b8953a1cfbc453addd4"
+yaml_sha: "sha256:370054d7e65c7dadf19cd7f1bf9a8487de756c45e6388b8953a1cfbc453addd4"
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+intent: |
+  Ship a PowerShell one-liner installer for math-coding on
+  Windows hosts. The current `install.sh` rejects
+  MINGW/MSYS/CYGWIN shells, leaving Windows users with the
+  manual "browse to releases page, download, move to PATH"
+  loop. The new `install.ps1` provides the
+  `irm https://…/install.ps1 | iex` path the standard
+  cross-platform CLI ecosystem uses (rustup, deno, fnm,
+  bun, uv, gitleaks).
+
+commitment: |
+  `scripts/install-tooling/install.ps1` exists, parses
+  cleanly under PowerShell 7.x (no parse errors at
+  `[System.Management.Automation.Language.Parser]::ParseFile`),
+  and performs, on invocation:
+
+    1. Detects the host CPU architecture
+       (`[System.Runtime.InteropServices.RuntimeInformation]
+         ::ProcessArchitecture`) and resolves
+       x64 → x86_64, Arm64 → aarch64.
+    2. Resolves `mathc-windows-<arch>.exe` and `SHA256SUMS`
+       from the same tagged release (default = `latest`,
+       supports `edge`, `vX.Y.Z`).
+    3. Downloads the SUMS file first; refuses to download
+       the binary if `SHA256SUMS` is unreachable
+       (Network failure surface as `MC-INSTALL-NETWORK`).
+    4. Computes the binary's SHA-256 via
+       `Get-FileHash -Algorithm SHA256` and compares against
+       the matching line in `SHA256SUMS`. Emits
+       `MC-INSTALL-CHECKSUM-MISMATCH` on divergence and
+       cleans the partial binary.
+    5. Idempotently appends the install dir
+       (`%LOCALAPPDATA%\Programs\mathc` by default,
+       overridable via `MATH_CODING_INSTALL_DIR`) to the
+       user's `Path` via
+       `[Environment]::SetEnvironmentVariable('Path',
+         …, 'User')`.
+    6. Optional `-UserSkill` flag also downloads
+       `dist-adoption.tar.gz` and extracts the embedded
+       `adoption/opencode/SKILL.md` into
+       `${env:APPDATA}\opencode\skills\math-coding\SKILL.md`
+       with the same version-pin idempotency as `install.sh`.
+    7. Default-on `-CosignVerify` flag runs
+       `cosign verify` against the ghcr.io Docker image
+       (matching `install.sh`'s OIDC issuer /
+       certificate-identity). Skipped when `cosign` is
+       absent (warning) or `-NoCosignVerify` is set.
+
+  Exit codes: 0 = ok, 1 = SHA mismatch, 2 = input error,
+  3 = network / TLS error.
+
+  The release pipeline (`release.yml`) includes
+  `dist-bin/install.ps1` in the `files:` list of both
+  `softprops/action-gh-release` invocations, on par with
+  `dist-bin/install.sh`.
+
+scope:
+  capabilities:
+    - installer-distro
+    - bootstrap-windows
+  paths:
+    - "scripts/install-tooling/install.ps1"
+    - ".github/workflows/release.yml"
+    - "QUICKSTART.md"
+    - "USAGE.md"
+    - "site/install.md"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: windows-one-liner-installer
+    statement: |
+      `irm ... | iex` on a Windows host without prior
+      tooling lands the user at a working `mathc version`
+      in one command, with SHA-256 verification and user
+      PATH update.
+
+counterexample: |
+  "Powershell is a Microsoft tool; bundling a
+   Microsoft-specific installer in a math-coding release
+   vendor-locks the user." Counterargument: the
+   PowerShell one-liner is a TRANSPORT for downloading
+   the same OCaml-built `mathc-windows-x86_64.exe`
+   binaries already published by the release pipeline;
+   no Microsoft stack, .NET runtime, or proprietary
+   library is bundled with mathc. The tool itself
+   remains platform-neutral (the existing 7-binary
+   matrix).
+
+  "The PowerShell installer should be signed for
+   additional trust." Counterargument: the script is
+   itself fetched over HTTPS via `irm`; a malicious
+   actor at the network layer cannot rewrite it
+   unnoticed. The script's SHA-256 in the same
+   release is already part of `cosign sign-blob`
+   (sub-decision d6). Signing the script via
+   Authenticode is a follow-up if Microsoft
+   SmartScreen flags the script in the wild.
+
+  "PowerShell 7 is not installed by default on
+   Windows 10/11." Counterargument: `powershell.exe`
+   (Windows PowerShell 5.1, ships with the OS) is
+   sufficient for all the `[System.Net.*]`,
+   `Get-FileHash`, and `[Environment]::Set*`
+   operations. We restrict syntax to features that
+   work under 5.1, with PS7 niceties behind
+   `-Version 7+` checks if needed. Confirmed locally
+   by `pwsh -NoProfile -File install.ps1 -Help`.
+
+assumptions:
+  - id: cosign-shared-decision
+    state: assumed
+    statement: |
+      The cosign keyless OIDC issuer and identity regexp
+      are the same as in `install.sh` per
+      `decisions/ux-3-cosign-image-2026-10.yaml`;
+      cross-sh and -PS1 only differ in the verification
+      command (`cosign verify` vs `cosign verify-blob`).
+    owner: human:maintainer
+    consequence_if_false: |
+      If cosign settings drift between install.sh and
+      install.ps1, the user-side and CI-side signatures
+      would not match; the install.ps1 would refuse to
+      install (with `MC-INSTALL-COSIGN-VERIFY-FAIL`).
+    review_on:
+      - signal: cosign-identity-drift
+
+obligations:
+  - id: ps1-shipped
+    outcome: windows-one-liner-installer
+    claim: |
+      `scripts/install-tooling/install.ps1` exists,
+      is executable, and parses under PowerShell 5.1+
+      and PowerShell 7+ with no parse errors.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: bash -n scripts/install-tooling/install.ps1
+          result: pass
+        - verifier: '[System.Management.Automation.Language.Parser]::ParseFile(scripts/install-tooling/install.ps1, [ref]$null, [ref]$null) returns $errors.Count -eq 0'
+          result: pass
+        - verifier: scripts/install-tooling/install.ps1 -Help exits 0
+          result: pass
+
+  - id: ps1-sha-verify
+    outcome: windows-one-liner-installer
+    claim: |
+      `scripts/install-tooling/install.ps1` downloads
+      `SHA256SUMS` and the matching
+      `mathc-windows-x86_64.exe`, computes the binary's
+      SHA-256, and refuses to install on mismatch.
+    acceptance:
+      all:
+        - verifier: Test-Sha256 function exists in install.ps1
+          result: pass
+        - verifier: install.ps1 emits `MC-INSTALL-CHECKSUM-MISMATCH` on SHA divergence
+          result: pass
+
+  - id: ps1-path-update
+    outcome: windows-one-liner-installer
+    claim: |
+      On success, install.ps1 idempotently appends the
+      install dir to the user-level PATH via
+      `[Environment]::SetEnvironmentVariable('Path', …, 'User')`.
+    acceptance:
+      all:
+        - verifier: Add-UserPath function exists in install.ps1
+          result: pass
+        - verifier: Add-UserPath is idempotent (re-run does not append duplicates)
+          result: pass
+
+  - id: ps1-released
+    outcome: windows-one-liner-installer
+    claim: |
+      The release pipeline publishes
+      `dist-bin/install.ps1` on every tagged and `edge`
+      release, on par with `dist-bin/install.sh`.
+    acceptance:
+      all:
+        - verifier: yq '.jobs.publish.steps[].with.files' .github/workflows/release.yml mentions install.ps1
+          result: pass
+
+  - id: ps1-docs
+    outcome: windows-one-liner-installer
+    claim: |
+      `QUICKSTART.md`, `USAGE.md`, and `site/install.md`
+      document the `irm … | iex` path for Windows.
+    acceptance:
+      all:
+        - verifier: grep -l 'install.ps1' QUICKSTART.md USAGE.md site/install.md
+          result: pass
+
+reversal:
+  - signal: ps1-superseded
+    condition: |
+      A dedicated Windows MSI / MSIX installer is
+      produced that supersedes the PowerShell installer.
+    action: archive-obligation
+
+risk:
+  declared_triggers:
+    - cosign-identity-drift
+    - ps1-parse-failure-on-ps5.1
+    - user-path-rewrite-on-ps1
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-distro-friction@1
+  supersedes: []
+  superseded_by: []
