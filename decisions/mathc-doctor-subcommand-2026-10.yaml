@@ -1,0 +1,245 @@
+---
+schema: math-coding/3.3
+id: mathc-doctor-subcommand-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+
+body_sha: "sha256:e61c6c0e9e79f643a55652e9601df1a8ba69a09284844b1c548c613e2387307e"
+yaml_sha: "sha256:e61c6c0e9e79f643a55652e9601df1a8ba69a09284844b1c548c613e2387307e"
+
+axiom_link:
+  - A0
+  - A3
+
+intent: |
+  Add a `mathc doctor [--json]` subcommand that prints a
+  diagnostic report on the user's math-coding install. The
+  report is the "is your install healthy?" view that D1-D5
+  (install + PATH + libc + SHA256SUMS + winget) commit to
+  keeping healthy. The user runs it once after install, once
+  when something goes wrong, and once before opening a
+  bug report.
+
+  Today's surface has no first-class way to ask
+  "is `mathc` reachable from a fresh shell?", "is there a
+  newer tagged release?", "does my decision file parse
+  against the live schema?", or "are there orphan decision
+  files with no attestations?". Each of these is answered by
+  either a hand-crafted shell command (`which mathc`,
+  `ls ~/.local/bin/`, `curl https://api.github.com/...`) or
+  by reading the source. The doctor subcommand consolidates
+  them into one CLI call that exits 0/1 with a
+  per-section verdict.
+
+  The implementation is constrained to `bin/Mathc.ml` (the
+  CLI surface); no `lib/decision.ml` or verifier is touched.
+  Kernel changes are confined to a new `do_doctor` function
+  and the dispatcher's `|"doctor" -> do_doctor ()` arm; the
+  helper module `Mathc_cmd.Doctor` is not introduced because
+  `bin/Mathc.ml` is a single-module binary and
+  `lib/decision.ml::sha_match_check` / `lib/gate.ml` are
+  pure — the doctor reuses `Attestations.load`,
+  `list_decision_files`, `extract_top_level_id`, and the
+  existing `validate_with_counts` family without modification.
+
+  The seven sections are independent; each section's verdict
+  is determined locally. JSON output uses the same
+  `{"sections":[…]}` envelope that `mathc counters` already
+  uses (see `bin/Mathc.ml::do_counters` and the
+  counters-schema-introspection-fix cram test). Exit code
+  follows the kernel contract: 0 when every section is
+  `pass` or `warn` (skip / off), 1 when any section is
+  `fail`.
+
+commitment: |
+  - `mathc doctor` exits 0 with at least 5 sections printed
+    (install, path, latest, config, decisions — minimum
+    coverage per plan-2026-10-distro-friction@1 obligation
+    d10-mathc-doctor-subcommand); exits 1 if any section is
+    `fail`, with the failing section labelled in the
+    output.
+  - `mathc doctor --json` prints the same report as a
+    structured object: `{"sections": [{"id": …, "verdict":
+    "pass"|"warn"|"fail", "details": {…}}, …]}`. The
+    `sections` array length is >= 5 (the offline sections,
+    even when the GitHub probe is offline).
+  - Section (g) `self-check` short-circuits when
+    `mathc self-check` is callable from the project root;
+    otherwise it is reported as `skip` with a reason. This
+    keeps `mathc doctor` fast (< 5 s on a healthy install)
+    and avoids re-running the full attestation-store walk.
+  - The implementation lives entirely in `bin/Mathc.ml`;
+    no `lib/` file is touched, no `bin/mathc_mcp.ml` is
+    touched, no `scripts/install-tooling/{install.sh,
+    install.ps1}` is touched. Reversible in one commit.
+
+scope:
+  capabilities:
+    - cli-surface
+    - diagnostic
+    - install-coverage
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/cli/doctor.t"
+    - "decisions/mathc-doctor-subcommand-2026-10.yaml"
+    - "attestations/mathc-doctor-subcommand-2026-10-*.json"
+    - "attestations/plan-2026-10-distro-friction-d10-mathc-doctor-subcommand.json"
+  exclusions:
+    - "lib/**"
+    - "bin/mathc_mcp.ml"
+    - "scripts/install-tooling/**"
+    - ".github/workflows/**"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "decisions/plan-2026-10-improvements.yaml"
+    - "decisions/plan-2026-10-ux-friction.yaml"
+
+outcomes:
+  - id: install-coverage-diagnostic
+    statement: |
+      `mathc doctor` answers the 5 most common first-week
+      install questions (where is mathc, is it on PATH, is
+      it current, does the active policy parse, are there
+      orphan decision files) in one CLI call, with a
+      per-section `pass`/`warn`/`fail` verdict and an
+      exit code that scripts can branch on.
+
+counterexample: |
+  "Doctor is gold-plating; the user already has
+   `which`, `curl`, and `jq`. A wrapper script that
+   combines them is more transparent than a new subcommand."
+   Counterargument: each of those wrappers has to know
+   the current install layout (`~/.local/bin/mathc` on
+   Unix; `%LOCALAPPDATA%\Programs\mathc\mathc.exe` on
+   Windows), the current GitHub release API URL, and the
+   current schema path. The drift surface alone — keeping
+   the install layout in sync with `install.sh` and
+   `install.ps1` — justifies centralising the probe in the
+   same binary the user just installed. The wrapper-script
+   alternative is the gold-plating; `mathc doctor` is the
+   minimum that scales across the 4 host families (Linux
+   glibc, Linux musl, macOS, Windows).
+
+  "Doctor will become a maintenance burden; every new
+   install-surface change (cosign verification, ARM64
+   Windows, Homebrew tap) has to update its section list."
+   Counterargument: each section is independent and
+   best-effort; a new surface (e.g. D6 cosign) adds a
+   section, it does not modify existing ones. The D11
+   Scoop and D12 Homebrew worktrees can each add their own
+   `channel`-style section without touching D10.
+
+  "Latest-tag check requires an HTTP probe that can fail
+   in air-gapped CI; the doctor should not report `fail`
+   on a network blip." Counterargument: the section
+   reports `warn` (not `fail`) when the HTTP probe fails;
+   `fail` is reserved for the offline sections
+   (install/PATH/config/decisions/attestations). The exit
+   code is 0 in the warn case; this preserves the
+   `doctor` contract that exit 0 means "the install is
+   locally healthy", independent of network reachability.
+
+  "Doctor should `mathc self-check` instead of
+   short-circuiting, because self-check is the
+   authoritative local-health oracle." Counterargument:
+   self-check walks every decision's obligations and
+   emits a verdict per subject; on a 140-decision repo
+   that's ~500 ms. Doctor is the install-time triage
+   tool; the user runs `mathc self-check` separately when
+   they need the deeper view. Doctor's `self-check`
+   section reports the local self-check exit code so the
+   user gets the answer for free without paying the
+   ~500 ms every time.
+
+obligations:
+  - id: doctor-subcommand-dispatched
+    claim: |
+      `mathc doctor [--json]` is reachable from
+      `bin/Mathc.ml::dispatch`, prints at least 5
+      section headers, and exits 0/1 per the contract.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/mathc-doctor-subcommand-2026-10.yaml
+          result: pass
+        - verifier: dune build bin/mathc.exe
+          result: pass
+        - verifier: mathc doctor exits 0 with sections a,b,c,d,e printed
+          result: pass
+        - verifier: mathc doctor --json | jq .sections | jq 'length >= 5'
+          result: pass
+        - verifier: tests/cli/doctor.t runs via dune test
+          result: pass
+        - verifier: scripts/dev lint (no Mathc Library reference; warn-clean build)
+          result: pass
+        - verifier: git grep 'lib/' bin/Mathc.ml returns only the existing imports
+          result: pass
+
+  - id: doctor-cram-positive
+    claim: |
+      The cram test `tests/cli/doctor.t` exercises the
+      happy path (offline install, populated decisions
+      directory): `mathc doctor` exits 0, prints the
+      expected section headers, and the JSON mode returns
+      a 5+-element `sections` array.
+    acceptance:
+      all:
+        - verifier: tests/cli/doctor.t exists
+          result: pass
+        - verifier: tests/cli/doctor.t runs via dune test
+          result: pass
+
+  - id: doctor-kernel-untouched
+    claim: |
+      The implementation does not modify `lib/` or
+      `bin/mathc_mcp.ml`. The diff against `main` for
+      this branch is limited to `bin/Mathc.ml`,
+      `decisions/mathc-doctor-subcommand-2026-10.yaml`,
+      `tests/cli/doctor.t`, and the attestation JSONs.
+    acceptance:
+      all:
+        - verifier: git diff main --stat shows no lib/ entries
+          result: pass
+        - verifier: git diff main --stat shows no bin/mathc_mcp.ml entries
+          result: pass
+
+reversal:
+  - signal: doctor-redundant
+    condition: |
+      A user-reported regression shows that `mathc doctor`
+      duplicates `which mathc && mathc version && mathc
+      self-check && mathc packages --format=json` to the
+      point that the surface becomes a liability.
+      Resolution: archive the obligation, leave the
+      subcommand in place but mark it `deprecated` in the
+      help text.
+    action: rework
+
+  - signal: section-drift
+    condition: |
+      A sub-decision (D6 cosign, D7 ARM64 Windows, D11
+      Scoop, D12 Homebrew) needs a new section that cannot
+      be added without touching `lib/`. Resolution: add
+      the section in the owning sub-decision's branch, not
+      here; this decision is a slice, not the diagnostic
+      framework.
+    action: rework
+
+risk:
+  declared_triggers:
+    - network-reachability-flap
+    - install-layout-drift
+    - schema-bump-without-doctor-update
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-distro-friction@1
+  supersedes: []
+  superseded_by: []
