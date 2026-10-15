@@ -55,6 +55,9 @@ export PATH="$HOME/.local/bin:$PATH"
 mathc version
 ```
 
+> For Docker or Nix: see USAGE.md §Install. For a three-command
+> quickstart of the whole adoption, see [QUICKSTART.md](QUICKSTART.md).
+
 If `~/.local/bin` is not on `$PATH`, the line above sets it for the
 current shell. Add it to your shell rc (`~/.bashrc`, `~/.zshrc`) for
 permanence.

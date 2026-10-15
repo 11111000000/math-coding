@@ -1,5 +1,7 @@
 # Adopting math-coding
 
+> New here? Read [QUICKSTART.md](QUICKSTART.md) first.
+
 A short guide for bringing an existing repository under the
 math-coding protocol. For AI-agent adoption see the canonical skill at
 [`adoption/SKILL.md`](adoption/SKILL.md).
@@ -106,6 +108,41 @@ The mapping is best-effort, not lossless; the reviewer
 adjusts fields like `commitment` and `outcomes[]` to capture
 the original ADR's intent. The decision retains a
 `kind_: review` attestation of provenance in `assumptions[]`.
+
+### Brownfield: Slack / Confluence
+
+For projects whose decisions live in Slack threads or
+Confluence pages (not in `docs/adr/`), two helper scripts
+turn the export into MADR-shaped markdown, then the regular
+`mathc import-adr` pipeline takes over:
+
+```sh
+# 1. Export from Slack (workspace settings → "Export data")
+#    or Confluence (Space settings → "Export space").
+#    Slack produces a zip; Confluence produces a JSON file.
+
+# 2. Run the converter script. It writes one MADR-shaped
+#    .md per decision-like message (Slack: thread starter
+#    with >= 1 reply OR >= 2 reactions) or per page
+#    (Confluence). TBD sections mark what the reviewer must
+#    extract from the source.
+python3 scripts/slack2madr.py <slack-export.zip> out/
+python3 scripts/confluence2madr.py <confluence-export.json> out/
+
+# 3. Reviewer fills the TBD sections in each .md, then
+#    imports it via the regular pipeline.
+for f in out/*.md; do
+  mathc import-adr "$f" --write
+done
+```
+
+The two scripts live under `scripts/` and use only the
+Python 3 standard library (`zipfile`, `json`, `re`, `html.parser`,
+`pathlib`). Cram tests in `tests/scripts/slack2madr.t` and
+`tests/scripts/confluence2madr.t` assert the frontmatter
+shape and section headings on a fixture; the reviewer
+responsibility is to fill the TBD sections before
+`mathc import-adr` so the kernel sees a complete MADR body.
 
 ## Choose your adoption path
 

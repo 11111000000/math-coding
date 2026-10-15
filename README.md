@@ -91,4 +91,5 @@ Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
 - [`site/`](site/): published surface, built by `mathc render` and
   deployed to [GitHub Pages](https://11111000000.github.io/math-coding/)
   by `.github/workflows/site.yml`.
-- [`USAGE.md`](USAGE.md): adoption runbook.
+- [`QUICKSTART.md`](QUICKSTART.md): first read.
+- [`USAGE.md`](USAGE.md): full adoption runbook.

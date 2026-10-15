@@ -3,16 +3,17 @@
 #
 # Pipeline:
 #   1. Build the mathc binary via `scripts/dev build`.
-#   2. Run `mathc render --out dist/ --lang=both` to render the
-#      site in English and Russian (any site/<name>.ru.md sibling
-#      is rendered to dist/<name>.ru.html).
+#   2. Run `mathc render --out dist/ --lang=all` to render the
+#      site in English, Russian, and Chinese (any
+#      site/<name>.ru.md or site/<name>.zh.md sibling is rendered
+#      to dist/<name>.ru.html or dist/<name>.zh.html).
 #   3. Copy `assets/style.css` to `dist/assets/style.css`.
 #   4. Verify every expected file exists (per spec/semantics.md
 #      §`render`).
 #
 # Usage:
 #   scripts/render.sh           — uses local _build
-#   nix develop .#test --command scripts/render.sh
+#   nix develop .#test --command scripts/render.sh 
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -22,11 +23,14 @@ scripts/dev build
 
 echo "[2/4] running mathc render..."
 mkdir -p dist
-# --lang=both emits both the English .html and the Russian
-# .ru.html for every article that has a sibling. Sites that do
-# not yet ship a Russian translation still get the English page;
-# the Russian .ru.html is omitted when its source is absent.
-_build/install/default/bin/mathc render --out dist --lang=both
+# --lang=all emits the English .html, the Russian .ru.html, and
+# the Chinese .zh.html for every article that has the
+# corresponding source. Sites that do not yet ship a Russian or
+# Chinese translation still get the English page; the .ru.html
+# and .zh.html are omitted when their sources are absent. The
+# index pages (index.html, index.ru.html, index.zh.html) are
+# emitted unconditionally per language.
+_build/install/default/bin/mathc render --out dist --lang=all
 
 echo "[3/4] copying assets..."
 mkdir -p dist/assets
@@ -45,6 +49,8 @@ echo "[4/4] verifying dist/..."
 
 required=(
   dist/index.html
+  dist/index.ru.html
+  dist/index.zh.html
   dist/axioms.html
   dist/methodology.html
   dist/manifesto.html
@@ -99,6 +105,14 @@ for s in site/*.ru.md; do
   [ -f "$s" ] || continue
   base=$(basename "$s" .ru.md)
   required+=( "dist/${base}.ru.html" )
+done
+
+# Chinese siblings — only when the source `<name>.zh.md` exists.
+# Mirrors the Russian-sibling allowlist above.
+for s in site/*.zh.md; do
+  [ -f "$s" ] || continue
+  base=$(basename "$s" .zh.md)
+  required+=( "dist/${base}.zh.html" )
 done
 
 missing=0
