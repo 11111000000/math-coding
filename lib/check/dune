@@ -1,0 +1,5 @@
+(library
+ (name mathcoding_check)
+ (wrapped false)
+ (modules check)
+ (libraries mathcoding_core unix))

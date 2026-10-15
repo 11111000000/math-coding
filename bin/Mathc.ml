@@ -611,6 +611,11 @@ let print_usage oc =
      \                  [--format=json]      decisions/ (or single-obligation lookup).
      \                                       Output is a `mathc packages`-shaped JSON
      \                                       object with `decisions[]` filtered.
+     \  precommit [PATH...]               batch-validate decisions/*.yaml (or the
+     \                  [--format=text|json]   listed paths) by shelling out to
+     \                                       `mathc validate` per file. Exit 0 if all
+     \                                       accept, 1 if any reject, 2 if any input
+     \                                       error. No attestation store, no git diff.
      \  render [--out DIR] [--lang en|ru|zh|both|all]
      \           [--site-base HREF] [--mathjax|--no-mathjax]\n\
      \                                     render the static site under DIR\n\
@@ -620,8 +625,11 @@ let print_usage oc =
     \                  [--from-adr PATH]     create decisions/, attestations/, write\n\
     \                  [--no-install]        decisions/decision.yaml, install the\n\
     \                  [--merge]             pre-commit hook. Refuses on arc42/MADR\n\
-    \                                       unless --merge; --from-adr is a no-op\n\
+    \                  [--with-ci-workflow]  unless --merge; --from-adr is a no-op\n\
     \                                       stub (deferred to ux-3-import-adr).\n\
+    \                                       --with-ci-workflow copies\n\
+    \                                       templates/ci.yml to\n\
+    \                                       .github/workflows/ci.yml (off by default).\n\
     \  import-adr PATH                    import an existing ADR file (MADR or\n\
     \                                       [--write]                       adr-tools shape) and emit a math-coding decision\n\
     \                                       YAML to stdout (or to decisions/<id>.yaml\n\
@@ -4055,6 +4063,71 @@ let[@warning "-32"] do_find () =
          `decisions` array. *)
       if n = 0 then exit 0 else exit 0
 
+(* mathc precommit — batch-validate every `decisions/*.yaml`
+ * (or the explicit paths supplied on the command line) by
+ * shelling out to `mathc validate --format=json` per file.
+ *
+ * Exit code: 0 if every file accepted, 1 if any file was
+ * rejected (exit 1 from the underlying validate), 2 if any
+ * file was an input error (exit 2 from validate or missing
+ * path). The dispatcher exits with the worst of these.
+ *
+ * No attestation store, no git-diff, no rebuttal walk — those
+ * are out of scope for precommit batch mode (decision
+ * ux-3-precommit-subcommand-2026-10). The full store-aware
+ * verdict lives in `mathc self-check`. *)
+let[@warning "-32"] do_precommit () =
+  let format = ref Text in
+  let paths = ref [] in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [
+         ( "--format",
+           Arg.String
+             (fun s ->
+               match s with
+               | "text" -> format := Text
+               | "json" -> format := Json
+               | _ ->
+                   Printf.fprintf stderr
+                     "mathc precommit: unknown --format: %s\n" s;
+                   exit 2),
+           " Output format: text (default) or json" );
+       ]
+       (fun s -> paths := s :: !paths)
+       "usage: mathc precommit [PATH...] [--format=text|json]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc precommit: %s\n" m;
+     exit 2);
+  let root = find_project_root (Sys.getcwd ()) in
+  let files = List.rev !paths in
+  let summary = Check.run_staged ~root ~paths:files in
+  match !format with
+    | Text ->
+        Printf.printf "%s\n" (Check.summary_to_text summary);
+        List.iter
+          (fun (r : Check.file_result) ->
+            Printf.printf "  %s: %s\n"
+              r.path
+              (match r.exit_code with
+               | 0 -> "accept"
+               | 1 -> "reject"
+               | 2 -> "input_err"
+               | _ -> Printf.sprintf "exit=%d" r.exit_code))
+          summary.files;
+        (* Exit code: 0 if all accept, 1 if any reject, 2 if any
+           input error and no reject (input_err is the worst). *)
+        if summary.rejected > 0 then exit 1
+        else if summary.input_err > 0 then exit 2
+        else exit 0
+    | Json ->
+        print_endline
+          (Jsonl.stringify (Check.summary_to_json summary));
+        if summary.rejected > 0 then exit 1
+        else if summary.input_err > 0 then exit 2
+        else exit 0
+
 (* mathc migrate — declarative, kernel-observed migration plan.
  *
  * The kernel NEVER mutates decision files on disk. It only:
@@ -4113,6 +4186,7 @@ let[@warning "-32"] do_init () =
   let from_adr = ref None in
   let no_install = ref false in
   let merge = ref false in
+  let with_ci_workflow = ref false in
   let set_path s = path := s in
   let set_agent s = agent := s in
   let set_from_adr s = from_adr := Some s in
@@ -4127,8 +4201,11 @@ let[@warning "-32"] do_init () =
        " Skip pre-commit hook installation");
       ("--merge", Arg.Set merge,
        " Allow init in a directory with arc42/MADR/adr-tools present");
+      ("--with-ci-workflow", Arg.Set with_ci_workflow,
+       " Copy templates/ci.yml to .github/workflows/ci.yml");
     ]
-    set_path "usage: mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] [--merge]";
+    set_path
+    "usage: mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] [--merge] [--with-ci-workflow]";
   let root = if !path = "" then Sys.getcwd () else !path in
   match Init.agent_of_string !agent with
   | Error m ->
@@ -4140,7 +4217,8 @@ let[@warning "-32"] do_init () =
           agent;
           from_adr = !from_adr;
           no_install = !no_install;
-          merge = !merge }
+          merge = !merge;
+          with_ci_workflow = !with_ci_workflow }
 
 (* --- import-adr subcommand ---------------------------------------- *)
 
@@ -4793,6 +4871,7 @@ let dispatch () =
   | "re-evaluate-decisions" -> do_re_evaluate_decisions ()
   | "self-check" -> do_self_check ()
   | "find" -> do_find ()
+  | "precommit" -> do_precommit ()
   | "session-start" -> do_session_start ()
   | "record" -> do_record ()
   | "stats" -> do_stats ()

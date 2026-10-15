@@ -1,0 +1,19 @@
+{
+  "schema": "math-coding/attestation-3.0-alpha",
+  "kind": "attestation",
+  "subject": {
+    "decision": "site-mobile-accordion-and-xbrowser-2026-10",
+    "obligation": "mobile-nav-is-accordion",
+    "candidate_tree": "HEAD",
+    "materials_digest": ""
+  },
+  "kind_": "observation",
+  "producer": {
+    "identity": "agent:opencode-m3"
+  },
+  "result": "pass",
+  "issued_at": "2026-10-15T10:37:03Z",
+  "observation": "Resized viewport to 375x812 in headless Chromium 149 against http://localhost:8005/math-coding/index.html?v=7 (rendered from the worktree). Injected new mobile rules by reloading the local dist build (which already has the fix). At rest, all four .nav-group-panel elements have computed display:none (verified via getComputedStyle). After clicking the hamburger (.nav-toggle) and then Concept (.nav-group-toggle), only nav-panel-1 has display:block; nav-panel-2/3/4 stay display:none. Screenshots saved: .playwright-mcp/local-mobile-collapsed-v2.png (rest), .playwright-mcp/local-mobile-concept-open.png (Concept opened).",
+  "axiom": "A0",
+  "id": "sha256:f5bc42f0430b45b73afe151fd401a0a5529cacc4a11a694a93f17c4fe059ba67"
+}

@@ -209,6 +209,7 @@ let read_only_methods =
     "mathc/rebuttals";
     "mathc/self-check";
     "mathc/find";
+    "mathc/precommit";
   ]
 
 let read_write_methods =
@@ -356,6 +357,46 @@ let build_find (params : Jsonl.value option) :
               data = None;
             })
 
+(* `mathc/precommit` — batch-validate decisions/*.yaml (or
+   an explicit `paths` array) and return a summary. The MCP
+   caller may pass `paths` (a JSON array of strings) to
+   validate a subset; when omitted, the kernel validates
+   every file under decisions/. Read-only: no attestation
+   store mutation, no execution-log append. *)
+let build_precommit (params : Jsonl.value option) :
+    (string list, Protocol.rpc_error) result =
+  let paths =
+    match params with
+    | Some (Jsonl.Object ps) -> (
+        match List.assoc_opt "paths" ps with
+        | Some (Jsonl.Array xs) ->
+            let rec walk acc = function
+              | [] -> Ok (List.rev acc)
+              | (Jsonl.String s) :: rest -> walk (s :: acc) rest
+              | _ :: _ ->
+                  Error
+                    {
+                      Protocol.code = Protocol.invalid_params_code;
+                      message =
+                        "Invalid params: \"paths\" must be an array of strings";
+                      data = None;
+                    }
+            in
+            walk [] xs
+        | Some _ ->
+            Error
+              {
+                Protocol.code = Protocol.invalid_params_code;
+                message =
+                  "Invalid params: \"paths\" must be an array of strings";
+                data = None;
+              }
+        | None -> Ok [])
+    | _ -> Ok []
+  in
+  match paths with
+  | Ok ps -> Ok ("precommit" :: "--format=json" :: ps)
+  | Error e -> Error e
 
 (* --- argv dispatch --- *)
 
@@ -370,6 +411,7 @@ let build_argv (req : Protocol.request) :
   | "mathc/rebuttals" -> build_rebuttals req.params
   | "mathc/self-check" -> build_self_check req.params
   | "mathc/find" -> build_find req.params
+  | "mathc/precommit" -> build_precommit req.params
   | "mathc/gate" -> build_gate req.params
   | "mathc/attest" -> build_attest req.params
   | "mathc/record" -> build_record req.params
@@ -424,7 +466,7 @@ let handle (req : Protocol.request) : Protocol.response =
           req.method_
       else
         Printf.sprintf
-          "Method not found: \"%s\" (only mathc/{validate,explain,packages,mode,re-evaluate,rebuttals,self-check,find,gate,attest,record,re-evaluate-decisions} are exposed by the MCP server)"
+          "Method not found: \"%s\" (only mathc/{validate,explain,packages,mode,re-evaluate,rebuttals,self-check,find,precommit,gate,attest,record,re-evaluate-decisions} are exposed by the MCP server)"
           req.method_
     in
     let _ = warn_read_write_disabled () in

@@ -86,3 +86,32 @@ Unknown --agent value: exit 2 with help.
   >   echo "FAIL: error message missing valid agent list"; exit 1
   > fi
   error message lists valid agent values
+
+`mathc init --with-ci-workflow` copies templates/ci.yml into
+.github/workflows/ci.yml. The decision
+`ux-3-init-with-ci-workflow-2026-10` is the activation record
+for this slice; the surface test pins the filesystem state.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ tmpdir=$(mktemp -d)
+  $ mathc init "$tmpdir" --no-install --with-ci-workflow > /dev/null 2>&1
+  $ test -f "$tmpdir/.github/workflows/ci.yml" && echo "ci.yml: present"
+  ci.yml: present
+  $ grep -q '^name: math-coding' "$tmpdir/.github/workflows/ci.yml" \
+  >   && echo "ci.yml: name field matches template"
+  ci.yml: name field matches template
+  $ rm -rf "$tmpdir"
+
+`mathc init` (default, without --with-ci-workflow) does NOT
+create .github/workflows/ci.yml. The flag is opt-in: pre-init
+adopters already have a workflow and shouldn't be surprised
+by an unsolicited rewrite.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ tmpdir=$(mktemp -d)
+  $ mathc init "$tmpdir" --no-install > /dev/null 2>&1
+  $ test ! -e "$tmpdir/.github" \
+  >   && echo ".github: absent (default opt-out ok)"
+  .github: absent (default opt-out ok)
+  $ rm -rf "$tmpdir"
+
