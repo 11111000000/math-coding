@@ -1,0 +1,173 @@
+---
+schema: math-coding/3.3
+id: scoop-manifest-pr-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+
+body_sha: "sha256:f999cd65ce15cc89349551960cb3d590b5c5a27d1b4b9de4cdc647707bd3c587"
+yaml_sha: "sha256:f999cd65ce15cc89349551960cb3d590b5c5a27d1b4b9de4cdc647707bd3c587"
+
+
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+intent: |
+  Ship the `mathc` package in the
+  `ScoopInstaller/Extras` (or `…/Main`) bucket so
+  Windows users can run `scoop install mathc` and
+  land at `mathc version`. The installer artifact
+  (mathc-windows-x86_64.exe + SHA-256) ships every
+  release today; the missing piece is the upstream
+  manifest submission that makes Scoop discover it.
+
+  Per Scoop's contribution rules, the manifest lives
+  in `ScoopInstaller/Extras:bucket/<name>.json`. We
+  pre-build it from a Python generator in this
+  repo (`tools/scoop/scripts/render-scoop-manifest.py`)
+  so the maintainer's submission step is one
+  `cp` + push.
+
+commitment: |
+  `tools/scoop/` exists in the math-coding repository
+  and contains:
+    - `mathc.json` — the manifest JSON, populated for
+      `v3.3.0+` releases; the URL points at
+      `mathc-windows-x86_64.exe`; the `hash` field holds
+      the SHA-256 from the live `SHA256SUMS` (post-D4
+      fix includes `*.exe`).
+    - `PUBLISH.md` — the operator runbook for opening
+      the upstream PR (steps, fork setup, validation).
+    - `scripts/render-scoop-manifest.py` — the generator
+      that produces the JSON deterministically from
+      `--version` and `--sha256-windows-x86_64`
+      arguments.
+    - First manifest committed alongside this
+      decision (placeholder hash, real URL structure);
+      the maintainer's manual step is to push to a
+      fork of `ScoopInstaller/Extras` and open the PR.
+      The PR review and merge is owned by Scoop's
+      automation; the decision's obligation closes on
+      PR submission, not PR merge.
+
+scope:
+  capabilities:
+    - installer-distro
+    - bootstrap-windows
+    - package-managers
+  paths:
+    - "tools/scoop/**"
+    - "USAGE.md"
+    - "site/install.md"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: scoop-discoverable
+    statement: |
+      `scoop install mathc` on Windows 10+ / Windows 11
+      returns 0 and lands at `mathc version`.
+
+counterexample: |
+  "winget covers Microsoft Store-front distribution
+   already; Scoop is redundant for Windows users."
+   Counterargument: Scoop and winget serve distinct
+   developer populations. Scoop is opt-in (developer
+   command-line), winget ships with Windows 11 +
+   App Installer. Per-os adoption also differs in
+   locked-down corporate environments where Scoop is
+   often the only path that survives GPO/AV scans.
+
+  "The Scoop bucket is the source of truth; we should
+   not commit tools/scoop/ to math-coding." Same
+   argument applies to winget and Homebrew: keeping
+   the generator + a stamped manifest in
+   math-coding lets a maintainer regenerate a past
+   manifest on a backport commit; storing the
+   rendered files here keeps the math-coding release
+   reproducible.
+
+obligations:
+  - id: scoop-generator-shipped
+    outcome: scoop-discoverable
+    claim: |
+      `tools/scoop/scripts/render-scoop-manifest.py`
+      exists, has a working `--help`, and produces a
+      valid `mathc.json` for a sample invocation.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/scoop-manifest-pr-2026-10.yaml
+          result: pass
+        - verifier: tools/scoop/scripts/render-scoop-manifest.py --version 3.3.0 --sha256-windows-x86_64 0000000000000000000000000000000000000000000000000000000000000000 --out /tmp/scoop-test.json exits 0
+          result: pass
+        - verifier: python3 -m py_compile tools/scoop/scripts/render-scoop-manifest.py
+          result: pass
+
+  - id: scoop-v331-shipped
+    outcome: scoop-discoverable
+    claim: |
+      The `v3.3.1` (placeholder; first post-D4 release)
+      manifest is committed at `tools/scoop/mathc.json`.
+      Hash field is a clearly-marked placeholder until
+      the next CI run; URL points at the
+      `mathc-windows-x86_64.exe` asset of the next
+      release tag.
+    acceptance:
+      all:
+        - verifier: tools/scoop/mathc.json exists and is valid JSON
+          result: pass
+        - verifier: jq .url tools/scoop/mathc.json matches /mathc-windows-x86_64.exe$/
+          result: pass
+
+  - id: scoop-publish-md
+    outcome: scoop-discoverable
+    claim: |
+      `tools/scoop/PUBLISH.md` documents the PR
+      submission procedure for ScoopInstaller/Extras.
+    acceptance:
+      all:
+        - verifier: tools/scoop/PUBLISH.md exists
+          result: pass
+        - verifier: head -5 tools/scoop/PUBLISH.md mentions ScoopInstaller
+          result: pass
+
+reversal:
+  - signal: scoop-replacement-by-winget-only
+    condition: |
+      winget reaches sufficient Windows population
+      that Scoop pathway is no longer worth the
+      maintenance cost. Record under a future plan;
+      archive this decision.
+    action: archive-obligation
+
+  - signal: scoop-pr-stuck
+    condition: |
+      The Scoop PR sits unreviewed for >2 weeks and
+      no maintainer responds. Resolution: re-submit
+      or document the bottleneck in a follow-up
+      decision.
+    action: rework
+
+risk:
+  declared_triggers:
+    - scoop-bucket-pr-rejection
+    - scoop-bucket-schema-changes
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-distro-friction@1
+  supersedes: []
+  superseded_by: []
