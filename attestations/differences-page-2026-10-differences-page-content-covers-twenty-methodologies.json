@@ -1,0 +1,16 @@
+{
+  "id": "sha256:dafb7e44a8b3fbfc5c98e9a5546c5f4e5f12172f7e88eb18371804bef898bf33",
+  "issued_at": "2026-10-15T13:25:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {"identity": "human:maintainer"},
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "differences-page-2026-10",
+    "materials_digest": "",
+    "obligation": "differences-page-content-covers-twenty-methodologies"
+  },
+  "evidence": "`site/differences.md` contains one named section per methodology in the twenty-methodology list (TDD, BDD, DDD, FDD, MDD/MDA, Spec-Driven Development, ADR/MADR, arc42, C4 Model, Living Documentation, Specification by Example, OpenAPI, Design by Contract, Formal Methods, TOGAF, ISO/IEC 42010, Team Topologies, SAFe, OWASP SAMM, NIST SSDF); each section is anchored by a `## N. Name` heading; the twenty methods are also tabulated in the 'Comparison at a glance' table and the 'What mathcoding inherits and what it adds' table. The Russian and Chinese siblings carry the same structure under translated headings."
+}

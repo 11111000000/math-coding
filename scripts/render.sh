@@ -62,6 +62,7 @@ required=(
   dist/bootstrap-gate.html
   dist/install.html
   dist/packages.html
+  dist/differences.html
   dist/assets/style.css
   dist/index.json
   dist/dashboard.html

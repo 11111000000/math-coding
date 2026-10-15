@@ -738,6 +738,8 @@ let[@warning "-32"] nav_groups_en : nav_group list =
           { key = "workflow"; label = "Workflow"; href = "workflow.html" };
           { key = "bootstrap-gate"; label = "Bootstrap Gate";
             href = "bootstrap-gate.html" };
+          { key = "differences"; label = "Differences";
+            href = "differences.html" };
         ];
     };
     {
@@ -787,6 +789,8 @@ let[@warning "-32"] nav_groups_ru : nav_group list =
           { key = "workflow"; label = "Workflow"; href = "workflow.html" };
           { key = "bootstrap-gate"; label = "Bootstrap-ворота";
             href = "bootstrap-gate.html" };
+          { key = "differences"; label = "Отличия";
+            href = "differences.ru.html" };
         ];
     };
     {
@@ -844,6 +848,8 @@ let[@warning "-32"] nav_groups_zh : nav_group list =
           { key = "workflow"; label = "流程"; href = "workflow.zh.html" };
           { key = "bootstrap-gate"; label = "引导闸门";
             href = "bootstrap-gate.zh.html" };
+          { key = "differences"; label = "区别";
+            href = "differences.zh.html" };
         ];
     };
     {

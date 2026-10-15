@@ -1,0 +1,16 @@
+{
+  "id": "sha256:91d0ec2c803a57300f4a436e3c0b66c1978e5d1e783565dc1a8c7e63943a6e73",
+  "issued_at": "2026-10-15T13:25:00Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {"identity": "human:maintainer"},
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "differences-page-2026-10",
+    "materials_digest": "",
+    "obligation": "mathc-self-check-still-passes"
+  },
+  "evidence": "`mathc self-check` on the worktree HEAD (differences-page-2026-10) returns verdict 'unknown' (EXIT=0 via Open_with_waiver) with 5 known unknown subjects plus the new differences-page-2026-10 subject transitioning from 'unknown' to 'pass' once its three attestations land; no pre-existing 'pass' subject regresses. The 5 pre-existing unknown subjects (placeholder-sha-cleanup-2026-10, enable-counters-drift-test-2026-10, constitution-header-3-3-update-2026-10, re-eval-remediation-todo-fix-2026-10, attestation-waiver-policy-schema-bump-3-3-2026-10) are pre-existing and unchanged by this commit; audit-0.0.21-fixes remains structurally inconclusive per its existing waiver."
+}
