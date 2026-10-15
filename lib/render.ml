@@ -813,26 +813,113 @@ let[@warning "-32"] nav_groups_ru : nav_group list =
     };
   ]
 
-let[@warning "-32"] nav_groups_for lang =
-  if lang = "ru" then nav_groups_ru else nav_groups_en
+(* Chinese nav groups. Follows the same four-category shape as
+   EN/RU. Sibling hrefs point at the `.zh.html` files generated
+   when `--lang=zh|all` is passed. The per-decision, per-axiom
+   and per-spec pages remain EN-only (they were EN-only for RU
+   already, see `build_pages`'s per-decision loop), so links
+   under "spec/algebra-3.2" and the per-decision sibling toggles
+   use the EN URL — this matches what the dispatcher does for
+   the Russian home page. *)
+let[@warning "-32"] nav_groups_zh : nav_group list =
+  [
+    {
+      group_key = "concept";
+      group_label = "理念";
+      links =
+        [
+          { key = "manifesto"; label = "宣言"; href = "manifesto.zh.html" };
+          { key = "foundations"; label = "基石";
+            href = "foundations.zh.html" };
+          { key = "axioms"; label = "公理"; href = "axioms.html" };
+        ];
+    };
+    {
+      group_key = "methodology";
+      group_label = "方法";
+      links =
+        [
+          { key = "methodology"; label = "方法论";
+            href = "methodology.zh.html" };
+          { key = "workflow"; label = "流程"; href = "workflow.zh.html" };
+          { key = "bootstrap-gate"; label = "引导闸门";
+            href = "bootstrap-gate.zh.html" };
+        ];
+    };
+    {
+      group_key = "adopt";
+      group_label = "采用";
+      links =
+        [
+          { key = "readme"; label = "README"; href = "readme.zh.html" };
+          { key = "install"; label = "安装"; href = "install.zh.html" };
+          { key = "faq"; label = "FAQ"; href = "faq.zh.html" };
+          { key = "contributing"; label = "Contributing";
+            href = "contributing.zh.html" };
+        ];
+    };
+    {
+      group_key = "reference";
+      group_label = "参考";
+      links =
+        [
+          { key = "packages"; label = "数据包"; href = "packages.zh.html" };
+          { key = "spec/algebra-3.2"; label = "代数";
+            href = "spec/algebra-3.2.html" };
+        ];
+    };
+  ]
 
-let[@warning "-32"] sibling_translation_href ~lang ~page_key ~has_ru =
-  (* Each English page links to its Russian sibling and vice versa.
-     If only one translation exists, the link is omitted. The
-     caller passes `has_ru` from `build_pages`, which knows whether
-     the Russian source `site/<name>.ru.md` exists. The previous
-     unconditional `Some (...)` returned a `<name>.ru.html` URL
-     that 404'd for methodology / workflow / faq — visible defect
-     in the audit on 2026-10-07. The `home` page_key is special:
-     `page_key ^ ".html"` would produce `home.html` (which does
-     not exist), so the Russian home page's English sibling is
-     hardcoded to `index.html` — the file the renderer actually
-     ships at the site root. *)
+let[@warning "-32"] nav_groups_for lang =
   match lang with
-  | "ru" when page_key = "home" -> Some "index.html"
-  | "ru" -> Some (page_key ^ ".html") (* Russian -> English default *)
-  | _ when page_key = "home" -> if has_ru then Some "index.ru.html" else None
-  | _ -> if has_ru then Some (page_key ^ ".ru.html") else None
+  | "ru" -> nav_groups_ru
+  | "zh" -> nav_groups_zh
+  | _ -> nav_groups_en
+
+(* `sibling_langs` is the list of additional languages for which
+   the current page has a sibling rendering. The English page
+   always lists Russian/ZH/etc. siblings; the Russian/ZH page
+   always lists English (and any other non-source siblings). The
+   set is closed: a sibling is listed only when a rendered HTML
+   file actually exists on disk. See `build_pages` for the
+   construction. *)
+let[@warning "-32"] lang_href_for ~lang ~page_key =
+  (* Build the file path for a sibling in `lang`. The `home` page
+     is special: there is no `home.<lang>.html` because the home
+     page is rendered programmatically as `index.<lang>.html`
+     — EXCEPT for English, which is the canonical name `index.html`
+     (no `.en` suffix). The previous unconditional
+     `index.<lang>.html` produced a 404 link for the EN toggle on
+     a non-EN page, which `sibling_translation_href` callers
+     would silently advertise. *)
+  match page_key, lang with
+  | "home", "en" -> "index.html"
+  | "home", l -> "index." ^ l ^ ".html"
+  | _, l -> page_key ^ "." ^ l ^ ".html"
+
+let[@warning "-32"] sibling_translation_href ~lang ~page_key ~sibling_langs =
+  (* `sibling_langs` is the closed set of non-source languages for
+     which the page has a rendering. The toggle in the nav/footer
+     picks the FIRST entry (i.e. the canonical alternate). When
+     the current page is EN, that entry is `ru` (when present),
+     then `zh`; when the current page is RU, the first entry is
+     `en`, then `zh`; and so on. The previous hard-coded
+     `has_ru : bool` was generalised to a list to support the
+     third language without growing the parameter list further.
+     The `home` page_key is special: `page_key ^ ".html"` would
+     produce `home.html` (which does not exist), so the home
+     page's sibling href is always `index.<lang>.html` — the
+     file the renderer actually ships at the site root. *)
+  let pick_first_available langs =
+    (* Returns the first lang in `langs` that is NOT the current
+       page's source language. The result is the alternate-language
+       the toggle advertises. The English page's natural alternate
+       is Russian; the Russian page's natural alternate is English. *)
+    List.find_opt (fun l -> l <> lang) langs
+  in
+  match pick_first_available sibling_langs with
+  | None -> None
+  | Some alt -> Some (lang_href_for ~lang:alt ~page_key)
 
 (* The canonical upstream GitHub origin. Footer and nav links
    point here for meta-docs (AGENTS.md, ROADMAP.md, PACKAGES.md,
@@ -848,7 +935,7 @@ let github_origin = "https://github.com/11111000000/math-coding"
 
 let github_blob ~path = Printf.sprintf "%s/blob/main/%s" github_origin path
 
-let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~has_ru =
+let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_langs =
   let buf = Buffer.create 512 in
   let groups = nav_groups_for lang in
   Buffer.add_string buf "<nav class=\"site-nav\">\n";
@@ -931,39 +1018,59 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~has_ru =
      8c0-4.42-3.58-8-8-8z\"/></svg><span class=\"github-label\">GitHub</span></a>\n"
     github_origin "math-coding on GitHub";
   (if enable_lang_toggle then
-     match sibling_translation_href ~lang ~page_key ~has_ru with
-     | Some h ->
-         let other_lang = if lang = "ru" then "en" else "ru" in
-         let other_label = if lang = "ru" then "EN" else "RU" in
-         Printf.bprintf buf
-           "  <a class=\"lang-toggle\" href=\"%s\" hreflang=\"%s\" \
-            lang=\"%s\">%s</a>\n"
-           h other_lang other_lang other_label
-     | None -> ());
+     (* One toggle per non-source sibling. With two languages
+        (EN+RU) this renders a single "RU" / "EN" toggle, the
+        same UX as the previous build. With three languages
+        (EN+RU+ZH), the EN home emits both "RU" and "ZH"
+        toggles so a visitor lands on EN and can reach ZH
+        without first visiting RU. The order is the natural
+        alternation order built by `sibling_langs_for`: RU
+        first (canonical alternate), then ZH, then EN. Each
+        toggle carries the `hreflang` and `lang` attributes
+        for accessibility / SEO; the visible label is the
+        two-letter language id in upper case (e.g. "RU"). *)
+     List.iter
+       (fun other_lang ->
+         if other_lang <> lang then
+           let href = lang_href_for ~lang:other_lang ~page_key in
+           let other_label = String.uppercase_ascii other_lang in
+           Printf.bprintf buf
+             "  <a class=\"lang-toggle\" href=\"%s\" hreflang=\"%s\" \
+              lang=\"%s\">%s</a>\n"
+             href other_lang other_lang other_label)
+       sibling_langs);
   Buffer.add_string buf "</nav>\n";
   Buffer.contents buf
 
 (* --- footer --- *)
 
-let[@warning "-32"] render_footer ~lang ~version ~has_ru ~sibling_href =
+let[@warning "-32"] render_footer ~lang ~version ~page_key ~sibling_langs =
   (* The footer always carries the live project version so a viewer
      who lands on the site can tell which build is live. The string
      is whatever was passed via `config.version` — by default
      this is the contents of the `VERSION` file at render-time.
-     The language toggle is only emitted when the page actually
-     has a Russian sibling; otherwise the toggle would advertise
-     a 404 link. The link target is the sibling's path, computed
-     by the caller via `sibling_translation_href`. The meta-doc
+     The language links in the footer mirror the nav toggles: one
+     `<a>` per non-source sibling. The order is the natural
+     alternation order built by `sibling_langs_for`: RU first
+     (canonical alternate), then ZH, then EN. The meta-doc
      anchors (AGENTS.md, ROADMAP.md, PACKAGES.md) and the algebra
      spec link point at the canonical GitHub blob URL — the
      GitHub UI renders the markdown so a visitor lands on a
      rendered page, not raw source. *)
   let lang_link =
-    match sibling_href with
-    | None -> ""
-    | Some href ->
-        let other_label = if lang = "ru" then "EN" else "RU" in
-        Printf.sprintf "<a href=\"%s\">%s</a>" (html_escape href) other_label
+    let links =
+      List.filter_map
+        (fun other_lang ->
+          if other_lang = lang then None
+          else
+            let href = lang_href_for ~lang:other_lang ~page_key in
+            let other_label = String.uppercase_ascii other_lang in
+            Some
+              (Printf.sprintf "<a href=\"%s\">%s</a>"
+                 (html_escape href) other_label))
+        sibling_langs
+    in
+    String.concat " &middot; " links
   in
   let agents_href = github_blob ~path:"AGENTS.md" in
   let roadmap_href = github_blob ~path:"ROADMAP.md" in
@@ -1046,7 +1153,7 @@ let[@warning "-32"] render_head ~lang ~site_base ~title ~enable_mathjax
   Buffer.contents buf
 
 let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
-    ~enable_mathjax ~enable_lang_toggle ~has_ru ~version
+    ~enable_mathjax ~enable_lang_toggle ~sibling_langs ~version
     ~extra_head =
   let head =
     render_head ~lang ~site_base ~title ~enable_mathjax
@@ -1085,12 +1192,10 @@ let[@warning "-32"] render_page ~lang ~page_key ~title ~body ~site_base
      </script>\n\
      </body>\n\
      </html>\n"
-    lang head
-    (render_nav ~lang ~page_key ~enable_lang_toggle ~has_ru)
+     lang head
+    (render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_langs)
     body
-    (render_footer ~lang ~version ~has_ru
-       ~sibling_href:
-         (sibling_translation_href ~lang ~page_key ~has_ru))
+    (render_footer ~lang ~version ~page_key ~sibling_langs)
 
 let[@warning "-32"] render_axioms_section axioms =
   let buf = Buffer.create 256 in
@@ -1347,6 +1452,117 @@ let[@warning "-32"] render_index_ru ~package_html:_ ~axioms_html:_ ~policy_id
      \xd1\x85\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xbb\xd0\xb8\xd1\x89\xd0\xb5 \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2 &mdash; \xd0\xbd\xd0\xb0 \xd1\x81\xd1\x82\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x86\xd0\xb5\n\
      <a href=\"packages.html\">packages</a>, \xd0\xb0\xd0\xba\xd1\x81\xd0\xb8\xd0\xbe\xd0\xbc\xd1\x8b &mdash; \xd0\xbd\xd0\xb0\n\
      <a href=\"axioms.html\">axioms</a>.</p>\n"
+     (html_escape version)
+    check check check check check check check check check check check
+    check check check
+    (html_escape policy_id)
+
+(* Chinese home page. Structurally identical to `render_index` /
+   `render_index_ru`: same `<section>` ordering, same `&mdash;` /
+   `&nbsp;` / `&rarr;` literal entities, same number of cards
+   (four: Intent / Decision / Obligation / Attestation), same
+   `<em>` / `<code>` / `<a>` tag set, and the same 14
+   check-marks `%s` placeholder in the moderation terminal
+   block. UTF-8 strings are written directly (the project's
+   other `.ml` files already use em-dashes without escape
+   sequences). ASCII identifiers (`mathc`, `bootstrap-v3`,
+   `decisions/`, file paths, code spans, HTML class names) are
+   kept verbatim. The link `href` attributes inside
+   `working_chain` and `adopt_p` still point at the English
+   `methodology.html` / `foundations.html` pages because the
+   per-page sibling href is computed by `sibling_langs_for` in
+   `build_pages`; the page body here just shows the link text.
+   The terminal block's verdict name `unknown` stays
+   untranslated because the verdict is an ASCII identifier
+   emitted by the kernel (`lib/packages.ml`). *)
+let[@warning "-32"] render_index_zh ~package_html:_ ~axioms_html:_ ~policy_id
+    ~version =
+  let check = "\xe2\x9c\x94" in
+  Printf.sprintf
+    "<section class=\"mathc-hero\">\n\
+     <img class=\"mathc-hero-logo\" src=\"assets/logo.svg\" alt=\"\">\n\
+     <h1>math-coding</h1>\n\
+     <p class=\"mathc-hero-version\">%s</p>\n\
+     <p class=\"mathc-hero-tagline\">风险自适应的软件变更保障协议。每项架构承诺都在代码落地<em>之前</em>写入,并由内核在每次合并时核验。</p>\n\
+     <div class=\"mathc-hero-cta\">\n\
+     <a class=\"mathc-cta mathc-cta-primary\" \
+     href=\"https://github.com/11111000000/math-coding#install\">安装 mathc</a>\n\
+     <a class=\"mathc-cta mathc-cta-secondary\" \
+     href=\"methodology.html\">工作原理</a>\n\
+     </div>\n\
+     </section>\n\
+     <section class=\"mathc-section mathc-quickstart\">\n\
+     <h2>快速开始 &mdash; 60&nbsp;秒</h2>\n\
+     <ol class=\"mathc-steps\">\n\
+     <li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>\n\
+     安装 <code>mathc</code> 可执行文件,并将用户级技能放入 <code>~/.config/opencode/skills/</code>。</li>\n\
+     <li><code>mathc new-decision my-first-change</code><br>\n\
+     用模板创建 <code>decisions/my-first-change.yaml</code>,校验其内容,并指出缺失项。</li>\n\
+     <li><code>mathc self-check</code><br>\n\
+     读取决策存储,逐条遍历每个义务,并按行输出每项的判定:<code>pass</code>、<code>fail</code>、<code>unknown</code>、<code>stale</code> 或 <code>missing</code>。任一非 pass 结果都会使 CI 以非零状态退出。</li>\n\
+     </ol>\n\
+     </section>\n\
+     <section class=\"mathc-section mathc-moderation\">\n\
+     <h2>一屏完成审查</h2>\n\
+     <p>math-coding 为评审者提供<em>恰好一屏</em>的内容:作者所做的声明、支持该声明的证据,以及一条判定。无需再滚动浏览 30 个文件的 PR 来确认变更是否真如提交说明所述。</p>\n\
+     <pre class=\"mathc-terminal\"><code>$ mathc gate main feature/auth-fix\n\
+\n\
+\n\
+\n  policy:    bootstrap-v3\n\
+\n  obligations:  17\n\
+\n  verdicts:\n\
+\n    pass:    14   %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n\
+\n    unknown:  2   (waiver: vendor:openssl-3.0-rc4)\n\
+\n    missing:  1   obligation:back-compat-test\n\
+\n  verdict:   <span class=\"mathc-verdict-unknown\">unknown</span>\n\
+\n  exit:      1</code></pre>\n\
+     <p><code>gate</code> 子命令按当前活动策略评估变更。<code>self-check</code> 子命令是其机器可读版本,设计用于在每次推送和每次合并时于 CI 中执行。</p>\n\
+     </section>\n\
+     <section class=\"mathc-section mathc-methodology\">\n\
+     <h2>方法论</h2>\n\
+     <p class=\"mathc-section-lede\">四个原语,每个都是可被 grep、评审和回退的纯文本文件:</p>\n\
+     <div class=\"mathc-cards\">\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Intent(意图)</h3>\n\
+     <p>每项变更都始于一句自然语言描述:什么应当成立?</p>\n\
+     </article>\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Decision(决策)</h3>\n\
+     <p>意图被固化为 <code>decisions/</code> 下的一个 YAML 包,列出其创建的义务、所接受的风险,以及可证伪它的反例。</p>\n\
+     </article>\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Obligation(义务)</h3>\n\
+     <p>可由代码核验的声明:一个测试夹具、一条性质、一个基准、一条静态规则。每项都对应一条判定。</p>\n\
+     </article>\n\
+     <article class=\"mathc-card\">\n\
+     <h3>Attestation(证据)</h3>\n\
+     <p>证明该义务在特定提交上已被满足的证据。测试、评审、审计 &mdash; 全部作为一等制品存储,绝不以截图形式保存。</p>\n\
+     </article>\n\
+     </div>\n\
+     <p class=\"mathc-section-more\">\n\
+     完整工作链:<code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>。\n\
+     阅读 <a href=\"methodology.html\">方法论</a> 了解形式化代数,或阅读 <a href=\"foundations.html\">基石</a> 了解哲学锚点。</p>\n\
+     </section>\n\
+     <section class=\"mathc-section mathc-adopt\">\n\
+     <h2>在你的仓库中采用 math-coding</h2>\n\
+     <p>协议非常轻量:每项变更在代码落地前需先撰写一个\n\
+     <code>decisions/&lt;id&gt;.yaml</code> 包。阅读\n\
+     <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">采用操作手册</a>\n\
+     完成 10 分钟上手,或克隆仓库并针对示例决策运行\n\
+     <code>mathc self-check</code> 以在你的机器上查看判定结果。</p>\n\
+     <div class=\"mathc-hero-cta\">\n\
+     <a class=\"mathc-cta mathc-cta-primary\" \
+     href=\"https://github.com/11111000000/math-coding\">在 GitHub 上克隆</a>\n\
+     <a class=\"mathc-cta mathc-cta-secondary\" \
+     href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">阅读操作手册</a>\n\
+     <a class=\"mathc-cta mathc-cta-secondary\" \
+     href=\"feed.xml\">通过 RSS 订阅</a>\n\
+     </div>\n\
+     </section>\n\
+     <p class=\"mathc-callout\">\n\
+     本站每一个页面均由 math-coding 内核生成。方法论本身即是一项制品;该制品遵循此方法论。</p>\n\
+     <p class=\"mathc-meta\">当前活动策略:<code>%s</code>。完整义务存储位于 <a href=\"packages.html\">packages</a>,公理位于\n\
+     <a href=\"axioms.html\">axioms</a>。</p>\n"
     (html_escape version)
     check check check check check check check check check check check
     check check check
@@ -2078,29 +2294,60 @@ let[@warning "-32"] default_version = "math-coding"
    for loading the article tuples from disk; this function only
    renders them. Tuple = (name, title, body_md). *)
 let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
-    ~site_pages ~site_pages_ru ~axioms_data =
+    ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data =
   let pages = ref [] in
   let version = config.version in
 
-  (* Set of `name` keys that have a Russian sibling. Used by the
-     language toggle to decide whether to emit `<name>.ru.html`
-     link. Built from `site_pages_ru`, with `home` added when
-     Russian is enabled (`index.ru.html` is generated
-     unconditionally by the index renderer even though the
-     article catalogue does not list a `home.ru.md`). *)
+  (* Per-page set of available sibling languages. A sibling is a
+     rendering in some language other than the current page's
+     source language. The set is built by name from
+     `site_pages_ru` and `site_pages_zh`; the `home` page is
+     special-cased because its Russian/ZH rendering is generated
+     by the home-page renderer (`index.<lang>.html`) and is
+     enabled whenever the language is enabled in
+     `config.languages`, regardless of whether a `home.<lang>.md`
+     source file exists (none does — the home is programmatic). *)
   let ru_keys =
     List.fold_left
       (fun acc (name, _, _) -> String_set.add name acc)
       String_set.empty site_pages_ru
   in
-  let ru_keys =
-    if List.mem "ru" config.languages then String_set.add "home" ru_keys
-    else ru_keys
+  let zh_keys =
+    List.fold_left
+      (fun acc (name, _, _) -> String_set.add name acc)
+      String_set.empty site_pages_zh
   in
-  let has_ru name = String_set.mem name ru_keys in
+  let ru_enabled = List.mem "ru" config.languages in
+  let zh_enabled = List.mem "zh" config.languages in
+  let ru_keys = if ru_enabled then String_set.add "home" ru_keys else ru_keys in
+  let zh_keys = if zh_enabled then String_set.add "home" zh_keys else zh_keys in
+
+  (* `sibling_langs_for name lang`: the closed set of additional
+     languages (i.e. excluding `lang` itself) for which the page
+     `name` has a rendering. The set is sorted in the natural
+     alternation order: EN first (the always-rendered fallback),
+     then RU, then ZH. EN is added whenever `lang` is not EN and
+     the English index is being rendered — which it always is
+     because the dispatcher emits `index.html` unconditionally
+     as a navigation fallback. The resulting list is what the
+     nav/footer language toggle advertises as the first
+     alternate. *)
+  let sibling_langs_for name lang =
+    let acc = ref [] in
+    if lang <> "en" then acc := "en" :: !acc;
+    if lang <> "ru" && String_set.mem name ru_keys then
+      acc := "ru" :: !acc;
+    if lang <> "zh" && String_set.mem name zh_keys then
+      acc := "zh" :: !acc;
+    List.rev !acc
+  in
 
   let render_lang_page lang (name, title, body_md) =
-    let page_path = if lang = "ru" then name ^ ".ru.html" else name ^ ".html" in
+    let page_path =
+      match lang with
+      | "en" -> name ^ ".html"
+      | l -> name ^ "." ^ l ^ ".html"
+    in
     let page_title = title ^ " — math-coding" in
     let body_md_parsed = md_parse body_md in
     (* The `packages` page appends the live kernel package grid
@@ -2126,13 +2373,14 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
       Printf.sprintf "<article class=\"mathc-article\">\n%s%s\n</article>\n"
         body_md_parsed body_extra
     in
+    let sibling_langs = sibling_langs_for name lang in
     {
       path = page_path;
       body =
         render_page ~lang ~page_key:name ~title:page_title ~body
           ~site_base:config.site_base ~enable_mathjax:config.enable_mathjax
-          ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:(has_ru name)
-          ~version ~extra_head:"";
+          ~enable_lang_toggle:config.enable_lang_toggle
+          ~sibling_langs ~version ~extra_head:"";
     }
   in
 
@@ -2150,13 +2398,14 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
           ~title:(Printf.sprintf "math-coding %s" version)
           ~body:index_body_en ~site_base:config.site_base
           ~enable_mathjax:config.enable_mathjax
-          ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:(has_ru "home")
+          ~enable_lang_toggle:config.enable_lang_toggle
+          ~sibling_langs:(sibling_langs_for "home" "en")
           ~version ~extra_head:"";
     }
     :: !pages;
 
   (* Russian index (only when Russian is enabled). *)
-  if List.mem "ru" config.languages then begin
+  if ru_enabled then begin
     let axioms_overview_html_ru = render_axioms_section axioms_data in
     let index_body_ru =
       render_index_ru ~package_html ~axioms_html:axioms_overview_html_ru
@@ -2171,7 +2420,30 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
             ~body:index_body_ru ~site_base:config.site_base
             ~enable_mathjax:config.enable_mathjax
             ~enable_lang_toggle:config.enable_lang_toggle
-            ~has_ru:(has_ru "home") ~version ~extra_head:"";
+            ~sibling_langs:(sibling_langs_for "home" "ru")
+            ~version ~extra_head:"";
+      }
+      :: !pages
+  end;
+
+  (* Chinese index (only when ZH is enabled). *)
+  if zh_enabled then begin
+    let axioms_overview_html_zh = render_axioms_section axioms_data in
+    let index_body_zh =
+      render_index_zh ~package_html ~axioms_html:axioms_overview_html_zh
+        ~policy_id ~version
+    in
+    pages :=
+      {
+        path = "index.zh.html";
+        body =
+          render_page ~lang:"zh" ~page_key:"home"
+            ~title:(Printf.sprintf "math-coding %s" version)
+            ~body:index_body_zh ~site_base:config.site_base
+            ~enable_mathjax:config.enable_mathjax
+            ~enable_lang_toggle:config.enable_lang_toggle
+            ~sibling_langs:(sibling_langs_for "home" "zh")
+            ~version ~extra_head:"";
       }
       :: !pages
   end;
@@ -2179,6 +2451,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
   (* Per-language articles. *)
   List.iter (fun t -> pages := render_lang_page "en" t :: !pages) site_pages;
   List.iter (fun t -> pages := render_lang_page "ru" t :: !pages) site_pages_ru;
+  List.iter (fun t -> pages := render_lang_page "zh" t :: !pages) site_pages_zh;
 
   (* Per-decision pages (English-only). The body is built from
      two halves: the YAML narrative (intent / commitment / outcomes /
@@ -2263,7 +2536,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
               ~title:(Printf.sprintf "%s — math-coding" decision_id)
               ~body ~site_base:config.site_base
               ~enable_mathjax:config.enable_mathjax
-              ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
+              ~enable_lang_toggle:config.enable_lang_toggle ~sibling_langs:[]
               ~version ~extra_head:"";
         }
         :: !pages)
@@ -2281,7 +2554,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
               ~title:(Printf.sprintf "Axiom %s" axiom_id)
               ~body ~site_base:config.site_base
               ~enable_mathjax:config.enable_mathjax
-              ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
+              ~enable_lang_toggle:config.enable_lang_toggle ~sibling_langs:[]
               ~version ~extra_head:"";
         }
         :: !pages)
@@ -2307,7 +2580,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
             render_page ~lang:"en" ~page_key:("spec/" ^ name)
               ~title:(Printf.sprintf "%s — math-coding spec" name)
               ~body ~site_base:config.site_base ~enable_mathjax:true
-              ~enable_lang_toggle:config.enable_lang_toggle ~has_ru:false
+              ~enable_lang_toggle:config.enable_lang_toggle ~sibling_langs:[]
               ~version ~extra_head:"";
         }
         :: !pages)
