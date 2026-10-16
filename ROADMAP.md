@@ -8,11 +8,12 @@
 > parallel-fix-batch added 118 review-class attestations and the
 > deep-audit-fix commit removed 53 duplicates from H's batch). CLI
 > surface: `validate`,
-> `context`, `explain`, `explain-diagnostic`, `assess`, `attest`, `gate`,
+> `context`, `explain`, `explain-diagnostic`, `assess`, `attest`,
+> `attest-batch`, `gate`,
 > `session-start`, `record`, `stats`, `time-estimate`, `self-check`,
 > `version`, `render`, `packages`, `mode`, `rebuttals`, `re-evaluate`,
 > `re-evaluate-decisions`, `migrate`, `counters`, `init`, `import-adr`,
-> `adopt`, `new-decision`, `telemetry` — 27 subcommands.
+> `adopt`, `new-decision`, `telemetry` — 28 subcommands.
 >
 > **Algebra 3.2-ideal**: accepted via `decisions/algebra-3.2.yaml`;
 > normative spec at `spec/algebra-3.2.md` (31 sections, §0–§30). Implementation
@@ -159,7 +160,38 @@ Runtime kernel behaviour is backward compatible: the existing
 | 12 | ROADMAP.md, PACKAGES.md, CHANGELOG.md, USAGE.md sync (applicability envelope, two-tier model) | `algebra-3.2@1` | ✅ done |
 | 13 | Portable binary build (anti-property fix in §30): musl-based or static-link, no nix-store paths | `algebra-3.2@1` | ✅ done (rev 4, 2026-10-07) |
 
-### Tier 4 — install-tooling deferred work (Phase 2/3)
+### Tier 4 — v3.4 minimal pollution (2026-10-16)
+
+Lands the kernel and docs changes that shrink the brownfield
+artifact tree from three top-level directories (`decisions/`,
+`attestations/`, `schemas/`) to one (`.math-coding/`), exposes
+env-var overrides for hermetic testing, and adds the `attest-batch`
+subcommand. Source plan: `/tmp/mathc-experiment/PLAN.md` §0–§6.
+
+| # | Task | Decision | Status |
+|---|---|---|---|
+| 1 | P1 — `MATH_CODING_DECISIONS_DIR` / `MATH_CODING_ATTESTATIONS_DIR` / `MATH_CODING_POLICY` resolvers in `lib/path_config.ml`; embed JSON Schemas and templates into the kernel so `schemas/` is no longer required on disk | `ux-3-minimal-pollution-2026-10` | ✅ landed in commit `87a2e0a` (paths-defaults-2026-10) |
+| 2 | P2 — counterexample pre-check (MC-COUNTEREXAMPLE-MISSING); `body_sha` / `yaml_sha` pattern enforcement (MC-BODY-SHA-PATTERN-VIOLATION); real `verifier` extraction in `mathc packages`; `materials_digest` required for `kind_ ∈ {test, build, observation}`; `revision: <int>` round-trip in memory entries | `kernel-bugs-v3.4-2026-10` | ✅ landed in commit `16e618a` (kernel-bugs-2026-10) |
+| 3 | P3 — `mathc attest-batch [--manifest=PATH] [--from=decisions] [--out=DIR] [--kind=...] [--producer=ID] [--result=pass|fail] [--dry-run]` subcommand; pure logic in `lib/attestations/batch.ml`; cram fixtures `attest-batch-positive.t` / `attest-batch-malformed.t` | `ux-3-attest-batch-subcommand-2026-10` | ✅ landed in commit `7c503d8` (attest-batch-2026-10) |
+| 4 | P4 — docs sync: `adoption/SKILL.md` (env-vars section, backward-compat section, bulk `attest-batch` section, step-3 template now contains `axiom_link` + `counterexample`, files-you-touch notes that `schemas/` is no longer required), `USAGE.md` (Greenfield / AI-agents), `README.md` (CLI table + badge), this Tier 4 entry | (no new decision; covered by the three above) | in this branch `docs-pollution-2026-10` |
+| 5 | P5 — hermetic cram fixtures for the new behaviour: `init-defaults.t`, `init-legacy.t`, `path-config-fallback.t`, `embedded-schemas.t`, `counterexample-required.t`, `body-sha-pattern.t`, `packages-verifier-real.t`. Tracked separately, parallel to P4 | (no new decision; covered by the three above) | not in this branch |
+
+Backward compatibility: every pre-3.4 project with
+`decisions/` + `attestations/` + `decisions/decision.yaml` at the
+repo root continues to validate without configuration changes —
+the resolver falls back to the legacy layout whenever
+`.math-coding/` is absent.
+
+Deferred to v3.5 (not blocking 3.4):
+
+- `MATH_CODING_HOME` system-wide templates and schemas directory
+  (the variable is documented for forward compatibility but not yet
+  consulted at runtime; `lib/path_config.ml` only resolves the
+  three project-relative variables).
+- `--layout=legacy|modern` explicit flag for `mathc init`
+  (env-var override is the v3.4 mechanism).
+
+### Tier 5 — install-tooling deferred work (Phase 2/3)
 
 Three Phase-2/3 deferral decisions live in `decisions/` with
 `state: active` and `reversal.signal:` blocks. They do not

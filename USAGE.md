@@ -71,6 +71,11 @@ matching file from the latest release tarball under
 platform". The skill walks the agent through four steps: install `mathc`,
 bootstrap the repo, author one decision, run `mathc self-check`.
 
+New projects get `.math-coding/` by default (since v3.4); projects
+that already have `decisions/` and `attestations/` at the repo root
+(from a pre-3.4 release) work as-is — the kernel falls back to the
+legacy layout when `.math-coding/` is absent. No migration needed.
+
 For manual adoption, follow the same four steps by reading the skill.
 
 ### Greenfield: `mathc init`
@@ -81,13 +86,14 @@ math-coding project in one command:
 ```sh
 cd /path/to/new-project
 mathc init . --no-install         # scaffold without pre-commit hook
-mathc validate decisions/decision.yaml   # verify the scaffolded policy
+mathc validate .math-coding/policy.yaml   # verify the scaffolded policy
 ```
 
-What `mathc init` does:
+What `mathc init` does (v3.4 default layout):
 
-- creates `decisions/` and `attestations/`
-- writes `decisions/decision.yaml` with the active policy
+- creates `.math-coding/decisions/` and `.math-coding/attestations/`
+  (one folder instead of three at the repo root)
+- writes `.math-coding/policy.yaml` with the active policy
   (a verbatim copy of
   `scripts/install-tooling/templates/active-policy.yaml`,
   which is `math-coding/3.2`)
@@ -96,6 +102,21 @@ What `mathc init` does:
 - **refuses** on `docs/arc42/`, `docs/adr/`, or `adr/` presence
   unless `--merge` is passed (use `--merge` for the brownfield
   arc42 / MADR / adr-tools path; see below)
+
+To opt into the legacy `decisions/` + `attestations/` layout for a
+specific call, pass the env-var overrides before `mathc init`:
+
+```sh
+MATH_CODING_DECISIONS_DIR=decisions \
+MATH_CODING_ATTESTATIONS_DIR=attestations \
+MATH_CODING_POLICY=decisions/decision.yaml \
+  mathc init . --no-install
+```
+
+The full env-var matrix is documented in
+[`adoption/SKILL.md`](adoption/SKILL.md) §"Environment variables";
+the resolver precedence (env-var → new default → legacy fallback)
+is implemented in `lib/path_config.ml`.
 
 ### Brownfield: `mathc import-adr`
 
@@ -280,6 +301,24 @@ the launch command). An MCP-aware agent (opencode, Claude Code,
 Cursor) can launch `mathc_mcp` as a stdio MCP server and call
 `mathc::validate`, `mathc::self-check`, etc. as direct tool calls
 without a `bash` shell round-trip.
+
+For a brownfield project with many existing decisions and zero
+attestations, the fastest path to a green `mathc self-check` is
+`mathc attest-batch`:
+
+```sh
+# Generate one review-class attestation per obligation under
+# .math-coding/decisions (or $MATH_CODING_DECISIONS_DIR if set).
+mathc attest-batch --from=decisions \
+  --kind=review \
+  --producer=human:integration-experiment \
+  --result=pass
+```
+
+For a per-project, human-reviewed audit, point `--manifest` at a
+TSV file the agent authors with explicit rows; see
+[`adoption/SKILL.md`](adoption/SKILL.md) §"Bulk attestations:
+`mathc attest-batch`" for the manifest format.
 
 ## Review-time questions
 

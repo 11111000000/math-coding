@@ -3,7 +3,7 @@
 [![OCaml](https://img.shields.io/badge/OCaml-5.x-blue?logo=ocaml)](https://ocaml.org)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/11111000000/math-coding?sort=semver)](https://github.com/11111000000/math-coding/releases/latest)
-[![Subcommands](https://img.shields.io/badge/subcommands-27-blueviolet)](PACKAGES.md)
+[![Subcommands](https://img.shields.io/badge/subcommands-28-blueviolet)](PACKAGES.md)
 [![Site](https://img.shields.io/website?url=https%3A%2F%2F11111000000.github.io%2Fmath-coding%2F)](https://11111000000.github.io/math-coding/)
 
 > Author: Petr Kosov <p.b.kosov@yandex.ru>
@@ -57,6 +57,7 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc explain-diagnostic CODE` | Describe an `MC-*` diagnostic code |
 | `mathc assess BASE HEAD` | List changed files between two git refs |
 | `mathc attest FILE` | Import a JUnit XML report as JSON |
+| `mathc attest-batch` | Generate attestation JSONs from TSV manifest or by walking decisions |
 | `mathc gate BASE HEAD` | Assurance verdict for the diff |
 | `mathc self-check` | Kernel passes its own repository + corpus |
 | `mathc packages` | Index of decisions, obligations, verdicts |
