@@ -90,11 +90,21 @@ let master_policy_template =
    \  running `mathc self-check` and `mathc gate`.\n\
    axiom_link:\n\
    \  - A0\n\
+   \  - A3\n\
    commitment: |\n\
    \  Replace the placeholder paths in `scope.paths` with the\n\
    \  directories that hold your kernel, scripts, and specs.\n\
    \  The kernel is offline and side-effect-free; everything\n\
    \  outside `scope.paths` is untracked by `mathc self-check`.\n\
+   counterexample: |\n\
+   \  The strongest objection considered and rejected: \"Adopting\n\
+   \  math-coding is overhead for projects where one developer\n\
+   \  works alone with no AI assistance.\" This fails because the\n\
+   \  protocol's applicability envelope (spec/algebra-3.2.md §28)\n\
+   \  names exactly those projects as Path B (regular ADR plus\n\
+   \  counterexample). math-coding is Path A only when the\n\
+   \  applicability is positive, in which case the overhead is\n\
+   \  justified. A solo developer without AI never enters Path A.\n\
    scope:\n\
    \  paths:\n\
    \    - \"src/**\"\n\
@@ -119,6 +129,11 @@ let master_policy_template =
    \      all:\n\
    \        - verifier: mathc self-check\n\
    \          result: pass\n\
+   risk:\n\
+   \  declared_triggers:\n\
+   \    - bootstrap-template-not-edited\n\
+   \    - kernel-changed-without-self-application\n\
+   \  owner: human:maintainer\n\
    relations:\n\
    \  addresses: []\n\
    \  supersedes: []\n\

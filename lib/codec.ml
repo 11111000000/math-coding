@@ -258,6 +258,36 @@ let[@warning "-32"] parse_attestation v =
       | _ -> None)
   | _ -> None
 
+(* MC-MATERIALS-DIGEST-EMPTY validator (decisions/kernel-bugs-v3.4-
+   2026-10). Returns Some diagnostic when the parsed attestation
+   carries a runtime kind (`Test`, `Build`, `Observation`,
+   `Analysis`) with an empty `subject.materials_digest`. Per A0
+   separation, runtime attestations MUST name the materials they
+   were produced against; only `Review` is exempt. The function is
+   separate from `parse_attestation` so that the loader can
+   grandfather legacy attestations (whose `issued_at` is before
+   2026-10-16) while the validator surfaces the diagnostic for
+   new attestations. `mathc validate <attestation.json>` invokes
+   this validator via `bin/Mathc.ml::validate_with_counts`. *)
+let[@warning "-32"] validate_attestation_materials (a : Domain.attestation)
+    : Diagnostic.t option =
+  let is_runtime_kind = match a.kind with
+    | `Review -> false
+    | _ -> true
+  in
+  if is_runtime_kind && String.trim a.materials_digest = "" then
+    Some
+      (Diagnostic.mc_materials_digest_empty
+         ~subject:(Printf.sprintf "%s/%s" a.decision a.obligation)
+         ~kind:(match a.kind with
+                | `Test -> "test"
+                | `Build -> "build"
+                | `Observation -> "observation"
+                | `Analysis -> "analysis"
+                | `Review -> "review")
+         ())
+  else None
+
 (* Waiver decoder. The fixture layout mirrors schemas/waiver.json:
    required scalar fields are flat (id, policy_id, rule, subject,
    issuer, issued_at, expires_at, reason); scope is an array of

@@ -33,6 +33,16 @@ type decision_entry = {
   assumptions : int;
   risk_triggers : string list;
   state : decision_state;
+  (* Real verifier strings extracted from each obligation's
+     `acceptance.all[*].verifier` (or `acceptance.any[*].verifier`)
+     YAML field (decisions/kernel-bugs-v3.4-2026-10). The list is
+     ordered by obligation order in the YAML; an obligation with
+     no verifier (or no acceptance block) contributes zero entries.
+     `lib/packages.ml::obligation_view.verifier` consumes this list
+     so the JSON output of `mathc packages --format=json` reports
+     the actual verifier path instead of the obligation-id
+     placeholder that the pre-fix implementation used. *)
+  verifier_per_obligation : string list;
 }
 
 type spec_doc = { path : string; body : string }
@@ -132,6 +142,46 @@ let[@warning "-32"] extract_string_field v keys =
 let[@warning "-32"] count_array_field v name =
   match Schema.take_array v name with Some xs -> List.length xs | None -> 0
 
+(* Walk an obligation's `acceptance` block (which may be at
+   obligation-level or nested in `acceptance: { all: [...] }` /
+   `acceptance: { any: [...] }` forms) and return the verifier
+   strings in document order. Per decisions/kernel-bugs-v3.4-2026-10
+   the kernel-side parser in lib/decision.ml::parse_acceptance
+   already implements the same logic; this helper exists so the
+   memory loader does not need to depend on the full parser. The
+   shapes supported match `schemas/decision.json#/definitions/
+   acceptance` and the four hard-coded positions in
+   `tests/cli/*.t`. *)
+let[@warning "-32"] extract_obligation_verifiers (ops : (string * Jsonl.value) list)
+    : string list =
+  let acceptance_pairs =
+    match Schema.take_object ops "acceptance" with
+    | Some a -> a
+    | None -> []
+  in
+  let collect_from items =
+    List.filter_map
+      (fun item ->
+        match item with
+        | Jsonl.Object ips -> (
+            match Schema.take_string ips "verifier" with
+            | Some v when String.trim v <> "" -> Some v
+            | _ -> None)
+        | _ -> None)
+      items
+  in
+  let from_all =
+    match Schema.take_array acceptance_pairs "all" with
+    | Some xs -> collect_from xs
+    | None -> []
+  in
+  let from_any =
+    match Schema.take_array acceptance_pairs "any" with
+    | Some xs -> collect_from xs
+    | None -> []
+  in
+  from_all @ from_any
+
 let[@warning "-32"] string_list_field v name =
   match Schema.take_array v name with
   | Some xs ->
@@ -151,19 +201,27 @@ let[@warning "-32"] parse_decision_yaml raw =
         in
         let rev = extract_string_field ps [ "revision" ] in
         let obligations = count_array_field ps "obligations" in
-        let obligation_ids =
+        let obligation_ids, verifier_pair_obligation =
           match Schema.take_array ps "obligations" with
           | Some xs ->
-              List.filter_map
-                (fun ob ->
-                  match ob with
-                  | Jsonl.Object ops -> (
-                      match Schema.take_string ops "id" with
-                      | Some s -> Some s
-                      | None -> None)
-                  | _ -> None)
-                xs
-          | None -> []
+              let ids, vers =
+                List.fold_left
+                  (fun (ids, accs) ob ->
+                    match ob with
+                    | Jsonl.Object ops ->
+                        let obid =
+                          match Schema.take_string ops "id" with
+                          | Some s -> s
+                          | None -> ""
+                        in
+                        let vers = extract_obligation_verifiers ops in
+                        ( (if obid <> "" then obid :: ids else ids),
+                          accs @ vers )
+                    | _ -> (ids, accs))
+                  ([], []) xs
+              in
+              (List.rev ids, vers)
+          | None -> ([], [])
         in
         let assumptions = count_array_field ps "assumptions" in
         let risk_triggers =
@@ -191,6 +249,7 @@ let[@warning "-32"] parse_decision_yaml raw =
               assumptions;
               risk_triggers;
               state;
+              verifier_per_obligation = verifier_pair_obligation;
             }
     | _ -> None
   with _ -> None
@@ -244,6 +303,7 @@ let[@warning "-32"] load_decisions reader root =
                   assumptions = 0;
                   risk_triggers = [];
                   state = `Active;
+                  verifier_per_obligation = [];
                 }))
     paths
 
