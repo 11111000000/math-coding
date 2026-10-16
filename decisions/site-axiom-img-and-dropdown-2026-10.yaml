@@ -23,7 +23,7 @@ intent: |
     causes:
       (a) `assets/style.css` pinned `.mathc-axiom-figure
           img` to `width: 64px; height: 64px`, smaller than
-          the 80x80 viewBox of the assets/axiom-*.svg files.
+          the 80x80 viewBox of the `assets/axiom-*.svg` files.
       (b) The source markdown in `site/axioms.{md,ru.md,zh.md}`
           used `src="../assets/axiom-*.svg"`. The renderer
           (`lib/render.ml`) preserves that string verbatim.
