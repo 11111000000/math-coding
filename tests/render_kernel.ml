@@ -136,6 +136,53 @@ let[@warning "-32"] bilingual_pairs_complete () =
     "Russian page carries lang=\"ru\"" true
     (has "<html lang=\"ru\">" manifest_ru.Render.body)
 
+(* Regression: nav / footer language toggles on a non-English page
+   must point at `<page_key>.html`, not `<page_key>.en.html`. The
+   bug: `lang_href_for` used `page_key ^ "." ^ lang ^ ".html"`
+   unconditionally for non-home pages, so the RU/ZH site's EN
+   toggle advertised `manifesto.en.html` (404). English is the
+   source language: per-page English files live at `<page_key>.html`
+   with no language suffix. *)
+let[@warning "-32"] lang_toggle_en_no_suffix () =
+  let cfg =
+    { Render.default_config with Render.languages = [ "en"; "ru"; "zh" ] }
+  in
+  let pages =
+    Render.build_pages ~package_html:"" ~decisions_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg
+      ~site_pages:
+        [
+          ("manifesto", "Manifesto", "EN body");
+          ("axioms", "Axioms", "EN axioms");
+        ]
+      ~site_pages_ru:
+        [
+          ("manifesto", "Manifesto / RU", "RU body");
+          ("axioms", "Axioms / RU", "RU axioms");
+        ]
+      ~site_pages_zh:
+        [ ("axioms", "Axioms / ZH", "ZH axioms") ]
+      ~axioms_data:[]
+  in
+  let body_of path =
+    List.find (fun p -> p.Render.path = path) pages |> fun p -> p.Render.body
+  in
+  Alcotest.(check bool)
+    "RU page's EN toggle is manifesto.html (not .en.html)" true
+    (has "href=\"manifesto.html\"" (body_of "manifesto.ru.html"));
+  Alcotest.(check bool)
+    "RU page's EN toggle never advertises manifesto.en.html" false
+    (has "href=\"manifesto.en.html\"" (body_of "manifesto.ru.html"));
+  Alcotest.(check bool)
+    "ZH page's EN toggle is axioms.html (not .en.html)" true
+    (has "href=\"axioms.html\"" (body_of "axioms.zh.html"));
+  Alcotest.(check bool)
+    "ZH page's EN toggle never advertises axioms.en.html" false
+    (has "href=\"axioms.en.html\"" (body_of "axioms.zh.html"));
+  Alcotest.(check bool)
+    "ZH page's RU toggle is axioms.ru.html" true
+    (has "href=\"axioms.ru.html\"" (body_of "axioms.zh.html"))
+
 (* --- extended-markdown-subset obligation (rev 3) --- *)
 
 let[@warning "-32"] table_renders () =
@@ -940,6 +987,8 @@ let () =
       );
       ( "bilingual_pairs_complete",
         [ Alcotest.test_case "pairs" `Quick bilingual_pairs_complete ] );
+      ( "lang_toggle_en_no_suffix",
+        [ Alcotest.test_case "en" `Quick lang_toggle_en_no_suffix ] );
       ( "bilingual_drift_under_threshold",
         [ Alcotest.test_case "drift" `Quick bilingual_drift_under_threshold ] );
       ("table_renders", [ Alcotest.test_case "table" `Quick table_renders ]);
