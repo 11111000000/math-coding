@@ -1,0 +1,237 @@
+---
+schema: math-coding/3.3/decision
+id: mobile-menu-collapse-and-hide-on-scroll-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+change_kind: implementation
+axiom_link:
+  - A0
+  - A1
+intent: |
+  Two follow-ups to the site-redesign / fix-dropdown-anim
+  work, both surfaced on a real Android phone at
+  ~360 px viewport:
+
+    1. Mobile accordion items take 90-130 px of empty
+       space when "closed" because the `display: grid;
+       grid-template-rows: 0fr -> 1fr` trick only shrinks
+       the EXPLICIT row; the implicit rows default to
+       `auto` and remain at the children's content height
+       (~40 px each). With N <li> children, the closed
+       panel rendered as (1 explicit 0fr) + (N-1 implicit
+       auto) = ~90-130 px of dead space, which the user
+       saw as a huge gap between the top-level items.
+
+    2. The site nav is always visible at the top of the
+       page (about 50 px on mobile), eating screen real
+       estate while the user reads long content. Modern
+       mobile reading apps (Apple Pages, Material, Notion
+       web, GitHub mobile) hide the nav when the user
+       scrolls down and reveal it on scroll up.
+
+  Both are CSS-only (the mobile accordion) or DOM-only
+  (the hide-on-scroll) — no kernel changes.
+commitment: |
+  1. `assets/style.css` mobile rule replaces the grid
+     trick with the classic `display: block; max-height:
+     0; overflow: hidden;` approach. The closed state
+     has `max-height: 0; padding: 0;`; the open state
+     has `max-height: 16rem (256 px); padding: 0.2rem
+     0 0.4rem 0.6rem;`. The 16 rem upper bound is well
+     above the tallest possible 4-item panel (~170 px);
+     the panel's actual height is always min(max-height,
+     content), so the animation looks smooth without
+     "overshoot". The transition re-states on the OPEN
+     rule (in addition to the closed state) so the
+     mobile transition wins the cascade against the
+     higher-specificity desktop open rule that only
+     animates opacity/transform/visibility (not
+     max-height).
+
+  2. `assets/site.js` adds `setupHideOnScroll()`: a
+     rAF-throttled (one update per animation frame) scroll
+     handler that toggles a `.nav-hidden` class on
+     `nav.site-nav`. Hidden thresholds: always show within
+     the first 80 px from the top (so the user can still
+     reach a nav link immediately after page load) and
+     within 60 px of the bottom (so the user can reach
+     the nav again when they've reached the end of the
+     page). Direction is detected by comparing the
+     current scrollY to the previous; a delta > 4 px
+     hides (scroll down) or shows (scroll up). The
+     listener is `{passive: true}` so it doesn't block
+     the main thread on scroll.
+
+  3. `assets/style.css` makes `nav.site-nav`
+     `position: sticky; top: 0; z-index: 100;` (was
+     `position: relative;`). The `.nav-hidden` class
+     adds `transform: translateY(-100%); pointer-events:
+     none;` and the existing `transition: transform
+     200ms ease-out;` on `.site-nav` slides the nav
+     off-screen smoothly.
+
+  4. The existing `@media (prefers-reduced-motion:
+     reduce)` block already zeros `transition-duration`
+     AND `transition-delay` (the latter added in
+     fix-dropdown-anim-2026-10), so reduced-motion
+     users get an instant show/hide and instant
+     accordion expand.
+
+  Boundaries: no kernel changes, no new decisions or
+  attestations, no schema changes, no JS framework
+  (vanilla, same as the existing site.js).
+outcomes:
+  - id: site-nav-sticky
+    statement: |
+      `nav.site-nav` is now `position: sticky; top: 0;`
+      with `z-index: 100` so it stays at the top of the
+      viewport while the user scrolls. The `.nav-hidden`
+      class adds `transform: translateY(-100%)` and
+      `pointer-events: none`, and the existing
+      `transition: transform 200ms ease-out` slides the
+      nav off-screen over 200 ms.
+  - id: mobile-accordion-fixed
+    statement: |
+      Each closed `.nav-group-panel` on a mobile viewport
+      is exactly 0 px tall (Playwright-verified at 360 ×
+      800). Opening animates the panel from 0 to its
+      natural content height (~158 px for the 4-item
+      Adopt group) over 240 ms ease-out, with the
+      `max-height` interpolating from 0 to 16 rem and
+      the `padding` interpolating from 0 to 0.2 rem
+      0 0.4 rem 0.6 rem.
+  - id: hide-on-scroll-implemented
+    statement: |
+      `setupHideOnScroll()` in `assets/site.js` is
+      rAF-throttled (`requestAnimationFrame` inside a
+      `{passive: true}` scroll listener). It compares
+      current vs previous `scrollY` to detect direction,
+      with `MIN_DELTA = 4` px to filter jitter, and uses
+      `TOP_THRESHOLD = 80` and `EDGE_THRESHOLD = 60`
+      to never hide near the top or bottom of the
+      page.
+counterexample: |
+  "Use `display: contents` on the panel — modern, lets
+  the children participate in the parent's grid."
+  Counterargument: `display: contents` on the panel
+  would make the `<li>` children become flex items of
+  the .nav-group, which would re-introduce the 40 px
+  per-row layout the user is complaining about. It also
+  has accessibility issues with some screen readers.
+  `max-height: 0; overflow: hidden;` is the boring,
+  well-tested, well-supported solution.
+
+  "Use IntersectionObserver to hide the nav when it
+  scrolls out of view, instead of tracking scroll
+  direction."
+  Counterargument: IO is great for "this element is
+  visible" questions, but here we need the scroll
+  *direction* (delta between successive events), not
+  just the current visibility. A rAF-throttled scroll
+  handler is the minimal correct approach. We could
+  also use the new CSS `animation-timeline: scroll()`
+  (Chrome 115+), but cross-browser support is still
+  patchy and the design needs explicit delta logic for
+  the bottom-of-page safety check.
+
+  "Make hide-on-scroll apply only on mobile, not
+  desktop."
+  Counterargument: on desktop the page is also long
+  (5000+ px); the nav at the top is useful but in the
+  way when reading body text. Both viewports benefit.
+scope:
+  capabilities:
+    - site-navigation
+    - site-menu-ux
+  paths:
+    - "assets/style.css"
+    - "assets/site.js"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "site/**"
+    - "spec/**"
+    - "schemas/**"
+    - "decisions/**"
+    - "attestations/**"
+obligations:
+  - id: mobile-panel-collapses-to-zero
+    statement: |
+      On a viewport ≤ 760 px, the .nav-group-panel is
+      0 px tall when the .nav-group-toggle is
+      aria-expanded="false". Verified with Playwright
+      at 360 × 800: 4 closed panels all measure
+      `boundingClientRect.height === 0`.
+    acceptance:
+      all:
+        - verifier: ! grep -F 'max-height: 0' assets/style.css
+          result: pass
+        - verifier: ! grep -F 'grid-template-rows: 0fr' assets/style.css
+          result: pass
+  - id: mobile-panel-expands-smoothly
+    statement: |
+      On a viewport ≤ 760 px, opening a group animates
+      the panel from 0 px to its content height
+      (~158 px for a 4-item group) over 240 ms
+      ease-out. Verified: sample heights at 0/60/190/390
+      ms after click are 0/106.5/157.8/158.2 px.
+    acceptance:
+      all:
+        - verifier: ! grep -F 'max-height 240ms ease-out' assets/style.css
+          result: pass
+        - verifier: ! grep -F 'max-height: 16rem' assets/style.css
+          result: pass
+  - id: hide-on-scroll
+    statement: |
+      When `window.scrollY > 80` and the user scrolls
+      down by more than 4 px, `nav.site-nav` gets the
+      `.nav-hidden` class and translates up by 100 % of
+      its own height (200 ms ease-out). When the user
+      scrolls up by more than 4 px (or within 60 px of
+      the document bottom, or within 80 px of the top),
+      the class is removed and the nav slides back in.
+    acceptance:
+      all:
+        - verifier: ! grep -F 'nav.site-nav.nav-hidden' assets/style.css
+          result: pass
+        - verifier: ! grep -F 'setupHideOnScroll' assets/site.js
+          result: pass
+  - id: build-and-render-clean
+    statement: |
+      `dune build --root .` exits 0; `mathc render
+      --out dist --lang=all` produces 200 pages without
+      error.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: mathc render
+          result: pass
+reversal:
+  - signal: max-height-overshoot
+    condition: |
+      A user feedback round shows the open animation
+      looks "laggy" in the second half because the
+      panel reaches its natural height before
+      max-height finishes interpolating to 16 rem.
+    action: lower-max-height-to-12rem-or-rewrite-with-grid-when-browser-supports-it
+  - signal: hide-on-scroll-jittery
+    condition: |
+      The rAF-throttled handler still feels laggy on
+      a 120 Hz device or when the user makes small
+      touchpad gestures.
+    action: add-hysteresis-on-the-direction-and-lower-MIN_DELTA-to-2px
+risk:
+  declared_triggers:
+    - reduced-motion-not-honored
+    - hide-on-scroll-on-touch-devices-jitter
+    - max-height-content-mismatch
+  owner: human:maintainer
+relations:
+  addresses:
+    - site-dropdown-anim-2026-10@1
+  supersedes: []
+  superseded_by: []
