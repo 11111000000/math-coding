@@ -1,0 +1,94 @@
+---
+schema: math-coding/3.2
+id: ru-tagline-assurance-translation-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: editorial
+body_sha: "sha256:40b45dbfd2437b323c823701eeac1c0a75b7af6ac68e015de7d9f4f5a559f318"
+yaml_sha: "sha256:40b45dbfd2437b323c823701eeac1c0a75b7af6ac68e015de7d9f4f5a559f318"
+axiom_link:
+  - A4
+intent: |
+  Перевести захардкоженный английский термин `assurance`
+  в русском tagline главной страницы (index.ru.html) на
+  русский эквивалент «обеспечения качества». Строка была
+  octal-escape литералом внутри `render_index_ru` в
+  `lib/render.ml`, поэтому правка `site/*.ru.md` её не
+  зацепила — пользователь увидел старый текст
+  «Протокол assurance для изменений в программном обеспечении»
+  на развёрнутом сайте после правки маркдауна.
+
+  Это редакторское изменение UI-строки: поведение протокола,
+  схемы, формат JSON-вердиктов и логика рендера не меняются.
+  Консистентно с правкой `Позиция обеспечения качества`
+  в `site/packages.ru.md` и с терминологией
+  «автоматические гарантии» в `site/bootstrap-gate.ru.md`.
+
+antithesis: |
+  «Это однострочное изменение строки в OCaml — нет смысла
+  плодить decision file ради него». Отвергнуто:
+  .githooks/pre-commit привязывает любое изменение `lib/`
+  к решениям в `decisions/*.yaml` (P1 — decisions before
+  kernel changes). Файл нужен, даже если изменение
+  тривиальное; это не поведенческое обязательство, а
+  audit-trail.
+
+counterexample: |
+  «Можно было вынести tagline в markdown-файл и читать
+  из render.ml, чтобы не трогать ядро». Принято как
+  future-work, не в этом коммите: архитектурное изменение
+  того стоит, но это kernel/architecture scope, а не
+  translation fix; смешение в один PR увеличит blast
+  radius. Здесь — минимальное поведение-сохраняющее
+  редакторское изменение.
+
+commitment: |
+  После слияния:
+    1. `lib/render.ml` содержит литерал
+       «обеспечения качества» в строке 1346 (вместо
+       «assurance»).
+    2. `mathc render --out dist --lang=all` эмитит
+       `dist/index.ru.html` с подстрокой
+       «Протокол обеспечения качества для изменений в
+       программном обеспечении».
+    3. Английский tagline на `dist/index.html` не изменён.
+    4. Cram-фикстура `tests/cli/render.t` остаётся зелёной
+       (она проверяет структуру файлов и `<html lang>`,
+       не зависит от текста tagline).
+    5. Cram-снимок файлов в dist/ соответствует ожидаемому
+       allowlist (см. `scripts/render.sh [4/4]`).
+
+scope:
+  paths:
+    - lib/render.ml
+
+outcomes:
+  - id: ru-tagline-uses-russian-word
+    statement: |
+      `dist/index.ru.html`, порождённый `mathc render
+      --lang=all`, содержит подстроку «Протокол
+      обеспечения качества» и НЕ содержит «Протокол
+      assurance».
+
+obligations:
+  - id: ru-tagline-translated
+    claim: |
+        `lib/render.ml::render_index_ru` записывает
+        «обеспечения качества» как русский эквивалент
+        для «assurance» в tagline главной страницы.
+        `grep "обеспечения качества" lib/render.ml`
+        возвращает ≥ 1 совпадение;
+        `grep "assurance" lib/render.ml` возвращает 0
+        совпадений в строках, попадающих в
+        `render_index_ru` (то есть в диапазоне между
+        определениями `render_index_ru` и `render_index_zh`).
+    acceptance:
+      all:
+        - verifier: text-scan-render-ml-tagline
+          result: pass
+
+risk:
+  declared_triggers:
+    - ru-tagline-revert
+  owner: human:maintainer
