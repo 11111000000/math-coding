@@ -8,7 +8,7 @@
 ## A0 — Разделение
 
 <figure class="mathc-axiom-figure">
-<img src="../assets/axiom-separation.svg" alt="Аксиома A0 — Разделение: виды различны, цепочка идёт в одну сторону.">
+<img src="assets/axiom-separation.svg" alt="Аксиома A0 — Разделение: виды различны, цепочка идёт в одну сторону.">
 </figure>
 
 Виды различны; цепочка идёт в одну сторону.
@@ -29,7 +29,7 @@ intent, decision, obligation, change, attestation, observation, revision
 ## A1 — Обратная связь
 
 <figure class="mathc-axiom-figure">
-<img src="../assets/axiom-feedback.svg" alt="Аксиома A1 — Обратная связь: у каждого обязательства есть путь к наблюдению.">
+<img src="assets/axiom-feedback.svg" alt="Аксиома A1 — Обратная связь: у каждого обязательства есть путь к наблюдению.">
 </figure>
 
 У каждого обязательства есть путь к наблюдению.
@@ -42,7 +42,7 @@ intent, decision, obligation, change, attestation, observation, revision
 ## A2 — Инварианты и восстановление
 
 <figure class="mathc-axiom-figure">
-<img src="../assets/axiom-invariants.svg" alt="Аксиома A2 — Инварианты и восстановление: каждый инвариант спарен с путём восстановления.">
+<img src="assets/axiom-invariants.svg" alt="Аксиома A2 — Инварианты и восстановление: каждый инвариант спарен с путём восстановления.">
 </figure>
 
 Каждый инвариант спарен с путём восстановления.
@@ -57,7 +57,7 @@ intent, decision, obligation, change, attestation, observation, revision
 ## A3 — Само-применимость
 
 <figure class="mathc-axiom-figure">
-<img src="../assets/axiom-self-application.svg" alt="Аксиома A3 — Само-применимость: правила управляют собственными изменениями.">
+<img src="assets/axiom-self-application.svg" alt="Аксиома A3 — Само-применимость: правила управляют собственными изменениями.">
 </figure>
 
 Правила управляют собственными изменениями.
@@ -80,7 +80,7 @@ SelfVerify(K_{n+1}, P_{n+1}) = Pass
 ## A4 — Забота
 
 <figure class="mathc-axiom-figure">
-<img src="../assets/axiom-care.svg" alt="Аксиома A4 — Забота: ответственный, последствие, подотчётность, срок пересмотра.">
+<img src="assets/axiom-care.svg" alt="Аксиома A4 — Забота: ответственный, последствие, подотчётность, срок пересмотра.">
 </figure>
 
 Ответственный, последствие, подотчётность, срок пересмотра.
