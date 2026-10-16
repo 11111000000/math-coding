@@ -304,6 +304,138 @@ let[@warning "-32"] list_single_item_still_one_li () =
   let html = Render.md_parse src in
   Alcotest.(check bool) "single <li>" true (count "<li>" html = 1)
 
+(* --- ordered-list support (render-ordered-lists-2026-10) --- *)
+
+let[@warning "-32"] ordered_list_renders () =
+  (* The previous bug: a list of `1. ... 2. ... 3. ...` items
+     rendered as a single `<p>` with the numbers concatenated.
+     The fixture is the exact text from `site/methodology.ru.md`
+     §"Рабочая цепочка на практике", condensed to a single line
+     per item so the test is not sensitive to line-wrap. *)
+  let src =
+    "intro paragraph\n\n1. **A.** first item\n2. **B.** second item\n3. \
+     **C.** third item\n\nafter\n"
+  in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "<ol> wrapper present" true (has "<ol>" html);
+  Alcotest.(check bool)
+    "</ol> closing present" true (has "</ol>" html);
+  Alcotest.(check bool)
+    "three <li> elements" true (count "<li>" html = 3);
+  Alcotest.(check bool)
+    "first <strong>A.</strong> present" true
+    (has "<strong>A.</strong>" html);
+  Alcotest.(check bool)
+    "second <strong>B.</strong> present" true
+    (has "<strong>B.</strong>" html);
+  Alcotest.(check bool)
+    "third <strong>C.</strong> present" true
+    (has "<strong>C.</strong>" html);
+  Alcotest.(check bool)
+    "no raw '1.' in body" true
+    (not (has "1. <strong>" html));
+  Alcotest.(check bool)
+    "no raw '2. <strong>' glued to first item" true
+    (not (has "first item\n2." html || has "2. <strong>B.</strong>" html))
+(* NOTE: the second "no raw" check is a defensive belt for the
+   failure mode where the renderer still emits the literal `2. `
+   after a previous `<li>`.  The first "no raw" check is the
+   primary one, see the bug report. *)
+
+let[@warning "-32"] ordered_list_multi_digit_renders () =
+  (* Two-digit prefix (`10. `, `12. `) must also be recognised;
+     the parser accepts one or more ASCII digits before the
+     period. *)
+  let src = "10. ten\n11. eleven\n12. twelve\n" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "<ol> wrapper present" true (has "<ol>" html);
+  Alcotest.(check bool)
+    "three <li> elements" true (count "<li>" html = 3);
+  Alcotest.(check bool) "ten present" true (has "ten" html);
+  Alcotest.(check bool) "eleven present" true (has "eleven" html);
+  Alcotest.(check bool) "twelve present" true (has "twelve" html)
+
+let[@warning "-32"] ordered_list_continuation_joins_into_one_li () =
+  (* Continuation lines (indented body, not a new marker) join
+     the current item with a single space — same rule as the
+     unordered list.  This matches the
+     `site/methodology.ru.md` "Схема. Соответствует ли каждый
+     артефакт" item, whose first line ends at "JSON-схеме?" and
+     whose second line starts with "(решение, обязательство, ...". *)
+  let src =
+    "1. **Схема.** Соответствует ли каждый артефакт\n   (решение, \
+     обязательство) своей JSON-схеме?\n2. **Идентичность.** Разрешима ли\n"
+  in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "<ol> wrapper present" true (has "<ol>" html);
+  Alcotest.(check bool)
+    "two <li> elements" true (count "<li>" html = 2);
+  Alcotest.(check bool)
+    "first item body joined with single space" true
+    (has "Соответствует ли каждый артефакт (решение, обязательство)"
+       html);
+  Alcotest.(check bool)
+    "second item is independent" true
+    (has "<strong>Идентичность.</strong>" html)
+
+let[@warning "-32"] ordered_list_invalid_marker_stays_paragraph () =
+  (* Negative fixture: lines that LOOK like ordered markers but
+     are not (decimal point, missing space) must NOT be wrapped
+     in <ol>.  They flow into the paragraph accumulator like any
+     other prose.  Note: the hand-rolled subset requires a literal
+     space after the period (no CommonMark "trailing newline"
+     support); a bare `1.` is not a list marker here.  This is
+     consistent with the `- ` rule. *)
+  let decimal = "We paid 1.5 dollars for the coffee.\n" in
+  let html_decimal = Render.md_parse decimal in
+  Alcotest.(check bool)
+    "decimal '1.5 ' is NOT an <ol>" false (has "<ol>" html_decimal);
+  Alcotest.(check bool)
+    "decimal stays as a <p>" true (has "<p>" html_decimal);
+  let no_space = "version 1.foo of the spec is current\n" in
+  let html_no_space = Render.md_parse no_space in
+  Alcotest.(check bool)
+    "no-space '1.foo' is NOT an <ol>" false (has "<ol>" html_no_space);
+  Alcotest.(check bool)
+    "no-space stays as a <p>" true (has "<p>" html_no_space);
+  let bare = "1.\n" in
+  let html_bare = Render.md_parse bare in
+  Alcotest.(check bool)
+    "bare '1.' (no space) is NOT an <ol>" false (has "<ol>" html_bare);
+  Alcotest.(check bool)
+    "bare '1.' stays as a <p>" true (has "<p>" html_bare)
+
+let[@warning "-32"] ordered_list_stops_at_dash_marker () =
+  (* A `- ` line at the same indentation as the ordered list
+     must end the ordered list and start a new unordered one.
+     This protects against the bug where the renderer would
+     treat `- ` as a continuation of the previous `<li>`. *)
+  let src = "1. first\n2. second\n\n- dash a\n- dash b\n" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "<ol> wrapper present" true (has "<ol>" html);
+  Alcotest.(check bool)
+    "<ul> wrapper present" true (has "<ul>" html);
+  Alcotest.(check bool)
+    "two ordered <li>" true (count "<li>" html = 4)
+
+let[@warning "-32"] ordered_list_after_paragraph_continues_paragraph () =
+  (* Negative: a `1. ` line that follows a non-blank paragraph
+     line is NOT auto-extracted as a list. The hand-rolled
+     subset requires a blank line between prose and the list,
+     matching the rule for `- ` (no CommonMark "lazy interrupt"
+     support).  This regression pin prevents future code from
+     silently changing that rule. *)
+  let src = "intro 1. continuation is part of the same paragraph\n" in
+  let html = Render.md_parse src in
+  Alcotest.(check bool)
+    "no <ol> when no blank line" false (has "<ol>" html);
+  Alcotest.(check bool)
+    "single <p> contains the whole text" true (has "<p>" html)
+
 let[@warning "-32"] italic_renders () =
   let src = "an *italic* word" in
   let html = Render.md_parse src in
@@ -1008,6 +1140,29 @@ let () =
         [ Alcotest.test_case "cont" `Quick list_continuation_renders ] );
       ( "list_single_item_still_one_li",
         [ Alcotest.test_case "single" `Quick list_single_item_still_one_li ] );
+      ( "ordered_list_renders",
+        [ Alcotest.test_case "ol" `Quick ordered_list_renders ] );
+      ( "ordered_list_multi_digit_renders",
+        [ Alcotest.test_case "multi" `Quick ordered_list_multi_digit_renders ] );
+      ( "ordered_list_continuation_joins_into_one_li",
+        [
+          Alcotest.test_case "cont" `Quick
+            ordered_list_continuation_joins_into_one_li;
+        ] );
+      ( "ordered_list_invalid_marker_stays_paragraph",
+        [
+          Alcotest.test_case "neg" `Quick
+            ordered_list_invalid_marker_stays_paragraph;
+        ] );
+      ( "ordered_list_stops_at_dash_marker",
+        [
+          Alcotest.test_case "dash" `Quick ordered_list_stops_at_dash_marker;
+        ] );
+      ( "ordered_list_after_paragraph_continues_paragraph",
+        [
+          Alcotest.test_case "lazy" `Quick
+            ordered_list_after_paragraph_continues_paragraph;
+        ] );
       ("italic_renders", [ Alcotest.test_case "em" `Quick italic_renders ]);
       ( "italic_lone_asterisk_literal",
         [ Alcotest.test_case "lone" `Quick italic_lone_asterisk_literal ] );
