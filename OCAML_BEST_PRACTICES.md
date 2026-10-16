@@ -2357,3 +2357,77 @@ Cited from this session (2026-10-15) as the trigger for
 `decisions/release-cosign-blob-sign-2026-10.yaml` (the
 D6 sub-decision under meta-decision
 `plan-2026-10-distro-friction`).
+
+### 11.38 `dune test` (full stanza) hangs at a non-deterministic point in dune 3.23.1
+
+**Symptom.** Running `dune test --root .` against the
+`(tests ...)` stanza hangs for 600+ seconds at a
+non-deterministic point (anywhere between the 8th and 16th
+binary on every reproducer we have tried). The hang survives
+`-j 1`. Per-test invocations
+(`dune runtest tests/<name>.exe` or
+`_build/default/tests/<name>.exe`) finish in <100 ms. The
+hang is therefore a dune-internal RPC sync bug, not a kernel
+or test bug. Tracked upstream as
+https://github.com/ocaml/dune/issues/12900 (fixed by
+https://github.com/ocaml/dune/pull/12979).
+
+**Workarounds, ranked by cost.**
+
+1. **`scripts/dev test-fast <bin-name...>`** (added in
+   `process-fastpath-2026-10`). Runs each test binary via
+   `dune runtest tests/<bin>.exe` directly, bypassing the
+   full stanza and therefore the RPC hang. This is the
+   recommended default for local iteration; it skips the
+   5-min `dune-test-with-timeout.sh` budget and finishes
+   the full 22-binary suite in <30 s on warm cache.
+2. **`scripts/dune-test-with-timeout.sh`**
+   (`scripts/dev ready` stage 1 invokes it under
+   `scripts/dev verify`). Gives the full stanza a 600 s
+   wall-clock budget and kills the process tree on hang.
+   Cost: still 5-10 min wall-clock on the happy path.
+   Kept for CI parity; not recommended for local iteration.
+3. **Run each binary manually**:
+   `dune runtest tests/<name>.exe`. Fastest possible
+   path; useful when only one binary is affected.
+4. **Patch `flake.lock` to a dune that contains PR #12979**
+   (post-3.23.1) and remove the workaround. Tracked in
+   `docs/upstream-bugs/dune-3.23.1-rpc-hang.md`.
+
+**Anti-patterns to avoid.**
+
+- Do **not** retry `dune test` and hope for the best; the
+  hang is not flaky, it is deterministic in the suite-size
+  sense (it always happens, just at a varying point).
+- Do **not** drop individual test binaries from
+  `tests/dune` to "skip past" the hang. The hang point
+  shifts but does not disappear, and the coverage gap is
+  worse than the time cost.
+- Do **not** raise the timeout beyond 1800 s; the
+  marginal cost is huge and the marginal utility is zero.
+
+**Probe alternative for parser bugs.** When investigating a
+parser or rendering bug, the
+`scripts/dev probe '<input>'` (or
+`scripts/dev probe --file site/<name>.md`) subcommand
+builds `bin/md_probe.exe` and prints the produced HTML in
+<1 s. This is faster and more informative than running a
+test binary, because the probe shows the actual output
+rather than a pass/fail signal. The 5-min full-suite
+check is wasteful for parser-level iteration; use the
+probe and then run the relevant test binary.
+
+**Referenced from.** `scripts/dev` (`test-fast`,
+`probe`); `scripts/dune-test-with-timeout.sh` (the
+existing workaround for CI); the agent-protocol fast
+path (`AGENTS.md §Fast path`).
+
+**Trigger.** Any local `dune test --root .` invocation
+that runs the full `(tests ...)` stanza. Detected on
+2026-10-16 during the `render-ordered-lists-2026-10`
+worktree's `scripts/dev ready` invocation. The 22-binary
+gate (~12 s on warm cache) is the only configuration in
+which `dune test` reliably runs end-to-end in this
+environment, because dune's RPC layer synchronises
+differently for 22 binaries than for the project's full
+test set.

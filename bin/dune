@@ -23,3 +23,8 @@
  (public_name mathc_mcp)
  (modules mathc_mcp)
  (libraries mathcoding_mcp str unix))
+
+(executable
+ (name md_probe)
+ (modules md_probe)
+ (libraries mathcoding_core str))
