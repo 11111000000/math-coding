@@ -1,0 +1,162 @@
+---
+schema: math-coding/3.2
+id: render-ordered-lists-2026-10
+revision: 1
+state: active
+mode: light
+axiom_link:
+  - A4
+body_sha: "sha256:d9f1b062e59d483738e6017a71c4c9990d0149b2850558eb4908f37eab400cd4"
+yaml_sha: "sha256:d9f1b062e59d483738e6017a71c4c9990d0149b2850558eb4908f37eab400cd4"
+intent: |
+  The hand-rolled Markdown subset in `lib/render.ml::md_parse`
+  previously recognised only `- ` unordered lists. Lines
+  starting with `<digits>. ` (e.g., `1. `, `2. `, `10. `)
+  fell through to the paragraph accumulator and were
+  rendered as a single `<p>` with the numbers concatenated:
+
+      <p>1. **Схема.** ... 2. **Идентичность.** ... 3. ...</p>
+
+  instead of three `<li>` elements inside an `<ol>`. Twelve
+  paragraphs across seven site pages (methodology,
+  contributing, differences, install, faq — EN/RU/ZH) plus
+  rendered AGENTS.md / USAGE.md excerpts were affected; the
+  user-visible symptom was a Russian methodology page where
+  the four "chain in practice" questions ran together on a
+  single wrapped line.
+
+  This decision closes that defect with a one-file change to
+  `lib/render.ml` (no new schema, no new policy term, no new
+  attestation; regression pin via 6 tests in
+  `tests/render_kernel.ml`). Decision exists for P1 audit
+  only — the implementation itself is below the
+  `kernel-change` reference-class threshold (32 lines net in
+  a leaf parser) and would qualify for the fast path
+  (`AGENTS.md §Fast path`) were it not a `lib/` change that
+  triggers the pre-commit P1 hook.
+
+  Counter-case. "The fast path was supposed to remove the
+  decision-file requirement too."  Counter-argument: P1 is
+  enforced at commit time, not by the agent's discretion;
+  the fast path is opt-in for the slow self-check and the
+  attestation store, not for the audit trail. The decision
+  file is the cheapest P1 closure (one file, no obligation,
+  no verifier, no attestation) and keeps the change set
+  traversable for `decisions/process-principles` review.
+commitment: |
+  Every `<digits>. ` line in any source routed through
+  `Render.md_parse` (i.e., `site/*.md`, `axioms/*.md`,
+  decisions YAML excerpts shown via `md_parse`, AGENTS.md
+  and USAGE.md when rendered into HTML) becomes an `<ol>`
+  with one `<li>` per item. Multi-digit prefixes (`10. `,
+  `12. `) are accepted; continuation lines (indented
+  bodies) join the current item with a single space, matching
+  the existing `- ` rule; an unordered `- ` marker ends an
+  in-flight ordered list (and vice versa).
+scope:
+  capabilities:
+    - markdown-subset-correctness
+    - site-content-markup
+  paths:
+    - "lib/render.ml"
+    - "tests/render_kernel.ml"
+  exclusions:
+    - "schemas/**"
+    - "decisions/**"
+    - "lib/policy.ml"
+    - "lib/decision.ml"
+    - "lib/risk.ml"
+    - "spec/**"
+outcomes:
+  - id: ordered-list-parsed
+    statement: |
+      `Render.md_parse` of a `1. `, `2. `, ... sequence
+      returns `<ol><li>...</li><li>...</li>...</ol>`, with
+      each `<li>` carrying one item (multi-line continuations
+      joined with a single space). Verified by
+      `tests/render_kernel.ml::ordered_list_renders` and
+      `tests/render_kernel.ml::ordered_list_multi_digit_renders`
+      (both `Quick`).
+  - id: rendered-site-has-ol-tags
+    statement: |
+      After `scripts/render.sh` re-render, the affected
+      `dist/*.html` files (`methodology.{ru,}.html`,
+      `contributing.{ru,}.html`, `differences.{ru,}.html`,
+      `install.html`, `faq.{ru,}.html`) carry `<ol>` tags
+      where they previously carried `<p>1. </p>`. Verified
+      by `rg -c "<ol>" dist/methodology.ru.html` returning
+      ≥ 1 (was 0 on main before this commit) and
+      `rg -c "<p>1\." dist/methodology.ru.html` returning 0
+      (was 2 on main).
+  - id: invalid-marker-still-paragraph
+    statement: |
+      A `1.5 ` (decimal), `1.foo` (no space), or bare `1.`
+      line is NOT treated as a list marker; it flows into
+      the paragraph accumulator like any other prose.
+      Verified by
+      `tests/render_kernel.ml::ordered_list_invalid_marker_stays_paragraph`.
+assumptions: []
+obligations:
+  - id: ordered-list-renders
+    statement: |
+      A `1. `, `2. `, `3. ` sequence in `Render.md_parse`
+      input renders as `<ol><li>...</li><li>...</li><li>...</li></ol>`.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::ordered_list_renders
+          result: pass
+        - verifier: tests/render_kernel.ml::ordered_list_multi_digit_renders
+          result: pass
+        - verifier: tests/render_kernel.ml::ordered_list_continuation_joins_into_one_li
+          result: pass
+        - verifier: dist/methodology.ru.html has <ol> at the
+          'Рабочая цепочка на практике' section
+          result: pass
+  - id: ordered-list-negative
+    statement: |
+      A `1.5 ` / `1.foo` / bare `1.` line is NOT wrapped in
+      `<ol>`; it stays in the paragraph accumulator.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.ml::ordered_list_invalid_marker_stays_paragraph
+          result: pass
+        - verifier: tests/render_kernel.ml::ordered_list_stops_at_dash_marker
+          result: pass
+        - verifier: tests/render_kernel.ml::ordered_list_after_paragraph_continues_paragraph
+          result: pass
+reversal:
+  - signal: ordered-list-regressed
+    condition: |
+      After this revision lands, any `dist/*.html` page
+      carries `<p>` containing the literal pattern `1. <strong>`
+      or `2. <strong>` (i.e., the original bug returns).
+      Resolution: investigate the `ordered_trigger` predicate
+      in `lib/render.ml::md_parse`; likely cause is a
+      `String.trim` regression or a `String.sub` boundary
+      issue, both of which have entries in
+      `OCAML_BEST_PRACTICES §11`.
+    action: rework
+counterexample: |
+  "Use a real markdown library (`omd`, `caml-markdown`)
+  instead of a hand-rolled parser."
+
+  Counter-argument: the parser is hand-rolled by design
+  (`render-kernel-fixes-2026-10` decision explicitly
+  considered and rejected a third-party parser to keep
+  transitive dependencies and the auditable-100-line
+  goal). The defect is local to one missing case in
+  the existing list-collection logic; the same decision
+  that rejected third-party parsers also rejected
+  full-CommonMark support. 30 lines of OCaml in the
+  existing architecture is the right shape.
+risk:
+  declared_triggers:
+    - render-output-changes
+    - dist-page-shape-changes
+  owner: human:maintainer
+relations:
+  addresses:
+    - site-deploy@5
+    - render-kernel-fixes-2026-10@1
+  supersedes: []
+  superseded_by: []

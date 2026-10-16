@@ -525,6 +525,109 @@ let[@warning "-32"] md_parse source =
     in
     loop [] rem
   in
+  (* --- ordered-list support (render-ordered-lists-2026-10) ---
+   *
+   * The hand-rolled Markdown subset previously recognised only
+   * `- ` unordered lists. Lines starting with `<digits>. `
+   * (e.g., `1. `, `2. `, `12. `) fell through to the paragraph
+   * accumulator and were rendered as a single `<p>` with the
+   * numbers concatenated, e.g.,
+   *   "1. Схема. ... 2. Идентичность. ... 3. ..."
+   * instead of three `<li>` elements inside an `<ol>`. Twelve
+   * paragraphs across seven site pages (methodology, contributing,
+   * differences, install, faq — EN/RU/ZH) plus the rendered
+   * AGENTS.md / USAGE.md excerpts were affected.
+   *
+   * The fix adds `is_ordered_marker` / `ordered_marker_body` (a
+   * parser for `<digits>. ` prefixes) and a shared `render_list`
+   * helper that takes the HTML opening tag (`<ul>` or `<ol>`) and
+   * a per-type item trigger. The previous `- `-only code lived
+   * inline in the loop; that branch now becomes a thin call into
+   * the helper, and a sibling branch handles the new ordered
+   * case. *)
+
+  (* Parse a line that starts an ordered list item: one or more
+     ASCII digits, then a literal `.`, then a single space. Returns
+     the body (substring after the space) when matched, None
+     otherwise. A line like "1.5 " (decimal point) is rejected
+     because the character after `.` must be a space; "1.foo"
+     (no space) is rejected the same way. *)
+  let[@warning "-32"] ordered_marker_body t =
+    let len = String.length t in
+    let i = ref 0 in
+    while !i < len && t.[!i] >= '0' && t.[!i] <= '9' do
+      incr i
+    done;
+    if !i = 0 || !i + 1 >= len || t.[!i] <> '.' || t.[!i + 1] <> ' ' then
+      None
+    else Some (String.sub t (!i + 2) (len - !i - 2))
+  in
+  let[@warning "-32"] is_ordered_marker t =
+    match ordered_marker_body t with Some _ -> true | None -> false
+  in
+  let[@warning "-32"] ordered_trigger tt = ordered_marker_body tt in
+  (* Render a list block. `tag` is the HTML opening element
+     (`<ul>` or `<ol>`); `trigger` is a per-list-type predicate
+     returning Some body when a line starts a new item, or None
+     otherwise. The first body is taken from `first_line`; each
+     subsequent line is either a new item (per `trigger`), a
+     continuation of the current item, or a block starter that
+     ends the list entirely. Continuation lines are joined with a
+     single space, matching the "tight list with single-line
+     continuation" convention used throughout `site/*.md` and
+     `axioms/*.md`. The block-starter check includes `- ` so an
+     unordered list marker ends an in-flight ordered list (and
+     vice versa). *)
+  let render_list ~tag ~trigger first_line rest =
+    let close_tag = if tag = "<ul>" then "</ul>" else "</ol>" in
+    Buffer.add_string buf (tag ^ "\n");
+    let is_block_starter tt =
+      (String.length tt >= 3 && String.sub tt 0 3 = "```")
+      || (String.length tt > 2 && String.sub tt 0 2 = "# ")
+      || (String.length tt > 3 && String.sub tt 0 3 = "## ")
+      || (String.length tt > 4 && String.sub tt 0 4 = "### ")
+      || (String.length tt > 0 && tt.[0] = '>')
+      || is_hr_line tt
+      || (String.length tt > 0 && tt.[0] = '|')
+      || (String.length tt > 2 && String.sub tt 0 2 = "- ")
+    in
+    let rec collect items_rev current_item rem =
+      match rem with
+      | [] -> (List.rev items_rev, List.rev current_item, [])
+      | l :: r ->
+          let tt = String.trim l in
+          if tt = "" then
+            (List.rev items_rev, List.rev current_item, l :: r)
+          else if is_block_starter tt then
+            (List.rev items_rev, List.rev current_item, l :: r)
+          else begin
+            match trigger tt with
+            | Some body ->
+                let finished = List.rev current_item in
+                collect ([ finished ] @ items_rev) [ body ] r
+            | None -> collect items_rev (l :: current_item) r
+          end
+    in
+    let first_body =
+      match trigger first_line with Some b -> b | None -> first_line
+    in
+    let items, current, after = collect [] [ first_body ] rest in
+    let all_items =
+      match current with [] -> items | _ -> items @ [ current ]
+    in
+    List.iter
+      (fun item_lines ->
+        let joined =
+          String.concat " "
+            (List.map (fun s -> String.trim s) item_lines)
+        in
+        Buffer.add_string buf "  <li>";
+        Buffer.add_string buf (md_inline joined);
+        Buffer.add_string buf "</li>\n")
+      all_items;
+    Buffer.add_string buf (close_tag ^ "\n");
+    after
+  in
   let rec loop acc_para = function
     | [] -> flush_para acc_para
     | line :: rest -> (
@@ -617,65 +720,32 @@ let[@warning "-32"] md_parse source =
                 (* Not a table; emit as paragraph *)
                 let next = if acc_para = "" then t else acc_para ^ " " ^ t in
                 loop next rest)
+        | _ when is_ordered_marker t ->
+            push_para ();
+            (* Ordered list (`<ol>`). Each `<digits>. ` line starts a
+               new item; continuation lines (non-marker, non-block
+               starter) join the previous item with a single space. *)
+            let after =
+              render_list ~tag:"<ol>" ~trigger:ordered_trigger t rest
+            in
+            loop "" after
         | _ when String.length t > 2 && String.sub t 0 2 = "- " ->
             push_para ();
-            Buffer.add_string buf "<ul>\n";
-            (* Collect a multi-line list: each `- ` line starts a new
-               item; subsequent non-blank lines that are NOT new list
-               markers / headings / fences / hr / blockquote are joined
-               into the previous item with a single space. This is the
-               "tight list with single-line continuation" used by all
-               `site/*.md` and `axioms/*.md` content; we do not honour
-               the indented-2-space hard-break rule (CommonMark §6). *)
-            let is_new_item_line tt =
-              String.length tt > 2 && String.sub tt 0 2 = "- "
+            (* Unordered list (`<ul>`). Each `- ` line starts a new
+               item; continuation lines (non-marker, non-block
+               starter) join the previous item with a single space.
+               This is the "tight list with single-line continuation"
+               used by all `site/*.md` and `axioms/*.md` content; we
+               do not honour the indented-2-space hard-break rule
+               (CommonMark §6). The list-body collection is shared
+               with the ordered case via `render_list`; only the
+               trigger predicate differs. *)
+            let trigger tt =
+              if String.length tt > 2 && String.sub tt 0 2 = "- " then
+                Some (String.sub tt 2 (String.length tt - 2))
+              else None
             in
-            let is_block_starter tt =
-              (* Anything that ends the list entirely. *)
-              (String.length tt >= 3 && String.sub tt 0 3 = "```")
-              || (String.length tt > 2 && String.sub tt 0 2 = "# ")
-              || (String.length tt > 3 && String.sub tt 0 3 = "## ")
-              || (String.length tt > 4 && String.sub tt 0 4 = "### ")
-              || (String.length tt > 0 && tt.[0] = '>')
-              || is_hr_line tt
-              || (String.length tt > 0 && tt.[0] = '|')
-            in
-            (* items_rev: list of (item_lines list) in reverse; the
-               first item_lines list is the lines of the FIRST item
-               currently being built (its first line is `line`). *)
-            let rec collect items_rev current_item rem =
-              match rem with
-              | [] -> (List.rev items_rev, List.rev current_item, [])
-              | l :: r ->
-                  let tt = String.trim l in
-                  if tt = "" then
-                    (List.rev items_rev, List.rev current_item, l :: r)
-                  else if is_new_item_line tt then begin
-                    let finished = List.rev current_item in
-                    collect ([ finished ] @ items_rev)
-                      [ String.sub tt 2 (String.length tt - 2) ]
-                      r
-                  end
-                  else if is_block_starter tt then
-                    (List.rev items_rev, List.rev current_item, l :: r)
-                  else collect items_rev (l :: current_item) r
-            in
-            let first_body = String.sub t 2 (String.length t - 2) in
-            let items, current, after = collect [] [ first_body ] rest in
-            let all_items =
-              match current with [] -> items | _ -> items @ [ current ]
-            in
-            List.iter
-              (fun item_lines ->
-                let joined =
-                  String.concat " "
-                    (List.map (fun s -> String.trim s) item_lines)
-                in
-                Buffer.add_string buf "  <li>";
-                Buffer.add_string buf (md_inline joined);
-                Buffer.add_string buf "</li>\n")
-              all_items;
-            Buffer.add_string buf "</ul>\n";
+            let after = render_list ~tag:"<ul>" ~trigger t rest in
             loop "" after
         | _ ->
             let next = if acc_para = "" then t else acc_para ^ " " ^ t in
