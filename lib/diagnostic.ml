@@ -500,6 +500,115 @@ let mc_sha_mismatch ?(decision_id = "") ?(body_sha = "") ?(yaml_sha = "")
   create ~code:"MC-SHA-MISMATCH" ~kind:Deficit ~severity:Block
     ~policy_rule:(Some "spec/algebra-3.2.md §7") ~next_actions:actions msg
 
+(* MC-BODY-SHA-PATTERN-VIOLATION: body_sha or yaml_sha is present but
+   does not match the documented pattern `^sha256:[0-9a-f]{64}$`.
+   The schema declares the pattern (schemas/decision.json:103-110 for
+   body_sha, :113-120 for yaml_sha) and the gate evaluator
+   (`lib/decision.ml::sha_match_check`) enforces equality between the
+   two; before this commit, the kernel did not enforce the pattern,
+   so a value like `"sha256:' + sha + '"` (literal shell-template
+   artifact) or a too-short digest would silently pass equality
+   checks against itself and reach the gate. Author remediation:
+   replace the offending value with the canonical SHA-256 of the
+   decision body (with both body_sha and yaml_sha replaced by
+   `sha256:` + 64 zeros), computed by the same algorithm as
+   `scripts/axiom-link-seed.py`. The migration script
+   `scripts/fix-non-pattern-sha.sh` (referenced from
+   `decisions/kernel-bugs-v3.4-2026-10.yaml`) automates the
+   one-line per-affected-repo remediation. *)
+let mc_body_sha_pattern_violation ?(decision_id = "") ~field ~value
+    ?(next_actions = []) () =
+  let prefix =
+    if decision_id = "" then "" else Printf.sprintf "%s: " decision_id
+  in
+  let msg =
+    Printf.sprintf
+      "%s%s value `%s` does not match the documented pattern \
+       `^sha256:[0-9a-f]{64}$` (71 characters total). schemas/decision.json \
+       declares this pattern as required for body_sha and yaml_sha; the \
+       kernel now enforces it (decisions/kernel-bugs-v3.4-2026-10). \
+       Recompute the digest with the canonical algorithm and replace \
+       the value."
+      prefix field value
+  in
+  let default_actions =
+    [
+      ( "replace",
+        Printf.sprintf "%s with the canonical sha256: <64 hex chars> digest \
+         of the decision body (both body_sha and yaml_sha, computed with \
+         the placeholder-substitution algorithm in scripts/axiom-link-seed.py)"
+          field );
+      ("run",
+       "scripts/fix-non-pattern-sha.sh  # automated migration; idempotent");
+      ("verify", "mathc validate <path-to-decision>");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-BODY-SHA-PATTERN-VIOLATION" ~kind:Deficit
+    ~severity:Block
+    ~policy_rule:(Some "schemas/decision.json#body_sha/yaml_sha")
+    ~next_actions:actions msg
+
+(* MC-MATERIALS-DIGEST-EMPTY: emitted when an attestation with
+   kind_ ∈ {test, build, observation} carries an empty
+   `subject.materials_digest`. Per A0 (separation), runtime-
+   produced attestations MUST name the materials they were produced
+   against; a human review (`kind_: review`) is exempt because
+   humans can declare without a runtime anchor. The historical
+   schema allowed empty materials_digest for any kind_, which
+   silently review-laundered runtime-evidence claims (REPORT.md
+   §3.6). This Block diagnostic closes the loophole.
+
+   The grandfathering note for legacy build/test attestations issued
+   before 2026-10-16 lives in `lib/attestations/attestations.ml::load`;
+   the kernel-side validator (`lib/codec.ml::parse_attestation`)
+   does not grandfather -- it rejects. Author remediation: produce
+   a fresh attestation whose `materials_digest` carries the SHA-256
+   of the run's input artefact (test output, build artefact, observed
+   metric). The existing `attestations/*.json` files in the math-
+   coding repo carry `kind_: build` from the `ci-bot` producer;
+   per `decisions/kernel-bugs-v3.4-2026-10` reversal section,
+   those are grandfathered by the loader, not the validator. *)
+let mc_materials_digest_empty ?(subject = "") ?(kind = "")
+    ?(next_actions = []) () =
+  let prefix =
+    match subject, kind with
+    | "", "" -> ""
+    | s, "" -> Printf.sprintf "%s: " s
+    | "", k -> Printf.sprintf "<%s>: " k
+    | s, k -> Printf.sprintf "%s (kind_=%s): " s k
+  in
+  let msg =
+    Printf.sprintf
+      "%ssubject.materials_digest is empty for a runtime-kind \
+       attestation. Per A0 (epistemic separation, \
+       spec/constitution.md §0), test/build/observation \
+       attestations MUST name the materials they were produced \
+       against; only `kind_: review` may carry an empty digest \
+       (a human declaration without a runtime anchor). Add a \
+       SHA-256 of the run's input artefact to subject.materials_digest."
+      prefix
+  in
+  let default_actions =
+    [
+      ( "compute",
+        "sha256 of the run's input artefact (test output, build \
+         artefact, observed metric); set subject.materials_digest to \
+         the hex digest" );
+      ( "set",
+        "subject.materials_digest: \"sha256:<64 hex chars>\"" );
+      ("regenerate", "mathc attest ... --subject.materials_digest=<digest>");
+      ("verify", "mathc validate <path-to-attestation>");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-MATERIALS-DIGEST-EMPTY" ~kind:Deficit ~severity:Block
+    ~policy_rule:(Some "spec/constitution.md §0; A0 separation") ~next_actions:actions msg
+
 let severity_of_string = function
   | "info" -> Some Info
   | "warn" -> Some Warn
@@ -677,7 +786,62 @@ let explain (code : string) : string option =
          lives in `scripts/axiom-link-seed.py:105-123`. Re-run\n\
          `mathc validate` to confirm `MC-SHA-MISMATCH` is\n\
          gone."
-  | "MC-MISSING-SCHEMA" ->
+   | "MC-BODY-SHA-PATTERN-VIOLATION" ->
+      Some
+        "### Definition\n\
+         A Decision carries a `body_sha` or `yaml_sha` whose value\n\
+         does not match the schema-declared pattern\n\
+         `^sha256:[0-9a-f]{64}$` (71 characters total). The schema\n\
+         (`schemas/decision.json`) documents the pattern but the\n\
+         kernel historically only enforced equality between\n\
+         `body_sha` and `yaml_sha`; before this commit, a value like\n\
+         `\"sha256:' + sha + '\"` (literal shell-template artifact)\n\
+         or a too-short digest would silently pass equality\n\
+         checks against itself and reach the gate.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::parse_decision_yaml` finds a non-empty\n\
+         `body_sha` or `yaml_sha` whose string is not exactly 71\n\
+         characters OR does not start with `sha256:`. The kernel\n\
+         emits `MC-BODY-SHA-PATTERN-VIOLATION` (Block, exit 1).\n\
+         Per `decisions/kernel-bugs-v3.4-2026-10`, the check is\n\
+         parser-side and runs BEFORE the parser continues.\n\n\
+         ### Remediation\n\
+         Replace the offending value with the canonical\n\
+         SHA-256 of the decision body (with both fields replaced\n\
+         by `sha256:` + 64 zeros). The reference implementation\n\
+         lives in `scripts/axiom-link-seed.py:105-123`. For an\n\
+         automated migration across a brownfield repo, run\n\
+         `scripts/fix-non-pattern-sha.sh` (idempotent; decisions\n\
+         whose `body_sha` already matches the pattern are left\n\
+         untouched). Re-run `mathc validate` to confirm the\n\
+         violation is gone."
+  | "MC-MATERIALS-DIGEST-EMPTY" ->
+      Some
+        "### Definition\n\
+         An attestation carries `subject.materials_digest: \"\"`\n\
+         for a runtime-kind attestation (`kind_` in\n\
+         `{test, build, observation}`). Per A0 (epistemic\n\
+         separation, `spec/constitution.md` §0), a runtime\n\
+         attestation MUST name the materials it was produced\n\
+         against; only `kind_: review` may carry an empty digest\n\
+         (a human declaration without a runtime anchor).\n\n\
+         ### Occurs when\n\
+         `lib/codec.ml::parse_attestation` finds a non-review\n\
+         attestation whose `subject.materials_digest` is the\n\
+         empty string. The kernel emits\n\
+         `MC-MATERIALS-DIGEST-EMPTY` (Block, exit 1). Per\n\
+         `decisions/kernel-bugs-v3.4-2026-10`, the loader in\n\
+         `lib/attestations/attestations.ml` grandfathered legacy\n\
+         build/test attestations whose `issued_at` predates\n\
+         2026-10-16; new attestations produced after this commit\n\
+         must carry the digest.\n\n\
+         ### Remediation\n\
+         Compute the SHA-256 of the run's input artefact (test\n\
+         output, build artefact, observed metric) and set\n\
+         `subject.materials_digest` to the hex digest. Re-run\n\
+         `mathc validate` (or the producer script) to confirm the\n\
+         violation is gone."
+   | "MC-MISSING-SCHEMA" ->
       Some
         "### Definition\n\
          The decision file is parseable but is missing the top-level\n\

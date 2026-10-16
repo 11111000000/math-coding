@@ -21,7 +21,10 @@
         "obligation": {"type": "string"},
         "obligation_digest": {"type": "string"},
         "candidate_tree": {"type": "string"},
-        "materials_digest": {"type": "string"}
+        "materials_digest": {
+          "description": "SHA-256 of the run's input artefact (test output, build artefact, observed metric). Per A0 separation (spec/constitution.md §0), this field MUST be non-empty when `kind_` is in `{test, build, observation, analysis}`. An empty value is permitted only when `kind_: review` (a human declaration without a runtime anchor). The kernel emits MC-MATERIALS-DIGEST-EMPTY (Block) for runtime kinds. Loader-side grandfathering for legacy attestations whose `issued_at` predates 2026-10-16 lives in lib/attestations/attestations.ml.",
+          "type": "string"
+        }
       }
     },
     "kind_": {"enum": ["test", "review", "build", "analysis", "observation"]},

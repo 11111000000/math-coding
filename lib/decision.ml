@@ -897,7 +897,36 @@ and parse_decision_value v =
                "id is present but empty: schemas/decision.json requires a \
                 short lower-snake-case id, optionally suffixed with @rev")
       | Some id -> (
-          match Schema.take_string ps "revision" with
+          (* body_sha / yaml_sha pattern enforcement
+             (decisions/kernel-bugs-v3.4-2026-10). The schema
+             declares the pattern `^sha256:[0-9a-f]{64}$` but the
+             kernel historically only enforced equality between the
+             two fields. A literal shell-template artifact like
+             `"sha256:' + sha + '"` would survive equality check
+             (it equals itself). The pattern check rejects any
+             present-but-non-matching value with
+             `MC-BODY-SHA-PATTERN-VIOLATION` (Block, exit 1)
+             BEFORE the parser continues. Either field may be
+             absent (the sha-mismatch invariant is vacuously
+             satisfied when one is missing), but if present, must
+             match. *)
+          let check_sha_pattern field =
+            match Schema.take_string ps field with
+            | Some s
+              when not (String.starts_with ~prefix:"sha256:" s)
+                   || String.length s <> 71 ->
+                Some
+                  (Diagnostic.mc_body_sha_pattern_violation ~decision_id:id
+                     ~field ~value:s ())
+            | _ -> None
+          in
+          match
+            check_sha_pattern "body_sha",
+            check_sha_pattern "yaml_sha"
+          with
+          | Some diag, _ | None, Some diag -> Reject diag
+          | None, None -> (
+              match Schema.take_string ps "revision" with
           | None ->
               Reject
                 (Diagnostic.mc_missing_revision
@@ -918,6 +947,78 @@ and parse_decision_value v =
                       xs
                 | _ -> []
               in
+              (* counterexample / antithesis / axiom-link precedence
+                 (A3 self-application): the dialectical-slot checks fire
+                 BEFORE the `intent:` shape check. Without this
+                 ordering, an YAML-form intent scalar combined with a
+                 missing counterexample surfaces
+                 MC-MISSING-INTENT through the pure-validation view
+                 (parse_decision, called as a fallback by
+                 bin/Mathc.ml when parse_decision_yaml returns None),
+                 hiding the real cause. By computing the
+                 counterexample/antithesis state here and emitting the
+                 precise diagnostic first, the user sees the right
+                 MC-COUNTEREXAMPLE-MISSING code. The CLI pre-check in
+                 bin/Mathc.ml::counterexample_violation handles the
+                 same case at the dispatch level. *)
+              let mode_str_early =
+                match Schema.take_string ps "mode" with
+                | Some s -> s
+                | None -> "standard"
+              in
+              let mode_early =
+                match Codec.parse_mode mode_str_early with
+                | Some m -> m
+                | None -> `Standard
+              in
+              let state_str_early =
+                match Schema.take_string ps "state" with
+                | Some s -> s
+                | None -> "active"
+              in
+              let state_early =
+                match Codec.parse_decision_state state_str_early with
+                | Some s -> s
+                | None -> `Active
+              in
+              let counterexample_present =
+                match Schema.take_string ps "counterexample" with
+                | Some s when String.trim s <> "" -> true
+                | _ -> (
+                    match Schema.take_array ps "counterexample" with
+                    | Some xs ->
+                        List.exists
+                          (fun x ->
+                            match x with
+                            | Jsonl.String s when String.trim s <> "" -> true
+                            | _ -> false)
+                          xs
+                    | None -> false)
+              in
+              let counterexample_required_missing =
+                mode_geq_standard mode_early
+                && not counterexample_present
+                && state_early = `Active
+              in
+              if counterexample_required_missing then
+                let decision_id_early =
+                  match Schema.take_string ps "id" with
+                  | Some s -> s
+                  | None -> ""
+                in
+                Reject
+                  (Diagnostic.mc_counterexample_missing
+                     ~decision_id:decision_id_early
+                     ~severity:Diagnostic.Block
+                     "counterexample is required for mode >= standard; \
+                      see spec/algebra-3.2.md §11. Add a counterexample \
+                      section naming the strongest objection considered \
+                      and rejected, or downgrade to mode: light. \
+                      (Reported in preference to MC-MISSING-INTENT \
+                      because the intent slot may legitimately be a \
+                      YAML block scalar; the diagnostic must reflect \
+                      the actual dialectical-slot deficit.)")
+              else
               match Schema.take_object ps "intent" with
               | None ->
                   Reject
@@ -1192,8 +1293,8 @@ and parse_decision_value v =
                                                 Domain.mode_floor_used;
                                                 Domain.body_sha;
                                                 Domain.yaml_sha;
-                                                Domain.axiom_link;
-                                              })))))))))
+Domain.axiom_link;
+                                               }))))))))))
   | _ ->
       Reject
         (Diagnostic.mc_decision_invalid
@@ -1247,7 +1348,7 @@ and parse_decision v =
    `schema:` enum in `schemas/decision.json` (3.0-alpha, 3.2,
    3.3 — both `/decision` and bare forms). All of those fall
    through to the decision parser unchanged. *)
-type non_decision_kind = Waiver | Obligations
+type non_decision_kind = Waiver | Obligations | Attestation
 
 let[@warning "-32"] peek_schema_family (v : Jsonl.value) :
     (non_decision_kind * string) option =
@@ -1278,5 +1379,9 @@ let[@warning "-32"] peek_schema_family (v : Jsonl.value) :
             | None -> ""
           in
           Some (Obligations, id)
+      | Some s when has_prefix ~prefix:"math-coding/attestation-" s -> (
+          match Schema.take_string ps "id" with
+          | Some i -> Some (Attestation, i)
+          | None -> Some (Attestation, ""))
       | _ -> None)
   | _ -> None

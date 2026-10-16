@@ -89,6 +89,7 @@ let[@warning "-32"] make_entry ?(state=`Active) ?(obligations=[ "x-obligation" ]
      Memory.assumptions = 0;
      Memory.risk_triggers = [];
      Memory.state = state;
+     Memory.verifier_per_obligation = [];
    }
    
 let[@warning "-32"] empty_store : Attestations.t = []

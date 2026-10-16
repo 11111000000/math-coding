@@ -210,10 +210,16 @@ let counterexample_violation v =
         | Some s -> s
         | None -> "standard"
       in
+      (* mode_exempt is true ONLY for tiny and light; standard, strict,
+         exhaustive, considered all require a counterexample. The
+         previous implementation inverted the predicate (returning
+         true for every named mode except considered), which made the
+         pre-parse check silently no-op for the default mode=standard.
+         See decisions/kernel-bugs-v3.4-2026-10 for the closure. *)
       let mode_exempt =
         match mode_str with
-        | "tiny" | "light" | "standard" | "strict" | "exhaustive" -> true
-        | "considered" -> false
+        | "tiny" | "light" -> true
+        | "standard" | "strict" | "exhaustive" | "considered" -> false
         | _ -> true (* unknown mode defaults to exempt (defensive) *)
       in
       let counterexample_meaningful =
@@ -273,11 +279,15 @@ let antithesis_violation v =
         | Some s -> s
         | None -> "standard"
       in
+      (* antithesis is required ONLY for mode=considered per
+         decisions/antithesis-mode-considered-2026-10; every other
+         mode is exempt from this pre-parse check. The kernel-side
+         predicate `mode_geq_considered` (lib/decision.ml:421) is the
+         single source of truth. *)
       let mode_exempt =
         match mode_str with
-        | "tiny" | "light" | "standard" | "strict" | "exhaustive" -> true
         | "considered" -> false
-        | _ -> true (* unknown mode defaults to exempt (defensive) *)
+        | _ -> true
       in
       let antithesis_meaningful =
         match Schema.take_string ps "antithesis" with
@@ -343,7 +353,31 @@ let validate_with_counts path =
           `Accept_aggregate { kind = "waiver"; id; extra_diags = [] }
       | Some (Decision.Obligations, id) ->
           `Accept_aggregate { kind = "obligations"; id; extra_diags = [] }
-      | None -> (
+      | Some (Decision.Attestation, id) -> (
+          (* MC-MATERIALS-DIGEST-EMPTY dispatch
+                (decisions/kernel-bugs-v3.4-2026-10). The validator is
+                separate from parse_attestation so the loader can
+                grandfather legacy attestations whose `issued_at`
+                predates 2026-10-16. *)
+          match Codec.parse_attestation v with
+          | Some a -> (
+              match Codec.validate_attestation_materials a with
+              | Some diag ->
+                  let msg = diag.Diagnostic.message in
+                  `Reject (diag, msg)
+              | None ->
+                  `Accept_aggregate { kind = "attestation"; id; extra_diags = [] })
+          | None ->
+              let msg =
+                "attestation is not parseable: schemas/attestation.json \
+                 requires schema, id, kind, subject, kind_, producer, \
+                 result, issued_at; check the file against the schema"
+              in
+              `Reject
+                ( Diagnostic.mc_decision_invalid
+                    ~path:[ "attestation" ] msg,
+                  msg ))
+  | None -> (
           match first_missing_required v with
           | Some field ->
               let msg = Printf.sprintf "missing required field: %s" field in
@@ -3203,6 +3237,7 @@ let[@warning "-32"] load_decision_entry reader path =
             Memory.assumptions = 0;
             Memory.risk_triggers = [];
             Memory.state = `Active;
+            Memory.verifier_per_obligation = [];
           }
         in
         Some stub

@@ -365,6 +365,19 @@ let[@warning "-32"] blocking_cis () =
 (* -----------------------------------------------------------------
  * Store loader (existing code, unchanged). *)
 
+(* Grandfathering date for legacy attestations carrying an empty
+   `subject.materials_digest` for kind_ ∈ {test, build, observation}.
+   Per decisions/kernel-bugs-v3.4-2026-10: the kernel-side validator
+   (lib/codec.ml::parse_attestation) rejects empty materials_digest
+   for runtime kinds, but the loader here grandfathers attestations
+   whose `issued_at` predates this date so existing attestations in
+   `attestations/` (produced by `ci-bot`/`ci:fixture:*` for the
+   math-coding repo's own conformance corpus) remain loadable.
+   New attestations produced after this date MUST carry a non-empty
+   digest; the grandfathering is loader-side only, not validator-
+   side. *)
+let[@warning "-32"] materials_digest_legacy_cutoff = "2026-10-16"
+
 let[@warning "-32"] empty = []
 
 (* Read a single file via the caller-supplied reader. The reader

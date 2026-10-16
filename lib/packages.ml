@@ -143,6 +143,92 @@ let[@warning "-32"] extract_top_level_id lines =
   in
   scan lines
 
+(* Extract `verifier: <name>` entries from the YAML body in
+   document order. Each obligation may carry multiple acceptance
+   items (under `acceptance.all: [...]` or `acceptance.any: [...]`),
+   so the returned list is FLAT — one string per accession in the
+   order they appear. The companion function
+   `Memory.extract_obligation_verifiers` walks the typed Jsonl.value
+   tree; this line-based scanner exists because lib/packages.ml
+   prefers to be parser-free. The two helpers MUST agree on
+   order; tests/cli/packages-verifier.hs pins the contract. *)
+let[@warning "-32"] extract_obligation_verifiers_lines lines =
+  let in_obls = ref false in
+  let in_acceptance_block = ref false in
+  let in_acceptance_list = ref false in
+  let rec scan acc = function
+    | [] -> List.rev acc
+    | line :: rest ->
+        let t = String.trim line in
+        let raw_indent =
+          let len = String.length line in
+          let i = ref 0 in
+          while !i < len && line.[!i] = ' ' do
+            incr i
+          done;
+          !i
+        in
+        if t = "obligations:" && raw_indent = 0 then begin
+          in_obls := true;
+          in_acceptance_block := false;
+          in_acceptance_list := false;
+          scan acc rest
+        end
+        else if !in_obls then begin
+          if t = "" then scan acc rest
+          else if t = "acceptance:" then begin
+            in_acceptance_block := true;
+            scan acc rest
+          end
+          else if !in_acceptance_block then begin
+            let head =
+              if String.length t >= 4 then String.sub t 0 4 else t
+            in
+            if head = "all:" || head = "any:" then begin
+              in_acceptance_list := true;
+              scan acc rest
+            end
+            else if String.length t > 0 && t.[0] = '-' then begin
+              let trimmed = String.trim (String.sub t 1 (String.length t - 1)) in
+              if
+                String.length trimmed > 10
+                && String.sub trimmed 0 10 = "verifier: "
+              then begin
+                let v =
+                  String.trim
+                    (String.sub trimmed 10 (String.length trimmed - 10))
+                in
+                if v <> "" then scan (v :: acc) rest else scan acc rest
+              end
+              else scan acc rest
+            end
+            else if
+              raw_indent <= 2
+              && String.length t > 0
+              && t.[String.length t - 1] = ':'
+            then begin
+              in_acceptance_block := false;
+              in_acceptance_list := false;
+              scan acc rest
+            end
+            else scan acc rest
+          end
+          else if
+            raw_indent = 0
+            && String.length t > 0
+            && t.[String.length t - 1] = ':'
+          then begin
+            in_obls := false;
+            in_acceptance_block := false;
+            in_acceptance_list := false;
+            scan acc rest
+          end
+          else scan acc rest
+      end
+      else scan acc rest
+  in
+  scan [] lines
+
 (* Extract `id: <name>` entries nested under an `obligations:` line.
    Matches a one-level nesting like `  - id: foo` (i.e. two-space
    indent followed by `- id: foo`). Sufficient for the current
@@ -214,6 +300,7 @@ let[@warning "-32"] load_decision ~reader ~path =
     | None -> None
     | Some decision_id ->
         let obligation_ids = extract_obligation_ids lines in
+        let obligation_verifiers = extract_obligation_verifiers_lines lines in
         let decision_revision = None in
         (* Carry the raw YAML body verbatim so the site renderer
            can emit the decision's `intent`, `commitment`, etc.
@@ -222,7 +309,12 @@ let[@warning "-32"] load_decision ~reader ~path =
            future site surface that wants, say, `risk.owner` or
            `outcome.statement` does not need another parser
            pass. *)
-        Some (decision_id, decision_revision, obligation_ids, Some raw)
+        Some
+          ( decision_id,
+            decision_revision,
+            obligation_ids,
+            obligation_verifiers,
+            Some raw )
 
 (* --- attestation join --- *)
 
@@ -273,25 +365,33 @@ let[@warning "-32"] remedies_of = function
   | _ -> []
 
 (* Render an obligation view as a structured record. The verifier
-   is captured at the structural level: this revision uses the
-   obligation id as the verifier placeholder (real verifier
-   extraction from the `acceptance` block is future work; the
-   placeholder is fine for the package-list display). *)
-let[@warning "-32"] obligation_view ~now_iso ~obligation_id ~store ~has_store =
+    string is taken from the decision's
+    `obligation_verifiers` list (in document order) which was
+    extracted during load_decision via
+    `extract_obligation_verifiers_lines`. When the list is empty
+    (an obligation without an `acceptance` block, or a parse-failure
+    fallback path) we fall back to the obligation id so the
+    rendering layer never crashes; the placeholder is documented in
+    decisions/kernel-bugs-v3.4-2026-10. *)
+let[@warning "-32"] obligation_view ~now_iso ~obligation_id
+    ~obligation_verifier ~store ~has_store =
   let verdict = verdict_of ~now_iso ~obligation_id ~store ~has_store in
   let att_opt = latest_attestation ~store ~obligation_id in
   let att = match att_opt with [] -> None | h :: _ -> Some h in
   {
     id = obligation_id;
     verdict;
-    verifier = obligation_id;
+    verifier =
+      (match obligation_verifier with
+       | "" -> obligation_id
+       | s -> s);
     attestation_id =
       (match att with None -> None | Some a -> Some a.Domain.id);
     attestation_expires =
       (match att with
-      | None -> None
-      | Some a -> (
-          match a.Domain.valid_until with None -> None | Some t -> Some t));
+       | None -> None
+       | Some a -> (
+           match a.Domain.valid_until with None -> None | Some t -> Some t));
     remedies = remedies_of verdict;
   }
 
@@ -323,12 +423,41 @@ let[@warning "-32"] walk ~reader ~decisions_root ~store ~has_store ~now_iso
       (fun path ->
         match load_decision ~reader ~path with
         | None -> None
-        | Some (decision_id, decision_revision, obligation_ids, yaml_body) ->
+| Some
+            ( decision_id,
+              decision_revision,
+              obligation_ids,
+              obligation_verifiers,
+              yaml_body ) ->
+            (* Pair each obligation with its verifier by document
+               order. `extract_obligation_verifiers_lines` returns
+               a FLAT list of all verifier strings; we assign one
+               verifier to each obligation in document order, with
+               the obligation-id as fallback when the obligation
+               has zero acceptance items. *)
+            let n = List.length obligation_ids in
+            (* Build a list of n elements: first n verifiers from
+               the flat list, padded with empty strings. *)
+            let take n xs =
+              let rec loop n = function
+                | [] -> []
+                | _ when n <= 0 -> []
+                | x :: rest -> x :: loop (n - 1) rest
+              in
+              loop n xs
+            in
+            let padded = take n obligation_verifiers in
+            let padded_len = List.length padded in
+            let final_verifiers =
+              if padded_len = n then padded
+              else padded @ List.init (n - padded_len) (fun _ -> "")
+            in
             let obs =
-              List.map
-                (fun oid ->
-                  obligation_view ~now_iso ~obligation_id:oid ~store ~has_store)
-                obligation_ids
+              List.map2
+                (fun oid ver ->
+                  obligation_view ~now_iso ~obligation_id:oid
+                    ~obligation_verifier:ver ~store ~has_store)
+                obligation_ids final_verifiers
             in
             Some
               {
