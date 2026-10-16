@@ -5,30 +5,44 @@ a `sha256:` id matching the canonical-JSON SHA-256 of the body
 (excluding `id`), per AGENTS.md / source-map line 280-282 and
 `lib/attestations/batch.ml::compute_id`.
 
+Hermetic: the test points `MATH_CODING_DECISIONS_DIR` and
+`MATH_CODING_ATTESTATIONS_DIR` at operator-named directories
+under the tmpdir so it cannot pollute the host checkout even if a
+previous test failed mid-run. The resolver honours env-vars over
+the new-default `.math-coding/` layout (per `lib/path_config.ml`
+and `bin/Mathc.ml::env_or_default`).
+
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d) && cd "$tmpdir"
-  $ mkdir -p .math-coding/attestations
+  $ export MATH_CODING_DECISIONS_DIR=".test-math-coding/decisions"
+  $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
+  $ mkdir -p "$MATH_CODING_ATTESTATIONS_DIR"
   $ mathc attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
-  >   --out=.math-coding/attestations
-  wrote .math-coding/attestations/d1-onboarding-d1-obl-acceptance.json
-  wrote .math-coding/attestations/d1-onboarding-d1-obl-noise.json
-  wrote .math-coding/attestations/d2-rollout-d2-obl-build.json
+  >   --out="$MATH_CODING_ATTESTATIONS_DIR"
+  wrote .test-math-coding/attestations/d1-onboarding-d1-obl-acceptance.json
+  wrote .test-math-coding/attestations/d1-onboarding-d1-obl-noise.json
+  wrote .test-math-coding/attestations/d2-rollout-d2-obl-build.json
 
 All three files exist.
 
-  $ ls .math-coding/attestations
+  $ ls .test-math-coding/attestations
   d1-onboarding-d1-obl-acceptance.json
   d1-onboarding-d1-obl-noise.json
   d2-rollout-d2-obl-build.json
 
+The default `.math-coding/` MUST NOT exist -- the test is hermetic.
+
+  $ test ! -d .math-coding && echo "no default .math-coding/: ok"
+  no default .math-coding/: ok
+
 Each file is a single-line JSON object with the required fields.
 We assert the schema literal, the schema/kind identity, and that
 the `kind_` field matches the manifest row. We do NOT pin
-`issued_at` (it is wall-clock-dependent) nor `id` here — those
+`issued_at` (it is wall-clock-dependent) nor `id` here -- those
 are checked separately via the SHA-256 self-check below.
 
-  $ for f in .math-coding/attestations/*.json; do
+  $ for f in .test-math-coding/attestations/*.json; do
   >   python3 -c "
   > import sys, json
   > with open('$f') as g: d = json.load(g)
@@ -56,7 +70,7 @@ Python upstream `scripts/generate-attestations.py::canonical_json`
 applies; if our SHA matches Python's on the same input, the
 canonicalization is byte-equivalent at the digest boundary.
 
-  $ for f in .math-coding/attestations/*.json; do
+  $ for f in .test-math-coding/attestations/*.json; do
   >   python3 -c "
   > import sys, hashlib, json
   > with open('$f') as g: d = json.load(g)
@@ -76,7 +90,7 @@ Row 2 has no 5th column in the manifest; the binary defaults it to
 
   $ python3 -c "
   > import json
-  > with open('.math-coding/attestations/d1-onboarding-d1-obl-noise.json') as f:
+  > with open('.test-math-coding/attestations/d1-onboarding-d1-obl-noise.json') as f:
   >   d = json.load(f)
   > assert d['result'] == 'pass', d['result']
   > print('row2 default result:', d['result'])
@@ -88,12 +102,14 @@ subsequent runs of the same row).
 
   $ mathc attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
-  >   --out=.math-coding/attestations
-  wrote .math-coding/attestations/d1-onboarding-d1-obl-acceptance.json
-  wrote .math-coding/attestations/d1-onboarding-d1-obl-noise.json
-  wrote .math-coding/attestations/d2-rollout-d2-obl-build.json
-  $ ls .math-coding/attestations | wc -l
+  >   --out="$MATH_CODING_ATTESTATIONS_DIR"
+  wrote .test-math-coding/attestations/d1-onboarding-d1-obl-acceptance.json
+  wrote .test-math-coding/attestations/d1-onboarding-d1-obl-noise.json
+  wrote .test-math-coding/attestations/d2-rollout-d2-obl-build.json
+  $ ls .test-math-coding/attestations | wc -l
   3
 
-  $ cd "$DUNE_SOURCEROOT"
+  $ cd /
   $ rm -rf "$tmpdir"
+  $ unset MATH_CODING_DECISIONS_DIR
+  $ unset MATH_CODING_ATTESTATIONS_DIR

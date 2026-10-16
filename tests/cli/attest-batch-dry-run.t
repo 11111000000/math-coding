@@ -4,13 +4,19 @@ preview path: a non-destructive way to verify the manifest before
 committing to the attestation store.
 
 The exact JSON shape (sort_keys, no whitespace, ensure_ascii=False)
-MUST match what `--manifest` + `--out` writes — the `dry-run` flag
-only changes the I/O destination, not the per-row payload.
+MUST match what --manifest + --out writes -- the dry-run flag only
+changes the I/O destination, not the per-row payload.
+
+Hermetic: MATH_CODING_DECISIONS_DIR and MATH_CODING_ATTESTATIONS_DIR
+point at operator-named directories under the tmpdir so the test
+cannot pollute the host checkout.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d) && cd "$tmpdir"
-  $ mkdir -p .math-coding/attestations  # present but empty
-  $ before=$(ls .math-coding/attestations | wc -l)
+  $ export MATH_CODING_DECISIONS_DIR=".test-math-coding/decisions"
+  $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
+  $ mkdir -p "$MATH_CODING_ATTESTATIONS_DIR"  # present but empty
+  $ before=$(ls .test-math-coding/attestations | wc -l)
   $ mathc attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
   >   --dry-run > /tmp/attest-batch-dry-run.stdout.jsonl
@@ -33,7 +39,7 @@ No files were created in the attestations directory. The dry-run
 is non-destructive: pre-existing files (if any) are NOT modified
 either.
 
-  $ after=$(ls .math-coding/attestations | wc -l)
+  $ after=$(ls .test-math-coding/attestations | wc -l)
   $ test "$before" = "$after" && echo "dry-run: file count unchanged ($before)"
   dry-run: file count unchanged (0)
 
@@ -57,5 +63,7 @@ JSON and assert the `id` equals SHA-256 of the canonical body
   dry-run rows with valid id: 3
   $ rm -f /tmp/attest-batch-dry-run.stdout.jsonl
 
-  $ cd "$DUNE_SOURCEROOT"
+  $ cd /
   $ rm -rf "$tmpdir"
+  $ unset MATH_CODING_DECISIONS_DIR
+  $ unset MATH_CODING_ATTESTATIONS_DIR

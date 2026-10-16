@@ -682,6 +682,109 @@ let[@warning "-32"] test_decision_format_stricter () =
   ) files
 
 (* ------------------------------------------------------------------------- *)
+(* axiom_link-default-validates (P5 acceptance for stream P2)                   *)
+(* ------------------------------------------------------------------------- *)
+(* Regression pin: after `mathc init`, the scaffolded master policy MUST
+   validate cleanly (per `decisions/kernel-bugs-v3.4-2026-10.yaml` and
+   PLAN.md §3.3 acceptance). The pre-fix kernel tripped
+   `MC-MISSING-INTENT` because `master_policy_template` did not carry
+   `axiom_link` + `counterexample`. The post-fix kernel template is
+   wired with both.
+
+   The test runs `mathc init` in a tmpdir, then runs
+   `mathc validate .math-coding/policy.yaml` and asserts the
+   exit code is 0 (accept). The test is hermetic: a fresh tmpdir
+   per run, no env-var leaks. We use the *default* paths
+   (.math-coding/) here -- not env-var overrides -- because the
+   contract is about what the binary ships, not what an
+   operator can rename. *)
+
+let[@warning "-32"] run_mathc_init_default_validates () =
+  (* Resolve the mathc binary. The cram harness builds it under
+     _build/default/bin/mathc.exe (per tests/cli/dune), but the
+     OCaml test executable runs from a dune build directory that
+     differs from the cram bwrap cwd. We probe the build-env first
+     and fall back to PATH for `dune test` runs that don't set
+     DUNE_SOURCEROOT. We resolve from the test executable's
+     location (find ../bin/mathc.exe relative to the exe), since
+     `process_principles.exe` lives at
+     `_build/default/tests/process_principles.exe`. *)
+  let exe_dir = Filename.dirname Sys.executable_name in
+  let build_default_dir = Filename.dirname exe_dir in
+  let local_built =
+    Filename.concat build_default_dir "bin/mathc.exe"
+  in
+  let cmd_init =
+    if Sys.file_exists local_built then local_built
+    else
+      match Sys.getenv_opt "DUNE_SOURCEROOT" with
+      | Some s ->
+          let candidate = Filename.concat s "bin/mathc.exe" in
+          if Sys.file_exists candidate then candidate else "mathc"
+      | None -> "mathc"
+  in
+  let cmd_validate = cmd_init in
+  let tmpdir =
+    Filename.concat "/tmp"
+      (Printf.sprintf "axiom-link-default-%d-%d" (Unix.getpid ())
+         (Unix.gettimeofday () |> int_of_float))
+  in
+  Unix.mkdir tmpdir 0o755;
+  Fun.protect
+    (fun () ->
+      let cwd = Sys.getcwd () in
+      Sys.chdir tmpdir;
+      Fun.protect
+        ~finally:(fun () -> Sys.chdir cwd)
+        (fun () ->
+          (* Init with --no-install so we don't try to touch the
+             user's global hooks dir. *)
+          let init_argv =
+            [| "mathc"; "init"; "."; "--no-install" |]
+          in
+          let init_pid = Unix.create_process cmd_init init_argv
+              Unix.stdin Unix.stdout Unix.stderr in
+          let _, init_wstatus = Unix.waitpid [] init_pid in
+          (match init_wstatus with
+           | Unix.WEXITED code ->
+               if code <> 0 then
+                 Alcotest.failf
+                   "axiom-link-default-validates: mathc init exited %d"
+                   code
+           | _ ->
+               Alcotest.failf
+                 "axiom-link-default-validates: mathc init did not exit normally");
+          (* The init must have created .math-coding/policy.yaml. *)
+          let policy_path = ".math-coding/policy.yaml" in
+          if not (Sys.file_exists policy_path) then
+            Alcotest.failf
+              "axiom-link-default-validates: %s not created by mathc init"
+              policy_path;
+          (* Validate. The expected exit code is 0 (accept). *)
+          let val_argv = [| "mathc"; "validate"; policy_path |] in
+          let val_pid = Unix.create_process cmd_validate val_argv
+              Unix.stdin Unix.stdout Unix.stderr in
+          let _, val_wstatus = Unix.waitpid [] val_pid in
+          match val_wstatus with
+          | Unix.WEXITED code ->
+              if code <> 0 then
+                Alcotest.failf
+                  "axiom-link-default-validates: mathc validate exit %d (expected 0; scaffolded policy failed validation -- the kernel-bugs-v3.4-2026-10 template fix may have regressed)"
+                  code
+          | _ ->
+              Alcotest.failf
+                "axiom-link-default-validates: mathc validate did not exit normally"))
+    ~finally:(fun () ->
+      let rec rm p =
+        try
+          if Sys.is_directory p then
+            Sys.readdir p |> Array.iter (fun n -> rm (Filename.concat p n));
+          Unix.rmdir p
+        with _ -> ()
+      in
+      rm tmpdir)
+
+(* ------------------------------------------------------------------------- *)
 (* Test runner                                                                *)
 (* ------------------------------------------------------------------------- *)
 
@@ -740,5 +843,13 @@ let () =
           Alcotest.test_case
             "obligation IDs unique and outcomes resolve"
             `Quick test_decision_format_stricter;
+        ] );
+      ( "P5 axiom_link-default-validates (P2 kernel-bugs v3.4 pin)",
+        [
+          Alcotest.test_case
+            "after mathc init, scaffolded .math-coding/policy.yaml validates \
+             (axiom_link + counterexample template fix; regression pin for \
+             decisions/kernel-bugs-v3.4-2026-10)"
+            `Quick run_mathc_init_default_validates;
         ] );
     ]

@@ -8,17 +8,21 @@ review" path: useful after a brownfield adoption to seed the
 attestation store so subsequent `mathc self-check` runs have
 something to read.
 
+Hermetic: the test points MATH_CODING_DECISIONS_DIR and
+MATH_CODING_ATTESTATIONS_DIR at operator-named directories under
+the tmpdir so it cannot pollute the host checkout.
+
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d) && cd "$tmpdir"
-  $ mkdir -p .math-coding/decisions .math-coding/attestations
+  $ export MATH_CODING_DECISIONS_DIR=".test-math-coding/decisions"
+  $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
+  $ mkdir -p "$MATH_CODING_DECISIONS_DIR" "$MATH_CODING_ATTESTATIONS_DIR"
 
 Hand-write a minimal-but-parseable v3.2 decision with two
-obligations. We use schema 3.2 here because the v3.3 master
-template isn't yet wired into the scaffold path (P1/P2 work).
-The decision is written via `printf` rather than a heredoc because
-cram's `>` continuation syntax collides with shell heredoc lines
-that already start with `> ` (RFC: cram lacks an "ignore-next-line"
-mechanism, so we use printf + escaped newlines).
+obligations. The decision is written via `printf` rather than a
+heredoc because cram's `>` continuation syntax collides with shell
+heredoc lines that already start with `> ` (RFC: cram lacks an
+"ignore-next-line" mechanism, so we use printf + escaped newlines).
 
   $ printf '%s\n' \
   >   '---' \
@@ -65,12 +69,12 @@ mechanism, so we use printf + escaped newlines).
   >   '  owner: human:tester' \
   >   'relations:' \
   >   '  addresses: []' \
-  >   > .math-coding/decisions/foo-decision.yaml
+  >   > "$MATH_CODING_DECISIONS_DIR/foo-decision.yaml"
 
 Validate the fixture before exercising --from=decisions.
 
-  $ mathc validate .math-coding/decisions/foo-decision.yaml
-  accept: .math-coding/decisions/foo-decision.yaml
+  $ mathc validate "$MATH_CODING_DECISIONS_DIR/foo-decision.yaml"
+  accept: .test-math-coding/decisions/foo-decision.yaml
     decision: foo-decision
     revision: 1
     obligations: 2
@@ -79,9 +83,9 @@ Validate the fixture before exercising --from=decisions.
 Run --from=decisions. Two obligations -> two files.
 
   $ mathc attest-batch --from=decisions --producer=human:integration-test --kind=review
-  wrote .math-coding/attestations/foo-decision-obl-acceptance.json
-  wrote .math-coding/attestations/foo-decision-obl-noise.json
-  $ ls .math-coding/attestations
+  wrote .test-math-coding/attestations/foo-decision-obl-acceptance.json
+  wrote .test-math-coding/attestations/foo-decision-obl-noise.json
+  $ ls .test-math-coding/attestations
   foo-decision-obl-acceptance.json
   foo-decision-obl-noise.json
 
@@ -91,7 +95,7 @@ from --kind.
 
   $ python3 -c "
   > import json, glob
-  > for path in sorted(glob.glob('.math-coding/attestations/*.json')):
+  > for path in sorted(glob.glob('.test-math-coding/attestations/*.json')):
   >     d = json.load(open(path))
   >     assert d['producer']['identity'] == 'human:integration-test', d['producer']
   >     assert d['kind_'] == 'review', d['kind_']
@@ -105,7 +109,7 @@ A directory with NO parseable decisions is exit 2 (input error),
 not exit 0. This prevents silent zero-output runs from being
 mistaken for success. We pass MATH_CODING_DECISIONS_DIR pointing
 at a brand-new empty directory so the default-dir fallback does
-not pick up the populated `.math-coding/decisions` from the
+not pick up the populated `.test-math-coding/decisions` from the
 earlier step.
 
   $ empty=$(mktemp -d)
@@ -116,6 +120,9 @@ earlier step.
   > fi
   empty decisions dir refused (exit 2)
 
-  $ cd "$DUNE_SOURCEROOT"
+  $ cd /
   $ rm -rf "$tmpdir" "$empty"
+  $ unset MATH_CODING_DECISIONS_DIR
+  $ unset MATH_CODING_ATTESTATIONS_DIR
+
 
