@@ -1,0 +1,243 @@
+---
+schema: math-coding/3.3
+id: ux-3-attest-batch-subcommand-2026-10
+state: active
+mode: standard
+change_kind: implementation
+revision: 1
+
+body_sha: "sha256:f03d4ac2b9b2e9045fe7b129851b2ef243b94b046d88a2b66827f140c4b4fcf4"
+yaml_sha: "sha256:f03d4ac2b9b2e9045fe7b129851b2ef243b94b046d88a2b66827f140c4b4fcf4"
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+intent: |
+  Ship a `mathc attest-batch` subcommand that batch-generates
+  attestation JSON files from a TSV manifest or by walking
+  `MATH_CODING_DECISIONS_DIR`. This is the OCaml port of
+  `scripts/generate-attestations.py` and a brownfield-adoption
+  enabler: operators migrating existing decision files can stamp
+  one attestation per obligation without writing a custom script.
+
+counterexample: |
+  The strongest objection considered and rejected: "automated
+  batch generation is double-edged — it speeds up brownfield
+  adoption but also enables mass fake-review attestations." The
+  counterargument fails on three grounds: (a) the manifest is
+  a TSV with `decision_id<TAB>obligation_id` rows, so the
+  caller must already know the decision and obligation names —
+  generating an attestation for an unknown obligation is a
+  no-op (no file is written because the obligation does not
+  exist on disk); (b) the `id` field is a SHA-256 of the
+  canonical body, so every attestation is forensically
+  traceable to its producer identity (the `producer.identity`
+  string is embedded in the body that gets hashed), and
+  mass-forged attestations are detectable via
+  `mathc self-check` (which reads `attestations/`); (c) the
+  alternative — operator-stamped one-off attestations via
+  `mathc attest <junit.xml>` — has no audit trail at all,
+  making attest-batch the LESS risky surface area. The
+  A0/A1 axioms make this explicit: every commitment must have
+  a path to an observation (A1), and attest-batch provides
+  exactly one.
+
+commitment: |
+  One kernel-surface subcommand, one pure module, four cram
+  fixtures pinning positive / malformed / dry-run /
+  --from=decisions paths. The deliverables are:
+
+    D1. `bin/Mathc.ml::do_attest_batch` parses argv (manifest,
+        from, out, kind, producer, result, dry-run), reads
+        the manifest or scans `MATH_CODING_DECISIONS_DIR`,
+        and emits one attestation per row or obligation.
+
+    D2. `lib/attestations/batch.ml` (pure module) exposes:
+        `parse_manifest`, `make_attestation`, `compute_id`,
+        `with_id`, `serialize`, `filename_for`,
+        `scan_decisions_for_obligations`. No I/O in the module.
+
+    D3. The attestation `id` is `sha256:` + 64 lowercase hex
+        digits, computed over the canonical JSON of the body
+        excluding `id`. The canonical-JSON rule (sorted keys,
+        no whitespace, ensure_ascii=False) matches
+        `scripts/generate-attestations.py::canonical_json`
+        byte-for-byte.
+
+    D4. Output filenames are `<decision>-<obligation>.json`.
+        The output dir defaults to
+        `MATH_CODING_ATTESTATIONS_DIR` (env var) or
+        `.math-coding/attestations/` (new default per
+        plan-2026-10-improvements §0.1); legacy
+        `attestations/` continues to work as a fallback when
+        neither is set.
+
+    D5. The four cram fixtures pin the surface:
+
+        tests/cli/attest-batch-positive.t
+        tests/cli/attest-batch-malformed.t
+        tests/cli/attest-batch-dry-run.t
+        tests/cli/attest-batch-from-decisions.t
+
+scope:
+  capabilities:
+    - mathc-attest-batch-subcommand
+  paths:
+    - "bin/Mathc.ml"
+    - "bin/dune"
+    - "lib/attestations/batch.ml"
+    - "lib/attestations/dune"
+    - "tests/cli/attest-batch-positive.t"
+    - "tests/cli/attest-batch-malformed.t"
+    - "tests/cli/attest-batch-dry-run.t"
+    - "tests/cli/attest-batch-from-decisions.t"
+    - "tests/cli/fixtures/attest-batch/**"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/domain.ml"
+    - "lib/diagnostic.ml"
+    - "lib/jsonl.ml"
+    - "lib/canonical.ml"
+    - "lib/digest.ml"
+    - "lib/codec.ml"
+    - "lib/gate.ml"
+    - "lib/memory.ml"
+    - "lib/init/**"
+    - "lib/path_config.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: cli-attest-batch-emits-attestations
+    statement: |
+      `mathc attest-batch --manifest=PATH` reads a TSV and writes
+      one attestation per row into the output directory.
+  - id: cli-attest-batch-refuses-malformed
+    statement: |
+      `mathc attest-batch --manifest=PATH` exits 2 with a precise
+      diagnostic naming the offending line when the manifest is
+      malformed.
+  - id: cli-attest-batch-dry-run-non-destructive
+    statement: |
+      `mathc attest-batch --dry-run` prints canonical-JSON
+      attestations to stdout without writing any file.
+  - id: cli-attest-batch-from-decisions-walks
+    statement: |
+      `mathc attest-batch --from=decisions` walks every parseable
+      `*.yaml` under `MATH_CODING_DECISIONS_DIR` and emits one
+      attestation per obligation, using the `--kind`,
+      `--producer`, `--result` flags as defaults.
+
+obligations:
+  - id: cram-attest-batch-positive-passes
+    outcome: cli-attest-batch-emits-attestations
+    claim: |
+      `tests/cli/attest-batch-positive.t` exercises the manifest
+      path end-to-end: 3 rows in -> 3 `.json` files out, each
+      with a `sha256:` id matching the canonical-JSON SHA-256 of
+      the body, and the second row's missing 5th column defaults
+      to `pass`.
+    acceptance:
+      all:
+        - verifier: tests/cli/attest-batch-positive.t runs via dune runtest
+          result: pass
+
+  - id: cram-attest-batch-malformed-passes
+    outcome: cli-attest-batch-refuses-malformed
+    claim: |
+      `tests/cli/attest-batch-malformed.t` pins the exit-2
+      surface: malformed manifest, missing file, bad `--result`
+      value all refuse with exit 2 and a stderr diagnostic
+      that names the path / line / reason.
+    acceptance:
+      all:
+        - verifier: tests/cli/attest-batch-malformed.t runs via dune runtest
+          result: pass
+
+  - id: cram-attest-batch-dry-run-passes
+    outcome: cli-attest-batch-dry-run-non-destructive
+    claim: |
+      `tests/cli/attest-batch-dry-run.t` pins the `--dry-run`
+      path: 3 JSON lines on stdout, 0 files in the output dir,
+      and every output's `id` matches the canonical-JSON SHA-256.
+    acceptance:
+      all:
+        - verifier: tests/cli/attest-batch-dry-run.t runs via dune runtest
+          result: pass
+
+  - id: cram-attest-batch-from-decisions-passes
+    outcome: cli-attest-batch-from-decisions-walks
+    claim: |
+      `tests/cli/attest-batch-from-decisions.t` writes a parseable
+      YAML decision with two obligations, then asserts that
+      `--from=decisions` produces two attestation files whose
+      producer / kind / result match the CLI flags.
+    acceptance:
+      all:
+        - verifier: tests/cli/attest-batch-from-decisions.t runs via dune runtest
+          result: pass
+
+  - id: mathc-validate-accepts-this-decision
+    outcome: cli-attest-batch-emits-attestations
+    claim: |
+      `mathc validate decisions/ux-3-attest-batch-subcommand-2026-10.yaml`
+      exits 0 (accept).
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ux-3-attest-batch-subcommand-2026-10.yaml
+          result: pass
+
+  - id: sha-matches-python-upstream
+    outcome: cli-attest-batch-emits-attestations
+    claim: |
+      For a fixed manifest row with a fixed `issued_at`, the OCaml
+      SHA-256 of the canonical body equals the Python upstream
+      SHA-256 (byte-for-byte). This is verified at cram-test time
+      via Python's `json.dumps` + `hashlib.sha256`, which is the
+      same pipeline `scripts/generate-attestations.py::canonical_json`
+      uses.
+    acceptance:
+      all:
+        - verifier: tests/cli/attest-batch-positive.t computes OCaml SHA via Python and asserts match
+          result: pass
+        - verifier: tests/cli/attest-batch-dry-run.t computes OCaml SHA via Python and asserts match
+          result: pass
+
+reversal:
+  - signal: p1-path-config-lands
+    condition: |
+      The P1 stream of `plan-2026-10-improvements` lands
+      `lib/path_config.ml` with `resolve_decisions_dir` /
+      `resolve_attestations_dir` resolvers. Resolution:
+      `lib/attestations/batch.ml` switches to the resolvers
+      (replacing the inline `Sys.getenv_opt` checks at
+      `bin/Mathc.ml::do_attest_batch::env_or_default`).
+  - signal: manifest-format-changes
+    condition: |
+      The TSV manifest gains a 6th column (e.g. `evidence_digest`)
+      or the 5th column's default flips from `pass` to `review`.
+      Resolution: bump this decision's revision, document the
+      manifest schema bump in `bin/data/manifest.example.tsv`,
+      and update the cram fixtures.
+
+risk:
+  declared_triggers:
+    - duplicate-manifest-rows-produce-identical-filenames
+    - manifest-cross-references-nonexistent-decisions
+    - unattended-batch-marks-pass-on-non-pass-evidence
+    - python-upstream-diverges-on-canonical-json-rules
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-improvements@2
+  supersedes: []
+  superseded_by: []
+
+rev-history:
+  - "rev 1: initial mathc attest-batch subcommand (P3 of plan-2026-10-improvements)"

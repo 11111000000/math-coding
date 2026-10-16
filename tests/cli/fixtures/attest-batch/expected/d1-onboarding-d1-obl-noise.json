@@ -1,0 +1,1 @@
+{"id":"sha256:781af71a3dba639e8c122149a65a16da42c01b504f03b946171e09904ab4116c","issued_at":"2026-10-16T06:00:00Z","kind":"attestation","kind_":"review","producer":{"identity":"human:integration-experiment"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"d1-onboarding","materials_digest":"","obligation":"d1-obl-noise"}}
