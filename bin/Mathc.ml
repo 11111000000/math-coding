@@ -610,6 +610,13 @@ let print_usage oc =
     \                                   remediation} for an MC-* diagnostic code\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
     \  attest FILE                      parse FILE as a JUnit XML report\n\
+    \  attest-batch [--manifest=PATH]    generate attestation JSONs from a TSV\n\
+     [--from=...]   manifest or by walking\n\
+     [--out=DIR]   MATH_CODING_DECISIONS_DIR. Output\n\
+     [--kind=...]  goes to MATH_CODING_ATTESTATIONS_DIR\n\
+     [--producer=ID] (or .math-coding/attestations).\n\
+     [--result=pass|fail]\n\
+     [--dry-run]   See bin/Mathc.ml::do_attest_batch.\n\
     \  time-estimate --class ...        print JSON forecast from declared \
      distribution\n\
     \  gate BASE HEAD                   print JSON gate verdict (scaffold)\n\
@@ -2388,6 +2395,222 @@ let do_attest () =
   in
   print_endline (Jsonl.stringify (Junit.to_json run));
   exit 0
+
+(* --- attest-batch subcommand (ux-3-attest-batch-subcommand) ---
+ *
+ * `mathc attest-batch` reads a TSV manifest (or walks `decisions/`
+ * for every obligation) and emits one attestation JSON per row into
+ * the output directory. The output schema and the SHA-256
+ * canonical-JSON rule mirror `scripts/generate-attestations.py`
+ * byte-for-byte at the digest boundary. Pure logic lives in
+ * `lib/attestations/batch.ml`; this function is the I/O boundary.
+ *
+ *   --manifest=PATH          Read TSV from PATH. If set, --from is
+ *                            ignored.
+ *   --from=decisions         Walk every `*.yaml` in
+ *                            MATH_CODING_DECISIONS_DIR (default
+ *                            `.math-coding/decisions`) and emit one
+ *                            attestation per obligation. Default
+ *                            when neither --manifest nor --from is
+ *                            set.
+ *   --out=DIR                Where to write `<decision>-<obligation>.json`
+ *                            files. Default is the env var
+ *                            MATH_CODING_ATTESTATIONS_DIR (when set)
+ *                            else `.math-coding/attestations`. The
+ *                            directory is created if it does not
+ *                            exist.
+ *   --kind=K                 Override `kind_` (default `review`).
+ *                            Used only with --from=decisions; with
+ *                            --manifest each row carries its own
+ *                            kind_.
+ *   --producer=ID            Override the producer identity
+ *                            (default `human:integration-experiment`).
+ *                            Used only with --from=decisions.
+ *   --result=pass|fail       Override the result (default `pass`).
+ *                            Used only with --from=decisions.
+ *   --dry-run                Print each attestation JSON to stdout,
+ *                            one per line. Do NOT create any files.
+ *
+ * Exit codes:
+ *   0  one or more attestations emitted,
+ *   2  malformed manifest, missing --manifest path, missing input,
+ *      bad --kind/--result value.
+ *
+ * Implementation notes:
+ *   - We honour the env-var names MATH_CODING_DECISIONS_DIR /
+ *     MATH_CODING_ATTESTATIONS_DIR. The P1 stream of
+ *     `plan-2026-10-improvements` will eventually route these
+ *     through `lib/path_config.ml::resolve_decisions_dir` /
+ *     `resolve_attestations_dir`; the env-var check below is the
+ *     pre-P1 fallback so the subcommand works today. *)
+let[@warning "-32"] env_or_default env_var default =
+  match Sys.getenv_opt env_var with
+  | Some s when String.trim s <> "" -> s
+  | _ -> default
+
+let[@warning "-32"] do_attest_batch () =
+  let manifest = ref None in
+  let from_kind = ref (Some "decisions") in
+  let out_dir = ref "" in
+  let kind = ref "review" in
+  let producer = ref "human:integration-experiment" in
+  let result = ref "pass" in
+  let dry_run = ref false in
+  let set_manifest s = manifest := Some s in
+  let set_from s = from_kind := Some s in
+  let set_out s = out_dir := s in
+  let set_kind s = kind := s in
+  let set_producer s = producer := s in
+  let set_result s = result := s in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [
+         ( "--manifest",
+           Arg.String set_manifest,
+           " <path> read rows from TSV manifest (overrides --from)" );
+         ( "--from",
+           Arg.String set_from,
+           " <kind> source of obligations: decisions (default) | none" );
+         ( "--out",
+           Arg.String set_out,
+           " <dir> output directory (default $MATH_CODING_ATTESTATIONS_DIR or \
+            .math-coding/attestations)" );
+         ( "--kind",
+           Arg.String set_kind,
+           " <s> kind_ for --from=decisions (default review)" );
+         ( "--producer",
+           Arg.String set_producer,
+           " <id> producer identity for --from=decisions (default \
+            human:integration-experiment)" );
+         ( "--result",
+           Arg.String set_result,
+           " <pass|fail> result for --from=decisions (default pass)" );
+         ("--dry-run", Arg.Set dry_run, " print JSON to stdout, no files");
+       ]
+       (fun s ->
+         Printf.fprintf stderr "mathc attest-batch: unexpected argument: %s\n" s;
+         exit 2)
+       "usage: mathc attest-batch [--manifest=PATH] [--from=decisions] \
+        [--out=DIR] [--kind=...] [--producer=ID] [--result=pass|fail] \
+        [--dry-run]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc attest-batch: %s\n" m;
+     exit 2);
+  if !result <> "pass" && !result <> "fail" then begin
+    Printf.fprintf stderr
+      "mathc attest-batch: --result must be 'pass' or 'fail' (got %s)\n" !result;
+    exit 2
+  end;
+  let issued_at = now_iso () in
+  let candidate_tree = "HEAD" in
+  let reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  match !manifest with
+  | Some path -> (
+      if path = "" then begin
+        Printf.fprintf stderr "mathc attest-batch: --manifest requires a path\n";
+        exit 2
+      end;
+      let raw = reader path in
+      if raw = "" then begin
+        Printf.fprintf stderr
+          "mathc attest-batch: --manifest %s is empty or unreadable\n" path;
+        exit 2
+      end;
+      match Batch.parse_manifest raw with
+      | Error { line; raw = lr; reason } ->
+          Printf.fprintf stderr
+            "mathc attest-batch: manifest %s line %d: %s\n  > %s\n" path line
+            reason lr;
+          exit 2
+      | Ok rows ->
+          let dest =
+            if !out_dir <> "" then !out_dir
+            else
+              env_or_default "MATH_CODING_ATTESTATIONS_DIR"
+                ".math-coding/attestations"
+          in
+          (if not !dry_run then try Unix.mkdir dest 0o755 with _ -> ());
+          let emit_one row =
+            let decision = row.Batch.decision in
+            let obligation = row.obligation in
+            let kind_ = row.kind_ in
+            let producer = row.producer in
+            let result = row.result in
+            let body =
+              Batch.make_attestation ~decision ~obligation ~kind_ ~producer
+                ~result ~issued_at ~candidate_tree
+            in
+            let full = Batch.with_id body in
+            let json = Batch.serialize full in
+            if !dry_run then Printf.printf "%s\n" json
+            else begin
+              let fname = Batch.filename_for ~decision ~obligation in
+              let fpath = Filename.concat dest fname in
+              let fout = open_out_bin fpath in
+              output_string fout json;
+              output_char fout '\n';
+              close_out fout;
+              Printf.fprintf stderr "wrote %s\n" fpath
+            end
+          in
+          List.iter emit_one rows;
+          exit 0)
+  | None -> (
+      match !from_kind with
+      | Some "decisions" ->
+          let src =
+            env_or_default "MATH_CODING_DECISIONS_DIR" ".math-coding/decisions"
+          in
+          let obls = Batch.scan_decisions_for_obligations ~reader ~root:src in
+          if obls = [] then begin
+            Printf.fprintf stderr
+              "mathc attest-batch: no parseable decisions under %s\n" src;
+            exit 2
+          end;
+          let dest =
+            if !out_dir <> "" then !out_dir
+            else
+              env_or_default "MATH_CODING_ATTESTATIONS_DIR"
+                ".math-coding/attestations"
+          in
+          (if not !dry_run then try Unix.mkdir dest 0o755 with _ -> ());
+          let emit (decision, obligation) =
+            let body =
+              Batch.make_attestation ~decision ~obligation ~kind_:!kind
+                ~producer:!producer ~result:!result ~issued_at ~candidate_tree
+            in
+            let full = Batch.with_id body in
+            let json = Batch.serialize full in
+            if !dry_run then Printf.printf "%s\n" json
+            else begin
+              let fname = Batch.filename_for ~decision ~obligation in
+              let fpath = Filename.concat dest fname in
+              let fout = open_out_bin fpath in
+              output_string fout json;
+              output_char fout '\n';
+              close_out fout;
+              Printf.fprintf stderr "wrote %s\n" fpath
+            end
+          in
+          List.iter emit obls;
+          exit 0
+      | Some "none" ->
+          Printf.fprintf stderr
+            "mathc attest-batch: --from=none with no --manifest; nothing to do\n";
+          exit 2
+      | Some other ->
+          Printf.fprintf stderr
+            "mathc attest-batch: --from=%s is not supported (use decisions)\n"
+            other;
+          exit 2
+      | None ->
+          Printf.fprintf stderr
+            "mathc attest-batch: --from= and --manifest are mutually exclusive \
+             in this slice; pass one of them\n";
+          exit 2)
 
 (* --- gate subcommand (gate-decision@1 scaffold) ---
  *
@@ -6057,6 +6280,7 @@ let dispatch () =
   | "forge-verify" -> do_forge_verify ()
   | "assess" -> do_assess ()
   | "attest" -> do_attest ()
+  | "attest-batch" -> do_attest_batch ()
   | "time-estimate" -> do_time_estimate ()
   | "gate" -> do_gate ()
   | "mode" -> do_mode ()

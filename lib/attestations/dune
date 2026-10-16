@@ -1,5 +1,5 @@
 (library
  (name mathcoding_attestations)
  (wrapped false)
- (modules attestations)
+ (modules attestations batch)
  (libraries mathcoding_core unix))

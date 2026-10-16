@@ -1,0 +1,1 @@
+{"id":"sha256:5986ccf3b83930da04a2599d1301b596e1e8d942062209f24aa17c69ab07008d","issued_at":"2026-10-16T06:00:00Z","kind":"attestation","kind_":"test","producer":{"identity":"ci:fixture:rollout-bot"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"d2-rollout","materials_digest":"","obligation":"d2-obl-build"}}

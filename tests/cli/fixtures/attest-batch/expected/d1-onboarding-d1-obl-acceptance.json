@@ -1,0 +1,1 @@
+{"id":"sha256:9c10af324c3fb4f69d12cf66951dca205db8048fa2169ba722c7b3ba425dad98","issued_at":"2026-10-16T06:00:00Z","kind":"attestation","kind_":"review","producer":{"identity":"human:integration-experiment"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"d1-onboarding","materials_digest":"","obligation":"d1-obl-acceptance"}}

@@ -1,0 +1,16 @@
+# mathc attest-batch fixture: 3-row manifest.
+#
+# decision_id<TAB>obligation_id<TAB>kind_<TAB>producer_identity[<TAB>result]
+#
+# Blank lines and lines starting with `#` are ignored.
+# The 5th column (result) defaults to `pass` when absent (see row 2).
+#
+# Row 1: review-class with explicit `pass`.
+# Row 2: review-class without 5th column (defaults to pass).
+# Row 3: test-class with explicit producer + pass.
+#
+# Used by tests/cli/attest-batch-positive.t and
+# tests/cli/attest-batch-dry-run.t.
+d1-onboarding	d1-obl-acceptance	review	human:integration-experiment	pass
+d1-onboarding	d1-obl-noise	review	human:integration-experiment
+d2-rollout	d2-obl-build	test	ci:fixture:rollout-bot	pass
