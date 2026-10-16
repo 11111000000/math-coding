@@ -890,17 +890,22 @@ let[@warning "-32"] nav_groups_for lang =
    file actually exists on disk. See `build_pages` for the
    construction. *)
 let[@warning "-32"] lang_href_for ~lang ~page_key =
-  (* Build the file path for a sibling in `lang`. The `home` page
-     is special: there is no `home.<lang>.html` because the home
-     page is rendered programmatically as `index.<lang>.html`
-     — EXCEPT for English, which is the canonical name `index.html`
-     (no `.en` suffix). The previous unconditional
-     `index.<lang>.html` produced a 404 link for the EN toggle on
-     a non-EN page, which `sibling_translation_href` callers
-     would silently advertise. *)
+  (* Build the file path for a sibling in `lang`. English is the
+     source language: per-page English files live at `<page_key>.html`
+     (e.g. `manifesto.html`, `axioms.html`) — they are NOT suffixed
+     with `.en`. Every non-source sibling carries an explicit
+     `.ru` / `.zh` suffix. The previous unconditional
+     `page_key ^ "." ^ lang ^ ".html"` produced a 404 link for the
+     EN toggle on any non-EN page (the nav / footer then pointed at
+     `manifesto.en.html`, `axioms.en.html`, etc.). The `home` page
+     is additionally special: its English name is `index.html` rather
+     than `home.html`, while its non-source siblings are
+     `index.<lang>.html`. Mirrored by `sibling_translation_href`'s
+     per-call propagation. *)
   match page_key, lang with
   | "home", "en" -> "index.html"
   | "home", l -> "index." ^ l ^ ".html"
+  | _, "en" -> page_key ^ ".html"
   | _, l -> page_key ^ "." ^ l ^ ".html"
 
 let[@warning "-32"] sibling_translation_href ~lang ~page_key ~sibling_langs =
@@ -2167,7 +2172,7 @@ let[@warning "-32"] render_axiom_page ~axiom_id ~body =
   let axiom_icon_html =
     Printf.sprintf
       "<figure class=\"mathc-axiom-figure\">\n\
-      <img class=\"mathc-axiom-icon\" src=\"../../assets/axiom-%s.svg\" \
+      <img class=\"mathc-axiom-icon\" src=\"assets/axiom-%s.svg\" \
        alt=\"Axiom %s icon\">\n\
       <figcaption>Axiom %s</figcaption>\n\
       </figure>\n"
