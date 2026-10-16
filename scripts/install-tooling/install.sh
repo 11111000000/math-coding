@@ -47,7 +47,7 @@
 # "edge" is the explicit opt-in via --channel=edge. See
 # decisions/install-tooling-default-tag-stable-2026-10.yaml
 # (which revises install-tooling-default-tag-edge-2026-10).
-MC_VERSION_DEFAULT="latest"
+MC_VERSION_DEFAULT="3.3.1"
 MC_REPO="11111000000/math-coding"
 MC_RELEASE_BASE="https://github.com/${MC_REPO}/releases/download"
 MC_BINARY_BASENAME="mathc"

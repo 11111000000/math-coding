@@ -3,7 +3,85 @@
 > Single-source-of-truth for releases. Mirrors the `v3.x.y` git
 > tags. The current release is highlighted.
 
-## v3.3.0 — 2026-10-15 — current
+## v3.3.1 — 2026-10-16 — current
+
+Patch release. Five streams landed behind the v3.4 workstream and
+ship under a minor tag bump rather than a feature bump because the
+additive surface area is small relative to the existing 3.3
+contract.
+
+### Added
+
+- **`mathc attest-batch`** subcommand (`bin/Mathc.ml`,
+  `lib/attestations/batch.ml`): generates attestation JSONs from
+  a TSV manifest (`--manifest=PATH`) or by walking
+  `MATH_CODING_DECISIONS_DIR` (`--from=decisions`). `--dry-run`
+  prints JSON to stdout; `--out=DIR` overrides the output path.
+  Port of `scripts/generate-attestations.py` to OCaml; the SHA-256
+  computation matches the Python implementation byte-for-byte.
+  Decision: `ux-3-attest-batch-subcommand-2026-10`.
+- **New env-vars** for kernel path resolution (`lib/path_config.ml`):
+  - `MATH_CODING_DECISIONS_DIR` (default `.math-coding/decisions`)
+  - `MATH_CODING_ATTESTATIONS_DIR` (default `.math-coding/attestations`)
+  - `MATH_CODING_POLICY` (default `.math-coding/policy.yaml`)
+  - `MATH_CODING_HOME` (default `$XDG_DATA_HOME/math-coding/<version>`;
+    v3.5 work)
+
+### Changed
+
+- **`mathc init` default layout**: now creates `.math-coding/`
+  instead of `decisions/` + `attestations/`. Brownfield projects
+  with the legacy layout continue to work via the resolver's
+  fallback chain. Decision: `ux-3-minimal-pollution-2026-10`.
+- **Embedded schemas and templates** in the OCaml binary
+  (`lib/schema_embedded.ml`, `lib/templates_embedded.ml`):
+  `schemas/*.json`, `templates/ci.yml`, `templates/README.md`
+  are now `{|...|}` string constants. Brownfield projects no
+  longer need to copy `schemas/` into the working tree.
+- **Master policy template** (`lib/init/init.ml`): scaffolded
+  `decisions/decision.yaml` (now `.math-coding/policy.yaml`) now
+  carries `axiom_link: [A0, A3]` and a `counterexample:` block,
+  so it validates with `mathc validate` immediately after init.
+
+### Fixed
+
+- **`MC-MISSING-INTENT` false positive**: when a decision lacks
+  `counterexample:` and `mode >= standard`, the kernel now
+  surfaces `MC-COUNTEREXAMPLE-MISSING` (Block) instead of the
+  misleading `MC-MISSING-INTENT`. `MC-MISSING-INTENT` is now
+  reserved for the genuine case where the `intent:` field is
+  absent.
+- **`body_sha` / `yaml_sha` pattern enforcement**:
+  `MC-BODY-SHA-PATTERN-VIOLATION` (Block) is now emitted when
+  either field is present and does not match
+  `^sha256:[0-9a-f]{64}$`. Previously only equality between the
+  two fields was checked.
+- **`materials_digest` semantics**: attestations with
+  `kind_ ∈ {test, build, observation}` and `materials_digest: ""`
+  are now rejected with `MC-MATERIALS-DIGEST-EMPTY` (Block).
+  `kind_: review` remains exempt.
+- **Verifier extraction in `mathc packages --format=json`**:
+  the `verifier` field of each obligation is now read from the
+  decision YAML via `Memory.decision_entry.verifier_per_obligation`
+  and reflects the actual verification target (e.g.
+  `pytest tests/test_api.py -q`), not the obligation id.
+- **Decision: `kernel-bugs-v3.4-2026-10`** records the full
+  A3-protected closure of the 6 kernel bugs fixed in this
+  release.
+
+### Test surface
+
+- 7 new hermetic cram fixtures
+  (`tests/cli/{init-defaults,init-legacy,path-config-fallback,
+  embedded-schemas,counterexample-required,body-sha-pattern,
+  packages-verifier-real}.t`)
+- 4 attest-batch cram fixtures (positive, malformed, dry-run,
+  from-decisions) — moved to hermetic env-var control
+- `tests/process_principles.ml::axiom_link-default-validates`
+  regression pin for the master-template fix
+- Cram count: 81 → 88
+
+## v3.3.0 — 2026-10-15
 
 **Brand:** math-coding 3.3. **VERSION file** + `math-coding.opam`
 bumped from `3.1.0-alpha-final` to `3.3.0-alpha` (semver `3.3.0`).
