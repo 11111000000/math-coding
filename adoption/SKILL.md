@@ -64,19 +64,44 @@ permanence.
 
 ## Step 2. Bootstrap the repository
 
-Check whether `decisions/` already exists. If it does, skip to step 3.
+For a new project, prefer `mathc init .` — it scaffolds
+`.math-coding/decisions/`, `.math-coding/attestations/`,
+`.math-coding/policy.yaml`, and (unless `--no-install`) the
+`.githooks/pre-commit` hook. This is the v3.4 default layout; the
+artifact tree is one directory instead of three.
 
-If not, create the minimum:
+For a brownfield project (an existing `decisions/` and `attestations/`
+at the repo root from a pre-3.4 release), do not migrate
+unnecessarily. The kernel's `lib/path_config.ml` resolver uses the
+new `.math-coding/` defaults when they exist, and falls back to the
+legacy `decisions/` + `attestations/` layout when `.math-coding/` is
+absent (see [§"Backward compatibility"](#backward-compatibility)
+below). Run `mathc validate decisions/decision.yaml` to confirm the
+kernel still sees your existing tree.
+
+If you are manual-bootstrapping a greenfield project without
+`mathc init`, the minimum to create is:
 
 ```bash
-mkdir -p decisions attestations
+mkdir -p .math-coding/decisions .math-coding/attestations
 
 # Copy the active policy from the math-coding repo.
 curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/decisions/decision.yaml \
-  > decisions/decision.yaml
+  > .math-coding/policy.yaml
 
 # Adjust scope.paths[] to match this repository's source tree.
-$EDITOR decisions/decision.yaml
+$EDITOR .math-coding/policy.yaml
+```
+
+To force the legacy layout for an explicit reason (e.g. matching an
+older CI that scans `decisions/`), set the env-var override before
+init or use the resolver at runtime:
+
+```bash
+MATH_CODING_DECISIONS_DIR=decisions \
+MATH_CODING_ATTESTATIONS_DIR=attestations \
+MATH_CODING_POLICY=decisions/decision.yaml \
+  mathc validate decisions/decision.yaml
 ```
 
 `mathc version` should print `math-coding <version>: bootstrap` and
@@ -90,6 +115,13 @@ Create `decisions/<id>.yaml` using the template below. Replace `<id>`
 with a kebab-case identifier (lowercase letters, digits, dashes; 1 to
 128 chars). Example: `jwt-rotation`, `no-tailwind`, `drop-legacy-api`.
 
+The `axiom_link` and `counterexample` fields are **required when
+`state=active`** (the default). The kernel emits
+`MC-COUNTEREXAMPLE-MISSING` (Block) before `MC-MISSING-INTENT`
+because axiom A3 orders counterexample first: the strongest
+objection to the commitment must be on the page when a reviewer
+reads it.
+
 ```yaml
 ---
 schema: math-coding/3.3
@@ -102,6 +134,14 @@ intent: |
 commitment: |
   Two sentences max. What is promised. If you cannot phrase it in two
   sentences, the decision is not ready.
+
+axiom_link:
+  - A0
+  - A3
+counterexample: |
+  State the strongest plausible case where this decision is wrong, and
+  what would change your verdict. One paragraph. Empty here means the
+  reviewer is reading the commitment without its counterweight.
 
 outcomes:
   - id: <outcome-id>
@@ -193,12 +233,51 @@ The attestation `id` is the SHA-256 of the file content with the
 as the decision `body_sha`); `mathc attest` writes the field
 correctly. See `lib/attestations/attestations.ml` for the parser
 and `attestations/ux-3-*.json` for canonical examples.
-  "obligation": "<obligation-id>",
-  "method": "dune-runtest",
-  "result": "pass",
-  "material_digests": []
-}
+
+### Bulk attestations: `mathc attest-batch`
+
+For brownfield projects with many obligations, hand-writing one
+attestation JSON per obligation is slow and error-prone.
+`mathc attest-batch` generates the JSONs from a TSV manifest or
+by walking `MATH_CODING_DECISIONS_DIR` directly:
+
+```bash
+# Walk every obligation under the decisions dir (default
+# .math-coding/decisions). One attestation per obligation.
+mathc attest-batch --from=decisions --kind=review --producer=human:me
+
+# Read a TSV manifest: 4 required columns + 1 optional result.
+# decision_id<TAB>obligation_id<TAB>kind_<TAB>producer_identity[<TAB>result]
+mathc attest-batch --manifest=manifest.tsv
+
+# Emit JSON to stdout, do not write files.
+mathc attest-batch --from=decisions --dry-run
 ```
+
+Manifest format (TSV):
+
+```text
+decision_id<TAB>obligation_id<TAB>kind_<TAB>producer_identity[<TAB>result]
+```
+
+| Column | Required | Notes |
+|---|---|---|
+| `decision_id` | yes | matches the decision YAML `id` |
+| `obligation_id` | yes | matches one `obligations[].id` |
+| `kind_` | yes | one of `review`, `test`, `build`, `analysis`, `observation` |
+| `producer_identity` | yes | e.g. `ci:bot`, `human:tester` |
+| `result` | no | defaults to `pass`; `pass` or `fail` |
+
+Output: one JSON file per row, written to
+`MATH_CODING_ATTESTATIONS_DIR` (default
+`.math-coding/attestations/`) as `<decision>-<obligation>.json`.
+The output schema string is `math-coding/attestation-3.3`; the
+SHA-256 `id` field is computed from the canonical JSON body
+(sorted keys, no whitespace), matching the upstream Python
+`scripts/generate-attestations.py` byte-for-byte at the digest
+boundary. Pure parsing lives in `lib/attestations/batch.ml`;
+cram fixtures in `tests/cli/attest-batch*.t` cover the positive,
+negative, and `--dry-run` paths.
 
 ## What the kernel refuses
 
@@ -218,10 +297,17 @@ silently promote them.
 
 You only edit these in the target repository:
 
-- `decisions/*.yaml` — the commitments.
-- `attestations/*.json` — the evidence.
-- `schemas/*.json` — only if the local copy is pinned to an older
-  version; otherwise leave alone.
+- `.math-coding/decisions/*.yaml` — the commitments (or
+  `decisions/*.yaml` on the pre-3.4 legacy layout).
+- `.math-coding/attestations/*.json` — the evidence (or
+  `attestations/*.json` on the pre-3.4 legacy layout).
+- `.math-coding/policy.yaml` — the active policy (or
+  `decisions/decision.yaml` on the pre-3.4 legacy layout).
+- **NOT** `schemas/*.json` — they were embedded into the kernel
+  in v3.4 (`lib/schema_embedded.ml`); a brownfield repository does
+  not need `schemas/` on disk for `mathc validate` to work. Only
+  pin a local copy if you are deliberately targeting a pre-v3.4
+  schema version.
 
 You do not read or edit `spec/`, `axioms/`, `lib/`, or any
 math-coding-internal documentation while adopting the protocol in a
@@ -292,4 +378,70 @@ unaffected. Operators who want a one-shot warning when the
 gate is off can also inspect stderr — the server prints
 `mathc_mcp: MCP_READ_WRITE=<value> — read-write methods disabled.`
 exactly once per process.
+
+## Environment variables
+
+The kernel reads four environment variables at startup. Three are
+implemented in `lib/path_config.ml` and consulted by every site that
+needs to find a decisions / attestations / policy path; the fourth
+documents the planned location for system-wide templates and
+schemas.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MATH_CODING_DECISIONS_DIR` | `.math-coding/decisions` | Where the kernel reads and writes `*.yaml` decisions. Set explicitly to override (e.g. `=decisions` for the legacy layout). |
+| `MATH_CODING_ATTESTATIONS_DIR` | `.math-coding/attestations` | Where the kernel reads and writes `*.json` attestations. |
+| `MATH_CODING_POLICY` | `.math-coding/policy.yaml` | Master policy path consulted by `mathc validate` and `mathc self-check`. |
+| `MATH_CODING_HOME` | `$XDG_DATA_HOME/math-coding/<version>` | System-wide templates and schema directory (planned for v3.5; not yet consulted at runtime). |
+
+Precedence in the resolver (`lib/path_config.ml::resolve_with`):
+
+1. The env-var, if set to a non-empty value: wins unconditionally.
+   No filesystem check; a typo surfaces at the call site, not here.
+2. The new-default path (`.math-coding/...`), if it exists on disk.
+3. The legacy fallback (`decisions/`, `attestations/`,
+   `decisions/decision.yaml`), if it exists on disk.
+4. The new-default path, synthesised (so a fresh `mathc init`
+   against an empty directory still creates `.math-coding/`).
+
+The resolver returns *relative* paths; callers compose with
+`Filename.concat root ...` as before. See
+[`lib/path_config.ml`](lib/path_config.ml) for the exact three-tier
+contract and PLAN.md §0.1 for the original design notes.
+
+## Backward compatibility
+
+Projects bootstrapped against any 3.0–3.3 release — those with
+`decisions/` and `attestations/` at the repo root and a master policy
+at `decisions/decision.yaml` — continue to work without any
+configuration change on 3.4:
+
+- The kernel resolver prefers `.math-coding/...` when present,
+  but falls back to `decisions/` and `attestations/` when
+  `.math-coding/` is absent. No migration, no auto-rename, no
+  deprecation warning at `mathc validate` time.
+- `mathc attest` and `mathc attest-batch` write to the same
+  directory the kernel reads from; legacy stores are not re-rooted.
+- `mathc init` on a project that already has `decisions/`
+  succeeds and emits a clean tree under `.math-coding/`, leaving
+  the legacy tree in place — they coexist until the operator
+  removes one. `mathc init --merge` (planned, not yet wired in
+  v3.4) will offer an explicit deletion step.
+
+To opt into the legacy layout explicitly — for a CI that scans
+`decisions/` for instance — set the env-var override before the
+mathc command:
+
+```bash
+export MATH_CODING_DECISIONS_DIR=decisions
+export MATH_CODING_ATTESTATIONS_DIR=attestations
+export MATH_CODING_POLICY=decisions/decision.yaml
+mathc validate decisions/<id>.yaml
+```
+
+The resolver honours these names whether or not the named
+directory exists; the env-var wins, the filesystem is not
+consulted for that variable. This makes hermetic cram tests
+trivial: `export MATH_CODING_DECISIONS_DIR=.test-math-coding/decisions`
+is the recommended invocation in `tests/cli/*.t`.
 
