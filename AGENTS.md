@@ -375,6 +375,26 @@ when the change touches `lib/decision.ml`, `lib/policy.ml`,
 protected; those changes take the full path regardless of
 size.
 
+**P1 and the fast path.** Process-principle P1 (a
+`decisions/*.yaml` change must accompany any kernel/spec
+change) is enforced at commit time by `.githooks/pre-commit`.
+The fast path does not waive P1 — a `lib/*` change still
+needs a decision file. What the fast path waives is the
+slow verification (stage 3 of `scripts/dev ready`,
+`mathc self-check`) and the attestation store write
+(stage 4 of the existing Definition of Done). A
+fast-path `lib/*` change therefore pairs the smallest
+defensible decision (one file, mode: light, no
+attestations) with a regression test. Concretely:
+
+  - `lib/decision.ml`, `lib/policy.ml`, `lib/risk.ml` —
+    protected files; full path always.
+  - Other `lib/*` files — fast path is permitted IF a
+    minimal `decisions/<id>.yaml` lands in the same commit
+    (P1 closure).
+  - `schemas/`, `policies.yaml`, `*Constitution*` — full
+    path always.
+
 Each item references an existing verifier; the checklist is not
 additional ceremony, it lists the existing checks in order.
 
