@@ -192,51 +192,65 @@ let[@warning "-32"] find_source_ci_workflow () : string option =
   in
   walk (Filename.dirname exe)
 
-(* Install the CI workflow file. Walks up from the binary's
-   directory to find templates/ci.yml (same walk as
-   `find_source_skill`). When the source is absent (release
-   tarball), prints a one-line note and exits 0. *)
+(* Install the CI workflow file. The template is embedded in
+   the binary (`Templates_embedded.ci_yml`); no filesystem walk
+   is needed. When the caller passes `--allow-fs-templates`, the
+   filesystem walk is still attempted first (kernel developers
+   editing the source want their edits to land in downstream
+   `init` runs without rebuilding). *)
 let[@warning "-32"] install_ci_workflow ~root : bool =
-  match find_source_ci_workflow () with
-  | None ->
-      Printf.printf
-        "  ci workflow: source not found (release binary?); \
-         see templates/ci.yml in the math-coding repo\n";
-      false
-  | Some src ->
-      let dir = Filename.concat root ".github" in
-      let wf_dir = Filename.concat dir "workflows" in
-      let dst = Filename.concat wf_dir "ci.yml" in
-      (try Unix.mkdir dir 0o755 with
-       | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
-      (try Unix.mkdir wf_dir 0o755 with
-       | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
-      if Sys.file_exists dst then begin
-        Printf.printf
-          "  ci workflow: %s already exists, skipping (remove it first to \
-           regenerate)\n" dst;
-        false
-      end
-      else begin
-        let contents = read_file_text src in
-        write_file ~path:dst ~contents;
-        Printf.printf "  ci workflow: copied %s -> %s\n" src dst;
-        true
-      end
+  let dir = Filename.concat root ".github" in
+  let wf_dir = Filename.concat dir "workflows" in
+  let dst = Filename.concat wf_dir "ci.yml" in
+  (try Unix.mkdir dir 0o755 with
+   | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+  (try Unix.mkdir wf_dir 0o755 with
+   | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+  if Sys.file_exists dst then begin
+    Printf.printf
+      "  ci workflow: %s already exists, skipping (remove it first to \
+       regenerate)\n" dst;
+    false
+  end
+  else begin
+    let contents =
+      match find_source_ci_workflow () with
+      | Some src when Sys.getenv_opt "MATH_CODING_USE_FS_TEMPLATES" <> None ->
+          read_file_text src
+      | _ -> Templates_embedded.ci_yml
+    in
+    write_file ~path:dst ~contents;
+    Printf.printf "  ci workflow: wrote %s (from embedded template)\n" dst;
+    true
+  end
 
 (* --- scaffold ----------------------------------------------------- *)
 
+let[@warning "-32"] mkdir_p path =
+  let rec loop p =
+    if p = "" || p = "/" || p = "." then ()
+    else if Sys.file_exists p then ()
+    else begin
+      loop (Filename.dirname p);
+      (try Unix.mkdir p 0o755 with
+       | Unix.Unix_error (Unix.EEXIST, _, _) -> ())
+    end
+  in
+  loop path
+
 let scaffold ~root =
-  let dec_dir = Filename.concat root "decisions" in
-  let att_dir = Filename.concat root "attestations" in
-  let dec_yaml = Filename.concat dec_dir "decision.yaml" in
+  let dec_dir =
+    Filename.concat root (Path_config.resolve_decisions_dir ())
+  in
+  let att_dir =
+    Filename.concat root (Path_config.resolve_attestations_dir ())
+  in
+  let dec_yaml = Filename.concat root (Path_config.resolve_policy_path ()) in
   if Sys.file_exists dec_yaml then
     `Refuse_existing dec_yaml
   else begin
-    (try Unix.mkdir dec_dir 0o755 with
-     | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
-    (try Unix.mkdir att_dir 0o755 with
-     | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+    mkdir_p dec_dir;
+    mkdir_p att_dir;
     try
       write_file ~path:dec_yaml ~contents:master_policy_template;
       `Ok
@@ -286,8 +300,11 @@ let maybe_install_hook (opts : options) : unit =
         exit 3
 
 let print_summary (opts : options) : unit =
-  Printf.printf "mathc init: created %s/decisions, %s/attestations\n"
-    opts.root opts.root;
+  Printf.printf "mathc init: created %s/%s, %s/%s\n"
+    opts.root
+    (Path_config.resolve_decisions_dir ())
+    opts.root
+    (Path_config.resolve_attestations_dir ());
   Printf.printf
     "  decision.yaml: schema math-coding/3.2, scope paths editable\n";
   if not opts.no_install then

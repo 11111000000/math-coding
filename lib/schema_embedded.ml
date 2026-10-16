@@ -1,0 +1,688 @@
+(* lib/schema_embedded.ml — JSON Schemas embedded as OCaml string constants.
+ *
+ * 3.3 → 3.4 contract (PLAN.md §0.4): the JSON Schema files under
+ * `schemas/*.json` are pure documentation; the kernel does NOT
+ * parse them at validate-time (the OCaml decision parser is the
+ * authoritative implementation). The files are embedded here so
+ * a brownfield project that runs `mathc init` does NOT need to
+ * copy `schemas/` into its own tree. If a maintainer wants the
+ * schemas on disk for tooling, the `mathc init` does NOT install
+ * them; this is intentional per PLAN.md §0.4.
+ *
+ * Source of truth: `schemas/*.json` in the math-coding repo.
+ * The content below is a verbatim copy at HEAD. To refresh after
+ * a schema bump, run `scripts/embed-schemas.sh` (or copy-paste
+ * manually) and update the sha256 line in this comment.
+ *
+ * sha256 (HEAD): not pinned; schemas are documentation only. *)
+
+let decision_schema =
+  {|
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.3/decision.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "id", "intent", "commitment",
+    "scope", "outcomes", "obligations"
+  ],
+  "properties": {
+    "schema": {
+      "description": "Schema family identifier. Both forms are accepted for each accepted family: the canonical `math-coding/<family>/decision` (JSON) and the family-only `math-coding/<family>` (YAML). The accepted families are `3.0-alpha` (legacy, soft-deprecated per `schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml`), `3.2` (intermediate, soft-deprecated per the same), and `3.3` (current, adopted by `schema-string-bump-3.0-alpha-to-3.3-2026-10.yaml`).",
+      "enum": [
+        "math-coding/3.0-alpha",
+        "math-coding/3.0-alpha/decision",
+        "math-coding/3.2",
+        "math-coding/3.2/decision",
+        "math-coding/3.3",
+        "math-coding/3.3/decision"
+      ]
+    },
+    "kind": {
+      "description": "Document kind. Required only for JSON form; YAML form omits it (the document is a decision by convention).",
+      "const": "decision"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "revision": {"type": "string", "minLength": 1},
+    "parents": {
+      "type": "array", "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "intent": {
+      "description": "Decision intent. Two forms: (a) YAML form — a single scalar string; (b) JSON form — an object with `source` (provenance) and `text` (statement). The YAML form is the canonical source-of-truth for the 30 active decisions; the JSON form is a structured refinement that records provenance explicitly. Author choose either; the kernel parses both into the same domain value.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["source", "text"],
+          "properties": {
+            "source": {"type": "string", "minLength": 1},
+            "text": {"type": "string", "minLength": 1}
+          }
+        }
+      ]
+    },
+    "commitment": {"type": "string", "minLength": 1},
+    "counterexample": {
+      "description": "Strongest objection to the decision, named after the dialectical slot. Per spec/algebra-3.2.md §11, counterexample is required for modes >= light; the kernel emits a Warn diagnostic when absent in standard/strict/exhaustive modes. The author who omits it gets one surfaced next-step, not a reject. 29/40 existing decisions carry this field; the other 11 are pre-v0.854 legacy and remain accepted. Both forms: YAML (string) and JSON (array of strings).",
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}}
+      ]
+    },
+    "antithesis": {
+      "description": "Coherent counter-position the author considered and rejected. Per spec/algebra-3.2.md §11 (v3 dialectic method), antithesis is required for mode=considered (binary mode), parallel to counterexample. Distinct from counterexample: antithesis is the position the author engaged with; counterexample is the strongest objection the kernel will surface to a future reader.",
+      "type": "string",
+      "minLength": 80
+    },
+    "scope": {
+      "description": "Decision scope. Two forms: (a) YAML form — object with `paths` (globs), `capabilities` (string list), `exclusions` (globs); (b) JSON form — array of scope_target objects. The YAML form is the canonical source-of-truth; the JSON form is the explicit form for tooling that needs every entry as a self-describing record.",
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "paths": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 1}
+            },
+            "capabilities": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 1}
+            },
+            "exclusions": {
+              "type": "array",
+              "items": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        {
+          "$ref": "common.json#/definitions/scope"
+        }
+      ]
+    },
+    "state": {
+      "description": "Lifecycle state of this Decision. See spec/algebra-3.2.md §7.",
+      "type": "string",
+      "enum": ["draft", "active", "retired", "superseded"],
+      "default": "active"
+    },
+    "mode_floor_used": {
+      "description": "Assurance mode floor applied to this Decision at authoring time. See spec/algebra-3.2.md §3, §7.",
+      "$ref": "common.json#/definitions/mode_floor"
+    },
+    "body_sha": {
+      "description": "sha256 of the decision file content with the body_sha and yaml_sha values temporarily replaced by the placeholder 'sha256:' + 64 zeros. Self-consistency rule: replace the embedded hash with the placeholder (same character count) and re-hash; the result must equal the embedded value. For YAML-only decisions (current state) both fields hold the same digest, which trivially satisfies the dual-authoring equality check in spec/algebra-3.2.md §7. See spec/algebra-3.2.md §7.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "yaml_sha": {
+      "description": "sha256 of the decision file content; see body_sha for the self-consistency rule. For a future dual-authored decision (commit body section plus sibling YAML), the two fields may differ in content but algebra §7's equality check still requires the digests to agree. See spec/algebra-3.2.md §7.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "axiom_link": {
+      "description": "Axiom IDs (e.g. 'A1', 'A3') this Decision addresses. See spec/algebra-3.2.md §7.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "required_attestations": {
+      "description": "Per-decision declaration of attestations that must exist for the gate to return Pass. Each item is a (kind_, producer) pair that the kernel will look for in the attestation store on commit-tree evaluation. Closed by decisions/decision-required-attestations-2026-10.yaml. See also spec/algebra-3.2.md §22 (\"Required-attestation gate\"): a decision declaring this field rejects any clean tree unless every (kind_, producer) pair is satisfied by at least one matching attestation in the store.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["kind_", "producer"],
+        "properties": {
+          "kind_": {
+            "description": "Required attestation source class. Matches the attestation `kind_` field (test|review|build|analysis|observation).",
+            "enum": ["test", "review", "build", "analysis", "observation"]
+          },
+          "producer": {
+            "description": "Required attestation producer identity (e.g. `human:p.b.kosov`, `ci:bot`, `team:kernel-reviewers`). Matches the attestation `producer.identity` field exactly.",
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9_.:-]+$"
+          },
+          "scope_paths": {
+            "description": "Optional path glob(s) the attestation must cover. Empty / omitted means any path of this decision. Format: same as decision.scope.paths.",
+            "type": "array",
+            "items": {"type": "string", "minLength": 1}
+          }
+        }
+      }
+    },
+    "outcomes": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "statement"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+          "statement": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array", "uniqueItems": true,
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "state", "statement", "owner"],
+        "properties": {
+          "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+          "state": {"enum": ["assumed", "unknown"]},
+          "statement": {"type": "string", "minLength": 1},
+          "owner": {"type": "string", "minLength": 1},
+          "consequence_if_false": {"type": "string"},
+          "review_on": {
+            "type": "array",
+            "items": {
+              "type": "object", "additionalProperties": false,
+              "required": ["signal"],
+              "properties": {
+                "signal": {"type": "string"},
+                "date": {"$ref": "common.json#/definitions/timestamp"}
+              }
+            }
+          },
+          "epistemic_marker": {
+            "description": "5-marker epistemic status per axiom A5 (v0.854) and algebra §7.",
+            "$ref": "common.json#/definitions/epistemic_marker"
+          },
+          "confidence": {
+            "description": "Numeric confidence in [0.0, 1.0]. Required when epistemic_marker ∈ {fact, hypothesis}. See algebra §7.",
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 1.0
+          },
+          "evidence": {
+            "description": "Evidence reference for judgment-state assumptions. See algebra §7.",
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "obligations": {
+      "description": "Decision obligations. Each item carries `id` (unique within the decision), `claim` (what the kernel guarantees), and `acceptance` (verifier+result pair). The YAML form uses `statement` as an alias for `claim` for readability; the JSON form uses `claim` strictly. The kernel accepts both as the same field.",
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {
+        "oneOf": [
+          {"$ref": "obligation.json"},
+          {
+            "type": "object", "additionalProperties": false,
+            "required": ["id", "statement"],
+            "properties": {
+              "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+              "statement": {"type": "string", "minLength": 1},
+              "outcome": {"type": "string"},
+              "acceptance": {
+                "oneOf": [
+                  {"$ref": "common.json#/definitions/acceptance"},
+                  {
+                    "type": "object", "additionalProperties": false,
+                    "required": ["all"],
+                    "properties": {
+                      "all": {
+                        "type": "array", "minItems": 1,
+                        "items": {
+                          "type": "object", "additionalProperties": false,
+                          "required": ["verifier", "result"],
+                          "properties": {
+                            "verifier": {"type": "string", "minLength": 1},
+                            "result": {"enum": ["pass"]}
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "phase": {"enum": ["pre_merge", "pre_release", "post_release"]}
+            }
+          }
+        ]
+      }
+    },
+    "reversal": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["signal", "action"],
+        "properties": {
+          "signal": {"type": "string"},
+          "condition": {"type": "string"},
+          "action": {"enum": ["revert", "halt", "review", "rework"]}
+        }
+      }
+    },
+    "risk": {
+      "type": "object", "additionalProperties": false,
+      "required": ["declared_triggers", "owner"],
+      "properties": {
+        "declared_triggers": {
+          "type": "array", "minItems": 1, "uniqueItems": true,
+          "items": {"type": "string"}
+        },
+        "owner": {"type": "string"}
+      }
+    },
+    "relations": {
+      "type": "object", "additionalProperties": false,
+      "description": "Directed relations to other Decisions. See spec/algebra-3.2.md §7 for kind semantics and acyclicity invariants (I6, I7).",
+      "properties": {
+        "revises": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "supersedes": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "superseded_by": {
+          "description": "Inverse of supersedes: Decisions that supersede this one. Already in use by 28 existing decisions; formalised in algebra §7.",
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "refines": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "depends_on": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "conflicts_with": {
+          "description": "Symmetric mutual exclusion. See algebra §7 invariant: D₁ ∈ D₂.conflicts_with ⟺ D₂ ∈ D₁.conflicts_with.",
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "addresses": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "implements": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "verifies": {
+          "type": "array", "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "time": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional forward-looking duration estimate for the work this Decision commits to. Required fields are scale, value, reference_class, percentile. See AGENTS.md §Honest time reporting and bootstrap/time-honesty.yaml.",
+      "required": ["estimate"],
+      "properties": {
+        "estimate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["scale", "value", "reference_class", "percentile"],
+          "properties": {
+            "scale": {"enum": ["wall-clock-minutes", "token-budget", "step-count"]},
+            "value": {"type": "number", "minimum": 0},
+            "reference_class": {"type": "string", "minLength": 1},
+            "percentile": {"enum": ["p50", "p80", "p95", "p99"]}
+          }
+        }
+      }
+    }
+  }
+}
+|}
+
+let attestation_schema =
+  {|
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.3/attestation.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "kind", "id", "subject", "kind_", "producer",
+    "result", "issued_at"
+  ],
+  "properties": {
+    "schema": {"enum": ["math-coding/attestation-3.0-alpha", "math-coding/attestation-3.3"]},
+    "kind": {"const": "attestation"},
+    "id": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "subject": {
+      "type": "object", "additionalProperties": false,
+      "required": ["decision", "obligation", "candidate_tree", "materials_digest"],
+      "properties": {
+        "decision": {"type": "string"},
+        "decision_revision": {"type": "string"},
+        "decision_digest": {"type": "string"},
+        "obligation": {"type": "string"},
+        "obligation_digest": {"type": "string"},
+        "candidate_tree": {"type": "string"},
+        "materials_digest": {"type": "string"}
+      }
+    },
+    "kind_": {"enum": ["test", "review", "build", "analysis", "observation"]},
+    "producer": {
+      "type": "object", "additionalProperties": false,
+      "required": ["identity"],
+      "properties": {
+        "identity": {"type": "string"},
+        "run": {"type": "string"}
+      }
+    },
+    "environment_class": {
+      "description": "Free-form environment class string (legacy). Use environment_class_label + environment_class_level for new attestations.",
+      "type": "string"
+    },
+    "environment_class_level": {
+      "description": "Numeric environment class level 0..4. See spec/algebra-3.2.md §13 and §14 (decisive_threshold).",
+      "$ref": "common.json#/definitions/environment_class_level"
+    },
+    "environment_class_label": {
+      "description": "Coarse environment class label. See spec/algebra-3.2.md §13.",
+      "$ref": "common.json#/definitions/environment_class_label"
+    },
+    "ci_run_id": {
+      "description": "Identifier of the CI run that produced this attestation. Used as input to attestation id derivation. See spec/algebra-3.2.md §13.",
+      "type": "string",
+      "minLength": 1
+    },
+    "substrate_digest": {
+      "description": "sha256 of (kernel version || ocaml version || dependency digests). See spec/algebra-3.2.md §13, §16.",
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "substrate_fingerprint": {
+      "description": "Identifier (𝓢.id) of the substrate declaration this attestation was produced against. See spec/algebra-3.2.md §13, §16.",
+      "type": "string",
+      "minLength": 1
+    },
+    "result": {"enum": ["pass", "fail", "inconclusive", "infrastructure-error"]},
+    "issued_at": {"$ref": "common.json#/definitions/timestamp"},
+    "valid_until": {"$ref": "common.json#/definitions/timestamp"},
+    "evidence_digest": {"type": "string"},
+    "signature": {
+      "type": "object", "additionalProperties": false,
+      "required": ["format", "key_id", "value"],
+      "properties": {
+        "format": {"const": "dsse"},
+        "key_id": {"type": "string"},
+        "value": {"type": "string", "minLength": 1}
+      }
+    },
+    "time_observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional wall-clock / token-budget / step-count observation closed against a corresponding Decision.time.estimate. Required: scale, value. Optional: observed_at, observed_by. See AGENTS.md §Honest time reporting and bootstrap/time-honesty.yaml.",
+      "required": ["scale", "value"],
+      "properties": {
+        "scale": {"enum": ["wall-clock-minutes", "token-budget", "step-count"]},
+        "value": {"type": "number", "minimum": 0},
+        "observed_at": {"$ref": "common.json#/definitions/timestamp"},
+        "observed_by": {"type": "string"}
+      }
+    }
+  }
+}
+|}
+
+let obligation_schema =
+  {|
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.3/obligation.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "decision", "claim", "subjects", "acceptance"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+    "decision": {"type": "string", "minLength": 1},
+    "outcome": {"type": "string"},
+    "claim": {"type": "string", "minLength": 1},
+    "subjects": {"$ref": "common.json#/definitions/scope"},
+    "acceptance": {"$ref": "common.json#/definitions/acceptance"},
+    "phase": {
+      "description": "Enforcement phase. See spec/algebra-3.2.md §15. pre_merge blocks the merge gate; pre_release blocks the release gate; post_release is monitoring-only and surfaces AssuranceGap.",
+      "type": "string",
+      "enum": ["pre_merge", "pre_release", "post_release"],
+      "default": "pre_merge"
+    },
+    "kind": {"enum": ["invariant", "acceptance", "recovery", "operational"]},
+    "obligation_domain": {
+      "description": "Classifier pair (kind + namespace) used by the auto-inference rule and the gate. See spec/algebra-3.2.md §8.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["obligation_kind"],
+      "properties": {
+        "obligation_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path_namespace": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}
+|}
+
+let waiver_schema =
+  {|
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.3/waiver.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema", "kind", "id", "policy_id", "rule", "subject",
+    "issuer", "issued_at", "expires_at", "reason"
+  ],
+  "properties": {
+    "schema": {"enum": ["math-coding/waiver-3.0-alpha", "math-coding/waiver-3.3"]},
+    "kind": {"const": "waiver"},
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"},
+    "policy_id": {"type": "string"},
+    "rule": {"type": "string"},
+    "subject": {"type": "string"},
+    "scope": {"$ref": "common.json#/definitions/scope"},
+    "issuer": {"type": "string"},
+    "issued_at": {"$ref": "common.json#/definitions/timestamp"},
+    "expires_at": {"$ref": "common.json#/definitions/timestamp"},
+    "reason": {"type": "string", "minLength": 1},
+    "unverified_obligation": {"type": "string"},
+    "compensating_controls": {
+      "type": "array", "items": {"type": "string"}
+    }
+  }
+}
+|}
+
+let policy_schema =
+  {|
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.3/policy.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema", "kind", "policy_id", "scope_paths", "obligations"],
+  "properties": {
+    "schema": {"enum": ["math-coding/3.0-alpha/policy", "math-coding/3.3/policy"]},
+    "kind": {"const": "policy"},
+    "policy_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$",
+      "description": "Stable identifier for this policy. Referenced from Decisions via obligation.policy_id and from §9 policy(p)."
+    },
+    "scope_paths": {
+      "description": "Glob patterns of paths this policy applies to. See spec/algebra-3.2.md §9.",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "obligations": {
+      "description": "Obligations that bind any Decision touching scope_paths (direct) or transitive_into paths (transitive).",
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"$ref": "obligation.json"}
+    },
+    "mode_floor": {
+      "description": "Minimum assurance mode required for any Decision touching this policy. See spec/algebra-3.2.md §3, §9.",
+      "$ref": "common.json#/definitions/mode_floor"
+    },
+    "transitive_into": {
+      "description": "Paths that inherit this policy's obligations via data flow (imports/exports reachability). See spec/algebra-3.2.md §9 transitive_paths.",
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "data_flow_edges": {
+      "description": "Inferred or declared data-flow edges between paths. The transitive closure drives transitive_paths(c). See spec/algebra-3.2.md §9.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["source", "target", "kind"],
+        "properties": {
+          "source": {"type": "string", "minLength": 1},
+          "target": {"type": "string", "minLength": 1},
+          "kind": {"enum": ["import", "export"]}
+        }
+      }
+    },
+    "parent": {
+      "description": "Optional parent policy_id. When set, this policy inherits all obligations, scope_paths, and a raised mode_floor from the parent. See spec/algebra-3.2.md §9 (hierarchical axis, decision `multi-policy-hierarchy-2026-10`).",
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    }
+  }
+}
+|}
+
+let common_schema =
+  {|
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://math-coding.org/schema/3.3/common.json",
+  "definitions": {
+    "timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,127}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "epistemic_marker": {
+      "description": "Epistemic status of an assumption. See spec/algebra-3.2.md §7 and axiom A5 (v0.854).",
+      "enum": ["fact", "hypothesis", "judgment", "unknown", "proven"]
+    },
+    "relation_kind": {
+      "description": "Directed relation between two Decisions. See spec/algebra-3.2.md §7.",
+      "enum": [
+        "revises",
+        "supersedes",
+        "refines",
+        "depends_on",
+        "conflicts_with",
+        "addresses",
+        "implements",
+        "verifies"
+      ]
+    },
+    "mode_floor": {
+      "description": "Minimum assurance mode applied to a decision or policy. See spec/algebra-3.2.md §3.",
+      "enum": ["tiny", "light", "standard", "strict", "exhaustive"]
+    },
+    "environment_class_label": {
+      "description": "Coarse environment class label. See spec/algebra-3.2.md §13.",
+      "enum": ["dev", "staging", "staging-integration", "prod-mirror", "prod"]
+    },
+    "environment_class_level": {
+      "description": "Numeric level for environment_class_label. 0=dev, 4=prod. See spec/algebra-3.2.md §13.",
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 4
+    },
+    "scope_target": {
+      "oneOf": [
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "path"],
+          "properties": {
+            "kind": {"const": "path"},
+            "path": {"type": "string", "minLength": 1},
+            "match": {"enum": ["exact", "tree"]}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "capability"],
+          "properties": {
+            "kind": {"const": "capability"},
+            "capability": {"type": "string", "minLength": 1}
+          }
+        },
+        {
+          "type": "object", "additionalProperties": false,
+          "required": ["kind", "interface"],
+          "properties": {
+            "kind": {"const": "interface"},
+            "interface": {"type": "string", "minLength": 1}
+          }
+        }
+      ]
+    },
+    "scope": {
+      "type": "array", "minItems": 1, "uniqueItems": true,
+      "items": {"$ref": "#/definitions/scope_target"}
+    },
+    "acceptance": {
+      "type": "object", "additionalProperties": false,
+      "required": ["all"],
+      "properties": {
+        "all": {
+          "type": "array", "minItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["verifier", "result"],
+            "properties": {
+              "verifier": {"type": "string", "minLength": 1},
+              "result": {"enum": ["pass"]},
+              "review": {
+                "type": "object", "additionalProperties": false,
+                "required": ["authority"],
+                "properties": {
+                  "authority": {"type": "string"},
+                  "minimum_independence": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "any": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/acceptance/items"}
+        }
+      }
+    }
+  }
+}
+|}

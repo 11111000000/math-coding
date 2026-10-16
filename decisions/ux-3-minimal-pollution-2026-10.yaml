@@ -1,0 +1,252 @@
+---
+schema: math-coding/3.3
+id: ux-3-minimal-pollution-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+body_sha: "sha256:c8cbba519b0be6b4ddc3979ec5161fc03315f38f6fc7c8f2993846ac834a98ff"
+yaml_sha: "sha256:c8cbba519b0be6b4ddc3979ec5161fc03315f38f6fc7c8f2993846ac834a98ff"
+intent: |
+  Adopt a `.math-coding/` directory layout as the default for new
+  `mathc init` runs and add three env-var overrides
+  (`MATH_CODING_DECISIONS_DIR`, `MATH_CODING_ATTESTATIONS_DIR`,
+  `MATH_CODING_POLICY`) so downstream projects can pick a custom
+  location without code changes. Embed the six JSON schemas and the
+  two adoption templates (ci.yml, README.md) into the binary so the
+  kernel does not need a `schemas/` or `templates/` directory on
+  disk at validate or init time.
+
+  The pre-3.4 layout (`decisions/`, `attestations/`,
+  `decisions/decision.yaml`) continues to work as a fallback: if the
+  user has not set an env-var AND `.math-coding/` does not exist, the
+  resolver returns the legacy path. This is the backward-compat half
+  of the change; existing projects (including the math-coding repo
+  itself, which carries 154 decisions under `decisions/`) keep
+  validating unchanged.
+
+  Pollution reduction is the second axis: `mathc init` against an
+  empty directory previously left `schemas/` as a top-level
+  directory whose contents the kernel never read at runtime. The
+  embedded-schemas change drops that directory from the brownfield
+  footprint; the `mathc init` output shrinks from `decisions/
+  attestations/ schemas/` (3 dirs) to `.math-coding/{decisions,
+  attestations, policy.yaml}` (1 dir + 1 file). A maintainer who
+  wants the schemas on disk for tooling can copy them from
+  `lib/schema_embedded.ml` to their preferred location; the
+  project no longer mandates the copy.
+
+axiom_link:
+  - A0
+  - A3
+antithesis: |
+  The strongest counter-position considered and rejected: "Add an
+  `--layout=modern|legacy` flag to `mathc init` and keep the resolver
+  hidden; the env-var lookup is undocumented and surprises users
+  with non-default layouts." Rejected because (a) the env-vars
+  are the documented contract — `SKILL.md` §Environment Variables
+  is a follow-up doc obligation under this decision; (b) the
+  `--layout` flag is *additional* API surface that the env-var
+  already covers without code changes; (c) the flag is one more
+  knob the agent has to reason about in a future audit, and the
+  audit budget is bounded. The honest position: env-vars are
+  enough; the flag is over-engineering for a one-time migration
+  choice.
+
+counterexample: |
+  The strongest objection to this decision considered and rejected:
+  "Adopting math-coding is overhead for projects where one developer
+  works alone with no AI assistance. Moving the schema and templates
+  into the binary does not help those users — the visible artefact
+  on disk is now a `.math-coding/` directory instead of three
+  directories, but the cognitive cost of `axiom_link` and
+  `counterexample` is unchanged."
+
+  Counterargument: the protocol's applicability envelope
+  (`spec/algebra-3.2.md` §28) names exactly those projects as Path B
+  (regular ADR plus counterexample) — math-coding is Path A only
+  when the applicability is positive, in which case the cognitive
+  cost of the YAML keys is justified. The pollution reduction here
+  is orthogonal to the cognitive cost: it addresses brownfield
+  friction (`schemas/` is created but never read), not the
+  schema-cognitive load. A solo developer is unaffected either way.
+
+commitment: |
+  1. `lib/path_config.ml` (NEW) exposes
+     `resolve_decisions_dir`, `resolve_attestations_dir`, and
+     `resolve_policy_path`. Each implements the env-var → default →
+     legacy fallback in `PLAN.md §0.2`. Defaults are
+     `.math-coding/decisions`, `.math-coding/attestations`,
+     `.math-coding/policy.yaml`. Legacy is
+     `decisions`, `attestations`, `decisions/decision.yaml`. The
+     env-var lookup wins unconditionally (no filesystem check); the
+     default vs legacy decision is a single `Sys.file_exists` on
+     the default.
+
+  2. `lib/schema_embedded.ml` (NEW) embeds the six JSON schemas
+     (`decision.json`, `attestation.json`, `obligation.json`,
+     `waiver.json`, `policy.json`, `common.json`) as OCaml string
+     constants via `{|...|}` quoting. The kernel does NOT consult
+     these constants at validate time — the OCaml decision parser
+     in `lib/decision.ml` is the authoritative implementation. The
+     embed is for `mathc init` to drop into a brownfield project as
+     a one-shot documentation copy, not a runtime reference.
+
+  3. `lib/templates_embedded.ml` (NEW) embeds `templates/ci.yml`
+     and `templates/README.md` as OCaml string constants. The
+     `mathc init --with-ci-workflow` path consumes
+     `Templates_embedded.ci_yml` directly; the filesystem walk-up
+     in the previous `install_ci_workflow` is retained only when
+     the env-var `MATH_CODING_USE_FS_TEMPLATES` is set (kernel
+     developers iterating on the source want their edits to land
+     in downstream runs without rebuilding).
+
+  4. Seven hardcoded references in the kernel are routed through
+     `Path_config.resolve_*`: `lib/init/init.ml::scaffold`,
+     `lib/memory.ml::load_decisions` (line 207),
+     `lib/check/check.ml::list_yaml_files` (line 65),
+     `lib/new_decision/new_decision.ml::run` (line 211),
+     `lib/import_adr/import_adr.ml::run` (lines 416, 418),
+     `lib/re_evaluation.ml::list_decision_files` (line 430), and
+     `lib/render.ml` (the per-decision page `path` field, line
+     2533). Each uses `Filename.concat root
+     (Path_config.resolve_decisions_dir ())` or the attestations /
+     policy equivalent; no string literal `"decisions"` /
+     `"attestations"` survives in the kernel.
+
+  5. `lib/dune` lists the three new modules (`path_config`,
+     `schema_embedded`, `templates_embedded`) in the
+     `mathcoding_core` library. `bin/dune` does not need changes
+     because the new modules are accessible through the existing
+     `(libraries mathcoding_core ...)` dependency.
+
+  6. `lib/init/init.ml::install_ci_workflow` uses
+     `Templates_embedded.ci_yml` directly. The `find_source_ci_workflow`
+     walk-up is retained but guarded behind
+     `MATH_CODING_USE_FS_TEMPLATES` so kernel developers can iterate
+     on the template without rebuilding.
+
+scope:
+  capabilities:
+    - paths-defaults
+    - embedded-schemas
+    - embedded-templates
+  paths:
+    - "lib/**"
+    - "bin/**"
+  exclusions:
+    - "lib/init/init.ml::master_policy_template"
+    - "bin/Mathc.ml::do_attest_batch"
+    - "tests/**"
+    - "spec/**"
+    - "site/**"
+    - "schemas/**"
+    - "templates/**"
+outcomes:
+  - id: paths-default-resolves-to-dot-math-coding
+    statement: |
+      With no env-var set and a `.math-coding/decisions/` directory
+      present, `Path_config.resolve_decisions_dir ()` returns
+      `.math-coding/decisions`. With no env-var set and no
+      `.math-coding/`, the resolver returns the legacy `decisions`.
+      The new default wins because the file_exists check is on the
+      default, not the legacy.
+  - id: env-vars-override-everything
+    statement: |
+      Setting `MATH_CODING_DECISIONS_DIR` (or `_ATTESTATIONS_DIR`,
+      `_POLICY`) bypasses the filesystem check entirely; the env-var
+      value is returned verbatim. A typo in the env-var value is
+      surfaced at the call-site (mkdir / readdir), not at resolve
+      time — the resolver does not pretend to validate paths it
+      does not own.
+  - id: schemas-and-templates-embedded
+    statement: |
+      `lib/schema_embedded.ml` exposes the six schemas as string
+      constants; `lib/templates_embedded.ml` exposes
+      `ci_yml` and `readme_md`. The OCaml decision parser does not
+      read these constants; the embed is a brownfield-doc convenience,
+      not a runtime reference.
+  - id: backward-compat-untouched-existing-projects
+    statement: |
+      The 154 active decisions under `decisions/` continue to
+      validate without changes. `decisions/` + `attestations/` at
+      the repo root is the legacy layout; the resolver falls back to
+      it when `.math-coding/` is absent and no env-var is set.
+risk:
+  declared_triggers:
+    - env-var-typo-surfaces-as-io-error-not-resolve-error
+    - dot-math-coding-path-becomes-permanent-coupling
+    - embedded-schemas-drift-from-source
+    - render-url-prefix-changes-when-dot-math-coding-is-default
+  owner: human:maintainer
+obligations:
+  - id: path-config-resolver-implements-three-tier-precedence
+    statement: |
+      `lib/path_config.ml::resolve_decisions_dir` (and the
+      `_attestations_dir`, `_policy_path` analogues) returns:
+      env-var value if defined; else `.math-coding/<dir>` if the
+      file exists; else the legacy `decisions/` (or `attestations/`,
+      `decisions/decision.yaml`).
+    claim: |
+      `scripts/dev ready` exits 0 (the kernel builds and tests pass
+      with the resolver wired in); a downstream project running
+      `mathc init` against an empty directory creates
+      `.math-coding/decisions/`, `.math-coding/attestations/`, and
+      `.math-coding/policy.yaml`; a downstream project with
+      pre-existing `decisions/` and `attestations/` validates
+      unchanged.
+    acceptance:
+      all:
+        - verifier: scripts/dev ready
+          result: pass
+  - id: seven-hardcodes-rerouted-through-resolver
+    statement: |
+      The seven kernel sites listed in commitment §4 use
+      `Path_config.resolve_*` instead of the literal strings
+      `"decisions"` / `"attestations"` / `"decision.yaml"`.
+    claim: |
+      `rg -n '"decisions"' lib/init/init.ml lib/memory.ml
+      lib/check/check.ml lib/new_decision/new_decision.ml
+      lib/import_adr/import_adr.ml lib/re_evaluation.ml
+      lib/render.ml` returns no matches (excluding comment text
+      and the pre-existing kernel string `"decisions/"` in the
+      pre-commit hook body, which is unchanged).
+    acceptance:
+      all:
+        - verifier: scripts/dev ready
+          result: pass
+  - id: install-ci-workflow-uses-embedded-template
+    statement: |
+      `lib/init/init.ml::install_ci_workflow` writes
+      `Templates_embedded.ci_yml` to `.github/workflows/ci.yml`
+      in the target project. The filesystem walk-up is retained
+      but guarded behind the env-var
+      `MATH_CODING_USE_FS_TEMPLATES`.
+    claim: |
+      `dune build` succeeds; `mathc init . --with-ci-workflow
+      --no-install` in an empty directory creates
+      `.github/workflows/ci.yml` whose contents are byte-for-byte
+      identical to `templates/ci.yml`.
+    acceptance:
+      all:
+        - verifier: scripts/dev ready
+          result: pass
+  - id: backward-compat-untouched-existing-projects-at-head
+    statement: |
+      Running `mathc validate decisions/decision.yaml` against the
+      3.3.0 main repo's HEAD tree returns `accept: ...` with exit
+      0. The 154 active decisions under `decisions/` continue to
+      validate without schema or content changes.
+    claim: |
+      `scripts/dev ready` exits 0 with no decision-file edits in the
+      diff; the 154 active decisions' `body_sha` / `yaml_sha` values
+      remain unchanged.
+    acceptance:
+      all:
+        - verifier: scripts/dev ready
+          result: pass
+relations:
+  addresses:
+    - bootstrap-v3@3
+  supersedes: []
+  superseded_by: []
