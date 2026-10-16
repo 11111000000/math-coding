@@ -104,6 +104,54 @@
     });
   }
 
+  // Hide-on-scroll for the sticky nav (UX follow-up to
+  // fix-dropdown-anim-2026-10): when the user scrolls DOWN,
+  // the nav slides up off-screen (transform: translateY(-100%)
+  // via the .nav-hidden class in style.css). When the user
+  // scrolls UP, the nav slides back. The threshold avoids
+  // jitter at the top of the page and at the very bottom.
+  // The handler is rAF-throttled (one read per animation frame)
+  // and uses {passive: true} on the listener so the scroll
+  // event doesn't block the main thread.
+  function setupHideOnScroll() {
+    var nav = document.querySelector('.site-nav');
+    if (!nav) return;
+    var lastY = window.scrollY || 0;
+    var ticking = false;
+    var TOP_THRESHOLD = 80;
+    var EDGE_THRESHOLD = 60;
+    var MIN_DELTA = 4;
+    function update() {
+      var y = window.scrollY || 0;
+      var docH = document.documentElement.scrollHeight;
+      var winH = window.innerHeight;
+      // Always show near the very top so the user can still
+      // tap a nav link immediately after page load.
+      if (y < TOP_THRESHOLD) {
+        nav.classList.remove('nav-hidden');
+      } else if (y + winH > docH - EDGE_THRESHOLD) {
+        // Always show near the bottom — the user is reaching
+        // the end of the page; hiding the nav now would force
+        // them to scroll all the way back up.
+        nav.classList.remove('nav-hidden');
+      } else if (y - lastY > MIN_DELTA) {
+        // Scrolled down by more than MIN_DELTA px — hide.
+        nav.classList.add('nav-hidden');
+      } else if (lastY - y > MIN_DELTA) {
+        // Scrolled up — show.
+        nav.classList.remove('nav-hidden');
+      }
+      lastY = y;
+      ticking = false;
+    }
+    window.addEventListener('scroll', function () {
+      if (!ticking) {
+        window.requestAnimationFrame(update);
+        ticking = true;
+      }
+    }, { passive: true });
+  }
+
   // Live verdict counter (Phase 3 of site-quality-polish-2026-10):
   // reads data-mathc-* attributes that the kernel already emits
   // on the package-grid wrapper and surfaces them in the hero
@@ -141,11 +189,13 @@
       setupGroupDropdowns();
       highlightActiveLink();
       updateLiveCounters();
+      setupHideOnScroll();
     });
   } else {
     setupHamburger();
     setupGroupDropdowns();
     highlightActiveLink();
     updateLiveCounters();
+    setupHideOnScroll();
   }
 })();
