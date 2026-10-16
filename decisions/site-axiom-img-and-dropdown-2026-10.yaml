@@ -1,0 +1,352 @@
+---
+schema: math-coding/3.3/decision
+id: site-axiom-img-and-dropdown-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+change_kind: implementation
+axiom_link:
+  - A0
+  - A1
+intent: |
+  Close two surface defects the live site
+  (`https://11111000000.github.io/math-coding/`) shipped at
+  the v3.3.1 release:
+
+    Bug 1 (img 64x64 / 404 on axiom figure). On
+    `axioms.html` (and its `.ru.html` / `.zh.html` siblings)
+    every axiom figure rendered as a 64x64 box of wrapped
+    alt text ("Axiom A0 — Separati" on three lines, etc.)
+    instead of the hand-rolled 80x80 SVG. Two compounding
+    causes:
+      (a) `assets/style.css` pinned `.mathc-axiom-figure
+          img` to `width: 64px; height: 64px`, smaller than
+          the 80x80 viewBox of the assets/axiom-*.svg files.
+      (b) The source markdown in `site/axioms.{md,ru.md,zh.md}`
+          used `src="../assets/axiom-*.svg"`. The renderer
+          (`lib/render.ml`) preserves that string verbatim.
+          Combined with `<base href="/math-coding/">` on
+          every page, the browser resolves `../assets/...`
+          against the base, sending the request to
+          `/assets/axiom-*.svg` (one level above the
+          project root) — a 404. The 64x64 box therefore
+          contained the broken-image alt text, not the
+          diagram.
+
+    Bug 2 (dropdown closes mid-traversal). The
+    `.nav-group-panel` (Concept / Methodology / Adopt /
+    Reference dropdown) opens on `nav-group:hover`. The
+    panel is positioned at `top: calc(100% + 0.4rem)`
+    from its `.nav-group` ancestor, leaving a 0.4rem gap
+    between the toggle and the panel. As the cursor
+    crossed the gap, it left the `.nav-group` box; the
+    `:hover` predicate flipped to false; the panel
+    closed. A user had to click the toggle first (which
+    sets `aria-expanded="true"`, an aria-driven
+    display rule) for the panel to stay open while
+    moving toward a menu item.
+
+  Same root cause on the per-axiom page
+  (`dist/axioms/<id>.html`): the `mathc-axiom-icon` was
+  emitted with `src="../../assets/axiom-*.svg"` (two
+  levels up because the page is two directories deep),
+  and the epistemic-separation figure in
+  `axioms/separation.md` used `src="../assets/..."`.
+  With the base href, both resolve one level above the
+  project root and 404. The per-axiom page was therefore
+  also showing alt text instead of the icon and diagram.
+
+  Scope of this cycle: change the CSS so axiom figures
+  show their diagrams, fix the four paths so the SVGs
+  load under the base href, and add a transparent
+  pseudo-element on the dropdown panel so the cursor's
+  transit through the visual gap does not drop
+  `:hover` on `.nav-group`.
+commitment: |
+  1. `assets/style.css` rule
+     `.mathc-axiom-figure img { width: 96px; height: 96px; }`
+     replaces the previous `64px` value. The SVG is an
+     80x80 viewBox; 96px keeps it readable without
+     disturbing the page rhythm.
+
+  2. `assets/style.css` adds
+     `nav.site-nav .nav-group-panel::before { content: "";
+     position: absolute; top: -0.4rem; left: 0; right: 0;
+     height: 0.4rem; pointer-events: auto; }`. The pseudo-
+     element is a 0.4rem transparent strip that extends the
+     panel's hit-area up into the visible gap. Because it
+     is a descendant of the panel, hovering the strip
+     keeps `:hover` true on the panel (and therefore on
+     `.nav-group`), so the panel stays open. The mobile
+     (`@media (max-width: 760px)`) override that sets
+     `position: static` is unaffected.
+
+  3. `site/axioms.md`, `site/axioms.ru.md`, `site/axioms.zh.md`:
+     each of the five `<img src="../assets/axiom-*.svg">`
+     lines becomes `<img src="assets/axiom-*.svg">`. Under
+     the base href, `assets/...` resolves to
+     `/math-coding/assets/...` and the SVG loads.
+
+  4. `axioms/separation.md` (the source for
+     `dist/axioms/separation.html`): the
+     `<img src="../assets/epistemic-separation.svg">` line
+     becomes `<img src="assets/epistemic-separation.svg">`,
+     for the same reason as point 3.
+
+  5. `lib/render.ml::render_axiom_page`: the hard-coded
+     `src="../../assets/axiom-%s.svg"` becomes
+     `src="assets/axiom-%s.svg"`. Two levels of `..` were
+     never correct under the base href; the per-axiom page
+     (`dist/axioms/<id>.html`) is two directories deep
+     without the base-href normalisation but one logical
+     level under it with.
+
+  6. `mathc render --out dist --lang=all` produces
+     `dist/axioms.html`, `dist/axioms.ru.html`,
+     `dist/axioms.zh.html`, and the five per-axiom
+     `dist/axioms/<id>.html` pages in which:
+       - every `<img>` resolves to a 200 (no 404 in the
+         browser console)
+       - the axiom icon and figures render visibly
+
+  7. dune build exits 0; mathc validate accepts the new
+     decision file; the existing site-related decision
+     tree is unchanged.
+
+  Boundaries: this cycle does not touch the Markdown
+  parser, the attestation store, the schemas, the
+  attestation policy, the renderer's other pages
+  (methodology, foundations, etc.), or the Russian /
+  Chinese translation content. It does not retire any
+  existing decision; `site-redesign-2026-10` and the
+  wider site-quality chain remain authoritative.
+counterexample: |
+  "The 64x64 is a deliberate design choice; making the
+  icons larger will throw off the page rhythm."
+  Counterargument: the figure is `display: flex` with
+  `align-items: center; gap: 1em; border-bottom`, so
+  the icon and the next heading share a row. 96px is
+  closer to the body's `1em`-scaled line-height and
+  still leaves room for the body copy on the right.
+  The original 64px was below the 80x80 viewBox
+  natural size — the diagrams were already clipping
+  before the path bug surfaced.
+
+  "Just drop the base href and write absolute paths."
+  Counterargument: the base href is what makes the
+  GitHub-Pages site work under `/math-coding/`. The
+  same `mathc render` is consumed by forks (e.g.,
+  `https://11111000000.github.io/math-coding/`) and
+  by self-hosted instances at a different path.
+  Rewriting the source tree to absolute paths couples
+  the source to a specific deployment host. Keeping
+  the base href and adjusting the source paths so they
+  resolve under it is the same convention the rest of
+  the source already follows (`assets/style.css`,
+  `assets/logo.svg`, `assets/site.js`).
+
+  "Use a CSS-only bridge on `.nav-group::after` instead
+  of `.nav-group-panel::before`."
+  Counterargument: the bridge should be a sibling of the
+  panel's content (so the hit area is exactly the gap
+  + panel rectangle, not the gap + panel + group's
+  future children). `::before` on the panel is the
+  minimum-surface change and works with the existing
+  `:hover` selector.
+
+  "Move the SVG into a sibling path that does not
+  require `..`."
+  Counterargument: the dist tree mirrors the source
+  tree (assets → dist/assets, site → dist/<name>.html).
+  Restructuring the deploy to push the SVGs to
+  `/math-coding/_/assets/axiom-*.svg` would require
+  every site that consumes `mathc render` to adjust
+  its web-server config. The path fix is local to the
+  source markdown + the one kernel template.
+scope:
+  capabilities:
+    - site-content-markup
+    - site-navigation
+    - kernel-render-output
+  paths:
+    - "assets/style.css"
+    - "lib/render.ml"
+    - "site/axioms.md"
+    - "site/axioms.ru.md"
+    - "site/axioms.zh.md"
+    - "axioms/separation.md"
+  exclusions:
+    - "lib/codec.ml"
+    - "lib/decision.ml"
+    - "lib/diagnostic.ml"
+    - "lib/domain.ml"
+    - "lib/packages.ml"
+    - "schemas/**"
+    - "attestations/**"
+    - "spec/**"
+    - "bin/Mathc.ml"
+    - "site/methodology.md"
+    - "site/foundations.md"
+outcomes:
+  - id: axiom-figure-renders
+    statement: |
+      On `dist/axioms.html`, `dist/axioms.ru.html`, and
+      `dist/axioms.zh.html` every `<img>` inside a
+      `.mathc-axiom-figure` resolves to a 200 response
+      in the browser; the figure shows the axiom
+      diagram, not the broken-image alt text. A Playwright
+      snapshot confirms no 404s in the console.
+  - id: per-axiom-icon-renders
+    statement: |
+      On each of the five `dist/axioms/<id>.html`
+      pages, the `mathc-axiom-icon` resolves to a 200
+      response and renders. The epistemic-separation
+      figure at the bottom of `dist/axioms/separation.html`
+      also resolves.
+  - id: dropdown-survives-traversal
+    statement: |
+      Hovering the `.nav-group-toggle` opens the
+      panel; moving the cursor down through the 0.4rem
+      gap onto a panel item keeps the panel open. A
+      Playwright snapshot of `axioms.html` with the
+      cursor over the "FAQ" item inside the open
+      "Adopt" dropdown shows the panel still visible.
+  - id: build-still-clean
+    statement: |
+      `dune build --root .` exits 0; `mathc validate
+      decisions/site-axiom-img-and-dropdown-2026-10.yaml`
+      accepts; the existing `mathc self-check` verdict
+      is unchanged.
+assumptions:
+  - id: base-href-stays-project-root
+    state: assumed
+    statement: |
+      `<base href="/math-coding/">` remains the default
+      in `lib/render.ml`. Self-hosted forks that deploy
+      at a different path override via `Render.config.site_base`.
+    owner: human:maintainer
+    consequence_if_false: |
+      A future change to the base href would re-derive
+      the path arithmetic here. Reopen this decision and
+      re-emit the corrected paths.
+    review_on:
+      - signal: base-href-default-changed
+  - id: axiom-svgs-remain-80x80
+    state: assumed
+    statement: |
+      The five hand-rolled 80x80 SVG illustrations
+      under `assets/axiom-*.svg` are the canonical
+      icons for the axiom index and per-axiom pages.
+      A future redesign that introduces new icons will
+      re-derive the CSS sizing rule.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a redesign introduces, e.g., 160x160 SVGs,
+      the `width: 96px` rule would downscale them and
+      look soft. Reopen and replace the explicit pixel
+      sizes with `width: auto; height: 6em;` or similar
+      viewBox-relative sizing.
+    review_on:
+      - signal: axiom-icon-redesigned
+obligations:
+  - id: axiom-figure-200s
+    statement: |
+      The five axiom SVGs on the index pages resolve to
+      a 200 response in the live tree. Verified by
+      loading `dist/axioms.html` in a real browser and
+      checking the network log: no `/assets/...` 404s.
+    acceptance:
+      all:
+        - verifier: ! curl -fsI https://11111000000.github.io/math-coding/assets/axiom-separation.svg | head -1
+          result: pass
+        - verifier: ! curl -fsI https://11111000000.github.io/math-coding/assets/axiom-feedback.svg | head -1
+          result: pass
+        - verifier: ! curl -fsI https://11111000000.github.io/math-coding/assets/axiom-invariants.svg | head -1
+          result: pass
+        - verifier: ! curl -fsI https://11111000000.github.io/math-coding/assets/axiom-self-application.svg | head -1
+          result: pass
+        - verifier: ! curl -fsI https://11111000000.github.io/math-coding/assets/axiom-care.svg | head -1
+          result: pass
+        - verifier: grep -qF 'src="assets/axiom-separation.svg"' dist/axioms.html
+          result: pass
+        - verifier: grep -qF 'src="assets/axiom-feedback.svg"' dist/axioms.html
+          result: pass
+        - verifier: grep -qF 'src="assets/axiom-invariants.svg"' dist/axioms.html
+          result: pass
+        - verifier: grep -qF 'src="assets/axiom-self-application.svg"' dist/axioms.html
+          result: pass
+        - verifier: grep -qF 'src="assets/axiom-care.svg"' dist/axioms.html
+          result: pass
+  - id: per-axiom-200s
+    statement: |
+      The axiom icon and the epistemic-separation figure
+      on the per-axiom pages resolve to 200.
+    acceptance:
+      all:
+        - verifier: grep -qF 'src="assets/axiom-separation.svg"' dist/axioms/separation.html
+          result: pass
+        - verifier: grep -qF 'src="assets/epistemic-separation.svg"' dist/axioms/separation.html
+          result: pass
+        - verifier: grep -qF 'src="assets/axiom-feedback.svg"' dist/axioms/feedback.html
+          result: pass
+        - verifier: grep -qF 'src="assets/axiom-invariants.svg"' dist/axioms/invariants.html
+          result: pass
+        - verifier: grep -qF 'src="assets/axiom-self-application.svg"' dist/axioms/self-application.html
+          result: pass
+        - verifier: grep -qF 'src="assets/axiom-care.svg"' dist/axioms/care.html
+          result: pass
+        - verifier: ! grep -RqF 'src="\.\./assets/' dist/axioms.html dist/axioms.ru.html dist/axioms/zh.html dist/axioms/*.html
+          result: pass
+  - id: axiom-figure-css-resized
+    statement: |
+      `.mathc-axiom-figure img` is 96x96 (not 64x64).
+    acceptance:
+      all:
+        - verifier: ! grep -F 'width: 64px' assets/style.css | grep -F '.mathc-axiom-figure img'
+          result: fail
+        - verifier: ! grep -F 'width: 96px' assets/style.css | grep -F '.mathc-axiom-figure img'
+          result: pass
+  - id: dropdown-bridge-present
+    statement: |
+      `assets/style.css` declares a `.nav-group-panel::before`
+      pseudo-element at `top: -0.4rem` with `height: 0.4rem`.
+    acceptance:
+      all:
+        - verifier: grep -qF 'nav.site-nav .nav-group-panel::before' assets/style.css
+          result: pass
+        - verifier: grep -qF 'top: -0.4rem' assets/style.css
+          result: pass
+  - id: mathc-validate-accepts
+    statement: |
+      `mathc validate decisions/site-axiom-img-and-dropdown-2026-10.yaml`
+      exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate
+          result: pass
+  - id: dune-build-clean
+    statement: |
+      `dune build --root .` exits 0.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+reversal:
+  - signal: 64px-was-deliberate
+    action: revert-css-rule
+  - signal: dropdown-bridge-regressed
+    action: re-add-pseudo-element
+risk:
+  declared_triggers:
+    - path-resolution-changes
+    - dropdown-hitarea-changes
+    - axiom-svg-redesign
+  owner: human:maintainer
+relations:
+  addresses:
+    - site-redesign-2026-10@1
+    - site-quality-illustrations-2026-10@1
+  supersedes: []
+  superseded_by: []

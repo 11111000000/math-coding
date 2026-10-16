@@ -7,7 +7,7 @@
 ## A0 — 分离
 
 <figure class="mathc-axiom-figure">
-<img src="../assets/axiom-separation.svg" alt="公理 A0 — 分离：种类彼此不同，链条单向流动。">
+<img src="assets/axiom-separation.svg" alt="公理 A0 — 分离：种类彼此不同，链条单向流动。">
 </figure>
 
 种类彼此不同；链条单向流动。
@@ -25,7 +25,7 @@ intent, decision, obligation, change, attestation, observation, revision
 ## A1 — 反馈
 
 <figure class="mathc-axiom-figure">
-<img src="../assets/axiom-feedback.svg" alt="公理 A1 — 反馈：每项承诺都存在通向观察的路径。">
+<img src="assets/axiom-feedback.svg" alt="公理 A1 — 反馈：每项承诺都存在通向观察的路径。">
 </figure>
 
 每项承诺都存在通向观察的路径。
@@ -37,7 +37,7 @@ intent, decision, obligation, change, attestation, observation, revision
 ## A2 — 不变量与恢复
 
 <figure class="mathc-axiom-figure">
-<img src="../assets/axiom-invariants.svg" alt="公理 A2 — 不变量与恢复：每条不变量都配有恢复路径。">
+<img src="assets/axiom-invariants.svg" alt="公理 A2 — 不变量与恢复：每条不变量都配有恢复路径。">
 </figure>
 
 每条不变量都配有恢复路径。
@@ -50,7 +50,7 @@ intent, decision, obligation, change, attestation, observation, revision
 ## A3 — 自应用
 
 <figure class="mathc-axiom-figure">
-<img src="../assets/axiom-self-application.svg" alt="公理 A3 — 自应用：规则管理自身的变更。">
+<img src="assets/axiom-self-application.svg" alt="公理 A3 — 自应用：规则管理自身的变更。">
 </figure>
 
 规则管理自身的变更。
@@ -72,7 +72,7 @@ SelfVerify(K_{n+1}, P_{n+1}) = Pass
 ## A4 — 关怀
 
 <figure class="mathc-axiom-figure">
-<img src="../assets/axiom-care.svg" alt="公理 A4 — 关怀：负责人、后果、问责、到期。">
+<img src="assets/axiom-care.svg" alt="公理 A4 — 关怀：负责人、后果、问责、到期。">
 </figure>
 
 负责人、后果、问责、到期。

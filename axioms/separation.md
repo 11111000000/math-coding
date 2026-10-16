@@ -134,7 +134,7 @@ one without an artifact that establishes the stronger class — see
 and [`spec/algebra-3.2.md §0 honest_uncertainty`](spec/algebra-3.2.html).
 
 <figure class="mathc-figure mathc-figure-epistemic">
-<img src="../assets/epistemic-separation.svg"
+<img src="assets/epistemic-separation.svg"
      alt="Epistemic Separation: declared ≠ derived ≠ attested ≠ reviewed ≠ observed; a result MUST NOT be promoted to a stronger class without an artifact.">
 </figure>
 

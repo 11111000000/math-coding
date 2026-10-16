@@ -280,6 +280,23 @@ nav.site-nav .nav-group-panel {
      aria-expanded="true" (set by JS) */
   display: none;
 }
+/* Hover-bridge: extend the panel's hit-area up into the 0.4rem
+   gap above it so the cursor can travel from the toggle to the
+   first menu item without losing :hover on .nav-group. The
+   visible gap is preserved by `top: calc(100% + 0.4rem)`; this
+   pseudo-element is a 0.4rem transparent strip that sits in
+   that gap. ::before is a descendant of the panel, so :hover on
+   the panel (and therefore on the .nav-group ancestor) stays
+   true while the cursor crosses. */
+nav.site-nav .nav-group-panel::before {
+  content: "";
+  position: absolute;
+  top: -0.4rem;
+  left: 0;
+  right: 0;
+  height: 0.4rem;
+  pointer-events: auto;
+}
 
 nav.site-nav .nav-group:hover > .nav-group-panel,
 nav.site-nav .nav-group:focus-within > .nav-group-panel,
@@ -954,8 +971,8 @@ sup, .sidenote-number { font-feature-settings: "kern", "liga", "onum", "sups"; }
   border-bottom: 1px solid var(--rule);
 }
 .mathc-axiom-figure img {
-  width: 64px;
-  height: 64px;
+  width: 96px;
+  height: 96px;
   flex-shrink: 0;
 }
 .mathc-axiom-figure figcaption {

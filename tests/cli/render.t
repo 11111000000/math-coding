@@ -67,5 +67,10 @@ under `--lang=all`.
   $ grep -qF 'github.com/11111000000/math-coding/blob/main/spec/algebra-3.2.md' dist/index.html
   $ grep -qF 'href="manifesto.zh.html"' dist/axioms.zh.html
   $ grep -qF 'href="foundations.zh.html"' dist/axioms.zh.html
+  $ grep -qF 'href="manifesto.html"' dist/manifesto.ru.html
+  $ grep -qF 'href="axioms.html"' dist/axioms.zh.html
+  $ grep -qF 'href="index.html"' dist/manifesto.html
+  $ if grep -qF 'href="manifesto.en.html"' dist/manifesto.ru.html; then echo 'FAIL: dist/manifesto.ru.html still references manifesto.en.html (regression)'; exit 1; fi
+  $ if grep -qF 'href="axioms.en.html"' dist/axioms.zh.html; then echo 'FAIL: dist/axioms.zh.html still references axioms.en.html (regression)'; exit 1; fi
   $ rm -rf dist
 
