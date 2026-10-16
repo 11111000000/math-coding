@@ -2167,7 +2167,7 @@ let[@warning "-32"] render_axiom_page ~axiom_id ~body =
   let axiom_icon_html =
     Printf.sprintf
       "<figure class=\"mathc-axiom-figure\">\n\
-      <img class=\"mathc-axiom-icon\" src=\"../../assets/axiom-%s.svg\" \
+      <img class=\"mathc-axiom-icon\" src=\"assets/axiom-%s.svg\" \
        alt=\"Axiom %s icon\">\n\
       <figcaption>Axiom %s</figcaption>\n\
       </figure>\n"
