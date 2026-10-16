@@ -208,7 +208,9 @@ let run (opts : options) =
             (project_root ()) id
       | Write_mode ->
           let root = project_root () in
-          let path = Filename.concat root "decisions" in
+          let path =
+            Filename.concat root (Path_config.resolve_decisions_dir ())
+          in
           (try Unix.mkdir path 0o755
            with Unix.Unix_error (Unix.EEXIST, _, _) -> ());
           let target = Filename.concat path (id ^ ".yaml") in

@@ -2530,7 +2530,9 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
       in
       pages :=
         {
-          path = Filename.concat "decisions" (decision_id ^ ".html");
+          path =
+            Filename.concat (Path_config.resolve_decisions_dir ())
+              (decision_id ^ ".html");
           body =
             render_page ~lang:"en" ~page_key:"packages"
               ~title:(Printf.sprintf "%s — math-coding" decision_id)

@@ -412,10 +412,11 @@ let run (path : string) (write : bool) : (unit, [> `Msg of string]) result =
       let parsed = parse text in
       let yaml = to_decision_yaml parsed in
       if write then begin
+        let dir = Path_config.resolve_decisions_dir () in
         let out_path =
-          Filename.concat "decisions" (parsed.id ^ ".yaml")
+          Filename.concat dir (parsed.id ^ ".yaml")
         in
-        (try Unix.mkdir "decisions" 0o755 with
+        (try Unix.mkdir dir 0o755 with
          | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
         let oc = open_out out_path in
         output_string oc yaml;

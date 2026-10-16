@@ -263,7 +263,7 @@ let[@warning "-32"] read reader path =
 (* --- loader --- *)
 
 let[@warning "-32"] load_decisions reader root =
-  let dir = Filename.concat root "decisions" in
+  let dir = Filename.concat root (Path_config.resolve_decisions_dir ()) in
   let paths =
     if Sys.file_exists dir && Sys.is_directory dir then
       Array.to_list (Sys.readdir dir)

@@ -21,9 +21,10 @@
   qcheck_parsers
   junit_test
   rebuttal_forge_stub
-   decision_addresses_equality
-   diagnostic_ux
-   body_canonical_test)
+  decision_addresses_equality
+  diagnostic_ux
+  body_canonical_test
+  path_config_test)
  (libraries
   mathcoding_core
   mathcoding_adopt
