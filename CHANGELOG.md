@@ -3,7 +3,204 @@
 > Single-source-of-truth for releases. Mirrors the `v3.x.y` git
 > tags. The current release is highlighted.
 
+## Unreleased — 2026-10-16 (workstream `d7-windows-aarch64-retire-2026-10`)
+
+Hotfix branch: `d7-windows-aarch64-retire-2026-10`
+(sibling to `d7-windows-aarch64-fix-2026-10` which
+attempted and failed to fix the matrix entry). This
+branch retires the D7 sub-decision and removes the
+`windows-aarch64` matrix entry. The next release tag
+(v3.3.2 or v3.4-pre, whichever the maintainer
+chooses) will pick up these changes. The published
+v3.3.1 release tag (`a41e087`) is unchanged on
+disk; only the source tree is updated.
+
+### Removed
+
+- **`mathc-windows-aarch64.exe` from the release
+  matrix.** The D7 sub-decision
+  `decisions/release-windows-aarch64-binary-2026-10`
+  is bumped to rev 2 with `state: retired`. The
+  release.yml matrix no longer carries a
+  `windows-aarch64` entry, the publish steps'
+  `files:` lists no longer reference the
+  aarch64 asset, and the "Verify all expected
+  platforms present" loop now lists 5 (not 6)
+  required artifacts. The three `kind_: review`
+  attestations dated 2026-10-15
+  (`matrix-windows-aarch64-added`,
+  `windows-aarch64-published`,
+  `install-ps1-arm64-routing`) are deleted; the
+  obligations they attested were renamed in rev 2
+  to record the retirement as a positive invariant
+  (`matrix-windows-aarch64-removed`,
+  `install-ps1-arm64-source-fallback`,
+  `site-install-documents-arm64-fallback`).
+
+### Why
+
+Two independent technical blockers, each surfaced
+on the v3.3.1 release branch and documented in
+detail in `decisions/release-windows-aarch64-
+binary-2026-10@2` (rev 2):
+
+1. **opam 2.4.1 on `win32/arm64` hardcoded-selects
+   the i686 MinGW toolchain via Cygwin setup.**
+   All 7 CI attempts between 2026-10-15 and
+   2026-10-16 (runs #80–#87, #125–#128) failed at
+   the "Init opam and create OCaml switch" step
+   with
+   `C:/mingw64/x86_64-w64-mingw32/include/time.h:12:2:
+   error: #error Only Win32 target is supported!`
+   (OCaml 5.4.0's `make world.opt` step at
+   `runtime/sak.exe`, exit code 2 →
+   `opam switch` exit code 31).
+   `OCAML_CONFIGURE_OPTIONS="-target aarch64-pc-
+   windows-msvc"` is exported correctly but does
+   not reach OCaml's configure because opam 2.4.1's
+   Cygwin MinGW selection runs in `opam init`
+   BEFORE the switch is created.
+2. **dune 3.21+ cross-compile via `dune-workspace`
+   cross context reroutes default builds.** A
+   cross-compile workaround on `windows-latest`
+   (x86_64) via `(context (default (name aarch64)
+   (targets aarch64-pc-windows-msvc)))` plus
+   `DUNE_CROSS_TARGET=aarch64` was attempted and
+   reverted after CI run 38892258104 (2026-10-16)
+   where all 7 matrix entries failed: dune 3.21+
+   treats the cross context as the default
+   `dune build` target when no `-x` flag is given,
+   breaking the implicit native context. This is
+   recorded as trap §11.39 in
+   `OCAML_BEST_PRACTICES.md`.
+
+### User-facing impact
+
+- **No `mathc-windows-aarch64.exe` is published
+  starting with the next release.** The release
+  matrix on every platform lists 5 artifacts
+  (`mathc-linux-x86_64`, `mathc-linux-aarch64`,
+  `mathc-darwin-x86_64`, `mathc-darwin-aarch64`,
+  `mathc-windows-x86_64.exe`); the optional
+  musl artifact remains gated by
+  `decisions/portable-linux-musl.yaml`.
+- **Windows 11 ARM users (Snapdragon X / Surface
+  Pro 11 / Devkit 2023) must use the source-build
+  fallback** documented in `site/install.md`
+  channel 4:
+  `nix run github:11111000000/math-coding --
+  <args>`. This works on Windows ARM via WSL2 and
+  produces a native aarch64-pc-windows MSVC binary
+  in ~90 s on a Snapdragon X Elite. `install.ps1`
+  on Windows 11 ARM still pulls
+  `mathc-windows-x86_64.exe` (x64 emulation) and
+  the user is directed to the source-build path in
+  the install script's output. (This was the
+  pre-v3.3.0 behaviour; v3.3.0 briefly claimed an
+  aarch64 release binary that the CI never
+  produced — three `kind_: review` attestations
+  from 2026-10-15 were the only "evidence" of the
+  claim, and AGENTS.md §"Honest time reporting"
+  explicitly classifies `kind_: review` as a
+  human declaration, not a runtime observation.)
+
+### Follow-up workstreams (each requires its own decision)
+
+1. Diskuv dkml-installer-ocaml prebuilt OCaml 5.4
+   for win32/arm64 (GitLab releases; was "path B"
+   of the original fix plan).
+2. `ocaml/setup-ocaml@v3` with explicit aarch64
+   cross-compile config (re-evaluates the project's
+   historical §11.x avoidance of the action).
+3. Per-platform `dune-workspace` template (build
+   wrapper copies the cross file in/out for the
+   windows-aarch64 job only).
+4. Manual `ocamlfind ocamlopt -target=aarch64-pc-
+   windows-msvc` (bypass dune for the cross build;
+   needs a separate OCamlfind-only build wrapper).
+
+### Knowledge delta
+
+```yaml
+changed:
+  - release matrix entry windows-aarch64 removed
+  - decisions/release-windows-aarch64-binary-2026-10
+    revision: 1 → 2, state: active → retired
+  - 3 kind_:review attestations deleted
+  - OCAML_BEST_PRACTICES §11.39 added (dune-workspace
+    cross context trap)
+  - ROADMAP §Tier 2.7 added (D7 retirement)
+preserved:
+  - all 5 active matrix entries (linux/macOS x86_64
+    and aarch64, windows x86_64)
+  - install.ps1 Get-Arch routing for Arm64 (still
+    resolves to aarch64; will be live again when
+    a future workstream reinstates the binary)
+  - source-build fallback (nix run, channel 4 in
+    site/install.md)
+evidence:
+  - CI run 38882377032 (2026-10-16, v3.3.1 push):
+    windows-x86_64 + windows-aarch64 both failed at
+    opam init
+  - CI run 38888597252 (2026-10-16, this workstream,
+    first attempt): OCAML_CONFIGURE_OPTIONS env var
+    exported but ignored; i686 MinGW still selected
+  - CI run 38890981952 (2026-10-16, second attempt):
+    stage binary SRC path correction, broken on
+    Linux
+  - CI run 38891550593 (2026-10-16, third attempt):
+    same SRC path issue
+  - CI run 38892258104 (2026-10-16, fourth attempt,
+    dune-workspace cross context): all 7 matrix
+    entries failed (dune 3.21+ cross-context
+    reroute)
+new_assumptions:
+  - Windows 11 ARM users are willing to use a
+    source-build fallback (~90 s, requires WSL2 +
+    nix) until a future workstream reinstates the
+    binary
+  - The 4 follow-up workstream candidates are each
+    >2 hours of work to even attempt (Diskuv
+    download + SHA-256 pin, setup-ocaml@v3
+    evaluation, dune-workspace wrapper script,
+    OCamlfind-only build wrapper)
+remaining_unknowns:
+  - Whether Microsoft App Assure will accelerate
+    x64 emulation deprecation on Windows 11 24H2+
+    such that the source-build fallback becomes
+    unacceptable
+  - Whether GitHub will add a `windows-11-arm`
+    runner image variant with a working Cygwin
+    MinGW ARM64 toolchain
+  - Whether dune will fix the cross-context
+    default-reroute behaviour (no upstream issue
+    filed as of 2026-10-16)
+```
+
 ## v3.3.1 — 2026-10-16 — current
+
+> **Post-release note (2026-10-16, workstream
+> `d7-windows-aarch64-retire-2026-10`).** The
+> v3.3.1 release tag (`a41e087`) was created and
+> the corresponding GitHub release was published,
+> but the `windows-aarch64` matrix entry added in
+> v3.3.0 (commit `4c90f51`, the original D7) was
+> never green in CI — all 5+ attempts between
+> 2026-10-15 and 2026-10-16 failed at
+> "Init opam and create OCaml switch" on
+> `windows-11-arm` with
+> `#error Only Win32 target is supported!` (opam
+> 2.4.1 hardcoded-selects the i686 MinGW
+> toolchain). The three `kind_: review`
+> attestations dated 2026-10-15
+> (`matrix-windows-aarch64-added`,
+> `windows-aarch64-published`,
+> `install-ps1-arm64-routing`) were the only
+> "evidence" of the D7 commitment, and AGENTS.md
+> §"Honest time reporting" explicitly classifies
+> `kind_: review` as a human declaration, not a
+> runtime observation. v3.3.2 (next section)
+> retires D7 and removes the matrix entry.
 
 Patch release. Five streams landed behind the v3.4 workstream and
 ship under a minor tag bump rather than a feature bump because the

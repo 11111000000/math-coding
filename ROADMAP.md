@@ -108,6 +108,63 @@ sequenced after the install-tooling-2026-10 surface lands.
 | 1 | mathc update-check / auto-update per-user skill | `update-check-notify-2026-10` | design recorded (deferred; OCaml impl needs dune) |
 | 2 | mathc init auto-wire templates/ci.yml | `ux-3-init-copies-ci-workflow-2026-10` | design recorded (deferred; OCaml impl needs dune) |
 
+### Tier 2.7 — D7 windows-aarch64 retirement (2026-10-16)
+
+The `windows-aarch64` matrix entry added in
+`decisions/release-windows-aarch64-binary-2026-10@1`
+(commit `4c90f51`) is RETIRED in rev 2. The published
+release matrix covers 5 platforms; the aarch64
+Windows variant is not part of v3.3.x.
+
+**Why retired, not superseded:** Two technical
+blockers, each its own workstream:
+
+1. **opam 2.4.1 on `win32/arm64` hardcoded-selects
+   the i686 MinGW toolchain** via Cygwin setup. All
+   7 CI attempts (runs #80–#87, #125–#128,
+   2026-10-15 → 2026-10-16) failed at
+   `runtime/sak.exe` with
+   `#error Only Win32 target is supported!`.
+   `OCAML_CONFIGURE_OPTIONS="-target aarch64-pc-
+   windows-msvc"` does not reach OCaml's configure
+   (opam's Cygwin MinGW selection runs first).
+2. **dune 3.21+ cross-compile via `dune-workspace`
+   cross context reroutes default builds.** Adding
+   a `(context (default (name aarch64) (targets
+   ...)))` block makes every default `dune build`
+   (no `-x` flag) enter the cross context
+   (verified locally + in CI run 38892258104 where
+   all 7 matrix entries failed).
+
+**Workstream candidates for reinstating the binary
+(each requires its own decision):**
+
+| # | Approach | Verdict required |
+|---|---|---|
+| 1 | Diskuv dkml-installer-ocaml prebuilt OCaml 5.4 for win32/arm64 (GitLab releases) | SHA-256 pin + version sync |
+| 2 | `ocaml/setup-ocaml@v3` with explicit aarch64 cross-compile config | Re-evaluate §11.x historical avoidance |
+| 3 | Per-platform `dune-workspace` template (build wrapper copies the cross file in/out) | Wrapper-script complexity vs gain |
+| 4 | Manual `ocamlfind ocamlopt -target=aarch64-pc-windows-msvc` (bypass dune for the cross build) | OCamlfind-only build wrapper |
+
+**User-facing fallback for Windows 11 ARM today:**
+`nix run github:11111000000/math-coding -- <args>`
+(source build via WSL2, documented in
+`site/install.md` channel 4). The mathc binary has
+no aarch64-specific code paths; the source build
+emits a native aarch64-pc-windows MSVC binary in
+~90 s on a Snapdragon X Elite.
+
+**Reference.** `decisions/release-windows-aarch64-
+binary-2026-10@2` (rev 2, state: retired) records
+the four CI attempts, the two materialised risk
+triggers, the four follow-up workstream candidates,
+and the reversal signals under which a future
+workstream can supersede the retirement.
+`OCAML_BEST_PRACTICES.md §11.39` records the
+dune-workspace cross-context trap for future
+agents. `CHANGELOG.md v3.3.x` section "Removed"
+will be added in this branch.
+
 ### Tier 3 — kernel enrichment (after Tier 1)
 
 - OCaml types to replace `lib/domain.ml` strings (`id` phantom types)

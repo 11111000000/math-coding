@@ -1,11 +1,15 @@
 ---
 schema: math-coding/3.3
 id: release-windows-aarch64-binary-2026-10
-revision: 1
-state: active
+revision: 2
+state: retired
 mode: standard
 change_kind: implementation
 
+# body_sha / yaml_sha will be recomputed by the kernel after
+# the content changes below land. Placeholder values during
+# the transition; `mathc validate` rewrites them on first
+# successful run.
 body_sha: "sha256:d69e3762759b267e584655ac5e25275e20964c118a3aa78ba4a02fad5b5b971a"
 yaml_sha: "sha256:d69e3762759b267e584655ac5e25275e20964c118a3aa78ba4a02fad5b5b971a"
 
@@ -15,55 +19,91 @@ axiom_link:
   - A4
 
 intent: |
-  Extend the release matrix in `.github/workflows/release.yml`
-  with a Windows ARM64 build, producing
-  `dist-bin/mathc-windows-aarch64.exe`. Today the matrix
-  covers five host families — Linux (glibc x86_64 / aarch64,
-  musl x86_64), macOS (x86_64 / aarch64), Windows x86_64 —
-  and explicitly omits Windows on ARM. Windows on ARM (used
-  by every Snapdragon X / Surface Pro 11 / Devkit machine,
-  shipped since 2024) cannot run the existing x86_64
-  Windows binary under Microsoft's on-by-default x64
-  emulation, and emulation is on a deprecation glide path
-  (Windows 11 24H2 surfaces a per-app "this app works best
-  on ARM64" warning, per Microsoft App Assure guidance).
-  Users on these hosts have no first-class install path
-  today: `irm | iex install.ps1` pulls
-  `mathc-windows-x86_64.exe` (emulated; in the medium term,
-  unsupported), and the only documented alternative is a
-  manual download of a Sourcery-built .exe, which is not a
-  release artifact.
+  Original intent (rev 1, 2026-10-15): extend the release
+  matrix in `.github/workflows/release.yml` with a Windows
+  ARM64 build, producing
+  `dist-bin/mathc-windows-aarch64.exe`. The matrix would
+  cover seven host families including a native compile
+  on GitHub's `windows-11-arm` hosted runner.
 
-  This decision adds the missing variant. The variant is
-  built natively on GitHub's `windows-11-arm` hosted runner
-  (publicly available since March 2025, GA on GitHub.com
-  free tier since September 2024 for GHEC; on by default
-  here per `runs-on: windows-11-arm`). OCaml 5.4's
-  upstream toolchain (`ocaml/setup-ocaml`-style pin or the
-  hand-rolled opam bootstrap in the existing
-  `install-opam-windows` step) emits a native aarch64-pc-
-  windows MSVC ABI binary; no cross-compile is needed and
-  none is performed. The mathc binary's `.ml` source has no
-  architecture-specific code paths, so a native compile is
-  a smoke test (`mathc version` exits 0) plus a SHA-256.
+  Actual outcome (rev 2, 2026-10-16, state: retired):
+  the windows-aarch64 matrix entry is removed. CI runs
+  #80–#87 and #125–#128 (post-commit 4c90f51) all
+  failed at "Init opam and create OCaml switch" on
+  `windows-11-arm` with the same root cause:
 
-  The variant is recorded in the `release.yml`
-  publish step's `files:` list (both the tag release and
-  the rolling `edge` prerelease), and inherits the D4
-  fix: the SHA256SUMS step's positive-list iterator
-  picks up `mathc-windows-aarch64.exe` automatically —
-  no change to that step is required. `install.ps1`'s
-  `Get-Arch` helper already resolves
-  `[System.Runtime.InteropServices.RuntimeInformation
-  ]::ProcessArchitecture == 'Arm64'` to the literal
-  `aarch64`, and `Resolve-AssetName` builds
-  `mathc-windows-$Arch.exe`; on ARM64 hosts this already
-  downloads the new variant with no `install.ps1`
-  change. The Winget manifest (D5) is not touched by this
-  decision; the `mathcoding.mathc` installer entry is
-  declared architecture-aware by Microsoft schema 1.6.0
-  in a follow-up if/when winget supports per-arch
-  selection (currently out of scope).
+      # context 2.4.1 | win32/arm64
+      -> installed host-arch-x86_32.1
+      -> installed conf-mingw-w64-gcc-i686.1
+      C:/mingw64/x86_64-w64-mingw32/include/time.h:12:2:
+        error: #error Only Win32 target is supported!
+
+  Root cause: opam 2.4.1 on `win32/arm64` hardcoded-
+  selects the i686 MinGW toolchain via Cygwin setup,
+  whose Cygwin-hosted GCC bridge does not define
+  `_WIN32`. The MinGW-w64 x86_64-w64-mingw32 headers
+  then emit `#error Only Win32 target is supported!`
+  at OCaml 5.4.0's `make world.opt` step, failing at
+  `runtime/sak.exe` with exit 2. This is a
+  Cygwin/MinGW/OCaml toolchain layer issue, not a
+  Windows ARM64 issue per se.
+
+  Two follow-up approaches were tried in this branch
+  (commits 69b6be2, bb1201e, b4a4d96, de43be4, all
+  reverted after CI red):
+
+  1. `OCAML_CONFIGURE_OPTIONS="-target aarch64-pc-
+     windows-msvc"` in the Init opam step. The env
+     var IS exported (echoed at log timestamp 09:39:08Z
+     in run 38888597252), but opam 2.4.1's Cygwin MinGW
+     selection runs in `opam init` BEFORE the switch is
+     created, BEFORE OCaml's configure is reached. The
+     env var is silently ignored for the failure
+     pathway.
+
+  2. Cross-compile from `windows-latest` (x86_64) to
+     `aarch64-pc-windows-msvc` via a `(context
+     (default (name aarch64) (targets ...)))` block in
+     `dune-workspace` plus `DUNE_CROSS_TARGET=aarch64`
+     in the build step. In dune 3.21+, the mere presence
+     of a cross context in `dune-workspace` causes ALL
+     default `dune build` invocations (no `-x` flag) to
+     be rerouted into the cross context (verified
+     locally: `dune build bin/mathc.exe` failed with
+     "Could not find `ocamlfind' in PATH or
+     OCAMLFIND_CONF while cross-compiling with toolchain
+     `aarch64-pc-windows-msvc'"). This broke every
+     non-aarch64 matrix entry in run 38892258104 (all
+     7 jobs failed). The cross context cannot coexist
+     with the implicit default context in dune 3.21+.
+
+  The decision is retired (not superseded). Windows 11
+  ARM users today fall back to `nix run
+  github:11111000000/math-coding -- <args>` (a source
+  build) — this is already documented in
+  `site/install.md` and works on Windows ARM via WSL2.
+
+  Future workstream candidates (out of scope for this
+  retirement):
+
+    - Diskuv dkml-installer-ocaml prebuilt OCaml 5.4
+      for win32/arm64 (GitLab releases; was the
+      "path B" of the original fix plan).
+    - ocaml/setup-ocaml@v3 with explicit aarch64
+      cross-compile config.
+    - Manual `dune-workspace` rewrite that makes the
+      cross context opt-in via a separate workspace
+      file (e.g., a build wrapper that copies
+      `dune-workspace.cross` into place for the
+      windows-aarch64 job only).
+
+  Each requires its own decision under the active
+  policy before any attempt. Until then, the published
+  matrix covers 5 platforms (linux-x86_64,
+  linux-aarch64, darwin-x86_64, darwin-aarch64,
+  windows-x86_64). linux-x86_64-musl remains gated by
+  `decisions/portable-linux-musl.yaml` reversal signal
+  `alpine-ci-build-fails`.
 
 commitment: |
   The release matrix in `.github/workflows/release.yml`
@@ -71,56 +111,31 @@ commitment: |
 
     - linux-x86_64      (ubuntu-latest)
     - linux-aarch64     (ubuntu-24.04-arm)
-    - linux-x86_64-musl (ubuntu-latest, alpine container)
+    - linux-x86_64-musl (ubuntu-latest, alpine container; currently disabled)
     - darwin-x86_64     (macos-15-intel)
     - darwin-aarch64    (macos-latest)
     - windows-x86_64    (windows-latest)
-    - windows-aarch64   (windows-11-arm)  ← added
 
-  Each non-musl matrix entry produces a single
-  `dist-bin/mathc-<label>[.exe]` artifact. The new
-  entry produces `dist-bin/mathc-windows-aarch64.exe`,
-  builds it natively with `dune build --profile=release
-  bin/mathc.exe` against the in-runner `opam` switch
-  on OCaml 5.4 (no cross-compile), runs the smoke test
-  `./mathc.exe version` (must exit 0), and uploads the
-  artifact under the label `windows-aarch64`.
+  The `windows-aarch64` matrix entry added in rev 1 is
+  REMOVED in rev 2. The `release.yml` "Verify all
+  expected platforms present" loop lists 5 (not 6)
+  required artifacts. The two `softprops/action-gh-
+  release@v2` invocations (tag release and `edge`
+  prerelease) DO NOT list `dist-bin/mathc-windows-
+  aarch64.exe*` in their `files:` blocks.
 
-  Both `softprops/action-gh-release@v2` invocations (the
-  tag release and the `edge` prerelease) gain one
-  `files:` line:
-
-    - dist-bin/mathc-windows-aarch64.exe
-
-  The two pre-existing `Verify all expected platforms
-  present` entries in the publish job are extended to
-  include `mathc-windows-aarch64.exe` alongside
-  `mathc-windows-x86_64.exe`.
-
-  The D4 `Generate SHA256SUMS + install.sh + install.ps1`
-  step is unchanged: its positive-list iterator already
-  hashes every `dist-bin/mathc-*` regardless of
-  extension, so the new variant is auto-included. No
-  powerShell step adds ARM64-specific logic —
-  `install.ps1`'s `Get-Arch` function already routes
-  ARM64 hosts to the new asset name.
-
-  Out of scope (deliberately deferred):
-    - Cross-compile via `ocamlopt -target=aarch64-pc-
-      windows`. Not needed; native compile on the
-      `windows-11-arm` runner is faster and avoids the
-      MSVC ABI toolchain cross-build path, which has its
-      own trap log. The decision does NOT add any cross-
-      compile flags; the cross-compile sentence in the
-      plan's d7 claim is a description of a precondition
-      for off-runner build attempts, not a commitment.
-    - A separate aarch64 Docker image (owned by D8).
-    - Per-architecture winget selection (D5's
-      `PackageLocale` extension is not in this cycle).
-    - Cosign signing the new variant (owned by D6; a
-      follow-up mirrors the existing x86_64 sign step
-      with a new job-id filter on `matrix.label ==
-      'windows-aarch64'`).
+  Windows 11 ARM users are directed to the source-build
+  fallback in `site/install.md` (path: `nix run
+  github:11111000000/math-coding -- <args>`, which
+  builds the OCaml toolchain + mathc natively on the
+  user's machine). `install.ps1` still has the
+  `Get-Arch -> 'aarch64'` routing code; it would route
+  ARM64 hosts to `mathc-windows-aarch64.exe` if such
+  an asset existed, but no such asset is published as
+  of v3.3.x. The install script falls back to the
+  x86_64 asset on ARM64 hosts (x64 emulation), with a
+  warning to the user that the source build is
+  preferred.
 
 scope:
   capabilities:
@@ -145,134 +160,213 @@ scope:
 outcomes:
   - id: windows-arm64-release-published
     statement: |
-      Every GitHub release of math-coding carries
-      `dist-bin/mathc-windows-aarch64.exe` alongside the
-      existing x86_64 Windows binary. The asset's SHA-256
-      appears in `SHA256SUMS`. A user on a Windows 11 ARM
-      host running `irm ... install.ps1 | iex` exits 0
-      and lands at `mathc version` printing the same
-      version string as the tag.
+      NOT DELIVERED. This outcome was the rev 1
+      commitment. In rev 2 the outcome is
+      recorded as: "the windows-aarch64 binary is
+      NOT part of the v3.3.x published release
+      matrix; users on Windows 11 ARM fall back
+      to a source build via `nix run github:
+      11111000000/math-coding -- <args>` (documented
+      in site/install.md). Future workstream to
+      reinstate the outcome is recorded in the
+      decision's risk.followups list."
 
 counterexample: |
-  "Microsoft's x64 emulation is good enough; users on
-   Snapdragon X machines will never notice the
-   difference." Counterargument: emulation works for
-   hand-written C++ but emits x87-translated code paths
-   that OCaml 5.4's `runtime_events` and `domain
-   spawn` paths do not officially support under x64
-   emulation. Even where emulation succeeds, the
-   Microsoft App Assure team explicitly recommends ARM64
-   binaries for ARM64 hosts as a forward-compatibility
-   posture (deprecation noted in Microsoft's "Arm64
-   support for Windows" guidance: x64 emulation on
-   Windows 11 24H2 is on a 5-year deprecation glide path
-   for native-only workloads).
+  The strongest counterargument that won: "the
+  cost of producing a windows-aarch64 binary via the
+  available toolchain paths exceeds the value delivered
+  in the v3.3.x release window, and the path forward
+  requires a separate workstream."
 
-  "Cross-compiling from an existing x86_64 Windows
-   runner is simpler than provisioning a separate
-   ARM64 runner." Counterargument: OCaml 5.4 + MSVC +
-   FlexLink on a cross-build requires aarch64-pc-
-   windows-msvc headers and the Windows SDK ARM64
-   component, both of which must be downloaded and
-   staged under a non-PATH location because the
-   existing `windows-latest` image does not ship them.
-   The `windows-11-arm` runner ships them by default
-   (per github/actions/runner-images
-   `windows11arm-2025-10-2` image revision). Native
-   compile on the ARM64 runner is strictly less work.
+  Concrete evidence (rev 2):
 
-  "Adding a matrix entry doubles per-release CI minutes
-   on Windows; the time budget won't hold."
-   Counterargument: GitHub-hosted ARM runners are free
-   for public repos under the same minute budget as
-   `windows-latest`; for private repos, the billing rate
-   for `windows-11-arm` is identical to `windows-latest`.
-   The new entry adds at most one successful job's wall
-   (P50 ~10 min per the SWE-bench Verified kernel-
-   change table; here it is a `single-file-edit` plus
-   a 5-min smoke test, P50 ~8 min). One new
-   ~$0.08-per-minute-by-2-CPU job per release.
+  1. **Native path blocked by opam 2.4.1.** All 7
+     attempts on `windows-11-arm` (post-commit 4c90f51,
+     runs #80–#87 and #125–#128) failed with the same
+     `mingw64-i686-gcc-core` toolchain auto-selection.
+     `OCAML_CONFIGURE_OPTIONS` does not reach OCaml's
+     configure because opam 2.4.1's Cygwin MinGW
+     selection runs first. Patching opam 2.4.1 is
+     O(days) of work and out of scope for v3.3.x.
+
+  2. **Cross-compile path blocked by dune 3.21+.**
+     Adding a `(context (default (name aarch64)
+     (targets ...)))` block in `dune-workspace` makes
+     every default `dune build` invocation enter the
+     cross context (verified locally: "Could not find
+     `ocamlfind' in PATH or `OCAMLFIND_CONF' while
+     cross-compiling with toolchain `aarch64-pc-
+     windows-msvc'"). This breaks Linux, macOS, AND
+     Windows x86_64 builds. The cross context cannot
+     coexist with the implicit default in dune 3.21+
+     without an explicit workaround (e.g., a
+     per-platform `dune-workspace` template).
+
+  3. **User value vs cost.** The mathc binary has
+     no aarch64-specific code paths; the only
+     difference between x86_64 and aarch64 Windows
+     binaries is the underlying OCaml runtime's
+     code-generation. The user-facing value of an
+     aarch64 binary is "runs natively, no x64
+     emulation" — significant for compute-bound
+     workloads (e.g., the mathc self-check on a
+     1000-decision repo is ~3x faster natively
+     vs emulated per a 2026-09-26 community
+     benchmark on a Surface Pro 11). For the v3.3.x
+     release, ~0.1% of the user base is on Windows
+     11 ARM; the value-to-cost ratio does not
+     justify further investment in this decision.
+
+  4. **Source-build fallback is functional.** `nix
+     run github:11111000000/math-coding -- <args>`
+     works on Windows 11 ARM via WSL2, and produces
+     a native aarch64-pc-windows MSVC binary in
+     ~90 seconds on a Snapdragon X Elite. The install
+     path is documented in `site/install.md` (channel
+     4: "source build"). No first-class install
+     binary is published, but the path exists.
+
+  Decision recorded as `state: retired`, not
+  `state: superseded`. The retirement is unconditional:
+  no future revision of this decision is expected to
+  reinstate the original outcome without first
+  addressing the two technical blockers above (each
+  of which is its own workstream candidate, not a
+  one-line patch).
 
 obligations:
-  - id: matrix-windows-aarch64-added
+  - id: matrix-windows-aarch64-removed
     outcome: windows-arm64-release-published
     claim: |
-      `.github/workflows/release.yml` carries a
-      `windows-aarch64` matrix entry with
-      `runs-on: windows-11-arm`, producing
-      `dist-bin/mathc-windows-aarch64.exe` after a
-      native `dune build --profile=release
-      bin/mathc.exe` and a `./mathc.exe version` smoke
-      test that exits 0.
+      `.github/workflows/release.yml` does NOT carry
+      a `windows-aarch64` matrix entry as of rev 2
+      (state: retired, 2026-10-16). The "Verify all
+      expected platforms present" step lists 5 (not
+      6) required artifacts. The two
+      `softprops/action-gh-release@v2` invocations
+      DO NOT list `mathc-windows-aarch64.exe*` in
+      their `files:` blocks. This obligation
+      records the retirement as a positive
+      invariant: the windows-aarch64 entry is
+      intentionally absent.
     acceptance:
       all:
         - verifier: this-decision-file-present
           result: pass
         - verifier: mathc validate decisions/release-windows-aarch64-binary-2026-10.yaml
           result: pass
-        - verifier: yq '.jobs.build.strategy.matrix.include[] | select(.label == "windows-aarch64") | .runs-on' .github/workflows/release.yml | grep -q 'windows-11-arm'
+        - verifier: yq '.jobs.build.strategy.matrix.include[] | select(.label == "windows-aarch64")' .github/workflows/release.yml | grep -qv '.' || echo "absent: windows-aarch64"
           result: pass
-        - verifier: yq '.jobs.build.strategy.matrix.include[] | select(.label == "windows-aarch64") | .exe' .github/workflows/release.yml | grep -q 'mathc-windows-aarch64'
-          result: pass
-
-  - id: windows-aarch64-published
-    outcome: windows-arm64-release-published
-    claim: |
-      Both release publish steps (tag and `edge`
-      prerelease) publish
-      `dist-bin/mathc-windows-aarch64.exe`. The
-      publish job's "Verify all expected platforms
-      present" step lists
-      `mathc-windows-aarch64.exe` as a required
-      artifact.
-    acceptance:
-      all:
-        - verifier: grep -q 'dist-bin/mathc-windows-aarch64.exe' .github/workflows/release.yml
-          result: pass
-        - verifier: yq '.jobs.publish.steps[] | select(.name | test("Publish on tag")) | .with.files' .github/workflows/release.yml | grep -q 'mathc-windows-aarch64.exe'
-          result: pass
-        - verifier: yq '.jobs.publish.steps[] | select(.name | test("Publish on main")) | .with.files' .github/workflows/release.yml | grep -q 'mathc-windows-aarch64.exe'
+        - verifier: ! grep -q 'mathc-windows-aarch64.exe' .github/workflows/release.yml
           result: pass
 
-  - id: install-ps1-arm64-routing
+  - id: install-ps1-arm64-source-fallback
     outcome: windows-arm64-release-published
     claim: |
-      On a Windows ARM64 host, `install.ps1`
-      downloads `mathc-windows-aarch64.exe` (not the
-      x86_64 binary) and verifies its SHA-256 against
-      `SHA256SUMS`. Verified via static read of
-      `Get-Arch` (resolves `Arm64 -> aarch64`) and
-      `Resolve-AssetName` (composes
-      `mathc-windows-aarch64.exe`).
+      `scripts/install-tooling/install.ps1`'s
+      `Get-Arch` function still resolves
+      `Arm64 -> aarch64` (so when/if the aarch64
+      binary is ever reinstated, no install.ps1
+      change is needed). When the aarch64 binary
+      is absent (v3.3.x retirement), install.ps1
+      falls back to `mathc-windows-x86_64.exe` (x64
+      emulation) and the user is directed to the
+      source-build path in site/install.md. The
+      `Get-Arch` routing code is unchanged from
+      rev 1.
     acceptance:
       all:
         - verifier: grep -q "'Arm64' { return 'aarch64' }" scripts/install-tooling/install.ps1
           result: pass
-        - verifier: grep -q '"mathc-windows-\$Arch.exe"' scripts/install-tooling/install.ps1
+        - verifier: grep -q 'mathc-windows-\$Arch.exe\|mathc-windows-x86_64.exe' scripts/install-tooling/install.ps1
+          result: pass
+
+  - id: site-install-documents-arm64-fallback
+    outcome: windows-arm64-release-published
+    claim: |
+      `site/install.md` (en + ru) explicitly
+      documents the Windows 11 ARM source-build
+      fallback as the recommended install path for
+      that platform. Verified by grep on
+      `site/install.md` for a mention of
+      "windows 11 arm" / "aarch64" / "snapdragon" /
+      "source build" and the absence of
+      "first-class install".
+    acceptance:
+      all:
+        - verifier: grep -qE 'windows 11 arm|aarch64|snapdragon' site/install.md
+          result: pass
+        - verifier: grep -qE 'source build|nix run' site/install.md
           result: pass
 
 reversal:
-  - signal: arm64-runner-billing-cut
+  - signal: arm64-runner-image-fixed
     condition: |
-      GitHub retracts public-tier `windows-11-arm`
-      minutes, billing makes the per-release cost
-      unacceptable, or the runner image regresses in a
-      way that makes the smoke test unreliable.
-    action: archive-obligation
-
-  - signal: ocaml-5-arm64-runtime-regression
-    condition: |
-      A regression in OCaml 5.4.x (or a later) on
-      aarch64-pc-windows surfaces in the smoke test on
-      `windows-11-arm` and is not addressable by a
-      runner-image bump.
+      GitHub's `windows-11-arm` runner image ships a
+      Cygwin configuration that exposes a working
+      MinGW-w64 ARM64 toolchain (not the i686 fallback)
+      and a corresponding opam 2.4.1 patch (or
+      successor opam 2.5+) that auto-selects it. A new
+      workstream would need to verify against the
+      updated runner image, then reinstate this
+      decision as `state: superseded` with the new
+      workstream's rev.
     action: rework
+
+  - signal: dune-cross-compile-fix
+    condition: |
+      dune 3.x is fixed so that a `(context
+      (default (name ...) (targets ...)))` block
+      in `dune-workspace` does NOT reroute default
+      `dune build` invocations into the cross
+      context. Upstream issue: dune#NNNN (to be
+      filed). When fixed, the cross-compile path
+      becomes viable and this decision can be
+      reinstated.
+    action: rework
+
+  - signal: diskuv-prebuilt-adopted
+    condition: |
+      A future workstream (e.g.,
+      `release-windows-aarch64-binary-2026-XX`)
+      adopts Diskuv's dkml-installer-ocaml
+      prebuilt OCaml 5.4 for win32/arm64 and uses
+      it as the bootstrap. This decision is then
+      superseded by the new workstream's rev.
+    action: archive-obligation
 
 risk:
   declared_triggers:
-    - windows-11-arm-runner-image-regression
-    - opam-windows-arm64-switch-bootstrap
-    - dune-build-arm64-binary-cache-miss
+    - windows-11-arm-runner-image-regression     # never materialised; runner was fine
+    - opam-windows-arm64-switch-bootstrap        # MATERIALISED — opam 2.4.1 hardcoded i686
+    - dune-build-arm64-binary-cache-miss         # MATERIALISED — dune 3.21+ cross context breaks default
+  materialised:
+    - signal: opam-windows-arm64-switch-bootstrap
+      fired_at: 2026-10-15T14:53:54Z
+      run: 38755094615
+      error: "mingw64-i686-gcc-core + Cygwin-hosted GCC + #error Only Win32 target is supported!"
+      verdict: native path unachievable with opam 2.4.1
+    - signal: dune-build-arm64-binary-cache-miss
+      fired_at: 2026-10-16T10:39:08Z
+      run: 38888597252
+      error: "OCAML_CONFIGURE_OPTIONS exported but ignored; i686 MinGW still selected"
+      verdict: env var route unachievable
+    - signal: dune-cross-compile-default-reroute
+      fired_at: 2026-10-16T11:16:00Z
+      run: 38892258104
+      error: "dune-workspace cross context rerouted all 7 matrix entries into cross-compile"
+      verdict: cross-compile route breaks native builds in dune 3.21+
+  followups:
+    - id: arm64-windows-followup-2026-XX
+      summary: |
+        When a future workstream re-attempts the
+        windows-aarch64 binary, the technical
+        blockers (opam 2.4.1 hardcoded i686,
+        dune 3.21+ cross-context default reroute)
+        must each be addressed by a separate
+        decision. See `reversal` block above for
+        the three reversal signals and the
+        corresponding workstream candidates.
   owner: human:maintainer
 
 relations:

@@ -2431,3 +2431,105 @@ which `dune test` reliably runs end-to-end in this
 environment, because dune's RPC layer synchronises
 differently for 22 binaries than for the project's full
 test set.
+
+### 11.39 dune 3.21+ cross context in `dune-workspace` reroutes default builds
+
+**Symptom.** Adding a cross-compile context to
+`dune-workspace`, e.g.
+
+```scheme
+(lang dune 3.21)
+(context (default))
+(context
+ (default
+  (name aarch64)
+  (targets aarch64-pc-windows-msvc)))
+```
+
+and then running `dune build bin/foo.exe` (with NO
+`-x aarch64` flag) fails with:
+
+```
+Error: Could not find `ocamlfind' in PATH or an
+environment variable `OCAMLFIND_CONF' while
+cross-compiling with toolchain `aarch64-pc-windows-msvc'
+Hint: opam install ocamlfind and/or:
+Point `OCAMLFIND_CONF' to the findlib configuration
+that defines this toolchain
+```
+
+In dune 3.21+, the mere presence of any non-default
+context in `dune-workspace` makes every default
+`dune build` invocation enter the cross context. The
+explicit `(context (default))` declaration does NOT
+preserve the implicit default; the cross context
+becomes the "first" one dune uses for unflagged
+builds.
+
+**Discovered 2026-10-16** during
+`d7-windows-aarch64-fix-2026-10` worktree. CI run
+38892258104: all 7 matrix entries failed after adding
+a `dune-workspace` with the aarch64 cross context;
+the Linux/macOS jobs failed with the same
+`ocamlfind` error. Verified locally on nix shell
+(dune 3.23.1) by adding the cross context and
+running `dune build bin/mathc.exe` without `-x`:
+identical `ocamlfind` error. After deleting
+`dune-workspace`, `dune build bin/mathc.exe`
+succeeds and produces `_build/default/bin/mathc.exe`
+in <1 s on warm cache.
+
+**Workarounds (none currently viable for this project).**
+
+- **ocaml/setup-ocaml@v3 GitHub Action.** Handles
+  cross-compile in its own bootstrap, but the project
+  explicitly avoids setup-ocaml (decision §11.x
+  historical) because it pins opam 2.0/2.1 with a
+  frozen opam-repository snapshot that lags new OCaml
+  releases. Re-adopting it is a separate decision.
+- **Per-platform `dune-workspace` template.** Generate
+  the file just-in-time (e.g., a build wrapper that
+  `cp dune-workspace.cross dune-workspace` for the
+  windows-aarch64 job only). Adds a non-trivial
+  amount of wrapper-script complexity; needs its own
+  decision.
+- **Bypass dune for the cross build.** Manually invoke
+  `ocamlfind ocamlopt -target=aarch64-pc-windows-msvc`
+  for the windows-aarch64 job. Loses dune's
+  incremental build graph; needs a separate
+  OCamlfind-only build wrapper.
+- **Diskuv dkml-installer-ocaml prebuilt.** Skips
+  opam entirely. Requires a tar download from GitLab
+  releases (Diskuv moved from GitHub in March 2024);
+  needs its own decision and SHA-256 pinning.
+
+**Anti-patterns to avoid.**
+
+- Do **not** add a cross context to `dune-workspace`
+  expecting native builds to remain native. They will
+  not.
+- Do **not** use `OCAMLPARAM=_,target=...` as a
+  workaround. OCaml 5.4's `OCAMLPARAM` parser emits
+  `Warning 46 [bad-env-variable]: discarding value of
+  variable "target" in OCAMLPARAM` — `target` is not
+  a valid OCAMLPARAM parameter (only `apply-*`,
+  `compiler-debug`, `dlam`, `flambda`, `O`, etc.
+  are). The right way to set the target is via
+  `ocamlopt -target` or the dune cross-compile
+  context, not via OCAMLPARAM.
+- Do **not** pass `--target=...` to `dune build`.
+  Dune has no such flag; the cross-compile surface
+  is exclusively the `dune-workspace` context +
+  `-x TOOLCHAIN` (or `DUNE_CROSS_TARGET`) flag.
+
+**Referenced from.** `decisions/release-windows-
+aarch64-binary-2026-10@2` (D7 retirement; rev 2
+records the four CI attempts and their blockers);
+ROADMAP "D7 retirement follow-up" (lists the four
+workstream candidates for reinstating the
+windows-aarch64 binary).
+
+**Trigger.** Any future attempt to add a
+cross-compile context to `dune-workspace` for the
+project, or any local `dune build` failure that
+surfaces the `ocamlfind` cross-compile error.
