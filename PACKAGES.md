@@ -27,9 +27,9 @@ Last verified at: HEAD `d52c85b` + 2026-10-14 kernel-fixes + site-redesign cycle
   closed the v3 dialectic antithesis slot. See git for the
   pre-3.3 sync chain.
 
-Attestation store at `attestations/` contains **804 files** (verified by
+Attestation store at `attestations/` contains **1090 files** (verified by
 `mathc counters --format=json`; the count is regenerated from
-`ls attestations/` on every check); **`mathc packages` reports 107 active
+`ls attestations/` on every check); **`mathc packages` reports 146 active
 decisions / 119 total decision files / 395 obligations
 (271 pass, 112 unknown, 12 missing; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
@@ -37,7 +37,7 @@ are emitted by `mathc counters` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by
 `tests/counters_drift.ml`. Total decision files on disk: 119
 (`decisions/*.yaml`, of which 7 are waivers / obligations-aggregator /
-migrations-history). 67 cram files in `tests/cli/`. 27 CLI
+migrations-history). 88 cram files in `tests/cli/`. 34 CLI
 subcommands.
 
 > Note: at HEAD `d52c85b` the `mathc counters` `schema`
@@ -467,7 +467,7 @@ math-coding 3.3 (semver `3.3.0`). Header renames across ROADMAP,
 PACKAGES, README, AGENTS, USAGE, OCAML_BEST_PRACTICES,
 axioms/index.md, `bin/data/time-distribution.yaml`; CHANGELOG
 opens a `v3.3.0` section
-107 active decisions / 380 obligations / 739 attestations / 67 cram
+146 active decisions / 380 obligations / 739 attestations / 67 cram
 files / 27 CLI subcommands.
 
 Previous: HEAD `ed069f7` (2026-10-12): self-check-recovery cycle
