@@ -258,7 +258,12 @@ nav.site-nav .nav-group-toggle:focus-visible {
 nav.site-nav .nav-group-caret {
   font-size: 0.7em;
   opacity: 0.6;
-  transition: transform 0.15s;
+  /* Closed-state transition: 250ms delay matches the panel's
+     close delay so the caret rotation back tracks the panel
+     fade-out (the caret starts rotating 250ms after the
+     panel begins to close, finishing 150ms later, in sync
+     with the panel's full 400ms close). */
+  transition: transform 150ms ease-in 250ms;
 }
 
 /* --- dropdown panel --- */
@@ -276,9 +281,28 @@ nav.site-nav .nav-group-panel {
   border-radius: 3px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
   z-index: 50;
-  /* closed by default; opened on hover, focus-within, or
-     aria-expanded="true" (set by JS) */
-  display: none;
+  /* Closed state. The CLOSE transition has a 250ms delay so a
+     brief mouse-out (e.g., the user sweeping the cursor across
+     the panel to reach an item, or accidentally leaving the
+     toggle on the way to another control) does not snap-close
+     the menu — the classic "menu intent" pattern (cf. the
+     GitHub primer on hover-delay, also Stripe's docs nav). The
+     close delay lives in the closed state so the open states
+     below can override it.
+
+     visibility is set to "hidden" at the very end of the
+     close animation (250ms opacity delay + 150ms duration =
+     400ms total) so the panel is still hit-testable while
+     fading out; if the cursor re-enters during the fade,
+     :hover is restored and the open animation overrides. */
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition:
+    opacity 150ms ease-in 250ms,
+    transform 150ms ease-in 250ms,
+    visibility 0s linear 400ms;
 }
 /* Hover-bridge: extend the panel's hit-area up into the 0.4rem
    gap above it so the cursor can travel from the toggle to the
@@ -298,16 +322,58 @@ nav.site-nav .nav-group-panel::before {
   pointer-events: auto;
 }
 
-nav.site-nav .nav-group:hover > .nav-group-panel,
-nav.site-nav .nav-group:focus-within > .nav-group-panel,
-nav.site-nav .nav-group > .nav-group-toggle[aria-expanded="true"] + .nav-group-panel {
-  display: block;
+/* Open via hover: 80ms open delay prevents the menu from
+   opening when the user is just sweeping the cursor across
+   the nav row (e.g., to reach the GitHub link at the right
+   edge, or a sibling group). Without this, every toggle the
+   cursor passes over briefly would pop its menu. The
+   visibility transition has the same delay so the panel
+   isn't actually rendered before the animation starts
+   (no flash of opaque content during the 80ms warm-up). */
+nav.site-nav .nav-group:hover > .nav-group-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition:
+    opacity 180ms ease-out 80ms,
+    transform 180ms ease-out 80ms,
+    visibility 0s linear 80ms;
 }
 
-nav.site-nav .nav-group:hover .nav-group-caret,
-nav.site-nav .nav-group:focus-within .nav-group-caret,
-nav.site-nav .nav-group-toggle[aria-expanded="true"] .nav-group-caret {
+/* Open via click (aria-expanded="true", set by JS) or
+   keyboard (:focus-within): no open delay, the user explicitly
+   asked for the menu to open. This rule is intentionally
+   placed AFTER the :hover rule so the click/keyboard path wins
+   when both apply (e.g., the user hovers and also tabs into
+   the toggle). Source order is the differentiator — both
+   rules have the same specificity. */
+nav.site-nav .nav-group > .nav-group-toggle[aria-expanded="true"] + .nav-group-panel,
+nav.site-nav .nav-group:focus-within > .nav-group-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition:
+    opacity 180ms ease-out,
+    transform 180ms ease-out,
+    visibility 0s linear 0s;
+}
+
+/* Open via click/keyboard (no open delay) — caret rotates
+   immediately to mirror the panel. */
+nav.site-nav .nav-group > .nav-group-toggle[aria-expanded="true"] .nav-group-caret,
+nav.site-nav .nav-group:focus-within .nav-group-caret {
   transform: rotate(180deg);
+  transition: transform 180ms ease-out;
+}
+
+/* Open via hover (80ms open delay, matches the panel). The
+   caret waits 80ms before rotating so it doesn't lead the
+   panel by a frame and confuse the eye. */
+nav.site-nav .nav-group:hover .nav-group-caret {
+  transform: rotate(180deg);
+  transition: transform 180ms ease-out 80ms;
 }
 
 nav.site-nav .nav-group-panel .nav-link {
@@ -404,19 +470,43 @@ nav.site-nav .lang-toggle:hover { opacity: 1; color: var(--theorem-rule); }
      which assets/site.js sets in response to a click. This stops
      the previous behaviour of dumping every link in every group
      into the open menu at once. */
+  /* On mobile the panel is a vertical accordion (taps, not
+     hover) so the menu-intent / open-delay patterns from the
+     desktop rules above don't apply. We still want a smooth
+     expand/collapse: animate the height via the
+     grid-template-rows: 0fr -> 1fr trick. The padding is
+     animated in lockstep so the panel collapses to 0 (and
+     the border-left alone marks the presence of a submenu)
+     rather than stopping at the padding stub. */
   nav.site-nav .nav-group-panel {
     position: static;
     background: transparent;
     border: 0;
     border-left: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: none;
-    padding: 0.2rem 0 0.4rem 0.6rem;
     min-width: 0;
     margin-left: 0.8rem;
-    display: none;
+    padding: 0;
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-rows 240ms ease-out,
+      padding 240ms ease-out,
+      opacity 200ms ease-out;
+  }
+  nav.site-nav .nav-group-panel > * {
+    /* `overflow: hidden` + `min-height: 0` lets the children
+       collapse cleanly when the parent row is 0fr. Without
+       `min-height: 0`, grid items retain their content height
+       and the row would not actually collapse. */
+    overflow: hidden;
+    min-height: 0;
   }
   nav.site-nav .nav-group > .nav-group-toggle[aria-expanded="true"] + .nav-group-panel {
-    display: block;
+    padding: 0.2rem 0 0.4rem 0.6rem;
+    grid-template-rows: 1fr;
+    opacity: 1;
   }
   nav.site-nav .nav-group-panel .nav-link {
     padding: 0.35rem 0.4rem;
@@ -472,6 +562,12 @@ button:focus-visible,
   *::before,
   *::after {
     transition-duration: 0.001ms !important;
+    /* The 250ms close delay on .nav-group-panel and the 80ms
+       open delay on :hover are what give the menu its
+       "menu intent" UX. Both are intentional motion — they
+       should also be disabled under reduced-motion so the
+       panel responds instantly. */
+    transition-delay: 0s !important;
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
