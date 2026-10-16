@@ -732,9 +732,10 @@ mathcoding — не чистый разрыв с предыдущей работ
 - [Методология](methodology.html) — дисциплина.
 - [Аксиомы](axioms.html) — пять аксиом.
 - [Основания](foundations.html) — аксиомы → OCaml.
-- [Спецификация / конституция](constitution.html) — 14
+- [Спецификация / конституция](spec/constitution.html) — 14
   инвариантов.
-- [Спецификация / algebra-3.2](../spec/algebra-3.2.html) —
+- [Спецификация / algebra-3.2](spec/algebra-3.2.html) —
   формальная алгебра (нормативно).
-- [USAGE](../USAGE.html) — руководство по принятию (Путь A /
-  Путь B).
+- [USAGE](https://github.com/11111000000/math-coding/blob/main/USAGE.md) —
+  руководство по принятию (Путь A / Путь B; канонический
+  источник на GitHub, `USAGE.md` в `dist/` не рендерится).

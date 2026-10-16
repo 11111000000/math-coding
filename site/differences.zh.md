@@ -561,7 +561,9 @@ mathcoding 真正构成开销的，只有内核已以静默模式覆盖的那些
 - [方法论](methodology.html) —— 纪律。
 - [公理](axioms.html) —— 五条公理。
 - [基石](foundations.html) —— 公理 → OCaml。
-- [规范/宪法](constitution.html) —— 14 条不变量。
-- [规范/algebra-3.2](../spec/algebra-3.2.html) —— 形式化代数
+- [规范/宪法](spec/constitution.html) —— 14 条不变量。
+- [规范/algebra-3.2](spec/algebra-3.2.html) —— 形式化代数
   （规范性的）。
-- [USAGE](../USAGE.html) —— 路径 A / 路径 B 的采用手册。
+- [USAGE](https://github.com/11111000000/math-coding/blob/main/USAGE.md) ——
+  路径 A / 路径 B 的采用手册（GitHub 上的权威源；`USAGE.md` 不渲染到
+  `dist/`）。
