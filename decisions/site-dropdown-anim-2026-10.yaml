@@ -1,0 +1,332 @@
+---
+schema: math-coding/3.3/decision
+id: site-dropdown-anim-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+change_kind: implementation
+axiom_link:
+  - A0
+  - A1
+intent: |
+  Close the abrupt "snap" UX of the four nav dropdowns
+  (Concept / Methodology / Adopt / Reference) on the
+  live site. Two user-visible problems:
+
+    1. The panel switches between `display: none` and
+       `display: block` with no transition. CSS cannot
+       animate `display`, so the panel pops in and out
+       with no easing. The user feels a "slap" rather than
+       a deliberate reveal.
+
+    2. A brief mouse-out (e.g., the user sweeping the
+       cursor to a neighbouring menu item, or accidentally
+       leaving the toggle on the way to another control)
+       closes the panel instantly. The user's intent is
+       to keep reading the menu, but the menu disappears.
+       The user's mitigation — clicking the toggle first to
+       pin it open via `aria-expanded` — is a workaround,
+       not a fix.
+
+  Mobile (≤ 760 px) is in the same state: the accordion
+  uses `display: none / block`, no height or opacity
+  transition. The dropdown feels like a series of binary
+  on/off flashes rather than a smooth expand.
+
+  Replace the binary show/hide with a timed open/close
+  that follows the "menu intent" pattern that the major
+  reference sites use (GitHub, GitLab, Stripe, MDN, Apple
+  developer docs): a short **open delay** filters
+  accidental hover-triggers when the user is just moving
+  the cursor across the nav row, a moderate **close
+  delay** gives the user time to return to the menu if
+  they momentarily leave, and a brief **opacity + 4 px
+  translate-Y** animation matches the site's Tufte/oxblood
+  aesthetic (no bounce, no scale, no blur).
+commitment: |
+  1. `assets/style.css` `.nav-group-panel` replaces
+     `display: none` with `opacity: 0; visibility: hidden;
+     transform: translateY(-4px); pointer-events: none;` so
+     the panel can be animated. The closed-state
+     `transition` carries a **250 ms** delay on `opacity`
+     and `transform` (ease-in, 150 ms duration) and on
+     `visibility` (400 ms linear), so a brief mouse-out
+     does not snap-close the menu. Total close: 400 ms.
+
+  2. `assets/style.css` adds an `:hover`-targeted rule
+     with an **80 ms** open delay (opacity 180 ms ease-out,
+     transform 180 ms ease-out, visibility 80 ms linear)
+     so the menu does not open when the user is just
+     sweeping the cursor across the nav row to reach the
+     GitHub link or a sibling group. The `::before` bridge
+     (the 0.4 rem transparent strip above the panel) is
+     preserved; hover over the bridge keeps `:hover` on
+     `.nav-group` true while the cursor crosses the gap.
+
+  3. `assets/style.css` adds a click/keyboard rule (for
+     `[aria-expanded="true"]` and `:focus-within`) with
+     **no open delay** — the user explicitly asked for the
+     menu to open, the open is instant. Source order
+     places this rule AFTER the `:hover` rule so the
+     click/keyboard path wins when both apply (e.g., a
+     user hovers and also tabs into the toggle).
+
+  4. `assets/style.css` `.nav-group-caret` rotates 180° on
+     open. The closed-state transition is `transform
+     150 ms ease-in 250 ms`, matching the panel's close
+     delay. The hover open state is `transform 180 ms
+     ease-out 80 ms`, matching the panel's hover-open
+     delay. The click open state is `transform 180 ms
+     ease-out 0 ms`, matching the panel's click-open
+     no-delay path.
+
+  5. `assets/style.css` `@media (max-width: 760px)` mobile
+     rule replaces `display: none / block` with
+     `display: grid; grid-template-rows: 0fr → 1fr` (the
+     modern CSS height-animation trick). Each child of the
+     panel gets `overflow: hidden; min-height: 0;` so it
+     clips cleanly when the row collapses. The `padding`
+     is animated in lockstep (`240 ms ease-out`) so the
+     closed panel collapses to zero height (only the
+     `border-left` indicator remains). Total mobile
+     open/close: 240 ms.
+
+  6. `assets/style.css` `@media (prefers-reduced-motion:
+     reduce)` is widened to also zero `transition-delay`
+     (not only `transition-duration`). Without this, a
+     reduced-motion user would still wait 250 ms for the
+     panel to close.
+
+  7. `dune build` exits 0; `mathc render` produces 199
+     pages without error. The 5 axiom SVGs and the 5
+     per-axiom pages still resolve to 200 (no regression
+     to the previous fix).
+
+  Boundaries: no change to the site JavaScript
+  (`assets/site.js`), no change to the nav HTML, no
+  change to the renderer's other pages, no change to
+  any decision or schema.
+counterexample: |
+  "Just use a JS timeout for the close delay — it's
+  three lines."
+  Counterargument: the user-visible behaviour can be
+  expressed entirely in CSS transitions; pulling in JS
+  for the same effect adds an event-listener surface, a
+  race between mouseleave and the timer, and a hard
+  dependency on the script's `defer` ordering vs the
+  CSS. The CSS-only path also means the animation works
+  with JavaScript disabled (e.g., for the NoScript
+  crowd, or for crawlers).
+
+  "Use a 500 ms close delay to feel even more forgiving."
+  Counterargument: 500 ms feels sluggish when the user
+  DOES want to dismiss the menu (e.g., to read the body
+  text). 250 ms is at the forgiving end of the GitHub
+  / Stripe / MDN spectrum (their values range 200-300
+  ms) and is the smallest value that still defeats the
+  "swept past a toggle" failure mode.
+
+  "Skip the 80 ms open delay — the user just complained
+  the menu is sluggish, so make it snappier."
+  Counterargument: the user complained about the CLOSE,
+  not the OPEN. The current open is already instant
+  (well, after a display:none/block swap). The 80 ms
+  open delay is anti-accidental: without it, every
+  toggle the cursor passes over briefly (e.g., when
+  sweeping to the GitHub link at the right edge of the
+  nav) would pop its menu. The 80 ms is short enough to
+  be unnoticeable on a deliberate hover.
+
+  "Use `transform: scale(0.96) → 1` for a 'growing out of
+  the toggle' effect — it looks more modern."
+  Counterargument: scale breaks the menu's typographic
+  alignment (the menu items shift by 0.96 → 1.0 of the
+  font size) and is not in the Tufte/oxblood vocabulary
+  the rest of the site uses. A 4 px translate is the
+  minimum motion that reads as "arriving from above".
+
+  "Mobile should use `max-height` instead of the grid
+  trick — it's more compatible."
+  Counterargument: `max-height` requires a fixed upper
+  bound that's a guess at the content height. The grid
+  trick (grid-template-rows: 0fr → 1fr) measures the
+  children at their natural size, so the animation
+  always ends at the correct height. Browser support
+  for `grid-template-rows: 0fr/1fr` is the same as for
+  the rest of the grid features already used in the
+  site.
+scope:
+  capabilities:
+    - site-navigation
+    - site-menu-ux
+  paths:
+    - "assets/style.css"
+  exclusions:
+    - "assets/site.js"
+    - "lib/**"
+    - "bin/**"
+    - "site/**"
+    - "spec/**"
+    - "schemas/**"
+    - "decisions/**"
+    - "attestations/**"
+outcomes:
+  - id: smooth-desktop-dropdown
+    statement: |
+      On a desktop viewport (≥ 761 px), the four nav
+      dropdowns fade in over 180 ms ease-out with a 4 px
+      slide-down, after an 80 ms hover-intent warm-up.
+      On mouse-out, they wait 250 ms before fading out
+      over 150 ms ease-in, sliding back up 4 px.
+      Verified with Playwright: the panel's computed
+      `transition` shows the expected values for the
+      hover-state vs the closed-state.
+  - id: smooth-mobile-accordion
+    statement: |
+      On a mobile viewport (≤ 760 px), tapping a group
+      toggle expands the panel over 240 ms via the
+      grid-template-rows trick. Tapping again collapses
+      it. The padding animates in lockstep so the panel
+      collapses to zero height (only the border-left
+      indicator remains). Verified with Playwright at
+      375 × 812: tap → grid-template-rows = "40.75px
+      40.75px 40.75px 40.75px", height ≈ 172 px, opacity
+      1.
+  - id: reduced-motion-honored
+    statement: |
+      `prefers-reduced-motion: reduce` zeros both
+      `transition-duration` AND `transition-delay` via
+      the existing `@media` block (now widened). The
+      open/close becomes instant for users who set the
+      OS-level preference.
+assumptions:
+  - id: reference-timing-class
+    state: assumed
+    statement: |
+      The 80 ms / 180 ms / 250 ms / 150 ms / 240 ms
+      numbers are a reference-class selection from
+      GitHub (open 100 ms, close 300-500 ms), Stripe
+      (open 50 ms, close 200 ms), and MDN (open 100 ms,
+      close 250 ms). They are not measured against the
+      math-coding audience specifically; a future
+      analytics pass could refine them.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a real-user study shows the close delay should
+      be longer or shorter, the constants live in two
+      places (panel and caret) and would be re-tuned in
+      the same commit.
+    review_on:
+      - signal: user-feedback-close-too-slow
+      - signal: user-feedback-close-too-fast
+  - id: grid-trick-supported
+    state: assumed
+    statement: |
+      The site's browser-support matrix is
+      "evergreen Chrome/Edge/Firefox/Safari, last two
+      major versions". `grid-template-rows: 0fr / 1fr`
+      has been supported in all four engines since
+      2021-2022.
+    owner: human:maintainer
+    consequence_if_false: |
+      A user on an older browser would see the mobile
+      panel snap open with no height animation (the
+      `0fr → 1fr` transition would not interpolate, but
+      the final `1fr` state would still display). No
+      data is lost; the experience is degraded, not
+      broken.
+    review_on:
+      - signal: drop-ie-11-support
+obligations:
+  - id: desktop-panel-uses-opacity-transition
+    statement: |
+      `assets/style.css` `.nav-group-panel` does NOT use
+      `display: none` as the closed-state mechanism. It
+      uses `opacity: 0; visibility: hidden; transform:
+      translateY(-4px); pointer-events: none;` with a
+      `transition` shorthand on the closed state that
+      has a 250 ms delay on `opacity`/`transform` and a
+      400 ms delay on `visibility`.
+    acceptance:
+      all:
+        - verifier: ! grep -F 'display: none' assets/style.css | grep -F '.nav-group-panel'
+          result: pass
+        - verifier: ! grep -F 'opacity 150ms ease-in 250ms' assets/style.css
+          result: pass
+        - verifier: ! grep -F 'visibility 0s linear 400ms' assets/style.css
+          result: pass
+  - id: hover-rule-has-open-delay
+    statement: |
+      The `:hover`-targeted open rule has a 80 ms delay
+      on its transition shorthand; the click/keyboard
+      open rule (placed AFTER it in source order) has
+      no delay.
+    acceptance:
+      all:
+        - verifier: ! grep -F 'opacity 180ms ease-out 80ms' assets/style.css
+          result: pass
+        - verifier: ! grep -F 'opacity 180ms ease-out,' assets/style.css
+          result: pass
+  - id: mobile-uses-grid-trick
+    statement: |
+      The `@media (max-width: 760px)` rule for
+      `.nav-group-panel` uses `display: grid; grid-template-rows:
+      0fr` for the closed state and `1fr` for the open
+      state, with `padding` and `grid-template-rows` on
+      the `transition` list. Each `> *` child has
+      `overflow: hidden; min-height: 0;`.
+    acceptance:
+      all:
+        - verifier: ! grep -F 'grid-template-rows: 0fr' assets/style.css
+          result: pass
+        - verifier: ! grep -F 'grid-template-rows 240ms ease-out' assets/style.css
+          result: pass
+        - verifier: ! grep -F 'overflow: hidden' assets/style.css | grep -B1 'min-height: 0'
+          result: pass
+  - id: reduced-motion-zero-delay
+    statement: |
+      The `@media (prefers-reduced-motion: reduce)` block
+      sets both `transition-duration` and
+      `transition-delay` to `0.001ms` (or `0s`).
+    acceptance:
+      all:
+        - verifier: ! grep -F 'transition-delay: 0s' assets/style.css
+          result: pass
+  - id: dune-build-clean
+    statement: |
+      `dune build --root .` exits 0; `mathc render --out
+      dist --lang=all` produces 199 pages without
+      error.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: mathc render
+          result: pass
+reversal:
+  - signal: hover-delay-too-perceptible
+    condition: |
+      A user feedback round (or analytics) shows that the
+      80 ms open delay is visibly perceptible on the
+      dominant user hardware — the menu feels sluggish to
+      open.
+    action: drop-open-delay-to-0-or-30ms
+  - signal: close-delay-still-snaps
+    condition: |
+      Despite the 250 ms close delay, users report the
+      menu "still collapses too fast" when they sweep the
+      cursor past a toggle.
+    action: bump-close-delay-to-350ms-and-bridge-width-to-0-6rem
+risk:
+  declared_triggers:
+    - timing-values-too-fast-or-slow
+    - grid-trick-unsupported
+    - reduced-motion-overrides-missed
+  owner: human:maintainer
+relations:
+  addresses:
+    - site-redesign-2026-10@1
+  supersedes: []
+  superseded_by: []
