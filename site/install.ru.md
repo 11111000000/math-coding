@@ -46,7 +46,7 @@ Release binary — рекомендованный канал по умолчан
   репозиториях. После релиза перезапустите с `--upgrade`.
 
 Per-repo путь — документированный production-контракт:
-поле `compatible_with: mathc@>=X.Y.Z` во frontmatter
+поле `compatible_with: mathc@>=X.Y.Z` во вводной части
 (`adoption/SKILL.md:188`) обеспечивает version pin.
 Per-user путь — это удобство для «скаффолдинга нового
 math-coding проекта»: `install.sh --user-skill --upgrade`
@@ -125,7 +125,7 @@ done
 Для per-repo скиллов скопируйте новый
 `dist/adoption/opencode/SKILL.md` в
 `.opencode/skills/math-coding/SKILL.md` проекта. Version
-pin во frontmatter — задокументированный источник истины
+pin во вводной части — задокументированный источник истины
 о том, «против какого релиза был автором этот репо».
 
 ## Заметки о песочницах
@@ -133,7 +133,7 @@ pin во frontmatter — задокументированный источник
 На NixOS сборки по умолчанию через `flake.nix` производят
 `mathc`, слинкованный с `/nix/store/<hash>-glibc-2.42`.
 Этот бинарь не запустится на хостах с системным glibc
-старше 2.42. Pipeline релизов `release.yml` собирает
+старше 2.42. Конвейер релизов `release.yml` собирает
 через system opam на Ubuntu 22.04; выпускаемые бинари
 слинкованы с glibc раннера и портативны на системах с
 glibc 2.35+. Поставляемый `install.sh` намеренно не
