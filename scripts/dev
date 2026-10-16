@@ -30,6 +30,22 @@
 #   scripts/dev edit-loop-detect      — opt-in: scan last 5 commits for
 #                                     files modified 3+ times; exit 1
 #                                     if edit-loop pattern detected.
+#   scripts/dev test-fast             — fast-path test runner: invokes
+#                                     each test binary directly. Bypasses
+#                                     `dune test` to avoid the dune
+#                                     3.23.1 RPC hang (see
+#                                     OCAML_BEST_PRACTICES §11.34) and
+#                                     skip the `dune-test-with-timeout`
+#                                     budget. Per-binary runs finish in
+#                                     <1s when source unchanged.
+#   scripts/dev probe [--file F] TEXT — build & run a one-shot probe that
+#                                     calls Render.md_parse on TEXT (or
+#                                     the contents of F) and prints the
+#                                     produced HTML. Designed for parser
+#                                     bug fixes: skip the 5+ min full
+#                                     test suite, see the output in
+#                                     <1s. The probe executable is
+#                                     _build/default/bin/md_probe.exe.
 
 set -eu
 cd "$(dirname "$0")/.."
@@ -341,6 +357,122 @@ case "$cmd" in
     fi
     echo "edit-loop-detect: no edit-loop pattern detected"
     exit 0
+    ;;
+
+  test-fast)
+    # Fast-path test runner (process-fastpath-2026-10). The
+    # motivation is the dune 3.23.1 RPC hang in `dune test`
+    # (OCAML_BEST_PRACTICES §11.34), which makes the full
+    # stanza effectively unusable in this environment:
+    # `dune test` typically hangs at a non-deterministic
+    # point and the `dune-test-with-timeout.sh` wrapper kills
+    # it after 600s. Per-binary `dune runtest tests/X.exe`
+    # finishes in <1s when source is unchanged.
+    #
+    # Usage:
+    #   scripts/dev test-fast              # run all 22 binaries
+    #   scripts/dev test-fast X Y          # run only X.exe and Y.exe
+    #   scripts/dev test-fast tests/X.exe  # full binary name accepted
+    #
+    # Implementation: `dune runtest` builds (if needed) and
+    # executes the named test binary. We pass the test
+    # binaries in their natural order from tests/dune.
+    cleanup_dune_lock
+    cd "$(dirname "$0")/.."
+    if [ $# -eq 0 ]; then
+      # Pull the test names from the (tests ...) stanza. The
+      # list is intentionally duplicated here so the fast
+      # runner can use it without re-parsing tests/dune; if
+      # tests/dune changes, update this list.
+      set -- \
+        digest_vectors \
+        conformance \
+        repo_structure \
+        process_principles \
+        re_evaluation_test \
+        render_kernel \
+        risk_kernel \
+        policy_test \
+        ci_blocking_list_test \
+        decision_parser_yaml \
+        counters_drift \
+        waiver_test \
+        adopt_test \
+        confidence_preserve \
+        fixture_coverage \
+        identity_uniqueness \
+        traps \
+        supersession_check \
+        body_canonical_test \
+        diagnostic_ux \
+        yaml_block_scalars \
+        path_config_test \
+        qcheck_parsers
+    fi
+    fail=0
+    ok=0
+    for name in "$@"; do
+      # Accept either "render_kernel" or "tests/render_kernel.exe".
+      case "$name" in
+        *.exe) target="$name" ;;
+        tests/*) target="$name.exe" ;;
+        *) target="tests/$name.exe" ;;
+      esac
+      printf 'test-fast: %s ... ' "$target"
+      if run_in_shell "dune runtest --root . $target" >/dev/null 2>&1; then
+        printf '\033[32mok\033[0m\n'
+        ok=$((ok + 1))
+      else
+        printf '\033[31mFAIL\033[0m\n'
+        fail=$((fail + 1))
+      fi
+    done
+    echo "test-fast: $ok passed, $fail failed (of $#)"
+    [ "$fail" -eq 0 ]
+    ;;
+
+  probe)
+    # Parser probe (process-fastpath-2026-10). The fast path
+    # for "I have a markdown input, I want to see the HTML
+    # the kernel would produce" — designed for parser bug
+    # fixes where a 5+ min full test cycle is wasteful.
+    #
+    # Usage:
+    #   scripts/dev probe '1. first\n2. second'    # argument
+    #   scripts/dev probe --file site/foo.md        # from file
+    #   echo '1. foo' | scripts/dev probe           # from stdin
+    #
+    # Implementation: builds bin/md_probe.exe on demand
+    # (a small driver that reads stdin or a file and calls
+    # Render.md_parse) and runs it under the nix shell.
+    cleanup_dune_lock
+    cd "$(dirname "$0")/.."
+    if [ ! -f bin/md_probe.ml ]; then
+      echo "probe: bin/md_probe.ml not found; nothing to build" >&2
+      exit 1
+    fi
+    if [ "${1:-}" = "--file" ]; then
+      if [ $# -lt 2 ]; then
+        echo "probe: --file requires a path argument" >&2
+        exit 1
+      fi
+      run_in_shell "dune build --root . bin/md_probe.exe && _build/default/bin/md_probe.exe --file '$2'"
+    elif [ $# -ge 1 ]; then
+      # Argument: pass via stdin (printf is shell-safe for
+      # markdown which never contains NUL bytes; embedded
+      # newlines are preserved because the outer wrapping
+      # is single-quoted only after escape).
+      arg="$1"
+      # Use a here-string: bash-only but the file already
+      # has `set -eu` from the parent. We delegate to
+      # nix develop with a heredoc to preserve the literal.
+      run_in_shell "dune build --root . bin/md_probe.exe && _build/default/bin/md_probe.exe <<'PROBE_EOF'
+$arg
+PROBE_EOF"
+    else
+      # No argument: read from stdin
+      run_in_shell "dune build --root . bin/md_probe.exe && _build/default/bin/md_probe.exe"
+    fi
     ;;
   *)
     echo "unknown subcommand: $cmd" >&2

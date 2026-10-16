@@ -323,6 +323,58 @@ Before opening a PR or marking work complete, verify:
 - [ ] Branch is a worktree, not main checkout
 - [ ] Commit subject uses Conventional Commits prefix
 
+## Fast path (process-fastpath-2026-10)
+
+The Definition of Done above was designed for `kernel-change`-class
+work (P95 ≈ 150 min per the reference-class table). For
+`single-file-edit` / `bug-diagnosis` / `trivial` work, every
+ceremony entry above is a 5-10× overhead that the agent
+should not have to pay. The fast path is the formal
+realisation of the existing `silent` friction level (AGENTS.md
+§Friction): a change is silent when deterministic evidence
+shows no semantic or protected change; the work is then
+recorded, not gated.
+
+**Eligibility (all four must hold):**
+
+1. net change ≤ 50 lines, OR change is localisable to ≤ 2 files;
+2. no change to `schemas/`, `decisions/`, `policies.yaml`, or
+   any `*Constitution*` file;
+3. no introduction of a new obligation / new attestation /
+   new policy term;
+4. you can describe the bug or change in two sentences.
+
+**Fast path obligations (in lieu of the full Definition of Done):**
+
+- [ ] A regression test in the relevant `tests/*.ml` file
+      (positive case at minimum; negative case only when
+      distinguishing from a sibling case is non-trivial);
+- [ ] `scripts/dev test-fast <your-test-binary>` exits 0
+      (per-binary, not the full stanza — see
+      `OCAML_BEST_PRACTICES §11.34` for why);
+- [ ] If the change affects rendered site output, re-render
+      once via `scripts/render.sh` and visually verify the
+      affected `dist/*.html` file (do not chain multiple
+      full re-renders; the probe `scripts/dev probe
+      --file site/<name>.md` is the cheaper check);
+- [ ] Branch is a worktree, not the main checkout;
+- [ ] Commit subject uses Conventional Commits prefix;
+- [ ] One-line `Knowledge delta` block in the agent report
+      (per the existing "After work" section).
+
+The fast path is opt-in per change: the agent states at the
+top of the work log "fast path" plus the four eligibility
+assertions, and proceeds. Reviewers can request re-validation
+under the full path if any of the four assertions are
+contested.
+
+The fast path is the default for `docs-only` and
+`single-file-edit` reference classes. It is **not** permitted
+when the change touches `lib/decision.ml`, `lib/policy.ml`,
+`lib/risk.ml`, or any file the constitution marks as
+protected; those changes take the full path regardless of
+size.
+
 Each item references an existing verifier; the checklist is not
 additional ceremony, it lists the existing checks in order.
 
