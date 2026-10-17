@@ -616,7 +616,36 @@ let emit (format : output_format) path
    read from `./VERSION` at runtime so `scripts/release.sh` and
    the build pipeline only need to update one file. *)
 let[@warning "-32"] read_cli_version () =
-  Render.read_version_file ~fallback:Render.default_version
+  let dune_root =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> Some (Filename.concat p "VERSION")
+    | None -> None
+  in
+  let candidates =
+    Option.to_list dune_root
+    @ [
+        "VERSION";
+        "../VERSION";
+        "../../VERSION";
+        "../../../VERSION";
+        "../../../../VERSION";
+      ]
+  in
+  let try_one path =
+    if Sys.file_exists path then begin
+      let ic = open_in path in
+      let n = in_channel_length ic in
+      let s = really_input_string ic n in
+      close_in ic;
+      Some (s |> String.trim)
+    end
+    else None
+  in
+  let rec loop = function
+    | [] -> "math-coding"
+    | p :: rest -> ( match try_one p with Some v -> v | None -> loop rest)
+  in
+  loop candidates
 
 let[@warning "-32"] print_version () =
   Printf.printf "math-coding %s: bootstrap\n" (read_cli_version ())
@@ -3755,6 +3784,35 @@ let[@warning "-32"] read_axioms axioms_root =
           if body = "" then None else Some (base, body))
     with _ -> []
 
+let[@warning "-32"] read_spec_data () =
+  let candidates =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> [ Filename.concat p "spec" ]
+    | None -> []
+  in
+  let candidates = candidates @ [ "spec" ] in
+  let try_dir d =
+    if not (Sys.file_exists d) then None
+    else if not (Sys.is_directory d) then None
+    else
+      try
+        Some
+          (Sys.readdir d |> Array.to_list
+          |> List.filter (fun n -> Filename.extension n = ".md")
+          |> List.sort String.compare
+          |> List.filter_map (fun n ->
+              let base = Filename.chop_extension n in
+              let path = Filename.concat d n in
+              let body = read_file path in
+              if body = "" then None else Some (base, body)))
+      with _ -> None
+  in
+  let rec loop = function
+    | [] -> []
+    | d :: rest -> ( match try_dir d with Some xs -> xs | None -> loop rest)
+  in
+  loop candidates
+
 let[@warning "-32"] per_decision_obligation_html (d : Packages.decision_view) =
   let buf = Buffer.create 256 in
   Printf.bprintf buf "<h3>%s</h3>\n<ul>" d.Packages.decision_id;
@@ -3974,9 +4032,10 @@ let[@warning "-32"] do_render () =
      the RSS channel title matches the live project version). *)
   let version = read_cli_version () in
 
+  let spec_data = read_spec_data () in
   let pages =
     Render.build_pages ~package_html ~decisions_data ~policy_id ~config
-      ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data
+      ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data ~spec_data
   in
 
   Printf.printf "[render] writing %d pages to %s/\n" (List.length pages)

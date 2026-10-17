@@ -2288,96 +2288,6 @@ type config = {
   version : string;
 }
 
-(* Read the project version from a `VERSION` file. The file is the
-   single source of truth — release procedure writes it (or a
-   pre-commit hook keeps it in sync with the latest `v*` tag). We
-   try a small set of well-known paths because the CWD at module
-   load time is not always the repo root (it is, in the `mathc
-   render` invocation pattern; it is not, when the test harness
-   loads the kernel from `_build/default/tests/`). The `fallback`
-   argument is used when none of the candidates exist, so the
-   kernel does not crash on a clean install where the share-dir
-   VERSION is elsewhere. *)
-let[@warning "-32"] read_version_file ~fallback =
-  (* `dune test` exports the project root in `DUNE_SOURCEROOT`;
-     honour it first so test runs and `mathc render` invocations
-     agree on the same VERSION file. *)
-  let dune_root =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with
-    | Some p -> Some (Filename.concat p "VERSION")
-    | None -> None
-  in
-  let candidates =
-    Option.to_list dune_root
-    @ [
-        "VERSION";
-        "../VERSION";
-        "../../VERSION";
-        "../../../VERSION";
-        "../../../../VERSION";
-      ]
-  in
-  let try_one path =
-    if Sys.file_exists path then begin
-      let ic = open_in path in
-      let n = in_channel_length ic in
-      let s = really_input_string ic n in
-      close_in ic;
-      Some (s |> String.trim)
-    end
-    else None
-  in
-  let rec loop = function
-    | [] -> fallback
-    | p :: rest -> ( match try_one p with Some v -> v | None -> loop rest)
-  in
-  loop candidates
-
-(* Read every `*.md` file under `spec/` and return them as
-   (name, body) pairs sorted alphabetically. The dispatcher
-   did not previously render spec files; this helper lets
-   `build_pages` self-serve the spec source so a spec page
-   lands under `dist/spec/<name>.html` with MathJax 3 in
-   `<head>`, without requiring a dispatcher change. The read
-   is best-effort: a missing `spec/` directory or unreadable
-   file returns `[]`, matching `read_axioms` in `bin/Mathc.ml`.
-   `DUNE_SOURCEROOT` is honoured first so a kernel test
-   loaded from `_build/default/tests/` reads the same `spec/`
-   that a `mathc render` invocation does. *)
-let[@warning "-32"] read_spec_files () =
-  let candidates =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with
-    | Some p -> [ Filename.concat p "spec" ]
-    | None -> []
-  in
-  let candidates = candidates @ [ "spec" ] in
-  let try_dir d =
-    if not (Sys.file_exists d) then None
-    else if not (Sys.is_directory d) then None
-    else
-      try
-        Some
-          (Sys.readdir d |> Array.to_list
-          |> List.filter (fun n -> Filename.extension n = ".md")
-          |> List.sort String.compare
-          |> List.filter_map (fun n ->
-              let base = Filename.chop_extension n in
-              let path = Filename.concat d n in
-              let ic = open_in_bin path in
-              let n_bytes = in_channel_length ic in
-              let s =
-                if n_bytes = 0 then "" else really_input_string ic n_bytes
-              in
-              close_in ic;
-              if s = "" then None else Some (base, s)))
-      with _ -> None
-  in
-  let rec loop = function
-    | [] -> []
-    | d :: rest -> ( match try_dir d with Some xs -> xs | None -> loop rest)
-  in
-  loop candidates
-
 (* Default version used when no VERSION file is present. Kept
    conservative — a render with an explicit version string
    (e.g., `v3.1.0-alpha`) is preferred so a viewer who lands on
@@ -2388,7 +2298,7 @@ let[@warning "-32"] default_version = "math-coding"
    for loading the article tuples from disk; this function only
    renders them. Tuple = (name, title, body_md). *)
 let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
-    ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data =
+    ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data ~spec_data =
   let pages = ref [] in
   let version = config.version in
 
@@ -2654,12 +2564,10 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
      is normative (algebra-3.2, constitution, domain, semantics);
      each page is forced to `enable_mathjax:true` regardless of
      `config.enable_mathjax` so MathJax 3 is always available for
-     `$..$` / `$$..$$` formulas at runtime. Reading `spec/*.md`
-     here — rather than in `bin/Mathc.ml` — keeps `lib/render.ml`
-     self-contained: the spec surface lands under
-     `dist/spec/<name>.html` whenever `mathc render` runs, without
-     the dispatcher learning about spec pages. *)
-  let spec_data = read_spec_files () in
+     `$..$` / `$$..$$` formulas at runtime. The `(name, body)`
+     pairs arrive via the `~spec_data` argument — the dispatcher
+     (`bin/Mathc.ml`) reads `spec/*.md` from disk, so `lib/render`
+     stays I/O-free (§1.3). *)
   List.iter
     (fun (name, body_md) ->
       let body = render_spec_page ~name ~body_md in
@@ -2830,13 +2738,12 @@ let[@warning "-32"] default_config =
     enable_mathjax = true;
     enable_lang_toggle = true;
     languages = [ En ];
-    (* Default version reads from `./VERSION` at render time. The
-       CLI dispatcher overrides this with whatever the current
-       working directory's VERSION file holds, so a site deployed
-       from a freshly-cut release tag carries the right version
-       automatically. The string here is a last-resort fallback
-       for callers that bypass the CLI. *)
-    version = read_version_file ~fallback:default_version;
+    (* Static default version. `lib/` must not do I/O (§1.3): the
+       live VERSION file is read by the CLI dispatcher
+       (`bin/Mathc.ml`), which overrides this field with whatever
+       the working directory's VERSION file holds. This string is
+       a last-resort fallback for callers that bypass the CLI. *)
+    version = default_version;
   }
 
 (* --- dashboard + graph HTML (decision render-dashboard-2026-10) ---
