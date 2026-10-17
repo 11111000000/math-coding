@@ -1,0 +1,593 @@
+---
+schema: math-coding/3.3
+id: docker-availability-guarantee-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+axiom_link:
+  - A0
+  - A1
+  - A3
+  - A4
+
+intent: |
+  Make the Docker image channel a contractual last-resort
+  fallback for `mathc` installation. Today the four install
+  channels (release binary via curl|sh, install.ps1, nix
+  run, source build) and the Docker image (Dockerfile.debian-
+  slim on ghcr.io) are documented but treated with the same
+  standing. In environments where the native channels fail
+  (corporate proxies that block `raw.githubusercontent.com`,
+  Alpine hosts where glibc-binary refuses to start, immutable
+  CI runners without `~/.local/` write access, hosts behind
+  a firewall that allows only container registries), the
+  Docker image is the user's only escape — but its presence
+  is implicit (it depends on the docker.yml CI run being
+  green and recent), not contractually guaranteed.
+
+  After this decision:
+
+    1. A `:edge` tag is published to
+       `ghcr.io/11111000000/mathc:edge` on every push to
+       `main`, alongside the existing `:latest`, `:VERSION`,
+       `:VERSION-debian-slim`, `:VERSION-arm64` tags. Users
+       who want the bleeding edge no longer have to wait
+       for a release tag.
+
+    2. `scripts/install-tooling/install.sh` gains a
+       `--docker-fallback` mode: when the native install
+       chain (curl+SHA-256+chmod) fails on a recoverable
+       error (network error 124, checksum mismatch 1 after
+       a successful download, or absent `~/.local/` write
+       access), and a `docker` binary is present on the
+       host, the script prints a single
+       `docker run --rm -v "$PWD:/repo" ghcr.io/.../mathc:<ver> …`
+       invocation as the recommended next step. The script
+       does NOT auto-execute the docker command (auto-pull
+       and execution are out of scope; the user decides).
+
+    3. A new `.github/workflows/docker-healthcheck.yml`
+       runs on a daily cron AND on every push to `main`.
+       It pulls the `:edge` image, runs `mathc version`,
+       and records the result as a `kind_: observation`
+       attestation under
+       `attestations/docker-availability-guarantee-2026-10-
+       docker-image-healthcheck.json`. A failing healthcheck
+       surfaces in the GitHub UI as a red run, replacing the
+       silent-stale-image failure mode.
+
+    4. `Dockerfile.alpine` exists and is built by a new
+       `.github/workflows/docker-alpine.yml` workflow that
+       depends on `mathc-linux-x86_64-musl` being a release
+       asset in `release.yml:files:` (wired in this cycle).
+       The Alpine image closes the musl-libc fallback gap
+       that today forces Alpine users to download the
+       musl binary by hand.
+
+    5. `USAGE.md`, `QUICKSTART.md`, and
+       `site/install.{md,ru.md,zh.md}` consistently frame
+       Docker as the always-available fallback, with a
+       one-line "if the native install fails, run this"
+       recipe. The framing replaces the current
+       equal-weighting of the four channels with an
+       explicit fallback hierarchy.
+
+    6. (deferred) Mirror policy, retention policy, and an
+       `--auto-fallback` mode are recorded as
+       addresses-future obligations; they ship as separate
+       cycles to keep this PR's review surface bounded.
+
+  Touches (per A3 self-application):
+
+    .github/workflows/docker.yml          (add :edge tag to
+                                           the Build and push
+                                           (multi-arch) step)
+    .github/workflows/docker-healthcheck.yml  (NEW; daily cron
+                                               + push trigger)
+    .github/workflows/docker-alpine.yml   (NEW; alpine image
+                                           build on push + tag)
+    .github/workflows/release.yml         (add
+                                           mathc-linux-x86_64-musl
+                                           to the release
+                                           files: list)
+    Dockerfile.alpine                     (NEW; musl runtime
+                                           stage)
+    scripts/install-tooling/install.sh    (--docker-fallback
+                                           mode)
+    tests/cli/install-docker-fallback.t   (NEW cram)
+    USAGE.md, QUICKSTART.md               (fallback
+                                           hierarchy)
+    site/install.{md,ru.md,zh.md}         (fallback
+                                           hierarchy,
+                                           en/ru/zh)
+    attestations/<id>-<obligation>.json   (one per closed
+                                           obligation; kind_
+                                           ∈ {review, test,
+                                           observation})
+
+  Boundaries (A3 self-application):
+
+    - No OCaml kernel change. lib/, bin/, spec/, schemas/,
+      axioms/ are all unchanged.
+    - decisions/decision.yaml is untouched (active policy
+      unchanged).
+    - No new release binary is introduced in this commit.
+      The `mathc-linux-x86_64-musl` asset is wired into the
+      existing release.yml `files:` list — it is already
+      uploaded as a CI artifact per
+      decisions/portable-linux-musl.yaml@4 and only needs
+      the release asset wiring (one line).
+    - The decision supersedes `docker-alpine-impl-pending@1`
+      (the Phase-3 deferral) by closing the
+      `musl-asset-published` assumption and replacing it
+      with the live artifact.
+    - The decision does NOT address (this cycle, deferred):
+      * a second registry mirror (docker.io / quay.io) — the
+        "ghcr.io blocked" failure mode;
+      * a retention policy for `:VERSION` tags — the
+        "stale images accumulate" failure mode;
+      * an `--auto-fallback` mode (silent docker-pull+exec) —
+        the "user must type the docker command" failure mode.
+      These three are recorded as addresses-future with named
+      reversal signals.
+
+  Migration path (A3):
+
+    - For users on the existing Docker flow, nothing changes.
+      The `:edge` tag is additive; `:latest` continues to
+      resolve to the most recent release tag.
+    - For users on the native install path,
+      `install.sh --docker-fallback` is opt-in (default off
+      to preserve the existing UX). Users who hit a native
+      install failure can re-run with
+      `--docker-fallback` and get the docker escape hatch.
+    - For users on Alpine (musl-libc), the new
+      `Dockerfile.alpine` removes the "download the musl
+      binary by hand" requirement; the existing direct-download
+      path remains valid as a backup.
+    - For CI integrations, the new healthcheck workflow
+      surfaces `:edge` freshness as a green/red signal; the
+      cosign-signed `:latest` and `:VERSION` tags continue to
+      be the verification-anchored ref for production pulls.
+
+  Rollback / forward-recovery:
+
+    - The `:edge` tag in docker.yml is additive; removing it
+      restores pre-this-commit behaviour with no other
+      change.
+    - The `--docker-fallback` flag is opt-in and absent by
+      default; its absence is the no-op rollback.
+    - The new healthcheck and docker-alpine workflows are
+      additive files; deleting them restores pre-this-commit
+      behaviour.
+    - The `mathc-linux-x86_64-musl` release asset wiring is
+      additive; removing it from the release `files:` list
+      stops the future tag without affecting past releases.
+    - The docs reframing is editorial; rolling back is a
+      single revert of USAGE.md / QUICKSTART.md /
+      site/install.{md,ru.md,zh.md}.
+
+  Decision diff (A3 §Self-Application #6):
+
+    - Pre-this-commit: Docker image is published on push
+      and tag; cosign-verified; no `:edge` tag; install.sh
+      has no fallback mode; no healthcheck; no Alpine image;
+      docs treat all four channels equally.
+    - Post-this-commit: `:edge` tag published on every push;
+      `install.sh --docker-fallback` opt-in mode; daily
+      `:edge` healthcheck workflow; Dockerfile.alpine ships;
+      docs present Docker as the fallback of last resort.
+      Verdicts: the existing 1.090 attestations are
+      unchanged; this decision adds 5 new obligations whose
+      attestations are recorded in
+      `attestations/<id>-<obligation>.json`.
+
+antithesis: |
+  The counter-position considered and rejected: "Treating
+  Docker as a fallback is unnecessary — `curl | sh` works on
+  every platform we ship to, and adding a fallback channel
+  is gold-plating." The author engaged with this position
+  and rejected it on five grounds:
+  (a) `install.sh` already documents the four libc-flavour
+  binaries (glibc/musl, x86_64/aarch64) and explicitly
+  flags Alpine as a fallback (the `mathc-linux-x86_64-musl`
+  asset); making Docker the *contractual* fallback just
+  promotes an existing ad-hoc affordance to a documented
+  guarantee;
+  (b) `decisions/install-tooling-2026-10.yaml` declares an
+  `assumption: release-pipeline-trusted` whose
+  `consequence_if_false` already lists "Docker image as
+  fallback" as a mitigation; codifying the mitigation
+  is closing a known gap, not introducing a new one;
+  (c) the project's own CI uses the Docker image in
+  `cosign-verify` (per `ux-3-cosign-image-2026-10.yaml`)
+  and `cosign-sign` jobs run `docker run` against the
+  locally-loaded image; treating the image as a fallback
+  is consistent with how the project itself depends on it;
+  (d) the cost is bounded — one `:edge` tag line, one
+  new flag in install.sh, one new cron workflow, one new
+  alpine workflow, five short doc edits — and every change
+  has a reversal signal in the corresponding obligation;
+  (e) A4 Care requires that when a user hits a failure on
+  the documented happy path, there is a documented
+  unhappy-path forward; "curl | sh works on every platform
+  we ship to" is the happy-path claim, and the unhappy-path
+  forward is currently the absence of a contract.
+
+  A second position: "The `:edge` tag is risky — users
+  who pull it get a mathc that has not been tagged and
+  may not have been smoke-tested." Rejected on three
+  grounds: (i) the existing build-image workflow already
+  smoke-tests every push to main via `docker run --rm
+  mathc:dev version` before publishing the `:latest` tag;
+  the `:edge` tag is published from the same build that
+  already passed the smoke test; (ii) the new
+  docker-healthcheck workflow pulls `:edge` daily and
+  records an attestation — the failure mode for a broken
+  `:edge` is a red healthcheck run, not a silent broken
+  pull; (iii) the per-architecture multi-arch build
+  (linux/amd64 + linux/arm64) runs in the same Buildx
+  invocation, so both arches are exercised together; a
+  `:edge` regression on one arch would surface in the
+  next push's smoke test before the tag advances.
+
+counterexample: |
+  "The `:edge` tag is published automatically but never
+   reviewed; an attacker who compromises a maintainer's
+   push access can ship a backdoored binary under `:edge`
+   and never get caught." Counterargument: (a) the `:edge`
+  tag is cosign-signed via the existing `cosign-sign` job
+  (per `ux-3-cosign-image-2026-10.yaml`), bound to the
+  `https://github.com/11111000000/math-coding` OIDC
+  identity; a backdoored build under `:edge` would still
+  bear a valid signature, but the build-image smoke test
+  (which runs `mathc version`) is a hash-equality check
+  of the binary itself, not a behavioural test — a
+  behavioural test against `:edge` is a future cycle; (b)
+  the new healthcheck workflow surfaces image-staleness
+  as a red CI run, replacing silent failure with a loud
+  failure; (c) the `:edge` tag is not a release channel
+  — `:latest` (which points at the most recent release
+  tag) is the production-recommended ref, and `:VERSION`
+  is the cosign-verified, hash-pinned ref for production
+  pipelines; `:edge` is documented as a developer
+  affordance, not a production ref.
+
+  "Adding a daily cron workflow increases CI minute
+   consumption — is the cost worth it?" Counterargument:
+  the healthcheck workflow runs `docker pull` + `docker
+  run mathc version` on `ubuntu-latest`; both legs are
+  bounded by GHCR's cache (the `:edge` image is the most
+  recently built, so the pull is a no-op if the digest
+  matches the local cache). Wall-clock cost is ~30-60s
+  per run × 365 days = ~3-6 CI hours/month, well under
+  the project's CI budget (the larger cost is the
+  multi-arch build-image itself at ~3-5 min per release).
+
+  "The `--docker-fallback` flag changes install.sh's UX
+   from 'fail fast' to 'fall back silently' — isn't that
+   exactly what the fast path rejects?" Counterargument:
+  the flag is opt-in (`--docker-fallback`, default off)
+  and does NOT auto-execute; it prints the docker command
+  and exits. The user still decides whether to run
+  docker. The change is from "the user sees a failure
+  and has no documented next step" to "the user sees a
+  failure and the script prints the recommended next
+  step". The user's autonomy is preserved.
+
+commitment: |
+  Six outcomes, six obligations. Each obligation names
+  the verifier surface (kernel test, cram fixture,
+  decision record, or manual review by the named owner).
+
+    D1. .github/workflows/docker.yml: the
+    "Build and push (multi-arch)" step's `tags:` list
+    adds `ghcr.io/11111000000/mathc:edge` as a new entry.
+    The `:edge` tag is published on every push to `main`
+    AND every release tag push, in addition to the
+    existing `:latest`, `:VERSION`, `:VERSION-debian-slim`,
+    and `:VERSION-arm64` tags. The arm64 convenience-tag
+    step is unchanged.
+
+    D2. scripts/install-tooling/install.sh: gains a
+    `--docker-fallback` flag (default: off). When set and
+    the native install branch fails with one of
+    {exit 1 checksum mismatch after a successful download,
+    exit 124 network error, MC-INSTALL-NO-HOME-WRITABLE},
+    AND `command -v docker` succeeds, the script prints
+    a `docker run --rm -v "$PWD:/repo"
+    ghcr.io/11111000000/mathc:<version> <args>`
+    invocation to stdout (preceded by the explanatory
+    banner "native install failed; Docker fallback
+    available:") and exits 0 (the fallback is the
+    deliverable). When `command -v docker` fails, the
+    script prints the banner + a "docker not found"
+    notice and exits 1 (no escape available).
+
+    D3. .github/workflows/docker-healthcheck.yml (NEW):
+    a workflow with two triggers — `push: branches: [main]`
+    and `schedule: - cron: '0 6 * * *'` (daily at 06:00 UTC).
+    The job: pull `ghcr.io/11111000000/mathc:edge`, run
+    `docker run --rm ghcr.io/11111000000/mathc:edge version`,
+    assert exit 0, and emit an attestation record at
+    attestations/docker-availability-guarantee-2026-10-
+    docker-image-healthcheck.json with `kind_: observation`
+    and `producer.identity: ci:docker-healthcheck`.
+
+    D4. .github/workflows/release.yml: the
+    `softprops/action-gh-release@v2` `files:` list gains
+    `mathc-linux-x86_64-musl` (the existing CI artifact;
+    this is a one-line addition to the release pipeline).
+    Concurrently, a new `.github/workflows/docker-alpine.yml`
+    builds `Dockerfile.alpine` on every release tag push and
+    publishes to `ghcr.io/11111000000/mathc:<VERSION>-alpine`
+    and `:edge-alpine`. `Dockerfile.alpine` is a multi-stage
+    Dockerfile that copies `mathc-linux-x86_64-musl` from
+    the release `assets/` into an `alpine:3.20` runtime stage
+    (musl-libc compatible).
+
+    D5. Documentation: USAGE.md, QUICKSTART.md, and
+    site/install.{md,ru.md,zh.md} each gain a
+    "If the native install fails" section that frames
+    Docker as the fallback channel. The section includes
+    the one-line `docker run --rm -v "$PWD:/repo"
+    ghcr.io/11111000000/mathc:<version> <args>` recipe.
+
+    D6. Future-work record: the decision's
+    `relations.addresses-future` enumerates three
+    follow-up obligations (mirror policy, retention
+    policy, `--auto-fallback` mode) that are NOT closed
+    in this cycle but are recorded so a future agent
+    encountering the gaps finds the record.
+
+scope:
+  capabilities:
+    - docker-image-channel-fallback
+    - install-tooling-docker-fallback
+    - docker-image-healthcheck
+    - docker-image-alpine
+    - install-docs-fallback-hierarchy
+  paths:
+    - ".github/workflows/docker.yml"
+    - ".github/workflows/docker-healthcheck.yml"
+    - ".github/workflows/docker-alpine.yml"
+    - ".github/workflows/release.yml"
+    - "Dockerfile.alpine"
+    - "scripts/install-tooling/install.sh"
+    - "tests/cli/install-docker-fallback.t"
+    - "USAGE.md"
+    - "QUICKSTART.md"
+    - "site/install.md"
+    - "site/install.ru.md"
+    - "site/install.zh.md"
+    - "attestations/docker-availability-guarantee-2026-10-*.json"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "Dockerfile.debian-slim"
+
+outcomes:
+  - id: edge-tag-published-on-main-push
+    statement: |
+      `ghcr.io/11111000000/mathc:edge` exists and is
+      updated on every push to `main` and every release
+      tag push. The tag resolves to the multi-arch
+      `linux/amd64,linux/arm64` manifest built from
+      `Dockerfile.debian-slim` with the current `VERSION`
+      build-arg. The tag is cosign-signed via the existing
+      `cosign-sign` job.
+  - id: install-sh-docker-fallback-mode
+    statement: |
+      `scripts/install-tooling/install.sh --docker-fallback`
+      prints the `docker run` invocation on a recoverable
+      native-install failure, when `docker` is present on
+      the host. Default-off so the existing UX is preserved.
+      The flag is documented in `--help`.
+  - id: docker-image-healthcheck-runs
+    statement: |
+      `.github/workflows/docker-healthcheck.yml` runs on
+      a daily cron AND on every push to `main`. The job
+      pulls `:edge`, runs `mathc version`, and records an
+      attestation at
+      `attestations/docker-availability-guarantee-2026-10-
+      docker-image-healthcheck.json`.
+  - id: docker-alpine-image-published
+    statement: |
+      `Dockerfile.alpine` builds `mathc-linux-x86_64-musl`
+      (the release asset wired by this decision) into an
+      `alpine:3.20` runtime stage. The resulting image is
+      published to
+      `ghcr.io/11111000000/mathc:<VERSION>-alpine` and
+      `:edge-alpine` on every release tag push.
+  - id: install-docs-fallback-hierarchy
+    statement: |
+      `USAGE.md`, `QUICKSTART.md`, and
+      `site/install.{md,ru.md,zh.md}` present Docker as
+      the fallback of last resort, with a one-line recipe
+      that the user can run when the native install fails.
+      The framing replaces the previous equal-weighting of
+      the four channels.
+  - id: future-work-recorded
+    statement: |
+      Three follow-up obligations are recorded as
+      `relations.addresses-future`: a mirror policy
+      (docker.io fallback when ghcr.io is blocked), a
+      retention policy (`:latest`, `:edge`, last 5
+      `:VERSION`), and an `--auto-fallback` mode (silent
+      docker-pull+exec on native install failure). Each
+      is named with a reversal signal so a future agent
+      encountering the gap finds the record.
+
+obligations:
+  - id: edge-tag-published-on-main-push
+    outcome: edge-tag-published-on-main-push
+    claim: |
+      `decisions/docker-availability-guarantee-2026-10.yaml`
+      exists with `state: active`. `.github/workflows/
+      docker.yml` is modified per D1: the
+      "Build and push (multi-arch)" step's `tags:` block
+      adds `ghcr.io/11111000000/mathc:edge` as a new entry
+      in addition to `:latest`, `:VERSION`,
+      `:VERSION-debian-slim`, `:VERSION-arm64`. The arm64
+      convenience-tag step is unchanged. The decision's
+      `body_sha`/`yaml_sha` are non-zero (verified by
+      `mathc validate`).
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/docker-availability-guarantee-2026-10.yaml
+          result: pass
+        - verifier: grep -q "mathc:edge" .github/workflows/docker.yml
+          result: pass
+        - verifier: this-decision-file-present
+          result: pass
+  - id: install-sh-docker-fallback-mode
+    outcome: install-sh-docker-fallback-mode
+    claim: |
+      `scripts/install-tooling/install.sh` supports
+      `--docker-fallback` per D2. The cram fixture
+      `tests/cli/install-docker-fallback.t` (NEW) asserts
+      that `--help` documents the flag, and a second
+      cram case asserts that `--docker-fallback` prints
+      the `docker run` line when the native install branch
+      is invoked with a forced failure (e.g.,
+      `--version=0.0.0-nonexistent` plus the flag).
+    acceptance:
+      all:
+        - verifier: tests/cli/install-docker-fallback.t
+          result: pass
+        - verifier: mathc validate decisions/docker-availability-guarantee-2026-10.yaml
+          result: pass
+  - id: docker-image-healthcheck-runs
+    outcome: docker-image-healthcheck-runs
+    claim: |
+      `.github/workflows/docker-healthcheck.yml` exists
+      with the two triggers per D3. The job name is
+      `healthcheck-image` and the workflow has
+      `permissions: contents: read, packages: read`. The
+      attestations directory entry
+      `attestations/docker-availability-guarantee-2026-10-
+      docker-image-healthcheck.json` is a valid attestation
+      (`mathc validate` accepts it).
+    acceptance:
+      all:
+        - verifier: this-attestation-file-present
+          result: pass
+        - verifier: mathc validate attestations/docker-availability-guarantee-2026-10-docker-image-healthcheck.json
+          result: pass
+        - verifier: test -f .github/workflows/docker-healthcheck.yml
+          result: pass
+  - id: docker-alpine-image-published
+    outcome: docker-alpine-image-published
+    claim: |
+      `Dockerfile.alpine` exists and is arch-neutral
+      (musl-libc). `.github/workflows/release.yml`
+      `files:` list includes `mathc-linux-x86_64-musl`
+      per D4. `.github/workflows/docker-alpine.yml` (NEW)
+      exists with the multi-arch build invocation per D4.
+      The decision's `relations.supersedes` includes
+      `docker-alpine-impl-pending@1`, closing that
+      Phase-3 deferral.
+    acceptance:
+      all:
+        - verifier: test -f Dockerfile.alpine
+          result: pass
+        - verifier: test -f .github/workflows/docker-alpine.yml
+          result: pass
+        - verifier: grep -q "mathc-linux-x86_64-musl" .github/workflows/release.yml
+          result: pass
+  - id: install-docs-fallback-hierarchy
+    outcome: install-docs-fallback-hierarchy
+    claim: |
+      `USAGE.md`, `QUICKSTART.md`, `site/install.md`,
+      `site/install.ru.md`, `site/install.zh.md` each
+      contain a section that frames Docker as the
+      always-available fallback, with a one-line recipe.
+      The reframing is editorial; the recipe is identical
+      across all five files (modulo locale).
+    acceptance:
+      all:
+        - verifier: grep -q "Docker fallback" USAGE.md
+          result: pass
+        - verifier: grep -q "Docker fallback" QUICKSTART.md
+          result: pass
+        - verifier: grep -q "Docker fallback" site/install.md
+          result: pass
+        - verifier: grep -q "Docker fallback" site/install.ru.md
+          result: pass
+        - verifier: grep -q "Docker fallback" site/install.zh.md
+          result: pass
+  - id: future-work-recorded
+    outcome: future-work-recorded
+    claim: |
+      The decision's `relations.addresses-future` block
+      enumerates three named follow-up obligations:
+      `docker-mirror-policy-2026-XX` (mirror policy),
+      `docker-retention-policy-2026-XX` (retention policy),
+      `install-sh-auto-fallback-2026-XX` (auto-fallback
+      mode). Each is paired with a reversal signal so a
+      future agent encountering the gap can act.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/docker-availability-guarantee-2026-10.yaml
+          result: pass
+        - verifier: grep -q "docker-mirror-policy" decisions/docker-availability-guarantee-2026-10.yaml
+          result: pass
+        - verifier: grep -q "docker-retention-policy" decisions/docker-availability-guarantee-2026-10.yaml
+          result: pass
+        - verifier: grep -q "install-sh-auto-fallback" decisions/docker-availability-guarantee-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: docker-channel-deprecated
+    condition: |
+      All four install channels are deprecated and replaced
+      by a single distribution mechanism (e.g., the project
+      moves to a language-specific package manager and the
+      Docker image is no longer a fallback).
+    action: rework
+  - signal: registry-compromise
+    condition: |
+      `ghcr.io/11111000000/mathc` is compromised or
+      permanently blocked (corporate firewall, GitHub
+      Packages outage of indefinite duration). The mirror
+      policy follow-up obligation closes the path; the
+      decision is retired once the mirror ships.
+    action: rework
+  - signal: cosign-deprecated
+    condition: |
+      Cosign keyless signing is deprecated or removed by
+      the Sigstore project, and the verification path
+      loses its anchor. The `ux-3-cosign-image-2026-10`
+      decision absorbs the change.
+    action: review
+
+risk:
+  declared_triggers:
+    - docker-daemon-absent-on-host
+    - ghcr-io-rate-limit-exceeded
+    - docker-buildx-qemu-broken
+    - alpine-musl-asset-missing
+    - healthcheck-cron-job-budget-exceeded
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - install-tooling-2026-10@1
+    - docker-arm64-image-2026-10@1
+    - ux-3-cosign-image-2026-10@1
+    - portable-linux-musl@4
+    - bootstrap-v3@3
+  addresses-future:
+    - docker-mirror-policy-2026-XX
+    - docker-retention-policy-2026-XX
+    - install-sh-auto-fallback-2026-XX
+  supersedes:
+    - docker-alpine-impl-pending@1
+  superseded_by: []
