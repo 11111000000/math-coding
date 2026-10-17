@@ -20,10 +20,12 @@
   policy
   re_evaluation
   rebuttal
-  render
   risk
   waiver
   forge
   migrate
   path_config)
  (libraries str unix))
+
+; lib/render/ is now a separate dune library (`mathcoding_render`);
+; the old flat `render` module has been moved under lib/render/render.ml.
