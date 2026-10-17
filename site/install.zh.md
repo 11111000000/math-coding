@@ -11,6 +11,8 @@ math-coding 通过四个相互独立的安装渠道交付。每个渠道
 
 ## 选择你的渠道
 
+> 原生渠道优先；Docker 作为后备。若任何原生渠道都不可用，请参见下方 [如果原生安装失败](#如果原生安装失败)。
+
 | 渠道 | 使用场景 | 安装命令 |
 |------|----------|----------|
 | Release binary | 默认。Linux glibc ≥ 2.35、macOS 或 WSL。 | `curl -fsSL https://github.com/11111000000/math-coding/releases/download/v${VERSION}/install.sh \| sh` |
@@ -22,6 +24,28 @@ Release binary 是默认推荐渠道，原因有二：(a) 安装脚本
 针对 SHA-256 对照同一 release 中发布的 `SHA256SUMS` 进行
 校验下载的二进制，防御网络 MITM；(b) 脚本在同一次调用
 中还会安装 per-user opencode 技能（`--user-skill`）。
+
+## 如果原生安装失败
+
+如果 `curl | sh`、Windows 安装程序、`nix run` 或源码
+构建在你的主机上不可用（公司代理屏蔽
+`raw.githubusercontent.com`、Alpine/musl libc、不可写入
+`~/.local/` 的不可变 CI runner），Docker 镜像就是
+始终可用的后备通道。镜像
+`ghcr.io/11111000000/mathc:<VERSION>` 由本仓库的 CI
+在每次发布 tag 推送时构建并签名；无需在主机上安装。
+
+```sh
+docker run --rm -v "$PWD:/repo" \
+  ghcr.io/11111000000/mathc:<VERSION> \
+  validate decisions/foo.yaml
+```
+
+同一命令可用于任何子命令。把 `<VERSION>` 替换为发布
+tag（例如 `v3.3.0`），或替换为 `edge` 以获得 main 上
+最新提交。`:edge` tag 会在每次推送到 main 时重建并
+重新发布；每日健康检查 workflow 会断言镜像仍然可以
+运行。
 
 ## 面向 AI 代理
 
