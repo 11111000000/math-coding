@@ -782,8 +782,8 @@ let print_usage oc =
      decisions/<id>.yaml;\n\
      [--interactive]                  --interactive is a stub in this slice.\n\
      [--force]\n\
-    \  telemetry status                   print current telemetry state (Phase 2\n\
-    \                                     stub; no transport, no data emission).\n\n\
+\  telemetry status                   print current telemetry state (Phase 2; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml\n\
+     \                                     stub; no transport, no data emission).\n\n\
      migrate --from=X --to=Y                        declarative migration plan reader; emit a\n\
                                                      per-file plan from\n\
      [--root=DIR]                                    decisions/migrations/<from>-to-<to>.yaml;\n\
@@ -5310,7 +5310,7 @@ let[@warning "-32"] do_telemetry () =
   if sub <> "status" && sub <> "" then begin
     Printf.fprintf stderr
       "mathc telemetry: unknown subcommand: %s\n\
-      \  (only `status` is implemented in this slice; transport is Phase 3+)\n"
+      \  (only `status` is implemented in this slice; transport is Phase 3+; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml)\n"
       (String.trim !action);
     exit 2
   end;
@@ -5324,7 +5324,7 @@ let[@warning "-32"] do_telemetry () =
         else Printf.sprintf "unknown (%s)" s
   in
   Printf.printf "mathc telemetry: %s\n" mode;
-  Printf.printf "  transport: not configured (Phase 2 stub)\n";
+  Printf.printf "  transport: not configured (Phase 2 stub; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml)\n";
   Printf.printf "  See decisions/ux-3-telemetry-stub-2026-10.yaml.\n";
   Printf.printf "  No data is collected or transmitted by this build.\n"
 
