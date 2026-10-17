@@ -1,0 +1,63 @@
+---
+schema: math-coding/3.3
+id: fix-mcp-sigpipe
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:39749aa1a74d2376d9c1db50a2e1bcd1da4c468751f11e7da36be0326113fbf6"
+yaml_sha: "sha256:39749aa1a74d2376d9c1db50a2e1bcd1da4c468751f11e7da36be0326113fbf6"
+
+intent: |
+  The MCP stdio server (`bin/mathc_mcp.ml`) dies with exit 141
+  when the client closes its end of the pipes mid-loop, because
+  the kernel-delivered SIGPIPE is unhandled. The
+  `lib/mcp/transport.ml::read_line` helper also has no upper
+  bound on a single request line, so a runaway client can exhaust
+  memory by streaming an unbounded line on stdin. This decision
+  closes both gaps so the server exits gracefully on broken-pipe
+  and refuses oversized requests.
+
+commitment: |
+  `bin/mathc_mcp.ml::main_loop` calls `Sys.set_signal Sys.sigpipe
+  Sys.Signal_ignore` before the first read so a client-side
+  disconnect becomes a catchable `EPIPE` instead of a fatal
+  signal. `lib/mcp/transport.ml::read_line` caps a single inbound
+  line at 1 MiB; an over-cap line is treated as protocol-level
+  garbage and surfaces as `None` to the caller (same shape as
+  EOF), causing the dispatcher to shut down gracefully.
+
+outcomes:
+  - id: sigpipe-graceful
+    statement: |
+      Closing the client end of the MCP stdio pipes mid-loop
+      causes the server to exit 0, not 141.
+
+scope:
+  paths:
+    - bin/mathc_mcp.ml
+    - lib/mcp/transport.ml
+
+obligations:
+  - id: max-request-bytes-cap
+    claim: |
+      `lib/mcp/transport.ml::read_line` rejects any line longer
+      than `max_request_bytes` (1 MiB) and returns `None`.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: tests/cli/mathc_mcp.t
+          result: pass
+
+axiom_link:
+  - A0
+
+risk:
+  declared_triggers:
+    - sys-sigpipe-not-loaded
+    - oversized-line-confuses-parser
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
