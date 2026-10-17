@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# math-coding 3.0-alpha — repeatable development commands.
+# math-coding 3.3.1 — repeatable development commands.
 #
 # Each subcommand prints what it is doing. None of them are silent.
 # Use these instead of "rm -rf _build" superstition.
@@ -240,7 +240,7 @@ case "$cmd" in
         fail=$((fail + 1))
       fi
     }
-    echo "math-coding 3.0-alpha — dev environment doctor"
+    echo "math-coding 3.3.1 — dev environment doctor"
     echo "=================================================="
     check "dune on PATH"          "command -v dune"
     check "ocamlmerlin on PATH"   "command -v ocamlmerlin"

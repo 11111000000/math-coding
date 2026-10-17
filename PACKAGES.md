@@ -6,7 +6,13 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: HEAD `d52c85b` + 2026-10-14 kernel-fixes + site-redesign cycle:
+Last verified at: HEAD `db69ca2` + 2026-10-17 audit-cleanup cycle:
+
+- `db69ca2` (merge `feat/render-analysis-2026-10: p8 hook soft warning`):
+  the `p8-hook-deficit-2026-10` decision (`P8` `(* tracked: ... *)`
+  marker in `.githooks/pre-commit` retired; `P8` becomes an
+  agent-time rule only, see `OCAML_BEST_PRACTICES.md` §11.39).
+- 2026-10-14 cycle (`8b9a060` counters-fix + `131735c` validate-fix):
 
 - `8b9a060` (counters-fix) + `131735c` (validate-fix): two
   kernel fixes landed after the v3.3 brand cutover. The

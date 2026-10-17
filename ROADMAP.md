@@ -316,7 +316,7 @@ this portably. The enforced test at
 `tests/cram/` directory is absent; the live cram is in `tests/cli/`.
 
 **Correction (2026-10-04, refresh 2026-10-05, 2026-10-07):** `OCAML_BEST_PRACTICES.md` §11
-trap log has 34 entries (§11.1–§11.34, verified by
+trap log has 39 entries (§11.1–§11.39, verified by
 `grep -c '^### 11\.' OCAML_BEST_PRACTICES.md`); the earlier
 "§11 has only its header" claim was stale. §11.22 (`nix develop`
 builds a non-portable `mathc` that fails) was added in `Unreleased`
