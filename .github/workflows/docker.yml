@@ -106,6 +106,7 @@ jobs:
             ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}
             ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}-debian-slim
             ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}-arm64
+            ghcr.io/11111000000/mathc:edge
           build-args: |
             VERSION=${{ steps.version.outputs.version }}
           platforms: linux/amd64,linux/arm64
