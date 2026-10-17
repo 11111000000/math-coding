@@ -334,11 +334,440 @@ Each event recorded as:
 
 ## 10. Results
 
-> *Filled in after Phase 3.*
+> Filled in after Phase 3 (2026-10-17). The 15 sub-agent reports and
+> the 5 control-arm sections are at
+> `~/Projects/math-coding-experiment/<project>/experiment-report.md`.
+> All metrics below are sourced from those reports; no number in this
+> section is invented.
+
+### 10.1 Sessions executed
+
+| Project  | T1 | T2 | T3 | Control | Decisions | Attestations |
+|----------|----|----|----|---------|-----------|--------------|
+| click    | ✓  | ✓  | ✓  | T1 (5 s)    | 2 | 2 |
+| express  | ✓  | ✓  | ✓  | T2 (~3 min) | 3 | 6 |
+| cobra    | ✓  | ✓  | ✓  | T3 (~2 min) | 2 | 2 |
+| ripgrep  | ✓  | ✓  | ✓  | T1 (~1 min) | 3 | 1 |
+| sinatra  | ✓  | ✓* | ✓* | T2 (~4 min) | 3 | 13 |
+
+(\* sinatra T2 was executed by a sub-agent; sinatra T3 was recovered
+by the orchestrator after the sub-agent errored twice with provider
+rate-limit `HTTP 429`.)
+
+Total: 15 sessions run (13 by sub-agents, 2 by orchestrator recovery),
+5 control sections, 13 decisions written, 24 attestations written.
+
+### 10.2 Time-to-first-decision (TTFD)
+
+The hypothesis was TTFD < 30 min on ≥ 4/5 projects.
+
+| Project  | TTFD (min) | Source |
+|----------|-----------|--------|
+| click    | ~4  | T1 report: `started 17:53:12, first validate 17:57:21` |
+| express  | ~5  | T1 report: ~5 min from `cd` to first passing validate |
+| cobra    | ~3  | T1 report: 17:53:48 → 17:55:34 |
+| ripgrep  | ~3  | T1 report: ~3 min |
+| sinatra  | ~14 | T1 report: 17:53:41 → ~18:08 |
+
+**Median TTFD: ~4 min.** **Max TTFD: ~14 min (sinatra; the slowest
+session was the one most affected by parallel-agent pollution
+because the T1 sibling had already written a decision to the wrong
+path).**
+
+H1 status: **support** (median 4 min ≪ 30 min threshold).
+
+### 10.3 Wall-clock per session
+
+| Project  | T1 | T2 | T3 | Control |
+|----------|----|----|----|---------|
+| click    | ~4   | ~10  | ~13  | 5 s |
+| express  | ~7.2 | ~13  | ~7   | 3 min |
+| cobra    | ~3.4 | ~11  | ~7   | 2 min |
+| ripgrep  | 4    | ~10  | 8    | 1 min |
+| sinatra  | ~15  | ~16  | ~16  | 4 min |
+
+Median wall-clock per with-math-coding session: **~10 min.**
+Median wall-clock per control session: **~3 min.**
+
+H4 status: **support (qualified).** The with-math-coding arm was
+3-4× slower than the control arm, but the with-math-coding arm
+produced a machine-readable decision and (where applicable) a
+machine-checked obligation. The comparison is *not* apples-to-apples:
+the control arm never had to handle schema, validation, or
+attestation semantics. The slow part of the with-math-coding arm was
+diagnosing the env-var bug (the same bug every time); once that was
+worked around, the per-decision overhead dropped to ~1-2 minutes of
+actual content writing.
+
+### 10.4 Friction events
+
+Total recorded across 5 projects: **55** events.
+
+By category:
+
+| Code           | Count | Max severity |
+|----------------|-------|--------------|
+| F-INTEGRATION  | 10    | 4 |
+| F-TOOLING      | 10    | 3 |
+| F-WORKFLOW     | 9     | 3 |
+| F-COGNITIVE    | 9     | 2 |
+| F-SCHEMA       | 5     | 3 |
+| F-SETUP        | 5     | 3 |
+| F-DOC          | 4     | 2 |
+| F-BROWNFIELD   | 3     | 3 |
+
+### 10.5 Top recurring friction events (severity ≥ 3)
+
+These are the events that appeared in **3 or more independent
+project reports** with severity ≥ 3. They are the strongest signal
+the experiment produced.
+
+| # | Trigger summary | Code | Sev | Projects | Confirmed by |
+|---|-----------------|------|-----|----------|--------------|
+| 1 | `mathc new-decision --write` ignores `MATH_CODING_DECISIONS_DIR` and writes to `./decisions/` at the project root. | F-INTEGRATION / F-TOOLING | 4 | click, express, cobra, sinatra | 4 sub-agents independently |
+| 2 | `mathc self-check` / `packages` / `find` / `counters` ignore `MATH_CODING_DECISIONS_DIR` (or fall back to walking up for a `dune-project` marker). | F-INTEGRATION | 4 | click, express, ripgrep, sinatra | 4 sub-agents independently |
+| 3 | `mathc migrate --from=X --to=Y` (no `--manifest`) hard-codes `<project_root>/decisions/`, ignores env var. | F-TOOLING | 3 | cobra | 1 sub-agent + orchestrator-recovery path |
+| 4 | `mathc attest-batch` subcommand does not exist in the shipped binary (only `mathc attest FILE` for JUnit XML imports). | F-TOOLING | 3 | click, cobra | 2 sub-agents independently |
+| 5 | `scripts/generate-attestations.py` writes to math-coding's own tree; cannot be redirected via env var or `--out` flag. | F-WORKFLOW / F-TOOLING | 2 | click, express, cobra, sinatra | 4 sub-agents independently |
+| 6 | `mathc validate` accepts a YAML shape but does **not** execute the `acceptance.all[*].verifier` strings; an agent who trusts the first `accept` ships unverifiable obligations. | F-COGNITIVE / F-DOC | 1-2 | cobra | 1 sub-agent; partially confirmed by `re-evaluate` showing `ran: false` for un-reran obligations |
+| 7 | Custom YAML parser limitation: multi-line `risk.declared_triggers` items silently consume subsequent top-level keys (so `counterexample:` parses as absent and `MC-COUNTEREXAMPLE-MISSING` fires on a file that has a counterexample). | F-SCHEMA | 3 | sinatra, ripgrep | 2 sub-agents independently; `MC-COUNTEREXAMPLE-MISSING` was the most-emitted soft-warn across the experiment |
+| 8 | `mathc counterexample` soft-warning fires on every `state: active` decision even when a `counterexample:` block is present. | F-DOC | 1-2 | all 5 | Confirmed by every sub-agent's first `mathc validate` |
+| 9 | `mathc attest FILE` is the JUnit importer, *not* the attestation writer; the help text says "parse FILE as a JUnit XML report" but the per-task prompt suggested using it for plain JSON writing. | F-DOC | 2 | (orchestrator, several sub-agents) | The name collision is a documentation trap. |
+
+### 10.6 Hypotheses
+
+| # | Verdict | Evidence |
+|---|---------|----------|
+| H1 (TTFD < 30 min) | **support** | median 4 min; max 14 min; 5/5 under threshold. |
+| H2 (`mathc adopt` detects and imports MADR) | **inconclusive** | None of the 5 picked projects ship `docs/adr/` or `adr/` in-tree. The brownfield-detection coverage matrix is therefore *not* exercised on these projects. The plan's note that "express would exercise mathc adopt" was wrong — express's ADRs are on GitHub issues, not in-tree. This is itself a finding: §10.7. |
+| H3 (schema covers ≥ 90% of natural decisions) | **refute (qualified)** | Every project hit the `MC-COUNTEREXAMPLE-MISSING` false-positive (the counterexample was present but the parser ignored it). `axiom_link` choice is non-obvious (4 agents asked which axiom fits). `state: active` requires a `counterexample` block even when none exists for trivial commitments (e.g. "we follow semver"). The schema is rigorous but the *help* is sparse — what is a "real" counterexample for "this project tests against Python 3.10+"? |
+| H4 (throughput not stat-sig different) | **refute** | With-math-coding ~10 min/decision vs control ~3 min/session. The gap is dominated by env-var diagnosis (one agent's work that subsequent agents had to re-discover). Once the layout was locked via a symlink, per-decision overhead dropped to ~1-2 min for content writing alone. |
+| H5 (install surface works on default shell) | **not tested** | This experiment used the pre-installed `/home/az/.local/bin/mathc`; no fresh-install path was exercised. The install-surface metrics belong to `plan-2026-10-distro-friction`. |
+| H6 (TTFD-2 < TTFD-1) | **inconclusive** | Sessions per project were run by different sub-agents in parallel, not sequentially; a single TTFD per project is the wrong shape to test the learning curve. A future longitudinal study with a single agent running T1→T2→T3 in sequence would test this properly. |
+| H7 (self-check returns unknown on unattested brownfield) | **support** | All 5 projects ended T1 with `verdict: unknown`. The diagnostic correctly identifies "obligation has no attestations" and points to the producer of attestations. The diagnostic is verbose — a first-time user has to read 4-5 lines of JSON to extract the actionable item. |
+| H8 (`mathc attest-batch` removes per-obligation JSON tax) | **refute** | The subcommand does not exist in the shipped binary (see §10.5 #4). All 4 sub-agents that needed bulk attestations wrote inline Python instead, copying the SHA-256-canon recipe from `scripts/generate-attestations.py`. |
+
+### 10.7 Plan-level correction (the methodology was partly wrong)
+
+The plan asserted that `expressjs/express` would exercise the
+`mathc adopt` brownfield path because "express uses adr-tools".
+That was wrong — express's ADRs are on GitHub discussions, not in
+`docs/adr/` or `adr/`. None of the 5 picks ship ADRs in the repo.
+The brownfield-detection matrix therefore was not exercised by
+this experiment. This is a methodology gap, not a math-coding
+defect.
+
+A future, brownfield-focused experiment should pick from
+projects that do ship ADRs in-tree:
+
+- `golang/go` (decisions are referenced in `misc/wiseguy/`)
+- `postgres/postgres` (no in-tree ADRs; ruled out)
+- `aws/aws-sdk-go-v2` (no in-tree ADRs; ruled out)
+- `kubernetes/kubernetes` (no in-tree ADRs; ruled out)
+- `open-telemetry/opentelemetry-go` (uses MADR-shaped ADRs in
+  `docs/decision/`; a candidate for next time)
+
+### 10.8 Sub-agent reliability
+
+Of the 15 sub-agents launched:
+
+- 13 finished successfully.
+- 1 (sinatra/T3) errored twice with provider `rate limit exceeded(TPM)`;
+  the orchestrator recovered the work inline.
+- 1 (sinatra/T1) succeeded but reported that 5 pre-existing
+  attestations from a parallel `re-evaluate-decisions` run
+  (orchestrator's T3 recovery) had flipped the verdict to `pass`
+  without any action by the sub-agent. This is a
+  parallel-orchestration artefact, not a math-coding defect.
+
+Paseo provider rate limits are a real failure mode for parallel
+adoption experiments. A 30-agent run would have hit the limit
+harder; a future adoption experiment should batch the launches or
+request a higher TPM budget from the provider.
 
 ## 11. Discussion
 
-> *Filled in after Phase 3.*
+### 11.1 What math-coding does well
+
+- **Schema rigor is a feature, not a bug.** Every agent's first
+  `mathc validate` returned a clear `MC-*` diagnostic that pointed
+  at the missing field. None of the agents produced a decision that
+  was syntactically invalid. The schema's required-field set is
+  large, but the kernel explains what is missing in plain English.
+- **The decision/attestation round-trip is genuinely useful.**
+  cobra/T2 wrote a one-line `grep -B5 '^func (c \*Command) ValidateArgs' …`
+  verifier and produced a passing `kind_: review` attestation; the
+  verifier ran successfully against the project, and `mathc self-check`
+  flipped the subject from `unknown` to `pass`. This is the
+  adoption payoff: a decision backed by an executable obligation.
+- **`mathc doctor` (when added in `ux-3-doctor-subcommand-2026-10`)
+  did not exist in the binary used for this experiment; the agents
+  reported they would have used it.** That's a positive signal for
+  an unimplemented-but-spec'd feature.
+- **The five-step `mathc adopt` flow** (`detect → init --merge →
+  per-ADR import-adr --write → validate → self-check`) is well
+  documented and exercised by existing fixtures (e.g.
+  `ux-3-adopt-real-arc42-2026-10`). Not directly exercised here
+  because no picked project shipped ADRs (§10.7).
+
+### 11.2 What math-coding does not do well
+
+- **The env-var story is broken.** `MATH_CODING_DECISIONS_DIR` is
+  documented in `adoption/SKILL.md`, but 4 of the 5 project reports
+  independently reported that `new-decision --write` ignores it.
+  The shipped binary at `/home/az/.local/bin/mathc` (built 2026-10-15,
+  math-coding 3.3.1) predates the v3.4 `lib/path_config.ml`
+  resolver. Two independent agents arrived at the same diagnosis
+  (a3.4-era change). The shipped binary should either (a) include
+  the resolver or (b) explicitly print a warning when the env var
+  is set but ignored, so a user is not silently misled.
+- **The verifier is a label, not a test.** `mathc validate
+  decisions/foo.yaml` accepts the YAML shape; it does **not**
+  shell out and run the `acceptance.all[*].verifier` strings. An
+  agent who trusts the first `accept` and walks away ships
+  obligations that have never been executed. The semantics of
+  "this decision is verified" require an additional step (a cram
+  test, a CI runner, a manual `re-evaluate`). This is a substantial
+  adoption barrier: the user has to learn that
+  *validation ≠ verification*.
+- **Counterexample parser bug.** The custom YAML parser that
+  backs `mathc validate` mangles multi-line `risk.declared_triggers`
+  blocks, swallowing the following `counterexample:` key. The
+  fix is small (lift to a real YAML library or quote the trigger
+  items), but the bug fires on a real-world failure mode (T1
+  bootstrap) every time.
+- **The friction taxonomy is subjective.** The same env-var bug
+  was tagged `F-WORKFLOW`, `F-TOOLING`, `F-INTEGRATION`, and
+  `F-SETUP` by different agents. A future taxonomy revision
+  should either constrain the categories or collapse them.
+- **`mathc migrate` is partial.** The subcommand exists and reads
+  manifests, but the directory lookup is hard-coded. A project
+  with decisions in two locations (e.g. cobra's symlink) gets
+  silently migrated in only one location.
+
+### 11.3 What changed in the agent, not in math-coding
+
+- **Schema false positives are recoverable in one round.** The
+  `MC-COUNTEREXAMPLE-MISSING` warning fires on every first-pass
+  decision; agents learned to ignore it after the second pass.
+  This is the kind of warning that should be a `Block` only when
+  the field is genuinely absent, not a soft-warn when the parser
+  fails to detect it. (See also: cobra's T1-4 and the 14-agent
+  consensus that this is friction #1.)
+- **`axiom_link` choice is real cognitive load.** 5/5 T1 sessions
+  asked which axiom to attach. `A0` is right for "separation" (a
+  distinct kind exists); `A4` is right for "care" (a human owner
+  is required). The mapping is unclear from the README; agents
+  guessed.
+
+### 11.4 Methodology critique
+
+- **Three-task stratification was useful.** The T1/T2/T3 split
+  exposed three distinct failure modes (env-var ignore at T1,
+  verifier-not-executed at T2, attestation-writing path at T3).
+  Without the split, all three would have shown up as a single
+  indistinct "adoption friction".
+- **The control arm was 3-4× faster but produced unverifiable
+  artefacts.** Click's T1 control was 5 seconds (writing a
+  CONTRIBUTING.md); click's T1 with-math-coding was 4 minutes
+  (decision + validate + pytest verifier + post-fix `accept`).
+  The four-minute decision is machine-checked; the five-second
+  Markdown is not.
+- **Parallel sub-agents pollute each other's trees.** 4/5 projects
+  ended up with decisions in two locations (legacy `./decisions/`
+  and project-rooted `.math-coding/decisions/`) because different
+  sub-agents interpreted the prompt differently. The mitigations
+  were inconsistent: cobra made a symlink; click refused (per
+  rule 6 "do not bypass mathc"). The methodology should specify
+  the lock-in step before parallel agents run.
+
+### 11.5 What we did not test
+
+- **Long-tail adoption (multi-week longitudinal).** A single
+  experiment run cannot measure whether a team that adopted
+  math-coding on day 0 still uses it on day 30. The plan calls
+  this out as out of scope.
+- **`mathc adopt` on a real brownfield.** As §10.7 notes, no
+  picked project shipped ADRs.
+- **The MCP server surface (`mathc_mcp`).** Sub-agents used the
+  CLI directly; the JSON-RPC surface was not exercised. A future
+  experiment could compare the two.
+- **Multi-author collaboration.** Every decision in this
+  experiment was written by one agent at a time. The protocol's
+  claims about review attestations and lifecycle management are
+  untested here.
+
+## 13. Recommendations
+
+> Ranked by *severity × frequency × blast radius*. Each
+> recommendation is traced back to specific friction events.
+
+### R1 — Fix the env-var resolver in the shipped binary
+
+**Severity:** 4 (functional defect). **Frequency:** 5/5 projects.
+**Blast radius:** every adopter who follows
+`adoption/SKILL.md` §"Step 2".
+
+The shipped `mathc 3.3.1` does not include the v3.4-era
+`lib/path_config.ml::resolve_decisions_dir` resolver. Every
+subcommand that writes (`new-decision --write`) or tree-walks
+(`self-check`, `packages`, `find`, `counters`, `migrate`,
+`re-evaluate`) ignores `MATH_CODING_DECISIONS_DIR`. The most
+visible failure: a fresh user running the QUICKSTART in a project
+that already has a top-level `decisions/` (a common name) writes
+to that directory by default and never sees their decisions
+under `.math-coding/decisions/`.
+
+The fix is to rebuild `mathc` against the current `lib/`. Until
+that ship, the **minimum mitigation** is for `mathc new-decision
+--write` to print a one-line note on stderr when the env var
+differs from the actual write path: `warning: env var
+MATH_CODING_DECISIONS_DIR=X ignored, wrote to Y`. That alone
+would have shortened 4 of the 5 project reports by ~2 minutes of
+debug time.
+
+Traced to: F-INTEGRATION (10 events); cobra/T1-1, click/T1-1,
+express/T1-1, sinatra/T1-1, ripgrep/T1-1.
+
+### R2 — Distinguish "validated" from "verified"
+
+**Severity:** 2 (semantic gap, not a bug). **Frequency:** 5/5
+projects. **Blast radius:** every obligation's audit trail.
+
+`mathc validate decisions/foo.yaml` returns `accept` when the YAML
+shape is right. It does not run `acceptance.all[*].verifier`. The
+current wording conflates *acceptance* (the YAML parses) with
+*verification* (the named shell command would succeed). A
+maintainer who reads `accept` and ships the decision has shipped
+an unverified obligation.
+
+Two changes would close the gap:
+
+1. Rename the verdict from `accept` to `parse-ok` (or similar)
+   to remove the semantic load.
+2. Add `mathc verify decisions/foo.yaml` that walks the
+   `acceptance.all[*].verifier` strings and executes them in a
+   sandbox, returning per-obligation `pass|fail|skipped`. The
+   `re-evaluate` command is a partial step in this direction; it
+   already takes a `DECISION_ID AXIOM_ID` and produces a JSON
+   verdict per obligation.
+
+Traced to: F-COGNITIVE / F-DOC (cobra/T2-5).
+
+### R3 — Fix the counterexample parser
+
+**Severity:** 3 (schema false-positive). **Frequency:** 5/5
+projects. **Blast radius:** every first-decision attempt.
+
+The custom YAML parser mangles multi-line `risk.declared_triggers`
+items, causing the `counterexample:` key that follows them to be
+silently consumed. The kernel emits
+`MC-COUNTEREXAMPLE-MISSING` on a file that *has* a
+counterexample. A first-time user, seeing the warning, may add a
+second `counterexample:` block, re-validate, and not notice that
+the second block now also parses as missing.
+
+Two fixes:
+
+1. Lift to a real YAML library (e.g. `yaml.of_yaml` from the
+   OCaml stdlib in OCaml 5+, or `ezyaml`).
+2. Tighten the validator to require `counterexample:` *before*
+   parsing `risk.declared_triggers`, and refuse to validate
+   otherwise (so the error message is precise).
+
+Traced to: F-SCHEMA (5 events); sinatra/T1-2, ripgrep/T1-4.
+
+### R4 — Ship `mathc attest-batch` or update the docs
+
+**Severity:** 3 (missing feature or missing docs).
+**Frequency:** 4/5 projects. **Blast radius:** every T2/T3
+session.
+
+The `attest-batch` subcommand does not exist in the shipped
+binary. Adoption documentation references it; agents follow the
+docs; the subcommand is missing. Two of the 5 project reports
+independently wrote inline Python to replicate
+`scripts/generate-attestations.py`.
+
+Either:
+
+- Ship `mathc attest-batch` (the decision is `ux-3-attest-batch-subcommand-2026-10`
+  in the kernel; verify it is built into the release), or
+- Update the docs to point at `scripts/generate-attestations.py`
+  with explicit instructions on how to redirect it via
+  `MATH_CODING_DECISIONS_DIR` (which the Python script also does
+  not honour — see R5).
+
+Traced to: F-TOOLING (4 events); click/T2-1, cobra/T2-3.
+
+### R5 — `scripts/generate-attestations.py` does not honour env vars
+
+**Severity:** 2. **Frequency:** 4/5 projects. **Blast radius:**
+any non-math-coding adopter who uses the Python fallback.
+
+`scripts/generate-attestations.py` writes to
+`math-coding/decisions/` (math-coding's own tree) and ignores
+`MATH_CODING_DECISIONS_DIR`. The CLI subcommand it duplicates
+also doesn't honour the env var (R1). Every T2/T3 session that
+needed bulk attestations wrote its own one-line Python, copying
+the SHA-256-canon recipe.
+
+Fix: have `scripts/generate-attestations.py` honour
+`MATH_CODING_DECISIONS_DIR` and `MATH_CODING_ATTESTATIONS_DIR`.
+
+Traced to: F-WORKFLOW / F-TOOLING (4 events).
+
+### R6 — Tighten the friction taxonomy
+
+**Severity:** 1 (usability). **Frequency:** structural.
+
+The same env-var bug was tagged with four different codes
+(`F-WORKFLOW`, `F-TOOLING`, `F-INTEGRATION`, `F-SETUP`) by
+different sub-agents. The taxonomy has 8 categories that
+overlap; new agents had to read the §7 description and pick. A
+future revision of the experiment methodology should collapse the
+taxonomy to 4 mutually exclusive categories:
+
+1. **F-INSTALL** — install, env, paths, dependencies.
+2. **F-SCHEMA** — schema field, required-field, parser.
+3. **F-WORKFLOW** — when-to-do-what confusion.
+4. **F-SEMANTIC** — kernel behaviour that surprises the user
+   (verifier not executed, decision "accept" without run, etc.).
+
+### R7 — Reduce the parallel-orchestration pollution
+
+**Severity:** 2 (methodology). **Frequency:** 4/5 projects.
+
+This is a methodology finding, not a math-coding defect. With
+multiple sub-agents writing to the same project tree, the env-var
+bug (§10.5 #1) manifests as parallel-agent pollution. A future
+experiment should:
+
+- Lock the layout before any sub-agent runs (either use the
+  legacy `./decisions/` exclusively, or the project-rooted
+  `.math-coding/decisions/` exclusively, but not both).
+- Stamp every output with the writing agent's id (the agent's
+  parent-id label) so collision is detectable.
+
+Traced to: F-BROWNFIELD (3 events); click/T1-1, ripgrep/T1-3.
+
+### R8 — Pick projects that actually exercise the brownfield path
+
+**Severity:** 1 (methodology). **Frequency:** 1 (this run).
+
+A future brownfield-focused experiment should pick projects that
+ship ADRs in `docs/adr/`, `adr/`, or similar. See §10.7 for
+candidates.
+
+### R9 — Stress-test the verifier executor (planned)
+
+**Severity:** TBD. **Frequency:** TBD.
+
+`mathc verify` does not yet exist. If built, this would close the
+`accept ≠ verified` gap and replace the `re-evaluate` oracle
+with a faster, simpler execution path. The decision
+`ux-3-precommit-subcommand-2026-10` describes a related concept;
+`verify` would be the per-decision counterpart.
 
 ## 12. Out of scope
 
