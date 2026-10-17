@@ -318,7 +318,14 @@ let forge_mirror sha =
              Buffer.add_channel buf ic 4096
            done
          with End_of_file -> ());
-        let _status = Unix.close_process_in ic in
+        (* The curl exit code is intentionally ignored: the
+           forge mirror is best-effort and the body is parsed
+           when present regardless of HTTP status (a 5xx with
+           a valid JSON body is still informative). A
+           network-level failure (exit 7, 28, signal-kill)
+           yields an empty body, which the next branch
+           already handles. *)
+        let _ = Unix.close_process_in ic in
         let body = Buffer.contents buf in
         if body = "" then []
         else
