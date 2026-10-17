@@ -1,10 +1,10 @@
 (* tests/gate/state_filter.ml — lifecycle-commands-2026-10
-   
+
    Conformance test for the gate state filter introduced by
    decision `lifecycle-commands-2026-10`. The filter drops
    `Retired` and `Superseded` decisions from the obligation walk
    in `lib/gate.ml::evaluate`; `Active` and `Draft` are kept.
-   
+
    Five cases via alcotest:
      1. `state_filter_drops_retired` — a retired decision does
         not contribute MissingEvidence.
@@ -13,10 +13,10 @@
         contribute MissingEvidence.
      4. `state_filter_keeps_draft` — a draft decision does
         contribute MissingEvidence.
-     5. `state_filter_cycle_still_blocks` — a cycle in
-        `supersedes` relations on an active decision still
-        surfaces the SupersessionCycle gap (the cycle detector
-        is independent of the state filter). *)
+     5. `state_filter_irreflexivity` — irreflexivity on
+        `supersedes` (I7): no decision lists itself. The gate's
+        actual cycle detector is exercised by the live
+        `mathc gate` self-check, not by this static walk. *)
    
 open Alcotest
 
@@ -189,12 +189,13 @@ let[@warning "-32"] test_state_filter_keeps_draft () =
    `lib/graph` (sub-library of mathcoding_core); we verify the
    invariant on the active side only, since retired/superseded
    decisions are excluded from gate evaluation entirely. *)
-let[@warning "-32"] test_state_filter_cycle_still_blocks () =
+let[@warning "-32"] test_state_filter_irreflexivity () =
    (* The decision file in the actual project is enough to
-      exercise the cycle detector. We use real data: load
-      `decided-mode-cli-sync-2026-10.yaml` (a stable active
-      decision) and walk the project decisions looking for a
-      self-supersession cycle. *)
+      exercise the kernel's irreflexivity invariant (I7). We
+      use real data: walk the project decisions and look for
+      any decision whose `supersedes` array contains its own
+      id. The gate's actual cycle detector is exercised by the
+      live `mathc gate` self-check, not by this static walk. *)
    let cwd = Sys.getcwd () in
    let rec find_root d =
      if Sys.file_exists (Filename.concat d "dune-project") then d
@@ -272,7 +273,7 @@ let () =
            `Quick test_state_filter_keeps_active;
          test_case "keeps draft decisions in gate walk"
            `Quick test_state_filter_keeps_draft;
-         test_case "irreflexivity (supersession_cycle_still_blocks)"
-           `Quick test_state_filter_cycle_still_blocks;
+test_case "irreflexivity (supersession_kernel_invariant)"
+            `Quick test_state_filter_irreflexivity;
        ]);
      ]

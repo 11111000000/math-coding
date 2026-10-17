@@ -485,5 +485,3 @@ let () =
       ("fixtures", collect_cases ());
       ("legacy_counterexample_sweep", legacy_counterexample_sweep_cases ());
     ]
-
-let () = Alcotest.run "kernel conformance" [ ("fixtures", collect_cases ()) ]
