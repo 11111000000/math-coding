@@ -1,0 +1,51 @@
+# Dockerfile.alpine
+#
+# Alpine/musl runtime image for math-coding. The binary
+# `mathc-linux-x86_64-musl` is a release asset
+# (wired in .github/workflows/release.yml:475 for tagged
+# releases, line 509 for the :edge prerelease). The CI
+# workflow `.github/workflows/docker-alpine.yml` downloads
+# the asset from the same release's `assets/` and copies
+# it into the alpine:3.20 runtime stage.
+#
+# Per decisions/docker-availability-guarantee-2026-10.yaml
+# outcome docker-alpine-image-published. Per
+# decisions/docker-alpine-impl-pending@1 (now superseded),
+# the musl asset is a release asset and the deferred
+# image is now unblocked.
+#
+# Build (local smoke test):
+#
+#     docker build -f Dockerfile.alpine \
+#       --build-arg VERSION=$(cat VERSION) \
+#       --build-arg MUSL_ASSET=./dist-bin/mathc-linux-x86_64-musl \
+#       -t mathc:dev-alpine .
+#
+# Run:
+#
+#     docker run --rm -v $(pwd):/repo mathc:dev-alpine \
+#       validate decisions/foo.yaml
+
+FROM alpine:3.20
+
+ARG VERSION=unknown
+ARG MUSL_ASSET=mathc-linux-x86_64-musl
+
+LABEL org.opencontainers.image.title="math-coding" \
+      org.opencontainers.image.description="math-coding 3.0 kernel — Alpine/musl runtime" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.source="https://github.com/11111000000/math-coding" \
+      org.opencontainers.image.licenses="Apache-2.0"
+
+# Copy the pre-built musl-linked binary from the build
+# context. The CI workflow downloads the asset from the
+# release `assets/` and places it at $MUSL_ASSET.
+COPY ${MUSL_ASSET} /usr/local/bin/mathc
+RUN chmod +x /usr/local/bin/mathc
+
+# Smoke test: the binary must start. If this fails the
+# image is not publishable.
+RUN /usr/local/bin/mathc version
+
+ENTRYPOINT ["mathc"]
+CMD ["version"]
