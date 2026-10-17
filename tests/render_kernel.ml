@@ -74,7 +74,7 @@ let[@warning "-32"] mathjax_in_head () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ ("methodology", "Methodology", "before") ]
+      ~site_pages:[ { Render.name = "methodology"; Render.title = "Methodology"; Render.body_md = "before" } ]
       ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
@@ -106,13 +106,13 @@ let[@warning "-32"] bilingual_pairs_complete () =
       ~policy_id:"bootstrap-v3" ~config:cfg_ru
       ~site_pages:
         [
-          ("manifesto", "Manifesto", "EN body");
-          ("workflow", "Workflow", "EN workflow");
+          { Render.name = "manifesto"; Render.title = "Manifesto"; Render.body_md = "EN body" };
+          { Render.name = "workflow"; Render.title = "Workflow"; Render.body_md = "EN workflow" };
         ]
       ~site_pages_ru:
         [
-          ("manifesto", "Manifesto / RU", "RU body");
-          ("readme", "README / RU", "RU readme");
+          { Render.name = "manifesto"; Render.title = "Manifesto / RU"; Render.body_md = "RU body" };
+          { Render.name = "readme"; Render.title = "README / RU"; Render.body_md = "RU readme" };
         ]
       ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
@@ -152,16 +152,16 @@ let[@warning "-32"] lang_toggle_en_no_suffix () =
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:
         [
-          ("manifesto", "Manifesto", "EN body");
-          ("axioms", "Axioms", "EN axioms");
+          { Render.name = "manifesto"; Render.title = "Manifesto"; Render.body_md = "EN body" };
+          { Render.name = "axioms"; Render.title = "Axioms"; Render.body_md = "EN axioms" };
         ]
       ~site_pages_ru:
         [
-          ("manifesto", "Manifesto / RU", "RU body");
-          ("axioms", "Axioms / RU", "RU axioms");
+          { Render.name = "manifesto"; Render.title = "Manifesto / RU"; Render.body_md = "RU body" };
+          { Render.name = "axioms"; Render.title = "Axioms / RU"; Render.body_md = "RU axioms" };
         ]
       ~site_pages_zh:
-        [ ("axioms", "Axioms / ZH", "ZH axioms") ]
+        [ { Render.name = "axioms"; Render.title = "Axioms / ZH"; Render.body_md = "ZH axioms" } ]
       ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let body_of path =
@@ -485,7 +485,7 @@ let[@warning "-32"] mathjax_in_head_when_enabled () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ ("methodology", "Methodology", "before") ]
+      ~site_pages:[ { Render.name = "methodology"; Render.title = "Methodology"; Render.body_md = "before" } ]
       ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
@@ -524,7 +524,7 @@ let[@warning "-32"] mathjax_no_dollar_delimiters () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ ("methodology", "Methodology", "before") ]
+      ~site_pages:[ { Render.name = "methodology"; Render.title = "Methodology"; Render.body_md = "before" } ]
       ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
@@ -548,7 +548,7 @@ let[@warning "-32"] mathjax_uses_latex_delimiters () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ ("methodology", "Methodology", "before") ]
+      ~site_pages:[ { Render.name = "methodology"; Render.title = "Methodology"; Render.body_md = "before" } ]
       ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
@@ -639,7 +639,7 @@ let[@warning "-32"] packages_page_has_grid () =
   let pages =
     Render.build_pages ~package_html:pkg_html ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ ("packages", "Packages", "prose body") ]
+      ~site_pages:[ { Render.name = "packages"; Render.title = "Packages"; Render.body_md = "prose body" } ]
       ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "packages.html") pages in
@@ -657,10 +657,10 @@ let[@warning "-32"] ru_nav_omits_missing_sibling () =
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:
         [
-          ("methodology", "Methodology", "EN methodology");
-          ("manifesto", "Manifesto", "EN manifesto");
+          { Render.name = "methodology"; Render.title = "Methodology"; Render.body_md = "EN methodology" };
+          { Render.name = "manifesto"; Render.title = "Manifesto"; Render.body_md = "EN manifesto" };
         ]
-      ~site_pages_ru:[ ("manifesto", "Manifesto / RU", "RU manifesto") ] ~site_pages_zh:[]
+      ~site_pages_ru:[ { Render.name = "manifesto"; Render.title = "Manifesto / RU"; Render.body_md = "RU manifesto" } ] ~site_pages_zh:[]
       ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let methodology =
@@ -696,7 +696,7 @@ let[@warning "-32"] footer_mathc_render () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ ("home", "Home", "body") ]
+      ~site_pages:[ { Render.name = "home"; Render.title = "Home"; Render.body_md = "body" } ]
       ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "index.html") pages in
@@ -952,7 +952,7 @@ let[@warning "-32"] footer_links_github_origin () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ ("home", "Home", "body") ]
+      ~site_pages:[ { Render.name = "home"; Render.title = "Home"; Render.body_md = "body" } ]
       ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "index.html") pages in
@@ -997,9 +997,9 @@ let[@warning "-32"] nav_has_github_link () =
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:
         [
-          ("home", "Home", "body");
-          ("axioms", "Axioms", "body");
-          ("spec/algebra-3.2", "Algebra", "body");
+          { Render.name = "home"; Render.title = "Home"; Render.body_md = "body" };
+          { Render.name = "axioms"; Render.title = "Axioms"; Render.body_md = "body" };
+          { Render.name = "spec/algebra-3.2"; Render.title = "Algebra"; Render.body_md = "body" };
         ]
       ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
