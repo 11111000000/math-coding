@@ -96,14 +96,14 @@ obligations:
   - id: five-clones-created
     claim: |
       `~/Projects/math-coding-experiment/<project>/` exists
-      for each of flask, express, cobra, ripgrep, sinatra
+      for each of click, express, cobra, ripgrep, sinatra
       (or substitute from backup list), populated by
       `git clone --depth=1` with no further modifications
       before the sub-agents begin.
     acceptance:
       all:
         - verifier: dir-exists
-          path: /home/az/Projects/math-coding-experiment/flask
+          path: /home/az/Projects/math-coding-experiment/click
           result: pass
         - verifier: dir-exists
           path: /home/az/Projects/math-coding-experiment/express
@@ -126,7 +126,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists
-          path: /home/az/Projects/math-coding-experiment/flask/experiment-report.md
+          path: /home/az/Projects/math-coding-experiment/click/experiment-report.md
           result: pass
         - verifier: file-exists
           path: /home/az/Projects/math-coding-experiment/express/experiment-report.md

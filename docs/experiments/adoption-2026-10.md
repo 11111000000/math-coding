@@ -30,7 +30,7 @@ do some work, write down what happened.
 
 **Antithesis (why naive framing fails).**
 
-1. *Selection bias.* Picking top-tier OSS projects (flask, express,
+1. *Selection bias.* Picking top-tier OSS projects (click, express,
    ripgrep) tells us nothing about the mid-size startups and solo
    maintainers who are the project's target adopters. Five famous projects
    ≠ five representative adopters.
@@ -103,7 +103,7 @@ experience:
 
 | # | Project | Lang | Size (LoC) | Governance | ADR practice | Build |
 |---|---------|------|------------|------------|--------------|-------|
-| P1 | `pallets/flask` | Python | ~30k | Pallets org | none | pip + pytest + tox |
+| P1 | `pallets/click` | Python | ~10k | Pallets org | none | pip + pytest |
 | P2 | `expressjs/express` | JS | ~12k | OpenJS Foundation | adr-tools | npm + Mocha |
 | P3 | `spf13/cobra` | Go | ~10k | spf13 (incubating CNCF) | none | go modules + go test |
 | P4 | `BurntSushi/ripgrep` | Rust | ~30k | BurntSushi + GitHub | none | cargo + cargo test |
@@ -111,8 +111,11 @@ experience:
 
 **Rationale per pick.**
 
-- **flask** — canonical micro-framework, large install base, clean
-  governance. Tests will be the natural "obligation" target.
+- **click** — canonical Python CLI library, mid-size, large install
+  base, clean governance. Sized for first-time adoption; tests
+  in pytest will be the natural "obligation" target. (Was `flask`
+  in the draft; switched to a mid-size Python pick per user,
+  2026-10-17.)
 - **express** — the canonical adr-tools case: `docs/adr/` exists in the
   upstream repo. This exercises `mathc adopt` → `mathc import-adr` on
   the highest-quality brownfield case.
@@ -143,7 +146,7 @@ Each project gets three sessions, in order:
 project and formalise it as a math-coding decision. Examples per
 project:
 
-- flask: "we test against Python 3.x .. 3.x  (TBD from setup.cfg)"
+- click: "we test against Python 3.x .. 3.x  (TBD from setup.cfg)"
 - express: "we maintain docs/adr/ as the architectural record"
 - cobra: "we support the go versions listed in go.mod"
 - ripgrep: "PCRE2 is a build-time optional feature gated by --features pcre2"
@@ -162,7 +165,7 @@ verifiable obligation.
 becomes a decision with a `tests/cli/<file>.t` verifying the change
 landed. Examples:
 
-- flask: bump a doc-version reference; obligation: tests/doc-version.t
+- click: bump a doc-version reference; obligation: tests/doc-version.t
 - express: import an existing `docs/adr/0001-*.md` via
   `mathc import-adr --write`; obligation: validate-it
 - cobra: add a missing godoc to one exported function; obligation:
@@ -181,7 +184,7 @@ or a waiver (exception request).
 
 **Action per project.**
 
-- flask: write a `decisions/waivers/<id>.yaml` requesting an exception
+- click: write a `decisions/waivers/<id>.yaml` requesting an exception
   on a non-blocking nit (e.g. one doc typo cannot be fixed without
   breaking docs build).
 - express: update an existing imported ADR to `state: superseded`
@@ -201,7 +204,7 @@ math-coding** as a control. The orchestrator records:
 - tools used;
 - outcome.
 
-The choice of which T is the control rotates (T1-control for flask,
+The choice of which T is the control rotates (T1-control for click,
 T2-control for express, etc.) so no single task template is over- or
 under-represented.
 
@@ -280,16 +283,22 @@ Each event recorded as:
 
 ### Phase 2 — Integration orchestration (~30 min)
 
-- For each project, kick off a `paseo_create_agent` background task that:
+- For each (project, task) pair, kick off a `paseo_create_agent`
+  background task. **One sub-agent per task.** 5 projects ×
+  3 tasks = 15 background agents running in parallel.
+- The orchestrator (this agent) executes the 5 control tasks
+  (one per project) inline, recording the same metrics.
+- Each sub-agent:
   1. Reads `docs/experiments/adoption-2026-10.md` (this file).
   2. Reads `decisions/adoption-experiment-design-2026-10.yaml`.
   3. Reads the project's README + CONTRIBUTING + ADRs (if any).
-  4. Executes T1, T2, T3 (one of which is the control).
-  5. Writes `~/Projects/math-coding-experiment/<project>/experiment-report.md`
-     containing all metrics + friction events.
-  6. Returns the path to that report.
-- The orchestrator (this agent) does not interfere with the sub-agents'
-  worktrees; sub-agents work in their own subdirectories.
+  4. Executes its single assigned task (T1 or T2 or T3).
+  5. Writes its section to
+     `~/Projects/math-coding-experiment/<project>/experiment-report.md`
+     (one section per task; the orchestrator collates).
+  6. Returns the path to the report section.
+- The orchestrator does not interfere with sub-agents' work;
+  sub-agents work in their own subdirectory under the project.
 
 ### Phase 3 — Analysis (~30 min)
 
