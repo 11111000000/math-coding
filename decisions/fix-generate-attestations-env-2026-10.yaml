@@ -1,0 +1,129 @@
+---
+schema: math-coding/3.3
+id: fix-generate-attestations-env-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:2de4d3d94893005d5c924bad508180930e771f2fd15e46817eab537458fbf107"
+yaml_sha: "sha256:2de4d3d94893005d5c924bad508180930e771f2fd15e46817eab537458fbf107"
+
+intent: |
+  `scripts/generate-attestations.py` writes one attestation JSON per
+  TSV row to `<repo_root>/attestations`, hard-coding the path. Every
+  adopter who runs the script against an external project (not the
+  math-coding tree) ends up writing attestation files into the
+  math-coding repo's own tree, polluting it (adoption-2026-10 §10.5
+  #5, R5). This decision makes the script honour
+  `MATH_CODING_ATTESTATIONS_DIR` (and declares
+  `MATH_CODING_DECISIONS_DIR` for kernel parity) so a non-math-coding
+  adopter can redirect the output to a sandbox directory. The
+  attestation JSON shape and the SHA-256-of-canonical-body id
+  computation are unchanged; only the destination directory is
+  configurable.
+
+commitment: |
+  `scripts/generate-attestations.py` reads `MATH_CODING_ATTESTATIONS_DIR`
+  from the environment, defaulting to `<repo_root>/attestations`. The
+  `MATH_CODING_DECISIONS_DIR` env var is also exposed (for parity with
+  the kernel's v3.4 resolver) even though the script does not
+  currently read decisions; the variable is declared so future
+  readers of the script see the env-var contract matches the kernel.
+  The script gains a `--help` flag whose text names both env vars.
+  The attestation JSON shape, the canonical-body SHA-256 id
+  computation, and the input manifest format are unchanged.
+  `python3 -m py_compile scripts/generate-attestations.py` continues
+  to exit 0.
+
+outcomes:
+  - id: env-var-honoured
+    statement: |
+      With `MATH_CODING_ATTESTATIONS_DIR=/tmp/alt-attestations-test`
+      exported, the script writes JSONs to
+      `/tmp/alt-attestations-test/` and does NOT touch the
+      math-coding tree's `attestations/` directory.
+
+scope:
+  paths:
+    - "scripts/generate-attestations.py"
+    - "tests/scripts/generate-attestations-env.t"
+
+obligations:
+  - id: env-var-overrides-default
+    claim: |
+      When `MATH_CODING_ATTESTATIONS_DIR` is set to a writable
+      directory, `scripts/generate-attestations.py` writes its
+      JSONs there instead of `<repo_root>/attestations`.
+    acceptance:
+      all:
+        - verifier: tests/scripts/generate-attestations-env.t
+          result: pass
+        - verifier: python3 -m py_compile scripts/generate-attestations.py
+          result: pass
+
+  - id: help-text-documents-env-vars
+    claim: |
+      `python3 scripts/generate-attestations.py --help` exits 0
+      and its help text names both
+      `MATH_CODING_ATTESTATIONS_DIR` and
+      `MATH_CODING_DECISIONS_DIR`.
+    acceptance:
+      all:
+        - verifier: tests/scripts/generate-attestations-env.t
+          result: pass
+
+  - id: json-shape-unchanged
+    claim: |
+      The attestation JSON written by the script has the same
+      `id = sha256:<canonical-body>` shape as before; only the
+      output directory is configurable.
+    acceptance:
+      all:
+        - verifier: tests/scripts/generate-attestations-env.t
+          result: pass
+
+counterexample: |
+  "The script is a one-time tooling helper used by humans
+  during a sub-decision; making it honour env vars adds API
+  surface for no real adoption gain." The counterargument fails
+  for two reasons:
+  (a) The 2026-10-17 adoption experiment
+  (`docs/experiments/adoption-2026-10.md` §10.5 #5, R5) recorded
+  this friction in 4/5 project sessions independently; the
+  env-var story is broken across the kernel AND the Python
+  fallback (R1 vs R5). A sub-decision that fixes one without
+  the other leaves the same trap on a different path.
+  (b) The script's contract is "duplicate what the OCaml
+  `mathc attest-batch` does" (per `scripts/generate-attestations.py`
+  docstring and per `ux-3-attest-batch-subcommand-2026-10`).
+  Honouring the env vars mirrors the kernel's `lib/path_config.ml`
+  resolver behaviour and prevents drift between the two
+  attestation-writer paths.
+
+axiom_link:
+  - A0
+
+assumptions:
+  - id: math-coding-tree-untouched-by-env
+    state: assumed
+    statement: |
+      Exporting `MATH_CODING_ATTESTATIONS_DIR` to a non-math-coding
+      path causes the script to write ONLY to that path; the
+      math-coding tree's `attestations/` directory is not touched.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the script still writes a file under
+      `<repo_root>/attestations` when the env var is set, the
+      cram fixture `tests/scripts/generate-attestations-env.t`
+      fails and the sub-decision is blocked.
+
+risk:
+  declared_triggers:
+    - output-dir-unwritable
+    - env-var-typo
+    - hash-canonicalisation-drift
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-adoption-fixes-2026-10@1
