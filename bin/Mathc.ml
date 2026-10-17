@@ -3946,12 +3946,12 @@ let[@warning "-32"] do_render () =
      generated only when the source file exists. *)
   let languages =
     match !lang_arg with
-    | "en" -> [ "en" ]
-    | "ru" -> [ "ru" ]
-    | "zh" -> [ "zh" ]
-    | "both" -> [ "en"; "ru" ]
-    | "all" -> [ "en"; "ru"; "zh" ]
-    | _ -> [ "en" ]
+    | "en" -> [ Render.En ]
+    | "ru" -> [ Render.Ru ]
+    | "zh" -> [ Render.Zh ]
+    | "both" -> [ Render.En; Render.Ru ]
+    | "all" -> [ Render.En; Render.Ru; Render.Zh ]
+    | _ -> [ Render.En ]
   in
 
   let config : Render.config =

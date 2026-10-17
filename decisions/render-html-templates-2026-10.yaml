@@ -1,0 +1,137 @@
+---
+schema: math-coding/3.3
+id: render-html-templates-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Реализовать дизайн из
+  `docs/plans/render-html-templates-2026-10.md`: вынести статический
+  HTML рендера из `lib/render/render.ml` в шаблонные файлы
+  `render/templates/*.html`, свести три копии домашней страницы
+  (`render_index` / `render_index_ru` / `render_index_zh`) к одной
+  параметризованной функции, и восстановить задекларированную
+  чистоту `lib/render` (OCAML_BEST_PRACTICES.md §1.3 — no I/O in
+  lib/). Ноль новых зависимостей.
+
+  Работа делится на две фазы:
+    A — типы и чистота (поведение не меняется): `type lang` как
+        вариант вместо `string`, `article` record вместо тройки,
+        `config.languages : lang list`, перенос `read_spec_files` /
+        `read_version_file` из `lib/` в `bin/`.
+    B — HTML в файлы: `render/templates/*.html`, `substitute`,
+        `render_index ~lang`, удаление `render_dashboard` /
+        `render_graph_html` из `.ml` и дубликатов `assets/*`.
+
+  Этот файл фиксирует фазу A; фаза B добавляется отдельной
+  ревизией (revision 2) либо отдельным решением, когда очередь
+  дойдёт до неё.
+
+commitment: |
+  После фазы A:
+    1. `Render.lang` — вариант `En | Ru | Zh` с `lang_code` /
+       `lang_of_code` / `lang_suffix`; `config.languages : lang list`.
+    2. `Render.article` — record `{ name; title; body_md }` вместо
+       тройки `(string * string * string)` в `build_pages`.
+    3. `lib/render/` не содержит I/O: `read_spec_files` и
+       `read_version_file` удалены из `lib/`; их обязанности
+       выполняет `bin/Mathc.ml` (который уже читает `site/` и
+       `VERSION`). Рендер получает `spec_files` и `version` как
+       данные через `render_input`.
+    4. Публичный контракт для вызывающих (`bin/Mathc.ml`,
+       `tests/render_kernel.ml`) обновлён синхронно; вывод
+       `mathc render` бит-в-бит не меняется (golden-снапшоты).
+
+axiom_link:
+  - A0
+  - A3
+
+outcomes:
+  - id: lang-is-variant
+    statement: |
+      `Render.lang = En | Ru | Zh`; строковые литералы `"en"`/`"ru"`/
+      `"zh"` в логике рендера заменены матчингом по варианту.
+  - id: no-io-in-render
+    statement: |
+      `lib/render/` не вызывает `Sys.readdir`, `Sys.file_exists`,
+      `open_in`, `open_in_bin`, `Sys.getenv_opt` — весь I/O и
+      чтение env перемещён в `bin/Mathc.ml`.
+  - id: behavior-preserving
+    statement: |
+      `tests/cli/render.t` (cram) и `tests/render_kernel.exe` дают
+      идентичный результат до и после фазы A.
+
+scope:
+  paths:
+    - lib/render/render.ml
+    - bin/Mathc.ml
+    - tests/render_kernel.ml
+    - docs/plans/render-html-templates-2026-10.md
+
+obligations:
+  - id: build-succeeds
+    claim: |
+      `dune build` собирает `mathcoding_render`, `bin/Mathc.exe`,
+      `bin/md_probe.exe`, `tests/render_kernel.exe` после фазы A.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+  - id: render-tests-pass
+    claim: |
+      `tests/render_kernel.exe` проходит; cram `tests/cli/render.t`
+      без изменений снапшотов.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.exe
+          result: pass
+        - verifier: tests/cli/render.t (cram)
+          result: pass
+  - id: no-io-in-lib-render
+    claim: |
+      grep по `lib/render/` не находит вызовов
+      `Sys.getenv_opt` / `Sys.readdir` / `Sys.file_exists` /
+      `open_in` / `open_in_bin`.
+    acceptance:
+      all:
+        - verifier: scripts/dev (grepproof)
+          result: pass
+
+counterexample:
+  claim: |
+    Перенос `read_version_file` из `default_config` сломает тест,
+    который сейчас ожидает, что `Render.default_config.version`
+    совпадает с содержимым `VERSION` (tests/render_kernel.ml).
+  mitigation: |
+    `default_config.version` становится статичным `default_version`
+    ("math-coding"); тест, проверявший совпадение с VERSION,
+    обновляется так, чтобы проверять версию через явный вызов
+    чтения в `bin/`, а не через `default_config`. Golden-снапшоты
+    подтверждают, что вывод сайта не изменился.
+
+risk:
+  declared_triggers:
+    - tests-assert-default-config-reads-version
+    - render-page-lang-string-literal-leaks
+    - cram-snapshot-diverges
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - render-module-split@1
+    - render-kernel-fixes-2026-10@1
+    - render-dashboard-2026-10@1
+
+links:
+  - docs/plans/render-html-templates-2026-10.md
+  - docs/plans/render-module-split-phase1-2026-10.md
+
+unknowns:
+  - Перенос `read_spec_files` в `bin/` требует, чтобы тесты,
+    которые грузят рендер из `_build/default/tests/`, передавали
+    `spec_files` явно; пустой список для тестов, которые спеки не
+    проверяют.

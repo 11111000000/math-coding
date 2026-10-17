@@ -29,6 +29,25 @@
 
 (* --- minimal Markdown subset --- *)
 
+(* Language of a rendered page. A variant, not a string, per
+   OCAML_BEST_PRACTICES.md §2.1. Declared before the navigation and
+   page renderers that match on it. *)
+type lang = En | Ru | Zh
+
+(* Canonical two-letter code for a language (`en` / `ru` / `zh`). *)
+let[@warning "-32"] lang_code = function En -> "en" | Ru -> "ru" | Zh -> "zh"
+
+(* Parse a CLI `--lang` code back into the variant. `None` on an
+   unknown code; the dispatcher falls back to English. *)
+let[@warning "-32"] lang_of_code = function
+  | "en" -> Some En
+  | "ru" -> Some Ru
+  | "zh" -> Some Zh
+  | _ -> None
+
+(* File-name suffix for a language: `""` for En, `.ru`/`.zh` else. *)
+let[@warning "-32"] lang_suffix = function En -> "" | Ru -> ".ru" | Zh -> ".zh"
+
 (* Tiny string-set used by `build_pages` to track which article
    names have a Russian sibling. Implemented as a sorted list of
    strings; for the ≤ 16 entries `site/` carries this is faster
@@ -948,9 +967,9 @@ let[@warning "-32"] nav_groups_zh : nav_group list =
 
 let[@warning "-32"] nav_groups_for lang =
   match lang with
-  | "ru" -> nav_groups_ru
-  | "zh" -> nav_groups_zh
-  | _ -> nav_groups_en
+  | Ru -> nav_groups_ru
+  | Zh -> nav_groups_zh
+  | En -> nav_groups_en
 
 (* `sibling_langs` is the list of additional languages for which
    the current page has a sibling rendering. The English page
@@ -973,10 +992,10 @@ let[@warning "-32"] lang_href_for ~lang ~page_key =
      `index.<lang>.html`. Mirrored by `sibling_translation_href`'s
      per-call propagation. *)
   match page_key, lang with
-  | "home", "en" -> "index.html"
-  | "home", l -> "index." ^ l ^ ".html"
-  | _, "en" -> page_key ^ ".html"
-  | _, l -> page_key ^ "." ^ l ^ ".html"
+  | "home", En -> "index.html"
+  | "home", l -> "index." ^ lang_code l ^ ".html"
+  | _, En -> page_key ^ ".html"
+  | _, l -> page_key ^ "." ^ lang_code l ^ ".html"
 
 let[@warning "-32"] sibling_translation_href ~lang ~page_key ~sibling_langs =
   (* `sibling_langs` is the closed set of non-source languages for
@@ -1042,8 +1061,8 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_lang
     if page_key = "home" then " class=\"nav-link active\""
     else " class=\"nav-link\""
   in
-  let home_href = if lang = "ru" then "index.ru.html" else "index.html" in
-  let home_label = if lang = "ru" then "Главная" else "Home" in
+  let home_href = "index" ^ lang_suffix lang ^ ".html" in
+  let home_label = if lang = Ru then "Главная" else "Home" in
   Printf.bprintf buf "    <li class=\"nav-item-direct\">\
      <a%s href=\"%s\">%s</a></li>\n"
     home_active_cls home_href home_label;
@@ -1127,11 +1146,11 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_lang
        (fun other_lang ->
          if other_lang <> lang then
            let href = lang_href_for ~lang:other_lang ~page_key in
-           let other_label = String.uppercase_ascii other_lang in
+           let other_label = String.uppercase_ascii (lang_code other_lang) in
            Printf.bprintf buf
              "  <a class=\"lang-toggle\" href=\"%s\" hreflang=\"%s\" \
               lang=\"%s\">%s</a>\n"
-             href other_lang other_lang other_label)
+             href (lang_code other_lang) (lang_code other_lang) other_label)
        sibling_langs);
   Buffer.add_string buf "</nav>\n";
   Buffer.contents buf
@@ -1158,7 +1177,7 @@ let[@warning "-32"] render_footer ~lang ~version ~page_key ~sibling_langs =
           if other_lang = lang then None
           else
             let href = lang_href_for ~lang:other_lang ~page_key in
-            let other_label = String.uppercase_ascii other_lang in
+            let other_label = String.uppercase_ascii (lang_code other_lang) in
             Some
               (Printf.sprintf "<a href=\"%s\">%s</a>"
                  (html_escape href) other_label))
@@ -1267,7 +1286,7 @@ Printf.sprintf
      <script defer src=\"assets/site.js\"></script>\n\
      </body>\n\
      </html>\n"
-    lang head
+    (lang_code lang) head
     (render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_langs)
     body
     (render_footer ~lang ~version ~page_key ~sibling_langs)
@@ -2265,7 +2284,7 @@ type config = {
   site_base : string;
   enable_mathjax : bool;
   enable_lang_toggle : bool;
-  languages : string list;
+  languages : lang list;
   version : string;
 }
 
@@ -2392,8 +2411,8 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
       (fun acc (name, _, _) -> String_set.add name acc)
       String_set.empty site_pages_zh
   in
-  let ru_enabled = List.mem "ru" config.languages in
-  let zh_enabled = List.mem "zh" config.languages in
+  let ru_enabled = List.mem Ru config.languages in
+  let zh_enabled = List.mem Zh config.languages in
   let ru_keys = if ru_enabled then String_set.add "home" ru_keys else ru_keys in
   let zh_keys = if zh_enabled then String_set.add "home" zh_keys else zh_keys in
 
@@ -2409,20 +2428,14 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
      alternate. *)
   let sibling_langs_for name lang =
     let acc = ref [] in
-    if lang <> "en" then acc := "en" :: !acc;
-    if lang <> "ru" && String_set.mem name ru_keys then
-      acc := "ru" :: !acc;
-    if lang <> "zh" && String_set.mem name zh_keys then
-      acc := "zh" :: !acc;
+    if lang <> En then acc := En :: !acc;
+    if lang <> Ru && String_set.mem name ru_keys then acc := Ru :: !acc;
+    if lang <> Zh && String_set.mem name zh_keys then acc := Zh :: !acc;
     List.rev !acc
   in
 
   let render_lang_page lang (name, title, body_md) =
-    let page_path =
-      match lang with
-      | "en" -> name ^ ".html"
-      | l -> name ^ "." ^ l ^ ".html"
-    in
+    let page_path = name ^ lang_suffix lang ^ ".html" in
     let page_title = title ^ " — math-coding" in
     let body_md_parsed = md_parse body_md in
     (* The `packages` page appends the live kernel package grid
@@ -2469,12 +2482,12 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
     {
       path = "index.html";
       body =
-        render_page ~lang:"en" ~page_key:"home"
+        render_page ~lang:En ~page_key:"home"
           ~title:(Printf.sprintf "math-coding %s" version)
           ~body:index_body_en ~site_base:config.site_base
           ~enable_mathjax:config.enable_mathjax
           ~enable_lang_toggle:config.enable_lang_toggle
-          ~sibling_langs:(sibling_langs_for "home" "en")
+          ~sibling_langs:(sibling_langs_for "home" En)
           ~version ~extra_head:"";
     }
     :: !pages;
@@ -2490,12 +2503,12 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
       {
         path = "index.ru.html";
         body =
-          render_page ~lang:"ru" ~page_key:"home"
+          render_page ~lang:Ru ~page_key:"home"
             ~title:(Printf.sprintf "math-coding %s" version)
             ~body:index_body_ru ~site_base:config.site_base
             ~enable_mathjax:config.enable_mathjax
             ~enable_lang_toggle:config.enable_lang_toggle
-            ~sibling_langs:(sibling_langs_for "home" "ru")
+            ~sibling_langs:(sibling_langs_for "home" Ru)
             ~version ~extra_head:"";
       }
       :: !pages
@@ -2512,21 +2525,21 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
       {
         path = "index.zh.html";
         body =
-          render_page ~lang:"zh" ~page_key:"home"
+          render_page ~lang:Zh ~page_key:"home"
             ~title:(Printf.sprintf "math-coding %s" version)
             ~body:index_body_zh ~site_base:config.site_base
             ~enable_mathjax:config.enable_mathjax
             ~enable_lang_toggle:config.enable_lang_toggle
-            ~sibling_langs:(sibling_langs_for "home" "zh")
+            ~sibling_langs:(sibling_langs_for "home" Zh)
             ~version ~extra_head:"";
       }
       :: !pages
   end;
 
   (* Per-language articles. *)
-  List.iter (fun t -> pages := render_lang_page "en" t :: !pages) site_pages;
-  List.iter (fun t -> pages := render_lang_page "ru" t :: !pages) site_pages_ru;
-  List.iter (fun t -> pages := render_lang_page "zh" t :: !pages) site_pages_zh;
+  List.iter (fun t -> pages := render_lang_page En t :: !pages) site_pages;
+  List.iter (fun t -> pages := render_lang_page Ru t :: !pages) site_pages_ru;
+  List.iter (fun t -> pages := render_lang_page Zh t :: !pages) site_pages_zh;
 
   (* Per-decision pages (English-only). The body is built from
      two halves: the YAML narrative (intent / commitment / outcomes /
@@ -2609,7 +2622,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
             Filename.concat (Path_config.resolve_decisions_dir ())
               (decision_id ^ ".html");
           body =
-            render_page ~lang:"en" ~page_key:"packages"
+            render_page ~lang:En ~page_key:"packages"
               ~title:(Printf.sprintf "%s — math-coding" decision_id)
               ~body ~site_base:config.site_base
               ~enable_mathjax:config.enable_mathjax
@@ -2627,7 +2640,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
         {
           path = Filename.concat "axioms" (axiom_id ^ ".html");
           body =
-            render_page ~lang:"en" ~page_key:"axioms"
+            render_page ~lang:En ~page_key:"axioms"
               ~title:(Printf.sprintf "Axiom %s" axiom_id)
               ~body ~site_base:config.site_base
               ~enable_mathjax:config.enable_mathjax
@@ -2654,7 +2667,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
         {
           path = Filename.concat "spec" (name ^ ".html");
           body =
-            render_page ~lang:"en" ~page_key:("spec/" ^ name)
+            render_page ~lang:En ~page_key:("spec/" ^ name)
               ~title:(Printf.sprintf "%s — math-coding spec" name)
               ~body ~site_base:config.site_base ~enable_mathjax:true
               ~enable_lang_toggle:config.enable_lang_toggle ~sibling_langs:[]
@@ -2816,7 +2829,7 @@ let[@warning "-32"] default_config =
        programmatically. *)
     enable_mathjax = true;
     enable_lang_toggle = true;
-    languages = [ "en" ];
+    languages = [ En ];
     (* Default version reads from `./VERSION` at render time. The
        CLI dispatcher overrides this with whatever the current
        working directory's VERSION file holds, so a site deployed

@@ -99,7 +99,7 @@ let[@warning "-32"] base_href_default () =
 
 let[@warning "-32"] bilingual_pairs_complete () =
   let cfg_ru =
-    { Render.default_config with Render.languages = [ "en"; "ru" ] }
+    { Render.default_config with Render.languages = [ Render.En; Render.Ru ] }
   in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
@@ -145,7 +145,7 @@ let[@warning "-32"] bilingual_pairs_complete () =
    with no language suffix. *)
 let[@warning "-32"] lang_toggle_en_no_suffix () =
   let cfg =
-    { Render.default_config with Render.languages = [ "en"; "ru"; "zh" ] }
+    { Render.default_config with Render.languages = [ Render.En; Render.Ru; Render.Zh ] }
   in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
@@ -926,7 +926,7 @@ let[@warning "-32"] ru_home_sibling_is_index_html () =
      `decisions/site-broken-links-2026-10@1`, obligation
      `ru-home-sibling-resolves`. *)
   let cfg : Render.config =
-    { Render.default_config with Render.languages = [ "en"; "ru" ] }
+    { Render.default_config with Render.languages = [ Render.En; Render.Ru ] }
   in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
