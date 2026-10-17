@@ -1,0 +1,95 @@
+<section class="mathc-hero">
+<img class="mathc-hero-logo" src="assets/logo.svg" alt="">
+<h1>math-coding</h1>
+<p class="mathc-hero-version">{{version}}</p>
+<p class="mathc-hero-tagline">A risk-adaptive assurance protocol for software changes. Every architectural commitment is written
+<em>before</em> the code lands, and the kernel checks it on every
+merge.</p>
+<div class="mathc-hero-cta">
+<a class="mathc-cta mathc-cta-primary" href="https://github.com/11111000000/math-coding#install">Install mathc</a>
+<a class="mathc-cta mathc-cta-secondary" href="methodology.html">How it works</a>
+</div>
+</section>
+<section class="mathc-section mathc-quickstart">
+<h2>Quick start &mdash; 60&nbsp;seconds</h2>
+<ol class="mathc-steps">
+<li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>
+Installs the <code>mathc</code> binary and drops a user-skill into <code>~/.config/opencode/skills/</code>.</li>
+<li><code>mathc new-decision my-first-change</code><br>
+Creates <code>decisions/my-first-change.yaml</code> with the template, validates it, and tells you what is missing.</li>
+<li><code>mathc self-check</code><br>
+Reads the decision store, walks every obligation, and prints one verdict per row: <code>pass</code>, <code>fail</code>, <code>unknown</code>, <code>stale</code> or <code>missing</code>. CI exits non-zero on any non-pass.</li>
+</ol>
+</section>
+<section class="mathc-section mathc-moderation">
+<h2>Moderation in one screen</h2>
+<p>math-coding gives a reviewer <em>exactly one screen</em>: the claim the author made, the evidence that backs it, and a single
+verdict. No more scrolling through a 30-file PR to see whether
+the change actually does what the commit message says.</p>
+<pre class="mathc-terminal"><code>$ mathc gate main feature/auth-fix
+
+
+
+  policy:    bootstrap-v3
+
+  obligations:  17
+
+  verdicts:
+
+    pass:    14   {{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}
+
+    unknown:  2   (waiver: vendor:openssl-3.0-rc4)
+
+    missing:  1   obligation:back-compat-test
+
+  verdict:   <span class="mathc-verdict-unknown">unknown</span>
+
+  exit:      1</code></pre>
+<p>The <code>gate</code> subcommand evaluates the change against the active policy. The <code>self-check</code> subcommand is the machine-readable version, designed to run in CI on every push and every merge.</p>
+</section>
+<section class="mathc-section mathc-methodology">
+<h2>The methodology</h2>
+<p class="mathc-section-lede">Four primitives, each one a plain
+file you can grep, review and revert:</p>
+<div class="mathc-cards">
+<article class="mathc-card">
+<h3>Intent</h3>
+<p>Every change begins with one sentence in plain language: what should become true?</p>
+</article>
+<article class="mathc-card">
+<h3>Decision</h3>
+<p>The intent becomes a YAML packet in <code>decisions/</code> that names the obligations it creates, the risks it accepts, and the counter-example that would falsify it.</p>
+</article>
+<article class="mathc-card">
+<h3>Obligation</h3>
+<p>A claim that can be checked by code: a fixture, a property, a benchmark, a static rule. Each one has a verdict.</p>
+</article>
+<article class="mathc-card">
+<h3>Attestation</h3>
+<p>Evidence that the obligation was met on a specific commit. Tests, reviewers, audits &mdash; all stored as first-class artefacts, never as screenshots.</p>
+</article>
+</div>
+<p class="mathc-section-more">
+The working chain in full:
+<code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>.
+Read the <a href="methodology.html">methodology</a> for the formal algebra, or <a href="foundations.html">foundations</a> for the philosophical anchors.</p>
+</section>
+<section class="mathc-section mathc-adopt">
+<h2>Adopt math-coding in your repo</h2>
+<p>The protocol is small: every change writes a
+<code>decisions/&lt;id&gt;.yaml</code> packet before the code
+lands. Read the
+<a href="https://github.com/11111000000/math-coding/blob/main/USAGE.md">adoption runbook</a>
+for a 10-minute walk-through, or clone the repo and run
+<code>mathc self-check</code> against a sample decision to see
+the verdicts on your machine.</p>
+<div class="mathc-hero-cta">
+<a class="mathc-cta mathc-cta-primary" href="https://github.com/11111000000/math-coding">Clone on GitHub</a>
+<a class="mathc-cta mathc-cta-secondary" href="https://github.com/11111000000/math-coding/blob/main/USAGE.md">Read the runbook</a>
+<a class="mathc-cta mathc-cta-secondary" href="feed.xml">Subscribe via RSS</a>
+</div>
+</section>
+<p class="mathc-callout">
+Every page on this site is produced by the math-coding kernel. The methodology is the artifact; the artifact follows the methodology.</p>
+<p class="mathc-meta">Active policy: <code>{{policy_id}}</code>. The full
+obligation store lives at <a href="packages.html">packages</a> and the axioms in <a href="axioms.html">axioms</a>.</p>

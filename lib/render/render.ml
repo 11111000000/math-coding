@@ -34,6 +34,17 @@
    page renderers that match on it. *)
 type lang = En | Ru | Zh
 
+(* Page templates read from files by the dispatcher. *)
+type templates = { index : (lang * string) list }
+
+(* Replace every `{{key}}` occurrence with its value. Fixed-string
+   substitution, NOT a template engine. *)
+let[@warning "-32"] substitute (vars : (string * string) list) s =
+  List.fold_left
+    (fun acc (key, value) ->
+      Str.global_replace (Str.regexp_string ("{{" ^ key ^ "}}")) value acc)
+    s vars
+
 (* Canonical two-letter code for a language (`en` / `ru` / `zh`). *)
 let[@warning "-32"] lang_code = function En -> "en" | Ru -> "ru" | Zh -> "zh"
 
@@ -1306,361 +1317,17 @@ let[@warning "-32"] render_axioms_section axioms =
   Buffer.add_string buf "</section>\n";
   Buffer.contents buf
 
-let[@warning "-32"] render_index ~package_html:_ ~axioms_html:_ ~policy_id ~version
-    =
-  let check = "\xe2\x9c\x94" in
-  Printf.sprintf
-    "<section class=\"mathc-hero\">\n\
-     <img class=\"mathc-hero-logo\" src=\"assets/logo.svg\" alt=\"\">\n\
-     <h1>math-coding</h1>\n\
-     <p class=\"mathc-hero-version\">%s</p>\n\
-     <p class=\"mathc-hero-tagline\">A risk-adaptive assurance protocol \
-     for software changes. Every architectural commitment is written\n\
-     <em>before</em> the code lands, and the kernel checks it on every\n\
-     merge.</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding#install\">Install mathc</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"methodology.html\">How it works</a>\n\
-     </div>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-quickstart\">\n\
-     <h2>Quick start &mdash; 60&nbsp;seconds</h2>\n\
-     <ol class=\"mathc-steps\">\n\
-     <li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>\n\
-     Installs the <code>mathc</code> binary and drops a user-skill \
-     into <code>~/.config/opencode/skills/</code>.</li>\n\
-     <li><code>mathc new-decision my-first-change</code><br>\n\
-     Creates <code>decisions/my-first-change.yaml</code> with the \
-     template, validates it, and tells you what is missing.</li>\n\
-     <li><code>mathc self-check</code><br>\n\
-     Reads the decision store, walks every obligation, and prints \
-     one verdict per row: <code>pass</code>, <code>fail</code>, \
-     <code>unknown</code>, <code>stale</code> or <code>missing</code>. \
-     CI exits non-zero on any non-pass.</li>\n\
-     </ol>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-moderation\">\n\
-     <h2>Moderation in one screen</h2>\n\
-     <p>math-coding gives a reviewer <em>exactly one screen</em>: the \
-     claim the author made, the evidence that backs it, and a single\n\
-     verdict. No more scrolling through a 30-file PR to see whether\n\
-     the change actually does what the commit message says.</p>\n\
-     <pre class=\"mathc-terminal\"><code>$ mathc gate main feature/auth-fix\n\
-\n\
-\n\
-\n  policy:    bootstrap-v3\n\
-\n  obligations:  17\n\
-\n  verdicts:\n\
-\n    pass:    14   %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n\
-\n    unknown:  2   (waiver: vendor:openssl-3.0-rc4)\n\
-\n    missing:  1   obligation:back-compat-test\n\
-\n  verdict:   <span class=\"mathc-verdict-unknown\">unknown</span>\n\
-\n  exit:      1</code></pre>\n\
-     <p>The <code>gate</code> subcommand evaluates the change against \
-     the active policy. The <code>self-check</code> subcommand is the \
-     machine-readable version, designed to run in CI on every push \
-     and every merge.</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-methodology\">\n\
-     <h2>The methodology</h2>\n\
-     <p class=\"mathc-section-lede\">Four primitives, each one a plain\n\
-     file you can grep, review and revert:</p>\n\
-     <div class=\"mathc-cards\">\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Intent</h3>\n\
-     <p>Every change begins with one sentence in plain language: \
-     what should become true?</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Decision</h3>\n\
-     <p>The intent becomes a YAML packet in <code>decisions/</code> \
-     that names the obligations it creates, the risks it accepts, \
-     and the counter-example that would falsify it.</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Obligation</h3>\n\
-     <p>A claim that can be checked by code: a fixture, a property, \
-     a benchmark, a static rule. Each one has a verdict.</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Attestation</h3>\n\
-     <p>Evidence that the obligation was met on a specific commit. \
-     Tests, reviewers, audits &mdash; all stored as first-class \
-     artefacts, never as screenshots.</p>\n\
-     </article>\n\
-     </div>\n\
-     <p class=\"mathc-section-more\">\n\
-     The working chain in full:\n\
-     <code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>.\n\
-     Read the <a href=\"methodology.html\">methodology</a> for the \
-     formal algebra, or <a href=\"foundations.html\">foundations</a> \
-     for the philosophical anchors.</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-adopt\">\n\
-     <h2>Adopt math-coding in your repo</h2>\n\
-     <p>The protocol is small: every change writes a\n\
-     <code>decisions/&lt;id&gt;.yaml</code> packet before the code\n\
-     lands. Read the\n\
-     <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">adoption runbook</a>\n\
-     for a 10-minute walk-through, or clone the repo and run\n\
-     <code>mathc self-check</code> against a sample decision to see\n\
-     the verdicts on your machine.</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding\">Clone on GitHub</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">Read the runbook</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"feed.xml\">Subscribe via RSS</a>\n\
-     </div>\n\
-     </section>\n\
-     <p class=\"mathc-callout\">\n\
-     Every page on this site is produced by the math-coding kernel. \
-     The methodology is the artifact; the artifact follows the \
-     methodology.</p>\n\
-     <p class=\"mathc-meta\">Active policy: <code>%s</code>. The full\n\
-     obligation store lives at <a href=\"packages.html\">packages</a> \
-     and the axioms in <a href=\"axioms.html\">axioms</a>.</p>\n"
-    (html_escape version)
-    check check check check check check check check check check check
-    check check check
-    (html_escape policy_id)
-
-let[@warning "-32"] render_index_ru ~package_html:_ ~axioms_html:_ ~policy_id
-    ~version =
-  let check = "\xe2\x9c\x94" in
-  Printf.sprintf
-    "<section class=\"mathc-hero\">\n\
-     <img class=\"mathc-hero-logo\" src=\"assets/logo.svg\" alt=\"\">\n\
-     <h1>math-coding</h1>\n\
-     <p class=\"mathc-hero-version\">%s</p>\n\
-     <p class=\"mathc-hero-tagline\">\xd0\x9f\xd1\x80\xd0\xbe\xd1\x82\xd0\xbe\xd0\xba\xd0\xbe\xd0\xbb \
-     обеспечения качества \xd0\xb4\xd0\xbb\xd1\x8f \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb9 \xd0\xb2\n\
-     \xd0\xbf\xd1\x80\xd0\xbe\xd0\xb3\xd1\x80\xd0\xb0\xd0\xbc\xd0\xbc\xd0\xbd\xd0\xbe\xd0\xbc \xd0\xbe\xd0\xb1\xd0\xb5\xd1\x81\xd0\xbf\xd0\xb5\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb8. \
-     \xd0\x9a\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xb0\xd1\x80\xd1\x85\xd0\xb8\xd1\x82\xd0\xb5\xd0\xba\xd1\x82\xd1\x83\xd1\x80\xd0\xbd\xd0\xbe\xd0\xb5\n\
-     \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xb7\xd0\xb0\xd0\xbf\xd0\xb8\xd1\x81\xd1\x8b\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \
-     <em>\xd0\xb4\xd0\xbe</em> \xd1\x82\xd0\xbe\xd0\xb3\xd0\xbe, \xd0\xba\xd0\xb0\xd0\xba \xd0\xba\xd0\xbe\xd0\xb4 \xd0\xbf\xd0\xbe\xd0\xbf\xd0\xb0\xd0\xb4\xd1\x91\xd1\x82\n\
-     \xd0\xb2 \xd0\xbe\xd1\x81\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xbd\xd1\x83\xd1\x8e \xd0\xb2\xd0\xb5\xd1\x82\xd0\xba\xd1\x83, \xd0\xb8 \xd1\x8f\xd0\xb4\xd1\x80\xd0\xbe \xd0\xbf\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x80\xd1\x8f\xd0\xb5\xd1\x82 \
-     \xd0\xb5\xd0\xb3\xd0\xbe \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xbc merge.</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding#install\">\xd0\xa3\xd1\x81\xd1\x82\xd0\xb0\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xb8\xd1\x82\xd1\x8c mathc</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"methodology.html\">\xd0\x9a\xd0\xb0\xd0\xba \xd1\x8d\xd1\x82\xd0\xbe \xd1\x80\xd0\xb0\xd0\xb1\xd0\xbe\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82</a>\n\
-     </div>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-quickstart\">\n\
-     <h2>\xd0\x91\xd1\x8b\xd1\x81\xd1\x82\xd1\x80\xd1\x8b\xd0\xb9 \xd1\x81\xd1\x82\xd0\xb0\xd1\x80\xd1\x82 &mdash; 60&nbsp;\xd1\x81\xd0\xb5\xd0\xba\xd1\x83\xd0\xbd\xd0\xb4</h2>\n\
-     <ol class=\"mathc-steps\">\n\
-     <li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>\n\
-     \xd0\xa3\xd1\x81\xd1\x82\xd0\xb0\xd0\xbd\xd0\xb0\xd0\xb2\xd0\xbb\xd0\xb8\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xb1\xd0\xb8\xd0\xbd\xd0\xb0\xd1\x80\xd0\xbd\xd0\xb8\xd0\xba <code>mathc</code> \xd0\xb8 \xd0\xba\xd0\xbb\xd0\xb0\xd0\xb4\xd1\x91\xd1\x82 \
-     user-skill \xd0\xb2 <code>~/.config/opencode/skills/</code>.</li>\n\
-     <li><code>mathc new-decision my-first-change</code><br>\n\
-     \xd0\xa1\xd0\xbe\xd0\xb7\xd0\xb4\xd0\xb0\xd1\x91\xd1\x82 <code>decisions/my-first-change.yaml</code> \xd0\xbf\xd0\xbe \xd1\x88\xd0\xb0\xd0\xb1\xd0\xbb\xd0\xbe\xd0\xbd\xd1\x83, \
-     \xd0\xb2\xd0\xb0\xd0\xbb\xd0\xb8\xd0\xb4\xd0\xb8\xd1\x80\xd1\x83\xd0\xb5\xd1\x82 \xd0\xb5\xd0\xb3\xd0\xbe \xd0\xb8 \xd1\x81\xd0\xbe\xd0\xbe\xd0\xb1\xd1\x89\xd0\xb0\xd0\xb5\xd1\x82, \xd1\x87\xd0\xb5\xd0\xb3\xd0\xbe \xd0\xbd\xd0\xb5 \xd1\x85\xd0\xb2\xd0\xb0\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82.</li>\n\
-     <li><code>mathc self-check</code><br>\n\
-     \xd0\xa7\xd0\xb8\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82 \xd1\x85\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xbb\xd0\xb8\xd1\x89\xd0\xb5 \xd1\x80\xd0\xb5\xd1\x88\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb9, \xd0\xbe\xd0\xb1\xd1\x85\xd0\xbe\xd0\xb4\xd0\xb8\xd1\x82 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xb8 \xd0\xbf\xd0\xb5\xd1\x87\xd0\xb0\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82\n\
-     \xd0\xbf\xd0\xbe \xd1\x81\xd1\x82\xd1\x80\xd0\xbe\xd0\xba\xd0\xb5 \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82\xd0\xb0: <code>pass</code>, <code>fail</code>, \
-     <code>unknown</code>, <code>stale</code> \xd0\xb8\xd0\xbb\xd0\xb8 <code>missing</code>. \
-     CI \xd0\xb7\xd0\xb0\xd0\xb2\xd0\xb5\xd1\x80\xd1\x88\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \xd1\x81 \xd0\xbd\xd0\xb5\xd0\xbd\xd1\x83\xd0\xbb\xd0\xb5\xd0\xb2\xd1\x8b\xd0\xbc \xd0\xba\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbc \xd0\xbf\xd1\x80\xd0\xb8 \xd0\xbb\xd1\x8e\xd0\xb1\xd0\xbe\xd0\xbc \xd0\xbd\xd0\xb5-pass.</li>\n\
-     </ol>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-moderation\">\n\
-     <h2>\xd0\x9c\xd0\xbe\xd0\xb4\xd0\xb5\xd1\x80\xd0\xb0\xd1\x86\xd0\xb8\xd1\x8f &mdash; \xd0\xbe\xd0\xb4\xd0\xb8\xd0\xbd \xd1\x8d\xd0\xba\xd1\x80\xd0\xb0\xd0\xbd</h2>\n\
-     <p>math-coding \xd0\xb4\xd0\xb0\xd1\x91\xd1\x82 \xd1\x80\xd0\xb5\xd0\xb2\xd1\x8c\xd1\x8e\xd0\xb5\xd1\x80\xd1\x83 <em>\xd1\x80\xd0\xbe\xd0\xb2\xd0\xbd\xd0\xbe \xd0\xbe\xd0\xb4\xd0\xb8\xd0\xbd \xd1\x8d\xd0\xba\xd1\x80\xd0\xb0\xd0\xbd</em>: \xd0\xb7\xd0\xb0\xd1\x8f\xd0\xb2\xd0\xbb\xd0\xb5\xd0\xbd\xd0\xbd\xd0\xbe\xd0\xb5\n\
-     \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5, \xd0\xb4\xd0\xbe\xd0\xba\xd0\xb0\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xb0, \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd1\x8b\xd1\x85 \xd0\xbe\xd0\xbd\xd0\xbe \xd0\xb4\xd0\xb5\xd1\x80\xd0\xb6\xd0\xb8\xd1\x82\xd1\x81\xd1\x8f, \xd0\xb8 \xd0\xbe\xd0\xb4\xd0\xb8\xd0\xbd\n\
-     \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82. \xd0\x91\xd0\xbe\xd0\xbb\xd1\x8c\xd1\x88\xd0\xb5 \xd0\xbd\xd0\xb5 \xd0\xbd\xd1\x83\xd0\xb6\xd0\xbd\xd0\xbe \xd0\xbf\xd1\x80\xd0\xbe\xd0\xbb\xd0\xb8\xd1\x81\xd1\x82\xd1\x8b\xd0\xb2\xd0\xb0\xd1\x82\xd1\x8c PR \xd0\xbd\xd0\xb0 30 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xbe\xd0\xb2, \xd1\x87\xd1\x82\xd0\xbe\xd0\xb1\xd1\x8b\n\
-     \xd0\xbf\xd0\xbe\xd0\xbd\xd1\x8f\xd1\x82\xd1\x8c, \xd0\xb4\xd0\xb5\xd0\xbb\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xbb\xd0\xb8 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x82\xd0\xbe, \xd1\x87\xd1\x82\xd0\xbe \xd0\xbe\xd0\xb1\xd0\xb5\xd1\x89\xd0\xb0\xd0\xb5\xd1\x82 commit-message.</p>\n\
-     <pre class=\"mathc-terminal\"><code>$ mathc gate main feature/auth-fix\n\
-\n\
-\n\
-\n  policy:    bootstrap-v3\n\
-\n  obligations:  17\n\
-\n  verdicts:\n\
-\n    pass:    14   %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n\
-\n    unknown:  2   (waiver: vendor:openssl-3.0-rc4)\n\
-\n    missing:  1   obligation:back-compat-test\n\
-\n  verdict:   <span class=\"mathc-verdict-unknown\">unknown</span>\n\
-\n  exit:      1</code></pre>\n\
-     <p>\xd0\x9f\xd0\xbe\xd0\xb4\xd0\xba\xd0\xbe\xd0\xbc\xd0\xb0\xd0\xbd\xd0\xb4\xd0\xb0 <code>gate</code> \xd0\xbe\xd1\x86\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd0\xbf\xd0\xbe \xd0\xb0\xd0\xba\xd1\x82\xd0\xb8\xd0\xb2\xd0\xbd\xd0\xbe\xd0\xb9\n\
-     \xd0\xbf\xd0\xbe\xd0\xbb\xd0\xb8\xd1\x82\xd0\xb8\xd0\xba\xd0\xb5. <code>self-check</code> &mdash; \xd0\xb5\xd1\x91 \xd0\xbc\xd0\xb0\xd1\x88\xd0\xb8\xd0\xbd\xd0\xbe\xd1\x87\xd0\xb8\xd1\x82\xd0\xb0\xd0\xb5\xd0\xbc\xd1\x8b\xd0\xb9\n\
-     \xd0\xb2\xd0\xb0\xd1\x80\xd0\xb8\xd0\xb0\xd0\xbd\xd1\x82, \xd1\x80\xd0\xb0\xd1\x81\xd1\x81\xd1\x87\xd0\xb8\xd1\x82\xd0\xb0\xd0\xbd\xd0\xbd\xd1\x8b\xd0\xb9 \xd0\xbd\xd0\xb0 \xd0\xb7\xd0\xb0\xd0\xbf\xd1\x83\xd1\x81\xd0\xba \xd0\xb2 CI \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xbc push \xd0\xb8 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xbc merge.</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-methodology\">\n\
-     <h2>\xd0\x9c\xd0\xb5\xd1\x82\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbb\xd0\xbe\xd0\xb3\xd0\xb8\xd1\x8f</h2>\n\
-     <p class=\"mathc-section-lede\">\xd0\xa7\xd0\xb5\xd1\x82\xd1\x8b\xd1\x80\xd0\xb5 \xd0\xbf\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb8\xd1\x82\xd0\xb8\xd0\xb2\xd0\xb0, \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd1\x8b\xd0\xb9 &mdash; \xd0\xbe\xd0\xb1\xd1\x8b\xd1\x87\xd0\xbd\xd1\x8b\xd0\xb9 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb, \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd1\x8b\xd0\xb9 \xd0\xbc\xd0\xbe\xd0\xb6\xd0\xbd\xd0\xbe\n\
-     \xd0\xb3\xd1\x80\xd0\xb5\xd0\xbf\xd0\xb0\xd1\x82\xd1\x8c, \xd1\x80\xd0\xb5\xd0\xb2\xd1\x8c\xd1\x8e\xd0\xb8\xd1\x82\xd1\x8c \xd0\xb8 \xd0\xbe\xd1\x82\xd0\xba\xd0\xb0\xd1\x82\xd1\x8b\xd0\xb2\xd0\xb0\xd1\x82\xd1\x8c:</p>\n\
-     <div class=\"mathc-cards\">\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Intent</h3>\n\
-     <p>\xd0\x9a\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd0\xbd\xd0\xb0\xd1\x87\xd0\xb8\xd0\xbd\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \xd1\x81 \xd0\xbe\xd0\xb4\xd0\xbd\xd0\xbe\xd0\xb3\xd0\xbe \xd0\xbf\xd1\x80\xd0\xb5\xd0\xb4\xd0\xbb\xd0\xbe\xd0\xb6\xd0\xb5\xd0\xbd\xd0\xb8\xd1\x8f \xd0\xbd\xd0\xb0\n\
-     \xd1\x87\xd0\xb5\xd0\xbb\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x87\xd0\xb5\xd1\x81\xd0\xba\xd0\xbe\xd0\xbc \xd1\x8f\xd0\xb7\xd1\x8b\xd0\xba\xd0\xb5: \xd1\x87\xd1\x82\xd0\xbe \xd0\xb4\xd0\xbe\xd0\xbb\xd0\xb6\xd0\xbd\xd0\xbe \xd1\x81\xd1\x82\xd0\xb0\xd1\x82\xd1\x8c \xd0\xbf\xd1\x80\xd0\xb0\xd0\xb2\xd0\xb4\xd0\xbe\xd0\xb9?</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Decision</h3>\n\
-     <p>Intent \xd0\xbf\xd1\x80\xd0\xb5\xd0\xb2\xd1\x80\xd0\xb0\xd1\x89\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \xd0\xb2 YAML-\xd0\xbf\xd0\xb0\xd0\xba\xd0\xb5\xd1\x82 \xd0\xb2 <code>decisions/</code>, \
-     \xd0\xb3\xd0\xb4\xd0\xb5 \xd0\xbf\xd0\xb5\xd1\x80\xd0\xb5\xd1\x87\xd0\xb8\xd1\x81\xd0\xbb\xd0\xb5\xd0\xbd\xd1\x8b \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xb0, \xd0\xbf\xd1\x80\xd0\xb8\xd0\xbd\xd1\x8f\xd1\x82\xd1\x8b\xd0\xb5 \xd1\x80\xd0\xb8\xd1\x81\xd0\xba\xd0\xb8 \xd0\xb8 \xd0\xba\xd0\xbe\xd0\xbd\xd1\x82\xd1\x80\xd0\xbf\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x80,\n\
-     \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd1\x8b\xd0\xb9 \xd0\xb5\xd0\xb3\xd0\xbe \xd0\xbe\xd0\xbf\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x80\xd0\xb3\xd0\xbd\xd0\xb5\xd1\x82.</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Obligation</h3>\n\
-     <p>\xd0\xa3\xd1\x82\xd0\xb2\xd0\xb5\xd1\x80\xd0\xb6\xd0\xb4\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5, \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd0\xbe\xd0\xb5 \xd0\xbc\xd0\xbe\xd0\xb6\xd0\xbd\xd0\xbe \xd0\xbf\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x80\xd0\xb8\xd1\x82\xd1\x8c \xd0\xba\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbc: \xd1\x84\xd0\xb8\xd0\xba\xd1\x81\xd1\x82\xd1\x83\xd1\x80\xd0\xb0, \
-     \xd1\x81\xd0\xb2\xd0\xbe\xd0\xb9\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe, \xd0\xb1\xd0\xb5\xd0\xbd\xd1\x87\xd0\xbc\xd0\xb0\xd1\x80\xd0\xba, \xd1\x81\xd1\x82\xd0\xb0\xd1\x82\xd0\xb8\xd1\x87\xd0\xb5\xd1\x81\xd0\xba\xd0\xbe\xd0\xb5 \xd0\xbf\xd1\x80\xd0\xb0\xd0\xb2\xd0\xb8\xd0\xbb\xd0\xbe. \xd0\xa3 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb3\xd0\xbe \xd0\xb5\xd1\x81\xd1\x82\xd1\x8c \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82.</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Attestation</h3>\n\
-     <p>\xd0\x94\xd0\xbe\xd0\xba\xd0\xb0\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe, \xd1\x87\xd1\x82\xd0\xbe \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xb2\xd1\x8b\xd0\xbf\xd0\xbe\xd0\xbb\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xbe \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xbe\xd0\xbd\xd0\xba\xd1\x80\xd0\xb5\xd1\x82\xd0\xbd\xd0\xbe\xd0\xbc\n\
-     \xd0\xba\xd0\xbe\xd0\xbc\xd0\xbc\xd0\xb8\xd1\x82\xd0\xb5. \xd0\xa2\xd0\xb5\xd1\x81\xd1\x82\xd1\x8b, \xd1\x80\xd0\xb5\xd0\xb2\xd1\x8c\xd1\x8e, \xd0\xb0\xd1\x83\xd0\xb4\xd0\xb8\xd1\x82\xd1\x8b &mdash; \xd0\xb2\xd1\x81\xd1\x91 \xd1\x85\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x82\xd1\x81\xd1\x8f \xd0\xba\xd0\xb0\xd0\xba\n\
-     first-class \xd0\xb0\xd1\x80\xd1\x82\xd0\xb5\xd1\x84\xd0\xb0\xd0\xba\xd1\x82\xd1\x8b, \xd0\xbd\xd0\xb5 \xd0\xba\xd0\xb0\xd0\xba \xd1\x81\xd0\xba\xd1\x80\xd0\xb8\xd0\xbd\xd1\x88\xd0\xbe\xd1\x82\xd1\x8b.</p>\n\
-     </article>\n\
-     </div>\n\
-     <p class=\"mathc-section-more\">\n\
-     \xd0\x9f\xd0\xbe\xd0\xbb\xd0\xbd\xd0\xb0\xd1\x8f \xd1\x80\xd0\xb0\xd0\xb1\xd0\xbe\xd1\x87\xd0\xb0\xd1\x8f \xd1\x86\xd0\xb5\xd0\xbf\xd0\xbe\xd1\x87\xd0\xba\xd0\xb0:\n\
-     <code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>.\n\
-     \xd0\xa4\xd0\xbe\xd1\x80\xd0\xbc\xd0\xb0\xd0\xbb\xd1\x8c\xd0\xbd\xd0\xb0\xd1\x8f \xd0\xb0\xd0\xbb\xd0\xb3\xd0\xb5\xd0\xb1\xd1\x80\xd0\xb0 &mdash; \xd0\xb2 <a href=\"methodology.html\">methodology</a>,\n\
-     \xd1\x84\xd0\xb8\xd0\xbb\xd0\xbe\xd1\x81\xd0\xbe\xd1\x84\xd1\x81\xd0\xba\xd0\xb8\xd0\xb5 \xd0\xbe\xd1\x81\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x8f &mdash; \xd0\xb2 <a href=\"foundations.html\">foundations</a>.</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-adopt\">\n\
-     <h2>\xd0\x92\xd0\xbd\xd0\xb5\xd0\xb4\xd1\x80\xd0\xb8\xd1\x82\xd0\xb5 math-coding \xd0\xb2 \xd1\x81\xd0\xb2\xd0\xbe\xd0\xb9 \xd1\x80\xd0\xb5\xd0\xbf\xd0\xbe\xd0\xb7\xd0\xb8\xd1\x82\xd0\xbe\xd1\x80\xd0\xb8\xd0\xb9</h2>\n\
-     <p>\xd0\x9f\xd1\x80\xd0\xbe\xd1\x82\xd0\xbe\xd0\xba\xd0\xbe\xd0\xbb \xd0\xbf\xd1\x80\xd0\xbe\xd1\x81\xd1\x82: \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd0\xb7\xd0\xb0\xd0\xbf\xd0\xb8\xd1\x81\xd1\x8b\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xbf\xd0\xb0\xd0\xba\xd0\xb5\xd1\x82\n\
-     <code>decisions/&lt;id&gt;.yaml</code> \xd0\xb4\xd0\xbe \xd1\x82\xd0\xbe\xd0\xb3\xd0\xbe, \xd0\xba\xd0\xb0\xd0\xba \xd0\xba\xd0\xbe\xd0\xb4 \xd0\xbf\xd0\xbe\xd0\xbf\xd0\xb0\xd0\xb4\xd1\x91\xd1\x82 \xd0\xb2 \xd0\xbe\xd1\x81\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xbd\xd1\x83\xd1\x8e \xd0\xb2\xd0\xb5\xd1\x82\xd0\xba\xd1\x83. \xd0\x9f\xd1\x80\xd0\xbe\xd1\x87\xd0\xb8\xd1\x82\xd0\xb0\xd0\xb9\xd1\x82\xd0\xb5\n\
-     <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">\xd1\x80\xd1\x83\xd0\xba\xd0\xbe\xd0\xb2\xd0\xbe\xd0\xb4\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xbf\xd0\xbe \xd0\xb2\xd0\xbd\xd0\xb5\xd0\xb4\xd1\x80\xd0\xb5\xd0\xbd\xd0\xb8\xd1\x8e</a>\n\
-     (10 \xd0\xbc\xd0\xb8\xd0\xbd\xd1\x83\xd1\x82) \xd0\xb8\xd0\xbb\xd0\xb8 \xd1\x81\xd0\xba\xd0\xbb\xd0\xbe\xd0\xbd\xd0\xb8\xd1\x80\xd1\x83\xd0\xb9\xd1\x82\xd0\xb5 \xd1\x80\xd0\xb5\xd0\xbf\xd0\xbe\xd0\xb7\xd0\xb8\xd1\x82\xd0\xbe\xd1\x80\xd0\xb8\xd0\xb9 \xd0\xb8 \xd0\xb7\xd0\xb0\xd0\xbf\xd1\x83\xd1\x81\xd1\x82\xd0\xb8\xd1\x82\xd0\xb5\n\
-     <code>mathc self-check</code> \xd0\xbd\xd0\xb0 \xd0\xbf\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x80\xd0\xb5 \xd1\x80\xd0\xb5\xd1\x88\xd0\xb5\xd0\xbd\xd0\xb8\xd1\x8f, \xd1\x87\xd1\x82\xd0\xbe\xd0\xb1\xd1\x8b \xd1\x83\xd0\xb2\xd0\xb8\xd0\xb4\xd0\xb5\xd1\x82\xd1\x8c\n\
-     \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82\xd1\x8b \xd0\xbd\xd0\xb0 \xd1\x81\xd0\xb2\xd0\xbe\xd0\xb5\xd0\xb9 \xd0\xbc\xd0\xb0\xd1\x88\xd0\xb8\xd0\xbd\xd0\xb5.</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding\">\xd0\x9a\xd0\xbb\xd0\xbe\xd0\xbd\xd0\xb8\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb0\xd1\x82\xd1\x8c \xd0\xbd\xd0\xb0 GitHub</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">\xd0\xa0\xd1\x83\xd0\xba\xd0\xbe\xd0\xb2\xd0\xbe\xd0\xb4\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"feed.xml\">\xd0\x9f\xd0\xbe\xd0\xb4\xd0\xbf\xd0\xb8\xd1\x81\xd0\xb0\xd1\x82\xd1\x8c\xd1\x81\xd1\x8f \xd1\x87\xd0\xb5\xd1\x80\xd0\xb5\xd0\xb7 RSS</a>\n\
-     </div>\n\
-     </section>\n\
-     <p class=\"mathc-callout\">\n\
-     \xd0\x9a\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xb0\xd1\x8f \xd1\x81\xd1\x82\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x86\xd0\xb0 \xd1\x8d\xd1\x82\xd0\xbe\xd0\xb3\xd0\xbe \xd1\x81\xd0\xb0\xd0\xb9\xd1\x82\xd0\xb0 \xd1\x81\xd0\xbe\xd0\xb7\xd0\xb4\xd0\xb0\xd1\x91\xd1\x82\xd1\x81\xd1\x8f \xd1\x8f\xd0\xb4\xd1\x80\xd0\xbe\xd0\xbc math-coding. \
-     \xd0\x9c\xd0\xb5\xd1\x82\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbb\xd0\xbe\xd0\xb3\xd0\xb8\xd1\x8f &mdash; \xd1\x8d\xd1\x82\xd0\xbe \xd0\xb0\xd1\x80\xd1\x82\xd0\xb5\xd1\x84\xd0\xb0\xd0\xba\xd1\x82; \xd0\xb0\xd1\x80\xd1\x82\xd0\xb5\xd1\x84\xd0\xb0\xd0\xba\xd1\x82 \xd1\x81\xd0\xbb\xd0\xb5\xd0\xb4\xd1\x83\xd0\xb5\xd1\x82 \xd0\xbc\xd0\xb5\xd1\x82\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbb\xd0\xbe\xd0\xb3\xd0\xb8\xd0\xb8.</p>\n\
-     <p class=\"mathc-meta\">\xd0\x90\xd0\xba\xd1\x82\xd0\xb8\xd0\xb2\xd0\xbd\xd0\xb0\xd1\x8f \xd0\xbf\xd0\xbe\xd0\xbb\xd0\xb8\xd1\x82\xd0\xb8\xd0\xba\xd0\xb0: <code>%s</code>. \xd0\x9f\xd0\xbe\xd0\xbb\xd0\xbd\xd0\xbe\xd0\xb5\n\
-     \xd1\x85\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xbb\xd0\xb8\xd1\x89\xd0\xb5 \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2 &mdash; \xd0\xbd\xd0\xb0 \xd1\x81\xd1\x82\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x86\xd0\xb5\n\
-     <a href=\"packages.html\">packages</a>, \xd0\xb0\xd0\xba\xd1\x81\xd0\xb8\xd0\xbe\xd0\xbc\xd1\x8b &mdash; \xd0\xbd\xd0\xb0\n\
-     <a href=\"axioms.html\">axioms</a>.</p>\n"
-     (html_escape version)
-    check check check check check check check check check check check
-    check check check
-    (html_escape policy_id)
-
-(* Chinese home page. Structurally identical to `render_index` /
-   `render_index_ru`: same `<section>` ordering, same `&mdash;` /
-   `&nbsp;` / `&rarr;` literal entities, same number of cards
-   (four: Intent / Decision / Obligation / Attestation), same
-   `<em>` / `<code>` / `<a>` tag set, and the same 14
-   check-marks `%s` placeholder in the moderation terminal
-   block. UTF-8 strings are written directly (the project's
-   other `.ml` files already use em-dashes without escape
-   sequences). ASCII identifiers (`mathc`, `bootstrap-v3`,
-   `decisions/`, file paths, code spans, HTML class names) are
-   kept verbatim. The link `href` attributes inside
-   `working_chain` and `adopt_p` still point at the English
-   `methodology.html` / `foundations.html` pages because the
-   per-page sibling href is computed by `sibling_langs_for` in
-   `build_pages`; the page body here just shows the link text.
-   The terminal block's verdict name `unknown` stays
-   untranslated because the verdict is an ASCII identifier
-   emitted by the kernel (`lib/packages.ml`). *)
-let[@warning "-32"] render_index_zh ~package_html:_ ~axioms_html:_ ~policy_id
-    ~version =
-  let check = "\xe2\x9c\x94" in
-  Printf.sprintf
-    "<section class=\"mathc-hero\">\n\
-     <img class=\"mathc-hero-logo\" src=\"assets/logo.svg\" alt=\"\">\n\
-     <h1>math-coding</h1>\n\
-     <p class=\"mathc-hero-version\">%s</p>\n\
-     <p class=\"mathc-hero-tagline\">风险自适应的软件变更保障协议。每项架构承诺都在代码落地<em>之前</em>写入,并由内核在每次合并时核验。</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding#install\">安装 mathc</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"methodology.html\">工作原理</a>\n\
-     </div>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-quickstart\">\n\
-     <h2>快速开始 &mdash; 60&nbsp;秒</h2>\n\
-     <ol class=\"mathc-steps\">\n\
-     <li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>\n\
-     安装 <code>mathc</code> 可执行文件,并将用户级技能放入 <code>~/.config/opencode/skills/</code>。</li>\n\
-     <li><code>mathc new-decision my-first-change</code><br>\n\
-     用模板创建 <code>decisions/my-first-change.yaml</code>,校验其内容,并指出缺失项。</li>\n\
-     <li><code>mathc self-check</code><br>\n\
-     读取决策存储,逐条遍历每个义务,并按行输出每项的判定:<code>pass</code>、<code>fail</code>、<code>unknown</code>、<code>stale</code> 或 <code>missing</code>。任一非 pass 结果都会使 CI 以非零状态退出。</li>\n\
-     </ol>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-moderation\">\n\
-     <h2>一屏完成审查</h2>\n\
-     <p>math-coding 为评审者提供<em>恰好一屏</em>的内容:作者所做的声明、支持该声明的证据,以及一条判定。无需再滚动浏览 30 个文件的 PR 来确认变更是否真如提交说明所述。</p>\n\
-     <pre class=\"mathc-terminal\"><code>$ mathc gate main feature/auth-fix\n\
-\n\
-\n\
-\n  policy:    bootstrap-v3\n\
-\n  obligations:  17\n\
-\n  verdicts:\n\
-\n    pass:    14   %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n\
-\n    unknown:  2   (waiver: vendor:openssl-3.0-rc4)\n\
-\n    missing:  1   obligation:back-compat-test\n\
-\n  verdict:   <span class=\"mathc-verdict-unknown\">unknown</span>\n\
-\n  exit:      1</code></pre>\n\
-     <p><code>gate</code> 子命令按当前活动策略评估变更。<code>self-check</code> 子命令是其机器可读版本,设计用于在每次推送和每次合并时于 CI 中执行。</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-methodology\">\n\
-     <h2>方法论</h2>\n\
-     <p class=\"mathc-section-lede\">四个原语,每个都是可被 grep、评审和回退的纯文本文件:</p>\n\
-     <div class=\"mathc-cards\">\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Intent(意图)</h3>\n\
-     <p>每项变更都始于一句自然语言描述:什么应当成立?</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Decision(决策)</h3>\n\
-     <p>意图被固化为 <code>decisions/</code> 下的一个 YAML 包,列出其创建的义务、所接受的风险,以及可证伪它的反例。</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Obligation(义务)</h3>\n\
-     <p>可由代码核验的声明:一个测试夹具、一条性质、一个基准、一条静态规则。每项都对应一条判定。</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Attestation(证据)</h3>\n\
-     <p>证明该义务在特定提交上已被满足的证据。测试、评审、审计 &mdash; 全部作为一等制品存储,绝不以截图形式保存。</p>\n\
-     </article>\n\
-     </div>\n\
-     <p class=\"mathc-section-more\">\n\
-     完整工作链:<code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>。\n\
-     阅读 <a href=\"methodology.html\">方法论</a> 了解形式化代数,或阅读 <a href=\"foundations.html\">基石</a> 了解哲学锚点。</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-adopt\">\n\
-     <h2>在你的仓库中采用 math-coding</h2>\n\
-     <p>协议非常轻量:每项变更在代码落地前需先撰写一个\n\
-     <code>decisions/&lt;id&gt;.yaml</code> 包。阅读\n\
-     <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">采用操作手册</a>\n\
-     完成 10 分钟上手,或克隆仓库并针对示例决策运行\n\
-     <code>mathc self-check</code> 以在你的机器上查看判定结果。</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding\">在 GitHub 上克隆</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">阅读操作手册</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"feed.xml\">通过 RSS 订阅</a>\n\
-     </div>\n\
-     </section>\n\
-     <p class=\"mathc-callout\">\n\
-     本站每一个页面均由 math-coding 内核生成。方法论本身即是一项制品;该制品遵循此方法论。</p>\n\
-     <p class=\"mathc-meta\">当前活动策略:<code>%s</code>。完整义务存储位于 <a href=\"packages.html\">packages</a>,公理位于\n\
-     <a href=\"axioms.html\">axioms</a>。</p>\n"
-    (html_escape version)
-    check check check check check check check check check check check
-    check check check
-    (html_escape policy_id)
+let[@warning "-32"] render_index ~lang ~version ~policy_id ~templates =
+  let html =
+    match List.assoc_opt lang templates.index with
+    | Some html -> html
+    | None -> "" (* fallback: language not shipped *)
+  in
+  substitute
+    [ ("version", html_escape version);
+      ("policy_id", html_escape policy_id);
+      ("check", "\xe2\x9c\x94") ]
+    html
 
 let[@warning "-32"] render_decision_page ~decision_id ~obligation_html =
   Printf.sprintf
@@ -2298,7 +1965,8 @@ let[@warning "-32"] default_version = "math-coding"
    for loading the article tuples from disk; this function only
    renders them. Tuple = (name, title, body_md). *)
 let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
-    ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data ~spec_data =
+    ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data ~spec_data
+    ~templates =
   let pages = ref [] in
   let version = config.version in
 
@@ -2383,10 +2051,8 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
   in
 
   (* English index *)
-  let axioms_overview_html = render_axioms_section axioms_data in
   let index_body_en =
-    render_index ~package_html ~axioms_html:axioms_overview_html ~policy_id
-      ~version
+    render_index ~lang:En ~version ~policy_id ~templates
   in
   pages :=
     {
@@ -2404,10 +2070,8 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
 
   (* Russian index (only when Russian is enabled). *)
   if ru_enabled then begin
-    let axioms_overview_html_ru = render_axioms_section axioms_data in
     let index_body_ru =
-      render_index_ru ~package_html ~axioms_html:axioms_overview_html_ru
-        ~policy_id ~version
+      render_index ~lang:Ru ~version ~policy_id ~templates
     in
     pages :=
       {
@@ -2426,10 +2090,8 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
 
   (* Chinese index (only when ZH is enabled). *)
   if zh_enabled then begin
-    let axioms_overview_html_zh = render_axioms_section axioms_data in
     let index_body_zh =
-      render_index_zh ~package_html ~axioms_html:axioms_overview_html_zh
-        ~policy_id ~version
+      render_index ~lang:Zh ~version ~policy_id ~templates
     in
     pages :=
       {

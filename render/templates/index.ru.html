@@ -1,0 +1,106 @@
+<section class="mathc-hero">
+<img class="mathc-hero-logo" src="assets/logo.svg" alt="">
+<h1>math-coding</h1>
+<p class="mathc-hero-version">{{version}}</p>
+<p class="mathc-hero-tagline">Протокол обеспечения качества для изменений в
+программном обеспечении. Каждое архитектурное
+обязательство записывается <em>до</em> того, как код попадёт
+в основную ветку, и ядро проверяет его на каждом merge.</p>
+<div class="mathc-hero-cta">
+<a class="mathc-cta mathc-cta-primary" href="https://github.com/11111000000/math-coding#install">Установить mathc</a>
+<a class="mathc-cta mathc-cta-secondary" href="methodology.html">Как это работает</a>
+</div>
+</section>
+<section class="mathc-section mathc-quickstart">
+<h2>Быстрый старт &mdash; 60&nbsp;секунд</h2>
+<ol class="mathc-steps">
+<li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>
+Устанавливает бинарник <code>mathc</code> и кладёт user-skill в <code>~/.config/opencode/skills/</code>.</li>
+<li><code>mathc new-decision my-first-change</code><br>
+Создаёт <code>decisions/my-first-change.yaml</code> по шаблону, валидирует его и сообщает, чего не хватает.</li>
+<li><code>mathc self-check</code><br>
+Читает хранилище решений, обходит каждое обязательство и печатает
+по строке вердикта: <code>pass</code>, <code>fail</code>, <code>unknown</code>, <code>stale</code> или <code>missing</code>. CI завершается с ненулевым кодом при любом не-pass.</li>
+</ol>
+</section>
+<section class="mathc-section mathc-moderation">
+<h2>Модерация &mdash; один экран</h2>
+<p>math-coding даёт ревьюеру <em>ровно один экран</em>: заявленное
+изменение, доказательства, на которых оно держится, и один
+вердикт. Больше не нужно пролистывать PR на 30 файлов, чтобы
+понять, делает ли изменение то, что обещает commit-message.</p>
+<pre class="mathc-terminal"><code>$ mathc gate main feature/auth-fix
+
+
+
+  policy:    bootstrap-v3
+
+  obligations:  17
+
+  verdicts:
+
+    pass:    14   {{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}
+
+    unknown:  2   (waiver: vendor:openssl-3.0-rc4)
+
+    missing:  1   obligation:back-compat-test
+
+  verdict:   <span class="mathc-verdict-unknown">unknown</span>
+
+  exit:      1</code></pre>
+<p>Подкоманда <code>gate</code> оценивает изменение по активной
+политике. <code>self-check</code> &mdash; её машиночитаемый
+вариант, рассчитанный на запуск в CI на каждом push и каждом merge.</p>
+</section>
+<section class="mathc-section mathc-methodology">
+<h2>Методология</h2>
+<p class="mathc-section-lede">Четыре примитива, каждый &mdash; обычный файл, который можно
+грепать, ревьюить и откатывать:</p>
+<div class="mathc-cards">
+<article class="mathc-card">
+<h3>Intent</h3>
+<p>Каждое изменение начинается с одного предложения на
+человеческом языке: что должно стать правдой?</p>
+</article>
+<article class="mathc-card">
+<h3>Decision</h3>
+<p>Intent превращается в YAML-пакет в <code>decisions/</code>, где перечислены обязательства, принятые риски и контрпример,
+который его опровергнет.</p>
+</article>
+<article class="mathc-card">
+<h3>Obligation</h3>
+<p>Утверждение, которое можно проверить кодом: фикстура, свойство, бенчмарк, статическое правило. У каждого есть вердикт.</p>
+</article>
+<article class="mathc-card">
+<h3>Attestation</h3>
+<p>Доказательство, что обязательство выполнено на конкретном
+коммите. Тесты, ревью, аудиты &mdash; всё хранится как
+first-class артефакты, не как скриншоты.</p>
+</article>
+</div>
+<p class="mathc-section-more">
+Полная рабочая цепочка:
+<code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>.
+Формальная алгебра &mdash; в <a href="methodology.html">methodology</a>,
+философские основания &mdash; в <a href="foundations.html">foundations</a>.</p>
+</section>
+<section class="mathc-section mathc-adopt">
+<h2>Внедрите math-coding в свой репозиторий</h2>
+<p>Протокол прост: каждое изменение записывает пакет
+<code>decisions/&lt;id&gt;.yaml</code> до того, как код попадёт в основную ветку. Прочитайте
+<a href="https://github.com/11111000000/math-coding/blob/main/USAGE.md">руководство по внедрению</a>
+(10 минут) или склонируйте репозиторий и запустите
+<code>mathc self-check</code> на примере решения, чтобы увидеть
+вердикты на своей машине.</p>
+<div class="mathc-hero-cta">
+<a class="mathc-cta mathc-cta-primary" href="https://github.com/11111000000/math-coding">Клонировать на GitHub</a>
+<a class="mathc-cta mathc-cta-secondary" href="https://github.com/11111000000/math-coding/blob/main/USAGE.md">Руководство</a>
+<a class="mathc-cta mathc-cta-secondary" href="feed.xml">Подписаться через RSS</a>
+</div>
+</section>
+<p class="mathc-callout">
+Каждая страница этого сайта создаётся ядром math-coding. Методология &mdash; это артефакт; артефакт следует методологии.</p>
+<p class="mathc-meta">Активная политика: <code>{{policy_id}}</code>. Полное
+хранилище обязательств &mdash; на странице
+<a href="packages.html">packages</a>, аксиомы &mdash; на
+<a href="axioms.html">axioms</a>.</p>

@@ -3813,6 +3813,21 @@ let[@warning "-32"] read_spec_data () =
   in
   loop candidates
 
+let[@warning "-32"] read_templates () =
+  let dir =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p when Sys.file_exists (Filename.concat p "render/templates") ->
+        Filename.concat p "render/templates"
+    | _ -> "render/templates"
+  in
+  let read name = read_file (Filename.concat dir name) in
+  let en_html = read "index.en.html" in
+  let ru_html = read "index.ru.html" in
+  let zh_html = read "index.zh.html" in
+  {
+    Render.index = [ (Render.En, en_html); (Render.Ru, ru_html); (Render.Zh, zh_html) ];
+  }
+
 let[@warning "-32"] per_decision_obligation_html (d : Packages.decision_view) =
   let buf = Buffer.create 256 in
   Printf.bprintf buf "<h3>%s</h3>\n<ul>" d.Packages.decision_id;
@@ -4033,9 +4048,11 @@ let[@warning "-32"] do_render () =
   let version = read_cli_version () in
 
   let spec_data = read_spec_data () in
+  let templates = read_templates () in
   let pages =
     Render.build_pages ~package_html ~decisions_data ~policy_id ~config
       ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data ~spec_data
+      ~templates
   in
 
   Printf.printf "[render] writing %d pages to %s/\n" (List.length pages)

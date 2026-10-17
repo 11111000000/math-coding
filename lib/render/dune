@@ -2,4 +2,4 @@
  (name mathcoding_render)
  (wrapped false)
  (modules render)
- (libraries mathcoding_core unix))
+ (libraries mathcoding_core str unix))

@@ -75,7 +75,7 @@ let[@warning "-32"] mathjax_in_head () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("methodology", "Methodology", "before") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -90,7 +90,7 @@ let[@warning "-32"] base_href_default () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -114,7 +114,7 @@ let[@warning "-32"] bilingual_pairs_complete () =
           ("manifesto", "Manifesto / RU", "RU body");
           ("readme", "README / RU", "RU readme");
         ]
-      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let paths = List.map (fun p -> p.Render.path) pages in
   Alcotest.(check bool)
@@ -162,7 +162,7 @@ let[@warning "-32"] lang_toggle_en_no_suffix () =
         ]
       ~site_pages_zh:
         [ ("axioms", "Axioms / ZH", "ZH axioms") ]
-      ~axioms_data:[] ~spec_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let body_of path =
     List.find (fun p -> p.Render.path = path) pages |> fun p -> p.Render.body
@@ -486,7 +486,7 @@ let[@warning "-32"] mathjax_in_head_when_enabled () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("methodology", "Methodology", "before") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -505,7 +505,7 @@ let[@warning "-32"] mathjax_script_on_prose_page_when_enabled () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -525,7 +525,7 @@ let[@warning "-32"] mathjax_no_dollar_delimiters () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("methodology", "Methodology", "before") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -549,7 +549,7 @@ let[@warning "-32"] mathjax_uses_latex_delimiters () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("methodology", "Methodology", "before") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -640,7 +640,7 @@ let[@warning "-32"] packages_page_has_grid () =
     Render.build_pages ~package_html:pkg_html ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("packages", "Packages", "prose body") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let page = List.find (fun p -> p.Render.path = "packages.html") pages in
   Alcotest.(check bool)
@@ -661,7 +661,7 @@ let[@warning "-32"] ru_nav_omits_missing_sibling () =
           ("manifesto", "Manifesto", "EN manifesto");
         ]
       ~site_pages_ru:[ ("manifesto", "Manifesto / RU", "RU manifesto") ] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let methodology =
     List.find (fun p -> p.Render.path = "methodology.html") pages
@@ -681,7 +681,7 @@ let[@warning "-32"] axiom_page_single_h1 () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[ ("feedback", axiom_body) ] ~spec_data:[]
+      ~axioms_data:[ ("feedback", axiom_body) ] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let page =
     List.find (fun p -> p.Render.path = "axioms/feedback.html") pages
@@ -697,7 +697,7 @@ let[@warning "-32"] footer_mathc_render () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("home", "Home", "body") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let page = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -712,7 +712,7 @@ let[@warning "-32"] base_href_default () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -726,7 +726,7 @@ let[@warning "-32"] base_href_empty () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -741,6 +741,10 @@ let[@warning "-32"] version_in_hero_and_footer () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
       ~axioms_data:[] ~spec_data:[]
+      ~templates:
+        { Render.index =
+            [ (Render.En, "<p class=\"mathc-hero-version\">{{version}}</p>") ]
+        }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -918,7 +922,7 @@ let[@warning "-32"] ru_home_sibling_is_index_html () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let home_ru =
     List.find (fun p -> p.Render.path = "index.ru.html") pages
@@ -946,7 +950,7 @@ let[@warning "-32"] footer_links_github_origin () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("home", "Home", "body") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let page = List.find (fun p -> p.Render.path = "index.html") pages in
   let body = page.Render.body in
@@ -994,7 +998,7 @@ let[@warning "-32"] nav_has_github_link () =
           ("axioms", "Axioms", "body");
           ("spec/algebra-3.2", "Algebra", "body");
         ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = [] }
   in
   let github_href = "https://github.com/11111000000/math-coding" in
   List.iter
