@@ -8,6 +8,8 @@ math-coding protocol. For AI-agent adoption see the canonical skill at
 
 ## Install
 
+> Native channels first; Docker as fallback. If none of the native channels work, see [If the native install fails](#if-the-native-install-fails) below.
+
 Four ways to get `mathc` (`bin/mathc.exe` once compiled); see
 [`site/install.md`](site/install.md) for the long-form guide
 with sandbox notes and migration steps.
@@ -60,6 +62,29 @@ with sandbox notes and migration steps.
   is **not portable** across hosts whose system glibc is older
   than the nix-store version. Always download from the GitHub
   release for cross-host portability.
+
+## If the native install fails
+
+If `curl | sh`, the Windows installer, `nix run`, or the
+source build does not work on your host (corporate proxy
+blocking `raw.githubusercontent.com`, Alpine/musl libc,
+immutable CI runner without write access to `~/.local/`),
+the Docker image is the always-available fallback. The
+image at `ghcr.io/11111000000/mathc:<VERSION>` is built
+and signed by this repository's CI on every release tag
+push; no installation to your host is required.
+
+```sh
+docker run --rm -v "$PWD:/repo" \
+  ghcr.io/11111000000/mathc:<VERSION> \
+  validate decisions/foo.yaml
+```
+
+The same command works for any subcommand. Replace
+`<VERSION>` with a release tag (e.g., `v3.3.0`) or `edge`
+for the most recent main commit. The `:edge` tag is
+rebuilt and republished on every push to `main`; a daily
+healthcheck workflow asserts the image is still runnable.
 
 ## Quick start
 
