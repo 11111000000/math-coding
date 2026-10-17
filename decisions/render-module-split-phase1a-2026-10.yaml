@@ -1,0 +1,150 @@
+---
+schema: math-coding/3.3
+id: render-module-split-phase1a-2026-10
+revision: 1
+state: draft
+mode: light
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Реализовать Phase 1A из
+  `docs/plans/render-module-split-phase1-2026-10.md`:
+  выделить подмножество Markdown-парсера (кластер 1, строки
+  30–779 текущего `lib/render/render.ml`) в отдельный модуль
+  `lib/render/render_md.ml`. Это первая из шести фаз
+  фактического разделения `lib/render/render.ml` на
+  под-модули, запланированного решением
+  `render-module-split@1` («subsequent splits (Phase 1+ of
+  the refactor) land as additional modules in the same
+  lib/render/ directory»).
+
+commitment: |
+  Создать `lib/render/render_md.ml`, содержащий ровно те
+  функции, что сейчас находятся в строках 30–779
+  `lib/render/render.ml`: `html_escape`, `html_of_fragments`,
+  `md_inline_parse`, `md_inline`, `code_fence_tag`, `md_parse`,
+  а также локальный `String_set` (перенос из текущего
+  `module String_set = struct … end`). Реэкспортировать их
+  из `render.ml` через сигнатуру
+  `module Md : sig … end = Md`, чтобы публичные вызовы
+  `Render.html_escape`, `Render.md_parse` и т.п. продолжали
+  резолвиться без правок в `bin/Mathc.ml`, `bin/md_probe.ml`,
+  `tests/render_kernel.ml`.
+
+  Зависимости нового модуля — те же, что у текущего
+  `lib/render/dune`: `mathcoding_core`, `unix`. Модуль
+  `String` и `Buffer` — стандартные.
+
+axiom_link:
+  - A0
+  - A3
+
+outcomes:
+  - id: md-subset-in-its-own-module
+    statement: |
+      `lib/render/render_md.ml` существует, перечисленные
+      выше публичные символы реэкспортированы из
+      `lib/render/render.ml`, `dune build` собирает
+      `mathcoding_render` с двумя модулями.
+  - id: behavior-preserving
+    statement: |
+      Все 14 кейсов `tests/render_kernel.ml` для `md_parse`
+      и его под-функций дают идентичный результат до и после
+      переноса; cram-снапшоты `tests/cli/render.t` для
+      `dist/index*.html`, `dist/manifesto*.html`,
+      `dist/methodology.html` идентичны.
+
+scope:
+  paths:
+    - lib/render/render.ml
+    - lib/render/render_md.ml
+    - lib/render/dune
+
+obligations:
+  - id: build-succeeds
+    claim: |
+      `dune build` собирает `mathcoding_render` с двумя
+      модулями (`render.ml`, `render_md.ml`); `bin/Mathc.exe`,
+      `bin/md_probe.exe`, `tests/render_kernel.exe` собираются
+      без правок в их `dune`-файлах.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: tests/render_kernel.exe
+          result: pass
+  - id: public-api-stable
+    claim: |
+      Сигнатуры `Render.html_escape`, `Render.html_of_fragments`,
+      `Render.md_inline_parse`, `Render.md_inline`,
+      `Render.code_fence_tag`, `Render.md_parse`
+      бит-в-бит совпадают с до-переноса.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.exe (cases md-parse-* / html-escape-*)
+          result: pass
+        - verifier: tests/cli/render.t cram snapshot
+          result: pass
+  - id: golden-identical
+    claim: |
+      Cram-снапшоты `tests/cli/render.t` для всех
+      зависимых страниц (`index*.html`, `manifesto*.html`,
+      `methodology*.html`, `packages*.html`) идентичны до
+      и после переноса.
+    acceptance:
+      all:
+        - verifier: dune promote (или ручная проверка diff)
+          result: pass
+        - verifier: tests/cli/render.t cram snapshot
+          result: pass
+
+counterexample:
+  claim: |
+    Правки в `render_md.ml` могут изменить поведение
+    `md_parse` так, что golden-снапшоты `tests/cli/render.t`
+    разойдутся (например, перенос `html_of_fragments` в
+    `render_md.ml` без сохранения порядка аргументов во
+    вызывающем коде).
+  mitigation: |
+    Полный прогон cram перед PR; правка snapshot'ов
+    допустима только в паре с обоснованием в
+    commit-message (см. P2 AGENTS.md).
+
+risk:
+  declared_triggers:
+    - dune-finds-stale-render-module-cache
+    - tests-fail-to-link-after-reorg
+    - html-of-fragments-used-outside-render-md
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - render-module-split@1
+    - render-kernel-fixes-2026-10@1
+    - render-ordered-lists-2026-10@1
+
+links:
+  - docs/plans/render-module-split-phase1-2026-10.md
+
+unknowns:
+  - Нужно ли делать `Render.Md.html_escape` публичным
+    (для будущей фазы 1D), или оставить его в `render_md.ml`
+    как `let html_escape = …` без реэкспорта верхнего уровня
+    в виде `Render.html_escape`?
+    Это решается в Phase 1D, не блокирует 1A.
+
+planned_evidence:
+  - tests/render_kernel.exe (cases md-parse-* / html-escape-*)
+  - tests/cli/render.t cram snapshot
+  - dune build чистый лог
+
+estimated_class:
+  ref-class: refactor+multi-file-edit
+  p50_minutes: 30
+  p95_minutes: 105
+  note: |
+    P50 одной фазы 12 мин (refactor) + 9 × 2 мин (multi-file ×
+    2 fileset'а) ≈ 30 мин wall-clock; P95 одной фазы ≈
+    105 мин wall-clock. См. §6 планового документа.
