@@ -299,6 +299,10 @@ Each event recorded as:
   6. Returns the path to the report section.
 - The orchestrator does not interfere with sub-agents' work;
   sub-agents work in their own subdirectory under the project.
+- **No sub-agent may `git push`, `gh pr create`, open issues,
+  post comments, or otherwise contact any upstream remote.** If a
+  sub-agent needs to share its work with the orchestrator, it does
+  so via local files in the experiment directory only.
 
 ### Phase 3 — Analysis (~30 min)
 
@@ -338,13 +342,21 @@ Each event recorded as:
 
 ## 12. Out of scope
 
+- **Push to upstream of any of the 5 cloned projects.** Every
+  sub-agent and the orchestrator work in the local clone and do not
+  push back. No PRs opened, no issues filed, no comments posted,
+  no `git push` of any kind to any of the 5 projects. The clones
+  exist as read-only inputs; sub-agents never modify them in a way
+  visible to the upstream maintainers.
 - Changes to math-coding kernel (`lib/`, `bin/`, `spec/`, `schemas/`,
   `axioms/`).
-- Push to upstream of any of the 5 cloned projects.
 - More than 5 projects or more than 3 tasks per project (would dilute the
   signal-to-noise ratio given the time budget).
 - Long-term adoption tracking (this experiment is single-session per
   task; longitudinal study is a separate future experiment).
+- Network writes of any kind to upstream remotes. Sub-agents may
+  `git fetch` only if they need a specific tag; they never `git
+  push`, never open issues, never post comments.
 
 ## 13. Recommendations
 
