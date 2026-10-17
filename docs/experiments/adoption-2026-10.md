@@ -67,16 +67,16 @@ with:
 These are explicit, falsifiable claims the experiment is designed to
 test. The results section either supports, refutes, or qualifies each.
 
-| # | Hypothesis | Falsified if … |
-|---|------------|---------------|
-| H1 | Time to first decision (`TTFD`) is < 30 min for a developer who has read `QUICKSTART.md`. | `TTFD > 60 min` on ≥ 3/5 projects. |
-| H2 | `mathc adopt` successfully detects and imports a brownfield project that already has MADR ADRs. | `adopt` fails or produces no decisions on a MADR-only project. |
-| H3 | The schema's required-field set covers ≥ 90 % of decisions a maintainer would naturally make; the remaining 10 % map cleanly onto the `--template=minimal` path. | ≥ 3 schema errors per project that are not "user typo" but "schema doesn't model my situation". |
-| H4 | Throughput (lines changed per minute) on a small task is *not* statistically different between with-math-coding and without-math-coding. | With-math-coding throughput is < 50 % of without-math-coding on ≥ 2 projects. |
-| H5 | The install surface (one of: release binary, Docker, Nix, source build) works on a fresh user machine without `~/.local/bin` already on `$PATH`. | A user with default shell rc fails to run `mathc version` after install. |
-| H6 | A second decision on the same project is faster than the first (learning curve). | TTFD-2 > TTFD-1. |
-| H7 | The `mathc self-check` verdict on a brownfield project is `unknown` (not `pass`, not `fail`) until obligations have attestations — and this is communicated in the diagnostics. | `self-check` returns `pass` on an unattested brownfield, OR returns `fail` on the same, OR exits non-zero with a diagnostic that doesn't mention attestations. |
-| H8 | `mathc attest-batch` removes the per-obligation JSON hand-writing tax. | A bulk attestation on a 5-obligation decision takes longer than 5 hand-written attestations. |
+| # | Hypothesis | Falsified if … | Verdict | One-line evidence |
+|---|------------|---------------|---------|------------------|
+| H1 | Time to first decision (`TTFD`) is < 30 min for a developer who has read `QUICKSTART.md`. | `TTFD > 60 min` on ≥ 3/5 projects. | **support** | median TTFD = 4 min, max = 14 min (sinatra, parallel-agent pollution). 5/5 projects under threshold. |
+| H2 | `mathc adopt` successfully detects and imports a brownfield project that already has MADR ADRs. | `adopt` fails or produces no decisions on a MADR-only project. | **inconclusive** | None of the 5 picked projects ship `docs/adr/` or `adr/` in-tree. Plan-level correction in §10.7. |
+| H3 | The schema's required-field set covers ≥ 90 % of decisions a maintainer would naturally make; the remaining 10 % map cleanly onto the `--template=minimal` path. | ≥ 3 schema errors per project that are not "user typo" but "schema doesn't model my situation". | **refute (qualified)** | Every project hit `MC-COUNTEREXAMPLE-MISSING` false-positive (parser bug, not user error); `axiom_link` choice unclear in 5/5 T1 sessions. |
+| H4 | Throughput (lines changed per minute) on a small task is *not* statistically different between with-math-coding and without-math-coding. | With-math-coding throughput is < 50 % of without-math-coding on ≥ 2 projects. | **refute (qualified)** | With-math-coding ~10 min/decision vs control ~3 min/session (3-4× slower). The gap is dominated by env-var diagnosis in every project, not by math-coding per se. |
+| H5 | The install surface (one of: release binary, Docker, Nix, source build) works on a fresh user machine without `~/.local/bin` already on `$PATH`. | A user with default shell rc fails to run `mathc version` after install. | **not tested** | This experiment used the pre-installed `/home/az/.local/bin/mathc`. Install-surface metrics are owned by `plan-2026-10-distro-friction`. |
+| H6 | A second decision on the same project is faster than the first (learning curve). | TTFD-2 > TTFD-1. | **inconclusive** | Sessions were parallel, not sequential. The right shape is a longitudinal study with one agent running T1→T2→T3 in sequence. |
+| H7 | The `mathc self-check` verdict on a brownfield project is `unknown` (not `pass`, not `fail`) until obligations have attestations — and this is communicated in the diagnostics. | `self-check` returns `pass` on an unattested brownfield, OR returns `fail` on the same, OR exits non-zero with a diagnostic that doesn't mention attestations. | **support** | All 5 projects ended T1 with `verdict: unknown`. Diagnostic correctly names "obligation has no attestations" and points to producer. Verbose but accurate. |
+| H8 | `mathc attest-batch` removes the per-obligation JSON hand-writing tax. | A bulk attestation on a 5-obligation decision takes longer than 5 hand-written attestations. | **refute** | `mathc attest-batch` does not exist in the shipped binary (4 sub-agents independently reported). All 4 agents that needed bulk attestations wrote inline Python instead. |
 
 We are not requiring every hypothesis to be supported. The point is to
 test them.
@@ -277,9 +277,10 @@ Each event recorded as:
 
 ### Phase 1 — Selection + baseline (~15 min, this worktree)
 
-- [ ] Create `~/Projects/math-coding-experiment/` outside this repo.
-- [ ] Shallow-clone the 5 projects (`git clone --depth=1`).
-- [ ] For each: capture baseline metrics (LoC, test count, build files, existing ADRs, gitignore state).
+- [x] Create `~/Projects/math-coding-experiment/` outside this repo.
+- [x] Shallow-clone the 5 projects (`git clone --depth=1`).
+- [x] For each: capture baseline metrics (LoC, test count, build files, existing ADRs, gitignore state).
+- [x] Remove `origin` from each clone (defence in depth against accidental push).
 
 ### Phase 2 — Integration orchestration (~30 min)
 
@@ -303,17 +304,22 @@ Each event recorded as:
   post comments, or otherwise contact any upstream remote.** If a
   sub-agent needs to share its work with the orchestrator, it does
   so via local files in the experiment directory only.
+- **Result:** 13 of 15 sub-agents finished successfully; sinatra/T3
+  errored twice with provider rate-limit (orchestrator recovered
+  inline); sinatra/T1 succeeded but reported 5 pre-existing
+  attestations from the orchestrator's recovery run.
 
 ### Phase 3 — Analysis (~30 min)
 
-- [ ] Collate the 5 per-project reports into a single table.
-- [ ] For each hypothesis in §3, mark support/refute/qualify with evidence.
-- [ ] For each friction event, group by code; produce ranked list.
+- [x] Collate the 5 per-project reports into a single table.
+- [x] For each hypothesis in §3, mark support/refute/qualify with evidence.
+- [x] For each friction event, group by code; produce ranked list.
 
 ### Phase 4 — Documentation (~30 min)
 
-- [ ] Append results section to this file: §10 Results, §11 Discussion,
+- [x] Append results section to this file: §10 Results, §11 Discussion,
   §13 Recommendations.
+- [x] Update §3 Hypotheses table with verdicts.
 - [ ] Create `decisions/adoption-experiment-results-2026-10.yaml`
   recording the observed numbers as a commitment.
 - [ ] (Optional, if any kernel-level fix is warranted by results:)
