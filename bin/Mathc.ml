@@ -4076,6 +4076,13 @@ let[@warning "-32"] do_render () =
   write_file index_path index_body;
   Printf.printf "  index.json\n";
 
+  let dashboard_path = Filename.concat !out_dir "dashboard.html" in
+  write_file dashboard_path templates.Render.dashboard;
+  Printf.printf "  dashboard.html\n";
+  let graph_path = Filename.concat !out_dir "graph.html" in
+  write_file graph_path templates.Render.graph;
+  Printf.printf "  graph.html\n";
+
   (* RSS 2.0 feed at dist/feed.xml (Phase 4 of
      site-quality-distribution-2026-10). One <item> per
      decision, capped at the 60 most recent by decision_id;

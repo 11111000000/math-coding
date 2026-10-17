@@ -45,149 +45,24 @@ for svg in assets/*.svg; do
   cp -f "$svg" "dist/assets/$(basename "$svg")"
 done
 
-# [3.5/4] building dashboard + graph artefacts.
-# The allowlist at [4/4] names three additional files that
-# `mathc render` itself does not emit (they were reserved by
-# commit d7f0334 for the dashboard and graph viewer decisions
-# but the dispatcher was never wired to write them). Until the
-# render dispatcher grows native support, we generate the three
-# files here from commands that the kernel already ships:
-#   * dist/dashboard.html wraps `mathc packages --format=html`
-#     (a <section>...</section> fragment) in a minimal HTML
-#     document with the site stylesheet and the live count
-#     metadata as a visible header.
-#   * dist/graph.json is the canonical relations-graph JSON
-#     for the bootstrap policy (the root the visitor lands on
-#     after a fresh `git clone`).
-#   * dist/graph.html is a thin cytoscape.js viewer that
-#     fetches graph.json and lays out the eight relation kinds
-#     from spec/algebra-3.2.md §7.
-# All three paths are static; no build step depends on them.
+# [3.5/4] building graph.json.
+# `mathc render` now writes dist/dashboard.html and
+# dist/graph.html from render/templates/{dashboard,graph}.html,
+# so this script no longer generates them. It only still writes
+# dist/graph.json, the canonical relations-graph JSON projection
+# for the bootstrap policy that the graph.html viewer fetches at
+# runtime. graph.json is not part of the static page set, so the
+# render dispatcher does not emit it.
 MATHC="${MATHC_BIN:-_build/install/default/bin/mathc}"
 if [ -x "$MATHC" ]; then
-  echo "[3.5/4] building dashboard + graph artefacts..."
+  echo "[3.5/4] building graph.json..."
   mkdir -p dist
-  # dist/dashboard.html
-  if "$MATHC" packages --format=html > dist/dashboard.body.html 2>/dev/null; then
-    {
-      printf '%s\n' '<!DOCTYPE html>'
-      printf '%s\n' '<html lang="en">'
-      printf '%s\n' '<head>'
-      printf '%s\n' '<meta charset="utf-8">'
-      printf '%s\n' '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
-      printf '%s\n' '<base href="/math-coding/">'
-      printf '%s\n' '<title>Dashboard &mdash; math-coding</title>'
-      printf '%s\n' '<link rel="stylesheet" href="assets/style.css">'
-      printf '%s\n' '</head>'
-      printf '%s\n' '<body>'
-      printf '%s\n' '<main class="site-main">'
-      printf '%s\n' '<header class="mathc-dashboard-head"><h1>math-coding dashboard</h1>'
-      printf '%s\n' '<p class="mathc-meta">Live obligation counts across all active decisions; the same store that powers <a href="packages.html">packages.html</a> and <code>mathc self-check</code>.</p>'
-      printf '%s\n' '</header>'
-      cat dist/dashboard.body.html
-      printf '%s\n' '</main>'
-      printf '%s\n' '</body>'
-      printf '%s\n' '</html>'
-    } > dist/dashboard.html
-    rm -f dist/dashboard.body.html
-  else
-    echo "  WARN: $MATHC packages --format=html failed; dashboard.html not written" >&2
-  fi
   # dist/graph.json
   if "$MATHC" graph --decision=bootstrap-v3 --format=json > dist/graph.json 2>/dev/null; then
     :
   else
     echo "  WARN: $MATHC graph --format=json failed; graph.json not written" >&2
   fi
-  # dist/graph.html — static cytoscape.js viewer over graph.json
-  cat > dist/graph.html <<'GRAPH_HTML'
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<base href="/math-coding/">
-<title>Decision Graph &mdash; math-coding</title>
-<link rel="stylesheet" href="assets/style.css">
-<script defer src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
-<style>
-  #mathc-graph { width: 100%; height: 80vh; min-height: 480px;
-                border: 1px solid #8b3a3a; border-radius: 4px;
-                background: #fbfaf6; }
-  .mathc-graph-legend { font-size: 0.85rem; color: #555;
-                        margin: 1rem 0; }
-  .mathc-graph-legend code { background: #f3efe6; padding: 0 0.3rem;
-                             border-radius: 2px; }
-</style>
-</head>
-<body>
-<main class="site-main">
-<header class="mathc-graph-head">
-<h1>Decision relations graph</h1>
-<p class="mathc-meta">Bootstrap policy (<code>bootstrap-v3@3</code>) and its transitive impact list. Eight relation kinds from <a href="spec/algebra-3.2.html">spec/algebra-3.2.html §7</a>:
-<code>addresses</code>, <code>supersedes</code>, <code>revises</code>, <code>refines</code>, <code>depends_on</code>, <code>conflicts_with</code>, <code>implements</code>, <code>verifies</code>. Back-edges (cycles) are rendered in oxblood.</p>
-<p class="mathc-graph-legend">Click a node to highlight its neighbours. Drag to rearrange. Scroll to zoom. The data source is <a href="graph.json">graph.json</a> (canonical JSON projection from <code>mathc graph --format=json</code>).</p>
-</header>
-<div id="mathc-graph" aria-label="Decision relations graph"></div>
-<script>
-(async () => {
-  const r = await fetch('graph.json');
-  const g = await r.json();
-  const cy = cytoscape({
-    container: document.getElementById('mathc-graph'),
-    elements: [
-      ...g.nodes.map(n => ({ data: { id: n.id, label: n.label || n.id } })),
-      ...g.edges.map(e => ({ data: { id: e.from + '->' + e.to,
-                                     source: e.from, target: e.to, kind: e.kind } })),
-    ],
-    style: [
-      { selector: 'node', style: { 'label': 'data(label)', 'font-size': '10px',
-                                   'background-color': '#8b3a3a', 'color': '#222',
-                                   'text-valign': 'bottom', 'text-halign': 'center',
-                                   'text-margin-y': 4 } },
-      { selector: 'edge', style: { 'curve-style': 'bezier', 'width': 1.5,
-                                   'line-color': '#aaa', 'target-arrow-color': '#aaa',
-                                   'target-arrow-shape': 'triangle',
-                                   'label': 'data(kind)', 'font-size': '8px',
-                                   'color': '#777', 'text-rotation': 'autorotate' } },
-      { selector: 'edge[kind="supersedes"]', style: { 'line-color': '#8b3a3a',
-                                                       'target-arrow-color': '#8b3a3a' } },
-      { selector: ':selected', style: { 'background-color': '#222',
-                                        'line-color': '#222',
-                                        'target-arrow-color': '#222' } },
-    ],
-    layout: { name: 'cose', animate: false, padding: 30,
-              nodeRepulsion: 8000, idealEdgeLength: 100 },
-  });
-  cy.on('tap', 'node', evt => {
-    const n = evt.target;
-    cy.elements().removeClass('mathc-highlight mathc-fade');
-    const nb = n.closedNeighborhood();
-    cy.elements().difference(nb).addClass('mathc-fade');
-    nb.addClass('mathc-highlight');
-  });
-  cy.on('tap', evt => {
-    if (evt.target === cy) {
-      cy.elements().removeClass('mathc-highlight mathc-fade');
-    }
-  });
-  // cycle back-edge annotation
-  if (g._cycle) {
-    const note = document.createElement('p');
-    note.className = 'mathc-graph-legend';
-    note.innerHTML = '<strong>Cycle detected.</strong> The graph walker found a back-edge to an ancestor in the BFS path; the kernel annotates <code>_cycle: true</code> on the JSON projection.';
-    document.querySelector('.mathc-graph-head').appendChild(note);
-  }
-})();
-</script>
-<style>
-  .mathc-fade { opacity: 0.2; }
-  .mathc-highlight { 'background-color': #222; }
-</style>
-</main>
-</body>
-</html>
-GRAPH_HTML
 fi
 
 echo "[4/4] verifying dist/..."
