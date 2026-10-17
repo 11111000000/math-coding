@@ -27,17 +27,17 @@ Last verified at: HEAD `d52c85b` + 2026-10-14 kernel-fixes + site-redesign cycle
   closed the v3 dialectic antithesis slot. See git for the
   pre-3.3 sync chain.
 
-Attestation store at `attestations/` contains **585 files** (verified by
+Attestation store at `attestations/` contains **1090 files** (verified by
 `mathc counters --format=json`; the count is regenerated from
-`ls attestations/` on every check); **`mathc packages` reports 150 active
-decisions / 157 total decision files / 538 obligations
-(504 pass, 0 unknown, 34 missing; the master policy's 7
+`ls attestations/` on every check); **`mathc packages` reports 157 active
+decisions / 164 total decision files / 551 obligations
+(252 pass, 287 unknown, 12 missing; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `mathc counters` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by
-`tests/counters_drift.ml`. Total decision files on disk: 157
+`tests/counters_drift.ml`. Total decision files on disk: 164
 (`decisions/*.yaml`, of which 7 are waivers / obligations-aggregator /
-migrations-history). 88 cram files in `tests/cli/`. 34 CLI
+migrations-history). 89 cram files in `tests/cli/`. 34 CLI
 subcommands.
 
 > Note: at HEAD `d52c85b` the `mathc counters` `schema`
