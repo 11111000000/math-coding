@@ -73,6 +73,9 @@ Options:
                           even when its version pin matches
   --no-path-update       skip the shell RC PATH auto-update
   --with-docker           print docker pull + run commands
+  --docker-fallback       on native install failure (exit 1 / 124),
+                          if docker is on PATH, print the docker run
+                          command and exit 0 (default: off)
   --print-nix-command     print the `nix run github:...` command
   --cosign-verify         (default on) verify the ghcr.io image
                           signature; --no-cosign-verify to skip
@@ -101,6 +104,7 @@ install_upgrade=0
 install_path_update=1
 install_print_docker=0
 install_print_nix=0
+install_docker_fallback=0
 install_version="${MC_VERSION_DEFAULT}"
 install_check_only=0
 # CLI override for libc auto-detect. Empty = use detect_libc().
@@ -118,6 +122,7 @@ parse_flags() {
       --upgrade)           install_user_skill=1; install_upgrade=1 ;;
       --no-path-update)    install_path_update=0 ;;
       --with-docker)       install_print_docker=1 ;;
+      --docker-fallback)   install_docker_fallback=1 ;;
       --print-nix-command) install_print_nix=1 ;;
       --cosign-verify)     install_cosign_verify=1 ;;
       --no-cosign-verify)  install_cosign_verify=0 ;;
@@ -507,6 +512,31 @@ NIX
   # the user opts in by replacing the URL prefix.
 }
 
+# --- Docker fallback on native install failure ---------------------------
+# Per `decisions/docker-availability-guarantee-2026-10.yaml`
+# obligation `install-sh-docker-fallback-mode`. When the
+# native install branch fails and `--docker-fallback` is set,
+# AND `docker` is on PATH, print the docker run line and
+# exit 0 (the fallback IS the deliverable). When docker is
+# NOT on PATH, print a notice and exit 1.
+print_docker_fallback() {
+  version="$1"
+  if command -v docker >/dev/null 2>&1; then
+    cat <<DOCKER
+native install failed; Docker fallback available:
+
+docker pull ghcr.io/${MC_REPO%/*}/mathc:${version}
+docker run --rm -v "\$(pwd):/repo" ghcr.io/${MC_REPO%/*}/mathc:${version} --help
+
+install.sh: --docker-fallback printed; nothing was installed
+DOCKER
+    exit 0
+  else
+    echo "install.sh: --docker-fallback: docker binary not found on PATH; no fallback available" >&2
+    exit 1
+  fi
+}
+
 # --- Install the binary to a directory ------------------------------------
 # Args: $1=temp_binary, $2=install_dir.
 # Returns 0 on success, 2 on filesystem error.
@@ -777,6 +807,9 @@ main() {
     *)           sums_url="${MC_RELEASE_BASE}/v${version}/SHA256SUMS" ;;
   esac
   if ! dl "$sums_url" "$sums_tmp"; then
+    if [ "$install_docker_fallback" = "1" ]; then
+      print_docker_fallback "$install_version"
+    fi
     return 124
   fi
 
@@ -803,6 +836,9 @@ main() {
   fi
 
   if ! bin_meta=$(download_binary "$version" "$os" "$arch" "$libc" "$bin_tmp"); then
+    if [ "$install_docker_fallback" = "1" ]; then
+      print_docker_fallback "$install_version"
+    fi
     return 124
   fi
   bin_basename=$(printf '%s\n' "$bin_meta" | sed -n '1p')
@@ -830,6 +866,9 @@ main() {
 
   if ! verify_sha256 "$sums_tmp" "$bin_tmp" "$bin_basename"; then
     rm -f "$bin_tmp"  # remove the partial before exit
+    if [ "$install_docker_fallback" = "1" ]; then
+      print_docker_fallback "$install_version"
+    fi
     return 1
   fi
 

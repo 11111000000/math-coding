@@ -6,6 +6,8 @@ full runbook, see [USAGE.md](USAGE.md). For the AI-agent skill, see
 
 ## Install
 
+> Native channels first; Docker as fallback. If none of the native channels work, see [If the native install fails](#if-the-native-install-fails) below.
+
 The default channel is **stable** (the latest tagged
 `vX.Y.Z` release, or the most recently published release
 artifact if no stable tag exists yet). The `--channel=edge`
@@ -51,6 +53,27 @@ irm ... | iex -Version edge
 Other channels (Docker, Nix, source build) live in
 [site/install.md](site/install.md); use them when `curl | sh`
 is blocked or you need a hermetic runner.
+
+## If the native install fails
+
+If `curl | sh`, the PowerShell installer, `nix run`, or the
+source build does not work on your host (corporate proxy
+blocking `raw.githubusercontent.com`, Alpine/musl libc,
+immutable CI runner without write access to `~/.local/`),
+the Docker image is the always-available fallback. The
+image at `ghcr.io/11111000000/mathc:<VERSION>` is built
+and signed by this repository's CI on every release tag
+push; no installation to your host is required.
+
+```sh
+docker run --rm -v "$PWD:/repo" \
+  ghcr.io/11111000000/mathc:<VERSION> \
+  validate decisions/foo.yaml
+```
+
+The same command works for any subcommand. Replace
+`<VERSION>` with a release tag (e.g., `v3.3.0`) or `edge`
+for the most recent main commit.
 
 ## First decision
 

@@ -17,9 +17,21 @@
  *
  * Exit codes: the server exits 0 on graceful EOF. Any other exit
  * is reserved for fatal dispatcher bugs (the protocol layer
- * never reaches the catch-all in production). *)
+ * never reaches the catch-all in production).
+ *
+ * Signal handling: SIGPIPE is ignored at process start. If the
+ * MCP client closes its end of the stdio pipes, the next write
+ * raises `EPIPE` as a `Sys_error` exception which `Transport.write_line`
+ * catches and turns into a graceful exit. Without this, the
+ * default disposition is to terminate the process via the
+ * kernel-delivered SIGPIPE (exit code 141). *)
 
 let[@warning "-32"] main_loop () =
+  (* Default SIGPIPE disposition is to terminate the process; a
+     client that closes its end of the stdio pipes mid-loop
+     would otherwise kill the server. `Transport.write_line`
+     already converts EPIPE into an exception we catch below. *)
+  Sys.set_signal Sys.sigpipe Sys.Signal_ignore;
   let rec loop () =
     match Transport.read_line () with
     | None ->
@@ -33,7 +45,10 @@ let[@warning "-32"] main_loop () =
           | Error err ->
               Protocol.response_error ~data:err.data err.code err.message
         in
-        Transport.write_line (Protocol.encode_response response);
+        (try Transport.write_line (Protocol.encode_response response)
+         with Sys_error _ ->
+           (* EPIPE: client closed the pipe. Treat as graceful EOF. *)
+           ());
         loop ()
   in
   loop ()

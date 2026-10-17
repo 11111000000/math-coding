@@ -13,10 +13,14 @@
    `mathc validate` uses for decision `id` validation. We
    mirror it here so the user gets a template that
    `mathc validate` will accept. *)
-(* Pure-OCaml id validation: 1..128 chars, all in [a-z0-9-], no
-   leading or trailing dash. We avoid Str.regexp to sidestep the
-   POSIX ERE interaction with shell-passed strings. *)
-let is_id_char c = (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c = '-'
+(* Pure-OCaml id validation: 1..128 chars, all in [a-z0-9._-],
+   no leading or trailing dash. The character set matches
+   `schemas/decision.json` (`^[a-z0-9][a-z0-9._-]{0,127}$`) so a
+   `mathc new-decision <id>` invocation produces an id the
+   kernel accepts. We avoid Str.regexp to sidestep the POSIX
+   ERE interaction with shell-passed strings. *)
+let is_id_char c =
+  (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c = '-' || c = '.'
 
 let validate_id id =
   let len = String.length id in
@@ -25,11 +29,13 @@ let validate_id id =
   else if (not (is_id_char id.[0])) || id.[0] = '-' then
     Error
       ("invalid decision id: " ^ id
-     ^ " (expected kebab-case: must start with [a-z0-9])")
+     ^ " (expected to match schemas/decision.json pattern: \
+        ^[a-z0-9][a-z0-9._-]{0,127}$)")
   else if (not (is_id_char id.[len - 1])) || id.[len - 1] = '-' then
     Error
       ("invalid decision id: " ^ id
-     ^ " (expected kebab-case: must end with [a-z0-9])")
+     ^ " (expected to match schemas/decision.json pattern: \
+        ^[a-z0-9][a-z0-9._-]{0,127}$)")
   else
     begin try
       for i = 0 to len - 1 do
@@ -39,7 +45,8 @@ let validate_id id =
     with Exit ->
       Error
         ("invalid decision id: " ^ id
-       ^ " (expected kebab-case: only [a-z0-9-] allowed)")
+       ^ " (expected to match schemas/decision.json pattern: \
+          ^[a-z0-9][a-z0-9._-]{0,127}$)")
     end
 
 (* --- template ------------------------------------------------- *)

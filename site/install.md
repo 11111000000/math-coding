@@ -11,6 +11,8 @@ much of the host environment the channel assumes.
 
 ## Choose your channel
 
+> Native channels first; Docker as fallback. If none of the native channels work, see [If the native install fails](#if-the-native-install-fails) below.
+
 | Channel | When to use | Install command |
 |---|---|---|
 | Release binary (POSIX) | Default. Linux (glibc **and** musl auto-detect), macOS, WSL, Git-Bash, MSYS, Cygwin. | `curl -fsSL https://github.com/11111000000/math-coding/releases/latest/download/install.sh \| sh` |
@@ -24,6 +26,29 @@ The release binary is the recommended default for two reasons:
 binary against `SHA256SUMS` published on the same release,
 defending against network MITM; (b) the script also installs
 the per-user opencode skill in the same invocation (`--user-skill`).
+
+## If the native install fails
+
+If `curl | sh`, the Windows installer, `nix run`, or the
+source build does not work on your host (corporate proxy
+blocking `raw.githubusercontent.com`, Alpine/musl libc,
+immutable CI runner without write access to `~/.local/`),
+the Docker image is the always-available fallback. The
+image at `ghcr.io/11111000000/mathc:<VERSION>` is built
+and signed by this repository's CI on every release tag
+push; no installation to your host is required.
+
+```sh
+docker run --rm -v "$PWD:/repo" \
+  ghcr.io/11111000000/mathc:<VERSION> \
+  validate decisions/foo.yaml
+```
+
+The same command works for any subcommand. Replace
+`<VERSION>` with a release tag (e.g., `v3.3.0`) or `edge`
+for the most recent main commit. The `:edge` tag is
+rebuilt and republished on every push to `main`; a daily
+healthcheck workflow asserts the image is still runnable.
 
 ## For AI agents
 

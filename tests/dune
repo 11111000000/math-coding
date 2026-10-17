@@ -28,6 +28,7 @@
   yaml_block_scalars)
  (libraries
   mathcoding_core
+  mathcoding_render
   mathcoding_adopt
   mathcoding_attestations
   mathcoding_junit

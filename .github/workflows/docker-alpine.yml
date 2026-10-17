@@ -1,0 +1,113 @@
+name: docker-alpine
+
+# Per `decisions/docker-availability-guarantee-2026-10.yaml`
+# outcome `docker-alpine-image-published`. Builds and
+# publishes the Alpine/musl image on every release tag push
+# AND on every push to main. The runtime image is
+# `alpine:3.20`; the binary is the pre-built
+# `mathc-linux-x86_64-musl` release asset (already in
+# `.github/workflows/release.yml:files:` at line 475 for
+# tagged releases, line 509 for the :edge prerelease).
+#
+# Tags published:
+#   :edge-alpine                        (push to main)
+#   :VERSION-alpine                     (release tag push)
+#
+# Multi-arch is NOT in scope for rev 1: the musl release
+# asset is x86_64 only; arm64-musl is a separate cycle.
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-alpine:
+    name: build mathc image (alpine/musl)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read VERSION
+        id: version
+        run: |
+          if [ ! -s VERSION ]; then
+            echo "VERSION file missing or empty" >&2
+            exit 2
+          fi
+          VERSION=$(head -n1 VERSION | tr -d '[:space:]')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Using VERSION=${VERSION}"
+
+      - name: Download musl release asset (release tag)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -eu
+          mkdir -p dist-bin
+          gh release download "${{ github.ref_name }}" \
+            --repo 11111000000/math-coding \
+            --pattern 'mathc-linux-x86_64-musl' \
+            --dir dist-bin \
+            --clobber
+          ls -l dist-bin/
+          test -s dist-bin/mathc-linux-x86_64-musl
+
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image (local smoke test)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.alpine
+          push: false
+          load: true
+          tags: mathc:dev-alpine
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            MUSL_ASSET=dist-bin/mathc-linux-x86_64-musl
+
+      - name: Smoke test (CI build)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -eu
+          output=$(docker run --rm mathc:dev-alpine version)
+          case "$output" in
+            *"math-coding ${{ steps.version.outputs.version }}"*)
+              echo "ok: alpine smoke test passed: $output"
+              ;;
+            *)
+              echo "FAIL: alpine smoke test output mismatch: $output" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Build and push (:VERSION-alpine)
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.alpine
+          push: true
+          tags: |
+            ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}-alpine
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            MUSL_ASSET=dist-bin/mathc-linux-x86_64-musl

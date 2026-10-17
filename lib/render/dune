@@ -1,0 +1,5 @@
+(library
+ (name mathcoding_render)
+ (wrapped false)
+ (modules render)
+ (libraries mathcoding_core unix))

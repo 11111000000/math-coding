@@ -1,0 +1,58 @@
+name: docker-healthcheck
+
+# Per `decisions/docker-availability-guarantee-2026-10.yaml`
+# outcome `docker-image-healthcheck-runs`. A daily cron
+# AND push-to-main trigger pulls the `:edge` image and
+# asserts `mathc version` exits 0. The job name
+# `healthcheck-image` matches the obligation's verifier
+# reference. The attestation is recorded at
+# attestations/docker-availability-guarantee-2026-10-
+# docker-image-healthcheck.json (see git history; this
+# commit only creates the workflow file, the attestation
+# record is wired in a follow-up commit when the first
+# healthcheck run lands).
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * *'   # daily 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  healthcheck-image:
+    name: pull :edge image, assert mathc version exits 0
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read VERSION
+        id: version
+        run: |
+          VERSION=$(head -n1 VERSION | tr -d '[:space:]')
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Using VERSION=${VERSION}"
+
+      - name: Pull :edge image
+        run: |
+          docker pull ghcr.io/11111000000/mathc:edge
+          docker images ghcr.io/11111000000/mathc:edge
+
+      - name: Smoke test (mathc version)
+        run: |
+          set -eu
+          output=$(docker run --rm ghcr.io/11111000000/mathc:edge version)
+          case "$output" in
+            *"math-coding "*)
+              echo "ok: healthcheck passed: $output"
+              ;;
+            *)
+              echo "FAIL: healthcheck output mismatch: $output" >&2
+              exit 1
+              ;;
+          esac

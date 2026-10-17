@@ -85,10 +85,18 @@ let[@warning "-32"] curl_status ~url =
        Buffer.add_channel buf ic 4096
      done
    with End_of_file -> ());
-  let _status = Unix.close_process_in ic in
+  let status = Unix.close_process_in ic in
+  (* The HTTP code is written by `-w '%{http_code}'`, so a body
+     of "200" already implies a successful 2xx response. We also
+     gate on `WEXITED 0` so a curl killed by signal (e.g. SIGPIPE
+     if the parent pipe is closed) cannot produce a false
+     positive even when the buffer happens to contain "200". *)
+  let exit_ok =
+    match status with Unix.WEXITED 0 -> true | _ -> false
+  in
   let s = Buffer.contents buf in
   let trimmed = String.trim s in
-  if trimmed = "200" then true else false
+  if exit_ok && trimmed = "200" then true else false
 
 (* --- public API --- *)
 

@@ -5,11 +5,19 @@
  * `spec/algebra-3.2.md §7.1` and adopted by decision
  * `d5-body-vs-wrapper-canonical-2026-10`. The algorithm is
  * implemented in OCaml as `Decision.body_canonical_sha256`
- * (`lib/decision.ml`); the reference implementation (in Python)
- * is `scripts/axiom-link-seed.py:105-123`. The two MUST agree;
- * a regression in the OCaml helper surfaces as a mismatch with
- * the 72 active decisions' stored `body_sha` / `yaml_sha`
- * values, which the next self-check would catch.
+ * (`lib/decision.ml`).
+ *
+ * A Python reference implementation lives at
+ * `scripts/axiom-link-seed.py:105-123`. A real cross-check
+ * between the OCaml helper and the Python reference would
+ * require re-invoking the Python script from the test harness
+ * (or shelling out from OCaml), which is out of scope for this
+ * test file. Instead, the `known_vector` case pins the helper
+ * against the well-known SHA-256 of the empty string, and the
+ * stored `body_sha` / `yaml_sha` values on the 72 active
+ * decisions are the de-facto integration tests: a regression
+ * in the OCaml helper surfaces as a `MC-SHA-MISMATCH` on the
+ * next self-check.
  *
  * The four labelled cases map 1:1 to the obligations in
  * `decisions/d5-body-vs-wrapper-canonical-2026-10.yaml`
@@ -77,30 +85,6 @@ let[@warning "-32"] known_vector () =
     "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     (hash "")
 
-let[@warning "-32"] matches_python_reference () =
-  (* The Python reference implementation in
-     scripts/axiom-link-seed.py:105-123 uses the same algorithm.
-     The expected digest below was produced by running that
-     script against a synthetic 80-byte file. The OCaml helper
-     MUST agree. This is the regression pin: if the OCaml
-     algorithm drifts from the Python algorithm, this case
-     fails. *)
-  let input =
-    "---\nid: synthetic\nrevision: 1\nstate: active\nbody_sha: \
-     \"sha256:" ^ String.make 64 '0' ^ "\"\nyaml_sha: \
-     \"sha256:" ^ String.make 64 '0' ^ "\"\n---\n"
-  in
-  let actual = hash input in
-  let len = String.length actual in
-  Alcotest.(check bool)
-    "matches-python-reference: digest format is sha256: + 64 lowercase hex"
-    true
-    (len = 71
-     && String.sub actual 0 7 = "sha256:"
-     && String.sub actual 7 64
-        |> String.for_all (fun c ->
-               (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')))
-
 let () =
   Alcotest.run "body_canonical_test"
     [
@@ -112,7 +96,5 @@ let () =
             insensitivity_to_placeholder;
           Alcotest.test_case "crlf_equals_lf" `Quick crlf_equals_lf;
           Alcotest.test_case "known_vector" `Quick known_vector;
-          Alcotest.test_case "matches_python_reference" `Quick
-            matches_python_reference;
         ] );
     ]
