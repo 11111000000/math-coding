@@ -1,0 +1,87 @@
+<section class="mathc-hero">
+<img class="mathc-hero-logo" src="assets/logo.svg" alt="">
+<h1>math-coding</h1>
+<p class="mathc-hero-version">{{version}}</p>
+<p class="mathc-hero-tagline">风险自适应的软件变更保障协议。每项架构承诺都在代码落地<em>之前</em>写入,并由内核在每次合并时核验。</p>
+<div class="mathc-hero-cta">
+<a class="mathc-cta mathc-cta-primary" href="https://github.com/11111000000/math-coding#install">安装 mathc</a>
+<a class="mathc-cta mathc-cta-secondary" href="methodology.html">工作原理</a>
+</div>
+</section>
+<section class="mathc-section mathc-quickstart">
+<h2>快速开始 &mdash; 60&nbsp;秒</h2>
+<ol class="mathc-steps">
+<li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>
+安装 <code>mathc</code> 可执行文件,并将用户级技能放入 <code>~/.config/opencode/skills/</code>。</li>
+<li><code>mathc new-decision my-first-change</code><br>
+用模板创建 <code>decisions/my-first-change.yaml</code>,校验其内容,并指出缺失项。</li>
+<li><code>mathc self-check</code><br>
+读取决策存储,逐条遍历每个义务,并按行输出每项的判定:<code>pass</code>、<code>fail</code>、<code>unknown</code>、<code>stale</code> 或 <code>missing</code>。任一非 pass 结果都会使 CI 以非零状态退出。</li>
+</ol>
+</section>
+<section class="mathc-section mathc-moderation">
+<h2>一屏完成审查</h2>
+<p>math-coding 为评审者提供<em>恰好一屏</em>的内容:作者所做的声明、支持该声明的证据,以及一条判定。无需再滚动浏览 30 个文件的 PR 来确认变更是否真如提交说明所述。</p>
+<pre class="mathc-terminal"><code>$ mathc gate main feature/auth-fix
+
+
+
+  policy:    bootstrap-v3
+
+  obligations:  17
+
+  verdicts:
+
+    pass:    14   {{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}{{check}}
+
+    unknown:  2   (waiver: vendor:openssl-3.0-rc4)
+
+    missing:  1   obligation:back-compat-test
+
+  verdict:   <span class="mathc-verdict-unknown">unknown</span>
+
+  exit:      1</code></pre>
+<p><code>gate</code> 子命令按当前活动策略评估变更。<code>self-check</code> 子命令是其机器可读版本,设计用于在每次推送和每次合并时于 CI 中执行。</p>
+</section>
+<section class="mathc-section mathc-methodology">
+<h2>方法论</h2>
+<p class="mathc-section-lede">四个原语,每个都是可被 grep、评审和回退的纯文本文件:</p>
+<div class="mathc-cards">
+<article class="mathc-card">
+<h3>Intent(意图)</h3>
+<p>每项变更都始于一句自然语言描述:什么应当成立?</p>
+</article>
+<article class="mathc-card">
+<h3>Decision(决策)</h3>
+<p>意图被固化为 <code>decisions/</code> 下的一个 YAML 包,列出其创建的义务、所接受的风险,以及可证伪它的反例。</p>
+</article>
+<article class="mathc-card">
+<h3>Obligation(义务)</h3>
+<p>可由代码核验的声明:一个测试夹具、一条性质、一个基准、一条静态规则。每项都对应一条判定。</p>
+</article>
+<article class="mathc-card">
+<h3>Attestation(证据)</h3>
+<p>证明该义务在特定提交上已被满足的证据。测试、评审、审计 &mdash; 全部作为一等制品存储,绝不以截图形式保存。</p>
+</article>
+</div>
+<p class="mathc-section-more">
+完整工作链:<code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>。
+阅读 <a href="methodology.html">方法论</a> 了解形式化代数,或阅读 <a href="foundations.html">基石</a> 了解哲学锚点。</p>
+</section>
+<section class="mathc-section mathc-adopt">
+<h2>在你的仓库中采用 math-coding</h2>
+<p>协议非常轻量:每项变更在代码落地前需先撰写一个
+<code>decisions/&lt;id&gt;.yaml</code> 包。阅读
+<a href="https://github.com/11111000000/math-coding/blob/main/USAGE.md">采用操作手册</a>
+完成 10 分钟上手,或克隆仓库并针对示例决策运行
+<code>mathc self-check</code> 以在你的机器上查看判定结果。</p>
+<div class="mathc-hero-cta">
+<a class="mathc-cta mathc-cta-primary" href="https://github.com/11111000000/math-coding">在 GitHub 上克隆</a>
+<a class="mathc-cta mathc-cta-secondary" href="https://github.com/11111000000/math-coding/blob/main/USAGE.md">阅读操作手册</a>
+<a class="mathc-cta mathc-cta-secondary" href="feed.xml">通过 RSS 订阅</a>
+</div>
+</section>
+<p class="mathc-callout">
+本站每一个页面均由 math-coding 内核生成。方法论本身即是一项制品;该制品遵循此方法论。</p>
+<p class="mathc-meta">当前活动策略:<code>{{policy_id}}</code>。完整义务存储位于 <a href="packages.html">packages</a>,公理位于
+<a href="axioms.html">axioms</a>。</p>

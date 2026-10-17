@@ -616,7 +616,36 @@ let emit (format : output_format) path
    read from `./VERSION` at runtime so `scripts/release.sh` and
    the build pipeline only need to update one file. *)
 let[@warning "-32"] read_cli_version () =
-  Render.read_version_file ~fallback:Render.default_version
+  let dune_root =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> Some (Filename.concat p "VERSION")
+    | None -> None
+  in
+  let candidates =
+    Option.to_list dune_root
+    @ [
+        "VERSION";
+        "../VERSION";
+        "../../VERSION";
+        "../../../VERSION";
+        "../../../../VERSION";
+      ]
+  in
+  let try_one path =
+    if Sys.file_exists path then begin
+      let ic = open_in path in
+      let n = in_channel_length ic in
+      let s = really_input_string ic n in
+      close_in ic;
+      Some (s |> String.trim)
+    end
+    else None
+  in
+  let rec loop = function
+    | [] -> "math-coding"
+    | p :: rest -> ( match try_one p with Some v -> v | None -> loop rest)
+  in
+  loop candidates
 
 let[@warning "-32"] print_version () =
   Printf.printf "math-coding %s: bootstrap\n" (read_cli_version ())
@@ -3755,6 +3784,54 @@ let[@warning "-32"] read_axioms axioms_root =
           if body = "" then None else Some (base, body))
     with _ -> []
 
+let[@warning "-32"] read_spec_data () =
+  let candidates =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p -> [ Filename.concat p "spec" ]
+    | None -> []
+  in
+  let candidates = candidates @ [ "spec" ] in
+  let try_dir d =
+    if not (Sys.file_exists d) then None
+    else if not (Sys.is_directory d) then None
+    else
+      try
+        Some
+          (Sys.readdir d |> Array.to_list
+          |> List.filter (fun n -> Filename.extension n = ".md")
+          |> List.sort String.compare
+          |> List.filter_map (fun n ->
+              let base = Filename.chop_extension n in
+              let path = Filename.concat d n in
+              let body = read_file path in
+              if body = "" then None else Some (base, body)))
+      with _ -> None
+  in
+  let rec loop = function
+    | [] -> []
+    | d :: rest -> ( match try_dir d with Some xs -> xs | None -> loop rest)
+  in
+  loop candidates
+
+let[@warning "-32"] read_templates () =
+  let dir =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some p when Sys.file_exists (Filename.concat p "render/templates") ->
+        Filename.concat p "render/templates"
+    | _ -> "render/templates"
+  in
+  let read name = read_file (Filename.concat dir name) in
+  let en_html = read "index.en.html" in
+  let ru_html = read "index.ru.html" in
+  let zh_html = read "index.zh.html" in
+  let dash_html = read "dashboard.html" in
+  let graph_html = read "graph.html" in
+  {
+    Render.index = [ (Render.En, en_html); (Render.Ru, ru_html); (Render.Zh, zh_html) ];
+    Render.dashboard = dash_html;
+    Render.graph = graph_html;
+  }
+
 let[@warning "-32"] per_decision_obligation_html (d : Packages.decision_view) =
   let buf = Buffer.create 256 in
   Printf.bprintf buf "<h3>%s</h3>\n<ul>" d.Packages.decision_id;
@@ -3946,12 +4023,12 @@ let[@warning "-32"] do_render () =
      generated only when the source file exists. *)
   let languages =
     match !lang_arg with
-    | "en" -> [ "en" ]
-    | "ru" -> [ "ru" ]
-    | "zh" -> [ "zh" ]
-    | "both" -> [ "en"; "ru" ]
-    | "all" -> [ "en"; "ru"; "zh" ]
-    | _ -> [ "en" ]
+    | "en" -> [ Render.En ]
+    | "ru" -> [ Render.Ru ]
+    | "zh" -> [ Render.Zh ]
+    | "both" -> [ Render.En; Render.Ru ]
+    | "all" -> [ Render.En; Render.Ru; Render.Zh ]
+    | _ -> [ Render.En ]
   in
 
   let config : Render.config =
@@ -3974,9 +4051,12 @@ let[@warning "-32"] do_render () =
      the RSS channel title matches the live project version). *)
   let version = read_cli_version () in
 
+  let spec_data = read_spec_data () in
+  let templates = read_templates () in
   let pages =
     Render.build_pages ~package_html ~decisions_data ~policy_id ~config
-      ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data
+      ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data ~spec_data
+      ~templates
   in
 
   Printf.printf "[render] writing %d pages to %s/\n" (List.length pages)
@@ -3995,6 +4075,13 @@ let[@warning "-32"] do_render () =
   let index_body = render_search_index pages_for_index in
   write_file index_path index_body;
   Printf.printf "  index.json\n";
+
+  let dashboard_path = Filename.concat !out_dir "dashboard.html" in
+  write_file dashboard_path templates.Render.dashboard;
+  Printf.printf "  dashboard.html\n";
+  let graph_path = Filename.concat !out_dir "graph.html" in
+  write_file graph_path templates.Render.graph;
+  Printf.printf "  graph.html\n";
 
   (* RSS 2.0 feed at dist/feed.xml (Phase 4 of
      site-quality-distribution-2026-10). One <item> per

@@ -29,6 +29,40 @@
 
 (* --- minimal Markdown subset --- *)
 
+(* Language of a rendered page. A variant, not a string, per
+   OCAML_BEST_PRACTICES.md §2.1. Declared before the navigation and
+   page renderers that match on it. *)
+type lang = En | Ru | Zh
+
+(* Page templates read from files by the dispatcher. *)
+type templates = {
+  index : (lang * string) list;
+  dashboard : string;
+  graph : string;
+}
+
+(* Replace every `{{key}}` occurrence with its value. Fixed-string
+   substitution, NOT a template engine. *)
+let[@warning "-32"] substitute (vars : (string * string) list) s =
+  List.fold_left
+    (fun acc (key, value) ->
+      Str.global_replace (Str.regexp_string ("{{" ^ key ^ "}}")) value acc)
+    s vars
+
+(* Canonical two-letter code for a language (`en` / `ru` / `zh`). *)
+let[@warning "-32"] lang_code = function En -> "en" | Ru -> "ru" | Zh -> "zh"
+
+(* Parse a CLI `--lang` code back into the variant. `None` on an
+   unknown code; the dispatcher falls back to English. *)
+let[@warning "-32"] lang_of_code = function
+  | "en" -> Some En
+  | "ru" -> Some Ru
+  | "zh" -> Some Zh
+  | _ -> None
+
+(* File-name suffix for a language: `""` for En, `.ru`/`.zh` else. *)
+let[@warning "-32"] lang_suffix = function En -> "" | Ru -> ".ru" | Zh -> ".zh"
+
 (* Tiny string-set used by `build_pages` to track which article
    names have a Russian sibling. Implemented as a sorted list of
    strings; for the ≤ 16 entries `site/` carries this is faster
@@ -948,9 +982,9 @@ let[@warning "-32"] nav_groups_zh : nav_group list =
 
 let[@warning "-32"] nav_groups_for lang =
   match lang with
-  | "ru" -> nav_groups_ru
-  | "zh" -> nav_groups_zh
-  | _ -> nav_groups_en
+  | Ru -> nav_groups_ru
+  | Zh -> nav_groups_zh
+  | En -> nav_groups_en
 
 (* `sibling_langs` is the list of additional languages for which
    the current page has a sibling rendering. The English page
@@ -973,10 +1007,10 @@ let[@warning "-32"] lang_href_for ~lang ~page_key =
      `index.<lang>.html`. Mirrored by `sibling_translation_href`'s
      per-call propagation. *)
   match page_key, lang with
-  | "home", "en" -> "index.html"
-  | "home", l -> "index." ^ l ^ ".html"
-  | _, "en" -> page_key ^ ".html"
-  | _, l -> page_key ^ "." ^ l ^ ".html"
+  | "home", En -> "index.html"
+  | "home", l -> "index." ^ lang_code l ^ ".html"
+  | _, En -> page_key ^ ".html"
+  | _, l -> page_key ^ "." ^ lang_code l ^ ".html"
 
 let[@warning "-32"] sibling_translation_href ~lang ~page_key ~sibling_langs =
   (* `sibling_langs` is the closed set of non-source languages for
@@ -1042,8 +1076,8 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_lang
     if page_key = "home" then " class=\"nav-link active\""
     else " class=\"nav-link\""
   in
-  let home_href = if lang = "ru" then "index.ru.html" else "index.html" in
-  let home_label = if lang = "ru" then "Главная" else "Home" in
+  let home_href = "index" ^ lang_suffix lang ^ ".html" in
+  let home_label = if lang = Ru then "Главная" else "Home" in
   Printf.bprintf buf "    <li class=\"nav-item-direct\">\
      <a%s href=\"%s\">%s</a></li>\n"
     home_active_cls home_href home_label;
@@ -1127,11 +1161,11 @@ let[@warning "-32"] render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_lang
        (fun other_lang ->
          if other_lang <> lang then
            let href = lang_href_for ~lang:other_lang ~page_key in
-           let other_label = String.uppercase_ascii other_lang in
+           let other_label = String.uppercase_ascii (lang_code other_lang) in
            Printf.bprintf buf
              "  <a class=\"lang-toggle\" href=\"%s\" hreflang=\"%s\" \
               lang=\"%s\">%s</a>\n"
-             href other_lang other_lang other_label)
+             href (lang_code other_lang) (lang_code other_lang) other_label)
        sibling_langs);
   Buffer.add_string buf "</nav>\n";
   Buffer.contents buf
@@ -1158,7 +1192,7 @@ let[@warning "-32"] render_footer ~lang ~version ~page_key ~sibling_langs =
           if other_lang = lang then None
           else
             let href = lang_href_for ~lang:other_lang ~page_key in
-            let other_label = String.uppercase_ascii other_lang in
+            let other_label = String.uppercase_ascii (lang_code other_lang) in
             Some
               (Printf.sprintf "<a href=\"%s\">%s</a>"
                  (html_escape href) other_label))
@@ -1267,7 +1301,7 @@ Printf.sprintf
      <script defer src=\"assets/site.js\"></script>\n\
      </body>\n\
      </html>\n"
-    lang head
+    (lang_code lang) head
     (render_nav ~lang ~page_key ~enable_lang_toggle ~sibling_langs)
     body
     (render_footer ~lang ~version ~page_key ~sibling_langs)
@@ -1287,361 +1321,17 @@ let[@warning "-32"] render_axioms_section axioms =
   Buffer.add_string buf "</section>\n";
   Buffer.contents buf
 
-let[@warning "-32"] render_index ~package_html:_ ~axioms_html:_ ~policy_id ~version
-    =
-  let check = "\xe2\x9c\x94" in
-  Printf.sprintf
-    "<section class=\"mathc-hero\">\n\
-     <img class=\"mathc-hero-logo\" src=\"assets/logo.svg\" alt=\"\">\n\
-     <h1>math-coding</h1>\n\
-     <p class=\"mathc-hero-version\">%s</p>\n\
-     <p class=\"mathc-hero-tagline\">A risk-adaptive assurance protocol \
-     for software changes. Every architectural commitment is written\n\
-     <em>before</em> the code lands, and the kernel checks it on every\n\
-     merge.</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding#install\">Install mathc</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"methodology.html\">How it works</a>\n\
-     </div>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-quickstart\">\n\
-     <h2>Quick start &mdash; 60&nbsp;seconds</h2>\n\
-     <ol class=\"mathc-steps\">\n\
-     <li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>\n\
-     Installs the <code>mathc</code> binary and drops a user-skill \
-     into <code>~/.config/opencode/skills/</code>.</li>\n\
-     <li><code>mathc new-decision my-first-change</code><br>\n\
-     Creates <code>decisions/my-first-change.yaml</code> with the \
-     template, validates it, and tells you what is missing.</li>\n\
-     <li><code>mathc self-check</code><br>\n\
-     Reads the decision store, walks every obligation, and prints \
-     one verdict per row: <code>pass</code>, <code>fail</code>, \
-     <code>unknown</code>, <code>stale</code> or <code>missing</code>. \
-     CI exits non-zero on any non-pass.</li>\n\
-     </ol>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-moderation\">\n\
-     <h2>Moderation in one screen</h2>\n\
-     <p>math-coding gives a reviewer <em>exactly one screen</em>: the \
-     claim the author made, the evidence that backs it, and a single\n\
-     verdict. No more scrolling through a 30-file PR to see whether\n\
-     the change actually does what the commit message says.</p>\n\
-     <pre class=\"mathc-terminal\"><code>$ mathc gate main feature/auth-fix\n\
-\n\
-\n\
-\n  policy:    bootstrap-v3\n\
-\n  obligations:  17\n\
-\n  verdicts:\n\
-\n    pass:    14   %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n\
-\n    unknown:  2   (waiver: vendor:openssl-3.0-rc4)\n\
-\n    missing:  1   obligation:back-compat-test\n\
-\n  verdict:   <span class=\"mathc-verdict-unknown\">unknown</span>\n\
-\n  exit:      1</code></pre>\n\
-     <p>The <code>gate</code> subcommand evaluates the change against \
-     the active policy. The <code>self-check</code> subcommand is the \
-     machine-readable version, designed to run in CI on every push \
-     and every merge.</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-methodology\">\n\
-     <h2>The methodology</h2>\n\
-     <p class=\"mathc-section-lede\">Four primitives, each one a plain\n\
-     file you can grep, review and revert:</p>\n\
-     <div class=\"mathc-cards\">\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Intent</h3>\n\
-     <p>Every change begins with one sentence in plain language: \
-     what should become true?</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Decision</h3>\n\
-     <p>The intent becomes a YAML packet in <code>decisions/</code> \
-     that names the obligations it creates, the risks it accepts, \
-     and the counter-example that would falsify it.</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Obligation</h3>\n\
-     <p>A claim that can be checked by code: a fixture, a property, \
-     a benchmark, a static rule. Each one has a verdict.</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Attestation</h3>\n\
-     <p>Evidence that the obligation was met on a specific commit. \
-     Tests, reviewers, audits &mdash; all stored as first-class \
-     artefacts, never as screenshots.</p>\n\
-     </article>\n\
-     </div>\n\
-     <p class=\"mathc-section-more\">\n\
-     The working chain in full:\n\
-     <code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>.\n\
-     Read the <a href=\"methodology.html\">methodology</a> for the \
-     formal algebra, or <a href=\"foundations.html\">foundations</a> \
-     for the philosophical anchors.</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-adopt\">\n\
-     <h2>Adopt math-coding in your repo</h2>\n\
-     <p>The protocol is small: every change writes a\n\
-     <code>decisions/&lt;id&gt;.yaml</code> packet before the code\n\
-     lands. Read the\n\
-     <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">adoption runbook</a>\n\
-     for a 10-minute walk-through, or clone the repo and run\n\
-     <code>mathc self-check</code> against a sample decision to see\n\
-     the verdicts on your machine.</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding\">Clone on GitHub</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">Read the runbook</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"feed.xml\">Subscribe via RSS</a>\n\
-     </div>\n\
-     </section>\n\
-     <p class=\"mathc-callout\">\n\
-     Every page on this site is produced by the math-coding kernel. \
-     The methodology is the artifact; the artifact follows the \
-     methodology.</p>\n\
-     <p class=\"mathc-meta\">Active policy: <code>%s</code>. The full\n\
-     obligation store lives at <a href=\"packages.html\">packages</a> \
-     and the axioms in <a href=\"axioms.html\">axioms</a>.</p>\n"
-    (html_escape version)
-    check check check check check check check check check check check
-    check check check
-    (html_escape policy_id)
-
-let[@warning "-32"] render_index_ru ~package_html:_ ~axioms_html:_ ~policy_id
-    ~version =
-  let check = "\xe2\x9c\x94" in
-  Printf.sprintf
-    "<section class=\"mathc-hero\">\n\
-     <img class=\"mathc-hero-logo\" src=\"assets/logo.svg\" alt=\"\">\n\
-     <h1>math-coding</h1>\n\
-     <p class=\"mathc-hero-version\">%s</p>\n\
-     <p class=\"mathc-hero-tagline\">\xd0\x9f\xd1\x80\xd0\xbe\xd1\x82\xd0\xbe\xd0\xba\xd0\xbe\xd0\xbb \
-     обеспечения качества \xd0\xb4\xd0\xbb\xd1\x8f \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb9 \xd0\xb2\n\
-     \xd0\xbf\xd1\x80\xd0\xbe\xd0\xb3\xd1\x80\xd0\xb0\xd0\xbc\xd0\xbc\xd0\xbd\xd0\xbe\xd0\xbc \xd0\xbe\xd0\xb1\xd0\xb5\xd1\x81\xd0\xbf\xd0\xb5\xd1\x87\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb8. \
-     \xd0\x9a\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xb0\xd1\x80\xd1\x85\xd0\xb8\xd1\x82\xd0\xb5\xd0\xba\xd1\x82\xd1\x83\xd1\x80\xd0\xbd\xd0\xbe\xd0\xb5\n\
-     \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xb7\xd0\xb0\xd0\xbf\xd0\xb8\xd1\x81\xd1\x8b\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \
-     <em>\xd0\xb4\xd0\xbe</em> \xd1\x82\xd0\xbe\xd0\xb3\xd0\xbe, \xd0\xba\xd0\xb0\xd0\xba \xd0\xba\xd0\xbe\xd0\xb4 \xd0\xbf\xd0\xbe\xd0\xbf\xd0\xb0\xd0\xb4\xd1\x91\xd1\x82\n\
-     \xd0\xb2 \xd0\xbe\xd1\x81\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xbd\xd1\x83\xd1\x8e \xd0\xb2\xd0\xb5\xd1\x82\xd0\xba\xd1\x83, \xd0\xb8 \xd1\x8f\xd0\xb4\xd1\x80\xd0\xbe \xd0\xbf\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x80\xd1\x8f\xd0\xb5\xd1\x82 \
-     \xd0\xb5\xd0\xb3\xd0\xbe \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xbc merge.</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding#install\">\xd0\xa3\xd1\x81\xd1\x82\xd0\xb0\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xb8\xd1\x82\xd1\x8c mathc</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"methodology.html\">\xd0\x9a\xd0\xb0\xd0\xba \xd1\x8d\xd1\x82\xd0\xbe \xd1\x80\xd0\xb0\xd0\xb1\xd0\xbe\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82</a>\n\
-     </div>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-quickstart\">\n\
-     <h2>\xd0\x91\xd1\x8b\xd1\x81\xd1\x82\xd1\x80\xd1\x8b\xd0\xb9 \xd1\x81\xd1\x82\xd0\xb0\xd1\x80\xd1\x82 &mdash; 60&nbsp;\xd1\x81\xd0\xb5\xd0\xba\xd1\x83\xd0\xbd\xd0\xb4</h2>\n\
-     <ol class=\"mathc-steps\">\n\
-     <li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>\n\
-     \xd0\xa3\xd1\x81\xd1\x82\xd0\xb0\xd0\xbd\xd0\xb0\xd0\xb2\xd0\xbb\xd0\xb8\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xb1\xd0\xb8\xd0\xbd\xd0\xb0\xd1\x80\xd0\xbd\xd0\xb8\xd0\xba <code>mathc</code> \xd0\xb8 \xd0\xba\xd0\xbb\xd0\xb0\xd0\xb4\xd1\x91\xd1\x82 \
-     user-skill \xd0\xb2 <code>~/.config/opencode/skills/</code>.</li>\n\
-     <li><code>mathc new-decision my-first-change</code><br>\n\
-     \xd0\xa1\xd0\xbe\xd0\xb7\xd0\xb4\xd0\xb0\xd1\x91\xd1\x82 <code>decisions/my-first-change.yaml</code> \xd0\xbf\xd0\xbe \xd1\x88\xd0\xb0\xd0\xb1\xd0\xbb\xd0\xbe\xd0\xbd\xd1\x83, \
-     \xd0\xb2\xd0\xb0\xd0\xbb\xd0\xb8\xd0\xb4\xd0\xb8\xd1\x80\xd1\x83\xd0\xb5\xd1\x82 \xd0\xb5\xd0\xb3\xd0\xbe \xd0\xb8 \xd1\x81\xd0\xbe\xd0\xbe\xd0\xb1\xd1\x89\xd0\xb0\xd0\xb5\xd1\x82, \xd1\x87\xd0\xb5\xd0\xb3\xd0\xbe \xd0\xbd\xd0\xb5 \xd1\x85\xd0\xb2\xd0\xb0\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82.</li>\n\
-     <li><code>mathc self-check</code><br>\n\
-     \xd0\xa7\xd0\xb8\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82 \xd1\x85\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xbb\xd0\xb8\xd1\x89\xd0\xb5 \xd1\x80\xd0\xb5\xd1\x88\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb9, \xd0\xbe\xd0\xb1\xd1\x85\xd0\xbe\xd0\xb4\xd0\xb8\xd1\x82 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xb8 \xd0\xbf\xd0\xb5\xd1\x87\xd0\xb0\xd1\x82\xd0\xb0\xd0\xb5\xd1\x82\n\
-     \xd0\xbf\xd0\xbe \xd1\x81\xd1\x82\xd1\x80\xd0\xbe\xd0\xba\xd0\xb5 \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82\xd0\xb0: <code>pass</code>, <code>fail</code>, \
-     <code>unknown</code>, <code>stale</code> \xd0\xb8\xd0\xbb\xd0\xb8 <code>missing</code>. \
-     CI \xd0\xb7\xd0\xb0\xd0\xb2\xd0\xb5\xd1\x80\xd1\x88\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \xd1\x81 \xd0\xbd\xd0\xb5\xd0\xbd\xd1\x83\xd0\xbb\xd0\xb5\xd0\xb2\xd1\x8b\xd0\xbc \xd0\xba\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbc \xd0\xbf\xd1\x80\xd0\xb8 \xd0\xbb\xd1\x8e\xd0\xb1\xd0\xbe\xd0\xbc \xd0\xbd\xd0\xb5-pass.</li>\n\
-     </ol>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-moderation\">\n\
-     <h2>\xd0\x9c\xd0\xbe\xd0\xb4\xd0\xb5\xd1\x80\xd0\xb0\xd1\x86\xd0\xb8\xd1\x8f &mdash; \xd0\xbe\xd0\xb4\xd0\xb8\xd0\xbd \xd1\x8d\xd0\xba\xd1\x80\xd0\xb0\xd0\xbd</h2>\n\
-     <p>math-coding \xd0\xb4\xd0\xb0\xd1\x91\xd1\x82 \xd1\x80\xd0\xb5\xd0\xb2\xd1\x8c\xd1\x8e\xd0\xb5\xd1\x80\xd1\x83 <em>\xd1\x80\xd0\xbe\xd0\xb2\xd0\xbd\xd0\xbe \xd0\xbe\xd0\xb4\xd0\xb8\xd0\xbd \xd1\x8d\xd0\xba\xd1\x80\xd0\xb0\xd0\xbd</em>: \xd0\xb7\xd0\xb0\xd1\x8f\xd0\xb2\xd0\xbb\xd0\xb5\xd0\xbd\xd0\xbd\xd0\xbe\xd0\xb5\n\
-     \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5, \xd0\xb4\xd0\xbe\xd0\xba\xd0\xb0\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xb0, \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd1\x8b\xd1\x85 \xd0\xbe\xd0\xbd\xd0\xbe \xd0\xb4\xd0\xb5\xd1\x80\xd0\xb6\xd0\xb8\xd1\x82\xd1\x81\xd1\x8f, \xd0\xb8 \xd0\xbe\xd0\xb4\xd0\xb8\xd0\xbd\n\
-     \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82. \xd0\x91\xd0\xbe\xd0\xbb\xd1\x8c\xd1\x88\xd0\xb5 \xd0\xbd\xd0\xb5 \xd0\xbd\xd1\x83\xd0\xb6\xd0\xbd\xd0\xbe \xd0\xbf\xd1\x80\xd0\xbe\xd0\xbb\xd0\xb8\xd1\x81\xd1\x82\xd1\x8b\xd0\xb2\xd0\xb0\xd1\x82\xd1\x8c PR \xd0\xbd\xd0\xb0 30 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb\xd0\xbe\xd0\xb2, \xd1\x87\xd1\x82\xd0\xbe\xd0\xb1\xd1\x8b\n\
-     \xd0\xbf\xd0\xbe\xd0\xbd\xd1\x8f\xd1\x82\xd1\x8c, \xd0\xb4\xd0\xb5\xd0\xbb\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xbb\xd0\xb8 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd1\x82\xd0\xbe, \xd1\x87\xd1\x82\xd0\xbe \xd0\xbe\xd0\xb1\xd0\xb5\xd1\x89\xd0\xb0\xd0\xb5\xd1\x82 commit-message.</p>\n\
-     <pre class=\"mathc-terminal\"><code>$ mathc gate main feature/auth-fix\n\
-\n\
-\n\
-\n  policy:    bootstrap-v3\n\
-\n  obligations:  17\n\
-\n  verdicts:\n\
-\n    pass:    14   %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n\
-\n    unknown:  2   (waiver: vendor:openssl-3.0-rc4)\n\
-\n    missing:  1   obligation:back-compat-test\n\
-\n  verdict:   <span class=\"mathc-verdict-unknown\">unknown</span>\n\
-\n  exit:      1</code></pre>\n\
-     <p>\xd0\x9f\xd0\xbe\xd0\xb4\xd0\xba\xd0\xbe\xd0\xbc\xd0\xb0\xd0\xbd\xd0\xb4\xd0\xb0 <code>gate</code> \xd0\xbe\xd1\x86\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd0\xbf\xd0\xbe \xd0\xb0\xd0\xba\xd1\x82\xd0\xb8\xd0\xb2\xd0\xbd\xd0\xbe\xd0\xb9\n\
-     \xd0\xbf\xd0\xbe\xd0\xbb\xd0\xb8\xd1\x82\xd0\xb8\xd0\xba\xd0\xb5. <code>self-check</code> &mdash; \xd0\xb5\xd1\x91 \xd0\xbc\xd0\xb0\xd1\x88\xd0\xb8\xd0\xbd\xd0\xbe\xd1\x87\xd0\xb8\xd1\x82\xd0\xb0\xd0\xb5\xd0\xbc\xd1\x8b\xd0\xb9\n\
-     \xd0\xb2\xd0\xb0\xd1\x80\xd0\xb8\xd0\xb0\xd0\xbd\xd1\x82, \xd1\x80\xd0\xb0\xd1\x81\xd1\x81\xd1\x87\xd0\xb8\xd1\x82\xd0\xb0\xd0\xbd\xd0\xbd\xd1\x8b\xd0\xb9 \xd0\xbd\xd0\xb0 \xd0\xb7\xd0\xb0\xd0\xbf\xd1\x83\xd1\x81\xd0\xba \xd0\xb2 CI \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xbc push \xd0\xb8 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xbc merge.</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-methodology\">\n\
-     <h2>\xd0\x9c\xd0\xb5\xd1\x82\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbb\xd0\xbe\xd0\xb3\xd0\xb8\xd1\x8f</h2>\n\
-     <p class=\"mathc-section-lede\">\xd0\xa7\xd0\xb5\xd1\x82\xd1\x8b\xd1\x80\xd0\xb5 \xd0\xbf\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb8\xd1\x82\xd0\xb8\xd0\xb2\xd0\xb0, \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd1\x8b\xd0\xb9 &mdash; \xd0\xbe\xd0\xb1\xd1\x8b\xd1\x87\xd0\xbd\xd1\x8b\xd0\xb9 \xd1\x84\xd0\xb0\xd0\xb9\xd0\xbb, \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd1\x8b\xd0\xb9 \xd0\xbc\xd0\xbe\xd0\xb6\xd0\xbd\xd0\xbe\n\
-     \xd0\xb3\xd1\x80\xd0\xb5\xd0\xbf\xd0\xb0\xd1\x82\xd1\x8c, \xd1\x80\xd0\xb5\xd0\xb2\xd1\x8c\xd1\x8e\xd0\xb8\xd1\x82\xd1\x8c \xd0\xb8 \xd0\xbe\xd1\x82\xd0\xba\xd0\xb0\xd1\x82\xd1\x8b\xd0\xb2\xd0\xb0\xd1\x82\xd1\x8c:</p>\n\
-     <div class=\"mathc-cards\">\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Intent</h3>\n\
-     <p>\xd0\x9a\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd0\xbd\xd0\xb0\xd1\x87\xd0\xb8\xd0\xbd\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \xd1\x81 \xd0\xbe\xd0\xb4\xd0\xbd\xd0\xbe\xd0\xb3\xd0\xbe \xd0\xbf\xd1\x80\xd0\xb5\xd0\xb4\xd0\xbb\xd0\xbe\xd0\xb6\xd0\xb5\xd0\xbd\xd0\xb8\xd1\x8f \xd0\xbd\xd0\xb0\n\
-     \xd1\x87\xd0\xb5\xd0\xbb\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x87\xd0\xb5\xd1\x81\xd0\xba\xd0\xbe\xd0\xbc \xd1\x8f\xd0\xb7\xd1\x8b\xd0\xba\xd0\xb5: \xd1\x87\xd1\x82\xd0\xbe \xd0\xb4\xd0\xbe\xd0\xbb\xd0\xb6\xd0\xbd\xd0\xbe \xd1\x81\xd1\x82\xd0\xb0\xd1\x82\xd1\x8c \xd0\xbf\xd1\x80\xd0\xb0\xd0\xb2\xd0\xb4\xd0\xbe\xd0\xb9?</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Decision</h3>\n\
-     <p>Intent \xd0\xbf\xd1\x80\xd0\xb5\xd0\xb2\xd1\x80\xd0\xb0\xd1\x89\xd0\xb0\xd0\xb5\xd1\x82\xd1\x81\xd1\x8f \xd0\xb2 YAML-\xd0\xbf\xd0\xb0\xd0\xba\xd0\xb5\xd1\x82 \xd0\xb2 <code>decisions/</code>, \
-     \xd0\xb3\xd0\xb4\xd0\xb5 \xd0\xbf\xd0\xb5\xd1\x80\xd0\xb5\xd1\x87\xd0\xb8\xd1\x81\xd0\xbb\xd0\xb5\xd0\xbd\xd1\x8b \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xb0, \xd0\xbf\xd1\x80\xd0\xb8\xd0\xbd\xd1\x8f\xd1\x82\xd1\x8b\xd0\xb5 \xd1\x80\xd0\xb8\xd1\x81\xd0\xba\xd0\xb8 \xd0\xb8 \xd0\xba\xd0\xbe\xd0\xbd\xd1\x82\xd1\x80\xd0\xbf\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x80,\n\
-     \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd1\x8b\xd0\xb9 \xd0\xb5\xd0\xb3\xd0\xbe \xd0\xbe\xd0\xbf\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x80\xd0\xb3\xd0\xbd\xd0\xb5\xd1\x82.</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Obligation</h3>\n\
-     <p>\xd0\xa3\xd1\x82\xd0\xb2\xd0\xb5\xd1\x80\xd0\xb6\xd0\xb4\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5, \xd0\xba\xd0\xbe\xd1\x82\xd0\xbe\xd1\x80\xd0\xbe\xd0\xb5 \xd0\xbc\xd0\xbe\xd0\xb6\xd0\xbd\xd0\xbe \xd0\xbf\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb5\xd1\x80\xd0\xb8\xd1\x82\xd1\x8c \xd0\xba\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbc: \xd1\x84\xd0\xb8\xd0\xba\xd1\x81\xd1\x82\xd1\x83\xd1\x80\xd0\xb0, \
-     \xd1\x81\xd0\xb2\xd0\xbe\xd0\xb9\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe, \xd0\xb1\xd0\xb5\xd0\xbd\xd1\x87\xd0\xbc\xd0\xb0\xd1\x80\xd0\xba, \xd1\x81\xd1\x82\xd0\xb0\xd1\x82\xd0\xb8\xd1\x87\xd0\xb5\xd1\x81\xd0\xba\xd0\xbe\xd0\xb5 \xd0\xbf\xd1\x80\xd0\xb0\xd0\xb2\xd0\xb8\xd0\xbb\xd0\xbe. \xd0\xa3 \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb3\xd0\xbe \xd0\xb5\xd1\x81\xd1\x82\xd1\x8c \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82.</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Attestation</h3>\n\
-     <p>\xd0\x94\xd0\xbe\xd0\xba\xd0\xb0\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe, \xd1\x87\xd1\x82\xd0\xbe \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xb2\xd1\x8b\xd0\xbf\xd0\xbe\xd0\xbb\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xbe \xd0\xbd\xd0\xb0 \xd0\xba\xd0\xbe\xd0\xbd\xd0\xba\xd1\x80\xd0\xb5\xd1\x82\xd0\xbd\xd0\xbe\xd0\xbc\n\
-     \xd0\xba\xd0\xbe\xd0\xbc\xd0\xbc\xd0\xb8\xd1\x82\xd0\xb5. \xd0\xa2\xd0\xb5\xd1\x81\xd1\x82\xd1\x8b, \xd1\x80\xd0\xb5\xd0\xb2\xd1\x8c\xd1\x8e, \xd0\xb0\xd1\x83\xd0\xb4\xd0\xb8\xd1\x82\xd1\x8b &mdash; \xd0\xb2\xd1\x81\xd1\x91 \xd1\x85\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x82\xd1\x81\xd1\x8f \xd0\xba\xd0\xb0\xd0\xba\n\
-     first-class \xd0\xb0\xd1\x80\xd1\x82\xd0\xb5\xd1\x84\xd0\xb0\xd0\xba\xd1\x82\xd1\x8b, \xd0\xbd\xd0\xb5 \xd0\xba\xd0\xb0\xd0\xba \xd1\x81\xd0\xba\xd1\x80\xd0\xb8\xd0\xbd\xd1\x88\xd0\xbe\xd1\x82\xd1\x8b.</p>\n\
-     </article>\n\
-     </div>\n\
-     <p class=\"mathc-section-more\">\n\
-     \xd0\x9f\xd0\xbe\xd0\xbb\xd0\xbd\xd0\xb0\xd1\x8f \xd1\x80\xd0\xb0\xd0\xb1\xd0\xbe\xd1\x87\xd0\xb0\xd1\x8f \xd1\x86\xd0\xb5\xd0\xbf\xd0\xbe\xd1\x87\xd0\xba\xd0\xb0:\n\
-     <code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>.\n\
-     \xd0\xa4\xd0\xbe\xd1\x80\xd0\xbc\xd0\xb0\xd0\xbb\xd1\x8c\xd0\xbd\xd0\xb0\xd1\x8f \xd0\xb0\xd0\xbb\xd0\xb3\xd0\xb5\xd0\xb1\xd1\x80\xd0\xb0 &mdash; \xd0\xb2 <a href=\"methodology.html\">methodology</a>,\n\
-     \xd1\x84\xd0\xb8\xd0\xbb\xd0\xbe\xd1\x81\xd0\xbe\xd1\x84\xd1\x81\xd0\xba\xd0\xb8\xd0\xb5 \xd0\xbe\xd1\x81\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x8f &mdash; \xd0\xb2 <a href=\"foundations.html\">foundations</a>.</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-adopt\">\n\
-     <h2>\xd0\x92\xd0\xbd\xd0\xb5\xd0\xb4\xd1\x80\xd0\xb8\xd1\x82\xd0\xb5 math-coding \xd0\xb2 \xd1\x81\xd0\xb2\xd0\xbe\xd0\xb9 \xd1\x80\xd0\xb5\xd0\xbf\xd0\xbe\xd0\xb7\xd0\xb8\xd1\x82\xd0\xbe\xd1\x80\xd0\xb8\xd0\xb9</h2>\n\
-     <p>\xd0\x9f\xd1\x80\xd0\xbe\xd1\x82\xd0\xbe\xd0\xba\xd0\xbe\xd0\xbb \xd0\xbf\xd1\x80\xd0\xbe\xd1\x81\xd1\x82: \xd0\xba\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xbe\xd0\xb5 \xd0\xb8\xd0\xb7\xd0\xbc\xd0\xb5\xd0\xbd\xd0\xb5\xd0\xbd\xd0\xb8\xd0\xb5 \xd0\xb7\xd0\xb0\xd0\xbf\xd0\xb8\xd1\x81\xd1\x8b\xd0\xb2\xd0\xb0\xd0\xb5\xd1\x82 \xd0\xbf\xd0\xb0\xd0\xba\xd0\xb5\xd1\x82\n\
-     <code>decisions/&lt;id&gt;.yaml</code> \xd0\xb4\xd0\xbe \xd1\x82\xd0\xbe\xd0\xb3\xd0\xbe, \xd0\xba\xd0\xb0\xd0\xba \xd0\xba\xd0\xbe\xd0\xb4 \xd0\xbf\xd0\xbe\xd0\xbf\xd0\xb0\xd0\xb4\xd1\x91\xd1\x82 \xd0\xb2 \xd0\xbe\xd1\x81\xd0\xbd\xd0\xbe\xd0\xb2\xd0\xbd\xd1\x83\xd1\x8e \xd0\xb2\xd0\xb5\xd1\x82\xd0\xba\xd1\x83. \xd0\x9f\xd1\x80\xd0\xbe\xd1\x87\xd0\xb8\xd1\x82\xd0\xb0\xd0\xb9\xd1\x82\xd0\xb5\n\
-     <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">\xd1\x80\xd1\x83\xd0\xba\xd0\xbe\xd0\xb2\xd0\xbe\xd0\xb4\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe \xd0\xbf\xd0\xbe \xd0\xb2\xd0\xbd\xd0\xb5\xd0\xb4\xd1\x80\xd0\xb5\xd0\xbd\xd0\xb8\xd1\x8e</a>\n\
-     (10 \xd0\xbc\xd0\xb8\xd0\xbd\xd1\x83\xd1\x82) \xd0\xb8\xd0\xbb\xd0\xb8 \xd1\x81\xd0\xba\xd0\xbb\xd0\xbe\xd0\xbd\xd0\xb8\xd1\x80\xd1\x83\xd0\xb9\xd1\x82\xd0\xb5 \xd1\x80\xd0\xb5\xd0\xbf\xd0\xbe\xd0\xb7\xd0\xb8\xd1\x82\xd0\xbe\xd1\x80\xd0\xb8\xd0\xb9 \xd0\xb8 \xd0\xb7\xd0\xb0\xd0\xbf\xd1\x83\xd1\x81\xd1\x82\xd0\xb8\xd1\x82\xd0\xb5\n\
-     <code>mathc self-check</code> \xd0\xbd\xd0\xb0 \xd0\xbf\xd1\x80\xd0\xb8\xd0\xbc\xd0\xb5\xd1\x80\xd0\xb5 \xd1\x80\xd0\xb5\xd1\x88\xd0\xb5\xd0\xbd\xd0\xb8\xd1\x8f, \xd1\x87\xd1\x82\xd0\xbe\xd0\xb1\xd1\x8b \xd1\x83\xd0\xb2\xd0\xb8\xd0\xb4\xd0\xb5\xd1\x82\xd1\x8c\n\
-     \xd0\xb2\xd0\xb5\xd1\x80\xd0\xb4\xd0\xb8\xd0\xba\xd1\x82\xd1\x8b \xd0\xbd\xd0\xb0 \xd1\x81\xd0\xb2\xd0\xbe\xd0\xb5\xd0\xb9 \xd0\xbc\xd0\xb0\xd1\x88\xd0\xb8\xd0\xbd\xd0\xb5.</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding\">\xd0\x9a\xd0\xbb\xd0\xbe\xd0\xbd\xd0\xb8\xd1\x80\xd0\xbe\xd0\xb2\xd0\xb0\xd1\x82\xd1\x8c \xd0\xbd\xd0\xb0 GitHub</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">\xd0\xa0\xd1\x83\xd0\xba\xd0\xbe\xd0\xb2\xd0\xbe\xd0\xb4\xd1\x81\xd1\x82\xd0\xb2\xd0\xbe</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"feed.xml\">\xd0\x9f\xd0\xbe\xd0\xb4\xd0\xbf\xd0\xb8\xd1\x81\xd0\xb0\xd1\x82\xd1\x8c\xd1\x81\xd1\x8f \xd1\x87\xd0\xb5\xd1\x80\xd0\xb5\xd0\xb7 RSS</a>\n\
-     </div>\n\
-     </section>\n\
-     <p class=\"mathc-callout\">\n\
-     \xd0\x9a\xd0\xb0\xd0\xb6\xd0\xb4\xd0\xb0\xd1\x8f \xd1\x81\xd1\x82\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x86\xd0\xb0 \xd1\x8d\xd1\x82\xd0\xbe\xd0\xb3\xd0\xbe \xd1\x81\xd0\xb0\xd0\xb9\xd1\x82\xd0\xb0 \xd1\x81\xd0\xbe\xd0\xb7\xd0\xb4\xd0\xb0\xd1\x91\xd1\x82\xd1\x81\xd1\x8f \xd1\x8f\xd0\xb4\xd1\x80\xd0\xbe\xd0\xbc math-coding. \
-     \xd0\x9c\xd0\xb5\xd1\x82\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbb\xd0\xbe\xd0\xb3\xd0\xb8\xd1\x8f &mdash; \xd1\x8d\xd1\x82\xd0\xbe \xd0\xb0\xd1\x80\xd1\x82\xd0\xb5\xd1\x84\xd0\xb0\xd0\xba\xd1\x82; \xd0\xb0\xd1\x80\xd1\x82\xd0\xb5\xd1\x84\xd0\xb0\xd0\xba\xd1\x82 \xd1\x81\xd0\xbb\xd0\xb5\xd0\xb4\xd1\x83\xd0\xb5\xd1\x82 \xd0\xbc\xd0\xb5\xd1\x82\xd0\xbe\xd0\xb4\xd0\xbe\xd0\xbb\xd0\xbe\xd0\xb3\xd0\xb8\xd0\xb8.</p>\n\
-     <p class=\"mathc-meta\">\xd0\x90\xd0\xba\xd1\x82\xd0\xb8\xd0\xb2\xd0\xbd\xd0\xb0\xd1\x8f \xd0\xbf\xd0\xbe\xd0\xbb\xd0\xb8\xd1\x82\xd0\xb8\xd0\xba\xd0\xb0: <code>%s</code>. \xd0\x9f\xd0\xbe\xd0\xbb\xd0\xbd\xd0\xbe\xd0\xb5\n\
-     \xd1\x85\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd0\xbb\xd0\xb8\xd1\x89\xd0\xb5 \xd0\xbe\xd0\xb1\xd1\x8f\xd0\xb7\xd0\xb0\xd1\x82\xd0\xb5\xd0\xbb\xd1\x8c\xd1\x81\xd1\x82\xd0\xb2 &mdash; \xd0\xbd\xd0\xb0 \xd1\x81\xd1\x82\xd1\x80\xd0\xb0\xd0\xbd\xd0\xb8\xd1\x86\xd0\xb5\n\
-     <a href=\"packages.html\">packages</a>, \xd0\xb0\xd0\xba\xd1\x81\xd0\xb8\xd0\xbe\xd0\xbc\xd1\x8b &mdash; \xd0\xbd\xd0\xb0\n\
-     <a href=\"axioms.html\">axioms</a>.</p>\n"
-     (html_escape version)
-    check check check check check check check check check check check
-    check check check
-    (html_escape policy_id)
-
-(* Chinese home page. Structurally identical to `render_index` /
-   `render_index_ru`: same `<section>` ordering, same `&mdash;` /
-   `&nbsp;` / `&rarr;` literal entities, same number of cards
-   (four: Intent / Decision / Obligation / Attestation), same
-   `<em>` / `<code>` / `<a>` tag set, and the same 14
-   check-marks `%s` placeholder in the moderation terminal
-   block. UTF-8 strings are written directly (the project's
-   other `.ml` files already use em-dashes without escape
-   sequences). ASCII identifiers (`mathc`, `bootstrap-v3`,
-   `decisions/`, file paths, code spans, HTML class names) are
-   kept verbatim. The link `href` attributes inside
-   `working_chain` and `adopt_p` still point at the English
-   `methodology.html` / `foundations.html` pages because the
-   per-page sibling href is computed by `sibling_langs_for` in
-   `build_pages`; the page body here just shows the link text.
-   The terminal block's verdict name `unknown` stays
-   untranslated because the verdict is an ASCII identifier
-   emitted by the kernel (`lib/packages.ml`). *)
-let[@warning "-32"] render_index_zh ~package_html:_ ~axioms_html:_ ~policy_id
-    ~version =
-  let check = "\xe2\x9c\x94" in
-  Printf.sprintf
-    "<section class=\"mathc-hero\">\n\
-     <img class=\"mathc-hero-logo\" src=\"assets/logo.svg\" alt=\"\">\n\
-     <h1>math-coding</h1>\n\
-     <p class=\"mathc-hero-version\">%s</p>\n\
-     <p class=\"mathc-hero-tagline\">风险自适应的软件变更保障协议。每项架构承诺都在代码落地<em>之前</em>写入,并由内核在每次合并时核验。</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding#install\">安装 mathc</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"methodology.html\">工作原理</a>\n\
-     </div>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-quickstart\">\n\
-     <h2>快速开始 &mdash; 60&nbsp;秒</h2>\n\
-     <ol class=\"mathc-steps\">\n\
-     <li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>\n\
-     安装 <code>mathc</code> 可执行文件,并将用户级技能放入 <code>~/.config/opencode/skills/</code>。</li>\n\
-     <li><code>mathc new-decision my-first-change</code><br>\n\
-     用模板创建 <code>decisions/my-first-change.yaml</code>,校验其内容,并指出缺失项。</li>\n\
-     <li><code>mathc self-check</code><br>\n\
-     读取决策存储,逐条遍历每个义务,并按行输出每项的判定:<code>pass</code>、<code>fail</code>、<code>unknown</code>、<code>stale</code> 或 <code>missing</code>。任一非 pass 结果都会使 CI 以非零状态退出。</li>\n\
-     </ol>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-moderation\">\n\
-     <h2>一屏完成审查</h2>\n\
-     <p>math-coding 为评审者提供<em>恰好一屏</em>的内容:作者所做的声明、支持该声明的证据,以及一条判定。无需再滚动浏览 30 个文件的 PR 来确认变更是否真如提交说明所述。</p>\n\
-     <pre class=\"mathc-terminal\"><code>$ mathc gate main feature/auth-fix\n\
-\n\
-\n\
-\n  policy:    bootstrap-v3\n\
-\n  obligations:  17\n\
-\n  verdicts:\n\
-\n    pass:    14   %s%s%s%s%s%s%s%s%s%s%s%s%s%s\n\
-\n    unknown:  2   (waiver: vendor:openssl-3.0-rc4)\n\
-\n    missing:  1   obligation:back-compat-test\n\
-\n  verdict:   <span class=\"mathc-verdict-unknown\">unknown</span>\n\
-\n  exit:      1</code></pre>\n\
-     <p><code>gate</code> 子命令按当前活动策略评估变更。<code>self-check</code> 子命令是其机器可读版本,设计用于在每次推送和每次合并时于 CI 中执行。</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-methodology\">\n\
-     <h2>方法论</h2>\n\
-     <p class=\"mathc-section-lede\">四个原语,每个都是可被 grep、评审和回退的纯文本文件:</p>\n\
-     <div class=\"mathc-cards\">\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Intent(意图)</h3>\n\
-     <p>每项变更都始于一句自然语言描述:什么应当成立?</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Decision(决策)</h3>\n\
-     <p>意图被固化为 <code>decisions/</code> 下的一个 YAML 包,列出其创建的义务、所接受的风险,以及可证伪它的反例。</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Obligation(义务)</h3>\n\
-     <p>可由代码核验的声明:一个测试夹具、一条性质、一个基准、一条静态规则。每项都对应一条判定。</p>\n\
-     </article>\n\
-     <article class=\"mathc-card\">\n\
-     <h3>Attestation(证据)</h3>\n\
-     <p>证明该义务在特定提交上已被满足的证据。测试、评审、审计 &mdash; 全部作为一等制品存储,绝不以截图形式保存。</p>\n\
-     </article>\n\
-     </div>\n\
-     <p class=\"mathc-section-more\">\n\
-     完整工作链:<code>intent&nbsp;&rarr;&nbsp;decision&nbsp;&rarr;&nbsp;obligation&nbsp;&rarr;&nbsp;change&nbsp;&rarr;&nbsp;attestation&nbsp;&rarr;&nbsp;revision</code>。\n\
-     阅读 <a href=\"methodology.html\">方法论</a> 了解形式化代数,或阅读 <a href=\"foundations.html\">基石</a> 了解哲学锚点。</p>\n\
-     </section>\n\
-     <section class=\"mathc-section mathc-adopt\">\n\
-     <h2>在你的仓库中采用 math-coding</h2>\n\
-     <p>协议非常轻量:每项变更在代码落地前需先撰写一个\n\
-     <code>decisions/&lt;id&gt;.yaml</code> 包。阅读\n\
-     <a href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">采用操作手册</a>\n\
-     完成 10 分钟上手,或克隆仓库并针对示例决策运行\n\
-     <code>mathc self-check</code> 以在你的机器上查看判定结果。</p>\n\
-     <div class=\"mathc-hero-cta\">\n\
-     <a class=\"mathc-cta mathc-cta-primary\" \
-     href=\"https://github.com/11111000000/math-coding\">在 GitHub 上克隆</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"https://github.com/11111000000/math-coding/blob/main/USAGE.md\">阅读操作手册</a>\n\
-     <a class=\"mathc-cta mathc-cta-secondary\" \
-     href=\"feed.xml\">通过 RSS 订阅</a>\n\
-     </div>\n\
-     </section>\n\
-     <p class=\"mathc-callout\">\n\
-     本站每一个页面均由 math-coding 内核生成。方法论本身即是一项制品;该制品遵循此方法论。</p>\n\
-     <p class=\"mathc-meta\">当前活动策略:<code>%s</code>。完整义务存储位于 <a href=\"packages.html\">packages</a>,公理位于\n\
-     <a href=\"axioms.html\">axioms</a>。</p>\n"
-    (html_escape version)
-    check check check check check check check check check check check
-    check check check
-    (html_escape policy_id)
+let[@warning "-32"] render_index ~lang ~version ~policy_id ~templates =
+  let html =
+    match List.assoc_opt lang templates.index with
+    | Some html -> html
+    | None -> "" (* fallback: language not shipped *)
+  in
+  substitute
+    [ ("version", html_escape version);
+      ("policy_id", html_escape policy_id);
+      ("check", "\xe2\x9c\x94") ]
+    html
 
 let[@warning "-32"] render_decision_page ~decision_id ~obligation_html =
   Printf.sprintf
@@ -2265,99 +1955,9 @@ type config = {
   site_base : string;
   enable_mathjax : bool;
   enable_lang_toggle : bool;
-  languages : string list;
+  languages : lang list;
   version : string;
 }
-
-(* Read the project version from a `VERSION` file. The file is the
-   single source of truth — release procedure writes it (or a
-   pre-commit hook keeps it in sync with the latest `v*` tag). We
-   try a small set of well-known paths because the CWD at module
-   load time is not always the repo root (it is, in the `mathc
-   render` invocation pattern; it is not, when the test harness
-   loads the kernel from `_build/default/tests/`). The `fallback`
-   argument is used when none of the candidates exist, so the
-   kernel does not crash on a clean install where the share-dir
-   VERSION is elsewhere. *)
-let[@warning "-32"] read_version_file ~fallback =
-  (* `dune test` exports the project root in `DUNE_SOURCEROOT`;
-     honour it first so test runs and `mathc render` invocations
-     agree on the same VERSION file. *)
-  let dune_root =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with
-    | Some p -> Some (Filename.concat p "VERSION")
-    | None -> None
-  in
-  let candidates =
-    Option.to_list dune_root
-    @ [
-        "VERSION";
-        "../VERSION";
-        "../../VERSION";
-        "../../../VERSION";
-        "../../../../VERSION";
-      ]
-  in
-  let try_one path =
-    if Sys.file_exists path then begin
-      let ic = open_in path in
-      let n = in_channel_length ic in
-      let s = really_input_string ic n in
-      close_in ic;
-      Some (s |> String.trim)
-    end
-    else None
-  in
-  let rec loop = function
-    | [] -> fallback
-    | p :: rest -> ( match try_one p with Some v -> v | None -> loop rest)
-  in
-  loop candidates
-
-(* Read every `*.md` file under `spec/` and return them as
-   (name, body) pairs sorted alphabetically. The dispatcher
-   did not previously render spec files; this helper lets
-   `build_pages` self-serve the spec source so a spec page
-   lands under `dist/spec/<name>.html` with MathJax 3 in
-   `<head>`, without requiring a dispatcher change. The read
-   is best-effort: a missing `spec/` directory or unreadable
-   file returns `[]`, matching `read_axioms` in `bin/Mathc.ml`.
-   `DUNE_SOURCEROOT` is honoured first so a kernel test
-   loaded from `_build/default/tests/` reads the same `spec/`
-   that a `mathc render` invocation does. *)
-let[@warning "-32"] read_spec_files () =
-  let candidates =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with
-    | Some p -> [ Filename.concat p "spec" ]
-    | None -> []
-  in
-  let candidates = candidates @ [ "spec" ] in
-  let try_dir d =
-    if not (Sys.file_exists d) then None
-    else if not (Sys.is_directory d) then None
-    else
-      try
-        Some
-          (Sys.readdir d |> Array.to_list
-          |> List.filter (fun n -> Filename.extension n = ".md")
-          |> List.sort String.compare
-          |> List.filter_map (fun n ->
-              let base = Filename.chop_extension n in
-              let path = Filename.concat d n in
-              let ic = open_in_bin path in
-              let n_bytes = in_channel_length ic in
-              let s =
-                if n_bytes = 0 then "" else really_input_string ic n_bytes
-              in
-              close_in ic;
-              if s = "" then None else Some (base, s)))
-      with _ -> None
-  in
-  let rec loop = function
-    | [] -> []
-    | d :: rest -> ( match try_dir d with Some xs -> xs | None -> loop rest)
-  in
-  loop candidates
 
 (* Default version used when no VERSION file is present. Kept
    conservative — a render with an explicit version string
@@ -2369,7 +1969,8 @@ let[@warning "-32"] default_version = "math-coding"
    for loading the article tuples from disk; this function only
    renders them. Tuple = (name, title, body_md). *)
 let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
-    ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data =
+    ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data ~spec_data
+    ~templates =
   let pages = ref [] in
   let version = config.version in
 
@@ -2392,8 +1993,8 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
       (fun acc (name, _, _) -> String_set.add name acc)
       String_set.empty site_pages_zh
   in
-  let ru_enabled = List.mem "ru" config.languages in
-  let zh_enabled = List.mem "zh" config.languages in
+  let ru_enabled = List.mem Ru config.languages in
+  let zh_enabled = List.mem Zh config.languages in
   let ru_keys = if ru_enabled then String_set.add "home" ru_keys else ru_keys in
   let zh_keys = if zh_enabled then String_set.add "home" zh_keys else zh_keys in
 
@@ -2409,20 +2010,14 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
      alternate. *)
   let sibling_langs_for name lang =
     let acc = ref [] in
-    if lang <> "en" then acc := "en" :: !acc;
-    if lang <> "ru" && String_set.mem name ru_keys then
-      acc := "ru" :: !acc;
-    if lang <> "zh" && String_set.mem name zh_keys then
-      acc := "zh" :: !acc;
+    if lang <> En then acc := En :: !acc;
+    if lang <> Ru && String_set.mem name ru_keys then acc := Ru :: !acc;
+    if lang <> Zh && String_set.mem name zh_keys then acc := Zh :: !acc;
     List.rev !acc
   in
 
   let render_lang_page lang (name, title, body_md) =
-    let page_path =
-      match lang with
-      | "en" -> name ^ ".html"
-      | l -> name ^ "." ^ l ^ ".html"
-    in
+    let page_path = name ^ lang_suffix lang ^ ".html" in
     let page_title = title ^ " — math-coding" in
     let body_md_parsed = md_parse body_md in
     (* The `packages` page appends the live kernel package grid
@@ -2460,42 +2055,38 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
   in
 
   (* English index *)
-  let axioms_overview_html = render_axioms_section axioms_data in
   let index_body_en =
-    render_index ~package_html ~axioms_html:axioms_overview_html ~policy_id
-      ~version
+    render_index ~lang:En ~version ~policy_id ~templates
   in
   pages :=
     {
       path = "index.html";
       body =
-        render_page ~lang:"en" ~page_key:"home"
+        render_page ~lang:En ~page_key:"home"
           ~title:(Printf.sprintf "math-coding %s" version)
           ~body:index_body_en ~site_base:config.site_base
           ~enable_mathjax:config.enable_mathjax
           ~enable_lang_toggle:config.enable_lang_toggle
-          ~sibling_langs:(sibling_langs_for "home" "en")
+          ~sibling_langs:(sibling_langs_for "home" En)
           ~version ~extra_head:"";
     }
     :: !pages;
 
   (* Russian index (only when Russian is enabled). *)
   if ru_enabled then begin
-    let axioms_overview_html_ru = render_axioms_section axioms_data in
     let index_body_ru =
-      render_index_ru ~package_html ~axioms_html:axioms_overview_html_ru
-        ~policy_id ~version
+      render_index ~lang:Ru ~version ~policy_id ~templates
     in
     pages :=
       {
         path = "index.ru.html";
         body =
-          render_page ~lang:"ru" ~page_key:"home"
+          render_page ~lang:Ru ~page_key:"home"
             ~title:(Printf.sprintf "math-coding %s" version)
             ~body:index_body_ru ~site_base:config.site_base
             ~enable_mathjax:config.enable_mathjax
             ~enable_lang_toggle:config.enable_lang_toggle
-            ~sibling_langs:(sibling_langs_for "home" "ru")
+            ~sibling_langs:(sibling_langs_for "home" Ru)
             ~version ~extra_head:"";
       }
       :: !pages
@@ -2503,30 +2094,28 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
 
   (* Chinese index (only when ZH is enabled). *)
   if zh_enabled then begin
-    let axioms_overview_html_zh = render_axioms_section axioms_data in
     let index_body_zh =
-      render_index_zh ~package_html ~axioms_html:axioms_overview_html_zh
-        ~policy_id ~version
+      render_index ~lang:Zh ~version ~policy_id ~templates
     in
     pages :=
       {
         path = "index.zh.html";
         body =
-          render_page ~lang:"zh" ~page_key:"home"
+          render_page ~lang:Zh ~page_key:"home"
             ~title:(Printf.sprintf "math-coding %s" version)
             ~body:index_body_zh ~site_base:config.site_base
             ~enable_mathjax:config.enable_mathjax
             ~enable_lang_toggle:config.enable_lang_toggle
-            ~sibling_langs:(sibling_langs_for "home" "zh")
+            ~sibling_langs:(sibling_langs_for "home" Zh)
             ~version ~extra_head:"";
       }
       :: !pages
   end;
 
   (* Per-language articles. *)
-  List.iter (fun t -> pages := render_lang_page "en" t :: !pages) site_pages;
-  List.iter (fun t -> pages := render_lang_page "ru" t :: !pages) site_pages_ru;
-  List.iter (fun t -> pages := render_lang_page "zh" t :: !pages) site_pages_zh;
+  List.iter (fun t -> pages := render_lang_page En t :: !pages) site_pages;
+  List.iter (fun t -> pages := render_lang_page Ru t :: !pages) site_pages_ru;
+  List.iter (fun t -> pages := render_lang_page Zh t :: !pages) site_pages_zh;
 
   (* Per-decision pages (English-only). The body is built from
      two halves: the YAML narrative (intent / commitment / outcomes /
@@ -2609,7 +2198,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
             Filename.concat (Path_config.resolve_decisions_dir ())
               (decision_id ^ ".html");
           body =
-            render_page ~lang:"en" ~page_key:"packages"
+            render_page ~lang:En ~page_key:"packages"
               ~title:(Printf.sprintf "%s — math-coding" decision_id)
               ~body ~site_base:config.site_base
               ~enable_mathjax:config.enable_mathjax
@@ -2627,7 +2216,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
         {
           path = Filename.concat "axioms" (axiom_id ^ ".html");
           body =
-            render_page ~lang:"en" ~page_key:"axioms"
+            render_page ~lang:En ~page_key:"axioms"
               ~title:(Printf.sprintf "Axiom %s" axiom_id)
               ~body ~site_base:config.site_base
               ~enable_mathjax:config.enable_mathjax
@@ -2641,12 +2230,10 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
      is normative (algebra-3.2, constitution, domain, semantics);
      each page is forced to `enable_mathjax:true` regardless of
      `config.enable_mathjax` so MathJax 3 is always available for
-     `$..$` / `$$..$$` formulas at runtime. Reading `spec/*.md`
-     here — rather than in `bin/Mathc.ml` — keeps `lib/render.ml`
-     self-contained: the spec surface lands under
-     `dist/spec/<name>.html` whenever `mathc render` runs, without
-     the dispatcher learning about spec pages. *)
-  let spec_data = read_spec_files () in
+     `$..$` / `$$..$$` formulas at runtime. The `(name, body)`
+     pairs arrive via the `~spec_data` argument — the dispatcher
+     (`bin/Mathc.ml`) reads `spec/*.md` from disk, so `lib/render`
+     stays I/O-free (§1.3). *)
   List.iter
     (fun (name, body_md) ->
       let body = render_spec_page ~name ~body_md in
@@ -2654,7 +2241,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
         {
           path = Filename.concat "spec" (name ^ ".html");
           body =
-            render_page ~lang:"en" ~page_key:("spec/" ^ name)
+            render_page ~lang:En ~page_key:("spec/" ^ name)
               ~title:(Printf.sprintf "%s — math-coding spec" name)
               ~body ~site_base:config.site_base ~enable_mathjax:true
               ~enable_lang_toggle:config.enable_lang_toggle ~sibling_langs:[]
@@ -2816,225 +2403,12 @@ let[@warning "-32"] default_config =
        programmatically. *)
     enable_mathjax = true;
     enable_lang_toggle = true;
-    languages = [ "en" ];
-    (* Default version reads from `./VERSION` at render time. The
-       CLI dispatcher overrides this with whatever the current
-       working directory's VERSION file holds, so a site deployed
-       from a freshly-cut release tag carries the right version
-       automatically. The string here is a last-resort fallback
-       for callers that bypass the CLI. *)
-    version = read_version_file ~fallback:default_version;
+    languages = [ En ];
+    (* Static default version. `lib/` must not do I/O (§1.3): the
+       live VERSION file is read by the CLI dispatcher
+       (`bin/Mathc.ml`), which overrides this field with whatever
+       the working directory's VERSION file holds. This string is
+       a last-resort fallback for callers that bypass the CLI. *)
+    version = default_version;
   }
 
-(* --- dashboard + graph HTML (decision render-dashboard-2026-10) ---
- *
- * The static-site extension that `mathc render` writes to
- * `dist/dashboard.html` (a fuse.js-powered search panel) and
- * `dist/graph.html` (a cytoscape.js-powered relations viewer).
- * Both renderers fetch their data from `dist/index.json` and
- * `dist/graph.json` respectively — pages already emitted by
- * the existing `mathc render` pipeline.
- *
- * The dashboard is the static mirror of `mathc/find`'s
- * MCP method (decision `mathc-find-subcommand-2026-10@1`):
- * the operator opens `dist/dashboard.html` in a browser,
- * types a query, and fuses the index; no kernel round-trip
- * required.
- *
- * The graph viewer is the static mirror of the new
- * `mathc/graph` MCP method (decision
- * `graph-viewer-2026-10@1`): clicking a node identifies a
- * decision in the corpus; the relations graph is the same
- * one the CLI/MCP surfaces, projected via cytoscape.js.
- *
- * Both pages load their JS dependencies from public CDNs
- * (fuse@7, cytoscape@3). The use of CDN over local bundling
- * keeps the kernel surface lean — no node_modules, no
- * bundler, no nix closure bloat. The CDN choice mirrors
- * the existing MathJax 3 wiring in `render_head`. *)
-
-(* render_dashboard — emits the `dist/dashboard.html` page.
-   The page is a self-contained `<input>` + result-list
-   shell; the init script fetches `index.json` and runs
-   fuse.js over it. The result list links back to the
-   per-decision / per-article pages the existing
-   `mathc render` pipeline already emits. *)
-let[@warning "-32"] render_dashboard ~pages:(_pages : page list) : string =
-  Printf.sprintf
-    {|<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Dashboard &mdash; math-coding</title>
-<link rel="stylesheet" href="assets/style.css" />
-<script src="https://cdn.jsdelivr.net/npm/fuse@7.0.0/dist/fuse.min.js"></script>
-</head>
-<body>
-<header class="mathc-nav"><a href="index.html">math-coding</a></header>
-<main class="mathc-main">
-<h1>Dashboard</h1>
-<p class="mathc-lede">
-  Full-text search across decisions, obligations, axioms,
-  and articles shipped by <code>mathc render</code>.
-  The index is loaded from <code>index.json</code>;
-  matching pages link directly to the rendered site.
-</p>
-<input id="mathc-dashboard-q" type="search"
-       placeholder="search decisions, axioms, articles..."
-       autocomplete="off" autofocus
-       class="mathc-input mathc-input-wide" />
-<ul id="mathc-dashboard-results" class="mathc-list"></ul>
-<p id="mathc-dashboard-empty" class="mathc-muted" hidden>
-  No matches.
-</p>
-</main>
-<script>
-(function () {
-  'use strict';
-  var input = document.getElementById('mathc-dashboard-q');
-  var results = document.getElementById('mathc-dashboard-results');
-  var empty = document.getElementById('mathc-dashboard-empty');
-  if (!input || !results) return;
-
-  function render(items) {
-    while (results.firstChild) results.removeChild(results.firstChild);
-    if (items.length === 0) {
-      empty.hidden = false;
-      return;
-    }
-    empty.hidden = true;
-    items.slice(0, 50).forEach(function (it) {
-      var li = document.createElement('li');
-      var a = document.createElement('a');
-      a.href = it.path;
-      a.textContent = it.title || it.path;
-      li.appendChild(a);
-      results.appendChild(li);
-    });
-  }
-
-  fetch('index.json')
-    .then(function (r) { return r.json(); })
-    .then(function (idx) {
-      var fuse = new Fuse(idx, {
-        keys: ['title', 'path'],
-        threshold: 0.35,
-        ignoreLocation: true
-      });
-      input.addEventListener('input', function () {
-        var q = input.value.trim();
-        if (q.length === 0) { render([]); return; }
-        render(fuse.search(q).map(function (m) { return m.item; }));
-      });
-    })
-    .catch(function () {
-      empty.hidden = false;
-      empty.textContent = 'index.json failed to load';
-    });
-})();
-</script>
-</body>
-</html>
-|}
-
-(* render_graph_html — emits the `dist/graph.html` page.
-   The page is a self-contained cytoscape.js shell; the init
-   script fetches `graph.json` and lays out the relations
-   graph using cytoscape's built-in `cose` (force-directed)
-   layout. The `_cycle` flag from the kernel projection
-   surfaces as a textual annotation in the page header; the
-   operator can see *what* cycles, not just *that* one
-   exists (the cycle reject posture belongs to `lib/policy.ml`,
-   per `MC-POLICY-CYCLE` — this surface is descriptive only).
-   The seed root is `bootstrap-v3`; changing the seed
-   requires running `mathc graph --decision=<id> --format=json
-   > dist/graph.json` and re-rendering. The default
-   behaviour is "show the seed root as a static viewer"; a
-   future iteration could add a `<select>` of root ids. *)
-let[@warning "-32"] render_graph_html ~graph:(_graph : Jsonl.value) : string =
-  Printf.sprintf
-    {|<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Relations graph &mdash; math-coding</title>
-<link rel="stylesheet" href="assets/style.css" />
-<script src="https://cdn.jsdelivr.net/npm/cytoscape@3.30.2/dist/cytoscape.min.js"></script>
-<style>
-  #mathc-graph-cy { width: 100%%; height: 80vh; border: 1px solid var(--rule); }
-  .mathc-graph-meta { font-family: monospace; font-size: 0.9em; color: var(--fg-muted); }
-</style>
-</head>
-<body>
-<header class="mathc-nav"><a href="index.html">math-coding</a></header>
-<main class="mathc-main">
-<h1>Relations graph</h1>
-<p class="mathc-lede">
-  The &sect;7 relations graph rooted at <code id="mathc-graph-root">...</code>,
-  projected from <code>graph.json</code>. Click a node to
-  navigate to its decision page.
-</p>
-<p class="mathc-graph-meta">
-  <span id="mathc-graph-counts">...</span>
-</p>
-<div id="mathc-graph-cy"></div>
-</main>
-<script>
-(function () {
-  'use strict';
-  var cy = document.getElementById('mathc-graph-cy');
-  if (!cy || typeof cytoscape !== 'function') return;
-  fetch('graph.json')
-    .then(function (r) { return r.json(); })
-    .then(function (g) {
-      document.getElementById('mathc-graph-root').textContent = g.root || '';
-      document.getElementById('mathc-graph-counts').textContent =
-        (g.nodes || []).length + ' nodes / ' +
-        (g.edges || []).length + ' edges' +
-        (g._cycle ? ' / CYCLE detected' : '');
-      var elements = [];
-      (g.nodes || []).forEach(function (n) {
-        elements.push({ data: { id: n.id, label: n.label || n.id } });
-      });
-      (g.edges || []).forEach(function (e, i) {
-        elements.push({
-          data: {
-            id: 'e' + i,
-            source: e.from,
-            target: e.to,
-            kind: e.kind
-          }
-        });
-      });
-      cytoscape({
-        container: cy,
-        elements: elements,
-        layout: { name: 'cose', animate: false },
-        style: [
-          { selector: 'node',
-            style: { 'label': 'data(label)',
-                     'font-size': '10px',
-                     'background-color': '#8b3a3a' } },
-          { selector: 'edge',
-            style: { 'curve-style': 'bezier',
-                     'target-arrow-shape': 'triangle',
-                     'label': 'data(kind)',
-                     'font-size': '8px',
-                     'color': '#5a5a5a',
-                     'line-color': '#b0a99c',
-                     'target-arrow-color': '#b0a99c',
-                     'width': 1 } }
-        ]
-      });
-    })
-    .catch(function () {
-      document.getElementById('mathc-graph-counts').textContent =
-        'graph.json failed to load';
-    });
-})();
-</script>
-</body>
-</html>
-|}

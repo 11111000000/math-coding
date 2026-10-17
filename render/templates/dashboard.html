@@ -13,9 +13,9 @@
 <h1>Dashboard</h1>
 <p class="mathc-lede">
   Full-text search across decisions, obligations, axioms,
-  and articles shipped by <code>mathc render</code>. The
-  index is loaded from <code>index.json</code>; matching
-  pages link directly to the rendered site.
+  and articles shipped by <code>mathc render</code>.
+  The index is loaded from <code>index.json</code>;
+  matching pages link directly to the rendered site.
 </p>
 <input id="mathc-dashboard-q" type="search"
        placeholder="search decisions, axioms, articles..."
@@ -36,7 +36,10 @@
 
   function render(items) {
     while (results.firstChild) results.removeChild(results.firstChild);
-    if (items.length === 0) { empty.hidden = false; return; }
+    if (items.length === 0) {
+      empty.hidden = false;
+      return;
+    }
     empty.hidden = true;
     items.slice(0, 50).forEach(function (it) {
       var li = document.createElement('li');

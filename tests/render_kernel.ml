@@ -75,7 +75,7 @@ let[@warning "-32"] mathjax_in_head () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("methodology", "Methodology", "before") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -90,7 +90,7 @@ let[@warning "-32"] base_href_default () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -99,7 +99,7 @@ let[@warning "-32"] base_href_default () =
 
 let[@warning "-32"] bilingual_pairs_complete () =
   let cfg_ru =
-    { Render.default_config with Render.languages = [ "en"; "ru" ] }
+    { Render.default_config with Render.languages = [ Render.En; Render.Ru ] }
   in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
@@ -114,7 +114,7 @@ let[@warning "-32"] bilingual_pairs_complete () =
           ("manifesto", "Manifesto / RU", "RU body");
           ("readme", "README / RU", "RU readme");
         ]
-      ~site_pages_zh:[] ~axioms_data:[]
+      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let paths = List.map (fun p -> p.Render.path) pages in
   Alcotest.(check bool)
@@ -145,7 +145,7 @@ let[@warning "-32"] bilingual_pairs_complete () =
    with no language suffix. *)
 let[@warning "-32"] lang_toggle_en_no_suffix () =
   let cfg =
-    { Render.default_config with Render.languages = [ "en"; "ru"; "zh" ] }
+    { Render.default_config with Render.languages = [ Render.En; Render.Ru; Render.Zh ] }
   in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
@@ -162,7 +162,7 @@ let[@warning "-32"] lang_toggle_en_no_suffix () =
         ]
       ~site_pages_zh:
         [ ("axioms", "Axioms / ZH", "ZH axioms") ]
-      ~axioms_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let body_of path =
     List.find (fun p -> p.Render.path = path) pages |> fun p -> p.Render.body
@@ -486,7 +486,7 @@ let[@warning "-32"] mathjax_in_head_when_enabled () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("methodology", "Methodology", "before") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -505,7 +505,7 @@ let[@warning "-32"] mathjax_script_on_prose_page_when_enabled () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -525,7 +525,7 @@ let[@warning "-32"] mathjax_no_dollar_delimiters () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("methodology", "Methodology", "before") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -549,7 +549,7 @@ let[@warning "-32"] mathjax_uses_latex_delimiters () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("methodology", "Methodology", "before") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -640,7 +640,7 @@ let[@warning "-32"] packages_page_has_grid () =
     Render.build_pages ~package_html:pkg_html ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("packages", "Packages", "prose body") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "packages.html") pages in
   Alcotest.(check bool)
@@ -661,7 +661,7 @@ let[@warning "-32"] ru_nav_omits_missing_sibling () =
           ("manifesto", "Manifesto", "EN manifesto");
         ]
       ~site_pages_ru:[ ("manifesto", "Manifesto / RU", "RU manifesto") ] ~site_pages_zh:[]
-      ~axioms_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let methodology =
     List.find (fun p -> p.Render.path = "methodology.html") pages
@@ -681,7 +681,7 @@ let[@warning "-32"] axiom_page_single_h1 () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[ ("feedback", axiom_body) ]
+      ~axioms_data:[ ("feedback", axiom_body) ] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page =
     List.find (fun p -> p.Render.path = "axioms/feedback.html") pages
@@ -697,7 +697,7 @@ let[@warning "-32"] footer_mathc_render () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("home", "Home", "body") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -712,7 +712,7 @@ let[@warning "-32"] base_href_default () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -726,7 +726,7 @@ let[@warning "-32"] base_href_empty () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[]
+      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -740,7 +740,14 @@ let[@warning "-32"] version_in_hero_and_footer () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[]
+      ~axioms_data:[] ~spec_data:[]
+      ~templates:
+        {
+          Render.index =
+            [ (Render.En, "<p class=\"mathc-hero-version\">{{version}}</p>") ];
+          Render.dashboard = "";
+          Render.graph = "";
+        }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -754,29 +761,16 @@ let[@warning "-32"] version_in_hero_and_footer () =
     (has "math-coding 9.9.9-test &mdash; math-coding" home.Render.body)
 
 let[@warning "-32"] version_default_reads_version_file () =
-  (* `default_config` is built once at module load. The build harness
-     that runs the tests in this directory is the math-coding repo
-     itself, which carries a `VERSION` file at the repo root. We
-     therefore expect the default config's `version` field to be
-     non-empty and to match the file's contents. *)
+  (* `default_config` no longer reads `./VERSION` at module load:
+     `lib/` must stay I/O-free (§1.3), so the default version is
+     now the static `default_version` string. The live VERSION is
+     read by the CLI dispatcher (`bin/Mathc.ml`) instead. *)
   let v = Render.default_config.Render.version in
   Alcotest.(check bool)
     "default_config.version is non-empty" true
     (String.length v > 0);
-  (* `dune test` exports DUNE_SOURCEROOT pointing at the project
-     root; fall back to ../VERSION from the test exe directory
-     for direct invocation. *)
-  let path =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with
-    | Some p -> Filename.concat p "VERSION"
-    | None -> "../VERSION"
-  in
-  let ic = open_in path in
-  let n = in_channel_length ic in
-  let file_version = really_input_string ic n |> String.trim in
-  close_in ic;
   Alcotest.(check string)
-    "default_config.version matches VERSION" file_version v
+    "default_config.version is the static default" "math-coding" v
 
 (* --- site-ru-en-synced obligation (t5-1) --- *)
 
@@ -926,12 +920,12 @@ let[@warning "-32"] ru_home_sibling_is_index_html () =
      `decisions/site-broken-links-2026-10@1`, obligation
      `ru-home-sibling-resolves`. *)
   let cfg : Render.config =
-    { Render.default_config with Render.languages = [ "en"; "ru" ] }
+    { Render.default_config with Render.languages = [ Render.En; Render.Ru ] }
   in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let home_ru =
     List.find (fun p -> p.Render.path = "index.ru.html") pages
@@ -959,7 +953,7 @@ let[@warning "-32"] footer_links_github_origin () =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:[ ("home", "Home", "body") ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "index.html") pages in
   let body = page.Render.body in
@@ -1007,7 +1001,7 @@ let[@warning "-32"] nav_has_github_link () =
           ("axioms", "Axioms", "body");
           ("spec/algebra-3.2", "Algebra", "body");
         ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let github_href = "https://github.com/11111000000/math-coding" in
   List.iter
