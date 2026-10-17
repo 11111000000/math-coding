@@ -27,15 +27,15 @@ Last verified at: HEAD `d52c85b` + 2026-10-14 kernel-fixes + site-redesign cycle
   closed the v3 dialectic antithesis slot. See git for the
   pre-3.3 sync chain.
 
-Attestation store at `attestations/` contains **1090 files** (verified by
+Attestation store at `attestations/` contains **585 files** (verified by
 `mathc counters --format=json`; the count is regenerated from
-`ls attestations/` on every check); **`mathc packages` reports 146 active
-decisions / 119 total decision files / 395 obligations
-(271 pass, 112 unknown, 12 missing; the master policy's 7
+`ls attestations/` on every check); **`mathc packages` reports 150 active
+decisions / 157 total decision files / 538 obligations
+(504 pass, 0 unknown, 34 missing; the master policy's 7
 obligations are enumerated separately)**. The exact numbers
 are emitted by `mathc counters` and enforced against
 `PACKAGES.md`, `ROADMAP.md`, `README.md` by
-`tests/counters_drift.ml`. Total decision files on disk: 119
+`tests/counters_drift.ml`. Total decision files on disk: 157
 (`decisions/*.yaml`, of which 7 are waivers / obligations-aggregator /
 migrations-history). 88 cram files in `tests/cli/`. 34 CLI
 subcommands.
@@ -187,7 +187,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/junit-entity-off-by-one-fix-2026-10.yaml` | `junit-entity-off-by-one-fix-2026-10` | 1 | 3 | RESOLVED | off-by-one in `lib/junit/junit.ml:74-90` entity-reference boundary check; `tests/junit_test.ml` regression; new §11.23 trap |
 | `decisions/migration-mechanism-2026-10.yaml` | `migration-mechanism` | 2 | 6 | RESOLVED | `mathc migrate --from=X --to=Y [--root=DIR] [--format=text\|json] [--explain] [--manifest=PATH]` is a new declarative subcommand in `bin/Mathc.ml` backed by pure `lib/migrate.ml`; the kernel never mutates YAML on disk, it only reads a `decisions/migrations/<from>-to-<to>.yaml` manifest and prints a per-file plan; ships the first manifest `decisions/migrations/3.2-to-3.2.1.yaml` as a no-op proof-of-mechanism; **rev 2 adds `--write` and `--dry-run`**: `--write` applies auto-translatable actions to a sibling `<file>.migrated.yaml` (NEVER overwrites the original); `--dry-run` paired with `--write` prints the per-file JSON summary without touching the disk; the apply path lives in `lib/migrate.ml::apply_actions` (line-edit for bump-schema-string/rename-field, append for add-field, no-op for manual-review); removes `scripts/migrate-decisions-3.2.py` and `scripts/migrate-decisions-3.2-phase2.py` (their git history at `a215ef9`/`e21fdf0` is the audit trail); fixtures: `tests/cli/migrate-{dry-run,no-changes,malformed,write}.t` plus `tests/cli/fixtures/migrate/` |
 | `decisions/install-tooling-default-tag-edge-2026-10.yaml` | `install-tooling-default-tag-edge-2026-10` | 1 | 2 | RESOLVED | closes 404 install URL on first-touch adoption |
-| `decisions/print-usage-complete-2026-10.yaml` | `print-usage-complete-2026-10` | 1 | 2 | RESOLVED | mathc --help lists all 27 subcommands including adopt, migrate, telemetry, new-decision |
+| `decisions/print-usage-complete-2026-10.yaml` | `print-usage-complete-2026-10` | 1 | 2 | RESOLVED | mathc --help lists all 34 subcommands including adopt, migrate, telemetry, new-decision |
 | `decisions/ux-3-init-release-binary-noop-skill-2026-10.yaml` | `ux-3-init-release-binary-noop-skill-2026-10` | 1 | 2 | RESOLVED | documents release-binary vs in-source-build split for --agent opencode |
 | `decisions/ux-3-adoption-doc-freshen-2026-10.yaml` | `ux-3-adoption-doc-freshen-2026-10` | 2 | 3 | RESOLVED | Step 1 sync to install.sh --user-skill; drops 3.1.0-alpha-final literal |
 | `decisions/ux-3-new-decision-subcommand-2026-10.yaml` | `ux-3-new-decision-subcommand-2026-10` | 1 | 3 | RESOLVED | mathc new-decision <id> scaffolds decisions/<id>.yaml |
@@ -339,7 +339,7 @@ is registered through `git config core.hooksPath`.
 
 | Module | Purpose |
 |---|---|
-| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, explain-diagnostic, assess, attest, gate, version, session-start, record, stats, time-estimate, self-check, render, packages, mode, rebuttals, re-evaluate, re-evaluate-decisions, **migrate**) — 20 subcommands total |
+| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, explain-diagnostic, assess, attest, attest-batch, gate, version, update, session-start, record, stats, time-estimate, self-check, render, packages, mode, rebuttals, re-evaluate, re-evaluate-decisions, counters, init, import-adr, adopt, new-decision, telemetry, migrate, doctor, find, precommit, graph, decision-state, forge-verify) — 34 subcommands total |
 | `data/time-distribution.yaml` | SWE-bench Verified (n=500, 2025-Q4) reference class for `mathc time-estimate` |
 
 ## Adapter protocol (`lib/git/`, `lib/junit/`)

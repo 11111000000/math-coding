@@ -4,7 +4,7 @@
 > (commit `8fa7fcf`). The 3.3 kernel checks this repository and its
 > conformance corpus via `mathc self-check`, which is a **blocking** CI
 > step per `constitution.md` Invariant 14. The attestation store at
-> `attestations/` is populated (1090 files after the 2026-10-14
+> `attestations/` is populated (585 files after the 2026-10-14
 > parallel-fix-batch added 118 review-class attestations and the
 > deep-audit-fix commit removed 53 duplicates from H's batch). CLI
 > surface: `validate`,
@@ -13,7 +13,8 @@
 > `session-start`, `record`, `stats`, `time-estimate`, `self-check`,
 > `version`, `render`, `packages`, `mode`, `rebuttals`, `re-evaluate`,
 > `re-evaluate-decisions`, `migrate`, `counters`, `init`, `import-adr`,
-> `adopt`, `new-decision`, `telemetry` — 28 subcommands.
+> `adopt`, `new-decision`, `telemetry`, `doctor`, `forge-verify`, `find`,
+> `precommit`, `graph`, `decision-state`, `update` — 34 subcommands.
 >
 > **Algebra 3.2-ideal**: accepted via `decisions/algebra-3.2.yaml`;
 > normative spec at `spec/algebra-3.2.md` (31 sections, §0–§30). Implementation
