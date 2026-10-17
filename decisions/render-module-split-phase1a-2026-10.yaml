@@ -2,7 +2,7 @@
 schema: math-coding/3.3
 id: render-module-split-phase1a-2026-10
 revision: 1
-state: draft
+state: superseded
 mode: light
 change_kind: implementation
 body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
@@ -119,8 +119,9 @@ risk:
     - html-of-fragments-used-outside-render-md
   owner: human:maintainer
 
-relations:
   addresses:
+  superseded_by:
+    - render-html-templates-2026-10@1
     - render-module-split@1
     - render-kernel-fixes-2026-10@1
     - render-ordered-lists-2026-10@1
