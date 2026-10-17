@@ -304,12 +304,12 @@ let antithesis_violation v =
             Printf.sprintf
               "%sdecision has mode=%s but empty antithesis: \
                spec/algebra-3.2.md §11 (v3 dialectic method) requires the \
-               antithesis dialectical slot for modes >= standard; add an \
+               antithesis dialectical slot for mode = considered; add an \
                antithesis section naming the coherent counter-position the \
                author considered and rejected (distinct from counterexample, \
                which is the strongest objection surfaced to future readers)"
               (if decision_id = "" then "" else decision_id ^ ": ")
-              (if mode_str = "" then "standard" else mode_str)
+              (if mode_str = "" then "considered" else mode_str)
           in
           Some
             (Diagnostic.mc_antithesis_missing ~decision_id
@@ -4706,18 +4706,10 @@ let[@warning "-32"] do_find () =
   in
   match !format with
   | `Json ->
-      let n =
-        match filtered with
-        | Jsonl.Object ps -> (
-            match List.assoc_opt "decisions" ps with
-            | Some (Jsonl.Array xs) -> List.length xs
-            | _ -> 0)
-        | _ -> 0
-      in
       print_endline (Jsonl.stringify filtered);
       (* Zero matches is success, not failure: callers inspect the
          `decisions` array. *)
-      if n = 0 then exit 0 else exit 0
+      exit 0
 
 (* mathc precommit — batch-validate every `decisions/*.yaml`
  * (or the explicit paths supplied on the command line) by

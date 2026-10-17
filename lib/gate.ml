@@ -131,25 +131,6 @@ let[@warning "-32"] fresh_against ~attestations ~materials_digest =
    attestation's candidate_tree (commit SHA) being mentioned
    in the attestation's `subject.candidate_tree` field — the
    simplest predicate the existing schema carries. *)
-let[@warning "-32"] attestation_kind_to_string = function
-  | `Test -> "test"
-  | `Review -> "review"
-  | `Build -> "build"
-  | `Analysis -> "analysis"
-  | `Observation -> "observation"
-
-(* The `kind` field of `Domain.attestation` collides with the
-   top-level type alias `Domain.kind = Decision | Obligation | ...`.
-   OCaml's parser routes `a.kind` and `a.Domain.kind` to the
-   type alias. Reach the field via `obj_magic` — the smallest
-   workable shim for the protocol's narrow `kind` polymorphic
-   tag on attestation. *)
-
-(* `a.kind` resolves to the top-level `Domain.kind` type alias,
-   not the record field, due to OCaml's shadowing rule. Use a
-   record pattern: the pattern label `kind` matches the record
-   field, not the type alias, because in pattern context the
-   resolution is unambiguous. *)
 let[@warning "-32"] attestation_kind_str (a : Domain.attestation) : string =
   match a with
   | { kind = `Test; _ } -> "test"

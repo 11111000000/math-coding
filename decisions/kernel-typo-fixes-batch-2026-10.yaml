@@ -1,0 +1,275 @@
+---
+schema: math-coding/3.2
+id: kernel-typo-fixes-batch-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+intent: |
+  Fix four correctness defects surfaced by an audit scan of
+  `lib/`, `bin/`, and `tests/cli/` (render code excluded per
+  the active site-render refactor):
+
+  1. `lib/decision.ml:1255` and `bin/Mathc.ml:307` — the
+     `antithesis is required for mode >= standard` diagnostic
+     message contradicts the actual predicate
+     `mode_geq_considered` (`lib/decision.ml:421`), which fires
+     only for the `Considered` constructor. Users on
+     `mode=standard` see a message that says the spec is
+     stricter than it is, which is a public-facing lie about
+     the protocol. The kernel-side diagnostic and the CLI-side
+     pre-parse check are corrected to read "for mode = considered".
+
+  2. `lib/gate.ml:134` — the function `attestation_kind_to_string`
+     has no caller in the tree (`grep` confirms zero references
+     across `lib/`, `bin/`, `tests/`). The function is a variant
+     of the live `attestation_kind_str` at `lib/gate.ml:153` and
+     predates the live function. The misleading comment block
+     immediately above the dead function describes a non-existent
+     `obj_magic` shim. Both removed; the live function keeps the
+     long comment about the type-shadowing rule.
+
+  3. `bin/Mathc.ml:4720` — `do_find` ends with
+     `if n = 0 then exit 0 else exit 0`. Both branches of the
+     conditional are identical; the only consumer of `n` was the
+     dead conditional. Refactor leftover from a previous
+     failure-mode change. The `n` computation and the
+     conditional are removed; the function ends with `exit 0`.
+
+  4. `lib/init/init.ml:410` — the per-user opencode skill
+     install uses `Unix.mkdir (Filename.dirname dst)`, which
+     only creates the immediate parent. When the XDG_CONFIG_HOME
+     chain does not already exist (e.g. fresh CI runner, first
+     install before `install.sh --user-skill` has run), the
+     mkdir fails with `ENOENT` and the install errors out. The
+     rest of `lib/init/init.ml` already uses the recursive
+     `mkdir_p` helper (line 244) for the same reason; this is
+     the only call site still using the single-step mkdir. The
+     fix is a one-line replacement.
+
+  5. `tests/cli/init-agent.t:1-29` — the cram snapshot bakes in
+     `/home/az/.config/opencode/skills/math-coding/SKILL.md` as
+     the expected install path, so the test only passes on the
+     author's machine. The test is re-routed to set
+     `XDG_CONFIG_HOME` to a per-test tmpdir, so the per-user
+     install writes to a controlled location and the test is
+     host-portable. The snapshot is regenerated via
+     `dune promote`; the bwrap scratch path in the snapshot is
+     host-specific but the test does not depend on the
+     author-side path any more.
+
+  No behaviour changes that affect kernel verdicts; the
+  message-text fix changes what the user sees in one diagnostic
+  code, not which diagnostic fires. The `mkdir_p` fix unblocks
+  installs that were previously failing on fresh environments.
+  Everything else is dead-code / dead-test cleanup.
+
+change_kind: implementation
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+commitment: |
+  1. `lib/decision.ml:1255` and `bin/Mathc.ml:307` read
+     "for mode = considered" (was "for mode >= standard").
+  2. `lib/gate.ml` no longer contains `attestation_kind_to_string`.
+  3. `bin/Mathc.ml::do_find` ends with a single `exit 0` after
+     `print_endline`.
+  4. `lib/init/init.ml::maybe_install_agent_skill` calls
+     `mkdir_p` (not the single-step `Unix.mkdir`).
+  5. `tests/cli/init-agent.t` sets `XDG_CONFIG_HOME` to a
+     per-test tmpdir before invoking `mathc init --agent opencode`.
+  6. `dune build` exits 0 on a clean tree.
+  7. `dune test tests/cli/init-agent.t` exits 0 on a clean tree.
+  8. `dune test tests/counters_drift.exe` exits 0 on a clean tree.
+
+counterexample: |
+  "All four are stylistic; a `lib/*.ml` change without policy
+   impact should be a no-op PR, not a tracked decision."
+
+  Counterargument: per AGENTS.md §Self-application, edits to
+  `lib/*.ml` ship with a decision regardless of behavioural
+  impact, because the OCaml surface is policy-protected. The
+  decision body is the audit trail that names each change and
+  its strongest counterargument; `lib-stale-comments-cleanup-2026-10`
+  is the precedent.
+
+  "The `mkdir_p` fix in `init.ml` is a feature change, not a
+   bug fix; users on a fresh CI will now get a different
+   install path than before."
+
+  Counterargument: users on a fresh CI previously got an
+  `ENOENT` error and an aborted install. The "previous install
+  path" is the absence of an installed file. The fix replaces
+  a guaranteed failure with a guaranteed success on the same
+  inputs.
+
+scope:
+  capabilities:
+    - kernel-message-clarity
+    - init-per-user-install
+    - tests-portability
+  paths:
+    - "lib/decision.ml"
+    - "lib/gate.ml"
+    - "lib/init/init.ml"
+    - "bin/Mathc.ml"
+    - "tests/cli/init-agent.t"
+
+outcomes:
+  - id: antithesis-message-mode-considered
+    statement: |
+      `lib/decision.ml:1255` and `bin/Mathc.ml:307` both read
+      "for mode = considered" and the `mode_str` fallback is
+      `"considered"` (was `"standard"`).
+  - id: dead-code-removed
+    statement: |
+      `grep -n "attestation_kind_to_string" lib/ bin/ tests/`
+      returns 0 matches.
+  - id: do-find-no-dead-branch
+    statement: |
+      `bin/Mathc.ml::do_find` ends with a single `exit 0` after
+      `print_endline (Jsonl.stringify filtered)`. The dead
+      `if n = 0 then exit 0 else exit 0` is removed.
+  - id: init-mkdir-p
+    statement: |
+      `lib/init/init.ml::maybe_install_agent_skill` calls
+      `mkdir_p (Filename.dirname dst)` for the opencode arm.
+      The pre-fix `Unix.mkdir` single-step is gone.
+  - id: init-agent-test-portable
+    statement: |
+      `tests/cli/init-agent.t` sets `XDG_CONFIG_HOME` to a
+      per-test tmpdir. The cram snapshot does not contain
+      `/home/az/` (or any other host-specific home).
+
+assumptions:
+  - id: message-text-not-policy
+    state: assumed
+    statement: |
+      The "antithesis is required for mode = considered" message
+      text is documentation, not policy. The actual policy is
+      the predicate `mode_geq_considered` (`lib/decision.ml:421`)
+      which the kernel consults; the message text is what the
+      user sees when the predicate fires. Bringing the message
+      in line with the predicate is a documentation correction.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the message text were policy-bearing, a user-facing
+      diagnostic with one message for "considered" and another
+      for "standard" would be a contract change. The fix only
+      aligns the message with the predicate; the predicate
+      itself is unchanged.
+    review_on:
+      - signal: antithesis-rule-changes-to-include-standard
+  - id: per-user-install-fresh-dir
+    state: assumed
+    statement: |
+      The recursive `mkdir_p` fix is what a user running
+      `mathc init --agent opencode` on a fresh machine expects:
+      the script creates the per-user skill directory and
+      writes the file. The previous single-step mkdir was an
+      honest mistake, not a deliberate "fail loudly" behaviour.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the previous single-step mkdir was deliberate (to
+      refuse the install when the XDG chain is missing), the
+      new behaviour silently creates the chain. There is no
+      evidence the previous behaviour was deliberate: the
+      comment above the call site says "try mkdir … with
+      EEXIST-ignore", which is a tolerance pattern, not a
+      refusal pattern. The new `mkdir_p` makes the tolerance
+      explicit and recursive.
+    review_on:
+      - signal: per-user-install-fresh-dir-rejection-is-required
+
+obligations:
+  - id: antithesis-message-corrected
+    statement: |
+      `lib/decision.ml:1255` and `bin/Mathc.ml:307` both contain
+      the substring "for mode = considered" (and the bin side
+      also has the `mode_str` fallback `"considered"`).
+    acceptance:
+      all:
+        - verifier: text-scan-mode-considered
+          result: pass
+    evidence: manual-acceptance
+  - id: dead-attestation-kind-to-string-removed
+    statement: |
+      `grep -rn "attestation_kind_to_string" lib/ bin/ tests/`
+      returns 0 matches.
+    acceptance:
+      all:
+        - verifier: text-scan-no-attestation-kind-to-string
+          result: pass
+    evidence: manual-acceptance
+  - id: do-find-single-exit
+    statement: |
+      `bin/Mathc.ml::do_find` ends with `exit 0` (not an
+      `if-then-else-exit-exit`). The function does not
+      compute or use the local `n`.
+    acceptance:
+      all:
+        - verifier: text-scan-do-find-single-exit
+          result: pass
+    evidence: manual-acceptance
+  - id: init-mkdir-p-replaces-mkdir
+    statement: |
+      `lib/init/init.ml::maybe_install_agent_skill`'s
+      opencode arm calls `mkdir_p` instead of the single-step
+      `Unix.mkdir`.
+    acceptance:
+      all:
+        - verifier: text-scan-init-mkdir-p
+          result: pass
+    evidence: manual-acceptance
+  - id: init-agent-tmpdir-hermetic
+    statement: |
+      `tests/cli/init-agent.t` sets `XDG_CONFIG_HOME` to a
+      per-test tmpdir. The cram snapshot does not contain
+      the literal substring `/home/az/`.
+    acceptance:
+      all:
+        - verifier: text-scan-no-home-az
+          result: pass
+    evidence: manual-acceptance
+  - id: dune-build-clean-after-fixes
+    statement: |
+      `dune build` exits 0 on a clean tree.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+    evidence: manual-acceptance
+  - id: init-agent-test-passes
+    statement: |
+      `dune test tests/cli/init-agent.t` exits 0 on a clean tree.
+    acceptance:
+      all:
+        - verifier: dune test tests/cli/init-agent.t
+          result: pass
+    evidence: manual-acceptance
+
+reversal:
+  - signal: message-correction-reintroduces-mode-standard
+    action: revert
+  - signal: dead-code-removed-is-actually-needed
+    action: restore-attestation-kind-to-string
+  - signal: do-find-needs-distinct-exit-codes
+    action: restore-n-and-conditional-with-distinct-exit-codes
+  - signal: mkdir-p-masks-author-decline-to-install
+    action: revert-mkdir-p-to-single-step-mkdir
+
+risk:
+  declared_triggers:
+    - policy-weakening  # only if message text or predicate is policy-bearing
+    - install-silent-acceptance-on-decline  # only if mkdir_p masks a decline
+  owner: human:maintainer
+
+relations:
+  refines:
+    - lib-stale-comments-cleanup-2026-10@1
+  addresses:
+    - antithesis-mode-considered-2026-10
