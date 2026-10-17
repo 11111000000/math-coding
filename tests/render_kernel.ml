@@ -623,10 +623,10 @@ let[@warning "-32"] mermaid_support_removed () =
     | Some p -> p
     | None -> ".."
   in
-  let render_ml = read (Filename.concat root "lib/render.ml") in
+  let render_ml = read (Filename.concat root "lib/render/render.ml") in
   let mathc_ml = read (Filename.concat root "bin/Mathc.ml") in
   Alcotest.(check bool)
-    "lib/render.ml has no mermaid" true (not (has "mermaid" render_ml));
+    "lib/render/render.ml has no mermaid" true (not (has "mermaid" render_ml));
   Alcotest.(check bool)
     "bin/Mathc.ml has no mermaid" true (not (has "mermaid" mathc_ml))
 

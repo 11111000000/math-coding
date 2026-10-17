@@ -1,0 +1,74 @@
+---
+schema: math-coding/3.3
+id: render-module-split
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:297c0dc06f763b31e7022cb84d83aec1f93c1f0cf0c32ad6533258f39d7de5ba"
+yaml_sha: "sha256:297c0dc06f763b31e7022cb84d83aec1f93c1f0cf0c32ad6533258f39d7de5ba"
+
+intent: |
+  `lib/render.ml` is 3040 lines and is the single largest
+  source file in the kernel. It mixes a hand-rolled markdown
+  parser, a navigation model, page chrome (head/footer/page
+  skeleton), three near-identical home-page renderers (en/ru/zh),
+  a YAML subset for the per-decision page, an RSS feed, two
+  embedded single-page applications (dashboard, graph), file
+  readers, and the build_pages orchestrator. Splitting it is
+  pure reorganisation: the public API (`Render.config`,
+  `Render.build_pages`, `Render.md_parse`, `Render.rss_*`,
+  `Render.default_version`, the `page` record) is preserved
+  by re-exports.
+
+commitment: |
+  `lib/render.ml` is moved verbatim under `lib/render/render.ml`
+  and packaged as a new dune library `mathcoding_render`. The
+  flat `lib/render` module is dropped from `lib/dune`'s
+  `(modules ...)`. `bin/dune` and `tests/dune` add
+  `mathcoding_render` to their `(libraries ...)` lists. No
+  public symbol changes; every existing call site in
+  `bin/Mathc.ml`, `bin/md_probe.ml`, and `tests/render_kernel.ml`
+  continues to resolve through `Render.*`.
+
+outcomes:
+  - id: render-is-its-own-library
+    statement: |
+      `lib/render/render.ml` is a separate dune library
+      `mathcoding_render` and is the only file in that
+      library; subsequent splits (Phase 1+ of the refactor)
+      land as additional modules in the same `lib/render/`
+      directory.
+
+scope:
+  paths:
+    - lib/render.ml
+    - lib/render/render.ml
+    - lib/render/dune
+    - lib/dune
+    - bin/dune
+    - tests/dune
+
+obligations:
+  - id: render-library-builds
+    claim: |
+      `dune build` succeeds with `lib/render/render.ml` as
+      the only module of the new `mathcoding_render` library.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: tests/render_kernel.exe
+          result: pass
+
+axiom_link:
+  - A0
+
+risk:
+  declared_triggers:
+    - dune-finds-old-lib-render-ml-stale
+    - tests-fail-to-link-against-mathcoding-render
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3

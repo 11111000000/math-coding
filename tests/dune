@@ -27,6 +27,7 @@
   path_config_test)
  (libraries
   mathcoding_core
+  mathcoding_render
   mathcoding_adopt
   mathcoding_attestations
   mathcoding_junit

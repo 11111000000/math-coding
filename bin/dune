@@ -4,6 +4,7 @@
  (modules Mathc)
  (libraries
   mathcoding_core
+  mathcoding_render
   mathcoding_find
   mathcoding_check
   mathcoding_junit
@@ -27,4 +28,4 @@
 (executable
  (name md_probe)
  (modules md_probe)
- (libraries mathcoding_core str))
+ (libraries mathcoding_core mathcoding_render str))
