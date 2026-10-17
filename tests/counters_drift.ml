@@ -41,11 +41,21 @@ let[@warning "-32"] in_repo name = Filename.concat (project_root ()) name
 
    Decisions: count active decisions. The kernel reads
    `state: active` from each .yaml, mirroring the
-   `decisions.active` field.
+   `decisions.active` field. Meta aggregators and the
+   adopt/import-adr scaffold scratch (`1-foo.yaml`,
+   `1-use-postgresql.yaml`, both `.gitignore`-excluded) are
+   excluded, so the count is the same on a clean checkout and
+   on a checkout where the cram suite has just run.
 
-   Attestations: count all .json files in attestations/ (no
-   scratch filter). The kernel does NOT filter scratch; PACKAGES.md
-   reports the raw live_store count.
+   Attestations: count committed .json files in attestations/,
+   excluding the test-scratch prefix `t1-2-A0-` (see
+   .gitignore:37). The scratch files are emitted by
+   `mathc re-evaluate-decisions A0` on every test run and are
+   not commitments; counting them made the drift check depend
+   on how many times the suite had run on this checkout.
+   PACKAGES.md reports the committed count; `mathc counters`
+   reports the raw on-disk count (scratch included), and the
+   prose says so explicitly.
 
    Cram: all .t files under tests/cli/. *)
 
@@ -104,9 +114,21 @@ let[@warning "-32"] count_active_decisions () =
         (fun acc f ->
           if not (file_ends_with_suffix f ".yaml") then acc
           else if List.mem f meta_files then acc
+          else if f = "1-foo.yaml" || f = "1-use-postgresql.yaml" then acc
           else acc + 1)
         0 entries
     with _ -> 0
+
+let[@warning "-32"] file_starts_with_prefix f pref =
+  let fl = String.length f in
+  let pl = String.length pref in
+  fl >= pl && String.sub f 0 pl = pref
+
+(* Scratch emitted by `mathc re-evaluate-decisions A0` on every
+   test run (see .gitignore:37). Never a commitment. *)
+let[@warning "-32"] is_attestation_scratch f =
+  file_starts_with_prefix f "t1-2-A0-"
+
 
 let[@warning "-32"] count_all_attestations () =
   if not (Sys.file_exists (in_repo "attestations")) then 0
@@ -114,7 +136,10 @@ let[@warning "-32"] count_all_attestations () =
     try
       let entries = Sys.readdir (in_repo "attestations") in
       Array.fold_left
-        (fun acc f -> if file_ends_with_suffix f ".json" then acc + 1 else acc)
+        (fun acc f ->
+          if not (file_ends_with_suffix f ".json") then acc
+          else if is_attestation_scratch f then acc
+          else acc + 1)
         0 entries
     with _ -> 0
 
