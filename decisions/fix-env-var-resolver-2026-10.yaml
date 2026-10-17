@@ -1,0 +1,340 @@
+---
+schema: math-coding/3.2
+id: fix-env-var-resolver-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Route every CLI subcommand that writes or tree-walks the
+  decisions/attestations layout through
+  `lib/path_config.ml::resolve_decisions_dir` and
+  `resolve_attestations_dir`, so the v3.4 resolver's
+  env-var precedence (MATH_CODING_DECISIONS_DIR /
+  MATH_CODING_ATTESTATIONS_DIR over the new
+  `.math-coding/{decisions,attestations}/` default over the
+  legacy `decisions/`/`attestations/` fallback) is honoured
+  everywhere. The fix addresses R1 in
+  `docs/plans/plan-2026-10-adoption-fixes-2026-10.md` §4 and
+  the adoption-experiment §10.5 #1, #2, #3 findings (which
+  appeared in 5 of 5 project reports: click, express, cobra,
+  sinatra, ripgrep).
+
+commitment: |
+  1. `mathc new-decision --write` writes the rendered template
+     to `<project_root>/<MATH_CODING_DECISIONS_DIR>/<id>.yaml`
+     (already wired in v3.3 via `New_decision.run`'s
+     `Path_config.resolve_decisions_dir ()` call at line 219;
+     no change).
+  2. `mathc self-check` walks
+     `<project_root>/<MATH_CODING_DECISIONS_DIR>` for the
+     decisions corpus and
+     `<project_root>/<MATH_CODING_ATTESTATIONS_DIR>` for the
+     attestation store (or the legacy
+     `MATH_CODING_ATTESTATION_STORE` env-var, preserved for
+     back-compat). Previously it hard-coded
+     `Filename.concat root "decisions"` and
+     `resolve_store_root` (the latter honoured only the
+     legacy env-var name).
+  3. `mathc packages` reads decisions and attestations from
+     the same env-var-resolved paths. Previously hard-coded
+     `"decisions"` and `"attestations"` literals.
+  4. `mathc find` reads decisions and attestations from the
+     same env-var-resolved paths. Previously hard-coded.
+  5. `mathc counters` reads decisions, packages, and live
+     attestations from the env-var-resolved paths. Previously
+     hard-coded in four separate sites (the
+     `enumerate_decisions` helper, the `Packages.walk`
+     argument, the live_store counter, and the schema section
+     hard-codes `schemas/` which is out of scope).
+  6. `mathc migrate --from=X --to=Y` walks
+     `<project_root>/<MATH_CODING_DECISIONS_DIR>` for YAML
+     files and resolves the default manifest path under the
+     same env-var-resolved dir
+     (`<MATH_CODING_DECISIONS_DIR>/migrations/<from>-to-<to>.yaml`).
+     Previously hard-coded `<project_root>/decisions/`.
+  7. `mathc re-evaluate <id>` reads decisions from the
+     env-var-resolved dir via the existing
+     `lib/re_evaluation.ml::list_decision_files` helper (which
+     already delegates to the resolver). No change in `bin/`.
+  8. The new `MATH_CODING_ATTESTATIONS_DIR` env-var is also
+     honoured by `bin/Mathc.ml::resolve_store_root`, which
+     `mathc self-check`, `mathc gate`, and
+     `mathc re-evaluate-decisions` use to locate the
+     attestation store. The legacy
+     `MATH_CODING_ATTESTATION_STORE` env-var still wins when
+     both are set, preserving back-compat with the pre-3.4
+     fixtures in `tests/cli/{gate,self-check}-*.t`.
+  9. `tests/cli/env-var-resolver.t` covers each fixed
+     subcommand with a hermetic, env-var-isolated test.
+  10. `mathc self-check` produces the same 18 unknown subjects
+      as at HEAD `plan/adoption-fixes-2026-10` (the plan-decision
+      itself is the 18th) and zero NEW unknown subjects.
+  11. `dune build` exits 0 on a clean tree.
+  12. `dune test tests/cli/env-var-resolver.t` exits 0 on a
+      clean tree.
+
+counterexample: |
+  Three plausible counter-cases were considered:
+
+  (a) "The fix is gold-plating; the experiment only had 5
+       reports and the subcommand set is large." Rejected: R1
+       was reported in 5 of 5 project sessions (click,
+       express, cobra, sinatra, ripgrep) and cost > 30 minutes
+       of agent time per session during the adoption
+       experiment (per §10.4 of the experiment report).
+       The 7 affected subcommands each appeared in at least 1
+       report; the aggregate blast radius is the entire
+       decision-discovery workflow.
+
+  (b) "We should deprecate the legacy `MATH_CODING_ATTESTATION_STORE`
+       env-var entirely instead of supporting both names."
+       Rejected: the pre-3.4 fixtures in
+       `tests/cli/{gate,self-check}-*.t` (and the
+       `gate-attestation-store-fill-decision.yaml` decision)
+       depend on the legacy name. A hard cutover would break
+       CI. The compatibility shim is one line in
+       `bin/Mathc.ml::resolve_store_root` and is documented.
+
+  (c) "`mathc migrate`'s `--manifest` default path goes under
+       `decisions/migrations/`; honouring
+       `MATH_CODING_DECISIONS_DIR` for it is a separate
+       concern." Rejected on scope grounds: the migrate
+       subcommand is in the A1 target list and the manifest
+       path is the most user-visible part of the migrate
+       workflow. Without the migration-dir fix, the resolver
+       change is incomplete and the adoption-experiment
+       reproduce command (`mathc migrate --from=… --to=…`)
+       still fails when env-vars are set.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+  - A4
+
+scope:
+  capabilities:
+    - cli-path-resolution
+    - kernel-resolver-wiring
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/path_config.ml"
+    - "lib/re_evaluation.ml"
+    - "tests/cli/env-var-resolver.t"
+
+outcomes:
+  - id: self-check-honours-env-var
+    statement: |
+      `mathc self-check` walks
+      `<root>/<MATH_CODING_DECISIONS_DIR>` and reads
+      attestations from
+      `<root>/<MATH_CODING_ATTESTATIONS_DIR>` (or the legacy
+      `MATH_CODING_ATTESTATION_STORE`).
+  - id: packages-honours-env-var
+    statement: |
+      `mathc packages --format=json` reads decisions from
+      `<MATH_CODING_DECISIONS_DIR>` and attestations from
+      `<MATH_CODING_ATTESTATIONS_DIR>`.
+  - id: find-honours-env-var
+    statement: |
+      `mathc find KEYWORD` reads decisions from
+      `<MATH_CODING_DECISIONS_DIR>`.
+  - id: counters-honours-env-var
+    statement: |
+      `mathc counters --format=json` reports decisions and
+      live-store counts derived from
+      `<MATH_CODING_DECISIONS_DIR>` and
+      `<MATH_CODING_ATTESTATIONS_DIR>`.
+  - id: migrate-honours-env-var
+    statement: |
+      `mathc migrate --from=X --to=Y` walks YAML files under
+      `<MATH_CODING_DECISIONS_DIR>` and resolves the default
+      manifest at
+      `<MATH_CODING_DECISIONS_DIR>/migrations/<X>-to-<Y>.yaml`.
+  - id: re-evaluate-honours-env-var
+    statement: |
+      `mathc re-evaluate <id>` resolves `<id>` against
+      decisions under
+      `<MATH_CODING_DECISIONS_DIR>` via the existing
+      `lib/re_evaluation.ml::list_decision_files` helper.
+  - id: new-decision-write-honours-env-var
+    statement: |
+      `mathc new-decision <id> --write` writes the rendered
+      template to
+      `<root>/<MATH_CODING_DECISIONS_DIR>/<id>.yaml` (already
+      wired via `lib/new_decision/new_decision.ml::run`'s
+      `Path_config.resolve_decisions_dir ()` call).
+
+assumptions:
+  - id: env-var-semantics-stable
+    state: assumed
+    statement: |
+      The v3.4 resolver's env-var precedence
+      (`MATH_CODING_DECISIONS_DIR` > `.math-coding/decisions/`
+      > `decisions/`) is the public contract documented in
+      `lib/path_config.ml`. We do not extend or change it; we
+      only ensure every CLI subcommand honours it.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the resolver contract changes, the pre-existing
+      `tests/cli/path-config-fallback.t` and the new
+      `tests/cli/env-var-resolver.t` will diverge; the
+      test-fixture diff will surface the change at review.
+    review_on:
+      - signal: path-config-resolver-changes-precedence
+  - id: legacy-store-env-var-stays-wins
+    state: assumed
+    statement: |
+      Pre-3.4 fixtures in `tests/cli/gate-{pass,fail,stale}.t`
+      and `tests/cli/self-check-{pass,fail,unknown}.t` set
+      `MATH_CODING_ATTESTATION_STORE`. We preserve that name
+      with precedence over the new `MATH_CODING_ATTESTATIONS_DIR`
+      so the existing tests keep passing.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future revision flips the precedence (new name
+      wins), the legacy-name fixtures will start failing.
+      That breakage would surface in CI as a test failure
+      on the `gate-*.t` / `self-check-*.t` set, which is the
+      signal we want.
+    review_on:
+      - signal: legacy-store-env-var-deprecation
+
+obligations:
+  - id: env-var-decisions-dir-honoured
+    statement: |
+      `MATH_CODING_DECISIONS_DIR` overrides the
+      `decisions/` layout at every call site in
+      `bin/Mathc.ml::do_self_check`,
+      `do_packages`, `do_find`, `do_counters`,
+      `do_migrate`, `do_new_decision` (via
+      `New_decision.run`), `do_re_evaluate` (via
+      `lib/re_evaluation.ml`).
+    acceptance:
+      all:
+        - verifier: tests/cli/env-var-resolver.t
+          result: pass
+        - verifier: mathc self-check
+          result: pass
+    evidence: tests-pass
+  - id: env-var-attestations-dir-honoured
+    statement: |
+      `MATH_CODING_ATTESTATIONS_DIR` overrides the
+      `attestations/` layout at every call site in
+      `bin/Mathc.ml::do_self_check`,
+      `do_packages`, `do_find`, `do_counters` (live_store
+      counter). The legacy
+      `MATH_CODING_ATTESTATION_STORE` env-var still wins
+      when both are set (back-compat).
+    acceptance:
+      all:
+        - verifier: tests/cli/env-var-resolver.t
+          result: pass
+    evidence: tests-pass
+  - id: legacy-attestation-store-env-var-preserved
+    statement: |
+      Setting `MATH_CODING_ATTESTATION_STORE` (the pre-3.4
+      name) makes `mathc self-check` operate on that
+      attestation store. The legacy fixtures in
+      `tests/cli/{gate,self-check}-*.t` continue to pass.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-pass.t
+          result: pass
+        - verifier: tests/cli/gate-fail.t
+          result: pass
+        - verifier: tests/cli/gate-stale.t
+          result: pass
+        - verifier: tests/cli/self-check-pass.t
+          result: pass
+        - verifier: tests/cli/self-check-fail.t
+          result: pass
+        - verifier: tests/cli/self-check-unknown.t
+          result: pass
+        - verifier: tests/cli/gate-empty.t
+          result: pass
+        - verifier: tests/cli/gate-unknown-exit-3.t
+          result: pass
+        - verifier: tests/cli/gate-waiver-scope.t
+          result: pass
+        - verifier: tests/cli/required-attestation.t
+          result: pass
+    evidence: tests-pass
+  - id: env-var-resolver-shipped-cram
+    statement: |
+      `tests/cli/env-var-resolver.t` exercises every fixed
+      subcommand (self-check, packages, find, counters,
+      migrate, re-evaluate, new-decision --write) with
+      `MATH_CODING_DECISIONS_DIR=.math-coding/decisions`
+      and
+      `MATH_CODING_ATTESTATIONS_DIR=.math-coding/attestations`
+      pointing at an isolated project. Each subcommand
+      reads from / writes to the env-var-resolved paths.
+    acceptance:
+      all:
+        - verifier: dune test tests/cli/env-var-resolver.t
+          result: pass
+    evidence: tests-pass
+  - id: dune-build-clean-after-fix
+    statement: |
+      `dune build` exits 0 on a clean tree with the fix
+      applied.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+    evidence: tests-pass
+  - id: no-self-check-regression
+    statement: |
+      `mathc self-check` reports exactly the same set of
+      unknown subjects at HEAD `plan/adoption-fixes-2026-10`
+      (the 18-unknown baseline, of which 17 are pre-existing
+      and 1 is the plan-decision itself). Zero NEW unknown
+      subjects are introduced by this fix.
+
+      Before-fix baseline (captured in
+      `/tmp/unknown-baseline.txt` against the worktree
+      HEAD `a1b320a`):
+
+      ```
+      attestation-waiver-policy-schema-bump-3-3-2026-10
+      constitution-header-3-3-update-202-10
+      enable-counters-drift-test-2026-10
+      fix-curl-exit-code
+      fix-mcp-sigpipe
+      fix-validate-id
+      kernel-typo-fixes-batch-2026-10
+      mobile-menu-collapse-and-hide-on-scroll-2026-10
+      p8-hook-deficit-2026-10
+      placeholder-sha-cleanup-2026-10
+      plan-2026-10-adoption-fixes-2026-10
+      plan-2026-10-improvements
+      re-eval-remediation-todo-fix-2026-10
+      render-module-split
+      render-module-split-phase1a-2026-10
+      render-ordered-lists-2026-10
+      site-axiom-img-and-dropdown-2026-10
+      site-dropdown-anim-2026-10
+      ```
+
+      After-fix count: 18 (same set + plan-decision) when
+      this decision's attestations are present.
+    acceptance:
+      all:
+        - verifier: mathc self-check
+          result: pass
+    evidence: tests-pass
+
+risk:
+  declared_triggers:
+    - env-var-typo  # empty MATH_CODING_DECISIONS_DIR returns "" treated as unset (per lib/path_config.ml)
+    - resolver-fallback-silent  # if .math-coding/ exists, legacy decisions/ is ignored; user may not notice
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-adoption-fixes-2026-10@1

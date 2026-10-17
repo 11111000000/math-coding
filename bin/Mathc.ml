@@ -2690,16 +2690,30 @@ let[@warning "-32"] do_attest_batch () =
  * these. *)
 
 (* Resolve the attestation store path. The default is the relative
- * path `attestations/`; tests and operators can override via the
- * environment variable MATH_CODING_ATTESTATION_STORE. The path is
+ * path `attestations/`; tests and operators can override via
+ * either of the environment variables
+ * MATH_CODING_ATTESTATIONS_DIR (the canonical v3.4 name, used by
+ * `lib/path_config.ml::resolve_attestations_dir`) or the legacy
+ * MATH_CODING_ATTESTATION_STORE (preserved for back-compat with
+ * the gate / self-check fixtures in tests/cli/*.t that pre-date
+ * the v3.4 resolver). The legacy name wins when both are set
+ * so existing fixtures keep their behaviour. The path is
  * always resolved against the project root so the gate is
  * reproducible from any working directory (mirrors
  * MATH_CODING_ROOT in :312). *)
 let[@warning "-32"] resolve_store_root project_root =
-  match Sys.getenv_opt "MATH_CODING_ATTESTATION_STORE" with
-  | Some s when String.length s > 0 ->
+  let env_path =
+    match Sys.getenv_opt "MATH_CODING_ATTESTATION_STORE" with
+    | Some s when String.length s > 0 -> Some s
+    | _ -> (
+        match Sys.getenv_opt "MATH_CODING_ATTESTATIONS_DIR" with
+        | Some s when String.length s > 0 -> Some s
+        | _ -> None)
+  in
+  match env_path with
+  | Some s ->
       if Filename.is_relative s then Filename.concat project_root s else s
-  | _ -> Filename.concat project_root "attestations"
+  | None -> Filename.concat project_root "attestations"
 
 let[@warning "-32"] gap_to_json (g : Gate.gap) =
   let fields =
@@ -3621,7 +3635,9 @@ let[@warning "-32"] do_self_check () =
      Printf.fprintf stderr "mathc self-check: %s\n" m;
      exit 2);
   let root = find_project_root (Sys.getcwd ()) in
-  let decisions_dir = Filename.concat root "decisions" in
+  let decisions_dir =
+    Filename.concat root (Path_config.resolve_decisions_dir ())
+  in
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
@@ -3631,7 +3647,7 @@ let[@warning "-32"] do_self_check () =
   in
   let store_root = resolve_store_root root in
   let store = Attestations.load ~reader ~root:store_root in
-  (* Load waivers from decisions/waivers/. The Waiver module
+  (* Load waivers from <decisions_dir>/waivers/. The Waiver module
      is pure (takes a `reader`); we reuse the same reader the
      store and decisions use, so waiver loading shares the I/O
      pattern. The waivers/ subdir may not exist; Waiver.load
@@ -4406,7 +4422,7 @@ let[@warning "-32"] decision_meta_files : string list =
   ]
 
 let[@warning "-32"] enumerate_decisions () : string list * int =
-  let dir = "decisions" in
+  let dir = Path_config.resolve_decisions_dir () in
   let files =
     if Sys.file_exists dir && Sys.is_directory dir then
       Sys.readdir dir |> Array.to_list
@@ -4501,14 +4517,16 @@ let[@warning "-32"] do_counters () =
       (* 2. obligations: from kernel packages walker *)
       let obligations_v =
         let reader path = In_channel.with_open_bin path In_channel.input_all in
-        let has_store = Sys.file_exists "attestations" in
+        let decisions_dir = Path_config.resolve_decisions_dir () in
+        let attestations_dir = Path_config.resolve_attestations_dir () in
+        let has_store = Sys.file_exists attestations_dir in
         let store =
           if has_store then
-            try Attestations.load ~reader ~root:"attestations" with _ -> []
+            try Attestations.load ~reader ~root:attestations_dir with _ -> []
           else []
         in
         let pkg =
-          Packages.walk ~reader ~decisions_root:"decisions" ~store ~has_store
+          Packages.walk ~reader ~decisions_root:decisions_dir ~store ~has_store
             ~now_iso:(now_iso ()) ~policy_id:"bootstrap-v3"
         in
         let pj = Packages.to_json pkg in
@@ -4536,9 +4554,10 @@ let[@warning "-32"] do_counters () =
           ]
       in
       (* 3. attestations (live store) *)
+      let attestations_dir = Path_config.resolve_attestations_dir () in
       let live_store =
-        if Sys.file_exists "attestations" then
-          Sys.readdir "attestations" |> Array.to_list
+        if Sys.file_exists attestations_dir then
+          Sys.readdir attestations_dir |> Array.to_list
           |> List.filter (fun f -> Filename.check_suffix f ".json")
           |> List.length
         else 0
@@ -4691,8 +4710,8 @@ let[@warning "-32"] do_packages () =
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc packages: %s\n" m;
      exit 2);
-  let decisions_root = "decisions" in
-  let attestations_root = "attestations" in
+  let decisions_root = Path_config.resolve_decisions_dir () in
+  let attestations_root = Path_config.resolve_attestations_dir () in
   let reader path = In_channel.with_open_bin path In_channel.input_all in
   let has_store = Sys.file_exists attestations_root in
   let store =
@@ -4764,8 +4783,8 @@ let[@warning "-32"] do_find () =
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc find: %s\n" m;
      exit 2);
-  let decisions_root = "decisions" in
-  let attestations_root = "attestations" in
+  let decisions_root = Path_config.resolve_decisions_dir () in
+  let attestations_root = Path_config.resolve_attestations_dir () in
   let reader path = In_channel.with_open_bin path In_channel.input_all in
   let has_store = Sys.file_exists attestations_root in
   let store =
@@ -5687,7 +5706,10 @@ let[@warning "-32"] do_migrate () =
               safe (strip_ns f) ^ "-to-" ^ safe (strip_ns t) ^ ".yaml"
             in
             Filename.concat project_root
-              (Filename.concat "decisions/migrations" fname)
+              (Filename.concat
+                 (Filename.concat
+                    (Path_config.resolve_decisions_dir ())
+                    "migrations") fname)
         | _ ->
             Printf.fprintf stderr
               "mathc migrate: either --manifest=PATH or both --from=X and \
@@ -5712,7 +5734,7 @@ let[@warning "-32"] do_migrate () =
   if !explain_flag then
     Printf.printf "manifest %s -> %s\n  intent: %s\n\n" manifest.from
       manifest.to_ manifest.intent;
-  let decisions_dir = Filename.concat root "decisions" in
+  let decisions_dir = Filename.concat root (Path_config.resolve_decisions_dir ()) in
   let yaml_files =
     if Sys.file_exists decisions_dir then
       Array.to_list (Sys.readdir decisions_dir)
