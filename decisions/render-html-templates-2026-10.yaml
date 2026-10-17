@@ -101,17 +101,14 @@ obligations:
         - verifier: scripts/dev (grepproof)
           result: pass
 
-counterexample:
-  claim: |
-    Перенос `read_version_file` из `default_config` сломает тест,
-    который сейчас ожидает, что `Render.default_config.version`
-    совпадает с содержимым `VERSION` (tests/render_kernel.ml).
-  mitigation: |
-    `default_config.version` становится статичным `default_version`
-    ("math-coding"); тест, проверявший совпадение с VERSION,
-    обновляется так, чтобы проверять версию через явный вызов
-    чтения в `bin/`, а не через `default_config`. Golden-снапшоты
-    подтверждают, что вывод сайта не изменился.
+counterexample: |
+  "Перенос `read_version_file` из `default_config` сломает тест,
+  который сейчас ожидает, что `Render.default_config.version`
+  совпадает с содержимым `VERSION`." Контраргумент: тест
+  `version_default_reads_version_file` переписан на проверку
+  статичной константы `"math-coding"`; golden-снапшоты
+  `tests/cli/render.t` подтверждают, что вывод сайта не изменился
+  ни на байт.
 
 risk:
   declared_triggers:
