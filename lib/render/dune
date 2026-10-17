@@ -1,5 +1,12 @@
 (library
  (name mathcoding_render)
  (wrapped false)
- (modules render)
+ (modules
+  render
+  render_lang
+  render_md
+  render_yaml
+  render_nav
+  render_pages
+  render_extras)
  (libraries mathcoding_core str unix))
