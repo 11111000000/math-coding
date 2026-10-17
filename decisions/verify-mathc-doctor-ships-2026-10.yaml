@@ -1,0 +1,215 @@
+---
+schema: math-coding/3.3
+id: verify-mathc-doctor-ships-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+intent: |
+  Verify that `mathc doctor [--json]` ships in the current
+  math-coding binary and is documented in the adoption
+  experiment report. Close the C3 meta-decision
+  obligation `c3-mathc-doctor-ship-status-verified`
+  recorded in `plan-2026-10-adoption-fixes-2026-10.yaml`.
+
+  The adoption experiment report §11.1 noted: "`mathc doctor`
+  (when added in `ux-3-doctor-subcommand-2026-10`) did not
+  exist in the binary used for this experiment; the agents
+  reported they would have used it." That note is ambiguous:
+  it could mean the feature is unimplemented, OR the binary
+  pre-dates the ship. This decision pins the answer down.
+
+  Procedure:
+
+    1. Locate the implementation site:
+       `bin/Mathc.ml::do_doctor` and the dispatch arm
+       `bin/Mathc.ml::dispatch | "doctor" -> do_doctor ()`,
+       plus the help text in `bin/Mathc.ml::print_usage`.
+    2. Locate the source ship:
+       `git log --follow -- decisions/mathc-doctor-subcommand-2026-10.yaml`
+       identifies commit `e8f413e` (2026-10-15 14:46 UTC)
+       as the source-ship.
+    3. Locate the experiment's binary timestamp from the
+       report: `/home/az/.local/bin/mathc` built
+       2026-10-15 13:40 UTC (§11.2).
+    4. Compare: source ship at 14:46 UTC, experiment binary
+       built at 13:40 UTC. The experiment binary pre-dates
+       the source ship by 66 minutes. The experiment
+       observed absence was a binary-staleness artefact,
+       not a missing feature.
+    5. Rebuild the binary in this worktree and verify
+       `mathc doctor --help` returns the documented usage
+       block and exits 0.
+    6. Update `docs/experiments/adoption-2026-10.md` §11.1
+       to record the precise ship status with timestamps.
+
+  Reversible in one commit; no kernel file is touched; the
+  only changes are to `docs/experiments/adoption-2026-10.md`
+  and the addition of this decision file plus its
+  attestations.
+
+commitment: |
+  - `bin/Mathc.ml::dispatch` registers the `"doctor"` arm;
+    `bin/Mathc.ml::do_doctor` is the implementation; the
+    help text in `bin/Mathc.ml::print_usage` mentions
+    `doctor [--json]`.
+  - A fresh `dune build bin/mathc.exe` produces a binary
+    whose `mathc doctor --help` exits 0 and prints the
+    usage block.
+  - `mathc doctor --json` emits `{"exit_code": 0,
+    "sections": [...]}` with at least the 5 offline
+    sections (`install`, `path`, `latest`, `config`,
+    `decisions`, `attestations`) and the `self_check`
+    short-circuit.
+  - `docs/experiments/adoption-2026-10.md` §11.1 records
+    the precise ship-status with the experiment binary
+    timestamp (2026-10-15 13:40 UTC) and the source-ship
+    commit timestamp (`e8f413e`, 2026-10-15 14:46 UTC).
+  - `decisions/verify-mathc-doctor-ships-2026-10.yaml`
+    exists with `state: active`, `mode: light`,
+    `change_kind: implementation`, and one obligation
+    (`mathc-doctor-ship-status-verified`) with three
+    verifiers.
+  - At least one attestation JSON exists at
+    `attestations/verify-mathc-doctor-ships-2026-10-*.json`
+    with `kind_: review` or `kind_: build` recording the
+    `mathc doctor --help` exit-0 observation.
+
+  No kernel file is touched. No `lib/`, `bin/Mathc.ml`,
+  `bin/mathc_mcp.ml`, `scripts/install-tooling/`,
+  `schemas/`, `spec/`, `axioms/`, or `decisions/decision.yaml`
+  is modified.
+
+scope:
+  capabilities:
+    - cli-surface-verification
+    - experiment-report-annotation
+  paths:
+    - "decisions/verify-mathc-doctor-ships-2026-10.yaml"
+    - "attestations/verify-mathc-doctor-ships-2026-10-*.json"
+    - "docs/experiments/adoption-2026-10.md"
+  exclusions:
+    - "bin/Mathc.ml"
+    - "bin/mathc_mcp.ml"
+    - "lib/**"
+    - "scripts/**"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "decisions/plan-2026-10-improvements.yaml"
+
+counterexample: |
+  "Doctor is not actually shipped; the agent that built
+   `_build/default/bin/mathc.exe` only saw the local source
+   tree, not the release binary." Counterargument:
+   `bin/Mathc.ml::dispatch | "doctor" -> do_doctor ()`
+   (line 6424) is in the source tree at HEAD; the freshly
+   built binary is what `mathc update` would have shipped
+   to `/home/az/.local/bin/mathc` if the user had rebuilt.
+   The plan's C3 obligation is about whether the feature
+   ships in the kernel, not whether the user's installed
+   binary is current; the user's binary is on a
+   user-controlled update cadence and is owned by `mathc
+   update`. This decision records both timestamps so the
+   distinction is explicit.
+
+  "Just update the report and skip the decision file;
+   the work is too small to merit an obligation."
+   Counterargument: the C3 obligation in
+   `plan-2026-10-adoption-fixes-2026-10.yaml` explicitly
+   names this decision file (`verifier: file-exists`).
+   Without the decision file, the obligation cannot
+   transition to `pass`. The fast-path documented in
+   AGENTS.md is opt-in and requires four eligibility
+   assertions; this change is a single-commit
+   verification + 12-line docs annotation, but the
+   existence of the matching plan obligation means the
+   decision file is the closure mechanism, not
+   overhead.
+
+  "The report should be amended in-place, not appended
+   to; an additive footnote breaks the §11.1 reading
+   flow." Counterargument: §11.1 is a 5-bullet list of
+   "what math-coding does well"; amending in-place
+   would rewrite a fact that was true at the time of
+   writing. A dated, additive "Verification (added
+   2026-10-17 by …)" footnote preserves the experiment's
+   contemporary observation while making the ship status
+   precise. This matches the convention used elsewhere
+   in the report (e.g. §10.7 plan-level correction).
+
+outcomes:
+  - id: doctor-ship-status-pinned
+    statement: |
+      The ship status of `mathc doctor` is precise:
+      shipped in source at `e8f413e` (2026-10-15 14:46 UTC),
+      present in `bin/Mathc.ml::dispatch`, and reproducible
+      from a fresh `dune build`. The experiment's installed
+      binary `/home/az/.local/bin/mathc` (built
+      2026-10-15 13:40 UTC) pre-dates the ship by
+      66 minutes, which is why the experiment reported the
+      subcommand as missing.
+
+obligations:
+  - id: mathc-doctor-ship-status-verified
+    claim: |
+      `mathc doctor` ships in the current source tree and
+      in a freshly-built `bin/mathc.exe`; the experiment
+      report §11.1 records the precise ship status with
+      timestamps.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: /home/az/Projects/math-coding/decisions/verify-mathc-doctor-ships-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/verify-mathc-doctor-ships-2026-10.yaml
+          result: pass
+        - verifier: mathc doctor --help
+          result: pass
+
+reversal:
+  - signal: doctor-removed
+    condition: |
+      A future commit removes `do_doctor` from
+      `bin/Mathc.ml` or unregisters the `"doctor"` arm in
+      the dispatch table. Resolution: this decision moves
+      to `state: archived`; the experiment report §11.1
+      footnote must be re-read to reflect the new status;
+      the plan's C3 obligation must be re-opened or
+      escalated to a kernel change.
+    action: archive
+  - signal: experiment-report-rewritten
+    condition: |
+      The adoption experiment report is rewritten
+      in-place (not amended) and the §11.1 footnote is
+      folded into the original bullet. Resolution: this
+      decision remains `state: active`; the footnote's
+      content moves into the bullet body; the timestamps
+      remain because they are the load-bearing piece.
+    action: rework
+
+risk:
+  declared_triggers:
+    - kernel-regression-on-dispatch-arm
+    - experiment-report-misread-as-no-ship
+    - user-binary-staleness-on-installed-binary
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-adoption-fixes-2026-10@1
+    - mathc-doctor-subcommand-2026-10@1
+    - adoption-experiment-results-2026-10@1
+  supersedes: []
+  superseded_by: []
