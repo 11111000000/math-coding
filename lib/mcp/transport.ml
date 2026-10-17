@@ -8,10 +8,14 @@
  *   - read: one line at a time from stdin, terminated by `\n`.
  *     The newline is stripped; the body is the JSON-RPC request.
  *     Empty lines are skipped (defensive — clients sometimes emit
- *     heartbeats).
+ *     heartbeats). A line longer than `max_request_bytes` is
+ *     treated as protocol-level garbage and surfaces as `None`
+ *     to the caller (same shape as EOF) so a runaway client
+ *     cannot exhaust memory.
  *   - write: one response per call, terminated by `\n`. Stdout is
  *     flushed after every write so the client sees responses
- *     immediately.
+ *     immediately. A write to a closed pipe raises `Sys_error`
+ *     which the dispatcher catches as a fatal condition.
  *   - stderr: reserved for the server's own diagnostics (NOT
  *     client-visible). Stderr is never mixed into the JSON-RPC
  *     stream.
@@ -28,6 +32,13 @@
  * (e.g. an I/O error) raise an exception that the dispatcher
  * catches as a fatal condition. *)
 
+(* Upper bound on a single inbound JSON-RPC request line. The
+   dispatcher side caps the mathc-subprocess response at 16 MiB
+   (`lib/mcp/dispatch.ml:101`); the request side is bounded at
+   1 MiB to leave headroom for the response and to make a
+   runaway client easier to detect. *)
+let max_request_bytes = 1_048_576
+
 let read_line () : string option =
   let rec loop () =
     try
@@ -36,7 +47,14 @@ let read_line () : string option =
       | None -> None
       | Some s ->
           let s = String.trim s in
-          if String.length s = 0 then loop () else Some s
+          if String.length s = 0 then loop ()
+          else if String.length s > max_request_bytes then begin
+            (* Runaway client: drop the line and surface EOF so
+               the dispatcher shuts down. The MCP client will see
+               the connection close without a response. *)
+            None
+          end
+          else Some s
     with End_of_file -> None
   in
   loop ()
