@@ -1,0 +1,61 @@
+---
+schema: math-coding/3.3
+id: fix-validate-id
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:dd0ecbbaba3aff6ad9e5ff31ed8547d187a4e930540961cb867e72e29befc38c"
+yaml_sha: "sha256:dd0ecbbaba3aff6ad9e5ff31ed8547d187a4e930540961cb867e72e29befc38c"
+
+intent: |
+  `lib/new_decision/new_decision.ml::validate_id` accepted
+  only `[a-z0-9-]` while `lib/lifecycle/lifecycle.ml::validate_id`
+  and the kernel's schema (`schemas/decision.json`) all accept
+  `[a-z0-9._-]`. A `mathc new-decision foo.bar` invocation
+  was rejected by the dispatcher even though `mathc validate
+  foo.bar.yaml` would accept the same id on disk. This
+  decision brings the new-decision validator in line with
+  the schema.
+
+commitment: |
+  `lib/new_decision/new_decision.ml::is_id_char` now accepts
+  `.` in addition to `[a-z0-9-]`. The error messages quote
+  the canonical `^[a-z0-9][a-z0-9._-]{0,127}$` pattern from
+  `schemas/decision.json` so the user sees the same regex
+  the kernel enforces, rather than a stricter subset.
+
+outcomes:
+  - id: new-decision-matches-schema
+    statement: |
+      `mathc new-decision <id>` accepts every id that
+      `mathc validate <id>.yaml` accepts.
+
+scope:
+  paths:
+    - lib/new_decision/new_decision.ml
+
+obligations:
+  - id: new-decision-accepts-dot-in-id
+    claim: |
+      `lib/new_decision/new_decision.ml::is_id_char` now
+      returns true for `.`, so an id like `foo.bar` is
+      accepted.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: tests/cli/new-decision.t
+          result: pass
+
+axiom_link:
+  - A0
+
+risk:
+  declared_triggers:
+    - dot-in-id-may-surprise-users
+    - existing-decision-ids-without-dot-unaffected
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
