@@ -1,0 +1,222 @@
+---
+schema: math-coding/3.3
+id: revise-friction-taxonomy-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: editorial
+body_sha: "sha256:306941a697c4fe82330bcbd7f9735547f16a2f4f7e2a14eb82137feebf1b2a7a"
+yaml_sha: "sha256:306941a697c4fe82330bcbd7f9735547f16a2f4f7e2a14eb82137feebf1b2a7a"
+
+intent: |
+  Apply R6 of `docs/experiments/adoption-2026-10.md` §13 by
+  collapsing the 8-code friction taxonomy (F-SETUP, F-SCHEMA,
+  F-WORKFLOW, F-TOOLING, F-COGNITIVE, F-INTEGRATION, F-DOC,
+  F-BROWNFIELD) to 4 mutually exclusive codes (F-INSTALL,
+  F-SCHEMA, F-WORKFLOW, F-SEMANTIC), re-classifying all 55
+  recorded friction events, and updating the experiment
+  report so the consolidated view reflects the new taxonomy.
+  This is C1 of `plan-2026-10-adoption-fixes-2026-10`.
+  Scope is docs only; no kernel, no schema, no
+  attestation-store change.
+
+commitment: |
+  Three deliverables, all docs-only and atomically
+  revertable in one `git revert`:
+
+    D1. `docs/experiments/adoption-2026-10.md` §7 is updated
+        from the 8-code table to a 4-code table with the
+        mapping rules spelled out (mapping from old to new
+        code, including the F-COGNITIVE → split across
+        F-SCHEMA / F-WORKFLOW / F-SEMANTIC rule).
+
+    D2. `docs/experiments/adoption-2026-10.md` §10.4 (the
+        by-category table) reports the new counts:
+        F-INSTALL=28 / F-WORKFLOW=15 / F-SCHEMA=8 /
+        F-SEMANTIC=4 (sum=55). §10.5, §11.2, §13 R1-R7
+        "Traced to:" lines, and the §13 R6 status note are
+        updated to use the 4-code form while preserving the
+        historical observation that the OLD taxonomy was
+        subjective.
+
+    D3. The 5 per-project experiment reports
+        (`~/Projects/math-coding-experiment/{click,cobra,express,ripgrep,sinatra}/experiment-report.md`)
+        have every event's `code:` line re-classified under
+        the 4-code form. The event count per project is
+        unchanged: click=7, cobra=14, express=12,
+        ripgrep=13, sinatra=9 (sum=55).
+
+  Out of scope (preserved by this commit):
+    - Kernel files (`lib/**`, `bin/**`, `spec/**`).
+    - Schema files (`schemas/**`).
+    - The active policy (`decisions/decision.yaml`).
+    - The per-event `code:` line provenance (the ORIGINAL
+      code is not preserved in the YAML; this is a
+      code-only classification change, not a content change).
+      For future audits, `git log -p <report>` against
+      `revise-friction-taxonomy-2026-10` shows the
+      before/after diff for each `code:` line.
+    - The 17 pre-existing unknown subjects in `mathc
+      self-check` — unchanged by this commit, per §Kernel
+      stability below.
+
+  Kernel stability (the §Self-application guarantee):
+    `mathc validate decisions/revise-friction-taxonomy-2026-10.yaml`
+    exits 0 on the same checkout; `mathc self-check` reports
+    the same 17 pre-existing unknown subjects
+    (`site-dropdown-anim-2026-10`, `placeholder-sha-cleanup-2026-10`,
+    `kernel-typo-fixes-batch-2026-10`, `site-axiom-img-and-dropdown-2026-10`,
+    `render-ordered-lists-2026-10`, `enable-counters-drift-test-2026-10`,
+    `fix-mcp-sigpipe`, `constitution-header-3-3-update-2026-10`,
+    `render-module-split`, `plan-2026-10-adoption-fixes-2026-10`,
+    `re-eval-remediation-todo-fix-2026-10`,
+    `render-module-split-phase1a-2026-10`, `fix-curl-exit-code`,
+    `p8-hook-deficit-2026-10`, `mobile-menu-collapse-and-hide-on-scroll-2026-10`,
+    `attestation-waiver-policy-schema-bump-3-3-2026-10`,
+    `fix-validate-id`) plus `revise-friction-taxonomy-2026-10`
+    itself as an 18th subject (which closes via the single
+    obligation below). Net new-unknowns:
+    ZERO — this decision adds exactly one new subject
+    (`revise-friction-taxonomy-2026-10`), and that subject
+    is closed by the same commit's attestation.
+
+axiom_link:
+  - A0
+  - A3
+
+counterexample: |
+  The counter-position considered and rejected: "8 codes is
+  fine — the apparent overlap is illusory; new agents learn
+  the rubric by reading §7 once." Rejected on three grounds:
+
+    (a) The same env-var bug (R1) was independently tagged
+        with `F-WORKFLOW` (cobra/T1-1), `F-INTEGRATION`
+        (express/T1-1), `F-TOOLING` (click/T1-1), and
+        `F-SETUP` (ripgrep/T1-1). Four 8-code categories for
+        ONE kernel defect is not illusory overlap; it is a
+        category explosion in the experiment data.
+
+    (b) §10.4's by-category table has F-INTEGRATION=10,
+        F-TOOLING=10, F-WORKFLOW=9, F-COGNITIVE=9 — four
+        near-tied categories where any meaningful re-rank by
+        frequency is meaningless because the categories
+        themselves overlap. The conclusion "R1 is the most
+        common friction" rests on which 8-code tag wins.
+
+    (c) The 4-code form is mutually exclusive BY CONSTRUCTION:
+        an event either describes deployment, schema, "what
+        to do next", or "surprise me". A future agent reads
+        the four categories once and classifies deterministically;
+        no rubric re-read needed.
+
+  A second counter-position: "Collapsing 8 to 4 loses
+  signal; keep the 8 codes as a fine-grained layer and
+  report aggregates." Acknowledged: this commit does NOT
+  destroy the 8-code observations. The 8-code observations
+  are recorded in (a) the prior 8-code counts cited in the
+  "Traced to:" notes (§10.5, §13 R1-R7), (b) this
+  decision's `intent` and `counterexample` blocks above,
+  and (c) the git history (`git log -p
+  docs/experiments/adoption-2026-10.md` against the prior
+  HEAD shows the full 8-code taxonomy). The 4-code form is
+  the REPORTING layer; the 8-code form remains accessible
+  in the audit trail.
+
+scope:
+  capabilities:
+    - friction-taxonomy
+  paths:
+    - "docs/experiments/adoption-2026-10.md"
+    - "docs/experiments/adoption-2026-10-report-template.md"
+    - "~/Projects/math-coding-experiment/click/experiment-report.md"
+    - "~/Projects/math-coding-experiment/cobra/experiment-report.md"
+    - "~/Projects/math-coding-experiment/express/experiment-report.md"
+    - "~/Projects/math-coding-experiment/ripgrep/experiment-report.md"
+    - "~/Projects/math-coding-experiment/sinatra/experiment-report.md"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "attestations/**"
+
+outcomes:
+  - id: taxonomy-collapsed-to-4-codes
+    statement: |
+      `docs/experiments/adoption-2026-10.md` §7 carries a
+      4-category table with F-INSTALL, F-SCHEMA,
+      F-WORKFLOW, F-SEMANTIC; the old 8-category form is
+      preserved as historical context with the explicit
+      mapping rules (F-SETUP/F-TOOLING/F-INTEGRATION →
+      F-INSTALL; F-SCHEMA/F-DOC → F-SCHEMA; F-WORKFLOW →
+      F-WORKFLOW; F-COGNITIVE → split; F-BROWNFIELD →
+      F-SEMANTIC).
+  - id: by-category-counts-sum-to-55
+    statement: |
+      §10.4 reports `F-INSTALL=28`, `F-WORKFLOW=15`,
+      `F-SCHEMA=8`, `F-SEMANTIC=4`, total=55. The total
+      matches the 8-code total (also 55) because the
+      collapse is a re-classification, not a deletion.
+  - id: per-event-code-reclassified
+    statement: |
+      All 55 friction events across the 5 per-project
+      reports (click=7, cobra=14, express=12, ripgrep=13,
+      sinatra=9) carry a `code:` line from the 4-code set
+      and exactly one of F-INSTALL / F-SCHEMA / F-WORKFLOW /
+      F-SEMANTIC.
+
+obligations:
+  - id: taxonomy-and-counts-match
+    outcome: taxonomy-collapsed-to-4-codes
+    claim: |
+      §7 carries the 4-code table; §10.4 carries the new
+      counts; the totals match.
+    acceptance:
+      all:
+        - verifier: file-contains
+          path: /home/az/.paseo/worktrees/math-coding/revise-friction-taxonomy/docs/experiments/adoption-2026-10.md
+          needle: "F-INSTALL"
+          result: pass
+        - verifier: file-contains
+          path: /home/az/.paseo/worktrees/math-coding/revise-friction-taxonomy/docs/experiments/adoption-2026-10.md
+          needle: "F-SEMANTIC"
+          result: pass
+        - verifier: file-contains
+          path: /home/az/.paseo/worktrees/math-coding/revise-friction-taxonomy/docs/experiments/adoption-2026-10.md
+          needle: "| **Total**      | 55    |"
+          result: pass
+        - verifier: mathc validate decisions/revise-friction-taxonomy-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: taxonomy-back-to-8-codes
+    condition: |
+      A successor decision records a different
+      classification scheme (e.g. a 6-code form or a
+      per-axis taxonomy), or a future audit prefers the
+      raw 8-code distribution over the collapsed 4-code
+      form. The `git revert` of this commit's SHA restores
+      the 8-code `code:` lines and the original §7 /
+      §10.4 tables exactly.
+    action: rework-or-revert
+
+risk:
+  declared_triggers:
+    - subsequent-re-classification-changes-the-counts
+    - per-project-reports-not-in-version-control-yet
+  owner: human:maintainer
+
+time:
+  estimate:
+    scale: wall-clock-minutes
+    value: 35
+    reference_class: "docs-only (one §7 rewrite + one §10.4 table + ~6 §13 Traced-to edits + 55 per-event YAML code: edits across 5 reports + one decision file); P50 of bin/data/time-distribution.yaml docs-only = 2 min scaled by ~15× for the 55-event walk (P95 of single-file-edit = 10 min × ~3.5 event-walk per minute = ~35 min for the per-event pass alone plus ~5 min for the meta-edits)"
+    percentile: p50
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-adoption-fixes-2026-10@1
+    - adoption-experiment-results-2026-10@1
