@@ -1,0 +1,127 @@
+---
+schema: math-coding/3.3
+id: render-module-split-phase1-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Реализовать Phase 1+ из решения `render-module-split@1`: разбить
+  монолитный `lib/render/render.ml` (2414 строк после фаз A/B —
+  выноса статичного HTML в `render/templates/`) на модули по
+  логическим кластерам. Это поведенчески-сохраняющий рефакторинг:
+  публичный API `Render.*` для вызывающих (`bin/Mathc.ml`,
+  `tests/render_kernel.ml`) остаётся бит-в-бит тем же, меняется
+  только внутренняя раскладка по файлам.
+
+commitment: |
+  `lib/render/render.ml` разбит на семь модулей той же dune-библиотеки
+  `mathcoding_render` (wrapped false, без .mli):
+
+    render_lang.ml    — type lang + lang_code/lang_of_code/lang_suffix
+    render_md.ml      — String_set, html_escape, html_of_fragments,
+                        md_inline_parse, md_inline, code_fence_tag, md_parse
+    render_yaml.ml    — yaml_block, indent_of, trim_block_lines,
+                        find_top_key, block_end, top_scalar, top_block,
+                        top_object_list, top_string_list, render_yaml_*,
+                        strip_boilerplate, render_yaml_obligations_section,
+                        render_decision_yaml
+    render_nav.ml     — nav_link, nav_group, nav_groups_en/ru/zh,
+                        nav_groups_for, lang_href_for,
+                        sibling_translation_href, github_origin, github_blob,
+                        render_nav, render_footer, render_head, render_page
+    render_pages.ml   — render_axioms_section, render_index,
+                        render_decision_page, render_spec_page, render_axiom_page
+    render_extras.ml  — rss_decision_item, rss_escape,
+                        extract_intent_summary, render_rss_feed
+    render.ml         — type page, type config, type templates, substitute,
+                        default_version, build_pages, default_config;
+                        реэкспортирует под-модули через `include`
+
+  Зависимости: render_lang < render_md (независимы); render_yaml →
+  render_md; render_nav → render_lang + render_md; render_pages →
+  render_lang + render_md + render_nav + render_yaml; render_extras →
+  render_md; render (главный) → все. Циклов нет.
+
+  `lib/render/dune` перечисляет все семь модулей в `(modules …)`.
+
+axiom_link:
+  - A0
+  - A3
+
+outcomes:
+  - id: render-split-into-seven-modules
+    statement: |
+      `lib/render/` содержит семь `.ml` (render_lang, render_md,
+      render_yaml, render_nav, render_pages, render_extras, render),
+      каждый ≤ ~600 строк, с ацикличным графом зависимостей.
+  - id: behavior-preserving
+    statement: |
+      `Render.md_parse`, `Render.build_pages`, `Render.render_index`,
+      `Render.render_nav`, `Render.render_rss_feed` и прочие публичные
+      символы резолвятся из `bin/Mathc.ml` и `tests/render_kernel.ml`
+      без изменений; вывод `mathc render` бит-в-бит тот же.
+
+scope:
+  paths:
+    - lib/render/dune
+    - lib/render/render.ml
+    - lib/render/render_lang.ml
+    - lib/render/render_md.ml
+    - lib/render/render_yaml.ml
+    - lib/render/render_nav.ml
+    - lib/render/render_pages.ml
+    - lib/render/render_extras.ml
+
+obligations:
+  - id: build-succeeds
+    claim: |
+      `dune build` собирает `mathcoding_render` из семи модулей;
+      `bin/Mathc.exe`, `bin/md_probe.exe`, `tests/render_kernel.exe`
+      собираются без изменений в их `dune`/исходниках.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+  - id: render-tests-pass
+    claim: |
+      `tests/render_kernel.exe` проходит 47/47; cram
+      `tests/cli/render.t` без изменений снапшотов.
+    acceptance:
+      all:
+        - verifier: tests/render_kernel.exe
+          result: pass
+        - verifier: tests/cli/render.t (cram)
+          result: pass
+
+counterexample: |
+  "Разделение породит циклическую зависимость между модулями
+  (например, render_yaml → render_pages → render_yaml), которую dune
+  отвергнет." Контраргумент: декомпозиция выбрана так, что каждое
+  ребро идёт от конкретной функции к под-модулю нижнего уровня
+  (yaml/pages зависят только от md/nav/yaml, не обратно); наличие
+  цикла мгновенно проявится как ошибка `dune build`, и её исправление
+  локально (перенос одной функции).
+
+risk:
+  declared_triggers:
+    - dune-reports-cycle-between-submodules
+    - include-shadowing-clashes-symbol
+    - cram-snapshot-diverges
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - render-module-split@1
+    - render-html-templates-2026-10@1
+
+links:
+  - docs/plans/render-html-templates-2026-10.md
+
+unknowns:
+  - Точные границы (номера строк) кластеров субагент определяет по
+    фактическому коду; возможен перенос одной-двух вспомогательных
+    функций между соседними модулями, если это устраняет цикл.
