@@ -165,7 +165,7 @@ Build via `nix develop .#test` or `scripts/dev shell`. Then:
 
 - `mathc validate <file>` — schema check (exit 0/1/2)
 - `mathc self-check` — full attestation store verdict (exit 0/1/3)
-- `mathc attest <decision.yaml> --obligation <id> --kind test --method dune-runtest --result pass` — record an attestation (writes the SHA-256 id automatically)
+- `scripts/generate-attestations.py` (reads a TSV manifest from stdin: `decision<TAB>obligation<TAB>kind_<TAB>producer_identity`) — records one attestation JSON per row in `attestations/` (writes the SHA-256 id automatically). Note: `mathc attest FILE` is the *JUnit XML importer*, not the attestation writer.
 - `mathc explain-diagnostic MC-CODE` — remediation for diagnostic codes
 - `mathc time-estimate --class <name> --count N --percentile p50|p80|p95|p99` — outside-view forecast per `bin/data/time-distribution.yaml`
 
@@ -314,7 +314,7 @@ Before opening a PR or marking work complete, verify:
 - [ ] `scripts/dev ready` exits 0 (full aggregator)
 - [ ] `mathc validate decisions/<id>.yaml` exits 0
 - [ ] `mathc self-check` exits 0 OR new obligation has `evidence: manual-acceptance` with named owner
-- [ ] New obligation paired with attestation at `attestations/<decision-id>-<obligation>.json` (use `mathc attest decisions/<id>.yaml --obligation <obligation-id> --kind test --method dune-runtest --result pass`)
+- [ ] New obligation paired with attestation at `attestations/<decision-id>-<obligation>.json` (via `scripts/generate-attestations.py` TSV manifest)
 - [ ] If version literal changed: `scripts/sync-version.sh --check` exits 0
 - [ ] If schema changed: `tests/conformance.ml` updated; positive + negative fixture in `fixtures/conformance/<family>/`
 - [ ] If kernel/CLI changed: cram snapshot regenerated via `dune promote` (in worktree)

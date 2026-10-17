@@ -128,13 +128,13 @@ links:
   - docs/plans/render-module-split-phase1-2026-10.md
 
 unknowns:
-  - `article` record (§2.5) отложен: низкая ценность при трёх полях
-    и ~18 затрагиваемых вызовов; вернуться при фазе B.
+  - `article` record (§2.5): заменён в этом цикле (type article +
+    build_pages ~site_pages : article list); тройка `(name, title,
+    body_md)` устранена.
   - Wiring dashboard/graph: `do_render` теперь пишет
     `dashboard.html`/`graph.html` из шаблонов (fuse.js/cytoscape),
     `scripts/render.sh` генерирует только `graph.json`. Красный тест
     `dashboard_and_graph_html_landed` починен (47/47 pass).
-  - Расхождение: `mathc attest --obligation …` из AGENTS.md не
-    существует в бинарнике; реально `attest FILE` (JUnit-импорт) и
-    `scripts/generate-attestations.py`. Дефицит документации, требует
-    отчёта.
+  - Расхождение `mathc attest --obligation …` из AGENTS.md исправлено
+    (реальная команда — `scripts/generate-attestations.py`); см. правку
+    AGENTS.md.
