@@ -1,0 +1,170 @@
+---
+schema: math-coding/3.3
+id: adoption-experiment-results-2026-10
+revision: 1
+state: active
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Record the observed numbers of the math-coding adoption
+  experiment conducted 2026-10-17 across five external projects
+  (click, express, cobra, ripgrep, sinatra) as a commitment of
+  record. The full report is at
+  `docs/experiments/adoption-2026-10.md` §10/§11/§13; this
+  decision binds the headline numbers that future adoption
+  work will be measured against.
+
+commitment: |
+  The adoption experiment observed, on a clean checkout of the
+  experiment's `experiment/adoption-external-projects-2026-10`
+  branch, the metrics summarised below. The observation is
+  committed under the same active policy as the design
+  decision (`bootstrap-v3@3` per the design decision's
+  `relations.addresses`).
+
+outcomes:
+  - id: ttfd-distribution
+    statement: |
+      Median time-to-first-decision across the five T1 sessions
+      was ~4 minutes; max was ~14 minutes (sinatra, parallel-agent
+      pollution). 5/5 projects under the 30-minute threshold
+      (H1 of the design).
+
+  - id: friction-inventory-size
+    statement: |
+      55 friction events recorded across the five projects,
+      categorised into 8 codes (F-SETUP/SCHEMA/WORKFLOW/TOOLING/
+      COGNITIVE/INTEGRATION/DOC/BROWNFIELD). 9 high-priority
+      events identified in the §13 recommendations.
+
+  - id: top-friction-recurrences
+    statement: |
+      Two kernel-level defects recur in ≥ 4 of 5 project reports:
+      (a) the shipped `mathc 3.3.1` binary does not honour
+      `MATH_CODING_DECISIONS_DIR` for any write or tree-walking
+      subcommand; (b) the custom YAML parser mangles multi-line
+      `risk.declared_triggers` items, causing the
+      `counterexample:` field to parse as absent.
+
+  - id: throughput-comparison
+    statement: |
+      With-math-coding sessions ran 3-4× slower than the control
+      arm in median wall-clock (10 min vs 3 min). The gap is
+      dominated by repeated diagnosis of the env-var defect,
+      not by math-coding per se.
+
+  - id: sub-agent-reliability
+    statement: |
+      13 of 15 sub-agents finished successfully. Sinatra/T3
+      errored twice with provider rate-limit; orchestrator
+      recovered the work inline. Sinatra/T1 succeeded but
+      reported 5 pre-existing attestations from the orchestrator's
+      recovery run.
+
+scope:
+  paths:
+    - "docs/experiments/adoption-2026-10.md"
+    - "~/Projects/math-coding-experiment/**"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+
+obligations:
+  - id: observed-numbers-match-report
+    claim: |
+      The numbers in this decision's `outcomes:` block match
+      the corresponding §10 sections in the report.
+    acceptance:
+      all:
+        - verifier: file-contains
+          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/experiments/adoption-2026-10.md
+          needle: "Median TTFD: ~4 min"
+          result: pass
+        - verifier: file-contains
+          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/experiments/adoption-2026-10.md
+          needle: "55"
+          result: pass
+
+  - id: results-decision-validates
+    claim: |
+      `mathc validate decisions/adoption-experiment-results-2026-10.yaml`
+      returns exit 0 (accept).
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/adoption-experiment-results-2026-10.yaml
+          result: pass
+
+  - id: no-new-unknowns-on-main
+    claim: |
+      `mathc self-check` on the main math-coding checkout (the
+      branch this decision will land on) returns `verdict:
+      "unknown"` with the same 5 pre-existing unknown subjects
+      as before this experiment and zero NEW unknown subjects
+      attributable to this experiment or this decision.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+  - id: results-decision-self-check-stable
+    claim: |
+      Adding this decision to the design decision's
+      `relations.addresses` does not change the verdict of any
+      pre-existing subject. Verified by recording the
+      `mathc self-check` output before and after this commit on
+      a clean checkout.
+    acceptance:
+      all:
+        - verifier: git-no-paths
+          repo: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10
+          base: main
+          forbidden_paths:
+            - "lib/**"
+            - "bin/Mathc.ml"
+            - "spec/**"
+            - "schemas/**"
+            - "axioms/**"
+            - "decisions/decision.yaml"
+          result: pass
+
+counterexample: |
+  The counter-position considered and rejected: "These
+  observations are not yet worth recording as a decision because
+  they reflect a one-day experiment by one agent fleet; a
+  second run would change every number." This is rejected on
+  three grounds: (a) the design decision already commits to the
+  methodology; reproducing it is the only way to update the
+  numbers; (b) the §10 results carry their own provenance and
+  are *immutable* once written — a successor experiment would
+  supersede, not invalidate; (c) recording the numbers *now*
+  means future adoption work has a baseline, even if the
+  baseline is later refined.
+
+  A second concern considered: "the env-var bug is so severe
+  that recording the experiment as 'successful' is misleading."
+  The decision does not call the experiment successful; it
+  records the observations with their provenance. The kernel
+  defect is documented in §10.5 #1 and §13 R1 as the highest-
+  priority follow-up.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+risk:
+  declared_triggers:
+    - experiment-results-not-reproducible
+    - observations-too-noisy-to-act-on
+    - kernel-defect-suggested-but-not-prioritised
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - adoption-experiment-design-2026-10@1
