@@ -38,6 +38,8 @@ include Render_extras
 
 type page = { path : string; body : string }
 
+type article = { name : string; title : string; body_md : string }
+
 (* Configuration bag passed by the dispatcher. *)
 type config = {
   site_base : string;
@@ -54,8 +56,8 @@ type config = {
 let[@warning "-32"] default_version = "math-coding"
 
 (* Build the per-language page list. The dispatcher is responsible
-   for loading the article tuples from disk; this function only
-   renders them. Tuple = (name, title, body_md). *)
+   for loading the articles from disk; this function only renders
+   them. Article = { name; title; body_md }. *)
 let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
     ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data ~spec_data
     ~templates =
@@ -73,12 +75,12 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
      source file exists (none does — the home is programmatic). *)
   let ru_keys =
     List.fold_left
-      (fun acc (name, _, _) -> String_set.add name acc)
+      (fun acc a -> String_set.add a.name acc)
       String_set.empty site_pages_ru
   in
   let zh_keys =
     List.fold_left
-      (fun acc (name, _, _) -> String_set.add name acc)
+      (fun acc a -> String_set.add a.name acc)
       String_set.empty site_pages_zh
   in
   let ru_enabled = List.mem Ru config.languages in
@@ -104,10 +106,10 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
     List.rev !acc
   in
 
-  let render_lang_page lang (name, title, body_md) =
-    let page_path = name ^ lang_suffix lang ^ ".html" in
-    let page_title = title ^ " — math-coding" in
-    let body_md_parsed = md_parse body_md in
+  let render_lang_page lang a =
+    let page_path = a.name ^ lang_suffix lang ^ ".html" in
+    let page_title = a.title ^ " — math-coding" in
+    let body_md_parsed = md_parse a.body_md in
     (* The `packages` page appends the live kernel package grid
        below the prose. The grid is the same HTML that
        `mathc packages --format=html` emits; embedding it here
@@ -116,7 +118,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
        the markdown source (`![alt](assets/foo.svg)`), so no
        other page needs a body_extra append (diagrams-as-svg-2026-10). *)
     let body_extra =
-      match name with
+      match a.name with
       | "packages" ->
           Printf.sprintf
             "\n\
@@ -131,11 +133,11 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
       Printf.sprintf "<article class=\"mathc-article\">\n%s%s\n</article>\n"
         body_md_parsed body_extra
     in
-    let sibling_langs = sibling_langs_for name lang in
+    let sibling_langs = sibling_langs_for a.name lang in
     {
       path = page_path;
       body =
-        render_page ~lang ~page_key:name ~title:page_title ~body
+        render_page ~lang ~page_key:a.name ~title:page_title ~body
           ~site_base:config.site_base ~enable_mathjax:config.enable_mathjax
           ~enable_lang_toggle:config.enable_lang_toggle
           ~sibling_langs ~version ~extra_head:"";

@@ -3983,7 +3983,8 @@ let[@warning "-32"] do_render () =
     List.filter_map
       (fun (name, title, fname) ->
         let body = load_md fname in
-        if body = "" then None else Some (name, title, body))
+        if body = "" then None
+        else Some { Render.name; Render.title; Render.body_md = body })
       articles
   in
 
@@ -3997,7 +3998,8 @@ let[@warning "-32"] do_render () =
         (fun (name, title, _) ->
           let fname = name ^ ".ru.md" in
           let body = load_md fname in
-          if body = "" then None else Some (name, title ^ " / RU", body))
+          if body = "" then None
+          else Some { Render.name; Render.title = title ^ " / RU"; Render.body_md = body })
         articles
   in
 
@@ -4009,7 +4011,8 @@ let[@warning "-32"] do_render () =
         (fun (name, title, _) ->
           let fname = name ^ ".zh.md" in
           let body = load_md fname in
-          if body = "" then None else Some (name, title ^ " / ZH", body))
+          if body = "" then None
+          else Some { Render.name; Render.title = title ^ " / ZH"; Render.body_md = body })
         articles
   in
 
