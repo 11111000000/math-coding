@@ -596,8 +596,7 @@ install_user_skill_file() {
   if [ -f "$skill_dst" ] && [ "$upgrade" = "0" ]; then
     # Check the installed skill's compatible_with pin; if it pins
     # the same version, skip.
-    existing_pin=$(awk '/^compatible_with:[[:space:]]*mathc@>=/ {print; exit}' "$skill_dst" 2>/dev/null || true)
-    new_pin="compatible_with: mathc@>=${version}"
+    existing_pin=$(awk '/^compatible_with:[[:space:]]*mathc@>=/ {print; exit}' "$skill_dst" 2>/dev/null | sed 's/[[:space:]]*$//' || true)
     case "$version" in
       *-*) semver="${version%%-*}" ;;
       *) semver="$version" ;;
@@ -800,7 +799,7 @@ main() {
   install_dir=$(pick_install_dir)
   sums_tmp=$(mktemp) || { echo "install.sh: mktemp failed" >&2; return 2; }
   bin_tmp=$(mktemp) || { echo "install.sh: mktemp failed" >&2; rm -f "$sums_tmp"; return 2; }
-  trap 'rm -f "$sums_tmp" "$bin_tmp"' EXIT INT TERM
+  trap 'rm -f "$sums_tmp" "$bin_tmp" "$sig_tmp" "$cert_tmp"' EXIT INT TERM
 
   case "$version" in
     edge|latest) sums_url="${MC_RELEASE_BASE}/${version}/SHA256SUMS" ;;

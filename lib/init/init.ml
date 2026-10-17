@@ -407,8 +407,7 @@ let maybe_install_agent_skill (opts : options) : unit =
       let dst = per_user_opencode_skill () in
       begin match src with
       | Some s ->
-          (try Unix.mkdir (Filename.dirname dst) 0o755 with
-           | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+          mkdir_p (Filename.dirname dst);
           let ic = open_in s in
           let n = in_channel_length ic in
           let content = really_input_string ic n in

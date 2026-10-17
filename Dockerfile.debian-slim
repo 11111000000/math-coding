@@ -62,6 +62,9 @@ LABEL org.opencontainers.image.title="math-coding" \
       org.opencontainers.image.source="https://github.com/11111000000/math-coding" \
       org.opencontainers.image.licenses="Apache-2.0"
 
+RUN useradd --create-home --uid 10001 mathc
+USER mathc
+
 # Copy only the binary; the runtime image carries no OCaml, no flake,
 # no source. `debian:bookworm-slim` is the smallest Debian base with
 # glibc 2.36 — compatible with the existing `mathc-linux-x86_64` and

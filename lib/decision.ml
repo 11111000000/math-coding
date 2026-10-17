@@ -1253,7 +1253,7 @@ and parse_decision_value v =
                                                  ~decision_id:id
                                                  ~severity:Diagnostic.Block
                                                  "antithesis is required \
-                                                  for mode >= standard")
+                                                  for mode = considered")
                                           else if
                                             counterexample_required_missing
                                           then

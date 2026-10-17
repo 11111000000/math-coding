@@ -13,7 +13,8 @@
 > `session-start`, `record`, `stats`, `time-estimate`, `self-check`,
 > `version`, `render`, `packages`, `mode`, `rebuttals`, `re-evaluate`,
 > `re-evaluate-decisions`, `migrate`, `counters`, `init`, `import-adr`,
-> `adopt`, `new-decision`, `telemetry` — 28 subcommands.
+> `adopt`, `new-decision`, `telemetry`, `doctor`, `forge-verify`, `find`,
+> `precommit`, `graph`, `decision-state`, `update` — 34 subcommands.
 >
 > **Algebra 3.2-ideal**: accepted via `decisions/algebra-3.2.yaml`;
 > normative spec at `spec/algebra-3.2.md` (31 sections, §0–§30). Implementation

@@ -91,7 +91,7 @@ def parse_style_block(css_text: str):
 
 
 def first_class(el):
-    cls = el.get("class") or el.get("class") or ""
+    cls = el.get("class") or ""
     return cls.split()[0] if cls else ""
 
 

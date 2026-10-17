@@ -130,30 +130,6 @@ jobs:
           # emitted per-arch and embedded in the multi-arch
           # manifest.
 
-      # arm64 convenience tag: published as a single-arch per-arch
-      # image so an arm64 host pinning the digest (or using
-      # `docker pull --platform=linux/arm64`) gets the explicit
-      # per-arch ref. With the multi-arch step above publishing
-      # `:$VERSION-arm64` first (as a multi-arch convenience
-      # pointer), the per-arch image wins on last-write — that is
-      # the deployment semantic intended by
-      # `decisions/docker-arm64-image-2026-10.yaml`.
-      # Originally deferred (the prior "DEFERRED" comment on the
-      # `if: false` was added during the install-tooling cycle);
-      # enabled by `decisions/docker-arm64-image-2026-10.yaml`
-      # (D8 of plan-2026-10-distro-friction).
-      - name: Build and push (arm64 convenience tag)
-        if: github.event_name == 'push'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile.debian-slim
-          push: true
-          tags: ghcr.io/11111000000/mathc:${{ steps.version.outputs.version }}-arm64
-          build-args: |
-            VERSION=${{ steps.version.outputs.version }}
-          platforms: linux/arm64
-
   # Per `decisions/ux-3-cosign-image-2026-10.yaml` outcome
   # `cosign-image-signed`. Runs after the image is published by
   # the `build-image` job; signs the image with keyless cosign
