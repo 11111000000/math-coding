@@ -130,11 +130,15 @@ links:
 unknowns:
   - Известный красный тест `dashboard_and_graph_html_landed` падает
     на чистой базе `a73b6a6` (до фазы A); не относится к переносу
-    I/O. Чинится отдельно (фаза B2: `dashboard.html` из файла).
+    I/O.
   - `article` record (§2.5) отложен: низкая ценность при трёх полях
     и ~18 затрагиваемых вызовов; вернуться при фазе B.
-  - Фаза B2 (вынос `dashboard.html`/`graph.html` из `render.ml` в
-    файлы и удаление дубликатов `assets/`) ещё не выполнена.
+  - Фаза B2: `render_dashboard`/`render_graph_html` оказались мёртвым
+    кодом (никогда не вызывались); `dist/dashboard.html`/`graph.html`
+    порождает `scripts/render.sh` heredoc, а не ядро. Шаблоны созданы,
+    мёртвые функции удалены, но «wiring» диспетчера на шаблоны — вне
+    B2 (изменил бы поведение). Отдельная задача.
   - Расхождение: `mathc attest --obligation …` из AGENTS.md не
     существует в бинарнике; реально `attest FILE` (JUnit-импорт) и
-    `re-evaluate-decisions`. Дефицит документации, требует отчёта.
+    `scripts/generate-attestations.py`. Дефицит документации, требует
+    отчёта.

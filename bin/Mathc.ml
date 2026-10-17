@@ -3824,8 +3824,12 @@ let[@warning "-32"] read_templates () =
   let en_html = read "index.en.html" in
   let ru_html = read "index.ru.html" in
   let zh_html = read "index.zh.html" in
+  let dash_html = read "dashboard.html" in
+  let graph_html = read "graph.html" in
   {
     Render.index = [ (Render.En, en_html); (Render.Ru, ru_html); (Render.Zh, zh_html) ];
+    Render.dashboard = dash_html;
+    Render.graph = graph_html;
   }
 
 let[@warning "-32"] per_decision_obligation_html (d : Packages.decision_view) =
