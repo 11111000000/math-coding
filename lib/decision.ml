@@ -1379,9 +1379,105 @@ let[@warning "-32"] peek_schema_family (v : Jsonl.value) :
             | None -> ""
           in
           Some (Obligations, id)
-      | Some s when has_prefix ~prefix:"math-coding/attestation-" s -> (
+| Some s when has_prefix ~prefix:"math-coding/attestation-" s -> (
           match Schema.take_string ps "id" with
-          | Some i -> Some (Attestation, i)
+          | Some s -> Some (Attestation, s)
           | None -> Some (Attestation, ""))
       | _ -> None)
   | _ -> None
+
+(* --- axiom-link inference (C2 of plan-2026-10-adoption-fixes) ---
+ *
+ * `infer_axiom_candidates` maps a decision's `scope.paths` to the
+ * top-3 most-likely axiom IDs based on a small, opinionated
+ * inference table. The mapping is SUGGEST-ONLY: the caller
+ * (`lib/new_decision/new_decision.ml`) uses the result to emit a
+ * soft-warn that names the candidates; the `axiom_link` field is
+ * NEVER auto-filled. The author retains full control over the
+ * final axiom choice.
+ *
+ * Table (from `plan-2026-10-adoption-fixes-2026-10.yaml` §4 C2):
+ *
+ *     lib/**         → A0, A1
+ *     tests/**       → A1
+ *     decisions/**   → A0, A4
+ *     spec/**        → A0, A3
+ *     (fallback)     → A0
+ *
+ * A path "matches" a rule when it starts with the rule's prefix
+ * (case-sensitive; no glob expansion). When multiple rules match,
+ * the result is the deduplicated union of their axiom lists,
+ * preserving first-occurrence order, capped at 3 entries.
+ *
+ * Fallback semantics: when no rule matches AND `paths` is empty,
+ * the result is `["A0"]` (the universal fallback). When no rule
+ * matches but `paths` is non-empty (e.g. `["random.txt"]`), the
+ * result is also `["A0"]` — the function's contract is "always
+ * return at least one candidate" so the soft-warn always has
+ * something to suggest.
+ *
+ * Cognitive-load motivation (from
+ * `docs/experiments/adoption-2026-10.md` §11.3): 5/5 T1 sessions
+ * asked which axiom to attach; `A0` is right for "separation"
+ * (a distinct kind exists), `A4` is right for "care" (a human
+ * owner is required). The mapping is unclear from the README;
+ * agents guessed. Inference makes the guess explicit and lets
+ * the author override it.
+ *
+ * Pure function: no I/O, no state. Tested directly in
+ * `tests/cli/new-decision-axiom-warn.t` via the
+ * `MATH_CODING_NEW_DECISION_SCOPE_PATHS` env-var override on
+ * `mathc new-decision`. *)
+let[@warning "-32"] infer_axiom_candidates (paths : string list) :
+    string list =
+  let[@warning "-32"] starts_with ~prefix s =
+    let pl = String.length prefix in
+    String.length s >= pl && String.sub s 0 pl = prefix
+  in
+  let rules =
+    [
+      ("lib/", [ "A0"; "A1" ]);
+      ("tests/", [ "A1" ]);
+      ("decisions/", [ "A0"; "A4" ]);
+      ("spec/", [ "A0"; "A3" ]);
+    ]
+  in
+  let matched_axioms =
+    List.concat_map
+      (fun (prefix, axs) ->
+        if List.exists (fun p -> starts_with ~prefix p) paths then axs
+        else [])
+      rules
+  in
+  let[@warning "-32"] rec dedup = function
+    | [] -> []
+    | x :: rest -> x :: dedup (List.filter (fun y -> y <> x) rest)
+  in
+  let deduped = dedup matched_axioms in
+  let[@warning "-32"] rec take n = function
+    | [] -> []
+    | _ :: _ when n <= 0 -> []
+    | x :: rest -> x :: take (n - 1) rest
+  in
+  let top = take 3 deduped in
+  match top with [] -> [ "A0" ] | _ -> top
+
+(* `axiom_candidate_pretty` — format an axiom ID with its
+ * short label from `axioms/*.md` headers, so the soft-warn
+ * reads as "A0 (separation)" rather than "A0". Labels are
+ * derived from the axioms/index.md table-of-contents; the
+ * `axiom_label` helper below owns the literal mapping so
+ * adding a new axiom is a one-line change. *)
+let[@warning "-32"] axiom_label = function
+  | "A0" -> "separation"
+  | "A1" -> "feedback"
+  | "A2" -> "invariants-recovery"
+  | "A3" -> "self-application"
+  | "A4" -> "care"
+  | other -> other
+
+let[@warning "-32"] axiom_candidate_pretty (ax : string) : string =
+  Printf.sprintf "%s (%s)" ax (axiom_label ax)
+
+let[@warning "-32"] axiom_candidates_pretty (axs : string list) : string =
+  String.concat ", " (List.map axiom_candidate_pretty axs)

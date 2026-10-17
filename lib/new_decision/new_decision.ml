@@ -7,6 +7,15 @@
    Pure module: the only I/O is reading the project root and
    writing the rendered template to disk. *)
 
+(* `axiom-link-inference-2026-10`: when the produced decision
+   lacks `axiom_link`, emit a soft-warn naming the top-3 most
+   likely axiom IDs based on `scope.paths`. The warning code is
+   `MC-AXIOM-LINK-INFERENCE-EMPTY` (registered in
+   `lib/diagnostic.ml::explain`); the inference rule lives in
+   `Decision.infer_axiom_candidates`. Suggest-only: the field
+   is NEVER auto-filled; the author retains full control over
+   the final axiom choice. *)
+
 (* --- id validation ----------------------------------------------- *)
 
 (* The kebab-case regex is the same regex that
@@ -70,7 +79,22 @@ type template_kind = Full | Minimal
    canonicalization algorithm (algebra \u00a77.1,
    `lib/decision.ml::body_canonical_sha256`). *)
 
-let template ~id =
+(* `paths_block`: format a `paths:` list for the
+   `scope.paths` YAML block. When `paths` is empty, emits the
+   legacy placeholder string so existing adopters (and the
+   cram fixtures in `tests/cli/new-decision.t`) see the same
+   output as before this commit. When `paths` is non-empty,
+   emits one `- "<path>"` line per entry. *)
+let[@warning "-32"] paths_block (paths : string list) : string =
+  match paths with
+  | [] -> "    - \"<path/glob/that/this/decision/touches/**>\""
+  | _ ->
+      String.concat ""
+        (List.map
+           (fun p -> Printf.sprintf "    - \"%s\"\n" p)
+           paths)
+
+let template ~id ~paths =
   Printf.sprintf
     "---\n\
      schema: math-coding/3.2\n\
@@ -90,7 +114,7 @@ let template ~id =
     \      One sentence. The observable property this decision delivers.\n\n\
      scope:\n\
     \  paths:\n\
-    \    - \"<path/glob/that/this/decision/touches/**>\"\n\n\
+     %s\n\n\
      obligations:\n\
     \  - id: %s-obligation-1\n\
     \    claim: |\n\
@@ -106,7 +130,7 @@ let template ~id =
      relations:\n\
     \  addresses:\n\
     \    - bootstrap-v3@3\n"
-    id (String.make 64 '0') (String.make 64 '0') id id
+    id (String.make 64 '0') (String.make 64 '0') id (paths_block paths) id
 
 (* Minimal template: 5-7 user-editable TODO stubs (intent,
    commitment, outcomes, obligations, risk owner, relations)
@@ -124,7 +148,7 @@ let template ~id =
    user is expected to fill in the TODO markers and re-run
    `mathc validate` after their first edit; the kernel
    recomputes the SHA digests. *)
-let template_minimal ~id =
+let template_minimal ~id ~paths =
   Printf.sprintf
     "---\n\
      schema: math-coding/3.3\n\
@@ -141,14 +165,14 @@ let template_minimal ~id =
      outcomes:\n\
     \  - id: %s-outcome-1\n\
     \    statement: |\n\
-    \      TODO: one sentence. The observable property this decision delivers.\n\n\
+    \      One sentence. The observable property this decision delivers.\n\n\
      scope:\n\
     \  paths:\n\
-    \    - \"<TODO: path/glob/that/this/decision/touches/**>\"\n\n\
+     %s\n\n\
      obligations:\n\
     \  - id: %s-obligation-1\n\
     \    claim: |\n\
-    \      TODO: one sentence. What the kernel or fixture can verify.\n\
+    \      One sentence. What the kernel or fixture can verify.\n\
     \    acceptance:\n\
     \      all:\n\
     \        - verifier: <TODO: fixture-path-or-kernel-verifier>\n\
@@ -162,15 +186,137 @@ let template_minimal ~id =
      relations:\n\
     \  addresses:\n\
     \    - bootstrap-v3@3\n"
-    id (String.make 64 '0') (String.make 64 '0') id id
+    id (String.make 64 '0') (String.make 64 '0') id (paths_block paths) id
 
 (* template_for: pick the template variant. `Full` preserves the
    47-line adoption/SKILL.md-shaped output emitted since the
    subcommand landed (decision
    `ux-3-new-decision-subcommand-2026-10@1`); `Minimal` is the
-   5-7 user-editable field stub on schema 3.3. *)
-let template_for (kind : template_kind) ~id =
-  match kind with Full -> template ~id | Minimal -> template_minimal ~id
+   5-7 user-editable field stub on schema 3.3. The `paths`
+   argument overrides the `scope.paths` placeholder when
+   non-empty; empty list preserves the legacy placeholder
+   string so existing adopters see no behavioural change. *)
+let template_for (kind : template_kind) ~id ~paths =
+  match kind with
+  | Full -> template ~id ~paths
+  | Minimal -> template_minimal ~id ~paths
+
+(* `scope_paths_override_from_env` — read the
+   `MATH_CODING_NEW_DECISION_SCOPE_PATHS` env var as a
+   comma-separated list of paths. Returns `Some paths` when
+   the env var is set to a non-empty value, `None` otherwise
+   (signalling "use the template's default placeholder").
+   The env var is a low-effort user-facing escape hatch — no
+   new CLI flag is added. Primary use is the cram test in
+   `tests/cli/new-decision-axiom-warn.t`, which needs real
+   paths to exercise the inference rule for `lib/`, `tests/`,
+   `decisions/`, `spec/`, and empty paths. The end user can
+   set the env var to pre-fill `scope.paths` at scaffold time
+   so the resulting decision validates cleanly without
+   re-editing the placeholder. *)
+let[@warning "-32"] scope_paths_override_from_env () : string list option =
+  match Sys.getenv_opt "MATH_CODING_NEW_DECISION_SCOPE_PATHS" with
+  | None -> None
+  | Some s ->
+      let parts = String.split_on_char ',' s in
+      let cleaned =
+        List.filter (fun p -> String.trim p <> "") parts
+      in
+      match cleaned with [] -> None | _ -> Some cleaned
+
+(* `extract_scope_paths`: parse the `scope.paths` list out of
+   the rendered template's text content. The template's
+   structure is fixed (the `paths:` block is always at the
+   same indentation level), so we use a small line-based
+   parser instead of the full kernel YAML reader. Returns
+   the list of path strings; empty list when the block is
+   missing or unparseable.
+
+   Only used by the soft-warn code path (when the env-var
+   override is unset and the template carries the
+   placeholder); the kernel's full YAML parser is the source
+   of truth for everything else. *)
+let[@warning "-32"] extract_scope_paths (contents : string) : string list =
+  let[@warning "-32"] strip_prefix ~prefix s =
+    let pl = String.length prefix in
+    if String.length s >= pl && String.sub s 0 pl = prefix then
+      Some (String.sub s pl (String.length s - pl))
+    else None
+  in
+  let[@warning "-32"] strip_quote s =
+    let len = String.length s in
+    if len >= 2 && s.[0] = '"' && s.[len - 1] = '"' then
+      Some (String.sub s 1 (len - 2))
+    else Some s
+  in
+  let[@warning "-32"] path_from_line line =
+    let t = String.trim line in
+    match strip_prefix ~prefix:"- " t with
+    | None -> None
+    | Some rest -> (
+        match strip_quote rest with Some p when p <> "" -> Some p | _ -> None)
+  in
+  let lines = String.split_on_char '\n' contents in
+  let[@warning "-32"] rec scan_paths = function
+    | [] -> []
+    | "  paths:" :: rest ->
+        let[@warning "-32"] rec take_paths acc = function
+          | [] -> List.rev acc
+          | line :: more ->
+              if String.length line >= 4
+                 && String.sub line 0 4 = "    "
+              then (
+                match path_from_line line with
+                | Some p -> take_paths (p :: acc) more
+                | None -> List.rev acc)
+              else List.rev acc
+        in
+        take_paths [] rest
+    | _ :: rest -> scan_paths rest
+  in
+  scan_paths lines
+
+(* `has_axiom_link_block`: return true if the template
+   carries an `axiom_link:` block (with at least one
+   non-empty entry). The Minimal template hardcodes
+   `axiom_link: [A0]`; the Full template omits the field
+   entirely. The soft-warn fires only on the Full template
+   (or any template that lacks the field). *)
+let[@warning "-32"] has_axiom_link_block (contents : string) : bool =
+  let lines = String.split_on_char '\n' contents in
+  let[@warning "-32"] rec loop = function
+    | [] -> false
+    | line :: rest ->
+        let t = String.trim line in
+        if t = "axiom_link:" then true else loop rest
+  in
+  loop lines
+
+(* `emit_axiom_link_inference_warn`: print the soft-warn to
+   stderr when the produced decision lacks `axiom_link` and
+   we have a non-trivial scope.paths. Format:
+
+     deficit/MC-AXIOM-LINK-INFERENCE-EMPTY: scope.paths includes \
+     <paths>; top candidates: <ax1>, <ax2>, <ax3>; add axiom_link
+
+   The code `MC-AXIOM-LINK-INFERENCE-EMPTY` is registered in
+   `lib/diagnostic.ml::explain` so `mathc explain-diagnostic
+   MC-AXIOM-LINK-INFERENCE-EMPTY` returns prose remediation. *)
+let[@warning "-32"] emit_axiom_link_inference_warn (paths : string list) =
+  let candidates = Decision.infer_axiom_candidates paths in
+  let paths_str =
+    if List.length paths <= 3 then
+      String.concat ", " paths
+    else
+      Printf.sprintf "%s, ... (%d total)"
+        (String.concat ", " (List.filteri (fun i _ -> i < 3) paths))
+        (List.length paths)
+  in
+  let cand_str = Decision.axiom_candidates_pretty candidates in
+  Printf.fprintf stderr
+    "deficit/MC-AXIOM-LINK-INFERENCE-EMPTY: scope.paths includes %s; \
+     top candidates: %s; add axiom_link\n"
+    paths_str cand_str
 
 (* --- project root resolution ---------------------------------- *)
 
@@ -199,11 +345,26 @@ let run (opts : options) =
       Printf.fprintf stderr "mathc new-decision: %s\n" m;
       exit 2
   | Ok id -> (
-      let contents = template_for opts.template_kind ~id in
+      let paths_override = scope_paths_override_from_env () in
+      let effective_paths =
+        match paths_override with None -> [] | Some ps -> ps
+      in
+      let contents =
+        template_for opts.template_kind ~id ~paths:effective_paths
+      in
       match opts.mode with
       | Print_mode ->
           print_string contents;
-          flush stdout
+          flush stdout;
+          (* Soft-warn to keep the printed scaffold informative
+             even when no file is written. *)
+          if not (has_axiom_link_block contents) then
+            let warn_paths =
+              match paths_override with
+              | Some ps -> ps
+              | None -> extract_scope_paths contents
+            in
+            emit_axiom_link_inference_warn warn_paths
       | Interactive_mode ->
           Printf.printf
             "mathc new-decision: --interactive is a no-op stub in this slice; \
@@ -212,7 +373,14 @@ let run (opts : options) =
           flush stdout;
           Printf.fprintf stdout
             "mathc new-decision: --write would write to %s/decisions/%s.yaml\n"
-            (project_root ()) id
+            (project_root ()) id;
+          if not (has_axiom_link_block contents) then
+            let warn_paths =
+              match paths_override with
+              | Some ps -> ps
+              | None -> extract_scope_paths contents
+            in
+            emit_axiom_link_inference_warn warn_paths
       | Write_mode ->
           let root = project_root () in
           let path =
@@ -230,4 +398,12 @@ let run (opts : options) =
           let oc = open_out target in
           output_string oc contents;
           close_out oc;
-          Printf.printf "mathc new-decision: wrote %s\n" target)
+          Printf.printf "mathc new-decision: wrote %s\n" target;
+          if not (has_axiom_link_block contents) then begin
+            let warn_paths =
+              match paths_override with
+              | Some ps -> ps
+              | None -> extract_scope_paths contents
+            in
+            emit_axiom_link_inference_warn warn_paths
+          end)

@@ -758,6 +758,34 @@ let explain (code : string) : string option =
          decision is a transitional draft that should not be\n\
          evaluated yet, change its state to `draft` instead.\n\
          Re-run `mathc validate`."
+  | "MC-AXIOM-LINK-INFERENCE-EMPTY" ->
+      Some
+        "### Definition\n\
+         A soft-warn emitted by `mathc new-decision` when the\n\
+         produced decision lacks an `axiom_link` field. The\n\
+         warn names the top-3 most-likely axiom IDs based on\n\
+         the decision's `scope.paths`.\n\n\
+         ### Occurs when\n\
+         `lib/new_decision/new_decision.ml::run` detects that\n\
+         the rendered template (Full or `--template=full`\n\
+         default) carries no `axiom_link:` block. The CLI\n\
+         infers candidates via\n\
+         `lib/decision.ml::infer_axiom_candidates` and emits\n\
+         `deficit/MC-AXIOM-LINK-INFERENCE-EMPTY: ...; top\n\
+         candidates: <ax1>, <ax2>, <ax3>; add axiom_link` on\n\
+         stderr. The Minimal template hardcodes `axiom_link:\n\
+         [A0]` and never fires this warn. The warn is\n\
+         SUGGEST-ONLY: the `axiom_link` field is NEVER\n\
+         auto-filled; the author retains full control.\n\n\
+         ### Remediation\n\
+         Edit the produced decision's front-matter to add an\n\
+         `axiom_link: [...]` block. Use the candidates named\n\
+         in the warn as a starting point (e.g. `axiom_link:\n\
+         [A0, A1]` for lib/-shaped decisions), but trust your\n\
+         own judgement — the inference is opinionated and the\n\
+         final choice is yours. Re-run `mathc validate` after\n\
+         the edit; the soft-warn goes away once `axiom_link`\n\
+         is non-empty."
   | "MC-SHA-MISMATCH" ->
       Some
         "### Definition\n\
