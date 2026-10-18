@@ -1,0 +1,1 @@
+{"id":"sha256:624264503bba856401fbea9373569c2864403e0010fd6e3c6012970cf7c51845","issued_at":"2026-10-18T04:45:05Z","kind":"attestation","kind_":"review","producer":{"identity":"human:opencode-agent"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"audit-cleanup-2026-10","materials_digest":"","obligation":"w1-banner-version"}}
