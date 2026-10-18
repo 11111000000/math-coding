@@ -3,6 +3,7 @@ schema: math-coding/3.2
 id: considered-mode-migration-2026-10
 revision: 1
 state: retired
+mode: light
 body_sha: "sha256:59c869f857fb921fd35e9851cb929b75cf76ee23038e98b8c625996a272af345"
 yaml_sha: "sha256:59c869f857fb921fd35e9851cb929b75cf76ee23038e98b8c625996a272af345"
 
@@ -63,3 +64,8 @@ obligations:
       all:
         - verifier: followup-decision-filed
           result: pass
+
+risk:
+  declared_triggers:
+    - historical-record-only
+  owner: human:maintainer

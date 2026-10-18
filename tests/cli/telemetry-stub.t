@@ -13,7 +13,7 @@ Default: MATHCODING_TELEMETRY unset -> "off".
   $ unset MATHCODING_TELEMETRY
   $ mathc telemetry status
   mathc telemetry: off
-    transport: not configured (Phase 2 stub)
+    transport: not configured (Phase 2 stub; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml)
     See decisions/ux-3-telemetry-stub-2026-10.yaml.
     No data is collected or transmitted by this build.
 
@@ -22,7 +22,7 @@ Opt-in: MATHCODING_TELEMETRY=on -> "on" (no actual emission).
   $ cd "$DUNE_SOURCEROOT"
   $ MATHCODING_TELEMETRY=on mathc telemetry status
   mathc telemetry: on
-    transport: not configured (Phase 2 stub)
+    transport: not configured (Phase 2 stub; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml)
     See decisions/ux-3-telemetry-stub-2026-10.yaml.
     No data is collected or transmitted by this build.
 

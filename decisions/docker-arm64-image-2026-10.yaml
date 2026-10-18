@@ -385,6 +385,14 @@ obligations:
         - verifier: grep -q "if: github.event_name == 'push'" .github/workflows/docker.yml
           result: pass
 
+risk:
+  declared_triggers:
+    - docker-build-matrix-change
+    - manifest-list-rollout
+    - cosign-signing-key-rotation
+    - ghcr-storage-quota
+  owner: human:maintainer
+
 relations:
   addresses:
     - plan-2026-10-distro-friction@1
