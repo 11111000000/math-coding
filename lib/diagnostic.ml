@@ -339,7 +339,18 @@ let mc_invalid_axiom_link ?(token = "") ?(next_actions = []) message =
        before merge) per `spec/constitution.md` §Self-application.
    The default severity is `Warn` so callers that do not pass
    one get the legacy soft-warning behaviour; the CLI bin/Mathc.ml
-   passes `~severity:Block` when the mode is >= standard. *)
+   passes `~severity:Block` when the mode is >= standard.
+
+   After the A2 YAML-parser fix (`decisions/fix-yaml-parser-2026-10`,
+   commit 3f14b76), the absence predicate reads from the parsed
+   `Decision.counterexample` field only — the parser no longer
+   silently drops the `counterexample:` key when `risk.declared_triggers`
+   is given in the inline-sequence form `key: - foo\n- bar`.
+   The diagnostic therefore fires on genuine absence, not on
+   parser limitation. The pre-fix false-positive case (a
+   decision whose counterexample was present but parser-dropped)
+   is closed; see `tests/cli/yaml-parser.t` and
+   `tests/cli/counterexample-warn.t` for the regression pins. *)
 let mc_counterexample_missing ?(decision_id = "") ?(severity = Warn)
     ?(next_actions = []) message =
   let code = "MC-COUNTEREXAMPLE-MISSING" in
@@ -724,11 +735,21 @@ let explain (code : string) : string option =
          and `lib/decision.ml::parse_decision` (parser-level\n\
          reject for mode >= standard).\n\n\
          ### Occurs when\n\
-         The CLI emits `MC-COUNTEREXAMPLE-MISSING` when\n\
-         `counterexample` is absent. For mode >= standard the\n\
-         severity is `block` and the verdict is `reject` (exit 1);\n\
-         for mode in {tiny, light} the severity is `warn` and the\n\
-         verdict stays `accept` (legacy soft-warning behaviour).\n\n\
+         After the A2 YAML-parser fix (`decisions/fix-yaml-parser-2026-10`,\n\
+         commit 3f14b76 — `lib/codec.ml::parse_yaml_pairs` now accepts\n\
+         the inline-sequence form `key: - foo\\n- bar`), the only way\n\
+         `counterexample:` can be absent in the parsed decision is when\n\
+         the YAML truly omits the key. The diagnostic fires on genuine\n\
+         absence, not on parser limitation: a pre-fix decision that\n\
+         carried a counterexample after `risk.declared_triggers: - foo`\n\
+         used to surface this code as a false positive; it no longer\n\
+         does (see `tests/cli/yaml-parser.t` scenario 1 and\n\
+         `tests/cli/counterexample-warn.t` scenario 3). For mode >=\n\
+         standard the severity is `block` and the verdict is `reject`\n\
+         (exit 1); for mode in {tiny, light} the severity is `warn` and\n\
+         the verdict stays `accept` (dialectical slot, not a hard\n\
+         requirement). Both paths read the post-parse absence predicate\n\
+         on `Decision.counterexample`.\n\n\
          ### Remediation\n\
          Add a `counterexample: |` block with one or two\n\
          sentences naming the strongest objection to the\n\
