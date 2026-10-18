@@ -25,8 +25,8 @@ check() {
 }
 
 # adoption/SKILL.md
-check "adoption/SKILL.md missing 'math-coding/3.2'" \
-      "grep -q 'math-coding/3\\.2' adoption/SKILL.md"
+check "adoption/SKILL.md missing 'math-coding/3.3'" \
+      "grep -q 'math-coding/3\\.3' adoption/SKILL.md"
 
 check "adoption/SKILL.md still contains 'math-coding/3.0-alpha' as a decision schema" \
       "! grep -q '^schema: math-coding/3\\.0-alpha' adoption/SKILL.md"
