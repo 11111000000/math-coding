@@ -2,10 +2,32 @@
 """Generate math-coding attestation JSON files.
 
 Reads a manifest from stdin (TSV: decision<TAB>obligation<TAB>kind_<TAB>producer_identity)
-and emits one attestation JSON per row in attestations/.
-Id is computed as sha256: + SHA-256 of the canonical JSON
-(serialised without `id`, sorted keys, no whitespace).
+and emits one attestation JSON per row in the configured
+attestations directory. Id is computed as sha256: + SHA-256 of
+the canonical JSON (serialised without `id`, sorted keys, no
+whitespace).
+
+Output directory selection (in order of precedence):
+  1. $MATH_CODING_ATTESTATIONS_DIR (if set)
+  2. <repo_root>/attestations (default fallback)
+
+The decisions-directory selection is also honoured for
+parity with the kernel's MATH_CODING_DECISIONS_DIR semantics,
+even though this script does not currently read decisions:
+  1. $MATH_CODING_DECISIONS_DIR (if set)
+  2. <repo_root>/decisions (default fallback)
+
+Usage:
+  python3 scripts/generate-attestations.py [--help]
+  cat manifest.tsv | python3 scripts/generate-attestations.py
+
+Environment variables:
+  MATH_CODING_ATTESTATIONS_DIR  Directory where .json files are written.
+  MATH_CODING_DECISIONS_DIR     Directory the kernel treats as the
+                                decisions root (read-only here;
+                                declared for parity).
 """
+import argparse
 import hashlib
 import json
 import os
@@ -13,8 +35,12 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent  # scripts/ -> repo root
-OUT_DIR = ROOT / "attestations"
-OUT_DIR.mkdir(exist_ok=True)
+DECISIONS_DIR = Path(
+    os.environ.get("MATH_CODING_DECISIONS_DIR", str(ROOT / "decisions"))
+)
+ATTESTATIONS_DIR = Path(
+    os.environ.get("MATH_CODING_ATTESTATIONS_DIR", str(ROOT / "attestations"))
+)
 
 ISSUED_AT = "2026-09-29T18:00:00Z"
 CANDIDATE_TREE = "HEAD"
@@ -51,10 +77,11 @@ def attestation_id(att: dict) -> str:
 
 
 def emit(decision: str, obligation: str, kind_: str, identity: str, result: str = "pass") -> Path:
+    ATTESTATIONS_DIR.mkdir(parents=True, exist_ok=True)
     att = make_attestation(decision, obligation, kind_, identity, result)
     att["id"] = attestation_id(att)
     name = f"{decision}-{obligation}.json"
-    path = OUT_DIR / name
+    path = ATTESTATIONS_DIR / name
     path.write_text(json.dumps(att, indent=None, separators=(",", ":"), ensure_ascii=False) + "\n")
     # validate against schema's id pattern
     import re
@@ -62,7 +89,15 @@ def emit(decision: str, obligation: str, kind_: str, identity: str, result: str 
     return path
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        prog="generate-attestations",
+        description=(
+            "Generate math-coding attestation JSON files from a TSV "
+            "manifest on stdin. See module docstring for env-var semantics."
+        ),
+    )
+    parser.parse_args(argv)
     for line in sys.stdin:
         line = line.strip()
         if not line or line.startswith("#"):
@@ -75,7 +110,8 @@ def main() -> None:
         result = parts[4] if len(parts) >= 5 else "pass"
         path = emit(decision, obligation, kind_, identity, result)
         print(f"wrote {path}", file=sys.stderr)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
