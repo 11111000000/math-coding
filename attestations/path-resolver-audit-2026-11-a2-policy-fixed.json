@@ -1,0 +1,1 @@
+{"id":"sha256:7e2835cff2127c417317c7b9de658c9f6040e1f38a8df206a85228ee7aa61498","issued_at":"2026-10-18T07:02:47Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:subagent-A2"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"path-resolver-audit-2026-11","materials_digest":"","obligation":"a2-policy-fixed"}}
