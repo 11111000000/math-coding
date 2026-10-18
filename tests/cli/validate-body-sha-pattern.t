@@ -49,7 +49,7 @@ A decision with valid `body_sha` and `yaml_sha` is accepted:
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json sha-pattern-good.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 A decision with a `body_sha` that is NOT the canonical
 `sha256:` + 64 hex chars is rejected with
@@ -156,7 +156,7 @@ check is unaffected:
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json sha-pattern-valid-both.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 The diagnostic is reachable via `mathc explain-diagnostic`:
 

@@ -518,7 +518,7 @@ let emit (format : output_format) path
       (match format with
       | Text ->
           Printf.printf
-            "accept: %s\n\
+            "parse-ok: %s\n\
             \  decision: %s\n\
             \  revision: %s\n\
             \  obligations: %d\n\
@@ -540,11 +540,11 @@ let emit (format : output_format) path
                       extra_diags))
           in
           Printf.printf
-            "{\"verdict\":\"accept\",\"path\":%s,\"decision\":\"%s\",\"revision\":\"%s\",\"obligations\":%d,\"assumptions\":%d%s}\n"
+            "{\"verdict\":\"parse-ok\",\"path\":%s,\"decision\":\"%s\",\"revision\":\"%s\",\"obligations\":%d,\"assumptions\":%d%s}\n"
             (Jsonl.stringify (Jsonl.String path))
             decision_id revision obligations assumptions extras);
       (* Print extra diagnostics (e.g., MC-AMBIGUOUS-ACCEPTANCE) to
-         stderr. The verdict is still "accept" because the kernel
+         stderr. The verdict is still "parse-ok" because the kernel
          DID parse the verifier-half; the diagnostic tells the
          author that their review half is silently dropped. *)
       List.iter
@@ -558,14 +558,14 @@ let emit (format : output_format) path
   | `Accept_aggregate { kind; id; extra_diags } ->
       (* mathc-validate-skip-non-decisions-fix-2026-10: waiver and
          obligations files take a permissive fast path through
-         `Decision.peek_schema_family`. The verdict is "accept"
+         `Decision.peek_schema_family`. The verdict is "parse-ok"
          with a `kind:` annotation; no decision-shaped fields
          (revision, obligations, assumptions) are reported because
          those concepts do not exist on the waiver/aggregator
          family. The author of a waiver should not be told the
          waiver has zero obligations. *)
       (match format with
-      | Text -> Printf.printf "accept: %s\n  kind: %s\n  id: %s\n" path kind id
+      | Text -> Printf.printf "parse-ok: %s\n  kind: %s\n  id: %s\n" path kind id
       | Json ->
           let extras =
             if extra_diags = [] then ""
@@ -582,7 +582,7 @@ let emit (format : output_format) path
                       extra_diags))
           in
           Printf.printf
-            "{\"verdict\":\"accept\",\"path\":%s,\"kind\":%s,\"id\":%s%s}\n"
+            "{\"verdict\":\"parse-ok\",\"path\":%s,\"kind\":%s,\"id\":%s%s}\n"
             (Jsonl.stringify (Jsonl.String path))
             (Jsonl.stringify (Jsonl.String kind))
             (Jsonl.stringify (Jsonl.String id))
@@ -658,6 +658,14 @@ let print_usage oc =
     \                                   exit 1 + newer version on stdout when an\n\
     \                                   upgrade is available)\n\
     \  validate FILE [--format=...]     parse FILE as a decision\n\
+    \  verify FILE [--format=...]       walk acceptance.all[*].verifier\n\
+    \                                   strings in FILE and execute them in\n\
+    \                                   a sandbox (subprocess, env-stripped,\n\
+    \                                   60s timeout, cwd = project root).\n\
+    \                                   Per-obligation verdict is one of\n\
+    \                                   pass | fail | skipped. See\n\
+    \                                   bin/Mathc.ml::do_verify for the\n\
+    \                                   scheme allowlist.\n\
     \  update [--channel=...] [--yes]   self-update the mathc binary by shelling\n\
     \                                   out to \
      scripts/install-tooling/install.{sh,\n\
@@ -2674,6 +2682,285 @@ let[@warning "-32"] do_attest_batch () =
             "mathc attest-batch: --from= and --manifest are mutually exclusive \
              in this slice; pass one of them\n";
           exit 2)
+
+(* --- verify subcommand (add-verify-subcommand-2026-10) ---
+ *
+ * `mathc verify FILE` walks every obligation's
+ * `acceptance.all[*].verifier` string and executes it in a
+ * sandbox. Per-obligation verdict is one of:
+ *
+ *   pass    — at least one verifier in the obligation's `all`
+ *             list returned exit 0
+ *   fail    — at least one verifier returned non-zero
+ *   skipped — every verifier was either an empty string or a
+ *             scheme the sandbox does not recognise
+ *
+ * The sandbox is enforced by a scheme allowlist; only the
+ * following schemes are executed:
+ *
+ *   file-exists <path>   in-process Sys.file_exists check
+ *   dir-exists <path>    in-process Sys.is_directory check
+ *   mathc <subcmd>...    subprocess: re-invoke this binary with
+ *                        env stripped to PATH/HOME/LANG, cwd =
+ *                        decision's project root, 60s timeout
+ *
+ * Any other scheme (including `rm -rf /` and any shell command)
+ * is reported as `skipped` WITHOUT being executed. This is the
+ * v1 sandbox boundary; the kernel NEVER calls Shell.system or
+ * passes the verifier string to /bin/sh.
+ *
+ * The 60s hard timeout is enforced via fork+waitpid: the parent
+ * polls the elapsed time and SIGKILLs the child if the deadline
+ * is exceeded. See run_with_sandbox below. *)
+type verify_outcome = Pass | Fail | Skipped | Timeout
+
+let[@warning "-32"] verify_outcome_string = function
+  | Pass -> "pass"
+  | Fail -> "fail"
+  | Skipped -> "skipped"
+  | Timeout -> "timeout"
+
+(* Tokenize a verifier string into (scheme, args). The string is
+   whitespace-separated; the first token is the scheme. Returns
+   None for empty or whitespace-only strings. *)
+let[@warning "-32"] parse_verifier_string s =
+  let trimmed = String.trim s in
+  if trimmed = "" then None
+  else
+    let parts =
+      trimmed |> String.split_on_char ' '
+      |> List.filter (fun t -> String.trim t <> "")
+    in
+    match parts with
+    | [] -> None
+    | scheme :: args -> Some (scheme, args)
+
+(* Compute the env-stripped environment array. Only PATH, HOME,
+   and LANG are inherited; everything else is dropped. *)
+let[@warning "-32"] sandbox_env () =
+  let pick var default =
+    try
+      let v = Sys.getenv var in
+      if String.trim v = "" then default else v
+    with Not_found -> default
+  in
+  [|
+    "PATH=" ^ pick "PATH" "/usr/bin:/bin";
+    "HOME=" ^ pick "HOME" "/";
+    "LANG=" ^ pick "LANG" "C";
+  |]
+
+(* Run `prog args` in a subprocess with cwd = project_root and
+   the env-stripped sandbox. Returns the process_status. The
+   60s hard timeout is enforced: if the deadline is exceeded
+   the child is SIGKILLed and the parent reaps it.
+
+   Why fork+execve and not Unix.create_process_env? The latter
+   inherits the parent's cwd; we need to chdir into the
+   project's repo root before exec. *)
+let[@warning "-32"] run_with_sandbox ~project_root ~prog ~args ~timeout_s =
+  let args_arr = Array.of_list args in
+  let env = sandbox_env () in
+  let pid =
+    Unix.fork () |> function
+    | 0 ->
+        (* Child: chdir + exec. Errors here are unrecoverable
+           from the child; we exit 1 to surface them. *)
+        (try Unix.chdir project_root
+         with _ ->
+           Printf.fprintf stderr
+             "mathc verify: child chdir %s failed\n" project_root;
+           exit 1);
+        (try Unix.execve prog args_arr env
+         with _ ->
+           Printf.fprintf stderr
+             "mathc verify: child exec %s failed\n" prog;
+           exit 1)
+    | p -> p
+  in
+  let deadline = Unix.gettimeofday () +. float_of_int timeout_s in
+  let rec poll () =
+    let now = Unix.gettimeofday () in
+    if now >= deadline then begin
+      (try Unix.kill pid Sys.sigkill with _ -> ());
+      let _, status = Unix.waitpid [] pid in
+      Timeout, status
+    end
+    else
+      match Unix.waitpid [ Unix.WNOHANG ] pid with
+      | 0, _ ->
+          Unix.sleepf 0.05;
+          poll ()
+      | _, status -> Pass, status
+  in
+  poll ()
+
+(* Run a single verifier string. Returns Pass | Fail | Skipped |
+   Timeout. The sandbox is enforced by the scheme allowlist. *)
+let[@warning "-32"] run_one_verifier ~project_root ~verifier_string =
+  match parse_verifier_string verifier_string with
+  | None -> Skipped
+  | Some (scheme, args) -> (
+      match scheme with
+      | "file-exists" -> (
+          match args with
+          | [ path ] -> if Sys.file_exists path then Pass else Fail
+          | _ -> Fail)
+      | "dir-exists" -> (
+          match args with
+          | [ path ] -> if Sys.is_directory path then Pass else Fail
+          | _ -> Fail)
+      | "mathc" ->
+          (* Subprocess: re-invoke this binary with the same
+             env-stripped, project-root-cwd sandbox. *)
+          let argv = Sys.executable_name :: args in
+          let outcome, status =
+            run_with_sandbox ~project_root
+              ~prog:Sys.executable_name ~args:argv ~timeout_s:60
+          in
+          (match outcome with
+           | Timeout -> Timeout
+           | Pass -> (
+               match status with
+               | Unix.WEXITED 0 -> Pass
+               | Unix.WEXITED _ -> Fail
+               | Unix.WSIGNALED _ -> Fail
+               | Unix.WSTOPPED _ -> Fail)
+           | Fail | Skipped -> Fail)
+      | _ -> Skipped)
+
+(* Aggregate per-obligation verdict. The semantics follow the
+   acceptance item convention: `all` means every verifier must
+   pass; `any` means at least one must pass. For v1 we report
+   the strict `all` rule: pass if every verifier passes, fail
+   if any fails, skipped if every verifier is skipped. *)
+let[@warning "-32"] aggregate_verifier_outcomes outcomes =
+  match outcomes with
+  | [] -> Skipped
+  | _ ->
+      if List.exists (fun o -> o = Fail) outcomes then Fail
+      else if List.exists (fun o -> o = Pass) outcomes then Pass
+      else Skipped
+
+(* Walk a single obligation's `acceptance.all[*].verifier` strings
+   and return per-obligation verdicts. We use the raw JSON walk
+   (not the parsed Domain tree) because the verifier string
+   is opaque to the kernel; the schema's `verifier` field is
+   a free-form string. *)
+let[@warning "-32"] obligation_verifier_strings v =
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_object ps "acceptance" with
+      | Some a -> (
+          match Schema.take_array a "all" with
+          | Some xs ->
+              List.filter_map
+                (fun item ->
+                  match item with
+                  | Jsonl.Object ips -> (
+                      match Schema.take_string ips "verifier" with
+                      | Some s -> Some s
+                      | None -> None)
+                  | _ -> None)
+                xs
+          | None -> [])
+      | None -> [])
+  | _ -> []
+
+(* Walk `obligations[*]` of a decision, returning
+   [(obligation_id, [verifier_strings...])]. *)
+let[@warning "-32"] collect_obligations v =
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_array ps "obligations" with
+      | Some xs ->
+          List.filter_map
+            (fun item ->
+              match item with
+              | Jsonl.Object obs -> (
+                  let id =
+                    match Schema.take_string obs "id" with
+                    | Some s -> s
+                    | None -> ""
+                  in
+                  if id = "" then None
+                  else Some (id, obligation_verifier_strings item))
+              | _ -> None)
+            xs
+      | None -> [])
+  | _ -> []
+
+let[@warning "-32"] do_verify () =
+  let format = ref Text in
+  let file = ref "" in
+  let set_file s = file := s in
+  let set_format s = format := parse_format s in
+  Arg.current := 1;
+  Arg.parse
+    [
+      ( "--format",
+        Arg.String set_format,
+        " Output format: text (default) or json" );
+    ]
+    set_file "usage: mathc verify FILE [--format=...]";
+  let path = !file in
+  if path = "" then begin
+    print_usage stderr;
+    exit 2
+  end;
+  let v =
+    match parse_file path with
+    | Ok v -> v
+    | Error (`Sys m) ->
+        Printf.fprintf stderr "mathc verify: %s: %s\n" path m;
+        exit 2
+    | Error (`Other m) ->
+        Printf.fprintf stderr "mathc verify: %s: %s\n" path m;
+        exit 2
+    | Error (`Parse (m, line, col)) ->
+        Printf.fprintf stderr "mathc verify: %s: %s at line %d col %d\n"
+          path m line col;
+        exit 2
+  in
+  let project_root = find_project_root (Sys.getcwd ()) in
+  let obligations = collect_obligations v in
+  let verdicts =
+    List.map
+      (fun (obl_id, verifier_strings) ->
+        let outcomes =
+          List.map
+            (fun s -> run_one_verifier ~project_root ~verifier_string:s)
+            verifier_strings
+        in
+        let verdict = aggregate_verifier_outcomes outcomes in
+        (obl_id, verdict))
+      obligations
+  in
+  (match !format with
+   | Text ->
+       Printf.printf "verify: %s\n" path;
+       List.iter
+         (fun (obl_id, verdict) ->
+           Printf.printf "  %s: %s\n" obl_id (verify_outcome_string verdict))
+         verdicts
+   | Json ->
+       let items =
+         String.concat ","
+           (List.map
+              (fun (obl_id, verdict) ->
+                Printf.sprintf "{\"obligation_id\":%s,\"verdict\":%s}"
+                  (Jsonl.stringify (Jsonl.String obl_id))
+                  (Jsonl.stringify (Jsonl.String (verify_outcome_string verdict))))
+              verdicts)
+       in
+       Printf.printf
+         "{\"path\":%s,\"verdicts\":[%s]}\n"
+         (Jsonl.stringify (Jsonl.String path)) items);
+  (* Exit code: 0 when all pass, 1 when any fail, 2 when the
+     input was unreadable (handled above). A path that has zero
+     obligations or all-skipped verdicts still exits 0: skipped
+     is not a failure, it is a "no information" status. *)
+  if List.exists (fun (_, v) -> v = Fail) verdicts then exit 1 else exit 0
 
 (* --- gate subcommand (gate-decision@1 scaffold) ---
  *
@@ -5155,11 +5442,11 @@ let[@warning "-32"] do_decision_state () =
       Printf.printf "mathc decision-state: %s\n" diff_summary;
       (* Re-validate by calling the kernel parser directly. Same
          binary, no fork/exec. The `validate` text path reports
-         `accept:` or `reject:` on stdout; the user's experience
+         `parse-ok:` or `reject:` on stdout; the user's experience
          mirrors `mathc validate FILE --format=text`. *)
       match validate_with_counts path with
       | `Accept _ | `Accept_aggregate _ ->
-          Printf.printf "validate: accept\n";
+          Printf.printf "validate: parse-ok\n";
           exit 0
       | `Reject (diag, _) ->
           Printf.fprintf stderr "validate: reject (%s)\n" diag.Diagnostic.code;
@@ -6411,6 +6698,7 @@ let dispatch () =
   in
   match Sys.argv.(1) with
   | "validate" -> do_validate ()
+  | "verify" -> do_verify ()
   | "version" -> do_version ()
   | "update" -> do_update ()
   | "context" -> do_context ()

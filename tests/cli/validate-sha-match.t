@@ -52,7 +52,7 @@ emitted):
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json sha-match-equal.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 A decision with both hashes present and DIFFERENT is rejected with
 the specific `MC-SHA-MISMATCH` diagnostic (Block, exit 1). The
@@ -140,7 +140,7 @@ missing:
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json sha-match-body-only.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 A decision with ONLY `yaml_sha` (body_sha absent) is accepted
 — same vacuous-truth rule:
@@ -177,7 +177,7 @@ A decision with ONLY `yaml_sha` (body_sha absent) is accepted
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json sha-match-yaml-only.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 A decision with NEITHER hash is accepted (no comparison is
 possible, vacuous truth):
@@ -213,7 +213,7 @@ possible, vacuous truth):
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json sha-match-neither.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 The diagnostic is reachable via `mathc explain-diagnostic` so
 authors can look up remediation:

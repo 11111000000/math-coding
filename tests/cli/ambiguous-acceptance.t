@@ -8,7 +8,7 @@ bootstrap/parse-acceptance-diagnostics.yaml.
   $ cd "$DUNE_SOURCEROOT"
   $ mathc validate fixtures/conformance/decision/positive-ambiguous-acceptance.json
   [warn] conflict/MC-AMBIGUOUS-ACCEPTANCE: obligation obligation-with-ambiguous-acceptance: acceptance item carries both verifier and review (all[0]); verifier wins, review is dropped
-  accept: fixtures/conformance/decision/positive-ambiguous-acceptance.json
+  parse-ok: fixtures/conformance/decision/positive-ambiguous-acceptance.json
     decision: ambiguous-acceptance-demo
     revision: rev:7f3a
     obligations: 1

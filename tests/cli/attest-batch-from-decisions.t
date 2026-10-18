@@ -74,7 +74,7 @@ heredoc lines that already start with `> ` (RFC: cram lacks an
 Validate the fixture before exercising --from=decisions.
 
   $ mathc validate "$MATH_CODING_DECISIONS_DIR/foo-decision.yaml"
-  accept: .test-math-coding/decisions/foo-decision.yaml
+  parse-ok: .test-math-coding/decisions/foo-decision.yaml
     decision: foo-decision
     revision: 1
     obligations: 2

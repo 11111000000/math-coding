@@ -15,14 +15,14 @@ A waiver file (schema: math-coding/waiver-*) accepts without
 the decision parser running:
 
   $ mathc validate --format=json decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml | jq -c '{verdict, kind, id}'
-  {"verdict":"accept","kind":"waiver","id":"audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10"}
+  {"verdict":"parse-ok","kind":"waiver","id":"audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10"}
 
 The obligations aggregator (schema: math-coding/obligations-*)
 also accepts; the id is read from the nested `decision.id:`
 field:
 
   $ mathc validate --format=json decisions/obligations.yaml | jq -c '{verdict, kind, id}'
-  {"verdict":"accept","kind":"obligations","id":"bootstrap-v3"}
+  {"verdict":"parse-ok","kind":"obligations","id":"bootstrap-v3"}
 
 A waiver file without `kind: waiver` does NOT take the fast
 path (it falls through to the decision parser and rejects):
@@ -55,9 +55,9 @@ path (regression: the decision parser is not weakened):
 
   $ cd "$DUNE_SOURCEROOT"
   $ mathc validate --format=json decisions/decision.yaml | jq -c '{verdict, kind}'
-  {"verdict":"accept","kind":"decision"}
+  {"verdict":"parse-ok","kind":"decision"}
   $ mathc validate --format=json decisions/algebra-3.2.yaml | jq -c '{verdict, kind}'
-  {"verdict":"accept","kind":"decision"}
+  {"verdict":"parse-ok","kind":"decision"}
 
 Text-format output for a waiver file:
 

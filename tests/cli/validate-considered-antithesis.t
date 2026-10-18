@@ -54,7 +54,7 @@ A `mode: considered` decision WITH antithesis is accepted:
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json mode-considered-with-antithesis.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 A `mode: considered` decision WITHOUT antithesis is rejected
 with `MC-ANTITHESIS-MISSING` (Block, exit 1):
@@ -132,7 +132,7 @@ prior failures at HEAD pre-fix.)
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json mode-standard-no-antithesis.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 Whitespace-only antithesis is treated as empty (the
 author cannot satisfy the rule with " "):
