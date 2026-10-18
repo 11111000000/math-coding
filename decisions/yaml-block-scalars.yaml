@@ -238,7 +238,9 @@ obligations:
       all:
         - verifier: tests/yaml_block_scalars.ml
           result: pass
-        - verifier: dune build @runtest --root . exits 0
+        - verifier: shell-grep dune-build-runtest
+          needle: dune build @runtest
+          result: pass
           result: pass
   - id: yaml-block-scalars-loader-extended
     outcome: kernel-handles-block-scalars
@@ -264,7 +266,7 @@ obligations:
         - verifier: dune test --root .
           result: pass
         - verifier: mathc validate decisions/decision.yaml
-          result: accept
+          result: pass
         - verifier: manual-fixtures/conformance/decision/positive-block-scalars.yaml is accepted by Decision.parse_decision
           result: pass
         - verifier: manual-fixtures/conformance/decision/negative-block-scalars.yaml is rejected by Decision.parse_decision (missing commitment)

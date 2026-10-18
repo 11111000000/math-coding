@@ -126,7 +126,7 @@ obligations:
     acceptance:
       all:
         - verifier: gate-shape-fixture
-          result: pending
+          result: inconclusive
   - id: mathc-self-check-dispatcher-shipped
     outcome: dispatcher-shipped
     claim: |
