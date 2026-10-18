@@ -562,6 +562,76 @@ let mc_body_sha_pattern_violation ?(decision_id = "") ~field ~value
     ~policy_rule:(Some "schemas/decision.json#body_sha/yaml_sha")
     ~next_actions:actions msg
 
+(* MC-VERIFIER-SCHEME-UNKNOWN: emitted by `mathc validate`
+   when an `obligations[*].acceptance.all[*].verifier` string
+   begins with a scheme token that is NOT in the canonical
+   allowlist documented in
+   `decisions/verifier-scheme-convention-2026-11.yaml`. The
+   canonical allowlist is:
+
+     exact:   file-exists, dir-exists, bash, mathc, shell-grep, dune
+     prefix:  text-scan-, tests/, dune-, scripts/, manual-*
+
+   The split is: scheme = first whitespace-delimited token of
+   the verifier string (per `parse_verifier_string` in
+   `bin/Mathc.ml`). The check is parser-side — it walks every
+   obligation's acceptance list and emits one Warn diagnostic
+   per non-canonical scheme.
+
+   Severity is Warn (not Block): the kernel still produces a
+   well-typed Domain.acceptance for the item, the decision
+   parses-ok, and the verdict is `parse-ok`. The diagnostic
+   flags the operator that the scheme is non-canonical so the
+   convention is discoverable. A follow-up plan may migrate
+   existing verifiers; this decision only registers the
+   surface.
+
+   Author remediation: replace the scheme token with one of
+   the canonical tokens (`file-exists`, `dir-exists`, `bash`,
+   `mathc`, `shell-grep`, `dune`) or use a known prefix
+   (`text-scan-*`, `tests/*`, `dune-*`, `scripts/*`,
+   `manual-*`). For an unknown scheme that is in active use
+   (e.g., a hex-tag identifier like
+   `verifier: mathc-validate-runs-on-fixture`), the
+   convention is to migrate to `mathc` + a subcommand arg,
+   OR open a follow-up decision that extends the allowlist.
+
+   The `obligation_id` and `scheme` parameters are
+   interpolated into the message and the path; the diagnostic
+   is registered in `lib/diagnostic.ml::explain`. *)
+let mc_verifier_scheme_unknown ?(obligation_id = "") ?(scheme = "")
+    ?(verifier = "") ?(next_actions = []) () =
+  let code = "MC-VERIFIER-SCHEME-UNKNOWN" in
+  let prefix =
+    if obligation_id = "" then ""
+    else Printf.sprintf "obligation %s: " obligation_id
+  in
+  let msg =
+    Printf.sprintf
+      "%sverifier scheme %S is not in the canonical list (file-exists, \
+       dir-exists, bash, mathc, shell-grep, dune, text-scan-*, tests/, \
+       dune-*, scripts/, manual-*); convention documented in \
+       decisions/verifier-scheme-convention-2026-11.yaml"
+      prefix scheme
+  in
+  let _ = verifier in
+  let default_actions =
+    [
+      ( "replace",
+        Printf.sprintf "verifier: \"%s <args>\"    # use a canonical scheme"
+          scheme );
+      ("run", "mathc validate decisions/<file>.yaml");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code ~kind:Input ~severity:Warn
+    ~path:
+      [ Printf.sprintf "obligations.%s.acceptance.all.verifier" obligation_id ]
+    ~policy_rule:(Some "decisions/verifier-scheme-convention-2026-11.yaml")
+    ~next_actions:actions ~retryable:false ~autofix_safe:false msg
+
 (* MC-MATERIALS-DIGEST-EMPTY: emitted when an attestation with
    kind_ ∈ {test, build, observation} carries an empty
    `subject.materials_digest`. Per A0 (separation), runtime-
@@ -665,6 +735,41 @@ let code s = s
 
 let explain (code : string) : string option =
   match code with
+  | "MC-VERIFIER-SCHEME-UNKNOWN" ->
+      Some
+        "### Definition\n\
+         An `obligations[*].acceptance.all[*].verifier` string begins\n\
+         with a scheme token that is NOT in the canonical allowlist\n\
+         documented in `decisions/verifier-scheme-convention-2026-11.yaml`.\n\
+         Canonical exact schemes: `file-exists`, `dir-exists`, `bash`,\n\
+         `mathc`, `shell-grep`, `dune`. Canonical prefixes (the scheme may\n\
+         have any suffix): `text-scan-`, `tests/`, `dune-`,\n\
+         `scripts/`, `manual-`. The verifier string is\n\
+         whitespace-split; the FIRST token is the scheme.\n\n\
+         ### Occurs when\n\
+         `mathc validate` walks every obligation's acceptance list and\n\
+         runs `parse_verifier_string` (bin/Mathc.ml) to split scheme\n\
+         from args. When the scheme is not in the canonical list, the\n\
+         validator emits one Warn-level `MC-VERIFIER-SCHEME-UNKNOWN`\n\
+         diagnostic per non-canonical item, naming the obligation id\n\
+         and the scheme token. The verdict is still `parse-ok`:\n\
+         the kernel produces a typed Domain.acceptance for the item,\n\
+         and the warning is the signal that the convention is not\n\
+         met. Existing decisions in this repo carry non-canonical\n\
+         schemes by historical necessity; the diagnostic is the\n\
+         discoverability surface, not a defect classification.\n\n\
+         ### Remediation\n\
+         Replace the scheme token with a canonical one. For\n\
+         shell-style predicates that need a custom check, prefer\n\
+         `bash` + a sandboxed subcommand or `shell-grep` + needle.\n\
+         For in-process fixtures, use `file-exists` / `dir-exists`.\n\
+         For cross-binary invocations, use `mathc <subcmd>` where\n\
+         `<subcmd>` is in the read-only allowlist (validate, assess,\n\
+         find, self-check, explain, explain-diagnostic, context,\n\
+         packages, version). For a new scheme family, open a\n\
+         follow-up decision that EXTENDS the allowlist rather than\n\
+         inventing a new token. Re-run `mathc validate` to confirm\n\
+         the diagnostic is gone."
   | "MC-AMBIGUOUS-ACCEPTANCE" ->
       Some
         "### Definition\n\

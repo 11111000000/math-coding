@@ -1,0 +1,64 @@
+{
+  "schema": "math-coding/3.0-alpha",
+  "kind": "decision",
+  "id": "verifier-scheme-known-demo",
+  "revision": "rev:cafe01",
+  "axiom_link": ["A0"],
+  "intent": {
+    "source": "test:verifier-scheme-known",
+    "text": "Demonstrate that a decision whose obligations use ONLY canonical verifier schemes (file-exists, mathc, shell-grep, plus text-scan-/tests-/dune-/scripts-/manual- prefixes) emits zero MC-VERIFIER-SCHEME-UNKNOWN warnings."
+  },
+  "commitment": "mathc validate returns parse-ok with no MC-VERIFIER-SCHEME-UNKNOWN diagnostic when every acceptance.all[*].verifier uses a canonical scheme.",
+  "scope": [
+    {"kind": "path", "path": "lib/**", "match": "tree"}
+  ],
+  "outcomes": [
+    {"id": "canonical-schemes-pass", "statement": "All five canonical schemes parse-ok without unknown-scheme warnings."}
+  ],
+  "assumptions": [
+    {
+      "id": "canonical-list-stable",
+      "state": "assumed",
+      "statement": "The canonical list documented in decisions/verifier-scheme-convention-2026-11.yaml is authoritative for the duration of this test.",
+      "owner": "human:maintainer",
+      "consequence_if_false": "Authors must migrate to a new scheme family",
+      "review_on": [{"signal": "verifier-scheme-list-bumps"}]
+    }
+  ],
+  "obligations": [
+    {
+      "id": "canonical-scheme-obligation",
+      "decision": "verifier-scheme-known-demo",
+      "outcome": "canonical-schemes-pass",
+      "claim": "Every verifier string in this decision uses a canonical scheme.",
+      "subjects": [{"kind": "path", "path": "lib/**", "match": "tree"}],
+      "acceptance": {
+        "all": [
+          {"verifier": "file-exists /tmp/foo", "result": "pass"},
+          {"verifier": "mathc validate decisions/foo.yaml", "result": "pass"},
+          {"verifier": "shell-grep needle", "result": "pass"},
+          {"verifier": "dune build lib/mathcoding_core.cmxa", "result": "pass"},
+          {"verifier": "text-scan-decision-id", "result": "pass"},
+          {"verifier": "tests/cli/explain-positive.t", "result": "pass"},
+          {"verifier": "dune-build", "result": "pass"},
+          {"verifier": "scripts/render.sh", "result": "pass"},
+          {"verifier": "manual-review-of-existing-source", "result": "pass"}
+        ]
+      },
+      "phase": "pre-merge",
+      "kind": "acceptance"
+    }
+  ],
+  "reversal": [
+    {"signal": "canonical-scheme-list-drift", "action": "revert"}
+  ],
+  "risk": {
+    "declared_triggers": ["canonical-scheme-list-drift"],
+    "owner": "human:maintainer"
+  },
+  "relations": {
+    "addresses": ["bootstrap-v3@3", "plan-2026-11-adoption-fixes-2026-10@1"]
+  },
+  "counterexample": "A canonical-scheme conformance fixture does not carry dialectical content for the kernel-checked rule; the kernel requires counterexample + antithesis for mode >= standard regardless of fixture intent, so this fixture carries documentary content naming the strongest objection considered and rejected.",
+  "antithesis": "This conformance fixture asserts zero MC-VERIFIER-SCHEME-UNKNOWN warnings when every acceptance.all[*].verifier uses a canonical scheme. The v3 dialectic antithesis slot is unrelated to that assertion; the author considered and rejected the counter-position that a canonical-list demo need not carry dialectic content because its purpose is a parser/validator diagnostic, not a dialectic test. The kernel requires antithesis for mode >= standard regardless of fixture intent, so the fixture carries a documentary antithesis string naming the position considered and rejected."
+}

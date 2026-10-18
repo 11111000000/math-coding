@@ -35,7 +35,7 @@
       "acceptance": {
         "all": [
           {
-            "verifier": "mathc-test-runner",
+            "verifier": "manual-test-runner",
             "result": "pass",
             "review": {"authority": "human:reviewer", "minimum_independence": "different-principal"}
           }
