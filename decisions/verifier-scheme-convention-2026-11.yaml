@@ -1,0 +1,138 @@
+---
+schema: math-coding/3.3
+id: verifier-scheme-convention-2026-11
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: { source: "issue:plan-c5-verifier-scheme", text: "Surface acceptance.all[*].verifier strings that use a verifier scheme name NOT in the canonical list, as a Warn diagnostic from `mathc validate`. The validator still parses-ok on the file; the warning flags the operator that the scheme string is non-canonical. Plan-decision C5 of plan-2026-11-adoption-fixes." }
+
+commitment: |
+  After this decision closes:
+
+  1. `mathc validate` on a decision whose
+     `obligations[*].acceptance.all[*].verifier` uses a
+     scheme outside the canonical allowlist exits 0 and
+     prints `parse-ok:` on stdout, AND emits
+     `MC-VERIFIER-SCHEME-UNKNOWN` Warn on stderr naming
+     the obligation id and the scheme string.
+  2. `mathc validate` on a decision whose obligations use
+     ONLY canonical schemes (file-exists, dir-exists, bash,
+     mathc, shell-grep, dune, text-scan-*, tests/, dune-*,
+     scripts/, manual-*) emits zero scheme-unknown
+     diagnostics.
+  3. `mathc explain-diagnostic MC-VERIFIER-SCHEME-UNKNOWN`
+     exits 0 with the documented JSON envelope
+     (code, definition, occurs_when, remediation).
+  4. `mathc self-check` returns the same 186 pass / 2
+     unknown verdict as the baseline; no NEW unknown
+     subjects attributable to this change.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  Two counter-positions considered and rejected:
+
+  (a) "this is gate noise — every verifier string in this
+  repo is bespoke, so the warning will fire on every
+  decision. The diagnostic is useless if it fires on
+  everything." Rejected: the diagnostic is the SIGNAL that
+  flips the convention from "free-form string per author"
+  to "anchored set of canonical schemes". The first commit
+  produces warnings on existing decisions; those decisions
+  are not invalidated (verdict stays parse-ok). A
+  follow-up plan may migrate existing verifiers to
+  canonical schemes; this decision only registers the
+  diagnostic surface so the convention is discoverable.
+
+  (b) "make it Block, not Warn — a non-canonical scheme
+  is a real defect." Rejected: Block would reject every
+  existing decision that uses a non-canonical scheme, which
+  is the entire repo on this commit. Warn-level is the
+  intent: surface the convention without breaking the
+  pipeline. Per A1 (Feedback — every commitment must have
+  a path to an observation), the operator sees the warning
+  and decides.
+
+outcomes:
+  - id: warn-on-non-canonical-scheme
+    statement: |
+      `mathc validate` emits one Warn
+      MC-VERIFIER-SCHEME-UNKNOWN per non-canonical
+      scheme token in
+      obligations[*].acceptance.all[*].verifier, naming
+      the obligation id and the scheme token.
+  - id: canonical-list-documented
+    statement: |
+      The canonical allowlist is: file-exists, dir-exists,
+      bash, mathc, shell-grep, dune (exact), plus prefix
+      tokens text-scan-*, tests/, dune-*, scripts/, manual-*.
+      Anything else triggers the diagnostic.
+
+scope:
+  paths:
+    - "lib/diagnostic.ml"
+    - "bin/Mathc.ml"
+    - "fixtures/conformance/decision/positive-verifier-scheme-known.json"
+    - "fixtures/conformance/decision/positive-verifier-scheme-unknown.json"
+    - "fixtures/conformance/decision/positive-ambiguous-acceptance.json"
+    - "fixtures/conformance/decision/positive-malformed-acceptance.json"
+    - "fixtures/conformance/decision/positive-minimal.json"
+    - "fixtures/conformance/decision/positive-minimal.yaml"
+    - "fixtures/conformance/decision/positive-block-scalars.yaml"
+    - "fixtures/conformance/decision/negative-block-scalars.yaml"
+    - "tests/cli/validate-verifier-scheme-known.t"
+    - "tests/cli/validate-verifier-scheme-unknown.t"
+    - "decisions/verifier-scheme-convention-2026-11.yaml"
+    - "attestations/verifier-scheme-convention-2026-11-*.json"
+  exclusions:
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+    - "lib/decision.ml"
+    - "lib/gate.ml"
+
+obligations:
+  - id: c5-verifier-scheme-warn-emitted
+    claim: |
+      `mathc validate` on a decision file whose
+      `obligations[*].acceptance.all[*].verifier` carries
+      a non-canonical scheme exits 0 with verdict
+      `parse-ok:` and emits one Warn
+      `MC-VERIFIER-SCHEME-UNKNOWN` per non-canonical
+      scheme token on stderr. The accept verdict is
+      unchanged (Warn, not Block).
+    acceptance:
+      all:
+        - verifier: mathc-validate-fixture-unknown-warns
+          result: pass
+        - verifier: shell-grep
+          path: "$DUNE_SOURCEROOT"
+          needle: MC-VERIFIER-SCHEME-UNKNOWN
+          result: pass
+
+  - id: c5-no-new-unknowns
+    claim: |
+      `mathc self-check` after this decision closes is
+      the same 186 pass / 2 unknown verdict as the
+      baseline (release/v3.3.2-2026-10). No NEW unknown
+      subjects attributable to this commit.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+risk:
+  declared_triggers:
+    - warn-noise-on-existing-decisions
+    - explain-registry-drift
+    - verifier-text-ambiguous-scheme-split
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-11-adoption-fixes-2026-10@1
