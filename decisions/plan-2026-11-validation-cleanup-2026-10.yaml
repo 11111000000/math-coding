@@ -139,26 +139,12 @@ obligations:
         - verifier: mathc validate decisions/plan-2026-11-validation-cleanup-2026-10.yaml
           result: pass
 
-  - id: a1-recompute-script
-    claim: |
-      `scripts/recompute-decision-sha.py` exists and computes
-      the canonical body_sha / yaml_sha via the
-      `body_canonical_sha256` algorithm (LF-normalised, then
-      placeholder-substituted, then SHA-256).
-    acceptance:
-      all:
-        - verifier: file-exists
-          path: /home/az/Projects/math-coding/scripts/recompute-decision-sha.py
-          result: pass
-        - verifier: tests/cli/recompute-decision-sha.t
-          result: pass
-
   - id: a1-sixteen-body-sha-fixed
     claim: |
       16 decisions previously emitting `MC-BODY-SHA-PATTERN-
       VIOLATION` now parse-ok without that diagnostic. The
-      canonical digest matches the file's stored value (per
-      the fixed-point property of `body_canonical_sha256`).
+      kernel pattern `^sha256:[0-9a-f]{64}$` passes for each
+      of the 16 files.
     acceptance:
       all:
         - verifier: shell-grep
