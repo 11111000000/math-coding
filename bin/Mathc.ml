@@ -1415,12 +1415,13 @@ let[@warning "-32"] capsule_to_json cap =
    across worktrees (the absolute path is reconstructed for the
    actual file read). *)
 let[@warning "-32"] decision_relpath id =
+  let dir = Path_config.resolve_decisions_dir () in
   match id with
-  | "bootstrap-v3" -> "decisions/decision.yaml"
-  | "infrastructure-honesty" -> "decisions/infrastructure-honesty.yaml"
-  | "kernel-conformance-runner" -> "decisions/kernel-conformance-runner.yaml"
-  | "validate-and-context" -> "decisions/validate-and-context.yaml"
-  | _ -> "decisions/" ^ id ^ ".yaml"
+  | "bootstrap-v3" -> dir ^ "/decision.yaml"
+  | "infrastructure-honesty" -> dir ^ "/infrastructure-honesty.yaml"
+  | "kernel-conformance-runner" -> dir ^ "/kernel-conformance-runner.yaml"
+  | "validate-and-context" -> dir ^ "/validate-and-context.yaml"
+  | _ -> dir ^ "/" ^ id ^ ".yaml"
 
 (* Resolve a "soft" kind that lib/reference.ml does not recognise
    (the formal parser covers decision/obligation/attestation/waiver/
@@ -2242,7 +2243,11 @@ let[@warning "-32"] do_record () =
   in
   let line = event_to_json_line ev in
   let root = find_project_root (Sys.getcwd ()) in
-  let path = Filename.concat root "decisions/execution-logs.jsonl" in
+  let path =
+    Filename.concat root
+      (Filename.concat (Path_config.resolve_decisions_dir ())
+         "execution-logs.jsonl")
+  in
   (try append_event_to_file path line
    with exn ->
      Printf.fprintf stderr "mathc record: cannot write %s: %s\n" path
@@ -2261,7 +2266,11 @@ let[@warning "-32"] do_record () =
  * reference. *)
 
 let[@warning "-32"] read_jsonl_events root =
-  let path = Filename.concat root "decisions/execution-logs.jsonl" in
+  let path =
+    Filename.concat root
+      (Filename.concat (Path_config.resolve_decisions_dir ())
+         "execution-logs.jsonl")
+  in
   if not (Sys.file_exists path) then []
   else
     try
@@ -3521,10 +3530,13 @@ let[@warning "-32"] do_re_evaluate_decisions () =
    * attestation is best-effort: a filesystem failure does not
    * invalidate the run summary on stdout. *)
   let attestations_dir =
-    match Sys.getenv_opt "MATH_CODING_ATTESTATION_STORE" with
-    | Some s when String.length s > 0 ->
-        if Filename.is_relative s then Filename.concat repo_root s else s
-    | _ -> Filename.concat repo_root "attestations"
+    (* route through `resolve_store_root` so the canonical
+       `MATH_CODING_ATTESTATIONS_DIR` env-var AND the legacy
+       `MATH_CODING_ATTESTATION_STORE` are both honoured; the
+       read direction uses the same resolver (lib/path_config
+       and lines 2991-3003) so read/write can no longer diverge.
+       -- path-resolver-audit-2026-11 (F10). *)
+    resolve_store_root repo_root
   in
   let rec mkdir_p d =
     if d = "" || d = "/" || d = "." || Sys.file_exists d then ()
@@ -4213,8 +4225,8 @@ let[@warning "-32"] do_render () =
      exit 2);
   let site_dir = "site" in
   let axioms_root = "axioms" in
-  let decisions_root = "decisions" in
-  let attestations_root = "attestations" in
+  let decisions_root = Path_config.resolve_decisions_dir () in
+  let attestations_root = Path_config.resolve_attestations_dir () in
 
   if not (Sys.file_exists site_dir) then begin
     Printf.fprintf stderr "mathc render: site directory not found: %s\n"
@@ -5331,7 +5343,9 @@ let[@warning "-32"] do_decision_state () =
   (* Resolve the on-disk path under decisions/. *)
   let root = find_project_root (Sys.getcwd ()) in
   let path =
-    Filename.concat (Filename.concat root "decisions") (id_str ^ ".yaml")
+    Filename.concat
+      (Filename.concat root (Path_config.resolve_decisions_dir ()))
+      (id_str ^ ".yaml")
   in
   let reader p =
     try In_channel.with_open_bin p In_channel.input_all with Sys_error _ -> ""
@@ -6448,7 +6462,7 @@ let[@warning "-32"] doctor_section_latest () : doctor_section =
  * Verdict: `Pass` on accept, `Fail` on reject. *)
 let[@warning "-32"] doctor_section_config () : doctor_section =
   let root = find_project_root (Sys.getcwd ()) in
-  let path = Filename.concat root "decisions/decision.yaml" in
+  let path = Filename.concat root (Path_config.resolve_policy_path ()) in
   let exists = Sys.file_exists path in
   let outcome =
     if exists then
@@ -6492,7 +6506,7 @@ let[@warning "-32"] doctor_section_config () : doctor_section =
  * the JSON shape. *)
 let[@warning "-32"] doctor_section_decisions () : doctor_section =
   let root = find_project_root (Sys.getcwd ()) in
-  let decisions_dir = Filename.concat root "decisions" in
+  let decisions_dir = Filename.concat root (Path_config.resolve_decisions_dir ()) in
   let decision_files = list_decision_files decisions_dir in
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
@@ -6693,7 +6707,7 @@ let dispatch () =
      `risk-policy-driven-floor-2026-10`. *)
   let _ =
     let root = find_project_root (Sys.getcwd ()) in
-    let path = Filename.concat root "policies.yaml" in
+    let path = Filename.concat root (Path_config.resolve_policy_path ()) in
     Policy.load_policies ~path ()
   in
   match Sys.argv.(1) with
