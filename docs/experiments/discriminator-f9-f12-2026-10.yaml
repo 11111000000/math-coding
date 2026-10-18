@@ -1,0 +1,502 @@
+findings:
+  - id: F9
+    verdict: confirmed
+    severity: P1
+    rationale: |
+      Confirmed by reading `bin/Mathc.ml` lines 2686-2830 (do_verify +
+      run_one_verifier + run_with_sandbox + parse_verifier_string). The
+      sandbox is exactly what the orchestrator and the B1 decision's own
+      counterexample (lines 135-142 of
+      `decisions/add-verify-subcommand-2026-10.yaml`) describe:
+
+      PRESENT: (a) scheme allowlist — only `file-exists <path>`,
+      `dir-exists <path>`, `mathc <subcmd...>` execute; everything else
+      returns `Skipped` without invoking a shell; (b) environment is
+      reduced to PATH/HOME/LANG (lines 2740-2751, sandbox_env); (c)
+      fork+execve pins the child's cwd to `project_root` (line 2769);
+      (d) 60-second hard timeout via waitpid+SIGKILL (lines 2781-2796).
+
+      MISSING: (1) no seccomp-bpf / prctl(PR_SET_NO_NEW_PRIVS) — child
+      can call any syscall; (2) no chroot, pivot_root, or
+      mount-namespace isolation — child sees the entire filesystem;
+      (3) no PID/IPC/UTS namespace isolation; (4) no rlimit/RLIMIT_NPROC,
+      RLIMIT_FSIZE, RLIMIT_NOFILE caps; (5) no capability dropping
+      (capset); (6) the parent does not close inherited file
+      descriptors before fork, so the child sees parent's stdin/
+      stdout/stderr (only the cwd and argv of the child are reset);
+      (7) no username/group sandboxing. The mathc-scheme re-invokes
+      itself via `Sys.executable_name` (line 2816) so PATH-attack is
+      mitigated, but attacker-controlled `verifier: "mathc <subcmd> ..."`
+      strings can still trigger subcommands that write to the project
+      root (notably `mathc init`, `mathc new-decision --write`,
+      `mathc import-adr --write`, `mathc attest-batch`) or read arbitrary
+      paths via `file-exists`/`dir-exists` as a one-bit oracle.
+      Threat model requires a maliciously-crafted decision YAML a user
+      is induced to `mathc verify`, but that case is not theoretical —
+      third-party decision imports (brownfield bootstrap) routinely
+      execute `mathc verify` on inputs not authored by the operator.
+    fix: |
+      Add a `mathc verify --sandbox=<mode> <file>` flag with three
+      modes and document the default as "trust". Concrete edits:
+
+      1. `bin/Mathc.ml` lines 2761-2796 (run_with_sandbox) — extend
+         to accept a `sandbox_mode` parameter (`none | minimal |
+         strict`). In `strict` mode, before `Unix.execve`, drop
+         capabilities (best-effort on Linux via `capset(2)` to
+         `cap_bset` empty), call `prctl(PR_SET_NO_NEW_PRIVS, 1)`, and
+         apply RLIMITs: CPU=60s, NPROC=1 (single fork), NOFILE=64,
+         FSIZE=write_target_max. Document that `strict` reduces the
+         risk of `mathc init` / `mathc new-decision --write` being
+         triggered via `verifier` strings at the cost of breaking the
+         `mathc` scheme for subcommands that need writable
+         directories.
+      2. `bin/Mathc.ml` line 2813 (`mathc` scheme) — when in `strict`
+         mode, refuse `mathc` scheme subcommands entirely (or
+         allowlist to read-only ones: `validate`, `assess`, `find`,
+         `self-check`, `explain`, `explain-diagnostic`, `context`,
+         `packages`, `do_pmd`. Explicit allowlist, name by name).
+      3. `lib/path_config.ml` — add a new resolver
+         `resolve_sandbox_mode ()` reading
+         `MATH_CODING_VERIFY_SANDBOX` with values `none|minimal|strict`
+         (default `none` for back-compat; this matches the B1
+         decision's "current execution model is **not** sandboxed"
+         statement and signals to operators that stricter modes are
+         opt-in).
+      4. `tests/cli/verify-sandbox.t` — cram fixture exercising three
+         cases: (a) `verifier: "rm -rf /tmp/x"` returns Skipped (mode
+         none); (b) `verifier: "file-exists /etc/shadow"` returns Pass
+         (mode none) and Fail (mode strict + denylist); (c)
+         `verifier: "mathc init"` returns Pass (mode none) and
+         Skipped-strict (mode strict + mathc-scheme deny).
+      5. File a follow-up decision `verify-sandbox-hardening-2026-11`
+         that records (a) the threat model (operator runs
+         `mathc verify` on a decision.yaml whose verifier strings
+         they did not personally author); (b) the residual risk in
+         `minimal`/`none` modes (write-capable mathc subcommands);
+         (c) the OS-level dependency (`prctl` / `capset` are Linux-
+         only; macOS users keep `none` only).
+
+      Alternative if OS-level sandboxing is rejected as out of scope:
+      add the scheme allowlist for the `mathc` scheme explicitly (a
+      short hard-coded list), making `verifier: "mathc <subcmd>"` only
+      succeed when `<subcmd>` is in {`validate`, `assess`, `find`,
+      `self-check`, `explain`, `packages`}. This is a 30-line edit
+      with no kernel dependency and closes the write-capable attack
+      vectors directly.
+
+  - id: F10
+    verdict: qualified
+    severity: P1
+    rationale: |
+      The finding is real but understated. A1 wired 7 subcommands
+      through `Path_config.resolve_decisions_dir ()` and
+      `resolve_attestations_dir ()` (per `decisions/fix-env-var-resolver-2026-10.yaml`
+      lines 26-78 and `tests/cli/env-var-resolver.t` which exercises
+      self-check / packages / find / counters / migrate / re-evaluate
+      / new-decision). A grep for `decisions/`, `attestations/`,
+      `policies.yaml` in `bin/Mathc.ml` returns 76 matches; after
+      removing comments and the now-correct sites, the literals
+      that A1 missed fall into two classes:
+
+      WRITABLE / "must go through resolver":
+
+      1. `bin/Mathc.ml:1417-1423` (`decision_relpath`) — hard-codes
+         `"decisions/decision.yaml"` and `"decisions/<id>.yaml"` as
+         return-value strings. This is consumed by
+         `do_explain`/`do_context` (read-side only) but the returned
+         path is then composed with `find_project_root` to open the
+         file. So env-var override is silently ignored for the four
+         special-case ids (`bootstrap-v3`, `infrastructure-honesty`,
+         `kernel-conformance-runner`, `validate-and-context`).
+      2. `bin/Mathc.ml:2245` and `:2264` (`do_record` write;
+         `do_stats` read) — both hard-code
+         `decisions/execution-logs.jsonl`. Per AGENTS.md §Honest time
+         reporting the JSONL store is owned by the project but the
+         path is *the* source of truth for time-tracking; users who
+         route their tree to `.math-coding/decisions/` via env-var
+         will get telemetry written to the wrong location, leading to
+         downstream `mathc time-estimate` reading a missing or empty
+         file with no warning.
+      3. `bin/Mathc.ml:3523-3527` (`do_re_evaluate_decisions` per-
+         axiom walk) — honours only the legacy
+         `MATH_CODING_ATTESTATION_STORE` env-var, NOT the canonical
+         v3.4 `MATH_CODING_ATTESTATIONS_DIR`. The legacy store
+         precedence (lines 2993-2998 in `resolve_store_root`) is
+         applied only on the *open* of attestation reads, not on the
+         *write* of attestations here. So setting
+         `MATH_CODING_ATTESTATIONS_DIR=.math-coding/attestations`
+         will, in the same `mathc re-evaluate-decisions A0` call,
+         read obligations from `.math-coding/attestations` but write
+         post-run attestations to `<root>/attestations`. Diverging
+         read/write dirs is a silent split.
+      4. `bin/Mathc.ml:4216-4217` (`do_render` constants) —
+         `let decisions_root = "decisions"` and
+         `let attestations_root = "attestations"`. Used at lines
+         4228, 4230 by `Attestations.load ~reader
+         ~root:attestations_root`. A user running
+         `mathc render --root=.math-coding` with
+         `MATH_CODING_DECISIONS_DIR=.math-coding/decisions` set will
+         silently produce a stale site that links to the legacy
+         decisions/* without any error.
+      5. `bin/Mathc.ml:5334` (`do_decision_state`) — hard-codes
+         `<root>/decisions/<id>.yaml` for both read and write. The
+         `decision-state` subcommand mutates a decision's `state:`
+         field, so an env-var override that doesn't reach here will
+         mutate the wrong file.
+      6. `bin/Mathc.ml:6451` (`do_doctor` section "config") and
+         `:6495` (section "decisions") — both hard-code
+         `decisions/decision.yaml` and `decisions` respectively.
+         Lines 6510/6558 use `resolve_store_root` correctly, so half
+         the doctor is wired and half is not.
+
+      READABLE FROM A FIXED LOCATION (do NOT change):
+
+      - `bin/Mathc.ml:1129` (`do_update` reading
+        `scripts/install-tooling`) — repo-internal script dir;
+        always `<project_root>/scripts/install-tooling`, never
+        env-overridden. Correct as is.
+      - `bin/Mathc.ml:1787` (`do_version` reading
+        `bin/data/time-distribution.yaml`) — shipped-with-binary
+        data file.
+      - `bin/Mathc.ml:899`/`908` (`find_project_root` walking for
+        `dune-project`) — the resolver's "root" anchor itself, must
+        stay pinned.
+
+      NOT A FUNCTION OF THE PATH RESOLVER:
+
+      7. `bin/Mathc.ml:6696` (dispatch startup `Policy.load_policies
+         ~path`) — hard-codes `<root>/policies.yaml` and ignores the
+         `MATH_CODING_POLICY` env-var that
+         `lib/path_config.ml::resolve_policy_path` was designed to
+         support. Adding a new `.math-coding/policy.yaml` is silently
+         impossible; the resolver's three-tier precedence (env >
+         new-default `.math-coding/policy.yaml` > legacy
+         `decisions/decision.yaml`) cannot be expressed because only
+         call site #6696 loads the policy declaration today, and it
+         bypasses the resolver.
+
+      Net effect: A1 reduced the symptom class by ~70% (7 of ~10
+      sites) but left 6-7 sites unaddressed. The orchestrator's
+      "P1" severity is right; the scope under-counts A1's misses.
+    fix: |
+      File a follow-up decision `path-resolver-audit-2026-11` that
+      covers the 6 missed call sites in `bin/Mathc.ml`. Concrete
+      diffs:
+
+      1. `bin/Mathc.ml:1417-1423` (`decision_relpath`) — replace
+         the literal strings with
+         `Path_config.resolve_decisions_dir () ^ "/" ^ id ^ ".yaml"`,
+         and add a `Path_config.resolve_policy_path () ^ "/<id>.yaml"`
+         fallback for the four special ids.
+      2. `bin/Mathc.ml:2245` and `:2264` — replace with
+         `Filename.concat (Filename.concat root (Path_config.resolve_decisions_dir ()))
+          "execution-logs.jsonl"`. Add a cram fixture
+         `tests/cli/execution-logs-env-var.t` that sets
+         `MATH_CODING_DECISIONS_DIR=.math-coding/decisions` and
+         asserts the JSONL lands under `.math-coding/...`.
+      3. `bin/Mathc.ml:3523-3527` — replace the inline env-lookup
+         with `resolve_store_root repo_root` (which already
+         honours both env-var names per lines 2991-3003).
+      4. `bin/Mathc.ml:4216-4217` — replace with
+         `let decisions_root = Path_config.resolve_decisions_dir () in
+          let attestations_root = Path_config.resolve_attestations_dir () in`.
+         The relative-path-against-cwd behaviour is preserved
+         because Path_config returns relative paths and
+         `Attestations.load` opens them at the cwd.
+      5. `bin/Mathc.ml:5334` — replace with
+         `Filename.concat (Filename.concat root
+            (Path_config.resolve_decisions_dir ())) (id_str ^ ".yaml")`.
+      6. `bin/Mathc.ml:6451` and `:6495` — same pattern; the doctor
+         sections (`config`, `decisions`) read from `resolve_decisions_dir ()`.
+      7. `bin/Mathc.ml:6696` — replace with
+         `Path_config.resolve_policy_path ()` (composed with root),
+         or simpler still: define `load_policies` to default to
+         `Path_config.resolve_policy_path ()` and have `dispatch ()`
+         pass an explicit override only when `~path` was supplied by
+         the caller. Add a cram fixture
+         `tests/cli/policy-env-var.t` for
+         `MATH_CODING_POLICY=.math-coding/policy.yaml`.
+
+      A grep at the end of the worktree (`bin/Mathc.ml` for `decisions/`,
+      `attestations/`, `policies.yaml`) should return only literal
+      matches inside comments and documentation strings, not inside
+      `Filename.concat`/`let <name> =`. This is the audit-equivalent
+      assertion; add it to `scripts/check-stub-lint.sh` as a new
+      pro-active verifier or to a stand-alone
+      `scripts/check-hard-coded-paths.sh`.
+
+  - id: F11
+    verdict: qualified
+    severity: P2
+    rationale: |
+      The finding is real but mis-targeted. The orchestrator names
+      `scripts/slack2madr.py` and `scripts/confluence2madr.py` as
+      potentially env-var-incompatible; reading both files
+      (188 lines and 219 lines) shows they are pure transforms that
+      read a user-supplied input (zip / JSON) and write a
+      user-supplied output directory of MADR markdown drafts. They
+      do not touch `decisions/`, `attestations/`, or
+      `policies.yaml` at any point. The downstream consumer of the
+      drafts is `mathc import-adr`, which IS wired through
+      `Path_config.resolve_decisions_dir ()` (verified at
+      `lib/import_adr/import_adr.ml:415`). So slack2madr /
+      confluence2madr do not have the env-var issue at all — they
+      don't interact with the resolver's domain.
+
+      However, the audit catches two real offenders that the
+      orchestrator didn't name:
+
+      1. `scripts/axiom-link-seed.py:64`
+         `DECISIONS_DIR = REPO_ROOT / "decisions"` — hard-coded.
+         This script walks every decision under `decisions/*.yaml`
+         and writes back. If a user runs the script on a project
+         with `MATH_CODING_DECISIONS_DIR=.math-coding/decisions`
+         set, the script silently mutates files the kernel never
+         reads (and leaves the actual decisions dir un-mutated).
+      2. `scripts/counterexample-seed.py:75`
+         `DECISIONS_DIR = Path(__file__).parent.parent / "decisions"`
+         — same pattern. Same blast radius.
+
+      Both scripts are sweep tools that operate on the
+      *project's* `decisions/` at the repo root (where their
+      author ran them) and would silently miss a user who
+      relocated via env var.
+
+      For completeness, scripts that do NOT have the issue:
+
+      - `scripts/slack2madr.py`, `scripts/confluence2madr.py` —
+        read user-supplied input, write to user-supplied output
+        dir; no decisions/attestations touch.
+      - `scripts/check-stub-lint.py` — scans
+        `lib/*.ml`, `bin/Mathc.ml`; no decisions/attestations
+        write.
+      - `scripts/check-svg-overflow.py` — scans `assets/*.svg`;
+        no relevant paths; honours `SVG_OVERFLOW_MARGIN` only.
+      - `scripts/generate-attestations.py` — A4 fixed, honours
+        `MATH_CODING_ATTESTATIONS_DIR` (lines 38-43) and declares
+        `MATH_CODING_DECISIONS_DIR` for parity even though the
+        script doesn't read decisions.
+
+      So the orchestrator's F11 identified the right symptom class
+      but cited the wrong scripts. The two scripts that DO have the
+      issue are smaller blast radius but real: an env-var-relocated
+      project would silently never be swept, and the next plan would
+      see an apparent regression.
+    fix: |
+      1. `scripts/axiom-link-seed.py:63-65` — replace
+         `REPO_ROOT = Path(__file__).parent.parent` with
+         `REPO_ROOT = Path(os.environ.get("MATH_CODING_REPO_ROOT", str(Path(__file__).parent.parent)))`
+         (and add `import os`), and
+         `DECISIONS_DIR = REPO_ROOT / "decisions"` with
+         `DECISIONS_DIR = REPO_ROOT / os.environ.get("MATH_CODING_DECISIONS_DIR", "decisions")`.
+         Same for `TIER_DIR`.
+      2. `scripts/counterexample-seed.py:75` — same pattern with
+         `os.environ.get("MATH_CODING_DECISIONS_DIR", "decisions")`
+         (the script uses `Path(__file__).parent.parent` rather than
+         `REPO_ROOT` but the fix is identical).
+      3. Add a new cram probe `tests/cli/scripts-env-var.t` that
+         sets `MATH_CODING_DECISIONS_DIR=.math-coding/decisions`,
+         runs the two scripts in `--dry-run` mode, and asserts the
+         script's `print(...)` reports the resolved dir. This is a
+         no-mutation test (the `--dry-run` flag in both scripts
+         already exists per their module docstrings).
+      4. File a `scripts-env-var-audit-2026-11` decision
+         noting (a) the two offender scripts; (b) the two-by-design
+         pure-transform scripts that don't need it; (c) the four
+         scripts that already work correctly.
+
+      Note: orchestrator's framing of "scripts-audit kernel-
+      decision" is heavier than needed — two one-line edits plus a
+      cram probe is the smallest defensible change. A full audit
+      decision is overkill until F10's kernel audit ships.
+
+  - id: F12
+    verdict: confirmed
+    severity: P2
+    rationale: |
+      Confirmed by reading `bin/Mathc.ml:2418-2468` (`do_attest`),
+      `:6709` (dispatch arm `| "attest" -> do_attest ()`), and
+      cross-referencing `lib/junit` and
+      `decisions/adapters.yaml:99-111`. `mathc attest FILE` is a
+      pure transform: it reads FILE, parses it via
+      `Junit.parse_junit`, and `print_endline`s the
+      `Junit.to_json run` JSON. There is no `mkdir_p`, no
+      `Unix.create`/write, no attestation-store write at any
+      point. Compare to `mathc attest-batch` (lines 2470+ and
+      dispatch arm at `:6710`) which performs the directory
+      create + per-row attestation write — the actual attestation
+      producer. The two subcommands are out of phase by design:
+      `attest` is an importer (CI integration aid), `attest-batch`
+      is an emitter (bulk writer).
+
+      The misleading-ness has three observable consequences:
+
+      - A new operator running `mathc --help` and seeing
+        `attest FILE` listed first (alphabetically adjacent to
+        `attest-batch`) will likely try `mathc attest <some-file>`
+        expecting it to record an attestation. It will not.
+      - `adoption/SKILL.md:233` documents "`mathc attest` writes
+        the field correctly" — the prose says "writes", the code
+        does not. This is a documentation-code drift, not an
+        ambiguity.
+      - `adoption/SKILL.md:423-424` says "`mathc attest` and
+        `mathc attest-batch` write to the same directory the
+        kernel reads from" — also inaccurate for `mathc attest`
+        (which writes nothing).
+
+      Severity is P2 because (a) the rename only affects operators
+      who currently script `mathc attest`; the project itself is
+      the only known scripter (`tests/cli/junit-adapter.t`,
+      `docs/AUDIT-0.0.11.md`, `docs/experiments/adoption-2026-10.md`,
+      `docs/experiments/adoption-fixes-discriminator-2026-10.md`),
+      none of which are user-facing runbooks; (b) the JUnit
+      importer use case (CI integration) is real: `pytest
+      --junit-xml=out.xml` is the canonical case, and renaming to
+      `mathc import-junit` makes the intent visible at the call
+      site; (c) the existing `mathc import-adr` subcommand
+      establishes the `import-<format>` naming family, and
+      `import-junit` fits it. The P2 rating reflects "should-fix
+      before the next minor release ships to external users".
+
+      The rename IS backwards-incompatible for the existing
+      `tests/cli/junit-adapter.t` cram fixture and the two
+      adoption docs above. A clean transition requires:
+      (i) rename dispatch arm + cmd; (ii) update the three
+      call-site docs/tests; (iii) keep `mathc attest` as a
+      deprecation alias that emits a one-shot warning to stderr
+      (printed once per mathc session, gated by a `User_warned`
+      flag) for at least one release (3.4 → 3.5), then remove in
+      3.6; (iv) update `docs/AUDIT-0.0.11.md` to point at the
+      new name in the `D-` line item; (v) fix the inline docs in
+      `adoption/SKILL.md` so they no longer say "writes".
+    fix: |
+      Concrete edits for `import-junit-rename-2026-11`:
+
+      1. `bin/Mathc.ml:6709` — change to
+         `| "import-junit" | "attest" -> do_attest ()` (the
+         deprecation alias emits a one-shot stderr warning:
+         `Printf.fprintf stderr "warning: 'mathc attest' is deprecated and will be removed in 3.6; use 'mathc import-junit' instead.\n"` gated by a static `ref false` flag).
+      2. `bin/Mathc.ml` usages of `mathc attest FILE` in error/help
+         text (lines 2424, 2427, 2452, 2456, 2418-block comment) —
+         replace literal occurrences with `mathc import-junit FILE`
+         while keeping the `do_attest` function name unchanged
+         (the OCaml-side rename is an internal refactor and the
+         syscall surface is the user-facing concern).
+      3. `bin/Mathc.ml:683-690` (`print_usage` help text) —
+         rewrite the `attest` row to `\  import-junit FILE         parse FILE as a JUnit XML report\n` and append a one-line deprecation note under the row.
+      4. `tests/cli/junit-adapter.t` — update the cram test to
+         invoke `mathc import-junit`; add a sibling
+         `tests/cli/attest-deprecation-alias.t` that asserts
+         `mathc attest` still exits 0 and prints the deprecation
+         warning on stderr.
+      5. `decisions/adapters.yaml:99-111` (junit-attestation-import
+         outcome) — update the prose to refer to
+         `mathc import-junit FILE` as the canonical name; add a
+         note naming `mathc attest` as the legacy alias with a
+         removal date.
+      6. `adoption/SKILL.md:233` and `:423-424` — rephrase so
+         neither line uses "writes" for `mathc attest` /
+         `mathc import-junit`. The first becomes "`mathc
+         import-junit` parses the file and prints the canonical
+         JSON on stdout"; the second becomes "`mathc attest-batch`
+         (the bulk writer) writes to the kernel's resolved
+         attestation directory; `mathc import-junit` does not
+         write at all".
+      7. `lib/junit/junit.ml` — no semantic change required; the
+         internal lib name stays as-is (only the CLI surface
+         renames).
+      8. File `decisions/import-junit-rename-2026-11.yaml`
+         (mode: light; scope: `bin/Mathc.ml`, `tests/cli/*.t`,
+         `decisions/adapters.yaml`, `adoption/SKILL.md`) with
+         counterexample covering the rename's break of any
+         external script (none currently exist in this repo, but
+         downstream consumers may); commit the rename in the
+         plan branch with one deprecation cycle of `attest` ->
+         removal.
+
+      Estimated scope: 5 changed files, ~25 net added lines
+      (mostly the deprecation warning + alias dispatch arm).
+      Reference class `single-file-edit` P95 ≈ 10 min per file × 5
+      files ≈ 50 min wall-clock (no multipliers; additive only).
+
+summary:
+  confirmed: 2
+  qualified: 2
+  refuted: 0
+  recommendation: |
+    F9 and F12 are confirmed as-stated and F10/F11 are
+    confirmed-in-class with the orchestrator under-counting the
+    scope. The right next step is to file three sub-decisions
+    under plan-2026-11-adoption-fixes (or equivalent):
+
+    1. `verify-sandbox-hardening-2026-11` (F9) — opt-in
+       strict/minimal sandbox modes for `mathc verify`, with the
+       cheaper mitigation being a hard-coded allowlist of
+       non-write subcommands for the `mathc` verifier scheme (a
+       30-line fix that closes the write-capable attack vector
+       without OS dependencies).
+    2. `path-resolver-audit-2026-11` (F10) — six missed call
+       sites in `bin/Mathc.ml` (do_record / do_stats /
+       do_re_evaluate_decisions / do_render / do_decision_state /
+       do_doctor / dispatch policy loader). One of them
+       (`do_record` writing JSONL telemetry) is the most
+       user-visible because it produces an empty
+       `time-estimate` downstream when env-vars are set.
+    3. `scripts-env-var-audit-2026-11` (F11) — two real offenders
+       (`axiom-link-seed.py`, `counterexample-seed.py`); the
+       orchestrator-named scripts (`slack2madr.py`,
+       `confluence2madr.py`) do NOT have the issue and should be
+       dropped from the candidate list.
+    4. `import-junit-rename-2026-11` (F12) — rename
+       `mathc attest` → `mathc import-junit` with a one-cycle
+       deprecation alias; also fix the two wrong prose claims in
+       `adoption/SKILL.md`.
+
+    All four are within `single-file-edit` or `multi-file-edit`
+    reference classes. None require kernel/protected-file edits
+    (per the fast path: `bin/Mathc.ml` only, no `lib/decision.ml`
+    / `lib/policy.ml` / `lib/risk.ml`). Approximate P95 wall-clock
+    for all four shipped together: 4 × 20 min
+    (single-file-edit P95 = 10 min; doubled for the test+docs
+    cost) ≈ 80 min within a single worktree + PR cycle.
+
+  cross_cutting:
+    - The pattern across F9, F10, F11, F12 is "A1 shipped the
+      first-tier fix and the orchestrator's analyses each name a
+      second-tier concern whose underlying mechanism is the same:
+      insufficient coverage audit after partial adoption". A1
+      cited "7 subcommands fixed" but the grep now shows 6-7 more
+      `decisions/`/`attestations/`/`policies.yaml` literals that
+      A1 did not chase. A reusable lesson: every "fixed X"
+      sub-decision should be paired with a one-liner "what did
+      I NOT change" diff so the orchestrator doesn't have to
+      re-grep later.
+    - F9, F10, F11 each involve a resolver or sanitizer that
+      exists at the kernel level (sandbox scheme allowlist,
+      `Path_config.resolve_*`, `os.environ.get`) but is
+      incompletely wired at the call sites. The project's
+      definition of "wired" should explicitly include the
+      *number of literal sites that still bypass the helper*,
+      not just "does the helper compile".
+    - F12 is the only one with a doc-drift component:
+      `adoption/SKILL.md` describes `mathc attest` as writing to
+      the attestation store when the code does not. The
+      doc-vs-code drift predates the fix and should be a
+      separate drift check (`scripts/check-stale-narrative.sh`,
+      which already exists per the AGENTS.md read-first list,
+      may already cover this; not confirmed).
+    - The fast-path eligible classes for all four: F10 has the
+      most files (6 + decision file), so it is
+      `multi-file-edit` P50≈9 min, P95≈30 min; F9, F11, F12 are
+      `single-file-edit` to `multi-file-edit` and well within
+      the fast-path eligibility envelope. None touch
+      `schemas/`, `decisions/decision.yaml`, or
+      `*Constitution*` files; all four pair cleanly with a
+      single kernel-decision each plus matching cram probes.
+    - The `policies.yaml` env-var (`MATH_CODING_POLICY`,
+      `lib/path_config.ml:80`) is the one resolver that exists
+      but is *completely* unwired in the dispatcher
+      (`bin/Mathc.ml:6696`). This is a 1-line fix with
+      disproportionate value because it unblocks
+      `.math-coding/policy.yaml` as a forward path. F10 should
+      cover it but merits a callout.

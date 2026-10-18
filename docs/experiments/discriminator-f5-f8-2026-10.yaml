@@ -1,0 +1,308 @@
+findings:
+  - id: F5
+    verdict: qualified
+    severity: P2
+    rationale: |
+      The methodology gap is real, but the finding overstates which candidates
+      §10.7 of the original experiment actually named. Lines 505-513 of
+      `docs/experiments/adoption-2026-10.md` list exactly five projects —
+      `golang/go`, `postgres/postgres` (ruled out), `aws/aws-sdk-go-v2` (ruled
+      out), `kubernetes/kubernetes` (ruled out), and only ONE candidate for
+      next time: `open-telemetry/opentelemetry-go`. The other two names the
+      orchestrator attributes to §10.7 — `opa` / `open-policy-agent/opa` and
+      `cncf/toc` — are not in §10.7 at all. They appear only in (a) the C4
+      plan-doc (`docs/plans/plan-2026-10-adoption-fixes-2026-10.md` line 226-228
+      names 4 candidates including opa and cncf/toc) and (b) the sub-agent
+      prompt template (`plan-2026-10-adoption-fixes-2026-10-prompts.md` line
+      310-312 names 5 candidates). So F5 confuses two distinct lists.
+
+      C4's substitution is principled — the brownfield-v2 doc's §3 lists five
+      actually-verified picks (`adr/madr`, `JabRef/jabref`, `theupdateframework/tuf`,
+      `home-assistant/architecture`, `cluster-api-provider-aws`) covering three
+      MADR variants, one adr-tools/Nygard, and one custom format. Diversity
+      is real. But the orchestrator's verification claim ("none of these ship
+      ADRs in their main branches") is also overstated: the verification log
+      at `/tmp/brownfield-v2-verify/` (referenced from `brownfield-experiment-v2-2026-10.md`
+      line 174) only checked for `docs/adr/`, `adr/`, or `docs/decisions/` —
+      not `docs/decision/` (singular), which is where opentelemetry-go actually
+      keeps its ADRs per §10.7's own claim ("uses MADR-shaped ADRs in
+      `docs/decision/`"). The log no longer exists on disk
+      (`ls /tmp/brownfield-v2-verify/` returns ENOENT), so the original
+      verification cannot be re-checked.
+
+      Severity stays P2: the underlying methodology gap (picks without
+      verified-by-clone) is real regardless of where the speculative list
+      was written. Should-run-the-experiment-v2: yes, but only after
+      brownfield-v2 fixes the `docs/decision/` check and explicitly excludes
+      opentelemetry-go for the reason §10.7 named it.
+    fix: |
+      Three concrete changes, all docs-only:
+
+      1. Edit `docs/experiments/brownfield-experiment-v2-2026-10.md` §3
+         (lines 169-191). Re-classify opentelemetry-go: it has
+         `docs/decision/` (singular), not `docs/adr/`, `adr/`, or
+         `docs/decisions/`. Either (a) widen the verification grep to include
+         `docs/decision/`, re-run shallow-clones of opentelemetry-go + kustomize
+         + grafana/loki (the prompt-template candidates), and re-rank the
+         top-5, or (b) explicitly state the candidates were rejected for
+         "non-standard ADR directory" with a one-line per-candidate note. The
+         current §3 silently drops them without naming the reason, which
+         reads as if they were rejected for the same reason as the 6
+         documented backups.
+
+      2. Edit `docs/experiments/adoption-2026-10-agent-template.md` (82 lines)
+         to add a §"Pre-flight: verified-by-clone" section before §3
+         hypotheses. The rule: every candidate project must include the
+         one-line shell transcript
+         `git clone --depth=1 <url> /tmp/check && git -C /tmp/check ls-tree
+         --name-only -r HEAD | grep -E '(^|/)(docs/adr|adr|docs/decisions|docs/decision)/'`
+         with a positive result, OR the candidate is dropped with a
+         documented reason. This catches the speculative-pick class before
+         the experiment runs.
+
+      3. File a follow-up decision `decisions/brownfield-pick-verification-2026-10.yaml`
+         (mode: light, change_kind: editorial) recording the corrected
+         candidate list and the verification transcripts (or a reference
+         to `/tmp/brownfield-v2-verify/v2-verify.log` if re-run). The decision
+         must close `c4-brownfield-experiment-v2-planned`'s follow-on.
+
+      No kernel changes. No schema changes. The P1 risk from F5 is the
+      experiment execution itself, not a code defect.
+
+  - id: F6
+    verdict: confirmed
+    severity: P3
+    rationale: |
+      Every claim is verified. `bin/Mathc.ml::do_doctor` is defined at
+      line 6622; the dispatch arm `"doctor" -> do_doctor ()` is registered
+      at line 6734; `tests/cli/doctor.t` exists (12 KB cram fixture).
+      `decisions/verify-mathc-doctor-ships-2026-10.yaml` records the
+      C3 verification (commit `e8f413ed` on 2026-10-15 14:46 UTC, message
+      "feat(cli): add mathc doctor subcommand (D10)"). The experiment
+      report §11.1 (lines 548-568) explicitly confirms the experiment
+      did NOT exercise `mathc doctor`: the binary at
+      `/home/az/.local/bin/mathc` was built 2026-10-15 13:40 UTC, **66
+      minutes before** the doctor source commit. So neither the 15
+      sub-agents nor the 5 control tasks ran the subcommand during the
+      experiment window. The agents "reported they would have used it"
+      (§11.1 line 549) but no empirical data exists.
+
+      The fix is sound. Adding `mathc doctor` to the per-session checklist
+      (alongside `mathc validate`, `mathc self-check`) would have surfaced
+      the binary-staleness artefact at T1: doctor would have exited with
+      `unknown command: doctor` on the first session, alerting the
+      orchestrator to rebuild before any data was collected. Severity
+      stays P3 because (a) the gap is now closed by
+      `verify-mathc-doctor-ships-2026-10` and the freshly built binary,
+      (b) doctor's primary use case is "diagnose a misconfigured install",
+      which the 5 OSS projects in this experiment did not have — they were
+      clean checkouts. The experiment result would not have changed
+      substantively if doctor had been exercised; the failure modes
+      recorded (§10.5) are pre-doctor install/usage defects that doctor's
+      `install`/`path`/`config` sections would not have detected.
+    fix: |
+      One concrete change, docs-only:
+
+      - Edit `docs/experiments/adoption-2026-10-agent-template.md`
+        (and add the same paragraph to
+        `docs/experiments/brownfield-experiment-v2-2026-10.md` §5 T1
+        and §5 T2 templates). Insert a §"Per-session smoke test" section
+        between the existing T1/T2/T3 templates: every agent's first
+        action must include `mathc doctor --json | jq '.verdict'` (or
+        equivalent shell-only check), and a non-`pass` result blocks
+        the session with a documented exit. This catches (a) binary
+        staleness (the original experiment's exact failure), (b)
+        install drift between worktrees, (c) env-var resolver bugs
+        that would otherwise look like agent errors.
+
+      No decision file needed; this is methodology documentation, not a
+      commitment that the kernel can verify. P3 keeps it out of the
+      decision/protected-track ceiling.
+
+  - id: F7
+    verdict: qualified
+    severity: P3
+    rationale: |
+      The "8-code taxonomy was subjective" claim is real and well-documented.
+      §10.5 of the original report (pre-C1 commit 6f0d7ff0) lists env-var
+      events #1, #2, #5 as tagged `F-INTEGRATION/F-TOOLING`,
+      `F-INTEGRATION`, and `F-WORKFLOW/F-TOOLING` respectively — four to
+      five different 8-code categories for one kernel-defect class.
+      §11.2 (lines 601-606) summarises: "Under the 8-code form, the same
+      env-var bug was tagged `F-WORKFLOW`, `F-TOOLING`, `F-INTEGRATION`,
+      and `F-SETUP` by different agents." The F7 finding's per-project
+      attribution is approximately correct: ripgrep T1-1 etc. are tagged
+      F-SETUP (`experiment-report.md` line 570: "F-SETUP, 3 events"),
+      express T1-1 is in the F-INTEGRATION column of §10.5 event #1/#2,
+      click T1-1 is in F-TOOLING (event #1), and cobra R5/event #5 uses
+      F-WORKFLOW for the env-var-adjacent generate-attestations.py.
+
+      But the F7 finding's deeper claim — "C1 collapsed 8→4 but the
+      category reduction did not address the classification problem" —
+      is overstated. The 4-code form does collapse F-SETUP,
+      F-TOOLING, and F-INTEGRATION into F-INSTALL (per
+      `revise-friction-taxonomy-2026-10.yaml` lines 152-154 and the
+      `docs/experiments/adoption-2026-10.md` §7 mapping rules at lines
+      262-268). A future agent classifying an env-var bug has exactly
+      one correct code: F-INSTALL. The 4-code form is "mutually
+      exclusive BY CONSTRUCTION" per the decision file's counterexample
+      (line 106). The remaining subjective space is at the F-WORKFLOW
+      vs F-SEMANTIC boundary — neither code is a likely host for env-var
+      bugs after the collapse.
+
+      The proposed disambiguation rule ("if event matches two
+      categories, prefer the more upstream category: installation >
+      schema > workflow > semantic") is reasonable in principle but
+      addresses a residual class that the 4-code collapse already
+      resolved for env-var. The rule's "more upstream" wording is
+      also ambiguous (upstream in user's journey? upstream in causal
+      chain? upstream in build pipeline?) — different agents will read
+      it differently, which could just shift the ambiguity rather than
+      resolve it. Severity stays P3 — the finding is real but the
+      proposed fix is mostly redundant with C1's collapse.
+    fix: |
+      Two concrete changes, both docs-only:
+
+      1. Edit `docs/experiments/adoption-2026-10-agent-template.md`
+         (and `brownfield-experiment-v2-2026-10.md` §7 lines 386-419)
+         to add a single-paragraph "When two codes fit" rule. The rule
+         should name the **specific** case C1 left ambiguous:
+         "When an event could be F-WORKFLOW (when-to-do-what) or
+         F-SEMANTIC (kernel surprised me), prefer F-WORKFLOW if the
+         agent's confusion is about which command to run next;
+         prefer F-SEMANTIC if the agent's confusion is about why a
+         command returned an unexpected output. Test: if removing the
+         feature would eliminate the confusion, it's F-SEMANTIC; if a
+         better onboarding doc would eliminate it, it's F-WORKFLOW."
+         This is more concrete than the orchestrator's "more upstream"
+         rule and is testable on historical events.
+
+      2. File a decision `decisions/refine-friction-disambiguation-2026-10.yaml`
+         (mode: light, change_kind: editorial, axiom_link: [A1]) recording
+         the new rule and applying it retrospectively to the 4 F-SEMANTIC
+         events recorded in §10.5 (counts at line 459). The decision
+         should not change any count; it should record the rule that
+         classifies the existing 4 F-SEMANTIC events deterministically.
+
+      No kernel changes. No schema changes. P3 keeps this on the
+      brownfield-v2 runway, not the protected track.
+
+  - id: F8
+    verdict: confirmed
+    severity: P3
+    rationale: |
+      The finding is real, but the F8 symptom is slightly overstated on one
+      detail. The plan (`docs/plans/plan-2026-10-adoption-fixes-2026-10.md`
+      lines 105-119) describes A3's scope as "one-line addition" of the
+      dispatch arm — which is itself wrong (the dispatch arm was already
+      added). The actual commit closing it
+      (`17772ccfef6201c7e7c6cc98f1f984f9fa8cefbd`,
+      `feat(cli): pin attest-batch subcommand as A3 acceptance crate`,
+      2026-10-17 22:56:50 UTC) is explicit: "The dispatch arm
+      `| "attest-batch" -> do_attest_batch ()` and the print_usage block
+      were already present at HEAD (bin/Mathc.ml:6400 and bin/Mathc.ml:676-683,
+      both shipped in commit 72713c6)." So the orchestrator's claim that
+      "A3 only had to add a one-line dispatch entry and a cram fixture"
+      is wrong on the dispatch part — no entry was added; the line was
+      already at HEAD. A3 added exactly two artefacts: the
+      `decisions/ship-attest-batch-2026-10.yaml` decision file and the
+      `tests/cli/attest-batch.t` cram fixture (the latter consolidating
+      3 acceptance branches in one file, while the 4
+      `tests/cli/attest-batch-{positive,malformed,dry-run,from-decisions}.t`
+      fixtures from commit 72713c6 remain on disk and continue to pin
+      the implementation surface).
+
+      The plan-doc's framing — "A3 ... subcommand ... not registered in
+      the dispatch table. Register it." — is wrong in retrospect. The
+      plan-doc was honest about the scope ("one-line addition", "Risk.
+      Very low. Subcommand already implemented.") but framed the work
+      as a fresh implementation when it was a verify-and-pin. The
+      `ship-attest-batch-2026-10.yaml` decision's own `counterexample`
+      (lines 34-51) acknowledges this: "the duplication is the minimum
+      overhead required to keep A3 shippable independently of the
+      longer-running sub-decision stream." A3's actual contribution was
+      ~1-2 hours of acceptance pinning, not "ship the subcommand".
+
+      The proposed fix — distinguishing "implementation work" from
+      "acceptance work" in plan outcomes — is sound. Severity P3 is
+      correct: the effort was small, no kernel defect resulted, and the
+      acceptance pinning was the meta-decision's actual need.
+    fix: |
+      Two concrete changes, both docs-and-template, low-risk:
+
+      1. Edit `docs/plans/plan-2026-10-adoption-fixes-2026-10.md`
+         lines 105-119 (the A3 description). Replace the "What."
+         paragraph with:
+         "**What.** Verify that `mathc attest-batch` ships end-to-end
+         (dispatch arm, print_usage block, `lib/attestations/batch.ml`,
+         cram fixtures) and that the meta-decision closure obligation
+         `a3-attest-batch-shipped` has a state-active decision file
+         with a matching attestation. **Out of scope:** any
+         implementation change to `bin/Mathc.ml` or
+         `lib/attestations/batch.ml`; if the dispatch arm is missing,
+         escalate to `plan-2026-10-improvements` for a new P3, do not
+         silently expand scope here." This makes the verify-and-pin
+         nature of the sub-decision explicit.
+
+      2. Edit `docs/experiments/adoption-2026-10-agent-template.md`
+         to add a §"Implementation vs acceptance" disambiguation
+         block before the per-sub-decision prompt template. The rule:
+         "If the sub-decision's plan-doc text names a kernel file or
+         subcommand as the implementation target, and `git log` shows
+         that file/subcommand shipped in a prior commit, the
+         sub-decision's actual scope is `acceptance-pinning` (decision
+         file + cram fixture + attestation), not `implementation`.
+         Reduce the per-sub-decision time estimate accordingly
+         (reference-class `single-file-edit`, not `feature-add`)."
+
+      No kernel changes. No schema changes. Apply retrospectively to
+      plan-2026-10-adoption-fixes' §5 if any successor plan is filed,
+      but do not amend the closed A3 decision file.
+
+summary:
+  confirmed: 2
+  qualified: 2
+  refuted: 0
+  recommendation: |
+    Three of the four findings (F6, F7, F8) are honest observations about
+    methodology slips, but none of them justify a kernel change in the
+    plan-2026-11-adoption-fixes cycle. F5 (qualified P2) is the only one
+    worth pulling forward into v-next: the brownfield-experiment-v2 doc
+    should widen its `git ls-tree` check to include `docs/decision/`
+    (singular) and explicitly note why opentelemetry-go was rejected, not
+    silently drop it. F6 (confirmed), F7 (qualified), F8 (confirmed) all
+    reduce to "better templates": a per-session `mathc doctor` smoke
+    test (F6), a precise F-WORKFLOW/F-SEMANTIC disambiguation rule
+    rather than the orchestrator's vague "prefer upstream" (F7), and an
+    "implementation vs acceptance-pinning" prompt block (F8). These belong
+    in `docs/experiments/adoption-2026-10-agent-template.md` and the
+    brownfield-v2 templates, not in the kernel or the schemas.
+  cross_cutting: |
+    Three observations across the four findings:
+
+    1. **Speculative evidence in finding reports.** F5 and F8 both
+       misattribute evidence. F5 attributes the "open-telemetry-go, opa,
+       cncf/toc" speculative list to §10.7 of the original experiment,
+       when §10.7 only names opentelemetry-go and the other two live
+       in the C4 plan-doc and prompt-template. F8 says A3 added a
+       "one-line dispatch entry", when the actual commit message is
+       explicit that the dispatch arm was already at HEAD. Both
+       misattributions are correctable from the in-tree artefacts
+       alone; future findings should re-cite primary sources rather
+       than the orchestrator's summary.
+
+    2. **Verification logs that disappeared.** The brownfield-v2
+       verification log at `/tmp/brownfield-v2-verify/verify.log` no
+       longer exists (`ls /tmp/brownfield-v2-verify/` returns ENOENT).
+       Future experiments should commit verification logs to the repo
+       (or at least to `docs/experiments/brownfield-experiment-v2-backups.md`)
+       before the artefacts they support land on main.
+
+    3. **The plan-doc framing is honest, the meta-decision framing is
+       sometimes not.** A3's plan-doc entry says "Risk. Very low.
+       Subcommand already implemented" — that's accurate. But the
+       plan-decision's `a3-attest-batch-shipped` obligation reads as
+       "ship the attest-batch subcommand" — which is the
+       implementation claim, not the verify-and-pin claim. Plan-doc
+       prose and decision-file obligations should agree on the work
+       classification.
