@@ -14,7 +14,6 @@
  * offline; this module is I/O. *)
 
 type brownfield = Empty | Arc42 | Madr | AdrTools | Mixed
-
 type agent = Generic | Opencode | ClaudeCode | Cursor | Continue
 
 type options = {
@@ -35,13 +34,10 @@ let exists_as_dir root sub =
 let detect_brownfield ~root : brownfield =
   let has_arc42 = exists_as_dir root "docs/arc42" in
   let has_madr =
-    exists_as_dir root "docs/adr"
-    && not (exists_as_dir root "docs/arc42")
+    exists_as_dir root "docs/adr" && not (exists_as_dir root "docs/arc42")
   in
-  let has_adr_tools =
-    exists_as_dir root "adr"
-  in
-  match has_arc42, has_madr, has_adr_tools with
+  let has_adr_tools = exists_as_dir root "adr" in
+  match (has_arc42, has_madr, has_adr_tools) with
   | false, false, false -> Empty
   | true, false, false -> Arc42
   | false, true, false -> Madr
@@ -67,7 +63,7 @@ let agent_of_string s =
   | _ ->
       Error
         ("unknown --agent value: " ^ s
-         ^ " (expected: generic | opencode | claude-code | cursor | continue)")
+       ^ " (expected: generic | opencode | claude-code | cursor | continue)")
 
 let string_of_agent = function
   | Generic -> "generic"
@@ -84,60 +80,60 @@ let master_policy_template =
    revision: 1\n\
    state: active\n\
    intent: |\n\
-   \  Master policy for this project. Edit `scope.paths[]` below to\n\
-   \  match the source tree under version control. The shipped\n\
-   \  `mathc` binary uses this file as the active policy when\n\
-   \  running `mathc self-check` and `mathc gate`.\n\
+  \  Master policy for this project. Edit `scope.paths[]` below to\n\
+  \  match the source tree under version control. The shipped\n\
+  \  `mathc` binary uses this file as the active policy when\n\
+  \  running `mathc self-check` and `mathc gate`.\n\
    axiom_link:\n\
-   \  - A0\n\
-   \  - A3\n\
+  \  - A0\n\
+  \  - A3\n\
    commitment: |\n\
-   \  Replace the placeholder paths in `scope.paths` with the\n\
-   \  directories that hold your kernel, scripts, and specs.\n\
-   \  The kernel is offline and side-effect-free; everything\n\
-   \  outside `scope.paths` is untracked by `mathc self-check`.\n\
+  \  Replace the placeholder paths in `scope.paths` with the\n\
+  \  directories that hold your kernel, scripts, and specs.\n\
+  \  The kernel is offline and side-effect-free; everything\n\
+  \  outside `scope.paths` is untracked by `mathc self-check`.\n\
    counterexample: |\n\
-   \  The strongest objection considered and rejected: \"Adopting\n\
-   \  math-coding is overhead for projects where one developer\n\
-   \  works alone with no AI assistance.\" This fails because the\n\
-   \  protocol's applicability envelope (spec/algebra-3.2.md §28)\n\
-   \  names exactly those projects as Path B (regular ADR plus\n\
-   \  counterexample). math-coding is Path A only when the\n\
-   \  applicability is positive, in which case the overhead is\n\
-   \  justified. A solo developer without AI never enters Path A.\n\
+  \  The strongest objection considered and rejected: \"Adopting\n\
+  \  math-coding is overhead for projects where one developer\n\
+  \  works alone with no AI assistance.\" This fails because the\n\
+  \  protocol's applicability envelope (spec/algebra-3.2.md §28)\n\
+  \  names exactly those projects as Path B (regular ADR plus\n\
+  \  counterexample). math-coding is Path A only when the\n\
+  \  applicability is positive, in which case the overhead is\n\
+  \  justified. A solo developer without AI never enters Path A.\n\
    scope:\n\
-   \  paths:\n\
-   \    - \"src/**\"\n\
-   \    - \"lib/**\"\n\
-   \    - \"bin/**\"\n\
-   \    - \"scripts/**\"\n\
-   \    - \"spec/**\"\n\
-   \    - \"schemas/**\"\n\
-   \  exclusions:\n\
-   \    - \"**/.git/**\"\n\
+  \  paths:\n\
+  \    - \"src/**\"\n\
+  \    - \"lib/**\"\n\
+  \    - \"bin/**\"\n\
+  \    - \"scripts/**\"\n\
+  \    - \"spec/**\"\n\
+  \    - \"schemas/**\"\n\
+  \  exclusions:\n\
+  \    - \"**/.git/**\"\n\
    outcomes:\n\
-   \  - id: master-policy-active\n\
-   \    statement: |\n\
-   \      This file is the active policy; `mathc self-check`\n\
-   \      reads it on every invocation.\n\
+  \  - id: master-policy-active\n\
+  \    statement: |\n\
+  \      This file is the active policy; `mathc self-check`\n\
+  \      reads it on every invocation.\n\
    obligations:\n\
-   \  - id: scope-paths-match-tree\n\
-   \    claim: |\n\
-   \      Every source file under version control appears in\n\
-   \      `scope.paths` or is explicitly excluded.\n\
-   \    acceptance:\n\
-   \      all:\n\
-   \        - verifier: mathc self-check\n\
-   \          result: pass\n\
+  \  - id: scope-paths-match-tree\n\
+  \    claim: |\n\
+  \      Every source file under version control appears in\n\
+  \      `scope.paths` or is explicitly excluded.\n\
+  \    acceptance:\n\
+  \      all:\n\
+  \        - verifier: mathc self-check\n\
+  \          result: pass\n\
    risk:\n\
-   \  declared_triggers:\n\
-   \    - bootstrap-template-not-edited\n\
-   \    - kernel-changed-without-self-application\n\
-   \  owner: human:maintainer\n\
+  \  declared_triggers:\n\
+  \    - bootstrap-template-not-edited\n\
+  \    - kernel-changed-without-self-application\n\
+  \  owner: human:maintainer\n\
    relations:\n\
-   \  addresses: []\n\
-   \  supersedes: []\n\
-   \  superseded_by: []\n"
+  \  addresses: []\n\
+  \  supersedes: []\n\
+  \  superseded_by: []\n"
 
 (* --- file I/O helpers --------------------------------------------- *)
 
@@ -163,23 +159,22 @@ let pre_commit_hook_body =
    # `mathc self-check`. Exits non-zero on any failure; the\n\
    # commit is blocked.\n\
    set -eu\n\
-   staged=$(git diff --cached --name-only -- 'decisions/*.yaml' 2>/dev/null || true)\n\
+   staged=$(git diff --cached --name-only -- 'decisions/*.yaml' 2>/dev/null || \
+   true)\n\
    if [ -n \"$staged\" ]; then\n\
-   \  for f in $staged; do\n\
-   \    if ! mathc validate \"$f\" >/dev/null; then\n\
-   \      echo \"mathc: validate failed for $f\" >&2\n\
-   \      exit 1\n\
-   \    fi\n\
-   \  done\n\
+  \  for f in $staged; do\n\
+  \    if ! mathc validate \"$f\" >/dev/null; then\n\
+  \      echo \"mathc: validate failed for $f\" >&2\n\
+  \      exit 1\n\
+  \    fi\n\
+  \  done\n\
    fi\n\
-   mathc self-check\n\
-   "
+   mathc self-check\n"
 
 let install_pre_commit_hook ~root =
   let dir = Filename.concat root ".githooks" in
   let path = Filename.concat dir "pre-commit" in
-  (try Unix.mkdir dir 0o755 with
-   | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+  (try Unix.mkdir dir 0o755 with Unix.Unix_error (Unix.EEXIST, _, _) -> ());
   let oc = open_out path in
   output_string oc pre_commit_hook_body;
   close_out oc;
@@ -200,7 +195,9 @@ let[@warning "-32"] find_source_ci_workflow () : string option =
   let rec walk dir =
     if dir = "/" || dir = "." || dir = "" then None
     else begin
-      let candidate = Filename.concat (Filename.concat dir "templates") "ci.yml" in
+      let candidate =
+        Filename.concat (Filename.concat dir "templates") "ci.yml"
+      in
       if Sys.file_exists candidate then Some candidate
       else walk (Filename.concat dir "..")
     end
@@ -217,14 +214,13 @@ let[@warning "-32"] install_ci_workflow ~root : bool =
   let dir = Filename.concat root ".github" in
   let wf_dir = Filename.concat dir "workflows" in
   let dst = Filename.concat wf_dir "ci.yml" in
-  (try Unix.mkdir dir 0o755 with
-   | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
-  (try Unix.mkdir wf_dir 0o755 with
-   | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+  (try Unix.mkdir dir 0o755 with Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+  (try Unix.mkdir wf_dir 0o755 with Unix.Unix_error (Unix.EEXIST, _, _) -> ());
   if Sys.file_exists dst then begin
     Printf.printf
       "  ci workflow: %s already exists, skipping (remove it first to \
-       regenerate)\n" dst;
+       regenerate)\n"
+      dst;
     false
   end
   else begin
@@ -247,30 +243,25 @@ let[@warning "-32"] mkdir_p path =
     else if Sys.file_exists p then ()
     else begin
       loop (Filename.dirname p);
-      (try Unix.mkdir p 0o755 with
-       | Unix.Unix_error (Unix.EEXIST, _, _) -> ())
+      try Unix.mkdir p 0o755 with Unix.Unix_error (Unix.EEXIST, _, _) -> ()
     end
   in
   loop path
 
 let scaffold ~root =
-  let dec_dir =
-    Filename.concat root (Path_config.resolve_decisions_dir ())
-  in
+  let dec_dir = Filename.concat root (Path_config.resolve_decisions_dir ()) in
   let att_dir =
     Filename.concat root (Path_config.resolve_attestations_dir ())
   in
   let dec_yaml = Filename.concat root (Path_config.resolve_policy_path ()) in
-  if Sys.file_exists dec_yaml then
-    `Refuse_existing dec_yaml
+  if Sys.file_exists dec_yaml then `Refuse_existing dec_yaml
   else begin
     mkdir_p dec_dir;
     mkdir_p att_dir;
     try
       write_file ~path:dec_yaml ~contents:master_policy_template;
       `Ok
-    with
-    | e -> `Io (Printexc.to_string e)
+    with e -> `Io (Printexc.to_string e)
   end
 
 (* --- top-level init ------------------------------------------------ *)
@@ -282,8 +273,8 @@ let check_brownfield (opts : options) : unit =
   | bf ->
       Printf.eprintf
         "mathc init: refusing to init in brownfield project (detected %s); \
-         pass --merge to proceed or use `mathc import-adr` to import \
-         existing ADR files\n"
+         pass --merge to proceed or use `mathc import-adr` to import existing \
+         ADR files\n"
         (string_of_brownfield bf);
       exit 3
 
@@ -294,29 +285,27 @@ let check_scaffold ~merge (root : string) : unit =
       (* --merge: existing decision.yaml stays untouched; the rest of
          init (per-repo skill, .githooks, decisions/, attestations/) is
          still wired. Print a note so the maintainer knows. *)
-      Printf.printf
-        "mathc init: keeping existing %s (--merge); proceeding\n" p
+      Printf.printf "mathc init: keeping existing %s (--merge); proceeding\n" p
   | `Refuse_existing p ->
       Printf.eprintf
-        "mathc init: refusing to overwrite existing %s; remove it or \
-         pass --merge\n" p;
+        "mathc init: refusing to overwrite existing %s; remove it or pass \
+         --merge\n"
+        p;
       exit 3
   | `Io m ->
       Printf.eprintf "mathc init: scaffold I/O error: %s\n" m;
       exit 3
 
 let maybe_install_hook (opts : options) : unit =
-  if not opts.no_install then
-    try install_pre_commit_hook ~root:opts.root with
-    | e ->
-        Printf.eprintf
-          "mathc init: pre-commit hook install failed: %s\n"
-          (Printexc.to_string e);
-        exit 3
+  if not opts.no_install then (
+    try install_pre_commit_hook ~root:opts.root
+    with e ->
+      Printf.eprintf "mathc init: pre-commit hook install failed: %s\n"
+        (Printexc.to_string e);
+      exit 3)
 
 let print_summary (opts : options) : unit =
-  Printf.printf "mathc init: created %s/%s, %s/%s\n"
-    opts.root
+  Printf.printf "mathc init: created %s/%s, %s/%s\n" opts.root
     (Path_config.resolve_decisions_dir ())
     opts.root
     (Path_config.resolve_attestations_dir ());
@@ -324,18 +313,17 @@ let print_summary (opts : options) : unit =
     "  decision.yaml: schema math-coding/3.2, scope paths editable\n";
   if not opts.no_install then
     Printf.printf "  pre-commit hook: installed at .githooks/pre-commit\n"
-  else
-    Printf.printf "  pre-commit hook: skipped (--no-install)\n";
+  else Printf.printf "  pre-commit hook: skipped (--no-install)\n";
   if opts.with_ci_workflow then
     Printf.printf
-      "  ci workflow: installed at .github/workflows/ci.yml \
-       (see `install_ci_workflow` notes above)\n";
+      "  ci workflow: installed at .github/workflows/ci.yml (see \
+       `install_ci_workflow` notes above)\n";
   begin match opts.from_adr with
   | None -> ()
   | Some _ ->
       Printf.eprintf
-        "mathc init: --from-adr is not yet implemented in this slice; \
-         run `mathc import-adr <path>` separately (decision \
+        "mathc init: --from-adr is not yet implemented in this slice; run \
+         `mathc import-adr <path>` separately (decision \
          ux-3-import-adr-subcommand-2026-10).\n"
   end
 
@@ -364,10 +352,10 @@ let print_summary (opts : options) : unit =
 let xdg_config_home () : string =
   match Sys.getenv_opt "XDG_CONFIG_HOME" with
   | Some p when p <> "" -> p
-  | _ ->
-      (match Sys.getenv_opt "HOME" with
-       | Some h -> Filename.concat h ".config"
-       | None -> Filename.concat (Sys.getcwd ()) ".config")
+  | _ -> (
+      match Sys.getenv_opt "HOME" with
+      | Some h -> Filename.concat h ".config"
+      | None -> Filename.concat (Sys.getcwd ()) ".config")
 
 let find_source_skill () : string option =
   (* Walk up from the binary's directory looking for the
@@ -384,8 +372,7 @@ let find_source_skill () : string option =
       let candidate =
         Filename.concat
           (Filename.concat dir ".opencode")
-          (Filename.concat "skills"
-             (Filename.concat "math-coding" "SKILL.md"))
+          (Filename.concat "skills" (Filename.concat "math-coding" "SKILL.md"))
       in
       if Sys.file_exists candidate then Some candidate
       else walk (Filename.concat dir "..")
@@ -415,44 +402,40 @@ let maybe_install_agent_skill (opts : options) : unit =
           let oc = open_out dst in
           output_string oc content;
           close_out oc;
-          Printf.printf
-            "  per-user opencode skill: installed at %s\n" dst
+          Printf.printf "  per-user opencode skill: installed at %s\n" dst
       | None ->
           Printf.eprintf
-            "mathc init: --agent opencode: source skill not found; \
-             run \xC2\xABinstall.sh --user-skill\xC2\xBB to install the \
-             per-user skill (or use a math-coding source build where \
-             \xC2\xAB.opencode/skills/math-coding/SKILL.md\xC2\xBB is \
-             present).\n"
+            "mathc init: --agent opencode: source skill not found; run \
+             \xC2\xABinstall.sh --user-skill\xC2\xBB to install the per-user \
+             skill (or use a math-coding source build where \
+             \xC2\xAB.opencode/skills/math-coding/SKILL.md\xC2\xBB is present).\n"
       end
   | ClaudeCode ->
       Printf.eprintf
-        "mathc init: --agent claude-code: per-user install is TODO; \
-         copy \xC2\xABdist/adoption/claude-code/instructions.md\xC2\xBB from \
-         a math-coding release tarball to your \xC2\xAB.claude/\xC2\xBB \
+        "mathc init: --agent claude-code: per-user install is TODO; copy \
+         \xC2\xABdist/adoption/claude-code/instructions.md\xC2\xBB from a \
+         math-coding release tarball to your \xC2\xAB.claude/\xC2\xBB \
          directory.\n"
   | Cursor ->
       Printf.eprintf
-        "mathc init: --agent cursor: per-user install is TODO; \
-         copy \xC2\xABdist/adoption/cursor/rules.md\xC2\xBB from a \
-         math-coding release tarball to \xC2\xAB.cursor/rules/math-coding.md\xC2\xBB.\n"
+        "mathc init: --agent cursor: per-user install is TODO; copy \
+         \xC2\xABdist/adoption/cursor/rules.md\xC2\xBB from a math-coding \
+         release tarball to \xC2\xAB.cursor/rules/math-coding.md\xC2\xBB.\n"
   | Continue ->
       Printf.eprintf
-        "mathc init: --agent continue: Continue does not have a \
-         per-user rules directory; the skill is per-repo \
+        "mathc init: --agent continue: Continue does not have a per-user rules \
+         directory; the skill is per-repo \
          (\xC2\xAB.opencode/skills/math-coding/SKILL.md\xC2\xBB).\n"
 
 let maybe_install_ci_workflow (opts : options) : unit =
-  if opts.with_ci_workflow then
+  if opts.with_ci_workflow then (
     try
       let _installed = install_ci_workflow ~root:opts.root in
       ()
-    with
-    | e ->
-        Printf.eprintf
-          "mathc init: ci workflow install failed: %s\n"
-          (Printexc.to_string e);
-        exit 3
+    with e ->
+      Printf.eprintf "mathc init: ci workflow install failed: %s\n"
+        (Printexc.to_string e);
+      exit 3)
 
 let run (opts : options) : unit =
   check_brownfield opts;

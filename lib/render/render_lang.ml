@@ -37,4 +37,7 @@ let[@warning "-32"] lang_of_code = function
   | _ -> None
 
 (* File-name suffix for a language: `""` for En, `.ru`/`.zh` else. *)
-let[@warning "-32"] lang_suffix = function En -> "" | Ru -> ".ru" | Zh -> ".zh"
+let[@warning "-32"] lang_suffix = function
+  | En -> ""
+  | Ru -> ".ru"
+  | Zh -> ".zh"

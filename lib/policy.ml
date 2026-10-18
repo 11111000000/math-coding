@@ -157,7 +157,8 @@ let mode_to_int = function
   | `Strict -> 3
   | `Exhaustive -> 4
 
-let max_mode : Domain.mode -> Domain.mode -> Domain.mode = fun a b -> if mode_to_int a >= mode_to_int b then a else b
+let max_mode : Domain.mode -> Domain.mode -> Domain.mode =
+ fun a b -> if mode_to_int a >= mode_to_int b then a else b
 
 (* max_mode_floor: fold over a list, take the maximum mode. *)
 let[@warning "-32"] max_mode_floor ms =
@@ -323,7 +324,6 @@ let policy_override_of_files policies files =
   in
   clamp_override sum
 
-
 (* resolve_policy: hierarchical composition axis (decision
    `multi-policy-hierarchy-2026-10`). Walks the `parent` chain
    starting from the policy whose `policy_id = id`, accumulating
@@ -367,9 +367,7 @@ let[@warning "-32"] find_policy_by_id policies id =
    diagnostic. The chain list always ends with the policy whose
    `parent` is being inspected, so we look up the full chain. *)
 let[@warning "-32"] cycle_in_chain chain target_id =
-  List.exists
-    (fun p -> String.equal p.policy_id target_id)
-    chain
+  List.exists (fun p -> String.equal p.policy_id target_id) chain
 
 (* walk_chain: build a flat, root-first list of policies along
    the parent chain, terminating on a missing parent or on a
@@ -384,8 +382,7 @@ let[@warning "-32"] rec walk_chain policies chain =
       match last.parent with
       | None -> (chain, None)
       | Some parent_id -> (
-          if cycle_in_chain chain parent_id then
-            (chain, Some parent_id)
+          if cycle_in_chain chain parent_id then (chain, Some parent_id)
           else
             match find_policy_by_id policies parent_id with
             | None -> (chain, None)
@@ -444,19 +441,15 @@ let[@warning "-32"] merge_chain chain =
 let resolve_policy policies id =
   match find_policy_by_id policies id with
   | None ->
-      let msg =
-        Printf.sprintf "policy not found in registry: %s" id
-      in
+      let msg = Printf.sprintf "policy not found in registry: %s" id in
       Error (Diagnostic.create ~code:"MC-POLICY-NOT-FOUND" ~kind:Input msg)
-  | Some target ->
+  | Some target -> (
       let chain, cycle_at = walk_chain policies [ target ] in
       match cycle_at with
       | Some _ ->
-          let msg =
-            Printf.sprintf "policy cycle detected starting at: %s" id
-          in
+          let msg = Printf.sprintf "policy cycle detected starting at: %s" id in
           Error (Diagnostic.create ~code:"MC-POLICY-CYCLE" ~kind:Input msg)
-      | None -> Ok (merge_chain chain)
+      | None -> Ok (merge_chain chain))
 
 let[@warning "-32"] parse_data_flow_kind s =
   match s with "import" -> Some `Import | "export" -> Some `Export | _ -> None

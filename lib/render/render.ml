@@ -37,7 +37,6 @@ include Render_extras
 (* --- render entry point --- *)
 
 type page = { path : string; body : string }
-
 type article = { name : string; title : string; body_md : string }
 
 (* Configuration bag passed by the dispatcher. *)
@@ -59,8 +58,8 @@ let[@warning "-32"] default_version = "math-coding"
    for loading the articles from disk; this function only renders
    them. Article = { name; title; body_md }. *)
 let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
-    ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data ~spec_data
-    ~templates =
+    ~site_pages ~site_pages_ru ~site_pages_zh ~axioms_data ~spec_data ~templates
+    =
   let pages = ref [] in
   let version = config.version in
 
@@ -139,15 +138,13 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
       body =
         render_page ~lang ~page_key:a.name ~title:page_title ~body
           ~site_base:config.site_base ~enable_mathjax:config.enable_mathjax
-          ~enable_lang_toggle:config.enable_lang_toggle
-          ~sibling_langs ~version ~extra_head:"";
+          ~enable_lang_toggle:config.enable_lang_toggle ~sibling_langs ~version
+          ~extra_head:"";
     }
   in
 
   (* English index *)
-  let index_body_en =
-    render_index ~lang:En ~version ~policy_id ~templates
-  in
+  let index_body_en = render_index ~lang:En ~version ~policy_id ~templates in
   pages :=
     {
       path = "index.html";
@@ -164,9 +161,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
 
   (* Russian index (only when Russian is enabled). *)
   if ru_enabled then begin
-    let index_body_ru =
-      render_index ~lang:Ru ~version ~policy_id ~templates
-    in
+    let index_body_ru = render_index ~lang:Ru ~version ~policy_id ~templates in
     pages :=
       {
         path = "index.ru.html";
@@ -184,9 +179,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
 
   (* Chinese index (only when ZH is enabled). *)
   if zh_enabled then begin
-    let index_body_zh =
-      render_index ~lang:Zh ~version ~policy_id ~templates
-    in
+    let index_body_zh = render_index ~lang:Zh ~version ~policy_id ~templates in
     pages :=
       {
         path = "index.zh.html";
@@ -218,60 +211,53 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
   List.iter
     (fun (decision_id, ob_html, yaml_body) ->
       let verdict_by_id =
-        ob_html
-        |> (fun _ ->
-            (* Build a map of obligation_id -> verdict from the
+        ob_html |> fun _ ->
+        (* Build a map of obligation_id -> verdict from the
                package_list we received indirectly via `ob_html`.
                The verdict is encoded in the obligation HTML's
                class name (a mathc-verdict-NAME CSS class); we
                parse it from `ob_html` rather than threading a
                separate verdict list through `decisions_data`. *)
-            let pat = "mathc-verdict-" in
-            let lines = String.split_on_char '\n' ob_html in
-            List.filter_map
-              (fun l ->
-                let id_pos =
-                  let rec scan i =
-                    if i + 3 >= String.length l then -1
-                    else if String.sub l i 4 = "<cod"
-                    then i + 4
-                    else scan (i + 1)
-                  in
-                  scan 0
+        let pat = "mathc-verdict-" in
+        let lines = String.split_on_char '\n' ob_html in
+        List.filter_map
+          (fun l ->
+            let id_pos =
+              let rec scan i =
+                if i + 3 >= String.length l then -1
+                else if String.sub l i 4 = "<cod" then i + 4
+                else scan (i + 1)
+              in
+              scan 0
+            in
+            if id_pos < 0 then None
+            else
+              let id_end = ref id_pos in
+              while !id_end < String.length l && l.[!id_end] <> '<' do
+                incr id_end
+              done;
+              let id = String.sub l id_pos (!id_end - id_pos) in
+              let verdict_pos =
+                let rec scan i =
+                  if i >= String.length l - 16 then -1
+                  else if String.sub l i 15 = pat then i + 15
+                  else scan (i + 1)
                 in
-                if id_pos < 0 then None
-                else
-                  let id_end = ref id_pos in
-                  while !id_end < String.length l
-                        && l.[!id_end] <> '<'
-                  do
-                    incr id_end
-                  done;
-                  let id =
-                    String.sub l id_pos (!id_end - id_pos)
-                  in
-                  let verdict_pos =
-                    let rec scan i =
-                      if i >= String.length l - 16 then -1
-                      else if String.sub l i 15 = pat then i + 15
-                      else scan (i + 1)
-                    in
-                    scan 0
-                  in
-                  if verdict_pos < 0 then None
-                  else
-                    let verdict_end = ref verdict_pos in
-                    while !verdict_end < String.length l
-                          && l.[!verdict_end] <> '"'
-                    do
-                      incr verdict_end
-                    done;
-                    let verdict =
-                      String.sub l verdict_pos
-                        (!verdict_end - verdict_pos)
-                    in
-                    Some (id, verdict))
-              lines)
+                scan 0
+              in
+              if verdict_pos < 0 then None
+              else
+                let verdict_end = ref verdict_pos in
+                while
+                  !verdict_end < String.length l && l.[!verdict_end] <> '"'
+                do
+                  incr verdict_end
+                done;
+                let verdict =
+                  String.sub l verdict_pos (!verdict_end - verdict_pos)
+                in
+                Some (id, verdict))
+          lines
       in
       let narrative_html = render_decision_yaml ~yaml_body ~verdict_by_id in
       let body =
@@ -279,13 +265,18 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
           render_decision_page ~decision_id ~obligation_html:ob_html
         else
           Printf.sprintf
-            "<section class=\"mathc-decision-page\">\n<h1>%s</h1>\n%s\n%s\n</section>\n"
+            "<section class=\"mathc-decision-page\">\n\
+             <h1>%s</h1>\n\
+             %s\n\
+             %s\n\
+             </section>\n"
             decision_id narrative_html ob_html
       in
       pages :=
         {
           path =
-            Filename.concat (Path_config.resolve_decisions_dir ())
+            Filename.concat
+              (Path_config.resolve_decisions_dir ())
               (decision_id ^ ".html");
           body =
             render_page ~lang:En ~page_key:"packages"
@@ -346,7 +337,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
    from CLI flags. *)
 let[@warning "-32"] default_config =
   {
-      site_base = "/math-coding/";
+    site_base = "/math-coding/";
     (* MathJax 3 defaults ON. The previous default-OFF workaround
        in `render-kernel-fixes-2026-10@1` (`mathjax-default-off`,
        assumption `mathjax-off-default-is-acceptable`) is retired:

@@ -21,11 +21,7 @@
 
 (* --- detection record --------------------------------------------- *)
 
-type report = {
-  arc42 : bool;
-  madr : bool;
-  adr_tools : bool;
-}
+type report = { arc42 : bool; madr : bool; adr_tools : bool }
 
 let empty_report = { arc42 = false; madr = false; adr_tools = false }
 
@@ -51,12 +47,9 @@ let md_files (dir : string) : string list =
   if not (is_dir dir) then []
   else
     let entries =
-      try Array.to_list (Sys.readdir dir) with
-      | Sys_error _ -> []
+      try Array.to_list (Sys.readdir dir) with Sys_error _ -> []
     in
-    List.filter
-      (fun n -> Filename.check_suffix n ".md")
-      entries
+    List.filter (fun n -> Filename.check_suffix n ".md") entries
     |> List.sort String.compare
 
 (* `md_files_rel root sub` returns the *.md files in
@@ -70,11 +63,8 @@ let md_files_rel (root : string) (sub : string) : string list =
     let entries = md_files dir in
     List.map (fun n -> Filename.concat sub n) entries
 
-let madr_files (root : string) : string list =
-  md_files_rel root "docs/adr"
-
-let adrtools_files (root : string) : string list =
-  md_files_rel root "adr"
+let madr_files (root : string) : string list = md_files_rel root "docs/adr"
+let adrtools_files (root : string) : string list = md_files_rel root "adr"
 
 (* --- detection ---------------------------------------------------- *)
 
@@ -108,7 +98,7 @@ let string_of_brownfield = function
   | Mixed_All_Three -> "arc42 + MADR + adr-tools"
 
 let classify (r : report) : brownfield =
-  match r.arc42, r.madr, r.adr_tools with
+  match (r.arc42, r.madr, r.adr_tools) with
   | false, false, false -> Empty
   | true, false, false -> Arc42
   | false, true, false -> Madr
@@ -120,5 +110,4 @@ let classify (r : report) : brownfield =
 
 (* --- convenience: one-shot detect + classify ---------------------- *)
 
-let detect_classify (root : string) : brownfield =
-  classify (detect root)
+let detect_classify (root : string) : brownfield = classify (detect root)

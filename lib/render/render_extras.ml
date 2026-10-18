@@ -50,8 +50,9 @@ let[@warning "-32"] extract_intent_summary ~yaml_body ~decision_id =
           if i >= List.length lines then -1
           else
             let l = List.nth lines i in
-            if String.length (String.trim l) > 7
-               && String.sub (String.trim l) 0 7 = "intent:"
+            if
+              String.length (String.trim l) > 7
+              && String.sub (String.trim l) 0 7 = "intent:"
             then i
             else scan (i + 1)
         in
@@ -93,12 +94,12 @@ let[@warning "-32"] render_rss_feed ~version ~site_base ~items =
   Buffer.add_string buf "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
   Buffer.add_string buf "<rss version=\"2.0\">\n";
   Buffer.add_string buf "  <channel>\n";
+  Printf.bprintf buf "    <title>math-coding %s</title>\n" (rss_escape version);
+  Printf.bprintf buf "    <link>%s</link>\n"
+    (rss_escape (site_base ^ "index.html"));
   Printf.bprintf buf
-    "    <title>math-coding %s</title>\n" (rss_escape version);
-  Printf.bprintf buf
-    "    <link>%s</link>\n" (rss_escape (site_base ^ "index.html"));
-  Printf.bprintf buf
-    "    <description>Assurance protocol for software changes. %s decisions, %d items in this feed.</description>\n"
+    "    <description>Assurance protocol for software changes. %s decisions, \
+     %d items in this feed.</description>\n"
     version (List.length items);
   Printf.bprintf buf "    <pubDate>%s</pubDate>\n" now_iso;
   Printf.bprintf buf "    <language>en</language>\n";
@@ -118,18 +119,16 @@ let[@warning "-32"] render_rss_feed ~version ~site_base ~items =
         | None -> ""
       in
       Printf.bprintf buf
-        "    <item>\n      \
-         <title>%s%s</title>\n      \
-         <link>%s</link>\n      \
-         <guid isPermaLink=\"false\">%s</guid>\n      \
-         <description>%d obligation(s); %s</description>\n    \
-         </item>\n"
+        "    <item>\n\
+        \      <title>%s%s</title>\n\
+        \      <link>%s</link>\n\
+        \      <guid isPermaLink=\"false\">%s</guid>\n\
+        \      <description>%d obligation(s); %s</description>\n\
+        \    </item>\n"
         (rss_escape item.rss_decision_id)
-        revision_tag
-        (rss_escape href)
+        revision_tag (rss_escape href)
         (rss_escape item.rss_decision_id)
-        item.rss_obligation_count
-        (rss_escape summary))
+        item.rss_obligation_count (rss_escape summary))
     items;
   Buffer.add_string buf "  </channel>\n";
   Buffer.add_string buf "</rss>\n";

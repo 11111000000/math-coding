@@ -29,9 +29,11 @@ let[@warning "-32"] render_index ~lang ~version ~policy_id ~templates =
     | None -> "" (* fallback: language not shipped *)
   in
   substitute
-    [ ("version", html_escape version);
+    [
+      ("version", html_escape version);
       ("policy_id", html_escape policy_id);
-      ("check", "\xe2\x9c\x94") ]
+      ("check", "\xe2\x9c\x94");
+    ]
     html
 
 let[@warning "-32"] render_decision_page ~decision_id ~obligation_html =
@@ -103,16 +105,15 @@ let[@warning "-32"] render_axiom_page ~axiom_id ~body =
   let axiom_icon_html =
     Printf.sprintf
       "<figure class=\"mathc-axiom-figure\">\n\
-      <img class=\"mathc-axiom-icon\" src=\"assets/axiom-%s.svg\" \
-       alt=\"Axiom %s icon\">\n\
-      <figcaption>Axiom %s</figcaption>\n\
-      </figure>\n"
+       <img class=\"mathc-axiom-icon\" src=\"assets/axiom-%s.svg\" alt=\"Axiom \
+       %s icon\">\n\
+       <figcaption>Axiom %s</figcaption>\n\
+       </figure>\n"
       axiom_id axiom_id axiom_id
   in
   Printf.sprintf
     "<section class=\"mathc-axiom-page\">\n\
      <h1>Axiom %s</h1>\n\
-     %s\
-     <div>%s</div>\n\
+     %s<div>%s</div>\n\
      </section>\n"
     axiom_id axiom_icon_html (md_parse stripped_body)

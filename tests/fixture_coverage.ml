@@ -81,8 +81,11 @@ let manual_prefixes =
 
 (* Strip leading "! " (shell negation). *)
 let[@warning "-32"] strip_shell_negation (v : string) : string =
-  if String.length v >= 2 && String.unsafe_get v 0 = '!' && String.unsafe_get v 1 = ' ' then
-    String.sub v 2 (String.length v - 2)
+  if
+    String.length v >= 2
+    && String.unsafe_get v 0 = '!'
+    && String.unsafe_get v 1 = ' '
+  then String.sub v 2 (String.length v - 2)
   else v
 
 (* Bare single-word manual-style keyword (lowercase, hyphenated). *)
@@ -97,9 +100,10 @@ let[@warning "-32"] is_bare_keyword (v : string) : bool =
         if i >= len then true
         else
           let c = String.unsafe_get v i in
-          if (c >= 'a' && c <= 'z')
-             || (c >= '0' && c <= '9')
-             || c = '-' || c = '_'
+          if
+            (c >= 'a' && c <= 'z')
+            || (c >= '0' && c <= '9')
+            || c = '-' || c = '_'
           then loop (i + 1)
           else false
       in
@@ -139,9 +143,7 @@ let[@warning "-32"] classify (v : string) : [ `Fixture | `Manual | `Unknown ] =
           && String.sub stripped 0 (String.length p) = p)
         manual_prefixes
     then `Manual
-    else if
-      String.starts_with ~prefix:"decisions/" stripped
-    then
+    else if String.starts_with ~prefix:"decisions/" stripped then
       let p = sub_decision_path stripped in
       if p = stripped then `Unknown
       else
@@ -151,8 +153,9 @@ let[@warning "-32"] classify (v : string) : [ `Fixture | `Manual | `Unknown ] =
             String.sub p 0 i
           with Not_found -> p
         in
-        if Filename.check_suffix p ".yaml"
-           || Filename.check_suffix no_rev ".yaml"
+        if
+          Filename.check_suffix p ".yaml"
+          || Filename.check_suffix no_rev ".yaml"
         then `Fixture
         else `Unknown
     else if
@@ -304,26 +307,16 @@ let[@warning "-32"] test_walker_finds_no_missing_or_unknown () =
       results
   in
   let n_missing = List.length missing in
-  (if n_missing > 0 then begin
-     Printf.printf "Missing fixtures:
-";
-     List.iter
-       (fun (k, p, _, _) -> Printf.printf "  %s: %s
-" k p)
-       missing
-   end);
-  let unknown =
-    List.filter (fun (_, _, c, _) -> c = `Unknown) results
-  in
+  if n_missing > 0 then begin
+    Printf.printf "Missing fixtures:\n";
+    List.iter (fun (k, p, _, _) -> Printf.printf "  %s: %s\n" k p) missing
+  end;
+  let unknown = List.filter (fun (_, _, c, _) -> c = `Unknown) results in
   let n_unknown = List.length unknown in
-  (if n_unknown > 0 then begin
-     Printf.printf "Unknown verifiers:
-";
-     List.iter
-       (fun (k, v, _, _) -> Printf.printf "  %s: %s
-" k v)
-       unknown
-   end);
+  if n_unknown > 0 then begin
+    Printf.printf "Unknown verifiers:\n";
+    List.iter (fun (k, v, _, _) -> Printf.printf "  %s: %s\n" k v) unknown
+  end;
   Alcotest.(check int)
     (Printf.sprintf
        "no obligation points at a missing fixture (walked %d obligations)" total)

@@ -54,9 +54,7 @@ type file_plan = {
   warnings : string list;
 }
 
-type result_ =
-  | Parsed of manifest
-  | Parse_error of string
+type result_ = Parsed of manifest | Parse_error of string
 
 (* --- manifest parser (no I/O) ----------------------------------------- *)
 
@@ -68,82 +66,67 @@ let empty_result = Parse_error "manifest is not a YAML object"
    artefacts). We accept either. *)
 let manifest_schema_ok v =
   match v with
-  | Jsonl.Object pairs ->
-      (match Schema.take_string pairs "schema" with
-       | None -> true
-       | Some s -> s = "math-coding/migration-manifest")
+  | Jsonl.Object pairs -> (
+      match Schema.take_string pairs "schema" with
+      | None -> true
+      | Some s -> s = "math-coding/migration-manifest")
   | _ -> false
 
 let parse_migration v : (migration, string) result =
   match v with
-  | Jsonl.Object pairs ->
+  | Jsonl.Object pairs -> (
       let kind =
-        match Schema.take_string pairs "kind" with
-        | Some s -> s
-        | None -> ""
+        match Schema.take_string pairs "kind" with Some s -> s | None -> ""
       in
-      (match kind with
-       | "rename-field" -> begin
-           match Schema.take_string pairs "from",
-                 Schema.take_string pairs "to" with
-           | Some f, Some t ->
-               Ok (Rename_field { from_ = f; to_ = t })
-           | _ ->
-               Error "rename-field requires from + to (both strings)"
-         end
-       | "add-field" -> begin
-           match Schema.take_string pairs "path",
-                 Schema.take_string pairs "default" with
-           | Some p, Some d ->
-               Ok (Add_field { path = p; default_ = d })
-           | _ ->
-               Error "add-field requires path + default (both strings)"
-         end
-| "bump-schema-string" -> begin
-               match Schema.take_string pairs "from",
-                     Schema.take_string pairs "to" with
-               | Some f, Some t ->
-                   Ok (Bump_schema { from = f; to_ = t })
-               | _ ->
-                   Error
-                     "bump-schema-string requires from + to (both strings)"
-             end
-       | "manual-review" -> begin
-           match Schema.take_string pairs "reason" with
-           | Some r -> Ok (Manual_review { reason = r })
-           | None -> Error "manual-review requires reason (string)"
-         end
-       | "" ->
-           Error "migration.kind: missing required field `kind`"
-       | other ->
-           Error ("migration.kind: unknown kind `" ^ other ^ "`"))
+      match kind with
+      | "rename-field" ->
+          begin match
+            (Schema.take_string pairs "from", Schema.take_string pairs "to")
+          with
+          | Some f, Some t -> Ok (Rename_field { from_ = f; to_ = t })
+          | _ -> Error "rename-field requires from + to (both strings)"
+          end
+      | "add-field" ->
+          begin match
+            (Schema.take_string pairs "path", Schema.take_string pairs "default")
+          with
+          | Some p, Some d -> Ok (Add_field { path = p; default_ = d })
+          | _ -> Error "add-field requires path + default (both strings)"
+          end
+      | "bump-schema-string" ->
+          begin match
+            (Schema.take_string pairs "from", Schema.take_string pairs "to")
+          with
+          | Some f, Some t -> Ok (Bump_schema { from = f; to_ = t })
+          | _ -> Error "bump-schema-string requires from + to (both strings)"
+          end
+      | "manual-review" ->
+          begin match Schema.take_string pairs "reason" with
+          | Some r -> Ok (Manual_review { reason = r })
+          | None -> Error "manual-review requires reason (string)"
+          end
+      | "" -> Error "migration.kind: missing required field `kind`"
+      | other -> Error ("migration.kind: unknown kind `" ^ other ^ "`"))
   | _ -> Error "migration: not a YAML object"
 
-let parse_manifest_yaml
-    ~(reader : string -> string)
-    ~(path : string) : result_ =
+let parse_manifest_yaml ~(reader : string -> string) ~(path : string) : result_
+    =
   let raw = reader path in
   let v = Codec.load_yaml_string raw in
   match v with
   | v when not (manifest_schema_ok v) ->
       Parse_error
         ("manifest schema-string is not `math-coding/migration-manifest`: "
-        ^ path)
+       ^ path)
   | Jsonl.Object pairs -> (
       let from =
-        match Schema.take_string pairs "from" with
-        | Some s -> s
-        | None -> ""
+        match Schema.take_string pairs "from" with Some s -> s | None -> ""
       in
       let to_ =
-        match Schema.take_string pairs "to" with
-        | Some s -> s
-        | None -> ""
+        match Schema.take_string pairs "to" with Some s -> s | None -> ""
       in
       let intent =
-        match Schema.take_string pairs "intent" with
-        | Some s -> s
-        | None -> ""
+        match Schema.take_string pairs "intent" with Some s -> s | None -> ""
       in
       let migrations_v =
         match Schema.take_array pairs "migrations" with
@@ -163,12 +146,11 @@ let parse_manifest_yaml
               | Error e -> (acc_ok, e :: acc_err))
             ([], []) migrations_v
         in
-        (match errs with
-         | [] -> Parsed { from; to_; intent; migrations = List.rev parsed }
-         | _ :: _ ->
-             Parse_error
-               ("manifest migrations[] errors: "
-                ^ String.concat "; " errs)))
+        match errs with
+        | [] -> Parsed { from; to_; intent; migrations = List.rev parsed }
+        | _ :: _ ->
+            Parse_error
+              ("manifest migrations[] errors: " ^ String.concat "; " errs))
   | _ -> empty_result
 
 (* --- per-file plan (no I/O) -------------------------------------------- *)
@@ -180,8 +162,7 @@ let decision_schema_string content : (string option, string) result =
   try
     let v = Codec.load_yaml_string content in
     match v with
-    | Jsonl.Object pairs ->
-        Ok (Schema.take_string pairs "schema")
+    | Jsonl.Object pairs -> Ok (Schema.take_string pairs "schema")
     | _ -> Error "decision file: not a YAML object at root"
   with _ -> Error "decision file: could not be parsed as YAML"
 
@@ -189,16 +170,13 @@ let decision_schema_string content : (string option, string) result =
    object. Returns false on parse failure or non-object. *)
 let has_top_field content name : bool =
   match Codec.load_yaml_string content with
-  | Jsonl.Object pairs ->
-      List.exists (fun (k, _) -> k = name) pairs
+  | Jsonl.Object pairs -> List.exists (fun (k, _) -> k = name) pairs
   | _ -> false
 
 (* Plan a single file. Returns zero actions for files whose
    schema-string already matches `to_`. *)
-let plan_file
-    ~(manifest : manifest)
-    ~(file : string)
-    ~(content : string) : file_plan =
+let plan_file ~(manifest : manifest) ~(file : string) ~(content : string) :
+    file_plan =
   let schema_res = decision_schema_string content in
   match schema_res with
   | Error e ->
@@ -221,8 +199,8 @@ let plan_file
         warnings =
           [
             Printf.sprintf
-              "manual-review: file is at `%s`; manifest expects `%s` \
-               (neither matches the target `%s`)"
+              "manual-review: file is at `%s`; manifest expects `%s` (neither \
+               matches the target `%s`)"
               cs manifest.from manifest.to_;
           ];
       }
@@ -251,19 +229,13 @@ let plan_file
             | _ -> None)
           manifest.migrations
       in
-      {
-        file;
-        current_schema = Some manifest.from;
-        actions;
-        warnings;
-      }
+      { file; current_schema = Some manifest.from; actions; warnings }
   | Ok None ->
       {
         file;
         current_schema = None;
         actions = [];
-        warnings =
-          [ "manual-review: decision file has no schema-string" ];
+        warnings = [ "manual-review: decision file has no schema-string" ];
       }
 
 (* --- renderers --------------------------------------------------------- *)
@@ -272,8 +244,7 @@ let migration_to_string = function
   | Rename_field { from_; to_ } -> "rename-field: " ^ from_ ^ " -> " ^ to_
   | Add_field { path; default_ } ->
       Printf.sprintf "add-field: %s = %S" path default_
-  | Bump_schema { from; to_ } ->
-      "bump-schema-string: " ^ from ^ " -> " ^ to_
+  | Bump_schema { from; to_ } -> "bump-schema-string: " ^ from ^ " -> " ^ to_
   | Manual_review { reason } -> "manual-review: " ^ reason
 
 let render_text (plans : file_plan list) : string =
@@ -339,9 +310,7 @@ let plan_to_json (p : file_plan) : Jsonl.value =
     Jsonl.Array (List.map (fun s -> Jsonl.String s) p.warnings)
   in
   let cs_v =
-    match p.current_schema with
-    | Some s -> Jsonl.String s
-    | None -> Jsonl.Null
+    match p.current_schema with Some s -> Jsonl.String s | None -> Jsonl.Null
   in
   Jsonl.Object
     [
@@ -375,10 +344,7 @@ let line_starts_with_key line key =
 let trim_leading_ws line =
   let rec loop i =
     if i >= String.length line then i
-    else
-      match line.[i] with
-      | ' ' | '\t' -> loop (i + 1)
-      | _ -> i
+    else match line.[i] with ' ' | '\t' -> loop (i + 1) | _ -> i
   in
   loop 0
 
@@ -408,8 +374,7 @@ let apply_one_to_line action line =
         in
         let valid_suffix =
           rest = ""
-          || (String.length rest >= 1
-              && (rest.[0] = ' ' || rest.[0] = '\t'))
+          || (String.length rest >= 1 && (rest.[0] = ' ' || rest.[0] = '\t'))
         in
         if valid_suffix then
           let indent = String.sub line 0 stripped_pos in
@@ -417,21 +382,18 @@ let apply_one_to_line action line =
           Some new_line
         else None
       else None
-  | Add_field _ -> None (* add-field is appended at end-of-file, not on a line *)
+  | Add_field _ ->
+      None (* add-field is appended at end-of-file, not on a line *)
   | Rename_field { from_; to_ } ->
       let prefix = from_ ^ ":" in
       let pl = String.length prefix in
       let sl = String.length stripped in
       if sl < pl then None
       else if String.sub stripped 0 pl = prefix then
-        let rest =
-          if pl >= sl then ""
-          else String.sub stripped pl (sl - pl)
-        in
+        let rest = if pl >= sl then "" else String.sub stripped pl (sl - pl) in
         let valid_suffix =
           rest = ""
-          || (String.length rest >= 1
-              && (rest.[0] = ' ' || rest.[0] = '\t'))
+          || (String.length rest >= 1 && (rest.[0] = ' ' || rest.[0] = '\t'))
         in
         if valid_suffix then
           let indent = String.sub line 0 stripped_pos in
@@ -449,20 +411,19 @@ let add_field_line action =
 
 (* Result of attempting one action against one line. *)
 type line_result =
-  | Hit of string            (* the new line content; replaces this line *)
-  | Miss                     (* action did not apply to this line *)
-  | Already_present          (* action is Add_field, but path already exists *)
+  | Hit of string (* the new line content; replaces this line *)
+  | Miss (* action did not apply to this line *)
+  | Already_present (* action is Add_field, but path already exists *)
 
 let classify_line action line =
   match action with
   | Add_field { path; _ } ->
-      if line_starts_with_key line path then Already_present
-      else Miss
+      if line_starts_with_key line path then Already_present else Miss
   | Manual_review _ -> Miss
-  | Bump_schema _ | Rename_field _ ->
+  | Bump_schema _ | Rename_field _ -> (
       match apply_one_to_line action line with
       | Some new_line -> Hit new_line
-      | None -> Miss
+      | None -> Miss)
 
 (* Apply a list of pending actions to the given file content.
    Line-level edits (bump-schema-string, rename-field) are
@@ -472,13 +433,9 @@ let classify_line action line =
    are skipped silently.
    The returned `applied` lists the actions that were applied;
    `skipped` lists the rest. *)
-let apply_actions
-    ~(actions : migration list)
-    ~(content : string) :
+let apply_actions ~(actions : migration list) ~(content : string) :
     string * migration list * migration list =
-  let lines =
-    Array.of_list (String.split_on_char '\n' content)
-  in
+  let lines = Array.of_list (String.split_on_char '\n' content) in
   let pending = ref actions in
   let applied = ref [] in
   let skipped = ref [] in
@@ -487,7 +444,7 @@ let apply_actions
     else
       match !pending with
       | [] -> ()
-      | first :: rest ->
+      | first :: rest -> (
           let line = lines.(i) in
           match classify_line first line with
           | Hit new_line ->
@@ -501,8 +458,8 @@ let apply_actions
               applied := first :: !applied;
               pending := rest;
               step_line (i + 1)
-          | Miss -> begin
-              match first with
+          | Miss ->
+              begin match first with
               | Bump_schema _ | Rename_field _ ->
                   (* Line-edit action; keep `first` pending and try
                      the next line. *)
@@ -512,12 +469,12 @@ let apply_actions
                      applies. Carry them to the post-loop drain,
                      but advance i. *)
                   (match first with
-                   | Manual_review _ -> skipped := first :: !skipped
-                   | Add_field _ -> skipped := first :: !skipped
-                   | _ -> ());
+                  | Manual_review _ -> skipped := first :: !skipped
+                  | Add_field _ -> skipped := first :: !skipped
+                  | _ -> ());
                   pending := rest;
                   step_line (i + 1)
-            end
+              end)
   in
   step_line 0;
   (* After line loop: collect remaining pending and apply
@@ -526,8 +483,8 @@ let apply_actions
   let rec drain rest =
     match rest with
     | [] -> ()
-    | action :: remaining -> begin
-        match add_field_line action with
+    | action :: remaining ->
+        begin match add_field_line action with
         | Some line -> begin
             applied := action :: !applied;
             pending := action :: !pending;
@@ -536,7 +493,7 @@ let apply_actions
         | None ->
             skipped := action :: !skipped;
             drain remaining
-      end
+        end
   in
   drain !pending;
   (* Build output buffer: original lines with the line-level
@@ -549,14 +506,14 @@ let apply_actions
     lines;
   let rec append = function
     | [] -> ()
-    | action :: rest -> begin
-        match add_field_line action with
+    | action :: rest ->
+        begin match add_field_line action with
         | Some line ->
             Buffer.add_char buf '\n';
             Buffer.add_string buf line;
             append rest
         | None -> append rest
-      end
+        end
   in
   append !pending;
-  Buffer.contents buf, List.rev !applied, List.rev !skipped
+  (Buffer.contents buf, List.rev !applied, List.rev !skipped)

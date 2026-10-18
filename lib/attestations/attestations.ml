@@ -377,7 +377,6 @@ let[@warning "-32"] blocking_cis () =
    digest; the grandfathering is loader-side only, not validator-
    side. *)
 let[@warning "-32"] materials_digest_legacy_cutoff = "2026-10-16"
-
 let[@warning "-32"] empty = []
 
 (* Read a single file via the caller-supplied reader. The reader

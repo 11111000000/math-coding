@@ -104,7 +104,7 @@ let[@warning "-32"] resolve_policy_path () : string =
  * decision (commit a56c814) records the default-none trade-off
  * and the follow-up plan-2026-12 question of whether minimal
  * should become the new default after one or two release cycles.
-*)
+ *)
 let[@warning "-32"] resolve_sandbox_mode () : string =
   let env = "MATH_CODING_VERIFY_SANDBOX" in
   match Sys.getenv_opt env with
@@ -114,6 +114,8 @@ let[@warning "-32"] resolve_sandbox_mode () : string =
   | Some s ->
       Printf.eprintf
         "warning: MATH_CODING_VERIFY_SANDBOX=%s is unknown; expected \
-         none|minimal|strict; defaulting to none\n%!" s;
+         none|minimal|strict; defaulting to none\n\
+         %!"
+        s;
       "none"
   | None -> "none"

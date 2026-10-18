@@ -60,8 +60,7 @@ let find_mathc () : string =
         let s = Filename.remove_extension my_basename in
         let n = String.length s in
         let m = String.length "_mcp" in
-        if n > m && String.sub s (n - m) m = "_mcp" then
-          String.sub s 0 (n - m)
+        if n > m && String.sub s (n - m) m = "_mcp" then String.sub s 0 (n - m)
         else s
       in
       let dir = Filename.dirname my_path in
@@ -92,26 +91,19 @@ let find_mathc () : string =
  *   - child_stdout_pipe: child writes to stdout_wr. Parent reads
  *     via stdout_rd, closes stdout_wr after fork.
  *   - child_stderr_pipe: same shape as stdout. *)
-type outcome = {
-  exit_code : int;
-  stdout : string;
-  stderr_tail : string;
-}
+type outcome = { exit_code : int; stdout : string; stderr_tail : string }
 
 let max_bytes = 16 * 1024 * 1024
 
 let cap_string (s : string) (n : int) : string =
-  if String.length s <= n then s
-  else String.sub s 0 n
+  if String.length s <= n then s else String.sub s 0 n
 
 let run_with_args (program : string) (argv : string list) : outcome =
   let argv_arr = Array.of_list (program :: argv) in
   let stdin_rd, stdin_wr = Unix.pipe () in
   let stdout_rd, stdout_wr = Unix.pipe () in
   let stderr_rd, stderr_wr = Unix.pipe () in
-  let pid =
-    Unix.create_process program argv_arr stdin_rd stdout_wr stderr_wr
-  in
+  let pid = Unix.create_process program argv_arr stdin_rd stdout_wr stderr_wr in
   (* Parent: close the ends the child holds. *)
   Unix.close stdin_rd;
   Unix.close stdout_wr;
@@ -144,7 +136,7 @@ let run_with_args (program : string) (argv : string list) : outcome =
     in
     let ready, _, _ = Unix.select read_fds [] [] (-1.0) in
     let is_ready fd = List.exists (fun r -> r = fd) ready in
-    if not !drained_out && is_ready stdout_rd then begin
+    if (not !drained_out) && is_ready stdout_rd then begin
       let n =
         try Unix.read stdout_rd buf_out 0 (Bytes.length buf_out) with _ -> 0
       in
@@ -153,7 +145,7 @@ let run_with_args (program : string) (argv : string list) : outcome =
         Buffer.add_subbytes stdout buf_out 0
           (min n (max_bytes - Buffer.length stdout))
     end;
-    if not !drained_err && is_ready stderr_rd then begin
+    if (not !drained_err) && is_ready stderr_rd then begin
       let n =
         try Unix.read stderr_rd buf_err 0 (Bytes.length buf_err) with _ -> 0
       in
@@ -207,12 +199,11 @@ let read_write_warned = ref false
 let warn_read_write_disabled () : unit =
   if not !read_write_warned then begin
     read_write_warned := true;
-    (match Sys.getenv_opt "MCP_READ_WRITE" with
-     | Some v ->
-         Printf.fprintf stderr
-           "mathc_mcp: MCP_READ_WRITE=%s — read-write methods disabled.\n%!"
-           v
-     | None -> ())
+    match Sys.getenv_opt "MCP_READ_WRITE" with
+    | Some v ->
+        Printf.fprintf stderr
+          "mathc_mcp: MCP_READ_WRITE=%s — read-write methods disabled.\n%!" v
+    | None -> ()
   end
 
 (* --- method name allowlist --- *)
@@ -226,10 +217,10 @@ let read_only_methods =
     "mathc/re-evaluate";
     "mathc/rebuttals";
     "mathc/self-check";
-     "mathc/find";
-     "mathc/precommit";
-     "mathc/graph";
-   ]
+    "mathc/find";
+    "mathc/precommit";
+    "mathc/graph";
+  ]
 
 let read_write_methods =
   [
@@ -250,14 +241,13 @@ let allowed_methods = read_only_methods @ read_write_methods
 
 let is_allowed_method (m : string) : bool =
   if List.mem m read_only_methods then true
-  else if List.mem m read_write_methods then
+  else if List.mem m read_write_methods then (
     let enabled = read_write_enabled () in
     if not enabled then warn_read_write_disabled ();
-    enabled
+    enabled)
   else false
 
-let is_read_write_method (m : string) : bool =
-  List.mem m read_write_methods
+let is_read_write_method (m : string) : bool = List.mem m read_write_methods
 
 (* --- argv builders per method --- *)
 
@@ -296,8 +286,8 @@ let build_mode (params : Jsonl.value option) :
 let build_re_evaluate (params : Jsonl.value option) :
     (string list, Protocol.rpc_error) result =
   match
-    (Protocol.string_param params "decision_id",
-     Protocol.string_param params "axiom_id")
+    ( Protocol.string_param params "decision_id",
+      Protocol.string_param params "axiom_id" )
   with
   | Ok d, Ok a -> Ok [ "re-evaluate"; d; a ]
   | Error e, _ -> Error e
@@ -316,8 +306,7 @@ let build_self_check (_params : Jsonl.value option) :
 let build_gate (params : Jsonl.value option) :
     (string list, Protocol.rpc_error) result =
   match
-    (Protocol.string_param params "base",
-     Protocol.string_param params "head")
+    (Protocol.string_param params "base", Protocol.string_param params "head")
   with
   | Ok b, Ok h -> Ok [ "gate"; b; h; "--format=json" ]
   | Error e, _ -> Error e
@@ -339,14 +328,14 @@ let build_record (params : Jsonl.value option) :
   | Ok did ->
       let argv = ref [ "record"; "--decision-id"; did ] in
       (match Protocol.string_param params "scale" with
-       | Ok s -> argv := !argv @ [ "--scale"; s ]
-       | Error _ -> ());
+      | Ok s -> argv := !argv @ [ "--scale"; s ]
+      | Error _ -> ());
       (match Protocol.string_param params "class" with
-       | Ok c -> argv := !argv @ [ "--class"; c ]
-       | Error _ -> ());
+      | Ok c -> argv := !argv @ [ "--class"; c ]
+      | Error _ -> ());
       (match Protocol.string_param params "value" with
-       | Ok v -> argv := !argv @ [ "--value"; v ]
-       | Error _ -> ());
+      | Ok v -> argv := !argv @ [ "--value"; v ]
+      | Error _ -> ());
       Ok !argv
 
 let build_re_evaluate_decisions (params : Jsonl.value option) :
@@ -391,7 +380,7 @@ let build_precommit (params : Jsonl.value option) :
         | Some (Jsonl.Array xs) ->
             let rec walk acc = function
               | [] -> Ok (List.rev acc)
-              | (Jsonl.String s) :: rest -> walk (s :: acc) rest
+              | Jsonl.String s :: rest -> walk (s :: acc) rest
               | _ :: _ ->
                   Error
                     {
@@ -494,16 +483,20 @@ let handle (req : Protocol.request) : Protocol.response =
     let msg =
       if is_read_write_method req.method_ && not (read_write_enabled ()) then
         Printf.sprintf
-          "Method not found: \"%s\" (read-write methods are disabled via MCP_READ_WRITE=off; set MCP_READ_WRITE=on to enable)"
+          "Method not found: \"%s\" (read-write methods are disabled via \
+           MCP_READ_WRITE=off; set MCP_READ_WRITE=on to enable)"
           req.method_
       else
         Printf.sprintf
-          "Method not found: \"%s\" (only mathc/{validate,explain,packages,mode,re-evaluate,rebuttals,self-check,find,precommit,gate,attest,record,re-evaluate-decisions} are exposed by the MCP server)"
+          "Method not found: \"%s\" (only \
+           mathc/{validate,explain,packages,mode,re-evaluate,rebuttals,self-check,find,precommit,gate,attest,record,re-evaluate-decisions} \
+           are exposed by the MCP server)"
           req.method_
     in
     let _ = warn_read_write_disabled () in
     Protocol.response_error ~id:req.id Protocol.method_not_found_code msg
-  end else
+  end
+  else
     let program = find_mathc () in
     match build_argv req with
     | Error e ->
@@ -523,10 +516,10 @@ let handle (req : Protocol.request) : Protocol.response =
           in
           Protocol.response_error ~id:req.id ~data:(Some err_data)
             Protocol.internal_error_code
-            (Printf.sprintf
-               "mathc subprocess killed by signal %d: %s"
+            (Printf.sprintf "mathc subprocess killed by signal %d: %s"
                (-outcome.exit_code)
-               (if outcome.stderr_tail = "" then "(no stderr)" else outcome.stderr_tail))
+               (if outcome.stderr_tail = "" then "(no stderr)"
+                else outcome.stderr_tail))
         else
           (* exit_code 0..2 are verdict-shaped: wrap them in a JSON
              object that carries both the parsed stdout and the
@@ -534,9 +527,6 @@ let handle (req : Protocol.request) : Protocol.response =
              means. *)
           let wrapped =
             Jsonl.Object
-              [
-                ("exit_code", Jsonl.Int outcome.exit_code);
-                ("value", value);
-              ]
+              [ ("exit_code", Jsonl.Int outcome.exit_code); ("value", value) ]
           in
           Protocol.response_result ~id:req.id wrapped

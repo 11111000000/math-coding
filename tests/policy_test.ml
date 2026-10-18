@@ -23,12 +23,7 @@ let[@warning "-32"] root =
     Policy.parent = None;
     scope_paths = [ "lib/**" ];
     obligations =
-      [
-        {
-          Policy.obligation_kind = "lint";
-          Policy.path_namespace = "lib";
-        };
-      ];
+      [ { Policy.obligation_kind = "lint"; Policy.path_namespace = "lib" } ];
     mode_floor = `Standard;
     override_probability = 0.0;
     transitive_into = [];
@@ -42,10 +37,7 @@ let[@warning "-32"] middle =
     scope_paths = [ "lib/payments/**" ];
     obligations =
       [
-        {
-          Policy.obligation_kind = "lint";
-          Policy.path_namespace = "lib";
-        };
+        { Policy.obligation_kind = "lint"; Policy.path_namespace = "lib" };
         {
           Policy.obligation_kind = "pci-audit";
           Policy.path_namespace = "payments";
@@ -64,10 +56,7 @@ let[@warning "-32"] leaf =
     scope_paths = [ "lib/payments/exact/**" ];
     obligations =
       [
-        {
-          Policy.obligation_kind = "lint";
-          Policy.path_namespace = "lib";
-        };
+        { Policy.obligation_kind = "lint"; Policy.path_namespace = "lib" };
         {
           Policy.obligation_kind = "pci-audit";
           Policy.path_namespace = "payments";
@@ -138,17 +127,13 @@ let[@warning "-32"] exhaustive_child =
 let[@warning "-32"] resolve_policy_no_parent_returns_same () =
   let result = Policy.resolve_policy [ root ] "root" in
   match result with
-  | Error d ->
-      Alcotest.failf "expected Ok, got Error %s" d.Diagnostic.message
+  | Error d -> Alcotest.failf "expected Ok, got Error %s" d.Diagnostic.message
   | Ok resolved ->
-      Alcotest.(check string)
-        "resolved.policy_id" "root" resolved.policy_id;
+      Alcotest.(check string) "resolved.policy_id" "root" resolved.policy_id;
       Alcotest.(check (option string))
         "resolved.parent = None" None resolved.parent;
       Alcotest.(check (list string))
-        "scope_paths carried over"
-        [ "lib/**" ]
-        resolved.scope_paths;
+        "scope_paths carried over" [ "lib/**" ] resolved.scope_paths;
       Alcotest.(check int)
         "obligations carried over" 1
         (List.length resolved.obligations);
@@ -167,8 +152,7 @@ let[@warning "-32"] resolve_policy_no_parent_returns_same () =
 let[@warning "-32"] resolve_policy_one_level_inherits_parent () =
   let result = Policy.resolve_policy [ root; middle ] "middle" in
   match result with
-  | Error d ->
-      Alcotest.failf "expected Ok, got Error %s" d.Diagnostic.message
+  | Error d -> Alcotest.failf "expected Ok, got Error %s" d.Diagnostic.message
   | Ok resolved ->
       Alcotest.(check string)
         "resolved.policy_id is the child's id" "middle" resolved.policy_id;
@@ -184,9 +168,7 @@ let[@warning "-32"] resolve_policy_one_level_inherits_parent () =
         "obligations deduplicated to 2 entries" 2
         (List.length resolved.obligations);
       let mode_str =
-        match resolved.mode_floor with
-        | `Strict -> "Strict"
-        | _ -> "NotStrict"
+        match resolved.mode_floor with `Strict -> "Strict" | _ -> "NotStrict"
       in
       Alcotest.(check string)
         "mode_floor = max(Standard, Strict) = Strict" "Strict" mode_str
@@ -194,12 +176,9 @@ let[@warning "-32"] resolve_policy_one_level_inherits_parent () =
 (* --- resolve_policy_three_level_chain_returns_cumulative --- *)
 
 let[@warning "-32"] resolve_policy_three_level_chain_returns_cumulative () =
-  let result =
-    Policy.resolve_policy [ root; middle; leaf ] "leaf"
-  in
+  let result = Policy.resolve_policy [ root; middle; leaf ] "leaf" in
   match result with
-  | Error d ->
-      Alcotest.failf "expected Ok, got Error %s" d.Diagnostic.message
+  | Error d -> Alcotest.failf "expected Ok, got Error %s" d.Diagnostic.message
   | Ok resolved ->
       Alcotest.(check string)
         "resolved.policy_id is the leaf's id" "leaf" resolved.policy_id;
@@ -233,12 +212,10 @@ let[@warning "-32"] resolve_policy_cycle_returns_MC_POLICY_CYCLE () =
 
 let[@warning "-32"] resolve_policy_mode_floor_takes_max () =
   let result =
-    Policy.resolve_policy [ strict_parent; exhaustive_child ]
-      "exhaustive-child"
+    Policy.resolve_policy [ strict_parent; exhaustive_child ] "exhaustive-child"
   in
   match result with
-  | Error d ->
-      Alcotest.failf "expected Ok, got Error %s" d.Diagnostic.message
+  | Error d -> Alcotest.failf "expected Ok, got Error %s" d.Diagnostic.message
   | Ok resolved -> (
       match resolved.mode_floor with
       | `Exhaustive -> ()

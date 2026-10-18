@@ -52,8 +52,8 @@ let internal_error_code = -32603
 type id = Jsonl of Jsonl.value
 
 type request = {
-  id : id option;            (* None for notifications; this slice rejects them *)
-  method_ : string;          (* the JSON-RPC method name, e.g. "mathc/validate" *)
+  id : id option; (* None for notifications; this slice rejects them *)
+  method_ : string; (* the JSON-RPC method name, e.g. "mathc/validate" *)
   params : Jsonl.value option; (* the params object (Object { ... }) or absent *)
 }
 
@@ -66,18 +66,12 @@ type response = {
   error : rpc_error option;
 }
 
-and rpc_error = {
-  code : int;
-  message : string;
-  data : Jsonl.value option;
-}
+and rpc_error = { code : int; message : string; data : Jsonl.value option }
 
 (* --- id helpers --- *)
 
 let id_of_json (v : Jsonl.value) : id = Jsonl v
-
-let id_to_json (id : id) : Jsonl.value =
-  match id with Jsonl v -> v
+let id_to_json (id : id) : Jsonl.value = match id with Jsonl v -> v
 
 (* --- response constructors --- *)
 
@@ -93,46 +87,93 @@ let response_result ?(id = None) (result : Jsonl.value) =
    -32602 (Invalid params) on miss; this surfaces as a JSON-RPC
    error so the client knows their input shape was wrong, not
    that the server crashed. *)
-let string_param (params : Jsonl.value option) key : (string, rpc_error) result =
+let string_param (params : Jsonl.value option) key : (string, rpc_error) result
+    =
   match params with
   | None | Some Jsonl.Null ->
-      Error { code = invalid_params_code; message = "Invalid params: missing params object"; data = None }
+      Error
+        {
+          code = invalid_params_code;
+          message = "Invalid params: missing params object";
+          data = None;
+        }
   | Some (Jsonl.Object ps) -> (
       match List.assoc_opt key ps with
       | Some (Jsonl.String s) -> Ok s
       | Some _ ->
-          Error { code = invalid_params_code; message = Printf.sprintf "Invalid params: \"%s\" must be a string" key; data = None }
+          Error
+            {
+              code = invalid_params_code;
+              message =
+                Printf.sprintf "Invalid params: \"%s\" must be a string" key;
+              data = None;
+            }
       | None ->
-          Error { code = invalid_params_code; message = Printf.sprintf "Invalid params: \"%s\" is required" key; data = None })
+          Error
+            {
+              code = invalid_params_code;
+              message = Printf.sprintf "Invalid params: \"%s\" is required" key;
+              data = None;
+            })
   | _ ->
-      Error { code = invalid_params_code; message = "Invalid params: params must be an Object"; data = None }
+      Error
+        {
+          code = invalid_params_code;
+          message = "Invalid params: params must be an Object";
+          data = None;
+        }
 
 (* Look up a string array parameter (paths list for `mathc/mode`). *)
-let string_array_param (params : Jsonl.value option) key : (string list, rpc_error) result =
+let string_array_param (params : Jsonl.value option) key :
+    (string list, rpc_error) result =
   match params with
   | None | Some Jsonl.Null ->
-      Error { code = invalid_params_code; message = "Invalid params: missing params object"; data = None }
+      Error
+        {
+          code = invalid_params_code;
+          message = "Invalid params: missing params object";
+          data = None;
+        }
   | Some (Jsonl.Object ps) -> (
       match List.assoc_opt key ps with
       | Some (Jsonl.Array xs) ->
           let rec walk acc = function
             | [] -> Ok (List.rev acc)
-            | (Jsonl.String s) :: rest -> walk (s :: acc) rest
+            | Jsonl.String s :: rest -> walk (s :: acc) rest
             | _ :: _ ->
                 Error
                   {
                     code = invalid_params_code;
-                    message = Printf.sprintf "Invalid params: \"%s\" must be an array of strings" key;
+                    message =
+                      Printf.sprintf
+                        "Invalid params: \"%s\" must be an array of strings" key;
                     data = None;
                   }
           in
           walk [] xs
       | Some _ ->
-          Error { code = invalid_params_code; message = Printf.sprintf "Invalid params: \"%s\" must be an array of strings" key; data = None }
+          Error
+            {
+              code = invalid_params_code;
+              message =
+                Printf.sprintf
+                  "Invalid params: \"%s\" must be an array of strings" key;
+              data = None;
+            }
       | None ->
-          Error { code = invalid_params_code; message = Printf.sprintf "Invalid params: \"%s\" is required" key; data = None })
+          Error
+            {
+              code = invalid_params_code;
+              message = Printf.sprintf "Invalid params: \"%s\" is required" key;
+              data = None;
+            })
   | _ ->
-      Error { code = invalid_params_code; message = "Invalid params: params must be an Object"; data = None }
+      Error
+        {
+          code = invalid_params_code;
+          message = "Invalid params: params must be an Object";
+          data = None;
+        }
 
 (* --- request parser --- *)
 
@@ -147,18 +188,18 @@ let string_array_param (params : Jsonl.value option) key : (string list, rpc_err
      - "params", if present, MUST be an Object or Array *)
 let parse_request (s : string) : (request, rpc_error) result =
   let v =
-    try Ok (Jsonl.parse s) with
-    | Jsonl.Parse_error { msg; _ } ->
-        Error
-          {
-            code = parse_error_code;
-            message = "Parse error: " ^ msg;
-            data = None;
-          }
+    try Ok (Jsonl.parse s)
+    with Jsonl.Parse_error { msg; _ } ->
+      Error
+        {
+          code = parse_error_code;
+          message = "Parse error: " ^ msg;
+          data = None;
+        }
   in
   match v with
   | Error e -> Error e
-  | Ok (Jsonl.Object ps) ->
+  | Ok (Jsonl.Object ps) -> (
       (* 1) jsonrpc == "2.0" *)
       let check_rpc =
         match List.assoc_opt "jsonrpc" ps with
@@ -167,7 +208,9 @@ let parse_request (s : string) : (request, rpc_error) result =
             Error
               {
                 code = invalid_request_code;
-                message = "Invalid Request: \"jsonrpc\" field must be the string \"2.0\"";
+                message =
+                  "Invalid Request: \"jsonrpc\" field must be the string \
+                   \"2.0\"";
                 data = None;
               }
         | None ->
@@ -215,7 +258,8 @@ let parse_request (s : string) : (request, rpc_error) result =
               {
                 code = invalid_request_code;
                 message =
-                  "Invalid Request: \"id\" field required (notifications not supported in this slice)";
+                  "Invalid Request: \"id\" field required (notifications not \
+                   supported in this slice)";
                 data = None;
               }
       in
@@ -228,17 +272,18 @@ let parse_request (s : string) : (request, rpc_error) result =
             Error
               {
                 code = invalid_request_code;
-                message = "Invalid Request: \"params\" must be an Object or Array";
+                message =
+                  "Invalid Request: \"params\" must be an Object or Array";
                 data = None;
               }
         | None -> Ok None
       in
-      (match check_rpc, check_method, check_id, check_params with
-       | Ok (), Ok m, Ok id, Ok params -> Ok { id; method_ = m; params }
-       | Error e, _, _, _ -> Error e
-       | _, Error e, _, _ -> Error e
-       | _, _, Error e, _ -> Error e
-       | _, _, _, Error e -> Error e)
+      match (check_rpc, check_method, check_id, check_params) with
+      | Ok (), Ok m, Ok id, Ok params -> Ok { id; method_ = m; params }
+      | Error e, _, _, _ -> Error e
+      | _, Error e, _, _ -> Error e
+      | _, _, Error e, _ -> Error e
+      | _, _, _, Error e -> Error e)
   | Ok _ ->
       Error
         {
@@ -271,9 +316,7 @@ let encode_response (r : response) : string =
         ]
     | { id = Some id; result = Some res; error = None } ->
         [
-          ("id", id_to_json id);
-          ("jsonrpc", Jsonl.String "2.0");
-          ("result", res);
+          ("id", id_to_json id); ("jsonrpc", Jsonl.String "2.0"); ("result", res);
         ]
     | { id = Some id; error = Some e; result = None } ->
         let data_field =

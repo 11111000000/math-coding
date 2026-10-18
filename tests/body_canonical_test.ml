@@ -36,11 +36,9 @@ let[@warning "-32"] sample_with_valid_sha () : string =
    id: d5-test-fixture\n\
    revision: 1\n\
    state: active\n\
-   body_sha: \"sha256:" ^ String.make 64 'a' ^ "\"\n\
-   yaml_sha: \"sha256:" ^ String.make 64 'a' ^ "\"\n\
-   intent: |\n\
-     Synthetic fixture for body_canonical_test.\n\
-   ---\n"
+   body_sha: \"sha256:" ^ String.make 64 'a' ^ "\"\nyaml_sha: \"sha256:"
+  ^ String.make 64 'a'
+  ^ "\"\nintent: |\nSynthetic fixture for body_canonical_test.\n---\n"
 
 let[@warning "-32"] stability () =
   let input = sample_with_valid_sha () in
@@ -50,12 +48,11 @@ let[@warning "-32"] stability () =
 
 let[@warning "-32"] sensitivity () =
   let baseline = sample_with_valid_sha () in
-  let modified =
-    String.sub baseline 0 (String.length baseline - 1) ^ "X"
-  in
+  let modified = String.sub baseline 0 (String.length baseline - 1) ^ "X" in
   Alcotest.(check bool)
     "sensitivity: changing one byte in the body produces a different digest"
-    true (hash baseline <> hash modified)
+    true
+    (hash baseline <> hash modified)
 
 let[@warning "-32"] insensitivity_to_placeholder () =
   let bs_a = "body_sha: \"sha256:" ^ String.make 64 'a' ^ "\"" in
@@ -64,7 +61,8 @@ let[@warning "-32"] insensitivity_to_placeholder () =
   let input_a = base_prefix ^ bs_a ^ "\nintent: x\n---\n" in
   let input_b = base_prefix ^ bs_b ^ "\nintent: x\n---\n" in
   Alcotest.(check string)
-    "insensitivity-to-placeholder: changing the sha value does not change the digest"
+    "insensitivity-to-placeholder: changing the sha value does not change the \
+     digest"
     (hash input_a) (hash input_b)
 
 let[@warning "-32"] crlf_equals_lf () =

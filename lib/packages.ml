@@ -174,22 +174,22 @@ let[@warning "-32"] extract_obligation_verifiers_lines lines =
           in_acceptance_list := false;
           scan acc rest
         end
-        else if !in_obls then begin
-          if t = "" then scan acc rest
+        else if !in_obls then
+          begin if t = "" then scan acc rest
           else if t = "acceptance:" then begin
             in_acceptance_block := true;
             scan acc rest
           end
           else if !in_acceptance_block then begin
-            let head =
-              if String.length t >= 4 then String.sub t 0 4 else t
-            in
+            let head = if String.length t >= 4 then String.sub t 0 4 else t in
             if head = "all:" || head = "any:" then begin
               in_acceptance_list := true;
               scan acc rest
             end
             else if String.length t > 0 && t.[0] = '-' then begin
-              let trimmed = String.trim (String.sub t 1 (String.length t - 1)) in
+              let trimmed =
+                String.trim (String.sub t 1 (String.length t - 1))
+              in
               if
                 String.length trimmed > 10
                 && String.sub trimmed 0 10 = "verifier: "
@@ -224,8 +224,8 @@ let[@warning "-32"] extract_obligation_verifiers_lines lines =
             scan acc rest
           end
           else scan acc rest
-      end
-      else scan acc rest
+          end
+        else scan acc rest
   in
   scan [] lines
 
@@ -373,25 +373,22 @@ let[@warning "-32"] remedies_of = function
     fallback path) we fall back to the obligation id so the
     rendering layer never crashes; the placeholder is documented in
     decisions/kernel-bugs-v3.4-2026-10. *)
-let[@warning "-32"] obligation_view ~now_iso ~obligation_id
-    ~obligation_verifier ~store ~has_store =
+let[@warning "-32"] obligation_view ~now_iso ~obligation_id ~obligation_verifier
+    ~store ~has_store =
   let verdict = verdict_of ~now_iso ~obligation_id ~store ~has_store in
   let att_opt = latest_attestation ~store ~obligation_id in
   let att = match att_opt with [] -> None | h :: _ -> Some h in
   {
     id = obligation_id;
     verdict;
-    verifier =
-      (match obligation_verifier with
-       | "" -> obligation_id
-       | s -> s);
+    verifier = (match obligation_verifier with "" -> obligation_id | s -> s);
     attestation_id =
       (match att with None -> None | Some a -> Some a.Domain.id);
     attestation_expires =
       (match att with
-       | None -> None
-       | Some a -> (
-           match a.Domain.valid_until with None -> None | Some t -> Some t));
+      | None -> None
+      | Some a -> (
+          match a.Domain.valid_until with None -> None | Some t -> Some t));
     remedies = remedies_of verdict;
   }
 
@@ -423,7 +420,7 @@ let[@warning "-32"] walk ~reader ~decisions_root ~store ~has_store ~now_iso
       (fun path ->
         match load_decision ~reader ~path with
         | None -> None
-| Some
+        | Some
             ( decision_id,
               decision_revision,
               obligation_ids,
@@ -460,12 +457,7 @@ let[@warning "-32"] walk ~reader ~decisions_root ~store ~has_store ~now_iso
                 obligation_ids final_verifiers
             in
             Some
-              {
-                decision_id;
-                decision_revision;
-                obligations = obs;
-                yaml_body;
-              })
+              { decision_id; decision_revision; obligations = obs; yaml_body })
       decisions_paths
   in
   let counts =
@@ -626,8 +618,9 @@ let[@warning "-32"] intent_preview yaml_body =
           if i >= List.length lines then -1
           else
             let l = List.nth lines i in
-            if String.length (String.trim l) > 7
-               && String.sub (String.trim l) 0 7 = "intent:"
+            if
+              String.length (String.trim l) > 7
+              && String.sub (String.trim l) 0 7 = "intent:"
             then i
             else scan (i + 1)
         in
@@ -680,9 +673,9 @@ let[@warning "-32"] to_html (p : package_list) =
      data-mathc-fail-count=\"%d\" data-mathc-stale-count=\"%d\" \
      data-mathc-missing-count=\"%d\" data-mathc-waived-count=\"%d\" \
      data-mathc-as-of=\"%s\" data-mathc-policy=\"%s\">\n"
-    p.counts.total p.counts.pass p.counts.unknown p.counts.fail
-    p.counts.stale p.counts.missing p.counts.waived
-    (html_escape p.as_of) (html_escape p.policy_id);
+    p.counts.total p.counts.pass p.counts.unknown p.counts.fail p.counts.stale
+    p.counts.missing p.counts.waived (html_escape p.as_of)
+    (html_escape p.policy_id);
   Printf.bprintf buf "<h2>math-coding packages</h2>\n";
   Printf.bprintf buf
     "<p class=\"mathc-counts\">total=%d pass=%d fail=%d unknown=%d stale=%d \
@@ -702,7 +695,8 @@ let[@warning "-32"] to_html (p : package_list) =
       Printf.bprintf buf
         "<h3><a class=\"mathc-decision-link\" \
          href=\"decisions/%s.html\">%s</a></h3>\n"
-        (html_escape d.decision_id) (html_escape d.decision_id);
+        (html_escape d.decision_id)
+        (html_escape d.decision_id);
       (* One-line intent preview so the home grid shows what
          each decision is about without opening the per-decision
          page. Truncated to 240 chars to keep the grid scannable. *)
@@ -712,8 +706,7 @@ let[@warning "-32"] to_html (p : package_list) =
         if len > 240 then String.sub preview 0 240 ^ "..." else preview
       in
       if String.length preview_trimmed > 0 then
-        Printf.bprintf buf
-          "<p class=\"mathc-decision-intent\">%s</p>\n"
+        Printf.bprintf buf "<p class=\"mathc-decision-intent\">%s</p>\n"
           (html_escape preview_trimmed);
       Printf.bprintf buf "<ul class=\"mathc-obligations\">\n";
       List.iter

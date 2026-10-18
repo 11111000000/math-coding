@@ -288,9 +288,8 @@ let[@warning "-32"] rec md_inline_parse s =
             flush_inline ();
             let html =
               Printf.sprintf
-                "<figure class=\"mathc-figure mathc-figure-inline\">\
-                 <img src=\"%s\" alt=\"%s\">\
-                 </figure>"
+                "<figure class=\"mathc-figure mathc-figure-inline\"><img \
+                 src=\"%s\" alt=\"%s\"></figure>"
                 (html_escape url) (html_escape alt)
             in
             fragments := (html, true) :: !fragments;
@@ -534,8 +533,7 @@ let[@warning "-32"] md_parse source =
     while !i < len && t.[!i] >= '0' && t.[!i] <= '9' do
       incr i
     done;
-    if !i = 0 || !i + 1 >= len || t.[!i] <> '.' || t.[!i + 1] <> ' ' then
-      None
+    if !i = 0 || !i + 1 >= len || t.[!i] <> '.' || t.[!i + 1] <> ' ' then None
     else Some (String.sub t (!i + 2) (len - !i - 2))
   in
   let[@warning "-32"] is_ordered_marker t =
@@ -572,17 +570,16 @@ let[@warning "-32"] md_parse source =
       | [] -> (List.rev items_rev, List.rev current_item, [])
       | l :: r ->
           let tt = String.trim l in
-          if tt = "" then
-            (List.rev items_rev, List.rev current_item, l :: r)
+          if tt = "" then (List.rev items_rev, List.rev current_item, l :: r)
           else if is_block_starter tt then
             (List.rev items_rev, List.rev current_item, l :: r)
-          else begin
-            match trigger tt with
+          else
+            begin match trigger tt with
             | Some body ->
                 let finished = List.rev current_item in
                 collect ([ finished ] @ items_rev) [ body ] r
             | None -> collect items_rev (l :: current_item) r
-          end
+            end
     in
     let first_body =
       match trigger first_line with Some b -> b | None -> first_line
@@ -594,8 +591,7 @@ let[@warning "-32"] md_parse source =
     List.iter
       (fun item_lines ->
         let joined =
-          String.concat " "
-            (List.map (fun s -> String.trim s) item_lines)
+          String.concat " " (List.map (fun s -> String.trim s) item_lines)
         in
         Buffer.add_string buf "  <li>";
         Buffer.add_string buf (md_inline joined);

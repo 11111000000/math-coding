@@ -152,12 +152,10 @@ let[@warning "-32"] count_array_field v name =
    shapes supported match `schemas/decision.json#/definitions/
    acceptance` and the four hard-coded positions in
    `tests/cli/*.t`. *)
-let[@warning "-32"] extract_obligation_verifiers (ops : (string * Jsonl.value) list)
-    : string list =
+let[@warning "-32"] extract_obligation_verifiers
+    (ops : (string * Jsonl.value) list) : string list =
   let acceptance_pairs =
-    match Schema.take_object ops "acceptance" with
-    | Some a -> a
-    | None -> []
+    match Schema.take_object ops "acceptance" with Some a -> a | None -> []
   in
   let collect_from items =
     List.filter_map
@@ -215,8 +213,7 @@ let[@warning "-32"] parse_decision_yaml raw =
                           | None -> ""
                         in
                         let vers = extract_obligation_verifiers ops in
-                        ( (if obid <> "" then obid :: ids else ids),
-                          accs @ vers )
+                        ((if obid <> "" then obid :: ids else ids), accs @ vers)
                     | _ -> (ids, accs))
                   ([], []) xs
               in

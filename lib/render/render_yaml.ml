@@ -46,8 +46,7 @@ let[@warning "-32"] trim_block_lines lines =
     | [] -> []
     | xs ->
         let last = List.hd (List.rev xs) in
-        if last = "" then trim_back (List.rev (List.tl (List.rev xs)))
-        else xs
+        if last = "" then trim_back (List.rev (List.tl (List.rev xs))) else xs
   in
   trim_back (trim_front lines)
 
@@ -62,8 +61,10 @@ let[@warning "-32"] find_top_key lines name =
       let l = List.nth lines i in
       let ind = indent_of l in
       let t = String.trim l in
-      if ind = 0 && String.length t >= String.length prefix
-         && String.sub t 0 (String.length prefix) = prefix
+      if
+        ind = 0
+        && String.length t >= String.length prefix
+        && String.sub t 0 (String.length prefix) = prefix
       then i
       else scan (i + 1)
   in
@@ -79,8 +80,7 @@ let[@warning "-32"] block_end lines start_idx =
       let l = List.nth lines i in
       let ind = indent_of l in
       let t = String.trim l in
-      if i > start_idx && ind = 0 && t <> "" then i
-      else scan (i + 1)
+      if i > start_idx && ind = 0 && t <> "" then i else scan (i + 1)
   in
   scan (start_idx + 1)
 
@@ -109,8 +109,7 @@ let[@warning "-32"] top_block lines name =
     let prefix = name ^ ":" in
     let prefix_len = String.length prefix in
     let after_colon =
-      String.sub raw prefix_len (String.length raw - prefix_len)
-      |> String.trim
+      String.sub raw prefix_len (String.length raw - prefix_len) |> String.trim
     in
     let len = List.length lines in
     let _ = len in
@@ -129,9 +128,7 @@ let[@warning "-32"] top_block lines name =
           body_lines
       in
       let min_ind =
-        match indents with
-        | [] -> 0
-        | h :: rest -> List.fold_left min h rest
+        match indents with [] -> 0 | h :: rest -> List.fold_left min h rest
       in
       let stripped =
         List.map
@@ -146,7 +143,7 @@ let[@warning "-32"] top_block lines name =
         (* Inline scalar mode: the value is on the next indented
            line(s). *)
         Some (String.concat "\n" cleaned)
-      else Some (after_colon)
+      else Some after_colon
 
 (* Extract a top-level `key:` list of objects. Each item has an
    `id: NAME` (and optionally other fields). Returns the list of
@@ -159,9 +156,7 @@ let[@warning "-32"] top_object_list lines name =
     let len = List.length lines in
     let _ = len in
     let end_ = block_end lines idx in
-    let body =
-      List.filteri (fun i _ -> i > idx && i < end_) lines
-    in
+    let body = List.filteri (fun i _ -> i > idx && i < end_) lines in
     let items = ref [] in
     let current = ref [] in
     let flush () =
@@ -169,9 +164,7 @@ let[@warning "-32"] top_object_list lines name =
       items := rev :: !items;
       current := []
     in
-    let is_list_marker t =
-      String.length t > 2 && String.sub t 0 2 = "- "
-    in
+    let is_list_marker t = String.length t > 2 && String.sub t 0 2 = "- " in
     List.iter
       (fun l ->
         let t = String.trim l in
@@ -189,13 +182,9 @@ let[@warning "-32"] top_object_list lines name =
         | line :: rest ->
             let t = String.trim line in
             if String.length t > 4 && String.sub t 0 4 = "id: " then
-              Some
-                (String.trim
-                   (String.sub t 4 (String.length t - 4)))
+              Some (String.trim (String.sub t 4 (String.length t - 4)))
             else if String.length t > 3 && String.sub t 0 3 = "id:" then
-              Some
-                (String.trim
-                   (String.sub t 3 (String.length t - 3)))
+              Some (String.trim (String.sub t 3 (String.length t - 3)))
             else find rest
       in
       find item_lines
@@ -222,13 +211,10 @@ let[@warning "-32"] top_object_list lines name =
                 List.map
                   (fun l ->
                     if String.length l <= min_ind then ""
-                    else
-                      String.sub l min_ind (String.length l - min_ind))
+                    else String.sub l min_ind (String.length l - min_ind))
                   item_lines
               in
-              let body_md =
-                trim_block_lines stripped |> String.concat "\n"
-              in
+              let body_md = trim_block_lines stripped |> String.concat "\n" in
               Some (id, body_md))
         raw_items
     in
@@ -300,7 +286,9 @@ let[@warning "-32"] render_yaml_object_list_section ~heading ~pairs =
     List.iter
       (fun (id, body_md) ->
         Printf.bprintf buf
-          "  <li><code class=\"mathc-decision-id\">%s</code>\n    <div>%s</div>\n  </li>\n"
+          "  <li><code class=\"mathc-decision-id\">%s</code>\n\
+          \    <div>%s</div>\n\
+          \  </li>\n"
           (html_escape id) (md_parse body_md))
       pairs;
     Buffer.add_string buf "</ol>\n";
@@ -328,7 +316,9 @@ let[@warning "-32"] strip_boilerplate body_md =
     | line :: rest ->
         let t = String.trim line in
         let is_id = starts_with "id:" t || starts_with "id: " t in
-        let is_outcome = starts_with "outcome:" t || starts_with "outcome: " t in
+        let is_outcome =
+          starts_with "outcome:" t || starts_with "outcome: " t
+        in
         if is_id || is_outcome then drop_outcome_and_id acc rest
         else drop_outcome_and_id (line :: acc) rest
   in
@@ -364,12 +354,13 @@ let[@warning "-32"] strip_boilerplate body_md =
   let stripped2 = drop_acceptance [] stripped1 in
   String.concat "\n" stripped2
 
-let[@warning "-32"] render_yaml_obligations_section ~heading ~pairs ~verdict_by_id
-    =
+let[@warning "-32"] render_yaml_obligations_section ~heading ~pairs
+    ~verdict_by_id =
   if pairs = [] then ""
   else
     let buf = Buffer.create 512 in
-    Printf.bprintf buf "<h2>%s</h2>\n<ol class=\"mathc-decision-obligations\">\n"
+    Printf.bprintf buf
+      "<h2>%s</h2>\n<ol class=\"mathc-decision-obligations\">\n"
       (html_escape heading);
     List.iter
       (fun (id, body_md) ->
@@ -379,11 +370,13 @@ let[@warning "-32"] render_yaml_obligations_section ~heading ~pairs ~verdict_by_
           | None -> "missing"
         in
         Printf.bprintf buf
-          "  <li>\n    <div class=\"mathc-decision-obligation-head\">\n      \
-           <code class=\"mathc-decision-id\">%s</code>\n      <span \
-           class=\"mathc-verdict-label mathc-verdict-%s\">%s</span>\n    \
-           </div>\n    <div class=\"mathc-decision-obligation-body\">%s</div>\n  \
-           </li>\n"
+          "  <li>\n\
+          \    <div class=\"mathc-decision-obligation-head\">\n\
+          \      <code class=\"mathc-decision-id\">%s</code>\n\
+          \      <span class=\"mathc-verdict-label mathc-verdict-%s\">%s</span>\n\
+          \    </div>\n\
+          \    <div class=\"mathc-decision-obligation-body\">%s</div>\n\
+          \  </li>\n"
           (html_escape id) verdict verdict
           (md_parse (strip_boilerplate body_md)))
       pairs;
@@ -403,63 +396,51 @@ let[@warning "-32"] render_decision_yaml ~yaml_body ~verdict_by_id =
       (* 1. intent — block scalar preferred, scalar fallback *)
       let intent_html =
         match top_block lines "intent" with
-        | Some s ->
-            render_yaml_section ~heading:"Intent" ~body_md:s
+        | Some s -> render_yaml_section ~heading:"Intent" ~body_md:s
         | None -> (
             match top_scalar lines "intent" with
-            | Some s ->
-                render_yaml_section ~heading:"Intent" ~body_md:s
+            | Some s -> render_yaml_section ~heading:"Intent" ~body_md:s
             | None -> "")
       in
       Buffer.add_string buf intent_html;
       (* 2. commitment — same shape *)
       let commit_html =
         match top_block lines "commitment" with
-        | Some s ->
-            render_yaml_section ~heading:"Commitment" ~body_md:s
+        | Some s -> render_yaml_section ~heading:"Commitment" ~body_md:s
         | None -> (
             match top_scalar lines "commitment" with
-            | Some s ->
-                render_yaml_section ~heading:"Commitment" ~body_md:s
+            | Some s -> render_yaml_section ~heading:"Commitment" ~body_md:s
             | None -> "")
       in
       Buffer.add_string buf commit_html;
       (* 3. scope — list of paths and decisions *)
       let scope_paths =
-        top_object_list lines "scope"
-        |> Option.map (List.map fst)
+        top_object_list lines "scope" |> Option.map (List.map fst)
       in
-      let scope_html =
-        Option.value scope_paths ~default:[]
-        |> render_quad
-      in
+      let scope_html = Option.value scope_paths ~default:[] |> render_quad in
       Buffer.add_string buf scope_html;
       (* 4. outcomes — list of {id, statement} *)
       (match top_object_list lines "outcomes" with
-       | Some [] | None -> ()
-       | Some pairs ->
-           Buffer.add_string buf
-             (render_yaml_object_list_section ~heading:"Outcomes"
-                ~pairs));
+      | Some [] | None -> ()
+      | Some pairs ->
+          Buffer.add_string buf
+            (render_yaml_object_list_section ~heading:"Outcomes" ~pairs));
       (* 5. obligations — list of {id, claim, ...}; verdict-pill
             cross-link uses the in-memory verdict map. *)
       (match top_object_list lines "obligations" with
-       | Some [] | None -> ()
-       | Some pairs ->
-           Buffer.add_string buf
-             (render_yaml_obligations_section ~heading:"Obligations"
-                ~pairs ~verdict_by_id));
+      | Some [] | None -> ()
+      | Some pairs ->
+          Buffer.add_string buf
+            (render_yaml_obligations_section ~heading:"Obligations" ~pairs
+               ~verdict_by_id));
       (* 6. counterexample — block scalar preferred, scalar fallback *)
       let ce_html =
         match top_block lines "counterexample" with
-        | Some s ->
-            render_yaml_section ~heading:"Counter-example"
-              ~body_md:s
+        | Some s -> render_yaml_section ~heading:"Counter-example" ~body_md:s
         | None -> (
             match top_scalar lines "counterexample" with
             | Some s ->
-                render_yaml_section ~heading:"Counter-example"
-                  ~body_md:s
+                render_yaml_section ~heading:"Counter-example" ~body_md:s
             | None -> "")
       in
       Buffer.add_string buf ce_html;
@@ -467,12 +448,10 @@ let[@warning "-32"] render_decision_yaml ~yaml_body ~verdict_by_id =
             fall back to the inline value (rare). *)
       let risk_html =
         match top_block lines "risk" with
-        | Some s ->
-            render_yaml_section ~heading:"Risk" ~body_md:s
+        | Some s -> render_yaml_section ~heading:"Risk" ~body_md:s
         | None -> (
             match top_scalar lines "risk" with
-            | Some s ->
-                render_yaml_section ~heading:"Risk" ~body_md:s
+            | Some s -> render_yaml_section ~heading:"Risk" ~body_md:s
             | None -> "")
       in
       Buffer.add_string buf risk_html;
@@ -480,56 +459,54 @@ let[@warning "-32"] render_decision_yaml ~yaml_body ~verdict_by_id =
             (e.g. `addresses: [..]`, `supersedes: [..]`). We
             produce one bullet per (kind, target) pair. *)
       (match top_object_list lines "relations" with
-       | Some [] | None -> ()
-| Some pairs ->
-            let flat =
-              List.concat_map
-                (fun (kind, body_md) ->
-                  let lines = String.split_on_char '\n' body_md in
-                  let target_list =
-                    List.filter_map
-                      (fun l ->
-                        let t = String.trim l in
-                        if String.length t > 2
-                           && String.sub t 0 2 = "- "
-                        then
-                          Some
-                            (String.sub t 2 (String.length t - 2))
-                        else None)
-                      lines
-                  in
-                  List.map (fun t -> (kind, t)) target_list)
-                pairs
-            in
-           if flat <> [] then begin
-             let buf2 = Buffer.create 128 in
-             Printf.bprintf buf2
-               "<h2>Relations</h2>\n<ul class=\"mathc-decision-relations\">\n";
-             List.iter
-               (fun (kind, target) ->
-                 Printf.bprintf buf2
-                   "  <li><code>%s</code> &rarr; <code>%s</code></li>\n"
-                   (html_escape kind) (html_escape target))
-               flat;
-             Buffer.add_string buf2 "</ul>\n";
-             Buffer.add_string buf (Buffer.contents buf2)
-           end);
+      | Some [] | None -> ()
+      | Some pairs ->
+          let flat =
+            List.concat_map
+              (fun (kind, body_md) ->
+                let lines = String.split_on_char '\n' body_md in
+                let target_list =
+                  List.filter_map
+                    (fun l ->
+                      let t = String.trim l in
+                      if String.length t > 2 && String.sub t 0 2 = "- " then
+                        Some (String.sub t 2 (String.length t - 2))
+                      else None)
+                    lines
+                in
+                List.map (fun t -> (kind, t)) target_list)
+              pairs
+          in
+          if flat <> [] then begin
+            let buf2 = Buffer.create 128 in
+            Printf.bprintf buf2
+              "<h2>Relations</h2>\n<ul class=\"mathc-decision-relations\">\n";
+            List.iter
+              (fun (kind, target) ->
+                Printf.bprintf buf2
+                  "  <li><code>%s</code> &rarr; <code>%s</code></li>\n"
+                  (html_escape kind) (html_escape target))
+              flat;
+            Buffer.add_string buf2 "</ul>\n";
+            Buffer.add_string buf (Buffer.contents buf2)
+          end);
       (* 9. axiom_link — list of axiom ids, rendered as cross-links *)
       (match top_string_list lines "axiom_link" with
-       | Some [] | None -> ()
-       | Some ids ->
-           let axiom_links =
-             List.map
-               (fun id ->
-                 Printf.sprintf "<a href=\"../axioms/%s.html\">%s</a>"
-                   (html_escape id) (html_escape id))
-               ids
-           in
-           let inline = String.concat " &middot; " axiom_links in
-           Buffer.add_string buf
-             (Printf.sprintf
-                "<h2>Axiom links</h2>\n<p class=\"mathc-decision-axiom-link\">%s</p>\n"
-                inline));
+      | Some [] | None -> ()
+      | Some ids ->
+          let axiom_links =
+            List.map
+              (fun id ->
+                Printf.sprintf "<a href=\"../axioms/%s.html\">%s</a>"
+                  (html_escape id) (html_escape id))
+              ids
+          in
+          let inline = String.concat " &middot; " axiom_links in
+          Buffer.add_string buf
+            (Printf.sprintf
+               "<h2>Axiom links</h2>\n\
+                <p class=\"mathc-decision-axiom-link\">%s</p>\n"
+               inline));
       Buffer.contents buf
 
 (* Stubs the helpers `render_yaml_section` etc. above already

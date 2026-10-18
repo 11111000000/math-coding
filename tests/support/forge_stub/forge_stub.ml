@@ -12,16 +12,16 @@ let[@warning "-32"] read_request fd =
     if n <= 0 then Buffer.contents acc
     else begin
       let chunk = Bytes.sub_string buf 0 n in
-      
+
       let len = String.length chunk in
       let i = ref 0 in
       while !i < len do
         let c = chunk.[!i] in
         incr i;
-        if c = '\r' then begin
-          if !cr_seen then ()
-          else cr_seen := true
-        end else if c = '\n' then begin
+        if c = '\r' then
+          begin if !cr_seen then () else cr_seen := true
+          end
+        else if c = '\n' then begin
           let line = Buffer.contents acc in
           Buffer.clear acc;
           cr_seen := false;
@@ -31,9 +31,10 @@ let[@warning "-32"] read_request fd =
             Buffer.add_char acc '\n';
             ignore (loop ())
           end
-        end else begin
-          if !cr_seen then Buffer.add_string acc (String.make 1 c)
         end
+        else
+          begin if !cr_seen then Buffer.add_string acc (String.make 1 c)
+          end
       done;
       loop ()
     end
@@ -63,14 +64,16 @@ let[@warning "-32"] main =
   let len = String.length body in
   let header =
     Printf.sprintf
-      "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\nConnection: close\r\n\r\n"
+      "HTTP/1.1 200 OK\r\n\
+       Content-Type: application/json\r\n\
+       Content-Length: %d\r\n\
+       Connection: close\r\n\
+       \r\n"
       len
   in
   let hbuf = Bytes.unsafe_of_string header in
   let bbuf = Bytes.unsafe_of_string body in
-  (try write_all ss hbuf 0 (String.length header)
-   with Unix.Unix_error _ -> ());
-  (try write_all ss bbuf 0 (String.length body)
-   with Unix.Unix_error _ -> ())
+  (try write_all ss hbuf 0 (String.length header) with Unix.Unix_error _ -> ());
+  try write_all ss bbuf 0 (String.length body) with Unix.Unix_error _ -> ()
 
 let _ = main

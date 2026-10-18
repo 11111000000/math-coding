@@ -79,7 +79,8 @@ let[@warning "-32"] body_canonical_sha256 (bytes : string) : string =
       if c = '\r' && !i + 1 < len && s.[!i + 1] = '\n' then begin
         Buffer.add_char buf '\n';
         i := !i + 2
-      end else begin
+      end
+      else begin
         Buffer.add_char buf c;
         incr i
       end
@@ -106,9 +107,7 @@ let[@warning "-32"] body_canonical_sha256 (bytes : string) : string =
     in
     let matched_len = prefix_len + hex_len + 1 in
     while !i < s_len do
-      if !i + matched_len <= s_len
-         && String.sub s !i prefix_len = prefix
-      then begin
+      if !i + matched_len <= s_len && String.sub s !i prefix_len = prefix then begin
         let hex_start = !i + prefix_len in
         let hex_end = hex_start + hex_len in
         let all_hex =
@@ -124,11 +123,13 @@ let[@warning "-32"] body_canonical_sha256 (bytes : string) : string =
           Buffer.add_string buf prefix;
           Buffer.add_string buf placeholder;
           i := !i + matched_len
-        end else begin
+        end
+        else begin
           Buffer.add_char buf s.[!i];
           incr i
         end
-      end else begin
+      end
+      else begin
         Buffer.add_char buf s.[!i];
         incr i
       end
@@ -304,7 +305,8 @@ let[@warning "-32"] parse_scope_paths ra_obj =
   match Schema.take_array ra_obj "scope_paths" with
   | Some xs ->
       List.filter_map
-        (function Jsonl.String s when String.trim s <> "" -> Some s | _ -> None)
+        (function
+          | Jsonl.String s when String.trim s <> "" -> Some s | _ -> None)
         xs
   | _ -> []
 
@@ -312,10 +314,10 @@ let[@warning "-32"] parse_required_attestations v =
   match v with
   | Jsonl.Object ps -> (
       match Schema.take_array ps "required_attestations" with
-      | Some items ->
+      | Some items -> (
           let rec loop = function
             | [] -> []
-            | item :: rest ->
+            | item :: rest -> (
                 match item with
                 | Jsonl.Object item_ps ->
                     let k =
@@ -336,11 +338,9 @@ let[@warning "-32"] parse_required_attestations v =
                         ra_scope_paths = parse_scope_paths item_ps;
                       }
                       :: loop rest
-                | _ -> loop rest
-              in
-          (match loop items with
-           | _ :: _ as xs -> Some xs
-           | [] -> None)
+                | _ -> loop rest)
+          in
+          match loop items with _ :: _ as xs -> Some xs | [] -> None)
       | None -> None)
   | _ -> None
 
@@ -694,7 +694,7 @@ and scope_target_to_json (t : Domain.scope_target) : Jsonl.value =
 
 and parse_decision_yaml v =
   match v with
-  | Jsonl.Object ps ->
+  | Jsonl.Object ps -> (
       let ps' =
         match extract_field ps "intent" with
         | Some (Jsonl.String s) when String.trim s <> "" ->
@@ -740,13 +740,11 @@ and parse_decision_yaml v =
                 ] )
             :: ps''
       in
-      (match parse_decision_value (Jsonl.Object ps_with_risk) with
-       | Accept d -> Some d
-       | Reject _ -> None)
-  | _ ->
-      (match parse_decision_value v with
-       | Accept d -> Some d
-       | Reject _ -> None)
+      match parse_decision_value (Jsonl.Object ps_with_risk) with
+      | Accept d -> Some d
+      | Reject _ -> None)
+  | _ -> (
+      match parse_decision_value v with Accept d -> Some d | Reject _ -> None)
 
 and[@warning "-32"] parse_obligation_with parent_id v =
   match v with
@@ -913,7 +911,7 @@ and parse_decision_value v =
           let check_sha_pattern field =
             match Schema.take_string ps field with
             | Some s
-              when not (String.starts_with ~prefix:"sha256:" s)
+              when (not (String.starts_with ~prefix:"sha256:" s))
                    || String.length s <> 71 ->
                 Some
                   (Diagnostic.mc_body_sha_pattern_violation ~decision_id:id
@@ -921,33 +919,32 @@ and parse_decision_value v =
             | _ -> None
           in
           match
-            check_sha_pattern "body_sha",
-            check_sha_pattern "yaml_sha"
+            (check_sha_pattern "body_sha", check_sha_pattern "yaml_sha")
           with
           | Some diag, _ | None, Some diag -> Reject diag
           | None, None -> (
               match Schema.take_string ps "revision" with
-          | None ->
-              Reject
-                (Diagnostic.mc_missing_revision
-                   "decision is missing the required top-level field: \
-                    revision")
-          | Some revision when String.trim revision = "" ->
-              Reject
-                (Diagnostic.mc_invalid_revision_format ~revision
-                   "revision is present but empty: schemas/decision.json \
-                    requires a non-empty revision string")
-          | Some revision -> (
-              let parents =
-                match Schema.take_array ps "parents" with
-                | Some xs ->
-                    List.filter_map
-                      (fun x ->
-                        match x with Jsonl.String s -> Some s | _ -> None)
-                      xs
-                | _ -> []
-              in
-              (* counterexample / antithesis / axiom-link precedence
+              | None ->
+                  Reject
+                    (Diagnostic.mc_missing_revision
+                       "decision is missing the required top-level field: \
+                        revision")
+              | Some revision when String.trim revision = "" ->
+                  Reject
+                    (Diagnostic.mc_invalid_revision_format ~revision
+                       "revision is present but empty: schemas/decision.json \
+                        requires a non-empty revision string")
+              | Some revision -> (
+                  let parents =
+                    match Schema.take_array ps "parents" with
+                    | Some xs ->
+                        List.filter_map
+                          (fun x ->
+                            match x with Jsonl.String s -> Some s | _ -> None)
+                          xs
+                    | _ -> []
+                  in
+                  (* counterexample / antithesis / axiom-link precedence
                  (A3 self-application): the dialectical-slot checks fire
                  BEFORE the `intent:` shape check. Without this
                  ordering, an YAML-form intent scalar combined with a
@@ -961,340 +958,369 @@ and parse_decision_value v =
                  MC-COUNTEREXAMPLE-MISSING code. The CLI pre-check in
                  bin/Mathc.ml::counterexample_violation handles the
                  same case at the dispatch level. *)
-              let mode_str_early =
-                match Schema.take_string ps "mode" with
-                | Some s -> s
-                | None -> "standard"
-              in
-              let mode_early =
-                match Codec.parse_mode mode_str_early with
-                | Some m -> m
-                | None -> `Standard
-              in
-              let state_str_early =
-                match Schema.take_string ps "state" with
-                | Some s -> s
-                | None -> "active"
-              in
-              let state_early =
-                match Codec.parse_decision_state state_str_early with
-                | Some s -> s
-                | None -> `Active
-              in
-              let counterexample_present =
-                match Schema.take_string ps "counterexample" with
-                | Some s when String.trim s <> "" -> true
-                | _ -> (
-                    match Schema.take_array ps "counterexample" with
-                    | Some xs ->
-                        List.exists
-                          (fun x ->
-                            match x with
-                            | Jsonl.String s when String.trim s <> "" -> true
-                            | _ -> false)
-                          xs
-                    | None -> false)
-              in
-              let counterexample_required_missing =
-                mode_geq_standard mode_early
-                && not counterexample_present
-                && state_early = `Active
-              in
-              if counterexample_required_missing then
-                let decision_id_early =
-                  match Schema.take_string ps "id" with
-                  | Some s -> s
-                  | None -> ""
-                in
-                Reject
-                  (Diagnostic.mc_counterexample_missing
-                     ~decision_id:decision_id_early
-                     ~severity:Diagnostic.Block
-                     "counterexample is required for mode >= standard; \
-                      see spec/algebra-3.2.md §11. Add a counterexample \
-                      section naming the strongest objection considered \
-                      and rejected, or downgrade to mode: light. \
-                      (Reported in preference to MC-MISSING-INTENT \
-                      because the intent slot may legitimately be a \
-                      YAML block scalar; the diagnostic must reflect \
-                      the actual dialectical-slot deficit.)")
-              else
-              match Schema.take_object ps "intent" with
-              | None ->
-                  Reject
-                    (Diagnostic.mc_missing_intent
-                       "decision is missing the required top-level field: \
-                        intent (expected {source, text} object or YAML \
-                        scalar)")
-              | Some ips -> (
-                  match Schema.take_string ips "source" with
-                  | None ->
-                      Reject
-                        (Diagnostic.mc_missing_intent
-                           "intent.source is missing: schemas/decision.json \
-                            requires intent to declare a source key (e.g. \
-                            {source: \"issue:1\", text: \"...\"})")
-                  | Some source -> (
-                      match Schema.take_string ips "text" with
-                      | None ->
-                          Reject
-                            (Diagnostic.mc_missing_intent
-                               "intent.text is missing: schemas/decision.json \
-                                requires intent to declare a text key")
-                      | Some text -> (
-                          match Schema.take_string ps "commitment" with
-                          | None ->
-                              Reject
-                                (Diagnostic.mc_missing_commitment
-                                   "decision is missing the required \
-                                    top-level field: commitment")
-                          | Some commitment -> (
-                              let scope =
-                                match Schema.take_array ps "scope" with
-                                | Some xs -> Codec.parse_scope xs
-                                | _ -> []
-                              in
-                              let outcomes =
-                                match Schema.take_array ps "outcomes" with
-                                | Some xs -> List.filter_map parse_outcome xs
-                                | _ -> []
-                              in
-                              let assumptions =
-                                match Schema.take_array ps "assumptions" with
-                                | Some xs ->
-                                    List.filter_map parse_assumption xs
-                                | _ -> []
-                              in
-                              let obligations =
-                                match Schema.take_array ps "obligations" with
-                                | Some xs ->
-                                    List.filter_map
-                                      (parse_obligation_with id) xs
-                                | _ -> []
-                              in
-                              let reversal =
-                                match Schema.take_array ps "reversal" with
-                                | Some xs -> List.filter_map parse_reversal xs
-                                | _ -> []
-                              in
-                              match Schema.take_object ps "risk" with
-                              | None ->
-                                  Reject
-                                    (Diagnostic.mc_missing_risk_owner
-                                       "decision is missing the required \
-                                        top-level field: risk (with \
-                                        declared_triggers and owner)")
-                              | Some rps -> (
-                                  let triggers =
-                                    match
-                                      Schema.take_array rps
-                                        "declared_triggers"
-                                    with
-                                    | Some xs ->
-                                        List.filter_map
-                                          (fun v ->
-                                            match v with
-                                            | Jsonl.String s -> Some s
-                                            | _ -> None)
-                                          xs
-                                    | _ -> []
-                                  in
-                                  match Schema.take_string rps "owner" with
-                                  | None ->
-                                      Reject
-                                        (Diagnostic.mc_missing_risk_owner
-                                           "risk.owner is missing: \
-                                            schemas/decision.json requires the \
-                                            risk block to declare an owner \
-                                            key (e.g. owner: \
-                                            human:maintainer)")
-                                  | Some owner ->
-                                      (* counterexample: two forms.
+                  let mode_str_early =
+                    match Schema.take_string ps "mode" with
+                    | Some s -> s
+                    | None -> "standard"
+                  in
+                  let mode_early =
+                    match Codec.parse_mode mode_str_early with
+                    | Some m -> m
+                    | None -> `Standard
+                  in
+                  let state_str_early =
+                    match Schema.take_string ps "state" with
+                    | Some s -> s
+                    | None -> "active"
+                  in
+                  let state_early =
+                    match Codec.parse_decision_state state_str_early with
+                    | Some s -> s
+                    | None -> `Active
+                  in
+                  let counterexample_present =
+                    match Schema.take_string ps "counterexample" with
+                    | Some s when String.trim s <> "" -> true
+                    | _ -> (
+                        match Schema.take_array ps "counterexample" with
+                        | Some xs ->
+                            List.exists
+                              (fun x ->
+                                match x with
+                                | Jsonl.String s when String.trim s <> "" ->
+                                    true
+                                | _ -> false)
+                              xs
+                        | None -> false)
+                  in
+                  let counterexample_required_missing =
+                    mode_geq_standard mode_early
+                    && (not counterexample_present)
+                    && state_early = `Active
+                  in
+                  if counterexample_required_missing then
+                    let decision_id_early =
+                      match Schema.take_string ps "id" with
+                      | Some s -> s
+                      | None -> ""
+                    in
+                    Reject
+                      (Diagnostic.mc_counterexample_missing
+                         ~decision_id:decision_id_early
+                         ~severity:Diagnostic.Block
+                         "counterexample is required for mode >= standard; see \
+                          spec/algebra-3.2.md §11. Add a counterexample \
+                          section naming the strongest objection considered \
+                          and rejected, or downgrade to mode: light. (Reported \
+                          in preference to MC-MISSING-INTENT because the \
+                          intent slot may legitimately be a YAML block scalar; \
+                          the diagnostic must reflect the actual \
+                          dialectical-slot deficit.)")
+                  else
+                    match Schema.take_object ps "intent" with
+                    | None ->
+                        Reject
+                          (Diagnostic.mc_missing_intent
+                             "decision is missing the required top-level \
+                              field: intent (expected {source, text} object or \
+                              YAML scalar)")
+                    | Some ips -> (
+                        match Schema.take_string ips "source" with
+                        | None ->
+                            Reject
+                              (Diagnostic.mc_missing_intent
+                                 "intent.source is missing: \
+                                  schemas/decision.json requires intent to \
+                                  declare a source key (e.g. {source: \
+                                  \"issue:1\", text: \"...\"})")
+                        | Some source -> (
+                            match Schema.take_string ips "text" with
+                            | None ->
+                                Reject
+                                  (Diagnostic.mc_missing_intent
+                                     "intent.text is missing: \
+                                      schemas/decision.json requires intent to \
+                                      declare a text key")
+                            | Some text -> (
+                                match Schema.take_string ps "commitment" with
+                                | None ->
+                                    Reject
+                                      (Diagnostic.mc_missing_commitment
+                                         "decision is missing the required \
+                                          top-level field: commitment")
+                                | Some commitment -> (
+                                    let scope =
+                                      match Schema.take_array ps "scope" with
+                                      | Some xs -> Codec.parse_scope xs
+                                      | _ -> []
+                                    in
+                                    let outcomes =
+                                      match Schema.take_array ps "outcomes" with
+                                      | Some xs ->
+                                          List.filter_map parse_outcome xs
+                                      | _ -> []
+                                    in
+                                    let assumptions =
+                                      match
+                                        Schema.take_array ps "assumptions"
+                                      with
+                                      | Some xs ->
+                                          List.filter_map parse_assumption xs
+                                      | _ -> []
+                                    in
+                                    let obligations =
+                                      match
+                                        Schema.take_array ps "obligations"
+                                      with
+                                      | Some xs ->
+                                          List.filter_map
+                                            (parse_obligation_with id) xs
+                                      | _ -> []
+                                    in
+                                    let reversal =
+                                      match Schema.take_array ps "reversal" with
+                                      | Some xs ->
+                                          List.filter_map parse_reversal xs
+                                      | _ -> []
+                                    in
+                                    match Schema.take_object ps "risk" with
+                                    | None ->
+                                        Reject
+                                          (Diagnostic.mc_missing_risk_owner
+                                             "decision is missing the required \
+                                              top-level field: risk (with \
+                                              declared_triggers and owner)")
+                                    | Some rps -> (
+                                        let triggers =
+                                          match
+                                            Schema.take_array rps
+                                              "declared_triggers"
+                                          with
+                                          | Some xs ->
+                                              List.filter_map
+                                                (fun v ->
+                                                  match v with
+                                                  | Jsonl.String s -> Some s
+                                                  | _ -> None)
+                                                xs
+                                          | _ -> []
+                                        in
+                                        match
+                                          Schema.take_string rps "owner"
+                                        with
+                                        | None ->
+                                            Reject
+                                              (Diagnostic.mc_missing_risk_owner
+                                                 "risk.owner is missing: \
+                                                  schemas/decision.json \
+                                                  requires the risk block to \
+                                                  declare an owner key (e.g. \
+                                                  owner: human:maintainer)")
+                                        | Some owner -> (
+                                            (* counterexample: two forms.
                                          YAML form: scalar string.
                                          JSON form: array of strings.
                                          Accept both. *)
-                                      let counterexample =
-                                        match
-                                          Schema.take_string ps
-                                            "counterexample"
-                                        with
-                                        | Some s -> Some s
-                                        | None -> (
-                                            match
-                                              Schema.take_array ps
-                                                "counterexample"
-                                            with
-                                            | Some xs ->
-                                                List.filter_map
-                                                  (fun x ->
-                                                    match x with
-                                                    | Jsonl.String s ->
-                                                        Some s
-                                                    | _ -> None)
-                                                  xs
-                                                |> String.concat "\n"
-                                                |> fun s -> Some s
-                                            | _ -> None)
-                                      in
-                                      let state_str =
-                                        match
-                                          Schema.take_string ps "state"
-                                        with
-                                        | Some s -> s
-                                        | None -> "active"
-                                      in
-                                      let state =
-                                        match
-                                          Codec.parse_decision_state
-                                            state_str
-                                        with
-                                        | Some s -> s
-                                        | None -> `Active
-                                      in
-                                      let mode_str =
-                                        match Schema.take_string ps "mode"
-                                        with
-                                        | Some s -> s
-                                        | None -> "standard"
-                                      in
-                                      let mode =
-                                        match Codec.parse_mode mode_str with
-                                        | Some m -> m
-                                        | None -> `Standard
-                                      in
-                                      let mode_floor_used =
-                                        match
-                                          Schema.take_string ps
-                                            "mode_floor_used"
-                                        with
-                                        | Some s -> (
-                                            match Codec.parse_mode s with
-                                            | Some m -> Some m
-                                            | None -> None)
-                                        | None -> None
-                                      in
-                                      let antithesis =
-                                        Schema.take_string ps "antithesis"
-                                      in
-                                      let body_sha =
-                                        Schema.take_string ps "body_sha"
-                                      in
-                                      let yaml_sha =
-                                        Schema.take_string ps "yaml_sha"
-                                      in
-                                      let relations =
-                                        match
-                                          Schema.take_object ps "relations"
-                                        with
-                                        | Some rps ->
-                                            parse_relations
-                                              (Jsonl.Object rps)
-                                        | _ -> parse_relations Jsonl.Null
-                                      in
-                                      let relations =
-                                        populate_axiom_addresses ps relations
-                                      in
-                                      let axiom_link =
-                                        match
-                                          Schema.take_array ps "axiom_link"
-                                        with
-                                        | Some xs ->
-                                            List.filter_map
-                                              (fun x ->
-                                                match x with
-                                                | Jsonl.String s -> Some s
-                                                | _ -> None)
-                                              xs
-                                        | _ -> []
-                                      in
-                                      (* axiom_link format: every token must
+                                            let counterexample =
+                                              match
+                                                Schema.take_string ps
+                                                  "counterexample"
+                                              with
+                                              | Some s -> Some s
+                                              | None -> (
+                                                  match
+                                                    Schema.take_array ps
+                                                      "counterexample"
+                                                  with
+                                                  | Some xs ->
+                                                      List.filter_map
+                                                        (fun x ->
+                                                          match x with
+                                                          | Jsonl.String s ->
+                                                              Some s
+                                                          | _ -> None)
+                                                        xs
+                                                      |> String.concat "\n"
+                                                      |> fun s -> Some s
+                                                  | _ -> None)
+                                            in
+                                            let state_str =
+                                              match
+                                                Schema.take_string ps "state"
+                                              with
+                                              | Some s -> s
+                                              | None -> "active"
+                                            in
+                                            let state =
+                                              match
+                                                Codec.parse_decision_state
+                                                  state_str
+                                              with
+                                              | Some s -> s
+                                              | None -> `Active
+                                            in
+                                            let mode_str =
+                                              match
+                                                Schema.take_string ps "mode"
+                                              with
+                                              | Some s -> s
+                                              | None -> "standard"
+                                            in
+                                            let mode =
+                                              match
+                                                Codec.parse_mode mode_str
+                                              with
+                                              | Some m -> m
+                                              | None -> `Standard
+                                            in
+                                            let mode_floor_used =
+                                              match
+                                                Schema.take_string ps
+                                                  "mode_floor_used"
+                                              with
+                                              | Some s -> (
+                                                  match Codec.parse_mode s with
+                                                  | Some m -> Some m
+                                                  | None -> None)
+                                              | None -> None
+                                            in
+                                            let antithesis =
+                                              Schema.take_string ps "antithesis"
+                                            in
+                                            let body_sha =
+                                              Schema.take_string ps "body_sha"
+                                            in
+                                            let yaml_sha =
+                                              Schema.take_string ps "yaml_sha"
+                                            in
+                                            let relations =
+                                              match
+                                                Schema.take_object ps
+                                                  "relations"
+                                              with
+                                              | Some rps ->
+                                                  parse_relations
+                                                    (Jsonl.Object rps)
+                                              | _ -> parse_relations Jsonl.Null
+                                            in
+                                            let relations =
+                                              populate_axiom_addresses ps
+                                                relations
+                                            in
+                                            let axiom_link =
+                                              match
+                                                Schema.take_array ps
+                                                  "axiom_link"
+                                              with
+                                              | Some xs ->
+                                                  List.filter_map
+                                                    (fun x ->
+                                                      match x with
+                                                      | Jsonl.String s -> Some s
+                                                      | _ -> None)
+                                                    xs
+                                              | _ -> []
+                                            in
+                                            (* axiom_link format: every token must
                                          match the axiom-shaped regex. *)
-                                      let bad_axiom_token =
-                                        List.find_opt
-                                          (fun tok -> not (is_axiom_token tok))
-                                          axiom_link
-                                      in
-                                      let counterexample_required_missing =
-                                        mode_geq_standard mode
-                                        && not
-                                             (counterexample_meaningful_opt
-                                                counterexample)
-                                      in
-                                      let antithesis_required_missing =
-                                        mode_geq_considered mode
-                                        && not
-                                             (antithesis_meaningful_opt
-                                                antithesis)
-                                      in
-                                      match bad_axiom_token with
-                                      | Some tok ->
-                                          Reject
-                                            (Diagnostic.mc_invalid_axiom_link
-                                               ~token:tok
-                                               (Printf.sprintf
-                                                  "axiom_link contains a \
-                                                   non-axiom-shaped token: \
-                                                   `%s` (expected form is \
-                                                   `A<digits>` optionally \
-                                                   suffixed with `@rev` or \
-                                                   `.sub`)"
-                                                  tok))
-                                      | None -> (
-                                          if
-                                            state = `Active && axiom_link = []
-                                          then
-                                            Reject
-                                              (Diagnostic.axiom_link_missing
-                                                 ~decision_id:id ())
-                                          else if antithesis_required_missing
-                                          then
-                                            Reject
-                                              (Diagnostic.mc_antithesis_missing
-                                                 ~decision_id:id
-                                                 ~severity:Diagnostic.Block
-                                                 "antithesis is required \
-                                                  for mode = considered")
-                                          else if
-                                            counterexample_required_missing
-                                          then
-                                            Reject
-                                              (Diagnostic.mc_counterexample_missing
-                                                 ~decision_id:id
-                                                 ~severity:Diagnostic.Block
-                                                 "counterexample is \
-                                                  required for mode >= \
-                                                  standard")
-                                          else
-                                            Accept
-                                              {
-                                                Domain.id;
-                                                Domain.rev = revision;
-                                                Domain.parents;
-                                                Domain.intent_source =
-                                                  source;
-                                                Domain.intent_text = text;
-                                                Domain.commitment;
-                                                Domain.scope;
-                                                Domain.outcomes;
-                                                Domain.obligations;
-                                                Domain.assumptions;
-                                                Domain.reversal;
-                                                Domain.risk =
-                                                  {
-                                                    Domain.declared_triggers =
-                                                      triggers;
-                                                    Domain.owner;
-                                                  };
-                                                Domain.relations;
-                                                Domain.counterexample;
-                                                Domain.antithesis;
-                                                Domain.state;
-                                                Domain.mode;
-                                                Domain.mode_floor_used;
-                                                Domain.body_sha;
-                                                Domain.yaml_sha;
-Domain.axiom_link;
-                                               }))))))))))
+                                            let bad_axiom_token =
+                                              List.find_opt
+                                                (fun tok ->
+                                                  not (is_axiom_token tok))
+                                                axiom_link
+                                            in
+                                            let counterexample_required_missing
+                                                =
+                                              mode_geq_standard mode
+                                              && not
+                                                   (counterexample_meaningful_opt
+                                                      counterexample)
+                                            in
+                                            let antithesis_required_missing =
+                                              mode_geq_considered mode
+                                              && not
+                                                   (antithesis_meaningful_opt
+                                                      antithesis)
+                                            in
+                                            match bad_axiom_token with
+                                            | Some tok ->
+                                                Reject
+                                                  (Diagnostic
+                                                   .mc_invalid_axiom_link
+                                                     ~token:tok
+                                                     (Printf.sprintf
+                                                        "axiom_link contains a \
+                                                         non-axiom-shaped \
+                                                         token: `%s` (expected \
+                                                         form is `A<digits>` \
+                                                         optionally suffixed \
+                                                         with `@rev` or \
+                                                         `.sub`)"
+                                                        tok))
+                                            | None ->
+                                                if
+                                                  state = `Active
+                                                  && axiom_link = []
+                                                then
+                                                  Reject
+                                                    (Diagnostic
+                                                     .axiom_link_missing
+                                                       ~decision_id:id ())
+                                                else if
+                                                  antithesis_required_missing
+                                                then
+                                                  Reject
+                                                    (Diagnostic
+                                                     .mc_antithesis_missing
+                                                       ~decision_id:id
+                                                       ~severity:
+                                                         Diagnostic.Block
+                                                       "antithesis is required \
+                                                        for mode = considered")
+                                                else if
+                                                  counterexample_required_missing
+                                                then
+                                                  Reject
+                                                    (Diagnostic
+                                                     .mc_counterexample_missing
+                                                       ~decision_id:id
+                                                       ~severity:
+                                                         Diagnostic.Block
+                                                       "counterexample is \
+                                                        required for mode >= \
+                                                        standard")
+                                                else
+                                                  Accept
+                                                    {
+                                                      Domain.id;
+                                                      Domain.rev = revision;
+                                                      Domain.parents;
+                                                      Domain.intent_source =
+                                                        source;
+                                                      Domain.intent_text = text;
+                                                      Domain.commitment;
+                                                      Domain.scope;
+                                                      Domain.outcomes;
+                                                      Domain.obligations;
+                                                      Domain.assumptions;
+                                                      Domain.reversal;
+                                                      Domain.risk =
+                                                        {
+                                                          Domain
+                                                          .declared_triggers =
+                                                            triggers;
+                                                          Domain.owner;
+                                                        };
+                                                      Domain.relations;
+                                                      Domain.counterexample;
+                                                      Domain.antithesis;
+                                                      Domain.state;
+                                                      Domain.mode;
+                                                      Domain.mode_floor_used;
+                                                      Domain.body_sha;
+                                                      Domain.yaml_sha;
+                                                      Domain.axiom_link;
+                                                    }))))))))))
   | _ ->
       Reject
         (Diagnostic.mc_decision_invalid
@@ -1363,9 +1389,7 @@ let[@warning "-32"] peek_schema_family (v : Jsonl.value) :
           match Schema.take_string ps "kind" with
           | Some k when k = "waiver" ->
               let id =
-                match Schema.take_string ps "id" with
-                | Some i -> i
-                | None -> ""
+                match Schema.take_string ps "id" with Some i -> i | None -> ""
               in
               Some (Waiver, id)
           | _ -> None)
@@ -1379,7 +1403,7 @@ let[@warning "-32"] peek_schema_family (v : Jsonl.value) :
             | None -> ""
           in
           Some (Obligations, id)
-| Some s when has_prefix ~prefix:"math-coding/attestation-" s -> (
+      | Some s when has_prefix ~prefix:"math-coding/attestation-" s -> (
           match Schema.take_string ps "id" with
           | Some s -> Some (Attestation, s)
           | None -> Some (Attestation, ""))
@@ -1428,8 +1452,7 @@ let[@warning "-32"] peek_schema_family (v : Jsonl.value) :
  * `tests/cli/new-decision-axiom-warn.t` via the
  * `MATH_CODING_NEW_DECISION_SCOPE_PATHS` env-var override on
  * `mathc new-decision`. *)
-let[@warning "-32"] infer_axiom_candidates (paths : string list) :
-    string list =
+let[@warning "-32"] infer_axiom_candidates (paths : string list) : string list =
   let[@warning "-32"] starts_with ~prefix s =
     let pl = String.length prefix in
     String.length s >= pl && String.sub s 0 pl = prefix
@@ -1445,8 +1468,7 @@ let[@warning "-32"] infer_axiom_candidates (paths : string list) :
   let matched_axioms =
     List.concat_map
       (fun (prefix, axs) ->
-        if List.exists (fun p -> starts_with ~prefix p) paths then axs
-        else [])
+        if List.exists (fun p -> starts_with ~prefix p) paths then axs else [])
       rules
   in
   let[@warning "-32"] rec dedup = function

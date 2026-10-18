@@ -206,9 +206,7 @@ let[@warning "-32"] collect_verifier_scheme_diagnostics v =
                             (fun item ->
                               match item with
                               | Jsonl.Object ips -> (
-                                  match
-                                    Schema.take_string ips "verifier"
-                                  with
+                                  match Schema.take_string ips "verifier" with
                                   | Some s -> (
                                       match scheme_of_verifier s with
                                       | Some scheme ->
@@ -401,9 +399,7 @@ let antithesis_violation v =
          predicate `mode_geq_considered` (lib/decision.ml:421) is the
          single source of truth. *)
       let mode_exempt =
-        match mode_str with
-        | "considered" -> false
-        | _ -> true
+        match mode_str with "considered" -> false | _ -> true
       in
       let antithesis_meaningful =
         match Schema.take_string ps "antithesis" with
@@ -482,18 +478,18 @@ let validate_with_counts path =
                   let msg = diag.Diagnostic.message in
                   `Reject (diag, msg)
               | None ->
-                  `Accept_aggregate { kind = "attestation"; id; extra_diags = [] })
+                  `Accept_aggregate
+                    { kind = "attestation"; id; extra_diags = [] })
           | None ->
               let msg =
                 "attestation is not parseable: schemas/attestation.json \
-                 requires schema, id, kind, subject, kind_, producer, \
-                 result, issued_at; check the file against the schema"
+                 requires schema, id, kind, subject, kind_, producer, result, \
+                 issued_at; check the file against the schema"
               in
               `Reject
-                ( Diagnostic.mc_decision_invalid
-                    ~path:[ "attestation" ] msg,
-                  msg ))
-  | None -> (
+                (Diagnostic.mc_decision_invalid ~path:[ "attestation" ] msg, msg)
+          )
+      | None -> (
           match first_missing_required v with
           | Some field ->
               let msg = Printf.sprintf "missing required field: %s" field in
@@ -694,7 +690,8 @@ let emit (format : output_format) path
          family. The author of a waiver should not be told the
          waiver has zero obligations. *)
       (match format with
-      | Text -> Printf.printf "parse-ok: %s\n  kind: %s\n  id: %s\n" path kind id
+      | Text ->
+          Printf.printf "parse-ok: %s\n  kind: %s\n  id: %s\n" path kind id
       | Json ->
           let extras =
             if extra_diags = [] then ""
@@ -811,8 +808,8 @@ let print_usage oc =
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
     \  import-junit FILE                parse FILE as a JUnit XML report\n\
      (canonical name; `attest` is a\n\
-                                   deprecated alias emitting a\n\
-                                   stderr warning)\n\
+     deprecated alias emitting a\n\
+     stderr warning)\n\
     \  attest-batch [--manifest=PATH]    generate attestation JSONs from a TSV\n\
      [--from=...]   manifest or by walking\n\
      [--out=DIR]   MATH_CODING_DECISIONS_DIR. Output\n\
@@ -922,22 +919,29 @@ let print_usage oc =
      decisions/<id>.yaml;\n\
      [--interactive]                  --interactive is a stub in this slice.\n\
      [--force]\n\
-\  telemetry status                   print current telemetry state (Phase 2; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml\n\
-     \                                     stub; no transport, no data emission).\n\n\
-     migrate --from=X --to=Y                        declarative migration plan reader; emit a\n\
-                                                     per-file plan from\n\
-     [--root=DIR]                                    decisions/migrations/<from>-to-<to>.yaml;\n\
-     [--format=text|json]                            --write writes sibling <file>.migrated.yaml\n\
-     [--explain]                                     (kernel never mutates the original).\n\
-     [--manifest=PATH]                               See migration-mechanism-2026-10.\n\
+    \  telemetry status                   print current telemetry state (Phase \
+     2; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml\n\
+    \                                     stub; no transport, no data \
+     emission).\n\n\
+     migrate --from=X --to=Y                        declarative migration plan \
+     reader; emit a\n\
+     per-file plan from\n\
+     [--root=DIR]                                    \
+     decisions/migrations/<from>-to-<to>.yaml;\n\
+     [--format=text|json]                            --write writes sibling \
+     <file>.migrated.yaml\n\
+     [--explain]                                     (kernel never mutates the \
+     original).\n\
+     [--manifest=PATH]                               See \
+     migration-mechanism-2026-10.\n\
      [--write|--dry-run]\n\
-     \  doctor [--json]                       print install-coverage diagnostic; sections\n\
-                                              install, path, latest, config, decisions,\n\
-                                              attestations, self-check (skip). Exit 0 when\n\
-                                              no section is `fail`, 1 otherwise. See\n\
-                                              mathc-doctor-subcommand-2026-10.\n\
-
-     options:\n\
+    \  doctor [--json]                       print install-coverage \
+     diagnostic; sections\n\
+     install, path, latest, config, decisions,\n\
+     attestations, self-check (skip). Exit 0 when\n\
+     no section is `fail`, 1 otherwise. See\n\
+     mathc-doctor-subcommand-2026-10.\n\n\
+    \     options:\n\
     \  --format=text (default) or --format=json\n\
     \  --budget=N    max bytes for the context capsule (default 8192)\n\n\
      exit codes:\n\
@@ -2378,7 +2382,8 @@ let[@warning "-32"] do_record () =
   let root = find_project_root (Sys.getcwd ()) in
   let path =
     Filename.concat root
-      (Filename.concat (Path_config.resolve_decisions_dir ())
+      (Filename.concat
+         (Path_config.resolve_decisions_dir ())
          "execution-logs.jsonl")
   in
   (try append_event_to_file path line
@@ -2401,7 +2406,8 @@ let[@warning "-32"] do_record () =
 let[@warning "-32"] read_jsonl_events root =
   let path =
     Filename.concat root
-      (Filename.concat (Path_config.resolve_decisions_dir ())
+      (Filename.concat
+         (Path_config.resolve_decisions_dir ())
          "execution-logs.jsonl")
   in
   if not (Sys.file_exists path) then []
@@ -2580,7 +2586,8 @@ let[@warning "-32"] read_xml_file path =
       Printf.fprintf stderr "mathc import-junit: %s: %s\n" path s;
       exit 2
   | e ->
-      Printf.fprintf stderr "mathc import-junit: %s: %s\n" path (Printexc.to_string e);
+      Printf.fprintf stderr "mathc import-junit: %s: %s\n" path
+        (Printexc.to_string e);
       exit 2
 
 (* Render the soft-parse-error JSON body. The adapter obligation
@@ -2631,9 +2638,9 @@ let do_import_junit () =
  * tests/cli/junit-adapter.t — and the warning is human-facing only. *)
 let[@warning "-32"] do_attest () =
   Printf.eprintf
-    "warning: 'mathc attest FILE' is deprecated; \
-     use 'mathc import-junit FILE' for JUnit XML parsing. \
-     (plans/2026-11-adoption-fixes §4 B1)\n%!";
+    "warning: 'mathc attest FILE' is deprecated; use 'mathc import-junit FILE' \
+     for JUnit XML parsing. (plans/2026-11-adoption-fixes §4 B1)\n\
+     %!";
   do_import_junit ()
 
 (* --- attest-batch subcommand (ux-3-attest-batch-subcommand) ---
@@ -2900,9 +2907,7 @@ let[@warning "-32"] parse_verifier_string s =
       trimmed |> String.split_on_char ' '
       |> List.filter (fun t -> String.trim t <> "")
     in
-    match parts with
-    | [] -> None
-    | scheme :: args -> Some (scheme, args)
+    match parts with [] -> None | scheme :: args -> Some (scheme, args)
 
 (* Compute the env-stripped environment array. Only PATH, HOME,
    and LANG are inherited; everything else is dropped. *)
@@ -2931,8 +2936,7 @@ let[@warning "-32"] sandbox_env () =
    not need the magic cast. Until then, this is best-effort. *)
 let[@warning "-32"] sandbox_close_inherited_fds () =
   for fd = 3 to 255 do
-    try
-      ignore (Unix.close (Obj.magic fd : Unix.file_descr) : unit)
+    try ignore (Unix.close (Obj.magic fd : Unix.file_descr) : unit)
     with _ -> ()
   done
 
@@ -2955,10 +2959,10 @@ let[@warning "-32"] sandbox_close_inherited_fds () =
    for the ASPIRATIONAL boundary. *)
 let[@warning "-32"] sandbox_apply_rlimits_strict () =
   Printf.eprintf
-    "mathc verify: [strict] would apply RLIMIT_NPROC=1, \
-     RLIMIT_NOFILE=64, RLIMIT_FSIZE=cur (requires ctypes-foreign; \
-     not present in this nix shell — see \
-     decisions/verify-sandbox-hardening-2026-11.yaml)\n%!"
+    "mathc verify: [strict] would apply RLIMIT_NPROC=1, RLIMIT_NOFILE=64, \
+     RLIMIT_FSIZE=cur (requires ctypes-foreign; not present in this nix shell \
+     — see decisions/verify-sandbox-hardening-2026-11.yaml)\n\
+     %!"
 
 (* The mathc-scheme allowlist: in `strict` mode, only read-only
    subcommands may be re-invoked through `verifier: "mathc <sub>"`.
@@ -2967,8 +2971,17 @@ let[@warning "-32"] sandbox_apply_rlimits_strict () =
    matches `verify-sandbox-hardening-2026-11.yaml`
    `obligations.a1-strict-mathc-scheme-deny.claim`. *)
 let[@warning "-32"] mathc_scheme_allowlist =
-  [ "validate"; "assess"; "find"; "self-check"; "explain";
-    "explain-diagnostic"; "context"; "packages"; "version" ]
+  [
+    "validate";
+    "assess";
+    "find";
+    "self-check";
+    "explain";
+    "explain-diagnostic";
+    "context";
+    "packages";
+    "version";
+  ]
 
 (* Is the current host a non-Linux platform for the purposes of
    `strict`-mode OS primitives? OCaml's `Sys.os_type` returns
@@ -3007,33 +3020,32 @@ let[@warning "-32"] run_with_sandbox ~project_root ~prog ~args ~timeout_s
   let env = sandbox_env () in
   let pid =
     Unix.fork () |> function
-    | 0 ->
+    | 0 -> (
         (* Child: apply sandbox, chdir, exec. Errors here are
            unrecoverable from the child; we exit 1 to surface
            them. *)
         begin match sandbox_mode with
-        | "minimal" ->
-            sandbox_close_inherited_fds ()
+        | "minimal" -> sandbox_close_inherited_fds ()
         | "strict" ->
             sandbox_close_inherited_fds ();
             if sandbox_strict_is_linux_only () then begin
               Printf.eprintf
-                "mathc verify: warning: sandbox=strict is Linux-only; \
-                 falling back to minimal on this platform\n%!"
+                "mathc verify: warning: sandbox=strict is Linux-only; falling \
+                 back to minimal on this platform\n\
+                 %!"
             end
             else sandbox_apply_rlimits_strict ()
         | _ -> ()
         end;
         (try Unix.chdir project_root
          with _ ->
-           Printf.fprintf stderr
-             "mathc verify: child chdir %s failed\n" project_root;
+           Printf.fprintf stderr "mathc verify: child chdir %s failed\n"
+             project_root;
            exit 1);
-        (try Unix.execve prog args_arr env
-         with _ ->
-           Printf.fprintf stderr
-             "mathc verify: child exec %s failed\n" prog;
-           exit 1)
+        try Unix.execve prog args_arr env
+        with _ ->
+          Printf.fprintf stderr "mathc verify: child exec %s failed\n" prog;
+          exit 1)
     | p -> p
   in
   let deadline = Unix.gettimeofday () +. float_of_int timeout_s in
@@ -3042,14 +3054,14 @@ let[@warning "-32"] run_with_sandbox ~project_root ~prog ~args ~timeout_s
     if now >= deadline then begin
       (try Unix.kill pid Sys.sigkill with _ -> ());
       let _, status = Unix.waitpid [] pid in
-      Timeout, status
+      (Timeout, status)
     end
     else
       match Unix.waitpid [ Unix.WNOHANG ] pid with
       | 0, _ ->
           Unix.sleepf 0.05;
           poll ()
-      | _, status -> Pass, status
+      | _, status -> (Pass, status)
   in
   poll ()
 
@@ -3087,11 +3099,10 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
           in
           if not allowed then begin
             (match args with
-             | sub :: _ ->
-                 Printf.eprintf
-                   "mathc verify: [strict] mathc subcommand denied: %s\n%!"
-                   sub
-             | [] -> ());
+            | sub :: _ ->
+                Printf.eprintf
+                  "mathc verify: [strict] mathc subcommand denied: %s\n%!" sub
+            | [] -> ());
             Skipped
           end
           else begin
@@ -3099,19 +3110,18 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
                env-stripped, project-root-cwd sandbox. *)
             let argv = Sys.executable_name :: args in
             let outcome, status =
-              run_with_sandbox ~project_root
-                ~prog:Sys.executable_name ~args:argv ~timeout_s:60
-                ~sandbox_mode
+              run_with_sandbox ~project_root ~prog:Sys.executable_name
+                ~args:argv ~timeout_s:60 ~sandbox_mode
             in
-            (match outcome with
-             | Timeout -> Timeout
-             | Pass -> (
-                 match status with
-                 | Unix.WEXITED 0 -> Pass
-                 | Unix.WEXITED _ -> Fail
-                 | Unix.WSIGNALED _ -> Fail
-                 | Unix.WSTOPPED _ -> Fail)
-             | Fail | Skipped -> Fail)
+            match outcome with
+            | Timeout -> Timeout
+            | Pass -> (
+                match status with
+                | Unix.WEXITED 0 -> Pass
+                | Unix.WEXITED _ -> Fail
+                | Unix.WSIGNALED _ -> Fail
+                | Unix.WSTOPPED _ -> Fail)
+            | Fail | Skipped -> Fail
           end
       | _ -> Skipped)
 
@@ -3163,14 +3173,14 @@ let[@warning "-32"] collect_obligations v =
           List.filter_map
             (fun item ->
               match item with
-              | Jsonl.Object obs -> (
+              | Jsonl.Object obs ->
                   let id =
                     match Schema.take_string obs "id" with
                     | Some s -> s
                     | None -> ""
                   in
                   if id = "" then None
-                  else Some (id, obligation_verifier_strings item))
+                  else Some (id, obligation_verifier_strings item)
               | _ -> None)
             xs
       | None -> [])
@@ -3200,9 +3210,9 @@ let[@warning "-32"] do_verify () =
       ( "--sandbox",
         Arg.String set_sandbox,
         " Sandbox mode: none|minimal|strict (default from \
-         MATH_CODING_VERIFY_SANDBOX or 'none'). Strict applies \
-         RLIMIT_NPROC=1 NOFILE=64 FSIZE + closes inherited FDs; \
-         Linux only - falls back with a warning on macOS." );
+         MATH_CODING_VERIFY_SANDBOX or 'none'). Strict applies RLIMIT_NPROC=1 \
+         NOFILE=64 FSIZE + closes inherited FDs; Linux only - falls back with \
+         a warning on macOS." );
     ]
     set_file "usage: mathc verify FILE [--format=...]";
   let path = !file in
@@ -3217,10 +3227,10 @@ let[@warning "-32"] do_verify () =
      the env is unset AND --sandbox was not passed, we keep
      stdout quiet to preserve B1 back-compat. *)
   (match Sys.getenv_opt "MATH_CODING_VERIFY_SANDBOX" with
-   | Some _ ->
-       Printf.eprintf "mathc verify: MATH_CODING_VERIFY_SANDBOX => %s\n%!"
-         sandbox_mode
-   | None -> ());
+  | Some _ ->
+      Printf.eprintf "mathc verify: MATH_CODING_VERIFY_SANDBOX => %s\n%!"
+        sandbox_mode
+  | None -> ());
   let v =
     match parse_file path with
     | Ok v -> v
@@ -3231,8 +3241,8 @@ let[@warning "-32"] do_verify () =
         Printf.fprintf stderr "mathc verify: %s: %s\n" path m;
         exit 2
     | Error (`Parse (m, line, col)) ->
-        Printf.fprintf stderr "mathc verify: %s: %s at line %d col %d\n"
-          path m line col;
+        Printf.fprintf stderr "mathc verify: %s: %s at line %d col %d\n" path m
+          line col;
         exit 2
   in
   let project_root = find_project_root (Sys.getcwd ()) in
@@ -3251,25 +3261,26 @@ let[@warning "-32"] do_verify () =
       obligations
   in
   (match !format with
-   | Text ->
-       Printf.printf "verify: %s\n" path;
-       List.iter
-         (fun (obl_id, verdict) ->
-           Printf.printf "  %s: %s\n" obl_id (verify_outcome_string verdict))
-         verdicts
-   | Json ->
-       let items =
-         String.concat ","
-           (List.map
-              (fun (obl_id, verdict) ->
-                Printf.sprintf "{\"obligation_id\":%s,\"verdict\":%s}"
-                  (Jsonl.stringify (Jsonl.String obl_id))
-                  (Jsonl.stringify (Jsonl.String (verify_outcome_string verdict))))
-              verdicts)
-       in
-       Printf.printf
-         "{\"path\":%s,\"verdicts\":[%s]}\n"
-         (Jsonl.stringify (Jsonl.String path)) items);
+  | Text ->
+      Printf.printf "verify: %s\n" path;
+      List.iter
+        (fun (obl_id, verdict) ->
+          Printf.printf "  %s: %s\n" obl_id (verify_outcome_string verdict))
+        verdicts
+  | Json ->
+      let items =
+        String.concat ","
+          (List.map
+             (fun (obl_id, verdict) ->
+               Printf.sprintf "{\"obligation_id\":%s,\"verdict\":%s}"
+                 (Jsonl.stringify (Jsonl.String obl_id))
+                 (Jsonl.stringify
+                    (Jsonl.String (verify_outcome_string verdict))))
+             verdicts)
+      in
+      Printf.printf "{\"path\":%s,\"verdicts\":[%s]}\n"
+        (Jsonl.stringify (Jsonl.String path))
+        items);
   (* Exit code: 0 when all pass, 1 when any fail, 2 when the
      input was unreadable (handled above). A path that has zero
      obligations or all-skipped verdicts still exits 0: skipped
@@ -4447,7 +4458,8 @@ let[@warning "-32"] read_templates () =
   let dash_html = read "dashboard.html" in
   let graph_html = read "graph.html" in
   {
-    Render.index = [ (Render.En, en_html); (Render.Ru, ru_html); (Render.Zh, zh_html) ];
+    Render.index =
+      [ (Render.En, en_html); (Render.Ru, ru_html); (Render.Zh, zh_html) ];
     Render.dashboard = dash_html;
     Render.graph = graph_html;
   }
@@ -4619,7 +4631,13 @@ let[@warning "-32"] do_render () =
           let fname = name ^ ".ru.md" in
           let body = load_md fname in
           if body = "" then None
-          else Some { Render.name; Render.title = title ^ " / RU"; Render.body_md = body })
+          else
+            Some
+              {
+                Render.name;
+                Render.title = title ^ " / RU";
+                Render.body_md = body;
+              })
         articles
   in
 
@@ -4632,7 +4650,13 @@ let[@warning "-32"] do_render () =
           let fname = name ^ ".zh.md" in
           let body = load_md fname in
           if body = "" then None
-          else Some { Render.name; Render.title = title ^ " / ZH"; Render.body_md = body })
+          else
+            Some
+              {
+                Render.name;
+                Render.title = title ^ " / ZH";
+                Render.body_md = body;
+              })
         articles
   in
 
@@ -5161,7 +5185,8 @@ let[@warning "-32"] do_counters () =
       let attestations_dir = Path_config.resolve_attestations_dir () in
       let live_store =
         if Sys.file_exists attestations_dir then
-          Sys.readdir attestations_dir |> Array.to_list
+          Sys.readdir attestations_dir
+          |> Array.to_list
           |> List.filter (fun f -> Filename.check_suffix f ".json")
           |> List.length
         else 0
@@ -5935,7 +5960,8 @@ let[@warning "-32"] do_telemetry () =
   if sub <> "status" && sub <> "" then begin
     Printf.fprintf stderr
       "mathc telemetry: unknown subcommand: %s\n\
-      \  (only `status` is implemented in this slice; transport is Phase 3+; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml)\n"
+      \  (only `status` is implemented in this slice; transport is Phase 3+; \
+       tracked: decisions/ux-3-telemetry-stub-2026-10.yaml)\n"
       (String.trim !action);
     exit 2
   end;
@@ -5949,7 +5975,9 @@ let[@warning "-32"] do_telemetry () =
         else Printf.sprintf "unknown (%s)" s
   in
   Printf.printf "mathc telemetry: %s\n" mode;
-  Printf.printf "  transport: not configured (Phase 2 stub; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml)\n";
+  Printf.printf
+    "  transport: not configured (Phase 2 stub; tracked: \
+     decisions/ux-3-telemetry-stub-2026-10.yaml)\n";
   Printf.printf "  See decisions/ux-3-telemetry-stub-2026-10.yaml.\n";
   Printf.printf "  No data is collected or transmitted by this build.\n"
 
@@ -6315,7 +6343,8 @@ let[@warning "-32"] do_migrate () =
               (Filename.concat
                  (Filename.concat
                     (Path_config.resolve_decisions_dir ())
-                    "migrations") fname)
+                    "migrations")
+                 fname)
         | _ ->
             Printf.fprintf stderr
               "mathc migrate: either --manifest=PATH or both --from=X and \
@@ -6340,7 +6369,9 @@ let[@warning "-32"] do_migrate () =
   if !explain_flag then
     Printf.printf "manifest %s -> %s\n  intent: %s\n\n" manifest.from
       manifest.to_ manifest.intent;
-  let decisions_dir = Filename.concat root (Path_config.resolve_decisions_dir ()) in
+  let decisions_dir =
+    Filename.concat root (Path_config.resolve_decisions_dir ())
+  in
   let yaml_files =
     if Sys.file_exists decisions_dir then
       Array.to_list (Sys.readdir decisions_dir)
@@ -6555,10 +6586,10 @@ let[@warning "-32"] doctor_verdict_string = function
  * Object with whatever per-section metadata we want to
  * surface). *)
 type doctor_section = {
-  id: string;
-  label: string;
-  verdict: doctor_verdict;
-  details: Jsonl.value;
+  id : string;
+  label : string;
+  verdict : doctor_verdict;
+  details : Jsonl.value;
 }
 
 (* Section a -- Install.
@@ -6583,8 +6614,7 @@ let[@warning "-32"] doctor_section_install () : doctor_section =
     details =
       Jsonl.Object
         [
-          ("binary_path", Jsonl.String path);
-          ("version", Jsonl.String version);
+          ("binary_path", Jsonl.String path); ("version", Jsonl.String version);
         ];
   }
 
@@ -6611,14 +6641,12 @@ let[@warning "-32"] doctor_section_path () : doctor_section =
         Some (String.sub row 5 (String.length row - 5))
       else None
     in
-    match List.filter_map take_path env with
-    | v :: _ -> Some v
-    | [] -> None
+    match List.filter_map take_path env with v :: _ -> Some v | [] -> None
   in
   let path_dirs =
     match path_value with None -> [] | Some p -> String.split_on_char ':' p
   in
-  let install_dir = Filename.dirname (Sys.executable_name) in
+  let install_dir = Filename.dirname Sys.executable_name in
   let on_path =
     List.exists (fun d -> String.compare d install_dir = 0) path_dirs
   in
@@ -6707,7 +6735,7 @@ let[@warning "-32"] doctor_section_latest () : doctor_section =
               ("reason", Jsonl.String reason);
             ];
       }
-  | Ok body ->
+  | Ok body -> (
       let tag =
         try
           let v = Jsonl.parse body in
@@ -6754,11 +6782,10 @@ let[@warning "-32"] doctor_section_latest () : doctor_section =
                 [
                   ("installed", Jsonl.String installed);
                   ("latest_tag", Jsonl.String t);
-                  ("status",
-                     Jsonl.String (if same then "current" else "behind"));
+                  ("status", Jsonl.String (if same then "current" else "behind"));
                   ("newer_available", Jsonl.Bool newer);
                 ];
-          }
+          })
 
 (* Section d -- Config.
  *
@@ -6811,7 +6838,9 @@ let[@warning "-32"] doctor_section_config () : doctor_section =
  * the JSON shape. *)
 let[@warning "-32"] doctor_section_decisions () : doctor_section =
   let root = find_project_root (Sys.getcwd ()) in
-  let decisions_dir = Filename.concat root (Path_config.resolve_decisions_dir ()) in
+  let decisions_dir =
+    Filename.concat root (Path_config.resolve_decisions_dir ())
+  in
   let decision_files = list_decision_files decisions_dir in
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
@@ -6880,8 +6909,7 @@ let[@warning "-32"] doctor_section_attestations () : doctor_section =
   let entries =
     if is_dir then
       try
-        Sys.readdir store_root
-        |> Array.to_list
+        Sys.readdir store_root |> Array.to_list
         |> List.filter (fun f -> Filename.check_suffix f ".json")
       with _ -> []
     else []
@@ -6931,9 +6959,9 @@ let[@warning "-32"] doctor_section_self_check () : doctor_section =
           ("status", Jsonl.String "skip");
           ( "hint",
             Jsonl.String
-              "run `mathc self-check` directly for the full \
-               attestation-store walk; this slice short-circuits \
-               to keep `mathc doctor` < 5 s on a healthy install" );
+              "run `mathc self-check` directly for the full attestation-store \
+               walk; this slice short-circuits to keep `mathc doctor` < 5 s on \
+               a healthy install" );
         ];
   }
 
@@ -6941,7 +6969,8 @@ let[@warning "-32"] doctor_section_self_check () : doctor_section =
 let[@warning "-32"] do_doctor () =
   let json_mode = ref false in
   Arg.current := 1;
-  Arg.parse [ ("--json", Arg.Set json_mode, " Emit JSON instead of text") ]
+  Arg.parse
+    [ ("--json", Arg.Set json_mode, " Emit JSON instead of text") ]
     (fun anon ->
       Printf.fprintf stderr "mathc doctor: unexpected argument: %s\n" anon;
       exit 2)
@@ -6980,24 +7009,27 @@ let[@warning "-32"] do_doctor () =
       Jsonl.Object
         (List.sort
            (fun (a, _) (b, _) -> String.compare a b)
-           [ ("exit_code", Jsonl.Int (if any_fail then 1 else 0));
-             ("sections", secs_v) ])
+           [
+             ("exit_code", Jsonl.Int (if any_fail then 1 else 0));
+             ("sections", secs_v);
+           ])
     in
     print_endline (Jsonl.stringify top)
   else begin
     List.iter
       (fun (s : doctor_section) ->
-        Printf.printf "[%s] %s\n  %s\n"
-          s.id (doctor_verdict_string s.verdict) s.label)
+        Printf.printf "[%s] %s\n  %s\n" s.id
+          (doctor_verdict_string s.verdict)
+          s.label)
       sections;
     match
       List.find_opt (fun (s : doctor_section) -> s.verdict = Fail) sections
     with
     | None -> ()
-    | Some s ->
-        Printf.fprintf stderr "mathc doctor: section %s failed\n" s.id
+    | Some s -> Printf.fprintf stderr "mathc doctor: section %s failed\n" s.id
   end;
   exit (if any_fail then 1 else 0)
+
 let dispatch () =
   if Array.length Sys.argv < 2 then begin
     print_usage stderr;

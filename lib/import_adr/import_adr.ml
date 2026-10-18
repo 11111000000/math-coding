@@ -45,8 +45,7 @@ let is_top_section (s : string) : bool =
 
 (* `is_subsection s` is true when `s` starts with `### `. *)
 let is_subsection (s : string) : bool =
-  String.length s >= 4
-  && String.sub s 0 4 = "### "
+  String.length s >= 4 && String.sub s 0 4 = "### "
 
 (* `section_body lines header` extracts the body of a top-level
  * `## <header>` section. The body runs until the next `## `
@@ -63,14 +62,11 @@ let section_body (lines : string list) (header : string) : string =
             let rec take_until = function
               | [] -> ""
               | h2 :: t2 ->
-                  if is_top_section h2 then ""
-                  else h2 ^ "\n" ^ take_until t2
+                  if is_top_section h2 then "" else h2 ^ "\n" ^ take_until t2
             in
             take_until t
-          else
-            aux t
-        else
-          aux t
+          else aux t
+        else aux t
   in
   String.trim (aux lines)
 
@@ -91,10 +87,8 @@ let subsection_body (body : string) (header : string) : string =
                   else h2 ^ "\n" ^ take_until t2
             in
             take_until t
-          else
-            aux t
-        else
-          aux t
+          else aux t
+        else aux t
   in
   String.trim (aux lines)
 
@@ -106,8 +100,8 @@ let bullets (body : string) : string list =
   let lines = Str.split (Str.regexp "\n") body in
   let is_bullet s =
     let t = String.trim s in
-    (String.length t >= 2
-     && (String.sub t 0 2 = "* " || String.sub t 0 2 = "- "))
+    String.length t >= 2
+    && (String.sub t 0 2 = "* " || String.sub t 0 2 = "- ")
     || (String.length t >= 3 && String.sub t 0 3 = "*  ")
   in
   let strip_bullet s =
@@ -123,11 +117,7 @@ let bullets (body : string) : string list =
   in
   let rec aux = function
     | [] -> []
-    | h :: t ->
-        if is_bullet h then
-          strip_bullet h :: aux t
-        else
-          aux t
+    | h :: t -> if is_bullet h then strip_bullet h :: aux t else aux t
   in
   aux lines
 
@@ -135,11 +125,12 @@ let first_h1 (lines : string list) : string option =
   let rec aux = function
     | [] -> None
     | h :: t ->
-        if String.length h >= 2 && String.sub h 0 2 = "# "
-           && (String.length h < 3 || String.sub h 2 1 <> "#") then
-          Some (String.sub h 2 (String.length h - 2) |> String.trim)
-        else
-          aux t
+        if
+          String.length h >= 2
+          && String.sub h 0 2 = "# "
+          && (String.length h < 3 || String.sub h 2 1 <> "#")
+        then Some (String.sub h 2 (String.length h - 2) |> String.trim)
+        else aux t
   in
   aux lines
 
@@ -152,26 +143,25 @@ let extract_status_madr (text : string) : string option =
     | h :: t ->
         if String.length h >= 7 && String.sub h 0 7 = "status:" then
           Some (String.sub h 7 (String.length h - 7) |> String.trim)
-        else
-          aux t
+        else aux t
   in
   aux lines
 
 let extract_status_adrtools (lines : string list) : string option =
   let rec aux = function
     | [] -> None
-    | h :: t -> begin
-        match Str.split (Str.regexp "[ \t]+") (String.trim h) with
+    | h :: t ->
+        begin match Str.split (Str.regexp "[ \t]+") (String.trim h) with
         | "##" :: "Status" :: rest ->
             let status = String.trim (String.concat " " rest) in
-            if status = "" then begin
-              match t with
+            if status = "" then
+              begin match t with
               | h2 :: t2 -> Some (String.trim h2)
               | [] -> None
-            end
+              end
             else Some status
         | _ -> aux t
-      end
+        end
   in
   aux lines
 
@@ -209,10 +199,10 @@ let slugify (s : string) : string =
   String.iter
     (fun c ->
       match c with
-      | 'a'..'z' | '0'..'9' ->
+      | 'a' .. 'z' | '0' .. '9' ->
           Buffer.add_char buf c;
           last_dash := false
-      | 'A'..'Z' ->
+      | 'A' .. 'Z' ->
           Buffer.add_char buf (Char.lowercase_ascii c);
           last_dash := false
       | '-' | '_' | ' ' ->
@@ -224,10 +214,8 @@ let slugify (s : string) : string =
     s;
   let result = Buffer.contents buf in
   let len = String.length result in
-  if len > 0 && result.[len - 1] = '-' then
-    String.sub result 0 (len - 1)
-  else
-    result
+  if len > 0 && result.[len - 1] = '-' then String.sub result 0 (len - 1)
+  else result
 
 (* --- mapping: ADR status -> math-coding state --------------------- *)
 
@@ -246,9 +234,7 @@ let parse (text : string) : parsed =
   let lines = Str.split (Str.regexp "\n") text in
   let kind = detect_kind text in
   let title =
-    match first_h1 lines with
-    | Some t -> t
-    | None -> "imported-adr"
+    match first_h1 lines with Some t -> t | None -> "imported-adr"
   in
   let id = slugify title in
   let status =
@@ -257,10 +243,7 @@ let parse (text : string) : parsed =
     | AdrTools -> extract_status_adrtools lines
     | Unknown -> None
   in
-  let state = match status with
-    | Some s -> map_status s
-    | None -> "active"
-  in
+  let state = match status with Some s -> map_status s | None -> "active" in
   let context_section =
     match kind with
     | Madr -> "Context and Problem Statement"
@@ -280,14 +263,10 @@ let parse (text : string) : parsed =
   let consequences =
     match kind with
     | Madr ->
-        let decision_body =
-          section_body lines "Decision Outcome"
-        in
+        let decision_body = section_body lines "Decision Outcome" in
         let sub = subsection_body decision_body "Consequences" in
-        if sub <> "" then sub
-        else section_body lines "Consequences"
-    | AdrTools | Unknown ->
-        section_body lines "Consequences"
+        if sub <> "" then sub else section_body lines "Consequences"
+    | AdrTools | Unknown -> section_body lines "Consequences"
   in
   let outcomes =
     let items = bullets consequences in
@@ -298,13 +277,15 @@ let parse (text : string) : parsed =
     title;
     state;
     intent = title;
-    commitment = if decision = "" then "Imported from ADR; review and adjust." else decision;
-    assumptions = if context = "" then "Imported from ADR; context not detected." else context;
+    commitment =
+      (if decision = "" then "Imported from ADR; review and adjust."
+       else decision);
+    assumptions =
+      (if context = "" then "Imported from ADR; context not detected."
+       else context);
     outcomes =
-      (if outcomes = [] then
-         ["Imported from ADR; consequences not detected."]
-       else
-         outcomes);
+      (if outcomes = [] then [ "Imported from ADR; consequences not detected." ]
+       else outcomes);
     source_kind = kind;
   }
 
@@ -325,15 +306,11 @@ let block_scalar (s : string) : string =
   Printf.sprintf "  |\n    %s" (yaml_escape s)
 
 let outcome_yaml (i : int) (s : string) : string =
-  Printf.sprintf
-    "  - id: outcome-%d\n    statement: |\n      %s\n"
-    (i + 1)
+  Printf.sprintf "  - id: outcome-%d\n    statement: |\n      %s\n" (i + 1)
     (yaml_escape s)
 
 let to_decision_yaml (p : parsed) : string =
-  let outcomes_str =
-    String.concat "" (List.mapi outcome_yaml p.outcomes)
-  in
+  let outcomes_str = String.concat "" (List.mapi outcome_yaml p.outcomes) in
   Printf.sprintf
     "---\n\
      schema: math-coding/3.2\n\
@@ -341,71 +318,65 @@ let to_decision_yaml (p : parsed) : string =
      revision: 1\n\
      state: %s\n\
      intent: |\n\
-     \  %s\n\
+    \  %s\n\
      axiom_link:\n\
-     \  - A0\n\
+    \  - A0\n\
      antithesis: |\n\
-     \  The counter-position considered and rejected (per the v3\n\
-     \  dialectic method, spec/algebra-3.2.md section 11): the\n\
-     \  imported ADR may be wrong about its chosen option, or\n\
-     \  may be missing considerations that the math-coding\n\
-     \  schema requires. The reviewer must verify the import\n\
-     \  before this decision is merged; the import is\n\
-     \  best-effort, not lossless.\n\
+    \  The counter-position considered and rejected (per the v3\n\
+    \  dialectic method, spec/algebra-3.2.md section 11): the\n\
+    \  imported ADR may be wrong about its chosen option, or\n\
+    \  may be missing considerations that the math-coding\n\
+    \  schema requires. The reviewer must verify the import\n\
+    \  before this decision is merged; the import is\n\
+    \  best-effort, not lossless.\n\
      commitment: |\n\
-     \  %s\n\
+    \  %s\n\
      counterexample: |\n\
-     \  Imported from an existing ADR; the strongest objection to\n\
-     \  this decision is whatever the original ADR author(s)\n\
-     \  considered when they rejected the alternatives. The\n\
-     \  reviewer should fill this section in or move the rejection\n\
-     \  rationale from the ADR's \xC2\xABConsidered Options\xC2\xBB block.\n\
+    \  Imported from an existing ADR; the strongest objection to\n\
+    \  this decision is whatever the original ADR author(s)\n\
+    \  considered when they rejected the alternatives. The\n\
+    \  reviewer should fill this section in or move the rejection\n\
+    \  rationale from the ADR's \xC2\xABConsidered Options\xC2\xBB block.\n\
      scope:\n\
-     \  paths:\n\
-     \    - \"<path/glob/that/this/decision/touches/**>\"\n\
-     \  exclusions: []\n\
+    \  paths:\n\
+    \    - \"<path/glob/that/this/decision/touches/**>\"\n\
+    \  exclusions: []\n\
      assumptions:\n\
-     \  - state: assumed\n\
-     \    statement: |\n\
-     \      %s\n\
+    \  - state: assumed\n\
+    \    statement: |\n\
+    \      %s\n\
      outcomes:\n\
-     %s\
-     obligations:\n\
-     \  - id: %s-imported-review\n\
-     \    claim: |\n\
-     \      The imported content is reviewed by a human. The reviewer\n\
-     \      may adjust the field mapping before \xC2\xABmathc validate\xC2\xBB\n\
-     \      accepts the file. The ADR provenance is recorded in this\n\
-     \      decision's \xC2\xABassumptions\xC2\xBB block.\n\
-     \    acceptance:\n\
-     \      all:\n\
-     \        - verifier: mathc validate\n\
-     \          result: pass\n\
+     %sobligations:\n\
+    \  - id: %s-imported-review\n\
+    \    claim: |\n\
+    \      The imported content is reviewed by a human. The reviewer\n\
+    \      may adjust the field mapping before \xC2\xABmathc validate\xC2\xBB\n\
+    \      accepts the file. The ADR provenance is recorded in this\n\
+    \      decision's \xC2\xABassumptions\xC2\xBB block.\n\
+    \    acceptance:\n\
+    \      all:\n\
+    \        - verifier: mathc validate\n\
+    \          result: pass\n\
      relations:\n\
-     \  addresses: []\n\
-     \  supersedes: []\n\
-     \  superseded_by: []\n"
-    p.id
-    p.state
-    (yaml_escape p.intent)
-    (yaml_escape p.commitment)
+    \  addresses: []\n\
+    \  supersedes: []\n\
+    \  superseded_by: []\n"
+    p.id p.state (yaml_escape p.intent) (yaml_escape p.commitment)
     (yaml_escape p.assumptions)
-    outcomes_str
-    p.id
+    outcomes_str p.id
 
 (* --- run ----------------------------------------------------------- *)
 
-let read_file (path : string) : (string, [> `Msg of string]) result =
+let read_file (path : string) : (string, [> `Msg of string ]) result =
   try
     let ic = open_in path in
     let n = in_channel_length ic in
     let s = really_input_string ic n in
     close_in ic;
     Ok s
-  with
-  | Sys_error m -> Error (`Msg ("cannot read " ^ path ^ ": " ^ m))
+  with Sys_error m -> Error (`Msg ("cannot read " ^ path ^ ": " ^ m))
 
-let run (path : string) (write : bool) : (unit, [> `Msg of string]) result =
+let run (path : string) (write : bool) : (unit, [> `Msg of string ]) result =
   match read_file path with
   | Error e -> Error e
   | Ok text ->
@@ -413,20 +384,17 @@ let run (path : string) (write : bool) : (unit, [> `Msg of string]) result =
       let yaml = to_decision_yaml parsed in
       if write then begin
         let dir = Path_config.resolve_decisions_dir () in
-        let out_path =
-          Filename.concat dir (parsed.id ^ ".yaml")
-        in
-        (try Unix.mkdir dir 0o755 with
-         | Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+        let out_path = Filename.concat dir (parsed.id ^ ".yaml") in
+        (try Unix.mkdir dir 0o755
+         with Unix.Unix_error (Unix.EEXIST, _, _) -> ());
         let oc = open_out out_path in
         output_string oc yaml;
         close_out oc;
-        Printf.printf "wrote %s (id=%s, source_kind=%s)\n"
-          out_path parsed.id
+        Printf.printf "wrote %s (id=%s, source_kind=%s)\n" out_path parsed.id
           (match parsed.source_kind with
-           | Madr -> "MADR"
-           | AdrTools -> "adr-tools"
-           | Unknown -> "unknown");
+          | Madr -> "MADR"
+          | AdrTools -> "adr-tools"
+          | Unknown -> "unknown");
         Ok ()
       end
       else begin

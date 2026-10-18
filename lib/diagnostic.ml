@@ -207,8 +207,7 @@ let mc_decision_invalid ?(path = []) ?(next_actions = []) message =
 let mc_missing_field ~code ~field ?(next_actions = []) message =
   let default_actions =
     [
-      ( "add",
-        Printf.sprintf "%s: |\n  <one-line description>" field );
+      ("add", Printf.sprintf "%s: |\n  <one-line description>" field);
       ("run", "mathc validate decisions/<file>.yaml");
     ]
   in
@@ -216,36 +215,34 @@ let mc_missing_field ~code ~field ?(next_actions = []) message =
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code ~kind:Deficit ~severity:Block ~path:[ field ]
-    ~policy_rule:(Some "schemas/decision.json")
-    ~next_actions:actions ~retryable:false ~autofix_safe:false message
+    ~policy_rule:(Some "schemas/decision.json") ~next_actions:actions
+    ~retryable:false ~autofix_safe:false message
 
 let mc_missing_schema ?(next_actions = []) message =
-  mc_missing_field ~code:"MC-MISSING-SCHEMA" ~field:"schema"
-    ~next_actions message
+  mc_missing_field ~code:"MC-MISSING-SCHEMA" ~field:"schema" ~next_actions
+    message
 
 let mc_missing_id ?(next_actions = []) message =
-  mc_missing_field ~code:"MC-MISSING-ID" ~field:"id"
-    ~next_actions message
+  mc_missing_field ~code:"MC-MISSING-ID" ~field:"id" ~next_actions message
 
 let mc_missing_revision ?(next_actions = []) message =
-  mc_missing_field ~code:"MC-MISSING-REVISION" ~field:"revision"
-    ~next_actions message
+  mc_missing_field ~code:"MC-MISSING-REVISION" ~field:"revision" ~next_actions
+    message
 
 let mc_missing_intent ?(next_actions = []) message =
-  mc_missing_field ~code:"MC-MISSING-INTENT" ~field:"intent"
-    ~next_actions message
+  mc_missing_field ~code:"MC-MISSING-INTENT" ~field:"intent" ~next_actions
+    message
 
 let mc_missing_commitment ?(next_actions = []) message =
   mc_missing_field ~code:"MC-MISSING-COMMITMENT" ~field:"commitment"
     ~next_actions message
 
 let mc_missing_scope ?(next_actions = []) message =
-  mc_missing_field ~code:"MC-MISSING-SCOPE" ~field:"scope"
-    ~next_actions message
+  mc_missing_field ~code:"MC-MISSING-SCOPE" ~field:"scope" ~next_actions message
 
 let mc_missing_outcomes ?(next_actions = []) message =
-  mc_missing_field ~code:"MC-MISSING-OUTCOMES" ~field:"outcomes"
-    ~next_actions message
+  mc_missing_field ~code:"MC-MISSING-OUTCOMES" ~field:"outcomes" ~next_actions
+    message
 
 let mc_missing_obligations ?(next_actions = []) message =
   mc_missing_field ~code:"MC-MISSING-OBLIGATIONS" ~field:"obligations"
@@ -262,12 +259,14 @@ let mc_missing_risk_owner ?(next_actions = []) message =
 let mc_invalid_id_format ?(id = "") ?(next_actions = []) message =
   let default_actions =
     [
-      ("edit",
-       Printf.sprintf
-         "id: |\n  %s\n  The id field should be a short lower-snake-case \
-          string (e.g. `redis-origin-fallback`), optionally suffixed with \
-          `@rev` to pin a specific revision (e.g. `redis-origin-fallback@3`)."
-         (if id = "" then "<short-id>" else id) );
+      ( "edit",
+        Printf.sprintf
+          "id: |\n\
+          \  %s\n\
+          \  The id field should be a short lower-snake-case string (e.g. \
+           `redis-origin-fallback`), optionally suffixed with `@rev` to pin a \
+           specific revision (e.g. `redis-origin-fallback@3`)."
+          (if id = "" then "<short-id>" else id) );
       ("run", "mathc validate decisions/<file>.yaml");
     ]
   in
@@ -275,19 +274,19 @@ let mc_invalid_id_format ?(id = "") ?(next_actions = []) message =
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-INVALID-ID-FORMAT" ~kind:Deficit ~severity:Block
-    ~path:[ "id" ]
-    ~policy_rule:(Some "schemas/decision.json / decision.id")
+    ~path:[ "id" ] ~policy_rule:(Some "schemas/decision.json / decision.id")
     ~next_actions:actions ~retryable:false ~autofix_safe:false message
 
-let mc_invalid_revision_format ?(revision = "") ?(next_actions = [])
-    message =
+let mc_invalid_revision_format ?(revision = "") ?(next_actions = []) message =
   let default_actions =
     [
-      ("edit",
-       Printf.sprintf
-         "revision: |\n  %s\n  The revision field is a string (e.g. \"5\") \
-          or a sha256-prefixed digest (e.g. \"rev:41aa92\")."
-         (if revision = "" then "<revision>" else revision) );
+      ( "edit",
+        Printf.sprintf
+          "revision: |\n\
+          \  %s\n\
+          \  The revision field is a string (e.g. \"5\") or a sha256-prefixed \
+           digest (e.g. \"rev:41aa92\")."
+          (if revision = "" then "<revision>" else revision) );
       ("run", "mathc validate decisions/<file>.yaml");
     ]
   in
@@ -305,12 +304,13 @@ let mc_invalid_revision_format ?(revision = "") ?(next_actions = [])
 let mc_invalid_axiom_link ?(token = "") ?(next_actions = []) message =
   let default_actions =
     [
-      ("edit",
-       Printf.sprintf
-         "axiom_link:\n  - %s\n  Axiom-shaped tokens start with `A`, have \
-          digits, optionally have `@rev` or `.sub` suffix (e.g. `A0`, \
-          `A1@2`, `A3.sub`)."
-         (if token = "" then "<A0>" else token) );
+      ( "edit",
+        Printf.sprintf
+          "axiom_link:\n\
+          \  - %s\n\
+          \  Axiom-shaped tokens start with `A`, have digits, optionally have \
+           `@rev` or `.sub` suffix (e.g. `A0`, `A1@2`, `A3.sub`)."
+          (if token = "" then "<A0>" else token) );
       ("run", "mathc validate decisions/<file>.yaml");
     ]
   in
@@ -319,7 +319,8 @@ let mc_invalid_axiom_link ?(token = "") ?(next_actions = []) message =
   in
   create ~code:"MC-INVALID-AXIOM-LINK" ~kind:Deficit ~severity:Block
     ~path:[ "axiom_link" ]
-    ~policy_rule:(Some "spec/algebra-3.2.md §17 + lib/decision.ml:is_axiom_token")
+    ~policy_rule:
+      (Some "spec/algebra-3.2.md §17 + lib/decision.ml:is_axiom_token")
     ~next_actions:actions ~retryable:false ~autofix_safe:false message
 
 (* MC-COUNTEREXAMPLE-MISSING: emitted when a decision has an
@@ -416,8 +417,7 @@ let mc_antithesis_missing ?(decision_id = "") ?(severity = Warn)
     match severity with
     | Block ->
         Some
-          "spec/algebra-3.2.md §11 + \
-           decisions/dialectic-method-v3-2026-10.yaml"
+          "spec/algebra-3.2.md §11 + decisions/dialectic-method-v3-2026-10.yaml"
     | Warn | Info -> None
   in
   create ~code ~kind:Deficit ~severity ~policy_rule ~next_actions:actions
@@ -536,29 +536,28 @@ let mc_body_sha_pattern_violation ?(decision_id = "") ~field ~value
     Printf.sprintf
       "%s%s value `%s` does not match the documented pattern \
        `^sha256:[0-9a-f]{64}$` (71 characters total). schemas/decision.json \
-       declares this pattern as required for body_sha and yaml_sha; the \
-       kernel now enforces it (decisions/kernel-bugs-v3.4-2026-10). \
-       Recompute the digest with the canonical algorithm and replace \
-       the value."
+       declares this pattern as required for body_sha and yaml_sha; the kernel \
+       now enforces it (decisions/kernel-bugs-v3.4-2026-10). Recompute the \
+       digest with the canonical algorithm and replace the value."
       prefix field value
   in
   let default_actions =
     [
       ( "replace",
-        Printf.sprintf "%s with the canonical sha256: <64 hex chars> digest \
-         of the decision body (both body_sha and yaml_sha, computed with \
-         the placeholder-substitution algorithm in scripts/axiom-link-seed.py)"
+        Printf.sprintf
+          "%s with the canonical sha256: <64 hex chars> digest of the decision \
+           body (both body_sha and yaml_sha, computed with the \
+           placeholder-substitution algorithm in scripts/axiom-link-seed.py)"
           field );
-      ("run",
-       "scripts/fix-non-pattern-sha.sh  # automated migration; idempotent");
+      ( "run",
+        "scripts/fix-non-pattern-sha.sh  # automated migration; idempotent" );
       ("verify", "mathc validate <path-to-decision>");
     ]
   in
   let actions =
     match next_actions with [] -> default_actions | _ -> next_actions
   in
-  create ~code:"MC-BODY-SHA-PATTERN-VIOLATION" ~kind:Deficit
-    ~severity:Block
+  create ~code:"MC-BODY-SHA-PATTERN-VIOLATION" ~kind:Deficit ~severity:Block
     ~policy_rule:(Some "schemas/decision.json#body_sha/yaml_sha")
     ~next_actions:actions msg
 
@@ -609,8 +608,8 @@ let mc_verifier_scheme_unknown ?(obligation_id = "") ?(scheme = "")
   let msg =
     Printf.sprintf
       "%sverifier scheme %S is not in the canonical list (file-exists, \
-       dir-exists, bash, mathc, shell-grep, dune, text-scan-*, tests/, \
-       dune-*, scripts/, manual-*); convention documented in \
+       dir-exists, bash, mathc, shell-grep, dune, text-scan-*, tests/, dune-*, \
+       scripts/, manual-*); convention documented in \
        decisions/verifier-scheme-convention-2026-11.yaml"
       prefix scheme
   in
@@ -652,10 +651,10 @@ let mc_verifier_scheme_unknown ?(obligation_id = "") ?(scheme = "")
    coding repo carry `kind_: build` from the `ci-bot` producer;
    per `decisions/kernel-bugs-v3.4-2026-10` reversal section,
    those are grandfathered by the loader, not the validator. *)
-let mc_materials_digest_empty ?(subject = "") ?(kind = "")
-    ?(next_actions = []) () =
+let mc_materials_digest_empty ?(subject = "") ?(kind = "") ?(next_actions = [])
+    () =
   let prefix =
-    match subject, kind with
+    match (subject, kind) with
     | "", "" -> ""
     | s, "" -> Printf.sprintf "%s: " s
     | "", k -> Printf.sprintf "<%s>: " k
@@ -663,23 +662,20 @@ let mc_materials_digest_empty ?(subject = "") ?(kind = "")
   in
   let msg =
     Printf.sprintf
-      "%ssubject.materials_digest is empty for a runtime-kind \
-       attestation. Per A0 (epistemic separation, \
-       spec/constitution.md §0), test/build/observation \
-       attestations MUST name the materials they were produced \
-       against; only `kind_: review` may carry an empty digest \
-       (a human declaration without a runtime anchor). Add a \
-       SHA-256 of the run's input artefact to subject.materials_digest."
+      "%ssubject.materials_digest is empty for a runtime-kind attestation. Per \
+       A0 (epistemic separation, spec/constitution.md §0), \
+       test/build/observation attestations MUST name the materials they were \
+       produced against; only `kind_: review` may carry an empty digest (a \
+       human declaration without a runtime anchor). Add a SHA-256 of the run's \
+       input artefact to subject.materials_digest."
       prefix
   in
   let default_actions =
     [
       ( "compute",
-        "sha256 of the run's input artefact (test output, build \
-         artefact, observed metric); set subject.materials_digest to \
-         the hex digest" );
-      ( "set",
-        "subject.materials_digest: \"sha256:<64 hex chars>\"" );
+        "sha256 of the run's input artefact (test output, build artefact, \
+         observed metric); set subject.materials_digest to the hex digest" );
+      ("set", "subject.materials_digest: \"sha256:<64 hex chars>\"");
       ("regenerate", "mathc attest ... --subject.materials_digest=<digest>");
       ("verify", "mathc validate <path-to-attestation>");
     ]
@@ -688,7 +684,8 @@ let mc_materials_digest_empty ?(subject = "") ?(kind = "")
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-MATERIALS-DIGEST-EMPTY" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "spec/constitution.md §0; A0 separation") ~next_actions:actions msg
+    ~policy_rule:(Some "spec/constitution.md §0; A0 separation")
+    ~next_actions:actions msg
 
 let severity_of_string = function
   | "info" -> Some Info
@@ -940,7 +937,7 @@ let explain (code : string) : string option =
          lives in `scripts/axiom-link-seed.py:105-123`. Re-run\n\
          `mathc validate` to confirm `MC-SHA-MISMATCH` is\n\
          gone."
-   | "MC-BODY-SHA-PATTERN-VIOLATION" ->
+  | "MC-BODY-SHA-PATTERN-VIOLATION" ->
       Some
         "### Definition\n\
          A Decision carries a `body_sha` or `yaml_sha` whose value\n\
@@ -995,7 +992,7 @@ let explain (code : string) : string option =
          `subject.materials_digest` to the hex digest. Re-run\n\
          `mathc validate` (or the producer script) to confirm the\n\
          violation is gone."
-   | "MC-MISSING-SCHEMA" ->
+  | "MC-MISSING-SCHEMA" ->
       Some
         "### Definition\n\
          The decision file is parseable but is missing the top-level\n\
@@ -1170,8 +1167,8 @@ let explain (code : string) : string option =
         "### Definition\n\
          The decision's `axiom_link` field contains a token that\n\
          does not match the axiom-shaped regex\n\
-         `^A[0-9]+(@[A-Za-z0-9_.-]+)?$` (starts with `A`,
-         has digits, optionally has `@rev` or `.sub` suffix).\n\n\
+         `^A[0-9]+(@[A-Za-z0-9_.-]+)?$` (starts with `A`,\n\
+        \         has digits, optionally has `@rev` or `.sub` suffix).\n\n\
          ### Occurs when\n\
          `lib/decision.ml::parse_decision` finds an `axiom_link`\n\
          value but a token is not axiom-shaped (e.g. `foo`,\n\
@@ -1234,7 +1231,6 @@ let explain (code : string) : string option =
          with the missing id if the call site is correct;\n\
          otherwise, fix the call site to use a known id."
   | _ -> None
-
 
 let render d =
   Printf.sprintf "[%s] %s/%s: %s"

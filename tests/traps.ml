@@ -304,45 +304,44 @@ let[@warning "-32"] test_trap_log_integrity () =
   let n =
     String.split_on_char '\n' md
     |> List.filter (fun line ->
-      try ignore (Str.search_forward trap_re line 0); true
-      with Not_found -> false)
+        try
+          ignore (Str.search_forward trap_re line 0);
+          true
+        with Not_found -> false)
     |> List.length
   in
   Alcotest.(check bool)
-    "trap log has >= 25 entries (currently a §11)"
-    true (n >= 25);
-  Alcotest.(check int)
-    "trap log non-empty count"
-    n n;
+    "trap log has >= 25 entries (currently a §11)" true (n >= 25);
+  Alcotest.(check int) "trap log non-empty count" n n;
   (* Verify entries from §11.20 onwards (post the structural
      convention adopted at v3.0.0.20) have Symptom/Fix/Trigger
      markers. Older entries (e.g. §11.1, §11.2) are grandfathered. *)
   let marker_re =
-    Str.regexp "\\*\\*Symptom\\.\\*\\*\\|\\*\\*Symptom:\\*\\*\\|\\*\\*Fix\\.\\|\\*\\*Trigger\\."
+    Str.regexp
+      "\\*\\*Symptom\\.\\*\\*\\|\\*\\*Symptom:\\*\\*\\|\\*\\*Fix\\.\\|\\*\\*Trigger\\."
   in
   let lines = String.split_on_char '\n' md in
   let is_header line =
-    try ignore (Str.search_forward trap_re line 0); true
+    try
+      ignore (Str.search_forward trap_re line 0);
+      true
     with Not_found -> false
   in
-  let header_num line =
-    Scanf.sscanf line "### 11.%d " (fun n -> n)
-  in
+  let header_num line = Scanf.sscanf line "### 11.%d " (fun n -> n) in
   let rec group acc current = function
     | [] -> List.rev (List.rev current :: acc)
     | line :: rest when is_header line ->
-        group (List.rev current :: acc) [line] rest
-    | line :: rest ->
-        group acc (line :: current) rest
+        group (List.rev current :: acc) [ line ] rest
+    | line :: rest -> group acc (line :: current) rest
   in
   let entries =
     group [] [] lines
     |> List.filter_map (fun g ->
-      match g with
-      | h :: _ when is_header h ->
-          let len = String.length (String.concat "\n" g) in
-          if len > 100 then Some (h, String.concat "\n" g) else None
-      | _ -> None)
+        match g with
+        | h :: _ when is_header h ->
+            let len = String.length (String.concat "\n" g) in
+            if len > 100 then Some (h, String.concat "\n" g) else None
+        | _ -> None)
   in
   List.iter
     (fun (h, body) ->
@@ -350,7 +349,9 @@ let[@warning "-32"] test_trap_log_integrity () =
         let n = header_num h in
         if n >= 23 then begin
           let has_marker =
-            try ignore (Str.search_forward marker_re body 0); true
+            try
+              ignore (Str.search_forward marker_re body 0);
+              true
             with Not_found -> false
           in
           if not has_marker then
@@ -410,7 +411,6 @@ let () =
         ] );
       ( "11.x trap log integrity",
         [
-          Alcotest.test_case "trap_§11_integrity" `Quick
-            test_trap_log_integrity;
+          Alcotest.test_case "trap_§11_integrity" `Quick test_trap_log_integrity;
         ] );
     ]

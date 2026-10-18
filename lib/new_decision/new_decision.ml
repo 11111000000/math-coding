@@ -90,9 +90,7 @@ let[@warning "-32"] paths_block (paths : string list) : string =
   | [] -> "    - \"<path/glob/that/this/decision/touches/**>\""
   | _ ->
       String.concat ""
-        (List.map
-           (fun p -> Printf.sprintf "    - \"%s\"\n" p)
-           paths)
+        (List.map (fun p -> Printf.sprintf "    - \"%s\"\n" p) paths)
 
 let template ~id ~paths =
   Printf.sprintf
@@ -217,12 +215,10 @@ let template_for (kind : template_kind) ~id ~paths =
 let[@warning "-32"] scope_paths_override_from_env () : string list option =
   match Sys.getenv_opt "MATH_CODING_NEW_DECISION_SCOPE_PATHS" with
   | None -> None
-  | Some s ->
+  | Some s -> (
       let parts = String.split_on_char ',' s in
-      let cleaned =
-        List.filter (fun p -> String.trim p <> "") parts
-      in
-      match cleaned with [] -> None | _ -> Some cleaned
+      let cleaned = List.filter (fun p -> String.trim p <> "") parts in
+      match cleaned with [] -> None | _ -> Some cleaned)
 
 (* `extract_scope_paths`: parse the `scope.paths` list out of
    the rendered template's text content. The template's
@@ -263,12 +259,10 @@ let[@warning "-32"] extract_scope_paths (contents : string) : string list =
         let[@warning "-32"] rec take_paths acc = function
           | [] -> List.rev acc
           | line :: more ->
-              if String.length line >= 4
-                 && String.sub line 0 4 = "    "
-              then (
+              if String.length line >= 4 && String.sub line 0 4 = "    " then
                 match path_from_line line with
                 | Some p -> take_paths (p :: acc) more
-                | None -> List.rev acc)
+                | None -> List.rev acc
               else List.rev acc
         in
         take_paths [] rest
@@ -305,8 +299,7 @@ let[@warning "-32"] has_axiom_link_block (contents : string) : bool =
 let[@warning "-32"] emit_axiom_link_inference_warn (paths : string list) =
   let candidates = Decision.infer_axiom_candidates paths in
   let paths_str =
-    if List.length paths <= 3 then
-      String.concat ", " paths
+    if List.length paths <= 3 then String.concat ", " paths
     else
       Printf.sprintf "%s, ... (%d total)"
         (String.concat ", " (List.filteri (fun i _ -> i < 3) paths))
@@ -314,8 +307,8 @@ let[@warning "-32"] emit_axiom_link_inference_warn (paths : string list) =
   in
   let cand_str = Decision.axiom_candidates_pretty candidates in
   Printf.fprintf stderr
-    "deficit/MC-AXIOM-LINK-INFERENCE-EMPTY: scope.paths includes %s; \
-     top candidates: %s; add axiom_link\n"
+    "deficit/MC-AXIOM-LINK-INFERENCE-EMPTY: scope.paths includes %s; top \
+     candidates: %s; add axiom_link\n"
     paths_str cand_str
 
 (* --- project root resolution ---------------------------------- *)

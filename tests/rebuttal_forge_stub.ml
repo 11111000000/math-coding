@@ -70,10 +70,7 @@ let[@warning "-32"] spawn_stub ~response_body ~port =
      is `<project>/_build/default/tests/support/forge_stub/forge_stub.exe`,
      three parents up from `tests/` into the project root. *)
   let test_dir = Filename.dirname Sys.argv.(0) in
-  let rec up d n =
-    if n = 0 then d
-    else up (Filename.dirname d) (n - 1)
-  in
+  let rec up d n = if n = 0 then d else up (Filename.dirname d) (n - 1) in
   let project_root = up test_dir 2 in
   let stub_path =
     Filename.concat
@@ -81,7 +78,9 @@ let[@warning "-32"] spawn_stub ~response_body ~port =
       "forge_stub.exe"
   in
   let argv = [| stub_path; string_of_int port; response_body |] in
-  let pid = Unix.create_process argv.(0) argv Unix.stdin Unix.stdout Unix.stderr in
+  let pid =
+    Unix.create_process argv.(0) argv Unix.stdin Unix.stdout Unix.stderr
+  in
   pid
 
 (* Wait until the stub responds to a GET probe, or timeout.

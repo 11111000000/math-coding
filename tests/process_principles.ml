@@ -263,8 +263,7 @@ type verifier_class =
    regular verifier. The awk pre-commit hook accepts the same
    pattern implicitly via its loose tail rule. *)
 let[@warning "-32"] strip_shell_negation (v : string) : string =
-  if String.starts_with ~prefix:"! " v then
-    String.sub v 2 (String.length v - 2)
+  if String.starts_with ~prefix:"! " v then String.sub v 2 (String.length v - 2)
   else v
 
 (* Bare single-word manual-style keyword (lowercase, hyphenated,
@@ -283,9 +282,10 @@ let[@warning "-32"] is_bare_keyword (v : string) : bool =
         if i >= len then true
         else
           let c = String.unsafe_get v i in
-          if (c >= 'a' && c <= 'z')
-             || (c >= '0' && c <= '9')
-             || c = '-' || c = '_'
+          if
+            (c >= 'a' && c <= 'z')
+            || (c >= '0' && c <= '9')
+            || c = '-' || c = '_'
           then loop (i + 1)
           else false
       in
@@ -329,35 +329,37 @@ let[@warning "-32"] classify_verifier v =
         (* Bare <name>.sh (used by infrastructure-honesty.yaml). *)
         let bare_re = Str.regexp {|^[A-Za-z0-9_-]+\.sh$|} in
         if Str.string_match bare_re v 0 then Fixture ("tests/fixtures/" ^ v)
-        else
+        else if
           (* Sub-decision reference: decisions/<file>.yaml[@<rev>]
              [exists]. The sibling decision file is the fixture;
              the trailing `@<rev>` and ` exists` are documentary. *)
-          if String.starts_with ~prefix:"decisions/" v then
-            let path = sub_decision_path v in
-            if path = v then Unrecognised
-            else
-              (* Accept the path if it ends in .yaml as-is, or
+          String.starts_with ~prefix:"decisions/" v
+        then
+          let path = sub_decision_path v in
+          if path = v then Unrecognised
+          else
+            (* Accept the path if it ends in .yaml as-is, or
                  if the @<rev>-stripped form ends in .yaml. The
                  test's `path_resolves` helper will then try both
                  forms against the filesystem. *)
-              let no_rev =
-                try
-                  let i = String.index path '@' in
-                  String.sub path 0 i
-                with Not_found -> path
-              in
-              if Filename.check_suffix path ".yaml"
-                 || Filename.check_suffix no_rev ".yaml"
-              then Fixture path
-              else Unrecognised
-          else
-            (* Kernel-test reference: tests/<file>.ml or
-               tests/conformance.ml. *)
-            let kernel_re = Str.regexp {|tests/[A-Za-z0-9_]+\.ml|} in
-            if Str.string_match kernel_re v 0 then Kernel
-            else if is_bare_keyword v then Manual
+            let no_rev =
+              try
+                let i = String.index path '@' in
+                String.sub path 0 i
+              with Not_found -> path
+            in
+            if
+              Filename.check_suffix path ".yaml"
+              || Filename.check_suffix no_rev ".yaml"
+            then Fixture path
             else Unrecognised
+        else
+          (* Kernel-test reference: tests/<file>.ml or
+               tests/conformance.ml. *)
+          let kernel_re = Str.regexp {|tests/[A-Za-z0-9_]+\.ml|} in
+          if Str.string_match kernel_re v 0 then Kernel
+          else if is_bare_keyword v then Manual
+          else Unrecognised
 
 let[@warning "-32"] has_no_verifier verifiers =
   List.for_all (fun v -> v = "") verifiers
@@ -587,27 +589,33 @@ let[@warning "-32"] test_p8_synthetic () =
    hard-rule marker). Regression pin: any deletion of a required
    section trips this test. *)
 
-let[@warning "-32"] required_agents_md_headers = [
-  "## Read first";
-  "## OCaml toolchain";       (* T0.2 rename: was "Toolchain preference" *)
-  "## Worktree-first";         (* NEW in quality-impl-2026-10 *)
-  "## Edit-loop prevention";
-  "## Definition of Done";     (* NEW in quality-impl-2026-10 *)
-  "## Agent conduct";
-  "## Self-application";
-  "## Honest time reporting";
-]
+let[@warning "-32"] required_agents_md_headers =
+  [
+    "## Read first";
+    "## OCaml toolchain";
+    (* T0.2 rename: was "Toolchain preference" *)
+    "## Worktree-first";
+    (* NEW in quality-impl-2026-10 *)
+    "## Edit-loop prevention";
+    "## Definition of Done";
+    (* NEW in quality-impl-2026-10 *)
+    "## Agent conduct";
+    "## Self-application";
+    "## Honest time reporting";
+  ]
 
 let[@warning "-32"] test_agents_md_integrity () =
   let md = read_file (in_repo "AGENTS.md") in
-  List.iter (fun h ->
-    let found =
-      try ignore (Str.search_forward (Str.regexp_string h) md 0); true
-      with Not_found -> false
-    in
-    if not found then
-      Alcotest.failf "AGENTS.md missing required header: %s" h
-  ) required_agents_md_headers;
+  List.iter
+    (fun h ->
+      let found =
+        try
+          ignore (Str.search_forward (Str.regexp_string h) md 0);
+          true
+        with Not_found -> false
+      in
+      if not found then Alcotest.failf "AGENTS.md missing required header: %s" h)
+    required_agents_md_headers;
   (* Assert §OCaml toolchain section is hard-rule (contains "MUST") *)
   let toolchain_idx =
     try Str.search_forward (Str.regexp_string "## OCaml toolchain") md 0
@@ -617,18 +625,20 @@ let[@warning "-32"] test_agents_md_integrity () =
   let len = String.length md in
   let rec find_end i =
     if i >= len - 2 then len
-    else if i > toolchain_idx + 5
-         && String.length md > i + 2
-         && String.sub md i 3 = "## "
+    else if
+      i > toolchain_idx + 5
+      && String.length md > i + 2
+      && String.sub md i 3 = "## "
     then i
     else find_end (i + 1)
   in
   let end_idx = find_end (toolchain_idx + 1) in
   let section = String.sub md toolchain_idx (end_idx - toolchain_idx) in
   Alcotest.(check bool)
-    "OCaml toolchain section contains hard-rule keyword MUST"
-    true
-    (try ignore (Str.search_forward (Str.regexp_string "MUST") section 0); true
+    "OCaml toolchain section contains hard-rule keyword MUST" true
+    (try
+       ignore (Str.search_forward (Str.regexp_string "MUST") section 0);
+       true
      with Not_found -> false)
 
 (* ------------------------------------------------------------------------- *)
@@ -649,37 +659,42 @@ let[@warning "-32"] test_decision_format_stricter () =
   let files =
     Sys.readdir d_dir |> Array.to_list
     |> List.filter (fun f ->
-      Filename.check_suffix f ".yaml" &&
-      not (List.mem f ["decision.yaml"; "obligations.yaml"; "rationale.md"]))
+        Filename.check_suffix f ".yaml"
+        && not
+             (List.mem f
+                [ "decision.yaml"; "obligations.yaml"; "rationale.md" ]))
   in
-  List.iter (fun f ->
-    let path = Filename.concat d_dir f in
-    let content = read_file path in
-    let in_obligations = ref false in
-    let seen_obligations : (string, int) Hashtbl.t = Hashtbl.create 8 in
-    String.split_on_char '\n' content
-    |> List.iter (fun line ->
-      let trimmed = String.trim line in
-      if String.starts_with ~prefix:"obligations:" trimmed then
-        in_obligations := true
-      else if String.starts_with ~prefix:"outcomes:" trimmed
-           || String.starts_with ~prefix:"risk:" trimmed
-           || String.starts_with ~prefix:"relations:" trimmed
-           || String.starts_with ~prefix:"reversal:" trimmed
-           || String.starts_with ~prefix:"assumptions:" trimmed then
-        in_obligations := false
-      else if !in_obligations
-           && String.starts_with ~prefix:"- id:" trimmed then begin
-        let id = String.trim (String.sub trimmed 5 (String.length trimmed - 5)) in
-        let prev =
-          try Hashtbl.find seen_obligations id with Not_found -> 0
-        in
-        if prev > 0 then
-          Alcotest.failf "duplicate obligation id '%s' in %s" id path;
-        Hashtbl.replace seen_obligations id (prev + 1)
-      end
-    )
-  ) files
+  List.iter
+    (fun f ->
+      let path = Filename.concat d_dir f in
+      let content = read_file path in
+      let in_obligations = ref false in
+      let seen_obligations : (string, int) Hashtbl.t = Hashtbl.create 8 in
+      String.split_on_char '\n' content
+      |> List.iter (fun line ->
+          let trimmed = String.trim line in
+          if String.starts_with ~prefix:"obligations:" trimmed then
+            in_obligations := true
+          else if
+            String.starts_with ~prefix:"outcomes:" trimmed
+            || String.starts_with ~prefix:"risk:" trimmed
+            || String.starts_with ~prefix:"relations:" trimmed
+            || String.starts_with ~prefix:"reversal:" trimmed
+            || String.starts_with ~prefix:"assumptions:" trimmed
+          then in_obligations := false
+          else if !in_obligations && String.starts_with ~prefix:"- id:" trimmed
+          then begin
+            let id =
+              String.trim (String.sub trimmed 5 (String.length trimmed - 5))
+            in
+            let prev =
+              try Hashtbl.find seen_obligations id with Not_found -> 0
+            in
+            if prev > 0 then
+              Alcotest.failf "duplicate obligation id '%s' in %s" id path;
+            Hashtbl.replace seen_obligations id (prev + 1)
+          end))
+    files
 
 (* ------------------------------------------------------------------------- *)
 (* axiom_link-default-validates (P5 acceptance for stream P2)                   *)
@@ -711,9 +726,7 @@ let[@warning "-32"] run_mathc_init_default_validates () =
      `_build/default/tests/process_principles.exe`. *)
   let exe_dir = Filename.dirname Sys.executable_name in
   let build_default_dir = Filename.dirname exe_dir in
-  let local_built =
-    Filename.concat build_default_dir "bin/mathc.exe"
-  in
+  let local_built = Filename.concat build_default_dir "bin/mathc.exe" in
   let cmd_init =
     if Sys.file_exists local_built then local_built
     else
@@ -739,21 +752,20 @@ let[@warning "-32"] run_mathc_init_default_validates () =
         (fun () ->
           (* Init with --no-install so we don't try to touch the
              user's global hooks dir. *)
-          let init_argv =
-            [| "mathc"; "init"; "."; "--no-install" |]
+          let init_argv = [| "mathc"; "init"; "."; "--no-install" |] in
+          let init_pid =
+            Unix.create_process cmd_init init_argv Unix.stdin Unix.stdout
+              Unix.stderr
           in
-          let init_pid = Unix.create_process cmd_init init_argv
-              Unix.stdin Unix.stdout Unix.stderr in
           let _, init_wstatus = Unix.waitpid [] init_pid in
           (match init_wstatus with
-           | Unix.WEXITED code ->
-               if code <> 0 then
-                 Alcotest.failf
-                   "axiom-link-default-validates: mathc init exited %d"
-                   code
-           | _ ->
-               Alcotest.failf
-                 "axiom-link-default-validates: mathc init did not exit normally");
+          | Unix.WEXITED code ->
+              if code <> 0 then
+                Alcotest.failf
+                  "axiom-link-default-validates: mathc init exited %d" code
+          | _ ->
+              Alcotest.failf
+                "axiom-link-default-validates: mathc init did not exit normally");
           (* The init must have created .math-coding/policy.yaml. *)
           let policy_path = ".math-coding/policy.yaml" in
           if not (Sys.file_exists policy_path) then
@@ -762,18 +774,23 @@ let[@warning "-32"] run_mathc_init_default_validates () =
               policy_path;
           (* Validate. The expected exit code is 0 (accept). *)
           let val_argv = [| "mathc"; "validate"; policy_path |] in
-          let val_pid = Unix.create_process cmd_validate val_argv
-              Unix.stdin Unix.stdout Unix.stderr in
+          let val_pid =
+            Unix.create_process cmd_validate val_argv Unix.stdin Unix.stdout
+              Unix.stderr
+          in
           let _, val_wstatus = Unix.waitpid [] val_pid in
           match val_wstatus with
           | Unix.WEXITED code ->
               if code <> 0 then
                 Alcotest.failf
-                  "axiom-link-default-validates: mathc validate exit %d (expected 0; scaffolded policy failed validation -- the kernel-bugs-v3.4-2026-10 template fix may have regressed)"
+                  "axiom-link-default-validates: mathc validate exit %d \
+                   (expected 0; scaffolded policy failed validation -- the \
+                   kernel-bugs-v3.4-2026-10 template fix may have regressed)"
                   code
           | _ ->
               Alcotest.failf
-                "axiom-link-default-validates: mathc validate did not exit normally"))
+                "axiom-link-default-validates: mathc validate did not exit \
+                 normally"))
     ~finally:(fun () ->
       let rec rm p =
         try
@@ -835,14 +852,13 @@ let () =
       ( "T1.5 (AGENTS.md integrity)",
         [
           Alcotest.test_case
-            "AGENTS.md contains required sub-headers and MUST keyword"
-            `Quick test_agents_md_integrity;
+            "AGENTS.md contains required sub-headers and MUST keyword" `Quick
+            test_agents_md_integrity;
         ] );
       ( "T1.6 (decision format stricter)",
         [
-          Alcotest.test_case
-            "obligation IDs unique and outcomes resolve"
-            `Quick test_decision_format_stricter;
+          Alcotest.test_case "obligation IDs unique and outcomes resolve" `Quick
+            test_decision_format_stricter;
         ] );
       ( "P5 axiom_link-default-validates (P2 kernel-bugs v3.4 pin)",
         [

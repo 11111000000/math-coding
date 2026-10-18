@@ -269,22 +269,20 @@ let[@warning "-32"] parse_attestation v =
    2026-10-16) while the validator surfaces the diagnostic for
    new attestations. `mathc validate <attestation.json>` invokes
    this validator via `bin/Mathc.ml::validate_with_counts`. *)
-let[@warning "-32"] validate_attestation_materials (a : Domain.attestation)
-    : Diagnostic.t option =
-  let is_runtime_kind = match a.kind with
-    | `Review -> false
-    | _ -> true
-  in
+let[@warning "-32"] validate_attestation_materials (a : Domain.attestation) :
+    Diagnostic.t option =
+  let is_runtime_kind = match a.kind with `Review -> false | _ -> true in
   if is_runtime_kind && String.trim a.materials_digest = "" then
     Some
       (Diagnostic.mc_materials_digest_empty
          ~subject:(Printf.sprintf "%s/%s" a.decision a.obligation)
-         ~kind:(match a.kind with
-                | `Test -> "test"
-                | `Build -> "build"
-                | `Observation -> "observation"
-                | `Analysis -> "analysis"
-                | `Review -> "review")
+         ~kind:
+           (match a.kind with
+           | `Test -> "test"
+           | `Build -> "build"
+           | `Observation -> "observation"
+           | `Analysis -> "analysis"
+           | `Review -> "review")
          ())
   else None
 
@@ -658,7 +656,9 @@ let[@warning "-32"] rec parse_yaml_inline_seq cur_indent vstr tokens =
     match ts with
     | { yindent; ycontent } :: rest
       when yindent = cur_indent && is_dash_item ycontent ->
-        let s = String.trim (String.sub ycontent 2 (String.length ycontent - 2)) in
+        let s =
+          String.trim (String.sub ycontent 2 (String.length ycontent - 2))
+        in
         let item = if s = "" then Jsonl.Null else parse_yaml_scalar s in
         collect (item :: acc) rest
     | _ -> (List.rev acc, ts)

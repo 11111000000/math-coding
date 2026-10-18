@@ -91,9 +91,7 @@ let[@warning "-32"] curl_status ~url =
      gate on `WEXITED 0` so a curl killed by signal (e.g. SIGPIPE
      if the parent pipe is closed) cannot produce a false
      positive even when the buffer happens to contain "200". *)
-  let exit_ok =
-    match status with Unix.WEXITED 0 -> true | _ -> false
-  in
+  let exit_ok = match status with Unix.WEXITED 0 -> true | _ -> false in
   let s = Buffer.contents buf in
   let trimmed = String.trim s in
   if exit_ok && trimmed = "200" then true else false

@@ -60,8 +60,7 @@ let[@warning "-32"] in_repo name = Filename.concat (project_root ()) name
    Cram: all .t files under tests/cli/. *)
 
 let[@warning "-32"] read_file path =
-  try In_channel.with_open_bin path In_channel.input_all
-  with _ -> ""
+  try In_channel.with_open_bin path In_channel.input_all with _ -> ""
 
 let[@warning "-32"] file_ends_with_suffix f suff =
   let fl = String.length f in
@@ -87,11 +86,10 @@ let[@warning "-32"] is_active_decision body =
       if ll < 13 then false
       else if line.[0] <> 's' then false
       else if String.sub line 0 pl <> prefix then false
+      else if line.[pl] <> ' ' then false
       else
-        if line.[pl] <> ' ' then false
-        else
-          let after = String.sub line (pl + 1) (ll - pl - 1) in
-          after = "active")
+        let after = String.sub line (pl + 1) (ll - pl - 1) in
+        after = "active")
     lines
 
 let[@warning "-32"] count_active_decisions () =
@@ -128,7 +126,6 @@ let[@warning "-32"] file_starts_with_prefix f pref =
    test run (see .gitignore:37). Never a commitment. *)
 let[@warning "-32"] is_attestation_scratch f =
   file_starts_with_prefix f "t1-2-A0-"
-
 
 let[@warning "-32"] count_all_attestations () =
   if not (Sys.file_exists (in_repo "attestations")) then 0
@@ -174,30 +171,26 @@ let[@warning "-32"] check_no_drift () =
      carry the live on-disk counts. The check is anchored on
      a literal phrase so a markdown reformatting that loses
      the bold/italic markers is still detected as drift. *)
-  let needle_pkg_att =
-    Printf.sprintf "**%d files**" n_att
-  in
-  let needle_pkg_cram =
-    Printf.sprintf "%d cram files in" n_cram
-  in
-  let needle_pkg_dec =
-    Printf.sprintf "%d active" n_dec
-  in
-  let needle_road_att =
-    Printf.sprintf "%d files" n_att
-  in
+  let needle_pkg_att = Printf.sprintf "**%d files**" n_att in
+  let needle_pkg_cram = Printf.sprintf "%d cram files in" n_cram in
+  let needle_pkg_dec = Printf.sprintf "%d active" n_dec in
+  let needle_road_att = Printf.sprintf "%d files" n_att in
   Alcotest.(check bool)
     (Printf.sprintf "PACKAGES.md contains '%s'" needle_pkg_att)
-    true (contains_substring ~needle:needle_pkg_att ~haystack:pkg);
+    true
+    (contains_substring ~needle:needle_pkg_att ~haystack:pkg);
   Alcotest.(check bool)
     (Printf.sprintf "PACKAGES.md contains '%s'" needle_pkg_cram)
-    true (contains_substring ~needle:needle_pkg_cram ~haystack:pkg);
+    true
+    (contains_substring ~needle:needle_pkg_cram ~haystack:pkg);
   Alcotest.(check bool)
     (Printf.sprintf "PACKAGES.md contains '%s'" needle_pkg_dec)
-    true (contains_substring ~needle:needle_pkg_dec ~haystack:pkg);
+    true
+    (contains_substring ~needle:needle_pkg_dec ~haystack:pkg);
   Alcotest.(check bool)
     (Printf.sprintf "ROADMAP.md contains '%s'" needle_road_att)
-    true (contains_substring ~needle:needle_road_att ~haystack:road)
+    true
+    (contains_substring ~needle:needle_road_att ~haystack:road)
 
 let () =
   Alcotest.run "counters drift"

@@ -74,8 +74,16 @@ let[@warning "-32"] mathjax_in_head () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ { Render.name = "methodology"; Render.title = "Methodology"; Render.body_md = "before" } ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~site_pages:
+        [
+          {
+            Render.name = "methodology";
+            Render.title = "Methodology";
+            Render.body_md = "before";
+          };
+        ]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -89,8 +97,9 @@ let[@warning "-32"] base_href_default () =
   let cfg : Render.config = Render.default_config in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
-      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -106,15 +115,32 @@ let[@warning "-32"] bilingual_pairs_complete () =
       ~policy_id:"bootstrap-v3" ~config:cfg_ru
       ~site_pages:
         [
-          { Render.name = "manifesto"; Render.title = "Manifesto"; Render.body_md = "EN body" };
-          { Render.name = "workflow"; Render.title = "Workflow"; Render.body_md = "EN workflow" };
+          {
+            Render.name = "manifesto";
+            Render.title = "Manifesto";
+            Render.body_md = "EN body";
+          };
+          {
+            Render.name = "workflow";
+            Render.title = "Workflow";
+            Render.body_md = "EN workflow";
+          };
         ]
       ~site_pages_ru:
         [
-          { Render.name = "manifesto"; Render.title = "Manifesto / RU"; Render.body_md = "RU body" };
-          { Render.name = "readme"; Render.title = "README / RU"; Render.body_md = "RU readme" };
+          {
+            Render.name = "manifesto";
+            Render.title = "Manifesto / RU";
+            Render.body_md = "RU body";
+          };
+          {
+            Render.name = "readme";
+            Render.title = "README / RU";
+            Render.body_md = "RU readme";
+          };
         ]
-      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let paths = List.map (fun p -> p.Render.path) pages in
   Alcotest.(check bool)
@@ -145,24 +171,50 @@ let[@warning "-32"] bilingual_pairs_complete () =
    with no language suffix. *)
 let[@warning "-32"] lang_toggle_en_no_suffix () =
   let cfg =
-    { Render.default_config with Render.languages = [ Render.En; Render.Ru; Render.Zh ] }
+    {
+      Render.default_config with
+      Render.languages = [ Render.En; Render.Ru; Render.Zh ];
+    }
   in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:
         [
-          { Render.name = "manifesto"; Render.title = "Manifesto"; Render.body_md = "EN body" };
-          { Render.name = "axioms"; Render.title = "Axioms"; Render.body_md = "EN axioms" };
+          {
+            Render.name = "manifesto";
+            Render.title = "Manifesto";
+            Render.body_md = "EN body";
+          };
+          {
+            Render.name = "axioms";
+            Render.title = "Axioms";
+            Render.body_md = "EN axioms";
+          };
         ]
       ~site_pages_ru:
         [
-          { Render.name = "manifesto"; Render.title = "Manifesto / RU"; Render.body_md = "RU body" };
-          { Render.name = "axioms"; Render.title = "Axioms / RU"; Render.body_md = "RU axioms" };
+          {
+            Render.name = "manifesto";
+            Render.title = "Manifesto / RU";
+            Render.body_md = "RU body";
+          };
+          {
+            Render.name = "axioms";
+            Render.title = "Axioms / RU";
+            Render.body_md = "RU axioms";
+          };
         ]
       ~site_pages_zh:
-        [ { Render.name = "axioms"; Render.title = "Axioms / ZH"; Render.body_md = "ZH axioms" } ]
-      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+        [
+          {
+            Render.name = "axioms";
+            Render.title = "Axioms / ZH";
+            Render.body_md = "ZH axioms";
+          };
+        ]
+      ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let body_of path =
     List.find (fun p -> p.Render.path = path) pages |> fun p -> p.Render.body
@@ -279,8 +331,7 @@ let[@warning "-32"] inline_figure_renders () =
   Alcotest.(check bool)
     "<img src=\"assets/foo.svg\"> present" true
     (has "<img src=\"assets/foo.svg\"" html);
-  Alcotest.(check bool)
-    "alt text preserved" true (has "A diagram" html);
+  Alcotest.(check bool) "alt text preserved" true (has "A diagram" html);
   Alcotest.(check bool)
     "no mermaid div emitted" true
     (not (has "<div class=\"mermaid\">" html))
@@ -313,16 +364,16 @@ let[@warning "-32"] ordered_list_renders () =
      §"Рабочая цепочка на практике", condensed to a single line
      per item so the test is not sensitive to line-wrap. *)
   let src =
-    "intro paragraph\n\n1. **A.** first item\n2. **B.** second item\n3. \
-     **C.** third item\n\nafter\n"
+    "intro paragraph\n\n\
+     1. **A.** first item\n\
+     2. **B.** second item\n\
+     3. **C.** third item\n\n\
+     after\n"
   in
   let html = Render.md_parse src in
-  Alcotest.(check bool)
-    "<ol> wrapper present" true (has "<ol>" html);
-  Alcotest.(check bool)
-    "</ol> closing present" true (has "</ol>" html);
-  Alcotest.(check bool)
-    "three <li> elements" true (count "<li>" html = 3);
+  Alcotest.(check bool) "<ol> wrapper present" true (has "<ol>" html);
+  Alcotest.(check bool) "</ol> closing present" true (has "</ol>" html);
+  Alcotest.(check bool) "three <li> elements" true (count "<li>" html = 3);
   Alcotest.(check bool)
     "first <strong>A.</strong> present" true
     (has "<strong>A.</strong>" html);
@@ -349,10 +400,8 @@ let[@warning "-32"] ordered_list_multi_digit_renders () =
      period. *)
   let src = "10. ten\n11. eleven\n12. twelve\n" in
   let html = Render.md_parse src in
-  Alcotest.(check bool)
-    "<ol> wrapper present" true (has "<ol>" html);
-  Alcotest.(check bool)
-    "three <li> elements" true (count "<li>" html = 3);
+  Alcotest.(check bool) "<ol> wrapper present" true (has "<ol>" html);
+  Alcotest.(check bool) "three <li> elements" true (count "<li>" html = 3);
   Alcotest.(check bool) "ten present" true (has "ten" html);
   Alcotest.(check bool) "eleven present" true (has "eleven" html);
   Alcotest.(check bool) "twelve present" true (has "twelve" html)
@@ -365,18 +414,16 @@ let[@warning "-32"] ordered_list_continuation_joins_into_one_li () =
      артефакт" item, whose first line ends at "JSON-схеме?" and
      whose second line starts with "(решение, обязательство, ...". *)
   let src =
-    "1. **Схема.** Соответствует ли каждый артефакт\n   (решение, \
-     обязательство) своей JSON-схеме?\n2. **Идентичность.** Разрешима ли\n"
+    "1. **Схема.** Соответствует ли каждый артефакт\n\
+    \   (решение, обязательство) своей JSON-схеме?\n\
+     2. **Идентичность.** Разрешима ли\n"
   in
   let html = Render.md_parse src in
-  Alcotest.(check bool)
-    "<ol> wrapper present" true (has "<ol>" html);
-  Alcotest.(check bool)
-    "two <li> elements" true (count "<li>" html = 2);
+  Alcotest.(check bool) "<ol> wrapper present" true (has "<ol>" html);
+  Alcotest.(check bool) "two <li> elements" true (count "<li>" html = 2);
   Alcotest.(check bool)
     "first item body joined with single space" true
-    (has "Соответствует ли каждый артефакт (решение, обязательство)"
-       html);
+    (has "Соответствует ли каждый артефакт (решение, обязательство)" html);
   Alcotest.(check bool)
     "second item is independent" true
     (has "<strong>Идентичность.</strong>" html)
@@ -393,20 +440,17 @@ let[@warning "-32"] ordered_list_invalid_marker_stays_paragraph () =
   let html_decimal = Render.md_parse decimal in
   Alcotest.(check bool)
     "decimal '1.5 ' is NOT an <ol>" false (has "<ol>" html_decimal);
-  Alcotest.(check bool)
-    "decimal stays as a <p>" true (has "<p>" html_decimal);
+  Alcotest.(check bool) "decimal stays as a <p>" true (has "<p>" html_decimal);
   let no_space = "version 1.foo of the spec is current\n" in
   let html_no_space = Render.md_parse no_space in
   Alcotest.(check bool)
     "no-space '1.foo' is NOT an <ol>" false (has "<ol>" html_no_space);
-  Alcotest.(check bool)
-    "no-space stays as a <p>" true (has "<p>" html_no_space);
+  Alcotest.(check bool) "no-space stays as a <p>" true (has "<p>" html_no_space);
   let bare = "1.\n" in
   let html_bare = Render.md_parse bare in
   Alcotest.(check bool)
     "bare '1.' (no space) is NOT an <ol>" false (has "<ol>" html_bare);
-  Alcotest.(check bool)
-    "bare '1.' stays as a <p>" true (has "<p>" html_bare)
+  Alcotest.(check bool) "bare '1.' stays as a <p>" true (has "<p>" html_bare)
 
 let[@warning "-32"] ordered_list_stops_at_dash_marker () =
   (* A `- ` line at the same indentation as the ordered list
@@ -415,12 +459,9 @@ let[@warning "-32"] ordered_list_stops_at_dash_marker () =
      treat `- ` as a continuation of the previous `<li>`. *)
   let src = "1. first\n2. second\n\n- dash a\n- dash b\n" in
   let html = Render.md_parse src in
-  Alcotest.(check bool)
-    "<ol> wrapper present" true (has "<ol>" html);
-  Alcotest.(check bool)
-    "<ul> wrapper present" true (has "<ul>" html);
-  Alcotest.(check bool)
-    "two ordered <li>" true (count "<li>" html = 4)
+  Alcotest.(check bool) "<ol> wrapper present" true (has "<ol>" html);
+  Alcotest.(check bool) "<ul> wrapper present" true (has "<ul>" html);
+  Alcotest.(check bool) "two ordered <li>" true (count "<li>" html = 4)
 
 let[@warning "-32"] ordered_list_after_paragraph_continues_paragraph () =
   (* Negative: a `1. ` line that follows a non-blank paragraph
@@ -431,8 +472,7 @@ let[@warning "-32"] ordered_list_after_paragraph_continues_paragraph () =
      silently changing that rule. *)
   let src = "intro 1. continuation is part of the same paragraph\n" in
   let html = Render.md_parse src in
-  Alcotest.(check bool)
-    "no <ol> when no blank line" false (has "<ol>" html);
+  Alcotest.(check bool) "no <ol> when no blank line" false (has "<ol>" html);
   Alcotest.(check bool)
     "single <p> contains the whole text" true (has "<p>" html)
 
@@ -485,8 +525,16 @@ let[@warning "-32"] mathjax_in_head_when_enabled () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ { Render.name = "methodology"; Render.title = "Methodology"; Render.body_md = "before" } ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~site_pages:
+        [
+          {
+            Render.name = "methodology";
+            Render.title = "Methodology";
+            Render.body_md = "before";
+          };
+        ]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -504,8 +552,9 @@ let[@warning "-32"] mathjax_script_on_prose_page_when_enabled () =
   let cfg : Render.config = Render.default_config in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
-      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -524,8 +573,16 @@ let[@warning "-32"] mathjax_no_dollar_delimiters () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ { Render.name = "methodology"; Render.title = "Methodology"; Render.body_md = "before" } ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~site_pages:
+        [
+          {
+            Render.name = "methodology";
+            Render.title = "Methodology";
+            Render.body_md = "before";
+          };
+        ]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -548,8 +605,16 @@ let[@warning "-32"] mathjax_uses_latex_delimiters () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ { Render.name = "methodology"; Render.title = "Methodology"; Render.body_md = "before" } ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~site_pages:
+        [
+          {
+            Render.name = "methodology";
+            Render.title = "Methodology";
+            Render.body_md = "before";
+          };
+        ]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "methodology.html") pages in
   Alcotest.(check bool)
@@ -604,7 +669,8 @@ let[@warning "-32"] css_has_inline_figure_rules () =
     ".mathc-figure-inline img max-width: 100%" true
     (has "max-width: 100%" css && has ".mathc-figure-inline img" css);
   Alcotest.(check bool)
-    "no .mermaid rules remain" true (not (has ".mermaid" css))
+    "no .mermaid rules remain" true
+    (not (has ".mermaid" css))
 
 let[@warning "-32"] mermaid_support_removed () =
   (* Assert the renderer source no longer carries Mermaid
@@ -619,16 +685,16 @@ let[@warning "-32"] mermaid_support_removed () =
     s
   in
   let root =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with
-    | Some p -> p
-    | None -> ".."
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with Some p -> p | None -> ".."
   in
   let render_ml = read (Filename.concat root "lib/render/render.ml") in
   let mathc_ml = read (Filename.concat root "bin/Mathc.ml") in
   Alcotest.(check bool)
-    "lib/render/render.ml has no mermaid" true (not (has "mermaid" render_ml));
+    "lib/render/render.ml has no mermaid" true
+    (not (has "mermaid" render_ml));
   Alcotest.(check bool)
-    "bin/Mathc.ml has no mermaid" true (not (has "mermaid" mathc_ml))
+    "bin/Mathc.ml has no mermaid" true
+    (not (has "mermaid" mathc_ml))
 
 let[@warning "-32"] packages_page_has_grid () =
   let cfg : Render.config = Render.default_config in
@@ -639,8 +705,16 @@ let[@warning "-32"] packages_page_has_grid () =
   let pages =
     Render.build_pages ~package_html:pkg_html ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ { Render.name = "packages"; Render.title = "Packages"; Render.body_md = "prose body" } ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~site_pages:
+        [
+          {
+            Render.name = "packages";
+            Render.title = "Packages";
+            Render.body_md = "prose body";
+          };
+        ]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "packages.html") pages in
   Alcotest.(check bool)
@@ -657,11 +731,27 @@ let[@warning "-32"] ru_nav_omits_missing_sibling () =
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:
         [
-          { Render.name = "methodology"; Render.title = "Methodology"; Render.body_md = "EN methodology" };
-          { Render.name = "manifesto"; Render.title = "Manifesto"; Render.body_md = "EN manifesto" };
+          {
+            Render.name = "methodology";
+            Render.title = "Methodology";
+            Render.body_md = "EN methodology";
+          };
+          {
+            Render.name = "manifesto";
+            Render.title = "Manifesto";
+            Render.body_md = "EN manifesto";
+          };
         ]
-      ~site_pages_ru:[ { Render.name = "manifesto"; Render.title = "Manifesto / RU"; Render.body_md = "RU manifesto" } ] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~site_pages_ru:
+        [
+          {
+            Render.name = "manifesto";
+            Render.title = "Manifesto / RU";
+            Render.body_md = "RU manifesto";
+          };
+        ]
+      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let methodology =
     List.find (fun p -> p.Render.path = "methodology.html") pages
@@ -680,8 +770,11 @@ let[@warning "-32"] axiom_page_single_h1 () =
   let axiom_body = "# Axiom A1 — Feedback\n\nbody text\n" in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
-      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[ ("feedback", axiom_body) ] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~site_pages_zh:[]
+      ~axioms_data:[ ("feedback", axiom_body) ]
+      ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page =
     List.find (fun p -> p.Render.path = "axioms/feedback.html") pages
@@ -696,8 +789,16 @@ let[@warning "-32"] footer_mathc_render () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ { Render.name = "home"; Render.title = "Home"; Render.body_md = "body" } ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~site_pages:
+        [
+          {
+            Render.name = "home";
+            Render.title = "Home";
+            Render.body_md = "body";
+          };
+        ]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -711,8 +812,9 @@ let[@warning "-32"] base_href_default () =
   let cfg : Render.config = Render.default_config in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
-      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -725,8 +827,9 @@ let[@warning "-32"] base_href_empty () =
   in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
-      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let home = List.find (fun p -> p.Render.path = "index.html") pages in
   Alcotest.(check bool)
@@ -739,8 +842,8 @@ let[@warning "-32"] version_in_hero_and_footer () =
   in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
-      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[] ~site_pages_zh:[]
-      ~axioms_data:[] ~spec_data:[]
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
       ~templates:
         {
           Render.index =
@@ -924,23 +1027,21 @@ let[@warning "-32"] ru_home_sibling_is_index_html () =
   in
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
-      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~policy_id:"bootstrap-v3" ~config:cfg ~site_pages:[] ~site_pages_ru:[]
+      ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
-  let home_ru =
-    List.find (fun p -> p.Render.path = "index.ru.html") pages
-  in
+  let home_ru = List.find (fun p -> p.Render.path = "index.ru.html") pages in
   Alcotest.(check bool)
     "Russian home page carries NO 'home.html' anywhere" true
     (not (has "home.html" home_ru.Render.body));
   Alcotest.(check bool)
     "Russian home nav toggle points at 'index.html'" true
     (has "lang-toggle" home_ru.Render.body
-     && has "href=\"index.html\"" home_ru.Render.body);
+    && has "href=\"index.html\"" home_ru.Render.body);
   Alcotest.(check bool)
     "Russian home footer 'EN' sibling points at 'index.html'" true
-    (has "site-meta" home_ru.Render.body
-     && has ">EN</a>" home_ru.Render.body)
+    (has "site-meta" home_ru.Render.body && has ">EN</a>" home_ru.Render.body)
 
 let[@warning "-32"] footer_links_github_origin () =
   (* The footer emits GitHub blob URLs for AGENTS.md, ROADMAP.md,
@@ -952,8 +1053,16 @@ let[@warning "-32"] footer_links_github_origin () =
   let pages =
     Render.build_pages ~package_html:"" ~decisions_data:[]
       ~policy_id:"bootstrap-v3" ~config:cfg
-      ~site_pages:[ { Render.name = "home"; Render.title = "Home"; Render.body_md = "body" } ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~site_pages:
+        [
+          {
+            Render.name = "home";
+            Render.title = "Home";
+            Render.body_md = "body";
+          };
+        ]
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let page = List.find (fun p -> p.Render.path = "index.html") pages in
   let body = page.Render.body in
@@ -969,8 +1078,7 @@ let[@warning "-32"] footer_links_github_origin () =
     (has "github.com/11111000000/math-coding/blob/main/PACKAGES.md" body);
   Alcotest.(check bool)
     "footer links to spec/algebra-3.2.md on GitHub" true
-    (has "github.com/11111000000/math-coding/blob/main/spec/algebra-3.2.md"
-       body);
+    (has "github.com/11111000000/math-coding/blob/main/spec/algebra-3.2.md" body);
   (* Negative: the old broken-relative-link pattern is gone. *)
   Alcotest.(check bool)
     "footer does NOT carry '../AGENTS.html'" true
@@ -997,11 +1105,24 @@ let[@warning "-32"] nav_has_github_link () =
       ~policy_id:"bootstrap-v3" ~config:cfg
       ~site_pages:
         [
-          { Render.name = "home"; Render.title = "Home"; Render.body_md = "body" };
-          { Render.name = "axioms"; Render.title = "Axioms"; Render.body_md = "body" };
-          { Render.name = "spec/algebra-3.2"; Render.title = "Algebra"; Render.body_md = "body" };
+          {
+            Render.name = "home";
+            Render.title = "Home";
+            Render.body_md = "body";
+          };
+          {
+            Render.name = "axioms";
+            Render.title = "Axioms";
+            Render.body_md = "body";
+          };
+          {
+            Render.name = "spec/algebra-3.2";
+            Render.title = "Algebra";
+            Render.body_md = "body";
+          };
         ]
-      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[] ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
+      ~site_pages_ru:[] ~site_pages_zh:[] ~axioms_data:[] ~spec_data:[]
+      ~templates:{ Render.index = []; Render.dashboard = ""; Render.graph = "" }
   in
   let github_href = "https://github.com/11111000000/math-coding" in
   List.iter
@@ -1022,12 +1143,11 @@ let[@warning "-32"] nav_has_github_link () =
         true
         (has ("href=\"" ^ github_href ^ "\"") page.Render.body);
       Alcotest.(check bool)
-        (Printf.sprintf
-           "dist/%s github-link is not a self-link to './github'" path)
+        (Printf.sprintf "dist/%s github-link is not a self-link to './github'"
+           path)
         true
         (not (has "href=\"./github\"" page.Render.body)))
-    [ ("home", "Home"); ("axioms", "Axioms");
-      ("spec/algebra-3.2", "Algebra") ]
+    [ ("home", "Home"); ("axioms", "Axioms"); ("spec/algebra-3.2", "Algebra") ]
 
 let[@warning "-32"] axioms_link_html_not_md () =
   (* The five axiom markdown sources must reference the rendered
@@ -1041,9 +1161,7 @@ let[@warning "-32"] axioms_link_html_not_md () =
      base for relative URL resolution, so `../X` resolves
      outside the site. *)
   let root =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with
-    | Some p -> p
-    | None -> ".."
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with Some p -> p | None -> ".."
   in
   let axiom_files =
     [ "care"; "feedback"; "invariants"; "self-application"; "separation" ]
@@ -1058,15 +1176,12 @@ let[@warning "-32"] axioms_link_html_not_md () =
         true
         (not (has "../spec/algebra-3.2.md" md));
       Alcotest.(check bool)
-        (Printf.sprintf
-           "axioms/%s.md does NOT link to ../spec/algebra-3.2.html"
+        (Printf.sprintf "axioms/%s.md does NOT link to ../spec/algebra-3.2.html"
            name)
         true
         (not (has "../spec/algebra-3.2.html" md));
       Alcotest.(check bool)
-        (Printf.sprintf
-           "axioms/%s.md DOES link to spec/algebra-3.2.html"
-           name)
+        (Printf.sprintf "axioms/%s.md DOES link to spec/algebra-3.2.html" name)
         true
         (has "spec/algebra-3.2.html" md))
     axiom_files;
@@ -1075,8 +1190,7 @@ let[@warning "-32"] axioms_link_html_not_md () =
   let script = Filename.concat root "scripts/render.sh" in
   let ec = Sys.command script in
   if ec <> 0 then
-    Alcotest.failf
-      "scripts/render.sh exited %d; cannot verify axiom pages" ec;
+    Alcotest.failf "scripts/render.sh exited %d; cannot verify axiom pages" ec;
   let dist = Filename.concat root "dist" in
   List.iter
     (fun name ->
@@ -1137,7 +1251,8 @@ let () =
       ( "ordered_list_renders",
         [ Alcotest.test_case "ol" `Quick ordered_list_renders ] );
       ( "ordered_list_multi_digit_renders",
-        [ Alcotest.test_case "multi" `Quick ordered_list_multi_digit_renders ] );
+        [ Alcotest.test_case "multi" `Quick ordered_list_multi_digit_renders ]
+      );
       ( "ordered_list_continuation_joins_into_one_li",
         [
           Alcotest.test_case "cont" `Quick
@@ -1149,9 +1264,8 @@ let () =
             ordered_list_invalid_marker_stays_paragraph;
         ] );
       ( "ordered_list_stops_at_dash_marker",
-        [
-          Alcotest.test_case "dash" `Quick ordered_list_stops_at_dash_marker;
-        ] );
+        [ Alcotest.test_case "dash" `Quick ordered_list_stops_at_dash_marker ]
+      );
       ( "ordered_list_after_paragraph_continues_paragraph",
         [
           Alcotest.test_case "lazy" `Quick
@@ -1192,25 +1306,16 @@ let () =
       ( "footer_mathc_render",
         [ Alcotest.test_case "footer" `Quick footer_mathc_render ] );
       ( "ru_home_sibling_is_index_html",
-        [
-          Alcotest.test_case "ru-home" `Quick
-            ru_home_sibling_is_index_html;
-        ] );
+        [ Alcotest.test_case "ru-home" `Quick ru_home_sibling_is_index_html ] );
       ( "footer_links_github_origin",
-        [
-          Alcotest.test_case "github" `Quick footer_links_github_origin;
-        ] );
+        [ Alcotest.test_case "github" `Quick footer_links_github_origin ] );
       ( "nav_has_github_link",
         [ Alcotest.test_case "nav" `Quick nav_has_github_link ] );
       ( "axioms_link_html_not_md",
-        [
-          Alcotest.test_case "axiom-link" `Quick
-            axioms_link_html_not_md;
-        ] );
+        [ Alcotest.test_case "axiom-link" `Quick axioms_link_html_not_md ] );
       ( "inline_svg_figures_in_seven_pages",
         [
-          Alcotest.test_case "figures" `Quick
-            (fun () ->
+          Alcotest.test_case "figures" `Quick (fun () ->
               (* Editorial obligation: every site page and per-axiom
                  page that carries a diagram must surface it as an
                  inline SVG `<figure class="mathc-figure
@@ -1226,8 +1331,9 @@ let () =
               let ec = Sys.command script in
               if ec <> 0 then
                 Alcotest.failf
-                  "scripts/render.sh exited %d; cannot verify inline \
-                   figure output" ec;
+                  "scripts/render.sh exited %d; cannot verify inline figure \
+                   output"
+                  ec;
               let dist = Filename.concat root "dist" in
               let pages =
                 [
@@ -1245,20 +1351,19 @@ let () =
                   let path = Filename.concat dist rel in
                   let html = read_text path in
                   Alcotest.(check bool)
-                    (Printf.sprintf
-                       "dist/%s contains inline figure" rel)
+                    (Printf.sprintf "dist/%s contains inline figure" rel)
                     true
                     (has "<figure class=\"mathc-figure mathc-figure-inline\">"
                        html);
                   Alcotest.(check bool)
                     (Printf.sprintf "dist/%s has no mermaid div" rel)
-                    true (not (has "<div class=\"mermaid\">" html)))
-                pages)
+                    true
+                    (not (has "<div class=\"mermaid\">" html)))
+                pages);
         ] );
       ( "axiom_has_formalization_section",
         [
-          Alcotest.test_case "formalization" `Quick
-            (fun () ->
+          Alcotest.test_case "formalization" `Quick (fun () ->
               (* Editorial obligation: each of the five axiom pages
                  must end with a `## Formalization` section that
                  references the formal algebra. *)
@@ -1282,15 +1387,13 @@ let () =
                   let path = Filename.concat dist rel in
                   let html = read_text path in
                   Alcotest.(check bool)
-                    (Printf.sprintf
-                       "dist/%s contains Formalization section" rel)
+                    (Printf.sprintf "dist/%s contains Formalization section" rel)
                     true (has "Formalization" html))
-                axioms)
+                axioms);
         ] );
       ( "dashboard_and_graph_html_landed",
         [
-          Alcotest.test_case "ship" `Quick
-            (fun () ->
+          Alcotest.test_case "ship" `Quick (fun () ->
               (* Decision `render-dashboard-2026-10@1`
                  asserts that `mathc render` writes
                  `dist/dashboard.html` (fuse.js search
@@ -1309,48 +1412,40 @@ let () =
                  the same allowlist the operator's local
                  build runs. *)
               let out_dir = Filename.concat root "dist" in
-              let script_path =
-                Filename.concat root "scripts/render.sh"
-              in
+              let script_path = Filename.concat root "scripts/render.sh" in
               let ec = Sys.command script_path in
               if ec <> 0 then
                 Alcotest.failf
-                  "scripts/render.sh exited %d; cannot verify \
-                   dashboard/graph output" ec;
+                  "scripts/render.sh exited %d; cannot verify dashboard/graph \
+                   output"
+                  ec;
               let dashboard_html =
-                read_text
-                  (Filename.concat out_dir "dashboard.html")
+                read_text (Filename.concat out_dir "dashboard.html")
               in
               Alcotest.(check bool)
-                "dist/dashboard.html exists and is non-empty"
-                true (String.length dashboard_html > 0);
+                "dist/dashboard.html exists and is non-empty" true
+                (String.length dashboard_html > 0);
               Alcotest.(check bool)
-                "dist/dashboard.html includes fuse.js CDN tag"
-                true
-                (has "fuse" dashboard_html
-                 && has "<script" dashboard_html);
+                "dist/dashboard.html includes fuse.js CDN tag" true
+                (has "fuse" dashboard_html && has "<script" dashboard_html);
               Alcotest.(check bool)
-                "dist/dashboard.html fetches index.json"
-                true (has "index.json" dashboard_html);
+                "dist/dashboard.html fetches index.json" true
+                (has "index.json" dashboard_html);
               let graph_html =
                 read_text (Filename.concat out_dir "graph.html")
               in
               Alcotest.(check bool)
-                "dist/graph.html exists and is non-empty"
-                true (String.length graph_html > 0);
+                "dist/graph.html exists and is non-empty" true
+                (String.length graph_html > 0);
               Alcotest.(check bool)
-                "dist/graph.html includes cytoscape.js CDN tag"
-                true
-                (has "cytoscape" graph_html
-                 && has "<script" graph_html);
+                "dist/graph.html includes cytoscape.js CDN tag" true
+                (has "cytoscape" graph_html && has "<script" graph_html);
               Alcotest.(check bool)
-                "dist/graph.html fetches graph.json"
-                true (has "graph.json" graph_html);
-              let graph_json_path =
-                Filename.concat out_dir "graph.json"
-              in
+                "dist/graph.html fetches graph.json" true
+                (has "graph.json" graph_html);
+              let graph_json_path = Filename.concat out_dir "graph.json" in
               Alcotest.(check bool)
-                "dist/graph.json exists"
-                true (Sys.file_exists graph_json_path))
+                "dist/graph.json exists" true
+                (Sys.file_exists graph_json_path));
         ] );
     ]
