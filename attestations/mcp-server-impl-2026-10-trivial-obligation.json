@@ -1,0 +1,1 @@
+{"id":"sha256:04bfbddebc6979052e3b83dd97be13dd4358b47c708ab7b7f309a85470b3a907","issued_at":"2026-10-18T09:29:37Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:subagent-F12"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"mcp-server-impl-2026-10","materials_digest":"","obligation":"trivial-obligation"}}

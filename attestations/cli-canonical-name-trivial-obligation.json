@@ -1,0 +1,1 @@
+{"id":"sha256:9013be0844e69fe47fc4d4a165bf3398a9be7bd93c520c2a593e5c2b2ca30f86","issued_at":"2026-10-18T09:29:37Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:subagent-F12"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"cli-canonical-name","materials_digest":"","obligation":"trivial-obligation"}}
