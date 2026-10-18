@@ -549,6 +549,23 @@ request a higher TPM budget from the provider.
   did not exist in the binary used for this experiment; the agents
   reported they would have used it.** That's a positive signal for
   an unimplemented-but-spec'd feature.
+
+  **Verification (added 2026-10-17 by
+  `decisions/verify-mathc-doctor-ships-2026-10.yaml`).** The
+  experiment's binary at `/home/az/.local/bin/mathc` was built
+  2026-10-15 13:40 UTC (math-coding 3.3.1). The doctor subcommand
+  was committed to `bin/Mathc.ml` at `e8f413e` on
+  2026-10-15 14:46 UTC — **66 minutes after** the experiment's
+  binary was built. The subcommand shipped in source during the
+  experiment window, but the experiment's installed binary
+  predates the ship. A fresh `dune build` in
+  `verify-mathc-doctor-ships-2026-10` (binary timestamp
+  2026-10-17 22:11 UTC, version 3.3.1) returns
+  `mathc doctor --help` with `usage: mathc doctor [--json]`,
+  8 sections in JSON mode (`install`, `path`, `latest`, `config`,
+  `decisions`, `attestations`, `self_check`), and exit 0 on the
+  healthy install. Subcommand ships today; the experiment's
+  absence was a binary-staleness artefact, not a missing feature.
 - **The five-step `mathc adopt` flow** (`detect → init --merge →
   per-ADR import-adr --write → validate → self-check`) is well
   documented and exercised by existing fixtures (e.g.
