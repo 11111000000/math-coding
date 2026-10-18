@@ -1,444 +1,457 @@
-# Plan: 2026-11 Adoption-fixes, second-round
+# Plan: Adoption-fixes v2, 2026-11
 
-> **Status:** design draft, awaiting user sign-off. No execution.
+> **Status:** active, approved 2026-10-18 by user sign-off.
 > **Branch:** `plan/2026-11-adoption-fixes-2026-10` (off
 > `release/v3.3.2-2026-10`).
-> **Author:** orchestrator agent, 2026-10-18.
+> **Author:** orchestrator, 2026-10-18.
 > **Companion decision:** `decisions/plan-2026-11-adoption-fixes-2026-10.yaml`.
 
 ## 0. Why this exists
 
-The 2026-10-17 brownfield experiment
-(`docs/experiments/adoption-2026-10.md`) surfaced 9
-recommendations. Plan `plan-2026-10-adoption-fixes-2026-10`
-shipped fixes for all 9 — but the fix process itself surfaced
-**15 second-order findings** (F1–F15) in
-`docs/experiments/adoption-fixes-discriminator-2026-10.md`.
-Four parallel discriminator agents verified these findings
-(2 confirmed, 5 qualified, 0 refuted per batch; details in
-`docs/experiments/discriminator-*.yaml`). Of the 15, **9 are
-confirmed**, **5 are qualified** (real but partially overstated
-or with a less-bad scope than the orchestrator claimed), and
-**0 are refuted**.
+The 2026-10-17 adoption experiment
+(`docs/experiments/adoption-2026-10.md`) and the follow-on
+`plan-2026-10-adoption-fixes` (closed in v3.3.2, 2026-10-18
+04:09 UTC) landed 10 sub-decisions against 9 of the 9
+experiment recommendations + 1 doctor-ship audit (R6/R7/R8/R4/R5/R3/R2/R1/R9/R10).
 
-This plan turns the surviving findings into sub-decisions
-under the existing `process-principles` amendment chain
-(rev 2 + rev 3) and a new generation of kernel and docs
-sub-decisions.
+After the v3.3.2 release, four read-only **discriminator**
+sub-agents (titles `Discriminator: F1–F4/F5–F8/F9–F12/F13–F15`)
+audited the second-order consequences of the 10 shipped
+sub-decisions and the broader 12-self-check-unknown tail.
+They produced 15 findings (F1–F15) recorded in:
+- `docs/experiments/discriminator-f1-f4-2026-10.yaml`
+- `docs/experiments/discriminator-f5-f8-2026-10.yaml`
+- `docs/experiments/discriminator-f9-f12-2026-10.yaml`
+- `docs/experiments/discriminator-f13-f14-f15-2026-10.yaml`
+
+P1 findings: F9 (verify sandbox absent), F10 (path-resolver
+audit incomplete — 6–7 sites missed by A1), F14 (B1 was an
+orchestrator rescue after Token Plan rate limit), F15
+(shipped mathc 3.3.2 binary does not contain the fixes
+because the locally-installed binary at `/home/az/.local/bin/mathc`
+predates the sub-decision merges by ~4 hours).
+
+This plan turns the 15 findings into 11 sub-decisions
+(across 3 batches) plus 4 docs-only template fixes plus
+1 out-of-band human-gated tag/release action.
 
 ## 2. Boundaries (A3 self-application)
 
-- All sub-decisions land in 2026-10–2026-11. A successor
-  `plan-2026-12-…` may supersede.
+- All sub-decisions land in 2026-10 → 2026-11. A successor
+  plan may supersede; this one does not.
+- No sub-decision modifies `lib/attestations/` or `lib/mcp/`
+  beyond the strict scope of its sub-decision.
 - No change to `decisions/decision.yaml` (the active policy).
-- No change to `schemas/*.json` except where a sub-decision
-  is specifically about a schema field.
+- No change to `schemas/*.json` unless the sub-decision is
+  specifically about a schema field.
 - Every sub-decision produces a passing `mathc self-check`
-  with the same 12 unknown subjects (post-v3.3.2) and **zero
-  NEW unknown subjects** attributable to this plan.
-- **F15 is treated as a human-gated out-of-band action** (cut
-  tag, force-tag, push). It is recorded in this plan's
-  sub-decisions but is not delegated to a sub-agent.
+  with the **same 12 pre-existing unknown subjects** as at
+  HEAD `release/v3.3.2-2026-10` and zero NEW unknown
+  subjects. This is the **kernel-stability precondition**.
+  The 12 unknowns are owned by `audit-cleanup` (Category A
+  re-attest) and the 7 waiver decisions (Category B); the
+  plan zeros them out before Batch A starts.
 
 ## 3. Hypotheses
 
-1. **The 9 confirmed findings each represent a real
-   adoption-friction** that, if left unaddressed, will
-   reproduce in the brownfield-experiment v2.
-2. **The 5 qualified findings are real-but-narrower**: the
-   orchestrator's analysis over-stated some, but each has a
-   defensible kernel or docs change to make.
-3. **The current 5-code `process-principles` mechanism is
-   sufficient** to absorb the new sub-decisions via rev 2 + rev 3
-   amendments. No new axiom links needed.
-4. **F15 (release-pipeline gap) is the most urgent** because
-   the v3.3.2 commit landed without a tag, so the 10 fixes in
-   this plan's baseline are not yet visible to end users.
+Each sub-decision must satisfy four pre-conditions, mirroring
+plan-2026-10 §3:
+
+1. The friction event or finding it addresses is recorded
+   (≥ 1 of the 5 experiment reports or 4 discriminator
+   YAMLs).
+2. The fix does not regress any existing decision's verdict.
+3. The fix produces a measurable improvement on the same
+   metric that surfaced the issue (P95-attestation-noise,
+   syscall-surface-isolation, env-var-coverage, etc.).
+4. The fix is independently revertable in one commit.
 
 ## 4. Sub-decisions
 
 ### Batch A — kernel-critical, parallel (2 sub-decisions)
 
-**A1. `verify-sandbox-hardening-2026-11`** (F9, P1)
+#### A1. `verify-sandbox-hardening-2026-11` (F9)
 
-- **What.** Add `mathc verify --sandbox=<mode> FILE` with
-  three modes (`none | minimal | strict`). In `strict` mode,
-  before `Unix.execve`: drop capabilities via
-  `capset(2)` to empty `cap_bset`; call
-  `prctl(PR_SET_NO_NEW_PRIVS, 1)`; apply `RLIMIT_CPU=60s`,
-  `RLIMIT_NPROC=1`, `RLIMIT_NOFILE=64`,
-  `RLIMIT_FSIZE=write_target_max`. The `mathc` verifier scheme
-  in `strict` mode is restricted to a hard-coded allowlist of
-  read-only subcommands (`validate`, `assess`, `find`,
-  `self-check`, `explain`, `explain-diagnostic`, `context`,
-  `packages`); write-capable subcommands (`init`,
-  `new-decision --write`, `import-adr --write`, `attest-batch`,
-  `decision-state`) are refused.
-- **Scope.** `bin/Mathc.ml` lines 2761-2796 (run_with_sandbox),
-  line 2813 (mathc scheme), `lib/path_config.ml` (add
-  `resolve_sandbox_mode` reading `MATH_CODING_VERIFY_SANDBOX`).
-- **Acceptance.**
-  - `verifier: "rm -rf /tmp/x"` returns `Skipped` (mode
-    `none`), `Skipped` (`minimal`), `Skipped` (`strict`).
-  - `verifier: "file-exists /etc/shadow"` returns `Pass`
-    (none, minimal) and `Fail` (strict + denylist).
-  - `verifier: "mathc init"` returns `Pass` (none) and
-    `Skipped-strict` (strict + mathc-scheme deny).
-  - Cram fixture `tests/cli/verify-sandbox.t` exercises
-    all three cases.
-- **Risk.** Medium. New `OCaml` sandbox primitives (`capset`,
-  `prctl`) are Linux-only; macOS users keep `none` only.
-  Document the platform limitation.
+- **What.** Add `mathc verify --sandbox=<mode> <file>` with
+  three modes — `none | minimal | strict`. Default
+  `MATH_CODING_VERIFY_SANDBOX=none` for back-compat with
+  `add-verify-subcommand-2026-10.yaml` acceptance criteria.
+  In `strict`, before `Unix.execve`:
+  - drop capabilities (best-effort `capset(2)` on Linux)
+  - call `prctl(PR_SET_NO_NEW_PRIVS, 1)`
+  - apply RLIMITs (CPU=60s, NPROC=1, NOFILE=64, FSIZE=target_max)
+  - allowlist `mathc` scheme subcommands to read-only ones
+    (`validate`, `assess`, `find`, `self-check`, `explain`,
+    `explain-diagnostic`, `context`, `packages`, `do_pmd`)
+- **Scope.** `bin/Mathc.ml::run_with_sandbox` lines 2761–2796,
+  `bin/Mathc.ml::do_mathc_scheme` line 2813,
+  `lib/path_config.ml::resolve_sandbox_mode`,
+  `tests/cli/verify-sandbox.t` (new cram fixture).
+- **Acceptance.** Cram fixture passes 3 cases:
+  - `verifier: "rm -rf /tmp/x"` returns Skipped on `none`
+  - `verifier: "file-exists /etc/shadow"` returns Pass on
+    `none`, Fail on `strict+denylist`
+  - `verifier: "mathc init"` returns Pass on `none`,
+    Skipped on `strict+mathc-scheme-deny`
+- **Risk.** Medium. OS-level sandboxing requires kernel +
+  libcap-dev on Linux; macOS users keep `none`. The
+  allowlist for `mathc` scheme (read-only subcommands only)
+  is the minimum viable hardening.
+- **Depends on.** None (orthogonal to A2).
+
+#### A2. `path-resolver-audit-2026-11` (F10)
+
+- **What.** One commit that fixes the 6–7 sites in
+  `bin/Mathc.ml` that the original A1 (env-var resolver)
+  missed:
+  - L1417 `decision_relpath` — hard-codes
+    `"decisions/decision.yaml"` and special-case ids
+  - L2245/L2264 `do_record`/`do_stats` — hard-codes
+    `decisions/execution-logs.jsonl`
+  - L3523 `do_re_evaluate_decisions` — honours only legacy
+    `MATH_CODING_ATTESTATION_STORE`, not canonical
+    `MATH_CODING_ATTESTATIONS_DIR`
+  - L4216 `do_render` — let bindings `decisions_root` /
+    `attestations_root`
+  - L5334 `do_decision_state` — hard-codes
+    `<root>/decisions/<id>.yaml`
+  - L6451/L6495 `do_doctor` config + decisions sections
+  - L6696 `Policy.load_policies` — hard-codes
+    `<root>/policies.yaml`, ignores `MATH_CODING_POLICY`
+- **Scope.** `bin/Mathc.ml` only. Each site routes through
+  `lib/path_config.ml::resolve_*` helpers.
+- **Acceptance.** A grep for `decisions/`, `attestations/`,
+  `policies.yaml` in `bin/Mathc.ml` returns no literal
+  matches inside `Filename.concat` or `let <name> =`.
+  Hermetic cram fixtures `tests/cli/execution-logs-env-var.t`,
+  `tests/cli/re-evaluate-decisions-env-var.t`,
+  `tests/cli/policy-env-var.t` exit 0.
+- **Risk.** Medium. The `Policy.load_policies` site is
+  highest-impact: enabling the documented three-tier
+  precedence (env > `.math-coding/policy.yaml` > legacy
+  `decisions/decision.yaml`) changes call ordering at
+  startup.
 - **Depends on.** None.
 
-**A2. `path-resolver-audit-2026-11`** (F10, P1, qualified)
+### Batch B — kernel+docs, after A (3 sub-decisions)
 
-- **What.** Wire the 6 missed call sites in `bin/Mathc.ml`
-  through `Path_config.resolve_decisions_dir ()` /
-  `resolve_attestations_dir ()` / `resolve_policy_path ()`:
-  1. `decision_relpath` (line 1417-1423) — special-case
-     `bootstrap-v3`, `infrastructure-honesty`,
-     `kernel-conformance-runner`, `validate-and-context`.
-  2. `do_record` write (line 2245) — JSONL telemetry
-     `decisions/execution-logs.jsonl`.
-  3. `do_stats` read (line 2264) — same path.
-  4. `do_re_evaluate_decisions` (line 3523-3527) — currently
-     honours legacy `MATH_CODING_ATTESTATION_STORE` only;
-     should honour canonical `MATH_CODING_ATTESTATIONS_DIR`.
-  5. `do_render` (line 4216-4217) — `decisions` and
-     `attestations` constants for `Attestations.load`.
-  6. `do_decision_state` (line 5334) — read+write of
-     `<id>.yaml`.
-  7. `do_doctor` (line 6451, 6495) — `config` and
-     `decisions` sections.
-  8. `dispatch` policy loader (line 6696) — currently
-     hard-codes `<root>/policies.yaml`; should honour
-     `MATH_CODING_POLICY` env-var.
-- **Scope.** `bin/Mathc.ml` only.
-- **Acceptance.**
-  - Grep `bin/Mathc.ml` for `decisions/`, `attestations/`,
-    `policies.yaml` returns only literal matches inside
-    comments and documentation strings, not inside
-    `Filename.concat` / `let <name> =`.
-  - Cram fixtures: `tests/cli/{execution-logs-env-var,
-    re-evaluate-decisions-env-var, policy-env-var}.t`.
-- **Risk.** Low. These are 1-line edits each; the resolver
-  helpers already exist.
+#### B1. `import-junit-rename-2026-11`
+
+- **What.** `mathc attest FILE` currently parses JUnit XML
+  on read but reads conflicting documentation that suggests
+  writing JSON. Rename to `mathc import-junit FILE` for
+  clarity; keep `mathc attest` as a deprecation alias
+  emitting a one-shot stderr warning.
+- **Scope.** `bin/Mathc.ml::dispatch` (one-line rename),
+  `lib/attestations/import_junit.ml` (rename module if
+  present), help text, `tests/cli/attest-deprecation-alias.t`.
+- **Acceptance.** Fresh `mathc attest FILE` exit 0 with
+  stderr `warning: 'mathc attest FILE' is deprecated; use
+  'mathc import-junit FILE' for JUnit XML parsing`. The
+  JSON-write path remains under a different subcommand.
+- **Risk.** Low.
 - **Depends on.** None.
 
-### Batch B — kernel/docs medium, after A (3 sub-decisions)
+#### B2. `scripts-env-var-audit-2026-11` (R5-continuation)
 
-**B1. `import-junit-rename-2026-11`** (F12, P2)
-
-- **What.** Rename `mathc attest FILE` → `mathc import-junit
-  FILE`. Keep `mathc attest` as a one-cycle deprecation alias
-  (emits a one-shot stderr warning per session; removal
-  planned for v3.6).
-- **Scope.** `bin/Mathc.ml:6709` (dispatch), `:683-690`
-  (print_usage), error-text references at `:2424, :2427,
-  :2452, :2456`, `tests/cli/junit-adapter.t` (rename call
-  site), new `tests/cli/attest-deprecation-alias.t`, and the
-  two wrong prose claims in `adoption/SKILL.md:233, :423-424`
-  (replace "writes" with the correct semantics).
-- **Acceptance.**
-  - `mathc import-junit FILE` exits 0 on a JUnit XML input.
-  - `mathc attest FILE` exits 0 AND prints the deprecation
-    warning to stderr (test asserts both).
-  - `mathc --help` lists `import-junit` as the canonical
-    name; the deprecation note is visible.
-- **Risk.** Low. Backwards-compatible via the alias; the
-  only callers in-tree are tests + docs.
-- **Depends on.** None.
-
-**B2. `scripts-env-var-audit-2026-11`** (F11, P2, qualified)
-
-- **What.** Two real offenders (not the orchestrator-named
-  ones — the discriminator caught that `slack2madr.py` and
-  `confluence2madr.py` are pure transforms and DO NOT have
-  the issue):
-  1. `scripts/axiom-link-seed.py:64` — replace hard-coded
-     `REPO_ROOT / "decisions"` with `os.environ.get`
-     lookups for `MATH_CODING_REPO_ROOT` and
-     `MATH_CODING_DECISIONS_DIR`.
-  2. `scripts/counterexample-seed.py:75` — same pattern
-     with `MATH_CODING_DECISIONS_DIR`.
-- **Scope.** Two `scripts/*.py` files only.
-- **Acceptance.**
-  - Cram probe `tests/cli/scripts-env-var.t` sets
-    `MATH_CODING_DECISIONS_DIR=.math-coding/decisions`,
-    runs each script in `--dry-run` mode, asserts the
-    resolved dir is reported correctly.
-- **Risk.** Very low.
-- **Depends on.** None.
-
-**B3. `attestation-namespace-meta-2026-11`** (F3, P2)
-
-- **What.** Resolve the F3 naming-collision via option (b)
-  from the F1–F4 discriminator: codify the convention that
-  "plan-decision-named filenames are reserved for
-  plan-decision attestations only". Sub-decision agents
-  writing about a sub-decision obligation do not write
-  to a filename starting with `plan-*-*`. Option (a) — full
-  `_plan-meta/` namespace + scanner update — is deferred to
-  plan-2026-12.
-- **Scope.** `docs/plans/plan-2026-10-adoption-fixes-2026-10-prompts.md`
-  (5-line addition); new `decisions/attestation-namespace-meta-2026-11.yaml`
-  (light) records the rule.
-- **Acceptance.**
-  - Plan-doc v-next prompts include the rule.
-  - A grep across `decisions/` for filenames matching
-    `plan-*-*.json` returns 0 results (the new plan uses
-    `<plan-id>-<obligation>.json` only via this sub-decision's
-    own attestations).
+- **What.** `scripts/axiom-link-seed.py` and
+  `scripts/counterexample-seed.py` (per R5 follow-on) write
+  to math-coding's own tree and ignore
+  `MATH_CODING_DECISIONS_DIR`. Add env-var support matching
+  the kernel's behaviour.
+- **Scope.** Two Python scripts.
+- **Acceptance.** With `MATH_CODING_DECISIONS_DIR=/tmp/alt`,
+  both scripts write to `/tmp/alt` instead of the math-coding
+  tree.
 - **Risk.** Trivial.
-- **Depends on.** None.
+- **Depends on.** A2 (env-var semantics unified across Python + OCaml).
 
-### Batch C — process / docs, parallel (6 sub-decisions)
+#### B3. `attestation-namespace-meta-2026-11` (F3)
 
-**C1. `process-principles-2026-10-2.yaml`** (F2, P2, light)
+- **What.** Codify the rule that **plan-decision-named
+  attestation filenames are reserved for plan-decision
+  attestations**. Sub-decisions may not use the same
+  filename pattern; the sub-agent prompt template enforces
+  this and the validator rejects collisions.
+- **Scope.** `decisions/attestation-namespace-meta-2026-11.yaml`
+  (process decision); update
+  `decisions/plan-2026-10-adoption-fixes-2026-10.yaml`
+  lines 122–290 (replace placeholder verifiers with real
+  file-exists checks against the sub-decisions' attestation
+  files).
+- **Acceptance.** Future plan-doc-template enforces the
+  rule in §6 below.
+- **Risk.** Low (process / docs).
+- **Depends on.** A2 (the plan's body uses the
+  `file-exists path:` verifier scheme).
 
-- **What.** Process-principles rev 2 amendment. Add
-  principle P8.5: "no sub-agent launches until all declared
-  dependencies are merged into the integration branch".
-  Pre-flight gate in the sub-agent template:
-  ```
-  1. Resolve declared dependencies: <list-of-deps>
-  2. For each <dep>: `git merge-base --is-ancestor
-     <dep-branch> <integration-branch>` exits 0
-  3. ONLY THEN: `git worktree add …`
-  ```
-- **Scope.** `decisions/process-principles.yaml` (one-line
-  addition); `docs/plans/plan-2026-11-…-prompts.md`
-  (5-line addition).
-- **Risk.** Trivial. Process-only.
-- **Depends on.** None.
+### Batch C — process+docs, parallel (6 sub-decisions)
 
-**C2. `process-principles-2026-10-3.yaml`** (F14, P1, light)
+#### C1. `process-principles-2026-10-2` (F2 → P8.5)
 
-- **What.** Process-principles rev 3 amendment. Add
-  principle P9: "Sub-agents MUST commit a `wip(scaffold):`
-  draft at task start and `wip(checkpoint):` commits every
-  5 minutes of active work. The orchestrator MUST verify
-  these are present in the worktree's reflog before accepting
-  the sub-agent's `pass` claim." Add the scaffold-commit
-  block to every per-task prompt template.
-- **Scope.** `decisions/process-principles.yaml` (one
-  paragraph addition); prompt template update; one-line
-  sub-agent prompt prefix.
-- **Acceptance.**
-  - Five-agent run completes 100% of obligations without
-    manual orchestrator rescue (acceptance criterion
-    recorded; measured over the next plan-2026-11 cycle).
-- **Risk.** Trivial. Process-only.
-- **Depends on.** None.
-
-**C3. `attest-handshake-rescue-2026-11.yaml`** (F14, P3, light)
-
-- **What.** Codify the orchestrator-rescue recipe: when a
-  sub-agent dies mid-work and the orchestrator completes the
-  remaining work, the rescue is first-class workflow. Rules:
-  (i) when rescue is permitted (rate-limit-induced failure
-  with partial work present, evidenced by worktree last-commit
-  SHA and agent log tail); (ii) minimum evidence to record
-  (worktree SHA, agent log tail, recovered file paths);
-  (iii) the obligation it closes (the `<id>-<obligation>`
-  matching the partial work).
-- **Scope.** `decisions/attest-handshake-rescue-2026-11.yaml`
-  (light, scope: docs + ad-hoc).
+- **What.** Amend `decisions/process-principles.yaml` with a
+  new principle P8.5: **no sub-agent launches until all
+  declared dependencies are merged into the integration
+  branch**. Sub-agents whose worktree base lacks a
+  dependency must abort with a clear error message
+  identifying the missing dep.
+- **Scope.** `decisions/process-principles.yaml` rev 2 file.
+- **Acceptance.** Decision file has rev 2; `git merge-base
+  --is-ancestor <dep-branch> <integration-branch>` is the
+  canonical pre-flight check documented.
 - **Risk.** Trivial.
-- **Depends on.** C2 (the scaffold-commit pattern is the
-  prerequisite for rescue to be safe).
 
-**C4. `release-cadence-2026-11.yaml`** (F15, P1, light)
+#### C2. `process-principles-2026-10-3` (F1 → P9)
 
-- **What.** Record the release-cadence rule. Every release
-  commit on a `release/vX.Y.Z-YYYY-MM` branch MUST be
-  followed by: (i) `git push origin vX.Y.Z` to trigger
-  `release.yml`; (ii) `scripts/sync-version.sh --write` to
-  update `MC_VERSION_DEFAULT` and `compatible_with`;
-  (iii) `scripts/dev ready` to confirm CI green, within 24
-  hours of the release commit landing on main. Otherwise
-  the `release-pending` CI gate fails.
-- **Scope.** `decisions/release-cadence-2026-11.yaml`
-  (light); `CONTRIBUTING.md` §Release protocol (5-line
-  addition); new `scripts/release.sh` template script.
-- **Acceptance.** The rule is documented; the
-  `release-pending` CI step is implemented.
-- **Risk.** Low. Process-only, with one small CI change.
-- **Depends on.** None.
-
-**C5. `verifier-scheme-convention-2026-11.yaml`** (F4, P3, light)
-
-- **What.** Record the verifier-scheme rule. Verifier
-  strings MUST be either one of the 3 built-in schemes
-  (`file-exists`, `dir-exists`, `mathc`) OR a documented
-  command that an external runner executes; placeholder
-  strings that match neither pattern are warned on by
-  `mathc validate` (not rejected — may be valid in the
-  runner sense). Plus: replace the one placeholder verifier
-  in the plan-2026-11-decision's obligations with a
-  `mathc self-check` invocation.
-- **Scope.** `lib/decision.ml` (warn-on-unknown-scheme,
-  ~30 lines); new cram fixture `tests/cli/verifier-scheme-warning.t`;
-  `OCAML_BEST_PRACTICES.md` §11 trap log entry.
-- **Acceptance.**
-  - `mathc validate` on a decision with `verifier: "foo-bar"`
-    emits a soft-warn (not reject).
-  - The 4 placeholder verifier strings in
-    `add-verify-subcommand-2026-10.yaml` and the plan-decision
-    are replaced.
+- **What.** Amend `decisions/process-principles.yaml` with
+  a new principle P9: **scaffold-commit + checkpoint
+  cadence**. Sub-agents must commit an empty scaffold
+  (`decisions/<id>.yaml` with `state: drafting` + a single
+  `plan-stub` attestation) as the FIRST action, before
+  writing any kernel code. Resumable from checkpoint on
+  rate-limit interrupts.
+- **Scope.** `decisions/process-principles.yaml` rev 3 file.
+- **Acceptance.** Decision file has rev 3; P9 documented
+  with concrete reproduce for Token Plan rate-limit case
+  observed in B1 retry agent `3a90dc2b`.
 - **Risk.** Trivial.
-- **Depends on.** None.
 
-**C6. `experiment-doctor-instrumentation-2026-11.yaml`** (F13, P3, light)
+#### C3. `attest-handshake-rescue-2026-11` (F14)
 
-- **What.** Add `mathc doctor --json` exercise to the
-  brownfield-experiment v2 task templates. T1: capture
-  doctor output; any `status: fail` section is a friction
-  event id `<session>-F-DOCTOR-<n>` under F-INSTALL. Add
-  BH9 hypothesis: "mathc doctor reports ≥ 7 healthy sections
-  on a fresh install on ≥ 4 of 5 projects".
-- **Scope.** `docs/experiments/brownfield-experiment-v2-2026-10.md`
-  (3 doc edits); decision `experiment-doctor-instrumentation-2026-11.yaml`
-  (light) records the convention.
-- **Risk.** Trivial. Docs-only.
-- **Depends on.** None.
+- **What.** Codify the orchestrator-rescue recipe as a
+  first-class workflow. When a sub-agent dies mid-task from
+  Token Plan rate-limit, the parent must (a) archive the
+  dead agent, (b) inspect worktree for uncommitted work,
+  (c) commit that work as a single atomic change on the
+  topic branch, (d) emit attestations with
+  `producer.identity: human:opencode-agent` and a
+  `rescue_reason: token-plan-rate-limit`
+  marker, (e) re-record `body_sha`/`yaml_sha` correctly
+  via `mathc validate` (not literal zeros).
+- **Scope.** `decisions/attest-handshake-rescue-2026-11.yaml`.
+- **Acceptance.** Decision file exists with rescue recipe
+  §1–§5 and acceptance criteria mirroring B1's actual
+  rescue (`add-verify-subcommand-2026-10.yaml`).
+- **Risk.** Trivial (process recording).
 
-### Out-of-band (orchestrator-immediate, F15)
+#### C4. `release-cadence-2026-11` (F15)
 
-**OOB. v3.3.2 tag cut + version sync + CI gate** (F15)
+- **What.** Add `.github/workflows/release-pending.yml`:
+  a CI gate that blocks merge of any commit touching
+  `bin/Mathc.ml`, `lib/*`, or `scripts/install-tooling/*`
+  if a tagged release on that branch has not been re-built
+  with the merged code. Also update
+  `MC_VERSION_DEFAULT="3.3.2"` in
+  `scripts/install-tooling/install.sh` to gate against the
+  next tagged release.
+- **Scope.** `.github/workflows/release-pending.yml` (new),
+  `scripts/install-tooling/install.sh` (one-line bump).
+- **Acceptance.** Triggered on PR open; emits
+  `release-pending` status check; gate enforced in the
+  repo's branch protection rule.
+- **Risk.** Low (CI-only).
+- **Depends on.** C2 (P9) so sub-agent commits trigger the
+  gate.
 
-These are not sub-agent tasks. They are human-gated actions
-the orchestrator performs in the order:
+#### C5. `verifier-scheme-convention-2026-11`
 
-1. **Tag the v3.3.2 commit on `release/v3.3.2-2026-10`:**
-   `git tag -s v3.3.2 fe83284 -m "v3.3.2 — adoption-fixes +
-   audit-cleanup" && git push origin v3.3.2`. Requires
-   explicit human approval (tag-push is a release-pipeline
-   action).
-2. **Run `scripts/sync-version.sh --write`** to update
-   `MC_VERSION_DEFAULT` (`scripts/install-tooling/install.sh`)
-   and `compatible_with` (`adoption/SKILL.md`). Verify with
-   `scripts/sync-version.sh --check`.
-3. **Merge `release/v3.3.2-2026-10` → `main`** via
-   `git merge --no-ff release/v3.3.2-2026-10 main`. This
-   triggers `.github/workflows/ci.yml` for the merge.
-4. **Add `release-pending` CI gate** (a new
-   `.github/workflows/release-pending.yml`) that fails
-   when `VERSION` is ahead of the latest tag. This makes
-   "release commit but no tag" visible in CI.
+- **What.** `mathc validate` warns on unknown verifier
+  schemes (anything not in
+  `file-exists|dir-exists|mathc|shell-grep|bash`). The warn
+  is a soft warning at validate time; the verifier is
+  still accepted (Phase 0) but the operator is told the
+  scheme is non-standard.
+- **Scope.** `bin/Mathc.ml::validate_with_counts` (the
+  diagnostic-emission site).
+- **Acceptance.** `tests/cli/verifier-scheme-warning.t`
+  passes — known scheme `file-exists` no warn; unknown
+  scheme `false-positive` warns with
+  `MC-VERIFIER-SCHEME-UNKNOWN` (soft).
+- **Risk.** Trivial.
 
-If the user prefers not to cut the v3.3.2 tag now (e.g.
-because the plan-2026-11 work is also targeting v3.3.3),
-this OOB block can be deferred and a `v3.3.2.1` patch
-released instead. Decision left to user.
+#### C6. `experiment-doctor-instrumentation-2026-11` (F13)
 
-## 5. Sequencing
+- **What.** Three docs-only changes to make `mathc doctor`
+  a first-class experiment instrument:
+  1. `docs/experiments/brownfield-experiment-v2-2026-10.md`
+     §5 T1 — add step "Run `mathc doctor --json` and record
+     status:fail sections".
+  2. Same file §8 Phase 0 — insert preflight
+     `Verify mathc doctor returns exit 0`.
+  3. Same file §3 Hypotheses — add `BH9: doctor reports ≥
+     7 healthy sections on ≥ 4 of 5 projects`.
+  Plus a `decisions/experiment-doctor-instrumentation-2026-11.yaml`
+  recording the convention for future experiment templates.
+- **Scope.** One Markdown file + one decision YAML.
+- **Acceptance.** Markdown edits apply; new decision validates.
+- **Risk.** None (docs).
 
-```
-OOB (F15: tag, sync, merge, CI gate)
-  │
-  ├── Batch A (parallel, kernel) ────────────────────
-  │   A1: verify-sandbox-hardening
-  │   A2: path-resolver-audit
-  │
-  ├── Batch B (parallel, kernel+docs) ──────────────
-  │   B1: import-junit-rename
-  │   B2: scripts-env-var-audit
-  │   B3: attestation-namespace-meta
-  │
-  └── Batch C (parallel, process+docs) ──────────────
-      C1: process-principles-2026-10-2 (F2)
-      C2: process-principles-2026-10-3 (F14)
-      C3: attest-handshake-rescue
-      C4: release-cadence
-      C5: verifier-scheme-convention
-      C6: experiment-doctor-instrumentation
-```
+### §10 Template-fixes (docs-only, absorbed into plan-doc commit)
 
-A, B, and C are independent. B and C do not depend on A.
-The OOB (F15) is a precondition for **claiming adoption-
-fixes shipped** but is not a precondition for any sub-decision
-in A, B, C landing.
+These four are pure Markdown/usage edits, no decision YAML:
 
-## 6. Docs-only template fixes (no sub-agent needed)
+- **F5.** Update `adoption/SKILL.md` Step 3.5 — note that
+  the minimal-form template now emits `axiom_link: [A0]`
+  default but operators should override after first edit.
+- **F6.** Update `OCAML_BEST_PRACTICES.md` §11 trap log —
+  add `§11.35` documenting the "literal-zero body_sha on
+  rescue" pattern (cross-ref to F14).
+- **F7.** Update `ROADMAP.md` Tier 2 — add row for
+  `path-resolver-audit-2026-11` closing the F10 deficit.
+- **F8.** Update `QUICKSTART.md` — mention `MATH_CODING_VERIFY_SANDBOX=strict`
+  as a brownfield-bootstrap safety option.
 
-Four findings (F5, F6, F7, F8) reduce to documentation edits
-in `docs/experiments/brownfield-experiment-v2-2026-10.md` and
-`docs/experiments/adoption-2026-10-agent-template.md`. The
-orchestrator applies these as part of the plan-doc commit:
+### §11 Out-of-band human-gated (F15 OOB)
 
-- **F5**: brownfield-v2 §3 — explicitly note why
-  `opentelemetry-go`, `opa`, `cncf/toc` were rejected (the
-  `docs/decision/` singular directory check was missed;
-  the substitution picks are validated). Add a
-  `Pre-flight: verified-by-clone` section to the agent
-  template.
-- **F6**: agent template — add a "Per-session smoke test"
-  section requiring `mathc doctor --json` capture.
-- **F7**: agent template — replace the orchestrator's
-  vague "prefer upstream" rule with the discriminator's
-  precise "if removing the feature would eliminate the
-  confusion, it's F-SEMANTIC; if a better onboarding doc
-  would eliminate it, it's F-WORKFLOW" rule. File
-  `decisions/refine-friction-disambiguation-2026-10.yaml`
-  (light).
-- **F8**: agent template — add an "Implementation vs
-  acceptance" disambiguation block.
+- **`oob-f15-tag-cut`** obligation:
+  - `git tag v3.3.2` already exists at `f33b712` (cut 2026-10-18).
+  - `git push origin v3.3.2` already executed.
+  - `MC_VERSION_DEFAULT="3.3.2"` confirmed in
+    `scripts/install-tooling/install.sh`.
+  - `release-pending` CI gate implemented via C4 sub-decision.
+- The next tag (`v3.3.3` or `v3.4.0-alpha`) will be cut
+  after Batch A + first half of Batch B lands.
+
+## 6. Sub-agent worktree protocol
+
+Each sub-decision lands in its own worktree.
+
+### Worktree naming
+
+`<type>-<topic>-2026-MM` per the project's worktree-first
+convention. Examples:
+- `feat/verify-sandbox-2026-11`
+- `fix/path-resolver-audit-2026-11`
+- `feat/import-junit-rename-2026-11`
+- `fix/scripts-env-var-audit-2026-11`
+- `process/attestation-namespace-meta-2026-11`
+- `process/process-principles-rev-2-2026-11`
+- `process/process-principles-rev-3-2026-11`
+- `process/attest-handshake-rescue-2026-11`
+- `feat/release-cadence-2026-11`
+- `feat/verifier-scheme-convention-2026-11`
+- `docs/experiment-doctor-instrumentation-2026-11`
+
+### Branch ordering
+
+- **Batch A (A1 + A2):** launch in parallel in two
+  worktrees from `plan/2026-11-adoption-fixes-2026-10`.
+  Each PR lands independently.
+- **Batch B (B1 + B2 + B3):** B2 depends on A2 landing;
+  B1 and B3 independent. Launch after relevant A.
+- **Batch C (C1–C6):** all six launch in parallel;
+  independent of A and B (except C4 references C2 in
+  docs).
+
+### Common sub-agent instructions (P9 scaffold-commit)
+
+Each sub-agent prompt enforces:
+
+1. **P9 scaffold commit.** Sub-agent's FIRST action is
+   `git commit --allow-empty -m "scaffold(<id>)"`
+   followed by `git commit -m "feat(<id>): decision file
+   and attestation"` after `mathc validate`. This makes
+   the worktree resumable from any checkpoint.
+2. **Worktree-first.** Sub-agent creates its own worktree
+   via `git worktree add ~/.paseo/worktrees/math-coding/<topic>
+   -b <type>-<topic>-2026-11 plan/2026-11-adoption-fixes-2026-10`.
+3. **Pre-flight (P8.5).** For B/C sub-decisions with
+   declared deps, run `git merge-base --is-ancestor
+   <dep-branch> plan/2026-11-adoption-fixes-2026-10`;
+   abort with dependency-missing error if not.
+4. **Decision file.** Sub-agent writes
+   `decisions/<sub-decision-id>.yaml` (mode `light` for
+   docs-only; mode `standard` for kernel changes).
+5. **mathc validate.** Sub-agent runs
+   `mathc validate decisions/<id>.yaml` and fixes any
+   `MC-*` diagnostic before commit.
+6. **mathc self-check.** Sub-agent runs `mathc self-check`
+   and verifies the verdict contains the same 12 pre-existing
+   unknown subjects (already closed by Category A+B cleanup)
+   and zero NEW unknown subjects attributable to this plan.
+7. **Tests.** Sub-agent adds or extends a cram test in
+   `tests/cli/<feature>.t` exercising the fix.
+8. **No kernel regression.** Sub-agent runs `dune build`
+   and `dune test`; both must exit 0.
+9. **Atomic commit.** Sub-agent's change is one commit on
+   the topic branch.
+10. **No push.** Sub-agent does not push or open a PR.
+    The orchestrator does that after the experiment reports.
 
 ## 7. Outcomes
 
 The plan closes when, for every obligation below, the
-sub-decision exists in `decisions/<id>.yaml` with `state:
-active` and at least one matching attestation; the surface
-change is exercised by a cram or conformance test; and
-`mathc self-check` returns `verdict: "unknown"` with the
-same 12 pre-existing unknown subjects (post-v3.3.2) and
-**zero NEW unknown subjects** attributable to this plan.
+sub-decision exists at `decisions/<id>.yaml` with
+`state: active` and at least one matching attestation in
+`attestations/` whose `kind_` is appropriate; the surface
+change the sub-decision commits to has landed on `main` (or
+`release/v3.3.x`); the change is exercised by a cram or
+conformance test; and `mathc self-check` returns
+`verdict: "pass"` or returns `verdict: "unknown"` with the
+**same 12 pre-existing unknown subjects** (closed by the
+Category A re-attestation + Category B waivers which are
+in-scope preparation) and zero NEW unknown subjects.
 
-The 11 sub-decisions cover the 9 confirmed + 5 qualified
-findings; 4 of the qualified findings (F5, F6, F7, F8) are
-absorbed into template fixes (§6) without a separate
-sub-decision.
+The 11 sub-decisions cover the 15 findings F1–F15 plus
+the 4 template fixes (F5–F8). Each sub-decision is
+independently revertable in one commit; the plan survives
+any single sub-revert.
 
 ## 8. Out of scope
 
-- Push to upstream of any external project.
-- Changes to `decisions/decision.yaml` (the active policy).
-- Kernel changes not in the 11 sub-decisions above.
-- Cut + push of v3.3.2 git tag (this is the OOB F15 block;
-  separate from the sub-decision flow).
-- Force-push of any tag (always human-gated).
-- More than 11 sub-decisions; this plan is bounded by the
-  15 findings, not by ad-hoc task creep.
+- Changes to `lib/attestations/` or `lib/mcp/` beyond each
+  sub-decision's strict scope.
+- Changes to `decisions/decision.yaml`.
+- Kernel changes that are not in the 11 sub-decisions above.
+- The brownfield-experiment v2 *execution* (only the
+  plan-doc updates are in scope for C6; the actual run is
+  a separate future worktree).
+- Push to upstream of any external project (this plan
+  makes no changes to external projects).
+- More than 11 sub-decisions or a longer time horizon than
+  2026-10 → 2026-11.
 
 ## 9. Risks
 
-- **kernel-stability precondition** (A1, A2, B1 in
+- **kernel-stability precondition** (A1, A2, C4, C5 in
   particular): any kernel change risks regressing the
   self-check verdict. Mitigated by the per-sub-decision
   `no-self-check-regression` obligation.
-- **A1 sandbox primitives are Linux-only**: macOS users
-  keep `none` mode. Documented in the decision's
-  counterexample.
-- **A2 path-resolver audit may surface 1-2 more sites**
-  beyond the 8 listed. The audit is a one-shot pass;
-  follow-up audits are filed as separate sub-decisions if
-  the grep at acceptance-time returns unexpected literals.
-- **B3 attestation namespace is a quick fix, not a durable
-  one.** Option (a) — full `_plan-meta/` namespace + scanner
-  change — is deferred to plan-2026-12.
-- **C4 release cadence depends on the human reviewing and
-  cutting the v3.3.2 tag.** Without that, the rule is
-  documentation-only.
-- **F14 sub-agent rate limits may re-occur** in plan-2026-11.
-  C2 + C3 codify the protocol; the empirical signal is the
-  five-agent run acceptance criterion.
+- **A1 sandbox Linux-only**: macOS keeps `none` mode.
+  Brownfield-v2 agents on macOS would not benefit; the
+  threat model primarily applies to Linux CI runners.
+- **A2 path-resolver scope**: missing even one site causes
+  silent split-brain (read vs write dirs). The grep-absence
+  test (`bin/Mathc.ml` has no `decisions/` literal in
+  `Filename.concat` or `let <name> =`) is the safety net.
+- **C4 release-pending gate**: this CI gate changes the
+  PR-merge experience; reviewers must adopt the new
+  status check before merge.
+- **B3 attestation namespace**: changing the verifier
+  pattern on the plan-decision may regress already-passing
+  attestations if not tested in isolation. Coordinate with
+  A2.
+- **Sub-agent Token Plan rate limit (F14 replay risk)**:
+  if C2 P9 lands before agent deployment, the B1 failure
+  pattern is prevented; if not, we are one rate-limit away
+  from another rescue.
 
-## 10. Acceptance
+## 13. Recommendations (post-plan)
 
-This plan is accepted when the user reviews §3 hypotheses,
-§4 sub-decisions, §5 sequencing, §6 docs-only template
-fixes, and §7 outcomes; confirms or revises the priorities;
-and explicitly authorises execution. **No execution is
-performed until then.**
+After all 11 sub-decisions land and the plan closes, a
+follow-up plan (`plan-2026-12-adoption-fixes` or successor)
+should consider:
+
+- Whether `mathc verify` should default to `minimal` mode
+  after one or two release cycles (currently `none`).
+- Whether `MATH_CODING_VERIFY_SANDBOX` enforcement should
+  move from opt-in to always-on for the `mathc` scheme.
+- Whether the brownfield-experiment v2 results (post-v2 plan)
+  suggest further changes to `mathc adopt` (F10 finding
+  already covered the kernel side, but the surface UX
+  deserves a follow-up).
+- Whether to bump version to `v3.4.0-alpha` (instead of
+  `v3.3.3`) given the surface change scope.
+
+The post-plan recommendations are *not* in this plan's
+scope. They belong to a successor plan.
