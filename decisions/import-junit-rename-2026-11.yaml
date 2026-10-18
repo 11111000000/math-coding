@@ -4,8 +4,8 @@ id: import-junit-rename-2026-11
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:e4cde8ff92ebd3353e759dfb1df57fe0116bcf3ffbd02521fcb353a8d0adc756"
+yaml_sha: "sha256:e4cde8ff92ebd3353e759dfb1df57fe0116bcf3ffbd02521fcb353a8d0adc756"
 
 intent: |
   Distinguish "attest-as-JUnit-XML-importer" from

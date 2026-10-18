@@ -18,13 +18,16 @@
  *                                      or positional arguments are
  *                                      wrong. BASE and HEAD may be any
  *                                      git ref (commit, branch, tag).
- *   mathc attest FILE                   - parse FILE as a JUnit XML report
+ *   mathc import-junit FILE             - parse FILE as a JUnit XML report
  *                                      and print a JSON summary on stdout.
  *                                      Exit 0 on success (including soft
  *                                      parse errors that populate an
  *                                      "error" field); exit 2 only when
  *                                      the path is wrong (file not found,
- *                                      unreadable).
+ *                                      unreadable). `mathc attest FILE` is
+ *                                      a deprecated alias that emits a
+ *                                      one-shot stderr warning and
+ *                                      forwards to the canonical handler.
  *
  * Exit codes:
  *   0  accept   (Decision.parse_decision returned Some _)
@@ -680,7 +683,10 @@ let print_usage oc =
      open)\n\
     \                                   remediation} for an MC-* diagnostic code\n\
     \  assess BASE HEAD                 print JSON array of changed file paths\n\
-    \  attest FILE                      parse FILE as a JUnit XML report\n\
+    \  import-junit FILE                parse FILE as a JUnit XML report\n\
+     (canonical name; `attest` is a\n\
+                                   deprecated alias emitting a\n\
+                                   stderr warning)\n\
     \  attest-batch [--manifest=PATH]    generate attestation JSONs from a TSV\n\
      [--from=...]   manifest or by walking\n\
      [--out=DIR]   MATH_CODING_DECISIONS_DIR. Output\n\
@@ -2424,16 +2430,30 @@ let[@warning "-32"] do_stats () =
            sorted)
     ^ "}")
 
-(* --- attest subcommand (junit-attestation-import) --- *)
+(* --- import-junit subcommand (junit-attestation-import) ---
+ *
+ *   mathc import-junit FILE       parse FILE as a JUnit XML report
+ *                                 and print a JSON summary on stdout.
+ *                                 Exit 0 on success (including soft
+ *                                 parse errors that populate an
+ *                                 "error" field); exit 2 only when
+ *                                 the path is wrong.
+ *
+ * The `mathc attest FILE` form is preserved as a deprecation alias.
+ * It emits a one-shot stderr warning naming `import-junit` as the
+ * canonical replacement and forwards to the same handler so that
+ * existing scripts keep working through the 3.4 series. *)
+
+(* --- attest subcommand (DEPRECATED alias for import-junit) --- *)
 
 (* Read FILE as a string. Same I/O semantics as validate. *)
 let[@warning "-32"] read_xml_file path =
   try In_channel.with_open_bin path In_channel.input_all with
   | Sys_error s ->
-      Printf.fprintf stderr "mathc attest: %s: %s\n" path s;
+      Printf.fprintf stderr "mathc import-junit: %s: %s\n" path s;
       exit 2
   | e ->
-      Printf.fprintf stderr "mathc attest: %s: %s\n" path (Printexc.to_string e);
+      Printf.fprintf stderr "mathc import-junit: %s: %s\n" path (Printexc.to_string e);
       exit 2
 
 (* Render the soft-parse-error JSON body. The adapter obligation
@@ -2452,17 +2472,17 @@ let[@warning "-32"] soft_error_json msg =
          ("tests", Jsonl.Array []);
        ])
 
-let do_attest () =
+let do_import_junit () =
   let file = ref "" in
   let set_file s = file := s in
   Arg.current := 1;
-  (try Arg.parse [] set_file "usage: mathc attest FILE"
+  (try Arg.parse [] set_file "usage: mathc import-junit FILE"
    with Arg.Bad m ->
-     Printf.fprintf stderr "mathc attest: %s\n" m;
+     Printf.fprintf stderr "mathc import-junit: %s\n" m;
      exit 2);
   let path = !file in
   if path = "" then begin
-    Printf.fprintf stderr "mathc attest: missing FILE argument\n";
+    Printf.fprintf stderr "mathc import-junit: missing FILE argument\n";
     print_usage stderr;
     exit 2
   end;
@@ -2475,6 +2495,19 @@ let do_attest () =
   in
   print_endline (Jsonl.stringify (Junit.to_json run));
   exit 0
+
+(* `attest` is preserved as a deprecation alias for `import-junit`.
+ * Per plan-2026-11-adoption-fixes §4 B1, it emits a one-shot stderr
+ * warning naming `import-junit` as the canonical replacement and
+ * then forwards to the same handler. Stderr is used (not stdout)
+ * because downstream pipelines parse the JSON off stdout — see
+ * tests/cli/junit-adapter.t — and the warning is human-facing only. *)
+let[@warning "-32"] do_attest () =
+  Printf.eprintf
+    "warning: 'mathc attest FILE' is deprecated; \
+     use 'mathc import-junit FILE' for JUnit XML parsing. \
+     (plans/2026-11-adoption-fixes §4 B1)\n%!";
+  do_import_junit ()
 
 (* --- attest-batch subcommand (ux-3-attest-batch-subcommand) ---
  *
@@ -6865,6 +6898,7 @@ let dispatch () =
   | "explain-diagnostic" -> do_explain_diagnostic ()
   | "forge-verify" -> do_forge_verify ()
   | "assess" -> do_assess ()
+  | "import-junit" -> do_import_junit ()
   | "attest" -> do_attest ()
   | "attest-batch" -> do_attest_batch ()
   | "time-estimate" -> do_time_estimate ()
