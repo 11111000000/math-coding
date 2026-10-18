@@ -1,0 +1,194 @@
+---
+schema: math-coding/3.3
+id: path-resolver-audit-2026-11
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Close the F10 finding from
+  `docs/experiments/discriminator-f9-f12-2026-10.yaml`:
+  the original `fix-env-var-resolver-2026-10` (A1 in
+  plan-2026-10) shipped 7 env-var fixes but left 6–7
+  paths in `bin/Mathc.ml` still hard-coded to
+  `decisions/`, `attestations/`, `policies.yaml`,
+  silently splitting read vs write semantics for users
+  who route their tree to `.math-coding/decisions/`
+  via env-var override.
+
+commitment: |
+  Six-to-seven call sites in `bin/Mathc.ml` are routed
+  through `lib/path_config.ml::resolve_*` helpers:
+  `decision_relpath` (L1417), `do_record`/`do_stats`
+  (L2245/L2264 → execution-logs.jsonl),
+  `do_re_evaluate_decisions` (L3523 → ATTESTATIONS_DIR,
+  not legacy ATTESTATION_STORE), `do_render`
+  (L4216 → decisions_root/attestations_root),
+  `do_decision_state` (L5334), `do_doctor`
+  config+decisions sections (L6451/L6495), and
+  `Policy.load_policies` (L6696 → MATH_CODING_POLICY).
+  Hermetic cram fixtures prove each fix honours the
+  env var.
+
+axiom_link:
+  - A0
+  - A3
+
+counterexample: |
+  Resisting a counter-position: "shipping all six
+  sites in one decision is too big a blast radius;
+  the verifier-routing change in `do_re_evaluate_decisions`
+  alone could regress per-axiom re-evaluate output
+  for users not on the legacy store path."
+  Acknowledged: the change is the largest single
+  decision in this plan by line count. The acceptance
+  criteria require (a) hermetic cram fixture per
+  affected site, (b) prior-vs-after `mathc self-check`
+  diff retained at zero NEW unknowns, (c) one revertable
+  commit. If any site fails its cram fixture, that
+  specific site is reverted in the same commit (no
+  half-shipped kernel change).
+
+outcomes:
+  - id: env-var-coverage-complete
+    statement: |
+      A grep for `decisions/`, `attestations/`,
+      `policies.yaml` literals in `bin/Mathc.ml`
+      returns no matches inside `Filename.concat` or
+      `let <name> =`. All such paths flow through
+      `lib/path_config.ml::resolve_*`.
+
+scope:
+  capabilities:
+    - cli-path-resolution
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/path_config.ml"
+    - "tests/cli/execution-logs-env-var.t"
+    - "tests/cli/re-evaluate-decisions-env-var.t"
+    - "tests/cli/policy-env-var.t"
+    - "decisions/path-resolver-audit-2026-11.yaml"
+    - "attestations/path-resolver-audit-2026-11-*.json"
+  exclusions:
+    - "lib/attestations/**"
+    - "lib/mcp/**"
+    - "decisions/decision.yaml"
+    - "schemas/**"
+
+obligations:
+  - id: a2-decision-relpath-fixed
+    claim: |
+      `bin/Mathc.ml` `decision_relpath` returns paths
+      rooted at the resolver's `decisions_dir`, not
+      at the hard-coded `"decisions/decision.yaml"`.
+    acceptance:
+      all:
+        - verifier: tests/cli/explain-env-var.t
+          result: pass
+
+  - id: a2-execution-logs-fixed
+    claim: |
+      `do_record` and `do_stats` write/read
+      `execution-logs.jsonl` relative to the
+      resolver's `decisions_dir`, not the hard-coded
+      `"decisions/execution-logs.jsonl"`.
+    acceptance:
+      all:
+        - verifier: tests/cli/execution-logs-env-var.t
+          result: pass
+
+  - id: a2-re-evaluate-decisions-fixed
+    claim: |
+      `do_re_evaluate_decisions` honours both read
+      AND write through the canonical
+      `MATH_CODING_ATTESTATIONS_DIR`. The legacy
+      `MATH_CODING_ATTESTATION_STORE` is preserved
+      as a deprecation alias (or removed if already
+      handled in v3.4-era resolver).
+    acceptance:
+      all:
+        - verifier: tests/cli/re-evaluate-decisions-env-var.t
+          result: pass
+
+  - id: a2-render-fixed
+    claim: |
+      `do_render` resolves `decisions_root` and
+      `attestations_root` through the resolver at
+      call time, not via top-level `let` bindings.
+    acceptance:
+      all:
+        - verifier: tests/cli/render-env-var.t
+          result: pass
+
+  - id: a2-decision-state-fixed
+    claim: |
+      `do_decision_state` reads AND writes
+      `<decisions_dir>/<id>.yaml`, honouring
+      `MATH_CODING_DECISIONS_DIR`.
+    acceptance:
+      all:
+        - verifier: tests/cli/decision-state-env-var.t
+          result: pass
+
+  - id: a2-doctor-fixed
+    claim: |
+      `do_doctor` config and decisions sections
+      resolve through the same `lib/path_config.ml`
+      helpers as `do_self_check` (which already
+      uses the resolver correctly post-A1).
+    acceptance:
+      all:
+        - verifier: tests/cli/doctor-env-var.t
+          result: pass
+
+  - id: a2-policy-fixed
+    claim: |
+      `Policy.load_policies` honours
+      `MATH_CODING_POLICY`. Precedence becomes
+      env > `.math-coding/policy.yaml` > legacy
+      `decisions/decision.yaml`.
+    acceptance:
+      all:
+        - verifier: tests/cli/policy-env-var.t
+          result: pass
+
+  - id: a2-no-new-unknowns
+    claim: |
+      `mathc self-check` after the change returns
+      the same 181 pre-existing subjects at the
+      same `verdict: pass` and zero NEW unknowns
+      attributable to this decision.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+  - id: a2-no-literal-paths
+    claim: |
+      A grep for `decisions/`, `attestations/`,
+      `policies.yaml` literals in `bin/Mathc.ml`
+      returns no matches inside `Filename.concat`
+      or `let <name> =` (one-line shell-grep is
+      sufficient).
+    acceptance:
+      all:
+        - verifier: shell-grep
+          needle: "decisions/|attestations/|policies\\.yaml"
+          result: pass
+
+risk:
+  declared_triggers:
+    - re-evaluate-decisions-read-write-split-regression
+    - doctor-section-path-mismatch
+    - policy-resolution-precedence-regression
+    - execution-logs-write-to-wrong-tree
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-11-adoption-fixes-2026-10@1
+    - fix-env-var-resolver-2026-10@1
