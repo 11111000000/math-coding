@@ -1,0 +1,1 @@
+{"id":"sha256:c53141d2e6dd0d144738d3b0c4ed2ebee5a612576ceddf4a7fb384b49bef8da6","issued_at":"2026-10-18T10:44:07Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:orchestrator"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"fix-mcp-pipe-deadlock-2026-10","materials_digest":"","obligation":"no-new-unknowns"}}
