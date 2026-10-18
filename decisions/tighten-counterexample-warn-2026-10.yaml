@@ -1,0 +1,168 @@
+---
+schema: math-coding/3.3
+id: tighten-counterexample-warn-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:6aaef4282da71e6be56c406fa55c34db2c134f6b61cd690e583ce0377c131bd0"
+yaml_sha: "sha256:6aaef4282da71e6be56c406fa55c34db2c134f6b61cd690e583ce0377c131bd0"
+
+intent: |
+  Tighten the `MC-COUNTEREXAMPLE-MISSING` diagnostic's
+  `occurs_when` clause so it reads unambiguously as
+  "fires on genuine absence of the `counterexample:` key"
+  rather than "fires whenever the field is missing in the
+  parsed object" (which, pre-A2, included parser-induced
+  absences as a false positive). The kernel-side emit
+  logic is unchanged; this is a documentation tightening
+  only. The motivation is `docs/experiments/adoption-2026-10.md`
+  §10.5 #7, where the sinatra and ripgrep sub-agents both
+  saw the diagnostic on decisions whose counterexample
+  block was present in YAML but parser-dropped by the
+  inline-sequence bug.
+
+commitment: |
+  `lib/diagnostic.ml::mc_counterexample_missing` carries a
+  tightened OCaml docstring that names the A2 parser fix
+  (`decisions/fix-yaml-parser-2026-10`, commit 3f14b76) and
+  clarifies that the absence predicate is post-parse, not
+  parser-shape-dependent. The `explain` registry entry for
+  the same code (the body returned by
+  `mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING`) is
+  rewritten with the same tightening. A new cram test
+  `tests/cli/counterexample-warn.t` pins three scenarios:
+  (a) counterexample present → no warning; (b) counterexample
+  absent in `state: active` → warning present; (c)
+  counterexample present after inline-sequence
+  `risk.declared_triggers: - foo\n- bar` → no warning
+  (the parser-fix regression).
+
+counterexample: |
+  "The diagnostic already says 'absent' — no reader will
+  parse that as 'parser-dropped'. This is editorial
+  gold-plating."
+
+  Counterargument: the pre-fix bug surfaced the diagnostic
+  on a counterexample that was *not* absent in YAML; it
+  was absent in the parsed JSON. The text 'fires when
+  counterexample is absent' is true for both cases
+  (parser-dropped or omitted), so a reader cannot
+  distinguish a true positive from a false positive from
+  the text alone. Tightening the clause to 'fires on
+  genuine absence (post-parser-fix)' makes the predicate
+  observable from the message and aligns the diagnostic's
+  contract with the A2 closure.
+
+  "Just delete the diagnostic — counterexample is a
+  dialectical slot, the Warn is noise."
+
+  Counterargument: the dialectical-slot semantics are
+  exactly why the Warn is informative for `mode: light`
+  decisions (legacy soft warning, verdict stays accept).
+  Deleting the diagnostic loses the affordance for `mode:
+  light` authors who want to know they have not yet
+  recorded the strongest objection. Keeping the Warn and
+  tightening its `occurs_when` is the minimum sufficient
+  change.
+
+outcomes:
+  - id: occurs-when-tightened
+    statement: |
+      `lib/diagnostic.ml` registers the new
+      `occurs_when` text for `MC-COUNTEREXAMPLE-MISSING`,
+      naming `fix-yaml-parser-2026-10` (commit 3f14b76)
+      and clarifying the absence predicate.
+  - id: cram-test-pins-diagnostic-surface
+    statement: |
+      `tests/cli/counterexample-warn.t` exists and exits 0
+      under `dune test`. The four scenarios cover (a)
+      counterexample present, (b) counterexample absent,
+      (c) counterexample present after inline-sequence
+      `risk.declared_triggers` (the regression pin), and
+      (d) the absence counterpart of (c).
+
+scope:
+  paths:
+    - "lib/diagnostic.ml"
+    - "tests/cli/counterexample-warn.t"
+    - "decisions/tighten-counterexample-warn-2026-10.yaml"
+    - "attestations/tighten-counterexample-warn-2026-10-*.json"
+
+obligations:
+  - id: diagnostic-docstring-tightened
+    claim: |
+      `lib/diagnostic.ml::mc_counterexample_missing` carries
+      a tightened OCaml docstring that names the A2 parser
+      fix (`decisions/fix-yaml-parser-2026-10`, commit
+      3f14b76) and clarifies the absence predicate is
+      post-parse.
+    acceptance:
+      all:
+        - verifier: rg -n 'fix-yaml-parser-2026-10' lib/diagnostic.ml
+          result: pass
+        - verifier: rg -n '3f14b76' lib/diagnostic.ml
+          result: pass
+
+  - id: explain-registry-tightened
+    claim: |
+      `lib/diagnostic.ml::explain` returns the tightened
+      `### Occurs when` body for `MC-COUNTEREXAMPLE-MISSING`,
+      naming the same A2 fix and citing
+      `tests/cli/yaml-parser.t` and
+      `tests/cli/counterexample-warn.t` as the regression
+      pins.
+    acceptance:
+      all:
+        - verifier: rg -n 'counterexample-warn.t' lib/diagnostic.ml
+          result: pass
+        - verifier: dune build
+          result: pass
+
+  - id: cram-test-counterexample-warn
+    claim: |
+      `tests/cli/counterexample-warn.t` runs four end-to-end
+      scenarios (counterexample present, counterexample absent,
+      counterexample present after inline-sequence
+      declared_triggers — regression — and the absence
+      counterpart) and exits 0 on `dune test`.
+    acceptance:
+      all:
+        - verifier: dune test tests/cli/counterexample-warn.t
+          result: pass
+
+  - id: no-self-check-regression
+    claim: |
+      `mathc self-check` after this commit still reports
+      the same 17 unknown subjects as the pre-change HEAD
+      and adds zero new unknown subjects. This change is
+      a documentation tightening only and does not modify
+      the kernel surface.
+    acceptance:
+      all:
+        - verifier: mathc self-check
+          result: pass
+
+  - id: mathc-validate-decision
+    claim: |
+      `mathc validate decisions/tighten-counterexample-warn-2026-10.yaml`
+      exits 0 with verdict `accept`.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/tighten-counterexample-warn-2026-10.yaml
+          result: pass
+
+axiom_link:
+  - A0
+  - A1
+
+risk:
+  declared_triggers:
+    - diagnostic-text-may-confuse-author
+    - cram-test-fixture-may-mask-regression
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+  supersedes: []
+  superseded_by: []
