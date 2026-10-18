@@ -65,6 +65,24 @@ obligations:
         - verifier: followup-decision-filed
           result: pass
 
+counterexample: |
+  This decision documents a partial closure (F4) of the
+  'Considered' mode wiring while leaving the bin/Mathc.ml F5
+  deficit (the paren-imbalance at Mathc.ml:438 from commit aae7943)
+  open. The strongest objection is that recording a partial-state
+  decision with mode: light creates an audit-trail oddity: a future
+  reader scanning the decisions table sees a `mode: light` row with
+  a "partial closure" commitment and may mistake it for a
+  follow-up-on-hold entry rather than a historical closure; the
+  intended-reading requires cross-referencing the reversal block
+  and the F5 follow-up commitment in `mathc-ml-paren-deficit-
+  documented`. Reversal condition: when the bin/Mathc.ml F5 deficit
+  closes (the paren imbalance at line 438 is removed and the
+  dispatcher handles mode = considered cleanly) this retired
+  decision should become a node in the supersession chain rather
+  than a standalone record; the future superseder is responsible
+  for closing that audit chain.
+
 risk:
   declared_triggers:
     - historical-record-only

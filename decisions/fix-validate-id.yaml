@@ -50,6 +50,26 @@ obligations:
 axiom_link:
   - A0
 
+counterexample: |
+  Widening `is_id_char` to accept `.` brings the new-decision
+  validator into line with the kernel schema but introduces a
+  consistency problem: any downstream resolver that treats `.` as
+  a hierarchy separator (e.g., a future `Path_config.resolve
+  decision-id` that maps ids to file paths) becomes exploitable
+  for path traversal. The strongest objection is that this fix
+  is shipped without a corresponding audit of path-resolution
+  call sites: a user who creates a decision id `..secret` can
+  register it via `mathc new-decision ..secret --write`, the
+  file lands at `decisions/..secret.yaml`, and any path-aware
+  tool that resolves this id to a canonical path is now open to
+  path-injection. Reversal condition: when lib/path_config.ml or
+  the discover walker treats any canonicalised path the same way
+  it treats absolute paths (escape detection, no-symlink policy),
+  the dot-id surface is safe; until then, audit-trail reviewers
+  should flag any new decision with `.` in the id as a
+  potential path-injection vector and inspect downstream
+  resolution.
+
 risk:
   declared_triggers:
     - dot-in-id-may-surprise-users

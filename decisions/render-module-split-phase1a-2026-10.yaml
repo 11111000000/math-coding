@@ -99,18 +99,31 @@ obligations:
           result: pass
         - verifier: tests/cli/render.t cram snapshot
           result: pass
-
-counterexample:
-  claim: |
-    Правки в `render_md.ml` могут изменить поведение
-    `md_parse` так, что golden-снапшоты `tests/cli/render.t`
-    разойдутся (например, перенос `html_of_fragments` в
-    `render_md.ml` без сохранения порядка аргументов во
-    вызывающем коде).
-  mitigation: |
-    Полный прогон cram перед PR; правка snapshot'ов
-    допустима только в паре с обоснованием в
-    commit-message (см. P2 AGENTS.md).
+counterexample: |
+  The strongest objection to this Phase 1A split is that edits
+  in `lib/render/render_md.ml` can change the behaviour of
+  `md_parse` such that golden snapshots in `tests/cli/render.t`
+  diverge — e.g., transferring `html_of_fragments` to the new
+  module while the calling convention (positional arguments vs.
+  curried arguments, default values, signature annotations)
+  shifts under our feet. The risk is concrete: the render
+  kernel test corpus (`tests/render_kernel.ml`) and the cram
+  fixtures (`tests/cli/render.t`) for `dist/index*.html`,
+  `dist/manifesto*.html`, `dist/methodology*.html` each
+  pin specific output bytes against an unaltered
+  `lib/render.ml::md_parse`; a single reordered argument flips
+  a render and `dune promote` cannot rescue the audit trail
+  because the diff is unjustified without a paired commit
+  message explaining the behaviour shift. Mitigated by
+  requiring a full cram run before PR, and allowing snapshot
+  updates only in a paired commit with a justification in the
+  commit body (per `AGENTS.md §P2`). Reversal condition: if a
+  follow-up commit (Phase 1B, 1D, etc.) reorders or renames a
+  function in `render_md.ml` and the resulting cram snapshots
+  show unexplained diffs, this Phase 1A decision is implicated
+  as the upstream cause; the reversal trigger is *any* render
+  output change that cannot be paired with a 1:1 argument-trace
+  diff in the calling code.
 
 risk:
   declared_triggers:

@@ -63,6 +63,27 @@ obligations:
 axiom_link:
   - A0
 
+counterexample: |
+  Splitting `lib/render.ml` into a new dune library
+  `mathcoding_render` is a pure reorganisation today and
+  introduces friction (a separate dune stanza, separate test
+  wiring, separate clean-target) for no functional payoff at
+  Phase 1 — Phase 1A follow-ups (`render-module-split-phase1a`)
+  are the work that actually need the library boundary. The
+  strongest objection is that this commit is gold-plating: it
+  touches dune files, test wiring, and CI without delivering
+  any of the planned Phase 1B+ sub-module splits that the
+  library boundary is meant to support. A more conservative
+  path would defer the library split to a commit that
+  *simultaneously* lands Phase 1B, so the boundary is exercised
+  by the new module on day one. Reversal condition: when a
+  future Phase (1B, 2, etc.) lands a second module inside
+  `lib/render/`, the library split becomes load-bearing and
+  no-longer gold-plating; until then, this commit's value is
+  entirely as a forward-compatible foundation, and a reviewer
+  may legitimately question whether the foundation is worth
+  its own commit.
+
 risk:
   declared_triggers:
     - dune-finds-old-lib-render-ml-stale
