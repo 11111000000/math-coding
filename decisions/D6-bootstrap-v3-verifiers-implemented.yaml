@@ -36,6 +36,13 @@ scope:
     - PACKAGES.md
     - tests/process_principles.ml
 
+outcomes:
+  - id: D6-closed
+    statement: |
+      Every obligation declared under bootstrap-v3@2 carries a
+      machine-checked verifier reachable from CI; `mathc
+      self-check` returns verdict `pass` on a clean HEAD.
+
 counterexample: |
   This decision's only enforcement is `tests/process_principles.ml`'s P2 case, not a counterexample.
 

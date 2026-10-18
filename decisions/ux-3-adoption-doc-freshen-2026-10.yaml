@@ -93,6 +93,13 @@ commitment: |
     `USAGE.md:14-20` (Phase-1 install-tooling surface) so
     both documents tell the same story.
 
+scope:
+  paths:
+    - adoption/SKILL.md
+    - .opencode/skills/math-coding/SKILL.md
+    - scripts/check-adoption-doc-freshen.sh
+    - scripts/check-opencode-skill.sh
+
 counterexample: |
   "What if `edge` is removed and replaced with `latest`?"
    Counterargument: `install-tooling-default-tag-edge-2026-10`
