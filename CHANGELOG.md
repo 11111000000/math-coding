@@ -3,7 +3,137 @@
 > Single-source-of-truth for releases. Mirrors the `v3.x.y` git
 > tags. The current release is highlighted.
 
-## v3.3.1 — 2026-10-16 — current
+## v3.3.2 — 2026-10-17 — current
+
+Adoption-fixes release. Closes the 9 recommendations from
+`docs/experiments/adoption-2026-10.md` §13 (the 2026-10-17
+brownfield experiment on 5 external projects) plus the
+audit-cleanup work from `docs/plans/audit-cleanup-2026-10.md`.
+Combined under one tag because the audit-cleanup work landed
+in `main` between v3.3.1 and the experiment results, and the
+adoption-fixes work was authored as a single 10-sub-decision
+plan (`decisions/plan-2026-10-adoption-fixes-2026-10.yaml`).
+
+3 of the 10 adoption sub-decisions (A1, A3, C3) duplicate work
+already shipped in v3.3.1 or in `main` between v3.3.1 and this
+release; the corresponding decision files remain in the tree
+as historical records of the experimental finding.
+
+### Added (from plan-2026-10-adoption-fixes)
+
+- **`mathc verify FILE`** subcommand (`bin/Mathc.ml::do_verify`):
+  walks `acceptance.all[*].verifier` strings in a decision
+  YAML and executes them in a sandbox (subprocess,
+  env-stripped to `PATH`/`HOME`/`LANG`, 60s timeout, cwd =
+  decision's repo root). Returns per-obligation
+  `pass | fail | skipped`. The verdict distinguishes
+  *validated* (parse-ok) from *verified* (per-obligation
+  verifier execution result). Decision:
+  `add-verify-subcommand-2026-10`.
+- **`mathc attest-batch`** is now in the `dispatch` table with
+  help text (was already implemented in v3.3.1 but not
+  dispatched). The subcommand is the canonical bulk-attest
+  path; the `kind_: test` and `kind_: review` producers are
+  both supported. Cram fixture `tests/cli/attest-batch.t` is
+  the acceptance crate. Decision: `ship-attest-batch-2026-10`.
+- **`MATH_CODING_DECISIONS_DIR` / `MATH_CODING_ATTESTATIONS_DIR`
+  env-var honor** across all tree-walking subcommands
+  (`self-check`, `packages`, `find`, `counters`, `migrate`,
+  `re-evaluate`, `new-decision --write`). The v3.4 resolver
+  (`lib/path_config.ml`) existed in v3.3.1; this commit
+  wires every subcommand through it. Brownfield projects can
+  now keep math-coding artifacts out of their top-level
+  `decisions/` and `attestations/` directories. Decision:
+  `fix-env-var-resolver-2026-10`.
+- **YAML 1.2 inline-sequence parser** (`lib/codec.ml`): the
+  custom parser now correctly handles `key: - foo` followed by
+  same-indent `- bar` continuations without consuming the
+  next top-level key. Fixes a parser-induced false positive
+  on `MC-COUNTEREXAMPLE-MISSING` for any decision with a
+  multi-line `risk.declared_triggers` list followed by a
+  `counterexample:` block. Decision: `fix-yaml-parser-2026-10`.
+- **`mathc new-decision` axiom-link soft-warn** (`lib/new_decision`,
+  `lib/diagnostic.ml`): when a freshly scaffolded decision
+  lacks `axiom_link`, the new-decision command emits
+  `deficit/MC-AXIOM-LINK-INFERENCE-EMPTY` naming the top-3
+  candidate axioms based on `scope.paths`. Inference is
+  suggest-only — the field is never auto-filled. Mapping:
+  `lib/**→A0,A1`, `tests/**→A1`, `decisions/**→A0,A4`,
+  `spec/**→A0,A3`, fallback `A0`. Decision:
+  `axiom-link-inference-2026-10`.
+- **`scripts/generate-attestations.py` env-var support**:
+  the Python attest-batch helper now honours
+  `MATH_CODING_DECISIONS_DIR` and
+  `MATH_CODING_ATTESTATIONS_DIR` (matching the OCaml binary's
+  resolver). Adds `--help`. Decision:
+  `fix-generate-attestations-env-2026-10`.
+
+### Changed
+
+- **`mathc validate` verdict renamed**: `verdict: accept` →
+  `verdict: parse-ok` (text and JSON). The rename removes the
+  semantic load that previously conflated shape-correctness
+  with verification. 14 cram fixtures under `tests/cli/`
+  updated to assert on the new verdict string. A grep for
+  `"verdict":"accept"` across `tests/cli/` returns zero hits.
+  Backwards-compatibility note: downstream scripts that
+  greppped for `accept` must update to `parse-ok`. Decision:
+  `add-verify-subcommand-2026-10`.
+- **`MC-COUNTEREXAMPLE-MISSING` diagnostic docstring tightened**
+  (`lib/diagnostic.ml`): the diagnostic now names
+  `fix-yaml-parser-2026-10` (commit `3f14b76`) and
+  `tests/cli/yaml-parser.t` as regression pins, and
+  `tests/cli/counterexample-warn.t` as the new acceptance
+  crate. The diagnostic emission itself is unchanged — it
+  still fires when `counterexample:` is genuinely absent;
+  the parser fix (A2) ensures it does not fire on a
+  present-but-parser-ignored field. Decision:
+  `tighten-counterexample-warn-2026-10`.
+- **Friction-event taxonomy in `docs/experiments/adoption-2026-10.md` §7**
+  collapsed from 8 overlapping categories to 4 mutually
+  exclusive: F-INSTALL, F-SCHEMA, F-WORKFLOW, F-SEMANTIC. All
+  55 events in the 5 per-project reports re-classified;
+  counts still sum to 55. Decision: `revise-friction-taxonomy-2026-10`.
+
+### Test surface
+
+- `tests/cli/verify.t` (new) — `mathc verify` smoke + the
+  parse-ok verdict rename
+- `tests/cli/env-var-resolver.t` (new) — env-var honor for
+  every tree-walking subcommand
+- `tests/cli/yaml-parser.t` (new) — YAML 1.2 inline-seq cases
+- `tests/cli/counterexample-warn.t` (new) — tightened
+  diagnostic
+- `tests/cli/attest-batch.t` (new) — `attest-batch` smoke
+- `tests/cli/new-decision-axiom-warn.t` (new) — axiom-link
+  inference soft-warn
+- `tests/scripts/generate-attestations-env.t` (new) —
+  Python script env-var honor
+- 14 existing cram fixtures updated to assert on
+  `verdict: parse-ok`
+
+### Documentation
+
+- `docs/experiments/adoption-2026-10.md` §7, §10.4, §10.5,
+  §11.2, §13 re-classified under the new 4-category taxonomy
+- `docs/experiments/brownfield-experiment-v2-2026-10.md`
+  (new) — design for the v2 brownfield experiment on
+  projects that ship ADRs in-tree (5 verified candidates:
+  `adr/madr`, `JabRef/jabref`, `theupdateframework/tuf`,
+  `home-assistant/architecture`,
+  `kubernetes-sigs/cluster-api-provider-aws`)
+
+### Audit-cleanup (from main between v3.3.1 and v3.3.2)
+
+Eight low-hanging audit deficits closed under
+`docs/plans/audit-cleanup-2026-10.md`. Highlights: three
+telemetry-marker `tracked:` acknowledgements on the same
+line as their `ack`; docstring drift on `USAGE.md`,
+`QUICKSTART.md`, `adoption/SKILL.md`; `MARKDOWN-LINT` tightened
+for the 8 decisions with risk_blocks. Decision:
+`audit-cleanup-2026-10`.
+
+## v3.3.1 — 2026-10-16
 
 Patch release. Five streams landed behind the v3.4 workstream and
 ship under a minor tag bump rather than a feature bump because the
