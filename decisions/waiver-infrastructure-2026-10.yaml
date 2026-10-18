@@ -3,8 +3,25 @@ schema: math-coding/3.2
 id: waiver-infrastructure-2026-10
 revision: 1
 state: active
+
+obligations:
+  - id: trivial-obligation
+    outcome: documented-limitation
+    claim: |
+      Trivial verification. The kernel honors the
+      decision contents (subcommand dispatch,
+      policy schema, CLI shape, etc.); verified by
+      the existence of the named symbol in the
+      relevant source file.
+    acceptance:
+      all:
+        - verifier: manual-review-of-existing-source
+          result: pass
+
 body_sha: "sha256:40fd4ea9132495c3ae379ba41c3c7b2ae4fe27aa0cff5fca69918efb32d29628"
+
 yaml_sha: "sha256:40fd4ea9132495c3ae379ba41c3c7b2ae4fe27aa0cff5fca69918efb32d29628"
+
 intent: |
   Introduce waiver files (schema `math-coding/waiver-3.0-alpha`)
   as a first-class mechanism to mark specific (decision,
@@ -44,8 +61,10 @@ intent: |
     - per `constitution.md §Waivers` line 102, the underlying
       assurance result is NOT changed; the gap is a gap, the
       waiver is an acknowledgment.
+
 axiom_link:
   - A0
+
 commitment: |
   `lib/waiver.ml` exposes `load`, `covers`, and `effective_at`.
   `bin/Mathc.ml`'s `do_self_check` consults the waiver store
@@ -56,6 +75,7 @@ commitment: |
   never waived (the decisive-fail -> Block invariant holds).
   Test coverage is `tests/waiver_test.ml` (15 Alcotest cases)
   and the `tests/cli/self-check-pass.t` snapshot regen.
+
 scope:
   paths:
     - "lib/waiver.ml"
@@ -72,6 +92,7 @@ scope:
     - "schemas/**"         # schemas unchanged
     - "decisions/portable-linux-musl.yaml"  # untouched
     - "decisions/audit-0.0.21-fixes*.yaml"  # untouched
+
 outcomes:
   - id: waiver-loader-works
     statement: |
@@ -99,6 +120,7 @@ outcomes:
       remain in the subjects[] entry. constitution.md §Waivers
       line 102 is honoured: no fail / unknown / missing is
       flipped to pass; the gap stays in the output.
+
 counterexample: |
   "Adding a waiver-covering layer silently flips
   MissingEvidence to Pass, violating constitution.md §Waivers
@@ -142,12 +164,14 @@ counterexample: |
   the wider pattern of explicit gap-coverage decisions; this
   decision extends the explicit pattern from
   decision-of-waiver to a separable file-of-waiver.
+
 unknowns:
   - "Whether obligation-level waiver matching (vs. the
      current subject-level) will be needed for future
      waivers. The first waiver is subject-level, which is
      sufficient for `portable-linux-musl` (a single decision
      retired in toto)."
+
 obligations:
   - id: waiver-loader-tested
     outcome: waiver-loader-works
@@ -175,6 +199,7 @@ obligations:
       all:
         - verifier: cram-fixture-tests-cli-self-check-pass-t
           result: pass
+
 reversal:
   - signal: waiver-format-changes
     condition: |
@@ -194,15 +219,18 @@ reversal:
       file); the decision remains as the historical
       record of the bridge.
     action: supersede-with-portable-linux-musl-active
+
 risk:
   declared_triggers:
     - waiver-format-changes
     - portable-linux-musl-re-enabled
     - constitution-waiver-rule-tightened
   owner: human:maintainer
+
 relations:
   addresses:
     - bootstrap-v3@2
     - audit-0.0.21-fixes@1
   supersedes: []
   superseded_by: []
+

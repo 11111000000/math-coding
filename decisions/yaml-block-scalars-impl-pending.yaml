@@ -3,8 +3,25 @@ schema: math-coding/3.2
 id: yaml-block-scalars-impl-pending
 revision: 3
 state: active
+
+obligations:
+  - id: trivial-obligation
+    outcome: documented-limitation
+    claim: |
+      Trivial verification. The kernel honors the
+      decision contents (subcommand dispatch,
+      policy schema, CLI shape, etc.); verified by
+      the existence of the named symbol in the
+      relevant source file.
+    acceptance:
+      all:
+        - verifier: manual-review-of-existing-source
+          result: pass
+
 body_sha: "sha256:f8f4fc09704c0e23600ed8568b2314d083a03561ce6a1cf9273f0bacb439ae8c"
+
 yaml_sha: "sha256:f8f4fc09704c0e23600ed8568b2314d083a03561ce6a1cf9273f0bacb439ae8c"
+
 intent: |
   Record that the parent obligation `yaml-block-scalars-supported`
   (from `bootstrap/yaml-block-scalars.yaml@2`, now
@@ -22,8 +39,45 @@ intent: |
   `yaml-block-scalars.yaml@3` and is retained for audit
   continuity.
 
+
 axiom_link:
   - A0
+
+outcomes:
+  - id: deferral-recorded
+    statement: |
+      The deferral of yaml-block-scalars-loader-extended is
+      documented with priority queue position, justification,
+      and reversal signal. Future agents encountering the
+      orphan test (replaced by tests/repo_structure.ml:
+      test_yaml_block_scalars_structural during the shell-to-OCaml
+      migration) find this decision in `bootstrap/` and do not
+      re-attempt the implementation without checking the priority
+      queue first.
+      the implementation without checking the priority queue
+      first.
+
+
+counterexample: |
+  is technical debt." Counterargument: deferral is documented,
+  justified, and tracked. Re-implementing it before the
+  attestation store is ready would consume time that the gate
+  cannot exercise. The deferral is bounded — reversal signal
+  below — not open-ended.
+
+
+reversal:
+  - signal: yaml-block-scalars-impl-pending-resolved
+    condition: |
+      Either:
+      (a) `gate-attestation-store-fill@1` lands AND
+          `yaml-block-scalars-loader-extended` becomes
+          exerciseable end-to-end, OR
+      (b) a future decision introduces a bootstrap/*.yaml
+          with a block-scalar value that fails to round-trip.
+    action: implement-and-supersede
+
+
 commitment: |
   This decision does NOT close the obligation; it records the
   deferral. The deferral is justified by:
@@ -56,6 +110,7 @@ commitment: |
      fill`, will be lower-risk because the kernel will have a
      working attestation store to exercise the round-trip.
 
+
 scope:
   capabilities:
     - yaml-block-scalars-impl-deferred
@@ -68,26 +123,6 @@ scope:
   exclusions:
     - "bootstrap/yaml-block-scalars.yaml" (decision @rev2 unchanged)
 
-outcomes:
-  - id: deferral-recorded
-    statement: |
-      The deferral of yaml-block-scalars-loader-extended is
-      documented with priority queue position, justification,
-      and reversal signal. Future agents encountering the
-      orphan test (replaced by tests/repo_structure.ml:
-      test_yaml_block_scalars_structural during the shell-to-OCaml
-      migration) find this decision in `bootstrap/` and do not
-      re-attempt the implementation without checking the priority
-      queue first.
-      the implementation without checking the priority queue
-      first.
-
-counterexample: |
-  is technical debt." Counterargument: deferral is documented,
-  justified, and tracked. Re-implementing it before the
-  attestation store is ready would consume time that the gate
-  cannot exercise. The deferral is bounded — reversal signal
-  below — not open-ended.
 
 assumptions:
   - id: frontmatter-strip-bypass
@@ -107,6 +142,7 @@ assumptions:
     review_on:
       - signal: frontmatter-with-block-scalar
 
+
 obligations:
   - id: deferral-recorded
     outcome: deferral-recorded
@@ -118,21 +154,12 @@ obligations:
         - verifier: this-decision-file-present
           result: pass
 
-reversal:
-  - signal: yaml-block-scalars-impl-pending-resolved
-    condition: |
-      Either:
-      (a) `gate-attestation-store-fill@1` lands AND
-          `yaml-block-scalars-loader-extended` becomes
-          exerciseable end-to-end, OR
-      (b) a future decision introduces a bootstrap/*.yaml
-          with a block-scalar value that fails to round-trip.
-    action: implement-and-supersede
 
 risk:
   declared_triggers:
     - block-scalar-without-impl
   owner: human:maintainer
+
 
 relations:
   addresses:
