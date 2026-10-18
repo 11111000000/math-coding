@@ -58,7 +58,7 @@ A `mode: standard` decision WITH `counterexample` is accepted:
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json mode-standard-with-counterexample.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 A `mode: standard` decision WITHOUT counterexample is rejected
 with `MC-COUNTEREXAMPLE-MISSING` (Block, exit 1). This is the
@@ -238,7 +238,7 @@ an array with at least one non-empty entry satisfies the rule.
   > }
   > EOF
   $ mathc validate --format=json mode-strict-with-counterexample.json | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 A `mode: light` decision WITHOUT counterexample: warns but
 accepts (legacy soft-warning behaviour, EXEMPT from the new

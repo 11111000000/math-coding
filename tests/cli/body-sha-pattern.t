@@ -50,7 +50,7 @@ must accept.
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json good.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 Negative case: `body_sha: "garbage"` (the most common offender --
 a placeholder that survived pre-fix) MUST be rejected with

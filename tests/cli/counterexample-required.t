@@ -60,7 +60,7 @@ Positive case: decision with `counterexample` present must accept.
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json ok.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 Negative case: decision WITHOUT `counterexample:` must reject
 with `MC-COUNTEREXAMPLE-MISSING`. The pre-fix kernel returned

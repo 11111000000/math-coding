@@ -81,7 +81,7 @@ A decision with `axiom_link: [A0]` and `state: active` is accepted
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json active-with-axiom-link.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 A `state: draft` decision without `axiom_link` is accepted (draft
 is exempt from the contract):
@@ -115,7 +115,7 @@ is exempt from the contract):
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json draft-no-axiom-link.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 A `state: retired` decision without `axiom_link` is accepted
 (retired is exempt from the contract):
@@ -143,7 +143,7 @@ A `state: retired` decision without `axiom_link` is accepted
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json retired-no-axiom-link.yaml | jq -c '{verdict, code}'
-  {"verdict":"accept","code":null}
+  {"verdict":"parse-ok","code":null}
 
 A decision with `state` absent (default `active`) and no
 `axiom_link` is rejected — the schema default for `state` is

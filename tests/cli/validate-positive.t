@@ -8,4 +8,4 @@ machine's checkout location. The cram shell invokes mathc with
 in main, in worktrees, and on other machines.
 
   $ mathc validate --format=json "$DUNE_SOURCEROOT/fixtures/conformance/decision/positive-minimal.json" | jq -c '{verdict, decision, revision, obligations, assumptions}'
-  {"verdict":"accept","decision":"redis-origin-fallback","revision":"rev:41aa92","obligations":1,"assumptions":1}
+  {"verdict":"parse-ok","decision":"redis-origin-fallback","revision":"rev:41aa92","obligations":1,"assumptions":1}

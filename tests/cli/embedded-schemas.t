@@ -53,7 +53,7 @@ Run with --format=json to get the machine-readable verdict. The
 verdict field MUST be "accept"; the exit code MUST be 0.
 
   $ mathc validate --format=json test.json
-  {"verdict":"accept","path":"test.json","decision":"redis-origin-fallback","revision":"rev:41aa92","obligations":1,"assumptions":1}
+  {"verdict":"parse-ok","path":"test.json","decision":"redis-origin-fallback","revision":"rev:41aa92","obligations":1,"assumptions":1}
 
 Negative case: a malformed JSON document must STILL be rejected
 the same way the on-disk-schemas path rejects it. The embedded

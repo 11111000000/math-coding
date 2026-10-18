@@ -31,7 +31,7 @@ accepted:
   > }
   > EOF
   $ mathc validate --format=json test-with-digest.json | jq -c '{verdict, kind}'
-  {"verdict":"accept","kind":"attestation"}
+  {"verdict":"parse-ok","kind":"attestation"}
 
 An attestation with `kind_: test` and EMPTY `materials_digest`
 is rejected with `MC-MATERIALS-DIGEST-EMPTY` (Block):
@@ -103,7 +103,7 @@ is ACCEPTED (humans may declare without a runtime anchor):
   > }
   > EOF
   $ mathc validate --format=json review-empty-digest.json | jq -c '{verdict, kind}'
-  {"verdict":"accept","kind":"attestation"}
+  {"verdict":"parse-ok","kind":"attestation"}
 
 The diagnostic is reachable via `mathc explain-diagnostic`:
 
