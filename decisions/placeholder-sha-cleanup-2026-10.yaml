@@ -7,8 +7,8 @@ mode: standard
 change_kind: implementation
 axiom_link:
   - A0
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
 intent: |
   Five decision files currently carry placeholder `body_sha` and
   `yaml_sha` values that were never replaced with the real

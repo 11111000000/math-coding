@@ -4,8 +4,8 @@ id: re-eval-remediation-todo-fix-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
 change_kind: editorial
 
 axiom_link:

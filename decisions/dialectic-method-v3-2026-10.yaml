@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: dialectic-method-v3
 revision: 3
 state: active
-body_sha: ""
-yaml_sha: ""
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
 axiom_link:
   - A0
   - A1

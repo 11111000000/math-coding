@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-init-subcommand-2026-10
 revision: 2
 state: active
-body_sha: "dface25df477573f125dfa6b0870d94e8f4ece64b65fc528b8b268acb693de40"
-yaml_sha: "dface25df477573f125dfa6b0870d94e8f4ece64b65fc528b8b268acb693de40"
+body_sha: "sha256:dface25df477573f125dfa6b0870d94e8f4ece64b65fc528b8b268acb693de40"
+yaml_sha: "sha256:dface25df477573f125dfa6b0870d94e8f4ece64b65fc528b8b268acb693de40"
 intent: |
   Phase 1 of the ux-3 workstream. Land a `mathc init` subcommand
   that scaffolds a new math-coding project in a target directory.

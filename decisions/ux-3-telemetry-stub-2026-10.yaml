@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-telemetry-stub-2026-10
 revision: 1
 state: active
-body_sha: "954acfa841c584ff1b357b61a6f543232ec95be86e586732e6bfdf036bfde35e"
-yaml_sha: "954acfa841c584ff1b357b61a6f543232ec95be86e586732e6bfdf036bfde35e"
+body_sha: "sha256:954acfa841c584ff1b357b61a6f543232ec95be86e586732e6bfdf036bfde35e"
+yaml_sha: "sha256:954acfa841c584ff1b357b61a6f543232ec95be86e586732e6bfdf036bfde35e"
 intent: |
   Phase 2 of the ux-3 workstream. Land a stub for the
   MATHCODING_TELEMETRY opt-in flag and a `mathc telemetry

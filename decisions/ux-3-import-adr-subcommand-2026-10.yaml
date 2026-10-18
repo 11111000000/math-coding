@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-import-adr-subcommand-2026-10
 revision: 1
 state: active
-body_sha: "57fc01cba6aeae51acdaecb5f20982915942687e00ed523bfd992975bb4ae4ce"
-yaml_sha: "57fc01cba6aeae51acdaecb5f20982915942687e00ed523bfd992975bb4ae4ce"
+body_sha: "sha256:57fc01cba6aeae51acdaecb5f20982915942687e00ed523bfd992975bb4ae4ce"
+yaml_sha: "sha256:57fc01cba6aeae51acdaecb5f20982915942687e00ed523bfd992975bb4ae4ce"
 intent: |
   Phase 1 of the ux-3 workstream. Land a `mathc import-adr` subcommand
   that reads an existing ADR file (MADR-shaped or adr-tools-shaped)

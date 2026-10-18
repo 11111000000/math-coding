@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-adopt-subcommand-2026-10
 revision: 1
 state: active
-body_sha: "5897d2f74db318058d77cdf9c262481b1d7c1d22320d987f48ebd6c89dc6c7af"
-yaml_sha: "5897d2f74db318058d77cdf9c262481b1d7c1d22320d987f48ebd6c89dc6c7af"
+body_sha: "sha256:5897d2f74db318058d77cdf9c262481b1d7c1d22320d987f48ebd6c89dc6c7af"
+yaml_sha: "sha256:5897d2f74db318058d77cdf9c262481b1d7c1d22320d987f48ebd6c89dc6c7af"
 intent: |
   Phase 3.2 of the ux-3 workstream (per planning decision
   `ux-3-adopt-roadmap-2026-10@1`). Land the `mathc adopt`

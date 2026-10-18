@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-adopt-detect-2026-10
 revision: 1
 state: active
-body_sha: "3d7237eca2639f295e95d6021ef94450363aa7e9b85b1a61f847bb3e10056396"
-yaml_sha: "3d7237eca2639f295e95d6021ef94450363aa7e9b85b1a61f847bb3e10056396"
+body_sha: "sha256:3d7237eca2639f295e95d6021ef94450363aa7e9b85b1a61f847bb3e10056396"
+yaml_sha: "sha256:3d7237eca2639f295e95d6021ef94450363aa7e9b85b1a61f847bb3e10056396"
 intent: |
   Phase 3.1 of the ux-3 workstream (per planning decision
   `ux-3-adopt-roadmap-2026-10@1`). Land the brownfield

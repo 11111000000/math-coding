@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-nfr3-cold-start-2026-10
 revision: 1
 state: active
-body_sha: "dfb9f9cc396b648cca160e3907fe73c7568de903ff153fd5ce1f0b4a0c85934f"
-yaml_sha: "dfb9f9cc396b648cca160e3907fe73c7568de903ff153fd5ce1f0b4a0c85934f"
+body_sha: "sha256:dfb9f9cc396b648cca160e3907fe73c7568de903ff153fd5ce1f0b4a0c85934f"
+yaml_sha: "sha256:dfb9f9cc396b648cca160e3907fe73c7568de903ff153fd5ce1f0b4a0c85934f"
 intent: |
   Phase 2 of the ux-3 workstream. Enforce NFR-3 (binary cold
   start < 200 ms on Linux) with a CI-runnable fixture. The

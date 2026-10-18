@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-mcp-read-write-2026-10
 revision: 1
 state: active
-body_sha: "477ba1eb89e67dc92a19de82644be1845d47a30df17da3176f1aaea42301b825"
-yaml_sha: "477ba1eb89e67dc92a19de82644be1845d47a30df17da3176f1aaea42301b825"
+body_sha: "sha256:477ba1eb89e67dc92a19de82644be1845d47a30df17da3176f1aaea42301b825"
+yaml_sha: "sha256:477ba1eb89e67dc92a19de82644be1845d47a30df17da3176f1aaea42301b825"
 intent: |
   Add four read-write methods to the mathc_mcp server's
   allowlist: `mathc/gate`, `mathc/attest`, `mathc/record`,

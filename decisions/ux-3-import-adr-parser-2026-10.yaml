@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-import-adr-parser-2026-10
 revision: 1
 state: active
-body_sha: "f1f87bb9a4383ba70b772517a8d89f4279c71c38824264cc95618f3a60d0aeba"
-yaml_sha: "f1f87bb9a4383ba70b772517a8d89f4279c71c38824264cc95618f3a60d0aeba"
+body_sha: "sha256:f1f87bb9a4383ba70b772517a8d89f4279c71c38824264cc95618f3a60d0aeba"
+yaml_sha: "sha256:f1f87bb9a4383ba70b772517a8d89f4279c71c38824264cc95618f3a60d0aeba"
 intent: |
   Fix two parser issues in `mathc import-adr` flagged as
   quality issues in the original decision

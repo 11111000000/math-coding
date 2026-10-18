@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-adopt-roadmap-2026-10
 revision: 1
 state: active
-body_sha: "6d3ca2ead680e2b08b40ae643ac401d1b018d94427e71b45ddf6d5881440c2fd"
-yaml_sha: "6d3ca2ead680e2b08b40ae643ac401d1b018d94427e71b45ddf6d5881440c2fd"
+body_sha: "sha256:6d3ca2ead680e2b08b40ae643ac401d1b018d94427e71b45ddf6d5881440c2fd"
+yaml_sha: "sha256:6d3ca2ead680e2b08b40ae643ac401d1b018d94427e71b45ddf6d5881440c2fd"
 intent: |
   Phase 3 planning for brownfield adoption. Records the
   decision to land a separate `mathc adopt` subcommand

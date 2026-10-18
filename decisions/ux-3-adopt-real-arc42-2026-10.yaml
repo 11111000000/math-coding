@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-adopt-real-arc42-2026-10
 revision: 1
 state: active
-body_sha: "d14189b78b5ff1a7c7f1cd71393560ae2bb9745dec86b12aa98e3257dac04490"
-yaml_sha: "d14189b78b5ff1a7c7f1cd71393560ae2bb9745dec86b12aa98e3257dac04490"
+body_sha: "sha256:d14189b78b5ff1a7c7f1cd71393560ae2bb9745dec86b12aa98e3257dac04490"
+yaml_sha: "sha256:d14189b78b5ff1a7c7f1cd71393560ae2bb9745dec86b12aa98e3257dac04490"
 intent: |
   Phase 3.3 of the ux-3 workstream (per planning decision
   `ux-3-adopt-roadmap-2026-10@1`). Land a real-shaped arc42

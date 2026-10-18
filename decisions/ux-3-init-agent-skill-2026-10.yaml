@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-init-agent-skill-2026-10
 revision: 1
 state: active
-body_sha: "1ba181c5a6b0d78ff2ba605a1b7ea7c36522a8597389facc40abbbb072770262"
-yaml_sha: "1ba181c5a6b0d78ff2ba605a1b7ea7c36522a8597389facc40abbbb072770262"
+body_sha: "sha256:1ba181c5a6b0d78ff2ba605a1b7ea7c36522a8597389facc40abbbb072770262"
+yaml_sha: "sha256:1ba181c5a6b0d78ff2ba605a1b7ea7c36522a8597389facc40abbbb072770262"
 intent: |
   Wire up `mathc init --agent` so that the per-user opencode
   skill is installed alongside the per-repo scaffold. The
