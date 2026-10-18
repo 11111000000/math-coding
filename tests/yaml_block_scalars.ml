@@ -120,6 +120,86 @@ summary: >
       | _ -> Alcotest.failf "summary not String")
   | _ -> Alcotest.failf "expected Object, got %s" (Jsonl.stringify json)
 
+(* Regression for the F-SCHEMA finding in
+   docs/experiments/adoption-2026-10.md §10.5 #7.
+   YAML 1.2 §7.1 lets a key carry an inline block sequence
+   on the same line ("key: - foo"), with subsequent items
+   ("- bar") on following lines at the same indentation.
+   The previous parser treated "- foo" as a string scalar
+   and dropped both the next item and every subsequent
+   top-level key. *)
+
+let test_inline_seq_under_object () =
+  let yaml =
+    {|
+risk:
+  declared_triggers: - foo
+  - bar
+  owner: human:maintainer
+counterexample: |
+  preserved
+|}
+  in
+  let json = load yaml in
+  match json with
+  | Jsonl.Object pairs -> (
+      let find key = List.assoc_opt key pairs in
+      let risk_obj =
+        match find "risk" with
+        | Some (Jsonl.Object risk_pairs) -> risk_pairs
+        | _ -> Alcotest.failf "risk not Object"
+      in
+      let risk_find key = List.assoc_opt key risk_obj in
+      (match risk_find "declared_triggers" with
+      | Some (Jsonl.Array triggers) -> (
+          Alcotest.(check int) "two triggers" 2 (List.length triggers);
+          match triggers with
+          | [ Jsonl.String a; Jsonl.String b ] ->
+              Alcotest.(check string) "first" "foo" a;
+              Alcotest.(check string) "second" "bar" b
+          | _ -> Alcotest.failf "triggers not two Strings")
+      | _ -> Alcotest.failf "declared_triggers not Array");
+      (match risk_find "owner" with
+      | Some (Jsonl.String s) ->
+          Alcotest.(check string) "owner" "human:maintainer" s
+      | _ -> Alcotest.failf "owner not String");
+      match find "counterexample" with
+      | Some (Jsonl.String s) ->
+          Alcotest.(check string) "counterexample" "preserved\n" s
+      | Some _ -> Alcotest.failf "counterexample not String"
+      | None -> Alcotest.failf "counterexample key dropped")
+  | _ -> Alcotest.failf "expected Object, got %s" (Jsonl.stringify json)
+
+let test_inline_seq_top_level () =
+  let yaml = {|
+items: - first
+- second
+- third
+|} in
+  let json = load yaml in
+  match json with
+  | Jsonl.Object [ ("items", Jsonl.Array items) ] -> (
+      Alcotest.(check int) "three items" 3 (List.length items);
+      match items with
+      | [ Jsonl.String a; Jsonl.String b; Jsonl.String c ] ->
+          Alcotest.(check string) "a" "first" a;
+          Alcotest.(check string) "b" "second" b;
+          Alcotest.(check string) "c" "third" c
+      | _ -> Alcotest.failf "items not three Strings")
+  | _ ->
+      Alcotest.failf "expected Object [items, Array], got %s"
+        (Jsonl.stringify json)
+
+let test_empty_inline_seq () =
+  let yaml = "key: \n- real-value\n" in
+  let json = load yaml in
+  match json with
+  | Jsonl.Object [ ("key", Jsonl.Array [ Jsonl.String s ]) ] ->
+      Alcotest.(check string) "only value" "real-value" s
+  | _ ->
+      Alcotest.failf "expected Object [key, Array [String]], got %s"
+        (Jsonl.stringify json)
+
 let () =
   let open Alcotest in
   run "yaml_block_scalars"
@@ -140,4 +220,10 @@ let () =
           test_case "block-in-seq" `Quick test_block_scalar_in_seq;
         ] );
       ("multi", [ test_case "multiple-blocks" `Quick test_multiple_blocks ]);
+      ( "inline-seq",
+        [
+          test_case "under-object" `Quick test_inline_seq_under_object;
+          test_case "top-level" `Quick test_inline_seq_top_level;
+          test_case "empty-after-trim" `Quick test_empty_inline_seq;
+        ] );
     ]

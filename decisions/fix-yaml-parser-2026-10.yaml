@@ -1,0 +1,143 @@
+---
+schema: math-coding/3.3
+id: fix-yaml-parser-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:6e02503d50ee770f08bb16e4b7ea7cb658aad2af7520804b81841cf825e7538a"
+yaml_sha: "sha256:6e02503d50ee770f08bb16e4b7ea7cb658aad2af7520804b81841cf825e7538a"
+
+intent: |
+  The hand-rolled YAML parser in `lib/codec.ml` consumed the
+  `counterexample:` key when a decision carried its
+  `risk.declared_triggers` as the inline form `key: - foo`
+  followed by `- bar` continuation lines. The custom parser
+  treated the first dash item as a string scalar and then
+  bailed out of the mapping at the next same-indent dash,
+  dropping every top-level key that followed. The
+  adoption-experiment report (`docs/experiments/adoption-2026-10.md`
+  §10.5 #7) named this as F-SCHEMA, with two sub-agents
+  independently confirming it on sinatra and ripgrep. The
+  diagnostic `MC-COUNTEREXAMPLE-MISSING` fired on decisions
+  that *had* a counterexample block, producing a high-volume
+  false-positive warning that obscured genuine gaps. The
+  parser-shape is the YAML 1.2 §7.1 inline block-sequence form,
+  which the parser had no branch for.
+
+commitment: |
+  `lib/codec.ml::parse_yaml_pairs` recognises the
+  inline-sequence form: when the trimmed value side of a
+  `key: …` line begins with `- `, parsing is delegated to
+  the new `parse_yaml_inline_seq` helper. The helper
+  consumes the first item from the already-trimmed value
+  string and walks forward through the remaining tokens,
+  collecting any same-indent `- …` entries. Items are
+  parsed as scalars via the existing `parse_yaml_scalar`
+  (an empty string maps to `Jsonl.Null`, matching
+  `parse_yaml_seq` semantics). The pre-existing shapes
+  (dash items on subsequent lines at deeper indent, plain
+  scalar values, block scalars, key-only lines) are
+  unchanged. `risk.declared_triggers: - foo\n  - bar` now
+  parses as `Array [String "foo"; String "bar"]`, so the
+  following `counterexample: | …` key is preserved.
+
+counterexample: |
+  The strongest objection considered: "YAML parsers in
+  the wild have subtle edge cases; a fix that handles
+  one inline-sequence shape may regress another.
+  Cram coverage is necessary." This is rejected on three
+  grounds: (a) the new branch is added without touching
+  the existing branches (parse_yaml_pairs preserves
+  block-scalar, plain-scalar, and indented-dash paths
+  intact); (b) the four cram fixtures in
+  tests/cli/yaml-parser.t exercise the new branch and
+  the three pre-existing shapes side-by-side; (c) the
+  kernel unit tests under tests/yaml_block_scalars.exe
+  pin both the new branch and the indented-dash form
+  in the same binary, so any regression of the latter
+  by the former surfaces immediately.
+
+outcomes:
+  - id: inline-seq-preserves-sibling-keys
+    statement: |
+      A decision whose `risk.declared_triggers` is given in
+      the inline-sequence form `key: - foo` followed by
+      `- bar` continuation lines at the same indent, plus
+      a sibling `counterexample: |` block, is parsed
+      without dropping either the `risk.declared_triggers`
+      Array value or the `counterexample:` key.
+  - id: counterexample-diagnostic-now-true-positive
+    statement: |
+      After this fix, `MC-COUNTEREXAMPLE-MISSING` fires
+      only when the field is genuinely absent; the
+      parser-induced false positive is closed.
+
+scope:
+  paths:
+    - lib/codec.ml
+    - tests/yaml_block_scalars.ml
+    - tests/cli/yaml-parser.t
+
+obligations:
+  - id: inline-seq-fixture-under-object
+    claim: |
+      The kernel unit test
+      `tests/yaml_block_scalars.exe` (inline-seq group,
+      case `under-object`) parses
+      `risk.declared_triggers: - foo\n  - bar` plus a
+      `counterexample: |` block and asserts both
+      `risk.declared_triggers` (as Array) and
+      `counterexample` (as String) appear in the parsed
+      object.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: tests/yaml_block_scalars.exe
+          result: pass
+
+  - id: inline-seq-fixture-top-level
+    claim: |
+      The same unit test (inline-seq group, case
+      `top-level`) parses `items: - first\n- second\n- third`
+      at top level and asserts the value is a three-element
+      Array.
+    acceptance:
+      all:
+        - verifier: tests/yaml_block_scalars.exe
+          result: pass
+
+  - id: cram-test-yaml-parser-accept
+    claim: |
+      The cram test `tests/cli/yaml-parser.t` validates the
+      four end-to-end scenarios (inline-seq with
+      counterexample, inline-seq without counterexample,
+      indented regression, top-level regression) and exits
+      0 on `dune test`.
+    acceptance:
+      all:
+        - verifier: dune test tests/cli/yaml-parser.t
+          result: pass
+
+  - id: no-self-check-regression
+    claim: |
+      `mathc self-check` after this commit still reports
+      the same 17 unknown subjects as the pre-fix HEAD and
+      adds zero new unknown subjects.
+    acceptance:
+      all:
+        - verifier: mathc self-check
+          result: pass
+
+axiom_link:
+  - A0
+
+risk:
+  declared_triggers:
+    - parser-may-misinterpret-non-inline-sequence
+    - test-fixture-may-mask-regressions
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
