@@ -1,0 +1,273 @@
+---
+schema: math-coding/3.3
+id: plan-2026-11-validation-cleanup-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Close the 35 pre-existing `mathc validate` rejections that were
+  masked by `release/v3.3.2-2026-10`'s overall-pass self-check.
+  Four categories of debt: 16 with malformed `body_sha` /
+  `yaml_sha`, 7 missing `counterexample` under `mode: light`,
+  1 decision (`audit-cleanup-2026-10`) missing `axiom_link`
+  despite being the recent Category A attestation target,
+  2 with malformed acceptance items.
+
+  These rejections are pre-existing (introduced in
+  `kernel-bugs-v3.4-2026-10` / `dialectic-method-v3-2026-10` /
+  audit-cleanup cycles). The user-approved plan was to address
+  them as a P0 follow-up because every future `mathc validate`
+  caller (Batch B / C downstream work) reads through these 35
+  false-rejects before reaching the new code.
+
+commitment: |
+  After this plan closes:
+
+  1. `mathc validate decisions/<id>.yaml` returns `parse-ok`
+     for every `state: active` decision file.
+  2. `mathc validate` for `state: archived | retired` decisions
+     is out of scope (those are intentionally archival and
+     the validator is content to `reject` them on outline drift).
+  3. `mathc self-check` returns the same 183 pass / 0 unknown
+     verdict at the new HEAD as at release/v3.3.2-2026-10@<sha>.
+  4. No NEW unknown subjects are introduced: zero-net change
+     to the self-check verdict.
+  5. The 4 sub-decisions are 4 atomic commits on the
+     release/v3.3.3-followup-2026-10 branch; each
+     independently revertable.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+counterexample: |
+  The counter-position considered: "this is gold-plating — the
+  validate-rejects are pre-existing, the self-check is pass,
+  and the next release can ship with these false-failures."
+  Rejected: every future sub-decision in plan-2026-11 batches B
+  and C will trigger 35 false fails when the agent runs
+  `mathc validate` as a quality gate. The noise drowns the
+  signal. Pre-flight must be clean before downstream work.
+
+  A second counter-position: "downgrade `mode: light` to
+  `mode: minimal` for the 7 counterexample-missing decisions —
+  that skips the counterexample requirement."
+  Acknowledged: a separate vector for F11-B (see §4); the
+  default in this plan is to write a synthetic
+  counterexample block in the spirit of AXIOM A0 («the
+  strongest plausible case where this decision is wrong,
+  and what would change your verdict») — but the plan accepts
+  the downgrade as a per-decision fallback if the operator
+  judges the synthetic text unauthentic. Both land parse-ok.
+
+outcomes:
+  - id: zero-false-rejects-on-active
+    statement: |
+      Every `decisions/*.yaml` whose `state: active` exits 0
+      under `mathc validate` with verdict `parse-ok`.
+    metric: validate-parse-ok-count(state=active) == count(state=active)
+
+  - id: no-self-check-regression
+    statement: |
+      `mathc self-check` after the plan closes produces the
+      same 183 pass / 0 unknown verdict as the pre-plan
+      release/v3.3.2-2026-10. No new unknowns; no flipped
+      subjects.
+
+  - id: recompute-script-replayable
+    statement: |
+      `scripts/recompute-decision-sha.py` exists, documents
+      the canonical `body_canonical_sha256` algorithm (per
+      `lib/decision.ml` lines 59–143 and `d5-body-vs-wrapper-
+      canonical-2026-10`), and is idempotent: running it on a
+      tree with up-to-date digests is a no-op.
+
+scope:
+  paths:
+    - "decisions/constitution-header-3-3-update-2026-10.yaml"
+    - "decisions/dialectic-method-v3-2026-10.yaml"
+    - "decisions/enable-counters-drift-test-2026-10.yaml"
+    - "decisions/placeholder-sha-cleanup-2026-10.yaml"
+    - "decisions/re-eval-remediation-todo-fix-2026-10.yaml"
+    - "decisions/ux-3-adopt-detect-2026-10.yaml"
+    - "decisions/ux-3-adopt-real-arc42-2026-10.yaml"
+    - "decisions/ux-3-adopt-roadmap-2026-10.yaml"
+    - "decisions/ux-3-adopt-subcommand-2026-10.yaml"
+    - "decisions/ux-3-import-adr-parser-2026-10.yaml"
+    - "decisions/ux-3-import-adr-subcommand-2026-10.yaml"
+    - "decisions/ux-3-init-agent-skill-2026-10.yaml"
+    - "decisions/ux-3-init-subcommand-2026-10.yaml"
+    - "decisions/ux-3-mcp-read-write-2026-10.yaml"
+    - "decisions/ux-3-nfr3-cold-start-2026-10.yaml"
+    - "decisions/ux-3-telemetry-stub-2026-10.yaml"
+    - "decisions/audit-cleanup-2026-10.yaml"
+    - "decisions/considered-mode-migration-2026-10.yaml"
+    - "decisions/fix-curl-exit-code.yaml"
+    - "decisions/fix-mcp-sigpipe.yaml"
+    - "decisions/fix-validate-id.yaml"
+    - "decisions/paren-balance-fix-2026-10.yaml"
+    - "decisions/render-module-split-phase1a-2026-10.yaml"
+    - "decisions/render-module-split.yaml"
+    - "decisions/render-ordered-lists-2026-10.yaml"
+    - "decisions/mathc-self-check-subcommand.yaml"
+    - "decisions/yaml-block-scalars.yaml"
+    - "attestations/audit-cleanup-2026-10-w*.json"
+    - "scripts/recompute-decision-sha.py"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/diagnostic.ml"
+    - "lib/validate.ml"
+    - "schemas/decision.json"
+    - "lib/attestations/**"
+    - "lib/mcp/**"
+
+obligations:
+  - id: plan-document-exists
+    claim: |
+      `docs/plans/plan-2026-11-validation-cleanup-2026-10.md`
+      exists with §0–§10 filled.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: /home/az/Projects/math-coding/docs/plans/plan-2026-11-validation-cleanup-2026-10.md
+          result: pass
+        - verifier: mathc validate decisions/plan-2026-11-validation-cleanup-2026-10.yaml
+          result: pass
+
+  - id: a1-recompute-script
+    claim: |
+      `scripts/recompute-decision-sha.py` exists and computes
+      the canonical body_sha / yaml_sha via the
+      `body_canonical_sha256` algorithm (LF-normalised, then
+      placeholder-substituted, then SHA-256).
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: /home/az/Projects/math-coding/scripts/recompute-decision-sha.py
+          result: pass
+        - verifier: tests/cli/recompute-decision-sha.t
+          result: pass
+
+  - id: a1-sixteen-body-sha-fixed
+    claim: |
+      16 decisions previously emitting `MC-BODY-SHA-PATTERN-
+      VIOLATION` now parse-ok without that diagnostic. The
+      canonical digest matches the file's stored value (per
+      the fixed-point property of `body_canonical_sha256`).
+    acceptance:
+      all:
+        - verifier: shell-grep
+          needle: MC-BODY-SHA-PATTERN-VIOLATION
+          result: pass
+        - verifier: shell-grep
+          path: /home/az/Projects/math-coding/decisions/
+          needle: ^body_sha: \"sha256:[0-9a-f]{64}\"$
+          result: pass
+
+  - id: a2-audit-cleanup-axiom-link
+    claim: |
+      `decisions/audit-cleanup-2026-10.yaml` carries
+      `axiom_link:` with at least one axiom name (preferably
+      `[A0, A3]` given its defensive scope).
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: /home/az/Projects/math-coding/decisions/audit-cleanup-2026-10.yaml
+          needle: ^axiom_link:
+          result: pass
+        - verifier: mathc validate decisions/audit-cleanup-2026-10.yaml
+          result: pass
+
+  - id: a2-audit-cleanup-attestations-renewed
+    claim: |
+      The six Category-A attestations for `audit-cleanup-2026-10`
+      (w1-banner-version through w6-close-low-hanging-
+      attestations) carry SHA-256 ids that match the freshly-
+      authored YAML body_sha / yaml_sha after F11-A2 (the
+      residue of `273c3b2 attest: close 12 remaining plan-…-
+      adoption-fixes obligations` and Category A was preserved
+      by the algorithm because the bodies changed).
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+  - id: b-counterexamples-filled
+    claim: |
+      The 7 decisions previously emitting soft-warn
+      `MC-COUNTEREXAMPLE-MISSING` now carry either a synthetic
+      counterexample block (preferred) or `mode: minimal`
+      (fallback). Either path is parse-ok.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/considered-mode-migration-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/fix-curl-exit-code.yaml
+          result: pass
+        - verifier: mathc validate decisions/fix-mcp-sigpipe.yaml
+          result: pass
+        - verifier: mathc validate decisions/fix-validate-id.yaml
+          result: pass
+        - verifier: mathc validate decisions/paren-balance-fix-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/render-module-split-phase1a-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/render-module-split.yaml
+          result: pass
+
+  - id: c-acceptances-fixed
+    claim: |
+      The two decisions previously emitting soft-warn
+      `MC-MALFORMED-ACCEPTANCE` (mathc-self-check-subcommand
+      and yaml-block-scalars) now have parse-ok acceptance
+      items (either the malformed value is restored or the
+      obligation is annotated to skip).
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/mathc-self-check-subcommand.yaml
+          result: pass
+        - verifier: mathc validate decisions/yaml-block-scalars.yaml
+          result: pass
+
+  - id: full-validate-clean
+    claim: |
+      For every `decisions/*.yaml` whose `state: active`,
+      `mathc validate FILE` exits 0 with `parse-ok`.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: /home/az/Projects/math-coding/
+          needle: reject: decisions/
+          result: pass
+
+  - id: no-self-check-regression
+    claim: |
+      `mathc self-check` after the plan closes produces the
+      same 183 pass / 0 unknown verdict as the pre-plan
+      release/v3.3.2-2026-10. No new unknowns; no flipped
+      subjects.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+risk:
+  declared_triggers:
+    - digest-drift-after-edit
+    - audit-cleanup-attestations-id-mismatch
+    - counterexample-synthetic-text-inauthentic
+    - archived-decisions-validate-still-rejects
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - kernel-bugs-v3.4-2026-10@1
+    - dialectic-method-v3-2026-10@1
+    - plan-2026-11-adoption-fixes-2026-10@1
+    - audit-cleanup-2026-10@1
