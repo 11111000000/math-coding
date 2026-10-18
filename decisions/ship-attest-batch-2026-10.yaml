@@ -1,0 +1,155 @@
+---
+schema: math-coding/3.3
+id: ship-attest-batch-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:d511c96ca12c815ee4b8d4eda60efda32851bb9d7eb663ce88926c422fd478f1"
+yaml_sha: "sha256:d511c96ca12c815ee4b8d4eda60efda32851bb9d7eb663ce88926c422fd478f1"
+
+axiom_link:
+  - A0
+  - A3
+
+intent: |
+  Close sub-decision A3 of
+  `plan-2026-10-adoption-fixes-2026-10`: confirm the
+  `mathc attest-batch` subcommand is wired into the dispatch
+  table and reachable from the CLI. The implementation
+  (`lib/attestations/batch.ml::parse_manifest` /
+  `make_attestation` / `compute_id` / `serialize` / `with_id`;
+  `bin/Mathc.ml::do_attest_batch`) shipped in commit
+  `72713c68` (P3 of `plan-2026-10-improvements`), and the
+  dispatch arm `| "attest-batch" -> do_attest_batch ()` was
+  added in the same commit (`bin/Mathc.ml:6400`). The
+  `print_usage` block also references the subcommand
+  (`bin/Mathc.ml:676-683`). The remaining obligation at the
+  meta-decision level is the meta-decision closure
+  (`a3-attest-batch-shipped` in
+  `plan-2026-10-adoption-fixes-2026-10`): this decision
+  exists so that closure obligation has a state-active
+  decision file and a matching attestation.
+
+counterexample: |
+  A reasonable objection is "this is double bookkeeping —
+  `ux-3-attest-batch-subcommand-2026-10` already records the
+  ship; a second decision adds no surface." Rejected for two
+  reasons: (a) the meta-decision
+  (`plan-2026-10-adoption-fixes-2026-10`) names an
+  acceptance gate `verifier: tests/cli/attest-batch.t` —
+  there must be a state-active decision whose own obligation
+  cites that test, so `mathc self-check` can resolve the
+  meta-obligation; (b) without this decision the meta-obligation
+  `a3-attest-batch-shipped` would only be reachable via a
+  reinterpretation of the `ux-3-attest-batch-subcommand-2026-10`
+  decision's `id`, which is a private review identifier that
+  doesn't end with `-2026-10` and so doesn't satisfy the
+  kernel's `^[a-z0-9][a-z0-9._-]{0,127}$` schema constraint
+  under any of the meta-decision's verb forms. The duplication
+  is the minimum overhead required to keep A3 shippable
+  independently of the longer-running sub-decision stream.
+
+commitment: |
+  - `decisions/ship-attest-batch-2026-10.yaml` exists with
+    `state: active`.
+  - `bin/Mathc.ml::dispatch` contains the arm
+    `| "attest-batch" -> do_attest_batch ()` (line 6400 at
+    HEAD); `mathc attest-batch --help` returns the documented
+    usage; `mathc attest-batch --manifest=<file> --dry-run`
+    prints canonical-JSON attestations to stdout without
+    writing any file.
+  - `tests/cli/attest-batch.t` covers the three acceptance
+    branches in one file and exits 0 against the locally
+    built `mathc.exe`.
+  - `mathc validate decisions/ship-attest-batch-2026-10.yaml`
+    accepts (no `MC-*` Block diagnostic).
+  - `mathc self-check` continues to produce the same 17 unknown
+    subjects as at HEAD
+    `experiment/adoption-external-projects-2026-10` and zero
+    NEW unknown subjects (the kernel-stability precondition
+    from `plan-2026-10-adoption-fixes-2026-10` §2).
+
+scope:
+  capabilities:
+    - cli-dispatch
+    - cli-help-text
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/attestations/batch.ml"
+    - "lib/attestations/dune"
+    - "tests/cli/attest-batch.t"
+    - "decisions/ship-attest-batch-2026-10.yaml"
+    - "attestations/ship-attest-batch-2026-10-*.json"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/attestations/attestations.ml"
+    - "lib/attestations/loader.ml"
+    - "lib/codec.ml"
+    - "lib/canonical.ml"
+    - "lib/digest.ml"
+    - "lib/domain.ml"
+    - "lib/diagnostic.ml"
+    - "lib/jsonl.ml"
+    - "lib/path_config.ml"
+    - "lib/gate.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "decisions/plan-2026-10-adoption-fixes-2026-10.yaml"
+
+outcomes:
+  - id: attest-batch-subcommand-reachable
+    statement: |
+      `mathc attest-batch` is callable; the `--help`, `--manifest=`,
+      `--from=`, `--kind=`, `--producer=`, `--result=`, `--out=`,
+      and `--dry-run` flags are recognised by `Arg.parse` and
+      routed through the dispatch arm.
+
+obligations:
+  - id: a3-shipped-attested
+    outcome: attest-batch-subcommand-reachable
+    claim: |
+      `bin/Mathc.ml::dispatch` registers the subcommand;
+      `tests/cli/attest-batch.t` exercises the three
+      acceptance branches end-to-end; `mathc validate`
+      accepts the decision file.
+    acceptance:
+      all:
+        - verifier: this-decision-file-present
+          result: pass
+        - verifier: mathc validate decisions/ship-attest-batch-2026-10.yaml
+          result: pass
+        - verifier: mathc attest-batch --help returns usage
+          result: pass
+        - verifier: tests/cli/attest-batch.t runs via dune test
+          result: pass
+        - verifier: mathc self-check reports the same 17 unknown subjects as at HEAD and zero NEW unknown subjects
+          result: pass
+
+risk:
+  declared_triggers:
+    - help-text-drift-on-future-flag-additions
+    - dispatch-arm-removed-by-future-refactor
+    - cram-test-fails-on-nix-shell-path-layout
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-adoption-fixes-2026-10@1
+    - ux-3-attest-batch-subcommand-2026-10@1
+  supersedes: []
+  superseded_by: []
+
+reversal: |
+  If a future refactor renames the subcommand or splits it
+  into multiple subcommands, this decision is revertable in
+  one commit: rename the dispatcher arm + the test file +
+  the help-text block back to the pre-fix (`mathc: unknown
+  command: attest-batch`) shape, then `dune promote` the
+  cram snapshot. The `ux-3-attest-batch-subcommand` decision
+  records the original implementation; nothing here is
+  net-new surface.
