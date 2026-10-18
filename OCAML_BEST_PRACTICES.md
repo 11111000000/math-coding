@@ -2491,3 +2491,37 @@ hook его больше не enforce'ит.
 **Referenced from.** `AGENTS.md` §Edit-loop prevention;
 `decisions/process-principles.yaml` obligation `P8`;
 `decisions/p8-hook-deficit-2026-10.yaml`.
+
+### 11.40 `mathc_mcp` shell-out deadlocks when child stdout > 64 KiB
+
+**Symptom.** `mathc_mcp` (the MCP JSON-RPC server) hangs forever on
+a `mathc/packages` request. In `ps` the symptom is a
+`mathc packages --format=json` child blocked in `pipe_write` while
+its `mathc_mcp` parent blocks in `pipe_read`. Over a long session
+~24 `mathc_mcp` + ~26 `mathc packages` + ~6 `dune_cram_*.main.sh`
+processes accumulated, each stuck 40 min–17 h.
+
+**Root cause.** `lib/mcp/dispatch.ml::run_with_args` drained the
+child's stdout and stderr with two blocking `Unix.read` calls per
+loop iteration. `mathc packages --format=json` grew past the 64 KiB
+pipe buffer (187 KiB at 189 decisions / 1286 attestations). The
+child then blocked on `pipe_write(stdout)` while the parent blocked
+on `pipe_read(stderr)` — a classic pipe-buffer deadlock. The
+function comment's assumption ("mathc subcommands emit kilobytes,
+not megs") no longer holds.
+
+**Fix.** `run_with_args` now multiplexes the two read ends with
+`Unix.select` (`[stdout_rd; stderr_rd]` minus already-drained ends)
+so whichever end is ready is read first. The loop cannot deadlock
+on a full pipe. Decision `fix-mcp-pipe-deadlock-2026-10`.
+
+**Repro (pre-fix).**
+```sh
+printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"mathc/packages","params":{}}' \
+  | MATH_CODING_DECISIONS_DIR=decisions MATH_CODING_ATTESTATIONS_DIR=attestations \
+      mathc_mcp 2>/dev/null
+# hangs; expected: {"id":1,"jsonrpc":"2.0","result":{...}}
+```
+
+**Referenced from.** `tests/cli/mcp-packages-large-output.t`;
+`decisions/fix-mcp-pipe-deadlock-2026-10.yaml`.

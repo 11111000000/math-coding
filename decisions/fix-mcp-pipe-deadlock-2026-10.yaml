@@ -1,0 +1,112 @@
+---
+schema: math-coding/3.3
+id: fix-mcp-pipe-deadlock-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Fix a pipe-buffer deadlock in `lib/mcp/dispatch.ml::run_with_args`.
+  The prior implementation drained the child's stdout and stderr with
+  two blocking `Unix.read` calls per loop iteration. When the child's
+  stdout exceeded the 64 KiB pipe buffer — which `mathc packages
+  --format=json` now does (187 KiB at 189 decisions / 1286
+  attestations) — the child blocked on pipe_write(stdout) while the
+  parent blocked on pipe_read(stderr): a deadlock. Every MCP
+  `mathc/packages` call, and every cram test that routed a
+  `mathc/packages` (or `mathc/gate`, which shells out to `mathc
+  packages`) request through `mathc_mcp`, hung indefinitely.
+  Symptom observed 2026-10-18: ~24 `mathc_mcp` + ~26 `mathc packages
+  --format=json` + ~6 `dune_cram_*.main.sh` processes accumulated,
+  each blocked 40 min to 17 h.
+
+commitment: |
+  `run_with_args` drains stdout and stderr concurrently via
+  `Unix.select`, so the parent never blocks reading an empty pipe
+  while the child blocks writing a full pipe. The two 64 KiB pipe
+  buffers are multiplexed: whichever end is ready is read first.
+  No other call site changes; the `outcome` shape (exit_code /
+  stdout / stderr_tail) and the `max_bytes` (16 MiB) cap are
+  unchanged.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  The strongest objection: "the correct fix is to shrink `mathc
+  packages --format=json` so it never exceeds the pipe buffer, not
+  to make `run_with_args` robust to arbitrarily large output."
+  Acknowledged: shrinking the payload is a worthwhile, separate
+  hardening (a `--limit` / streaming flag on `mathc packages`), but
+  the subprocess drain is *correct* to fix regardless — any child
+  whose combined stdout+stderr exceeds 64 KiB deadlocks under the
+  old code, so the multiplexed drain is the load-bearing invariant.
+  `select` adds no measurable latency for the kilobyte-scale
+  subcommands the comment already anticipated.
+
+outcomes:
+  - id: mcp-packages-no-deadlock
+    statement: |
+      A `mathc/packages` request through `mathc_mcp` returns within
+      seconds (exit 0) on a tree where `mathc packages
+      --format=json` emits > 64 KiB, instead of hanging.
+
+scope:
+  paths:
+    - "lib/mcp/dispatch.ml"
+    - "tests/cli/mcp-packages-large-output.t"
+    - "OCAML_BEST_PRACTICES.md"
+  exclusions:
+    - "lib/decision.ml"
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+
+obligations:
+  - id: select-drain-replaces-blocking-reads
+    claim: |
+      `run_with_args` uses `Unix.select` over `[stdout_rd;
+      stderr_rd]` (minus drained ends) instead of the prior
+      two-blocking-read pattern. A grep for the old pattern in
+      `lib/mcp/dispatch.ml` shows no sequential `Unix.read stdout`
+      then `Unix.read stderr` inside a `while` without select.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: /home/az/Projects/math-coding/lib/mcp/dispatch.ml
+          needle: Unix.select
+          result: pass
+
+  - id: large-output-no-deadlock
+    claim: |
+      A cram test `tests/cli/mcp-packages-large-output.t` routes
+      a `mathc/packages` request through `mathc_mcp` under
+      `timeout 30` and asserts the response carries an `id` field
+      (i.e. the server returned instead of hanging).
+    acceptance:
+      all:
+        - verifier: tests/cli/mcp-packages-large-output.t
+          result: pass
+
+  - id: no-new-unknowns
+    claim: |
+      `mathc self-check` returns the same 189 pass / 0 unknown as
+      the pre-fix release/v3.3.2-2026-10@d481e38 (+1 for this
+      decision itself = 190 total, all pass).
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+risk:
+  declared_triggers:
+    - select-timeout-none-child-hangs-forever
+    - max-bytes-cap-drops-tail-still
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - mcp-server-impl-2026-10@1

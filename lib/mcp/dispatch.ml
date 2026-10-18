@@ -125,24 +125,42 @@ let run_with_args (program : string) (argv : string list) : outcome =
   let buf_err = Bytes.create 1024 in
   let drained_out = ref false in
   let drained_err = ref false in
+  (* Drain BOTH pipes concurrently via Unix.select.
+     The prior implementation did one blocking Unix.read on
+     stdout then one on stderr each loop. When a child's
+     stdout exceeds the pipe buffer (64 KiB) — as `mathc
+     packages --format=json` does once the decision +
+     attestation store passes ~1k files (187 KiB at 189
+     decisions / 1286 attestations) — the child blocks on
+     pipe_write(stdout) while the parent blocks on
+     pipe_read(stderr): a pipe-buffer deadlock. select()
+     multiplexes so whichever end is ready is drained first,
+     and the loop can never deadlock on a full pipe.
+     Trapped as OCAML_BEST_PRACTICES §11.38. *)
   while not (!drained_out && !drained_err) do
-    if not !drained_out then begin
+    let read_fds =
+      (if !drained_out then [] else [ stdout_rd ])
+      @ if !drained_err then [] else [ stderr_rd ]
+    in
+    let ready, _, _ = Unix.select read_fds [] [] (-1.0) in
+    let is_ready fd = List.exists (fun r -> r = fd) ready in
+    if not !drained_out && is_ready stdout_rd then begin
       let n =
         try Unix.read stdout_rd buf_out 0 (Bytes.length buf_out) with _ -> 0
       in
       if n = 0 then drained_out := true
-      else if Buffer.length stdout < max_bytes then begin
-        Buffer.add_subbytes stdout buf_out 0 (min n (max_bytes - Buffer.length stdout))
-      end
+      else if Buffer.length stdout < max_bytes then
+        Buffer.add_subbytes stdout buf_out 0
+          (min n (max_bytes - Buffer.length stdout))
     end;
-    if not !drained_err then begin
+    if not !drained_err && is_ready stderr_rd then begin
       let n =
         try Unix.read stderr_rd buf_err 0 (Bytes.length buf_err) with _ -> 0
       in
       if n = 0 then drained_err := true
-      else if Buffer.length stderr < max_bytes then begin
-        Buffer.add_subbytes stderr buf_err 0 (min n (max_bytes - Buffer.length stderr))
-      end
+      else if Buffer.length stderr < max_bytes then
+        Buffer.add_subbytes stderr buf_err 0
+          (min n (max_bytes - Buffer.length stderr))
     end
   done;
   Unix.close stdout_rd;
