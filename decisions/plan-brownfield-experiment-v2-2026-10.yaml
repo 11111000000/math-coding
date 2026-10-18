@@ -1,0 +1,312 @@
+---
+schema: math-coding/3.3
+id: plan-brownfield-experiment-v2-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Plan a brownfield-targeted follow-up experiment to the 2026-10-17
+  adoption experiment
+  (`docs/experiments/adoption-2026-10.md`). The original experiment
+  did not exercise math-coding's brownfield path — its §10.7
+  methodology correction called this out and named R8 ("pick projects
+  that actually exercise the brownfield path") as a future
+  experiment. This decision records the design of that follow-up.
+
+  The v2 experiment picks five projects that empirically ship ADRs
+  in-tree (verified via `git ls-tree --name-only -r HEAD` over
+  shallow clones in `/tmp/brownfield-v2-verify/`; see the
+  verification log preserved in this worktree's audit trail).
+  It exercises the brownfield path
+  (`mathc adopt` → `mathc import-adr` → `mathc validate`) end-to-end
+  on each, with detection-recall / detection-precision and
+  import-fidelity as the primary signals.
+
+  The plan is a planning artifact. Execution is a separate future
+  worktree, gated on three prior-decision merges
+  (`ux-3-adopt-subcommand-2026-10@1`,
+  `ux-3-import-adr-subcommand-2026-10@1`, plus the A1/A3/B1
+  sub-decisions from `plan-2026-10-adoption-fixes-2026-10`). The
+  plan does not modify any kernel file.
+
+  Boundaries (A3 self-application):
+  - This decision is META: no kernel surface change.
+  - `lib/`, `bin/`, `spec/`, `schemas/`, `axioms/`,
+    `scripts/install-tooling/` are unchanged by this decision
+    (only by the A1 / A3 / B1 / `ux-3-*` sub-decisions when they
+    land).
+  - The verification log at
+    `/tmp/brownfield-v2-verify/verify.log` is a temporary
+    artifact outside this repo; it is read-only evidence for
+    the project picks in §4 of the experiment document and is
+    removed after the planning commit lands.
+  - No external project is modified by this plan or its
+    execution. The shallow clones under `/tmp/brownfield-v2-verify/`
+    are read-only.
+
+commitment: |
+  One planning commitment, documented in `outcomes:` below.
+  Three deliverables are pinned by acceptance tests:
+
+    D1. `docs/experiments/brownfield-experiment-v2-2026-10.md`
+        exists with the experiment design (methodology, hypotheses,
+        metric template, project picks, friction taxonomy using the
+        C1 revision, procedure, risks, results placeholders).
+
+    D2. Five candidate projects are empirically verified to ship
+        ADRs in-tree (verified by `git ls-tree --name-only -r HEAD`
+        over shallow clones; see the verify log). The verification
+        log is captured as part of the planning artifact's audit
+        trail, not as a tracked file in this repo.
+
+    D3. `mathc validate
+        decisions/plan-brownfield-experiment-v2-2026-10.yaml`
+        exits 0 (the planning decision itself passes validation).
+
+  Boundaries (A3 self-application):
+  - This decision is META: no kernel surface change.
+  - The experiment document is the only `docs/` artefact produced.
+  - No `lib/`, `bin/`, `spec/`, `schemas/`, `axioms/` file is
+    touched by this decision or by the experiment it plans.
+  - The brownfield-experiment v2 *execution* (running the 15
+    sub-agents) is **not** in this plan's scope; it is a separate
+    future worktree gated on the prior-decision merges noted in
+    `intent:` above.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+counterexample: |
+  The counter-position considered and rejected: "Brownfield
+  adoption is rare in practice; the original experiment's H2
+  inconclusive verdict means `mathc adopt` is unused, so
+  planning a follow-up experiment is gold-plating." Rejected
+  on four grounds. (a) The original H2 was inconclusive
+  precisely *because* the experiment did not pick projects
+  that exercise the path — the inconclusive verdict is a
+  methodology finding, not a usage finding. (b) The
+  `ux-3-adopt-roadmap-2026-10@1` planning decision
+  (`decisions/ux-3-adopt-roadmap-2026-10.yaml`) explicitly
+  scoped the brownfield work as a Phase 3 workstream with a
+  separate planning step; planning v2 of the experiment is
+  the realisation of that step. (c) The verification in this
+  plan's §4 found ≥ 3 of the original §10.7 candidates do
+  not ship ADRs at HEAD, which means the original §10.7 list
+  was speculative; v2's plan is the first to ground the
+  brownfield project list in empirical verification. (d) The
+  math-coding decision YAML body of
+  `ux-3-import-adr-parser-2026-10@1` already noted that the
+  parser's best-effort nature is documented only in
+  `lib/import_adr/import_adr.ml`'s header comment — a future
+  user-experience gap that v2 of the experiment is designed
+  to measure.
+
+  A second counter-position: "Five projects is too few for a
+  brownfield experiment; pick 10." Rejected on two grounds:
+  (a) the original experiment's selection §4.4 (replacement
+  rule + backup list) makes 5 the right sample size; (b)
+  adding 5 more projects dilutes the per-project signal
+  without exercising new branches of the parser (the parser's
+  3 source-kind branches are exercised by 3 of the 5 picks;
+  the remaining 2 picks test the detector's `madr_files` /
+  `adrtools_files` precision and a custom-format fallback).
+
+scope:
+  capabilities:
+    - brownfield-experiment-design
+    - mathc-adopt-detection-coverage
+    - mathc-import-adr-fidelity-measurement
+  paths:
+    - "docs/experiments/brownfield-experiment-v2-2026-10.md"
+    - "decisions/plan-brownfield-experiment-v2-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "scripts/install-tooling/**"
+    - "decisions/decision.yaml"
+    - "decisions/ux-3-adopt-roadmap-2026-10.yaml"
+    - "decisions/ux-3-adopt-detect-2026-10.yaml"
+    - "decisions/ux-3-import-adr-parser-2026-10.yaml"
+    - "decisions/ux-3-import-adr-subcommand-2026-10.yaml"
+    - "decisions/ux-3-adopt-subcommand-2026-10.yaml"
+    - "decisions/ux-3-adopt-real-arc42-2026-10.yaml"
+    - "decisions/plan-2026-10-adoption-fixes-2026-10.yaml"
+    - "decisions/adoption-experiment-design-2026-10.yaml"
+    - "decisions/adoption-experiment-results-2026-10.yaml"
+
+outcomes:
+  - id: experiment-design-recorded
+    statement: |
+      The experiment design document
+      `docs/experiments/brownfield-experiment-v2-2026-10.md`
+      exists with §0-§13 filled (or with §10/§11/§13 marked
+      "filled in after Phase 3" if the experiment has not yet
+      executed — which is the case for this planning commit).
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/plan-brownfield-experiment-v2-2026-10.yaml`
+      exits 0.
+
+assumptions:
+  - id: brownfield-clients-active
+    state: assumed
+    statement: |
+      At least one of the five picked projects exercises a
+      different branch of `lib/import_adr/import_adr.ml`'s
+      parser (MADR with frontmatter / MADR with `## Status` /
+      adr-tools-Nygard / custom), so the experiment's BH2
+      hypothesis has at least 4 distinct observations.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the format diversity claim is wrong (e.g. all 5 picks
+      end up MADR), BH2 is exercised on only one parser branch
+      and the experiment's signal is narrower than designed.
+      Resolution: substitute from the backup list to recover
+      format diversity.
+    review_on:
+      - signal: format-diversity-not-realised
+  - id: prior-decisions-merge-first
+    state: assumed
+    statement: |
+      The `ux-3-adopt-subcommand-2026-10@1`,
+      `ux-3-import-adr-subcommand-2026-10@1`, and A1/A3/B1
+      sub-decisions from `plan-2026-10-adoption-fixes-2026-10`
+      merge to main **before** this experiment executes. Without
+      these merges, the brownfield path is a no-op stub and the
+      experiment cannot measure what it is designed to measure.
+    owner: human:maintainer
+    consequence_if_false: |
+      If any of the four prior decisions is unmerged at
+      execution time, the experiment is **deferred** (per §8
+      Phase 0) until the missing decision lands. Resolution:
+      Phase 0 is the gate; sub-agents are not launched until
+      Phase 0 confirms all four merges.
+    review_on:
+      - signal: prior-decision-unmerged
+  - id: shallow-clone-sufficient
+    state: assumed
+    statement: |
+      A `git clone --depth=1` of each picked project is
+      sufficient to verify the project's ADR tree at HEAD
+      (no specific ADR is referenced by a tag, branch, or
+      previous commit in the v2 plan).
+    owner: human:maintainer
+    consequence_if_false: |
+      If an ADR only exists in a non-HEAD commit (e.g. a
+      deleted or moved tree), the verification misses it.
+      Resolution: Phase 1 re-verifies each project's ADR
+      path immediately before sub-agents run.
+    review_on:
+      - signal: adr-not-at-head
+
+obligations:
+  - id: experiment-design-exists
+    outcome: experiment-design-recorded
+    claim: |
+      `docs/experiments/brownfield-experiment-v2-2026-10.md`
+      exists with §0-§9 filled and §10/§11/§13 marked
+      "filled in after Phase 3" (the experiment has not yet
+      executed).
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: /home/az/.paseo/worktrees/math-coding/plan-brownfield-experiment-v2/docs/experiments/brownfield-experiment-v2-2026-10.md
+          result: pass
+        - verifier: mathc validate decisions/plan-brownfield-experiment-v2-2026-10.yaml
+          result: pass
+
+  - id: this-decision-validates
+    outcome: this-decision-validates
+    claim: |
+      `mathc validate
+      decisions/plan-brownfield-experiment-v2-2026-10.yaml`
+      exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/plan-brownfield-experiment-v2-2026-10.yaml
+          result: pass
+
+  - id: no-kernel-changes-by-this-plan
+    claim: |
+      This plan does not modify any file in `lib/`, `bin/`,
+      `spec/`, `schemas/`, `axioms/`, `scripts/install-tooling/`,
+      `decisions/decision.yaml`. Verified by `git diff main --stat`
+      on the planning commit showing only additions under
+      `docs/experiments/brownfield-experiment-v2-2026-10.md`
+      and `decisions/plan-brownfield-experiment-v2-2026-10.yaml`.
+    acceptance:
+      all:
+        - verifier: git-no-paths
+          repo: /home/az/.paseo/worktrees/math-coding/plan-brownfield-experiment-v2
+          base: plan/adoption-fixes-2026-10
+          forbidden_paths:
+            - "lib/**"
+            - "bin/**"
+            - "spec/**"
+            - "schemas/**"
+            - "axioms/**"
+            - "scripts/install-tooling/**"
+            - "decisions/decision.yaml"
+            - "decisions/ux-3-*"
+            - "decisions/plan-2026-10-adoption-fixes-2026-10.yaml"
+            - "decisions/adoption-experiment-design-2026-10.yaml"
+            - "decisions/adoption-experiment-results-2026-10.yaml"
+          result: pass
+
+reversal:
+  - signal: plan-superseded
+    condition: |
+      A successor plan (e.g. `plan-2026-11-brownfield-experiment-v2`)
+      is recorded with `supersedes:
+      [plan-brownfield-experiment-v2-2026-10@1]`. Resolution:
+      this decision is moved to `state: archived`; the
+      successor inherits the experiment design and the
+      execution work.
+    action: supersede-with-successor
+  - signal: prior-decisions-not-merging
+    condition: |
+      The four prior decisions (`ux-3-adopt-subcommand-2026-10`,
+      `ux-3-import-adr-subcommand-2026-10`, A1, A3, B1) are
+      not merging to main within 2026-Q4. Resolution: this
+      plan's `state` moves to `archived` with a note that
+      brownfield execution is deferred to a successor plan;
+      the experiment design document is preserved as a
+      reference for whenever the prior decisions land.
+    action: archive
+  - signal: format-diversity-not-realised
+    condition: |
+      The format diversity assumed under
+      `assumptions.brownfield-clients-active` does not
+      materialise (all 5 picks end up MADR). Resolution:
+      the §4 selection is revised; backup-list candidates
+      are substituted; the experiment design is re-validated.
+    action: rework
+
+risk:
+  declared_triggers:
+    - format-diversity-not-realised
+    - prior-decision-unmerged
+    - adr-not-at-head
+    - kernel-regression
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-10-adoption-fixes-2026-10@1
+    - adoption-experiment-design-2026-10@1
+    - adoption-experiment-results-2026-10@1
+    - ux-3-adopt-roadmap-2026-10@1
+    - ux-3-adopt-detect-2026-10@1
+    - ux-3-import-adr-parser-2026-10@1
+  supersedes: []
+  superseded_by: []
