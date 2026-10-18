@@ -1,0 +1,190 @@
+---
+schema: math-coding/3.3
+id: verify-sandbox-hardening-2026-11
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Close the F9 finding from
+  `docs/experiments/discriminator-f9-f12-2026-10.yaml`:
+  the `mathc verify` subcommand shipped in
+  `add-verify-subcommand-2026-10` (B1) lacks OS-level
+  sandboxing. A maliciously-crafted decision YAML — for
+  example one imported via `mathc import-adr` during
+  brownfield bootstrap, or one run by an agent that
+  does not personally author verifier strings — can
+  trigger write-capable `mathc` subcommands
+  (`init`, `new-decision --write`, `import-adr --write`,
+  `attest-batch`) or read arbitrary file paths via
+  `file-exists` / `dir-exists` one-bit oracle.
+
+commitment: |
+  `mathc verify --sandbox=<mode> <file>` introduces
+  three modes — `none | minimal | strict` — controlled
+  by the new `MATH_CODING_VERIFY_SANDBOX` env var.
+  Default is `none` for back-compat with the original
+  B1 acceptance criteria. In `strict` mode, the child
+  process drops capabilities (best-effort `capset(2)`
+  on Linux), calls `prctl(PR_SET_NO_NEW_PRIVS, 1)`,
+  applies RLIMITs (CPU=60s, NPROC=1, NOFILE=64,
+  FSIZE=target_max), and refuses write-capable
+  `mathc` scheme subcommands. The `mathc` scheme
+  allowlist is restricted to read-only subcommands:
+  `validate`, `assess`, `find`, `self-check`,
+  `explain`, `explain-diagnostic`, `context`,
+  `packages`. macOS keeps `none`-equivalent
+  behaviour (no `prctl`/`capset`); the strict mode
+  prints a one-line warning on macOS.
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+counterexample: |
+  Resisting a counter-position: "default should be
+  `strict`, not `none`, because `none` matches the
+  pre-existing execution model that F9 found to be
+  insecure by design. Operators who follow the
+  brownfield experiment's Phase 0 will rely on
+  `mathc verify` to import ADRs that they did not
+  author, and `none` is not safe in that threat
+  model." Acknowledged: the `none` default is a
+  back-compat decision tracked in
+  `decisions/add-verify-subcommand-2026-10.yaml` §"Acceptance".
+  Operators who run `mathc verify` on third-party
+  decisions MUST set `MATH_CODING_VERIFY_SANDBOX=strict`
+  explicitly. This is documented in the help text and
+  in the AGENTS.md sandbox warning. The follow-up plan
+  `plan-2026-12-adoption-fixes` (post-plan §13) considers
+  whether `minimal` should become the new default
+  after one or two release cycles.
+
+  A second counter-position: "`strict` mode is
+  Linux-only and breaks macOS operators." Acknowledged:
+  `prctl(PR_SET_NO_NEW_PRIVS, 1)` and `capset(2)` are
+  Linux-specific. macOS users keep `none` only; the
+  strict flag emits a one-line warning on non-Linux
+  platforms and exits with the same result as `none`.
+  This is documented as a platform limitation, not a
+  silent failure.
+
+outcomes:
+  - id: mathc-verify-sandbox
+    statement: |
+      `mathc verify --sandbox=strict <file>` applies
+      prctl + capability drop + RLIMITs + mathc-scheme
+      allowlist before `Unix.execve`. Operators who
+      run `mathc verify` on third-party YAML MUST set
+      `MATH_CODING_VERIFY_SANDBOX=strict` for the
+      duration of the verify call.
+
+scope:
+  capabilities:
+    - verify-subcommand
+    - sandbox-hardening
+    - mathc-scheme-allowlist
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/path_config.ml"
+    - "tests/cli/verify-sandbox.t"
+    - "decisions/verify-sandbox-hardening-2026-11.yaml"
+    - "attestations/verify-sandbox-hardening-2026-11-*.json"
+  exclusions:
+    - "lib/attestations/**"
+    - "lib/mcp/**"
+    - "decisions/decision.yaml"
+    - "schemas/**"
+
+obligations:
+  - id: a1-env-var-resolver
+    claim: |
+      `lib/path_config.ml::resolve_sandbox_mode ()`
+      returns one of `none | minimal | strict` based
+      on `MATH_CODING_VERIFY_SANDBOX` (default `none`).
+    acceptance:
+      all:
+        - verifier: tests/cli/verify-sandbox-env.t
+          result: pass
+
+  - id: a1-strict-prctl-no-new-privs
+    claim: |
+      In `strict` mode, before `Unix.execve`, the
+      child process calls `prctl(PR_SET_NO_NEW_PRIVS, 1)`
+      on Linux. On non-Linux, prints a one-line warning
+      and falls back to `none`-equivalent.
+    acceptance:
+      all:
+        - verifier: tests/cli/verify-sandbox-prctl.t
+          result: pass
+
+  - id: a1-strict-cap-drop
+    claim: |
+      In `strict` mode, the child process drops
+      ambient capabilities via `capset(2)` (best-effort
+      on Linux).
+    acceptance:
+      all:
+        - verifier: tests/cli/verify-sandbox-capset.t
+          result: pass
+
+  - id: a1-strict-rlimits
+    claim: |
+      In `strict` mode, the child process applies
+      RLIMITs: CPU=60s (already in B1), NPROC=1,
+      NOFILE=64, FSIZE=target_max.
+    acceptance:
+      all:
+        - verifier: tests/cli/verify-sandbox-rlimits.t
+          result: pass
+
+  - id: a1-strict-mathc-scheme-deny
+    claim: |
+      In `strict` mode, the `mathc` scheme refuses
+      subcommands not in the read-only allowlist
+      (`validate`, `assess`, `find`, `self-check`,
+      `explain`, `explain-diagnostic`, `context`,
+      `packages`) and emits a Skipped verdict with
+      reason `sandbox-strict-mathc-deny`.
+    acceptance:
+      all:
+        - verifier: tests/cli/verify-sandbox-mathc-allowlist.t
+          result: pass
+
+  - id: a1-no-new-unknowns
+    claim: |
+      `mathc self-check` after the change returns
+      the same 181 pre-existing subjects at the
+      same `verdict: pass` and zero NEW unknowns.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+  - id: a1-default-none-doc-help
+    claim: |
+      `mathc verify --help` text documents
+      `--sandbox` and the env var with back-compat
+      default `none`.
+    acceptance:
+      all:
+        - verifier: mathc-help-text-verifies-sandbox
+          result: pass
+
+risk:
+  declared_triggers:
+    - macos-strict-degrades-silently
+    - rl-no-file-cap-blocks-templating-test-fixtures
+    - mathc-scheme-allowlist-too-narrow-blocks-existing-tests
+    - capset-fails-on-old-kernels-no-new-attestation
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-11-adoption-fixes-2026-10@1
+    - add-verify-subcommand-2026-10@1
