@@ -1,0 +1,148 @@
+---
+schema: math-coding/3.3
+id: scripts-env-var-audit-2026-11
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:a64da08b621d3a2f43111c651505df84b27ed3cc88ec9dc22c94cf83ec0d5561"
+yaml_sha: "sha256:a64da08b621d3a2f43111c651505df84b27ed3cc88ec9dc22c94cf83ec0d5561"
+
+intent: |
+  Close the B2 sub-decision of
+  `plan-2026-11-adoption-fixes-2026-10` §4 (R5-continuation):
+  `scripts/axiom-link-seed.py` and
+  `scripts/counterexample-seed.py` write to math-coding's own
+  tree and ignore `MATH_CODING_DECISIONS_DIR`. Add env-var
+  support matching the kernel's behaviour (P-F11-A4 baseline
+  established by `fix-generate-attestations-env-2026-10`).
+
+commitment: |
+  Both scripts honour the env-var precedence
+  `MATH_CODING_DECISIONS_DIR` > `<repo_root>/decisions`, where
+  `repo_root` defaults to
+  `Path(__file__).resolve().parent.parent`. The default fallback
+  matches the kernel's three-tier resolver at
+  `lib/path_config.ml::resolve_decisions_dir` so a user who
+  exports one of `MATH_CODING_DECISIONS_DIR=.math-coding/decisions`
+  is honoured by both Python and OCaml sides. Idempotency is
+  preserved: running each script twice with the same env still
+  produces identical output.
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+counterexample: |
+  Resisting a counter-position: "the scripts only ever run
+  against this repository's own `decisions/` tree, so
+  env-var support is over-engineering." Acknowledged:
+  the canonical use-case is local dogfooding, but the same
+  scripts are reused in adoption experiments where the
+  target project routes its decisions tree via
+  `MATH_CODING_DECISIONS_DIR=.math-coding/decisions` (per
+  `docs/experiments/adoption-2026-10.md` §10.5 #1, #2, #3,
+  reproduced in 5 of 5 project reports). Without env-var
+  awareness, the scripts silently mutate the host checkout's
+  `decisions/` instead of the experiment target's
+  `.math-coding/decisions/`.
+
+  A second counter-position: "extending the precedence to
+  three tiers (env > .math-coding/decisions > decisions)
+  matches the kernel and is the cleaner fix." Rejected for
+  this slice: the Python scripts have no `mathc init`
+  integration, so the `.math-coding/` default-discovery
+  fallback would be acting on a directory the user never
+  asked the script to look at. The two-tier precedence
+  (env > `<repo_root>/decisions`) keeps each script's blast
+  radius bounded to its own repo checkout unless the user
+  explicitly opts in via the env var, matching
+  `scripts/generate-attestations.py` (F11-A4 reference impl).
+
+scope:
+  capabilities:
+    - python-script-env-vars
+    - axiom-link-seed
+    - counterexample-seed
+  paths:
+    - "scripts/axiom-link-seed.py"
+    - "scripts/counterexample-seed.py"
+    - "tests/cli/scripts-env-var.t"
+    - "decisions/scripts-env-var-audit-2026-11.yaml"
+    - "attestations/scripts-env-var-audit-2026-11-*.json"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "lib/attestations/**"
+    - "lib/mcp/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: python-scripts-honour-env-var
+    statement: |
+      Both Python scripts (`axiom-link-seed.py`,
+      `counterexample-seed.py`) read `MATH_CODING_DECISIONS_DIR`
+      and default to `<repo_root>/decisions` when unset. The
+      cram fixture verifies both branches in 2-3 seconds.
+
+obligations:
+  - id: b2-axiom-link-seed-env-aware
+    claim: |
+      `scripts/axiom-link-seed.py` reads
+      `MATH_CODING_DECISIONS_DIR` and writes sweep output
+      there; default remains `<repo_root>/decisions`. Idempotency
+      is preserved.
+    acceptance:
+      all:
+        - verifier: tests/cli/scripts-env-var.t
+          result: pass
+
+  - id: b2-counterexample-seed-env-aware
+    claim: |
+      `scripts/counterexample-seed.py` reads
+      `MATH_CODING_DECISIONS_DIR` and writes sweep output
+      there; default remains `<repo_root>/decisions`.
+      Idempotency is preserved.
+    acceptance:
+      all:
+        - verifier: tests/cli/scripts-env-var.t
+          result: pass
+
+  - id: b2-no-new-unknowns
+    claim: |
+      `mathc self-check` after the change returns the same
+      pre-existing unknown subjects as before and zero NEW
+      unknowns attributable to this decision.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+  - id: b2-cram-tests-exit-0
+    claim: |
+      `dune build @tests/cli/runtest` runs
+      `tests/cli/scripts-env-var.t` and exits 0 (both
+      env-var-routed cases for `axiom-link-seed.py` and
+      `counterexample-seed.py`).
+    acceptance:
+      all:
+        - verifier: shell-grep
+          needle: "exit \\[101\\]|cram.*fail|Failed"
+          result: pass
+
+risk:
+  declared_triggers:
+    - silent-write-to-wrong-decisions-tree
+    - env-var-not-honored-on-second-pass
+    - default-fallback-divergence-from-kernel
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - fix-generate-attestations-env-2026-10@1
+    - plan-2026-11-adoption-fixes-2026-10@1
+  superseded_by: []
+  supersedes: []

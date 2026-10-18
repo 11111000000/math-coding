@@ -1,0 +1,153 @@
+---
+schema: math-coding/3.3
+id: attestation-namespace-meta-2026-11
+revision: 1
+state: active
+mode: minimal
+change_kind: editorial
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  Codify the rule that plan-decision attestation filenames are
+  reserved for plan-decision attestations only. Sub-decisions may
+  not share the same filename stem as the plan-decision they
+  belong to. The rule lives in a reusable sub-agent prompt
+  template (`docs/plans/plan-sub-agent-prompt-2026-11.md`) so
+  future plan-doc authors can copy it without rediscovering the
+  conflict.
+
+  Why now: a plan-decision with several sub-decisions will
+  produce plan-meta attestations under the
+  `attestations/plan-<id>-<obligation>.json` filename stem, and
+  each sub-decision's own obligations produce attestations under
+  `attestations/<sub-decision-id>-<obligation>.json`. When a
+  sub-agent reuses the plan-decision's filename stem for its own
+  obligations, `mathc packages` and any per-(decision,
+  obligation) listing become ambiguous: which obligation belongs
+  to which decision? The kernel's id-collision algorithm in
+  `lib/attestations/` de-duplicates on first occurrence. The
+  ambiguity is correctness-shaped, not just stylistic.
+
+  Boundaries:
+    - This commit does NOT change `lib/`, `bin/Mathc.ml`,
+      `schemas/`, or `axioms/`. It is documentation-only.
+    - This commit does NOT retro-rename existing attestations.
+      Re-naming would invalidate SHA-256 ids and require
+      re-stamping; that is a separate plan-decision.
+    - The codified rule applies prospectively to plan-decisions
+      authored after this commit lands.
+
+commitment: |
+  After this commit lands, the prompt template
+  `docs/plans/plan-sub-agent-prompt-2026-11.md` exists and
+  carries the attestation-namespace rule, the three
+  sub-section guidance blocks (A. P9 empty-scaffold, C. reorder
+  principle, D. atomic commits), the F11-B "deferred-to-followup"
+  waiver pointer, and the Conventional-Commits commit-message
+  note. Future plan-doc authors who reach for a sub-agent
+  prompt template can copy from this file.
+
+counterexample: |
+  The strongest argument against codifying this rule:
+  "no collision has been observed; codification is premature."
+  Rejected on three grounds. (a) The kernel's
+  id-collision algorithm in `lib/attestations/` is
+  occurrence-order-dependent: it de-duplicates on first
+  occurrence without warning, so a silent drop is the failure
+  mode, not a hard error. (b) The rule is one sentence; it
+  carries no implementation cost and adds zero decisions, so
+  the cost of "codify now" is dwarfed by the cost of a
+  future agent rediscovering the conflict mid-batch. (c) A
+  future plan with a longer batch (≥ 6 sub-decisions) almost
+  certainly will reproduce the conflict, because the
+  filename-stem shorthand is the natural way to label
+  per-obligation evidence. Codification removes the trap
+  before it bites, not after.
+
+  A second argument considered: "the kernel should enforce
+  namespace uniqueness, not the prompt template." Acknowledged
+  as the durable fix. Out of scope here: this commit codifies
+  the rule at the documentation layer where the cost of
+  enforcement is zero and reversibility is full. A follow-up
+  decision (kernel-change-class) can move the rule into
+  `lib/attestations/` once the rule has been exercised against
+  at least one real plan-doc.
+
+scope:
+  capabilities:
+    - sub-agent-prompt-template
+  paths:
+    - "docs/plans/plan-sub-agent-prompt-2026-11.md"
+    - "decisions/attestation-namespace-meta-2026-11.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "spec/**"
+
+outcomes:
+  - id: template-published
+    statement: |
+      `docs/plans/plan-sub-agent-prompt-2026-11.md` exists at
+      HEAD and carries the namespace rule plus the three
+      sub-section guidance blocks.
+
+obligations:
+  - id: b3-namespace-rule-codified
+    claim: |
+      `docs/plans/plan-sub-agent-prompt-2026-11.md` exists and
+      contains, verbatim, the attestation-namespace rule plus
+      the three sub-section guidance blocks (A. P9
+      empty-scaffold for kernel-scope decisions, C. reorder
+      principle, D. atomic commits) and the F11-B
+      "deferred-to-followup" waiver pointer.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: /home/az/Projects/math-coding/docs/plans/plan-sub-agent-prompt-2026-11.md
+          result: pass
+        - verifier: file-contains
+          path: /home/az/Projects/math-coding/docs/plans/plan-sub-agent-prompt-2026-11.md
+          needle: "attestations/plan-<id>-*-<obligation>.json"
+          result: pass
+        - verifier: mathc validate decisions/attestation-namespace-meta-2026-11.yaml
+          result: pass
+
+  - id: b3-no-new-unknowns
+    claim: |
+      After this commit lands on main, `mathc self-check`
+      reports the same number of pass / unknown subjects as at
+      this commit's pre-state (`release/v3.3.2-2026-10`-clean
+      baseline plus any subjects this branch itself adds). No
+      new unknown subjects are introduced by this commit; the
+      commit is documentation-only.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+risk:
+  declared_triggers:
+    - filename-collision-undiscovered
+    - kernel-id-collision-on-first-occurrence
+  owner: human:maintainer
+
+reversal:
+  - signal: rule-too-restrictive
+    condition: |
+      A future plan-doc author demonstrates a case where
+      legitimate sub-decision evidence must legally share the
+      `plan-<id>` filename stem (e.g., a sub-decision that
+      formally attests to a plan-decision obligation rather
+      than its own obligation). Resolution: archive this
+      decision with a `reversal_note:` field naming the
+      exception case and move the rule into a future
+      decision's `commitment:` section as a softer
+      recommendation.
+    action: rework

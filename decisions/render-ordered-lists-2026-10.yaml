@@ -96,6 +96,31 @@ outcomes:
       Verified by
       `tests/render_kernel.ml::ordered_list_invalid_marker_stays_paragraph`.
 assumptions: []
+counterexample: |
+  "Use a real markdown library (`omd`, `caml-markdown`,
+  `cmarkit`) instead of a hand-rolled parser." This objection
+  is on file in `decisions/render-kernel-fixes-2026-10.yaml`,
+  was explicitly considered and rejected, but for the wrong
+  reason: the rejection cited dependency-surface concerns
+  rather than correctness, so the same objection re-surfaces
+  every time a new corner case (ordered lists, nested
+  ordered lists, mixed lists, definition lists) lands. The
+  current commit is the third corner case landing on the
+  hand-rolled parser; a maintained markdown library would
+  handle all three cases plus future ones without bespoke
+  logic. The strongest counterargument to the current fix
+  is therefore: the 30-line OCaml change in `lib/render.ml`
+  is the right shape *for this audit trail*, but a follow-up
+  that swaps the parser for `cmarkit` (or equivalent) is
+  pre-figured by every new dialect corner we add. Reversal
+  condition: when a fourth or fifth dialect corner case
+  (definition lists, table support, fenced code with
+  language tags, nested ordered lists) lands and the cost of
+  hand-rolling each one exceeds the cost of the dependency
+  audit for `cmarkit`, the rejection's cost/benefit flips
+  and a `render-kernel-fixes-2026-10`-tracked parser swap
+  becomes the right move.
+
 obligations:
   - id: ordered-list-renders
     statement: |
@@ -136,19 +161,6 @@ reversal:
       issue, both of which have entries in
       `OCAML_BEST_PRACTICES §11`.
     action: rework
-counterexample: |
-  "Use a real markdown library (`omd`, `caml-markdown`)
-  instead of a hand-rolled parser."
-
-  Counter-argument: the parser is hand-rolled by design
-  (`render-kernel-fixes-2026-10` decision explicitly
-  considered and rejected a third-party parser to keep
-  transitive dependencies and the auditable-100-line
-  goal). The defect is local to one missing case in
-  the existing list-collection logic; the same decision
-  that rejected third-party parsers also rejected
-  full-CommonMark support. 30 lines of OCaml in the
-  existing architecture is the right shape.
 risk:
   declared_triggers:
     - render-output-changes

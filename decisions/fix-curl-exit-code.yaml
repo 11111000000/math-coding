@@ -54,6 +54,21 @@ obligations:
 axiom_link:
   - A0
 
+counterexample: |
+  Tightening the `Forge.curl_status` gate to `Unix.WEXITED 0` is
+  necessary but not sufficient: the function still accepts a curl
+  exit-1 path that returns a 2xx HTTP body, so a forge mirror that
+  hits a transient connection error continues to report `true`.
+  A more thorough fix would gate on the curl exit code being exactly
+  0 (WIFEXITED && WEXITSTATUS = 0) rather than just on the process
+  being signal-terminated, leaving the false-positive surface
+  smaller but still nonzero. Reversal condition: when forge_curl_
+  status's caller surface (decisions/fix-curl-exit-code, rebuttal
+  walker, attestation importer) treats any non-zero curl exit as a
+  hard fail, the broader gate is the right move; the WEXITED 0
+  fix remains correct as a baseline, but a follow-up should narrow
+  the heuristic to the "exactly 0" check.
+
 risk:
   declared_triggers:
     - curl-killed-by-os-signal

@@ -1,0 +1,167 @@
+---
+schema: math-coding/3.3
+id: import-junit-rename-2026-11
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:e4cde8ff92ebd3353e759dfb1df57fe0116bcf3ffbd02521fcb353a8d0adc756"
+yaml_sha: "sha256:e4cde8ff92ebd3353e759dfb1df57fe0116bcf3ffbd02521fcb353a8d0adc756"
+
+intent: |
+  Distinguish "attest-as-JUnit-XML-importer" from
+  "attestation-store-writer". The current `mathc attest FILE`
+  subcommand is the JUnit XML report importer registered
+  against `junit-attestation-import` in the adapters
+  obligation; the new canonical name is `mathc import-junit
+  FILE`. The legacy `mathc attest FILE` is preserved as a
+  deprecation alias that emits a one-shot stderr warning
+  then forwards to the canonical handler. Decision lives in
+  the same mode: light scope as
+  `add-verify-subcommand-2026-10` (CLI-only rename).
+
+commitment: |
+  The cycle closes when: (a) `mathc import-junit FILE` is
+  registered in the dispatch table and returns the same
+  stdout JSON as the previous `mathc attest FILE`; (b) the
+  legacy `mathc attest FILE` continues to exit 0 with the
+  same stdout JSON, and additionally emits a single stderr
+  warning naming `import-junit` as the canonical replacement;
+  (c) the help block in `print_usage` lists `import-junit`
+  as the canonical name and notes `attest` as deprecated;
+  (d) `mathc self-check` reports the same unknown-subject
+  count as the plan-branch HEAD and zero NEW unknown subjects
+  attributable to this change.
+
+outcomes:
+  - id: import-junit-canonical-registered
+    statement: |
+      `mathc import-junit FILE [--help]` is registered in
+      `bin/Mathc.ml::dispatch` and produces the same JSON
+      shape on stdout as the previous `mathc attest FILE`.
+
+  - id: attest-deprecation-alias
+    statement: |
+      `mathc attest FILE` continues to function. It prints
+      a single-line warning to stderr naming
+      `import-junit` as the canonical replacement and
+      forwards the parsed result to stdout identical to the
+      canonical handler. Exit codes are unchanged (0 for a
+      parsed result, 2 for missing/unreadable path).
+
+  - id: help-text-canonical-first
+    statement: |
+      `print_usage` lists `import-junit` as the canonical
+      name and notes `attest` as a deprecated alias so that
+      `--help` and `mathc import-junit --help` both lead
+      agents and humans to the new name.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/cli/junit-adapter.t"
+    - "tests/cli/import-junit.t"
+    - "tests/cli/attest-deprecation-alias.t"
+    - "decisions/import-junit-rename-2026-11.yaml"
+    - "attestations/import-junit-rename-2026-11-*.json"
+  exclusions:
+    - "lib/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "lib/junit/**"
+
+obligations:
+  - id: b1-import-junit-canonical-registered
+    claim: |
+      `mathc import-junit --help` exits 0 and prints the
+      usage line; `mathc import-junit path/to/report.xml`
+      produces the same JSON output shape as the legacy
+      `mathc attest` for the same input.
+    acceptance:
+      all:
+        - verifier: mathc import-junit --help
+          result: pass
+        - verifier: shell-grep
+          path: /home/az/.paseo/worktrees/math-coding/import-junit-rename/bin/Mathc.ml
+          needle: do_import_junit
+          result: pass
+        - verifier: shell-grep
+          path: /home/az/.paseo/worktrees/math-coding/import-junit-rename/bin/Mathc.ml
+          needle: '"import-junit" -> do_import_junit'
+          result: pass
+
+  - id: b1-attest-deprecation-warning
+    claim: |
+      `mathc attest FILE` exists, exits 0 on success, and
+      emits a single stderr line containing both
+      "deprecated" and "import-junit" before forwarding to
+      the JUnit XML parser. The original stdout JSON is
+      unchanged.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: /home/az/.paseo/worktrees/math-coding/import-junit-rename/bin/Mathc.ml
+          needle: deprecated.*import-junit
+          result: pass
+        - verifier: shell-grep
+          path: /home/az/.paseo/worktrees/math-coding/import-junit-rename/bin/Mathc.ml
+          needle: '"attest" ->'
+          result: pass
+        - verifier: attest-deprecation-alias-test
+          result: pass
+
+  - id: b1-no-new-unknowns
+    claim: |
+      `mathc self-check` after this commit produces the same
+      unknown-subject count as at HEAD
+      `release/v3.3.2-2026-10` and zero NEW unknown subjects
+      attributable to this commit.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+counterexample: |
+  The counter-position considered and rejected: "the rename
+  is gratuitous churn — `mathc attest FILE` worked, the
+  upstream `attest-batch` had every right to the `attest`
+  namespace." Rejected on three grounds: (a) the verb
+  `attest` is overloaded in this CLI — `attest-batch` is the
+  attestation-store writer (`records/`-shaped JSON), while
+  the JUnit importer is a passthrough parser — and bash
+  tab-completion currently offers both with no way to
+  distinguish; (b) the v3.4 release notes already brand
+  the JUnit path as `import-junit` in the migration table;
+  (c) downstream `mathc-mcp` tools advertise JUnit parsing
+  under `import-junit`, leaving `mathc attest` as the
+  odd-one-out. The deprecation alias preserves script
+  compatibility for one release cycle.
+
+  A second counter-position considered: "the warning goes
+  to stdout so users immediately notice." Rejected: stdout
+  is reserved for machine-readable JSON because that is
+  what `tests/cli/junit-adapter.t` and downstream tooling
+  parse. Stderr is the conventional channel for
+  human-facing diagnostics; a one-shot stderr warning is
+  visible in interactive shells and avoids breaking
+  `mathc attest FILE | jq .test_count` pipelines.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+risk:
+  declared_triggers:
+    - downstream-script-breaks-on-attest-removal
+    - dispatch-table-bug
+    - stderr-warning-spam-in-long-pipelines
+    - cram-fixture-flake-on-stderr-redirection
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-11-validation-cleanup-2026-10@1
+    - junit-attestation-import@1
+    - add-verify-subcommand-2026-10@1

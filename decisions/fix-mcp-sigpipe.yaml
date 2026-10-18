@@ -52,6 +52,26 @@ obligations:
 axiom_link:
   - A0
 
+counterexample: |
+  Capping inbound MCP request lines at 1 MiB is an arbitrary
+  threshold chosen without empirical calibration: the existing
+  parser has no usage signal telling us what the upper bound on
+  legitimate request sizes is across the supported agent hosts
+  (claude-code, opencode, cursor). The strongest objection is that
+  the 1 MiB cap will silently reject legitimate IDE-driven
+  crash-dumps or paste-of-large-content scenarios without producing
+  a diagnostic that explains the rejection to the user (the
+  parser returns None, the dispatcher shuts down gracefully, and
+  the host loses its stdio server without a clear cause). A more
+  robust design would either make the cap configurable via env-var
+  or perform a structured rejection (return a JSON-RPC error with
+  code -32600 "Invalid Request" citing the cap) rather than
+  silently dropping the connection. Reversal condition: if user
+  reports show MCP hosts legitimately require larger requests
+  (or share crash logs that exceed 1 MiB) the cap should be raised
+  or the cap behavior should produce a JSON-RPC error rather than
+  EOF.
+
 risk:
   declared_triggers:
     - sys-sigpipe-not-loaded

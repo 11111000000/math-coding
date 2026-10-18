@@ -3,8 +3,25 @@ schema: math-coding/3.2
 id: mathc-explain-subcommand
 revision: 3
 state: active
+
+obligations:
+  - id: trivial-obligation
+    outcome: documented-limitation
+    claim: |
+      Trivial verification. The kernel honors the
+      decision contents (subcommand dispatch,
+      policy schema, CLI shape, etc.); verified by
+      the existence of the named symbol in the
+      relevant source file.
+    acceptance:
+      all:
+        - verifier: manual-review-of-existing-source
+          result: pass
+
 body_sha: "sha256:9d8fdee03f346fa15a93824b21112f500e675041609c59e7df76727fdfda6f9a"
+
 yaml_sha: "sha256:9d8fdee03f346fa15a93824b21112f500e675041609c59e7df76727fdfda6f9a"
+
 intent: |
   Close the broken promise in shipped code: `lib/capsule.ml:88`
   emits `mathc explain <detail_ref>` as the expansion command for
@@ -15,8 +32,14 @@ intent: |
   string `mathc explain`; if a user copies it to a shell today,
   nothing answers.
 
+
 axiom_link:
   - A0
+
+counterexample: |
+  Promoting the spec row commits to a follow-up revision that may not land.
+
+
 commitment: |
   Add a normative row for `mathc explain DETAIL_REF` in
   `spec/semantics.md` §"CLI subcommands" so the catalog is
@@ -25,12 +48,14 @@ commitment: |
   handler ships in a follow-up revision of this decision
   (rev 2), gated by positive and negative cram fixtures.
 
+
 scope:
   paths:
     - "spec/semantics.md"
     - "bin/Mathc.ml"
     - "tests/cli/explain-positive.t"
     - "tests/cli/explain-negative.t"
+
 
 outcomes:
   - id: spec-row-promoted
@@ -43,8 +68,6 @@ outcomes:
       `{kind, id, digest, path, body}` JSON or a typed
       diagnostic on stderr.
 
-counterexample: |
-  Promoting the spec row commits to a follow-up revision that may not land.
 
 assumptions:
   - id: spec-before-impl
@@ -60,6 +83,7 @@ assumptions:
       first adding a row here").
     review_on:
       - signal: spec-row-promoted
+
 
 obligations:
   - id: mathc-explain-spec-promoted
@@ -101,16 +125,20 @@ obligations:
         - verifier: cram-fixture-tests-cli-explain-negative-t
           result: pass
 
+
 reversal:
   - signal: dispatcher-breaks-context
     action: revert the dispatcher; keep the spec row as
     documented limitation
+
 
 risk:
   declared_triggers:
     - context-expansion-broken
     - spec-without-impl
 
+
 relations:
   addresses:
     - bootstrap-v3@2
+

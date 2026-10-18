@@ -109,6 +109,28 @@ reversal: |
   count from 6 to 7. The pre-fix test script for `dune build`
   would surface the imbalance immediately.
 
+counterexample: |
+  The strongest counterargument to this fix is that it touches
+  a `bin/Mathc.ml` arm that was very recently rewritten by 3ee3cd0
+  (the D8 fix). Reshuffling parens in a 20-line-old change could
+  inadvertently undo the D8 contract — the rewrite surfaced
+  specific MC-* codes via the parser-level Diagnostic.t, and
+  silently reverting that contract by restoring a coarse error
+  string would lose the precision. Mitigated by preserving the
+  body of the rewritten `| None ->` arm verbatim (only the
+  surrounding paren wrapping is dropped), preserving the
+  `type aggregate_evidence = { ... }` declaration that the D8
+  fix added, and confirming post-hoc that the D8 source decision
+  `decisions/d8-coarse-diagnostics-2026-10.yaml` still validates
+  after this fix. Reversal condition: if a future regression in
+  `mathc validate` shows the D8 coarse-code surface has shrunk
+  (e.g., a previously-emitted specific MC-* code now returns the
+  legacy coarse `MC-DECISION-INVALID` string) the paren fix is
+  the likely regression vector and must be revisited; a pre-fix
+  vs post-fix comparison of `bin/Mathc.exe validate` output
+  against an MC-DECISION-INVALID-negative fixture is the
+  mechanical check.
+
 risk:
   - level: low
     statement: |
@@ -121,20 +143,6 @@ risk:
       - "Restore the wrap-paren form AND add the matching
          close paren on line 438. Run \`scripts/dev build\`
          to confirm."
-
-counterexample: |
-  The strongest counterargument to this fix is that it touches
-  a `bin/Mathc.ml` arm that was very recently rewritten by 3ee3cd0
-  (the D8 fix). Reshuffling parens in a 20-line-old change could
-  inadvertently undo the D8 contract. Mitigated by:
-  - the body of the rewritten `| None ->` arm is preserved
-    verbatim (just the surrounding paren wrapping is dropped);
-  - the `type aggregate_evidence = { ... }` declaration that
-    the D8 fix also added is preserved;
-  - the D8 fix decision
-    `decisions/d8-coarse-diagnostics-2026-10.yaml` still
-    validates after this fix.
-
 antithesis: |
   The fix could be skipped in favor of fixing the structure
   further down (e.g. by introducing a helper that builds the

@@ -68,11 +68,57 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import re
 import sys
 from pathlib import Path
 
-DECISIONS_DIR = Path(__file__).parent.parent / "decisions"
+
+def repo_root() -> Path:
+    """Return the math-coding repo root.
+
+    Precedence (env > default), matching
+    scripts/generate-attestations.py (F11-A4 reference impl):
+      1. $MATH_CODING_ROOT (if set)
+      2. <scripts>/.. (the script's own parent directory's parent)
+    The absolute form is resolved via Path so callers can join
+    paths and expect absolute output.
+    """
+    env_root = os.environ.get("MATH_CODING_ROOT")
+    if env_root:
+        return Path(env_root).resolve()
+    return Path(__file__).resolve().parent.parent
+
+
+def decisions_dir() -> Path:
+    """Return the path to the decisions directory.
+
+    Precedence (env > default), matching
+    scripts/generate-attestations.py (F11-A4 reference impl):
+      1. $MATH_CODING_DECISIONS_DIR (if set; absolute or relative)
+      2. <repo_root>/decisions (the legacy default)
+    The env-var wins unconditionally, matching the kernel's three-
+    tier resolver at lib/path_config.ml::resolve_decisions_dir (the
+    kernel additionally considers the new .math-coding/ default
+    but the Python scripts have no init integration so they honour
+    env > repo/default only).
+
+    When the env-var is relative, it is anchored against the
+    (already-absolute) `repo_root()`. The result is intentionally
+    NOT passed through `Path.resolve()` so cram tests can assert on
+    a stable string representation across Nix-sandbox /
+    symlink-bound mount points; `repo_root()` itself is canonical.
+    """
+    env_dir = os.environ.get("MATH_CODING_DECISIONS_DIR")
+    if env_dir:
+        p = Path(env_dir)
+        if not p.is_absolute():
+            p = repo_root() / p
+        return p
+    return repo_root() / "decisions"
+
+
+DECISIONS_DIR = decisions_dir()
 
 # Meta files: aggregator decisions that follow a different schema
 # (math-coding/obligations-3.0-alpha, math-coding/decision.yaml

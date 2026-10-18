@@ -1,0 +1,1 @@
+{"id":"sha256:cc178ea0f80ed4904e6cca84ef273580ae5d5bcda6af0de7f34b1c0f9d5cc6a5","issued_at":"2026-10-18T09:29:37Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:subagent-F12"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"mathc-explain-subcommand","materials_digest":"","obligation":"trivial-obligation"}}

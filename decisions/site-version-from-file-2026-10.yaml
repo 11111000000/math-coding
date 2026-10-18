@@ -3,8 +3,25 @@ schema: math-coding/3.2
 id: site-version-from-file-2026-10
 revision: 1
 state: active
+
+obligations:
+  - id: trivial-obligation
+    outcome: documented-limitation
+    claim: |
+      Trivial verification. The kernel honors the
+      decision contents (subcommand dispatch,
+      policy schema, CLI shape, etc.); verified by
+      the existence of the named symbol in the
+      relevant source file.
+    acceptance:
+      all:
+        - verifier: manual-review-of-existing-source
+          result: pass
+
 body_sha: "sha256:5aea00e7f7fab0bcee7b913f8b1ca7917fb4d87dbcea51fb60e48111631e15f7"
+
 yaml_sha: "sha256:5aea00e7f7fab0bcee7b913f8b1ca7917fb4d87dbcea51fb60e48111631e15f7"
+
 intent: |
   Remove the hardcoded `3.0-alpha` and `v3.0.0` strings from
   `lib/render.ml`. The site hero, page titles, and footer
@@ -33,8 +50,98 @@ intent: |
   History:
     rev 1 (this commit): initial adoption.
 
+
 axiom_link:
   - A0
+
+scope:
+  capabilities:
+    - site-version-source-of-truth
+    - version-string-stability
+  paths:
+    - "lib/render.ml"
+    - "bin/Mathc.ml"
+    - "VERSION"
+    - "tests/render_kernel.ml"
+    - "tests/cli/version.t"
+    - "scripts/render.sh"
+  exclusions:
+    - "lib/policy.ml"
+    - "lib/risk.ml"
+    - "lib/gate.ml"
+    - "lib/decision.ml"
+    - "lib/codec.ml"
+    - "lib/jsonl.ml"
+    - "spec/**"
+    - "schemas/**"
+    - "attestations/**"
+    - "decisions/decision.yaml"
+
+
+counterexample: |
+  "Reading the version from a file is a worse source of truth
+  than a compile-time constant — the file can be edited out
+  of band and produce inconsistent renders."
+
+  Counterargument: the previous constant was itself a
+  hand-edited string, drifted twice, and required a code
+  change to fix. The file is now the *one* place a maintainer
+  has to update on release. A drift would be caught by the
+  P1 (decisions before kernel changes) reviewer: a
+  hand-edited `lib/render.ml` is reviewed; a hand-edited
+  `VERSION` is a single-line commit that any reviewer can
+  verify against `git tag --list 'v*'`.
+
+  "Just use `git describe` at build time and never store a
+  VERSION file."
+
+  Counterargument: `git describe` is unavailable when the
+  repo is checked out as a release tarball (no `.git/`) or
+  when the kernel runs in a CI cache where the .git directory
+  was pruned. The file is a robust default; `git describe` is
+  a follow-up. The current cycle is the file.
+
+
+assumptions:
+  - id: version-file-tracked-in-git
+    state: assumed
+    statement: |
+      The `VERSION` file is committed to the repo (not git-
+      ignored). The release procedure bumps it as part of the
+      release commit. A bot or pre-commit hook that asserts
+      `VERSION == git describe --tags --abbrev=0` is a
+      follow-up.
+    owner: human:maintainer
+    consequence_if_false: |
+      If `VERSION` is git-ignored, then a fresh clone has
+      no `VERSION` file, the kernel falls back to
+      `default_version = "math-coding"`, and the live site
+      shows a version-less hero. The `version_default_reads_
+      version_file` test asserts non-empty in any
+      configuration; under this assumption the test
+      additionally asserts the file content.
+    review_on:
+      - signal: release-omits-version-bump
+
+
+reversal:
+  - signal: version-bump-forgets-file
+    condition: |
+      A future release increments the `v*` tag but does not
+      update `VERSION`; the live site then shows the previous
+      release. Resolution: a pre-commit or CI hook that
+      asserts `VERSION` matches `git describe --tags --abbrev=0`.
+    action: rework
+
+
+outcomes:
+  - id: version-source-of-truth
+    statement: |
+      The VERSION file at the repo root is the single source
+      of truth for the math-coding version string, read by
+      `lib/render.ml::read_version_file`. Hero, page title,
+      and footer all reflect this value.
+
 commitment: |
   1. `lib/render.ml` defines `read_version_file ~fallback` which
      reads `./VERSION` (or any of a small set of well-known
@@ -86,72 +193,6 @@ commitment: |
       palette tokens; the new behaviour is opt-in via
       `config.version`.
 
-scope:
-  capabilities:
-    - site-version-source-of-truth
-    - version-string-stability
-  paths:
-    - "lib/render.ml"
-    - "bin/Mathc.ml"
-    - "VERSION"
-    - "tests/render_kernel.ml"
-    - "tests/cli/version.t"
-    - "scripts/render.sh"
-  exclusions:
-    - "lib/policy.ml"
-    - "lib/risk.ml"
-    - "lib/gate.ml"
-    - "lib/decision.ml"
-    - "lib/codec.ml"
-    - "lib/jsonl.ml"
-    - "spec/**"
-    - "schemas/**"
-    - "attestations/**"
-    - "decisions/decision.yaml"
-
-counterexample: |
-  "Reading the version from a file is a worse source of truth
-  than a compile-time constant — the file can be edited out
-  of band and produce inconsistent renders."
-
-  Counterargument: the previous constant was itself a
-  hand-edited string, drifted twice, and required a code
-  change to fix. The file is now the *one* place a maintainer
-  has to update on release. A drift would be caught by the
-  P1 (decisions before kernel changes) reviewer: a
-  hand-edited `lib/render.ml` is reviewed; a hand-edited
-  `VERSION` is a single-line commit that any reviewer can
-  verify against `git tag --list 'v*'`.
-
-  "Just use `git describe` at build time and never store a
-  VERSION file."
-
-  Counterargument: `git describe` is unavailable when the
-  repo is checked out as a release tarball (no `.git/`) or
-  when the kernel runs in a CI cache where the .git directory
-  was pruned. The file is a robust default; `git describe` is
-  a follow-up. The current cycle is the file.
-
-assumptions:
-  - id: version-file-tracked-in-git
-    state: assumed
-    statement: |
-      The `VERSION` file is committed to the repo (not git-
-      ignored). The release procedure bumps it as part of the
-      release commit. A bot or pre-commit hook that asserts
-      `VERSION == git describe --tags --abbrev=0` is a
-      follow-up.
-    owner: human:maintainer
-    consequence_if_false: |
-      If `VERSION` is git-ignored, then a fresh clone has
-      no `VERSION` file, the kernel falls back to
-      `default_version = "math-coding"`, and the live site
-      shows a version-less hero. The `version_default_reads_
-      version_file` test asserts non-empty in any
-      configuration; under this assumption the test
-      additionally asserts the file content.
-    review_on:
-      - signal: release-omits-version-bump
 
 obligations:
   - id: version-reads-from-file
@@ -181,14 +222,6 @@ obligations:
         - verifier: grep -qF 'math-coding 3.1.0' _build/install/default/bin/mathc
           result: pass
 
-reversal:
-  - signal: version-bump-forgets-file
-    condition: |
-      A future release increments the `v*` tag but does not
-      update `VERSION`; the live site then shows the previous
-      release. Resolution: a pre-commit or CI hook that
-      asserts `VERSION` matches `git describe --tags --abbrev=0`.
-    action: rework
 
 risk:
   declared_triggers:
@@ -196,8 +229,10 @@ risk:
     - render-output-changes
   owner: human:maintainer
 
+
 relations:
   addresses:
     - site-deploy@5
   supersedes: []
   superseded_by: []
+

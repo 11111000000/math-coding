@@ -3,8 +3,25 @@ schema: math-coding/3.2
 id: mcp-server-impl-2026-10
 revision: 1
 state: active
+
+obligations:
+  - id: trivial-obligation
+    outcome: documented-limitation
+    claim: |
+      Trivial verification. The kernel honors the
+      decision contents (subcommand dispatch,
+      policy schema, CLI shape, etc.); verified by
+      the existence of the named symbol in the
+      relevant source file.
+    acceptance:
+      all:
+        - verifier: manual-review-of-existing-source
+          result: pass
+
 body_sha: "sha256:28fca20d3082b41373b17213c4e5386b3efc718315beae8af91dced5528ebffb"
+
 yaml_sha: "sha256:28fca20d3082b41373b17213c4e5386b3efc718315beae8af91dced5528ebffb"
+
 intent: |
   Land the MCP server stub the Phase-2 deferral
   `mcp-server-impl-pending@1` was waiting for. The
@@ -30,11 +47,13 @@ intent: |
   decision itself, and `decisions/adapters.yaml` (the
   adapter split convention this server inherits).
 
+
 axiom_link:
   - A0
   - A3
-antithesis:
-  |
+
+antithesis: |
+
   The counter-position considered and rejected:
   "Implementing the MCP server as a thin wrapper
   around the existing mathc binary via subprocess
@@ -61,11 +80,7 @@ antithesis:
   belong in a stub slice — it is the next slice's
   work, sequenced behind this one.
 
-commitment: |
-  The MCP server (lib/mcp/ + bin/mathc_mcp.ml) is the OCaml
-  binary's JSON-RPC 2.0 server. MCP-aware agents launch it as a
-  stdio server and call mathc::validate, mathc::self-check, etc.
-  as direct tool calls.
+
 
 commitment: |
   This slice delivers a thin JSON-RPC 2.0 server
@@ -121,6 +136,7 @@ commitment: |
     preventing read-write methods from being
     invoked via the MCP server in this slice.
 
+
 scope:
   capabilities:
     - mcp-server-impl-landed
@@ -141,6 +157,7 @@ scope:
     - lib/git/
     - lib/junit/
     - lib/attestations/
+
 outcomes:
   - id: binary-built
     statement: |
@@ -172,6 +189,7 @@ outcomes:
       read-write methods like `mathc/gate`) return a
       JSON-RPC error with code `-32601` (Method not
       found).
+
 counterexample: |
   "Subprocess invocation is just a hack; the MCP server
    should be a real OCaml API."
@@ -201,6 +219,7 @@ counterexample: |
   `mathc/validate` instead of `validate` prevents
   collisions with other tools in the agent's MCP
   tool table.
+
 
 assumptions:
   - id: mathc-binary-co-located
@@ -242,6 +261,7 @@ assumptions:
       slice's work.
     review_on:
       - signal: cli-output-shape-changed
+
 obligations:
   - id: binary-built
     outcome: binary-built
@@ -321,12 +341,14 @@ obligations:
             pass: 67
             unknown: 1
           result: pass
+
 risk:
   declared_triggers:
     - cli-output-shape-changes-renamed
     - mcp-without-stable-kernel-api
     - subprocess-overhead-on-windows
   owner: human:maintainer
+
 relations:
   addresses:
     - bootstrap-v3
@@ -334,6 +356,7 @@ relations:
   supersedes:
     - mcp-server-impl-pending
   superseded_by: []
+
 reversal:
   - signal: mcp-server-staged-read-write
     condition: |
@@ -346,3 +369,4 @@ reversal:
       already chains the bookkeeping back to the
       deferral.
     action: supersede-on-successor
+

@@ -1,0 +1,211 @@
+---
+schema: math-coding/3.3
+id: plan-2026-12-validation-followup-2026-10
+revision: 1
+state: active
+mode: standard
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Close the remaining 15 pre-existing `mathc validate` rejections
+  that plan-2026-11-validation-cleanup-2026-10 deferred to
+  plan-2026-12 due to a parser-edge-case investigation that
+  was out of scope at F11 ship time. Two sub-decisions:
+
+  - **F12-A**: 7–8 decisions emit soft-warn
+    `MC-COUNTEREXAMPLE-MISSING` (mode:light without counterexample).
+    Add counterexample blocks following the established
+    pattern (one paragraph naming the strongest objection +
+    the reversal condition).
+
+  - **F12-B**: 6 decisions emit hard-reject
+    `MC-DECISION-INVALID: missing required field: obligations`
+    despite the field being textually present in the YAML. The
+    parser path quirk (lib/codec.ml::parse_yaml_pairs lines 710-)
+    miscounts bytes inside UTF-8 multi-byte content of `claim: |`
+    block scalars and drops the post-scalar `obligations:` key
+    from the resulting Jsonl.Object. The fix is a YAML-text
+    reformat of the 6 files at parser-friendly indentation,
+    verified by adding `obligations:` directly under the
+    front-matter (before any `commitment: |` block scalars)
+    so the parser's key tracking is not disrupted.
+
+commitment: |
+  After this plan closes:
+
+  1. `mathc validate decisions/<id>.yaml` returns `parse-ok`
+     for every `state: active` decision file (zero
+     `reject:` verdicts).
+  2. Zero soft-warn `MC-COUNTEREXAMPLE-MISSING` for any
+     `mode: light` decision file.
+  3. `mathc self-check` returns the same 184 pass / 0 unknown
+     verdict as the post-F11 release/v3.3.2-2026-10@<sha>.
+  4. The two sub-decisions are 2 atomic commits on
+     release/v3.3.3-followup2-2026-10; each independently
+     revertable.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+counterexample: |
+  The counter-position considered: "the 6 hard rejects are a
+  kernel bug; the fix is `lib/codec.ml::parse_yaml_pairs`
+  surgery, not a per-file text reformat. Test coverage on the
+  YAML parser (tests/yaml_parsing_test.ml) covers the
+  byte-counting edge case but the test corpus predates
+  multi-byte `claim: |` content in real decisions."
+  Acknowledged: a kernel fix in `lib/codec.ml` is the right
+  end-state; this plan documents the parser-clean work-around
+  and adds a regression test for the multi-byte edge case so
+  the kernel fix is well-pinned. The kernel fix itself is
+  out-of-scope for plan-2026-12 (would require F13 with its
+  own attestation chain and kernel-stability pre-condition).
+
+  A second counter-position: "the 6 files have non-canonical
+  YAML; just `mathc new-decision --write` them and copy the
+  bodies." Rejected: `mathc new-decision` regenerates the
+  decision without preserving the field-level prose. The
+  manual restructure requires reading each file's existing
+  intent/commitment/obligations body and re-emitting it in
+  parser-friendly form.
+
+outcomes:
+  - id: zero-rejects-on-active
+    statement: |
+      Every `decisions/*.yaml` whose `state: active` exits 0
+      under `mathc validate` with verdict `parse-ok`.
+
+  - id: zero-counterexample-warns
+    statement: |
+      Zero `MC-COUNTEREXAMPLE-MISSING` for any `mode: light`
+      decision file in `decisions/`.
+
+  - id: no-self-check-regression
+    statement: |
+      `mathc self-check` after the plan closes produces the
+      same 184 pass / 0 unknown as the post-F11
+      release/v3.3.2-2026-10.
+
+scope:
+  paths:
+    - "decisions/considered-mode-migration-2026-10.yaml"
+    - "decisions/fix-curl-exit-code.yaml"
+    - "decisions/fix-mcp-sigpipe.yaml"
+    - "decisions/fix-validate-id.yaml"
+    - "decisions/paren-balance-fix-2026-10.yaml"
+    - "decisions/render-module-split-phase1a-2026-10.yaml"
+    - "decisions/render-module-split.yaml"
+    - "decisions/render-ordered-lists-2026-10.yaml"
+    - "decisions/cli-canonical-name.yaml"
+    - "decisions/mathc-explain-subcommand.yaml"
+    - "decisions/mcp-server-impl-2026-10.yaml"
+    - "decisions/site-version-from-file-2026-10.yaml"
+    - "decisions/waiver-infrastructure-2026-10.yaml"
+    - "decisions/yaml-block-scalars-impl-pending.yaml"
+    - "attestations/plan-2026-12-validation-followup-2026-10-*.json"
+  exclusions:
+    - "lib/codec.ml"
+    - "lib/decision.ml"
+    - "lib/diagnostic.ml"
+    - "schemas/decision.json"
+
+obligations:
+  - id: plan-document-exists
+    claim: |
+      `docs/plans/plan-2026-12-validation-followup-2026-10.md`
+      exists with §0–§10 filled.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: /home/az/Projects/math-coding/docs/plans/plan-2026-12-validation-followup-2026-10.md
+          result: pass
+        - verifier: mathc validate decisions/plan-2026-12-validation-followup-2026-10.yaml
+          result: pass
+
+  - id: f12-a-counterexamples
+    claim: |
+      The 7–8 decisions previously emitting soft-warn
+      `MC-COUNTEREXAMPLE-MISSING` now carry a synthetic
+      counterexample block (preferred, per the existing
+      pattern in `fix-env-var-resolver-2026-10` and similar)
+      or `mode: minimal` (fallback).
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/considered-mode-migration-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/fix-curl-exit-code.yaml
+          result: pass
+        - verifier: mathc validate decisions/fix-mcp-sigpipe.yaml
+          result: pass
+        - verifier: mathc validate decisions/fix-validate-id.yaml
+          result: pass
+        - verifier: mathc validate decisions/paren-balance-fix-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/render-module-split-phase1a-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/render-module-split.yaml
+          result: pass
+        - verifier: mathc validate decisions/render-ordered-lists-2026-10.yaml
+          result: pass
+
+  - id: f12-b-six-hard-rejects
+    claim: |
+      The 6 decisions hard-rejecting as
+      `MC-DECISION-INVALID: missing required field: obligations`
+      now parse-ok. The fix is a targeted YAML restructure:
+      `obligations:` is moved to immediately under the
+      front-matter (before any `commitment: |` block scalars),
+      and the `claim: |` blocks are reformatted to use `>2`
+      (folded scalar) where the original used literal `|`
+      content that the parser's byte-counting edge-case was
+      confused by.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/cli-canonical-name.yaml
+          result: pass
+        - verifier: mathc validate decisions/mathc-explain-subcommand.yaml
+          result: pass
+        - verifier: mathc validate decisions/mcp-server-impl-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/site-version-from-file-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/waiver-infrastructure-2026-10.yaml
+          result: pass
+        - verifier: mathc validate decisions/yaml-block-scalars-impl-pending.yaml
+          result: pass
+
+  - id: full-validate-clean
+    claim: |
+      For every `decisions/*.yaml` whose `state: active`,
+      `mathc validate FILE` exits 0 with `parse-ok`.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: /home/az/Projects/math-coding/
+          needle: reject: decisions/
+          result: pass
+
+  - id: no-self-check-regression
+    claim: |
+      `mathc self-check` after the plan closes produces the
+      same 184 pass / 0 unknown as the post-F11 baseline.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+risk:
+  declared_triggers:
+    - obligations-reformat-changes-body-sha
+    - counterexample-synthetic-inauthentic
+    - parser-fix-not-applicable-to-all-six
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - plan-2026-11-adoption-fixes-2026-10@1
+    - plan-2026-11-validation-cleanup-2026-10@1
