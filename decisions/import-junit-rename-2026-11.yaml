@@ -162,6 +162,6 @@ risk:
 
 relations:
   addresses:
-    - plan-2026-11-adoption-fixes-2026-10@1
+    - plan-2026-11-validation-cleanup-2026-10@1
     - junit-attestation-import@1
     - add-verify-subcommand-2026-10@1
