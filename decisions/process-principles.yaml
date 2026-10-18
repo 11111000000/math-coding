@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: process-principles
-revision: 3
+revision: 4
 state: active
-body_sha: "sha256:2c257e5c4ee85654b06a00b2dd38b4e290a473e5e9bd486d94788d21468b3683"
-yaml_sha: "sha256:2c257e5c4ee85654b06a00b2dd38b4e290a473e5e9bd486d94788d21468b3683"
+body_sha: "sha256:b9d1ef71b446281e2b2ab1644baef42f0ab75ced8aa280b1d134efc57253c4b8"
+yaml_sha: "sha256:b9d1ef71b446281e2b2ab1644baef42f0ab75ced8aa280b1d134efc57253c4b8"
 intent: |
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as
@@ -196,6 +196,28 @@ assumptions:
     evidence: manual-acceptance
     review_on:
       - signal: edit-loop-detected
+
+  - id: P8.5
+    state: assumed
+    statement: |
+      Sub-agent dependencies. A sub-agent whose sub-decision
+      declares dependencies on prior sub-decisions MUST NOT
+      launch until every declared dependency has landed on the
+      integration branch. Check:
+        git merge-base --is-ancestor <dep-branch> <integration-branch>
+      If the exit code is 1 (NOT ancestor), abort with a
+      structural dependency error and ask the orchestrator to
+      retry once the dependency has merged.
+    owner: human:maintainer
+    consequence_if_false: |
+      A sub-agent whose declared dependency has not yet merged
+      may run against stale integration HEAD, edit against the
+      wrong base, and produce work that fails to land. The
+      orchestrator then has to retry, doubling wall-clock and
+      token-budget cost.
+    evidence: manual-acceptance
+    review_on:
+      - signal: structural-dependency-not-merged
 
 obligations:
   - id: p1-decisions-before-kernel-changes
