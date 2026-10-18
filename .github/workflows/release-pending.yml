@@ -1,0 +1,83 @@
+name: release-pending
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
+
+permissions:
+  contents: read
+
+jobs:
+  release-pending-check:
+    name: release-pending gate (F15 follow-up)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Detect protected-path diff
+        id: detect-diff
+        run: |
+          set -euo pipefail
+          BASE="${GITHUB_BASE_REF}"
+          if [ -z "${BASE}" ]; then
+            echo "touches_protected=false" >> "${GITHUB_OUTPUT}"
+            echo "no base ref detected; gate skipped" >&2
+            exit 0
+          fi
+          TOUCHED="$(git diff --name-only "origin/${BASE}...HEAD" \
+                     | grep -E '^(bin/Mathc\.ml|lib/|scripts/install-tooling/)' \
+                     || true)"
+          if [ -n "${TOUCHED}" ]; then
+            {
+              echo "touches_protected=true"
+              echo "touched_paths<<EOF"
+              echo "${TOUCHED}"
+              echo "EOF"
+            } >> "${GITHUB_OUTPUT}"
+          else
+            echo "touches_protected=false" >> "${GITHUB_OUTPUT}"
+          fi
+
+      - name: Check release-pending state
+        if: steps.detect-diff.outputs.touches_protected == 'true'
+        id: check-pending
+        run: |
+          set -euo pipefail
+          BASE="${GITHUB_BASE_REF}"
+          LATEST_TAG="$(git tag --sort=-creatordate \
+                           --merged "origin/${BASE}" 2>/dev/null \
+                        | head -1 || true)"
+          if [ -z "${LATEST_TAG}" ]; then
+            echo "last_tag=none" >> "${GITHUB_OUTPUT}"
+            echo "no release tag found on base ref ${BASE}; gate passes" >&2
+            exit 0
+          fi
+          LAST_TAG_SHA="$(git rev-list -1 "${LATEST_TAG}")"
+          echo "last_tag=${LATEST_TAG}" >> "${GITHUB_OUTPUT}"
+          echo "last_tag_sha=${LAST_TAG_SHA}" >> "${GITHUB_OUTPUT}"
+          cat >&2 <<EOF
+release-pending: base ref ${BASE} has tagged release ${LATEST_TAG}
+                    pinned at commit ${LAST_TAG_SHA}.
+
+This PR touches protected paths (bin/, lib/, scripts/install-tooling/).
+Per the F15 finding (v3.3.2 shipped a stale binary), reviewers MUST verify
+that the release workflow has been re-run AFTER the latest commit touching
+these paths. Until that re-build evidence exists, the published binary
+predates the in-tree source.
+
+Action required:
+  1. Re-run \`.github/workflows/release.yml\` against the latest
+     commit on \`${BASE}\` (does not have to merge into this PR).
+  2. Publish the resulting artifact, then approve this PR.
+
+This is a first-pass gate; future revisions will replace the
+placeholder exit with a GitHub-API query against
+\`actions/runs\` filtered by workflow file and commit SHA.
+EOF
+          exit 1
