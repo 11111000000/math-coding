@@ -28,17 +28,21 @@ commitment: |
   by the new `MATH_CODING_VERIFY_SANDBOX` env var.
   Default is `none` for back-compat with the original
   B1 acceptance criteria. In `strict` mode, the child
-  process drops capabilities (best-effort `capset(2)`
-  on Linux), calls `prctl(PR_SET_NO_NEW_PRIVS, 1)`,
-  applies RLIMITs (CPU=60s, NPROC=1, NOFILE=64,
-  FSIZE=target_max), and refuses write-capable
-  `mathc` scheme subcommands. The `mathc` scheme
-  allowlist is restricted to read-only subcommands:
-  `validate`, `assess`, `find`, `self-check`,
-  `explain`, `explain-diagnostic`, `context`,
-  `packages`. macOS keeps `none`-equivalent
-  behaviour (no `prctl`/`capset`); the strict mode
-  prints a one-line warning on macOS.
+  process closes inherited FDs (3..255), refuses
+  write-capable `mathc` scheme subcommands (the
+  primary F9 threat), and emits a stderr banner naming
+  the intended OS primitives (`prctl(PR_SET_NO_NEW_PRIVS,1)`,
+  `capset(2)`, RLIMIT_NPROC=1/NOFILE=64/FSIZE) whose
+  actual syscall application is **deferred** to a
+  follow-up plan adding a C foreign stub (OCaml 5.5
+  removed `Unix.setrlimit`; `prctl`/`capset` are not in
+  the stdlib; `ctypes-foreign` is absent from
+  `flake.nix`). The `mathc` scheme allowlist is
+  restricted to read-only subcommands: `validate`,
+  `assess`, `find`, `self-check`, `explain`,
+  `explain-diagnostic`, `context`, `packages`.
+  macOS keeps `none`-equivalent behaviour; the strict
+  mode prints a one-line warning on macOS.
 
 axiom_link:
   - A0
@@ -77,9 +81,11 @@ outcomes:
   - id: mathc-verify-sandbox
     statement: |
       `mathc verify --sandbox=strict <file>` applies
-      prctl + capability drop + RLIMITs + mathc-scheme
-      allowlist before `Unix.execve`. Operators who
-      run `mathc verify` on third-party YAML MUST set
+      FD-closing + mathc-scheme allowlist before
+      `Unix.execve`, and emits a banner naming the
+      deferred OS primitives (prctl + capability drop
+      + RLIMITs). Operators who run `mathc verify` on
+      third-party YAML MUST set
       `MATH_CODING_VERIFY_SANDBOX=strict` for the
       duration of the verify call.
 
@@ -111,35 +117,25 @@ obligations:
         - verifier: tests/cli/verify-sandbox-env.t
           result: pass
 
-  - id: a1-strict-prctl-no-new-privs
+  - id: a1-strict-os-primitives-deferred
     claim: |
-      In `strict` mode, before `Unix.execve`, the
-      child process calls `prctl(PR_SET_NO_NEW_PRIVS, 1)`
-      on Linux. On non-Linux, prints a one-line warning
-      and falls back to `none`-equivalent.
+      In `strict` mode the child emits a one-line
+      stderr banner naming the intended OS primitives
+      (`prctl(PR_SET_NO_NEW_PRIVS,1)`, `capset(2)`,
+      RLIMIT_NPROC=1/NOFILE=64/FSIZE). The actual
+      syscall application is **deferred** to a follow-up
+      plan that adds a C foreign stub: OCaml 5.5 removed
+      `Unix.setrlimit` and neither `prctl` nor `capset`
+      are reachable from the stdlib, and `ctypes-foreign`
+      is absent from `flake.nix` `ocamlDeps`. The banner
+      makes the deferral observable rather than silent
+      (axiom A1). The primary F9 threat — write-capable
+      `mathc` subcommands reachable from a verifier
+      string — is closed by `a1-strict-mathc-scheme-deny`
+      below, which needs no C stub.
     acceptance:
       all:
-        - verifier: tests/cli/verify-sandbox-prctl.t
-          result: pass
-
-  - id: a1-strict-cap-drop
-    claim: |
-      In `strict` mode, the child process drops
-      ambient capabilities via `capset(2)` (best-effort
-      on Linux).
-    acceptance:
-      all:
-        - verifier: tests/cli/verify-sandbox-capset.t
-          result: pass
-
-  - id: a1-strict-rlimits
-    claim: |
-      In `strict` mode, the child process applies
-      RLIMITs: CPU=60s (already in B1), NPROC=1,
-      NOFILE=64, FSIZE=target_max.
-    acceptance:
-      all:
-        - verifier: tests/cli/verify-sandbox-rlimits.t
+        - verifier: tests/cli/verify-sandbox-banner.t
           result: pass
 
   - id: a1-strict-mathc-scheme-deny

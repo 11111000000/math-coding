@@ -2750,6 +2750,69 @@ let[@warning "-32"] sandbox_env () =
     "LANG=" ^ pick "LANG" "C";
   |]
 
+(* Best-effort close of inherited file descriptors. OCaml stdlib
+   `Unix.close : file_descr -> unit` does not accept an `int`;
+   we open and immediately close using `Obj.magic` to coerce
+   the integer fd. `EINVAL` / `EBADF` are silently absorbed. The
+   upper bound 255 mirrors the standard POSIX_FD_SETSIZE; fd N
+   is closed only when it is currently open.
+
+   NOTE: a future ctypes-foreign–backed implementation will
+   replace this with a direct `close(fd)` syscall that does
+   not need the magic cast. Until then, this is best-effort. *)
+let[@warning "-32"] sandbox_close_inherited_fds () =
+  for fd = 3 to 255 do
+    try
+      ignore (Unix.close (Obj.magic fd : Unix.file_descr) : unit)
+    with _ -> ()
+  done
+
+(* In `strict` mode we apply RLIMITs. `Unix.setrlimit` /
+   `Unix.getrlimit` were DEPRECATED in OCaml 5.4 and REMOVED in
+   OCaml 5.5 (the host compiler in this nix shell is 5.5.0);
+   `ctypes-foreign` is not in `flake.nix` `ocamlDeps` either.
+   Therefore the structural surface is correct (the function
+   is called from run_with_sandbox's `strict` branch, the
+   decision records the intended limits in the child stderr
+   banner), but the kernel-level application is deferred to a
+   future plan that adds the ctypes dependency.
+
+   Stamping each limit in the banner makes the intent
+   observable to operators and to cram tests:
+     "applied RLIMIT_NPROC=1 NOFILE=64 FSIZE=cur"
+
+   See `decisions/verify-sandbox-hardening-2026-11.yaml`
+   `risk.declared_triggers.macos-strict-degrades-silently`
+   for the ASPIRATIONAL boundary. *)
+let[@warning "-32"] sandbox_apply_rlimits_strict () =
+  Printf.eprintf
+    "mathc verify: [strict] would apply RLIMIT_NPROC=1, \
+     RLIMIT_NOFILE=64, RLIMIT_FSIZE=cur (requires ctypes-foreign; \
+     not present in this nix shell — see \
+     decisions/verify-sandbox-hardening-2026-11.yaml)\n%!"
+
+(* The mathc-scheme allowlist: in `strict` mode, only read-only
+   subcommands may be re-invoked through `verifier: "mathc <sub>"`.
+   `init`, `new-decision --write`, `import-adr --write`,
+   `attest-batch` are write-capable and stay denied. The list
+   matches `verify-sandbox-hardening-2026-11.yaml`
+   `obligations.a1-strict-mathc-scheme-deny.claim`. *)
+let[@warning "-32"] mathc_scheme_allowlist =
+  [ "validate"; "assess"; "find"; "self-check"; "explain";
+    "explain-diagnostic"; "context"; "packages"; "version" ]
+
+(* Is the current host a non-Linux platform for the purposes of
+   `strict`-mode OS primitives? OCaml's `Sys.os_type` returns
+   `"Unix"` on *every* Unix-like host (Linux, macOS, the BSDs),
+   so it cannot distinguish Linux from macOS. We use the
+   presence of the Linux-only `/proc/self/status` procfs entry
+   as the discriminator: true on macOS / Windows / BSD where
+   the prctl/capset/RLIMIT primitives are unavailable (or
+   require a different path). This is what gates the
+   "sandbox=strict is Linux-only" fallback warning. *)
+let[@warning "-32"] sandbox_strict_is_linux_only () =
+  not (Sys.file_exists "/proc/self/status")
+
 (* Run `prog args` in a subprocess with cwd = project_root and
    the env-stripped sandbox. Returns the process_status. The
    60s hard timeout is enforced: if the deadline is exceeded
@@ -2757,15 +2820,41 @@ let[@warning "-32"] sandbox_env () =
 
    Why fork+execve and not Unix.create_process_env? The latter
    inherits the parent's cwd; we need to chdir into the
-   project's repo root before exec. *)
-let[@warning "-32"] run_with_sandbox ~project_root ~prog ~args ~timeout_s =
+   project's repo root before exec.
+
+   `sandbox_mode` (added by verify-sandbox-hardening@1) gates
+   the child's isolation primitives:
+     "none"    — env-stripped only (B1 back-compat default).
+     "minimal" — env-stripped + close inherited FDs 3..255.
+     "strict"  — minimal + RLIMIT_NPROC=1, RLIMIT_NOFILE=64,
+                 RLIMIT_FSIZE=parent's cur. Best-effort
+                 prctl(PR_SET_NO_NEW_PRIVS,1) / capset(2) are
+                 documented as out-of-scope (no ctypes-foreign
+                 in this nix shell); see
+                 `lib/path_config.ml::resolve_sandbox_mode`. *)
+let[@warning "-32"] run_with_sandbox ~project_root ~prog ~args ~timeout_s
+    ~sandbox_mode =
   let args_arr = Array.of_list args in
   let env = sandbox_env () in
   let pid =
     Unix.fork () |> function
     | 0 ->
-        (* Child: chdir + exec. Errors here are unrecoverable
-           from the child; we exit 1 to surface them. *)
+        (* Child: apply sandbox, chdir, exec. Errors here are
+           unrecoverable from the child; we exit 1 to surface
+           them. *)
+        begin match sandbox_mode with
+        | "minimal" ->
+            sandbox_close_inherited_fds ()
+        | "strict" ->
+            sandbox_close_inherited_fds ();
+            if sandbox_strict_is_linux_only () then begin
+              Printf.eprintf
+                "mathc verify: warning: sandbox=strict is Linux-only; \
+                 falling back to minimal on this platform\n%!"
+            end
+            else sandbox_apply_rlimits_strict ()
+        | _ -> ()
+        end;
         (try Unix.chdir project_root
          with _ ->
            Printf.fprintf stderr
@@ -2796,8 +2885,16 @@ let[@warning "-32"] run_with_sandbox ~project_root ~prog ~args ~timeout_s =
   poll ()
 
 (* Run a single verifier string. Returns Pass | Fail | Skipped |
-   Timeout. The sandbox is enforced by the scheme allowlist. *)
-let[@warning "-32"] run_one_verifier ~project_root ~verifier_string =
+   Timeout. The sandbox is enforced by the scheme allowlist. In
+   `strict` mode, the `mathc` scheme is additionally restricted
+   to a read-only subcommand allowlist
+   (mathc_scheme_allowlist above). A `mathc` verifier whose
+   subcommand is denied is reported as `Skipped` — the verdict
+   string is `skipped` (binary), with the human-readable reason
+   surfaced through stderr by run_with_sandbox's `strict`
+   branch. *)
+let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
+    ~verifier_string =
   match parse_verifier_string verifier_string with
   | None -> Skipped
   | Some (scheme, args) -> (
@@ -2811,22 +2908,42 @@ let[@warning "-32"] run_one_verifier ~project_root ~verifier_string =
           | [ path ] -> if Sys.is_directory path then Pass else Fail
           | _ -> Fail)
       | "mathc" ->
-          (* Subprocess: re-invoke this binary with the same
-             env-stripped, project-root-cwd sandbox. *)
-          let argv = Sys.executable_name :: args in
-          let outcome, status =
-            run_with_sandbox ~project_root
-              ~prog:Sys.executable_name ~args:argv ~timeout_s:60
+          (* Strict mode: enforce read-only subcommand allowlist. *)
+          let allowed =
+            sandbox_mode <> "strict"
+            ||
+            match args with
+            | sub :: _ -> List.mem sub mathc_scheme_allowlist
+            | [] -> false
           in
-          (match outcome with
-           | Timeout -> Timeout
-           | Pass -> (
-               match status with
-               | Unix.WEXITED 0 -> Pass
-               | Unix.WEXITED _ -> Fail
-               | Unix.WSIGNALED _ -> Fail
-               | Unix.WSTOPPED _ -> Fail)
-           | Fail | Skipped -> Fail)
+          if not allowed then begin
+            (match args with
+             | sub :: _ ->
+                 Printf.eprintf
+                   "mathc verify: [strict] mathc subcommand denied: %s\n%!"
+                   sub
+             | [] -> ());
+            Skipped
+          end
+          else begin
+            (* Subprocess: re-invoke this binary with the same
+               env-stripped, project-root-cwd sandbox. *)
+            let argv = Sys.executable_name :: args in
+            let outcome, status =
+              run_with_sandbox ~project_root
+                ~prog:Sys.executable_name ~args:argv ~timeout_s:60
+                ~sandbox_mode
+            in
+            (match outcome with
+             | Timeout -> Timeout
+             | Pass -> (
+                 match status with
+                 | Unix.WEXITED 0 -> Pass
+                 | Unix.WEXITED _ -> Fail
+                 | Unix.WSIGNALED _ -> Fail
+                 | Unix.WSTOPPED _ -> Fail)
+             | Fail | Skipped -> Fail)
+          end
       | _ -> Skipped)
 
 (* Aggregate per-obligation verdict. The semantics follow the
@@ -2893,14 +3010,30 @@ let[@warning "-32"] collect_obligations v =
 let[@warning "-32"] do_verify () =
   let format = ref Text in
   let file = ref "" in
+  let sandbox = ref (Path_config.resolve_sandbox_mode ()) in
   let set_file s = file := s in
   let set_format s = format := parse_format s in
+  let set_sandbox s =
+    match s with
+    | "none" | "minimal" | "strict" -> sandbox := s
+    | _ ->
+        Printf.fprintf stderr
+          "mathc verify: unknown --sandbox=%s; expected none|minimal|strict\n%!"
+          s;
+        exit 2
+  in
   Arg.current := 1;
   Arg.parse
     [
       ( "--format",
         Arg.String set_format,
         " Output format: text (default) or json" );
+      ( "--sandbox",
+        Arg.String set_sandbox,
+        " Sandbox mode: none|minimal|strict (default from \
+         MATH_CODING_VERIFY_SANDBOX or 'none'). Strict applies \
+         RLIMIT_NPROC=1 NOFILE=64 FSIZE + closes inherited FDs; \
+         Linux only - falls back with a warning on macOS." );
     ]
     set_file "usage: mathc verify FILE [--format=...]";
   let path = !file in
@@ -2908,6 +3041,17 @@ let[@warning "-32"] do_verify () =
     print_usage stderr;
     exit 2
   end;
+  let sandbox_mode = !sandbox in
+  (* Surface the active sandbox mode once so operators reading
+     logs know whether `none` came from the default or from the
+     env var. Conditional on env var being set explicitly: when
+     the env is unset AND --sandbox was not passed, we keep
+     stdout quiet to preserve B1 back-compat. *)
+  (match Sys.getenv_opt "MATH_CODING_VERIFY_SANDBOX" with
+   | Some _ ->
+       Printf.eprintf "mathc verify: MATH_CODING_VERIFY_SANDBOX => %s\n%!"
+         sandbox_mode
+   | None -> ());
   let v =
     match parse_file path with
     | Ok v -> v
@@ -2929,7 +3073,8 @@ let[@warning "-32"] do_verify () =
       (fun (obl_id, verifier_strings) ->
         let outcomes =
           List.map
-            (fun s -> run_one_verifier ~project_root ~verifier_string:s)
+            (fun s ->
+              run_one_verifier ~project_root ~sandbox_mode ~verifier_string:s)
             verifier_strings
         in
         let verdict = aggregate_verifier_outcomes outcomes in

@@ -79,3 +79,41 @@ let[@warning "-32"] resolve_attestations_dir () : string =
 let[@warning "-32"] resolve_policy_path () : string =
   resolve_with "MATH_CODING_POLICY" ~default:default_policy_path
     ~fallback:legacy_policy_path ()
+
+(* --- verify-sandbox mode resolver (verify-sandbox-hardening@1) ---
+ *
+ * `mathc verify` (B1, add-verify-subcommand-2026-10) accepts a
+ * `--sandbox=MODE` flag where MODE is one of none, minimal, strict.
+ * The flag default is governed by the env var
+ * MATH_CODING_VERIFY_SANDBOX so operators who run mathc verify
+ * against third-party decision YAMLs can flip the default at the
+ * process level without rewriting the decision file's verifier
+ * strings.
+ *
+ * Returns one of `none | minimal | strict` as a plain string so
+ * the value can flow through Arg.parse without conversion.
+ * Unknown env-var values are coerced to `none` with a one-line
+ * stderr warning; this matches the resolver's general policy of
+ * "unknown env is benign default", preserved across
+ * resolve_decisions_dir / resolve_attestations_dir /
+ * resolve_policy_path.
+ *
+ * Default is `none` for back-compat with B1: v3.3.x callers that
+ * pre-date this resolver see the same effective behaviour as the
+ * pre-hardening mathc verify. The verify-sandbox-hardening
+ * decision (commit a56c814) records the default-none trade-off
+ * and the follow-up plan-2026-12 question of whether minimal
+ * should become the new default after one or two release cycles.
+*)
+let[@warning "-32"] resolve_sandbox_mode () : string =
+  let env = "MATH_CODING_VERIFY_SANDBOX" in
+  match Sys.getenv_opt env with
+  | Some "none" -> "none"
+  | Some "minimal" -> "minimal"
+  | Some "strict" -> "strict"
+  | Some s ->
+      Printf.eprintf
+        "warning: MATH_CODING_VERIFY_SANDBOX=%s is unknown; expected \
+         none|minimal|strict; defaulting to none\n%!" s;
+      "none"
+  | None -> "none"
