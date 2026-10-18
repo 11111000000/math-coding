@@ -6,9 +6,9 @@
 > Every other decision document can be read in isolation; this one
 > shows you the whole picture at a glance.
 
-Last verified at: HEAD `db69ca2` + 2026-10-17 audit-cleanup cycle:
+Last verified at: HEAD `66f9eb0` + 2026-10-18 v3.3.3 release cycle (F11/F12/BatchB/C/deadlock/release-prep/check-fixes/fmt/counters):
 
-- `db69ca2` (merge `feat/render-analysis-2026-10: p8 hook soft warning`):
+- `66f9eb0` (merge docs/counters: sync PACKAGES.md/ROADMAP.md live counts):
   the `p8-hook-deficit-2026-10` decision (`P8` `(* tracked: ... *)`
   marker in `.githooks/pre-commit` retired; `P8` becomes an
   agent-time rule only, see `OCAML_BEST_PRACTICES.md` §11.39).

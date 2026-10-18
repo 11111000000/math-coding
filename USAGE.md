@@ -81,7 +81,7 @@ docker run --rm -v "$PWD:/repo" \
 ```
 
 The same command works for any subcommand. Replace
-`<VERSION>` with a release tag (e.g., `v3.3.0`) or `edge`
+`<VERSION>` with a release tag (e.g., `v3.3.3`) or `edge`
 for the most recent main commit. The `:edge` tag is
 rebuilt and republished on every push to `main`; a daily
 healthcheck workflow asserts the image is still runnable.
