@@ -241,18 +241,59 @@ Same per-session metrics, but with `math-coding: false` recorded.
 
 ## 7. Friction taxonomy
 
-Every friction event is tagged with one of:
+Every friction event is tagged with exactly one of four
+**mutually exclusive** codes. The previous 8-code taxonomy
+(`F-SETUP`, `F-SCHEMA`, `F-WORKFLOW`, `F-TOOLING`, `F-COGNITIVE`,
+`F-INTEGRATION`, `F-DOC`, `F-BROWNFIELD`) is preserved in the
+per-project reports' `code:` lines only as a historical
+reference; new analysis uses the 4-code form. The collapse is
+the action item from §13 R6 and is recorded in
+`decisions/revise-friction-taxonomy-2026-10.yaml`.
 
 | Code | Category | Examples |
 |------|----------|----------|
-| `F-SETUP` | Install, env, paths | mathc not on `$PATH`; Nix glibc dependency; first-run shell-RC line |
-| `F-SCHEMA` | Required field, ambiguity | `counterexample` is required but I don't have one; `axiom_link` values unclear |
-| `F-WORKFLOW` | When-to-do-what confusion | Do I run `validate` or `self-check` first? Where do I put the JSON? |
-| `F-TOOLING` | Speed, errors, msgs | mathc slow on big tree; cryptic error; missing --help |
-| `F-COGNITIVE` | Conceptual confusion | "Is this a decision or an issue?"; "Is the migration plan a decision?" |
-| `F-INTEGRATION` | CI, hooks, gitignore | pre-commit hook blocks unrelated work; CI yaml missing |
-| `F-DOC` | Docs discoverability | Didn't know `mathc find` existed; `QUICKSTART` doesn't link to `USAGE` |
-| `F-BROWNFIELD` | Adopt, import-adr, init | `adopt` missed my arc42 section; `import-adr` lost the MADR status header |
+| `F-INSTALL` | Install, env, paths, dependencies | `mathc new-decision --write` ignores `MATH_CODING_DECISIONS_DIR`; `scripts/generate-attestations.py` writes to the math-coding tree, not the project's; pre-commit hook blocks unrelated work |
+| `F-SCHEMA` | Schema field, required-field, parser | Custom YAML parser mangles multi-line `risk.declared_triggers` items (fires `MC-COUNTEREXAMPLE-MISSING` on a file that has a counterexample); kebab-case rule for decision ids; `materials_digest` required when `kind_ != review` |
+| `F-WORKFLOW` | When-to-do-what confusion | Which axiom fits this decision? Is "no-op waiver" a passing outcome? Which nit candidate best exercises the round-trip? |
+| `F-SEMANTIC` | Kernel behaviour that surprises the user | `mathc validate` returns `accept` but does not execute the verifier; `mathc re-evaluate` and `mathc re-evaluate-decisions` disagree on `(decision, axiom)` pair; `verifier:` paths are not sanity-checked |
+
+Mapping from the prior 8-code form to the 4-code form:
+
+```text
+F-SETUP, F-TOOLING, F-INTEGRATION  ->  F-INSTALL
+F-SCHEMA, F-DOC                    ->  F-SCHEMA
+F-WORKFLOW                         ->  F-WORKFLOW
+F-COGNITIVE (parts)                ->  F-SCHEMA / F-WORKFLOW / F-SEMANTIC
+F-BROWNFIELD                       ->  F-SEMANTIC
+F-COGNITIVE (remaining)            ->  F-SCHEMA / F-WORKFLOW / F-SEMANTIC
+```
+
+The 4-code mapping rules (so a future agent can apply it
+deterministically):
+
+- **F-INSTALL** — anything that goes wrong *getting mathc
+  deployed into this project's tree*: env vars not honoured,
+  paths hard-coded to a different root, hook integration
+  missing, helper scripts write to the wrong directory, parallel
+  sub-agents colliding on a shared decisions/ tree.
+- **F-SCHEMA** — anything that goes wrong *reading or writing
+  the decision YAML shape*: parser bugs, validator diagnostics
+  false-positives, missing/ambiguous required fields, schema
+  discoverability (a JSON schema or worked example is missing),
+  the cognitive question "what does this field mean" when the
+  field is itself a schema concept.
+- **F-WORKFLOW** — the agent knows *what* mathc does and *how*
+  to install it, but cannot tell *which step to do next, or
+  which of N candidate changes counts as a real change for the
+  experiment*: axiom choices, candidate-change selection,
+  verifier-shape selection, sibling-session work scope, lifecycle
+  demo decisions, parallel-orchestration handoffs.
+- **F-SEMANTIC** — the agent is surprised by the kernel because
+  a tool's output diverges from its input or from another
+  tool's output: `accept` ≠ verifier execution; two re-evaluate
+  commands disagree; missing verifier paths are silently
+  accepted; the validator passes a YAML shape but not its
+  runtime.
 
 Each event recorded as:
 
@@ -409,18 +450,16 @@ actual content writing.
 
 Total recorded across 5 projects: **55** events.
 
-By category:
+By category (4-code form per §7; counts re-classified under
+`decisions/revise-friction-taxonomy-2026-10.yaml`):
 
 | Code           | Count | Max severity |
 |----------------|-------|--------------|
-| F-INTEGRATION  | 10    | 4 |
-| F-TOOLING      | 10    | 3 |
-| F-WORKFLOW     | 9     | 3 |
-| F-COGNITIVE    | 9     | 2 |
-| F-SCHEMA       | 5     | 3 |
-| F-SETUP        | 5     | 3 |
-| F-DOC          | 4     | 2 |
-| F-BROWNFIELD   | 3     | 3 |
+| F-INSTALL      | 28    | 4 |
+| F-WORKFLOW     | 15    | 3 |
+| F-SCHEMA       |  8    | 3 |
+| F-SEMANTIC     |  4    | 2 |
+| **Total**      | 55    |   |
 
 ### 10.5 Top recurring friction events (severity ≥ 3)
 
@@ -430,15 +469,15 @@ the experiment produced.
 
 | # | Trigger summary | Code | Sev | Projects | Confirmed by |
 |---|-----------------|------|-----|----------|--------------|
-| 1 | `mathc new-decision --write` ignores `MATH_CODING_DECISIONS_DIR` and writes to `./decisions/` at the project root. | F-INTEGRATION / F-TOOLING | 4 | click, express, cobra, sinatra | 4 sub-agents independently |
-| 2 | `mathc self-check` / `packages` / `find` / `counters` ignore `MATH_CODING_DECISIONS_DIR` (or fall back to walking up for a `dune-project` marker). | F-INTEGRATION | 4 | click, express, ripgrep, sinatra | 4 sub-agents independently |
-| 3 | `mathc migrate --from=X --to=Y` (no `--manifest`) hard-codes `<project_root>/decisions/`, ignores env var. | F-TOOLING | 3 | cobra | 1 sub-agent + orchestrator-recovery path |
-| 4 | `mathc attest-batch` subcommand does not exist in the shipped binary (only `mathc attest FILE` for JUnit XML imports). | F-TOOLING | 3 | click, cobra | 2 sub-agents independently |
-| 5 | `scripts/generate-attestations.py` writes to math-coding's own tree; cannot be redirected via env var or `--out` flag. | F-WORKFLOW / F-TOOLING | 2 | click, express, cobra, sinatra | 4 sub-agents independently |
-| 6 | `mathc validate` accepts a YAML shape but does **not** execute the `acceptance.all[*].verifier` strings; an agent who trusts the first `accept` ships unverifiable obligations. | F-COGNITIVE / F-DOC | 1-2 | cobra | 1 sub-agent; partially confirmed by `re-evaluate` showing `ran: false` for un-reran obligations |
+| 1 | `mathc new-decision --write` ignores `MATH_CODING_DECISIONS_DIR` and writes to `./decisions/` at the project root. | F-INSTALL | 4 | click, express, cobra, sinatra | 4 sub-agents independently |
+| 2 | `mathc self-check` / `packages` / `find` / `counters` ignore `MATH_CODING_DECISIONS_DIR` (or fall back to walking up for a `dune-project` marker). | F-INSTALL | 4 | click, express, ripgrep, sinatra | 4 sub-agents independently |
+| 3 | `mathc migrate --from=X --to=Y` (no `--manifest`) hard-codes `<project_root>/decisions/`, ignores env var. | F-INSTALL | 3 | cobra | 1 sub-agent + orchestrator-recovery path |
+| 4 | `mathc attest-batch` subcommand does not exist in the shipped binary (only `mathc attest FILE` for JUnit XML imports). | F-WORKFLOW | 3 | click, cobra | 2 sub-agents independently |
+| 5 | `scripts/generate-attestations.py` writes to math-coding's own tree; cannot be redirected via env var or `--out` flag. | F-INSTALL | 2 | click, express, cobra, sinatra | 4 sub-agents independently |
+| 6 | `mathc validate` accepts a YAML shape but does **not** execute the `acceptance.all[*].verifier` strings; an agent who trusts the first `accept` ships unverifiable obligations. | F-SEMANTIC | 1-2 | cobra | 1 sub-agent; partially confirmed by `re-evaluate` showing `ran: false` for un-reran obligations |
 | 7 | Custom YAML parser limitation: multi-line `risk.declared_triggers` items silently consume subsequent top-level keys (so `counterexample:` parses as absent and `MC-COUNTEREXAMPLE-MISSING` fires on a file that has a counterexample). | F-SCHEMA | 3 | sinatra, ripgrep | 2 sub-agents independently; `MC-COUNTEREXAMPLE-MISSING` was the most-emitted soft-warn across the experiment |
-| 8 | `mathc counterexample` soft-warning fires on every `state: active` decision even when a `counterexample:` block is present. | F-DOC | 1-2 | all 5 | Confirmed by every sub-agent's first `mathc validate` |
-| 9 | `mathc attest FILE` is the JUnit importer, *not* the attestation writer; the help text says "parse FILE as a JUnit XML report" but the per-task prompt suggested using it for plain JSON writing. | F-DOC | 2 | (orchestrator, several sub-agents) | The name collision is a documentation trap. |
+| 8 | `mathc counterexample` soft-warning fires on every `state: active` decision even when a `counterexample:` block is present. | F-SCHEMA | 1-2 | all 5 | Confirmed by every sub-agent's first `mathc validate` |
+| 9 | `mathc attest FILE` is the JUnit importer, *not* the attestation writer; the help text says "parse FILE as a JUnit XML report" but the per-task prompt suggested using it for plain JSON writing. | F-SEMANTIC | 2 | (orchestrator, several sub-agents) | The name collision is a documentation trap. |
 
 ### 10.6 Hypotheses
 
@@ -542,10 +581,12 @@ request a higher TPM budget from the provider.
   fix is small (lift to a real YAML library or quote the trigger
   items), but the bug fires on a real-world failure mode (T1
   bootstrap) every time.
-- **The friction taxonomy is subjective.** The same env-var bug
-  was tagged `F-WORKFLOW`, `F-TOOLING`, `F-INTEGRATION`, and
-  `F-SETUP` by different agents. A future taxonomy revision
-  should either constrain the categories or collapse them.
+- **The friction taxonomy is subjective (revised).** Under the
+  8-code form, the same env-var bug was tagged `F-WORKFLOW`,
+  `F-TOOLING`, `F-INTEGRATION`, and `F-SETUP` by different
+  agents. The 4-code collapse in `§7` (per R6 below) was the
+  planned resolution; counts are now stable at
+  F-INSTALL=28 / F-WORKFLOW=15 / F-SCHEMA=8 / F-SEMANTIC=4, sum=55.
 - **`mathc migrate` is partial.** The subcommand exists and reads
   manifests, but the directory lookup is hard-coded. A project
   with decisions in two locations (e.g. cobra's symlink) gets
@@ -632,8 +673,10 @@ MATH_CODING_DECISIONS_DIR=X ignored, wrote to Y`. That alone
 would have shortened 4 of the 5 project reports by ~2 minutes of
 debug time.
 
-Traced to: F-INTEGRATION (10 events); cobra/T1-1, click/T1-1,
-express/T1-1, sinatra/T1-1, ripgrep/T1-1.
+Traced to: F-INSTALL (28 events under the 4-code taxonomy; this
+was F-INTEGRATION (10) + F-SETUP (5) + F-TOOLING (5) under the
+old 8-code form); cobra/T1-1, click/T1-1, express/T1-1,
+sinatra/T1-1, ripgrep/T1-1.
 
 ### R2 — Distinguish "validated" from "verified"
 
@@ -658,7 +701,8 @@ Two changes would close the gap:
    already takes a `DECISION_ID AXIOM_ID` and produces a JSON
    verdict per obligation.
 
-Traced to: F-COGNITIVE / F-DOC (cobra/T2-5).
+Traced to: F-SEMANTIC (cobra/T2-5); was F-COGNITIVE / F-DOC in the
+old 8-code form.
 
 ### R3 — Fix the counterexample parser
 
@@ -681,7 +725,10 @@ Two fixes:
    parsing `risk.declared_triggers`, and refuse to validate
    otherwise (so the error message is precise).
 
-Traced to: F-SCHEMA (5 events); sinatra/T1-2, ripgrep/T1-4.
+Traced to: F-SCHEMA (8 events under the 4-code taxonomy; was
+F-SCHEMA (5) in the old 8-code form); sinatra/T1-2,
+sinatra/T3-1, ripgrep/T1-4, ripgrep/T2-4, cobra/T1-3,
+cobra/T2-1, cobra/T3-5, click/T3-2.
 
 ### R4 — Ship `mathc attest-batch` or update the docs
 
@@ -704,7 +751,10 @@ Either:
   `MATH_CODING_DECISIONS_DIR` (which the Python script also does
   not honour — see R5).
 
-Traced to: F-TOOLING (4 events); click/T2-1, cobra/T2-3.
+Traced to: F-WORKFLOW (15 events under the 4-code taxonomy;
+the closest matching pair in the old 8-code form was F-TOOLING
++F-WORKFLOW); click/T2-1, cobra/T2-3 (cited as the canonical
+"which command do I use?" pair).
 
 ### R5 — `scripts/generate-attestations.py` does not honour env vars
 
@@ -721,7 +771,12 @@ the SHA-256-canon recipe.
 Fix: have `scripts/generate-attestations.py` honour
 `MATH_CODING_DECISIONS_DIR` and `MATH_CODING_ATTESTATIONS_DIR`.
 
-Traced to: F-WORKFLOW / F-TOOLING (4 events).
+Traced to: F-INSTALL (events with the
+`scripts/generate-attestations.py` path-from-shell-script bug;
+under the 4-code taxonomy these are absorbed into the broader
+F-INSTALL class — the script writes to its OWN tree, not the
+project's); express/T3-3, express/T2-2, sinatra/T2-2,
+ripgrep/T2-3.
 
 ### R6 — Tighten the friction taxonomy
 
@@ -740,6 +795,13 @@ taxonomy to 4 mutually exclusive categories:
 4. **F-SEMANTIC** — kernel behaviour that surprises the user
    (verifier not executed, decision "accept" without run, etc.).
 
+> **Status 2026-10-17:** resolved under
+> `decisions/revise-friction-taxonomy-2026-10.yaml`. The 4
+> category names above are now the canonical taxonomy (§7);
+> counts (F-INSTALL=28 / F-WORKFLOW=15 / F-SCHEMA=8 / F-SEMANTIC=4,
+> sum=55) and the per-event re-classification are recorded in
+> §10.4 and the 5 per-project reports.
+
 ### R7 — Reduce the parallel-orchestration pollution
 
 **Severity:** 2 (methodology). **Frequency:** 4/5 projects.
@@ -755,7 +817,11 @@ experiment should:
 - Stamp every output with the writing agent's id (the agent's
   parent-id label) so collision is detectable.
 
-Traced to: F-BROWNFIELD (3 events); click/T1-1, ripgrep/T1-3.
+Traced to: F-INSTALL (events with the parallel-orchestration
+pollution aspect — multiple sub-agents sharing `decisions/`;
+under the 4-code taxonomy these are absorbed into F-INSTALL);
+express/T1-2, express/T3-2, ripgrep/T1-3, ripgrep/T3-4,
+sinatra/T1-3.
 
 ### R8 — Pick projects that actually exercise the brownfield path
 

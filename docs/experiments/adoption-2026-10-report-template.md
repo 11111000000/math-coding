@@ -41,8 +41,11 @@
 
 ```yaml
 - id: T1-1
-  code: F-XXX   # one of F-SETUP, F-SCHEMA, F-WORKFLOW, F-TOOLING,
-                # F-COGNITIVE, F-INTEGRATION, F-DOC, F-BROWNFIELD
+  code: F-XXX   # exactly one of F-INSTALL, F-SCHEMA, F-WORKFLOW, F-SEMANTIC
+                # (4-code form adopted 2026-10-17 under
+                # decisions/revise-friction-taxonomy-2026-10.yaml;
+                # the prior 8-code form is documented in §7 for
+                # historical reference)
   context: <what I was trying>
   trigger: <what happened>
   repro: <one-line: how to reproduce>
