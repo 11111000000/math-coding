@@ -627,6 +627,45 @@ let[@warning "-32"] head_indent = function
   | { yindent; _ } :: _ -> yindent
   | [] -> -1
 
+(* Inline block-sequence value: YAML 1.2 §7.1 form "key: - foo"
+   (the sequence starts on the same line as the key, with
+   additional "- bar" items at the same indentation on
+   subsequent lines).
+
+   Triggered by `parse_yaml_pairs` when the trimmed value side
+   of a key:value line starts with "- ". Without this branch,
+   the value was parsed as a plain scalar string, the
+   same-indent "- bar" was mistaken for the start of a new
+   top-level key list (it is not — it is a continuation of
+   the sequence), and every key that followed (e.g.
+   `counterexample:`) was silently dropped. The audit
+   report §10.5 #7 (`docs/experiments/adoption-2026-10.md`)
+   named this as F-SCHEMA for sinatra and ripgrep.
+
+   The function consumes:
+   - the "- foo" item from `vstr` (already trimmed, dash prefix kept);
+   - any further "- bar" tokens in `tokens` whose `yindent = cur_indent`.
+
+   Items are parsed as scalars via `parse_yaml_scalar`; the empty
+   string is mapped to `Jsonl.Null`, matching the semantics of
+   `parse_yaml_seq` for empty items under the existing tests. *)
+let[@warning "-32"] rec parse_yaml_inline_seq cur_indent vstr tokens =
+  let first_item =
+    let s = String.trim (String.sub vstr 2 (String.length vstr - 2)) in
+    if s = "" then Jsonl.Null else parse_yaml_scalar s
+  in
+  let rec collect acc ts =
+    match ts with
+    | { yindent; ycontent } :: rest
+      when yindent = cur_indent && is_dash_item ycontent ->
+        let s = String.trim (String.sub ycontent 2 (String.length ycontent - 2)) in
+        let item = if s = "" then Jsonl.Null else parse_yaml_scalar s in
+        collect (item :: acc) rest
+    | _ -> (List.rev acc, ts)
+  in
+  let more, rest2 = collect [] tokens in
+  (Jsonl.Array (first_item :: more), rest2)
+
 (* Fold YAML 1.1 plain-scalar continuation: when a non-block
    scalar value at indent `cur_indent` is followed by one or
    more lines whose indent is greater than `cur_indent`,
@@ -701,6 +740,11 @@ let[@warning "-32"] rec parse_yaml_pairs tokens cur_indent =
                     parse_yaml_block body_indent is_folded chomp rest
                   in
                   (Jsonl.String body, rest2)
+                else if is_dash_item vstr then
+                  (* YAML 1.2 §7.1 inline sequence: "key: - foo"
+                     on a single line, with "- bar" continuations
+                     on subsequent lines at the same indent. *)
+                  parse_yaml_inline_seq cur_indent vstr rest
                 else
                   let base_value = parse_yaml_scalar vstr in
                   let suffix, rest2 =
