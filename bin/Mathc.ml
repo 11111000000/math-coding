@@ -118,6 +118,119 @@ let[@warning "-32"] collect_ambiguous_acceptance_diagnostics v =
       | None -> [])
   | _ -> []
 
+(* Canonical verifier scheme allowlist (plan-decision C5,
+   decisions/verifier-scheme-convention-2026-11.yaml). The
+   scheme is the first whitespace-delimited token of the
+   verifier string (see `parse_verifier_string`). An item
+   matches the canonical list iff either:
+
+     (a) its scheme is in `canonical_verifier_schemes` exactly,
+     (b) its scheme starts with one of the strings in
+         `canonical_verifier_prefixes`.
+
+   The list is intentionally minimal — it does NOT try to
+   cover every bespoke scheme name in this repo's decision
+   corpus; the diagnostic is the discoverability surface
+   for the convention, not a check on existing usage. New
+   scheme families extend the list via a follow-up
+   decision.
+
+   `dune` (bare) is a command-runner scheme exactly like
+   `bash` and `mathc` — the corpus uses `verifier: dune build`
+   / `verifier: dune test` widely. `dune-` covers the
+   sentinel forms `dune-build` / `dune-runtest`. *)
+let[@warning "-32"] canonical_verifier_schemes =
+  [ "file-exists"; "dir-exists"; "bash"; "mathc"; "shell-grep"; "dune" ]
+
+let[@warning "-32"] canonical_verifier_prefixes =
+  [ "text-scan-"; "tests/"; "dune-"; "scripts/"; "manual-" ]
+
+let[@warning "-32"] known_verifier_scheme scheme =
+  if List.mem scheme canonical_verifier_schemes then true
+  else
+    List.exists
+      (fun prefix ->
+        String.length scheme >= String.length prefix
+        && String.sub scheme 0 (String.length prefix) = prefix)
+      canonical_verifier_prefixes
+
+(* Inline copy of `parse_verifier_string` (defined later in
+   this file, around line 2874). The OCaml toplevel is
+   sequential so we can't forward-reference; the body is 6
+   lines so duplicating it is cheaper than reordering. *)
+let[@warning "-32"] scheme_of_verifier s =
+  let trimmed = String.trim s in
+  if trimmed = "" then None
+  else
+    let parts =
+      trimmed |> String.split_on_char ' '
+      |> List.filter (fun t -> String.trim t <> "")
+    in
+    match parts with [] -> None | scheme :: _ -> Some scheme
+
+(* Walk every obligation's acceptance list and emit one Warn
+   MC-VERIFIER-SCHEME-UNKNOWN diagnostic per non-canonical
+   scheme token. Mirrors the structure of
+   `collect_ambiguous_acceptance_diagnostics` above: walks
+   raw Jsonl (not the parsed Domain tree) because verifier
+   strings are opaque to the kernel. The scheme is the
+   first whitespace-delimited token of the verifier string
+   (extracted via `scheme_of_verifier` here; the production
+   parser `parse_verifier_string` lives below the verify
+   subcommand block and is identical).
+
+   An empty/whitespace-only verifier string is silently
+   skipped (scheme_of_verifier returns None); the
+   malformed-acceptance diagnostic already covers the
+   verifier-shaped-but-empty case via
+   `Decision.classify_acceptance_item`. *)
+let[@warning "-32"] collect_verifier_scheme_diagnostics v =
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_array ps "obligations" with
+      | Some obls ->
+          List.concat_map
+            (fun v ->
+              match v with
+              | Jsonl.Object ops -> (
+                  let id =
+                    match Schema.take_string ops "id" with
+                    | Some s -> s
+                    | None -> ""
+                  in
+                  match Schema.take_object ops "acceptance" with
+                  | Some a -> (
+                      match Schema.take_array a "all" with
+                      | Some xs ->
+                          List.filter_map
+                            (fun item ->
+                              match item with
+                              | Jsonl.Object ips -> (
+                                  match
+                                    Schema.take_string ips "verifier"
+                                  with
+                                  | Some s -> (
+                                      match scheme_of_verifier s with
+                                      | Some scheme ->
+                                          if known_verifier_scheme scheme then
+                                            None
+                                          else
+                                            Some
+                                              (Diagnostic
+                                               .mc_verifier_scheme_unknown
+                                                 ~obligation_id:id ~scheme
+                                                 ~verifier:s ())
+                                      | None -> None)
+                                  | None -> None)
+                              | _ -> None)
+                            xs
+                      | None -> [])
+                  | None -> [])
+              | _ -> [])
+            obls
+      | None -> [])
+  | _ -> []
+
 (* Required top-level fields per schemas/decision.json. Used by
    validate_with_counts to surface the FIRST missing field instead
    of a generic "missing or invalid required field". *)
@@ -467,6 +580,19 @@ let validate_with_counts path =
                                       match counterexample_diag with
                                       | Some diag -> diag :: extra_diags
                                       | None -> extra_diags
+                                    in
+                                    (* Plan-decision C5: emit one Warn
+                                       MC-VERIFIER-SCHEME-UNKNOWN per
+                                       non-canonical scheme token in
+                                       obligations[*].acceptance.all[*].verifier.
+                                       Severity is Warn (the verdict stays
+                                       parse-ok); the diagnostic is the
+                                       discoverability surface for the
+                                       convention documented in
+                                       decisions/verifier-scheme-convention-2026-11.yaml. *)
+                                    let extra_diags =
+                                      collect_verifier_scheme_diagnostics v
+                                      @ extra_diags
                                     in
                                     `Accept (d, extra_diags))
                             | None ->
@@ -1667,9 +1793,10 @@ let[@warning "-32"] do_explain_diagnostic () =
       let msg =
         Printf.sprintf
           "unknown diagnostic code '%s'; supported codes are listed by \
-           lib/diagnostic.ml::explain (MC-AMBIGUOUS-ACCEPTANCE, \
-           MC-MALFORMED-ACCEPTANCE, MC-PARSE, MC-DECISION-INVALID, \
-           MC-COUNTEREXAMPLE-MISSING, MC-AXIOM-LINK-MISSING, MC-SHA-MISMATCH)"
+           lib/diagnostic.ml::explain (MC-VERIFIER-SCHEME-UNKNOWN, \
+           MC-AMBIGUOUS-ACCEPTANCE, MC-MALFORMED-ACCEPTANCE, MC-PARSE, \
+           MC-DECISION-INVALID, MC-COUNTEREXAMPLE-MISSING, \
+           MC-AXIOM-LINK-MISSING, MC-SHA-MISMATCH)"
           code
       in
       explain_diag "MC-EXPLAIN-DIAGNOSTIC-UNKNOWN" "diagnostic" code msg;

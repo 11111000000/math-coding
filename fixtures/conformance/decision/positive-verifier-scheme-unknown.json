@@ -1,0 +1,74 @@
+{
+  "schema": "math-coding/3.0-alpha",
+  "kind": "decision",
+  "id": "verifier-scheme-unknown-demo",
+  "revision": "rev:cafe02",
+  "axiom_link": ["A0"],
+  "intent": {
+    "source": "test:verifier-scheme-unknown",
+    "text": "Demonstrate that mathc validate emits one Warn MC-VERIFIER-SCHEME-UNKNOWN diagnostic per non-canonical verifier scheme token in obligations[*].acceptance.all[*].verifier, while still returning parse-ok on stdout."
+  },
+  "commitment": "mathc validate returns parse-ok AND emits MC-VERIFIER-SCHEME-UNKNOWN on stderr for every non-canonical scheme token. Severity is Warn, not Block.",
+  "scope": [
+    {"kind": "path", "path": "lib/**", "match": "tree"}
+  ],
+  "outcomes": [
+    {"id": "unknown-schemes-flagged", "statement": "Three non-canonical scheme tokens produce three Warn MC-VERIFIER-SCHEME-UNKNOWN diagnostics."}
+  ],
+  "assumptions": [
+    {
+      "id": "three-distinct-unknown-schemes",
+      "state": "assumed",
+      "statement": "This fixture carries exactly three non-canonical scheme tokens: 'mathc-foo-impl-runs-on-fixture', 'binary-exists', 'brew-tap-installed'.",
+      "owner": "human:maintainer",
+      "consequence_if_false": "Warning count drifts from the expected 3",
+      "review_on": [{"signal": "canonical-scheme-list-bumps"}]
+    }
+  ],
+  "obligations": [
+    {
+      "id": "unknown-scheme-flagged-obligation",
+      "decision": "verifier-scheme-unknown-demo",
+      "outcome": "unknown-schemes-flagged",
+      "claim": "Every non-canonical verifier scheme token surfaces as a Warn diagnostic.",
+      "subjects": [{"kind": "path", "path": "lib/**", "match": "tree"}],
+      "acceptance": {
+        "all": [
+          {"verifier": "mathc-foo-impl-runs-on-fixture", "result": "pass"},
+          {"verifier": "binary-exists /usr/bin/foo", "result": "pass"},
+          {"verifier": "brew-tap-installed foo", "result": "pass"}
+        ]
+      },
+      "phase": "pre-merge",
+      "kind": "acceptance"
+    },
+    {
+      "id": "mixed-known-and-unknown-obligation",
+      "decision": "verifier-scheme-unknown-demo",
+      "outcome": "unknown-schemes-flagged",
+      "claim": "A list mixing canonical and non-canonical schemes surfaces only the non-canonical ones.",
+      "subjects": [{"kind": "path", "path": "lib/**", "match": "tree"}],
+      "acceptance": {
+        "all": [
+          {"verifier": "file-exists /tmp/foo", "result": "pass"},
+          {"verifier": "mathc validate decisions/foo.yaml", "result": "pass"},
+          {"verifier": "mathc-bogus-impl-runs", "result": "pass"}
+        ]
+      },
+      "phase": "pre-merge",
+      "kind": "acceptance"
+    }
+  ],
+  "reversal": [
+    {"signal": "verifier-scheme-convention-rolls-back", "action": "revert"}
+  ],
+  "risk": {
+    "declared_triggers": ["warn-noise-on-existing-decisions"],
+    "owner": "human:maintainer"
+  },
+  "relations": {
+    "addresses": ["bootstrap-v3@3", "plan-2026-11-adoption-fixes-2026-10@1"]
+  },
+  "counterexample": "An unknown-scheme conformance fixture does not carry dialectical content for the kernel-checked rule; the kernel requires counterexample + antithesis for mode >= standard regardless of fixture intent, so this fixture carries documentary content naming the strongest objection considered and rejected.",
+  "antithesis": "This conformance fixture asserts three MC-VERIFIER-SCHEME-UNKNOWN diagnostics fire on this file (one per non-canonical token, two obligation paths, four total tokens with three unknown). The v3 dialectic antithesis slot is unrelated to that assertion; the author considered and rejected the counter-position that an unknown-scheme demo need not carry dialectic content because its purpose is a validator diagnostic, not a dialectic test. The kernel requires antithesis for mode >= standard regardless of fixture intent, so the fixture carries a documentary antithesis string naming the position considered and rejected."
+}

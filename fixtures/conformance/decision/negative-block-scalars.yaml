@@ -37,7 +37,7 @@ obligations:
         match: tree
     acceptance:
       all:
-        - verifier: search-fallback-load-test
+        - verifier: manual-load-test
           result: pass
     phase: pre-release
 
