@@ -528,3 +528,29 @@ For the protected-policy transition checklist (decision under
 prior policy, strongest countercase, fixtures, migration,
 recovery, prior authorization, verdict diff) see
 `AGENTS.md §Self-application`.
+
+## Release cadence
+
+Every release commit on a `release/v3.3.x-*` branch must be
+re-built and re-published by `.github/workflows/release.yml`
+BEFORE subsequent sub-decisions land on main. Per the F15
+finding: tagging without re-build ships a stale binary whose
+in-tree source predates the latest sub-decision merges.
+Downstream installer wrappers (`scripts/install-tooling/install.sh`,
+`install.ps1`) read whatever binary is pinned at the tagged
+SHA, so a stale tag = a stale install.
+
+The release-pending CI gate
+(`.github/workflows/release-pending.yml`) blocks PRs whose
+diff touches `bin/Mathc.ml`, `lib/`, or
+`scripts/install-tooling/` while the latest tag on the base
+branch has uncommitted re-build evidence. When the gate
+fires, re-run the release workflow (one CI minute) and merge
+— do not bypass the gate with a manual override, because
+override nullifies the F15 follow-up and reopens the
+stale-binary failure mode.
+
+The first-pass gate is a reviewer-readable instruction
+("re-build, then merge") rather than a GitHub-API query;
+the API-query upgrade is tracked as a follow-up under
+`decisions/release-cadence-2026-11`.
