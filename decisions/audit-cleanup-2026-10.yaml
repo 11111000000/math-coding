@@ -4,6 +4,10 @@ id: audit-cleanup-2026-10
 revision: 1
 state: active
 mode: standard
+axiom_link:
+  - A0
+  - A1
+  - A3
 
 intent: |
   Close the eight audit deficits identified on HEAD `db69ca2`
