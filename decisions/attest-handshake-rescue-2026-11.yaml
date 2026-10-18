@@ -1,0 +1,180 @@
+---
+schema: math-coding/3.3
+id: attest-handshake-rescue-2026-11
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:a56eb71e5047d2ae71f0cbd24301c468848603428ce3d9364466eb950da4a56f"
+yaml_sha: "sha256:a56eb71e5047d2ae71f0cbd24301c468848603428ce3d9364466eb950da4a56f"
+
+intent: |
+  Codify the orchestrator-rescue recipe observed during the
+  F11/F14 finding (sub-agent die-mid-task from Token Plan
+  rate-limit interrupt). The rescue is a deterministic
+  sequence the parent orchestrator runs when a child
+  sub-agent dies from HTTP 429 retry-exhaustion:
+
+    1. Archive the dead agent (`paseo_archive_agent`).
+    2. Inspect the worktree's `git status` for uncommitted
+       work.
+    3. If the sub-decision is partial-commit-worthy:
+       a. Read the worktree's `bin/Mathc.ml` / scripts for
+          the partial work.
+       b. Commit that work as a single atomic change on the
+          topic branch.
+       c. Stamp the resulting attestations with
+          `producer.identity: human:<parent-agent>` and a
+          `rescue_reason: token-plan-rate-limit` field.
+       d. Recompute body_sha / yaml_sha if the agent's
+          partial work modified the decision file.
+    4. If not partial-commit-worthy (the agent died before
+       any kernel edit): mark the sub-decision as
+       `state: archived` and re-spawn from scratch on the
+       next-budget model.
+    5. Append a one-line entry to
+       `docs/process/attest-handshake-rescue.md` "incidents"
+       log.
+
+  Per the P9 principle (`decisions/process-principles.yaml@5`),
+  the scaffold-commit pattern guarantees that no sub-agent
+  dies without SOMETHING on disk, which makes this rescue
+  deterministic.
+
+  Boundaries:
+    - No change to `lib/`, `bin/Mathc.ml`, `schemas/`, or
+      `axioms/`. This is a process document + decision file.
+    - The rescue recipe is opt-in: orchestrators that prefer
+      to mark a sub-decision `state: archived` without
+      partial-commit rescue may do so.
+    - The recipe does not retroactively apply to past
+      incidents; the incidents log starts at the commit that
+      adds this file.
+
+commitment: |
+  After this commit lands:
+
+  1. `docs/process/attest-handshake-rescue.md` exists at
+     HEAD and contains the rescue recipe plus the initial
+     (empty) incidents log section.
+  2. `decisions/attest-handshake-rescue-2026-11.yaml` is
+     `parse-ok` under `mathc validate`.
+  3. `nix develop .#test --command 'dune test'` exits 0.
+  4. `mathc self-check` reports the same number of unknown
+     subjects as at this commit's pre-state.
+
+counterexample: |
+  The counter-position considered: "this rescue recipe
+  hard-codes a model preference (deepseek-v4-pro) that may
+  not exist when invoked." Acknowledged: the model name in
+  step 4 is illustrative. The recipe records the
+  decision-shape ("re-spawn on the next-budget model") not
+  a specific model identifier. Future revisions can pin a
+  specific model once one is named in
+  `bin/data/time-distribution.yaml`.
+
+  A second counter-position: "sub-agents that die from rate
+  limits are a degraded path; codifying rescue rewards the
+  failure mode." Rejected: the rate-limit interrupt is not
+  an agent failure — it is an infrastructure constraint
+  imposed by the Token Plan provider. Codifying rescue
+  makes the orchestrator's behaviour deterministic when
+  the provider's behaviour is non-deterministic; that is
+  the inverse of rewarding failure.
+
+axiom_link:
+  - A0
+  - A1
+
+scope:
+  capabilities:
+    - sub-agent-rescue-recipe
+  paths:
+    - "docs/process/attest-handshake-rescue.md"
+    - "decisions/attest-handshake-rescue-2026-11.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "spec/**"
+
+outcomes:
+  - id: rescue-recipe-published
+    statement: |
+      `docs/process/attest-handshake-rescue.md` exists at HEAD
+      and codifies the 5-step rescue recipe plus the empty
+      initial "incidents" log section.
+
+  - id: rescue-recipe-references-p9
+    statement: |
+      The rescue recipe explicitly cites
+      `decisions/process-principles.yaml@5::P9` as the
+      enabling scaffold-commit pattern.
+
+obligations:
+  - id: c3-rescue-recipe-codified
+    claim: |
+      `docs/process/attest-handshake-rescue.md` exists and
+      contains, in order: (a) the 5-step rescue recipe; (b)
+      a citation of `process-principles.yaml@5::P9` as the
+      enabling principle; (c) an "incidents" log section
+      with the table header row.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: docs/process/attest-handshake-rescue.md
+          result: pass
+        - verifier: file-contains
+          path: docs/process/attest-handshake-rescue.md
+          needle: "paseo_archive_agent"
+          result: pass
+        - verifier: file-contains
+          path: docs/process/attest-handshake-rescue.md
+          needle: "process-principles.yaml@5::P9"
+          result: pass
+        - verifier: file-contains
+          path: docs/process/attest-handshake-rescue.md
+          needle: "## Incidents"
+          result: pass
+        - verifier: mathc validate decisions/attest-handshake-rescue-2026-11.yaml
+          result: pass
+
+  - id: c3-rescue-no-new-unknowns
+    claim: |
+      After this commit lands on main, `mathc self-check`
+      reports the same number of pass / unknown subjects as
+      at this commit's pre-state. No new unknown subjects
+      are introduced by this commit; the commit is
+      documentation-only.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+risk:
+  declared_triggers:
+    - rescue-recipe-too-rigid
+    - rescue-recipe-cited-incorrectly
+    - scaffold-commit-pattern-diverged
+  owner: human:maintainer
+
+reversal:
+  - signal: rescue-recipe-outdated
+    condition: |
+      The Token Plan provider changes its rate-limit
+      semantics such that the 5-step recipe is no longer
+      the shortest path to recovery.
+    action: |
+      update-rescue-recipe-in-place with a new revision and
+      a one-paragraph rationale for the change. Re-emit the
+      `c3-rescue-recipe-codified` attestation under the new
+      revision.
+
+relations:
+  addresses:
+    - process-principles@5::P9
+    - process-principles@4::P8.5
+    - attestation-namespace-meta-2026-11@1
+  supersedes: []
+  superseded_by: []
