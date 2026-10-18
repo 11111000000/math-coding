@@ -1,0 +1,1 @@
+{"id":"sha256:b1430db81427dc1a9f18f44baeac6d86fc97ca78b8ae4b7d6385f1b52cd71d64","issued_at":"2026-10-18T09:47:57Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:subagent-C4"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"release-cadence-2026-11","materials_digest":"","obligation":"c4-no-new-unknowns"}}

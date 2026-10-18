@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: process-principles
-revision: 3
+revision: 5
 state: active
-body_sha: "sha256:2c257e5c4ee85654b06a00b2dd38b4e290a473e5e9bd486d94788d21468b3683"
-yaml_sha: "sha256:2c257e5c4ee85654b06a00b2dd38b4e290a473e5e9bd486d94788d21468b3683"
+body_sha: "sha256:27148414a608183022647dff14c86d6b131a37de3be7b28b2c9d9ea7dd1213b5"
+yaml_sha: "sha256:27148414a608183022647dff14c86d6b131a37de3be7b28b2c9d9ea7dd1213b5"
 intent: |
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as
@@ -196,6 +196,57 @@ assumptions:
     evidence: manual-acceptance
     review_on:
       - signal: edit-loop-detected
+
+  - id: P8.5
+    state: assumed
+    statement: |
+      Sub-agent dependencies. A sub-agent whose sub-decision
+      declares dependencies on prior sub-decisions MUST NOT
+      launch until every declared dependency has landed on the
+      integration branch. Check:
+        git merge-base --is-ancestor <dep-branch> <integration-branch>
+      If the exit code is 1 (NOT ancestor), abort with a
+      structural dependency error and ask the orchestrator to
+      retry once the dependency has merged.
+    owner: human:maintainer
+    consequence_if_false: |
+      A sub-agent whose declared dependency has not yet merged
+      may run against stale integration HEAD, edit against the
+      wrong base, and produce work that fails to land. The
+      orchestrator then has to retry, doubling wall-clock and
+      token-budget cost.
+    evidence: manual-acceptance
+    review_on:
+      - signal: structural-dependency-not-merged
+
+  - id: P9
+    state: assumed
+    statement: |
+      Scaffold + checkpoint cadence. Sub-agents whose
+      sub-decision has kernel-touching scope MUST commit an
+      empty skeleton (decision YAML only, no kernel changes)
+      as the FIRST commit before any kernel edit. This
+      guarantees a recoverable scaffold if the sub-agent's
+      run is interrupted by Token Plan rate limits. The
+      scaffold-commit message format is
+        scaffold(<id>): <description>
+      The kernel commit(s) follow after the scaffold commit. P9
+      closes the F14 finding (sub-agent die-mid-task without
+      committed scaffold). Order: scaffold -> kernel ->
+      attest (3 commits minimum per kernel-touching
+      sub-decision).
+    owner: human:maintainer
+    consequence_if_false: |
+      A sub-agent that dies mid-task after editing the kernel
+      but before committing leaves recoverable evidence on
+      disk but no checkpoint in git; the orchestrator's rescue
+      recipe must guess what work was attempted. With the
+      scaffold commit, the orchestrator can inspect the
+      difference between scaffold commit and HEAD and recover
+      the agent's intent from at least one committed file.
+    evidence: manual-acceptance
+    review_on:
+      - signal: sub-agent-rate-limit-interrupt
 
 obligations:
   - id: p1-decisions-before-kernel-changes

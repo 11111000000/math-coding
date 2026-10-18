@@ -1,0 +1,218 @@
+---
+schema: math-coding/3.3
+id: experiment-doctor-instrumentation-2026-11
+revision: 1
+state: active
+mode: light
+change_kind: editorial
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Close the F13 finding: the brownfield-experiment v2 design
+  document (`docs/experiments/brownfield-experiment-v2-2026-10.md`)
+  did not include `mathc doctor` in either the preflight
+  (§8 Phase 0) or the per-task T1 instrumentation (§5).
+  `mathc doctor` was already shipped
+  (`verify-mathc-doctor-ships-2026-10@1`, decision C3 of
+  `plan-2026-10-adoption-fixes-2026-10`); the gap is that the
+  experiment's design doc did not call for it. Without an
+  instrumented doctor run, sub-agents doing T1 (`mathc adopt`
+  discovery) cannot tell install/path/latest/config/decisions/
+  attestations/self-check health from a single JSON snapshot,
+  and a doctor failure is left to be rediscovered mid-task as
+  an F-INSTALL friction rather than caught up-front as a
+  preflight red flag.
+
+  This decision adds three edits to the experiment design
+  document: a §5 T1 step 6 that runs `mathc doctor --json`
+  and records any `status: fail` as a friction event under
+  F-INSTALL; a §8 Phase 0 preflight line that runs doctor on
+  a fresh cwd and saves the JSON snapshot as
+  `experiments/brownfield-v2/preflight-doctor.json`; and a
+  new §3 hypothesis BH9 that asserts ≥ 7 healthy sections
+  on ≥ 4 of 5 projects.
+
+commitment: |
+  The cycle closes when:
+  (a) §5 T1 in the brownfield-experiment v2 design doc
+      carries step 6: "Run `mathc doctor --json` and capture
+      the output to `experiment-report.md` §T1. Record any
+      section with `status: fail` as a friction event id
+      `<session>-F-DOCTOR-<n>` under F-INSTALL. Make
+      `mathc doctor` part of the instrumented task rather
+      than an afterthought."
+  (b) §8 Phase 0 in the same doc carries the preflight
+      checklist line: "Verify `mathc doctor` returns exit 0
+      on a fresh cwd; capture the JSON output and save as
+      `experiments/brownfield-v2/preflight-doctor.json`. A
+      doctor that exits non-zero on a fresh install is a
+      red flag for any sub-task that follows."
+  (c) §3 in the same doc carries the BH9 row
+      "`mathc doctor` reports ≥ 7 healthy sections on a
+      fresh install on ≥ 4 of 5 projects" with the falsifier
+      spelled out.
+  (d) `mathc self-check` reports the same 188 pass subjects
+      as at the pre-state of this commit and zero NEW
+      unknown subjects attributable to this change.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+counterexample: |
+  The counter-position considered: "`mathc doctor` is
+  invoked by `mathc self-check` already; instrumenting it
+  again in the experiment doc is double-coverage." Rejected
+  on three grounds. (a) `mathc self-check` checks the
+  current repo's attestation store; it does not emit a
+  per-section health JSON. `mathc doctor --json` does both:
+  it lists each section (`install`, `path`, `latest`,
+  `config`, `decisions`, `attestations`, `self_check`) with
+  its own status, plus a top-level `verdict`. Without
+  `--json`, an F-INSTALL finding would be visible only as
+  a single human-readable stderr line that sub-agents do
+  not capture or compare across the 5 projects. (b) The
+  experiment is a measurement of the brownfield *user*
+  path, which does not include `mathc self-check` (that is
+  the maintainer path). An end-user running
+  `mathc adopt` on a freshly-cloned project is far more
+  likely to encounter the install/path sections first; the
+  instrumentation must mirror that order. (c) The 5
+  sub-agent reports are merged into a single
+  `experiment-report.md` per project; without an explicit
+  per-project doctor snapshot, the merge step has nothing
+  to compare BH9 against.
+
+  A second counter-position: "BH9's threshold (≥ 7
+  healthy sections on ≥ 4 of 5 projects) is too lax; the
+  red-flag interpretation is wrong because doctor reports
+  up to ~12 sections on a healthy install." Acknowledged:
+  the wording is intentionally conservative because
+  `mathc doctor`'s section count varies by platform (no
+  `scoop` section on Linux, no `homebrew` section on
+  Windows). The threshold "≥ 7 healthy of the seven
+  required sections" (`install`, `path`, `latest`,
+  `config`, `decisions`, `attestations`, `self_check`)
+  is the strict reading; the falsifier applies if any of
+  those seven required sections reports `fail` on ≥ 2
+  projects. The wording in the doc carries both readings
+  so the operator can pick the strict one.
+
+scope:
+  capabilities:
+    - experiment-design-documentation
+  paths:
+    - "docs/experiments/brownfield-experiment-v2-2026-10.md"
+    - "decisions/experiment-doctor-instrumentation-2026-11.yaml"
+    - "attestations/experiment-doctor-instrumentation-2026-11-*.json"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: t1-instruments-doctor
+    statement: |
+      §5 T1 in the brownfield-experiment v2 design doc
+      carries step 6 that calls for `mathc doctor --json`
+      and records `status: fail` sections as F-INSTALL
+      friction events.
+
+  - id: phase-0-preflight-doctor
+    statement: |
+      §8 Phase 0 in the same doc carries the preflight
+      line that runs doctor on a fresh cwd and saves
+      `experiments/brownfield-v2/preflight-doctor.json`.
+
+  - id: bh9-installed
+    statement: |
+      §3 in the same doc carries the BH9 row asserting
+      ≥ 7 healthy sections on ≥ 4 of 5 projects, with
+      the falsifier spelled out.
+
+obligations:
+  - id: c6-doctor-step-in-t1
+    claim: |
+      `docs/experiments/brownfield-experiment-v2-2026-10.md`
+      §5 T1 contains step 6 that calls for running
+      `mathc doctor --json`, capturing the output, and
+      recording any `status: fail` as an F-INSTALL
+      friction event.
+    acceptance:
+      all:
+        - verifier: file-contains
+          path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
+          needle: "mathc doctor --json"
+          result: pass
+        - verifier: file-contains
+          path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
+          needle: "F-DOCTOR-<n>"
+          result: pass
+        - verifier: mathc validate decisions/experiment-doctor-instrumentation-2026-11.yaml
+          result: pass
+
+  - id: c6-doctor-preflight-phase-0
+    claim: |
+      `docs/experiments/brownfield-experiment-v2-2026-10.md`
+      §8 Phase 0 contains the preflight checklist line
+      that runs `mathc doctor` on a fresh cwd and saves
+      `experiments/brownfield-v2/preflight-doctor.json`.
+    acceptance:
+      all:
+        - verifier: file-contains
+          path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
+          needle: "experiments/brownfield-v2/preflight-doctor.json"
+          result: pass
+        - verifier: file-contains
+          path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
+          needle: "Verify `mathc doctor` returns exit 0 on a fresh cwd"
+          result: pass
+
+  - id: c6-doctor-hypothesis-bh9
+    claim: |
+      `docs/experiments/brownfield-experiment-v2-2026-10.md`
+      §3 Hypotheses table contains the BH9 row asserting
+      that `mathc doctor` reports ≥ 7 healthy sections on
+      ≥ 4 of 5 projects, with the falsifier spelled out.
+    acceptance:
+      all:
+        - verifier: file-contains
+          path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
+          needle: "| `BH9` |"
+          result: pass
+        - verifier: file-contains
+          path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
+          needle: "mathc doctor"
+          result: pass
+
+  - id: c6-no-new-unknowns
+    claim: |
+      `mathc self-check` after this commit reports the same
+      188 pre-existing subjects at `verdict: pass` and
+      zero NEW unknown subjects attributable to this
+      decision.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+risk:
+  declared_triggers:
+    - experiment-report-merger-strips-doctor-snapshot
+    - bh9-threshold-too-strict-blocks-publish
+    - bh9-threshold-too-lax-misses-install-regression
+    - preflight-json-snapshot-path-diverges-from-convention
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-10-adoption-fixes-2026-10@1
+    - verify-mathc-doctor-ships-2026-10@1
+    - plan-brownfield-experiment-v2-2026-10@1
+  superseded_by: []
+  supersedes: []

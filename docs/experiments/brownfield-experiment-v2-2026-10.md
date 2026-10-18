@@ -139,6 +139,7 @@ the inconclusive one that motivates the present experiment).
 | BH6 | The friction taxonomy's `F-SEMANTIC` category (per C1) absorbs all brownfield-surprise events (silent-best-effort parser losses, misclassifications, etc.). | ≥ 1 brownfield event is unclassifiable under the 4-code taxonomy. | _pending execution_ | one-line code per event in §7 |
 | BH7 | A `mathc adopt` user who lands on a project with a non-canonical ADR path (e.g. `docs/decisions/`, which is outside the detector's hardcoded three) hits a clean `Detect.Empty` fallback rather than a partial-import. | The detector silently misses ADRs at `docs/decisions/` while importing something else (silent partial). | _pending execution_ | per-project detection output for one `docs/decisions/`-shipping project |
 | BH8 | The control arm ("ADRs exist, no math-coding") produces a verdict that is **not** `unknown` — i.e. projects that pre-existing ADR practice are observably well-served without math-coding on the brownfield path. | The control arm produces a verdict comparable to the with-math-coding arm (no observed benefit). | _pending execution_ | one-line verdict comparison per project |
+| `BH9` | `mathc doctor` reports ≥ 7 healthy sections on a fresh install on ≥ 4 of 5 projects | falsified if doctor reports `fail` in any of the four install / path / latest / config / decisions / attestations / self_check sections on ≥ 2 projects. This is a boundary check for the install surface. | _pending execution_ | per-project `mathc doctor --json` snapshot from §5 T1 step 6 |
 
 The point is to test them. A 5/5 support rate would be suspicious —
 BH2 and BH7 in particular have known likely failure modes that the
@@ -256,6 +257,11 @@ picked project's actual ADR tree.
    `find <root>/docs/adr <root>/adr -name '*.md' 2>/dev/null`.
    Compute precision = `|detected ∩ actual| / |detected|` and
    recall = `|detected ∩ actual| / |actual|`.
+6. Run `mathc doctor --json` and capture the output to
+   `experiment-report.md` §T1. Record any section with
+   `status: fail` as a friction event id `<session>-F-DOCTOR-<n>`
+   under F-INSTALL. Make `mathc doctor` part of the instrumented
+   task rather than an afterthought.
 
 **Deliverables.** One `experiment-report.md` section per project
 with detection output, file-list diff, precision, recall, and the
@@ -422,6 +428,11 @@ counts unclassifiable events under this revised taxonomy.
 
 ### Phase 0 — Preflight (~15 min, in this worktree)
 
+- [ ] Verify `mathc doctor` returns exit 0 on a fresh
+      cwd; capture the JSON output and save as
+      `experiments/brownfield-v2/preflight-doctor.json`.
+      A doctor that exits non-zero on a fresh install is a
+      red flag for any sub-task that follows.
 - [ ] Verify `mathc adopt` and `mathc import-adr` ship in the
       binary that will execute the experiment. If either is a
       no-op stub (per `bin/Mathc.ml`'s `--from-adr` deprecation

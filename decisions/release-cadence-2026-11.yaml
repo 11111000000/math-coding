@@ -1,0 +1,212 @@
+---
+schema: math-coding/3.3
+id: release-cadence-2026-11
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Add a release-pending CI gate that blocks merge of any PR
+  whose diff touches `bin/Mathc.ml`, `lib/`, or
+  `scripts/install-tooling/` while the most recent tag on the
+  base branch has uncommitted re-build evidence. Per the F15
+  finding: v3.3.2 shipped a stale binary that was tagged
+  before sub-decision merges landed, so the published binary
+  did not match the in-tree source. The gate is a
+  conservative first-pass: a fail instructs reviewers to
+  re-run the release workflow and publish a fresh build,
+  rather than shipping the next sub-decision on top of the
+  stale binary.
+
+  Same scope class as `add-verify-subcommand-2026-10` and
+  `import-junit-rename-2026-11`: additive CI only, no
+  kernel/spec/decision-file semantics.
+
+commitment: |
+  The cycle closes when: (a)
+  `.github/workflows/release-pending.yml` exists and is
+  registered against `pull_request` events targeting `main`
+  and `release/**`; (b) the gate's failure path produces a
+  reviewer-readable instruction naming the latest tag and
+  requesting a release-workflow re-run before merge; (c)
+  `scripts/install-tooling/install.sh` ships
+  `MC_VERSION_DEFAULT="3.3.3"` (the next release after this
+  branch merges); (d) `AGENTS.md` records the release
+  cadence note in the agent-protocol section so future
+  agents do not re-introduce the bug; (e) `mathc self-check`
+  reports zero NEW unknown subjects relative to plan-branch
+  HEAD.
+
+outcomes:
+  - id: release-pending-workflow-registered
+    statement: |
+      `.github/workflows/release-pending.yml` exists with a
+      `pull_request` trigger covering `main` and
+      `release/**`. The job detects diffs that touch
+      `bin/Mathc.ml`, `lib/`, or `scripts/install-tooling/`,
+      identifies the latest tag on the base branch, and
+      fails when no release-workflow re-run is recorded
+      after that tag.
+
+  - id: install-sh-mc-version-3-3-3
+    statement: |
+      `scripts/install-tooling/install.sh` carries
+      `MC_VERSION_DEFAULT="3.3.3"` as the build-time
+      default that downstream installer wrappers
+      (`install.ps1`, `scripts/install-tooling/templates/`)
+      read when no `--version` override is supplied.
+
+  - id: agents-md-cadence-note
+    statement: |
+      `AGENTS.md` records a release-cadence note in the
+      agent-protocol section explaining the F15 lesson
+      and the gate's role, so the rationale is preserved
+      through future reorganisations and is visible to
+      every new agent that reads the file first.
+
+  - id: no-new-unknowns
+    statement: |
+      `mathc self-check` over the post-commit tree reports
+      the same unknown-subject count as at plan-branch
+      HEAD (`release/v3.3.2-2026-10` @ `d481e38` = 188/0)
+      and zero NEW unknown subjects attributable to this
+      commit.
+
+scope:
+  paths:
+    - ".github/workflows/release-pending.yml"
+    - "scripts/install-tooling/install.sh"
+    - "AGENTS.md"
+    - "decisions/release-cadence-2026-11.yaml"
+    - "attestations/release-cadence-2026-11-*.json"
+  exclusions:
+    - "lib/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "decisions/decision.yaml"
+    - "bin/Mathc.ml"
+    - "decisions/**"
+
+obligations:
+  - id: c4-release-cadence-2026-11
+    claim: |
+      `.github/workflows/release-pending.yml` exists; the
+      `pull_request` trigger covers `main` and
+      `release/**`; and the release-pending job exposes
+      the two named outputs (`touches_protected` and the
+      tag-derived `last_tag_sha`) so reviewers can inspect
+      the gate's decision.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/.github/workflows/release-pending.yml
+          result: pass
+        - verifier: shell-grep
+          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/.github/workflows/release-pending.yml
+          needle: 'pull_request:'
+          result: pass
+        - verifier: shell-grep
+          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/.github/workflows/release-pending.yml
+          needle: 'release/\*\*'
+          result: pass
+        - verifier: shell-grep
+          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/.github/workflows/release-pending.yml
+          needle: bin/Mathc.ml
+          result: pass
+
+  - id: c4-mc-version-default-bumped
+    claim: |
+      `scripts/install-tooling/install.sh` carries
+      `MC_VERSION_DEFAULT="3.3.3"`. The bump is the next
+      release after this branch merges; v3.3.2 is the
+      current shipped binary.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/scripts/install-tooling/install.sh
+          needle: MC_VERSION_DEFAULT="3.3.3"
+          result: pass
+
+  - id: c4-release-pending-yml-exists
+    claim: |
+      The file-exists gate for the workflow file passes.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/.github/workflows/release-pending.yml
+          result: pass
+
+  - id: c4-no-new-unknowns
+    claim: |
+      `mathc self-check` after the three commits in this
+      branch produces the same unknown-subject count as
+      at HEAD `release/v3.3.2-2026-10` = `d481e38` (188/0)
+      and zero NEW unknown subjects attributable to this
+      commit.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+
+counterexample: |
+  Considered and rejected: "the gate is too strict —
+  every PR that touches a protected path will be blocked
+  even when no tagged release has been cut yet." Three
+  grounds for rejection. (a) The gate only blocks when
+  `git tag --merged` on the base ref returns a non-empty
+  result; branches with no releases have no tag to gate
+  against and pass through. (b) The fallback is to instruct
+  the reviewer to re-run the release workflow, not to deny
+  the merge outright — a manual re-run is one CI minute,
+  orders of magnitude cheaper than the cost of a second
+  v3.3.2-style stale-binary ship (per F15). (c) The F15
+  failure cost is asymmetric: re-running the release
+  workflow is routine, but a stale-binary ship produces
+  user-visible breakage for every downstream installer
+  wrapper (`install.sh`, `install.ps1`).
+
+  A second counter-position: "the gate should query the
+  GitHub API for `actions/runs` after the tag's commit,
+  not rely on a heuristic." Rejected for the first-pass
+  scope: the API query requires `GITHUB_TOKEN` plumbing
+  and adds a runtime dependency to the gate, which is
+  gated in turn. The first-pass implementation is a
+  reviewer-readable instruction ("re-build, then merge");
+  the API-query upgrade is tracked as a follow-up under a
+  separate decision. The placeholder text in
+  `release-pending.yml` makes this explicit.
+
+  Third counter-position: "AGENTS.md already contains a
+  release-cadence convention under 'Future work' or
+  'Recommendations'; we should not duplicate prose."
+  Rejected: the existing prose is in plan-doc tail-matter
+  (`docs/plans/plan-2026-11-validation-cleanup-2026-10.md`
+  §13, "Add a release-cadence CI gate per Batch C4"). The
+  AGENTS.md note is a single-paragraph agent-protocol
+  reminder, not a copy of the plan-doc recommendation —
+  it links the F15 lesson to the workflow file by path so
+  the protocol is actionable when an agent reads the
+  project from a fresh checkout.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+risk:
+  declared_triggers:
+    - gate-too-strict-on-first-pr
+    - gate-plumbing-changes-over-trigger-events
+    - mc-version-bump-drift-across-platforms
+    - reviewer-fatigue-from-pending-instruction
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - plan-2026-11-validation-cleanup-2026-10@1
+    - release-workflow-failure-mode-2026-11@1
+    - ci-blocking-list-config@1
