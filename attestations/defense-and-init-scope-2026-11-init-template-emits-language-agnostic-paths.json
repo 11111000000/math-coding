@@ -1,0 +1,17 @@
+{
+  "id": "sha256:49f727ce934cef2b4376ebad21f4b71705e6d0a6c2431999f91fe3b01cde8a0b",
+  "issued_at": "2026-10-19T21:10:37Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "human:maintainer"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "defense-and-init-scope-2026-11",
+    "materials_digest": "",
+    "obligation": "init-template-emits-language-agnostic-paths"
+  }
+}
