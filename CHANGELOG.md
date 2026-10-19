@@ -3,7 +3,36 @@
 > Single-source-of-truth for releases. Mirrors the `v3.x.y` git
 > tags. The current release is highlighted.
 
-## v3.3.2 — 2026-10-17 — current
+## v3.3.3 — 2026-10-18 — current
+
+Release-prep + F11/F12 cleanup + Batch B + Batch C + MCP
+pipe-deadlock fix. Closes the 9 recommendations from
+`docs/plans/plan-2026-11-validation-cleanup-2026-10.yaml`
+(16 body_sha format fixes + axiom_link for audit-cleanup-2026-10
++ 2 malformed-acceptance fixes), 14 from
+`plan-2026-12-validation-followup-2026-10.yaml` (8 counterexample
+soft-warns + 6 hard-rejects restructure with parser
+byte-counting edge case work-around), 3 sub-decisions from
+`plan-2026-11-adoption-fixes-2026-10.yaml` Batch B (B1
+import-junit-rename, B2 scripts-env-var-audit, B3
+attestation-namespace-meta), 6 from Batch C (C1+C2 process-principles
+P8.5/P9, C3 attest-handshake-rescue, C4 release-cadence +
+release-pending CI gate + MC_VERSION_DEFAULT="3.3.3" + AGENTS.md note,
+C5 verifier-scheme-convention, C6 experiment-doctor-instrumentation),
+plus fix-mcp-pipe-deadlock-2026-10 (the F15 lesson: select-based
+drain in lib/mcp/dispatch.ml::run_with_args to end the 64 KiB
+pipe-buffer deadlock). Self-check 191/0/pass; 0 rejects; dune
+build green; fmt clean; sync-version drift clean.
+Pre-existing baseline failures (not introduced by this cycle,
+to be addressed in plan-2026-12-test-hardening):
+portable-linux-musl (Unix.fork in bin/Mathc.ml from B1
+verify-sandbox violates fork-not-used), process_principles P2 +
+fixture_coverage (123 shell-command verifiers unrecognized),
+render_kernel bilingual_drift/dashboard (site not rendered
+in test-env), adopt_test madr_files/adrtools_files (adopt
+detection bug).
+
+## v3.3.2 — 2026-10-17
 
 Adoption-fixes release. Closes the 9 recommendations from
 `docs/experiments/adoption-2026-10.md` §13 (the 2026-10-17

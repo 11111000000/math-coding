@@ -1,5 +1,5 @@
 {
-  description = "math-coding 3.3.1 — risk-adaptive assurance protocol";
+  description = "math-coding 3.3.3 — risk-adaptive assurance protocol";
 
   inputs = {
     # Pinned to commit e94cb152ed51bd6e24eb4a41f1460252beb52cd2
@@ -89,7 +89,7 @@
           ] ++ ocamlSelect ocamlPackages ++ buildTools;
           shellHook = ''
             export PATH="${ocamlPackages.ocaml}/bin:$PATH"
-            echo "math-coding 3.3.1 dev shell (kernel only)"
+            echo "math-coding 3.3.3 dev shell (kernel only)"
             echo "  dune:   $(which dune)"
             echo "  ocaml:  $(ocaml --version)"
             echo ""
@@ -112,7 +112,7 @@
           shellHook = ''
             export PATH="${ocamlPackages.ocaml}/bin:$PATH"
             export OCAMLPATH="${ocamlPath}"
-            echo "math-coding 3.3.1 dev shell (with tests)"
+            echo "math-coding 3.3.3 dev shell (with tests)"
             echo "  dune:    $(which dune)"
             echo "  ocaml:   $(ocaml --version)"
             echo "  alcotest: via dune-package"
