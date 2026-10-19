@@ -38,7 +38,7 @@ count; `mathc counters --format=json` additionally reports the raw
 on-disk `live_store`, which includes the `.gitignore`-excluded test
 scratch — `t1-2-A0-*` attestations and the `1-foo` /
 `1-use-postgresql` scaffold decisions — so the raw number varies with
-local test runs); **`mathc packages` reports 187 active
+local test runs); **`mathc packages` reports 188 active
 decisions / 162 total decision files / 549 obligations
 (510 pass, 0 unknown, 39 missing on a clean checkout; the master
 policy's 7 obligations are enumerated separately)**. The exact numbers
@@ -47,7 +47,7 @@ are emitted by `mathc counters` and enforced against
 `tests/counters_drift.ml` (which counts committed files and excludes
 the scratch patterns). Total decision files on disk: 162
 (`decisions/*.yaml`, of which 7 are waivers / obligations-aggregator /
-migrations-history). 111 cram files in `tests/cli/`. 34 CLI
+migrations-history). 112 cram files in `tests/cli/`. 34 CLI
 subcommands.
 
 > Note: at HEAD `d52c85b` the `mathc counters` `schema`

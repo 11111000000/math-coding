@@ -21,6 +21,17 @@ The algebra preserves the 14 constitution invariants from
 - `decisions/decision.yaml` — bootstrap policy
 - `lib/` — kernel implementation (must conform to this algebra)
 
+> **Adopters note.** This algebra is the formal normative spec for the
+> math-coding kernel itself, which is written in OCaml. If you are
+> applying math-coding to your own (Go / Python / Rust / JavaScript)
+> project, you only need §0–§19, §23–§29, plus the methodology pages in
+> `adoption/SKILL.md`. The OCaml-flavoured references in §20
+> (CoCommitDecision kernel-files pattern `lib/**`, `bin/Mathc.ml`,
+> `spec/**`, `schemas/**`, `axioms/**`) and §30 (`requires(nix, ocaml,
+> dune)` for the kernel-dev population) describe the math-coding kernel,
+> not how you adopt the protocol. See the banner at the top of
+> `README.md` for the entry point.
+
 ---
 
 ## §0. Goal

@@ -104,11 +104,11 @@ let master_policy_template =
    scope:\n\
   \  paths:\n\
   \    - \"src/**\"\n\
-  \    - \"lib/**\"\n\
-  \    - \"bin/**\"\n\
+  \    - \"tests/**\"\n\
+  \    - \"docs/**\"\n\
   \    - \"scripts/**\"\n\
-  \    - \"spec/**\"\n\
   \    - \"schemas/**\"\n\
+  \    - \"site/**\"\n\
   \  exclusions:\n\
   \    - \"**/.git/**\"\n\
    outcomes:\n\
@@ -125,6 +125,8 @@ let master_policy_template =
   \      all:\n\
   \        - verifier: mathc self-check\n\
   \          result: pass\n\
+   - verifier: tests/cli/init-scope-language-agnostic.t\n\
+   result: pass\n\
    risk:\n\
   \  declared_triggers:\n\
   \    - bootstrap-template-not-edited\n\

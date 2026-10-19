@@ -691,7 +691,7 @@ let[@warning "-32"] required_agents_md_headers =
   ]
 
 let[@warning "-32"] test_agents_md_integrity () =
-  let md = read_file (in_repo "AGENTS.md") in
+  let md = read_file (in_repo "KERNEL_AGENTS.md") in
   List.iter
     (fun h ->
       let found =
@@ -935,11 +935,11 @@ let () =
                 We do the same: P7 has no auto-assertion. *)
               ());
         ] );
-      ( "T1.5 (AGENTS.md integrity)",
+      ( "T1.5 (KERNEL_AGENTS.md integrity)",
         [
           Alcotest.test_case
-            "AGENTS.md contains required sub-headers and MUST keyword" `Quick
-            test_agents_md_integrity;
+            "KERNEL_AGENTS.md contains required sub-headers and MUST keyword"
+            `Quick test_agents_md_integrity;
         ] );
       ( "T1.6 (decision format stricter)",
         [

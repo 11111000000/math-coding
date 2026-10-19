@@ -1,9 +1,8 @@
 # math-coding 3.3
 
-[![OCaml](https://img.shields.io/badge/OCaml-5.x-blue?logo=ocaml)](https://ocaml.org)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/11111000000/math-coding?sort=semver)](https://github.com/11111000000/math-coding/releases/latest)
-[![Subcommands](https://img.shields.io/badge/subcommands-28-blueviolet)](PACKAGES.md)
+[![Subcommands](https://img.shields.io/badge/subcommands-34-blueviolet)](PACKAGES.md)
 [![Site](https://img.shields.io/website?url=https%3A%2F%2F11111000000.github.io%2Fmath-coding%2F)](https://11111000000.github.io/math-coding/)
 
 > Author: Petr Kosov <p.b.kosov@yandex.ru>
@@ -12,6 +11,22 @@
 > (`spec/algebra-3.2.md`) is normative alongside the prose specs.
 > License: Apache-2.0 (see `LICENSE`, `NOTICE`).
 > Ethics: [`ETHICS.md`](ETHICS.md).
+> Kernel implementation: OCaml. Runtime is a portable binary — users of math-coding in other languages do not need OCaml, `dune`, `nix`, or any tool listed below.
+
+## Are you applying math-coding to your own project?
+
+If yes, **stop reading this file** and go to [`adoption/SKILL.md`](adoption/SKILL.md).
+That is the only document you need. Everything else in this repository — this
+README, `KERNEL_AGENTS.md`, `OCAML_KERNEL_CONVENTIONS.md`, `spec/`, `axioms/`,
+`lib/`, `bin/` — exists for the people who maintain the math-coding kernel
+itself. Random reading will surface OCaml-specific conventions that do not
+apply to your project.
+
+The math-coding kernel is the OCaml program that implements the protocol
+(`mathc` CLI, schemas, conformance runner). Adopters do not compile it; they
+download a binary from the [GitHub release](https://github.com/11111000000/math-coding/releases/latest)
+and run `mathc` against their own (Go / Python / Rust / JS / anything) project.
+
 
 Math-coding is a protocol that ties every change to a written
 commitment, a list of obligations, and bounded evidence that they
@@ -82,9 +97,15 @@ free; protected-policy transitions keep the manual checklist on top.
 
 Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
 
-## Pointers
+## Pointers — **for kernel maintainers**
 
-- [`AGENTS.md`](AGENTS.md): agent protocol. Read first.
+These are not for adopters. If you are applying math-coding to your own
+project, [`adoption/SKILL.md`](adoption/SKILL.md) is the only document you
+need; everything below is documentation for the people who maintain the
+math-coding kernel itself.
+
+- [`KERNEL_AGENTS.md`](KERNEL_AGENTS.md): kernel-maintainer protocol. Renamed from `AGENTS.md` at v3.3.3; the OCaml, `dune`, `nix` content was previously here and is still here.
+- [`OCAML_KERNEL_CONVENTIONS.md`](OCAML_KERNEL_CONVENTIONS.md): OCaml conventions for `lib/`, `bin/`, `tests/`, plus the §11 trap log. Renamed from `OCAML_BEST_PRACTICES.md`.
 - [`ROADMAP.md`](ROADMAP.md): priority queue and process principles.
 - [`PACKAGES.md`](PACKAGES.md): what exists in this repository.
 - [`spec/constitution.md`](spec/constitution.md): 14 invariants the kernel preserves.
@@ -92,5 +113,5 @@ Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
 - [`site/`](site/): published surface, built by `mathc render` and
   deployed to [GitHub Pages](https://11111000000.github.io/math-coding/)
   by `.github/workflows/site.yml`.
-- [`QUICKSTART.md`](QUICKSTART.md): first read.
-- [`USAGE.md`](USAGE.md): full adoption runbook.
+- [`QUICKSTART.md`](QUICKSTART.md): first read (kernel maintainers, not adopters — adopters use `adoption/SKILL.md`).
+- [`USAGE.md`](USAGE.md): full runbook.

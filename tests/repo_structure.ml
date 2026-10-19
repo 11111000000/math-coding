@@ -286,7 +286,7 @@ let[@warning "-32"] test_spec_catalog_present () =
 (* ------------------------------------------------------------------------- *)
 (* Mirrors tests/fixtures/spec-vs-bp-priority.sh. Compare the
    RequiredForGate... priority-ordering line in spec/semantics.md
-   with the mirror in OCAML_BEST_PRACTICES.md §10.5. *)
+   with the mirror in OCAML_KERNEL_CONVENTIONS.md §10.5. *)
 
 let[@warning "-32"] normalize line =
   Str.replace_first
@@ -310,7 +310,7 @@ let[@warning "-32"] extract_priority_line file =
 
 let[@warning "-32"] test_spec_vs_bp_priority () =
   let spec = in_repo "spec/semantics.md" in
-  let bp = in_repo "OCAML_BEST_PRACTICES.md" in
+  let bp = in_repo "OCAML_KERNEL_CONVENTIONS.md" in
   let spec_line = extract_priority_line spec in
   let bp_line = extract_priority_line bp in
   match (spec_line, bp_line) with
@@ -593,7 +593,7 @@ let[@warning "-32"] test_flake_lock_changes_record_decision () =
 (* ------------------------------------------------------------------------- *)
 (* Asserts the v0.0.18 convention recorded in
    decisions/agent-onboarding.yaml: ADRs are decisions/<topic>.yaml;
-   AGENTS.md names ROADMAP.md as the first read; PACKAGES.md has a
+   KERNEL_AGENTS.md names ROADMAP.md as the first read; PACKAGES.md has a
    row for agent-onboarding. *)
 
 let[@warning "-32"] agent_contains needle haystack =
@@ -618,18 +618,20 @@ let[@warning "-32"] test_agent_onboarding () =
   let contents = read_file onboarding in
   if not (agent_contains "adrs are" contents) then
     Alcotest.failf "agent-onboarding.yaml does not document the ADR convention";
-  let agents = in_repo "AGENTS.md" in
+  let agents = in_repo "KERNEL_AGENTS.md" in
   let agents_txt = read_file agents in
   if
     not
       (let found = agent_contains "read first" agents_txt in
        found)
-  then Alcotest.failf "AGENTS.md missing 'Read first' section";
+  then Alcotest.failf "KERNEL_AGENTS.md missing 'Read first' section";
   if
     not
       (let found = agent_contains "ROADMAP.md" agents_txt in
        found)
-  then Alcotest.failf "AGENTS.md Read first does not name ROADMAP.md as first";
+  then
+    Alcotest.failf
+      "KERNEL_AGENTS.md Read first does not name ROADMAP.md as first";
   let packages = in_repo "PACKAGES.md" in
   let packages_txt = read_file packages in
   if
@@ -643,14 +645,14 @@ let[@warning "-32"] test_agent_onboarding () =
 (* ------------------------------------------------------------------------- *)
 (* Asserts the v0.0.18 convention recorded in
    decisions/formal-verifier-conventions.yaml: tla:/coq:/alloy:
-   prefixes are documented in OCAML_BEST_PRACTICES.md §10.6, and
+   prefixes are documented in OCAML_KERNEL_CONVENTIONS.md §10.6, and
    the convention decision file exists in decisions/. *)
 
 let[@warning "-32"] test_formal_verifier_prefixes () =
   let conv = in_repo "decisions/formal-verifier-conventions.yaml" in
   if not (file_exists conv) then
     Alcotest.failf "decisions/formal-verifier-conventions.yaml missing";
-  let obp = in_repo "OCAML_BEST_PRACTICES.md" in
+  let obp = in_repo "OCAML_KERNEL_CONVENTIONS.md" in
   let obp_txt = read_file obp in
   let not_fv = not (agent_contains "10.6 formal-verifier" obp_txt) in
   if not_fv then
@@ -658,13 +660,16 @@ let[@warning "-32"] test_formal_verifier_prefixes () =
       "OCAML_BEST_PRACTICES.md missing section 10.6 (formal-verifier)";
   let not_tla = not (agent_contains "tla:" obp_txt) in
   if not_tla then
-    Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing tla: prefix";
+    Alcotest.failf
+      "OCAML_KERNEL_CONVENTIONS.md section 10.6 missing tla: prefix";
   let not_coq = not (agent_contains "coq:" obp_txt) in
   if not_coq then
-    Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing coq: prefix";
+    Alcotest.failf
+      "OCAML_KERNEL_CONVENTIONS.md section 10.6 missing coq: prefix";
   let not_aw = not (agent_contains "alloy:" obp_txt) in
   if not_aw then
-    Alcotest.failf "OCAML_BEST_PRACTICES.md section 10.6 missing alloy: prefix";
+    Alcotest.failf
+      "OCAML_KERNEL_CONVENTIONS.md section 10.6 missing alloy: prefix";
   let packages = in_repo "PACKAGES.md" in
   let packages_txt = read_file packages in
   let not_fvp = not (agent_contains "formal-verifier" packages_txt) in

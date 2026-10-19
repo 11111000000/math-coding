@@ -1,0 +1,107 @@
+---
+schema: math-coding/3.3
+id: defense-and-init-scope-2026-11
+revision: 1
+
+intent: |
+  Make the math-coding kernel's adoption surface safer for casual
+  readers and adapters in other languages, and remove the only
+  OCaml-specific layout assumption that init-output imposes on
+  every fresh project.
+
+commitment: |
+  (1) README, KERNEL_AGENTS.md, OCAML_KERNEL_CONVENTIONS.md, and
+  spec/algebra-3.2.md each carry a banner that disambiguates
+  kernel-maintainer content from adoption content; (2) the
+  master-policy template emitted by `mathc init` defaults to
+  language-agnostic scope paths (`src/**`, `tests/**`, `docs/**`,
+  `scripts/**`, `schemas/**`, `site/**`) instead of the previous
+  OCaml-specific defaults (`lib/**`, `bin/**`, `spec/**`).
+
+axiom_link:
+  - A0
+  - A3
+  - A4
+
+counterexample: |
+  An adapters fan-out: a Python shop downloads `mathc` from a GitHub
+  release, reads `adoption/SKILL.md`, runs `mathc init .`, and the
+  scaffolded master-policy declares `scope.paths: [lib/**, bin/**,
+  spec/**]`. None of those paths exist in a typical Python project,
+  so `mathc self-check` ends up monitoring an empty set. The strongest
+  pushback to "use language-agnostic defaults" was: "an adopter with
+  an OCaml-flavoured layout loses a hint". That pushback fails because
+  (a) the LANGUAGE-AGNOSTIC defaults still cover `src/**`, `scripts/**`,
+  `schemas/**` which any project has; (b) OCaml adopters can always
+  add `lib/**`, `bin/**`, `spec/**` themselves; (c) the previous
+  OCaml-only defaults caused silent zero-monitoring for every other
+  language, which is the worse failure mode.
+
+outcomes:
+  - id: adoption-disambiguation-banner
+    statement: |
+      README.md, KERNEL_AGENTS.md, OCAML_KERNEL_CONVENTIONS.md, and
+      spec/algebra-3.2.md each carry a banner that points adapters
+      in other languages to adoption/SKILL.md before they read any
+      OCaml-specific content.
+  - id: init-scope-language-agnostic
+    statement: |
+      `mathc init` scaffolds a master policy whose `scope.paths`
+      defaults to `src/**, tests/**, docs/**, scripts/**, schemas/**,
+      site/**` — language-agnostic paths that exist in nearly every
+      multi-language project, instead of the previous OCaml-only
+      defaults (`lib/**, bin/**, spec/**`).
+
+scope:
+  paths:
+    - "lib/init/**"
+    - "lib/init/init.ml"
+    - "spec/algebra-3.2.md"
+    - "README.md"
+    - "KERNEL_AGENTS.md"
+    - "OCAML_KERNEL_CONVENTIONS.md"
+    - "tests/cli/init-scope-language-agnostic.t"
+    - "tests/process_principles.ml"
+    - "adoption/SKILL.md"
+
+obligations:
+  - id: init-template-emits-language-agnostic-paths
+    claim: |
+      The scaffolded master-policy template emitted by `mathc init`
+      contains the language-agnostic paths `src/**`, `tests/**`,
+      `docs/**`, `scripts/**`, `schemas/**`, `site/**` and does NOT
+      contain the OCaml-only `lib/**`, `bin/**`, `spec/**`.
+    acceptance:
+      all:
+        - verifier: tests/cli/init-scope-language-agnostic.t
+          result: pass
+        - verifier: mathc self-check
+          result: pass
+  - id: kernel-side-docs-have-disambiguation-banner
+    claim: |
+      README.md, KERNEL_AGENTS.md, OCAML_KERNEL_CONVENTIONS.md, and
+      spec/algebra-3.2.md each contain, within the first 30 lines,
+      a banner that disambiguates kernel-maintainer content from
+      adoption content.
+    acceptance:
+      all:
+        - verifier: tests/cli/init-scope-language-agnostic.t
+          result: pass
+
+risk:
+  declared_triggers:
+    - kernel-maintainer-confusion-after-rename
+    - adopter-missed-banner
+    - ocaml-only-defaults-restored-by-accident
+  owner: human:opencode
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+  revises: []
+  supersedes: []
+  refines: []
+  depends_on: []
+  conflicts_with: []
+  implements: []
+  verifies: []
