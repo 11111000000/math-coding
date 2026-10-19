@@ -1,0 +1,115 @@
+---
+schema: math-coding/3.3
+id: retire-staging-repos-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: editorial
+
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+axiom_link:
+  - A1
+  - A0
+
+intent: |
+  The local clones at `~/Projects/math-coding-fixes` and
+  `~/Projects/math-coding-onboarding-fixes` previously served
+  as a staging mirror for math-coding adoption-experiment work
+  (commit ae51fd1 series and earlier). After
+  decisions/release-cadence-2026-11.yaml shipped the
+  release-pending CI gate (`.github/workflows/release-pending.yml`),
+  math-coding/main is now protected from stale-binary merges:
+  any PR that touches `bin/Mathc.ml`, `lib/`, or
+  `scripts/install-tooling/` while the latest tag has uncommitted
+  re-build evidence is blocked at PR-time. The staging mirror
+  no longer serves a meaningful purpose — main already enforces
+  freshness.
+
+  This decision codifies that the two staging repos are obsolete
+  as integration branches. They remain on disk and may be used
+  operator-discretionally for local experimentation, but no
+  math-coding process depends on them.
+
+commitment: |
+  After this decision lands:
+    (a) `~/Projects/math-coding-fixes` and
+        `~/Projects/math-coding-onboarding-fixes` are documented
+        as obsolete staging mirrors. They remain on disk in case
+        of recovery but no longer serve as the integration
+        branch.
+    (b) Future work in those paths, if any, follows the same
+        process as work on math-coding/main: feat/<slug>
+        branches, conventional commits, fast-path decisions
+        where applicable, and direct PR to main.
+    (c) Removal of git remotes named `integration` from those
+        clones is operator-discretion (the user may remove them
+        themselves). The procedure is documented here for
+        future agents who find those clones on disk.
+
+counterexample: |
+  The strongest argument against this retirement: "the staging
+  mirror is a useful safety net for users who do not trust the
+  CI gate." Rejected on three grounds.
+    1. The release-pending CI gate is enforced by
+       `.github/workflows/release-pending.yml` and is now part
+       of the math-coding CI surface; any user that installs
+       math-coding via `scripts/install-tooling/install.sh`
+       implicitly trusts the gate.
+    2. The two staging repos are local-only (no upstream
+       mirror), so they never protected anyone from upstream
+       issues — they only inserted a hand-curated buffer.
+    3. Maintaining a parallel branch in two places is exactly
+       the failure mode `process-principles-close-branches`
+       captures. The staging repos mirrored math-coding/main
+       and contributed to that drift.
+
+  An argument worth preserving: "audit cycles and adoption-
+  experiment batches used `math-coding-fixes` as a buffer
+  before fast-forwarding to main." Rejected: those commits
+  (e.g., decisions/render-module-split-phase1-2026-10.yaml)
+  ship today from feature branches directly to main without a
+  staging mirror, and the per-commit attestation store keeps
+  evidence.
+
+outcomes:
+  - id: staging-mirrors-documented-obsolete
+    statement: |
+      `decisions/retire-staging-repos-2026-10.yaml` exists at
+      HEAD and captures that `~/Projects/math-coding-fixes`
+      and `~/Projects/math-coding-onboarding-fixes` are no
+      longer the integration branch.
+
+  - id: mathc-validate-accepts
+    statement: |
+      `mathc validate decisions/retire-staging-repos-2026-10.yaml`
+      emits `verdict: parse-ok` (no MC-* diagnostics).
+
+  - id: self-check-no-new-unknowns
+    statement: |
+      `mathc self-check` reports zero NEW unknown subjects
+      attributable to this decision.
+
+scope:
+  capabilities:
+    - ci-staging
+    - adoption-experiment
+  paths:
+    - "decisions/retire-staging-repos-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: status-record
+    claim: |
+      This decision file exists at HEAD and records the
+      obsolescence of the two staging repos.
+    acceptance:
+      all:
+        - verifier: scripts/dev-fast validate decisions/retire-staging-repos-2026-10.yaml
+          result: pass
