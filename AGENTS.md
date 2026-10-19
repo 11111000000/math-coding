@@ -335,6 +335,12 @@ realisation of the existing `silent` friction level (AGENTS.md
 shows no semantic or protected change; the work is then
 recorded, not gated.
 
+(Canonical fast-path eligibility and obligations recorded as
+`decisions/process-fastpath-pattern-2026-10.yaml`. The
+four eligibility criteria and three obligations are the same
+in both files; this section is the human-readable surface, the
+decision file is the machine-readable citation target.)
+
 **Eligibility (all four must hold):**
 
 1. net change ≤ 50 lines, OR change is localisable to ≤ 2 files;
