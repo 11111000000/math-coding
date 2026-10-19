@@ -50,3 +50,4 @@ decisions/1-use-postgresql.yaml
 # be committed.
 assets/_renders/
 tools/winget/scripts/__pycache__/
+.dev/
