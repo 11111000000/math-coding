@@ -2525,3 +2525,55 @@ printf '%s\n' '{"jsonrpc":"2.0","id":1,"method":"mathc/packages","params":{}}' \
 
 **Referenced from.** `tests/cli/mcp-packages-large-output.t`;
 `decisions/fix-mcp-pipe-deadlock-2026-10.yaml`.
+
+### 11.41 Stale `_build/.lock` blocks all subsequent dune operations
+
+**Symptom.** Every `dune build`, `dune runtest`, `dune test` hangs
+indefinitely (or hits 600 s timeout wrapper) with the message
+`Error: Another Dune instance is currently running. Aborting...`
+even when no dune process exists in `ps`. Observed 2026-10-19 in
+the self-acceleration worktree at 19:00 UTC: three consecutive
+build attempts at the cold-build stage deadlocked at ~5 min each.
+
+**Root cause.** Dune writes `_build/.lock` on entry and removes it
+on graceful exit. Any SIGKILL, Ctrl-C, parent timeout-kill, or
+nix-daemon drop leaves `_build/.lock` in place. The next
+`dune` invocation reads the lock file, decides a peer is running,
+and aborts. The shipped workaround
+(`scripts/dev::cleanup_dune_lock`) handles this at script entry
+but only when the developer goes through `scripts/dev` — an
+unscripted `nix develop .#test --command bash -c "dune ..."`
+or a worktree without invoking `scripts/dev` inherits the lock
+from the parent checkout.
+
+**Fix.** Single-line workaround: `rm -f _build/.lock`. For
+operational hygiene, append `rm -f _build/.lock; exit 0` after
+any `pkill -9 -f dune` invocation; the `_build/.lock` will get
+re-created immediately by the next live dune, but a brief window
+of unlocked filesystem is harmless. Once Dune fixes the SIGTERM
+handling tracked at `docs/upstream-bugs/dune-3.23.1-rpc-hang.md`,
+this trap decays; until then it is the single most common
+cause of "dune build hangs" in this repo.
+
+**Repro.**
+```sh
+( cd math-coding && nix develop .#test --command bash -c \
+  'pkill -9 -f dune; exit 1' )
+nix develop .#test --command bash -c 'dune build --root .'
+# Error: Another Dune instance is currently running. Aborting...
+rm -f math-coding/_build/.lock
+nix develop .#test --command bash -c 'dune build --root .'
+# OK (or proceeds as normal)
+```
+
+**Side effect on `scripts/dev-fast-test`.** The parallel
+runner deliberately avoids `dune runtest` in the hot path and
+runs `_build/default/tests/X.exe` directly. The binary is
+already linked against the OCaml stdlib (Nix store) so no
+re-dune is needed per invocation. The lock file does NOT
+prevent direct-binary execution, only dune RPC. This is
+why `scripts/dev-fast-test` runs 23 binaries in ~0.5 s
+even when `dune test` is locked out.
+
+**Referenced from.** `scripts/dev-fast-test`;
+`scripts/dev::cleanup_dune_lock`.
