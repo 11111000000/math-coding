@@ -1,4 +1,12 @@
-# Math-coding 3.3 agent protocol
+# Math-coding 3.3 — kernel maintainer protocol
+
+> **⚠ Kernel maintainers only.**
+> If you are applying math-coding to **your own** project, see [`adoption/SKILL.md`](adoption/SKILL.md).
+> This file documents the protocol for the people who modify the math-coding
+> kernel itself; it assumes OCaml, `dune`, `nix develop .#test`, `ocamlmerlin`,
+> `ocamlformat`, and `lib/`, `bin/`, `tests/` working from a Nix shell.
+> Adopters in other languages do not need any of this. Random reading will
+> surface OCaml-specific traps (`§11` trap log) that are noise for non-OCaml work.
 
 > Project author: Petr Kosov <p.b.kosov@yandex.ru>
 

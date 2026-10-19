@@ -1,4 +1,12 @@
-# math-coding 3.3 — OCaml Best Practices (project-specific)
+# math-coding 3.3 — OCaml kernel conventions
+
+> **⚠ Kernel maintainers only.**
+> This file documents OCaml-specific conventions for the math-coding kernel
+> (`lib/`, `bin/`, `tests/`, the dune build, the §11 trap log). It does
+> **not** describe the math-coding methodology for non-OCaml projects. If you
+> are adopting math-coding into a Python / Go / Rust / JavaScript project,
+> see [`adoption/SKILL.md`](adoption/SKILL.md) instead; the conventions here
+> are noise for you.
 
 This is **not** generic OCaml advice. It is the convention we are standardizing
 on for `lib/`, `bin/`, `tests/`, and the build, derived from the code we
