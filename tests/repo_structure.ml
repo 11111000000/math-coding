@@ -488,17 +488,29 @@ let[@warning "-32"] test_fmt_clean () =
      The test skips with a soft warning when nix is unavailable
      (e.g. minimal CI runners without the flake installed); the
      gate that uses this fixture is `scripts/fmt-check.sh`, which
-     is the canonical pass/fail surface. *)
+     is the canonical pass/fail surface.
+
+     The nix-eval under xargs -P 4 races with parallel tests'
+     own nix invocations: a sibling test that calls
+     `nix develop .#test` (e.g. scripts/render.sh via
+     render_kernel) can leave nix-daemon in a transient state
+     where the fmt sub-shell sees a dirty tree. We serialise via
+     flock on a project-local file so concurrent fmt runs do
+     not collide. Per OCAML_BEST_PRACTICES §11.41 (stale
+     _build/.lock). *)
   let alt_build =
     Filename.concat (Filename.get_temp_dir_name ()) "mathc-fmt-check"
   in
   (try ignore (Unix.system ("rm -rf " ^ Filename.quote alt_build))
    with _ -> ());
+  let lock_path =
+    Filename.concat (Filename.get_temp_dir_name ()) "mathc-fmt-check.lock"
+  in
   let cmd =
     Printf.sprintf
-      {|cd %s && DUNE_DISABLE_PROMOTION=1 nix develop .#test --command bash -c 'dune fmt --build-dir %s --root . --preview' > /tmp/fmt-out.txt 2> /tmp/fmt-err.txt; echo DONE_EXIT=$?|}
+      {|cd %s && flock %s -c 'DUNE_DISABLE_PROMOTION=1 nix develop .#test --command bash -c "dune fmt --build-dir %s --root . --preview"' > /tmp/fmt-out.txt 2> /tmp/fmt-err.txt; echo DONE_EXIT=$?|}
       (Filename.quote project_root)
-      (Filename.quote alt_build)
+      (Filename.quote lock_path) (Filename.quote alt_build)
   in
   let ic = Unix.open_process_in cmd in
   let buf = Buffer.create 4096 in
