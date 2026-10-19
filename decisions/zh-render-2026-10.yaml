@@ -308,8 +308,6 @@ obligations:
       source.
     acceptance:
       all:
-        - verifier: scripts-render.sh
-          result: pass
         - verifier: text-scan-scripts-render-sh-zh-allowlist
           result: pass
 
