@@ -147,8 +147,8 @@ let test_madr_files () =
       touch_file root "docs/adr/0002-bar.md" "bar";
       touch_file root "docs/adr/0003-baz.txt" "ignored";
       Alcotest.(check (list string))
-        "madr_files returns *.md sorted"
-        [ "0001-foo.md"; "0002-bar.md" ]
+        "madr_files returns *.md sorted (relative to root)"
+        [ "docs/adr/0001-foo.md"; "docs/adr/0002-bar.md" ]
         (Detect.madr_files root))
 
 let test_madr_files_empty () =
@@ -160,7 +160,8 @@ let test_adrtools_files () =
       touch_dir root "adr";
       touch_file root "adr/0001-foo.md" "foo";
       Alcotest.(check (list string))
-        "adrtools_files returns *.md sorted" [ "0001-foo.md" ]
+        "adrtools_files returns *.md sorted (relative to root)"
+        [ "adr/0001-foo.md" ]
         (Detect.adrtools_files root))
 
 let () =

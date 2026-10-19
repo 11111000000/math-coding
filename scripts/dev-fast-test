@@ -40,6 +40,19 @@ set -eu
 
 cd "$(dirname "$0")/.."
 
+# Some test binaries (repo_structure::fmt-clean, portable-linux-musl)
+# shell out to `dune fmt`, `dune build`, etc. and need dune/ocamlformat
+# on PATH. If the user is already in a nix shell, dune is available;
+# otherwise we source `nix print-dev-env .#test` to inherit the
+# shell environment from the pinned flake. `print-dev-env` is fast
+# (~50 ms first call, ~5 ms after) and does NOT enter an interactive
+# shell.
+if ! command -v dune >/dev/null 2>&1; then
+  if command -v nix >/dev/null 2>&1; then
+    eval "$(nix print-dev-env .#test 2>/dev/null || true)"
+  fi
+fi
+
 # Build the per-binary runner on stdin so xargs can stream it. We
 # embed it as a single bash -c invocation that takes the binary
 # path as $1 and never has to escape quotes: the runner script
