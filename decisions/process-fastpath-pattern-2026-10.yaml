@@ -1,0 +1,128 @@
+---
+schema: math-coding/3.3
+id: process-fastpath-pattern-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: editorial
+
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  Codify the fast-path eligibility contract that AGENTS.md
+  §"Fast path (process-fastpath-2026-10)" describes. AGENTS.md
+  names this process as \`process-fastpath-2026-10\` but the
+  canonical decisions/<id>.yaml file has not existed; this
+  decision closes that documentation gap so future agents
+  and the kernel can reference a single source of truth
+  for the four eligibility criteria and the three fast-path
+  obligations.
+
+  The fast path is the formal realisation of the existing
+  \`silent\` friction level (AGENTS.md §Friction): a change
+  is silent when deterministic evidence shows no semantic
+  or protected change; the work is then recorded, not
+  gated.
+
+commitment: |
+  After this decision lands:
+    (a) AGENTS.md §"Fast path (process-fastpath-2026-10)"
+        is the canonical reference for the eligibility
+        criteria;
+    (b) this decision file is the canonical reference for
+        the same criteria in machine-readable form;
+    (c) AGENTS.md carries a one-line footer pointing at
+        this decision for future agents.
+
+counterexample: |
+  The strongest argument against codifying this: "the
+  fast-path criteria are already in AGENTS.md; a
+  redundant decision file is theatre." Rejected on two
+  grounds.
+    1. AGENTS.md is documentation; the decision file is
+       machine-readable evidence. They serve different
+       consumers (humans vs. kernel/citations).
+    2. Without a decision file the criteria cannot be
+       referenced from other decisions (\`supersedes\`,
+       \`addresses\`, comment citations) and cannot show up
+       in \`mathc self-check\`.
+
+  A second argument considered: "the four eligibility
+  criteria are too restrictive — ex 50 lines is arbitrary."
+  Acknowledged. The numeric thresholds are tunable. This
+  decision records the current values; tightening or
+  loosening them is a follow-up revision, not an exception.
+
+  Compliant examples from the 2026-10 acceleration session:
+    - commit \`f3619aa feat(scripts): dev-fast wrapper\`
+      (scripts/dev-fast, 175 LOC, scripts/-only)
+    - commit \`06bf883 feat(scripts): dev-fast-test\`
+      (scripts/dev-fast-test, 173 LOC, scripts/-only)
+
+  Non-compliant examples:
+    - F1 \`mathc/validate MCP method\` (kernel change to
+      bin/Mathc.ml)
+    - port-linux-musl fork remediation (would touch
+      bin/Mathc.ml Unix.fork call site)
+
+outcomes:
+  - id: agents-md-references-decision
+    statement: |
+      AGENTS.md §"Fast path (process-fastpath-2026-10)"
+      carries a one-line footer pointing at
+      \`decisions/process-fastpath-pattern-2026-10.yaml\`
+      as the canonical decision record.
+
+  - id: mathc-validate-accepts
+    statement: |
+      \`mathc validate decisions/process-fastpath-pattern-2026-10.yaml\`
+      emits \`verdict: parse-ok\` (no MC-* diagnostics).
+
+  - id: self-check-no-new-unknowns
+    statement: |
+      \`mathc self-check\` reports zero NEW unknown subjects
+      attributable to this decision.
+
+  - id: criteria-documented
+    statement: |
+      The four eligibility criteria and three fast-path
+      obligations are machine-readable in this file's
+      \`commitment\` and \`counterexample\` fields.
+
+scope:
+  capabilities:
+    - development-process
+    - agent-conduct
+  paths:
+    - "AGENTS.md"
+    - "decisions/process-fastpath-pattern-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: agents-md-footer-points-to-decision
+    claim: |
+      AGENTS.md §"Fast path (process-fastpath-2026-10)" has
+      a one-line footer pointing at this decision.
+    acceptance:
+      all:
+        - verifier: text-scan-AGENTS-md-fastpath-section
+          result: pass
+
+  - id: mathc-validate-passes
+    claim: |
+      \`mathc validate decisions/process-fastpath-pattern-2026-10.yaml\`
+      exits 0 with verdict \`parse-ok\`.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/process-fastpath-pattern-2026-10.yaml
+          result: pass
