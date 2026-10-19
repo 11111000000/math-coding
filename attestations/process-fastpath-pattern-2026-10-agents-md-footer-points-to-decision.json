@@ -1,0 +1,17 @@
+{
+  "id": "sha256:4cba654cf13bfd09df0bdbe478ea59c97d73d6c1882792833f92a15029788dcb",
+  "issued_at": "2026-10-19T20:33:03Z",
+  "kind": "attestation",
+  "kind_": "review",
+  "producer": {
+    "identity": "human:maintainer"
+  },
+  "result": "pass",
+  "schema": "math-coding/attestation-3.0-alpha",
+  "subject": {
+    "candidate_tree": "HEAD",
+    "decision": "process-fastpath-pattern-2026-10",
+    "materials_digest": "",
+    "obligation": "agents-md-footer-points-to-decision"
+  }
+}
