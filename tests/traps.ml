@@ -1,7 +1,7 @@
 (* tests/traps.ml
  *
  * Regression tests for the OCaml 5 trap log in
- * OCAML_BEST_PRACTICES.md §11. Each trap entry that can be exercised
+ * OCAML_KERNEL_CONVENTIONS.md §11. Each trap entry that can be exercised
  * from OCaml/Alcotest is reproduced as a single test_case here.
  *
  * Naming convention: `trap_§11_N_<short_name>`.
@@ -297,7 +297,7 @@ let[@warning "-32"] test_trap_log_integrity () =
     | Some r -> r
     | None -> Alcotest.fail "could not find dune-project anchor"
   in
-  let path = Filename.concat root "OCAML_BEST_PRACTICES.md" in
+  let path = Filename.concat root "OCAML_KERNEL_CONVENTIONS.md" in
   let md = In_channel.with_open_bin path In_channel.input_all in
   (* Count headers line-by-line. *)
   let trap_re = Str.regexp "^### 11\\.[0-9]+" in
