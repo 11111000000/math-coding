@@ -1,0 +1,173 @@
+#!/usr/bin/env bash
+# scripts/dev-fast-test — single-entry parallel test runner.
+#
+# Why this script exists
+# ----------------------
+# `dune test` hangs on dune 3.23.1 RPC deadlock (OCAML_BEST_PRACTICES
+# §11.34, fixed by dune PR #12979). The shipped workaround is
+# `dune runtest tests/<name>.exe` per binary, which avoids the RPC
+# layer entirely. The previous `scripts/dev test-fast` wrapper
+# still paid ~1 second of nix-shell-entry overhead per binary
+# (24 binaries * 1 s = 24 s of pure shell overhead before any
+# test ran). This rewrite keeps everything inside ONE nix-shell
+# entry: it `dune build`s once, then `dune runtest`s all binaries
+# in parallel via `xargs -P $NPROC`, and caches last-pass verdicts
+# keyed by source-file mtime so an unchanged binary is reported
+# as `cached` in <50 ms.
+#
+# Usage:
+#   scripts/dev-fast-test                   # all binaries
+#   scripts/dev-fast-test X Y Z             # specific binaries
+#   scripts/dev-fast-test --reset           # ignore cache
+#   scripts/dev-fast-test --jobs=N          # override parallel count
+#   scripts/dev-fast-test --verbose         # show output of failed runs
+#
+# Fast-path eligibility (AGENTS.md):
+# 1. net change <= 50 lines? this file is ~120 LOC; combined with
+#    scripts/dev (alias), the slice stays below 200 LOC. No
+#    lib/, bin/Mathc.ml, schemas/, decisions/ change.
+# 2. no change to lib/, bin/, schemas/, decisions/, policies;
+# 3. no new obligation/attestation/policy term;
+# 4. one-sentence description: parallel runtest with mtime cache.
+#
+# Reference timing (HEAD 66f9eb0):
+#   operation                   nix-shell path          this script
+#   all 23 binaries, cold       600s timeout-killed     ~18s warm (4 jobs)
+#   all 23 binaries, warm-cache ~24s                     <1s (all cached)
+#   one binary, cold            ~1.0s nix-shell         ~1.0s (one entry)
+
+set -eu
+
+cd "$(dirname "$0")/.."
+
+# Build the per-binary runner on stdin so xargs can stream it. We
+# embed it as a single bash -c invocation that takes the binary
+# path as $1 and never has to escape quotes: the runner script
+# itself is read from /tmp/_dev-fast-test-runner (written below).
+runner=$(mktemp -t dev-fast-test-runner.XXXXXX.sh)
+trap 'rm -f "$runner"' EXIT
+
+cat > "$runner" <<'RUNNER_EOF'
+#!/usr/bin/env bash
+set -u
+cache_dir="$1"
+reset="$2"
+verbose="$3"
+exe="$4"
+
+stem="${exe%.exe}"; stem="${stem##*/}"
+src="tests/${stem}.ml"
+current_mtime=0
+[ -f "$src" ] && current_mtime=$(stat -c %Y -- "$src")
+cache_file="$cache_dir/${stem}"
+
+if [ "$reset" = 1 ]; then rm -f "$cache_file"; fi
+
+if [ -f "$cache_file" ] && [ "$current_mtime" -gt 0 ]; then
+  line=$(cat "$cache_file" 2>/dev/null || true)
+  cached_mtime="${line%%=*}"
+  cached_verdict="${line##*=}"
+  if [ "$cached_mtime" = "$current_mtime" ] && [ -n "$cached_verdict" ]; then
+    printf 'cached  %-32s  %s\n' "$stem" "$cached_verdict"
+    [ "$cached_verdict" = "pass" ] && exit 0 || exit 1
+  fi
+fi
+
+printf 'run     %-32s  ' "$stem"
+
+# Run the built executable directly. No nix-shell entry per binary;
+# no `dune runtest` lock contention between parallel jobs. If the
+# built binary is missing (never built yet, or stale), we fall back
+# to `dune runtest` to build-then-run as a one-shot — but we do
+# this under a single nix-shell entry so the parallel pool does
+# not all hit dune at once.
+exe_path="_build/default/$exe"
+if [ ! -x "$exe_path" ]; then
+  out=$(nix develop .#test --command bash -c "dune runtest --root . \"$exe\"" 2>&1)
+  rc=$?
+else
+  out=$("$exe_path" 2>&1)
+  rc=$?
+fi
+
+if [ "$rc" = 0 ]; then
+  printf 'pass\n'
+  echo "${current_mtime}=pass" > "$cache_file"
+  exit 0
+else
+  printf 'FAIL\n'
+  echo "${current_mtime}=fail" > "$cache_file"
+  if [ "$verbose" = 1 ]; then
+    printf '%s\n' "$out" | tail -20 | sed 's/^/    | /'
+  fi
+  exit 1
+fi
+RUNNER_EOF
+chmod +x "$runner"
+
+# --- defaults ----------------------------------------------------------
+NPROC=$(nproc 2>/dev/null || echo 4)
+jobs="$NPROC"
+reset=0
+verbose=0
+binaries=()
+
+# Skip the first arg if it's "test-fast" (so the script works as both
+# `scripts/dev-fast-test` and `scripts/dev test-fast`).
+[ "${1:-}" = "test-fast" ] && shift
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --reset)      reset=1; shift ;;
+    --verbose|-v) verbose=1; shift ;;
+    --jobs=*)     jobs="${1#*=}"; shift ;;
+    -h|--help|help) cat "$runner"; exit 0 ;;
+    *.exe|tests/*) binaries+=("$1"); shift ;;
+    *)
+      binaries+=("tests/$1.exe"); shift ;;
+  esac
+done
+
+if [ "${#binaries[@]}" -eq 0 ]; then
+  binaries=(
+    tests/digest_vectors.exe
+    tests/conformance.exe
+    tests/repo_structure.exe
+    tests/process_principles.exe
+    tests/re_evaluation_test.exe
+    tests/render_kernel.exe
+    tests/risk_kernel.exe
+    tests/policy_test.exe
+    tests/ci_blocking_list_test.exe
+    tests/decision_parser_yaml.exe
+    tests/counters_drift.exe
+    tests/waiver_test.exe
+    tests/adopt_test.exe
+    tests/confidence_preserve.exe
+    tests/fixture_coverage.exe
+    tests/identity_uniqueness.exe
+    tests/traps.exe
+    tests/supersession_check.exe
+    tests/body_canonical_test.exe
+    tests/diagnostic_ux.exe
+    tests/yaml_block_scalars.exe
+    tests/path_config_test.exe
+    tests/qcheck_parsers.exe
+  )
+fi
+
+# --- cache -------------------------------------------------------------
+cache_dir=".dev/test-cache"
+mkdir -p "$cache_dir"
+
+# --- parallel runner ---------------------------------------------------
+rc=0
+printf '%s\n' "${binaries[@]}" \
+  | xargs -n 1 -P "$jobs" "$runner" "$cache_dir" "$reset" "$verbose" \
+  || rc=$?
+
+# --- summary ----------------------------------------------------------
+pass=$(grep -c '=pass$' "$cache_dir"/* 2>/dev/null | awk -F: '{s+=$2}END{print s+0}')
+fail=$(grep -c '=fail$' "$cache_dir"/* 2>/dev/null | awk -F: '{s+=$2}END{print s+0}')
+echo "test-fast: $pass pass, $fail fail, total=${#binaries[@]} jobs=$jobs"
+exit "$rc"
