@@ -86,6 +86,14 @@ if [ ! -x "$exe_path" ]; then
   out=$(nix develop .#test --command bash -c "dune runtest --root . \"$exe\"" 2>&1)
   rc=$?
 else
+  # Direct invocation: set DUNE_SOURCEROOT to the project root
+  # BEFORE running the test binary. tests/render_kernel.ml::bilingual_site_source_root
+  # and friends use DUNE_SOURCEROOT to walk back from
+  # _build/_tests/<suite>/ to the right tree; without it, 7 of
+  # the 47 render_kernel tests fail with Sys_error "../site/...".
+  # We also export it so subprocess env propagates correctly
+  # through xargs + parallel runner.
+  export DUNE_SOURCEROOT="${DUNE_SOURCEROOT:-$PWD}"
   out=$("$exe_path" 2>&1)
   rc=$?
 fi
@@ -159,6 +167,13 @@ fi
 # --- cache -------------------------------------------------------------
 cache_dir=".dev/test-cache"
 mkdir -p "$cache_dir"
+
+# A stale _build/.lock blocks subsequent dune RPC even when no dune
+# process is running. Per OCAML_BEST_PRACTICES §11.41 it is the
+# single most common cause of "dune build hangs" in this repo. The
+# direct-exe path doesn't need dune, but other operations in the
+# same tree might; we clear once at script entry as a courtesy.
+rm -f _build/.lock 2>/dev/null || true
 
 # --- parallel runner ---------------------------------------------------
 rc=0
