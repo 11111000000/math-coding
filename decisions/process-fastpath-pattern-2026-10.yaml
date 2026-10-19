@@ -126,3 +126,16 @@ obligations:
       all:
         - verifier: mathc validate decisions/process-fastpath-pattern-2026-10.yaml
           result: pass
+
+risk:
+  declared_triggers:
+    - silent-kernel-change-bypass
+    - undocumented-fastpath-classification
+  drift_recurs: |
+    A future agent may produce a non-fast-path-eligible change
+    and self-classify it as fast path because the four
+    criteria are loose. The mitigation is the verifier pair
+    on this decision: the textual one (text-scan-AGENTS-md-
+    fastpath-section) catches drift in the human-readable
+    surface, and the kernel-test verifier (mathc validate)
+    catches schema drift on this decision file itself.

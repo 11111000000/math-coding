@@ -33,12 +33,12 @@ Last verified at: HEAD `66f9eb0` + 2026-10-18 v3.3.3 release cycle (F11/F12/Batc
   closed the v3 dialectic antithesis slot. See git for the
   pre-3.3 sync chain.
 
-Attestation store at `attestations/` contains **732 files** (committed
+Attestation store at `attestations/` contains **735 files** (committed
 count; `mathc counters --format=json` additionally reports the raw
 on-disk `live_store`, which includes the `.gitignore`-excluded test
 scratch — `t1-2-A0-*` attestations and the `1-foo` /
 `1-use-postgresql` scaffold decisions — so the raw number varies with
-local test runs); **`mathc packages` reports 185 active
+local test runs); **`mathc packages` reports 187 active
 decisions / 162 total decision files / 549 obligations
 (510 pass, 0 unknown, 39 missing on a clean checkout; the master
 policy's 7 obligations are enumerated separately)**. The exact numbers

@@ -113,3 +113,17 @@ obligations:
       all:
         - verifier: scripts/dev-fast validate decisions/retire-staging-repos-2026-10.yaml
           result: pass
+
+risk:
+  declared_triggers:
+    - upstream-binary-drift
+    - decision-merge-conflict
+  drift_recurs: |
+    A future agent that needs an isolated staging mirror would
+    re-introduce the pattern by creating a new local clone
+    under ~/Projects. The mitigation is to follow this
+    decision's commitment (work on main directly with
+    conventional-commit branches) and to surface any new
+    staging-mirror proposal as a fresh decision file in
+    decisions/ that explains why the existing release-pending
+    CI gate does not suffice.
