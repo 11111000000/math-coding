@@ -50,7 +50,7 @@ if [ "${1:-}" = "--explain" ]; then
       if ($0 ~ ("^" target "( |$)")) { seen = 1 }
     }
     seen { print }
-  ' OCAML_BEST_PRACTICES.md)
+  ' OCAML_KERNEL_CONVENTIONS.md)
   if [ -z "$out" ]; then
     echo "agent-debug: no section '$section' in OCAML_BEST_PRACTICES.md" >&2
     exit 1

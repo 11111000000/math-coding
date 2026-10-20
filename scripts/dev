@@ -278,7 +278,7 @@ case "$cmd" in
     check "nix on PATH"           "command -v nix"
     n_d=$(ls decisions/*.yaml 2>/dev/null | wc -l)
     n_a=$(ls attestations/*.json 2>/dev/null | wc -l)
-    n_t=$(grep -cE '^### 11\.' OCAML_BEST_PRACTICES.md 2>/dev/null | head -1)
+    n_t=$(grep -cE '^### 11\.' OCAML_KERNEL_CONVENTIONS.md 2>/dev/null | head -1)
     echo ""
     echo "  decisions:    $n_d"
     echo "  attestations: $n_a"
