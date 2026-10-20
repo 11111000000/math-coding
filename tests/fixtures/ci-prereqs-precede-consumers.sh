@@ -84,6 +84,18 @@ else
   else
     bad ".dockerignore missing; 'COPY . /src/' would ship _build (283 MB) into the image"
   fi
+
+  # (B2) The nix-built binary bakes an absolute ELF interpreter path
+  # into /nix/store/<hash>-glibc-*/lib/ld-linux-x86-64.so.2. The
+  # runtime stage must therefore carry the nix closure at its original
+  # store paths, or `mathc version` fails with a misleading
+  # "not found" that looks like a missing file rather than a missing
+  # loader. Same root cause as OCAML_KERNEL_CONVENTIONS.md 11.22.
+  if grep -q 'nix-store --query --requisites' "$df" && grep -q 'COPY --from=build /tmp/closure/nix /nix' "$df"; then
+    ok "$df ships the nix runtime closure at its original store paths"
+  else
+    bad "$df does not ship /nix/store closure; the nix-linked binary cannot start"
+  fi
 fi
 
 echo
