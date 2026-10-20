@@ -10,7 +10,7 @@ the discoverability surface.
 
   $ lines=$(wc -l < QUICKSTART.md)
   $ if [ "$lines" -le 100 ]; then echo "QUICKSTART.md: line count ok ($lines <= 100)"; else echo "QUICKSTART.md: too long ($lines > 100)"; exit 1; fi
-  QUICKSTART.md: line count ok (55 <= 100)
+  QUICKSTART.md: line count ok (96 <= 100)
 
 README.md points to QUICKSTART.md as the first read.
 

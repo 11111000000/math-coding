@@ -8,14 +8,10 @@ full runbook, see [USAGE.md](USAGE.md). For the AI-agent skill, see
 
 > Native channels first; Docker as fallback. If none of the native channels work, see [If the native install fails](#if-the-native-install-fails) below.
 
-The default channel is **stable** (the latest tagged
-`vX.Y.Z` release, or the most recently published release
-artifact if no stable tag exists yet). The `--channel=edge`
-opt-in (`-Version edge` in PowerShell) installs the
-rolling nightly prerelease.
+Default channel is **stable** (latest `vX.Y.Z`); `--channel=edge` (`-Version edge` in PowerShell) installs the rolling nightly prerelease.
 
-Linux / macOS / WSL / Git-Bash / MSYS / Cygwin / Alpine — one
-command, auto-detects libc and shell RC:
+Linux / macOS / WSL / Git-Bash / MSYS / Cygwin / Alpine — one command,
+auto-detects libc and shell RC:
 
 ```sh
 curl -fsSL https://github.com/11111000000/math-coding/releases/latest/download/install.sh \
@@ -30,17 +26,14 @@ irm https://github.com/11111000000/math-coding/releases/latest/download/install.
 mathc version
 ```
 
-The shell installer:
-- downloads `SHA256SUMS` and verifies the binary;
-- installs to `~/.local/bin/mathc` (Linux/macOS) or
-  `%LOCALAPPDATA%\Programs\mathc` (Windows);
-- idempotently appends `export PATH=…` to `~/.bashrc` /
-  `~/.zshrc` / `~/.profile` (Windows: user `Path`);
-- on Alpine / Void / Chimera, downloads the musl-linked
-  binary automatically.
+The installer downloads `SHA256SUMS` and verifies the binary,
+installs to `~/.local/bin/mathc` (Linux/macOS) or
+`%LOCALAPPDATA%\Programs\mathc` (Windows), idempotently appends
+`export PATH=…` to `~/.bashrc`/`~/.zshrc`/`~/.profile` (Windows: user
+`Path`), and on Alpine / Void / Chimera downloads the musl-linked
+binary automatically.
 
-Want the rolling prerelease instead of stable? Pass the
-`edge` opt-in explicitly:
+Want the rolling prerelease instead of stable? Pass `edge` explicitly:
 
 ```sh
 curl ... | sh -s -- --version=edge
@@ -51,19 +44,16 @@ irm ... | iex -Version edge
 ```
 
 Other channels (Docker, Nix, source build) live in
-[site/install.md](site/install.md); use them when `curl | sh`
-is blocked or you need a hermetic runner.
+[site/install.md](site/install.md); use them when `curl | sh` is
+blocked or you need a hermetic runner.
 
 ## If the native install fails
 
-If `curl | sh`, the PowerShell installer, `nix run`, or the
-source build does not work on your host (corporate proxy
-blocking `raw.githubusercontent.com`, Alpine/musl libc,
-immutable CI runner without write access to `~/.local/`),
-the Docker image is the always-available fallback. The
-image at `ghcr.io/11111000000/mathc:<VERSION>` is built
-and signed by this repository's CI on every release tag
-push; no installation to your host is required.
+If `curl | sh`, the PowerShell installer, `nix run`, or the source
+build does not work on your host (corporate proxy blocking
+`raw.githubusercontent.com`, Alpine/musl libc, immutable CI runner
+without write access to `~/.local/`), the Docker image is the
+always-available fallback:
 
 ```sh
 docker run --rm -v "$PWD:/repo" \
@@ -71,9 +61,7 @@ docker run --rm -v "$PWD:/repo" \
   validate decisions/foo.yaml
 ```
 
-The same command works for any subcommand. Replace
-`<VERSION>` with a release tag (e.g., `v3.3.0`) or `edge`
-for the most recent main commit.
+Replace `<VERSION>` with a release tag (e.g. `v3.3.0`) or `edge` for the most recent main commit; the same pattern works for any subcommand.
 
 ## First decision
 
@@ -99,15 +87,10 @@ mathc import-adr docs/adr/0001-*.md --write   # MADR-shaped ADR
 mathc self-check
 ```
 
-Exits 0 on pass, 1 on fail, 3 on `unknown` (obligations recorded but
-not yet attested). On a fresh bootstrap, `unknown` is expected: no
-attestations exist yet. See [USAGE.md](USAGE.md) §"Review-time
-questions" for the four questions every change must answer.
+Exits 0 on pass, 1 on fail, 3 on `unknown` (obligations recorded but not yet attested — the expected state on a fresh bootstrap). See [USAGE.md](USAGE.md) §"Review-time questions" for the four questions every change must answer.
 
 ## Next
 
-- [USAGE.md](USAGE.md): install channels, decision question, AI-agent
-  paths, migration between Path A and Path C.
+- [USAGE.md](USAGE.md): install channels, decision question, AI-agent paths, migration between Path A and Path C.
 - [adoption/SKILL.md](adoption/SKILL.md): the canonical agent skill.
-- [site/install.md](site/install.md): sandbox notes, glibc / musl,
-  Docker, Nix.
+- [site/install.md](site/install.md): sandbox notes, glibc / musl, Docker, Nix.
