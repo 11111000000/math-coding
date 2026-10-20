@@ -1,0 +1,184 @@
+---
+schema: math-coding/3.3
+id: path-probe-anchoring-2026-11
+revision: 1
+state: active
+mode: standard
+change_kind: bugfix
+
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+intent: |
+  `Path_config.resolve_*` probe their candidate layouts with
+  `Sys.file_exists` relative to the PROCESS CWD, while almost every
+  caller composes the returned relative path onto the PROJECT ROOT.
+  When cwd differs from root the probe answers a question about the
+  wrong tree, and the resolver returns the wrong branch.
+
+  The damage is not a wrong error message. In `do_gate` the decision
+  directory was composed as a hardcoded literal:
+
+      let dec_dir = Filename.concat root "decisions" in
+
+  which is the only occurrence of `"decisions"` outside
+  `lib/path_config.ml`. On a project using the `.math-coding/`
+  layout that directory does not exist, so `all_obligations` came
+  back empty and `mathc gate` reported
+
+      {"verdict":"pass","obligations":0}
+
+  against a repository holding 199 decisions with 666 unmet
+  obligations. A gate that certifies an empty obligation set is an
+  invariant violation, not a degraded mode: `unknown` is laundered
+  into `pass`. `mathc self-check`, which CI runs as a gate, reaches
+  the same code through `do_self_check`.
+
+  Reproduced before the fix:
+      cd $(mktemp -d) && MATH_CODING_ROOT=<repo> <repo>/mathc.exe \\
+        gate HEAD~1 HEAD
+      -> {"verdict":"pass","gaps":[],"obligations":0}   exit 0
+
+commitment: |
+  (a) Every `Path_config.resolve_*` call site that has a project root
+      in scope passes `~root`, so the probe and the concat are
+      anchored on the same tree.
+  (b) The hardcoded `"decisions"` literal in `do_gate` is removed in
+      favour of the resolver.
+  (c) `do_counters` no longer depends on a `Sys.chdir` side-effect to
+      make its probes correct; the chdir stays for whatever else
+      relies on it.
+  (d) A regression test fails if a gate run from an unrelated cwd
+      reports a non-zero obligation count against this repository.
+
+  (d) is the part that matters. Without it this class of defect
+  returns silently, which is exactly how the present one survived.
+
+antithesis: |
+  The strongest counter-position: "the resolver is the buggy unit. Make
+  `resolve_*` default to walking up from the process cwd to the
+  project root, and leave every call site alone." That is genuinely
+  more robust and it is what a reader would expect from a function
+  named `resolve_project_path`.
+
+  Rejected for this cycle because it cannot close the observed hole:
+  `mathc init DIR` and `mathc adopt DIR` deliberately operate on a
+  TARGET that is not the cwd, and `mathc gate --root=<synth>` is
+  explicitly scoped. A cwd-walking default cannot distinguish "the
+  project I am in" from "the project I was told to operate on", and
+  getting that wrong is precisely the bug. Making `~root` mandatory at
+  the call site forces each caller to state which tree it means.
+
+  Acknowledged as the right follow-up: once every call site is
+  anchored, the resolver's own default can be tightened so a bare
+  call is a compile-visible omission rather than a silent one. That is
+  a signature change and belongs to its own cycle.
+
+  A second position, "just chdir at startup like `do_counters` does":
+  rejected. It is process-global, breaks any caller that legitimately
+  operates on a non-cwd target, and leaves the correctness of every
+  downstream path resting on an invisible side-effect.
+
+counterexample: |
+  Evidence that this is not a cwd-hygiene problem in the tests: with
+  all 21 call sites anchored, the failing `tests/cli/*.t` set is
+  byte-identical before and after the change — the same four files,
+  with the same diffs. A test-fix wave cannot be what made the gate
+  behave.
+
+  Evidence the layout branch is genuinely ambiguous rather than
+  merely mis-probed: `decisions/` and `.math-coding/decisions/`
+  coexist across this repository's own history, and `init.t` had to
+  move its expectations to `.math-coding/` while
+  `import-adr.t` kept `decisions/` — same tree, same binary, different
+  targets. A single cwd-derived answer cannot serve both.
+
+scope:
+  capabilities:
+    - correctness
+    - policy-enforcement
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/memory.ml"
+    - "lib/check/check.ml"
+    - "lib/re_evaluation.ml"
+    - "tests/path_config_test.ml"
+    - "tests/cli/gate-cwd-independence.t"
+    - "decisions/path-probe-anchoring-2026-11.yaml"
+  exclusions:
+    - "spec/**"
+    - "schemas/**"
+
+outcomes:
+  - id: gate-is-cwd-independent
+    statement: |
+      `mathc gate` run from an unrelated working directory reports the
+      same non-zero obligation count as a run from the project root.
+  - id: no-hardcoded-layout-literals
+    statement: |
+      No `"decisions"` literal is composed outside
+      `lib/path_config.ml`.
+  - id: regression-test-exists
+    statement: |
+      A test asserts the gate obligation count is non-zero when
+      invoked with cwd outside the repository.
+
+obligations:
+  - id: gate-reports-nonzero-off-root
+    claim: |
+      With cwd set to an unrelated temporary directory and
+      MATH_CODING_ROOT pointing at this repository, `mathc gate`
+      reports obligations > 0.
+    acceptance:
+      all:
+        - verifier: bash -c 'cd $(mktemp -d) && MATH_CODING_ROOT=$PWD <repo>/mathc.exe gate HEAD~1 HEAD | jq -e ".obligations > 0"'
+          result: pass
+
+  - id: no-layout-literal-in-kernel
+    claim: |
+      `bin/Mathc.ml` contains no `Filename.concat root "decisions"`.
+    acceptance:
+      all:
+        - verifier: shell-grep -F 'Filename.concat root "decisions"' bin/Mathc.ml
+          result: pass
+
+  - id: kernel-builds
+    claim: |
+      `dune build @all` succeeds with all call sites anchored.
+    acceptance:
+      all:
+        - verifier: bash -c '. scripts/dev-env.sh; mc_run_in_shell "dune build --root . @all"'
+          result: pass
+
+risk:
+  declared_triggers:
+    - new-path-probe-call-site-added-without-root
+    - resolver-default-tightened-without-audit
+    - gate-obligation-count-goes-to-zero
+  drift_recurs: |
+    A future change adds a `Path_config.resolve_*` call without `~root`
+    and the defect returns silently, because the failure mode is an
+    empty obligation set rather than an error. Two guards limit this:
+    the obligation above asserts the count is non-zero, and the
+    follow-up recorded in `antithesis` intends to make the bare call a
+    signature error so it cannot compile unnoticed.
+
+    Residual known gap: `lib/new_decision/new_decision.ml:380` was
+    deliberately NOT anchored. Its local root comes from
+    `project_root ()`, which consults only MATH_CODING_ROOT and
+    DUNE_SOURCEROOT and never walks up to `dune-project`. Anchoring it
+    would fix the probe/concat mismatch but not the underlying
+    wrong-root-when-env-unset problem, so a partial fix would be
+    misleading. Tracked as follow-up work with the caller change.
+
+relations:
+  addresses:
+    - kernel-fixes-found-bugs-2026-10
+  depends_on:
+    - kernel-fixes-found-bugs-2026-10
+  supersedes: []

@@ -1550,8 +1550,8 @@ let[@warning "-32"] capsule_to_json cap =
    a project-relative path so the JSON `path` field is portable
    across worktrees (the absolute path is reconstructed for the
    actual file read). *)
-let[@warning "-32"] decision_relpath id =
-  let dir = Path_config.resolve_decisions_dir () in
+let[@warning "-32"] decision_relpath ~root id =
+  let dir = Path_config.resolve_decisions_dir ~root () in
   match id with
   | "bootstrap-v3" -> dir ^ "/decision.yaml"
   | "infrastructure-honesty" -> dir ^ "/infrastructure-honesty.yaml"
@@ -1627,13 +1627,13 @@ let[@warning "-32"] explain_diag code kind id message =
         across multiple files) or a non-file capsule kind
         (commits/path, git artifacts). This is an honest declaration
         of scope, not a permanent limit. *)
-let[@warning "-32"] resolve_ref raw_ref :
+let[@warning "-32"] resolve_ref ~root raw_ref :
     (string * string * string, string * string * string * string) result =
   match String.split_on_char ':' raw_ref with
   | [ kind; id ] -> (
       match Reference.parse raw_ref with
       | Some (Ref { kind = Decision; id = did; revision = _ }) ->
-          Ok (kind, did, decision_relpath did)
+          Ok (kind, did, decision_relpath ~root did)
       | _ -> (
           match soft_kind_relpath kind id with
           | Some p -> Ok (kind, id, p)
@@ -1675,7 +1675,7 @@ let[@warning "-32"] do_explain () =
         exit 2
   in
   let root = find_project_root (Sys.getcwd ()) in
-  match resolve_ref raw_ref with
+  match resolve_ref ~root raw_ref with
   | Error (code, k, i, msg) ->
       explain_diag code k i msg;
       exit 2
@@ -2383,7 +2383,7 @@ let[@warning "-32"] do_record () =
   let path =
     Filename.concat root
       (Filename.concat
-         (Path_config.resolve_decisions_dir ())
+         (Path_config.resolve_decisions_dir ~root ())
          "execution-logs.jsonl")
   in
   (try append_event_to_file path line
@@ -2407,7 +2407,7 @@ let[@warning "-32"] read_jsonl_events root =
   let path =
     Filename.concat root
       (Filename.concat
-         (Path_config.resolve_decisions_dir ())
+         (Path_config.resolve_decisions_dir ~root ())
          "execution-logs.jsonl")
   in
   if not (Sys.file_exists path) then []
@@ -3500,7 +3500,9 @@ let do_gate () =
   in
   let c_info = Gate.commit_info_of ~changed_paths ~body:commit_body_raw in
   let all_obligations =
-    let dec_dir = Filename.concat root "decisions" in
+    let dec_dir =
+      Filename.concat root (Path_config.resolve_decisions_dir ~root ())
+    in
     let dec_paths =
       if Sys.file_exists dec_dir && Sys.is_directory dec_dir then
         Array.to_list (Sys.readdir dec_dir)
@@ -4295,7 +4297,7 @@ let[@warning "-32"] do_self_check () =
      exit 2);
   let root = find_project_root (Sys.getcwd ()) in
   let decisions_dir =
-    Filename.concat root (Path_config.resolve_decisions_dir ())
+    Filename.concat root (Path_config.resolve_decisions_dir ~root ())
   in
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
@@ -5189,8 +5191,8 @@ let[@warning "-32"] do_counters () =
       (* 2. obligations: from kernel packages walker *)
       let obligations_v =
         let reader path = In_channel.with_open_bin path In_channel.input_all in
-        let decisions_dir = Path_config.resolve_decisions_dir () in
-        let attestations_dir = Path_config.resolve_attestations_dir () in
+        let decisions_dir = Path_config.resolve_decisions_dir ~root () in
+        let attestations_dir = Path_config.resolve_attestations_dir ~root () in
         let has_store = Sys.file_exists attestations_dir in
         let store =
           if has_store then
@@ -5226,7 +5228,7 @@ let[@warning "-32"] do_counters () =
           ]
       in
       (* 3. attestations (live store) *)
-      let attestations_dir = Path_config.resolve_attestations_dir () in
+      let attestations_dir = Path_config.resolve_attestations_dir ~root () in
       let live_store =
         if Sys.file_exists attestations_dir then
           Sys.readdir attestations_dir
@@ -5718,7 +5720,7 @@ let[@warning "-32"] do_decision_state () =
   let root = find_project_root (Sys.getcwd ()) in
   let path =
     Filename.concat
-      (Filename.concat root (Path_config.resolve_decisions_dir ()))
+      (Filename.concat root (Path_config.resolve_decisions_dir ~root ()))
       (id_str ^ ".yaml")
   in
   let reader p =
@@ -6407,7 +6409,7 @@ let[@warning "-32"] do_migrate () =
             Filename.concat project_root
               (Filename.concat
                  (Filename.concat
-                    (Path_config.resolve_decisions_dir ())
+                    (Path_config.resolve_decisions_dir ~root:project_root ())
                     "migrations")
                  fname)
         | _ ->
@@ -6435,7 +6437,7 @@ let[@warning "-32"] do_migrate () =
     Printf.printf "manifest %s -> %s\n  intent: %s\n\n" manifest.from
       manifest.to_ manifest.intent;
   let decisions_dir =
-    Filename.concat root (Path_config.resolve_decisions_dir ())
+    Filename.concat root (Path_config.resolve_decisions_dir ~root ())
   in
   let yaml_files =
     if Sys.file_exists decisions_dir then
@@ -6859,7 +6861,7 @@ let[@warning "-32"] doctor_section_latest () : doctor_section =
  * Verdict: `Pass` on accept, `Fail` on reject. *)
 let[@warning "-32"] doctor_section_config () : doctor_section =
   let root = find_project_root (Sys.getcwd ()) in
-  let path = Filename.concat root (Path_config.resolve_policy_path ()) in
+  let path = Filename.concat root (Path_config.resolve_policy_path ~root ()) in
   let exists = Sys.file_exists path in
   let outcome =
     if exists then
@@ -6904,7 +6906,7 @@ let[@warning "-32"] doctor_section_config () : doctor_section =
 let[@warning "-32"] doctor_section_decisions () : doctor_section =
   let root = find_project_root (Sys.getcwd ()) in
   let decisions_dir =
-    Filename.concat root (Path_config.resolve_decisions_dir ())
+    Filename.concat root (Path_config.resolve_decisions_dir ~root ())
   in
   let decision_files = list_decision_files decisions_dir in
   let reader path =
@@ -7109,7 +7111,9 @@ let dispatch () =
      `risk-policy-driven-floor-2026-10`. *)
   let _ =
     let root = find_project_root (Sys.getcwd ()) in
-    let path = Filename.concat root (Path_config.resolve_policy_path ()) in
+    let path =
+      Filename.concat root (Path_config.resolve_policy_path ~root ())
+    in
     Policy.load_policies ~path ()
   in
   match Sys.argv.(1) with

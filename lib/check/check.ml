@@ -62,7 +62,7 @@ let mathc_resolve () : string =
    cram fixture asserts `total >= 1` rather than a specific
    sequence). *)
 let list_yaml_files ~root : string list =
-  let dir = Filename.concat root (Path_config.resolve_decisions_dir ()) in
+  let dir = Filename.concat root (Path_config.resolve_decisions_dir ~root ()) in
   if not (Sys.file_exists dir && Sys.is_directory dir) then []
   else begin
     Array.to_list (Sys.readdir dir)

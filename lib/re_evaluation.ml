@@ -427,7 +427,7 @@ commitment are now stale, and rewrite them.)
  * kernel never crashes on a missing decisions directory; the
  * caller decides the priority. *)
 let[@warning "-32"] list_decision_files (root : string) : string list =
-  let dir = Filename.concat root (Path_config.resolve_decisions_dir ()) in
+  let dir = Filename.concat root (Path_config.resolve_decisions_dir ~root ()) in
   if not (Sys.file_exists dir) then []
   else if not (Sys.is_directory dir) then []
   else
