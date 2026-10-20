@@ -143,6 +143,16 @@ commitment: |
         to `dune-project` (the test exe is 3 parents below
         the project root, the previous code went up only 2).
 
+    C8. `fix(decisions): axiom_link on 4 sub-decisions`
+        — `decisions/plan-2026-10-improvements/{t3-1,t3-2,
+        t4-1,t5-2}.yaml`: add `axiom_link: [A0, A1]`. These
+        four files were `state: active` without `axiom_link`,
+        making them fail `tests/decision_addresses_equality.ml`
+        (the parser rejects active decisions without axiom_link
+        per `axiom_link-required` and `spec/algebra-3.2.md` §7).
+        They also failed `mathc validate` from the CLI. This
+        commit closes that gap.
+
 counterexample: |
   "These fixes are wrong because the broader pattern — the
   fallback to `..` for the project root, the missing risk:
@@ -183,6 +193,10 @@ scope:
     - "tests/render_kernel.ml"
     - "tests/rebuttal_forge_stub.ml"
     - "decisions/ci-green-batch1-2026-10.yaml"
+    - "decisions/plan-2026-10-improvements/t3-1.yaml"
+    - "decisions/plan-2026-10-improvements/t3-2.yaml"
+    - "decisions/plan-2026-10-improvements/t4-1.yaml"
+    - "decisions/plan-2026-10-improvements/t5-2.yaml"
   exclusions:
     - "spec/**"
     - "schemas/**"
