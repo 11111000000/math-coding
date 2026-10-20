@@ -700,5 +700,5 @@ discipline makes the thinking explicit, which is the point.
 - [Spec/constitution](spec/constitution.html) — the 14 invariants.
 - [Spec/algebra-3.2](spec/algebra-3.2.html) — the formal
   algebra (normative).
-- [USAGE](https://github.com/11111000000/math-coding/blob/main/USAGE.md) — the Path A / Path B adoption runbook
+- [USAGE](https://github.com/11111000000/math-coding/blob/main/USAGE.md) — the Path A / Path C adoption runbook
   (canonical source on GitHub; `USAGE.md` is not rendered into `dist/`).

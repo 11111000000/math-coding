@@ -205,33 +205,43 @@ responsibility is to fill the TBD sections before
 
 ## Choose your adoption path
 
-Math-coding pays off when its applicability envelope is positive; for
-projects below that threshold it is overhead, not insurance. The
-envelope ([`spec/algebra-3.2.md`](spec/algebra-3.2.md) §28) treats
-applicability as a sum over signals:
+Math-coding installs by default. The envelope
+([`spec/algebra-3.2.md`](spec/algebra-3.2.md) §28) is
+default-on: the burden of proof sits on the exclusion, not on the
+adoption. To *not* adopt, your project must be throwaway — code with
+no expected continuity, which no reader will ever audit. "There is
+only one of me" is not such a case.
 
-- Multi-agent AI-assisted development: highly applicable. Two or more
-  agents editing the same repo need a shared authority model more
-  than humans do.
+Applicability is still a sum over signals — the signals decide the
+mode floor, not whether the kernel goes in:
+
+- Multi-agent AI-assisted development: high. Two or more agents
+  editing the same repo need a shared authority model more than
+  humans do.
+- An AI agent writing into the repo, one human or many: medium. The
+  code you did not write is the code you cannot recall.
 - Critical infrastructure with a 3+ person team and a 5+ year
-  lifetime: applicable. Decisions outlive the people who wrote them.
-- Regulatory or contractual audit requirements: mandatory applicable.
-  The attestation store and blocking gate are the audit trail.
-- Solo or small team with no AI agents: low applicability. A
-  changelog plus code review is usually enough.
-- Prototypes, MVPs, throwaway tools, hackathon code: not applicable.
-  Skip the methodology.
+  lifetime: medium. Decisions outlive the people who wrote them.
+- Regulatory or contractual audit requirements: mandatory. The
+  attestation store and blocking gate are the audit trail.
+- Solo or small team with no agent writing code: low. Adopted
+  anyway, at `mode_floor: light` — the per-commit cost is
+  `{commitment, counterexample}` plus a `decision:<id>@<rev>`
+  trailer. A changelog plus code review is not the deliverable; the
+  reasoning behind the commit is.
+- Prototypes, MVPs, throwaway tools, hackathon code: the one Path C
+  class. Skip the methodology, write down why, move on.
 
 ### Decision question
 
-> Does your project coordinate two or more AI agents, require
-> regulatory audit, or will it live five or more years with three or
-> more contributors?
-> Yes → Path A. No → Path B.
+> Is this project expected to still exist next month?
+> Yes → Path A (add `mode_floor: light` if only you and a text
+> editor touch it). No → Path C.
 
 ### Path A — full math-coding 3.3
 
-For applicable projects. The full ceremony is justified.
+The default. For projects expected to outlive the current refactor.
+The full ceremony is justified.
 
 - Install the kernel binary from the
   [GitHub releases page](https://github.com/11111000000/math-coding/releases).
@@ -264,11 +274,11 @@ to `main` triggers `.github/workflows/site.yml`, which runs
 `github-pages` with OIDC (`id-token: write`). No branch selection,
 no `gh-pages` branch, no personal token.
 
-### Path B — regular ADR plus counterexamples
+### Path C — regular ADR plus counterexamples
 
-For low-applicability projects. A standard architectural decision
-record, one counterexample paragraph, and a human reviewer. No kernel
-binary, no blocking gate, no attestation store.
+The exception: throwaway projects only. A standard architectural
+decision record, one counterexample paragraph, and a human reviewer.
+No kernel binary, no blocking gate, no attestation store.
 
 - Write the ADR with `context`, `decision`, `consequences`, `risk`,
   `owner` — the MADR or adr-tools shape.
@@ -278,16 +288,23 @@ binary, no blocking gate, no attestation store.
   verdict is the attestation.
 - CI logs and the git history are the evidence trail. No JSON store
   is required.
+- Write down *why* you classified the project as throwaway, where a
+  reader will find it. §23 requires an explicit rationale from every
+  project that does not adopt.
+
+(USAGE.md called this "Path B" before v3.4. The algebra has always
+called it Path C; the second name was retired to keep one vocabulary
+across the spec and the runbook.)
 
 ### Migrating between paths
 
 The two paths are not mutually exclusive. A project can start on
-Path B and migrate to Path A when applicability increases — adding
-AI agents, growing the team, taking on a regulated customer. The
-reverse is also valid: if math-coding becomes overhead (the project
-shrinks, the audit requirement ends), rip out `decisions/`,
-`attestations/`, and the gate workflow. A clean revert is itself
-evidence that the kernel did not capture you.
+Path C and migrate to Path A when the project stops being throwaway —
+adding AI agents, growing the team, taking on a regulated customer.
+The reverse is also valid: if a project turns out to be a spike that
+nobody will read again, rip out `decisions/`, `attestations/`, and
+the gate workflow. A clean revert is itself evidence that the kernel
+did not capture you.
 
 ### Hotfix procedure
 

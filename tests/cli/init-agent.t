@@ -22,7 +22,22 @@ path changes (per-run tmpdir hash differs).
   mathc init: created /tmp/nix-shell.iouuED/build_ca92e9_dune/tmp.CmdyR0JflV/repo/decisions, /tmp/nix-shell.iouuED/build_ca92e9_dune/tmp.CmdyR0JflV/repo/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
-    per-user opencode skill: installed at /tmp/nix-shell.iouuED/build_ca92e9_dune/tmp.CmdyR0JflV/xdg/opencode/skills/math-coding/SKILL.md
+    applicability envelope (spec/algebra-3.2.md §28, default-on):
+      path: Path A. Installed by default, a single maintainer included.
+        To skip, the project must be throwaway — prototype,
+        MVP, spike, one-day hackathon — and the rationale goes
+        in the README, per §23.
+      signals that lift the ceremony above the light floor:
+        - two or more AI agents (or humans) editing this repository
+        - regulatory or contractual audit needs a tamper-evident trail
+        - three or more maintainers on a five-or-more-year horizon
+        - an AI agent writes into the repository (one human is enough)
+      the one Path C class:
+        - prototype / MVP / spike / throwaway: no expected continuity
+      floor: no policies.yaml here, so the kernel uses its lowest rung
+        (Tiny). Declare mode_floor in the project's policies.yaml to
+        match reality. `mathc init` sees one writer and cannot detect
+        the signals above; they are yours to declare.
   $ per_user="$XDG_CONFIG_HOME/opencode/skills/math-coding/SKILL.md"
   $ test -f "$per_user" && echo "per-user skill present: ok"
   per-user skill present: ok
@@ -38,6 +53,22 @@ a generic agent does not need a per-user copy).
   mathc init: created /tmp/nix-shell.iouuED/build_ca92e9_dune/tmp.uPspRNzrYw/decisions, /tmp/nix-shell.iouuED/build_ca92e9_dune/tmp.uPspRNzrYw/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
+    applicability envelope (spec/algebra-3.2.md §28, default-on):
+      path: Path A. Installed by default, a single maintainer included.
+        To skip, the project must be throwaway — prototype,
+        MVP, spike, one-day hackathon — and the rationale goes
+        in the README, per §23.
+      signals that lift the ceremony above the light floor:
+        - two or more AI agents (or humans) editing this repository
+        - regulatory or contractual audit needs a tamper-evident trail
+        - three or more maintainers on a five-or-more-year horizon
+        - an AI agent writes into the repository (one human is enough)
+      the one Path C class:
+        - prototype / MVP / spike / throwaway: no expected continuity
+      floor: no policies.yaml here, so the kernel uses its lowest rung
+        (Tiny). Declare mode_floor in the project's policies.yaml to
+        match reality. `mathc init` sees one writer and cannot detect
+        the signals above; they are yours to declare.
   $ test ! -f "${XDG_CONFIG_HOME:-$HOME/.config}/opencode/skills/math-coding/SKILL.md.new" && \
   >   echo "no per-user install for generic agent"
   no per-user install for generic agent

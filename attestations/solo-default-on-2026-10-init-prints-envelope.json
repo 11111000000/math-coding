@@ -1,0 +1,1 @@
+{"id":"sha256:42a38191b21c025d069e70d485f9635a64552c5cd532be1a6edeaa97dbc0fb62","issued_at":"2026-10-20T14:08:11Z","kind":"attestation","kind_":"test","producer":{"identity":"human:maintainer"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"solo-default-on-2026-10","materials_digest":"","obligation":"init-prints-envelope"}}

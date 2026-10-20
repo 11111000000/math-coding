@@ -20,26 +20,43 @@ The protocol does not prove software correctness. It refuses to.
 
 ## When to apply
 
-Use this skill when at least one of these is true:
+Default: apply. The kernel goes into a project that is expected to
+still exist next month — including a project with exactly one
+maintainer. Per `spec/algebra-3.2.md` §28 the burden of proof sits
+on the exclusion, not on the adoption: to skip this skill you must
+name the project as throwaway, not as small.
+
+Signals that lift the ceremony above the light floor:
 
 - Two or more AI agents (or humans) edit the same repository and need a
   shared authority model.
 - Regulatory or contractual audit requires a tamper-evident trail.
 - A team of three or more will maintain the project for five or more
   years; decisions must outlive the people who wrote them.
+- An AI agent writes into the repository, even when there is one human.
+  Code you did not write is code you cannot recall; the counterexample
+  paragraph is where you find out it was wrong.
 
 ## When not to apply
 
-Skip this skill and use a plain ADR (`MADR` or `adr-tools` shape with a
-`## Counterexample` paragraph) when:
+Exactly one class — `prototype_or_throwaway(P)` in §28, i.e. the
+project has no expected continuity:
 
-- The project is a prototype, MVP, hackathon, or throwaway script.
-- A single person maintains it without AI assistance.
-- The audit requirement is informal (a code reviewer's "lgtm" is enough).
+- The project is a prototype, MVP, hackathon, or throwaway script
+  whose code nobody will read again after the next refactor.
 
-If unsure: start with a plain ADR. Migrate to math-coding later by
-copying the existing decisions into `decisions/*.yaml` and adopting the
-schema. The migration cost is one decision and one CI change.
+That is the whole list. "Only one maintainer", "no formal audit", and
+"an informal lgtm is enough" are no longer exclusion criteria. A solo
+maintainer declares `mode_floor: light` in the project's
+`policies.yaml` and gets the cheapest rung of Path A — per-commit cost
+is `{commitment, counterexample}` and a `decision:<id>@<rev>` git
+trailer satisfies the gate without a sibling YAML — rather than an
+opt-out that leaves nothing behind.
+
+Skipping requires stating the throwaway rationale where a reader will
+find it (the project README, or the commit that starts the project).
+Everything else: run `mathc init .` — it prints the envelope it
+assumed, so the choice lands in the record instead of in a habit.
 
 ## Step 1. Install the kernel
 

@@ -94,13 +94,18 @@ let master_policy_template =
   \  outside `scope.paths` is untracked by `mathc self-check`.\n\
    counterexample: |\n\
   \  The strongest objection considered and rejected: \"Adopting\n\
-  \  math-coding is overhead for projects where one developer\n\
-  \  works alone with no AI assistance.\" This fails because the\n\
-  \  protocol's applicability envelope (spec/algebra-3.2.md §28)\n\
-  \  names exactly those projects as Path B (regular ADR plus\n\
-  \  counterexample). math-coding is Path A only when the\n\
-  \  applicability is positive, in which case the overhead is\n\
-  \  justified. A solo developer without AI never enters Path A.\n\
+  \  math-coding is overhead for a project where one developer\n\
+  \  works alone.\" That fails as a reason to skip. The\n\
+  \  applicability envelope (spec/algebra-3.2.md §28) is\n\
+  \  default-on: its only Path C class is prototype_or_throwaway,\n\
+  \  and \"we are small\" is not a membership test. The friction\n\
+  \  observation survives as a mode choice rather than an exit —\n\
+  \  declare `mode_floor: light` in this project's policies.yaml\n\
+  \  and the per-commit cost falls to {commitment, counterexample}\n\
+  \  plus a `decision:` trailer. What stays behind is the part\n\
+  \  that outlives the maintainer's memory. What would change the\n\
+  \  verdict: if this project turns out to be a spike nobody\n\
+  \  reopens, delete this tree and say why in the README.\n\
    scope:\n\
   \  paths:\n\
   \    - \"src/**\"\n\
@@ -237,6 +242,37 @@ let[@warning "-32"] install_ci_workflow ~root : bool =
     true
   end
 
+(* --- applicability envelope (spec/algebra-3.2.md §28) -------------- *)
+
+(* The envelope is default-on per decision `solo-default-on-2026-10@1`:
+   `mathc init` installs the kernel for any project expected to outlive
+   the next refactor — a single maintainer included. To skip, the project
+   must be throwaway, and the rationale goes where a reader finds it.
+   `init` cannot observe team size, agent count, or audit obligations —
+   it is one process with one writer, and the project may be empty — so
+   it prints the envelope it assumed rather than guessing a path. The
+   operator raises or lowers the floor in the project's own
+   `policies.yaml` (`lib/policy.ml::mode_floor`); with no such file the
+   kernel falls back to `default_policy.mode_floor = Tiny`. *)
+let print_applicability_envelope () : unit =
+  print_endline
+    "  applicability envelope (spec/algebra-3.2.md \xC2\xA728, default-on):\n\
+    \    path: Path A. Installed by default, a single maintainer included.\n\
+    \      To skip, the project must be throwaway \xE2\x80\x94 prototype,\n\
+    \      MVP, spike, one-day hackathon \xE2\x80\x94 and the rationale goes\n\
+    \      in the README, per \xC2\xA723.\n\
+    \    signals that lift the ceremony above the light floor:\n\
+    \      - two or more AI agents (or humans) editing this repository\n\
+    \      - regulatory or contractual audit needs a tamper-evident trail\n\
+    \      - three or more maintainers on a five-or-more-year horizon\n\
+    \      - an AI agent writes into the repository (one human is enough)\n\
+    \    the one Path C class:\n\
+    \      - prototype / MVP / spike / throwaway: no expected continuity\n\
+    \    floor: no policies.yaml here, so the kernel uses its lowest rung\n\
+    \      (Tiny). Declare mode_floor in the project's policies.yaml to\n\
+    \      match reality. `mathc init` sees one writer and cannot detect\n\
+    \      the signals above; they are yours to declare."
+
 (* --- scaffold ----------------------------------------------------- *)
 
 let[@warning "-32"] mkdir_p path =
@@ -320,6 +356,7 @@ let print_summary (opts : options) : unit =
     Printf.printf
       "  ci workflow: installed at .github/workflows/ci.yml (see \
        `install_ci_workflow` notes above)\n";
+  print_applicability_envelope ();
   begin match opts.from_adr with
   | None -> ()
   | Some _ ->

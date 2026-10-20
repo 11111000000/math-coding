@@ -1,0 +1,285 @@
+---
+schema: math-coding/3.2
+id: solo-default-on-2026-10
+revision: 1
+state: active
+body_sha: "sha256:af142d2002aa344ff83c587cfedfb34d994bcd02da19b8a1a72bdcc1a2fafb39"
+yaml_sha: "sha256:af142d2002aa344ff83c587cfedfb34d994bcd02da19b8a1a72bdcc1a2fafb39"
+intent: |
+  The applicability envelope (`spec/algebra-3.2.md` §28) told a solo
+  maintainer that the protocol was not for them. The normative text
+  said "solo_or_small_team ∧ ¬multi_agent_ai_assisted ⇒ Path C";
+  `adoption/SKILL.md` shortened that to "A single person maintains it
+  without AI assistance" and placed it under *When not to apply*. An
+  agent loading the skill therefore declined to install a kernel the
+  algebra had already admitted the project into, and no code path
+  recorded the refusal — it was prose, so it was unfalsifiable and
+  unfalsifiable-by-default.
+
+  The two documents also disagreed with each other, and §28 disagreed
+  with the user's actual situation: an agent loading the skill saw
+  "one maintainer, skip", while the spec saw "one human plus agents
+  that write code, Path A".
+
+  After this cycle the envelope is default-on. The burden of proof
+  moves to the exclusion: `mathc init` installs the kernel for any
+  project expected to outlive the next refactor, single maintainer
+  included, and the one Path C class is
+  `prototype_or_throwaway` — code with no expected continuity. The
+  friction observation from rev 1 is not discarded; it is demoted
+  from an exit to a mode choice, because `mode_floor: light` already
+  bounds the per-commit cost to `{commitment, counterexample}` (§4)
+  with a `decision:` trailer satisfying the gate (§5).
+
+  Three surfaces carry the flip, because three different readers
+  exist: the normative algebra (the kernel's own authority model),
+  the agent-facing skill (what an agent reads at trigger time), and
+  the CLI (what a human sees at deploy time). Changing only the first
+  would leave the observed bug untouched; changing only the second
+  would leave the protocol contradicting itself.
+
+axiom_link:
+  - A0
+  - A3
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "the envelope is a
+  gate, not a suggestion; widening it to cover solo projects is how
+  methodologies metastasize into religion. Every project that adopts
+  pays the ceremony, and the ceremony is the cost." This decision
+  engages with the position and does not dismiss it — it narrows it.
+  The objection is about *volume*, and volume is already a parameter:
+  `mode_floor` exists precisely so that the same protocol can be paid
+  at different prices (algebra §2, `lib/policy.ml::mode_floor`). The
+  alternative to a light-mode solo project is not "the same project
+  without the record"; it is the ADR-plus-reviewer regime that
+  `adoption/SKILL.md` itself told solo projects to use, which leaves
+  no durable trace of *why* a change was made.
+
+  A weaker version of the same objection — "leave the spec alone and
+  let operators who want it opt in" — fails for the reason this
+  decision exists: the opt-out was already available in §28, and the
+  prose in SKILL.md consumed it. A gate nobody can fail is not a
+  gate.
+
+commitment: |
+  1. `spec/algebra-3.2.md` §28 is default-on. `default_path(P) = Path
+     A` unless `P ∈ prototype_or_throwaway(P)`. A new rung
+     `solo_ai_assisted(P)` (medium) is inserted above the solo case,
+     and the low rung maps to "Path A, light mode floor" instead of
+     "Path C". §24's duplicate of the mapping is updated in the same
+     commit.
+
+  2. `adoption/SKILL.md` and its byte-identical copy
+     `.opencode/skills/math-coding/SKILL.md` state the single
+     Path C class explicitly and no longer list "a single person
+     maintains it without AI assistance" as a reason to skip. An
+     AI agent writing into the repo is listed as a signal that lifts
+     the ceremony above the light floor.
+
+  3. `mathc init` prints the envelope it assumed at deploy time
+     (`lib/init/init.ml::print_applicability_envelope`), naming the
+     default, the lift signals, the one exclusion class, and the
+     `mode_floor` the kernel will actually use when the project has
+     no `policies.yaml` (`default_policy.mode_floor = Tiny`).
+
+  4. The scaffolded master policy's `counterexample` is reframed: the
+     overhead-for-a-solo-developer objection is retained as the
+     strongest objection, answered by mode choice rather than by
+     exclusion. `mathc init` followed by `mathc validate` on the
+     scaffolded file still exits 0.
+
+  5. `USAGE.md` §"Choose your adoption path" states the default-on
+     envelope, and the runbook's "Path B" is renamed "Path C" to
+     match the algebra's single vocabulary.
+
+  6. `tests/cli/init-applicability-envelope.t` pins all four
+     surfaces with path-stable grep assertions.
+
+  Boundaries (A3 self-application):
+
+  - This decision does not add a `mathc init --path=` flag. Path C
+    remains a written rationale in the README, per §23, not a CLI
+    switch; the flag is the natural follow-up and is out of scope
+    here.
+  - `mathc init` does not write a `policies.yaml`. The light rung is
+    the operator's declaration, and `init` says so in the printed
+    envelope rather than implying it acted.
+  - `mathc init` cannot observe team size, agent count, or audit
+    obligations. The print states the assumed envelope and does not
+    claim detection.
+  - The pre-existing redness of `tests/cli/init*.t` is unchanged and
+    is not caused by this decision: those fixtures embed literal
+    `mktemp -d` paths in their expected output and dune 3.23.1's
+    vendored cram does not implement `(glob)`. The new fixture avoids
+    the class of bug instead of inheriting it.
+
+scope:
+  paths:
+    - spec/algebra-3.2.md
+    - adoption/SKILL.md
+    - .opencode/skills/math-coding/SKILL.md
+    - USAGE.md
+    - QUICKSTART.md
+    - site/differences.md
+    - lib/init/init.ml
+    - tests/cli/init.t
+    - tests/cli/init-agent.t
+    - tests/cli/init-defaults.t
+    - tests/cli/init-legacy.t
+    - tests/cli/init-scope-language-agnostic.t
+    - tests/cli/init-applicability-envelope.t
+    - decisions/solo-default-on-2026-10.yaml
+  exclusions:
+    - lib/***
+    - bin/***
+    - schemas/***
+    - axioms/***
+
+outcomes:
+  - id: envelope-default-on
+    statement: |
+      A project with a single maintainer receives `mathc init`
+      scaffolding and the agent skill; the sole exclusion is
+      `prototype_or_throwaway`.
+  - id: conditions-printed-at-deploy
+    statement: |
+      `mathc init` stdout names the default path, the signals that
+      lift the ceremony, the one exclusion class, and the effective
+      `mode_floor`.
+  - id: one-vocabulary
+    statement: |
+      The spec, the runbook, and the skill all call the non-protocol
+      path "Path C"; the skill and the spec agree on the solo case.
+
+counterexample: |
+  "A solo maintainer with one agent and no audit requirement gets
+  nothing from this protocol that a good commit message and a
+  reviewer-less `git log` do not already give." This is the rev-1
+  objection and it is still partly true — which is why the answer is
+  a mode, not an exit. What it gets wrong is the word "nothing".
+  The deliverable is not the commit message; it is the paragraph
+  that names the strongest objection to the change *at the moment the
+  change is made*, while the reasoning still exists. Six months later
+  the maintainer (or the agent) can find it with
+  `mathc self-check`; `git log` returns the diff and the author,
+  which is not the same artifact.
+
+  The failure mode this decision cannot rule out: a project adopts
+  the kernel, never writes a decision, and the ceremony becomes
+  boilerplate that satisfies the gate without informing anyone. That
+  is a real risk and it is not specific to solo projects — it is the
+  failure mode of any project that treats the protocol as a tax.
+  `mode_floor: light` is the mitigation available to a project that
+  decides the record is not earning its keep; deleting
+  `.math-coding/` is the honest exit, and §23's explicit-rationale
+  clause is what makes that exit a statement rather than a drift.
+
+  What would change the verdict: evidence that solo adopters
+  generate decisions nobody ever reads, at a rate above that of
+  multi-agent adopters. The reversal signal is
+  `solo-adoption-ceremony-only`.
+
+assumptions:
+  - id: readme-rationale-findable
+    state: assumed
+    statement: |
+      A project that declines the protocol records the throwaway
+      rationale where a reader will find it. §23 already requires
+      the rationale; this decision does not add a machine-readable
+      home for it.
+    owner: human:maintainer
+    consequence_if_false: |
+      Silent non-adoption. The protocol cannot tell an unenrolled
+      project from an unenrolled author, so the default-on envelope
+      is unenforceable against a project that ignores it entirely.
+      This is the known limit of the flip and is why Path C stays a
+      closed, positively-defined class rather than a free-for-all.
+    review_on:
+      - signal: unread-decisions-report
+  - id: operator-declares-floor
+    state: assumed
+    statement: |
+      A project that wants the light rung declares `mode_floor:
+      light` in its own `policies.yaml`. `mathc init` prints the
+      requirement but does not write the file.
+    owner: human:maintainer
+    consequence_if_false: |
+      The project runs at `default_policy.mode_floor = Tiny`, which
+      is cheaper than light, not more expensive — the failure is
+      under-enforcement, not over-friction.
+    review_on:
+      - signal: init-writes-policies-yaml
+
+obligations:
+  - id: init-prints-envelope
+    claim: |
+      `mathc init` prints the default-on envelope, the lift signals,
+      the single exclusion class, and the effective `mode_floor`, and
+      the scaffolded policy validates without hand-editing.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: tests/cli/init-applicability-envelope.t
+          result: pass
+  - id: skill-copies-identical
+    claim: |
+      `adoption/SKILL.md` and `.opencode/skills/math-coding/SKILL.md`
+      stay byte-for-byte identical, so the agent-facing copy cannot
+      drift back to the rev-1 solo exclusion.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: scripts/check-opencode-skill.sh
+          result: pass
+  - id: adoption-doc-fresh
+    claim: |
+      The adoption docs keep the schema-string and install-URL pins
+      that `ux-3-adoption-doc-freshen-2026-10` asserts; rewriting
+      the applicability section did not drop them.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: scripts/check-adoption-doc-freshen.sh
+          result: pass
+  - id: spec-envelope-single-source
+    claim: |
+      `spec/algebra-3.2.md` §28 states `default_path(P) = Path A`
+      unless `P ∈ prototype_or_throwaway(P)`, and no surviving
+      document calls the low rung "Path C".
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: spec/algebra-3.2.md
+          needle: "default_path(P) ≔ Path A unless P ∈ prototype_or_throwaway(P)"
+          result: pass
+
+reversal:
+  - signal: solo-adoption-ceremony-only
+    condition: |
+      A maintainer observes that solo projects adopt the kernel and
+      write decisions that no one reads, at a rate above their
+      multi-agent peers, and concludes the ceremony has become a
+      tax. Resolution: a follow-up decision restores a solo rung
+      with an explicit opt-in, or re-adds `solo_or_small_team ∧
+      ¬ai_writes_into(P)` to the non-candidate list; this decision's
+      revision goes to `state: superseded`.
+    action: rework
+
+risk:
+  declared_triggers:
+    - ceremony-without-reading
+    - init-prints-what-it-cannot-detect
+    - solo-floor-never-declared
+    - spec-and-skill-drift
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - ux-3-adoption-doc-freshen-2026-10@1
+    - ux-3-repo-tracked-opencode-skill-2026-10@1
+  supersedes: []
+  superseded_by: []

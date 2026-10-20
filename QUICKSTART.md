@@ -107,7 +107,7 @@ questions" for the four questions every change must answer.
 ## Next
 
 - [USAGE.md](USAGE.md): install channels, decision question, AI-agent
-  paths, migration between Path A and Path B.
+  paths, migration between Path A and Path C.
 - [adoption/SKILL.md](adoption/SKILL.md): the canonical agent skill.
 - [site/install.md](site/install.md): sandbox notes, glibc / musl,
   Docker, Nix.

@@ -1,0 +1,1 @@
+{"id":"sha256:cfa9011e54f960fc001d77f7d24654c5f994acc9834b55f84c14428b3171cbdf","issued_at":"2026-10-20T14:08:11Z","kind":"attestation","kind_":"test","producer":{"identity":"human:maintainer"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"HEAD","decision":"solo-default-on-2026-10","materials_digest":"","obligation":"adoption-doc-fresh"}}
