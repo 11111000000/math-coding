@@ -33,7 +33,8 @@ byte-identical.
   against the schema enums.
 - `spec/semantics.md` records that the `accept` verdict was renamed
   `parse-ok` in `a602b361`.
-- Cram baseline **51 red fixtures → 43**. Fixed: `attest-batch`,
+- Cram CLI baseline **51 red fixtures → 35** (unique `tests/cli/*.t`
+  files). Fixed: `attest-batch`,
   `counterexample-warning`, `counterexample-warn`, `embedded-schemas`,
   `import-adr`, `init`, `init-agent`, `init-defaults`, `init-legacy`,
   `init-scope-language-agnostic`, `malformed-acceptance`,
@@ -45,7 +46,7 @@ byte-identical.
   `forge-verify.t` polls its stub server instead of `sleep 0.2`.
 
 Pre-existing baseline failures that this cycle does NOT address:
-43 fixtures remain red — count drift (`gate-*.t` still assert
+35 fixtures remain red — count drift (`gate-*.t` still assert
 `obligations: 183` against 672), stale digest / spec-line pins, and
 behaviour changes needing individual judgement (`mode: standard` →
 `tiny`, `doctor` pass → warn, `mcp.t` losing a diagnostic). They

@@ -120,7 +120,7 @@ commitment: |
   7. `spec/semantics.md` §Validate records the `parse-ok` verdict and
      cites the commit that introduced it.
 
-  8. Cram baseline 51 → 43: `attest-batch`, `counterexample-warning`,
+  8. Cram CLI baseline 51 → 35 (unique `tests/cli/*.t` files): `attest-batch`, `counterexample-warning`,
      `counterexample-warn`, `embedded-schemas`, `import-adr`,
      `init`, `init-agent`, `init-defaults`, `init-legacy`,
      `init-scope-language-agnostic`, `malformed-acceptance`,
@@ -129,7 +129,7 @@ commitment: |
 
   Boundaries (A3 self-application):
 
-  - The remaining 43 red fixtures are NOT addressed here. They are
+  - The remaining 35 red CLI fixtures are NOT addressed here. They are
     count drift (`obligations: 183` vs 672 today), stale digest and
     spec-line pins, and genuine behaviour changes needing individual
     judgement (`mode: standard` → `tiny`, `doctor` pass → warn,
@@ -300,9 +300,10 @@ obligations:
           result: pass
   - id: red-fixtures-shrank-honestly
     claim: |
-      The cram baseline drops from 51 red fixtures to 43, with no new
-      failure attributable to this change and no expectation promoted
-      without reading the kernel's behaviour first.
+      The cram CLI baseline drops from 51 red fixtures to 35 (unique
+      `tests/cli/*.t` files), with no new failure attributable to this
+      change and no expectation promoted without reading the kernel's
+      behaviour first.
     outcome: acceptance
     acceptance:
       all:
