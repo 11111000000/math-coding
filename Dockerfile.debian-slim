@@ -42,6 +42,33 @@ FROM nixos/nix:latest AS build
 COPY flake.nix flake.lock /src/
 COPY VERSION /src/VERSION
 
+# `packages.default` declares `src = ./.`, so the build needs the
+# repository tree, not just the flake files. Copying only the flake
+# (as this stage used to) produced:
+#     Error: Don't know how to build bin/mathc.exe
+# on every build since the derivation gained `src = ./.`. The ordering
+# above still matters — lockfile before sources keeps the pin stable
+# across rebuilds — and .dockerignore keeps _build (283 MB) and .git
+# out of the build context.
+COPY lib/ /src/lib/
+COPY bin/ /src/bin/
+COPY spec/ /src/spec/
+COPY schemas/ /src/schemas/
+COPY tests/ /src/tests/
+COPY render/ /src/render/
+COPY fixtures/ /src/fixtures/
+COPY scripts/ /src/scripts/
+COPY adoption/ /src/adoption/
+COPY assets/ /src/assets/
+COPY axioms/ /src/axioms/
+COPY decisions/ /src/decisions/
+COPY attestations/ /src/attestations/
+# Only tracked, committed files belong here. math-coding.install,
+# math-coding.dune-package and META.math-coding are dune/opam build
+# products (see .gitignore) and do not exist in a clean checkout, so
+# copying them would fail the build with "not found".
+COPY dune-project math-coding.opam .ocamlformat /src/
+
 WORKDIR /src
 
 # Build with the `default` app, which is `packages.<system>.default`.
