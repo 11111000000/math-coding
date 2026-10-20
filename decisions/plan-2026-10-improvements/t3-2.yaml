@@ -5,6 +5,9 @@ revision: 1
 state: active
 body_sha: "sha256:63a9ed8c39c2ac1ca3e024580b41a14749f342f2daffb6bdf34a12596cc02701"
 yaml_sha: "sha256:63a9ed8c39c2ac1ca3e024580b41a14749f342f2daffb6bdf34a12596cc02701"
+axiom_link:
+  - A0
+  - A1
 intent: |
   Narrow the `Open_with_waiver` mapping in `lib/waiver.ml` so that
   a waiver lifts the gate ONLY for the gap whose

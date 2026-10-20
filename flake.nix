@@ -199,6 +199,14 @@
           hooks = {
             shellcheck = {
               enable = true;
+              # `entry = "${pkgs.shellcheck}/bin/shellcheck"` is the
+              # upstream default; redeclared here so the entry is
+              # resolved at flake-eval time even when other hooks in
+              # the same `checks.fmt` use explicit `entry`. Without
+              # this, pre-commit-hooks.nix sometimes evaluates the
+              # `args` accessor before `entry` is finalised and
+              # throws "no value defined".
+              entry = "${pkgs.shellcheck}/bin/shellcheck";
               # Excluded rules (documented per-rule):
               #   SC2164 — `cd $(dirname $0)/../..` warns "use cd ...
               #            || exit". The codebase pattern uses
@@ -219,6 +227,12 @@
             ocamlformat = {
               enable = true;
               # Pin to the conventional profile; see .ocamlformat.
+              # ocamlformat is not a built-in pre-commit-hooks.nix
+              # hook, so `entry` must be set explicitly. We resolve
+              # it from the same `ocamlPackages.ocamlformat` that the
+              # devShell uses, so the fmt check matches the editor
+              # invocation.
+              entry = "${ocamlPackages.ocamlformat}/bin/ocamlformat";
               args = [ "--profile" "conventional" "-m" "80" ];
             };
             # decision-fixture-co-commit: ensure that any commit
@@ -229,7 +243,7 @@
             # before the commit lands.
             decision-fixture-co-commit = {
               enable = true;
-              entry = ./scripts/pre-commit/decision-fixture-co-commit.sh;
+              entry = "scripts/pre-commit/decision-fixture-co-commit.sh";
               types = [ "ocaml" "shell" "markdown" "yaml" ];
               pass_filenames = true;
             };
