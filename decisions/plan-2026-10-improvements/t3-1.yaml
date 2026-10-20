@@ -5,6 +5,9 @@ revision: 1
 state: active
 body_sha: "sha256:3f40a8175b6e6de38dfb402fa0daf4db5c1a37ad9ec98f3f7cd3c93b16155699"
 yaml_sha: "sha256:3f40a8175b6e6de38dfb402fa0daf4db5c1a37ad9ec98f3f7cd3c93b16155699"
+axiom_link:
+  - A0
+  - A1
 intent: |
   Wire `Risk.mode` into the v3.0 `lib/gate.ml::evaluate` path so
   that commits whose risk classification lands at `strict` or

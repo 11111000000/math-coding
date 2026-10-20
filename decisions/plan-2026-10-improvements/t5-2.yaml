@@ -5,6 +5,9 @@ revision: 1
 state: active
 body_sha: "sha256:42f571ce898fa1a75f5bb3d6cecc08054ab029329ae7cc934b53de13a85a2ed9"
 yaml_sha: "sha256:42f571ce898fa1a75f5bb3d6cecc08054ab029329ae7cc934b53de13a85a2ed9"
+axiom_link:
+  - A0
+  - A1
 intent: |
   Ensure that `mathc render` produces the four normative spec
   pages under `dist/spec/<name>.html` — `algebra-3.2.html`,
