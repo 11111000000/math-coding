@@ -58,18 +58,46 @@ usage() {
 cmd="${1:-}"
 shift || true
 
+# Run a command inside the `test` dev shell.
+#
+# Routed through scripts/dev-env.sh, which serves a cached
+# `nix print-dev-env` instead of re-entering `nix develop` on every
+# invocation. This matters because `nix develop` takes the Nix store
+# lock, which nix-gc holds for ~40 s every night — a silent stall with
+# rc=0 and no output. See OCAML_BEST_PRACTICES §11.42.
+# dev-env.sh falls back to `nix develop` on its own if the cache
+# cannot be built, so this is a speed/robustness change, never a
+# behavioural one.
 run_in_shell() {
-  nix develop .#test --command bash -c "$1"
+  # shellcheck disable=SC1091
+  . "$(dirname "$0")/dev-env.sh"
+  mc_run_in_shell "$1"
 }
 
-# Kill any stale dune / nix-develop processes that may hold
-# _build/.lock from a previous interrupted run. Idempotent.
+# Kill stale dune processes that may hold _build/.lock from a previous
+# interrupted run, then drop the lock file.
+#
+# Scoping matters: the previous implementation used
+#   pkill -9 -f 'nix develop .#test'
+# which matches /proc/PID/cmdline of ANY process on the machine. On a
+# host running several concurrent agent sessions that kills other
+# people's shells mid-`dune`, leaving a stale _build/.lock behind —
+# the exact §11.41 hang the kill was meant to prevent.
+#
+# Instead we kill only descendants of THIS shell. A dune started by
+# this script is always our child; anything else is not ours to kill.
 cleanup_dune_lock() {
-  pkill -9 -f 'dune build'  2>/dev/null || true
-  pkill -9 -f 'dune test'   2>/dev/null || true
-  pkill -9 -f 'nix develop .#test' 2>/dev/null || true
+  local pid child
+  for pid in $(pgrep -P $$ 2>/dev/null || true); do
+    for child in $(pgrep -P "$pid" 2>/dev/null || true); do
+      case "$(tr '\0' ' ' < "/proc/$child/cmdline" 2>/dev/null || true)" in
+        *dune*)
+          kill -9 "$child" 2>/dev/null || true
+          ;;
+      esac
+    done
+  done
   [ ! -f _build/.lock ] || rm -f _build/.lock || true
-  sleep 1
 }
 
 case "$cmd" in
