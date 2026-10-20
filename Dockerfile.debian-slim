@@ -76,7 +76,10 @@ WORKDIR /src
 # the repo is the source of truth, not a regenerated one.
 RUN nix --extra-experimental-features 'nix-command flakes' \
         build --no-write-lock-file .#default \
-        && cp result/bin/mathc /tmp/mathc
+    && cp result/bin/mathc /tmp/mathc \
+    && mkdir -p /tmp/closure \
+    && nix-store --query --requisites "$(readlink -f result)" \
+         | while read -r p; do cp -a --parents "$p" /tmp/closure; done
 
 # --- Stage 2: runtime -----------------------------------------------------
 FROM debian:bookworm-slim
@@ -96,6 +99,19 @@ USER mathc
 # no source. `debian:bookworm-slim` is the smallest Debian base with
 # glibc 2.36 — compatible with the existing `mathc-linux-x86_64` and
 # `mathc-linux-aarch64` release assets (Ubuntu 22.04 / glibc 2.35+).
+#
+# The Nix runtime closure MUST come along, at its original store paths.
+# `nix build .#default` links against the nix glibc and bakes an
+# absolute ELF interpreter into the binary:
+#   /nix/store/<hash>-glibc-2.42-84/lib/ld-linux-x86-64.so.2
+# Without that path present, `mathc version` fails with
+#   /bin/sh: 1: /usr/local/bin/mathc: not found
+# which reads like a missing file but is a missing *loader*. The
+# closure is 5 paths / ~42 MB (mathc, glibc-2.42, libgcc, libidn2,
+# libunistring), so it is cheap to ship. This is the same non-portable
+# binary OCAML_KERNEL_CONVENTIONS.md §11.22 warns about, resolved by
+# carrying its runtime rather than by rebuilding against Debian glibc.
+COPY --from=build /tmp/closure/nix /nix
 COPY --from=build /tmp/mathc /usr/local/bin/mathc
 
 # Verify the binary runs. If this fails the image is not publishable.
