@@ -67,16 +67,35 @@ let[@warning "-32"] spawn_stub ~response_body ~port =
      cwd and miss the binary. Resolve an absolute path from
      the file's own location: the test source lives at
      `<project>/tests/rebuttal_forge_stub.ml`, so the binary
-     is `<project>/_build/default/tests/support/forge_stub/forge_stub.exe`,
-     three parents up from `tests/` into the project root. *)
+     is `<project>/_build/default/tests/support/forge_stub/forge_stub.exe`.
+     The previous implementation did `up test_dir 2` (a
+     parent count off by one — the test exe is three parents
+     below the project root: `_build/default/tests/<exe>`),
+     which produced the wrong path
+     `_build/default/_build/default/tests/support/forge_stub/forge_stub.exe`
+     and made the stub spawn fail with ENOENT. Walk up from
+     the test exe's directory until we find a directory
+     containing `dune-project`, mirroring the resolver in
+     tests/render_kernel.ml. *)
   let test_dir = Filename.dirname Sys.argv.(0) in
-  let rec up d n = if n = 0 then d else up (Filename.dirname d) (n - 1) in
-  let project_root = up test_dir 2 in
+  let project_root =
+    let rec climb d =
+      if Sys.file_exists (Filename.concat d "dune-project") then d
+      else
+        let parent = Filename.dirname d in
+        if parent = d then test_dir else climb parent
+    in
+    climb test_dir
+  in
   let stub_path =
     Filename.concat
       (Filename.concat project_root "_build/default/tests/support/forge_stub")
       "forge_stub.exe"
   in
+  if not (Sys.file_exists stub_path) then
+    failwith
+      (Printf.sprintf "rebuttal_forge_stub: stub binary not found: %s"
+         stub_path);
   let argv = [| stub_path; string_of_int port; response_body |] in
   let pid =
     Unix.create_process argv.(0) argv Unix.stdin Unix.stdout Unix.stderr
