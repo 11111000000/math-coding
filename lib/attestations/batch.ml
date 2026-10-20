@@ -91,6 +91,24 @@ let[@warning "-32"] split_tsv line =
   in
   loop 0 []
 
+(* The attestation schema's `kind_` enum
+   (schemas/attestation.json:30). Checked here so a typo is a named
+   parse error at the manifest boundary rather than a file the store
+   will reject later. Decision `kernel-fixes-found-bugs-2026-10@1`. *)
+let[@warning "-32"] valid_kinds =
+  [ "test"; "review"; "build"; "analysis"; "observation" ]
+
+(* Column names as documented in SKILL.md and USAGE.md. A manifest
+   pasted out of a Markdown table carries its header; parsing it as
+   data produced an attestation naming a decision `decision_id`
+   (file `decision_id-obligation_id.json`) — garbage that silently
+   lands in the store. A row whose first four fields are these names
+   is a header and is skipped. *)
+let[@warning "-32"] header_names =
+  [ "decision_id"; "obligation_id"; "kind_"; "producer_identity" ]
+
+let[@warning "-32"] lower_ascii s = String.lowercase_ascii (trim_ws s)
+
 (* Parse one manifest line. The 5th column is optional; when present
    we accept it as-is (the kernel's attestation schema validates
    the enum; we don't pre-empt that). *)
@@ -113,13 +131,35 @@ let[@warning "-32"] parse_row raw =
         (Printf.sprintf "expected 4 or 5 TAB-separated fields, got %d"
            (List.length fields))
 
+(* Header detection: `decision_id<TAB>obligation_id<TAB>kind_[TAB]producer_identity...` *)
+let[@warning "-32"] is_header_row fields =
+  match fields with
+  | f0 :: f1 :: f2 :: f3 :: _ ->
+      List.for_all2
+        (fun got want -> lower_ascii got = want)
+        [ f0; f1; f2; f3 ] header_names
+  | _ -> false
+
+(* Full validation of a parsed row: `kind_` must be in the schema
+   enum, `result` must be pass|fail. Returned as a parse error so the
+   CLI reports path, line number, and reason. *)
+let[@warning "-32"] validate_row (row : row) : (row, string) result =
+  if not (List.mem row.kind_ valid_kinds) then
+    Error
+      (Printf.sprintf "kind_ must be one of %s (got %s)"
+         (String.concat "|" valid_kinds)
+         row.kind_)
+  else if row.result <> "pass" && row.result <> "fail" then
+    Error (Printf.sprintf "result must be 'pass' or 'fail' (got %s)" row.result)
+  else Ok row
+
 (* Parse a full manifest body. Blank lines and lines starting with
-   `#` are skipped. The first malformed line produces an `Error`
-   so the CLI can `exit 2` with a precise diagnostic; the
-   batch-mode UX is to refuse rather than silently produce a
-   partial set (the Python script's "skip malformed" rule is a
-   bootstrap convenience that we replace with a stricter, named
-   error here). *)
+   `#` are skipped, as is a header row (see `is_header_row`). The
+   first malformed or invalid line produces an `Error` so the CLI
+   can `exit 2` with a precise diagnostic; the batch-mode UX is to
+   refuse rather than silently produce a partial set (the Python
+   script's "skip malformed" rule is a bootstrap convenience that we
+   replace with a stricter, named error here). *)
 let[@warning "-32"] parse_manifest body =
   let lines = String.split_on_char '\n' body in
   let n = List.length lines in
@@ -132,9 +172,15 @@ let[@warning "-32"] parse_manifest body =
       if stripped = "" || String.starts_with stripped ~prefix:"#" then
         loop (i + 1) acc
       else
-        match parse_row raw with
-        | Ok row -> loop (i + 1) (row :: acc)
-        | Error reason -> Error { line = i + 1; raw; reason }
+        let fields = split_tsv raw in
+        if is_header_row fields then loop (i + 1) acc
+        else
+          match parse_row raw with
+          | Error reason -> Error { line = i + 1; raw; reason }
+          | Ok row -> (
+              match validate_row row with
+              | Error reason -> Error { line = i + 1; raw; reason }
+              | Ok row -> loop (i + 1) (row :: acc))
   in
   loop 0 []
 

@@ -62,7 +62,7 @@ path (regression: the decision parser is not weakened):
 Text-format output for a waiver file:
 
   $ mathc validate decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml
-  accept: decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml
+  parse-ok: decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml
     kind: waiver
     id: audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10
 

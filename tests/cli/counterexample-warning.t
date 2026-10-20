@@ -47,7 +47,7 @@ plain accept.
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json has-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  ["accept",[]]
+  ["parse-ok",[]]
 
 A `mode: light` decision without counterexample: warning
 emitted, verdict still accept (dialectical slot, not a hard
@@ -84,7 +84,7 @@ requirement at light mode).
   > EOF
   $ mathc validate --format=json no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
-  ["accept",["MC-COUNTEREXAMPLE-MISSING"]]
+  ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 JSON form: counterexample as an array of strings (one per
 dialectical objection) is also accepted without warning at
@@ -115,7 +115,7 @@ dialectical objection) is also accepted without warning at
   > }
   > EOF
   $ mathc validate --format=json counterexample-array.json | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  ["accept",[]]
+  ["parse-ok",[]]
 
 Cleanup:
   $ cd /

@@ -60,7 +60,10 @@ membership endpoint. The verifier passes.
   > EOF
   $ python3 /tmp/mc-forge-stub.py &
   $ stub_pid=$!
-  $ sleep 0.2
+  $ for i in $(seq 1 50); do
+  >   curl -sf "http://127.0.0.1:$port/members" >/dev/null 2>&1 && break
+  >   sleep 0.1
+  > done
   $ MATH_CODING_FORGE_API="http://127.0.0.1:$port" mathc forge-verify --org=foo --team=bar --user=alice
   {"fail_mode":"open","forge_queried":true,"matched":true,"org":"foo","reason":"forge returned member=true","team":"bar","user":"alice","verdict":"pass"}
   $ echo $?
@@ -88,7 +91,10 @@ in tests; the --fail-mode open path is verified above).
   > EOF
   $ python3 /tmp/mc-forge-stub.py &
   $ stub_pid=$!
-  $ sleep 0.2
+  $ for i in $(seq 1 50); do
+  >   curl -sf "http://127.0.0.1:$port/members" >/dev/null 2>&1 && break
+  >   sleep 0.1
+  > done
   $ MATH_CODING_FORGE_API="http://127.0.0.1:$port" mathc forge-verify --org=foo --team=bar --user=alice
   {"fail_mode":"open","forge_queried":true,"matched":false,"org":"foo","reason":"forge returned member=false","team":"bar","user":"alice","verdict":"block"}
   [1]

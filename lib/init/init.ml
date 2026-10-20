@@ -287,11 +287,20 @@ let[@warning "-32"] mkdir_p path =
   loop path
 
 let scaffold ~root =
-  let dec_dir = Filename.concat root (Path_config.resolve_decisions_dir ()) in
-  let att_dir =
-    Filename.concat root (Path_config.resolve_attestations_dir ())
+  (* The resolver is asked about `root`, not about the process cwd:
+     `mathc init /srv/app` from a directory that happens to contain
+     `decisions/` must scaffold `.math-coding/` inside /srv/app. See
+     `lib/path_config.ml::exists_under` and decision
+     `kernel-fixes-found-bugs-2026-10@1`. *)
+  let dec_dir =
+    Filename.concat root (Path_config.resolve_decisions_dir ~root ())
   in
-  let dec_yaml = Filename.concat root (Path_config.resolve_policy_path ()) in
+  let att_dir =
+    Filename.concat root (Path_config.resolve_attestations_dir ~root ())
+  in
+  let dec_yaml =
+    Filename.concat root (Path_config.resolve_policy_path ~root ())
+  in
   if Sys.file_exists dec_yaml then `Refuse_existing dec_yaml
   else begin
     mkdir_p dec_dir;
@@ -344,9 +353,9 @@ let maybe_install_hook (opts : options) : unit =
 
 let print_summary (opts : options) : unit =
   Printf.printf "mathc init: created %s/%s, %s/%s\n" opts.root
-    (Path_config.resolve_decisions_dir ())
+    (Path_config.resolve_decisions_dir ~root:opts.root ())
     opts.root
-    (Path_config.resolve_attestations_dir ());
+    (Path_config.resolve_attestations_dir ~root:opts.root ());
   Printf.printf
     "  decision.yaml: schema math-coding/3.2, scope paths editable\n";
   if not opts.no_install then

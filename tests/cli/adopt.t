@@ -19,11 +19,15 @@ never match anywhere else. Only the path is normalised -- every
 semantic token (exit code, detection class, step, decision id)
 is still compared literally.
 
-Each case runs from $DUNE_SOURCEROOT. `mathc init` picks its
-decisions dir via `Path_config.resolve_with`, whose existence
-check is relative to the *process cwd*, not to the target dir,
-so the repo root (which has `decisions/`) yields the legacy
-layout for every case below.
+Each case runs from $DUNE_SOURCEROOT. Rev 2
+(`decisions/kernel-fixes-found-bugs-2026-10@1`): `mathc init` asks
+the resolver about the TARGET dir, not about the process cwd, so a
+fresh `$tmpdir` gets the v3.4 `.math-coding/` tree instead of
+inheriting this repository's legacy `decisions/`. Rev 1 documented
+that inheritance as if it were the design; it was the bug. The
+`adopt` sub-commands also inherit `MATH_CODING_ROOT=<target>`, so
+imported ADRs land in the project being adopted rather than in
+whatever repository the operator was standing in.
 
 MADR + adr-tools project: adopt imports all ADRs.
 
@@ -60,19 +64,20 @@ MADR + adr-tools project: adopt imports all ADRs.
   > 
   > Foo.
   > EOF
-  $ mathc adopt "$tmpdir" --merge --no-install 2>&1 | grep -E "step|detected|wrote" | head -10 | sed "s|$tmpdir|<TMP>|g"
-  wrote decisions/1-use-postgresql.yaml (id=1-use-postgresql, source_kind=adr-tools)
-  wrote decisions/1-foo.yaml (id=1-foo, source_kind=adr-tools)
+  $ mathc adopt "$tmpdir" --merge --no-install > adopt.log 2>&1
+  $ sed "s|$tmpdir|<TMP>|g" adopt.log | grep -E 'step|detected'
   mathc adopt: detected MADR + adr-tools at <TMP>
     step 1/2: mathc init (scaffold math-coding in <TMP>)
     step 2/2: mathc import-adr <TMP>/docs/adr/0001-postgres.md --write
     step 2/2: mathc import-adr <TMP>/adr/0001-foo.md --write
-  $ test -f "$tmpdir/decisions/decision.yaml" && echo "decision.yaml: created"
+  $ sed "s|$tmpdir|<TMP>|g" adopt.log | grep -c '^wrote <TMP>/.math-coding/decisions/'
+  2
+  $ test -f "$tmpdir/.math-coding/policy.yaml" && echo "decision.yaml: created"
   decision.yaml: created
-  $ test -f "$tmpdir/decisions/1-postgresql.yaml" && echo "MADR imported: ok"
-  [1]
-  $ test -f "$tmpdir/decisions/1-foo.yaml" && echo "adr-tools imported: ok"
-  [1]
+  $ test -f "$tmpdir/.math-coding/decisions/1-use-postgresql.yaml" && echo "MADR imported: ok"
+  MADR imported: ok
+  $ test -f "$tmpdir/.math-coding/decisions/1-foo.yaml" && echo "adr-tools imported: ok"
+  adr-tools imported: ok
   $ rm -rf "$tmpdir"
 
 Empty project: adopt does NOT refuse. The brownfield gate is
@@ -92,7 +97,7 @@ the next block, where the target really is a brownfield.
   $ tmpdir=$(mktemp -d)
   $ mathc adopt "$tmpdir" --no-install >/dev/null 2>&1; echo "exit=$?"
   exit=0
-  $ test -f "$tmpdir/decisions/decision.yaml" && echo "empty: init ran ok"
+  $ test -f "$tmpdir/.math-coding/policy.yaml" && echo "empty: init ran ok"
   empty: init ran ok
   $ rm -rf "$tmpdir"
 
@@ -121,12 +126,12 @@ MADR and adr-tools are also present.
   $ echo "test" > "$tmpdir/docs/adr/0001-madr.md"
   $ echo "test" > "$tmpdir/adr/0001-adr.md"
   $ mathc adopt "$tmpdir" --merge --no-install --only=arc42 2>&1 | grep -E "step 2|wrote" | head | sed "s|$tmpdir|<TMP>|g"
-      wrote <TMP>/decisions/bootstrap-v3-arc42-compatibility.yaml
-  $ test ! -f "$tmpdir/decisions/1-madr.yaml" && echo "--only=arc42 skipped MADR"
+      wrote <TMP>/.math-coding/decisions/bootstrap-v3-arc42-compatibility.yaml
+  $ test ! -f "$tmpdir/.math-coding/decisions/1-madr.yaml" && echo "--only=arc42 skipped MADR"
   --only=arc42 skipped MADR
-  $ test ! -f "$tmpdir/decisions/1-adr.yaml" && echo "--only=arc42 skipped adr-tools"
+  $ test ! -f "$tmpdir/.math-coding/decisions/1-adr.yaml" && echo "--only=arc42 skipped adr-tools"
   --only=arc42 skipped adr-tools
-  $ test -f "$tmpdir/decisions/decision.yaml" && echo "init still ran (arc42)"
+  $ test -f "$tmpdir/.math-coding/policy.yaml" && echo "init still ran (arc42)"
   init still ran (arc42)
   $ rm -rf "$tmpdir"
 
@@ -140,6 +145,6 @@ Dry-run: prints what would be done, does not run anything.
   mathc adopt: detected MADR (docs/adr/) at <TMP>
     step 1/2: mathc init (scaffold math-coding in <TMP>)
     step 2/2: mathc import-adr <TMP>/docs/adr/0001.md --write
-  $ test ! -f "$tmpdir/decisions/decision.yaml" && echo "dry-run: nothing written"
+  $ test ! -f "$tmpdir/.math-coding/policy.yaml" && echo "dry-run: nothing written"
   dry-run: nothing written
   $ rm -rf "$tmpdir"

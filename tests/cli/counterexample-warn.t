@@ -50,7 +50,7 @@ Scenario 1 — `counterexample:` present, plain accept.
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json has-ce.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  ["accept",[]]
+  ["parse-ok",[]]
 
 Scenario 2 — `counterexample:` absent (genuine absence);
 Warn fires at `mode: light`. The verdict stays `accept`
@@ -88,7 +88,7 @@ requirement, at light mode (per spec/algebra-3.2.md §11).
   > EOF
   $ mathc validate --format=json no-ce.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
-  ["accept",["MC-COUNTEREXAMPLE-MISSING"]]
+  ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 Scenario 3 — `counterexample:` present AFTER inline-sequence
 `risk.declared_triggers: - foo` followed by a `- bar`
@@ -134,7 +134,7 @@ surface.
   >   AND the following counterexample block.
   > EOF
   $ mathc validate --format=json post-parser-fix.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  ["accept",[]]
+  ["parse-ok",[]]
 
 Scenario 4 — same shape, counterexample absent. The Warn
 fires (genuine absence). This is the negative counterpart
@@ -174,7 +174,7 @@ even in the inline-sequence context.
   > EOF
   $ mathc validate --format=json post-parser-fix-no-ce.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
-  ["accept",["MC-COUNTEREXAMPLE-MISSING"]]
+  ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 Cleanup.
 

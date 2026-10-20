@@ -2661,15 +2661,18 @@ let[@warning "-32"] do_attest () =
  *                            when neither --manifest nor --from is
  *                            set.
  *   --out=DIR                Where to write `<decision>-<obligation>.json`
- *                            files. Default is the env var
- *                            MATH_CODING_ATTESTATIONS_DIR (when set)
- *                            else `.math-coding/attestations`. The
- *                            directory is created if it does not
- *                            exist.
- *   --kind=K                 Override `kind_` (default `review`).
- *                            Used only with --from=decisions; with
- *                            --manifest each row carries its own
- *                            kind_.
+ *                            files. Default is
+ *                            `Path_config.resolve_attestations_dir ()`:
+ *                            env var, then `.math-coding/attestations`
+ *                            when it exists, then the legacy
+ *                            `attestations/` when that exists, then the
+ *                            `.math-coding/` default. Parent directories
+ *                            are created.
+ *   --kind=K                 Override `kind_` (default `review`). One of
+ *                            review|test|build|analysis|observation —
+ *                            the attestation schema enum. Used only
+ *                            with --from=decisions; with --manifest each
+ *                            row carries its own kind_.
  *   --producer=ID            Override the producer identity
  *                            (default `human:integration-experiment`).
  *                            Used only with --from=decisions.
@@ -2681,19 +2684,39 @@ let[@warning "-32"] do_attest () =
  * Exit codes:
  *   0  one or more attestations emitted,
  *   2  malformed manifest, missing --manifest path, missing input,
- *      bad --kind/--result value.
+ *      bad --kind/--result value, output directory not writable.
  *
  * Implementation notes:
- *   - We honour the env-var names MATH_CODING_DECISIONS_DIR /
- *     MATH_CODING_ATTESTATIONS_DIR. The P1 stream of
- *     `plan-2026-10-improvements` will eventually route these
- *     through `lib/path_config.ml::resolve_decisions_dir` /
- *     `resolve_attestations_dir`; the env-var check below is the
- *     pre-P1 fallback so the subcommand works today. *)
-let[@warning "-32"] env_or_default env_var default =
-  match Sys.getenv_opt env_var with
-  | Some s when String.trim s <> "" -> s
-  | _ -> default
+ *   - Paths resolve through `lib/path_config.ml`, so a legacy-layout
+ *     project (one with `decisions/` at the root) is found and
+ *     written, not just the v3.4 `.math-coding/` layout. Decision
+ *     `kernel-fixes-found-bugs-2026-10@1`. *)
+let[@warning "-32"] attestation_kinds =
+  [ "test"; "review"; "build"; "analysis"; "observation" ]
+
+(* Write one attestation file. A missing parent or a read-only
+   destination is an input/environment error (exit 2 with the path),
+   not an internal kernel error: `attest-batch` is an operator-facing
+   bootstrap command and the operator can fix a path. Decision
+   `kernel-fixes-found-bugs-2026-10@1`. *)
+let[@warning "-32"] write_attestation_file ~dest ~fname ~json =
+  let fpath = Filename.concat dest fname in
+  try
+    let fout = open_out_bin fpath in
+    output_string fout json;
+    output_char fout '\n';
+    close_out fout;
+    Printf.fprintf stderr "wrote %s\n" fpath
+  with
+  | Sys_error m ->
+      Printf.fprintf stderr "mathc attest-batch: cannot write %s: %s\n" fpath m;
+      exit 2
+  | Unix.Unix_error (e, fn, arg) ->
+      Printf.fprintf stderr "mathc attest-batch: cannot write %s: %s(%s, %s)\n"
+        fpath (Unix.error_message e) fn arg;
+      exit 2
+
+let[@warning "-32"] attest_batch_kind_ok k = List.mem k attestation_kinds
 
 let[@warning "-32"] do_attest_batch () =
   let manifest = ref None in
@@ -2749,6 +2772,13 @@ let[@warning "-32"] do_attest_batch () =
       "mathc attest-batch: --result must be 'pass' or 'fail' (got %s)\n" !result;
     exit 2
   end;
+  if not (attest_batch_kind_ok !kind) then begin
+    Printf.fprintf stderr
+      "mathc attest-batch: --kind must be one of \
+       test|review|build|analysis|observation (got %s)\n"
+      !kind;
+    exit 2
+  end;
   let issued_at = now_iso () in
   let candidate_tree = "HEAD" in
   let reader path =
@@ -2775,11 +2805,24 @@ let[@warning "-32"] do_attest_batch () =
       | Ok rows ->
           let dest =
             if !out_dir <> "" then !out_dir
-            else
-              env_or_default "MATH_CODING_ATTESTATIONS_DIR"
-                ".math-coding/attestations"
+            else Path_config.attestations_dir_at ()
           in
-          (if not !dry_run then try Unix.mkdir dest 0o755 with _ -> ());
+          (try ensure_dir dest with
+          | Unix.Unix_error (e, fn, arg) ->
+              Printf.fprintf stderr
+                "mathc attest-batch: cannot create %s: %s(%s, %s)\n" dest
+                (Unix.error_message e) fn arg;
+              exit 2
+          | Sys_error m ->
+              Printf.fprintf stderr "mathc attest-batch: cannot create %s: %s\n"
+                dest m;
+              exit 2);
+          if (not !dry_run) && not (Sys.file_exists dest) then begin
+            Printf.fprintf stderr
+              "mathc attest-batch: output directory %s could not be created\n"
+              dest;
+            exit 2
+          end;
           let emit_one row =
             let decision = row.Batch.decision in
             let obligation = row.obligation in
@@ -2795,12 +2838,7 @@ let[@warning "-32"] do_attest_batch () =
             if !dry_run then Printf.printf "%s\n" json
             else begin
               let fname = Batch.filename_for ~decision ~obligation in
-              let fpath = Filename.concat dest fname in
-              let fout = open_out_bin fpath in
-              output_string fout json;
-              output_char fout '\n';
-              close_out fout;
-              Printf.fprintf stderr "wrote %s\n" fpath
+              write_attestation_file ~dest ~fname ~json
             end
           in
           List.iter emit_one rows;
@@ -2808,9 +2846,7 @@ let[@warning "-32"] do_attest_batch () =
   | None -> (
       match !from_kind with
       | Some "decisions" ->
-          let src =
-            env_or_default "MATH_CODING_DECISIONS_DIR" ".math-coding/decisions"
-          in
+          let src = Path_config.decisions_dir_at () in
           let obls = Batch.scan_decisions_for_obligations ~reader ~root:src in
           if obls = [] then begin
             Printf.fprintf stderr
@@ -2819,11 +2855,24 @@ let[@warning "-32"] do_attest_batch () =
           end;
           let dest =
             if !out_dir <> "" then !out_dir
-            else
-              env_or_default "MATH_CODING_ATTESTATIONS_DIR"
-                ".math-coding/attestations"
+            else Path_config.attestations_dir_at ()
           in
-          (if not !dry_run then try Unix.mkdir dest 0o755 with _ -> ());
+          (try ensure_dir dest with
+          | Unix.Unix_error (e, fn, arg) ->
+              Printf.fprintf stderr
+                "mathc attest-batch: cannot create %s: %s(%s, %s)\n" dest
+                (Unix.error_message e) fn arg;
+              exit 2
+          | Sys_error m ->
+              Printf.fprintf stderr "mathc attest-batch: cannot create %s: %s\n"
+                dest m;
+              exit 2);
+          if (not !dry_run) && not (Sys.file_exists dest) then begin
+            Printf.fprintf stderr
+              "mathc attest-batch: output directory %s could not be created\n"
+              dest;
+            exit 2
+          end;
           let emit (decision, obligation) =
             let body =
               Batch.make_attestation ~decision ~obligation ~kind_:!kind
@@ -2834,12 +2883,7 @@ let[@warning "-32"] do_attest_batch () =
             if !dry_run then Printf.printf "%s\n" json
             else begin
               let fname = Batch.filename_for ~decision ~obligation in
-              let fpath = Filename.concat dest fname in
-              let fout = open_out_bin fpath in
-              output_string fout json;
-              output_char fout '\n';
-              close_out fout;
-              Printf.fprintf stderr "wrote %s\n" fpath
+              write_attestation_file ~dest ~fname ~json
             end
           in
           List.iter emit obls;
@@ -6077,8 +6121,18 @@ let[@warning "-32"] do_adopt () =
    * binary that dispatches to `do_adopt` is the binary that
    * does the work. *)
   let mathc_bin = Sys.executable_name in
+  (* Child commands (init, import-adr) resolve the decisions dir
+     through `lib/path_config.ml`. Without an explicit root they
+     would resolve against the CALLER's cwd, so `mathc adopt
+     /srv/app` imported the project's ADRs into whatever repository
+     the operator happened to be standing in. Decision
+     `kernel-fixes-found-bugs-2026-10@1`. *)
   let run_argv argv =
-    let cmdline = String.concat " " (List.map Filename.quote argv) in
+    let cmdline =
+      String.concat " "
+        (("MATH_CODING_ROOT=" ^ Filename.quote target)
+        :: List.map Filename.quote argv)
+    in
     Sys.command cmdline
   in
   if needs_init then begin
@@ -6207,9 +6261,20 @@ let[@warning "-32"] do_adopt () =
             \  superseded_by: []\n"
             sections_count
         in
-        let side_path =
+        (* The side-decision lives wherever THIS project keeps its
+         * decisions. The previous revision hardcoded
+         * `<target>/decisions/...`, which (a) wrote the legacy tree
+         * into a project init had just scaffolded with
+         * `.math-coding/` and (b) crashed with an uncaught
+         * `Sys_error` when that directory did not exist yet.
+         * Decision `kernel-fixes-found-bugs-2026-10@1`. *)
+        let side_dir =
           Filename.concat target
-            "decisions/bootstrap-v3-arc42-compatibility.yaml"
+            (Path_config.resolve_decisions_dir ~root:target ())
+        in
+        ensure_dir side_dir;
+        let side_path =
+          Filename.concat side_dir "bootstrap-v3-arc42-compatibility.yaml"
         in
         let oc = open_out side_path in
         output_string oc side_dec_template;

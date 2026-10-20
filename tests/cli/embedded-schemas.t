@@ -43,7 +43,7 @@ The test passing here proves the embedded-schemas path produces
 the same verdict as the on-disk-schemas path.
 
   $ mathc validate test.json
-  accept: test.json
+  parse-ok: test.json
     decision: redis-origin-fallback
     revision: rev:41aa92
     obligations: 1

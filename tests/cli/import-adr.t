@@ -108,12 +108,12 @@ is left as a placeholder glob).
   > EOF
   $ cd "$tmpdir"
   $ mathc import-adr adr3.md --write
-  wrote decisions/sample.yaml (id=sample, source_kind=adr-tools)
+  wrote .math-coding/decisions/sample.yaml (id=sample, source_kind=adr-tools)
   $ cd "$DUNE_SOURCEROOT"
-  $ test -f "$tmpdir/decisions/sample.yaml" && echo "decisions/sample.yaml: ok"
-  decisions/sample.yaml: ok
-  $ mathc validate "$tmpdir/decisions/sample.yaml" | head -3
-  accept: /tmp/nix-shell.dKLQmz/build_bb9f48_dune/tmp.UjI7diKSIc/decisions/sample.yaml
+  $ test -f "$tmpdir/.math-coding/decisions/sample.yaml" && echo ".math-coding/decisions/sample.yaml: ok"
+  .math-coding/decisions/sample.yaml: ok
+  $ cd "$tmpdir" && mathc validate .math-coding/decisions/sample.yaml | head -3
+  parse-ok: .math-coding/decisions/sample.yaml
     decision: sample
     revision: 1
   $ rm -rf "$tmpdir"

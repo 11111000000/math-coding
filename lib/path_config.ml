@@ -40,45 +40,138 @@ let legacy_policy_path = "decisions/decision.yaml"
 
 (* --- public, parametric: env-var or filesystem-checked default ---- *)
 
-(* Three-tier precedence:
-     1. env-var, if set: wins unconditionally (no filesystem check).
-     2. default, if it exists on disk: kept (do not migrate).
-     3. fallback, if it exists on disk: kept (backward-compat for
-        pre-3.4 projects).
-     4. else: synthesise the default. A fresh project running
-        `mathc init` against an empty directory has neither the
-        default nor the fallback on disk; the resolver returns
-        the default so init creates the new layout instead of
-        the legacy one. This matches the verification
-        expectation that `ls -a` after first init shows
-        `.math-coding/` and no `decisions/`.
-*)
-let resolve_with env_var ~default ~fallback () : string =
+(* Root-relative existence check. The three-tier precedence below is
+   a question about *the project being operated on*, not about the
+   process cwd: `mathc init /srv/app` run from `/home/me` must ask
+   whether `/srv/app/.math-coding/decisions` exists, not whether
+   `/home/me/.math-coding/decisions` does. Without this, `init`
+   inherits the caller's layout and writes a legacy tree into a fresh
+   project. Decision `kernel-fixes-found-bugs-2026-10@1`. *)
+let[@warning "-32"] exists_under root rel =
+  let p =
+    match root with
+    | Some r when r <> "" && r <> "." -> Filename.concat r rel
+    | _ -> rel
+  in
+  Sys.file_exists p
+
+(* The project root the question is asked about. An explicit `?root`
+   wins (that is how `mathc init DIR` scopes itself). Otherwise
+   $MATH_CODING_ROOT, when it names an existing directory. Otherwise
+   the process cwd — `exists_under` treats `None` as cwd.
+
+   Why the env var belongs here and not only in
+   `bin/Mathc.ml::find_project_root`: that helper already anchors
+   several code paths on $MATH_CODING_ROOT, but the resolver did
+   not, so a caller with the var set and an unrelated cwd asked the
+   resolver about a *different project* than the rest of the kernel
+   used. Symptom: `MATH_CODING_ROOT=<repo> mathc gate` reported 0
+   obligations against a repository holding 199 decisions, and six
+   gate fixtures went red asserting a count they could no longer
+   produce. Decision `kernel-fixes-found-bugs-2026-10@1`.
+
+   The resolver requires only that the path exists and is a
+   directory — unlike `find_project_root`, which additionally
+   requires a `dune-project`, because the artifact layout exists
+   with or without dune. *)
+let[@warning "-32"] effective_root ?root () =
+  match root with
+  | Some r when String.trim r <> "" -> Some r
+  | Some _ | None -> (
+      match Sys.getenv_opt "MATH_CODING_ROOT" with
+      | Some r when String.trim r <> "" && Sys.is_directory r -> Some r
+      | _ -> None)
+
+(* Layout choice, made ONCE per project. Three independent
+   filesystem checks produced incoherent trees: a directory holding
+   `decisions/` but no `decisions/decision.yaml` resolved the
+   decisions dir to the legacy path and the policy to
+   `.math-coding/policy.yaml`, so `mathc init` scaffolded half a
+   project in each layout. The three paths are one layout decision
+   (new forward layout, or legacy for a pre-3.4 tree); the env-vars
+   still override each path individually and win outright.
+
+   `New` wins when any `.math-coding/` artifact is present: that is
+   the forward path and the legacy tree is left alone, not migrated.
+   Decision `kernel-fixes-found-bugs-2026-10@1`. *)
+type layout = New | Legacy
+
+let[@warning "-32"] layout_of ?root () : layout =
+  let root = effective_root ?root () in
+  if
+    exists_under root ".math-coding"
+    || exists_under root default_policy_path
+    || exists_under root default_decisions_dir
+    || exists_under root default_attestations_dir
+  then New
+  else if
+    exists_under root legacy_policy_path
+    || exists_under root legacy_decisions_dir
+    || exists_under root legacy_attestations_dir
+  then Legacy
+  else New
+
+(* Two-tier precedence:
+     1. env-var, if set (non-empty): wins unconditionally, no
+        filesystem check. The operator owns the override.
+     2. the project's layout, decided ONCE per project by
+        `layout_of`: `New` yields the `.math-coding/` path, `Legacy`
+        yields the pre-3.4 path. A fresh project has no artifacts,
+        so `layout_of` returns `New` and `mathc init` creates the
+        new layout instead of the legacy one — the behaviour the
+        `ls -a` verification expectation describes.
+
+   `?layout` lets a caller (and the unit tests, which resolve
+   synthetic paths rather than the module constants) supply the
+   decision instead of probing the filesystem. The existence checks
+   in `layout_of` / `exists_under` are relative to `?root` when
+   given, and to the process cwd when it is not. *)
+let[@warning "-32"] resolve_with ?root ?layout env_var ~default ~fallback () :
+    string =
+  let root = effective_root ?root () in
   match Sys.getenv_opt env_var with
-  | Some "" ->
-      (* empty env-var == unset; fall through *)
-      if Sys.file_exists default then default
-      else if Sys.file_exists fallback then fallback
-      else default
-  | Some p -> p
-  | None ->
-      if Sys.file_exists default then default
-      else if Sys.file_exists fallback then fallback
-      else default
+  | Some p when String.trim p <> "" -> p
+  | _ -> (
+      (match layout with Some l -> l | None -> layout_of ?root ()) |> function
+      | New -> default
+      | Legacy -> fallback)
 
 (* --- public API --------------------------------------------------- *)
 
-let[@warning "-32"] resolve_decisions_dir () : string =
-  resolve_with "MATH_CODING_DECISIONS_DIR" ~default:default_decisions_dir
+let[@warning "-32"] resolve_decisions_dir ?root () : string =
+  resolve_with ?root "MATH_CODING_DECISIONS_DIR" ~default:default_decisions_dir
     ~fallback:legacy_decisions_dir ()
 
-let[@warning "-32"] resolve_attestations_dir () : string =
-  resolve_with "MATH_CODING_ATTESTATIONS_DIR" ~default:default_attestations_dir
-    ~fallback:legacy_attestations_dir ()
+let[@warning "-32"] resolve_attestations_dir ?root () : string =
+  resolve_with ?root "MATH_CODING_ATTESTATIONS_DIR"
+    ~default:default_attestations_dir ~fallback:legacy_attestations_dir ()
 
-let[@warning "-32"] resolve_policy_path () : string =
-  resolve_with "MATH_CODING_POLICY" ~default:default_policy_path
+let[@warning "-32"] resolve_policy_path ?root () : string =
+  resolve_with ?root "MATH_CODING_POLICY" ~default:default_policy_path
     ~fallback:legacy_policy_path ()
+
+(* --- root-joined variants ------------------------------------------- *)
+(* The functions above return *relative* paths; callers that already
+   hold a project root compose with it themselves. Callers that do NOT
+   (e.g. `import-adr --write`, which resolves against the process cwd)
+   must use the `*_at` variants, which join the effective root — the
+   explicit `?root` first, then $MATH_CODING_ROOT. Without them the
+   resolver could answer "the target project uses .math-coding/" and
+   then write the file relative to wherever the operator was standing.
+   Decision `kernel-fixes-found-bugs-2026-10@1`. *)
+let[@warning "-32"] at ?root rel =
+  match effective_root ?root () with
+  | Some r when r <> "" && r <> "." -> Filename.concat r rel
+  | _ -> rel
+
+let[@warning "-32"] decisions_dir_at ?root () : string =
+  at ?root (resolve_decisions_dir ?root ())
+
+let[@warning "-32"] attestations_dir_at ?root () : string =
+  at ?root (resolve_attestations_dir ?root ())
+
+let[@warning "-32"] policy_path_at ?root () : string =
+  at ?root (resolve_policy_path ?root ())
 
 (* --- verify-sandbox mode resolver (verify-sandbox-hardening@1) ---
  *

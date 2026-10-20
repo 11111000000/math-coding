@@ -62,7 +62,7 @@ counterexample present.
 Diagnostic list is empty; verdict is `accept`.
 
   $ mathc validate --format=json inline-seq.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  ["accept",[]]
+  ["parse-ok",[]]
 
 `risk.declared_triggers` is parsed as an Array — not a string.
 
@@ -110,7 +110,7 @@ soft-warn diagnostic is present.
 
   $ mathc validate --format=json inline-seq-no-ce.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
-  ["accept",["MC-COUNTEREXAMPLE-MISSING"]]
+  ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 Scenario 3 — pre-existing indented form (`key:` on its own line,
 dashes at deeper indent). Confirms no regression: the inline-seq
@@ -155,7 +155,7 @@ patch must not change the existing behaviour.
 Verdict is `accept`, no diagnostics — same surface as before.
 
   $ mathc validate --format=json indented.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  ["accept",[]]
+  ["parse-ok",[]]
 
 Scenario 4 — inline sequence at top level (`items: - first`
 followed by `- second`, `- third` on continuation lines). Confirms
@@ -199,7 +199,7 @@ Verdict is `accept`, no diagnostics — the top-level inline
 sequence is parsed as Array, and `counterexample` is preserved.
 
   $ mathc validate --format=json top-level.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  ["accept",[]]
+  ["parse-ok",[]]
 
 Cleanup.
 

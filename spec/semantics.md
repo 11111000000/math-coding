@@ -188,17 +188,22 @@ existence. Output JSON objects use sorted keys for reproducibility.
   `.yaml`, or `.yml`. `--format` selects the output renderer;
   default `text`.
 - **Output**:
-  - text: `accept | reject: <path>` followed by indent-indented
+  - text: `parse-ok | reject: <path>` followed by indent-indented
     fields (`decision`, `revision`, `obligations`, `assumptions`,
-    or `code`, `severity`, `message`).
-  - json: a single JSON object on stdout. Verdict `accept` carries
-    `verdict`, `path`, `decision`, `revision`, `obligations`,
-    `assumptions`, and optionally `diagnostics[]` when extra
-    diagnostics fire (e.g., `MC-AMBIGUOUS-ACCEPTANCE`). Verdict
-    `reject` carries `verdict`, `path`, `code`, `severity`,
-    `message`. Extra diagnostics for an accept verdict print
-    on stderr but do not change the verdict.
-- **Exit code**: `0` accept, `1` reject, `2` input error
+    or `code`, `severity`, `message`). The positive verdict was
+    renamed from `accept` to `parse-ok` in commit `a602b361`
+    ("add mathc verify subcommand, rename accept→parse-ok"); the
+    spec text lagged behind the kernel until
+    `decisions/kernel-fixes-found-bugs-2026-10@1`.
+  - json: a single JSON object on stdout. Verdict `parse-ok`
+    carries `verdict`, `path`, `decision`, `revision`,
+    `obligations`, `assumptions`, and optionally `diagnostics[]`
+    when extra diagnostics fire (e.g.,
+    `MC-AMBIGUOUS-ACCEPTANCE`). Verdict `reject` carries
+    `verdict`, `path`, `code`, `severity`, `message`. Extra
+    diagnostics for a `parse-ok` verdict print on stderr but do
+    not change the verdict.
+- **Exit code**: `0` parse-ok, `1` reject, `2` input error
   (missing file, unparseable JSON/YAML, bad CLI args),
   `3` internal error.
 - **Justification**: `decisions/validate-and-context.yaml`
