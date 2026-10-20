@@ -19,6 +19,22 @@ is a `bwrap` tmp dir, the test `cd`s into a `mktemp -d`.
   mathc init: created ./.test-math-coding/decisions, ./.test-math-coding/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
+    applicability envelope (spec/algebra-3.2.md §28, default-on):
+      path: Path A. Installed by default, a single maintainer included.
+        To skip, the project must be throwaway — prototype,
+        MVP, spike, one-day hackathon — and the rationale goes
+        in the README, per §23.
+      signals that lift the ceremony above the light floor:
+        - two or more AI agents (or humans) editing this repository
+        - regulatory or contractual audit needs a tamper-evident trail
+        - three or more maintainers on a five-or-more-year horizon
+        - an AI agent writes into the repository (one human is enough)
+      the one Path C class:
+        - prototype / MVP / spike / throwaway: no expected continuity
+      floor: no policies.yaml here, so the kernel uses its lowest rung
+        (Tiny). Declare mode_floor in the project's policies.yaml to
+        match reality. `mathc init` sees one writer and cannot detect
+        the signals above; they are yours to declare.
 
 Language-agnostic paths MUST be present in the scaffolded policy:
 

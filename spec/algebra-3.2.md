@@ -824,6 +824,14 @@ Path A — full 3.2:
   friction_user: 1100_lines_once + per-commit as in §21
   friction_kernel_dev: amortized, shared with all users
 
+Path A — light mode floor (rev 2):
+  Steps 1-5 as above, with `mode_floor: light` declared in the
+  project's own `policies.yaml`. Per-commit cost falls to
+  {commitment, counterexample} in the body section (§4); a
+  `decision:<id>@<rev>` git trailer satisfies the gate without a
+  sibling YAML (§5). Chosen by default for solo projects with no
+  agent writing into P — see §28.
+
 Path C — no math-coding (regular ADR):
   Step 1: standard ADR practice (one markdown file per decision)
   Step 2: counterexample as prose paragraph in ADR
@@ -833,7 +841,7 @@ Path C — no math-coding (regular ADR):
 
 ∀ project P: choose_path(P) based on applicability_3.2(P) per §28
   applicability > 0           → Path A (full 3.2)
-  applicability ∈ [low, ~0]   → Path C (no math-coding)
+  applicability ∈ [low, ~0]   → Path A, light mode floor (rev 2)
   applicability ≈ 0           → Path C (no protocol needed)
 
 preserves (from 3.1):
@@ -949,38 +957,65 @@ Proof sketch:
 ```
 applicability(project P, protocol 𝒫) ≔ value(P, 𝒫) - friction_user(P, 𝒫)
 
+(* rev 2 (decision `solo-default-on-2026-10@1`): the envelope is
+   default-on. The burden of proof sits on the exclusion, not on
+   the adoption — Path C requires positive membership in
+   `prototype_or_throwaway(P)`. "There is only one of us" is no
+   longer a membership test; it selects the mode, not the path. *)
+
 value(P, 𝒫) =
   | +∞ if P ∈ regulatory_audit_required(P)
   | high    if P ∈ multi_agent_ai_assisted(P)
   | medium  if P ∈ long_lived_critical_infrastructure(P) ∧ |team(P)| > 1
-  | low     if P ∈ solo_or_small_team(P) ∧ ¬multi_agent_ai_assisted(P)
+  | medium  if P ∈ solo_ai_assisted(P)
+  | low     if P ∈ solo_or_small_team(P) ∧ ¬ai_writes_into(P)
   | ~0      if P ∈ prototype_or_throwaway(P)
 
 regulatory_audit_required(P) ≔ P touches medical|financial|aviation|critical_infra
 multi_agent_ai_assisted(P) ≔ |agents(P)| ≥ 2 ∧ agents coordinate on P
+solo_ai_assisted(P) ≔ ai_writes_into(P) ∧ |humans(P)| ≥ 1
+ai_writes_into(P) ≔ ∃ agent a : a commits or edits files in P
 long_lived_critical_infrastructure(P) ≔ expected_lifetime(P) ≥ 5 years ∧ |team(P)| ≥ 3
 prototype_or_throwaway(P) ≔ P is MVP / spike / experimental code
+
+default_path(P) ≔ Path A unless P ∈ prototype_or_throwaway(P)
 
 applicability_envelope:
   applicability ≥ +∞      → Path A: full 3.2 (kernel binary + all obligations)
   applicability ≥ high    → Path A: full 3.2 (kernel binary + obligations)
   applicability ≥ medium  → Path A: full 3.2, accept higher friction
-  applicability ∈ [low, ~0] → Path C: no math-coding, regular ADR
-  applicability ≈ 0       → Path C: no protocol needed
+  applicability ∈ [low, ~0] → Path A: adopted, light mode floor
+  applicability ≈ 0 (P ∈ prototype_or_throwaway) → Path C: no protocol needed
 
 ∀ project P: applicability(P, 𝒫_3.2) > 0 ⟹ P is candidate for 𝒫_3.2
+∀ project P: P ∉ prototype_or_throwaway(P) ⟹ default_path(P) = Path A
 
-non-candidates (applicability ≤ 0):
+non-candidates (the only Path C class):
   - prototype / MVP / spike
   - throwaway tools
   - learning exercises
   - 1-day hackathon output
+  i.e. code with no expected continuity: no reader will ever ask
+  why a change was made, so no record can be read.
 
 candidates (applicability > 0):
   - regulatory audit environments
   - multi-agent AI-assisted development
+  - AI-assisted development by a single maintainer
   - long-lived critical infrastructure
   - teams of ≥3 on stable projects
+  - solo projects, at a light mode floor
+
+the low rung, stated precisely:
+  A solo maintainer with no agent writing into P has real friction
+  and no coordination problem. rev 1 answered that by excluding
+  the project (Path C). rev 2 keeps the friction observation and
+  rejects the exclusion: the ceremony is scaled, not skipped.
+  Declaring `mode_floor: light` in the project's own
+  `policies.yaml` (§2, `lib/policy.ml::mode_floor`) bounds the
+  per-commit cost to {commitment, counterexample} (§4) and keeps
+  the `decision:` trailer sufficient — no sibling YAML (§5).
+  What remains is the part that outlives the maintainer's memory.
 ```
 
 ---
