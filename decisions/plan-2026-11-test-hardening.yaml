@@ -1,0 +1,202 @@
+---
+schema: math-coding/3.3
+id: plan-2026-11-test-hardening
+revision: 1
+state: active
+mode: standard
+change_kind: plan
+body_sha: "sha256:afb613c06583fbf702e54f3aabb8d8b60e1e9214a75a4e62459d52244a2cb9c8"
+yaml_sha: "sha256:afb613c06583fbf702e54f3aabb8d8b60e1e9214a75a4e62459d52244a2cb9c8"
+
+intent: |
+  39 `tests/cli/*.t` fixtures are red at main (`a3e4f09` +
+  `390561b`, 2026-10-20), down from 51 before
+  `kernel-fixes-found-bugs-2026-10@1`. A red suite that verifies
+  nothing is worse than no suite: it produces a green CI signal for
+  defects it cannot see, and it consumed two cycles of the previous
+  work (every change had to hand-verify its blast radius against a
+  suite that was already lying).
+
+  This decision records the plan, not the fixes. The plan's first
+  move is not a fixture: it is establishing that a red fixture means
+  "the kernel disagrees", because right now it sometimes means "dune
+  ran a stale binary".
+
+axiom_link:
+  - A0
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "close the 39 by
+  promoting the corrected output. The `.corrected` files are what the
+  kernel actually does; the expectations are stale by construction."
+  This is the fastest route to a green suite and the wrong one. It
+  converts "the test disagrees with the kernel" into "the test agrees
+  with the kernel" without ever asking which of them is right — and
+  the six defects fixed in `kernel-fixes-found-bugs-2026-10@1` were
+  found by reading diffs, not by promoting them. `mcp.t` losing the
+  `MC-ANTITHESIS-MISSING` diagnostic is a plausible real regression
+  sitting in that same `.corrected` file.
+
+  The second half of the objection is conceded: for the classes where
+  the kernel's behaviour is independently justified (W3 path hygiene,
+  W4 version pins), promotion with a written justification is fine and
+  this plan says so per batch.
+
+commitment: |
+  This decision closes when W0 is done and W1–W6 have either landed or
+  been explicitly deferred in writing. It commits to the ORDER, not to
+  the outcome:
+
+  1. W0 (blocking): two consecutive `dune build @install && dune test
+     --force tests/cli/` runs on an unchanged tree produce identical
+     failure sets, and no fixture runs a stale `mathc`. Until then no
+     other batch starts, because every later batch measures against
+     this number.
+  2. W1: no fixture asserts a count produced by the live repository
+     (obligations, subjects, files, decision count). Relational
+     assertions or a frozen fixture tree.
+  3. W3 + W4 (mechanical): remove `/tmp/nix-shell` and `(glob)` from
+     fixtures; correct version literals.
+  4. W2 (judgement): `mcp.t`, `mode.t`, `doctor.t`,
+     `env-var-resolver.t`, `counters-schema-introspection.t`,
+     `risk-bucketing.t`, `gate-axiom-commit.t` — each read against the
+     implementing module before its expectation is touched.
+  5. W5: QUICKSTART.md's 113 lines against the repo's own 100-line
+     rule; re-read `install.t` now that `install.sh` is mode 755.
+  6. W6: the two `tests/scripts` `.corrected` errors are dune infra,
+     tracked separately.
+  7. Standing rules land with W0: a grep check that no fixture embeds
+     `/tmp/nix-shell` or `(glob)`; no live-repository counts; quoted
+     heredoc delimiters.
+
+  Boundaries:
+
+  - This decision edits no fixture expectation and no kernel module.
+  - It does not close the 39. It orders the work and records why the
+    first step is not the obvious one.
+  - W2 may find real regressions. If it does, those become their own
+    decisions with their own counterexamples; this one only schedules
+    them.
+
+scope:
+  capabilities:
+    - test-suite-integrity
+  paths:
+    - docs/plans/plan-2026-11-test-hardening.md
+    - decisions/plan-2026-11-test-hardening.yaml
+  exclusions:
+    - lib/***
+    - bin/***
+    - schemas/***
+    - axioms/***
+    - tests/***
+    - site/***
+
+outcomes:
+  - id: red-means-disagrees
+    statement: |
+      A red `tests/cli/*.t` fixture means the kernel disagrees with
+      the fixture, never that a stale binary ran.
+  - id: no-live-counts
+    statement: |
+      No fixture asserts a count produced by the live repository, so
+      adding a decision file does not break the suite.
+  - id: regressions-not-promoted
+    statement: |
+      Behavioural diffs are resolved by reading the implementing
+      module; none is accepted by promoting `.corrected`.
+
+counterexample: |
+  "This is a plan that admits the measurement is unreliable and then
+  schedules the work anyway — a way of looking rigorous while
+  producing nothing." The strongest objection, and it lands if W0
+  never converges. But the alternative is worse: the suite rotted
+  across at least four cycles (`spec-prose-corrections`,
+  `plan-2026-11-validation-cleanup`, `plan-2026-12-followup`,
+  `kernel-fixes-found-bugs`) precisely because each cycle treated the
+  red set as background noise to be batched later. W0 is cheap
+  (`rm -rf _build/.cache`; `@default` vs `@install`; two targets in
+  `bin/`) and decides whether the other six batches are measurable at
+  all.
+
+  What would change the verdict: two consecutive identical runs after
+  a full `rm -rf _build`. If the staleness survives that, the cause is
+  not dune's cache and W0 needs a different investigation — recorded
+  here rather than discovered later by a future agent assuming the
+  number was always solid.
+
+assumptions:
+  - id: failures-are-not-kernel-defects
+    state: assumed
+    statement: |
+      Most of the 39 red fixtures are stale expectations, not kernel
+      defects. This plan treats that as the working hypothesis, and
+      W2 is where it is tested rather than assumed.
+    owner: human:maintainer
+    consequence_if_false: |
+      The order is wrong: W2 should run before W1/W3/W4, because a
+      live regression would make the mechanical edits actively
+      misleading. W2 is moved to the front by this decision's
+      `reversal` clause, not left to be noticed.
+    review_on:
+      - signal: w2-finds-a-real-regression
+
+obligations:
+  - id: plan-is-ordered-and-scoped
+    claim: |
+      `docs/plans/plan-2026-11-test-hardening.md` names the measured
+      red set, its composition, W0 as the blocking step, and the order
+      W0 → W1 → W3+W4 → W2 → W5 → W6.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: docs/plans/plan-2026-11-test-hardening.md
+          needle: "W0 → W1 → W3 + W4"
+          result: pass
+        - verifier: shell-grep
+          path: docs/plans/plan-2026-11-test-hardening.md
+          needle: "stale `mathc`"
+          result: pass
+  - id: plan-changes-no-behaviour
+    claim: |
+      This cycle edits no kernel module and no fixture expectation:
+      the deliverable is the plan.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: bash -c "! git diff --name-only main...HEAD | grep -Eq '^(lib|bin|schemas|axioms|tests)/'"
+          result: pass
+
+reversal:
+  - signal: w2-finds-a-real-regression
+    condition: |
+      Reading a module during W2 shows the new behaviour is a defect
+      (not drift). Resolution: W2 moves to the front, each regression
+      becomes its own decision with its own counterexample, and W1/W3/W4
+      are re-validated against the fixed kernel before landing.
+    action: rework
+  - signal: w0-does-not-converge
+    condition: |
+      The stale-binary behaviour survives a full `rm -rf _build` and
+      two forced runs. Resolution: W0 becomes a build-system
+      investigation outside the test suite, and no fixture is edited
+      until it is closed.
+    action: rework
+
+risk:
+  declared_triggers:
+    - stale-binary-masquerading-as-drift
+    - promotion-hiding-a-regression
+    - w0-never-converging
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - kernel-fixes-found-bugs-2026-10@1
+    - plan-2026-11-validation-cleanup-2026-10@1
+    - plan-2026-12-validation-followup-2026-10@1
+    - cli-cram-tests@1
+  supersedes: []
+  superseded_by: []
