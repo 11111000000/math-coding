@@ -1054,6 +1054,30 @@ let[@warning "-32"] find_project_root start =
           | None -> (
               match climb start with Some root -> root | None -> start)))
 
+(* Same walk as `find_project_root`, but with `Path_config.effective_root`'s
+   weaker env-var guard kept in front of it.
+
+   `mathc adopt DIR` re-execs its child commands with
+   `MATH_CODING_ROOT=DIR` (see `do_adopt`::run_argv), and the child
+   resolves its decisions / attestation dirs through
+   `Path_config.*_at ()`, whose `effective_root` accepts that variable
+   as soon as it names an existing *directory* — it does not require a
+   `dune-project`. An adopted target need not be a dune project, so
+   calling `find_project_root` unconditionally would let the walk fall
+   past a perfectly valid `MATH_CODING_ROOT` and re-anchor on whatever
+   dune project the binary happens to live in.
+
+   So: env var first (exactly `effective_root`'s condition), project-root
+   walk only as the fallback. Under `adopt` the two agree — `effective_root`
+   already picks `MATH_CODING_ROOT` when the probe it feeds is asked about
+   the same tree. The fallback adds the case that was previously wrong and
+   silent: `mathc attest-batch` from a cwd unrelated to the project.
+   Decision `path-probe-anchoring-2026-11`. *)
+let[@warning "-32"] root_with_env_precedence () =
+  match Sys.getenv_opt "MATH_CODING_ROOT" with
+  | Some r when String.trim r <> "" && Sys.is_directory r -> r
+  | _ -> find_project_root (Sys.getcwd ())
+
 let[@warning "-32"] now_iso () =
   let tm = Unix.gmtime (Unix.time ()) in
   Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ" (tm.tm_year + 1900)
@@ -2781,6 +2805,7 @@ let[@warning "-32"] do_attest_batch () =
   end;
   let issued_at = now_iso () in
   let candidate_tree = "HEAD" in
+  let root = root_with_env_precedence () in
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
@@ -2805,7 +2830,7 @@ let[@warning "-32"] do_attest_batch () =
       | Ok rows ->
           let dest =
             if !out_dir <> "" then !out_dir
-            else Path_config.attestations_dir_at ()
+            else Path_config.attestations_dir_at ~root ()
           in
           (try ensure_dir dest with
           | Unix.Unix_error (e, fn, arg) ->
@@ -2846,7 +2871,7 @@ let[@warning "-32"] do_attest_batch () =
   | None -> (
       match !from_kind with
       | Some "decisions" ->
-          let src = Path_config.decisions_dir_at () in
+          let src = Path_config.decisions_dir_at ~root () in
           let obls = Batch.scan_decisions_for_obligations ~reader ~root:src in
           if obls = [] then begin
             Printf.fprintf stderr
@@ -2855,7 +2880,7 @@ let[@warning "-32"] do_attest_batch () =
           end;
           let dest =
             if !out_dir <> "" then !out_dir
-            else Path_config.attestations_dir_at ()
+            else Path_config.attestations_dir_at ~root ()
           in
           (try ensure_dir dest with
           | Unix.Unix_error (e, fn, arg) ->
@@ -4588,8 +4613,13 @@ let[@warning "-32"] do_render () =
      exit 2);
   let site_dir = "site" in
   let axioms_root = "axioms" in
-  let decisions_root = Path_config.resolve_decisions_dir () in
-  let attestations_root = Path_config.resolve_attestations_dir () in
+  let root = find_project_root (Sys.getcwd ()) in
+  let decisions_root =
+    Filename.concat root (Path_config.resolve_decisions_dir ~root ())
+  in
+  let attestations_root =
+    Filename.concat root (Path_config.resolve_attestations_dir ~root ())
+  in
 
   if not (Sys.file_exists site_dir) then begin
     Printf.fprintf stderr "mathc render: site directory not found: %s\n"
@@ -5095,8 +5125,15 @@ let[@warning "-32"] decision_meta_files : string list =
     "lib-stale-comments-cleanup-2026-10.yaml";
   ]
 
-let[@warning "-32"] enumerate_decisions () : string list * int =
-  let dir = Path_config.resolve_decisions_dir () in
+(* `~root` is mandatory rather than optional on purpose. The single
+   caller (`do_counters`) reaches this helper from inside a
+   `Sys.chdir root` scope, so the bare resolver call happened to probe
+   the right tree — correctness resting on a side-effect invisible at
+   the call site. Passing the root explicitly removes that dependence
+   and is the substitution the decision's `antithesis` records against
+   the chdir shortcut. Decision `path-probe-anchoring-2026-11`. *)
+let[@warning "-32"] enumerate_decisions ~root () : string list * int =
+  let dir = Filename.concat root (Path_config.resolve_decisions_dir ~root ()) in
   let files =
     if Sys.file_exists dir && Sys.is_directory dir then
       Sys.readdir dir |> Array.to_list
@@ -5178,7 +5215,7 @@ let[@warning "-32"] do_counters () =
     ~finally:(fun () -> try Sys.chdir restore_cwd with _ -> ())
     (fun () ->
       (* 1. decisions *)
-      let decision_files, decision_active = enumerate_decisions () in
+      let decision_files, decision_active = enumerate_decisions ~root () in
       let decision_files_json = List.map (fun s -> String s) decision_files in
       let decisions_v =
         Object
@@ -5385,8 +5422,13 @@ let[@warning "-32"] do_packages () =
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc packages: %s\n" m;
      exit 2);
-  let decisions_root = Path_config.resolve_decisions_dir () in
-  let attestations_root = Path_config.resolve_attestations_dir () in
+  let root = find_project_root (Sys.getcwd ()) in
+  let decisions_root =
+    Filename.concat root (Path_config.resolve_decisions_dir ~root ())
+  in
+  let attestations_root =
+    Filename.concat root (Path_config.resolve_attestations_dir ~root ())
+  in
   let reader path = In_channel.with_open_bin path In_channel.input_all in
   let has_store = Sys.file_exists attestations_root in
   let store =
@@ -5458,8 +5500,13 @@ let[@warning "-32"] do_find () =
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc find: %s\n" m;
      exit 2);
-  let decisions_root = Path_config.resolve_decisions_dir () in
-  let attestations_root = Path_config.resolve_attestations_dir () in
+  let root = find_project_root (Sys.getcwd ()) in
+  let decisions_root =
+    Filename.concat root (Path_config.resolve_decisions_dir ~root ())
+  in
+  let attestations_root =
+    Filename.concat root (Path_config.resolve_attestations_dir ~root ())
+  in
   let reader path = In_channel.with_open_bin path In_channel.input_all in
   let has_store = Sys.file_exists attestations_root in
   let store =

@@ -1,7 +1,7 @@
 ---
 schema: math-coding/3.3
 id: path-probe-anchoring-2026-11
-revision: 1
+revision: 2
 state: active
 mode: standard
 change_kind: bugfix
@@ -53,11 +53,21 @@ commitment: |
   (c) `do_counters` no longer depends on a `Sys.chdir` side-effect to
       make its probes correct; the chdir stays for whatever else
       relies on it.
-  (d) A regression test fails if a gate run from an unrelated cwd
-      reports a non-zero obligation count against this repository.
+  (d) A regression test fails if `self-check`, launched from a
+      directory unrelated to the project with only MATH_CODING_ROOT
+      set, reports a zero subject count against this repository.
 
   (d) is the part that matters. Without it this class of defect
   returns silently, which is exactly how the present one survived.
+  The test is written on `self-check` rather than `gate` because
+  `gate` shells out to `git` in the process cwd, which fails for
+  reasons unrelated to path resolution; making `gate` honour
+  MATH_CODING_ROOT for its git calls is a separate defect with a
+  separate fix.
+
+  Revision 2 adds wave 2 (call sites with no root in scope) and
+  wave 3 (the regression test), verified failing on the pre-fix tree
+  and passing after.
 
 antithesis: |
   The strongest counter-position: "the resolver is the buggy unit. Make
@@ -108,7 +118,7 @@ scope:
     - "lib/check/check.ml"
     - "lib/re_evaluation.ml"
     - "tests/path_config_test.ml"
-    - "tests/cli/gate-cwd-independence.t"
+    - "tests/cli/self-check-cwd-independence.t"
     - "decisions/path-probe-anchoring-2026-11.yaml"
   exclusions:
     - "spec/**"
@@ -129,14 +139,15 @@ outcomes:
       invoked with cwd outside the repository.
 
 obligations:
-  - id: gate-reports-nonzero-off-root
+  - id: self-check-reports-nonzero-off-root
     claim: |
-      With cwd set to an unrelated temporary directory and
-      MATH_CODING_ROOT pointing at this repository, `mathc gate`
-      reports obligations > 0.
+      With cwd set to an unrelated temporary directory,
+      DUNE_SOURCEROOT unset and MATH_CODING_ROOT pointing at this
+      repository, `mathc self-check` reports a non-zero subject
+      count.
     acceptance:
       all:
-        - verifier: bash -c 'cd $(mktemp -d) && MATH_CODING_ROOT=$PWD <repo>/mathc.exe gate HEAD~1 HEAD | jq -e ".obligations > 0"'
+        - verifier: tests/cli/self-check-cwd-independence.t
           result: pass
 
   - id: no-layout-literal-in-kernel
@@ -168,13 +179,24 @@ risk:
     follow-up recorded in `antithesis` intends to make the bare call a
     signature error so it cannot compile unnoticed.
 
-    Residual known gap: `lib/new_decision/new_decision.ml:380` was
-    deliberately NOT anchored. Its local root comes from
-    `project_root ()`, which consults only MATH_CODING_ROOT and
-    DUNE_SOURCEROOT and never walks up to `dune-project`. Anchoring it
-    would fix the probe/concat mismatch but not the underlying
-    wrong-root-when-env-unset problem, so a partial fix would be
-    misleading. Tracked as follow-up work with the caller change.
+    Residual known gaps after revision 2:
+      (i) `lib/render/render.ml:279` is deliberately unanchored.
+          `page.path` is an output path relative to `--out`, not
+          composed onto a project root. Anchoring the write side
+          alone would emit per-decision HTML into a subdir matching
+          neither the read side nor `--out`. Needs a coordinated
+          change with `do_render`'s `site_dir` and `axioms_root`
+          literals, which are cwd-relative too.
+      (ii) `mathc gate` invokes `git` in the process cwd rather than
+           in MATH_CODING_ROOT, so a gate run from an unrelated
+           directory fails on `fatal: not a git repository` before
+           path resolution is ever consulted. This is why the
+           regression test is written on `self-check`.
+      (iii) `do_render` now anchors decisions/ and attestations/ on
+           the walked root while `site_dir` and `axioms_root` remain
+           cwd-relative. Where cwd and root coincide, as in the
+           existing tests, this is invisible; where they differ, the
+           render is mixed. Same root cause as (i).
 
 relations:
   addresses:

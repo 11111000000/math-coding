@@ -386,7 +386,18 @@ let read_file (path : string) : (string, [> `Msg of string ]) result =
     Ok s
   with Sys_error m -> Error (`Msg ("cannot read " ^ path ^ ": " ^ m))
 
-let run (path : string) (write : bool) : (unit, [> `Msg of string ]) result =
+(* `?root` is optional and defaults to `None`, which is exactly the
+   pre-existing resolution order inside `Path_config`: an explicit
+   `?root` when given, else $MATH_CODING_ROOT, else the process cwd.
+   Both current callers pass none — `mathc adopt DIR` reaches this
+   through a child process it spawns with `MATH_CODING_ROOT=DIR`
+   prefixed (bin/Mathc.ml `do_adopt`), and `do_import_adr` forwards
+   argv verbatim — so both keep today's behaviour byte-for-byte. The
+   parameter exists so a caller that already holds a project root
+   can anchor the probe on it instead of depending on an env var.
+   Decision `path-probe-anchoring-2026-11@1`. *)
+let run ?root (path : string) (write : bool) :
+    (unit, [> `Msg of string ]) result =
   match read_file path with
   | Error e -> Error e
   | Ok text ->
@@ -396,8 +407,10 @@ let run (path : string) (write : bool) : (unit, [> `Msg of string ]) result =
         (* `decisions_dir_at` joins $MATH_CODING_ROOT (or an explicit
            root) instead of resolving against the process cwd, so an
            import driven by `mathc adopt DIR` lands in DIR.
-           Decision `kernel-fixes-found-bugs-2026-10@1`. *)
-        let dir = Path_config.decisions_dir_at () in
+           Decision `kernel-fixes-found-bugs-2026-10@1`. The same
+           `?root` the caller may pass is forwarded to both the probe
+           and the join, so they answer about the same tree. *)
+        let dir = Path_config.decisions_dir_at ?root () in
         let out_path = Filename.concat dir (parsed.id ^ ".yaml") in
         (* mkdir -p. The previous single-level `Unix.mkdir` raised an
            uncaught `Unix.Unix_error (ENOENT, "mkdir", ...)` whenever

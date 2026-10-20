@@ -313,13 +313,55 @@ let[@warning "-32"] emit_axiom_link_inference_warn (paths : string list) =
 
 (* --- project root resolution ---------------------------------- *)
 
+(* Nearest ancestor of `start` (inclusive) holding a `dune-project`.
+   Same predicate as the `climb` inside
+   `bin/Mathc.ml::find_project_root`; that helper lives in `bin/` and
+   is not linkable from this sub-library, so the walk is repeated
+   rather than extracted. Returns `None` when no ancestor qualifies,
+   which is the adopter-project case (an artifact layout exists with
+   or without dune). *)
+let[@warning "-32"] climb_to_dune_project start =
+  let rec loop d =
+    if Sys.file_exists (Filename.concat d "dune-project") then Some d
+    else
+      let parent = Filename.dirname d in
+      if parent = d then None else loop parent
+  in
+  loop start
+
+(* Resolution chain, first hit wins:
+     1. $MATH_CODING_ROOT — explicit, recommended for tests
+     2. $DUNE_SOURCEROOT  — dune cram runtime export
+     3. the nearest ancestor of the cwd holding a `dune-project`
+     4. the cwd itself
+
+   Step 3 is the one this revision adds. Previously the chain fell
+   straight from (2) to (4), so `mathc new-decision ID --write` run
+   from `<project>/lib/deep` with both env vars unset resolved the
+   layout against `<project>/lib/deep`, found neither `.math-coding/`
+   nor `decisions/` there, chose the New default, and died on the
+   single-level `Unix.mkdir` with an uncaught
+   `Unix_error (ENOENT, "mkdir", "<project>/lib/deep/.math-coding/decisions")`
+   — no decision written, exit 3. With (3) the same invocation
+   climbs to `<project>`, sees the project's real layout, and writes
+   into it. Decision `path-probe-anchoring-2026-11@1`, whose
+   `risk.drift_recurs` records this site as the residual gap left by
+   the wave-1 anchoring pass.
+
+   Steps (1) and (2) are unchanged and still win unconditionally
+   (no `dune-project` existence check), because the env vars are the
+   explicit override; step (4) is unchanged, so a non-dune project
+   behaves exactly as before. *)
 let project_root () =
   match Sys.getenv_opt "MATH_CODING_ROOT" with
   | Some p -> p
   | None -> (
       match Sys.getenv_opt "DUNE_SOURCEROOT" with
       | Some p -> p
-      | None -> Sys.getcwd ())
+      | None -> (
+          match climb_to_dune_project (Sys.getcwd ()) with
+          | Some p -> p
+          | None -> Sys.getcwd ()))
 
 (* --- run ------------------------------------------------------- *)
 
@@ -376,8 +418,16 @@ let run (opts : options) =
             emit_axiom_link_inference_warn warn_paths
       | Write_mode ->
           let root = project_root () in
+          (* `~root` anchors the layout probe on the same tree the
+             result is composed onto. Without it the probe asks
+             `Path_config.effective_root` — which reads only
+             $MATH_CODING_ROOT, not $DUNE_SOURCEROOT and not the
+             `dune-project` climb above — while the concat uses the
+             full chain, so under $DUNE_SOURCEROOT-only conditions the
+             two disagreed about which layout the project uses.
+             Decision `path-probe-anchoring-2026-11@1`. *)
           let path =
-            Filename.concat root (Path_config.resolve_decisions_dir ())
+            Filename.concat root (Path_config.resolve_decisions_dir ~root ())
           in
           (try Unix.mkdir path 0o755
            with Unix.Unix_error (Unix.EEXIST, _, _) -> ());

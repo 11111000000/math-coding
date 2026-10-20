@@ -8,19 +8,22 @@ could not tell which verifier was supposed to run for an
 obligation without opening the decision itself. The post-fix kernel
 emits the literal verifier string.
 
-Note: `mathc packages` walks the hardcoded `decisions/` directory
-relative to cwd (per `bin/Mathc.ml::do_packages`, line 4604).
-This test is hermetic for the host checkout (a fresh tmpdir is
-created and removed), but it does rely on the legacy `decisions/`
-path because the path resolver is not yet wired into the packages
-subcommand (a v3.5 follow-up per `decisions/ux-3-minimal-pollution-2026-10.yaml`).
-The test is forward-compatible: once the packages subcommand picks
-up `Path_config.resolve_decisions_dir ()`, the test continues to
-pass -- the fixture path is renamed to point at the resolved dir.
+Note: `mathc packages` resolves its decisions directory through
+`Path_config.resolve_decisions_dir ~root`, where the root comes from
+`find_project_root` (see `decisions/path-probe-anchoring-2026-11`).
+In this test the cwd IS the project being operated on -- the fixture
+tmpdir -- but $DUNE_SOURCEROOT points at the host checkout, which also
+has a `dune-project`, so it wins the walk. The fixture therefore gets
+its own dune-project marker and its root is named explicitly with
+MATH_CODING_ROOT, which find_project_root prefers whenever the named
+root is a dune project. That keeps the test pinning the contract it was
+written for: packages must report the decisions of the project it was
+told about, not whichever project the process was launched from.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ cd "$tmpdir"
+  $ touch dune-project
 
 Hand-write a minimal-but-parseable v3.2 decision with two
 obligations. The two `verifier` values are intentionally
@@ -83,7 +86,7 @@ test projects the `id` and `verifier` fields into a flat list
 so a regression where the verifier field is dropped or
 substituted with the obligation id trips immediately.
 
-  $ mathc packages --format=json | jq -c '.decisions[0].obligations[] | {id, verifier}'
+  $ MATH_CODING_ROOT="$tmpdir" mathc packages --format=json | jq -c '.decisions[0].obligations[] | {id, verifier}'
   {"id":"obl-acceptance","verifier":"mathc self-check"}
   {"id":"obl-build","verifier":"dune runtest"}
 
@@ -91,16 +94,16 @@ Sanity: each obligation id MUST NOT equal its "verifier" field.
 This is the regression pin for the kernel-bugs v3.4 fix: pre-fix,
 the verifier field was a placeholder equal to the obligation id.
 
-  $ mathc packages --format=json | jq '[.decisions[0].obligations[] | select(.id == .verifier)] | length'
+  $ MATH_CODING_ROOT="$tmpdir" mathc packages --format=json | jq '[.decisions[0].obligations[] | select(.id == .verifier)] | length'
   0
 
 The JSON shape carries the `verifier` field for every obligation.
 A regression where the field is omitted (rather than substituted
 with the obligation id) is also caught here.
 
-  $ mathc packages --format=json | jq '[.decisions[0].obligations[].verifier] | length'
+  $ MATH_CODING_ROOT="$tmpdir" mathc packages --format=json | jq '[.decisions[0].obligations[].verifier] | length'
   2
-  $ mathc packages --format=json | jq '[.decisions[0].obligations[].verifier] | all(. != null and . != "")'
+  $ MATH_CODING_ROOT="$tmpdir" mathc packages --format=json | jq '[.decisions[0].obligations[].verifier] | all(. != null and . != "")'
   true
 
 Cleanup.
