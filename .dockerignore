@@ -1,0 +1,38 @@
+# Build context exclusions for the Dockerfiles.
+#
+# `Dockerfile.debian-slim` stage 1 must copy the repository source,
+# because `packages.default` in flake.nix declares `src = ./.` — the
+# whole tree. Without lib/ and bin/ the derivation fails with
+# `Error: Don't know how to build bin/mathc.exe`. That means a naive
+# `COPY . /src/` would otherwise drag the whole working tree into
+# the build context, so exclude everything that is derived, local, or
+# secret-adjacent.
+#
+# _build is 283 MB on a warm tree and .git carries the full history;
+# neither belongs in a build context. The flake inputs (flake.nix,
+# flake.lock, VERSION) are deliberately NOT excluded — they are the
+# source of truth for the build.
+
+.git
+.dev
+_build
+result
+result/
+
+# Local runtime data; declared as a never-committed storage path in
+# .gitignore and irrelevant to the binary build.
+.local
+decisions/execution-logs.jsonl
+scripts/__pycache__
+.math/cache
+
+# Test scratch output produced by the cram/adopt fixtures.
+tests/_runner_tmp
+decisions/1-foo.yaml
+decisions/1-use-postgresql.yaml
+attestations/t1-2-A0-*.json
+
+# Render snapshots and browser-session artifacts.
+assets/_renders
+.playwright-mcp
+dist

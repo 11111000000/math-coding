@@ -66,6 +66,19 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y git
 
+      # install-nix-action sets `build-dir = /tmp/nix-build` (see the
+      # extra_nix_config above) but does NOT create the directory. Every
+      # nix invocation then dies with:
+      #     error: creating directory
+      #     '/tmp/nix-build/nix-build-math-coding-dev-test-env.drv-0':
+      #     No such file or directory
+      # This step used to sit below `scripts/dev verify`, ~27 lines
+      # too late to help — the very first nix call already failed. It
+      # must run before anything invokes nix. Asserted by
+      # tests/fixtures/ci-prereqs-precede-consumers.sh.
+      - name: Prepare nix build dir
+        run: mkdir -p /tmp/nix-build
+
       - name: scripts/dev verify
         # The verify script:
         #   1. cleans stale dune lock
@@ -96,13 +109,6 @@ jobs:
              jq -c "{verdict, kernel_digest, repository_digest, subjects_count: (.subjects | length)}" /tmp/self-check.json || cat /tmp/self-check.err'
         continue-on-error: false
         timeout-minutes: 2
-
-      # install-nix-action sets `build-dir = /tmp/nix-build`
-      # but does not create it; nix flake check crashes on a
-      # fresh runner with `creating directory ... No such file
-      # or directory`. Pre-create. Mirrors the site.yml pattern.
-      - name: Prepare nix build dir
-        run: mkdir -p /tmp/nix-build
 
       - name: nix flake check (OCaml_BEST_PRACTICES + pre-commit hooks)
         # Runs shellcheck + ocamlformat via pre-commit-hooks.nix on the
