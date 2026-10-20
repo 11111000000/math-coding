@@ -96,6 +96,19 @@ else
   else
     bad "$df does not ship /nix/store closure; the nix-linked binary cannot start"
   fi
+
+  # (B3) `mathc version` reads the VERSION file at RUNTIME via
+  # read_cli_version (bin/Mathc.ml), probing $DUNE_SOURCEROOT/VERSION
+  # then ./VERSION. A runtime image without it falls back to the
+  # literal "math-coding" and prints
+  # "math-coding math-coding: bootstrap", which fails the CI smoke
+  # test's "math-coding $VERSION" assertion for reasons unrelated to
+  # the binary's health.
+  if grep -qE 'COPY --from=build /src/VERSION /app/VERSION' "$df"; then
+    ok "$df ships VERSION into the runtime image for read_cli_version"
+  else
+    bad "$df omits VERSION from the runtime stage; mathc version reports the wrong string"
+  fi
 fi
 
 echo
