@@ -627,15 +627,36 @@ let[@warning "-32"] mathjax_uses_latex_delimiters () =
     "skipHtmlTags does not include div.mermaid" true
     (not (has "'div.mermaid'" page.Render.body))
 
+(* Project-root resolver. `dune test` exports DUNE_SOURCEROOT
+   pointing at the project root; when running the test exe directly
+   (e.g. via `./_build/default/tests/render_kernel.exe` from the
+   repo root, or via `scripts/dev-fast-test`), that env var is not
+   set, so we fall back to walking up from `Sys.argv.(0)` until we
+   find the directory containing `dune-project`. The walk-up
+   pattern mirrors `bin/Mathc.ml::find_project_root` so the test
+   binary always anchors at the same project root as the kernel.
+   This replaces the previous fragile `None -> ".."` fallback,
+   which silently resolved to a parent directory when the test
+   was invoked from the repo root (and broke 7 of the 47 tests
+   in this file; see audit 2026-10). *)
+let[@warning "-32"] project_root () =
+  match Sys.getenv_opt "DUNE_SOURCEROOT" with
+  | Some p -> p
+  | None ->
+      let rec climb d =
+        if Sys.file_exists (Filename.concat d "dune-project") then d
+        else
+          let parent = Filename.dirname d in
+          if parent = d then Filename.dirname Sys.argv.(0)
+          else climb parent
+      in
+      climb (Filename.dirname Sys.argv.(0))
+
 let[@warning "-32"] css_has_math_rules () =
   (* Read the live stylesheet and assert it ships rules for
      MathJax containers. The rules are scoped to mjx-container
      so a non-MathJax page is unaffected. *)
-  let css_path =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with
-    | Some p -> Filename.concat p "assets/style.css"
-    | None -> "../assets/style.css"
-  in
+  let css_path = Filename.concat (project_root ()) "assets/style.css" in
   let ic = open_in css_path in
   let n = in_channel_length ic in
   let css = really_input_string ic n in
@@ -653,11 +674,7 @@ let[@warning "-32"] css_has_inline_figure_rules () =
      the inline SVG figures that replaced Mermaid
      (diagrams-as-svg-2026-10). The .mathc-figure-inline rule
      keeps a diagram inside the prose column. *)
-  let css_path =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with
-    | Some p -> Filename.concat p "assets/style.css"
-    | None -> "../assets/style.css"
-  in
+  let css_path = Filename.concat (project_root ()) "assets/style.css" in
   let ic = open_in css_path in
   let n = in_channel_length ic in
   let css = really_input_string ic n in
@@ -684,9 +701,7 @@ let[@warning "-32"] mermaid_support_removed () =
     close_in ic;
     s
   in
-  let root =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with Some p -> p | None -> ".."
-  in
+  let root = project_root () in
   let render_ml = read (Filename.concat root "lib/render/render.ml") in
   let mathc_ml = read (Filename.concat root "bin/Mathc.ml") in
   Alcotest.(check bool)
@@ -877,13 +892,20 @@ let[@warning "-32"] version_default_reads_version_file () =
 
 (* --- site-ru-en-synced obligation (t5-1) --- *)
 
-(* `dune test` exports DUNE_SOURCEROOT pointing at the project
-   root; fall back to ../site from the test exe directory
-   for direct invocation. *)
+(* Project-root resolver. `dune test` exports DUNE_SOURCEROOT
+   pointing at the project root; when running the test exe directly
+   (e.g. via `./_build/default/tests/render_kernel.exe` from the
+   repo root, or via `scripts/dev-fast-test`), that env var is not
+   set, so we fall back to walking up from `Sys.argv.(0)` until we
+   find the directory containing `dune-project`. The walk-up
+   pattern mirrors `bin/Mathc.ml::find_project_root` so the test
+   binary always anchors at the same project root as the kernel.
+   This replaces the previous fragile `None -> ".."` fallback,
+   which silently resolved to a parent directory when the test
+was invoked from the repo root (and broke 7 of the 47 tests
+    in this file; see audit 2026-10). *)
 let[@warning "-32"] bilingual_site_source_root () =
-  match Sys.getenv_opt "DUNE_SOURCEROOT" with
-  | Some p -> Filename.concat p "site"
-  | None -> "../site"
+  Filename.concat (project_root ()) "site"
 
 let[@warning "-32"] read_text path =
   let ic = open_in path in
@@ -1160,9 +1182,7 @@ let[@warning "-32"] axioms_link_html_not_md () =
      href="/math-coding/">` overrides the document URL as the
      base for relative URL resolution, so `../X` resolves
      outside the site. *)
-  let root =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with Some p -> p | None -> ".."
-  in
+  let root = project_root () in
   let axiom_files =
     [ "care"; "feedback"; "invariants"; "self-application"; "separation" ]
   in
@@ -1322,11 +1342,7 @@ let () =
                  mathc-figure-inline">` in the rendered HTML — and
                  must NOT emit any Mermaid `<div class="mermaid">`.
                  (diagrams-as-svg-2026-10) *)
-              let root =
-                match Sys.getenv_opt "DUNE_SOURCEROOT" with
-                | Some p -> p
-                | None -> ".."
-              in
+              let root = project_root () in
               let script = Filename.concat root "scripts/render.sh" in
               let ec = Sys.command script in
               if ec <> 0 then
@@ -1367,11 +1383,7 @@ let () =
               (* Editorial obligation: each of the five axiom pages
                  must end with a `## Formalization` section that
                  references the formal algebra. *)
-              let root =
-                match Sys.getenv_opt "DUNE_SOURCEROOT" with
-                | Some p -> p
-                | None -> ".."
-              in
+              let root = project_root () in
               let dist = Filename.concat root "dist" in
               let axioms =
                 [
@@ -1403,11 +1415,7 @@ let () =
                  same `mathc render` pipeline that the
                  existing `scripts/render.sh` exercises; we
                  re-render and assert. *)
-              let root =
-                match Sys.getenv_opt "DUNE_SOURCEROOT" with
-                | Some p -> p
-                | None -> ".."
-              in
+              let root = project_root () in
               (* Re-render via scripts/render.sh so we exercise
                  the same allowlist the operator's local
                  build runs. *)
