@@ -38,7 +38,7 @@ count; `mathc counters --format=json` additionally reports the raw
 on-disk `live_store`, which includes the `.gitignore`-excluded test
 scratch — `t1-2-A0-*` attestations and the `1-foo` /
 `1-use-postgresql` scaffold decisions — so the raw number varies with
-local test runs); **`mathc packages` reports 189 active
+local test runs); **`mathc packages` reports 191 active
 decisions / 198 total decision files / 689 obligations
 (297 pass, 392 unknown, 0 missing on a clean checkout; the master
 policy's 7 obligations are enumerated separately)**. The exact numbers
