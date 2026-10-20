@@ -337,6 +337,16 @@ let to_decision_yaml (p : parsed) : string =
     \  considered when they rejected the alternatives. The\n\
     \  reviewer should fill this section in or move the rejection\n\
     \  rationale from the ADR's \xC2\xABConsidered Options\xC2\xBB block.\n\
+     risk: |\n\
+    \  The imported content is a draft until a human reviewer\n\
+    \  validates it under the math-coding schema. The reviewer\n\
+    \  must verify the field mapping (intent <-> title, commitment\n\
+    \  <-> decision, scope <-> consequences) and may adjust the\n\
+    \  body before \xC2\xABmathc validate\xC2\xBB accepts the file.\n\
+    \  Until then, the risk is that the import is wrong about\n\
+    \  its chosen option, or that it is missing considerations\n\
+    \  the math-coding schema requires. The single acceptance\n\
+    \  obligation \xC2\xABmathc validate\xC2\xBB documents the review.\n\
      scope:\n\
     \  paths:\n\
     \    - \"<path/glob/that/this/decision/touches/**>\"\n\
@@ -359,8 +369,8 @@ let to_decision_yaml (p : parsed) : string =
     \          result: pass\n\
      relations:\n\
     \  addresses: []\n\
-    \  supersedes: []\n\
-    \  superseded_by: []\n"
+     supersedes: []\n\
+     superseded_by: []\n"
     p.id p.state (yaml_escape p.intent) (yaml_escape p.commitment)
     (yaml_escape p.assumptions)
     outcomes_str p.id
