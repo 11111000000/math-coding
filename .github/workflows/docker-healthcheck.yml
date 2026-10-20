@@ -1,9 +1,9 @@
 name: docker-healthcheck
 
 # Per `decisions/docker-availability-guarantee-2026-10.yaml`
-# outcome `docker-image-healthcheck-runs`. A daily cron
-# AND push-to-main trigger pulls the `:edge` image and
-# asserts `mathc version` exits 0. The job name
+# outcome `docker-image-healthcheck-runs`. A daily cron, manual
+# dispatch, and post-`docker`-workflow trigger pull the `:edge`
+# image and assert `mathc version` exits 0. The job name
 # `healthcheck-image` matches the obligation's verifier
 # reference. The attestation is recorded at
 # attestations/docker-availability-guarantee-2026-10-
@@ -13,11 +13,24 @@ name: docker-healthcheck
 # healthcheck run lands).
 
 on:
-  push:
-    branches: [main]
+  # WHY NOT `push: branches: [main]`: this job asserts on the
+  # PUBLISHED `:edge` image. On push, this workflow and `docker.yml`
+  # start in PARALLEL off the same event, so the pull races the
+  # publish and loses on every push — the image does not exist yet
+  # and the daemon answers
+  #   Head "https://ghcr.io/.../mathc/manifests/edge": denied
+  # (HTTP 404, package not found). The race is structural, not
+  # flaky, so it cannot be retried away. `workflow_run` below fires
+  # only AFTER the `docker` workflow has COMPLETED on main, i.e.
+  # after `:edge` exists. Daily cron + manual dispatch are kept as
+  # independent fallback paths.
   schedule:
     - cron: '0 6 * * *'   # daily 06:00 UTC
   workflow_dispatch:
+  workflow_run:
+    workflows: ["docker"]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: read
