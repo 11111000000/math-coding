@@ -114,6 +114,16 @@ USER mathc
 COPY --from=build /tmp/closure/nix /nix
 COPY --from=build /tmp/mathc /usr/local/bin/mathc
 
+# `mathc version` reads the VERSION file at RUNTIME, not at compile
+# time. `read_cli_version` (bin/Mathc.ml) probes $DUNE_SOURCEROOT/VERSION
+# then ./VERSION, ../VERSION and so on, and falls back to the literal
+# string "math-coding" when none exists. Without this file the image
+# reports "math-coding math-coding: bootstrap" and the CI smoke test —
+# which asserts on "math-coding $VERSION" — fails even though the
+# binary is perfectly healthy.
+WORKDIR /app
+COPY --from=build /src/VERSION /app/VERSION
+
 # Verify the binary runs. If this fails the image is not publishable.
 RUN /usr/local/bin/mathc version
 
