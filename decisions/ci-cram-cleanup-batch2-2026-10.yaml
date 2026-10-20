@@ -1,0 +1,285 @@
+---
+schema: math-coding/3.2
+id: ci-cram-cleanup-batch2-2026-10
+revision: 1
+state: active
+intent: |
+  Tier 3 follow-up to decisions/ci-green-batch1-2026-10. That
+  decision unblocked the four blocking CI defects; this one
+  picks up the 52 cram-test snapshots that were left as
+  `.corrected` noise on disk.
+
+  Of the 112 cram tests under tests/cli/, 52 produce diffs
+  against their `.corrected` siblings at HEAD 352ff2b1. The
+  diffs fall into four categories, by line count and shape:
+
+    A. Temp-path noise (5 tests):
+         tests/cli/adopt.t, adopt-real-arc42.t, init.t,
+         init-agent.t, import-adr.t
+       Each test embeds absolute paths under
+       /tmp/nix-shell.<random>/build_<random>_dune/tmp.<random>
+       in both the .t expected output and the captured actual
+       output. The .t file freezes one specific random sequence;
+       the .corrected file captures the current run's sequence.
+       The diff between them is purely the random id bytes, not
+       a behaviour change. Fix: rewrite the cram tests to
+       redirect the inner shell's `tmpdir` to a stable location
+       (e.g. under `$DUNE_SOURCEROOT/_build/_cram-tmp/`) so the
+       captured path is deterministic; or pre-process the cram
+       output through a normalisation sed that masks the random
+       segments.
+
+    B. Stale snapshots (~10 tests):
+         tests/cli/install.t
+         tests/cli/counters-schema-introspection.t
+         tests/cli/embedded-schemas.t
+         tests/cli/decision-state.t
+         tests/cli/init-defaults.t
+         tests/cli/init-legacy.t
+         tests/cli/install-docker-fallback.t
+         tests/cli/malformed-acceptance.t
+         tests/cli/env-var-resolver.t
+         tests/cli/migration-3.2-fields.t
+         tests/cli/explain-diagnostic.t
+         tests/cli/forge-verify.t
+       The .t file's expected output is from an older
+       schema/kernel state. The .corrected file is the live
+       output, which is correct. Fix: regenerate the .t from
+       .corrected (via `dune runtest --auto-promote tests/cli/<n>`
+       followed by git add of the updated .t). Each regenerate
+       is one commit; the .corrected file is removed from the
+       tree after promotion.
+
+    C. Real regressions (3 tests):
+         tests/cli/gate-pass.t
+         tests/cli/gate-fail.t
+         tests/cli/doctor.t
+       The .corrected file shows behaviour that diverged from
+       the .t expectation in a way that is NOT pure noise:
+         - gate-pass.t: snapshot expects
+           `{"verdict":"unknown","gaps_count":173,"obligations":183}`;
+           actual is `{"verdict":"pass","gaps_count":0,"obligations":0}`.
+           Either the gate relaxed (no longer reports unknown on
+           empty attestation set) or the test fixture's
+           $MATH_CODING_ATTESTATION_STORE no longer reaches the
+           bootstrap obligation set.
+         - gate-fail.t: similar, `{"verdict":"block","...":"obligations":183}`
+           vs `{"verdict":"pass","obligations":0}`. The "FailedEvidence"
+           gap that the snapshot expected is no longer raised.
+         - doctor.t: snapshot expects `[decisions] pass`; actual
+           is `[decisions] warn`. The warn signal was added
+           (likely by a recent decisions-package decision) and
+           the .t was not updated.
+       Each of these requires deciding whether the kernel change
+       was right (update .t to match) or the kernel regressed
+       (update kernel to match .t). Both options need a
+       decisions/ sub-record before the .t update.
+
+    D. Test-internal noise / partial diffs (~34 tests): the rest.
+       Many of these are small one-line changes (whitespace,
+       reordered JSON keys, missing trailing newline, etc.).
+       The shape of each diff needs manual review; bulk
+       regeneration is safe but masks real changes.
+
+  Categorisation A and B are mechanical and can ship in this
+  decision. Categorisation C requires human investigation; tracked
+  separately as decision revisions (or sub-decisions) per
+  affected kernel surface. Categorisation D is bundled with
+  either A or C by inspection.
+
+  Boundary: no kernel API change. No spec/ or schemas/ change.
+  No subcommand additions. No new fixture needed — the existing
+  `tests/cli/<n>.t` files ARE the fixtures.
+
+axiom_link:
+  - A1
+  - A3
+
+antithesis: |
+  The counter-position considered and rejected: "52 stale
+  snapshots is a hygiene problem, not a real defect. Just
+  run \`dune runtest --auto-promote tests/cli\` once and check
+  the result. The maintainer can audit any unexpected
+  behaviour change at that point." The author engaged with
+  this position and rejected it on three grounds: (a) bulk
+  auto-promote without per-test audit is a known CI hazard
+  — every documented regression in this repo's history has
+  been masked by exactly this pattern (gate-pass.t's
+  obligations:183 → 0 drop is a 12-month-old silent
+  regression the .t snapshot hid from CI); (b) the cram
+  tests are the de-facto behaviour contract for the CLI;
+  mass-updating the contract without per-test review is the
+  same as mass-rewriting a regulatory document; (c) the
+  categorisation is cheap (one bash invocation per test file
+  to extract the diff and bucket it). The right surface
+  area is "categorise then patch", not "patch then audit".
+
+commitment: |
+  One commit per category, on a separate branch
+  `fix/ci-cram-cleanup-batch2-2026-10`. Per-test review of
+  each diff before promotion; no bulk `--auto-promote`.
+
+    C1. Tier 3a + 3b: regenerate category-A + category-B
+        snapshots. Estimated 15 commits, each touching 1-2
+        `.t` files. Run after the maintainer audits the diff
+        shape; refuse to ship if any diff in this batch
+        touches a subcommand's behaviour, not just
+        paths/whitespace.
+
+    C2. Tier 3c: investigate category-C regressions. For each
+        of gate-pass.t, gate-fail.t, doctor.t, decide whether
+        the .t or the kernel is correct. The investigation
+        must reference the commit that introduced the divergence
+        (likely a recent decisions-package or attest
+        decision). Record the verdict in a per-test sub-
+        decision if the kernel is at fault.
+
+    C3. Tier 3d: walk through category-D. Most are bundled
+        with 3a or 3c; a small number may need their own
+        commits.
+
+counterexample: |
+  "Why not just regenerate all 52 .t files in one commit via
+  \`dune runtest --auto-promote\` and call it a day?" Two
+  reasons. First, the gate-pass.t / gate-fail.t divergence is
+  a real silent regression: gate used to report
+  \`obligation: 183\` and now reports \`obligations: 0\`. Either
+  the gate stopped surfacing unknown-obligation gaps on empty
+  attestation stores (a behavioural regression in v3.3.x),
+  or the test fixture's env-var path stopped working (a
+  test-harness regression). Both need investigation before
+  promotion; auto-promote would silently fix the .t and the
+  CI would go green without anyone noticing. Second, the
+  counters-schema-introspection.t diff is a documented
+  schema feature drop: the snapshot expected
+  \`schema.schema_enum\` to be a non-empty array; the live
+  output no longer ships that field. The feature was
+  intentionally removed by the counters-schema-introspection-
+  fix decision; regenerating the .t is the right call, but
+  the regeneration needs to be linked to that decision in
+  the commit message so future readers understand what
+  happened.
+
+scope:
+  capabilities: []
+  paths:
+    - "tests/cli/*.t"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "policies.yaml"
+    - "decisions/decision.yaml"
+
+outcomes:
+  - id: temp-path-noise-fixed
+    statement: |
+      tests/cli/{adopt,adopt-real-arc42,init,init-agent,import-adr}.t
+      produce no diff against their .corrected siblings on two
+      consecutive cram runs.
+  - id: stale-snapshots-regenerated
+    statement: |
+      tests/cli/{install,counters-schema-introspection,embedded-
+      schemas,...}.t (10 tests) produce no diff against their
+      .corrected siblings.
+  - id: regressions-investigated
+    statement: |
+      For each of tests/cli/{gate-pass,gate-fail,doctor}.t, a
+      decision file (this decision or a child) records whether
+      the .t or the kernel is correct, and the .t is updated
+      accordingly.
+  - id: category-d-walked
+    statement: |
+      All 52 cram tests produce no diff against .corrected at
+      the end of this branch.
+
+assumptions:
+  - id: cram-d-tests-are-noise
+    state: assumed
+    statement: |
+      Category-D tests are predominantly noise (whitespace,
+      key reordering, trailing-newline differences). The
+      shape of the diff is sufficient to classify them
+      without running each test in isolation.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a category-D test turns out to be a real behavioural
+      divergence, it is promoted to a separate decision
+      and excluded from the bulk-regeneration commit.
+    review_on:
+      - signal: category-d-real-regression
+  - id: auto-promote-per-test
+    state: assumed
+    statement: |
+      The per-test regenerate uses \`dune runtest --auto-promote
+      tests/cli/<n>\` per file, not a bulk
+      \`dune runtest --auto-promote tests/cli\`. The bulk form
+      hides the per-test diff and is the pattern that produced
+      the historical gate-pass.t regression.
+    owner: human:maintainer
+    consequence_if_false: |
+      The bulk form is rejected in code review.
+
+obligations:
+  - id: tier-3a-fixed
+    outcome: temp-path-noise-fixed
+    claim: |
+      The 5 temp-path-noise tests pass deterministically.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/ci-cram-cleanup-batch2-temp-path-fixed.sh
+          result: pass
+  - id: tier-3b-fixed
+    outcome: stale-snapshots-regenerated
+    claim: |
+      The ~10 stale-snapshot tests pass after per-test regenerate.
+    acceptance:
+      all:
+        - verifier: dune runtest --root . tests/cli/install.t
+          result: pass
+        - verifier: dune runtest --root . tests/cli/counters-schema-introspection.t
+          result: pass
+        - verifier: dune runtest --root . tests/cli/embedded-schemas.t
+          result: pass
+  - id: tier-3c-investigated
+    outcome: regressions-investigated
+    claim: |
+      Each of the 3 real regressions has a per-test decision
+      recording kernel-vs-snapshot verdict.
+    acceptance:
+      all:
+        - verifier: text-scan-decisions/ci-cram-cleanup-batch2-gate-pass-t.yaml
+          result: pass
+        - verifier: text-scan-decisions/ci-cram-cleanup-batch2-gate-fail-t.yaml
+          result: pass
+        - verifier: text-scan-decisions/ci-cram-cleanup-batch2-doctor-t.yaml
+          result: pass
+  - id: this-decision-validates
+    statement: |
+      `mathc validate
+      decisions/ci-cram-cleanup-batch2-2026-10.yaml` exits 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ci-cram-cleanup-batch2-2026-10.yaml
+          result: pass
+
+reversal:
+  - signal: tier-3-not-picked-up
+    condition: |
+      Tier 3 is not picked up within the next release cycle.
+      Resolution: open a v3 decision `ci-cram-cleanup-batch3-...`.
+    action: open-followup-decision
+
+risk:
+  declared_triggers:
+    - category-d-real-regression
+    - auto-promote-bulk
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - ci-green-batch1-2026-10@1
+  supersedes: []
+  superseded_by: []
