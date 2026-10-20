@@ -1,0 +1,226 @@
+---
+schema: math-coding/3.3
+id: nix-develop-store-lock-contention-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: bugfix
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+intent: |
+  Fix a silent 40-second stall in every `nix develop .#test`
+  invocation that happens to land inside the daily Nix garbage
+  collector's window, and remove a machine-wide `pkill` that was
+  killing other agents' processes on a host running several
+  concurrent agent sessions.
+
+  Root cause of the stall: `nix develop` must realise the devShell
+  derivation, which takes an exclusive lock on
+  `/nix/var/nix/db/big-lock`. `nix-gc.timer` (daily 00:00 UTC) takes
+  the same lock roughly 15 seconds into its run and holds it for the
+  remainder. Measured on 2026-10-20: a lock held for 25 s produced a
+  `nix develop .#test` that returned in 24 992 ms; a real
+  `nix-collect-garbage` run, probed the instant it took the lock,
+  produced one that returned in 40 760 ms. Both returned rc=0 with no
+  error and no output — the wait is a lock acquisition, not a
+  failure, so nothing is printed to hint at the cause.
+
+  This is not the failure documented in
+  `OCAML_KERNEL_CONVENTIONS.md` §11.41. §11.41 is about `_build/.lock`
+  (dune's build lock), which `rm -f _build/.lock` does clear. The
+  operator's report — "hangs despite clearing the lock" — was
+  consistent with §11.41 being the wrong diagnosis: clearing
+  `_build/.lock` cannot help, because the contended lock lives in the
+  Nix store, not in `_build`.
+
+  Secondary defect found during the same investigation:
+  `scripts/dev::cleanup_dune_lock` ended with
+  `pkill -9 -f 'nix develop .#test'`. The `-f` flag matches the full
+  command line of every process on the machine, so any invocation of
+  `scripts/dev build|test|rebuild|lint|verify|run|test-fast|probe`
+  SIGKILLed unrelated agent shells and any concurrent
+  `nix develop .#test` owned by another session. A collateral kill
+  arriving mid-`dune` leaves `_build/.lock` behind — so this single
+  line was also a producer of the §11.41 hangs it was written to
+  prevent.
+
+commitment: |
+  After this change:
+    (a) `scripts/dev::run_in_shell` resolves the dev shell through
+        `scripts/dev-env.sh`, which serves a cached
+        `nix print-dev-env .#test` from `.dev/test-env.sh` and evals
+        it. A cache hit touches no store lock.
+    (b) The cache is invalidated by a content hash of `flake.nix` +
+        `flake.lock`, stored in `.dev/test-env.stamp`. Editing
+        either file rebuilds it automatically.
+    (c) `mc_run_in_shell` falls back to `nix develop .#test` when
+        the cache cannot be built, so the change is a
+        speed-and-robustness improvement and never a behavioural
+        regression.
+    (d) `cleanup_dune_lock` kills only descendants of its own shell
+        process, never processes matched by command-line pattern.
+    (e) `tests/fixtures/dev-cleanup-is-scoped.sh` asserts (d) by
+        spawning a decoy process whose `/proc/PID/cmdline` contains
+        `nix develop .#test` and asserting it survives, and asserts
+        (a)-(c) by exercising the cache build/populate path.
+
+antithesis: |
+  The strongest counter-position: "Move the garbage collector. A
+  rootless `nix develop` is the wrong architectural fix; the store
+  lock is a global resource and any client of it can be blocked by
+  any other client. Schedule `nix-gc.timer` and `nix-optimise.timer`
+  outside working hours and the problem is gone."
+
+  This is a real position and it was seriously considered. It was
+  rejected as the primary fix for two reasons. First, it is
+  unreachable from this repository: the timers are configured in
+  AngaraConfig, not here, so the fix cannot ship with the code it
+  protects. Second, and more important, it does not address the
+  actual failure mode. The stall is not a rare collision with a
+  timer — it is a recurring daily window during which ~40 seconds of
+  every invocation is serialised behind a process that is deleting
+  8 000 store paths. Moving the timer reduces how often a developer
+  notices; caching the environment removes the dependency entirely.
+
+  A weaker version of the same position was also considered and
+  rejected: "just use `dune fmt` directly, the toolchain is already
+  in the store." Correct as an observation, but it does not scale —
+  `OCAMLPATH` is 16 store paths deep and a human cannot type it. The
+  cache is the machine-maintainable form of that shortcut.
+
+  A third position, "leave `cleanup_dune_lock` alone; the collateral
+  kills are rare": rejected because the fix is strictly safer and
+  the regression fixture demonstrates the old behaviour is
+  actively wrong, not merely risky.
+
+counterexample: |
+  Evidence that the stall is a lock wait and not an evaluation
+  cost: pure flake evaluation of `devShells.test` takes 59 ms on a
+  warm eval-cache and 3.0-3.9 s cold, and shows no variance
+  correlated with GC. The stall appears only when a store write is
+  required.
+
+  Evidence that the stale `_build/.lock` theory is wrong: with a
+  `_build/.lock` present, no live dune process, and the current
+  tree, `dune fmt --preview` completed in 1 059 ms with rc=0. The
+  lock file was never the blocker.
+
+  Evidence that eval-cache SQLite contention is not the cause:
+  twelve concurrent invocations, each with a fresh eval-cache
+  directory (forcing a full evaluation every time), completed in
+  3 284 ms wall with zero `is busy` errors.
+
+  Evidence that the dune 3.23.1 RPC futex (#12900, documented in
+  `docs/upstream-bugs/dune-3.23.1-rpc-hang.md`) is not the cause
+  here: eight rounds of "SIGKILL the lock holder, then re-enter"
+  produced zero hangs, every second entry returning in 700-950 ms.
+
+scope:
+  capabilities:
+    - development-process
+  paths:
+    - "scripts/dev"
+    - "scripts/dev-env.sh"
+    - "tests/fixtures/dev-cleanup-is-scoped.sh"
+    - "OCAML_KERNEL_CONVENTIONS.md"
+    - "decisions/nix-develop-store-lock-contention-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "schemas/**"
+    - "spec/**"
+    - "flake.nix"
+    - "flake.lock"
+
+outcomes:
+  - id: dev-shell-entry-avoids-store-lock
+    statement: |
+      `scripts/dev-env.sh` materialises `nix print-dev-env .#test`
+      once and evals the cached file; a cache hit takes no Nix store
+      lock.
+  - id: cleanup-is-session-scoped
+    statement: |
+      `cleanup_dune_lock` terminates only descendants of its own
+      shell process; no `pkill -f` command-line matching remains in
+      `scripts/dev`.
+  - id: regression-fixture-asserts-both
+    statement: |
+      `tests/fixtures/dev-cleanup-is-scoped.sh` fails against the
+      pre-fix tree and passes against the post-fix tree.
+
+obligations:
+  - id: no-machine-wide-pkill
+    claim: |
+      `scripts/dev` contains no `pkill -f 'nix develop .#test'` in
+      executable code, and a decoy process carrying that string in
+      its `/proc/PID/cmdline` survives a `cleanup_dune_lock` call.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/dev-cleanup-is-scoped.sh
+          result: pass
+
+  - id: cache-invalidation-on-flake-edit
+    claim: |
+      `.dev/test-env.stamp` records a hash of `flake.nix` and
+      `flake.lock`; editing either causes `mc_dev_env_ensure` to
+      rebuild `.dev/test-env.sh`.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/dev-cleanup-is-scoped.sh
+          result: pass
+
+  - id: fallback-preserves-behaviour
+    claim: |
+      When the cache cannot be produced, `mc_run_in_shell` falls back
+      to `nix develop .#test --command bash -c`, preserving the
+      pre-change behaviour.
+    acceptance:
+      all:
+        - verifier: shell-grep "nix develop .#test --command bash -c" scripts/dev-env.sh
+          result: pass
+
+  - id: upstream-documented
+    claim: |
+      `OCAML_KERNEL_CONVENTIONS.md` carries a §11.42 entry describing the
+      store-lock stall with a reproduction, and it explicitly states
+      that §11.41 (`_build/.lock`) is a different failure.
+    acceptance:
+      all:
+        - verifier: shell-grep '^### 11.42' OCAML_KERNEL_CONVENTIONS.md
+          result: pass
+
+risk:
+  declared_triggers:
+    - stale-dev-env-cache
+    - cache-path-collides-with-other-tooling
+    - gc-window-still-blocks-cold-cache-build
+  drift_recurs: |
+    The cached environment can go stale if `flake.nix` or
+    `flake.lock` changes without the content hash noticing. The
+    stamp is a `cksum` of both files' bytes, so any edit invalidates
+    it; the residual risk is a tool rewriting the store paths
+    without touching either file (e.g. `nix store repair`), which
+    the manual escape hatch (`rm -rf .dev/test-env.sh`) addresses.
+
+    The residual known limitation is that the FIRST
+    `mc_dev_env_ensure` after an invalidation still calls
+    `nix print-dev-env`, which takes the store lock and can stall
+    during a GC window. `MC_DEV_ENV_TIMEOUT` bounds that wait and
+    the fallback keeps the command working. Closing this fully would
+    require moving the timers, which is outside this repository.
+
+relations:
+  addresses:
+    - dune-3.23.1-rpc-hang
+  depends_on: []
+  supersedes: []
+
+review_on:
+  - signal: gc-timer-schedule-changed
+  - signal: dev-env-cache-invalidation-bug-reported

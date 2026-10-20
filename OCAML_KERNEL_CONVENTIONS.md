@@ -2585,3 +2585,94 @@ even when `dune test` is locked out.
 
 **Referenced from.** `scripts/dev-fast-test`;
 `scripts/dev::cleanup_dune_lock`.
+
+### 11.42 `nix develop` stalls silently behind the Nix store GC lock
+
+**Symptom.** `nix develop .#test --command ...` hangs for ~40
+seconds with no error, no output, and exit code 0. Nothing in the
+terminal distinguishes it from a slow build. Observed 2026-10-20 on
+`nixos` while investigating a reported "`dune fmt` hangs even after
+clearing the lock".
+
+**This is NOT §11.41.** §11.41 is about `_build/.lock` (dune's build
+lock) and `rm -f _build/.lock` does clear it. This entry is about
+`/nix/var/nix/db/big-lock` (the Nix store lock), which no amount of
+`_build` cleanup touches. The two are frequently confused because
+both present as "dune commands hang".
+
+**Root cause.** `nix develop` must realise the devShell
+derivation, which takes an exclusive lock on the Nix store. Two
+systemd timers take the same lock:
+
+```
+nix-gc.timer        daily 00:00 UTC
+nix-optimise.timer  daily ~04:02 UTC
+```
+
+GC acquires the lock about 15 s into its run — after the scan phase,
+when it starts deleting paths — and holds it for the remainder. On
+2026-10-20 it deleted 8 313 paths, consumed 1.4 GB peak RSS, and
+took 40 s. Any `nix develop` issued in that window blocks.
+
+**Repro.**
+```sh
+# A. synthetic: hold the store lock, watch nix develop wait for it
+sudo flock /nix/var/nix/db/big-lock -c 'sleep 25' &
+sleep 1
+time nix develop .#test --command bash -c true
+# real: ~25000 ms, rc=0, no output
+
+# B. authentic: probe the instant real GC takes the lock
+sudo nix-collect-garbage --delete-old &
+while sudo flock -n /nix/var/nix/db/big-lock -c true 2>/dev/null; do
+  sleep 0.5                      # still free
+done
+time nix develop .#test --command bash -c true
+# real: ~40760 ms
+```
+
+**Confirming you are in the window, not guessing.**
+```sh
+sudo flock -n /nix/var/nix/db/big-lock -c 'echo FREE' || echo HELD-BY-GC
+sudo journalctl -u nix-gc -u nix-optimise --since today --no-pager
+```
+
+**Fix.** `scripts/dev-env.sh` (added with
+`decisions/nix-develop-store-lock-contention-2026-10.yaml`).
+It materialises `nix print-dev-env .#test` once into
+`.dev/test-env.sh` and `eval`s that file afterwards, so a cache hit
+takes no store lock at all. `scripts/dev::run_in_shell` routes
+through it. Invalidation is a `cksum` of `flake.nix` + `flake.lock`
+recorded in `.dev/test-env.stamp`. If the cache cannot be built,
+`mc_run_in_shell` falls back to `nix develop .#test`, so behaviour
+degrades to today's, never to a failure.
+
+Measured on the fix branch, same 30 s lock hold:
+
+```
+raw nix develop              29496 ms
+mc_run_in_shell 'dune fmt'    1745 ms
+steady state (no contention)   177 ms
+```
+
+**Residual limitation.** The first `mc_dev_env_ensure` after an
+invalidation still calls `nix print-dev-env`, which also takes the
+store lock and can stall. `MC_DEV_ENV_TIMEOUT` bounds the wait.
+Eliminating this fully requires moving the timers, which is an
+AngaraConfig change, not a repository change.
+
+**Manual escape hatch.** `rm -rf .dev/test-env.sh .dev/test-env.stamp`.
+
+**Side effect on `scripts/dev::cleanup_dune_lock`.** The old
+implementation ran `pkill -9 -f 'nix develop .#test'`. `-f` matches
+the full command line of every process on the machine, so it killed
+unrelated agent shells and other sessions' `nix develop` — and a
+collateral kill arriving mid-`dune` leaves a stale `_build/.lock`,
+i.e. §11.41. The two entries feed each other. `cleanup_dune_lock`
+now kills only descendants of its own shell process, asserted by
+`tests/fixtures/dev-cleanup-is-scoped.sh`.
+
+**Referenced from.** `scripts/dev-env.sh`;
+`scripts/dev::cleanup_dune_lock`;
+`decisions/nix-develop-store-lock-contention-2026-10.yaml`;
+`tests/fixtures/dev-cleanup-is-scoped.sh`.
