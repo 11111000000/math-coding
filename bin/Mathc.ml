@@ -5960,8 +5960,8 @@ let[@warning "-32"] do_telemetry () =
   if sub <> "status" && sub <> "" then begin
     Printf.fprintf stderr
       "mathc telemetry: unknown subcommand: %s\n\
-      \  (only `status` is implemented in this slice; transport is Phase 3+; \
-       tracked: decisions/ux-3-telemetry-stub-2026-10.yaml)\n"
+      \  (only `status` is implemented in this slice; transport is deferred \
+       (tracked: decisions/ux-3-telemetry-stub-2026-10.yaml))\n"
       (String.trim !action);
     exit 2
   end;
