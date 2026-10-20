@@ -383,10 +383,27 @@ let run (path : string) (write : bool) : (unit, [> `Msg of string ]) result =
       let parsed = parse text in
       let yaml = to_decision_yaml parsed in
       if write then begin
-        let dir = Path_config.resolve_decisions_dir () in
+        (* `decisions_dir_at` joins $MATH_CODING_ROOT (or an explicit
+           root) instead of resolving against the process cwd, so an
+           import driven by `mathc adopt DIR` lands in DIR.
+           Decision `kernel-fixes-found-bugs-2026-10@1`. *)
+        let dir = Path_config.decisions_dir_at () in
         let out_path = Filename.concat dir (parsed.id ^ ".yaml") in
-        (try Unix.mkdir dir 0o755
-         with Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+        (* mkdir -p. The previous single-level `Unix.mkdir` raised an
+           uncaught `Unix.Unix_error (ENOENT, "mkdir", ...)` whenever
+           the parent (`.math-coding/`) did not exist relative to the
+           cwd — which is exactly what `mathc adopt DIR` produced, since
+           its `import-adr` child resolves the dir but runs in the
+           caller's cwd. Decision `kernel-fixes-found-bugs-2026-10@1`. *)
+        let rec mkdir_p d =
+          if d = "" || d = "/" || d = "." || Sys.file_exists d then ()
+          else begin
+            mkdir_p (Filename.dirname d);
+            try Unix.mkdir d 0o755
+            with Unix.Unix_error (Unix.EEXIST, _, _) -> ()
+          end
+        in
+        mkdir_p dir;
         let oc = open_out out_path in
         output_string oc yaml;
         close_out oc;

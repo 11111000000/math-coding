@@ -74,7 +74,7 @@ internally picks `decisions/` (the fallback) when
 `.math-coding/decisions/` does not exist.
 
   $ mathc validate decisions/foo.yaml
-  accept: decisions/foo.yaml
+  parse-ok: decisions/foo.yaml
     decision: foo-decision
     revision: 1
     obligations: 1

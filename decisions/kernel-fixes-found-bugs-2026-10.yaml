@@ -1,0 +1,349 @@
+---
+schema: math-coding/3.2
+id: kernel-fixes-found-bugs-2026-10
+revision: 1
+state: active
+body_sha: "sha256:b99825b6a893f53dc22524b228641d3e3b94e916bb08bccfae58773cde625540"
+yaml_sha: "sha256:b99825b6a893f53dc22524b228641d3e3b94e916bb08bccfae58773cde625540"
+intent: |
+  Six defects found while landing `solo-default-on-2026-10@1`, of
+  which three are data-integrity bugs rather than cosmetics, fixed as
+  one batch because they share a root cause: the kernel asks "which
+  project is this?" in several places, and the answers disagreed.
+
+  B1 (resolver scope). `lib/path_config.ml` ran its existence checks
+  against the process cwd. `mathc init /srv/app`, launched from a
+  directory that contained a legacy `decisions/`, scaffolded the
+  LEGACY tree inside `/srv/app` — the opposite of the v3.4 contract
+  the resolver's own comment states. `?root` makes the question about
+  the project being operated on.
+
+  B2 (layout coherence). The three resolvers asked three independent
+  questions. A directory with `decisions/` but no
+  `decisions/decision.yaml` resolved decisions to the legacy path and
+  the policy to the new default: half a project in each layout.
+  `layout_of` decides once per project.
+
+  B3 ($MATH_CODING_ROOT ignored). `find_project_root` anchored
+  several code paths on `$MATH_CODING_ROOT`; the resolver did not.
+  `MATH_CODING_ROOT=<repo> mathc gate` therefore evaluated an empty
+  project — 0 obligations against a repository holding 199 decisions
+  — and six gate fixtures went red asserting a count they could no
+  longer produce.
+
+  B4 (adopt wrote into the caller's repository). `mathc adopt DIR`
+  shells out to `init` and `import-adr`. `init` honoured DIR;
+  `import-adr` resolved the decisions dir against the caller's cwd.
+  Adopting a project from inside another repository imported the
+  project's ADRs into that other repository. Verified: before this
+  commit, `mathc adopt $d` from the repo root left
+  `.math-coding/decisions/1-*.yaml` in the repo. `MATH_CODING_ROOT`
+  is now exported to both children, and the arc42 side-decision —
+  which hardcoded `<target>/decisions/...` and crashed with an
+  uncaught `Sys_error` when that directory did not exist — resolves
+  through the same layout.
+
+  B5 (attest-batch). The subcommand bypassed `lib/path_config.ml`
+  entirely (its comment admitted the debt), so in a legacy-layout
+  project `--from=decisions` found nothing and the default output
+  went to a second, empty `.math-coding/attestations` tree. Its
+  `Unix.mkdir` was single-level with the error swallowed, so a
+  missing parent produced `mathc: internal error:
+  Unix.Unix_error(ENOENT, "mkdir", ...)` — exit 3 on a fresh project.
+  A TSV header row was parsed as data, emitting
+  `decision_id-obligation_id.json`: an attestation naming a decision
+  that does not exist. `kind_` and `result` are now checked against
+  the schema enums at the manifest boundary instead of being written
+  and rejected later.
+
+  B6 (test-suite rot, the class that hides B1-B5). The cram suite had
+  51 red fixtures at the baseline, so it verified nothing. Composition
+  of that baseline: 13 `accept:` fixtures stale against the
+  deliberate `accept`→`parse-ok` rename in commit `a602b361` (which
+  `spec/semantics.md` also never learned about); 5 fixtures with
+  literal `/tmp/nix-shell.XXXX/...` paths in their expected output,
+  which dune 3.23.1's vendored cram cannot match because it has no
+  `(glob)`; one heredoc using an unquoted `<<EOF` delimiter, so a
+  backticked `` `mode: considered` `` in the fixture body was executed
+  by the shell (`mode:: command not found`); one forge-verify fixture
+  racing a stub server with `sleep 0.2`; `scripts/install-tooling/
+  install.sh` committed mode 100644, so every fixture that executes it
+  got exit 126.
+
+axiom_link:
+  - A0
+  - A3
+  - A4
+
+antithesis: |
+  The counter-position considered and rejected: "the resolver is pure
+  and cwd-relative by design; adding `?root` and `$MATH_CODING_ROOT`
+  turns a 40-line pure function into an environment-dependent one, and
+  the fixtures were wrong, not the kernel." The first half is true —
+  the resolver does now read one more environment variable, and that
+  is a real cost, paid deliberately. The second half does not hold:
+  B1 and B4 are not fixture disagreements. `mathc adopt DIR` writing
+  into the caller's repository is a data-integrity defect that no
+  amount of fixture rewriting would have surfaced, and B5's crash on
+  a fresh output directory is the first thing a new adopter hits.
+
+  The weaker version — "fix the fixtures, leave the resolver" —
+  would have turned 13 red files green while leaving a kernel that
+  writes to the wrong repository. Green tests are not the goal;
+  correct behaviour that the tests then describe is.
+
+commitment: |
+  1. `lib/path_config.ml` gains `?root` on the three resolvers, an
+     `effective_root` that prefers `?root` then `$MATH_CODING_ROOT`
+     (when it names an existing directory), a `layout_of` that decides
+     the layout ONCE per project, and `*_at` variants that return a
+     root-joined path for callers that do not compose one themselves.
+
+  2. `lib/init/init.ml` passes `~root` to the resolver, so
+     `mathc init DIR` scaffolds `DIR` and reports the layout it used.
+
+  3. `bin/Mathc.ml::do_adopt` exports `MATH_CODING_ROOT=<target>` to
+     both child commands and writes the arc42 side-decision through
+     the resolved decisions dir (with `mkdir -p`) instead of a
+     hardcoded legacy path.
+
+  4. `bin/Mathc.ml::do_attest_batch` resolves both its input and its
+     output through the resolver, creates parents with `ensure_dir`,
+     and reports every I/O failure as exit 2 with the path.
+
+  5. `lib/attestations/batch.ml` skips a documented header row and
+     validates `kind_` and `result` against the schema enums.
+
+  6. `lib/import_adr/import_adr.ml` writes through
+     `decisions_dir_at` and creates parents recursively.
+
+  7. `spec/semantics.md` §Validate records the `parse-ok` verdict and
+     cites the commit that introduced it.
+
+  8. Cram baseline 51 → 43: `attest-batch`, `counterexample-warning`,
+     `counterexample-warn`, `embedded-schemas`, `import-adr`,
+     `init`, `init-agent`, `init-defaults`, `init-legacy`,
+     `init-scope-language-agnostic`, `malformed-acceptance`,
+     `path-config-fallback`, `render`, `validate-considered-antithesis`,
+     `validate-counterexample-required`, `yaml-parser` now pass.
+
+  Boundaries (A3 self-application):
+
+  - The remaining 43 red fixtures are NOT addressed here. They are
+    count drift (`obligations: 183` vs 672 today), stale digest and
+    spec-line pins, and genuine behaviour changes needing individual
+    judgement (`mode: standard` → `tiny`, `doctor` pass → warn,
+    `counters` array length, `mcp.t` losing a diagnostic). Naming
+    them in a commit that fixes other things would be laundering, not
+    fixing; they belong to the test-hardening cycle the CHANGELOG
+    already names (`plan-2026-12-test-hardening`).
+  - `tests/cli/gate-*.t` still fail. The resolver fix makes the gate
+    see 672 obligations where it saw 0 — verified by hand and by a
+    byte-identical copy of `gate-pass.t` that passes — but the
+    original file reproduces 0 under `dune test --force` and the
+    discrepancy is NOT explained. Until it is, the count in those
+    fixtures is not updated on the strength of a copy.
+  - `layout_of` deliberately lets `.math-coding/` win over a legacy
+    tree (forward path, no auto-migration), matching the documented
+    backward-compatibility contract in `adoption/SKILL.md`.
+  - No fixture was auto-promoted. Every changed expectation was read
+    against the kernel's actual behaviour first.
+
+scope:
+  paths:
+    - lib/path_config.ml
+    - lib/init/init.ml
+    - lib/attestations/batch.ml
+    - lib/import_adr/import_adr.ml
+    - bin/Mathc.ml
+    - spec/semantics.md
+    - tests/path_config_test.ml
+    - tests/cli/attest-batch-out-dir.t
+    - tests/cli/init-layout-coherence.t
+    - tests/cli/init.t
+    - tests/cli/init-agent.t
+    - tests/cli/adopt.t
+    - tests/cli/import-adr.t
+    - tests/cli/forge-verify.t
+    - tests/cli/validate-considered-antithesis.t
+    - tests/cli/attest-batch.t
+    - tests/cli/counterexample-warning.t
+    - tests/cli/counterexample-warn.t
+    - tests/cli/embedded-schemas.t
+    - tests/cli/init-defaults.t
+    - tests/cli/init-legacy.t
+    - tests/cli/malformed-acceptance.t
+    - tests/cli/path-config-fallback.t
+    - tests/cli/risk-bucketing.t
+    - tests/cli/validate-counterexample-required.t
+    - tests/cli/validate-non-decisions.t
+    - tests/cli/yaml-parser.t
+    - scripts/install-tooling/install.sh
+    - decisions/kernel-fixes-found-bugs-2026-10.yaml
+  exclusions:
+    - schemas/***
+    - axioms/***
+
+outcomes:
+  - id: adopt-stays-in-target
+    statement: |
+      `mathc adopt DIR` writes the scaffold and the imported ADRs into
+      DIR, never into the repository the operator is standing in.
+  - id: one-layout-per-project
+    statement: |
+      The decisions dir, the attestations dir and the policy path of a
+      project always resolve within the same layout.
+  - id: clean-io-diagnostics
+    statement: |
+      An unwritable or missing output directory exits 2 with the path
+      in the message instead of `mathc: internal error`.
+  - id: store-stays-clean
+    statement: |
+      A manifest header row or an out-of-enum kind never produces a
+      file in the attestation store.
+
+counterexample: |
+  "The resolver now reads `$MATH_CODING_ROOT`, so two commands run in
+  the same directory can resolve different projects depending on an
+  environment variable inherited from a shell profile." This is true
+  and is the cost of B3. The counter is that the variable already had
+  exactly this authority over `find_project_root` (bin/Mathc.ml:1046)
+  and over `new-decision` (lib/new_decision/new_decision.ml:317);
+  before this commit the kernel was inconsistent, not pure. A command
+  that honours the variable in three places and ignores it in the
+  fourth is harder to reason about than one that honours it in all
+  four.
+
+  "The 16 green fixtures were fixed by editing what they expect."
+  Partly true and worth naming: they were edited only where the
+  kernel's behaviour was independently justified — the `parse-ok`
+  rename carries a commit message and appears in ten other fixtures
+  already updated by it; `install.sh` mode 100644 is objectively
+  wrong for a script the docs tell users to execute; the heredoc
+  delimiter bug is a shell-semantics error, not a preference. Where
+  the kernel's behaviour was *not* independently justified
+  (`gate-*.t` counts, `risk-bucketing`'s `mode:`), the fixture was
+  left red on purpose.
+
+  What would change the verdict: a user who relies on running the
+  binary from inside project A against project B via the cwd, with no
+  `MATH_CODING_ROOT`, and finds that B now resolves B. That is
+  exactly the ambiguity the fix removes; if it is someone's intended
+  workflow, the fix is wrong and this decision is the place to say so.
+
+assumptions:
+  - id: legacy-layout-is-data
+    state: assumed
+    statement: |
+      A directory that already contains `decisions/` or
+      `attestations/` is a pre-3.4 project whose layout must be kept.
+    owner: human:maintainer
+    consequence_if_false: |
+      `layout_of` returns `Legacy` for a scratch directory that
+      happens to contain an unrelated `adr/`-like folder, and
+      `mathc init` scaffolds the legacy tree. The cost is cosmetic
+      (`.math-coding/` vs `decisions/`) and reversible by deleting the
+      tree.
+    review_on:
+      - signal: init-chooses-legacy-for-a-greenfield-project
+  - id: math-coding-root-is-a-real-root
+    state: assumed
+    statement: |
+      When `$MATH_CODING_ROOT` names an existing directory, that
+      directory is the math-coding project root — no `dune-project`
+      required.
+    owner: human:maintainer
+    consequence_if_false: |
+      Resolution silently reverts to the cwd for every resolver
+      consumer, and B3 returns as a latent bug. `find_project_root`
+      keeps its stricter `dune-project` requirement; the two now
+      differ deliberately, which is recorded in the resolver's
+      comment.
+    review_on:
+      - signal: root-resolution-diverges-from-find-project-root
+
+obligations:
+  - id: attest-batch-resolves-and-diagnoses
+    claim: |
+      `mathc attest-batch` resolves input and output through the
+      resolver, creates parent directories, skips a TSV header row,
+      validates `kind_`/`result` against the schema enums, and exits 2
+      with the path on an unwritable destination.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: tests/cli/attest-batch-out-dir.t
+          result: pass
+  - id: resolver-answers-about-the-target
+    claim: |
+      `mathc init DIR` scaffolds `DIR` (not the caller's cwd), the
+      three resolved paths share one layout, and `$MATH_CODING_ROOT`
+      scopes the resolver for path-less commands.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: tests/cli/init-layout-coherence.t
+          result: pass
+        - verifier: tests/path_config_test.exe
+          result: pass
+  - id: adopt-stays-inside-the-target
+    claim: |
+      `mathc adopt DIR` writes the scaffold, the imported ADRs and the
+      arc42 side-decision into DIR, and does not touch the caller's
+      repository.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: tests/cli/adopt.t
+          result: pass
+        - verifier: tests/cli/import-adr.t
+          result: pass
+  - id: red-fixtures-shrank-honestly
+    claim: |
+      The cram baseline drops from 51 red fixtures to 43, with no new
+      failure attributable to this change and no expectation promoted
+      without reading the kernel's behaviour first.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: CHANGELOG.md
+          needle: "cram baseline 51"
+          result: pass
+
+reversal:
+  - signal: adopt-writes-where-it-did-before
+    condition: |
+      A maintainer reports that `mathc adopt DIR` must keep writing
+      relative to the caller's cwd — for example a workflow that
+      adopts several projects into one shared store. Resolution: a
+      follow-up decision adds an explicit `--store=PATH` flag so the
+      behaviour is requested rather than inherited, and this
+      decision's revision goes to `state: superseded`.
+    action: rework
+  - signal: env-root-surprise
+    condition: |
+      `$MATH_CODING_ROOT` inherited from a shell profile changes the
+      target of a command that takes no path, and a user is bitten by
+      it. Resolution: drop the `$MATH_CODING_ROOT` tier from
+      `effective_root` and keep only the explicit `?root`; the
+      callers that need it (init, adopt) already pass one.
+    action: rework
+
+risk:
+  declared_triggers:
+    - env-var-resolution-surprise
+    - gate-fixture-anomaly-unexplained
+    - layout-choice-on-a-dirty-directory
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@3
+    - solo-default-on-2026-10@1
+    - ux-3-adopt-subcommand-2026-10@1
+    - ux-3-attest-batch-subcommand-2026-10@1
+    - ux-3-minimal-pollution-2026-10@1
+    - verifier-scheme-convention-2026-11@1
+  supersedes: []
+  superseded_by: []

@@ -276,7 +276,7 @@ the verdict stays `accept`.
   > EOF
   $ mathc validate --format=json mode-light-no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
-  ["accept",["MC-COUNTEREXAMPLE-MISSING"]]
+  ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 A `mode: tiny` decision WITHOUT counterexample: also accepts
 (tiny modes are exempt). The format below intentionally lets
@@ -313,7 +313,7 @@ A `mode: tiny` decision WITHOUT counterexample: also accepts
   > EOF
   $ mathc validate --format=json mode-tiny-no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
-  ["accept",["MC-COUNTEREXAMPLE-MISSING"]]
+  ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 `mode: strict` WITHOUT counterexample is also rejected (strict
 sits above standard in the mode sum type, so mode >= standard

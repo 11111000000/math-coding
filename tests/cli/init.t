@@ -1,19 +1,31 @@
 mathc init scaffolds a new math-coding project: creates
-decisions/, attestations/, and decisions/decision.yaml, and
-installs a pre-commit hook unless --no-install. Refuses on
-arc42/MADR/adr-tools presence unless --merge is passed.
+`.math-coding/decisions/`, `.math-coding/attestations/`, and
+`.math-coding/policy.yaml`, and installs a pre-commit hook unless
+--no-install. Refuses on arc42/MADR/adr-tools presence unless
+--merge is passed.
 
-The cram shell's cwd is a bwrap tmp dir. mathc is on the PATH
-(deps %{bin:mathc} in tests/cli/dune). Each case creates a
-fresh mktemp dir, runs `mathc init <dir>`, then asserts on
-the output and on the resulting directory tree.
+Path independence (rev 2, decision
+`kernel-fixes-found-bugs-2026-10@1`): every case `cd`s into a fresh
+`mktemp -d` and inits `.`, so the printed paths are `./`-relative and
+deterministic. The previous revision embedded literal
+`/tmp/nix-shell.XXXX/build_YYYY_dune/tmp.ZZZZ` strings, which no run
+could ever reproduce — dune 3.23.1's vendored cram does not
+implement `(glob)`, so the file was red on every execution.
+
+The layout assertion is `.math-coding/`, not `decisions/`, because
+the resolver now asks about the target project rather than about the
+caller's cwd: a v3.4 greenfield project gets the v3.4 tree even when
+it is scaffolded from a directory that still has a legacy
+`decisions/` beside it (pinned separately by
+`init-layout-coherence.t`).
 
 Empty directory: init succeeds and creates the expected files.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ mathc init "$tmpdir" --no-install
-  mathc init: created /tmp/nix-shell.U1N979/build_feb560_dune/tmp.KPL1rmmOsi/decisions, /tmp/nix-shell.U1N979/build_feb560_dune/tmp.KPL1rmmOsi/attestations
+  $ cd "$tmpdir"
+  $ mathc init . --no-install
+  mathc init: created ./.math-coding/decisions, ./.math-coding/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
     applicability envelope (spec/algebra-3.2.md §28, default-on):
@@ -32,15 +44,16 @@ Empty directory: init succeeds and creates the expected files.
         (Tiny). Declare mode_floor in the project's policies.yaml to
         match reality. `mathc init` sees one writer and cannot detect
         the signals above; they are yours to declare.
-  $ test -d "$tmpdir/decisions" && echo "decisions/: ok"
+  $ test -d .math-coding/decisions && echo "decisions/: ok"
   decisions/: ok
-  $ test -d "$tmpdir/attestations" && echo "attestations/: ok"
+  $ test -d .math-coding/attestations && echo "attestations/: ok"
   attestations/: ok
-  $ test ! -d "$tmpdir/.githooks" && echo ".githooks: absent (--no-install ok)"
+  $ grep -q 'schema: math-coding/3.2' .math-coding/policy.yaml && \
+  >   echo "policy.yaml: schema-string ok"
+  policy.yaml: schema-string ok
+  $ test ! -d .githooks && echo ".githooks: absent (--no-install ok)"
   .githooks: absent (--no-install ok)
-  $ grep -q 'schema: math-coding/3.2' "$tmpdir/decisions/decision.yaml" && \
-  >   echo "decision.yaml: schema-string ok"
-  decision.yaml: schema-string ok
+  $ cd /
   $ rm -rf "$tmpdir"
 
 Brownfield (arc42): init refuses with exit 3 and a clear message.
@@ -54,8 +67,8 @@ Brownfield (arc42): init refuses with exit 3 and a clear message.
   >   echo "init refused on brownfield (exit $?)"
   > fi
   init refused on brownfield (exit 3)
-  $ test ! -d "$tmpdir/decisions" && echo "no decisions/ created on refuse"
-  no decisions/ created on refuse
+  $ test ! -d "$tmpdir/.math-coding" && echo "nothing created on refuse"
+  nothing created on refuse
   $ rm -rf "$tmpdir"
 
 Brownfield with --merge: init proceeds.
@@ -63,44 +76,29 @@ Brownfield with --merge: init proceeds.
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/docs/arc42"
-  $ mathc init "$tmpdir" --merge --no-install
-  mathc init: created /tmp/nix-shell.U1N979/build_feb560_dune/tmp.TxfDto0ing/decisions, /tmp/nix-shell.U1N979/build_feb560_dune/tmp.TxfDto0ing/attestations
-    decision.yaml: schema math-coding/3.2, scope paths editable
-    pre-commit hook: skipped (--no-install)
-    applicability envelope (spec/algebra-3.2.md §28, default-on):
-      path: Path A. Installed by default, a single maintainer included.
-        To skip, the project must be throwaway — prototype,
-        MVP, spike, one-day hackathon — and the rationale goes
-        in the README, per §23.
-      signals that lift the ceremony above the light floor:
-        - two or more AI agents (or humans) editing this repository
-        - regulatory or contractual audit needs a tamper-evident trail
-        - three or more maintainers on a five-or-more-year horizon
-        - an AI agent writes into the repository (one human is enough)
-      the one Path C class:
-        - prototype / MVP / spike / throwaway: no expected continuity
-      floor: no policies.yaml here, so the kernel uses its lowest rung
-        (Tiny). Declare mode_floor in the project's policies.yaml to
-        match reality. `mathc init` sees one writer and cannot detect
-        the signals above; they are yours to declare.
-  $ test -f "$tmpdir/decisions/decision.yaml" && echo "decision.yaml created with --merge"
-  decision.yaml created with --merge
+  $ cd "$tmpdir"
+  $ mathc init . --merge --no-install > init.log 2>&1
+  $ grep -q 'created ./.math-coding/decisions' init.log && echo "layout: .math-coding/"
+  layout: .math-coding/
+  $ test -f .math-coding/policy.yaml && echo "policy.yaml created with --merge"
+  policy.yaml created with --merge
+  $ cd /
   $ rm -rf "$tmpdir"
 
-Refuse to overwrite existing decision.yaml without --merge.
+Refuse to overwrite an existing policy without --merge.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ mkdir -p "$tmpdir/decisions" && echo 'old' > "$tmpdir/decisions/decision.yaml"
+  $ mkdir -p "$tmpdir/.math-coding" && echo 'old' > "$tmpdir/.math-coding/policy.yaml"
   $ if mathc init "$tmpdir" --no-install 2>/dev/null; then
-  >   echo "FAIL: expected non-zero exit on existing decision.yaml"; exit 1
+  >   echo "FAIL: expected non-zero exit on existing policy"; exit 1
   > else
   >   echo "init refused to overwrite (exit $?)"
   > fi
   init refused to overwrite (exit 3)
-  $ grep -q '^old$' "$tmpdir/decisions/decision.yaml" && \
-  >   echo "original decision.yaml preserved"
-  original decision.yaml preserved
+  $ grep -q '^old$' "$tmpdir/.math-coding/policy.yaml" \
+  >   && echo "original policy.yaml preserved"
+  original policy.yaml preserved
   $ rm -rf "$tmpdir"
 
 Unknown --agent value: exit 2 with help.
@@ -146,4 +144,3 @@ by an unsolicited rewrite.
   >   && echo ".github: absent (default opt-out ok)"
   .github: absent (default opt-out ok)
   $ rm -rf "$tmpdir"
-

@@ -3,6 +3,58 @@
 > Single-source-of-truth for releases. Mirrors the `v3.x.y` git
 > tags. The current release is highlighted.
 
+## Unreleased
+
+Two cycles merged since v3.3.3. Neither bumps `VERSION`; both are
+kernel-side.
+
+**Applicability envelope is default-on** (`solo-default-on-2026-10@1`).
+A project with a single maintainer now receives `mathc init`
+scaffolding and the agent skill; the sole Path C class is
+`prototype_or_throwaway`. §28, `adoption/SKILL.md`, the `mathc init`
+output and `USAGE.md` all carry it, and the skill copies stay
+byte-identical.
+
+**Found-bugs batch** (`kernel-fixes-found-bugs-2026-10@1`).
+
+- `mathc adopt DIR` no longer writes into the caller's repository:
+  the children inherit `MATH_CODING_ROOT=<target>` and the arc42
+  side-decision stops hardcoding `<target>/decisions/...` (which
+  crashed with an uncaught `Sys_error` when the directory did not
+  exist).
+- The path resolver asks about the project being operated on
+  (`?root`, then `$MATH_CODING_ROOT`) instead of the process cwd, and
+  the three paths now share ONE layout decision per project.
+  Previously `mathc init /srv/app` could scaffold the legacy tree.
+- `mathc attest-batch` resolves input/output through the resolver,
+  creates parent directories (`mathc: internal error: Unix...ENOENT`
+  on a fresh target is gone), skips a TSV header row that used to
+  emit `decision_id-obligation_id.json`, and validates `kind_`/`result`
+  against the schema enums.
+- `spec/semantics.md` records that the `accept` verdict was renamed
+  `parse-ok` in `a602b361`.
+- Cram baseline **51 red fixtures → 43**. Fixed: `attest-batch`,
+  `counterexample-warning`, `counterexample-warn`, `embedded-schemas`,
+  `import-adr`, `init`, `init-agent`, `init-defaults`, `init-legacy`,
+  `init-scope-language-agnostic`, `malformed-acceptance`,
+  `path-config-fallback`, `render`, `validate-considered-antithesis`
+  (an unquoted `<<EOF` heredoc was letting the shell execute a
+  backticked `mode: considered` in the fixture body),
+  `validate-counterexample-required`, `yaml-parser`.
+  Also: `scripts/install-tooling/install.sh` is mode 755 again, and
+  `forge-verify.t` polls its stub server instead of `sleep 0.2`.
+
+Pre-existing baseline failures that this cycle does NOT address:
+43 fixtures remain red — count drift (`gate-*.t` still assert
+`obligations: 183` against 672), stale digest / spec-line pins, and
+behaviour changes needing individual judgement (`mode: standard` →
+`tiny`, `doctor` pass → warn, `mcp.t` losing a diagnostic). They
+belong to the test-hardening cycle named in `plan-2026-12-*`.
+`tests/cli/gate-*.t` carry an unexplained discrepancy: a
+byte-identical copy of `gate-pass.t` reports 672 obligations where the
+original reports 0 under `dune test --force`, so those counts were
+left untouched rather than copied from the copy.
+
 ## v3.3.3 — 2026-10-18 — current
 
 Release-prep + F11/F12 cleanup + Batch B + Batch C + MCP

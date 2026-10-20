@@ -65,4 +65,4 @@ The sub-decision file is present and is accepted by the validator:
   decision present
 
   $ mathc validate decisions/plan-2026-10-improvements/t0-1.yaml | head -1
-  accept: decisions/plan-2026-10-improvements/t0-1.yaml
+  parse-ok: decisions/plan-2026-10-improvements/t0-1.yaml

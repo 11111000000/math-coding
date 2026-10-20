@@ -67,7 +67,7 @@ regression pin for the P2 axiom_link + counterexample template fix
 `MC-MISSING-INTENT` or `MC-COUNTEREXAMPLE-MISSING`.
 
   $ mathc validate .test-math-coding/policy.yaml
-  accept: .test-math-coding/policy.yaml
+  parse-ok: .test-math-coding/policy.yaml
     decision: bootstrap-v3
     revision: 1
     obligations: 1

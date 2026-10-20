@@ -16,7 +16,7 @@ A `mode: considered` decision WITH antithesis is accepted:
 
   $ tmp=$(mktemp -d)
   $ cd "$tmp"
-  $ cat > mode-considered-with-antithesis.yaml <<EOF
+  $ cat > mode-considered-with-antithesis.yaml <<'EOF'
   > ---
   > schema: math-coding/3.0-alpha
   > id: mode-considered-with-antithesis-demo
@@ -59,7 +59,7 @@ A `mode: considered` decision WITH antithesis is accepted:
 A `mode: considered` decision WITHOUT antithesis is rejected
 with `MC-ANTITHESIS-MISSING` (Block, exit 1):
 
-  $ cat > mode-considered-no-antithesis.yaml <<EOF
+  $ cat > mode-considered-no-antithesis.yaml <<'EOF'
   > ---
   > schema: math-coding/3.0-alpha
   > id: mode-considered-no-antithesis-demo
@@ -100,7 +100,7 @@ guard rejected these; the new `mode_geq_considered` guard
 accepts them. (This is the file shape that produced the 60+
 prior failures at HEAD pre-fix.)
 
-  $ cat > mode-standard-no-antithesis.yaml <<EOF
+  $ cat > mode-standard-no-antithesis.yaml <<'EOF'
   > ---
   > schema: math-coding/3.0-alpha
   > id: mode-standard-no-antithesis-demo
@@ -137,7 +137,7 @@ prior failures at HEAD pre-fix.)
 Whitespace-only antithesis is treated as empty (the
 author cannot satisfy the rule with " "):
 
-  $ cat > mode-considered-whitespace-antithesis.yaml <<EOF
+  $ cat > mode-considered-whitespace-antithesis.yaml <<'EOF'
   > ---
   > schema: math-coding/3.0-alpha
   > id: mode-considered-whitespace-antithesis-demo
