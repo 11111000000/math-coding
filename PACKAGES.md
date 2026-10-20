@@ -33,22 +33,27 @@ Last verified at: HEAD `66f9eb0` + 2026-10-18 v3.3.3 release cycle (F11/F12/Batc
   closed the v3 dialectic antithesis slot. See git for the
   pre-3.3 sync chain.
 
-Attestation store at `attestations/` contains **745 files** (committed
-count; `mathc counters --format=json` additionally reports the raw
-on-disk `live_store`, which includes the `.gitignore`-excluded test
-scratch — `t1-2-A0-*` attestations and the `1-foo` /
-`1-use-postgresql` scaffold decisions — so the raw number varies with
-local test runs); **`mathc packages` reports 194 active
-decisions / 203 total decision files / 709 obligations
-(297 pass, 412 unknown, 0 missing on a clean checkout; the master
-policy's 7 obligations are enumerated separately)**. The exact numbers
-are emitted by `mathc counters` and enforced against
-`PACKAGES.md`, `ROADMAP.md`, `README.md` by
-`tests/counters_drift.ml` (which counts committed files and excludes
-the scratch patterns). Total decision files on disk: 162
-(`decisions/*.yaml`, of which 7 are waivers / obligations-aggregator /
-migrations-history). 115 cram files in `tests/cli/`. 36 CLI
-subcommands.
+Live counts are emitted by `mathc counters --format=json` and are the
+**single source of truth** for "what exists in math-coding 3.3" —
+this file deliberately does not re-state the per-checkout numbers,
+because every `attestations/*.json` or `decisions/*.yaml` commit
+would invalidate them.
+
+Run `mathc counters --format=json` for the live attestation,
+decision, obligation, cram, and CLI-subcommand counts. The raw
+on-disk `live_store` additionally includes the `.gitignore`-excluded
+test scratch — `t1-2-A0-*` attestations and the `1-foo` /
+`1-use-postgresql` scaffold decisions — so the raw number varies
+with local test runs; the committed count is the one a downstream
+caller should cite. The master policy's 7 obligations are enumerated
+separately from the live decisions' verdicts and also live in the
+JSON.
+
+`tests/counters_drift.ml` enforces this contract: it asserts that
+`PACKAGES.md` and `ROADMAP.md` reference `mathc counters` instead of
+carrying per-checkout numbers in the live-counter blocks. Adding a
+new `attestations/*.json` (or `decisions/*.yaml`, or
+`tests/cli/*.t`) MUST NOT cause that test to fail.
 
 > Note: at HEAD `d52c85b` the `mathc counters` `schema`
 > block reports the live values (schema_enum lists the six
