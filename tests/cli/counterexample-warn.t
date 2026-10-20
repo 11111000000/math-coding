@@ -53,7 +53,7 @@ Scenario 1 — `counterexample:` present, plain accept.
   ["parse-ok",[]]
 
 Scenario 2 — `counterexample:` absent (genuine absence);
-Warn fires at `mode: light`. The verdict stays `accept`
+Warn fires at `mode: light`. The verdict stays `parse-ok`
 because counterexample is a dialectical slot, not a hard
 requirement, at light mode (per spec/algebra-3.2.md §11).
 

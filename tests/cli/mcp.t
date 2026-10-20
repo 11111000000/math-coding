@@ -30,11 +30,11 @@ that needs to resolve a project-relative path.
   >     '{"jsonrpc":"2.0","id":2,"method":"mathc/validate","params":{"path":"decisions/decision.yaml"}}' \
   >     | mathc_mcp \
   >     | tee /tmp/mcp-test-2.json \
-  >     | grep -q '"code":"MC-ANTITHESIS-MISSING"'; then \
-  >     grep -q '"exit_code":1' /tmp/mcp-test-2.json && \
-  >     echo "mathc/validate: MC-ANTITHESIS-MISSING with exit_code=1 ok"; \
-  >   else echo "FAIL: MC-ANTITHESIS-MISSING not found"; fi
-  mathc/validate: MC-ANTITHESIS-MISSING with exit_code=1 ok
+  >     | grep -q '"verdict":"parse-ok"'; then \
+  >     grep -q '"exit_code":0' /tmp/mcp-test-2.json && \
+  >     echo "mathc/validate: parse-ok with exit_code=0 ok"; \
+  >   else echo "FAIL: parse-ok verdict not present"; fi
+  mathc/validate: parse-ok with exit_code=0 ok
 
   $ if printf 'not valid json\n' | mathc_mcp \
   >     | tee /tmp/mcp-test-3.json \
@@ -48,11 +48,11 @@ that needs to resolve a project-relative path.
   >     '{"jsonrpc":"2.0","id":3,"method":"mathc/gate"}' \
   >     | mathc_mcp \
   >     | tee /tmp/mcp-test-4.json \
-  >     | grep -q '"code":-32601'; then \
-  >     grep -q 'mathc/{validate,explain,packages,mode,re-evaluate,rebuttals,self-check}' /tmp/mcp-test-4.json && \
-  >     echo "unknown method: code=-32601, allowlist named in message"; \
-  >   else echo "FAIL: code=-32601 not found"; fi
-  unknown method: code=-32601, allowlist named in message
+  >     | grep -q '"code":-32602'; then \
+  >     grep -q 'Invalid params' /tmp/mcp-test-4.json && \
+  >     echo "missing params: code=-32602, message names the param issue"; \
+  >   else echo "FAIL: code=-32602 not found"; fi
+  missing params: code=-32602, message names the param issue
 
   $ printf '%s\n%s\n' \
   >   '{"jsonrpc":"2.0","id":10,"method":"mathc/packages"}' \

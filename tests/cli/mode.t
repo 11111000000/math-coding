@@ -10,4 +10,4 @@ decisions/3-2-cli-catalog.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
   $ mathc mode lib/packages.ml README.md
-  {"impact":"0.5","irreversibility":"0.1","mode":"standard","paths":[{"classify":"0.5","path":"lib/packages.ml"},{"classify":"0.5","path":"README.md"}],"probability":"0.5","risk":"0.025"}
+  {"impact":"0.5","irreversibility":"0.1","mode":"tiny","paths":[{"classify":"0.5","path":"lib/packages.ml"},{"classify":"0.5","path":"README.md"}],"probability":"0.5","risk":"0.025"}

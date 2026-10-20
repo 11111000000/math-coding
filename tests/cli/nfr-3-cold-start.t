@@ -17,8 +17,8 @@ is on the binary startup only.
   $ min_version=$(for i in 1 2 3; do
   >   TIMEFORMAT='%R'; { time mathc version >/dev/null; } 2>&1
   > done | sort -n | head -1)
-  $ echo "mathc version: min cold start = ${min_version}s"
-  mathc version: min cold start = 0.003s
+  $ echo "mathc version: min cold start = ${min_version}s" | sed -E "s/[0-9]+\.[0-9]+s/<T>s/"
+  mathc version: min cold start = <T>s
   $ awk -v t="$min_version" 'BEGIN{exit !(t+0 < 0.2)}' && \
   >   echo "NFR-3: PASS (cold start < 200ms)" || \
   >   echo "NFR-3: FAIL (cold start >= 200ms)"
@@ -33,8 +33,8 @@ it (NFR-3 is about startup, not the command's work).
   $ cd "$DUNE_SOURCEROOT"
   $ t=$(TIMEFORMAT='%R'; { time mathc self-check >/dev/null; } 2>&1)
   [3]
-  $ echo "mathc self-check: ${t}s (kernel work; not NFR-3 scope)"
-  mathc self-check: 0.243s (kernel work; not NFR-3 scope)
+  $ echo "mathc self-check: ${t}s" | sed -E -e "s/[0-9]+\.[0-9]+s/<T>s/" -e "s|$| (kernel work; not NFR-3 scope)|"
+  mathc self-check: <T>s (kernel work; not NFR-3 scope)
 
 Mathc init does scaffold I/O (mkdir + write_file). It is
 fast (< 50ms) but the assertion is on binary startup
@@ -44,5 +44,5 @@ only.
   $ tmpdir=$(mktemp -d)
   $ t=$(TIMEFORMAT='%R'; { time mathc init $tmpdir --no-install >/dev/null; } 2>&1)
   $ rm -rf "$tmpdir"
-  $ echo "mathc init: ${t}s"
-  mathc init: 0.006s
+  $ echo "mathc init: ${t}s" | sed -E "s/[0-9]+\.[0-9]+s/<T>s/"
+  mathc init: <T>s

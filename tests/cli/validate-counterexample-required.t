@@ -9,7 +9,7 @@ verdict is `reject` (exit 1) with the diagnostic
 `policy_rule` carrying the spec reference).
 
 Tiny / light modes are exempt: an empty counterexample is a
-soft Warn at most and the verdict stays `accept` (the legacy
+soft Warn at most and the verdict stays `parse-ok` (the legacy
 soft-warning behaviour preserved from the pre-T6.2 kernel).
 
 This is the positive-and-negative contract for the T6.2
@@ -243,7 +243,7 @@ an array with at least one non-empty entry satisfies the rule.
 A `mode: light` decision WITHOUT counterexample: warns but
 accepts (legacy soft-warning behaviour, EXEMPT from the new
 rule). The diagnostic is still MC-COUNTEREXAMPLE-MISSING but
-the verdict stays `accept`.
+the verdict stays `parse-ok`.
 
   $ cat > mode-light-no-counterexample.yaml <<EOF
   > ---

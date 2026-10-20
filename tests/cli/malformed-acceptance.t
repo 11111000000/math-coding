@@ -1,6 +1,6 @@
 mathc validate exits 0 on a decision whose acceptance item carries an
 unparseable verifier, emits the MC-MALFORMED-ACCEPTANCE diagnostic
-on stderr naming the obligation id, and still prints the accept
+on stderr naming the obligation id, and still prints the parse-ok
 verdict. The acceptance list is one shorter (Domain.All []) but the
 decision itself parses. This is the acceptance gate for
 obligation parse-malformed-acceptance in

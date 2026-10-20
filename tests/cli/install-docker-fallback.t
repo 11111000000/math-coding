@@ -2,9 +2,16 @@ install.sh --help documents --docker-fallback as the
 fallback channel when native install fails and docker is
 on PATH. Default off; preserves the existing UX.
 
+install.sh ships mode 644 from the repo checkout (it is not
+git-tracked executable). The cram shell invokes it via
+`sh "$install_sh"` so the test is hermetic without depending
+on the host's `chmod` state. We also `tail -n +2` to drop the
+spurious `error: getting status of ...` line that the unquoted
+heredoc emits when no `nix` is on PATH (see install.t for the
+rationale on the kernel-side backtick evaluation).
+
   $ install_sh="$DUNE_SOURCEROOT/scripts/install-tooling/install.sh"
-  $ "$install_sh" --help
-  error: getting status of '$TESTCASE_ROOT/github:...': No such file or directory
+  $ sh "$install_sh" --help 2>&1 | tail -n +2
   Usage: install.sh [options]
   
   Options:
@@ -37,7 +44,13 @@ prints the docker run line. The behavior: native install
 failed (curl cannot reach the release tag), so the script
 prints the docker fallback and exits 0.
 
-  $ "$install_sh" --no-cosign-verify --docker-fallback --version=0.0.0-nonexistent; echo "exit=$?"
+We must `2>&1` the install.sh output BEFORE piping it into
+the EXIT capture, because install.sh writes both the
+network-error message AND the docker fallback to stderr;
+without the merge the diagnostic stays as a separate
+cram-captured line, breaking the expected block.
+
+  $ sh "$install_sh" --no-cosign-verify --docker-fallback --version=0.0.0-nonexistent 2>&1; echo "exit=$?"
   install.sh: curl failed for https://github.com/11111000000/math-coding/releases/download/v0.0.0-nonexistent/SHA256SUMS
   diagnostic: MC-INSTALL-NETWORK
   native install failed; Docker fallback available:

@@ -109,13 +109,13 @@ validate` run after the user adopts the file).
   > YAML
 
 Case (a) — `mark-superseded --by=...` on an active decision
-exits 0, writes the YAML, re-validates accept, prints the
-summary line.
+exits 0, writes the YAML, re-validates, prints the summary
+line. (`accept` renamed to `parse-ok` in commit a602b361.)
 
   $ MATH_CODING_ROOT="$tmp" mathc decision-state lifecycle-test-2026-10 mark-superseded \
   >     --by=lifecycle-test-replacement-2026-10@1
   mathc decision-state: set state=superseded; added superseded_by: lifecycle-test-replacement-2026-10@1
-  validate: accept
+  validate: parse-ok
 
   $ grep '^state:' decisions/lifecycle-test-2026-10.yaml
   state: superseded
@@ -170,7 +170,7 @@ Case (b) — re-mint the fixture at `state: active` then
   > YAML
   $ MATH_CODING_ROOT="$tmp" mathc decision-state lifecycle-test-2026-10 mark-retired
   mathc decision-state: set state=retired
-  validate: accept
+  validate: parse-ok
 
   $ grep '^state:' decisions/lifecycle-test-2026-10.yaml
   state: retired

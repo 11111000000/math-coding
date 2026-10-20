@@ -52,9 +52,16 @@ equals the latest upstream tag, the exit is 0 with empty stdout.
 The `--check` path must not regress the default `mathc version`
 output. The version banner stays unchanged.
 
+The banner carries `math-coding <VERSION>: bootstrap`, where
+`<VERSION>` is whatever lives at the top of `$DUNE_SOURCEROOT/VERSION`
+(the kernel reads it at startup). We sed-normalise `<VERSION>`
+to `<VER>` so the banner does not pin a stale literal when the
+repo's VERSION is bumped.
+
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc version
-  math-coding 3.3.0: bootstrap
+  $ version=$(grep -v '^\s*$' "$DUNE_SOURCEROOT/VERSION" | head -1)
+  $ mathc version 2>&1 | sed "s|${version}|<VER>|g"
+  math-coding <VER>: bootstrap
 
 `mathc update --channel=bogus` rejects unknown channels with exit 2
 (input error). Guards against typo'd channel names.

@@ -2,7 +2,7 @@ mathc validate emits an MC-COUNTEREXAMPLE-MISSING Warn diagnostic
 when a decision lacks the `counterexample` field AND the
 decision's `mode` is in {tiny, light}. Counterexample is a
 dialectical slot — when absent at tiny/light modes, the
-diagnostic is a Warn and the verdict stays `accept`. (For
+diagnostic is a Warn and the verdict stays `parse-ok`. (For
 modes >= standard an empty counterexample is a Block; the
 T6.2 cram test `tests/cli/validate-counterexample-required.t`
 covers that separate rule.)
@@ -50,7 +50,7 @@ plain accept.
   ["parse-ok",[]]
 
 A `mode: light` decision without counterexample: warning
-emitted, verdict still accept (dialectical slot, not a hard
+emitted, verdict still parse-ok (dialectical slot, not a hard
 requirement at light mode).
 
   $ cat > no-counterexample.yaml <<EOF

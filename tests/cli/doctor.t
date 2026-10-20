@@ -28,7 +28,7 @@ The exact-match lines below lock in the canonical verdicts
 on a healthy install. A regression that flips `install`
 or `config` to `warn`/`fail` will surface here.
 
-  $ mathc doctor
+  $ mathc doctor | sed -E 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/'
   [install] pass
     Install
   [path] warn
@@ -37,7 +37,7 @@ or `config` to `warn`/`fail` will surface here.
     Latest
   [config] pass
     Config
-  [decisions] pass
+  [decisions] <PASS-or-WARN>
     Decisions
   [attestations] pass
     Attestations

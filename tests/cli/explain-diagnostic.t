@@ -31,10 +31,15 @@ for every registered code:
 Negative case — unknown code MC-BOGUS exits 2 and prints a typed
 diagnostic on stderr with code `MC-EXPLAIN-DIAGNOSTIC-UNKNOWN`.
 The exit-code contract follows `mathc explain nonexistent:foo`
-(tests/cli/explain-negative.t) — an input error is exit 2, not 1:
+(tests/cli/explain-negative.t) — an input error is exit 2, not 1.
+The supported-codes list rendered in the message is keyed off
+`lib/diagnostic.ml::explain`; when a new `MC-*` code is registered
+upstream, update the literal below to keep the test pinned to
+the actual registry (last touched: `MC-VERIFIER-SCHEME-UNKNOWN`
+added by `verifier-scheme-convention-2026-11`):
 
   $ mathc explain-diagnostic MC-BOGUS
-  {"code":"MC-EXPLAIN-DIAGNOSTIC-UNKNOWN","id":"MC-BOGUS","kind":"diagnostic","message":"unknown diagnostic code 'MC-BOGUS'; supported codes are listed by lib/diagnostic.ml::explain (MC-AMBIGUOUS-ACCEPTANCE, MC-MALFORMED-ACCEPTANCE, MC-PARSE, MC-DECISION-INVALID, MC-COUNTEREXAMPLE-MISSING, MC-AXIOM-LINK-MISSING, MC-SHA-MISMATCH)"}
+  {"code":"MC-EXPLAIN-DIAGNOSTIC-UNKNOWN","id":"MC-BOGUS","kind":"diagnostic","message":"unknown diagnostic code 'MC-BOGUS'; supported codes are listed by lib/diagnostic.ml::explain (MC-VERIFIER-SCHEME-UNKNOWN, MC-AMBIGUOUS-ACCEPTANCE, MC-MALFORMED-ACCEPTANCE, MC-PARSE, MC-DECISION-INVALID, MC-COUNTEREXAMPLE-MISSING, MC-AXIOM-LINK-MISSING, MC-SHA-MISMATCH)"}
   [2]
 
 Negative case — missing positional argument exits 2 with a usage

@@ -29,7 +29,7 @@ path (it falls through to the decision parser and rejects):
 
   $ tmp=$(mktemp -d)
   $ cd "$tmp"
-  $ cat > waiver-without-kind.yaml <<EOF
+  $ cat > waiver-without-kind.yaml <<'EOF'
   > ---
   > schema: math-coding/waiver-3.0-alpha
   > id: waiver-without-kind-demo
@@ -51,13 +51,17 @@ path (it falls through to the decision parser and rejects):
   {"verdict":"reject","code":"MC-DECISION-INVALID"}
 
 A regular decision file still validates through the decision
-path (regression: the decision parser is not weakened):
+path (regression: the decision parser is not weakened). The
+decision JSON shape carries `decision`/`revision`/`obligations`,
+not the aggregate family's `kind`/`id` pair; stderr carries
+per-obligation verifier-scheme warnings for these files and is
+not part of this projection:
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc validate --format=json decisions/decision.yaml | jq -c '{verdict, kind}'
-  {"verdict":"parse-ok","kind":"decision"}
-  $ mathc validate --format=json decisions/algebra-3.2.yaml | jq -c '{verdict, kind}'
-  {"verdict":"parse-ok","kind":"decision"}
+  $ mathc validate --format=json decisions/decision.yaml 2>/dev/null | jq -c '{verdict, decision, has_obligations: (.obligations > 0)}'
+  {"verdict":"parse-ok","decision":"bootstrap-v3","has_obligations":true}
+  $ mathc validate --format=json decisions/algebra-3.2.yaml 2>/dev/null | jq -c '{verdict, decision, has_obligations: (.obligations > 0)}'
+  {"verdict":"parse-ok","decision":"algebra-3.2","has_obligations":true}
 
 Text-format output for a waiver file:
 
@@ -77,6 +81,7 @@ before the dispatch):
   > id: truncated-demo
   > EOF
   $ mathc validate --format=json truncated.yaml
+  {"verdict":"reject","path":"truncated.yaml","code":"MC-DECISION-INVALID","severity":"warn","message":"missing required field: intent"}
   [1]
   $ cd /
   $ rm -rf "$tmp"
