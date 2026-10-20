@@ -1,0 +1,122 @@
+---
+schema: math-coding/3.3
+id: stub-lint-fmt-conflict-telemetry-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: editorial
+
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  `scripts/check.sh` could not go green because two checkers
+  imposed mutually unsatisfiable requirements on the same line of
+  `bin/Mathc.ml`.
+
+  `scripts/check-stub-lint.py` exempts a stub marker only when
+  `TRACKED_REF` matches on the SAME physical line as the marker
+  (see TRACKED_REF and walk_line). The telemetry error string
+  carried both `Phase 3+` and `tracked: decisions/
+  ux-3-telemetry-stub-2026-10.yaml`, but on separate lines, so the
+  marker read as untracked.
+
+  Moving `tracked:` up onto the marker line satisfied stub-lint and
+  broke `scripts/fmt-check.sh`: ocamlformat reflows the string
+  continuation and pushes `tracked:` back down.
+
+commitment: |
+  After this decision lands, `bin/Mathc.ml` no longer contains a
+  `Phase <N>` marker in the telemetry unknown-subcommand message. The
+  message instead reads "transport is deferred (tracked: decisions/
+  ux-3-telemetry-stub-2026-10.yaml)". The deferral it records is
+  unchanged; only the wording of an error string for an unknown
+  telemetry subcommand moves. All three checks pass:
+  fmt-check.sh, check-stub-lint.sh, dune build bin/mathc.exe.
+
+antithesis: |
+  The counter-position: "relax check-stub-lint.py to scan a small
+  window around the marker instead of requiring same-line." Rejected:
+  that weakens a kernel-facing invariant globally to accommodate one
+  line, and the regex already documents same-line as the contract.
+  The alternative "relax ocamlformat" was not available — ocamlformat
+  is pinned by the flake and its output is the authority.
+
+  A weaker position, "just drop the `tracked:` reference", was
+  rejected: the deferral would then lose its machine-readable link to
+  the decision that authorises it.
+
+outcomes:
+  - id: three-checks-green
+    statement: |
+      fmt-check.sh exits 0, check-stub-lint.sh exits 0, and
+      `dune build bin/mathc.exe` succeeds.
+
+scope:
+  capabilities:
+    - development-process
+  paths:
+    - "bin/Mathc.ml"
+    - "decisions/stub-lint-fmt-conflict-telemetry-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "spec/**"
+    - "schemas/**"
+
+obligations:
+  - id: no-phase-marker-remains
+    claim: |
+      The telemetry unknown-subcommand message in bin/Mathc.ml
+      contains no `Phase <N>` marker.
+    acceptance:
+      all:
+        - verifier: scripts/check-stub-lint.sh
+          result: pass
+
+  - id: fmt-clean
+    claim: |
+      `scripts/fmt-check.sh` exits 0 on the tree carrying this change.
+    acceptance:
+      all:
+        - verifier: scripts/fmt-check.sh
+          result: pass
+
+  - id: kernel-builds
+    claim: |
+      `dune build bin/mathc.exe` succeeds after the edit.
+    acceptance:
+      all:
+        - verifier: bash -c '. scripts/dev-env.sh; mc_run_in_shell "dune build --root . bin/mathc.exe"'
+          result: pass
+
+counterexample: |
+  The strongest objection to shipping this wording: "you have deleted
+  the phase marker that told an operator this slice is mid-
+  implementation, and replaced it with prose." Accepted as real. The
+  information is not lost — the same sentence names the decision that
+  records the deferral, which is the machine-readable record the rest
+  of the toolchain reads. What is lost is the visual phase tag, and
+  that tag was only ever a stub-lint input, not a contract.
+
+  A second objection: "just relax the linter." Rejected above in
+  `antithesis`. It would trade a global invariant weakening for one
+  cosmetic line.
+
+risk:
+  declared_triggers:
+    - telemetry-error-string-regression
+  drift_recurs: |
+    A future message may reintroduce a `Phase <N>` marker alongside a
+    tracking reference and hit the same fmt/lint conflict. The
+    conflict is now recorded here and in check-stub-lint.py's own
+    header, so the next agent can recognise it.
+
+relations:
+  addresses:
+    - ux-3-telemetry-stub-2026-10
+  depends_on:
+    - ux-3-telemetry-stub-2026-10

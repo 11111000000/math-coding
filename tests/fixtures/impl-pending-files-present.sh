@@ -40,20 +40,39 @@ for id in mcp-server-impl-pending \
     echo "ok: $f has 'reversal:' block"
   fi
 
-  # state: must be 'active' (impl-pending decisions are active, not retired)
-  if ! grep -qE '^state:[[:space:]]*active' "$f"; then
-    echo "FAIL: $f has 'state:' other than 'active'"
-    fail=1
-  else
-    echo "ok: $f has 'state: active'"
-  fi
+  # state: an outstanding deferral is 'active'. Once the deferred work
+  # actually lands, the deferral decision is retired and its
+  # superseded_by names the implementing decisions -- that is the
+  # discharge path, not a defect. mcp-server-impl-pending reached
+  # revision 2 / state retired when ux-3-mcp-read-write-2026-10
+  # implemented it. Accept either state.
+  state=$(grep -oE '^state:[[:space:]]*[a-z-]+' "$f" | head -1 | awk '{print $2}')
+  case "$state" in
+    active)
+      echo "ok: $f has 'state: active'"
+      ;;
+    retired)
+      echo "ok: $f has 'state: retired' (deferral discharged)"
+      ;;
+    *)
+      echo "FAIL: $f has state '$state'; expected 'active' or 'retired'"
+      fail=1
+      ;;
+  esac
 
-  # relations.addresses must include bootstrap-v3 (master policy)
-  if ! grep -qE '^[[:space:]]*-[[:space:]]*bootstrap-v3' "$f"; then
-    echo "FAIL: $f missing 'addresses: bootstrap-v3' in relations"
-    fail=1
+  # relations.addresses must include bootstrap-v3 (master policy) while
+  # the deferral is still outstanding. A retired deferral points at its
+  # implementing decisions through superseded_by instead, so the
+  # bootstrap-v3 link is only required while active.
+  if [ "$state" = active ]; then
+    if ! grep -qE '^[[:space:]]*-[[:space:]]*bootstrap-v3' "$f"; then
+      echo "FAIL: $f missing 'addresses: bootstrap-v3' in relations"
+      fail=1
+    else
+      echo "ok: $f addresses bootstrap-v3"
+    fi
   else
-    echo "ok: $f addresses bootstrap-v3"
+    echo "ok: $f retired; bootstrap-v3 link not required"
   fi
 done
 

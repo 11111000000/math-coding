@@ -55,6 +55,23 @@ jobs:
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
           echo "Using VERSION=${VERSION}"
 
+      - name: Set up QEMU (arm64 emulation)
+        uses: docker/setup-qemu-action@v3
+        with:
+          # WHY THIS STEP EXISTS: the "Build and push (multi-arch)"
+          # step below declares `platforms: linux/amd64,linux/arm64`
+          # and publishes a `:${VERSION}-arm64` tag, but the amd64
+          # host cannot run aarch64 binaries natively. arm64 legs are
+          # built under QEMU user-mode emulation, which requires the
+          # kernel's binfmt_misc handlers to be registered FIRST. This
+          # step installs those handlers; it must precede
+          # `setup-buildx-action`, otherwise buildx's arm64 worker
+          # fails at container start with:
+          #   error: unable to load seccomp BPF program: Invalid argument
+          # and the advertised `:${VERSION}-arm64` tag is never
+          # published.
+          platforms: arm64
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

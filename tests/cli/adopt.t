@@ -9,6 +9,22 @@ The cram shell's cwd is a bwrap tmp dir. mathc is on the PATH
 fresh mktemp dir with a brownfield layout, runs `mathc adopt`,
 and asserts on the result.
 
+Every `mathc adopt` line that echoes the target path is piped
+through `sed "s|$tmpdir|<TMP>|g"` before comparison. The target
+is a `mktemp -d` dir whose absolute path lives inside dune's
+per-run bwrap sandbox (`/tmp/nix-shell.XXXXXX/build_...`), so
+it differs on every machine and every run; the previous
+expectations had one machine's sandbox path baked in and could
+never match anywhere else. Only the path is normalised -- every
+semantic token (exit code, detection class, step, decision id)
+is still compared literally.
+
+Each case runs from $DUNE_SOURCEROOT. `mathc init` picks its
+decisions dir via `Path_config.resolve_with`, whose existence
+check is relative to the *process cwd*, not to the target dir,
+so the repo root (which has `decisions/`) yields the legacy
+layout for every case below.
+
 MADR + adr-tools project: adopt imports all ADRs.
 
   $ cd "$DUNE_SOURCEROOT"
@@ -44,13 +60,13 @@ MADR + adr-tools project: adopt imports all ADRs.
   > 
   > Foo.
   > EOF
-  $ mathc adopt "$tmpdir" --merge --no-install 2>&1 | grep -E "step|detected|wrote" | head -10
+  $ mathc adopt "$tmpdir" --merge --no-install 2>&1 | grep -E "step|detected|wrote" | head -10 | sed "s|$tmpdir|<TMP>|g"
   wrote decisions/1-use-postgresql.yaml (id=1-use-postgresql, source_kind=adr-tools)
   wrote decisions/1-foo.yaml (id=1-foo, source_kind=adr-tools)
-  mathc adopt: detected MADR + adr-tools at /tmp/nix-shell.j0fxYM/build_14c89f_dune/tmp.HSnQ54QwBB
-    step 1/2: mathc init (scaffold math-coding in /tmp/nix-shell.j0fxYM/build_14c89f_dune/tmp.HSnQ54QwBB)
-    step 2/2: mathc import-adr /tmp/nix-shell.j0fxYM/build_14c89f_dune/tmp.HSnQ54QwBB/docs/adr/0001-postgres.md --write
-    step 2/2: mathc import-adr /tmp/nix-shell.j0fxYM/build_14c89f_dune/tmp.HSnQ54QwBB/adr/0001-foo.md --write
+  mathc adopt: detected MADR + adr-tools at <TMP>
+    step 1/2: mathc init (scaffold math-coding in <TMP>)
+    step 2/2: mathc import-adr <TMP>/docs/adr/0001-postgres.md --write
+    step 2/2: mathc import-adr <TMP>/adr/0001-foo.md --write
   $ test -f "$tmpdir/decisions/decision.yaml" && echo "decision.yaml: created"
   decision.yaml: created
   $ test -f "$tmpdir/decisions/1-postgresql.yaml" && echo "MADR imported: ok"
@@ -59,67 +75,71 @@ MADR + adr-tools project: adopt imports all ADRs.
   [1]
   $ rm -rf "$tmpdir"
 
-Empty project: adopt refuses without --merge, equivalent to init with --merge.
+Empty project: adopt does NOT refuse. The brownfield gate is
+scoped to non-empty projects only: `--merge bypass the
+brownfield refuse (default: refuse on non-empty; empty projects
+always pass)` (decisions/ux-3-adopt-subcommand-2026-10, Flags).
+The kernel implements it as `let pass_merge = match kind with
+Detect.Empty -> true | _ -> !merge in` in bin/Mathc.ml::do_adopt.
+
+An empty target therefore takes the greenfield path -- `mathc
+init` with no --merge -- and exits 0. The previous expectation
+here asserted a non-zero exit, which the kernel never produced
+for Detect.Empty; the refusal it meant to cover is exercised in
+the next block, where the target really is a brownfield.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ if mathc adopt "$tmpdir" 2>/dev/null; then
-  >   echo "FAIL: expected non-zero exit on empty brownfield"; exit 1
-  > else
-  >   echo "empty brownfield refused (exit $?)"
-  > fi
-  mathc init: created /tmp/nix-shell.j0fxYM/build_14c89f_dune/tmp.49cXuLqarZ/decisions, /tmp/nix-shell.j0fxYM/build_14c89f_dune/tmp.49cXuLqarZ/attestations
-    decision.yaml: schema math-coding/3.2, scope paths editable
-    pre-commit hook: installed at .githooks/pre-commit
-  mathc adopt: detected empty at /tmp/nix-shell.j0fxYM/build_14c89f_dune/tmp.49cXuLqarZ
-    step 1/2: mathc init (scaffold math-coding in /tmp/nix-shell.j0fxYM/build_14c89f_dune/tmp.49cXuLqarZ)
-  mathc adopt: done
-  FAIL: expected non-zero exit on empty brownfield
-  ***** UNREACHABLE *****
-  $ mathc adopt "$tmpdir" --merge --no-install 2>&1 | grep -E "detected|step 1" | head
-  ***** UNREACHABLE *****
+  $ mathc adopt "$tmpdir" --no-install >/dev/null 2>&1; echo "exit=$?"
+  exit=0
   $ test -f "$tmpdir/decisions/decision.yaml" && echo "empty: init ran ok"
-  ***** UNREACHABLE *****
+  empty: init ran ok
   $ rm -rf "$tmpdir"
-  ***** UNREACHABLE *****
+
+Non-empty brownfield without --merge: adopt refuses with exit 3
+and scaffolds nothing. This is the refusal the empty case above
+is explicitly exempt from.
+
+  $ cd "$DUNE_SOURCEROOT"
+  $ tmpdir=$(mktemp -d)
+  $ mkdir -p "$tmpdir/docs/adr"
+  $ printf '# 1. Keep the DB\n\n## Status\n\nAccepted\n\n## Context\n\nc\n\n## Decision\n\nd\n' > "$tmpdir/docs/adr/0001-db.md"
+  $ mathc adopt "$tmpdir" --no-install 2>&1 >/dev/null | sed "s|$tmpdir|<TMP>|g"
+  mathc adopt: refusing to proceed in brownfield project; pass --merge to override.
+  $ mathc adopt "$tmpdir" --no-install >/dev/null 2>&1; echo "exit=$?"
+  exit=3
+  $ test ! -d "$tmpdir/decisions" && echo "refused: nothing scaffolded"
+  refused: nothing scaffolded
+  $ rm -rf "$tmpdir"
 
 --only=arc42: only the arc42 convention is adopted, even when
 MADR and adr-tools are also present.
 
   $ cd "$DUNE_SOURCEROOT"
-  ***** UNREACHABLE *****
   $ tmpdir=$(mktemp -d)
-  ***** UNREACHABLE *****
   $ mkdir -p "$tmpdir/docs/arc42" "$tmpdir/docs/adr" "$tmpdir/adr"
-  ***** UNREACHABLE *****
   $ echo "test" > "$tmpdir/docs/adr/0001-madr.md"
-  ***** UNREACHABLE *****
   $ echo "test" > "$tmpdir/adr/0001-adr.md"
-  ***** UNREACHABLE *****
-  $ mathc adopt "$tmpdir" --merge --no-install --only=arc42 2>&1 | grep -E "step 2|wrote" | head
-  ***** UNREACHABLE *****
+  $ mathc adopt "$tmpdir" --merge --no-install --only=arc42 2>&1 | grep -E "step 2|wrote" | head | sed "s|$tmpdir|<TMP>|g"
+      wrote <TMP>/decisions/bootstrap-v3-arc42-compatibility.yaml
   $ test ! -f "$tmpdir/decisions/1-madr.yaml" && echo "--only=arc42 skipped MADR"
-  ***** UNREACHABLE *****
+  --only=arc42 skipped MADR
   $ test ! -f "$tmpdir/decisions/1-adr.yaml" && echo "--only=arc42 skipped adr-tools"
-  ***** UNREACHABLE *****
+  --only=arc42 skipped adr-tools
   $ test -f "$tmpdir/decisions/decision.yaml" && echo "init still ran (arc42)"
-  ***** UNREACHABLE *****
+  init still ran (arc42)
   $ rm -rf "$tmpdir"
-  ***** UNREACHABLE *****
 
 Dry-run: prints what would be done, does not run anything.
 
   $ cd "$DUNE_SOURCEROOT"
-  ***** UNREACHABLE *****
   $ tmpdir=$(mktemp -d)
-  ***** UNREACHABLE *****
   $ mkdir -p "$tmpdir/docs/adr"
-  ***** UNREACHABLE *****
   $ echo "test" > "$tmpdir/docs/adr/0001.md"
-  ***** UNREACHABLE *****
-  $ mathc adopt "$tmpdir" --merge --no-install --dry-run 2>&1 | grep -E "step|detected"
-  ***** UNREACHABLE *****
+  $ mathc adopt "$tmpdir" --merge --no-install --dry-run 2>&1 | grep -E "step|detected" | sed "s|$tmpdir|<TMP>|g"
+  mathc adopt: detected MADR (docs/adr/) at <TMP>
+    step 1/2: mathc init (scaffold math-coding in <TMP>)
+    step 2/2: mathc import-adr <TMP>/docs/adr/0001.md --write
   $ test ! -f "$tmpdir/decisions/decision.yaml" && echo "dry-run: nothing written"
-  ***** UNREACHABLE *****
+  dry-run: nothing written
   $ rm -rf "$tmpdir"
-  ***** UNREACHABLE *****
