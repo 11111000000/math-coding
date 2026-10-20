@@ -33,7 +33,7 @@ Last verified at: HEAD `66f9eb0` + 2026-10-18 v3.3.3 release cycle (F11/F12/Batc
   closed the v3 dialectic antithesis slot. See git for the
   pre-3.3 sync chain.
 
-Attestation store at `attestations/` contains **737 files** (committed
+Attestation store at `attestations/` contains **745 files** (committed
 count; `mathc counters --format=json` additionally reports the raw
 on-disk `live_store`, which includes the `.gitignore`-excluded test
 scratch — `t1-2-A0-*` attestations and the `1-foo` /
