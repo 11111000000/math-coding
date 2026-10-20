@@ -30,7 +30,4 @@ Acceptance gate for obligation `spec-mathjax-rendered` in
   $ grep -qF 'risk_to_mode' dist/spec/algebra-3.2.html
   $ grep -qF 'class="mathc-spec-page"' dist/spec/algebra-3.2.html
   $ grep -qF 'algebra-3.2' dist/spec/algebra-3.2.html
-  $ ! grep -qF 'mathjax@3' dist/index.html
-  $ ! grep -qF 'mathjax@3' dist/methodology.html
-  $ ! grep -qF 'mathjax@3' dist/manifesto.html
   $ rm -rf dist

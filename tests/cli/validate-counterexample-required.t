@@ -9,7 +9,7 @@ verdict is `reject` (exit 1) with the diagnostic
 `policy_rule` carrying the spec reference).
 
 Tiny / light modes are exempt: an empty counterexample is a
-soft Warn at most and the verdict stays `accept` (the legacy
+soft Warn at most and the verdict stays `parse-ok` (the legacy
 soft-warning behaviour preserved from the pre-T6.2 kernel).
 
 This is the positive-and-negative contract for the T6.2
@@ -243,7 +243,7 @@ an array with at least one non-empty entry satisfies the rule.
 A `mode: light` decision WITHOUT counterexample: warns but
 accepts (legacy soft-warning behaviour, EXEMPT from the new
 rule). The diagnostic is still MC-COUNTEREXAMPLE-MISSING but
-the verdict stays `accept`.
+the verdict stays `parse-ok`.
 
   $ cat > mode-light-no-counterexample.yaml <<EOF
   > ---
@@ -276,7 +276,7 @@ the verdict stays `accept`.
   > EOF
   $ mathc validate --format=json mode-light-no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
-  ["accept",["MC-COUNTEREXAMPLE-MISSING"]]
+  ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 A `mode: tiny` decision WITHOUT counterexample: also accepts
 (tiny modes are exempt). The format below intentionally lets
@@ -313,7 +313,7 @@ A `mode: tiny` decision WITHOUT counterexample: also accepts
   > EOF
   $ mathc validate --format=json mode-tiny-no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
-  ["accept",["MC-COUNTEREXAMPLE-MISSING"]]
+  ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 `mode: strict` WITHOUT counterexample is also rejected (strict
 sits above standard in the mode sum type, so mode >= standard

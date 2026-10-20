@@ -10,23 +10,28 @@ and `intent_oneOf` / `scope_oneOf` as `false` because the
 `Some v` (the fix is recorded in
 `decisions/counters-schema-introspection-fix-2026-10`).
 
-Acceptance contract:
+NOTE: a prior revision of this file carried an "Acceptance
+contract:" bullet list indented `  - ` that cram silently
+parsed as four negative-match expectations (two-space,
+dash, space), not as comments. The bullet list moved inline
+with each positive jq check below so the documentation
+remains but the negative-match footgun does not trip future
+runs.
 
-  - `schema.decision_required_fields` is a 7-element array
-    listing every value in `schemas/decision.json::required`.
-  - `schema.schema_enum` is a non-empty array carrying at least
-    the 3.3, 3.2, and 3.0-alpha family forms (six entries
-    today: `math-coding/3.0-alpha`,
-    `math-coding/3.0-alpha/decision`, `math-coding/3.2`,
-    `math-coding/3.2/decision`, `math-coding/3.3`,
-    `math-coding/3.3/decision`). The fixture asserts `>= 4` to
-    tolerate future enum widening without rewriting the test.
-  - `schema.intent_oneOf` is `true` (the schema declares an
-    intent `oneOf` with two branches: a YAML-form string and a
-    JSON-form object).
-  - `schema.scope_oneOf` is `true` (the schema declares a scope
-    `oneOf` with two branches: a YAML-form object and a
-    JSON-form `$ref` to `common.json#/definitions/scope`).
+Acceptance contract: schema.decision_required_fields is a
+7-element array listing every value in
+schemas/decision.json::required; schema.schema_enum is a
+non-empty array carrying at least the 3.3, 3.2, and
+3.0-alpha family forms (six entries today:
+math-coding/3.0-alpha, math-coding/3.0-alpha/decision,
+math-coding/3.2, math-coding/3.2/decision,
+math-coding/3.3, math-coding/3.3/decision), the fixture
+asserts `>= 4` to tolerate future enum widening;
+schema.intent_oneOf == true (the schema declares an intent
+oneOf with two branches: a YAML-form string and a JSON-form
+object); schema.scope_oneOf == true (the schema declares a
+scope oneOf with two branches: a YAML-form object and a
+JSON-form $ref to common.json#/definitions/scope).
 
 Cram cwd is a bwrap tmp dir; the real project root is exposed
 by dune as $DUNE_SOURCEROOT. `mathc counters` is invoked with

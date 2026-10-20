@@ -136,7 +136,7 @@ the legacy `./decisions/` location. The "wrote ..." stdout
 line is suppressed because the path is bwrap-dependent; we
 assert on the file-system state instead.
 
-  $ mathc new-decision env-var-write-2026-10 --write >/dev/null
+  $ mathc new-decision env-var-write-2026-10 --write >/dev/null 2>&1
   $ test -f "$tmpdir/.math-coding/decisions/env-var-write-2026-10.yaml" && echo "wrote to .math-coding/: ok"
   wrote to .math-coding/: ok
   $ test ! -f "$tmpdir/decisions/env-var-write-2026-10.yaml" && echo "no legacy write: ok"

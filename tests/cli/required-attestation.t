@@ -122,9 +122,8 @@ no gap emitted:
   > EOF
   $ git add attestations/ && git commit -q -m "add attestation"
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc gate HEAD~1 HEAD > /tmp/req-att-gate-ok.json
-  [1]
   $ jq -c '{verdict, has_required_attestation_gap: ([.gaps[].obligation_id] | any(. | startswith("req-att-sample/required-attestation:")))}' < /tmp/req-att-gate-ok.json
-  {"verdict":"block","has_required_attestation_gap":true}
+  {"verdict":"pass","has_required_attestation_gap":false}
   $ cd /
   $ rm -rf "$tmp"
 

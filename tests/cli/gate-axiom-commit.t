@@ -17,6 +17,15 @@ path rule so the v3.0 evaluate path is exercised in isolation;
 without the sibling decision the kernel-rule path `gate_v32`
 would block independently of `evaluate`, masking the T3.1 wiring.
 
+MATH_CODING_DECISIONS_DIR and MATH_CODING_POLICY are pinned to the
+repo's own `decisions/` and `policies.yaml` because this fixture
+runs from a temp git repo outside the project root and
+`Path_config.resolve_with` probes its candidates relative to the
+process cwd, not to MATH_CODING_ROOT. The policy pin is what
+supplies the `axioms/**` exhaustive mode floor; without it the
+mode degrades to `tiny`, no rebuttal is demanded, and the verdict
+would be Unknown instead of Block.
+
 Acceptance gate for obligation `t3-1-gate-v30-risk-aware` of
 the meta-decision `decisions/plan-2026-10-improvements@1` and
 the sub-decision `decisions/plan-2026-10-improvements/t3-1.yaml@1`.
@@ -39,7 +48,7 @@ the sub-decision `decisions/plan-2026-10-improvements/t3-1.yaml@1`.
   $ git diff HEAD~1 HEAD --name-only
   axioms/A0.md
   decisions/t3-1-axiom-toucher.yaml
-  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" mathc gate HEAD~1 HEAD | jq -c 'del(.now) | {verdict}'
+  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_POLICY="policies.yaml" mathc gate HEAD~1 HEAD | jq -c 'del(.now) | {verdict}'
   {"verdict":"block"}
   $ cd /
   $ rm -rf "$tmp"

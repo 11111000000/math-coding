@@ -42,7 +42,7 @@ identical to the new layout (one master file, two store
 directories).
 
   $ mathc validate decisions/decision.yaml
-  accept: decisions/decision.yaml
+  parse-ok: decisions/decision.yaml
     decision: bootstrap-v3
     revision: 1
     obligations: 1

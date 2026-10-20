@@ -44,21 +44,24 @@ The decision file is in main:
   $ test -f tests/body_canonical_test.ml
   $ test -f lib/decision.ml
 
-The decision file's body_sha equals its yaml_sha (trivial case):
+The decision file's body_sha equals its yaml_sha (trivial case).
+The dynamic SHA is recomputed from the live file so the assertion
+survives future edits to the decision's metadata (a content
+change that did NOT also touch body_sha / yaml_sha would
+recompute to a different hash, but since both lines live in
+the same one-line replace map below, the printed hash will
+match the algorithm's redigest of the canonical body):
 
-  $ python3 -c "
+  $ computed_hex=$(python3 -c "
   > import re, hashlib
   > PLACEHOLDER = 'sha256:' + '0' * 64
   > text = open('decisions/d5-body-vs-wrapper-canonical-2026-10.yaml', 'rb').read().decode('utf-8').replace('\r\n', '\n')
   > text = re.sub(r'body_sha: \"sha256:[a-f0-9]{64}\"', f'body_sha: \"{PLACEHOLDER}\"', text)
   > text = re.sub(r'yaml_sha: \"sha256:[a-f0-9]{64}\"', f'yaml_sha: \"{PLACEHOLDER}\"', text)
-  > print('sha256:' + hashlib.sha256(text.encode('utf-8')).hexdigest())"
-  sha256:318500d3507b577f3c234d4a5cfec6c9c7b0a46012581a9e76244c7da3f52a1f
-
-The decision file's stored body_sha matches the algorithm's output:
-
-  $ rg '^body_sha' decisions/d5-body-vs-wrapper-canonical-2026-10.yaml
-  body_sha: "sha256:318500d3507b577f3c234d4a5cfec6c9c7b0a46012581a9e76244c7da3f52a1f"
+  > print(hashlib.sha256(text.encode('utf-8')).hexdigest())")
+  $ stored_hex=$(rg '^body_sha' decisions/d5-body-vs-wrapper-canonical-2026-10.yaml | sed 's/^body_sha: "sha256:\([a-f0-9]\{64\}\)"/\1/')
+  $ [ "$stored_hex" = "$computed_hex" ] && echo "stored body_sha matches algorithm output: ok"
+  stored body_sha matches algorithm output: ok
 
 The kernel exposes the body_canonical_sha256 helper (referenced in
 the comment block via the placeholder-substitution algorithm name):
@@ -68,6 +71,8 @@ the comment block via the placeholder-substitution algorithm name):
 
 The trap log entry for the Str interval quantifier absence is
 recorded (so future agents do not lose an hour to it again):
+(OCAML_BEST_PRACTICES.md was renamed to OCAML_KERNEL_CONVENTIONS.md
+in commit 45b21439; the trap log entry moved with the rest of the doc.)
 
-  $ rg '^### 11\.32' OCAML_BEST_PRACTICES.md
+  $ rg '^### 11\.32' OCAML_KERNEL_CONVENTIONS.md
   ### 11.32 `Str.regexp` does not support the `\{n\}` interval quantifier

@@ -9,31 +9,47 @@ The cram shell's cwd is a bwrap tmp dir. mathc is on the PATH
 fresh mktemp dir as the project root, runs `mathc new-decision`
 with MATH_CODING_ROOT pointed at it, then asserts on the output.
 
+The kernel emits the canonical 47-line template on `print`
+and `write`, plus a soft stderr warning
+`deficit/MC-AXIOM-LINK-INFERENCE-EMPTY: ...` whenever the
+template lacks `axiom_link`. We `2>/dev/null` the warning
+out of each assertion (the warning is exercised by a
+dedicated test, axiom-link-inference-2026-10) and grep or
+sed for the structural tokens we care about.
+
 Print path: id is kebab-case; mathc exits 0 and emits a YAML
 template with `id: <id>` and `schema: math-coding/3.2`.
+We pin the first three lines (`--- schema: ..., id: <id>`)
+to verify the YAML front-matter without depending on the
+full body shape, which is load-bearing in a separate test.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation
-  --- (glob)
-     schema: math-coding/3.2
-     id: jwt-rotation (glob)
-  $ grep -q '^schema: math-coding/3.2' <(MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation) \
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation 2>/dev/null | head -3
+  ---
+  schema: math-coding/3.2
+  id: jwt-rotation
+  $ grep -q '^schema: math-coding/3.2' <(MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation 2>/dev/null) \
   >   && echo "schema-string: ok"
   schema-string: ok
   $ rm -rf "$tmpdir"
 
 Write path: --write creates decisions/<id>.yaml in the project
 root and prints the path. The directory is created if absent.
+The printed path is mktemp-random so we sed-normalise the
+prefix to `<TMP>` (kernel writes both stdout and stderr;
+`2>/dev/null` would suppress the soft axiom-link warning but
+also hide the path on hosts where --write uses stderr; we
+sed-strip the tmpdir prefix instead).
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write
-  mathc new-decision: wrote *tmpdir/decide*/jwt-rotation.yaml (glob)
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write 2>&1 | sed "s|$tmpdir|<TMP>|g"
+  deficit/MC-AXIOM-LINK-INFERENCE-EMPTY: scope.paths includes <path/glob/that/this/decision/touches/**>; top candidates: A0 (separation); add axiom_link
+  mathc new-decision: wrote <TMP>/decisions/jwt-rotation.yaml
   $ test -f "$tmpdir/decisions/jwt-rotation.yaml" && echo "file: ok"
   file: ok
-  $ grep -q '^id: jwt-rotation' "$tmpdir/decisions/jwt-rotation.yaml" \
-  && echo "id in file: ok"
+  $ grep -q '^id: jwt-rotation' "$tmpdir/decisions/jwt-rotation.yaml" && echo "id in file: ok"
   id in file: ok
   $ rm -rf "$tmpdir"
 
@@ -43,7 +59,7 @@ existing file content is untouched.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write >/dev/null
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write >/dev/null 2>/dev/null
   $ if MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write 2>/dev/null; then
   >   echo "FAIL: expected exit 1 on overwrite"; exit 1
   > else
@@ -57,7 +73,7 @@ mathc prints the template with a one-line note and exits 0.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --interactive | head -1
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --interactive 2>/dev/null | head -1
   mathc new-decision: --interactive is a no-op stub in this slice; the printed template below is the scaffold.
   $ rm -rf "$tmpdir"
 
@@ -75,7 +91,8 @@ violation message.
 Minimal template: `--template=minimal` emits the 5-7 user-editable
 field stub on schema `math-coding/3.3`. The output includes
 `state: active` and links `bootstrap-v3@3` via `relations.addresses`.
-The output passes `mathc validate` (the soft
+The output passes `mathc validate` (the kernel's `parse-ok`
+verdict is the live accept token; the soft
 `deficit/MC-COUNTEREXAMPLE-MISSING` warning is expected because
 the user fills the stub in).
 
@@ -90,7 +107,7 @@ the user fills the stub in).
   $ grep -q '^  addresses:' "$stub" && grep -q '^    - bootstrap-v3@3' "$stub" \
   >   && echo "relations.bootstrap-v3: ok"
   relations.bootstrap-v3: ok
-  $ mathc validate "$stub" 2>&1 | grep -q '^accept:' && echo "validate: ok"
+  $ mathc validate "$stub" 2>&1 | grep -qE '^(parse-ok|accept):' && echo "validate: ok"
   validate: ok
   $ rm -rf "$tmpdir"
 
@@ -103,8 +120,8 @@ explicit and the bare default emit the same content.
   $ tmpdir=$(mktemp -d)
   $ stub=$tmpdir/full-stub.yaml
   $ default=$tmpdir/full-default.yaml
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-full-id --template=full > "$stub"
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-full-id > "$default"
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-full-id --template=full > "$stub" 2>/dev/null
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-full-id > "$default" 2>/dev/null
   $ diff -u "$stub" "$default" >/dev/null && echo "default == --template=full: ok"
   default == --template=full: ok
   $ grep -q '^schema: math-coding/3.2' "$stub" && echo "schema 3.2: ok"
@@ -125,13 +142,14 @@ Invalid --template value: `--template=invalid` exits 2 with the
 Minimal-pipes-validation round-trip: the minimal stub round-trips
 through `mathc validate --format=json` (via a temp file because
 `mathc validate` takes FILE not stdin) and exits 0 with verdict
-`accept`. The output is filtered to the JSON verdict line so
-the soft warn line does not appear in the matched block.
+`parse-ok` (the live accept token after the validate-protocol
+bump; the older `accept` is kept as a tolerated alias for
+in-tree callers).
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ stub=$tmpdir/min-stub.yaml
   $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-id --template=minimal > "$stub"
   $ mathc validate --format=json "$stub" 2>/dev/null | jq -r '.verdict' 2>/dev/null || echo "no jq available"
-  accept
+  parse-ok
   $ rm -rf "$tmpdir"

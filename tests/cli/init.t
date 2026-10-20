@@ -10,10 +10,17 @@ the output and on the resulting directory tree.
 
 Empty directory: init succeeds and creates the expected files.
 
+The kernel prints the full bwrap tmpdir path (`/tmp/nix-shell.XXXX/...`),
+which differs on every machine and every run. We pipe the output
+through `sed "s|$tmpdir|<TMP>|g"` to normalise the path component and
+keep the test hermetic; every semantic token (exit code, "created"
+prefix, schema version, agent marker, "skipped" note) is still
+matched literally.
+
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ mathc init "$tmpdir" --no-install
-  mathc init: created /tmp/nix-shell.U1N979/build_feb560_dune/tmp.KPL1rmmOsi/decisions, /tmp/nix-shell.U1N979/build_feb560_dune/tmp.KPL1rmmOsi/attestations
+  $ mathc init "$tmpdir" --no-install 2>&1 | sed "s|$tmpdir|<TMP>|g"
+  mathc init: created <TMP>/decisions, <TMP>/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
   $ test -d "$tmpdir/decisions" && echo "decisions/: ok"
@@ -47,8 +54,8 @@ Brownfield with --merge: init proceeds.
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/docs/arc42"
-  $ mathc init "$tmpdir" --merge --no-install
-  mathc init: created /tmp/nix-shell.U1N979/build_feb560_dune/tmp.TxfDto0ing/decisions, /tmp/nix-shell.U1N979/build_feb560_dune/tmp.TxfDto0ing/attestations
+  $ mathc init "$tmpdir" --merge --no-install 2>&1 | sed "s|$tmpdir|<TMP>|g"
+  mathc init: created <TMP>/decisions, <TMP>/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
   $ test -f "$tmpdir/decisions/decision.yaml" && echo "decision.yaml created with --merge"

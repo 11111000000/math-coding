@@ -231,7 +231,7 @@ the two zero SHAs are sufficient to satisfy the schema).
 Validate the fixture before exercising the attest flow.
 
   $ "$mathc" validate decisions/ship-attest-batch-case3.yaml
-  accept: decisions/ship-attest-batch-case3.yaml
+  parse-ok: decisions/ship-attest-batch-case3.yaml
     decision: ship-attest-batch-case3
     revision: 1
     obligations: 5

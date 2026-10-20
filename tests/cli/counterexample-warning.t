@@ -2,7 +2,7 @@ mathc validate emits an MC-COUNTEREXAMPLE-MISSING Warn diagnostic
 when a decision lacks the `counterexample` field AND the
 decision's `mode` is in {tiny, light}. Counterexample is a
 dialectical slot — when absent at tiny/light modes, the
-diagnostic is a Warn and the verdict stays `accept`. (For
+diagnostic is a Warn and the verdict stays `parse-ok`. (For
 modes >= standard an empty counterexample is a Block; the
 T6.2 cram test `tests/cli/validate-counterexample-required.t`
 covers that separate rule.)
@@ -47,10 +47,10 @@ plain accept.
   >   owner: human:maintainer
   > EOF
   $ mathc validate --format=json has-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  ["accept",[]]
+  ["parse-ok",[]]
 
 A `mode: light` decision without counterexample: warning
-emitted, verdict still accept (dialectical slot, not a hard
+emitted, verdict still parse-ok (dialectical slot, not a hard
 requirement at light mode).
 
   $ cat > no-counterexample.yaml <<EOF
@@ -84,7 +84,7 @@ requirement at light mode).
   > EOF
   $ mathc validate --format=json no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
-  ["accept",["MC-COUNTEREXAMPLE-MISSING"]]
+  ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 JSON form: counterexample as an array of strings (one per
 dialectical objection) is also accepted without warning at
@@ -115,7 +115,7 @@ dialectical objection) is also accepted without warning at
   > }
   > EOF
   $ mathc validate --format=json counterexample-array.json | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  ["accept",[]]
+  ["parse-ok",[]]
 
 Cleanup:
   $ cd /

@@ -36,21 +36,22 @@ the JSON-form parser trips both fixtures simultaneously.
 
   $ cp "$DUNE_SOURCEROOT/fixtures/conformance/decision/positive-minimal.json" test.json
 
-Validate. The verdict is accept and exit code is 0 -- the same
-verdict `tests/cli/validate-positive.t` expects when run against
-the same fixture in the main checkout (where `schemas/` exists).
-The test passing here proves the embedded-schemas path produces
-the same verdict as the on-disk-schemas path.
+Validate. The verdict is `parse-ok` and exit code is 0 -- the
+same verdict `tests/cli/validate-positive.t` expects when run
+against the same fixture in the main checkout (where `schemas/`
+exists). The test passing here proves the embedded-schemas path
+produces the same verdict as the on-disk-schemas path.
+(`accept` was renamed to `parse-ok` in commit a602b361.)
 
   $ mathc validate test.json
-  accept: test.json
+  parse-ok: test.json
     decision: redis-origin-fallback
     revision: rev:41aa92
     obligations: 1
     assumptions: 1
 
 Run with --format=json to get the machine-readable verdict. The
-verdict field MUST be "accept"; the exit code MUST be 0.
+verdict field MUST be "parse-ok"; the exit code MUST be 0.
 
   $ mathc validate --format=json test.json
   {"verdict":"parse-ok","path":"test.json","decision":"redis-origin-fallback","revision":"rev:41aa92","obligations":1,"assumptions":1}

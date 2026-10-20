@@ -100,7 +100,7 @@ guard rejected these; the new `mode_geq_considered` guard
 accepts them. (This is the file shape that produced the 60+
 prior failures at HEAD pre-fix.)
 
-  $ cat > mode-standard-no-antithesis.yaml <<EOF
+  $ cat > mode-standard-no-antithesis.yaml <<'EOF'
   > ---
   > schema: math-coding/3.0-alpha
   > id: mode-standard-no-antithesis-demo

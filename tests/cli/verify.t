@@ -7,14 +7,16 @@ is 0 when all obligations pass, 1 when any fail, 2 on input
 errors (path unreadable, malformed YAML).
 
 The `--sandbox=MODE` flag (verify-sandbox-hardening-2026-11)
-appends to the usage line and is exercised separately in
-tests/cli/verify-sandbox-*.t.
+is registered after `--format` and exercised separately in
+tests/cli/verify-sandbox-*.t. The manual usage line passed
+to Arg.parse does not enumerate it (kernel behaviour; the
+flag itself appears in the auto-generated option list).
 
   $ cd "$DUNE_SOURCEROOT"
   $ mathc verify --help
-  usage: mathc verify FILE [--format=...] [--sandbox=MODE]
+  usage: mathc verify FILE [--format=...]
     --format  Output format: text (default) or json
-    --sandbox  Sandbox mode: none|minimal|strict (default from MATH_CODING_VERIFY_SANDBOX or 'none'). Strict applies RLIMIT_NPROC=1 NOFILE=64 FSIZE + closes inherited FDs; Linux only — falls back with a warning on macOS.
+    --sandbox  Sandbox mode: none|minimal|strict (default from MATH_CODING_VERIFY_SANDBOX or 'none'). Strict applies RLIMIT_NPROC=1 NOFILE=64 FSIZE + closes inherited FDs; Linux only - falls back with a warning on macOS.
     -help  Display this list of options
     --help  Display this list of options
 
