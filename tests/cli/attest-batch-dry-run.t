@@ -13,20 +13,21 @@ cannot pollute the host checkout.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d) && cd "$tmpdir"
+  $ export MATH_CODING_ROOT="$tmpdir"
   $ export MATH_CODING_DECISIONS_DIR=".test-math-coding/decisions"
   $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
   $ mkdir -p "$MATH_CODING_ATTESTATIONS_DIR"  # present but empty
   $ before=$(ls .test-math-coding/attestations | wc -l)
   $ mathc attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
-  >   --dry-run > /tmp/attest-batch-dry-run.stdout.jsonl
+  >   --dry-run > $tmpdir/attest-batch-dry-run.stdout.jsonl
 
 Three lines of stdout, one per manifest row.
 
   $ python3 -c "
   > import sys
   > n = 0
-  > for line in open('/tmp/attest-batch-dry-run.stdout.jsonl'):
+  > for line in open('$tmpdir/attest-batch-dry-run.stdout.jsonl'):
   >     assert line.endswith('\n'), repr(line)
   >     assert line.count('{') == line.count('}'), line
   >     n += 1
@@ -51,7 +52,7 @@ JSON and assert the `id` equals SHA-256 of the canonical body
   $ python3 -c "
   > import hashlib, json
   > ok = 0
-  > for line in open('/tmp/attest-batch-dry-run.stdout.jsonl'):
+  > for line in open('$tmpdir/attest-batch-dry-run.stdout.jsonl'):
   >     d = json.loads(line)
   >     body = {k: v for k, v in d.items() if k != 'id'}
   >     payload = json.dumps(body, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode('utf-8')
@@ -61,7 +62,7 @@ JSON and assert the `id` equals SHA-256 of the canonical body
   > print('dry-run rows with valid id:', ok)
   > "
   dry-run rows with valid id: 3
-  $ rm -f /tmp/attest-batch-dry-run.stdout.jsonl
+  $ rm -f $tmpdir/attest-batch-dry-run.stdout.jsonl
 
   $ cd /
   $ rm -rf "$tmpdir"
