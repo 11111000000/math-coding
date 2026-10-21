@@ -1,0 +1,247 @@
+---
+schema: math-coding/3.2
+id: new-decision-mkdir-parent-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: bugfix
+
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+scope:
+  paths:
+    - lib/new_decision/new_decision.ml
+    - lib/path_config.ml
+    - tests/cli/new-decision.t
+    - tests/cli/new-decision-axiom-warn.t
+    - tests/cli/init.t
+
+intent: |
+  `mathc new-decision ID --write` could not create a decision in a
+  project that did not already hold a decisions directory. The write
+  path used a single-level `Unix.mkdir`, while the directory it
+  passes to `mkdir` is frequently nested one level deeper than the
+  tree it is anchored on:
+
+      mathc: internal error:
+        Unix.Unix_error(Unix.ENOENT, "mkdir", "<TMP>/.math-coding/decisions")
+
+  Reproduced against `9150b07` with a from-clean build:
+
+      tmpdir=$(mktemp -d)
+      MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write
+      # exit 3, nothing written
+
+  The chain, step by step, for that invocation:
+
+    1. `new_decision.project_root` returns `$MATH_CODING_ROOT`, i.e.
+       the empty tmpdir.
+    2. `Path_config.resolve_decisions_dir ~root` asks
+       `layout_of ~root`, which probes the six layout markers under
+       that root. An empty tree carries none of them, so `layout_of`
+       falls through to its documented default and answers `New`.
+    3. `resolve_decisions_dir` therefore returns the forward-layout
+       path `.math-coding/decisions`, NOT the legacy `decisions/`.
+    4. `Unix.mkdir` creates that path directly. Its parent
+       `.math-coding/` is created only by `mathc init`, which this
+       command does not require to have run, so the parent is absent
+       and `mkdir` raises `ENOENT`.
+    5. Nothing catches it at this site, so it escapes to the
+       dispatcher handler and is printed as an internal error.
+
+  Step 4 is the defect. The mkdir was one level deep; the path it
+  was handed is two.
+
+  Relation to `path-probe-anchoring-2026-11@2`: that decision added
+  the `dune-project` climb and anchored the layout probe on `~root`.
+  Both changes alter WHICH TREE the resolver reads. Neither changes
+  how DEEP the mkdir goes, so the write fails on exactly the path the
+  climb was added to rescue. Measured, not assumed: `new-decision.t`
+  and `new-decision-axiom-warn.t` are red at `7a4cabc` too, under a
+  clean build whose binary differs from both the pre-fix and post-fix
+  binaries. The mkdir defect therefore PREDATES `c762a3f` and
+  `9150b07`; those commits widened the set of roots that reach the
+  broken mkdir without introducing it.
+
+commitment: |
+  (a) `new-decision --write` creates the resolved decisions directory
+      recursively, parents included, matching the shape already used
+      by `lib/import_adr/import_adr.ml` and `lib/init/init.ml`.
+  (b) No new fixture expectation is invented to accommodate the
+      defect. `tests/cli/new-decision.t` asserted the LEGACY path
+      `<TMP>/decisions/` for a fresh `mktemp -d` root. That assertion
+      is what this revision corrects, on four independent pieces of
+      evidence, listed under `evidence`.
+
+counterexample: |
+  "The fixture said `decisions/`, so the fixture knew the intended
+  layout and the code drifted." This is the strongest objection to the
+  whole revision, and it would sink both the mkdir change and the
+  fixture change if it were right. It is not, but the reason it is
+  not is worth stating precisely, because the fixture was not
+  arbitrary: `decisions/` was correct behaviour for this command at
+  some earlier revision, when `new-decision` resolved against the
+  process cwd and the caller usually stood inside an existing
+  project. `Path_config` then re-anchored the probe on `~root`, which
+  is the change that made an empty tmpdir resolve to `New` instead.
+  So the fixture went stale, and it went stale silently: a test
+  asserting a stale layout still asserts something real, and a test
+  asserting a real-but-stale thing fails in a way that looks exactly
+  like a code defect.
+
+  The generalisation this commits to: a cram expectation that pins a
+  RESOLVED path is only meaningful while it is re-derived from the
+  resolver's contract. Once the resolver changes what it answers for
+  a given tree, the expectation has to be re-checked against the
+  contract rather than against history -- which is why this revision
+  cites `init.t` as the sibling pin instead of asserting that the new
+  value is simply "what the code now does".
+
+antithesis: |
+  The obvious counter-argument is that the FIXTURE is right and the
+  code is wrong: a fresh project should receive the pre-3.4
+  `decisions/` tree, so `layout_of` returning `New` for an empty tree
+  is the real defect, and the mkdir was merely the messenger.
+
+  That reading requires `mathc init` and `Path_config` to disagree
+  about an empty tree. They do not. `init.t` in this same directory
+  asserts `.math-coding/` for a fresh tmpdir and states the rule in
+  prose; `init-legacy.t` reaches `decisions/` only through explicit
+  legacy env-vars; the kernel's own `scaffold` calls the same
+  resolver and produces `.math-coding/`. Changing `layout_of` to suit
+  the fixture would break `init.t` and the v3.4 migration contract
+  together, and would trade a one-line mkdir for a migration-policy
+  change. Rejected.
+
+outcomes:
+  - id: fresh-project-write-succeeds
+    result: pass
+    detail: |
+      `new-decision.t` and `new-decision-axiom-warn.t` both go green.
+      Neither was green before this revision, at `7a4cabc` or at
+      `9150b07`.
+
+evidence:
+  - id: the-four-claimed-init-failures-were-green
+    measurement: |
+      The report that prompted this fix listed `init-defaults.t`,
+      `init-legacy.t`, `init-scope-language-agnostic.t` and `render.t`
+      as failing with the mkdir error. Measured on a clean build of
+      pristine `9150b07`, all four PASS. They pass because each one
+      sets `MATH_CODING_DECISIONS_DIR` (and siblings) explicitly, so
+      `resolve_with` returns the env-var branch before `layout_of` is
+      ever consulted, and the resolved path is a single level deep --
+      which is the only shape the old single-level mkdir could
+      survive. `init-defaults.t` even asserts that `.math-coding/` is
+      NOT created. These four never exercised the defect.
+
+  - id: doctor-is-green-at-this-head
+    measurement: |
+      `doctor.t` was also listed as failing. It passes on a clean
+      build of pristine `9150b07`. An earlier report of `[decisions]
+      warn` came from a stale binary: `mathc` on the developer's PATH
+      is `/home/az/.local/bin/mathc`, an installed copy, not the build
+      under test. Measured with a verified from-clean binary,
+      `doctor.t` is green before and after this revision, and this
+      revision does not touch it.
+
+  - id: build-command-that-silently-breaks-measurement
+    measurement: |
+      `dune build bin/mathc.exe mathc_mcp.exe` fails with
+      "Don't know how to build mathc_mcp.exe"; the target is
+      `bin/mathc_mcp.exe`. Any measurement that appends the bare name
+      never builds a binary and silently re-runs the previous one.
+      Every number in this decision was taken from `dune clean`
+      followed by `dune build @install` with a non-zero exit checked
+      and the binary digest recorded.
+
+assumptions:
+  - id: layout-of-an-empty-tree-is-new
+    state: assumed
+    statement: |
+      `Path_config.layout_of` answers `New` for a tree holding no
+      layout marker. Treated as the kernel's contract, not as a
+      tunable: it is the documented default in `lib/path_config.ml`,
+      it is what `mathc init` produces, and `tests/cli/init.t` pins it
+      for the identical input shape.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the resolver is instead meant to answer `Legacy` for an
+      empty tree, this revision's fixture change is wrong in the same
+      way the old expectation was, and `mathc init` is wrong with it:
+      `init.t` asserts `.math-coding/` for a fresh tmpdir and would
+      have to be reopened at the same time. That is a migration
+      decision, not a bugfix, and it belongs to whoever owns the
+      v3.4 layout contract.
+    review_on:
+      - signal: layout-of-changes-for-an-empty-tree
+
+obligations:
+  - id: new-decision-creates-resolved-dir-recursively
+    claim: |
+      `mathc new-decision ID --write` against a project root that has
+      no decisions directory creates the resolved directory including
+      its parents, writes the decision there, prints the path, and
+      exits 0.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: tests/cli/new-decision.t
+          result: pass
+  - id: write-mode-keeps-its-soft-warning
+    claim: |
+      The `--write` path still emits the axiom-link inference warning
+      and the `wrote` line, and the force-overwrite guard still
+      refuses a second write with exit 1.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: tests/cli/new-decision-axiom-warn.t
+          result: pass
+  - id: forward-layout-stays-the-fresh-project-default
+    claim: |
+      A fresh project root resolves to `.math-coding/`, unchanged by
+      this revision. `init` scaffolding is untouched.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: tests/cli/init.t
+          result: pass
+        - verifier: tests/cli/init-defaults.t
+          result: pass
+        - verifier: tests/cli/init-legacy.t
+          result: pass
+
+reversal: |
+  Revert the two-file change. The revert restores a state in which
+  `new-decision --write` fails on any project without an existing
+  decisions directory, which `tests/cli/new-decision.t` will
+  immediately report.
+
+risk:
+  declared_triggers:
+    - mkdir-depth-changed-without-fixture
+    - resolver-default-changed-under-a-green-suite
+  drift_recurs: |
+    This revision adds a fifth copy of the same recursive mkdir. The
+    copies now live in `lib/new_decision/new_decision.ml`,
+    `lib/import_adr/import_adr.ml`, `lib/init/init.ml`, and twice in
+    `bin/Mathc.ml`. Any future edit to one of them need not touch the
+    others, and the defect this revision fixes is precisely what a
+    copy diverging in the wrong direction looks like. Consolidating
+    them into one helper is the honest follow-up and was not done
+    here because it widens the blast radius of a defect fix.
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - path-probe-anchoring-2026-11@2
+  depends_on:
+    - path-probe-anchoring-2026-11
+  supersedes: []
