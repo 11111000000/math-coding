@@ -62,21 +62,6 @@ cleanup_dune() {
       rm -f _build/.lock
     fi
   fi
-
-  # Drop dune's cram result cache before a run. Each cram test keeps
-  # a recorded outcome in `_build/**/.cram.<name>/cram.out`
-  # (`DUNE-CRAM-RESULTv2`), keyed on the fixture's digest. The binary
-  # reaches the sandbox through `_build/install/default/bin/mathc`,
-  # a SYMLINK to `_build/default/bin/mathc.exe`, so a kernel rebuild
-  # changes the target without changing anything the cache key can see
-  # -- and the stale recorded output is replayed instead of a fresh
-  # run. Measured on 2026-10-20: `init-defaults.t` kept failing on a
-  # missing applicability-envelope block that the current binary
-  # prints, and a byte-identical copy of the same file under another
-  # name passed, because the copy had no cache directory. `dune clean`
-  # cleared it; removing the cache directories is the cheap version of
-  # the same remedy and keeps the suite honest between runs.
-  find _build -type d -name '.cram.*' -prune -exec rm -rf {} + 2>/dev/null || true
 }
 
 for f in "${fixtures[@]}"; do
