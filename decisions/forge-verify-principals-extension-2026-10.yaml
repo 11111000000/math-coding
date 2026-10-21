@@ -1,0 +1,373 @@
+---
+schema: math-coding/3.2
+id: forge-verify-principals-extension
+revision: 1
+state: draft
+parents:
+  - forge-principal-verification@1
+body_sha: "sha256:PENDING_AT_COMMIT_TIME"
+yaml_sha: "sha256:PENDING_AT_COMMIT_TIME"
+axiom_link:
+  - A1
+  - A4
+commitment: |
+  Extend the upstream `mathc forge-verify` subcommand
+  (shipped via decision `forge-principal-verification@1`,
+  revision 1, currently on main at `2c3145a`) with the
+  decision-driven principal list and richer CLI surface
+  captured in the WIP analysis
+  (`ANALYSIS-forge-verify-principals-extension.md`,
+  branch `forge-verify-analysis-2026-10`).
+
+  After this decision lands on main, in addition to (a)-(d)
+  in `forge-principal-verification@1`:
+
+    (e) `lib/domain.ml::decision` carries an **optional**
+        field `required_principals : string list`, default
+        `[]`. The kernel reads each entry via
+        `lib/forge.ml::parse_principal` and treats an
+        absent field identically to an empty list (no
+        schema migration; no breaking change to existing
+        decisions).
+
+    (f) `lib/decision.ml::parse_decision` accepts the
+        `required_principals:` YAML block at parse time,
+        storing it into `Domain.required_principals` via
+        the same `Schema.take_array` path the WIP used.
+        Decisions without the field parse unchanged.
+
+    (g) `bin/Mathc.ml::do_forge_verify` gains three new
+        flags:
+          --principal=KIND:NAME   single-principal override
+                                 for testing (parsed via
+                                 `lib/forge.ml::parse_principal`;
+                                 supersedes the
+                                 `--org/--team/--user` triplet
+                                 for the duration of the call)
+          --head=COMMIT           commit to inspect (default
+                                 `HEAD`; uses
+                                 `git log -1 --format=%ae`)
+          --dry-run               skip the HTTP call; emit
+                                 the JSON verdict as if the
+                                 forge replied with
+                                 `forge_queried:false`
+
+        The existing `--org/--team/--user/--committer/
+        --fail-mode` flags remain, and the JSON shape from
+        revision 1 stays backward-compatible: new fields
+        are additive.
+
+    (h) When `mathc forge-verify DECISION` is invoked with
+        a positional decision path, the subcommand reads
+        `required_principals` from that decision, calls
+        `parse_principal` on each entry, and emits
+        verdict=pass iff **every** principal matches
+        (intersection semantics: at least one matching
+        principal is insufficient; this differs from the
+        WIP draft and is a deliberate correction — see
+        counterexample §"intersection vs union").
+        The decision's `required_principals` is also
+        emitted in the output JSON for audit.
+
+    (i) `tests/cli/forge-verify.t` gains three new cases:
+          - principal K:N single-principal override
+            produces the expected JSON shape;
+          - decision with `required_principals: [a, b]`
+            yields block when any principal fails;
+          - `--dry-run` plus unset
+            `MATH_CODING_FORGE_API` yields verdict=pass
+            with `forge_queried:false`.
+
+  No change to `lib/gate.ml` (forge-verify stays a CLI
+  utility, not a gate obligation). No change to
+  `lib/policy.ml` (path-policy with `required_principals`
+  is a separate T-point, if needed). No change to
+  `lib/rebuttal.ml` (env-contract `MATH_CODING_FORGE_API`
+  preserved). No change to `schemas/decision.json` —
+  `required_principals` is optional.
+
+  The WIP draft (`8f593fa`) is intentionally not merged;
+  its `lib/forge.ml` is missing, `parse_fail_mode ()` is
+  undefined, and `tests/cli/forge-verify.t` is absent.
+  This decision re-implements (e)-(i) on top of the
+  upstream tree at `2c3145a`, not by re-applying the WIP.
+
+intent: |
+  The forge-membership check in revision 1 verifies that
+  *one* (org, team, user) tuple passes. The kernel does
+  not yet know which teams are expected to vouch for which
+  decision, and the CLI does not accept a richer principal
+  model (kind+name). A reviewer editing a kernel file can
+  pass the forge check by being in any one team; there is
+  no way to require membership in *all* of several teams.
+
+  This decision closes that gap by:
+    (1) attaching `required_principals` to the Decision
+        itself, so the policy travels with the artifact;
+    (2) extending the CLI to consult that list, with
+        single-principal and head-override escapes for
+        ad-hoc use;
+    (3) keeping the upstream `fail-mode` and JSON contract
+        intact, so the extension is additive.
+
+  Why intersection, not union, in (h):
+  see counterexample §"intersection vs union". Union
+  semantics let a malicious committer in any one team
+  pass; intersection is the only mode consistent with A4
+  (authority must be earned, not diluted).
+
+scope:
+  capabilities:
+    - forge-membership-check
+    - decision-driven-principal-list
+    - committer-authority-attestation
+  paths:
+    - "lib/domain.ml"
+    - "lib/decision.ml"
+    - "bin/Mathc.ml"
+    - "lib/forge.ml"
+    - "lib/dune"
+    - "tests/cli/forge-verify.t"
+    - "tests/conformance.ml"
+    - "decisions/forge-verify-principals-extension-2026-10.yaml"
+    - "ANALYSIS-forge-verify-principals-extension.md"
+  exclusions:
+    - "lib/gate.ml"
+    - "lib/policy.ml"
+    - "lib/rebuttal.ml"
+    - "schemas/**"
+    - "axioms/**"
+    - "spec/**"
+    - "decisions/plan-2026-10-improvements/**"
+
+outcomes:
+  - id: required-principals-on-decision
+    statement: |
+      `Domain.decision.required_principals : string list`
+      is the source of truth for which forge principals
+      must confirm a decision. The parser accepts the
+      `required_principals:` block in YAML; absent field
+      is `[]`. Existing decisions parse unchanged.
+
+  - id: principal-override-cli
+    statement: |
+      `mathc forge-verify --principal=KIND:NAME` overrides
+      the decision's `required_principals` with a single
+      principal for the duration of the call. `KIND` is
+      one of `team` (the only kind currently meaningful
+      via `lib/forge.ml::team_member_full`); other kinds
+      are reserved and emit a Warn diagnostic.
+
+  - id: head-override-cli
+    statement: |
+      `mathc forge-verify --head=COMMIT` inspects the
+      given commit instead of `HEAD`. The committer is
+      obtained via `git log -1 --format=%ae COMMIT`. The
+      default remains `HEAD`.
+
+  - id: dry-run-cli
+    statement: |
+      `mathc forge-verify --dry-run` skips the HTTP call
+      and returns the JSON verdict as if the forge had
+      replied with `forge_queried:false`. Useful for
+      smoke-testing principal resolution without network
+      access.
+
+  - id: intersection-verdict
+    statement: |
+      When `mathc forge-verify DECISION` is invoked with
+      a positional decision, the verdict is `pass` iff
+      every entry in `required_principals` matches
+      (intersection). Any non-match yields `block` and
+      exit 1. `--fail-mode open` (default) reverts to
+      `pass` when `MATH_CODING_FORGE_API` is unset,
+      matching revision 1 behaviour.
+
+  - id: required-principals-ratchet-fixture
+    statement: |
+      `tests/cli/forge-verify.t` includes a fixture
+      `tests/fixtures/conformance/required-principals/`
+      with at least one decision that carries
+      `required_principals: [team:kernel-reviewers,
+      team:security-...]`, asserted via
+      `tests/conformance.ml::required_principals_roundtrip`.
+
+obligations:
+  - id: required-principals-on-decision
+    outcome: required-principals-on-decision
+    claim: |
+      `lib/decision.ml` parses `required_principals:` as
+      a `string list`; absent field defaults to `[]`.
+      `lib/domain.ml::decision` exposes the field.
+      `bin/Mathc.ml::packages` and any other counter
+      sites in the kernel handle the new field without
+      crashing.
+    acceptance:
+      all:
+        - verifier: tests/conformance.ml
+          result: pass
+        - verifier: tests/cli/forge-verify.t
+          result: pass
+        - verifier: mathc-validate
+          result: pass
+
+  - id: principal-override-cli
+    outcome: principal-override-cli
+    claim: |
+      `mathc forge-verify --principal=team:foo` parses
+      the kind/name pair, calls `lib/forge.ml::team_member_full
+      ~org:??? ~team:foo ~user:committer`, and emits the
+      expected JSON.
+    acceptance:
+      all:
+        - verifier: tests/cli/forge-verify.t
+          result: pass
+
+  - id: head-override-cli
+    outcome: head-override-cli
+    claim: |
+      `mathc forge-verify --head=HEAD~1` reads the
+      committer of `HEAD~1` via `git log`, not the
+      committer of `HEAD`.
+    acceptance:
+      all:
+        - verifier: tests/cli/forge-verify.t
+          result: pass
+
+  - id: dry-run-cli
+    outcome: dry-run-cli
+    claim: |
+      `mathc forge-verify --dry-run` plus unset
+      `MATH_CODING_FORGE_API` yields `verdict:pass`
+      and `forge_queried:false` without making a curl
+      call (verified by mocking `Unix.open_process_args_in`
+      in the cram test or by capturing `/dev/null`).
+    acceptance:
+      all:
+        - verifier: tests/cli/forge-verify.t
+          result: pass
+
+  - id: intersection-verdict
+    outcome: intersection-verdict
+    claim: |
+      `mathc forge-verify DECISION` with a decision
+      carrying `required_principals: [a, b]` yields
+      `verdict:block` when at least one of `a, b` is
+      not a team_member of the committer. `verdict:pass`
+      requires all to match.
+    acceptance:
+      all:
+        - verifier: tests/cli/forge-verify.t
+          result: pass
+        - verifier: tests/conformance.ml::required_principals_roundtrip
+          result: pass
+
+  - id: required-principals-ratchet-fixture
+    outcome: required-principals-ratchet-fixture
+    claim: |
+      A fixture decision under
+      `tests/fixtures/conformance/required-principals/`
+      carries `required_principals: [team:kernel-reviewers,
+      team:security-...]` and round-trips through
+      `lib/decision.ml::parse_decision` and
+      `lib/decision.ml::emit_decision` without loss.
+    acceptance:
+      all:
+        - verifier: tests/conformance.ml::required_principals_roundtrip
+          result: pass
+
+counterexample: |
+  Strongest objection (A4 authority):
+  "The Decision itself should NOT declare which teams
+  may approve it. That is the reviewer's job. Adding
+  `required_principals` to the Decision blurs the line
+  between artifact and policy, and locks the author into
+  a team-membership assumption that may rot over time
+  (teams are renamed, members leave, orgs split)."
+
+  Counterargument: `required_principals` is **optional
+  metadata**, not policy enforcement. The kernel does
+  not block on it; it only enriches the forge-verify
+  output when the field is present. Decisions that
+  omit the field parse and behave exactly as they did
+  under revision 1. The author's freedom to leave the
+  field out is preserved. The risk of "rot" is real
+  for any string-encoded principal ID — it is mitigated
+  by the `--principal=` override and by the explicit
+  `parse_principal` failure mode (unknown kind yields
+  a Warn, not a hard error).
+
+  Second strongest objection (A1 feedback):
+  "Intersection semantics in (h) make forge-verify
+  silently pass when `required_principals = []` even
+  if a policy says the decision must be vetted by some
+  team. An empty list is ambiguous: 'no requirement'
+  vs 'forgot to set the field'."
+
+  Counterargument: this ambiguity is the same one that
+  exists in the upstream `--fail-mode open` default
+  (no forge configured → pass). The protocol's A1
+  guarantee is that *every commitment has a path to an
+  observation*; forge-verify is an observation, not a
+  commitment. Empty list = "no observation requested",
+  which is a valid state. To make `required_principals`
+  mandatory, the author of the next decision has the
+  option of leaving the decision in `state: draft`
+  until the field is filled. No silent failure.
+
+  Antithesis (the position this decision rejected):
+  "Adopt option A — keep upstream as-is, close the
+  WIP, declare the feature complete." Rejected because
+  the WIP captured a real gap (no way to declare team
+  expectations on a decision) that the kernel should
+  not leave open indefinitely. Closing the WIP without
+  recording the gap would lose the work done to date.
+
+antithesis: |
+  "Don't extend forge-verify. Treat the upstream revision 1
+  as a complete feature: a single `--org --team --user`
+  triple per invocation, no decision-driven lists, no
+  head-override, no dry-run. Anyone who needs richer
+  behaviour should write a wrapper script that calls
+  `mathc forge-verify` repeatedly." This position is
+  internally consistent and matches the protocol's
+  closure-tight ethos (small surface, no policy
+  entanglement). It is rejected because the WIP already
+  identified a real use case — kernel files require
+  multiple teams to co-sign — and a wrapper script
+  pushes that policy out of the kernel and into
+  shell-glue, which is harder to audit.
+
+recovery: |
+  If a downstream user finds the new `required_principals`
+  field confusing or unstable:
+    1. The field is optional and unused by `lib/gate.ml`,
+       so removing it from `lib/decision.ml::parse_decision`
+       and from `lib/domain.ml::decision` is a
+       behavior-preserving change with no migration
+       burden.
+    2. The new CLI flags are additive; removing them
+       only narrows the surface area.
+    3. `tests/cli/forge-verify.t` cases for the new
+       flags are isolated and can be deleted without
+       affecting the revision 1 cases.
+  Forward recovery: the decision can be retired via a
+  superseding decision (e.g.,
+  `forge-verify-intersection-rejected-2026-10.yaml`)
+  that reverts (h) to union semantics if intersection
+  proves unworkable in practice.
+
+risk:
+  declared_triggers:
+    - intersection-vs-union-policy-confusion
+    - principal-id-rotation-bug
+    - schema-migration-on-existing-decisions
+    - head-override-misreads-merge-commit
+    - dry-run-hides-real-forge-errors
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - forge-principal-verification@1
+  supersedes: []
+  superseded_by: []
