@@ -330,6 +330,30 @@ Before opening a PR or marking work complete, verify:
 - [ ] No `stub`/`FIXME`/`Phase <N>` in lib/ or bin/ without paired `decisions/<id>.yaml` (run `scripts/check-stub-lint.sh`)
 - [ ] Branch is a worktree, not main checkout
 - [ ] Commit subject uses Conventional Commits prefix
+- [ ] **Branch verified before merge** — see below
+
+## Before merging into main
+
+`git merge-tree` reporting no conflict is a statement about *lines*.
+The kernel has its own opinion about *content*, and the two disagree
+regularly. Concretely, on 2026-10-20 a decision carrying the literal
+`sha256:PENDING_AT_COMMIT_TIME` merged into `main` with no conflict and
+was only caught an hour later, when `tests/cli/precommit.t` turned red
+on MC-BODY-SHA-PATTERN-VIOLATION (severity: block).
+
+So the check runs on the **branch**, before the merge, not on `main`
+afterwards:
+
+```sh
+git checkout <branch>
+mathc precommit            # walks decisions/, exits non-zero on any reject
+```
+
+`mathc precommit` rather than `mathc validate decisions/*.yaml`: validate
+dispatches on `Sys.argv.(2)` and silently ignores every later argument,
+so the latter validates exactly one file and reads like coverage.
+`scripts/check.sh` runs the same gate, so `scripts/check.sh` on the
+branch is equivalent and costs a full suite.
 
 ## Fast path (process-fastpath-2026-10)
 
