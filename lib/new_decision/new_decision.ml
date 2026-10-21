@@ -363,6 +363,29 @@ let project_root () =
           | Some p -> p
           | None -> Sys.getcwd ()))
 
+(* mkdir -p. The single-level `Unix.mkdir` this replaces raised an
+   uncaught `Unix_error (ENOENT, "mkdir", ...)` whenever the parent of
+   the resolved decisions directory did not exist yet. That is the
+   ordinary case for a project holding no decisions: on the forward
+   layout the resolver returns `.math-coding/decisions`, and
+   `.math-coding/` is created by `mathc init`, which this command does
+   not require to have run. The `dune-project` climb added by
+   `path-probe-anchoring-2026-11` changed WHICH tree the layout probe
+   reads; it never made the mkdir deeper, so the write still failed on
+   the very path it was added to rescue.
+
+   Same shape as the copies in `lib/import_adr/import_adr.ml` and
+   `lib/init/init.ml`, and twice more in `bin/Mathc.ml`. Five copies of
+   one recursive mkdir is the duplication worth paying down next;
+   `decisions/new-decision-mkdir-parent-2026-10.yaml` records it as a
+   follow-up rather than pretending this revision consolidated them. *)
+let rec mkdir_p dir =
+  if dir = "" || dir = "/" || dir = "." || Sys.file_exists dir then ()
+  else begin
+    mkdir_p (Filename.dirname dir);
+    try Unix.mkdir dir 0o755 with Unix.Unix_error (Unix.EEXIST, _, _) -> ()
+  end
+
 (* --- run ------------------------------------------------------- *)
 
 type mode = Print_mode | Write_mode | Interactive_mode
@@ -429,8 +452,7 @@ let run (opts : options) =
           let path =
             Filename.concat root (Path_config.resolve_decisions_dir ~root ())
           in
-          (try Unix.mkdir path 0o755
-           with Unix.Unix_error (Unix.EEXIST, _, _) -> ());
+          mkdir_p path;
           let target = Filename.concat path (id ^ ".yaml") in
           if Sys.file_exists target && not opts.force then begin
             Printf.fprintf stderr
