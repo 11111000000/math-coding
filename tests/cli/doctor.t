@@ -19,21 +19,23 @@ Text mode: at least 5 section headers are printed in the
 order documented in `decisions/mathc-doctor-subcommand-2026-10.yaml`.
 The `install` and `config` sections are always `pass`
 against a healthy repo (the dune build and the active
-policy are local). The `path` and `decisions` sections
+policy are local). The `path`, `decisions` and `latest` sections
 may be `warn` (the binary is run from `_build/default/`,
 not `~/.local/bin`; an unattested decision file is in
-`decisions/`); they are NOT `fail`. Exit 0.
+`decisions/`; the GitHub release probe can be rate-limited or
+refused — api.github.com answers 403 from here, which makes
+`latest` warn rather than pass); they are NOT `fail`. Exit 0.
 
 The exact-match lines below lock in the canonical verdicts
 on a healthy install. A regression that flips `install`
 or `config` to `warn`/`fail` will surface here.
 
-  $ mathc doctor | sed -E 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/'
+  $ mathc doctor | sed -E -e 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' -e 's/^\[latest\] (pass|warn|fail)$/[latest] <PASS-or-WARN>/'
   [install] pass
     Install
   [path] warn
     PATH
-  [latest] pass
+  [latest] <PASS-or-WARN>
     Latest
   [config] pass
     Config
@@ -75,12 +77,12 @@ verifier `mathc doctor exits 0 with sections a,b,c,d printed`):
 
   $ doctmp=$(mktemp -d)
   $ mathc doctor > "$doctmp/doctor.txt"; ec=$?
-  $ sed -E 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' "$doctmp/doctor.txt"
+  $ sed -E -e 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' -e 's/^\[latest\] (pass|warn|fail)$/[latest] <PASS-or-WARN>/' "$doctmp/doctor.txt"
   [install] pass
     Install
   [path] warn
     PATH
-  [latest] pass
+  [latest] <PASS-or-WARN>
     Latest
   [config] pass
     Config

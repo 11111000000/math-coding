@@ -10,10 +10,11 @@
 # (2) scripts/dev:281 and scripts/agent-debug:53 reference the new
 #     filename OCAML_KERNEL_CONVENTIONS.md, not the old
 #     OCAML_BEST_PRACTICES.md.
-# (3) PACKAGES.md carries the live attestation count as a literal
-#     `**N files**` substring, where N matches
-#     `git ls-files attestations/ | wc -l`.
-# (4) ROADMAP.md carries the same N as a plain `N files` substring.
+# (3) PACKAGES.md carries NO live attestation count and instead points
+#     at `mathc counters` as the single source of truth.
+# (4) ROADMAP.md likewise references `mathc counters`.
+#     (Inverted 2026-10-21; see the comment at the checks below for
+#     why the old "carry the number" contract was retired.)
 # (5) lib/import_adr/import_adr.ml::to_decision_yaml emits a
 #     `risk:` body section, so scaffold files satisfy
 #     tests/process_principles.ml::test_p1's required_body_sections.
@@ -74,23 +75,32 @@ else
   ok "scripts/agent-debug awk uses OCAML_KERNEL_CONVENTIONS.md"
 fi
 
-# --- (3) PACKAGES.md live attestation count -------------------------
-n_att=$(git ls-files attestations/ | wc -l)
+# --- (3) PACKAGES.md points at the source of truth, no live count --
+# Inverted on 2026-10-21. This fixture originally asserted that
+# PACKAGES.md carries `**N files**` with N = the live attestation
+# count. That contract is what made the docs a per-merge tax: on
+# 2026-10-20 the count walked 735 -> 1417 -> 737 -> 745, the docs were
+# edited 6 times, and the drift test went red whenever a sibling
+# session landed an attestation. `counters_drift.ml` now asserts the
+# opposite contract, so this fixture has to assert it too or the two
+# disagree by construction.
 if [ ! -f PACKAGES.md ]; then
   bad "PACKAGES.md missing"
-elif ! grep -qE "\\*\\*${n_att} files\\*\\*" PACKAGES.md; then
-  bad "PACKAGES.md does not contain '**${n_att} files**'"
+elif grep -qE "\*\*[0-9]+ files\*\*" PACKAGES.md; then
+  bad "PACKAGES.md still carries a live attestation count"
+elif ! grep -qF "mathc counters" PACKAGES.md; then
+  bad "PACKAGES.md does not reference 'mathc counters'"
 else
-  ok "PACKAGES.md carries '**${n_att} files**'"
+  ok "PACKAGES.md defers to mathc counters"
 fi
 
-# --- (4) ROADMAP.md live attestation count --------------------------
+# --- (4) ROADMAP.md likewise ---------------------------------------
 if [ ! -f ROADMAP.md ]; then
   bad "ROADMAP.md missing"
-elif ! grep -qE "${n_att} files" ROADMAP.md; then
-  bad "ROADMAP.md does not contain '${n_att} files'"
+elif ! grep -qF "mathc counters" ROADMAP.md; then
+  bad "ROADMAP.md does not reference 'mathc counters'"
 else
-  ok "ROADMAP.md carries '${n_att} files'"
+  ok "ROADMAP.md defers to mathc counters"
 fi
 
 # --- (5) lib/import_adr/import_adr.ml template ships risk: ---------
