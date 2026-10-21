@@ -1,0 +1,521 @@
+# Discriminator F13–F15 — adoption-fixes second-order findings
+# Generated 2026-10-18 by read-only discriminator agent.
+# Source: docs/experiments/adoption-fixes-discriminator-2026-10.md
+# Scope: F13 (mathc doctor was an undocumented assumption),
+#        F14 (B1 was an orchestrator rescue),
+#        F15 (shipped mathc 3.3.2 binary does not contain the fixes).
+# Methods: paragraph-level read of `docs/experiments/adoption-2026-10.md`
+#          §8 + §11.1; paragraph-level read of
+#          `docs/experiments/brownfield-experiment-v2-2026-10.md`
+#          §5 + §8; `paseo inspect` + `paseo logs` on agent
+#          3a90dc2b-8f7a-4fb4-9ca9-06b9c278776d (B1 retry);
+#          `git for-each-ref` for tag/branch evidence;
+#          `find` + `grep` on the installed binary;
+#          raw-binary grep for tell-tale strings
+#          (`do_verify`, `do_attest_batch`, `do_doctor`).
+
+findings:
+  - id: F13
+    verdict: confirmed
+    severity: P3
+    rationale: |
+      Direct textual evidence confirms the finding on all three
+      points. (1) `docs/experiments/adoption-2026-10.md` §8
+      Phase 0 Preflight (lines 312–318) lists exactly four
+      pre-flight checks (`mathc` runs outside tree, env var
+      honored, schema error non-zero exit, document binary
+      path) — `mathc doctor` is NOT among them. (2) §8 Phase 2
+      (lines 325–341) lists six sub-agent steps and `mathc
+      doctor` is not one of them either. (3) The only mention
+      of `mathc doctor` in the original experiment prompt is in
+      §11.1 (line 548–568) — the post-hoc discussion that
+      notes "agents reported they would have used it". That is
+      a soft observation, not a measurement. The companion
+      decision `verify-mathc-doctor-ships-2026-10.yaml` (per
+      `bin/Mathc.ml::do_doctor` line 6231 in `git show
+      v3.3.1:bin/Mathc.ml`) confirms `doctor` shipped in
+      source at commit `e8f413e` 2026-10-15 14:46 UTC, 66
+      minutes after the experiment's binary at
+      `/home/az/.local/bin/mathc` was built — so even had
+      sub-agents tried `mathc doctor`, the binary would not
+      have responded. The brownfield-experiment v2 design
+      `docs/experiments/brownfield-experiment-v2-2026-10.md`
+      inherits the gap: §5 T1/T2/T3 templates do not include
+      `mathc doctor`, and §8 Phase 0 (lines 423–442) checks
+      for `adopt` and `import-adr` only — `doctor` is not on
+      the list. The orchestrator's proposed fix ("include
+      `mathc doctor` in the T1 task template") is the right
+      fix. P3 is appropriate: doctor would have been a useful
+      diagnostic but not a load-bearing one. The five top-
+      severity frictions (env-var ignored, accept ≠ verified,
+      counterexample parser, attest-batch missing,
+      generate-attestations script) dominate and remain
+      discovered through other channels; `mathc doctor` is a
+      UX-additive rather than a discovery channel.
+    fix: |
+      Three concrete changes, all docs-only — no kernel work:
+
+      (a) Edit
+          `docs/experiments/brownfield-experiment-v2-2026-10.md`
+          §5 T1 (lines 240–262). Add a final T1 step:
+          ```
+          6. Run `mathc doctor --json` and capture output to
+             `experiment-report.md` §T1. Record any section
+             with `status: fail` as a friction event id
+             `<session>-F-DOCTOR-<n>` under F-INSTALL.
+          ```
+          This makes `doctor` part of the T1 instrumented task
+          rather than an afterthought.
+
+      (b) Edit
+          `docs/experiments/brownfield-experiment-v2-2026-10.md`
+          §8 Phase 0 (lines 423–442). Insert one line at the
+          top:
+          ```
+          - [ ] Verify `mathc doctor` returns exit 0 on a fresh
+                cwd; capture the JSON output and save as
+                `experiments/brownfield-v2/preflight-doctor.json`.
+          ```
+          A doctor that exits non-zero on a fresh install is a
+          red flag for any sub-task that follows.
+
+      (c) Edit §3 Hypotheses (lines 126–141). Add `BH9:
+          mathc doctor reports ≥ 7 healthy sections on a fresh
+          install on ≥ 4 of 5 projects`; falsified if doctor
+          reports `fail` in any of the four install/ path /
+          latest / config / decisions / attestations /
+          self-check sections on ≥ 2 projects. This is a
+          boundary check for the install surface, much like H5
+          was for the original experiment.
+
+      Optionally file a follow-up decision
+      `experiment-doctor-instrumentation-2026-11.yaml` (mode
+      `light`) to record the convention so future
+      experiment templates inherit it.
+
+  - id: F14
+    verdict: confirmed
+    severity: P1
+    rationale: |
+      The finding is real, severe, and now directly evidenced.
+      `paseo inspect 3a90dc2b-8f7a-4fb4-9ca9-06b9c278776d`
+      confirms the agent was created 2026-10-17T23:43:36Z
+      under parent agent `40d6f0e0-2eae-467d-a66c-93ed4a81c5c8`
+      (the adoption-fixes orchestrator), with model
+      `minimax_coding_plan_2/MiniMax-M3`, status `error`,
+      mode `build`, and `LastUsage` showing 166 output tokens
+      but only 137463 cached tokens of input — i.e., the
+      cumulative agent context was burning cached pre-prompt
+      prefixes that no longer produced new completions. `paseo
+      logs` on the same agent shows five back-to-back
+      provider-retry errors `[Error] Provider retry (attempt
+      N): Token Plan usage limit reached: Upgrade your Token
+      Plan or purchase Credits for more usage. (2056)`,
+      followed by `[System Error] {"name":"APIError",
+      "statusCode":429, "isRetryable":true, ...,
+      "x-session-id":"ses_eb3c0227fffeuD3WgO1NQ49TVe"}`. The
+      agent died at 2026-10-18T00:10:00.315Z. The log
+      evidence shows the agent made real progress before
+      death: it had written `do_verify` (against the worktree
+      at `~/.paseo/worktrees/math-coding/add-verify-
+      subcommand/bin/Mathc.ml` per the prompt's explicit
+      base-branch line), it had built the binary and tested
+      `_build/default/bin/mathc.exe verify --help`, and it was
+      mid-way through updating 14 cram fixtures when the rate
+      limit fired. Crucially, none of that work was committed:
+      the worktree's last commit on the topic branch is the
+      sole `a602b361 feat(verify): add mathc verify
+      subcommand, rename accept→parse-ok (B1/R2)` (per F1's
+      reflog evidence; no prior partial commit survives). The
+      orchestrator's rescue is concretely visible in
+      `decisions/add-verify-subcommand-2026-10.yaml`: the
+      `body_sha` and `yaml_sha` are both
+      `sha256:000000000000000000000000000000000000000000
+      0000000000000000000000` — literal placeholder zeros,
+      not the canonical 64-hex digest that `accept_validated`
+      would have computed. Every other decision file in the
+      tree ships canonical hashes (e.g.
+      `tighten-counterexample-warn-2026-10` has `body_sha:
+      sha256:6aaef4282da71e6be56c406fa55c34db2c134f6b61cd
+      690e583ce0377c131bd0`). The four attestations under
+      `attestations/add-verify-subcommand-2026-10-*.json`
+      all carry `producer.identity: human:opencode-agent`
+      (the orchestrator's runtime identity, not the dead
+      sub-agent's) and `issued_at: 2026-09-29T18:00:00Z`
+      (the canonical attestation-store default timestamp, not
+      the actual production time). That timestamp pattern is
+      a tell that they were generated by the TSV manifest
+      recipe in `scripts/generate-attestations.py` without an
+      actual agent run. F1 ("sub-agents are not atomic") was
+      qualified in the F1–F4 discriminator because the
+      reflog didn't preserve the partial state; F14 is the
+      unqualified confirmation of F1 — the agent log is
+      unambiguous. P2 understates the severity: in this single
+      run, FOUR sub-agents hit rate limits (B1, sinatra/T3,
+      sinatra/T1's reported collision, and implicitly one
+      more from the F1 narrative), each required manual
+      recovery. The orchestrator's time is now a bottleneck
+      for any sub-agent batch larger than ~3 concurrent. P1
+      is right.
+    fix: |
+      Two-track prevention, both required:
+
+      (a) **Sub-agent prompt scaffold commit.** Amend
+          `docs/plans/plan-2026-10-adoption-fixes-2026-10-
+          prompts.md` to require the sub-agent to commit
+          `decisions/<id>.yaml` with `state: drafting`
+          AS THE FIRST ACTION, before any kernel edit.
+          Concretely, prepend this block to every prompt:
+          ```
+          ## Workflow
+
+          0. **Scaffold commit (REQUIRED BEFORE ANY OTHER EDIT)**:
+             a. `git worktree add ~/.paseo/worktrees/math-coding/<topic> \
+                  -b <topic>-2026-10 plan/adoption-fixes-2026-10`
+             b. Copy the stub `decisions/<id>.yaml` to the
+                worktree root. Set state: drafting, body_sha and
+                yaml_sha can be zero placeholders for now.
+             c. `git add decisions/<id>.yaml && \
+                  git commit -m "wip(scaffold): <id> decision stub"`
+             d. ONLY THEN proceed with kernel edits.
+             This guarantees a recoverable scaffold if a token
+             budget interrupt kills you mid-work.
+          ```
+          The scaffold commit captures the planning step;
+          even if the kernel edits are lost, the
+          decision-stub branch alone lets the orchestrator
+          resume without re-reading the prompt.
+
+      (b) **Agent-runtime checkpoint cadence.** The Paseo
+          opencode agent runtime needs a `--checkpoint=N`
+          option that auto-commits every N minutes of pure
+          wall-clock work (or every kernel-level
+          file-modified event, whichever fires first). Until
+          that lands upstream in Paseo, an interim
+          in-prompt rule suffices: insert before step 4 of
+          every B/C prompt: "After EACH file edit, run
+          `git add <file> && git commit -m
+          'wip(checkpoint): partial <id> work-in-progress'`
+          before continuing. Cumulative wip(checkpoint)*
+          commits are squashed at the end by the
+          orchestrator's final commit step." This makes the
+          commit history chunky during the run and atomic at
+          the end. Add an acceptance criterion to the
+          wrap-up step: "If the agent died mid-work, the
+          worktree's last commit is at most 5 minutes of
+          pure work behind the last edit; the orchestrator
+          can resume from that commit rather than restart
+          from scratch."
+
+      (c) **Process-principles closure.** File
+          `decisions/process-principles-2026-10-3.yaml`
+          (rev 3; rev 2 was F2's WAIT-FOR-DEPENDENCIES
+          rule). Add P9: "Sub-agents MUST commit a
+          `wip(scaffold):` draft at task start and
+          `wip(checkpoint):` commits every 5 minutes of
+          active work. The orchestrator MUST verify these
+          are present in the worktree's reflog before
+          accepting the sub-agent's `pass` claim." Link
+          from the existing process-principles amendment
+          chain. Acceptance obligation: a follow-up 5-agent
+          run completes 100% of obligations without manual
+          rescue, measured over the next plan-2026-11 cycle.
+
+      (d) **The standing recovery path.** The orchestrator's
+          manual-rescue recipe (write zero-SHA decision file,
+          generate `producer: human:opencode-agent`
+          attestations) was effective this time but is not
+          auditable: the placeholder SHAs mean the
+          attestation store cannot prove the decision body
+          matches what was actually committed. Add an
+          explicit sub-decision `attest-handshake-rescue-
+          2026-11.yaml` (mode `light`) that codifies (i)
+          when rescue is permitted (rate-limit-induced
+          failure with partial work present), (ii) the
+          minimum evidence to record (worktree last-commit
+          SHA, agent log tail showing the failure, the
+          recovered file paths), (iii) the obligation it
+          closes (the `<id>-<obligation>` matching the
+          partial work). Decision anchors the rescue as a
+          first-class workflow rather than an ad-hoc fix.
+
+  - id: F15
+    verdict: confirmed
+    severity: P1
+    rationale: |
+      The finding is real, severe, and unambiguously
+      evidenced. Three independent lines of evidence converge:
+
+      (a) `git for-each-ref refs/tags refs/heads` shows
+          EXACTLY TWO v3.3 tags — `v3.3.0` (6271ad7, dated
+          2026-10-15) and `v3.3.1` (83249fa, dated
+          2026-10-16). The `v3.3.2` tag does not exist on
+          any local or remote ref. The release commit
+          `fe83284 release: v3.3.2 — adoption-fixes +
+          audit-cleanup` exists at the tip of branch
+          `release/v3.3.2-2026-10` (and is HEAD), but no
+          annotated or lightweight tag points at it.
+
+      (b) `.github/workflows/release.yml` (read directly)
+          ships TWO publish steps:
+          ```
+          - name: Publish on tag — official release
+            if: startsWith(github.ref, 'refs/tags/v')
+            uses: softprops/action-gh-release@v2
+            ...
+          - name: Publish on main / manual dispatch — rolling edge
+            if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+            ...
+          ```
+          Without a `v3.3.2` tag push and without merging
+          `release/v3.3.2-2026-10` → `main` first, neither
+          publish step ever fires for v3.3.2. The 10 commits
+          of v3.3.2 work exist on `release/v3.3.2-2026-10`
+          but `git log main..release/v3.3.2-2026-10`
+          confirms all 10 are ahead of main — there is no
+          v3.3.2 GitHub Release.
+
+      (c) The binary at `/home/az/.local/bin/mathc` reports
+          `math-coding 3.3.2: bootstrap` (timestamp Oct 17
+          23:55, sha256
+          `1e778d86fba736348ea962d70d46041be628390b06997de
+          9d296e93f65aa1647`), but raw-binary grep shows
+          it contains `do_attest_batch` and `do_doctor`
+          symbols but NOT `do_verify` (`grep -ao
+          "do_verify" /home/az/.local/bin/mathc` returns
+          nothing; `grep -ao "do_verify"
+          _build/default/bin/mathc.exe` returns nothing).
+          Yet the source at HEAD has `do_verify` defined at
+          `bin/Mathc.ml` line 2893 with the dispatcher arm
+          at line 6701 — and even the older v3.3.1 binary
+          didn't have `do_verify`, only the v3.3.2 commit
+          (`a602b36 feat(verify): add mathc verify`) added
+          it. The local binary is therefore a pre-B1 build
+          of v3.3.2-era source: it reads `./VERSION` at
+          runtime (line 651: `Printf.printf "math-coding
+          %s: bootstrap\n" (read_cli_version ())`) so the
+          version string is misleading — it says 3.3.2 only
+          because the runtime cwd is the math-coding source
+          tree where `VERSION` says 3.3.2.
+
+      (d) Consistency breakage: `VERSION` (the source
+          truth) says `3.3.2`, but
+          `scripts/install-tooling/install.sh` line 50 has
+          `MC_VERSION_DEFAULT="3.3.1"` and `adoption/SKILL.md`
+          line 9 has `compatible_with: mathc@>=3.3.1`. A
+          fresh user running the canonical install command
+          (per AGENTS.md §Read first: "All `dune`,
+          `ocamlformat`, `ocamlmerlin`, `ocamlfind`,
+          `ocamllsp`, `mathc` MUST run inside `nix develop
+          .#test` (or via `scripts/dev`)") gets the v3.3.1
+          binary: `MC_VERSION_DEFAULT` is read by
+          `install.sh` line 108 (`install_version=
+          "${MC_VERSION_DEFAULT}"`) at install time, and
+          unless the user passes `--version=v3.3.2`, they
+          get v3.3.1. `scripts/sync-version.sh --write` was
+          not run for the v3.3.2 bump — the source version
+          (`VERSION`) and the install tooling default
+          (`MC_VERSION_DEFAULT`) drift apart by one minor
+          bump. `README.md` line 10 likewise says "Status:
+          3.3.1, current release v3.3.1".
+
+      Severity P1: this is an adoption-fixes release that
+      was committed-but-not-released. The 9 fixes from the
+      original experiment's §13 (env-var resolver, attest-
+      batch dispatch, verify subcommand, counterexample
+      parser, generate-attestations env-vars, friction
+      taxonomy revision, etc.) do not benefit any user until
+      v3.3.2 is tagged, the release workflow produces
+      artifacts, and `MC_VERSION_DEFAULT` is bumped. The
+      experiment's R1 ("fix the env-var resolver in the
+      shipped binary") is not actually fixed for end users
+      until this is closed. The CHANGELOG.md claims v3.3.2
+      is `current` (line 7) but no GitHub release artifact
+      exists for it.
+    fix: |
+      Minimum-viable release pipeline in five steps:
+
+      (a) **Cut the missing tag.** From the math-coding
+          repo root, signed:
+          ```
+          git tag -s v3.3.2 fe83284 \
+            -m "v3.3.2 — adoption-fixes + audit-cleanup"
+          git push origin v3.3.2
+          ```
+          `release.yml`'s `on.push.tags` filter matches
+          `v*.*.*` so the push triggers the build-and-
+          publish job. Expect 7 platform-specific binaries
+          (`mathc-linux-x86_64`, `mathc-linux-aarch64`,
+          `mathc-linux-x86_64-musl`, `mathc-darwin-x86_64`,
+          `mathc-darwin-aarch64`, `mathc-windows-x86_64.exe`,
+          `mathc-windows-aarch64.exe`) plus SHA256SUMS,
+          `install.sh`, `install.ps1`, and
+          `dist-adoption.tar.gz`, all signed with cosign
+          keyless OIDC per the workflow permissions block.
+
+      (b) **Sync derived version points.** Run
+          `scripts/sync-version.sh --write` (per
+          `decisions/version-sync-2026-10.yaml`). This
+          rewrites:
+          - `scripts/install-tooling/install.sh` line 50:
+            `MC_VERSION_DEFAULT="3.3.1"` →
+            `MC_VERSION_DEFAULT="3.3.2"`
+          - `adoption/SKILL.md` line 9:
+            `compatible_with: mathc@>=3.3.1` →
+            `compatible_with: mathc@>=3.3.2`
+          - Plus the URL prefix lines that reference
+            `releases/download/v3.3.1`.
+          Verify with `scripts/sync-version.sh --check`
+          (the CI gate). Commit the sync as the final
+          v3.3.2 prep commit, amend the v3.3.2 tag onto
+          the new HEAD (`git tag -f v3.3.2 HEAD && git
+          push origin -f v3.3.2` — requires explicit
+          user approval for force-pushing a tag), or
+          re-tag with an incremented version (e.g.
+          `v3.3.2.1`) if force-push is disallowed.
+
+      (c) **CI gate: release pending.** Add a CI step
+          (`.github/workflows/ci.yml` or a new
+          `.github/workflows/release-pending.yml`) that:
+          - Reads `VERSION`.
+          - Runs `git ls-remote --tags --sort=-v:refname
+            https://github.com/11111000000/math-coding | head -1`
+            and extracts the tag.
+          - If the tag is BEHIND `VERSION` (tag = v3.3.1
+            and VERSION = v3.3.2), the check exits 1 with
+            message "release pending: tag v3.3.2 has not
+            been published; push `git push origin
+            v3.3.2` to trigger release.yml". This makes
+            "release commit but no tag" a visible CI
+            failure rather than a silent two-week gap.
+
+      (d) **Document the local-binary check.** Add a
+          `## Local binary freshness` section to
+          `adoption/SKILL.md` after the install curl:
+          ```
+          After install, run `mathc version --check`.
+          If exit 0, your binary matches the latest
+          release. If exit 1, the new release is
+          available: `mathc update` upgrades in place.
+          Note: `mathc version` (without --check) prints
+          the runtime VERSION of the cwd, NOT the binary's
+          build commit; use `mathc version --check` for
+          the canonical freshness signal.
+          ```
+          This addresses the misleading runtime-VERSION
+          read captured in `bin/Mathc.ml::read_cli_version`
+          (lines 615–645). Users will otherwise believe
+          their v3.3.1 binary is v3.3.2 because the
+          source-tree VERSION was bumped.
+
+      (e) **Adoption-fixes marker decision.** File
+          `decisions/release-cadence-2026-11.yaml`
+          (mode `light`) recording the rule: "Every
+          release commit on a `release/vX.Y.Z-YYYY-MM`
+          branch MUST be followed by (i) `git push
+          origin vX.Y.Z` to trigger release.yml, (ii)
+          `scripts/sync-version.sh --write` to update
+          `MC_VERSION_DEFAULT` and `compatible_with`,
+          (iii) `scripts/dev ready` to confirm CI green,
+          within 24 hours of the release commit landing
+          on main. Otherwise `release-pending` CI gate
+          fails." Acceptance obligations: the rule is
+          documented in `CONTRIBUTING.md` §Release
+          protocol; a template script
+          `scripts/release.sh` exists that runs the
+          three steps in sequence (callable as
+          `scripts/release.sh v3.3.2 <release-commit>`).
+
+      A correctly-shaped v3.3.2 release is the gating
+      prerequisite for any "adoption-fixes shipped"
+      claim — until this finding is closed, the
+      experiment's R1–R5 are visible in source but
+      invisible to anyone running the install tooling.
+
+summary:
+  counts:
+    confirmed: 3     # F13, F14, F15
+    qualified: 0
+    refuted: 0
+  recommendations_for_plan_2026_11: |
+    All three findings survive and warrant sub-decisions
+    in plan-2026-11-adoption-fixes. F15 is the most urgent:
+    the v3.3.2 tag must be cut before any "adoption-fixes
+    shipped" announcement, since the fixes don't benefit
+    end users until the release pipeline produces
+    artifacts. Concretely:
+    - F15 → urgent human-gated action (cut tag + force-tag
+      + push), CI gate `release-pending` to prevent
+      recurrence, decision `release-cadence-2026-11.yaml`
+      to record the rule. Severity P1, but fix is mostly
+      out-of-band git operations (~5 min), so should ship
+      before plan-2026-11 cycle begins.
+    - F14 → new decision `process-principles-2026-10-3
+      .yaml` (rev 3; rev 2 was F2's
+      WAIT-FOR-DEPENDENCIES) plus an in-prompt
+      scaffold-commit step. Plus a follow-up
+      `attest-handshake-rescue-2026-11.yaml` (mode
+      `light`) to codify the orchestrator-rescue recipe.
+      Severity P1.
+    - F13 → docs-only edits to
+      `docs/experiments/brownfield-experiment-v2-2026-10.md`
+      §5 + §8 + §3 (add T1 doctor step, Phase 0 doctor
+      check, BH9 hypothesis). Optionally file a tracker
+      decision `experiment-doctor-instrumentation-
+      2026-11.yaml` (light). P3, can ship after F14/F15
+      since it's instrumentation rather than functional.
+
+    The fast path per AGENTS.md §Fast path (process-fast-
+    path-2026-10) applies to F13 — net change ≤ 50 lines
+    of markdown across 2 files, no schemas / no
+    constitution / no new obligation. F14 needs the full
+    path (sub-agent protocol changes affect kernel
+    semantics — a future 5-agent batch's behaviour
+    changes). F15 is out-of-band; not path-eligible
+    because the action is on the release branch (not the
+    main checkout per AGENTS.md §Worktree-first) and
+    requires force-tag with explicit human approval.
+  cross_cutting_observations: |
+    Two structural patterns emerge across F13, F14, F15:
+
+    (1) F14 and F15 share a root cause: the orchestrator's
+        sub-agent protocol and the project's release
+        pipeline both operate without an end-to-end
+        checkpoint. Sub-agents checkpoint to git in 27+ min
+        of pure work but the protocol never enforces a
+        tighter cadence; the release pipeline runs on tag
+        push only, with no "release commit was made but
+        tag was never cut" gate. Both are "the system
+        tolerates partial state for too long" patterns.
+        The principled fix is a single
+        "release-and-rescue" protocol decision that says
+        (a) sub-agents checkpoint every 5 min, (b) release
+        commits auto-tag themselves, (c) rescue paths are
+        first-class workflow. Codified in
+        `process-principles.yaml` rev 3 (F14) +
+        `release-cadence-2026-11.yaml` (F15).
+
+    (2) F13 underscores that the project's experiment
+        methodology DOES NOT systematically capture the
+        sub-agents' diagnostic friction — `mathc doctor`
+        is one diagnostic of seven (install, path, latest,
+        config, decisions, attestations, self-check); the
+        original experiment only measured the "first 4 of
+        7" implicit signals (env-var, schema, semantic,
+        workflow). Adding `mathc doctor` to brownfield v2
+        closes a 7-section blind spot. This pattern will
+        recur as mathc adds more diagnostic commands;
+        treat the experiment-design template as the locus
+        of "what we instrument" rules.
+
+    Both patterns are addressed by existing
+    process-principles machinery; no new axiom links
+    needed. A4 (process as a system) is the underlying
+    motivation; A1 (commitments need observations) is
+    what F14 violates (the orchestrator's manual rescue
+    closes the obligation without an observation of the
+    fix actually executing); A0 (separation) is what F15
+    violates (the kernel in source and the kernel in the
+    shipped binary are two distinct objects, and the
+    project conflates them by reporting the source VERSION
+    as the user-visible version).

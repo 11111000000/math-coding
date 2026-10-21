@@ -1,0 +1,360 @@
+# Discriminator F1–F4 — adoption-fixes second-order findings
+# Generated 2026-10-18 by read-only discriminator agent.
+# Source: docs/experiments/adoption-fixes-discriminator-2026-10.md
+# Scope: F1 (sub-agent atomicity), F2 (wrong base branch),
+#        F3 (attestation filename collision), F4 (placeholder verifiers)
+
+findings:
+  - id: F1
+    verdict: qualified
+    severity: P2
+    rationale: |
+      The orchestrator's claim is plausible but unverifiable from
+      git history alone. The reflog for branch
+      `add-verify-subcommand-2026-10` shows exactly ONE non-merge
+      commit (`a602b361 feat(verify): add mathc verify subcommand,
+      rename accept→parse-ok (B1/R2)`, dated 2026-10-18 03:15:33Z,
+      author opencode-agent) — no record of a prior partial commit,
+      no reverted commit, no WIP branch. The final commit IS atomic
+      and well-formed: 304 lines added in `bin/Mathc.ml`, the
+      decision file plus four attestation JSONs, and 14 cram fixture
+      updates — exactly what the plan §A.1 sub-agent protocol
+      promised ("Atomic commit. Sub-agent's change is one commit on
+      the topic branch."). The orchestrator's narrative about a
+      "B1 retry sub-agent" running out of Token Plan budget mid-work
+      is consistent with the reflog showing no leftover commits, but
+      no direct evidence of partial state survives. The plan-decision
+      itself (`273c3b24 attest: close 12 remaining plan-2026-10-
+      adoption-fixes obligations`, 2026-10-18 03:17:02Z) WAS made
+      by an agent commit, all twelve attestations stamped
+      `producer.identity: human:opencode-agent` — that matches the
+      orchestrator's claim about manual close-out. So F1 is "real"
+      in the sense that orchestrator labour was needed for the
+      meta-decision's bulk attestations, but the "sub-agent ran out
+      of budget" causal story is inferred rather than observed. P2
+      is appropriate: this is orchestrator-time, not kernel
+      regression.
+    fix: |
+      Two-track prevention:
+      (a) Add a `git worktree add ...` step to the sub-agent prompt
+          template (see `docs/plans/plan-2026-10-adoption-fixes-
+          2026-10-prompts.md`) that requires the sub-agent to commit
+          an empty scaffold commit (`decisions/<id>.yaml` with
+          `state: drafting` + a single `plan-stub` attestation) as
+          the FIRST action, BEFORE writing any kernel code. This
+          guarantees that even a token-budget interrupt leaves a
+          recoverable scaffold in the worktree branch.
+      (b) Move the plan-decision's 12 "remaining obligation"
+          attestations out of the manual closure path: each plan-
+          meta obligation should carry a verifier string that
+          points at the matching sub-decision's attestation file
+          (e.g. `verifier: file-exists path:
+          attestations/<sub-id>-<obl>.json`). The kernel's
+          `mathc self-check` then closes the meta-decision
+          automatically when the sub-decisions ship; no manual
+          batch is needed. Files to change:
+          `decisions/plan-2026-10-adoption-fixes-2026-10.yaml`
+          lines 122–290 (replace the placeholder verifiers with
+          real file-exists checks against the sub-decisions'
+          attestation files). Optionally file a follow-up
+          decision `plan-meta-attestation-scaffold-2026-11` that
+          codifies the pattern across all future plan decisions.
+      Severity retained at P2 (no kernel regression, no release
+      blocker); no urgent action required before plan-2026-11
+      ships, but the scaffold commit should land in the next
+      plan-decision template.
+
+  - id: F2
+    verdict: confirmed
+    severity: P2
+    rationale: |
+      Direct git evidence confirms the finding exactly. Commit
+      `91996c77 tighten(counterexample-warn): clarify occurs_when
+      post-A2 parser fix` has parent `3f14b764` — A2's actual fix
+      commit on branch `fix-yaml-parser-2026-10`. B2 did NOT
+      branch off `plan/adoption-fixes-2026-10` as the plan
+      prompts (`docs/plans/plan-2026-10-adoption-fixes-2026-10-
+      prompts.md`) instructed; it branched off A2's topic branch
+      directly. The merge `d4f705c4` then brought B2 into the plan
+      branch. Crucially, the merge sequence shows A2 first landed
+      on the plan branch via `5a2e98ac merge A2 YAML parser into
+      plan branch`, but B2's parent is `3f14b764`, NOT
+      `5a2e98ac` — meaning B2 started BEFORE A2 was merged into
+      the integration branch. The orchestrator's "deliberate
+      deviation" framing is therefore confirmed: the sub-agent
+      saw that the integration branch didn't have its dependency
+      yet and chose to branch off the dependency directly. Note:
+      the plan's prose (line 274) says sub-agents should branch
+      off `experiment/adoption-external-projects-2026-10`, while
+      the prompts file says `plan/adoption-fixes-2026-10`. The
+      prompts file is the operative instruction, and it points at
+      the integration branch — so the sub-agent's deviation is
+      from a brittle instruction that failed to account for the
+      "B-decision needs A-decision" sequencing constraint. P2
+      is right; this is process friction, not data loss.
+    fix: |
+      (a) Update the sub-agent prompt template at `docs/plans/
+          plan-2026-10-adoption-fixes-2026-10-prompts.md` so each
+          B/C prompt includes an explicit "WAIT-FOR-DEPENDENCIES"
+          pre-flight step. Concretely, replace the worktree
+          instruction:
+          ```
+          git worktree add ~/.paseo/worktrees/math-coding/<topic>
+            -b <type>-<topic>-2026-10 plan/adoption-fixes-2026-10
+          ```
+          with:
+          ```
+          1. Resolve declared dependencies: <list-of-deps>
+          2. For each dependency <dep-id>: confirm
+             `git merge-base --is-ancestor <dep-branch>
+             plan/adoption-fixes-2026-10` exits 0. If not, abort
+             with the error "dependency <dep-id> not yet merged";
+             the orchestrator will retry once merged.
+          3. ONLY THEN: git worktree add ...
+          ```
+      (b) Codify the convention in `decisions/process-principles
+          .yaml` P8 (edit-loop detector) sibling principle:
+          "no sub-agent launches until all declared dependencies
+          are merged into the integration branch". File as
+          `decisions/process-principles-2026-10-2.yaml` (a
+          rev-2 amendment to the existing principle file), mode
+          `light`, with one `acceptance` obligation asserting
+          that the pre-flight gate is documented in the
+          sub-agent template and enforced by the per-task prompt.
+      (c) For plan-2026-11, list this fix as a precondition for
+          any future batched parallel sub-agent workstream.
+
+  - id: F3
+    verdict: confirmed
+    severity: P2
+    rationale: |
+      Direct git evidence confirms the collision exactly.
+      `git log --follow -- attestations/plan-2026-10-adoption-
+      fixes-2026-10-a3-attest-batch-shipped.json` shows the file
+      was first added in `17772ccf feat(cli): pin attest-batch
+      subcommand as A3 acceptance crate` (A3's actual feat
+      commit, 2026-10-18 03:12 series) AND THEN MODIFIED in
+      `273c3b24 attest: close 12 remaining plan-2026-10-
+      adoption-fixes obligations` (the orchestrator's manual
+      close-out, 2026-10-18 03:17:02Z). The two versions differ
+      only in `id` (sha256) and `issued_at`:
+      - A3's version (17772ccf): id=e3c963cd…,
+        issued_at=2026-10-17T23:00:00Z,
+        subject.obligation=a3-attest-batch-shipped,
+        subject.decision=plan-2026-10-adoption-fixes-2026-10
+      - Plan-orchestrator version (273c3b24):
+        id=6ccfb6a8…, issued_at=2026-09-29T18:00:00Z,
+        same subject.{decision,obligation}
+      The merge `37d6fe24 merge ship-attest-batch into plan
+      branch` shows `attestations/plan-2026-10-adoption-fixes-
+      2026-10-a3-attest-batch-shipped.json | 2 +-` in the diffstat
+      — the "2 +-" is the conflict resolution, which kept the
+      plan-orchestrator's version (the 273c3b24 state). A3 also
+      wrote `attestations/ship-attest-batch-2026-10-a3-shipped-
+      attested.json` for ITS OWN obligation id `a3-shipped-
+      attested` with subject.decision=ship-attest-batch-2026-10 —
+      so the two attestation files co-exist; the collision is
+      specifically on the shared plan-decision-named file. Note:
+      both attestations have `subject.obligation` starting with
+      `a3-`, which is the seed of the collision. P2 is right:
+      a clean rename convention prevents it cheaply.
+    fix: |
+      Two cleanest options:
+      (a) Adopt option (a) from the orchestrator's analysis:
+          introduce `attestations/_plan-meta/` namespace for
+          plan-decision-level attestations. Sub-decision
+          attestations stay in `attestations/<sub-id>-*.json`;
+          plan-decision attestations live in
+          `attestations/_plan-meta/<plan-id>-*.json`. This is
+          the principled fix — it makes the
+          decision-vs-plan-decision distinction explicit in the
+          filesystem. Required changes:
+          1. `lib/attestations/scanner.ml` (or wherever the
+             attestation walker lives — grep for `decisions/`
+             literal in `bin/`/`lib/`): update the pattern to
+             skip `_plan-meta/` when iterating for the
+             per-decision attestation set.
+          2. `scripts/generate-attestations.py`: add a `--meta`
+             flag that writes to `attestations/_plan-meta/`.
+          3. Migrate the 12 existing
+             `attestations/plan-2026-10-adoption-fixes-2026-10-
+             *.json` files into `_plan-meta/`.
+          4. File a new decision `attestation-namespace-meta-
+             2026-11.yaml` (mode `light`) to record the rule.
+          5. Update `docs/experiments/brownfield-experiment-v2-
+             2026-10.md` to document the convention.
+      (b) OR adopt option (b): include the sub-decision's id in
+          the attestation filename when it's a sub-decision
+          attestation ABOUT a sub-decision obligation. The
+          existing `ship-attest-batch-2026-10-a3-shipped-
+          attested.json` already does this correctly — the
+          collision is only on the plan-decision-named file
+          that A3 should not have written to. So option (b) is
+          really "plan-decision-named filenames are reserved
+          for plan-decision attestations only". Implementable
+          as a one-line convention added to the plan-prompts
+          file: "if you are a sub-agent, do not write to a
+          filename starting with `plan-*-*` unless your
+          obligation id and decision id both reference the
+          plan itself".
+      Option (a) is the durable fix; option (b) is a 1-day
+      quick patch. Recommendation: do (b) NOW in plan-2026-11
+      to unblock the next round, and queue (a) for plan-2026-12
+      with a tracked decision.
+
+  - id: F4
+    verdict: qualified
+    severity: P3
+    rationale: |
+      The orchestrator's claim is partially true but
+      overstated. Of the four verifier strings the orchestrator
+      cites as "placeholders, not real kernel verifiers":
+      - `mathc-self-check-no-new-unknowns` appears in THREE
+        decision files: `plan-2026-10-adoption-fixes-2026-10
+        .yaml` line 299, `add-verify-subcommand-2026-10.yaml`
+        line 120, and `adoption-experiment-results-2026-10
+        .yaml` line 111.
+      - `file-grep-zero`, `file-grep-non-zero`, and `mathc-
+        validate-verdict-is-parse-ok` appear ONLY in
+        `add-verify-subcommand-2026-10.yaml` (lines 91, 102,
+        106) — NOT in the plan-decision as the orchestrator
+        implies.
+      Inspecting the schema (`schemas/common.json` line 91)
+      confirms `verifier` is just `{"type": "string",
+      "minLength": 1}` — any non-empty string is accepted; the
+      schema does NOT enumerate a known set of verifier names.
+      `bin/Mathc.ml::parse_verifier_string` (lines 2726–2830)
+      recognises exactly THREE schemes in `mathc verify`:
+      `file-exists`, `dir-exists`, `mathc <subcmd>`. ANY other
+      scheme (including the four orchestrator-cited strings
+      plus `bash -n`, `shellcheck`, `pwsh`, etc. used
+      elsewhere) returns `Skipped` without execution. So in the
+      strict sense, NO verifier strings in any decision file
+      are "real kernel verifiers" — they're all labels that
+      either match the 3-scheme allowlist (and run) or fall
+      through to Skipped. The plan-decision is actually
+      well-formed: of its 13 obligations, 12 use concrete
+      `file-exists`/`mathc validate`/`tests/cli/*.t`/etc.
+      verifiers; only `no-new-unknown-subjects` uses the
+      placeholder-style `mathc-self-check-no-new-unknowns`.
+      The plan-2026-10-ux-friction and plan-2026-10-distro-
+      friction decisions follow the same convention with
+      similar verifiers (`this-decision-file-present`,
+      `mathc validate decisions/<id>.yaml`, `tests/cli/*.t`,
+      `scripts/dev ready`, `shellcheck`, etc.) — none of these
+      are in the 3-scheme allowlist either. So F4 is REAL in
+      the narrow sense that one plan obligation uses a
+      placeholder, but the orchestrator's framing ("plan-
+      decision's 13 obligations have verifiers like X, Y, Z,
+      W") overstates it: only X is in the plan-decision, and
+      similar patterns are widespread. P3 is appropriate: this
+      is a labelling inconsistency, not a blocker.
+    fix: |
+      (a) Replace the single placeholder verifier in the plan-
+          decision. Edit `decisions/plan-2026-10-adoption-
+          fixes-2026-10.yaml` line 299 to use one of the
+          allowed schemes, e.g.:
+          ```
+          - verifier: mathc
+            args: ["self-check", "--format=json"]
+          ```
+          which becomes `mathc self-check --format=json` and
+          is in the 3-scheme allowlist (it runs `mathc
+          self-check` and checks exit code). Or:
+          ```
+          - verifier: bash -c "MATH_CODING_DECISIONS_DIR=decisions MATH_CODING_ATTESTATIONS_DIR=attestations mathc self-check --format=json | jq -e '.unknown_subjects | length <= 17'"
+          ```
+          if you want a strict "no new unknowns" check
+          (note: bash isn't in the allowlist either; you'd
+          need `mathc` to spawn it). Best option: use the
+          `mathc` scheme and parse the JSON output.
+      (b) Add a verifier-convention rule to `OCAML_BEST_PRAC
+          TICES.md` §11 (trap log) or a new §13: "verifier
+          strings MUST be either one of the 3 built-in schemes
+          (file-exists, dir-exists, mathc) OR a documented
+          command that an external runner (conformance suite,
+          dune test, scripts/dev) executes; placeholder
+          strings that match neither pattern MUST be rejected
+          by `mathc validate`". Implementation: extend the
+          acceptance-item validator in `lib/decision.ml` to
+          warn on unknown schemes (not reject — they may be
+          valid in the runner sense). Add a cram fixture
+          `tests/cli/verifier-scheme-warning.t` that asserts
+          the warning fires.
+      (c) File a tracked decision `verifier-scheme-convention
+          -2026-11.yaml` (mode `light`, scope: kernel) to
+          formalise the rule. Linked from the adoption-
+          experiment-results-2026-10 finding
+          `c-results-decision-self-check-stable` so the
+          observation is anchored to an obligation.
+      (d) Retrospectively: in the next plan-2026-11 batch,
+          audit every plan-decision's verifier strings and
+          replace unknown-scheme ones with `mathc`-scheme
+          forms. The same applies to the add-verify-subcommand
+          sub-decision's `file-grep-zero` / `file-grep-non-zero`
+          / `mathc-validate-verdict-is-parse-ok` — these should
+          be rewritten as `mathc validate ...` invocations
+          whose exit code encodes the result.
+
+summary:
+  counts:
+    confirmed: 2     # F2, F3
+    qualified: 2     # F1, F4
+    refuted: 0
+  recommendations_for_plan_2026_11: |
+    Three of the four findings (F2, F3, F4) survive and warrant
+    sub-decisions in plan-2026-11-adoption-fixes; F1 survives
+    but only as a process-time concern and should be folded into
+    the sub-agent prompt template rather than tracked as a
+    kernel-side decision. Concretely:
+    - F2 → new decision `process-principles-2026-10-2.yaml`
+      (light) plus a 5-line edit to `docs/plans/...-prompts.md`.
+      Severity is P2 but the fix is small (≤ 30 lines), so this
+      fits the fast path per AGENTS.md §Fast path (process-fast-
+      path-2026-10).
+    - F3 → new decision `attestation-namespace-meta-2026-11
+      .yaml` (mode `light`, scope: kernel — touches
+      `lib/attestations/scanner.ml` if implementing option (a),
+      or pure docs if implementing option (b)). Recommend
+      option (b) for plan-2026-11 and option (a) for plan-2026-
+      12 — splits the work into a 1-day shippable and a 3-day
+      durable fix.
+    - F4 → new decision `verifier-scheme-convention-2026-11
+      .yaml` (mode `light`) plus a small conformance fixture.
+      P3, low priority; can ship after F2/F3.
+    - F1 → no new decision; amend the plan-prompts template to
+      add the "scaffold commit before kernel work" rule. Track
+      the rule in the existing `process-principles.yaml` rev 2.
+  cross_cutting_observations: |
+    Two structural patterns emerge across the four findings:
+    (1) F1 and F2 share a root cause: the orchestrator's
+        sub-agent protocol (a) launches work in parallel
+        before dependencies are resolved, and (b) does not
+        require intermediate commits. The fix for both is a
+        single contract update to the sub-agent prompt
+        template: "scaffold commit first, wait for declared
+        dependencies second, write kernel third". This belongs
+        in `decisions/process-principles.yaml` rev 2 (file
+        `process-principles-2026-10-2.yaml`), which then
+        closes both findings with one obligation.
+    (2) F3 and F4 share a root cause: the attestation /
+        obligation protocol accepts free-form strings without
+        strong schema validation. The kernel's
+        `parse_verifier_string` has a 3-scheme allowlist that
+        is silently bypassed by `mathc validate` and
+        `mathc self-check`. F3's collision and F4's
+        placeholder verifiers are both symptoms of the same
+        "the kernel trusts the agent" assumption. The
+        principled fix is a verifier-scheme-convention
+        decision that either (a) tightens the schema to
+        enforce scheme membership, or (b) makes
+        `mathc validate` warn (not reject) on unknown
+        schemes so the gap is at least visible. (a) is
+        breaking; (b) is additive and matches the project's
+        "warn then escalate" pattern. Recommend (b) for
+        plan-2026-11.
+    Both root causes are addressed by the existing
+    `process-principles.yaml` mechanism — they do not need
+    new axiom links. A1 (commitments need observations) is
+    the underlying motivation; A4 (process as a system) is
+    the methodology.
