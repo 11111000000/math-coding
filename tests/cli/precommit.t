@@ -21,15 +21,16 @@ locks the summary shape, not the numeric content:
   verdict rows present: ok
 
 Single-file mode (`mathc precommit FILE`) treats the file as a
-single-item batch. The live fixture file `decisions/1-foo.yaml`
-is well-formed and accepts (the per-file verdict stays `accept`
+single-item batch. The tracked file
+`decisions/mathc-counters-subcommand-2026-10.yaml` is well-formed
+and accepts (the per-file verdict stays `accept`
 in `precommit`'s human output; only `validate` switched its token
 to `parse-ok`):
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc precommit decisions/1-foo.yaml
+  $ mathc precommit decisions/mathc-counters-subcommand-2026-10.yaml
   mathc precommit: 1 files: 1 accepted, 0 rejected, 0 input-err
-    decisions/1-foo.yaml: accept
+    decisions/mathc-counters-subcommand-2026-10.yaml: accept
 
 `mathc precommit nonexistent.yaml` exits 2 (input error from
 the underlying mathc validate; the file does not exist):
@@ -42,13 +43,14 @@ the underlying mathc validate; the file does not exist):
 (per-file verdicts + counts). The shape includes `total`,
 `accepted`, `rejected`, `input_err`, and a `files[]` array.
 
+  $ tmpj=$(mktemp -d)/precommit-one.json
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc precommit --format=json decisions/1-foo.yaml \
-  >   2>/dev/null > /tmp/precommit-one.json
-  $ grep -q '"total":1' /tmp/precommit-one.json \
-  >   && grep -q '"accepted":1' /tmp/precommit-one.json \
-  >   && grep -q '"rejected":0' /tmp/precommit-one.json \
-  >   && grep -q '"input_err":0' /tmp/precommit-one.json \
-  >   && grep -q '"files":\[{"exit_code":0,"path"' /tmp/precommit-one.json \
+  $ mathc precommit --format=json decisions/mathc-counters-subcommand-2026-10.yaml \
+  >   2>/dev/null > "$tmpj"
+  $ grep -q '"total":1' "$tmpj" \
+  >   && grep -q '"accepted":1' "$tmpj" \
+  >   && grep -q '"rejected":0' "$tmpj" \
+  >   && grep -q '"input_err":0' "$tmpj" \
+  >   && grep -q '"files":\[{"exit_code":0,"path"' "$tmpj" \
   >   && echo "json shape: ok"
   json shape: ok
