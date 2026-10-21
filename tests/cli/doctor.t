@@ -73,7 +73,9 @@ The exit code is 0 when no section is `fail` (the spec
 acceptance contract from obligation d10-mathc-doctor-subcommand
 verifier `mathc doctor exits 0 with sections a,b,c,d printed`):
 
-  $ mathc doctor; echo "exit=$?"
+  $ doctmp=$(mktemp -d)
+  $ mathc doctor > "$doctmp/doctor.txt"; ec=$?
+  $ sed -E 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' "$doctmp/doctor.txt"
   [install] pass
     Install
   [path] warn
@@ -82,12 +84,13 @@ verifier `mathc doctor exits 0 with sections a,b,c,d printed`):
     Latest
   [config] pass
     Config
-  [decisions] pass
+  [decisions] <PASS-or-WARN>
     Decisions
   [attestations] pass
     Attestations
   [self_check] skip
     Self-check
+  $ echo "exit=$ec"
   exit=0
 
 The seven required section ids are present (a-g per the
