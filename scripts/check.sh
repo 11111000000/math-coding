@@ -100,12 +100,27 @@ fi
 # dune 3.23.1 bwrap coordination bug (see
 # decisions/disable-hanging-alcotest-tests-2026-10.yaml).
 # `dune runtest` invokes just the cram stanza and finishes
-# in seconds. We force a rebuild so the bwrap sandbox is
-# fresh; on a clean run this is fast (incremental cache).
+# in seconds. It starts with `dune clean` because dune replays a
+# recorded cram outcome from `_build/**/.cram.<name>/cram.out`
+# (`DUNE-CRAM-RESULTv2`) whenever it considers the input unchanged.
+# The binary reaches the sandbox through `_build/install/default/bin/
+# mathc`, a symlink into `_build/default/bin/mathc.exe`, so rebuilding
+# the kernel moves the target without changing anything the cache key
+# observes, and the stale output is replayed. Measured 2026-10-20:
+# `init-defaults.t` stayed red on an applicability-envelope block the
+# current binary prints, while a byte-identical copy of the file under
+# another name passed in the same run — the copy had no cache
+# directory. `dune clean` restores green.
+#
+# Do NOT reach for `rm -rf _build/**/.cram.*` as a shortcut: those
+# directories are load-bearing state, not scratch. Deleting them
+# alone makes every affected fixture fail with `cram.out does not
+# exist or is corrupted`, attributed to `tests/cli/_unknown_`.
 cleanup_dune
 cram_log=$(mktemp)
 trap 'rm -f "$cram_log"' EXIT
 if ! nix develop .#test --command bash -c '
+    dune clean &&
     dune build --root . @install >/dev/null 2>&1 &&
     dune runtest --root . tests/cli
 ' >"$cram_log" 2>&1; then
