@@ -5,8 +5,8 @@ revision: 1
 state: draft
 parents:
   - forge-principal-verification@1
-body_sha: "sha256:PENDING_AT_COMMIT_TIME"
-yaml_sha: "sha256:PENDING_AT_COMMIT_TIME"
+body_sha: "sha256:4b6314add21db8936d62909bbde2c39115e0071bd2250de954876b1cceebf5be"
+yaml_sha: "sha256:4b6314add21db8936d62909bbde2c39115e0071bd2250de954876b1cceebf5be"
 axiom_link:
   - A1
   - A4
