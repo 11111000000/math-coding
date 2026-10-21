@@ -14,6 +14,7 @@ MATH_CODING_DECISIONS_DIR-relative tree.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
+  $ export MATH_CODING_ROOT="$tmpdir"
   $ cp dune-project "$tmpdir/"
   $ mkdir -p "$tmpdir/site" "$tmpdir/.math-coding/decisions" "$tmpdir/.math-coding/attestations"
   $ for f in site/manifesto.md site/foundations.md site/workflow.md site/faq.md site/contributing.md site/readme.md site/install.md site/methodology.md site/bootstrap-gate.md site/packages.md site/differences.md site/axioms.md site/index.md; do
@@ -71,14 +72,14 @@ path lookup, not the page set). Pre-fix render walked
 cwd (tmpdir) has no legacy `decisions/` at its root.
 
   $ rm -rf out
-  $ mathc render --out out > /tmp/render-env-out.txt 2>&1
-  $ grep -qF 'render OK' /tmp/render-env-out.txt \
+  $ mathc render --out $tmpdir/out > $tmpdir/render-env-out.txt 2>&1
+  $ grep -qF 'render OK' $tmpdir/render-env-out.txt \
   >   && echo "render OK" \
-  >   || cat /tmp/render-env-out.txt
+  >   || cat $tmpdir/render-env-out.txt
   render OK
-  $ grep -oE 'data-mathc-package-count="[0-9]+"' out/packages.html
+  $ grep -oE 'data-mathc-package-count="[0-9]+"' $tmpdir/out/packages.html
   data-mathc-package-count="1"
-  $ grep -q 'decisions/render-env-probe-2026-11.html' out/packages.html \
+  $ grep -q 'decisions/render-env-probe-2026-11.html' $tmpdir/out/packages.html \
   >   && echo "probe decision link in rendered packages.html: ok"
   probe decision link in rendered packages.html: ok
 

@@ -15,19 +15,19 @@ Acceptance gate for obligation `spec-mathjax-rendered` in
 `spec-mathjax-wired-and-rendered`.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ rm -rf dist
-  $ mathc render --out dist --lang=both > /tmp/render-spec-out.txt
-  $ test -f dist/spec/algebra-3.2.html
-  $ test -f dist/spec/constitution.html
-  $ test -f dist/spec/domain.html
-  $ test -f dist/spec/semantics.html
-  $ grep -qF 'mathjax@3' dist/spec/algebra-3.2.html
-  $ grep -qF 'tex-mml-chtml' dist/spec/algebra-3.2.html
-  $ grep -qF "inlineMath" dist/spec/algebra-3.2.html
-  $ grep -qF "displayMath" dist/spec/algebra-3.2.html
-  $ grep -qF '<script defer' dist/spec/algebra-3.2.html
-  $ grep -qF 'friction_user' dist/spec/algebra-3.2.html
-  $ grep -qF 'risk_to_mode' dist/spec/algebra-3.2.html
-  $ grep -qF 'class="mathc-spec-page"' dist/spec/algebra-3.2.html
-  $ grep -qF 'algebra-3.2' dist/spec/algebra-3.2.html
+  $ tmpdir=$(mktemp -d)
+  $ mathc render --out $tmpdir/dist --lang=both > $tmpdir/render-spec-out.txt
+  $ test -f $tmpdir/dist/spec/algebra-3.2.html
+  $ test -f $tmpdir/dist/spec/constitution.html
+  $ test -f $tmpdir/dist/spec/domain.html
+  $ test -f $tmpdir/dist/spec/semantics.html
+  $ grep -qF 'mathjax@3' $tmpdir/dist/spec/algebra-3.2.html
+  $ grep -qF 'tex-mml-chtml' $tmpdir/dist/spec/algebra-3.2.html
+  $ grep -qF "inlineMath" $tmpdir/dist/spec/algebra-3.2.html
+  $ grep -qF "displayMath" $tmpdir/dist/spec/algebra-3.2.html
+  $ grep -qF '<script defer' $tmpdir/dist/spec/algebra-3.2.html
+  $ grep -qF 'friction_user' $tmpdir/dist/spec/algebra-3.2.html
+  $ grep -qF 'risk_to_mode' $tmpdir/dist/spec/algebra-3.2.html
+  $ grep -qF 'class="mathc-spec-page"' $tmpdir/dist/spec/algebra-3.2.html
+  $ grep -qF 'algebra-3.2' $tmpdir/dist/spec/algebra-3.2.html
   $ rm -rf dist
