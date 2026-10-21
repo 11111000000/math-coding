@@ -22,6 +22,7 @@ Nested output directory that does not exist yet: created, no crash.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmp=$(mktemp -d) && cd "$tmp"
+  $ export MATH_CODING_ROOT="$tmp"
   $ printf 'd1\to1\treview\thuman:me\n' > m.tsv
   $ mathc attest-batch --manifest=m.tsv --out=a/b/c 2>&1 | sed 's|^wrote |wrote |'
   wrote a/b/c/d1-o1.json
@@ -75,30 +76,30 @@ enum (it previously accepted anything and wrote an unloadable file).
 An unwritable output directory is an exit-2 diagnostic naming the
 path, not `mathc: internal error`.
 
-  $ if mathc attest-batch --manifest=m.tsv --out=/proc/x/y 2>/tmp/ab.err; then
+  $ if mathc attest-batch --manifest=m.tsv --out=/proc/x/y 2>"$tmp/ab.err"; then
   >   echo "FAIL: expected non-zero exit on unwritable out"; exit 1
   > else
   >   echo "unwritable out refused (exit $?)"
   > fi
   unwritable out refused (exit 2)
-  $ grep -q 'mathc attest-batch: cannot create /proc/x/y' /tmp/ab.err && echo "diagnostic names the path"
+  $ grep -q 'mathc attest-batch: cannot create /proc/x/y' "$tmp/ab.err" && echo "diagnostic names the path"
   diagnostic names the path
-  $ rm -f /tmp/ab.err
+  $ rm -f "$tmp/ab.err"
 
 `--from=decisions` reads the decisions dir through the resolver: in
 this scratch project the default `.math-coding/decisions` does not
 exist and neither does the legacy one, so the walker reports nothing
 rather than silently reading the repository the harness runs in.
 
-  $ if mathc attest-batch --from=decisions --dry-run >/dev/null 2>/tmp/ab2.err; then
+  $ if mathc attest-batch --from=decisions --dry-run >/dev/null 2>"$tmp/ab2.err"; then
   >   echo "FAIL: expected exit 2 with no decisions"; exit 1
   > else
   >   echo "empty project refused (exit $?)"
   > fi
   empty project refused (exit 2)
-  $ grep -q 'no parseable decisions under .math-coding/decisions' /tmp/ab2.err && echo "scanner reports the resolved dir"
+  $ grep -q 'no parseable decisions under .*\.math-coding/decisions' "$tmp/ab2.err" && echo "scanner reports the resolved dir"
   scanner reports the resolved dir
-  $ rm -f /tmp/ab2.err
+  $ rm -f "$tmp/ab2.err"
 
 Cleanup.
 

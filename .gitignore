@@ -56,3 +56,8 @@ tools/winget/scripts/__pycache__/
 # and init-*): scratch output, not committed artefacts.
 adopt.log
 init.log
+
+# Scratch prefix created by hermetic cram fixtures that cd into the
+# checkout (attest-batch-*). Empty dirs are invisible to git; the
+# prefix stays out of history either way.
+.test-math-coding/

@@ -14,6 +14,7 @@ the tmpdir so it cannot pollute the host checkout.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d) && cd "$tmpdir"
+  $ export MATH_CODING_ROOT="$tmpdir"
   $ export MATH_CODING_DECISIONS_DIR=".test-math-coding/decisions"
   $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
   $ mkdir -p "$MATH_CODING_DECISIONS_DIR" "$MATH_CODING_ATTESTATIONS_DIR"
@@ -82,9 +83,9 @@ Validate the fixture before exercising --from=decisions.
 
 Run --from=decisions. Two obligations -> two files.
 
-  $ mathc attest-batch --from=decisions --producer=human:integration-test --kind=review
-  wrote .test-math-coding/attestations/foo-decision-obl-acceptance.json
-  wrote .test-math-coding/attestations/foo-decision-obl-noise.json
+  $ mathc attest-batch --from=decisions --producer=human:integration-test --kind=review 2>&1 | sed "s|$tmpdir|<TMP>|g"
+  wrote <TMP>/.test-math-coding/attestations/foo-decision-obl-acceptance.json
+  wrote <TMP>/.test-math-coding/attestations/foo-decision-obl-noise.json
   $ ls .test-math-coding/attestations
   foo-decision-obl-acceptance.json
   foo-decision-obl-noise.json
