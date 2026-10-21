@@ -94,6 +94,32 @@ else
   pass=$((pass + 1))
 fi
 
+# The whole decision corpus must pre-commit clean. This is
+# deliberately NOT implied by a clean textual merge: `git merge-tree`
+# only compares lines, so a branch carrying
+# `sha256:PENDING_AT_COMMIT_TIME` merges without conflict and then
+# blocks the kernel with MC-BODY-SHA-PATTERN-VIOLATION (severity:
+# block). That happened on 2026-10-20 — the decision merged cleanly
+# and turned tests/cli/precommit.t red, because nothing in this script
+# looked at a decision file at all.
+#
+# `mathc precommit`, not `mathc validate decisions/*.yaml`: validate
+# dispatches on Sys.argv.(2) and silently ignores every later
+# argument, so passing 208 paths checks exactly one of them. Precommit
+# walks the directory and carries the exit code.
+cleanup_dune
+if ! nix develop .#test --command bash -c 'mathc precommit >/dev/null 2>&1'; then
+  printf "  FAIL decisions-precommit\n"
+  nix develop .#test --command bash -c \
+    "mathc precommit 2>&1 | grep -vE ': (accept|parse-ok)\$' | grep -v '^mathc precommit:' | head -10" \
+    >&2 || true
+  fail=$((fail + 1))
+  failed_names+=("decisions-precommit")
+else
+  printf "  ok   decisions-precommit\n"
+  pass=$((pass + 1))
+fi
+
 # CLI cram integration tests (tests/cli/*.t). We use
 # `dune runtest` (not the full `dune test`) because the full
 # `dune test` reproducibly hangs in this environment due to a
