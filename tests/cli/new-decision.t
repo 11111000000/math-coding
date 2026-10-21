@@ -1,6 +1,6 @@
 mathc new-decision <id> scaffolds a new decision YAML from a
 canonical template. The dispatcher prints to stdout (default),
-writes to decisions/<id>.yaml (--write), or runs the
+writes to <resolved-dir>/<id>.yaml (--write), or runs the
 --interactive stub (no-op in this slice). The id is validated
 against the same kebab-case regex used by mathc validate.
 
@@ -34,8 +34,19 @@ full body shape, which is load-bearing in a separate test.
   schema-string: ok
   $ rm -rf "$tmpdir"
 
-Write path: --write creates decisions/<id>.yaml in the project
-root and prints the path. The directory is created if absent.
+Write path: --write creates <id>.yaml under the resolved decisions
+directory of the project root and prints the path. The directory
+is created if absent, parents included.
+
+The project root here is a fresh `mktemp -d`, i.e. an empty tree.
+`Path_config.layout_of` answers `New` for a tree carrying no
+layout marker, so the resolved directory is `.math-coding/decisions`.
+That is the same answer `mathc init` gives for the same input -- see
+`init.t`, which pins `.math-coding/` for a fresh tmpdir and pins
+`decisions/` only under explicit legacy env-vars (`init-legacy.t`).
+An earlier revision of this file asserted `<TMP>/decisions/`, which
+contradicted its own sibling fixture and could never have passed.
+
 The printed path is mktemp-random so we sed-normalise the
 prefix to `<TMP>` (kernel writes both stdout and stderr;
 `2>/dev/null` would suppress the soft axiom-link warning but
@@ -46,10 +57,10 @@ sed-strip the tmpdir prefix instead).
   $ tmpdir=$(mktemp -d)
   $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write 2>&1 | sed "s|$tmpdir|<TMP>|g"
   deficit/MC-AXIOM-LINK-INFERENCE-EMPTY: scope.paths includes <path/glob/that/this/decision/touches/**>; top candidates: A0 (separation); add axiom_link
-  mathc new-decision: wrote <TMP>/decisions/jwt-rotation.yaml
-  $ test -f "$tmpdir/decisions/jwt-rotation.yaml" && echo "file: ok"
+  mathc new-decision: wrote <TMP>/.math-coding/decisions/jwt-rotation.yaml
+  $ test -f "$tmpdir/.math-coding/decisions/jwt-rotation.yaml" && echo "file: ok"
   file: ok
-  $ grep -q '^id: jwt-rotation' "$tmpdir/decisions/jwt-rotation.yaml" && echo "id in file: ok"
+  $ grep -q '^id: jwt-rotation' "$tmpdir/.math-coding/decisions/jwt-rotation.yaml" && echo "id in file: ok"
   id in file: ok
   $ rm -rf "$tmpdir"
 
