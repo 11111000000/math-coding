@@ -1,0 +1,356 @@
+---
+schema: math-coding/3.3
+id: release-pending-real-staleness-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: implementation
+body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+
+intent: |
+  Give the release-pending gate a question it can answer, and
+  therefore a case where it passes.
+
+  release-cadence-2026-11@1 shipped the gate as a first-pass
+  placeholder: block any protected-path PR whenever
+  `git tag --merged` on the base ref returned anything at all.
+  Once the project cut its first release that condition became
+  permanently true — every base ref has a tag merged into it
+  forever — so the gate blocked every protected-path PR and never
+  once turned green. A gate that cannot pass cannot be told apart
+  from a gate that is broken, and neither of them is a check.
+  Three `fail-open` holes in the same file were closed in
+  `fix/release-pending-yaml-invalid-2026-10`; what was left was a
+  fail-closed gate with nothing to be fail-closed about.
+
+  THE QUESTION THE EXISTING DECISION ASKS IS VACUOUS
+  -------------------------------------------------
+  release-cadence-2026-11@1 states its outcome as "fails when no
+  release-workflow re-run is recorded after that tag". Read
+  literally, that condition is satisfied by essentially every
+  merge: `.github/workflows/release.yml` triggers on
+  `push: branches: [main]` (lines 3-7), so a re-run after the tag
+  is what a merge to main *already is*. A gate that asks this
+  question — with or without an API — would report green in the
+  exact situation F15 describes: main moved past the tag, the
+  shipped binary does not, and the only record of the release
+  workflow is the push that created the staleness. That is a new
+  fail-open wearing the costume of a fix, and it is worse than the
+  placeholder because it looks like verification.
+
+  GIT CARRIES NO WITNESS OF A RELEASE-WORKFLOW RUN
+  -------------------------------------------------
+  The gate was meant to consult `actions/runs`, and the rolling
+  publish looked like the obvious witness: release.yml's non-tag
+  path publishes with `tag_name: edge`
+  (`.github/workflows/release.yml` lines 483-489). The git ref
+  `edge` does not track main. At `main` = e974364 it points at
+  9f7599e, dated 2026-09-26, and sits 900 commits behind —
+  `softprops/action-gh-release` replaces the assets on an existing
+  release and leaves the tag where it was. So the only git-visible
+  record of a release is a `v*.*.*` tag, which is exactly what
+  `install.sh`'s `MC_VERSION_DEFAULT` names and what a user
+  actually downloads.
+
+  It follows that the placeholder's own remediation instruction
+  could not have worked either. "Re-run release.yml on main"
+  republishes `edge`, a prerelease nothing installs by default, so
+  it moves no versioned artifact and would have left the gate
+  red. The instruction and the gate disagreed, and the gate was
+  the thing reviewers had to satisfy.
+
+  THE QUESTION THIS DECISION ASKS
+  -------------------------------
+  Is the base tip a commit that has been released as vX.Y.Z?
+
+  If yes, the published artifact was built from exactly this
+  tree, a protected-path change on top of it is an ordinary
+  next-cycle change, and the PR passes. If no, the artifact
+  provably predates the base tree — F15's shape, present now,
+  before the merge makes it wider — and the PR blocks until a
+  versioned tag is cut on the base tip.
+
+  This is a question git can answer with no network, no token and
+  no contract to guess at, and its passing case is reached by
+  ordinary releases rather than by an exemption.
+
+  Also closed here: obligation `c4-release-cadence-2026-11`
+  carries a `shell-grep` criterion for the literal `bin/Mathc.ml`,
+  but no committed revision of `release-pending.yml` has ever
+  contained that string (45ba4c2b and ec05168 both match only
+  `bin/*`), while
+  `attestations/release-cadence-2026-11-c4-release-cadence-2026-11.json`
+  records `pass`. That attestation was taken against
+  `.github/workflows/release-pending.yml` under a worktree that
+  no longer exists, so its criterion cannot be re-checked where it
+  was written. The literal is now present, beside the wider
+  `bin/*` glob that actually protects the build.
+
+commitment: |
+  The cycle closes when: (a) `scripts/release-pending-gate-sim.sh`
+  exits 0, with its fifteen rows and both of its controls holding;
+  (b) `.github/workflows/release-pending.yml` parses under
+  `yq -e '.'` and carries no shell heredoc inside a `run:` block,
+  per `tests/repo_structure.ml::workflow-yaml-well-formed`;
+  (c) every uncertainty the gate meets — empty base ref,
+  unresolvable base, unreadable diff, unreadable tag list,
+  uncountable tag distance, diverged base — blocks rather than
+  passes; (d) `mathc self-check` reports no NEW unknown subject
+  against the plan-branch baseline.
+
+outcomes:
+  - id: gate-has-a-passing-case
+    statement: |
+      The gate passes a protected-path PR whose base tip carries a
+      `v*.*.*` tag, and blocks one whose base tip does not. The
+      distinction is the commit count between the base tip and the
+      most advanced version tag reachable from it, reported as
+      `commits_ahead`.
+  - id: most-advanced-not-newest-by-date
+    statement: |
+      The gate selects the version tag the base tip is CLOSEST to,
+      not the one with the newest tag date. A release cut on an
+      older branch can carry the newest date while being further
+      from the base tip; reading it as the relevant tag would
+      under-report the gap.
+  - id: every-uncertainty-blocks
+    statement: |
+      Six distinct ways of not knowing the answer all exit
+      non-zero: empty `GITHUB_BASE_REF`, an unresolvable base ref,
+      an unreadable diff, an unreadable tag list, an uncountable
+      tag distance, and a base ref that shares no release
+      ancestor with a repository that has shipped. Only a
+      repository that has never cut a `v*.*.*` tag passes without
+      evidence, and that is sound because no artifact exists there
+      to be stale.
+  - id: sim-carries-its-own-sharpness
+    statement: |
+      `scripts/release-pending-gate-sim.sh` reads the three step
+      bodies out of the workflow and replays them under
+      `bash --noprofile --norc -e -o pipefail` against synthetic
+      git repositories. A MUTATION control forces the single
+      "this base is released" condition true and requires the
+      harness to notice; a PRE-FIX control replays the ec05168
+      placeholder body and requires it to block a released base.
+  - id: obligation-needle-restored
+    statement: |
+      The workflow carries the literal `bin/Mathc.ml` that
+      obligation `c4-release-cadence-2026-11` greps for, next to
+      the `bin/*` glob that covers the rest of the dune package
+      (`bin/mathc_mcp.ml`, `bin/md_probe.ml`).
+
+axiom_link:
+  - A2
+  - A3
+
+scope:
+  paths:
+    - ".github/workflows/release-pending.yml"
+    - "scripts/release-pending-gate-sim.sh"
+    - "decisions/release-pending-real-staleness-2026-10.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "tests/**"
+    - "scripts/check.sh"
+    - "scripts/dev"
+    - "decisions/**"
+
+obligations:
+  - id: rp-gate-passes-a-released-base
+    outcome: gate-has-a-passing-case
+    claim: |
+      The gate exits 0 for a protected-path PR whose base tip is
+      a `v*.*.*` tag, and writes `commits_ahead=0`.
+    acceptance:
+      all:
+        - verifier: bash -c "scripts/release-pending-gate-sim.sh"
+          result: pass
+  - id: rp-gate-blocks-every-uncertainty
+    outcome: every-uncertainty-blocks
+    claim: |
+      Every "cannot tell" path in the gate exits non-zero, and the
+      simulation proves each one by breaking git for real rather
+      than by describing the breakage.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: .github/workflows/release-pending.yml
+          needle: 'Gate fails closed'
+          result: pass
+  - id: rp-gate-is-not-the-placeholder
+    outcome: gate-has-a-passing-case
+    claim: |
+      The placeholder's "a tag exists anywhere on base" condition
+      is gone, and the simulation carries the pre-fix body as a
+      control that must still block a released base.
+    acceptance:
+      all:
+        - verifier: bash -c "scripts/release-pending-gate-sim.sh"
+          result: pass
+  - id: rp-workflow-still-well-formed
+    claim: |
+      The rewrite keeps the file inside the restricted YAML subset:
+      valid for `yq`, and free of the heredoc-in-a-block-scalar
+      shape that made this file unloadable for four days in
+      October 2026.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: .github/workflows/release-pending.yml
+          needle: 'pull_request:'
+          result: pass
+  - id: rp-no-new-unknowns
+    claim: |
+      `mathc self-check` after this change reports no new unknown
+      subject against the baseline taken at the branch point.
+    acceptance:
+      all:
+        - verifier: manual-self-check-verdict-diff
+          result: pass
+
+assumptions:
+  - id: rp-release-run-success-not-in-git
+    state: unknown
+    statement: |
+      The gate proves a `v*.*.*` tag exists at the base tip. It
+      does NOT prove that the release workflow SUCCEEDED for that
+      tag. A tag pushed while release.yml was broken would satisfy
+      the gate while no artifact was ever published. Closing this
+      needs the Actions API — `actions: read` plus a query against
+      the release workflow's runs filtered by the tagged SHA —
+      which is a live network dependency in a gate that currently
+      needs none. NOT closed here on purpose: the previous
+      attempt to close it failed in a worse direction, because the
+      question it asked was already satisfied by every push to
+      main. OWNER INQUIRY, for `human:maintainer`: is a network
+      round-trip and the `actions: read` grant acceptable in this
+      gate, given that it must fail closed on rate limiting and
+      on an Actions API change? A tag-push check that waits for a
+      SUCCESSFUL release run, rather than for the tag, would
+      answer the question the artifact's existence actually
+      raises.
+    owner: human:maintainer
+  - id: rp-tag-glob-tracks-release-workflow
+    state: assumed
+    statement: |
+      The `v*.*.*` glob is the gate's model of "a version was
+      released". It mirrors `on.push.tags` in release.yml, so the
+      two cannot drift silently — but a future release path that
+      publishes a version WITHOUT a matching tag would fall
+      outside the gate's view. OWNER INQUIRY, for
+      `human:maintainer`: is a versioned tag the intended and
+      permanent marker of "shipped"?
+    owner: human:maintainer
+
+counterexample: |
+  Strongest objection: this gate is too coarse, and the coarse
+  version of "too strict" is the same failure the placeholder
+  already had. At `main` = e974364 the most advanced version tag
+  reachable from the branch tip is v3.3.3, and the tip sits 134
+  commits past it, so the gate blocks every protected-path PR
+  against main and will keep blocking until someone cuts a tag —
+  which makes it a red gate with a longer fuse, not a better one,
+  and reviewers will learn to dismiss it the way they learned to
+  dismiss the placeholder.
+
+  Two answers, and neither is that the objection is wrong.
+
+  First, the two gates differ in kind, not degree. The
+  placeholder's answer is constant: a tag exists. It said nothing
+  about how far behind main was, it could not say, and it had no
+  state in which it would pass. This one names the tag, names the
+  base commit, and prints the gap — 134 commits ahead of v3.3.3 —
+  so the block carries the information the reviewer needs and the
+  remedy is a single command. A gate that reports a specific,
+  shrinking number can be planned around; a gate that is
+  permanently red teaches people to click through it.
+
+  Second, the narrow alternative was considered and rejected for a
+  concrete reason. The obvious refinement is to compare only the
+  build-relevant paths and let a base that has diverged from the
+  tag in `decisions/**` or `docs/**` pass. That requires knowing
+  the complete set of build inputs, because anything omitted from
+  the list becomes an invisible fail-open: the base moves, the
+  gate sees no protected path, the binary ships stale. Deriving
+  that set from what dune and opam actually read is not tractable
+  here, and a hand-maintained list is a list that will silently
+  fall behind the build. `bin/` itself is the cautionary case —
+  the obligation named `bin/Mathc.ml` while the package also
+  contains `mathc_mcp.ml` and `md_probe.ml`.
+
+  So the gate is deliberately coarse: one bit of evidence, a tag
+  at the base tip, and no list of paths to keep honest. The cost
+  is stated in `outcomes.gate-has-a-passing-case` and in the
+  blocking message itself, which tells the reviewer to cut a tag.
+
+antithesis: |
+  The counter-position engaged and rejected: "keep the decision's
+  own question and answer it properly — query the GitHub API for
+  `actions/runs` filtered by the release workflow and the tagged
+  SHA, exactly as the decision's counterexample contemplated, and
+  add `actions: read`."
+
+  It was rejected for a reason that has nothing to do with
+  tokens, which is how the previous attempt rejected it. The
+  endpoint is not the problem; `GITHUB_TOKEN`, `gh api` and
+  `actions/runs` are all stable and documented. The problem is
+  that the question is empty. `release.yml` runs on every push to
+  main, so "a release-workflow run is recorded after that tag" is
+  satisfied by the very push that creates the staleness, and the
+  gate would pass while the artifact sat stale. Building the API
+  path faithfully is building it faithfully wrong: it converts a
+  gate that cannot pass into a gate that passes for the wrong
+  reason, and the wrong reason is harder to notice than the
+  obvious defect.
+
+  The API remains the right instrument for a DIFFERENT and
+  non-empty question — did the run for this tag SUCCEED — which is
+  recorded as `assumptions.rp-release-run-success-not-in-git`
+  with the owner inquiry attached, and deliberately left open.
+
+risk:
+  declared_triggers:
+    - gate-blocks-main-until-next-tag-is-cut
+    - gate-cannot-see-a-failed-release-run
+    - versioned-tag-glob-drifts-from-release-workflow
+    - release-cadence-2026-11-outcome-text-now-contradicts-the-gate
+    - reviewer-learns-to-dismiss-a-more-informative-block
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - release-cadence-2026-11@1
+  refines:
+    - release-pending-yaml-invalid-2026-10@1
+  informs:
+    - ci-gate-exit-honesty-2026-10@1
+
+reversal: |
+  Reverse this if any of the following becomes true.
+
+  1. Release cadence settles into "tag every merge that touches
+     `lib/`". The gate is then correct but pointless, because the
+     tag would always be at the base tip and the gate would always
+     pass. At that point the honest gate is a different one: a
+     release run failing, which is `assumptions.rp-release-run-success-not-in-git`.
+
+  2. Mainland pushes to `release/**` are routine and their tips
+     are never tagged. Every protected-path PR into a release
+     branch would block, and since a release branch's tip is
+     unreleased by definition, the gate would be red there
+     permanently. The current behaviour is defensible — a release
+     branch is not yet a release — but it would need saying out
+     loud rather than leaving reviewers to infer it.
+
+  3. The project stops treating a versioned tag as "shipped" and
+     starts installing the rolling `edge` prerelease. Then the
+     question changes from "is there a version tag" to "is
+     `edge` current", and the `edge` ref stops being a usable
+     witness precisely because softprops does not move it — which
+     is the finding that pushed the API query off the table in
+     the first place.
