@@ -95,18 +95,43 @@ jobs:
         # v3.0.0.19 closes the bootstrap gate: the attestation store at
         # attestations/ is populated, and `mathc self-check` against the
         # populated store returns verdict=pass (exit 0) on a clean
-        # main HEAD. PRs that produce verdict=fail (exit 1) or
-        # verdict=unknown (exit 3) on this step now block the merge
-        # per constitution.md Invariant 14 (exit honesty). See
-        # decisions/attestation-store-fill.yaml@2 obligation
-        # ci-block-set.
+        # main HEAD.
+        #
+        # EXIT HONESTY - the step's status IS mathc's status:
+        #   exit 0 = verdict pass    -> step green
+        #   exit 1 = verdict fail    -> step red
+        #   exit 3 = verdict unknown -> step red
+        # per constitution.md Invariant 14 / 14b (exit honesty and
+        # symmetric exit honesty: `exit 0 != verdict:Unknown`).
+        #
+        # How the code is carried. `|| rc=$?` captures mathc's status
+        # without tripping errexit, so the diagnostic dump still runs;
+        # the last line re-raises the captured status. The `jq` dump is
+        # DIAGNOSTIC ONLY and is structurally unable to influence the
+        # verdict - before rev 2 of this file it was the last command
+        # in the block, so its own exit 0 stood in for the step's, and
+        # verdict=fail and verdict=unknown both reported green.
+        # `continue-on-error: false` was inert for the same reason: the
+        # step could not fail. See
+        # decisions/ci-gate-exit-honesty-2026-10.yaml@1.
+        #
+        # The block below is replayed verbatim by
+        # scripts/ci-step-exit-sim.sh against a stub mathc that exits
+        # 0/1/3, so the three rows above are checked, not asserted.
         # ~5 s.
         run: |
-          set +e
+          rc=0
           nix develop .#test --command bash -c \
-            '_build/install/default/bin/mathc self-check > /tmp/self-check.json 2> /tmp/self-check.err; \
-             echo "self-check exit=$?"; \
-             jq -c "{verdict, kernel_digest, repository_digest, subjects_count: (.subjects | length)}" /tmp/self-check.json || cat /tmp/self-check.err'
+            '_build/install/default/bin/mathc self-check > /tmp/self-check.json 2> /tmp/self-check.err' || rc=$?
+          echo "self-check exit=${rc}"
+          if jq -c '{verdict, kernel_digest, repository_digest, subjects_count: (.subjects | length)}' \
+               /tmp/self-check.json; then
+            :
+          else
+            echo "--- mathc self-check stderr (no parsable JSON above) ---" >&2
+            cat /tmp/self-check.err >&2 || true
+          fi
+          exit "${rc}"
         continue-on-error: false
         timeout-minutes: 2
 
