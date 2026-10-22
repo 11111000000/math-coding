@@ -100,6 +100,94 @@ cleanup_dune_lock() {
   [ ! -f _build/.lock ] || rm -f _build/.lock || true
 }
 
+# Test binaries the fallback runner knowingly does not cover, with the
+# reason. `tests/rebuttal_forge_stub.exe` hangs in
+# `forge_stub.ml::read_request` (see decisions/ci-green-batch1-
+# 2026-10.yaml, Tier 2G) and is excluded upstream.
+#
+# This list exists so the coverage cross-check in verify_test_suite can
+# tell an INTENDED gap from an accidental one. A newly built test binary
+# that is neither in scripts/dev-fast-test's list nor listed here makes
+# stage 2 FAIL, instead of producing a green run that quietly skipped it.
+verify_test_exclusions="rebuttal_forge_stub.exe"
+
+# Stage 2 of `verify`: run the test suite and decide the stage verdict.
+#
+# `dune test` reproducibly wedges on the dune 3.23.1 RPC deadlock
+# (decisions/disable-hanging-alcotest-tests-2026-10.yaml,
+# docs/upstream-bugs/dune-3.23.1-rpc-hang.md); the wrapper reports that
+# as exit 124 (or 137).
+#
+# A timeout is not evidence that the suite passed, so it is NOT a soft
+# pass. We fall back to the runner the same decision names as the
+# workaround — scripts/dev-fast-test, which invokes each Alcotest binary
+# directly and so never enters the wedged `dune test` RPC path — and the
+# stage passes ONLY when that fallback reports the whole suite green and
+# demonstrably covered every built test binary. If the fallback cannot
+# run, reports a failure, or skipped a binary, the stage fails.
+#
+# Rev 1 of this script swallowed the timeout as a WARN on the stated
+# ground that scripts/check.sh "still proves the suite". That claim was
+# false: check.sh BUILDS tests/process_principles.exe without executing
+# it, and runs cram only under tests/cli. A `dune test` hang therefore
+# skipped every Alcotest binary in the suite while `verify` stayed green.
+verify_test_suite() {
+  local budget="${VERIFY_TEST_FALLBACK_TIMEOUT:-900}"
+  local rc=0
+  run_in_shell "scripts/dune-test-with-timeout.sh" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    echo "verify dune test: ok"
+    return 0
+  fi
+  if [ "$rc" -ne 124 ] && [ "$rc" -ne 137 ]; then
+    echo "verify: FAIL at stage 2 (dune test, rc=${rc})" >&2
+    return 1
+  fi
+
+  echo "verify: WARN at stage 2 — \`dune test\` exceeded its budget (rc=${rc});" \
+       "the suite was NOT verified by \`dune test\`." >&2
+  echo "verify: falling back to scripts/dev-fast-test (per-binary runner," \
+       "budget ${budget}s); see decisions/disable-hanging-alcotest-tests-2026-10.yaml" >&2
+
+  local out='' frc=0
+  out=$(timeout --foreground --kill-after=15 --signal=TERM "${budget}" \
+        ./scripts/dev-fast-test --reset 2>&1) || frc=$?
+  printf '%s\n' "$out"
+
+  if [ "$frc" -ne 0 ]; then
+    echo "verify: FAIL at stage 2 — \`dune test\` hung (rc=${rc}) AND the" \
+         "scripts/dev-fast-test fallback did not report a green suite (rc=${frc})." >&2
+    return 1
+  fi
+
+  # Coverage cross-check. The fallback is evidence only if it actually
+  # ran the suites: read the per-binary result lines it printed, and
+  # fail when any built test binary is neither among them nor on the
+  # documented exclusion list.
+  local ran uncovered f
+  ran=$(sed -n 's/^\(run\|cached\)[[:space:]][[:space:]]*\([^[:space:]]\{1,\}\).*/\2/p' \
+        <<<"$out" | sort -u)
+  uncovered=$(
+    for f in _build/default/tests/*.exe; do
+      [ -e "$f" ] || continue
+      basename "$f"
+    done | sort -u | comm -23 - \
+           <({ printf '%s.exe\n' $verify_test_exclusions; printf '%s\n' "$ran"; } \
+             | sed 's/$/.exe/' | sort -u)
+  )
+  if [ -n "$uncovered" ]; then
+    echo "verify: FAIL at stage 2 — \`dune test\` hung and the fallback runner" \
+         "did not cover: ${uncovered//$'\n'/, }" >&2
+    echo "verify: add it to scripts/dev-fast-test's binary list (preferred) or to" \
+         "\`verify_test_exclusions\` in scripts/dev with the reason." >&2
+    return 1
+  fi
+
+  echo "verify: stage 2 PASSED via scripts/dev-fast-test (not via \`dune test\`," \
+       "which hung); coverage cross-check passed." >&2
+  return 0
+}
+
 case "$cmd" in
   build)
     cleanup_dune_lock
@@ -141,17 +229,9 @@ case "$cmd" in
         exit 1
     }
     echo "verify: stage 2/4 = dune test (with hang timeout)"
-    run_in_shell "scripts/dune-test-with-timeout.sh && echo 'verify dune test: ok'" || {
-        # dune-test-with-timeout.sh exits 124 on the documented
-        # dune 3.23.1 deadlock; we treat that as a soft pass
-        # because the underlying per-test `dune runtest` path
-        # (run in scripts/check.sh) still proves the suite.
-        if [ $? -eq 124 ]; then
-            echo "verify: WARN at stage 2 (dune test hang at 600s; see decisions/disable-hanging-alcotest-tests-2026-10.yaml)"
-        else
-            echo "verify: FAIL at stage 2 (dune test)" >&2
-            exit 1
-        fi
+    verify_test_suite || {
+        echo "verify: FAIL at stage 2 (test suite)" >&2
+        exit 1
     }
     # dune 3.23 has no --check flag; the fmt-check.sh wrapper
     # handles the "is tree clean?" check via dune fmt --preview.
