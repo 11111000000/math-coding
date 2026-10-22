@@ -624,16 +624,31 @@ let validate_with_counts path =
                            the bool is non-binding here — the diagnostic list
                            is the single source of truth for surface emission.
                            A Block diagnostic still rejects the file. *)
+                                (* The digest is defined over the file's
+                                   raw bytes (algebra §7.1), so they are read
+                                   here rather than reconstructed from the
+                                   parsed value `v`. If the read fails we
+                                   pass None, which falls back to the
+                                   layer-1 string check alone — strictly
+                                   weaker, but it cannot manufacture a false
+                                   MC-SHA-DIGEST-STALE. *)
+                                let raw =
+                                  match read_file path with
+                                  | Ok s when String.length s > 0 -> Some s
+                                  | _ -> None
+                                in
                                 let _, sha_match_diags =
-                                  Decision.sha_match_check d
+                                  Decision.sha_match_check ?raw_bytes:raw d
                                 in
                                 match sha_match_diags with
                                 | first :: _ ->
-                                    let msg =
-                                      Printf.sprintf
-                                        "body_sha ≠ yaml_sha (see %s)"
-                                        first.Diagnostic.code
-                                    in
+                                    (* Use the diagnostic's own message: the
+                                       two failure modes (fields disagree vs
+                                       fields agree but both are stale) need
+                                       different remediation, so the old
+                                       hardcoded "body_sha ≠ yaml_sha" text
+                                       was misleading for the second. *)
+                                    let msg = first.Diagnostic.message in
                                     `Reject (first, msg)
                                 | [] ->
                                     let extra_diags =
@@ -7362,6 +7377,136 @@ let[@warning "-32"] do_doctor () =
   end;
   exit (if any_fail then 1 else 0)
 
+(* --- mathc rehash ------------------------------------------------------
+ *
+ * Recompute `body_sha` / `yaml_sha` from the file's own bytes under the
+ * canonicalisation of spec/algebra-3.2.md §7.1. Until this revision
+ * nothing in the tree could recompute a digest: `sha_match_check`
+ * compared the two stored fields to each other, so a decision edited
+ * without a recompute kept validating, and the 64-zero placeholder
+ * emitted by `mathc new-decision` validated forever because 0^64 = 0^64.
+ *
+ * Dry-run by default. `--write` stamps in place. Both fields always
+ * receive the same value (that equality is the §7 invariant), and the
+ * substitution is length-preserving, so the stamped file's canonical
+ * form is byte-identical to the form that was hashed — the write is a
+ * fixed point, and re-running rehash is a no-op.
+ *
+ * Exit: 0 nothing to do or written; 1 at least one file could not be
+ * rehashed (no field to stamp); 2 usage error. *)
+let do_rehash () =
+  let write = ref false in
+  let explicit = ref [] in
+  let specs =
+    [
+      ("--write", Arg.Set write, " stamp digests in place (default: dry-run)");
+      ("--dry-run", Arg.Clear write, " report what would change, write nothing");
+    ]
+  in
+  let anon p = explicit := p :: !explicit in
+  let usage =
+    "mathc rehash [--write] [--dry-run] [PATH...]\n\
+     Recompute body_sha/yaml_sha per spec/algebra-3.2.md §7.1.\n\
+     With no PATH, walks the resolved decisions directory.\n"
+  in
+  (* Parse from argv.(2): argv.(1) is the subcommand name and must
+     not be collected as a positional. This matches every other
+     subcommand in this file (see do_gate and friends). *)
+  Arg.current := 1;
+  Arg.parse specs anon usage;
+  (* Recursive walk: decisions/ contains nested subdirectories
+     (e.g. decisions/plan-2026-10-improvements/) whose YAMLs are just
+     as much decisions as the top-level ones, and several of them
+     carry body_sha fields that must be kept current. A flat readdir
+     would silently leave them out — the same "quietly not checked"
+     failure mode this tool exists to remove. *)
+  let rec yaml_under dir =
+    Sys.readdir dir |> Array.to_list |> List.sort compare
+    |> List.concat_map (fun n ->
+           let p = Filename.concat dir n in
+           if Sys.is_directory p then yaml_under p
+           else if Filename.check_suffix n ".yaml" then [ p ]
+           else [])
+  in
+  let targets =
+    if List.length !explicit > 0 then List.rev !explicit
+    else
+      let root = find_project_root (Sys.getcwd ()) in
+      let dir = Path_config.resolve_decisions_dir ~root () in
+      let dir = if Filename.is_relative dir then Filename.concat root dir else dir in
+      if not (Sys.file_exists dir && Sys.is_directory dir) then []
+      else yaml_under dir
+  in
+  if targets = [] then begin
+    Printf.eprintf "mathc rehash: no decision files found\n";
+    exit 2
+  end;
+  let changed = ref 0 and unchanged = ref 0 and skipped = ref 0 in
+  List.iter
+    (fun path ->
+      (* `read_file` at this point in the file is the SECOND
+         definition (the string-returning one, "" on any IO failure);
+         the earlier result-returning definition further up is
+         shadowed from here on. Empty therefore means "could not
+         read", which is how a missing file is reported. *)
+      let bytes = read_file path in
+      if String.length bytes = 0 then begin
+        Printf.printf "  SKIP  %s (unreadable or empty)\n" (Filename.basename path);
+        incr skipped
+      end
+      else (
+          let computed = Decision.body_canonical_sha256 bytes in
+          (* Strip the "sha256:" scheme: the field prefix supplies it. *)
+          let hex = String.sub computed 7 (String.length computed - 7) in
+          (* Str.search_forward RAISES Not_found when the pattern is absent,
+             so a match expression would not catch it. *)
+          let has_field =
+            try
+              ignore
+                (Str.search_forward (Str.regexp "body_sha: \"sha256:") bytes 0);
+              true
+            with
+            | Not_found -> false
+          in
+          if not has_field then begin
+            (* No field to stamp. Inserting one is a schema-shape change,
+               not a digest repair, so it is reported rather than done
+               silently — see decisions/ for the 16 files in this state. *)
+            Printf.printf "  SKIP  %s (no body_sha field to stamp)\n"
+              (Filename.basename path);
+            incr skipped
+          end
+          else
+            let stamped = Decision.stamp_digest ~hex bytes in
+            let verified = Decision.body_canonical_sha256 stamped in
+            if verified <> computed then
+              (* Fixed point violated: stamping changed the canonical
+                 form. Never write in that state. *)
+              Printf.printf
+                "  FAIL  %s (stamp is not a fixed point: %s vs %s)\n"
+                (Filename.basename path) computed verified
+            else if stamped = bytes then begin
+              if not !write then incr unchanged;
+              Printf.printf "  ok    %s\n" (Filename.basename path)
+            end
+            else begin
+              incr changed;
+              Printf.printf "  %s %s\n"
+                (if !write then "STAMP" else "WOULD ")
+                (Filename.basename path);
+              if !write then begin
+                let ch = open_out_bin path in
+                output_string ch stamped;
+                close_out ch
+              end
+            end))
+    targets;
+  Printf.printf
+    "\nrehash: %d changed, %d already current, %d skipped%s\n"
+    !changed !unchanged !skipped
+    (if !write then " (written)" else " (dry-run)");
+  exit (if !skipped > 0 then 1 else 0)
+
 let dispatch () =
   if Array.length Sys.argv < 2 then begin
     print_usage stderr;
@@ -7418,6 +7563,7 @@ let dispatch () =
   | "telemetry" -> do_telemetry ()
   | "migrate" -> do_migrate ()
   | "doctor" -> do_doctor ()
+  | "rehash" -> do_rehash ()
   | "--help" | "-h" ->
       print_usage stdout;
       exit 0

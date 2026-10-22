@@ -474,12 +474,13 @@ let axiom_link_missing ?(decision_id = "") () =
    accumulator; when both hashes are present and not string-equal,
    `mc_sha_mismatch` emits a Block diagnostic. Either field absent
    makes the invariant vacuously true (no mismatch is possible) and
-   no diagnostic is emitted. Author remediation: re-run
-   `scripts/axiom-link-seed.py --dry-run --verbose` (or a future
-   `scripts/sha-recompute.py`) to recompute BOTH fields from the
-   placeholder-substitution algorithm recorded in
-   scripts/axiom-link-seed.py:105-123. This block-level emit is
-   called from `bin/Mathc.ml::validate_with_counts` (T0.2 stream ε). *)
+   no diagnostic is emitted. Author remediation: run
+   `mathc rehash <path>` to recompute BOTH fields from the
+   placeholder-substitution algorithm (algebra §7.1; kernel
+   implementation `lib/decision.ml::body_canonical_sha256`, reference
+   implementation `scripts/axiom-link-seed.py:133-169`). This
+   block-level emit is called from
+   `bin/Mathc.ml::validate_with_counts` (T0.2 stream ε). *)
 let mc_sha_mismatch ?(decision_id = "") ?(body_sha = "") ?(yaml_sha = "")
     ?(next_actions = []) () =
   let prefix =
@@ -493,7 +494,7 @@ let mc_sha_mismatch ?(decision_id = "") ?(body_sha = "") ?(yaml_sha = "")
        requires both hashes to be equal when both are present. Recompute via \
        the placeholder-substitution algorithm (sha256 of the decision with \
        both fields replaced by 'sha256:' + 64 zeros); see \
-       scripts/axiom-link-seed.py:105-123 for the canonical implementation."
+       scripts/axiom-link-seed.py:133-169 for the reference implementation."
       prefix body yaml
   in
   let default_actions =
@@ -501,7 +502,7 @@ let mc_sha_mismatch ?(decision_id = "") ?(body_sha = "") ?(yaml_sha = "")
       ( "replace",
         "body_sha and yaml_sha with the recomputed digest (both fields must \
          carry the SAME value when both are present)" );
-      ("run", "scripts/axiom-link-seed.py --dry-run --verbose  # reference impl");
+      ("run", "mathc rehash <path-to-decision>");
       ("verify", "mathc validate <path-to-decision>");
     ]
   in
@@ -510,6 +511,45 @@ let mc_sha_mismatch ?(decision_id = "") ?(body_sha = "") ?(yaml_sha = "")
   in
   create ~code:"MC-SHA-MISMATCH" ~kind:Deficit ~severity:Block
     ~policy_rule:(Some "spec/algebra-3.2.md §7") ~next_actions:actions msg
+
+(* MC-SHA-DIGEST-STALE: emitted when `body_sha` and `yaml_sha` agree
+   with each other but the shared value is not the digest of the file
+   they live in. This is the check that the "tamper-evident trail"
+   claim in adoption/SKILL.md:33 rests on: without it, any edit to a
+   decision body leaves the stored digest untouched and every
+   downstream verdict still reads `pass`.
+
+   Deliberately a separate code rather than a reuse of
+   MC-SHA-MISMATCH: the two failures have different remediations
+   (this one is a stale value, not two disagreeing fields) and
+   conflating them would have hidden the 64-zero placeholder case,
+   which is "equal but wrong". *)
+let mc_sha_digest_stale ?(decision_id = "") ?(stored = "") ?(computed = "")
+    ?(next_actions = []) () =
+  let prefix =
+    if decision_id = "" then "" else Printf.sprintf "%s: " decision_id
+  in
+  let msg =
+    Printf.sprintf
+      "%sstored digest (%s) is not the digest of this file (%s): \
+       spec/algebra-3.2.md §7.1 defines body_sha as sha256 of the file \
+       with both digest fields replaced by 'sha256:' + 64 zeros, so an \
+       edit to the body that was not accompanied by a recompute leaves \
+       the stored value stale. The body of this decision changed under \
+       a digest that still claims the old content."
+      prefix stored computed
+  in
+  let default_actions =
+    [
+      ("run", "mathc rehash <path-to-decision>  # recompute both fields");
+      ("verify", "mathc validate <path-to-decision>");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-SHA-DIGEST-STALE" ~kind:Deficit ~severity:Block
+    ~policy_rule:(Some "spec/algebra-3.2.md §7.1") ~next_actions:actions msg
 
 (* MC-BODY-SHA-PATTERN-VIOLATION: body_sha or yaml_sha is present but
    does not match the documented pattern `^sha256:[0-9a-f]{64}$`.

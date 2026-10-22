@@ -1,0 +1,236 @@
+---
+schema: math-coding/3.3
+id: enforce-body-sha-digest-2026-10
+revision: 1
+state: active
+mode: standard
+body_sha: "sha256:420ddae65fe3ade6ace40eb2d2c24ae7eb14e36c136b650f0f66684779a9d001"
+yaml_sha: "sha256:420ddae65fe3ade6ace40eb2d2c24ae7eb14e36c136b650f0f66684779a9d001"
+
+axiom_link:
+  - A0
+  - A2
+
+intent: |
+  `body_sha` is presented in the front-matter of every decision as the
+  digest of that decision, and `adoption/SKILL.md` lists "regulatory or
+  contractual audit requires a tamper-evident trail" as a reason to
+  adopt this protocol. Measure what the kernel actually does with it.
+  `lib/decision.ml::sha_match_check` compared `body_sha` to `yaml_sha`
+  as two strings, and that comparison is satisfied by any pair of equal
+  values. Consequences observed on the store as of this revision:
+  114 of 233 decision files carry a digest that is not the digest of
+  their own bytes (50 of them the literal 64-zero placeholder emitted by
+  `mathc new-decision`, which validated forever because 0^64 = 0^64), and
+  16 carry no field at all.
+
+  Consequence proved by construction, not by inference: a decision body
+  was edited to add fabricated text with `body_sha` left untouched and
+  the file's own attestations attached to it. `mathc validate` returned
+  `parse-ok` (exit 0) and `mathc self-check` returned verdict `pass`
+  with an empty `causes` list. The mechanism that the tamper-evidence
+  claim rests on was not detecting tampering.
+
+commitment: |
+  1. `sha_match_check` recomputes the digest from the file's raw bytes
+     and rejects a stored value that is not it, emitting
+     MC-SHA-DIGEST-STALE (Block). Callers that hold only a parsed
+     decision may still omit the bytes, which keeps the weaker
+     layer-1 string check; every path that has the file passes them.
+  2. `mathc rehash` recomputes and stamps both fields from the file's
+     own bytes, dry-run by default, recursive over decisions/.
+     Each file is verified to be a fixed point (re-hashing the stamped
+     bytes must reproduce the digest) before anything is written.
+  3. The store is brought to digest-current: `mathc rehash` reports zero
+     files needing a stamp.
+  4. The digest reference citation is corrected. §7.1 and
+     lib/diagnostic.ml both cited `scripts/axiom-link-seed.py:105-123`;
+     the implementation is at :133-169, and :105-123 is `decisions_dir`.
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Leave the comparison as a string equality and rely on git as the
+  tamper-evidence mechanism — the digest is redundant, git already
+  hashes content and has signed tags." Rejected on evidence: git's
+  guarantee is about the history, not about the working tree or the
+  file that a consumer of this protocol reads. The reproduction above
+  needs no history attack at all; it is an edit to a file that git would
+  happily record as a new commit. A digest field in the file is only
+  meaningful if something recomputes it, and the consumer that needs it
+  (`mathc validate`, in CI, on a PR) is exactly the thing that was not
+  doing so.
+
+  (b) "Recompute, but keep it non-blocking — a Warn diagnostic, so an
+  existing store of 114 stale digests does not turn every PR red."
+  Rejected: a Warn on a mechanism advertised as tamper-evident is the
+  same defect one level down. The choice is between turning the
+  commitment into the store's current state in the same branch, or
+  advertising it without enforcing it. This decision does the former,
+  which is why the digest refresh and the enforcement ship together.
+
+antithesis: |
+  The strongest counter-position is that this change is mostly
+  bookkeeping: it makes a field true rather than making the protocol
+  judge anything new, and it costs 114 file changes whose content is
+  meaningless to a reader. It should instead have been spent on the
+  far larger problem the same audit surfaced — `scripts/dev` downgrading
+  a hanging `dune test` to a WARN, `scripts/check.sh` reporting a test
+  suite it only compiles, and `ci.yml` swallowing `self-check exit=3`
+  under `set +e`.
+
+  That ordering criticism is accepted, and the CI items are in the same
+  branch. But it is not a reason to defer this one. The four fixes are
+  not of a kind: the CI fixes restore whether failures are visible,
+  while this restores whether a recorded commitment means anything. A
+  protocol whose ledger entries can be altered without detection has no
+  use for a CI pipeline that reports the ledger's state accurately.
+
+outcomes:
+  - id: sha-digest-recomputed
+    statement: |
+      `sha_match_check` compares the stored `body_sha` against
+      `body_canonical_sha256(file_bytes)` and emits
+      MC-SHA-DIGEST-STALE (Block) when they differ, rather than
+      comparing the two stored fields to each other.
+  - id: rehash-subcommand
+    statement: |
+      `mathc rehash [--write] [--dry-run] [PATH...]` recomputes both
+      digest fields from the file's own bytes, verifies each stamped
+      file is a fixed point before writing, and walks decisions/
+      recursively.
+  - id: store-digest-current
+    statement: |
+      All 233 decision files under decisions/ carry a `body_sha` equal
+      to the digest of their own bytes under §7.1, except the 16
+      waiver/obligations files that belong to other schema families and
+      carry no such field by design.
+
+scope:
+  paths:
+    - "lib/decision.ml"
+    - "lib/diagnostic.ml"
+    - "bin/Mathc.ml"
+    - "decisions/**/*.yaml"
+    - "decisions/enforce-body-sha-digest-2026-10.yaml"
+  exclusions:
+    - "spec/**"
+    - "schemas/**"
+    - "tests/**"
+
+obligations:
+  - id: digest-recomputed-not-compared
+    claim: |
+      `sha_match_check` takes optional raw bytes and recomputes the
+      digest; it no longer relies on the two stored fields being equal.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: "lib/decision.ml"
+          needle: "let sha_match_check ?raw_bytes"
+          result: pass
+        - verifier: shell-grep
+          path: "lib/decision.ml"
+          needle: "mc_sha_digest_stale"
+          result: pass
+
+  - id: stale-digest-code-exists
+    claim: |
+      MC-SHA-DIGEST-STALE is a distinct diagnostic from
+      MC-SHA-MISMATCH, because the two failures need different
+      remediation and conflating them would hide the zero-placeholder
+      case, which is equal-but-wrong.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: "lib/diagnostic.ml"
+          needle: "MC-SHA-DIGEST-STALE"
+          result: pass
+
+  - id: placeholder-single-prefix
+    claim: |
+      The placeholder substitution emits the scheme prefix exactly once.
+      §7.1 replaces the WHOLE `body_sha: "sha256:<64hex>` field, so the
+      previous `prefix ^ "sha256:" ^ zeros ^ "\""` produced
+      `sha256:sha256:...` and every OCaml-computed digest matched
+      neither §7.1, nor the Python reference, nor any stored value.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: "lib/decision.ml"
+          needle: "digest_placeholder = String.make 64 '0' ^ \"\\\"\""
+          result: pass
+
+  - id: rehash-available
+    claim: |
+      `mathc rehash` exists, is dispatched, and defaults to dry-run.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: "bin/Mathc.ml"
+          needle: "let do_rehash ()"
+          result: pass
+        - verifier: shell-grep
+          path: "bin/Mathc.ml"
+          needle: "| \"rehash\" -> do_rehash ()"
+          result: pass
+
+  - id: store-is-digest-current
+    claim: |
+      After the digest refresh in this branch, `mathc rehash` reports
+      zero files needing a stamp, i.e. every decision under decisions/
+      carries the digest of its own bytes.
+    acceptance:
+      all:
+        - verifier: manual-rehash-reports-zero-changed
+          result: pass
+
+  - id: self-check-exit-reaches-ci
+    claim: |
+      The self-check CI step propagates `self-check`'s exit code. It ran
+      under `set +e` and then let `jq` succeed on the still-valid JSON
+      body, so the step exited 0 while the comment claimed it blocks per
+      Invariant 14.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: ".github/workflows/ci.yml"
+          needle: "exit $rc"
+          result: pass
+
+risk:
+  declared_triggers:
+    - "a decision is edited without running mathc rehash"
+    - "a vendored or generated file under decisions/ is rewritten by a tool that does not recompute"
+  owner: human:maintainer
+
+assumptions:
+  - id: single-prefix-is-correct
+    claim: |
+      §7.1's `placeholder = "sha256:" + "0"*64 + "\""` is substituted
+      into the WHOLE matched field, so the prefix appears once. Confirmed
+      by the Python reference (`scripts/axiom-link-seed.py:133-169`) and
+      by the 103 stored digests that already matched under that rule
+      before this change.
+
+reversal: |
+  Set the `?raw_bytes` argument to None at the one call site in
+  `bin/Mathc.ml::validate_with_counts` and remove the dispatch entry for
+  `rehash`. That restores exactly the previous behaviour, including its
+  two known failure modes. The digest values written by `rehash --write`
+  are self-consistent under either rule only for the single-prefix form,
+  so reverting the enforcement without reverting the store re-breaks the
+  114 files this branch refreshes.
+
+relations:
+  revises: []
+  supersedes: []
+  superseded_by: []
+  refines:
+    - d5-body-vs-wrapper-canonical-2026-10
+  depends_on: []
+  conflicts_with: []
+  addresses: []
+  implements: []
+  verifies: []
+---
