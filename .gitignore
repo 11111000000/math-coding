@@ -36,11 +36,36 @@ scripts/__pycache__/
 # attestations are `t1-2-A3-…` for the A3-linked decisions).
 attestations/t1-2-A0-*.json
 
-# `tests/cli/adopt.t` and the `mathc import-adr --write` /
-# `mathc new-decision` cram flows scaffold two throwaway
-# decisions named `1-foo` and `1-use-postgresql` as part
-# of their fixtures. They are test output, not real
-# commitments, and should never be committed.
+# Two named scratch decisions, kept as a name-exact list on purpose.
+# They were once scaffolded by the tests/cli/adopt.t and
+# `mathc import-adr --write` flows; since the 3.4 path resolver those
+# flows write into a bwrap tmpdir's `.math-coding/decisions/`, and
+# neither name was ever tracked, so no current fixture produces them.
+# They stay listed because the name is unambiguous: a decision called
+# `1-foo` cannot be mistaken for a real commitment.
+#
+# Do NOT widen this into a pattern. `mathc import-adr --write` names its
+# output after the ADR title, keeping the ADR number as a prefix only
+# when the source file was numerically prefixed -- so `0001-format.md`
+# yields `1-use-ocamlformat-for-source-formatting.yaml` and
+# `adr-null-safety.md` yields `use-null-safety-checks.yaml`. Both show
+# up as untracked, so these two rules do not cover them. There is
+# nothing to widen them to: `mathc new-decision foo` and a real decision
+# `foo` produce byte-identical filenames, so no pattern can separate
+# scratch from committed. Measured against the 233 tracked decisions,
+# `decisions/*use*.yaml` already swallows
+# `auto-update-per-user-skill-impl-pending.yaml` and
+# `decisions/[0-9]*-*.yaml` already swallows `3-2-cli-catalog.yaml`;
+# `decisions/use-*.yaml` is clean today but swallows the entirely
+# plausible `use-postgresql-for-storage.yaml`. A wrong guess here drops
+# a real commitment out of version control silently, which is worse
+# than the red test it would prevent.
+#
+# To create a decision without touching this corpus, point the resolver
+# elsewhere: `MATH_CODING_DECISIONS_DIR=scratch-decisions mathc
+# import-adr ... --write` writes there and leaves decisions/ untouched
+# (the env-var branch of lib/path_config.ml; covered by
+# tests/cli/env-var-resolver.t).
 decisions/1-foo.yaml
 decisions/1-use-postgresql.yaml
 
