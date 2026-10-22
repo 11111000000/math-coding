@@ -532,11 +532,11 @@ let mc_sha_digest_stale ?(decision_id = "") ?(stored = "") ?(computed = "")
   let msg =
     Printf.sprintf
       "%sstored digest (%s) is not the digest of this file (%s): \
-       spec/algebra-3.2.md §7.1 defines body_sha as sha256 of the file \
-       with both digest fields replaced by 'sha256:' + 64 zeros, so an \
-       edit to the body that was not accompanied by a recompute leaves \
-       the stored value stale. The body of this decision changed under \
-       a digest that still claims the old content."
+       spec/algebra-3.2.md §7.1 defines body_sha as sha256 of the file with \
+       both digest fields replaced by 'sha256:' + 64 zeros, so an edit to the \
+       body that was not accompanied by a recompute leaves the stored value \
+       stale. The body of this decision changed under a digest that still \
+       claims the old content."
       prefix stored computed
   in
   let default_actions =

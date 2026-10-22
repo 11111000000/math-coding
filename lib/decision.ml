@@ -126,7 +126,11 @@ let[@warning "-32"] replace_digest_field ~prefix s =
     if !i + matched_len <= s_len && String.sub s !i prefix_len = prefix then begin
       let hex_start = !i + prefix_len in
       let hex_end = hex_start + hex_len in
-      let rec all_hex k = if k >= hex_end then true else if is_hex_digit s.[k] then all_hex (k + 1) else false in
+      let rec all_hex k =
+        if k >= hex_end then true
+        else if is_hex_digit s.[k] then all_hex (k + 1)
+        else false
+      in
       let closing_quote = s.[hex_end] in
       if all_hex hex_start && closing_quote = '"' then begin
         Buffer.add_string buf prefix;
@@ -193,7 +197,9 @@ let[@warning "-32"] sub_digest_literal ~prefix ~hex text =
       let hex_start = !i + prefix_len in
       let hex_end = hex_start + hex_len in
       let rec all_hex k =
-        if k >= hex_end then true else if is_hex_digit text.[k] then all_hex (k + 1) else false
+        if k >= hex_end then true
+        else if is_hex_digit text.[k] then all_hex (k + 1)
+        else false
       in
       if all_hex hex_start && text.[hex_end] = '"' then begin
         Buffer.add_string buf prefix;
@@ -239,8 +245,8 @@ let[@warning "-32"] stamp_digest ~hex s =
    disk passes them. Omitting `raw_bytes` is therefore *weaker*,
    which is why the validate path in `bin/Mathc.ml` reads the file
    rather than re-parsing from the value it already holds. *)
-let sha_match_check ?raw_bytes (d : Domain.decision) :
-    bool * Diagnostic.t list =
+let sha_match_check ?raw_bytes (d : Domain.decision) : bool * Diagnostic.t list
+    =
   match (d.body_sha, d.yaml_sha) with
   | Some bs, Some ys when bs <> ys ->
       let diag =
@@ -256,8 +262,8 @@ let sha_match_check ?raw_bytes (d : Domain.decision) :
           if computed = bs then (true, [])
           else
             let diag =
-              Diagnostic.mc_sha_digest_stale ~decision_id:d.Domain.id
-                ~stored:bs ~computed ()
+              Diagnostic.mc_sha_digest_stale ~decision_id:d.Domain.id ~stored:bs
+                ~computed ()
             in
             (false, [ diag ]))
   | _ -> (true, [])

@@ -4,8 +4,8 @@ id: enforce-body-sha-digest-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:420ddae65fe3ade6ace40eb2d2c24ae7eb14e36c136b650f0f66684779a9d001"
-yaml_sha: "sha256:420ddae65fe3ade6ace40eb2d2c24ae7eb14e36c136b650f0f66684779a9d001"
+body_sha: "sha256:55d09d95c3c02139975928381bebd34581c99febaafaf60b3fc6bd39da1fb3d6"
+yaml_sha: "sha256:55d09d95c3c02139975928381bebd34581c99febaafaf60b3fc6bd39da1fb3d6"
 
 axiom_link:
   - A0
@@ -105,18 +105,39 @@ outcomes:
       to the digest of their own bytes under §7.1, except the 16
       waiver/obligations files that belong to other schema families and
       carry no such field by design.
+  - id: stale-comments-corrected
+    statement: |
+      The two comments that asserted the kernel recomputes a digest are
+      corrected. `lib/lifecycle/lifecycle.ml` claimed the validator
+      "recomputes a digest against a byte-faithful rewrite"; it
+      recomputed nothing. `lib/new_decision/new_decision.ml` told the
+      user that re-running `mathc validate` computes the digests;
+      validate never writes them — `mathc rehash --write` does. Both
+      now describe behaviour that exists.
+  - id: reference-citation-corrected
+    statement: |
+      §7.1's reference to the Python implementation moves from
+      `scripts/axiom-link-seed.py:105-123` (which is `decisions_dir()`)
+      to the real implementation at `:133-169`, and records that the
+      two implementations disagreed on every input until now.
 
 scope:
   paths:
     - "lib/decision.ml"
     - "lib/diagnostic.ml"
+    - "lib/lifecycle/lifecycle.ml"
+    - "lib/new_decision/new_decision.ml"
     - "bin/Mathc.ml"
     - "decisions/**/*.yaml"
-    - "decisions/enforce-body-sha-digest-2026-10.yaml"
+    - "spec/algebra-3.2.md"
+    - "tests/counters_drift.ml"
+    - "tests/rebuttal_forge_stub.ml"
+    - "tests/render_kernel.ml"
+    - "README.md"
   exclusions:
-    - "spec/**"
     - "schemas/**"
-    - "tests/**"
+    - "axioms/**"
+    - "site/**"
 
 obligations:
   - id: digest-recomputed-not-compared
@@ -183,6 +204,35 @@ obligations:
     acceptance:
       all:
         - verifier: manual-rehash-reports-zero-changed
+          result: pass
+
+  - id: comments-match-behaviour
+    claim: |
+      No comment in lib/ asserts that the validator recomputes or writes
+      a digest, because it does neither. `mathc rehash --write` writes;
+      `mathc validate` only checks.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: "lib/new_decision/new_decision.ml"
+          needle: "mathc rehash <path> --write"
+          result: pass
+        - verifier: shell-grep
+          path: "lib/lifecycle/lifecycle.ml"
+          needle: "mathc rehash <path> --write"
+          result: pass
+
+  - id: toolchain-green
+    claim: |
+      The alcotest suites that were failing on this branch's base commit
+      now pass, so the change does not trade one red gate for another.
+      `repo_structure` had been failing on `fmt-clean`; `dune fmt` clears
+      it. All 22 suites pass.
+    acceptance:
+      all:
+        - verifier: dune-tests-repo-structure
+          result: pass
+        - verifier: dune-tests-body-canonical
           result: pass
 
   - id: self-check-exit-reaches-ci

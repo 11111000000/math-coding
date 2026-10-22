@@ -135,9 +135,18 @@ let parse_by_arg arg =
    raw YAML. We do not reformat whitespace or rewrite the
    front-matter — the line is searched line-by-line, and only
    the first `state:` at column 0 is replaced. The patched text
-   preserves the original line ending and indentation, so the
-   kernel validator (lib/decision.ml::body_canonical_sha256)
-   recomputes a digest against a byte-faithful rewrite. *)
+   preserves the original line ending and indentation, which is
+   what keeps the patch byte-faithful.
+
+   Byte-faithfulness is load-bearing only because the digest is
+   now recomputed: since `decisions/enforce-body-sha-digest-2026-10`,
+   `mathc validate` recomputes `body_canonical_sha256` over the
+   file and rejects a stored digest that is not it, so a state
+   transition invalidates the stored `body_sha` until
+   `mathc rehash <path> --write` restamps it. Before that decision
+   the validator only compared the two stored fields to each
+   other, and this comment described behaviour that did not
+   exist. *)
 let[@warning "-32"] set_state_line (raw_state : string) (raw : string) : string
     =
   let target = Printf.sprintf "state: %s" raw_state in

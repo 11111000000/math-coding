@@ -1030,6 +1030,14 @@ let print_usage oc =
      2; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml\n\
     \                                     stub; no transport, no data \
      emission).\n\n\
+     rehash [--write] [--dry-run] [PATH...]              recompute \
+     body_sha/yaml_sha\n\
+     (no PATH)                                          from each file's own \
+     bytes (algebra §7.1);\n\
+     --write                                           stamps in place, \
+     dry-run by default;\n\
+     verifies each stamped file is\n\
+     a fixed point first; walks decisions/ recursively\n\n\
      migrate --from=X --to=Y                        declarative migration plan \
      reader; emit a\n\
      per-file plan from\n\
@@ -7423,17 +7431,19 @@ let do_rehash () =
   let rec yaml_under dir =
     Sys.readdir dir |> Array.to_list |> List.sort compare
     |> List.concat_map (fun n ->
-           let p = Filename.concat dir n in
-           if Sys.is_directory p then yaml_under p
-           else if Filename.check_suffix n ".yaml" then [ p ]
-           else [])
+        let p = Filename.concat dir n in
+        if Sys.is_directory p then yaml_under p
+        else if Filename.check_suffix n ".yaml" then [ p ]
+        else [])
   in
   let targets =
     if List.length !explicit > 0 then List.rev !explicit
     else
       let root = find_project_root (Sys.getcwd ()) in
       let dir = Path_config.resolve_decisions_dir ~root () in
-      let dir = if Filename.is_relative dir then Filename.concat root dir else dir in
+      let dir =
+        if Filename.is_relative dir then Filename.concat root dir else dir
+      in
       if not (Sys.file_exists dir && Sys.is_directory dir) then []
       else yaml_under dir
   in
@@ -7451,58 +7461,56 @@ let do_rehash () =
          read", which is how a missing file is reported. *)
       let bytes = read_file path in
       if String.length bytes = 0 then begin
-        Printf.printf "  SKIP  %s (unreadable or empty)\n" (Filename.basename path);
+        Printf.printf "  SKIP  %s (unreadable or empty)\n"
+          (Filename.basename path);
         incr skipped
       end
-      else (
-          let computed = Decision.body_canonical_sha256 bytes in
-          (* Strip the "sha256:" scheme: the field prefix supplies it. *)
-          let hex = String.sub computed 7 (String.length computed - 7) in
-          (* Str.search_forward RAISES Not_found when the pattern is absent,
+      else
+        let computed = Decision.body_canonical_sha256 bytes in
+        (* Strip the "sha256:" scheme: the field prefix supplies it. *)
+        let hex = String.sub computed 7 (String.length computed - 7) in
+        (* Str.search_forward RAISES Not_found when the pattern is absent,
              so a match expression would not catch it. *)
-          let has_field =
-            try
-              ignore
-                (Str.search_forward (Str.regexp "body_sha: \"sha256:") bytes 0);
-              true
-            with
-            | Not_found -> false
-          in
-          if not has_field then begin
-            (* No field to stamp. Inserting one is a schema-shape change,
+        let has_field =
+          try
+            ignore
+              (Str.search_forward (Str.regexp "body_sha: \"sha256:") bytes 0);
+            true
+          with Not_found -> false
+        in
+        if not has_field then begin
+          (* No field to stamp. Inserting one is a schema-shape change,
                not a digest repair, so it is reported rather than done
                silently — see decisions/ for the 16 files in this state. *)
-            Printf.printf "  SKIP  %s (no body_sha field to stamp)\n"
-              (Filename.basename path);
-            incr skipped
-          end
-          else
-            let stamped = Decision.stamp_digest ~hex bytes in
-            let verified = Decision.body_canonical_sha256 stamped in
-            if verified <> computed then
-              (* Fixed point violated: stamping changed the canonical
+          Printf.printf "  SKIP  %s (no body_sha field to stamp)\n"
+            (Filename.basename path);
+          incr skipped
+        end
+        else
+          let stamped = Decision.stamp_digest ~hex bytes in
+          let verified = Decision.body_canonical_sha256 stamped in
+          if verified <> computed then
+            (* Fixed point violated: stamping changed the canonical
                  form. Never write in that state. *)
-              Printf.printf
-                "  FAIL  %s (stamp is not a fixed point: %s vs %s)\n"
-                (Filename.basename path) computed verified
-            else if stamped = bytes then begin
-              if not !write then incr unchanged;
-              Printf.printf "  ok    %s\n" (Filename.basename path)
+            Printf.printf "  FAIL  %s (stamp is not a fixed point: %s vs %s)\n"
+              (Filename.basename path) computed verified
+          else if stamped = bytes then begin
+            if not !write then incr unchanged;
+            Printf.printf "  ok    %s\n" (Filename.basename path)
+          end
+          else begin
+            incr changed;
+            Printf.printf "  %s %s\n"
+              (if !write then "STAMP" else "WOULD ")
+              (Filename.basename path);
+            if !write then begin
+              let ch = open_out_bin path in
+              output_string ch stamped;
+              close_out ch
             end
-            else begin
-              incr changed;
-              Printf.printf "  %s %s\n"
-                (if !write then "STAMP" else "WOULD ")
-                (Filename.basename path);
-              if !write then begin
-                let ch = open_out_bin path in
-                output_string ch stamped;
-                close_out ch
-              end
-            end))
+          end)
     targets;
-  Printf.printf
-    "\nrehash: %d changed, %d already current, %d skipped%s\n"
+  Printf.printf "\nrehash: %d changed, %d already current, %d skipped%s\n"
     !changed !unchanged !skipped
     (if !write then " (written)" else " (dry-run)");
   exit (if !skipped > 0 then 1 else 0)
