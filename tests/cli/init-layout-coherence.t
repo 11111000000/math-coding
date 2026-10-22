@@ -64,7 +64,7 @@ explicit path.
   $ mkdir -p "$tmp/root/decisions"
   $ cp "$DUNE_SOURCEROOT/decisions/version-sync-2026-10.yaml" "$tmp/root/decisions/one.yaml"
   $ cd "$DUNE_SOURCEROOT"
-  $ MATH_CODING_ROOT="$tmp/root" mathc attest-batch --from=decisions --dry-run 2>/dev/null | wc -l
+  $ MATH_CODING_ROOT="$tmp/root" mathc attest-batch --from=decisions --producer=human:integration-test --dry-run 2>/dev/null | wc -l
   4
 
 Cleanup.

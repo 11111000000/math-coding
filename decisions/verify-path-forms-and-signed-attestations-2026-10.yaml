@@ -1,0 +1,314 @@
+---
+schema: math-coding/3.3
+id: verify-path-forms-and-signed-attestations-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:ef814d2287ce86148243900248960ae64db62cbb31a1005eb4bb2791a9ee6d75"
+yaml_sha: "sha256:ef814d2287ce86148243900248960ae64db62cbb31a1005eb4bb2791a9ee6d75"
+
+intent: |
+  Two obligations in one file, because they are one chain: an
+  executor produces a proof, a producer signs it. Neither half
+  was honest on its own.
+
+  Half one is `mathc verify`. `parse_verifier_string` reads the
+  first whitespace token as a scheme name and the match arms
+  enumerate exactly three: file-exists, dir-exists, mathc.
+  Everything else falls through to `_ -> Skipped`, and `skipped`
+  exits 0 for that obligation. Measured over this corpus, 1207
+  of 1505 verifier strings (80%) took that arm -- because the
+  corpus writes obligations as PATHS, not as schemes:
+  `tests/render_kernel.ml::mathjax_no_dollar_delimiters`,
+  `tests/counters_reference.exe`, `scripts/check.sh`,
+  `tests/cli/gate-pass.t`, `dune build @install`. A gate that
+  prints `skipped` for four obligations in five and exits 0 is
+  a gate that reports work it never did.
+
+  Half two is `mathc attest-batch --from=decisions`. It walked
+  every obligation in the store and emitted 793 attestations
+  carrying three values it chose itself: kind_ review, result
+  pass, and producer.identity `human:integration-experiment`.
+  One command, 793 signatures, by a person who was not at the
+  keyboard and had looked at nothing. A missing name is not a
+  field to default; it is the absence of a signature.
+
+commitment: |
+  The cycle closes when: (a) `mathc verify` plans and EXECUTES
+  the path forms the corpus actually writes -- tests/*.exe,
+  tests/*.ml, tests/*.ml::case, scripts/*.sh, tests/**/*.t,
+  dune <args> -- in the sandbox the three original schemes
+  already use, and a path that is not inside the repository is
+  `fail` with the rule it broke, never `skipped`; (b) the
+  fraction of corpus verifier strings that reach
+  `_ -> Skipped` falls from 83.6% to 41.8%, and the remaining
+  residue is prose idioms (`text-scan-...`, `manual:...`,
+  `shell-grep ...`) that name no command at all; (c)
+  `attest-batch --from=decisions` refuses without an explicit
+  `--producer`, announces any batch larger than
+  mass_issue_threshold (10) attestations on stderr with its
+  count, its decision count and its signer, and refuses
+  `--kind` in {test,build,analysis,observation} unless
+  `--run=<command>` was actually executed -- exit code to
+  `result`, output digest to `materials_digest`; (d) `review`
+  still carries an empty `materials_digest`, because the schema
+  exempts exactly that kind and this change narrows who may
+  sign, not what a review is.
+
+outcomes:
+  - id: verify-plans-path-forms
+    statement: |
+      `bin/Mathc.ml::plan_verifier` classifies a verifier string
+      into an argv -- `dune exec ./tests/foo.exe`,
+      `dune runtest tests/cli/gate-pass.t`, an absolute
+      repository script path, or `dune <args>` -- and
+      `run_verifier_plan` executes it through
+      `run_with_sandbox_in_env`: same env-stripping discipline
+      as the three original schemes (plus a build-toolchain
+      passthrough, because `dune` is a build tool), same 60 s
+      timeout, cwd = project root, no shell anywhere. A form
+      `verify` cannot execute is `fail` with the rule it broke:
+      missing, `..`, outside the root, not a regular file, not
+      executable, needs a shell.
+
+  - id: verify-no-longer-silently-skips
+    statement: |
+      The `_ -> Skipped` arm now asks `plan_verifier` first.
+      Counted over every `verifier:` line in decisions/*.yaml
+      with the planner's own rule set: 245 of 1495 executable
+      before (16.4%), 860 after (57.5%). Ten more are REFUSED
+      with a named reason -- seven need a shell, three are a
+      tests/ path with no execution rule -- and 625 (41.8%) stay
+      skipped because they are corpus prose, not commands.
+      Across twelve decisions measured end to end, 37
+      obligations moved out of `skipped` into a verdict (25
+      pass, 12 fail) and none moved the other way.
+
+  - id: alcotest-case-selector-is-a-group-name
+    statement: |
+      `tests/foo.ml::case` compiles to
+      `dune exec ./foo.exe -- test ^case$`. Alcotest's NAME_REGEX
+      matches the enclosing GROUP path, not the case name, so
+      `^case$` selects a top-level case (render_kernel) and
+      selects nothing for a nested one
+      (body_canonical_test). The latter is reported `fail` with
+      alcotest's own "no tests to run, filter skipped
+      everything", which is the honest answer: the obligation
+      claims a case passed and the tool could not establish it.
+      Unanchored matching would instead run a superset, and a
+      renamed case would still pass -- the drift this decision
+      exists to stop.
+
+  - id: a-dune-form-verifier-can-write-the-store
+    statement: |
+      `dune test` / `dune runtest` written as a verifier runs
+      with the operator's write permissions, and the self-check
+      fixture regenerates `attestations/`. Measured: running
+      `mathc verify` on antithesis-mode-considered-2026-10
+      (which carries `dune test`) deleted 765 committed
+      attestations and wrote ~790 into
+      tests/fixtures/self-check-pass/attestations/. The
+      sandbox strips the ENVIRONMENT and caps the time; it does
+      not jail the filesystem, which is the same posture
+      add-verify-subcommand-2026-10 declared. Declared, not
+      fixed here: a read-only mount is a kernel decision, not a
+      CLI flag.
+
+  - id: attest-batch-names-its-signer
+    statement: |
+      `do_attest_batch` has no default producer. With
+      `--from=decisions` and no `--producer` it exits 2 before
+      reading the store, and writes nothing. `--manifest` rows
+      still carry their own producer and are unaffected.
+
+  - id: mass-issue-is-visible
+    statement: |
+      A batch of more than `mass_issue_threshold` (10)
+      attestations prints, on stderr, how many attestations it
+      is about to issue, across how many decisions, under which
+      identity -- so the operator sees the scale of what they
+      are signing rather than discovering it in the file count.
+
+  - id: runtime-kinds-need-a-run
+    statement: |
+      `--kind=test|build|analysis|observation` requires
+      `--run=<command>`. The command is split on spaces and
+      exec'd directly (a `|`, `&&` or `>` is refused, as in the
+      verifier sandbox); its exit code becomes `result`, and the
+      sha256 of its captured output becomes
+      `materials_digest`, which is the anchor the schema demands
+      for exactly these four kinds. `--result` is ignored when
+      `--run` is given, so a run cannot be decoration.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/attestations/batch.ml"
+    - "tests/cli/verify-path-forms.t"
+    - "tests/cli/attest-batch-signature.t"
+    - "tests/cli/attest-batch-out-dir.t"
+    - "tests/cli/init-layout-coherence.t"
+    - "decisions/verify-path-forms-and-signed-attestations-2026-10.yaml"
+  exclusions:
+    - "lib/codec.ml"
+    - "lib/diagnostic.ml"
+    - "tests/dune"
+    - "attestations/**"
+    - ".github/**"
+
+obligations:
+  - id: verify-runs-a-repository-script
+    claim: |
+      A `scripts/*.sh` verifier is executed, not skipped: the
+      script's exit code is the verdict.
+    acceptance:
+      all:
+        - verifier: scripts/check-stub-lint.sh
+          result: pass
+
+  - id: verify-does-not-silently-skip
+    claim: |
+      The `_ ->` arm of the scheme match delegates to
+      `plan_verifier`, and a path that is not in the repository
+      is `fail` with the rule it broke rather than `skipped`.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: bin/Mathc.ml
+          needle: plan_verifier
+          result: pass
+        - verifier: file-exists
+          path: bin/Mathc.ml
+          needle: "no such file in the repository"
+          result: pass
+
+  - id: path-form-crams-pin-the-behaviour
+    claim: |
+      tests/cli/verify-path-forms.t pins the refusals and the
+      execution of a script; a mutation that returns the path
+      forms to `_ -> Skipped` turns its passing case into
+      `skipped`.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: tests/cli/verify-path-forms.t
+          result: pass
+
+  - id: attest-batch-refuses-without-a-name
+    claim: |
+      `attest-batch --from=decisions` without `--producer`
+      exits 2, says why, and writes nothing.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: bin/Mathc.ml
+          needle: "--producer=<identity> is required"
+          result: pass
+        - verifier: mathc attest-batch --help
+          result: pass
+
+  - id: mass-issue-is-announced
+    claim: |
+      A batch above mass_issue_threshold (10) prints its count,
+      its decision count and its signer on stderr.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: bin/Mathc.ml
+          needle: report_mass_issue
+          result: pass
+        - verifier: file-exists
+          path: tests/cli/attest-batch-signature.t
+          result: pass
+
+  - id: runtime-kinds-need-a-run
+    claim: |
+      `--kind=test|build|analysis|observation` without `--run`
+      is refused; with `--run` the result is the exit code and
+      the digest is the sha256 of the run's output.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: bin/Mathc.ml
+          needle: runtime_attestation_kinds
+          result: pass
+
+  - id: review-digest-stays-empty
+    claim: |
+      `review` keeps an empty `materials_digest`. The schema
+      exempts that one kind -- a human declaration without a
+      runtime anchor -- and the schema's own diagnostic text
+      says so. This decision does not "fix" it.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: tests/cli/attest-batch-signature.t
+          needle: "review digest must stay empty"
+          result: pass
+
+counterexample: |
+  The counter-position considered and rejected: "an empty
+  `materials_digest` on a `review` attestation is the same
+  defect as a default `producer.identity` -- both are fields
+  the tool filled in on the operator's behalf." It is rejected
+  because the two are not the same kind of claim. The digest is
+  a fact about the artefact: a review asserts that a human
+  looked at something and judged it, and there is no byte
+  string that could anchor that. The producer is a fact about
+  the AUTHOR: there is no human behind
+  `human:integration-experiment` in this room, so the default
+  was a signature that did not exist, and no schema exemption
+  covers it. Narrowing the author is in scope; manufacturing an
+  anchor for a judgement is not.
+
+  A second counter-position: "`verify` executing 1207 new
+  commands widens the blast radius of a malicious decision
+  file." It does widen it, and the containment is deliberate:
+  no shell is ever spawned (`|`, `&&`, `>` are refused and
+  named), the argv is built from a classified form rather than
+  passed through, every path must resolve through `realpath`
+  inside the project root, and the child keeps the same
+  env-stripping, the same 60 s timeout and the same cwd as the
+  three original schemes. The widening is the point: an
+  obligation that says `scripts/check.sh` and reports `skipped`
+  has already granted the same trust while claiming the
+  opposite.
+
+  A third: "the mass report at 10 is arbitrary." The threshold
+  is one constant (`mass_issue_threshold`) quoted by this
+  decision and by the code's comment. Below it, the count fits
+  on the decision the operator has open; at and above it, the
+  operator is signing something whose size no longer fits on a
+  screen.
+
+  A fourth: "refusing to execute an unknown tests/ path is
+  hostile -- the corpus uses `tests/<name>` as a REFERENCE, the
+  way it uses `text-scan-...`." Only three strings in the corpus
+  do that (`tests/t2-1-mathc-validate-regression-free` twice,
+  `tests/decision_parser_yaml` once), and each is a test that
+  moved. A reference that names a path the repository no longer
+  has is a stale reference, and `fail` is what a stale reference
+  costs; the operator rewrites the string or drops the
+  obligation. The 625 strings that stay skipped never claim a
+  path at all, and this change does not touch them.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+risk:
+  declared_triggers:
+    - verifier-execution-too-slow
+    - verify-sandbox-escape
+    - build-toolchain-env-passthrough
+    - dune-lock-inside-cram
+    - dune-form-verifier-writes-the-store
+    - alcotest-case-selector-is-a-group-name
+    - breaking-rename-downstream-fixtures
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - add-verify-subcommand-2026-10@1
+    - ship-attest-batch-2026-10@1
