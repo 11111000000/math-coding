@@ -62,6 +62,18 @@ sed-strip the tmpdir prefix instead).
   file: ok
   $ grep -q '^id: jwt-rotation' "$tmpdir/.math-coding/decisions/jwt-rotation.yaml" && echo "id in file: ok"
   id in file: ok
+
+The scaffolded file carries the digest of its OWN bytes, not the
+64-zero placeholder earlier revisions wrote. `mathc rehash` is the
+oracle here: it reports `0 changed` only when the stored digest is
+already what the kernel would compute, so this asserts the property
+instead of pinning a hex literal — the digest is a function of the
+whole template, so every template edit would otherwise move the
+expectation for no reason. A scaffold that shipped the placeholder
+would report `1 changed` here, and the file would not validate.
+
+  $ mathc rehash "$tmpdir/.math-coding/decisions/jwt-rotation.yaml" | tail -1
+  rehash: 0 changed, 1 already current, 0 skipped (dry-run)
   $ rm -rf "$tmpdir"
 
 Force-overwrite guard: a second --write without --force exits
