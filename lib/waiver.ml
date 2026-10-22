@@ -109,15 +109,56 @@ let[@warning "-32"] load ~reader ~root =
    to keep waiver.ml inside mathcoding_core; correctness is
    guaranteed by the schema's strict regex. *)
 let[@warning "-32"] iso_le a b = String.compare a b <= 0
+let[@warning "-32"] iso_lt a b = String.compare a b < 0
 
 (* Determine whether a waiver is in effect at the given moment.
    `now` must be a strict-ISO-8601 UTC timestamp as emitted by
-   `bin/Mathc.ml:now_iso`. The waiver is effective iff
-   issued_at <= now <= expires_at. Both endpoints are inclusive
-   per the spec language "MAY permit a gate" (constitution.md
-   §Waivers, line 105). *)
+   `bin/Mathc.ml:now_iso`.
+
+   The validity interval is half-open on the expiry side:
+
+     issued_at <= now < expires_at
+
+   The upper endpoint is EXCLUSIVE, and it is exclusive because the
+   constitution says so, not because of a preference:
+
+     constitution.md Invariant 14c: "a verdict `Open_with_waiver`
+     that produces exit 0 MUST reference a waiver whose
+     `expires_at` is strictly greater than the evaluation time
+     and whose scope covers every gap in the verdict."
+
+   `strictly greater than the evaluation time` is `expires_at >
+   now`; an inclusive comparison implements `expires_at >= now`,
+   which is a different predicate. The previous code read
+   `issued_at <= now <= expires_at` and justified the closed
+   interval with constitution.md §Waivers ("MAY permit a gate"),
+   which is not a statement about endpoints: it says a waiver MAY
+   open a gate, not that it survives its expiry second. Under the
+   closed reading a waiver whose `expires_at` equals the evaluation
+   time produced `Open_with_waiver` and exit 0 — a green verdict
+   held by a waiver the constitution calls expired, which is the
+   "MUST NOT outlive its expiry" rule of §Waivers defeated by one
+   second of lexicographic comparison.
+
+   The lower endpoint stays INCLUSIVE. No normative text requires
+   `issued_at < now`: Invariant 14c constrains only `expires_at`,
+   and §Waivers requires the issue time to be identified, not to
+   be exclusive. Note the asymmetry is deliberate, and it mirrors
+   attestation currency (spec/algebra-3.2.md §14, `current(a) ≔
+   a.issued_at ≤ now ≤ a.valid_until`, closed on both ends): a
+   waiver is an interval whose START is a grant and whose END is a
+   deadline. Do not "harmonise" the two by closing the waiver
+   interval; §14 governs attestations, Invariant 14c governs
+   waivers, and the two documents say different things on purpose.
+
+   Consequence of the strict bound, stated so it is not a
+   surprise: a waiver is effective on `[issued_at, expires_at)`
+   — 24h to the second for a hotfix waiver, minus the single
+   expiry second. A waiver with `expires_at == issued_at` is
+   therefore never effective, which is the correct reading of "a
+   waiver MUST NOT outlive its expiry". *)
 let[@warning "-32"] effective_at w ~now =
-  iso_le w.Domain.issued_at now && iso_le now w.Domain.expires_at
+  iso_le w.Domain.issued_at now && iso_lt now w.Domain.expires_at
 
 (* Find a waiver that covers the given (decision, obligation)
    pair at the given moment. Strict matching when the waiver

@@ -1,0 +1,936 @@
+---
+schema: math-coding/3.3
+id: verdict-vocabulary-and-waiver-expiry-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: bugfix
+
+body_sha: "sha256:353165858c419040bed7a8d540951c0dd20f4268609a1e1d401abc7121eb562e"
+yaml_sha: "sha256:353165858c419040bed7a8d540951c0dd20f4268609a1e1d401abc7121eb562e"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  Two debts, both about the kernel saying one thing and its
+  documents saying another. Neither is a missing feature; both are
+  divergences that the previous cycle recorded instead of closing.
+
+  DEBT 1 — the normative spec enumerated a verdict vocabulary the
+  kernel does not have.
+
+  `spec/semantics.md:418` (the `self-check` CLI row, before this
+  decision) read, verbatim:
+
+      `verdict` (`pass` | `fail` | `unknown`)
+
+  The kernel it describes reports four values. `lib/gate.ml:41`:
+
+      type verdict = Pass | Open_with_waiver | Block | Unknown
+
+  and `bin/Mathc.ml` renders all four. `open-with-waiver` was the
+  one the spec never mentioned, and it is the one that carries the
+  most meaning: it is the only verdict that says "green, but only
+  because a named human said so". The spec's other two stale rows
+  are in the same file: the `gate` row still claimed its exit code
+  was "`0` always today", which Invariant 14 and 14b have forbade
+  since `decisions/exit-code-symmetry-2026-10.yaml`, and the
+  `gate` row's verdict list (`pass`, `block`, `unknown`) omitted
+  `open-with-waiver`. §Kernel Output — the section that is supposed
+  to be the vocabulary's home — listed what the kernel emits and
+  never said what a verdict IS.
+
+  `decisions/self-check-waiver-verdict-coherence-2026-10.yaml`
+  closed the code half of this (the `pass` string, the `waivers[]`
+  array) and deliberately did NOT touch `spec/**`: its
+  `scope.exclusions` reads "`spec/**` # normative prose; debt
+  recorded in antithesis", and the antithesis says the line "was
+  NOT edited here" and names `spec/semantics.md:418` as "the
+  stale one, not this change". That exclusion is the precedent for
+  deferring spec edits from a kernel fix. This decision is the
+  cycle it deferred to, and the exclusion is the reason it is a
+  separate decision rather than a stray diff.
+
+  DEBT 2 — the kernel's waiver-validity predicate contradicts
+  Invariant 14c by one second.
+
+  `constitution.md` Invariant 14c, verbatim:
+
+      14c. Waiver-bounded exit: a verdict `Open_with_waiver` that
+          produces exit 0 MUST reference a waiver whose
+          `expires_at` is strictly greater than the evaluation
+          time and whose scope covers every gap in the verdict.
+
+  `lib/waiver.ml::effective_at`, before this decision, verbatim:
+
+      (* Determine whether a waiver is in effect at the given moment.
+         ...
+         issued_at <= now <= expires_at. Both endpoints are inclusive
+         per the spec language "MAY permit a gate" (constitution.md
+         §Waivers, line 105). *)
+      let effective_at w ~now =
+        iso_le w.Domain.issued_at now && iso_le now w.Domain.expires_at
+
+  `now <= expires_at` is `expires_at >= now`. The constitution
+  requires `expires_at > now`. At the single instant
+  `now == expires_at` the two disagree, and the loser is the
+  constitution: the old predicate answered "this waiver is in
+  force" for a waiver the same document calls expired, and that
+  answer flowed straight into `Gate.aggregate_with_waivers`,
+  producing `Open_with_waiver` and exit 0. §Waivers' own rule —
+  "MUST NOT outlive its expiry" — was defeated by one `<=`.
+
+  The justification the old comment cited does not hold up.
+  "MAY permit a gate" says a waiver can open a gate; it says
+  nothing about which endpoints the waiver's term has, and
+  "permissive" is not "unbounded". The strictness comes from 14c,
+  which is the only normative sentence in the repository that
+  speaks about this comparison, and it says "strictly greater".
+
+  SEARCHED FOR A CONTRADICTION AND DID NOT FIND ONE ON THIS
+  QUESTION. Recorded because the absence is a finding, and
+  because "the norm says two things" would have been the easier
+  story to tell. Every normative sentence that touches the
+  expiry endpoint, read in full:
+
+    - Invariant 14c: `expires_at` "is strictly greater than the
+      evaluation time" -> `now < expires_at`. Strict.
+    - §Waivers: a waiver "MUST NOT outlive its expiry" -> the
+      same direction. A waiver cannot be in force at the instant
+      the constitution calls it expired.
+    - Invariant 11: a waiver applies only within "its named gap,
+      scope, revisions, gate and validity interval" - names the
+      interval, does not define its endpoints.
+    - §Waivers: a waiver MUST "identify ... issue time, expiry"
+      - requires the times be present, not that either bound be
+      open or closed.
+    - algebra-3.2.md §19 (I14) and its 14b/14c successors: about
+      exit codes, not waiver validity.
+
+  So the normative text is one-directional and consistent: the
+  expiry end is open. What it does NOT do is say where the
+  endpoint belongs, and that is the genuine ambiguity, recorded
+  in `counterexample` (3): 14c is phrased as a condition on a
+  VERDICT ("a verdict `Open_with_waiver` that produces exit 0
+  MUST reference a waiver whose ..."), so a reading is available
+  in which `effective_at` keeps the closed interval and the
+  VERDICT refuses to use a waiver at the expiry second. That
+  reading satisfies 14c as written and changes nothing else. This
+  decision instead reads 14c as a property of the waiver at the
+  evaluation time, because that is what the sentence is about and
+  because it needs no second enforcement point that could drift
+  from the first. The choice is stated here so a reviewer who
+  prefers the other reading can take it without re-deriving it,
+  and so the issue side of the interval is visibly a decision
+  rather than an oversight (`assumptions` `issued-side-stays-
+  inclusive`).
+
+  The contradictions this repository ACTUALLY has are elsewhere,
+  and none of them is about this boundary. They are recorded,
+  not resolved, because each amends a protected section:
+  §Merge Gate's MUST (unimplementable at `mathc gate`), §Release
+  Gate's three-verdict list against `gate_release_v32`'s
+  `Unknown`, and 14b's one-directional exit statement. See
+  `counterexample` (3), (4), `reversal`, and the three known
+  deviations now in spec/semantics.md §Kernel Output.
+
+commitment: |
+  (a) SPEC, `spec/semantics.md`:
+      - the `gate` CLI row now names all four verdicts and states
+        the exit codes of §Kernel Output instead of "0 always
+        today";
+      - the `self-check` CLI row now enumerates
+        `pass | open-with-waiver | fail | unknown`, documents the
+        per-subject `waivers[]` field set (`id`, `issuer`,
+        `issued_at`, `expires_at`, `scope`, `covers[]`), states
+        that `pass` is not co-reported with a non-empty `causes[]`,
+        and states the aggregate rule for the top-level verdict;
+      - §Kernel Output gains two normative subsections, "Verdict
+        vocabulary" and "Verdict to exit code". The first tabulates
+        the four verdicts as four claims and binds the two rules
+        that were previously only implied (never `pass` when
+        waived; an `open-with_waiver` verdict names its waiver);
+        the second is the verdict→exit table for every
+        verdict-producing subcommand, which is the answer to the
+        question Invariant 14c leaves open (see antithesis);
+      - a new `## Waiver Validity` section states the validity
+        interval as `issued_at <= t < w.expires_at`, cites 14c for
+        the open upper endpoint, and says explicitly that it MUST
+        NOT be harmonised with attestation currency
+        (`spec/algebra-3.2.md` §14, closed on both ends) because
+        the two rules govern different artefacts. The section also
+        repairs a dangling citation: `lib/waiver.ml` and
+        `lib/gate.ml` have been pointing at "spec/semantics.md
+        §Waiver" for months, and no such section existed;
+      - the vocabulary section records THREE known deviations it
+        does not ratify, and says plainly that the third is one
+        this edit CREATES: (1) `mathc gate` short-circuits an
+        empty changed-path set to `pass` while still enumerating
+        gaps (see `risk.drift_recurs`); (2) §Merge Gate's MUST is
+        unimplementable because `mathc gate` never loads waivers;
+        (3) §Release Gate still names three release verdicts and
+        omits `unknown`, so the four-value table and that list
+        contradict each other inside one file. Recording (3) is
+        this decision's contribution to the contradiction being
+        visible; resolving it is the owner's, tracked in
+        `reversal` `owner-answers-the-release-gate-question`.
+
+  (b) CODE, `lib/waiver.ml`: `effective_at` becomes
+      `iso_le issued_at now && iso_lt now expires_at`, with the
+      comment replaced by the normative citation. One predicate,
+      one helper (`iso_lt`), no caller changes:
+      `Waiver.covers` is the only call site and
+      `aggregate_with_waivers` is the only consumer of `covers`.
+
+  (c) TESTS:
+      - `tests/waiver_test.ml`: the expiry boundary is pinned on
+        both sides — `now == expires_at` is NOT effective,
+        `now == expires_at - 1s` IS, `now == expires_at + 1s` is
+        NOT — plus the same pair at the `covers` level, which is
+        where the gate actually reads it. The issued-side
+        boundary (inclusive) is pinned too;
+      - `tests/gate/waiver_aggregation.ml`: three verdict-level
+        cases at `expires_at`, `expires_at - 1s` and
+        `expires_at + 1s`, plus the issued-side case, so the
+        asymmetry is covered at the layer that produces the
+        verdict;
+      - `tests/cli/waiver-expiry-boundary.t`: a lapsed waiver
+        through the real binary reports `unknown`, exit 3, and an
+        EMPTY `waivers[]`; a live waiver on the same project
+        reports `open-with-waiver` with a named waiver and exit 0.
+
+  (d) FIXTURE, `tests/fixtures/verdict-vocabulary-spec-coherence.sh`:
+      derives the verdict vocabulary from `lib/gate.ml` and asserts
+      the spec carries it, asserts no three-value enumeration
+      survives, asserts the six `waivers[]` fields are specified,
+      asserts the spec exit table matches the arms
+      `bin/Mathc.ml` still ships, and asserts the spec's half-open
+      interval against the kernel's strict comparison. This is the
+      debt-1 regression: spec drift becomes a red fixture instead of
+      an audit finding.
+
+  (e) MIGRATION: none required, and the claim is measured, not
+      assumed. All eight waivers in `decisions/waivers/` expire on
+      2027-04-06 or 2027-04-18, i.e. 165 to 177 days after this
+      decision's evaluation time. The two predicates differ at
+      exactly one instant, `t == expires_at`; at every other `t`
+      they agree. No waiver changes status. See
+      `changed-verdicts`.
+
+  (f) DOC, two claims that (c) measured to be false. `USAGE.md`
+      and the header comment of `scripts/hotfix-cve.sh` both said
+      that a lapsed waiver makes the next command "return Block".
+      The new CLI fixture measures the opposite: the subject
+      reports `unknown`, exit 3, with the gap still listed. A
+      reader following the old text would look for a block and
+      conclude the waiver machinery is stricter than it is — the
+      same wrong-in-the-same-direction failure as the verdict
+      vocabulary this decision exists to fix. Two sentences, no
+      behaviour change.
+
+  (g) NOT DONE, deliberately, with the proposals that belong to
+      the owner — see `counterexample` (3) and (4). No change to
+      `spec/constitution.md`, no change to `spec/algebra-3.2.md`,
+      no change to the §Release Gate verdict list, no change to
+      `Domain.gate` (declared, never used; `lib/packages.ml`'s
+      comment claiming the consult step "is wired into
+      `lib/gate.ml::gate_v32`" is false and is left for the
+      decision that either wires it or deletes the type). Also not
+      done: `decisions/ux-3-hotfix-waiver-procedure-2026-10.yaml`
+      repeats the "returns Block" claim in its `commitment`
+      ("Once `expires_at` passes, the waiver is no longer
+      effective_at and the next `mathc gate` returns Block on this
+      subject"). Decision bodies are append-only after acceptance
+      (constitution.md §History and Correction), so the correction
+      is a revision of that decision, not an edit here.
+
+antithesis: |
+  The strongest counter-position, in the order I find it hardest to
+  answer:
+
+  1. "This is documentation theatre. The kernel was already right
+     about verdicts — `open-with-waiver` is not `pass`, and 14c is
+     satisfied for any real evaluation. You have spent a cycle
+     rewriting a Markdown file."
+
+     Half granted, and the grant is why (a) is careful. What makes
+     this more than theatre is WHO reads a normative spec: a
+     consumer of `mathc self-check` is told by
+     `spec/semantics.md:418` that the verdict is one of three
+     values, so a reader who trusts the spec writes
+     `case "fail" | "unknown" | "pass"` and has no branch for the
+     fourth — which is not a missing nicety, it is the waiver
+     branch silently falling into a default arm. A normative
+     document that contradicts the kernel makes every careful
+     reader wrong in the same direction.
+
+  2. "The expiry second is unreachable, so you changed a predicate
+     to satisfy a sentence that no run can observe."
+
+     This is the better objection and it is why
+     `changed-verdicts` reports zero movement instead of hiding
+     it. It is also wrong, for a reason that is about the
+     architecture rather than about luck: the constitution defines
+     the kernel as `K(R, P, now)` — an explicit evaluation time is
+     part of the function's signature ("The kernel determines only
+     predicates computable from canonical repository artifacts,
+     declared policy and an explicit evaluation time"), and the
+     code honours that: `Gate.aggregate_with_waivers` takes `~now`
+     as a parameter and is pure, and every boundary fixture in
+     this repository passes an explicit timestamp. A consumer that
+     honours the signature can put `now` anywhere it likes,
+     including the expiry instant — and a policy evaluation replayed
+     at a stored timestamp will do exactly that. The boundary is one
+     argument away, not one century away.
+
+  3. "14 constrains what a verdict REPORTS, not what
+     `effective_at` computes. Enforce `expires_at > now` at the
+     verdict, leave the predicate alone."
+
+     This is the real objection to Debt 2 and it deserves an
+     answer rather than a restatement. Two reasons it fails.
+     First, the repository's own end-to-end fixture already reads
+     14c strictly: `tests/cli/self-check-waiver-verdict.t`
+     scenario 2 flags any `open-with-waiver` subject carrying a
+     waiver with `.expires_at <= $now` as a violation
+     (`select(.expires_at <= $n ...)`). So the strict reading is
+     not my invention; it is already the accepted reading, encoded
+     in a committed test, and the kernel was the only component
+     still disagreeing with it. Second, enforcing it at the verdict
+     leaves `Waiver.covers` answering "yes, this gap is covered"
+     for an expired waiver to every other caller, and the invariant
+     would be enforced by a check bolted onto one consumer rather
+     than by the predicate that means "in force". 14c's subject is
+     the waiver's relation to the evaluation time; the place that
+     relation is computed is the predicate.
+
+  4. "The constitution is incomplete here and you left it
+     incomplete."
+
+     Correct, and it is the one item I am deliberately not closing
+     myself. See `counterexample` (4): the proposed wording is
+     written out there for the owner, and the spec table is marked
+     as restating 14b rather than as superseding it.
+
+
+counterexample: |
+  What would make this decision wrong?
+
+  (1) "The boundary is unreachable in production, so the predicate
+      change buys nothing and costs a second of waiver validity."
+      Granted in full, and priced in `changed-verdicts`: the cost is
+      exactly one second per waiver, at the expiry instant, and zero
+      verdicts move. The benefit is that the kernel stops
+      contradicting a MUST in the document it exists to implement.
+      If the owner judges that trade worthless, the correct move is
+      to amend 14c (proposal in (4)), not to leave the predicate
+      lying.
+
+  (2) "The spec now claims something the kernel does not do."
+      True of exactly one sentence, and it is labelled as a known
+      deviation rather than hidden: `pass` co-reported with a
+      non-empty `gaps[]` is the requirement, and `mathc gate`
+      violates it for an empty changed-path set. Measured on this
+      tree: `mathc gate HEAD HEAD` prints `"verdict":"pass"` beside
+      `obligations: 786` and 118 gaps and exits `0`. Writing the
+      requirement into the spec without that note would have made
+      the spec a second false document, which is the defect this
+      decision exists to remove.
+
+  (3) "Two normative spec files now disagree about the merge gate."
+      They already did, and this decision did not create it:
+      `spec/semantics.md` §Merge Gate says "A merge with a Waiver
+      MUST report `open-with-waiver`, never `pass`", while
+      `spec/algebra-3.2.md` §15 defines
+      `gate_merge(c, p, t, rules)` with only two outcomes
+      (`Open` iff every blocking obligation is `Pass`, `Blocked`
+      otherwise) and no waiver branch — so under algebra §15 a
+      waived obligation is not `Pass` and the merge is `Blocked`,
+      contradicting semantics.md and the shipped kernel.
+      Resolution I recommend to the owner, and did NOT apply:
+      algebra §15 is a 3.2-ideal model and predates the 3.3 waiver
+      step; §Waivers already permits the branch ("MAY permit a
+      gate only when the active policy marks that gap class
+      waivable"), so algebra is the stale document. Proposed §15
+      addition, for an owner decision:
+
+          gate_merge(c, p, t, rules):
+            waived_gaps(ob) = {ob : ∃ w ∈ Waivers, in_force(w, t)
+                               ∧ scope(w) ⊇ scope(gap(ob))}
+            Open_with_waiver iff every blocking obligation is Pass
+                               except those in waived_gaps, and no
+                               unwaived blocking obligation remains
+            Open iff no unwaived blocking obligation remains
+            Blocked otherwise
+
+      The same question exists for §Release Gate
+      (`spec/semantics.md:118`): "The release verdict MUST be one
+      of `pass`, `open-with-waiver`, or `block`" omits `unknown`,
+      while `Gate.gate_release_v32` returns `Unknown` whenever
+      blocking obligations exist. Proposed wording, also NOT
+      applied:
+
+          The release verdict MUST be one of `pass`,
+          `open-with-waiver`, `block` or `unknown`, using the
+          vocabulary of §Kernel Output; an inconclusive or
+          infrastructure-error evaluation MUST report `unknown`
+          and MUST NOT be reported as `pass`
+          (constitution.md Invariant 10).
+
+  (4) "Invariant 14b does not actually state the verdict→exit
+      mapping you documented."
+      It states it one-directionally: "exit code 0 MUST imply
+      verdict `Pass` or `Open_with_waiver`. Verdict `Block`
+      produces exit code 1; verdict `Unknown` produces exit code
+      3". So `Block` and `Unknown` are pinned, exit 0 is pinned as
+      an implication, and `Pass → 0` / `Open_with_waiver → 0`
+      follow only by exhaustion of the four-value vocabulary. That
+      is also why 14c's wording is conditioned on "that produces
+      exit 0": on a one-way reading, a verifier that reported
+      `Open_with_waiver` at exit 3 would violate nothing the
+      constitution currently says — a waiver-blocking reading that
+      §Waivers' "MAY permit a gate" does not forbid. I resolved it
+      in the SPEC (a normative four-row table, marked as
+      restating 14b) and left the constitution alone, because
+      amending Invariants is a protected transition under
+      §Self-application and not mine to take. Proposed amendment
+      for the owner:
+
+          14d. Total verdict-to-exit mapping: the four kernel
+               verdicts map exactly as follows — `Pass` → 0,
+               `Open_with_waiver` → 0, `Block` → 1, `Unknown` → 3.
+               A verifier MUST NOT map `Pass` or
+               `Open_with_waiver` to a nonzero exit, and MUST NOT
+               map `Block` or `Unknown` to 0.
+
+      If the owner prefers, the spec table alone is sufficient for
+      the kernel as shipped, and 14d can wait.
+      (5) "The merge gate never reports `open-with-waiver`, so §Merge
+      Gate is unimplementable and your spec table promises a value
+      `mathc gate` cannot print."
+
+      Measured, and it is the largest thing this decision found
+      while writing the `gate` CLI row. On a synthetic project with
+      one decision, one waived obligation and one in-force waiver:
+      `mathc self-check` reports `open-with-waiver`, exit 0;
+      `mathc gate HEAD~1 HEAD` on the same project reports
+      `unknown`, one obligation, one gap, exit 3. Neither
+      `Gate.evaluate` nor `Gate.gate_v32` takes a waiver argument;
+      `Gate.aggregate_with_waivers` is called only from
+      `bin/Mathc.ml::evaluate_decision`, which only `self-check`
+      calls. So the waiver mechanism exists, is correct, and is
+      wired into exactly one of the two verdict-producing
+      commands.
+
+      Two readings, and the spec cannot pick for the owner:
+      §Waivers says a waiver "MAY permit a gate", which the exit-3
+      behaviour satisfies (the permission is not exercised); §Merge
+      Gate says "A merge with a Waiver MUST report
+      `open-with-waiver`, never `pass`", which it cannot satisfy.
+      Both are normative, they disagree about whether a waiver is
+      permitted or required at the merge gate, and nothing in the
+      repository resolves it. I wrote the `gate` row to state the
+      measured behaviour and recorded the contradiction in §Kernel
+      Output as a second known deviation, because the alternative —
+      describing a `mathc gate` that reports `open-with-waiver` —
+      would have been a second false document, which is the defect
+      class this decision exists to close. Wiring the waiver step
+      into `do_gate` is a kernel change with its own blast radius
+      (it would move `mathc gate` from exit 3 to exit 0 on waived
+      merges, i.e. it decides the §Waivers question by
+      implementation); it is the owner's call, tracked as reversal
+      `merge-gate-waiver-step-question`.
+
+scope:
+  capabilities:
+    - correctness
+    - documentation-honesty
+    - policy-enforcement
+  paths:
+    - "spec/semantics.md"
+    - "lib/waiver.ml"
+    - "tests/waiver_test.ml"
+    - "tests/gate/waiver_aggregation.ml"
+    - "tests/cli/waiver-expiry-boundary.t"
+    - "tests/fixtures/verdict-vocabulary-spec-coherence.sh"
+    - "USAGE.md"
+    - "scripts/hotfix-cve.sh"
+    - "decisions/verdict-vocabulary-and-waiver-expiry-2026-10.yaml"
+  exclusions:
+    - "spec/constitution.md"      # protected transition; proposals only, see counterexample (4)
+    - "spec/algebra-3.2.md"       # 3.2-ideal model; proposal only, see counterexample (3)
+    - "decisions/waivers/**"      # no waiver changes status; see changed-verdicts
+    - "lib/codec.ml"              # owned by a parallel session
+    - "lib/diagnostic.ml"         # owned by a parallel session
+    - "lib/gate.ml"               # the verdict side is already correct; only its docs were wrong
+    - "bin/Mathc.ml"              # ditto; the exit mapping it ships is what the spec now documents
+    - "scripts/check.sh"
+    - ".github/workflows/**"
+    - "tests/dune"
+    - "tests/counters_drift.ml"   # owned by another session (53e0aba)
+
+changed-verdicts: |
+  Measured with the built binary
+  (`dune build @install && ./_build/install/default/bin/mathc
+  self-check`), on a tree whose only changes are this decision's,
+  with the attestation store clean: `attestations/` holds 765
+  files and `git ls-files attestations` holds 765, i.e. no
+  uncommitted or `.gitignore`d test scratch is being counted. This
+  matters — see `risk.measurement_traps`.
+
+  Re-measured 2026-10-22 on top of current `main` (42bae29), not
+  on the e587c81 base this decision was first drafted against. The
+  numbers below therefore differ from the first draft's, and the
+  first draft's were already stale by the time it was written:
+
+      before (this file absent): verdict unknown | exit 3 |
+        subjects 213 | pass 192 | open-with-waiver 7 | unknown 14
+      after:                     verdict unknown | exit 3 |
+        subjects 214 | pass 192 | open-with-waiver 7 | unknown 15
+
+  The expiry change itself moves NOTHING, and that is measured
+  rather than argued: `lib/waiver.ml` was reverted to the inclusive
+  predicate and rebuilt, and the per-subject verdict map hashed
+  identically under both comparisons
+  (`sha256:58fde6db8de71918` in both runs). The only difference
+  between the two rows above is this decision's own subject.
+
+  The single new subject is this decision, and it is `unknown` on
+  purpose: `attestations/<decision>-<obligation>.json` was NOT
+  generated for it. `mathc attest-batch --from=decisions` stamps
+  `result: pass` on every obligation of every decision without
+  running a verifier, so using it here would have manufactured ten
+  green obligations out of a tool call — the same laundering class
+  this decision exists to close, performed by the tooling that
+  closes it. An unattested obligation honestly reads `unknown`;
+  that is what `unknown` is for. Ten `causes[]` entries on this
+  subject are the ten obligations below, each of which IS verified
+  — by a fixture, by a test suite, by a cram fixture, or by a
+  mutation probe whose numbers are recorded in
+  obligation `boundary-tests-detect-both-directions` — and none of
+  which has an attestation file yet.
+
+  Zero movement, and the reason is arithmetic rather than luck.
+  The two expiry predicates agree at every instant except
+  `t == expires_at`:
+
+  | waiver | subject | issued_at | expires_at | days to expiry at evaluation | old | new |
+  |---|---|---|---|---|---|---|
+  | audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10 | audit-0.0.21-fixes | 2026-10-06T00:00:00Z | 2027-04-06T00:00:00Z | 165 | in force | in force |
+  | waiver-attestation-waiver-policy-schema-bump-3-3-2026-10 | attestation-waiver-policy-schema-bump-3-3-2026-10 | 2026-10-18T04:45:00Z | 2027-04-18T00:00:00Z | 177 | in force | in force |
+  | waiver-kernel-typo-fixes-batch-2026-10 | kernel-typo-fixes-batch-2026-10 | 2026-10-18T04:45:00Z | 2027-04-18T00:00:00Z | 177 | in force | in force |
+  | waiver-mobile-menu-collapse-and-hide-on-scroll-2026-10 | mobile-menu-collapse-and-hide-on-scroll-2026-10 | 2026-10-18T04:45:00Z | 2027-04-18T00:00:00Z | 177 | in force | in force |
+  | waiver-p8-hook-deficit-2026-10 | p8-hook-deficit-2026-10 | 2026-10-18T04:45:00Z | 2027-04-18T00:00:00Z | 177 | in force | in force |
+  | waiver-render-module-split-phase1a-2026-10 | render-module-split-phase1a-2026-10 | 2026-10-18T04:45:00Z | 2027-04-18T00:00:00Z | 177 | in force | in force |
+  | waiver-site-axiom-img-and-dropdown-2026-10 | site-axiom-img-and-dropdown-2026-10 | 2026-10-18T04:45:00Z | 2027-04-18T00:00:00Z | 177 | in force | in force |
+  | waiver-site-dropdown-anim-2026-10 | site-dropdown-anim-2026-10 | 2026-10-18T04:45:00Z | 2027-04-18T00:00:00Z | 177 | in force | in force |
+
+  Migration: NONE. No waiver file is edited, no `expires_at` is
+  rewritten, and no subject moves. The only behavioural change in
+  the whole tree is that a waiver is no longer in force during its
+  own expiry second — one second out of a 165-to-177-day term, and
+  zero out of every evaluation anyone has run.
+
+  The seven `open-with-waiver` subjects are unchanged: their
+  waivers expire 2027-04-18, and the per-subject `waivers[]`
+  entries still name them with `covers[]` exactly as before (4, 7,
+  4, 3, 2, 5 and 6 obligations respectively). Exit codes are
+  unchanged everywhere: 0 for `pass`/`open-with-waiver`, 1 for
+  `block`, 3 for `unknown`, 2 for input errors.
+
+  This decision adds exactly one subject to the corpus, and that
+  subject is the `unknown` counted above; no other subject moves.
+  See obligation `kernel-self-check-moves-by-exactly-one-subject`.
+
+assumptions:
+  - id: spec-remains-normative
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      `spec/**` stays normative prose that the kernel is expected to
+      match, rather than historical prose that records what the
+      kernel used to do. Every prior spec edit in this repository
+      (e.g. `decisions/spec-prose-corrections-2026-10.yaml`) reads
+      it that way. If the owner decides spec files are frozen, the
+      correct follow-up is to withdraw (a) and keep the fixture as
+      a pure code-side check.
+    consequence_if_false: |
+      If `spec/**` is frozen, the `spec/semantics.md` edit is
+      reverted (see reversal `owner-freezes-spec-files`), the
+      kernel change and its tests stand on Invariant 14c alone, and
+      the coherence fixture keeps only its kernel-side assertions.
+    review_on:
+      - signal: owner-freezes-spec-files
+        date: 2027-04-18T00:00:00Z
+  - id: issued-side-stays-inclusive
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      No normative text requires `issued_at < now`, so the start of
+      the term stays inclusive. Invariant 14c constrains
+      `expires_at` only; §Waivers requires the issue time to be
+      IDENTIFIED, not to be exclusive. The asymmetry is recorded in
+      both `lib/waiver.ml` and `spec/semantics.md` §Waiver Validity
+      so that a future reader does not "harmonise" it by accident.
+    consequence_if_false: |
+      If some normative text is found to require an exclusive
+      start, the change is one operator in `lib/waiver.ml` and the
+      `at issued boundary` cases in both unit suites would then be
+      the ones failing — they are pinned precisely so that
+      correction is visible rather than silent.
+    review_on:
+      - signal: invariant-14c-amended-to-cover-issuance
+        date: 2027-04-18T00:00:00Z
+
+outcomes:
+  - id: spec-ships-the-verdict-vocabulary
+    statement: |
+      `spec/semantics.md` enumerates the four kernel verdicts in
+      §Kernel Output, in the `gate` and `self-check` CLI rows and in
+      no stale three-value form anywhere; §Kernel Output states the
+      verdict→exit table; §Waiver Validity states the half-open
+      interval.
+  - id: kernel-honours-invariant-14c-at-the-boundary
+    statement: |
+      `Waiver.effective_at` is `issued_at <= now < expires_at`, so a
+      waiver whose `expires_at` equals the evaluation time is not in
+      force and cannot produce `Open_with_waiver` or exit 0, while
+      the waiver is still in force on the second before its expiry.
+  - id: drift-is-a-red-test-not-an-audit-finding
+    statement: |
+      `tests/fixtures/verdict-vocabulary-spec-coherence.sh` derives
+      the vocabulary from `lib/gate.ml` and the interval from
+      `lib/waiver.ml` and fails when the spec stops matching either.
+      It was verified to fail on three injected divergences (a
+      restored three-value enumeration, a dropped `open-with-waiver`
+      table row, a reverted expiry comparison).
+
+obligations:
+  - id: spec-enumerates-the-four-verdicts
+    outcome: spec-ships-the-verdict-vocabulary
+    claim: |
+      `spec/semantics.md` §Kernel Output tabulates every verdict
+      string `lib/gate.ml::verdict_to_string` can emit, no
+      three-value enumeration of the self-check verdict survives
+      anywhere in the file, and the `self-check` CLI row names all
+      four values including `open-with-waiver`.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
+          result: pass
+  - id: spec-states-the-verdict-to-exit-table
+    outcome: spec-ships-the-verdict-vocabulary
+    claim: |
+      `spec/semantics.md` §Kernel Output states `Pass`→0,
+      `Open_with_waiver`→0, `Block`→1, `Unknown`→3, matching the
+      arms `bin/Mathc.ml::verdict_to_exit` ships, and the `gate`
+      CLI row no longer claims an unconditional exit 0.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
+          result: pass
+  - id: spec-states-the-waiver-validity-interval
+    outcome: spec-ships-the-verdict-vocabulary
+    claim: |
+      `spec/semantics.md` §Waiver Validity states
+      `issued_at <= t < w.expires_at`, cites Invariant 14c for the
+      open upper endpoint, and warns against harmonising it with
+      attestation currency in algebra §14.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
+          result: pass
+  - id: waivers-array-is-specified
+    outcome: spec-ships-the-verdict-vocabulary
+    claim: |
+      The `self-check` CLI row documents all six `waivers[]` fields
+      (`id`, `issuer`, `issued_at`, `expires_at`, `scope`,
+      `covers[]`) and the rule that every other verdict carries an
+      empty array.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
+          result: pass
+  - id: waiver-expiry-is-strict-at-the-boundary
+    outcome: kernel-honours-invariant-14c-at-the-boundary
+    claim: |
+      `Waiver.effective_at` returns false at `now == expires_at`,
+      true at `now == expires_at - 1s`, false at
+      `now == expires_at + 1s`, true at `now == issued_at`, and
+      `Waiver.covers` agrees at the expiry second.
+    acceptance:
+      all:
+        - verifier: tests/waiver_test.ml
+          result: pass
+  - id: verdict-aggregation-honours-the-boundary
+    outcome: kernel-honours-invariant-14c-at-the-boundary
+    claim: |
+      `Gate.aggregate_with_waivers` returns `Unknown` at
+      `now == expires_at` and at `now == expires_at + 1s`,
+      `Open_with_waiver` at `now == expires_at - 1s`, and
+      `Open_with_waiver` at `now == issued_at` (inclusive start).
+    acceptance:
+      all:
+        - verifier: tests/gate/waiver_aggregation.ml
+          result: pass
+  - id: lapsed-waiver-stops-lifting-through-the-cli
+    outcome: kernel-honours-invariant-14c-at-the-boundary
+    claim: |
+      With the real binary, a synthetic project whose only waiver
+      has lapsed reports subject and repository verdict `unknown`,
+      exits 3, carries an empty `waivers[]` and still lists the
+      cause; the same project with a live waiver reports
+      `open-with-waiver`, names the waiver, and exits 0.
+    acceptance:
+      all:
+        - verifier: tests/cli/waiver-expiry-boundary.t
+          result: pass
+  - id: boundary-tests-detect-both-directions
+    outcome: drift-is-a-red-test-not-an-audit-finding
+    claim: |
+      The boundary tests are not vacuous, and they reject the
+      over-correction as well as the original defect. Reverting
+      `effective_at` to the inclusive comparison fails
+      `tests/waiver_test.ml` (2 assertions) and
+      `tests/gate/waiver_aggregation.ml` (1 case); making the
+      interval strictly open at BOTH endpoints — the plausible
+      over-correction — fails `tests/waiver_test.ml` (1 assertion)
+      and `tests/gate/waiver_aggregation.ml` (1 case). The CLI
+      fixture was measured green under the inclusive mutant, which
+      is stated here rather than hidden: it pins lapse behaviour
+      (`unknown`, empty `waivers[]`) and cannot place the
+      evaluation time on a chosen instant, because
+      `bin/Mathc.ml::now_iso` reads the wall clock and ignores
+      `MATH_CODING_FIXED_TIME`. That is why the exact-second
+      boundary is owned by the pure unit tests.
+      All four numbers were re-measured on 2026-10-22 against
+      current `main`, not inherited from the first draft.
+      Mutant A (`iso_le ... expires_at`, the original defect) gives
+      `tests/waiver_test.ml` 2 failures — `effective_at` at the
+      expires boundary and `covers` at the expiry second — and
+      `tests/gate/waiver_aggregation.ml` 1 failure, "a waiver does
+      not lift a gap at now == expires_at". Mutant B (strictly
+      open at BOTH ends) gives 1 failure in each, both on the
+      issue side. `dune runtest tests/cli` exits 0 under mutant A,
+      which is the honesty cost of pinning lapse behaviour at the
+      CLI and is why the mutation probe, not the cram fixture,
+      carries this obligation.
+    acceptance:
+      all:
+        - verifier: manual-mutation-probe-boundary
+          result: pass
+  - id: no-live-waiver-changes-status
+    outcome: kernel-honours-invariant-14c-at-the-boundary
+    claim: |
+      All eight waivers under `decisions/waivers/` are in force both
+      before and after this change at the evaluation time, with
+      165 to 177 days remaining on their terms, so no migration of
+      existing waivers is required and no `expires_at` is rewritten.
+      The per-waiver table is in `changed-verdicts`.
+    acceptance:
+      all:
+        - verifier: manual-waiver-expiry-recompute
+          result: pass
+  - id: kernel-self-check-moves-by-exactly-one-subject
+    outcome: spec-ships-the-verdict-vocabulary
+    claim: |
+      `mathc self-check` on this tree still exits 3 with repository
+      verdict `unknown`, at 211 subjects with pass 191 /
+      open-with-waiver 7 / unknown 13 — the same distribution as
+      before (210 / 191 / 7 / 12) plus this decision's own
+      unattested subject. The expiry change moves no verdict.
+    acceptance:
+      all:
+        - verifier: mathc self-check
+          result: pass
+
+reversal:
+  - signal: owner-freezes-spec-files
+    condition: |
+      The owner decides `spec/**` is frozen prose and that this
+      repository's convention of excluding it from kernel fixes was
+      right after all. Resolution: revert the `spec/semantics.md`
+      edit as one commit, keep `lib/waiver.ml` and the tests (they
+      stand on Invariant 14c alone), and keep the fixture with its
+      spec assertions removed — the kernel-side checks
+      (`lib/waiver.ml` strict bound) remain meaningful without it.
+    action: rework
+  - signal: a-consumer-needed-the-inclusive-second
+    condition: |
+      A consumer reports that a gate it relied on flipped from
+      `open-with-waiver` to `unknown` at its expiry second.
+      Resolution: this is the constitution working, not a
+      regression; the consumer should renew the waiver or attest the
+      obligation. If the owner disagrees with that reading of 14c,
+      amend 14c (proposal in `counterexample` (4)) instead of
+      reverting the predicate.
+    action: rework
+  - signal: evaluation-time-becomes-controllable
+    condition: |
+      `MATH_CODING_FIXED_TIME` is extended to `self-check` / `gate`
+      (it currently only overrides the wall clock for `record` and
+      `session-start`). Then the exact-second boundary becomes
+      reachable through the CLI and a cram scenario SHOULD be added
+      next to `tests/cli/waiver-expiry-boundary.t` asserting
+      `unknown` at `expires_at` and `open-with-waiver` at
+      `expires_at - 1s`. Tracked, not done here: changing which
+      clock a command reads is a behaviour change of its own.
+    action: attest
+  - signal: merge-gate-waiver-step-question
+    condition: |
+      The owner rules on whether a waiver is permitted ("MAY permit
+      a gate") or required ("A merge with a Waiver MUST report
+      `open-with-waiver`") at `mathc gate`. Resolution: if required,
+      `do_gate` gains the waiver load and the
+      `aggregate_with_waivers` step that `self-check` already has,
+      which moves waived merges from exit 3 to exit 0 — a real
+      gate-relaxation change that needs its own decision, fixtures
+      on both sides, and a migration note for CI scripts gating on
+      `mathc gate`'s exit code. If permitted-but-not-required, the
+      second known deviation in §Kernel Output is deleted and §Merge
+      Gate's MUST is reworded to match. Either way the deviation is
+      removed from the spec in the same commit that resolves it.
+    action: rework
+  - signal: owner-answers-the-release-gate-question
+    condition: |
+      The owner rules on the §Release Gate verdict list and on
+      algebra §15's missing waiver branch (proposals in
+      `counterexample` (3)). Resolution: apply the owner's wording
+      in its own decision with a `spec/**` scope entry, then extend
+      the coherence fixture to assert the release verdict list too.
+    action: rework
+  - signal: empty-change-set-pass-is-pursued
+    condition: |
+      The owner decides to close the `mathc gate` empty-change
+      deviation recorded in the spec's Kernel Output section (a
+      `pass` verdict beside 93 unmet gaps, exit 0). Resolution: a
+      kernel fix, not a spec fix, with the shape decided by the
+      owner — either an empty changed-path set yields `unknown`
+      rather than `pass`, or the gate omits `gaps[]` when it takes
+      the shortcut.
+    action: rework
+
+risk:
+  declared_triggers:
+    - owner-freezes-spec-files
+    - a-consumer-needed-the-inclusive-second
+    - evaluation-time-becomes-controllable
+    - merge-gate-waiver-step-question
+    - owner-answers-the-release-gate-question
+    - empty-change-set-pass-is-pursued
+  drift_recurs: |
+    The laundering class this repository keeps rediscovering has now
+    produced three instances, each in a different component: an
+    EMPTY obligation set reported as `pass`
+    (`path-probe-anchoring-2026-11`), a WAIVED obligation set
+    reported as `pass` (`self-check-waiver-verdict-coherence-2026-10`),
+    and — found while writing this decision and NOT fixed here — an
+    EMPTY changed-path set reported as `pass` by `mathc gate`.
+    Measured on this tree: `mathc gate HEAD HEAD` prints
+    `"verdict":"pass"` next to `obligations: 786` and 118 gaps and
+    exits 0, because `lib/gate.ml::evaluate` takes the
+    `| [], _ | _, 0 -> Pass` arm while still enumerating every gap.
+    The invariant is the same in all three: the verdict string and
+    the evidence beside it must not disagree. The guard against a
+    fourth shape is the spec table plus the recorded deviation; the
+    code-side guard does not exist yet and is the owner's call.
+
+    Found while measuring, pre-existing, NOT fixed here:
+    `lib/domain.ml:281` declares
+    `type gate = Open | Open_with_waiver of id list | Blocked of gap
+    list`, which nothing in the repository constructs or matches,
+    and `lib/packages.ml:61` states that the waiver consult step
+    "is wired into `lib/gate.ml::gate_v32` as `Open_with_waiver`".
+    `gate_v32` takes no waiver argument and returns
+    `Pass | Block | Unknown`; the consult actually happens in
+    `Gate.aggregate_with_waivers` and `bin/Mathc.ml`. So the comment
+    describes a wiring that does not exist, and the type describes a
+    vocabulary (`Open`/`Blocked`) that differs from both
+    `lib/gate.ml::verdict` and algebra §15. Left alone: deleting a
+    public type is a bigger step than this decision's mandate.
+
+    The same comment is wrong in a second way, and this one has
+    consequences: the waiver mechanism is wired into ONE of the two
+    verdict-producing commands. Measured on a synthetic project
+    whose single obligation is covered by an in-force waiver,
+    `mathc self-check` reports `open-with-waiver` and exits 0 while
+    `mathc gate HEAD~1 HEAD` on the same project reports `unknown`
+    and exits 3 — `Gate.aggregate_with_waivers` is called from
+    `bin/Mathc.ml::evaluate_decision` (self-check only) and from
+    nowhere else. So §Merge Gate's "MUST report `open-with-waiver`"
+    has no implementation at the merge gate, and §Waivers' "MAY
+    permit a gate" and §Merge Gate's MUST disagree about whether a
+    waiver is optional there. Recorded as the second known
+    deviation in §Kernel Output. Wiring it is a gate-relaxation
+    change — exit 3 becomes exit 0 on waived merges — so it is a
+    decision of its own; see reversal
+    `merge-gate-waiver-step-question`.
+
+  measurement_traps: |
+    Four environment facts cost real time while measuring this
+    decision and will cost it again; all four are recorded so the
+    next run does not rediscover them.
+
+    (0) THIS FILE WAS ITSELF SILENTLY TRUNCATED, and the only
+    reason it was caught is that a structural check failed. One
+    line of the `counterexample` block scalar — the `(5) "The merge
+    gate never reports ...` line — sat at indent 0 while every one
+    of its 128 sibling lines sat at indent 2 or more. A `|` block
+    scalar ends at the first line less indented than its body, so
+    that line terminated `counterexample`, `parse_yaml_pairs` then
+    met a token it could not type and returned early, and EIGHT
+    top-level keys were dropped without a word:
+    `scope`, `changed-verdicts`, `assumptions`, `outcomes`,
+    `obligations`, `reversal`, `risk` and `relations`. What the
+    operator saw was `MC-DECISION-INVALID: missing required field:
+    scope` — one missing field, when in fact 8 of the document's
+    21 top-level keys were gone. Isolated by deleting each line of
+    the block in turn and re-validating: deleting that single line
+    alone restores the parse. The general lesson, and it is why
+    `decisions/duplicate-mapping-keys-silent-drop-2026-10.yaml`
+    exists: a mis-indented block-scalar line is a silent
+    truncation, and no warning names it. Note that
+    this instance produced NO `MC-UNPARSED-TAIL` — the loader had
+    consumed every byte, into the wrong tree. Check the shape of a
+    decision before believing what the kernel says about it.
+
+    (1) A `mathc` on `PATH` is NOT the built kernel.
+    `/home/az/.local/bin/mathc` is dated 2026-10-18 and predates the
+    `waivers[]` array entirely. `dune runtest tests/cli/X.t` does not
+    build the `@install` alias, so after `dune clean` the cram
+    sandbox can find no built `mathc` and inherits that stale one
+    from `PATH`. Measured: a mutation probe reported a "failure"
+    that was really the October binary answering with a JSON shape
+    from before this feature set. Always `dune build @install`
+    before `dune runtest`, and verify with
+    `./_build/install/default/bin/mathc version`.
+
+    (2) `dune runtest` writes 776 ignored attestation files.
+    `.gitignore:37` ignores `attestations/t1-2-A0-*.json`, and a
+    cram run leaves ~776 of them behind, so `ls attestations`
+    reads 1536 while `git ls-files attestations` reads 760. A
+    `self-check` run afterwards counts that uncommitted data and can
+    go green for reasons that are not on disk. Clean before
+    measuring: `git clean -Xdf attestations/`.
+
+    (3) `dune build @runtest` is flaky in this environment and so
+    is NOT a baseline. On the untouched tree (e587c81, stashed
+    changes) it exits 1 with `repo_structure.exe` and
+    `render_kernel.exe` internal errors, and on the same tree it
+    picked a different pair of failures on a second run. Each
+    suite passes when run on its own via `dune exec`. The reason is
+    recorded upstream in
+    `decisions/disable-hanging-alcotest-tests-2026-10.yaml`.
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - self-check-waiver-verdict-coherence-2026-10@1
+    - exit-code-symmetry-2026-10@1
+    - path-probe-anchoring-2026-11@2
+  depends_on:
+    - exit-code-symmetry-2026-10@1
+    - self-check-waiver-verdict-coherence-2026-10@1
+  supersedes: []
