@@ -1,7 +1,21 @@
+; Each (test ...) stanza must name its modules explicitly.
+;
+; Without it, `dune runtest tests/gate/state_filter.exe` -- the addressable
+; form, and the one scripts/dev-fast-test uses to run a single suite --
+; fails before compiling:
+;
+;   Error: Module State_filter is used in several stanzas.
+;
+; `dune build @runtest` does not surface this, which is why it went
+; unnoticed: the alias-level target builds the whole directory at once and
+; never asks for one stanza by name. A binary that can only be run by
+; running everything with it is a binary nobody can run alone.
 (test
  (name state_filter)
+ (modules state_filter)
  (libraries mathcoding_core mathcoding_attestations alcotest))
 
 (test
  (name waiver_aggregation)
+ (modules waiver_aggregation)
  (libraries mathcoding_core alcotest))
