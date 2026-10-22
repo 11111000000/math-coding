@@ -20,6 +20,17 @@ jobs:
           fetch-depth: 0
           show-progress: false
 
+      # NOTE ON STYLE: no step in this file uses a shell heredoc. The
+      # terminator of `cat <<EOF` must sit at column 0, but every line
+      # of a `run: |` block scalar must be indented past its `run:` key.
+      # Those two requirements cannot both hold, and resolving it by
+      # un-indenting the heredoc body ends the block scalar early: YAML
+      # then reads the message text as top-level keys and the whole
+      # workflow stops loading at all. That is not hypothetical: it is
+      # how this file was broken from 2026-10-18 (commit 45ba4c2b) until
+      # fix/release-pending-yaml-invalid-2026-10. Write multi-line
+      # payloads with printf/echo, and keep every `run:` body indented.
+
       - name: Detect protected-path diff
         id: detect-diff
         run: |
@@ -30,15 +41,31 @@ jobs:
             echo "no base ref detected; gate skipped" >&2
             exit 0
           fi
-          TOUCHED="$(git diff --name-only "origin/${BASE}...HEAD" \
-                     | grep -E '^(bin/Mathc\.ml|lib/|scripts/install-tooling/)' \
-                     || true)"
+          # Fail closed on a git error. Under `set -o pipefail` a
+          # `git diff | grep ... || true` pipeline reports the empty
+          # string here, which reads as "no protected paths touched" —
+          # the gate would pass without ever having asked its question.
+          if ! DIFF="$(git diff --name-only "origin/${BASE}...HEAD")"; then
+            echo "release-pending: cannot diff against origin/${BASE}." >&2
+            echo "Gate fails closed: an unreadable diff is not a clean diff." >&2
+            exit 1
+          fi
+          # A `case` loop rather than `git diff | grep`: no pipe means no
+          # SIGPIPE, and no `|| true` that could swallow a real failure.
+          TOUCHED=""
+          while IFS= read -r CHANGED; do
+            case "${CHANGED}" in
+              bin/* | lib/* | scripts/install-tooling/*)
+                TOUCHED+="${CHANGED}"$'\n'
+                ;;
+            esac
+          done <<< "${DIFF}"
           if [ -n "${TOUCHED}" ]; then
             {
               echo "touches_protected=true"
-              echo "touched_paths<<EOF"
-              echo "${TOUCHED}"
-              echo "EOF"
+              echo "touched_paths<<GH_EOF"
+              printf '%s\n' "${TOUCHED}"
+              echo "GH_EOF"
             } >> "${GITHUB_OUTPUT}"
           else
             echo "touches_protected=false" >> "${GITHUB_OUTPUT}"
@@ -50,9 +77,18 @@ jobs:
         run: |
           set -euo pipefail
           BASE="${GITHUB_BASE_REF}"
-          LATEST_TAG="$(git tag --sort=-creatordate \
-                           --merged "origin/${BASE}" 2>/dev/null \
-                        | head -1 || true)"
+          # Fail closed here for the same reason, and more sharply: the
+          # one answer that lets a PR through is "no release tag", so an
+          # unreadable tag list must never be reported as an empty one.
+          if ! TAG_LIST="$(git tag --sort=-creatordate --merged "origin/${BASE}")"; then
+            echo "release-pending: cannot list tags merged into origin/${BASE}." >&2
+            echo "Gate fails closed: an unreadable tag list is not an empty one." >&2
+            exit 1
+          fi
+          # First line by parameter expansion, not `| head -1`: head
+          # closes the pipe after one line, git takes a SIGPIPE, and under
+          # `set -o pipefail` a healthy query turns into a failure.
+          LATEST_TAG="${TAG_LIST%%$'\n'*}"
           if [ -z "${LATEST_TAG}" ]; then
             echo "last_tag=none" >> "${GITHUB_OUTPUT}"
             echo "no release tag found on base ref ${BASE}; gate passes" >&2
@@ -61,23 +97,23 @@ jobs:
           LAST_TAG_SHA="$(git rev-list -1 "${LATEST_TAG}")"
           echo "last_tag=${LATEST_TAG}" >> "${GITHUB_OUTPUT}"
           echo "last_tag_sha=${LAST_TAG_SHA}" >> "${GITHUB_OUTPUT}"
-          cat >&2 <<EOF
-release-pending: base ref ${BASE} has tagged release ${LATEST_TAG}
-                    pinned at commit ${LAST_TAG_SHA}.
-
-This PR touches protected paths (bin/, lib/, scripts/install-tooling/).
-Per the F15 finding (v3.3.2 shipped a stale binary), reviewers MUST verify
-that the release workflow has been re-run AFTER the latest commit touching
-these paths. Until that re-build evidence exists, the published binary
-predates the in-tree source.
-
-Action required:
-  1. Re-run \`.github/workflows/release.yml\` against the latest
-     commit on \`${BASE}\` (does not have to merge into this PR).
-  2. Publish the resulting artifact, then approve this PR.
-
-This is a first-pass gate; future revisions will replace the
-placeholder exit with a GitHub-API query against
-\`actions/runs\` filtered by workflow file and commit SHA.
-EOF
+          printf '%s\n' \
+            "release-pending: base ref ${BASE} has tagged release ${LATEST_TAG}" \
+            "                    pinned at commit ${LAST_TAG_SHA}." \
+            "" \
+            "This PR touches protected paths (bin/, lib/, scripts/install-tooling/)." \
+            "Per the F15 finding (v3.3.2 shipped a stale binary), reviewers MUST verify" \
+            "that the release workflow has been re-run AFTER the latest commit touching" \
+            "these paths. Until that re-build evidence exists, the published binary" \
+            "predates the in-tree source." \
+            "" \
+            "Action required:" \
+            "  1. Re-run \`.github/workflows/release.yml\` against the latest" \
+            "     commit on \`${BASE}\` (does not have to merge into this PR)." \
+            "  2. Publish the resulting artifact, then approve this PR." \
+            "" \
+            "This is a first-pass gate; future revisions will replace the" \
+            "placeholder exit with a GitHub-API query against" \
+            "\`actions/runs\` filtered by workflow file and commit SHA." \
+            >&2
           exit 1

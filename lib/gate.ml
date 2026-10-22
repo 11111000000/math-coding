@@ -374,6 +374,95 @@ let[@warning "-32"] aggregate gaps =
   in
   match gaps with _ when blocking -> Block | [] -> Pass | _ -> Unknown
 
+(* --- waiver-aware aggregation (math-coding 3.3) ---
+ *
+ * `aggregate` above is the whole verdict vocabulary for a
+ * subject with no relief path: Pass, Block, or Unknown. The
+ * waiver step lives here, as a separate pure function, for two
+ * reasons.
+ *
+ * 1. Honesty of the verdict (constitution.md Invariant 10):
+ *    "missing, stale, failed, inconclusive, infrastructure
+ *    error, WAIVED and passed states MUST remain
+ *    distinguishable". `Open_with_waiver` is its own variant and
+ *    its own reportable string; a caller that folds it into Pass
+ *    has broken Invariant 10 and, by `spec/semantics.md` §Merge
+ *    Gate ("A merge with a Waiver MUST report `open-with-waiver`,
+ *    never `pass`"), the merge-gate rule as well.
+ *
+ * 2. Referenceability (constitution.md Invariant 14c): "a verdict
+ *    `Open_with_waiver` that produces exit 0 MUST reference a
+ *    waiver whose `expires_at` is strictly greater than the
+ *    evaluation time and whose scope covers every gap in the
+ *    verdict." A verdict variant cannot reference anything on
+ *    its own, so this function returns the waiver alongside the
+ *    verdict: `covered` pairs every waived gap with the waiver
+ *    that lifts it. The caller (bin/Mathc.ml) prints that pairing
+ *    into the subject entry; a reader of the output can then see
+ *    WHICH waiver, issued by WHOM, until WHEN, covering WHICH
+ *    obligations. A waiver that is applied silently is not an
+ *    acknowledgment, it is an unattributed pass.
+ *
+ * Which gap classes a waiver may lift: only the three that mean
+ * "we do not know yet" (`MissingEvidence`, `StaleEvidence`,
+ * `Unknown`). A decisive failure and a missing required review
+ * are knowable gaps — the executable said no, or the human has
+ * not spoken — and constitution.md §Waivers does not let a
+ * waiver convert `fail` into anything else. *)
+
+let[@warning "-32"] waivable_kind = function
+  | `MissingEvidence | `StaleEvidence | `Unknown -> true
+  | `FailedEvidence | `MissingReview | `NoAttestationStore -> false
+
+(* Aggregate one subject's gaps, consulting `waivers` at `now`.
+ * Pure: `waivers` is a loaded typed list (lib/waiver.ml performs
+ * the I/O at the bin/ boundary), so this is unit-testable without
+ * a filesystem.
+ *
+ * Returns `(verdict, covered)`:
+ *   - `Pass`             -> `(Pass, [])`      nothing to waive
+ *   - `Block`            -> `(Block, [])`     a fail is never waived
+ *   - `Unknown`          -> `(Unknown, [])`   at least one gap is
+ *                                            unwaived or unwaivable
+ *   - `Open_with_waiver` -> every gap waivable AND every gap
+ *                           covered at `now`
+ *
+ * `Unknown` is returned rather than `Open_with_waiver` if even
+ * ONE gap is uncovered: partial relief is not relief. Partial
+ * coverage is the interesting failure mode (a global waiver
+ * filed against one obligation of a decision whose other
+ * obligations are also missing) and it must not read as green.
+ * `Waiver.covers` does the scoping — strict on
+ * `unverified_obligation`, legacy decision-wide when the field
+ * is absent (lib/waiver.ml). *)
+let[@warning "-32"] aggregate_with_waivers (waivers : Waiver.t list)
+    ~decision_id ~now gaps =
+  match aggregate gaps with
+  | Pass -> (Pass, [])
+  | Block -> (Block, [])
+  (* `aggregate` has no waiver input and so never returns this
+     variant; the branch is defensive completeness, not a
+     reachable path. If a future `aggregate` grows a waiver
+     step, this branch is where it must report `covered = []`. *)
+  | Open_with_waiver -> (Open_with_waiver, [])
+  | Unknown ->
+      let covered =
+        List.filter_map
+          (fun gap ->
+            if not (waivable_kind gap.kind) then None
+            else
+              Option.map
+                (fun (w : Waiver.t) -> (gap, w))
+                (Waiver.covers waivers ~decision_id
+                   ~obligation_id:gap.obligation_id ~now))
+          gaps
+      in
+      if
+        List.for_all (fun gap -> waivable_kind gap.kind) gaps
+        && List.length covered = List.length gaps
+      then (Open_with_waiver, covered)
+      else (Unknown, [])
+
 (* T3.1: v3.0 evaluate path now consults `Risk.mode files` and
  * surfaces rebuttal obligations for `mode >= strict`, per algebra
  * §10:

@@ -354,7 +354,7 @@ is registered through `git config core.hooksPath`.
 
 | Module | Purpose |
 |---|---|
-| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, context, explain, explain-diagnostic, assess, attest, attest-batch, gate, version, update, session-start, record, stats, time-estimate, self-check, render, packages, mode, rebuttals, re-evaluate, re-evaluate-decisions, counters, init, import-adr, adopt, new-decision, telemetry, migrate, doctor, find, precommit, graph, decision-state, forge-verify) — 34 subcommands total |
+| `Mathc.ml` | argv dispatcher + every subcommand handler (validate, verify, version, update, context, explain, explain-diagnostic, forge-verify, assess, import-junit, attest, attest-batch, time-estimate, gate, mode, rebuttals, re-evaluate, re-evaluate-decisions, self-check, find, precommit, graph, decision-state, session-start, record, stats, packages, render, counters, init, import-adr, adopt, new-decision, telemetry, migrate, doctor) — 36 subcommands total |
 | `data/time-distribution.yaml` | SWE-bench Verified (n=500, 2025-Q4) reference class for `mathc time-estimate` |
 
 ## Adapter protocol (`lib/git/`, `lib/junit/`)

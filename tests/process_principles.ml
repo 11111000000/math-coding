@@ -61,6 +61,245 @@ let[@warning "-32"] read_file path =
 
 let[@warning "-32"] file_exists path = Sys.file_exists path
 
+(* --- .gitignore awareness (no fork, no shell) ------------------- *)
+(* The decisions/ walkers below must not treat scratch output as
+   a recorded decision. `tests/cli/adopt.t` and the
+   `mathc new-decision` cram flows leave `decisions/1-foo.yaml`
+   and `decisions/1-use-postgresql.yaml` behind; both are listed
+   in .gitignore:44-45, but a directory walk cannot see that.
+   Checking them makes this executable red whenever a previous
+   run happened to litter the tree -- not a property of the
+   repository, so not a real P1 violation.
+
+   `git check-ignore` is deliberately NOT shelled out to, and the
+   reason is narrower than "this file may not fork" -- it already
+   does, in run_cmd below and in the mathc init case, for work
+   that genuinely needs a subprocess. What forbids it is
+   decisions/enable-counters-drift-test-2026-10.yaml obligation 2
+   ("the test contains NO call to Unix.open_process_in, ...
+   or any other Unix.process_* API"), which recorded that a
+   fork inside the dune harness hangs it; see also
+   decisions/disable-hanging-alcotest-tests-2026-10.yaml and
+   docs/upstream-bugs/dune-3.23.1-rpc-hang.md. Answering "is this
+   path ignored?" needs no subprocess at all, so the cheap and
+   hermetic option wins: read .gitignore as text and match here.
+
+   Supported, which is everything this repository uses: comments,
+   blank lines, `!` negation, a leading `/` anchoring a pattern to
+   the repository root, a trailing `/` matching a directory and
+   everything under it, and `*` / `?` globs. A pattern containing
+   a `/` is anchored; one without matches the basename at any
+   depth, as git does. Only the root .gitignore is consulted --
+   verified: the tree has exactly one, and no `!` negation.
+
+   One deliberate gap: git asks the filesystem whether a bare path
+   is a directory before honouring a `dir/` rule, so `git
+   check-ignore _build` says yes only because _build/ exists on
+   disk. This matcher does not stat; it is given file paths only
+   (`decisions/<name>`), where the question does not arise. A
+   differential against `git check-ignore` over 69 paths covering
+   every rule shape in this .gitignore agrees on all of them
+   except that one directory-that-exists case. *)
+
+let[@warning "-32"] glob_segment pat s =
+  let np = String.length pat and ns = String.length s in
+  let rec collapse pi =
+    if pi < np && pat.[pi] = '*' then collapse (pi + 1) else pi
+  in
+  let rec loop pi si =
+    if pi = np then si = ns
+    else
+      match pat.[pi] with
+      | '*' ->
+          let rec try_each si =
+            si <= ns
+            && (loop (collapse (pi + 1)) si || (si < ns && try_each (si + 1)))
+          in
+          try_each si
+      | '?' -> si < ns && loop (pi + 1) (si + 1)
+      | c -> si < ns && s.[si] = c && loop (pi + 1) (si + 1)
+  in
+  loop 0 0
+
+(* A rule is (pattern, dir_only, negated). *)
+let[@warning "-32"] gitignore_rules () =
+  let path = in_repo ".gitignore" in
+  if not (file_exists path) then []
+  else
+    read_file path |> String.split_on_char '\n'
+    |> List.filter_map (fun raw ->
+        let line = String.trim raw in
+        if line = "" || line.[0] = '#' then None
+        else
+          let negated = line.[0] = '!' in
+          let strip_first s = String.sub s 1 (String.length s - 1) in
+          let body = if negated then strip_first line else line in
+          let n = String.length body in
+          let dir_only = n > 0 && body.[n - 1] = '/' in
+          let body = if dir_only then String.sub body 0 (n - 1) else body in
+          let m = String.length body in
+          let anchored = m > 0 && body.[0] = '/' in
+          let body = if anchored then String.sub body 1 (m - 1) else body in
+          if body = "" then None else Some (body, dir_only, negated))
+
+let[@warning "-32"] rule_matches (pat, dir_only, _negated) rel =
+  let segs = String.split_on_char '/' pat in
+  let path_segs = String.split_on_char '/' rel in
+  let rec exact ps ss =
+    match (ps, ss) with
+    | [], [] -> true
+    | p :: ps', s :: ss' -> glob_segment p s && exact ps' ss'
+    | _ -> false
+  in
+  (* True when the path lies strictly inside the directory the
+     pattern names: the pattern runs out while the path still has
+     segments left. A bare `assets/_renders` path is not inside it
+     -- `git check-ignore assets/_renders` answers no -- which is
+     why the path must not run out at the same moment. *)
+  let rec inside ps ss =
+    match ss with
+    | [] -> false
+    | s :: ss' -> (
+        match ps with
+        | [] -> true
+        | p :: ps' -> glob_segment p s && inside ps' ss')
+  in
+  (* A slashless pattern is matched by git against the basename at
+     any depth, and a directory it matches takes its contents with
+     it. So a slashless rule covers any path component: the last
+     one (the entry itself), or an ancestor (the entry lives inside
+     an ignored directory). A directory-only rule (`dist/`) may not
+     claim the last component -- a plain `dist` path is not a
+     directory, and `git check-ignore dist` answers no. *)
+  let rec any_comp = function
+    | [] -> false
+    | s :: tl -> glob_segment pat s || any_comp tl
+  in
+  let rec any_ancestor = function
+    | [] | [ _ ] -> false
+    | s :: tl -> glob_segment pat s || any_ancestor tl
+  in
+  if String.contains pat '/' then
+    ((not dir_only) && exact segs path_segs)
+    || (dir_only && inside segs path_segs)
+  else if dir_only then any_ancestor path_segs
+  else any_comp path_segs
+
+(* Last matching rule wins, as git does; a trailing `!` re-includes. *)
+let[@warning "-32"] gitignored rel =
+  let rec last_match = function
+    | [] -> None
+    | [ (_, _, negated) ] -> Some negated
+    | _ :: tl -> last_match tl
+  in
+  match
+    last_match (List.filter (fun r -> rule_matches r rel) (gitignore_rules ()))
+  with
+  | None -> false
+  | Some negated -> not negated
+
+(* Regression pin for the filter itself: if a later refactor drops
+   the .gitignore read, the walkers go quietly back to red-on-litter
+   and this case is the only thing that notices. *)
+let[@warning "-32"] test_gitignore_filter () =
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "cram scratch decisions/1-foo.yaml is gitignored" true
+      (gitignored "decisions/1-foo.yaml")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "cram scratch decisions/1-use-postgresql.yaml is gitignored" true
+      (gitignored "decisions/1-use-postgresql.yaml")
+  in
+  (* A recorded decision, and the directory itself, stay checked. *)
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "a recorded decision is NOT gitignored" false
+      (gitignored "decisions/process-principles.yaml")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "decisions/ itself is NOT gitignored" false (gitignored "decisions")
+  in
+  (* The other pattern shapes this repository's .gitignore uses. *)
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "glob rule under a directory prefix" true
+      (gitignored "attestations/t1-2-A0-x.json")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "prefix glob does not over-match its neighbour" false
+      (gitignored "attestations/t1-2-A3-x.json")
+  in
+  (* `.gitignore:6` is the bare word `result`: no slash, no trailing
+     slash, so git matches that basename at any depth. *)
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "slashless rule `result` matches at the root" true (gitignored "result")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "slashless rule `result` matches at any depth" true
+      (gitignored "lib/result")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "slashless rule does not over-match a sibling" false
+      (gitignored "lib/results")
+  in
+  (* Anchored directory rule (`.gitignore:51` `assets/_renders/`). *)
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "anchored directory rule covers its contents" true
+      (gitignored "assets/_renders/x.svg")
+  in
+  (* Slashless directory rules: git cascades them to descendants.
+     `.gitignore:1` `_build/`, `:5` `dist/`, `:16` `.local`. *)
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "slashless directory rule covers a descendant" true
+      (gitignored "_build/default/x.ml")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "slashless directory rule does not claim a bare path" false
+      (gitignored "dist")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "slashless directory rule covers a nested instance" true
+      (gitignored "sub/_build/a")
+  in
+  (* An anchored directory rule names a directory, not a bare
+     path: `.gitignore:4` `.math/cache/`. *)
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "anchored directory rule does not claim a bare path" false
+      (gitignored ".math/cache")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "anchored directory rule covers what is inside" true
+      (gitignored ".math/cache/a")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "directory rule does not cover its sibling" false
+      (gitignored "assets/x.svg")
+  in
+  ()
+
+(* Decisions git would consider tracked: the directory listing
+   minus whatever .gitignore excludes. Callers layer their own
+   meta-file exclusions on top. *)
+let[@warning "-32"] tracked_decision_files ~extensions =
+  Sys.readdir (in_repo "decisions")
+  |> Array.to_list
+  |> List.filter (fun n -> List.exists (Filename.check_suffix n) extensions)
+  |> List.filter (fun n -> not (gitignored ("decisions/" ^ n)))
+
 (* Files explicitly excluded from the process-principles schema
    check (per decisions/process-principles.yaml assumption
    meta-policy-skipped-by-fixture). These have a different
@@ -241,9 +480,7 @@ let[@warning "-32"] test_p1 () =
   let dir = in_repo "decisions" in
   if not (file_exists dir) then Alcotest.fail "P1: decisions/ directory missing";
   let files =
-    Sys.readdir dir |> Array.to_list
-    |> List.filter (fun n ->
-        Filename.check_suffix n ".yaml" || Filename.check_suffix n ".md")
+    tracked_decision_files ~extensions:[ ".yaml"; ".md" ]
     |> List.map (fun n -> Filename.concat "decisions" n)
   in
   let to_check =
@@ -456,9 +693,7 @@ let[@warning "-32"] test_p2 () =
   let dir = in_repo "decisions" in
   if not (file_exists dir) then Alcotest.fail "P2: decisions/ directory missing";
   let files =
-    Sys.readdir dir |> Array.to_list
-    |> List.filter (fun n ->
-        Filename.check_suffix n ".yaml" || Filename.check_suffix n ".md")
+    tracked_decision_files ~extensions:[ ".yaml"; ".md" ]
     |> List.filter (fun n ->
         not (List.mem (Filename.concat "decisions" n) excluded_decision_files))
     |> List.map (fun n -> Filename.concat "decisions" n)
@@ -743,12 +978,9 @@ let[@warning "-32"] test_agents_md_integrity () =
 let[@warning "-32"] test_decision_format_stricter () =
   let d_dir = in_repo "decisions" in
   let files =
-    Sys.readdir d_dir |> Array.to_list
+    tracked_decision_files ~extensions:[ ".yaml" ]
     |> List.filter (fun f ->
-        Filename.check_suffix f ".yaml"
-        && not
-             (List.mem f
-                [ "decision.yaml"; "obligations.yaml"; "rationale.md" ]))
+        not (List.mem f [ "decision.yaml"; "obligations.yaml"; "rationale.md" ]))
   in
   List.iter
     (fun f ->
@@ -899,6 +1131,8 @@ let () =
           Alcotest.test_case
             "every non-meta decision file has frontmatter + body sections"
             `Quick test_p1;
+          Alcotest.test_case "the decisions/ walk respects .gitignore" `Quick
+            test_gitignore_filter;
         ] );
       ( "P2 (decisions paired with fixtures)",
         [

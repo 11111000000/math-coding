@@ -12,13 +12,22 @@ gap kind), and waiver files under `decisions/waivers/` whose
 
 The cram fixture exercises four scenarios on the same
 decision: scenario 1 is positive (every gap has a named
-waiver; verdict pass); scenario 2 is strict negative (only
-the alpha waiver is present; beta remains Unknown; verdict
-unknown); scenario 3 is global back-compat (a waiver whose
-unverified_obligation is missing from the YAML still covers
-every obligation of its decision; verdict pass); scenario 4 is
-cross-decision negative (a waiver named for another decision
-does NOT lift the gate; verdict unknown).
+waiver; verdict open-with-waiver); scenario 2 is strict
+negative (only the alpha waiver is present; beta remains
+Unknown; verdict unknown); scenario 3 is global back-compat (a
+waiver whose unverified_obligation is missing from the YAML
+still covers every obligation of its decision; verdict
+open-with-waiver); scenario 4 is cross-decision negative (a
+waiver named for another decision does NOT lift the gate;
+verdict unknown).
+
+The positive verdict is `open-with-waiver`, not `pass`: a
+waiver accepts an unmet obligation, and constitution.md
+Invariant 10 requires `waived` and `passed` to stay
+distinguishable. Before
+`decisions/self-check-waiver-verdict-coherence-2026-10.yaml`
+these two scenarios asserted `pass`, which is the defect that
+decision fixes.
 
 Acceptance gate for obligation `waiver-scope-narrow` in
 `decisions/plan-2026-10-improvements/t3-2.yaml`.
@@ -91,7 +100,7 @@ Scenario 1 — positive (every gap has a named waiver):
   > unverified_obligation: beta-obligation
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
-  {"name":"t3-2-test-decision","verdict":"pass"}
+  {"name":"t3-2-test-decision","verdict":"open-with-waiver"}
   $ cd /
   $ rm -rf "$tmp"
 
@@ -202,7 +211,7 @@ covers every obligation of its decision):
   >   field). Must cover every obligation of t3-2-test-decision.
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
-  {"name":"t3-2-test-decision","verdict":"pass"}
+  {"name":"t3-2-test-decision","verdict":"open-with-waiver"}
   $ cd /
   $ rm -rf "$tmp"
 

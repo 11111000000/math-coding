@@ -1,0 +1,373 @@
+---
+schema: math-coding/3.3
+id: release-pending-yaml-invalid-2026-10
+revision: 1
+state: active
+body_sha: "sha256:590e31660c0e357cc496da1b30cab1917fbfa6ced1307fdc5d489418b8b8f246"
+yaml_sha: "sha256:590e31660c0e357cc496da1b30cab1917fbfa6ced1307fdc5d489418b8b8f246"
+
+intent: |
+  Make the release-pending gate exist, and stop it from reporting a
+  pass it did not earn.
+
+  N1 — the gate has never run. Not once.
+    `.github/workflows/release-pending.yml` was added in 45ba4c2b
+    (2026-10-18) as invalid YAML. Its `run: |` block scalar is
+    indented 10 columns; the `cat >&2 <<EOF` heredoc body that
+    follows sits at column 0. YAML ends a block scalar at the first
+    non-blank line that is not indented past its key, so from the
+    heredoc body onward the parser reads the message text as
+    document content and then fails: `yq -e` reports "could not find
+    expected ':'" at line 68. GitHub does not load a workflow it
+    cannot parse, so the gate was silently absent for its entire
+    life. Every review that relied on it relied on nothing.
+
+    The cause is a genuine conflict of two rules, not a typo: bash
+    requires a `<<EOF` terminator at column 0, while a YAML literal
+    block scalar requires every content line to be indented past its
+    key. Both cannot hold inside one `run:` body.
+
+  N2 — the logic had never been executed, so it was never reviewed.
+    Since N1 meant zero runs, four defects sat in the gate untouched.
+    Three of them are the same fail-open shape already found twice
+    elsewhere in this repository:
+
+      L1  `git diff ... | grep ... || true` under `set -o pipefail`.
+          A git failure (bad base ref, shallow clone) makes the
+          pipeline yield the empty string, which reads as "no
+          protected paths touched" — the gate passes without asking.
+      L2  `git tag ... 2>/dev/null | head -1 || true`. Same shape,
+          and sharper: the empty tag list is the ONE answer that lets
+          a PR through, so an unreadable tag list was being reported
+          as a clean bill of health.
+      L3  `| head -1` hands git a SIGPIPE; under pipefail a healthy
+          query turns into a failure.
+      L4  The protected-path regex was `bin/Mathc\.ml`, but the
+          message the gate prints claims "bin/". `bin/` also holds
+          mathc_mcp.ml, md_probe.ml, dune and data/time-distribution.yaml,
+          all of which feed the shipped artifact.
+
+    L1–L3 are fixed by removing the masking rather than by widening
+    it: git failures now fail the step closed, and the first tag is
+    taken by parameter expansion instead of a pipe.
+
+    L4 is a judgement call and is recorded as such — see `antithesis`.
+
+commitment: |
+  After this commit lands on its branch:
+
+  1. `.github/workflows/release-pending.yml` parses. `yq -e '.'` exits 0,
+     and so does the same check on all seven workflows in
+     `.github/workflows/`.
+
+  2. No step in that workflow uses a shell heredoc. The multi-line
+     review message is emitted by `printf`, so every line of every
+     `run:` body is indented uniformly and no terminator can ever sit
+     at column 0. A comment at the top of the file states the rule and
+     names this defect, so the next reader meets the reason before
+     the pattern.
+
+  3. The protected-path check fails CLOSED. If `git diff` cannot run,
+     the step exits 1 with a message saying the gate could not read
+     its input. It never converts an error into "nothing to check".
+     The same holds for `git tag`, whose empty-result path is the one
+     that admits the PR.
+
+  4. The protected set is `bin/`, `lib/`, `scripts/install-tooling/`,
+     which is what the gate's own message has always claimed.
+
+  5. `tests/repo_structure.ml` carries a `workflow-yaml-well-formed`
+     test that fails the build when any `.github/workflows/*.yml`
+     contains a heredoc in a `run:` body, a non-structural line
+     outside a block scalar, or a tab used as indentation.
+
+counterexample: |
+  What this change does NOT close, recorded so the fix is not read
+  as "the gate now works":
+
+  The gate still compares nothing. It blocks EVERY pull request that
+  touches a protected path whenever any release tag exists on the base
+  ref. It never asks whether the release was re-run after the change
+  it is blocking; the file says so itself ("This is a first-pass gate;
+  future revisions will replace the placeholder exit with a
+  GitHub-API query"). It fails closed, so it does not silently admit
+  anything — it is a placeholder that is always red, not a staleness
+  check. Implementing the real comparison needs an `actions/runs`
+  query and is deliberately left to a separate decision; doing it here
+  would have meant guessing at a token contract nobody specified.
+
+  The new test is a linter for the restricted YAML subset these
+  workflows use, not a YAML parser. It would report a file that is
+  perfectly valid but uses a construct outside the subset (a
+  multi-line plain scalar, an anchor, a tag). That is a deliberate
+  subset enforcement, not an oversight: the remedy is a block scalar,
+  which is clearer, or an extension of the test.
+
+  The test also cannot see every way a workflow can be disabled. A
+  workflow with valid YAML and a `continue-on-error: true` step, or a
+  job that never runs on the protected branch, passes it.
+
+antithesis: |
+  The strongest argument against this change, and the answer.
+
+  "The gate already fails closed. A placeholder that is always red is
+  safe; widening bin/ from bin/Mathc.ml only adds friction, and any
+  reviewer who reads the message can see which paths are protected."
+
+  This is answered, not dismissed. L4 IS a change of gate semantics
+  and it contradicts the original commit message, which said the gate
+  fires on "bin/Mathc.ml". It is made here because the gate's stated
+  purpose — a published binary that predates its own source — applies
+  to every file under `bin/`, and because the workflow's own printed
+  message already promised the wider set; the code was simply
+  narrower than the claim. The asymmetry decides it: a false positive
+  costs one human glance, a false negative ships a stale binary, which
+  is the exact F15 finding this gate exists to prevent. A maintainer
+  who disagrees can narrow it to `bin/Mathc.ml` in one edit; the
+  reversal section names that signal.
+
+axiom_link:
+  - A2
+  - A3
+
+scope:
+  paths:
+    - ".github/workflows/release-pending.yml"
+    - "tests/repo_structure.ml"
+    - "decisions/release-pending-yaml-invalid-2026-10.yaml"
+  exclusions:
+    - ".github/workflows/ci.yml"
+    - "scripts/check.sh"
+    - "scripts/dev"
+    - "lib/**"
+    - "bin/**"
+
+outcomes:
+  - id: workflow-parses-as-yaml
+    statement: |
+      `yq -e '.'` exits 0 for all seven files in
+      `.github/workflows/`, including release-pending.yml, which
+      exited nonzero from the moment it was added.
+  - id: no-heredoc-in-run-bodies
+    statement: |
+      No step body in any workflow contains a shell heredoc, so no
+      `run:` body can carry a terminator that YAML would read as
+      document content.
+  - id: gate-fails-closed-on-error
+    statement: |
+      A `git diff` or `git tag` failure ends the step with exit 1 and
+      an explicit message, instead of being absorbed by `|| true` and
+      reported as "no protected paths" or "no release tag".
+  - id: protected-set-matches-its-own-claim
+    statement: |
+      The protected paths are `bin/`, `lib/` and
+      `scripts/install-tooling/`, matching the sentence the gate
+      prints to the reviewer.
+  - id: unparsable-workflow-fails-the-build
+    statement: |
+      `tests/repo_structure.ml` fails when a workflow file contains a
+      heredoc inside a `run:` body, a line outside a block scalar that
+      is not YAML structure, or a tab used as indentation.
+
+obligations:
+  - id: all-workflows-load
+    outcome: workflow-parses-as-yaml
+    claim: |
+      `yq -e '.'` exits 0 for every `.github/workflows/*.yml` at this
+      commit, and exits nonzero for the pre-fix release-pending.yml
+      from 45ba4c2b. Both directions are run, because a validator
+      that has never rejected anything proves nothing.
+    acceptance:
+      all:
+        - verifier: bash -c "yq -e .github/workflows/release-pending.yml"
+          result: pass
+        - verifier: bash -c 'for f in .github/workflows/*.yml; do yq -e "." "$f" >/dev/null || exit 1; done'
+          result: pass
+  - id: heredoc-cannot-return
+    outcome: no-heredoc-in-run-bodies
+    claim: |
+      `grep -n "<<" .github/workflows/*.yml` matches three lines in
+      release-pending.yml and none of them is a shell heredoc: a
+      comment that names the rule, `done <<< "${DIFF}"` (a
+      here-STRING, which carries its own delimiter and is safe inside
+      an indented block scalar), and `echo "touched_paths<<GH_EOF"`,
+      which WRITES the GITHUB_OUTPUT delimiter rather than opening
+      one. The review message is emitted by `printf`.
+    acceptance:
+      all:
+        - verifier: text-scan-no-heredoc-in-run-body
+          result: pass
+        - verifier: shell-grep printf .github/workflows/release-pending.yml
+          result: pass
+  - id: errors-are-not-passes
+    outcome: gate-fails-closed-on-error
+    claim: |
+      Both steps extracted from the workflow with `yq -r` and
+      replayed against a synthetic repository exit 1 when
+      `GITHUB_BASE_REF` names a ref that does not exist. There is no
+      `|| true` and no `2>/dev/null` left on either git call, and the
+      first tag is taken with `${TAG_LIST%%$'\n'*}` rather than a pipe
+      into `head -1`.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.exe workflow-yaml-well-formed
+          result: pass
+        - verifier: text-scan-no-pipefail-masking-in-release-pending
+          result: pass
+        - verifier: bash -n on both extracted step bodies
+          result: pass
+  - id: protected-set-is-not-narrower-than-its-message
+    outcome: protected-set-matches-its-own-claim
+    claim: |
+      The `case` arm matches `bin/*`, so a change to
+      `bin/mathc_mcp.ml` reports touches_protected=true, matching the
+      sentence the gate prints.
+    acceptance:
+      all:
+        - verifier: shell-grep "bin/* | lib/* | scripts/install-tooling/*" .github/workflows/release-pending.yml
+          result: pass
+  - id: broken-workflow-fails-the-build
+    outcome: unparsable-workflow-fails-the-build
+    claim: |
+      With the pre-fix release-pending.yml restored, the
+      `workflow-yaml-well-formed` test exits nonzero and names line 64
+      (the heredoc) and line 66 (the first prose line leaked into
+      document position). With the fixed file it exits 0, as do all
+      sixteen cases in the suite.
+    acceptance:
+      all:
+        - verifier: tests/repo_structure.exe workflow-yaml-well-formed
+          result: pass
+        - verifier: "dune test tests/repo_structure.exe"
+          result: pass
+  - id: this-decision-validates
+    outcome: unparsable-workflow-fails-the-build
+    claim: |
+      `mathc validate decisions/release-pending-yaml-invalid-2026-10.yaml`
+      exits 0, and `tests/process_principles.exe` passes P1 (the five
+      body sections are present) and P2 (every obligation carries a
+      verifier).
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/release-pending-yaml-invalid-2026-10.yaml
+          result: pass
+        - verifier: "dune test tests/process_principles.exe"
+          result: pass
+
+assumptions:
+  - id: protected-set-is-bin-lib-install-tooling
+    state: assumed
+    statement: |
+      The set the gate protects is `bin/`, `lib/` and
+      `scripts/install-tooling/` — the set its own printed message
+      names. The commit that introduced the workflow described a
+      narrower `bin/Mathc.ml`, so this is a deliberate widening, not a
+      transcription.
+    owner: human:maintainer
+    consequence_if_false: |
+      If `bin/` is in practice too noisy, narrow the `case` arm back
+      to `bin/Mathc.ml` and correct the message in the same edit. The
+      gate then stops protecting mathc_mcp.ml and md_probe.ml, which
+      ship in the same artifact.
+    review_on:
+      - signal: gate-flood-on-bin-only-changes
+  - id: failing-closed-on-infra-error-is-preferred
+    state: assumed
+    statement: |
+      A step that cannot read its input should stop the pipeline
+      rather than report that there was nothing to check. This is the
+      same direction `decisions/ci-gate-exit-honesty-2026-10.yaml`
+      took for the bootstrap gate.
+    owner: human:maintainer
+    consequence_if_false: |
+      If transient git failures make CI unacceptably red, the fix is
+      a dated waiver or a retry, not a silent `|| true`. Restoring the
+      masking is the failure mode this decision exists to remove.
+    review_on:
+      - signal: gate-red-on-infra-error
+  - id: hermetic-test-without-a-yaml-dependency
+    state: assumed
+    statement: |
+      The repo accepts a subset linter in place of a real YAML parser
+      because `math-coding.opam` declares no YAML dependency and the
+      project's own `Codec` loader silently drops tokens it cannot
+      parse, so it cannot serve as a gate. `nix develop .#test` does
+      provide `yq`; a full-parser cross-check could be added later as
+      a CI step.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the subset proves too narrow in practice, the test should be
+      replaced by `yq -e` over every workflow in a CI step, not
+      weakened rule by rule.
+    review_on:
+      - signal: subset-false-positive-in-the-wild
+  - id: this-decision-adds-an-unknown-subject
+    state: assumed
+    statement: |
+      Its six obligations carry no attestations, so
+      `mathc self-check` reports this decision as an eighth `unknown`
+      alongside the seven already listed in
+      `decisions/ci-gate-exit-honesty-2026-10.yaml`. No attestation
+      is written here. Every verifier below was run by hand while
+      making this change — `yq` over all seven workflows, the
+      extracted step bodies against a synthetic repository, the test
+      suite on both the broken and the fixed file — but a hand-run
+      verifier is not a store attestation, and writing one would
+      assert a result the attestation pipeline has not produced.
+      Closing this subject is a separate, deliberate step.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the maintainer would rather this branch not add to the
+      backlog, the alternative is to file this as a decision with no
+      obligations, which trades an unrecorded CI fix for an
+      unrecorded claim. That is the worse trade.
+    review_on:
+      - signal: store-backlog-unowned
+
+risk:
+  declared_triggers:
+    - subset-false-positive
+    - gate-red-on-infra-error
+    - widened-protected-set-floods-review
+  subset-false-positive: |
+    A future workflow may use valid YAML outside the enforced subset
+    and be reported. The failure names the line and says what was
+    expected; the remedy is a block scalar or a test extension, not a
+    blanket suppression.
+  gate-red-on-infra-error: |
+    A git failure now blocks the PR instead of passing it. This is
+    intended — a gate that cannot tell must not say yes — but it
+    converts infrastructure flakiness into red CI. Mitigation is
+    upstream: `actions/checkout` with `fetch-depth: 0` is what makes
+    `origin/${BASE}` resolvable at all.
+  widened-protected-set-floods-review: |
+    Every change under `bin/` now trips the gate. `bin/` is three
+    source files plus a dune and one data file, so the volume is
+    small; the gate is red anyway until the placeholder exit is
+    replaced, so this changes which PRs are red, not how many.
+  owner: human:maintainer
+
+reversal:
+  - signal: gate-flood
+    condition: |
+      The gate blocks unrelated work for more than one release cycle.
+    action: |
+      Narrow the protected set, or replace the placeholder exit with
+      the `actions/runs` staleness query in a new decision. Do NOT
+      restore `|| true`, `2>/dev/null`, or a heredoc.
+  - signal: subset-false-positive-in-the-wild
+    condition: |
+      The `workflow-yaml-well-formed` test reports valid workflow
+      files often enough that reviewers stop reading it.
+    action: |
+      Replace the subset rules with `yq -e` over every workflow in a
+      CI step, and delete the subset test rather than narrowing it one
+      rule at a time.
+
+relations:
+  addresses: []
+  refines:
+    - ci-gate-exit-honesty-2026-10@1
+  contradicts: []
+  supersedes: []
+  superseded_by: []

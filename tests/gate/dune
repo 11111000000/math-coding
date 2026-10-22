@@ -1,3 +1,7 @@
 (test
  (name state_filter)
  (libraries mathcoding_core mathcoding_attestations alcotest))
+
+(test
+ (name waiver_aggregation)
+ (libraries mathcoding_core alcotest))

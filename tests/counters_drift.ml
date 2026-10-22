@@ -89,7 +89,9 @@ let[@warning "-32"] bolded_match_diagnostic haystack =
         let rec loop i n =
           if i >= pos then n + 1
           else
-            let c = if i < String.length haystack then haystack.[i] else '\000' in
+            let c =
+              if i < String.length haystack then haystack.[i] else '\000'
+            in
             loop (i + 1) (if c = '\n' then n + 1 else n)
         in
         loop 0 0
@@ -99,20 +101,22 @@ let[@warning "-32"] bolded_match_diagnostic haystack =
 let[@warning "-32"] check_no_drift () =
   let pkg = read_file (in_repo "PACKAGES.md") in
   let road = read_file (in_repo "ROADMAP.md") in
-  Alcotest.(check bool) "PACKAGES.md references `mathc counters`" true
+  Alcotest.(check bool)
+    "PACKAGES.md references `mathc counters`" true
     (substring ~needle:"mathc counters" ~haystack:pkg);
-  Alcotest.(check bool) "ROADMAP.md references `mathc counters`" true
+  Alcotest.(check bool)
+    "ROADMAP.md references `mathc counters`" true
     (substring ~needle:"mathc counters" ~haystack:road);
   Alcotest.(check bool)
-    (Printf.sprintf
-       "PACKAGES.md does not carry bolded attestation count (%s)"
+    (Printf.sprintf "PACKAGES.md does not carry bolded attestation count (%s)"
        (bolded_match_diagnostic pkg))
-    false (has_bolded_attestation_count pkg);
+    false
+    (has_bolded_attestation_count pkg);
   Alcotest.(check bool)
-    (Printf.sprintf
-       "ROADMAP.md does not carry bolded attestation count (%s)"
+    (Printf.sprintf "ROADMAP.md does not carry bolded attestation count (%s)"
        (bolded_match_diagnostic road))
-    false (has_bolded_attestation_count road)
+    false
+    (has_bolded_attestation_count road)
 
 let () =
   Alcotest.run "counters drift"
