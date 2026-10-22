@@ -130,8 +130,6 @@ let master_policy_template =
   \      all:\n\
   \        - verifier: mathc self-check\n\
   \          result: pass\n\
-   - verifier: tests/cli/init-scope-language-agnostic.t\n\
-   result: pass\n\
    risk:\n\
   \  declared_triggers:\n\
   \    - bootstrap-template-not-edited\n\

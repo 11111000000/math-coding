@@ -60,8 +60,9 @@ obligations:
   Alcotest.check Alcotest.string "the key is obligations" "obligations"
     (List.hd dups).Codec.dup_key;
   Alcotest.check Alcotest.int "declared twice" 2 (List.hd dups).Codec.dup_count;
-  Alcotest.check (Alcotest.list Alcotest.string) "path is the root key" [ "obligations" ]
-    (List.hd dups).Codec.dup_path;
+  Alcotest.check
+    (Alcotest.list Alcotest.string)
+    "path is the root key" [ "obligations" ] (List.hd dups).Codec.dup_path;
   (* The reader keeps the first. That IS the behaviour the
      diagnostic exists to make visible, so pin it rather than leave
      it implicit. *)
@@ -70,12 +71,15 @@ obligations:
     | Jsonl.Object ps -> (
         match Schema.take_array ps "obligations" with
         | Some [ Jsonl.Object ops ] -> (
-            match Schema.take_string ops "id" with Some s -> [ s ] | None -> [])
+            match Schema.take_string ops "id" with
+            | Some s -> [ s ]
+            | None -> [])
         | _ -> [])
     | _ -> []
   in
-  Alcotest.check (Alcotest.list Alcotest.string) "the gate still reads the first block"
-    [ "first" ] first_ids;
+  Alcotest.check
+    (Alcotest.list Alcotest.string)
+    "the gate still reads the first block" [ "first" ] first_ids;
   let diags =
     List.map
       (fun d ->
@@ -104,7 +108,8 @@ risks: []
   in
   let dups = Codec.duplicate_keys (Codec.load_yaml_string yaml) in
   Alcotest.check Alcotest.int "one duplicate key reported" 1 (List.length dups);
-  Alcotest.check Alcotest.int "declared three times" 3 (List.hd dups).Codec.dup_count
+  Alcotest.check Alcotest.int "declared three times" 3
+    (List.hd dups).Codec.dup_count
 
 (* Two different keys duplicated at the same level: two
    diagnostics, one per key, in document order. *)
@@ -120,7 +125,9 @@ a: 3
 b: 4
 |}
   in
-  Alcotest.check (Alcotest.list Alcotest.string) "in document order" [ "a"; "b" ]
+  Alcotest.check
+    (Alcotest.list Alcotest.string)
+    "in document order" [ "a"; "b" ]
     (dup_paths (Codec.load_yaml_string yaml))
 
 (* Nested duplicates are found too -- the `result:` case in
@@ -145,9 +152,12 @@ obligations:
 |}
   in
   let dups = Codec.duplicate_keys (Codec.load_yaml_string yaml) in
-  Alcotest.check Alcotest.int "one nested duplicate reported" 1 (List.length dups);
+  Alcotest.check Alcotest.int "one nested duplicate reported" 1
+    (List.length dups);
   Alcotest.check Alcotest.string "key" "result" (List.hd dups).Codec.dup_key;
-  Alcotest.check (Alcotest.list Alcotest.string) "path names the element"
+  Alcotest.check
+    (Alcotest.list Alcotest.string)
+    "path names the element"
     [ "obligations"; "[0]"; "acceptance"; "all"; "[0]"; "result" ]
     (List.hd dups).Codec.dup_path
 
@@ -169,7 +179,9 @@ intent: 2
 |}
   in
   let dups = Codec.duplicate_keys (Codec.load_yaml_string yaml) in
-  Alcotest.check (Alcotest.list Alcotest.string) "only the real duplicate" [ "intent" ]
+  Alcotest.check
+    (Alcotest.list Alcotest.string)
+    "only the real duplicate" [ "intent" ]
     (dup_paths (Codec.load_yaml_string yaml));
   Alcotest.check Alcotest.int "one duplicate" 1 (List.length dups)
 
@@ -253,8 +265,9 @@ obligations:
   Alcotest.check Alcotest.int "obligations never reached the tree" 0
     (match v with
     | Jsonl.Object ps -> (
-        match Schema.take_array ps "obligations" with None -> 0 | Some xs ->
-          List.length xs)
+        match Schema.take_array ps "obligations" with
+        | None -> 0
+        | Some xs -> List.length xs)
     | _ -> 0)
 
 (* A well-formed decision leaves nothing behind. *)
@@ -314,8 +327,8 @@ let test_second_document_marker_is_reported () =
     "---\nschema: math-coding/3.2\nid: doc-demo\nrevision: 1\n---\nschema: x\n"
   in
   let _, leftover, extra = Codec.load_yaml_string_full yaml in
-  Alcotest.check Alcotest.int "leftover is empty (it truncates pre-tokenisation)" 0
-    (List.length leftover);
+  Alcotest.check Alcotest.int
+    "leftover is empty (it truncates pre-tokenisation)" 0 (List.length leftover);
   Alcotest.check Alcotest.int "the marker is found at line 5" 5
     (match extra with Some n -> n | None -> 0);
   Alcotest.check Alcotest.int "one diagnostic" 1
@@ -339,7 +352,9 @@ let verbs = [ "add"; "run"; "create"; "edit"; "replace"; "supersede" ]
 
 let[@warning "-32"] contract_ok d =
   let verbs_known =
-    List.for_all (fun (verb, _) -> List.mem verb verbs) d.Diagnostic.next_actions
+    List.for_all
+      (fun (verb, _) -> List.mem verb verbs)
+      d.Diagnostic.next_actions
   in
   [
     d.Diagnostic.next_actions <> [];
@@ -348,7 +363,9 @@ let[@warning "-32"] contract_ok d =
   ]
 
 let test_diagnostics_carry_next_actions () =
-  let dup = Diagnostic.mc_duplicate_key ~key:"obligations" ~path:[ "obligations" ] () in
+  let dup =
+    Diagnostic.mc_duplicate_key ~key:"obligations" ~path:[ "obligations" ] ()
+  in
   let tail = Diagnostic.mc_unparsed_tail ~line:145 () in
   let doc = Diagnostic.mc_unparsed_tail ~line:99 ~document_marker:true () in
   let dup_ok = contract_ok dup in
@@ -356,9 +373,15 @@ let test_diagnostics_carry_next_actions () =
   let doc_ok = contract_ok doc in
   (* Alcotest 1.9 `check` takes FOUR arguments: tester, message,
      expected, actual. *)
-  Alcotest.check (Alcotest.list Alcotest.bool) "MC-DUPLICATE-KEY contract" [ true; true; true ] dup_ok;
-  Alcotest.check (Alcotest.list Alcotest.bool) "MC-UNPARSED-TAIL contract" [ true; true; true ] tail_ok;
-  Alcotest.check (Alcotest.list Alcotest.bool) "MC-UNPARSED-TAIL doc-marker contract" [ true; true; true ] doc_ok
+  Alcotest.check
+    (Alcotest.list Alcotest.bool)
+    "MC-DUPLICATE-KEY contract" [ true; true; true ] dup_ok;
+  Alcotest.check
+    (Alcotest.list Alcotest.bool)
+    "MC-UNPARSED-TAIL contract" [ true; true; true ] tail_ok;
+  Alcotest.check
+    (Alcotest.list Alcotest.bool)
+    "MC-UNPARSED-TAIL doc-marker contract" [ true; true; true ] doc_ok
 
 (* Both codes are registered in `explain`, so
    `mathc explain-diagnostic <CODE>` can describe them. *)

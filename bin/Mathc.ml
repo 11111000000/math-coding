@@ -132,13 +132,13 @@ let[@warning "-32"] collect_duplicate_key_diagnostics path v =
   let raw = match read_file path with Ok s -> s | Error _ -> "" in
   Codec.duplicate_keys v
   |> List.map (fun d ->
-       let lines =
-         match d.Codec.dup_path with
-         | [ k ] -> Codec.top_level_key_lines raw k
-         | _ -> []
-       in
-       Diagnostic.mc_duplicate_key ~key:d.Codec.dup_key ~path:d.dup_path
-         ~occurrences:d.dup_count ~lines ())
+      let lines =
+        match d.Codec.dup_path with
+        | [ k ] -> Codec.top_level_key_lines raw k
+        | _ -> []
+      in
+      Diagnostic.mc_duplicate_key ~key:d.Codec.dup_key ~path:d.dup_path
+        ~occurrences:d.dup_count ~lines ())
 
 (* MC-UNPARSED-TAIL collector: the complementary half of the
    silent-drop family. Re-parses the raw text with
@@ -155,36 +155,48 @@ let[@warning "-32"] collect_duplicate_key_diagnostics path v =
    Content dropped by either is ABSENT from the tree, so the
    duplicate-key walk cannot see it; without this collector a
    truncated decision validates clean and the gate never learns
-   what it missed. *)
+   what it missed.
+
+   Scoped to the YAML loader on purpose: `parse_file` dispatches
+   on the extension, so a `.json` input went through `Jsonl.parse`
+   and never through `parse_yaml_pairs` at all. Re-parsing it as
+   YAML stalls on the opening `{` and would report a tail that the
+   verdict was not computed from -- a diagnostic about a code path
+   that did not run. The duplicate-key walk has no such guard
+   because it inspects the parsed tree, which is the same object
+   for both formats. *)
 let[@warning "-32"] collect_unparsed_tail_diagnostics path =
-  match read_file path with
-  | Error _ -> []
-  | Ok raw -> (
-      let _, leftover, extra_doc = Codec.load_yaml_string_full raw in
-      let tail =
-        match leftover with
-        | [] -> []
-        | first :: _ ->
-            [
-              Diagnostic.mc_unparsed_tail
-                ~path:[ Printf.sprintf "line %d" first.Codec.yline ]
-                ~line:first.Codec.yline ~content:first.Codec.ycontent
-                ~lost:(List.length leftover) ();
-            ]
-      in
-      let doc =
-        match extra_doc with
-        | None -> []
-        | Some line ->
-            [
-              Diagnostic.mc_unparsed_tail
-                ~path:[ Printf.sprintf "document %d" 2 ]
-                ~line ~content:"---"
-                ~lost:(max 1 (List.length (Codec.yaml_lines raw) - line))
-                ~document_marker:true ();
-            ]
-      in
-      tail @ doc)
+  match Filename.extension path with
+  | ".yaml" | ".yml" -> (
+      match read_file path with
+      | Error _ -> []
+      | Ok raw ->
+          let _, leftover, extra_doc = Codec.load_yaml_string_full raw in
+          let tail =
+            match leftover with
+            | [] -> []
+            | first :: _ ->
+                [
+                  Diagnostic.mc_unparsed_tail
+                    ~path:[ Printf.sprintf "line %d" first.Codec.yline ]
+                    ~line:first.Codec.yline ~content:first.Codec.ycontent
+                    ~lost:(List.length leftover) ();
+                ]
+          in
+          let doc =
+            match extra_doc with
+            | None -> []
+            | Some line ->
+                [
+                  Diagnostic.mc_unparsed_tail
+                    ~path:[ Printf.sprintf "document %d" 2 ]
+                    ~line ~content:"---"
+                    ~lost:(max 1 (List.length (Codec.yaml_lines raw) - line))
+                    ~document_marker:true ();
+                ]
+          in
+          tail @ doc)
+  | _ -> []
 
 (* Canonical verifier scheme allowlist (plan-decision C5,
    decisions/verifier-scheme-convention-2026-11.yaml). The

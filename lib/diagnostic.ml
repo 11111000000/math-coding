@@ -687,7 +687,6 @@ let mc_materials_digest_empty ?(subject = "") ?(kind = "") ?(next_actions = [])
     ~policy_rule:(Some "spec/constitution.md §0; A0 separation")
     ~next_actions:actions msg
 
-
 (* MC-DUPLICATE-KEY: emitted when the same mapping key is declared
    twice in one scope of a decision file.
 
@@ -755,15 +754,17 @@ let mc_duplicate_key ~key ?(path = []) ?(occurrences = 2) ?(lines = [])
   let lines_str =
     match lines with
     | [] -> ""
-    | ls -> Printf.sprintf " (lines %s)" (String.concat ", " (List.map string_of_int ls))
+    | ls ->
+        Printf.sprintf " (lines %s)"
+          (String.concat ", " (List.map string_of_int ls))
   in
   let unreachable = occurrences - 1 in
   let msg =
     Printf.sprintf
       "mapping key %s is declared %d times in the same scope%s; the kernel \
        reads the FIRST occurrence and the other %d %s unreachable — that \
-       content never reaches the gate. A repeated key is not appended and \
-       not overridden; merge the %d declarations into one."
+       content never reaches the gate. A repeated key is not appended and not \
+       overridden; merge the %d declarations into one."
       where occurrences lines_str unreachable
       (if unreachable = 1 then "block is" else "blocks are")
       occurrences
@@ -782,7 +783,6 @@ let mc_duplicate_key ~key ?(path = []) ?(occurrences = 2) ?(lines = [])
   create ~code ~kind:Conflict ~severity:Warn ~path
     ~policy_rule:(Some "spec/constitution.md §0; YAML 1.2 §3.2.1 unique keys")
     ~retryable:false ~autofix_safe:false ~next_actions:actions msg
-
 
 (* MC-UNPARSED-TAIL: emitted when the parser stops reading a
    document before the end and the CLI would otherwise discard the
@@ -815,7 +815,8 @@ let mc_unparsed_tail ?(path = []) ?(line = 0) ?(content = "") ?(lost = 0)
   let code = "MC-UNPARSED-TAIL" in
   let preview =
     let t = String.trim content in
-    if t = "" then "" else Printf.sprintf " (%S)" (String.sub t 0 (min 60 (String.length t)))
+    if t = "" then ""
+    else Printf.sprintf " (%S)" (String.sub t 0 (min 60 (String.length t)))
   in
   let lost_str =
     if lost <= 0 then "" else Printf.sprintf " and %d more line(s)" (lost - 1)
@@ -826,21 +827,21 @@ let mc_unparsed_tail ?(path = []) ?(line = 0) ?(content = "") ?(lost = 0)
         "the file carries a SECOND `---` document marker at line %d. The \
          loader reads the first `---` as front-matter and stops at the next \
          one, so everything after line %d — the rest of this document and any \
-         second document — is unread and never reaches the gate. This file \
-         is one decision: delete the stray marker, or move the prose that \
-         needed it into a `|` block scalar."
+         second document — is unread and never reaches the gate. This file is \
+         one decision: delete the stray marker, or move the prose that needed \
+         it into a `|` block scalar."
         line line
     else
       Printf.sprintf
         "the parser stopped at line %d%s and could not read the rest of the \
          file%s; every top-level key from there to EOF is missing from the \
-         kernel's reading, so whatever that tail promised is outside the \
-         gate. The usual cause is a multi-line scalar the loader cannot \
-         follow: a folded plain scalar whose continuation carries a colon \
-         (\"Mitigation: ...\"), a quoted sequence item continued on deeper \
-         lines, or a sequence item indented less than its siblings. Put \
-         such prose in a `|` block scalar, or align the indentation — the \
-         wording does not have to change."
+         kernel's reading, so whatever that tail promised is outside the gate. \
+         The usual cause is a multi-line scalar the loader cannot follow: a \
+         folded plain scalar whose continuation carries a colon (\"Mitigation: \
+         ...\"), a quoted sequence item continued on deeper lines, or a \
+         sequence item indented less than its siblings. Put such prose in a \
+         `|` block scalar, or align the indentation — the wording does not \
+         have to change."
         line preview lost_str
   in
   let default_actions =

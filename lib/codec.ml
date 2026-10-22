@@ -427,17 +427,17 @@ type yaml_token = { yindent : int; ycontent : string; yline : int }
 let[@warning "-32"] yaml_tokens raw =
   List.mapi (fun i line -> (i + 1, line)) (yaml_lines raw)
   |> List.filter_map (fun (line_no, line) ->
-         let len = String.length line in
-         let rec count_spaces i =
-           if i >= len then i
-           else if String.unsafe_get line i = ' ' then count_spaces (i + 1)
-           else i
-         in
-         let indent = count_spaces 0 in
-         if indent = len then None
-         else
-           let content = String.sub line indent (len - indent) in
-           Some { yindent = indent; ycontent = content; yline = line_no })
+      let len = String.length line in
+      let rec count_spaces i =
+        if i >= len then i
+        else if String.unsafe_get line i = ' ' then count_spaces (i + 1)
+        else i
+      in
+      let indent = count_spaces 0 in
+      if indent = len then None
+      else
+        let content = String.sub line indent (len - indent) in
+        Some { yindent = indent; ycontent = content; yline = line_no })
 
 let[@warning "-32"] parse_yaml_scalar s =
   let s = String.trim s in
@@ -933,7 +933,11 @@ let[@warning "-32"] load_yaml_value raw =
  * case at all — `parse_yaml_block` already folded them into a
  * `Jsonl.String`, so they can never appear as keys.
  *)
-type duplicate_key = { dup_key : string; dup_path : string list; dup_count : int }
+type duplicate_key = {
+  dup_key : string;
+  dup_path : string list;
+  dup_count : int;
+}
 
 (* Preserve first-occurrence order while dropping later repeats. *)
 let[@warning "-32"] dedup_preserve_order xs =
@@ -956,9 +960,9 @@ let[@warning "-32"] duplicate_keys (v : Jsonl.value) : duplicate_key list =
     let reported =
       dedup_preserve_order keys
       |> List.filter_map (fun key ->
-           let n = List.length (List.filter (fun k -> k = key) keys) in
-           if n < 2 then None
-           else Some { dup_key = key; dup_path = path @ [ key ]; dup_count = n })
+          let n = List.length (List.filter (fun k -> k = key) keys) in
+          if n < 2 then None
+          else Some { dup_key = key; dup_path = path @ [ key ]; dup_count = n })
     in
     (* Recurse into EVERY occurrence: a nested duplicate that lives
        only inside the unreachable second block is still a defect
@@ -970,12 +974,12 @@ let[@warning "-32"] duplicate_keys (v : Jsonl.value) : duplicate_key list =
       List.concat_map
         (fun (key, value) ->
           let occurrence =
-            match Hashtbl.find_opt seen key with
-            | Some n -> n + 1
-            | None -> 1
+            match Hashtbl.find_opt seen key with Some n -> n + 1 | None -> 1
           in
           Hashtbl.replace seen key occurrence;
-          let duplicated = List.length (List.filter (fun k -> k = key) keys) > 1 in
+          let duplicated =
+            List.length (List.filter (fun k -> k = key) keys) > 1
+          in
           let seg =
             if (not duplicated) || occurrence = 1 then key
             else Printf.sprintf "%s#%d" key occurrence
@@ -993,8 +997,10 @@ let[@warning "-32"] duplicate_keys (v : Jsonl.value) : duplicate_key list =
     | Jsonl.Array xs ->
         List.mapi (fun i x -> (i, x)) xs
         |> List.concat_map (fun (i, x) ->
-               walk_value (path @ [ Printf.sprintf "[%d]" i ]) x)
-    | Jsonl.Null | Jsonl.Bool _ | Jsonl.Int _ | Jsonl.Float _ | Jsonl.String _ -> []
+            walk_value (path @ [ Printf.sprintf "[%d]" i ]) x)
+    | Jsonl.Null | Jsonl.Bool _ | Jsonl.Int _ | Jsonl.Float _ | Jsonl.String _
+      ->
+        []
   in
   walk_value [] v
 
@@ -1010,12 +1016,12 @@ let[@warning "-32"] duplicate_keys (v : Jsonl.value) : duplicate_key list =
 let[@warning "-32"] top_level_key_lines raw key =
   yaml_tokens raw
   |> List.filter_map (fun t ->
-         if t.yindent <> 0 then None
-         else
-           match String.index_opt t.ycontent ':' with
-           | Some ci when String.trim (String.sub t.ycontent 0 ci) = key ->
-               Some t.yline
-           | _ -> None)
+      if t.yindent <> 0 then None
+      else
+        match String.index_opt t.ycontent ':' with
+        | Some ci when String.trim (String.sub t.ycontent 0 ci) = key ->
+            Some t.yline
+        | _ -> None)
 
 (* === Unparsed tail (MC-UNPARSED-TAIL) ===
  *

@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: duplicate-mapping-keys-silent-drop-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f7b7c0c63c19e0630c19d5f93a3eb98f833578c5d42a724f4d99edcde2afc7b8"
-yaml_sha: "sha256:f7b7c0c63c19e0630c19d5f93a3eb98f833578c5d42a724f4d99edcde2afc7b8"
+body_sha: "sha256:e2d5f85a9fdb2b1fe92c31aad4fa7a941f383c7f139ecec6cd232ac2bd78aee3"
+yaml_sha: "sha256:e2d5f85a9fdb2b1fe92c31aad4fa7a941f383c7f139ecec6cd232ac2bd78aee3"
 
 intent: |
   Stop a decision file from saying more than the kernel reads.
@@ -29,7 +29,7 @@ intent: |
      `List.assoc_opt`, which returns the FIRST binding. The later
      block is therefore not overridden -- it is UNREACHABLE.
      `decisions/mcp-server-impl-2026-10.yaml` is the one corpus
-     file in this shape; four obligations were outside the gate.
+     file in this shape; five obligations were outside the gate.
 
   D2 the loader abandons the document. When
      `parse_yaml_pairs` meets a token deeper than the mapping it is
@@ -116,16 +116,24 @@ commitment: |
   8. `decisions/yaml-block-scalars.yaml` no longer declares
      `result:` twice in one acceptance item.
 
+  9. `lib/init/init.ml`'s scaffold template no longer emits two
+     stray lines at column 0 (`- verifier: ...` / `result: pass`),
+     which made every project created by `mathc init` parse only up
+     to its first obligation: `risk:`, `relations:` and everything
+     after were dropped while the file still reported `parse-ok`.
+     This one was found BY the detector, not by reading the corpus
+     -- see `counterexample`.
+
 counterexample: |
   What this change does NOT do, recorded so nobody reads the
   detector as "the corpus is clean":
 
-  A detector is not a fix. After the six files above are repaired,
-  22 corpus files still carry an unparsed tail and still validate
+  A detector is not a fix. After the ten files above are repaired,
+  18 corpus files still carry an unparsed tail and still validate
   `parse-ok` while the kernel reads only part of them. They are
   inventoried under the obligation `every-affected-file-is-listed`
   with the command that reproduces the list. Repairing them is
-  deliberately NOT bundled here: it is 22 more file edits, each
+  deliberately NOT bundled here: it is 18 more file edits, each
   needing its own digest recomputation, and it is mechanical once
   the diagnostic points at the line. Doing it here would bury the
   detector under a diff nobody reviews carefully -- which is how the
@@ -137,6 +145,24 @@ counterexample: |
   them changes how every file in the corpus parses. That is its
   own decision with its own blast-radius review; see
   `reversal`.
+
+  Also found by running the detector, and reported here because
+  "the class is wider than the corpus" cuts both ways. The detector
+  has one false positive, caught by `tests/cli/*.t`: it first
+  re-parsed EVERY validated input as YAML, so a `.json` fixture
+  stalled on its opening `{` and reported a tail the verdict was
+  never computed from. `parse_file` dispatches on the extension,
+  so `MC-UNPARSED-TAIL` is now scoped to `.yaml`/`.yml`; the
+  duplicate-key walk needs no such guard because it reads the
+  parsed tree, which is the same object for both formats.
+
+  And one true positive nobody had asked about: `mathc init`
+  scaffolded a template that is not valid YAML. Two lines pasted
+  at column 0 end the loader inside the first obligation, so every
+  project `mathc init` creates silently loses `risk:` and
+  `relations:`. The corruption came from `3ef9e20`, and it had
+  been in the template since; four cram tests were pinned to the
+  broken output and only turned red when the detector landed.
 
   Third: `lib/decision.ml::body_canonical_sha256` does not
   implement spec/algebra-3.2.md §7.1. The spec replaces the matched
@@ -162,6 +188,7 @@ scope:
   paths:
     - lib/codec.ml
     - lib/diagnostic.ml
+    - lib/init/init.ml
     - bin/Mathc.ml
     - tests/duplicate_keys.ml
     - tests/cli/duplicate-keys-silent-drop.t
@@ -191,6 +218,12 @@ outcomes:
       `risk:` and `relations:` blocks that D2 was also eating, are
       inside the kernel's reading and therefore inside
       `mathc self-check`.
+  - id: scaffolded-policy-is-valid-yaml
+    statement: |
+      A decision scaffolded by `mathc init` is parseable end to
+      end: `mathc validate` on the generated policy prints no
+      `MC-UNPARSED-TAIL`, and `yq` reads every top-level key
+      including `risk:` and `relations:`.
   - id: honest-merge-does-not-add-noise
     statement: |
       Merging two declarations restores every promise. Deleting
@@ -317,6 +350,34 @@ obligations:
     acceptance:
       all:
         - verifier: manual-review-of-corpus-scan-output
+          result: pass
+  - id: scaffolded-policy-parses-to-eof
+    outcome: scaffolded-policy-is-valid-yaml
+    claim: |
+      `mathc init` writes a policy the kernel reads to EOF: the
+      generated file has no `MC-UNPARSED-TAIL`, and a spec-conforming
+      reader (`yq`) parses it, which the previous template was not
+      -- it carried a sequence item at column 0.
+    acceptance:
+      all:
+        - verifier: tests/cli/init-defaults.t
+          result: pass
+        - verifier: tests/cli/init-scope-language-agnostic.t
+          result: pass
+  - id: no-false-positive-on-json-inputs
+    outcome: detector-reads-the-same-tree-as-the-readers
+    claim: |
+      `MC-UNPARSED-TAIL` is reported for YAML input only. Validating
+      a `.json` decision, which `parse_file` routes to `Jsonl.parse`
+      and never through `parse_yaml_pairs`, emits no tail
+      diagnostic. Pinned by the JSON-path cram tests
+      (`tests/cli/validate-positive.t`,
+      `tests/cli/embedded-schemas.t`, and the rest).
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-positive.t
+          result: pass
+        - verifier: tests/cli/embedded-schemas.t
           result: pass
   - id: this-decision-validates
     outcome: decision-is-itself-well-formed
