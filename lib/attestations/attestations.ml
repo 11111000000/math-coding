@@ -409,8 +409,25 @@ let[@warning "-32"] list_files root =
       Array.to_list entries
     with _ -> []
 
-let[@warning "-32"] load ~reader ~root =
-  match list_files root with
+(* `keep` decides membership by BARE FILE NAME, and is REQUIRED so
+   that every call site states its policy explicitly rather than
+   inheriting "read whatever is on disk". A file it rejects exists on
+   disk but is not part of any version-controlled tree, so an
+   attestation in it is not evidence about the tree that attestation
+   names -- and reading it would let a test run, or any scratch write,
+   move the verdict of a commit that never contained it.
+ *
+   A tree under no version control passes `Attestations.any_file`;
+   there is no tree concept there to violate. *)
+let[@warning "-32"] any_file _name = true
+
+let[@warning "-32"] load ~keep ~reader ~root =
+  let names =
+    List.filter
+      (fun n -> Filename.extension n = ".json" && keep n)
+      (list_files root)
+  in
+  match names with
   | [] -> []
   | files ->
       List.filter_map

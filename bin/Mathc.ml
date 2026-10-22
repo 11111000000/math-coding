@@ -3505,6 +3505,82 @@ let[@warning "-32"] do_verify () =
  * always resolved against the project root so the gate is
  * reproducible from any working directory (mirrors
  * MATH_CODING_ROOT in :312). *)
+(* Membership filter for the attestation store.
+ *
+ * An attestation names the tree it was produced against. A file that
+ * exists on disk but is in no commit is not evidence about any tree,
+ * so it is not evidence about the one the attestation names -- and if
+ * it were read, a stray `dune runtest` would be enough to move the
+ * verdict of a commit that never contained it. On this repository that
+ * is not hypothetical: `attestations/t1-2-A0-*.json` is written by
+ * test runs, is gitignored, and the loader used to read it, so a
+ * polluted tree reported `pass` on nothing that was committed.
+ *
+ * The answer comes from git, so a tree under no version control has no
+ * claim to enforce and gets `any_file`. `None` from `tracked_under`
+ * means "git could not answer", which is NOT the same as "git says
+ * nothing is tracked" -- conflating them would silently empty the
+ * store, so the distinction is preserved here. *)
+let[@warning "-32"] store_keep_for store_dir =
+  (* POSIX: a path is absolute exactly when it starts with '/'. *)
+  let[@warning "-32"] store_dir_is_relative d =
+    String.length d > 0 && d.[0] <> '/'
+  in
+  (* `git ls-files` prints paths relative to the REPOSITORY ROOT, so
+     the pathspec has to be given that way too. Passing the store's
+     absolute path makes git accept the pathspec (it resolves an
+     absolute path) and still print repository-relative paths, which
+     then fail to match any prefix and yield an empty set -- a filter
+     that silently admits nothing. Reducing the path against the
+     toplevel is what keeps the two sides speaking the same language. *)
+  let toplevel () =
+    let tmp = Filename.temp_file "mc_git_toplevel_" ".txt" in
+    Fun.protect
+      ~finally:(fun () -> try Sys.remove tmp with _ -> ())
+      (fun () ->
+        let cmd =
+          Printf.sprintf "git rev-parse --show-toplevel > %s 2>/dev/null"
+            (Filename.quote tmp)
+        in
+        if Sys.command cmd <> 0 then None
+        else
+          let raw =
+            try In_channel.with_open_bin tmp In_channel.input_all with _ -> ""
+          in
+          let t = String.trim raw in
+          if t = "" then None else Some t)
+  in
+  (* The store directory arrives in either shape: `resolve_store_root`
+     hands back an absolute path, `Path_config.resolve_attestations_dir`
+     hands back one relative to the project root. Reducing only the
+     absolute form is how the first version of this ended up calling
+     `any_file` for every read path -- a filter that is present,
+     documented, and inert. Handle both, and treat a path outside the
+     repository as "no claim to enforce" rather than guessing. *)
+  let relative_to_toplevel top dir =
+    let a = String.trim dir in
+    if store_dir_is_relative a then Some a
+    else if a = top then Some ""
+    else
+      let k = String.length top in
+      if String.length a > k + 1 && String.sub a 0 k = top && a.[k] = '/' then
+        Some (String.sub a (k + 1) (String.length a - k - 1))
+      else None
+  in
+  let cwd = Sys.getcwd () in
+  match toplevel () with
+  | None -> Attestations.any_file
+  | Some top -> (
+      match relative_to_toplevel top store_dir with
+      | None -> Attestations.any_file
+      | Some rel -> (
+          match Git_diff.tracked_under ~cwd ~rel_dir:rel with
+          | None -> Attestations.any_file
+          | Some names ->
+              let table = Hashtbl.create ((List.length names * 2) + 1) in
+              List.iter (fun n -> Hashtbl.replace table n ()) names;
+              fun name -> Hashtbl.mem table name))
+
 let[@warning "-32"] resolve_store_root project_root =
   let env_path =
     match Sys.getenv_opt "MATH_CODING_ATTESTATION_STORE" with
@@ -3620,7 +3696,11 @@ let do_gate () =
   let store_reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
-  let store = Attestations.load ~reader:store_reader ~root:store_root in
+  let store =
+    Attestations.load
+      ~keep:(store_keep_for store_root)
+      ~reader:store_reader ~root:store_root
+  in
   (* T3.1: load rebuttals for the candidate tree's HEAD so the
      v3.0 evaluate path can enforce the algebra §10 rebuttal
      obligation when Risk.mode >= strict. Without this load the
@@ -4608,7 +4688,9 @@ let[@warning "-32"] do_self_check () =
     List.filter_map (fun p -> load_decision_entry reader p) decision_files
   in
   let store_root = resolve_store_root root in
-  let store = Attestations.load ~reader ~root:store_root in
+  let store =
+    Attestations.load ~keep:(store_keep_for store_root) ~reader ~root:store_root
+  in
   (* Load waivers from <decisions_dir>/waivers/. The Waiver module
      is pure (takes a `reader`); we reuse the same reader the
      store and decisions use, so waiver loading shares the I/O
@@ -4921,7 +5003,11 @@ let[@warning "-32"] do_render () =
   in
   let has_store = Sys.file_exists attestations_root in
   let store =
-    if has_store then Attestations.load ~reader ~root:attestations_root else []
+    if has_store then
+      Attestations.load
+        ~keep:(store_keep_for attestations_root)
+        ~reader ~root:attestations_root
+    else []
   in
   let now = now_iso () in
   let policy_id = "bootstrap-v3" in
@@ -5522,7 +5608,11 @@ let[@warning "-32"] do_counters () =
         let has_store = Sys.file_exists attestations_dir in
         let store =
           if has_store then
-            try Attestations.load ~reader ~root:attestations_dir with _ -> []
+            try
+              Attestations.load
+                ~keep:(store_keep_for attestations_dir)
+                ~reader ~root:attestations_dir
+            with _ -> []
           else []
         in
         let pkg =
@@ -5555,11 +5645,16 @@ let[@warning "-32"] do_counters () =
       in
       (* 3. attestations (live store) *)
       let attestations_dir = Path_config.resolve_attestations_dir ~root () in
+      (* Counted under the SAME admission filter the gate uses. A
+         number that counted gitignored scratch would disagree with the
+         verdict computed from the same directory, and the docs cite
+         this figure as the store's size. *)
+      let keep = store_keep_for attestations_dir in
       let live_store =
         if Sys.file_exists attestations_dir then
           Sys.readdir attestations_dir
           |> Array.to_list
-          |> List.filter (fun f -> Filename.check_suffix f ".json")
+          |> List.filter (fun f -> Filename.check_suffix f ".json" && keep f)
           |> List.length
         else 0
       in
@@ -5722,7 +5817,11 @@ let[@warning "-32"] do_packages () =
   let has_store = Sys.file_exists attestations_root in
   let store =
     if has_store then
-      try Attestations.load ~reader ~root:attestations_root with _ -> []
+      try
+        Attestations.load
+          ~keep:(store_keep_for attestations_root)
+          ~reader ~root:attestations_root
+      with _ -> []
     else []
   in
   let now_iso =
@@ -5800,7 +5899,11 @@ let[@warning "-32"] do_find () =
   let has_store = Sys.file_exists attestations_root in
   let store =
     if has_store then
-      try Attestations.load ~reader ~root:attestations_root with _ -> []
+      try
+        Attestations.load
+          ~keep:(store_keep_for attestations_root)
+          ~reader ~root:attestations_root
+      with _ -> []
     else []
   in
   let now_iso =
@@ -7281,7 +7384,9 @@ let[@warning "-32"] doctor_section_decisions () : doctor_section =
       decision_files
   in
   let store_root = resolve_store_root root in
-  let store = Attestations.load ~reader ~root:store_root in
+  let store =
+    Attestations.load ~keep:(store_keep_for store_root) ~reader ~root:store_root
+  in
   let referenced_ids : string list =
     List.map (fun (a : Attestations.attestation) -> a.Domain.decision) store
   in

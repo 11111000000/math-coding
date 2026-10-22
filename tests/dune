@@ -17,6 +17,7 @@
   confidence_preserve
   fixture_coverage
   identity_uniqueness
+  store_admission
   traps
   supersession_check
   qcheck_parsers

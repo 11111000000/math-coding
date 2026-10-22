@@ -77,3 +77,49 @@ let[@warning "-32"] changed_files ~cwd ~base ~head :
           |> List.filter (fun l -> l <> "")
         in
         Ok paths)
+
+(* tracked_under : cwd:string -> rel_dir:string -> string list option
+ *
+ * `git -C cwd ls-files -z -- <rel_dir>` reduced to the BARE file
+ * names directly inside that directory, or None when git cannot
+ * answer -- git missing, cwd not a work tree, not a repository. None
+ * is the honest answer for "this tree is not under version control",
+ * and the caller must not silently read that as an empty list.
+ *
+ * Why bare names: the caller is filtering what `Sys.readdir` already
+ * returned for one directory, so a repo-relative path would have to be
+ * re-sliced to compare. Recursion is deliberately NOT handled -- the
+ * store is flat, and a nested layout is a different contract.
+ *
+ * `-z` because a tracked path may legally contain a newline, which
+ * would otherwise split into two phantom names. *)
+let[@warning "-32"] tracked_under ~cwd ~rel_dir : string list option =
+  let cmd =
+    Printf.sprintf "git -C %s ls-files -z -- %s 2>/dev/null" (shell_quote cwd)
+      (shell_quote rel_dir)
+  in
+  let tmp = Filename.temp_file "mc_git_lsfiles_" ".txt" in
+  Fun.protect
+    ~finally:(fun () -> try Sys.remove tmp with _ -> ())
+    (fun () ->
+      let cmd = Printf.sprintf "%s > %s" cmd (shell_quote tmp) in
+      if Sys.command cmd <> 0 then None
+      else
+        let raw =
+          try In_channel.with_open_bin tmp In_channel.input_all with _ -> ""
+        in
+        let prefix = if rel_dir = "" then "" else rel_dir ^ "/" in
+        let names =
+          raw
+          |> String.split_on_char '\000'
+          |> List.filter (fun s -> s <> "")
+          |> List.filter_map (fun p ->
+              (* strip the directory prefix, keep only direct
+                    children, reject anything nested further *)
+              let n = String.length p and k = String.length prefix in
+              if n <= k || String.sub p 0 k <> prefix then None
+              else
+                let rest = String.sub p k (n - k) in
+                if String.contains rest '/' then None else Some rest)
+        in
+        Some names)
