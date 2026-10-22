@@ -10,11 +10,16 @@ The lib/decision.ml comment block names the decision by id:
      decision `d5-body-vs-wrapper-canonical-2026-10` for the
      and decision `d5-body-vs-wrapper-canonical-2026-10`. The input
 
-The lib/decision.ml comment block references spec §7.1:
+The lib/decision.ml comment block references spec §7.1. Four
+mentions now: the two that introduced the canonicalisation, plus
+two added by the digest-recompute work, which had to spell out
+why §7.1 says the scheme prefix appears exactly once.
 
   $ rg '§7\.1' lib/decision.ml
      two stored hashes is defined in spec/algebra-3.2.md §7.1
      canonicalisation algorithm named in spec/algebra-3.2.md §7.1
+     Algebra §7.1 reads:
+     neither §7.1, nor the Python reference
 
 The stale "no formal definition" phrase is absent from the comment
 block (the negative case):

@@ -151,11 +151,16 @@ finds 5 current pass attestations -> no gaps -> aggregate Pass
   $ mkdir -p decisions attestations
   $ export MATH_CODING_ROOT="$tmpdir"
 
-Hand-write a parseable v3.2 decision with 5 obligations. SHAs
-are zero placeholders (length-preserving; the validator's
-`sha_match_check` only enforces equality between the two SHA
-fields, not equality with the file's actual canonical hash, so
-the two zero SHAs are sufficient to satisfy the schema).
+Hand-write a parseable v3.2 decision with 5 obligations. The two
+SHA fields are stamped with the 64-zero placeholder, which is
+length-preserving but no longer sufficient: the kernel recomputes
+the digest of the file's own bytes (spec/algebra-3.2.md §7.1),
+and `mathc self-check` forces the verdict to Block when the stored
+value is stale (`MC-SHA-DIGEST-STALE`). So the fixture is rehashed
+before either snapshot below. Without that, `before` and `after`
+would BOTH be `fail` -- a stale digest forces the verdict after
+waiver aggregation, so the five attestations could never move it,
+and this case would assert nothing at all.
 
   $ printf '%s\n' \
   >   '---' \
@@ -227,6 +232,10 @@ the two zero SHAs are sufficient to satisfy the schema).
   >   'relations:' \
   >   '  addresses: []' \
   >   > decisions/ship-attest-batch-case3.yaml
+
+  $ "$mathc" rehash decisions/ship-attest-batch-case3.yaml --write | sed '/^$/d'
+    STAMP ship-attest-batch-case3.yaml
+  rehash: 1 changed, 0 already current, 0 skipped (written)
 
 Validate the fixture before exercising the attest flow.
 

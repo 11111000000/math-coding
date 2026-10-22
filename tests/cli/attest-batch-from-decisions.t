@@ -72,6 +72,20 @@ heredoc lines that already start with `> ` (RFC: cram lacks an
   >   '  addresses: []' \
   >   > "$MATH_CODING_DECISIONS_DIR/foo-decision.yaml"
 
+The digest fields carry the 64-zero placeholder: a hand-written
+file has no digest to copy. The kernel now recomputes the digest
+of the file's own bytes (spec/algebra-3.2.md §7.1) and rejects a
+stale value with `MC-SHA-DIGEST-STALE` (Block, exit 1) -- and the
+zero placeholder is stale in the strongest sense, asserting a
+digest no body ever had. The digest is incidental to what this
+test exercises (walking a decisions directory, one attestation
+per obligation), so the fixture is rehashed and the validate
+assertion below is left exactly as it was.
+
+  $ mathc rehash "$MATH_CODING_DECISIONS_DIR/foo-decision.yaml" --write | sed '/^$/d'
+    STAMP foo-decision.yaml
+  rehash: 1 changed, 0 already current, 0 skipped (written)
+
 Validate the fixture before exercising --from=decisions.
 
   $ mathc validate "$MATH_CODING_DECISIONS_DIR/foo-decision.yaml"
