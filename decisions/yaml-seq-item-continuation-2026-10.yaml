@@ -1,0 +1,325 @@
+---
+schema: math-coding/3.3
+id: yaml-seq-item-continuation-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+body_sha: "sha256:96537834f8a882b2ef699875490e7ef6baae94c74eef644cef7db125b72945bb"
+yaml_sha: "sha256:96537834f8a882b2ef699875490e7ef6baae94c74eef644cef7db125b72945bb"
+
+axiom_link:
+  - A0
+  - A2
+
+intent: |
+  `duplicate-mapping-keys-silent-drop-2026-10` made the loader's
+  silence visible: `mathc validate` reports MC-UNPARSED-TAIL naming
+  the first line the kernel did not read. It named 18 residual
+  corpus files and deferred the parser fix to this decision,
+  explicitly requiring "their own before/after scan, not a
+  drive-by". This is that scan, and this is the half of the fix
+  that is safe to make now.
+
+  The residual is not one bug. Three distinct YAML shapes stop the
+  loader, and only one of them is the kernel being wrong:
+
+  (a) A SEQUENCE ITEM whose scalar continues on deeper lines --
+      `unknowns:` followed by `- first line` and then two more
+      indented lines. This is VALID YAML 1.2 (§7.3.3 plain
+      multi-line scalar, §7.3.4 flow scalar carried across lines)
+      and `parse_yaml_seq` had no way to follow it: its scalar
+      branch was `(parse_yaml_scalar item_str_trim, rest)`, the
+      item's remaining lines went back UNCONSUMED, and the loader
+      discarded them. A genuine kernel gap.
+
+  (b) A folded plain scalar whose continuation carries `: ` --
+      illegal in a plain scalar (§7.3.3), so the file is invalid
+      YAML and the author is wrong. `fold_continuation` tolerates
+      it via a colon heuristic, which is an accommodation for
+      invalid input, not the defect.
+
+  (c) A sequence item indented less than its siblings. Invalid
+      YAML; author error. The parser is right to stop.
+
+  Only (a) is fixed here. (b) and (c) are author errors whose
+  remedy is editing the file, and silently accepting more invalid
+  YAML would make `parse-ok` mean even less than it does now.
+
+  The mapping-side fix is deliberately NOT taken. In a mapping
+  value position a deeper `key: value` line is genuinely ambiguous,
+  so `fold_continuation`'s colon heuristic is load-bearing there;
+  removing it re-parses every invalid file in the corpus and needs
+  its own review. In a SEQUENCE ITEM position the branch is only
+  reached when the item's own text carries no colon at all (the
+  `Some ci` arm handles the mapping-shaped item), so nothing at a
+  deeper indent can be a sibling key and every such line belongs to
+  the scalar. The heuristic is dropped where it costs nothing and
+  kept where it earns its keep -- see `reversal`.
+
+counterexample: |
+  What this change does NOT do, recorded so nobody reads the
+  before/after scan as "the corpus is clean":
+
+  The scan reports 18 files carrying MC-UNPARSED-TAIL at main
+  e019916 and 12 after this change. The 6 that clear are all shape
+  (a). The 12 that remain are shapes (b) and (c) -- invalid YAML
+  that the kernel is correct to stop reading. Repairing them means
+  rewriting prose in 12 decisions, each with its own digest
+  recomputation and revision bump. That is deliberately not
+  bundled here: it would put 12 content edits in the same diff as a
+  change to how every file in the corpus parses, which is exactly
+  the review problem that let the original defect survive.
+
+  Also not done: the `fold_continuation` colon test. It is wrong in
+  the same direction this change is right about -- it accepts
+  `: ` inside a plain scalar, which §7.3.3 forbids -- but dropping
+  it turns files that parse today into files that do not, and some
+  of those are fixtures the suite pins. It is its own decision.
+
+  And not done: `load_yaml_value`, the policies.yaml path, still
+  emits no diagnostic. It now returns the unconsumed remainder
+  (`Codec.load_yaml_value_remaining`) and a test asserts that
+  remainder is empty for the shipped `policies.yaml`, so a policy
+  that grows an unfollowable shape fails loudly rather than being
+  read as a shorter policy. Wiring the MC-UNPARSED-TAIL code into
+  the policy loader itself -- so a THIRD-PARTY policy says so --
+  is left as the named follow-up. The kernel asserting something
+  about its own policies is not the same as telling an adopter
+  their policy was truncated.
+
+commitment: |
+  1. `parse_yaml_seq`'s scalar branch folds a sequence item's
+     continuation lines via `fold_seq_item`, joining them with a
+     single space per §7.3.3 / §7.3.4. The substitution is
+     length-preserving in the sense that matters: the folded text
+     replaces the newlines it consumed.
+
+  2. A double-quoted item whose closing quote is already on the
+     dash line is FINISHED and is not extended. The stray line
+     stays in the tail, where MC-UNPARSED-TAIL names it. The check
+     runs BEFORE the append, because the append is what makes the
+     accumulator finished -- testing after would always be true and
+     would paste the stray line into the value on its way out.
+
+  3. A dash item at a deeper indent is a sibling item of a deeper
+     sequence, never a continuation of the current scalar.
+
+  4. A mapping-shaped item (`- key: value`) still parses as an
+     OBJECT. That path is unreachable from the new branch.
+
+  5. The six decisions named in the `intent` scan no longer report
+     MC-UNPARSED-TAIL, and no decision newly reports one. Their
+     `body_sha` / `yaml_sha` are unaffected: the digest is computed
+     over raw file bytes, not over the parsed tree, and this change
+     edits no decision file.
+
+  6. Regression cases live in `tests/decision_parser_yaml.ml`
+     (group `seq-item-continuation`), not in a new executable,
+     because `tests/dune` enumerates the suite by name and the
+     kernel-dev constraint is to leave that stanza alone.
+
+axiom_link_note: |
+  A0 -- the parser's reading of a document is the kernel's contract
+  with every consumer. A2 -- a silent drop is an unrecoverable loss
+  for whatever downstream step believed the key was absent.
+
+scope:
+  paths:
+    - lib/codec.ml
+    - tests/decision_parser_yaml.ml
+    - decisions/yaml-seq-item-continuation-2026-10.yaml
+
+outcomes:
+  - id: valid-multiline-items-are-read
+    statement: |
+      A valid YAML 1.2 sequence item continued across lines is read
+      whole, and the top-level keys after the sequence are still in
+      the kernel's reading.
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.exe
+          result: pass
+
+  - id: invalid-input-still-stops
+    statement: |
+      Shapes (b) and (c) keep reporting MC-UNPARSED-TAIL. The
+      parser was not made more permissive about invalid YAML; it was
+      made able to follow valid YAML it could not follow before.
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.exe
+          result: pass
+
+  - id: the-fix-is-pinned-by-a-mutation
+    statement: |
+      Neuter `fold_seq_item` and the three positive cases fail while
+      the four negative cases still pass -- so the negatives are
+      guarding against over-reach, not restating the positives.
+
+obligations:
+  - id: before-after-scan-is-reproducible
+    outcome: valid-multiline-items-are-read
+    claim: |
+      The scan the sibling decision required, run against main
+      e019916 and against this branch:
+
+        for f in $(find decisions -name '*.yaml' | sort); do
+          mathc validate "$f" 2>&1 >/dev/null \
+            | grep -q MC-UNPARSED-TAIL && echo "$f"
+        done
+
+      Before: 18 files of 241. After: 12. The six that clear are
+      `cli-cram-tests`, `paren-balance-fix-2026-10`,
+      `p8-hook-deficit-2026-10`, `render-module-split-phase1-2026-10`,
+      `render-module-split-phase1a-2026-10`, `site-deploy`.
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.exe
+          result: pass
+  - id: following-key-survives
+    outcome: valid-multiline-items-are-read
+    claim: |
+      A document whose `unknowns:` item spans two lines still
+      yields a complete object: the `revision` key AFTER the
+      sequence is present and typed. Pre-fix it was absent from the
+      kernel's reading entirely, which is the loss MC-UNPARSED-TAIL
+      reports as "every top-level key from there to EOF is
+      missing".
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.exe
+          result: pass
+
+  - id: quoted-item-with-colon-is-followed
+    outcome: valid-multiline-items-are-read
+    claim: |
+      A double-quoted sequence item whose continuation carries
+      `: ` -- legal inside quotes per §7.3.4, illegal in a plain
+      scalar -- is folded into one string that keeps the colon.
+      This is the p8-hook-deficit-2026-10.yaml shape and it cannot
+      be reached by `fold_continuation`'s colon heuristic.
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.exe
+          result: pass
+
+  - id: siblings-and-closed-quotes-are-not-swallowed
+    outcome: invalid-input-still-stops
+    claim: |
+      Two dash items at the same indent stay two items (folding
+      them would merge two distinct unknowns into one), and an item
+      whose closing quote is already on the dash line is not
+      extended by the following line. The second pins the
+      check-before-append ordering: the append is what makes the
+      accumulator finished, so testing after it would always pass.
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.exe
+          result: pass
+
+  - id: mapping-items-still-parse-as-objects
+    outcome: invalid-input-still-stops
+    claim: |
+      An item of the form `- name: first` plus deeper keys still
+      parses to a Jsonl.Object, never to a folded string.
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.exe
+          result: pass
+
+  - id: policies-loader-has-no-unparsed-remainder
+    outcome: valid-multiline-items-are-read
+    claim: |
+      `Codec.load_yaml_value_remaining` on the shipped
+      `policies.yaml` returns an empty remainder, so the policy
+      loader -- which has no MC-UNPARSED-TAIL wiring -- is not
+      silently truncating the repository's own policy file.
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.exe
+          result: pass
+
+  - id: this-decision-validates
+    outcome: the-fix-is-pinned-by-a-mutation
+    claim: |
+      `mathc validate decisions/yaml-seq-item-continuation-2026-10.yaml`
+      exits 0, emits no MC-DUPLICATE-KEY and no MC-UNPARSED-TAIL,
+      and its stored `body_sha` equals the §7.1 recomputation over
+      its own bytes.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/yaml-seq-item-continuation-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - residual-corpus-rots-in-place
+    - fold-continuation-heuristic-unreviewed
+  residual-corpus-rots-in-place: |
+    Expected. 12 decisions still carry invalid YAML and still
+    report MC-UNPARSED-TAIL. They are author errors; the remedy is
+    rewriting prose, one digest recomputation each. The trigger
+    `residual-twelve-unowned` fires if nobody claims them.
+  fold-continuation-heuristic-unreviewed: |
+    The mapping side keeps a heuristic this change argues against on
+    the sequence side. That is deliberate and asymmetric: the
+    sequence branch has no ambiguity to disambiguate, the mapping
+    branch does. The disagreement is unresolved, not settled.
+  owner: human:maintainer
+
+assumptions:
+  - id: policy-loader-diagnostic-is-a-followup
+    state: assumed
+    statement: |
+      `load_yaml_value` asserting its own remainder is empty is
+      enough for now, and telling a THIRD PARTY that their policy
+      was truncated can be a follow-up.
+    owner: human:maintainer
+    consequence_if_false: |
+      If adopters' policies are being truncated silently, the
+      kernel now proves only that ITS policies are not. The
+      follow-up should wire MC-UNPARSED-TAIL into the policy
+      loader, which is where the silent loss still reaches a user.
+    review_on:
+      - signal: third-party-policy-truncation-reported
+
+reversal:
+  - signal: fold-seq-item-accepts-invalid-yaml
+    condition: |
+      `fold_seq_item` starts accepting a deeper line that is really
+      a sibling key or a malformed document -- e.g. a sequence that
+      now merges items which were meant to be distinct, or a
+      validation suite that goes green on a file `yq` rejects.
+    action: |
+      Narrow the branch by requiring the continuation to be
+      non-mapping-shaped, re-issue this decision at revision 2, and
+      re-run the before/after scan.
+  - signal: residual-twelve-unowned
+    condition: |
+      The 12 remaining MC-UNPARSED-TAIL files are still unparsed
+      three months after this decision merged.
+    action: |
+      Open the repair decision: rewrite the offending prose in
+      `|` block scalars (or single-line items), recompute each
+      digest per §7.1, and bump each `revision`. One file per
+      commit so a reviewer can see the digest move with the prose.
+  - signal: mapping-side-heuristic-disputed
+    condition: |
+      Someone argues `fold_continuation`'s colon test should go too,
+      on the grounds that §7.3.3 forbids `: ` in a plain scalar and
+      the accommodation only hides author errors.
+    action: |
+      Take the mapping side as its own decision. It is a strictly
+      larger blast radius than this one: dropping the test turns
+      files that parse today into files the kernel stops reading, so
+      it needs the same kind of before/after scan, over the whole
+      corpus and over the fixtures the suite pins.
+
+relations:
+  addresses:
+    - duplicate-mapping-keys-silent-drop-2026-10@1
+  refines: []
+  contradicts: []
+  supersedes: []
+  superseded_by: []

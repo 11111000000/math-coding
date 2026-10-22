@@ -712,6 +712,99 @@ let[@warning "-32"] rec fold_continuation tokens cur_indent =
         else (stripped ^ " " ^ suffix, rest2)
   | _ -> ("", tokens)
 
+(* --- D4: a sequence item's scalar may span lines -----------
+ *
+ * `fold_continuation` above exists because a MAPPING value
+ * (`key: value` then deeper lines) may continue on the
+ * following lines. A SEQUENCE ITEM (`- value` then deeper
+ * lines) has the identical YAML 1.2 shape -- §7.3.3 multi-line
+ * plain scalar, §7.3.4 flow scalar carried across lines -- and
+ * until now `parse_yaml_seq` had no counterpart: its scalar
+ * branch was `(parse_yaml_scalar item_str_trim, rest)`, the
+ * rest of the item's lines were handed back UNCONSUMED, and
+ * every caller that stops on an unconsumed remainder
+ * (`load_yaml_string`'s `let pairs, _ = ...`) dropped them.
+ *
+ * Six corpus decisions reached it, all VALID YAML 1.2, measured
+ * by scanning `mathc validate` output over `decisions/**/*.yaml`
+ * at main e019916 (18 files reported MC-UNPARSED-TAIL before this
+ * change, 12 after; the 6 fixed are exactly):
+ *
+ *   decisions/cli-cram-tests.yaml                  `unknowns:`
+ *   decisions/paren-balance-fix-2026-10.yaml       `unknowns:`
+ *   decisions/p8-hook-deficit-2026-10.yaml         `unknowns:`
+ *   decisions/render-module-split-phase1-2026-10.yaml   `unknowns:`
+ *   decisions/render-module-split-phase1a-2026-10.yaml  `unknowns:`
+ *   decisions/site-deploy.yaml                     `unknowns:`
+ *
+ * Five are plain scalars; the p8 one is a
+ * double-quoted flow scalar whose closing quote sits on the
+ * last line, and its continuation carries ": " -- legal inside
+ * quotes (§7.3.4), illegal in a plain scalar, which is why
+ * `fold_continuation`'s colon test cannot be reused as-is.
+ *
+ * Why the mapping-side colon test is NOT mirrored here: in a
+ * mapping value position a deeper `key: value` line is
+ * ambiguous, so `fold_continuation` needs a heuristic. In a
+ * SEQUENCE ITEM position this branch is only reached when the
+ * item's own text carries no colon at all (the `Some ci` arm
+ * above handles the mapping-shaped item), so nothing at deeper
+ * indent can be a sibling key: every such line belongs to the
+ * scalar. Dropping the test here costs nothing in
+ * disambiguation and removes a whole loss channel. The mapping
+ * side keeps its heuristic -- changing it re-parses every
+ * invalid file in the corpus and is its own decision; see
+ * `decisions/yaml-seq-item-continuation-2026-10.yaml`.
+ *)
+let[@warning "-32"] quote_still_open s =
+  (* True when `s` opens with '"' and that quote is still
+     unclosed at the end of `s`. A closing quote preceded by an
+     odd run of backslashes is escaped, so it does not close the
+     flow scalar. *)
+  let n = String.length s in
+  if n = 0 || String.unsafe_get s 0 <> '"' then false
+  else
+    let rec scan i escaped closed =
+      if i >= n || closed then closed
+      else
+        let c = String.unsafe_get s i in
+        if escaped then scan (i + 1) false closed
+        else if c = '\\' then scan (i + 1) true closed
+        else scan (i + 1) false (c = '"')
+    in
+    not (scan 1 false false)
+
+let[@warning "-32"] quoted_and_finished s =
+  String.length s > 0 && String.unsafe_get s 0 = '"' && not (quote_still_open s)
+
+let[@warning "-32"] rec fold_seq_item cur_indent acc tokens =
+  match tokens with
+  | [] -> (acc, [])
+  | { yindent; ycontent } :: rest when yindent > cur_indent ->
+      (* A deeper dash item is a sibling value at a deeper
+         sequence, not a continuation of this scalar. *)
+      if is_dash_item ycontent then (acc, tokens)
+      else if quoted_and_finished acc then
+        (* A flow scalar whose closing quote is already on the dash
+           line is finished (§7.3.4): extending it would invent a
+           reading for a file no strict reader would accept. The
+           line is left in the tail, where MC-UNPARSED-TAIL names
+           it. Checked BEFORE the append -- the append is what makes
+           `acc'` finished on the closing line, so testing after it
+           would always be true and the stray line would be pasted
+           into the value on its way out. *)
+        (acc, tokens)
+      else
+        let stripped = block_strip ycontent in
+        let acc' = if acc = "" then stripped else acc ^ " " ^ stripped in
+        (* Otherwise keep swallowing: a plain scalar runs to the
+           first non-continuation line, a double-quoted one to its
+           closing quote. Both fold the line break to a single space
+           (§7.3.3 / §7.3.4). *)
+        if quoted_and_finished acc' then (acc', rest)
+        else fold_seq_item cur_indent acc' rest
+  | _ -> (acc, tokens)
+
 let[@warning "-32"] rec parse_yaml_pairs tokens cur_indent =
   let rec loop acc tokens =
     match tokens with
@@ -840,7 +933,20 @@ and parse_yaml_seq tokens cur_indent =
                     parse_yaml_pairs more_rest (cur_indent + 2)
                   in
                   (Jsonl.Object (first_pair @ more_pairs), rest3)
-              | None -> (parse_yaml_scalar item_str_trim, rest)
+              | None ->
+                  (* D4: the item is a scalar, not a mapping, so
+                     every line more indented than the dash
+                     marker is a continuation of that scalar --
+                     YAML 1.2 §7.3.3 (plain) / §7.3.4 (quoted).
+                     Without `fold_seq_item` the continuation
+                     stayed in `rest`, `parse_yaml_seq` returned
+                     early on the deeper token, and the loader
+                     dropped everything from there to EOF while
+                     still reporting `parse-ok`. *)
+                  let joined, rest2 =
+                    fold_seq_item cur_indent item_str_trim rest
+                  in
+                  (parse_yaml_scalar joined, rest2)
           in
           loop (item :: acc) rest2
     | _ -> (Jsonl.Array (List.rev acc), tokens)
@@ -886,8 +992,20 @@ let[@warning "-32"] load_yaml_string raw =
    policies.yaml file used by lib/policy.ml (spec/algebra-3.2.md
    §9 multi-policy). This wrapper calls parse_yaml_value instead,
    which dispatches to parse_yaml_pairs or parse_yaml_seq based
-   on whether the leading token is a dash-item. *)
-let[@warning "-32"] load_yaml_value raw =
+   on whether the leading token is a dash-item.
+
+   That wrapper was `let value, _ = parse_yaml_value tokens 0` --
+   the D2 shape, on the code path that loads `policies.yaml`, and
+   with NO diagnostic behind it: the MC-UNPARSED-TAIL collector in
+   `bin/Mathc.ml` is wired to `load_yaml_string_full`, which this
+   loader does not go through. So a policy file the loader could
+   not finish was read as a shorter policy with nothing to say so.
+   The remainder is therefore kept by the function below and
+   asserted empty for `policies.yaml` by the
+   `seq-item-continuation/policies.yaml leaves no remainder` case in
+   `tests/decision_parser_yaml.ml`; emitting the diagnostic from the
+   policy loader itself is the named follow-up. *)
+let[@warning "-32"] load_yaml_value_remaining raw =
   let strip_frontmatter s =
     let lines = yaml_lines s in
     match lines with
@@ -901,8 +1019,9 @@ let[@warning "-32"] load_yaml_value raw =
     | _ -> lines
   in
   let tokens = yaml_tokens (String.concat "\n" (strip_frontmatter raw)) in
-  let value, _ = parse_yaml_value tokens 0 in
-  value
+  parse_yaml_value tokens 0
+
+let[@warning "-32"] load_yaml_value raw = fst (load_yaml_value_remaining raw)
 
 (* === Duplicate mapping keys (MC-DUPLICATE-KEY) ===
  *

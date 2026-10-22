@@ -311,6 +311,211 @@ let[@warning "-32"] test_json_fixtures () =
     Alcotest.failf "%d JSON fixtures failed" (List.length errors)
   end
 
+(* --- D4: sequence-item scalar continuation (D4) -------------------
+ *
+ * `fold_continuation` has always covered the MAPPING value position
+ * (`key: value` continued on the following lines). The sequence-item
+ * position had no counterpart: `parse_yaml_seq`'s scalar branch was
+ * `(parse_yaml_scalar item_str_trim, rest)`, the item's remaining
+ * lines were handed back UNCONSUMED, and every caller that stops on
+ * an unconsumed remainder dropped them. Four corpus decisions reached
+ * that branch and lost their `unknowns:` entries from the kernel's
+ * reading while still reporting `parse-ok`; commit e587c81 added the
+ * MC-UNPARSED-TAIL collector that made the loss visible, and
+ * `fold_seq_item` (lib/codec.ml) is what closes it.
+ *
+ * These cases live here rather than in a new executable because
+ * `tests/dune` enumerates the suite by name and the kernel-dev
+ * constraint is to leave that stanza alone. They are pure -- no walk,
+ * no subprocess -- unlike the three cases above them. *)
+
+(* Collect the strings of one top-level sequence-valued key. `None`
+   means the key is absent or is not a sequence, which lets a case
+   distinguish "key vanished" from "item text is wrong": the defect
+   under test DELETES content rather than corrupting it. *)
+let[@warning "-32"] seq_strings v key =
+  match v with
+  | Jsonl.Object pairs -> (
+      match List.assoc_opt key pairs with
+      | Some (Jsonl.Array items) ->
+          Some
+            (List.map
+               (function Jsonl.String s -> s | other -> Jsonl.stringify other)
+               items)
+      | _ -> None)
+  | _ -> None
+
+let[@warning "-32"] describe_items = function
+  | Some l -> String.concat "|" l
+  | None -> "<key absent>"
+
+(* The cli-cram-tests.yaml shape: a plain scalar continued across three
+   lines, folding to single spaces per §7.3.3. *)
+let[@warning "-32"] seq_plain_multiline_item_is_not_dropped () =
+  let yaml =
+    String.concat "\n"
+      [
+        "id: t";
+        "unknowns:";
+        "  - first line of the item";
+        "    second line of the same item";
+        "    third line of the same item";
+        "state: active";
+      ]
+  in
+  match seq_strings (Codec.load_yaml_value yaml) "unknowns" with
+  | Some [ item ] ->
+      Alcotest.(check string)
+        "plain multi-line item folds to one string"
+        "first line of the item second line of the same item third line of the \
+         same item"
+        item
+  | other ->
+      Alcotest.failf "expected one folded item, got %s" (describe_items other)
+
+(* The decisive assertion, and the one the defect fails: the key
+   FOLLOWING the sequence must still be there. Pre-fix, everything from
+   the first continuation line to EOF was discarded, so `revision` was
+   gone from the kernel's reading entirely -- which is exactly what
+   "every top-level key from there to EOF is missing" in the
+   MC-UNPARSED-TAIL message reports. *)
+let[@warning "-32"] seq_following_key_survives_a_multiline_item () =
+  let yaml =
+    String.concat "\n"
+      [
+        "id: t";
+        "unknowns:";
+        "  - an item continued";
+        "    onto a second line";
+        "revision: 3";
+      ]
+  in
+  match Codec.load_yaml_value yaml with
+  | Jsonl.Object pairs -> (
+      match List.assoc_opt "revision" pairs with
+      | Some (Jsonl.Int 3) -> ()
+      | Some (Jsonl.String "3") -> ()
+      | _ ->
+          Alcotest.failf "`revision` after a multi-line item was lost; got %s"
+            (Jsonl.stringify (Jsonl.Object pairs)))
+  | other -> Alcotest.failf "expected Object, got %s" (Jsonl.stringify other)
+
+(* The p8-hook-deficit-2026-10.yaml shape: a double-quoted flow scalar
+   whose closing quote sits on the last continuation line. The
+   continuation carries ": ", which is legal inside a double-quoted
+   scalar (§7.3.4) and illegal in a plain one, so `fold_continuation`'s
+   colon heuristic cannot fold it and the quote-aware path is needed. *)
+let[@warning "-32"] seq_quoted_flow_item_spanning_lines_is_not_dropped () =
+  let yaml =
+    String.concat "\n"
+      [
+        "id: t";
+        "unknowns:";
+        "  - \"opening quote on the first line";
+        "    closing quote on the second: with a colon\"";
+        "revision: 1";
+      ]
+  in
+  match seq_strings (Codec.load_yaml_value yaml) "unknowns" with
+  | Some [ item ] ->
+      (* `parse_yaml_scalar` strips the surrounding double quotes, so the
+         item is the two lines joined by a single space -- and the colon
+         from the second line survived, which is the whole point: a plain
+         scalar could not legally carry it. *)
+      Alcotest.(check string)
+        "quoted item keeps both lines and the colon"
+        "opening quote on the first line closing quote on the second: with a \
+         colon"
+        item
+  | other ->
+      Alcotest.failf "expected one quoted item, got %s" (describe_items other)
+
+(* A sibling dash item at the same indent is a new item, never a
+   continuation. If this ever folds, two distinct unknowns silently
+   become one. *)
+let[@warning "-32"] seq_sibling_dash_item_stays_separate () =
+  let yaml =
+    String.concat "\n"
+      [ "id: t"; "unknowns:"; "  - first item"; "  - second item" ]
+  in
+  match seq_strings (Codec.load_yaml_value yaml) "unknowns" with
+  | Some [ a; b ] ->
+      Alcotest.(check string) "first item" "first item" a;
+      Alcotest.(check string) "second item" "second item" b
+  | other ->
+      Alcotest.failf "expected two sibling items, got %s" (describe_items other)
+
+(* A quoted scalar already closed on the dash line is finished
+   (§7.3.4). Extending it would invent a reading for a file no strict
+   reader accepts, so the stray line stays in the tail where
+   MC-UNPARSED-TAIL names it. This pins the "checked BEFORE the
+   append" ordering inside `fold_seq_item`: the append is what makes
+   the accumulator finished, so testing after it would always pass. *)
+let[@warning "-32"] seq_finished_quote_does_not_swallow_next_line () =
+  let yaml =
+    String.concat "\n"
+      [
+        "id: t";
+        "unknowns:";
+        "  - \"already closed here\"";
+        "  - another item";
+        "revision: 2";
+      ]
+  in
+  match seq_strings (Codec.load_yaml_value yaml) "unknowns" with
+  | Some [ a; b ] ->
+      (* quotes stripped by `parse_yaml_scalar`; what is pinned is that
+         the NEXT item was not appended to this one. *)
+      Alcotest.(check string) "closed quote intact" "already closed here" a;
+      Alcotest.(check string) "next item intact" "another item" b
+  | other -> Alcotest.failf "expected two items, got %s" (describe_items other)
+
+(* A mapping-shaped item (`- key: value` plus deeper keys) still parses
+   as an OBJECT. That is the `Some ci` arm above the branch under test,
+   and it must stay unreachable from here. *)
+let[@warning "-32"] seq_mapping_item_is_not_folded_into_a_string () =
+  let yaml =
+    String.concat "\n"
+      [
+        "id: t";
+        "items:";
+        "  - name: first";
+        "    rev: 1";
+        "  - name: second";
+        "    rev: 2";
+      ]
+  in
+  match Codec.load_yaml_value yaml with
+  | Jsonl.Object pairs -> (
+      match List.assoc_opt "items" pairs with
+      | Some (Jsonl.Array [ Jsonl.Object _; Jsonl.Object _ ]) -> ()
+      | other ->
+          Alcotest.failf "expected two object items, got %s"
+            (Jsonl.stringify
+               (match other with Some v -> v | None -> Jsonl.Null)))
+  | other -> Alcotest.failf "expected Object, got %s" (Jsonl.stringify other)
+
+(* `load_yaml_value` is the policies.yaml path (lib/policy.ml) and goes
+   through neither `load_yaml_string_full` nor the MC-UNPARSED-TAIL
+   collector, so a policy file it could not finish was read as a
+   SHORTER policy with nothing to say so. `load_yaml_value_remaining`
+   returns the remainder so it can be asserted empty. *)
+let[@warning "-32"] policies_yaml_parses_with_no_remainder () =
+  let root =
+    match Sys.getenv_opt "DUNE_SOURCEROOT" with
+    | Some r -> r
+    | None -> Filename.concat (Sys.getcwd ()) ".."
+  in
+  let path = Filename.concat root "policies.yaml" in
+  let raw =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  if raw = "" then Alcotest.failf "could not read %s" path
+  else
+    let _, remaining = Codec.load_yaml_value_remaining raw in
+    Alcotest.(check int)
+      "policies.yaml leaves no unparsed remainder" 0 (List.length remaining)
+
 let () =
   Alcotest.run "decision parser (yaml)"
     [
@@ -324,5 +529,22 @@ let () =
         [
           Alcotest.test_case "the decisions/ walk respects .gitignore" `Quick
             test_gitignore_filter;
+        ] );
+      ( "seq-item-continuation",
+        [
+          Alcotest.test_case "plain multi-line item is not dropped" `Quick
+            seq_plain_multiline_item_is_not_dropped;
+          Alcotest.test_case "following key survives a multi-line item" `Quick
+            seq_following_key_survives_a_multiline_item;
+          Alcotest.test_case "quoted flow item spanning lines" `Quick
+            seq_quoted_flow_item_spanning_lines_is_not_dropped;
+          Alcotest.test_case "sibling dash item stays separate" `Quick
+            seq_sibling_dash_item_stays_separate;
+          Alcotest.test_case "finished quote does not swallow the next line"
+            `Quick seq_finished_quote_does_not_swallow_next_line;
+          Alcotest.test_case "mapping item is not folded into a string" `Quick
+            seq_mapping_item_is_not_folded_into_a_string;
+          Alcotest.test_case "policies.yaml leaves no remainder" `Quick
+            policies_yaml_parses_with_no_remainder;
         ] );
     ]
