@@ -33,4 +33,33 @@
   mathcoding_attestations
   mathcoding_junit
   alcotest
-  qcheck))
+  qcheck)
+ (deps
+  ;; `rebuttal_forge_stub` is the only test in this stanza that spawns a
+  ;; process: it execs `tests/support/forge_stub/forge_stub.exe` on a
+  ;; free TCP port. That executable is declared in
+  ;; `tests/support/forge_stub/dune` as a bare `(executable)` -- no
+  ;; alias, no `(test)`, no incoming edge from `tests/` -- so before
+  ;; this line `dune build @runtest` had no reason to build it and the
+  ;; suite died at spawn time with "stub binary not found". The build
+  ;; edge was the whole of the build-side defect; the matching
+  ;; path-side defect (the resolver anchored on `Sys.argv.(0)`, which
+  ;; dune reports as the bare `./rebuttal_forge_stub.exe`) is fixed in
+  ;; `tests/rebuttal_forge_stub.ml::spawn_stub`.
+  ;;
+  ;; `(deps ...)` here is an alias-level edge, not a per-executable
+  ;; build dependency. Measured on dune 3.23.1 in a scratch project:
+  ;; `dune build <one>.exe` pulls the dep in for NEITHER a shared
+  ;; `(tests ...)` stanza NOR a private `(test ...)` one, while
+  ;; `dune build @runtest` and `dune runtest <one>.exe` both do. The
+  ;; second route is the one `scripts/dev-fast-test` uses, so the edge
+  ;; has to be on the `runtest` alias and the shared stanza is the
+  ;; placement that reaches it. A private `(test ...)` stanza buys no
+  ;; extra coupling and costs an explicit `(modules ...)` list on the
+  ;; stanza above, because dune refuses to guess module ownership once
+  ;; one directory declares two executable stanzas.
+  ;;
+  ;; `./` is load-bearing: `%{exe:sub/...}` and `%{exe:./sub/...}` both
+  ;; build, but the `./` form is the one that reports a typo
+  ;; ("No rule found for ...") instead of silently dropping the edge.
+  %{exe:./support/forge_stub/forge_stub.exe}))

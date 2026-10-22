@@ -61,39 +61,75 @@ let[@warning "-32"] candidates () =
    the PID. The stub keeps serving until `kill_stub` SIGTERMs it,
    which `with_stub` does from `Fun.protect` on every exit path. *)
 let[@warning "-32"] spawn_stub ~response_body ~port =
-  (* The dune test runs each `.exe` from `_build/default/tests/`
-     — using a relative path here would resolve against that
-     cwd and miss the binary. Resolve an absolute path from
-     the file's own location: the test source lives at
-     `<project>/tests/rebuttal_forge_stub.ml`, so the binary
-     is `<project>/_build/default/tests/support/forge_stub/forge_stub.exe`.
-     The previous implementation did `up test_dir 2` (a
-     parent count off by one — the test exe is three parents
-     below the project root: `_build/default/tests/<exe>`),
-     which produced the wrong path
-     `_build/default/_build/default/tests/support/forge_stub/forge_stub.exe`
-     and made the stub spawn fail with ENOENT. Walk up from
-     the test exe's directory until we find a directory
-     containing `dune-project`, mirroring the resolver in
-     tests/render_kernel.ml. *)
-  let test_dir = Filename.dirname Sys.argv.(0) in
-  let project_root =
-    let rec climb d =
-      if Sys.file_exists (Filename.concat d "dune-project") then d
-      else
-        let parent = Filename.dirname d in
-        if parent = d then test_dir else climb parent
-    in
-    climb test_dir
+  (* Locate `forge_stub.exe`, the OCaml HTTP stub this test spawns.
+     It is declared as a `(deps ...)` of this stanza in `tests/dune`,
+     so dune builds it to
+     `<build>/default/tests/support/forge_stub/forge_stub.exe` --
+     the mirror, inside the build tree, of the source path
+     `tests/support/forge_stub/forge_stub.exe`. The test executable
+     itself is built to `<build>/default/tests/rebuttal_forge_stub.exe`,
+     i.e. the stub sits beside this executable.
+
+     That makes the executable's own directory the only anchor needed:
+     resolve the stub relative to `Sys.executable_name`, which the OCaml
+     runtime fills in as an absolute path (measured: under
+     `dune build @runtest` it is
+     `<project>/_build/default/tests/rebuttal_forge_stub.exe`, while
+     `Sys.argv.(0)` is the bare `./rebuttal_forge_stub.exe`). No knowledge
+     of where `_build` lives, and no walk up through it.
+
+     The earlier revision of this function walked up to the directory
+     holding `dune-project` looking for
+     `<root>/_build/default/tests/support/forge_stub/forge_stub.exe`,
+     but it seeded the walk from `Filename.dirname Sys.argv.(0)`. Under
+     dune that value is `"."`, and `Filename.dirname "."` is `"."`, so
+     the walk was a fixed point that returned `"."` on the first step
+     without ever leaving the cwd. The reported path was therefore the
+     relative `./_build/default/...`, resolved against dune's sandbox cwd
+     `<build>/default/tests`, giving
+     `<build>/default/tests/_build/default/tests/support/forge_stub/forge_stub.exe`.
+     The build edge was never the problem; the anchor was. That also
+     explains a misleading symptom: the fixed-up `read_request` could
+     not be exercised at all, because the stub was never located.
+
+     `DUNE_SOURCEROOT` and the walk-up are kept only as fallbacks for the
+     case where the stub is absent from beside this executable -- a
+     hand-installed or relocated binary. Both are tried in turn and every
+     candidate is named in the failure message, so a regression reports
+     the paths it tried instead of one plausible-looking wrong path. *)
+  let stub_dir = Filename.concat "support" "forge_stub" in
+  let stub_name = Filename.concat stub_dir "forge_stub.exe" in
+  let exe_dir = Filename.dirname Sys.executable_name in
+  let rec climb d =
+    if Sys.file_exists (Filename.concat d "dune-project") then Some d
+    else
+      let parent = Filename.dirname d in
+      if parent = d then None else climb parent
+  in
+  let in_build_tree root =
+    Filename.concat root (Filename.concat "_build/default/tests" stub_name)
+  in
+  let unreachable tag = Filename.concat exe_dir ("__no_" ^ tag ^ "__") in
+  let candidates =
+    [
+      Filename.concat exe_dir stub_name;
+      (match Sys.getenv_opt "DUNE_SOURCEROOT" with
+      | Some root -> in_build_tree root
+      | None -> unreachable "dune_sourceroot");
+      (match climb exe_dir with
+      | Some root -> in_build_tree root
+      | None -> unreachable "dune_project");
+    ]
   in
   let stub_path =
-    Filename.concat
-      (Filename.concat project_root "_build/default/tests/support/forge_stub")
-      "forge_stub.exe"
+    match List.find_opt Sys.file_exists candidates with
+    | Some path -> path
+    | None ->
+        failwith
+          (Printf.sprintf
+             "rebuttal_forge_stub: stub binary not found; tried:\n  %s"
+             (String.concat "\n  " candidates))
   in
-  if not (Sys.file_exists stub_path) then
-    failwith
-      (Printf.sprintf "rebuttal_forge_stub: stub binary not found: %s" stub_path);
   let argv = [| stub_path; string_of_int port; response_body |] in
   let pid =
     Unix.create_process argv.(0) argv Unix.stdin Unix.stdout Unix.stderr
