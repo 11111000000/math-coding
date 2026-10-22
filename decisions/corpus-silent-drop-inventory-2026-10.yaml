@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: test
-body_sha: "sha256:ea829f789d5ea0b251d00f71d5ae47a959f3f7c424bd648744489d236808fb1d"
-yaml_sha: "sha256:ea829f789d5ea0b251d00f71d5ae47a959f3f7c424bd648744489d236808fb1d"
+body_sha: "sha256:5f84df6ea166e3760ad75afc23bd3ec8ce0ca0ac67a316480c277fe03ec68f8b"
+yaml_sha: "sha256:5f84df6ea166e3760ad75afc23bd3ec8ce0ca0ac67a316480c277fe03ec68f8b"
 
 axiom_link:
   - A0
@@ -35,9 +35,13 @@ intent: |
 
 counterexample: |
   Measured against main 42bae29, not against the branch the WIP
-  commit was cut from. The two disagree and the difference matters:
+  commit was cut from, and re-measured with this decision added to
+  the corpus -- which is why the denominator below is 216 and not
+  215: this file is the 216th decision, and it reads to EOF, so the
+  offender count is unchanged at 12. The two commits disagree about
+  the corpus and the difference matters:
 
-    scan-silent-drops.sh              12 of 215 files
+    scan-silent-drops.sh              12 of 216 files
     --validity, kernel's own fault      0
     --validity, author wrote garbage  10
     MULTI-DOC (stray `---`, no loss)   2
@@ -162,10 +166,11 @@ obligations:
       The three forms, in order: the corpus scan; the same scan with
       an independent reader's verdict in column 1; and the same scan
       over every tracked YAML including the deliberately-broken
-      fixtures, which reports 14 of 270.
+      fixtures, which reports 14 of 271.
 
       The command recorded here is the one the corpus argument is
-      settled with. On main 42bae29 it reports 12 of 215.
+      settled with. It reports 12 of 216 on this branch; 12 of 215
+      on main 42bae29 before this decision was added.
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe

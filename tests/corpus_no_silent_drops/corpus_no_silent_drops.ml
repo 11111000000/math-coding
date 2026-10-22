@@ -85,7 +85,7 @@
  * fixture trees under tests/ and fixtures/ hold YAML that is malformed
  * ON PURPOSE; scanning them would either be noise or, worse, invite
  * "fixing" a fixture whose job is to be broken. `scan-silent-drops.sh
- * --all` exists for the curious and reports 14 of 270, the two extra
+ * --all` exists for the curious and reports 14 of 271, the two extra
  * being exactly those fixtures.
  *)
 
