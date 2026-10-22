@@ -45,8 +45,8 @@ intent: |
   publish looked like the obvious witness: release.yml's non-tag
   path publishes with `tag_name: edge`
   (`.github/workflows/release.yml` lines 483-489). The git ref
-  `edge` does not track main. It points at 9f7599ea, dated
-  2026-09-26, 896 commits behind HEAD at the time of writing —
+  `edge` does not track main. At `main` = e974364 it points at
+  9f7599e, dated 2026-09-26, and sits 900 commits behind —
   `softprops/action-gh-release` replaces the assets on an existing
   release and leaves the tag where it was. So the only git-visible
   record of a release is a `v*.*.*` tag, which is exactly what
@@ -250,11 +250,13 @@ assumptions:
 counterexample: |
   Strongest objection: this gate is too coarse, and the coarse
   version of "too strict" is the same failure the placeholder
-  already had. Today main sits 130 commits past v3.3.3, so the
-  gate blocks every protected-path PR against main and will keep
-  blocking until someone cuts a tag — which makes it a red gate
-  with a longer fuse, not a better one, and reviewers will learn
-  to dismiss it the way they learned to dismiss the placeholder.
+  already had. At `main` = e974364 the most advanced version tag
+  reachable from the branch tip is v3.3.3, and the tip sits 134
+  commits past it, so the gate blocks every protected-path PR
+  against main and will keep blocking until someone cuts a tag —
+  which makes it a red gate with a longer fuse, not a better one,
+  and reviewers will learn to dismiss it the way they learned to
+  dismiss the placeholder.
 
   Two answers, and neither is that the objection is wrong.
 
@@ -262,7 +264,7 @@ counterexample: |
   placeholder's answer is constant: a tag exists. It said nothing
   about how far behind main was, it could not say, and it had no
   state in which it would pass. This one names the tag, names the
-  base commit, and prints the gap — 130 commits ahead of v3.3.3 —
+  base commit, and prints the gap — 134 commits ahead of v3.3.3 —
   so the block carries the information the reviewer needs and the
   remedy is a single command. A gate that reports a specific,
   shrinking number can be planned around; a gate that is
