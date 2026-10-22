@@ -24,6 +24,16 @@ must still report `open-with-waiver` with a named waiver and exit
 0. Without it, scenario 1 would also pass on a binary that never
 consults a waiver at all.
 
+Both scenarios stamp the synthetic decision with `mathc rehash
+--write` before running `self-check`. `self-check` recomputes
+each decision's own bytes and forces `fail` for a stale one, and
+that `fail` would override the verdict under test: both scenarios
+would report `fail` with an extra cause, scenario 2 would stop
+being a control, and the lapse assertions would hold for the wrong
+reason. The digest is incidental to waiver expiry, so the fixture
+makes it real rather than weakening the verdict assertions. See
+`self-check-digest-stale.t` for the digest rule itself.
+
 The exact-second boundary (`now == expires_at`, and `now ==
 expires_at + 1s`) is NOT exercised here: `bin/Mathc.ml:now_iso`
 reads the wall clock and does not honour `MATH_CODING_FIXED_TIME`,
@@ -64,6 +74,8 @@ Scenario 1 — a waiver past its `expires_at` covers nothing:
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
+  $ mathc rehash decisions/lapsed.yaml --write | tail -1
+  rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/lapsed.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
   > kind: waiver

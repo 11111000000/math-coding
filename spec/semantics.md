@@ -684,7 +684,7 @@ Known deviation, recorded 2026-10-22 and NOT ratified here:
 (`lib/gate.ml::evaluate`, the `| [], _ | _, 0 -> Pass` arm) while
 still enumerating every obligation's gap, so
 `mathc gate HEAD HEAD` on this repository prints
-`"verdict":"pass"` next to 761 obligations and 93 gaps and exits
+`"verdict":"pass"` next to 786 obligations and 118 gaps and exits
 `0`. That is the rule above violated inside one object and it is
 the third shape of a laundering class this repository has now seen
 (`decisions/path-probe-anchoring-2026-11` for an empty obligation
@@ -711,6 +711,23 @@ requirement, in which case the merge gate is missing its waiver
 step. Either way the two sentences cannot both be implemented, and
 choosing between them is a protected-transition decision, not a
 spec edit.
+
+Third known deviation, and the one this section CREATES by being
+written down: §Release Gate, earlier in this file, states "The release
+verdict MUST be one of `pass`, `open-with-waiver`, or `block`" --
+three values, with `unknown` absent -- while the table above declares
+that the kernel verdict has exactly four and `lib/gate.ml::
+gate_release_v32` returns `Unknown` whenever a `PreMerge` or
+`PreRelease` obligation is blocking. So as of this edit
+spec/semantics.md contradicts itself in two sections, and the
+shipped kernel already fails the sentence §Release Gate wrote. The
+contradiction is recorded here rather than resolved, because
+choosing the release verdict list amends a protected section and
+`spec/constitution.md` §Self-application reserves that to the owner;
+see `decisions/verdict-vocabulary-and-waiver-expiry-2026-10.yaml`
+reversal `owner-answers-the-release-gate-question`. Readers MUST
+treat the four-value table below as the one the kernel implements
+and §Release Gate's list as the stale sentence.
 
 ### Verdict to exit code
 

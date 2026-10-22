@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:17c465267eac7583af6a8961aaa5c04ed7aa5da5c3895a2ae37deb750dd5de05"
-yaml_sha: "sha256:17c465267eac7583af6a8961aaa5c04ed7aa5da5c3895a2ae37deb750dd5de05"
+body_sha: "sha256:39fdeba355b9f3c762a9dd2bfb5fb99f3a68bed33af3ff772d449239937b9bff"
+yaml_sha: "sha256:39fdeba355b9f3c762a9dd2bfb5fb99f3a68bed33af3ff772d449239937b9bff"
 
 axiom_link:
   - A0
@@ -89,6 +89,53 @@ intent: |
   which is the only normative sentence in the repository that
   speaks about this comparison, and it says "strictly greater".
 
+  SEARCHED FOR A CONTRADICTION AND DID NOT FIND ONE ON THIS
+  QUESTION. Recorded because the absence is a finding, and
+  because "the norm says two things" would have been the easier
+  story to tell. Every normative sentence that touches the
+  expiry endpoint, read in full:
+
+    - Invariant 14c: `expires_at` "is strictly greater than the
+      evaluation time" -> `now < expires_at`. Strict.
+    - §Waivers: a waiver "MUST NOT outlive its expiry" -> the
+      same direction. A waiver cannot be in force at the instant
+      the constitution calls it expired.
+    - Invariant 11: a waiver applies only within "its named gap,
+      scope, revisions, gate and validity interval" - names the
+      interval, does not define its endpoints.
+    - §Waivers: a waiver MUST "identify ... issue time, expiry"
+      - requires the times be present, not that either bound be
+      open or closed.
+    - algebra-3.2.md §19 (I14) and its 14b/14c successors: about
+      exit codes, not waiver validity.
+
+  So the normative text is one-directional and consistent: the
+  expiry end is open. What it does NOT do is say where the
+  endpoint belongs, and that is the genuine ambiguity, recorded
+  in `counterexample` (3): 14c is phrased as a condition on a
+  VERDICT ("a verdict `Open_with_waiver` that produces exit 0
+  MUST reference a waiver whose ..."), so a reading is available
+  in which `effective_at` keeps the closed interval and the
+  VERDICT refuses to use a waiver at the expiry second. That
+  reading satisfies 14c as written and changes nothing else. This
+  decision instead reads 14c as a property of the waiver at the
+  evaluation time, because that is what the sentence is about and
+  because it needs no second enforcement point that could drift
+  from the first. The choice is stated here so a reviewer who
+  prefers the other reading can take it without re-deriving it,
+  and so the issue side of the interval is visibly a decision
+  rather than an oversight (`assumptions` `issued-side-stays-
+  inclusive`).
+
+  The contradictions this repository ACTUALLY has are elsewhere,
+  and none of them is about this boundary. They are recorded,
+  not resolved, because each amends a protected section:
+  §Merge Gate's MUST (unimplementable at `mathc gate`), §Release
+  Gate's three-verdict list against `gate_release_v32`'s
+  `Unknown`, and 14b's one-directional exit statement. See
+  `counterexample` (3), (4), `reversal`, and the three known
+  deviations now in spec/semantics.md §Kernel Output.
+
 commitment: |
   (a) SPEC, `spec/semantics.md`:
       - the `gate` CLI row now names all four verdicts and states
@@ -117,10 +164,18 @@ commitment: |
         repairs a dangling citation: `lib/waiver.ml` and
         `lib/gate.ml` have been pointing at "spec/semantics.md
         §Waiver" for months, and no such section existed;
-      - the vocabulary table records ONE known deviation it does
-        not ratify: `mathc gate` short-circuits an empty
-        changed-path set to `pass` while still enumerating gaps
-        (see `risk.drift_recurs`).
+      - the vocabulary section records THREE known deviations it
+        does not ratify, and says plainly that the third is one
+        this edit CREATES: (1) `mathc gate` short-circuits an
+        empty changed-path set to `pass` while still enumerating
+        gaps (see `risk.drift_recurs`); (2) §Merge Gate's MUST is
+        unimplementable because `mathc gate` never loads waivers;
+        (3) §Release Gate still names three release verdicts and
+        omits `unknown`, so the four-value table and that list
+        contradict each other inside one file. Recording (3) is
+        this decision's contribution to the contradiction being
+        visible; resolving it is the owner's, tracked in
+        `reversal` `owner-answers-the-release-gate-question`.
 
   (b) CODE, `lib/waiver.ml`: `effective_at` becomes
       `iso_le issued_at now && iso_lt now expires_at`, with the
@@ -279,7 +334,7 @@ counterexample: |
       non-empty `gaps[]` is the requirement, and `mathc gate`
       violates it for an empty changed-path set. Measured on this
       tree: `mathc gate HEAD HEAD` prints `"verdict":"pass"` beside
-      `obligations: 761` and 93 gaps and exits `0`. Writing the
+      `obligations: 786` and 118 gaps and exits `0`. Writing the
       requirement into the spec without that note would have made
       the spec a second false document, which is the defect this
       decision exists to remove.
@@ -352,7 +407,7 @@ counterexample: |
 
       If the owner prefers, the spec table alone is sufficient for
       the kernel as shipped, and 14d can wait.
-(5) "The merge gate never reports `open-with-waiver`, so §Merge
+      (5) "The merge gate never reports `open-with-waiver`, so §Merge
       Gate is unimplementable and your spec table promises a value
       `mathc gate` cannot print."
 
@@ -420,15 +475,27 @@ changed-verdicts: |
   Measured with the built binary
   (`dune build @install && ./_build/install/default/bin/mathc
   self-check`), on a tree whose only changes are this decision's,
-  with the attestation store clean: `attestations/` holds 760
-  files and `git ls-files attestations` holds 760, i.e. no
+  with the attestation store clean: `attestations/` holds 765
+  files and `git ls-files attestations` holds 765, i.e. no
   uncommitted or `.gitignore`d test scratch is being counted. This
   matters — see `risk.measurement_traps`.
 
-      before (e587c81): verdict unknown | exit 3 | subjects 210 |
-                         pass 191 | open-with-waiver 7 | unknown 12
-      after:              verdict unknown | exit 3 | subjects 211 |
-                         pass 191 | open-with-waiver 7 | unknown 13
+  Re-measured 2026-10-22 on top of current `main` (42bae29), not
+  on the e587c81 base this decision was first drafted against. The
+  numbers below therefore differ from the first draft's, and the
+  first draft's were already stale by the time it was written:
+
+      before (this file absent): verdict unknown | exit 3 |
+        subjects 213 | pass 192 | open-with-waiver 7 | unknown 14
+      after:                     verdict unknown | exit 3 |
+        subjects 214 | pass 192 | open-with-waiver 7 | unknown 15
+
+  The expiry change itself moves NOTHING, and that is measured
+  rather than argued: `lib/waiver.ml` was reverted to the inclusive
+  predicate and rebuilt, and the per-subject verdict map hashed
+  identically under both comparisons
+  (`sha256:58fde6db8de71918` in both runs). The only difference
+  between the two rows above is this decision's own subject.
 
   The single new subject is this decision, and it is `unknown` on
   purpose: `attestations/<decision>-<obligation>.json` was NOT
@@ -750,7 +817,7 @@ risk:
     and — found while writing this decision and NOT fixed here — an
     EMPTY changed-path set reported as `pass` by `mathc gate`.
     Measured on this tree: `mathc gate HEAD HEAD` prints
-    `"verdict":"pass"` next to `obligations: 761` and 93 gaps and
+    `"verdict":"pass"` next to `obligations: 786` and 118 gaps and
     exits 0, because `lib/gate.ml::evaluate` takes the
     `| [], _ | _, 0 -> Pass` arm while still enumerating every gap.
     The invariant is the same in all three: the verdict string and
@@ -790,9 +857,32 @@ risk:
     `merge-gate-waiver-step-question`.
 
   measurement_traps: |
-    Three environment facts cost real time while measuring this
-    decision and will cost it again; all three are recorded so the
+    Four environment facts cost real time while measuring this
+    decision and will cost it again; all four are recorded so the
     next run does not rediscover them.
+
+    (0) THIS FILE WAS ITSELF SILENTLY TRUNCATED, and the only
+    reason it was caught is that a structural check failed. One
+    line of the `counterexample` block scalar — the `(5) "The merge
+    gate never reports ...` line — sat at indent 0 while every one
+    of its 128 sibling lines sat at indent 2 or more. A `|` block
+    scalar ends at the first line less indented than its body, so
+    that line terminated `counterexample`, `parse_yaml_pairs` then
+    met a token it could not type and returned early, and EIGHT
+    top-level keys were dropped without a word:
+    `scope`, `changed-verdicts`, `assumptions`, `outcomes`,
+    `obligations`, `reversal`, `risk` and `relations`. What the
+    operator saw was `MC-DECISION-INVALID: missing required field:
+    scope` — one missing field, when in fact 8 of the document's
+    21 top-level keys were gone. Isolated by deleting each line of
+    the block in turn and re-validating: deleting that single line
+    alone restores the parse. The general lesson, and it is why
+    `decisions/duplicate-mapping-keys-silent-drop-2026-10.yaml`
+    exists: a mis-indented block-scalar line is a silent
+    truncation, and no warning names it. Note that
+    this instance produced NO `MC-UNPARSED-TAIL` — the loader had
+    consumed every byte, into the wrong tree. Check the shape of a
+    decision before believing what the kernel says about it.
 
     (1) A `mathc` on `PATH` is NOT the built kernel.
     `/home/az/.local/bin/mathc` is dated 2026-10-18 and predates the
