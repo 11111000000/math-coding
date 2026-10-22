@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: forge-stub-read-request-2026-10
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:3d3359e00dec24713fab5493b0f4da9ab5813ecb08304d04fc3005e393f8f26e"
-yaml_sha: "sha256:3d3359e00dec24713fab5493b0f4da9ab5813ecb08304d04fc3005e393f8f26e"
+body_sha: "sha256:562a3fdb1cb62755801e4f69c2b5a98ff8438619833e5105c8e26f7309e91335"
+yaml_sha: "sha256:562a3fdb1cb62755801e4f69c2b5a98ff8438619833e5105c8e26f7309e91335"
 axiom_link:
   - A0
 intent: |
@@ -48,6 +48,33 @@ intent: |
   What this decision changes is test infrastructure only. The seam
   under test — `lib/rebuttal.ml::forge_mirror` — is untouched, and
   so are the assertions in `tests/rebuttal_forge_stub.ml`.
+
+  Defect 3 (found during verification, NOT fixed here): the test
+  spawns `forge_stub.exe` by path, so dune cannot see the edge. On
+  a cold `_build` the test executable starts before the stub has
+  finished linking and dies with `stub binary not found` -- three
+  failures in 0.06s, no assertion run. It reproduces on a clean
+  checkout of the pre-fix tree and has nothing to do with either
+  defect above. Declaring `(deps %{exe:support/forge_stub/
+  forge_stub.exe})` on the `(tests)` stanza in `tests/dune` was
+  tried and reverted: it does create the edge, but a test stanza
+  with deps runs sandboxed from `_build/default/tests/`, and
+  `spawn_stub` walks up for `dune-project` to find the project
+  root -- which now resolves to the sandbox, yielding the doubled
+  path `_build/default/tests/_build/default/...`. Fixing it
+  properly means deriving the root from `DUNE_SOURCEROOT` or
+  refusing to walk through a `_build` directory, i.e. an edit to
+  `spawn_stub` in the file a parallel worktree is reformatting,
+  for a defect this decision did not introduce and does not need
+  to close. Recorded here instead of fixed; see the
+  `reversal` signal.
+
+  History:
+    rev 1: read_request stops at the blank line; the stub answers
+      every connection; paired fixture and scope recorded.
+    rev 2 (this revision): defect 3 recorded after verification,
+      with the `(deps)` experiment and its revert. No code
+      changed.
 commitment: |
   `read_request fd` reads one HTTP head and returns it. It returns
   exactly once: at the first blank line, or at EOF if the peer
@@ -94,6 +121,7 @@ scope:
     - "tests/dune (rebuttal_forge_stub was and is enabled)"
     - "decisions/ci-green-batch1-2026-10.yaml (its Tier 2G note is historically accurate; this file is the decision it promised, so no revision bump is needed and the @1 references from ci-cram-cleanup-batch2 stay valid)"
     - "the `mathc init` cram hang observed while verifying, which is unrelated and pre-existing"
+    - "tests/dune (the missing stub dependency is recorded under intent defect 3; the `(deps)` attempt was reverted)"
 outcomes:
   - id: stub-answers-request-head
     statement: |
@@ -243,6 +271,13 @@ reversal:
       would then need to consume the body it currently refuses to
       read, which is the one behaviour this decision made load
       bearing.
+    action: rework
+  - signal: cold-build-stub-race-survives
+    condition: |
+      `dune build @runtest` on a clean `_build` still reports
+      `rebuttal_forge_stub: stub binary not found`. The suite is
+      warm-tree green and `scripts/check.sh` green; only the cold
+      parallel build loses the race.
     action: rework
   - signal: stub-moved-out-of-tests
     condition: |
