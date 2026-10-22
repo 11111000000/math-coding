@@ -329,8 +329,11 @@ Within the 24h window the developer MUST follow up with:
    attestation (kind `test` / `review` / `build` / `analysis`).
 
 If the post-hoc pair does not land before `expires_at`, the
-waiver stops being effective_at and the next `mathc gate` returns
-Block on this subject. The compensating control surface is
+waiver stops being effective_at (a waiver is in force on
+`[issued_at, expires_at)` — see spec/semantics.md §Waiver
+Validity) and the next `mathc self-check` reports that subject as
+`unknown` with exit 3, its `causes[]` still naming the unmet
+obligation. The compensating control surface is
 `decisions/waivers/hotfix-*.yaml` in the next-actions report; a
 hotfix older than 24h is a remediation item, not a clean tree.
 

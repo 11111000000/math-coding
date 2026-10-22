@@ -8,8 +8,10 @@
 # Exit codes: 0=written, 2=input-error.
 #
 # Closure: a post-hoc decisions/<id>.yaml + attestations/<id>-<obligation>.json
-# pair MUST land within the 24h window. Once expires_at passes, mathc
-# self-check returns Block on this subject (waiver no longer effective_at).
+# pair MUST land within the 24h window. expires_at is the exclusive end of
+# the term (spec/semantics.md §Waiver Validity): at that instant the waiver
+# is no longer effective_at and `mathc self-check` reports the subject as
+# `unknown` with exit 3, not as Block.
 
 set -eu
 

@@ -292,22 +292,35 @@ existence. Output JSON objects use sorted keys for reproducibility.
   (commit, branch, tag).
 - **Output**: a single JSON object on stdout with the keys
   `verdict`, `base`, `gaps`, `head`, `now`, `obligations`
-  (count). `verdict` is `pass`, `block`, or `unknown` in this
-  scaffold iteration; `gaps[]` lists each applicable obligation
-  with `kind` (`MissingEvidence` / `StaleEvidence` /
-  `MissingReview` / `NoAttestationStore` / `Unknown`),
-  `causes[]`, `obligation_id`, `remedies[]`. This is the
-  scaffold: without an attestation store, applicable
-  obligations surface as `Unknown` and the verdict is
-  `unknown` (informational, not blocking). Full blocking
-  arrives with the attestation store.
-- **Exit code**: `0` always today (the gate verdict is
-  informational in the scaffold; `mathc gate` does not yet block
-  merges). The disposition-vs-exit-code mapping documented
-  above (1 = block) is forward-looking; today the JSON
-  verdict carries the disposition and the exit code is 0.
+  (count). `verdict` is drawn from the four values of §Kernel
+  Output: `pass`, `open-with-waiver`, `block`, `unknown`; `gaps[]`
+  lists each applicable obligation with `kind`
+  (`MissingEvidence` / `StaleEvidence` / `MissingReview` /
+  `NoAttestationStore` / `Unknown`), `causes[]`, `obligation_id`,
+  `remedies[]`. A `block` or `unknown` verdict lists the gaps that
+  produced it.
+  As shipped, `mathc gate` evaluates obligations and kernel rules
+  WITHOUT consulting waivers: neither `Gate.evaluate` nor
+  `Gate.gate_v32` takes a waiver argument, so this subcommand
+  produces `pass`, `block` or `unknown` and never
+  `open-with-waiver` today. The waiver step lives in
+  `Gate.aggregate_with_waivers`, which only `mathc self-check`
+  calls. Measured on a synthetic project holding one decision with
+  one waived obligation and one in-force waiver: `mathc self-check`
+  reports `open-with-waiver` and exits 0; `mathc gate` on the same
+  project reports `unknown` with the gap still listed and exits 3.
+  See the second known deviation under §Kernel Output: §Merge
+  Gate's "A merge with a Waiver MUST report `open-with-waiver`" is
+  therefore not satisfiable at the merge gate as shipped.
+- **Exit code**: the verdict-to-exit table of §Kernel Output —
+  `0` for `pass`, `1` for `block`, `3` for `unknown`, `2` on input
+  error. The scaffold behaviour recorded before Invariant 14b
+  (exit `0` for every verdict, `unknown` treated as
+  informational) is withdrawn; §Kernel Output is the
+  authoritative table.
 - **Justification**: `decisions/gate-decision.yaml` (the
-  scaffold).
+  scaffold) and `decisions/exit-code-symmetry-2026-10.yaml` (the
+  exit-code rows).
 
 ### `session-start`
 
@@ -415,24 +428,48 @@ existence. Output JSON objects use sorted keys for reproducibility.
 - **Synopsis**: `mathc self-check`
 - **Input**: none.
 - **Output**: a single JSON object on stdout with at least
-  `verdict` (`pass` | `fail` | `unknown`), `subjects[]`
-  (each with `name`, `verdict`, `causes[]`, `remedies[]`),
-  `now`, `repository_digest`, and `kernel_digest`. `pass`
+  `verdict` (`pass` | `open-with-waiver` | `fail` | `unknown` —
+  the vocabulary of §Kernel Output, with `Block` spelled `fail`
+  in this subcommand), `subjects[]`
+  (each with `name`, `verdict`, `causes[]`, `remedies[]`,
+  `waivers[]`), `now`, `repository_digest`, and `kernel_digest`.
+  `pass`
   is the AGENTS.md bootstrap-gate expiry condition verbatim:
   the **released** 3.0 kernel successfully checks this
   repository **and its conformance corpus**. `unknown` is
   reserved for infrastructure errors (e.g. cannot load
   `decisions/decision.yaml`); it MUST be distinct from
   `pass` and `fail` per `constitution.md:59` (`unknown != pass`).
-- **Exit code**: `0` on `pass`; `1` on `fail`; `3` on
+  A subject reports `open-with-waiver` when its obligations are
+  unmet but every one of its gaps is covered by a waiver in force
+  at `now`; it MUST NOT report `pass` in that case (§Merge Gate:
+  "A merge with a Waiver MUST report `open-with-waiver`, never
+  `pass`"), and it MUST NOT report `pass` while `causes[]` is
+  non-empty (constitution.md Invariant 10). Such a subject
+  carries a `waivers[]` array whose entries name, per
+  constitution.md Invariant 14c, the waiver behind the verdict:
+  `id`, `issuer`, `issued_at`, `expires_at`, `scope`
+  (`obligation` when the waiver names one obligation, `decision`
+  for the legacy decision-wide form) and `covers[]` (the
+  obligations of THIS subject the waiver accepts). Every other
+  verdict carries an empty `waivers[]`, so a `pass` subject can
+  name no waiver at all. The top-level `verdict` is
+  `open-with-waiver` when every subject is `pass` or
+  `open-with-waiver` and at least one is `open-with-waiver`; a
+  wholly passing repository still reports `pass`.
+- **Exit code**: `0` on `pass` and on `open-with-waiver`; `1` on
+  `fail`; `3` on
   `unknown` / infrastructure error (per `OCAML_BEST_PRACTICES.md`
   §4.3: `0 = accept | pass`, `1 = block | reject`,
   `3 = internal error (uncaught exception)` — the
   infrastructure-error case maps to `3` because `unknown`
-is a kernel verdict, not a CLI invocation fault).
+is a kernel verdict, not a CLI invocation fault). The table is
+  normative for every verdict-producing subcommand; see
+  §Kernel Output.
  - **Justification**: `decisions/mathc-self-check-subcommand.yaml`
    obligation `mathc-self-check-spec-promoted`; closes ROADMAP
-   Tier-1 #2.
+   Tier-1 #2. The `open-with-waiver` value and the `waivers[]`
+   array are `decisions/self-check-waiver-verdict-coherence-2026-10.yaml`.
 
 ### `packages [--format=text|json|html]`
 
@@ -607,3 +644,138 @@ For every rule the kernel emits:
 
 Verdicts are reproducible from canonical inputs and the explicit
 evaluation time.
+
+### Verdict vocabulary
+
+The kernel verdict has exactly four values. They are four claims,
+not four spellings of one claim, and constitution.md Invariant 10
+("missing, stale, failed, inconclusive, infrastructure error,
+waived and passed states MUST remain distinguishable") requires
+that no two of them be rendered as one string:
+
+| Verdict | Assertion | Gaps reported? |
+|---|---|---|
+| `pass` | Every applicable obligation holds current `pass` evidence. | No — `gaps[]` is empty. |
+| `open-with-waiver` | At least one obligation is unmet, and every unmet gap is accepted by a named, in-force, in-scope waiver. | Yes — the waived gaps are still listed; the waiver changes the disposition, not the assurance result (§Evaluation). |
+| `block` (`fail` in `mathc self-check`) | A decisive failure, a missing required review, a violated kernel rule or an unevaluated claim blocks the gate. | Yes. |
+| `unknown` | The claim is inoperative: no store, no evidence, infrastructure error, or a gap no waiver accepts. | Yes. |
+
+Two rules bind this table:
+
+1. `open-with-waiver` MUST NOT be reported as `pass`. A subject
+   whose gaps are waived is not a passing subject; it is a passing
+   gate. §Merge Gate states the merge case verbatim — "A merge
+   with a Waiver MUST report `open-with-waiver`, never `pass`" —
+   and the same rule holds for every subject and every gate.
+   Symmetrically, `pass` MUST NOT be co-reported with a non-empty
+   `causes[]`: that pairing is Invariant 10 violated inside one
+   JSON object, and `gaps[]` must not be paired with `pass`
+   either — see the known deviation recorded below the table.
+2. `open-with-waiver` is referenceable. A verdict that exits `0`
+   under a waiver MUST name that waiver in the same output
+   (constitution.md Invariant 14c); the per-subject `waivers[]`
+   array of `mathc self-check` is that reference, carrying `id`,
+   `issuer`, `issued_at`, `expires_at`, `scope` and `covers[]`.
+   An `open-with-waiver` verdict with no named waiver is not
+   expressible.
+
+Known deviation, recorded 2026-10-22 and NOT ratified here:
+`mathc gate` short-circuits an empty changed-path set to `pass`
+(`lib/gate.ml::evaluate`, the `| [], _ | _, 0 -> Pass` arm) while
+still enumerating every obligation's gap, so
+`mathc gate HEAD HEAD` on this repository prints
+`"verdict":"pass"` next to 761 obligations and 93 gaps and exits
+`0`. That is the rule above violated inside one object and it is
+the third shape of a laundering class this repository has now seen
+(`decisions/path-probe-anchoring-2026-11` for an empty obligation
+set, `decisions/self-check-waiver-verdict-coherence-2026-10` for
+a waived gap). Closing it is a change to the gate, not to this
+spec; the spec states the requirement and the gap is the kernel's
+to close.
+
+Second known deviation, recorded 2026-10-22 and NOT ratified here:
+§Merge Gate requires that "A merge with a Waiver MUST report
+`open-with-waiver`, never `pass`", and the merge gate cannot
+report it. `mathc gate` neither loads `decisions/waivers/` nor
+passes a waiver list to `Gate.evaluate` or `Gate.gate_v32`, so a
+waived obligation surfaces as `MissingEvidence` and the merge
+verdict is `unknown` with exit 3 — measured, on the synthetic
+project described in the `gate` CLI row above: `self-check` says
+`open-with-waiver`/exit 0 where `gate` says `unknown`/exit 3 for
+the same waiver. Whether that is a defect depends on which reading
+of §Waivers is authoritative: "MAY permit a gate" reads as
+permission the kernel may decline, in which case exit 3 is
+conformant and §Merge Gate's MUST is the promise a waiver
+currently cannot keep; "MUST report `open-with-waiver`" reads as a
+requirement, in which case the merge gate is missing its waiver
+step. Either way the two sentences cannot both be implemented, and
+choosing between them is a protected-transition decision, not a
+spec edit.
+
+### Verdict to exit code
+
+| Verdict | Exit code |
+|---|---|
+| `Pass` | `0` |
+| `Open_with_waiver` | `0` |
+| `Block` | `1` |
+| `Unknown` | `3` |
+
+The verdict names in this table are the kernel variant names of
+`lib/gate.ml::verdict`; the reportable strings are `pass`,
+`open-with-waiver`, `block` (`fail` under `mathc self-check`) and
+`unknown`, as tabulated above.
+
+This table is normative for every verdict-producing subcommand and
+restates constitution.md Invariant 14 ("a blocking verdict MUST
+produce nonzero exit code") and Invariant 14b ("exit code 0 MUST
+imply verdict `Pass` or `Open_with_waiver`"; `Block` → `1`,
+`Unknown` → `3`). Exit `2` is reserved for input errors and is not
+a verdict. `unknown` MUST NOT map to `0`: Invariant 14b names that
+collapse as `unknown != pass` laundering, and a process exit code
+is the last place where a distinction can be lost. A `waived`
+verdict exiting `0` is not that collapse — Invariant 14b permits it
+explicitly, and Invariant 14c attaches the conditions under which it
+is honest.
+
+## Waiver Validity
+
+A waiver (`decisions/waivers/*.yaml`, `schemas/waiver.json`) is in
+force for an evaluation time `t` iff
+
+```text
+in_force(w, t) iff w.issued_at <= t < w.expires_at
+```
+
+The interval is closed on the issue side and open on the expiry
+side. The open upper endpoint is not a convention: constitution.md
+Invariant 14c requires the waiver behind an exit-0
+`open-with_waiver` verdict to have an `expires_at` that is
+"strictly greater than the evaluation time", which is exactly
+`t < w.expires_at`. A closed interval would let a waiver whose
+`expires_at` equals `t` carry a green verdict on the single instant
+the constitution calls it expired, which is also what §Waivers
+means by "MUST NOT outlive its expiry".
+
+The two endpoints are asymmetric on purpose and MUST NOT be
+"harmonised": attestation currency is closed at both ends
+(`spec/algebra-3.2.md` §14, `current(a) ≔ a.issued_at ≤ now ≤
+a.valid_until`), while a waiver's term is closed at its start and
+open at its deadline. A waiver grants from its issue time and stops
+at its expiry time; the two rules govern different artefacts.
+
+Consequences an implementation and a test author both need:
+
+- a waiver with `expires_at == issued_at` is never in force;
+- a waiver is in force on the last second before `expires_at` and
+  not on `expires_at` itself, so a 24-hour waiver is effective for
+  24 hours minus the expiry second;
+- a waiver that has expired covers nothing, reports no relief, and
+  leaves its subject `unknown` with the gap still listed.
+
+In force is necessary, not sufficient: constitution.md §Waivers
+also requires the waiver to name its gap, scope, revisions and gate
+(Invariant 11), and to be waivable at that gate under the active
+policy. `lib/waiver.ml::covers` applies the in-force test;
+`lib/gate.ml::aggregate_with_waivers` applies the rest and reports
+partial coverage as `unknown` rather than `open-with-waiver`.
