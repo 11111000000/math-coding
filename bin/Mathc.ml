@@ -3165,6 +3165,14 @@ let[@warning "-32"] mathc_scheme_allowlist =
     "context";
     "packages";
     "version";
+    (* `rehash` without `--write` only reads: it recomputes each
+       decision's digest and reports what would change, exiting 1
+       only on a file it could not read or whose stamp is not a
+       fixed point. That makes it the one command by which the whole
+       store's digest-currency is mechanically checkable, which is
+       why it is allowlisted. `--write` mutates and is NOT reachable
+       through a verifier, which passes bare arguments. *)
+    "rehash";
   ]
 
 (* Is the current host a non-Linux platform for the purposes of
@@ -7452,6 +7460,7 @@ let do_rehash () =
     exit 2
   end;
   let changed = ref 0 and unchanged = ref 0 and skipped = ref 0 in
+  let broken = ref 0 in
   List.iter
     (fun path ->
       (* `read_file` at this point in the file is the SECOND
@@ -7463,7 +7472,8 @@ let do_rehash () =
       if String.length bytes = 0 then begin
         Printf.printf "  SKIP  %s (unreadable or empty)\n"
           (Filename.basename path);
-        incr skipped
+        incr skipped;
+        incr broken
       end
       else
         let computed = Decision.body_canonical_sha256 bytes in
@@ -7489,11 +7499,13 @@ let do_rehash () =
         else
           let stamped = Decision.stamp_digest ~hex bytes in
           let verified = Decision.body_canonical_sha256 stamped in
-          if verified <> computed then
+          if verified <> computed then begin
             (* Fixed point violated: stamping changed the canonical
                  form. Never write in that state. *)
             Printf.printf "  FAIL  %s (stamp is not a fixed point: %s vs %s)\n"
-              (Filename.basename path) computed verified
+              (Filename.basename path) computed verified;
+            incr broken
+          end
           else if stamped = bytes then begin
             if not !write then incr unchanged;
             Printf.printf "  ok    %s\n" (Filename.basename path)
@@ -7513,7 +7525,15 @@ let do_rehash () =
   Printf.printf "\nrehash: %d changed, %d already current, %d skipped%s\n"
     !changed !unchanged !skipped
     (if !write then " (written)" else " (dry-run)");
-  exit (if !skipped > 0 then 1 else 0)
+  (* Exit 1 only for a file that could not be rehashed for a real
+     reason (unreadable, or a stamp that is not a fixed point). A skip
+     is an ABSENCE - a waiver/obligations file belonging to another
+     schema family, which carries no body_sha by design - and must not
+     be reported as a failure, or this command can never gate
+     anything: the corpus always contains such files. They stay in the
+     summary so they remain visible without turning "not applicable"
+     into "broken". *)
+  exit (if !broken > 0 then 1 else 0)
 
 let dispatch () =
   if Array.length Sys.argv < 2 then begin

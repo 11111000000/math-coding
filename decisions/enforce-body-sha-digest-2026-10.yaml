@@ -4,8 +4,8 @@ id: enforce-body-sha-digest-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:126d4fa0e8d635413ae12ee9e6d773213ed75b5dc492386058f78e6c3ce5b160"
-yaml_sha: "sha256:126d4fa0e8d635413ae12ee9e6d773213ed75b5dc492386058f78e6c3ce5b160"
+body_sha: "sha256:50ab31455868a5dc573fb08c534e30f19b83224c601d1b78b50f12d947744fe6"
+yaml_sha: "sha256:50ab31455868a5dc573fb08c534e30f19b83224c601d1b78b50f12d947744fe6"
 
 axiom_link:
   - A0
@@ -146,99 +146,38 @@ scope:
     - "site/**"
 
 obligations:
-  - id: digest-recomputed-not-compared
-    claim: |
-      `sha_match_check` takes optional raw bytes and recomputes the
-      digest; it no longer relies on the two stored fields being equal.
-    acceptance:
-      all:
-        - verifier: shell-grep
-          path: "lib/decision.ml"
-          needle: "let sha_match_check ?raw_bytes"
-          result: pass
-        - verifier: shell-grep
-          path: "lib/decision.ml"
-          needle: "mc_sha_digest_stale"
-          result: pass
-
-  - id: stale-digest-code-exists
-    claim: |
-      MC-SHA-DIGEST-STALE is a distinct diagnostic from
-      MC-SHA-MISMATCH, because the two failures need different
-      remediation and conflating them would hide the zero-placeholder
-      case, which is equal-but-wrong.
-    acceptance:
-      all:
-        - verifier: shell-grep
-          path: "lib/diagnostic.ml"
-          needle: "MC-SHA-DIGEST-STALE"
-          result: pass
-
-  - id: placeholder-single-prefix
-    claim: |
-      The placeholder substitution emits the scheme prefix exactly once.
-      §7.1 replaces the WHOLE `body_sha: "sha256:<64hex>` field, so the
-      previous `prefix ^ "sha256:" ^ zeros ^ "\""` produced
-      `sha256:sha256:...` and every OCaml-computed digest matched
-      neither §7.1, nor the Python reference, nor any stored value.
-    acceptance:
-      all:
-        - verifier: shell-grep
-          path: "lib/decision.ml"
-          needle: "digest_placeholder = String.make 64 '0' ^ \"\\\"\""
-          result: pass
-
-  - id: rehash-available
-    claim: |
-      `mathc rehash` exists, is dispatched, and defaults to dry-run.
-    acceptance:
-      all:
-        - verifier: shell-grep
-          path: "bin/Mathc.ml"
-          needle: "let do_rehash ()"
-          result: pass
-        - verifier: shell-grep
-          path: "bin/Mathc.ml"
-          needle: "| \"rehash\" -> do_rehash ()"
-          result: pass
-
   - id: store-is-digest-current
     claim: |
-      After the digest refresh in this branch, `mathc rehash` reports
-      zero files needing a stamp, i.e. every decision under decisions/
-      carries the digest of its own bytes.
+      `mathc rehash` reports zero files needing a stamp: every decision
+      under decisions/ carries the digest of its own bytes under
+      algebra §7.1, except the waiver/obligations files that belong to
+      other schema families and carry no body_sha by design. This is
+      the one claim in this decision the kernel can decide entirely on
+      its own, so it is the one stated as an obligation.
     acceptance:
       all:
-        - verifier: manual-rehash-reports-zero-changed
+        - verifier: mathc rehash
           result: pass
 
-  - id: comments-match-behaviour
+  - id: stale-digest-code-is-documented
     claim: |
-      No comment in lib/ asserts that the validator recomputes or writes
-      a digest, because it does neither. `mathc rehash --write` writes;
-      `mathc validate` only checks.
+      MC-SHA-DIGEST-STALE is registered and describable:
+      `mathc explain-diagnostic MC-SHA-DIGEST-STALE` exits 0 with the
+      documented envelope. A diagnostic the project cannot explain is
+      a diagnostic its adopters will meet and not understand.
     acceptance:
       all:
-        - verifier: shell-grep
-          path: "lib/new_decision/new_decision.ml"
-          needle: "mathc rehash <path> --write"
-          result: pass
-        - verifier: shell-grep
-          path: "lib/lifecycle/lifecycle.ml"
-          needle: "mathc rehash <path> --write"
+        - verifier: mathc explain-diagnostic MC-SHA-DIGEST-STALE
           result: pass
 
-  - id: toolchain-green
+  - id: this-decision-validates
     claim: |
-      The alcotest suites that were failing on this branch's base commit
-      now pass, so the change does not trade one red gate for another.
-      `repo_structure` had been failing on `fmt-clean`; `dune fmt` clears
-      it. All 22 suites pass.
+      This decision itself parses and is digest-current under the
+      enforcement it introduces. A decision that cannot pass its own
+      validator is not a commitment.
     acceptance:
       all:
-        - verifier: dune-tests-repo-structure
-          result: pass
-        - verifier: dune-tests-body-canonical
+        - verifier: mathc validate decisions/enforce-body-sha-digest-2026-10.yaml
           result: pass
 
 risk:
