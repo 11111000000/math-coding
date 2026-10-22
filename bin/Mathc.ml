@@ -922,7 +922,8 @@ let print_usage oc =
      [--out=DIR]   MATH_CODING_DECISIONS_DIR. Output\n\
      [--kind=...]  goes to MATH_CODING_ATTESTATIONS_DIR\n\
      [--producer=ID] (or .math-coding/attestations).\n\
-     [--result=pass|fail]\n\
+     [--run=CMD]   --producer is REQUIRED; --run is required for\n\
+     [--result=pass|fail] kind test|build|analysis|observation.\n\
      [--dry-run]   See bin/Mathc.ml::do_attest_batch.\n\
     \  time-estimate --class ...        print JSON forecast from declared \
      distribution\n\
@@ -2782,6 +2783,321 @@ let[@warning "-32"] do_attest () =
      %!";
   do_import_junit ()
 
+(* --- shared sandbox helpers ----------------------------------------
+ *
+ * `mathc verify` (path forms) and `mathc attest-batch --run` both need
+ * the same handful of primitives and both live at different points in
+ * this file, so they are defined once, here, ahead of both:
+ *
+ *   - the env-stripped sandbox environment and the named
+ *     build-toolchain passthrough the dune-backed forms need;
+ *   - the shell-metacharacter test. Neither command ever spawns a
+ *     shell, and a verifier or --run command that needs one is
+ *     refused rather than silently rewritten;
+ *   - the 60 s timeout both use;
+ *   - a capped file reader, used to excerpt a child run output.
+ * ---------------------------------------------------------------- *)
+
+(* Every sandboxed run, original schemes and path forms alike, gets
+   the same ceiling. Named so the number is stated once. *)
+
+let[@warning "-32"] verify_timeout_s = 60
+
+(* Compute the env-stripped environment array. Only PATH, HOME,
+   and LANG are inherited; everything else is dropped. *)
+let[@warning "-32"] sandbox_env () =
+  let pick var default =
+    try
+      let v = Sys.getenv var in
+      if String.trim v = "" then default else v
+    with Not_found -> default
+  in
+  [|
+    "PATH=" ^ pick "PATH" "/usr/bin:/bin";
+    "HOME=" ^ pick "HOME" "/";
+    "LANG=" ^ pick "LANG" "C";
+  |]
+
+(* The path forms run dune, and dune has to find the OCaml
+   libraries the target links against. With PATH/HOME/LANG alone the
+   child cannot: in the nix dev shell `dune exec ./tests/foo.exe`
+   fails with `Library "qcheck" not found`, which is a failure of
+   the HARNESS, not of the obligation being checked -- and an
+   obligation that fails for harness reasons reads exactly like an
+   obligation that failed.
+
+   So the path forms forward a NAMED allowlist of toolchain
+   variables on top of the stripped base. Named, not "inherit
+   everything": the point of env-stripping is that a verifier string
+   (which lives in a decision file, i.e. in untrusted content by
+   the time a merge gate reads it) cannot read the operator's
+   environment. These five name library and linker paths and hold no
+   secrets. `sandbox_env ()` itself is untouched: the three original
+   schemes keep the strict PATH/HOME/LANG sandbox, and the allowlist
+   is reachable only from the path forms.
+
+   Declared as a risk in verify-path-forms-2026-10
+   (`risk.declared_triggers.build-toolchain-env-passthrough`). *)
+let[@warning "-32"] path_form_env_passthrough =
+  [
+    "OCAMLPATH";
+    "OCAMLFIND_CONF";
+    "OPAM_SWITCH_PREFIX";
+    "OPAMROOT";
+    "CAML_LD_LIBRARY_PATH";
+  ]
+
+let[@warning "-32"] sandbox_env_for_path_forms () =
+  let base = sandbox_env () in
+  let extra =
+    List.filter_map
+      (fun name ->
+        match Sys.getenv_opt name with
+        | Some v when String.trim v <> "" -> Some (name ^ "=" ^ v)
+        | _ -> None)
+      path_form_env_passthrough
+  in
+  Array.append base (Array.of_list extra)
+
+(* Characters that only mean something to a shell. `\n` and `\r`
+   would smuggle a second command through a YAML block scalar. *)
+let[@warning "-32"] shell_metacharacters =
+  [|
+    '|';
+    '&';
+    ';';
+    '<';
+    '>';
+    '$';
+    '`';
+    '\'';
+    '"';
+    '\\';
+    '(';
+    ')';
+    '*';
+    '?';
+    '[';
+    ']';
+    '{';
+    '}';
+    '\n';
+    '\r';
+  |]
+
+type verify_outcome = Pass | Fail | Skipped | Timeout
+
+let[@warning "-32"] verify_outcome_string = function
+  | Pass -> "pass"
+  | Fail -> "fail"
+  | Skipped -> "skipped"
+  | Timeout -> "timeout"
+
+(* Best-effort close of inherited file descriptors. OCaml stdlib
+   `Unix.close : file_descr -> unit` does not accept an `int`;
+   we open and immediately close using `Obj.magic` to coerce
+   the integer fd. `EINVAL` / `EBADF` are silently absorbed. The
+   upper bound 255 mirrors the standard POSIX_FD_SETSIZE; fd N
+   is closed only when it is currently open.
+
+   NOTE: a future ctypes-foreign–backed implementation will
+   replace this with a direct `close(fd)` syscall that does
+   not need the magic cast. Until then, this is best-effort. *)
+let[@warning "-32"] sandbox_close_inherited_fds () =
+  for fd = 3 to 255 do
+    try ignore (Unix.close (Obj.magic fd : Unix.file_descr) : unit)
+    with _ -> ()
+  done
+
+(* Is the current host a non-Linux platform for the purposes of
+   `strict`-mode OS primitives? OCaml's `Sys.os_type` returns
+   `"Unix"` on *every* Unix-like host (Linux, macOS, the BSDs),
+   so it cannot distinguish Linux from macOS. We use the
+   presence of the Linux-only `/proc/self/status` procfs entry
+   as the discriminator: true on macOS / Windows / BSD where
+   the prctl/capset/RLIMIT primitives are unavailable (or
+   require a different path). This is what gates the
+   "sandbox=strict is Linux-only" fallback warning. *)
+
+let[@warning "-32"] sandbox_strict_is_linux_only () =
+  not (Sys.file_exists "/proc/self/status")
+
+(* In `strict` mode we apply RLIMITs. `Unix.setrlimit` /
+   `Unix.getrlimit` were DEPRECATED in OCaml 5.4 and REMOVED in
+   OCaml 5.5 (the host compiler in this nix shell is 5.5.0);
+   `ctypes-foreign` is not in `flake.nix` `ocamlDeps` either.
+   Therefore the structural surface is correct (the function
+   is called from run_with_sandbox's `strict` branch, the
+   decision records the intended limits in the child stderr
+   banner), but the kernel-level application is deferred to a
+   future plan that adds the ctypes dependency.
+
+   Stamping each limit in the banner makes the intent
+   observable to operators and to cram tests:
+     "applied RLIMIT_NPROC=1 NOFILE=64 FSIZE=cur"
+
+   See `decisions/verify-sandbox-hardening-2026-11.yaml`
+   `risk.declared_triggers.macos-strict-degrades-silently`
+   for the ASPIRATIONAL boundary. *)
+let[@warning "-32"] sandbox_apply_rlimits_strict () =
+  Printf.eprintf
+    "mathc verify: [strict] would apply RLIMIT_NPROC=1, RLIMIT_NOFILE=64, \
+     RLIMIT_FSIZE=cur (requires ctypes-foreign; not present in this nix shell \
+     — see decisions/verify-sandbox-hardening-2026-11.yaml)\n\
+     %!"
+
+(* The environment the child receives is a parameter, not a constant:
+   the path forms and `attest-batch --run` need the build-toolchain
+   allowlist, while the three scheme forms keep the strict
+   PATH/HOME/LANG strip. `run_with_sandbox` below is the strict one
+   and its signature is unchanged since add-verify-subcommand-2026-10. *)
+let[@warning "-32"] run_with_sandbox_in_env ~env ~capture_to ~project_root ~prog
+    ~args ~timeout_s ~sandbox_mode =
+  let args_arr = Array.of_list args in
+  let pid =
+    Unix.fork () |> function
+    | 0 -> (
+        (* Child: apply sandbox, chdir, exec. Errors here are
+           unrecoverable from the child; we exit 1 to surface
+           them. *)
+        begin match sandbox_mode with
+        | "minimal" -> sandbox_close_inherited_fds ()
+        | "strict" ->
+            sandbox_close_inherited_fds ();
+            if sandbox_strict_is_linux_only () then begin
+              Printf.eprintf
+                "mathc verify: warning: sandbox=strict is Linux-only; falling \
+                 back to minimal on this platform\n\
+                 %!"
+            end
+            else sandbox_apply_rlimits_strict ()
+        | _ -> ()
+        end;
+        (try Unix.chdir project_root
+         with _ ->
+           Printf.fprintf stderr "mathc verify: child chdir %s failed\n"
+             project_root;
+           exit 1);
+        (* Optional output capture. A verifier that runs the whole
+           render suite would otherwise interleave 47 lines of test
+           output into `mathc verify`'s own stdout, which is the
+           stream the verdicts are read from. Capturing keeps the
+           verdict stream parseable; the excerpt is printed on
+           stderr when the verdict is not a pass. *)
+        (match capture_to with
+        | None -> ()
+        | Some path -> (
+            try
+              flush stdout;
+              flush stderr;
+              let fd =
+                Unix.openfile path
+                  [ Unix.O_WRONLY; Unix.O_CREAT; Unix.O_TRUNC ]
+                  0o600
+              in
+              Unix.dup2 fd Unix.stdout;
+              Unix.dup2 fd Unix.stderr;
+              Unix.close fd
+            with _ -> ()));
+        try Unix.execve prog args_arr env
+        with _ ->
+          Printf.fprintf stderr "mathc verify: child exec %s failed\n" prog;
+          exit 1)
+    | p -> p
+  in
+  let deadline = Unix.gettimeofday () +. float_of_int timeout_s in
+  let rec poll () =
+    let now = Unix.gettimeofday () in
+    if now >= deadline then begin
+      (try Unix.kill pid Sys.sigkill with _ -> ());
+      let _, status = Unix.waitpid [] pid in
+      (Timeout, status)
+    end
+    else
+      match Unix.waitpid [ Unix.WNOHANG ] pid with
+      | 0, _ ->
+          Unix.sleepf 0.05;
+          poll ()
+      | _, status -> (Pass, status)
+  in
+  poll ()
+
+let[@warning "-32"] run_with_sandbox ~project_root ~prog ~args ~timeout_s
+    ~sandbox_mode =
+  run_with_sandbox_in_env ~env:(sandbox_env ()) ~capture_to:None ~project_root
+    ~prog ~args ~timeout_s ~sandbox_mode
+
+let[@warning "-32"] first_shell_metacharacter s =
+  let n = String.length s in
+  let rec go i =
+    if i >= n then None
+    else if Array.exists (fun c -> c = s.[i]) shell_metacharacters then
+      Some s.[i]
+    else go (i + 1)
+  in
+  go 0
+
+(* Read at most `max_bytes` of a file, as a string. Used to excerpt
+   the output a verifier produced. *)
+let[@warning "-32"] read_capped path ~max_bytes =
+  try
+    let ic = open_in_bin path in
+    let n = in_channel_length ic in
+    let len = if n > max_bytes then max_bytes else n in
+    let s = really_input_string ic len in
+    close_in ic;
+    s
+  with _ -> ""
+
+(* Print at most `max_lines` lines of `text` to stderr, prefixed. A
+   failing dune run can produce kilobytes; the operator needs to see
+   WHY, not to read the whole log. *)
+let[@warning "-32"] excerpt_to_stderr ~heading ~max_lines text =
+  if String.trim text = "" then ()
+  else begin
+    Printf.eprintf "%s\n" heading;
+    let lines = String.split_on_char '\n' text in
+    let rec take n = function
+      | [] -> []
+      | _ when n <= 0 -> [ "(... truncated)" ]
+      | l :: rest -> l :: take (n - 1) rest
+    in
+    List.iter (fun l -> Printf.eprintf "  | %s\n" l) (take max_lines lines);
+    flush stderr
+  end
+
+(* Find a program on the PATH the sandbox child will be given.
+   execve does not search PATH itself, so a bare `dune` would be
+   ENOENT in the child even when dune is installed. *)
+let[@warning "-32"] resolve_on_sandbox_path name =
+  let path =
+    match Sys.getenv_opt "PATH" with
+    | Some p when String.trim p <> "" -> p
+    | _ -> "/usr/bin:/bin"
+  in
+  let rec go = function
+    | [] -> None
+    | "" :: rest -> go rest
+    | dir :: rest -> (
+        let candidate = Filename.concat dir name in
+        match Unix.access candidate [ Unix.X_OK ] with
+        | () -> Some candidate
+        | exception _ -> go rest)
+  in
+  go (String.split_on_char ':' path)
+
+(* An ABSOLUTE path (a repository script, a fixture probe) is
+   already the program; only a bare name is looked up on the PATH
+   the sandbox child will be given. Shared by the verifier planner
+   and `attest-batch --run` so both resolve identically. *)
+let[@warning "-32"] resolve_program name =
+  if String.contains name '/' then Some name else resolve_on_sandbox_path name
+
+(* Some shell metacharacter in `attest-batch --run`: refused, never
+   passed through. Mirrors the verify sandbox rule. *)
+let[@warning "-32"] reject_shell_in_run tokens =
+  List.find_map first_shell_metacharacter tokens
+
 (* --- attest-batch subcommand (ux-3-attest-batch-subcommand) ---
  *
  * `mathc attest-batch` reads a TSV manifest (or walks `decisions/`
@@ -2812,9 +3128,20 @@ let[@warning "-32"] do_attest () =
  *                            the attestation schema enum. Used only
  *                            with --from=decisions; with --manifest each
  *                            row carries its own kind_.
- *   --producer=ID            Override the producer identity
- *                            (default `human:integration-experiment`).
- *                            Used only with --from=decisions.
+ *   --producer=ID            The producer identity. REQUIRED with
+ *                            --from=decisions: there is no default,
+ *                            because a default is how one command
+ *                            signs 793 obligations as a person who
+ *                            never read them. With --manifest each
+ *                            row carries its own identity.
+ *   --run=CMD                Run CMD once (argv-style, no shell) in
+ *                            the project root and use its exit code
+ *                            as the `result`, and the SHA-256 of its
+ *                            output as `materials_digest`. REQUIRED
+ *                            with --kind=test|build|analysis|
+ *                            observation: those kinds claim a run
+ *                            happened, and printing `pass` without
+ *                            running anything is the defect.
  *   --result=pass|fail       Override the result (default `pass`).
  *                            Used only with --from=decisions.
  *   --dry-run                Print each attestation JSON to stdout,
@@ -2857,13 +3184,60 @@ let[@warning "-32"] write_attestation_file ~dest ~fname ~json =
 
 let[@warning "-32"] attest_batch_kind_ok k = List.mem k attestation_kinds
 
+(* The kinds whose whole claim is that something RAN. The
+   attestation schema requires a non-empty `materials_digest` for
+   exactly this set, and `review` is the one kind allowed to have an
+   empty digest ("a human declaration without a runtime anchor"). *)
+let[@warning "-32"] runtime_attestation_kinds =
+  [ "test"; "build"; "analysis"; "observation" ]
+
+(* Above this many attestations the batch is no longer something an
+   operator can eyeball, so the scale is announced on stderr.
+
+   Why 10: below it, the count is readable off the decision the
+   operator has open (the smallest fixture decision carries 2
+   obligations, the corpus' typical one carries 10-40), and a
+   summary line is noise. At 10 and above the operator is signing
+   something whose size no longer fits on a screen, and the corpus
+   has exactly one verifier shape for that case: the batch. The
+   threshold is one constant so the report and the decision quote
+   the same number. *)
+let[@warning "-32"] mass_issue_threshold = 10
+
+let[@warning "-32"] count_distinct_decisions obls =
+  let seen = Hashtbl.create 64 in
+  List.iter (fun (decision, _) -> Hashtbl.replace seen decision ()) obls;
+  Hashtbl.length seen
+
+let[@warning "-32"] report_mass_issue ~n ~decisions ~producer ~kind_ ~result
+    ~run =
+  if n > mass_issue_threshold then
+    Printf.eprintf
+      "mathc attest-batch: about to issue %d attestations across %d decision(s)\n\
+      \  producer=%s kind_=%s result=%s%s\n\
+      \  That is a bulk signature, not a review. Narrow the batch with \
+       --manifest=PATH to sign one obligation at a time.\n\
+       %!"
+      n decisions producer kind_ result
+      (if run = "" then "" else Printf.sprintf " (result of one run: %s)" run)
+
+(* Split `--run=CMD` into argv. No shell: a `|`, `&&` or `>` in the
+   command is refused rather than half-executed, for the same reason
+   the verifier sandbox refuses them. *)
+let[@warning "-32"] split_run_command cmd =
+  List.filter (fun t -> t <> "") (String.split_on_char ' ' (String.trim cmd))
+
 let[@warning "-32"] do_attest_batch () =
   let manifest = ref None in
   let from_kind = ref (Some "decisions") in
   let out_dir = ref "" in
   let kind = ref "review" in
-  let producer = ref "human:integration-experiment" in
+  (* No default. A batch that signs itself `human:integration-
+     experiment` is a signature by someone who is not there; the
+     operator has to type whose signature it is. *)
+  let producer = ref "" in
   let result = ref "pass" in
+  let run_cmd = ref "" in
   let dry_run = ref false in
   let set_manifest s = manifest := Some s in
   let set_from s = from_kind := Some s in
@@ -2871,6 +3245,7 @@ let[@warning "-32"] do_attest_batch () =
   let set_kind s = kind := s in
   let set_producer s = producer := s in
   let set_result s = result := s in
+  let set_run s = run_cmd := s in
   Arg.current := 1;
   (try
      Arg.parse
@@ -2890,19 +3265,24 @@ let[@warning "-32"] do_attest_batch () =
            " <s> kind_ for --from=decisions (default review)" );
          ( "--producer",
            Arg.String set_producer,
-           " <id> producer identity for --from=decisions (default \
-            human:integration-experiment)" );
+           " <id> producer identity for --from=decisions (REQUIRED; there is \
+            no default)" );
          ( "--result",
            Arg.String set_result,
            " <pass|fail> result for --from=decisions (default pass)" );
+         ( "--run",
+           Arg.String set_run,
+           " <cmd> command to run once; its exit code becomes --result and its \
+            output digest becomes materials_digest. Required with \
+            --kind=test|build|analysis|observation." );
          ("--dry-run", Arg.Set dry_run, " print JSON to stdout, no files");
        ]
        (fun s ->
          Printf.fprintf stderr "mathc attest-batch: unexpected argument: %s\n" s;
          exit 2)
        "usage: mathc attest-batch [--manifest=PATH] [--from=decisions] \
-        [--out=DIR] [--kind=...] [--producer=ID] [--result=pass|fail] \
-        [--dry-run]"
+        [--out=DIR] [--kind=...] --producer=ID [--run=CMD] \
+        [--result=pass|fail] [--dry-run]"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc attest-batch: %s\n" m;
      exit 2);
@@ -2971,7 +3351,7 @@ let[@warning "-32"] do_attest_batch () =
             let result = row.result in
             let body =
               Batch.make_attestation ~decision ~obligation ~kind_ ~producer
-                ~result ~issued_at ~candidate_tree
+                ~result ~issued_at ~candidate_tree ~materials_digest:""
             in
             let full = Batch.with_id body in
             let json = Batch.serialize full in
@@ -2986,6 +3366,61 @@ let[@warning "-32"] do_attest_batch () =
   | None -> (
       match !from_kind with
       | Some "decisions" ->
+          (* Refuse before reading anything: the identity is the
+             first thing an attestation asserts, and there is no
+             honest value to assume for it. *)
+          if String.trim !producer = "" then begin
+            Printf.eprintf
+              "mathc attest-batch: --producer=<identity> is required with \
+               --from=decisions\n\
+              \  Every attestation names the producer that signed it, and a \
+               default\n\
+              \  would sign this whole batch as whoever the last release \
+               happened\n\
+              \  to hard-code. Pass --producer=human:<you> or \
+               --producer=agent:<id>.\n\
+              \  (--manifest rows carry their own producer and do not need \
+               this.)\n\
+               %!";
+            exit 2
+          end;
+          if
+            List.mem !kind runtime_attestation_kinds
+            && String.trim !run_cmd = ""
+          then begin
+            Printf.eprintf
+              "mathc attest-batch: --kind=%s needs --run=<command>\n\
+              \  A %s attestation claims something ran. Without --run this \
+               command\n\
+              \  would print `result: pass` for a run that never happened, for \
+               every\n\
+              \  obligation in the batch. Use --run=\"dune runtest\" (or \
+               whatever\n\
+              \  command produces the artefact) or use --kind=review, which is \
+               the\n\
+              \  one kind allowed to rest on a human declaration.\n\
+               %!"
+              !kind !kind;
+            exit 2
+          end;
+          (* Validate the --run command shape before reading
+             anything, for the same reason --producer is checked
+             here: a refusal should not depend on how many
+             obligations happen to be in the store. *)
+          let run_tokens = split_run_command !run_cmd in
+          (match reject_shell_in_run run_tokens with
+          | Some c ->
+              Printf.eprintf
+                "mathc attest-batch: --run contains the shell metacharacter \
+                 %C; attest-batch never runs a shell\n\
+                 %!"
+                c;
+              exit 2
+          | None -> ());
+          if String.trim !run_cmd <> "" && run_tokens = [] then begin
+            Printf.eprintf "mathc attest-batch: --run is empty\n%!";
+            exit 2
+          end;
           let src = Path_config.decisions_dir_at ~root () in
           let obls = Batch.scan_decisions_for_obligations ~reader ~root:src in
           if obls = [] then begin
@@ -3013,10 +3448,69 @@ let[@warning "-32"] do_attest_batch () =
               dest;
             exit 2
           end;
+          (* One run backs the whole batch. Its exit code is the
+             result every attestation carries and its output digest
+             is the materials anchor the schema demands for runtime
+             kinds. Both are announced: N attestations from ONE run
+             is a different claim from N runs, and the operator has
+             to see which one they are making. *)
+          let run_result, run_digest =
+            if String.trim !run_cmd = "" then (!result, "")
+            else
+              match run_tokens with
+              | [] -> (!result, "")
+              | prog :: args -> (
+                  match resolve_program prog with
+                  | None ->
+                      Printf.eprintf
+                        "mathc attest-batch: --run: %s is not on PATH\n%!" prog;
+                      exit 2
+                  | Some abs_prog ->
+                      let log = Filename.temp_file "mathc_attest_run_" ".log" in
+                      let outcome, status =
+                        run_with_sandbox_in_env
+                          ~env:(sandbox_env_for_path_forms ())
+                          ~capture_to:(Some log) ~project_root:root
+                          ~prog:abs_prog ~args:(abs_prog :: args)
+                          ~timeout_s:verify_timeout_s ~sandbox_mode:"none"
+                      in
+                      let output = read_capped log ~max_bytes:1048576 in
+                      (try Sys.remove log with _ -> ());
+                      let ok =
+                        match outcome with
+                        | Pass -> (
+                            match status with
+                            | Unix.WEXITED 0 -> true
+                            | _ -> false)
+                        | Fail | Skipped | Timeout -> false
+                      in
+                      if not ok then begin
+                        Printf.eprintf
+                          "mathc attest-batch: --run `%s` did not exit 0; the \
+                           batch is signed result=fail\n\
+                           %!"
+                          !run_cmd;
+                        excerpt_to_stderr
+                          ~heading:
+                            (Printf.sprintf
+                               "mathc attest-batch: output of `--run %s`:"
+                               !run_cmd)
+                          ~max_lines:20 output
+                      end;
+                      let digest =
+                        if output = "" then ""
+                        else "sha256:" ^ Digest.sha256_hex output
+                      in
+                      ((if ok then "pass" else "fail"), digest))
+          in
+          report_mass_issue ~n:(List.length obls)
+            ~decisions:(count_distinct_decisions obls)
+            ~producer:!producer ~kind_:!kind ~result:run_result ~run:!run_cmd;
           let emit (decision, obligation) =
             let body =
               Batch.make_attestation ~decision ~obligation ~kind_:!kind
-                ~producer:!producer ~result:!result ~issued_at ~candidate_tree
+                ~producer:!producer ~result:run_result ~issued_at
+                ~candidate_tree ~materials_digest:run_digest
             in
             let full = Batch.with_id body in
             let json = Batch.serialize full in
@@ -3064,22 +3558,36 @@ let[@warning "-32"] do_attest_batch () =
  *                        env stripped to PATH/HOME/LANG, cwd =
  *                        decision's project root, 60s timeout
  *
+ * Since verify-path-forms-2026-10 the allowlist also covers the
+ * PATH forms the corpus actually writes -- an obligation that
+ * names a test or a script, not a scheme:
+ *
+ *   dune <args>                subprocess: dune, with <args>
+ *   tests/foo.exe              subprocess: `dune exec ./tests/foo.exe`
+ *   tests/foo.ml               the module's binary, same way
+ *   tests/foo.ml::case         `dune exec ./tests/foo.exe -- test ^case$`
+ *   tests/cli/foo.t            subprocess: `dune runtest tests/cli/foo.t`
+ *   scripts/x.sh [args]        subprocess: the script itself
+ *
+ * Every path form is resolved against the project root and must
+ * (a) exist and (b) resolve INSIDE the repository, symlinks
+ * included. A path that does not is `fail` with the reason
+ * printed -- never `skipped`. The corpus writes its obligations
+ * as paths, so a resolver that only knew three scheme names left
+ * 80% of them reported as "no information" while the command
+ * exited 0.
+ *
  * Any other scheme (including `rm -rf /` and any shell command)
  * is reported as `skipped` WITHOUT being executed. This is the
- * v1 sandbox boundary; the kernel NEVER calls Shell.system or
- * passes the verifier string to /bin/sh.
+ * sandbox boundary; the kernel NEVER calls Shell.system or
+ * passes the verifier string to /bin/sh. A recognised form that
+ * NEEDS a shell (a `|`, `&&`, `>` or a quote in the verifier) is
+ * `fail`, not `skipped`: the obligation was not verified, and
+ * saying so silently is the defect this family removes.
  *
  * The 60s hard timeout is enforced via fork+waitpid: the parent
  * polls the elapsed time and SIGKILLs the child if the deadline
  * is exceeded. See run_with_sandbox below. *)
-type verify_outcome = Pass | Fail | Skipped | Timeout
-
-let[@warning "-32"] verify_outcome_string = function
-  | Pass -> "pass"
-  | Fail -> "fail"
-  | Skipped -> "skipped"
-  | Timeout -> "timeout"
-
 (* Tokenize a verifier string into (scheme, args). The string is
    whitespace-separated; the first token is the scheme. Returns
    None for empty or whitespace-only strings. *)
@@ -3092,61 +3600,6 @@ let[@warning "-32"] parse_verifier_string s =
       |> List.filter (fun t -> String.trim t <> "")
     in
     match parts with [] -> None | scheme :: args -> Some (scheme, args)
-
-(* Compute the env-stripped environment array. Only PATH, HOME,
-   and LANG are inherited; everything else is dropped. *)
-let[@warning "-32"] sandbox_env () =
-  let pick var default =
-    try
-      let v = Sys.getenv var in
-      if String.trim v = "" then default else v
-    with Not_found -> default
-  in
-  [|
-    "PATH=" ^ pick "PATH" "/usr/bin:/bin";
-    "HOME=" ^ pick "HOME" "/";
-    "LANG=" ^ pick "LANG" "C";
-  |]
-
-(* Best-effort close of inherited file descriptors. OCaml stdlib
-   `Unix.close : file_descr -> unit` does not accept an `int`;
-   we open and immediately close using `Obj.magic` to coerce
-   the integer fd. `EINVAL` / `EBADF` are silently absorbed. The
-   upper bound 255 mirrors the standard POSIX_FD_SETSIZE; fd N
-   is closed only when it is currently open.
-
-   NOTE: a future ctypes-foreign–backed implementation will
-   replace this with a direct `close(fd)` syscall that does
-   not need the magic cast. Until then, this is best-effort. *)
-let[@warning "-32"] sandbox_close_inherited_fds () =
-  for fd = 3 to 255 do
-    try ignore (Unix.close (Obj.magic fd : Unix.file_descr) : unit)
-    with _ -> ()
-  done
-
-(* In `strict` mode we apply RLIMITs. `Unix.setrlimit` /
-   `Unix.getrlimit` were DEPRECATED in OCaml 5.4 and REMOVED in
-   OCaml 5.5 (the host compiler in this nix shell is 5.5.0);
-   `ctypes-foreign` is not in `flake.nix` `ocamlDeps` either.
-   Therefore the structural surface is correct (the function
-   is called from run_with_sandbox's `strict` branch, the
-   decision records the intended limits in the child stderr
-   banner), but the kernel-level application is deferred to a
-   future plan that adds the ctypes dependency.
-
-   Stamping each limit in the banner makes the intent
-   observable to operators and to cram tests:
-     "applied RLIMIT_NPROC=1 NOFILE=64 FSIZE=cur"
-
-   See `decisions/verify-sandbox-hardening-2026-11.yaml`
-   `risk.declared_triggers.macos-strict-degrades-silently`
-   for the ASPIRATIONAL boundary. *)
-let[@warning "-32"] sandbox_apply_rlimits_strict () =
-  Printf.eprintf
-    "mathc verify: [strict] would apply RLIMIT_NPROC=1, RLIMIT_NOFILE=64, \
-     RLIMIT_FSIZE=cur (requires ctypes-foreign; not present in this nix shell \
-     — see decisions/verify-sandbox-hardening-2026-11.yaml)\n\
-     %!"
 
 (* The mathc-scheme allowlist: in `strict` mode, only read-only
    subcommands may be re-invoked through `verifier: "mathc <sub>"`.
@@ -3175,18 +3628,6 @@ let[@warning "-32"] mathc_scheme_allowlist =
     "rehash";
   ]
 
-(* Is the current host a non-Linux platform for the purposes of
-   `strict`-mode OS primitives? OCaml's `Sys.os_type` returns
-   `"Unix"` on *every* Unix-like host (Linux, macOS, the BSDs),
-   so it cannot distinguish Linux from macOS. We use the
-   presence of the Linux-only `/proc/self/status` procfs entry
-   as the discriminator: true on macOS / Windows / BSD where
-   the prctl/capset/RLIMIT primitives are unavailable (or
-   require a different path). This is what gates the
-   "sandbox=strict is Linux-only" fallback warning. *)
-let[@warning "-32"] sandbox_strict_is_linux_only () =
-  not (Sys.file_exists "/proc/self/status")
-
 (* Run `prog args` in a subprocess with cwd = project_root and
    the env-stripped sandbox. Returns the process_status. The
    60s hard timeout is enforced: if the deadline is exceeded
@@ -3206,56 +3647,382 @@ let[@warning "-32"] sandbox_strict_is_linux_only () =
                  documented as out-of-scope (no ctypes-foreign
                  in this nix shell); see
                  `lib/path_config.ml::resolve_sandbox_mode`. *)
-let[@warning "-32"] run_with_sandbox ~project_root ~prog ~args ~timeout_s
-    ~sandbox_mode =
-  let args_arr = Array.of_list args in
-  let env = sandbox_env () in
-  let pid =
-    Unix.fork () |> function
-    | 0 -> (
-        (* Child: apply sandbox, chdir, exec. Errors here are
-           unrecoverable from the child; we exit 1 to surface
-           them. *)
-        begin match sandbox_mode with
-        | "minimal" -> sandbox_close_inherited_fds ()
-        | "strict" ->
-            sandbox_close_inherited_fds ();
-            if sandbox_strict_is_linux_only () then begin
-              Printf.eprintf
-                "mathc verify: warning: sandbox=strict is Linux-only; falling \
-                 back to minimal on this platform\n\
-                 %!"
-            end
-            else sandbox_apply_rlimits_strict ()
-        | _ -> ()
-        end;
-        (try Unix.chdir project_root
-         with _ ->
-           Printf.fprintf stderr "mathc verify: child chdir %s failed\n"
-             project_root;
-           exit 1);
-        try Unix.execve prog args_arr env
-        with _ ->
-          Printf.fprintf stderr "mathc verify: child exec %s failed\n" prog;
-          exit 1)
-    | p -> p
+(* --- path-form verifier schemes (verify-path-forms-2026-10) ---
+ *
+ * An obligation in this corpus rarely names a scheme. It names a
+ * file:
+ *
+ *     verifier: tests/render_kernel.ml::mathjax_no_dollar_delimiters
+ *     verifier: tests/counters_reference.exe
+ *     verifier: scripts/check.sh
+ *     verifier: tests/cli/gate-pass.t
+ *     verifier: dune build @install
+ *
+ * `parse_verifier_string` splits on SPACE and calls the first
+ * token a scheme, so all five of those arrived at `run_one_verifier`
+ * with a scheme that is in no allowlist and were reported `skipped`
+ * -- a status the subcommand exits 0 on. Measured over the corpus
+ * that was 80% of every verifier string ever written: not
+ * "no failures found", but "nothing ran".
+ *
+ * This block executes them. Three rules hold for every form:
+ *
+ *   1. NO SHELL. argv is built from the verifier tokens and handed
+ *      to execve. A verifier containing a shell metacharacter is
+ *      `fail`, because the kernel does not spawn /bin/sh and the
+ *      operator has to hear that their obligation did not run.
+ *   2. IN-REPOSITORY. A path form must resolve to a regular file
+ *      inside the project root, symlinks resolved. Anything else
+ *      is `fail` naming the reason.
+ *   3. SAME SANDBOX. Every one of these is a `run_with_sandbox`
+ *      call: env stripped to PATH/HOME/LANG, cwd = project root,
+ *      60s timeout, the sandbox mode from
+ *      MATH_CODING_VERIFY_SANDBOX / --sandbox applied identically
+ *      to the three original schemes. *)
+
+let[@warning "-32"] starts_with prefix s =
+  let lp = String.length prefix and ls = String.length s in
+  ls >= lp && String.sub s 0 lp = prefix
+
+(* `dune` invocations in the corpus carry an English annotation
+   glued to the end of the command -- `dune build @runtest --root .
+   exits 0`, `dune test passes`. Those words are a claim about the
+   exit status, not arguments to dune; passing them through makes
+   dune fail on an argument the executor never meant. The list is
+   closed and every strip is announced, so the transformation is
+   visible rather than silent. *)
+let[@warning "-32"] dune_prose_tails =
+  [ "exits 0"; "exit 0"; "exits zero"; "passes"; "passes cleanly"; "succeeds" ]
+
+let[@warning "-32"] normalise_prose_tail s =
+  let s = String.lowercase_ascii s in
+  let n = String.length s in
+  if n > 0 && s.[n - 1] = '.' then String.sub s 0 (n - 1) else s
+
+let[@warning "-32"] strip_dune_prose_tail args =
+  (* Returns (kept_args, stripped_args). When nothing matches the
+     prose list `kept` is `args` itself: a first version returned
+     only the stripped list and silently DROPPED the whole command
+     when no annotation was present, which ran every plain `dune
+     build` as a bare `dune`. *)
+  let rec go acc = function
+    | [] -> (List.rev acc, [])
+    | rest -> (
+        match List.rev rest with
+        | [] -> (List.rev acc, [])
+        | last :: rev_rest ->
+            if List.mem (normalise_prose_tail last) dune_prose_tails then
+              go (last :: acc) rev_rest
+            else (List.rev_append acc rest, []))
   in
-  let deadline = Unix.gettimeofday () +. float_of_int timeout_s in
-  let rec poll () =
-    let now = Unix.gettimeofday () in
-    if now >= deadline then begin
-      (try Unix.kill pid Sys.sigkill with _ -> ());
-      let _, status = Unix.waitpid [] pid in
-      (Timeout, status)
-    end
-    else
-      match Unix.waitpid [ Unix.WNOHANG ] pid with
-      | 0, _ ->
-          Unix.sleepf 0.05;
-          poll ()
-      | _, status -> (Pass, status)
+  go [] args
+
+let[@warning "-32"] path_has_dotdot_segment p =
+  List.exists (fun s -> s = "..") (String.split_on_char '/' p)
+
+let[@warning "-32"] path_is_under ~root path =
+  let strip_trailing_slash r =
+    let n = String.length r in
+    if n > 1 && r.[n - 1] = '/' then String.sub r 0 (n - 1) else r
   in
-  poll ()
+  let root = strip_trailing_slash root in
+  let prefix = if root = "/" then root else root ^ "/" in
+  String.length path >= String.length prefix
+  && String.sub path 0 (String.length prefix) = prefix
+
+(* Resolve a repository-relative path to its real absolute form.
+   Returns `Error reason` for each way it can fail, because every
+   one of them is a `fail` verdict whose diagnostic has to tell the
+   operator WHICH rule the path broke. *)
+let[@warning "-32"] repo_file ~project_root rel =
+  if rel = "" then Error "empty path"
+  else if not (Filename.is_relative rel) then
+    Error
+      (Printf.sprintf
+         "%s: absolute path; a verifier names a file inside the repository" rel)
+  else if path_has_dotdot_segment rel then
+    Error
+      (Printf.sprintf
+         "%s: `..` segment; a verifier names a file inside the repository" rel)
+  else
+    let abs = Filename.concat project_root rel in
+    match Unix.realpath abs with
+    | exception _ ->
+        Error
+          (Printf.sprintf "%s: no such file in the repository (looked in %s)"
+             rel project_root)
+    | real_abs -> (
+        let real_root =
+          match Unix.realpath project_root with
+          | exception _ -> project_root
+          | r -> r
+        in
+        if not (path_is_under ~root:real_root real_abs) then
+          Error
+            (Printf.sprintf "%s: resolves outside the repository (%s)" rel
+               real_abs)
+        else
+          match Unix.stat real_abs with
+          | exception _ ->
+              Error (Printf.sprintf "%s: cannot stat (%s)" rel real_abs)
+          | st when st.Unix.st_kind = Unix.S_REG -> Ok (real_abs, rel)
+          | _ -> Error (Printf.sprintf "%s: not a regular file" rel))
+
+let[@warning "-32"] ends_with ~suffix s =
+  let ls = String.length s and lf = String.length suffix in
+  ls >= lf && String.sub s (ls - lf) lf = suffix
+
+(* A path the corpus writes with a case selector after it, under
+   either spelling. Both appear in decisions/: `tests/traps.ml::x`
+   and `tests/render_kernel.ml:x`. *)
+let[@warning "-32"] has_case_suffix rel =
+  ends_with ~suffix:".ml" rel
+  || ends_with ~suffix:".exe" rel
+  || ends_with ~suffix:".t" rel
+
+(* Split `path::case`, or `path:case` when the left side is a module
+   we know how to build. A single colon that does NOT precede a case
+   selector belongs to the path: a directory may contain one, and
+   splitting on it would point `repo_file` at a name the repository
+   does not have. *)
+let[@warning "-32"] split_case_selector token =
+  let n = String.length token in
+  let rec go i =
+    if i >= n - 1 then (token, None)
+    else if token.[i] = ':' && token.[i + 1] = ':' then
+      (String.sub token 0 i, Some (String.sub token (i + 2) (n - i - 2)))
+    else if
+      token.[i] = ':'
+      && has_case_suffix (String.sub token 0 i)
+      && not (String.sub token (i + 1) (n - i - 1) = "")
+    then (String.sub token 0 i, Some (String.sub token (i + 1) (n - i - 1)))
+    else go (i + 1)
+  in
+  go 0
+
+(* A dune target path that `dune exec` accepts. The leading `./` is
+   what tells dune this is a target and not a program to look up in
+   PATH. *)
+let[@warning "-32"] dune_exec_target rel = "./" ^ rel
+
+type verifier_plan =
+  | Plan_dune of string list
+  (* argv after `dune` *)
+  | Plan_script of string * string list
+  (* absolute script path, argv *)
+  | Plan_cram of string
+  (* repository-relative cram file, run via `dune runtest` *)
+  | Plan_binary of string * string list
+(* dune exec target, argv handed to the binary *)
+
+type verifier_plan_result =
+  | Plan_skip
+  (* not a form verify executes: `skipped`, as before *)
+  | Plan_fail of string
+  (* a form verify knows, that cannot run: `fail` + reason *)
+  | Plan_ok of verifier_plan
+
+let[@warning "-32"] reject_metachars ~what tokens =
+  match List.find_map first_shell_metacharacter tokens with
+  | Some c ->
+      let why =
+        Printf.sprintf
+          "contains the shell metacharacter %C; `mathc verify` never runs a \
+           shell, so this obligation cannot be checked here"
+          c
+      in
+      Plan_fail (if what = "" then why else what ^ ": " ^ why)
+  | None -> Plan_skip
+
+(* `dune <args>` — executed as `dune <args>` with cwd = project root. *)
+let[@warning "-32"] plan_dune_form args =
+  match args with
+  | [] ->
+      Plan_fail
+        "`dune` needs a subcommand: `dune build`, `dune runtest FILE`, ..."
+  | _ -> (
+      let args, stripped = strip_dune_prose_tail args in
+      if stripped <> [] then
+        Printf.eprintf
+          "mathc verify: dropped the prose tail %S from the dune verifier (it \
+           describes the expected exit status, not a dune argument)\n\
+           %!"
+          (String.concat " " stripped);
+      match reject_metachars ~what:"" args with
+      | Plan_skip -> Plan_ok (Plan_dune args)
+      | other -> other)
+
+(* `tests/foo.ml[::case]` / `tests/foo.exe[::case]`.
+
+   A `.ml` module is a file in the repository: it must exist, or the
+   obligation cannot be checked and says so. A `.exe` is a dune build
+   PRODUCT that does not exist until dune builds it, so only the
+   lexical rules apply to it (relative, no `..`) and a target dune
+   cannot build is dune's error to report, naming exactly what it
+   could not produce. *)
+let[@warning "-32"] plan_binary_form ~project_root ~args ~token ~rel ~selector =
+  let lexical =
+    if not (Filename.is_relative rel) then
+      Some
+        (Printf.sprintf
+           "%s: absolute path; a verifier names a file inside the repository"
+           token)
+    else if path_has_dotdot_segment rel then
+      Some
+        (Printf.sprintf
+           "%s: `..` segment; a verifier names a file inside the repository"
+           token)
+    else None
+  in
+  let target =
+    if ends_with ~suffix:".ml" rel then
+      String.sub rel 0 (String.length rel - 3) ^ ".exe"
+    else rel
+  in
+  (* Alcotest's NAME_REGEX is a partial match: `base_href` runs both
+     base_href_default and base_href_empty. Anchoring is what makes
+     `::case` mean THAT case. Alcotest exits non-zero when the
+     pattern matches nothing, so an unknown case is a `fail` and
+     never a silent `pass`. *)
+  let argv =
+    match selector with
+    | None -> []
+    | Some c -> [ "test"; "^" ^ String.escaped c ^ "$" ]
+  in
+  match lexical with
+  | Some why -> Plan_fail why
+  | None -> (
+      match
+        if ends_with ~suffix:".ml" rel then
+          match repo_file ~project_root rel with
+          | Error why -> Plan_fail why
+          | Ok _ -> Plan_skip
+        else Plan_skip
+      with
+      | Plan_skip -> (
+          match reject_metachars ~what:rel args with
+          | Plan_skip -> Plan_ok (Plan_binary (dune_exec_target target, argv))
+          | other -> other)
+      | other -> other)
+
+let[@warning "-32"] plan_script_form ~project_root ~args ~token =
+  match repo_file ~project_root token with
+  | Error why -> Plan_fail why
+  | Ok (abs, _) -> (
+      match Unix.access abs [ Unix.X_OK ] with
+      | () -> (
+          match reject_metachars ~what:token args with
+          | Plan_skip -> Plan_ok (Plan_script (abs, args))
+          | other -> other)
+      | exception _ -> Plan_fail (Printf.sprintf "%s: not executable" token))
+
+(* `tests/.../foo.t` — a cram file; the file is the smallest unit
+   `dune runtest` will execute. dune exposes no per-case selector,
+   so a `::case` on a cram file runs the file and says so. *)
+let[@warning "-32"] plan_cram_form ~project_root ~rel ~selector =
+  match repo_file ~project_root rel with
+  | Error why -> Plan_fail why
+  | Ok (abs, _) ->
+      (match selector with
+      | Some c ->
+          Printf.eprintf
+            "mathc verify: %s::%s — `dune runtest` selects cram files, not \
+             single cases; running the whole file\n\
+             %!"
+            rel c
+      | None -> ());
+      Plan_ok (Plan_cram rel)
+
+let[@warning "-32"] plan_tests_form ~project_root ~args ~token ~rel ~selector =
+  if ends_with ~suffix:".t" rel then plan_cram_form ~project_root ~rel ~selector
+  else if ends_with ~suffix:".ml" rel || ends_with ~suffix:".exe" rel then
+    plan_binary_form ~project_root ~args ~token ~rel ~selector
+  else if ends_with ~suffix:".sh" rel then
+    (* tests/fixtures/*.sh is a shell fixture, not a dune target: the
+       same executable the scripts/ form runs. *)
+    plan_script_form ~project_root ~args ~token
+  else
+    Plan_fail
+      (Printf.sprintf
+         "%s: no execution rule for this tests/ path (known: .ml, .exe, .t, \
+          .sh)"
+         token)
+
+(* Classify one verifier string. `project_root` is used for the
+   containment check only; execution happens in the sandbox. *)
+let[@warning "-32"] plan_verifier ~project_root scheme args =
+  if scheme = "dune" then plan_dune_form args
+  else if starts_with "tests/" scheme then
+    let rel, selector = split_case_selector scheme in
+    if args <> [] then
+      Plan_fail
+        (Printf.sprintf
+           "%s: a path verifier takes no arguments after the path (got %S)"
+           scheme (String.concat " " args))
+    else plan_tests_form ~project_root ~args ~token:scheme ~rel ~selector
+  else if starts_with "scripts/" scheme then
+    plan_script_form ~project_root ~args ~token:scheme
+  else Plan_skip
+
+(* Run one argv in the sandbox and map its status to a verdict. The
+   child's stdout/stderr are captured; on a non-pass verdict an
+   excerpt goes to stderr. *)
+let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
+  (* A repository script arrives here as an ABSOLUTE path that
+     repo_file already proved is inside the root; only a bare
+     program name (`dune`) is looked up on the child's PATH. *)
+  match resolve_program prog with
+  | None ->
+      Printf.eprintf "mathc verify: %s is not on PATH\n%!" prog;
+      Fail
+  | Some abs_prog ->
+      let log = Filename.temp_file "mathc_verify_" ".log" in
+      let outcome, status =
+        run_with_sandbox_in_env
+          ~env:(sandbox_env_for_path_forms ())
+          ~capture_to:(Some log) ~project_root ~prog:abs_prog
+          ~args:(abs_prog :: args) ~timeout_s:verify_timeout_s ~sandbox_mode
+      in
+      let captured = read_capped log ~max_bytes:65536 in
+      (try Sys.remove log with _ -> ());
+      let verdict =
+        match outcome with
+        | Timeout ->
+            Printf.eprintf "mathc verify: %s exceeded the %d s timeout\n%!" prog
+              verify_timeout_s;
+            Timeout
+        | Pass -> (
+            match status with
+            | Unix.WEXITED 0 -> Pass
+            | Unix.WEXITED n ->
+                Printf.eprintf "mathc verify: %s exited %d\n%!" prog n;
+                Fail
+            | Unix.WSIGNALED _ -> Fail
+            | Unix.WSTOPPED _ -> Fail)
+        | Fail | Skipped -> Fail
+      in
+      (match verdict with
+      | Pass | Skipped -> ()
+      | Fail | Timeout ->
+          excerpt_to_stderr
+            ~heading:
+              (Printf.sprintf "mathc verify: output of `%s`:"
+                 (String.concat " " (prog :: args)))
+            ~max_lines:20 captured);
+      verdict
+
+let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode = function
+  | Plan_dune args ->
+      run_plan_argv ~project_root ~sandbox_mode ~prog:"dune" ~args
+  | Plan_script (abs, args) ->
+      run_plan_argv ~project_root ~sandbox_mode ~prog:abs ~args
+  | Plan_cram rel ->
+      run_plan_argv ~project_root ~sandbox_mode ~prog:"dune"
+        ~args:[ "runtest"; rel ]
+  | Plan_binary (target, argv) ->
+      let args = [ "exec"; target ] in
+      let args = if argv = [] then args else args @ [ "--" ] @ argv in
+      run_plan_argv ~project_root ~sandbox_mode ~prog:"dune" ~args
 
 (* Run a single verifier string. Returns Pass | Fail | Skipped |
    Timeout. The sandbox is enforced by the scheme allowlist. In
@@ -3315,7 +4082,17 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
                 | Unix.WSTOPPED _ -> Fail)
             | Fail | Skipped -> Fail
           end
-      | _ -> Skipped)
+      | _ -> (
+          (* Not one of the three scheme names. The corpus writes
+             most obligations as a PATH, so before answering
+             `skipped` — a status this subcommand exits 0 on — ask
+             whether this is one of the path forms. *)
+          match plan_verifier ~project_root scheme args with
+          | Plan_skip -> Skipped
+          | Plan_fail why ->
+              Printf.eprintf "mathc verify: %s — %s\n%!" verifier_string why;
+              Fail
+          | Plan_ok plan -> run_verifier_plan ~project_root ~sandbox_mode plan))
 
 (* Aggregate per-obligation verdict. The semantics follow the
    acceptance item convention: `all` means every verifier must

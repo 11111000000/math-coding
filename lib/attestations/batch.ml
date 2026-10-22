@@ -23,7 +23,8 @@
  *   make_attestation : decision:string -> obligation:string ->
  *                      kind_:string -> producer:string ->
  *                      result:string -> issued_at:string ->
- *                      candidate_tree:string -> Jsonl.value
+ *                      candidate_tree:string -> materials_digest:string ->
+ *                      Jsonl.value
  *   compute_id : Jsonl.value -> string
  *   with_id : Jsonl.value -> Jsonl.value
  *   serialize : Jsonl.value -> string
@@ -189,7 +190,16 @@ let[@warning "-32"] parse_manifest body =
    (8 entries, "schema" ... "issued_at"). Insertion order is
    irrelevant because `serialize` sorts them. *)
 let[@warning "-32"] make_attestation ~decision ~obligation ~kind_ ~producer
-    ~result ~issued_at ~candidate_tree =
+    ~result ~issued_at ~candidate_tree ~materials_digest =
+  (* `materials_digest` is "" for a human review, which the
+     attestation schema permits: an empty digest is legal exactly for
+     {kind_: review} ("a human declaration without a runtime
+     anchor"). For {test, build, observation, analysis} the schema
+     requires it non-empty, so the caller passes the digest of the
+     artefact the run produced -- see
+     decisions/verify-path-forms-and-signed-attestations-2026-10
+     (`--run`). Emitting a runtime kind with an empty digest is what
+     MC-MATERIALS-DIGEST-EMPTY blocks at the gate. *)
   Jsonl.Object
     [
       ("schema", Jsonl.String "math-coding/attestation-3.3");
@@ -200,7 +210,7 @@ let[@warning "-32"] make_attestation ~decision ~obligation ~kind_ ~producer
             ("decision", Jsonl.String decision);
             ("obligation", Jsonl.String obligation);
             ("candidate_tree", Jsonl.String candidate_tree);
-            ("materials_digest", Jsonl.String "");
+            ("materials_digest", Jsonl.String materials_digest);
           ] );
       ("kind_", Jsonl.String kind_);
       ("producer", Jsonl.Object [ ("identity", Jsonl.String producer) ]);

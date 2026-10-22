@@ -91,7 +91,7 @@ this scratch project the default `.math-coding/decisions` does not
 exist and neither does the legacy one, so the walker reports nothing
 rather than silently reading the repository the harness runs in.
 
-  $ if mathc attest-batch --from=decisions --dry-run >/dev/null 2>"$tmp/ab2.err"; then
+  $ if mathc attest-batch --from=decisions --producer=human:integration-test --dry-run >/dev/null 2>"$tmp/ab2.err"; then
   >   echo "FAIL: expected exit 2 with no decisions"; exit 1
   > else
   >   echo "empty project refused (exit $?)"
