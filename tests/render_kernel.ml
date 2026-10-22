@@ -647,8 +647,7 @@ let[@warning "-32"] project_root () =
         if Sys.file_exists (Filename.concat d "dune-project") then d
         else
           let parent = Filename.dirname d in
-          if parent = d then Filename.dirname Sys.argv.(0)
-          else climb parent
+          if parent = d then Filename.dirname Sys.argv.(0) else climb parent
       in
       climb (Filename.dirname Sys.argv.(0))
 
