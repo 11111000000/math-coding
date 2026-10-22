@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: parser-risk-owner-default
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:775422fd3fa924e55ae3ceae68b687a69b389cfa70866b2156892944216aee85"
-yaml_sha: "sha256:775422fd3fa924e55ae3ceae68b687a69b389cfa70866b2156892944216aee85"
+body_sha: "sha256:e9ef2a5025fdc8aa8bf41f4996e5a5acfbc29f0c382b002e70a262f472193845"
+yaml_sha: "sha256:e9ef2a5025fdc8aa8bf41f4996e5a5acfbc29f0c382b002e70a262f472193845"
 intent: |
   Document a kernel parse bug surfaced by the 2026-10-05 audit
   cycle, record the in-tree workaround, and bound the proper
