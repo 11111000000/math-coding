@@ -1,0 +1,38 @@
+---
+schema: math-coding/3.2
+id: dup-key-demo
+revision: 1
+state: active
+axiom_link:
+  - A0
+intent: |
+  Demo.
+commitment: |
+  Demo.
+scope:
+  paths:
+    - lib/codec.ml
+outcomes:
+  - id: o
+    statement: |
+      Demo.
+counterexample: |
+  Demo.
+obligations:
+  - id: first
+    outcome: documented-limitation
+    claim: |
+      Demo.
+    acceptance:
+      all:
+        - verifier: shell-grep demo
+          result: pass
+obligations:
+  - id: second
+    outcome: documented-limitation
+    claim: |
+      Unreachable.
+    acceptance:
+      all:
+        - verifier: shell-grep demo
+          result: pass

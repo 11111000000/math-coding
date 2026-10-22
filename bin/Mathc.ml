@@ -118,6 +118,74 @@ let[@warning "-32"] collect_ambiguous_acceptance_diagnostics v =
       | None -> [])
   | _ -> []
 
+(* MC-DUPLICATE-KEY collector: one Warn diagnostic per duplicated
+   mapping key. Runs on the ALREADY-PARSED document, so the
+   detector and the readers agree by construction — see
+   `lib/codec.ml::duplicate_keys` for why this is a tree walk and
+   not a text scan.
+
+   `raw` is re-read only to attach line numbers, and only for
+   root-level keys where a top-level `key:` line is unambiguous.
+   A key nested deeper than the root gets no lines rather than a
+   guessed position. *)
+let[@warning "-32"] collect_duplicate_key_diagnostics path v =
+  let raw = match read_file path with Ok s -> s | Error _ -> "" in
+  Codec.duplicate_keys v
+  |> List.map (fun d ->
+       let lines =
+         match d.Codec.dup_path with
+         | [ k ] -> Codec.top_level_key_lines raw k
+         | _ -> []
+       in
+       Diagnostic.mc_duplicate_key ~key:d.Codec.dup_key ~path:d.dup_path
+         ~occurrences:d.dup_count ~lines ())
+
+(* MC-UNPARSED-TAIL collector: the complementary half of the
+   silent-drop family. Re-parses the raw text with
+   `load_yaml_string_full` — the same loader `parse_file` used, so
+   the remainder reported here is the remainder the verdict was
+   computed from, not a second opinion. Two channels feed it:
+
+     - the token list `parse_yaml_pairs` did not consume (the
+       loader returned early);
+     - a second `---` document marker, which truncates the file
+       during front-matter stripping, before tokenisation, so the
+       leftover list is empty and only the marker betrays it.
+
+   Content dropped by either is ABSENT from the tree, so the
+   duplicate-key walk cannot see it; without this collector a
+   truncated decision validates clean and the gate never learns
+   what it missed. *)
+let[@warning "-32"] collect_unparsed_tail_diagnostics path =
+  match read_file path with
+  | Error _ -> []
+  | Ok raw -> (
+      let _, leftover, extra_doc = Codec.load_yaml_string_full raw in
+      let tail =
+        match leftover with
+        | [] -> []
+        | first :: _ ->
+            [
+              Diagnostic.mc_unparsed_tail
+                ~path:[ Printf.sprintf "line %d" first.Codec.yline ]
+                ~line:first.Codec.yline ~content:first.Codec.ycontent
+                ~lost:(List.length leftover) ();
+            ]
+      in
+      let doc =
+        match extra_doc with
+        | None -> []
+        | Some line ->
+            [
+              Diagnostic.mc_unparsed_tail
+                ~path:[ Printf.sprintf "document %d" 2 ]
+                ~line ~content:"---"
+                ~lost:(max 1 (List.length (Codec.yaml_lines raw) - line))
+                ~document_marker:true ();
+            ]
+      in
+      tail @ doc)
+
 (* Canonical verifier scheme allowlist (plan-decision C5,
    decisions/verifier-scheme-convention-2026-11.yaml). The
    scheme is the first whitespace-delimited token of the
@@ -460,11 +528,22 @@ let validate_with_counts path =
          verifies `kind: waiver`. Anything else returns None and
          falls through to the decision parser unchanged — the
          decision path is not weakened. *)
+      (* MC-DUPLICATE-KEY is a property of the mapping itself, not
+         of the schema family, so the collector runs BEFORE the
+         family dispatch and its diagnostics ride along on every
+         Accept branch below. A waiver or obligations aggregator
+         with a duplicated key is just as unreachable as a
+         decision's. *)
+      let dup_diags =
+        collect_unparsed_tail_diagnostics path
+        @ collect_duplicate_key_diagnostics path v
+      in
       match Decision.peek_schema_family v with
       | Some (Decision.Waiver, id) ->
-          `Accept_aggregate { kind = "waiver"; id; extra_diags = [] }
+          `Accept_aggregate { kind = "waiver"; id; extra_diags = dup_diags }
       | Some (Decision.Obligations, id) ->
-          `Accept_aggregate { kind = "obligations"; id; extra_diags = [] }
+          `Accept_aggregate
+            { kind = "obligations"; id; extra_diags = dup_diags }
       | Some (Decision.Attestation, id) -> (
           (* MC-MATERIALS-DIGEST-EMPTY dispatch
                 (decisions/kernel-bugs-v3.4-2026-10). The validator is
@@ -479,7 +558,7 @@ let validate_with_counts path =
                   `Reject (diag, msg)
               | None ->
                   `Accept_aggregate
-                    { kind = "attestation"; id; extra_diags = [] })
+                    { kind = "attestation"; id; extra_diags = dup_diags })
           | None ->
               let msg =
                 "attestation is not parseable: schemas/attestation.json \
@@ -590,6 +669,7 @@ let validate_with_counts path =
                                       collect_verifier_scheme_diagnostics v
                                       @ extra_diags
                                     in
+                                    let extra_diags = dup_diags @ extra_diags in
                                     `Accept (d, extra_diags))
                             | None ->
                                 (* D8 (Slice A): the parser now returns a typed

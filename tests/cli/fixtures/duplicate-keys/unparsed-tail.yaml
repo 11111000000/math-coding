@@ -1,0 +1,52 @@
+---
+schema: math-coding/3.2
+id: unparsed-tail-demo
+revision: 1
+state: active
+axiom_link:
+  - A0
+intent: |
+  Demo.
+commitment: |
+  Demo.
+scope:
+  paths:
+    - lib/codec.ml
+outcomes:
+  - id: o
+    statement: |
+      Demo.
+counterexample: |
+  Demo.
+obligations:
+  - id: first
+    outcome: documented-limitation
+    claim: |
+      Demo.
+    acceptance:
+      all:
+        - verifier: shell-grep demo
+          result: pass
+assumptions:
+  - id: a1
+    state: assumed
+    statement: |
+      S.
+    owner: human:maintainer
+    consequence_if_false: a CI step could
+      hit the wrong binary. Mitigation: rename the
+      install step.
+    review_on:
+      - signal: s1
+obligations:
+  - id: never-read
+    outcome: documented-limitation
+    claim: |
+      Never reached the gate.
+    acceptance:
+      all:
+        - verifier: shell-grep demo
+          result: pass
+risk:
+  owner: human:maintainer
+  level: low
