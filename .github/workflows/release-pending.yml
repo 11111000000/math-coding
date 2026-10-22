@@ -31,22 +31,88 @@ jobs:
       # fix/release-pending-yaml-invalid-2026-10. Write multi-line
       # payloads with printf/echo, and keep every `run:` body indented.
 
-      - name: Detect protected-path diff
-        id: detect-diff
+      # WHAT THIS GATE ASKS
+      # -------------------
+      # F15: the shipped mathc 3.3.2 binary did not contain the fixes
+      # because the built artifact predated the sub-decision merges by
+      # ~4 hours. The only versioned artifact users install is the
+      # GitHub Release that release.yml publishes on a `v*.*.*` tag
+      # push (release.yml::on.push.tags + the "Publish on tag" step);
+      # `install.sh`'s MC_VERSION_DEFAULT names such a version. So the
+      # artifact's content is exactly the tree of the tagged commit,
+      # and the honest question is:
+      #
+      #     is the base tip a commit that has been released as vX.Y.Z?
+      #
+      # If yes, the shipped binary matches the base tree and a
+      # protected-path change on top of it is an ordinary next-cycle
+      # change. If no, the shipped binary provably predates the base
+      # tree, and merging more protected-path changes makes that gap
+      # wider — F15 again.
+      #
+      # THE QUESTION THAT WAS WRITTEN BEFORE, AND WHY IT IS NOT USED
+      # ------------------------------------------------------------
+      # release-cadence-2026-11@1 states the outcome as "fails when no
+      # release-workflow re-run is recorded after that tag". Taken
+      # literally that question is VACUOUS, and no amount of API
+      # plumbing makes it non-vacuous: release.yml triggers on
+      # `push: branches: [main]`, so every merge to main already IS a
+      # release-workflow run. A gate that asks it would go green in the
+      # exact F15 situation it was written to catch — a green gate that
+      # lies is worse than a red gate that says nothing. See
+      # decisions/release-pending-real-staleness-2026-10.yaml.
+      #
+      # The literal-anything-on-the-base question ("a tag exists")
+      # that this file used to ask carries no information at all: once
+      # a project has shipped one release, every base ref has a tag
+      # merged into it forever, so that gate blocked every
+      # protected-path PR from that point on and never once turned
+      # green.
+
+      - name: Resolve base ref
+        id: resolve-base
         run: |
           set -euo pipefail
           BASE="${GITHUB_BASE_REF}"
+          # An empty base ref used to mean "skip the gate". It now means
+          # the gate cannot be evaluated, and a check that cannot be
+          # evaluated has not passed.
           if [ -z "${BASE}" ]; then
-            echo "touches_protected=false" >> "${GITHUB_OUTPUT}"
-            echo "no base ref detected; gate skipped" >&2
-            exit 0
+            echo "release-pending: GITHUB_BASE_REF is empty." >&2
+            echo "Gate fails closed: there is no base tip to compare a release against." >&2
+            exit 1
           fi
+          # Two spellings, because `pull_request` checkouts do not
+          # always populate the remote-tracking ref, and a resolution
+          # that silently yields nothing must never read as "resolved
+          # to the empty string".
+          BASE_SHA=""
+          for CANDIDATE in "refs/remotes/origin/${BASE}" "refs/heads/${BASE}"; do
+            if RESOLVED="$(git rev-parse --verify --quiet "${CANDIDATE}^{commit}")"; then
+              BASE_SHA="${RESOLVED}"
+              break
+            fi
+          done
+          if [ -z "${BASE_SHA}" ]; then
+            echo "release-pending: cannot resolve base ref ${BASE} in this checkout." >&2
+            echo "Gate fails closed: an unresolvable base is not a released base." >&2
+            exit 1
+          fi
+          echo "base_ref=${BASE}" >> "${GITHUB_OUTPUT}"
+          echo "base_sha=${BASE_SHA}" >> "${GITHUB_OUTPUT}"
+
+      - name: Detect protected-path diff
+        id: detect-diff
+        env:
+          BASE_SHA: ${{ steps.resolve-base.outputs.base_sha }}
+        run: |
+          set -euo pipefail
           # Fail closed on a git error. Under `set -o pipefail` a
           # `git diff | grep ... || true` pipeline reports the empty
           # string here, which reads as "no protected paths touched" —
           # the gate would pass without ever having asked its question.
-          if ! DIFF="$(git diff --name-only "origin/${BASE}...HEAD")"; then
-            echo "release-pending: cannot diff against origin/${BASE}." >&2
+          if ! DIFF="$(git diff --name-only "${BASE_SHA}...HEAD")"; then
+            echo "release-pending: cannot diff against base ${BASE_SHA}." >&2
             echo "Gate fails closed: an unreadable diff is not a clean diff." >&2
             exit 1
           fi
@@ -55,7 +121,12 @@ jobs:
           TOUCHED=""
           while IFS= read -r CHANGED; do
             case "${CHANGED}" in
-              bin/* | lib/* | scripts/install-tooling/*)
+              # `bin/Mathc.ml` is named first because release-cadence-2026-11
+              # names it and its obligation greps for that literal; the
+              # bare `bin/*` beside it is deliberate and is the superset
+              # that actually protects the build — bin/ is a dune package
+              # and also holds mathc_mcp.ml and md_probe.ml.
+              bin/Mathc.ml | bin/* | lib/* | scripts/install-tooling/*)
                 TOUCHED+="${CHANGED}"$'\n'
                 ;;
             esac
@@ -71,49 +142,120 @@ jobs:
             echo "touches_protected=false" >> "${GITHUB_OUTPUT}"
           fi
 
-      - name: Check release-pending state
+      - name: Check whether the base tip is released
         if: steps.detect-diff.outputs.touches_protected == 'true'
         id: check-pending
+        env:
+          BASE_REF: ${{ steps.resolve-base.outputs.base_ref }}
+          BASE_SHA: ${{ steps.resolve-base.outputs.base_sha }}
         run: |
           set -euo pipefail
-          BASE="${GITHUB_BASE_REF}"
           # Fail closed here for the same reason, and more sharply: the
-          # one answer that lets a PR through is "no release tag", so an
-          # unreadable tag list must never be reported as an empty one.
-          if ! TAG_LIST="$(git tag --sort=-creatordate --merged "origin/${BASE}")"; then
-            echo "release-pending: cannot list tags merged into origin/${BASE}." >&2
+          # one answer that lets a PR through is "this base is already
+          # released", so an unreadable tag list must never be reported
+          # as an empty one.
+          if ! TAG_LIST="$(git tag --merged "${BASE_SHA}" --list 'v*.*.*')"; then
+            echo "release-pending: cannot list version tags merged into ${BASE_SHA}." >&2
             echo "Gate fails closed: an unreadable tag list is not an empty one." >&2
             exit 1
           fi
-          # First line by parameter expansion, not `| head -1`: head
-          # closes the pipe after one line, git takes a SIGPIPE, and under
-          # `set -o pipefail` a healthy query turns into a failure.
-          LATEST_TAG="${TAG_LIST%%$'\n'*}"
+          # "Most advanced", not "newest by date": among the version
+          # tags reachable from the base tip, the one the base tip is
+          # closest to. `git tag --sort=-creatordate` orders by tag date,
+          # which a release cut on an older branch can win while being
+          # further from the base tip — the wrong tag, read as the
+          # right one. Counted per tag, so a failing `rev-list` is seen
+          # rather than assumed away.
+          LATEST_TAG=""
+          LATEST_SHA=""
+          BEST_AHEAD=""
+          while IFS= read -r TAG; do
+            [ -n "${TAG}" ] || continue
+            if ! AHEAD="$(git rev-list --count "${TAG}..${BASE_SHA}")"; then
+              echo "release-pending: cannot count commits between ${TAG} and ${BASE_SHA}." >&2
+              echo "Gate fails closed: an uncountable gap is not a zero gap." >&2
+              exit 1
+            fi
+            if [ -z "${BEST_AHEAD}" ] || [ "${AHEAD}" -lt "${BEST_AHEAD}" ]; then
+              BEST_AHEAD="${AHEAD}"
+              LATEST_TAG="${TAG}"
+            fi
+          done <<< "${TAG_LIST}"
           if [ -z "${LATEST_TAG}" ]; then
-            echo "last_tag=none" >> "${GITHUB_OUTPUT}"
-            echo "no release tag found on base ref ${BASE}; gate passes" >&2
+            # Two different situations hide behind an empty tag list, and
+            # they do not deserve the same answer.
+            if ! ANY_VERSION_TAG="$(git tag --list 'v*.*.*')"; then
+              echo "release-pending: cannot list version tags at all." >&2
+              echo "Gate fails closed: an unreadable tag list is not an empty one." >&2
+              exit 1
+            fi
+            if [ -z "${ANY_VERSION_TAG}" ]; then
+              # Nothing was ever published, so there is no artifact that
+              # could be stale. This is the only pass-without-evidence
+              # path in the file, and it is safe precisely because the
+              # thing being checked does not exist.
+              echo "last_tag=none" >> "${GITHUB_OUTPUT}"
+              echo "last_tag_sha=none" >> "${GITHUB_OUTPUT}"
+              echo "commits_ahead=unknown" >> "${GITHUB_OUTPUT}"
+              echo "this repository has never cut a v*.*.* tag;" \
+                   "no artifact exists to be stale; gate passes" >&2
+              exit 0
+            fi
+            # The project HAS shipped, but no release tag reaches this
+            # base ref. We cannot tell what is published from here, and
+            # "cannot tell" is not "nothing is stale".
+            echo "release-pending: ${BASE_REF} has no v*.*.* tag merged into it," \
+                 "though the repository has released versions." >&2
+            echo "Gate fails closed: a diverged base is not a released base." >&2
+            exit 1
+          fi
+          if ! LATEST_SHA="$(git rev-list -1 "${LATEST_TAG}")"; then
+            echo "release-pending: cannot resolve ${LATEST_TAG} to a commit." >&2
+            echo "Gate fails closed: an unresolvable tag is not a released base." >&2
+            exit 1
+          fi
+          echo "last_tag=${LATEST_TAG}" >> "${GITHUB_OUTPUT}"
+          echo "last_tag_sha=${LATEST_SHA}" >> "${GITHUB_OUTPUT}"
+          echo "commits_ahead=${BEST_AHEAD}" >> "${GITHUB_OUTPUT}"
+          # Zero commits between the base tip and the most advanced
+          # release tag means the base tip IS that release: the shipped
+          # binary is built from exactly this tree. Pass.
+          if [ "${BEST_AHEAD}" -eq 0 ]; then
+            echo "base tip ${BASE_SHA} is released as ${LATEST_TAG};" \
+                 "the shipped binary matches this tree; gate passes" >&2
             exit 0
           fi
-          LAST_TAG_SHA="$(git rev-list -1 "${LATEST_TAG}")"
-          echo "last_tag=${LATEST_TAG}" >> "${GITHUB_OUTPUT}"
-          echo "last_tag_sha=${LAST_TAG_SHA}" >> "${GITHUB_OUTPUT}"
+          # Otherwise: the shipped artifact is built from a commit this
+          # base tip already moved past. That is F15's shape, present
+          # now, before the PR makes it worse.
           printf '%s\n' \
-            "release-pending: base ref ${BASE} has tagged release ${LATEST_TAG}" \
-            "                    pinned at commit ${LAST_TAG_SHA}." \
+            "release-pending: base ref ${BASE_REF} is NOT released." \
+            "" \
+            "  base tip          ${BASE_SHA}" \
+            "  most advanced tag ${LATEST_TAG} @ ${LATEST_SHA}" \
+            "  commits ahead     ${BEST_AHEAD}" \
             "" \
             "This PR touches protected paths (bin/, lib/, scripts/install-tooling/)." \
-            "Per the F15 finding (v3.3.2 shipped a stale binary), reviewers MUST verify" \
-            "that the release workflow has been re-run AFTER the latest commit touching" \
-            "these paths. Until that re-build evidence exists, the published binary" \
-            "predates the in-tree source." \
+            "The published artifact is built from the tagged commit, so it" \
+            "already predates ${BEST_AHEAD} commit(s) of in-tree source. Merging" \
+            "this PR widens that gap — the F15 shape: a shipped binary that" \
+            "does not contain the source it was built beside." \
             "" \
-            "Action required:" \
-            "  1. Re-run \`.github/workflows/release.yml\` against the latest" \
-            "     commit on \`${BASE}\` (does not have to merge into this PR)." \
-            "  2. Publish the resulting artifact, then approve this PR." \
+            "Action required, in this order:" \
+            "  1. Cut a versioned tag on ${BASE_REF} at ${BASE_SHA}:" \
+            "         git tag v<X.Y.Z> ${BASE_SHA} && git push origin v<X.Y.Z>" \
+            "     release.yml's 'Publish on tag — official release' step builds" \
+            "     and publishes the binaries from that exact commit." \
+            "  2. Re-run this gate; it passes once the tag reaches the base tip." \
             "" \
-            "This is a first-pass gate; future revisions will replace the" \
-            "placeholder exit with a GitHub-API query against" \
-            "\`actions/runs\` filtered by workflow file and commit SHA." \
+            "Do NOT satisfy this by re-running release.yml on main. That path" \
+            "publishes to the rolling \`edge\` PRERELEASE, which" \
+            "install.sh's MC_VERSION_DEFAULT does not name — it moves no" \
+            "versioned artifact and this gate will still block." \
+            "" \
+            "Residual, deliberately not checked here: whether the tag's" \
+            "release run actually SUCCEEDED. That fact lives in the Actions" \
+            "API, not in git. Recorded as debt in" \
+            "decisions/release-pending-real-staleness-2026-10.yaml." \
             >&2
           exit 1
