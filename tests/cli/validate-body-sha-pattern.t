@@ -15,7 +15,11 @@ v3.4-2026-10). The check is part of an A3-protected transition
 
   $ cd "$DUNE_SOURCEROOT"
 
-A decision with valid `body_sha` and `yaml_sha` is accepted:
+A decision with a well-FORMED `body_sha`/`yaml_sha` pair is accepted
+once the digest actually corresponds to the file. The template writes
+the 64-zero placeholder, which is well-formed and equal to itself but
+describes nothing, so it is now rejected until `mathc rehash` supplies
+a real digest. Matching the pattern was never the whole rule:
 
   $ tmp=$(mktemp -d)
   $ cd "$tmp"
@@ -48,6 +52,9 @@ A decision with valid `body_sha` and `yaml_sha` is accepted:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
+  $ mathc validate --format=json sha-pattern-good.yaml | jq -c '{verdict, code}'
+  {"verdict":"reject","code":"MC-SHA-DIGEST-STALE"}
+  $ mathc rehash sha-pattern-good.yaml --write > /dev/null
   $ mathc validate --format=json sha-pattern-good.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
