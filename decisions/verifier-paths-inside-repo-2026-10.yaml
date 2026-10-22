@@ -1,0 +1,361 @@
+---
+schema: math-coding/3.3
+id: verifier-paths-inside-repo-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: implementation
+body_sha: "sha256:82fdbf3586adee12d7b6b65486182657cd55516551a1931b30fba30aedc1571a"
+yaml_sha: "sha256:82fdbf3586adee12d7b6b65486182657cd55516551a1931b30fba30aedc1571a"
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+intent: |
+  Close the defect found by measurement on 2026-10-22: 31
+  acceptance verifier entries across 8 decision files under
+  `decisions/` named their target through an absolute path into
+  `/home/az/.paseo/worktrees/math-coding/<slug>/`, a private
+  Paseo worktree directory belonging to one authoring machine.
+  All six referenced worktree slugs are gone from that machine's
+  disk, so every one of those 31 entries named a location that no
+  longer existed, anywhere.
+
+  The claim each entry was making was nonetheless true, and true of
+  a file that is in the repository. Stripping the worktree prefix
+  yields a project-relative path that resolves for every 31. The
+  verifiers were not wrong about their subject; they were written
+  in a vocabulary only their author could read. `mathc validate`
+  returned `parse-ok` on all 8 throughout, because nothing in the
+  validator reads a verifier's `path:` field.
+
+  Two further findings came out of the same sweep and are recorded
+  here because they change how the first one should be read. The
+  `release/\*\*` needle in `release-cadence-2026-11` was reported as
+  structurally unmatchable; it is not, and the reason matters
+  (below). And one needle genuinely is unmatchable, in a different
+  file, and was repaired.
+
+commitment: |
+  1. All 31 worktree-rooted verifier `path:` and `repo:` values in
+     the 8 decisions are rewritten project-relative. Each rewritten
+     target was probed against the tree before the edit; all 31
+     resolve. No obligation required `result: inconclusive` on
+     account of a missing target, because no target was missing
+     from the repository.
+  2. The one genuinely unmatchable needle is repaired:
+     `revise-friction-taxonomy-2026-10`'s
+     `"| **Total**      | 55    |"` becomes
+     `'\*\*Total\*\*      | 55    |'`, which matches
+     `docs/experiments/adoption-2026-10.md:462` exactly once under
+     the pinned grep semantics.
+  3. Needle semantics are pinned by this decision rather than left
+     implicit: a `needle` on `shell-grep` / `file-contains` is a
+     POSIX basic regular expression, the reading `grep` already
+     gives it. A literal metacharacter must be backslash-escaped.
+  4. `tests/fixture_coverage.ml` grows a second walk that collects
+     the `path:` and `repo:` fields of an acceptance entry and fails
+     when one is an absolute worktree path. Both directions are
+     proven: reintroducing a worktree path fails the run, and the
+     count of remaining absolute paths is pinned so the debt can
+     neither grow nor shrink unnoticed.
+
+outcomes:
+  - id: worktree-paths-eliminated
+    statement: |
+      `grep -rn '/home/az/\.paseo/worktrees' decisions/` returns
+      zero lines. Measured before: 31 entries over 8 files
+      (`add-verify-subcommand-2026-10` 4,
+      `adoption-experiment-design-2026-10` 6,
+      `adoption-experiment-results-2026-10` 3,
+      `import-junit-rename-2026-11` 4,
+      `plan-2026-10-adoption-fixes-2026-10` 3,
+      `plan-brownfield-experiment-v2-2026-10` 2,
+      `release-cadence-2026-11` 6,
+      `revise-friction-taxonomy-2026-10` 3) spanning 20
+      obligations.
+
+  - id: every-rewritten-target-resolves
+    statement: |
+      Each of the 31 rewritten paths names a file or directory
+      present in the repository, verified by `Sys.file_exists`
+      against the project root before and after the rewrite. The
+      six worktree slugs the paths were rooted at no longer exist
+      on the authoring machine either, so no rewrite was chosen to
+      match a path that happens to still be there.
+
+  - id: needle-semantics-pinned
+    statement: |
+      The `release/\*\*` needle is retained unchanged and this
+      decision records why. Under `grep` (BRE) it matches
+      `.github/workflows/release-pending.yml` once, at the line
+      `- 'release/**'`. Under `grep -F` it matches nothing. It was
+      reported as an impossible glob; the honest statement is that
+      it was correct under the reading its scheme name implies and
+      fragile under the other one, and that no executor ever chose.
+      `release/\*\*` is the BRE-escaped spelling of the literal
+      `release/**`, and it is the only spelling that stays precise:
+      the unescaped `release/**` also matches under BRE but degrades
+      to "releas followed by any number of slashes" and matches 39
+      lines.
+
+  - id: guard-is-two-sided
+    statement: |
+      `tests/fixture_coverage.ml` fails on any acceptance `path:` or
+      `repo:` that is an absolute path containing `/.paseo/worktrees/`,
+      naming the decision and obligation. Absolute paths outside
+      that shape are counted and pinned at 55 rather than allowed
+      silently: 44 point at the author's own main checkout of this
+      project under `/home/az/Projects/math-coding/`, and 10 at five
+      third-party clones under
+      `/home/az/Projects/math-coding-experiment/`. Neither class is
+      repaired here; both are real debt and the pin makes the
+      remaining amount an explicit number rather than a silence.
+
+counterexample: |
+  Counter-position (a): "the 31 paths were fine, because the
+  referenced files are all in the tree." Rejected as the reason for
+  leaving them: they were not fine as written. Every one of them
+  named a directory that no longer exists on any machine, so the
+  verifiers as written could not have been executed by anyone after
+  the author closed the worktree. The fact that a relative rewrite
+  happens to land on a real file is a property of the repository,
+  not a defence of the original text. This is the same reasoning
+  `enforce-body-sha-digest-2026-10` used against a digest that was
+  self-consistent while describing something other than the file.
+
+  Counter-position (b): "the `release/\*\*` needle is a glob that
+  can never match; repair it to the literal and the finding is
+  closed." Half accepted, and the premise is corrected rather than
+  adopted. `grep 'release/\*\*'` does match: BRE reads `\*` as a
+  literal asterisk, and the file contains `release/**` at line 7.
+  The claim of impossibility holds only under `grep -F`. Rather than
+  silently switch the needle to whichever spelling the author
+  imagined, this decision pins the semantics (BRE, the reading
+  `shell-grep` already implies), keeps the precise escaped spelling,
+  and records that the ambiguity was possible only because nothing
+  executes these verifiers. Accepting the premise would have
+  produced a decision that is wrong about its own subject.
+
+  Counter-position (c): "make the guard Block on every absolute
+  path." Rejected for the same reason
+  `verifier-scheme-convention-2026-11` chose Warn over Block: the
+  rule would reject 55 entries across 9 decisions that are outside
+  the scope of this fix, turning a suite green today into one red
+  for reasons nobody has agreed to own. The worktree shape is
+  different in kind -- it is never a legitimate target of any kind,
+  there is no reading under which
+  `/home/az/.paseo/worktrees/math-coding/<slug>/bin/Mathc.ml` is
+  the right way to name a tracked file -- so it fails outright.
+  The other 55 are pinned to a number instead, which is stricter
+  than a warning: a soft warning printed to a passing test's stdout
+  is invisible, because Alcotest swallows it.
+
+  Counter-position (d): "the 20 affected attestations must be
+  revoked in this commit." Rejected as out of scope, and recorded
+  as open debt rather than quietly left. `attestations/` is not this
+  task's to edit, and revoking a signature is a different act from
+  repairing a verifier: it asserts that the obligation was never
+  met, which is a claim about the past that only a human who can
+  still reproduce the experiment can make. See the consequences
+  section.
+
+scope:
+  paths:
+    - "decisions/add-verify-subcommand-2026-10.yaml"
+    - "decisions/adoption-experiment-design-2026-10.yaml"
+    - "decisions/adoption-experiment-results-2026-10.yaml"
+    - "decisions/import-junit-rename-2026-11.yaml"
+    - "decisions/plan-2026-10-adoption-fixes-2026-10.yaml"
+    - "decisions/plan-brownfield-experiment-v2-2026-10.yaml"
+    - "decisions/release-cadence-2026-11.yaml"
+    - "decisions/revise-friction-taxonomy-2026-10.yaml"
+    - "decisions/verifier-paths-inside-repo-2026-10.yaml"
+    - "tests/fixture_coverage.ml"
+  exclusions:
+    - "bin/**"
+    - "lib/**"
+    - "attestations/**"
+    - "scripts/**"
+    - ".github/**"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: no-worktree-paths-remain-in-decisions
+    claim: |
+      No file under `decisions/` names a verifier target through an
+      absolute path into a `.paseo/worktrees/` checkout. The grep
+      that establishes this is the same one that produced the
+      finding, run against the post-repair tree.
+    acceptance:
+      all:
+        - verifier: bash -c '! grep -rqE "^ *(path|repo):.*paseo/worktrees" decisions/'
+          result: pass
+
+  - id: rewritten-targets-resolve
+    claim: |
+      Each rewritten target names a path that exists in the
+      repository. Spot-checked at the three most load-bearing
+      rewrites: the CI workflow the release gate depends on, the
+      kernel source the verify subcommand shipped in, and the plan
+      document the counters were read from.
+    acceptance:
+      all:
+        - verifier: file-exists
+          path: .github/workflows/release-pending.yml
+          result: pass
+        - verifier: file-exists
+          path: bin/Mathc.ml
+          result: pass
+        - verifier: file-exists
+          path: docs/plans/plan-2026-10-adoption-fixes-2026-10.md
+          result: pass
+
+  - id: release-gate-needles-match-under-pinned-semantics
+    claim: |
+      Every needle on the repaired `release-cadence-2026-11`
+      obligation matches its target under BRE, including the escaped
+      glob that was reported as unmatchable. Each is counted so a
+      rename in the workflow cannot silently satisfy one of them.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: .github/workflows/release-pending.yml
+          needle: 'pull_request:'
+          result: pass
+        - verifier: shell-grep
+          path: .github/workflows/release-pending.yml
+          needle: 'release/\*\*'
+          result: pass
+        - verifier: shell-grep
+          path: .github/workflows/release-pending.yml
+          needle: bin/Mathc.ml
+          result: pass
+        - verifier: shell-grep
+          path: scripts/install-tooling/install.sh
+          needle: MC_VERSION_DEFAULT="3.3.3"
+          result: pass
+
+  - id: repaired-needle-matches-exactly-once
+    claim: |
+      The repaired table needle matches the friction-taxonomy report
+      exactly once, so it still pins the row it was written to pin
+      and does not degrade into a substring that would survive a
+      changed total.
+    acceptance:
+      all:
+        - verifier: shell-grep
+          path: docs/experiments/adoption-2026-10.md
+          needle: '\*\*Total\*\*      | 55    |'
+          result: pass
+        - verifier: bash -c 'test "$(grep -c -- "\*\*Total\*\*      | 55    |" docs/experiments/adoption-2026-10.md)" = 1'
+          result: pass
+
+  - id: guard-fails-on-worktree-path
+    claim: |
+      `tests/fixture_coverage.ml` fails when an acceptance entry
+      names its target through an absolute worktree path, and names
+      the decision and obligation in its output. Proven by
+      reintroducing the five `release-cadence-2026-11` paths: the
+      run reports all five and exits 1.
+    acceptance:
+      all:
+        - verifier: tests/fixture_coverage.ml
+          result: pass
+        - verifier: shell-grep
+          path: tests/fixture_coverage.ml
+          needle: test_verifier_paths_stay_inside_repo
+          result: pass
+        - verifier: shell-grep
+          path: tests/fixture_coverage.ml
+          needle: no verifier names its target through an absolute worktree path
+          result: pass
+
+  - id: no-new-unknown-subjects
+    claim: |
+      `mathc self-check` moves no subject because of the repair.
+      Measured on both sides of the diff: 213 subjects, 192 pass, 14
+      unknown, 7 open-with-waiver before; 214 / 192 / 15 / 7 after.
+      The single added subject is this decision, whose 6 obligations
+      are unattested at the time of writing -- the same state every
+      decision in the store occupies until its obligations are
+      signed. Pass count is unchanged at 192, so the repair moved no
+      verdict in either direction.
+    acceptance:
+      all:
+        - verifier: mathc-self-check-no-new-unknowns
+          result: pass
+        - verifier: bash -c './_build/install/default/bin/mathc rehash --dry-run 2>/dev/null | grep -q "^rehash: 0 changed"'
+          result: pass
+
+consequences:
+  - what_changed: |
+      31 verifier `path:`/`repo:` values across 8 decisions, and 1
+      needle. `mathc rehash --write` reports exactly those 8 files as
+      changed and 217 as already current. `revision` is deliberately
+      NOT bumped: it tracks the schema lineage (the store's
+      revision>1 files are all artefacts of the 3.0-alpha to 3.2 to
+      3.3 schema bumps, not content revisions), and
+      `release-cadence-2026-11@1` is already referenced three times
+      by other decisions, so a bump would dangle those references.
+
+  - attestations_signed_on_the_old_text: |
+      All 40 obligations in the 8 repaired decisions carry a
+      committed `result: pass` attestation. 20 of those 40 have at
+      least one verifier that pointed outside the repository, so
+      half the passes in these files rest on an entry that could not
+      have been executed by anyone but their author, and that has
+      not existed on any machine since the worktrees were removed.
+      Each of the 20 carries `materials_digest: ""`, so the
+      attestation does not bind to the decision bytes: nothing in
+      the store detects that the file under those signatures
+      changed. The signatures are not "wrong" in the sense of
+      having been forged -- the claims they attest to are in fact
+      true of files now in the tree, and were true in the worktree --
+      but they were issued against a specification no other agent
+      could read, and their evidentiary value is exactly as
+      reproducible as that specification. Revocation is a judgement
+      about whether the underlying claim was met, which is why it is
+      left to a human and recorded here rather than performed.
+
+  - deferred_because_the_files_are_off_limits: |
+      The natural home for this check is `mathc validate`, emitting a
+      diagnostic next to MC-VERIFIER-SCHEME-UNKNOWN when a verifier
+      `path:` is absolute. That requires editing `lib/diagnostic.ml`
+      and `bin/Mathc.ml`, which a parallel agent owns; the check is
+      therefore implemented in `tests/fixture_coverage.ml`, which
+      runs in CI but does not run on `mathc validate`. An author who
+      validates a decision and never runs the suite gets no warning.
+      Promoting this to a `validate` diagnostic is a separate task.
+
+  - remaining_debt: |
+      55 absolute verifier paths survive in 9 decisions: 44 under
+      `/home/az/Projects/math-coding/` (the author's own main
+      checkout of this project, mechanically rewritable the same way)
+      and 10 under `/home/az/Projects/math-coding-experiment/` (five
+      third-party clones, which no relative rewrite can address
+      because the files are not in this repository). Two needles
+      outside the worktree scope are unmatchable under any grep
+      reading -- `plan-2026-11-adoption-fixes-2026-10`'s
+      `c4-release-cadence-shipped` and
+      `experiment-doctor-instrumentation-2026-11`'s
+      `c6-doctor-preflight-phase-0` -- and two more are
+      reading-dependent. All are pinned to the count 55 so they
+      cannot accumulate unremarked, and all are reported rather than
+      silently accepted.
+
+risk:
+  declared_triggers:
+    - author-edits-a-decision-on-a-worktree-and-copies-the-path-again
+    - grep-semantics-changed-by-a-future-executor
+    - debt-pin-becomes-stale-and-nobody-updates-it
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - enforce-body-sha-digest-2026-10@1
+    - verifier-scheme-convention-2026-11@1

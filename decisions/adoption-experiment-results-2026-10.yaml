@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: adoption-experiment-results-2026-10
 revision: 1
 state: active
-body_sha: "sha256:0ddb71032f0a43fb91de9cd4d82800c2c4a3414d0873c6c0af9639847e3b9b93"
-yaml_sha: "sha256:0ddb71032f0a43fb91de9cd4d82800c2c4a3414d0873c6c0af9639847e3b9b93"
+body_sha: "sha256:628ec928ee67444832a3ff6b62ea1b544a6090c0ee2f363e67e80a86835ae459"
+yaml_sha: "sha256:628ec928ee67444832a3ff6b62ea1b544a6090c0ee2f363e67e80a86835ae459"
 
 intent: |
   Record the observed numbers of the math-coding adoption
@@ -82,11 +82,11 @@ obligations:
     acceptance:
       all:
         - verifier: file-contains
-          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/experiments/adoption-2026-10.md
+          path: docs/experiments/adoption-2026-10.md
           needle: "Median TTFD: ~4 min"
           result: pass
         - verifier: file-contains
-          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/experiments/adoption-2026-10.md
+          path: docs/experiments/adoption-2026-10.md
           needle: "55"
           result: pass
 
@@ -121,7 +121,7 @@ obligations:
     acceptance:
       all:
         - verifier: git-no-paths
-          repo: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10
+          repo: .
           base: main
           forbidden_paths:
             - "lib/**"
