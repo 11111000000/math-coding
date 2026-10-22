@@ -127,10 +127,11 @@ verify_test_exclusions="rebuttal_forge_stub.exe"
 # run, reports a failure, or skipped a binary, the stage fails.
 #
 # Rev 1 of this script swallowed the timeout as a WARN on the stated
-# ground that scripts/check.sh "still proves the suite". That claim was
-# false: check.sh BUILDS tests/process_principles.exe without executing
-# it, and runs cram only under tests/cli. A `dune test` hang therefore
-# skipped every Alcotest binary in the suite while `verify` stayed green.
+# ground that the per-test `dune runtest` path in scripts/check.sh
+# proves the suite. That ground was false: check.sh BUILDS
+# tests/process_principles.exe without executing it, and runs cram
+# only under tests/cli. A `dune test` hang therefore skipped every
+# Alcotest binary in the suite while `verify` stayed green.
 verify_test_suite() {
   local budget="${VERIFY_TEST_FALLBACK_TIMEOUT:-900}"
   local rc=0

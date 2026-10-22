@@ -33,8 +33,18 @@
 # --command bash -c '<script>'` semantics (exec the inner bash,
 # propagate its status). No nix store lock, no build, <2 s.
 #
+# NEGATIVE CONTROL
+# ----------------
+# A harness that cannot fail proves nothing. So the same run also
+# replays the PRE-FIX step body — embedded verbatim below, taken from
+# ci.yml at commit 817c545^ — and requires it to MISMATCH on mathc
+# exits 1 and 3. A `pass` from this script therefore means two
+# things at once: today's workflow carries the code out, and the
+# check is sharp enough to have caught the version that did not.
+#
 # Usage:  scripts/ci-step-exit-sim.sh [--verbose]
-# Exit:   0 if step_exit == mathc_exit in every row; 1 otherwise.
+# Exit:   0 if every row of today's workflow agrees AND the pre-fix
+#         control mismatches; 1 otherwise.
 set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
@@ -142,49 +152,87 @@ chmod +x "$sandbox/bin/nix"
 
 # The step writes its scratch files to absolute paths under /tmp; keep
 # them inside the sandbox so repeated runs cannot read each other's
-# leftovers and so a real /tmp is not trashed.
-scratch="$sandbox/tmp/self-check."
-step_body=${step_body//\/tmp\/self-check\./$scratch}
-printf '%s\n' "$step_body" > "$sandbox/step.sh"
+# leftovers and so a real /tmp is not trashed. replay_block() does the
+# rewrite per block.
+# --- 3. replay one block for each verdict -----------------------------
+#
+#   $1 = row label        $2 = path to the block file
+#   $3 = expect: agree | mismatch
+#
+# `agree`    — every row's step status must equal mathc's status.
+# `mismatch` — the block must swallow at least one non-zero mathc
+#              status; that is what a broken step looks like, and the
+#              negative control depends on observing it.
+replay_block() {
+  local label=$1 block_file=$2 expect=$3
+  local scratch="$sandbox/tmp/self-check."
+  local body="$sandbox/block-$(printf '%s' "$label" | tr -c 'a-zA-Z0-9' '_').sh"
+  local repl
+  repl=$(cat "$block_file")
+  repl=${repl//\/tmp\/self-check\./$scratch}
+  printf '%s\n' "$repl" > "$body"
 
-# --- 3. replay the step for each verdict ------------------------------
-printf '%-18s %-12s %-12s %s\n' 'mathc verdict' 'mathc exit' 'step exit' 'verdict'
-printf '%-18s %-12s %-12s %s\n' '-----------------' '-----------' '-----------' '-------'
+  printf '\n%s (expect: %s)\n' "$label" "$expect"
+  printf '%-18s %-12s %-12s %s\n' 'mathc verdict' 'mathc exit' 'step exit' 'verdict'
+  printf '%-18s %-12s %-12s %s\n' '-----------------' '-----------' '-----------' '-------'
 
-# label|mathc exit|emit JSON?
-for case_spec in 'verdict=pass 0 yes' \
-                 'verdict=fail 1 yes' \
-                 'verdict=unknown 3 yes' \
-                 'no-json-document 3 no'; do
-  # shellcheck disable=SC2086
-  set -- $case_spec
-  verdict=$1
-  mathc_exit=$2
-  emit_json=$3
+  # label|mathc exit|emit JSON?
+  local case_spec verdict mathc_exit emit_json step_exit agree
+  for case_spec in 'verdict=pass 0 yes' \
+                   'verdict=fail 1 yes' \
+                   'verdict=unknown 3 yes' \
+                   'no-json-document 3 no'; do
+    # shellcheck disable=SC2086
+    set -- $case_spec
+    verdict=$1
+    mathc_exit=$2
+    emit_json=$3
 
-  step_exit=0
-  (
-    cd "$sandbox" || exit 1
-    PATH="$sandbox/bin:$PATH" \
-      STUB_MATHC_EXIT="$mathc_exit" \
-      STUB_MATHC_JSON="$emit_json" \
-      bash --noprofile --norc -e -o pipefail "$sandbox/step.sh"
-  ) >"$sandbox/out.$mathc_exit.$emit_json" 2>&1 || step_exit=$?
+    step_exit=0
+    (
+      cd "$sandbox" || exit 1
+      PATH="$sandbox/bin:$PATH" \
+        STUB_MATHC_EXIT="$mathc_exit" \
+        STUB_MATHC_JSON="$emit_json" \
+        bash --noprofile --norc -e -o pipefail "$body"
+    ) >"$sandbox/out.$mathc_exit.$emit_json" 2>&1 || step_exit=$?
 
-  [ "$verbose" = 1 ] && sed 's/^/    | /' "$sandbox/out.$mathc_exit.$emit_json"
+    [ "$verbose" = 1 ] && sed 's/^/    | /' "$sandbox/out.$mathc_exit.$emit_json"
 
-  if [ "$step_exit" = "$mathc_exit" ]; then
-    agree='ok'
-  else
-    agree='MISMATCH'
-    fail=1
-  fi
-  printf '%-18s %-12s %-12s %s\n' "$verdict" "$mathc_exit" "$step_exit" "$agree"
-done
+    if [ "$step_exit" = "$mathc_exit" ]; then agree='ok'; else agree='MISMATCH'; fi
+    case "$expect" in
+      agree)
+        [ "$agree" = ok ] || fail=1
+        ;;
+      mismatch)
+        # The control must swallow the non-zero exits; a green row on
+        # mathc exit 0 is fine either way.
+        if [ "$mathc_exit" -ne 0 ] && [ "$agree" = ok ]; then fail=1; fi
+        ;;
+    esac
+    printf '%-18s %-12s %-12s %s\n' "$verdict" "$mathc_exit" "$step_exit" "$agree"
+  done
+}
+
+# --- 4. the two blocks -----------------------------------------------
+printf '%s\n' "$step_body" > "$sandbox/current.sh"
+replay_block "current $CI_YML" "$sandbox/current.sh" agree
+
+# The pre-fix body, copied from ci.yml at commit 817c545^ (the last
+# revision where the step still ended on the jq dump under set +e).
+cat > "$sandbox/prefix.sh" <<'PREFIX_EOF'
+set +e
+nix develop .#test --command bash -c \
+  '_build/install/default/bin/mathc self-check > /tmp/self-check.json 2> /tmp/self-check.err; \
+   echo "self-check exit=$?"; \
+   jq -c "{verdict, kernel_digest, repository_digest, subjects_count: (.subjects | length)}" /tmp/self-check.json || cat /tmp/self-check.err'
+PREFIX_EOF
+replay_block "pre-fix control (ci.yml @ 817c545^)" "$sandbox/prefix.sh" mismatch
 
 echo
 if [ "$fail" -ne 0 ]; then
-  echo "ci-step-exit-sim: FAIL — at least one verdict did not reach the step status" >&2
+  echo "ci-step-exit-sim: FAIL — an expectation above did not hold" >&2
   exit 1
 fi
-echo "ci-step-exit-sim: ok — the step's exit status equals mathc's in all four rows"
+echo "ci-step-exit-sim: ok — current step carries mathc's exit out (0/1/3);"
+echo "                   pre-fix control demonstrably swallows it"
