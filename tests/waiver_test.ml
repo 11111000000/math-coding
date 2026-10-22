@@ -241,7 +241,9 @@ let test_covers_after_load_expired () =
 (* --- runner --- *)
 
 let () =
-  Alcotest.run "waiver"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "waiver"
     [
       ( "effective_at",
         [

@@ -176,7 +176,9 @@ let test_layout_coherence_across_three_paths () =
 
 let () =
   Unix.putenv "MATH_CODING_DECISIONS_DIR" "";
-  Alcotest.run "path_config"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "path_config"
     [
       ( "resolver",
         [

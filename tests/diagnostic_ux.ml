@@ -269,7 +269,9 @@ let[@warning "-32"] test_gap_stale_evidence_has_actions () =
 (* --- runner --- *)
 
 let () =
-  Alcotest.run "diagnostic-ux"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "diagnostic-ux"
     [
       ( "ambiguous_acceptance",
         [

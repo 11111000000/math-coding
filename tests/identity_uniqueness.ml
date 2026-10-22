@@ -290,7 +290,9 @@ let[@warning "-32"] test_no_duplicate_identity () =
     0 n_dupes
 
 let () =
-  Alcotest.run "identity uniqueness (I4)"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "identity uniqueness (I4)"
     [
       ( "(id, revision) globally unique",
         [ Alcotest.test_case "no duplicates" `Quick test_no_duplicate_identity ]

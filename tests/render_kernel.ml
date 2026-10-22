@@ -1228,7 +1228,9 @@ let[@warning "-32"] axioms_link_html_not_md () =
     axiom_files
 
 let () =
-  Alcotest.run "render"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "render"
     [
       ( "tufte_tokens_resolve",
         [ Alcotest.test_case "tokens" `Quick tufte_tokens_resolve ] );

@@ -455,7 +455,9 @@ let[@warning "-32"] test_state_filter_irreflexivity () =
     (List.length self_refs)
 
 let () =
-  run "gate state_filter (lifecycle-commands-2026-10)"
+  run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "gate state_filter (lifecycle-commands-2026-10)"
     [
       ( "active entries",
         [

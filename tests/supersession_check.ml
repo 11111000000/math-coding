@@ -312,7 +312,9 @@ let[@warning "-32"] test_no_supersession_cycle () =
     "no supersession cycle exists (I7 acyclicity)" false (has_cycle entries)
 
 let () =
-  Alcotest.run "supersession order (I7)"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "supersession order (I7)"
     [
       ( "no self-supersession",
         [ Alcotest.test_case "irreflexive" `Quick test_no_self_supersession ] );

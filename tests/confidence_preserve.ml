@@ -174,7 +174,9 @@ assumptions:
   | None -> Alcotest.fail "decision rejected unexpectedly"
 
 let () =
-  Alcotest.run "confidence preservation"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "confidence preservation"
     [
       ("yaml form", [ Alcotest.test_case "0.85 preserved" `Quick yaml_form ]);
       ("json form", [ Alcotest.test_case "0.5 preserved" `Quick json_form ]);

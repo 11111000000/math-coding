@@ -1008,7 +1008,9 @@ let[@warning "-32"] test_portable_linux_decision_active () =
        until the decision is explicitly promoted or reversed."
 
 let () =
-  Alcotest.run "repo structure"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "repo structure"
     [
       ( "ci-targets-exist",
         [

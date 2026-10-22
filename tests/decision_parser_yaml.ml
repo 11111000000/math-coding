@@ -573,7 +573,9 @@ let[@warning "-32"] policies_yaml_parses_with_no_remainder () =
       "policies.yaml leaves no unparsed remainder" 0 (List.length remaining)
 
 let () =
-  Alcotest.run "decision parser (yaml)"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "decision parser (yaml)"
     [
       ( "yaml-form",
         [ Alcotest.test_case "yaml decisions parse" `Quick test_yaml_decisions ]

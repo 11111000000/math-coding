@@ -232,7 +232,9 @@ let[@warning "-32"] resolve_policy_signature_introspectable () =
   match result with Ok _ -> () | Error _ -> ()
 
 let () =
-  Alcotest.run "policy kernel (hierarchy)"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "policy kernel (hierarchy)"
     [
       ( "resolve_policy_no_parent_returns_same",
         [

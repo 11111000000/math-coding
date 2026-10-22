@@ -1124,7 +1124,9 @@ let[@warning "-32"] run_mathc_init_default_validates () =
 (* ------------------------------------------------------------------------- *)
 
 let () =
-  Alcotest.run "process principles"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "process principles"
     [
       ( "P1 (decisions before kernel changes)",
         [

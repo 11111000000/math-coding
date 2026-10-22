@@ -50,7 +50,9 @@ let[@warning "-32"] override_empty_falls_back () =
 
 let () =
   let open Alcotest in
-  run "ci_blocking_list"
+  run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "ci_blocking_list"
     [
       ( "ci_blocking_list",
         [
