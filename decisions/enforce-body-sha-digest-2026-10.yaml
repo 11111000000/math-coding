@@ -4,8 +4,8 @@ id: enforce-body-sha-digest-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:7f477634e4943750213a2940042feb88e7029dbdd75fb729986f4db38770f6ad"
-yaml_sha: "sha256:7f477634e4943750213a2940042feb88e7029dbdd75fb729986f4db38770f6ad"
+body_sha: "sha256:2a24c839ff745d8bf03e1df70327f6a4356f1628e4e24c64fcfdcabfa296dcf2"
+yaml_sha: "sha256:2a24c839ff745d8bf03e1df70327f6a4356f1628e4e24c64fcfdcabfa296dcf2"
 
 axiom_link:
   - A0
@@ -47,6 +47,19 @@ commitment: |
      lib/diagnostic.ml both cited `scripts/axiom-link-seed.py:105-123`;
      the implementation is at :133-169, and :105-123 is `decisions_dir`.
   5. `scripts/check.sh` stops counting an exit-2 verifier as a pass.
+
+  6. `mathc self-check` recomputes each decision's digest and reports
+     `fail` (exit 1) when it is stale. It previously read the
+     attestation store without ever looking at the decision bytes, so a
+     tampered decision was indistinguishable from one that merely lacked
+     an attestation - both came back `unknown`.
+  7. `mathc decision-state` restamps the digest it invalidates. It
+     rewrites the `state:` line, which is a body edit, so its own output
+     invalidated the stored value and the command then reported the
+     rejection it had just caused itself.
+  8. `mathc new-decision` and `mathc init` write a digest that is already
+     the digest of the file they produced, instead of the 64-zero
+     placeholder that satisfied the old equality check forever.
 
      Out of scope, deliberately: the CI self-check step propagating mathc's
      exit code, and `check.sh` running process_principles rather than only

@@ -71,6 +71,7 @@ under test routes its I/O through `.math-coding/`.
   > relations:
   >   addresses: []
   > EOF
+  $ mathc rehash "$tmpdir/.math-coding/decisions/env-var-probe-2026-10.yaml" --write > /dev/null
   $ export MATH_CODING_ROOT="$tmpdir"
   $ export MATH_CODING_DECISIONS_DIR=".math-coding/decisions"
   $ export MATH_CODING_ATTESTATIONS_DIR=".math-coding/attestations"

@@ -112,6 +112,7 @@ Case (a) — `mark-superseded --by=...` on an active decision
 exits 0, writes the YAML, re-validates, prints the summary
 line. (`accept` renamed to `parse-ok` in commit a602b361.)
 
+  $ mathc rehash "decisions/lifecycle-test-2026-10.yaml" --write > /dev/null
   $ MATH_CODING_ROOT="$tmp" mathc decision-state lifecycle-test-2026-10 mark-superseded \
   >     --by=lifecycle-test-replacement-2026-10@1
   mathc decision-state: set state=superseded; added superseded_by: lifecycle-test-replacement-2026-10@1
@@ -168,6 +169,7 @@ Case (b) — re-mint the fixture at `state: active` then
   >   `mathc decision-state` CLI; the dialectical slot does not
   >   apply.
   > YAML
+  $ mathc rehash "decisions/lifecycle-test-2026-10.yaml" --write > /dev/null
   $ MATH_CODING_ROOT="$tmp" mathc decision-state lifecycle-test-2026-10 mark-retired
   mathc decision-state: set state=retired
   validate: parse-ok

@@ -6157,6 +6157,28 @@ let[@warning "-32"] do_decision_state () =
       Printf.fprintf stderr "mathc decision-state: %s\n" reason;
       exit verdict_exit
   | Transitioned { new_yaml; diff_summary; _ } -> (
+      (* A state transition IS a body edit, so the stored digest is
+         stale by construction the moment `new_yaml` differs from the
+         file on disk. Restamp it here, before writing, so the command
+         leaves the file in a state the kernel accepts. Without this,
+         every lifecycle transition would require the operator to
+         remember `mathc rehash`, and the `validate:` line printed below
+         would report a rejection this command itself caused — which
+         would read as "the transition broke your decision" when it did
+         not.
+
+         A file with no body_sha (another schema family) is left alone:
+         the invariant is vacuous there and stamping would be inventing
+         a field the schema does not ask for. *)
+      let new_yaml =
+        match Decision.digest_status_of_bytes new_yaml with
+        | Decision.Digest_absent -> new_yaml
+        | Decision.Digest_ok | Decision.Digest_stale _ ->
+            let computed = Decision.body_canonical_sha256 new_yaml in
+            Decision.stamp_digest
+              ~hex:(String.sub computed 7 (String.length computed - 7))
+              new_yaml
+      in
       (* Write the new YAML atomically: stage to a sibling .tmp,
          then rename. The rename is atomic on POSIX. The kernel
          will not see a half-written file. *)
