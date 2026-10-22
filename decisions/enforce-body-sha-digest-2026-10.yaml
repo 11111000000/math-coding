@@ -4,8 +4,8 @@ id: enforce-body-sha-digest-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:9dd48b2d735057b06f683d92174cdc709110df98ccae4c0445512a95e88f657e"
-yaml_sha: "sha256:9dd48b2d735057b06f683d92174cdc709110df98ccae4c0445512a95e88f657e"
+body_sha: "sha256:7f477634e4943750213a2940042feb88e7029dbdd75fb729986f4db38770f6ad"
+yaml_sha: "sha256:7f477634e4943750213a2940042feb88e7029dbdd75fb729986f4db38770f6ad"
 
 axiom_link:
   - A0
@@ -127,6 +127,49 @@ outcomes:
       to the real implementation at `:133-169`, and records that the
       two implementations disagreed on every input until now.
 
+  - id: skip-is-not-pass
+    statement: |
+      `scripts/check.sh` counted an exit-2 verifier ("python3
+      unavailable", "script error") as `ok ... skipped` AND incremented
+      the pass counter, so the summary described a check as passing when
+      nothing had run. Skips are now SKIP, counted in their own total,
+      and named in the summary. Environments without python3 still exit
+      0, so nothing is newly broken there; the summary just stops
+      claiming a check ran.
+
+      Stated as an outcome, not an obligation, on purpose: the kernel has
+      no verifier scheme that can observe how scripts/check.sh counts its
+      own results, and attaching a verifier that does not test the claim
+      would be the same defect in a different costume. Human-reviewed.
+  - id: scaffold-digest-is-real
+    statement: |
+      `mathc new-decision` and `mathc init` write a digest that is
+      already the digest of the file they produced, instead of the
+      64-zero placeholder. The placeholder was harmless while the
+      validator only compared the two stored fields, since 0^64 = 0^64
+      satisfied the equality invariant forever; under
+      MC-SHA-DIGEST-STALE it would make every freshly scaffolded
+      decision fail `mathc validate`, breaking the
+      scaffold-then-validate loop the tool exists to provide.
+      `template_for` asserts the fixed point rather than assuming it,
+      so a future edit to the templates cannot reintroduce a scaffold
+      that does not validate.
+  - id: self-check-sees-the-digest
+    statement: |
+      `mathc self-check` recomputes each decision's digest and reports
+      `fail` (exit 1) when it is stale. It previously read the
+      attestation store without ever looking at the decision bytes, so a
+      tampered decision was indistinguishable from one that merely
+      lacked an attestation - both came back `unknown`. The verdict is
+      forced to `Block` after waiver aggregation, so a stale digest is
+      not waivable, and no fifth verdict string is introduced.
+
+      `mathc gate` is NOT covered, and the diagnostic entry says so. It
+      holds the bytes (`Gate.evaluate` receives `Memory.t`, whose
+      entries carry `Memory.source`) but does not check them. Left
+      deliberately open: `gate` is the merge-time verdict, and changing
+      it belongs in its own decision rather than in a follow-up hidden
+      inside this one.
 scope:
   paths:
     - "lib/decision.ml"

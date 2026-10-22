@@ -7547,8 +7547,9 @@ let do_rehash () =
             incr broken
           end
           else if stamped = bytes then begin
-            if not !write then incr unchanged;
-            Printf.printf "  ok    %s\n" (Filename.basename path)
+            incr unchanged;
+            if not !write then
+              Printf.printf "  ok    %s\n" (Filename.basename path)
           end
           else begin
             incr changed;

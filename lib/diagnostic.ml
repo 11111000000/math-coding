@@ -1251,10 +1251,19 @@ let explain (code : string) : string option =
          passes the bytes it already read for parsing, so the\n\
          validate path cannot silently fall back to the weaker\n\
          string-only check. Verdict `reject`, exit code 1.\n\n\
-         KNOWN GAP: `mathc self-check` and `mathc gate` do not yet\n\
-         look at the digest. They read the attestation store, not\n\
-         the decision bytes, so the blocking CI step does not yet\n\
-         see this failure. Recorded in\n\
+         `mathc self-check` recomputes it too, for every\n\
+         decision, and reports the subject as `fail` (exit 1). It\n\
+         previously read the attestation store without looking at the\n\
+         decision bytes, so a tampered decision came back `unknown`\n\
+         - indistinguishable from one that merely lacked an\n\
+         attestation. `load_decision_entry` already keeps the raw text\n\
+         in `Memory.source`, so no extra I/O was needed; the verdict\n\
+         is forced to Block AFTER waiver aggregation, so a stale\n\
+         digest cannot be waived away.\n\n\
+         KNOWN GAP: `mathc gate` does not yet look at the digest.\n\
+         It has the bytes (`Gate.evaluate` receives `Memory.t`,\n\
+         whose entries carry `Memory.source`) but does not check\n\
+         them. Recorded in\n\
          `decisions/enforce-body-sha-digest-2026-10`.\n\n\
          ### Remediation\n\
          Run `mathc rehash <path> --write`. It recomputes both\n\
