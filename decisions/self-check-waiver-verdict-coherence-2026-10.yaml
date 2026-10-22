@@ -1,0 +1,517 @@
+---
+schema: math-coding/3.3
+id: self-check-waiver-verdict-coherence-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: bugfix
+
+body_sha: "sha256:b1c890d33c75e0cbded077300058eee1300d154d9a5a3bac28199a9436e6907c"
+yaml_sha: "sha256:b1c890d33c75e0cbded077300058eee1300d154d9a5a3bac28199a9436e6907c"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  `mathc self-check` reported seven subjects as
+  `"verdict":"pass"` while the same JSON object listed their
+  unmet obligations under `causes[]`. At the time of writing
+  (`e6487d3`, 205 subjects, 198 pass / 7 unknown) the seven were
+  `kernel-typo-fixes-batch-2026-10` (7 causes),
+  `site-axiom-img-and-dropdown-2026-10` (6),
+  `attestation-waiver-policy-schema-bump-3-3-2026-10` (6),
+  `site-dropdown-anim-2026-10` (5),
+  `mobile-menu-collapse-and-hide-on-scroll-2026-10` (4),
+  `render-module-split-phase1a-2026-10` (3),
+  `p8-hook-deficit-2026-10` (2). A typical cause reads
+  "obligation X of decision Y has current attestations but none
+  reports pass (inconclusive or infrastructure-error)".
+
+  ROOT CAUSE, exactly: `verdict_to_pass_fail_unknown` in
+  `bin/Mathc.ml` mapped `Gate.Open_with_waiver -> "pass"`, and
+  `do_self_check`'s top-level aggregation folded
+  `Open_with_waiver` into `Gate.Pass`. The gap list was computed
+  honestly; only the label on it was wrong. Nothing in the output
+  named the waiver that produced the green, so the seven subjects
+  read as ordinary passes to anything that consumes `verdict`.
+
+  The mapping was INTENTIONAL and is recorded, with a
+  counterargument, in `decisions/waiver-infrastructure-2026-10.yaml`
+  ("the CLI maps `Open_with_waiver` to `pass` for the verdict
+  string ... the gap list and causes/remedies remain in the JSON
+  output"). So this is not an accident, and the fix is not
+  "someone typed the wrong string". The recorded justification
+  is what fails: it reads `constitution.md` §Waivers line 102
+  ("MUST NOT convert fail, unknown or missing into pass") as
+  governing the assurance result only, and treats the CLI string
+  as a separate cosmetic layer. Two rules this repository already
+  holds contradict that split:
+
+    - `constitution.md` Invariant 10: "missing, stale, failed,
+      inconclusive, infrastructure error, WAIVED and passed states
+      MUST remain distinguishable." A CLI that prints `pass` for
+      a waived subject makes two of those six identical.
+    - `spec/semantics.md` §Merge Gate: "A merge with a Waiver MUST
+      report `open-with-waiver`, never `pass`."
+
+  The intent was sound; the instrument was wrong. This decision
+  keeps the instrument (the waiver still lifts the gate, exit
+  stays 0) and fixes the label, which is the part that lied.
+
+  Same defect class as `decisions/path-probe-anchoring-2026-11`,
+  which recorded the sibling instance: "A gate that certifies an
+  empty obligation set is an invariant violation, not a degraded
+  mode: `unknown` is laundered into `pass`." There the laundering
+  came from an empty obligation set; here it comes from a
+  non-empty one. The invariant is the same and it is stated in
+  both directions.
+
+commitment: |
+  (a) The waiver step moves out of `bin/Mathc.ml` and into
+      `lib/gate.ml` as the pure function `aggregate_with_waivers`,
+      which returns `(verdict, covered)` where `covered` pairs
+      every waived gap with the waiver that lifts it. It is
+      unit-testable without a filesystem.
+
+  (b) The verdict string vocabulary has four values: `pass`,
+      `open-with-waiver`, `fail`, `unknown`. `Open_with_waiver`
+      is no longer rendered as `pass`.
+
+  (c) The top-level verdict of a repository in which every subject
+      is passed or waived is `open-with-waiver`, not `pass`. Exit
+      codes are UNCHANGED: 0 for `pass` and `open-with-waiver`, 1
+      for `fail`, 3 for `unknown` (constitution.md Invariant 14b
+      is about exit honesty, not about collapsing labels).
+
+  (d) Every subject entry carries a `waivers[]` array naming the
+      waiver behind an `open-with-waiver` verdict: `id`, `issuer`,
+      `issued_at`, `expires_at`, `scope` (obligation-scoped or
+      legacy decision-wide) and `covers[]` (the obligations of
+      THIS subject the waiver accepts). This is Invariant 14c
+      made observable: a verdict that exits 0 under a waiver
+      references that waiver, with its authority and its expiry,
+      in the same object a machine reads the verdict from. The
+      array is empty for every other verdict, so a `pass` subject
+      can no longer reference a waiver at all.
+
+  (e) The regression surface is three layers: the pure decision
+      table (`tests/gate/waiver_aggregation.ml`, 12 cases), the
+      end-to-end report (`tests/cli/self-check-waiver-verdict.t`),
+      and the existing waiver-scope fixtures, whose positive
+      scenarios now assert `open-with-waiver`.
+
+  (f) `tests/counters_reference.ml` restores the drift detection
+      that `tests/counters_drift.ml` names but cannot perform, by
+      checking counter claims conditionally rather than by
+      matching one literal shape. See outcome
+      `counters-drift-is-real`.
+
+  (g) `attestations/waiver-infrastructure-2026-10-self-check-emits-
+      pass-with-waiver.json` becomes `result: inconclusive` with a
+      `reason` naming this decision. Its obligation claimed that
+      the CLI emits `pass` for a waiver-covered subject; after
+      (b) that is false, and leaving a `pass` attestation in the
+      store would be a false claim rather than a stale one. This
+      is the repo's existing precedent for a structurally
+      unsatisfiable obligation
+      (`attestations/audit-0.0.21-fixes-self-check-verdict-is-pass.json`)
+      and it costs one honest `unknown` subject: see
+      `changed-verdicts` below.
+
+antithesis: |
+  The strongest counter-position: "leave the string alone and add
+  the waiver provenance instead. A consumer that wants to know
+  whether a subject is genuinely green can look at `causes[]`;
+  changing the vocabulary breaks every downstream script that
+  compares `.verdict == "pass"`, including CI dashboards."
+
+  Partly granted, and it shapes (d): the provenance is added
+  precisely so the information is not lost. But the argument
+  fails at its first step. `causes[]` answers "are there unmet
+  obligations?", which is a question about the subject; `verdict`
+  answers "may this be relied on?", which is a question about
+  the merge gate. Folding the second into the first is how the
+  seven subjects became invisible: nothing in the repository
+  consumed `verdict` for those seven, because `pass` is what a
+  consumer expects, so it filtered for `pass` and got a green
+  tick over two unmet obligations. A dashboard cannot be expected
+  to second-guess a field whose four-value vocabulary the kernel
+  documents.
+
+  A second position, "make a waived subject `unknown` and let the
+  exit code carry the waiver". Rejected: it would turn every
+  waiver into a merge blocker (exit 3), which constitution.md
+  §Waivers explicitly permits ("MAY permit a gate") and which
+  would make the seven 2027-04-18 expiries into guaranteed red
+  PRs. The waiver is real relief; the report must say whose
+  relief it is.
+
+  Acknowledged as a separate cycle: `spec/semantics.md:418` still
+  enumerates the self-check verdict as `pass | fail | unknown`,
+  which this change widens. That line was NOT edited here — the
+  file is normative prose and the repo's precedent
+  (`path-probe-anchoring-2026-11`, `waiver-infrastructure-2026-10`)
+  is to exclude `spec/**` from kernel fixes and record the debt.
+  The same spec at lines 99 and 118 already mandates
+  `open-with-waiver` as a reportable verdict, so line 418 is the
+  stale one, not this change. Tracked as a follow-up below.
+
+counterexample: |
+  What would make this change wrong?
+
+  (1) "A waiver is not evidence, so `open-with-waiver` is just a
+  longer name for `unknown`, and the distinction is
+  self-deception." Counterargument: it is not, because the two
+  carry different obligations on the reader. `unknown` means
+  nobody has accepted the gap; the remedy is to attest or to
+  waive. `open-with-waiver` means a named human accepted it, with
+  an expiry; the remedy is to renew or to close the gap before
+  the expiry. Collapsing them would make the seven waivers
+  indistinguishable from the seven subjects nobody has looked at.
+
+  (2) "This breaks the decision corpus."
+  `decisions/waiver-infrastructure-2026-10.yaml` obligation
+  `self-check-emits-pass-with-waiver` names the old behaviour and
+  is attested. True, and handled explicitly in (g): the
+  attestation becomes `inconclusive` with a reason, and
+  `decisions/waiver-infrastructure-2026-10.yaml` needs a rev bump
+  that restates the obligation as `self-check-reports-open-with-
+  waiver`. That bump is NOT taken here — it is another decision's
+  commitment and belongs to its own cycle. The honest interim
+  state is one `unknown` subject for that decision, not a false
+  `pass`.
+
+  (3) "The verdict change makes CI red." It does not: the
+  top-level verdict and the exit code are unchanged on this tree
+  (top `unknown`, exit 3, before and after), because seven other
+  subjects are unknown for reasons unrelated to waivers. The
+  change is visible in the per-subject JSON, which is where it
+  belongs.
+
+  (4) "`tests/counters_reference.ml` is a second drift test."
+  It is a second drift RULE, and it is deliberately broader:
+  `counters_drift.ml` matches one literal shape
+  (`**<N> files**`) and therefore cannot fail on drift, while
+  this one matches any live-scoped `N <countable fact>` claim.
+  `counters_drift.ml` was left untouched because another session
+  owns it (commit `53e0aba`); this decision does not supersede or
+  edit it, and both contracts are true at once — the bolded
+  pattern stays forbidden, and any other live count must match.
+
+scope:
+  capabilities:
+    - correctness
+    - policy-enforcement
+  paths:
+    - "lib/gate.ml"
+    - "bin/Mathc.ml"
+    - "tests/gate/waiver_aggregation.ml"
+    - "tests/gate/dune"
+    - "tests/cli/self-check-waiver-verdict.t"
+    - "tests/cli/gate-waiver-scope.t"
+    - "tests/cli/self-check-pass.t"
+    - "tests/cli/self-check-unknown.t"
+    - "tests/counters_reference.ml"
+    - "tests/dune"
+    - "attestations/waiver-infrastructure-2026-10-self-check-emits-pass-with-waiver.json"
+    - "PACKAGES.md"
+    - "decisions/self-check-waiver-verdict-coherence-2026-10.yaml"
+  exclusions:
+    - "spec/**"           # normative prose; debt recorded in antithesis
+    - "schemas/**"        # no schema change; the JSON gains a key, loses none
+    - "scripts/check.sh"
+    - "scripts/**"
+    - ".github/workflows/**"
+    - "tests/counters_drift.ml"   # owned by another session (53e0aba)
+    - "tests/process_principles.ml"
+    - "tests/support/forge_stub/**"
+    - "decisions/waiver-infrastructure-2026-10.yaml"  # rev bump is its own cycle
+
+outcomes:
+  - id: waived-verdict-is-not-pass
+    statement: |
+      A subject whose gaps are accepted by a waiver reports
+      `open-with-waiver`, never `pass`, at both the subject and
+      the repository level. `pass` and a non-empty `causes[]` are
+      no longer co-representable.
+  - id: waiver-is-named-in-output
+    statement: |
+      Every `open-with-waiver` subject carries a `waivers[]` entry
+      naming the waiver with its issuer, issue and expiry dates,
+      its scope, and the obligations of that subject it covers.
+      Every other verdict carries an empty array.
+  - id: pure-aggregation-is-testable
+    statement: |
+      The waiver step is `Gate.aggregate_with_waivers`, a pure
+      function whose decision table (waivable kinds, partial
+      coverage, expiry, scope) is covered without a filesystem.
+  - id: counters-drift-is-real
+    statement: |
+      A documentation counter claim is checked against the live
+      value when, and only when, the claim is live-scoped and the
+      paragraph is not a dated snapshot. Historical prose is
+      exempt by anchor, not by pattern-narrowing.
+  - id: stale-attestation-retired
+    statement: |
+      The attestation that recorded the old `pass`-with-waiver
+      behaviour is `inconclusive` with a reason naming the
+      supersession, so the store does not claim a behaviour the
+      kernel no longer has.
+
+changed-verdicts: |
+  Measured on the same tree and the same attestation store (only
+  committed + new, no `.gitignore`d test scratch), via
+  `MATH_CODING_ATTESTATION_STORE` pointed at a store built from
+  `git ls-files --cached --others --exclude-standard`:
+
+      before:  subjects 206 | pass 198 | open-with-waiver 0 | unknown 8
+      after:   subjects 206 | pass 191 | open-with-waiver 7 | unknown 8
+
+      before:  7 subjects reported `pass` while carrying 33 causes
+      after:   0 subjects report `pass` with a non-empty causes[]
+
+  Zero subjects moved into `unknown` because of the code change.
+  The seven were never `Unknown` at the kernel level — they were
+  `Open_with_waiver` wearing the wrong label — so the fix relabels
+  them and inflates nothing. The eighth unknown in both columns is
+  this decision itself, before its own eight attestations are
+  counted; once they are (they are generated in the same commit),
+  the tree reads pass 192 | open-with-waiver 7 | unknown 7.
+
+  The top-level verdict is `unknown` and the exit code is 3 before
+  and after, for the same unrelated reason: seven other subjects
+  (`forge-verify-principals-extension`,
+  `stub-lint-fmt-conflict-telemetry-2026-10`,
+  `path-probe-anchoring-2026-11`, `ci-cram-cleanup-batch2-2026-10`,
+  `plan-2026-11-adoption-fixes-2026-10`, `ci-green-batch1-2026-10`,
+  `nix-develop-store-lock-contention-2026-10`) are unknown for
+  reasons no waiver touches.
+
+  Commitment (g) has NO verdict effect, and the reason is itself a
+  found defect. `decisions/waiver-infrastructure-2026-10.yaml`
+  declares `obligations:` TWICE — once at line 7 with
+  `trivial-obligation`, again at line 175 with `waiver-loader-
+  tested` and `self-check-emits-pass-with-waiver`. The kernel's
+  YAML reader keeps the first block, so `mathc validate` reports
+  `obligations: 1` for a file that declares six `- id:` entries,
+  and the gate has never evaluated `self-check-emits-pass-with-
+  waiver` — the very obligation whose attestation this decision
+  retires. Retiring it is still correct (the store must not claim
+  a behaviour the kernel no longer has), but it will not move a
+  verdict until that decision's duplicate key is repaired. That
+  repair is another decision's body and is NOT taken here; see
+  `risk.drift_recurs`.
+
+  Exit codes: unchanged (0 / 1 / 3). CI impact: none.
+
+obligations:
+  - id: waived-verdict-is-not-pass
+    outcome: waived-verdict-is-not-pass
+    claim: |
+      A synthetic project with one wholly-waived decision reports
+      `"verdict":"open-with-waiver"` at the repository level and
+      for the subject, and no subject reports `pass` while
+      carrying a cause. On the live tree no subject reports `pass`
+      with a non-empty `causes[]` or `remedies[]`.
+    acceptance:
+      all:
+        - verifier: tests/cli/self-check-waiver-verdict.t
+          result: pass
+
+  - id: waiver-is-named-in-output
+    outcome: waiver-is-named-in-output
+    claim: |
+      The synthetic `open-with-waiver` subject carries a
+      `waivers[]` entry with id, issuer, issued_at, expires_at,
+      scope and the two covered obligations; every live
+      `open-with-waiver` subject names a waiver that is unexpired
+      at the reported `now` and covers at least one obligation; no
+      `pass` subject names a waiver.
+    acceptance:
+      all:
+        - verifier: tests/cli/self-check-waiver-verdict.t
+          result: pass
+
+  - id: pure-aggregation-decision-table
+    outcome: pure-aggregation-is-testable
+    claim: |
+      `tests/gate/waiver_aggregation.ml` covers: no gaps -> Pass;
+      all waived -> Open_with_waiver; partial coverage -> Unknown;
+      FailedEvidence -> Block; MissingReview -> Block; expired
+      waiver -> Unknown; unissued waiver -> Unknown; another
+      decision's waiver -> Unknown; obligation-scoped waiver
+      covers only its own obligation; and a waived verdict returns
+      the waiver that produced it, once per covered gap.
+    acceptance:
+      all:
+        - verifier: tests/gate/waiver_aggregation.ml
+          result: pass
+
+  - id: scope-fixtures-speak-the-new-vocabulary
+    outcome: waived-verdict-is-not-pass
+    claim: |
+      `tests/cli/gate-waiver-scope.t` scenarios 1 and 3 assert
+      `open-with-waiver` for a fully-waived decision; scenarios 2
+      and 4 still assert `unknown` for partial and cross-decision
+      coverage. The strict-scope guarantee is unchanged.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-waiver-scope.t
+          result: pass
+
+  - id: counters-reference-no-false-positives
+    outcome: counters-drift-is-real
+    claim: |
+      `tests/counters_reference.ml` is green on the tree as it
+      stands: every counter claim in PACKAGES.md and ROADMAP.md is
+      either live-scoped-and-correct or inside a dated snapshot.
+      Calibrated against the corpus: 21 claims match, 20 are
+      exempt or unscoped, and the one live claim
+      (`34 subcommands total` in the PACKAGES.md module table,
+      where the live dispatcher has 36) was CORRECTED in this
+      commit rather than waived.
+    acceptance:
+      all:
+        - verifier: tests/counters_reference.ml
+          result: pass
+        - verifier: text-scan-packages-module-table-subcommand-count
+          result: pass
+
+  - id: counters-reference-detects-injected-drift
+    outcome: counters-drift-is-real
+    claim: |
+      The rule is not vacuous: inserting "The repository currently
+      holds 421 cram files in total." into an undated paragraph of
+      ROADMAP.md makes the test fail with the live value (117),
+      while the same sentence carrying a HEAD/date anchor is
+      exempt. Both behaviours were executed against this tree and
+      then reverted; the claim is about the rule, not about a
+      checked-in fixture.
+    acceptance:
+      all:
+        - verifier: manual-review-of-test-rule
+          result: pass
+
+  - id: stale-attestation-is-inconclusive
+    outcome: stale-attestation-retired
+    claim: |
+      `attestations/waiver-infrastructure-2026-10-self-check-emits-pass-with-waiver.json`
+      carries `result: inconclusive` and a `reason` naming
+      `self-check-waiver-verdict-coherence-2026-10`.
+    acceptance:
+      all:
+        - verifier: text-scan-attestation-inconclusive
+          result: pass
+
+  - id: kernel-self-check-still-exits-3-here
+    outcome: waived-verdict-is-not-pass
+    claim: |
+      `mathc self-check` on this tree exits 3 with repository
+      verdict `unknown`, the same as before the change: the
+      verdict-labelling fix must not move the gate.
+    acceptance:
+      all:
+        - verifier: mathc self-check
+          result: pass
+
+reversal:
+  - signal: consumer-requires-the-old-string
+    condition: |
+      A downstream tool (CI dashboard, adoption skill, release
+      script) turns out to branch on `.verdict == "pass"` for a
+      subject and now mis-handles `open-with-waiver`. Resolution:
+      the consumer branches on `.verdict == "pass"` for a genuine
+      pass and on `.waivers[]` for a waived one; the vocabulary is
+      the documented one (`spec/semantics.md` §Merge Gate).
+    action: rework
+  - signal: waivers-expire-without-remediation
+    condition: |
+      `decisions/waivers/*.yaml` reach `expires_at` with their
+      obligations still unmet. Then `Waiver.effective_at` returns
+      false, the subject returns to `unknown`, and the exit code
+      goes to 3 — which is the intended pressure, not a regression.
+      The follow-up is attestation generation, not a code change.
+    action: attest
+  - signal: spec-vocabulary-contradiction-reopened
+    condition: |
+      `spec/semantics.md:418` is edited to re-affirm a three-value
+      self-check vocabulary, or a conformance fixture is added that
+      requires `pass` for a waived subject. Resolution: this
+      decision and the spec line are reconciled in one cycle, with
+      a migration note for consumers.
+    action: rework
+
+risk:
+  declared_triggers:
+    - consumer-requires-the-old-string
+    - waivers-expire-without-remediation
+    - spec-vocabulary-contradiction-reopened
+    - cram-replays-stale-outcome-after-kernel-change
+  drift_recurs: |
+    The laundering came back once already, in a different shape:
+    `path-probe-anchoring-2026-11` found an EMPTY obligation set
+    reported as `pass`, this decision found a NON-empty one
+    reported as `pass`. Both were "verdict says green, evidence in
+    the same object says otherwise". The guard against a third
+    shape is `tests/cli/self-check-waiver-verdict.t` scenario 2,
+    which asserts the cross-field property ("no `pass` subject
+    carries a cause") over the live tree rather than a count, so
+    it fires for any future labelling of a non-empty gap as green
+    and does not need updating when decisions come and go.
+
+    Found while measuring `changed-verdicts`, and NOT fixed by
+    this decision: `decisions/waiver-infrastructure-2026-10.yaml`
+    declares the `obligations:` key twice, and the kernel's YAML
+    reader keeps the first block. `mathc validate` therefore
+    reports 1 obligation for a file that declares 6, and the gate
+    silently stops enforcing `waiver-loader-tested` and
+    `self-check-emits-pass-with-waiver`. This is the strongest
+    available evidence that an attestation in the store is not
+    evidence the gate consumed: the store held a `pass`
+    attestation for an obligation no evaluator ever read. Repair
+    belongs in a rev bump of that decision (merge the two blocks,
+    recompute body_sha) and is deliberately out of this decision's
+    `scope.exclusions`.
+
+    Also pre-existing and observed while retiring the attestation:
+    `mathc validate` rejects
+    `attestations/waiver-infrastructure-2026-10-self-check-emits-pass-with-waiver.json`
+    with `MC-MATERIALS-DIGEST-EMPTY` — a `kind_: test` attestation
+    with an empty `materials_digest`. The file rejected identically
+    at HEAD (`git show HEAD:...` piped to `mathc validate`), so
+    this change neither causes nor fixes it. Recorded because the
+    retirement touched the file and a reviewer will ask.
+
+    Known residual, recorded rather than fixed here:
+    `Waiver.effective_at` treats `expires_at` as INCLUSIVE
+    (`issued_at <= now <= expires_at`, pinned by
+    `tests/waiver_test.ml`), while constitution.md Invariant 14c
+    requires `expires_at` to be "strictly greater than the
+    evaluation time". The two disagree for the single instant at
+    which `now == expires_at`. Closing it is a one-line change to
+    `lib/waiver.ml` plus a fixture update, and it is left alone
+    here because it is a different defect from the one this
+    decision fixes and it has its own blast radius (every waiver
+    boundary test).
+
+    Harness caveat for anyone re-running the fixtures: dune
+    replays a recorded cram outcome from
+    `_build/**/.cram.<name>/cram.out` when it cannot observe that
+    the binary moved (the binary reaches the sandbox through the
+    `_build/install/default/bin/mathc` symlink, so rebuilding the
+    kernel moves the target without changing the cache key). A
+    green `dune runtest tests/cli` after a kernel edit may be a
+    replay, not a run. `scripts/check.sh:136-146` documents this
+    and starts its cram stage with `dune clean`; do the same
+    before trusting a local cram result.
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - path-probe-anchoring-2026-11@2
+    - waiver-infrastructure-2026-10@1
+    - enable-counters-drift-test-2026-10@1
+  depends_on:
+    - waiver-infrastructure-2026-10@1
+  supersedes: []

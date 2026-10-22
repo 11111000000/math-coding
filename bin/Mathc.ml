@@ -4034,12 +4034,33 @@ let[@warning "-32"] do_re_evaluate_decisions () =
  * anything) means existing attestations still apply. *)
 
 (* Map a Gate verdict variant to the self-check JSON verdict
-   string. Open_with_waiver is reported as `pass` because a
-   waiver is an explicit, scoped, expiring acceptance of the
-   underlying gap (per constitution.md §Waivers). *)
+   string. The four values are four different claims:
+     pass               — every obligation of this subject has
+                         current pass evidence
+     open-with-waiver   — obligations remain unmet; a named,
+                         unexpired, in-scope waiver accepts the
+                         gap (constitution.md Invariant 10 keeps
+                         "waived" and "passed" distinguishable;
+                         spec/semantics.md §Merge Gate: "A merge
+                         with a Waiver MUST report
+                         `open-with-waiver`, never `pass`")
+     fail               — a decisive fail attestation
+     unknown            — at least one obligation is unmet and
+                         not waived
+   `open-with-waiver` deliberately does NOT collapse into
+   "pass": this mapping used to do exactly that, and the
+   resulting JSON reported 7 subjects as `pass` while listing
+   their unmet causes — the verdict string contradicting its own
+   evidence. It is the same laundering class as the empty-
+   obligation-set pass recorded in
+   decisions/path-probe-anchoring-2026-11: an exit-0 path that
+   certifies work nobody did. The subject entry also carries a
+   `waivers` array naming the waiver that produced the verdict,
+   so `open-with-waiver` is attributable rather than anonymous
+   (constitution.md Invariant 14c). *)
 let[@warning "-32"] verdict_to_pass_fail_unknown = function
   | Gate.Pass -> "pass"
-  | Gate.Open_with_waiver -> "pass"
+  | Gate.Open_with_waiver -> "open-with-waiver"
   | Gate.Block -> "fail"
   | Gate.Unknown -> "unknown"
 
@@ -4196,26 +4217,34 @@ let[@warning "-32"] load_decision_entry reader path =
 
 (* Per-decision evaluation. Walks every obligation in `entry` and
    computes its gap; aggregates gaps into the decision's subject
-   verdict; returns (verdict, causes[], remedies[]). When the
-   subject verdict is `pass`, the gap list is empty and the
-   causes/remedies are empty too.
+   verdict; returns (verdict, causes[], remedies[], waived[]).
+   When the subject verdict is `pass`, the gap list is empty and
+   the causes/remedies are empty too — a `pass` subject can no
+   longer carry a cause, because a cause is by construction the
+   trace of an unmet obligation.
 
-   Waiver consultation (math-coding 3.0, decision
-   waiver-infrastructure-2026-10): if the aggregated verdict is
-   `Unknown` and a waiver covers the subject at `now`, we
-   return `Open_with_waiver` instead. The CLI maps
-   `Open_with_waiver -> "pass"` in the verdict string (existing
-   behaviour at bin/Mathc.ml:1829-1833) but the gap list and
-   the cause/remedy remain in the JSON output — the gap is a
-   gap, the waiver is an acknowledgment, not an elimination
-   (constitution.md §Waivers line 102; spec/semantics.md
-   §Waiver "MUST NOT change the underlying assurance result").
+   Waiver consultation lives in `Gate.aggregate_with_waivers`
+   (lib/gate.ml), which is pure and unit-tested in
+   tests/gate/waiver_aggregation.ml. The two rules it enforces,
+   unchanged from the version that used to live here:
 
-   A FailedEvidence gap is never waived: only MissingEvidence,
-   StaleEvidence, and Unknown gaps can be lifted to
-   Open_with_waiver. This preserves the
-   "decisive fail -> Block" invariant (constitution.md
-   Invariant 14, spec/semantics.md §Evaluation). *)
+     - only `MissingEvidence` / `StaleEvidence` / `Unknown` gaps
+       are waivable; a `FailedEvidence` gap stays `Block`
+       (constitution.md Invariant 14, spec/semantics.md
+       §Evaluation);
+     - partial coverage is not coverage: if even one gap is
+       unwaived, the verdict stays `Unknown`.
+
+   What changed, and why: the returned `waived` list pairs each
+   waived obligation with the waiver that accepts it, and
+   `subject_to_json` prints it under `waivers[]`. Under the
+   previous mapping the verdict string said `pass` while
+   `causes[]` listed the unmet obligations, and nothing in the
+   output named the waiver that produced that `pass`. Per
+   constitution.md Invariant 14c a verdict that exits 0 under a
+   waiver MUST reference the waiver; a waiver that shows up only
+   as an unexplained green tick is not an acknowledgment, it is
+   an unattributed pass. *)
 let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
     (entry : Memory.decision_entry) =
   let gaps =
@@ -4225,33 +4254,18 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
           ~obligation_id:obl_id ~materials_digest:materials ~store)
       entry.Memory.obligation_ids
   in
-  let aggregate_verdict = Gate.aggregate gaps in
-  let verdict =
-    match aggregate_verdict with
-    | Gate.Unknown ->
-        let all_waivable =
-          List.for_all
-            (fun g ->
-              match g.Gate.kind with
-              | `MissingEvidence | `StaleEvidence | `Unknown -> true
-              | `FailedEvidence | `MissingReview | `NoAttestationStore -> false)
-            gaps
-        in
-        if
-          all_waivable
-          && List.for_all
-               (fun g ->
-                 Option.is_some
-                   (Waiver.covers waivers ~decision_id:entry.Memory.decision_id
-                      ~obligation_id:g.Gate.obligation_id ~now))
-               gaps
-        then Gate.Open_with_waiver
-        else Gate.Unknown
-    | v -> v
+  let verdict, covered =
+    Gate.aggregate_with_waivers waivers ~decision_id:entry.Memory.decision_id
+      ~now gaps
   in
   let causes = List.concat_map (fun g -> g.Gate.causes) gaps in
   let remedies = List.concat_map (fun g -> g.Gate.remedies) gaps in
-  (verdict, causes, remedies)
+  let waived =
+    List.map
+      (fun ((gap : Gate.gap), (w : Waiver.t)) -> (gap.Gate.obligation_id, w))
+      covered
+  in
+  (verdict, causes, remedies, waived)
 
 (* Compute repository_digest from the sorted (decision_id, revision)
    tuples. Stable across file orderings; absent revision is
@@ -4282,9 +4296,99 @@ let[@warning "-32"] kernel_digest_of () =
     Digest.sha256_hex raw
   with _ -> "unavailable"
 
+(* Group the (obligation_id, waiver) pairs the evaluator returned
+   into one entry per DISTINCT waiver, each listing every
+   obligation of this subject that waiver accepts.
+
+   `Waiver.covers` returns the first matching waiver for a gap, so
+   a decision-wide waiver covering 5 obligations arrives as 5
+   identical pairs. Emitting one entry per pair would repeat the
+   same id/issuer/expiry five times; the `covers` array is
+   precisely the place to record what the waiver covers. Grouping
+   is keyed on the waiver id, which constitution.md §Waivers
+   requires to be unique ("MUST identify one gap, authority,
+   ..."), so two entries with the same id are one waiver. *)
+let[@warning "-32"] group_waivers waived =
+  List.fold_left
+    (fun acc (obligation_id, (w : Waiver.t)) ->
+      if
+        List.exists
+          (fun ((w2 : Waiver.t), _) -> String.equal w2.Domain.id w.Domain.id)
+          acc
+      then
+        List.map
+          (fun ((w2 : Waiver.t), ids) ->
+            if String.equal w2.Domain.id w.Domain.id then
+              (w2, ids @ [ obligation_id ])
+            else (w2, ids))
+          acc
+      else acc @ [ (w, [ obligation_id ]) ])
+    [] waived
+
+(* Render one waiver entry as it appears inside a subject's
+   `waivers[]` array. Keys sorted, matching the surrounding
+   object convention. `covers` lists the obligation ids of THIS
+   subject that the waiver accepts, so a reader can check the
+   scope claim without opening the waiver file; `scope` says
+   whether the waiver is obligation-scoped (`unverified_obligation`
+   present) or legacy decision-wide (absent), which is the
+   distinction `Waiver.covers` draws internally.
+
+   `issuer`, `issued_at` and `expires_at` are printed because
+   constitution.md §Waivers requires a waiver to identify
+   authority and expiry, and Invariant 14c requires the verdict
+   that exits 0 under it to reference one. A waiver that the
+   reader cannot date cannot be audited; printing the expiry is
+   what makes "unexpired" a checkable claim rather than an
+   assumption. *)
+let[@warning "-32"] waiver_to_json ~(covers : string list) (w : Waiver.t) =
+  let covers_json =
+    "["
+    ^ String.concat ","
+        (List.map (fun s -> Jsonl.stringify (Jsonl.String s)) covers)
+    ^ "]"
+  in
+  let fields =
+    [
+      ("covers", covers_json);
+      ("expires_at", Jsonl.stringify (Jsonl.String w.Domain.expires_at));
+      ("id", Jsonl.stringify (Jsonl.String w.Domain.id));
+      ("issued_at", Jsonl.stringify (Jsonl.String w.Domain.issued_at));
+      ("issuer", Jsonl.stringify (Jsonl.String w.Domain.issuer));
+      ( "scope",
+        Jsonl.stringify
+          (Jsonl.String
+             (match w.Domain.unverified_obligation with
+             | Some _ -> "obligation"
+             | None -> "decision")) );
+    ]
+  in
+  let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
+  "{"
+  ^ String.concat ","
+      (List.map
+         (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+         sorted)
+  ^ "}"
+
 (* Render one subject. Sorted keys per spec/semantics.md CLI
-   output contract. *)
-let[@warning "-32"] subject_to_json name verdict causes remedies =
+   output contract.
+
+   `waived` is the (obligation_id, waiver) pairing the pure
+   evaluator returned with an `Open_with_waiver` verdict. It is
+   rendered under `waivers` and is empty for every other
+   verdict, so the array itself is the evidence that
+   constitution.md Invariant 14c asks for: a verdict that exits 0
+   under a waiver names that waiver, with its issuer and its
+   expiry, in the same object a machine reads the verdict from.
+
+   Note what is NOT conditional: a subject reported as `pass`
+   carries an empty `causes` array by construction (a cause is
+   emitted per unmet obligation), so "verdict pass but causes
+   non-empty" is no longer expressible. That is the invariant the
+   regression fixture in tests/cli/self-check-waiver-verdict.t
+   pins. *)
+let[@warning "-32"] subject_to_json name verdict causes remedies waived =
   let causes_json =
     "["
     ^ String.concat ","
@@ -4297,12 +4401,21 @@ let[@warning "-32"] subject_to_json name verdict causes remedies =
         (List.map (fun s -> Jsonl.stringify (Jsonl.String s)) remedies)
     ^ "]"
   in
+  let waivers_json =
+    "["
+    ^ String.concat ","
+        (List.map
+           (fun (w, ids) -> waiver_to_json ~covers:ids w)
+           (group_waivers waived))
+    ^ "]"
+  in
   let fields =
     [
       ("causes", causes_json);
       ("name", Jsonl.stringify (Jsonl.String name));
       ("remedies", remedies_json);
       ("verdict", Jsonl.stringify (Jsonl.String verdict));
+      ("waivers", waivers_json);
     ]
   in
   let sorted = List.sort (fun (a, _) (b, _) -> String.compare a b) fields in
@@ -4346,26 +4459,39 @@ let[@warning "-32"] do_self_check () =
   let evaluated =
     List.map
       (fun entry ->
-        let verdict, causes, remedies =
+        let verdict, causes, remedies, waived =
           evaluate_decision ~materials ~store ~waivers ~now entry
         in
-        (entry.Memory.decision_id, verdict, causes, remedies))
+        (entry.Memory.decision_id, verdict, causes, remedies, waived))
       entries
   in
   (* Top-level aggregation. Empty decision set is treated as
      `unknown` (not `pass`) — a kernel with no decisions to check
-     cannot honestly claim to have checked the policy. *)
+     cannot honestly claim to have checked the policy.
+
+     A repository in which every subject is either passed or
+     waived is reported as `open-with-waiver`, not `pass`: the
+     aggregate is a statement about the whole policy, and if any
+     part of it rests on a waiver then the whole rests on one.
+     Folding `Open_with_waiver` into `Pass` here is the aggregate
+     twin of the per-subject laundering this fix removes
+     (constitution.md Invariant 10; spec/semantics.md §Merge
+     Gate). Exit codes are unchanged — `open-with-waiver` still
+     exits 0, which is what Invariant 14b allows, and it is
+     distinguished from `pass` in the JSON so a reader can see
+     that the green is borrowed. *)
   let top_verdict =
     match evaluated with
     | [] -> Gate.Unknown
     | _ ->
-        let verdicts = List.map (fun (_, v, _, _) -> v) evaluated in
+        let verdicts = List.map (fun (_, v, _, _, _) -> v) evaluated in
         if List.exists (fun v -> v = Gate.Block) verdicts then Gate.Block
+        else if List.for_all (fun v -> v = Gate.Pass) verdicts then Gate.Pass
         else if
           List.for_all
             (fun v -> v = Gate.Pass || v = Gate.Open_with_waiver)
             verdicts
-        then Gate.Pass
+        then Gate.Open_with_waiver
         else Gate.Unknown
   in
   let top_string = verdict_to_pass_fail_unknown top_verdict in
@@ -4373,10 +4499,10 @@ let[@warning "-32"] do_self_check () =
     "["
     ^ String.concat ","
         (List.map
-           (fun (name, verdict, causes, remedies) ->
+           (fun (name, verdict, causes, remedies, waived) ->
              subject_to_json name
                (verdict_to_pass_fail_unknown verdict)
-               causes remedies)
+               causes remedies waived)
            evaluated)
     ^ "]"
   in
