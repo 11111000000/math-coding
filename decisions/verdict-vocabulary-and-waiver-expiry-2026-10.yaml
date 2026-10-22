@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:39fdeba355b9f3c762a9dd2bfb5fb99f3a68bed33af3ff772d449239937b9bff"
-yaml_sha: "sha256:39fdeba355b9f3c762a9dd2bfb5fb99f3a68bed33af3ff772d449239937b9bff"
+body_sha: "sha256:353165858c419040bed7a8d540951c0dd20f4268609a1e1d401abc7121eb562e"
+yaml_sha: "sha256:353165858c419040bed7a8d540951c0dd20f4268609a1e1d401abc7121eb562e"
 
 axiom_link:
   - A0
@@ -705,6 +705,18 @@ obligations:
       `bin/Mathc.ml::now_iso` reads the wall clock and ignores
       `MATH_CODING_FIXED_TIME`. That is why the exact-second
       boundary is owned by the pure unit tests.
+      All four numbers were re-measured on 2026-10-22 against
+      current `main`, not inherited from the first draft.
+      Mutant A (`iso_le ... expires_at`, the original defect) gives
+      `tests/waiver_test.ml` 2 failures — `effective_at` at the
+      expires boundary and `covers` at the expiry second — and
+      `tests/gate/waiver_aggregation.ml` 1 failure, "a waiver does
+      not lift a gap at now == expires_at". Mutant B (strictly
+      open at BOTH ends) gives 1 failure in each, both on the
+      issue side. `dune runtest tests/cli` exits 0 under mutant A,
+      which is the honesty cost of pinning lapse behaviour at the
+      CLI and is why the mutation probe, not the cram fixture,
+      carries this obligation.
     acceptance:
       all:
         - verifier: manual-mutation-probe-boundary
