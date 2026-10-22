@@ -11,10 +11,13 @@
 #   scripts/check.sh <name>     — run a single fixture by basename
 #
 # Each fixture in tests/fixtures/*.sh is a self-contained executable
-# that asserts one obligation. The CLI integration tests live in
-# tests/cli/*.t as dune cram tests; they are exercised via
+# that asserts one obligation. The cram integration tests live in
+# tests/<dir>/*.t as dune cram tests; they are exercised via
 # `dune runtest` at the end of the aggregator so a single invocation
-# of scripts/check.sh covers both shells and cram.
+# of scripts/check.sh covers both shells and cram. Every cram
+# directory under tests/ is discovered and run (see the cram step
+# below), so a new tests/<dir>/ cannot slip past the aggregator
+# unnoticed again.
 #
 # Dune-lock handling: each fixture spawns `nix develop .#test`
 # which runs dune. When a previous invocation is interrupted
@@ -77,22 +80,36 @@ for f in "${fixtures[@]}"; do
   fi
 done
 
-# process-principles check is now an OCaml/Alcotest executable
-# (tests/process_principles.ml), exercised by `dune runtest`. We
-# surface it here as a named entry so the aggregator's total
-# count is consistent with the historical `process-principles.sh`
-# fixture.
+# process-principles check is an OCaml/Alcotest executable
+# (tests/process_principles.ml). We surface it here as a named entry
+# so the aggregator's total count stays consistent with the historical
+# `process-principles.sh` fixture.
+#
+# This step used to run `dune build` and nothing else. That proves the
+# module COMPILES; it proves nothing about whether a single
+# P1/P2/P5/P6/P7/P8/T1.5/T1.6 assertion actually holds. The entry
+# therefore reported `ok` for a suite that could be failing wholesale
+# — the same shape of hole as the cram coverage gap below, one layer
+# down. Compiling is not testing, so the executable is now run.
+#
+# The executable is not on PATH, so it is invoked at its dune build
+# path. It resolves the repository root by walking up from the cwd,
+# and this script has already cd'd to the repository root.
 cleanup_dune
+pp_log=$(mktemp)
 if ! nix develop .#test --command bash -c '
-    dune build --root . tests/process_principles.exe >/dev/null 2>&1
-' 2>/dev/null; then
+    dune build --root . tests/process_principles.exe >/dev/null 2>&1 &&
+    ./_build/default/tests/process_principles.exe
+' >"$pp_log" 2>&1; then
   printf "  FAIL process-principles\n"
+  tail -20 "$pp_log" >&2 || true
   fail=$((fail + 1))
   failed_names+=("process-principles")
 else
   printf "  ok   process-principles\n"
   pass=$((pass + 1))
 fi
+rm -f "$pp_log"
 
 # The whole decision corpus must pre-commit clean. This is
 # deliberately NOT implied by a clean textual merge: `git merge-tree`
@@ -120,13 +137,30 @@ else
   pass=$((pass + 1))
 fi
 
-# CLI cram integration tests (tests/cli/*.t). We use
-# `dune runtest` (not the full `dune test`) because the full
+# Cram integration tests: EVERY directory under tests/ that holds at
+# least one `*.t` fixture, discovered at run time rather than
+# hardcoded.
+#
+# This step used to say `dune runtest --root . tests/cli` and nothing
+# else, so tests/mcp and tests/scripts were never executed by this
+# aggregator at all. That gap was not cosmetic. On 2026-10-22
+# `dune runtest` was red on two tests/scripts fixtures while this
+# script printed `summary: 17 passed, 0 failed` — a green
+# aggregator reporting a red suite, because the suite it declined
+# to run is where the failure lived.
+#
+# Discovery closes the class of bug, not merely the instance: a cram
+# directory added tomorrow is covered tomorrow without anyone
+# editing this file. The guard below fails loudly if discovery
+# collapses to nothing, so the step cannot degrade into "ran zero
+# tests, reported ok".
+#
+# We use `dune runtest` (not the full `dune test`) because the full
 # `dune test` reproducibly hangs in this environment due to a
 # dune 3.23.1 bwrap coordination bug (see
 # decisions/disable-hanging-alcotest-tests-2026-10.yaml).
-# `dune runtest` invokes just the cram stanza and finishes
-# in seconds. It starts with `dune clean` because dune replays a
+# `dune runtest` invokes just the cram stanza and finishes in
+# seconds. It starts with `dune clean` because dune replays a
 # recorded cram outcome from `_build/**/.cram.<name>/cram.out`
 # (`DUNE-CRAM-RESULTv2`) whenever it considers the input unchanged.
 # The binary reaches the sandbox through `_build/install/default/bin/
@@ -143,19 +177,28 @@ fi
 # alone makes every affected fixture fail with `cram.out does not
 # exist or is corrupted`, attributed to `tests/cli/_unknown_`.
 cleanup_dune
+cram_dir_list=$(find tests -name '*.t' -exec dirname {} \; | sort -u)
+cram_dirs=$(printf '%s\n' "$cram_dir_list" | tr '\n' ' ')
+cram_dirs=${cram_dirs% }
 cram_log=$(mktemp)
 trap 'rm -f "$cram_log"' EXIT
-if ! nix develop .#test --command bash -c '
+if ! printf '%s\n' "$cram_dir_list" | grep -qx 'tests/cli'; then
+  printf "  FAIL cram\n"
+  printf 'cram discovery did not find tests/cli; found: [%s]\n' \
+    "$cram_dirs" >&2
+  fail=$((fail + 1))
+  failed_names+=("cram")
+elif ! nix develop .#test --command bash -c "
     dune clean &&
     dune build --root . @install >/dev/null 2>&1 &&
-    dune runtest --root . tests/cli
-' >"$cram_log" 2>&1; then
-  printf "  FAIL cli-cram\n"
+    dune runtest --root . $cram_dirs
+" >"$cram_log" 2>&1; then
+  printf "  FAIL cram  [%s]\n" "$cram_dirs"
   tail -20 "$cram_log" >&2 || true
   fail=$((fail + 1))
-  failed_names+=("cli-cram")
+  failed_names+=("cram")
 else
-  printf "  ok   cli-cram\n"
+  printf "  ok   cram  [%s]\n" "$cram_dirs"
   pass=$((pass + 1))
 fi
 

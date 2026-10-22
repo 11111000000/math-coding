@@ -23,14 +23,40 @@ the `cosign-blob-step-installed` obligation, the
 per-binary asset count rises from 1 to 3
 (`<bin>`, `<bin>.sig`, `<bin>.pem`).
 
+The number is derived, not remembered: each publish step
+lists `mathc-*` binaries and every one of them contributes
+exactly two signed assets, so the count is twice the number
+of `mathc-*` binaries in `files:`.
+
+With seven binaries — linux-x86_64, linux-aarch64,
+darwin-x86_64, darwin-aarch64, windows-x86_64.exe,
+windows-aarch64.exe and linux-x86_64-musl — that is 14.
+
+This fixture previously pinned 12, which was correct when
+the list held six binaries. `mathc-windows-aarch64.exe`
+arrived with `release-windows-aarch64-binary-2026-10` (D7,
+commit 6b6260a9) and made it seven. Note that
+`mathc-linux-x86_64-musl` was ALREADY present when 12 was
+pinned, so musl is not what moved this number; the
+Windows ARM64 entry is. The derivation below prints both
+sides of the arithmetic so the next matrix addition fails
+loudly with its cause attached, rather than as a bare
+off-by-two diff.
+
   $ cd "$DUNE_SOURCEROOT"
+  $ files=$(yq -r '.jobs.publish.steps[]|select(.name=="Publish on tag — official release").with.files' .github/workflows/release.yml); \
+  >   bins=$(printf '%s\n' "$files" | grep -E '^dist-bin/mathc' | grep -vE '\.(sig|pem)$' | wc -l); \
+  >   sigs=$(printf '%s\n' "$files" | grep -cE '\.(sig|pem)$'); \
+  >   echo "binaries=$bins signed-assets=$sigs"
+  binaries=7 signed-assets=14
+
   $ yq '.jobs.publish.steps[]|select(.name=="Publish on tag — official release").with.files' .github/workflows/release.yml | \
   >   grep -oE '\.sig|\.pem' | wc -l
-  12
+  14
 
   $ yq '.jobs.publish.steps[]|select(.name=="Publish on main / manual dispatch — rolling edge").with.files' .github/workflows/release.yml | \
   >   grep -oE '\.sig|\.pem' | wc -l
-  12
+  14
 
 The release.yml `cosign sign-blob` step iterates every
 `dist-bin/mathc-*` binary and runs
@@ -122,15 +148,26 @@ regexp on the verify side.
   >   echo "install.ps1 identity regexp matches the signer identity"
   install.ps1 identity regexp matches the signer identity
 
-OCAML_BEST_PRACTICES.md §11.37 documents the
+OCAML_KERNEL_CONVENTIONS.md §11.37 documents the
 `cosign sign-blob` trap per obligation
 `cosign-blob-trap-log`. The trap log entry follows
 the §11 format with symptom/fix/trigger sections.
 
+The fixture used to name `OCAML_BEST_PRACTICES.md`, but
+commit 45b2143 ("docs(defense): rename kernel-side docs
+and add adoption-disambiguation banner") renamed that file
+to `OCAML_KERNEL_CONVENTIONS.md`. The rename was pure
+mechanical — `git show 45b2143` records the pair
+`OCAML_BEST_PRACTICES.md => OCAML_KERNEL_CONVENTIONS.md`,
+10 lines changed — and the §11.37 trap entry itself moved
+across intact at line 2281. Only the fixture went stale,
+which is why this assertion went red rather than the entry
+going missing.
+
   $ cd "$DUNE_SOURCEROOT"
-  $ grep -q '^### 11\.37' OCAML_BEST_PRACTICES.md && \
-  >   echo "OCAML_BEST_PRACTICES.md has §11.37 trap entry"
-  OCAML_BEST_PRACTICES.md has §11.37 trap entry
+  $ grep -q '^### 11\.37' OCAML_KERNEL_CONVENTIONS.md && \
+  >   echo "OCAML_KERNEL_CONVENTIONS.md has §11.37 trap entry"
+  OCAML_KERNEL_CONVENTIONS.md has §11.37 trap entry
 
 The new sub-decision
 `decisions/release-cosign-blob-sign-2026-10.yaml`
