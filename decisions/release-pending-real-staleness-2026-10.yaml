@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:aceb7f99f21a9e41c833b1a57d587761aa7afe1072b2e6d9a19fda26f93ccf97"
+yaml_sha: "sha256:aceb7f99f21a9e41c833b1a57d587761aa7afe1072b2e6d9a19fda26f93ccf97"
 
 intent: |
   Give the release-pending gate a question it can answer, and
