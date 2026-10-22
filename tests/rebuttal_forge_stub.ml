@@ -14,9 +14,10 @@
    the OCaml parent killed the Python child via SIGTERM
    without first waiting — the child kept the listen socket
    bound for a few extra seconds and the next test could not
-   bind a fresh port. The OCaml stub is a single-shot server
-   that exits after one response, so the parent can reap it
-   via `Unix.close_process_in` cleanly. *)
+   bind a fresh port. The OCaml stub serves every connection
+   it accepts -- `wait_until_ready` spends one on its probe and the
+   probe under test opens another -- and the parent SIGTERMs it at
+   teardown (see decisions/forge-stub-read-request-2026-10.yaml). *)
 
 (* Find a TCP port that nobody is currently listening on.
    Strategy: pick from a candidate list (17000 + offset) and
@@ -57,10 +58,8 @@ let[@warning "-32"] candidates () =
   build [] 50
 
 (* Spawn the OCaml forge_stub.exe in a fresh subprocess. Returns
-   the PID. The stub logs to /dev/null — it exits after one
-   response, so we don't need to signal it. The parent uses
-   `Unix.close_process_in` (which double-forks internally) to
-   reap the child cleanly. *)
+   the PID. The stub keeps serving until `kill_stub` SIGTERMs it,
+   which `with_stub` does from `Fun.protect` on every exit path. *)
 let[@warning "-32"] spawn_stub ~response_body ~port =
   (* The dune test runs each `.exe` from `_build/default/tests/`
      — using a relative path here would resolve against that
