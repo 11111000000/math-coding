@@ -1,0 +1,331 @@
+---
+schema: math-coding/3.3
+id: ci-gate-exit-honesty-2026-10
+revision: 1
+state: active
+body_sha: "sha256:f8aea792457ae6df297e43d94b0c87316b4a070ae12c10bc3f2b1f30663c7c24"
+yaml_sha: "sha256:f8aea792457ae6df297e43d94b0c87316b4a070ae12c10bc3f2b1f30663c7c24"
+
+intent: |
+  Make the two gates that the project's central claim rests on
+  able to fail, and remove a justification that was false.
+
+  math-coding's pitch is that the assurance protocol makes CI
+  refuse a change by a NAMED rule. Two gates contradicted that
+  pitch while reporting green:
+
+  N1 — the self-check step could not fail.
+    `.github/workflows/ci.yml`, step `mathc self-check
+    (bootstrap-gate block)`, ran `mathc self-check`, printed the
+    code with `echo "self-check exit=$?"`, and then ran a `jq`
+    diagnostic dump as the LAST command in the block, under an
+    explicit `set +e`. The step's status was therefore jq's status.
+    `jq` on well-formed JSON exits 0, so `verdict=fail` (mathc
+    exit 1) and `verdict=unknown` (mathc exit 3) both reported
+    GREEN. `continue-on-error: false` was inert: there was no
+    failure to continue from. Six-to-seven `unknown` subjects were
+    invisible to CI on every run.
+
+  N2 — a `dune test` hang was a soft pass with a false
+    justification.
+    `scripts/dev verify` stage 2 converted the documented
+    dune 3.23.1 RPC-deadlock timeout (exit 124) into a WARN and
+    continued, stating that "the underlying per-test `dune
+    runtest` path (run in scripts/check.sh) still proves the
+    suite". That ground was false. `scripts/check.sh` BUILDS
+    `tests/process_principles.exe` without executing it and runs
+    cram only under `tests/cli`. A hang therefore skipped all ~26
+    Alcotest binaries while the step stayed green.
+
+  This decision records the two fixes, the audit evidence for each,
+  and — stated plainly because it is a consequence, not a
+  footnote — that the honest gate turns CI RED on a store that has
+  fallen behind. See `assumptions` and `risk`.
+
+  Out of scope: `scripts/check.sh` (a parallel session is
+  repairing its coverage), `tests/**`, `lib/**`, `bin/**`, and
+  `ROADMAP.md` (whose three "blocking CI" claims become true as of
+  this commit, so no edit is needed there).
+
+commitment: |
+  After this commit lands on its branch:
+
+  1. The step `mathc self-check (bootstrap-gate block)` in
+     `.github/workflows/ci.yml` has the status of `mathc
+     self-check` itself: mathc exit 0 leaves the step green, exit
+     1 leaves it red, exit 3 leaves it red. The `jq` verdict dump
+     is still printed for diagnosis, and is structurally unable to
+     change that status. `continue-on-error: false` is retained.
+
+  2. `scripts/ci-step-exit-sim.sh` exists, EXTRACTS the step body
+     from `.github/workflows/ci.yml` (never a copy), replays it
+     verbatim under the shell GitHub Actions uses for a `run:`
+     step (`bash --noprofile --norc -e -o pipefail`), and exits 0
+     only when step status == mathc status for exits 0, 1, 3 and
+     for a crash-before-JSON exit 3.
+
+  3. `scripts/dev verify` stage 2 no longer treats a `dune test`
+     timeout as a pass. It falls back to `scripts/dev-fast-test
+     --reset` — the per-binary runner that
+     `decisions/disable-hanging-alcotest-tests-2026-10.yaml` names
+     as the workaround — and passes ONLY when that runner reports
+     the suite green AND a coverage cross-check shows it ran every
+     built test binary that is not on the documented
+     `verify_test_exclusions` list. The degraded path states on
+     stderr that `dune test` did not verify the suite.
+
+  4. The comment that asserted "PRs that produce verdict=fail or
+     verdict=unknown block the merge" describes what the step now
+     does, instead of what it claimed to do.
+
+counterexample: |
+  The negative case this decision does NOT close, recorded so
+  nobody reads the fix as "the gate is now effective":
+
+  A mechanically honest gate over an incomplete evidence store is
+  a gate that is always red. At the time of writing, `mathc
+  self-check` on this branch reports verdict=unknown (exit 3),
+  205 subjects: 198 pass, 7 unknown. All seven are decisions whose
+  obligations have no attestation in `attestations/`:
+
+    forge-verify-principals-extension
+    stub-lint-fmt-conflict-telemetry-2026-10
+    path-probe-anchoring-2026-11
+    ci-cram-cleanup-batch2-2026-10
+    plan-2026-11-adoption-fixes-2026-10
+    ci-green-batch1-2026-10
+    nix-develop-store-lock-contention-2026-10
+
+  So the repaired step fails on a clean tree. That is the gate
+  working, not a regression — but it means the merge of THIS branch
+  will show a red `verify` job. The two available closures are
+  (a) produce honest attestations for those obligations, or (b)
+  issue scoped waivers under `decisions/waivers/`. Neither is done
+  here: this branch has no evidence that those obligations pass, and
+  signing a maintainer waiver or running
+  `scripts/generate-attestations.py` over them would assert a
+  result nobody checked. That would reproduce N1's defect at a
+  higher level.
+
+antithesis: |
+  Counter-position: "restore the soft pass and the old step. A gate
+  that is permanently red trains the team to click through it; a
+  gate that is green because it cannot fail is at least quiet."
+
+  Rejected, on the constitution's own terms. Invariant 14b states
+  that `unknown != pass` and `exit 0 != verdict:Unknown` are the
+  same invariant written twice, and that collapsing them in either
+  direction is "`unknown != pass` laundering". The quiet gate
+  performed exactly that laundering, continuously, on every run.
+  A red gate is the reportable state; a green gate over an
+  unevidenced obligation is the unreportable one. If the red is
+  expensive, the honest cost is the backlog that caused it — and
+  the backlog is now named, countable and attributable, which it
+  was not before.
+
+  Second counter-position, on N2: "just make a `dune test`
+  timeout a hard failure." Rejected as a standalone fix: per
+  `decisions/disable-hanging-alcotest-tests-2026-10.yaml` the
+  hang is an upstream dune defect (issue #12900, fixed by PR
+  #12979) that reproduces in this environment, so a hard failure
+  would make `verify` unusable rather than honest. The chosen path
+  keeps the stage meaningful by SUBSTITUTING a runner that can
+  actually complete, and by checking that the substitution covered
+  the suite. The timeout itself is still never treated as evidence.
+
+axiom_link:
+  - A2
+  - A3
+
+scope:
+  paths:
+    - ".github/workflows/ci.yml"
+    - "scripts/dev"
+    - "scripts/ci-step-exit-sim.sh"
+    - "decisions/ci-gate-exit-honesty-2026-10.yaml"
+  exclusions:
+    - "scripts/check.sh"
+    - "tests/**"
+    - "lib/**"
+    - "bin/**"
+    - "ROADMAP.md"
+
+outcomes:
+  - id: ci-step-propagates-mathc-exit
+    statement: |
+      The `mathc self-check (bootstrap-gate block)` step in
+      `.github/workflows/ci.yml` ends with `exit "${rc}"` where
+      `rc` is mathc's own exit status, and its `jq` diagnostic
+      dump runs under an `if` that cannot reach that line's
+      status.
+  - id: exit-honesty-is-checked-not-asserted
+    statement: |
+      `scripts/ci-step-exit-sim.sh` replays the ci.yml step body
+      verbatim against a stub mathc and exits nonzero when any
+      verdict is not carried through to the step status.
+  - id: dune-test-hang-is-not-a-pass
+    statement: |
+      `scripts/dev verify` stage 2 fails on a `dune test`
+      timeout unless the `scripts/dev-fast-test --reset` fallback
+      reports the suite green and covers every non-excluded built
+      test binary.
+  - id: false-justification-removed
+    statement: |
+      No file in this change asserts that `scripts/check.sh`
+      proves the Alcotest suite, or that a timeout is evidence of
+      a pass.
+
+obligations:
+  - id: ci-step-carries-mathc-exit
+    outcome: ci-step-propagates-mathc-exit
+    claim: |
+      Replaying the ci.yml self-check step body against a stub
+      `mathc` yields a step exit status equal to mathc's for mathc
+      exits 0, 1 and 3, and for an exit 3 that emits no parsable
+      JSON. The block is read out of `.github/workflows/ci.yml` at
+      run time, not copied into the harness.
+    acceptance:
+      all:
+        - verifier: scripts/ci-step-exit-sim.sh
+          result: pass
+        - verifier: shell-grep rc=$? .github/workflows/ci.yml
+          result: pass
+  - id: ci-step-sim-is-not-a-tautology
+    outcome: exit-honesty-is-checked-not-asserted
+    claim: |
+      The same harness embeds the PRE-FIX step body (byte-identical
+      to ci.yml at 817c545^) and requires it to MISMATCH on mathc
+      exits 1 and 3. A harness that cannot fail proves nothing, so a
+      `pass` on `ci-step-carries-mathc-exit` means both that today's
+      step carries the code out and that the check is sharp enough
+      to have caught the version that did not.
+    acceptance:
+      all:
+        - verifier: scripts/ci-step-exit-sim.sh
+          result: pass
+        - verifier: shell-grep pre-fix control scripts/ci-step-exit-sim.sh
+          result: pass
+  - id: dune-test-timeout-never-passes-silently
+    outcome: dune-test-hang-is-not-a-pass
+    claim: |
+      `scripts/dev`'s `verify_test_suite` returns 0 for `dune test`
+      rc=0, returns 1 for any rc other than 0/124/137, and on
+      rc=124/137 returns 0 ONLY when the `scripts/dev-fast-test
+      --reset` fallback exits 0 AND the coverage cross-check finds
+      no uncovered built test binary. The degraded path writes that
+      the suite was NOT verified by `dune test` to stderr, and the
+      old soft-pass comment is gone.
+    acceptance:
+      all:
+        - verifier: shell-grep verify_test_suite scripts/dev
+          result: pass
+        - verifier: shell-grep verify_test_exclusions scripts/dev
+          result: pass
+        - verifier: shell-grep dev-fast-test scripts/dev
+          result: pass
+  - id: false-justification-gone
+    outcome: false-justification-removed
+    claim: |
+      Neither `.github/workflows/ci.yml` nor `scripts/dev` claims
+      that `scripts/check.sh` proves the Alcotest suite, and
+      `.github/workflows/ci.yml` no longer says the gate blocks on a
+      code path where `jq` supplies the step's status.
+    acceptance:
+      all:
+        - verifier: text-scan-no-still-proves-the-suite
+          result: pass
+        - verifier: shell-grep DIAGNOSTIC ONLY .github/workflows/ci.yml
+          result: pass
+  - id: this-decision-validates
+    outcome: ci-step-propagates-mathc-exit
+    claim: |
+      `mathc validate decisions/ci-gate-exit-honesty-2026-10.yaml`
+      exits 0, and `tests/process_principles.exe` passes P1 (five
+      body sections present) and P2 (every obligation carries a
+      verifier).
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ci-gate-exit-honesty-2026-10.yaml
+          result: pass
+        - verifier: tests/process_principles.exe
+          result: pass
+
+assumptions:
+  - id: store-backlog-is-not-this-changes-fault
+    state: assumed
+    statement: |
+      The 7 `unknown` subjects listed in `counterexample` are
+      pre-existing at this branch's base commit: they are
+      decisions merged since the store was last filled, not a
+      regression introduced here. This branch adds no obligation
+      to any of those decisions.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the honest gate blocks merging unrelated work for longer
+      than the backlog can be closed, the maintainer may choose to
+      land this change behind `continue-on-error: true` for one
+      release. That re-opens N1 knowingly; it must be recorded as
+      a waiver with an `expires_at`, never as a silent revert.
+    review_on:
+      - signal: ci-blocked-by-unknown-subjects
+  - id: attestation-store-follow-up-is-separate-work
+    state: assumed
+    statement: |
+      Attesting (or waiving) the 7 backlog decisions is a separate
+      task that needs per-obligation evidence. It is deliberately
+      NOT bundled here.
+    owner: human:maintainer
+    consequence_if_false: |
+      If it turns out nobody is going to close the backlog, the
+      gate stays red and the team starts ignoring it. The
+      correct response is to fix the store, not to re-hide the
+      gate; if a temporary hide is chosen, it must be a dated
+      waiver under `decisions/waivers/`.
+    review_on:
+      - signal: store-backlog-unowned
+
+risk:
+  declared_triggers:
+    - ci-red-on-clean-tree
+    - fallback-runner-coverage-drift
+    - duplicate-test-execution-cost
+  ci_red_on_clean_tree: |
+    Expected and intended. The step is red until the store
+    catches up. Mitigation: close the backlog; do not relax the
+    step.
+  fallback-runner-coverage-drift: |
+    `scripts/dev-fast-test`'s binary list is hardcoded and can
+    fall behind `tests/dune`. The coverage cross-check in
+    `verify_test_suite` converts that drift from a silent gap into
+    a stage-2 failure, naming the uncovered binary. The named
+    exclusion `rebuttal_forge_stub.exe` is a real, documented hang
+    (decisions/ci-green-batch1-2026-10.yaml, Tier 2G) and is the
+    only one.
+  duplicate-test-execution-cost: |
+    On the degraded path the suite runs once per binary instead
+    of once under `dune test`. That is roughly the same work with
+    less harness overhead, not double work. Budget it with
+    `VERIFY_TEST_FALLBACK_TIMEOUT` (default 900 s).
+  owner: human:maintainer
+
+reversal:
+  - signal: gate-flood
+    condition: |
+      The gate is red for a reason unrelated to the change under
+      review (the current state) and blocks unrelated work for
+      more than one release cycle.
+    action: |
+      Do NOT restore the `set +e` + trailing-jq form. Either
+      close the store backlog, or land a dated waiver under
+      `decisions/waivers/` and re-issue this decision at rev 2
+      naming the waiver.
+
+relations:
+  addresses:
+    - attestation-store-fill@2::ci-block-set
+    - disable-hanging-alcotest-tests-2026-10@1
+  refines:
+    - ci-blocking-list-config@2
+  contradicts: []
+  supersedes: []
+  superseded_by: []
