@@ -32,6 +32,16 @@ subject names a waiver at all. Acceptance gate for obligations
 `waived-verdict-is-not-pass` and `waiver-is-named-in-output` in
 `decisions/self-check-waiver-verdict-coherence-2026-10.yaml`.
 
+Scenario 1 stamps its synthetic decision with `mathc rehash
+--write` first. `self-check` recomputes the digest of each
+decision's own bytes and forces `fail` for a stale one, which would
+otherwise override the verdict under test: the subject would report
+`fail` with an extra cause and an extra remedy, and the coherence
+properties below would pass for the wrong reason. The digest is
+incidental to what this fixture tests, so the fixture makes it real
+rather than weakening the verdict assertions. See
+`self-check-digest-stale.t` for the digest rule itself.
+
   $ cd "$DUNE_SOURCEROOT"
 
 Scenario 1 — wholly-waived subject reports open-with-waiver, names its
@@ -71,6 +81,8 @@ waiver, and exits 0:
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
+  $ mathc rehash decisions/waived.yaml --write | tail -1
+  rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/w.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
   > kind: waiver

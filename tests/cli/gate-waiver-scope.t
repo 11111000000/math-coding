@@ -29,6 +29,16 @@ distinguishable. Before
 these two scenarios asserted `pass`, which is the defect that
 decision fixes.
 
+Each scenario stamps its synthetic decision with `mathc rehash
+--write` before running self-check. `self-check` recomputes the
+digest of each decision's own bytes and forces `fail` (exit 1) for a
+stale one, so the 64-zero placeholder these files used to carry
+would mask the very verdicts they assert: every scenario would read
+`fail` for the wrong reason. The digest is incidental here, so the
+fixture makes it real and keeps the waiver-scope assertions
+untouched. See `self-check-digest-stale.t` for the digest rule
+itself.
+
 Acceptance gate for obligation `waiver-scope-narrow` in
 `decisions/plan-2026-10-improvements/t3-2.yaml`.
 
@@ -71,6 +81,8 @@ Scenario 1 — positive (every gap has a named waiver):
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
+  $ mathc rehash decisions/t3-2-test-decision.yaml --write | tail -1
+  rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/strict-alpha.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
   > kind: waiver
@@ -141,6 +153,8 @@ Scenario 2 — strict negative (only alpha waiver; beta stays Unknown):
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
+  $ mathc rehash decisions/t3-2-test-decision.yaml --write | tail -1
+  rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/strict-alpha.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
   > kind: waiver
@@ -196,6 +210,8 @@ covers every obligation of its decision):
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
+  $ mathc rehash decisions/t3-2-test-decision.yaml --write | tail -1
+  rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/global.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
   > kind: waiver
@@ -251,6 +267,8 @@ the gate for t3-2-test-decision):
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
+  $ mathc rehash decisions/t3-2-test-decision.yaml --write | tail -1
+  rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/cross-decision.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
   > kind: waiver
