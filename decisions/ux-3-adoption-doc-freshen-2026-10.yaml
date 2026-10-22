@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-adoption-doc-freshen-2026-10
 revision: 2
 state: active
-body_sha: "sha256:8b34f08e3b62ab592415dff3886db3a571945e42c5cf8b7705c7f103bb99b758"
-yaml_sha: "sha256:8b34f08e3b62ab592415dff3886db3a571945e42c5cf8b7705c7f103bb99b758"
+body_sha: "sha256:07cd2d9637bf367d48c442af9f1d9e27217eb79bc57bc4de5f03ef51b7cddafc"
+yaml_sha: "sha256:07cd2d9637bf367d48c442af9f1d9e27217eb79bc57bc4de5f03ef51b7cddafc"
 
 intent: |
   Revision 2 of `ux-3-adoption-doc-freshen-2026-10`. The

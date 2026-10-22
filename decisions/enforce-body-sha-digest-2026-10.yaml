@@ -4,8 +4,8 @@ id: enforce-body-sha-digest-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:55d09d95c3c02139975928381bebd34581c99febaafaf60b3fc6bd39da1fb3d6"
-yaml_sha: "sha256:55d09d95c3c02139975928381bebd34581c99febaafaf60b3fc6bd39da1fb3d6"
+body_sha: "sha256:126d4fa0e8d635413ae12ee9e6d773213ed75b5dc492386058f78e6c3ce5b160"
+yaml_sha: "sha256:126d4fa0e8d635413ae12ee9e6d773213ed75b5dc492386058f78e6c3ce5b160"
 
 axiom_link:
   - A0
@@ -46,6 +46,12 @@ commitment: |
   4. The digest reference citation is corrected. §7.1 and
      lib/diagnostic.ml both cited `scripts/axiom-link-seed.py:105-123`;
      the implementation is at :133-169, and :105-123 is `decisions_dir`.
+  5. `scripts/check.sh` stops counting an exit-2 verifier as a pass.
+
+     Out of scope, deliberately: the CI self-check step propagating mathc's
+     exit code, and `check.sh` running process_principles rather than only
+     compiling it. Both landed on main independently (817c545, 53e0aba) and
+     are not re-done here.
 
 counterexample: |
   Two counter-positions considered and rejected.
@@ -235,19 +241,6 @@ obligations:
         - verifier: dune-tests-body-canonical
           result: pass
 
-  - id: self-check-exit-reaches-ci
-    claim: |
-      The self-check CI step propagates `self-check`'s exit code. It ran
-      under `set +e` and then let `jq` succeed on the still-valid JSON
-      body, so the step exited 0 while the comment claimed it blocks per
-      Invariant 14.
-    acceptance:
-      all:
-        - verifier: shell-grep
-          path: ".github/workflows/ci.yml"
-          needle: "exit $rc"
-          result: pass
-
 risk:
   declared_triggers:
     - "a decision is edited without running mathc rehash"
@@ -283,4 +276,3 @@ relations:
   addresses: []
   implements: []
   verifies: []
----

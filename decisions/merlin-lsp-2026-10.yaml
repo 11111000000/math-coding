@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: merlin-lsp-2026-10
 revision: 1
 state: active
-body_sha: "sha256:50cd28022db239e2b802a4260b39621d29570b311e78082a33b81c66533caad0"
-yaml_sha: "sha256:50cd28022db239e2b802a4260b39621d29570b311e78082a33b81c66533caad0"
+body_sha: "sha256:c83d8741733c531ae92e8245fb3809279092fa47cd88fbf73ca8e9bc9dfe5251"
+yaml_sha: "sha256:c83d8741733c531ae92e8245fb3809279092fa47cd88fbf73ca8e9bc9dfe5251"
 intent: |
   Wire OCaml IDE tooling (LSP / merlin) into the math-coding
   development loop so human editors (VSCode ocaml-platform,

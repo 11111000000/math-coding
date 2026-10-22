@@ -5,8 +5,8 @@ id: counters-schema-introspection-fix-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:3c013c30f64668d0e99d7a9028d6ae702200a1217ff61a45d7ca52e0d7a846a1"
-yaml_sha: "sha256:3c013c30f64668d0e99d7a9028d6ae702200a1217ff61a45d7ca52e0d7a846a1"
+body_sha: "sha256:25fc5335c1fdc6850d4a9a94820228ba31c512a3761fc7e5fd23e35bef1ebcee"
+yaml_sha: "sha256:25fc5335c1fdc6850d4a9a94820228ba31c512a3761fc7e5fd23e35bef1ebcee"
 axiom_link:
   - A0
 intent: |

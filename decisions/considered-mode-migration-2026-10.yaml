@@ -4,8 +4,8 @@ id: considered-mode-migration-2026-10
 revision: 1
 state: retired
 mode: light
-body_sha: "sha256:59c869f857fb921fd35e9851cb929b75cf76ee23038e98b8c625996a272af345"
-yaml_sha: "sha256:59c869f857fb921fd35e9851cb929b75cf76ee23038e98b8c625996a272af345"
+body_sha: "sha256:202ed35ba8999e80a367a20cf1d3911c7557bb748d3408257212ce5a0d4492ff"
+yaml_sha: "sha256:202ed35ba8999e80a367a20cf1d3911c7557bb748d3408257212ce5a0d4492ff"
 
 intent: |
   Document the partial migration of the 'Considered' mode variant

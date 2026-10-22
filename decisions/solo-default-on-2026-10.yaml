@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: solo-default-on-2026-10
 revision: 1
 state: active
-body_sha: "sha256:af142d2002aa344ff83c587cfedfb34d994bcd02da19b8a1a72bdcc1a2fafb39"
-yaml_sha: "sha256:af142d2002aa344ff83c587cfedfb34d994bcd02da19b8a1a72bdcc1a2fafb39"
+body_sha: "sha256:a0ff60eeb8d1ba0931909475f518080a059088f81651b2423c5190a7ab5682ad"
+yaml_sha: "sha256:a0ff60eeb8d1ba0931909475f518080a059088f81651b2423c5190a7ab5682ad"
 intent: |
   The applicability envelope (`spec/algebra-3.2.md` §28) told a solo
   maintainer that the protocol was not for them. The normative text

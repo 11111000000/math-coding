@@ -4,8 +4,8 @@ id: fix-mcp-sigpipe
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:39749aa1a74d2376d9c1db50a2e1bcd1da4c468751f11e7da36be0326113fbf6"
-yaml_sha: "sha256:39749aa1a74d2376d9c1db50a2e1bcd1da4c468751f11e7da36be0326113fbf6"
+body_sha: "sha256:ac9588203a461922ce15bed93cbff2318036f57c3c16f5366f634d3f18583d20"
+yaml_sha: "sha256:ac9588203a461922ce15bed93cbff2318036f57c3c16f5366f634d3f18583d20"
 
 intent: |
   The MCP stdio server (`bin/mathc_mcp.ml`) dies with exit 141

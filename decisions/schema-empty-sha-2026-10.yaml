@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-empty-sha-2026-10
 revision: 3
 state: retired
-body_sha: "sha256:5cb8fec0c04a10b9fe890cf56463f9ec980e0f2c3de0854f299942884f758ee1"
-yaml_sha: "sha256:5cb8fec0c04a10b9fe890cf56463f9ec980e0f2c3de0854f299942884f758ee1"
+body_sha: "sha256:aac6128c16fbce5e6fb46b3ac5a06690c496ec30fe97c064524da4be26f93e61"
+yaml_sha: "sha256:aac6128c16fbce5e6fb46b3ac5a06690c496ec30fe97c064524da4be26f93e61"
 intent: |
   This decision recorded an interim approach (2026-10-05, rev 1-2):
   bring `schemas/decision.json` into alignment with the actual state

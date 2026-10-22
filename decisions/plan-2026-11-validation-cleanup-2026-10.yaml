@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:f8a2cd7854a14419c8e559d37e238e5bf4fc5157c3cef8409556c9fd7e7e41f1"
+yaml_sha: "sha256:f8a2cd7854a14419c8e559d37e238e5bf4fc5157c3cef8409556c9fd7e7e41f1"
 
 intent: |
   Close the 35 pre-existing `mathc validate` rejections that were

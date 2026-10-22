@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-new-decision-subcommand-2026-10
 revision: 2
 state: active
-body_sha: "sha256:e34435483172746692248c4b6fd1af75b130575f010b4617093e1699db862089"
-yaml_sha: "sha256:e34435483172746692248c4b6fd1af75b130575f010b4617093e1699db862089"
+body_sha: "sha256:a2feb64bdf64d9402bb6af2d11d97fc4c323eba6228dd015fd0ab2afc21b67ba"
+yaml_sha: "sha256:a2feb64bdf64d9402bb6af2d11d97fc4c323eba6228dd015fd0ab2afc21b67ba"
 
 intent: |
   Phase 4 of the ux-3 workstream. Land a `mathc new-decision

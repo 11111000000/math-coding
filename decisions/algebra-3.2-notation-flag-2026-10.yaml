@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: algebra-3.2-notation-flag-2026-10
 revision: 2
 state: active
-body_sha: "sha256:dc833018da54013783ce22f182b981a49e6dadee0c3f595a1745443cf5d7a706"
-yaml_sha: "sha256:dc833018da54013783ce22f182b981a49e6dadee0c3f595a1745443cf5d7a706"
+body_sha: "sha256:5f8838e48e9fc501513a3763e11f19a836b490340562aec9c588388336b90a3f"
+yaml_sha: "sha256:5f8838e48e9fc501513a3763e11f19a836b490340562aec9c588388336b90a3f"
 intent: |
   Flag a latent ambiguity in `spec/algebra-3.2.md` §2 (Risk function)
   that an automated auditor caught in 2026-10-05 but which the agent

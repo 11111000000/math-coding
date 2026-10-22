@@ -4,8 +4,8 @@ id: fix-curl-exit-code
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:8768b049fa264df72b2c3ad710c94178650cde53af490b731c304f73527a3553"
-yaml_sha: "sha256:8768b049fa264df72b2c3ad710c94178650cde53af490b731c304f73527a3553"
+body_sha: "sha256:a01756ddf51b52f6ba2a3a2e912afb302faf6b10f1eb6453ba7b73a45da934aa"
+yaml_sha: "sha256:a01756ddf51b52f6ba2a3a2e912afb302faf6b10f1eb6453ba7b73a45da934aa"
 
 intent: |
   Two `curl` invocations in the kernel ignored the process

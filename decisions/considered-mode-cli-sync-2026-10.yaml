@@ -4,8 +4,8 @@ id: considered-mode-cli-sync-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:2de66fa8b1cd18c76327403493b2e9c13ada15b359e7828e4b4fa45e93c842a6"
-yaml_sha: "sha256:2de66fa8b1cd18c76327403493b2e9c13ada15b359e7828e4b4fa45e93c842a6"
+body_sha: "sha256:79b45f4a6f22f389cdfd1b3069f337fc3df27f912c596a486cb85656fa1565f0"
+yaml_sha: "sha256:79b45f4a6f22f389cdfd1b3069f337fc3df27f912c596a486cb85656fa1565f0"
 intent: |
   Sync the CLI pre-check in bin/Mathc.ml::antithesis_violation
   with the kernel-side change that introduced mode = considered

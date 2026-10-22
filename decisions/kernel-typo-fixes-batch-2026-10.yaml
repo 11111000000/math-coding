@@ -4,8 +4,8 @@ id: kernel-typo-fixes-batch-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:6b981d1cdb085d4b43ed175c0b32bbc28ee681b4777bc00e9980cd3b3a052add"
+yaml_sha: "sha256:6b981d1cdb085d4b43ed175c0b32bbc28ee681b4777bc00e9980cd3b3a052add"
 intent: |
   Fix four correctness defects surfaced by an audit scan of
   `lib/`, `bin/`, and `tests/cli/` (render code excluded per

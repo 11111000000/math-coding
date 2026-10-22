@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: ci-gate-exit-honesty-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f8aea792457ae6df297e43d94b0c87316b4a070ae12c10bc3f2b1f30663c7c24"
-yaml_sha: "sha256:f8aea792457ae6df297e43d94b0c87316b4a070ae12c10bc3f2b1f30663c7c24"
+body_sha: "sha256:5535ffa9e65cfbbc4e7d26f541303813a794c0d76d89c8fad789336642856ee0"
+yaml_sha: "sha256:5535ffa9e65cfbbc4e7d26f541303813a794c0d76d89c8fad789336642856ee0"
 
 intent: |
   Make the two gates that the project's central claim rests on

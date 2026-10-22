@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-illustrations-2026-10
 revision: 1
 state: active
-body_sha: "sha256:3e2222f4fdb7d4cf7ba6b58213ebb3b8d48f3ca7250086a1b12c3ab23a092fc8"
-yaml_sha: "sha256:3e2222f4fdb7d4cf7ba6b58213ebb3b8d48f3ca7250086a1b12c3ab23a092fc8"
+body_sha: "sha256:56af6a399cfa73829f866add32d14bec21a4e1e1805d99f030e16fcea14e7947"
+yaml_sha: "sha256:56af6a399cfa73829f866add32d14bec21a4e1e1805d99f030e16fcea14e7947"
 axiom_link:
   - A2
 intent: |

@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: attestation-waiver-policy-schema-bump-3-3-2026-10
 revision: 1
 state: active
-body_sha: "sha256:e3004e5cf091d121ab223149bf73d26f5bf2b1fb724d373329e3d5bcd294e999"
-yaml_sha: "sha256:e3004e5cf091d121ab223149bf73d26f5bf2b1fb724d373329e3d5bcd294e999"
+body_sha: "sha256:353ac269c8c571e22d18661a56c62fd61e5dc3ec0a04f8ac741a5b50c663d003"
+yaml_sha: "sha256:353ac269c8c571e22d18661a56c62fd61e5dc3ec0a04f8ac741a5b50c663d003"
 mode: standard
 change_kind: implementation
 axiom_link:

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: decision-required-attestations
 revision: 1
 state: active
-body_sha: "sha256:65df0c051995a0f6dfe8d104f21224ef4e5d9537be038068fb616cfdf320dfca"
-yaml_sha: "sha256:65df0c051995a0f6dfe8d104f21224ef4e5d9537be038068fb616cfdf320dfca"
+body_sha: "sha256:b65e2352d8e2a9209f28d55a629300f60d4059a5692469d7e527ecb4d4e0aeaf"
+yaml_sha: "sha256:b65e2352d8e2a9209f28d55a629300f60d4059a5692469d7e527ecb4d4e0aeaf"
 axiom_link:
   - A1
   - A4

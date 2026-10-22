@@ -4,8 +4,8 @@ id: add-verify-subcommand-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:da241f94c51c81ccc6fe8de0fb1d9114f427aaac5b8fcdbe242558ab9ad1e97e"
+yaml_sha: "sha256:da241f94c51c81ccc6fe8de0fb1d9114f427aaac5b8fcdbe242558ab9ad1e97e"
 
 intent: |
   Distinguish "validated" from "verified" in math-coding. The

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-polish-2026-10
 revision: 1
 state: active
-body_sha: "sha256:cf2ac4976ec310a270259964f485e4b30bd98aac2f53dd50fb2b2367b956f1e3"
-yaml_sha: "sha256:cf2ac4976ec310a270259964f485e4b30bd98aac2f53dd50fb2b2367b956f1e3"
+body_sha: "sha256:2e06c7356dc6e4e4535e42ceb1c511b3c28c5eb9870ff102f67e98ad2963256d"
+yaml_sha: "sha256:2e06c7356dc6e4e4535e42ceb1c511b3c28c5eb9870ff102f67e98ad2963256d"
 axiom_link:
   - A1
 intent: |

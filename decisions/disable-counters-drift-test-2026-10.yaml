@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: disable-counters-drift-test-2026-10
 revision: 2
 state: superseded
-body_sha: "sha256:dcd306e35bdcddca41a3dfa567a65c61bdec10be70a7bae0a9344d2c098efc46"
-yaml_sha: "sha256:dcd306e35bdcddca41a3dfa567a65c61bdec10be70a7bae0a9344d2c098efc46"
+body_sha: "sha256:1b519fc3447455d76212eec1527c724e1a1097d0d9ff9577ee835874b0ef4df1"
+yaml_sha: "sha256:1b519fc3447455d76212eec1527c724e1a1097d0d9ff9577ee835874b0ef4df1"
 axiom_link:
   - A0
 intent: |

@@ -4,8 +4,8 @@ id: lifecycle-commands-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:2c656c0a82decd810017064ddfa84103956238d655d634a5e44af4319f9d37d0"
+yaml_sha: "sha256:2c656c0a82decd810017064ddfa84103956238d655d634a5e44af4319f9d37d0"
 intent: |
   Phase 6 of the ux-3 workstream. Add a focused YAML editor
   for a single decision's lifecycle state plus a kernel-side
