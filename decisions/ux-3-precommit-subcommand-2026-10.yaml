@@ -4,8 +4,8 @@ id: ux-3-precommit-subcommand-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:87d2c5cd3fc4595721cb449841de368c5c53c345bd75971fdd95155f9662c5b3"
+yaml_sha: "sha256:87d2c5cd3fc4595721cb449841de368c5c53c345bd75971fdd95155f9662c5b3"
 intent: |
   Phase 6 of the ux-3 workstream. Add a `mathc precommit`
   subcommand that batch-validates every `decisions/*.yaml`

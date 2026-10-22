@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-init-copies-ci-workflow-2026-10
 revision: 2
 state: active
-body_sha: "sha256:e1404a78fdff9c6c763988570c26b5d1efd2095e156be2c2d7063b2631214b38"
-yaml_sha: "sha256:e1404a78fdff9c6c763988570c26b5d1efd2095e156be2c2d7063b2631214b38"
+body_sha: "sha256:20adcd6515134c13402760fe0f168c565447ee2f707bac694ca52748e453a37d"
+yaml_sha: "sha256:20adcd6515134c13402760fe0f168c565447ee2f707bac694ca52748e453a37d"
 
 intent: |
   Wire `mathc init --with-ci-workflow` to copy the per-repo

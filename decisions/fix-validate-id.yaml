@@ -4,8 +4,8 @@ id: fix-validate-id
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:dd0ecbbaba3aff6ad9e5ff31ed8547d187a4e930540961cb867e72e29befc38c"
-yaml_sha: "sha256:dd0ecbbaba3aff6ad9e5ff31ed8547d187a4e930540961cb867e72e29befc38c"
+body_sha: "sha256:9e4c7fdcca807846b627b8266c24bf5f2b1622883a4d2976f8bcf02ea5dbbf0f"
+yaml_sha: "sha256:9e4c7fdcca807846b627b8266c24bf5f2b1622883a4d2976f8bcf02ea5dbbf0f"
 
 intent: |
   `lib/new_decision/new_decision.ml::validate_id` accepted

@@ -4,8 +4,8 @@ id: paren-balance-fix-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:31c4cc951c1a1c0af64fb06789199ed1ec01a7983f6ca7ae45e4832b5ff80733"
-yaml_sha: "sha256:31c4cc951c1a1c0af64fb06789199ed1ec01a7983f6ca7ae45e4832b5ff80733"
+body_sha: "sha256:5f64d8e39e3bc2dc4c0833bbcc6e4cced7e05090711875b25c9d3904c34e6732"
+yaml_sha: "sha256:5f64d8e39e3bc2dc4c0833bbcc6e4cced7e05090711875b25c9d3904c34e6732"
 axiom_link:
   - A3
 intent: |

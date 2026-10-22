@@ -4,8 +4,8 @@ id: render-module-split
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:297c0dc06f763b31e7022cb84d83aec1f93c1f0cf0c32ad6533258f39d7de5ba"
-yaml_sha: "sha256:297c0dc06f763b31e7022cb84d83aec1f93c1f0cf0c32ad6533258f39d7de5ba"
+body_sha: "sha256:6b9900fa007752dc9bc13387c12dc3a53bcbb798b38b788c760d34a3627e3e32"
+yaml_sha: "sha256:6b9900fa007752dc9bc13387c12dc3a53bcbb798b38b788c760d34a3627e3e32"
 
 intent: |
   `lib/render.ml` is 3040 lines and is the single largest

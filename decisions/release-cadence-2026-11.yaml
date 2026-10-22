@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:1d6ca35945e7c28ab8063fa4eea7d5cdaa583c594dc23e664921917912ab343c"
+yaml_sha: "sha256:1d6ca35945e7c28ab8063fa4eea7d5cdaa583c594dc23e664921917912ab343c"
 
 intent: |
   Add a release-pending CI gate that blocks merge of any PR

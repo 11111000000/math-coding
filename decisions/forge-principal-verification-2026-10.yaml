@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: forge-principal-verification
 revision: 1
 state: active
-body_sha: "sha256:3389472183879a201db8b2149861dfdc751f3bdab90fd2f8b19a50dfdde15f86"
-yaml_sha: "sha256:3389472183879a201db8b2149861dfdc751f3bdab90fd2f8b19a50dfdde15f86"
+body_sha: "sha256:7b7f93ea70f3d52945fa5ecf1810f6cc295e1ac0ff6debf01218281aefe3df27"
+yaml_sha: "sha256:7b7f93ea70f3d52945fa5ecf1810f6cc295e1ac0ff6debf01218281aefe3df27"
 axiom_link:
   - A1
   - A4

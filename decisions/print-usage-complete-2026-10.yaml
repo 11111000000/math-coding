@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: print-usage-complete-2026-10
 revision: 1
 state: active
-body_sha: "sha256:dae3eb715799f019343fadc7cf5459366d0ba89f8aab3963d5e8794c95beecaf"
-yaml_sha: "sha256:dae3eb715799f019343fadc7cf5459366d0ba89f8aab3963d5e8794c95beecaf"
+body_sha: "sha256:e2c07178a2e5c67fe2994318141686fc56c20ef2ef149b0bf8303cbf1375c117"
+yaml_sha: "sha256:e2c07178a2e5c67fe2994318141686fc56c20ef2ef149b0bf8303cbf1375c117"
 
 intent: |
   Bring the `mathc --help` text emitted from `bin/Mathc.ml`'s

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: process-principles-close-branches
 revision: 3
 state: active
-body_sha: "sha256:0f313320af2f3cce9072986256cdc5d03414f984280713c0f1c3d24b8bf283e7"
-yaml_sha: "sha256:0f313320af2f3cce9072986256cdc5d03414f984280713c0f1c3d24b8bf283e7"
+body_sha: "sha256:090c46cd9b6e6de83bf0b7375de5065bfaf97080c8e470d111c034bf4e3b9d4e"
+yaml_sha: "sha256:090c46cd9b6e6de83bf0b7375de5065bfaf97080c8e470d111c034bf4e3b9d4e"
 intent: |
   Implement `scripts/dev close-branches`, the long-promised
   branch-hygiene utility from ROADMAP Tier-2 #4. Closes audit

@@ -4,8 +4,8 @@ id: axiom-link-inference-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:f0158e8c2603f9bf92587ecd090fea623bfe55c1d0584d927c7ed3adab72e05a"
+yaml_sha: "sha256:f0158e8c2603f9bf92587ecd090fea623bfe55c1d0584d927c7ed3adab72e05a"
 intent: |
   Phase 6 of the adoption-experiment response plan
   (plan-2026-10-adoption-fixes-2026-10). Add an

@@ -4,8 +4,8 @@ id: fix-mcp-pipe-deadlock-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:9c4c72a96351de0ae1f742bf018389bf43cac2ce780b716dc61ed8881e2cc3ce"
+yaml_sha: "sha256:9c4c72a96351de0ae1f742bf018389bf43cac2ce780b716dc61ed8881e2cc3ce"
 
 intent: |
   Fix a pipe-buffer deadlock in `lib/mcp/dispatch.ml::run_with_args`.

@@ -73,11 +73,17 @@ type template_kind = Full | Minimal
    substituted in. The schema-string is `math-coding/3.2` to
    match the live schema after
    `decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml@1`.
-   `body_sha` and `yaml_sha` are 64-zero placeholders; the
-   user re-runs `mathc validate` after the first edit, and the
-   kernel recomputes the digests via the body-vs-wrapper
-   canonicalization algorithm (algebra \u00a77.1,
-   `lib/decision.ml::body_canonical_sha256`). *)
+`body_sha` and `yaml_sha` are 64-zero placeholders. The kernel
+   VALIDATES but never WRITES them, so the placeholder must be
+   replaced before the decision counts as attested: run
+   `mathc rehash <path> --write`, which computes both fields from
+   the file's own bytes under the body-vs-wrapper canonicalisation
+   (algebra §7.1, `lib/decision.ml::body_canonical_sha256`) and
+   verifies the result is a fixed point. Re-running
+   `mathc validate` alone leaves the zeros in place — since
+   §7.1 makes body_sha = yaml_sha, `0^64 = 0^64` satisfied the
+   older string-equality check forever. See
+   `decisions/enforce-body-sha-digest-2026-10`. *)
 
 (* `paths_block`: format a `paths:` list for the
    `scope.paths` YAML block. When `paths` is empty, emits the

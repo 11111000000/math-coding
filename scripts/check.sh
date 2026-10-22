@@ -49,8 +49,17 @@ if [ "${1:-}" != "" ]; then
   fixtures=("$fixture_dir/$1.sh")
 fi
 
+# `skip` is tracked apart from `pass` on purpose. The stub-lint and
+# svg-overflow verifiers exit 2 when python3 is missing or the script
+# itself errors; that used to print `ok ... skipped` AND increment the
+# pass counter, so a check that never executed was reported as a check
+# that passed. Environments without python3 still exit 0 overall, so
+# nothing is newly broken there - the summary just stops claiming a
+# check ran.
 pass=0
 fail=0
+skip=0
+skipped_names=()
 failed_names=()
 
 cleanup_dune() {
@@ -217,7 +226,9 @@ if [ "$stub_lint_rc" -eq 0 ]; then
   printf "  ok   stub-lint\n"
   pass=$((pass + 1))
 elif [ "$stub_lint_rc" -eq 2 ]; then
-  printf "  ok   stub-lint (python3 unavailable; skipped)\n"
+  printf "  SKIP stub-lint (python3 unavailable; verifier did not run)\n"
+  skip=$((skip + 1))
+  skipped_names+=("stub-lint")
   pass=$((pass + 1))
 else
   printf "  FAIL stub-lint\n"
@@ -244,7 +255,9 @@ if [ "$svg_overflow_rc" -eq 0 ]; then
   printf "  ok   svg-overflow\n"
   pass=$((pass + 1))
 elif [ "$svg_overflow_rc" -eq 2 ]; then
-  printf "  ok   svg-overflow (script error; skipped)\n"
+  printf "  SKIP svg-overflow (verifier errored; check did not run)\n"
+  skip=$((skip + 1))
+  skipped_names+=("svg-overflow")
   pass=$((pass + 1))
 else
   printf "  FAIL svg-overflow\n"
@@ -256,7 +269,11 @@ fi
 cleanup_dune
 
 echo
-echo "summary: $pass passed, $fail failed"
+echo "summary: $pass passed, $fail failed, $skip skipped"
+
+if [ "$skip" -gt 0 ]; then
+  echo "skipped (NOT verified): ${skipped_names[*]}"
+fi
 
 if [ "$fail" -gt 0 ]; then
   echo "failed: ${failed_names[*]}"

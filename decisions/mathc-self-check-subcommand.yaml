@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathc-self-check-subcommand
 revision: 4
 state: active
-body_sha: "sha256:611627eb13fc709dfb596d2345f097ec66bd7e31e019351f67c8874ddde54f0e"
-yaml_sha: "sha256:611627eb13fc709dfb596d2345f097ec66bd7e31e019351f67c8874ddde54f0e"
+body_sha: "sha256:ce245d68515c355947e9fcc84c4aa5610b6f3e642535e9c91941086da6d910ae"
+yaml_sha: "sha256:ce245d68515c355947e9fcc84c4aa5610b6f3e642535e9c91941086da6d910ae"
 intent: |
   Close ROADMAP Tier-1 #2 (`mathc self-check`) and thereby the
   AGENTS.md bootstrap-gate expiry condition verbatim: the

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-manifesto-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:06a65f9ae3e55e2fcadbd866a55ec7a2b65f3bc5e5c4ac9fb7f72fa79158152f"
-yaml_sha: "sha256:06a65f9ae3e55e2fcadbd866a55ec7a2b65f3bc5e5c4ac9fb7f72fa79158152f"
+body_sha: "sha256:30ce1b82ee2300a330ccb0f839d1046bfdffaf03d72a239b480c80ca84d244eb"
+yaml_sha: "sha256:30ce1b82ee2300a330ccb0f839d1046bfdffaf03d72a239b480c80ca84d244eb"
 axiom_link:
   - A4
 intent: |

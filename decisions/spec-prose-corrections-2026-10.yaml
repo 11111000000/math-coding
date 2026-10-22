@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: spec-prose-corrections-2026-10
 revision: 2
 state: active
-body_sha: "sha256:4f33e46d6aed5258d5f486dffa0cf3a9ae28dda1e3df10552b4a1613595ba261"
-yaml_sha: "sha256:4f33e46d6aed5258d5f486dffa0cf3a9ae28dda1e3df10552b4a1613595ba261"
+body_sha: "sha256:cd9d52378f5074d4b7e66b0b783ff76320d3f17012963ec589f5fc5332f68875"
+yaml_sha: "sha256:cd9d52378f5074d4b7e66b0b783ff76320d3f17012963ec589f5fc5332f68875"
 intent: |
   Apply factual corrections to the spec/ tree that the 2026-10-05
   audit flagged. These are not semantic changes to the algebra or

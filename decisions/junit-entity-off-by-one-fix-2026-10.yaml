@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: junit-entity-off-by-one-fix-2026-10
 revision: 1
 state: active
-body_sha: "sha256:e60bacd6cee14c920387be505c9a0eb68968ba1c6b41ecb19f9eed6ebde25262"
-yaml_sha: "sha256:e60bacd6cee14c920387be505c9a0eb68968ba1c6b41ecb19f9eed6ebde25262"
+body_sha: "sha256:b750af1c949532edce51186257455f8a3a44cb21a5849407095776b4c2a9e275"
+yaml_sha: "sha256:b750af1c949532edce51186257455f8a3a44cb21a5849407095776b4c2a9e275"
 intent: |
   Fix the off-by-one in `lib/junit/junit.ml:parse_attr_value`: the
   five entity-reference branches (`&amp;`, `&lt;`, `&gt;`, `&quot;`,

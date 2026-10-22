@@ -4,8 +4,8 @@ id: adoption-experiment-design-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:b20eeba1ba78fe2fc71d3d2a178bbbfaefeedb786f07685481399c3186f4239e"
+yaml_sha: "sha256:b20eeba1ba78fe2fc71d3d2a178bbbfaefeedb786f07685481399c3186f4239e"
 
 intent: |
   Conduct a brownfield adoption study of math-coding on five real

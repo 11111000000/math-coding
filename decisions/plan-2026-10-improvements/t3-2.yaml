@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t3-2
 revision: 1
 state: active
-body_sha: "sha256:63a9ed8c39c2ac1ca3e024580b41a14749f342f2daffb6bdf34a12596cc02701"
-yaml_sha: "sha256:63a9ed8c39c2ac1ca3e024580b41a14749f342f2daffb6bdf34a12596cc02701"
+body_sha: "sha256:c5f6a097f69b3ac62ee7cadf2e3231b1dad0f2eacaf512a80aef6209d19c40d4"
+yaml_sha: "sha256:c5f6a097f69b3ac62ee7cadf2e3231b1dad0f2eacaf512a80aef6209d19c40d4"
 axiom_link:
   - A0
   - A1

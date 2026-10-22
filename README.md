@@ -92,6 +92,7 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc import-adr PATH [--write]` | Convert existing MADR/adr-tools ADR to a math-coding decision |
 | `mathc adopt [PATH] [--only=CONV] [--dry-run]` | Detect existing ADR corpus and offer merge path |
 | `mathc new-decision <id> [--write] [--interactive] [--force]` | Scaffold a decision YAML from canonical template |
+| `mathc rehash [--write] [--dry-run] [PATH...]` | Recompute `body_sha`/`yaml_sha` from each file's own bytes |
 | `mathc telemetry status` | Print telemetry state (Phase 2 stub) |
 | `mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json] [--explain] [--manifest=PATH] [--write|--dry-run]` | Declarative migration plan reader |
 

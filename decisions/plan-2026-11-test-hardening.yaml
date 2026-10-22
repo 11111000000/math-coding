@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: plan
-body_sha: "sha256:afb613c06583fbf702e54f3aabb8d8b60e1e9214a75a4e62459d52244a2cb9c8"
-yaml_sha: "sha256:afb613c06583fbf702e54f3aabb8d8b60e1e9214a75a4e62459d52244a2cb9c8"
+body_sha: "sha256:4358d073732dab5b04c7b4122de859b0afd0f0c85768427b5e9f909a348af078"
+yaml_sha: "sha256:4358d073732dab5b04c7b4122de859b0afd0f0c85768427b5e9f909a348af078"
 
 intent: |
   39 `tests/cli/*.t` fixtures are red at main (`a3e4f09` +

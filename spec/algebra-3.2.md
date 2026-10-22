@@ -315,7 +315,9 @@ The algorithm has four normative properties:
 
 4. **CRLF-equals-LF.** A file with CRLF line endings and an otherwise-identical file with LF line endings produce the same digest (line-ending normalisation).
 
-The reference implementation is `scripts/axiom-link-seed.py:105-123` (Python); the kernel-side implementation is `lib/decision.ml::body_canonical_sha256` (OCaml). The two MUST agree on every input. The conformance test in `tests/body_canonical_test.ml` pins the four properties.
+The reference implementation is `scripts/axiom-link-seed.py:133-169` (Python) — the earlier citation of `:105-123` pointed at `decisions_dir()`; the kernel-side implementation is `lib/decision.ml::body_canonical_sha256` (OCaml). The two MUST agree on every input. The conformance test in `tests/body_canonical_test.ml` pins the four properties.
+
+Note that the two implementations did NOT agree until `decisions/enforce-body-sha-digest-2026-10`: the OCaml side substituted the placeholder as `prefix ^ "sha256:" ^ zeros ^ "\""`, emitting `sha256:sha256:...` where §7.1 replaces the whole field and the prefix belongs once. The divergence went unnoticed because nothing in the production path called `body_canonical_sha256` — `sha_match_check` compared the two stored fields to each other — and because the conformance test asserts only relative properties, with no absolute vector cross-checked against the Python reference. The reference implementation must additionally CRLF-normalise before hashing to match; it does not, so the two disagree on CRLF input even now.
 
 The `D.body_sha = D.yaml_sha` invariant (when both are present) is a COROLLARY of the algorithm, not an additional rule: both fields name the same digest.
 

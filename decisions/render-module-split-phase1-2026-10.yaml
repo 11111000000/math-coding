@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:df23b5f52ec12ca2653e834d198e5bbfb384d64b0e90b6b6c353ff03598ac153"
+yaml_sha: "sha256:df23b5f52ec12ca2653e834d198e5bbfb384d64b0e90b6b6c353ff03598ac153"
 
 intent: |
   Реализовать Phase 1+ из решения `render-module-split@1`: разбить

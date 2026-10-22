@@ -4,8 +4,8 @@ id: ux-3-new-decision-template-minimal-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:18efe4e984a6b738c3022ca174132a157ca2658b34edeabc99f0f4b0cba6450c"
+yaml_sha: "sha256:18efe4e984a6b738c3022ca174132a157ca2658b34edeabc99f0f4b0cba6450c"
 intent: |
   Phase 5 of the ux-3 workstream. Add a `--template=minimal` flag
   to `mathc new-decision <id>` that emits a 5-7 user-editable

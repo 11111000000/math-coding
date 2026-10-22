@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathjax-delimiter-hardening-2026-10
 revision: 1
 state: active
-body_sha: "sha256:7031da6a883271d8c2c2e0c288a955cf8ed9bb5500ce5bcd217cb1120ac0b400"
-yaml_sha: "sha256:7031da6a883271d8c2c2e0c288a955cf8ed9bb5500ce5bcd217cb1120ac0b400"
+body_sha: "sha256:a7bd6f028264db6dcf6d3fce641819b56a963f4f9946de39dd780d59883c8c3c"
+yaml_sha: "sha256:a7bd6f028264db6dcf6d3fce641819b56a963f4f9946de39dd780d59883c8c3c"
 intent: |
   Harden the MathJax 3 wiring in `lib/render.ml` so that
   the dollar sign is no longer an active math delimiter.

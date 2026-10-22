@@ -69,81 +69,184 @@ type decision_parse = Accept of Domain.decision | Reject of Diagnostic.t
    produces `body_sha = yaml_sha`; the dual-authored case
    (algebra §6, sibling YAML) is deferred to a follow-up
    decision. *)
-let[@warning "-32"] body_canonical_sha256 (bytes : string) : string =
-  let crlf_to_lf s =
-    let len = String.length s in
-    let buf = Buffer.create len in
-    let i = ref 0 in
-    while !i < len do
-      let c = s.[!i] in
-      if c = '\r' && !i + 1 < len && s.[!i + 1] = '\n' then begin
-        Buffer.add_char buf '\n';
-        i := !i + 2
-      end
-      else begin
-        Buffer.add_char buf c;
-        incr i
-      end
-    done;
-    Buffer.contents buf
-  in
-  (* The OCaml 5.x `Str` module does not support the
-     `\{n\}` interval quantifier (only `*`, `+`, `?`), so
-     the placeholder substitution is implemented with
-     String.index + manual character checks rather than
-     a regex. The matched shape is:
-       `body_sha: "sha256:` + 64 hex chars + `"`
-     (total 83 chars). The replacement is the same length
-     (length-preserving). Same for `yaml_sha:`. *)
-  let placeholder = "sha256:" ^ String.make 64 '0' ^ "\"" in
-  let[@warning "-32"] replace_field ~prefix s =
-    let prefix_len = String.length prefix in
-    let hex_len = 64 in
-    let s_len = String.length s in
-    let buf = Buffer.create s_len in
-    let i = ref 0 in
-    let[@warning "-32"] is_hex c =
-      (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
-    in
-    let matched_len = prefix_len + hex_len + 1 in
-    while !i < s_len do
-      if !i + matched_len <= s_len && String.sub s !i prefix_len = prefix then begin
-        let hex_start = !i + prefix_len in
-        let hex_end = hex_start + hex_len in
-        let all_hex =
-          let[@warning "-32"] rec loop k =
-            if k >= hex_end then true
-            else if is_hex s.[k] then loop (k + 1)
-            else false
-          in
-          loop hex_start
-        in
-        let closing_quote = s.[hex_end] in
-        if all_hex && closing_quote = '"' then begin
-          Buffer.add_string buf prefix;
-          Buffer.add_string buf placeholder;
-          i := !i + matched_len
-        end
-        else begin
-          Buffer.add_char buf s.[!i];
-          incr i
-        end
+(* The OCaml 5.x `Str` module does not support the
+   `\{n\}` interval quantifier (only `*`, `+`, `?`), so
+   the placeholder substitution is implemented with
+   String.sub + manual character checks rather than
+   a regex. The matched shape is:
+     `body_sha: "sha256:` + 64 hex chars + `"`
+   (total 83 chars). The replacement is the same length
+   (length-preserving). Same for `yaml_sha:`.
+
+   Hoisted to top level so `rehash_content` below can stamp a
+   real digest through the *same* substitution the digest is
+   defined over. Keeping one implementation matters: a second
+   copy is exactly how a canonicalisation drifts out of
+   agreement with itself. *)
+(* The replacement text is the 64 zeros plus the closing quote — NOT
+   including the "sha256:" scheme prefix.
+
+   Algebra §7.1 reads:
+     replace_all(re_body, "body_sha: \"" + placeholder, normalised)
+   with placeholder = "sha256:" + "0"*64 + "\"". The matched pattern
+   is the WHOLE `body_sha: "sha256:<64hex>`, and the replacement is
+   the WHOLE `body_sha: "` + placeholder, i.e.
+     `body_sha: "sha256:0000...0"`
+   — the scheme prefix appears exactly ONCE.
+
+   The previous value here was `"sha256:" ^ "0"*64 ^ "\""`, and the
+   substitution emitted `prefix ^ placeholder` =
+   `body_sha: "sha256:sha256:0000...0"` — the prefix twice. Every
+   digest the OCaml implementation produced therefore matched
+   neither §7.1, nor the Python reference
+   (scripts/axiom-link-seed.py:133-169), nor any of the 103 stored
+   values that were computed with the correct single-prefix rule.
+   It stayed invisible because nothing in the production path ever
+   called this function: `sha_match_check` compared two stored
+   strings and never recomputed, and tests/body_canonical_test.ml
+   asserts only relative properties (stability, sensitivity,
+   insensitivity to the placeholder) with no absolute vector
+   cross-checked against the reference implementation. *)
+let[@warning "-32"] digest_placeholder = String.make 64 '0' ^ "\""
+
+let[@warning "-32"] is_hex_digit c =
+  (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')
+
+(* Replace every occurrence of `<prefix><64 hex>"` with
+   `<prefix><placeholder>"`. Length-preserving, so stamping a real
+   digest changes no byte offset in the file. *)
+let[@warning "-32"] replace_digest_field ~prefix s =
+  let prefix_len = String.length prefix in
+  let hex_len = 64 in
+  let s_len = String.length s in
+  let buf = Buffer.create s_len in
+  let i = ref 0 in
+  let matched_len = prefix_len + hex_len + 1 in
+  while !i < s_len do
+    if !i + matched_len <= s_len && String.sub s !i prefix_len = prefix then begin
+      let hex_start = !i + prefix_len in
+      let hex_end = hex_start + hex_len in
+      let rec all_hex k =
+        if k >= hex_end then true
+        else if is_hex_digit s.[k] then all_hex (k + 1)
+        else false
+      in
+      let closing_quote = s.[hex_end] in
+      if all_hex hex_start && closing_quote = '"' then begin
+        Buffer.add_string buf prefix;
+        Buffer.add_string buf digest_placeholder;
+        i := !i + matched_len
       end
       else begin
         Buffer.add_char buf s.[!i];
         incr i
       end
-    done;
-    Buffer.contents buf
-  in
-  let normalized = crlf_to_lf bytes in
-  let substituted =
-    replace_field ~prefix:"body_sha: \"sha256:" normalized
-    |> replace_field ~prefix:"yaml_sha: \"sha256:"
-  in
-  "sha256:" ^ Digest.sha256_hex substituted
+    end
+    else begin
+      Buffer.add_char buf s.[!i];
+      incr i
+    end
+  done;
+  Buffer.contents buf
 
-let sha_match_check (d : Domain.decision) : bool * Diagnostic.t list =
+let[@warning "-32"] crlf_to_lf s =
+  let len = String.length s in
+  let buf = Buffer.create len in
+  let i = ref 0 in
+  while !i < len do
+    let c = s.[!i] in
+    if c = '\r' && !i + 1 < len && s.[!i + 1] = '\n' then begin
+      Buffer.add_char buf '\n';
+      i := !i + 2
+    end
+    else begin
+      Buffer.add_char buf s.[!i];
+      incr i
+    end
+  done;
+  Buffer.contents buf
+
+let[@warning "-32"] substitute_digest_placeholders s =
+  replace_digest_field ~prefix:"body_sha: \"sha256:" s
+  |> replace_digest_field ~prefix:"yaml_sha: \"sha256:"
+
+let[@warning "-32"] body_canonical_sha256 (bytes : string) : string =
+  let normalized = crlf_to_lf bytes in
+  "sha256:" ^ Digest.sha256_hex (substitute_digest_placeholders normalized)
+
+(* Stamp a real digest into both fields. Used by `mathc rehash`.
+   `hex` is the 64-character digest WITHOUT the "sha256:" scheme
+   prefix — the field prefix already carries it, so passing the full
+   `sha256:...` string would write `body_sha: "sha256:sha256:..."`.
+   The substitution is length-preserving, so the stamped file's
+   canonical form is byte-identical to the form that was hashed:
+   the write is a fixed point. *)
+let[@warning "-32"] sub_digest_literal ~prefix ~hex text =
+  if String.length hex <> 64 || not (String.for_all is_hex_digit hex) then
+    invalid_arg
+      (Printf.sprintf "stamp_digest: expected 64 hex chars, got %S"
+         (String.sub hex 0 (min 16 (String.length hex))));
+  let prefix_len = String.length prefix in
+  let hex_len = 64 in
+  let matched_len = prefix_len + hex_len + 1 in
+  let s_len = String.length text in
+  let buf = Buffer.create s_len in
+  let i = ref 0 in
+  while !i < s_len do
+    if !i + matched_len <= s_len && String.sub text !i prefix_len = prefix then begin
+      let hex_start = !i + prefix_len in
+      let hex_end = hex_start + hex_len in
+      let rec all_hex k =
+        if k >= hex_end then true
+        else if is_hex_digit text.[k] then all_hex (k + 1)
+        else false
+      in
+      if all_hex hex_start && text.[hex_end] = '"' then begin
+        Buffer.add_string buf prefix;
+        Buffer.add_string buf hex;
+        (* matched_len consumed the closing quote, so it must be
+           re-emitted here or it is silently deleted from the file. *)
+        Buffer.add_char buf '"';
+        i := !i + matched_len
+      end
+      else begin
+        Buffer.add_char buf text.[!i];
+        incr i
+      end
+    end
+    else begin
+      Buffer.add_char buf text.[!i];
+      incr i
+    end
+  done;
+  Buffer.contents buf
+
+let[@warning "-32"] stamp_digest ~hex s =
+  let with_body = sub_digest_literal ~prefix:"body_sha: \"sha256:" ~hex s in
+  sub_digest_literal ~prefix:"yaml_sha: \"sha256:" ~hex with_body
+
+(* T0.2 has two layers, and only the first was implemented until this
+   revision:
+
+     1. `body_sha = yaml_sha` when both are present (a string
+        comparison between the two stored fields).
+     2. the stored value equals `body_canonical_sha256(file_bytes)`.
+
+   Layer 1 alone is satisfied by any pair of equal strings, so a
+   decision whose *body* was edited after the digest was written
+   validated clean, and the 64-zero placeholder emitted by
+   `mathc new-decision` validated clean forever (`0^64 = 0^64`).
+   That is the property `adoption/SKILL.md:33` advertises as a
+   "tamper-evident trail", so layer 2 is the one that carries the
+   promise.
+
+   `raw_bytes` is optional so callers that only hold a parsed
+   decision keep the old behaviour; every path that has the file on
+   disk passes them. Omitting `raw_bytes` is therefore *weaker*,
+   which is why the validate path in `bin/Mathc.ml` reads the file
+   rather than re-parsing from the value it already holds. *)
+let sha_match_check ?raw_bytes (d : Domain.decision) : bool * Diagnostic.t list
+    =
   match (d.body_sha, d.yaml_sha) with
   | Some bs, Some ys when bs <> ys ->
       let diag =
@@ -151,6 +254,18 @@ let sha_match_check (d : Domain.decision) : bool * Diagnostic.t list =
           ~yaml_sha:ys ()
       in
       (false, [ diag ])
+  | Some bs, Some _ -> (
+      match raw_bytes with
+      | None -> (true, [])
+      | Some bytes ->
+          let computed = body_canonical_sha256 bytes in
+          if computed = bs then (true, [])
+          else
+            let diag =
+              Diagnostic.mc_sha_digest_stale ~decision_id:d.Domain.id ~stored:bs
+                ~computed ()
+            in
+            (false, [ diag ]))
   | _ -> (true, [])
 
 (* Pure-validation view: maps parse_decision_value into
