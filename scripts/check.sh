@@ -104,21 +104,65 @@ done
 # The executable is not on PATH, so it is invoked at its dune build
 # path. It resolves the repository root by walking up from the cwd,
 # and this script has already cd'd to the repository root.
+#
+# SCOPE: every Alcotest executable in tests/, not just this one.
+#
+# The previous shape of this step ran `dune build` and nothing else,
+# which proves the module COMPILES and nothing about whether a single
+# assertion holds — it reported `ok` for a suite that could be failing
+# wholesale. Fixing that for one binary left the hole one layer down:
+# the `(tests ...)` stanza names 26 executables and `tests/gate/`
+# names 2 more, and this step ran exactly one of the 28. That is how
+# `counters_reference` was red on main for a full review cycle with
+# the aggregator reporting green — the same fail-silently shape as the
+# cram gap above, and the fix is the same: run what you claim to check.
+#
+# The list is derived from `tests/dune` and `tests/gate/dune` rather
+# than hardcoded, so a binary added to either stanza is covered the
+# next time this runs without editing this script. If a stanza lists a
+# binary that has no build output, the step FAILS — a coverage guard
+# that can itself silently shrink is worse than none.
 cleanup_dune
-pp_log=$(mktemp)
+alco_log=$(mktemp)
 if ! nix develop .#test --command bash -c '
-    dune build --root . tests/process_principles.exe >/dev/null 2>&1 &&
-    ./_build/default/tests/process_principles.exe
-' >"$pp_log" 2>&1; then
-  printf "  FAIL process-principles\n"
-  tail -20 "$pp_log" >&2 || true
+    set -u
+    names=$(sed -n "/^(tests/,/^ (libraries/p" tests/dune \
+              | grep -oE "^  [a-z][a-z0-9_]*" | tr -d " ")
+    for d in tests/gate; do
+        [ -f "$d/dune" ] || continue
+        names="$names $(sed -n "/^(test/,/^$/p" "$d/dune" \
+                  | grep -oE "\(name [a-z_]+\)" | tr -d "()" | awk "{print \$2}")"
+    done
+    built=""
+    rc=0
+    for t in $names; do
+        if dune build --root . "tests/$t.exe" >/dev/null 2>&1 \
+           || dune build --root . "tests/gate/$t.exe" >/dev/null 2>&1; then
+            exe="./_build/default/tests/$t.exe"
+            [ -x "$exe" ] || exe="./_build/default/tests/gate/$t.exe"
+            built="$built $t"
+            if ! timeout 120 "$exe" >/dev/null 2>&1; then
+                printf "FAIL %s\n" "$t"
+                rc=1
+            fi
+        else
+            printf "FAIL %s (no build target)\n" "$t"
+            rc=1
+        fi
+    done
+    printf "ran %d of %d\n" "$(echo $built | wc -w)" "$(echo $names | wc -w)"
+    exit $rc
+' >"$alco_log" 2>&1; then
+  printf "  FAIL alcotest\n"
+  tail -30 "$alco_log" >&2 || true
   fail=$((fail + 1))
-  failed_names+=("process-principles")
+  failed_names+=("alcotest")
 else
-  printf "  ok   process-principles\n"
+  ran=$(sed -n 's/^ran \([0-9]*\) of \([0-9]*\)$/\1 of \2/p' "$alco_log" | tail -1)
+  printf "  ok   alcotest (%s)\n" "${ran:-?}"
   pass=$((pass + 1))
 fi
-rm -f "$pp_log"
+rm -f "$alco_log"
 
 # The whole decision corpus must pre-commit clean. This is
 # deliberately NOT implied by a clean textual merge: `git merge-tree`
