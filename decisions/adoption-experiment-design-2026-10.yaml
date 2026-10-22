@@ -4,8 +4,8 @@ id: adoption-experiment-design-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:b20eeba1ba78fe2fc71d3d2a178bbbfaefeedb786f07685481399c3186f4239e"
-yaml_sha: "sha256:b20eeba1ba78fe2fc71d3d2a178bbbfaefeedb786f07685481399c3186f4239e"
+body_sha: "sha256:10ade03aadda68deeb9cd9967b5902bd5cb5fef5c7439c52fe5422215c0fb6ea"
+yaml_sha: "sha256:10ade03aadda68deeb9cd9967b5902bd5cb5fef5c7439c52fe5422215c0fb6ea"
 
 intent: |
   Conduct a brownfield adoption study of math-coding on five real
@@ -76,7 +76,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists
-          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/experiments/adoption-2026-10.md
+          path: docs/experiments/adoption-2026-10.md
           result: pass
         - verifier: mathc validate decisions/adoption-experiment-design-2026-10.yaml
           result: pass
@@ -90,7 +90,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists
-          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/experiments/adoption-2026-10-report-template.md
+          path: docs/experiments/adoption-2026-10-report-template.md
           result: pass
 
   - id: five-clones-created
@@ -150,7 +150,7 @@ obligations:
     acceptance:
       all:
         - verifier: contains-section
-          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/experiments/adoption-2026-10.md
+          path: docs/experiments/adoption-2026-10.md
           section: "13. Recommendations"
           min_items: 10
           result: pass
@@ -163,7 +163,7 @@ obligations:
     acceptance:
       all:
         - verifier: contains-section
-          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/experiments/adoption-2026-10.md
+          path: docs/experiments/adoption-2026-10.md
           section: "3. Hypotheses"
           min_items: 8
           result: pass
@@ -177,7 +177,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists
-          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/decisions/adoption-experiment-results-2026-10.yaml
+          path: decisions/adoption-experiment-results-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/adoption-experiment-results-2026-10.yaml
           result: pass
@@ -192,7 +192,7 @@ obligations:
     acceptance:
       all:
         - verifier: git-no-paths
-          repo: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10
+          repo: .
           base: main
           forbidden_paths:
             - "lib/**"

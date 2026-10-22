@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:306941a697c4fe82330bcbd7f9735547f16a2f4f7e2a14eb82137feebf1b2a7a"
-yaml_sha: "sha256:306941a697c4fe82330bcbd7f9735547f16a2f4f7e2a14eb82137feebf1b2a7a"
+body_sha: "sha256:ee217e1ea82d02d7241d253cd47b4fd2a67980fcc2b10f99ef8fd109fa04fbb3"
+yaml_sha: "sha256:ee217e1ea82d02d7241d253cd47b4fd2a67980fcc2b10f99ef8fd109fa04fbb3"
 
 intent: |
   Apply R6 of `docs/experiments/adoption-2026-10.md` §13 by
@@ -176,16 +176,16 @@ obligations:
     acceptance:
       all:
         - verifier: file-contains
-          path: /home/az/.paseo/worktrees/math-coding/revise-friction-taxonomy/docs/experiments/adoption-2026-10.md
+          path: docs/experiments/adoption-2026-10.md
           needle: "F-INSTALL"
           result: pass
         - verifier: file-contains
-          path: /home/az/.paseo/worktrees/math-coding/revise-friction-taxonomy/docs/experiments/adoption-2026-10.md
+          path: docs/experiments/adoption-2026-10.md
           needle: "F-SEMANTIC"
           result: pass
         - verifier: file-contains
-          path: /home/az/.paseo/worktrees/math-coding/revise-friction-taxonomy/docs/experiments/adoption-2026-10.md
-          needle: "| **Total**      | 55    |"
+          path: docs/experiments/adoption-2026-10.md
+          needle: '\*\*Total\*\*      | 55    |'
           result: pass
         - verifier: mathc validate decisions/revise-friction-taxonomy-2026-10.yaml
           result: pass

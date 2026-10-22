@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:1d6ca35945e7c28ab8063fa4eea7d5cdaa583c594dc23e664921917912ab343c"
-yaml_sha: "sha256:1d6ca35945e7c28ab8063fa4eea7d5cdaa583c594dc23e664921917912ab343c"
+body_sha: "sha256:c54bdb492611c29ccb413f1e7f1e4c51bd3d4045ce8e60b6bd92efc3fc485ded"
+yaml_sha: "sha256:c54bdb492611c29ccb413f1e7f1e4c51bd3d4045ce8e60b6bd92efc3fc485ded"
 
 intent: |
   Add a release-pending CI gate that blocks merge of any PR
@@ -103,18 +103,18 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists
-          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/.github/workflows/release-pending.yml
+          path: .github/workflows/release-pending.yml
           result: pass
         - verifier: shell-grep
-          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/.github/workflows/release-pending.yml
+          path: .github/workflows/release-pending.yml
           needle: 'pull_request:'
           result: pass
         - verifier: shell-grep
-          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/.github/workflows/release-pending.yml
+          path: .github/workflows/release-pending.yml
           needle: 'release/\*\*'
           result: pass
         - verifier: shell-grep
-          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/.github/workflows/release-pending.yml
+          path: .github/workflows/release-pending.yml
           needle: bin/Mathc.ml
           result: pass
 
@@ -127,7 +127,7 @@ obligations:
     acceptance:
       all:
         - verifier: shell-grep
-          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/scripts/install-tooling/install.sh
+          path: scripts/install-tooling/install.sh
           needle: MC_VERSION_DEFAULT="3.3.3"
           result: pass
 
@@ -137,7 +137,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists
-          path: /home/az/.paseo/worktrees/math-coding/c4-release-cadence/.github/workflows/release-pending.yml
+          path: .github/workflows/release-pending.yml
           result: pass
 
   - id: c4-no-new-unknowns

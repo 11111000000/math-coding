@@ -4,8 +4,8 @@ id: import-junit-rename-2026-11
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:19c947dab02a74cfafc97a1414e48972edc0bdfeab75663839c0bc073a932f76"
-yaml_sha: "sha256:19c947dab02a74cfafc97a1414e48972edc0bdfeab75663839c0bc073a932f76"
+body_sha: "sha256:65cb01eeb3707953818800c4f990de34f6cbaa82a69ab5abc1a59f9f0cbe49af"
+yaml_sha: "sha256:65cb01eeb3707953818800c4f990de34f6cbaa82a69ab5abc1a59f9f0cbe49af"
 
 intent: |
   Distinguish "attest-as-JUnit-XML-importer" from
@@ -83,11 +83,11 @@ obligations:
         - verifier: mathc import-junit --help
           result: pass
         - verifier: shell-grep
-          path: /home/az/.paseo/worktrees/math-coding/import-junit-rename/bin/Mathc.ml
+          path: bin/Mathc.ml
           needle: do_import_junit
           result: pass
         - verifier: shell-grep
-          path: /home/az/.paseo/worktrees/math-coding/import-junit-rename/bin/Mathc.ml
+          path: bin/Mathc.ml
           needle: '"import-junit" -> do_import_junit'
           result: pass
 
@@ -101,11 +101,11 @@ obligations:
     acceptance:
       all:
         - verifier: shell-grep
-          path: /home/az/.paseo/worktrees/math-coding/import-junit-rename/bin/Mathc.ml
+          path: bin/Mathc.ml
           needle: deprecated.*import-junit
           result: pass
         - verifier: shell-grep
-          path: /home/az/.paseo/worktrees/math-coding/import-junit-rename/bin/Mathc.ml
+          path: bin/Mathc.ml
           needle: '"attest" ->'
           result: pass
         - verifier: attest-deprecation-alias-test

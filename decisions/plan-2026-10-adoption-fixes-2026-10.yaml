@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:04c1f8ca04f59491f5bca2bf8d2d6e986387f4805c73d0dfda766468b440d991"
-yaml_sha: "sha256:04c1f8ca04f59491f5bca2bf8d2d6e986387f4805c73d0dfda766468b440d991"
+body_sha: "sha256:5113d11b1541f73e63832d5acb9a8d00a75d3a2e5c5b5fb7e9c04d57f988a070"
+yaml_sha: "sha256:5113d11b1541f73e63832d5acb9a8d00a75d3a2e5c5b5fb7e9c04d57f988a070"
 
 intent: |
   Convert the 9 recommendations from the 2026-10-17 adoption
@@ -114,7 +114,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists
-          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/plans/plan-2026-10-adoption-fixes-2026-10.md
+          path: docs/plans/plan-2026-10-adoption-fixes-2026-10.md
           result: pass
         - verifier: mathc validate decisions/plan-2026-10-adoption-fixes-2026-10.yaml
           result: pass
@@ -308,11 +308,11 @@ obligations:
     acceptance:
       all:
         - verifier: file-contains
-          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/plans/plan-2026-10-adoption-fixes-2026-10.md
+          path: docs/plans/plan-2026-10-adoption-fixes-2026-10.md
           needle: "R1"
           result: pass
         - verifier: file-contains
-          path: /home/az/.paseo/worktrees/math-coding/adoption-exp-2026-10/docs/plans/plan-2026-10-adoption-fixes-2026-10.md
+          path: docs/plans/plan-2026-10-adoption-fixes-2026-10.md
           needle: "R9"
           result: pass
 

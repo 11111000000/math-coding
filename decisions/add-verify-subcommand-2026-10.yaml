@@ -4,8 +4,8 @@ id: add-verify-subcommand-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:da241f94c51c81ccc6fe8de0fb1d9114f427aaac5b8fcdbe242558ab9ad1e97e"
-yaml_sha: "sha256:da241f94c51c81ccc6fe8de0fb1d9114f427aaac5b8fcdbe242558ab9ad1e97e"
+body_sha: "sha256:4615ea28ff5d171402847b7506ae49e8923eff988672998c61f2842869442bbd"
+yaml_sha: "sha256:4615ea28ff5d171402847b7506ae49e8923eff988672998c61f2842869442bbd"
 
 intent: |
   Distinguish "validated" from "verified" in math-coding. The
@@ -72,11 +72,11 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists
-          path: /home/az/.paseo/worktrees/math-coding/add-verify-subcommand/bin/Mathc.ml
+          path: bin/Mathc.ml
           needle: do_verify
           result: pass
         - verifier: file-exists
-          path: /home/az/.paseo/worktrees/math-coding/add-verify-subcommand/bin/Mathc.ml
+          path: bin/Mathc.ml
           needle: '"verify" -> do_verify ()'
           result: pass
         - verifier: mathc verify --help
@@ -100,11 +100,11 @@ obligations:
     acceptance:
       all:
         - verifier: file-grep-zero
-          path: /home/az/.paseo/worktrees/math-coding/add-verify-subcommand/tests/cli/
+          path: tests/cli/
           needle: '"verdict":"accept"'
           result: pass
         - verifier: file-grep-non-zero
-          path: /home/az/.paseo/worktrees/math-coding/add-verify-subcommand/tests/cli/
+          path: tests/cli/
           needle: '"verdict":"parse-ok"'
           min: 14
           result: pass

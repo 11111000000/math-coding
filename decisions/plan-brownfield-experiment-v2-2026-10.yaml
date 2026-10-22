@@ -4,8 +4,8 @@ id: plan-brownfield-experiment-v2-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:15efeb36400a81403ed301919bbf058421a40dd1799a120e9a851556f29c667d"
-yaml_sha: "sha256:15efeb36400a81403ed301919bbf058421a40dd1799a120e9a851556f29c667d"
+body_sha: "sha256:76f8eb72c836df5a3810afaf6fb2f96ae78fa28b160c4c99f0053f17d41133aa"
+yaml_sha: "sha256:76f8eb72c836df5a3810afaf6fb2f96ae78fa28b160c4c99f0053f17d41133aa"
 
 intent: |
   Plan a brownfield-targeted follow-up experiment to the 2026-10-17
@@ -219,7 +219,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists
-          path: /home/az/.paseo/worktrees/math-coding/plan-brownfield-experiment-v2/docs/experiments/brownfield-experiment-v2-2026-10.md
+          path: docs/experiments/brownfield-experiment-v2-2026-10.md
           result: pass
         - verifier: mathc validate decisions/plan-brownfield-experiment-v2-2026-10.yaml
           result: pass
@@ -246,7 +246,7 @@ obligations:
     acceptance:
       all:
         - verifier: git-no-paths
-          repo: /home/az/.paseo/worktrees/math-coding/plan-brownfield-experiment-v2
+          repo: .
           base: plan/adoption-fixes-2026-10
           forbidden_paths:
             - "lib/**"

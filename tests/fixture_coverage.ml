@@ -16,7 +16,14 @@
  * check is in tests/, the hook is a fast-path guard).
  *
  * Exits 1 (Alcotest fails) when any obligation's verifier is
- * absent, unrecognised, or points at a missing file. *)
+ * absent, unrecognised, or points at a missing file.
+ *
+ * A second walk (added by
+ * decisions/verifier-paths-inside-repo-2026-10) collects the
+ * `path:` and `repo:` fields an acceptance entry uses to name
+ * its target, and fails when one of them is an absolute path
+ * into a machine-local worktree. See the comment on
+ * `walk_paths` below. *)
 
 let[@warning "-32"] project_root () =
   let cwd = Sys.getcwd () in
@@ -419,26 +426,27 @@ let[@warning "-32"] rec collect_verifiers (v : Jsonl.value) : string list =
   | Jsonl.Array xs -> List.concat_map collect_verifiers xs
   | _ -> []
 
-let[@warning "-32"] walk root =
+let[@warning "-32"] decision_files root =
   let decisions_dir = Filename.concat root "decisions" in
   let rules = gitignore_rules () in
-  let files =
-    Sys.readdir decisions_dir |> Array.to_list
-    |> List.filter (fun n ->
-        Filename.extension n = ".yaml" || Filename.extension n = ".yml")
-    |> List.filter (fun n ->
-        not
-          (List.mem (Filename.basename n)
-             [
-               "decision.yaml";
-               "obligations.yaml";
-               "obligation-count-reconcile.yaml";
-             ]))
-    (* Scratch decisions that .gitignore excludes are not commitments. The
-       check is narrowed, not disabled: anything .gitignore does NOT cover
-       is still walked and still fails here. *)
-    |> List.filter (fun n -> not (path_is_gitignored rules ("decisions/" ^ n)))
-  in
+  Sys.readdir decisions_dir |> Array.to_list
+  |> List.filter (fun n ->
+      Filename.extension n = ".yaml" || Filename.extension n = ".yml")
+  |> List.filter (fun n ->
+      not
+        (List.mem (Filename.basename n)
+           [
+             "decision.yaml";
+             "obligations.yaml";
+             "obligation-count-reconcile.yaml";
+           ]))
+  (* Scratch decisions that .gitignore excludes are not commitments. The
+     check is narrowed, not disabled: anything .gitignore does NOT cover
+     is still walked and still fails here. *)
+  |> List.filter (fun n -> not (path_is_gitignored rules ("decisions/" ^ n)))
+
+let[@warning "-32"] walk root =
+  let decisions_dir = Filename.concat root "decisions" in
   List.concat_map
     (fun fname ->
       let path = Filename.concat decisions_dir fname in
@@ -477,7 +485,118 @@ let[@warning "-32"] walk root =
                 verifiers
           | _ -> [])
         obligations_yaml)
-    files
+    (decision_files root)
+
+(* --- verifier target paths (verifier-paths-inside-repo-2026-10) -------
+
+   The walk above reads the `verifier` string and nothing else. An
+   acceptance entry also names its target through a sibling `path:`
+   (file-*, contains-*, shell-grep) or `repo:` (git-no-paths) field,
+   and those fields were invisible to it. That is the gap this closes.
+
+   A `path:` is a claim about a specific file. When the value is an
+   absolute path into a machine's private worktree area, the claim is
+   unverifiable for everyone else: the directory is one author's
+   ephemeral checkout, not the repository. It passes only while that
+   author's worktree still exists on that author's disk, and it fails
+   identically for every other machine and for a fresh clone. Every
+   such value under decisions/ has been rewritten to a project-relative
+   one; this check is what keeps the shape from coming back.
+
+   What fails, and what is only reported, is a deliberate split. The
+   worktree shape is unambiguously the author's authoring scratch and has
+   no defensible reading. An absolute path to a checkout genuinely
+   outside this project (a third-party repository this project measures,
+   e.g. the five clones in adoption-experiment-design-2026-10) is a
+   different kind of claim that no relative rewrite can satisfy; an
+   absolute path to the author's own main checkout of *this* project is
+   the same habit one directory level down. Both are real debt and both
+   are counted below so the count cannot quietly grow -- but failing on
+   them would turn this suite red for decisions outside the scope of the
+   fix, which is the outcome verifier-scheme-convention-2026-11
+   already rejected for the analogous scheme warning. *)
+
+(* Recursively collect the target-naming fields of an acceptance
+   sub-tree. Mirrors collect_verifiers above: {all:[...]} / {any:[...]}
+   of items, each item carrying `path` and/or `repo` as a string. Other
+   sibling keys are not followed -- notably `forbidden_paths`, whose
+   entries are glob patterns rather than locations. *)
+let[@warning "-32"] rec collect_paths (v : Jsonl.value) : string list =
+  match v with
+  | Jsonl.Object ps ->
+      let direct =
+        List.concat_map
+          (fun key ->
+            match List.assoc_opt key ps with
+            | Some (Jsonl.String s) -> [ s ]
+            | _ -> [])
+          [ "path"; "repo" ]
+      in
+      let lists =
+        List.concat_map
+          (fun key ->
+            match List.assoc_opt key ps with
+            | Some (Jsonl.Array xs) -> xs
+            | _ -> [])
+          [ "all"; "any" ]
+      in
+      direct @ List.concat_map collect_paths lists
+  | Jsonl.Array xs -> List.concat_map collect_paths xs
+  | _ -> []
+
+let[@warning "-32"] walk_paths root =
+  let decisions_dir = Filename.concat root "decisions" in
+  List.concat_map
+    (fun fname ->
+      let path = Filename.concat decisions_dir fname in
+      let raw = In_channel.with_open_bin path In_channel.input_all in
+      let yaml = try Codec.load_yaml_string raw with _ -> Jsonl.Object [] in
+      let yaml_obj = match yaml with Jsonl.Object ps -> ps | _ -> [] in
+      let decision_id =
+        match Schema.take_string yaml_obj "id" with
+        | Some s -> s
+        | None -> fname
+      in
+      let obligations_yaml =
+        match Schema.take_array yaml_obj "obligations" with
+        | Some xs -> xs
+        | None -> []
+      in
+      List.concat_map
+        (fun ob ->
+          match ob with
+          | Jsonl.Object ops ->
+              let ob_id =
+                match Schema.take_string ops "id" with
+                | Some s -> s
+                | None -> ""
+              in
+              let acceptance =
+                match Schema.take_object ops "acceptance" with
+                | Some a -> Jsonl.Object a
+                | None -> Jsonl.Object []
+              in
+              List.map
+                (fun p -> (decision_id ^ "/" ^ ob_id, p))
+                (collect_paths acceptance)
+          | _ -> [])
+        obligations_yaml)
+    (decision_files root)
+
+let[@warning "-32"] is_absolute_path p =
+  String.length p > 0 && String.unsafe_get p 0 = '/'
+
+let[@warning "-32"] contains_substring hay needle =
+  let nl = String.length needle and hl = String.length hay in
+  let rec loop i =
+    i + nl <= hl && (String.sub hay i nl = needle || loop (i + 1))
+  in
+  nl > 0 && loop 0
+
+(* The authoring-machine shape: an absolute path whose prefix names a
+   Paseo worktree checkout, whatever the workspace slug happens to be. *)
+let[@warning "-32"] is_worktree_path p =
+  is_absolute_path p && contains_substring p "/.paseo/worktrees/"
 
 (* A path "resolves" if either the path itself exists, or
    the path with the `@<rev>` trailer stripped exists. The
@@ -595,6 +714,48 @@ let[@warning "-32"] test_walker_finds_no_missing_or_unknown () =
       n_unknown
   else ()
 
+let[@warning "-32"] test_verifier_paths_stay_inside_repo () =
+  let root = project_root () in
+  let results = walk_paths root in
+  let offending = List.filter (fun (_, p) -> is_worktree_path p) results in
+  let n_offending = List.length offending in
+  if n_offending > 0 then begin
+    Printf.printf "Verifier paths pointing into a machine-local worktree:\n";
+    List.iter (fun (k, p) -> Printf.printf "  %s: %s\n" k p) offending
+  end;
+  Alcotest.(check int)
+    (Printf.sprintf
+       "no verifier names its target through an absolute worktree path (walked \
+        %d)"
+       (List.length results))
+    0 n_offending;
+  (* Pinned, not ignored -- see the block comment on walk_paths. An
+     absolute path that is not a worktree leak is either a checkout of
+     this project under the author's home or a genuinely external
+     repository this project measures; neither is silently acceptable,
+     but neither is in scope for the worktree fix either.
+
+     Pinned as an exact count rather than a soft warning because Alcotest
+     swallows a passing test's stdout: a print would be visible only when
+     the suite is already red, which is precisely when nobody is looking
+     for the number. Pinning makes the debt fail loudly in both
+     directions -- a new leak fails the run, and paying debt down fails
+     until the pin is updated, which is the point. *)
+  let remaining =
+    List.filter
+      (fun (_, p) -> is_absolute_path p && not (is_worktree_path p))
+      results
+  in
+  let n_remaining = List.length remaining in
+  if n_remaining > 0 then begin
+    Printf.printf
+      "Verifier paths still absolute (outside the worktree shape):\n";
+    List.iter (fun (k, p) -> Printf.printf "  %s: %s\n" k p) remaining
+  end;
+  Alcotest.(check int)
+    "remaining absolute verifier paths match the recorded debt baseline" 55
+    n_remaining
+
 let () =
   Alcotest.run "fixture coverage (I13)"
     [
@@ -607,5 +768,10 @@ let () =
         [
           Alcotest.test_case "gitignored scratch is excluded" `Quick
             test_gitignore_filter;
+        ] );
+      ( "verifier target paths",
+        [
+          Alcotest.test_case "no verifier target escapes the repository" `Quick
+            test_verifier_paths_stay_inside_repo;
         ] );
     ]
