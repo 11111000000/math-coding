@@ -1,0 +1,266 @@
+---
+schema: math-coding/3.2
+id: forge-stub-read-request-2026-10
+revision: 1
+state: active
+body_sha: "sha256:3d3359e00dec24713fab5493b0f4da9ab5813ecb08304d04fc3005e393f8f26e"
+yaml_sha: "sha256:3d3359e00dec24713fab5493b0f4da9ab5813ecb08304d04fc3005e393f8f26e"
+axiom_link:
+  - A0
+intent: |
+  Close the "Tier 2G" item that
+  `decisions/ci-green-batch1-2026-10@1` recorded as out of scope
+  and promised to a `decisions/<TBD>.yaml`: this file is that
+  decision. Two independent defects in
+  `tests/support/forge_stub/forge_stub.ml` kept the suite
+  `tests/rebuttal_forge_stub.ml` red — three of its five cases
+  failing, two of them on a timeout rather than on an assertion.
+
+  Defect 1 (the one Tier 2G named): `read_request` recursed into
+  itself from inside its own line loop and had no end condition.
+  The blank line that terminates an HTTP head — the RFC 9112 end
+  of the header section — was matched by `if line = "" then ()`,
+  i.e. swallowed, after which the function called `Unix.read`
+  again. It could only return at EOF. `curl` does not close the
+  connection after sending headers; it waits for a response. So
+  the stub blocked in `Unix.read` while owing the client a
+  response, `with_stub` never got past `wait_until_ready`, and the
+  three stub-backed cases failed on a 5-second deadline. The
+  `cr_seen` flag compounded it: a character reached the buffer
+  only when a CR had already been seen, so the request line and
+  the first character of every header were dropped. The returned
+  string was garbage — invisible, because the sole caller
+  discards it.
+
+  Defect 2 (not named by Tier 2G, found while fixing defect 1):
+  `main` called `Unix.accept` exactly once and exited after one
+  response. But `with_stub` spends one connection on its
+  readiness probe and the probe under test then opens a second,
+  which the single-shot server left to ECONNREFUSED — a failure
+  `forge_mirror` maps to `[]`. Measured before this decision:
+  fixing `read_request` alone moved the suite from 3 failures to
+  1, and the survivor failed with "expected 2 rebuttals ... got
+  0" plus curl exit 7. The single-shot shape entered in 5a4fec8
+  together with the stub itself; the readiness probe predates it,
+  from the `python3 -m http.server` stub that served every
+  connection.
+
+  What this decision changes is test infrastructure only. The seam
+  under test — `lib/rebuttal.ml::forge_mirror` — is untouched, and
+  so are the assertions in `tests/rebuttal_forge_stub.ml`.
+commitment: |
+  `read_request fd` reads one HTTP head and returns it. It returns
+  exactly once: at the first blank line, or at EOF if the peer
+  hangs up first. It never calls `Unix.read` after that byte, so a
+  client that sent headers and is waiting is answered rather than
+  left blocking. Both `\r\n` and bare `\n` terminate a line; a CR
+  is dropped rather than accumulated. The return type stays
+  `string` and the accumulated header block is still the result —
+  its one caller still discards it.
+
+  `forge_stub` answers every connection it accepts, not just the
+  first, until `with_stub` SIGTERMs it at teardown. Each response
+  still carries `Connection: close` and the body passed as argv.
+  The parent-pid check makes a reparented orphan exit after its
+  next connection rather than hold the port for the session.
+
+  `tests/rebuttal_forge_stub.ml` passes 5/5 with its assertions
+  unchanged. `tests/fixtures/forge-stub-read-request.sh` — the
+  paired fixture, behavioural rather than a source-shape grep —
+  fails against the pre-fix stub, which is what makes it a
+  verifier and not decoration.
+
+  Boundaries:
+  - `lib/rebuttal.ml::forge_mirror` is unchanged, including its
+    refusal to raise: an unanswered stub is still `[]`, not a
+    Block. This decision fixes a broken instrument, not a
+    contract; the error-path semantics of the seam are exactly
+    what made the defect quiet.
+  - No new dependency. The fixture needs bash `/dev/tcp`, the
+    stub needs `unix`, nothing else. No `cohttp`, no `curl`, no
+    python.
+  - The fixture's readiness probe still consumes one connection.
+    That is wasteful, and the cleaner shape — a readiness signal
+    that costs no connection — is deliberately deferred, see
+    `antithesis` below.
+scope:
+  paths:
+    - "tests/support/forge_stub/forge_stub.ml"
+    - "tests/fixtures/forge-stub-read-request.sh"
+    - "decisions/forge-stub-read-request-2026-10.yaml"
+  exclusions:
+    - "lib/rebuttal.ml (the seam under test; not modified)"
+    - "tests/rebuttal_forge_stub.ml (assertions unchanged; only the comment describing the stub as single-shot was corrected, it became false with this change)"
+    - "tests/dune (rebuttal_forge_stub was and is enabled)"
+    - "decisions/ci-green-batch1-2026-10.yaml (its Tier 2G note is historically accurate; this file is the decision it promised, so no revision bump is needed and the @1 references from ci-cram-cleanup-batch2 stay valid)"
+    - "the `mathc init` cram hang observed while verifying, which is unrelated and pre-existing"
+outcomes:
+  - id: stub-answers-request-head
+    statement: |
+      The forge stub answers an HTTP request head that ends with
+      the blank line, on the first connection and on every
+      subsequent one, with `200` and `Connection: close`.
+  - id: forge-mirror-suite-green
+    statement: |
+      `tests/rebuttal_forge_stub.ml` passes 5/5, so the four
+      obligations of `plan-2026-10-improvements/t1-1@1` that name
+      its cases are verified by a suite that can actually reach
+      its assertions.
+obligations:
+  - id: read-request-stops-at-end-of-head
+    claim: |
+      `read_request` returns once the blank line arrives and never
+      reads past it, so a client that sent headers and waits gets
+      a response instead of a hang. A request with bare-LF line
+      endings is handled the same as one with CRLF.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/forge-stub-read-request.sh
+          result: pass
+        - verifier: tests/rebuttal_forge_stub.ml::positive_returns_rebuttals_when_api_set
+          result: pass
+  - id: stub-serves-every-connection
+    claim: |
+      The stub answers a second and third connection on the same
+      port, so the readiness probe no longer consumes the one
+      response the probe under test needed.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/forge-stub-read-request.sh
+          result: pass
+        - verifier: tests/rebuttal_forge_stub.ml::negative_malformed_json_returns_empty
+          result: pass
+        - verifier: tests/rebuttal_forge_stub.ml::negative_top_level_object_returns_empty
+          result: pass
+  - id: fixture-fails-on-the-defect
+    claim: |
+      `tests/fixtures/forge-stub-read-request.sh` is a verifier and
+      not decoration: checked out against the pre-fix stub it exits
+      non-zero within its 10-second budget. Verified by running it
+      with `git show HEAD~1:tests/support/forge_stub/forge_stub.ml`
+      restored, which reported "(A) no response to a CRLF request
+      within 10s" and exit 1.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/forge-stub-read-request.sh
+          result: pass
+counterexample: |
+  "You changed the fixture's contract instead of fixing the code
+  under test. Making the stub loop over connections is scope creep
+  dressed as a fix."
+
+  The counterargument is that the code under test was never broken.
+  `forge_mirror` issued its GET, waited, and got a correct answer
+  from a stub that had already exited — the failure lived entirely
+  in the instrument. But the loop is not a new contract invented to
+  make a test pass; it is the contract the fixture has always
+  assumed since the Python stub. `with_stub` opens two connections
+  by construction, and the OCaml replacement in 5a4fec8 silently
+  narrowed the server to one. The alternative — editing the fixture
+  so it opens one connection — deletes the readiness probe, and the
+  probe is the only synchronisation between `spawn_stub` and the
+  request that follows: without it the test races the stub's
+  `bind` and fails intermittently instead of deterministically.
+
+  "The returned header block is discarded, so none of this is
+  observable and the whole exercise is untestable."
+
+  Half right, and worth stating plainly: because the sole caller
+  ignores the result, the defect was invisible for as long as it
+  existed, which is why it survived 5a4fec8 through de5ece1 and
+  14cc1fc. The blocking read was observable only as a timeout
+  three layers up. Keeping the `string` return is therefore a
+  choice about diagnosability, not about behaviour: it is the only
+  handle a future failure has on "what did the stub actually
+  read".
+antithesis: |
+  The strongest position against this decision is: keep the stub
+  single-shot, and replace the consuming readiness probe with a
+  signal that costs no connection — the test polls the port with
+  `connect()` only, or the stub prints a "listening" line to a
+  pipe the parent reads. The stub then does exactly one request
+  per process, its lifecycle stays trivially provable, and the
+  `with_stub` teardown keeps the property it advertises
+  ("exits after one response, nothing to reap").
+
+  Rejected, but not cheaply. It is the better design, and the
+  parent-pid check in `serve_forever` is a workaround for a
+  problem this alternative does not have. It was not taken because
+  it changes the fixture that other work is already touching —
+  `tests/rebuttal_forge_stub.ml` is being reformatted in a
+  parallel worktree, and a semantic edit to `spawn_stub` /
+  `wait_until_ready` would collide with that edit on every hunk of
+  the file rather than on one comment. The cost of this decision is
+  therefore explicit and bounded: one wasted connection per stub
+  instance, and an orphan guard that exists only because the
+  server must outlive a probe it does not need. Revisit when the
+  formatting work has landed and `with_stub` is free to change.
+assumptions:
+  - id: bodyless-get-only
+    state: assumed
+    statement: |
+      Every request the stub serves is a bodyless GET. `read_request`
+      stops at the blank line by contract and never drains a body;
+      if unread bytes remain in the receive queue when the socket
+      closes, Linux answers with RST rather than FIN and the peer
+      can lose the response it was owed.
+    owner: human:maintainer
+    consequence_if_false: |
+      A request with a body makes the response lossy. No test
+      asserts differently, and `forge_mirror` uses
+      `curl ... GET` (no body), so nothing here is currently
+      exposed. If the transport ever moves to POST, the stub must
+      read `Content-Length` bytes before answering, and this
+      assumption converts from documentation into a bug report.
+    review_on:
+      - signal: forge-transport-switches-to-post
+  - id: fixture-teardown-signals-the-child
+    state: assumed
+    statement: |
+      `with_stub` always reaches `Fun.protect ~finally`, which
+      SIGTERMs the stub. `serve_forever` has no other stop
+      condition by design; SIGTERM's default disposition is what
+      ends it.
+    owner: human:maintainer
+    consequence_if_false: |
+      A hard-killed test binary leaves an orphan that keeps its
+      port bound. Two things bound the damage: the parent-pid
+      check retires the orphan at its next connection, and
+      `find_free_port` probes each candidate with curl and skips
+      any port that answers, so a stale stub costs a candidate
+      rather than a test.
+    review_on:
+      - signal: forge-stub-process-survives-a-test-run
+risk:
+  declared_triggers:
+    - stub-orphan-process
+    - undrained-request-body
+  owner: human:maintainer
+reversal:
+  - signal: forge-transport-switches-to-post
+    condition: |
+      `forge_mirror` stops issuing bodyless GETs. `read_request`
+      would then need to consume the body it currently refuses to
+      read, which is the one behaviour this decision made load
+      bearing.
+    action: rework
+  - signal: stub-moved-out-of-tests
+    condition: |
+      The stub graduates to a reusable fixture outside `tests/`,
+      where its lifecycle and its HTTP conformance stop being
+      incidental. The single-purpose simplicity that justifies the
+      loop will not survive a real client.
+    action: rework
+relations:
+  revises: []
+  supersedes: []
+  superseded_by: []
+  refines: []
+  depends_on: []
+  conflicts_with: []
+  addresses:
+    - ci-green-batch1-2026-10@1
+  implements: []
+  verifies:
+    - plan-2026-10-improvements/t1-1@1
+---
