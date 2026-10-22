@@ -501,12 +501,7 @@ let[@warning "-32"] seq_mapping_item_is_not_folded_into_a_string () =
    SHORTER policy with nothing to say so. `load_yaml_value_remaining`
    returns the remainder so it can be asserted empty. *)
 let[@warning "-32"] policies_yaml_parses_with_no_remainder () =
-  let root =
-    match Sys.getenv_opt "DUNE_SOURCEROOT" with
-    | Some r -> r
-    | None -> Filename.concat (Sys.getcwd ()) ".."
-  in
-  let path = Filename.concat root "policies.yaml" in
+  let path = Filename.concat project_root "policies.yaml" in
   let raw =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
