@@ -201,9 +201,38 @@ let template_minimal ~id ~paths =
    non-empty; empty list preserves the legacy placeholder
    string so existing adopters see no behavioural change. *)
 let template_for (kind : template_kind) ~id ~paths =
-  match kind with
-  | Full -> template ~id ~paths
-  | Minimal -> template_minimal ~id ~paths
+  let raw =
+    match kind with
+    | Full -> template ~id ~paths
+    | Minimal -> template_minimal ~id ~paths
+  in
+  (* Stamp a REAL digest instead of the 64-zero placeholder.
+
+     The templates above emit `sha256:0000...` because the digest is
+     a fixed point: it is the digest of the file *including* its own
+     digest fields, so it cannot be written until the content is
+     final. That was harmless while the validator only compared the
+     two stored fields to each other, since 0^64 = 0^64 satisfied the
+     equality invariant forever. It stops being harmless once
+     MC-SHA-DIGEST-STALE recomputes the digest: a freshly scaffolded
+     decision would be rejected by `mathc validate`, which breaks the
+     scaffold-then-validate loop the tool exists to support.
+
+     `stamp_digest` substitutes a literal hex and is
+     length-preserving, so stamping cannot change the canonical form
+     that was hashed — the write is a fixed point. Asserting that here
+     rather than assuming it means a future edit to the templates
+     cannot silently reintroduce a scaffold that does not validate. *)
+  let computed = Decision.body_canonical_sha256 raw in
+  let hex = String.sub computed 7 (String.length computed - 7) in
+  let stamped = Decision.stamp_digest ~hex raw in
+  if not (String.equal (Decision.body_canonical_sha256 stamped) computed) then
+    failwith
+      (Printf.sprintf
+         "new-decision: stamped digest is not a fixed point for %s (%s vs %s)"
+         id computed
+         (Decision.body_canonical_sha256 stamped));
+  stamped
 
 (* `scope_paths_override_from_env` — read the
    `MATH_CODING_NEW_DECISION_SCOPE_PATHS` env var as a

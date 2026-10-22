@@ -3165,6 +3165,14 @@ let[@warning "-32"] mathc_scheme_allowlist =
     "context";
     "packages";
     "version";
+    (* `rehash` without `--write` only reads: it recomputes each
+       decision's digest and reports what would change, exiting 1
+       only on a file it could not read or whose stamp is not a
+       fixed point. That makes it the one command by which the whole
+       store's digest-currency is mechanically checkable, which is
+       why it is allowlisted. `--write` mutates and is NOT reachable
+       through a verifier, which passes bare arguments. *)
+    "rehash";
   ]
 
 (* Is the current host a non-Linux platform for the purposes of
@@ -4373,8 +4381,48 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
     Gate.aggregate_with_waivers waivers ~decision_id:entry.Memory.decision_id
       ~now gaps
   in
-  let causes = List.concat_map (fun g -> g.Gate.causes) gaps in
-  let remedies = List.concat_map (fun g -> g.Gate.remedies) gaps in
+  (* Digest currency. `mathc validate` already recomputes the digest
+     (MC-SHA-DIGEST-STALE), but validate looks at ONE named file;
+     self-check is the step that decides whether a whole change
+     merges, and it was the one path that never saw the digest at
+     all. The raw bytes are already here - `load_decision_entry`
+     keeps them in `Memory.source`.
+
+     The verdict is forced to `Block` AFTER waiver aggregation rather
+     than injected as a `Gate.gap`, for two reasons. A synthetic gap
+     id would not match any waiver by accident, which is the right
+     outcome but a fragile reason to rely on; and `FailedEvidence`,
+     the gap kind this would carry, is already non-waivable by
+     `Gate.is_waivable`, so routing it through the waiver machinery
+     would only add a way for it to be laundered.
+
+     No new verdict string is introduced: `tests/cli/self-check-pass.t`
+     fails if a fifth one ever appears, and `Block` already renders as
+     `fail` with exit 1. *)
+  let digest_cause, digest_remedy =
+    match Decision.digest_status_of_bytes entry.Memory.source with
+    | Decision.Digest_ok | Decision.Digest_absent -> ("", "")
+    | Decision.Digest_stale { stored; computed } ->
+        ( Printf.sprintf
+            "body_sha (%s) is not the digest of this file (%s): the decision \
+             body changed without a recompute, so the stored digest still \
+             asserts content that is no longer there (spec/algebra-3.2.md \
+             §7.1; MC-SHA-DIGEST-STALE)"
+            stored computed,
+          Printf.sprintf
+            "run `mathc rehash %s --write` to recompute both digest fields; it \
+             verifies the result is a fixed point before writing"
+            entry.Memory.decision_id )
+  in
+  let verdict = if digest_cause = "" then verdict else Gate.Block in
+  let causes =
+    if digest_cause = "" then List.concat_map (fun g -> g.Gate.causes) gaps
+    else digest_cause :: List.concat_map (fun g -> g.Gate.causes) gaps
+  in
+  let remedies =
+    if digest_remedy = "" then List.concat_map (fun g -> g.Gate.remedies) gaps
+    else digest_remedy :: List.concat_map (fun g -> g.Gate.remedies) gaps
+  in
   let waived =
     List.map
       (fun ((gap : Gate.gap), (w : Waiver.t)) -> (gap.Gate.obligation_id, w))
@@ -6109,6 +6157,28 @@ let[@warning "-32"] do_decision_state () =
       Printf.fprintf stderr "mathc decision-state: %s\n" reason;
       exit verdict_exit
   | Transitioned { new_yaml; diff_summary; _ } -> (
+      (* A state transition IS a body edit, so the stored digest is
+         stale by construction the moment `new_yaml` differs from the
+         file on disk. Restamp it here, before writing, so the command
+         leaves the file in a state the kernel accepts. Without this,
+         every lifecycle transition would require the operator to
+         remember `mathc rehash`, and the `validate:` line printed below
+         would report a rejection this command itself caused — which
+         would read as "the transition broke your decision" when it did
+         not.
+
+         A file with no body_sha (another schema family) is left alone:
+         the invariant is vacuous there and stamping would be inventing
+         a field the schema does not ask for. *)
+      let new_yaml =
+        match Decision.digest_status_of_bytes new_yaml with
+        | Decision.Digest_absent -> new_yaml
+        | Decision.Digest_ok | Decision.Digest_stale _ ->
+            let computed = Decision.body_canonical_sha256 new_yaml in
+            Decision.stamp_digest
+              ~hex:(String.sub computed 7 (String.length computed - 7))
+              new_yaml
+      in
       (* Write the new YAML atomically: stage to a sibling .tmp,
          then rename. The rename is atomic on POSIX. The kernel
          will not see a half-written file. *)
@@ -7452,6 +7522,7 @@ let do_rehash () =
     exit 2
   end;
   let changed = ref 0 and unchanged = ref 0 and skipped = ref 0 in
+  let broken = ref 0 in
   List.iter
     (fun path ->
       (* `read_file` at this point in the file is the SECOND
@@ -7463,7 +7534,8 @@ let do_rehash () =
       if String.length bytes = 0 then begin
         Printf.printf "  SKIP  %s (unreadable or empty)\n"
           (Filename.basename path);
-        incr skipped
+        incr skipped;
+        incr broken
       end
       else
         let computed = Decision.body_canonical_sha256 bytes in
@@ -7489,14 +7561,17 @@ let do_rehash () =
         else
           let stamped = Decision.stamp_digest ~hex bytes in
           let verified = Decision.body_canonical_sha256 stamped in
-          if verified <> computed then
+          if verified <> computed then begin
             (* Fixed point violated: stamping changed the canonical
                  form. Never write in that state. *)
             Printf.printf "  FAIL  %s (stamp is not a fixed point: %s vs %s)\n"
-              (Filename.basename path) computed verified
+              (Filename.basename path) computed verified;
+            incr broken
+          end
           else if stamped = bytes then begin
-            if not !write then incr unchanged;
-            Printf.printf "  ok    %s\n" (Filename.basename path)
+            incr unchanged;
+            if not !write then
+              Printf.printf "  ok    %s\n" (Filename.basename path)
           end
           else begin
             incr changed;
@@ -7513,7 +7588,15 @@ let do_rehash () =
   Printf.printf "\nrehash: %d changed, %d already current, %d skipped%s\n"
     !changed !unchanged !skipped
     (if !write then " (written)" else " (dry-run)");
-  exit (if !skipped > 0 then 1 else 0)
+  (* Exit 1 only for a file that could not be rehashed for a real
+     reason (unreadable, or a stamp that is not a fixed point). A skip
+     is an ABSENCE - a waiver/obligations file belonging to another
+     schema family, which carries no body_sha by design - and must not
+     be reported as a failure, or this command can never gate
+     anything: the corpus always contains such files. They stay in the
+     summary so they remain visible without turning "not applicable"
+     into "broken". *)
+  exit (if !broken > 0 then 1 else 0)
 
 let dispatch () =
   if Array.length Sys.argv < 2 then begin

@@ -54,6 +54,7 @@ MATH_CODING_DECISIONS_DIR=.math-coding/decisions.
   >   None — synthetic fixture for the path-resolver-audit cram
   >   test; the dialectical slot does not apply.
   > YAML
+  $ mathc rehash "$tmpdir/.math-coding/decisions/decision-state-env-probe-2026-11.yaml" --write > /dev/null
   $ export MATH_CODING_ROOT="$tmpdir"
   $ export MATH_CODING_DECISIONS_DIR=".math-coding/decisions"
 
@@ -61,6 +62,7 @@ MATH_CODING_DECISIONS_DIR=.math-coding/decisions.
 `<root>/<MATH_CODING_DECISIONS_DIR>/<id>.yaml`. The write lands
 in `.math-coding/decisions/`, not the legacy `decisions/`.
 
+  $ mathc rehash "$tmpdir/.math-coding/decisions/decision-state-env-probe-2026-11.yaml" --write > /dev/null
   $ mathc decision-state decision-state-env-probe-2026-11 mark-retired
   mathc decision-state: set state=retired
   validate: parse-ok

@@ -1209,20 +1209,70 @@ let explain (code : string) : string option =
          `lib/decision.ml::sha_match_check` returns false\n\
          for a parsed Decision. `bin/Mathc.ml::validate_with_counts`\n\
          converts the disagreement into an `MC-SHA-MISMATCH`\n\
-         diagnostic with verdict `reject` and exit code 1. The\n\
-         check is parser-side; it DOES NOT re-hash the file\n\
-         (the schema contract is that the embedded hashes\n\
-         agree, not that they were computed at validate time).\n\n\
+         diagnostic with verdict `reject` and exit code 1. This\n\
+         covers the case where the two stored fields disagree with\n\
+         EACH OTHER; when they agree with each other but not with\n\
+         the file, the diagnostic is `MC-SHA-DIGEST-STALE`\n\
+         (see `decisions/enforce-body-sha-digest-2026-10`).\n\n\
          ### Remediation\n\
          Recompute BOTH `body_sha` and `yaml_sha` using the\n\
          placeholder-substitution algorithm: replace each\n\
          field's value with the placeholder `sha256:` + 64\n\
          zeros (same length as a real digest), sha256 the\n\
          resulting file content, and set BOTH fields to\n\
-         the resulting hex digest. The reference implementation\n\
-         lives in `scripts/axiom-link-seed.py:105-123`. Re-run\n\
+         the resulting hex digest. `mathc rehash <path> --write`\n\
+         does this and verifies the result is a fixed point before\n\
+         writing. The reference implementation lives in\n\
+         `scripts/axiom-link-seed.py:133-169`. Re-run\n\
          `mathc validate` to confirm `MC-SHA-MISMATCH` is\n\
          gone."
+  | "MC-SHA-DIGEST-STALE" ->
+      Some
+        "### Definition\n\
+         A Decision's `body_sha` and `yaml_sha` agree with each\n\
+         other, and both are wrong: their shared value is not the\n\
+         digest of the file they live in. Spec/algebra-3.2.md §7.1\n\
+         defines `body_sha` as the sha256 of the file's own bytes\n\
+         with both digest fields replaced by the placeholder\n\
+         `sha256:` + 64 zeros, so an edit to the body that was not\n\
+         accompanied by a recompute leaves the stored value stale.\n\n\
+         This is the check that carries the tamper-evidence claim\n\
+         in `adoption/SKILL.md`. Without it, a decision body could\n\
+         be rewritten under a digest that still asserted the old\n\
+         content, and every downstream verdict still read `pass`.\n\
+         Equal-but-wrong is why it is a separate code and not a\n\
+         reuse of `MC-SHA-MISMATCH`: the 64-zero placeholder\n\
+         emitted by `mathc new-decision` satisfies the equality\n\
+         invariant forever, which is precisely this failure.\n\n\
+         ### Occurs when\n\
+         `lib/decision.ml::sha_match_check` is given the file's raw\n\
+         bytes and recomputes the digest, then finds it differs from\n\
+         the stored `body_sha`. `bin/Mathc.ml::validate_with_counts`\n\
+         passes the bytes it already read for parsing, so the\n\
+         validate path cannot silently fall back to the weaker\n\
+         string-only check. Verdict `reject`, exit code 1.\n\n\
+         `mathc self-check` recomputes it too, for every\n\
+         decision, and reports the subject as `fail` (exit 1). It\n\
+         previously read the attestation store without looking at the\n\
+         decision bytes, so a tampered decision came back `unknown`\n\
+         - indistinguishable from one that merely lacked an\n\
+         attestation. `load_decision_entry` already keeps the raw text\n\
+         in `Memory.source`, so no extra I/O was needed; the verdict\n\
+         is forced to Block AFTER waiver aggregation, so a stale\n\
+         digest cannot be waived away.\n\n\
+         KNOWN GAP: `mathc gate` does not yet look at the digest.\n\
+         It has the bytes (`Gate.evaluate` receives `Memory.t`,\n\
+         whose entries carry `Memory.source`) but does not check\n\
+         them. Recorded in\n\
+         `decisions/enforce-body-sha-digest-2026-10`.\n\n\
+         ### Remediation\n\
+         Run `mathc rehash <path> --write`. It recomputes both\n\
+         fields from the file's own bytes, verifies each stamped\n\
+         file is a fixed point (re-hashing the result must\n\
+         reproduce the digest) before writing, and refuses to write\n\
+         a file that fails that check. Dry-run by default: omit\n\
+         `--write` to see what would change. Then re-run\n\
+         `mathc validate`."
   | "MC-BODY-SHA-PATTERN-VIOLATION" ->
       Some
         "### Definition\n\

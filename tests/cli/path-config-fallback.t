@@ -61,6 +61,7 @@ through to the legacy path.
   > relations:
   >   addresses: []
   > EOF
+  $ mathc rehash decisions/foo.yaml --write > /dev/null
 
 The new-default `.math-coding/` MUST NOT exist -- the test
 specifically validates the no-`.math-coding/` branch.

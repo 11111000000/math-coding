@@ -18,7 +18,13 @@ is part of an A3-protected transition (self-application closure).
   $ cd "$tmpdir"
 
 Positive case: a decision with valid `body_sha` and `yaml_sha`
-must accept.
+must accept. "Valid" here means both pattern AND currency: the
+fields below hold the 64-zero placeholder, which matches
+`^sha256:[0-9a-f]{64}$` but is not the digest of this file, so
+validate would reject it with `MC-SHA-DIGEST-STALE` before any
+pattern question arises. `mathc rehash` writes the real digest, so
+the positive case isolates the rule this fixture is about instead
+of the digest rule.
 
   $ cat > good.yaml <<EOF
   > ---
@@ -49,6 +55,9 @@ must accept.
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
+  $ mathc rehash good.yaml --write | sed '/^$/d'
+    STAMP good.yaml
+  rehash: 1 changed, 0 already current, 0 skipped (written)
   $ mathc validate --format=json good.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
