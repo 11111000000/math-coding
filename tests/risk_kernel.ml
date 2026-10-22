@@ -191,7 +191,9 @@ let[@warning "-32"] probability_with_empty_policy () =
   Alcotest.(check (float 0.001)) "empty policy probability" expected probability
 
 let () =
-  Alcotest.run "risk kernel"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "risk kernel"
     [
       ( "policy_override_clamps_to_unit",
         [

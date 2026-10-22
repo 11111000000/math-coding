@@ -413,7 +413,9 @@ let[@warning "-32"] test_remediation_mentions_decision_and_axiom () =
 (* --- enumerate --- *)
 
 let () =
-  Alcotest.run "re-evaluation oracle"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "re-evaluation oracle"
     [
       ("max_verdict", [ Alcotest.test_case "ordering" `Quick test_max_verdict ]);
       ( "gate_verdict",

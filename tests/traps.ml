@@ -367,7 +367,9 @@ let[@warning "-32"] test_trap_log_integrity () =
 (* ------------------------------------------------------------------------- *)
 
 let () =
-  Alcotest.run "traps"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "traps"
     [
       ( "11.1 str.regexp no-newline",
         [

@@ -259,7 +259,9 @@ let negative_top_level_object_returns_empty () =
 
 let () =
   let open Alcotest in
-  run "rebuttal_forge_stub"
+  run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "rebuttal_forge_stub"
     [
       ( "t1-1",
         [

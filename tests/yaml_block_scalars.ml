@@ -202,7 +202,9 @@ let test_empty_inline_seq () =
 
 let () =
   let open Alcotest in
-  run "yaml_block_scalars"
+  run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "yaml_block_scalars"
     [
       ( "literal",
         [

@@ -387,4 +387,6 @@ let () =
         ])
       docs
   in
-  run "counters reference" cases
+  run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "counters reference" cases

@@ -565,7 +565,9 @@ let[@warning "-32"] test_axiom_token_classification () =
     cases
 
 let () =
-  Alcotest.run "decision addresses (T2.1)"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "decision addresses (T2.1)"
     [
       ( "equivalence",
         [

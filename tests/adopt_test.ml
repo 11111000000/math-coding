@@ -166,7 +166,9 @@ let test_adrtools_files () =
 
 let () =
   let open Alcotest in
-  run "Detect"
+  run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "Detect"
     [
       ("detect empty", [ test_case "detects empty" `Quick test_detect_empty ]);
       ( "detect arc42 only",

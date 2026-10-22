@@ -757,7 +757,9 @@ let[@warning "-32"] test_verifier_paths_stay_inside_repo () =
     n_remaining
 
 let () =
-  Alcotest.run "fixture coverage (I13)"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "fixture coverage (I13)"
     [
       ( "obligations have fixtures",
         [

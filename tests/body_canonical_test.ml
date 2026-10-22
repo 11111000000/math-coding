@@ -694,7 +694,9 @@ let[@warning "-32"] status_ignores_prose_mention () =
     (status s = Decision.Digest_absent)
 
 let () =
-  Alcotest.run "body_canonical_test"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "body_canonical_test"
     [
       ( "byte_range_algorithm",
         [

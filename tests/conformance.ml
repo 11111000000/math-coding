@@ -676,7 +676,9 @@ let[@warning "-32"] legacy_counterexample_sweep_cases () =
         (fun () -> assert_counterexample_present path))
 
 let () =
-  Alcotest.run "kernel conformance"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "kernel conformance"
     [
       ("fixtures", collect_cases ());
       ("legacy_counterexample_sweep", legacy_counterexample_sweep_cases ());

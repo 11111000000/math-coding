@@ -119,7 +119,9 @@ let[@warning "-32"] check_no_drift () =
     (has_bolded_attestation_count road)
 
 let () =
-  Alcotest.run "counters drift"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "counters drift"
     [
       ( "docs reference mathc counters",
         [ Alcotest.test_case "no drift" `Quick check_no_drift ] );

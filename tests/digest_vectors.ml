@@ -146,7 +146,9 @@ let[@warning "-32"] prop_empty_string_canonical () =
     "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" got
 
 let () =
-  Alcotest.run "digest conformance"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "digest conformance"
     [
       ( "rfc6234 vectors",
         List.map

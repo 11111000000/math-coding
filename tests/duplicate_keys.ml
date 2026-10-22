@@ -397,7 +397,9 @@ let test_explain_registry_covers_new_codes () =
     [ "MC-DUPLICATE-KEY"; "MC-UNPARSED-TAIL" ]
 
 let () =
-  Alcotest.run "duplicate_keys"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "duplicate_keys"
     [
       ( "D1 duplicated key",
         [

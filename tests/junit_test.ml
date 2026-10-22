@@ -110,7 +110,9 @@ let test_simple_tokenize () =
 (* --- registry ---------------------------------------------------------- *)
 
 let () =
-  Alcotest.run "junit adapter"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "junit adapter"
     [
       ( "entity_refs",
         [

@@ -183,4 +183,7 @@ let () =
                covered) );
     ]
   in
-  run "gate waiver aggregation" [ ("aggregate_with_waivers", cases) ]
+  run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "gate waiver aggregation"
+    [ ("aggregate_with_waivers", cases) ]

@@ -140,7 +140,9 @@ let[@warning "-32"] test_gitignored_attestation_is_not_admitted () =
           (after < on_disk)
 
 let () =
-  Alcotest.run "store admission"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "store admission"
     [
       ( "loader",
         [

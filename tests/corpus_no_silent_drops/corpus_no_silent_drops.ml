@@ -365,7 +365,9 @@ let test_schema_keys_recovered_from_behind_a_d4_tail () =
   | _ -> Alcotest.failf "%s did not parse as an object" rel
 
 let () =
-  Alcotest.run "corpus_no_silent_drops"
+  Alcotest.run
+    ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
+    "corpus_no_silent_drops"
     [
       ( "corpus is real",
         [
