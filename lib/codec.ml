@@ -416,11 +416,17 @@ let[@warning "-32"] yaml_lines s =
   in
   loop 0 []
 
-type yaml_token = { yindent : int; ycontent : string }
+(* `yline` is the 1-based line the token came from. It carries no
+   parsing meaning — it exists so a diagnostic can point at the
+   exact place the kernel stopped reading (`MC-UNPARSED-TAIL`)
+   or where a duplicated key was declared (`MC-DUPLICATE-KEY`)
+   without re-deriving positions from the raw text, which is a
+   second source of truth and therefore a second chance to lie. *)
+type yaml_token = { yindent : int; ycontent : string; yline : int }
 
 let[@warning "-32"] yaml_tokens raw =
-  List.filter_map
-    (fun line ->
+  List.mapi (fun i line -> (i + 1, line)) (yaml_lines raw)
+  |> List.filter_map (fun (line_no, line) ->
       let len = String.length line in
       let rec count_spaces i =
         if i >= len then i
@@ -431,8 +437,7 @@ let[@warning "-32"] yaml_tokens raw =
       if indent = len then None
       else
         let content = String.sub line indent (len - indent) in
-        Some { yindent = indent; ycontent = content })
-    (yaml_lines raw)
+        Some { yindent = indent; ycontent = content; yline = line_no })
 
 let[@warning "-32"] parse_yaml_scalar s =
   let s = String.trim s in
@@ -898,3 +903,184 @@ let[@warning "-32"] load_yaml_value raw =
   let tokens = yaml_tokens (String.concat "\n" (strip_frontmatter raw)) in
   let value, _ = parse_yaml_value tokens 0 in
   value
+
+(* === Duplicate mapping keys (MC-DUPLICATE-KEY) ===
+ *
+ * A YAML 1.2 §3.2.1 mapping must have unique keys, and RFC 8259
+ * leaves duplicate JSON object keys undefined — but both readers
+ * in this repository resolve a key with `List.assoc_opt` (see
+ * `lib/schema.ml::take_string` / `take_array` / `take_object` /
+ * `take_number`), which returns the FIRST binding in document
+ * order. A duplicated key therefore does not overwrite: it makes
+ * every later binding UNREACHABLE. The content is parsed into the
+ * tree and can never be read back by anything.
+ *
+ * Nothing reported that. A decision file with two `obligations:`
+ * blocks parsed cleanly, validated cleanly, and the second
+ * block's obligations never reached `mathc gate` or
+ * `mathc self-check` — the verdict was simply wrong about what
+ * the author promised. See
+ * `decisions/duplicate-mapping-keys-silent-drop-2026-10.yaml`.
+ *
+ * The walk below consumes the SAME `Jsonl.value` the readers
+ * consume, so "what is duplicated" and "what is dropped" cannot
+ * disagree — there is no second, independently-implemented YAML
+ * scope model that could drift from `parse_yaml_pairs`. This is
+ * why the detector lives here and not in a text-level scanner:
+ * a text-level scanner has to re-derive block-scalar bodies and
+ * sequence-item scopes, and getting that wrong is precisely the
+ * defect class being fixed. Block-scalar bodies need no special
+ * case at all — `parse_yaml_block` already folded them into a
+ * `Jsonl.String`, so they can never appear as keys.
+ *)
+type duplicate_key = {
+  dup_key : string;
+  dup_path : string list;
+  dup_count : int;
+}
+
+(* Preserve first-occurrence order while dropping later repeats. *)
+let[@warning "-32"] dedup_preserve_order xs =
+  let seen = Hashtbl.create 8 in
+  List.filter
+    (fun x ->
+      if Hashtbl.mem seen x then false
+      else begin
+        Hashtbl.add seen x ();
+        true
+      end)
+    xs
+
+(* One report per duplicated key per scope. A key declared three
+   times yields ONE entry with `dup_count = 3`, not two entries
+   and not one per pair of occurrences. *)
+let[@warning "-32"] duplicate_keys (v : Jsonl.value) : duplicate_key list =
+  let rec walk_object path pairs =
+    let keys = List.map fst pairs in
+    let reported =
+      dedup_preserve_order keys
+      |> List.filter_map (fun key ->
+          let n = List.length (List.filter (fun k -> k = key) keys) in
+          if n < 2 then None
+          else Some { dup_key = key; dup_path = path @ [ key ]; dup_count = n })
+    in
+    (* Recurse into EVERY occurrence: a nested duplicate that lives
+       only inside the unreachable second block is still a defect
+       the author wants to hear about before merging. The path gets
+       an occurrence tag (`obligations#2`) so the two blocks stay
+       distinguishable. *)
+    let seen = Hashtbl.create 8 in
+    let nested =
+      List.concat_map
+        (fun (key, value) ->
+          let occurrence =
+            match Hashtbl.find_opt seen key with Some n -> n + 1 | None -> 1
+          in
+          Hashtbl.replace seen key occurrence;
+          let duplicated =
+            List.length (List.filter (fun k -> k = key) keys) > 1
+          in
+          let seg =
+            if (not duplicated) || occurrence = 1 then key
+            else Printf.sprintf "%s#%d" key occurrence
+          in
+          walk_value (path @ [ seg ]) value)
+        pairs
+    in
+    reported @ nested
+  and walk_value path = function
+    | Jsonl.Object ps -> walk_object path ps
+    (* Array elements are indexed so the path names WHICH element:
+       `obligations[1].acceptance.all[2].result` locates the nested
+       duplicate precisely, which a bare dotted key cannot when the
+       same key repeats under several siblings. *)
+    | Jsonl.Array xs ->
+        List.mapi (fun i x -> (i, x)) xs
+        |> List.concat_map (fun (i, x) ->
+            walk_value (path @ [ Printf.sprintf "[%d]" i ]) x)
+    | Jsonl.Null | Jsonl.Bool _ | Jsonl.Int _ | Jsonl.Float _ | Jsonl.String _
+      ->
+        []
+  in
+  walk_value [] v
+
+(* 1-based line numbers of every TOP-LEVEL `key:` declaration in
+   `raw`. Deliberately restricted to indent 0: a root-level `key:`
+   is unambiguous by construction (no block scalar and no sequence
+   item can produce a key at column 0), so the locator cannot lie.
+   For a duplicated key nested deeper than the root the caller
+   passes no lines at all rather than a guess. Reading the token
+   stream rather than the raw text keeps the same
+   comment-stripping the parser applies, so the two agree on what
+   counts as a key at all. *)
+let[@warning "-32"] top_level_key_lines raw key =
+  yaml_tokens raw
+  |> List.filter_map (fun t ->
+      if t.yindent <> 0 then None
+      else
+        match String.index_opt t.ycontent ':' with
+        | Some ci when String.trim (String.sub t.ycontent 0 ci) = key ->
+            Some t.yline
+        | _ -> None)
+
+(* === Unparsed tail (MC-UNPARSED-TAIL) ===
+ *
+ * `load_yaml_string` calls `parse_yaml_pairs` and throws the
+ * unconsumed remainder away. That remainder is not decoration: it
+ * is every line the parser could not read. When the parser meets a
+ * token deeper than the mapping it is closing (see
+ * `parse_yaml_pairs`'s `head_indent tokens > cur_indent` clause),
+ * it returns early and the rest of the document is dropped with no
+ * diagnostic and a `parse-ok` verdict.
+ *
+ * The corpus hit this through `fold_continuation`, whose heuristic
+ * treats "this deeper line contains a colon" as "this deeper line
+ * is a nested key, stop folding". English prose in a folded plain
+ * scalar contains colons (`Mitigation: rename the ...`), so the
+ * heuristic misfires, `fold_continuation` returns without
+ * consuming, and every top-level key from there to EOF vanishes —
+ * including `obligations:`, `risk:`, `relations:` and `reversal:`.
+ *
+ * `load_yaml_string_full` exposes the remainder so the CLI can say
+ * so out loud. `load_yaml_string` keeps its old signature and
+ * discards it exactly as before, so no existing caller changes. *)
+let[@warning "-32"] load_yaml_string_full raw =
+  let strip_frontmatter s =
+    let lines = yaml_lines s in
+    let rec skip_empty acc = function
+      | [] -> List.rev acc
+      | "" :: rest -> skip_empty acc rest
+      | l :: rest -> List.rev acc @ (l :: rest)
+    in
+    let lines_no_blanks = skip_empty [] lines in
+    match lines_no_blanks with
+    | "---" :: rest ->
+        let rec skip_body acc = function
+          | [] -> List.rev acc
+          | "---" :: _ -> List.rev acc
+          | l :: rest -> skip_body (l :: acc) rest
+        in
+        skip_body [] rest
+    | _ -> lines_no_blanks
+  in
+  (* A SECOND `---` line is a third silent-drop channel, and it is
+     invisible to the leftover check because it fires during
+     front-matter stripping, BEFORE tokenisation: `skip_body` stops
+     at the next `---`, so every line after it never becomes a
+     token and the leftover list comes back empty. Two corpus files
+     carry a trailing `---` and the tail behind it is gone. The
+     value returned is the 1-based line of that second marker, or
+     None when the file has at most one. *)
+  let extra_doc =
+    let lines = yaml_lines raw in
+    let rec go seen n = function
+      | [] -> None
+      | "---" :: _ when seen -> Some n
+      | "---" :: rest -> go true (n + 1) rest
+      | _ :: rest -> go seen (n + 1) rest
+    in
+    go false 1 lines
+  in
+  let tokens = yaml_tokens (String.concat "\n" (strip_frontmatter raw)) in
+  let pairs, leftover = parse_yaml_pairs tokens 0 in
+  (Jsonl.Object pairs, leftover, extra_doc)

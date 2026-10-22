@@ -687,6 +687,178 @@ let mc_materials_digest_empty ?(subject = "") ?(kind = "") ?(next_actions = [])
     ~policy_rule:(Some "spec/constitution.md §0; A0 separation")
     ~next_actions:actions msg
 
+(* MC-DUPLICATE-KEY: emitted when the same mapping key is declared
+   twice in one scope of a decision file.
+
+   Semantics: a duplicated key is an AUTHOR ERROR, not a merge
+   request and not a "last one wins" rule. The justification is
+   threefold.
+
+   (1) Spec. YAML 1.2 §3.2.1 requires the keys of a mapping to be
+       unique; a mapping that declares `obligations:` twice is not
+       a valid YAML mapping. Choosing "concatenate" or "last
+       wins" would invent a project dialect the spec does not
+       sanction, and would silently change what the file means.
+
+   (2) Honesty. The kernel's readers (`lib/schema.ml::take_*`)
+       resolve via `List.assoc_opt`, i.e. FIRST occurrence wins.
+       So the second block is not overridden — it is UNREACHABLE.
+       The content is parsed into the tree and no reader can ever
+       see it. When that key is `obligations`, the promises the
+       author wrote sit outside the gate: `mathc self-check`
+       reports on obligations that were never checked. A verdict
+       that is silent about what it did not read is the failure
+       mode spec/constitution.md calls out.
+
+   (3) Precedent. MC-AMBIGUOUS-ACCEPTANCE and
+       MC-MALFORMED-ACCEPTANCE are the same shape — the kernel
+       keeps a well-typed reading, drops the rest, and says so at
+       Warn. This code joins that family.
+
+   Severity is Warn, not Block, deliberately: the kernel still
+   produces a valid `Domain.decision` from the surviving block, so
+   refusing to type the file would be a larger behavioural change
+   than the defect warrants. Once the corpus carries no duplicate
+   keys the diagnostic is silent; promoting it to Block is a
+   severity flip that needs its own decision, not a side effect
+   of this one. *)
+let mc_duplicate_key ~key ?(path = []) ?(occurrences = 2) ?(lines = [])
+    ?(next_actions = []) () =
+  let code = "MC-DUPLICATE-KEY" in
+  (* `obligations` and `obligations[1].acceptance.all[2].result` read
+     as a locator; a bare key reads as `"obligations"` because it is
+     quoted as an identifier, not a path. *)
+  let plain_seg seg =
+    let n = String.length seg in
+    (* `[3]` is an array index, not a key: keep it bare so the path
+       reads `obligations[0].acceptance.all[2].result`. *)
+    if n >= 3 && seg.[0] = '[' && seg.[n - 1] = ']' then seg
+    else
+      let alpha i =
+        let c = seg.[i] in
+        (c >= 'a' && c <= 'z')
+        || (c >= 'A' && c <= 'Z')
+        || c = '_' || c = '-'
+        || (c >= '0' && c <= '9')
+      in
+      if n > 0 && alpha 0 then
+        let rec all i = if i >= n then true else alpha i && all (i + 1) in
+        if all 1 then seg else Printf.sprintf "%S" seg
+      else Printf.sprintf "%S" seg
+  in
+  let where =
+    match path with
+    | [] -> Printf.sprintf "%S" key
+    | _ -> String.concat "." (List.map plain_seg path)
+  in
+  let lines_str =
+    match lines with
+    | [] -> ""
+    | ls ->
+        Printf.sprintf " (lines %s)"
+          (String.concat ", " (List.map string_of_int ls))
+  in
+  let unreachable = occurrences - 1 in
+  let msg =
+    Printf.sprintf
+      "mapping key %s is declared %d times in the same scope%s; the kernel \
+       reads the FIRST occurrence and the other %d %s unreachable — that \
+       content never reaches the gate. A repeated key is not appended and not \
+       overridden; merge the %d declarations into one."
+      where occurrences lines_str unreachable
+      (if unreachable = 1 then "block is" else "blocks are")
+      occurrences
+  in
+  let default_actions =
+    [
+      ( "edit",
+        Printf.sprintf "merge the %d `%s:` blocks into a single declaration"
+          occurrences key );
+      ("run", "mathc validate decisions/<file>.yaml");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code ~kind:Conflict ~severity:Warn ~path
+    ~policy_rule:(Some "spec/constitution.md §0; YAML 1.2 §3.2.1 unique keys")
+    ~retryable:false ~autofix_safe:false ~next_actions:actions msg
+
+(* MC-UNPARSED-TAIL: emitted when the parser stops reading a
+   document before the end and the CLI would otherwise discard the
+   remainder in silence.
+
+   `Codec.load_yaml_string` is `let pairs, _ = parse_yaml_pairs
+   tokens 0` — the unconsumed remainder is thrown away. That
+   remainder is every line from where the parser gave up to EOF.
+   `mathc validate` still reports `parse-ok`, so a decision can be
+   missing its whole `obligations:`, `risk:`, `relations:` and
+   `reversal:` tail while the gate reports it as fully checked.
+
+   This is the more dangerous half of the silent-drop family, and
+   it is a DIFFERENT mechanism from MC-DUPLICATE-KEY: the content
+   is not even in the tree, so a duplicate-key walk cannot see it.
+   The corpus reached it through `fold_continuation`, whose "a
+   deeper line with a colon is a nested key" heuristic misfires on
+   prose ("Mitigation: rename the ..."), after which
+   `parse_yaml_pairs` sees a token deeper than the mapping it is
+   closing and returns early.
+
+   Severity is Warn for the same reason as MC-DUPLICATE-KEY: the
+   parsed prefix is usually a well-typed decision, and refusing to
+   type it would be a bigger behavioural change than the defect
+   warrants. Unlike a duplicate key, though, this one changes what
+   the kernel knows about the file, so the message names the first
+   unread line and says how much was lost. *)
+let mc_unparsed_tail ?(path = []) ?(line = 0) ?(content = "") ?(lost = 0)
+    ?(document_marker = false) ?(next_actions = []) () =
+  let code = "MC-UNPARSED-TAIL" in
+  let preview =
+    let t = String.trim content in
+    if t = "" then ""
+    else Printf.sprintf " (%S)" (String.sub t 0 (min 60 (String.length t)))
+  in
+  let lost_str =
+    if lost <= 0 then "" else Printf.sprintf " and %d more line(s)" (lost - 1)
+  in
+  let msg =
+    if document_marker then
+      Printf.sprintf
+        "the file carries a SECOND `---` document marker at line %d. The \
+         loader reads the first `---` as front-matter and stops at the next \
+         one, so everything after line %d — the rest of this document and any \
+         second document — is unread and never reaches the gate. This file is \
+         one decision: delete the stray marker, or move the prose that needed \
+         it into a `|` block scalar."
+        line line
+    else
+      Printf.sprintf
+        "the parser stopped at line %d%s and could not read the rest of the \
+         file%s; every top-level key from there to EOF is missing from the \
+         kernel's reading, so whatever that tail promised is outside the gate. \
+         The usual cause is a multi-line scalar the loader cannot follow: a \
+         folded plain scalar whose continuation carries a colon (\"Mitigation: \
+         ...\"), a quoted sequence item continued on deeper lines, or a \
+         sequence item indented less than its siblings. Put such prose in a \
+         `|` block scalar, or align the indentation — the wording does not \
+         have to change."
+        line preview lost_str
+  in
+  let default_actions =
+    [
+      ( "edit",
+        "rewrite the multi-line value as a `|` block scalar (or align the \
+         sequence indentation) so the loader can read it to EOF" );
+      ("run", "mathc validate decisions/<file>.yaml");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code ~kind:Input ~severity:Warn ~path
+    ~policy_rule:(Some "spec/constitution.md §0 (honest status)")
+    ~retryable:false ~autofix_safe:false ~next_actions:actions msg
+
 let severity_of_string = function
   | "info" -> Some Info
   | "warn" -> Some Warn
@@ -796,6 +968,80 @@ let explain (code : string) : string option =
          ### Remediation\n\
          Replace `result: <bad>` with one of\n\
          `pass` | `fail` | `inconclusive` | `infrastructure-error`."
+  | "MC-UNPARSED-TAIL" ->
+      Some
+        "### Definition\n\
+         The kernel's YAML loader stopped reading the document\n\
+         before the end of the file, and `Codec.load_yaml_string`\n\
+         discarded the remaining lines without saying so.\n\n\
+         ### Occurs when\n\
+         `mathc validate` calls\n\
+         `lib/codec.ml::load_yaml_string_full`, which keeps the\n\
+         token list that `parse_yaml_pairs` did NOT consume. A\n\
+         non-empty remainder means the parser met a token deeper\n\
+         than the mapping it was closing and returned early\n\
+         (`parse_yaml_pairs`, the `head_indent tokens > cur_indent`\n\
+         clause). The verdict is still `parse-ok` — the prefix that\n\
+         WAS read usually types fine — so without this diagnostic\n\
+         a decision can be missing its entire `obligations:`,\n\
+         `risk:`, `relations:` and `reversal:` tail while the gate\n\
+         reports it as fully checked.\n\n\
+         The corpus reached this through `fold_continuation`, whose\n\
+         \"a deeper line containing a colon is a nested key, stop\n\
+         folding\" heuristic misfires on prose: English sentences\n\
+         contain colons (`Mitigation: rename the install step`).\n\n\
+         This is a different mechanism from `MC-DUPLICATE-KEY`.\n\
+         A duplicated key is IN the tree and unreachable; an\n\
+         unparsed tail is NOT in the tree at all. Fixing the\n\
+         duplicate does not restore the tail, and vice versa.\n\n\
+         ### Remediation\n\
+         Look at the line the diagnostic names. Put the prose in a\n\
+         `|` block scalar (`consequence_if_false: |`) so the\n\
+         continuation is read as text rather than guessed at, or\n\
+         rewrap the plain scalar so no continuation line carries a\n\
+         colon. Both preserve the wording. Re-run\n\
+         `mathc validate <file>` — the file must print `parse-ok`\n\
+         with no `MC-UNPARSED-TAIL` line on stderr.\n\n\
+         The parser-side fix for `fold_continuation` itself is\n\
+         tracked as a follow-up decision; see\n\
+         `decisions/duplicate-mapping-keys-silent-drop-2026-10.yaml`."
+  | "MC-DUPLICATE-KEY" ->
+      Some
+        "### Definition\n\
+         The same mapping key is declared more than once in one\n\
+         scope of a decision file (YAML 1.2 §3.2.1 requires the\n\
+         keys of a mapping to be unique).\n\n\
+         ### Occurs when\n\
+         `mathc validate` walks the parsed document\n\
+         (`lib/codec.ml::duplicate_keys`) and finds a key bound\n\
+         twice in one mapping. The kernel's readers\n\
+         (`lib/schema.ml::take_string` / `take_array` /\n\
+         `take_object` / `take_number`) all resolve a key with\n\
+         `List.assoc_opt`, which returns the FIRST binding — so\n\
+         the later block is not overridden, it is UNREACHABLE:\n\
+         its content is in the tree and no reader can ever see\n\
+         it.\n\n\
+         The severity is Warn because the kernel still produces a\n\
+         well-typed decision from the surviving block. For a\n\
+         duplicated `obligations:` key that means the dropped\n\
+         obligations never reach `mathc gate` or `mathc\n\
+         self-check`, so a verdict can be `pass` about promises\n\
+         that were never checked — the diagnostic is the only\n\
+         signal that the file says more than the gate read.\n\n\
+         ### Remediation\n\
+         Merge the declarations into one. Two `obligations:`\n\
+         blocks become one list holding every obligation from\n\
+         both, in the order you want them checked; two\n\
+         `counterexample:` blocks become one `|` block whose\n\
+         text contains both halves. Do NOT delete the second\n\
+         block to silence the warning — that deletes the\n\
+         promises the author wrote. After editing, recompute\n\
+         `body_sha` / `yaml_sha` (`lib/decision.ml::\n\
+         body_canonical_sha256`, spec/algebra-3.2.md §7.1) and\n\
+         bump `revision` if the file declares one, then re-run\n\
+         `mathc validate <file>`.\n\n\
+         See `decisions/duplicate-mapping-keys-silent-drop-\n\
+         2026-10.yaml` for the corpus that motivated the code."
   | "MC-PARSE" ->
       Some
         "### Definition\n\

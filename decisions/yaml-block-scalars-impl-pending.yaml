@@ -1,26 +1,12 @@
 ---
 schema: math-coding/3.2
 id: yaml-block-scalars-impl-pending
-revision: 3
+revision: 4
 state: active
 
-obligations:
-  - id: trivial-obligation
-    outcome: documented-limitation
-    claim: |
-      Trivial verification. The kernel honors the
-      decision contents (subcommand dispatch,
-      policy schema, CLI shape, etc.); verified by
-      the existence of the named symbol in the
-      relevant source file.
-    acceptance:
-      all:
-        - verifier: manual-review-of-existing-source
-          result: pass
+body_sha: "sha256:c57fd0ee078743ef3d409e4adc5563b7d7b6ed09ab44f4256085d084e2dd1fb2"
 
-body_sha: "sha256:f8f4fc09704c0e23600ed8568b2314d083a03561ce6a1cf9273f0bacb439ae8c"
-
-yaml_sha: "sha256:f8f4fc09704c0e23600ed8568b2314d083a03561ce6a1cf9273f0bacb439ae8c"
+yaml_sha: "sha256:c57fd0ee078743ef3d409e4adc5563b7d7b6ed09ab44f4256085d084e2dd1fb2"
 
 intent: |
   Record that the parent obligation `yaml-block-scalars-supported`
@@ -115,13 +101,16 @@ scope:
   capabilities:
     - yaml-block-scalars-impl-deferred
   paths:
-    - "lib/codec.ml" (unchanged in this revision)
-    - "tests/repo_structure.ml:test_yaml_block_scalars_structural"
+    - |
+      lib/codec.ml (unchanged in this revision)
+    - |
+      tests/repo_structure.ml:test_yaml_block_scalars_structural
       (replaces the deleted tests/fixtures/yaml-block-scalars.sh
       which had subsumed into the OCaml/Alcotest suite during the
       shell-to-OCaml migration in cli-cram-tests.yaml@1).
   exclusions:
-    - "bootstrap/yaml-block-scalars.yaml" (decision @rev2 unchanged)
+    - |
+      bootstrap/yaml-block-scalars.yaml (decision @rev2 unchanged)
 
 
 assumptions:
@@ -144,6 +133,18 @@ assumptions:
 
 
 obligations:
+  - id: trivial-obligation
+    outcome: documented-limitation
+    claim: |
+      Trivial verification. The kernel honors the
+      decision contents (subcommand dispatch,
+      policy schema, CLI shape, etc.); verified by
+      the existence of the named symbol in the
+      relevant source file.
+    acceptance:
+      all:
+        - verifier: manual-review-of-existing-source
+          result: pass
   - id: deferral-recorded
     outcome: deferral-recorded
     claim: |

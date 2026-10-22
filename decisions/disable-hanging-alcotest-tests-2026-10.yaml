@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: disable-hanging-alcotest-tests-2026-10
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:70f5757c48cd607bc960712cb3d9953048dd00d293d1ecf82010a9545bd74b72"
-yaml_sha: "sha256:70f5757c48cd607bc960712cb3d9953048dd00d293d1ecf82010a9545bd74b72"
+body_sha: "sha256:185e3d1c7b2d45dd78c8873e2107e0c408dd9a78a33f13417b819b8647979419"
+yaml_sha: "sha256:185e3d1c7b2d45dd78c8873e2107e0c408dd9a78a33f13417b819b8647979419"
 axiom_link:
   - A0
 intent: |
@@ -30,6 +30,10 @@ commitment: |
   `scripts/check.sh` (which does not enter the hung code path).
 counterexample: |
   See the `counterexample:` block above.
+
+  See the `counterexample:` block above (negative-side
+  dialectical slot is per spec/algebra-3.2.md §11).
+
 antithesis: |
   Decision was authored under pre-v3 dialectic protocol and lacks the
   dialectic antithesis slot. Per spec/algebra-3.2.md §11, mode=standard
@@ -68,7 +72,8 @@ obligations:
         - verifier: grep '^  ; junit_test' tests/dune
           result: pass
   - id: upstream-bug-tracked
-    claim: docs/upstream-bugs/dune-3.23.1-rpc-hang.md cites
+    claim: |
+      docs/upstream-bugs/dune-3.23.1-rpc-hang.md cites
       https://github.com/ocaml/dune/issues/12900 and the
       fix at https://github.com/ocaml/dune/pull/12979.
     acceptance:
@@ -93,7 +98,4 @@ relations:
     - dune-3.23.1-rpc-hang
   implements: []
   verifies: []
-counterexample: |
-  See the `counterexample:` block above (negative-side
-  dialectical slot is per spec/algebra-3.2.md §11).
----
+

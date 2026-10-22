@@ -26,7 +26,8 @@
   diagnostic_ux
   body_canonical_test
   path_config_test
-  yaml_block_scalars)
+  yaml_block_scalars
+  duplicate_keys)
  (libraries
   mathcoding_core
   mathcoding_render

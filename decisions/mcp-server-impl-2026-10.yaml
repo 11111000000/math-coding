@@ -1,26 +1,12 @@
 ---
 schema: math-coding/3.2
 id: mcp-server-impl-2026-10
-revision: 1
+revision: 2
 state: active
 
-obligations:
-  - id: trivial-obligation
-    outcome: documented-limitation
-    claim: |
-      Trivial verification. The kernel honors the
-      decision contents (subcommand dispatch,
-      policy schema, CLI shape, etc.); verified by
-      the existence of the named symbol in the
-      relevant source file.
-    acceptance:
-      all:
-        - verifier: manual-review-of-existing-source
-          result: pass
+body_sha: "sha256:c0a07ea73f6e1ac7dde44fc459551efb7afc04280aa03768668e4bba750bdc8a"
 
-body_sha: "sha256:28fca20d3082b41373b17213c4e5386b3efc718315beae8af91dced5528ebffb"
-
-yaml_sha: "sha256:28fca20d3082b41373b17213c4e5386b3efc718315beae8af91dced5528ebffb"
+yaml_sha: "sha256:c0a07ea73f6e1ac7dde44fc459551efb7afc04280aa03768668e4bba750bdc8a"
 
 intent: |
   Land the MCP server stub the Phase-2 deferral
@@ -263,6 +249,18 @@ assumptions:
       - signal: cli-output-shape-changed
 
 obligations:
+  - id: trivial-obligation
+    outcome: documented-limitation
+    claim: |
+      Trivial verification. The kernel honors the
+      decision contents (subcommand dispatch,
+      policy schema, CLI shape, etc.); verified by
+      the existence of the named symbol in the
+      relevant source file.
+    acceptance:
+      all:
+        - verifier: manual-review-of-existing-source
+          result: pass
   - id: binary-built
     outcome: binary-built
     claim: |

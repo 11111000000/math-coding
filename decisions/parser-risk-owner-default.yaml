@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: parser-risk-owner-default
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:c03b89b1b42139af50313ef5455cd15b91260e9891e986a3dda3db66a1e42eb4"
-yaml_sha: "sha256:c03b89b1b42139af50313ef5455cd15b91260e9891e986a3dda3db66a1e42eb4"
+body_sha: "sha256:e9ef2a5025fdc8aa8bf41f4996e5a5acfbc29f0c382b002e70a262f472193845"
+yaml_sha: "sha256:e9ef2a5025fdc8aa8bf41f4996e5a5acfbc29f0c382b002e70a262f472193845"
 intent: |
   Document a kernel parse bug surfaced by the 2026-10-05 audit
   cycle, record the in-tree workaround, and bound the proper
@@ -37,12 +37,21 @@ counterexample: |
   a future decision authored without owner will be silently
   dropped (not rejected with a clear diagnostic).
 
+  "Adding owner to decision.yaml is a workaround that masks a
+  kernel bug; the kernel should accept either form." Counterargument:
+  the schema marks `owner` as required, so the YAML file is
+  formally non-conformant without it. The workaround is a minimal
+  schema-aligned fix that keeps the bootstrap policy valid while
+  the kernel refactor is pending. A future kernel change that
+  makes `owner` truly optional would render this workaround
+  redundant; this decision would be superseded.
+
 scope:
   paths:
     - "lib/decision.ml"
     - "decisions/decision.yaml"
   exclusions:
-    - "lib/decision.ml:381-398"  (* current owner-match, see decision *)
+    - "lib/decision.ml:381-398"  # current owner-match, see decision
 
 outcomes:
   - id: bootstrap-policy-validates
@@ -62,16 +71,6 @@ outcomes:
       the inner match in parse_decision) is tracked in
       reversal.signal kernel-default-owner-landed. Not
       implemented in this decision's commit.
-
-counterexample: |
-  "Adding owner to decision.yaml is a workaround that masks a
-  kernel bug; the kernel should accept either form." Counterargument:
-  the schema marks `owner` as required, so the YAML file is
-  formally non-conformant without it. The workaround is a minimal
-  schema-aligned fix that keeps the bootstrap policy valid while
-  the kernel refactor is pending. A future kernel change that
-  makes `owner` truly optional would render this workaround
-  redundant; this decision would be superseded.
 
 assumptions:
   - id: kernel-fix-deferrable
@@ -109,7 +108,7 @@ obligations:
       decisions/decision.yaml at the risk block.
     acceptance:
       all:
-        - verifier: rg -n '^    owner: human:maintainer' decisions/decision.yaml
+        - verifier: "rg -n '^    owner: human:maintainer' decisions/decision.yaml"
           result: pass
   - id: proper-fix-not-implemented
     outcome: proper-fix-deferred
