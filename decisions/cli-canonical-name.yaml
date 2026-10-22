@@ -1,26 +1,12 @@
 ---
 schema: math-coding/3.2
 id: cli-canonical-name
-revision: 3
+revision: 4
 state: active
 
-obligations:
-  - id: trivial-obligation
-    outcome: documented-limitation
-    claim: |
-      Trivial verification. The kernel honors the
-      decision contents (subcommand dispatch,
-      policy schema, CLI shape, etc.); verified by
-      the existence of the named symbol in the
-      relevant source file.
-    acceptance:
-      all:
-        - verifier: manual-review-of-existing-source
-          result: pass
+body_sha: "sha256:171cb670ed91d8ec0174046d23f83f4bdded23a728e19cd30defb355c828887e"
 
-body_sha: "sha256:b068ea23942b502618145d9848996224a281bebf5398297ce639ca73fd0e9256"
-
-yaml_sha: "sha256:b068ea23942b502618145d9848996224a281bebf5398297ce639ca73fd0e9256"
+yaml_sha: "sha256:171cb670ed91d8ec0174046d23f83f4bdded23a728e19cd30defb355c828887e"
 
 intent: |
   Collapse the project's three CLI referents (the legacy short
@@ -141,11 +127,12 @@ assumptions:
       CI steps are unaffected by the rename because they already
       invoke `mathc` (the `mathc` form does not exist in CI yml).
     owner: human:maintainer
-    consequence_if_false: a CI step that invoked `mathc` could
-      hit Midnight Commander on a runner that has it preinstalled
-      in a higher-priority PATH entry. Mitigation: rename the
-      GitHub Action install step to place `mathc` at `/usr/local/bin`,
-      which precedes `/usr/bin` on the runner images.
+    consequence_if_false: |
+      A CI step that invoked `mathc` could hit Midnight Commander on
+      a runner that has it preinstalled in a higher-priority PATH
+      entry. Mitigation: rename the GitHub Action install step to
+      place `mathc` at `/usr/local/bin`, which precedes `/usr/bin` on
+      the runner images.
     review_on:
       - signal: ci-matrix-passing-post-rename
   - id: diagnostic-codes-out-of-scope
@@ -166,6 +153,18 @@ assumptions:
 
 
 obligations:
+  - id: trivial-obligation
+    outcome: documented-limitation
+    claim: |
+      Trivial verification. The kernel honors the
+      decision contents (subcommand dispatch,
+      policy schema, CLI shape, etc.); verified by
+      the existence of the named symbol in the
+      relevant source file.
+    acceptance:
+      all:
+        - verifier: manual-review-of-existing-source
+          result: pass
   - id: kernel-prefix-matches-mathc
     outcome: kernel-prefix-is-mathc
     claim: |

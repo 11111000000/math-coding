@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: mathc-counters-subcommand-2026-10
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:009bace2d912325835067c56140793652a346f192ab743e3319e1a82121ce209"
-yaml_sha: "sha256:009bace2d912325835067c56140793652a346f192ab743e3319e1a82121ce209"
+body_sha: "sha256:4ef78092811e6b9041c332d2ead395a87c665a2cd1a7cf4a04f7d4dce8ffbc6b"
+yaml_sha: "sha256:4ef78092811e6b9041c332d2ead395a87c665a2cd1a7cf4a04f7d4dce8ffbc6b"
 axiom_link:
   - A0
 intent: |
@@ -97,7 +97,3 @@ relations:
   addresses: []
   implements: []
   verifies: []
-counterexample: |
-  See the `counterexample:` block above (negative-side
-  dialectical slot is per spec/algebra-3.2.md §11).
----

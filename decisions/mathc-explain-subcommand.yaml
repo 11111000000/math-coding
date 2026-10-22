@@ -1,26 +1,12 @@
 ---
 schema: math-coding/3.2
 id: mathc-explain-subcommand
-revision: 3
+revision: 4
 state: active
 
-obligations:
-  - id: trivial-obligation
-    outcome: documented-limitation
-    claim: |
-      Trivial verification. The kernel honors the
-      decision contents (subcommand dispatch,
-      policy schema, CLI shape, etc.); verified by
-      the existence of the named symbol in the
-      relevant source file.
-    acceptance:
-      all:
-        - verifier: manual-review-of-existing-source
-          result: pass
+body_sha: "sha256:dc5adf6feaf464936962ecabf4dc71fa32f61b59359d592f8f34a20ec21fc619"
 
-body_sha: "sha256:9d8fdee03f346fa15a93824b21112f500e675041609c59e7df76727fdfda6f9a"
-
-yaml_sha: "sha256:9d8fdee03f346fa15a93824b21112f500e675041609c59e7df76727fdfda6f9a"
+yaml_sha: "sha256:dc5adf6feaf464936962ecabf4dc71fa32f61b59359d592f8f34a20ec21fc619"
 
 intent: |
   Close the broken promise in shipped code: `lib/capsule.ml:88`
@@ -59,11 +45,13 @@ scope:
 
 outcomes:
   - id: spec-row-promoted
-    statement: spec/semantics.md §"CLI subcommands" has a
+    statement: |
+      spec/semantics.md §"CLI subcommands" has a
       `### explain DETAIL_REF` row with synopsis, input,
       output, exit code, and bootstrap justification.
   - id: dispatcher-shipped
-    statement: bin/Mathc.ml dispatches `mathc explain DETAIL_REF` to
+    statement: |
+      bin/Mathc.ml dispatches `mathc explain DETAIL_REF` to
       a handler that resolves `kind:id` references and emits
       `{kind, id, digest, path, body}` JSON or a typed
       diagnostic on stderr.
@@ -77,15 +65,27 @@ assumptions:
       spec row is the load-bearing artifact; the dispatcher
       is its consumer.
     owner: human:maintainer
-    consequence_if_false: the dispatcher would land without a
-      spec backing, violating `semantics.md:152-155` ("an
-      implementation MUST NOT add a new subcommand without
-      first adding a row here").
+    consequence_if_false: |
+      The dispatcher would land without a spec backing, violating
+      `semantics.md:152-155` ("an implementation MUST NOT add a
+      new subcommand without first adding a row here").
     review_on:
       - signal: spec-row-promoted
 
 
 obligations:
+  - id: trivial-obligation
+    outcome: documented-limitation
+    claim: |
+      Trivial verification. The kernel honors the
+      decision contents (subcommand dispatch,
+      policy schema, CLI shape, etc.); verified by
+      the existence of the named symbol in the
+      relevant source file.
+    acceptance:
+      all:
+        - verifier: manual-review-of-existing-source
+          result: pass
   - id: mathc-explain-spec-promoted
     outcome: spec-row-promoted
     claim: |
@@ -128,8 +128,9 @@ obligations:
 
 reversal:
   - signal: dispatcher-breaks-context
-    action: revert the dispatcher; keep the spec row as
-    documented limitation
+    action: |
+      Revert the dispatcher; keep the spec row as a documented
+      limitation.
 
 
 risk:

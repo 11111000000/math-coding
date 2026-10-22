@@ -1,26 +1,12 @@
 ---
 schema: math-coding/3.2
 id: site-version-from-file-2026-10
-revision: 1
+revision: 2
 state: active
 
-obligations:
-  - id: trivial-obligation
-    outcome: documented-limitation
-    claim: |
-      Trivial verification. The kernel honors the
-      decision contents (subcommand dispatch,
-      policy schema, CLI shape, etc.); verified by
-      the existence of the named symbol in the
-      relevant source file.
-    acceptance:
-      all:
-        - verifier: manual-review-of-existing-source
-          result: pass
+body_sha: "sha256:cd13e2fab2f528bc1f4c58c9f83f7ea586bab6542b872cba78108fc4301460de"
 
-body_sha: "sha256:5aea00e7f7fab0bcee7b913f8b1ca7917fb4d87dbcea51fb60e48111631e15f7"
-
-yaml_sha: "sha256:5aea00e7f7fab0bcee7b913f8b1ca7917fb4d87dbcea51fb60e48111631e15f7"
+yaml_sha: "sha256:cd13e2fab2f528bc1f4c58c9f83f7ea586bab6542b872cba78108fc4301460de"
 
 intent: |
   Remove the hardcoded `3.0-alpha` and `v3.0.0` strings from
@@ -186,15 +172,27 @@ commitment: |
     `git describe --tags --abbrev=0 > VERSION` so a tag and
     the file stay in lock-step; the current cycle is the
     mechanism only.
-- This cycle does not change any obligation in
-      `site-deploy@5`. The `mathjax-wiring` obligation
-      continues to assert the script is wired; the `tufte-
-      stylesheet` obligation continues to assert the Tufte
-      palette tokens; the new behaviour is opt-in via
-      `config.version`.
+  - This cycle does not change any obligation in
+    `site-deploy@5`. The `mathjax-wiring` obligation
+    continues to assert the script is wired; the `tufte-
+    stylesheet` obligation continues to assert the Tufte
+    palette tokens; the new behaviour is opt-in via
+    `config.version`.
 
 
 obligations:
+  - id: trivial-obligation
+    outcome: documented-limitation
+    claim: |
+      Trivial verification. The kernel honors the
+      decision contents (subcommand dispatch,
+      policy schema, CLI shape, etc.); verified by
+      the existence of the named symbol in the
+      relevant source file.
+    acceptance:
+      all:
+        - verifier: manual-review-of-existing-source
+          result: pass
   - id: version-reads-from-file
     statement: |
       `mathc render` embeds the contents of `./VERSION`
