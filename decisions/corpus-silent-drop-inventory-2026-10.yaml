@@ -1,0 +1,321 @@
+---
+schema: math-coding/3.3
+id: corpus-silent-drop-inventory-2026-10
+revision: 1
+state: active
+mode: standard
+change_kind: test
+body_sha: "sha256:5f84df6ea166e3760ad75afc23bd3ec8ce0ca0ac67a316480c277fe03ec68f8b"
+yaml_sha: "sha256:5f84df6ea166e3760ad75afc23bd3ec8ce0ca0ac67a316480c277fe03ec68f8b"
+
+axiom_link:
+  - A0
+  - A2
+
+intent: |
+  `duplicate-mapping-keys-silent-drop-2026-10` gave the loader a
+  voice. `yaml-seq-item-continuation-2026-10` used it to close D4
+  and reported 18 offenders falling to 12. Twelve remained, with
+  no list anyone could re-run and no test that would notice if the
+  number moved again.
+
+  This decision makes the remainder an instrument instead of an
+  anecdote: a reproducible scan (`scripts/scan-silent-drops.sh`)
+  and a corpus-wide assertion over the whole inventory.
+
+  The scan exists because the argument it settles -- "is this still
+  twelve?" -- has an answer anyone can produce in four seconds. An
+  argument that needs a person to remember a shell pipeline is an
+  argument that is settled once and never revisited, and that is how
+  a defect class gets declared closed while it is still open.
+
+  The test exists because a scan nobody runs is a report. Twelve
+  residual offenders are a known, accepted, owned state only while
+  something holds them at twelve.
+
+counterexample: |
+  Measured against main 42bae29, not against the branch the WIP
+  commit was cut from, and re-measured with this decision added to
+  the corpus -- which is why the denominator below is 216 and not
+  215: this file is the 216th decision, and it reads to EOF, so the
+  offender count is unchanged at 12. The two commits disagree about
+  the corpus and the difference matters:
+
+    scan-silent-drops.sh              12 of 216 files
+    --validity, kernel's own fault      0
+    --validity, author wrote garbage  10
+    MULTI-DOC (stray `---`, no loss)   2
+
+  There is no "5 holes on valid YAML". That number belongs to the
+  state before D4 was merged. On current main every offender is
+  accounted for by something an independent reader also rejects, and
+  this decision records that fact rather than the older, scarier one.
+
+  Also not claimed: that the test can tell an author's bug from a
+  kernel bug on its own. It cannot. The executable has no YAML
+  reader, so the buckets are recorded data. What keeps them honest
+  is that `scan-silent-drops.sh --validity` re-derives them in one
+  command against `yq`, and the file-level set is enforced by the
+  kernel regardless of how the buckets are labelled.
+
+commitment: |
+  1. The corpus pin asserts an EXACT SET, in both directions. A
+     file that starts losing content is red; a file that STOPS
+     losing content is also red. The second direction is the whole
+     design: a residual list is an inventory of accepted debt, and
+     debt that has been repaid must be struck off in the same
+     commit. Freezing the list instead would make every acceptance
+     invisible -- the entry stays, nobody re-reads it, and the next
+     author adds theirs without a second thought.
+
+  2. Offenders are split by CLAIM, not by symptom, because "the
+     kernel stopped reading" and "the file could not be read by
+     anyone" have different owners:
+
+       author_malformed  10 files `yq` also rejects. Author's debt.
+       cosmetic_marker    2 files whose stray `---` is the last
+                          line. No loss. Asserted to lose nothing,
+                          so "cosmetic" cannot quietly become
+                          "lossy".
+       kernel_holes       0 files. Zero tolerance, the only bucket
+                          that is ours to fix, asserted empty on
+                          its own so a parser regression is a
+                          no-noise failure while the other ten
+                          entries sit there.
+
+  3. Scope is `decisions/**` plus `policies.yaml`. The fixture
+     trees hold YAML that is malformed on purpose; `--all` reports
+     14 of 270, the two extra being exactly those fixtures, and
+     scanning them would invite "fixing" a fixture whose job is to
+     be broken.
+
+  4. `policies.yaml` is included because `load_yaml_value` reaches
+     neither `load_yaml_string_full` nor the MC-UNPARSED-TAIL
+     collector. It is the D2 shape on the one path with no
+     diagnostic behind it.
+
+  5. The content pins assert what no shape assertion can: a parser
+     that consumes every line and then folds them wrongly still
+     satisfies every `leftover = 0` check. `render-module-split-
+     phase1a-2026-10.yaml` is pinned for the two SCHEMA keys that
+     stood behind the D4 tail -- prose would have been cosmetic;
+     `planned_evidence` and `estimated_class` were not.
+
+  6. Two branches of `fold_seq_item` are reached by nothing in
+     `decisions/`: the `is_dash_item` guard and the backslash rule
+     in `quote_still_open`. Deleting either leaves the entire corpus
+     reading identically and the suite green. Those two cases are
+     pinned in `tests/decision_parser_yaml.ml` (group
+     `seq-item-continuation`), which already owns D4, rather than in
+     the new stanza.
+
+axiom_link_note: |
+  A0 -- the parser's reading of a document is the kernel's contract
+  with every consumer, and a contract nobody re-checks is not a
+  contract. A2 -- a silent drop is an unrecoverable loss for
+  whatever downstream step believed the key was absent.
+
+scope:
+  paths:
+    - scripts/scan-silent-drops.sh
+    - tests/corpus_no_silent_drops/corpus_no_silent_drops.ml
+    - tests/corpus_no_silent_drops/dune
+    - tests/decision_parser_yaml.ml
+    - decisions/corpus-silent-drop-inventory-2026-10.yaml
+
+outcomes:
+  - id: the-offender-list-is-reproducible
+    statement: |
+      The set of corpus files the kernel does not read to EOF is
+      produced by one command that anyone can run, with no
+      hand-remembered pipeline involved.
+    acceptance:
+      all:
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+          result: pass
+
+  - id: the-inventory-is-pinned-not-frozen
+    statement: |
+      The measured set equals the recorded set exactly. A new
+      offender is red; a repaired one is red until the ledger is
+      struck. Both directions are load-bearing and both are
+      tested by mutation.
+    acceptance:
+      all:
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+          result: pass
+
+  - id: kernel-holes-are-zero-tolerance
+    statement: |
+      No file an independent reader accepts is truncated by the
+      kernel. Asserted as its own empty assertion so it fails
+      without reference to the author-side entries.
+    acceptance:
+      all:
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+          result: pass
+
+obligations:
+  - id: corpus-scan-is-reproducible
+    outcome: the-offender-list-is-reproducible
+    claim: |
+      scripts/scan-silent-drops.sh
+      scripts/scan-silent-drops.sh --validity
+      scripts/scan-silent-drops.sh --all
+
+      The three forms, in order: the corpus scan; the same scan with
+      an independent reader's verdict in column 1; and the same scan
+      over every tracked YAML including the deliberately-broken
+      fixtures, which reports 14 of 271.
+
+      The command recorded here is the one the corpus argument is
+      settled with. It reports 12 of 216 on this branch; 12 of 215
+      on main 42bae29 before this decision was added.
+    acceptance:
+      all:
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+          result: pass
+
+  - id: offender-set-is-an-exact-set
+    outcome: the-inventory-is-pinned-not-frozen
+    claim: |
+      The measured set of files leaving an unparsed tail equals
+      `author_malformed @ kernel_holes` exactly, and the measured
+      set of files carrying a stray document marker equals
+      `cosmetic_marker` exactly. Both comparisons are equality,
+      not containment.
+    acceptance:
+      all:
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+          result: pass
+
+  - id: kernel-holes-are-empty
+    outcome: kernel-holes-are-zero-tolerance
+    claim: |
+      `kernel_holes` is asserted equal to the empty list. Every
+      offender in the corpus is therefore accounted for by
+      something `yq` also rejects.
+    acceptance:
+      all:
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+          result: pass
+
+  - id: cosmetic-markers-lose-nothing
+    outcome: the-inventory-is-pinned-not-frozen
+    claim: |
+      Each of the two stray-marker files has no non-empty line
+      after the marker. The "cosmetic" label is checked, not
+      assumed.
+    acceptance:
+      all:
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+          result: pass
+
+  - id: a-wrong-fold-is-caught-not-just-a-wrong-stop
+    outcome: kernel-holes-are-zero-tolerance
+    claim: |
+      The four D4-repaired files reach EOF AND their `unknowns`
+      counts are correct, and `render-module-split-phase1a-2026-10
+      .yaml` still yields `planned_evidence` and
+      `estimated_class`. A parser that reads everything and folds
+      it wrongly fails here and passes every shape check.
+    acceptance:
+      all:
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+          result: pass
+
+  - id: every-pin-is-mutation-checked
+    outcome: the-inventory-is-pinned-not-frozen
+    claim: |
+      Four mutations of `lib/codec.ml`, each of which leaves the
+      corpus reading identically or the diagnostic blind, and each
+      of which turns this suite red:
+
+        A  `fold_seq_item` neutered (D4 reverted)
+           -> offender set + both content pins red; 12 becomes 18
+        B  backslash rule dropped from `quote_still_open`
+           -> `an escaped quote does not close the scalar` red
+        C  `load_yaml_string_full` discards the remainder
+           -> offender set red
+        D  `is_dash_item` guard dropped from `fold_seq_item`
+           -> `a deeper dash item is not absorbed` red
+
+      B and D were found by running the mutations, not by reading
+      the code: each leaves every file in `decisions/` reading
+      exactly as before.
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.exe
+          result: pass
+
+risk:
+  declared_triggers:
+    - residual-ledger-rots-when-a-file-is-repaired
+    - recorded-buckets-are-not-machine-checked
+  residual-ledger-rots-when-a-file-is-repaired: |
+    Expected, and it is the intended direction. Repairing one of
+    the twelve turns the suite red until the ledger entry is
+    struck and its reason updated in the same commit. That is the
+    friction doing its job.
+  recorded-buckets-are-not-machine-checked: |
+    The author/kernel split is a recorded claim about what `yq`
+    thinks, not a verdict this executable computes -- it has no
+    YAML reader. A file could be repaired into a different defect
+    that still leaves a tail, and the bucket would be stale while
+    the set assertion stayed green. One command,
+    `scripts/scan-silent-drops.sh --validity`, re-derives the
+    split; it is not wired into CI, and that gap is real.
+  owner: human:maintainer
+
+assumptions:
+  - id: author-classification-drifts-slowly
+    state: assumed
+    statement: |
+      The ten `author_malformed` files stay malformed until
+      somebody rewrites their prose, and nobody rewrites them
+      into a different defect that still leaves a tail.
+    owner: human:maintainer
+    consequence_if_false: |
+      A ledger entry keeps its name while the reason under it
+      becomes false. The set assertion cannot see it; only
+      `scan-silent-drops.sh --validity` can. Wire that command
+      into the gate, or into review, before the ledger passes
+      twenty entries.
+    review_on:
+      - signal: silent-drop-ledger-passes-twenty-entries
+
+reversal:
+  - signal: ledger-churn-outruns-the-signal
+    condition: |
+      The exact-set assertion is being edited far more often than
+      the corpus is being repaired -- entries added as a matter of
+      course on new malformed files, without anyone reading them.
+    action: |
+      Split the assertion: keep zero tolerance on `kernel_holes`,
+      and move `author_malformed` to a containment check with a
+      separately enforced count ceiling. That trades the "struck
+      off in the same commit" property for a less noisy gate, and
+      it is a worse trade -- but a rule nobody follows is worth
+      less than a rule that is easy to follow.
+  - signal: a-new-silent-drop-class-appears
+    condition: |
+      A shape starts losing content that neither
+      `load_yaml_string_full` nor `load_yaml_value_remaining`
+      reports, so the corpus pin stays green while the kernel
+      loses more.
+    action: |
+      The pin measures the DIAGNOSTIC, not the document, so it
+      inherits every blind spot the diagnostic has. The remedy is
+      on the loader side: a reader that reached EOF and disagreed
+      with the kernel's reading is the only oracle that does not
+      share the kernel's assumptions. Wiring `yq` into CI as a
+      corpus-wide cross-check would close it.
+
+relations:
+  addresses:
+    - duplicate-mapping-keys-silent-drop-2026-10@1
+    - yaml-seq-item-continuation-2026-10@1
+  refines: []
+  contradicts: []
+  supersedes: []
+  superseded_by: []

@@ -495,6 +495,67 @@ let[@warning "-32"] seq_mapping_item_is_not_folded_into_a_string () =
                (match other with Some v -> v | None -> Jsonl.Null)))
   | other -> Alcotest.failf "expected Object, got %s" (Jsonl.stringify other)
 
+(* A deeper `- bar` is NOT a continuation, even though it is more
+   indented than the dash marker. That shape is invalid YAML, and the
+   fix must not invent a reading for it: the kernel stops and the tail
+   is reported, rather than quietly pasting the stray item into the
+   prose and calling the file whole. This pins the `is_dash_item`
+   guard in `fold_seq_item`, which nothing in the corpus exercises:
+   deleting that guard leaves every decision in decisions/ reading
+   exactly as it does today. *)
+let[@warning "-32"] seq_deeper_dash_item_is_not_absorbed () =
+  let yaml =
+    String.concat "\n"
+      [
+        "id: t";
+        "unknowns:";
+        "  - first item spans";
+        "    two lines";
+        "    - not a continuation";
+        "revision: 1";
+      ]
+  in
+  let v, leftover = Codec.load_yaml_value_remaining yaml in
+  Alcotest.check Alcotest.bool
+    "the malformed shape is left unread rather than absorbed" true
+    (leftover <> []);
+  match seq_strings v "unknowns" with
+  | Some items ->
+      Alcotest.(check (list string))
+        "the item stops before the stray dash"
+        [ "first item spans two lines" ]
+        items
+  | other ->
+      Alcotest.failf "expected one folded item, got %s" (describe_items other)
+
+(* An ESCAPED quote does not close the flow scalar. Without the
+   backslash rule in `quote_still_open`, a quote preceded by a
+   backslash would read as the terminator, the fold would stop one
+   line early, and a well-formed decision would become a silent drop
+   -- the same defect, one level down. The loader decodes no escape
+   sequence anywhere, so the expected value keeps the backslashes; what
+   is asserted here is WHICH line the scalar ends on. Like the guard
+   above, this reaches nothing in decisions/: deleting the escape rule
+   leaves the whole corpus reading unchanged. *)
+let[@warning "-32"] seq_escaped_quote_does_not_close_the_scalar () =
+  let yaml =
+    "id: t\n\
+     unknowns:\n\
+    \  - \"an escaped \\\" still inside\n\
+    \     the scalar, closing here\"\n\
+     revision: 1\n"
+  in
+  let v, leftover = Codec.load_yaml_value_remaining yaml in
+  Alcotest.check Alcotest.int "read to EOF" 0 (List.length leftover);
+  match seq_strings v "unknowns" with
+  | Some items ->
+      Alcotest.(check (list string))
+        "the scalar ran past the escaped quote"
+        [ "an escaped \\\" still inside the scalar, closing here" ]
+        items
+  | other ->
+      Alcotest.failf "expected one quoted item, got %s" (describe_items other)
+
 (* `load_yaml_value` is the policies.yaml path (lib/policy.ml) and goes
    through neither `load_yaml_string_full` nor the MC-UNPARSED-TAIL
    collector, so a policy file it could not finish was read as a
@@ -539,6 +600,10 @@ let () =
             `Quick seq_finished_quote_does_not_swallow_next_line;
           Alcotest.test_case "mapping item is not folded into a string" `Quick
             seq_mapping_item_is_not_folded_into_a_string;
+          Alcotest.test_case "a deeper dash item is not absorbed" `Quick
+            seq_deeper_dash_item_is_not_absorbed;
+          Alcotest.test_case "an escaped quote does not close the scalar" `Quick
+            seq_escaped_quote_does_not_close_the_scalar;
           Alcotest.test_case "policies.yaml leaves no remainder" `Quick
             policies_yaml_parses_with_no_remainder;
         ] );

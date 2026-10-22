@@ -1,0 +1,3 @@
+(test
+ (name corpus_no_silent_drops)
+ (libraries mathcoding_core alcotest))
