@@ -11,6 +11,7 @@
   ci_blocking_list_test
   decision_parser_yaml
   counters_drift
+  counters_reference
   waiver_test
   adopt_test
   confidence_preserve
