@@ -111,6 +111,191 @@ let[@warning "-32"] test_ci_targets_exist () =
     Alcotest.fail "release.yml does not record opam.exe SHA256"
 
 (* ------------------------------------------------------------------------- *)
+(* workflow-yaml-well-formed                                                *)
+(* ------------------------------------------------------------------------- *)
+(* An unparsable .github/workflows/*.yml is not a warning. GitHub refuses to
+   load the file, so the gate it describes never runs, never reports, and
+   leaves no trace in the checks list. Commit 45ba4c2b (2026-10-18) shipped
+   such a file: a heredoc body at column 0 inside a `run: |` block scalar.
+   The dedent ended the scalar early and YAML read the message text as
+   top-level content, so release-pending did not exist for four days.
+
+   What this test is, stated plainly so nobody over-reads it: a linter for
+   the RESTRICTED YAML SUBSET these workflows live in, not a general YAML
+   parser. Three rules, all of which a valid file in the subset satisfies:
+
+     1. Every non-blank line OUTSIDE a block scalar must be YAML structure —
+        a mapping key, a sequence item, a document marker, or an explicit
+        `?` key. A bare prose line is the signature of this defect: the
+        heredoc body was read as document content and has no colon.
+     2. A `run:` body must not contain a shell heredoc. `cat <<EOF` needs its
+        terminator at column 0; a `run: |` body must be indented past its
+        key. Those cannot both hold, so the heredoc never terminates and
+        swallows the rest of the step — including its own `exit 1`.
+     3. No line may be indented with a tab; YAML forbids tabs as indentation.
+
+   Rule 1 is a subset check, so a valid file using a construct outside the
+   subset (a multi-line plain scalar, an anchor, a tag) would be reported.
+   That is deliberate: the fix is to use a block scalar, which is clearer,
+   or to extend this test. Rules 2 and 3 cannot false-positive on any valid
+   YAML.
+
+   Why not a real parser: math-coding.opam declares no YAML dependency, so
+   one would be a new opam + flake.lock dependency; and the project's own
+   Codec loader silently drops tokens it cannot parse (`load_yaml_string`
+   discards the unconsumed remainder), which makes it unable to fail on bad
+   input. `nix develop .#test` does provide yq — a full-parser cross-check
+   belongs in a CI step that can afford the dependency, not in a hermetic
+   unit test. *)
+
+let[@warning "-32"] workflow_files () =
+  let dir = in_repo ".github/workflows" in
+  if not (file_exists dir) then Alcotest.failf "%s missing" dir;
+  Sys.readdir dir |> Array.to_list
+  |> List.filter (fun f -> Filename.extension f = ".yml")
+  |> List.sort String.compare
+
+let[@warning "-32"] leading_spaces line =
+  let len = String.length line in
+  let rec loop i = if i >= len || line.[i] <> ' ' then i else loop (i + 1) in
+  loop 0
+
+(* Str.search_forward, not Str.string_match: the latter anchors at offset 0
+   and demands a whole-string match, which a ":"-prefixed pattern can never
+   satisfy on "run: |". The patterns below are therefore searches. *)
+let[@warning "-32"] re_searches re s =
+  try
+    ignore (Str.search_forward re s 0);
+    true
+  with Not_found -> false
+
+(* value side is exactly a literal/folded indicator, with the optional
+   explicit-indent digit and chomp indicator: "|", "|-", "|2", ">2-". *)
+let[@warning "-32"] block_scalar_re = Str.regexp ": *[|>][0-9]*[-+]?[ \t]*$"
+
+let[@warning "-32"] opens_block_scalar content =
+  re_searches block_scalar_re content
+
+(* Structural lines: "key:", "key: value", "- item", "- key: value", "? key",
+   "---". Anchored at the start so that prose containing a colon partway
+   through is still reported — that is exactly the heredoc-body shape. *)
+let[@warning "-32"] structure_res =
+  [
+    Str.regexp "^[A-Za-z_][A-Za-z0-9_.-]*[ \t]*:[ \t]";
+    Str.regexp "^[A-Za-z_][A-Za-z0-9_.-]*[ \t]*:[ \t]*$";
+    Str.regexp "^-[ \t]";
+    Str.regexp "^-[ \t]*$";
+    Str.regexp "^[?][ \t]";
+    Str.regexp "^---[ \t]*$";
+  ]
+
+let[@warning "-32"] looks_like_structure content =
+  List.exists (fun re -> re_searches re content) structure_res
+
+(* A shell heredoc redirect: `<<` standing as an operator — at the start of
+   the line, or after whitespace, "(" or ";". Preceded by a word character it
+   is not an operator: `echo "touched_paths<<EOF"` WRITES a delimiter for the
+   GITHUB_OUTPUT protocol, it does not open one. Written as a scan rather
+   than a regexp because Str anchors "^" to offset 0 even inside an
+   alternation group, which silently defeats "(^|[ \t(;])<<".
+
+   "<<<" is a here-STRING, not a heredoc: it carries its own delimiter on
+   the same line and is perfectly safe inside an indented block scalar, so
+   `done <<< "${DIFF}"` must not be reported. *)
+let[@warning "-32"] has_heredoc_redirect content =
+  let n = String.length content in
+  let is_here_string i = i + 2 < n && content.[i + 2] = '<' in
+  let rec loop i =
+    if i + 1 >= n then false
+    else if content.[i] = '<' && content.[i + 1] = '<' then
+      let prev = if i = 0 then ' ' else content.[i - 1] in
+      if is_here_string i then loop (i + 1)
+      else if prev = ' ' || prev = '\t' || prev = '(' || prev = ';' then true
+      else loop (i + 1)
+    else loop (i + 1)
+  in
+  loop 0
+
+(* "- run: |" opens the scalar at the key's own column, two past the dash. *)
+let[@warning "-32"] key_indent content ind =
+  if String.length content >= 2 && String.sub content 0 2 = "- " then ind + 2
+  else if content = "-" then ind + 2
+  else ind
+
+let[@warning "-32"] is_run_scalar content =
+  re_searches (Str.regexp "^[ \t]*-?[ \t]*run[ \t]*:") content
+
+let[@warning "-32"] workflow_yaml_defects path =
+  let lines = read_file path |> String.split_on_char '\n' in
+  let defects = ref [] in
+  let add lineno msg = defects := (lineno, msg) :: !defects in
+  (* Indent of the key that opened the scalar being read (and whether it was
+     a run: body), or None when the cursor is on structural YAML. *)
+  let open_at = ref None in
+  List.iteri
+    (fun idx line ->
+      let lineno = idx + 1 in
+      let ind = leading_spaces line in
+      let content = String.trim line in
+      if content = "" || content.[0] = '#' then ()
+      else begin
+        if String.length line > 0 && line.[0] = '\t' then
+          add lineno "line is indented with a tab; YAML forbids tab indentation";
+        (* A dedent is NOT a defect on its own — it is how a block scalar
+           ends. Only the content AFTER it has to be well-formed. *)
+        (match !open_at with
+        | Some (_, true) when has_heredoc_redirect content ->
+            add lineno
+              "a shell heredoc inside a `run:` block scalar: its terminator \
+               must sit at column 0, but the body is indented, so the heredoc \
+               never ends and swallows this step — including its own `exit 1`. \
+               Write multi-line output with printf/echo, or move the script to \
+               a file."
+        | Some (key_ind, _) when ind <= key_ind -> open_at := None
+        | Some _ | None -> ());
+        match !open_at with
+        | Some _ -> () (* still scalar content: not a YAML line *)
+        | None ->
+            if not (looks_like_structure content) then
+              add lineno
+                (Printf.sprintf
+                   "%S is not a YAML mapping key, sequence item or document \
+                    marker. A block-scalar body that dedents to column 0 leaks \
+                    prose into document position like this, and the whole file \
+                    stops loading."
+                   (if String.length content > 40 then
+                      String.sub content 0 40 ^ "..."
+                    else content));
+            if opens_block_scalar content then
+              open_at := Some (key_indent content ind, is_run_scalar content)
+      end)
+    lines;
+  List.rev !defects
+
+let[@warning "-32"] test_workflow_yaml_well_formed () =
+  let files = workflow_files () in
+  if files = [] then Alcotest.fail "no .github/workflows/*.yml found to check";
+  List.iter
+    (fun name ->
+      let path = Filename.concat (in_repo ".github/workflows") name in
+      match workflow_yaml_defects path with
+      | [] -> ()
+      | defects ->
+          let detail =
+            List.map
+              (fun (lineno, msg) -> Printf.sprintf "  line %d: %s" lineno msg)
+              defects
+            |> String.concat "\n"
+          in
+          Alcotest.failf
+            ".github/workflows/%s is not loadable YAML.\n\
+             %s\n\
+             GitHub silently ignores a workflow it cannot parse, so this gate \
+             would never run. Check with: yq -e '.' .github/workflows/%s"
+            name detail name)
+    files
+
+(* ------------------------------------------------------------------------- *)
 (* flake-ref-is-commit                                                       *)
 (* ------------------------------------------------------------------------- *)
 (* Mirrors tests/fixtures/flake-ref-is-commit.sh:
@@ -829,6 +1014,11 @@ let () =
         [
           Alcotest.test_case "workflow targets resolve" `Quick
             test_ci_targets_exist;
+        ] );
+      ( "workflow-yaml-well-formed",
+        [
+          Alcotest.test_case "workflows are loadable YAML" `Quick
+            test_workflow_yaml_well_formed;
         ] );
       ( "flake-ref-is-commit",
         [
