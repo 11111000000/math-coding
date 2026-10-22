@@ -94,8 +94,7 @@ let[@warning "-32"] spawn_stub ~response_body ~port =
   in
   if not (Sys.file_exists stub_path) then
     failwith
-      (Printf.sprintf "rebuttal_forge_stub: stub binary not found: %s"
-         stub_path);
+      (Printf.sprintf "rebuttal_forge_stub: stub binary not found: %s" stub_path);
   let argv = [| stub_path; string_of_int port; response_body |] in
   let pid =
     Unix.create_process argv.(0) argv Unix.stdin Unix.stdout Unix.stderr
