@@ -301,9 +301,22 @@ canonicalise(bytes) =
   substituted_yaml
 
 placeholder = "sha256:" + "0" * 64 + "\""
-re_body = body_sha: "sha256:[a-f0-9]{64}"
+re_body = body_sha: "sha256:[a-f0-9]{64}"     # the CLOSING quote is part of the match
 re_yaml = yaml_sha: "sha256:[a-f0-9]{64}"
 ```
+
+The closing quote belongs inside the pattern. `placeholder` already
+ends in one, so a pattern that stops before it leaves the original
+closing quote in place *after* the substituted run and the field
+comes out as `body_sha: "sha256:000...0""` -- two quotes, and no
+longer a YAML scalar. `scripts/axiom-link-seed.py` and
+`lib/decision.ml::body_canonical_sha256` both include it; the
+transcription above did not, and a literal transcription of the
+pseudocode produced 11 of 15 digest vectors wrong before the pattern
+was corrected. Reference implementation wins over transcription: per
+`decisions/digest-helper-spec-divergence-2026-10.yaml`, the
+specification is authoritative, so this is the spec catching up with
+what the reference already did.
 
 The algorithm has four normative properties:
 
