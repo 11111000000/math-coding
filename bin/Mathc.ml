@@ -4381,8 +4381,48 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
     Gate.aggregate_with_waivers waivers ~decision_id:entry.Memory.decision_id
       ~now gaps
   in
-  let causes = List.concat_map (fun g -> g.Gate.causes) gaps in
-  let remedies = List.concat_map (fun g -> g.Gate.remedies) gaps in
+  (* Digest currency. `mathc validate` already recomputes the digest
+     (MC-SHA-DIGEST-STALE), but validate looks at ONE named file;
+     self-check is the step that decides whether a whole change
+     merges, and it was the one path that never saw the digest at
+     all. The raw bytes are already here - `load_decision_entry`
+     keeps them in `Memory.source`.
+
+     The verdict is forced to `Block` AFTER waiver aggregation rather
+     than injected as a `Gate.gap`, for two reasons. A synthetic gap
+     id would not match any waiver by accident, which is the right
+     outcome but a fragile reason to rely on; and `FailedEvidence`,
+     the gap kind this would carry, is already non-waivable by
+     `Gate.is_waivable`, so routing it through the waiver machinery
+     would only add a way for it to be laundered.
+
+     No new verdict string is introduced: `tests/cli/self-check-pass.t`
+     fails if a fifth one ever appears, and `Block` already renders as
+     `fail` with exit 1. *)
+  let digest_cause, digest_remedy =
+    match Decision.digest_status_of_bytes entry.Memory.source with
+    | Decision.Digest_ok | Decision.Digest_absent -> ("", "")
+    | Decision.Digest_stale { stored; computed } ->
+        ( Printf.sprintf
+            "body_sha (%s) is not the digest of this file (%s): the decision \
+             body changed without a recompute, so the stored digest still \
+             asserts content that is no longer there (spec/algebra-3.2.md \
+             §7.1; MC-SHA-DIGEST-STALE)"
+            stored computed,
+          Printf.sprintf
+            "run `mathc rehash %s --write` to recompute both digest fields; it \
+             verifies the result is a fixed point before writing"
+            entry.Memory.decision_id )
+  in
+  let verdict = if digest_cause = "" then verdict else Gate.Block in
+  let causes =
+    if digest_cause = "" then List.concat_map (fun g -> g.Gate.causes) gaps
+    else digest_cause :: List.concat_map (fun g -> g.Gate.causes) gaps
+  in
+  let remedies =
+    if digest_remedy = "" then List.concat_map (fun g -> g.Gate.remedies) gaps
+    else digest_remedy :: List.concat_map (fun g -> g.Gate.remedies) gaps
+  in
   let waived =
     List.map
       (fun ((gap : Gate.gap), (w : Waiver.t)) -> (gap.Gate.obligation_id, w))

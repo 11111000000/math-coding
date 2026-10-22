@@ -4,8 +4,8 @@ id: enforce-body-sha-digest-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:50ab31455868a5dc573fb08c534e30f19b83224c601d1b78b50f12d947744fe6"
-yaml_sha: "sha256:50ab31455868a5dc573fb08c534e30f19b83224c601d1b78b50f12d947744fe6"
+body_sha: "sha256:9dd48b2d735057b06f683d92174cdc709110df98ccae4c0445512a95e88f657e"
+yaml_sha: "sha256:9dd48b2d735057b06f683d92174cdc709110df98ccae4c0445512a95e88f657e"
 
 axiom_link:
   - A0
@@ -134,6 +134,8 @@ scope:
     - "lib/lifecycle/lifecycle.ml"
     - "lib/new_decision/new_decision.ml"
     - "bin/Mathc.ml"
+    - "tests/cli/self-check-digest-stale.t"
+    - "tests/cli/validate-body-sha-pattern.t"
     - "decisions/**/*.yaml"
     - "spec/algebra-3.2.md"
     - "tests/counters_drift.ml"

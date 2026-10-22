@@ -268,6 +268,75 @@ let sha_match_check ?raw_bytes (d : Domain.decision) : bool * Diagnostic.t list
             (false, [ diag ]))
   | _ -> (true, [])
 
+(* --- digest status over raw bytes (self-check / gate path) ------
+ *
+ * `sha_match_check` above needs a parsed `Domain.decision`, and the
+ * only caller that can supply one is `mathc validate`. Neither
+ * `do_self_check` nor `lib/gate.ml::evaluate` has that: self-check
+ * enumerates decisions with a line scanner
+ * (`bin/Mathc.ml::load_decision_entry`, which deliberately avoids the
+ * YAML parser because the parser drops continuation lines of block
+ * scalars), and `Gate.evaluate` receives `Memory.t`, whose entries
+ * carry the raw text in `Memory.source` and nothing else.
+ *
+ * Both DO have the bytes. The digest is defined over the file, so the
+ * check belongs where the bytes are rather than where a parse
+ * succeeded - otherwise the blocking CI step is the one path that
+ * cannot see a tampered decision.
+ *
+ * `Digest_absent` is a first-class outcome, not a silent pass: a
+ * waiver or obligations file belongs to another schema family and
+ * carries no body_sha, which makes the §7 invariant vacuous. It is
+ * returned rather than assumed so a MISSING field stays distinguishable
+ * from a CHECKED one in the report. *)
+type digest_status =
+  | Digest_absent
+  | Digest_ok
+  | Digest_stale of { stored : string; computed : string }
+
+(* Read back the hex the file itself carries. The matcher is the SAME
+   literal shape `replace_digest_field` above substitutes - prefix, 64
+   hex digits, closing quote - so the extractor and the canonicaliser
+   cannot disagree about which occurrence is "the field". Scanning for
+   the shape the substituter rewrites is what makes that guarantee
+   mechanical instead of a convention.
+
+   Returns the first match: `replace_digest_field` rewrites every
+   occurrence, so a file carrying two is stale either way, and naming
+   the first is the least surprising. *)
+let[@warning "-32"] stored_digest_hex ~prefix (s : string) : string option =
+  let prefix_len = String.length prefix in
+  let matched_len = prefix_len + 64 + 1 in
+  let s_len = String.length s in
+  let i = ref 0 in
+  let found = ref None in
+  while !i < s_len && !found = None do
+    if
+      !i + matched_len <= s_len
+      && String.sub s !i prefix_len = prefix
+      &&
+      let hex_start = !i + prefix_len in
+      let hex_end = hex_start + 64 in
+      let rec all_hex k =
+        if k >= hex_end then true
+        else if is_hex_digit s.[k] then all_hex (k + 1)
+        else false
+      in
+      all_hex hex_start && s.[hex_end] = '"'
+    then found := Some (String.sub s (!i + prefix_len) 64)
+    else incr i
+  done;
+  !found
+
+let[@warning "-32"] digest_status_of_bytes (bytes : string) : digest_status =
+  match stored_digest_hex ~prefix:"body_sha: \"sha256:" (crlf_to_lf bytes) with
+  | None -> Digest_absent
+  | Some hex ->
+      let stored = "sha256:" ^ hex in
+      let computed = body_canonical_sha256 bytes in
+      if String.equal stored computed then Digest_ok
+      else Digest_stale { stored; computed }
+
 (* Pure-validation view: maps parse_decision_value into
    Diagnostic.t option. Some diag = reject; None = accept. *)
 

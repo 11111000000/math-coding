@@ -123,8 +123,14 @@ survived the prior equality-only check is now rejected:
   {"verdict":"reject","code":"MC-BODY-SHA-PATTERN-VIOLATION","severity":"block"}
 
 A decision with both `body_sha` AND `yaml_sha` matching the
-pattern (and equal) is accepted. The existing MC-SHA-MISMATCH
-check is unaffected:
+pattern is accepted — but matching the pattern is no longer
+sufficient. The digest must also be the digest OF THIS FILE. The
+fabricated `1111...` this fixture used to write and expect
+`parse-ok` is exactly the hole that let an edited decision keep
+validating: syntactically valid and equal to itself, describing
+nothing. `mathc rehash` supplies a real digest, which is what the
+workflow now requires, and MC-SHA-DIGEST-STALE is the diagnostic when
+the pattern is fine but the value is not:
 
   $ cat > sha-pattern-valid-both.yaml <<EOF
   > ---
@@ -155,6 +161,9 @@ check is unaffected:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
+  $ mathc validate --format=json sha-pattern-valid-both.yaml | jq -c '{verdict, code}'
+  {"verdict":"reject","code":"MC-SHA-DIGEST-STALE"}
+  $ mathc rehash sha-pattern-valid-both.yaml --write > /dev/null
   $ mathc validate --format=json sha-pattern-valid-both.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
