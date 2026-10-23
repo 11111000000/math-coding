@@ -46,8 +46,12 @@ run_dune() {
 if run_dune; then
   log "dune test completed within budget"
   exit 0
+else
+  # `rc=$?` MUST live inside the `else`. Bash defines the exit status
+  # of a false `if` with no `else` as 0, so a bare `rc=$?` on the line
+  # after `fi` always reads 0 and this script always exits 0.
+  rc=$?
 fi
-rc=$?
 if [ "$rc" -eq 124 ] || [ "$rc" -eq 137 ]; then
   log "dune test exceeded the ${TIMEOUT_SECONDS}s budget (rc=$rc) — dune 3.23.1 RPC deadlock (issue #12900, fixed by PR #12979)"
   log "fall back to per-test 'dune runtest tests/<name>.exe' (see decisions/disable-hanging-alcotest-tests-2026-10.yaml and docs/upstream-bugs/dune-3.23.1-rpc-hang.md)"
