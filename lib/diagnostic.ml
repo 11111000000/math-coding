@@ -727,6 +727,125 @@ let mc_materials_digest_empty ?(subject = "") ?(kind = "") ?(next_actions = [])
     ~policy_rule:(Some "spec/constitution.md §0; A0 separation")
     ~next_actions:actions msg
 
+(* MC-PRODUCER-CLASS-UNDECLARED: emitted when `producer.identity`
+   carries no claim class. Per decisions/attestation-producer-vocab-
+   2026-10, an identity is `<class>:<subject>` with class in
+   {human, agent, ci}. An untagged identity says nothing about WHO
+   produced the attestation, so a reader cannot tell a human
+   declaration from a machine observation without out-of-band
+   knowledge of the producer's habits. The corpus measured 62 such
+   files (`ci-bot` 40, `dune:test` 6, `ci-bot:dune-runtest` 7,
+   `ci-bot:re-evaluate-decisions` 4, `sub-agent-A4-batchA` 3,
+   `test` 2) at the time of the decision; they remain readable
+   through the store loader, which does not validate.
+
+   Note what this diagnostic does NOT claim: it does not assert that
+   a tagged `human:` identity is TRUE. Nothing in this repository can
+   establish that -- no attestation in the store carries a signature
+   (0 of 765), so there is no key class to compare against. The tag
+   is a declaration, and the schema only requires that a claim be
+   made in the open. See mc_producer_human_unanchored below for the
+   rule that does carry weight. *)
+let mc_producer_class_undeclared ?(subject = "") ?(next_actions = []) ~identity
+    () =
+  let prefix = if subject = "" then "" else Printf.sprintf "%s: " subject in
+  let msg =
+    Printf.sprintf
+      "%sproducer.identity %S declares no claim class. Per \
+       decisions/attestation-producer-vocab-2026-10, an identity is \
+       `<class>:<subject>` with class in {human, agent, ci}, so a reader can \
+       tell a human DECLARATION from a machine OBSERVATION without out-of-band \
+       knowledge. `ci:` fits an automated job, `agent:` a model-driven agent, \
+       `human:` a person."
+      prefix identity
+  in
+  let default_actions =
+    [
+      ( "identify",
+        "which of human / agent / ci actually produced this attestation" );
+      ("set", "producer.identity: \"ci:<job>\" (machine) or \"agent:<id>\"");
+      ("regenerate", "mathc attest ... --producer=<class>:<subject>");
+      ("verify", "mathc validate <path-to-attestation>");
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-PRODUCER-CLASS-UNDECLARED" ~kind:Deficit ~severity:Block
+    ~policy_rule:(Some "decisions/attestation-producer-vocab-2026-10")
+    ~next_actions:actions msg
+
+(* MC-PRODUCER-HUMAN-UNANCHORED: emitted when an attestation whose
+   `producer.identity` declares the `human:` class carries a RUNTIME
+   kind (test / build / analysis / observation) and names no
+   `producer.run`.
+
+   This is the rule that carries the epistemic weight, and the reason
+   is a dialectical one. A `human:` producer on `kind_: review` is
+   claiming the WEAK class -- "a human declaration without a runtime
+   anchor", the same exemption MC-MATERIALS-DIGEST-EMPTY grants. An
+   agent that falsely claims it gains nothing, because review-class
+   evidence is already the weaker kind. So the human tag on a review
+   is left unconstrained: there is no attack to defend against.
+
+   A `human:` producer on a RUNTIME kind is the opposite: it takes a
+   machine-grade claim (a test passed, a build succeeded) and attaches
+   a person's name to it. That is the upgrade the whole attestation
+   store exists to prevent -- commit 9c1f7ab records the same failure
+   at scale, when attest-batch mass-signed 793 files as
+   human:integration-experiment without asking. Requiring
+   `producer.run` makes the claim falsifiable rather than
+   unauditable: the claim now names a command, `mathc verify`
+   executes that command, and a producer whose named run does not
+   reproduce the recorded materials_digest is caught by a named,
+   failing verifier instead of by an inspection nobody performs.
+
+   What it does NOT do is verify that a person typed the string. A
+   `human:` tag remains a declaration. Closing that would need key
+   separation (a signature whose key_id is bound to a human key), and
+   0 of the 765 stored attestations carry a signature today -- so
+   this rule is the strongest one the substrate can currently carry,
+   not the strongest one that would be desirable. *)
+let mc_producer_human_unanchored ?(subject = "") ?(next_actions = []) ~identity
+    ~kind () =
+  let prefix =
+    match (subject, kind) with
+    | "", "" -> ""
+    | s, "" -> Printf.sprintf "%s: " s
+    | "", k -> Printf.sprintf "<%s>: " k
+    | s, k -> Printf.sprintf "%s (kind_=%s): " s k
+  in
+  let msg =
+    Printf.sprintf
+      "%sproducer.identity %S declares the human class on a runtime-kind \
+       attestation but names no producer.run. Per \
+       decisions/attestation-producer-vocab-2026-10, a human producer may \
+       declare a `kind_: review` without a runtime anchor -- that is the WEAK \
+       class, so a false claim there gains nothing -- but a \
+       test/build/analysis/observation claim is machine-grade evidence and \
+       must name the run that produced it, so that anyone can re-run it and \
+       check the recorded materials_digest."
+      prefix identity
+  in
+  let default_actions =
+    [
+      ("run", "the command that actually produced this result");
+      ( "set",
+        "producer.run: \"<command>\" (the `--run` argument of mathc attest)" );
+      ("regenerate", "mathc attest ... --producer=<id> --run=<command>");
+      ("verify", "mathc verify <decision> --format=json");
+      ( "or",
+        "reissue as `--kind review` if this is a human judgement with no \
+         runtime anchor" );
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-PRODUCER-HUMAN-UNANCHORED" ~kind:Deficit ~severity:Block
+    ~policy_rule:(Some "decisions/attestation-producer-vocab-2026-10")
+    ~next_actions:actions msg
+
 (* MC-DUPLICATE-KEY: emitted when the same mapping key is declared
    twice in one scope of a decision file.
 
@@ -1328,6 +1447,71 @@ let explain (code : string) : string option =
          `subject.materials_digest` to the hex digest. Re-run\n\
          `mathc validate` (or the producer script) to confirm the\n\
          violation is gone."
+  | "MC-PRODUCER-CLASS-UNDECLARED" ->
+      Some
+        "### Definition\n\
+         `producer.identity` carries no claim class. Per\n\
+         `decisions/attestation-producer-vocab-2026-10`, an identity\n\
+         is `<class>:<subject>` with `class` in {human, agent, ci}.\n\
+         An untagged identity says nothing about WHO produced the\n\
+         attestation, so a reader cannot tell a human DECLARATION\n\
+         from a machine OBSERVATION without out-of-band knowledge.\n\n\
+         ### Occurs when\n\
+         `lib/codec.ml::validate_attestation_producer` finds an\n\
+         identity that does not match\n\
+         `^(human|agent|ci):[A-Za-z0-9][A-Za-z0-9._:/-]*$`. The kernel\n\
+         emits `MC-PRODUCER-CLASS-UNDECLARED` (Block, exit 1). The\n\
+         store loader in `lib/attestations/attestations.ml` does not\n\
+         validate, so attestations committed before 2026-10-23\n\
+         carrying untagged identities (`ci-bot`, `dune:test`,\n\
+         `test`, `sub-agent-A4-batchA`, 62 files at the time of the\n\
+         decision) remain readable.\n\n\
+         ### What this does NOT claim\n\
+         A tagged `human:` identity is a DECLARATION, not a proof.\n\
+         No attestation in the store carries a signature (0 of 765),\n\
+         so there is no key class against which a claim could be\n\
+         checked. See `MC-PRODUCER-HUMAN-UNANCHORED` for the rule\n\
+         that carries the weight.\n\n\
+         ### Remediation\n\
+         Tag the identity: `ci:<job>` for an automated job,\n\
+         `agent:<id>` for a model-driven agent, `human:<name>` for a\n\
+         person. Re-run `mathc validate`."
+  | "MC-PRODUCER-HUMAN-UNANCHORED" ->
+      Some
+        "### Definition\n\
+         An attestation whose `producer.identity` declares the\n\
+         `human:` class carries a RUNTIME kind (test / build /\n\
+         analysis / observation) and names no `producer.run`.\n\n\
+         The rule is asymmetric on purpose. A `human:` producer on\n\
+         `kind_: review` is claiming the WEAK class -- the same\n\
+         exemption `MC-MATERIALS-DIGEST-EMPTY` grants for an empty\n\
+         `materials_digest` -- so a false claim there upgrades\n\
+         nothing and is left unconstrained. A `human:` producer on a\n\
+         runtime kind attaches a person's name to a machine-grade\n\
+         claim, which IS the upgrade the store exists to prevent\n\
+         (commit 9c1f7ab records it at scale: attest-batch\n\
+         mass-signed 793 files as `human:integration-experiment`\n\
+         without asking). Requiring `producer.run` makes the claim\n\
+         falsifiable: `mathc verify` executes the named command.\n\n\
+         ### Occurs when\n\
+         `lib/codec.ml::validate_attestation_producer` finds a\n\
+         `human:`-class identity whose `kind_` is not `review` and\n\
+         whose `producer.run` is absent or empty. The kernel emits\n\
+         `MC-PRODUCER-HUMAN-UNANCHORED` (Block, exit 1).\n\n\
+         ### What this does NOT claim\n\
+         It does not verify that a person typed the string. Closing\n\
+         that gap needs key separation -- a DSSE signature whose\n\
+         `key_id` is bound to a human key -- and 0 of the 765 stored\n\
+         attestations carry a signature, so this is the strongest\n\
+         rule the current substrate can carry, not the strongest\n\
+         one that would be desirable.\n\n\
+         ### Remediation\n\
+         Name the run that produced the result: reissue with\n\
+         `mathc attest ... --producer=<id> --run=<command>`, which\n\
+         sets `producer.run` and derives `materials_digest` from the\n\
+         command's output. If the attestation is genuinely a human\n\
+         judgement with no runtime anchor, reissue it as\n\
+         `--kind review`, where an empty digest is already legal."
   | "MC-MISSING-SCHEMA" ->
       Some
         "### Definition\n\

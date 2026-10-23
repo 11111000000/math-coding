@@ -557,20 +557,34 @@ let validate_with_counts path =
           `Accept_aggregate
             { kind = "obligations"; id; extra_diags = dup_diags }
       | Some (Decision.Attestation, id) -> (
-          (* MC-MATERIALS-DIGEST-EMPTY dispatch
-                (decisions/kernel-bugs-v3.4-2026-10). The validator is
-                separate from parse_attestation so the loader can
-                grandfather legacy attestations whose `issued_at`
-                predates 2026-10-16. *)
+          (* MC-MATERIALS-DIGEST-EMPTY and MC-PRODUCER-* dispatch
+                (decisions/kernel-bugs-v3.4-2026-10 and
+                decisions/attestation-producer-vocab-2026-10). Both
+                validators are separate from parse_attestation so the
+                store loader keeps reading the committed corpus: the
+                loader calls the parser and never these, so all 765
+                tracked attestations stay loadable. `mathc validate` is
+                the issuance path and is strict.
+
+                The two run in sequence rather than as alternatives, so
+                the reported code names ONE defect: an attestation with
+                an empty materials_digest AND an unanchored human
+                producer reports the digest first (the weaker claim,
+                fixed first). *)
           match Codec.parse_attestation v with
           | Some a -> (
               match Codec.validate_attestation_materials a with
               | Some diag ->
                   let msg = diag.Diagnostic.message in
                   `Reject (diag, msg)
-              | None ->
-                  `Accept_aggregate
-                    { kind = "attestation"; id; extra_diags = dup_diags })
+              | None -> (
+                  match Codec.validate_attestation_producer a with
+                  | Some diag ->
+                      let msg = diag.Diagnostic.message in
+                      `Reject (diag, msg)
+                  | None ->
+                      `Accept_aggregate
+                        { kind = "attestation"; id; extra_diags = dup_diags }))
           | None ->
               let msg =
                 "attestation is not parseable: schemas/attestation.json \

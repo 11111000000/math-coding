@@ -29,12 +29,43 @@
     },
     "kind_": {"enum": ["test", "review", "build", "analysis", "observation"]},
     "producer": {
+      "description": "Who produced this attestation, and on what runtime anchor. `identity` is class-tagged (`human:` a person, `agent:` a model-driven agent, `ci:` an automated job); the tag is what lets a reader tell a human DECLARATION from a machine OBSERVATION without guessing. `run` names the command whose exit code and output digest produced the attestation, and is REQUIRED whenever a `human:` producer signs a runtime-kind attestation -- a human may declare a review without a runtime anchor, but may not borrow the evidentiary weight of a run they did not name. Per decisions/attestation-producer-vocab-2026-10.",
       "type": "object", "additionalProperties": false,
       "required": ["identity"],
       "properties": {
-        "identity": {"type": "string"},
-        "run": {"type": "string"}
-      }
+        "identity": {
+          "description": "Class-tagged producer identity `<class>:<subject>`, with `class` in {human, agent, ci}. The subject may itself contain colons (e.g. `ci:fixture:conformance`, `agent:opencode:ux-3-merge`). An untagged identity asserts nothing about WHO produced the attestation and is rejected (MC-PRODUCER-CLASS-UNDECLARED, Block) on issuance; 62 attestations committed before 2026-10-23 carry untagged identities (`ci-bot`, `dune:test`, `test`, `sub-agent-A4-batchA`, ...) and remain readable by the store loader. A `human:` tag is a DECLARATION, not a proof: the schema cannot verify that a person typed it, so the rule that carries the weight is the one below -- a `human:` producer signing a runtime kind must name the run.",
+          "type": "string",
+          "pattern": "^(human|agent|ci):[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+        },
+        "run": {
+          "description": "The command whose exit code and output digest produced this attestation (the `--run` argument of `mathc attest`). Empty is permitted only when `kind_: review` or the producer class is not `human`; see the allOf rule on this schema.",
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["kind_", "producer"],
+            "properties": {
+              "kind_": {"enum": ["test", "build", "analysis", "observation"]},
+              "producer": {
+                "required": ["identity"],
+                "properties": {"identity": {"pattern": "^human:"}}
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "producer": {
+                "required": ["run"],
+                "properties": {"run": {"type": "string", "minLength": 1}}
+              }
+            }
+          }
+        }
+      ]
     },
     "environment_class": {
       "description": "Free-form environment class string (legacy). Use environment_class_label + environment_class_level for new attestations.",

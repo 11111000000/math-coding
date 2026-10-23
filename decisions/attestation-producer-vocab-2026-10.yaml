@@ -1,0 +1,410 @@
+---
+schema: math-coding/3.3
+id: attestation-producer-vocab-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:46d1dd9c02848dbfea5b3d9d2d75474727d4b650731efac50acdcf8da711512b"
+yaml_sha: "sha256:46d1dd9c02848dbfea5b3d9d2d75474727d4b650731efac50acdcf8da711512b"
+
+intent: |
+  Make the store say WHO produced each attestation, in a vocabulary a
+  reader cannot misread, and stop a machine from signing its own work
+  with a person's name.
+
+  `schemas/attestation.json` declared `producer.identity` as
+  `{"type": "string"}`. That is not a weak constraint, it is no
+  constraint: the one distinction that gives an attestation its
+  epistemic weight -- a human DECLARATION versus a machine
+  OBSERVATION -- was neither expressed nor checkable, and the store
+  actively violated the distinction it could not express.
+
+  Measured over the 765 tracked attestations, with `jq`, not by eye:
+
+    369  declare an identity beginning `human:`
+     90  of those are demonstrably agent-produced, not human:
+          human:opencode-agent               60
+          human:integration-experiment       17
+          human:agent-a1                      5
+          human:opencode-agent-c4             3
+          human:subagent-{alpine,docs,edge-tag,
+            healthcheck,install-fallback}   1 each
+     58  carry `human:` AND a runtime kind (test/build/analysis/
+          observation), which is the shape that actually upgrades a
+          claim: a person's name on machine-grade evidence
+     62  carry no class tag at all (ci-bot 40, ci-bot:dune-runtest 7,
+          dune:test 6, ci-bot:re-evaluate-decisions 4,
+          sub-agent-A4-batchA 3, test 2)
+
+  `human:integration-experiment` is the harness from commit 9c1f7ab,
+  which mass-signed 793 attestations under that name without asking
+  anyone; `--producer` became required in that same commit precisely
+  because of it. The tool learned to demand a name. Nothing taught it
+  to check that the name meant something.
+
+commitment: |
+  Two rules, both forward-only, enforced by the kernel and stated in
+  the schema.
+
+  (a) `producer.identity` must be `<class>:<subject>`, with `class`
+      in {human, agent, ci}. An untagged identity names nobody, so a
+      reader cannot tell a declaration from an observation without
+      out-of-band knowledge of the producer's habits. Rejected as
+      MC-PRODUCER-CLASS-UNDECLARED (Block).
+
+  (b) A `human:` producer signing a RUNTIME kind must name
+      `producer.run`. Rejected as MC-PRODUCER-HUMAN-UNANCHORED
+      (Block).
+
+  Rule (b) is deliberately ASYMMETRIC, and the asymmetry is the whole
+  argument:
+
+    - `human:` + `kind_: review` stays ALLOWED and unconstrained.
+      Review is the WEAK class -- "a human declaration without a
+      runtime anchor", the same exemption MC-MATERIALS-DIGEST-EMPTY
+      grants for an empty `materials_digest`. An agent that falsely
+      claims it upgrades nothing, because review evidence is already
+      the weaker kind. There is no attack to defend against, so no
+      rule is imposed. A rule here would forbid honest humans from
+      recording a judgement they made from reading, which is the
+      most common thing a maintainer does in this store.
+
+    - `human:` + a runtime kind is the upgrade, and the upgrade is
+      what `producer.run` blocks. Naming the run converts an
+      unauditable claim into a falsifiable one: `mathc verify`
+      executes the named command, so a producer whose run does not
+      reproduce the recorded `materials_digest` is caught by a named,
+      failing verifier rather than by an inspection nobody performs.
+
+  The 62 untagged and 58 unanchored attestations already committed
+  are NOT rewritten. See `outcomes/grandfathered-not-rewritten`: the
+  reason is structural, not stylistic.
+
+antithesis: |
+  "Rewrite the 90 misattributed files. Correct the record, then add
+  the rule so it cannot recur. `human:opencode-agent` becomes
+  `agent:opencode-agent` and the store is honest again."
+
+  Rejected, on a mechanical ground that survives inspection: an
+  attestation `id` is the sha256 of the attestation's canonical body
+  with the `id` field removed, and `producer.identity` is part of
+  that body. Measured, not assumed -- on
+  `attestations/add-verify-subcommand-2026-10-no-self-check-regression.json`
+  the stored `id`
+  `sha256:cb50e64a9004d8a43905782fb20dd5c46027f31917fb69678abe38a39fe74a2f`
+  reproduces exactly as sha256 over the compact key-sorted body minus
+  `id`. Change the identity and the digest no longer matches. So
+  "correcting" 58 committed files means RECOMPUTING 58 evidence
+  identifiers and rewriting 58 committed objects -- minting new
+  provenance for evidence nobody re-ran, which is the same class of
+  unrequested mass mutation as the 9c1f7ab incident this decision
+  exists to prevent. A correction that fabricates the identifiers of
+  the thing it corrects is not a correction.
+
+  Also rejected: "require a DSSE signature whose key_id is bound to a
+  human key." That is the rule that would actually close the gap, and
+  it is deferred, not dismissed -- 0 of the 765 stored attestations
+  carry a signature at all, so the substrate has no key registry, no
+  key class, and no trust anchor to check a `human:` claim against.
+  Shipping the rule first would produce 765 rejects and no
+  discrimination. Tracked as the reversal signal
+  `first-signed-attestation-committed`.
+
+  Also rejected: "ban `human:` on `kind_: review` too, so no agent
+  can ever claim to be human." Banning the class where a false claim
+  costs nothing buys no safety and costs the store its most common
+  and most legitimate record -- a maintainer saying they read
+  something.
+
+counterexample: |
+  "This is a regex with a philosophy attached. A determined agent
+  writes `human:p.b.kosov` and satisfies both rules -- rule (b) is
+  met by naming any command at all. You have made a theatre of
+  authorship."
+
+  Counterargument: the objection is correct about the LIMIT and wrong
+  about the DIRECTION. A JSON string cannot prove who typed it, and
+  this decision does not claim otherwise; `assumptions/`
+  `human-tag-is-not-verifiable` records that as an explicit `unknown`
+  with its consequence enumerated, and both diagnostics say so in
+  their own remediation text. What the rules do change is the
+  DEFAULT and the ASYMMETRY:
+
+    - before: `human:ada` and `human:opencode-agent` are the same
+      string shape, indistinguishable to any reader and to any tool;
+    - after: the unanchored shape is rejected at issuance, so the
+      cheap forgery -- type a human name, assert a test passed -- now
+      requires also naming a command that a later verifier executes,
+      and naming a false command is a self-inflicted, detectable
+      wound rather than a silent upgrade.
+
+  A schema that makes the dishonest claim more expensive and more
+  falsifiable is worth having even when it cannot make the claim
+  impossible. What would make it impossible is key separation, and
+  that is named above as deferred with a trigger, not glossed.
+
+  "The grandfathering makes the rule decorative: 120 of the 765
+  files still violate it."
+
+  Counterargument: the store loader deliberately does not run these
+  validators, so all 765 remain loadable, and the rule applies to
+  issuance. That is not a loophole invented here to dodge the cost
+  -- it is exactly the shape of the sibling rule shipped in
+  `decisions/kernel-bugs-v3.4-2026-10`. Measured over the same 765
+  files, `mathc validate` already rejects 427 of them with
+  MC-MATERIALS-DIGEST-EMPTY. This decision adds 120 more rejects on
+  the issuance path and moves the corpus no further from loadable
+  than it already was. The debt is not hidden: it is INVENTORIED
+  below and PINNED by `tests/producer_vocab.ml::`
+  `test_grandfathered_backlog_is_pinned`, so if a file is quietly
+  reissued or quietly added, a test fails and the inventory is
+  visibly stale.
+
+scope:
+  paths:
+    - "schemas/**"
+    - "lib/**"
+    - "bin/**"
+    - "tests/**"
+    - "fixtures/conformance/**"
+    - "decisions/**"
+    # In scope because this decision ADDS attestation files for its
+    # own obligations. It modifies none: outcomes/
+    # grandfathered-not-rewritten pins that, and the store walk in
+    # tests/producer_vocab.ml would fail if a tracked file changed.
+    - "attestations/**"
+  exclusions:
+    - "site/**"
+    - "adoption/**"
+
+outcomes:
+  - id: identity-must-declare-a-class
+    statement: |
+      `mathc validate` rejects an attestation whose
+      `producer.identity` does not match
+      `^(human|agent|ci):[A-Za-z0-9][A-Za-z0-9._:/-]*$`, with code
+      MC-PRODUCER-CLASS-UNDECLARED and severity block. All 703
+      class-tagged identities in the committed corpus match that
+      pattern, so the rule constrains future issuance without
+      invalidating any identity the store already uses.
+
+  - id: human-runtime-claim-must-be-anchored
+    statement: |
+      `mathc validate` rejects an attestation with a `human:` identity,
+      a runtime `kind_`, and no non-empty `producer.run`, with code
+      MC-PRODUCER-HUMAN-UNANCHORED and severity block. It ACCEPTS the
+      same identity on `kind_: review`, and accepts `run: ""` nowhere.
+
+  - id: grandfathered-not-rewritten
+    statement: |
+      No file under `attestations/` is modified by this decision. All
+      765 tracked attestations remain parseable and loadable, because
+      the store loader (`lib/attestations/attestations.ml`) calls
+      `Codec.parse_attestation` and never these validators -- the same
+      separation the sibling MC-MATERIALS-DIGEST-EMPTY rule uses. The
+      62 untagged and 58 unanchored files are left exactly as
+      committed, inventoried here, and pinned by
+      `tests/producer_vocab.ml::test_grandfathered_backlog_is_pinned`.
+
+  - id: the-gap-is-stated-not-papered
+    statement: |
+      The decision records as an explicit `unknown` that a `human:`
+      tag cannot be verified, enumerates the consequence, and names
+      the substrate change (key separation) that would close it,
+      together with the reversal signal that would trigger it. No
+      diagnostic and no schema text asserts that a `human:` tag is
+      true.
+
+  - id: verdicts-unchanged
+    statement: |
+      No gate, self-check, or assess verdict changes. Both validators
+      are dispatched only from `mathc validate`; `bin/Mathc.ml::`
+      `do_self_check` and the gate path load the store through
+      `Attestations.load` and never call them, which is verified by
+      grep for the call sites rather than asserted.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+assumptions:
+  - id: human-tag-is-not-verifiable
+    state: unknown
+    epistemic_marker: unknown
+    statement: |
+      Nothing in this repository can establish that a `human:` identity
+      was typed by a person. 0 of the 765 tracked attestations carry
+      a `signature` block, so there is no key_id, no key registry, and
+      no trust anchor to compare a claim against. The schema constrains
+      the SHAPE of the claim and forces the runtime anchor to be
+      named; it does not and cannot authenticate the claim.
+    owner: human:maintainer
+    consequence_if_false: |
+      If this unknown is wrong -- if some out-of-band mechanism does
+      bind identities to humans -- then (1) the 90 misattributed files
+      are a live integrity incident rather than a labelling debt, and
+      the investigation belongs in the security track, not here;
+      (2) rule (b) is a weaker duplicate of that mechanism and should
+      be relaxed to avoid double-penalising honest producers;
+      (3) the grandfathered 58 should be re-triaged as tampering.
+      None of the three is derivable from this repository, which is
+      precisely why the marker is `unknown` and not `judgment`.
+    review_on:
+      - signal: first-signed-attestation-committed
+        date: "2026-10-23"
+  - id: anchored-claims-are-more-auditable-than-unanchored
+    state: assumed
+    epistemic_marker: hypothesis
+    confidence: 0.75
+    statement: |
+      Requiring `producer.run` on a `human:` runtime claim raises the
+      cost of the cheap forgery (name a person, assert a test passed)
+      because the claim now names a command that `mathc verify`
+      executes. It does not make forgery impossible, and the residual
+      risk is an agent that names a real command whose output does not
+      in fact justify the recorded result.
+    owner: human:maintainer
+    consequence_if_false: |
+      If naming a run changes nothing about what gets caught -- if
+      verifiers are skipped or ignored in practice -- then rule (b)
+      is ceremony and the store is no better off than before, except
+      that it now records a run string it never checks. Measured
+      executable coverage after commit 9c1f7ab was 860 of 1504
+      (57.2%); the remaining 634 Skipped are the population where
+      this assumption is weakest.
+    review_on:
+      - signal: verifier-execution-coverage-regresses
+        date: "2026-10-23"
+
+risk:
+  declared_triggers:
+    - brownfield-repos-carry-untagged-producer-identities
+    - adopters-currently-emit-ci-bot-without-a-class-tag
+    - maintainers-want-human-on-review-rejected-too
+  owner: human:maintainer
+relations:
+  addresses:
+    - verify-path-forms-and-signed-attestations-2026-10
+  refines:
+    - kernel-bugs-v3.4-2026-10
+  supersedes: []
+  superseded_by: []
+
+obligations:
+  - id: producer-rule-pinned-by-tests
+    outcome: identity-must-declare-a-class
+    claim: |
+      The Alcotest suite pins both rules: an untagged identity is
+      rejected, a `human:` runtime claim without a run is rejected,
+      a named run is accepted, `run: ""` is not a run, `human:` on
+      `kind_: review` is accepted, and `ci:`/`agent:` producers are
+      untouched. The suite also walks the live store and fails if any
+      class-tagged identity in the corpus is rejected by the kernel.
+    acceptance:
+      all:
+        - verifier: tests/producer_vocab.ml::test_untagged_identities_are_not_classes
+          result: pass
+        - verifier: tests/producer_vocab.ml::test_human_runtime_kind_needs_a_run
+          result: pass
+        - verifier: tests/producer_vocab.ml::test_human_review_needs_no_run
+          result: pass
+        - verifier: tests/producer_vocab.ml::test_every_tagged_corpus_identity_is_accepted
+          result: pass
+
+  - id: positive-and-negative-fixtures
+    outcome: human-runtime-claim-must-be-anchored
+    claim: |
+      The conformance suite carries a positive and a negative fixture
+      for each rule:
+      `positive-human-review.json` and
+      `positive-human-runtime-anchored.json` are accepted;
+      `negative-untagged-producer.json` and
+      `negative-human-runtime-unanchored.json` are rejected.
+      I13 fixture coverage requires a pair per kernel-enforced MUST.
+    acceptance:
+      all:
+        - verifier: tests/conformance.ml
+          result: pass
+        - verifier: file-exists
+          path: fixtures/conformance/attestation/negative-untagged-producer.json
+          result: pass
+        - verifier: file-exists
+          path: fixtures/conformance/attestation/positive-human-runtime-anchored.json
+          result: pass
+
+  - id: corpus-remains-loadable
+    outcome: grandfathered-not-rewritten
+    claim: |
+      All 765 tracked attestations still parse and load, and no file
+      under `attestations/` is touched by this change. The grandfathered
+      backlog is measured and pinned, so it cannot drift unnoticed.
+    acceptance:
+      all:
+        - verifier: tests/producer_vocab.ml::test_grandfathered_backlog_is_pinned
+          result: pass
+        - verifier: tests/store_admission.ml
+          result: pass
+
+  - id: the-limit-is-recorded
+    outcome: the-gap-is-stated-not-papered
+    claim: |
+      The unverifiability of a `human:` tag is recorded as an
+      explicit `unknown` assumption with an owner, a consequence-if-false
+      enumeration, and a review signal -- and both new diagnostics
+      carry `mathc explain-diagnostic` entries that say so.
+    acceptance:
+      all:
+        - verifier: scripts/dev ready
+          result: pass
+
+  - id: no-verdict-change
+    outcome: verdicts-unchanged
+    claim: |
+      Gate, self-check and assess verdicts are unchanged: both
+      validators are reached only from `mathc validate`.
+    acceptance:
+      all:
+        - verifier: scripts/dev ready
+          result: pass
+
+reversal:
+  - signal: first-signed-attestation-committed
+    condition: |
+      The first attestation carrying a real DSSE `signature` block
+      with a `key_id` lands in the store. At that point a key
+      registry exists and a `human:` claim can be checked against a
+      key class rather than merely shaped.
+    action: rework
+    recovery: |
+      Promote `identity-must-declare-a-class` from "the claim is
+      well-shaped" to "the claim is bound to a key whose class is
+      human", keep rule (b) for producers with no signature, and
+      re-triage the 58 grandfathered files as a possible integrity
+      incident rather than a labelling debt. The assumption
+      `human-tag-is-not-verifiable` flips out of `unknown` at that
+      point and its consequence list is executed in full.
+
+  - signal: adopters-cannot-emit-a-tagged-identity
+    condition: |
+      A brownfield adopter's existing tooling writes `producer.identity`
+      values with no class tag and cannot be changed without rewriting
+      their evidence store.
+    action: rework
+    recovery: |
+      Relax `MC-PRODUCER-CLASS-UNDECLARED` from Block to Warn and keep
+      MC-PRODUCER-HUMAN-UNANCHORED at Block. Rule (b) is the one that
+      closes the upgrade path; the class tag is hygiene, and hygiene
+      is the right thing to relax first.
+
+  - signal: verifier-execution-coverage-regresses
+    condition: |
+      Executable-verifier coverage falls back below its post-9c1f7ab
+      level of 860 of 1504, so a named `producer.run` is recorded but
+      rarely executed.
+    action: rework
+    recovery: |
+      Rule (b) becomes ceremony. Either restore coverage or demote
+      MC-PRODUCER-HUMAN-UNANCHORED to Warn and record in this
+      decision's assumptions that the anchoring requirement is
+      declarative only.

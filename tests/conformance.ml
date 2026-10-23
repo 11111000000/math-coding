@@ -284,11 +284,28 @@ let[@warning "-32"] parse_decision_for_fixture path =
   | Some _ -> Reject
   | exception Jsonl.Parse_error _ -> Reject
 
+(* An attestation fixture is Accept only if it parses AND clears both
+   enforced validators. Running the validators here is what makes the
+   `negative-` prefix mean something: `parse_attestation` is
+   deliberately lenient (the store loader depends on it reading the
+   committed corpus), so a parse-only dispatch would accept every
+   well-formed file and the negative attestation fixtures could never
+   be rejected by anything.
+   Per decisions/attestation-producer-vocab-2026-10 the producer
+   validator runs after the materials validator, so a fixture that
+   violates both reports the digest defect first -- the weaker claim,
+   fixed first. *)
 let[@warning "-32"] parse_attestation_for_fixture path =
   let v = load_fixture path in
   match Codec.parse_attestation v with
-  | Some _ -> Accept
   | None -> Reject
+  | Some a -> (
+      match Codec.validate_attestation_materials a with
+      | Some _ -> Reject
+      | None -> (
+          match Codec.validate_attestation_producer a with
+          | Some _ -> Reject
+          | None -> Accept))
   | exception Jsonl.Parse_error _ -> Reject
 
 let[@warning "-32"] parse_waiver_for_fixture path =
