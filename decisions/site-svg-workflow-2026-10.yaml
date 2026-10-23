@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-workflow-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:a8683704df7a956bb79e1848e1b02cdb06cf09688474aecc0f23bdf071672755"
-yaml_sha: "sha256:a8683704df7a956bb79e1848e1b02cdb06cf09688474aecc0f23bdf071672755"
+body_sha: "sha256:a8283b38ce09ec9649be47ae86fd7d3fc3c2681c0d8fb61d78503d122383ef00"
+yaml_sha: "sha256:a8283b38ce09ec9649be47ae86fd7d3fc3c2681c0d8fb61d78503d122383ef00"
 axiom_link:
   - A3
 intent: |
@@ -146,7 +146,7 @@ obligations:
       source level.
     acceptance:
       all:
-        - verifier: file-exists dist/assets/bootstrap-timeline.svg
+        - verifier: manual-rendered-asset-assets-bootstrap-timeline
           result: pass
         - verifier: manual-grep-le-role-img-aria-labelledby-assets-bootstra
           result: pass

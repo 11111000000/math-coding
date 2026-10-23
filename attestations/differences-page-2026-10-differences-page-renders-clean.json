@@ -1,16 +1,1 @@
-{
-  "id": "sha256:b9a397fce567eecb85c23a78b926a6502a0e87871886621c3bf14040d6481e41",
-  "issued_at": "2026-10-15T13:25:00Z",
-  "kind": "attestation",
-  "kind_": "review",
-  "producer": {"identity": "human:maintainer"},
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "differences-page-2026-10",
-    "materials_digest": "",
-    "obligation": "differences-page-renders-clean"
-  },
-  "evidence": "After site/differences.{md,ru.md,zh.md} and scripts/render.sh allowlist extension land, `mathc render --out dist --lang=all` produces 179 pages including dist/differences.html, dist/differences.ru.html, dist/differences.zh.html; the [4/4] verify pass in scripts/render.sh reports 'render OK' with no MISSING line for the differences files; the new pages carry the navigation link 'Differences' (en), 'Отличия' (ru), '区别' (zh) in dist/index.html / dist/index.ru.html / dist/index.zh.html respectively."
-}
+{"id":"sha256:6d99ee2e828d4dd0fd73706e93302cc0eb6ec6d5055a1052a0c93862b601017f","issued_at":"2026-10-23T22:13:07Z","kind":"attestation","kind_":"review","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"d8de40c840264a0c133e0543eefc9d07f62bd8f2","decision":"differences-page-2026-10","materials_digest":"sha256:1caa96e048ac2cf36c764031cf49e0f0e756d5e11a8c23f01035c92c165a9fa2","obligation":"differences-page-renders-clean"}}

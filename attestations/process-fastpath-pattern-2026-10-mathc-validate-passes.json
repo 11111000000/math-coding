@@ -1,17 +1,1 @@
-{
-  "id": "sha256:2e72a72101ad38e3b70ecd521a96b4a950095b47262c4929f2f78b2b709b8f92",
-  "issued_at": "2026-10-19T20:33:03Z",
-  "kind": "attestation",
-  "kind_": "review",
-  "producer": {
-    "identity": "human:maintainer"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "process-fastpath-pattern-2026-10",
-    "materials_digest": "",
-    "obligation": "mathc-validate-passes"
-  }
-}
+{"id":"sha256:a95fd83b0b89083e29b0d0150a8178831ede1071686c8edd04ccf163a1c2f969","issued_at":"2026-10-23T22:13:07Z","kind":"attestation","kind_":"review","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"d8de40c840264a0c133e0543eefc9d07f62bd8f2","decision":"process-fastpath-pattern-2026-10","materials_digest":"sha256:b65a570342d2d70b38a4fb51ae9cb105422ff101b26967dfac24ada04bddf9e1","obligation":"mathc-validate-passes"}}

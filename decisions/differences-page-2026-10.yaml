@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: differences-page-2026-10
 revision: 1
 state: active
-body_sha: "sha256:6f7e8d1a00fdd0978fc0286b32bbb949992f2f94a3a50dd1a3c15f89d06a0e42"
-yaml_sha: "sha256:6f7e8d1a00fdd0978fc0286b32bbb949992f2f94a3a50dd1a3c15f89d06a0e42"
+body_sha: "sha256:2d67e85286568d1e0776ec18b521f4a61a8086b6655d8071ffe9b542dea611fe"
+yaml_sha: "sha256:2d67e85286568d1e0776ec18b521f4a61a8086b6655d8071ffe9b542dea611fe"
 axiom_link:
   - A0
   - A1
@@ -117,7 +117,7 @@ obligations:
       regresses from `Pass` to `Fail` or `Unknown`.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-unqualified
+        - verifier: mathc-self-check
           result: pass
 
   - id: render-sh-emits-dashboard-and-graph-artefacts

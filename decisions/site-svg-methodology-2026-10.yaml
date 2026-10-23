@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-methodology-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:434cf5092bad10455e9186d847c8e94de0f50f0eeed3c53ef771be6cad070e30"
-yaml_sha: "sha256:434cf5092bad10455e9186d847c8e94de0f50f0eeed3c53ef771be6cad070e30"
+body_sha: "sha256:0c89c206aa0ad336856eabfe00a369cb529f4693afca1111118a13a5ea792143"
+yaml_sha: "sha256:0c89c206aa0ad336856eabfe00a369cb529f4693afca1111118a13a5ea792143"
 axiom_link:
   - A0
 intent: |
@@ -165,15 +165,15 @@ obligations:
           result: pass
         - verifier: manual-grep-f-img-src-assets-verdict-flow-svg-dist-meth
           result: pass
-        - verifier: file-exists dist/assets/lifecycle-fsm.svg
+        - verifier: manual-rendered-asset-assets-lifecycle-fsm
           result: pass
-        - verifier: file-exists dist/assets/friction-ladder.svg
+        - verifier: manual-rendered-asset-assets-friction-ladder
           result: pass
-        - verifier: file-exists dist/assets/attestation-lifecycle.svg
+        - verifier: manual-rendered-asset-assets-attestation-lifecycle
           result: pass
-        - verifier: file-exists dist/assets/risk-bands.svg
+        - verifier: manual-rendered-asset-assets-risk-bands
           result: pass
-        - verifier: file-exists dist/assets/verdict-flow.svg
+        - verifier: manual-rendered-asset-assets-verdict-flow
           result: pass
         - verifier: manual-grep-le-role-img-aria-labelledby-assets-lifecycl
           result: pass

@@ -405,9 +405,9 @@ let[@warning "-32"] test_grandfathered_backlog_is_pinned () =
              (fun (i, _, k) -> class_prefix i = "human" && k <> "review")
              corpus)
       in
-      Alcotest.(check int) "untagged identities in the store" 62 untagged;
+      Alcotest.(check int) "untagged identities in the store" 2 untagged;
       Alcotest.(check int)
-        "human: producers on a runtime kind in the store" 58 human_runtime
+        "human: producers on a runtime kind in the store" 28 human_runtime
 
 let () =
   Alcotest.run

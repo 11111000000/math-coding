@@ -1,18 +1,1 @@
-{
-  "evidence": "assets/site.js#updateLiveCounters reads data-mathc-package-count, data-mathc-pass-count, data-mathc-unknown-count, data-mathc-fail-count from the package-grid wrapper and rewrites the hero .meta paragraph on dist/index.html and dist/index.ru.html with the live numbers; the kernel emits all four attributes on the wrapper.",
-  "id": "sha256:3fce79d0217c29e8e434a41ee19820e4e83a0be1f1c9a65819bd6c3ef50cc6ce",
-  "issued_at": "2026-10-12T14:30:00Z",
-  "kind": "attestation",
-  "kind_": "test",
-  "producer": {
-    "identity": "agent:opencode:site-quality-polish-2026-10"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "site-quality-polish-2026-10",
-    "materials_digest": "",
-    "obligation": "live-verdict-counter-emits"
-  }
-}
+{"id":"sha256:ea94e5c3edba4e5fb0846d7879ed0997f91e4b7bbb40c073d5c5d0f84846f07e","issued_at":"2026-10-23T22:13:07Z","kind":"attestation","kind_":"test","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"d8de40c840264a0c133e0543eefc9d07f62bd8f2","decision":"site-quality-polish-2026-10","materials_digest":"sha256:d1d78db243116f66207d4e02d30a0f9a3e6c95500bb9d38424b48f36e41bf8fe","obligation":"live-verdict-counter-emits"}}

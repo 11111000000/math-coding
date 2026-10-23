@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-illustrations-2026-10
 revision: 1
 state: active
-body_sha: "sha256:4c6a9fd35c1324b3726b5a293b146d6fc154f3afb8ac6636e46d951c74b3d510"
-yaml_sha: "sha256:4c6a9fd35c1324b3726b5a293b146d6fc154f3afb8ac6636e46d951c74b3d510"
+body_sha: "sha256:5628b7c4a0629e343d3cfa542b9d169a1c39cfba00f9abc0e558b3b5882504b9"
+yaml_sha: "sha256:5628b7c4a0629e343d3cfa542b9d169a1c39cfba00f9abc0e558b3b5882504b9"
 axiom_link:
   - A2
 intent: |
@@ -147,7 +147,7 @@ obligations:
       `site-quality-polish-2026-10@1`.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-unqualified
+        - verifier: mathc-self-check
           result: pass
 
 reversal:

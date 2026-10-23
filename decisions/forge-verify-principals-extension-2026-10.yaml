@@ -5,8 +5,8 @@ revision: 1
 state: draft
 parents:
   - forge-principal-verification@1
-body_sha: "sha256:a2ceeff77038b0e8cf188f4bda761962a634c45e32a192c1a8e14ee19b2db212"
-yaml_sha: "sha256:a2ceeff77038b0e8cf188f4bda761962a634c45e32a192c1a8e14ee19b2db212"
+body_sha: "sha256:4b6314add21db8936d62909bbde2c39115e0071bd2250de954876b1cceebf5be"
+yaml_sha: "sha256:4b6314add21db8936d62909bbde2c39115e0071bd2250de954876b1cceebf5be"
 axiom_link:
   - A1
   - A4
@@ -208,7 +208,7 @@ obligations:
           result: pass
         - verifier: tests/cli/forge-verify.t
           result: pass
-        - verifier: manual-mathc-validate-unqualified
+        - verifier: mathc-validate
           result: pass
 
   - id: principal-override-cli

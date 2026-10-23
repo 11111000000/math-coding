@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-distribution-2026-10
 revision: 1
 state: active
-body_sha: "sha256:6907f69afa4c0bbf73cdf964dddb36bbca9ebe2f9613cc17a0e3a5f3b633aa4d"
-yaml_sha: "sha256:6907f69afa4c0bbf73cdf964dddb36bbca9ebe2f9613cc17a0e3a5f3b633aa4d"
+body_sha: "sha256:6a53de4407c7efec93fab72c7a4f5cf4001e63309413bf1b5175cdedd13c1c3d"
+yaml_sha: "sha256:6a53de4407c7efec93fab72c7a4f5cf4001e63309413bf1b5175cdedd13c1c3d"
 axiom_link:
   - A1
 intent: |
@@ -128,7 +128,7 @@ obligations:
       subjects).
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-unqualified
+        - verifier: mathc-self-check
           result: pass
 
 reversal:

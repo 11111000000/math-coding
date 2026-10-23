@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:bfa33a44e66ffb1aa895afc55c7da6ea893faf4ec95cdd3e3bd90fdc107c5a93"
-yaml_sha: "sha256:bfa33a44e66ffb1aa895afc55c7da6ea893faf4ec95cdd3e3bd90fdc107c5a93"
+body_sha: "sha256:520b387d679616cc466400b3baf8d23d1cee5e7ad358551f7273d88cd8283b71"
+yaml_sha: "sha256:520b387d679616cc466400b3baf8d23d1cee5e7ad358551f7273d88cd8283b71"
 
 intent: |
   Convert the 9 recommendations from the 2026-10-17 adoption
@@ -289,7 +289,7 @@ obligations:
       subjects attributable to this plan.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
   - id: discriminator-findings-recorded

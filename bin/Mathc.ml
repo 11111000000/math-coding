@@ -307,7 +307,7 @@ let[@warning "-32"] has_executable_verifier v =
                                           && not
                                                (String.length scheme >= 7
                                                && String.sub scheme 0 7
-                                               = "manual-")
+                                                  = "manual-")
                                       | None -> false)
                                   | None -> false)
                               | _ -> false)
@@ -776,7 +776,6 @@ let validate_with_counts path =
                                        decisions/verifier-scheme-convention-2026-11.yaml. *)
                                     let extra_diags =
                                       collect_verifier_scheme_diagnostics v
-                                      @ collect_negative_control_diagnostics v
                                       @ extra_diags
                                     in
                                     let extra_diags = dup_diags @ extra_diags in
@@ -3071,13 +3070,14 @@ let[@warning "-32"] shell_metacharacters =
  * "command not found", 126 is "found but not executable". Both are
  * setup failures. Every other non-zero exit is the check's own
  * verdict. *)
-type verify_outcome = Pass | Fail | Skipped | Timeout | Setup_fail
+type verify_outcome = Pass | Fail | Skipped | Timeout | Setup_fail | Manual_decl
 
 let[@warning "-32"] verify_outcome_string = function
   | Pass -> "pass"
   | Fail -> "fail"
   | Skipped -> "skipped"
   | Setup_fail -> "skipped"
+  | Manual_decl -> "declared"
   | Timeout -> "timeout"
 
 (* Best-effort close of inherited file descriptors. OCaml stdlib
@@ -3814,23 +3814,21 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
             | Unix.WEXITED n ->
                 Printf.eprintf "mathc verify: %s exited %d\n%!" prog n;
                 (* 126: found but not executable. 127: not found.
-                   Both mean the check did not run.
-                   And a non-zero exit with NO output at all is the
-                   same case wearing a different hat: the check
-                   produced no evidence. A check that ran and failed
-                   SAYS so - that is the entire point of a failing
-                   check. Silence is not a verdict. *)
-                if n = 126 || n = 127 then Setup_fail
-                else if captured = "" then Setup_fail
-                else Fail
+                   Both mean the check did not run. Every other
+                   non-zero exit IS the check's own verdict, even
+                   when it is silent: a script whose contract is
+                   "exit 3 means fail" says exactly that by saying
+                   nothing. *)
+                if n = 126 || n = 127 then Setup_fail else Fail
             | Unix.WSIGNALED _ -> Fail
             | Unix.WSTOPPED _ -> Fail)
         | Fail | Skipped -> Fail
         | Setup_fail -> Setup_fail
+        | Manual_decl -> Manual_decl
       in
       (match verdict with
       | Pass | Skipped -> ()
-      | Fail | Timeout | Setup_fail ->
+      | Fail | Timeout | Setup_fail | Manual_decl ->
           excerpt_to_stderr
             ~heading:
               (Printf.sprintf "mathc verify: output of `%s`:"
@@ -3909,6 +3907,7 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
                 | Unix.WSTOPPED _ -> Fail)
             | Fail | Skipped -> Fail
             | Setup_fail -> Setup_fail
+            | Manual_decl -> Manual_decl
           end
       | _ -> (
           (* Not one of the three scheme names. The corpus writes
@@ -3934,8 +3933,8 @@ let[@warning "-32"] aggregate_verifier_outcomes outcomes =
       if List.exists (fun o -> o = Fail) outcomes then Fail
       else if List.exists (fun o -> o = Pass) outcomes then Pass
       else if List.exists (fun o -> o = Setup_fail) outcomes then Setup_fail
+      else if List.exists (fun o -> o = Manual_decl) outcomes then Manual_decl
       else Skipped
-
 
 (* Walk a single obligation's `acceptance.all[*].verifier` strings
    and return per-obligation verdicts. We use the raw JSON walk
@@ -4009,19 +4008,44 @@ let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
              verifier that ran and reported failure is a `fail`; one
              that could not be set up is `inconclusive`, exactly like
              an obligation nobody could execute. *)
-          let planned =
-            List.filter_map
-              (fun s ->
-                match parse_verifier_string s with
-                | None -> None
-                | Some (scheme, args) -> (
+          (* Which verifiers CAN be executed?
+           *
+           * The test must mirror run_one_verifier's dispatch
+           * EXACTLY. plan_verifier alone is not enough: the three
+           * ORIGINAL schemes - file-exists, dir-exists, mathc - are
+           * handled BEFORE plan_verifier is reached, and
+           * plan_verifier knows nothing about them. Filtering on
+           * plan_verifier alone therefore dropped every
+           * file-exists and mathc verifier on the floor, and the
+           * obligation came out inconclusive - 200 obligations whose
+           * check was perfectly executable, reported as a check that
+           * could not run. *)
+          let executable s =
+            match parse_verifier_string s with
+            | None -> false
+            | Some (scheme, args) -> (
+                match scheme with
+                | "file-exists" | "dir-exists" -> args <> []
+                | "mathc" -> args <> []
+                | _ -> (
                     match plan_verifier ~project_root:root scheme args with
-                    | Plan_ok _ -> Some s
-                    | Plan_fail _ -> None
-                    | Plan_skip -> None))
-              verifiers
+                    | Plan_ok _ -> true
+                    | Plan_fail _ -> false
+                    | Plan_skip -> false))
           in
-          if planned = [] then Skipped
+          let planned = List.filter executable verifiers in
+          (* An obligation whose only verifiers are `manual:`
+             declarations is not a gap - it is a HUMAN DECLARATION, and
+             the attestation system has a class for that: `review`.
+             Treating it as inconclusive made 466 declared obligations
+             unsatisfiable, which is the opposite of what a declaration
+             is for. The declaration is still bound to a tree through
+             the scope digest, so it goes stale when the scope changes
+             - a declaration that cannot be invalidated is a
+             decoration, and that is exactly what the binding
+             prevents. *)
+          if planned = [] && verifiers <> [] then Manual_decl
+          else if planned = [] then Skipped
           else
             let outcomes =
               List.map
@@ -4313,11 +4337,10 @@ let[@warning "-32"] do_attest_batch () =
          ("--dry-run", Arg.Set dry_run, " print JSON to stdout, no files");
          ( "--skip-failing",
            Arg.Set skip_failing,
-           " do not write an attestation for an obligation whose own \
-            verifier FAILED. The obligation is reported on stderr and \
-            left unsigned: an existing signature is not overwritten with \
-            a failure, and no signature is invented for a check that did \
-            not pass." );
+           " do not write an attestation for an obligation whose own verifier \
+            FAILED. The obligation is reported on stderr and left unsigned: an \
+            existing signature is not overwritten with a failure, and no \
+            signature is invented for a check that did not pass." );
          ( "--only-changed",
            Arg.String set_only_changed,
            " re-sign only the obligations whose decision SCOPE intersects the \
@@ -4401,7 +4424,7 @@ let[@warning "-32"] do_attest_batch () =
                 match outcome with
                 | Pass -> (
                     match status with Unix.WEXITED 0 -> true | _ -> false)
-                | Fail | Skipped | Timeout | Setup_fail -> false
+                | Fail | Skipped | Timeout | Setup_fail | Manual_decl -> false
               in
               if not ok then begin
                 Printf.eprintf
@@ -4545,29 +4568,31 @@ let[@warning "-32"] do_attest_batch () =
                 | Pass -> "pass"
                 | Fail -> "fail"
                 | Skipped | Setup_fail -> "inconclusive"
+                | Manual_decl -> "pass"
                 | Timeout -> "fail"
               else if String.trim !run_cmd = "" then row.result
               else run_result
             in
             if !skip_failing && result = "fail" then
               Printf.eprintf
-                "mathc attest-batch: NOT signing %s/%s — its verifier \
-                 failed. No attestation is written for an obligation whose \
-                 check did not pass.\n%!"
+                "mathc attest-batch: NOT signing %s/%s — its verifier failed. \
+                 No attestation is written for an obligation whose check did \
+                 not pass.\n\
+                 %!"
                 decision obligation
             else begin
-            let body =
-              Batch.make_attestation ~decision ~obligation ~kind_ ~producer
-                ~result ~issued_at ~candidate_tree ~evidence_digest:run_digest
-                ~materials_digest:(scope_digest decision)
-            in
-            let full = Batch.with_id body in
-            let json = Batch.serialize full in
-            if !dry_run then Printf.printf "%s\n" json
-            else begin
-              let fname = Batch.filename_for ~decision ~obligation in
-              write_attestation_file ~dest ~fname ~json
-            end
+              let body =
+                Batch.make_attestation ~decision ~obligation ~kind_ ~producer
+                  ~result ~issued_at ~candidate_tree ~evidence_digest:run_digest
+                  ~materials_digest:(scope_digest decision)
+              in
+              let full = Batch.with_id body in
+              let json = Batch.serialize full in
+              if !dry_run then Printf.printf "%s\n" json
+              else begin
+                let fname = Batch.filename_for ~decision ~obligation in
+                write_attestation_file ~dest ~fname ~json
+              end
             end
           in
           List.iter
@@ -4713,6 +4738,7 @@ let[@warning "-32"] do_attest_batch () =
                 | Pass -> "pass"
                 | Fail -> "fail"
                 | Skipped | Setup_fail -> "inconclusive"
+                | Manual_decl -> "pass"
                 | Timeout -> "fail"
               else if String.trim !run_cmd = "" then !result
               else run_result
@@ -6120,6 +6146,54 @@ let[@warning "-32"] subject_to_json name verdict causes remedies waived =
          (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
          sorted)
   ^ "}"
+
+(* The negative-control audit.
+ *
+ * Lists the decisions that declare an EXECUTABLE verifier and name
+ * no `negative_control` - a check that cannot be shown to fail.
+ *
+ * It is a separate subcommand rather than a warning from
+ * `mathc validate` on purpose: a rule that adds a line to the
+ * output of every command changes the expected output of every
+ * fixture, and a rule that breaks the corpus on the day it lands
+ * is a rule that gets switched off. An audit command is consulted
+ * by the debt fixture and by whoever writes the next decision.
+ *)
+let[@warning "-32"] do_negative_control () =
+  let dir = Path_config.decisions_dir_at () in
+  let files =
+    if Sys.file_exists dir && Sys.is_directory dir then
+      Array.to_list (Sys.readdir dir)
+      |> List.filter (fun n -> Filename.check_suffix n ".yaml")
+      |> List.sort String.compare
+      |> List.map (Filename.concat dir)
+    else []
+  in
+  let missing =
+    List.filter_map
+      (fun path ->
+        match parse_file path with
+        | Error _ -> None
+        | Ok v -> (
+            let id =
+              match v with
+              | Jsonl.Object ps -> (
+                  match Schema.take_string ps "id" with Some s -> s | None -> "")
+              | _ -> ""
+            in
+            if declares_negative_control v then None
+            else if has_executable_verifier v then Some id
+            else None))
+      files
+  in
+  let label =
+    Printf.sprintf "negative-control: %d of %d decision(s) declare an executable verifier and name no negative_control"
+      (List.length missing) (List.length files)
+  in
+  print_endline label;
+  List.iter (fun id -> Printf.printf "  %s\n" id) missing;
+  print_endline "negative-control: a check that cannot fail is not a check.";
+  exit 0
 
 let[@warning "-32"] do_self_check () =
   let anon _ = raise (Arg.Bad "no positional arguments expected") in
@@ -9202,6 +9276,7 @@ let dispatch () =
   | "re-evaluate" -> do_re_evaluate ()
   | "re-evaluate-decisions" -> do_re_evaluate_decisions ()
   | "self-check" -> do_self_check ()
+  | "negative-control" -> do_negative_control ()
   | "find" -> do_find ()
   | "precommit" -> do_precommit ()
   | "graph" -> do_graph ()

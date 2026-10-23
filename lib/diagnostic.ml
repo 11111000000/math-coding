@@ -1079,23 +1079,22 @@ let code s = s
 let mc_negative_control_missing ?(decision_id = "") ?(next_actions = []) () =
   let code = "MC-NEGATIVE-CONTROL-MISSING" in
   let prefix =
-    if decision_id = "" then ""
-    else Printf.sprintf "decision %s: " decision_id
+    if decision_id = "" then "" else Printf.sprintf "decision %s: " decision_id
   in
   let msg =
     Printf.sprintf
       "%sdeclares an executable verifier but names no `negative_control`. A \
        check that cannot fail is not a check: the negative control is the \
        fixture that demonstrates the verifier FAILS when the property it \
-       guards is broken. Without it, a fixture with teeth and a fixture \
-       that passes whatever happens are indistinguishable - both report \
-       green."
+       guards is broken. Without it, a fixture with teeth and a fixture that \
+       passes whatever happens are indistinguishable - both report green."
       prefix
   in
   let default_actions =
     [
       ( "add",
-        "negative_control: tests/fixtures/<name>.sh   # the fixture that fails when the property is broken" );
+        "negative_control: tests/fixtures/<name>.sh   # the fixture that fails \
+         when the property is broken" );
       ("run", "mathc validate decisions/<file>.yaml");
     ]
   in
@@ -1103,8 +1102,7 @@ let mc_negative_control_missing ?(decision_id = "") ?(next_actions = []) () =
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code ~kind:Input ~severity:Warn ~path:[ "negative_control" ]
-    ~policy_rule:
-      (Some "decisions/negative-control-required-2026-10.yaml")
+    ~policy_rule:(Some "decisions/negative-control-required-2026-10.yaml")
     ~next_actions:actions msg
 
 let explain (code : string) : string option =
@@ -1122,8 +1120,7 @@ let explain (code : string) : string option =
          ### Remediation\n\
          Add `negative_control: <path to a fixture>` naming the fixture\n\
          that demonstrates the verifier FAILS when the property it\n\
-         guards is broken. A check that cannot fail is not a check.\n\
-         "
+         guards is broken. A check that cannot fail is not a check.\n"
   | "MC-VERIFIER-SCHEME-UNKNOWN" ->
       Some
         "### Definition\n\

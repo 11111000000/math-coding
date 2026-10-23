@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: minimal
 change_kind: editorial
-body_sha: "sha256:bd7bcea7ae3a41a714c022533e8a346ae121cb86cbb020fa0bbd40fbb4f1accc"
-yaml_sha: "sha256:bd7bcea7ae3a41a714c022533e8a346ae121cb86cbb020fa0bbd40fbb4f1accc"
+body_sha: "sha256:d7889adceddca21c6f17d7d2c85223164d851b6d3f4e22a78d70cd2fd99bd488"
+yaml_sha: "sha256:d7889adceddca21c6f17d7d2c85223164d851b6d3f4e22a78d70cd2fd99bd488"
 
 axiom_link:
   - A0
@@ -129,7 +129,7 @@ obligations:
       commit is documentation-only.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
 risk:

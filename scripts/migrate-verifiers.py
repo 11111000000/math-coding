@@ -61,6 +61,16 @@ EXECUTABLE_PREFIXES = (
     "mathc ", "manual-",
 )
 
+# The two prefixes the re-evaluation oracle recognises as BUILT-IN
+# (bin/Mathc.ml::classify_verifier): `mathc-` and `kernel:`. A
+# verifier string that starts with one of them is not prose - it
+# names a kernel-level check that the oracle can classify. Moving
+# them to `manual:` would have DESTROYED that classification: the
+# fixture that pinned `kernel-unchanged` as `compatible` went to
+# `inconclusive` after the first migration pass, because
+# `mathc-self-check-verdict` had been demoted. They stay.
+BUILTIN_PREFIXES = ("mathc-", "kernel:")
+
 # Tautologies: a scheme name with no argument. These never could
 # fail, so they never proved anything.
 TAUTOLOGIES = {
@@ -80,12 +90,8 @@ MATHC_RE = re.compile(r"^mathc\s+([a-z][a-z0-9-]*)(\s+.*)?$")
 # mean anything. Used bare, they name nothing.
 KNOWN_BARE_SCHEMES = {
     "shell-grep", "grep", "rg", "git", "jq", "curl", "awk", "sed",
-    "mathc-self-check-verdict", "mathc-self-check-verdict-pass",
-    "mathc-self-check-no-new-unknowns", "mathc-self-check",
-    "mathc-validate", "contains-section", "file-grep-zero",
+    "contains-section", "file-grep-zero",
     "file-grep-non-zero", "git-no-paths",
-    "mathc-self-check-verdict-unchanged",
-    "mathc-validate-d8-decision-unchanged",
     "p6-pre-commit-verification",
     "p7-honesty-in-fixture-assertions",
     "nav-fits-developer-laptop",
@@ -134,6 +140,12 @@ def classify(value, decision_id, path_exists):
     if v.startswith(EXECUTABLE_PREFIXES):
         # The RAW text, not the stripped one: a value like
         # `bash -c '...'` must keep its quotes.
+        return (raw, "unchanged")
+
+    if v.startswith(BUILTIN_PREFIXES):
+        # A built-in kernel verifier. The oracle classifies these by
+        # prefix; demoting them to `manual:` would lose the
+        # classification.
         return (raw, "unchanged")
 
     m = MATHC_RE.match(v)

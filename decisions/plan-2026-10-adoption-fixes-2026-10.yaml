@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:675a5555276a4a25388c6ad6804921c5ce80859c6cdca80d9e8e65efb91af948"
-yaml_sha: "sha256:675a5555276a4a25388c6ad6804921c5ce80859c6cdca80d9e8e65efb91af948"
+body_sha: "sha256:eab131ac7f079c7cf70446e4cb2ac120fe752b1345f3c03a1f79cf6ba4563952"
+yaml_sha: "sha256:eab131ac7f079c7cf70446e4cb2ac120fe752b1345f3c03a1f79cf6ba4563952"
 
 intent: |
   Convert the 9 recommendations from the 2026-10-17 adoption
@@ -296,7 +296,7 @@ obligations:
       subjects attributable to this plan.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
   - id: plan-doc-counter-signed

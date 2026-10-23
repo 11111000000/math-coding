@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-foundations-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:3ef610c59f2bc9f45f4b9c0d3c6db7499bbfe2678c34772911b275b4b62d882e"
-yaml_sha: "sha256:3ef610c59f2bc9f45f4b9c0d3c6db7499bbfe2678c34772911b275b4b62d882e"
+body_sha: "sha256:47eb5c55e896c23f016244bec801f634cbda18f6ddbc48b96178565a74d5a854"
+yaml_sha: "sha256:47eb5c55e896c23f016244bec801f634cbda18f6ddbc48b96178565a74d5a854"
 axiom_link:
   - A2
 intent: |
@@ -181,21 +181,21 @@ obligations:
           result: pass
         - verifier: manual-grep-f-img-src-assets-waiver-state-machine-svg-d
           result: pass
-        - verifier: file-exists dist/assets/axiom-transition.svg
+        - verifier: manual-rendered-asset-assets-axiom-transition
           result: pass
-        - verifier: file-exists dist/assets/counterexample-flow.svg
+        - verifier: manual-rendered-asset-assets-counterexample-flow
           result: pass
-        - verifier: file-exists dist/assets/friction-envelope-plot.svg
+        - verifier: manual-rendered-asset-assets-friction-envelope-plot
           result: pass
-        - verifier: file-exists dist/assets/quality-radar.svg
+        - verifier: manual-rendered-asset-assets-quality-radar
           result: pass
-        - verifier: file-exists dist/assets/reasoning-budget.svg
+        - verifier: manual-rendered-asset-assets-reasoning-budget
           result: pass
-        - verifier: file-exists dist/assets/substrate-fingerprint.svg
+        - verifier: manual-rendered-asset-assets-substrate-fingerprint
           result: pass
-        - verifier: file-exists dist/assets/trust-dynamics.svg
+        - verifier: manual-rendered-asset-assets-trust-dynamics
           result: pass
-        - verifier: file-exists dist/assets/waiver-state-machine.svg
+        - verifier: manual-rendered-asset-assets-waiver-state-machine
           result: pass
         - verifier: manual-grep-le-role-img-aria-labelledby-assets-axiom-tr
           result: pass

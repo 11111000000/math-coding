@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: plan-2026-10-improvements
 revision: 1
 state: active
-body_sha: "sha256:33e5fd09518105d252e7463a20b4bd117944051b82f67139517b97303a14e723"
-yaml_sha: "sha256:33e5fd09518105d252e7463a20b4bd117944051b82f67139517b97303a14e723"
+body_sha: "sha256:b47661e8a2a299807d974ee0eb0479108b4aacea76a7d18274134c7f9874ddac"
+yaml_sha: "sha256:b47661e8a2a299807d974ee0eb0479108b4aacea76a7d18274134c7f9874ddac"
 intent: |
   Adopt the analysis-derived plan documented in chat 2026-10-07
   ("анализ math-coding как методологии"). The plan closes 14
@@ -447,7 +447,7 @@ obligations:
           result: pass
         - verifier: manual-decisions-plan-2026-10-improvements-t1-2-yaml-1-
           result: pass
-        - verifier: manual-mathc-self-check-verdict-pass-unqualified
+        - verifier: mathc-self-check-verdict-pass
           result: pass
 
   # ---- Tier 2 — decision parser & relation graph ----
@@ -492,7 +492,7 @@ obligations:
           result: pass
         - verifier: manual-decisions-plan-2026-10-improvements-t2-2-yaml-1-
           result: pass
-        - verifier: manual-mathc-self-check-verdict-pass-unqualified
+        - verifier: mathc-self-check-verdict-pass
           result: pass
 
   # ---- Tier 3 — gate unification ----
@@ -674,7 +674,7 @@ obligations:
           result: pass
         - verifier: manual-decisions-plan-2026-10-improvements-counterexamp
           result: pass
-        - verifier: manual-mathc-self-check-verdict-pass-unqualified
+        - verifier: mathc-self-check-verdict-pass
           result: pass
 
 reversal:

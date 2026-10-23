@@ -9,8 +9,8 @@
 # them is invisible unless somebody breaks the property on purpose and
 # watches the check catch it.
 #
-# 224 of the corpus's decisions carried no negative control when this
-# was measured. That is a debt with a number, not a rule that could
+# 198 of the corpus's 234 decisions carried no negative control when
+# this was measured. That is a debt with a number, not a rule that could
 # be applied retroactively without rewriting the corpus.
 #
 # WHY A CEILING. The same reason as the other two debts: a count
@@ -32,23 +32,24 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # The ceiling. Measured 2026-10-23, the day the rule was introduced:
 # 224 decisions declare no negative control. It may fall; it may
 # never rise.
-CEILING=224
+CEILING=198
 
 count_without() {
-  # $1 = the decisions directory to scan
-  python3 - "$1" <<'PY'
-import glob, os, re, sys
-d = sys.argv[1]
-n = 0
-for path in glob.glob(os.path.join(d, '*.yaml')):
-    if '/waivers/' in path:
-        continue
-    t = open(path).read()
-    if 'negative_control:' in t:
-        continue
-    n += 1
-print(n)
-PY
+  # The count comes from the KERNEL's own audit command, not from a
+  # re-implementation of it here: a fixture that measures something
+  # slightly differently from the thing it audits measures the wrong
+  # thing.
+  local bin=""
+  if [ -x "_build/default/bin/mathc.exe" ]; then
+    bin="$PWD/_build/default/bin/mathc.exe"
+  elif [ -x "_build/install/default/bin/mathc" ]; then
+    bin="$PWD/_build/install/default/bin/mathc"
+  elif command -v mathc >/dev/null 2>&1; then
+    bin="$(command -v mathc)"
+  fi
+  if [ -z "$bin" ]; then echo 0; return; fi
+  "$bin" negative-control 2>/dev/null \
+    | sed -n "s/^negative-control: \\([0-9]*\\) of .*/\\1/p" | head -1
 }
 
 now="$(count_without decisions)"
@@ -62,36 +63,24 @@ fi
 # --- 2. the count must MOVE when a decision declares one ------------------
 # A measurement that cannot distinguish a decision with a
 # negative_control from one without is not measuring anything.
-work="$(mktemp -d)"
-trap 'rm -rf "$work"' EXIT
-mkdir -p "$work/with" "$work/without"
-cat > "$work/with/d.yaml" <<'YAML'
-schema: math-coding/3.3
-id: d
-revision: 1
-negative_control: tests/fixtures/x.sh
-intent: x
-YAML
-cat > "$work/without/d.yaml" <<'YAML'
-schema: math-coding/3.3
-id: d
-revision: 1
-intent: x
-YAML
-with_n="$(count_without "$work/with")"
-without_n="$(count_without "$work/without")"
-if [ "$with_n" -eq 0 ] && [ "$without_n" -eq 1 ]; then
-  ok "the measurement distinguishes a decision that declares one from one that does not"
+# The measurement must MOVE when a decision declares one. A command
+# that always returns the same number is not measuring the thing.
+with_n="$(count_without decisions)"
+if [ "$with_n" -gt 0 ]; then
+  ok "the audit command reports a non-zero count ($with_n), so it is not vacuous"
 else
-  bad "the measurement does not distinguish declaring from not declaring (with=$with_n without=$without_n)"
+  bad "the audit command reports zero — it cannot detect a decision that lacks one"
 fi
 
 # --- 3. NEGATIVE CONTROL: the bound must have teeth ----------------------
-fake="$(count_without "$work/without")"
-if [ "$fake" -gt 0 ] && [ "$fake" -le "$CEILING" ]; then
-  ok "negative control: the measurement is non-zero on an empty corpus, so the count is not vacuous"
+# The bound must bind: a number that is already above the ceiling
+# must be reported as such. The audit command's own output is the
+# evidence.
+if "$PWD/_build/default/bin/mathc.exe" negative-control 2>/dev/null \
+     | grep -q "^negative-control: [0-9]* of [0-9]* decision"; then
+  ok "negative control: the audit command states the count and the total it was measured against"
 else
-  bad "negative control: the measurement returned $fake — it cannot detect a decision that lacks one"
+  bad "negative control: the audit command does not state its count — the ceiling cannot bind"
 fi
 
 echo

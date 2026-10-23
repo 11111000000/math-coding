@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:29d3dde754c8bb3fed4910af8350b32df3545eb304b725493d45d340dbb325a6"
-yaml_sha: "sha256:29d3dde754c8bb3fed4910af8350b32df3545eb304b725493d45d340dbb325a6"
+body_sha: "sha256:bebe2aefc1b2a3a5d9a044325ee6aedaa4467562b158d02778a0d280fd855333"
+yaml_sha: "sha256:bebe2aefc1b2a3a5d9a044325ee6aedaa4467562b158d02778a0d280fd855333"
 
 intent: |
   Close the 35 pre-existing `mathc validate` rejections that were
@@ -180,7 +180,7 @@ obligations:
       by the algorithm because the bodies changed).
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
   - id: b-counterexamples-filled

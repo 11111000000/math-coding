@@ -1,18 +1,1 @@
-{
-  "evidence": "dune build exits 0; mathc self-check on HEAD reports 58 pass / 3 unknown of 61 subjects; mathc render still produces 85 pages + 1 search index.",
-  "id": "sha256:51746ee94f58da976174cfbc26493e127451b504619adf7d4fa185445b18cd9c",
-  "issued_at": "2026-10-12T14:30:00Z",
-  "kind": "attestation",
-  "kind_": "build",
-  "producer": {
-    "identity": "agent:opencode:site-quality-polish-2026-10"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "site-quality-polish-2026-10",
-    "materials_digest": "",
-    "obligation": "build-and-self-check-still-green"
-  }
-}
+{"id":"sha256:face4330e9be470605cab5c20a8a5463a9899b9d11cb390832e6a2ac2f4b3543","issued_at":"2026-10-23T22:13:07Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"d8de40c840264a0c133e0543eefc9d07f62bd8f2","decision":"site-quality-polish-2026-10","materials_digest":"sha256:d1d78db243116f66207d4e02d30a0f9a3e6c95500bb9d38424b48f36e41bf8fe","obligation":"build-and-self-check-still-green"}}

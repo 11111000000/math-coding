@@ -4,8 +4,8 @@ id: import-junit-rename-2026-11
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:1776b8b512c598b619200dcd63e9d4d61b7b8df12ccc18d7eee1806d35c72398"
-yaml_sha: "sha256:1776b8b512c598b619200dcd63e9d4d61b7b8df12ccc18d7eee1806d35c72398"
+body_sha: "sha256:1de21caeaab1a068dc26b9ef91f57d12de23d051bbc4050ccf92a58faa4f77f1"
+yaml_sha: "sha256:1de21caeaab1a068dc26b9ef91f57d12de23d051bbc4050ccf92a58faa4f77f1"
 
 intent: |
   Distinguish "attest-as-JUnit-XML-importer" from
@@ -119,7 +119,7 @@ obligations:
       attributable to this commit.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
 counterexample: |

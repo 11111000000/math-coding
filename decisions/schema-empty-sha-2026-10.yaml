@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-empty-sha-2026-10
 revision: 3
 state: retired
-body_sha: "sha256:1b8df0d8e866cdcf9f5baa20cca7d65bca0808409b706ea30b1c9e2559d88c35"
-yaml_sha: "sha256:1b8df0d8e866cdcf9f5baa20cca7d65bca0808409b706ea30b1c9e2559d88c35"
+body_sha: "sha256:fbe1396f1841f714133ff213346a81f15f9017f0d88a406ebac141441a123ee9"
+yaml_sha: "sha256:fbe1396f1841f714133ff213346a81f15f9017f0d88a406ebac141441a123ee9"
 intent: |
   This decision recorded an interim approach (2026-10-05, rev 1-2):
   bring `schemas/decision.json` into alignment with the actual state
@@ -132,7 +132,7 @@ obligations:
       accept all 32 existing decision files.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-verdict-unqualified
+        - verifier: mathc-self-check-verdict
           result: pass
 
 reversal:

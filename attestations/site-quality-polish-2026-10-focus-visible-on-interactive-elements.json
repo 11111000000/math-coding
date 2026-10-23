@@ -1,18 +1,1 @@
-{
-  "evidence": "assets/style.css carries :focus-visible rule with 2px oxblood outline + 2px offset on a/button/.mathc-axiom-figure/.mathc-verdict-label; tabbing through dist/index.html, dist/axioms.html, dist/decisions/<id>.html leaves no link or pill without a visible focus ring (manual keyboard walk).",
-  "id": "sha256:074e084112c0963a5ab31bdbabe6fdd934ae2d250df4ef9de96abd79ad218906",
-  "issued_at": "2026-10-12T14:30:00Z",
-  "kind": "attestation",
-  "kind_": "review",
-  "producer": {
-    "identity": "agent:opencode:site-quality-polish-2026-10"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "site-quality-polish-2026-10",
-    "materials_digest": "",
-    "obligation": "focus-visible-on-interactive-elements"
-  }
-}
+{"id":"sha256:1be89db4f944b72d8f8b28d9ac8e94a915ca5bbab625c7e1076f14201e9b2b89","issued_at":"2026-10-23T22:13:07Z","kind":"attestation","kind_":"review","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"d8de40c840264a0c133e0543eefc9d07f62bd8f2","decision":"site-quality-polish-2026-10","materials_digest":"sha256:d1d78db243116f66207d4e02d30a0f9a3e6c95500bb9d38424b48f36e41bf8fe","obligation":"focus-visible-on-interactive-elements"}}

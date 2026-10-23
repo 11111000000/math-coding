@@ -115,6 +115,7 @@ subsequent runs of the same row).
 
   $ mathc attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
+  >   --run="printf probe" \
   >   --out="$MATH_CODING_ATTESTATIONS_DIR"
   wrote .test-math-coding/attestations/d1-onboarding-d1-obl-acceptance.json
   wrote .test-math-coding/attestations/d1-onboarding-d1-obl-noise.json

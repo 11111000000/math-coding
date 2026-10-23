@@ -4,10 +4,8 @@ id: attest-batch-manifest-run-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:812f2e8518e9298484351f698e7ce9e3b2a895ade671bed89150de806a347969"
-yaml_sha: "sha256:812f2e8518e9298484351f698e7ce9e3b2a895ade671bed89150de806a347969"
-
-negative_control: tests/fixtures/attest-batch-run-digest.sh
+body_sha: "sha256:290a4502117893112c7e0ea8d879314a3024ea8b387608aa3a7a530fb3935772"
+yaml_sha: "sha256:290a4502117893112c7e0ea8d879314a3024ea8b387608aa3a7a530fb3935772"
 
 intent: { source: "issue:attest-batch-manifest-ignores-run-2026-10-23", text: "mathc attest-batch --manifest=FILE --run=CMD --kind=test silently ignored --run: the manifest branch hardcoded materials_digest to the empty string and never executed the command, while the --from=decisions branch of the same subcommand honoured it. The same command therefore produced two different attestations, one of them carrying no runtime anchor at all." }
 

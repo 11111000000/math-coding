@@ -1,18 +1,1 @@
-{
-  "evidence": "render_footer takes sibling_href via sibling_translation_href; RU link only emitted when has_ru is true; index.html correctly shows index.ru.html while packages.html, decisions/, axioms/, spec/ hide it",
-  "id": "sha256:359ab662fbf5f2449aaaa3a1c51c689ae032b809ac3c40dabc0cf45f69c28406",
-  "issued_at": "2026-10-12T13:30:00Z",
-  "kind": "attestation",
-  "kind_": "test",
-  "producer": {
-    "identity": "agent:opencode:site-quality-2026-10"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "site-quality-2026-10",
-    "materials_digest": "",
-    "obligation": "footer-lang-toggle-only-with-ru-sibling"
-  }
-}
+{"id":"sha256:dd4cb31d18aa8de484ba3ff970f8b296f7917d8cfb28a222ebcbf93a2227ccb9","issued_at":"2026-10-23T22:13:07Z","kind":"attestation","kind_":"test","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"d8de40c840264a0c133e0543eefc9d07f62bd8f2","decision":"site-quality-2026-10","materials_digest":"sha256:1f5dda20382aabd4e74ffb89a11e06bf7def8801e238874accf5bc4ff4103d77","obligation":"footer-lang-toggle-only-with-ru-sibling"}}

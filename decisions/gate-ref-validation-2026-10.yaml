@@ -4,10 +4,8 @@ id: gate-ref-validation-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:d98ed44fe58504004badd3460a58576575196a5b99696124448d1042e6d27db3"
-yaml_sha: "sha256:d98ed44fe58504004badd3460a58576575196a5b99696124448d1042e6d27db3"
-
-negative_control: tests/fixtures/gate-ref-validation.sh
+body_sha: "sha256:6dc4d43cfb434101d839c89a51fcf04fa92a3d26f6bbd9e06b583ca10d639fac"
+yaml_sha: "sha256:6dc4d43cfb434101d839c89a51fcf04fa92a3d26f6bbd9e06b583ca10d639fac"
 
 intent: { source: "issue:gate-fails-open-on-bad-ref-2026-10-23", text: "mathc gate ran its diff through a helper that did not raise on git failure, so a mistyped BASE or HEAD produced an empty file list — the exact shape of 'nothing changed' — which the gate read as PASS. Measured: mathc gate nonexistent-ref-xyz HEAD returned verdict=pass, exit 0, with 137 gaps computed and discarded, while git printed 'fatal: ambiguous argument' on stderr. A CI misconfiguration was indistinguishable from a green merge." }
 

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:5e0936416172b11b9f6a2140bd568ea3e9be0970c81bc7befe522222591696a4"
-yaml_sha: "sha256:5e0936416172b11b9f6a2140bd568ea3e9be0970c81bc7befe522222591696a4"
+body_sha: "sha256:e9af1d3b08f740b7cc53e050085c9486fd6bcc205423548456e88edce5d48d3a"
+yaml_sha: "sha256:e9af1d3b08f740b7cc53e050085c9486fd6bcc205423548456e88edce5d48d3a"
 
 intent: |
   Add a release-pending CI gate that blocks merge of any PR
@@ -149,7 +149,7 @@ obligations:
       commit.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
 counterexample: |

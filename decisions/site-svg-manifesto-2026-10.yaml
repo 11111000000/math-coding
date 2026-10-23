@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-manifesto-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:5604d69f9d48b87fef9d454300ccfac4118c4765190e0537e6ac403420f659ba"
-yaml_sha: "sha256:5604d69f9d48b87fef9d454300ccfac4118c4765190e0537e6ac403420f659ba"
+body_sha: "sha256:266ed12ba2befda59dd80c2a99cc19bd4ced7602d941887d8702359142bd0b61"
+yaml_sha: "sha256:266ed12ba2befda59dd80c2a99cc19bd4ced7602d941887d8702359142bd0b61"
 axiom_link:
   - A4
 intent: |
@@ -160,13 +160,13 @@ obligations:
           result: pass
         - verifier: manual-grep-f-img-src-assets-kernel-vs-human-svg-dist-m
           result: pass
-        - verifier: file-exists dist/assets/architecture-overview.svg
+        - verifier: manual-rendered-asset-assets-architecture-overview
           result: pass
-        - verifier: file-exists dist/assets/human-in-the-loop.svg
+        - verifier: manual-rendered-asset-assets-human-in-the-loop
           result: pass
-        - verifier: file-exists dist/assets/human-roles.svg
+        - verifier: manual-rendered-asset-assets-human-roles
           result: pass
-        - verifier: file-exists dist/assets/kernel-vs-human.svg
+        - verifier: manual-rendered-asset-assets-kernel-vs-human
           result: pass
         - verifier: manual-grep-le-role-img-aria-labelledby-assets-architec
           result: pass

@@ -1,18 +1,1 @@
-{
-  "evidence": "assets/chain.svg exists; grep -c 'chain.svg' dist/index.html = 2 (one figure + one img), dist/methodology.html = 2; img has alt text 'The math-coding assurance chain: intent, decision, obligation, change, attestation, revision.'",
-  "id": "sha256:d13749a7ee72c97e41d285c3e1e550b7ca07a88911cdf62eb1e0e0ddecf7c368",
-  "issued_at": "2026-10-12T14:30:00Z",
-  "kind": "attestation",
-  "kind_": "review",
-  "producer": {
-    "identity": "agent:opencode:site-quality-illustrations-2026-10"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "site-quality-illustrations-2026-10",
-    "materials_digest": "",
-    "obligation": "assurance-chain-svg-shipped"
-  }
-}
+{"id":"sha256:e29d039d2f9b40c1dafab0d5b8481e1b9f14b6393300a98a9262842a0bb713da","issued_at":"2026-10-23T22:13:07Z","kind":"attestation","kind_":"review","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"d8de40c840264a0c133e0543eefc9d07f62bd8f2","decision":"site-quality-illustrations-2026-10","materials_digest":"sha256:519003a7caca0647e684c455fc9bad0167f47988dad5bd941d0498afb6118069","obligation":"assurance-chain-svg-shipped"}}

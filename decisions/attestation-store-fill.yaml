@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: attestation-store-fill
 revision: 3
 state: active
-body_sha: "sha256:291c8fdf075eafb2e45fe3a7fba022a25e6315128937c371f26ff74ddeeb132b"
-yaml_sha: "sha256:291c8fdf075eafb2e45fe3a7fba022a25e6315128937c371f26ff74ddeeb132b"
+body_sha: "sha256:1366cbe800be455a94c814dce9d5e866cf98b5aee9e43f118dc715a1f8f22636"
+yaml_sha: "sha256:1366cbe800be455a94c814dce9d5e866cf98b5aee9e43f118dc715a1f8f22636"
 intent: |
   Close the AGENTS.md §Bootstrap-gate expiry condition for
   v3.0.0.19 by populating the filesystem-backed attestation
@@ -76,7 +76,7 @@ obligations:
       schemas/attestation.json.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-verdict-unqualified
+        - verifier: mathc-self-check-verdict
           result: pass
   - id: ci-block-set
     outcome: self-check-returns-pass
@@ -88,7 +88,7 @@ obligations:
       without breaking main HEAD's `mathc self-check` run.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-verdict-unqualified
+        - verifier: mathc-self-check-verdict
           result: pass
 
 counterexample: |

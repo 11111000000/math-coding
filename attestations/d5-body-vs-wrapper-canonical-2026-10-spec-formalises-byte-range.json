@@ -1,18 +1,1 @@
-{
-  "schema": "math-coding/attestation-3.0-alpha",
-  "kind": "attestation",
-  "subject": {
-    "decision": "d5-body-vs-wrapper-canonical-2026-10",
-    "obligation": "spec-formalises-byte-range",
-    "candidate_tree": "HEAD",
-    "materials_digest": ""
-  },
-  "kind_": "build",
-  "producer": {
-    "identity": "ci:coordinator",
-    "run": "d5-merge-round-1-stream-d5"
-  },
-  "result": "pass",
-  "issued_at": "2026-10-13T18:00:00Z",
-  "id": "sha256:0000000000000000000000000000000000000000000000000000000000000401"
-}
+{"id":"sha256:5d01c99f96fa60f0ddd150b24348815a866d3bb1d7f810e8f9dfb8440b73b525","issued_at":"2026-10-23T22:13:07Z","kind":"attestation","kind_":"build","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"d8de40c840264a0c133e0543eefc9d07f62bd8f2","decision":"d5-body-vs-wrapper-canonical-2026-10","materials_digest":"sha256:f9bbcd95146361717b6bc161805032da1b6ebeae86ef6d8245c3c71b69431972","obligation":"spec-formalises-byte-range"}}

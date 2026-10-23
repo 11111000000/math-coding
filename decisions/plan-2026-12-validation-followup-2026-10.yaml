@@ -4,8 +4,8 @@ id: plan-2026-12-validation-followup-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:88e939e04dfd15b01660e076b8ba3c33f067925a5204d4201f6a6ab78a43473e"
-yaml_sha: "sha256:88e939e04dfd15b01660e076b8ba3c33f067925a5204d4201f6a6ab78a43473e"
+body_sha: "sha256:5e8c3a432f05df7843d16185960c908d1424c27ffea5ddb7387ae0d2c47deef4"
+yaml_sha: "sha256:5e8c3a432f05df7843d16185960c908d1424c27ffea5ddb7387ae0d2c47deef4"
 
 intent: |
   Close the remaining 15 pre-existing `mathc validate` rejections
@@ -194,7 +194,7 @@ obligations:
       same 184 pass / 0 unknown as the post-F11 baseline.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
 risk:

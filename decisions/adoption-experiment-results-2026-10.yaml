@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: adoption-experiment-results-2026-10
 revision: 1
 state: active
-body_sha: "sha256:7519d82a86f36bab1e62323ee42224e932712f99ed3dc99d1e0535543be48431"
-yaml_sha: "sha256:7519d82a86f36bab1e62323ee42224e932712f99ed3dc99d1e0535543be48431"
+body_sha: "sha256:4860fa67ef030d613be367005301d857f58189be244ac7cfffd4ebfbfb769cc7"
+yaml_sha: "sha256:4860fa67ef030d613be367005301d857f58189be244ac7cfffd4ebfbfb769cc7"
 
 intent: |
   Record the observed numbers of the math-coding adoption
@@ -108,7 +108,7 @@ obligations:
       attributable to this experiment or this decision.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
   - id: results-decision-self-check-stable

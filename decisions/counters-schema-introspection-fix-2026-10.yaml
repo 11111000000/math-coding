@@ -5,8 +5,8 @@ id: counters-schema-introspection-fix-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:3f0b9d5028fdee0d28508732abb1618270263933db4f18df0094541a670ee11b"
-yaml_sha: "sha256:3f0b9d5028fdee0d28508732abb1618270263933db4f18df0094541a670ee11b"
+body_sha: "sha256:25fc5335c1fdc6850d4a9a94820228ba31c512a3761fc7e5fd23e35bef1ebcee"
+yaml_sha: "sha256:25fc5335c1fdc6850d4a9a94820228ba31c512a3761fc7e5fd23e35bef1ebcee"
 axiom_link:
   - A0
 intent: |
@@ -407,7 +407,7 @@ obligations:
       `scope_oneOf`).
     acceptance:
       all:
-        - verifier: manual-mathc-counters-regression-attestation
+        - verifier: mathc-counters-regression-attestation
           result: pass
 
 reversal:

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:b71f6ff478b2efdec7a66089c3b129eca42e097d474312c2b7f248605522f227"
-yaml_sha: "sha256:b71f6ff478b2efdec7a66089c3b129eca42e097d474312c2b7f248605522f227"
+body_sha: "sha256:95e06c0ccee4eaf5c1546ac49806e7ea661855366fcda32d6d5950d84e753b3f"
+yaml_sha: "sha256:95e06c0ccee4eaf5c1546ac49806e7ea661855366fcda32d6d5950d84e753b3f"
 
 intent: |
   Close the F13 finding: the brownfield-experiment v2 design
@@ -198,7 +198,7 @@ obligations:
       decision.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
 risk:

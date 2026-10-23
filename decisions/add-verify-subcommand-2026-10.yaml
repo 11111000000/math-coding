@@ -4,8 +4,8 @@ id: add-verify-subcommand-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:c1933dbe0e8002912e5b64cdf2b8217dc5764d18b804b0b5bc5a179833a2e9a3"
-yaml_sha: "sha256:c1933dbe0e8002912e5b64cdf2b8217dc5764d18b804b0b5bc5a179833a2e9a3"
+body_sha: "sha256:14ee8fd2adfa603aed18e36f8070bb6ce680f8f7f4434e01e6a86109ae0fc0c8"
+yaml_sha: "sha256:14ee8fd2adfa603aed18e36f8070bb6ce680f8f7f4434e01e6a86109ae0fc0c8"
 
 intent: |
   Distinguish "validated" from "verified" in math-coding. The
@@ -88,7 +88,7 @@ obligations:
       `verdict: parse-ok` in both text and JSON output.
     acceptance:
       all:
-        - verifier: manual-mathc-validate-verdict-is-parse-ok
+        - verifier: mathc-validate-verdict-is-parse-ok
           result: pass
 
   - id: cram-fixtures-migrated-to-parse-ok
@@ -117,7 +117,7 @@ obligations:
       commit.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
 counterexample: |

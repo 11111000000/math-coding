@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:790e2bb6b37369f6680c5cebd3b3f268e391df8298b93cd2e2b3648b37400ddf"
-yaml_sha: "sha256:790e2bb6b37369f6680c5cebd3b3f268e391df8298b93cd2e2b3648b37400ddf"
+body_sha: "sha256:e63018c1d568664b603717a8901e8d7b5653ac3a75ad3fc87de4cacf8b07a298"
+yaml_sha: "sha256:e63018c1d568664b603717a8901e8d7b5653ac3a75ad3fc87de4cacf8b07a298"
 
 intent: |
   Codify the orchestrator-rescue recipe observed during the
@@ -149,7 +149,7 @@ obligations:
       documentation-only.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
 risk:

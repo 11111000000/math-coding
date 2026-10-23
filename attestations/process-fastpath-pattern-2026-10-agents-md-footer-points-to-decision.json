@@ -1,17 +1,1 @@
-{
-  "id": "sha256:4cba654cf13bfd09df0bdbe478ea59c97d73d6c1882792833f92a15029788dcb",
-  "issued_at": "2026-10-19T20:33:03Z",
-  "kind": "attestation",
-  "kind_": "review",
-  "producer": {
-    "identity": "human:maintainer"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "process-fastpath-pattern-2026-10",
-    "materials_digest": "",
-    "obligation": "agents-md-footer-points-to-decision"
-  }
-}
+{"id":"sha256:60f837255d133181d422113a27d8034d3815cfc968003c7e128b34c9daa71b08","issued_at":"2026-10-23T22:13:07Z","kind":"attestation","kind_":"review","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"d8de40c840264a0c133e0543eefc9d07f62bd8f2","decision":"process-fastpath-pattern-2026-10","materials_digest":"sha256:b65a570342d2d70b38a4fb51ae9cb105422ff101b26967dfac24ada04bddf9e1","obligation":"agents-md-footer-points-to-decision"}}

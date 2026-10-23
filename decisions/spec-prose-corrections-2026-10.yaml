@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: spec-prose-corrections-2026-10
 revision: 2
 state: active
-body_sha: "sha256:f5d545ce7033c6c1dd91b8181575ecb45f3576c543f96fbb234a5b068cef6b26"
-yaml_sha: "sha256:f5d545ce7033c6c1dd91b8181575ecb45f3576c543f96fbb234a5b068cef6b26"
+body_sha: "sha256:93a0ad756dfd8a9537f01d024ae7d0f6d4f9b22e8f964be950b45c6f7f9afec0"
+yaml_sha: "sha256:93a0ad756dfd8a9537f01d024ae7d0f6d4f9b22e8f964be950b45c6f7f9afec0"
 intent: |
   Apply factual corrections to the spec/ tree that the 2026-10-05
   audit flagged. These are not semantic changes to the algebra or
@@ -157,7 +157,7 @@ obligations:
       verdict and pass-count are unchanged by this decision.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-verdict-unqualified
+        - verifier: mathc-self-check-verdict
           result: pass
 
 reversal:

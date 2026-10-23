@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:8753139344e710a8a7473a9ffed3904f8b393902691432e61f539204e116bf51"
-yaml_sha: "sha256:8753139344e710a8a7473a9ffed3904f8b393902691432e61f539204e116bf51"
+body_sha: "sha256:81a671de4e53de6c9e547c3ecda24e1def60477f8b0abd045cbd2daf22bc3fb8"
+yaml_sha: "sha256:81a671de4e53de6c9e547c3ecda24e1def60477f8b0abd045cbd2daf22bc3fb8"
 
 intent: |
   Close the F10 finding from
@@ -163,7 +163,7 @@ obligations:
       attributable to this decision.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
   - id: a2-no-literal-paths

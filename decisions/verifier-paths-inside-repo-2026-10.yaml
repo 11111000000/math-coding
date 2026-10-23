@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:bbf7eeb461188a54dd691ac6ebea76b95e51e9131985f4239e87d3b03f09e32a"
-yaml_sha: "sha256:bbf7eeb461188a54dd691ac6ebea76b95e51e9131985f4239e87d3b03f09e32a"
+body_sha: "sha256:e5aafe910a11b4bf280266eb78cd74a0ce1337dfeff7ba4428d913d51a1a3d12"
+yaml_sha: "sha256:e5aafe910a11b4bf280266eb78cd74a0ce1337dfeff7ba4428d913d51a1a3d12"
 
 axiom_link:
   - A0
@@ -287,7 +287,7 @@ obligations:
       verdict in either direction.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
         - verifier: manual-bash-c-build-install-default-bin-mathc-rehash-dr
           result: pass

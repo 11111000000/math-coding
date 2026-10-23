@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:e151cab7dd2b089a5c23046f03634ebd6abf7f6ec3af849a9883e4ac3c2eb2a9"
-yaml_sha: "sha256:e151cab7dd2b089a5c23046f03634ebd6abf7f6ec3af849a9883e4ac3c2eb2a9"
+body_sha: "sha256:12b7545063f429e3d7944b7ce428009d8248692a929540e1b53a3c193dbb0538"
+yaml_sha: "sha256:12b7545063f429e3d7944b7ce428009d8248692a929540e1b53a3c193dbb0538"
 
 intent: |
   Close the B2 sub-decision of
@@ -118,7 +118,7 @@ obligations:
       unknowns attributable to this decision.
     acceptance:
       all:
-        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
+        - verifier: mathc-self-check-no-new-unknowns
           result: pass
 
   - id: b2-cram-tests-exit-0
