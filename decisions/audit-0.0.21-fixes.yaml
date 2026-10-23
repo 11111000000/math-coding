@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: audit-0.0.21-fixes
 revision: 2
 state: active
-body_sha: "sha256:777301c1aa85d255d812adc4a82dc51d34dc3de6702ff207f62c3f9a4b438548"
-yaml_sha: "sha256:777301c1aa85d255d812adc4a82dc51d34dc3de6702ff207f62c3f9a4b438548"
+body_sha: "sha256:82cce8bed6d679774ef951e744ccfaea5818c93fe3a50dfa81d413067688d741"
+yaml_sha: "sha256:82cce8bed6d679774ef951e744ccfaea5818c93fe3a50dfa81d413067688d741"
 intent: |
   Authorise and bound a single cycle of fixes that closes the
   13 specific deficits catalogued in `docs/AUDIT-0.0.21.md`
@@ -240,9 +240,20 @@ obligations:
       pair enumerated by `mathc packages --format=json`, with
       the single exception of `portable-linux-musl`, which is
       bound by a waiver.
+
+      The verifier below READS the committed fixture and compares
+      it against that enumeration. It was
+      `scripts/regenerate-self-check-fixture.sh` at revision 2,
+      which both GENERATED the fixture and declared it correct —
+      a claim true by construction rather than by measurement,
+      attached to a step that emptied the 765-file committed
+      store `attestations/` while reporting `pass`. See
+      `decisions/self-check-fixture-coverage-honest-2026-10.yaml`.
+      The claim is UNMET at this commit and this obligation
+      consequently reads `fail`, not `pass`.
     acceptance:
       all:
-        - verifier: scripts/regenerate-self-check-fixture.sh
+        - verifier: scripts/check-self-check-fixture-coverage.sh
           result: pass
 
   - id: self-check-verdict-is-pass

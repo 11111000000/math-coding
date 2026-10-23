@@ -1,0 +1,402 @@
+---
+schema: math-coding/3.3
+id: self-check-fixture-coverage-honest-2026-10
+revision: 1
+state: active
+body_sha: "sha256:3675092e1f8e8af735c806b1944a797d13fc5e6ade2107896337edf30f9ad0ed"
+yaml_sha: "sha256:3675092e1f8e8af735c806b1944a797d13fc5e6ade2107896337edf30f9ad0ed"
+
+intent: |
+  Remove a verified data-destroying hazard from the obligation
+  acceptance path, and stop an obligation from certifying itself.
+
+  Two defects, both measured, both in the same verifier string.
+
+  D1 — the verifier destroyed the corpus it was verifying.
+    `scripts/regenerate-self-check-fixture.sh` generated into the
+    live store and then moved the whole store into a test fixture:
+
+        python3 scripts/generate-attestations.py < "$TMP_TSV"
+        for f in attestations/*.json; do
+          mv "$f" "$FIXTURE_DIR/"
+        done
+
+    `attestations/` held 765 committed evidence files. The loop
+    globs `*.json`, so it moved all of them. Measured on a /tmp
+    clone of this branch at 9c1f7ab:
+
+        BEFORE  attestations/ = 765
+                digest       = 54e6b5bf1fbe265a3f4df4142eaa496
+                               f009d8d4f5b02c4cbdaf53a0a5491c8fe
+        $ ./scripts/regenerate-self-check-fixture.sh   # exit 0
+        AFTER   attestations/ = 0
+
+    The damage is wider than 765 deletions. The generator writes
+    812 files named `<decision>-<obligation>.json` into a directory
+    that already held the 765 live ones; 670 of those names
+    collide, so 670 committed attestations were OVERWRITTEN with
+    freshly synthesised `human:maintainer` bodies before being
+    moved out. The 907 that landed in the fixture are 812
+    generated + 95 live files whose obligations no longer exist.
+
+  D2 — the obligation certified itself.
+    That same script was the acceptance verifier for
+    `audit-0.0.21-fixes/self-check-pass-fixture-covers-all`, whose
+    claim is that the fixture "contains a pass attestation for
+    every (decision_id, obligation_id) pair". The script both
+    produces those attestations and declares them correct, so the
+    claim held by construction. It reported `pass`, exit 0, while
+    deleting the store. A test that writes its own evidence is
+    not a test; it is a tautology with a side effect.
+
+  The fix routes generation into the fixture (D1) and moves the
+  verdict to a verifier that only reads (D2).
+
+commitment: |
+  After this decision closes:
+
+  1. `scripts/regenerate-self-check-fixture.sh` contains no `mv`
+     out of `attestations/` and no `find`/`rm`/`> ` that can reach
+     a path outside `tests/fixtures/self-check-pass/attestations`.
+     Generation is routed there by the generator's own documented
+     output-directory variable `MATH_CODING_ATTESTATIONS_DIR`
+     (scripts/generate-attestations.py), so the live store is
+     never a write target.
+
+  2. The script asserts its own non-destructiveness as a
+     post-condition and exits 3 if it fails: the live store's
+     `*.json` file count and its `git status --porcelain` diff
+     are captured before generation and compared after. The
+     comparison is against the state the script FOUND, not
+     against empty, so a store already dirty at entry does not
+     produce a false abort.
+
+  3. Running the script directly leaves `attestations/` at 765
+     files with digest
+     54e6b5bf1fbe265a3f4df4142eaa496f009d8d4f5b02c4cbdaf53a0a5491c8fe,
+     and it does so when `mathc verify` runs it as a verifier as
+     well as when an operator runs it by hand.
+
+  4. `audit-0.0.21-fixes/self-check-pass-fixture-covers-all` is
+     verified by `scripts/check-self-check-fixture-coverage.sh`,
+     which opens no write handle outside stdout/stderr. It
+     enumerates pairs from `mathc packages --format=json` and, for
+     every pair except `portable-linux-musl`, requires a fixture
+     file named `<decision>-<obligation>.json` that parses as
+     JSON, carries `result: "pass"`, and whose
+     `subject.decision`/`subject.obligation` name that exact pair.
+     It additionally fails when a fixture file names a pair the
+     kernel no longer enumerates.
+
+  5. That verifier is a ratchet, not a constant. It exits 0 on a
+     fully covered fixture and non-zero on each of: a deleted
+     file, a `result` other than `pass`, a relabelled subject,
+     malformed JSON, and a stale file.
+
+antithesis: |
+  The strongest case against this change is that it removes a
+  green light. `mathc verify decisions/audit-0.0.21-fixes.yaml`
+  exited 0 at revision 2 and will not exit 0 now. An operator
+  reading CI has strictly less reassurance afterwards than
+  before.
+
+  That is the correct trade, and the reason is specific rather
+  than a general preference for red: the green was manufactured
+  by the defect it appeared to certify. It read `pass` while
+  removing 765 committed evidence files. Restoring a green that
+  can only be produced by re-running the destructive step would be
+  choosing the appearance of assurance over the assurance.
+
+  The second counter-position is that the honest verifier is
+  simply WRONG about the world, and a check that reports 627
+  missing pairs is measuring the wrong thing. It is not. The claim
+  names `mathc packages --format=json` as its own yardstick, and
+  that enumeration is what the fixture is supposed to cover. The
+  check agrees with the claim's own terms; it disagrees with the
+  corpus, and the corpus is what is wrong.
+
+  The third counter-position deserves recording because it is the
+  one that will be proposed next: just run the (now safe)
+  regeneration script, commit the 812-file fixture, and let the
+  verifier go green immediately. That is deliberately NOT done
+  here. Full coverage flips `mathc self-check` on this fixture
+  store from `unknown` (exit 3) to `pass` (exit 0), which
+  INVERTS the committed cram expectation in
+  `tests/cli/self-check-pass.t` (it asserts `verdict:"unknown"`
+  and `uncovered_unknown: true`). Completing the fixture is
+  therefore not a one-line follow-up but the audit cycle's
+  remaining Phase 2, with its own fixture churn. Bundling it here
+  would trade one unverified claim for a broken test.
+
+  A fourth: leave the obligation `state: assumed` and ship no
+  verifier. Rejected — an honest verifier is available and works,
+  so `assumed` would understate what is known. The assumption is
+  recorded in `assumptions` for the thing that genuinely is not
+  verified (the coverage gap), not for the check itself.
+
+scope:
+  paths:
+    - "scripts/regenerate-self-check-fixture.sh"
+    - "scripts/check-self-check-fixture-coverage.sh"
+    - "decisions/audit-0.0.21-fixes.yaml"
+    - "decisions/self-check-fixture-coverage-honest-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "tests/fixtures/self-check-pass/attestations/**"
+    - "scripts/generate-attestations.py"
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "spec/**"
+    - "axioms/**"
+
+counterexample: |
+  What this change does NOT close, stated so nobody reads the fix
+  as more than it is:
+
+  A1 — The claim is still false; only the reporting changed.
+      Measured at this branch's BASE COMMIT (9c1f7ab), as a
+      pure set comparison between two committed artifacts, with
+      no reference to any script:
+
+          mathc packages --format=json
+            enumerated pairs            812
+            portable-linux-musl pairs     7  (waiver-exempt)
+            required pairs              805
+          tests/fixtures/self-check-pass/attestations/
+            committed files            186
+            required pairs covered     178
+            required pairs MISSING     627
+            stale files                  1
+                portable-linux-musl-retirement-record-2026-10-
+                accounting-record-present.json
+
+      Re-measured after this change lands: the fixture is
+      untouched (still 186 committed files) but the enumeration
+      grows by this decision's own four obligations, so the same
+      check reads
+
+            enumerated pairs            816
+            required pairs              809
+            required pairs covered     178
+            required pairs MISSING     631
+
+      `self-check-pass-fixture-covers-all` therefore reads `fail`
+      after this change and read `pass` before it. The `pass` was
+      produced by the verifier regenerating the fixture in the same
+      breath as checking it.
+
+  A2 — The live store still carries a hand-written `pass` for the
+      same obligation
+      (`attestations/audit-0.0.21-fixes-self-check-pass-fixture-covers-all.json`,
+      producer `ci:fixture:cram`, issued 2026-10-05). `mathc
+      self-check` will keep reporting that subject `pass`. This
+      change deliberately does NOT touch `attestations/**` — the
+      evidence corpus is not this decision's to rewrite — so the
+      live store and `mathc verify` now disagree about this one
+      obligation. Correcting the store is separate work with its
+      own evidence requirements.
+
+  A3 — `attestations/` was never verified to be intact during this
+      work beyond count + digest + `git status`. No byte-level
+      comparison against a pre-existing trusted copy exists,
+      because no such copy exists. The digest is a self-consistency
+      anchor for detecting a future regression, not a provenance
+      proof.
+
+  A4 — The regeneration script is still a writer. It is now safe by
+      construction and guarded by a post-condition, but it is still
+      the tool that produces the fixture; anyone who regenerates
+      and then forgets to COMMIT has silently un-verified the
+      claim on disk while `mathc verify` on a clean tree still
+      passes. Only a pre-commit hook closes that, and no hook
+      change is in scope here.
+
+outcomes:
+  - id: live-store-is-not-a-write-target
+    statement: |
+      `scripts/regenerate-self-check-fixture.sh` writes only inside
+      `tests/fixtures/self-check-pass/attestations/`, and asserts
+      after the fact that `attestations/` is byte-identical to the
+      state it found. Re-introducing a write there is exit 3, not a
+      silent deletion.
+  - id: coverage-is-verified-by-a-reader
+    statement: |
+      `self-check-pass-fixture-covers-all` is verified by
+      `scripts/check-self-check-fixture-coverage.sh`, which reads
+      the committed fixture and `mathc packages --format=json` and
+      writes nothing. The builder
+      (`scripts/regenerate-self-check-fixture.sh`) is no longer
+      any obligation's acceptance verifier.
+  - id: the-false-pass-is-now-a-true-fail
+    statement: |
+      The obligation reports `fail` at this commit because the
+      committed fixture covers 178 of 809 required pairs. That is a
+      true reading of the claim, replacing a false `pass`.
+
+obligations:
+  # Every verifier below is a form `mathc verify` actually EXECUTES.
+  # The corpus is full of `shell-grep` / `text-scan-*` / `manual-*`
+  # strings that reach plan_verifier as Plan_skip and are scored
+  # `skipped` -- which this subcommand exits 0 on. Naming one of those
+  # here would be the same self-confirming move this decision exists
+  # to remove, so only the executable forms are used: `scripts/`,
+  # `tests/`, `mathc <read-only subcommand>`.
+  - id: regenerate-preserves-the-live-store
+    claim: |
+      Running `scripts/regenerate-self-check-fixture.sh` leaves
+      `attestations/` byte-identical: 765 files, digest
+      54e6b5bf1fbe265a3f4df4142eaa496f009d8d4f5b02c4cbdaf53a0a5491c8fe,
+      before and after. Measured by running the builder and comparing
+      both a file count (which also counts the gitignored files the
+      old `mv attestations/*.json` glob matched) and a
+      `git ls-files | sha256sum` digest of every tracked file.
+
+      The measurement is not circular: the obligation is about the
+      integrity of `attestations/`, and the evidence is the state of
+      `attestations/`, which is a different artifact from the builder
+      being checked.
+    acceptance:
+      all:
+        - verifier: scripts/check-regenerate-preserves-live-store.sh
+          result: pass
+
+  - id: coverage-is-verified-by-a-reader-not-the-writer
+    claim: |
+      `audit-0.0.21-fixes/self-check-pass-fixture-covers-all` is
+      verified by `scripts/check-self-check-fixture-coverage.sh`,
+      which opens no write handle outside stdout/stderr. It enumerates
+      pairs from `mathc packages --format=json` and, for every pair
+      except `portable-linux-musl`, requires a fixture file named
+      `<decision>-<obligation>.json` that parses as JSON, carries
+      `result: "pass"`, and whose `subject.decision` /
+      `subject.obligation` name that exact pair. It also fails when a
+      fixture file names a pair the kernel no longer enumerates.
+
+      The claim itself is UNMET at this commit (178 of 809 required
+      pairs covered), so this obligation reads `fail`. The `result:
+      pass` recorded here is the schema-constrained expected result
+      for the obligation's own horizon, not a statement about today.
+    acceptance:
+      all:
+        - verifier: scripts/check-self-check-fixture-coverage.sh
+          result: pass
+
+  - id: the-builder-is-no-longer-any-obligations-verifier
+    claim: |
+      No obligation in `decisions/` names
+      `scripts/regenerate-self-check-fixture.sh` as an acceptance
+      verifier. The script that writes the fixture may not also be the
+      thing that certifies it.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/audit-0.0.21-fixes.yaml
+          result: pass
+        - verifier: scripts/check-self-check-fixture-coverage.sh
+          result: pass
+
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/self-check-fixture-coverage-honest-2026-10.yaml`
+      exits 0 with verdict `parse-ok`, and `tests/process_principles.exe`
+      passes P1 (frontmatter plus the five body sections) and P2
+      (every obligation carries a verifier).
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/self-check-fixture-coverage-honest-2026-10.yaml
+          result: pass
+        - verifier: tests/process_principles.exe
+          result: pass
+
+axiom_link:
+  - A0
+  - A1
+
+assumptions:
+  - id: the-coverage-gap-is-pre-existing-not-introduced-here
+    state: assumed
+    statement: |
+      The 627 uncovered required pairs at the base commit (631
+      once this decision's own four obligations are counted)
+      and the 1 stale fixture
+      file are pre-existing at this branch's base commit 9c1f7ab.
+      This change edits no fixture file and no attestation; the
+      gap was measurable at the base commit by enumerating
+      `mathc packages --format=json` against the committed
+      fixture, with no reference to any script.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the gap turns out to have been introduced by an earlier
+      partial run of the old regeneration script on a maintainer
+      tree, then some of the 186 committed fixture files are
+      synthesised rather than authored and the fixture's own
+      provenance needs auditing before it is extended. This
+      decision does not assume that provenance either way.
+    review_on:
+      - signal: fixture-file-provenance-disputed
+  - id: fixture-completion-is-phase-2-not-a-follow-up-line
+    state: assumed
+    statement: |
+      Completing the fixture to full coverage is the audit cycle's
+      remaining Phase 2 ("restore `mathc self-check` to
+      `verdict:pass`", decisions/audit-0.0.21-fixes.yaml intent),
+      not a mechanical follow-up to this change. It requires
+      re-baselining `tests/cli/self-check-pass.t`, which asserts
+      the CURRENT `unknown` verdict of the partial store.
+    owner: human:maintainer
+    consequence_if_false: |
+      If maintaining the gap is cheaper and safer than closing it
+      — because closing it inverts a committed cram expectation —
+      then the honest verifier stays red on a clean tree for as
+      long as that holds. Per ci-gate-exit-honesty-2026-10@1, the
+      answer to a permanently red honest gate is to fix the store,
+      not to re-hide the gate.
+    review_on:
+      - signal: self-check-fixture-coverage-stays-red
+
+risk:
+  declared_triggers:
+    - verify-verdict-regression-visible-to-operator
+    - fixture-and-store-disagree-on-one-obligation
+    - post-condition-guard-false-positive-on-dirty-tree
+  verify-verdict-regression-visible-to-operator: |
+    Expected. `mathc verify` on this decision now reports `fail`
+    for one obligation. No CI job runs `mathc verify` over the
+    decision corpus (only cram tests, against scratch YAML), so
+    this does not turn a green job red.
+  fixture-and-store-disagree-on-one-obligation: |
+    Expected and recorded as counterexample A2. `mathc self-check`
+    reads the store's hand-written `pass`; `mathc verify` reads the
+    fixture and finds the gap. Both are reporting what they
+    actually read. Reconciling them needs evidence work on the
+    store, which this decision excludes.
+  post-condition-guard-false-positive-on-dirty-tree: |
+    The guard compares before/after rather than against empty, so a
+    store that is already dirty when the script starts does not
+    abort. A concurrent writer to `attestations/` DURING the run
+    would still trip it — correctly, since the script cannot
+    distinguish its own writes from someone else's.
+  owner: human:maintainer
+
+reversal:
+  - signal: honest-verifier-blocks-unrelated-work
+    condition: |
+      `scripts/check-self-check-fixture-coverage.sh` reports `fail`
+      on a clean tree for a reason other than the known-pair gap —
+      for example an enumeration that moves with an unrelated
+      decision landing — and the maintainer treats the red as noise.
+    action: |
+      Do NOT restore `scripts/regenerate-self-check-fixture.sh` as
+      this obligation's verifier; that reintroduces the data loss.
+      Narrow the claim, or issue a dated waiver under
+      `decisions/waivers/`, and re-issue this decision at rev 2
+      naming it.
+
+relations:
+  addresses:
+    - audit-0.0.21-fixes@2::self-check-pass-fixture-covers-all
+  refines:
+    - verifier-scheme-convention-2026-11@1
+  contradicts: []
+  supersedes: []
+  superseded_by: []
