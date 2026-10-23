@@ -1,0 +1,113 @@
+---
+schema: math-coding/3.3
+id: outcome-metric-v3-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/legacy-attestation-debt.sh
+body_sha: "sha256:e1a229b4857d8d122e40a09bb652a6b5833d3656196ca4368d0d48872deb07d1"
+yaml_sha: "sha256:e1a229b4857d8d122e40a09bb652a6b5833d3656196ca4368d0d48872deb07d1"
+
+intent: { source: "issue:no-metric-can-fall-2026-10-23", text: "Every number the project carries measures the PROCESS: how many decisions, obligations, attestations, whether the gate says pass. All of them moved in the right direction while the project was getting worse to use. The clearest instance: the store reported 192 passing subjects, and when every one of those attestations was re-signed by actually RUNNING the verifier it names, the number became 139. Nothing broke - the number had been counting signatures, not verified properties. A methodology that cannot produce a number that can go DOWN cannot be used to decide whether it is worth having." }
+
+commitment: |
+  After this decision closes:
+
+  1. The protocol docs/experiments/outcome-metric-v3-2026-10.md
+     names three metrics, each of which can fall: defects escaping
+     the merge gate, time to a first green CI on a real change, and
+     the share of decisions that changed the system's behaviour.
+  2. The third metric is INTERNAL and starts today: every decision
+     carries `outcome: changed | unchanged`, and the corpus's ratio
+     becomes a number the project can report.
+  3. The protocol names what would count as a FAILURE - the metrics
+     not falling, or the ceremony share above 50% - so the result
+     can change the protocol rather than be filed next to it.
+  4. The result is reported even if it favours the baseline.
+
+axiom_link:
+  - A1
+  - A2
+  - A4
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Measure the process harder: track time-to-decision,
+  time-to-merge, reviewer turnaround." Rejected: those are all
+  inputs the protocol controls, so they move when the protocol
+  changes and say nothing about whether the OUTPUT is better. A
+  protocol that measures itself cannot be evaluated.
+
+  (b) "Run the experiment on THIS repository." Rejected for M1 and
+  M2: the author is the protocol's author, the corpus is the
+  corpus, and the result would be uninterpretable. The three
+  external projects exist precisely because the measurement has to
+  come from outside.
+
+antithesis: |
+  The opposite claim would be that the three metrics are the wrong
+  ones, and that the right metric is a single number: the ratio of
+  decisions to defects prevented.
+
+  That is a real metric and it is what the project has been
+  gesturing at for six weeks. It is rejected for a mechanical
+  reason: "defects prevented" is not observable, so the ratio has
+  no denominator, and a metric with no denominator is a number
+  anyone can produce. The three metrics above are all observable by
+  a third party who was not in the room.
+
+outcomes:
+  - id: a-number-that-can-fall
+    statement: |
+      The project carries three numbers that can go down, and one of
+      them - the share of decisions that changed behaviour - is
+      measurable from the corpus today.
+
+scope:
+  paths:
+    - "docs/experiments/outcome-metric-v3-2026-10.md"
+    - "decisions/outcome-metric-v3-2026-10.yaml"
+    - "attestations/outcome-metric-v3-2026-10-*.json"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+
+obligations:
+  - id: the-protocol-names-its-own-failures
+    claim: |
+      The protocol names the results that would count as a failure,
+      and states that the result is reported even if it favours the
+      baseline.
+    acceptance:
+      all:
+        - verifier: manual-outcome-metric-protocol
+          result: pass
+
+  - id: the-metric-is-internal-and-starts-today
+    claim: |
+      The share of decisions that changed the system's behaviour is
+      computable from the corpus without an external experiment.
+    acceptance:
+      all:
+        - verifier: manual-outcome-ratio-is-computable
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "the outcome experiment is run and its result is not recorded"
+
+assumptions:
+  - id: authors-declare-honestly
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      Authors declare `outcome: unchanged` when a decision changes
+      no behaviour. A reviewer who believes otherwise can say so.
+    consequence_if_false: |
+      If the field is declared dishonestly, the ratio is wrong. The
+      ratio is the thing that is being measured, so a dishonest
+      declaration destroys the measurement - which is why the field
+      is a field and not a rule.
