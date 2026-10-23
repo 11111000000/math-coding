@@ -286,6 +286,116 @@ let[@warning "-32"] validate_attestation_materials (a : Domain.attestation) :
          ())
   else None
 
+(* MC-PRODUCER-CLASS-UNDECLARED / MC-PRODUCER-HUMAN-UNANCHORED validator
+   (decisions/attestation-producer-vocab-2026-10). Two rules, both
+   about the same question: does this file tell the reader whether a
+   person or a machine produced it?
+
+   The identity pattern is the schema's, kept in one place so the
+   OCaml validator and schemas/attestation.json cannot drift by more
+   than a test run. There is no JSON-Schema validator in the kernel --
+   it parses by hand (see parse_attestation above) -- so the schema
+   states the contract and this function enforces it. *)
+let[@warning "-32"] producer_identity_pattern =
+  "^(human|agent|ci):[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+
+(* Hand-rolled prefix/subject match for the pattern above. A real
+   regex engine would be the tidier tool; the kernel takes no runtime
+   dependency (OCAML_BEST_PRACTICES §10.4 -- "the kernel stays offline
+   and dependency-free"), and the pattern is small enough that the two
+   halves are easier to read than the escaping. The conformance test
+   pins this against the same strings the schema pattern accepts. *)
+let[@warning "-32"] producer_class_of identity =
+  let is_class = function "human" | "agent" | "ci" -> true | _ -> false in
+  match String.index_opt identity ':' with
+  | None -> None
+  | Some i ->
+      let cls = String.sub identity 0 i in
+      if not (is_class cls) then None
+      else
+        let subject =
+          String.sub identity (i + 1) (String.length identity - i - 1)
+        in
+        if String.length subject = 0 then None else Some (cls, subject)
+
+(* The subject half of the pattern: first character alphanumeric,
+   then any of alphanumerics and `. _ : / -`. Returns false rather
+   than raising on a non-ASCII byte, which is the same answer the
+   regex gives (the character class does not match it). *)
+let[@warning "-32"] producer_subject_ok subject =
+  let alnum c =
+    (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+  in
+  let rest c = alnum c || c = '.' || c = '_' || c = ':' || c = '/' || c = '-' in
+  let n = String.length subject in
+  if n = 0 then false
+  else
+    let first = String.unsafe_get subject 0 in
+    let tail_ok =
+      let rec loop i =
+        i >= n || (rest (String.unsafe_get subject i) && loop (i + 1))
+      in
+      loop 1
+    in
+    (* A non-ASCII lead byte is not alnum, so a non-ASCII lead is
+       rejected; a non-ASCII byte anywhere later fails `rest`. The
+       explicit lead check keeps that from depending on `rest`. *)
+    alnum first && tail_ok
+
+let[@warning "-32"] producer_identity_ok identity =
+  match producer_class_of identity with
+  | None -> false
+  | Some (_, subject) -> producer_subject_ok subject
+
+(* Returns Some diagnostic when the parsed attestation's producer
+   claim is ungrounded. Order matters: an untagged identity is
+   reported as undeclared even when the kind is also a runtime kind,
+   because "who produced this" is the prior question -- an untagged
+   runtime attestation has no human claim to anchor, so the anchoring
+   rule has nothing to say about it.
+
+   Like validate_attestation_materials above, this is deliberately
+   NOT called from parse_attestation: the store loader must keep
+   reading the committed corpus. This function runs on the `mathc
+   validate` path, which is the issuance path. 62 committed
+   attestations carry an untagged identity and 58 carry a `human:`
+   identity on a runtime kind; all 765 stay loadable, and
+   tests/producer_vocab.ml pins those two numbers so the backlog is
+   visible rather than forgotten. *)
+let[@warning "-32"] validate_attestation_producer (a : Domain.attestation) :
+    Diagnostic.t option =
+  let kind_str =
+    match a.kind with
+    | `Test -> "test"
+    | `Build -> "build"
+    | `Observation -> "observation"
+    | `Analysis -> "analysis"
+    | `Review -> "review"
+  in
+  let subject = Printf.sprintf "%s/%s" a.decision a.obligation in
+  if not (producer_identity_ok a.producer_identity) then
+    Some
+      (Diagnostic.mc_producer_class_undeclared ~subject
+         ~identity:a.producer_identity ())
+  else
+    match producer_class_of a.producer_identity with
+    | Some ("human", _) ->
+        let run_named =
+          match a.producer_run with
+          | Some r -> String.trim r <> ""
+          | None -> false
+        in
+        (* `review` is the WEAK class: a human declaration with no
+           runtime anchor. A false `human:` claim there upgrades
+           nothing, so it is deliberately left unconstrained. Every
+           other kind is machine-grade and must name its run. *)
+        if a.kind <> `Review && not run_named then
+          Some
+            (Diagnostic.mc_producer_human_unanchored ~subject
+               ~identity:a.producer_identity ~kind:kind_str ())
+        else None
+    | _ -> None
+
 (* Waiver decoder. The fixture layout mirrors schemas/waiver.json:
    required scalar fields are flat (id, policy_id, rule, subject,
    issuer, issued_at, expires_at, reason); scope is an array of
