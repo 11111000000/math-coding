@@ -1,0 +1,302 @@
+---
+schema: math-coding/3.3
+id: dune-test-wrapper-exit-honesty-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:ff29eb32f53493b813d01981a9324eea84b3e915da4ed8b6f4fbae0eb9459a61"
+yaml_sha: "sha256:ff29eb32f53493b813d01981a9324eea84b3e915da4ed8b6f4fbae0eb9459a61"
+
+axiom_link:
+  - A1
+  - A2
+  - A3
+
+intent: |
+  Make `scripts/dune-test-with-timeout.sh` capable of failing.
+
+  The wrapper's own header promised that when `dune test` blows its
+  wall-clock budget "the wrapper kills the process tree, surfaces the
+  failure explicitly". It could not. Its tail read:
+
+      if run_dune; then
+        log "dune test completed within budget"
+        exit 0
+      fi
+      rc=$?
+
+  Bash defines the exit status of a false `if` with no `else` as 0.
+  `rc=$?` therefore always read 0, the two branches beneath it were
+  unreachable, and the script exited 0 for EVERY `dune test` outcome.
+  Measured with a stubbed `nix`:
+
+      dune-exit=1   -> wrapper exit 0   (log: "failed (rc=0) without timing out")
+      dune-exit=42  -> wrapper exit 0
+      dune-exit=124 -> wrapper exit 0
+      dune-exit=137 -> wrapper exit 0
+
+  N1 — the wrapper was the load-bearing wall under a merged fix.
+  `a198e179` ("stop swallowing a dune test hang as a soft pass")
+  taught `scripts/dev::verify_test_suite` to read the wrapper's exit
+  status and to distinguish a real pass (0) from the documented
+  upstream hang (124/137). That fix was systematically disarmed by
+  this defect one level down: the wrapper it reads can only ever
+  return 0, so `verify` prints "verify dune test: ok" when `dune
+  test` failed outright. A merged fix, silently nullified by a shell
+  semantic nobody re-measured. Per A1 that is a commitment the world
+  could not check.
+
+  This decision fixes the capture, and records that the same-shape
+  audit over the repository found no other live instance.
+
+commitment: |
+  After this commit lands on its branch:
+
+  1. `scripts/dune-test-with-timeout.sh` captures `run_dune`'s status
+     INSIDE the `else` branch. The pre-fix orphan `rc=$?` on the line
+     after `fi` is DELETED, not moved: adding `else rc=$?; fi` while
+     leaving the orphan in place re-assigns 0 and the bug survives,
+     which is why the diff shows `-rc=$?` as well as a new `else`.
+
+  2. The wrapper's exit status equals `dune test`'s, modulo one
+     documented normalisation: 124 and 137 both exit 124, naming the
+     dune 3.23.1 RPC deadlock (issue #12900). Every other status is
+     passed through unchanged, so 1 stays 1 and 42 stays 42.
+
+  3. `tests/fixtures/dune-test-wrapper-propagates-failure.sh` drives
+     the REAL wrapper through a stubbed `nix develop .#test --command
+     bash -c ...` chain and asserts 0->0, 1->1, 42->42, 124->124,
+     137->124. The fixture also rebuilds the pre-fix variant
+     mechanically from the real file and REQUIRES it to mismatch, so
+     a green run means both that the wrapper propagates and that the
+     check would have caught the version that did not.
+
+  4. The same-shape audit is recorded rather than left implicit. A
+     structural scan of all 40 bash-shebang files under version
+     control (`.githooks/`, `scripts/`, `tests/fixtures/`) for an
+     `rc=$?` immediately after an else-less `fi` returns zero hits
+     after this fix, and one hit — the wrapper itself — before it.
+     The scan was validated against the pre-fix file to establish
+     that it can fire.
+
+antithesis: |
+  Counter-position: "do not propagate the raw code — normalise. Have
+  the wrapper exit 124 on every non-zero `dune test` status, so
+  `scripts/dev` needs a single branch and the rc plumbing disappears."
+
+  Rejected. It is simpler, and it is exactly the laundering that
+  `a198e179` removed. `scripts/dev::verify_test_suite` distinguishes
+  three outcomes on purpose: pass, timeout (fall back to
+  `dev-fast-test`), and hard failure (stop). Collapsing a red test
+  suite into 124 makes "your tests fail" indistinguishable from "dune
+  wedged on an upstream bug we already documented", so the stage
+  would fall back to the per-binary runner and could report green on a
+  genuinely broken suite. Normalising every failure to one code
+  discards the very information the fallback decision needs. The
+  chosen path keeps the statuses distinct and makes the capture
+  correct.
+
+  Second counter-position, on mechanism: "keep `rc=$?` after the
+  `fi` and instead re-derive the status, e.g. from `$PIPESTATUS` or
+  a trap." Rejected: there is no pipeline to read `$PIPESTATUS` from,
+  and a trap would fire on the wrapper's own `exit 0`, not on
+  `run_dune`. The capture must sit where the status still exists.
+
+counterexample: |
+  The negative cases this decision does NOT close, recorded so nobody
+  reads the fix as "the timeout path is now covered":
+
+  1. The fixture exercises the wrapper's handling of the exit STATUSES
+     124 and 137; it does not make a real process hang. `timeout` is
+     real and `nix` is stubbed, so the wall-clock kill path in
+     `run_dune` — signal delivery, `--kill-after=15` escalation, and
+     the bwrap-wedged-child case the header describes — is NOT
+     exercised. A regression in the `timeout` invocation itself would
+     pass this fixture. Closing that needs a process that really
+     ignores SIGTERM.
+
+  2. `scripts/dev::verify_test_suite`'s downstream branches are not
+     exercised either. This fix makes the wrapper's status honest;
+     whether `verify` reacts correctly to a non-zero status is
+     `ci-gate-exit-honesty-2026-10`'s obligation
+     `dune-test-timeout-never-passes-silently`, and that harness is
+     `shell-grep`-shaped rather than behavioural. The two fixes are
+     individually necessary and jointly sufficient; neither is a test
+     of the other.
+
+  3. `scripts/dev:138` was independently re-checked BY MEASUREMENT and
+     is CORRECT. `run_in_shell "..." || rc=$?` captures the command's
+     real status (measured 0/1/42/124/137 against a stubbed runner);
+     the `||` form reads `$?` before any other command intervenes.
+     A reviewer's claim that it is also broken does not survive
+     measurement and no change was made there. Recorded here so the
+     next reviewer does not re-open it on the strength of a reading.
+
+scope:
+  paths:
+    - "scripts/dune-test-with-timeout.sh"
+    - "tests/fixtures/dune-test-wrapper-propagates-failure.sh"
+    - "decisions/dune-test-wrapper-exit-honesty-2026-10.yaml"
+  exclusions:
+    - "scripts/dev"
+    - "scripts/dev-fast-test"
+    - "scripts/check.sh"
+    - ".github/workflows/**"
+    - "lib/**"
+    - "bin/**"
+
+outcomes:
+  - id: wrapper-propagates-dune-exit
+    statement: |
+      `scripts/dune-test-with-timeout.sh` exits with `dune test`'s own
+      status, except that 124 and 137 both exit 124. A failing test
+      suite can no longer be reported as a pass by this wrapper.
+  - id: wrapper-propagation-is-checked-not-asserted
+    statement: |
+      `tests/fixtures/dune-test-wrapper-propagates-failure.sh` drives
+      the real wrapper against a stubbed dune status and fails when any
+      status is not carried out; it also rebuilds the pre-fix variant
+      from the real file and fails if that variant still agrees.
+  - id: no-other-orphan-capture-in-tree
+    statement: |
+      A structural scan for an `rc=$?` immediately after an else-less
+      `fi` reports no live site outside the wrapper this decision
+      fixed. `scripts/dev:138`, `dev-fast-test`, `check.sh` and
+      `release-pending-gate-sim.sh` use capture forms that propagate
+      the real status; each was measured, not merely read.
+
+obligations:
+  - id: wrapper-carries-dune-status-out
+    outcome: wrapper-propagates-dune-exit
+    claim: |
+      Driving the real wrapper with a stubbed `nix develop .#test
+      --command bash -c ...` yields wrapper exit 0 for dune exit 0, 1
+      for dune exit 1, 42 for dune exit 42, and 124 for both dune exit
+      124 and dune exit 137.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/dune-test-wrapper-propagates-failure.sh
+          result: pass
+        - verifier: bash -n scripts/dune-test-with-timeout.sh
+          result: pass
+        - verifier: manual-shellcheck-dune-test-wrapper
+          result: pass
+      command_note: |
+        `manual-shellcheck-dune-test-wrapper` is
+        `shellcheck -e SC2164 -e SC2016 -S info
+        scripts/dune-test-with-timeout.sh`, run by hand at review time
+        rather than by the harness.
+  - id: wrapper-control-is-not-a-tautology
+    outcome: wrapper-propagation-is-checked-not-asserted
+    claim: |
+      The same fixture rebuilds the pre-fix wrapper mechanically from
+      the real file, asserts the rebuild actually restored the
+      orphaned `rc=$?` shape, and requires that rebuilt copy to MISMATCH
+      on every non-zero dune status. Reverting the fix in the real
+      wrapper makes the fixture exit 1. A `pass` therefore means both
+      that today's wrapper propagates and that the check is sharp
+      enough to have caught the version that did not.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/dune-test-wrapper-propagates-failure.sh
+          result: pass
+        - verifier: shell-grep wrapper-propagates-failure tests/fixtures
+          result: pass
+  - id: no-live-orphan-capture-elsewhere
+    outcome: no-other-orphan-capture-in-tree
+    statement_note: |
+      Audited rather than gated: the scan is a property of the tree at
+      this commit, and the fixture is the durable regression gate for
+      the wrapper itself.
+    claim: |
+      No file under version control captures `rc=$?` on the statement
+      immediately after an `fi` whose `if` had no `else`, other than
+      the pre-fix wrapper this decision fixes.
+    acceptance:
+      all:
+        - verifier: scripts/dune-test-wrapper-propagates-failure.sh
+          result: pass
+
+assumptions:
+  - id: timeout-statuses-are-a-dubious-pair
+    state: assumed
+    statement: |
+      The 124/137 normalisation is pre-existing and deliberate: the
+      wrapper reports the documented dune 3.23.1 RPC deadlock for both
+      the `timeout` SIGTERM status and the SIGKILL status, so
+      `scripts/dev` has one degradation path rather than two. This
+      decision preserves it rather than re-litigating it.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future dune still in the lockfile makes 137 mean something
+      other than "our own timeout escalated to SIGKILL", the
+      normalisation would mislabel that failure as the documented
+      hang and `verify` would fall back instead of stopping. Reverse
+      by splitting the two branches in the wrapper.
+    review_on:
+      - signal: dune-lockfile-bump
+  - id: downstream-verify-reaction-is-unverified-here
+    state: assumed
+    statement: |
+      This change is assumed sufficient on its own to restore the
+      wrapper's honesty. It is NOT claimed to verify that
+      `scripts/dev::verify_test_suite` reacts correctly to the now
+      reachable non-zero statuses; that remains
+      `ci-gate-exit-honesty-2026-10`'s obligation.
+    owner: human:maintainer
+    consequence_if_false: |
+      If `verify` mishandles a now-reachable 1 or 42, the wrapper is
+      honest and the consumer is still wrong. Fix the consumer; do not
+      re-blunt the wrapper.
+    review_on:
+      - signal: verify-stage-2-misbehaviour
+  - id: obligations-are-not-yet-attested
+    state: assumed
+    statement: |
+      The three obligations below are backed by evidence that was
+      actually produced — the fixture ran, its rows were observed, and
+      the reverted-fix demonstration was performed — but NO
+      attestation JSON is added here, so `mathc self-check` counts
+      this decision as one more `unknown` subject. Measured: the store
+      is 217 subjects / 18 unknown at this branch's base and 218 / 19
+      with this decision added, verdict `unknown` and exit 3 both
+      times. The gate was already red before this change.
+    owner: human:maintainer
+    consequence_if_false: |
+      Signing requires a `producer.identity` that belongs to whoever
+      ran the check. This branch ran the fixture, so it could emit a
+      `kind_test` attestation under a CI identity; it deliberately
+      does not, because the direct predecessor
+      `ci-gate-exit-honesty-2026-10` carries no attestation either and
+      adding one here would move a single decision out of `unknown`
+      while 18 others stay behind, which reads as progress the store
+      has not made. A maintainer closing the backlog together should
+      attest this decision in the same pass.
+    review_on:
+      - signal: store-backlog-closed-in-one-pass
+
+risk:
+  declared_triggers:
+    - ci-red-on-failing-suite
+    - wrapper-timeout-not-exercised
+  ci_red_on_failing-suite: |
+    Expected and intended. A wrapper that could only exit 0 could not
+    report a red suite, so a genuinely failing `dune test` was
+    invisible. The first run after this lands may therefore be red on
+    a cause that predates it. That is the gate working.
+  wrapper-timeout-not-exercised: |
+    The fixture drives exit statuses, not a real hang. See
+    `counterexample` item 1. The wall-clock kill path stays covered
+    only by the header's documentation until someone adds a
+    genuinely SIGTERM-ignoring process to the harness.
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - ci-gate-exit-honesty-2026-10@1
+  refines:
+    - ci-gate-exit-honesty-2026-10@1
+    - disable-hanging-alcotest-tests-2026-10@1
+  contradicts: []
+  supersedes: []
+  superseded_by: []
