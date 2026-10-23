@@ -44,7 +44,16 @@ import json, os, re, sys, glob
 store = sys.argv[1]
 legacy = 0
 have = set()
-for f in sorted(glob.glob(os.path.join(store, '*.json'))):
+# The store the GATE sees: git-tracked files only
+# (lib/gate.ml::store_keep_for admits nothing else). Counting the
+# files on disk instead would measure a different thing - the disk
+# holds 820 gitignored scratch files that the gate never reads.
+import subprocess
+tracked = subprocess.run(['git', 'ls-files', 'attestations'],
+                          capture_output=True, text=True).stdout.split()
+for f in tracked:
+    if not f.endswith('.json'):
+        continue
     try:
         d = json.load(open(f))
     except Exception:
@@ -93,7 +102,20 @@ for i in $(seq 1 $((CEILING_LEGACY + 5))); do
   printf '{"schema":"math-coding/attestation-3.3","kind":"attestation","id":"sha256:0","kind_":"test","producer":{"identity":"x"},"result":"pass","issued_at":"2026-01-01T00:00:00Z","subject":{"decision":"d","obligation":"o","candidate_tree":"HEAD","materials_digest":""}}\n' \
     > "$work/store/legacy-$i.json"
 done
-read -r fake_legacy fake_unattested <<< "$(measure "$work/store")"
+# The control measures a synthetic store directly, not through git.
+read -r fake_legacy fake_unattested <<< "$(python3 - "$work/store" <<'PYCTRL'
+import glob, json, os, sys
+n = 0
+for f in sorted(glob.glob(os.path.join(sys.argv[1], '*.json'))):
+    try:
+        d = json.load(open(f))
+    except Exception:
+        continue
+    if not ((d.get('subject') or {}).get('materials_digest') or ''):
+        n += 1
+print(n, 0)
+PYCTRL
+)"
 if [ "$fake_legacy" -gt "$CEILING_LEGACY" ]; then
   ok "negative control: an inflated corpus measures $fake_legacy, above the ceiling $CEILING_LEGACY"
 else
