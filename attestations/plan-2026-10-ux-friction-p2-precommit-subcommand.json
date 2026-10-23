@@ -1,17 +1,1 @@
-{
-  "id": "sha256:8e7fe8a8f8a5aa269f1f938344dc80e2cb88ecc5cd30b173c9b43dfc0bc72b82",
-  "issued_at": "2026-10-15T00:00:00Z",
-  "kind": "attestation",
-  "kind_": "review",
-  "producer": {
-    "identity": "human:maintainer"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "plan-2026-10-ux-friction",
-    "materials_digest": "",
-    "obligation": "p2-precommit-subcommand"
-  }
-}
+{"id":"sha256:233361cac22eab26f29593063073c9da7976cc057a3bb2c3f2689dcb29bd86d4","issued_at":"2026-10-23T21:28:10Z","kind":"attestation","kind_":"review","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"17285339f86508189f0af7a530fb3ad199e9ea0a","decision":"plan-2026-10-ux-friction","materials_digest":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","obligation":"p2-precommit-subcommand"}}

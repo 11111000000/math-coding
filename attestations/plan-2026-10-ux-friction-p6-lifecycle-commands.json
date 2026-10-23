@@ -1,17 +1,1 @@
-{
-  "id": "sha256:db52835335d1c953cbf1b9d58653cd29a42be363ef115d5178329d5e8f06fbba",
-  "issued_at": "2026-10-15T00:00:00Z",
-  "kind": "attestation",
-  "kind_": "review",
-  "producer": {
-    "identity": "human:maintainer"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "plan-2026-10-ux-friction",
-    "materials_digest": "",
-    "obligation": "p6-lifecycle-commands"
-  }
-}
+{"id":"sha256:85995c120630160d3701b69a34a8951e91effbc8c063803062bd020dc8d936f6","issued_at":"2026-10-23T21:28:10Z","kind":"attestation","kind_":"review","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"17285339f86508189f0af7a530fb3ad199e9ea0a","decision":"plan-2026-10-ux-friction","materials_digest":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","obligation":"p6-lifecycle-commands"}}

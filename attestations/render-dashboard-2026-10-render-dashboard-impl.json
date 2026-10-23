@@ -1,17 +1,1 @@
-{
-  "id": "sha256:48f62b055032228f21bf9c7b583d0fe180410928ca4858b877c53c98d02deb65",
-  "issued_at": "2026-10-15T00:00:00Z",
-  "kind": "attestation",
-  "kind_": "test",
-  "producer": {
-    "identity": "ci:test:render_kernel.ml"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "render-dashboard-2026-10",
-    "materials_digest": "",
-    "obligation": "render-dashboard-impl"
-  }
-}
+{"id":"sha256:4e64c37776164145f24c2e73e371e2f783c3cc9213d644de973e0d8fa879368c","issued_at":"2026-10-23T21:28:10Z","kind":"attestation","kind_":"test","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"17285339f86508189f0af7a530fb3ad199e9ea0a","decision":"render-dashboard-2026-10","materials_digest":"sha256:6096c6cb713818aedec9c67dbae287e6a993077c0ad71fcfb04a1425c8b50f60","obligation":"render-dashboard-impl"}}

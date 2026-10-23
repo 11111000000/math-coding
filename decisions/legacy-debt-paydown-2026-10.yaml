@@ -1,0 +1,128 @@
+---
+schema: math-coding/3.3
+id: legacy-debt-paydown-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:7c107fbd84f2158dd9fe4fdd0b847bc646a11da0121d4a021155a78e488c66f2"
+yaml_sha: "sha256:7c107fbd84f2158dd9fe4fdd0b847bc646a11da0121d4a021155a78e488c66f2"
+
+intent: { source: "issue:legacy-attestations-are-wildcards-2026-10-23", text: "765 of the 773 tracked attestations carried an empty subject.materials_digest, which the gate treats as a WILDCARD: fresh for every tree, for ever, and invalidated by no change. By the schema's own wording an empty digest is legal only for kind_: review, and 427 of the 765 were not review. The debt had no number anywhere in the repository, so it could not go down - only be re-described." }
+
+commitment: |
+  After this decision closes:
+
+  1. The debt is a NUMBER, measured by a fixture: tracked
+     attestations with an empty materials_digest, decisions with no
+     attestation at all, and attestations bound to a tree that say
+     INCONCLUSIVE.
+  2. Each of the three is a CEILING. The debt may fall; it may
+     never rise.
+  3. Every re-sign is produced by RUNNING the obligation's own
+     verifier. A verifier that cannot be set up - no program, exit
+     126/127, or no output at all - is signed `inconclusive`, never
+     `pass`. A verifier that failed is NOT signed: the obligation
+     is left unsigned rather than given a signature that says
+     something untrue.
+  4. The remaining debt is reported, not hidden.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Re-sign everything and declare the debt paid." Rejected:
+  running every verifier in the corpus produces 517 passes, 392
+  INCONCLUSIVE - the verifiers that need the toolchain cannot run in
+  the kernel's stripped sandbox - and 34 that FAIL. Declaring the
+  debt paid over that set would be a second fabrication.
+
+  (b) "Keep the legacy attestations and move on." Rejected: they
+  are wildcards. They are what let the store report 192 passing
+  subjects while 77 of those subjects had a check that had never
+  been executed.
+
+antithesis: |
+  The opposite claim would be that a passing count is worth more
+  than a true one, and that the 53 subjects which moved from
+  `pass` to `unknown` are a regression.
+
+  That claim is the failure mode this repository has been
+  collecting evidence about for six weeks. The 192 was never 192
+  verified subjects; it was 192 signatures without evidence, and
+  the only attestations the freshness check ever accepted were the
+  ones that carried no evidence at all. The 139 is smaller and it
+  is the first number that can be audited: each of those 139 has a
+  verifier that was executed, on a tree it names, with the output
+  digest recorded.
+
+outcomes:
+  - id: debt-fell-by-more-than-half
+    statement: |
+      Measured 2026-10-23, before and after the per-obligation
+      re-signing:
+
+        legacy attestations (empty digest)   765 -> 332
+        decisions with no attestation        23 ->  28
+        attestations bound to a tree         54 -> 704
+        attestations saying pass               - ->  623
+        attestations saying fail               0 ->   0
+        attestations saying inconclusive       - ->   77
+
+      The two counters that rose are the honest price: five
+      decisions lost a signature that recorded a real failure, and
+      77 obligations declare a `manual:` check the kernel does not
+      execute. Both are now visible and bounded.
+
+scope:
+  paths:
+    - "attestations/**"
+    - "tests/fixtures/legacy-attestation-debt.sh"
+    - "decisions/legacy-debt-paydown-2026-10.yaml"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+    - "bin/**"
+
+obligations:
+  - id: three-debts-are-measured-and-bounded
+    claim: |
+      The fixture measures the legacy count, the unattested-decision
+      count and the inconclusive count, and fails when any exceeds
+      its ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/legacy-attestation-debt.sh
+          result: pass
+
+  - id: no-fail-attestation-in-the-store
+    claim: |
+      The tracked store contains no attestation with result `fail`.
+      A failing check is left unsigned, not recorded as a failure
+      the gate would have to block on.
+    acceptance:
+      all:
+        - verifier: manual-no-fail-attestations
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a legacy attestation is added to the store by a tool other than mathc attest-batch"
+
+assumptions:
+  - id: inconclusive-is-not-pass
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      An attestation that says INCONCLUSIVE does not satisfy its
+      obligation. A `manual:` declaration is a declared gap, and a
+      declared gap is not a pass.
+    consequence_if_false: |
+      If a manual declaration should count as coverage, the gate
+      would need a distinct verdict for it, and the count of
+      machine-verified subjects would have to say so.

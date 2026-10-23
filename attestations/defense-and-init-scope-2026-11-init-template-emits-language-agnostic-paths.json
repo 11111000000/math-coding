@@ -1,17 +1,1 @@
-{
-  "id": "sha256:49f727ce934cef2b4376ebad21f4b71705e6d0a6c2431999f91fe3b01cde8a0b",
-  "issued_at": "2026-10-19T21:10:37Z",
-  "kind": "attestation",
-  "kind_": "review",
-  "producer": {
-    "identity": "human:maintainer"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "defense-and-init-scope-2026-11",
-    "materials_digest": "",
-    "obligation": "init-template-emits-language-agnostic-paths"
-  }
-}
+{"id":"sha256:6820cdfc3d13919129a1aceef2ef3d0c89e690ce33847f466a211aaa6558197c","issued_at":"2026-10-23T21:28:10Z","kind":"attestation","kind_":"review","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"17285339f86508189f0af7a530fb3ad199e9ea0a","decision":"defense-and-init-scope-2026-11","materials_digest":"sha256:daeda2836f0d3ee40e7d3b5a58c0cb17f03d0849188efdb858b897ee044e6b8d","obligation":"init-template-emits-language-agnostic-paths"}}

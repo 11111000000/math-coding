@@ -1,17 +1,1 @@
-{
-  "id": "sha256:dff7276c4d35851450d1dd739a178a166935ebe37daf6b98f7ffaa4872e183dd",
-  "issued_at": "2026-10-19T20:33:03Z",
-  "kind": "attestation",
-  "kind_": "review",
-  "producer": {
-    "identity": "human:maintainer"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "retire-staging-repos-2026-10",
-    "materials_digest": "",
-    "obligation": "status-record"
-  }
-}
+{"id":"sha256:3b6df49d8f7e1a2b14e008a02c7a7aeccb4f3fddd9cfe79adaf12d399380c8d8","issued_at":"2026-10-23T21:28:10Z","kind":"attestation","kind_":"review","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"17285339f86508189f0af7a530fb3ad199e9ea0a","decision":"retire-staging-repos-2026-10","materials_digest":"sha256:79b7db8412f0e0dfe590f0efad46956a6e76710980567177860eb9ffaa7d4b6f","obligation":"status-record"}}

@@ -43,7 +43,21 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # The second ceiling FELL from 23 to 3 in the same commit, which is
 # the shape a ceiling should move in: the debt is being paid.
 CEILING_LEGACY=765
-CEILING_UNATTESTED=23
+# Raised from 23 to 28 on 2026-10-23, for a recorded reason: the
+# per-obligation re-signing re-ran the verifiers of five decisions
+# whose legacy attestation said `pass` without evidence, and their
+# verifiers FAILED. A failed check must not be recorded as a pass,
+# so those five decisions are now UNSIGNED rather than wrongly
+# signed. The count of decisions with no attestation rose; the
+# number of wrongly-signed decisions fell to zero.
+CEILING_UNATTESTED=28
+# Measured 2026-10-23 after the per-obligation re-signing: 77
+# attestations are bound to a tree and say INCONCLUSIVE, because the
+# verifier they name is a `manual:` declaration the kernel does not
+# execute. Those are declared gaps. The gate reports them as
+# unknown, which is the truth: an obligation with no machine evidence
+# is not satisfied.
+CEILING_INCONCLUSIVE=77
 
 # Measure the debt in a given store directory.
 # $1 = the store directory; prints "<legacy> <unattested>"
@@ -86,6 +100,26 @@ PY
 
 read -r legacy unattested <<< "$(measure attestations)"
 
+# The third kind of debt: an attestation that exists, is bound to a
+# tree, and says INCONCLUSIVE - the verifier named by the obligation
+# could not be executed by the kernel. That is what a `manual:`
+# declaration means, and it is a declared gap, not a pass. The count
+# is bounded the same way: it may fall, never rise.
+inconclusive="$(python3 - <<'PYX'
+import json, subprocess
+fs = subprocess.run(['git','ls-files','attestations'],capture_output=True,text=True).stdout.split()
+n = 0
+for f in fs:
+    try:
+        d = json.load(open(f))
+    except Exception:
+        continue
+    if d.get('result') == 'inconclusive':
+        n += 1
+print(n)
+PYX
+)"
+
 # --- 1. the legacy count must not exceed the ceiling --------------------
 if [ "$legacy" -le "$CEILING_LEGACY" ]; then
   ok "legacy attestations: $legacy (ceiling $CEILING_LEGACY)"
@@ -100,7 +134,14 @@ else
   bad "decisions with no attestation: $unattested EXCEEDS the ceiling $CEILING_UNATTESTED — the debt grew"
 fi
 
-# --- 3. NEGATIVE CONTROL: the bound must have teeth ---------------------
+# --- 3. the inconclusive count must not exceed the ceiling --------------
+if [ "$inconclusive" -le "$CEILING_INCONCLUSIVE" ]; then
+  ok "inconclusive attestations: $inconclusive (ceiling $CEILING_INCONCLUSIVE)"
+else
+  bad "inconclusive attestations: $inconclusive EXCEEDS the ceiling $CEILING_INCONCLUSIVE — the debt grew"
+fi
+
+# --- 4. NEGATIVE CONTROL: the bound must have teeth ---------------------
 # A corpus with more legacy attestations than the ceiling must be
 # reported as over it. Without this, the ceiling could be satisfied
 # by a measurement that always returns zero.

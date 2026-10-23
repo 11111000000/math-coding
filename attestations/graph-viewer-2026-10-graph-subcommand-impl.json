@@ -1,17 +1,1 @@
-{
-  "id": "sha256:339bd9ed5a930466bcaf29caade5449cda9cbe2281f203c726560f08fe01cefc",
-  "issued_at": "2026-10-15T00:00:00Z",
-  "kind": "attestation",
-  "kind_": "test",
-  "producer": {
-    "identity": "ci:test:graph.t"
-  },
-  "result": "pass",
-  "schema": "math-coding/attestation-3.0-alpha",
-  "subject": {
-    "candidate_tree": "HEAD",
-    "decision": "graph-viewer-2026-10",
-    "materials_digest": "",
-    "obligation": "graph-subcommand-impl"
-  }
-}
+{"id":"sha256:660c1553079c224d706e63b128b6d82ae8604205490d8ee51e3fcc794010311c","issued_at":"2026-10-23T21:28:10Z","kind":"attestation","kind_":"test","producer":{"identity":"ci:kernel:resign"},"result":"pass","schema":"math-coding/attestation-3.3","subject":{"candidate_tree":"17285339f86508189f0af7a530fb3ad199e9ea0a","decision":"graph-viewer-2026-10","materials_digest":"sha256:7f452c245cf50ca2add97155867aa2fc21f92388778fc1f58027f46298a19a31","obligation":"graph-subcommand-impl"}}
