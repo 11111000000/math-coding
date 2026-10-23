@@ -18,6 +18,10 @@ attestations land in the env-var path, NOT the legacy
   $ mkdir -p "$tmpdir/.math-coding/decisions" "$tmpdir/.math-coding/attestations"
   $ cp -r decisions/3-2-cli-catalog.yaml "$tmpdir/.math-coding/decisions/"
   $ export MATH_CODING_ROOT="$tmpdir"
+  $ git init -q "$tmpdir"
+  $ git -C "$tmpdir" config user.email "t@t"
+  $ git -C "$tmpdir" config user.name "t"
+  $ git -C "$tmpdir" commit -q --allow-empty -m initial
   $ export MATH_CODING_DECISIONS_DIR=".math-coding/decisions"
   $ export MATH_CODING_ATTESTATIONS_DIR=".math-coding/attestations"
   $ unset MATH_CODING_ATTESTATION_STORE || true

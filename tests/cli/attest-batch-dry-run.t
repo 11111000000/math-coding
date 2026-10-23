@@ -14,6 +14,10 @@ cannot pollute the host checkout.
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d) && cd "$tmpdir"
   $ export MATH_CODING_ROOT="$tmpdir"
+  $ git init -q "$tmpdir"
+  $ git -C "$tmpdir" config user.email "t@t"
+  $ git -C "$tmpdir" config user.name "t"
+  $ git -C "$tmpdir" commit -q --allow-empty -m initial
   $ export MATH_CODING_DECISIONS_DIR=".test-math-coding/decisions"
   $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
   $ mkdir -p "$MATH_CODING_ATTESTATIONS_DIR"  # present but empty

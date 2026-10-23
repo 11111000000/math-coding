@@ -28,7 +28,8 @@
   body_canonical_test
   path_config_test
   yaml_block_scalars
-  duplicate_keys)
+  duplicate_keys
+  attestation_anchor)
  (libraries
   mathcoding_core
   mathcoding_render

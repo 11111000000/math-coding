@@ -1,0 +1,332 @@
+---
+schema: math-coding/3.2
+id: candidate-tree-resolves-to-a-commit
+revision: 1
+state: active
+body_sha: "sha256:a6e9d69c7b815185155a0fe06cd7428adbe0cd18bf72daa9d8400c0074370111"
+yaml_sha: "sha256:a6e9d69c7b815185155a0fe06cd7428adbe0cd18bf72daa9d8400c0074370111"
+axiom_link:
+  - A1
+  - A2
+  - A3
+commitment: |
+  After this decision lands:
+
+    (a) Every attestation write path resolves
+        `subject.candidate_tree` to a full commit id at the
+        moment of writing. There is no symbolic-ref
+        fallback and no constant. The two sites that wrote
+        the literal `HEAD` (bin/Mathc.ml `attest-batch` and
+        `re-evaluate-decisions`) now call
+        `resolve_candidate_tree`.
+
+    (b) `lib/git/git_diff.ml::head_commit` runs
+        `git -C <root> rev-parse --verify HEAD` and returns
+        `Ok` only for a full 40-hex (SHA-1) or 64-hex
+        (SHA-256) object id. Every other outcome -- git
+        absent, not a work tree, no commits yet, an
+        unresolvable ref -- is `Error`.
+
+    (c) An `Error` from (b) is a refusal: exit 2 with a
+        message naming the reason, and no file written. In
+        `re-evaluate-decisions` the refusal precedes
+        `mkdir_p`, so nothing is created on the way out.
+
+    (d) Resolution runs against the PROJECT root
+        (`root_with_env_precedence` / `find_project_root`),
+        not the cwd, so an operator running the command from
+        a scratch directory still attests about this
+        repository.
+
+    (e) `lib/gate.ml::required_attestation_satisfied` is
+        UNCHANGED, and its comment now describes the code.
+        `ra_scope_paths` is documented as parsed, carried,
+        and rendered into gap causes, and explicitly NOT
+        enforced as a filter.
+
+    (f) No existing attestation is modified, deleted or
+        regenerated. The treatment of the pre-existing corpus
+        is decided separately by
+        `unanchored-attestations-are-declarations`.
+
+intent: |
+  An attestation answers two questions: when was this
+  observed, and what was observed. `subject.candidate_tree`
+  is the binding that turns the first answer into a fact,
+  and it was a constant in the write path rather than a
+  measurement.
+
+  Measured over the 765 tracked files in `attestations/`:
+  749 carry the literal string `HEAD`, 16 carry a branch
+  name, and ZERO carry a resolved commit SHA. The literal
+  came from `let candidate_tree = "HEAD" in` at
+  bin/Mathc.ml:3302, and independently from a second
+  `Jsonl.String "HEAD"` at bin/Mathc.ml:4959 in the
+  `re-evaluate-decisions` path.
+
+  The consequence is not that the store is wrong but that
+  it is unfalsifiable. "I observed this at HEAD" is a
+  pointer: it resolves to whatever HEAD is at the moment
+  someone reads the file, so no reader can reproduce the
+  observation, and no reader can refute it either. The
+  store's apparent health -- 763 `pass`, 0 rejects --
+  measures how often a signing command was invoked, not
+  the state of any code.
+
+  A1 Feedback requires that every commitment have a path
+  to an observation. This field IS that path, and it was
+  severed at the root.
+
+antithesis: |
+  The strongest case against hard-failing is not that a
+  fallback is convenient. It is that the field has no
+  reader.
+
+  `required_attestation_satisfied` matches only `kind_` and
+  `producer_identity`; no gate code consults
+  `candidate_tree`. `fresh_against` compares
+  `materials_digest`, not the tree. So on the evidence,
+  `candidate_tree` is currently decorative: making it
+  load-bearing adds a hard runtime dependency on `git` for
+  a field no consumer reads, and the corpus already proves
+  the system tolerates its absence -- 765 attestations
+  loaded and gated fine without a single SHA in the field.
+
+  Two further costs, both real:
+
+    - `mathc adopt` does NOT run `git init`. An adopted
+      project is not required to be a repository, and
+      `root_with_env_precedence` accepts `MATH_CODING_ROOT`
+      for any existing directory. After this change,
+      `attest-batch` in an adopted non-git tree exits 2.
+      That is a capability removal for a real user, and it
+      is accepted knowingly rather than discovered later.
+
+    - CI runners, release tarballs and vendored copies may
+      legitimately have no `.git` at all, and would now be
+      unable to sign.
+
+  Counterargument: "no reader" is a statement about the
+  current reader, and the current reader is itself the
+  defect. A field nothing reads is a field whose falsity
+  is undetectable -- that is precisely how 749 identical
+  `HEAD` strings survived review unnoticed. And the
+  corpus does not "tolerate" the absence; it demonstrates
+  it, because nothing in the store could ever have
+  detected the difference between "observed at
+  9c1f7ab" and "observed at whatever comes next". The
+  refutation path has to exist before the claim can be
+  checked.
+
+  The adoption cost is real and is recorded as a reversal
+  signal rather than dismissed: if non-git adopters are
+  blocked in practice, the honest resolution is to add an
+  explicit, loudly-labelled unanchored mode that writes a
+  self-describing marker -- never a silent `HEAD`.
+
+scope:
+  capabilities:
+    - attestation-write-path
+    - required-attestation-gate
+  paths:
+    - "lib/git/git_diff.ml"
+    - "bin/Mathc.ml"
+    - "lib/gate.ml"
+    - "tests/cli/candidate-tree.t"
+    - "decisions/candidate-tree-resolves-to-a-commit-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "axioms/**"
+    - "schemas/**"
+    - "scripts/generate-attestations.py"
+
+outcomes:
+  - id: write-paths-resolve-a-commit
+    statement: |
+      An attestation produced by `mathc attest-batch` or
+      `mathc re-evaluate-decisions` carries a
+      `candidate_tree` equal to the commit HEAD resolved in
+      the project root at write time, and a reader can name
+      the tree the observation is about.
+
+  - id: unresolvable-tree-is-a-refusal
+    statement: |
+      When no commit can be resolved, the command exits 2,
+      names the reason on stderr, and writes no attestation.
+      It never emits the literal `HEAD` as a substitute.
+
+  - id: gate-filter-comment-matches-code
+    statement: |
+      `lib/gate.ml::required_attestation_satisfied` carries
+      a comment that describes the filter it actually
+      implements, and states plainly that `ra_scope_paths`
+      is not enforced.
+
+obligations:
+  - id: new-attestation-carries-a-commit-id
+    outcome: write-paths-resolve-a-commit
+    claim: |
+      `mathc attest-batch --dry-run` emits a
+      `subject.candidate_tree` matching ^[0-9a-f]{40}$ or
+      ^[0-9a-f]{64}$ and equal to `git rev-parse --verify
+      HEAD` in the project root.
+    acceptance:
+      all:
+        - verifier: tests/cli/candidate-tree.t
+          result: pass
+
+  - id: missing-git-refuses-rather-than-falls-back
+    outcome: unresolvable-tree-is-a-refusal
+    claim: |
+      With the project root set to a non-repository, to a
+      repository with no commits, and with `git` absent from
+      PATH, `attest-batch` exits 2 and writes nothing. No
+      fallback string appears in the output. The refusals
+      are asserted on stderr as well as on exit code, so a
+      regression that printed `HEAD` and still exited 2
+      would fail the test.
+    acceptance:
+      all:
+        - verifier: tests/cli/candidate-tree.t
+          result: pass
+
+  - id: gate-comment-describes-implemented-filter
+    outcome: gate-comment-matches-code
+    claim: |
+      The comment above
+      `lib/gate.ml::required_attestation_satisfied` states
+      that `ra_scope_paths` is not enforced, and the
+      function body is unchanged from the revision before
+      this decision. Verified by `git diff` over
+      `lib/gate.ml` being comment-only.
+    acceptance:
+      all:
+        - verifier: tests/cli/candidate-tree.t
+          result: pass
+        - verifier: dune build
+          result: pass
+
+assumptions:
+  - id: write-paths-are-the-only-producers
+    state: fact
+    statement: |
+      `grep -rn 'candidate_tree' bin/ lib/` finds exactly two
+      places that PRODUCE the field
+      (`bin/Mathc.ml::do_attest_batch` and
+      `::do_re_evaluate_decisions`), one shared constructor
+      that takes it as a parameter
+      (`lib/attestations/batch.ml::make_attestation`), and
+      one reader (`lib/codec.ml`). `mathc attest` is a
+      deprecated alias for `mathc import-junit`, which
+      writes no attestation at all; `self-check` and
+      `verify` read the store and write nothing.
+    owner: human:maintainer
+    consequence_if_false: |
+      A fourth producer exists outside bin/ and lib/ --
+      notably `scripts/generate-attestations.py`, which
+      carries its own `CANDIDATE_TREE = "HEAD"` constant.
+      That script was deliberately NOT changed: it is the
+      generator for the committed corpus, and per the
+      forward-only constraint re-running it would mint new
+      evidence ids for observations nobody re-ran. Its
+      constant is therefore a known, recorded, still-open
+      defect, not an oversight.
+    review_on:
+      - signal: attestation-appears-with-symbolic-candidate-tree
+
+  - id: sha256-repositories-are-accepted-not-refused
+    state: fact
+    statement: |
+      `head_commit` accepts 40-hex and 64-hex object ids.
+      A repository configured with
+      `extensions.objectFormat=sha256` produces 64-hex ids,
+      and refusing those would reject an honest answer from
+      git. The repository under test is SHA-1, so the
+      64-hex branch is exercised by construction (the
+      validator) rather than end-to-end.
+    owner: human:maintainer
+    consequence_if_false: |
+      If some git version emits an abbreviated or
+      upper-case id, `head_commit` returns `Error` and the
+      write path refuses. That is a false negative, not a
+      false positive: the command stops rather than writing
+      a wrong id. The failure is loud and names the value.
+    review_on:
+      - signal: head-commit-refuses-valid-repository
+
+counterexample: |
+  Consider the adopter who keeps their project in a
+  tarball with no VCS at all, and who has an existing
+  pipeline calling `mathc attest-batch --from=decisions
+  --producer=human:ci`. Before this decision that pipeline
+  produced attestations stamped `HEAD`; after it, every run
+  exits 2. The pipeline is broken by a change whose stated
+  purpose was to make attestations trustworthy, and the
+  operator's response is rational: revert.
+
+  This is the real cost and it is not answered by pointing
+  out that the old attestations were worthless. They were
+  worthless for VERIFICATION, but they were not useless for
+  RECORD-KEEPING: an adopter may have used them as an audit
+  log of which decisions were signed when, and losing that
+  is a capability they did not ask to lose.
+
+  The decision accepts this cost because the alternative is
+  worse: an opt-out that writes an unanchored field
+  reintroduces exactly the defect, and reintroduces it
+  invisibly, because a `HEAD` among SHAs is
+  indistinguishable from a deliberate one to every reader
+  that does not special-case the string. If this cost
+  proves too high in practice, the reversal signal
+  `adopter-blocked-outside-git` fires and the correct
+  response is a distinct, self-describing unanchored
+  marker -- a different artefact, not a resurrected
+  constant.
+
+reversal:
+  - signal: adopter-blocked-outside-git
+    condition: |
+      An adopter without version control reports that
+      `attest-batch` is unusable after this decision, and
+      the workaround (initialising a repository, or
+      vendoring a fake one purely to satisfy the resolver)
+      is worse than the defect it fixes.
+    action: rework
+    resolution: |
+      Add an explicit `--unanchored` mode that writes a
+      self-describing value such as `unanchored:no-vcs`,
+      never `HEAD`, and have the gate and any consumer
+      treat that value as evidence of an UNOBSERVED tree
+      rather than a passing one. Do not restore the
+      literal.
+
+  - signal: head-commit-refuses-valid-repository
+    condition: |
+      `head_commit` returns `Error` for a repository that
+      `git rev-parse --verify HEAD` resolves cleanly --
+      e.g. a git version with a different id format, or a
+      SHA-256 repository not covered by the validator.
+    action: rework
+
+risk:
+  declared_triggers:
+    - adopter-blocked-outside-git
+    - head-commit-refuses-valid-repository
+    - field-has-no-reader-so-the-fix-is-unfalsifiable-too
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  depends_on:
+    - path-probe-anchoring-2026-11
+  revises: []
+  supersedes: []
+  superseded_by: []
+
+time:
+  estimate:
+    scale: wall-clock-minutes
+    value: 137
+    reference_class: "kernel-change P50 40 min (bin/data/time-distribution.yaml), x2.2 per_artifact_over_first (3 source files: lib/git/git_diff.ml, bin/Mathc.ml, lib/gate.ml), x1.3 mixed_class_scope (kernel adapter + CLI write path + docs), x1.2 test_required_with_runtime (new cram test plus before/after self-check measurement); P50 ~137 min. P95 of kernel-change = 150 min; with the same multipliers ~515 min."
+    percentile: p50

@@ -1199,6 +1199,51 @@ let[@warning "-32"] now_iso () =
   Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ" (tm.tm_year + 1900)
     (tm.tm_mon + 1) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
 
+(* --- candidate_tree resolution -------------------------------------
+ *
+ * `subject.candidate_tree` is the field that turns "I observed this"
+ * into "I observed THIS". It has to carry a commit id, because a
+ * symbolic ref is a pointer that resolves to whatever the reader's
+ * HEAD happens to be: the store looked healthy (763 `pass`, 0
+ * rejects) while every one of those verdicts rested on a field that
+ * named no tree at all. 749 of the 765 committed attestations carry
+ * the literal `HEAD` for exactly that reason -- the value was a
+ * constant in the write path, not a measurement.
+ *
+ * So there is no fallback here, deliberately. `Git_diff.head_commit`
+ * has an `Error` case and this wrapper turns it into exit 2 (spec/
+ * semantics.md §CLI subcommands: "2 | input error (file missing,
+ * malformed JSON/YAML, bad CLI args, bad git ref)") rather than
+ * inventing a value. A fallback is precisely what produced the
+ * defect: an attestation written against an unresolved tree is not a
+ * degraded observation, it is a fabricated one, and it is worse than
+ * no attestation because it is indistinguishable from a real one once
+ * it is in the store.
+ *
+ * `root` is the PROJECT root, not the cwd: the tree being attested is
+ * the repository's, and an operator running `mathc attest-batch` from
+ * a scratch directory is still attesting about this repository. *)
+let[@warning "-32"] resolve_candidate_tree ~cmd ~root =
+  match Git_diff.head_commit ~cwd:root with
+  | Ok sha -> sha
+  | Error reason ->
+      Printf.eprintf
+        "mathc %s: refusing to write an attestation with an unanchored \
+         candidate_tree.\n\
+        \  git could not resolve a commit at the project root %s:\n\
+        \    %s\n\
+        \  `candidate_tree` names WHICH TREE the observation is about. The \
+         literal \"HEAD\"\n\
+        \  is a pointer, not a fact: it resolves to whatever HEAD is when the \
+         file is\n\
+        \  read, so the attestation can be neither reproduced nor refuted. This\n\
+        \  command has no fallback value on purpose -- run it inside a git \
+         work tree\n\
+        \  that has at least one commit.\n\
+         %!"
+        cmd root reason;
+      exit 2
+
 (* --- mathc update subcommand (d9-mathc-update-subcommand) ---
  *
  * `mathc update [--channel=stable|edge|<ver>] [--yes]` shells out
@@ -3299,8 +3344,8 @@ let[@warning "-32"] do_attest_batch () =
     exit 2
   end;
   let issued_at = now_iso () in
-  let candidate_tree = "HEAD" in
   let root = root_with_env_precedence () in
+  let candidate_tree = resolve_candidate_tree ~cmd:"attest-batch" ~root in
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
@@ -4913,6 +4958,12 @@ let[@warning "-32"] do_re_evaluate_decisions () =
       try Unix.mkdir d 0o755 with _ -> ()
     end
   in
+  (* Resolve BEFORE any directory is created: this write path has no
+     fallback tree, so it must refuse before it leaves a side effect
+     behind. *)
+  let candidate_tree =
+    resolve_candidate_tree ~cmd:"re-evaluate-decisions" ~root:repo_root
+  in
   mkdir_p attestations_dir;
   List.iter
     (fun ((d, v) : Domain.decision * Re_evaluation.status) ->
@@ -4956,7 +5007,7 @@ let[@warning "-32"] do_re_evaluate_decisions () =
                       [
                         ("decision", Jsonl.String d.Domain.id);
                         ("obligation", Jsonl.String ob.Domain.id);
-                        ("candidate_tree", Jsonl.String "HEAD");
+                        ("candidate_tree", Jsonl.String candidate_tree);
                         ("materials_digest", Jsonl.String "");
                       ] );
                   ("kind_", Jsonl.String "test");

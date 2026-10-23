@@ -15,6 +15,11 @@ and `bin/Mathc.ml::env_or_default`).
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d) && cd "$tmpdir"
   $ export MATH_CODING_DECISIONS_DIR=".test-math-coding/decisions"
+  $ export MATH_CODING_ROOT="$tmpdir"
+  $ git init -q "$tmpdir"
+  $ git -C "$tmpdir" config user.email "t@t"
+  $ git -C "$tmpdir" config user.name "t"
+  $ git -C "$tmpdir" commit -q --allow-empty -m initial
   $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
   $ mkdir -p "$MATH_CODING_ATTESTATIONS_DIR"
   $ mathc attest-batch \
@@ -44,11 +49,11 @@ are checked separately via the SHA-256 self-check below.
 
   $ for f in .test-math-coding/attestations/*.json; do
   >   python3 -c "
-  > import sys, json
+  > import sys, json, re
   > with open('$f') as g: d = json.load(g)
   > assert d['schema'] == 'math-coding/attestation-3.3', d['schema']
   > assert d['kind'] == 'attestation', d['kind']
-  > assert d['subject']['candidate_tree'] == 'HEAD', d['subject']['candidate_tree']
+  > assert re.fullmatch(r'[0-9a-f]{40}', d['subject']['candidate_tree']), d['subject']['candidate_tree']
   > assert d['subject']['materials_digest'] == '', d['subject']['materials_digest']
   > assert d['result'] in ('pass','fail'), d['result']
   > assert d['producer']['identity'], d['producer']

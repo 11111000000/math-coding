@@ -124,13 +124,45 @@ let[@warning "-32"] fresh_against ~attestations ~materials_digest =
 (* `required_attestation_satisfied ra store` returns true when
    at least one attestation in `store` matches the
    (kind_, producer) pair declared by `ra`. The check is the
-   exact-match closure: both fields must equal. Empty
-   `ra_scope_paths` means any path — every attestation whose
-   decision/decision_revision match the store's keys is
-   eligible; non-empty `ra_scope_paths` filters by the
-   attestation's candidate_tree (commit SHA) being mentioned
-   in the attestation's `subject.candidate_tree` field — the
-   simplest predicate the existing schema carries. *)
+   exact-match closure: both fields must equal.
+
+   `ra_scope_paths` is NOT enforced. It is parsed
+   (`Decision.parse_scope_paths`), carried on the record, and
+   rendered into the gap cause by `required_attestation_gap` for
+   human traceability, and that is its entire effect on the
+   verdict. A requirement with a non-empty `scope_paths` is
+   satisfied by exactly the same store contents as the same
+   requirement with none.
+
+   This comment previously claimed the opposite: that a
+   non-empty `ra_scope_paths` "filters by the attestation's
+   candidate_tree (commit SHA) being mentioned in the
+   attestation's `subject.candidate_tree` field". Three things
+   were wrong with that. It described a filter the function
+   does not implement. It read `scope_paths` as a commit SHA,
+   where the field is an array of path GLOBS
+   (`decision-required-attestations-2026-10.yaml`: "scope_paths
+   is an optional array of glob strings"; the example there is
+   `bin/Mathc.ml`, `spec/**/*.md`) -- a domain confusion, not a
+   typo. And it contradicted the decision that governs this
+   code, which states in terms that the predicate "is documented
+   but not yet enforced" and that "the gate filter is currently
+   (kind_, producer_identity)".
+
+   Enforcing it is not a comment-sized change and was not made
+   here. Beyond needing its own decision, it would flip the
+   corpus: `scope_paths` would have to be matched against a
+   commit SHA, and 0 of the 765 committed attestations carry
+   one (749 carry the literal `HEAD`, 16 a branch name), so
+   every scoped requirement would go unsatisfied and pass
+   verdicts would become blocks. That would be a true statement
+   about an unobserved corpus mistaken for a defect in the
+   filter -- and it is precisely the retro-fitting of history
+   that `candidate-tree-resolves-to-a-commit` forbids.
+   Forward-path: now that new attestations carry a resolved
+   commit id, the predicate becomes implementable at all; it
+   stays unenforced until the store is re-observed rather than
+   rewritten. *)
 let[@warning "-32"] attestation_kind_str (a : Domain.attestation) : string =
   match a with
   | { kind = `Test; _ } -> "test"

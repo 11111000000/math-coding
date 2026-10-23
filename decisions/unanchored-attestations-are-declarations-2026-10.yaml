@@ -1,0 +1,259 @@
+---
+schema: math-coding/3.2
+id: unanchored-attestations-are-declarations
+revision: 1
+state: active
+body_sha: "sha256:2199e552fb614e9e223b4e3f4c8c462795cd6bade5922e9805c94e1e5eafa94b"
+yaml_sha: "sha256:2199e552fb614e9e223b4e3f4c8c462795cd6bade5922e9805c94e1e5eafa94b"
+axiom_link:
+  - A1
+  - A2
+  - A4
+commitment: |
+  After this decision lands:
+
+    (a) No file under `attestations/` is modified, deleted,
+        regenerated or re-signed as a consequence of
+        `candidate-tree-resolves-to-a-commit`. The committed
+        corpus is exactly the 765 files that were committed
+        before that change, byte for byte.
+
+    (b) The count of tracked attestations whose
+        `subject.candidate_tree` is not a full object id is
+        pinned at 765 by `tests/attestation_anchor.ml`. The
+        pin may only ever DECREASE, as new anchored
+        attestations are written alongside the old ones. It
+        may never increase.
+
+    (c) Every tracked attestation still parses through the
+        production loader (`Attestations.read_one`), pinned by
+        the same test.
+
+    (d) These 765 files are classified in writing, here, as
+        DECLARATIONS: records that an agent asserted an
+        obligation was discharged at some time, with no
+        resolvable claim about which tree that was. They are
+        not anchored observations and must not be read as
+        evidence about any particular commit.
+
+intent: |
+  `candidate-tree-resolves-to-a-commit` makes every NEW write
+  carry a real commit id. That leaves a question it cannot
+  answer on its own: what were the 765 files already in the
+  store, and what may a reader conclude from them?
+
+  They cannot be repaired. An attestation's `id` is the sha256
+  of its body, and `candidate_tree` is a field of the body, so
+  substituting a resolved SHA would change the digest and mint
+  a new `id` for an observation nobody re-ran. The new id
+  would be arithmetically valid and evidentially false: it
+  would claim that some agent, on some date, observed some
+  tree at a commit that never existed at the time the file was
+  written. That is forgery of the most befitting kind --
+  invisible to every check the store performs, because the
+  checks only verify internal consistency.
+
+  So the corpus is left exactly as it is, and the honest
+  response to an unfalsifiable body of evidence is to say so
+  rather than to launder it. This decision is that statement.
+
+antithesis: |
+  The strongest objection is that classifying the corpus as
+  merely "declarations" concedes a store-wide failure and
+  then does nothing about it. On that reading, leaving 765
+  unanchored files in place is not honesty but stasis: the
+  kernel loads them, gates on them, and reports 192 `pass`
+  subjects while admitting that not one of them names a tree.
+
+  Counterargument: the gate does not actually treat them as
+  anchored evidence, and says so. KERNEL_AGENTS.md is explicit
+  that a `review`-class attestation "is a human declaration,
+  not a runtime observation" and that "verdicts reflect the
+  kernel's reading of the live attestation store at HEAD; they
+  are not hand-written promises, but they are bounded by the
+  source class of each attestation". The corpus is ALREADY
+  read as declarations. What was missing was the explicit
+  statement and a number that cannot drift.
+
+  The second objection is that a pin at 765 is theatre: it
+  asserts a fact that will be true until someone updates the
+  constant. But that is precisely its job. The alternative is
+  a number nobody tracks, and a store that can only lose
+  anchoredness silently. A pin that must be deliberately
+  moved is a speed bump on exactly the mass-rewrite this
+  decision forbids -- and it is a speed bump in the
+  direction that matters, because the only way to move it
+  down is to run a real observation.
+
+  The third objection deserves recording because it is true:
+  the pin cannot distinguish a newly ANCHORED attestation
+  from a newly added unanchored one, unless the count rises.
+  It can -- the count rises on any new unanchored file. The
+  pin is on the unanchored count, not the total, precisely so
+  that adding anchored evidence does not trip it.
+
+scope:
+  capabilities:
+    - attestation-store-governance
+  paths:
+    - "tests/attestation_anchor.ml"
+    - "tests/dune"
+    - "decisions/unanchored-attestations-are-declarations-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "lib/**"
+    - "bin/**"
+
+outcomes:
+  - id: corpus-is-classified-not-repaired
+    statement: |
+      The 765 committed attestations are declared, in this
+      decision, to be unanchored declarations. No reader of
+      the store can infer from them which tree any observation
+      was made against, and no future commit may quietly change
+      that.
+
+  - id: unanchored-count-is-non-growing
+    statement: |
+      The number of tracked attestations with a symbolic
+      `candidate_tree` cannot increase without a test failure
+      naming the new file.
+
+  - id: corpus-remains-loadable
+    statement: |
+      All tracked attestations continue to parse through the
+      production loader, so a forward-only change elsewhere can
+      never render the corpus unreadable.
+
+obligations:
+  - id: unanchored-count-is-pinned
+    outcome: unanchored-count-is-non-growing
+    claim: |
+      `tests/attestation_anchor.ml` counts tracked attestations
+      whose `candidate_tree` is not a full 40-hex or 64-hex
+      object id, and requires the count to be exactly 765.
+      Adding an anchored attestation leaves it at 765; adding
+      an unanchored one raises it and fails the test.
+    acceptance:
+      all:
+        - verifier: tests/attestation_anchor.ml
+          result: pass
+
+  - id: corpus-remains-parseable
+    outcome: corpus-remains-loadable
+    claim: |
+      Every tracked attestation parses through
+      `Attestations.read_one`, the production decoder, so "all
+      765 still parse" is a statement about the loader the gate
+      actually uses rather than about a parser local to the
+      test.
+    acceptance:
+      all:
+        - verifier: tests/attestation_anchor.ml
+          result: pass
+
+assumptions:
+  - id: attestation-id-is-the-digest-of-the-body
+    state: fact
+    statement: |
+      `attestations/<decision>-<obligation>.json` carries an
+      `id` equal to `sha256:` plus the SHA-256 of the canonical
+      JSON of the body with `id` removed, per
+      `lib/attestations/batch.ml::compute_id` and
+      `scripts/generate-attestations.py::canonical_json`.
+      Because `candidate_tree` sits inside the body, any edit
+      to it changes the id.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the id did not cover the body, the corpus could be
+      re-anchored in place without minting new evidence, and
+      the whole no-repair argument would collapse. This is
+      asserted as fact because it is enforced independently by
+      the id round-trip in `tests/cli/attest-batch-positive.t`.
+    review_on:
+      - signal: attestation-id-scheme-changes
+
+  - id: corpus-repair-requires-re-observation-not-rewrite
+    state: judgment
+    statement: |
+      The only honest route to an anchored corpus is to RE-RUN
+      each obligation and write fresh attestations against a
+      known tree, leaving the historical files in place. There
+      is no migration that converts a declaration into an
+      observation, because the act of conversion would have to
+      be performed by someone who was not there.
+    owner: human:maintainer
+    consequence_if_false: |
+      If some future tool could legitimately re-anchor the
+      corpus, the pin at 765 would become an obstacle to a
+      legitimate repair. The reversal signal below fires in
+      that case; the pin is a default, not a prohibition.
+    review_on:
+      - signal: corpus-re-anchoring-becomes-possible
+
+counterexample: |
+  An auditor reads `attestations/bootstrap-v3-*.json`, sees
+  `result: pass`, and concludes the bootstrap gate passed on
+  this commit. Under this decision that conclusion is
+  unsupported, and the auditor has no in-band way to learn
+  it: the file says `candidate_tree: HEAD`, and HEAD is a
+  term that sounds like a location but names nothing that can
+  be checked.
+
+  The decision does not fix that. It names the problem,
+  pins the debt so it cannot grow, and guarantees that every
+  attestation written from now on is checkable. A reader who
+  needs to know whether a SPECIFIC observation was anchored
+  can answer it after this change and could not before --
+  because after it, an attestation either carries a commit id
+  or it does not, and the second case is a visible exception
+  rather than the universal default.
+
+  That is the strongest thing available without touching the
+  corpus, and it is genuinely weaker than an anchored
+  history. Saying so is part of the commitment.
+
+reversal:
+  - signal: corpus-re-anchoring-becomes-possible
+    condition: |
+      A change makes it possible to re-run the historical
+      obligations and attach the results to the EXISTING
+      decision/obligation pairs without minting new ids --
+      e.g. the id scheme stops covering the body, or a signed
+      external log makes historical attestations verifiable
+      after the fact.
+    action: rework
+    resolution: |
+      Re-run the obligations and write NEW attestations for
+      the anchored corpus. Do not lower the pin by editing
+      existing files; lower it only as new anchored files
+      land, one observation at a time.
+
+  - signal: pin-becomes-a-blocker
+    condition: |
+      A legitimate addition of anchored attestrations fails
+      because the pin is expressed as a total count rather
+      than an unanchored count.
+    action: rework
+
+risk:
+  declared_triggers:
+    - corpus-re-anchoring-becomes-possible
+    - pin-becomes-a-blocker
+  owner: human:maintainer
+
+relations:
+  addresses:
+    - bootstrap-v3@2
+  depends_on:
+    - candidate-tree-resolves-to-a-commit
+  revises: []
+  supersedes: []
+  superseded_by: []
+
+time:
+  estimate:
+    scale: wall-clock-minutes
+    value: 25
+    reference_class: "single-file-edit P50 3 min (tests/attestation_anchor.ml + tests/dune stanza), x3 for the decision file and its A3 self-application ritual, x2.8 for measuring the corpus and reconciling the count against two contaminated dune caches before trusting the number; P50 ~25 min. P95 of single-file-edit = 10 min, ~28 min with the same multipliers."
+    percentile: p50

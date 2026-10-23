@@ -150,6 +150,10 @@ finds 5 current pass attestations -> no gaps -> aggregate Pass
   $ echo '(lang dune 3.21)' > dune-project
   $ mkdir -p decisions attestations
   $ export MATH_CODING_ROOT="$tmpdir"
+  $ git init -q "$tmpdir"
+  $ git -C "$tmpdir" config user.email "t@t"
+  $ git -C "$tmpdir" config user.name "t"
+  $ git -C "$tmpdir" commit -q --allow-empty -m initial
 
 Hand-write a parseable v3.2 decision with 5 obligations. The two
 SHA fields are stamped with the 64-zero placeholder, which is
@@ -288,6 +292,16 @@ environments, so we don't pattern-match on the exact string).
   ship-attest-batch-case3-obl-3.json
   ship-attest-batch-case3-obl-4.json
   ship-attest-batch-case3-obl-5.json
+
+Commit them. The store admits only git-TRACKED files
+(`store_keep_for` in bin/Mathc.ml): a file that is on disk but
+in no commit is not evidence about any tree. Now that this
+tmpdir is a real work tree, that admission rule applies, and
+five untracked files would read as "no evidence at all" --
+which is the correct reading, and would leave the verdict at
+`unknown`.
+  $ git -C "$tmpdir" add -A
+  $ git -C "$tmpdir" commit -q -m attestations
 
 Snap the verdict AFTER attest-batch. The 5 obligations are now
 backed by current pass attestations (materials_digest="" is
