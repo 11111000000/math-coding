@@ -109,12 +109,18 @@ let[@warning "-32"] unanchored_count_does_not_grow () =
         | Error _ -> true)
       files
   in
-  Alcotest.(check int)
+  (* The comment above says "it may only ever go DOWN". The
+     assertion said EQUALITY, so re-anchoring a batch of legacy
+     attestations - which is the whole point of the exercise - made
+     the test fail for doing exactly what it exists to permit. The
+     pin is a CEILING. *)
+  Alcotest.(check bool)
     (Printf.sprintf
        "tracked attestations whose candidate_tree is not a full object id \
-        (pinned at %d; may only decrease as anchored attestations are added)"
+        (ceiling %d; may only decrease as anchored attestations are added)"
        pinned_unanchored)
-    pinned_unanchored (List.length unanchored)
+    true
+    (List.length unanchored <= pinned_unanchored)
 
 let[@warning "-32"] every_tracked_attestation_parses () =
   let files = tracked_attestations () in

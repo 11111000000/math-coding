@@ -32,7 +32,7 @@ A batch written into a tree that HAS a commit carries that commit's
 id -- a full object id, not a symbolic ref:
 
   $ mkdir -p "$tmp/out"
-  $ mathc attest-batch --manifest="$manifest" --out="$tmp/out" > /dev/null 2>&1
+  $ mathc attest-batch --manifest="$manifest" --out="$tmp/out" --run="printf probe" > /dev/null 2>&1
   $ one="$tmp/out/d1-onboarding-d1-obl-acceptance.json"
   $ test -f "$one" && echo "attestation written: ok"
   attestation written: ok

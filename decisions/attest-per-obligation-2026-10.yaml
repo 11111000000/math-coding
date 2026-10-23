@@ -4,8 +4,8 @@ id: attest-per-obligation-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:8fe1a03b73c54074e63ffcecb92bb86f3aa009fd0c4d32327b695cc0d15d0f92"
-yaml_sha: "sha256:8fe1a03b73c54074e63ffcecb92bb86f3aa009fd0c4d32327b695cc0d15d0f92"
+body_sha: "sha256:40e77f69ff2c637a26e5890bfd74b2c01883e15976b5e75b19336584946b2a95"
+yaml_sha: "sha256:40e77f69ff2c637a26e5890bfd74b2c01883e15976b5e75b19336584946b2a95"
 
 intent: { source: "issue:attest-batch-signs-many-obligations-with-one-claim-2026-10-23", text: "mathc attest-batch could only sign a batch with ONE claim: the exit code of a single --run command. For 793 obligations that is one claim about many obligations, and the corpus records what it produced - 749 of the 765 committed attestations carry the literal string HEAD as their candidate_tree, and 760 carry an empty materials_digest, which the gate treats as a wildcard. Separately, the --manifest branch did not require --run at all, so a runtime kind could be signed with no execution behind it." }
 
@@ -82,6 +82,11 @@ scope:
     - "spec/**"
     - "axioms/**"
     - "lib/**"
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "an adopter relies on a batch-wide --run to stand for many obligations"
 
 obligations:
   - id: runtime-kind-without-run-is-refused

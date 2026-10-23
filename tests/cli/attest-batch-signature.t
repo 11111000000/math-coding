@@ -90,6 +90,17 @@ Two small decisions first: 2 obligations and 3, i.e. 5 rows.
   $ write_decision small-a 2 "$MATH_CODING_DECISIONS_DIR/small-a.yaml"
   $ write_decision small-b 3 "$MATH_CODING_DECISIONS_DIR/small-b.yaml"
 
+The decisions are COMMITTED before anything is signed. Under
+semantics A the materials digest is the digest of the content of the
+files the scope names, taken at the tree the attestation names - so
+the scope has to exist in that tree. A decision written after the
+commit is not in the tree, its scope digests to the empty set, and
+the attestation says nothing. That is not a corner case: it is what
+happens to every attestation whose scope was never committed.
+
+  $ git add -A
+  $ git commit -q -m "fixture decisions"
+
 1. No `--producer`: refuse, and refuse BEFORE reading the store.
 The exit code is 2 (input error) and not a single attestation is
 written -- the refusal is not a warning followed by a batch signed
@@ -178,12 +189,12 @@ twelve -- and the report line names the run it was.
   > assert all(r['kind_'] == 'test' for r in rows), 'kind'
   > assert all(r['result'] == 'pass' for r in rows), 'result'
   > digests = {r['subject']['materials_digest'] for r in rows}
-  > assert len(digests) == 1, digests
-  > only = digests.pop()
-  > assert only.startswith('sha256:') and len(only) == 71, only
-  > print('12 test attestations, result=pass, one shared sha256 digest')
+  > assert all(d.startswith('sha256:') and len(d) == 71 for d in digests), digests
+  > decisions = {r['subject']['decision'] for r in rows}
+  > assert len(digests) <= len(decisions), (len(digests), len(decisions))
+  > print('12 test attestations, result=pass, one scope digest per decision')
   > "
-  12 test attestations, result=pass, one shared sha256 digest
+  12 test attestations, result=pass, one scope digest per decision
 
 A run that fails: the batch is signed `fail`, and the operator is
 told on stderr that this is what happened. `--result` is not
@@ -205,11 +216,13 @@ decoration.
   > "
   12 attestations re-signed result=fail by the run
 
-And back to `review`: the digest is empty again, and that is
-correct. The schema requires a runtime anchor for the runtime
-kinds and exempts review as "a human declaration without a runtime
-anchor". Refusing to sign is not the same as pretending a review
-needs a build log.
+And back to `review`: the digest is the SCOPE digest again, and
+that is correct under semantics A. A review carries no execution
+anchor - no build log, no test output - but it is still bound to the
+content it reviewed. A review whose scope changed afterwards is a
+review of something that no longer exists, and under semantics A it
+goes stale like any other attestation. An attestation that can never
+be invalidated is not a declaration; it is a decoration.
 
   $ mathc attest-batch --from=decisions --producer=human:fixture --kind=review > /dev/null 2>&1
   $ python3 -c "
@@ -218,10 +231,10 @@ needs a build log.
   > assert all(r['kind_'] == 'review' for r in rows), 'kind'
   > assert all(r['result'] == 'pass' for r in rows), 'result'
   > assert all(r['producer']['identity'] == 'human:fixture' for r in rows), 'producer'
-  > assert all(r['subject']['materials_digest'] == '' for r in rows), 'review digest must stay empty'
-  > print(len(rows), 'review attestations, empty digest, named producer')
+  > assert all(r['subject']['materials_digest'].startswith('sha256:') for r in rows), 'review digest must be the scope digest'
+  > print(len(rows), 'review attestations, scope digest, named producer')
   > "
-  12 review attestations, empty digest, named producer
+  12 review attestations, scope digest, named producer
 
 Cleanup.
 

@@ -2866,8 +2866,7 @@ let[@warning "-32"] verify_timeout_s = 60
    Zero at the top level. Every sandboxed child receives depth+1. *)
 let[@warning "-32"] verify_depth () : int =
   match Sys.getenv_opt "MATH_CODING_VERIFY_DEPTH" with
-  | Some s -> (
-      try int_of_string (String.trim s) with _ -> 0)
+  | Some s -> ( try int_of_string (String.trim s) with _ -> 0)
   | None -> 0
 
 (* The maximum nesting depth. One level of nesting is legitimate — a
@@ -2889,7 +2888,6 @@ let[@warning "-32"] abs_path_of p =
 (* True when [child] names the same file as [parent]. *)
 let[@warning "-32"] same_file child parent =
   String.equal (abs_path_of child) (abs_path_of parent)
-
 
 (* Compute the env-stripped environment array. Only PATH, HOME,
    and LANG are inherited; everything else is dropped. *)
@@ -2993,12 +2991,24 @@ let[@warning "-32"] shell_metacharacters =
     '\r';
   |]
 
-type verify_outcome = Pass | Fail | Skipped | Timeout
+(* `Setup_fail` is not a failure of the CHECK. It is the failure of
+ * the ATTEMPT to run it: the program the verifier names is not on
+ * PATH, is not executable, or the sandbox refused to exec it. A
+ * verifier that could not run has not failed; reporting it as
+ * `fail` says "the project is broken" when the truth is "the check
+ * could not be performed here".
+ *
+ * The distinction is carried by the conventional exit codes: 127 is
+ * "command not found", 126 is "found but not executable". Both are
+ * setup failures. Every other non-zero exit is the check's own
+ * verdict. *)
+type verify_outcome = Pass | Fail | Skipped | Timeout | Setup_fail
 
 let[@warning "-32"] verify_outcome_string = function
   | Pass -> "pass"
   | Fail -> "fail"
   | Skipped -> "skipped"
+  | Setup_fail -> "skipped"
   | Timeout -> "timeout"
 
 (* Best-effort close of inherited file descriptors. OCaml stdlib
@@ -3706,8 +3716,13 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
      program name (`dune`) is looked up on the child's PATH. *)
   match resolve_program prog with
   | None ->
+      (* The check could not be ATTEMPTED: the program it names is
+         not on PATH. That is not the check failing; it is the check
+         not running. Reported as Setup_fail so that a corpus-wide
+         sweep does not report every toolchain-dependent verifier as
+         a broken project. *)
       Printf.eprintf "mathc verify: %s is not on PATH\n%!" prog;
-      Fail
+      Setup_fail
   | Some abs_prog ->
       let log = Filename.temp_file "mathc_verify_" ".log" in
       let outcome, status =
@@ -3729,14 +3744,24 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
             | Unix.WEXITED 0 -> Pass
             | Unix.WEXITED n ->
                 Printf.eprintf "mathc verify: %s exited %d\n%!" prog n;
-                Fail
+                (* 126: found but not executable. 127: not found.
+                   Both mean the check did not run.
+                   And a non-zero exit with NO output at all is the
+                   same case wearing a different hat: the check
+                   produced no evidence. A check that ran and failed
+                   SAYS so - that is the entire point of a failing
+                   check. Silence is not a verdict. *)
+                if n = 126 || n = 127 then Setup_fail
+                else if captured = "" then Setup_fail
+                else Fail
             | Unix.WSIGNALED _ -> Fail
             | Unix.WSTOPPED _ -> Fail)
         | Fail | Skipped -> Fail
+        | Setup_fail -> Setup_fail
       in
       (match verdict with
       | Pass | Skipped -> ()
-      | Fail | Timeout ->
+      | Fail | Timeout | Setup_fail ->
           excerpt_to_stderr
             ~heading:
               (Printf.sprintf "mathc verify: output of `%s`:"
@@ -3814,6 +3839,7 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
                 | Unix.WSIGNALED _ -> Fail
                 | Unix.WSTOPPED _ -> Fail)
             | Fail | Skipped -> Fail
+            | Setup_fail -> Setup_fail
           end
       | _ -> (
           (* Not one of the three scheme names. The corpus writes
@@ -3838,7 +3864,9 @@ let[@warning "-32"] aggregate_verifier_outcomes outcomes =
   | _ ->
       if List.exists (fun o -> o = Fail) outcomes then Fail
       else if List.exists (fun o -> o = Pass) outcomes then Pass
+      else if List.exists (fun o -> o = Setup_fail) outcomes then Setup_fail
       else Skipped
+
 
 (* Walk a single obligation's `acceptance.all[*].verifier` strings
    and return per-obligation verdicts. We use the raw JSON walk
@@ -3894,23 +3922,46 @@ let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
   let path = Filename.concat dir (decision_id ^ ".yaml") in
   match parse_file path with
   | Error _ -> Fail
-  | Ok v ->
+  | Ok v -> (
       let obl =
         List.find_opt
           (fun (id, _) -> String.equal id obligation_id)
           (collect_obligations v)
       in
-      (match obl with
+      match obl with
       | None -> Fail
       | Some (_, verifiers) ->
-          let outcomes =
-            List.map
+          (* A verifier that cannot even be PLANNED - an unknown
+             scheme, a path outside the repository, a missing
+             program - has not failed. It has not run. The difference
+             matters: signing that `fail` would report a broken
+             CHECK as a broken PROJECT, and the corpus would fill
+             with failures that say nothing about the code. Only a
+             verifier that ran and reported failure is a `fail`; one
+             that could not be set up is `inconclusive`, exactly like
+             an obligation nobody could execute. *)
+          let planned =
+            List.filter_map
               (fun s ->
-                run_one_verifier ~project_root:root ~sandbox_mode
-                  ~verifier_string:s)
+                match parse_verifier_string s with
+                | None -> None
+                | Some (scheme, args) -> (
+                    match plan_verifier ~project_root:root scheme args with
+                    | Plan_ok _ -> Some s
+                    | Plan_fail _ -> None
+                    | Plan_skip -> None))
               verifiers
           in
-          aggregate_verifier_outcomes outcomes)
+          if planned = [] then Skipped
+          else
+            let outcomes =
+              List.map
+                (fun s ->
+                  run_one_verifier ~project_root:root ~sandbox_mode
+                    ~verifier_string:s)
+                planned
+            in
+            aggregate_verifier_outcomes outcomes)
 
 (* The decisions whose scope intersects the files changed since a
  * base ref.
@@ -3963,7 +4014,6 @@ let[@warning "-32"] split_run_command cmd =
   List.filter (fun t -> t <> "") (String.split_on_char ' ' (String.trim cmd))
 
 let[@warning "-32"] leading_spaces = Memory.leading_spaces
-
 let[@warning "-32"] is_top_level = Memory.is_top_level
 
 (* Find the first top-level `id: VALUE` line and return VALUE.
@@ -4116,7 +4166,8 @@ let[@warning "-32"] scope_digest_map ~(reader : string -> string)
   List.iter
     (fun p ->
       match load_decision_entry reader p with
-      | Some e -> Hashtbl.replace scopes e.Memory.decision_id e.Memory.scope_paths
+      | Some e ->
+          Hashtbl.replace scopes e.Memory.decision_id e.Memory.scope_paths
       | None -> ())
     files;
   let cache : (string, string) Hashtbl.t = Hashtbl.create 64 in
@@ -4125,7 +4176,9 @@ let[@warning "-32"] scope_digest_map ~(reader : string -> string)
     | Some d -> d
     | None ->
         let sp =
-          match Hashtbl.find_opt scopes decision_id with Some s -> s | None -> []
+          match Hashtbl.find_opt scopes decision_id with
+          | Some s -> s
+          | None -> []
         in
         let d =
           Gate.scope_materials_digest ~blobs ~scope_paths:sp
@@ -4151,6 +4204,7 @@ let[@warning "-32"] do_attest_batch () =
   let run_per_obligation = ref false in
   let only_changed = ref "" in
   let set_only_changed s = only_changed := s in
+  let skip_failing = ref false in
   let set_manifest s = manifest := Some s in
   let set_from s = from_kind := Some s in
   let set_out s = out_dir := s in
@@ -4188,20 +4242,26 @@ let[@warning "-32"] do_attest_batch () =
             output digest becomes materials_digest. Required with \
             --kind=test|build|analysis|observation." );
          ("--dry-run", Arg.Set dry_run, " print JSON to stdout, no files");
+         ( "--skip-failing",
+           Arg.Set skip_failing,
+           " do not write an attestation for an obligation whose own \
+            verifier FAILED. The obligation is reported on stderr and \
+            left unsigned: an existing signature is not overwritten with \
+            a failure, and no signature is invented for a check that did \
+            not pass." );
          ( "--only-changed",
            Arg.String set_only_changed,
-           " re-sign only the obligations whose decision SCOPE intersects \
-            the files changed since BASE. Under semantics A a scope \
-            change invalidates the attestation that covered it, so this \
-            is what a commit that touches a scope must run to keep the \
-            gate honest." );
+           " re-sign only the obligations whose decision SCOPE intersects the \
+            files changed since BASE. Under semantics A a scope change \
+            invalidates the attestation that covered it, so this is what a \
+            commit that touches a scope must run to keep the gate honest." );
          ( "--run-per-obligation",
            Arg.Set run_per_obligation,
            " execute EACH row's own verifier and use its verdict as the \
-            result. The verifier strings come from the decision file - \
-            the same ones `mathc verify` executes. Without this flag a \
-            runtime kind has to be signed by one --run for the whole \
-            batch, which is one claim about many obligations." );
+            result. The verifier strings come from the decision file - the \
+            same ones `mathc verify` executes. Without this flag a runtime \
+            kind has to be signed by one --run for the whole batch, which is \
+            one claim about many obligations." );
        ]
        (fun s ->
          Printf.fprintf stderr "mathc attest-batch: unexpected argument: %s\n" s;
@@ -4254,32 +4314,30 @@ let[@warning "-32"] do_attest_batch () =
       | prog :: args -> (
           match resolve_program prog with
           | None ->
-              Printf.eprintf
-                "mathc attest-batch: --run: %s is not on PATH\n%!" prog;
+              Printf.eprintf "mathc attest-batch: --run: %s is not on PATH\n%!"
+                prog;
               exit 2
           | Some abs_prog ->
               let log = Filename.temp_file "mathc_attest_run_" ".log" in
               let outcome, status =
                 run_with_sandbox_in_env
                   ~env:(sandbox_env_for_path_forms ())
-                  ~capture_to:(Some log) ~project_root:root
-                  ~prog:abs_prog ~args:(abs_prog :: args)
-                  ~timeout_s:verify_timeout_s ~sandbox_mode:"none"
+                  ~capture_to:(Some log) ~project_root:root ~prog:abs_prog
+                  ~args:(abs_prog :: args) ~timeout_s:verify_timeout_s
+                  ~sandbox_mode:"none"
               in
               let output = read_capped log ~max_bytes:1048576 in
               (try Sys.remove log with _ -> ());
               let ok =
                 match outcome with
                 | Pass -> (
-                    match status with
-                    | Unix.WEXITED 0 -> true
-                    | _ -> false)
-                | Fail | Skipped | Timeout -> false
+                    match status with Unix.WEXITED 0 -> true | _ -> false)
+                | Fail | Skipped | Timeout | Setup_fail -> false
               in
               if not ok then begin
                 Printf.eprintf
-                  "mathc attest-batch: --run `%s` did not exit 0; the \
-                   batch is signed result=fail\n\
+                  "mathc attest-batch: --run `%s` did not exit 0; the batch is \
+                   signed result=fail\n\
                    %!"
                   run_cmd;
                 excerpt_to_stderr
@@ -4295,8 +4353,7 @@ let[@warning "-32"] do_attest_batch () =
                  the same source. Conflating the two is what made the
                  freshness check unsatisfiable. *)
               let digest =
-                if output = "" then ""
-                else "sha256:" ^ Digest.sha256_hex output
+                if output = "" then "" else "sha256:" ^ Digest.sha256_hex output
               in
               ((if ok then "pass" else "fail"), digest))
   in
@@ -4365,15 +4422,17 @@ let[@warning "-32"] do_attest_batch () =
             if runtime_rows <> [] then begin
               let kinds =
                 List.sort_uniq String.compare
-                  (List.map (fun (row : Batch.row) -> row.Batch.kind_) runtime_rows)
+                  (List.map
+                     (fun (row : Batch.row) -> row.Batch.kind_)
+                     runtime_rows)
               in
               Printf.eprintf
                 "mathc attest-batch: the manifest declares %s attestation(s), \
                  and a %s attestation claims something ran. Without \
-                 --run=<command> this command would print `result: pass` \
-                 for a run that never happened, for every such row. Use \
-                 --run=\"dune runtest\" (or whatever command produces the \
-                 artefact) or declare those rows as `review`.\n\
+                 --run=<command> this command would print `result: pass` for a \
+                 run that never happened, for every such row. Use --run=\"dune \
+                 runtest\" (or whatever command produces the artefact) or \
+                 declare those rows as `review`.\n\
                  %!"
                 (String.concat ", " kinds) (String.concat ", " kinds);
               exit 2
@@ -4410,21 +4469,27 @@ let[@warning "-32"] do_attest_batch () =
             let producer = row.producer in
             let result =
               if !run_per_obligation then
-                (match
-                   verdict_of_obligation ~root ~sandbox_mode:"none" ~decision_id:decision
-                     ~obligation_id:obligation
-                 with
+                match
+                  verdict_of_obligation ~root ~sandbox_mode:"none"
+                    ~decision_id:decision ~obligation_id:obligation
+                with
                 | Pass -> "pass"
                 | Fail -> "fail"
-                | Skipped -> "inconclusive"
-                | Timeout -> "fail")
+                | Skipped | Setup_fail -> "inconclusive"
+                | Timeout -> "fail"
               else if String.trim !run_cmd = "" then row.result
               else run_result
             in
+            if !skip_failing && result = "fail" then
+              Printf.eprintf
+                "mathc attest-batch: NOT signing %s/%s — its verifier \
+                 failed. No attestation is written for an obligation whose \
+                 check did not pass.\n%!"
+                decision obligation
+            else begin
             let body =
               Batch.make_attestation ~decision ~obligation ~kind_ ~producer
-                ~result ~issued_at ~candidate_tree
-                ~evidence_digest:run_digest
+                ~result ~issued_at ~candidate_tree ~evidence_digest:run_digest
                 ~materials_digest:(scope_digest decision)
             in
             let full = Batch.with_id body in
@@ -4434,6 +4499,7 @@ let[@warning "-32"] do_attest_batch () =
               let fname = Batch.filename_for ~decision ~obligation in
               write_attestation_file ~dest ~fname ~json
             end
+            end
           in
           List.iter
             (fun row ->
@@ -4441,7 +4507,8 @@ let[@warning "-32"] do_attest_batch () =
               else
                 Printf.eprintf
                   "mathc attest-batch: --only-changed: skipping %s (its scope \
-                   does not touch the changed files)\n%!"
+                   does not touch the changed files)\n\
+                   %!"
                   row.Batch.decision)
             rows;
           exit 0)
@@ -4570,22 +4637,21 @@ let[@warning "-32"] do_attest_batch () =
           let emit (decision, obligation) =
             let row_result =
               if !run_per_obligation then
-                (match
-                   verdict_of_obligation ~root ~sandbox_mode:"none" ~decision_id:decision
-                     ~obligation_id:obligation
-                 with
+                match
+                  verdict_of_obligation ~root ~sandbox_mode:"none"
+                    ~decision_id:decision ~obligation_id:obligation
+                with
                 | Pass -> "pass"
                 | Fail -> "fail"
-                | Skipped -> "inconclusive"
-                | Timeout -> "fail")
+                | Skipped | Setup_fail -> "inconclusive"
+                | Timeout -> "fail"
               else if String.trim !run_cmd = "" then !result
               else run_result
             in
             let body =
               Batch.make_attestation ~decision ~obligation ~kind_:!kind
                 ~producer:!producer ~result:row_result ~issued_at
-                ~candidate_tree
-                ~evidence_digest:run_digest
+                ~candidate_tree ~evidence_digest:run_digest
                 ~materials_digest:(scope_digest decision)
             in
             let full = Batch.with_id body in
@@ -4602,7 +4668,8 @@ let[@warning "-32"] do_attest_batch () =
               else
                 Printf.eprintf
                   "mathc attest-batch: --only-changed: skipping %s (its scope \
-                   does not touch the changed files)\n%!"
+                   does not touch the changed files)\n\
+                   %!"
                   decision)
             obls;
           exit 0
@@ -4733,16 +4800,17 @@ let[@warning "-32"] do_verify () =
   if depth > 0 && parent_file <> "" && same_file path parent_file then begin
     Printf.eprintf
       "mathc verify: CIRCULAR VERIFIER: %s is verified by a verifier that \
-       invokes `mathc verify` on %s again. A verifier that re-enters \
-       `mathc verify` on the decision it is verifying can never \
-       terminate. The obligation is reported as failed.\n%!"
+       invokes `mathc verify` on %s again. A verifier that re-enters `mathc \
+       verify` on the decision it is verifying can never terminate. The \
+       obligation is reported as failed.\n\
+       %!"
       path parent_file;
     exit 1
   end;
   if depth > verify_max_depth then begin
     Printf.eprintf
-      "mathc verify: refusing to nest deeper than %d levels (current \
-       depth %d).\n%!"
+      "mathc verify: refusing to nest deeper than %d levels (current depth %d).\n\
+       %!"
       verify_max_depth depth;
     exit 1
   end;
@@ -5007,7 +5075,8 @@ let[@warning "-32"] gate_to_json (g : Gate.t) =
  * which is stable and computable by anyone. *)
 
 let[@warning "-32"] materials_resolver_of
-    ~(entries : Memory.decision_entry list) ~(tree : string) : string -> string =
+    ~(entries : Memory.decision_entry list) ~(tree : string) : string -> string
+    =
   let blobs =
     match Git_diff.tree_blobs ~cwd:(Sys.getcwd ()) ~ref:tree with
     | Some bs -> bs
@@ -5099,8 +5168,8 @@ let do_gate () =
   List.iter
     (fun (label, r) ->
       if not (git_ref_resolves cwd r) then begin
-        Printf.eprintf
-          "mathc gate: %s does not resolve to a git object: %s\n%!" label r;
+        Printf.eprintf "mathc gate: %s does not resolve to a git object: %s\n%!"
+          label r;
         exit 2
       end)
     [ ("BASE", !base); ("HEAD", !head) ];
@@ -5132,7 +5201,7 @@ let do_gate () =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
       ~changed_paths ~store ~rebuttals
       ~materials_of_decision:
-          (materials_resolver_of ~entries:memory.Memory.decisions ~tree:!head)
+        (materials_resolver_of ~entries:memory.Memory.decisions ~tree:!head)
   in
   (* math-coding 3.2-ideal §15 wiring: phase-aware gate verdict on
      top of the v3.0 `evaluate`. gate_v32 honours obligation
@@ -6019,9 +6088,7 @@ let[@warning "-32"] do_self_check () =
      nothing that any producer ever wrote, so the freshness check
      could only ever pass on an attestation that carried no
      evidence. *)
-  let materials_of_decision =
-    materials_resolver_of ~entries ~tree:"HEAD"
-  in
+  let materials_of_decision = materials_resolver_of ~entries ~tree:"HEAD" in
   let now = now_iso () in
   let evaluated =
     List.map

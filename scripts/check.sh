@@ -135,11 +135,24 @@ if ! nix develop .#test --command bash -c '
     done
     built=""
     rc=0
+    # ONE dune invocation for every test binary.
+    #
+    # The previous shape called `dune build` once per binary, and
+    # each call re-evaluated the whole build context and took the
+    # dune lock again. Measured on 2026-10-23: 28 binaries cost
+    # 84.7 s, of which the repeated context evaluation was the
+    # largest single term. One invocation builds them all, in
+    # parallel, under one lock.
+    targets=""
     for t in $names; do
-        if dune build --root . "tests/$t.exe" >/dev/null 2>&1 \
-           || dune build --root . "tests/gate/$t.exe" >/dev/null 2>&1; then
-            exe="./_build/default/tests/$t.exe"
-            [ -x "$exe" ] || exe="./_build/default/tests/gate/$t.exe"
+        targets="$targets tests/$t.exe tests/gate/$t.exe"
+    done
+    # shellcheck disable=SC2086
+    dune build --root . $targets >/dev/null 2>&1 || true
+    for t in $names; do
+        exe="./_build/default/tests/$t.exe"
+        [ -x "$exe" ] || exe="./_build/default/tests/gate/$t.exe"
+        if [ -x "$exe" ]; then
             built="$built $t"
             if ! timeout 120 "$exe" >/dev/null 2>&1; then
                 printf "FAIL %s\n" "$t"
@@ -277,6 +290,28 @@ rm -f "$precommit_log"
 # alone makes every affected fixture fail with `cram.out does not
 # exist or is corrupted`, attributed to `tests/cli/_unknown_`.
 cleanup_dune
+# `dune clean` is load-bearing for the cram phase - see the comment
+# above: the cram cache replays a stale transcript when the kernel
+# changed without changing anything the cache key observes. But it
+# also forces a FULL rebuild of 27k lines of OCaml on every run, and
+# measured on 2026-10-23 that rebuild was the single largest term in
+# the cycle.
+#
+# The staleness can only bite when the KERNEL changed. So the clean
+# is made CONDITIONAL on the kernel's own content digest having
+# moved. A run that touched only decisions, fixtures or docs keeps
+# the build cache and skips the rebuild entirely.
+kernel_stamp_file=".local/kernel-stamp"
+kernel_stamp_now="$(find lib bin -type f \( -name '*.ml' -o -name '*.mli' \) -print0 2>/dev/null \
+                     | sort -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)"
+mkdir -p .local
+if [ -f "$kernel_stamp_file" ] && [ "$(cat "$kernel_stamp_file")" = "$kernel_stamp_now" ]; then
+  printf '%s' "$kernel_stamp_now" > "$kernel_stamp_file"
+  cram_clean=""
+else
+  printf '%s' "$kernel_stamp_now" > "$kernel_stamp_file"
+  cram_clean="dune clean &&"
+fi
 cram_dir_list=$(find tests -name '*.t' -exec dirname {} \; | sort -u)
 cram_dirs=$(printf '%s\n' "$cram_dir_list" | tr '\n' ' ')
 cram_dirs=${cram_dirs% }
@@ -289,7 +324,7 @@ if ! printf '%s\n' "$cram_dir_list" | grep -qx 'tests/cli'; then
   fail=$((fail + 1))
   failed_names+=("cram")
 elif ! nix develop .#test --command bash -c "
-    dune clean &&
+    $cram_clean
     dune build --root . @install >/dev/null 2>&1 &&
     dune runtest --root . $cram_dirs
 " >"$cram_log" 2>&1; then

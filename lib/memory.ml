@@ -71,8 +71,8 @@ let[@warning "-32"] extract_scope_paths lines =
     | [] -> []
     | line :: rest ->
         if is_top_level line then
-          (if String.trim line = "scope:" then collect_paths rest
-           else find_scope rest)
+          if String.trim line = "scope:" then collect_paths rest
+          else find_scope rest
         else find_scope rest
   and collect_paths = function
     | [] -> []
@@ -89,14 +89,20 @@ let[@warning "-32"] extract_scope_paths lines =
                   else
                     let ind = leading_spaces l in
                     let t = String.trim l in
-                    if ind = 4 && String.length t > 2 && t.[0] = '-' && t.[1] = ' '
+                    if
+                      ind = 4
+                      && String.length t > 2
+                      && t.[0] = '-'
+                      && t.[1] = ' '
                     then
                       let item =
                         String.trim (String.sub t 2 (String.length t - 2))
                       in
                       let item =
-                        if String.length item >= 2 && item.[0] = '"'
-                           && item.[String.length item - 1] = '"'
+                        if
+                          String.length item >= 2
+                          && item.[0] = '"'
+                          && item.[String.length item - 1] = '"'
                         then String.sub item 1 (String.length item - 2)
                         else item
                       in
@@ -313,9 +319,7 @@ let[@warning "-32"] parse_decision_yaml raw =
         (* Same extractor as the line-scanner path, applied to the
            same raw text: one implementation, so the two readers of
            a decision cannot disagree about its scope. *)
-        let scope_paths =
-          extract_scope_paths (String.split_on_char '\n' raw)
-        in
+        let scope_paths = extract_scope_paths (String.split_on_char '\n' raw) in
         let assumptions = count_array_field ps "assumptions" in
         let risk_triggers =
           match Schema.take_object ps "risk" with

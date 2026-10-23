@@ -152,23 +152,25 @@ let[@warning "-32"] tracked_blobs ~cwd : (string * string) list option =
           try In_channel.with_open_bin tmp In_channel.input_all with _ -> ""
         in
         let entries =
-          raw |> String.split_on_char '\000'
+          raw
+          |> String.split_on_char '\000'
           |> List.filter (fun s -> s <> "")
           |> List.filter_map (fun entry ->
               (* "<mode> SP <sha> SP <stage> TAB <path>" *)
               match String.index_opt entry '\t' with
               | None -> None
-              | Some tab ->
+              | Some tab -> (
                   let meta = String.sub entry 0 tab in
-                  let path = String.sub entry (tab + 1) (String.length entry - tab - 1) in
+                  let path =
+                    String.sub entry (tab + 1) (String.length entry - tab - 1)
+                  in
                   let fields = String.split_on_char ' ' meta in
                   match fields with
                   | _mode :: sha :: _stage :: _ ->
                       if sha = "" || path = "" then None else Some (path, sha)
-                  | _ -> None)
+                  | _ -> None))
         in
         Some entries)
-
 
 (* head_commit : cwd:string -> (string, string) result
  *
@@ -258,7 +260,8 @@ let[@warning "-32"] head_commit ~cwd : (string, string) result =
  *
  * `git ls-tree -r <ref>` lists every blob of the tree with its
  * content-derived id, without reading the working tree. *)
-let[@warning "-32"] tree_blobs ~cwd ~(ref : string) : (string * string) list option =
+let[@warning "-32"] tree_blobs ~cwd ~(ref : string) :
+    (string * string) list option =
   let cmd =
     Printf.sprintf "git -C %s ls-tree -r -z %s 2>/dev/null" (shell_quote cwd)
       (shell_quote ref)
@@ -274,13 +277,14 @@ let[@warning "-32"] tree_blobs ~cwd ~(ref : string) : (string * string) list opt
           try In_channel.with_open_bin tmp In_channel.input_all with _ -> ""
         in
         let entries =
-          raw |> String.split_on_char '\000'
+          raw
+          |> String.split_on_char '\000'
           |> List.filter (fun s -> s <> "")
           |> List.filter_map (fun entry ->
               (* "<mode> SP <type> SP <sha> TAB <path>" *)
               match String.index_opt entry '\t' with
               | None -> None
-              | Some tab ->
+              | Some tab -> (
                   let meta = String.sub entry 0 tab in
                   let path =
                     String.sub entry (tab + 1) (String.length entry - tab - 1)
@@ -289,6 +293,6 @@ let[@warning "-32"] tree_blobs ~cwd ~(ref : string) : (string * string) list opt
                   match fields with
                   | _mode :: _type :: sha :: _ when sha <> "" && path <> "" ->
                       Some (path, sha)
-                  | _ -> None)
+                  | _ -> None))
         in
         Some entries)

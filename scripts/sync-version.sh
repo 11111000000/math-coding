@@ -101,6 +101,13 @@ VERSION_SEMVER=$(printf '%s\n' "$VERSION_FULL" | awk '
 # --- Targets ------------------------------------------------------------
 
 skill=adoption/SKILL.md
+# The per-user agent skill is a SECOND copy of the same document.
+# tests/cli/init-agent.t asserts that the installed copy matches
+# `adoption/SKILL.md` byte for byte, so the version sync has to
+# maintain BOTH: a version bump that rewrites only one of them
+# leaves the two divergent, and the next `mathc init --agent
+# opencode` installs a skill that disagrees with the canonical one.
+agent_skill=.opencode/skills/math-coding/SKILL.md
 install_sh=scripts/install-tooling/install.sh
 
 # Expected derived strings:
@@ -166,9 +173,13 @@ check_install_sh() {
 # existing ones. This is portable across POSIX-sh awk variants.
 
 write_skill() {
-  tmp=$(mktemp) || { echo "sync-version: mktemp failed" >&2; exit 2; }
-  trap 'rm -f "$tmp"' EXIT INT TERM
-
+  # $1 = the target file. The derived lines are rewritten in place.
+  target="$1"
+  if [ ! -f "$target" ]; then
+    echo "sync-version: $target is missing" >&2
+    return 1
+  fi
+  tmp="$(mktemp)" || { echo "sync-version: mktemp failed" >&2; exit 2; }
   # Two substitution passes: compatible_with, then MC_VERSION.
   # The patterns are anchored on the existing field name and the
   # rest of the line is replaced. If the line is absent, we append
@@ -194,26 +205,27 @@ write_skill() {
     }
     END {
       if (compat_done == 0) {
-        print "sync-version: warning: compatible_with line not found in adoption/SKILL.md (no insert)" > "/dev/stderr"
+        print "sync-version: warning: compatible_with line not found in " FILENAME " (no insert)" > "/dev/stderr"
       }
       if (mcver_done == 0) {
-        print "sync-version: warning: MC_VERSION= line not found in adoption/SKILL.md (no insert)" > "/dev/stderr"
+        print "sync-version: warning: MC_VERSION= line not found in " FILENAME " (no insert)" > "/dev/stderr"
       }
     }
-  ' "$skill" > "$tmp"
+  ' "$target" > "$tmp"
 
   # Reject if the warning fired (one or both lines were missing).
   if ! grep -qF "$expected_compatible" "$tmp"; then
-    echo "sync-version: write failed: $skill lacks $expected_compatible after rewrite" >&2
+    echo "sync-version: write failed: $target lacks $expected_compatible after rewrite" >&2
+    rm -f "$tmp"
     return 1
   fi
   if ! grep -qF "$expected_mc_version" "$tmp"; then
-    echo "sync-version: write failed: $skill lacks $expected_mc_version after rewrite" >&2
+    echo "sync-version: write failed: $target lacks $expected_mc_version after rewrite" >&2
+    rm -f "$tmp"
     return 1
   fi
 
-  mv "$tmp" "$skill"
-  trap - EXIT INT TERM
+  mv "$tmp" "$target"
   return 0
 }
 
@@ -273,7 +285,14 @@ case "$mode" in
     exit "$rc"
     ;;
   write)
-    write_skill     || exit 1
+    write_skill "$skill" || exit 1
+    # The SECOND copy of the same document. The per-user agent skill
+    # and `adoption/SKILL.md` are the same text; tests/cli/init-agent.t
+    # asserts the installed copy matches adoption/SKILL.md byte for
+    # byte. A version bump that rewrites only one of them leaves the
+    # two divergent, and the next `mathc init --agent opencode`
+    # installs a skill that disagrees with the canonical one.
+    [ -f "$agent_skill" ] && { write_skill "$agent_skill" || exit 1; }
     write_install_sh || exit 1
     echo "sync-version: rewrote derived points (VERSION=$VERSION_FULL, semver=$VERSION_SEMVER)"
     exit 0

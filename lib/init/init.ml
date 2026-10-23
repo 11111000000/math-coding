@@ -441,8 +441,7 @@ let find_source_skill () : string option =
   (* The walk itself lives in [find_upward_from_exe] above; the
    * previous local copy used [Filename.concat dir ".."], which never
    * terminates. See that function's comment. *)
-  find_upward_from_exe
-    [ ".opencode"; "skills"; "math-coding"; "SKILL.md" ]
+  find_upward_from_exe [ ".opencode"; "skills"; "math-coding"; "SKILL.md" ]
 
 let per_user_opencode_skill () : string =
   let xdg = xdg_config_home () in

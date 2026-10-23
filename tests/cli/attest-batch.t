@@ -69,8 +69,20 @@ attestation store.
   $ before=$(ls "$MATH_CODING_ATTESTATIONS_DIR" | wc -l)
   $ "$mathc" attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
+  >   --run="printf probe" \
   >   --dry-run > /tmp/attest-batch-dry-run.stdout.jsonl
 
+A manifest row that declares a RUNTIME kind with no --run behind
+it is refused: the tool would otherwise print `result: pass` for a
+run that never happened. The --from=decisions branch has refused this
+since v3.3.3; the --manifest branch did not, and that hole is what
+decisions/attest-per-obligation-2026-10 closes.
+
+  $ "$mathc" attest-batch \
+  >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
+  >   --dry-run 2>&1; echo "exit=$?"
+  mathc attest-batch: the manifest declares test attestation(s), and a test attestation claims something ran. Without --run=<command> this command would print `result: pass` for a run that never happened, for every such row. Use --run="dune runtest" (or whatever command produces the artefact) or declare those rows as `review`.
+  exit=2
 Three manifest rows -> three stdout lines (asserted via
 python, which avoids depending on cram glob handling of
 nix-shell sandbox tmp paths).

@@ -24,6 +24,7 @@ and `bin/Mathc.ml::env_or_default`).
   $ mkdir -p "$MATH_CODING_ATTESTATIONS_DIR"
   $ mathc attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
+  >   --run="printf probe" \
   >   --out="$MATH_CODING_ATTESTATIONS_DIR"
   wrote .test-math-coding/attestations/d1-onboarding-d1-obl-acceptance.json
   wrote .test-math-coding/attestations/d1-onboarding-d1-obl-noise.json
@@ -42,10 +43,17 @@ The default `.math-coding/` MUST NOT exist -- the test is hermetic.
   no default .math-coding/: ok
 
 Each file is a single-line JSON object with the required fields.
-We assert the schema literal, the schema/kind identity, and that
-the `kind_` field matches the manifest row. We do NOT pin
-`issued_at` (it is wall-clock-dependent) nor `id` here -- those
-are checked separately via the SHA-256 self-check below.
+We assert the schema literal, the schema/kind identity, that
+the `kind_` field matches the manifest row, and that
+`materials_digest` is the scope digest under semantics A - the
+digest of the content of the files the decision's scope names.
+Under the previous semantics this field was empty for a review and
+the run's output digest for a runtime kind; the empty string was
+also the value the gate treated as a wildcard, so an attestation
+carrying no evidence at all was the one the freshness check always
+accepted. We do NOT pin `issued_at` (it is wall-clock-dependent)
+nor `id` here -- those are checked separately via the SHA-256
+self-check below.
 
   $ for f in .test-math-coding/attestations/*.json; do
   >   python3 -c "
@@ -54,7 +62,7 @@ are checked separately via the SHA-256 self-check below.
   > assert d['schema'] == 'math-coding/attestation-3.3', d['schema']
   > assert d['kind'] == 'attestation', d['kind']
   > assert re.fullmatch(r'[0-9a-f]{40}', d['subject']['candidate_tree']), d['subject']['candidate_tree']
-  > assert d['subject']['materials_digest'] == '', d['subject']['materials_digest']
+  > assert d['subject']['materials_digest'].startswith('sha256:'), d['subject']['materials_digest']
   > assert d['result'] in ('pass','fail'), d['result']
   > assert d['producer']['identity'], d['producer']
   > assert d['issued_at'].endswith('Z'), d['issued_at']

@@ -24,6 +24,7 @@ cannot pollute the host checkout.
   $ before=$(ls .test-math-coding/attestations | wc -l)
   $ mathc attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
+  >   --run="printf probe" \
   >   --dry-run > $tmpdir/attest-batch-dry-run.stdout.jsonl
 
 Three lines of stdout, one per manifest row.

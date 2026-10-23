@@ -97,9 +97,8 @@ let[@warning "-32"] segment_match (pat : string) (s : string) : bool =
     | p :: rest ->
         let n = String.length p in
         if n = 0 then go rest s
-        else if
-          String.length s >= n && String.sub s 0 n = p
-        then go rest (String.sub s n (String.length s - n))
+        else if String.length s >= n && String.sub s 0 n = p then
+          go rest (String.sub s n (String.length s - n))
         else false
   in
   go parts s
@@ -113,9 +112,9 @@ let[@warning "-32"] glob_match (pattern : string) (path : string) : bool =
   let rec go ps qs =
     match (ps, qs) with
     | [], [] -> true
-    | "**" :: ps, qs ->
+    | "**" :: ps, qs -> (
         go ps qs
-        || (match qs with [] -> false | _ :: qs' -> go ("**" :: ps) qs')
+        || match qs with [] -> false | _ :: qs' -> go ("**" :: ps) qs')
     | p :: ps, q :: qs when segment_match p q -> go ps qs
     | _ -> false
   in
@@ -152,9 +151,12 @@ let[@warning "-32"] scope_materials_digest ~(blobs : (string * string) list)
      on the attestation that carries the digest, so the attestation is
      stale the moment it is committed, and no signing can ever
      satisfy it. The store is excluded by prefix for that reason. *)
-  let excluded p = List.exists (fun pre -> String.length p >= String.length pre
-                                      && String.sub p 0 (String.length pre) = pre)
-                      exclude
+  let excluded p =
+    List.exists
+      (fun pre ->
+        String.length p >= String.length pre
+        && String.sub p 0 (String.length pre) = pre)
+      exclude
   in
   let matched =
     List.filter
@@ -163,9 +165,7 @@ let[@warning "-32"] scope_materials_digest ~(blobs : (string * string) list)
         && List.exists (fun sc -> glob_match sc p) scope_paths)
       blobs
   in
-  let matched =
-    List.sort (fun (a, _) (b, _) -> String.compare a b) matched
-  in
+  let matched = List.sort (fun (a, _) (b, _) -> String.compare a b) matched in
   let buf = Buffer.create 4096 in
   List.iter
     (fun (p, id) ->
@@ -174,7 +174,9 @@ let[@warning "-32"] scope_materials_digest ~(blobs : (string * string) list)
       Buffer.add_string buf id;
       Buffer.add_char buf '\n')
     matched;
-  Digest.sha256_hex (Buffer.contents buf)
+  (* The "sha256:" prefix, matching body_sha / yaml_sha / the
+     attestation id, so every digest in the system has one shape. *)
+  "sha256:" ^ Digest.sha256_hex (Buffer.contents buf)
 
 (* Filter attestations for a (decision_id, obligation_id) pair.
  * Pure list operations; the kernel cannot depend on the
