@@ -195,19 +195,46 @@ let install_pre_commit_hook ~root =
  * (`_build/install/default/bin/mathc.exe`, 4 levels up),
  * and falls back to None when running from a release
  * tarball that does not bundle templates/. *)
-let[@warning "-32"] find_source_ci_workflow () : string option =
-  let exe = Sys.executable_name in
-  let rec walk dir =
-    if dir = "/" || dir = "." || dir = "" then None
-    else begin
-      let candidate =
-        Filename.concat (Filename.concat dir "templates") "ci.yml"
-      in
+(* Walk up from the binary's directory looking for a file at a fixed
+ * path relative to some ancestor of that directory.
+ *
+ * The walk MUST use [Filename.dirname], not [Filename.concat dir
+ * ".."]. [Filename.concat] does not normalise: it produces
+ * "<dir>/..", then "<dir>/../..", then "<dir>/../../.." — a string
+ * that grows by three characters per step and never compares equal
+ * to "/". The previous guard [dir = "/"] was therefore unreachable
+ * and the recursion never terminated.
+ *
+ * Measured before this fix: with the binary at any path that has no
+ * ancestor containing the wanted file (a release binary in
+ * ~/.local/bin, or a dune cram sandbox under /tmp), `mathc init`
+ * ran forever — 725s of CPU and 1.2M non-voluntary context switches
+ * in one observed process, and a `dune test tests/` run that never
+ * finished. [Filename.dirname] normalises ("<dir>/.." -> "<dir>"),
+ * so the walk reaches "/" and stops.
+ *
+ * The depth bound is a second, independent guard: even a
+ * mis-normalising path cannot make the loop unbounded. *)
+let[@warning "-32"] find_upward_from_exe (rel : string list) : string option =
+  let rec loop dir depth =
+    if depth > 64 then None
+    else
+      let candidate = List.fold_left Filename.concat dir rel in
       if Sys.file_exists candidate then Some candidate
-      else walk (Filename.concat dir "..")
-    end
+      else
+        let parent = Filename.dirname dir in
+        if parent = dir then None else loop parent (depth + 1)
   in
-  walk (Filename.dirname exe)
+  loop (Filename.dirname Sys.executable_name) 0
+
+(* The binary lives at `<src>/_build/<ctx>/bin/mathc.exe`; the source
+ * is at `<src>/templates/ci.yml`. The walk covers both the
+ * default-context path and the install-context path
+ * (`_build/install/default/bin/mathc.exe`, 4 levels up),
+ * and falls back to None when running from a release
+ * tarball that does not bundle templates/. *)
+let[@warning "-32"] find_source_ci_workflow () : string option =
+  find_upward_from_exe [ "templates"; "ci.yml" ]
 
 (* Install the CI workflow file. The template is embedded in
    the binary (`Templates_embedded.ci_yml`); no filesystem walk
@@ -411,20 +438,11 @@ let find_source_skill () : string option =
    * walk also covers the case where the binary is at
    * `<src>/_build/install/default/bin/mathc.exe` (4 levels up)
    * and an installed-binary case (no source found). *)
-  let exe = Sys.executable_name in
-  let rec walk dir =
-    if dir = "/" || dir = "." || dir = "" then None
-    else begin
-      let candidate =
-        Filename.concat
-          (Filename.concat dir ".opencode")
-          (Filename.concat "skills" (Filename.concat "math-coding" "SKILL.md"))
-      in
-      if Sys.file_exists candidate then Some candidate
-      else walk (Filename.concat dir "..")
-    end
-  in
-  walk (Filename.dirname exe)
+  (* The walk itself lives in [find_upward_from_exe] above; the
+   * previous local copy used [Filename.concat dir ".."], which never
+   * terminates. See that function's comment. *)
+  find_upward_from_exe
+    [ ".opencode"; "skills"; "math-coding"; "SKILL.md" ]
 
 let per_user_opencode_skill () : string =
   let xdg = xdg_config_home () in
