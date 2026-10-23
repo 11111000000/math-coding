@@ -63,6 +63,10 @@ explicit path.
 
   $ mkdir -p "$tmp/root/decisions"
   $ cp "$DUNE_SOURCEROOT/decisions/version-sync-2026-10.yaml" "$tmp/root/decisions/one.yaml"
+  $ git init -q "$tmp/root"
+  $ git -C "$tmp/root" config user.email "t@t"
+  $ git -C "$tmp/root" config user.name "t"
+  $ git -C "$tmp/root" commit -q --allow-empty -m initial
   $ cd "$DUNE_SOURCEROOT"
   $ MATH_CODING_ROOT="$tmp/root" mathc attest-batch --from=decisions --producer=human:integration-test --dry-run 2>/dev/null | wc -l
   4

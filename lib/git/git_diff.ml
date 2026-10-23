@@ -170,6 +170,84 @@ let[@warning "-32"] tracked_blobs ~cwd : (string * string) list option =
         Some entries)
 
 
+(* head_commit : cwd:string -> (string, string) result
+ *
+ * `git -C cwd rev-parse --verify HEAD`, returning the full object id
+ * of the commit the working tree points at. This is the only way the
+ * kernel learns WHICH TREE an attestation is about.
+ *
+ * Why the adapter returns `Error` and never a placeholder: the callers
+ * are write paths. Every one of them stamps the result into
+ * `subject.candidate_tree`, the field that is supposed to turn "I saw
+ * this" into "I saw THIS". A caller that receives `Error` MUST refuse
+ * to write. Substituting a literal -- the `let candidate_tree = "HEAD"`
+ * that sat at bin/Mathc.ml:3302 for the whole 3.3 series -- produces an
+ * attestation that is well-formed, loadable, and unfalsifiable, which is
+ * strictly worse than an error: it launders a pointer into a fact.
+ * `tracked_under` above can degrade to `None` because its caller has a
+ * conservative reading (admit more evidence); a write path has no
+ * conservative reading, because the field is a claim.
+ *
+ * `--verify` rather than bare `rev-parse HEAD`: without it, `HEAD` may
+ * resolve through a ref that is a *file path* or any other non-object
+ * spelling and git will happily print something that is not a commit.
+ * `--verify` insists the argument names an existing object and exits
+ * nonzero when it does not, which is the behaviour a hard error needs.
+ *
+ * The exit-nonzero cases are deliberately not distinguished from one
+ * another by the caller: git missing from PATH, `cwd` not a work tree,
+ * a repository with no commits yet, and a detached-but-valid HEAD are
+ * all "no tree to name" from the attestation's point of view, and each
+ * one deserves the same refusal. Distinguishing them would only invite
+ * a caller to special-case its way back to a placeholder.
+ *
+ * Accepts 40-hex (SHA-1) and 64-hex (SHA-256, `extensions.objectFormat
+ * =sha256`) ids. Pinning 40 alone would refuse honest answers on a
+ * SHA-256 repository; both are full, unabbreviated object ids, and
+ * neither can be produced by a ref that resolves to nothing. *)
+let[@warning "-32"] head_commit ~cwd : (string, string) result =
+  let is_hex = function '0' .. '9' | 'a' .. 'f' -> true | _ -> false in
+  let plausible sha =
+    let n = String.length sha in
+    (n = 40 || n = 64) && String.for_all is_hex sha
+  in
+  let cmd =
+    Printf.sprintf "git -C %s rev-parse --verify HEAD 2>/dev/null"
+      (shell_quote cwd)
+  in
+  let tmp = Filename.temp_file "mc_git_head_" ".txt" in
+  Fun.protect
+    ~finally:(fun () -> try Sys.remove tmp with _ -> ())
+    (fun () ->
+      let cmd = Printf.sprintf "%s > %s" cmd (shell_quote tmp) in
+      if Sys.command cmd <> 0 then
+        Error
+          (Printf.sprintf
+             "git rev-parse --verify HEAD failed in %s (git missing, not a \
+              work tree, or no commit yet)"
+             cwd)
+      else
+        let raw =
+          try In_channel.with_open_bin tmp In_channel.input_all with _ -> ""
+        in
+        match
+          raw |> String.split_on_char '\n' |> List.map String.trim
+          |> List.filter (fun s -> s <> "")
+        with
+        | [ sha ] when plausible sha -> Ok sha
+        | [ sha ] ->
+            Error
+              (Printf.sprintf
+                 "git rev-parse --verify HEAD in %s returned %S, which is not \
+                  a full 40-hex (SHA-1) or 64-hex (SHA-256) object id"
+                 cwd sha)
+        | _ ->
+            Error
+              (Printf.sprintf
+                 "git rev-parse --verify HEAD in %s produced no single object \
+                  id"
+                 cwd))
+
 (* The blobs of a COMMIT, not of the index.
  *
  * The index describes the working tree; a tree describes a commit.

@@ -23,6 +23,10 @@ Nested output directory that does not exist yet: created, no crash.
   $ cd "$DUNE_SOURCEROOT"
   $ tmp=$(mktemp -d) && cd "$tmp"
   $ export MATH_CODING_ROOT="$tmp"
+  $ git init -q "$tmp"
+  $ git -C "$tmp" config user.email "t@t"
+  $ git -C "$tmp" config user.name "t"
+  $ git -C "$tmp" commit -q --allow-empty -m initial
   $ printf 'd1\to1\treview\thuman:me\n' > m.tsv
   $ mathc attest-batch --manifest=m.tsv --out=a/b/c 2>&1 | sed 's|^wrote |wrote |'
   wrote a/b/c/d1-o1.json

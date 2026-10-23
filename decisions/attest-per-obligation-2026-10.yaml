@@ -1,0 +1,105 @@
+---
+schema: math-coding/3.3
+id: attest-per-obligation-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:8fe1a03b73c54074e63ffcecb92bb86f3aa009fd0c4d32327b695cc0d15d0f92"
+yaml_sha: "sha256:8fe1a03b73c54074e63ffcecb92bb86f3aa009fd0c4d32327b695cc0d15d0f92"
+
+intent: { source: "issue:attest-batch-signs-many-obligations-with-one-claim-2026-10-23", text: "mathc attest-batch could only sign a batch with ONE claim: the exit code of a single --run command. For 793 obligations that is one claim about many obligations, and the corpus records what it produced - 749 of the 765 committed attestations carry the literal string HEAD as their candidate_tree, and 760 carry an empty materials_digest, which the gate treats as a wildcard. Separately, the --manifest branch did not require --run at all, so a runtime kind could be signed with no execution behind it." }
+
+commitment: |
+  After this decision closes:
+
+  1. `mathc attest-batch --run-per-obligation` EXECUTES each
+     row's own verifier - the same verifier strings `mathc verify`
+     walks - and uses that verdict as the attestation's result.
+     An obligation whose verifier returns Skipped is signed
+     `inconclusive`; one that fails is signed `fail`. Neither is
+     ever signed `pass`.
+  2. `mathc attest-batch --manifest=FILE` with a runtime kind and
+     no `--run` is refused with exit 2, exactly as the
+     `--from=decisions` branch already refuses it.
+  3. `mathc attest-batch --only-changed=BASE` re-signs only the
+     obligations whose decision scope intersects the files that
+     changed since BASE. The scope is read with the same extractor
+     the gate uses and matched with the same glob rules.
+  4. `scripts/resign-changed.sh` wires 1-3 into the commit cycle:
+     a commit that touches a scope re-signs that scope's
+     obligations by RE-RUNNING their verifiers.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Keep one --run for the batch, but make the batch smaller:
+  sign one obligation at a time with a manifest." Rejected as the
+  whole answer: it makes the honest path the tedious one, and the
+  tedious path is the one that gets automated. A tool that only
+  supports the honest use at human cost invites the batch path.
+  Per-obligation execution makes the honest path the default.
+
+  (b) "Let the producer CHOOSE the result and require only that it
+  be non-empty." Rejected: that is the current state. The store
+  holds 763 `pass` results and 0 `fail`, which is not a
+  distribution any measurement produces; it is a distribution a
+  default produces. A producer that chooses its own result chooses
+  `pass`.
+
+antithesis: |
+  The opposite claim would be that a batch-wide --run is fine as
+  long as the BATCH is small, and that the real defect is only that
+  the batch was large.
+
+  That claim confuses the size of the batch with the size of the
+  claim. A --run that exits 0 says "this one command exited 0". It
+  does not say "each of these 793 obligations holds". When the
+  obligations have DIFFERENT verifiers - and in this corpus they do:
+  269 distinct executable targets across 1448 obligation-verifier
+  pairs - a single command cannot be evidence for more than one of
+  them.
+
+outcomes:
+  - id: per-obligation-verdicts
+    statement: |
+      `mathc attest-batch --run-per-obligation` signs each
+      obligation with the verdict of ITS OWN verifier, and an
+      obligation whose verifier does not execute is signed
+      `inconclusive`.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "scripts/resign-changed.sh"
+    - "decisions/attest-per-obligation-2026-10.yaml"
+    - "attestations/attest-per-obligation-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+
+obligations:
+  - id: runtime-kind-without-run-is-refused
+    claim: |
+      `mathc attest-batch --manifest=FILE` whose rows declare a
+      runtime kind, with no --run, exits 2 and names the kind.
+    acceptance:
+      all:
+        - verifier: manual-attest-batch-runtime-kind-refused
+          result: pass
+
+  - id: per-obligation-result-is-the-verdicts-own
+    claim: |
+      `mathc attest-batch --run-per-obligation` produces a result
+      derived from the row's own verifier, and `--only-changed`
+      restricts the batch to the decisions whose scope intersects the
+      changed files.
+    acceptance:
+      all:
+        - verifier: manual-per-obligation-signing
+          result: pass

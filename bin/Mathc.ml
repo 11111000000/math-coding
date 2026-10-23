@@ -1199,6 +1199,51 @@ let[@warning "-32"] now_iso () =
   Printf.sprintf "%04d-%02d-%02dT%02d:%02d:%02dZ" (tm.tm_year + 1900)
     (tm.tm_mon + 1) tm.tm_mday tm.tm_hour tm.tm_min tm.tm_sec
 
+(* --- candidate_tree resolution -------------------------------------
+ *
+ * `subject.candidate_tree` is the field that turns "I observed this"
+ * into "I observed THIS". It has to carry a commit id, because a
+ * symbolic ref is a pointer that resolves to whatever the reader's
+ * HEAD happens to be: the store looked healthy (763 `pass`, 0
+ * rejects) while every one of those verdicts rested on a field that
+ * named no tree at all. 749 of the 765 committed attestations carry
+ * the literal `HEAD` for exactly that reason -- the value was a
+ * constant in the write path, not a measurement.
+ *
+ * So there is no fallback here, deliberately. `Git_diff.head_commit`
+ * has an `Error` case and this wrapper turns it into exit 2 (spec/
+ * semantics.md §CLI subcommands: "2 | input error (file missing,
+ * malformed JSON/YAML, bad CLI args, bad git ref)") rather than
+ * inventing a value. A fallback is precisely what produced the
+ * defect: an attestation written against an unresolved tree is not a
+ * degraded observation, it is a fabricated one, and it is worse than
+ * no attestation because it is indistinguishable from a real one once
+ * it is in the store.
+ *
+ * `root` is the PROJECT root, not the cwd: the tree being attested is
+ * the repository's, and an operator running `mathc attest-batch` from
+ * a scratch directory is still attesting about this repository. *)
+let[@warning "-32"] resolve_candidate_tree ~cmd ~root =
+  match Git_diff.head_commit ~cwd:root with
+  | Ok sha -> sha
+  | Error reason ->
+      Printf.eprintf
+        "mathc %s: refusing to write an attestation with an unanchored \
+         candidate_tree.\n\
+        \  git could not resolve a commit at the project root %s:\n\
+        \    %s\n\
+        \  `candidate_tree` names WHICH TREE the observation is about. The \
+         literal \"HEAD\"\n\
+        \  is a pointer, not a fact: it resolves to whatever HEAD is when the \
+         file is\n\
+        \  read, so the attestation can be neither reproduced nor refuted. This\n\
+        \  command has no fallback value on purpose -- run it inside a git \
+         work tree\n\
+        \  that has at least one commit.\n\
+         %!"
+        cmd root reason;
+      exit 2
+
 (* --- mathc update subcommand (d9-mathc-update-subcommand) ---
  *
  * `mathc update [--channel=stable|edge|<ver>] [--yes]` shells out
@@ -3253,606 +3298,18 @@ let[@warning "-32"] runtime_attestation_kinds =
    the same number. *)
 let[@warning "-32"] mass_issue_threshold = 10
 
-let[@warning "-32"] count_distinct_decisions obls =
-  let seen = Hashtbl.create 64 in
-  List.iter (fun (decision, _) -> Hashtbl.replace seen decision ()) obls;
-  Hashtbl.length seen
-
-let[@warning "-32"] report_mass_issue ~n ~decisions ~producer ~kind_ ~result
-    ~run =
-  if n > mass_issue_threshold then
-    Printf.eprintf
-      "mathc attest-batch: about to issue %d attestations across %d decision(s)\n\
-      \  producer=%s kind_=%s result=%s%s\n\
-      \  That is a bulk signature, not a review. Narrow the batch with \
-       --manifest=PATH to sign one obligation at a time.\n\
-       %!"
-      n decisions producer kind_ result
-      (if run = "" then "" else Printf.sprintf " (result of one run: %s)" run)
-
-(* Split `--run=CMD` into argv. No shell: a `|`, `&&` or `>` in the
-   command is refused rather than half-executed, for the same reason
-   the verifier sandbox refuses them. *)
-let[@warning "-32"] split_run_command cmd =
-  List.filter (fun t -> t <> "") (String.split_on_char ' ' (String.trim cmd))
-
-let[@warning "-32"] leading_spaces = Memory.leading_spaces
-
-let[@warning "-32"] is_top_level = Memory.is_top_level
-
-(* Find the first top-level `id: VALUE` line and return VALUE.
-   VALUE is everything after the colon, trimmed. Block-scalar
-   values (`id: |`) are skipped (they are not used in our
-   decisions). *)
-let[@warning "-32"] extract_top_level_id lines =
-  let rec loop = function
-    | [] -> None
-    | line :: rest -> (
-        if not (is_top_level line) then loop rest
-        else
-          let trimmed = String.trim line in
-          match String.index_opt trimmed ':' with
-          | Some i ->
-              let key = String.sub trimmed 0 i in
-              let v =
-                String.trim
-                  (String.sub trimmed (i + 1) (String.length trimmed - i - 1))
-              in
-              if
-                String.equal key "id" && v <> "" && v.[0] <> '|' && v.[0] <> '>'
-              then Some v
-              else loop rest
-          | None -> loop rest)
-  in
-  loop lines
-
-(* Collect `- id: NAME` items under the `obligations:` block.
-   The block ends at the next top-level key. Multi-line scalar
-   continuations are ignored because we only match the literal
-   `- id:` prefix at indent 2. *)
-let[@warning "-32"] extract_scope_paths = Memory.extract_scope_paths
-
-let[@warning "-32"] extract_obligation_ids lines =
-  let rec scan acc in_obls = function
-    | [] -> List.rev acc
-    | line :: rest ->
-        if is_top_level line then
-          begin if String.trim line = "obligations:" then scan acc true rest
-          else if in_obls then List.rev acc
-          else scan acc false rest
-          end
-        else if in_obls then
-          let indent = leading_spaces line in
-          if indent = 2 && String.length line > 4 then begin
-            let after = String.sub line 2 (String.length line - 2) in
-            let trimmed = String.trim after in
-            if
-              String.length trimmed > 2
-              && trimmed.[0] = '-'
-              && trimmed.[1] = ' '
-            then begin
-              let rest_of = String.sub trimmed 2 (String.length trimmed - 2) in
-              match String.index_opt rest_of ':' with
-              | Some i ->
-                  let key = String.sub rest_of 0 i in
-                  let v =
-                    String.trim
-                      (String.sub rest_of (i + 1)
-                         (String.length rest_of - i - 1))
-                  in
-                  if String.equal key "id" && v <> "" then
-                    scan (v :: acc) true rest
-                  else scan acc true rest
-              | None -> scan acc true rest
-            end
-            else scan acc true rest
-          end
-          else scan acc true rest
-        else scan acc in_obls rest
-  in
-  scan [] false lines
-
-let[@warning "-32"] load_decision_entry reader path =
-  match reader path with
-  | "" -> None
-  | raw ->
-      let lines = String.split_on_char '\n' raw in
-      let decision_id =
-        match extract_top_level_id lines with Some id -> id | None -> ""
-      in
-      let obligation_ids = extract_obligation_ids lines in
-      let scope_paths = extract_scope_paths lines in
-      if decision_id = "" then None
-      else
-        let stub : Memory.decision_entry =
-          {
-            Memory.decision_id;
-            Memory.revision = None;
-            Memory.source = raw;
-            Memory.obligations = List.length obligation_ids;
-            Memory.obligation_ids;
-            Memory.assumptions = 0;
-            Memory.risk_triggers = [];
-            Memory.scope_paths;
-            Memory.state = `Active;
-            Memory.verifier_per_obligation = [];
-          }
-        in
-        Some stub
-
-(* The materials digest of each decision, under semantics A: the
- * digest of the CONTENT of the files the decision's scope names.
+(* Execute ONE obligation's own verifier and report its verdict.
  *
- * This is the value an attestation producer MUST write into
- * `subject.materials_digest`, because it is the value the gate
- * compares against. The scope is read with the SAME extractor the
- * gate uses (lib/memory.ml::extract_scope_paths, over the raw text),
- * so producer and checker cannot disagree.
+ * The verifier strings come from the decision file - the same ones
+ * `mathc verify` walks - so a signature produced this way is a claim
+ * about THAT obligation, not about the batch it happens to be in.
+ *
+ * This is what makes per-obligation signing honest under semantics A:
+ * the materials digest is recomputed from the tree, and the result
+ * comes from actually running the check the obligation names. A
+ * batch-wide --run can only say "this one command exited 0", which is
+ * one claim about many obligations.
  *)
-(* The prefixes excluded from a scope digest.
- *
- * The attestation store is evidence ABOUT a scope, not part of it.
- * Including it would make every attestation stale the moment it is
- * committed — the digest of the scope would depend on the
- * attestation that carries the digest. The corpus convention of
- * listing `attestations/<id>-*.json` in a decision's scope is kept,
- * because the scope is also a human-facing statement of what the
- * decision governs; only the DIGEST ignores the store. *)
-let[@warning "-32"] store_exclude_prefixes () : string list =
-  [ "attestations/"; ".math-coding/attestations/" ]
-
-let[@warning "-32"] scope_digest_map ~(reader : string -> string)
-    ~(decisions_dir : string) ~(tree : string) : string -> string =
-  let blobs =
-    match Git_diff.tree_blobs ~cwd:(Sys.getcwd ()) ~ref:tree with
-    | Some bs -> bs
-    | None -> (
-        match Git_diff.tracked_blobs ~cwd:(Sys.getcwd ()) with
-        | Some bs -> bs
-        | None -> [])
-  in
-  let scopes : (string, string list) Hashtbl.t = Hashtbl.create 64 in
-  let files =
-    if Sys.file_exists decisions_dir && Sys.is_directory decisions_dir then
-      Array.to_list (Sys.readdir decisions_dir)
-      |> List.filter (fun n -> Filename.check_suffix n ".yaml")
-      |> List.map (Filename.concat decisions_dir)
-    else []
-  in
-  List.iter
-    (fun p ->
-      match load_decision_entry reader p with
-      | Some e -> Hashtbl.replace scopes e.Memory.decision_id e.Memory.scope_paths
-      | None -> ())
-    files;
-  let cache : (string, string) Hashtbl.t = Hashtbl.create 64 in
-  fun decision_id ->
-    match Hashtbl.find_opt cache decision_id with
-    | Some d -> d
-    | None ->
-        let sp =
-          match Hashtbl.find_opt scopes decision_id with Some s -> s | None -> []
-        in
-        let d =
-          Gate.scope_materials_digest ~blobs ~scope_paths:sp
-            ~exclude:(store_exclude_prefixes ())
-        in
-        Hashtbl.replace cache decision_id d;
-        d
-
-let[@warning "-32"] do_attest_batch () =
-  let manifest = ref None in
-  let from_kind = ref (Some "decisions") in
-  let out_dir = ref "" in
-  let kind = ref "review" in
-  (* No default. A batch that signs itself `human:integration-
-     experiment` is a signature by someone who is not there; the
-     operator has to type whose signature it is. *)
-  let producer = ref "" in
-  let result = ref "pass" in
-  let run_cmd = ref "" in
-  let dry_run = ref false in
-  let set_manifest s = manifest := Some s in
-  let set_from s = from_kind := Some s in
-  let set_out s = out_dir := s in
-  let set_kind s = kind := s in
-  let set_producer s = producer := s in
-  let set_result s = result := s in
-  let set_run s = run_cmd := s in
-  Arg.current := 1;
-  (try
-     Arg.parse
-       [
-         ( "--manifest",
-           Arg.String set_manifest,
-           " <path> read rows from TSV manifest (overrides --from)" );
-         ( "--from",
-           Arg.String set_from,
-           " <kind> source of obligations: decisions (default) | none" );
-         ( "--out",
-           Arg.String set_out,
-           " <dir> output directory (default $MATH_CODING_ATTESTATIONS_DIR or \
-            .math-coding/attestations)" );
-         ( "--kind",
-           Arg.String set_kind,
-           " <s> kind_ for --from=decisions (default review)" );
-         ( "--producer",
-           Arg.String set_producer,
-           " <id> producer identity for --from=decisions (REQUIRED; there is \
-            no default)" );
-         ( "--result",
-           Arg.String set_result,
-           " <pass|fail> result for --from=decisions (default pass)" );
-         ( "--run",
-           Arg.String set_run,
-           " <cmd> command to run once; its exit code becomes --result and its \
-            output digest becomes materials_digest. Required with \
-            --kind=test|build|analysis|observation." );
-         ("--dry-run", Arg.Set dry_run, " print JSON to stdout, no files");
-       ]
-       (fun s ->
-         Printf.fprintf stderr "mathc attest-batch: unexpected argument: %s\n" s;
-         exit 2)
-       "usage: mathc attest-batch [--manifest=PATH] [--from=decisions] \
-        [--out=DIR] [--kind=...] --producer=ID [--run=CMD] \
-        [--result=pass|fail] [--dry-run]"
-   with Arg.Bad m ->
-     Printf.fprintf stderr "mathc attest-batch: %s\n" m;
-     exit 2);
-  if !result <> "pass" && !result <> "fail" then begin
-    Printf.fprintf stderr
-      "mathc attest-batch: --result must be 'pass' or 'fail' (got %s)\n" !result;
-    exit 2
-  end;
-  if not (attest_batch_kind_ok !kind) then begin
-    Printf.fprintf stderr
-      "mathc attest-batch: --kind must be one of \
-       test|review|build|analysis|observation (got %s)\n"
-      !kind;
-    exit 2
-  end;
-  let issued_at = now_iso () in
-  let candidate_tree = "HEAD" in
-  let root = root_with_env_precedence () in
-  let reader path =
-    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
-  in
-  (* Run the --run command once and report what it proves.
-   *
-   * The exit code becomes the batch result; the digest of the
-   * captured output becomes the materials anchor that the schema
-   * requires for runtime kinds. BOTH branches of attest-batch MUST
-   * use this helper.
-   *
-   * Before this fix the --manifest branch hardcoded
-   * `~materials_digest:""` and never executed --run at all, so
-   * `attest-batch --manifest=... --run=... --kind=test` silently
-   * produced attestations with no runtime anchor — exactly what
-   * --run exists to prevent, and exactly what the schema forbids
-   * for a runtime kind. The --from=decisions branch computed the
-   * digest correctly; for one command the two branches disagreed,
-   * and only one of them honoured the flag its own help text
-   * describes. *)
-  let run_once_for_batch ~run_cmd ~run_tokens : string * string =
-    if String.trim run_cmd = "" then (!result, "")
-    else
-      match run_tokens with
-      | [] -> (!result, "")
-      | prog :: args -> (
-          match resolve_program prog with
-          | None ->
-              Printf.eprintf
-                "mathc attest-batch: --run: %s is not on PATH\n%!" prog;
-              exit 2
-          | Some abs_prog ->
-              let log = Filename.temp_file "mathc_attest_run_" ".log" in
-              let outcome, status =
-                run_with_sandbox_in_env
-                  ~env:(sandbox_env_for_path_forms ())
-                  ~capture_to:(Some log) ~project_root:root
-                  ~prog:abs_prog ~args:(abs_prog :: args)
-                  ~timeout_s:verify_timeout_s ~sandbox_mode:"none"
-              in
-              let output = read_capped log ~max_bytes:1048576 in
-              (try Sys.remove log with _ -> ());
-              let ok =
-                match outcome with
-                | Pass -> (
-                    match status with
-                    | Unix.WEXITED 0 -> true
-                    | _ -> false)
-                | Fail | Skipped | Timeout -> false
-              in
-              if not ok then begin
-                Printf.eprintf
-                  "mathc attest-batch: --run `%s` did not exit 0; the \
-                   batch is signed result=fail\n\
-                   %!"
-                  run_cmd;
-                excerpt_to_stderr
-                  ~heading:
-                    (Printf.sprintf "mathc attest-batch: output of `--run %s`:"
-                       run_cmd)
-                  ~max_lines:20 output
-              end;
-              (* The digest of what the run produced. This is
-                 EVIDENCE, not the materials anchor: under semantics A
-                 the materials digest is the digest of the content of
-                 the decision's scope, which the gate computes from
-                 the same source. Conflating the two is what made the
-                 freshness check unsatisfiable. *)
-              let digest =
-                if output = "" then ""
-                else "sha256:" ^ Digest.sha256_hex output
-              in
-              ((if ok then "pass" else "fail"), digest))
-  in
-  match !manifest with
-  | Some path -> (
-      if path = "" then begin
-        Printf.fprintf stderr "mathc attest-batch: --manifest requires a path\n";
-        exit 2
-      end;
-      let raw = reader path in
-      if raw = "" then begin
-        Printf.fprintf stderr
-          "mathc attest-batch: --manifest %s is empty or unreadable\n" path;
-        exit 2
-      end;
-      match Batch.parse_manifest raw with
-      | Error { line; raw = lr; reason } ->
-          Printf.fprintf stderr
-            "mathc attest-batch: manifest %s line %d: %s\n  > %s\n" path line
-            reason lr;
-          exit 2
-      | Ok rows ->
-          let dest =
-            if !out_dir <> "" then !out_dir
-            else Path_config.attestations_dir_at ~root ()
-          in
-          (try ensure_dir dest with
-          | Unix.Unix_error (e, fn, arg) ->
-              Printf.fprintf stderr
-                "mathc attest-batch: cannot create %s: %s(%s, %s)\n" dest
-                (Unix.error_message e) fn arg;
-              exit 2
-          | Sys_error m ->
-              Printf.fprintf stderr "mathc attest-batch: cannot create %s: %s\n"
-                dest m;
-              exit 2);
-          if (not !dry_run) && not (Sys.file_exists dest) then begin
-            Printf.fprintf stderr
-              "mathc attest-batch: output directory %s could not be created\n"
-              dest;
-            exit 2
-          end;
-          (* The --run command backs the whole manifest, exactly as
-             it backs a --from=decisions batch: one run, one result,
-             one materials anchor. A row cannot claim a result the
-             run contradicts, so the run's exit code wins when
-             --run was given. *)
-          let run_tokens = split_run_command !run_cmd in
-          let run_result, run_digest =
-            run_once_for_batch ~run_cmd:!run_cmd ~run_tokens
-          in
-          let scope_digest =
-            scope_digest_map ~reader
-              ~decisions_dir:(Path_config.decisions_dir_at ~root ())
-              ~tree:candidate_tree
-          in
-          let emit_one row =
-            let decision = row.Batch.decision in
-            let obligation = row.obligation in
-            let kind_ = row.kind_ in
-            let producer = row.producer in
-            let result =
-              if String.trim !run_cmd = "" then row.result else run_result
-            in
-            let body =
-              Batch.make_attestation ~decision ~obligation ~kind_ ~producer
-                ~result ~issued_at ~candidate_tree
-                ~evidence_digest:run_digest
-                ~materials_digest:(scope_digest decision)
-            in
-            let full = Batch.with_id body in
-            let json = Batch.serialize full in
-            if !dry_run then Printf.printf "%s\n" json
-            else begin
-              let fname = Batch.filename_for ~decision ~obligation in
-              write_attestation_file ~dest ~fname ~json
-            end
-          in
-          List.iter emit_one rows;
-          exit 0)
-  | None -> (
-      match !from_kind with
-      | Some "decisions" ->
-          (* Refuse before reading anything: the identity is the
-             first thing an attestation asserts, and there is no
-             honest value to assume for it. *)
-          if String.trim !producer = "" then begin
-            Printf.eprintf
-              "mathc attest-batch: --producer=<identity> is required with \
-               --from=decisions\n\
-              \  Every attestation names the producer that signed it, and a \
-               default\n\
-              \  would sign this whole batch as whoever the last release \
-               happened\n\
-              \  to hard-code. Pass --producer=human:<you> or \
-               --producer=agent:<id>.\n\
-              \  (--manifest rows carry their own producer and do not need \
-               this.)\n\
-               %!";
-            exit 2
-          end;
-          if
-            List.mem !kind runtime_attestation_kinds
-            && String.trim !run_cmd = ""
-          then begin
-            Printf.eprintf
-              "mathc attest-batch: --kind=%s needs --run=<command>\n\
-              \  A %s attestation claims something ran. Without --run this \
-               command\n\
-              \  would print `result: pass` for a run that never happened, for \
-               every\n\
-              \  obligation in the batch. Use --run=\"dune runtest\" (or \
-               whatever\n\
-              \  command produces the artefact) or use --kind=review, which is \
-               the\n\
-              \  one kind allowed to rest on a human declaration.\n\
-               %!"
-              !kind !kind;
-            exit 2
-          end;
-          (* Validate the --run command shape before reading
-             anything, for the same reason --producer is checked
-             here: a refusal should not depend on how many
-             obligations happen to be in the store. *)
-          let run_tokens = split_run_command !run_cmd in
-          (match reject_shell_in_run run_tokens with
-          | Some c ->
-              Printf.eprintf
-                "mathc attest-batch: --run contains the shell metacharacter \
-                 %C; attest-batch never runs a shell\n\
-                 %!"
-                c;
-              exit 2
-          | None -> ());
-          if String.trim !run_cmd <> "" && run_tokens = [] then begin
-            Printf.eprintf "mathc attest-batch: --run is empty\n%!";
-            exit 2
-          end;
-          let src = Path_config.decisions_dir_at ~root () in
-          let obls = Batch.scan_decisions_for_obligations ~reader ~root:src in
-          if obls = [] then begin
-            Printf.fprintf stderr
-              "mathc attest-batch: no parseable decisions under %s\n" src;
-            exit 2
-          end;
-          let dest =
-            if !out_dir <> "" then !out_dir
-            else Path_config.attestations_dir_at ~root ()
-          in
-          (try ensure_dir dest with
-          | Unix.Unix_error (e, fn, arg) ->
-              Printf.fprintf stderr
-                "mathc attest-batch: cannot create %s: %s(%s, %s)\n" dest
-                (Unix.error_message e) fn arg;
-              exit 2
-          | Sys_error m ->
-              Printf.fprintf stderr "mathc attest-batch: cannot create %s: %s\n"
-                dest m;
-              exit 2);
-          if (not !dry_run) && not (Sys.file_exists dest) then begin
-            Printf.fprintf stderr
-              "mathc attest-batch: output directory %s could not be created\n"
-              dest;
-            exit 2
-          end;
-          (* One run backs the whole batch. Its exit code is the
-             result every attestation carries and its output digest
-             is the materials anchor the schema demands for runtime
-             kinds. Both are announced: N attestations from ONE run
-             is a different claim from N runs, and the operator has
-             to see which one they are making. *)
-          let run_result, run_digest =
-            run_once_for_batch ~run_cmd:!run_cmd ~run_tokens
-          in
-          report_mass_issue ~n:(List.length obls)
-            ~decisions:(count_distinct_decisions obls)
-            ~producer:!producer ~kind_:!kind ~result:run_result ~run:!run_cmd;
-          let scope_digest =
-            scope_digest_map ~reader
-              ~decisions_dir:(Path_config.decisions_dir_at ~root ())
-              ~tree:candidate_tree
-          in
-          let emit (decision, obligation) =
-            let body =
-              Batch.make_attestation ~decision ~obligation ~kind_:!kind
-                ~producer:!producer ~result:run_result ~issued_at
-                ~candidate_tree
-                ~evidence_digest:run_digest
-                ~materials_digest:(scope_digest decision)
-            in
-            let full = Batch.with_id body in
-            let json = Batch.serialize full in
-            if !dry_run then Printf.printf "%s\n" json
-            else begin
-              let fname = Batch.filename_for ~decision ~obligation in
-              write_attestation_file ~dest ~fname ~json
-            end
-          in
-          List.iter emit obls;
-          exit 0
-      | Some "none" ->
-          Printf.fprintf stderr
-            "mathc attest-batch: --from=none with no --manifest; nothing to do\n";
-          exit 2
-      | Some other ->
-          Printf.fprintf stderr
-            "mathc attest-batch: --from=%s is not supported (use decisions)\n"
-            other;
-          exit 2
-      | None ->
-          Printf.fprintf stderr
-            "mathc attest-batch: --from= and --manifest are mutually exclusive \
-             in this slice; pass one of them\n";
-          exit 2)
-
-(* --- verify subcommand (add-verify-subcommand-2026-10) ---
- *
- * `mathc verify FILE` walks every obligation's
- * `acceptance.all[*].verifier` string and executes it in a
- * sandbox. Per-obligation verdict is one of:
- *
- *   pass    — at least one verifier in the obligation's `all`
- *             list returned exit 0
- *   fail    — at least one verifier returned non-zero
- *   skipped — every verifier was either an empty string or a
- *             scheme the sandbox does not recognise
- *
- * The sandbox is enforced by a scheme allowlist; only the
- * following schemes are executed:
- *
- *   file-exists <path>   in-process Sys.file_exists check
- *   dir-exists <path>    in-process Sys.is_directory check
- *   mathc <subcmd>...    subprocess: re-invoke this binary with
- *                        env stripped to PATH/HOME/LANG, cwd =
- *                        decision's project root, 60s timeout
- *
- * Since verify-path-forms-2026-10 the allowlist also covers the
- * PATH forms the corpus actually writes -- an obligation that
- * names a test or a script, not a scheme:
- *
- *   dune <args>                subprocess: dune, with <args>
- *   tests/foo.exe              subprocess: `dune exec ./tests/foo.exe`
- *   tests/foo.ml               the module's binary, same way
- *   tests/foo.ml::case         `dune exec ./tests/foo.exe -- test ^case$`
- *   tests/cli/foo.t            subprocess: `dune runtest tests/cli/foo.t`
- *   scripts/x.sh [args]        subprocess: the script itself
- *
- * Every path form is resolved against the project root and must
- * (a) exist and (b) resolve INSIDE the repository, symlinks
- * included. A path that does not is `fail` with the reason
- * printed -- never `skipped`. The corpus writes its obligations
- * as paths, so a resolver that only knew three scheme names left
- * 80% of them reported as "no information" while the command
- * exited 0.
- *
- * Any other scheme (including `rm -rf /` and any shell command)
- * is reported as `skipped` WITHOUT being executed. This is the
- * sandbox boundary; the kernel NEVER calls Shell.system or
- * passes the verifier string to /bin/sh. A recognised form that
- * NEEDS a shell (a `|`, `&&`, `>` or a quote in the verifier) is
- * `fail`, not `skipped`: the obligation was not verified, and
- * saying so silently is the defect this family removes.
- *
- * The 60s hard timeout is enforced via fork+waitpid: the parent
- * polls the elapsed time and SIGKILLs the child if the deadline
- * is exceeded. See run_with_sandbox below. *)
-(* Tokenize a verifier string into (scheme, args). The string is
-   whitespace-separated; the first token is the scheme. Returns
-   None for empty or whitespace-only strings. *)
 let[@warning "-32"] parse_verifier_string s =
   let trimmed = String.trim s in
   if trimmed = "" then None
@@ -4416,6 +3873,794 @@ let[@warning "-32"] collect_obligations v =
             xs
       | None -> [])
   | _ -> []
+
+let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
+    ~obligation_id : verify_outcome =
+  let dir = Path_config.decisions_dir_at ~root () in
+  let path = Filename.concat dir (decision_id ^ ".yaml") in
+  match parse_file path with
+  | Error _ -> Fail
+  | Ok v ->
+      let obl =
+        List.find_opt
+          (fun (id, _) -> String.equal id obligation_id)
+          (collect_obligations v)
+      in
+      (match obl with
+      | None -> Fail
+      | Some (_, verifiers) ->
+          let outcomes =
+            List.map
+              (fun s ->
+                run_one_verifier ~project_root:root ~sandbox_mode
+                  ~verifier_string:s)
+              verifiers
+          in
+          aggregate_verifier_outcomes outcomes)
+
+(* The decisions whose scope intersects the files changed since a
+ * base ref.
+ *
+ * Under semantics A the materials digest of a decision is bound to
+ * the CONTENT of the files its scope names. A change to one of those
+ * files therefore invalidates that decision's attestations, and they
+ * have to be re-signed - by RE-RUNNING the verifier, not by
+ * recomputing the digest, because the obligation's truth at the new
+ * tree is not established by the old run.
+ *
+ * The scope comes from the same extractor the gate uses, and the
+ * matching uses the same glob rules (Gate.glob_match), so "the scope
+ * changed" means the same thing on both sides.
+ *)
+let[@warning "-32"] decisions_touching_changes
+    ~(scopes : (string, string list) Hashtbl.t) ~(changed : string list) :
+    string list =
+  Hashtbl.fold
+    (fun decision_id sp acc ->
+      if
+        List.exists
+          (fun p -> List.exists (fun sc -> Gate.glob_match sc p) sp)
+          changed
+      then decision_id :: acc
+      else acc)
+    scopes []
+
+let[@warning "-32"] count_distinct_decisions obls =
+  let seen = Hashtbl.create 64 in
+  List.iter (fun (decision, _) -> Hashtbl.replace seen decision ()) obls;
+  Hashtbl.length seen
+
+let[@warning "-32"] report_mass_issue ~n ~decisions ~producer ~kind_ ~result
+    ~run =
+  if n > mass_issue_threshold then
+    Printf.eprintf
+      "mathc attest-batch: about to issue %d attestations across %d decision(s)\n\
+      \  producer=%s kind_=%s result=%s%s\n\
+      \  That is a bulk signature, not a review. Narrow the batch with \
+       --manifest=PATH to sign one obligation at a time.\n\
+       %!"
+      n decisions producer kind_ result
+      (if run = "" then "" else Printf.sprintf " (result of one run: %s)" run)
+
+(* Split `--run=CMD` into argv. No shell: a `|`, `&&` or `>` in the
+   command is refused rather than half-executed, for the same reason
+   the verifier sandbox refuses them. *)
+let[@warning "-32"] split_run_command cmd =
+  List.filter (fun t -> t <> "") (String.split_on_char ' ' (String.trim cmd))
+
+let[@warning "-32"] leading_spaces = Memory.leading_spaces
+
+let[@warning "-32"] is_top_level = Memory.is_top_level
+
+(* Find the first top-level `id: VALUE` line and return VALUE.
+   VALUE is everything after the colon, trimmed. Block-scalar
+   values (`id: |`) are skipped (they are not used in our
+   decisions). *)
+let[@warning "-32"] extract_top_level_id lines =
+  let rec loop = function
+    | [] -> None
+    | line :: rest -> (
+        if not (is_top_level line) then loop rest
+        else
+          let trimmed = String.trim line in
+          match String.index_opt trimmed ':' with
+          | Some i ->
+              let key = String.sub trimmed 0 i in
+              let v =
+                String.trim
+                  (String.sub trimmed (i + 1) (String.length trimmed - i - 1))
+              in
+              if
+                String.equal key "id" && v <> "" && v.[0] <> '|' && v.[0] <> '>'
+              then Some v
+              else loop rest
+          | None -> loop rest)
+  in
+  loop lines
+
+(* Collect `- id: NAME` items under the `obligations:` block.
+   The block ends at the next top-level key. Multi-line scalar
+   continuations are ignored because we only match the literal
+   `- id:` prefix at indent 2. *)
+let[@warning "-32"] extract_scope_paths = Memory.extract_scope_paths
+
+let[@warning "-32"] extract_obligation_ids lines =
+  let rec scan acc in_obls = function
+    | [] -> List.rev acc
+    | line :: rest ->
+        if is_top_level line then
+          begin if String.trim line = "obligations:" then scan acc true rest
+          else if in_obls then List.rev acc
+          else scan acc false rest
+          end
+        else if in_obls then
+          let indent = leading_spaces line in
+          if indent = 2 && String.length line > 4 then begin
+            let after = String.sub line 2 (String.length line - 2) in
+            let trimmed = String.trim after in
+            if
+              String.length trimmed > 2
+              && trimmed.[0] = '-'
+              && trimmed.[1] = ' '
+            then begin
+              let rest_of = String.sub trimmed 2 (String.length trimmed - 2) in
+              match String.index_opt rest_of ':' with
+              | Some i ->
+                  let key = String.sub rest_of 0 i in
+                  let v =
+                    String.trim
+                      (String.sub rest_of (i + 1)
+                         (String.length rest_of - i - 1))
+                  in
+                  if String.equal key "id" && v <> "" then
+                    scan (v :: acc) true rest
+                  else scan acc true rest
+              | None -> scan acc true rest
+            end
+            else scan acc true rest
+          end
+          else scan acc true rest
+        else scan acc in_obls rest
+  in
+  scan [] false lines
+
+let[@warning "-32"] load_decision_entry reader path =
+  match reader path with
+  | "" -> None
+  | raw ->
+      let lines = String.split_on_char '\n' raw in
+      let decision_id =
+        match extract_top_level_id lines with Some id -> id | None -> ""
+      in
+      let obligation_ids = extract_obligation_ids lines in
+      let scope_paths = extract_scope_paths lines in
+      if decision_id = "" then None
+      else
+        let stub : Memory.decision_entry =
+          {
+            Memory.decision_id;
+            Memory.revision = None;
+            Memory.source = raw;
+            Memory.obligations = List.length obligation_ids;
+            Memory.obligation_ids;
+            Memory.assumptions = 0;
+            Memory.risk_triggers = [];
+            Memory.scope_paths;
+            Memory.state = `Active;
+            Memory.verifier_per_obligation = [];
+          }
+        in
+        Some stub
+
+(* The materials digest of each decision, under semantics A: the
+ * digest of the CONTENT of the files the decision's scope names.
+ *
+ * This is the value an attestation producer MUST write into
+ * `subject.materials_digest`, because it is the value the gate
+ * compares against. The scope is read with the SAME extractor the
+ * gate uses (lib/memory.ml::extract_scope_paths, over the raw text),
+ * so producer and checker cannot disagree.
+ *)
+(* The prefixes excluded from a scope digest.
+ *
+ * The attestation store is evidence ABOUT a scope, not part of it.
+ * Including it would make every attestation stale the moment it is
+ * committed — the digest of the scope would depend on the
+ * attestation that carries the digest. The corpus convention of
+ * listing `attestations/<id>-*.json` in a decision's scope is kept,
+ * because the scope is also a human-facing statement of what the
+ * decision governs; only the DIGEST ignores the store. *)
+let[@warning "-32"] store_exclude_prefixes () : string list =
+  [ "attestations/"; ".math-coding/attestations/" ]
+
+(* The scope of every decision, read with the SAME extractor the gate
+ * uses (lib/memory.ml::extract_scope_paths over the raw text), and
+ * the resolver that turns a decision id into its materials digest.
+ *
+ * The scope map is returned alongside because two callers need it:
+ * the digest itself, and the `--only-changed` filter, which asks
+ * which decisions' scope intersects the files a commit touched. *)
+let[@warning "-32"] scope_digest_map ~(reader : string -> string)
+    ~(decisions_dir : string) ~(tree : string) :
+    (string -> string) * (string, string list) Hashtbl.t =
+  let blobs =
+    match Git_diff.tree_blobs ~cwd:(Sys.getcwd ()) ~ref:tree with
+    | Some bs -> bs
+    | None -> (
+        match Git_diff.tracked_blobs ~cwd:(Sys.getcwd ()) with
+        | Some bs -> bs
+        | None -> [])
+  in
+  let scopes : (string, string list) Hashtbl.t = Hashtbl.create 64 in
+  let files =
+    if Sys.file_exists decisions_dir && Sys.is_directory decisions_dir then
+      Array.to_list (Sys.readdir decisions_dir)
+      |> List.filter (fun n -> Filename.check_suffix n ".yaml")
+      |> List.map (Filename.concat decisions_dir)
+    else []
+  in
+  List.iter
+    (fun p ->
+      match load_decision_entry reader p with
+      | Some e -> Hashtbl.replace scopes e.Memory.decision_id e.Memory.scope_paths
+      | None -> ())
+    files;
+  let cache : (string, string) Hashtbl.t = Hashtbl.create 64 in
+  let resolve decision_id =
+    match Hashtbl.find_opt cache decision_id with
+    | Some d -> d
+    | None ->
+        let sp =
+          match Hashtbl.find_opt scopes decision_id with Some s -> s | None -> []
+        in
+        let d =
+          Gate.scope_materials_digest ~blobs ~scope_paths:sp
+            ~exclude:(store_exclude_prefixes ())
+        in
+        Hashtbl.replace cache decision_id d;
+        d
+  in
+  (resolve, scopes)
+
+let[@warning "-32"] do_attest_batch () =
+  let manifest = ref None in
+  let from_kind = ref (Some "decisions") in
+  let out_dir = ref "" in
+  let kind = ref "review" in
+  (* No default. A batch that signs itself `human:integration-
+     experiment` is a signature by someone who is not there; the
+     operator has to type whose signature it is. *)
+  let producer = ref "" in
+  let result = ref "pass" in
+  let run_cmd = ref "" in
+  let dry_run = ref false in
+  let run_per_obligation = ref false in
+  let only_changed = ref "" in
+  let set_only_changed s = only_changed := s in
+  let set_manifest s = manifest := Some s in
+  let set_from s = from_kind := Some s in
+  let set_out s = out_dir := s in
+  let set_kind s = kind := s in
+  let set_producer s = producer := s in
+  let set_result s = result := s in
+  let set_run s = run_cmd := s in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [
+         ( "--manifest",
+           Arg.String set_manifest,
+           " <path> read rows from TSV manifest (overrides --from)" );
+         ( "--from",
+           Arg.String set_from,
+           " <kind> source of obligations: decisions (default) | none" );
+         ( "--out",
+           Arg.String set_out,
+           " <dir> output directory (default $MATH_CODING_ATTESTATIONS_DIR or \
+            .math-coding/attestations)" );
+         ( "--kind",
+           Arg.String set_kind,
+           " <s> kind_ for --from=decisions (default review)" );
+         ( "--producer",
+           Arg.String set_producer,
+           " <id> producer identity for --from=decisions (REQUIRED; there is \
+            no default)" );
+         ( "--result",
+           Arg.String set_result,
+           " <pass|fail> result for --from=decisions (default pass)" );
+         ( "--run",
+           Arg.String set_run,
+           " <cmd> command to run once; its exit code becomes --result and its \
+            output digest becomes materials_digest. Required with \
+            --kind=test|build|analysis|observation." );
+         ("--dry-run", Arg.Set dry_run, " print JSON to stdout, no files");
+         ( "--only-changed",
+           Arg.String set_only_changed,
+           " re-sign only the obligations whose decision SCOPE intersects \
+            the files changed since BASE. Under semantics A a scope \
+            change invalidates the attestation that covered it, so this \
+            is what a commit that touches a scope must run to keep the \
+            gate honest." );
+         ( "--run-per-obligation",
+           Arg.Set run_per_obligation,
+           " execute EACH row's own verifier and use its verdict as the \
+            result. The verifier strings come from the decision file - \
+            the same ones `mathc verify` executes. Without this flag a \
+            runtime kind has to be signed by one --run for the whole \
+            batch, which is one claim about many obligations." );
+       ]
+       (fun s ->
+         Printf.fprintf stderr "mathc attest-batch: unexpected argument: %s\n" s;
+         exit 2)
+       "usage: mathc attest-batch [--manifest=PATH] [--from=decisions] \
+        [--out=DIR] [--kind=...] --producer=ID [--run=CMD] \
+        [--result=pass|fail] [--dry-run]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc attest-batch: %s\n" m;
+     exit 2);
+  if !result <> "pass" && !result <> "fail" then begin
+    Printf.fprintf stderr
+      "mathc attest-batch: --result must be 'pass' or 'fail' (got %s)\n" !result;
+    exit 2
+  end;
+  if not (attest_batch_kind_ok !kind) then begin
+    Printf.fprintf stderr
+      "mathc attest-batch: --kind must be one of \
+       test|review|build|analysis|observation (got %s)\n"
+      !kind;
+    exit 2
+  end;
+  let issued_at = now_iso () in
+  let root = root_with_env_precedence () in
+  let candidate_tree = resolve_candidate_tree ~cmd:"attest-batch" ~root in
+  let reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  (* Run the --run command once and report what it proves.
+   *
+   * The exit code becomes the batch result; the digest of the
+   * captured output becomes the materials anchor that the schema
+   * requires for runtime kinds. BOTH branches of attest-batch MUST
+   * use this helper.
+   *
+   * Before this fix the --manifest branch hardcoded
+   * `~materials_digest:""` and never executed --run at all, so
+   * `attest-batch --manifest=... --run=... --kind=test` silently
+   * produced attestations with no runtime anchor — exactly what
+   * --run exists to prevent, and exactly what the schema forbids
+   * for a runtime kind. The --from=decisions branch computed the
+   * digest correctly; for one command the two branches disagreed,
+   * and only one of them honoured the flag its own help text
+   * describes. *)
+  let run_once_for_batch ~run_cmd ~run_tokens : string * string =
+    if String.trim run_cmd = "" then (!result, "")
+    else
+      match run_tokens with
+      | [] -> (!result, "")
+      | prog :: args -> (
+          match resolve_program prog with
+          | None ->
+              Printf.eprintf
+                "mathc attest-batch: --run: %s is not on PATH\n%!" prog;
+              exit 2
+          | Some abs_prog ->
+              let log = Filename.temp_file "mathc_attest_run_" ".log" in
+              let outcome, status =
+                run_with_sandbox_in_env
+                  ~env:(sandbox_env_for_path_forms ())
+                  ~capture_to:(Some log) ~project_root:root
+                  ~prog:abs_prog ~args:(abs_prog :: args)
+                  ~timeout_s:verify_timeout_s ~sandbox_mode:"none"
+              in
+              let output = read_capped log ~max_bytes:1048576 in
+              (try Sys.remove log with _ -> ());
+              let ok =
+                match outcome with
+                | Pass -> (
+                    match status with
+                    | Unix.WEXITED 0 -> true
+                    | _ -> false)
+                | Fail | Skipped | Timeout -> false
+              in
+              if not ok then begin
+                Printf.eprintf
+                  "mathc attest-batch: --run `%s` did not exit 0; the \
+                   batch is signed result=fail\n\
+                   %!"
+                  run_cmd;
+                excerpt_to_stderr
+                  ~heading:
+                    (Printf.sprintf "mathc attest-batch: output of `--run %s`:"
+                       run_cmd)
+                  ~max_lines:20 output
+              end;
+              (* The digest of what the run produced. This is
+                 EVIDENCE, not the materials anchor: under semantics A
+                 the materials digest is the digest of the content of
+                 the decision's scope, which the gate computes from
+                 the same source. Conflating the two is what made the
+                 freshness check unsatisfiable. *)
+              let digest =
+                if output = "" then ""
+                else "sha256:" ^ Digest.sha256_hex output
+              in
+              ((if ok then "pass" else "fail"), digest))
+  in
+  match !manifest with
+  | Some path -> (
+      if path = "" then begin
+        Printf.fprintf stderr "mathc attest-batch: --manifest requires a path\n";
+        exit 2
+      end;
+      let raw = reader path in
+      if raw = "" then begin
+        Printf.fprintf stderr
+          "mathc attest-batch: --manifest %s is empty or unreadable\n" path;
+        exit 2
+      end;
+      match Batch.parse_manifest raw with
+      | Error { line; raw = lr; reason } ->
+          Printf.fprintf stderr
+            "mathc attest-batch: manifest %s line %d: %s\n  > %s\n" path line
+            reason lr;
+          exit 2
+      | Ok rows ->
+          let dest =
+            if !out_dir <> "" then !out_dir
+            else Path_config.attestations_dir_at ~root ()
+          in
+          (try ensure_dir dest with
+          | Unix.Unix_error (e, fn, arg) ->
+              Printf.fprintf stderr
+                "mathc attest-batch: cannot create %s: %s(%s, %s)\n" dest
+                (Unix.error_message e) fn arg;
+              exit 2
+          | Sys_error m ->
+              Printf.fprintf stderr "mathc attest-batch: cannot create %s: %s\n"
+                dest m;
+              exit 2);
+          if (not !dry_run) && not (Sys.file_exists dest) then begin
+            Printf.fprintf stderr
+              "mathc attest-batch: output directory %s could not be created\n"
+              dest;
+            exit 2
+          end;
+          (* The --run command backs the whole manifest, exactly as
+             it backs a --from=decisions batch: one run, one result,
+             one materials anchor. A row cannot claim a result the
+             run contradicts, so the run's exit code wins when
+             --run was given. *)
+          let run_tokens = split_run_command !run_cmd in
+          let run_result, run_digest =
+            run_once_for_batch ~run_cmd:!run_cmd ~run_tokens
+          in
+          (* A runtime kind claims something RAN. In the manifest
+             branch the kind comes from the ROW, not from --kind, so
+             the --run requirement has to be checked per row: a
+             row that says `kind_: test` without a --run behind it
+             is a claim that something executed when nothing did.
+             The --from=decisions branch has the same requirement,
+             enforced on --kind; this is the manifest's equivalent. *)
+          if String.trim !run_cmd = "" && not !run_per_obligation then begin
+            let runtime_rows =
+              List.filter
+                (fun (row : Batch.row) ->
+                  List.mem row.Batch.kind_ runtime_attestation_kinds)
+                rows
+            in
+            if runtime_rows <> [] then begin
+              let kinds =
+                List.sort_uniq String.compare
+                  (List.map (fun (row : Batch.row) -> row.Batch.kind_) runtime_rows)
+              in
+              Printf.eprintf
+                "mathc attest-batch: the manifest declares %s attestation(s), \
+                 and a %s attestation claims something ran. Without \
+                 --run=<command> this command would print `result: pass` \
+                 for a run that never happened, for every such row. Use \
+                 --run=\"dune runtest\" (or whatever command produces the \
+                 artefact) or declare those rows as `review`.\n\
+                 %!"
+                (String.concat ", " kinds) (String.concat ", " kinds);
+              exit 2
+            end
+          end;
+          let scope_digest, scope_map =
+            scope_digest_map ~reader
+              ~decisions_dir:(Path_config.decisions_dir_at ~root ())
+              ~tree:candidate_tree
+          in
+          let scope_map =
+            if String.trim !only_changed = "" then scope_map
+            else
+              let changed =
+                run_git_command !only_changed "HEAD" [ "diff"; "--name-only" ]
+                |> String.split_on_char '\n'
+                |> List.filter (fun s -> String.length s > 0)
+              in
+              let touched =
+                decisions_touching_changes ~scopes:scope_map ~changed
+              in
+              let kept : (string, string list) Hashtbl.t = Hashtbl.create 64 in
+              List.iter (fun d -> Hashtbl.replace kept d []) touched;
+              kept
+          in
+          let in_scope decision_id =
+            if String.trim !only_changed = "" then true
+            else Hashtbl.mem scope_map decision_id
+          in
+          let emit_one row =
+            let decision = row.Batch.decision in
+            let obligation = row.obligation in
+            let kind_ = row.kind_ in
+            let producer = row.producer in
+            let result =
+              if !run_per_obligation then
+                (match
+                   verdict_of_obligation ~root ~sandbox_mode:"none" ~decision_id:decision
+                     ~obligation_id:obligation
+                 with
+                | Pass -> "pass"
+                | Fail -> "fail"
+                | Skipped -> "inconclusive"
+                | Timeout -> "fail")
+              else if String.trim !run_cmd = "" then row.result
+              else run_result
+            in
+            let body =
+              Batch.make_attestation ~decision ~obligation ~kind_ ~producer
+                ~result ~issued_at ~candidate_tree
+                ~evidence_digest:run_digest
+                ~materials_digest:(scope_digest decision)
+            in
+            let full = Batch.with_id body in
+            let json = Batch.serialize full in
+            if !dry_run then Printf.printf "%s\n" json
+            else begin
+              let fname = Batch.filename_for ~decision ~obligation in
+              write_attestation_file ~dest ~fname ~json
+            end
+          in
+          List.iter
+            (fun row ->
+              if in_scope row.Batch.decision then emit_one row
+              else
+                Printf.eprintf
+                  "mathc attest-batch: --only-changed: skipping %s (its scope \
+                   does not touch the changed files)\n%!"
+                  row.Batch.decision)
+            rows;
+          exit 0)
+  | None -> (
+      match !from_kind with
+      | Some "decisions" ->
+          (* Refuse before reading anything: the identity is the
+             first thing an attestation asserts, and there is no
+             honest value to assume for it. *)
+          if String.trim !producer = "" then begin
+            Printf.eprintf
+              "mathc attest-batch: --producer=<identity> is required with \
+               --from=decisions\n\
+              \  Every attestation names the producer that signed it, and a \
+               default\n\
+              \  would sign this whole batch as whoever the last release \
+               happened\n\
+              \  to hard-code. Pass --producer=human:<you> or \
+               --producer=agent:<id>.\n\
+              \  (--manifest rows carry their own producer and do not need \
+               this.)\n\
+               %!";
+            exit 2
+          end;
+          if
+            List.mem !kind runtime_attestation_kinds
+            && String.trim !run_cmd = ""
+            && not !run_per_obligation
+          then begin
+            Printf.eprintf
+              "mathc attest-batch: --kind=%s needs --run=<command>\n\
+              \  A %s attestation claims something ran. Without --run this \
+               command\n\
+              \  would print `result: pass` for a run that never happened, for \
+               every\n\
+              \  obligation in the batch. Use --run=\"dune runtest\" (or \
+               whatever\n\
+              \  command produces the artefact) or use --kind=review, which is \
+               the\n\
+              \  one kind allowed to rest on a human declaration.\n\
+               %!"
+              !kind !kind;
+            exit 2
+          end;
+          (* Validate the --run command shape before reading
+             anything, for the same reason --producer is checked
+             here: a refusal should not depend on how many
+             obligations happen to be in the store. *)
+          let run_tokens = split_run_command !run_cmd in
+          (match reject_shell_in_run run_tokens with
+          | Some c ->
+              Printf.eprintf
+                "mathc attest-batch: --run contains the shell metacharacter \
+                 %C; attest-batch never runs a shell\n\
+                 %!"
+                c;
+              exit 2
+          | None -> ());
+          if String.trim !run_cmd <> "" && run_tokens = [] then begin
+            Printf.eprintf "mathc attest-batch: --run is empty\n%!";
+            exit 2
+          end;
+          let src = Path_config.decisions_dir_at ~root () in
+          let obls = Batch.scan_decisions_for_obligations ~reader ~root:src in
+          if obls = [] then begin
+            Printf.fprintf stderr
+              "mathc attest-batch: no parseable decisions under %s\n" src;
+            exit 2
+          end;
+          let dest =
+            if !out_dir <> "" then !out_dir
+            else Path_config.attestations_dir_at ~root ()
+          in
+          (try ensure_dir dest with
+          | Unix.Unix_error (e, fn, arg) ->
+              Printf.fprintf stderr
+                "mathc attest-batch: cannot create %s: %s(%s, %s)\n" dest
+                (Unix.error_message e) fn arg;
+              exit 2
+          | Sys_error m ->
+              Printf.fprintf stderr "mathc attest-batch: cannot create %s: %s\n"
+                dest m;
+              exit 2);
+          if (not !dry_run) && not (Sys.file_exists dest) then begin
+            Printf.fprintf stderr
+              "mathc attest-batch: output directory %s could not be created\n"
+              dest;
+            exit 2
+          end;
+          (* One run backs the whole batch. Its exit code is the
+             result every attestation carries and its output digest
+             is the materials anchor the schema demands for runtime
+             kinds. Both are announced: N attestations from ONE run
+             is a different claim from N runs, and the operator has
+             to see which one they are making. *)
+          let run_result, run_digest =
+            run_once_for_batch ~run_cmd:!run_cmd ~run_tokens
+          in
+          report_mass_issue ~n:(List.length obls)
+            ~decisions:(count_distinct_decisions obls)
+            ~producer:!producer ~kind_:!kind ~result:run_result ~run:!run_cmd;
+          let scope_digest, scope_map =
+            scope_digest_map ~reader
+              ~decisions_dir:(Path_config.decisions_dir_at ~root ())
+              ~tree:candidate_tree
+          in
+          let scope_map =
+            if String.trim !only_changed = "" then scope_map
+            else
+              let changed =
+                run_git_command !only_changed "HEAD" [ "diff"; "--name-only" ]
+                |> String.split_on_char '\n'
+                |> List.filter (fun s -> String.length s > 0)
+              in
+              let touched =
+                decisions_touching_changes ~scopes:scope_map ~changed
+              in
+              let kept : (string, string list) Hashtbl.t = Hashtbl.create 64 in
+              List.iter (fun d -> Hashtbl.replace kept d []) touched;
+              kept
+          in
+          let in_scope decision_id =
+            if String.trim !only_changed = "" then true
+            else Hashtbl.mem scope_map decision_id
+          in
+          let emit (decision, obligation) =
+            let row_result =
+              if !run_per_obligation then
+                (match
+                   verdict_of_obligation ~root ~sandbox_mode:"none" ~decision_id:decision
+                     ~obligation_id:obligation
+                 with
+                | Pass -> "pass"
+                | Fail -> "fail"
+                | Skipped -> "inconclusive"
+                | Timeout -> "fail")
+              else if String.trim !run_cmd = "" then !result
+              else run_result
+            in
+            let body =
+              Batch.make_attestation ~decision ~obligation ~kind_:!kind
+                ~producer:!producer ~result:row_result ~issued_at
+                ~candidate_tree
+                ~evidence_digest:run_digest
+                ~materials_digest:(scope_digest decision)
+            in
+            let full = Batch.with_id body in
+            let json = Batch.serialize full in
+            if !dry_run then Printf.printf "%s\n" json
+            else begin
+              let fname = Batch.filename_for ~decision ~obligation in
+              write_attestation_file ~dest ~fname ~json
+            end
+          in
+          List.iter
+            (fun (decision, obligation) ->
+              if in_scope decision then emit (decision, obligation)
+              else
+                Printf.eprintf
+                  "mathc attest-batch: --only-changed: skipping %s (its scope \
+                   does not touch the changed files)\n%!"
+                  decision)
+            obls;
+          exit 0
+      | Some "none" ->
+          Printf.fprintf stderr
+            "mathc attest-batch: --from=none with no --manifest; nothing to do\n";
+          exit 2
+      | Some other ->
+          Printf.fprintf stderr
+            "mathc attest-batch: --from=%s is not supported (use decisions)\n"
+            other;
+          exit 2
+      | None ->
+          Printf.fprintf stderr
+            "mathc attest-batch: --from= and --manifest are mutually exclusive \
+             in this slice; pass one of them\n";
+          exit 2)
+
+(* --- verify subcommand (add-verify-subcommand-2026-10) ---
+ *
+ * `mathc verify FILE` walks every obligation's
+ * `acceptance.all[*].verifier` string and executes it in a
+ * sandbox. Per-obligation verdict is one of:
+ *
+ *   pass    — at least one verifier in the obligation's `all`
+ *             list returned exit 0
+ *   fail    — at least one verifier returned non-zero
+ *   skipped — every verifier was either an empty string or a
+ *             scheme the sandbox does not recognise
+ *
+ * The sandbox is enforced by a scheme allowlist; only the
+ * following schemes are executed:
+ *
+ *   file-exists <path>   in-process Sys.file_exists check
+ *   dir-exists <path>    in-process Sys.is_directory check
+ *   mathc <subcmd>...    subprocess: re-invoke this binary with
+ *                        env stripped to PATH/HOME/LANG, cwd =
+ *                        decision's project root, 60s timeout
+ *
+ * Since verify-path-forms-2026-10 the allowlist also covers the
+ * PATH forms the corpus actually writes -- an obligation that
+ * names a test or a script, not a scheme:
+ *
+ *   dune <args>                subprocess: dune, with <args>
+ *   tests/foo.exe              subprocess: `dune exec ./tests/foo.exe`
+ *   tests/foo.ml               the module's binary, same way
+ *   tests/foo.ml::case         `dune exec ./tests/foo.exe -- test ^case$`
+ *   tests/cli/foo.t            subprocess: `dune runtest tests/cli/foo.t`
+ *   scripts/x.sh [args]        subprocess: the script itself
+ *
+ * Every path form is resolved against the project root and must
+ * (a) exist and (b) resolve INSIDE the repository, symlinks
+ * included. A path that does not is `fail` with the reason
+ * printed -- never `skipped`. The corpus writes its obligations
+ * as paths, so a resolver that only knew three scheme names left
+ * 80% of them reported as "no information" while the command
+ * exited 0.
+ *
+ * Any other scheme (including `rm -rf /` and any shell command)
+ * is reported as `skipped` WITHOUT being executed. This is the
+ * sandbox boundary; the kernel NEVER calls Shell.system or
+ * passes the verifier string to /bin/sh. A recognised form that
+ * NEEDS a shell (a `|`, `&&`, `>` or a quote in the verifier) is
+ * `fail`, not `skipped`: the obligation was not verified, and
+ * saying so silently is the defect this family removes.
+ *
+ * The 60s hard timeout is enforced via fork+waitpid: the parent
+ * polls the elapsed time and SIGKILLs the child if the deadline
+ * is exceeded. See run_with_sandbox below. *)
+(* Tokenize a verifier string into (scheme, args). The string is
+   whitespace-separated; the first token is the scheme. Returns
+   None for empty or whitespace-only strings. *)
 
 let[@warning "-32"] do_verify () =
   let format = ref Text in
@@ -5299,6 +5544,12 @@ let[@warning "-32"] do_re_evaluate_decisions () =
       try Unix.mkdir d 0o755 with _ -> ()
     end
   in
+  (* Resolve BEFORE any directory is created: this write path has no
+     fallback tree, so it must refuse before it leaves a side effect
+     behind. *)
+  let candidate_tree =
+    resolve_candidate_tree ~cmd:"re-evaluate-decisions" ~root:repo_root
+  in
   mkdir_p attestations_dir;
   List.iter
     (fun ((d, v) : Domain.decision * Re_evaluation.status) ->
@@ -5342,7 +5593,7 @@ let[@warning "-32"] do_re_evaluate_decisions () =
                       [
                         ("decision", Jsonl.String d.Domain.id);
                         ("obligation", Jsonl.String ob.Domain.id);
-                        ("candidate_tree", Jsonl.String "HEAD");
+                        ("candidate_tree", Jsonl.String candidate_tree);
                         ("materials_digest", Jsonl.String "");
                       ] );
                   ("kind_", Jsonl.String "test");
