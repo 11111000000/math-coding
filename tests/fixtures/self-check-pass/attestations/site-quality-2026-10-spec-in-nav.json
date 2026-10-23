@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"site-quality-2026-10","obligation":"spec-in-nav","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:899005bd16069c2cb8c998439f7f90c338073d5a8401fae57c339ed85e2c5719"}

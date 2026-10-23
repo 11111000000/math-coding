@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"mcp-server-impl-2026-10","obligation":"binary-built","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:3c8a6ed1ff871765d37c505605a378177d24e9f57f14dbe4d7151343430da260"}

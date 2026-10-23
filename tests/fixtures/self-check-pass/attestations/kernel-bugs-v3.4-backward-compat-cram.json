@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"kernel-bugs-v3.4","obligation":"backward-compat-cram","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:e7bd0d26881b2c25adf0d0e9e0ded4c763c6011ffcd2198f1390b4249493e017"}

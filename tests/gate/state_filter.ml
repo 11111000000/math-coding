@@ -248,6 +248,7 @@ let[@warning "-32"] make_entry ?(state = `Active)
     Memory.obligation_ids = obligations;
     Memory.assumptions = 0;
     Memory.risk_triggers = [];
+    Memory.scope_paths = [];
     Memory.state;
     Memory.verifier_per_obligation = [];
   }
@@ -290,6 +291,11 @@ let[@warning "-32"] run_filter_evaluate entries =
   let result =
     Gate.evaluate ~now ~base:"HEAD~1" ~head:"HEAD" ~memory
       ~changed_paths:[ "lib/test.ml" ] ~store:empty_store ~rebuttals:[]
+      (* Semantics A: the reference materials digest is per decision.
+         The kernel takes it as an injected function so it stays
+         pure; here the corpus is synthetic, so every decision gets
+         the same constant. *)
+      ~materials_of_decision:(fun _ -> "test-materials-digest")
   in
   result
 

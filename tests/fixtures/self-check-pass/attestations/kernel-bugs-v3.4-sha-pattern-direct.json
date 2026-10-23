@@ -1,0 +1,1 @@
+{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"kernel-bugs-v3.4","obligation":"sha-pattern-direct","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:8ae0b16a717856a51c960879f7ab3a5c39235867631c217293d5c1c14170d2c5"}
