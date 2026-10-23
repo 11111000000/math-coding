@@ -29,6 +29,7 @@
   body_canonical_test
   path_config_test
   yaml_block_scalars
+  yaml_seq_continuation
   duplicate_keys
   attestation_anchor)
  (libraries
