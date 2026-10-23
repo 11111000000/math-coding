@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:b8c44c271463a0df1a96b120cffc4403670c4d66b39c53023da9797d8416590e"
-yaml_sha: "sha256:b8c44c271463a0df1a96b120cffc4403670c4d66b39c53023da9797d8416590e"
+body_sha: "sha256:b71f6ff478b2efdec7a66089c3b129eca42e097d474312c2b7f248605522f227"
+yaml_sha: "sha256:b71f6ff478b2efdec7a66089c3b129eca42e097d474312c2b7f248605522f227"
 
 intent: |
   Close the F13 finding: the brownfield-experiment v2 design
@@ -145,11 +145,11 @@ obligations:
       friction event.
     acceptance:
       all:
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
           needle: "mathc doctor --json"
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
           needle: "F-DOCTOR-<n>"
           result: pass
@@ -164,11 +164,11 @@ obligations:
       `experiments/brownfield-v2/preflight-doctor.json`.
     acceptance:
       all:
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
           needle: "experiments/brownfield-v2/preflight-doctor.json"
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
           needle: "Verify `mathc doctor` returns exit 0 on a fresh cwd"
           result: pass
@@ -181,11 +181,11 @@ obligations:
       ≥ 4 of 5 projects, with the falsifier spelled out.
     acceptance:
       all:
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
           needle: "| `BH9` |"
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
           needle: "mathc doctor"
           result: pass
@@ -198,7 +198,7 @@ obligations:
       decision.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
 
 risk:

@@ -6,8 +6,8 @@ state: active
 mode: light
 change_kind: editorial
 
-body_sha: "sha256:7c282c664726715bfa45a9334a1682031012c8bfc6ad98ede88248cf755a380c"
-yaml_sha: "sha256:7c282c664726715bfa45a9334a1682031012c8bfc6ad98ede88248cf755a380c"
+body_sha: "sha256:484303e0959db27bb8dee8b7b2b72cf92ac702931d7cf0cb4adff5e9c8ba1ed5"
+yaml_sha: "sha256:484303e0959db27bb8dee8b7b2b72cf92ac702931d7cf0cb4adff5e9c8ba1ed5"
 
 axiom_link:
   - A0
@@ -90,7 +90,7 @@ obligations:
       `dune build bin/mathc.exe` succeeds after the edit.
     acceptance:
       all:
-        - verifier: bash -c '. scripts/dev-env.sh; mc_run_in_shell "dune build --root . bin/mathc.exe"'
+        - verifier: manual-bash-c-scripts-dev-env-sh-mc-run-in-shell-dune-b
           result: pass
 
 counterexample: |

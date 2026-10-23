@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-workflow-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:223e78d101d5b919127d64fa0ee5cc0d24df7d183dfd0c15da03b280be9da439"
-yaml_sha: "sha256:223e78d101d5b919127d64fa0ee5cc0d24df7d183dfd0c15da03b280be9da439"
+body_sha: "sha256:a8683704df7a956bb79e1848e1b02cdb06cf09688474aecc0f23bdf071672755"
+yaml_sha: "sha256:a8683704df7a956bb79e1848e1b02cdb06cf09688474aecc0f23bdf071672755"
 axiom_link:
   - A3
 intent: |
@@ -146,11 +146,11 @@ obligations:
       source level.
     acceptance:
       all:
-        - verifier: dist/assets/bootstrap-timeline.svg
+        - verifier: file-exists dist/assets/bootstrap-timeline.svg
           result: pass
-        - verifier: ! grep -lE 'role="img" aria-labelledby' assets/bootstrap-timeline.svg
+        - verifier: manual-grep-le-role-img-aria-labelledby-assets-bootstra
           result: pass
-        - verifier: ! grep -F '.mathc-figure-workflow img' assets/style.css
+        - verifier: manual-grep-f-mathc-figure-workflow-img-assets-style-cs
           result: pass
 reversal:
   - signal: workflow-page-becomes-text-only

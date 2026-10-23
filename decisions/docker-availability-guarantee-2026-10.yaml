@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:cc755ecfd79a94d5dbcab6aabf6b81aca2eacf1a8271411793ed758e8db160cf"
-yaml_sha: "sha256:cc755ecfd79a94d5dbcab6aabf6b81aca2eacf1a8271411793ed758e8db160cf"
+body_sha: "sha256:b6c9e6ce6f7ffbfb8c59aafb42073ea02bf2780e5204aa09a93a86bce05c6017"
+yaml_sha: "sha256:b6c9e6ce6f7ffbfb8c59aafb42073ea02bf2780e5204aa09a93a86bce05c6017"
 axiom_link:
   - A0
   - A1
@@ -443,9 +443,9 @@ obligations:
       all:
         - verifier: mathc validate decisions/docker-availability-guarantee-2026-10.yaml
           result: pass
-        - verifier: grep -q "mathc:edge" .github/workflows/docker.yml
+        - verifier: manual-grep-q-mathc-edge-github-workflows-docker-yml
           result: pass
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/docker-availability-guarantee-2026-10.yaml
           result: pass
   - id: install-sh-docker-fallback-mode
     outcome: install-sh-docker-fallback-mode
@@ -477,11 +477,11 @@ obligations:
       (`mathc validate` accepts it).
     acceptance:
       all:
-        - verifier: this-attestation-file-present
+        - verifier: manual-this-attestation-file-present
           result: pass
         - verifier: mathc validate attestations/docker-availability-guarantee-2026-10-docker-image-healthcheck.json
           result: pass
-        - verifier: test -f .github/workflows/docker-healthcheck.yml
+        - verifier: manual-test-f-github-workflows-docker-healthcheck-yml
           result: pass
   - id: docker-alpine-image-published
     outcome: docker-alpine-image-published
@@ -496,11 +496,11 @@ obligations:
       Phase-3 deferral.
     acceptance:
       all:
-        - verifier: test -f Dockerfile.alpine
+        - verifier: manual-test-f-dockerfile-alpine
           result: pass
-        - verifier: test -f .github/workflows/docker-alpine.yml
+        - verifier: manual-test-f-github-workflows-docker-alpine-yml
           result: pass
-        - verifier: grep -q "mathc-linux-x86_64-musl" .github/workflows/release.yml
+        - verifier: manual-grep-q-mathc-linux-x86-64-musl-github-workflows-
           result: pass
   - id: install-docs-fallback-hierarchy
     outcome: install-docs-fallback-hierarchy
@@ -513,15 +513,15 @@ obligations:
       across all five files (modulo locale).
     acceptance:
       all:
-        - verifier: grep -q "Docker fallback" USAGE.md
+        - verifier: manual-grep-q-docker-fallback-usage-md
           result: pass
-        - verifier: grep -q "Docker fallback" QUICKSTART.md
+        - verifier: manual-grep-q-docker-fallback-quickstart-md
           result: pass
-        - verifier: grep -q "Docker fallback" site/install.md
+        - verifier: manual-grep-q-docker-fallback-site-install-md
           result: pass
-        - verifier: grep -q "Docker fallback" site/install.ru.md
+        - verifier: manual-grep-q-docker-fallback-site-install-ru-md
           result: pass
-        - verifier: grep -q "Docker fallback" site/install.zh.md
+        - verifier: manual-grep-q-docker-fallback-site-install-zh-md
           result: pass
   - id: future-work-recorded
     outcome: future-work-recorded
@@ -537,11 +537,11 @@ obligations:
       all:
         - verifier: mathc validate decisions/docker-availability-guarantee-2026-10.yaml
           result: pass
-        - verifier: grep -q "docker-mirror-policy" decisions/docker-availability-guarantee-2026-10.yaml
+        - verifier: manual-grep-q-docker-mirror-policy-decisions-docker-ava
           result: pass
-        - verifier: grep -q "docker-retention-policy" decisions/docker-availability-guarantee-2026-10.yaml
+        - verifier: manual-grep-q-docker-retention-policy-decisions-docker-
           result: pass
-        - verifier: grep -q "install-sh-auto-fallback" decisions/docker-availability-guarantee-2026-10.yaml
+        - verifier: manual-grep-q-install-sh-auto-fallback-decisions-docker
           result: pass
 
 reversal:

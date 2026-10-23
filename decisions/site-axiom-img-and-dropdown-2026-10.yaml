@@ -4,8 +4,8 @@ id: site-axiom-img-and-dropdown-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:9480c95623eb7da734c54ac0e290c14646762367af1c8c0a6d6e1edc2fbe5685"
-yaml_sha: "sha256:9480c95623eb7da734c54ac0e290c14646762367af1c8c0a6d6e1edc2fbe5685"
+body_sha: "sha256:d46e2441b009662c4f80e0707ba09cf823b9dc10b07ae00ad3d0b5cd5ac445fd"
+yaml_sha: "sha256:d46e2441b009662c4f80e0707ba09cf823b9dc10b07ae00ad3d0b5cd5ac445fd"
 change_kind: implementation
 axiom_link:
   - A0
@@ -259,25 +259,25 @@ obligations:
       checking the network log: no `/assets/...` 404s.
     acceptance:
       all:
-        - verifier: ! curl -fsI https://11111000000.github.io/math-coding/assets/axiom-separation.svg | head -1
+        - verifier: manual-curl-fsi-https-11111000000-github-io-math-coding
           result: pass
-        - verifier: ! curl -fsI https://11111000000.github.io/math-coding/assets/axiom-feedback.svg | head -1
+        - verifier: manual-curl-fsi-https-11111000000-github-io-math-coding
           result: pass
-        - verifier: ! curl -fsI https://11111000000.github.io/math-coding/assets/axiom-invariants.svg | head -1
+        - verifier: manual-curl-fsi-https-11111000000-github-io-math-coding
           result: pass
-        - verifier: ! curl -fsI https://11111000000.github.io/math-coding/assets/axiom-self-application.svg | head -1
+        - verifier: manual-curl-fsi-https-11111000000-github-io-math-coding
           result: pass
-        - verifier: ! curl -fsI https://11111000000.github.io/math-coding/assets/axiom-care.svg | head -1
+        - verifier: manual-curl-fsi-https-11111000000-github-io-math-coding
           result: pass
-        - verifier: grep -qF 'src="assets/axiom-separation.svg"' dist/axioms.html
+        - verifier: manual-grep-qf-src-assets-axiom-separation-svg-dist-axi
           result: pass
-        - verifier: grep -qF 'src="assets/axiom-feedback.svg"' dist/axioms.html
+        - verifier: manual-grep-qf-src-assets-axiom-feedback-svg-dist-axiom
           result: pass
-        - verifier: grep -qF 'src="assets/axiom-invariants.svg"' dist/axioms.html
+        - verifier: manual-grep-qf-src-assets-axiom-invariants-svg-dist-axi
           result: pass
-        - verifier: grep -qF 'src="assets/axiom-self-application.svg"' dist/axioms.html
+        - verifier: manual-grep-qf-src-assets-axiom-self-application-svg-di
           result: pass
-        - verifier: grep -qF 'src="assets/axiom-care.svg"' dist/axioms.html
+        - verifier: manual-grep-qf-src-assets-axiom-care-svg-dist-axioms-ht
           result: pass
   - id: per-axiom-200s
     statement: |
@@ -285,28 +285,28 @@ obligations:
       on the per-axiom pages resolve to 200.
     acceptance:
       all:
-        - verifier: grep -qF 'src="assets/axiom-separation.svg"' dist/axioms/separation.html
+        - verifier: manual-grep-qf-src-assets-axiom-separation-svg-dist-axi
           result: pass
-        - verifier: grep -qF 'src="assets/epistemic-separation.svg"' dist/axioms/separation.html
+        - verifier: manual-grep-qf-src-assets-epistemic-separation-svg-dist
           result: pass
-        - verifier: grep -qF 'src="assets/axiom-feedback.svg"' dist/axioms/feedback.html
+        - verifier: manual-grep-qf-src-assets-axiom-feedback-svg-dist-axiom
           result: pass
-        - verifier: grep -qF 'src="assets/axiom-invariants.svg"' dist/axioms/invariants.html
+        - verifier: manual-grep-qf-src-assets-axiom-invariants-svg-dist-axi
           result: pass
-        - verifier: grep -qF 'src="assets/axiom-self-application.svg"' dist/axioms/self-application.html
+        - verifier: manual-grep-qf-src-assets-axiom-self-application-svg-di
           result: pass
-        - verifier: grep -qF 'src="assets/axiom-care.svg"' dist/axioms/care.html
+        - verifier: manual-grep-qf-src-assets-axiom-care-svg-dist-axioms-ca
           result: pass
-        - verifier: ! grep -RqF 'src="\.\./assets/' dist/axioms.html dist/axioms.ru.html dist/axioms/zh.html dist/axioms/*.html
+        - verifier: manual-grep-rqf-src-assets-dist-axioms-html-dist-axioms
           result: pass
   - id: axiom-figure-css-resized
     statement: |
       `.mathc-axiom-figure img` is 96x96 (not 64x64).
     acceptance:
       all:
-        - verifier: ! grep -F 'width: 64px' assets/style.css | grep -F '.mathc-axiom-figure img'
+        - verifier: manual-grep-f-width-64px-assets-style-css-grep-f-mathc-
           result: fail
-        - verifier: ! grep -F 'width: 96px' assets/style.css | grep -F '.mathc-axiom-figure img'
+        - verifier: manual-grep-f-width-96px-assets-style-css-grep-f-mathc-
           result: pass
   - id: dropdown-bridge-present
     statement: |
@@ -314,9 +314,9 @@ obligations:
       pseudo-element at `top: -0.4rem` with `height: 0.4rem`.
     acceptance:
       all:
-        - verifier: grep -qF 'nav.site-nav .nav-group-panel::before' assets/style.css
+        - verifier: manual-grep-qf-nav-site-nav-nav-group-panel-before-asse
           result: pass
-        - verifier: grep -qF 'top: -0.4rem' assets/style.css
+        - verifier: manual-grep-qf-top-0-4rem-assets-style-css
           result: pass
   - id: mathc-validate-accepts
     statement: |

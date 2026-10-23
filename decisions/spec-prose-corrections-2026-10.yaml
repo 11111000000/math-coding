@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: spec-prose-corrections-2026-10
 revision: 2
 state: active
-body_sha: "sha256:cd9d52378f5074d4b7e66b0b783ff76320d3f17012963ec589f5fc5332f68875"
-yaml_sha: "sha256:cd9d52378f5074d4b7e66b0b783ff76320d3f17012963ec589f5fc5332f68875"
+body_sha: "sha256:f5d545ce7033c6c1dd91b8181575ecb45f3576c543f96fbb234a5b068cef6b26"
+yaml_sha: "sha256:f5d545ce7033c6c1dd91b8181575ecb45f3576c543f96fbb234a5b068cef6b26"
 intent: |
   Apply factual corrections to the spec/ tree that the 2026-10-05
   audit flagged. These are not semantic changes to the algebra or
@@ -136,7 +136,7 @@ obligations:
       matches after this decision lands.
     acceptance:
       all:
-        - verifier: rg -n 'Bootstrap limitation' spec/semantics.md
+        - verifier: manual-rg-n-bootstrap-limitation-spec-semantics-md
           result: pass
 
   - id: section-count-corrected
@@ -147,7 +147,7 @@ obligations:
       preamble) is reflected.
     acceptance:
       all:
-        - verifier: rg -n '27 sections' spec/algebra-3.2.md
+        - verifier: manual-rg-n-27-sections-spec-algebra-3-2-md
           result: pass
 
   - id: kernel-unchanged
@@ -157,7 +157,7 @@ obligations:
       verdict and pass-count are unchanged by this decision.
     acceptance:
       all:
-        - verifier: mathc-self-check-verdict
+        - verifier: manual-mathc-self-check-verdict-unqualified
           result: pass
 
 reversal:

@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: editorial
 
-body_sha: "sha256:e2f7c00cbabdf2cb8e8c8fc9a3f96f3631c6f5c3d28b871d4099cfe9d550c632"
-yaml_sha: "sha256:e2f7c00cbabdf2cb8e8c8fc9a3f96f3631c6f5c3d28b871d4099cfe9d550c632"
+body_sha: "sha256:fe8d58f3ab85d40a4df14d1aace41cf9d48b1919bf8728cc3da460e5601c22a8"
+yaml_sha: "sha256:fe8d58f3ab85d40a4df14d1aace41cf9d48b1919bf8728cc3da460e5601c22a8"
 
 axiom_link:
   - A0
@@ -247,17 +247,17 @@ obligations:
       success.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/ux-3-install-ps1-2026-10.yaml
           result: pass
-        - verifier: bash -n scripts/install-tooling/install.ps1
+        - verifier: manual-bash-n-scripts-install-tooling-install-ps1
           result: pass
-        - verifier: shellcheck scripts/install-tooling/install.ps1
+        - verifier: manual-shellcheck-scripts-install-tooling-install-ps1
           result: pass
-        - verifier: pwsh -NoProfile -Command "& { ./scripts/install-tooling/install.ps1 -WhatIf }"
+        - verifier: manual-pwsh-noprofile-command-scripts-install-tooling-i
           result: pass
-        - verifier: USAGE.md and site/install.md mention `irm|iex` for Windows
+        - verifier: manual-usage-md-and-site-install-md-mention-irm-iex-for
           result: pass
 
   - id: d2-path-auto-add
@@ -277,11 +277,11 @@ obligations:
       installation failure, no shell RC is modified.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/ux-3-install-path-auto-add-2026-10.yaml
           result: pass
-        - verifier: shellcheck scripts/install-tooling/install.sh
+        - verifier: manual-shellcheck-scripts-install-tooling-install-sh
           result: pass
         - verifier: tests/scripts/install-path-auto-add.t
           result: pass
@@ -303,11 +303,11 @@ obligations:
       matching basename.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/ux-3-install-libc-auto-detect-2026-10.yaml
           result: pass
-        - verifier: shellcheck scripts/install-tooling/install.sh
+        - verifier: manual-shellcheck-scripts-install-tooling-install-sh
           result: pass
         - verifier: tests/scripts/install-libc-auto-detect.t
           result: pass
@@ -325,11 +325,11 @@ obligations:
       regardless of extension.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/release-sha256sums-windows-2026-10.yaml
           result: pass
-        - verifier: yq '.spec' .github/workflows/release.yml
+        - verifier: manual-yq-spec-github-workflows-release-yml
           result: pass
         - verifier: tests/scripts/release-sha256sums-windows.t
           result: pass
@@ -352,13 +352,13 @@ obligations:
       from source.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/winget-manifest-pr-2026-10.yaml
           result: pass
-        - verifier: tools/winget/manifests/m/mathcoding/mathc/3.3.0/mathcoding.mathc.installer.yaml is valid against winget schema 1.6.0
+        - verifier: manual-tools-winget-manifests-m-mathcoding-mathc-3-3-0-
           result: pass
-        - verifier: python3 -m py_compile tools/winget/scripts/*.py
+        - verifier: manual-python3-m-py-compile-tools-winget-scripts-py
           result: pass
 
   # ─── BATCH 2 — Mid-distro (parallel subagents) ─────────────────────────
@@ -380,11 +380,11 @@ obligations:
       default on).
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/release-cosign-blob-sign-2026-10.yaml
           result: pass
-        - verifier: yq '.jobs.publish.steps' .github/workflows/release.yml references sigstore/cosign-installer
+        - verifier: manual-yq-jobs-publish-steps-github-workflows-release-y
           result: pass
 
   - id: d7-arm64-windows-binary
@@ -400,11 +400,11 @@ obligations:
       winget manifest pick up the new artifact.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/release-windows-aarch64-binary-2026-10.yaml
           result: pass
-        - verifier: gh release view $(cat VERSION) --json assets | jq '.assets[].name' | grep -q windows-aarch64
+        - verifier: manual-gh-release-view-cat-version-json-assets-jq-asset
           result: pass
 
   - id: d8-arm64-docker
@@ -422,11 +422,11 @@ obligations:
       (acceptance budget; record post-merge measurement).
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/docker-arm64-image-2026-10.yaml
           result: pass
-        - verifier: docker manifest inspect ghcr.io/11111000000/mathc:latest lists both amd64 and arm64
+        - verifier: manual-docker-manifest-inspect-ghcr-io-11111000000-math
           result: pass
 
   - id: d9-mathc-update-subcommand
@@ -448,7 +448,7 @@ obligations:
       one commit.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/mathc-update-subcommand-2026-10.yaml
           result: pass
@@ -478,7 +478,7 @@ obligations:
       changes are constrained to the CLI surface only.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/mathc-doctor-subcommand-2026-10.yaml
           result: pass
@@ -503,11 +503,11 @@ obligations:
       release tags by `tools/scoop/scripts/`.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/scoop-manifest-pr-2026-10.yaml
           result: pass
-        - verifier: jq .version tools/scoop/mathc.json >/dev/null
+        - verifier: manual-jq-version-tools-scoop-mathc-json-dev-null
           result: pass
 
   - id: d12-homebrew-tap-formula
@@ -528,11 +528,11 @@ obligations:
       artifact here).
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/homebrew-tap-formula-2026-10.yaml
           result: pass
-        - verifier: brew audit --strict tools/homebrew/Formula/mathc.rb (OR ruby -c tools/homebrew/Formula/mathc.rb if brew unavailable locally)
+        - verifier: manual-brew-audit-strict-tools-homebrew-formula-mathc-r
           result: pass
 
   - id: d13-channel-default-stable
@@ -555,13 +555,13 @@ obligations:
       new default.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
         - verifier: mathc validate decisions/install-tooling-default-tag-stable-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still succeeds (prior not deleted)
           result: pass
-        - verifier: grep -q 'stable' QUICKSTART.md && grep -q 'edge' USAGE.md
+        - verifier: manual-grep-q-stable-quickstart-md-grep-q-edge-usage-md
           result: pass
 
 reversal:

@@ -4,8 +4,8 @@ id: fix-generate-attestations-env-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:2de4d3d94893005d5c924bad508180930e771f2fd15e46817eab537458fbf107"
-yaml_sha: "sha256:2de4d3d94893005d5c924bad508180930e771f2fd15e46817eab537458fbf107"
+body_sha: "sha256:0e34878c2f6ead9bea48b629991c0e9e289345988636545f39e07efb4a91fb56"
+yaml_sha: "sha256:0e34878c2f6ead9bea48b629991c0e9e289345988636545f39e07efb4a91fb56"
 
 intent: |
   `scripts/generate-attestations.py` writes one attestation JSON per
@@ -57,7 +57,7 @@ obligations:
       all:
         - verifier: tests/scripts/generate-attestations-env.t
           result: pass
-        - verifier: python3 -m py_compile scripts/generate-attestations.py
+        - verifier: manual-python3-m-py-compile-scripts-generate-attestatio
           result: pass
 
   - id: help-text-documents-env-vars

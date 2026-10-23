@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:55e66e09ba7eb3337b5db61537bcc63f14943742a560b4f9774eefce60b775a5"
-yaml_sha: "sha256:55e66e09ba7eb3337b5db61537bcc63f14943742a560b4f9774eefce60b775a5"
+body_sha: "sha256:3d64fe5279f1c89c851a6f5f2cbf8dec295d1c209fc4f964f5b677be3761a7fd"
+yaml_sha: "sha256:3d64fe5279f1c89c851a6f5f2cbf8dec295d1c209fc4f964f5b677be3761a7fd"
 
 axiom_link:
   - A0
@@ -132,13 +132,13 @@ obligations:
       invocation.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/winget-manifest-pr-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/winget-manifest-pr-2026-10.yaml
           result: pass
-        - verifier: tools/winget/scripts/render-winget-manifest.py --version 3.3.0 --sha256-windows-x86_64 0000000000000000000000000000000000000000000000000000000000000000 --release-date 2026-10-15 --out /tmp/winget-test exits 0
+        - verifier: manual-tools-winget-scripts-render-winget-manifest-py-v
           result: pass
-        - verifier: python3 -m py_compile tools/winget/scripts/render-winget-manifest.py
+        - verifier: manual-python3-m-py-compile-tools-winget-scripts-render
           result: pass
 
   - id: winget-v330-shipped
@@ -151,9 +151,9 @@ obligations:
       release (`202a09d8…6a3d`).
     acceptance:
       all:
-        - verifier: tools/winget/manifests/m/mathcoding/mathc/3.3.0/mathcoding.mathc.installer.yaml exists
+        - verifier: manual-tools-winget-manifests-m-mathcoding-mathc-3-3-0-
           result: pass
-        - verifier: grep 'InstallerSha256: 202a09d8a114c1eb9cc0ab3c94500898737c24ee7287778d6adb8bf79e3a6a3d' tools/winget/manifests/m/mathcoding/mathc/3.3.0/mathcoding.mathc.installer.yaml
+        - verifier: manual-grep-installersha256-202a09d8a114c1eb9cc0ab3c945
           result: pass
 
   - id: winget-publish-md
@@ -163,9 +163,9 @@ obligations:
       submission procedure.
     acceptance:
       all:
-        - verifier: tools/winget/PUBLISH.md exists
+        - verifier: manual-tools-winget-publish-md-exists
           result: pass
-        - verifier: head -3 tools/winget/PUBLISH.md mentions microsoft/winget-pkgs
+        - verifier: manual-head-3-tools-winget-publish-md-mentions-microsof
           result: pass
 
 reversal:

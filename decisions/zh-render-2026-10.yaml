@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: zh-render-2026-10
 revision: 2
 state: active
-body_sha: "sha256:7c5d193b3073d8b092f2cdbf8ffcde91382020f99c5a08d59495ba81e7999a99"
-yaml_sha: "sha256:7c5d193b3073d8b092f2cdbf8ffcde91382020f99c5a08d59495ba81e7999a99"
+body_sha: "sha256:c4811bd4bc9110f20ea037cb1ea728dc1400353d990a0635fc7660c58d5443de"
+yaml_sha: "sha256:c4811bd4bc9110f20ea037cb1ea728dc1400353d990a0635fc7660c58d5443de"
 intent: |
   Extend the `mathc render` kernel so the site can be published
   in Chinese alongside English and Russian.
@@ -242,7 +242,7 @@ obligations:
       all:
         - verifier: tests/cli/render.t
           result: pass
-        - verifier: text-scan-bin-mathc-ml-zh-flag
+        - verifier: manual-text-scan-bin-mathc-ml-zh-flag
           result: pass
 
   - id: dispatcher-loads-zh
@@ -253,7 +253,7 @@ obligations:
       and passes the list to `Render.build_pages ~site_pages_zh`.
     acceptance:
       all:
-        - verifier: text-scan-bin-mathc-ml-loads-zh
+        - verifier: manual-text-scan-bin-mathc-ml-loads-zh
           result: pass
 
   - id: build-pages-zh-arg
@@ -283,7 +283,7 @@ obligations:
       terminal block).
     acceptance:
       all:
-        - verifier: text-scan-lib-render-ml-render-index-zh
+        - verifier: manual-text-scan-lib-render-ml-render-index-zh
           result: pass
 
   - id: nav-groups-zh
@@ -295,7 +295,7 @@ obligations:
       returns it.
     acceptance:
       all:
-        - verifier: text-scan-lib-render-ml-nav-groups-zh
+        - verifier: manual-text-scan-lib-render-ml-nav-groups-zh
           result: pass
 
   - id: scripts-render-invokes-all
@@ -308,7 +308,7 @@ obligations:
       source.
     acceptance:
       all:
-        - verifier: text-scan-scripts-render-sh-zh-allowlist
+        - verifier: manual-text-scan-scripts-render-sh-zh-allowlist
           result: pass
 
 risk:

@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:f999cd65ce15cc89349551960cb3d590b5c5a27d1b4b9de4cdc647707bd3c587"
-yaml_sha: "sha256:f999cd65ce15cc89349551960cb3d590b5c5a27d1b4b9de4cdc647707bd3c587"
+body_sha: "sha256:730357e24f5245653c14c6e1353d608ac219d3153306c2787f382f93991c3b9d"
+yaml_sha: "sha256:730357e24f5245653c14c6e1353d608ac219d3153306c2787f382f93991c3b9d"
 
 
 
@@ -105,13 +105,13 @@ obligations:
       valid `mathc.json` for a sample invocation.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/scoop-manifest-pr-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/scoop-manifest-pr-2026-10.yaml
           result: pass
-        - verifier: tools/scoop/scripts/render-scoop-manifest.py --version 3.3.0 --sha256-windows-x86_64 0000000000000000000000000000000000000000000000000000000000000000 --out /tmp/scoop-test.json exits 0
+        - verifier: manual-tools-scoop-scripts-render-scoop-manifest-py-ver
           result: pass
-        - verifier: python3 -m py_compile tools/scoop/scripts/render-scoop-manifest.py
+        - verifier: manual-python3-m-py-compile-tools-scoop-scripts-render-
           result: pass
 
   - id: scoop-v331-shipped
@@ -125,9 +125,9 @@ obligations:
       release tag.
     acceptance:
       all:
-        - verifier: tools/scoop/mathc.json exists and is valid JSON
+        - verifier: manual-tools-scoop-mathc-json-exists-and-is-valid-json
           result: pass
-        - verifier: jq .url tools/scoop/mathc.json matches /mathc-windows-x86_64.exe$/
+        - verifier: manual-jq-url-tools-scoop-mathc-json-matches-mathc-wind
           result: pass
 
   - id: scoop-publish-md
@@ -137,9 +137,9 @@ obligations:
       submission procedure for ScoopInstaller/Extras.
     acceptance:
       all:
-        - verifier: tools/scoop/PUBLISH.md exists
+        - verifier: manual-tools-scoop-publish-md-exists
           result: pass
-        - verifier: head -5 tools/scoop/PUBLISH.md mentions ScoopInstaller
+        - verifier: manual-head-5-tools-scoop-publish-md-mentions-scoopinst
           result: pass
 
 reversal:

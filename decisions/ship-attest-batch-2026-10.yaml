@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:d511c96ca12c815ee4b8d4eda60efda32851bb9d7eb663ce88926c422fd478f1"
-yaml_sha: "sha256:d511c96ca12c815ee4b8d4eda60efda32851bb9d7eb663ce88926c422fd478f1"
+body_sha: "sha256:3359a50519a0ce9fa9729e95b0dfca534ceb2294e8bbfcd33e45c678351840f3"
+yaml_sha: "sha256:3359a50519a0ce9fa9729e95b0dfca534ceb2294e8bbfcd33e45c678351840f3"
 
 axiom_link:
   - A0
@@ -119,7 +119,7 @@ obligations:
       accepts the decision file.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/ship-attest-batch-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/ship-attest-batch-2026-10.yaml
           result: pass

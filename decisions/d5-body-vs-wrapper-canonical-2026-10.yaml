@@ -4,8 +4,8 @@ id: d5-body-vs-wrapper-canonical-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:a572a85f05b04bbce1e947eb721d90aea5e1a2a5b2958a64aa127a46c839dc62"
-yaml_sha: "sha256:a572a85f05b04bbce1e947eb721d90aea5e1a2a5b2958a64aa127a46c839dc62"
+body_sha: "sha256:f662789d50ddcc5dae91541736ecbd217952ea46a278885403c86be87e800c24"
+yaml_sha: "sha256:f662789d50ddcc5dae91541736ecbd217952ea46a278885403c86be87e800c24"
 axiom_link:
   - A0
   - A3
@@ -478,9 +478,9 @@ obligations:
       existing §7 Decision entity.
     acceptance:
       all:
-        - verifier: rg -n '^### §7\.1' spec/algebra-3.2.md
+        - verifier: manual-rg-n-7-1-spec-algebra-3-2-md
           result: pass
-        - verifier: rg -n 'placeholder-substitution' spec/algebra-3.2.md
+        - verifier: manual-rg-n-placeholder-substitution-spec-algebra-3-2-m
           result: pass
 
   - id: kernel-comment-references-decision
@@ -495,9 +495,9 @@ obligations:
       hit; the existing invariant comment is preserved.
     acceptance:
       all:
-        - verifier: rg -n 'd5-body-vs-wrapper-canonical-2026-10' lib/decision.ml
+        - verifier: manual-rg-n-d5-body-vs-wrapper-canonical-2026-10-lib-de
           result: pass
-        - verifier: rg -n '§7\.1' lib/decision.ml
+        - verifier: manual-rg-n-7-1-lib-decision-ml
           result: pass
 
   - id: kernel-test-asserts-algorithm
@@ -560,9 +560,9 @@ obligations:
       returns zero hits.
     acceptance:
       all:
-        - verifier: git diff main...HEAD -- schemas/decision.json
+        - verifier: manual-git-diff-main-head-schemas-decision-json
           result: pass
-        - verifier: rg -n '"authoring"' schemas/decision.json
+        - verifier: manual-rg-n-authoring-schemas-decision-json
           result: pass
 reversal:
   - signal: yaml-canonical-form-changed

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:82fdbf3586adee12d7b6b65486182657cd55516551a1931b30fba30aedc1571a"
-yaml_sha: "sha256:82fdbf3586adee12d7b6b65486182657cd55516551a1931b30fba30aedc1571a"
+body_sha: "sha256:bbf7eeb461188a54dd691ac6ebea76b95e51e9131985f4239e87d3b03f09e32a"
+yaml_sha: "sha256:bbf7eeb461188a54dd691ac6ebea76b95e51e9131985f4239e87d3b03f09e32a"
 
 axiom_link:
   - A0
@@ -193,7 +193,7 @@ obligations:
       finding, run against the post-repair tree.
     acceptance:
       all:
-        - verifier: bash -c '! grep -rqE "^ *(path|repo):.*paseo/worktrees" decisions/'
+        - verifier: manual-bash-c-grep-rqe-path-repo-paseo-worktrees-decisi
           result: pass
 
   - id: rewritten-targets-resolve
@@ -205,13 +205,13 @@ obligations:
       document the counters were read from.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: .github/workflows/release-pending.yml
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: bin/Mathc.ml
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: docs/plans/plan-2026-10-adoption-fixes-2026-10.md
           result: pass
 
@@ -223,19 +223,19 @@ obligations:
       rename in the workflow cannot silently satisfy one of them.
     acceptance:
       all:
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: .github/workflows/release-pending.yml
           needle: 'pull_request:'
           result: pass
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: .github/workflows/release-pending.yml
           needle: 'release/\*\*'
           result: pass
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: .github/workflows/release-pending.yml
           needle: bin/Mathc.ml
           result: pass
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: scripts/install-tooling/install.sh
           needle: MC_VERSION_DEFAULT="3.3.3"
           result: pass
@@ -248,11 +248,11 @@ obligations:
       changed total.
     acceptance:
       all:
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: docs/experiments/adoption-2026-10.md
           needle: '\*\*Total\*\*      | 55    |'
           result: pass
-        - verifier: bash -c 'test "$(grep -c -- "\*\*Total\*\*      | 55    |" docs/experiments/adoption-2026-10.md)" = 1'
+        - verifier: manual-bash-c-test-grep-c-total-55-docs-experiments-ado
           result: pass
 
   - id: guard-fails-on-worktree-path
@@ -266,11 +266,11 @@ obligations:
       all:
         - verifier: tests/fixture_coverage.ml
           result: pass
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: tests/fixture_coverage.ml
           needle: test_verifier_paths_stay_inside_repo
           result: pass
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: tests/fixture_coverage.ml
           needle: no verifier names its target through an absolute worktree path
           result: pass
@@ -287,9 +287,9 @@ obligations:
       verdict in either direction.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
-        - verifier: bash -c './_build/install/default/bin/mathc rehash --dry-run 2>/dev/null | grep -q "^rehash: 0 changed"'
+        - verifier: manual-bash-c-build-install-default-bin-mathc-rehash-dr
           result: pass
 
 consequences:

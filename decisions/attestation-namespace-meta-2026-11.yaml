@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: minimal
 change_kind: editorial
-body_sha: "sha256:164b4b9574bd9b7c878a443761e1b12fcfe67691f9430d90b448cfc1054526d1"
-yaml_sha: "sha256:164b4b9574bd9b7c878a443761e1b12fcfe67691f9430d90b448cfc1054526d1"
+body_sha: "sha256:bd7bcea7ae3a41a714c022533e8a346ae121cb86cbb020fa0bbd40fbb4f1accc"
+yaml_sha: "sha256:bd7bcea7ae3a41a714c022533e8a346ae121cb86cbb020fa0bbd40fbb4f1accc"
 
 axiom_link:
   - A0
@@ -109,10 +109,10 @@ obligations:
       "deferred-to-followup" waiver pointer.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/docs/plans/plan-sub-agent-prompt-2026-11.md
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: /home/az/Projects/math-coding/docs/plans/plan-sub-agent-prompt-2026-11.md
           needle: "attestations/plan-<id>-*-<obligation>.json"
           result: pass
@@ -129,7 +129,7 @@ obligations:
       commit is documentation-only.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
 
 risk:

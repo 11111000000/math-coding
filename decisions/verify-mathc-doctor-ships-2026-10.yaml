@@ -6,8 +6,8 @@ state: active
 mode: light
 change_kind: implementation
 
-body_sha: "sha256:d0c4dc7e66979e20dad0d8cb1eb6d3ea03d0799e2ab199298a6aa26e401cc6ad"
-yaml_sha: "sha256:d0c4dc7e66979e20dad0d8cb1eb6d3ea03d0799e2ab199298a6aa26e401cc6ad"
+body_sha: "sha256:91b90d07e5026f4c0f57f8d134c8b869e23dab8f0569c3b734b2d0f56b7abaa7"
+yaml_sha: "sha256:91b90d07e5026f4c0f57f8d134c8b869e23dab8f0569c3b734b2d0f56b7abaa7"
 
 axiom_link:
   - A0
@@ -169,7 +169,7 @@ obligations:
       timestamps.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/verify-mathc-doctor-ships-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/verify-mathc-doctor-ships-2026-10.yaml

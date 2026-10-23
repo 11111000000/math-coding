@@ -4,8 +4,8 @@ id: re-eval-remediation-todo-fix-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:f6deb3e8e5250692e33df57e7050841cbe31e288e6bda165abc5271b71484ae2"
-yaml_sha: "sha256:f6deb3e8e5250692e33df57e7050841cbe31e288e6bda165abc5271b71484ae2"
+body_sha: "sha256:37382195166800c2efe657bd3896d14cd114d0f742816af7fbb2f0dca0bb1358"
+yaml_sha: "sha256:37382195166800c2efe657bd3896d14cd114d0f742816af7fbb2f0dca0bb1358"
 change_kind: editorial
 
 axiom_link:
@@ -138,7 +138,7 @@ obligations:
       `grep -nE "\[TODO" lib/re_evaluation.ml` returns 0 matches.
     acceptance:
       all:
-        - verifier: text-scan-no-todo-in-remediation-tpl
+        - verifier: manual-text-scan-no-todo-in-remediation-tpl
           result: pass
     evidence: manual-acceptance
   - id: dune-build-green

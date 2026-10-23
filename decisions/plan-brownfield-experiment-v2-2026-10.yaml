@@ -4,8 +4,8 @@ id: plan-brownfield-experiment-v2-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:76f8eb72c836df5a3810afaf6fb2f96ae78fa28b160c4c99f0053f17d41133aa"
-yaml_sha: "sha256:76f8eb72c836df5a3810afaf6fb2f96ae78fa28b160c4c99f0053f17d41133aa"
+body_sha: "sha256:b18fa71f939e30636be17ec94db019cef3c08f80559252618ef1de6ad9dbc93c"
+yaml_sha: "sha256:b18fa71f939e30636be17ec94db019cef3c08f80559252618ef1de6ad9dbc93c"
 
 intent: |
   Plan a brownfield-targeted follow-up experiment to the 2026-10-17
@@ -218,7 +218,7 @@ obligations:
       executed).
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: docs/experiments/brownfield-experiment-v2-2026-10.md
           result: pass
         - verifier: mathc validate decisions/plan-brownfield-experiment-v2-2026-10.yaml
@@ -245,7 +245,7 @@ obligations:
       and `decisions/plan-brownfield-experiment-v2-2026-10.yaml`.
     acceptance:
       all:
-        - verifier: git-no-paths
+        - verifier: manual-git-no-paths-unqualified
           repo: .
           base: plan/adoption-fixes-2026-10
           forbidden_paths:

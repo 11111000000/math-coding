@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: disable-counters-drift-test-2026-10
 revision: 2
 state: superseded
-body_sha: "sha256:1b519fc3447455d76212eec1527c724e1a1097d0d9ff9577ee835874b0ef4df1"
-yaml_sha: "sha256:1b519fc3447455d76212eec1527c724e1a1097d0d9ff9577ee835874b0ef4df1"
+body_sha: "sha256:051abc09e128e0a4185093f1b433b3de91bdf7c4d2144cdafa3b24ae65d7dec9"
+yaml_sha: "sha256:051abc09e128e0a4185093f1b433b3de91bdf7c4d2144cdafa3b24ae65d7dec9"
 axiom_link:
   - A0
 intent: |
@@ -77,7 +77,7 @@ obligations:
       all:
         - verifier: scripts/check.sh
           result: pass
-        - verifier: grep -F 'counters_drift' tests/dune | grep enabled_if
+        - verifier: manual-grep-f-counters-drift-tests-dune-grep-enabled-if
           result: pass
 risk:
   declared_triggers: []

@@ -250,11 +250,11 @@ obligations:
       recording kernel-vs-snapshot verdict.
     acceptance:
       all:
-        - verifier: text-scan-decisions/ci-cram-cleanup-batch2-gate-pass-t.yaml
+        - verifier: file-exists text-scan-decisions/ci-cram-cleanup-batch2-gate-pass-t.yaml
           result: pass
-        - verifier: text-scan-decisions/ci-cram-cleanup-batch2-gate-fail-t.yaml
+        - verifier: file-exists text-scan-decisions/ci-cram-cleanup-batch2-gate-fail-t.yaml
           result: pass
-        - verifier: text-scan-decisions/ci-cram-cleanup-batch2-doctor-t.yaml
+        - verifier: file-exists text-scan-decisions/ci-cram-cleanup-batch2-doctor-t.yaml
           result: pass
   - id: this-decision-validates
     statement: |

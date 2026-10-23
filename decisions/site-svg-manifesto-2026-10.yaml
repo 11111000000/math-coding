@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-manifesto-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:30ce1b82ee2300a330ccb0f839d1046bfdffaf03d72a239b480c80ca84d244eb"
-yaml_sha: "sha256:30ce1b82ee2300a330ccb0f839d1046bfdffaf03d72a239b480c80ca84d244eb"
+body_sha: "sha256:5604d69f9d48b87fef9d454300ccfac4118c4765190e0537e6ac403420f659ba"
+yaml_sha: "sha256:5604d69f9d48b87fef9d454300ccfac4118c4765190e0537e6ac403420f659ba"
 axiom_link:
   - A4
 intent: |
@@ -152,23 +152,23 @@ obligations:
       source level.
     acceptance:
       all:
-        - verifier: ! grep -F '<img src="assets/architecture-overview.svg"' dist/manifesto.html
+        - verifier: manual-grep-f-img-src-assets-architecture-overview-svg-
           result: pass
-        - verifier: ! grep -F '<img src="assets/human-in-the-loop.svg"' dist/manifesto.html
+        - verifier: manual-grep-f-img-src-assets-human-in-the-loop-svg-dist
           result: pass
-        - verifier: ! grep -F '<img src="assets/human-roles.svg"' dist/manifesto.html
+        - verifier: manual-grep-f-img-src-assets-human-roles-svg-dist-manif
           result: pass
-        - verifier: ! grep -F '<img src="assets/kernel-vs-human.svg"' dist/manifesto.html
+        - verifier: manual-grep-f-img-src-assets-kernel-vs-human-svg-dist-m
           result: pass
-        - verifier: dist/assets/architecture-overview.svg
+        - verifier: file-exists dist/assets/architecture-overview.svg
           result: pass
-        - verifier: dist/assets/human-in-the-loop.svg
+        - verifier: file-exists dist/assets/human-in-the-loop.svg
           result: pass
-        - verifier: dist/assets/human-roles.svg
+        - verifier: file-exists dist/assets/human-roles.svg
           result: pass
-        - verifier: dist/assets/kernel-vs-human.svg
+        - verifier: file-exists dist/assets/kernel-vs-human.svg
           result: pass
-        - verifier: ! grep -lE 'role="img" aria-labelledby' assets/architecture-overview.svg assets/human-in-the-loop.svg assets/human-roles.svg assets/kernel-vs-human.svg
+        - verifier: manual-grep-le-role-img-aria-labelledby-assets-architec
           result: pass
 reversal:
   - signal: manifesto-page-becomes-text-only

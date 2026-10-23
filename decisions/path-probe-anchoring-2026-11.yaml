@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:e91e967706c0cf2be90996965fd11722f8b02701dbfadb868d24b698c0f874c9"
-yaml_sha: "sha256:e91e967706c0cf2be90996965fd11722f8b02701dbfadb868d24b698c0f874c9"
+body_sha: "sha256:7ea63ea18390e7880df9a345156c3d5ec11074a22b5aec785cba2378044f665f"
+yaml_sha: "sha256:7ea63ea18390e7880df9a345156c3d5ec11074a22b5aec785cba2378044f665f"
 
 axiom_link:
   - A0
@@ -155,7 +155,7 @@ obligations:
       `bin/Mathc.ml` contains no `Filename.concat root "decisions"`.
     acceptance:
       all:
-        - verifier: shell-grep -F 'Filename.concat root "decisions"' bin/Mathc.ml
+        - verifier: manual-shell-grep-f-filename-concat-root-decisions-bin-
           result: pass
 
   - id: kernel-builds
@@ -163,7 +163,7 @@ obligations:
       `dune build @all` succeeds with all call sites anchored.
     acceptance:
       all:
-        - verifier: bash -c '. scripts/dev-env.sh; mc_run_in_shell "dune build --root . @all"'
+        - verifier: manual-bash-c-scripts-dev-env-sh-mc-run-in-shell-dune-b
           result: pass
 
 risk:

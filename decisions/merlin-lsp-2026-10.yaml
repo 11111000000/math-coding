@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: merlin-lsp-2026-10
 revision: 1
 state: active
-body_sha: "sha256:c83d8741733c531ae92e8245fb3809279092fa47cd88fbf73ca8e9bc9dfe5251"
-yaml_sha: "sha256:c83d8741733c531ae92e8245fb3809279092fa47cd88fbf73ca8e9bc9dfe5251"
+body_sha: "sha256:323e109edbdd1d5fa949521914c98159666df3cf9f92d38f71e065614d389afd"
+yaml_sha: "sha256:323e109edbdd1d5fa949521914c98159666df3cf9f92d38f71e065614d389afd"
 intent: |
   Wire OCaml IDE tooling (LSP / merlin) into the math-coding
   development loop so human editors (VSCode ocaml-platform,
@@ -152,7 +152,7 @@ obligations:
       `S`/`B`/`PKG` entries.
     acceptance:
       all:
-        - verifier: grep -E '^S lib$|^S bin$|^S tests$|^PKG str$|^PKG alcotest' .merlin
+        - verifier: manual-grep-e-s-lib-s-bin-s-tests-pkg-str-pkg-alcotest-
           result: pass
 
   - id: ocaml-lsp-and-merlin-in-dev-shell

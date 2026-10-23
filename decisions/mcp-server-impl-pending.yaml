@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mcp-server-impl-pending
 revision: 2
 state: retired
-body_sha: "sha256:1d4f42178be3320d1081f0a39f763ea932d0a5ccd072b54ecac6f204a59c896d"
-yaml_sha: "sha256:1d4f42178be3320d1081f0a39f763ea932d0a5ccd072b54ecac6f204a59c896d"
+body_sha: "sha256:3f944763511caad042c0d60a8adffd9053b16d23e7b25bf70c7ad4698ede75ae"
+yaml_sha: "sha256:3f944763511caad042c0d60a8adffd9053b16d23e7b25bf70c7ad4698ede75ae"
 intent: |
   Record the deferral of the MCP server obligation to Phase 2
   of the install-tooling-2026-10 work. The MCP adapter split
@@ -162,7 +162,7 @@ obligations:
       deferral with rationale and reversal signal.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/mcp-server-impl-pending.yaml
           result: pass
 reversal:
   - signal: mcp-server-impl-pending-resolved

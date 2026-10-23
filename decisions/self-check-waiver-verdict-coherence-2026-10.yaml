@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:b1c890d33c75e0cbded077300058eee1300d154d9a5a3bac28199a9436e6907c"
-yaml_sha: "sha256:b1c890d33c75e0cbded077300058eee1300d154d9a5a3bac28199a9436e6907c"
+body_sha: "sha256:70ba7c7cf72709a95e69bb7355afe6cd52dd204ae869c73c42bf13a6e578ce39"
+yaml_sha: "sha256:70ba7c7cf72709a95e69bb7355afe6cd52dd204ae869c73c42bf13a6e578ce39"
 
 axiom_link:
   - A0
@@ -375,7 +375,7 @@ obligations:
       all:
         - verifier: tests/counters_reference.ml
           result: pass
-        - verifier: text-scan-packages-module-table-subcommand-count
+        - verifier: manual-text-scan-packages-module-table-subcommand-count
           result: pass
 
   - id: counters-reference-detects-injected-drift
@@ -401,7 +401,7 @@ obligations:
       `self-check-waiver-verdict-coherence-2026-10`.
     acceptance:
       all:
-        - verifier: text-scan-attestation-inconclusive
+        - verifier: manual-text-scan-attestation-inconclusive
           result: pass
 
   - id: kernel-self-check-still-exits-3-here

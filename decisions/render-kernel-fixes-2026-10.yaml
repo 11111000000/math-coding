@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: render-kernel-fixes-2026-10
 revision: 1
 state: active
-body_sha: "sha256:fdd4ddc954d48ade9e077e53d842420e9acae693cceb09b4677feec1fe6d9894"
-yaml_sha: "sha256:fdd4ddc954d48ade9e077e53d842420e9acae693cceb09b4677feec1fe6d9894"
+body_sha: "sha256:ffca208572c6a337187a8a20a770adeb0546e511815e736bd02640d0b200872d"
+yaml_sha: "sha256:ffca208572c6a337187a8a20a770adeb0546e511815e736bd02640d0b200872d"
 intent: |
   Close the ten concrete render-kernel defects catalogued in
   `analysis/site-render-defects.md` (commit-diagnostic branch
@@ -200,7 +200,7 @@ obligations:
           result: pass
         - verifier: tests/render_kernel.ml::fenced_code_closing_fence_length_3
           result: pass
-        - verifier: dist/axioms/feedback.html has <pre><code class=\"language-text\">
+        - verifier: manual-rendered-asset-axioms-feedback
           result: pass
 
   - id: list-continuation-renders
@@ -216,7 +216,7 @@ obligations:
           result: pass
         - verifier: tests/render_kernel.ml::list_single_item_still_one_li
           result: pass
-        - verifier: dist/axioms/feedback.html contains one <li> per item with the joined continuation
+        - verifier: manual-rendered-asset-axioms-feedback
           result: pass
 
   - id: italic-renders
@@ -230,7 +230,7 @@ obligations:
           result: pass
         - verifier: tests/render_kernel.ml::italic_lone_asterisk_literal
           result: pass
-        - verifier: dist/axioms/feedback.html contains <em>
+        - verifier: manual-rendered-asset-axioms-feedback
           result: pass
 
   - id: mathjax-default-off
@@ -247,7 +247,7 @@ obligations:
           result: pass
         - verifier: tests/render_kernel.ml::mathjax_in_head
           result: pass
-        - verifier: grep -c mathjax dist/index.html == 0
+        - verifier: manual-grep-c-mathjax-dist-index-html-0
           result: pass
 
   - id: packages-page-shows-grid
@@ -260,7 +260,7 @@ obligations:
       all:
         - verifier: tests/render_kernel.ml::packages_page_has_grid
           result: pass
-        - verifier: grep -qF 'class=\"mathc-packages' dist/packages.html
+        - verifier: manual-grep-qf-class-mathc-packages-dist-packages-html
           result: pass
 
   - id: ru-nav-points-to-existing-siblings
@@ -274,9 +274,9 @@ obligations:
       all:
         - verifier: tests/render_kernel.ml::ru_nav_omits_missing_sibling
           result: pass
-        - verifier: dist/methodology.html omits RU toggle
+        - verifier: manual-rendered-asset-methodology
           result: pass
-        - verifier: dist/foundations.ru.html exists
+        - verifier: manual-rendered-asset-foundations-ru
           result: pass
 
   - id: axiom-page-single-h1
@@ -290,7 +290,7 @@ obligations:
       all:
         - verifier: tests/render_kernel.ml::axiom_page_single_h1
           result: pass
-        - verifier: dist/axioms/feedback.html has exactly one <h1>
+        - verifier: manual-rendered-asset-axioms-feedback
           result: pass
 
   - id: footer-uses-mathc-render
@@ -301,9 +301,9 @@ obligations:
       `mc render` is gone.
     acceptance:
       all:
-        - verifier: grep -qF 'mathc render' dist/index.html
+        - verifier: manual-grep-qf-mathc-render-dist-index-html
           result: pass
-        - verifier: grep -qF 'mc render' dist/index.html exits non-zero
+        - verifier: manual-grep-qf-mc-render-dist-index-html-exits-non-zero
           result: pass
         - verifier: tests/render_kernel.ml::footer_mathc_render
           result: pass

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: obligation-count-reconcile
 revision: 3
 state: active
-body_sha: "sha256:5de68d455fb6206a91ab4cb8bf7d8a69c5247b370a2a4c724dc815e294312da8"
-yaml_sha: "sha256:5de68d455fb6206a91ab4cb8bf7d8a69c5247b370a2a4c724dc815e294312da8"
+body_sha: "sha256:312d671cc61f695ce0344b3f280ea2294c551b8bc22c7beb84f8c315c3bc4110"
+yaml_sha: "sha256:312d671cc61f695ce0344b3f280ea2294c551b8bc22c7beb84f8c315c3bc4110"
 intent: |
   Reconcile the obligation-count drift across four normative
   documents in the read-first set. At HEAD `9a16751`:
@@ -86,11 +86,11 @@ obligations:
       reads `revision: 2`.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/obligation-count-reconcile.yaml
           result: pass
-        - verifier: text-scan-decisions-obligations-yaml-rev-2
+        - verifier: manual-text-scan-decisions-obligations-yaml-rev-2
           result: pass
-        - verifier: text-scan-decisions-obligations-yaml-7-ids
+        - verifier: manual-text-scan-decisions-obligations-yaml-7-ids
           result: pass
 
   - id: corrected-spelling-contract
@@ -104,11 +104,11 @@ obligations:
       'packges' decisions/*.yaml`).
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/obligation-count-reconcile.yaml
           result: pass
-        - verifier: text-scan-no-packges-misspelling
+        - verifier: manual-text-scan-no-packges-misspelling
           result: pass
-        - verifier: text-scan-contains-packages-spelling
+        - verifier: manual-text-scan-contains-packages-spelling
           result: pass
 
 reversal:

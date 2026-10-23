@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-deploy
 revision: 5
 state: active
-body_sha: "sha256:6f6711f3c5aadcd87eef00436061998876dd68626043ff5201e6d6315ae59d6b"
-yaml_sha: "sha256:6f6711f3c5aadcd87eef00436061998876dd68626043ff5201e6d6315ae59d6b"
+body_sha: "sha256:edca0e522a5442e09312e46d04bf5559a0effa71421aa297040b1cf76236a96d"
+yaml_sha: "sha256:edca0e522a5442e09312e46d04bf5559a0effa71421aa297040b1cf76236a96d"
 intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own
@@ -153,7 +153,7 @@ obligations:
     outcome: site-self-referential
     acceptance:
       all:
-        - verifier: grep -l "mathc packages" dist/*.html | wc -l >= 3
+        - verifier: manual-grep-l-mathc-packages-dist-html-wc-l-3
           result: pass
 
   - id: site-deploy-pipeline
@@ -163,7 +163,7 @@ obligations:
     outcome: site-deploy-pipeline
     acceptance:
       all:
-        - verifier: gh run list --workflow=site.yml --limit=1 --json status
+        - verifier: manual-gh-run-list-workflow-site-yml-limit-1-json-statu
           result: pass
 
   - id: site-pinned-ubuntu
@@ -173,7 +173,7 @@ obligations:
     outcome: site-pinned-ubuntu
     acceptance:
       all:
-        - verifier: grep 'runs-on: ubuntu-22.04' .github/workflows/site.yml
+        - verifier: manual-grep-runs-on-ubuntu-22-04-github-workflows-site-
           result: pass
 
   - id: tufte-stylesheet
@@ -188,9 +188,9 @@ obligations:
       all:
         - verifier: tests/render_kernel.ml::tufte_tokens_resolve
           result: pass
-        - verifier: grep -qF 'Charter' assets/style.css
+        - verifier: manual-grep-qf-charter-assets-style-css
           result: pass
-        - verifier: grep -qF 'fbfaf6' assets/style.css
+        - verifier: manual-grep-qf-fbfaf6-assets-style-css
           result: pass
 
   - id: sidenote-syntax
@@ -206,7 +206,7 @@ obligations:
       all:
         - verifier: tests/render_kernel.ml::sidenote_renders
           result: pass
-        - verifier: grep -qF 'class="sidenote' assets/style.css
+        - verifier: manual-grep-qf-class-sidenote-assets-style-css
           result: pass
 
   - id: mathjax-wiring
@@ -219,7 +219,7 @@ obligations:
     outcome: mathjax-loads
     acceptance:
       all:
-        - verifier: grep -qF 'mathjax@3' dist/methodology.html
+        - verifier: manual-grep-qf-mathjax-3-dist-methodology-html
           result: pass
         - verifier: tests/render_kernel.ml::mathjax_in_head
           result: pass
@@ -236,9 +236,9 @@ obligations:
       all:
         - verifier: tests/render_kernel.ml::bilingual_pairs_complete
           result: pass
-        - verifier: grep -qF 'lang="en"' dist/index.html
+        - verifier: manual-grep-qf-lang-en-dist-index-html
           result: pass
-        - verifier: dist/index.ru.html is non-empty
+        - verifier: manual-rendered-asset-index-ru
           result: pass
 
   - id: base-href-subpath
@@ -251,7 +251,7 @@ obligations:
     outcome: subpath-deployment
     acceptance:
       all:
-        - verifier: grep -qF '<base href="/math-coding/">' dist/index.html
+        - verifier: manual-grep-qf-base-href-math-coding-dist-index-html
           result: pass
         - verifier: tests/render_kernel.ml::base_href_default
           result: pass
@@ -269,17 +269,17 @@ obligations:
       all:
         - verifier: tests/cli/render.t
           result: pass
-        - verifier: dist/manifesto.html is non-empty
+        - verifier: manual-rendered-asset-manifesto
           result: pass
-        - verifier: dist/foundations.html is non-empty
+        - verifier: manual-rendered-asset-foundations
           result: pass
-        - verifier: dist/workflow.html is non-empty
+        - verifier: manual-rendered-asset-workflow
           result: pass
-        - verifier: dist/faq.html is non-empty
+        - verifier: manual-rendered-asset-faq
           result: pass
-        - verifier: dist/contributing.html is non-empty
+        - verifier: manual-rendered-asset-contributing
           result: pass
-        - verifier: dist/readme.html is non-empty
+        - verifier: manual-rendered-asset-readme
           result: pass
 
   - id: extended-markdown-subset
@@ -304,11 +304,11 @@ obligations:
           result: pass
         - verifier: tests/render_kernel.ml::hr_renders
           result: pass
-        - verifier: dist/manifesto.html has <table
+        - verifier: manual-rendered-asset-manifesto
           result: pass
-        - verifier: dist/manifesto.html has <strong>
+        - verifier: manual-rendered-asset-manifesto
           result: pass
-        - verifier: dist/workflow.html has <a href=\"axioms.html\">
+        - verifier: manual-rendered-asset-workflow-html-has-a-href-axioms
           result: pass
 
 evidence:

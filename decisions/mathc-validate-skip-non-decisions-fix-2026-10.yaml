@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: mathc-validate-skip-non-decisions-fix-2026-10
 revision: 1
 state: active
-body_sha: "sha256:280062501ecb89e126b688dea081339f2b07750cd122c2ef763016f333c58fce"
-yaml_sha: "sha256:280062501ecb89e126b688dea081339f2b07750cd122c2ef763016f333c58fce"
+body_sha: "sha256:3b981a524ad32b13c02fdd60f430d6a97e012dc9bae863e390c6809d00f82f27"
+yaml_sha: "sha256:3b981a524ad32b13c02fdd60f430d6a97e012dc9bae863e390c6809d00f82f27"
 intent: |
   Reverts the deferral recorded at
   `decisions/mathc-validate-skip-non-decisions-deferral-2026-10.yaml@1`
@@ -173,7 +173,7 @@ obligations:
       at least one match on a function definition line.
     acceptance:
       all:
-        - verifier: text-scan-peek-schema-family
+        - verifier: manual-text-scan-peek-schema-family
           result: pass
   - id: dispatcher-consults-peek
     statement: |
@@ -181,7 +181,7 @@ obligations:
       least one match in `validate_with_counts`.
     acceptance:
       all:
-        - verifier: text-scan-dispatcher-peek
+        - verifier: manual-text-scan-dispatcher-peek
           result: pass
   - id: emit-handles-aggregate
     statement: |
@@ -189,7 +189,7 @@ obligations:
       least one match in the `emit` function.
     acceptance:
       all:
-        - verifier: text-scan-emit-aggregate
+        - verifier: manual-text-scan-emit-aggregate
           result: pass
   - id: cram-fixture-pass
     statement: |

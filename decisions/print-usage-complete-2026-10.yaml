@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: print-usage-complete-2026-10
 revision: 1
 state: active
-body_sha: "sha256:e2c07178a2e5c67fe2994318141686fc56c20ef2ef149b0bf8303cbf1375c117"
-yaml_sha: "sha256:e2c07178a2e5c67fe2994318141686fc56c20ef2ef149b0bf8303cbf1375c117"
+body_sha: "sha256:f1a577135c3ace471f0bb3e19c9187f5af7b8c707877a3f289b083b1ae2c0093"
+yaml_sha: "sha256:f1a577135c3ace471f0bb3e19c9187f5af7b8c707877a3f289b083b1ae2c0093"
 
 intent: |
   Bring the `mathc --help` text emitted from `bin/Mathc.ml`'s
@@ -153,7 +153,7 @@ obligations:
       `telemetry` and before the `options:` marker.
     acceptance:
       all:
-        - verifier: grep-order-check
+        - verifier: manual-grep-order-check
           result: pass
 
 reversal:

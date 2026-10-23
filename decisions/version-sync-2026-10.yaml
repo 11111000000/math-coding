@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: version-sync-2026-10
 revision: 1
 state: active
-body_sha: "sha256:58781fb77bd35aa45b4edc4e6f6dafb5b363b529a1a1a4b8ca637433bf46ea0e"
-yaml_sha: "sha256:58781fb77bd35aa45b4edc4e6f6dafb5b363b529a1a1a4b8ca637433bf46ea0e"
+body_sha: "sha256:b9689464026f28ede340fb3cd154f7e3d79f54848d3b676375480f4fc365eca8"
+yaml_sha: "sha256:b9689464026f28ede340fb3cd154f7e3d79f54848d3b676375480f4fc365eca8"
 intent: |
   Close the follow-up cycle announced in
   `decisions/site-version-from-file-2026-10.yaml:76-81`:
@@ -221,7 +221,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: grep -qE "^### 11\.27 " OCAML_BEST_PRACTICES.md
+        - verifier: manual-grep-qe-11-27-ocaml-best-practices-md
           result: pass
 
 reversal:

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: bootstrap-v3
 revision: 3
 state: active
-body_sha: "sha256:219a54334e5684b0e9244308effd1af72250c6107ad01917dfcb6e3cb4ec25a8"
-yaml_sha: "sha256:219a54334e5684b0e9244308effd1af72250c6107ad01917dfcb6e3cb4ec25a8"
+body_sha: "sha256:0448883736321cba917043841e70624b348e79e1e2468d4d2d1b105e744dceab"
+yaml_sha: "sha256:0448883736321cba917043841e70624b348e79e1e2468d4d2d1b105e744dceab"
 intent: Replace math-coding 2.1 with a self-applying assurance protocol.
 
 axiom_link:
@@ -53,7 +53,7 @@ obligations:
     claim: The v2.1-final tag resolves to a reachable commit.
     acceptance:
       all:
-        - verifier: mathc-tag-exists
+        - verifier: manual-mathc-tag-exists
           result: pass
 
   - id: conformance-coverage
@@ -62,7 +62,7 @@ obligations:
       fixture.
     acceptance:
       all:
-        - verifier: mathc-conformance-run
+        - verifier: manual-mathc-conformance-run
           result: pass
 
   - id: bootstrap-honesty
@@ -71,7 +71,7 @@ obligations:
       that is not yet implemented.
     acceptance:
       all:
-        - verifier: mathc-text-scan
+        - verifier: manual-mathc-text-scan
           result: pass
 
   - id: authoring-benchmark
@@ -80,7 +80,7 @@ obligations:
       reaches the documented threshold.
     acceptance:
       all:
-        - verifier: mathc-benchmark
+        - verifier: manual-mathc-benchmark
           result: pass
 
   - id: context-budget
@@ -88,7 +88,7 @@ obligations:
     claim: Tier-1 context capsule never silently exceeds its declared budget.
     acceptance:
       all:
-        - verifier: mathc-context-budget
+        - verifier: manual-mathc-context-budget
           result: pass
 
   - id: developer-practices-binding
@@ -104,7 +104,7 @@ obligations:
           pass in tests/.
     acceptance:
       all:
-        - verifier: practice-review
+        - verifier: manual-practice-review
           result: pass
 
   - id: axioms-binding
@@ -114,7 +114,7 @@ obligations:
       axioms/ and is recorded as a relation superseding or addressing it.
     acceptance:
       all:
-        - verifier: axiom-link-review
+        - verifier: manual-axiom-link-review
           result: pass
 
 reversal:

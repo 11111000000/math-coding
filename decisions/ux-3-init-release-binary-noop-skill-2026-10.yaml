@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-init-release-binary-noop-skill-2026-10
 revision: 1
 state: active
-body_sha: "sha256:0591a9b90331099c6ac7c35960aef240fd5694ccf1c60dff1328e60721e073fe"
-yaml_sha: "sha256:0591a9b90331099c6ac7c35960aef240fd5694ccf1c60dff1328e60721e073fe"
+body_sha: "sha256:dcdfbcb1ebaa622e7182790f5419ab4a9375a059aaed60a9f9703bfd2305bdc7"
+yaml_sha: "sha256:dcdfbcb1ebaa622e7182790f5419ab4a9375a059aaed60a9f9703bfd2305bdc7"
 
 intent: |
   Document the deliberate no-op behavior of
@@ -151,7 +151,7 @@ obligations:
       recorded in this decision file.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/ux-3-init-release-binary-noop-skill-2026-10.yaml
           result: pass
   - id: install-sh-canonical-recorded
     outcome: install-sh-canonical
@@ -162,7 +162,7 @@ obligations:
       script.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/ux-3-init-release-binary-noop-skill-2026-10.yaml
           result: pass
 
 reversal:

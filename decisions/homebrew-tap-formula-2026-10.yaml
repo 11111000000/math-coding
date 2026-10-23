@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:886f484ad7f0d8f0e159b6e28801e8853a1096a963756b39a6e3acb4ffb51de0"
-yaml_sha: "sha256:886f484ad7f0d8f0e159b6e28801e8853a1096a963756b39a6e3acb4ffb51de0"
+body_sha: "sha256:a22cd6374b3401fb99600a13f5d0fe66ce610ea9e508cda4dae3111a8bae6e92"
+yaml_sha: "sha256:a22cd6374b3401fb99600a13f5d0fe66ce610ea9e508cda4dae3111a8bae6e92"
 
 
 
@@ -90,13 +90,13 @@ obligations:
       valid `mathc.rb` for a sample invocation.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/homebrew-tap-formula-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/homebrew-tap-formula-2026-10.yaml
           result: pass
-        - verifier: tools/homebrew/scripts/render-homebrew-formula.py --version 3.3.0 --sha256-darwin-aarch64 202a09d8a114c1eb9cc0ab3c94500898737c24ee7287778d6adb8bf79e3a6a3d --out /tmp/brew-test.rb exits 0
+        - verifier: manual-tools-homebrew-scripts-render-homebrew-formula-p
           result: pass
-        - verifier: python3 -m py_compile tools/homebrew/scripts/render-homebrew-formula.py
+        - verifier: manual-python3-m-py-compile-tools-homebrew-scripts-rend
           result: pass
 
   - id: brew-v330-shipped
@@ -110,9 +110,9 @@ obligations:
       (`202a09d8a114c1eb9cc0ab3c94500898737c24ee7287778d6adb8bf79e3a6a3d`).
     acceptance:
       all:
-        - verifier: tools/homebrew/Formula/mathc.rb exists
+        - verifier: manual-tools-homebrew-formula-mathc-rb-exists
           result: pass
-        - verifier: grep -q '202a09d8a114c1eb9cc0ab3c94500898737c24ee7287778d6adb8bf79e3a6a3d' tools/homebrew/Formula/mathc.rb
+        - verifier: manual-grep-q-202a09d8a114c1eb9cc0ab3c94500898737c24ee7
           result: pass
 
   - id: brew-publish-md
@@ -124,9 +124,9 @@ obligations:
       copy + PR flow on subsequent updates).
     acceptance:
       all:
-        - verifier: tools/homebrew/PUBLISH.md exists
+        - verifier: manual-tools-homebrew-publish-md-exists
           result: pass
-        - verifier: head -3 tools/homebrew/PUBLISH.md mentions homebrew-tap
+        - verifier: manual-head-3-tools-homebrew-publish-md-mentions-homebr
           result: pass
 
 reversal:

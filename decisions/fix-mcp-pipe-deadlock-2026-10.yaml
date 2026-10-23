@@ -4,8 +4,8 @@ id: fix-mcp-pipe-deadlock-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:9c4c72a96351de0ae1f742bf018389bf43cac2ce780b716dc61ed8881e2cc3ce"
-yaml_sha: "sha256:9c4c72a96351de0ae1f742bf018389bf43cac2ce780b716dc61ed8881e2cc3ce"
+body_sha: "sha256:6b5916e0abbb1b8b029d6dfad6815340a71cdf51dcd90a6328ca349f3386f024"
+yaml_sha: "sha256:6b5916e0abbb1b8b029d6dfad6815340a71cdf51dcd90a6328ca349f3386f024"
 
 intent: |
   Fix a pipe-buffer deadlock in `lib/mcp/dispatch.ml::run_with_args`.
@@ -74,7 +74,7 @@ obligations:
       then `Unix.read stderr` inside a `while` without select.
     acceptance:
       all:
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: /home/az/Projects/math-coding/lib/mcp/dispatch.ml
           needle: Unix.select
           result: pass
@@ -97,7 +97,7 @@ obligations:
       decision itself = 190 total, all pass).
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
 
 risk:

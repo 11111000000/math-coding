@@ -4,8 +4,8 @@ id: lib-comment-typo-fixes-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:d6ac10c6159408f695d6a7a7fd958640d0fd7aa452a1bed085b82ee150e3d430"
-yaml_sha: "sha256:d6ac10c6159408f695d6a7a7fd958640d0fd7aa452a1bed085b82ee150e3d430"
+body_sha: "sha256:7bd3a8e6f9ca0e163e705098380f15dc4556386b15bc866f6aa89bab496501d1"
+yaml_sha: "sha256:7bd3a8e6f9ca0e163e705098380f15dc4556386b15bc866f6aa89bab496501d1"
 intent: |
   Fix two stale or incorrect textual references inside `lib/`
   OCaml comments that are misleading on first read:
@@ -106,7 +106,7 @@ obligations:
       at HEAD.
     acceptance:
       all:
-        - verifier: text-scan-no-ocaml-5-5-typo
+        - verifier: manual-text-scan-no-ocaml-5-5-typo
           result: pass
     evidence: manual-acceptance
   - id: dune-build-green

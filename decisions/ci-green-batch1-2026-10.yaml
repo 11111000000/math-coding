@@ -299,7 +299,7 @@ obligations:
       The pre-commit-hooks.nix type error is gone.
     acceptance:
       all:
-        - verifier: bash -c "nix flake check --no-build 2>&1 | tail -5"
+        - verifier: manual-bash-c-nix-flake-check-no-build-2-1-tail-5
           result: pass
   - id: dune-test-strict-passes
     outcome: dune-test-passes
@@ -311,9 +311,9 @@ obligations:
       other decisions).
     acceptance:
       all:
-        - verifier: bash -c "dune build --root . @tests/runtest 2>&1 | grep -E 'failures|FAIL' | head -10"
+        - verifier: manual-bash-c-dune-build-root-tests-runtest-2-1-grep-e-
           result: pass-with-known-failures
-        - verifier: bash -c "dune build --root . @tests/runtest 2>&1 | grep -cE 'failures!'"
+        - verifier: manual-bash-c-dune-build-root-tests-runtest-2-1-grep-ce
           result: pass
   - id: counters-drift-passes
     outcome: counters-drift-passes

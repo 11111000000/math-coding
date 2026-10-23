@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:aceb7f99f21a9e41c833b1a57d587761aa7afe1072b2e6d9a19fda26f93ccf97"
-yaml_sha: "sha256:aceb7f99f21a9e41c833b1a57d587761aa7afe1072b2e6d9a19fda26f93ccf97"
+body_sha: "sha256:4e7cdcdbce1176fcfe8c4b5671cd9260af4da46ca4c7362bd71763a157cfb503"
+yaml_sha: "sha256:4e7cdcdbce1176fcfe8c4b5671cd9260af4da46ca4c7362bd71763a157cfb503"
 
 intent: |
   Give the release-pending gate a question it can answer, and
@@ -168,7 +168,7 @@ obligations:
       a `v*.*.*` tag, and writes `commits_ahead=0`.
     acceptance:
       all:
-        - verifier: bash -c "scripts/release-pending-gate-sim.sh"
+        - verifier: manual-bash-c-scripts-release-pending-gate-sim-sh
           result: pass
   - id: rp-gate-blocks-every-uncertainty
     outcome: every-uncertainty-blocks
@@ -178,7 +178,7 @@ obligations:
       than by describing the breakage.
     acceptance:
       all:
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: .github/workflows/release-pending.yml
           needle: 'Gate fails closed'
           result: pass
@@ -190,7 +190,7 @@ obligations:
       control that must still block a released base.
     acceptance:
       all:
-        - verifier: bash -c "scripts/release-pending-gate-sim.sh"
+        - verifier: manual-bash-c-scripts-release-pending-gate-sim-sh
           result: pass
   - id: rp-workflow-still-well-formed
     claim: |
@@ -200,7 +200,7 @@ obligations:
       October 2026.
     acceptance:
       all:
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: .github/workflows/release-pending.yml
           needle: 'pull_request:'
           result: pass

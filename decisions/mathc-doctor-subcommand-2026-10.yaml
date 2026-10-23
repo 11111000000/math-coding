@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:e61c6c0e9e79f643a55652e9601df1a8ba69a09284844b1c548c613e2387307e"
-yaml_sha: "sha256:e61c6c0e9e79f643a55652e9601df1a8ba69a09284844b1c548c613e2387307e"
+body_sha: "sha256:3f739f474a1a8af87748714312aaae60d69e87a2a007cba858bf3d93e8b2ce61"
+yaml_sha: "sha256:3f739f474a1a8af87748714312aaae60d69e87a2a007cba858bf3d93e8b2ce61"
 
 axiom_link:
   - A0
@@ -163,7 +163,7 @@ obligations:
       section headers, and exits 0/1 per the contract.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/mathc-doctor-subcommand-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/mathc-doctor-subcommand-2026-10.yaml
           result: pass
@@ -177,7 +177,7 @@ obligations:
           result: pass
         - verifier: scripts/dev lint (no Mathc Library reference; warn-clean build)
           result: pass
-        - verifier: git grep 'lib/' bin/Mathc.ml returns only the existing imports
+        - verifier: manual-git-grep-lib-bin-mathc-ml-returns-only-the-exist
           result: pass
 
   - id: doctor-cram-positive
@@ -203,9 +203,9 @@ obligations:
       `tests/cli/doctor.t`, and the attestation JSONs.
     acceptance:
       all:
-        - verifier: git diff main --stat shows no lib/ entries
+        - verifier: manual-git-diff-main-stat-shows-no-lib-entries
           result: pass
-        - verifier: git diff main --stat shows no bin/mathc_mcp.ml entries
+        - verifier: manual-git-diff-main-stat-shows-no-bin-mathc-mcp-ml-ent
           result: pass
 
 reversal:

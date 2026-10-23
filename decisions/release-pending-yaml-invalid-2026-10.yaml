@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: release-pending-yaml-invalid-2026-10
 revision: 1
 state: active
-body_sha: "sha256:db7bad55e2f505ee3e4d3d4b43fb024269c66de734c8052313aee86d093aeac4"
-yaml_sha: "sha256:db7bad55e2f505ee3e4d3d4b43fb024269c66de734c8052313aee86d093aeac4"
+body_sha: "sha256:7b92466cc62d77cdb81cf7ef10db0dae67bb6bb369d9b7017d1e1b10506cb72f"
+yaml_sha: "sha256:7b92466cc62d77cdb81cf7ef10db0dae67bb6bb369d9b7017d1e1b10506cb72f"
 
 intent: |
   Make the release-pending gate exist, and stop it from reporting a
@@ -179,9 +179,9 @@ obligations:
       that has never rejected anything proves nothing.
     acceptance:
       all:
-        - verifier: bash -c "yq -e .github/workflows/release-pending.yml"
+        - verifier: manual-bash-c-yq-e-github-workflows-release-pending-yml
           result: pass
-        - verifier: bash -c 'for f in .github/workflows/*.yml; do yq -e "." "$f" >/dev/null || exit 1; done'
+        - verifier: manual-bash-c-for-f-in-github-workflows-yml-do-yq-e-f-d
           result: pass
   - id: heredoc-cannot-return
     outcome: no-heredoc-in-run-bodies
@@ -195,9 +195,9 @@ obligations:
       one. The review message is emitted by `printf`.
     acceptance:
       all:
-        - verifier: text-scan-no-heredoc-in-run-body
+        - verifier: manual-text-scan-no-heredoc-in-run-body
           result: pass
-        - verifier: shell-grep printf .github/workflows/release-pending.yml
+        - verifier: manual-shell-grep-printf-github-workflows-release-pendi
           result: pass
   - id: errors-are-not-passes
     outcome: gate-fails-closed-on-error
@@ -212,9 +212,9 @@ obligations:
       all:
         - verifier: tests/repo_structure.exe workflow-yaml-well-formed
           result: pass
-        - verifier: text-scan-no-pipefail-masking-in-release-pending
+        - verifier: manual-text-scan-no-pipefail-masking-in-release-pending
           result: pass
-        - verifier: bash -n on both extracted step bodies
+        - verifier: manual-bash-n-on-both-extracted-step-bodies
           result: pass
   - id: protected-set-is-not-narrower-than-its-message
     outcome: protected-set-matches-its-own-claim
@@ -224,7 +224,7 @@ obligations:
       sentence the gate prints.
     acceptance:
       all:
-        - verifier: shell-grep "bin/* | lib/* | scripts/install-tooling/*" .github/workflows/release-pending.yml
+        - verifier: manual-shell-grep-bin-lib-scripts-install-tooling-githu
           result: pass
   - id: broken-workflow-fails-the-build
     outcome: unparsable-workflow-fails-the-build

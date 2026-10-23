@@ -96,8 +96,8 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/dev line contains "3.3.1"
-        - verifier: flake.nix description contains "3.3.1"
-        - verifier: flake.nix dev-shell prompts contain "3.3.1"
+        - verifier: manual-flake-nix-description-contains-3-3-1
+        - verifier: manual-flake-nix-dev-shell-prompts-contain-3-3-1
   - id: w2-roadmap-p5-trap-count
     outcome: p1-pass-clean
     claim: |
@@ -107,7 +107,7 @@ obligations:
       prose is stale.
     acceptance:
       all:
-        - verifier: text-scan-trap-log-39
+        - verifier: manual-text-scan-trap-log-39
   - id: w3-packages-last-verified
     outcome: p1-pass-clean
     claim: |
@@ -116,7 +116,7 @@ obligations:
       the 2026-10-17 audit-cleanup cycle.
     acceptance:
       all:
-        - verifier: text-scan-head-db69ca2
+        - verifier: manual-text-scan-head-db69ca2
   - id: w4-decision-risk-blocks
     outcome: p1-pass-clean
     claim: |
@@ -128,7 +128,7 @@ obligations:
       not required by algebra §11).
     acceptance:
       all:
-        - verifier: text-scan-risk-block-present
+        - verifier: manual-text-scan-risk-block-present
         - verifier: mathc validate decisions/considered-mode-migration-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/docker-arm64-image-2026-10.yaml

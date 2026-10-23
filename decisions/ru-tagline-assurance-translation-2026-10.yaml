@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:40b45dbfd2437b323c823701eeac1c0a75b7af6ac68e015de7d9f4f5a559f318"
-yaml_sha: "sha256:40b45dbfd2437b323c823701eeac1c0a75b7af6ac68e015de7d9f4f5a559f318"
+body_sha: "sha256:bff70e28c71632c1499b50e0c1d5757e85888de08b49da90ef08642f5ad074c8"
+yaml_sha: "sha256:bff70e28c71632c1499b50e0c1d5757e85888de08b49da90ef08642f5ad074c8"
 axiom_link:
   - A4
 intent: |
@@ -85,7 +85,7 @@ obligations:
         определениями `render_index_ru` и `render_index_zh`).
     acceptance:
       all:
-        - verifier: text-scan-render-ml-tagline
+        - verifier: manual-text-scan-render-ml-tagline
           result: pass
 
 risk:

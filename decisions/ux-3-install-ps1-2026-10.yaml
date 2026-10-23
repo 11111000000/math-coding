@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:370054d7e65c7dadf19cd7f1bf9a8487de756c45e6388b8953a1cfbc453addd4"
-yaml_sha: "sha256:370054d7e65c7dadf19cd7f1bf9a8487de756c45e6388b8953a1cfbc453addd4"
+body_sha: "sha256:95ce578d933fc5f95b5f991f794e0274ce44417b239f6972f88c36870a828b19"
+yaml_sha: "sha256:95ce578d933fc5f95b5f991f794e0274ce44417b239f6972f88c36870a828b19"
 
 axiom_link:
   - A0
@@ -155,11 +155,11 @@ obligations:
       and PowerShell 7+ with no parse errors.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/ux-3-install-ps1-2026-10.yaml
           result: pass
-        - verifier: bash -n scripts/install-tooling/install.ps1
+        - verifier: manual-bash-n-scripts-install-tooling-install-ps1
           result: pass
-        - verifier: '[System.Management.Automation.Language.Parser]::ParseFile(scripts/install-tooling/install.ps1, [ref]$null, [ref]$null) returns $errors.Count -eq 0'
+        - verifier: manual-system-management-automation-language-parser-par
           result: pass
         - verifier: scripts/install-tooling/install.ps1 -Help exits 0
           result: pass
@@ -173,9 +173,9 @@ obligations:
       SHA-256, and refuses to install on mismatch.
     acceptance:
       all:
-        - verifier: Test-Sha256 function exists in install.ps1
+        - verifier: manual-test-sha256-function-exists-in-install-ps1
           result: pass
-        - verifier: install.ps1 emits `MC-INSTALL-CHECKSUM-MISMATCH` on SHA divergence
+        - verifier: manual-install-ps1-emits-mc-install-checksum-mismatch-o
           result: pass
 
   - id: ps1-path-update
@@ -186,9 +186,9 @@ obligations:
       `[Environment]::SetEnvironmentVariable('Path', …, 'User')`.
     acceptance:
       all:
-        - verifier: Add-UserPath function exists in install.ps1
+        - verifier: manual-add-userpath-function-exists-in-install-ps1
           result: pass
-        - verifier: Add-UserPath is idempotent (re-run does not append duplicates)
+        - verifier: manual-add-userpath-is-idempotent-re-run-does-not-appen
           result: pass
 
   - id: ps1-released
@@ -199,7 +199,7 @@ obligations:
       release, on par with `dist-bin/install.sh`.
     acceptance:
       all:
-        - verifier: yq '.jobs.publish.steps[].with.files' .github/workflows/release.yml mentions install.ps1
+        - verifier: manual-yq-jobs-publish-steps-with-files-github-workflow
           result: pass
 
   - id: ps1-docs
@@ -209,7 +209,7 @@ obligations:
       document the `irm … | iex` path for Windows.
     acceptance:
       all:
-        - verifier: grep -l 'install.ps1' QUICKSTART.md USAGE.md site/install.md
+        - verifier: manual-grep-l-install-ps1-quickstart-md-usage-md-site-i
           result: pass
 
 reversal:

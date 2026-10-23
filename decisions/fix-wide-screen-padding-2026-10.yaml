@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: fix-wide-screen-padding-2026-10
 revision: 1
 state: active
-body_sha: "sha256:2580cf9f59731b375b7019de915f7037e3258cc6ceed028cfbc0a063c5042a74"
-yaml_sha: "sha256:2580cf9f59731b375b7019de915f7037e3258cc6ceed028cfbc0a063c5042a74"
+body_sha: "sha256:0e32916d8727937272d69cc3cd846369ebd24081cd550993ce3c282d86c4b7d4"
+yaml_sha: "sha256:0e32916d8727937272d69cc3cd846369ebd24081cd550993ce3c282d86c4b7d4"
 axiom_link:
   - A0
   - A1
@@ -200,7 +200,7 @@ obligations:
       all:
         - verifier: tests/cli/render.t::grep_no_calc_padding
           result: pass
-        - verifier: ! grep -RqF 'calc((100vw - 64rem)' assets/style.css dist/assets/style.css
+        - verifier: manual-grep-rqf-calc-100vw-64rem-assets-style-css-dist-
           result: pass
 reversal:
   - signal: prose-column-too-narrow-on-1280-1499

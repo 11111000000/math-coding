@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: d8-coarse-diagnostics
 revision: 1
 state: active
-body_sha: "sha256:610b2ecaa63de524f1b1bb1594d7a0f11b7cb59d7ac5a5de5c9fb67e9bbda2d1"
-yaml_sha: "sha256:610b2ecaa63de524f1b1bb1594d7a0f11b7cb59d7ac5a5de5c9fb67e9bbda2d1"
+body_sha: "sha256:3170eabf7582df66f9c873629c98260fba37a56e7f519fe2927113b05292419e"
+yaml_sha: "sha256:3170eabf7582df66f9c873629c98260fba37a56e7f519fe2927113b05292419e"
 axiom_link:
   - A0
   - A1
@@ -234,7 +234,7 @@ obligations:
       `path` and `next_actions` populated. `None` is reserved.
     acceptance:
       all:
-        - verifier: dune-build
+        - verifier: manual-dune-build
           result: pass
         - verifier: tests/diagnostic_ux.ml::test_parse_decision_signature
           result: pass

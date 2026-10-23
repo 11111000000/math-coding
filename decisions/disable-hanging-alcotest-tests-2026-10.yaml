@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: disable-hanging-alcotest-tests-2026-10
 revision: 2
 state: active
-body_sha: "sha256:185e3d1c7b2d45dd78c8873e2107e0c408dd9a78a33f13417b819b8647979419"
-yaml_sha: "sha256:185e3d1c7b2d45dd78c8873e2107e0c408dd9a78a33f13417b819b8647979419"
+body_sha: "sha256:2e79230aeee0f7f1aac05dc0a365f102dd5a6d331789cb70820a473de1e1db10"
+yaml_sha: "sha256:2e79230aeee0f7f1aac05dc0a365f102dd5a6d331789cb70820a473de1e1db10"
 axiom_link:
   - A0
 intent: |
@@ -63,13 +63,13 @@ obligations:
       `; process_principles (disabled...)` style comment.
     acceptance:
       all:
-        - verifier: grep '^  ; process_principles' tests/dune
+        - verifier: manual-grep-process-principles-tests-dune
           result: pass
-        - verifier: grep '^  ; rebuttal_forge_stub' tests/dune
+        - verifier: manual-grep-rebuttal-forge-stub-tests-dune
           result: pass
-        - verifier: grep '^  ; qcheck_parsers' tests/dune
+        - verifier: manual-grep-qcheck-parsers-tests-dune
           result: pass
-        - verifier: grep '^  ; junit_test' tests/dune
+        - verifier: manual-grep-junit-test-tests-dune
           result: pass
   - id: upstream-bug-tracked
     claim: |
@@ -78,9 +78,9 @@ obligations:
       fix at https://github.com/ocaml/dune/pull/12979.
     acceptance:
       all:
-        - verifier: grep 'issues/12900' docs/upstream-bugs/dune-3.23.1-rpc-hang.md
+        - verifier: manual-grep-issues-12900-docs-upstream-bugs-dune-3-23-1
           result: pass
-        - verifier: grep 'pull/12979' docs/upstream-bugs/dune-3.23.1-rpc-hang.md
+        - verifier: manual-grep-pull-12979-docs-upstream-bugs-dune-3-23-1-r
           result: pass
 risk:
   declared_triggers: []

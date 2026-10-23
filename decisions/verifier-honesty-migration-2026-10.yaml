@@ -1,0 +1,139 @@
+---
+schema: math-coding/3.3
+id: verifier-honesty-migration-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:9e20c04c4e4ab5ac1b713e147d55d02e85e6f274161fd668b41a7fb3f9885688"
+yaml_sha: "sha256:9e20c04c4e4ab5ac1b713e147d55d02e85e6f274161fd668b41a7fb3f9885688"
+
+intent: { source: "issue:corpus-claims-machine-checks-it-does-not-have-2026-10-23", text: "The corpus carried 327 verifier strings that were PROSE - a sentence, not a reference to anything executable - and 139 that were TAUTOLOGIES: a scheme name with no argument, which can never fail and therefore proves nothing. P2 accepted all of them, so the corpus LOOKED machine-verified. It was not. Of the 327, some were real commands written in a syntax the kernel cannot read (`mathc validate decisions/x.yaml`, where the kernel's mathc scheme takes ONE subcommand), and the rest named checks that were never implemented at all (`file-grep-zero`, `contains-section`, `git-no-paths` - names, not files)." }
+
+commitment: |
+  After this decision closes:
+
+  1. Every verifier string in decisions/*.yaml is one of:
+     a scheme the kernel can EXECUTE (dune, tests/, scripts/,
+     file-exists, dir-exists, mathc), or `manual:<slug>` - an
+     explicit declaration that a human checked it.
+  2. No verifier string is prose.
+  3. No verifier string is a bare scheme name with no argument.
+  4. `this-decision-file-present` becomes
+     `file-exists decisions/<id>.yaml` - a real, per-decision,
+     machine-checkable fact instead of a tautology.
+  5. The migration is a SCRIPT, not a one-off edit:
+     scripts/migrate-verifiers.py, idempotent, with a dry-run
+     default.
+  6. `mathc packages --format=json` reports the verifier string,
+     or the empty string when there is none. It no longer
+     substitutes the obligation's own id.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Grow the kernel's scheme list until every prose verifier is
+  executable." Rejected as THIS change, retained as a follow-up:
+  the kernel's scheme list and the corpus's needs are different
+  projects. `grep -c X file == 0` and `rg -n '...' file` are
+  reasonable checks that the kernel cannot express in its current
+  verifier language. Until that language grows, calling them
+  `manual:` is the honest description - and it is a description the
+  corpus can carry today without a kernel change.
+
+  (b) "Leave the prose alone: P2 accepts it, and the corpus
+  validates." Rejected: that is the defect. The corpus validated
+  and LOOKED machine-verified while 327 of its checks were
+  sentences. A validator that accepts a sentence as a check is
+  worse than no validator, because it converts the appearance of
+  coverage into a number nobody can audit.
+
+antithesis: |
+  The opposite claim would be that `manual:` is a demotion, and that
+  the honest migration should instead WEAKEN the kernel's strictness
+  so the prose passes as machine-checked.
+
+  Rejected on the same ground: the kernel's strictness is not the
+  problem. The problem is that the corpus was claiming coverage it
+  did not have. Weakening the kernel would make the claim pass
+  without making it true.
+
+  The demotion objection has force in ONE direction and it is worth
+  stating plainly: 311 obligations move from "claims to be machine
+  checked" to "declared as manually checked", and that is a real
+  reduction in what the corpus can prove. It is also the first
+  honest number the corpus has carried. A coverage number that is
+  40% lower and true is worth more than one that is 100% and
+  fictional - and it is the only number from which a debt can be
+  measured.
+
+outcomes:
+  - id: no-prose-verifiers
+    statement: |
+      Of the 846 verifier strings the kernel enumerates, 0 are
+      prose. 438 name a scheme the kernel can execute, 86 are
+      mathc subcommands, 311 are explicit `manual:` declarations,
+      and 11 obligations declare no verifier at all - which the
+      machine-readable output now reports as an empty string rather
+      than as the obligation's own id.
+  - id: migration-is-a-tool
+    statement: |
+      scripts/migrate-verifiers.py performs the migration, is
+      idempotent (a second run changes zero files), and defaults to
+      a dry run.
+
+scope:
+  paths:
+    - "scripts/migrate-verifiers.py"
+    - "lib/packages.ml"
+    - "decisions/**"
+    - "decisions/verifier-honesty-migration-2026-10.yaml"
+    - "attestations/verifier-honesty-migration-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/gate.ml"
+    - "bin/**"
+
+obligations:
+  - id: no-verifier-is-prose
+    claim: |
+      Every verifier string the kernel enumerates is either a scheme
+      it can execute, or an explicit `manual:` declaration.
+    acceptance:
+      all:
+        - verifier: manual-verifier-honesty-migration
+          result: pass
+
+  - id: packages-reports-no-verifier-honestly
+    claim: |
+      `mathc packages --format=json` reports an obligation's
+      verifier string, or the empty string when it has none, and
+      never substitutes the obligation's own id.
+    acceptance:
+      all:
+        - verifier: manual-packages-verifier-field
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a decision's verifier string is edited by hand back into prose"
+
+assumptions:
+  - id: manual-is-a-real-class
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      `manual:` is a legitimate source class under A0: a human
+      declaration is not an observation, and the schema already
+      treats the two as different. Declaring a check as manual says
+      what it is.
+    consequence_if_false: |
+      If the corpus needs 311 obligations machine-checked rather than
+      declared, the kernel's verifier language has to grow. That is
+      a recorded follow-up, not a reason to leave the prose in place.

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: algebra-3.2-notation-flag-2026-10
 revision: 2
 state: active
-body_sha: "sha256:5f8838e48e9fc501513a3763e11f19a836b490340562aec9c588388336b90a3f"
-yaml_sha: "sha256:5f8838e48e9fc501513a3763e11f19a836b490340562aec9c588388336b90a3f"
+body_sha: "sha256:df8d528a3e9759c8be086076c8035bc18343629c79ebaeb6c56e1321bc59427b"
+yaml_sha: "sha256:df8d528a3e9759c8be086076c8035bc18343629c79ebaeb6c56e1321bc59427b"
 intent: |
   Flag a latent ambiguity in `spec/algebra-3.2.md` §2 (Risk function)
   that an automated auditor caught in 2026-10-05 but which the agent
@@ -126,7 +126,7 @@ obligations:
       summarising the ambiguity.
     acceptance:
       all:
-        - verifier: rg -n 'algebra-3.2-notation-flag-2026-10' spec/algebra-3.2.md
+        - verifier: manual-rg-n-algebra-3-2-notation-flag-2026-10-spec-alge
           result: pass
 
   - id: kernel-unchanged
@@ -136,7 +136,7 @@ obligations:
       `mathc self-check` verdict is unchanged by this decision.
     acceptance:
       all:
-        - verifier: mathc-self-check-verdict
+        - verifier: manual-mathc-self-check-verdict-unqualified
           result: pass
 
 reversal:

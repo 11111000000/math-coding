@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: 3-2-cli-catalog
 revision: 2
 state: active
-body_sha: "sha256:4a2869a22ea7d32959b8468754d9693761dcfb24f57395b85c7f0b492ffab7da"
-yaml_sha: "sha256:4a2869a22ea7d32959b8468754d9693761dcfb24f57395b85c7f0b492ffab7da"
+body_sha: "sha256:14ece856ff88b639e9636c0daebaac9d45bae4e8a093bdb08ccea9ca88791035"
+yaml_sha: "sha256:14ece856ff88b639e9636c0daebaac9d45bae4e8a093bdb08ccea9ca88791035"
 intent: |
   Resolve the spec-vs-implementation drift on 3.2-ideal
   algebra subcommands. The `bin/Mathc.ml` dispatcher at HEAD
@@ -115,7 +115,7 @@ obligations:
       all:
         - verifier: tests/cli/mode.t
           result: pass
-        - verifier: text-scan-spec-semantics-md-mode-row
+        - verifier: manual-text-scan-spec-semantics-md-mode-row
           result: pass
 
   - id: rebuttals-subcommand-spec-row
@@ -127,7 +127,7 @@ obligations:
       all:
         - verifier: tests/cli/rebuttals.t
           result: pass
-        - verifier: text-scan-spec-semantics-md-rebuttals-row
+        - verifier: manual-text-scan-spec-semantics-md-rebuttals-row
           result: pass
 
   - id: re-evaluate-subcommand-spec-row
@@ -139,7 +139,7 @@ obligations:
       all:
         - verifier: tests/cli/re-evaluate.t
           result: pass
-        - verifier: text-scan-spec-semantics-md-re-evaluate-row
+        - verifier: manual-text-scan-spec-semantics-md-re-evaluate-row
           result: pass
 
   - id: readme-cli-table-grows-by-three
@@ -150,11 +150,11 @@ obligations:
       rows use the same `| \`mathc ...\` | Purpose |` format.
     acceptance:
       all:
-        - verifier: text-scan-readme-md-mode-row
+        - verifier: manual-text-scan-readme-md-mode-row
           result: pass
-        - verifier: text-scan-readme-md-rebuttals-row
+        - verifier: manual-text-scan-readme-md-rebuttals-row
           result: pass
-        - verifier: text-scan-readme-md-re-evaluate-row
+        - verifier: manual-text-scan-readme-md-re-evaluate-row
           result: pass
 
   - id: mode-fixture-pair

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: parser-risk-owner-default
 revision: 2
 state: active
-body_sha: "sha256:e9ef2a5025fdc8aa8bf41f4996e5a5acfbc29f0c382b002e70a262f472193845"
-yaml_sha: "sha256:e9ef2a5025fdc8aa8bf41f4996e5a5acfbc29f0c382b002e70a262f472193845"
+body_sha: "sha256:4c4d463bc80e976a3412610f49aa85eb8ac3474d3caf1a0339c7a060832bd069"
+yaml_sha: "sha256:4c4d463bc80e976a3412610f49aa85eb8ac3474d3caf1a0339c7a060832bd069"
 intent: |
   Document a kernel parse bug surfaced by the 2026-10-05 audit
   cycle, record the in-tree workaround, and bound the proper
@@ -108,7 +108,7 @@ obligations:
       decisions/decision.yaml at the risk block.
     acceptance:
       all:
-        - verifier: "rg -n '^    owner: human:maintainer' decisions/decision.yaml"
+        - verifier: manual-rg-n-owner-human-maintainer-decisions-decision-y
           result: pass
   - id: proper-fix-not-implemented
     outcome: proper-fix-deferred
@@ -117,7 +117,7 @@ obligations:
       raises Match_failure on missing owner.
     acceptance:
       all:
-        - verifier: rg -n "let owner =" lib/decision.ml
+        - verifier: manual-rg-n-let-owner-lib-decision-ml
           result: fail
 
 reversal:

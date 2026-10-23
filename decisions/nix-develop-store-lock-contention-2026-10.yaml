@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: bugfix
-body_sha: "sha256:73114231c1997eab25e6ff87b0c70dab7b49189b75f02c8d1f1e1709a1271fc0"
-yaml_sha: "sha256:73114231c1997eab25e6ff87b0c70dab7b49189b75f02c8d1f1e1709a1271fc0"
+body_sha: "sha256:bbd49ae2c6adf69fd9162b9b79dff1338bf72c8e1053d578b1df54a5996ca03b"
+yaml_sha: "sha256:bbd49ae2c6adf69fd9162b9b79dff1338bf72c8e1053d578b1df54a5996ca03b"
 
 axiom_link:
   - A0
@@ -182,7 +182,7 @@ obligations:
       pre-change behaviour.
     acceptance:
       all:
-        - verifier: shell-grep "nix develop .#test --command bash -c" scripts/dev-env.sh
+        - verifier: manual-shell-grep-nix-develop-test-command-bash-c-scrip
           result: pass
 
   - id: upstream-documented
@@ -192,7 +192,7 @@ obligations:
       that §11.41 (`_build/.lock`) is a different failure.
     acceptance:
       all:
-        - verifier: shell-grep '^### 11.42' OCAML_KERNEL_CONVENTIONS.md
+        - verifier: manual-shell-grep-11-42-ocaml-kernel-conventions-md
           result: pass
 
 risk:

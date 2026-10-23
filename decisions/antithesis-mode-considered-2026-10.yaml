@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: antithesis-mode-considered-2026-10
 revision: 1
 state: active
-body_sha: "sha256:85d031e928ebf1d7143d1d17d292ca0da8f3b55f97cd5d9d1d6cda17d9055446"
-yaml_sha: "sha256:85d031e928ebf1d7143d1d17d292ca0da8f3b55f97cd5d9d1d6cda17d9055446"
+body_sha: "sha256:63b904dcb9bf5db262df410eae9953b31cde8892bc3e82b99c5f9629ba5ebf6a"
+yaml_sha: "sha256:63b904dcb9bf5db262df410eae9953b31cde8892bc3e82b99c5f9629ba5ebf6a"
 intent: |
   Resolve the spec/code contradiction in
   `spec/algebra-3.2.md:422-423` vs
@@ -211,7 +211,7 @@ obligations:
       `type mode`.
     acceptance:
       all:
-        - verifier: text-scan-mode-considered
+        - verifier: manual-text-scan-mode-considered
           result: pass
   - id: parser-uses-considered-guard
     statement: |
@@ -220,7 +220,7 @@ obligations:
       not the older Standard check.
     acceptance:
       all:
-        - verifier: text-scan-considered-guard
+        - verifier: manual-text-scan-considered-guard
           result: pass
   - id: legacy-decisions-still-validate
     statement: |

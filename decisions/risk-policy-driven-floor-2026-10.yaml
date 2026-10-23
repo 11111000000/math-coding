@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: risk-policy-driven-floor-2026-10
 revision: 1
 state: active
-body_sha: "sha256:84189de0c3a62422e866bd47716901e82d1b44124b60156ed4978002fd337c2e"
-yaml_sha: "sha256:84189de0c3a62422e866bd47716901e82d1b44124b60156ed4978002fd337c2e"
+body_sha: "sha256:f05536337fcc9dfbe93b72912dcee3ca5fc3014570297a0f04b2bacc627a790b"
+yaml_sha: "sha256:f05536337fcc9dfbe93b72912dcee3ca5fc3014570297a0f04b2bacc627a790b"
 intent: |
   Wire `lib/policy.ml` into `lib/risk.ml` so the risk classifier
   honors declared policies instead of returning constant
@@ -275,7 +275,7 @@ obligations:
       `lib/risk.ml:107` and `lib/risk.ml:159` are removed.
     acceptance:
       all:
-        - verifier: grep -c "Phase 2E replaces" lib/risk.ml == 0
+        - verifier: manual-grep-c-phase-2e-replaces-lib-risk-ml-0
           result: pass
 
   - id: trap_log_11_25_added
@@ -284,7 +284,7 @@ obligations:
       documenting the "policy override clamps to [-1, 1]" contract.
     acceptance:
       all:
-        - verifier: grep -q '### 11.25' OCAML_BEST_PRACTICES.md
+        - verifier: manual-grep-q-11-25-ocaml-best-practices-md
           result: pass
 
   - id: fixtures_record_phase_2e_close

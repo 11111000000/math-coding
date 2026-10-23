@@ -7,8 +7,8 @@ mode: standard
 change_kind: implementation
 axiom_link:
   - A0
-body_sha: "sha256:6d755cea4034bf4257870afe3cf6c6e32f6333d14c0f2aeb52153171307293fa"
-yaml_sha: "sha256:6d755cea4034bf4257870afe3cf6c6e32f6333d14c0f2aeb52153171307293fa"
+body_sha: "sha256:cdbd17241ddbfafa309e9ae6c3a34cd0beaa62f8f6c1c5efb4ff5f17384e5746"
+yaml_sha: "sha256:cdbd17241ddbfafa309e9ae6c3a34cd0beaa62f8f6c1c5efb4ff5f17384e5746"
 intent: |
   Five decision files currently carry placeholder `body_sha` and
   `yaml_sha` values that were never replaced with the real
@@ -151,7 +151,7 @@ obligations:
       canonical digests.
     acceptance:
       all:
-        - verifier: text-scan-no-sha256-todo-in-decisions
+        - verifier: manual-text-scan-no-sha256-todo-in-decisions
           result: pass
         - verifier: mathc validate decisions/counters-schema-introspection-fix-2026-10.yaml
           result: pass
@@ -172,7 +172,7 @@ obligations:
       canonical 64-zero sentinel across `decisions/*.yaml`.
     acceptance:
       all:
-        - verifier: text-scan-no-sha256-zero-in-decisions
+        - verifier: manual-text-scan-no-sha256-zero-in-decisions
           result: pass
         - verifier: mathc validate decisions/paren-balance-fix-2026-10.yaml
           result: pass

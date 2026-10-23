@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:511e343c294c2b346bd89b8b40eb416700aa78f38c562bccd12f8fbcf24b862d"
-yaml_sha: "sha256:511e343c294c2b346bd89b8b40eb416700aa78f38c562bccd12f8fbcf24b862d"
+body_sha: "sha256:9474ee1f3d23c02864c408fbc1851a8a33d991a800e6b821db430411ac4b579e"
+yaml_sha: "sha256:9474ee1f3d23c02864c408fbc1851a8a33d991a800e6b821db430411ac4b579e"
 
 axiom_link:
   - A0
@@ -376,13 +376,13 @@ obligations:
       code-side change.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/docker-arm64-image-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/docker-arm64-image-2026-10.yaml
           result: pass
-        - verifier: grep -q "platforms: linux/amd64,linux/arm64" .github/workflows/docker.yml
+        - verifier: manual-grep-q-platforms-linux-amd64-linux-arm64-github-
           result: pass
-        - verifier: grep -q "if: github.event_name == 'push'" .github/workflows/docker.yml
+        - verifier: manual-grep-q-if-github-event-name-push-github-workflow
           result: pass
 
 risk:

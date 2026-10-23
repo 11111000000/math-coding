@@ -4,8 +4,8 @@ id: verify-path-forms-and-signed-attestations-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:ef814d2287ce86148243900248960ae64db62cbb31a1005eb4bb2791a9ee6d75"
-yaml_sha: "sha256:ef814d2287ce86148243900248960ae64db62cbb31a1005eb4bb2791a9ee6d75"
+body_sha: "sha256:6fe51dc3af8bef62f90ddbb0202c786b304103555d8b91764d4c475477d69117"
+yaml_sha: "sha256:6fe51dc3af8bef62f90ddbb0202c786b304103555d8b91764d4c475477d69117"
 
 intent: |
   Two obligations in one file, because they are one chain: an
@@ -173,11 +173,11 @@ obligations:
       is `fail` with the rule it broke rather than `skipped`.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: bin/Mathc.ml
           needle: plan_verifier
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: bin/Mathc.ml
           needle: "no such file in the repository"
           result: pass
@@ -190,7 +190,7 @@ obligations:
       `skipped`.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: tests/cli/verify-path-forms.t
           result: pass
 
@@ -200,7 +200,7 @@ obligations:
       exits 2, says why, and writes nothing.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: bin/Mathc.ml
           needle: "--producer=<identity> is required"
           result: pass
@@ -213,11 +213,11 @@ obligations:
       its decision count and its signer on stderr.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: bin/Mathc.ml
           needle: report_mass_issue
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: tests/cli/attest-batch-signature.t
           result: pass
 
@@ -228,7 +228,7 @@ obligations:
       the digest is the sha256 of the run's output.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: bin/Mathc.ml
           needle: runtime_attestation_kinds
           result: pass
@@ -241,7 +241,7 @@ obligations:
       says so. This decision does not "fix" it.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: tests/cli/attest-batch-signature.t
           needle: "review digest must stay empty"
           result: pass

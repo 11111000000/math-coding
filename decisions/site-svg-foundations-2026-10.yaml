@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-foundations-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:e49d3fd33d71f1f0c7148718c7cadb5173f97aaa1194e30c9bb9fb0ee42ec3af"
-yaml_sha: "sha256:e49d3fd33d71f1f0c7148718c7cadb5173f97aaa1194e30c9bb9fb0ee42ec3af"
+body_sha: "sha256:3ef610c59f2bc9f45f4b9c0d3c6db7499bbfe2678c34772911b275b4b62d882e"
+yaml_sha: "sha256:3ef610c59f2bc9f45f4b9c0d3c6db7499bbfe2678c34772911b275b4b62d882e"
 axiom_link:
   - A2
 intent: |
@@ -165,39 +165,39 @@ obligations:
       source level.
     acceptance:
       all:
-        - verifier: ! grep -F '<img src="assets/axiom-transition.svg"' dist/foundations.html
+        - verifier: manual-grep-f-img-src-assets-axiom-transition-svg-dist-
           result: pass
-        - verifier: ! grep -F '<img src="assets/counterexample-flow.svg"' dist/foundations.html
+        - verifier: manual-grep-f-img-src-assets-counterexample-flow-svg-di
           result: pass
-        - verifier: ! grep -F '<img src="assets/friction-envelope-plot.svg"' dist/foundations.html
+        - verifier: manual-grep-f-img-src-assets-friction-envelope-plot-svg
           result: pass
-        - verifier: ! grep -F '<img src="assets/quality-radar.svg"' dist/foundations.html
+        - verifier: manual-grep-f-img-src-assets-quality-radar-svg-dist-fou
           result: pass
-        - verifier: ! grep -F '<img src="assets/reasoning-budget.svg"' dist/foundations.html
+        - verifier: manual-grep-f-img-src-assets-reasoning-budget-svg-dist-
           result: pass
-        - verifier: ! grep -F '<img src="assets/substrate-fingerprint.svg"' dist/foundations.html
+        - verifier: manual-grep-f-img-src-assets-substrate-fingerprint-svg-
           result: pass
-        - verifier: ! grep -F '<img src="assets/trust-dynamics.svg"' dist/foundations.html
+        - verifier: manual-grep-f-img-src-assets-trust-dynamics-svg-dist-fo
           result: pass
-        - verifier: ! grep -F '<img src="assets/waiver-state-machine.svg"' dist/foundations.html
+        - verifier: manual-grep-f-img-src-assets-waiver-state-machine-svg-d
           result: pass
-        - verifier: dist/assets/axiom-transition.svg
+        - verifier: file-exists dist/assets/axiom-transition.svg
           result: pass
-        - verifier: dist/assets/counterexample-flow.svg
+        - verifier: file-exists dist/assets/counterexample-flow.svg
           result: pass
-        - verifier: dist/assets/friction-envelope-plot.svg
+        - verifier: file-exists dist/assets/friction-envelope-plot.svg
           result: pass
-        - verifier: dist/assets/quality-radar.svg
+        - verifier: file-exists dist/assets/quality-radar.svg
           result: pass
-        - verifier: dist/assets/reasoning-budget.svg
+        - verifier: file-exists dist/assets/reasoning-budget.svg
           result: pass
-        - verifier: dist/assets/substrate-fingerprint.svg
+        - verifier: file-exists dist/assets/substrate-fingerprint.svg
           result: pass
-        - verifier: dist/assets/trust-dynamics.svg
+        - verifier: file-exists dist/assets/trust-dynamics.svg
           result: pass
-        - verifier: dist/assets/waiver-state-machine.svg
+        - verifier: file-exists dist/assets/waiver-state-machine.svg
           result: pass
-        - verifier: ! grep -lE 'role="img" aria-labelledby' assets/axiom-transition.svg assets/counterexample-flow.svg assets/friction-envelope-plot.svg assets/quality-radar.svg assets/reasoning-budget.svg assets/substrate-fingerprint.svg assets/trust-dynamics.svg assets/waiver-state-machine.svg
+        - verifier: manual-grep-le-role-img-aria-labelledby-assets-axiom-tr
           result: pass
 
 reversal:

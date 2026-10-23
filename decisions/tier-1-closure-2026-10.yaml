@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: tier-1-closure-2026-10
 revision: 1
 state: active
-body_sha: "sha256:cb9007b00ac62ad018346adb59d6949cbdd7b9150b40321f7a7bb2c8e8637080"
-yaml_sha: "sha256:cb9007b00ac62ad018346adb59d6949cbdd7b9150b40321f7a7bb2c8e8637080"
+body_sha: "sha256:65044a788a1ebf849414335e280b183bc011e53f0cc253cd1402730893b8a1eb"
+yaml_sha: "sha256:65044a788a1ebf849414335e280b183bc011e53f0cc253cd1402730893b8a1eb"
 axiom_link:
   - A1
   - A3
@@ -252,7 +252,7 @@ obligations:
       all:
         - verifier: tests/process_principles.ml::P2
           result: pass
-        - verifier: bash -n tests/process_principles.ml
+        - verifier: manual-bash-n-tests-process-principles-ml
           result: pass
 
   - id: fixture-coverage-walker-accepts-current-verifiers
@@ -280,9 +280,9 @@ obligations:
       auto-update-per-user-skill).
     acceptance:
       all:
-        - verifier: text-scan-ROADMAP-tier-1-closed
+        - verifier: manual-text-scan-roadmap-tier-1-closed
           result: pass
-        - verifier: text-scan-ROADMAP-tier-1-5-section
+        - verifier: manual-text-scan-roadmap-tier-1-5-section
           result: pass
 
   - id: dune-test-and-self-check-green

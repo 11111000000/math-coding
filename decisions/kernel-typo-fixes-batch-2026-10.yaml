@@ -4,8 +4,8 @@ id: kernel-typo-fixes-batch-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:6b981d1cdb085d4b43ed175c0b32bbc28ee681b4777bc00e9980cd3b3a052add"
-yaml_sha: "sha256:6b981d1cdb085d4b43ed175c0b32bbc28ee681b4777bc00e9980cd3b3a052add"
+body_sha: "sha256:5b20c916e8f141c7fcf2a40122dbdc67226debda90f4608d1ad57c150e04f830"
+yaml_sha: "sha256:5b20c916e8f141c7fcf2a40122dbdc67226debda90f4608d1ad57c150e04f830"
 intent: |
   Fix four correctness defects surfaced by an audit scan of
   `lib/`, `bin/`, and `tests/cli/` (render code excluded per
@@ -193,7 +193,7 @@ obligations:
       also has the `mode_str` fallback `"considered"`).
     acceptance:
       all:
-        - verifier: text-scan-mode-considered
+        - verifier: manual-text-scan-mode-considered
           result: pass
     evidence: manual-acceptance
   - id: dead-attestation-kind-to-string-removed
@@ -202,7 +202,7 @@ obligations:
       returns 0 matches.
     acceptance:
       all:
-        - verifier: text-scan-no-attestation-kind-to-string
+        - verifier: manual-text-scan-no-attestation-kind-to-string
           result: pass
     evidence: manual-acceptance
   - id: do-find-single-exit
@@ -212,7 +212,7 @@ obligations:
       compute or use the local `n`.
     acceptance:
       all:
-        - verifier: text-scan-do-find-single-exit
+        - verifier: manual-text-scan-do-find-single-exit
           result: pass
     evidence: manual-acceptance
   - id: init-mkdir-p-replaces-mkdir
@@ -222,7 +222,7 @@ obligations:
       `Unix.mkdir`.
     acceptance:
       all:
-        - verifier: text-scan-init-mkdir-p
+        - verifier: manual-text-scan-init-mkdir-p
           result: pass
     evidence: manual-acceptance
   - id: init-agent-tmpdir-hermetic
@@ -232,7 +232,7 @@ obligations:
       the literal substring `/home/az/`.
     acceptance:
       all:
-        - verifier: text-scan-no-home-az
+        - verifier: manual-text-scan-no-home-az
           result: pass
     evidence: manual-acceptance
   - id: dune-build-clean-after-fixes

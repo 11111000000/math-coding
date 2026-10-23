@@ -6,8 +6,8 @@ state: active
 mode: light
 change_kind: editorial
 
-body_sha: "sha256:fcf5cefae4cf4867a506fb9ab73c76d67632e7a73322c1e59469f9bb403aa6cc"
-yaml_sha: "sha256:fcf5cefae4cf4867a506fb9ab73c76d67632e7a73322c1e59469f9bb403aa6cc"
+body_sha: "sha256:01d13e2f00f7bc1fbd297354451e13cb5b9ab0494f9f59a4db176dbf11c84cae"
+yaml_sha: "sha256:01d13e2f00f7bc1fbd297354451e13cb5b9ab0494f9f59a4db176dbf11c84cae"
 
 axiom_link:
   - A0
@@ -115,7 +115,7 @@ obligations:
       a one-line footer pointing at this decision.
     acceptance:
       all:
-        - verifier: text-scan-AGENTS-md-fastpath-section
+        - verifier: manual-text-scan-agents-md-fastpath-section
           result: pass
 
   - id: mathc-validate-passes

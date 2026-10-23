@@ -4,8 +4,8 @@ id: add-verify-subcommand-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:4615ea28ff5d171402847b7506ae49e8923eff988672998c61f2842869442bbd"
-yaml_sha: "sha256:4615ea28ff5d171402847b7506ae49e8923eff988672998c61f2842869442bbd"
+body_sha: "sha256:c1933dbe0e8002912e5b64cdf2b8217dc5764d18b804b0b5bc5a179833a2e9a3"
+yaml_sha: "sha256:c1933dbe0e8002912e5b64cdf2b8217dc5764d18b804b0b5bc5a179833a2e9a3"
 
 intent: |
   Distinguish "validated" from "verified" in math-coding. The
@@ -71,11 +71,11 @@ obligations:
       returns a per-obligation JSON object.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: bin/Mathc.ml
           needle: do_verify
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: bin/Mathc.ml
           needle: '"verify" -> do_verify ()'
           result: pass
@@ -88,7 +88,7 @@ obligations:
       `verdict: parse-ok` in both text and JSON output.
     acceptance:
       all:
-        - verifier: mathc-validate-verdict-is-parse-ok
+        - verifier: manual-mathc-validate-verdict-is-parse-ok
           result: pass
 
   - id: cram-fixtures-migrated-to-parse-ok
@@ -99,11 +99,11 @@ obligations:
       modified cram test).
     acceptance:
       all:
-        - verifier: file-grep-zero
+        - verifier: manual-file-grep-zero-unqualified
           path: tests/cli/
           needle: '"verdict":"accept"'
           result: pass
-        - verifier: file-grep-non-zero
+        - verifier: manual-file-grep-non-zero-unqualified
           path: tests/cli/
           needle: '"verdict":"parse-ok"'
           min: 14
@@ -117,7 +117,7 @@ obligations:
       commit.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
 
 counterexample: |

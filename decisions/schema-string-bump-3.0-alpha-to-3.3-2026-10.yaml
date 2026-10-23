@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.3-2026-10
 revision: 1
 state: active
-body_sha: "sha256:1145fb46ee8b78d48203f7a873d1dc298e5de6ba8e13cd78f3cdf0dbcb491d14"
-yaml_sha: "sha256:1145fb46ee8b78d48203f7a873d1dc298e5de6ba8e13cd78f3cdf0dbcb491d14"
+body_sha: "sha256:6a761473a27e12fb500dfa9d10d5072f8d58c1df948e9b57f577829c5dd730ba"
+yaml_sha: "sha256:6a761473a27e12fb500dfa9d10d5072f8d58c1df948e9b57f577829c5dd730ba"
 intent: |
   Bring the JSON-schema `$id` family from `3.0-alpha` to `3.3`,
   matching the published brand that this release cycle adopts.
@@ -153,7 +153,7 @@ obligations:
       each starting with `https://math-coding.org/schema/3.3/`.
     acceptance:
       all:
-        - verifier: text-scan-schema-id
+        - verifier: manual-text-scan-schema-id
           result: pass
   - id: schema-enum-accepts-3-3
     statement: |
@@ -163,7 +163,7 @@ obligations:
       exits 0.
     acceptance:
       all:
-        - verifier: text-scan-schema-enum
+        - verifier: manual-text-scan-schema-enum
           result: pass
   - id: migration-manifest-ships
     statement: |

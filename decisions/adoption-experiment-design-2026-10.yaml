@@ -4,8 +4,8 @@ id: adoption-experiment-design-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:10ade03aadda68deeb9cd9967b5902bd5cb5fef5c7439c52fe5422215c0fb6ea"
-yaml_sha: "sha256:10ade03aadda68deeb9cd9967b5902bd5cb5fef5c7439c52fe5422215c0fb6ea"
+body_sha: "sha256:8bc15023f83a1d67755c225515146424ed4416382f357d2831906028332a740f"
+yaml_sha: "sha256:8bc15023f83a1d67755c225515146424ed4416382f357d2831906028332a740f"
 
 intent: |
   Conduct a brownfield adoption study of math-coding on five real
@@ -75,7 +75,7 @@ obligations:
       if the experiment has not yet executed).
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: docs/experiments/adoption-2026-10.md
           result: pass
         - verifier: mathc validate decisions/adoption-experiment-design-2026-10.yaml
@@ -89,7 +89,7 @@ obligations:
       from §7, so sub-agents fill the same shape.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: docs/experiments/adoption-2026-10-report-template.md
           result: pass
 
@@ -102,19 +102,19 @@ obligations:
       before the sub-agents begin.
     acceptance:
       all:
-        - verifier: dir-exists
+        - verifier: manual-dir-exists-unqualified
           path: /home/az/Projects/math-coding-experiment/click
           result: pass
-        - verifier: dir-exists
+        - verifier: manual-dir-exists-unqualified
           path: /home/az/Projects/math-coding-experiment/express
           result: pass
-        - verifier: dir-exists
+        - verifier: manual-dir-exists-unqualified
           path: /home/az/Projects/math-coding-experiment/cobra
           result: pass
-        - verifier: dir-exists
+        - verifier: manual-dir-exists-unqualified
           path: /home/az/Projects/math-coding-experiment/ripgrep
           result: pass
-        - verifier: dir-exists
+        - verifier: manual-dir-exists-unqualified
           path: /home/az/Projects/math-coding-experiment/sinatra
           result: pass
 
@@ -125,19 +125,19 @@ obligations:
       for each project, filled by the sub-agent.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding-experiment/click/experiment-report.md
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding-experiment/express/experiment-report.md
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding-experiment/cobra/experiment-report.md
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding-experiment/ripgrep/experiment-report.md
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding-experiment/sinatra/experiment-report.md
           result: pass
 
@@ -149,7 +149,7 @@ obligations:
       of the codes from §7.
     acceptance:
       all:
-        - verifier: contains-section
+        - verifier: manual-contains-section-unqualified
           path: docs/experiments/adoption-2026-10.md
           section: "13. Recommendations"
           min_items: 10
@@ -162,7 +162,7 @@ obligations:
       (H1..H8), with a one-sentence evidence reference.
     acceptance:
       all:
-        - verifier: contains-section
+        - verifier: manual-contains-section-unqualified
           path: docs/experiments/adoption-2026-10.md
           section: "3. Hypotheses"
           min_items: 8
@@ -176,7 +176,7 @@ obligations:
       verdict per hypothesis) as a commitment of record.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: decisions/adoption-experiment-results-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/adoption-experiment-results-2026-10.yaml
@@ -191,7 +191,7 @@ obligations:
       `decisions/adoption-experiment-*.yaml`.
     acceptance:
       all:
-        - verifier: git-no-paths
+        - verifier: manual-git-no-paths-unqualified
           repo: .
           base: main
           forbidden_paths:

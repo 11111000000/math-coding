@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: docker-alpine-impl-pending
 revision: 1
 state: active
-body_sha: "sha256:3a3664d64e0eb326c6b54a307dd80b846b249f6184a825491a863911e15a9da3"
-yaml_sha: "sha256:3a3664d64e0eb326c6b54a307dd80b846b249f6184a825491a863911e15a9da3"
+body_sha: "sha256:a69b32d6b46b5565bc4770e3e8c8a5cb66dc3abbbf9a72c4eeeab7eba11b0e44"
+yaml_sha: "sha256:a69b32d6b46b5565bc4770e3e8c8a5cb66dc3abbbf9a72c4eeeab7eba11b0e44"
 intent: |
   Record the deferral of the Alpine-based Docker image to
   Phase 3. Phase 1 of install-tooling-2026-10 ships only
@@ -140,7 +140,7 @@ obligations:
       deferral with rationale and reversal signal.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/docker-alpine-impl-pending.yaml
           result: pass
 reversal:
   - signal: docker-alpine-impl-pending-resolved

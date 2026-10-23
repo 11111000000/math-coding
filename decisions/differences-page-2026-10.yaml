@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: differences-page-2026-10
 revision: 1
 state: active
-body_sha: "sha256:728be2b8f02358da55144b9302077e73920c83e0d529a328eaa77ba6ea8129df"
-yaml_sha: "sha256:728be2b8f02358da55144b9302077e73920c83e0d529a328eaa77ba6ea8129df"
+body_sha: "sha256:6f7e8d1a00fdd0978fc0286b32bbb949992f2f94a3a50dd1a3c15f89d06a0e42"
+yaml_sha: "sha256:6f7e8d1a00fdd0978fc0286b32bbb949992f2f94a3a50dd1a3c15f89d06a0e42"
 axiom_link:
   - A0
   - A1
@@ -90,7 +90,7 @@ obligations:
       `dist/differences.zh.html` exist at the end of the run.
     acceptance:
       all:
-        - verifier: render-missing-file-check
+        - verifier: manual-render-missing-file-check
           result: pass
 
   - id: differences-page-content-covers-twenty-methodologies
@@ -106,7 +106,7 @@ obligations:
       name.
     acceptance:
       all:
-        - verifier: section-coverage-check
+        - verifier: manual-section-coverage-check
           result: pass
 
   - id: mathc-self-check-still-passes
@@ -117,7 +117,7 @@ obligations:
       regresses from `Pass` to `Fail` or `Unknown`.
     acceptance:
       all:
-        - verifier: mathc-self-check
+        - verifier: manual-mathc-self-check-unqualified
           result: pass
 
   - id: render-sh-emits-dashboard-and-graph-artefacts
@@ -133,7 +133,7 @@ obligations:
       cytoscape.js viewer that fetches graph.json.
     acceptance:
       all:
-        - verifier: render-missing-file-check
+        - verifier: manual-render-missing-file-check
           result: pass
 
 risk:

@@ -381,7 +381,15 @@ let[@warning "-32"] obligation_view ~now_iso ~obligation_id ~obligation_verifier
   {
     id = obligation_id;
     verdict;
-    verifier = (match obligation_verifier with "" -> obligation_id | s -> s);
+    (* The verifier string, or the EMPTY STRING when the obligation
+       names none.
+       The previous fallback substituted the OBLIGATION ID, so the
+       machine-readable output presented an obligation's own id in
+       the `verifier` field - which a consumer reading the JSON
+       would take for a reference to something executable. It is
+       not: it is the id of the very obligation being reported. An
+       obligation with no verifier says so. *)
+    verifier = obligation_verifier;
     attestation_id =
       (match att with None -> None | Some a -> Some a.Domain.id);
     attestation_expires =

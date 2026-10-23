@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-empty-sha-2026-10
 revision: 3
 state: retired
-body_sha: "sha256:aac6128c16fbce5e6fb46b3ac5a06690c496ec30fe97c064524da4be26f93e61"
-yaml_sha: "sha256:aac6128c16fbce5e6fb46b3ac5a06690c496ec30fe97c064524da4be26f93e61"
+body_sha: "sha256:1b8df0d8e866cdcf9f5baa20cca7d65bca0808409b706ea30b1c9e2559d88c35"
+yaml_sha: "sha256:1b8df0d8e866cdcf9f5baa20cca7d65bca0808409b706ea30b1c9e2559d88c35"
 intent: |
   This decision recorded an interim approach (2026-10-05, rev 1-2):
   bring `schemas/decision.json` into alignment with the actual state
@@ -122,7 +122,7 @@ obligations:
       string or the canonical sha256 form.
     acceptance:
       all:
-        - verifier: rg -n 'pattern.*\\^\\(\\|sha256' schemas/decision.json
+        - verifier: manual-rg-n-pattern-sha256-schemas-decision-json
           result: pass
 
   - id: kernel-unchanged
@@ -132,7 +132,7 @@ obligations:
       accept all 32 existing decision files.
     acceptance:
       all:
-        - verifier: mathc-self-check-verdict
+        - verifier: manual-mathc-self-check-verdict-unqualified
           result: pass
 
 reversal:

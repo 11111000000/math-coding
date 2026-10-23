@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:66f6e37ff44ed689c7706c8bcca80842252dc2eb2e303c7949f3b3ad55f3959d"
-yaml_sha: "sha256:66f6e37ff44ed689c7706c8bcca80842252dc2eb2e303c7949f3b3ad55f3959d"
+body_sha: "sha256:bfa33a44e66ffb1aa895afc55c7da6ea893faf4ec95cdd3e3bd90fdc107c5a93"
+yaml_sha: "sha256:bfa33a44e66ffb1aa895afc55c7da6ea893faf4ec95cdd3e3bd90fdc107c5a93"
 
 intent: |
   Convert the 9 recommendations from the 2026-10-17 adoption
@@ -113,7 +113,7 @@ obligations:
       exists with §0-§10 filled.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/docs/plans/plan-2026-11-adoption-fixes-2026-10.md
           result: pass
         - verifier: mathc validate decisions/plan-2026-11-adoption-fixes-2026-10.yaml
@@ -128,7 +128,7 @@ obligations:
       subcommands in the `mathc` verifier scheme.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/verify-sandbox-hardening-2026-11.yaml
           result: pass
         - verifier: tests/cli/verify-sandbox.t
@@ -142,7 +142,7 @@ obligations:
       `Filename.concat` or `let <name> =`.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/path-resolver-audit-2026-11.yaml
           result: pass
         - verifier: tests/cli/execution-logs-env-var.t
@@ -159,7 +159,7 @@ obligations:
       emits a one-shot stderr deprecation warning.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/import-junit-rename-2026-11.yaml
           result: pass
         - verifier: tests/cli/attest-deprecation-alias.t
@@ -172,7 +172,7 @@ obligations:
       honour `MATH_CODING_DECISIONS_DIR`.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/scripts-env-var-audit-2026-11.yaml
           result: pass
         - verifier: tests/cli/scripts-env-var.t
@@ -186,7 +186,7 @@ obligations:
       plan-decision attestations" rule.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/attestation-namespace-meta-2026-11.yaml
           result: pass
 
@@ -198,7 +198,7 @@ obligations:
       into the integration branch" rule.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/process-principles-2026-10-2.yaml
           result: pass
 
@@ -209,7 +209,7 @@ obligations:
       + checkpoint-cadence rule.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/process-principles-2026-10-3.yaml
           result: pass
 
@@ -220,7 +220,7 @@ obligations:
       as a first-class workflow.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/attest-handshake-rescue-2026-11.yaml
           result: pass
 
@@ -232,13 +232,13 @@ obligations:
       `compatible_with` are updated.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/release-cadence-2026-11.yaml
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/.github/workflows/release-pending.yml
           result: pass
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: /home/az/Projects/math-coding/scripts/install-tooling/install.sh
           needle: MC_VERSION_DEFAULT="3.3.2"
           result: pass
@@ -250,7 +250,7 @@ obligations:
       schemes.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/verifier-scheme-convention-2026-11.yaml
           result: pass
         - verifier: tests/cli/verifier-scheme-warning.t
@@ -263,7 +263,7 @@ obligations:
       §5 + §8 + §3 add the doctor exercise.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/experiment-doctor-instrumentation-2026-11.yaml
           result: pass
 
@@ -276,7 +276,7 @@ obligations:
       `release-pending` CI gate is enforced.
     acceptance:
       all:
-        - verifier: bash -c "git tag --list 'v3.3.2' | grep -q v3.3.2"
+        - verifier: manual-bash-c-git-tag-list-v3-3-2-grep-q-v3-3-2
           result: pass
 
   - id: no-new-unknowns-on-main
@@ -289,7 +289,7 @@ obligations:
       subjects attributable to this plan.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
 
   - id: discriminator-findings-recorded
@@ -299,16 +299,16 @@ obligations:
       exist and are referenced from the plan-doc §0.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/discriminator-f1-f4-2026-10.yaml
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/discriminator-f5-f8-2026-10.yaml
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/discriminator-f9-f12-2026-10.yaml
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/discriminator-f13-f14-f15-2026-10.yaml
           result: pass
 

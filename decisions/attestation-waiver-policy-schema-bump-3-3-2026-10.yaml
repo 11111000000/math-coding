@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: attestation-waiver-policy-schema-bump-3-3-2026-10
 revision: 1
 state: active
-body_sha: "sha256:353ac269c8c571e22d18661a56c62fd61e5dc3ec0a04f8ac741a5b50c663d003"
-yaml_sha: "sha256:353ac269c8c571e22d18661a56c62fd61e5dc3ec0a04f8ac741a5b50c663d003"
+body_sha: "sha256:5526d9bac35278d6fbba88c41ba5857b21e9e1e80f56ae8247f4c9428e645879"
+yaml_sha: "sha256:5526d9bac35278d6fbba88c41ba5857b21e9e1e80f56ae8247f4c9428e645879"
 mode: standard
 change_kind: implementation
 axiom_link:
@@ -104,21 +104,21 @@ obligations:
       including for files with attestation `schema: math-coding/attestation-3.0-alpha`.
     acceptance:
       all:
-        - verifier: text-scan-attestation-enum
+        - verifier: manual-text-scan-attestation-enum
           result: pass
   - id: waiver-enum-accepts-3-3
     claim: |
       `mathc validate decisions/waivers/<existing>.yaml` exits 0.
     acceptance:
       all:
-        - verifier: text-scan-waiver-enum
+        - verifier: manual-text-scan-waiver-enum
           result: pass
   - id: policy-enum-accepts-3-3
     claim: |
       `mathc validate decisions/<policy>.yaml` exits 0.
     acceptance:
       all:
-        - verifier: text-scan-policy-enum
+        - verifier: manual-text-scan-policy-enum
           result: pass
   - id: migration-manifest-extended
     claim: |
@@ -128,7 +128,7 @@ obligations:
       the prior 4 for decision families).
     acceptance:
       all:
-        - verifier: text-scan-migration-actions
+        - verifier: manual-text-scan-migration-actions
           result: pass
   - id: existing-attestations-still-validate
     claim: |

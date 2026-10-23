@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: solo-default-on-2026-10
 revision: 1
 state: active
-body_sha: "sha256:a0ff60eeb8d1ba0931909475f518080a059088f81651b2423c5190a7ab5682ad"
-yaml_sha: "sha256:a0ff60eeb8d1ba0931909475f518080a059088f81651b2423c5190a7ab5682ad"
+body_sha: "sha256:5d57e65845cfdb8a1b2860355baa505f557b09d65153477b855ee09dc386ad73"
+yaml_sha: "sha256:5d57e65845cfdb8a1b2860355baa505f557b09d65153477b855ee09dc386ad73"
 intent: |
   The applicability envelope (`spec/algebra-3.2.md` §28) told a solo
   maintainer that the protocol was not for them. The normative text
@@ -251,7 +251,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: spec/algebra-3.2.md
           needle: "default_path(P) ≔ Path A unless P ∈ prototype_or_throwaway(P)"
           result: pass

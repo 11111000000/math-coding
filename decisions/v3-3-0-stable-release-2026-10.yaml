@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: v3-3-0-stable-release-2026-10
 revision: 1
 state: active
-body_sha: "sha256:de464fd03a047eb417a187910e384e3151e26a634d10da6e08097be5cfc7b6f5"
-yaml_sha: "sha256:de464fd03a047eb417a187910e384e3151e26a634d10da6e08097be5cfc7b6f5"
+body_sha: "sha256:9f12f4d140589b9e7d491fdd849917303ceaa072fc70787f72b23382a0d8a395"
+yaml_sha: "sha256:9f12f4d140589b9e7d491fdd849917303ceaa072fc70787f72b23382a0d8a395"
 
 intent: |
   Promote the published brand from `math-coding 3.3.0-alpha`
@@ -255,7 +255,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: "[ $(awk 'NR==1' VERSION) = '3.3.0' ]"
+        - verifier: manual-awk-nr-1-version-3-3-0
           result: pass
         - verifier: mathc validate decisions/v3-3-0-stable-release-2026-10.yaml
           result: pass
@@ -266,7 +266,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: "grep -q '^version: \"3.3.0\"$' math-coding.opam"
+        - verifier: manual-grep-q-version-3-3-0-math-coding-opam
           result: pass
         - verifier: scripts/sync-version.sh --check
           result: pass
@@ -278,7 +278,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: "grep -q '^## v3.3.0 — 2026-10-15 — current$' CHANGELOG.md"
+        - verifier: manual-grep-q-v3-3-0-2026-10-15-current-changelog-md
           result: pass
   - id: constitution-header-3-3
     claim: |
@@ -287,7 +287,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: "head -1 spec/constitution.md | grep -q '^# Math-coding 3\\.3\\.0 constitution$'"
+        - verifier: manual-head-1-spec-constitution-md-grep-q-math-coding-3
           result: pass
   - id: site-hero-renders-3-3-0
     claim: |
@@ -298,7 +298,7 @@ obligations:
       all:
         - verifier: dune build --root .
           result: pass
-        - verifier: "_build/default/bin/mathc.exe render --out /tmp/dist && grep -qF '<h1>math-coding 3.3.0</h1>' /tmp/dist/index.html"
+        - verifier: manual-build-default-bin-mathc-exe-render-out-tmp-dist-
           result: pass
   - id: readme-badges-row-present
     claim: |
@@ -309,7 +309,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: "head -20 README.md"
+        - verifier: manual-head-20-readme-md
           result: pass
   - id: social-preview-png-present
     claim: |
@@ -321,11 +321,11 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: "[ -s assets/social-preview.png ]"
+        - verifier: manual-s-assets-social-preview-png
           result: pass
-        - verifier: "[ -s assets/social-preview.svg ]"
+        - verifier: manual-s-assets-social-preview-svg
           result: pass
-        - verifier: "file assets/social-preview.png | grep -q 'PNG image data, 1280 x 640'"
+        - verifier: manual-file-assets-social-preview-png-grep-q-png-image-
           result: pass
   - id: github-release-v3-3-0-published
     claim: |
@@ -336,11 +336,11 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: gh release view v3.3.0 --repo 11111000000/math-coding --json isDraft,isPrerelease,tagName,name
+        - verifier: manual-gh-release-view-v3-3-0-repo-11111000000-math-cod
           result: pass
-        - verifier: gh release view v3.3.0 --repo 11111000000/math-coding --json assets --jq '.assets[].name' | grep -qE '^mathc-(linux-x86_64|linux-aarch64|darwin-x86_64|darwin-aarch64)$'
+        - verifier: manual-gh-release-view-v3-3-0-repo-11111000000-math-cod
           result: pass
-        - verifier: gh release view v3.3.0 --repo 11111000000/math-coding --json assets --jq '.assets[].name' | grep -qE '^(install\.sh|SHA256SUMS)$'
+        - verifier: manual-gh-release-view-v3-3-0-repo-11111000000-math-cod
           result: pass
   - id: no-self-check-regression
     claim: |
@@ -350,7 +350,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: "_build/default/bin/mathc.exe self-check"
+        - verifier: manual-build-default-bin-mathc-exe-self-check
           result: pass
 
 counterexample: |

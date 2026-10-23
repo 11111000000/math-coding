@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: ci-gate-exit-honesty-2026-10
 revision: 1
 state: active
-body_sha: "sha256:5535ffa9e65cfbbc4e7d26f541303813a794c0d76d89c8fad789336642856ee0"
-yaml_sha: "sha256:5535ffa9e65cfbbc4e7d26f541303813a794c0d76d89c8fad789336642856ee0"
+body_sha: "sha256:e90fb2a6c0759b342fdf72adc0ba224c846edb2251833b4244140d791bc465c7"
+yaml_sha: "sha256:e90fb2a6c0759b342fdf72adc0ba224c846edb2251833b4244140d791bc465c7"
 
 intent: |
   Make the two gates that the project's central claim rests on
@@ -188,7 +188,7 @@ obligations:
       all:
         - verifier: scripts/ci-step-exit-sim.sh
           result: pass
-        - verifier: shell-grep rc=$? .github/workflows/ci.yml
+        - verifier: manual-shell-grep-rc-github-workflows-ci-yml
           result: pass
   - id: ci-step-sim-is-not-a-tautology
     outcome: exit-honesty-is-checked-not-asserted
@@ -203,7 +203,7 @@ obligations:
       all:
         - verifier: scripts/ci-step-exit-sim.sh
           result: pass
-        - verifier: shell-grep pre-fix control scripts/ci-step-exit-sim.sh
+        - verifier: manual-shell-grep-pre-fix-control-scripts-ci-step-exit-
           result: pass
   - id: dune-test-timeout-never-passes-silently
     outcome: dune-test-hang-is-not-a-pass
@@ -217,11 +217,11 @@ obligations:
       old soft-pass comment is gone.
     acceptance:
       all:
-        - verifier: shell-grep verify_test_suite scripts/dev
+        - verifier: manual-shell-grep-verify-test-suite-scripts-dev
           result: pass
-        - verifier: shell-grep verify_test_exclusions scripts/dev
+        - verifier: manual-shell-grep-verify-test-exclusions-scripts-dev
           result: pass
-        - verifier: shell-grep dev-fast-test scripts/dev
+        - verifier: manual-shell-grep-dev-fast-test-scripts-dev
           result: pass
   - id: false-justification-gone
     outcome: false-justification-removed
@@ -232,9 +232,9 @@ obligations:
       code path where `jq` supplies the step's status.
     acceptance:
       all:
-        - verifier: text-scan-no-still-proves-the-suite
+        - verifier: manual-text-scan-no-still-proves-the-suite
           result: pass
-        - verifier: shell-grep DIAGNOSTIC ONLY .github/workflows/ci.yml
+        - verifier: manual-shell-grep-diagnostic-only-github-workflows-ci-y
           result: pass
   - id: this-decision-validates
     outcome: ci-step-propagates-mathc-exit

@@ -4,8 +4,8 @@ id: plan-2026-12-validation-followup-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:8097a94ac3aefb6944f2d64053451159ca9a3ede19503b948c126b5219fa5725"
-yaml_sha: "sha256:8097a94ac3aefb6944f2d64053451159ca9a3ede19503b948c126b5219fa5725"
+body_sha: "sha256:88e939e04dfd15b01660e076b8ba3c33f067925a5204d4201f6a6ab78a43473e"
+yaml_sha: "sha256:88e939e04dfd15b01660e076b8ba3c33f067925a5204d4201f6a6ab78a43473e"
 
 intent: |
   Close the remaining 15 pre-existing `mathc validate` rejections
@@ -119,7 +119,7 @@ obligations:
       exists with §0–§10 filled.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/docs/plans/plan-2026-12-validation-followup-2026-10.md
           result: pass
         - verifier: mathc validate decisions/plan-2026-12-validation-followup-2026-10.yaml
@@ -183,7 +183,7 @@ obligations:
       `mathc validate FILE` exits 0 with `parse-ok`.
     acceptance:
       all:
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: /home/az/Projects/math-coding/
           needle: reject: decisions/
           result: pass
@@ -194,7 +194,7 @@ obligations:
       same 184 pass / 0 unknown as the post-F11 baseline.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
 
 risk:

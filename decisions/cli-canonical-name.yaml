@@ -4,9 +4,9 @@ id: cli-canonical-name
 revision: 4
 state: active
 
-body_sha: "sha256:171cb670ed91d8ec0174046d23f83f4bdded23a728e19cd30defb355c828887e"
+body_sha: "sha256:03e36a9659e94c3be66f7a01315bf85f39a54ebf802a54a9876056557a26a2e4"
 
-yaml_sha: "sha256:171cb670ed91d8ec0174046d23f83f4bdded23a728e19cd30defb355c828887e"
+yaml_sha: "sha256:03e36a9659e94c3be66f7a01315bf85f39a54ebf802a54a9876056557a26a2e4"
 
 intent: |
   Collapse the project's three CLI referents (the legacy short
@@ -176,11 +176,11 @@ obligations:
       BuiltIn.
     acceptance:
       all:
-        - verifier: text-scan-lib-re-evaluation-has-mathc-prefix
+        - verifier: manual-text-scan-lib-re-evaluation-has-mathc-prefix
           result: pass
-        - verifier: text-scan-lib-re-evaluation-no-mathc-prefix
+        - verifier: manual-text-scan-lib-re-evaluation-no-mathc-prefix
           result: pass
-        - verifier: mathc-validate-passes-on-decisions
+        - verifier: manual-mathc-validate-passes-on-decisions
           result: pass
   - id: docs-no-mathc-cli
     outcome: single-cli-name
@@ -189,7 +189,7 @@ obligations:
       0 results outside the `MC-*` diagnostic-code family.
     acceptance:
       all:
-        - verifier: text-scan-tracked-no-mathc-cli
+        - verifier: manual-text-scan-tracked-no-mathc-cli
           result: pass
   - id: decisions-renamed
     outcome: decision-ids-renamed
@@ -201,11 +201,11 @@ obligations:
       decision's revision is bumped by 1.
     acceptance:
       all:
-        - verifier: text-scan-decisions-no-mathc-id
+        - verifier: manual-text-scan-decisions-no-mathc-id
           result: pass
-        - verifier: text-scan-decisions-no-mathc-verifier
+        - verifier: manual-text-scan-decisions-no-mathc-verifier
           result: pass
-        - verifier: mathc-validate-passes-all-decisions
+        - verifier: manual-mathc-validate-passes-all-decisions
           result: pass
   - id: site-classes-renamed
     outcome: site-classes-renamed
@@ -215,13 +215,13 @@ obligations:
       preserved (the renames are 1-to-1 on selectors).
     acceptance:
       all:
-        - verifier: text-scan-assets-style-css-no-mathc
+        - verifier: manual-text-scan-assets-style-css-no-mathc
           result: pass
-        - verifier: text-scan-lib-render-no-mathc-class
+        - verifier: manual-text-scan-lib-render-no-mathc-class
           result: pass
-        - verifier: text-scan-lib-packages-no-mathc-class
+        - verifier: manual-text-scan-lib-packages-no-mathc-class
           result: pass
-        - verifier: mathc-render-produces-styled-output
+        - verifier: manual-mathc-render-produces-styled-output
           result: pass
   - id: skill-url-points-at-real-asset
     outcome: skill-url-correct
@@ -233,7 +233,7 @@ obligations:
       is `mathc-linux-x86_64`.
     acceptance:
       all:
-        - verifier: text-scan-skill-url-matches-release-asset
+        - verifier: manual-text-scan-skill-url-matches-release-asset
           result: pass
 
 

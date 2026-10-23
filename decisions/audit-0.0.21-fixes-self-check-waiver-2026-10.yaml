@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: audit-0.0.21-fixes-self-check-waiver-2026-10
 revision: 2
 state: active
-body_sha: "sha256:306d7fb6bc87123c56c5fda5792abbfbaf8da1986153f2b179f9febb32e788e6"
-yaml_sha: "sha256:306d7fb6bc87123c56c5fda5792abbfbaf8da1986153f2b179f9febb32e788e6"
+body_sha: "sha256:e29ac0f9db86515e19642afd07dd0e4780d25a30bd5f4bac2476f24c3758f70c"
+yaml_sha: "sha256:e29ac0f9db86515e19642afd07dd0e4780d25a30bd5f4bac2476f24c3758f70c"
 intent: |
   Record the structural deficit that prevents
   `decisions/audit-0.0.21-fixes.yaml` obligation
@@ -170,7 +170,7 @@ obligations:
       with a `reason` field naming the structural cause.
     acceptance:
       all:
-        - verifier: ls attestations/audit-0.0.21-fixes-*.json | wc -l
+        - verifier: manual-ls-attestations-audit-0-0-21-fixes-json-wc-l
           result: pass
 
   - id: inconclusive-reason-cited
@@ -181,7 +181,7 @@ obligations:
       signal, and the pending waiver file by path.
     acceptance:
       all:
-        - verifier: rg -l 'portable-linux-musl' attestations/audit-0.0.21-fixes-self-check-verdict-is-pass.json
+        - verifier: manual-rg-l-portable-linux-musl-attestations-audit-0-0-
           result: pass
 
   - id: audit-0.0.21-fixes-decision-untouched
@@ -191,7 +191,7 @@ obligations:
       after this commit (no rev bump, no body edit).
     acceptance:
       all:
-        - verifier: git diff HEAD~1..HEAD -- decisions/audit-0.0.21-fixes.yaml
+        - verifier: manual-git-diff-head-1-head-decisions-audit-0-0-21-fixe
           result: pass
 
 reversal:

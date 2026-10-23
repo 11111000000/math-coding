@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:26cf50703f883adad9f7893588e95632dd3b7f54e354ed5a070e87504dc96eb6"
-yaml_sha: "sha256:26cf50703f883adad9f7893588e95632dd3b7f54e354ed5a070e87504dc96eb6"
+body_sha: "sha256:cfa03cd7255b14d11bb9a4f5402172dbd603c9d856165e52e001ba4aa606cb37"
+yaml_sha: "sha256:cfa03cd7255b14d11bb9a4f5402172dbd603c9d856165e52e001ba4aa606cb37"
 
 axiom_link:
   - A0
@@ -449,13 +449,13 @@ obligations:
       are uploaded as release assets.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/release-cosign-blob-sign-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/release-cosign-blob-sign-2026-10.yaml
           result: pass
-        - verifier: yq '.jobs.publish.steps[].run' .github/workflows/release.yml | grep -q 'cosign sign-blob'
+        - verifier: manual-yq-jobs-publish-steps-run-github-workflows-relea
           result: pass
-        - verifier: yq '.jobs.publish.steps[].uses' .github/workflows/release.yml | grep -q 'sigstore/cosign-installer'
+        - verifier: manual-yq-jobs-publish-steps-uses-github-workflows-rele
           result: pass
 
   - id: install-sh-cosign-blob-flags
@@ -469,15 +469,15 @@ obligations:
       hatch (it now toggles BOTH image and blob verify).
     acceptance:
       all:
-        - verifier: bash -n scripts/install-tooling/install.sh
+        - verifier: manual-bash-n-scripts-install-tooling-install-sh
           result: pass
         - verifier: scripts/install-tooling/install.sh --help | grep -q -- --cosign-verify
           result: pass
         - verifier: scripts/install-tooling/install.sh --help | grep -q -- --no-cosign-verify
           result: pass
-        - verifier: grep -q 'cosign verify-blob' scripts/install-tooling/install.sh
+        - verifier: manual-grep-q-cosign-verify-blob-scripts-install-toolin
           result: pass
-        - verifier: grep -q 'verify_cosign_blob' scripts/install-tooling/install.sh
+        - verifier: manual-grep-q-verify-cosign-blob-scripts-install-toolin
           result: pass
 
   - id: install-ps1-cosign-blob-flags
@@ -491,11 +491,11 @@ obligations:
       hatch (it now toggles BOTH image and blob verify).
     acceptance:
       all:
-        - verifier: bash -n scripts/install-tooling/install.ps1
+        - verifier: manual-bash-n-scripts-install-tooling-install-ps1
           result: pass
-        - verifier: grep -q 'cosign verify-blob' scripts/install-tooling/install.ps1
+        - verifier: manual-grep-q-cosign-verify-blob-scripts-install-toolin
           result: pass
-        - verifier: grep -q Test-CosignBlob scripts/install-tooling/install.ps1
+        - verifier: manual-grep-q-test-cosignblob-scripts-install-tooling-i
           result: pass
 
   - id: cosign-blob-trap-log
@@ -505,7 +505,7 @@ obligations:
       `cosign sign-blob without id-token: write` trap.
     acceptance:
       all:
-        - verifier: grep -q '11.37' OCAML_BEST_PRACTICES.md
+        - verifier: manual-grep-q-11-37-ocaml-best-practices-md
           result: pass
 
 reversal:

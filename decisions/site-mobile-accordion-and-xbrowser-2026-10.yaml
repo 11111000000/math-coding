@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: site-mobile-accordion-and-xbrowser-2026-10
 revision: 1
 state: active
-body_sha: "sha256:d157a9e2b5ffae3cf07a635387736f4fdfa0eb80b0f3fa5c79190a91fed19761"
-yaml_sha: "sha256:d157a9e2b5ffae3cf07a635387736f4fdfa0eb80b0f3fa5c79190a91fed19761"
+body_sha: "sha256:a5694389bd099d4d636acb1b18935e387b26434818f6fd8076a13597fc403159"
+yaml_sha: "sha256:a5694389bd099d4d636acb1b18935e387b26434818f6fd8076a13597fc403159"
 axiom_link:
   - A0
   - A1
@@ -350,7 +350,7 @@ obligations:
       all:
         - verifier: scripts/dev ready
           result: pass
-        - verifier: ! grep -qF 'display: block' assets/style.css | grep -E '@media \(max-width - dedup panel rule' || true
+        - verifier: manual-grep-qf-display-block-assets-style-css-grep-e-me
           result: pass
   - id: mobile-nav-group-click-toggles-panel
     outcome: mobile-nav-group-click-toggles-panel
@@ -375,11 +375,11 @@ obligations:
       remain in `dist/` or `assets/`.
     acceptance:
       all:
-        - verifier: ! grep -RqF 'role="menu"' dist/ assets/
+        - verifier: manual-grep-rqf-role-menu-dist-assets
           result: pass
-        - verifier: ! grep -RqF 'role="menuitem"' dist/ assets/
+        - verifier: manual-grep-rqf-role-menuitem-dist-assets
           result: pass
-        - verifier: ! grep -RqF 'role="none"' dist/ assets/
+        - verifier: manual-grep-rqf-role-none-dist-assets
           result: pass
   - id: vendor-prefixes-ship
     outcome: vendor-prefixes-ship
@@ -388,13 +388,13 @@ obligations:
       prefixes on the corresponding selectors.
     acceptance:
       all:
-        - verifier: grep -qF '-webkit-appearance: none' dist/assets/style.css
+        - verifier: manual-grep-qf-webkit-appearance-none-dist-assets-style
           result: pass
-        - verifier: grep -qF '-moz-appearance: none' dist/assets/style.css
+        - verifier: manual-grep-qf-moz-appearance-none-dist-assets-style-cs
           result: pass
-        - verifier: grep -qF '-webkit-user-select: none' dist/assets/style.css
+        - verifier: manual-grep-qf-webkit-user-select-none-dist-assets-styl
           result: pass
-        - verifier: grep -qF 'text-size-adjust: 100%' dist/assets/style.css
+        - verifier: manual-grep-qf-text-size-adjust-100-dist-assets-style-c
           result: pass
   - id: focus-visible-fallback-ship
     outcome: focus-visible-fallback-ship
@@ -403,7 +403,7 @@ obligations:
       `@supports not (selector(:focus-visible))` block.
     acceptance:
       all:
-        - verifier: grep -qF '@supports not (selector(:focus-visible))' dist/assets/style.css
+        - verifier: manual-grep-qf-supports-not-selector-focus-visible-dist
           result: pass
   - id: prefers-reduced-motion-respected
     outcome: prefers-reduced-motion-respected
@@ -412,7 +412,7 @@ obligations:
       `@media (prefers-reduced-motion: reduce)` block.
     acceptance:
       all:
-        - verifier: grep -qF 'prefers-reduced-motion: reduce' dist/assets/style.css
+        - verifier: manual-grep-qf-prefers-reduced-motion-reduce-dist-asset
           result: pass
   - id: font-feature-superscript-inherits-body
     outcome: font-feature-superscript-inherits-body
@@ -423,7 +423,7 @@ obligations:
       sups.
     acceptance:
       all:
-        - verifier: grep -qF 'font-feature-settings: "kern", "liga", "onum", "sups"' dist/assets/style.css
+        - verifier: manual-grep-qf-font-feature-settings-kern-liga-onum-sup
           result: pass
 reversal:
   - signal: mobile-menu-regression

@@ -4,8 +4,8 @@ id: mobile-menu-collapse-and-hide-on-scroll-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:2e2288ec4107fff04405690ed0082d7125e080b44f33d5fedd75c08b7ec00308"
-yaml_sha: "sha256:2e2288ec4107fff04405690ed0082d7125e080b44f33d5fedd75c08b7ec00308"
+body_sha: "sha256:09494547e2b0f072cf32997b4bb55fbf52d612a3c42889bb94c616c6b3dd74a3"
+yaml_sha: "sha256:09494547e2b0f072cf32997b4bb55fbf52d612a3c42889bb94c616c6b3dd74a3"
 change_kind: implementation
 axiom_link:
   - A0
@@ -167,9 +167,9 @@ obligations:
       `boundingClientRect.height === 0`.
     acceptance:
       all:
-        - verifier: ! grep -F 'max-height: 0' assets/style.css
+        - verifier: manual-grep-f-max-height-0-assets-style-css
           result: pass
-        - verifier: ! grep -F 'grid-template-rows: 0fr' assets/style.css
+        - verifier: manual-grep-f-grid-template-rows-0fr-assets-style-css
           result: pass
   - id: mobile-panel-expands-smoothly
     statement: |
@@ -180,9 +180,9 @@ obligations:
       ms after click are 0/106.5/157.8/158.2 px.
     acceptance:
       all:
-        - verifier: ! grep -F 'max-height 240ms ease-out' assets/style.css
+        - verifier: manual-grep-f-max-height-240ms-ease-out-assets-style-cs
           result: pass
-        - verifier: ! grep -F 'max-height: 16rem' assets/style.css
+        - verifier: manual-grep-f-max-height-16rem-assets-style-css
           result: pass
   - id: hide-on-scroll
     statement: |
@@ -195,9 +195,9 @@ obligations:
       the class is removed and the nav slides back in.
     acceptance:
       all:
-        - verifier: ! grep -F 'nav.site-nav.nav-hidden' assets/style.css
+        - verifier: manual-grep-f-nav-site-nav-nav-hidden-assets-style-css
           result: pass
-        - verifier: ! grep -F 'setupHideOnScroll' assets/site.js
+        - verifier: manual-grep-f-setuphideonscroll-assets-site-js
           result: pass
   - id: build-and-render-clean
     statement: |

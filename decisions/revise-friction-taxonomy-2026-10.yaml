@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:ee217e1ea82d02d7241d253cd47b4fd2a67980fcc2b10f99ef8fd109fa04fbb3"
-yaml_sha: "sha256:ee217e1ea82d02d7241d253cd47b4fd2a67980fcc2b10f99ef8fd109fa04fbb3"
+body_sha: "sha256:94f8009f412ee29854467a4b178f72e4a671c772014bf1c323c047cdee88096a"
+yaml_sha: "sha256:94f8009f412ee29854467a4b178f72e4a671c772014bf1c323c047cdee88096a"
 
 intent: |
   Apply R6 of `docs/experiments/adoption-2026-10.md` §13 by
@@ -175,15 +175,15 @@ obligations:
       counts; the totals match.
     acceptance:
       all:
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: docs/experiments/adoption-2026-10.md
           needle: "F-INSTALL"
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: docs/experiments/adoption-2026-10.md
           needle: "F-SEMANTIC"
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: docs/experiments/adoption-2026-10.md
           needle: '\*\*Total\*\*      | 55    |'
           result: pass

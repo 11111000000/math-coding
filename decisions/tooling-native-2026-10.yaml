@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: tooling-native
 revision: 1
 state: active
-body_sha: "sha256:75de2b7cd6cdda5432e27f2cf086fe4afcf365345fe58a38ce68cbb02e2913e0"
-yaml_sha: "sha256:75de2b7cd6cdda5432e27f2cf086fe4afcf365345fe58a38ce68cbb02e2913e0"
+body_sha: "sha256:77e94ff21617b4d0284b1b2e39ced6833dba4892731ae746e3bf963c60804158"
+yaml_sha: "sha256:77e94ff21617b4d0284b1b2e39ced6833dba4892731ae746e3bf963c60804158"
 intent: |
   Strengthen the existing "Toolchain preference (OCaml ecosystem over
   Python)" soft rule in AGENTS.md §Toolchain preference into a hard
@@ -214,7 +214,7 @@ obligations:
       required sub-headings and asserts pass.
     acceptance:
       all:
-        - verifier: OCAML_BEST_PRACTICES.md §11 trap-log integrity (planned)
+        - verifier: manual-ocaml-best-practices-md-11-trap-log-integrity-pl
           result: pass
 
   - id: mathc-cli-named-in-toolchain-bullet

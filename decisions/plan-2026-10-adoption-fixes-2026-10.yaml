@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:5113d11b1541f73e63832d5acb9a8d00a75d3a2e5c5b5fb7e9c04d57f988a070"
-yaml_sha: "sha256:5113d11b1541f73e63832d5acb9a8d00a75d3a2e5c5b5fb7e9c04d57f988a070"
+body_sha: "sha256:675a5555276a4a25388c6ad6804921c5ce80859c6cdca80d9e8e65efb91af948"
+yaml_sha: "sha256:675a5555276a4a25388c6ad6804921c5ce80859c6cdca80d9e8e65efb91af948"
 
 intent: |
   Convert the 9 recommendations from the 2026-10-17 adoption
@@ -113,7 +113,7 @@ obligations:
       exists with §0-§9 filled.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: docs/plans/plan-2026-10-adoption-fixes-2026-10.md
           result: pass
         - verifier: mathc validate decisions/plan-2026-10-adoption-fixes-2026-10.yaml
@@ -130,7 +130,7 @@ obligations:
       the experiment's reproduce commands now succeed.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/fix-env-var-resolver-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/fix-env-var-resolver-2026-10.yaml
@@ -147,7 +147,7 @@ obligations:
       `MC-COUNTEREXAMPLE-MISSING`.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/fix-yaml-parser-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/fix-yaml-parser-2026-10.yaml
@@ -163,7 +163,7 @@ obligations:
       `--kind=`, `--producer=`, `--dry-run`, `--result=` flags.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/ship-attest-batch-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/ship-attest-batch-2026-10.yaml
@@ -180,7 +180,7 @@ obligations:
       named directory.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/fix-generate-attestations-env-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/fix-generate-attestations-env-2026-10.yaml
@@ -197,7 +197,7 @@ obligations:
       updated.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/add-verify-subcommand-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/add-verify-subcommand-2026-10.yaml
@@ -215,7 +215,7 @@ obligations:
       parser fix lands.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/tighten-counterexample-warn-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/tighten-counterexample-warn-2026-10.yaml
@@ -232,7 +232,7 @@ obligations:
       all 55 events re-classified; counts still sum to 55.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/revise-friction-taxonomy-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/revise-friction-taxonomy-2026-10.yaml
@@ -246,7 +246,7 @@ obligations:
       `scope.paths` when `axiom_link` is absent.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/axiom-link-inference-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/axiom-link-inference-2026-10.yaml
@@ -262,7 +262,7 @@ obligations:
       dispatch table.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/verify-mathc-doctor-ships-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/verify-mathc-doctor-ships-2026-10.yaml
@@ -279,12 +279,12 @@ obligations:
       hypotheses, metric template, project picks).
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/plan-brownfield-experiment-v2-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/plan-brownfield-experiment-v2-2026-10.yaml
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
           result: pass
 
@@ -296,7 +296,7 @@ obligations:
       subjects attributable to this plan.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
 
   - id: plan-doc-counter-signed
@@ -307,11 +307,11 @@ obligations:
       sub-decision.
     acceptance:
       all:
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: docs/plans/plan-2026-10-adoption-fixes-2026-10.md
           needle: "R1"
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: docs/plans/plan-2026-10-adoption-fixes-2026-10.md
           needle: "R9"
           result: pass

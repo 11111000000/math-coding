@@ -6,8 +6,8 @@ state: active
 mode: light
 change_kind: implementation
 
-body_sha: "sha256:f5cda421be38ebd802e37a27a09db223b03e5a114615b1fe1b6408ed409af22c"
-yaml_sha: "sha256:f5cda421be38ebd802e37a27a09db223b03e5a114615b1fe1b6408ed409af22c"
+body_sha: "sha256:f75b8879468a5676f7efe7517f05ac0a6f11842597e9843addcbd3d93088e1eb"
+yaml_sha: "sha256:f75b8879468a5676f7efe7517f05ac0a6f11842597e9843addcbd3d93088e1eb"
 
 axiom_link:
   - A0
@@ -119,9 +119,9 @@ obligations:
       не hard block.
     acceptance:
       all:
-        - verifier: git diff .githooks/pre-commit | grep -c 3+ times in last 5 commits == 0
+        - verifier: manual-git-diff-githooks-pre-commit-grep-c-3-times-in-l
           result: pass
-        - verifier: bash -n .githooks/pre-commit exits 0
+        - verifier: manual-bash-n-githooks-pre-commit-exits-0
           result: pass
   - id: trap-log-11-39-present
     outcome: trap-log-records-deficit
@@ -131,7 +131,7 @@ obligations:
       описывающий дефицит и резолюцию.
     acceptance:
       all:
-        - verifier: text-scan-trap-log-1139
+        - verifier: manual-text-scan-trap-log-1139
           result: pass
 
 risk:

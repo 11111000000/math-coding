@@ -6,8 +6,8 @@ state: active
 mode: light
 axiom_link:
   - A4
-body_sha: "sha256:97d2206def6352703e3e57c4b61046b91f1ae5eca00877cbf90f07fda5dbd876"
-yaml_sha: "sha256:97d2206def6352703e3e57c4b61046b91f1ae5eca00877cbf90f07fda5dbd876"
+body_sha: "sha256:92b558bfa88a86c6002ed639f26a15e767312705f9f0e547b5e72cb71f8b30df"
+yaml_sha: "sha256:92b558bfa88a86c6002ed639f26a15e767312705f9f0e547b5e72cb71f8b30df"
 intent: |
   The hand-rolled Markdown subset in `lib/render.ml::md_parse`
   previously recognised only `- ` unordered lists. Lines
@@ -134,7 +134,7 @@ obligations:
           result: pass
         - verifier: tests/render_kernel.ml::ordered_list_continuation_joins_into_one_li
           result: pass
-        - verifier: dist/methodology.ru.html has <ol> at the
+        - verifier: manual-rendered-asset-methodology-ru
           'Рабочая цепочка на практике' section
           result: pass
   - id: ordered-list-negative

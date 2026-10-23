@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: dialectic-method-v3
 revision: 3
 state: active
-body_sha: "sha256:73775e3f4fb7cc0f63ce0f8883a772320ea85b2949385cfa0ceff93c799ab215"
-yaml_sha: "sha256:73775e3f4fb7cc0f63ce0f8883a772320ea85b2949385cfa0ceff93c799ab215"
+body_sha: "sha256:100282d8884fd47f7c6918262c8d47e6e1c3ef2d82fe86b294f68034b53d3f50"
+yaml_sha: "sha256:100282d8884fd47f7c6918262c8d47e6e1c3ef2d82fe86b294f68034b53d3f50"
 axiom_link:
   - A0
   - A1
@@ -136,21 +136,21 @@ obligations:
     claim: schemas/decision.json declares antithesis with minLength 80.
     acceptance:
       all:
-        - verifier: text-scan-schemas-decision-antithesis
+        - verifier: manual-text-scan-schemas-decision-antithesis
           result: pass
   - id: spec-11-updated
     outcome: spec-11-names-antithesis
     claim: spec/algebra-3.2.md §11 mentions antithesis; §11.1 records rationale.
     acceptance:
       all:
-        - verifier: text-scan-contains-antithesis-in-section-11
+        - verifier: manual-text-scan-contains-antithesis-in-section-11
           result: pass
   - id: kernel-parses
     outcome: kernel-parses-antithesis
     claim: lib/decision.ml accepts the antithesis key from YAML/JSON.
     acceptance:
       all:
-        - verifier: dune-build
+        - verifier: manual-dune-build
           result: pass
   - id: counterexample-sweep
     outcome: counterexample-sweep-closed
@@ -158,7 +158,7 @@ obligations:
       carry non-empty counterexample.
     acceptance:
       all:
-        - verifier: grep-counterexample-non-empty
+        - verifier: manual-grep-counterexample-non-empty
           result: pass
   - id: fixtures
     outcome: fixtures-cover-antithesis
@@ -166,7 +166,7 @@ obligations:
       decision-missing-antithesis.t exist and assert the contract.
     acceptance:
       all:
-        - verifier: dune-runtest
+        - verifier: manual-dune-runtest
           result: pass
 
 reversal:

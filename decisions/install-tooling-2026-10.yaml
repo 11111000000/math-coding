@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-2026-10
 revision: 1
 state: active
-body_sha: "sha256:df5527a2c759c69a5990d0d7555c31dd5b8f047b936f88576969348424be44a2"
-yaml_sha: "sha256:df5527a2c759c69a5990d0d7555c31dd5b8f047b936f88576969348424be44a2"
+body_sha: "sha256:6512ba40c63f8ea1924bf6ba105cf3ceb8f036a22fcbbc9145932c49ee76e769"
+yaml_sha: "sha256:6512ba40c63f8ea1924bf6ba105cf3ceb8f036a22fcbbc9145932c49ee76e769"
 intent: |
   Replace the hand-curated `wget | chmod` adoption path in
   `adoption/SKILL.md:55-60` with a self-installing suite. The
@@ -455,7 +455,7 @@ obligations:
       all:
         - verifier: tests/cli/install.t
           result: pass
-        - verifier: nix flake check
+        - verifier: manual-nix-flake-check
           result: pass
   - id: nix-run-derivation-exists
     outcome: nix-run-derivation-exists
@@ -464,7 +464,7 @@ obligations:
       `nix run github:.../math-coding#default` works.
     acceptance:
       all:
-        - verifier: nix flake check
+        - verifier: manual-nix-flake-check
           result: pass
   - id: adoption-bundle-in-release
     outcome: adoption-bundle-in-release

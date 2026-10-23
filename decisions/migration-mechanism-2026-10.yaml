@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: migration-mechanism
 revision: 2
 state: active
-body_sha: "sha256:9885e4e79dd472c7194c2f2e68db842b77929be32d41b8ecdf2ca4388582ae8b"
-yaml_sha: "sha256:9885e4e79dd472c7194c2f2e68db842b77929be32d41b8ecdf2ca4388582ae8b"
+body_sha: "sha256:9bb79c4c7495b880ff6d4cdfa748edd3ab8e7e135b47c62a215c30957a1c8c2a"
+yaml_sha: "sha256:9bb79c4c7495b880ff6d4cdfa748edd3ab8e7e135b47c62a215c30957a1c8c2a"
 intent: |
   Give math-coding agents a deterministic, reproducible, kernel-driven
   way to migrate decisions/*.yaml between minor versions of the schema
@@ -236,7 +236,7 @@ obligations:
     outcome: python-migration-scripts-retired
     acceptance:
       all:
-        - verifier: bash -c "! test -f scripts/migrate-decisions-3.2.py && ! test -f scripts/migrate-decisions-3.2-phase2.py"
+        - verifier: manual-bash-c-test-f-scripts-migrate-decisions-3-2-py-t
           result: pass
 
   - id: first-manifest-declared

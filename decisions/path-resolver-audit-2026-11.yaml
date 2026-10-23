@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:ff59e1acd1b5bb71bdb3393d6c45a0ab5b6a460074001439e1343f853eb4a150"
-yaml_sha: "sha256:ff59e1acd1b5bb71bdb3393d6c45a0ab5b6a460074001439e1343f853eb4a150"
+body_sha: "sha256:8753139344e710a8a7473a9ffed3904f8b393902691432e61f539204e116bf51"
+yaml_sha: "sha256:8753139344e710a8a7473a9ffed3904f8b393902691432e61f539204e116bf51"
 
 intent: |
   Close the F10 finding from
@@ -163,7 +163,7 @@ obligations:
       attributable to this decision.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
 
   - id: a2-no-literal-paths
@@ -175,7 +175,7 @@ obligations:
       sufficient).
     acceptance:
       all:
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           needle: "decisions/|attestations/|policies\\.yaml"
           result: pass
 

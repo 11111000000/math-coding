@@ -4,8 +4,8 @@ id: site-redesign-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:ba7f53bd3dbe56d91cc61305f589541afe58c360947e117b2b1e4c7a53a7b342"
-yaml_sha: "sha256:ba7f53bd3dbe56d91cc61305f589541afe58c360947e117b2b1e4c7a53a7b342"
+body_sha: "sha256:0f44cb818b8057975309f01a4f2a80d4e8a48aa0c59ce83776d4cee032afbdaa"
+yaml_sha: "sha256:0f44cb818b8057975309f01a4f2a80d4e8a48aa0c59ce83776d4cee032afbdaa"
 axiom_link:
   - A0
   - A1
@@ -117,7 +117,7 @@ obligations:
       1440 px viewports with 14-px mono text and a 1.0 em
       gutter.
     acceptance:
-      verifier: visual-diff
+      verifier: manual-visual-diff
       result: pass
       detail: |
         screenshots/site-redesign/nav-1280.png and
@@ -129,7 +129,7 @@ obligations:
       primitives (left bracket, check mark, right bracket)
       legible.
     acceptance:
-      verifier: render-and-compare
+      verifier: manual-render-and-compare
       result: pass
       detail: |
         Render the SVG to PNG at 16x16 with a 2x device-pixel
@@ -140,7 +140,7 @@ obligations:
       The first viewport on `/` on a 1440 x 900 window shows
       only the hero.
     acceptance:
-      verifier: visual-diff
+      verifier: manual-visual-diff
       result: pass
       detail: |
         The screenshot at 1440 x 900 of `/` shows only the
@@ -152,7 +152,7 @@ obligations:
       with a sample `mathc gate main feature/auth-fix`
       transcript.
     acceptance:
-      verifier: file-grep
+      verifier: manual-file-grep
       result: pass
       detail: |
         grep 'mathc gate main feature/auth-fix' dist/index.html
@@ -162,7 +162,7 @@ obligations:
       `dist/index.ru.html` carries the same five sections and
       structural classes as `dist/index.html`.
     acceptance:
-      verifier: file-grep
+      verifier: manual-file-grep
       result: pass
       detail: |
         grep -c -e 'mathc-hero' -e 'mathc-section mathc-quickstart' -e 'mathc-section mathc-moderation' -e 'mathc-section mathc-methodology' -e 'mathc-section mathc-adopt' dist/index.html
@@ -173,7 +173,7 @@ obligations:
       On viewports ≥ 1280 px the hero uses the full main
       column.
     acceptance:
-      verifier: browser-eval
+      verifier: manual-browser-eval
       result: pass
       detail: |
         At 1440 x 900, evaluate in the browser:

@@ -4,9 +4,9 @@ id: mathc-explain-subcommand
 revision: 4
 state: active
 
-body_sha: "sha256:dc5adf6feaf464936962ecabf4dc71fa32f61b59359d592f8f34a20ec21fc619"
+body_sha: "sha256:6a558336a5be550191209a2d7c693e78704ccb83edffabf922c709c060aefafe"
 
-yaml_sha: "sha256:dc5adf6feaf464936962ecabf4dc71fa32f61b59359d592f8f34a20ec21fc619"
+yaml_sha: "sha256:6a558336a5be550191209a2d7c693e78704ccb83edffabf922c709c060aefafe"
 
 intent: |
   Close the broken promise in shipped code: `lib/capsule.ml:88`
@@ -95,9 +95,9 @@ obligations:
       exit code, justification).
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/mathc-explain-subcommand.yaml
           result: pass
-        - verifier: text-scan-spec-semantics-has-explain-row
+        - verifier: manual-text-scan-spec-semantics-has-explain-row
           result: pass
   - id: mathc-explain-dispatcher-shipped
     outcome: dispatcher-shipped
@@ -120,9 +120,9 @@ obligations:
       (cf. tests/cli/context-truncated-omitted.t).
     acceptance:
       all:
-        - verifier: cram-fixture-tests-cli-explain-positive-t
+        - verifier: manual-cram-fixture-tests-cli-explain-positive-t
           result: pass
-        - verifier: cram-fixture-tests-cli-explain-negative-t
+        - verifier: manual-cram-fixture-tests-cli-explain-negative-t
           result: pass
 
 

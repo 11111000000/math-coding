@@ -4,8 +4,8 @@ id: tighten-counterexample-warn-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:6aaef4282da71e6be56c406fa55c34db2c134f6b61cd690e583ce0377c131bd0"
-yaml_sha: "sha256:6aaef4282da71e6be56c406fa55c34db2c134f6b61cd690e583ce0377c131bd0"
+body_sha: "sha256:234e7ae942295b99095336bd157a8753feb8ed52fa1a2c0ea7dee5c4aae0e386"
+yaml_sha: "sha256:234e7ae942295b99095336bd157a8753feb8ed52fa1a2c0ea7dee5c4aae0e386"
 
 intent: |
   Tighten the `MC-COUNTEREXAMPLE-MISSING` diagnostic's
@@ -98,9 +98,9 @@ obligations:
       post-parse.
     acceptance:
       all:
-        - verifier: rg -n 'fix-yaml-parser-2026-10' lib/diagnostic.ml
+        - verifier: manual-rg-n-fix-yaml-parser-2026-10-lib-diagnostic-ml
           result: pass
-        - verifier: rg -n '3f14b76' lib/diagnostic.ml
+        - verifier: manual-rg-n-3f14b76-lib-diagnostic-ml
           result: pass
 
   - id: explain-registry-tightened
@@ -113,7 +113,7 @@ obligations:
       pins.
     acceptance:
       all:
-        - verifier: rg -n 'counterexample-warn.t' lib/diagnostic.ml
+        - verifier: manual-rg-n-counterexample-warn-t-lib-diagnostic-ml
           result: pass
         - verifier: dune build
           result: pass

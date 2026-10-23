@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:a56eb71e5047d2ae71f0cbd24301c468848603428ce3d9364466eb950da4a56f"
-yaml_sha: "sha256:a56eb71e5047d2ae71f0cbd24301c468848603428ce3d9364466eb950da4a56f"
+body_sha: "sha256:790e2bb6b37369f6680c5cebd3b3f268e391df8298b93cd2e2b3648b37400ddf"
+yaml_sha: "sha256:790e2bb6b37369f6680c5cebd3b3f268e391df8298b93cd2e2b3648b37400ddf"
 
 intent: |
   Codify the orchestrator-rescue recipe observed during the
@@ -122,18 +122,18 @@ obligations:
       with the table header row.
     acceptance:
       all:
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: docs/process/attest-handshake-rescue.md
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: docs/process/attest-handshake-rescue.md
           needle: "paseo_archive_agent"
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: docs/process/attest-handshake-rescue.md
           needle: "process-principles.yaml@5::P9"
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: docs/process/attest-handshake-rescue.md
           needle: "## Incidents"
           result: pass
@@ -149,7 +149,7 @@ obligations:
       documentation-only.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
 
 risk:

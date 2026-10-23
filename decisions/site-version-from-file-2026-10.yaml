@@ -4,9 +4,9 @@ id: site-version-from-file-2026-10
 revision: 2
 state: active
 
-body_sha: "sha256:cd13e2fab2f528bc1f4c58c9f83f7ea586bab6542b872cba78108fc4301460de"
+body_sha: "sha256:e5df3d5024111457482228a4a8932dfd557bbe08fd64208a30492829a5082fc2"
 
-yaml_sha: "sha256:cd13e2fab2f528bc1f4c58c9f83f7ea586bab6542b872cba78108fc4301460de"
+yaml_sha: "sha256:e5df3d5024111457482228a4a8932dfd557bbe08fd64208a30492829a5082fc2"
 
 intent: |
   Remove the hardcoded `3.0-alpha` and `v3.0.0` strings from
@@ -205,7 +205,7 @@ obligations:
           result: pass
         - verifier: tests/render_kernel.ml::version_default_reads_version_file
           result: pass
-        - verifier: grep -qF 'VERSION' dist/index.html
+        - verifier: manual-grep-qf-version-dist-index-html
           result: pass
 
   - id: mathc-version-prints-file
@@ -217,7 +217,7 @@ obligations:
       all:
         - verifier: tests/cli/version.t
           result: pass
-        - verifier: grep -qF 'math-coding 3.1.0' _build/install/default/bin/mathc
+        - verifier: manual-grep-qf-math-coding-3-1-0-build-install-default-
           result: pass
 
 

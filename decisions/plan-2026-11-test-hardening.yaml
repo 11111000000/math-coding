@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: plan
-body_sha: "sha256:4358d073732dab5b04c7b4122de859b0afd0f0c85768427b5e9f909a348af078"
-yaml_sha: "sha256:4358d073732dab5b04c7b4122de859b0afd0f0c85768427b5e9f909a348af078"
+body_sha: "sha256:cb5cec44abce7897087bfed80e4d62be2ea969b7264946dc8404e678450a0817"
+yaml_sha: "sha256:cb5cec44abce7897087bfed80e4d62be2ea969b7264946dc8404e678450a0817"
 
 intent: |
   39 `tests/cli/*.t` fixtures are red at main (`a3e4f09` +
@@ -151,11 +151,11 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: docs/plans/plan-2026-11-test-hardening.md
           needle: "W0 → W1 → W3 + W4"
           result: pass
-        - verifier: shell-grep
+        - verifier: manual-shell-grep-unqualified
           path: docs/plans/plan-2026-11-test-hardening.md
           needle: "stale `mathc`"
           result: pass
@@ -166,7 +166,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: bash -c "! git diff --name-only main...HEAD | grep -Eq '^(lib|bin|schemas|axioms|tests)/'"
+        - verifier: manual-bash-c-git-diff-name-only-main-head-grep-eq-lib-
           result: pass
 
 reversal:

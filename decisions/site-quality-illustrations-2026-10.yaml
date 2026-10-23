@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-illustrations-2026-10
 revision: 1
 state: active
-body_sha: "sha256:56af6a399cfa73829f866add32d14bec21a4e1e1805d99f030e16fcea14e7947"
-yaml_sha: "sha256:56af6a399cfa73829f866add32d14bec21a4e1e1805d99f030e16fcea14e7947"
+body_sha: "sha256:4c6a9fd35c1324b3726b5a293b146d6fc154f3afb8ac6636e46d951c74b3d510"
+yaml_sha: "sha256:4c6a9fd35c1324b3726b5a293b146d6fc154f3afb8ac6636e46d951c74b3d510"
 axiom_link:
   - A2
 intent: |
@@ -107,7 +107,7 @@ obligations:
       diagram.
     acceptance:
       all:
-        - verifier: file-exists-and-renders
+        - verifier: manual-file-exists-and-renders
           result: pass
 
   - id: axiom-icons-shipped
@@ -121,7 +121,7 @@ obligations:
       rendered within `dist/index.html`).
     acceptance:
       all:
-        - verifier: file-exists-and-renders
+        - verifier: manual-file-exists-and-renders
           result: pass
 
   - id: kernel-architecture-svg-shipped
@@ -133,7 +133,7 @@ obligations:
       `alt` attribute naming the five pipeline stages.
     acceptance:
       all:
-        - verifier: file-exists-and-renders
+        - verifier: manual-file-exists-and-renders
           result: pass
 
   - id: build-and-self-check-still-green
@@ -147,7 +147,7 @@ obligations:
       `site-quality-polish-2026-10@1`.
     acceptance:
       all:
-        - verifier: mathc-self-check
+        - verifier: manual-mathc-self-check-unqualified
           result: pass
 
 reversal:

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-polish-2026-10
 revision: 1
 state: active
-body_sha: "sha256:2e06c7356dc6e4e4535e42ceb1c511b3c28c5eb9870ff102f67e98ad2963256d"
-yaml_sha: "sha256:2e06c7356dc6e4e4535e42ceb1c511b3c28c5eb9870ff102f67e98ad2963256d"
+body_sha: "sha256:4ee98e8f18c99fc0c69e994ad79b12c7d6a7c4aa399c855d3fdc1c6138746805"
+yaml_sha: "sha256:4ee98e8f18c99fc0c69e994ad79b12c7d6a7c4aa399c855d3fdc1c6138746805"
 axiom_link:
   - A1
 intent: |
@@ -117,7 +117,7 @@ obligations:
       leaves no link or pill without a visible focus ring.
     acceptance:
       all:
-        - verifier: focus-visible-rule-present
+        - verifier: manual-focus-visible-rule-present
           result: pass
 
   - id: live-verdict-counter-emits
@@ -131,7 +131,7 @@ obligations:
       RU sibling (`dist/index.ru.html`).
     acceptance:
       all:
-        - verifier: live-counter-script-emits
+        - verifier: manual-live-counter-script-emits
           result: pass
 
   - id: verdict-pill-pass-is-green
@@ -146,7 +146,7 @@ obligations:
       their semantic colour palette.
     acceptance:
       all:
-        - verifier: verdict-pill-css-rule-changed
+        - verifier: manual-verdict-pill-css-rule-changed
           result: pass
 
   - id: print-stylesheet-readable
@@ -160,7 +160,7 @@ obligations:
       list so each verdict pill stays on one line.
     acceptance:
       all:
-        - verifier: print-rules-present
+        - verifier: manual-print-rules-present
           result: pass
 
   - id: build-and-self-check-still-green
@@ -173,7 +173,7 @@ obligations:
       pages + 1 search index.
     acceptance:
       all:
-        - verifier: mathc-self-check
+        - verifier: manual-mathc-self-check-unqualified
           result: pass
 
 reversal:

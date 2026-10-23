@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.2
 revision: 1
 state: active
-body_sha: "sha256:6157657d00029866ae62db688073a6c3d131b38b46703bb5f5dce6aa164b203a"
-yaml_sha: "sha256:6157657d00029866ae62db688073a6c3d131b38b46703bb5f5dce6aa164b203a"
+body_sha: "sha256:60fecb2079b95e847eb5ecad4b0b890c17ef8a83a1800366548c56cdcd06704b"
+yaml_sha: "sha256:60fecb2079b95e847eb5ecad4b0b890c17ef8a83a1800366548c56cdcd06704b"
 intent: |
   Close the schema-string drift between `decisions/*.yaml`
   (which have carried `math-coding/3.0-alpha` since v3.0.0.19)
@@ -207,7 +207,7 @@ obligations:
     outcome: schema-3.2-accepted
     acceptance:
       all:
-        - verifier: bash -c "for f in decisions/*.yaml; do [ \"\$f\" = \"decisions/obligations.yaml\" ] && continue; head -3 \"\$f\" | grep -q '^schema: math-coding/3\\\\.2$' || { echo \"FAIL: \$f\"; exit 1; }; done; echo 72-of-72 bumped; exit 0"
+        - verifier: manual-bash-c-for-f-in-decisions-yaml-do-f-decisions-ob
           result: pass
 
   - id: migration-manifest-non-empty
@@ -219,7 +219,7 @@ obligations:
     outcome: first-real-migration-cycle
     acceptance:
       all:
-        - verifier: bash -c "test -s decisions/migrations/3.0-alpha-to-3.2.yaml && grep -q 'bump-schema-string' decisions/migrations/3.0-alpha-to-3.2.yaml"
+        - verifier: manual-bash-c-test-s-decisions-migrations-3-0-alpha-to-
           result: pass
 
   - id: bulk-bump-replayable

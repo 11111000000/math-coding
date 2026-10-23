@@ -4,8 +4,8 @@ id: multi-policy-hierarchy-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:e9f6d87fc6a0e2e2b4b9ae3754f81cbecbac2b70d6b46fbff51e584630eccf75"
-yaml_sha: "sha256:e9f6d87fc6a0e2e2b4b9ae3754f81cbecbac2b70d6b46fbff51e584630eccf75"
+body_sha: "sha256:365cd9d81b8b27184228c01291bad8bf30b02045e92efcf00453d239321bb255"
+yaml_sha: "sha256:365cd9d81b8b27184228c01291bad8bf30b02045e92efcf00453d239321bb255"
 axiom_link:
   - A0
 intent: |
@@ -336,7 +336,7 @@ obligations:
       all:
         - verifier: tests/policy_test.ml::resolve_policy_cycle_returns_MC_POLICY_CYCLE
           result: pass
-        - verifier: Diagnostic.explain "MC-POLICY-CYCLE" = Some _body
+        - verifier: manual-diagnostic-explain-mc-policy-cycle-some-body
           result: pass
 
   - id: schema-parent-optional
@@ -347,7 +347,7 @@ obligations:
       policies without `parent` parse unchanged.
     acceptance:
       all:
-        - verifier: json-schema-validation passes
+        - verifier: manual-json-schema-validation-passes
           result: pass
         - verifier: tests/policy_test.ml::parse_policy_with_parent_round_trips
           result: pass
@@ -360,7 +360,7 @@ obligations:
       and pointing to `resolve_policy` as the preprocessing step.
     acceptance:
       all:
-        - verifier: text-scan-contains-three-axes-in-section-9
+        - verifier: manual-text-scan-contains-three-axes-in-section-9
           result: pass
 
   - id: trap-log-11-26
@@ -370,7 +370,7 @@ obligations:
       not erase parent-non-zero" contract.
     acceptance:
       all:
-        - verifier: grep -q '### 11.26' OCAML_BEST_PRACTICES.md
+        - verifier: manual-grep-q-11-26-ocaml-best-practices-md
           result: pass
 
   - id: self-check-no-regression

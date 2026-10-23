@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mcp-agent-auto-connect-2026-10
 revision: 1
 state: active
-body_sha: "sha256:9c0ec769bb3ae6d9a4a204bbc89bf627c0badfb72cfdaa445784a141e63122f3"
-yaml_sha: "sha256:9c0ec769bb3ae6d9a4a204bbc89bf627c0badfb72cfdaa445784a141e63122f3"
+body_sha: "sha256:f5621330a12129e8f22dbf34ba69ac783c267b72bb5e6d2a868864b97474bcd4"
+yaml_sha: "sha256:f5621330a12129e8f22dbf34ba69ac783c267b72bb5e6d2a868864b97474bcd4"
 
 intent: |
   Document the documented-but-not-yet-wired path that lets
@@ -167,7 +167,7 @@ obligations:
       \u00a7"MCP integration" section.
     acceptance:
       all:
-        - verifier: grep -q 'MCP integration' USAGE.md
+        - verifier: manual-grep-q-mcp-integration-usage-md
           result: pass
 
 reversal:

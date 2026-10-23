@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-2026-10
 revision: 1
 state: active
-body_sha: "sha256:2b218327393bdff9baf05dd7c888d931dfb95f095e316d47aa2a11bc41a78ae4"
-yaml_sha: "sha256:2b218327393bdff9baf05dd7c888d931dfb95f095e316d47aa2a11bc41a78ae4"
+body_sha: "sha256:fde951f8a8ba2a6e35647860ab7a60b35dc5624d589aa245c88eced96c42579b"
+yaml_sha: "sha256:fde951f8a8ba2a6e35647860ab7a60b35dc5624d589aa245c88eced96c42579b"
 axiom_link:
   - A1
 intent: |
@@ -107,7 +107,7 @@ obligations:
       `<h1>` text.
     acceptance:
       all:
-        - verifier: mathc-render-hero-element
+        - verifier: manual-mathc-render-hero-element
           result: pass
 
   - id: prose-reflects-live-counts
@@ -121,7 +121,7 @@ obligations:
       (foundations) no longer appear in the rendered text.
     acceptance:
       all:
-        - verifier: mathc-render-prose-numbers
+        - verifier: manual-mathc-render-prose-numbers
           result: pass
 
   - id: spec-in-nav
@@ -132,7 +132,7 @@ obligations:
       nav.
     acceptance:
       all:
-        - verifier: mathc-render-nav-spec-link
+        - verifier: manual-mathc-render-nav-spec-link
           result: pass
 
   - id: per-decision-narrative-rendered
@@ -148,7 +148,7 @@ obligations:
       (if non-empty).
     acceptance:
       all:
-        - verifier: mathc-render-decision-page-section
+        - verifier: manual-mathc-render-decision-page-section
           result: pass
 
   - id: footer-lang-toggle-only-with-ru-sibling
@@ -163,7 +163,7 @@ obligations:
       and links to the correct sibling.
     acceptance:
       all:
-        - verifier: mathc-render-footer-lang-toggle
+        - verifier: manual-mathc-render-footer-lang-toggle
           result: pass
 
   - id: build-and-self-check-green
@@ -175,7 +175,7 @@ obligations:
       baseline (57 pass / 1 unknown of 58 subjects).
     acceptance:
       all:
-        - verifier: mathc-self-check
+        - verifier: manual-mathc-self-check-unqualified
           result: pass
 
 reversal:

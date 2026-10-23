@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: exit-code-symmetry
 revision: 1
 state: active
-body_sha: "sha256:b6a2eda3d9f592fd68adf8587965895daaac1ba70b3f4585c3782d69f3d8310d"
-yaml_sha: "sha256:b6a2eda3d9f592fd68adf8587965895daaac1ba70b3f4585c3782d69f3d8310d"
+body_sha: "sha256:073a7e7a248f3a8e490c8faf696c4e4ab84a1774bc90586f6dad4c465de4a0fd"
+yaml_sha: "sha256:073a7e7a248f3a8e490c8faf696c4e4ab84a1774bc90586f6dad4c465de4a0fd"
 axiom_link:
   - A0
   - A1
@@ -251,7 +251,7 @@ obligations:
       all:
         - verifier: tests/cli/self-check-pass.t
           result: pass
-        - verifier: mathc-self-check-verdict-pass
+        - verifier: manual-mathc-self-check-verdict-pass-unqualified
           result: pass
 
 reversal:

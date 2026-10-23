@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: editorial
-body_sha: "sha256:4708e9854910ff290a8f670d5058bc3fda9e9adaae15f918ba7b58785939c59a"
-yaml_sha: "sha256:4708e9854910ff290a8f670d5058bc3fda9e9adaae15f918ba7b58785939c59a"
+body_sha: "sha256:dacaa04277cb4ab6acf551cf797775f5dfb34face66680abbc064144e3aeb183"
+yaml_sha: "sha256:dacaa04277cb4ab6acf551cf797775f5dfb34face66680abbc064144e3aeb183"
 
 intent: |
   Reduce friction in the math-coding ux-3 workstream without
@@ -198,7 +198,7 @@ obligations:
       `README.md` point to it.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/ux-3-quickstart-md-2026-10.yaml
           result: pass
@@ -214,7 +214,7 @@ obligations:
       the kernel `lib/decision.ml` is not modified.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/ux-3-new-decision-template-minimal-2026-10.yaml
           result: pass
@@ -231,7 +231,7 @@ obligations:
       has §11.31 trap log entry.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/ux-3-hotfix-waiver-procedure-2026-10.yaml
           result: pass
@@ -247,7 +247,7 @@ obligations:
       unchanged.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/mcp-read-write-env-gate-2026-10.yaml
           result: pass
@@ -263,7 +263,7 @@ obligations:
       read-only allowlist.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/mathc-find-subcommand-2026-10.yaml
           result: pass
@@ -279,7 +279,7 @@ obligations:
       `--cosign-verify` flag; OBP §11.36 trap log entry.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/ux-3-cosign-image-2026-10.yaml
           result: pass
@@ -296,7 +296,7 @@ obligations:
       read-only allowlist.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/ux-3-precommit-subcommand-2026-10.yaml
           result: pass
@@ -314,7 +314,7 @@ obligations:
       is now state: active (rev 2).
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/ux-3-init-with-ci-workflow-2026-10.yaml
           result: pass
@@ -331,7 +331,7 @@ obligations:
       detection is independent of the state filter.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/graph-viewer-2026-10.yaml
           result: pass
@@ -348,7 +348,7 @@ obligations:
       dependencies.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/render-dashboard-2026-10.yaml
           result: pass
@@ -368,7 +368,7 @@ obligations:
       the targeted state/relation change.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/plan-2026-10-ux-friction.yaml
           result: pass
         - verifier: mathc validate decisions/lifecycle-commands-2026-10.yaml
           result: pass
@@ -392,9 +392,9 @@ obligations:
           result: pass
         - verifier: scripts/confluence2madr.py --help
           result: pass
-        - verifier: python3 -m py_compile scripts/slack2madr.py
+        - verifier: manual-python3-m-py-compile-scripts-slack2madr-py
           result: pass
-        - verifier: python3 -m py_compile scripts/confluence2madr.py
+        - verifier: manual-python3-m-py-compile-scripts-confluence2madr-py
           result: pass
         - verifier: tests/scripts/slack2madr.t
           result: pass

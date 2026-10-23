@@ -4,8 +4,8 @@ id: attestation-producer-vocab-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:46d1dd9c02848dbfea5b3d9d2d75474727d4b650731efac50acdcf8da711512b"
-yaml_sha: "sha256:46d1dd9c02848dbfea5b3d9d2d75474727d4b650731efac50acdcf8da711512b"
+body_sha: "sha256:ec979120705228e60be439d74d21edd14a41a12a176c65e638324eab80766e88"
+yaml_sha: "sha256:ec979120705228e60be439d74d21edd14a41a12a176c65e638324eab80766e88"
 
 intent: |
   Make the store say WHO produced each attestation, in a vocabulary a
@@ -326,10 +326,10 @@ obligations:
       all:
         - verifier: tests/conformance.ml
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: fixtures/conformance/attestation/negative-untagged-producer.json
           result: pass
-        - verifier: file-exists
+        - verifier: manual-file-exists-unqualified
           path: fixtures/conformance/attestation/positive-human-runtime-anchored.json
           result: pass
 

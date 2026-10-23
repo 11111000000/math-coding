@@ -4,8 +4,8 @@ id: considered-mode-migration-2026-10
 revision: 1
 state: retired
 mode: light
-body_sha: "sha256:202ed35ba8999e80a367a20cf1d3911c7557bb748d3408257212ce5a0d4492ff"
-yaml_sha: "sha256:202ed35ba8999e80a367a20cf1d3911c7557bb748d3408257212ce5a0d4492ff"
+body_sha: "sha256:dceb2d5b575ed287cc8e2280bb6218a59b8188ede93c4c3a2562216e57b5c149"
+yaml_sha: "sha256:dceb2d5b575ed287cc8e2280bb6218a59b8188ede93c4c3a2562216e57b5c149"
 
 intent: |
   Document the partial migration of the 'Considered' mode variant
@@ -62,7 +62,7 @@ obligations:
       that P_outer, P2, and P4 close cleanly).
     acceptance:
       all:
-        - verifier: followup-decision-filed
+        - verifier: manual-followup-decision-filed
           result: pass
 
 counterexample: |

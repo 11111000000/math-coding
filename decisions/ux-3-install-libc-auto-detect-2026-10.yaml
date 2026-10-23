@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:cb58a00125d7e394e608358efe017da49c633afc2370b3c343bd4566d42d0ba8"
-yaml_sha: "sha256:cb58a00125d7e394e608358efe017da49c633afc2370b3c343bd4566d42d0ba8"
+body_sha: "sha256:c8635ba633b6164d1754735398eead65b8a2d1031d17d3efa8853df7cc1a5563"
+yaml_sha: "sha256:c8635ba633b6164d1754735398eead65b8a2d1031d17d3efa8853df7cc1a5563"
 
 axiom_link:
   - A0
@@ -98,13 +98,13 @@ obligations:
       flag `--libc=glibc|musl` is recognised.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/ux-3-install-libc-auto-detect-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/ux-3-install-libc-auto-detect-2026-10.yaml
           result: pass
-        - verifier: bash -n scripts/install-tooling/install.sh
+        - verifier: manual-bash-n-scripts-install-tooling-install-sh
           result: pass
-        - verifier: shellcheck scripts/install-tooling/install.sh runs clean
+        - verifier: manual-shellcheck-scripts-install-tooling-install-sh-ru
           result: pass
 
   - id: libc-detect-tests

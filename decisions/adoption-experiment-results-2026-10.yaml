@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: adoption-experiment-results-2026-10
 revision: 1
 state: active
-body_sha: "sha256:628ec928ee67444832a3ff6b62ea1b544a6090c0ee2f363e67e80a86835ae459"
-yaml_sha: "sha256:628ec928ee67444832a3ff6b62ea1b544a6090c0ee2f363e67e80a86835ae459"
+body_sha: "sha256:7519d82a86f36bab1e62323ee42224e932712f99ed3dc99d1e0535543be48431"
+yaml_sha: "sha256:7519d82a86f36bab1e62323ee42224e932712f99ed3dc99d1e0535543be48431"
 
 intent: |
   Record the observed numbers of the math-coding adoption
@@ -81,11 +81,11 @@ obligations:
       the corresponding §10 sections in the report.
     acceptance:
       all:
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: docs/experiments/adoption-2026-10.md
           needle: "Median TTFD: ~4 min"
           result: pass
-        - verifier: file-contains
+        - verifier: manual-file-contains-unqualified
           path: docs/experiments/adoption-2026-10.md
           needle: "55"
           result: pass
@@ -108,7 +108,7 @@ obligations:
       attributable to this experiment or this decision.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-mathc-self-check-no-new-unknowns-unqualified
           result: pass
 
   - id: results-decision-self-check-stable
@@ -120,7 +120,7 @@ obligations:
       a clean checkout.
     acceptance:
       all:
-        - verifier: git-no-paths
+        - verifier: manual-git-no-paths-unqualified
           repo: .
           base: main
           forbidden_paths:

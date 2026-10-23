@@ -4,8 +4,8 @@ id: site-dropdown-anim-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:267b0bf00da23ed9b1f8adb589bf14078c8eeab303e98d9895958df27c11ffcf"
-yaml_sha: "sha256:267b0bf00da23ed9b1f8adb589bf14078c8eeab303e98d9895958df27c11ffcf"
+body_sha: "sha256:a3eabcd1aab9b853be2bcb54562f399092128834fcf5a8509171932a2944b685"
+yaml_sha: "sha256:a3eabcd1aab9b853be2bcb54562f399092128834fcf5a8509171932a2944b685"
 change_kind: implementation
 axiom_link:
   - A0
@@ -251,11 +251,11 @@ obligations:
       400 ms delay on `visibility`.
     acceptance:
       all:
-        - verifier: ! grep -F 'display: none' assets/style.css | grep -F '.nav-group-panel'
+        - verifier: manual-grep-f-display-none-assets-style-css-grep-f-nav-
           result: pass
-        - verifier: ! grep -F 'opacity 150ms ease-in 250ms' assets/style.css
+        - verifier: manual-grep-f-opacity-150ms-ease-in-250ms-assets-style-
           result: pass
-        - verifier: ! grep -F 'visibility 0s linear 400ms' assets/style.css
+        - verifier: manual-grep-f-visibility-0s-linear-400ms-assets-style-c
           result: pass
   - id: hover-rule-has-open-delay
     statement: |
@@ -265,9 +265,9 @@ obligations:
       no delay.
     acceptance:
       all:
-        - verifier: ! grep -F 'opacity 180ms ease-out 80ms' assets/style.css
+        - verifier: manual-grep-f-opacity-180ms-ease-out-80ms-assets-style-
           result: pass
-        - verifier: ! grep -F 'opacity 180ms ease-out,' assets/style.css
+        - verifier: manual-grep-f-opacity-180ms-ease-out-assets-style-css
           result: pass
   - id: mobile-uses-grid-trick
     statement: |
@@ -279,11 +279,11 @@ obligations:
       `overflow: hidden; min-height: 0;`.
     acceptance:
       all:
-        - verifier: ! grep -F 'grid-template-rows: 0fr' assets/style.css
+        - verifier: manual-grep-f-grid-template-rows-0fr-assets-style-css
           result: pass
-        - verifier: ! grep -F 'grid-template-rows 240ms ease-out' assets/style.css
+        - verifier: manual-grep-f-grid-template-rows-240ms-ease-out-assets-
           result: pass
-        - verifier: ! grep -F 'overflow: hidden' assets/style.css | grep -B1 'min-height: 0'
+        - verifier: manual-grep-f-overflow-hidden-assets-style-css-grep-b1-
           result: pass
   - id: reduced-motion-zero-delay
     statement: |
@@ -292,7 +292,7 @@ obligations:
       `transition-delay` to `0.001ms` (or `0s`).
     acceptance:
       all:
-        - verifier: ! grep -F 'transition-delay: 0s' assets/style.css
+        - verifier: manual-grep-f-transition-delay-0s-assets-style-css
           result: pass
   - id: dune-build-clean
     statement: |

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathc-self-check-subcommand
 revision: 4
 state: active
-body_sha: "sha256:ce245d68515c355947e9fcc84c4aa5610b6f3e642535e9c91941086da6d910ae"
-yaml_sha: "sha256:ce245d68515c355947e9fcc84c4aa5610b6f3e642535e9c91941086da6d910ae"
+body_sha: "sha256:a7c7b898b68fa052716206addce43ee08622ccafc4ac9ee1bdd72c080647ee95"
+yaml_sha: "sha256:a7c7b898b68fa052716206addce43ee08622ccafc4ac9ee1bdd72c080647ee95"
 intent: |
   Close ROADMAP Tier-1 #2 (`mathc self-check`) and thereby the
   AGENTS.md bootstrap-gate expiry condition verbatim: the
@@ -110,9 +110,9 @@ obligations:
       constitution.md `unknown != pass` distinction.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/mathc-self-check-subcommand.yaml
           result: pass
-        - verifier: text-scan-spec-semantics-has-self-check-row
+        - verifier: manual-text-scan-spec-semantics-has-self-check-row
           result: pass
   - id: mathc-self-check-store-precedes
     outcome: gate-attestation-store-filled
@@ -125,7 +125,7 @@ obligations:
       `gate-attestation-store-fill`.
     acceptance:
       all:
-        - verifier: gate-shape-fixture
+        - verifier: manual-gate-shape-fixture
           result: inconclusive
   - id: mathc-self-check-dispatcher-shipped
     outcome: dispatcher-shipped
@@ -143,11 +143,11 @@ obligations:
       ("positive and negative conformance fixtures").
     acceptance:
       all:
-        - verifier: cram-fixture-tests-cli-self-check-pass-t
+        - verifier: manual-cram-fixture-tests-cli-self-check-pass-t
           result: pass
-        - verifier: cram-fixture-tests-cli-self-check-fail-t
+        - verifier: manual-cram-fixture-tests-cli-self-check-fail-t
           result: pass
-        - verifier: cram-fixture-tests-cli-self-check-unknown-t
+        - verifier: manual-cram-fixture-tests-cli-self-check-unknown-t
           result: pass
 
 reversal:

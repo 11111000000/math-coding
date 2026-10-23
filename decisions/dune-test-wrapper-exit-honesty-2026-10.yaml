@@ -4,8 +4,8 @@ id: dune-test-wrapper-exit-honesty-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:ff29eb32f53493b813d01981a9324eea84b3e915da4ed8b6f4fbae0eb9459a61"
-yaml_sha: "sha256:ff29eb32f53493b813d01981a9324eea84b3e915da4ed8b6f4fbae0eb9459a61"
+body_sha: "sha256:c40f5922e7bf93312a1021c964d37ddd14787f12b0326f459f17b24c1c95c260"
+yaml_sha: "sha256:c40f5922e7bf93312a1021c964d37ddd14787f12b0326f459f17b24c1c95c260"
 
 axiom_link:
   - A1
@@ -177,7 +177,7 @@ obligations:
       all:
         - verifier: tests/fixtures/dune-test-wrapper-propagates-failure.sh
           result: pass
-        - verifier: bash -n scripts/dune-test-with-timeout.sh
+        - verifier: manual-bash-n-scripts-dune-test-with-timeout-sh
           result: pass
         - verifier: manual-shellcheck-dune-test-wrapper
           result: pass
@@ -200,7 +200,7 @@ obligations:
       all:
         - verifier: tests/fixtures/dune-test-wrapper-propagates-failure.sh
           result: pass
-        - verifier: shell-grep wrapper-propagates-failure tests/fixtures
+        - verifier: manual-shell-grep-wrapper-propagates-failure-tests-fixt
           result: pass
   - id: no-live-orphan-capture-elsewhere
     outcome: no-other-orphan-capture-in-tree

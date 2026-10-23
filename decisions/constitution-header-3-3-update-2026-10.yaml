@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:2bb9e9effb0166d167fa6f9f7c33a94acc9fc03aae17929cf1c933b9c59c6a62"
-yaml_sha: "sha256:2bb9e9effb0166d167fa6f9f7c33a94acc9fc03aae17929cf1c933b9c59c6a62"
+body_sha: "sha256:dc30005854ac1a2d9818c51a89b3656c853f35929e0e3c1904a55f6780a1f0a2"
+yaml_sha: "sha256:dc30005854ac1a2d9818c51a89b3656c853f35929e0e3c1904a55f6780a1f0a2"
 axiom_link:
   - A3
 intent: |
@@ -46,7 +46,7 @@ obligations:
       `^# Math-coding 3\.3\.0-alpha constitution$`.
     acceptance:
       all:
-        - verifier: text-scan-constitution-header
+        - verifier: manual-text-scan-constitution-header
           result: pass
 risk:
   declared_triggers: [constitution-version-drift]

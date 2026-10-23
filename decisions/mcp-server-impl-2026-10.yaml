@@ -4,9 +4,9 @@ id: mcp-server-impl-2026-10
 revision: 2
 state: active
 
-body_sha: "sha256:c0a07ea73f6e1ac7dde44fc459551efb7afc04280aa03768668e4bba750bdc8a"
+body_sha: "sha256:ea08b32aefac26ce8ad8d6bbf804a5870adf299543ea7cb517fe558f2b59e0f2"
 
-yaml_sha: "sha256:c0a07ea73f6e1ac7dde44fc459551efb7afc04280aa03768668e4bba750bdc8a"
+yaml_sha: "sha256:ea08b32aefac26ce8ad8d6bbf804a5870adf299543ea7cb517fe558f2b59e0f2"
 
 intent: |
   Land the MCP server stub the Phase-2 deferral
@@ -269,7 +269,7 @@ obligations:
       `bin/dune`.
     acceptance:
       all:
-        - verifier: binary-exists
+        - verifier: manual-binary-exists
           path: _build/default/bin/mathc_mcp.exe
           result: pass
   - id: seven-methods-tested
@@ -280,25 +280,25 @@ obligations:
       mathc subprocess stdout as the `result` field.
     acceptance:
       all:
-        - verifier: tests-pass
+        - verifier: dune runtest
           path: tests/mcp_test.ml::happy-path-validate
           result: pass
-        - verifier: tests-pass
+        - verifier: dune runtest
           path: tests/mcp_test.ml::happy-path-explain
           result: pass
-        - verifier: tests-pass
+        - verifier: dune runtest
           path: tests/mcp_test.ml::happy-path-packages
           result: pass
-        - verifier: tests-pass
+        - verifier: dune runtest
           path: tests/mcp_test.ml::happy-path-mode
           result: pass
-        - verifier: tests-pass
+        - verifier: dune runtest
           path: tests/mcp_test.ml::happy-path-re-evaluate
           result: pass
-        - verifier: tests-pass
+        - verifier: dune runtest
           path: tests/mcp_test.ml::happy-path-rebuttals
           result: pass
-        - verifier: tests-pass
+        - verifier: dune runtest
           path: tests/mcp_test.ml::happy-path-self-check
           result: pass
   - id: parse-error-tested
@@ -310,7 +310,7 @@ obligations:
       stays alive and accepts the next request.
     acceptance:
       all:
-        - verifier: tests-pass
+        - verifier: dune runtest
           path: tests/mcp_test.ml::parse-error
           result: pass
   - id: unknown-method-tested
@@ -323,7 +323,7 @@ obligations:
       `code == -32601` (Method not found).
     acceptance:
       all:
-        - verifier: tests-pass
+        - verifier: dune runtest
           path: tests/mcp_test.ml::unknown-method
           result: pass
   - id: self-check-non-regression
@@ -333,7 +333,7 @@ obligations:
       unknown after this slice lands.
     acceptance:
       all:
-        - verifier: self-check-baseline-preserved
+        - verifier: manual-self-check-baseline-preserved
           command: mathc self-check
           expected:
             pass: 67

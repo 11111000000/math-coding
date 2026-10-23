@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: agent-debug-infrastructure-2026-10
 revision: 1
 state: active
-body_sha: "sha256:4c8c44e4b1c4b0ed6bf0b3996190d86d68c9fcea0fcd8f783bd7d494db15a9af"
-yaml_sha: "sha256:4c8c44e4b1c4b0ed6bf0b3996190d86d68c9fcea0fcd8f783bd7d494db15a9af"
+body_sha: "sha256:a7851c36059ae7ef0f880daf581b5463c2301dec150b3e9d0adebc68749720a4"
+yaml_sha: "sha256:a7851c36059ae7ef0f880daf581b5463c2301dec150b3e9d0adebc68749720a4"
 intent: |
   Convert OCAML_BEST_PRACTICES.md §11 trap log from a passive
   documentation surface into an active helper for LLM agents
@@ -239,9 +239,9 @@ obligations:
       (`Jsonl.Parse_error _`).
     acceptance:
       all:
-        - verifier: grep -nE 'exception Parse_error' lib/jsonl.ml
+        - verifier: manual-grep-ne-exception-parse-error-lib-jsonl-ml
           result: pass
-        - verifier: grep -nE 'with Jsonl.Parse_error' bin/ lib/ -r
+        - verifier: manual-grep-ne-with-jsonl-parse-error-bin-lib-r
           result: pass
 
 assumptions:

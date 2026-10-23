@@ -4,9 +4,9 @@ id: yaml-block-scalars-impl-pending
 revision: 4
 state: active
 
-body_sha: "sha256:c57fd0ee078743ef3d409e4adc5563b7d7b6ed09ab44f4256085d084e2dd1fb2"
+body_sha: "sha256:364a70369eb887d4fc180fa9fe60a0bab5e7ed6ba8449fb6df613837694be504"
 
-yaml_sha: "sha256:c57fd0ee078743ef3d409e4adc5563b7d7b6ed09ab44f4256085d084e2dd1fb2"
+yaml_sha: "sha256:364a70369eb887d4fc180fa9fe60a0bab5e7ed6ba8449fb6df613837694be504"
 
 intent: |
   Record that the parent obligation `yaml-block-scalars-supported`
@@ -152,7 +152,7 @@ obligations:
       with rationale and reversal signal.
     acceptance:
       all:
-        - verifier: this-decision-file-present
+        - verifier: file-exists decisions/yaml-block-scalars-impl-pending.yaml
           result: pass
 
 

@@ -4,8 +4,8 @@ id: paren-balance-fix-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:5f64d8e39e3bc2dc4c0833bbcc6e4cced7e05090711875b25c9d3904c34e6732"
-yaml_sha: "sha256:5f64d8e39e3bc2dc4c0833bbcc6e4cced7e05090711875b25c9d3904c34e6732"
+body_sha: "sha256:62904dbd3f3a6616d07a4915a5943bb176089a6559112f02c5a5d95c0b09a5da"
+yaml_sha: "sha256:62904dbd3f3a6616d07a4915a5943bb176089a6559112f02c5a5d95c0b09a5da"
 axiom_link:
   - A3
 intent: |
@@ -71,7 +71,7 @@ obligations:
       `dune build` on a clean tree returns exit code 0 with no
       errors after this fix is applied.
     acceptance:
-      verifier: shell
+      verifier: manual-shell
       result: pass
       detail: |
         `scripts/dev build` exits 0; the success line "build: ok"
@@ -82,7 +82,7 @@ obligations:
       unknown / fail counts are unchanged from the pre-fix
       state.
     acceptance:
-      verifier: shell
+      verifier: manual-shell
       result: pass
       detail: |
         `_build/install/default/bin/mathc self-check` returns the
@@ -95,7 +95,7 @@ obligations:
       `decisions/d8-coarse-diagnostics-2026-10.yaml` still
       validates.
     acceptance:
-      verifier: shell
+      verifier: manual-shell
       result: pass
       detail: |
         `_build/install/default/bin/mathc validate

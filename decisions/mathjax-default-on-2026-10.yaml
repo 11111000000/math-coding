@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathjax-default-on-2026-10
 revision: 1
 state: active
-body_sha: "sha256:df458803576d4bf5afbe2598bd23d325df59546c688d8b115d9a19ab33c51547"
-yaml_sha: "sha256:df458803576d4bf5afbe2598bd23d325df59546c688d8b115d9a19ab33c51547"
+body_sha: "sha256:b917ac60e6438d86fa4261115034f8f988440d2c153a32b466872f7f4de998f7"
+yaml_sha: "sha256:b917ac60e6438d86fa4261115034f8f988440d2c153a32b466872f7f4de998f7"
 intent: |
   Reverse the MathJax default-OFF workaround documented in
   `decisions/render-kernel-fixes-2026-10@1` obligation
@@ -224,9 +224,9 @@ obligations:
       all:
         - verifier: tests/render_kernel.ml::mathjax_default_on
           result: pass
-        - verifier: grep -c 'enable_mathjax.*true' lib/render.ml == 1
+        - verifier: manual-grep-c-enable-mathjax-true-lib-render-ml-1
           result: pass
-        - verifier: grep -c 'enable_mathjax = ref true' bin/Mathc.ml == 1
+        - verifier: manual-grep-c-enable-mathjax-ref-true-bin-mathc-ml-1
           result: pass
 
   - id: mathjax-script-on-prose-pages
@@ -252,7 +252,7 @@ obligations:
       all:
         - verifier: tests/render_kernel.ml::mathjax_script_on_prose_page_when_enabled
           result: pass
-        - verifier: grep -c mathjax@3 dist/index.html >= 1
+        - verifier: manual-grep-c-mathjax-3-dist-index-html-1
           result: pass
 
 reversal:

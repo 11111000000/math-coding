@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: junit-entity-off-by-one-fix-2026-10
 revision: 1
 state: active
-body_sha: "sha256:b750af1c949532edce51186257455f8a3a44cb21a5849407095776b4c2a9e275"
-yaml_sha: "sha256:b750af1c949532edce51186257455f8a3a44cb21a5849407095776b4c2a9e275"
+body_sha: "sha256:281d4bc5ac546ebc12e306832faa522ebc833093f4ef2a890c910e4a277267e6"
+yaml_sha: "sha256:281d4bc5ac546ebc12e306832faa522ebc833093f4ef2a890c910e4a277267e6"
 intent: |
   Fix the off-by-one in `lib/junit/junit.ml:parse_attr_value`: the
   five entity-reference branches (`&amp;`, `&lt;`, `&gt;`, `&quot;`,
@@ -140,7 +140,7 @@ obligations:
       all:
         - verifier: tests/junit_test.ml
           result: pass
-        - verifier: grep -nE 'i \+ [0-9]+ <= len && String\.sub' lib/junit/junit.ml
+        - verifier: manual-grep-ne-i-0-9-len-string-sub-lib-junit-junit-ml
           result: pass
 
   - id: regression-pinned
@@ -163,9 +163,9 @@ obligations:
       contains a "New rule (post-§11.23, 2026-10)" paragraph.
     acceptance:
       all:
-        - verifier: grep -nE '^### 11\.23' OCAML_BEST_PRACTICES.md
+        - verifier: manual-grep-ne-11-23-ocaml-best-practices-md
           result: pass
-        - verifier: grep -nE 'New rule \(post-§11\.23' OCAML_BEST_PRACTICES.md
+        - verifier: manual-grep-ne-new-rule-post-11-23-ocaml-best-practices
           result: pass
 
 assumptions:

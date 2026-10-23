@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: plan-2026-10-improvements
 revision: 1
 state: active
-body_sha: "sha256:0d52567196ff1e21659e33342633bed62eea95537aa946cb2a9c0ec4f3bf1559"
-yaml_sha: "sha256:0d52567196ff1e21659e33342633bed62eea95537aa946cb2a9c0ec4f3bf1559"
+body_sha: "sha256:33e5fd09518105d252e7463a20b4bd117944051b82f67139517b97303a14e723"
+yaml_sha: "sha256:33e5fd09518105d252e7463a20b4bd117944051b82f67139517b97303a14e723"
 intent: |
   Adopt the analysis-derived plan documented in chat 2026-10-07
   ("анализ math-coding как методологии"). The plan closes 14
@@ -378,11 +378,11 @@ obligations:
       (0.05 / 0.20 / 0.60 / 0.90 / 1.0) appear in the spec.
     acceptance:
       all:
-        - verifier: grep -qF 'risk_to_mode' spec/algebra-3.2.md
+        - verifier: manual-grep-qf-risk-to-mode-spec-algebra-3-2-md
           result: pass
-        - verifier: ! grep -qF '⌈risk(c)⌉' spec/algebra-3.2.md
+        - verifier: manual-grep-qf-risk-c-spec-algebra-3-2-md
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t0-1.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t0-1-yaml-1-
           result: pass
 
   - id: t0-2-sha-match-enforced
@@ -401,7 +401,7 @@ obligations:
       all:
         - verifier: tests/cli/validate-sha-match.t
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t0-2.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t0-2-yaml-1-
           result: pass
 
   # ---- Tier 1 — honest-uncertainty closure ----
@@ -422,7 +422,7 @@ obligations:
       all:
         - verifier: tests/rebuttal_forge_stub.ml
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t1-1.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t1-1-yaml-1-
           result: pass
 
   - id: t1-2-re-evaluation-4-valued
@@ -445,9 +445,9 @@ obligations:
           result: pass
         - verifier: tests/cli/re-evaluate-decisions.t
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t1-2.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t1-2-yaml-1-
           result: pass
-        - verifier: mathc-self-check-verdict-pass
+        - verifier: manual-mathc-self-check-verdict-pass-unqualified
           result: pass
 
   # ---- Tier 2 — decision parser & relation graph ----
@@ -470,7 +470,7 @@ obligations:
       all:
         - verifier: tests/decision_addresses_equality.ml
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t2-1.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t2-1-yaml-1-
           result: pass
 
   - id: t2-2-axiom-link-required
@@ -490,9 +490,9 @@ obligations:
       all:
         - verifier: tests/cli/validate-axiom-link.t
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t2-2.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t2-2-yaml-1-
           result: pass
-        - verifier: mathc-self-check-verdict-pass
+        - verifier: manual-mathc-self-check-verdict-pass-unqualified
           result: pass
 
   # ---- Tier 3 — gate unification ----
@@ -512,7 +512,7 @@ obligations:
       all:
         - verifier: tests/cli/gate-axiom-commit.t
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t3-1.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t3-1-yaml-1-
           result: pass
 
   - id: t3-2-waiver-scope-narrow
@@ -534,7 +534,7 @@ obligations:
       all:
         - verifier: tests/cli/gate-waiver-scope.t
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t3-2.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t3-2-yaml-1-
           result: pass
 
   # ---- Tier 4 — diagnostics UX ----
@@ -558,7 +558,7 @@ obligations:
       all:
         - verifier: tests/diagnostic_ux.ml
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t4-1.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t4-1-yaml-1-
           result: pass
 
   - id: t4-2-explain-diagnostic
@@ -577,7 +577,7 @@ obligations:
       all:
         - verifier: tests/cli/explain-diagnostic.t
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t4-2.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t4-2-yaml-1-
           result: pass
 
   # ---- Tier 5 — documentation / site ----
@@ -598,7 +598,7 @@ obligations:
       all:
         - verifier: tests/render_kernel.ml::bilingual_drift_under_threshold
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t5-1.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t5-1-yaml-1-
           result: pass
 
   - id: t5-2-spec-mathjax
@@ -618,7 +618,7 @@ obligations:
       all:
         - verifier: tests/cli/render-mathjax-spec.t
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t5-2.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t5-2-yaml-1-
           result: pass
 
   # ---- Tier 6 — process discipline ----
@@ -642,7 +642,7 @@ obligations:
           result: pass
         - verifier: tests/process_principles.ml::p8_no_stub_untracked
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t6-1.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t6-1-yaml-1-
           result: pass
 
   - id: t6-2-counterexample-required
@@ -670,11 +670,11 @@ obligations:
           result: pass
         - verifier: tests/conformance.ml::legacy_counterexample_sweep
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/t6-2.yaml@1 exists
+        - verifier: manual-decisions-plan-2026-10-improvements-t6-2-yaml-1-
           result: pass
-        - verifier: decisions/plan-2026-10-improvements/counterexample-legacy-sweep@1.yaml exists
+        - verifier: manual-decisions-plan-2026-10-improvements-counterexamp
           result: pass
-        - verifier: mathc-self-check-verdict-pass
+        - verifier: manual-mathc-self-check-verdict-pass-unqualified
           result: pass
 
 reversal:

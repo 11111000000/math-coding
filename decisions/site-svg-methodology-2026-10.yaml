@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-methodology-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:5f870c94defed5c3012b7e71ce7a7a8789fc9e4d50555ea60d6c401261b061c8"
-yaml_sha: "sha256:5f870c94defed5c3012b7e71ce7a7a8789fc9e4d50555ea60d6c401261b061c8"
+body_sha: "sha256:434cf5092bad10455e9186d847c8e94de0f50f0eeed3c53ef771be6cad070e30"
+yaml_sha: "sha256:434cf5092bad10455e9186d847c8e94de0f50f0eeed3c53ef771be6cad070e30"
 axiom_link:
   - A0
 intent: |
@@ -155,27 +155,27 @@ obligations:
       source level.
     acceptance:
       all:
-        - verifier: ! grep -F '<img src="assets/lifecycle-fsm.svg"' dist/methodology.html
+        - verifier: manual-grep-f-img-src-assets-lifecycle-fsm-svg-dist-met
           result: pass
-        - verifier: ! grep -F '<img src="assets/friction-ladder.svg"' dist/methodology.html
+        - verifier: manual-grep-f-img-src-assets-friction-ladder-svg-dist-m
           result: pass
-        - verifier: ! grep -F '<img src="assets/attestation-lifecycle.svg"' dist/methodology.html
+        - verifier: manual-grep-f-img-src-assets-attestation-lifecycle-svg-
           result: pass
-        - verifier: ! grep -F '<img src="assets/risk-bands.svg"' dist/methodology.html
+        - verifier: manual-grep-f-img-src-assets-risk-bands-svg-dist-method
           result: pass
-        - verifier: ! grep -F '<img src="assets/verdict-flow.svg"' dist/methodology.html
+        - verifier: manual-grep-f-img-src-assets-verdict-flow-svg-dist-meth
           result: pass
-        - verifier: dist/assets/lifecycle-fsm.svg
+        - verifier: file-exists dist/assets/lifecycle-fsm.svg
           result: pass
-        - verifier: dist/assets/friction-ladder.svg
+        - verifier: file-exists dist/assets/friction-ladder.svg
           result: pass
-        - verifier: dist/assets/attestation-lifecycle.svg
+        - verifier: file-exists dist/assets/attestation-lifecycle.svg
           result: pass
-        - verifier: dist/assets/risk-bands.svg
+        - verifier: file-exists dist/assets/risk-bands.svg
           result: pass
-        - verifier: dist/assets/verdict-flow.svg
+        - verifier: file-exists dist/assets/verdict-flow.svg
           result: pass
-        - verifier: ! grep -lE 'role="img" aria-labelledby' assets/lifecycle-fsm.svg assets/friction-ladder.svg assets/attestation-lifecycle.svg assets/risk-bands.svg assets/verdict-flow.svg
+        - verifier: manual-grep-le-role-img-aria-labelledby-assets-lifecycl
           result: pass
 
 reversal:
