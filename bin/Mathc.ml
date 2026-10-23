@@ -4787,6 +4787,26 @@ let[@warning "-32"] materials_resolver_of
         Hashtbl.replace cache decision_id d;
         d
 
+(* Does a git ref resolve?
+ *
+ * `mathc gate` used to run its diff through a helper that did not
+ * raise on failure. A typo in BASE or HEAD, a ref that does not
+ * exist, or a cwd that is not a git repository all produced an EMPTY
+ * file list — and an empty file list is exactly the shape of
+ * "nothing changed", which the gate read as PASS.
+ *
+ * Measured before this check: `mathc gate nonexistent-ref-xyz HEAD`
+ * returned verdict=pass, exit 0, with 137 gaps computed and
+ * discarded, while git printed "fatal: ambiguous argument" on
+ * stderr. A CI misconfiguration was indistinguishable from a green
+ * merge. *)
+let[@warning "-32"] git_ref_resolves cwd r =
+  let argv = [| "git"; "-C"; cwd; "rev-parse"; "--verify"; "--quiet"; r |] in
+  let ic = Unix.open_process_args_in "git" argv in
+  let raw = read_all ic in
+  let _ = Unix.close_process_in ic in
+  String.trim raw <> ""
+
 let do_gate () =
   let base = ref "" and head = ref "" in
   let positionals : string list ref = ref [] in
@@ -4812,6 +4832,19 @@ let do_gate () =
       print_usage stderr;
       exit 2);
   let root = find_project_root (Sys.getcwd ()) in
+  (* Both refs must resolve before anything else happens. Without
+     this check a mistyped ref produces an empty diff, which the gate
+     reads as "nothing changed" and therefore as PASS. A ref that
+     does not resolve is an INPUT error (exit 2), not a verdict. *)
+  let cwd = Sys.getcwd () in
+  List.iter
+    (fun (label, r) ->
+      if not (git_ref_resolves cwd r) then begin
+        Printf.eprintf
+          "mathc gate: %s does not resolve to a git object: %s\n%!" label r;
+        exit 2
+      end)
+    [ ("BASE", !base); ("HEAD", !head) ];
   let memory = build_memory_for root !base !head in
   let changed_paths_raw =
     try run_git_command !base !head [ "diff"; "--name-only" ] with _ -> ""
