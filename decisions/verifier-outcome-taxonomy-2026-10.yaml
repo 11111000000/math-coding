@@ -1,0 +1,134 @@
+---
+schema: math-coding/3.3
+id: verifier-outcome-taxonomy-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/legacy-attestation-debt.sh
+body_sha: "sha256:6028a1540810a11d5202df0446da0f5ca077f52f3c24941bebe179acd0cb6a03"
+yaml_sha: "sha256:6028a1540810a11d5202df0446da0f5ca077f52f3c24941bebe179acd0cb6a03"
+
+intent: { source: "issue:three-verifier-outcomes-were-one-2026-10-23", text: "Running every verifier in the corpus exposed three cases the kernel treated as one, and each of them changed a number. A verifier that could not be SET UP was reported as a failure, so a corpus-wide sweep reported every toolchain-dependent verifier as a broken project. A `manual:` obligation was reported as inconclusive, so 466 declared obligations could not be satisfied - which is the opposite of what a declaration is for. And an obligation whose verifier names an executable scheme the kernel CAN execute was excluded by a filter that asked a function which does not know about the three original schemes, so 200 perfectly executable checks were reported as checks that could not run." }
+
+commitment: |
+  After this decision closes:
+
+  1. A verifier that cannot be SET UP - the program is not on
+     PATH, or it exits 126 or 127 - is `skipped`, not `fail`. It
+     has not failed; it has not run.
+  2. A `manual:` obligation is a HUMAN DECLARATION and is
+     satisfied by a `review`-class attestation. It is still bound
+     to a tree through the scope digest, so it goes stale when the
+     scope changes.
+  3. An obligation whose verifier the kernel can execute IS
+     executed. The filter that decides this mirrors
+     run_one_verifier's dispatch exactly, including the three
+     original schemes.
+  4. The debt fixture pins all three ceilings at their current
+     values: 22 legacy attestations, 30 inconclusive, 25 decisions
+     with no attestation. They may only fall.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "One verdict is simpler: report every non-pass as `fail`
+  and let the waiver mechanism sort it out." Rejected: that is
+  the state this change replaces. A verdict of `fail` says the
+  PROJECT is broken. For a check that could not run here, the
+  truth is "the check did not happen", and the difference between
+  those two is the difference between a debt and an accusation.
+
+  (b) "Leave `manual:` obligations as inconclusive and waive
+  them." Rejected: a `manual:` obligation is not a gap in the
+  evidence - it is the EVIDENCE. It is a human's declaration that
+  the property holds, and the attestation system has a class for
+  exactly that: `review`. Signing it as inconclusive made 466
+  declared obligations unsatisfiable, and 466 waivers would have
+  been absurd. The declaration stays bound to a tree through the
+  scope digest, so it is not a free pass: it goes stale when the
+  scope changes.
+
+antithesis: |
+  The opposite claim would be that the third distinction - executing
+  the verifiers the kernel can execute - should have been the ONLY
+  change, and the other two are cosmetic.
+
+  Rejected on the numbers. The third distinction moved 200
+  obligations from "could not run" to actually running. The first
+  moved the corpus-wide sweep from reporting a broken project to
+  reporting an absent toolchain. The second moved 466 declared
+  obligations from unsatisfiable to satisfied-with-a-binding.
+  Together they took the self-check from 38 passing subjects to
+  152.
+
+  The instructive part is the third: the filter that decided "can
+  this run?" asked `plan_verifier`, which does not know about the
+  three original schemes because they are handled before it is
+  reached. A filter that decides a question by asking a function
+  that cannot answer it will exclude exactly the cases that could
+  have been handled - which is the same shape as the wrapper that
+  reported every dune test outcome as success, one level deeper.
+
+outcomes:
+  - id: three-outcomes-three-meanings
+    statement: |
+      The kernel distinguishes a verdict (the check ran and
+      failed), a non-run (the check could not be set up) and a
+      declaration (a human said so, bound to a tree).
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/fixtures/legacy-attestation-debt.sh"
+    - "decisions/verifier-outcome-taxonomy-2026-10.yaml"
+    - "attestations/verifier-outcome-taxonomy-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+
+obligations:
+  - id: the-debt-ceilings-are-pinned
+    claim: |
+      The fixture pins the legacy, inconclusive and unattested
+      counts at their current values and fails when any exceeds its
+      ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/legacy-attestation-debt.sh
+          result: pass
+
+  - id: a-declaration-is-not-a-gap
+    claim: |
+      An obligation whose only verifiers are `manual:` declarations
+      is satisfied by a review-class attestation bound to a tree.
+    acceptance:
+      all:
+        - verifier: manual-declaration-is-a-review
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a verdict of `fail` is used to report a check that could not run"
+
+assumptions:
+  - id: manual-declarations-are-honest
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A `manual:` declaration was written by a human who read the
+      decision. The corpus migration converted 327 prose verifier
+      strings into such declarations; the prose was the human's own
+      text, and the migration preserved it as a structured
+      declaration rather than inventing one.
+    consequence_if_false: |
+      If a manual declaration was not made by a human, it is not
+      evidence, and the whole class collapses. The counter is the
+      negative-control rule: a decision whose manual declaration
+      names a check must still be reviewable.

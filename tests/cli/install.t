@@ -194,8 +194,8 @@ We pin the observed `--no-cosign-verify --libc=malbolge`
 output verbatim; the prompt requires us NOT to "fix" kernel
 ordering here.
 
-  $ sh "$install_sh" --no-cosign-verify --libc=malbolge; echo "exit=$?"
-  install.sh: curl failed for https://github.com/11111000000/math-coding/releases/download/v3.3.3/SHA256SUMS
+  $ sh "$install_sh" --no-cosign-verify --libc=malbolge 2>&1 | sed "s|/releases/download/[^/]*/|/releases/download/vVERSION/|"; echo "exit=${PIPESTATUS[0]}"
+  install.sh: curl failed for https://github.com/11111000000/math-coding/releases/download/vVERSION/SHA256SUMS
   diagnostic: MC-INSTALL-NETWORK
   exit=124
 

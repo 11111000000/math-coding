@@ -3070,7 +3070,13 @@ let[@warning "-32"] shell_metacharacters =
  * "command not found", 126 is "found but not executable". Both are
  * setup failures. Every other non-zero exit is the check's own
  * verdict. *)
-type verify_outcome = Pass | Fail | Skipped | Timeout | Setup_fail | Manual_decl
+type verify_outcome =
+  | Pass
+  | Fail
+  | Skipped
+  | Timeout
+  | Setup_fail
+  | Manual_decl
 
 let[@warning "-32"] verify_outcome_string = function
   | Pass -> "pass"
@@ -6174,20 +6180,24 @@ let[@warning "-32"] do_negative_control () =
       (fun path ->
         match parse_file path with
         | Error _ -> None
-        | Ok v -> (
+        | Ok v ->
             let id =
               match v with
               | Jsonl.Object ps -> (
-                  match Schema.take_string ps "id" with Some s -> s | None -> "")
+                  match Schema.take_string ps "id" with
+                  | Some s -> s
+                  | None -> "")
               | _ -> ""
             in
             if declares_negative_control v then None
             else if has_executable_verifier v then Some id
-            else None))
+            else None)
       files
   in
   let label =
-    Printf.sprintf "negative-control: %d of %d decision(s) declare an executable verifier and name no negative_control"
+    Printf.sprintf
+      "negative-control: %d of %d decision(s) declare an executable verifier \
+       and name no negative_control"
       (List.length missing) (List.length files)
   in
   print_endline label;
