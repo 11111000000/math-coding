@@ -70,6 +70,11 @@ let decision_schema =
       ]
     },
     "commitment": {"type": "string", "minLength": 1},
+    "negative_control": {
+      "description": "The fixture that demonstrates this decision's EXECUTABLE verifier FAILS when the property it guards is broken. A check that cannot fail is not a check: without this field, a fixture with teeth and a fixture that passes whatever happens are indistinguishable - both report green. See decisions/negative-control-required-2026-10.yaml.",
+      "type": "string",
+      "minLength": 1
+    },
     "counterexample": {
       "description": "Strongest objection to the decision, named after the dialectical slot. Per spec/algebra-3.2.md §11, counterexample is required for modes >= light; the kernel emits a Warn diagnostic when absent in standard/strict/exhaustive modes. The author who omits it gets one surfaced next-step, not a reject. 29/40 existing decisions carry this field; the other 11 are pre-v0.854 legacy and remain accepted. Both forms: YAML (string) and JSON (array of strings).",
       "oneOf": [

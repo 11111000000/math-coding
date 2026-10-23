@@ -4,8 +4,10 @@ id: verifier-honesty-migration-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:9e20c04c4e4ab5ac1b713e147d55d02e85e6f274161fd668b41a7fb3f9885688"
-yaml_sha: "sha256:9e20c04c4e4ab5ac1b713e147d55d02e85e6f274161fd668b41a7fb3f9885688"
+body_sha: "sha256:90eb085a0244901f48df23d91e4d8761acf97e947a1080738f6cdc6d28d73be3"
+yaml_sha: "sha256:90eb085a0244901f48df23d91e4d8761acf97e947a1080738f6cdc6d28d73be3"
+
+negative_control: scripts/migrate-verifiers.py
 
 intent: { source: "issue:corpus-claims-machine-checks-it-does-not-have-2026-10-23", text: "The corpus carried 327 verifier strings that were PROSE - a sentence, not a reference to anything executable - and 139 that were TAUTOLOGIES: a scheme name with no argument, which can never fail and therefore proves nothing. P2 accepted all of them, so the corpus LOOKED machine-verified. It was not. Of the 327, some were real commands written in a syntax the kernel cannot read (`mathc validate decisions/x.yaml`, where the kernel's mathc scheme takes ONE subcommand), and the rest named checks that were never implemented at all (`file-grep-zero`, `contains-section`, `git-no-paths` - names, not files)." }
 

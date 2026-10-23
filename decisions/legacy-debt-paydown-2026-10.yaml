@@ -4,8 +4,10 @@ id: legacy-debt-paydown-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:7c107fbd84f2158dd9fe4fdd0b847bc646a11da0121d4a021155a78e488c66f2"
-yaml_sha: "sha256:7c107fbd84f2158dd9fe4fdd0b847bc646a11da0121d4a021155a78e488c66f2"
+body_sha: "sha256:f105181c12cd2edb0145f812dac642e079240d8d89aa87de71c54a4941dd801b"
+yaml_sha: "sha256:f105181c12cd2edb0145f812dac642e079240d8d89aa87de71c54a4941dd801b"
+
+negative_control: tests/fixtures/legacy-attestation-debt.sh
 
 intent: { source: "issue:legacy-attestations-are-wildcards-2026-10-23", text: "765 of the 773 tracked attestations carried an empty subject.materials_digest, which the gate treats as a WILDCARD: fresh for every tree, for ever, and invalidated by no change. By the schema's own wording an empty digest is legal only for kind_: review, and 427 of the 765 were not review. The debt had no number anywhere in the repository, so it could not go down - only be re-described." }
 

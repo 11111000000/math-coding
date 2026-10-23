@@ -1,0 +1,121 @@
+---
+schema: math-coding/3.3
+id: negative-control-required-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/negative-control-debt.sh
+body_sha: "sha256:6e17e9317c9969155fd64aed1689b9f0a420141d2985683e7334ab262cb6e6f7"
+yaml_sha: "sha256:6e17e9317c9969155fd64aed1689b9f0a420141d2985683e7334ab262cb6e6f7"
+
+intent: { source: "issue:a-check-that-cannot-fail-is-not-a-check-2026-10-23", text: "The corpus had 224 decisions that declare an executable verifier and name no negative control. Nothing in the corpus distinguished a fixture with teeth from a fixture that passes whatever happens: both report green, and the difference is invisible unless somebody breaks the property on purpose and watches the check catch it. Every fixture this session added carries such a negative control - including one that rebuilds the pre-fix version of the code it guards and shows that the guard catches it - but nothing REQUIRED it, so the property was a habit of one author rather than a rule." }
+
+commitment: |
+  After this decision closes:
+
+  1. A decision MAY declare `negative_control: <path>`, naming the
+     fixture that demonstrates its EXECUTABLE verifier FAILS when
+     the property it guards is broken.
+  2. `mathc validate` emits MC-NEGATIVE-CONTROL-MISSING (Warn) for
+     a decision that declares an executable verifier and names no
+     negative control.
+  3. The number of decisions without one is a CEILING, measured by
+     a fixture, and may only fall.
+  4. Every decision added by this session declares one.
+
+axiom_link:
+  - A1
+  - A2
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Make it a Block: a decision without a negative control
+  does not merge." Rejected for now, for a mechanical reason with a
+  real cause: 224 of the corpus's decisions would be rejected at
+  once, and the corpus would be unmergeable until every one of them
+  was rewritten. A rule that blocks everything is a rule that gets
+  switched off. The Warn plus a measured ceiling buys the same
+  direction - the number may only fall - without making the
+  repository unmergeable on the day the rule lands.
+
+  (b) "Leave it as prose in AGENTS.md." Rejected: prose is what
+  produced 224 decisions without one in the first place. The rule
+  has to be in the schema and in the validator, or it is a wish.
+
+antithesis: |
+  The opposite claim would be that a negative control is not
+  something a DECISION can declare, because the negative control
+  belongs to the FIXTURE, not to the decision that names the
+  fixture as its verifier.
+
+  That claim has force. The negative control of a fixture is a
+  property of the fixture. What the decision can honestly declare is
+  WHICH fixture it trusts to be the control - and by naming it, the
+  decision takes responsibility for that fixture having teeth. That
+  is the linkage the corpus lacked: the fixture that guards the
+  property and the decision that claims the property were never
+  connected, so a fixture could be swapped for one that passes
+  unconditionally without anything noticing.
+
+outcomes:
+  - id: the-rule-is-in-the-kernel
+    statement: |
+      MC-NEGATIVE-CONTROL-MISSING is emitted by `mathc validate`
+      and is explainable with `mathc explain-diagnostic`.
+
+scope:
+  paths:
+    - "lib/diagnostic.ml"
+    - "lib/schema_embedded.ml"
+    - "schemas/decision.json"
+    - "bin/Mathc.ml"
+    - "tests/fixtures/negative-control-debt.sh"
+    - "decisions/negative-control-required-2026-10.yaml"
+    - "attestations/negative-control-required-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "decisions/**"
+
+obligations:
+  - id: the-debt-is-measured-and-bounded
+    claim: |
+      The fixture measures the number of decisions that declare no
+      negative control and fails when it exceeds its ceiling, and
+      its controls show the measurement distinguishes declaring from
+      not declaring.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/negative-control-debt.sh
+          result: pass
+
+  - id: the-diagnostic-is-explainable
+    claim: |
+      `mathc explain-diagnostic MC-NEGATIVE-CONTROL-MISSING`
+      returns the code, definition, occurs_when and remediation.
+    acceptance:
+      all:
+        - verifier: manual-negative-control-diagnostic
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a decision names a negative_control path that does not exist"
+
+assumptions:
+  - id: naming-a-control-is-a-claim
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      Naming a fixture as the negative control is a CLAIM that the
+      fixture has teeth. The kernel does not verify the claim; the
+      debt fixture counts the decisions that make no claim at all,
+      and a decision naming a non-existent path is a defect the
+      fixture-coverage check catches.
+    consequence_if_false: |
+      If the field were meant to be verified rather than declared,
+      it would need to be a Block and the kernel would have to run
+      the fixture to see that it fails. That is the natural next
+      step once the debt reaches zero.

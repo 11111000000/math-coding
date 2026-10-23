@@ -4,8 +4,10 @@ id: init-walk-termination-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:64f631fcd904c49e3c0218fd526bc41941f06b5f75d54d105003869e16df78be"
-yaml_sha: "sha256:64f631fcd904c49e3c0218fd526bc41941f06b5f75d54d105003869e16df78be"
+body_sha: "sha256:0f9019efff34c62b2fddda8067ee187b256bfc2aa7d6c9726db9f56553cf2bd0"
+yaml_sha: "sha256:0f9019efff34c62b2fddda8067ee187b256bfc2aa7d6c9726db9f56553cf2bd0"
+
+negative_control: tests/fixtures/init-terminates-outside-tree.sh
 
 intent: { source: "issue:init-hang-observed-2026-10-23", text: "mathc init never returns when the running binary has no ancestor directory holding templates/ci.yml or .opencode/skills/math-coding/SKILL.md. The upward walk in lib/init/init.ml used Filename.concat dir \"..\", which does not normalise the path, so the termination guard dir = \"/\" was unreachable." }
 

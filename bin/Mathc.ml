@@ -264,6 +264,74 @@ let[@warning "-32"] scheme_of_verifier s =
    malformed-acceptance diagnostic already covers the
    verifier-shaped-but-empty case via
    `Decision.classify_acceptance_item`. *)
+(* Does the decision declare a `negative_control`?
+ *
+ * The field names the fixture that demonstrates the decision's
+ * EXECUTABLE verifier FAILS when the property it guards is broken.
+ * Without it, a fixture with teeth and a fixture that passes
+ * whatever happens look identical - both report green. *)
+let[@warning "-32"] declares_negative_control v =
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_string ps "negative_control" with
+      | Some s when String.trim s <> "" -> true
+      | _ -> false)
+  | _ -> false
+
+(* Does the decision name at least one verifier the kernel can
+ * EXECUTE? A `manual:` declaration is not executable, and a
+ * decision that only carries manual declarations has nothing to
+ * demonstrate a negative control for. *)
+let[@warning "-32"] has_executable_verifier v =
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_array ps "obligations" with
+      | Some obls ->
+          List.exists
+            (fun o ->
+              match o with
+              | Jsonl.Object ops -> (
+                  match Schema.take_object ops "acceptance" with
+                  | Some a -> (
+                      match Schema.take_array a "all" with
+                      | Some xs ->
+                          List.exists
+                            (fun item ->
+                              match item with
+                              | Jsonl.Object ips -> (
+                                  match Schema.take_string ips "verifier" with
+                                  | Some s -> (
+                                      match scheme_of_verifier s with
+                                      | Some scheme ->
+                                          known_verifier_scheme scheme
+                                          && not
+                                               (String.length scheme >= 7
+                                               && String.sub scheme 0 7
+                                               = "manual-")
+                                      | None -> false)
+                                  | None -> false)
+                              | _ -> false)
+                            xs
+                      | None -> false)
+                  | None -> false)
+              | _ -> false)
+            obls
+      | None -> false)
+  | _ -> false
+
+(* The negative-control diagnostic, when it applies. *)
+let[@warning "-32"] collect_negative_control_diagnostics v =
+  if declares_negative_control v then []
+  else if has_executable_verifier v then
+    let id =
+      match v with
+      | Jsonl.Object ps -> (
+          match Schema.take_string ps "id" with Some s -> s | None -> "")
+      | _ -> ""
+    in
+    [ Diagnostic.mc_negative_control_missing ~decision_id:id () ]
+  else []
+
 let[@warning "-32"] collect_verifier_scheme_diagnostics v =
   match v with
   | Jsonl.Object ps -> (
@@ -708,6 +776,7 @@ let validate_with_counts path =
                                        decisions/verifier-scheme-convention-2026-11.yaml. *)
                                     let extra_diags =
                                       collect_verifier_scheme_diagnostics v
+                                      @ collect_negative_control_diagnostics v
                                       @ extra_diags
                                     in
                                     let extra_diags = dup_diags @ extra_diags in
