@@ -1,0 +1,105 @@
+---
+schema: math-coding/3.3
+id: gate-ref-validation-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:6dc4d43cfb434101d839c89a51fcf04fa92a3d26f6bbd9e06b583ca10d639fac"
+yaml_sha: "sha256:6dc4d43cfb434101d839c89a51fcf04fa92a3d26f6bbd9e06b583ca10d639fac"
+
+intent: { source: "issue:gate-fails-open-on-bad-ref-2026-10-23", text: "mathc gate ran its diff through a helper that did not raise on git failure, so a mistyped BASE or HEAD produced an empty file list — the exact shape of 'nothing changed' — which the gate read as PASS. Measured: mathc gate nonexistent-ref-xyz HEAD returned verdict=pass, exit 0, with 137 gaps computed and discarded, while git printed 'fatal: ambiguous argument' on stderr. A CI misconfiguration was indistinguishable from a green merge." }
+
+commitment: |
+  After this decision closes:
+
+  1. `mathc gate BASE HEAD` exits 2 when either ref does not
+     resolve to a git object, naming the ref that failed.
+  2. No verdict is emitted for an unresolvable ref.
+  3. A resolvable ref pair is still evaluated and still produces a
+     verdict.
+  4. A fixture exists that FAILS against the pre-fix binary and
+     PASSES against the post-fix binary, with a negative control
+     that uses a stub which always passes.
+
+axiom_link:
+  - A1
+  - A2
+
+counterexample: |
+  The strongest objection is that the gate already distinguishes
+  "no changes" from "changes" by the emptiness of the diff, so a
+  mistyped ref is harmless: it produces no files, hence nothing to
+  check, hence PASS.
+
+  That is exactly the defect. Emptiness was the ONLY signal the gate
+  had, and emptiness has two causes with opposite meanings. A gate
+  that fails open on a misconfiguration is worse than no gate: it
+  converts a broken pipeline into a green one. The distinction is
+  cheap — one `git rev-parse --verify` per ref — and the failure mode
+  it removes is the worst one a merge gate can have.
+
+antithesis: |
+  The opposite claim would be to treat an unresolvable ref as
+  verdict=unknown rather than as an input error, so that the step
+  stays red and the reason is visible.
+
+  Rejected: unknown is the verdict for "the chain could not be
+  evaluated", and it maps to exit 3. An unresolvable ref is not an
+  incomplete evaluation — it is a malformed invocation, and
+  spec/semantics.md §4.3 gives malformed input the exit-2 slot.
+  Exit 2 says "fix your command"; exit 3 says "the protocol could
+  not decide", and only the second one is a verdict about the
+  repository.
+
+outcomes:
+  - id: gate-fails-closed-on-bad-input
+    statement: |
+      A merge gate that cannot resolve its refs cannot return a
+      green verdict.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/fixtures/gate-ref-validation.sh"
+    - "decisions/gate-ref-validation-2026-10.yaml"
+    - "attestations/gate-ref-validation-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+
+obligations:
+  - id: bad-ref-is-an-input-error
+    claim: |
+      `mathc gate` with a ref that does not resolve exits 2, names
+      the ref, and emits no verdict.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/gate-ref-validation.sh
+          result: pass
+
+  - id: good-ref-still-verdicts
+    claim: |
+      A resolvable ref pair is still evaluated, and the fixture's
+      negative control shows the check distinguishes a gate that
+      fails open from one that does not.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/gate-ref-validation.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a caller relies on mathc gate returning 0 for an unresolvable ref"
+
+assumptions:
+  - id: refs-are-git-objects
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      BASE and HEAD name git objects. A caller that wants a
+      non-git comparison has no use for a merge gate.
+    consequence_if_false: |
+      A caller passing a path or a date instead of a ref now gets
+      exit 2 with a clear message instead of a silent PASS.

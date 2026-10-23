@@ -1,0 +1,174 @@
+---
+schema: math-coding/3.3
+id: materials-digest-semantics-a-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:4ee55ad7245932aa3e64ee8c97a398390cb26511a5b34c25400cf7a6393eba4e"
+yaml_sha: "sha256:4ee55ad7245932aa3e64ee8c97a398390cb26511a5b34c25400cf7a6393eba4e"
+
+intent: { source: "issue:materials-digest-has-no-reference-2026-10-23", text: "The freshness mechanism had no reference value. The gate compared an attestation's subject.materials_digest against sha256 of the changed PATH NAMES; the producers wrote sha256 of a command's OUTPUT, or the empty string. The two sides computed different functions of different inputs, so they could never be equal. The empty string was treated as a wildcard, so the only attestation the freshness check ever accepted was the one carrying no evidence at all. Measured: 765 tracked attestations, 765 with an empty digest, 5 with a non-empty one, and 0 of the 765 equal to the value the gate computes. The mechanism that constitution.md Invariant 9 describes as freshness was, in operation, a reward for dishonesty." }
+
+commitment: |
+  After this decision closes:
+
+  1. `subject.materials_digest` is SEMANTICS A: the digest of the
+     CONTENT of the files the decision's `scope.paths` names, with
+     the content addressed by git blob ids.
+  2. The gate and the attestation producer compute that value the
+     same way, from the same tree. An honest attestation is
+     therefore ACCEPTED by the gate, and an attestation whose scope
+     changed after it was signed is REJECTED as stale.
+  3. The digest of what a `--run` command produced is recorded
+     separately, in the top-level `evidence_digest` field. The two
+     were conflated before; they are different things.
+  4. Every reader of a decision file — the YAML parser path and the
+     line-scanner path — reads its scope with ONE implementation
+     (`lib/memory.ml::extract_scope_paths`). Two readers that
+     disagreed about the scope would make the digest
+     unreproducible.
+  5. The attestation store is excluded from the scope digest. The
+     store is evidence ABOUT a scope, not part of it; including it
+     would make every attestation stale the moment it is committed.
+  6. A decision's own `scope.paths` may still list its attestations;
+     the corpus convention is unchanged, only the digest ignores
+     them.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "The problem is only that the store is empty. Once the
+  attestations carry real digests, freshness works." Rejected:
+  the two sides computed different functions. The gate compared
+  against sha256 over changed PATH NAMES; `attest-batch --run`
+  wrote sha256 over a command's OUTPUT. Filling the store with
+  those digests would have produced 765 attestations that are all
+  stale — and, because the empty digest is a wildcard, the only
+  ones that pass are the ones that carry nothing.
+
+  (b) "Drop the freshness check instead of repairing it. The
+  `candidate_tree` field already says which tree an attestation
+  was made at, and git can tell whether the scope changed since."
+  Rejected as a REPAIR, but retained as the direction: this
+  decision does not remove freshness, it gives it a reference
+  value. The alternative — comparing trees — needs a per-
+  attestation tree lookup for every candidate, which the current
+  gate shape does not have; it remains available as a later
+  tightening.
+
+antithesis: |
+  The opposite claim would be that `materials_digest` should stay
+  the digest of the run's OUTPUT, and that the GATE is what is
+  wrong for comparing it against a digest of path names.
+
+  That claim has the merit of naming the real asymmetry: the
+  producer knows what its command produced, and the gate does not.
+  Under semantics B — where the gate accepts whatever digest the
+  producer recorded and only checks its shape — the producer's
+  value would be authoritative and nothing would need to agree.
+
+  The claim fails because it makes freshness uncheckable. If the
+  gate cannot recompute the reference, it cannot tell a fresh
+  attestation from a stale one, and the store fills with
+  signatures that no change can ever invalidate. Semantics A keeps
+  the reference computable by both sides, at the cost of binding
+  freshness to the decision's scope rather than to the check's
+  output. That is the right trade for a corpus whose subject is
+  the DECISION, not the test.
+
+outcomes:
+  - id: freshness-is-satisfiable
+    statement: |
+      An attestation whose materials_digest was computed by
+      `mathc attest-batch` from the same tree the gate evaluates is
+      accepted. Measured: five obligations signed by attest-batch
+      and verified by `mathc gate` are reported satisfied, not
+      stale.
+  - id: freshness-detects-change
+    statement: |
+      An attestation whose scope changed between the tree it was
+      signed at and the tree the gate evaluates is reported
+      StaleEvidence. Measured: evaluating a tree one commit before
+      the signing tree reports exactly the decisions whose scope
+      changed as stale, and no others.
+  - id: evidence-is-separate
+    statement: |
+      The digest of a `--run` command's output is recorded in the
+      top-level `evidence_digest` field, distinct from
+      `subject.materials_digest`.
+
+scope:
+  paths:
+    - "lib/gate.ml"
+    - "lib/memory.ml"
+    - "lib/git/git_diff.ml"
+    - "lib/attestations/batch.ml"
+    - "bin/Mathc.ml"
+    - "schemas/attestation.json"
+    - "decisions/materials-digest-semantics-a-2026-10.yaml"
+    - "attestations/materials-digest-semantics-a-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "decisions/**"
+    - "attestations/**"
+
+obligations:
+  - id: producer-and-gate-agree
+    claim: |
+      For the same (decision, obligation), `mathc attest-batch
+      --manifest` and `mathc attest-batch --from=decisions` write the
+      same `subject.materials_digest`, and the gate accepts it.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/attest-batch-run-digest.sh
+          result: pass
+
+  - id: evidence-digest-is-separate
+    claim: |
+      An attestation produced with `--run` carries a non-empty
+      `evidence_digest` holding the digest of the run's output,
+      distinct from `subject.materials_digest`.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/attest-batch-run-digest.sh
+          result: pass
+
+  - id: scope-is-read-once
+    claim: |
+      The YAML-parser reader and the line-scanner reader of a
+      decision file agree on its `scope.paths`, because both call
+      `lib/memory.ml::extract_scope_paths`.
+    acceptance:
+      all:
+        - verifier: manual-single-scope-reader
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "an adopter stores attestations whose materials_digest was produced by a different tool than mathc attest-batch"
+
+assumptions:
+  - id: scope-covers-the-subject
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A decision's `scope.paths` names the files whose content its
+      obligations are about. A decision with an empty or
+      wrong scope is digested over the empty set, and its freshness
+      is then vacuous.
+    consequence_if_false: |
+      A decision that does not declare its scope would never be
+      invalidated by a change to the files it governs. The corpus
+      convention requires scope.paths on every decision; this
+      decision does not enforce it.
+
+relations:
+  refines:
+    - verify-path-forms-and-signed-attestations-2026-10

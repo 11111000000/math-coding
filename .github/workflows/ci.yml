@@ -135,6 +135,36 @@ jobs:
         continue-on-error: false
         timeout-minutes: 2
 
+      - name: mathc gate (merge verdict for the pushed diff)
+        # The merge gate, run over the diff this push introduced.
+        #
+        # It was NOT run in CI until now. The gate is the most heavily
+        # specified code path in the kernel (three verdicts, waivers,
+        # rebuttals, phase awareness) and it had no automated caller:
+        # `mathc self-check` was the only gate CI executed.
+        #
+        # BASE is the merge base with the push target, HEAD is the
+        # pushed commit. Both are resolved by the gate itself; an
+        # unresolvable ref is an input error (exit 2), not a verdict.
+        #
+        # REPORTING, NOT BLOCKING, until the legacy-attestation debt
+        # reaches zero (decisions/legacy-attestation-debt-2026-10).
+        # The corpus currently carries 760 legacy attestations whose
+        # materials_digest is empty, and the gate is `unknown` while
+        # they are there. A step switched on before its debt is paid
+        # would be red from the first push and would be switched off
+        # again — which is how the gate came to have no caller at all.
+        # This step prints the verdict and the debt number on every
+        # push, so the number that decides when the step becomes
+        # blocking is visible rather than remembered.
+        run: |
+          BASE="$(git merge-base "${GITHUB_BASE_REF:-main}" "${GITHUB_SHA}" 2>/dev/null || echo "${GITHUB_SHA}^")"
+          nix develop .#test --command bash -c \
+            "_build/install/default/bin/mathc gate '$BASE' '${GITHUB_SHA}'" || true
+          bash tests/fixtures/legacy-attestation-debt.sh || true
+        continue-on-error: true
+        timeout-minutes: 3
+
       - name: nix flake check (OCaml_BEST_PRACTICES + pre-commit hooks)
         # Runs shellcheck + ocamlformat via pre-commit-hooks.nix on the
         # .ocamlformat-tracked files. ~30 s. Catches drift that

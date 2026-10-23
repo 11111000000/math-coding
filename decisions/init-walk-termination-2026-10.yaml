@@ -1,0 +1,177 @@
+---
+schema: math-coding/3.3
+id: init-walk-termination-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:64f631fcd904c49e3c0218fd526bc41941f06b5f75d54d105003869e16df78be"
+yaml_sha: "sha256:64f631fcd904c49e3c0218fd526bc41941f06b5f75d54d105003869e16df78be"
+
+intent: { source: "issue:init-hang-observed-2026-10-23", text: "mathc init never returns when the running binary has no ancestor directory holding templates/ci.yml or .opencode/skills/math-coding/SKILL.md. The upward walk in lib/init/init.ml used Filename.concat dir \"..\", which does not normalise the path, so the termination guard dir = \"/\" was unreachable." }
+
+commitment: |
+  After this decision closes:
+
+  1. `mathc init` terminates with exit 0 for every agent
+     variant, from any directory layout, including one where
+     the running binary has no source ancestor at all.
+  2. The semantics of `--no-install` are unchanged: it
+     suppresses the in-project pre-commit hook and NOT the
+     per-user agent skill, which lives outside the project.
+     A fixture pins both directions so a future change
+     cannot silently widen or narrow the flag.
+  3. A fixture exists that FAILS against the pre-fix
+     binary and PASSES against the post-fix binary, and
+     that fixture contains a negative control proving its
+     own harness can detect a non-terminating binary.
+
+axiom_link:
+  - A1
+  - A2
+  - A3
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "The walk only misbehaves for exotic layouts; an
+  in-tree build always finds the file on the first
+  iteration, so the bug is unreachable in practice."
+  Rejected: the released binary is installed to
+  ~/.local/bin, which has no such ancestor. `mathc init`
+  is step 2 of adoption/SKILL.md — the first real command
+  an adopter runs. Measured on this machine before the
+  fix: `~/.local/bin/mathc init DIR --agent opencode
+  --no-install` did not return within 10 s (exit 124
+  under timeout), and eight resident processes had been
+  spinning for 1 h 50 m with 725 s of CPU and 1 197 185
+  non-voluntary context switches each. Two `dune test
+  tests/` runs inherited such a process and never
+  finished. The in-tree build hides the defect; the
+  release build exposes it.
+
+  (b) "The infinite walk is harmless because it only
+  computes a path; the process would be killed by CI
+  eventually." Rejected: nothing kills it. The recursion
+  allocates a longer path string per step, so it is a
+  genuine unbounded loop, not a bounded walk that
+  terminates at the filesystem root. It survived for
+  hours across two independent `dune test` invocations.
+
+antithesis: |
+  The opposite claim would be that the fixture is the
+  defect — that a test which copies the binary into a
+  synthetic directory tree is testing an installation
+  layout nobody uses, and that the honest fix is to
+  document "build from source" rather than to repair the
+  walk.
+
+  That claim fails on the measured fact: the release
+  layout IS ~/.local/bin, `adoption/SKILL.md` instructs
+  adopters to install exactly that way, and the installer
+  `install.sh` places the binary there. The synthetic
+  layout in the fixture reproduces the release layout
+  faithfully; it differs from a dev build only in the
+  property that triggers the bug.
+
+  The antithesis also correctly identifies a real
+  weakness of the fixture, which this decision does not
+  dismiss: the fixture exercises the walk from a copied
+  binary, so it does not prove anything about a release
+  tarball's own bundled templates. That is a separate
+  question, recorded as a follow-up, not a reason to
+  leave the loop unbounded.
+
+outcomes:
+  - id: walk-terminates
+    statement: |
+      The upward walk in lib/init/init.ml uses
+      Filename.dirname (which normalises) and a depth
+      bound of 64, and is implemented once, in
+      find_upward_from_exe, shared by both former
+      call sites. No copy of the non-terminating
+      Filename.concat dir ".." recursion remains.
+  - id: fixture-has-teeth
+    statement: |
+      tests/fixtures/init-terminates-outside-tree.sh
+      runs the binary from a directory tree with no
+      source ancestor, asserts termination for three
+      argument variants, asserts the XDG side effect is
+      absent under --no-install and present without it,
+      and contains a negative control that replaces the
+      binary with a non-terminating stub and requires the
+      same harness to report it as hung.
+
+scope:
+  paths:
+    - "lib/init/init.ml"
+    - "tests/fixtures/init-terminates-outside-tree.sh"
+    - "decisions/init-walk-termination-2026-10.yaml"
+    - "attestations/init-walk-termination-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "schemas/**"
+    - "lib/gate.ml"
+    - "bin/**"
+
+obligations:
+  - id: init-terminates-outside-tree
+    claim: |
+      `mathc init` terminates with exit 0 from a binary
+      whose path has no ancestor holding templates/ci.yml
+      or .opencode/skills/math-coding/SKILL.md, for the
+      argument variants --no-install, --agent opencode
+      --no-install, and --no-install --with-ci-workflow.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/init-terminates-outside-tree.sh
+          result: pass
+
+  - id: fixture-fails-on-pre-fix-binary
+    claim: |
+      The same fixture exits non-zero when pointed at a
+      binary that still contains the non-terminating walk,
+      and its negative control reports a deliberately
+      non-terminating stub as hung.
+    acceptance:
+      all:
+        - verifier: manual-init-termination-negative-control
+          result: pass
+
+  - id: no-install-semantics-unchanged
+    claim: |
+      `mathc init --no-install` installs no pre-commit hook
+      into the project but still installs the per-user agent
+      skill under $XDG_CONFIG_HOME when --agent opencode is
+      given; without --no-install the pre-commit hook is
+      installed. The flag's documented meaning is unchanged
+      by this decision.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/init-terminates-outside-tree.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a caller relies on `mathc init` never returning to detect an error"
+
+assumptions:
+  - id: no-adopter-depends-on-no-install-writing
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      No adopter depends on --no-install still writing the
+      per-user agent skill. The flag's name and the
+      sibling behaviour of the pre-commit hook both say
+      otherwise, and the fixtures that use it are test
+      fixtures, not adopter instructions.
+    consequence_if_false: |
+      An adopter that passed --no-install expecting the
+      agent skill anyway would lose it. The fix is to
+      introduce a distinct flag, not to restore the
+      unbounded walk.
+
+relations:
+  refines:
+    - kernel-fixes-found-bugs-2026-10

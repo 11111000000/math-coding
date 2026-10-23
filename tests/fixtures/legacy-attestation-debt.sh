@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# tests/fixtures/legacy-attestation-debt.sh
+#
+# The debt is a number, and the number may only fall.
+#
+# WHAT THE DEBT IS. 760 of the 773 tracked attestations carry an
+# empty `subject.materials_digest`. The gate treats an empty digest
+# as a WILDCARD (lib/gate.ml::fresh_against), so those attestations
+# are fresh for every tree, for ever, and no change can invalidate
+# them. By the schema's own wording an empty digest is legal only
+# for `kind_: review`; 427 of the 760 are not review.
+#
+# WHY A CEILING AND NOT A COUNT. A fixture that only REPORTED the
+# debt would let it grow silently — the corpus grew from 68
+# attestations to 773 in four weeks, and nothing anywhere said so.
+# Pinning the count as a ceiling makes the debt monotone: it may
+# fall, it may never rise. Lowering the ceiling is an explicit,
+# reviewable act in this file.
+#
+# WHY THE NEGATIVE CONTROL. A bound that has never been observed to
+# bind is not known to bind. Section 3 runs the same comparison
+# against a deliberately inflated corpus and requires the fixture to
+# report it as over the ceiling.
+
+set -uo pipefail
+cd "$(dirname "$0")/../.."
+
+fail=0
+ok()  { printf 'ok: %s\n' "$1"; }
+bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
+
+# The ceiling. Measured 2026-10-23, immediately after semantics A
+# landed: 760 legacy attestations, 23 decisions with no attestation
+# at all. These are the numbers the debt may fall from and may not
+# rise above.
+CEILING_LEGACY=760
+CEILING_UNATTESTED=23
+
+# Measure the debt in a given store directory.
+# $1 = the store directory; prints "<legacy> <unattested>"
+measure() {
+  python3 - "$1" <<'PY'
+import json, os, re, sys, glob
+store = sys.argv[1]
+legacy = 0
+have = set()
+for f in sorted(glob.glob(os.path.join(store, '*.json'))):
+    try:
+        d = json.load(open(f))
+    except Exception:
+        continue
+    md = (d.get('subject') or {}).get('materials_digest') or ''
+    if not md:
+        legacy += 1
+    dec = (d.get('subject') or {}).get('decision')
+    if dec:
+        have.add(dec)
+unattested = 0
+for f in sorted(glob.glob('decisions/*.yaml')):
+    if '/waivers/' in f:
+        continue
+    m = re.search(r'^id:\s*(\S+)', open(f).read(), re.M)
+    if m and m.group(1) not in have:
+        unattested += 1
+print(legacy, unattested)
+PY
+}
+
+read -r legacy unattested <<< "$(measure attestations)"
+
+# --- 1. the legacy count must not exceed the ceiling --------------------
+if [ "$legacy" -le "$CEILING_LEGACY" ]; then
+  ok "legacy attestations: $legacy (ceiling $CEILING_LEGACY)"
+else
+  bad "legacy attestations: $legacy EXCEEDS the ceiling $CEILING_LEGACY — the debt grew"
+fi
+
+# --- 2. the unattested-decision count must not exceed the ceiling -------
+if [ "$unattested" -le "$CEILING_UNATTESTED" ]; then
+  ok "decisions with no attestation: $unattested (ceiling $CEILING_UNATTESTED)"
+else
+  bad "decisions with no attestation: $unattested EXCEEDS the ceiling $CEILING_UNATTESTED — the debt grew"
+fi
+
+# --- 3. NEGATIVE CONTROL: the bound must have teeth ---------------------
+# A corpus with more legacy attestations than the ceiling must be
+# reported as over it. Without this, the ceiling could be satisfied
+# by a measurement that always returns zero.
+work="$(mktemp -d)"
+trap 'rm -rf "$work"' EXIT
+mkdir -p "$work/store"
+for i in $(seq 1 $((CEILING_LEGACY + 5))); do
+  printf '{"schema":"math-coding/attestation-3.3","kind":"attestation","id":"sha256:0","kind_":"test","producer":{"identity":"x"},"result":"pass","issued_at":"2026-01-01T00:00:00Z","subject":{"decision":"d","obligation":"o","candidate_tree":"HEAD","materials_digest":""}}\n' \
+    > "$work/store/legacy-$i.json"
+done
+read -r fake_legacy fake_unattested <<< "$(measure "$work/store")"
+if [ "$fake_legacy" -gt "$CEILING_LEGACY" ]; then
+  ok "negative control: an inflated corpus measures $fake_legacy, above the ceiling $CEILING_LEGACY"
+else
+  bad "negative control: the measurement did not detect an inflated corpus — the ceiling cannot bind"
+fi
+
+echo
+if [ "$fail" -eq 0 ]; then
+  echo "legacy-attestation-debt: PASS"
+  exit 0
+fi
+echo "legacy-attestation-debt: FAIL"
+exit 1

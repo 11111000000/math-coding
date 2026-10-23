@@ -189,18 +189,26 @@ let[@warning "-32"] parse_manifest body =
    the same set as `scripts/generate-attestations.py::make_attestation`
    (8 entries, "schema" ... "issued_at"). Insertion order is
    irrelevant because `serialize` sorts them. *)
-let[@warning "-32"] make_attestation ~decision ~obligation ~kind_ ~producer
-    ~result ~issued_at ~candidate_tree ~materials_digest =
-  (* `materials_digest` is "" for a human review, which the
-     attestation schema permits: an empty digest is legal exactly for
-     {kind_: review} ("a human declaration without a runtime
-     anchor"). For {test, build, observation, analysis} the schema
-     requires it non-empty, so the caller passes the digest of the
-     artefact the run produced -- see
-     decisions/verify-path-forms-and-signed-attestations-2026-10
-     (`--run`). Emitting a runtime kind with an empty digest is what
-     MC-MATERIALS-DIGEST-EMPTY blocks at the gate. *)
-  Jsonl.Object
+let[@warning "-32"] make_attestation ~evidence_digest ~decision ~obligation
+    ~kind_ ~producer ~result ~issued_at ~candidate_tree ~materials_digest =
+  (* `materials_digest` is the digest of the CONTENT of the files the
+     decision's scope names (semantics A) — the same value the gate
+     computes as its reference, so the two can actually be compared.
+     It is "" only for a human review, which the attestation schema
+     permits: an empty digest is legal exactly for {kind_: review}
+     ("a human declaration without a runtime anchor"). For {test,
+     build, observation, analysis} the schema requires it non-empty,
+     and emitting a runtime kind with an empty digest is what
+     MC-MATERIALS-DIGEST-EMPTY blocks at the gate.
+
+     `evidence_digest` is a different thing and lives at the top
+     level: it is the digest of what a `--run` command actually
+     produced. Before semantics A the two were conflated — the run
+     output digest was written into `materials_digest`, where the
+     gate compared it against a digest of changed PATH NAMES. The
+     two could never be equal, so the only attestation the freshness
+     check ever accepted was the one carrying no evidence at all. *)
+  let base =
     [
       ("schema", Jsonl.String "math-coding/attestation-3.3");
       ("kind", Jsonl.String "attestation");
@@ -217,6 +225,10 @@ let[@warning "-32"] make_attestation ~decision ~obligation ~kind_ ~producer
       ("result", Jsonl.String result);
       ("issued_at", Jsonl.String issued_at);
     ]
+  in
+  match evidence_digest with
+  | "" -> Jsonl.Object base
+  | ed -> Jsonl.Object (("evidence_digest", Jsonl.String ed) :: base)
 
 (* Serialize a Jsonl.value as canonical JSON. `Jsonl.stringify` in
    `lib/jsonl.ml:250-271` already does:

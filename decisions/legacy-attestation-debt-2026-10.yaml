@@ -1,0 +1,133 @@
+---
+schema: math-coding/3.3
+id: legacy-attestation-debt-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:ea30977f268874c43f3bc1840c3ba0dc0d3dcaa9899664dc69b8f09957b6dc66"
+yaml_sha: "sha256:ea30977f268874c43f3bc1840c3ba0dc0d3dcaa9899664dc69b8f09957b6dc66"
+
+intent: { source: "issue:legacy-attestations-are-wildcards-2026-10-23", text: "760 of the 773 tracked attestations carry an empty subject.materials_digest. The gate treats an empty digest as a wildcard, so those attestations are fresh for every tree, for ever, and can never be invalidated by a change. They are also, by the schema's own wording, invalid for every runtime kind: materials_digest MUST be non-empty when kind_ is in {test, build, observation, analysis}, and 427 of the 760 are not review. The debt has no number anywhere in the repository, so it cannot go down — it can only be re-described." }
+
+commitment: |
+  After this decision closes:
+
+  1. The size of the debt is MEASURED by a fixture, not by prose:
+     the number of tracked attestations with an empty
+     subject.materials_digest, and the number of decisions with no
+     attestation at all.
+  2. The fixture pins that number as a CEILING. The debt may fall;
+     it may never rise. A fixture that only counted the debt would
+     let it grow silently.
+  3. Every replacement is an attestation signed by
+     `mathc attest-batch` under semantics A, carrying a real
+     scope digest. The legacy file is deleted in the same commit
+     that adds the replacement — the store is append-only for
+     ACCEPTED artifacts, and a legacy wildcard is not an accepted
+     artifact; it is an unexamined one.
+  4. The replacement order is fixed: runtime kinds first
+     (test, build, analysis, observation — 427 files, of which the
+     schema-invalid ones are the priority), review kind last
+     (333 files).
+
+axiom_link:
+  - A1
+  - A2
+  - A3
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Delete the 760 legacy attestations and re-sign everything
+  from scratch in one commit." Rejected: a re-signed attestation
+  that nobody ran is exactly the fabrication this repository has
+  been collecting evidence about for six weeks — 793 attestations
+  emitted by one command with three self-chosen values, and 118
+  review-class passes added in one commit whose own message says
+  "After this commit, self-check reports 0 unknown subjects". The
+  goal was to close that gap, not to reproduce it at scale.
+
+  (b) "Leave the legacy attestations alone and simply stop
+  treating the empty digest as a wildcard." Rejected: this makes
+  all 760 stale at once, which is honest but not actionable — a
+  debt that appears in one step of a thousand is a debt nobody
+  pays. The ceiling is the thing that makes the reduction
+  possible: a number that must fall, with a per-commit budget.
+
+antithesis: |
+  The opposite claim would be that the legacy attestations are
+  mostly TRUE — they were written by a maintainer who read the
+  decision, and a human declaration is a legitimate source class
+  under A0 (`declared != derived != attested != reviewed !=
+  observed`).
+
+  That claim is not denied, and it is the reason the review kind
+  is LAST in the replacement order rather than first. But it
+  carries a consequence the claim does not face: a `review`
+  attestation that can never be invalidated is not a declaration,
+  it is a decoration. Under A0 a review is a source class with a
+  distinct meaning, and the distinct meaning is preserved by
+  making it CONDITIONAL — bound to the tree it was made at — not
+  by exempting it from binding.
+
+outcomes:
+  - id: debt-is-a-number
+    statement: |
+      `tests/fixtures/legacy-attestation-debt.sh` reports the
+      measured debt and fails if it exceeds the ceiling recorded in
+      the fixture. The ceiling is a constant in the fixture, so
+      lowering it is an explicit, reviewable act.
+
+scope:
+  paths:
+    - "tests/fixtures/legacy-attestation-debt.sh"
+    - "decisions/legacy-attestation-debt-2026-10.yaml"
+    - "attestations/legacy-attestation-debt-2026-10-*.json"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: debt-is-measured-and-bounded
+    claim: |
+      The fixture measures the number of tracked attestations with
+      an empty materials_digest and the number of decisions with no
+      attestation, and fails when either exceeds its recorded
+      ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/legacy-attestation-debt.sh
+          result: pass
+
+  - id: debt-can-only-fall
+    claim: |
+      The fixture's negative control demonstrates that it fails when
+      the measured debt exceeds the ceiling, so the bound is real
+      rather than decorative.
+    acceptance:
+      all:
+        - verifier: manual-debt-ceiling-has-teeth
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a legacy attestation is added to the store by a tool other than mathc attest-batch"
+
+assumptions:
+  - id: legacy-files-are-unexamined
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A tracked attestation with an empty materials_digest carries
+      no claim that can be falsified, and is therefore treated as
+      unexamined rather than as evidence. Replacing it does not
+      retract a true claim; it re-establishes one that can be
+      checked.
+    consequence_if_false: |
+      If some legacy attestations record a check that was really
+      run, deleting them loses a record. The replacement procedure
+      re-runs the verifier before deleting, so the record is
+      re-established rather than lost.
