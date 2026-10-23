@@ -3304,6 +3304,70 @@ let[@warning "-32"] do_attest_batch () =
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
+  (* Run the --run command once and report what it proves.
+   *
+   * The exit code becomes the batch result; the digest of the
+   * captured output becomes the materials anchor that the schema
+   * requires for runtime kinds. BOTH branches of attest-batch MUST
+   * use this helper.
+   *
+   * Before this fix the --manifest branch hardcoded
+   * `~materials_digest:""` and never executed --run at all, so
+   * `attest-batch --manifest=... --run=... --kind=test` silently
+   * produced attestations with no runtime anchor — exactly what
+   * --run exists to prevent, and exactly what the schema forbids
+   * for a runtime kind. The --from=decisions branch computed the
+   * digest correctly; for one command the two branches disagreed,
+   * and only one of them honoured the flag its own help text
+   * describes. *)
+  let run_once_for_batch ~run_cmd ~run_tokens : string * string =
+    if String.trim run_cmd = "" then (!result, "")
+    else
+      match run_tokens with
+      | [] -> (!result, "")
+      | prog :: args -> (
+          match resolve_program prog with
+          | None ->
+              Printf.eprintf
+                "mathc attest-batch: --run: %s is not on PATH\n%!" prog;
+              exit 2
+          | Some abs_prog ->
+              let log = Filename.temp_file "mathc_attest_run_" ".log" in
+              let outcome, status =
+                run_with_sandbox_in_env
+                  ~env:(sandbox_env_for_path_forms ())
+                  ~capture_to:(Some log) ~project_root:root
+                  ~prog:abs_prog ~args:(abs_prog :: args)
+                  ~timeout_s:verify_timeout_s ~sandbox_mode:"none"
+              in
+              let output = read_capped log ~max_bytes:1048576 in
+              (try Sys.remove log with _ -> ());
+              let ok =
+                match outcome with
+                | Pass -> (
+                    match status with
+                    | Unix.WEXITED 0 -> true
+                    | _ -> false)
+                | Fail | Skipped | Timeout -> false
+              in
+              if not ok then begin
+                Printf.eprintf
+                  "mathc attest-batch: --run `%s` did not exit 0; the \
+                   batch is signed result=fail\n\
+                   %!"
+                  run_cmd;
+                excerpt_to_stderr
+                  ~heading:
+                    (Printf.sprintf "mathc attest-batch: output of `--run %s`:"
+                       run_cmd)
+                  ~max_lines:20 output
+              end;
+              let digest =
+                if output = "" then ""
+                else "sha256:" ^ Digest.sha256_hex output
+              in
+              ((if ok then "pass" else "fail"), digest))
+  in
   match !manifest with
   | Some path -> (
       if path = "" then begin
@@ -3343,15 +3407,27 @@ let[@warning "-32"] do_attest_batch () =
               dest;
             exit 2
           end;
+          (* The --run command backs the whole manifest, exactly as
+             it backs a --from=decisions batch: one run, one result,
+             one materials anchor. A row cannot claim a result the
+             run contradicts, so the run's exit code wins when
+             --run was given. *)
+          let run_tokens = split_run_command !run_cmd in
+          let run_result, run_digest =
+            run_once_for_batch ~run_cmd:!run_cmd ~run_tokens
+          in
           let emit_one row =
             let decision = row.Batch.decision in
             let obligation = row.obligation in
             let kind_ = row.kind_ in
             let producer = row.producer in
-            let result = row.result in
+            let result =
+              if String.trim !run_cmd = "" then row.result else run_result
+            in
             let body =
               Batch.make_attestation ~decision ~obligation ~kind_ ~producer
-                ~result ~issued_at ~candidate_tree ~materials_digest:""
+                ~result ~issued_at ~candidate_tree
+                ~materials_digest:run_digest
             in
             let full = Batch.with_id body in
             let json = Batch.serialize full in
@@ -3455,53 +3531,7 @@ let[@warning "-32"] do_attest_batch () =
              is a different claim from N runs, and the operator has
              to see which one they are making. *)
           let run_result, run_digest =
-            if String.trim !run_cmd = "" then (!result, "")
-            else
-              match run_tokens with
-              | [] -> (!result, "")
-              | prog :: args -> (
-                  match resolve_program prog with
-                  | None ->
-                      Printf.eprintf
-                        "mathc attest-batch: --run: %s is not on PATH\n%!" prog;
-                      exit 2
-                  | Some abs_prog ->
-                      let log = Filename.temp_file "mathc_attest_run_" ".log" in
-                      let outcome, status =
-                        run_with_sandbox_in_env
-                          ~env:(sandbox_env_for_path_forms ())
-                          ~capture_to:(Some log) ~project_root:root
-                          ~prog:abs_prog ~args:(abs_prog :: args)
-                          ~timeout_s:verify_timeout_s ~sandbox_mode:"none"
-                      in
-                      let output = read_capped log ~max_bytes:1048576 in
-                      (try Sys.remove log with _ -> ());
-                      let ok =
-                        match outcome with
-                        | Pass -> (
-                            match status with
-                            | Unix.WEXITED 0 -> true
-                            | _ -> false)
-                        | Fail | Skipped | Timeout -> false
-                      in
-                      if not ok then begin
-                        Printf.eprintf
-                          "mathc attest-batch: --run `%s` did not exit 0; the \
-                           batch is signed result=fail\n\
-                           %!"
-                          !run_cmd;
-                        excerpt_to_stderr
-                          ~heading:
-                            (Printf.sprintf
-                               "mathc attest-batch: output of `--run %s`:"
-                               !run_cmd)
-                          ~max_lines:20 output
-                      end;
-                      let digest =
-                        if output = "" then ""
-                        else "sha256:" ^ Digest.sha256_hex output
-                      in
-                      ((if ok then "pass" else "fail"), digest))
+            run_once_for_batch ~run_cmd:!run_cmd ~run_tokens
           in
           report_mass_issue ~n:(List.length obls)
             ~decisions:(count_distinct_decisions obls)

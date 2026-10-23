@@ -1,0 +1,155 @@
+---
+schema: math-coding/3.3
+id: attest-batch-manifest-run-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:290a4502117893112c7e0ea8d879314a3024ea8b387608aa3a7a530fb3935772"
+yaml_sha: "sha256:290a4502117893112c7e0ea8d879314a3024ea8b387608aa3a7a530fb3935772"
+
+intent: { source: "issue:attest-batch-manifest-ignores-run-2026-10-23", text: "mathc attest-batch --manifest=FILE --run=CMD --kind=test silently ignored --run: the manifest branch hardcoded materials_digest to the empty string and never executed the command, while the --from=decisions branch of the same subcommand honoured it. The same command therefore produced two different attestations, one of them carrying no runtime anchor at all." }
+
+commitment: |
+  After this decision closes:
+
+  1. `mathc attest-batch --manifest=FILE --run=CMD` executes
+     CMD and writes the digest of its captured output into
+     `subject.materials_digest`, exactly as the
+     `--from=decisions` branch does.
+  2. For one and the same `--run` command, the
+     `--manifest` branch and the `--from=decisions` branch
+     produce the SAME `materials_digest`.
+  3. When `--run` is given, the run's exit code becomes the
+     result of every emitted attestation, overriding a
+     per-row result in the manifest: a row cannot claim a
+     result the run contradicts.
+  4. A fixture exists that FAILS against the pre-fix binary
+     and PASSES against the post-fix binary, with a negative
+     control proving its own comparison can detect a branch
+     that drops the digest.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "The manifest branch is the human path; a human
+  choosing individual obligations does not need a machine
+  anchor, and the empty digest is what the schema permits
+  for a review." Rejected: the manifest row in this test
+  carries `kind_: test`, not `review`. The schema states
+  that materials_digest "MUST be non-empty when kind_ is in
+  {test, build, observation, analysis}" and that "an empty
+  value is permitted ONLY when kind_: review". The
+  pre-fix branch wrote an empty digest for a runtime kind —
+  schema-invalid by the schema's own wording. And the gate
+  treats the empty digest as a wildcard, so the attestation
+  was simultaneously invalid and unfalsifiable.
+
+  (b) "The defect is cosmetic: the branch still records the
+  exit code, so the result is honest even if the digest is
+  absent." Rejected: the pre-fix branch did not record the
+  exit code either — it took `row.result` verbatim from the
+  manifest and never ran anything. A row could therefore
+  carry result: pass while the command it names had never
+  been executed. That is precisely the fabrication mode
+  `verify-path-forms-and-signed-attestations-2026-10`
+  identified in the --from=decisions path and fixed there.
+
+antithesis: |
+  The opposite claim would be that the two branches SHOULD
+  differ: that a manifest is a declaration by a human and a
+  --from=decisions scan is a machine sweep, so the manifest
+  branch legitimately records intent rather than observation.
+
+  That claim has real force, and it is why the repair here is
+  deliberately conservative: the fix does not make the
+  manifest branch invent a digest. It makes the manifest
+  branch RUN the command the operator asked it to run, and
+  let the run's own output be the anchor.
+
+  The claim fails where it matters. The operator who passes
+  --run is asking for machine evidence, and --run is only
+  accepted with a runtime kind. A branch that silently
+  discards the flag makes the operator's explicit request
+  a no-op while the subcommand's help text promises it is
+  honoured. Whether a manifest row may assert a result
+  without a run is a separate policy question — and today
+  the answer is yes only for `kind_: review`, which the
+  schema already says.
+
+outcomes:
+  - id: shared-run-execution
+    statement: |
+      The --run execution and digest computation live in one
+      helper, run_once_for_batch, called by both branches of
+      attest-batch. The duplicated inline block in the
+      --from=decisions branch is deleted, so the two paths
+      cannot drift apart again.
+  - id: manifest-honours-run
+    statement: |
+      The manifest branch writes the run's output digest into
+      subject.materials_digest and the run's exit code into
+      result, for every row it emits.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/fixtures/attest-batch-run-digest.sh"
+    - "decisions/attest-batch-manifest-run-2026-10.yaml"
+    - "attestations/attest-batch-manifest-run-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "schemas/**"
+    - "lib/**"
+
+obligations:
+  - id: manifest-branch-honours-run
+    claim: |
+      `mathc attest-batch --manifest=FILE --run=CMD` writes a
+      non-empty subject.materials_digest computed from CMD's
+      captured output, and the same value the
+      `--from=decisions` branch writes for the same CMD.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/attest-batch-run-digest.sh
+          result: pass
+
+  - id: fixture-detects-a-dropping-branch
+    claim: |
+      The fixture exits non-zero when pointed at a binary
+      whose manifest branch drops the digest, and its negative
+      control confirms the comparison detects exactly that
+      difference.
+    acceptance:
+      all:
+        - verifier: manual-attest-batch-branch-parity
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "an operator relies on a manifest row's result without expecting the --run command to be executed"
+
+assumptions:
+  - id: run-once-semantics-for-manifest
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      One --run command backs the whole manifest batch, the
+      same way it backs a --from=decisions batch. The existing
+      mass-issue report already announces "N attestations from
+      ONE run", so the semantics are declared, not silent.
+    consequence_if_false: |
+      If per-row runs were wanted, the manifest format would
+      need a per-row command column. The current format has
+      none, so there is no alternative reading available to an
+      operator today.
+
+relations:
+  refines:
+    - verify-path-forms-and-signed-attestations-2026-10
