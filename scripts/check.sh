@@ -177,18 +177,65 @@ rm -f "$alco_log"
 # dispatches on Sys.argv.(2) and silently ignores every later
 # argument, so passing 208 paths checks exactly one of them. Precommit
 # walks the directory and carries the exit code.
+#
+# BARE `mathc` WAS THE BUG (2026-10-23). This block used to run
+# `nix develop .#test --command bash -c 'mathc precommit'`, assuming
+# `mathc` is on PATH inside the test shell. It is not: `mathc` exists
+# only as `packages.default` (flake.nix:131), and `mkShell` does not
+# put a package derivation on PATH — the devShell's `packages` list is
+# `ocamlDeps ++ dune ++ buildTools`, none of which is the binary. On a
+# developer machine the step passed only because a machine-local
+# `~/.local/bin/mathc` existed, provisioned by nothing in the flake and
+# nothing in CI. On a GitHub runner that artifact is absent, so the
+# shell printed `mathc: command not found`, exited 127, and this step
+# reported `FAIL decisions-precommit` for a corpus that is provably
+# clean — 218/218 accepted. A check whose exit code proves "the binary
+# is absent" while its label claims "the corpus is dirty" is worse than
+# no check: it trains the reader to ignore the label.
+#
+# The fix follows the convention the rest of the repo already uses
+# (`.github/workflows/ci.yml:125`, `scripts/ci-step-exit-sim.sh:226`):
+# invoke the build-tree binary by its build path, `_build/install/
+# default/bin/mathc`. That path is a symlink into
+# `_build/default/bin/mathc.exe`, and `lib/check/check.ml::mathc_resolve`
+# finds that same path from `Sys.executable_name` — so the per-file
+# `mathc validate` subprocesses re-exec THIS binary, with no PATH
+# lookup anywhere in the chain.
+#
+# The build is explicit and deliberate. `dune build --root .` (no
+# target) is exactly what `scripts/dev verify` stage 1 runs before
+# `check.sh`, and it is what creates `_build/install/...`; a bare
+# `dune build @install` would also drag the cram stanza in, so this
+# step would inherit every unrelated cram failure and re-introduce the
+# same mislabelled-FAIL class under a new name. `cleanup_dune` above
+# only removes a stale `_build/.lock`; it never wipes `_build`, so on a
+# warm tree the build here is a no-op.
+#
+# The diagnostic re-run used to be a SECOND bare-`mathc` invocation
+# (`mathc precommit 2>&1 | grep ...`), so on the failure path it
+# printed `bash: line 1: mathc: command not found` — the same useless
+# second command-not-found, hiding the real cause behind the first.
+# Both stdout and stderr of the single gated invocation now go to one
+# log, and the diagnostic is a `grep` over THAT log. There is exactly
+# one binary invocation, so the reason printed is by construction the
+# reason the step failed: a kernel diagnostic, or a dune build error.
 cleanup_dune
-if ! nix develop .#test --command bash -c 'mathc precommit >/dev/null 2>&1'; then
+precommit_log=$(mktemp)
+if ! nix develop .#test --command bash -c '
+    set -uo pipefail
+    dune build --root . || exit 3
+    _build/install/default/bin/mathc precommit
+  ' >"$precommit_log" 2>&1; then
   printf "  FAIL decisions-precommit\n"
-  nix develop .#test --command bash -c \
-    "mathc precommit 2>&1 | grep -vE ': (accept|parse-ok)\$' | grep -v '^mathc precommit:' | head -10" \
-    >&2 || true
+  grep -vE ': (accept|parse-ok)$' "$precommit_log" \
+    | grep -v '^mathc precommit:' | head -10 >&2 || true
   fail=$((fail + 1))
   failed_names+=("decisions-precommit")
 else
   printf "  ok   decisions-precommit\n"
   pass=$((pass + 1))
 fi
+rm -f "$precommit_log"
 
 # Cram integration tests: EVERY directory under tests/ that holds at
 # least one `*.t` fixture, discovered at run time rather than

@@ -82,6 +82,15 @@
         # assets/, and verifies the output allowlist; non-zero on any
         # missing file (so it is its own attestation, per the
         # decision's declared acceptance verifiers).
+        # `mathc` is NOT on PATH in EITHER devShell. It exists only as
+        # `packages.default` below, and `mkShell` does not put a package
+        # derivation on PATH -- its `packages` list is `ocamlDeps ++ dune
+        # ++ buildTools`, none of which is the binary. The shellHook
+        # banner in both shells used to advertise `run 'mathc validate
+        # FILE'`, a command the shell cannot resolve; on a machine with
+        # no stray ~/.local/bin/mathc that advice is a `command not
+        # found`. Both banners now name a build path that was verified
+        # to work. See decisions/gate-truth-mathc-path-2026-10.yaml.
         devShells.default = pkgs.mkShell {
           name = "math-coding-dev";
           packages = [
@@ -94,9 +103,9 @@
             echo "  ocaml:  $(ocaml --version)"
             echo ""
             echo "  run 'scripts/render.sh' to render the site (site-deploy@1: render-kernel-impl)"
-            echo "  run 'dune build' to compile kernel + CLI"
+            echo "  run 'dune build bin/mathc.exe' to compile kernel + CLI"
             echo "  run 'nix develop .#test' to enable alcotest"
-            echo "  run 'mathc validate FILE' to validate a decision"
+            echo "  validate a decision: '_build/default/bin/mathc.exe validate FILE'"
           '';
         };
 
@@ -121,7 +130,7 @@
             echo "  run 'scripts/render.sh' to render the site (site-deploy@1: render-kernel-impl)"
             echo "  run 'dune test' to run conformance suite"
             echo "  run 'dune build' to compile kernel + CLI"
-            echo "  run 'mathc validate FILE' to validate a decision"
+            echo "  validate a decision: 'dune build --root . && _build/install/default/bin/mathc validate FILE'"
           '';
         };
 
