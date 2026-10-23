@@ -1,0 +1,304 @@
+---
+schema: math-coding/3.2
+id: gate-truth-mathc-path-2026-10
+revision: 1
+state: active
+body_sha: "sha256:f61a61eca87c7e5b49f0f4e12e475c2a8c4651058d9e03a0835b427c5152b316"
+yaml_sha: "sha256:f61a61eca87c7e5b49f0f4e12e475c2a8c4651058d9e03a0835b427c5152b316"
+intent: |
+  Make the `decisions-precommit` gate in scripts/check.sh mean what its
+  label says, and make that meaning falsifiable.
+
+  The step invoked bare `mathc` inside `nix develop .#test`. `mathc` is
+  not part of either devShell: it exists only as `packages.default`, and
+  `mkShell` does not put a package derivation on PATH. On a developer
+  machine the step passed because a `~/.local/bin/mathc` happened to
+  exist — a machine-local artifact provisioned by nothing in flake.nix
+  and nothing in CI. On a GitHub runner that artifact is absent, so the
+  inner shell printed `mathc: command not found`, exited 127, and the
+  step reported `FAIL decisions-precommit` for a corpus that validates
+  218/218.
+
+  The failure was a false failure AND a worse failure than a red build.
+  The step's exit code proved "a binary is absent", while its label
+  claimed "the decision corpus is dirty". A reader who has seen that
+  label once learns to discount it. A gate that mislabels its own cause
+  spends the credibility it needs to report a real defect, and the
+  machine-local binary quietly became part of the build contract —
+  invisible in the flake, invisible in CI, load-bearing on every
+  developer machine and absent on the only machine that counts.
+
+  The failure path had a second defect stacked on the first. The
+  diagnostic sub-invocation was a SECOND bare-`mathc` call, so when the
+  step did fail it printed `bash: line 1: mathc: command not found` a
+  second time — the same useless message, hiding the real cause behind
+  the first. There were two invocations of a command that never ran.
+
+  Three things follow, and they are the whole of this decision.
+
+    1. Invoke the binary by the build path the build actually produces,
+       `_build/install/default/bin/mathc`, matching the convention
+       already used by `.github/workflows/ci.yml` and
+       `scripts/ci-step-exit-sim.sh`. Build it explicitly first, with
+       the same command `scripts/dev verify` stage 1 runs.
+
+    2. Reduce the gate to ONE binary invocation, and derive the
+       diagnostic from that invocation's captured output. The reason
+       printed is then, by construction, the reason the step failed.
+
+    3. Pin the result with a negative control. Swapping a broken
+       invocation for a different one is unfalsifiable on its own: a
+       check that has never rejected anything proves nothing about
+       what it accepts. The replacement is exercised against a
+       deliberately broken decision, and against the exact runner
+       condition that caused the original failure.
+
+  Also in scope, because it is the same false-advice class in the same
+  files: both devShell banners in flake.nix advertised
+  `run 'mathc validate FILE'`, a command neither shell can resolve.
+
+axiom_link:
+  - A0
+  - A1
+
+antithesis: |
+  The counter-position considered and rejected: "Leave the gate alone.
+  The corpus is clean, the step is cosmetic on CI, and the honest move
+  is to add `mathc` to `devShells.test` so that every existing caller,
+  every fixture, and every future script can keep writing bare `mathc`.
+  One line in flake.nix, no shell rewrites, no new fixtures."
+
+  This is the strongest counter-case and it deserves a real answer,
+  because it is genuinely more convenient and it would have made the
+  symptom disappear.
+
+  Rejected on four grounds.
+
+  (a) It hides the machine-local dependency instead of closing it. The
+      reason `mathc` was absent is that a build output was being
+      consumed as if it were an installed package. Adding the binary to
+      the devShell replaces the machine-local `~/.local/bin/mathc` with
+      a flake-provided one — but only for shells entered AFTER the
+      change. Every recorded transcript, every cached nix shell, and
+      every developer's muscle memory still encodes "mathc is on PATH",
+      which is the belief that produced the bug. The defect is the
+      assumption, not the missing PATH entry.
+
+  (b) It would have to be done for `devShells.default` too, or the two
+      shells would disagree, and `devShells.default` has no alcotest —
+      so `dune build` there cannot produce the binary. Making the
+      binary a shell package means deciding which shell owns it and
+      making the other shell's banner lie again.
+
+  (c) It changes the build contract to accommodate the callers instead
+      of the callers reflecting the build. The repo already had the
+      correct convention in two places; the gate was the outlier.
+
+  (d) It ships no evidence. Nothing in the repo would then be able to
+      distinguish "the gate passed because the corpus is clean" from
+      "the gate passed because a binary is missing". Under the
+      antithesis the exact confusion that produced this bug survives
+      the fix, and the next regression of the same shape is
+      undetectable. Per A1, a commitment with no path by which the
+      world can check it is a wish.
+
+  A narrower variant was also rejected: "drop the precommit step from
+  check.sh and rely on tests/cli/precommit.t". The cram fixture covers
+  the same kernel call but not the same gate, and the gate is what CI
+  reads. Deleting the step would convert a false failure into a silent
+  absence, which is a worse trade than either the bug or the fix.
+
+commitment: |
+  Three commits on branch `fix/gate-truth-mathc-path`, each gated by a
+  fixture that can fail.
+
+    C1. `fix(ci): invoke mathc by build path in decisions-precommit gate`
+        — scripts/check.sh: build with `dune build --root .`, gate on
+        `_build/install/default/bin/mathc precommit`, capture the single
+        invocation's stdout+stderr to one log and grep that log for
+        diagnostics. flake.nix: both devShell banners name a verified
+        build path instead of an unresolvable bare `mathc`; the default
+        shell's `run 'dune build'` becomes `dune build bin/mathc.exe`
+        because that shell has no alcotest and cannot run the bare form.
+
+    C2. `test(fixtures): pin the decisions-precommit gate with a
+        negative control`
+        — tests/fixtures/decisions-precommit-gate-rejects.sh and
+        tests/fixtures/decisions-precommit-path-independent.sh.
+
+    C3. `feat(decisions): record gate-truth-mathc-path-2026-10`
+        — this file, plus attestations for the two obligations whose
+        verifiers were actually executed.
+
+  The gate is not "decided"; it is kept. If a future change makes the
+  corpus dirty, this step must go red and say why.
+
+counterexample: |
+  "The corpus was already clean, so this fix cannot change any verdict
+  the kernel reports; it only changes CI plumbing. Treating it as a
+  decision with obligations is ceremony over a typo."
+
+  The refutation is the shape of the failure, not its severity. The
+  step reported `FAIL decisions-precommit` — a red CI stage naming a
+  defect in the decision corpus — on a runner, and green on a laptop,
+  from the same commit. That is a gate whose verdict is a function of
+  the machine rather than of the decisions. Its exit code was
+  uninterpretable: the same non-zero exit meant "corpus dirty" to a
+  reader and "binary missing" to the machine. The kernel's exit-code
+  discipline (spec/semantics.md, `mathc self-check` 0/1/3) exists
+  precisely so that a status can be read; a gate that spends its
+  status on an undeclared cause spends the reader's trust in every
+  other status this script prints.
+
+  The second, sharper counterexample against "it is only plumbing": the
+  step was the ONLY thing in check.sh that looked at a decision file at
+  all. Its own comment records why it exists — a branch carrying
+  `sha256:PENDING_AT_COMMIT_TIME` merged without conflict on 2026-10-20
+  and turned tests/cli/precommit.t red an hour later. So the gate that
+  guards that exact failure mode was, on CI, reporting a reason that
+  had nothing to do with it. The guard was present and mute.
+
+scope:
+  capabilities:
+    - decisions-precommit-gate
+    - devshell-banner-accuracy
+  paths:
+    - "scripts/check.sh"
+    - "flake.nix"
+    - "tests/fixtures/decisions-precommit-gate-rejects.sh"
+    - "tests/fixtures/decisions-precommit-path-independent.sh"
+    - "decisions/gate-truth-mathc-path-2026-10.yaml"
+    - "attestations/gate-truth-mathc-path-2026-10-precommit-gate-rejects.json"
+    - "attestations/gate-truth-mathc-path-2026-10-precommit-gate-is-path-independent.json"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "policies.yaml"
+    - "tests/cli/install.t"
+    - ".github/workflows/ci.yml"
+
+outcomes:
+  - id: decisions-precommit-gate
+    statement: |
+      The `decisions-precommit` step of scripts/check.sh runs one
+      invocation of `_build/install/default/bin/mathc precommit`, after
+      building that binary with `dune build --root .`, and reports the
+      verdict of that invocation. It no longer depends on any `mathc`
+      being resolvable on PATH. Its failure diagnostic is a filter over
+      the captured output of that same invocation, so the reason shown
+      is the reason the step failed.
+  - id: devshell-banner-accuracy
+    statement: |
+      Neither devShell banner in flake.nix names a command its shell
+      cannot resolve. Each names a build path that was executed and
+      observed to exit 0.
+  - id: gate-is-falsifiable
+    statement: |
+      The gate is exercised against a deliberately broken decision
+      (asserting rejection) and against the runner condition that caused
+      the original failure (asserting both that the old form fails and
+      that the new form succeeds). Both are wired into
+      `scripts/check.sh` via the `tests/fixtures/*.sh` glob, so a
+      regression fails the aggregator rather than a note.
+
+assumptions:
+  - id: install-path-is-the-repo-convention
+    state: assumed
+    statement: |
+      `_build/install/default/bin/mathc` is the path the rest of the
+      repo uses for the built binary and is expected to remain so.
+      Observed at `.github/workflows/ci.yml:125` and
+      `scripts/ci-step-exit-sim.sh:226` on this branch.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the convention moves, the gate's path and both fixtures' pins
+      move with it; the behavioural assertions (reject a broken
+      decision, succeed with no `mathc` on PATH) are unaffected
+      because they name the binary through the same variable.
+    review_on:
+      - signal: ci-path-convention-changed
+  - id: bare-dune-build-populates-install-dir
+    state: assumed
+    statement: |
+      `dune build --root .` with no target creates
+      `_build/install/default/bin/mathc`. Verified 2026-10-23 from a
+      clean `_build` on dune 3.23.1. It does not run the cram stanza;
+      `dune build @install` does, which is why the gate does not use it.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a future dune version stops populating the install dir for the
+      bare build, the gate's `dune build` step succeeds and the
+      subsequent binary invocation fails with "No such file or
+      directory". The diagnostic then shows that line, and
+      `decisions-precommit-path-independent.sh` goes red on its FIX
+      assertion, so the failure is loud rather than silent.
+    review_on:
+      - signal: dune-major-version-bump
+
+obligations:
+  - id: precommit-gate-rejects
+    outcome: decisions-precommit-gate
+    claim: |
+      The gated invocation rejects a decision whose `body_sha` is
+      `sha256:PENDING_AT_COMMIT_TIME`, exits non-zero for that reason,
+      accepts an unperturbed copy, and accepts the live corpus.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/decisions-precommit-gate-rejects.sh
+          result: pass
+  - id: precommit-gate-is-path-independent
+    outcome: decisions-precommit-gate
+    claim: |
+      With every PATH entry providing a `mathc` removed, the gated
+      invocation still exits 0 on the live corpus, while the pre-fix
+      bare-`mathc` invocation exits 127 on the same PATH.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/decisions-precommit-path-independent.sh
+          result: pass
+  - id: this-decision-validates
+    outcome: decisions-precommit-gate
+    claim: |
+      `mathc precommit` accepts this file and the whole corpus.
+    acceptance:
+      all:
+        - verifier: mathc precommit
+          result: pass
+
+reversal:
+  - signal: gate-goes-red-on-clean-corpus
+    condition: |
+      `decisions-precommit` reports FAIL while
+      `_build/install/default/bin/mathc precommit` exits 0 when run by
+      hand. The gate, not the corpus, is at fault again.
+    action: revert-to-C1-and-read-the-log
+  - signal: cramp-coupled-build
+    condition: |
+      `dune build --root .` starts running the cram stanza, so the gate
+      inherits unrelated cram failures under the label
+      `decisions-precommit` — the same mislabelled-FAIL class this
+      decision exists to close.
+    action: narrow-the-build-target
+  - signal: bare-mathc-resolvable-again
+    condition: |
+      A `mathc` becomes resolvable on PATH inside `nix develop .#test`
+      (e.g. the binary is added to the devShell packages). The control
+      half of `decisions-precommit-path-independent.sh` then fails
+      loudly, by design, because the runner condition it reconstructs
+      would no longer be hostile.
+    action: re-scope-the-control
+
+risk:
+  declared_triggers:
+    - gate-goes-red-on-clean-corpus
+    - cramp-coupled-build
+    - bare-mathc-resolvable-again
+  owner: human:maintainer
+
+relations:
+  addresses: []
+  supersedes: []
+  superseded_by: []
