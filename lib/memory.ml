@@ -24,6 +24,90 @@
    treats the same string as Active. *)
 type decision_state = [ `Draft | `Active | `Retired | `Superseded ]
 
+(* ---- line-scanner helpers (shared by every reader of a decision) ---- *)
+
+let[@warning "-32"] leading_spaces line =
+  let len = String.length line in
+  let rec loop i =
+    if i >= len then i
+    else
+      let c = String.unsafe_get line i in
+      if c = ' ' || c = '\t' then loop (i + 1) else i
+  in
+  loop 0
+
+(* Return true if `line` looks like a top-level YAML key/value
+   (no leading whitespace, not a comment, not the YAML
+   front-matter marker `---`). *)
+let[@warning "-32"] is_top_level line =
+  let len = String.length line in
+  if len = 0 then false
+  else
+    let c0 = String.unsafe_get line 0 in
+    if c0 = ' ' || c0 = '\t' || c0 = '#' then false
+    else if len >= 3 && line = "---" then false
+    else true
+
+(* The `scope.paths` of a decision, read from the raw YAML text.
+ *
+ * ONE implementation, used by every reader: the YAML parser path and
+ * the line-scanner path. Under semantics A the materials digest of a
+ * decision is computed over the files its scope names, so the
+ * producer of an attestation and the checker of one MUST read the
+ * same scope. Two readers of the same file that disagree on the
+ * scope would produce a digest nobody can reproduce — which is
+ * exactly the defect class this repository has been collecting for
+ * six weeks.
+ *
+ * Shape:
+ *     scope:
+ *       paths:
+ *         - "lib/**"
+ *       exclusions:
+ *         - "spec/**"
+ *)
+let[@warning "-32"] extract_scope_paths lines =
+  let rec find_scope = function
+    | [] -> []
+    | line :: rest ->
+        if is_top_level line then
+          (if String.trim line = "scope:" then collect_paths rest
+           else find_scope rest)
+        else find_scope rest
+  and collect_paths = function
+    | [] -> []
+    | line :: rest ->
+        if is_top_level line then []
+        else
+          let indent = leading_spaces line in
+          let trimmed = String.trim line in
+          if indent = 2 && trimmed = "paths:" then
+            let rec items acc = function
+              | [] -> List.rev acc
+              | l :: r ->
+                  if is_top_level l then List.rev acc
+                  else
+                    let ind = leading_spaces l in
+                    let t = String.trim l in
+                    if ind = 4 && String.length t > 2 && t.[0] = '-' && t.[1] = ' '
+                    then
+                      let item =
+                        String.trim (String.sub t 2 (String.length t - 2))
+                      in
+                      let item =
+                        if String.length item >= 2 && item.[0] = '"'
+                           && item.[String.length item - 1] = '"'
+                        then String.sub item 1 (String.length item - 2)
+                        else item
+                      in
+                      items (item :: acc) r
+                    else List.rev acc
+            in
+            items [] rest
+          else collect_paths rest
+  in
+  find_scope lines
+
 type decision_entry = {
   decision_id : string;
   revision : string option;
@@ -32,6 +116,12 @@ type decision_entry = {
   obligation_ids : string list;
   assumptions : int;
   risk_triggers : string list;
+  (* The decision's `scope.paths` — the files this decision claims
+     to govern. Under semantics A the materials digest of the
+     decision is computed over the CONTENT of exactly these files,
+     so both the gate and the attestation producer must agree on
+     them. Empty when the decision declares no scope. *)
+  scope_paths : string list;
   state : decision_state;
   (* Real verifier strings extracted from each obligation's
      `acceptance.all[*].verifier` (or `acceptance.any[*].verifier`)
@@ -220,6 +310,12 @@ let[@warning "-32"] parse_decision_yaml raw =
               (List.rev ids, vers)
           | None -> ([], [])
         in
+        (* Same extractor as the line-scanner path, applied to the
+           same raw text: one implementation, so the two readers of
+           a decision cannot disagree about its scope. *)
+        let scope_paths =
+          extract_scope_paths (String.split_on_char '\n' raw)
+        in
         let assumptions = count_array_field ps "assumptions" in
         let risk_triggers =
           match Schema.take_object ps "risk" with
@@ -245,6 +341,7 @@ let[@warning "-32"] parse_decision_yaml raw =
               obligation_ids;
               assumptions;
               risk_triggers;
+              scope_paths;
               state;
               verifier_per_obligation = verifier_pair_obligation;
             }
@@ -299,6 +396,7 @@ let[@warning "-32"] load_decisions reader root =
                   obligation_ids = [];
                   assumptions = 0;
                   risk_triggers = [];
+                  scope_paths = [];
                   state = `Active;
                   verifier_per_obligation = [];
                 }))

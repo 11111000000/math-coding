@@ -81,6 +81,101 @@ let[@warning "-32"] materials_digest_of changed_paths =
   let joined = String.concat "\n" sorted in
   Digest.sha256_hex joined
 
+(* --- scope materials (semantics A) ------------------------------------- *)
+
+(* Does the path segment [pat] match the path segment [s]? `*` matches
+   any run of characters within the segment. *)
+let[@warning "-32"] segment_match (pat : string) (s : string) : bool =
+  let parts = String.split_on_char '*' pat in
+  let rec go parts s =
+    match parts with
+    | [] -> true
+    | [ last ] ->
+        (* The last literal part must match the END of the segment. *)
+        let n = String.length last and m = String.length s in
+        m >= n && String.sub s (m - n) n = last
+    | p :: rest ->
+        let n = String.length p in
+        if n = 0 then go rest s
+        else if
+          String.length s >= n && String.sub s 0 n = p
+        then go rest (String.sub s n (String.length s - n))
+        else false
+  in
+  go parts s
+
+(* Does the repository-relative path [path] match the glob [pattern]?
+   `**` matches any number of path segments; `*` matches within one
+   segment; everything else is literal. *)
+let[@warning "-32"] glob_match (pattern : string) (path : string) : bool =
+  let ps = String.split_on_char '/' pattern in
+  let qs = String.split_on_char '/' path in
+  let rec go ps qs =
+    match (ps, qs) with
+    | [], [] -> true
+    | "**" :: ps, qs ->
+        go ps qs
+        || (match qs with [] -> false | _ :: qs' -> go ("**" :: ps) qs')
+    | p :: ps, q :: qs when segment_match p q -> go ps qs
+    | _ -> false
+  in
+  go ps qs
+
+(* The materials digest of a scope.
+ *
+ * This is the reference value that `subject.materials_digest` is
+ * compared against, and it is the value an attestation producer must
+ * write. Before this function existed the two sides computed
+ * DIFFERENT things and could never be equal:
+ *
+ *   - the gate compared against sha256 of the changed PATH NAMES
+ *     (materials_digest_of, above);
+ *   - the producers wrote sha256 of a command's OUTPUT, or "".
+ *
+ * The empty string was treated as a wildcard, so the only attestation
+ * that ever satisfied the freshness check was the one that carried no
+ * evidence at all: the mechanism rewarded dishonesty.
+ *
+ * Under this definition the digest is bound to the CONTENT of the
+ * files the scope names. The content is addressed by git's blob id,
+ * which is itself content-derived, so the digest changes exactly when
+ * a named file's bytes change — and both sides compute it the same
+ * way, from the same input, with no file reading at all.
+ *
+ * [blobs] is the (path, blob-id) list of the repository's tracked
+ * files. [scope_paths] is the decision's `scope.paths`. *)
+let[@warning "-32"] scope_materials_digest ~(blobs : (string * string) list)
+    ~(scope_paths : string list) ~(exclude : string list) : string =
+  (* The attestation store is EVIDENCE ABOUT the scope, not part of
+     it. A decision that lists its own attestations in its scope
+     creates a self-reference: the digest of the scope then depends
+     on the attestation that carries the digest, so the attestation is
+     stale the moment it is committed, and no signing can ever
+     satisfy it. The store is excluded by prefix for that reason. *)
+  let excluded p = List.exists (fun pre -> String.length p >= String.length pre
+                                      && String.sub p 0 (String.length pre) = pre)
+                      exclude
+  in
+  let matched =
+    List.filter
+      (fun (p, _) ->
+        (not (excluded p))
+        && List.exists (fun sc -> glob_match sc p) scope_paths)
+      blobs
+  in
+  let matched =
+    List.sort (fun (a, _) (b, _) -> String.compare a b) matched
+  in
+  let buf = Buffer.create 4096 in
+  List.iter
+    (fun (p, id) ->
+      Buffer.add_string buf p;
+      Buffer.add_char buf '\000';
+      Buffer.add_string buf id;
+      Buffer.add_char buf '\n')
+    matched;
+  Digest.sha256_hex (Buffer.contents buf)
+
 (* Filter attestations for a (decision_id, obligation_id) pair.
  * Pure list operations; the kernel cannot depend on the
  * attestation store adapter (OCAML_BEST_PRACTICES §10.1), so the
@@ -502,9 +597,12 @@ let[@warning "-32"] active_entries (memory : Memory.t) :
       | `Retired | `Superseded -> false)
     memory.Memory.decisions
 
+(* [materials_of_decision] maps a decision id to the reference
+ * materials digest for that decision (semantics A: the digest of the
+ * CONTENT of the files its scope names). It is injected so that
+ * [Gate] stays pure — the git adapter lives in bin/. *)
 let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
-    ~rebuttals =
-  let materials = materials_digest_of changed_paths in
+    ~rebuttals ~materials_of_decision =
   let active_decisions = active_entries memory in
   let applicable_count =
     List.fold_left
@@ -517,7 +615,9 @@ let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
         List.filter_map
           (fun obl_id ->
             obligation_gap ~decision_id:entry.Memory.decision_id
-              ~obligation_id:obl_id ~materials_digest:materials ~store)
+              ~obligation_id:obl_id
+              ~materials_digest:(materials_of_decision entry.Memory.decision_id)
+              ~store)
           entry.Memory.obligation_ids)
       active_decisions
     @ List.concat_map

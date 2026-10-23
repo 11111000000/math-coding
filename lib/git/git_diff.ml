@@ -123,3 +123,94 @@ let[@warning "-32"] tracked_under ~cwd ~rel_dir : string list option =
                 if String.contains rest '/' then None else Some rest)
         in
         Some names)
+
+(* The tracked files of the repository, each with its git blob id.
+ *
+ * The blob id is content-derived: it changes exactly when the file's
+ * bytes change. That makes it a content digest that costs nothing to
+ * obtain — one `git ls-files -s` reads the index, not the working
+ * tree — and it is what semantics A uses to bind an attestation's
+ * `subject.materials_digest` to the CONTENT of the files a decision's
+ * scope names.
+ *
+ * `-z` because a tracked path may legally contain a newline, which
+ * would otherwise split into phantom names. Returns None when git
+ * cannot answer, so a caller can distinguish "git says nothing is
+ * tracked" from "git could not answer". *)
+let[@warning "-32"] tracked_blobs ~cwd : (string * string) list option =
+  let cmd =
+    Printf.sprintf "git -C %s ls-files -s -z 2>/dev/null" (shell_quote cwd)
+  in
+  let tmp = Filename.temp_file "mc_git_blobs_" ".txt" in
+  Fun.protect
+    ~finally:(fun () -> try Sys.remove tmp with _ -> ())
+    (fun () ->
+      let cmd = Printf.sprintf "%s > %s" cmd (shell_quote tmp) in
+      if Sys.command cmd <> 0 then None
+      else
+        let raw =
+          try In_channel.with_open_bin tmp In_channel.input_all with _ -> ""
+        in
+        let entries =
+          raw |> String.split_on_char '\000'
+          |> List.filter (fun s -> s <> "")
+          |> List.filter_map (fun entry ->
+              (* "<mode> SP <sha> SP <stage> TAB <path>" *)
+              match String.index_opt entry '\t' with
+              | None -> None
+              | Some tab ->
+                  let meta = String.sub entry 0 tab in
+                  let path = String.sub entry (tab + 1) (String.length entry - tab - 1) in
+                  let fields = String.split_on_char ' ' meta in
+                  match fields with
+                  | _mode :: sha :: _stage :: _ ->
+                      if sha = "" || path = "" then None else Some (path, sha)
+                  | _ -> None)
+        in
+        Some entries)
+
+
+(* The blobs of a COMMIT, not of the index.
+ *
+ * The index describes the working tree; a tree describes a commit.
+ * The materials digest of a decision has to be about a TREE, because
+ * the attestation names the tree it was made at (`candidate_tree`).
+ * Comparing a digest computed from the index with one computed from
+ * a commit would compare two different things.
+ *
+ * `git ls-tree -r <ref>` lists every blob of the tree with its
+ * content-derived id, without reading the working tree. *)
+let[@warning "-32"] tree_blobs ~cwd ~(ref : string) : (string * string) list option =
+  let cmd =
+    Printf.sprintf "git -C %s ls-tree -r -z %s 2>/dev/null" (shell_quote cwd)
+      (shell_quote ref)
+  in
+  let tmp = Filename.temp_file "mc_git_lstree_" ".txt" in
+  Fun.protect
+    ~finally:(fun () -> try Sys.remove tmp with _ -> ())
+    (fun () ->
+      let cmd = Printf.sprintf "%s > %s" cmd (shell_quote tmp) in
+      if Sys.command cmd <> 0 then None
+      else
+        let raw =
+          try In_channel.with_open_bin tmp In_channel.input_all with _ -> ""
+        in
+        let entries =
+          raw |> String.split_on_char '\000'
+          |> List.filter (fun s -> s <> "")
+          |> List.filter_map (fun entry ->
+              (* "<mode> SP <type> SP <sha> TAB <path>" *)
+              match String.index_opt entry '\t' with
+              | None -> None
+              | Some tab ->
+                  let meta = String.sub entry 0 tab in
+                  let path =
+                    String.sub entry (tab + 1) (String.length entry - tab - 1)
+                  in
+                  let fields = String.split_on_char ' ' meta in
+                  match fields with
+                  | _mode :: _type :: sha :: _ when sha <> "" && path <> "" ->
+                      Some (path, sha)
+                  | _ -> None)
+        in
+        Some entries)

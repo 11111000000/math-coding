@@ -22,7 +22,7 @@
         "obligation_digest": {"type": "string"},
         "candidate_tree": {"type": "string"},
         "materials_digest": {
-          "description": "SHA-256 of the run's input artefact (test output, build artefact, observed metric). Per A0 separation (spec/constitution.md §0), this field MUST be non-empty when `kind_` is in `{test, build, observation, analysis}`. An empty value is permitted only when `kind_: review` (a human declaration without a runtime anchor). The kernel emits MC-MATERIALS-DIGEST-EMPTY (Block) for runtime kinds. Loader-side grandfathering for legacy attestations whose `issued_at` predates 2026-10-16 lives in lib/attestations/attestations.ml.",
+          "description": "SEMANTICS A: the digest of the CONTENT of the files the decision's `scope.paths` names. The content is addressed by git blob ids, so the digest changes exactly when a named file's bytes change. The gate computes the same value from the same tree and compares; the producer (`mathc attest-batch`) writes the same value. Per A0 separation (spec/constitution.md §0), this field MUST be non-empty when `kind_` is in `{test, build, observation, analysis}`. An empty value is permitted only when `kind_: review` (a human declaration without a runtime anchor). The kernel emits MC-MATERIALS-DIGEST-EMPTY (Block) for runtime kinds. Loader-side grandfathering for legacy attestations whose `issued_at` predates 2026-10-16 lives in lib/attestations/attestations.ml. The attestation store itself is EXCLUDED from the scope digest: the store is evidence about a scope, not part of it, and including it would make every attestation stale the moment it is committed.",
           "type": "string"
         }
       }
@@ -66,7 +66,10 @@
     "result": {"enum": ["pass", "fail", "inconclusive", "infrastructure-error"]},
     "issued_at": {"$ref": "common.json#/definitions/timestamp"},
     "valid_until": {"$ref": "common.json#/definitions/timestamp"},
-    "evidence_digest": {"type": "string"},
+    "evidence_digest": {
+      "type": "string",
+      "description": "The digest of what a `--run` command actually produced. This is EVIDENCE, not the materials anchor: `subject.materials_digest` binds the attestation to the content of the decision's scope, while this field records the output of the check that was run. Before semantics A the two were conflated - the run output digest was written into `materials_digest`, where the gate compared it against a digest of changed PATH NAMES - so the two could never be equal and the only attestation the freshness check ever accepted was the one carrying no evidence at all. Empty when no run was executed."
+    },
     "signature": {
       "type": "object", "additionalProperties": false,
       "required": ["format", "key_id", "value"],

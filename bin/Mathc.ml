@@ -2803,6 +2803,35 @@ let[@warning "-32"] do_attest () =
 
 let[@warning "-32"] verify_timeout_s = 60
 
+(* How deep we already are in a chain of `mathc verify` invocations.
+   Zero at the top level. Every sandboxed child receives depth+1. *)
+let[@warning "-32"] verify_depth () : int =
+  match Sys.getenv_opt "MATH_CODING_VERIFY_DEPTH" with
+  | Some s -> (
+      try int_of_string (String.trim s) with _ -> 0)
+  | None -> 0
+
+(* The maximum nesting depth. One level of nesting is legitimate — a
+   `mathc` scheme verifier may invoke another mathc subcommand, and a
+   decision may legitimately be verified by verifying another
+   decision. Beyond that, the chain is not earning its keep. *)
+let[@warning "-32"] verify_max_depth = 1
+
+(* The decision file currently being verified. Recorded so that the
+   child process can tell "verify this same decision again" — the
+   circular shape — from "verify a different decision", which is
+   legitimate. *)
+let[@warning "-32"] verify_current_file = ref ""
+
+(* The absolute path of a file, without requiring it to exist. *)
+let[@warning "-32"] abs_path_of p =
+  if Filename.is_relative p then Filename.concat (Sys.getcwd ()) p else p
+
+(* True when [child] names the same file as [parent]. *)
+let[@warning "-32"] same_file child parent =
+  String.equal (abs_path_of child) (abs_path_of parent)
+
+
 (* Compute the env-stripped environment array. Only PATH, HOME,
    and LANG are inherited; everything else is dropped. *)
 let[@warning "-32"] sandbox_env () =
@@ -2816,6 +2845,26 @@ let[@warning "-32"] sandbox_env () =
     "PATH=" ^ pick "PATH" "/usr/bin:/bin";
     "HOME=" ^ pick "HOME" "/";
     "LANG=" ^ pick "LANG" "C";
+    (* Nesting depth for `mathc verify`. A verifier that invokes
+       `mathc verify` again — directly, or through a script that
+       calls it — is a CIRCULAR verifier: it can never terminate,
+       because each level spawns the next. The marker lets the
+       nested process refuse instead of forking forever.
+
+       Measured on an adopter repository (2026-10-23): a decision
+       named `scripts/check-decisions.sh` as its own verifier, and
+       that script ran `mathc verify` over the same decisions. The
+       result was an unbounded fork: 31 concurrent `mathc verify`
+       processes on a 4-core machine, each re-spawning the script
+       that spawned it.
+
+       The marker is carried by EVERY sandboxed child, so the guard
+       holds through any number of intermediate scripts. *)
+    "MATH_CODING_VERIFY_DEPTH=" ^ string_of_int (verify_depth () + 1);
+    (* The file the parent was verifying. The child compares it with
+       its own target: same file = circular; different file = a
+       legitimate cross-decision check. *)
+    "MATH_CODING_VERIFY_FILE=" ^ !verify_current_file;
   |]
 
 (* The path forms run dune, and dune has to find the OCaml
@@ -3227,6 +3276,170 @@ let[@warning "-32"] report_mass_issue ~n ~decisions ~producer ~kind_ ~result
 let[@warning "-32"] split_run_command cmd =
   List.filter (fun t -> t <> "") (String.split_on_char ' ' (String.trim cmd))
 
+let[@warning "-32"] leading_spaces = Memory.leading_spaces
+
+let[@warning "-32"] is_top_level = Memory.is_top_level
+
+(* Find the first top-level `id: VALUE` line and return VALUE.
+   VALUE is everything after the colon, trimmed. Block-scalar
+   values (`id: |`) are skipped (they are not used in our
+   decisions). *)
+let[@warning "-32"] extract_top_level_id lines =
+  let rec loop = function
+    | [] -> None
+    | line :: rest -> (
+        if not (is_top_level line) then loop rest
+        else
+          let trimmed = String.trim line in
+          match String.index_opt trimmed ':' with
+          | Some i ->
+              let key = String.sub trimmed 0 i in
+              let v =
+                String.trim
+                  (String.sub trimmed (i + 1) (String.length trimmed - i - 1))
+              in
+              if
+                String.equal key "id" && v <> "" && v.[0] <> '|' && v.[0] <> '>'
+              then Some v
+              else loop rest
+          | None -> loop rest)
+  in
+  loop lines
+
+(* Collect `- id: NAME` items under the `obligations:` block.
+   The block ends at the next top-level key. Multi-line scalar
+   continuations are ignored because we only match the literal
+   `- id:` prefix at indent 2. *)
+let[@warning "-32"] extract_scope_paths = Memory.extract_scope_paths
+
+let[@warning "-32"] extract_obligation_ids lines =
+  let rec scan acc in_obls = function
+    | [] -> List.rev acc
+    | line :: rest ->
+        if is_top_level line then
+          begin if String.trim line = "obligations:" then scan acc true rest
+          else if in_obls then List.rev acc
+          else scan acc false rest
+          end
+        else if in_obls then
+          let indent = leading_spaces line in
+          if indent = 2 && String.length line > 4 then begin
+            let after = String.sub line 2 (String.length line - 2) in
+            let trimmed = String.trim after in
+            if
+              String.length trimmed > 2
+              && trimmed.[0] = '-'
+              && trimmed.[1] = ' '
+            then begin
+              let rest_of = String.sub trimmed 2 (String.length trimmed - 2) in
+              match String.index_opt rest_of ':' with
+              | Some i ->
+                  let key = String.sub rest_of 0 i in
+                  let v =
+                    String.trim
+                      (String.sub rest_of (i + 1)
+                         (String.length rest_of - i - 1))
+                  in
+                  if String.equal key "id" && v <> "" then
+                    scan (v :: acc) true rest
+                  else scan acc true rest
+              | None -> scan acc true rest
+            end
+            else scan acc true rest
+          end
+          else scan acc true rest
+        else scan acc in_obls rest
+  in
+  scan [] false lines
+
+let[@warning "-32"] load_decision_entry reader path =
+  match reader path with
+  | "" -> None
+  | raw ->
+      let lines = String.split_on_char '\n' raw in
+      let decision_id =
+        match extract_top_level_id lines with Some id -> id | None -> ""
+      in
+      let obligation_ids = extract_obligation_ids lines in
+      let scope_paths = extract_scope_paths lines in
+      if decision_id = "" then None
+      else
+        let stub : Memory.decision_entry =
+          {
+            Memory.decision_id;
+            Memory.revision = None;
+            Memory.source = raw;
+            Memory.obligations = List.length obligation_ids;
+            Memory.obligation_ids;
+            Memory.assumptions = 0;
+            Memory.risk_triggers = [];
+            Memory.scope_paths;
+            Memory.state = `Active;
+            Memory.verifier_per_obligation = [];
+          }
+        in
+        Some stub
+
+(* The materials digest of each decision, under semantics A: the
+ * digest of the CONTENT of the files the decision's scope names.
+ *
+ * This is the value an attestation producer MUST write into
+ * `subject.materials_digest`, because it is the value the gate
+ * compares against. The scope is read with the SAME extractor the
+ * gate uses (lib/memory.ml::extract_scope_paths, over the raw text),
+ * so producer and checker cannot disagree.
+ *)
+(* The prefixes excluded from a scope digest.
+ *
+ * The attestation store is evidence ABOUT a scope, not part of it.
+ * Including it would make every attestation stale the moment it is
+ * committed — the digest of the scope would depend on the
+ * attestation that carries the digest. The corpus convention of
+ * listing `attestations/<id>-*.json` in a decision's scope is kept,
+ * because the scope is also a human-facing statement of what the
+ * decision governs; only the DIGEST ignores the store. *)
+let[@warning "-32"] store_exclude_prefixes () : string list =
+  [ "attestations/"; ".math-coding/attestations/" ]
+
+let[@warning "-32"] scope_digest_map ~(reader : string -> string)
+    ~(decisions_dir : string) ~(tree : string) : string -> string =
+  let blobs =
+    match Git_diff.tree_blobs ~cwd:(Sys.getcwd ()) ~ref:tree with
+    | Some bs -> bs
+    | None -> (
+        match Git_diff.tracked_blobs ~cwd:(Sys.getcwd ()) with
+        | Some bs -> bs
+        | None -> [])
+  in
+  let scopes : (string, string list) Hashtbl.t = Hashtbl.create 64 in
+  let files =
+    if Sys.file_exists decisions_dir && Sys.is_directory decisions_dir then
+      Array.to_list (Sys.readdir decisions_dir)
+      |> List.filter (fun n -> Filename.check_suffix n ".yaml")
+      |> List.map (Filename.concat decisions_dir)
+    else []
+  in
+  List.iter
+    (fun p ->
+      match load_decision_entry reader p with
+      | Some e -> Hashtbl.replace scopes e.Memory.decision_id e.Memory.scope_paths
+      | None -> ())
+    files;
+  let cache : (string, string) Hashtbl.t = Hashtbl.create 64 in
+  fun decision_id ->
+    match Hashtbl.find_opt cache decision_id with
+    | Some d -> d
+    | None ->
+        let sp =
+          match Hashtbl.find_opt scopes decision_id with Some s -> s | None -> []
+        in
+        let d =
+          Gate.scope_materials_digest ~blobs ~scope_paths:sp
+            ~exclude:(store_exclude_prefixes ())
+        in
+        Hashtbl.replace cache decision_id d;
+        d
+
 let[@warning "-32"] do_attest_batch () =
   let manifest = ref None in
   let from_kind = ref (Some "decisions") in
@@ -3362,6 +3575,12 @@ let[@warning "-32"] do_attest_batch () =
                        run_cmd)
                   ~max_lines:20 output
               end;
+              (* The digest of what the run produced. This is
+                 EVIDENCE, not the materials anchor: under semantics A
+                 the materials digest is the digest of the content of
+                 the decision's scope, which the gate computes from
+                 the same source. Conflating the two is what made the
+                 freshness check unsatisfiable. *)
               let digest =
                 if output = "" then ""
                 else "sha256:" ^ Digest.sha256_hex output
@@ -3416,6 +3635,11 @@ let[@warning "-32"] do_attest_batch () =
           let run_result, run_digest =
             run_once_for_batch ~run_cmd:!run_cmd ~run_tokens
           in
+          let scope_digest =
+            scope_digest_map ~reader
+              ~decisions_dir:(Path_config.decisions_dir_at ~root ())
+              ~tree:candidate_tree
+          in
           let emit_one row =
             let decision = row.Batch.decision in
             let obligation = row.obligation in
@@ -3427,7 +3651,8 @@ let[@warning "-32"] do_attest_batch () =
             let body =
               Batch.make_attestation ~decision ~obligation ~kind_ ~producer
                 ~result ~issued_at ~candidate_tree
-                ~materials_digest:run_digest
+                ~evidence_digest:run_digest
+                ~materials_digest:(scope_digest decision)
             in
             let full = Batch.with_id body in
             let json = Batch.serialize full in
@@ -3536,11 +3761,18 @@ let[@warning "-32"] do_attest_batch () =
           report_mass_issue ~n:(List.length obls)
             ~decisions:(count_distinct_decisions obls)
             ~producer:!producer ~kind_:!kind ~result:run_result ~run:!run_cmd;
+          let scope_digest =
+            scope_digest_map ~reader
+              ~decisions_dir:(Path_config.decisions_dir_at ~root ())
+              ~tree:candidate_tree
+          in
           let emit (decision, obligation) =
             let body =
               Batch.make_attestation ~decision ~obligation ~kind_:!kind
                 ~producer:!producer ~result:run_result ~issued_at
-                ~candidate_tree ~materials_digest:run_digest
+                ~candidate_tree
+                ~evidence_digest:run_digest
+                ~materials_digest:(scope_digest decision)
             in
             let full = Batch.with_id body in
             let json = Batch.serialize full in
@@ -4220,6 +4452,42 @@ let[@warning "-32"] do_verify () =
     exit 2
   end;
   let sandbox_mode = !sandbox in
+  (* Refuse to verify a decision from inside a verification of the
+     SAME decision, and refuse to nest deeper than
+     [verify_max_depth].
+     *
+     * A circular verifier forks without bound: each level spawns a
+     script that spawns the next. Measured on an adopter repository
+     (2026-10-23), 31 concurrent `mathc verify` processes were
+     resident on a 4-core machine, each re-spawning the script that
+     spawned it, and the load average sat at 31.
+     *
+     * The refusal is a FAILURE of the obligation, not a skip: the
+     * check could not be performed because the verifier is broken,
+     * and a broken verifier must not read as a pass. *)
+  let depth = verify_depth () in
+  let parent_file =
+    match Sys.getenv_opt "MATH_CODING_VERIFY_FILE" with
+    | Some s when String.trim s <> "" -> String.trim s
+    | _ -> ""
+  in
+  if depth > 0 && parent_file <> "" && same_file path parent_file then begin
+    Printf.eprintf
+      "mathc verify: CIRCULAR VERIFIER: %s is verified by a verifier that \
+       invokes `mathc verify` on %s again. A verifier that re-enters \
+       `mathc verify` on the decision it is verifying can never \
+       terminate. The obligation is reported as failed.\n%!"
+      path parent_file;
+    exit 1
+  end;
+  if depth > verify_max_depth then begin
+    Printf.eprintf
+      "mathc verify: refusing to nest deeper than %d levels (current \
+       depth %d).\n%!"
+      verify_max_depth depth;
+    exit 1
+  end;
+  verify_current_file := abs_path_of path;
   (* Surface the active sandbox mode once so operators reading
      logs know whether `none` came from the default or from the
      env var. Conditional on env var being set explicitly: when
@@ -4466,6 +4734,59 @@ let[@warning "-32"] gate_to_json (g : Gate.t) =
          sorted)
   ^ "}\n"
 
+(* Build the per-decision materials resolver (semantics A).
+ *
+ * One `git ls-files -s` reads the index and yields every tracked
+ * file with its content-derived blob id. From that, the materials
+ * digest of a decision is the digest of the CONTENT of the files its
+ * `scope.paths` names — the same value the attestation producer must
+ * write, computed from the same input on both sides.
+ *
+ * When git cannot answer, the resolver falls back to the empty blob
+ * list, so the digest is the digest of the empty set rather than a
+ * wildcard. A decision with no scope at all gets that same value,
+ * which is stable and computable by anyone. *)
+
+let[@warning "-32"] materials_resolver_of
+    ~(entries : Memory.decision_entry list) ~(tree : string) : string -> string =
+  let blobs =
+    match Git_diff.tree_blobs ~cwd:(Sys.getcwd ()) ~ref:tree with
+    | Some bs -> bs
+    | None -> (
+        match Git_diff.tracked_blobs ~cwd:(Sys.getcwd ()) with
+        | Some bs -> bs
+        | None -> [])
+  in
+  let scopes : (string, string list) Hashtbl.t = Hashtbl.create 32 in
+  let scope_of decision_id =
+    match Hashtbl.find_opt scopes decision_id with
+    | Some s -> s
+    | None ->
+        let s =
+          match
+            List.find_opt
+              (fun (e : Memory.decision_entry) ->
+                String.equal e.Memory.decision_id decision_id)
+              entries
+          with
+          | Some e -> e.Memory.scope_paths
+          | None -> []
+        in
+        Hashtbl.replace scopes decision_id s;
+        s
+  in
+  let cache : (string, string) Hashtbl.t = Hashtbl.create 32 in
+  fun decision_id ->
+    match Hashtbl.find_opt cache decision_id with
+    | Some d -> d
+    | None ->
+        let d =
+          Gate.scope_materials_digest ~blobs ~scope_paths:(scope_of decision_id)
+            ~exclude:(store_exclude_prefixes ())
+        in
+        Hashtbl.replace cache decision_id d;
+        d
+
 let do_gate () =
   let base = ref "" and head = ref "" in
   let positionals : string list ref = ref [] in
@@ -4518,6 +4839,8 @@ let do_gate () =
   let result =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
       ~changed_paths ~store ~rebuttals
+      ~materials_of_decision:
+          (materials_resolver_of ~entries:memory.Memory.decisions ~tree:!head)
   in
   (* math-coding 3.2-ideal §15 wiring: phase-aware gate verdict on
      top of the v3.0 `evaluate`. gate_v32 honours obligation
@@ -5107,123 +5430,9 @@ let[@warning "-32"] list_decision_files dir =
    `- id: NAME` items under the `obligations:` block. The text
    scan is robust to multi-line scalars because it matches
    line-by-line and ignores content after the value. *)
-let[@warning "-32"] leading_spaces line =
-  let len = String.length line in
-  let rec loop i =
-    if i >= len then i
-    else
-      let c = String.unsafe_get line i in
-      if c = ' ' || c = '\t' then loop (i + 1) else i
-  in
-  loop 0
-
-(* Return true if `line` looks like a top-level YAML key/value
-   (no leading whitespace, not a comment, not the YAML
-   front-matter marker `---`). *)
-let[@warning "-32"] is_top_level line =
-  let len = String.length line in
-  if len = 0 then false
-  else
-    let c0 = String.unsafe_get line 0 in
-    if c0 = ' ' || c0 = '\t' || c0 = '#' then false
-    else if len >= 3 && line = "---" then false
-    else true
-
-(* Find the first top-level `id: VALUE` line and return VALUE.
-   VALUE is everything after the colon, trimmed. Block-scalar
-   values (`id: |`) are skipped (they are not used in our
-   decisions). *)
-let[@warning "-32"] extract_top_level_id lines =
-  let rec loop = function
-    | [] -> None
-    | line :: rest -> (
-        if not (is_top_level line) then loop rest
-        else
-          let trimmed = String.trim line in
-          match String.index_opt trimmed ':' with
-          | Some i ->
-              let key = String.sub trimmed 0 i in
-              let v =
-                String.trim
-                  (String.sub trimmed (i + 1) (String.length trimmed - i - 1))
-              in
-              if
-                String.equal key "id" && v <> "" && v.[0] <> '|' && v.[0] <> '>'
-              then Some v
-              else loop rest
-          | None -> loop rest)
-  in
-  loop lines
-
-(* Collect `- id: NAME` items under the `obligations:` block.
-   The block ends at the next top-level key. Multi-line scalar
-   continuations are ignored because we only match the literal
-   `- id:` prefix at indent 2. *)
-let[@warning "-32"] extract_obligation_ids lines =
-  let rec scan acc in_obls = function
-    | [] -> List.rev acc
-    | line :: rest ->
-        if is_top_level line then
-          begin if String.trim line = "obligations:" then scan acc true rest
-          else if in_obls then List.rev acc
-          else scan acc false rest
-          end
-        else if in_obls then
-          let indent = leading_spaces line in
-          if indent = 2 && String.length line > 4 then begin
-            let after = String.sub line 2 (String.length line - 2) in
-            let trimmed = String.trim after in
-            if
-              String.length trimmed > 2
-              && trimmed.[0] = '-'
-              && trimmed.[1] = ' '
-            then begin
-              let rest_of = String.sub trimmed 2 (String.length trimmed - 2) in
-              match String.index_opt rest_of ':' with
-              | Some i ->
-                  let key = String.sub rest_of 0 i in
-                  let v =
-                    String.trim
-                      (String.sub rest_of (i + 1)
-                         (String.length rest_of - i - 1))
-                  in
-                  if String.equal key "id" && v <> "" then
-                    scan (v :: acc) true rest
-                  else scan acc true rest
-              | None -> scan acc true rest
-            end
-            else scan acc true rest
-          end
-          else scan acc true rest
-        else scan acc in_obls rest
-  in
-  scan [] false lines
-
-let[@warning "-32"] load_decision_entry reader path =
-  match reader path with
-  | "" -> None
-  | raw ->
-      let lines = String.split_on_char '\n' raw in
-      let decision_id =
-        match extract_top_level_id lines with Some id -> id | None -> ""
-      in
-      let obligation_ids = extract_obligation_ids lines in
-      if decision_id = "" then None
-      else
-        let stub : Memory.decision_entry =
-          {
-            Memory.decision_id;
-            Memory.revision = None;
-            Memory.source = raw;
-            Memory.obligations = List.length obligation_ids;
-            Memory.obligation_ids;
-            Memory.assumptions = 0;
-            Memory.risk_triggers = [];
-            Memory.state = `Active;
-            Memory.verifier_per_obligation = [];
-          }
-        in
-        Some stub
+(* One implementation, in lib/memory.ml: every reader of a decision
+   file must agree about a decision's scope, or the materials digest
+   of that decision is not reproducible. *)
 
 (* Per-decision evaluation. Walks every obligation in `entry` and
    computes its gap; aggregates gaps into the decision's subject
@@ -5506,13 +5715,23 @@ let[@warning "-32"] do_self_check () =
      in Attestations.load). *)
   let waivers_dir = Filename.concat decisions_dir "waivers" in
   let waivers = Waiver.load ~reader ~root:waivers_dir in
-  let materials = Gate.materials_digest_of [ "self-check" ] in
+  (* Semantics A: the reference materials digest is per decision — the
+     digest of the CONTENT of the files that decision's scope names.
+     The old single value, sha256("self-check"), was compared against
+     nothing that any producer ever wrote, so the freshness check
+     could only ever pass on an attestation that carried no
+     evidence. *)
+  let materials_of_decision =
+    materials_resolver_of ~entries ~tree:"HEAD"
+  in
   let now = now_iso () in
   let evaluated =
     List.map
       (fun entry ->
         let verdict, causes, remedies, waived =
-          evaluate_decision ~materials ~store ~waivers ~now entry
+          evaluate_decision
+            ~materials:(materials_of_decision entry.Memory.decision_id)
+            ~store ~waivers ~now entry
         in
         (entry.Memory.decision_id, verdict, causes, remedies, waived))
       entries
