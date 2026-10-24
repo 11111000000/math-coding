@@ -302,7 +302,12 @@ cleanup_dune
 # moved. A run that touched only decisions, fixtures or docs keeps
 # the build cache and skips the rebuild entirely.
 kernel_stamp_file=".local/kernel-stamp"
-kernel_stamp_now="$(find lib bin -type f \( -name '*.ml' -o -name '*.mli' \) -print0 2>/dev/null \
+# Everything the cram cache observes: the kernel, the TESTS, the
+# scripts they call, and the schemas. The cache goes stale when any
+# of them changes, and a stale cram cache replays a stale
+# transcript - which is how two fixtures stayed broken for a day
+# while the suite reported green.
+kernel_stamp_now="$(find lib bin tests scripts schemas -type f \( -name '*.ml' -o -name '*.mli' -o -name '*.t' -o -name '*.sh' -o -name '*.json' \) -print0 2>/dev/null \
                      | sort -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)"
 mkdir -p .local
 if [ -f "$kernel_stamp_file" ] && [ "$(cat "$kernel_stamp_file")" = "$kernel_stamp_now" ]; then

@@ -4215,8 +4215,7 @@ let[@warning "-32"] changed_paths_under ~root ~(tree : string)
   if paths = [] then []
   else
     let cmd =
-      Printf.sprintf
-        "git -C %s diff --name-only %s -- %s 2>/dev/null"
+      Printf.sprintf "git -C %s diff --name-only %s -- %s 2>/dev/null"
         (Filename.quote root) (Filename.quote tree)
         (String.concat " " (List.map Filename.quote paths))
     in

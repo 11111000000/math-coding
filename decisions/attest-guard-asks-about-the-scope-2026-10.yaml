@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: attest-guard-asks-about-the-scope-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/failing-subject-backlog.sh
-body_sha: "sha256:448a139de5888652733e90c07bd2e164a9bf89634e124b8c594345063db35b75"
-yaml_sha: "sha256:448a139de5888652733e90c07bd2e164a9bf89634e124b8c594345063db35b75"
+body_sha: "sha256:851ed95bc85184fb4635d4525738c3edf575985e02ebbdbf391c8e3fc463c1dc"
+yaml_sha: "sha256:851ed95bc85184fb4635d4525738c3edf575985e02ebbdbf391c8e3fc463c1dc"
 
 intent: { source: "issue:the-guard-asked-the-wrong-question-2026-10-24", text: "The guard that refuses to sign on a tree differing from HEAD asked the wrong question. It asked whether the TREE was dirty, when the question the attestation actually raises is whether the CONTENT it will describe matches the content its digest was computed from. Those differ: a test fixture that writes a scratch file, or an edit to a file no obligation reviews, makes the tree dirty without making the digest wrong - and the guard refused anyway, which made the tool unusable for exactly the workflows that write files. It also fired on the ATTESTATION STORE, which the signing itself writes - so the bulk signing refused every decision after the first: 236 of 237 went unsigned." }
 
