@@ -14,15 +14,15 @@ new notation in `mode(c)`:
 
   $ cd "$DUNE_SOURCEROOT"
 
-  $ grep -qF 'risk_to_mode : [0, 1] → 𝓜' spec/algebra-3.2.md
+  $ grep -qF 'risk_to_mode : [0, 1] → 𝓜' "$DUNE_SOURCEROOT/spec/algebra-3.2.md"
 
-  $ grep -qF 'mode(c) = max(risk_to_mode(risk(c)), mode_floor(c))' spec/algebra-3.2.md
+  $ grep -qF 'mode(c) = max(risk_to_mode(risk(c)), mode_floor(c))' "$DUNE_SOURCEROOT/spec/algebra-3.2.md"
 
 The five threshold lines appear in §2, in order, with the exact
 text. We extract the bucket name from each line so the assertion
 survives comment-block insertions that shift line numbers:
 
-  $ grep -nE 'tiny.*0\.05|light.*0\.20|standard.*0\.60|strict.*0\.90|exhaustive.*0\.90' spec/algebra-3.2.md | awk -F'|' '{print $2}' | awk '{print $1}'
+  $ grep -nE 'tiny.*0\.05|light.*0\.20|standard.*0\.60|strict.*0\.90|exhaustive.*0\.90' "$DUNE_SOURCEROOT/spec/algebra-3.2.md" | awk -F'|' '{print $2}' | awk '{print $1}'
   tiny
   light
   standard
@@ -31,12 +31,12 @@ survives comment-block insertions that shift line numbers:
 
 The ambiguous ceiling notation `⌈risk(c)⌉` is gone from the spec:
 
-  $ ! grep -qF '⌈risk(c)⌉' spec/algebra-3.2.md
+  $ ! grep -qF '⌈risk(c)⌉' "$DUNE_SOURCEROOT/spec/algebra-3.2.md"
 
 The spec still references the prior notation-flag decision (which
 closes out as `superseded` once the human maintainer retires it):
 
-  $ grep -qF 'algebra-3.2-notation-flag-2026-10' spec/algebra-3.2.md
+  $ grep -qF 'algebra-3.2-notation-flag-2026-10' "$DUNE_SOURCEROOT/spec/algebra-3.2.md"
 
 The kernel implementation carries the same five thresholds in the
 same open-vs-closed-boundary order. We pin the body of

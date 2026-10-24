@@ -1,38 +1,40 @@
-# math-coding 3.2-ideal — formal algebra
+# math-coding 3.2 — the model, as the code implements it
 
-> **Author:** Petr Kosov &lt;p.b.kosov@yandex.ru&gt;
-> **Status:** 3.2-ideal specification (post-fresh-rethink)
-> **License:** Apache-2.0 (see `LICENSE`, `NOTICE`)
-> **Effective:** on acceptance of `decisions/algebra-3.2.yaml`
+> **The normative model is the OCaml.** This file is the INDEX into
+> it: for every concept the protocol has, it says what the concept
+> guarantees and which module implements it.
+>
+> It is NOT a second source of truth, and it is not a copy of the
+> code. Where a definition is quoted by the kernel's own diagnostics
+> or read by a conformance fixture, it is stated here VERBATIM,
+> because a fixture that reads a number from this file and compares
+> it with the code is what keeps the two in step — see
+> `tests/cli/risk-bucketing.t`, which reads the risk thresholds from
+> §2 and compares them with `lib/risk.ml`. That comparison is
+> load-bearing: it is the mechanism that makes a change to the
+> buckets in the code fail a test if this file is not updated with
+> it.
+>
+> The sections that no code reads, no fixture reads and no decision
+> cites were removed: §19 (an exact duplicate of
+> [`spec/constitution.md`](constitution.md), which is the normative
+> statement), §25 (a migration map from a version two releases old),
+> §26 (a "universal property" with a unique morphism), §27 (a
+> "friction-zero theorem" with a proof sketch whose friction figures
+> no code ever measured) and §29 (set cardinalities about who reads
+> what). None of them could fail: a quantified formula that no
+> program checks is not a specification, it is a decoration that has
+> to be maintained by hand — and the drift was invisible, because a
+> prose formula that no code checks cannot fail a test.
+>
+> What remains is what the code cannot state about itself: the
+> guarantees the kernel makes, and where each one lives.
 
-This document is the **formal mathematical specification** of the
-math-coding 3.2-ideal kernel. It supersedes the prose-style
-`spec/domain.md` and `spec/semantics.md` for purposes of normative
-authority; those documents remain as historical context.
+**Reading order.** `README.md` (what this is) → `ETHICS.md` (what it
+will not do) → `spec/constitution.md` (the invariants, normative) →
+this file (the model) → `USAGE.md` (how to use it) →
+`KERNEL_AGENTS.md` (how to work on it).
 
-The algebra preserves the 14 constitution invariants from
-`spec/constitution.md` and the 5 axioms from `axioms/`.
-
-## Cross-references
-
-- `axioms/` — A0 (Separation), A1 (Feedback), A2 (Invariants and Recovery),
-  A3 (Self-application), A4 (Care)
-- `spec/constitution.md` — I1–I14 kernel invariants (preserved verbatim)
-- `decisions/decision.yaml` — bootstrap policy
-- `lib/` — kernel implementation (must conform to this algebra)
-
-> **Adopters note.** This algebra is the formal normative spec for the
-> math-coding kernel itself, which is written in OCaml. If you are
-> applying math-coding to your own (Go / Python / Rust / JavaScript)
-> project, you only need §0–§19, §23–§29, plus the methodology pages in
-> `adoption/SKILL.md`. The OCaml-flavoured references in §20
-> (CoCommitDecision kernel-files pattern `lib/**`, `bin/Mathc.ml`,
-> `spec/**`, `schemas/**`, `axioms/**`) and §30 (`requires(nix, ocaml,
-> dune)` for the kernel-dev population) describe the math-coding kernel,
-> not how you adopt the protocol. See the banner at the top of
-> `README.md` for the entry point.
-
----
 
 ## §0. Goal
 
@@ -412,6 +414,7 @@ resolved policies; the raw `parent:` chain is collapsed by
 `resolve_policy` before the union/transitive steps run.
 
 ---
+
 ## §10. Rebuttal mechanism
 
 ```
@@ -657,27 +660,6 @@ scale ∈ {WallClockMinutes, TokenBudget, StepCount}
 
 ---
 
-## §19. 14 invariants
-
-```
-(I1)  ∀ c, p, t₁=t₂: gate(c, p, t₁, ∅) = gate(c, p, t₂, ∅)
-(I2)  ∀ ref: resolve(ref) ≠ ∅
-(I3)  ∀ rel(r, x, y): x.kind ∈ Src(r) ∧ y.kind ∈ Tgt(r)
-(I4)  ∀ a: (kind, id, rev) globally unique
-(I5)  ∀ rev accepted: digest(rev) = const
-(I6)  ∀ rev: parents(rev) < rev ∧ acyclic(revisions)
-(I7)  ∀ D₁, D₂: supersedes(D₁, D₂) acyclic
-(I8)  ∀ a ∈ Attestation: a names exact decision_sha + materials_𝓓
-(I9)  Δ materials_𝓓 ⇒ stale(a) (unless method(a) ⊢ digest-indep)
-(I10) Pass ≠ Unknown ≠ Waived ≠ Reviewed ≠ Observed
-(I11) ∀ w ∈ Waiver: scope(w) ⊆ scope(gap) ∧ revs(w) ⊆ revs(gap)
-(I12) ∀ protected τ: authorized_by(previous(P))
-(I13) ∀ MUST ∈ kernel: ∃ f⁺, f⁻ ∈ Fixtures
-(I14) gate = Blocked ⇒ exit ≠ 0
-```
-
----
-
 ## §20. Kernel rules
 
 ```
@@ -881,92 +863,6 @@ adds (from §28-§30):
 
 ---
 
-## §25. Equivalence with 3.1
-
-```
-π: 𝒱_ideal_3.2 → 𝒱_ideal_3.1
-
-π(decision(c) with sha-match) = yaml_decision(c) + body_section(c)
-π(infer(c)) = obligation list (without transitive_paths)
-π(attest(c) with substrate_fingerprint) = attest_v3.1(c) + substrate_fingerprint
-π(axiom-revision c) = axiom-change c
-π(rebuttals(c)) = body_section_rebuttals_v3.1 (loses information)
-π(trust(agent, domain)) = trust(agent) (loses granularity)
-π(apply(PreTemporalPrecedence, c, t))  ⟺  apply_v3.1(c, t)
-π(compose(c) without transitive_paths) = infer_v3.1(c)
-
-kernel composition:
-  K_3.1(π(c), π(p), t) = π(K_3.2(c, p, t, 𝓒-rule_3.1))
-  K_3.2 extends 3.1 with: CoCommitDecision, CoCommitFixture, re_evaluate, transition, transitive_paths
-
-3.2 is strict superset of 3.1:
-  ∀ c: 3.1-verdict(c) ⇒ 3.2-verdict ∈ {same, more restrictive}
-```
-
----
-
-## §26. Universal property
-
-```
-∀ protocol 𝒫 satisfying 14 invariants:
-  ∃! morphism η: 𝒫 → 𝒱_ideal_3.2 such that
-    friction_user(𝒫(c)) ≥ friction_user(ideal_3.2(c))
-    quality(𝒫) ≤ quality(ideal_3.2)
-    𝓒-rule(𝒫) ⊆ 𝓒-rule(3.2)
-    ∀ r ∈ 𝓒-rule(𝒫): apply(r, c, t)  ⟺  apply(η(r), c, t)
-    ∀ D ∈ Decision(𝒫): D has counterexample if mode(D) ≠ tiny
-
-η constructed by:
-  η(decision file)             ↦ decision_text + sibling_yaml (sha-match)
-  η(obligation list)           ↦ infer(diff) + transitive (data flow)
-  η(attestation)               ↦ ci_run output + substrate_fingerprint + env_class_level
-  η(rebuttal dialog)           ↦ rebuttals/<sha>.yaml + forge mirror + body opening
-  η(substrate decl)            ↦ CI substrate block + substrate_fingerprint
-  η(trust policy)              ↦ trust(agent, domain) dynamics with non-binding distinction
-  η(multi-policy)              ↦ policy(p) + transitive_paths (data flow) + union
-  η(axiom change)              ↦ transition(revision|addition|removal) + re_evaluate oracle
-  η(kernel rule)               ↦ apply(rule, c, t) in 𝓒-rule
-  η(temporal order rule)       ↦ PreTemporalPrecedence + CoCommitDecision + CoCommitFixture
-  η(sha consistency)           ↦ body_sha = yaml_sha validation
-  η(applicability envelope)    ↦ applicability(P, 𝒫_3.2) per §28
-  η(binary distribution)       ↦ distribution_property per §30
-```
-
----
-
-## §27. Friction-zero theorem
-
-```
-Theorem: ∀ c ∈ Commits, friction_user(ideal_3.2(c)) ≤ friction_user(plain-commit(c)) + ε
-
-where ε_user = O(mode(c) · sibling_yaml_size)
-       + O(rebuttal_yaml_size)     if strict+
-       + O(|impact-list|)          if axiom-revision
-       + O(|data_flow_targets|)    if multi-policy commit
-
-Proof sketch:
-  tiny mode:       friction_user = 0
-  light mode:      friction_user ≤ 10
-  standard mode:   friction_user ≤ 60
-  strict mode:     friction_user ≤ 130
-  exhaustive mode: friction_user ≤ 300
-
-  ∴ friction_user_ideal_3.2 ≤ friction_user_baseline    for mode(c) ≤ standard
-  ∴ friction_user_ideal_3.2 ≤ 1.5 × friction_user_baseline    for mode(c) ∈ {strict, exhaustive}
-  ∴ axiom A4 Process preserved via PreTemporalPrecedence + CoCommitDecision
-  ∴ multi-agent rebuttals structured via rebuttals/<sha>.yaml + forge mirror
-  ∴ multi-policy composition via union + transitive
-  ∴ axiom changes via transition kinds + re_evaluate oracle
-  ∴ multi-CI attestations via substrate_fingerprint + env_class lattice + wait-for-all
-  ∴ per-domain trust via trust(agent, domain) dynamics
-  ∴ dual authoring consistency via sha-match validation
-  ∴ honest uncertainty principle: Pass ≠ Fail ≠ Inconclusive ≠ Waived (per §0)
-  ∴ 3.2 is strict superset of 3.1 (more checks, never less restrictive)
-  ∴ applicability-fit (per §28) determines adoption choice per project   □
-```
-
----
-
 ## §28. Applicability envelope
 
 ```
@@ -1031,39 +927,6 @@ the low rung, stated precisely:
   per-commit cost to {commitment, counterexample} (§4) and keeps
   the `decision:` trailer sufficient — no sibling YAML (§5).
   What remains is the part that outlives the maintainer's memory.
-```
-
----
-
-## §29. Two-tier cognitive model
-
-```
-protocol has two consumer populations:
-  U = {users of 𝒫 on their projects}              [mainstream, |U| ≫ 1]
-  K = {kernel developers modifying 𝒫 itself}        [rare, |K| ≪ |U|]
-
-documentation_scope(consumer A):
-  A ∈ U: reads USAGE.md + AGENTS.md + axioms/ + PACKAGES.md ≈ 1100 lines, 5 modes, 1 schema
-  A ∈ K: reads all of U's docs + OCAML_BEST_PRACTICES.md + spec/
-         ≈ 3600 lines, 31 sections (§0-§30), 14 invariants
-
-friction(c) = friction_user(c) ⊕ friction_kernel_dev(c)
-
-friction_user(c) =
-  per-commit friction for users adopting 3.2
-  = 0 for tiny, ≤ 10 for light, ≤ 60 for standard, ≤ 130 for strict, ≤ 300 for exhaustive
-
-friction_kernel_dev(c) =
-  constant cost of maintaining kernel itself
-  amortized across |U|
-  = O(kernel_changes) per release, NOT per commit
-
-∀ users A ∈ U: friction_user(A) is the actual friction they experience
-∀ developers D ∈ K: friction_kernel_dev(D) is amortized over |U|
-
-implication: most projects have U ∩ K = ∅
-            kernel developers (5 people) maintain for users (1000s of projects)
-            friction_kernel_dev per release << friction_user per commit × |commits|
 ```
 
 ---

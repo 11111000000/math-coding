@@ -29,12 +29,12 @@ block (the negative case):
 
 The spec/algebra-3.2.md §7.1 sub-section exists:
 
-  $ rg '^### §7\.1' spec/algebra-3.2.md
+  $ rg '^### §7\.1' "$DUNE_SOURCEROOT/spec/algebra-3.2.md"
   ### §7.1 Byte-range and canonicalisation
 
 The spec names the placeholder-substitution algorithm:
 
-  $ rg 'placeholder-substitution sweep' spec/algebra-3.2.md
+  $ rg 'placeholder-substitution sweep' "$DUNE_SOURCEROOT/spec/algebra-3.2.md"
   3. **Insensitivity to placeholder.** Changing the value of `body_sha` (or `yaml_sha`) while keeping the field pattern valid does NOT change the resulting digest; the placeholder-substitution sweep absorbs the change. This is what makes the algorithm a fixed-point: a file's stored digest equals the algorithm's output for the same file.
 
 The schema is unchanged (no `authoring` field was added):
@@ -45,7 +45,7 @@ The schema is unchanged (no `authoring` field was added):
 The decision file is in main:
 
   $ test -f decisions/d5-body-vs-wrapper-canonical-2026-10.yaml
-  $ test -f spec/algebra-3.2.md
+  $ test -f "$DUNE_SOURCEROOT/spec/algebra-3.2.md"
   $ test -f tests/body_canonical_test.ml
   $ test -f lib/decision.ml
 

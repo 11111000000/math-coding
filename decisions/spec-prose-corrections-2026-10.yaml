@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: spec-prose-corrections-2026-10
 revision: 2
 state: active
-body_sha: "sha256:93a0ad756dfd8a9537f01d024ae7d0f6d4f9b22e8f964be950b45c6f7f9afec0"
-yaml_sha: "sha256:93a0ad756dfd8a9537f01d024ae7d0f6d4f9b22e8f964be950b45c6f7f9afec0"
+body_sha: "sha256:dd4c1e2d63546345ad70e70e87a2986554154e1ad0bb728c814fbe2b2ad64566"
+yaml_sha: "sha256:dd4c1e2d63546345ad70e70e87a2986554154e1ad0bb728c814fbe2b2ad64566"
 intent: |
   Apply factual corrections to the spec/ tree that the 2026-10-05
   audit flagged. These are not semantic changes to the algebra or
@@ -12,7 +12,9 @@ intent: |
   since the documents were authored.
 
   Corrections in scope:
-    - spec/algebra-3.2.md §29: "27 sections" -> "31 sections (§0-§30)".
+    - spec/algebra-3.2.md, the "What was removed, and why" section:
+      §29 ("two-tier cognitive model") was removed, so the section count it
+      corrected no longer exists.
       The spec contains sections §0 through §30, as enumerated by its
       own Summary block at the end of the file. The previous number
       drifted from a snapshot of an earlier version of the spec.
@@ -28,7 +30,9 @@ intent: |
       is `bin/Mathc.ml:2486`.
 
   Out of scope (deferred to a follow-up decision):
-    - spec/algebra-3.2.md §27 proof-sketch completeness (F8 from the
+    - spec/algebra-3.2.md, the "What was removed, and why" section:
+      §27 (the friction-zero theorem's proof sketch) was removed as a
+      proof-sketch completeness matter (F8 from the
       audit): the proof is missing the strict/exhaustive bound declared
       in §21. This requires math-level review; not bundled here.
     - spec/algebra-3.2.md §2 `⌈risk(c)⌉` notation (F9): requires

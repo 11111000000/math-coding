@@ -20,7 +20,7 @@ The repo has constitutional structure (axioms, 14 invariants):
   separation.md
 
 The algebra file exists and is normative (algebra §28):
-  $ test -f spec/algebra-3.2.md && echo "spec present" || echo "spec missing"
+  $ test -f "$DUNE_SOURCEROOT/spec/algebra-3.2.md" && echo "spec present" || echo "spec missing"
   spec present
 
 The decision file exists (bootstrap of applicability):

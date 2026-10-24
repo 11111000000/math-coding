@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:f55d88fa60f4ec6335613bea3ff5e643d7fef9bea4751aa1c043f35c0258016e"
-yaml_sha: "sha256:f55d88fa60f4ec6335613bea3ff5e643d7fef9bea4751aa1c043f35c0258016e"
+body_sha: "sha256:37bb5163454864f49ca0e50aedb413910af91d8d97c93ab5b440a1b9c70b1c4d"
+yaml_sha: "sha256:37bb5163454864f49ca0e50aedb413910af91d8d97c93ab5b440a1b9c70b1c4d"
 
 axiom_link:
   - A0
@@ -106,7 +106,7 @@ intent: |
     - §Waivers: a waiver MUST "identify ... issue time, expiry"
       - requires the times be present, not that either bound be
       open or closed.
-    - algebra-3.2.md §19 (I14) and its 14b/14c successors: about
+    - spec/constitution.md, Kernel Invariant 14 (and its 14b/14c successors): about
       exit codes, not waiver validity.
 
   So the normative text is one-directional and consistent: the

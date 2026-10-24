@@ -1,0 +1,122 @@
+---
+schema: math-coding/3.3
+id: spec-is-an-index-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/verdict-vocabulary-spec-coherence.sh
+body_sha: "sha256:e78582e09ebd073f73c894b6fbc6ef8cd032b798b5349a18292586349a4985c4"
+yaml_sha: "sha256:e78582e09ebd073f73c894b6fbc6ef8cd032b798b5349a18292586349a4985c4"
+
+intent: { source: "issue:the-prose-model-had-two-sources-of-truth-2026-10-23", text: "spec/algebra-3.2.md carried the model in prose and in quantified pseudo-mathematics alongside the OCaml that implements it. Two sources of truth drift, and the drift was invisible: a prose formula that no code checks cannot fail a test. Five sections had no code counterpart, no reference from any code, and no reference from any decision: §19 (an exact duplicate of spec/constitution.md), §25 (a migration map from a version two releases old), §26 (a 'universal property' with a unique morphism), §27 (a 'friction-zero theorem' with a proof sketch whose friction figures no code ever measured) and §29 (set cardinalities about who reads what)." }
+
+commitment: |
+  After this decision closes:
+
+  1. spec/algebra-3.2.md says which module implements each
+     concept. The definitions the kernel's diagnostics quote, and
+     the definitions a conformance fixture reads, are stated
+     VERBATIM - because the comparison between the file and the
+     code is what keeps them in step.
+  2. The five sections with no code counterpart, no reference and
+     no reader are removed, and the file records that it removed
+     them and why.
+  3. The conformance fixtures that read the specification read it
+     from $DUNE_SOURCEROOT, so they read the CURRENT file. The
+     cram sandbox does not contain spec/, and a fixture that read
+     it from there was reading nothing.
+
+axiom_link:
+  - A0
+  - A2
+
+counterexample: |
+  The strongest objection is that the specification is what a READER
+  needs, and that replacing it with an index into the source makes
+  the protocol unreadable.
+
+  The objection is right, and it is why the file is not deleted. A
+  reader needs to know what the protocol guarantees; that is what the
+  file still says. What the reader does not need is a SECOND
+  statement of the same thing in a form that can silently disagree
+  with the code - and that is what the removed sections were.
+
+  The measurable part of the objection is answered by the fixtures
+  that compare the two: risk-bucketing.t reads the thresholds from
+  §2 and compares them with lib/risk.ml, and body-vs-wrapper-
+  canonical.t reads the canonicalisation definition out of §7.1.
+  Those comparisons are the contract between the document and the
+  code, and they are now actually running.
+
+antithesis: |
+  The opposite claim would be that the whole file should go, and
+  that the code is documentation enough.
+
+  Rejected: a reader who has not opened the OCaml needs a map, and
+  a writer who changes the code needs to know which prose sentence
+  now lies. The file is that map. Deleting it would also break the
+  155 references to its sections - and those references are the
+  pointer from a diagnostic to the definition it is enforcing.
+
+outcomes:
+  - id: one-statement-per-fact
+    statement: |
+      Every fact about the protocol has one statement: the code.
+      The specification says what the code guarantees and where it
+      lives, and repeats verbatim only the definitions that are
+      quoted by the kernel or read by a fixture.
+
+scope:
+  paths:
+    - "spec/algebra-3.2.md"
+    - "tests/cli/risk-bucketing.t"
+    - "tests/cli/body-vs-wrapper-canonical.t"
+    - "tests/cli/applicability-envelope.t"
+    - "decisions/spec-is-an-index-2026-10.yaml"
+    - "attestations/spec-is-an-index-2026-10-*.json"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/constitution.md"
+    - "spec/domain.md"
+    - "spec/semantics.md"
+
+obligations:
+  - id: the-removed-sections-are-referenced-by-nobody
+    claim: |
+      No code, no fixture and no decision references §19, §25, §26,
+      §27 or §29 of spec/algebra-3.2.md.
+    acceptance:
+      all:
+        - verifier: manual-removed-sections-unreferenced
+          result: pass
+
+  - id: the-fixtures-read-the-current-spec
+    claim: |
+      The conformance fixtures that read the specification read it
+      from $DUNE_SOURCEROOT, so they compare the CURRENT file with
+      the code.
+    acceptance:
+      all:
+        - verifier: tests/cli/risk-bucketing.t
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a fixture reads a repository file that the cram sandbox does not contain"
+
+assumptions:
+  - id: the-fixtures-are-the-contract
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The fixtures that read the specification are the mechanism that
+      keeps it and the code in step. They were NOT running - the cram
+      sandbox does not contain spec/, so the comparisons were
+      reading nothing, and the cram cache hid the fact.
+    consequence_if_false: |
+      If the fixtures did not in fact compare the two, then the
+      document and the code could drift without notice - and the
+      decision to remove the duplicated sections would have rested
+      on a false premise.

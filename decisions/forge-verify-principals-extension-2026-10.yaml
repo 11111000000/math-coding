@@ -5,8 +5,8 @@ revision: 1
 state: draft
 parents:
   - forge-principal-verification@1
-body_sha: "sha256:6599b81406a3bfedfea0f691d20379fcad0eaa96d42b81383f7c722397eb9409"
-yaml_sha: "sha256:6599b81406a3bfedfea0f691d20379fcad0eaa96d42b81383f7c722397eb9409"
+body_sha: "sha256:daaf494554d26642afae23d0b6746eeb39badb377b6f8b8267931c979b52f3af"
+yaml_sha: "sha256:daaf494554d26642afae23d0b6746eeb39badb377b6f8b8267931c979b52f3af"
 axiom_link:
   - A1
   - A4
@@ -16,7 +16,7 @@ commitment: |
   revision 1, currently on main at `2c3145a`) with the
   decision-driven principal list and richer CLI surface
   captured in the WIP analysis
-  (`ANALYSIS-forge-verify-principals-extension.md`,
+  (`docs/ANALYSIS-forge-verify-principals-extension.md`,
   branch `forge-verify-analysis-2026-10`).
 
   After this decision lands on main, in addition to (a)-(d)
@@ -130,7 +130,7 @@ scope:
     - "tests/cli/forge-verify.t"
     - "tests/conformance.ml"
     - "decisions/forge-verify-principals-extension-2026-10.yaml"
-    - "ANALYSIS-forge-verify-principals-extension.md"
+    - "docs/ANALYSIS-forge-verify-principals-extension.md"
   exclusions:
     - "lib/gate.ml"
     - "lib/policy.ml"
