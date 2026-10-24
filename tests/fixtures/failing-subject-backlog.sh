@@ -36,7 +36,7 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 
 # The ceiling. Measured 2026-10-24, immediately after the
 # per-obligation re-signing. It may only fall.
-CEILING=37
+CEILING=31
 
 bin="${MATHC_BIN:-}"
 if [ -z "$bin" ]; then

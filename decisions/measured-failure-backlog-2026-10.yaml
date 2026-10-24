@@ -5,15 +5,15 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/failing-subject-backlog.sh
-body_sha: "sha256:9cb9d1051b24b9b4e9ddf3585520c2e360c84a06758cedb18bc6cb3b0744261c"
-yaml_sha: "sha256:9cb9d1051b24b9b4e9ddf3585520c2e360c84a06758cedb18bc6cb3b0744261c"
+body_sha: "sha256:de2b918534f43ae29b198b3647c0351e56b20fb55ab97663832c073c97f05985"
+yaml_sha: "sha256:de2b918534f43ae29b198b3647c0351e56b20fb55ab97663832c073c97f05985"
 
-intent: { source: "issue:the-store-said-pass-and-the-checks-fail-2026-10-24", text: "Re-signing every attestation by actually RUNNING the obligation's own verifier produced the first honest number the project has ever carried. The store had reported 763 passing obligations; 765 of its attestations carried an EMPTY materials_digest, which the gate treats as a WILDCARD - fresh for every tree, for ever - and the 763 passes were signatures without evidence. Running the checks says: 186 subjects pass, 37 FAIL, 6 cannot be concluded here, 2 are waived. The 40 are the project's first measured backlog of broken obligations." }
+intent: { source: "issue:the-store-said-pass-and-the-checks-fail-2026-10-24", text: "Re-signing every attestation by actually RUNNING the obligation's own verifier produced the first honest number the project has ever carried. The store had reported 763 passing obligations; 765 of its attestations carried an EMPTY materials_digest, which the gate treats as a WILDCARD - fresh for every tree, for ever - and the 763 passes were signatures without evidence. Running the checks says: 186 subjects pass, 31 FAIL, 6 cannot be concluded here, 2 are waived. The 40 are the project's first measured backlog of broken obligations." }
 
 commitment: |
   After this decision closes:
 
-  1. The 37 failing subjects are a NUMBER, measured by
+  1. The 31 failing subjects are a NUMBER, measured by
      tests/fixtures/failing-subject-backlog.sh, and that number is a
      CEILING. It may fall; it may never rise. While it is within
      the ceiling the merge gate stays usable; the moment a NEW
@@ -23,7 +23,7 @@ commitment: |
      enforces it. The repo's own remedy list - "revert the change
      that broke this obligation, or add a waiver" - is wrong for a
      failed check, and this decision records the correction.
-  3. Every one of the 37 is classified, and each carries a
+  3. Every one of the 31 is classified, and each carries a
      remedy: fix the check, or retire the decision with a
      superseding one.
   4. The three defect classes that produced the backlog are
@@ -75,7 +75,7 @@ outcomes:
   - id: the-backlog-is-a-number
     statement: |
       The number of subjects whose obligations fail is measured by a
-      fixture, pinned as a ceiling of 37, and printed on every CI
+      fixture, pinned as a ceiling of 31, and printed on every CI
       run.
 
 scope:
@@ -101,7 +101,7 @@ obligations:
 
   - id: the-backlog-is-classified
     claim: |
-      Every one of the 37 is classified - fix, retire, or declare -
+      Every one of the 31 is classified - fix, retire, or declare -
       so that paying the backlog is a list of work, not a number.
     acceptance:
       all:

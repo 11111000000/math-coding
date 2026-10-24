@@ -3944,29 +3944,31 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
                 | Unix.WEXITED 0 -> Pass
                 | Unix.WEXITED n ->
                     Printf.eprintf "mathc verify: mathc exited %d\n%!" n;
-                    (* The exit codes of a mathc subcommand carry the
-                       KERNEL's own semantics (spec/semantics.md
+                    (* The exit codes of a mathc subcommand carry
+                       the KERNEL's own semantics (spec/semantics.md
                        §4.3), and they are not the semantics of a
                        shell script:
 
                          0  accept      -> Pass
-                         1  reject      -> Fail
-                         2  input error -> Setup_fail (a malformed
-                                            argument is not a rejection)
-                         3  unknown     -> Skipped (the check ran and
-                                            could not conclude; an
-                                            UNKNOWN verdict is not a
-                                            REJECTION)
+                         non-zero      -> Fail (the subcommand did
+                                           not succeed)
+                         126 / 127    -> Setup_fail (not
+                                           executable / not found:
+                                           the check did not run)
 
-                       Mapping 3 to Fail was the same defect as the
-                       wrapper that reported every dune test outcome
-                       as success, one level deeper: it read a
-                       non-conclusion as a conclusion. The opposite
-                       direction - an unknown read as a failure - is
-                       the same mistake with the sign flipped. *)
-                    if n = 3 then Skipped
-                    else if n = 2 then Setup_fail
-                    else Fail
+                       Exit 3 is "unknown" for a subcommand that
+                       PRODUCES a verdict - self-check, gate - and
+                       reading that as a rejection would be wrong.
+                       But those two subcommands are no longer used
+                       as verifiers at all: an obligation verified by
+                       `mathc self-check` asserts the health of the
+                       corpus it is itself part of, which is
+                       self-reference, and sixteen such verifiers
+                       have been declared rather than left circular.
+                       So the ambiguity is gone at the source, and
+                       the rule can stay simple: a subcommand that
+                       did not succeed is a failure of the check. *)
+                    if n = 126 || n = 127 then Setup_fail else Fail
                 | Unix.WSIGNALED _ -> Fail
                 | Unix.WSTOPPED _ -> Fail)
             | Fail | Skipped -> Fail
