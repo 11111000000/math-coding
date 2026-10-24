@@ -4496,13 +4496,24 @@ let[@warning "-32"] do_attest_batch () =
    * This is not a convenience guard. I signed a whole store on a
      dirty tree, and every one of those attestations was bound to
      content the verifier had not seen. *)
-  if not (List.is_empty (changed_paths_since_head ())) then begin
+  let dirty =
+    List.filter
+      (fun p ->
+        not
+          (String.length p >= 13 && String.sub p 0 13 = "attestations/")
+          && not
+               (String.length p >= 25
+               && String.sub p 0 25 = ".math-coding/attestations/"))
+      (changed_paths_since_head ())
+  in
+  if dirty <> [] then begin
     Printf.eprintf
-      "mathc attest-batch: the working tree differs from HEAD. The \
+      "mathc attest-batch: the working tree differs from HEAD (%s). The \
        materials digest is computed at HEAD and the verifier runs \
        against the working tree; signing now would produce an \
        attestation that claims to cover content it never saw. Commit \
-       the change first, then sign, then commit the attestations.\n%!";
+       the change first, then sign, then commit the attestations.\n%!"
+      (String.concat ", " (List.sort String.compare dirty));
     exit 2
   end;
   let reader path =

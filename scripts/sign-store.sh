@@ -57,7 +57,14 @@ if [ -z "$BIN" ]; then
   exit 2
 fi
 
-if [ -n "$(git status --porcelain --untracked-files=normal 2>/dev/null)" ]; then
+# The attestation store is EXCLUDED from the materials digest, so
+# writing it does not invalidate anything. Only changes to the
+# content the digest covers make the tree "dirty" for this purpose -
+# and the signing itself writes the store, so a strict check would
+# refuse every signing after the first.
+dirty="$(git status --porcelain --untracked-files=normal 2>/dev/null \
+          | grep -vE '^.. attestations/|^.. \.math-coding/attestations/' || true)"
+if [ -n "$dirty" ]; then
   echo "sign-store: the working tree is dirty. The materials digest is" >&2
   echo "  computed at HEAD and the verifier runs against the working" >&2
   echo "  tree; signing now would bind an attestation to content the" >&2

@@ -1,0 +1,98 @@
+---
+schema: math-coding/3.3
+id: attest-store-is-excluded-from-dirtiness-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/failing-subject-backlog.sh
+body_sha: "sha256:46350ac89eb757520c7cdd49ba3239d91d981a18a2494ea268ab7199bc9aa739"
+yaml_sha: "sha256:46350ac89eb757520c7cdd49ba3239d91d981a18a2494ea268ab7199bc9aa739"
+
+intent: { source: "issue:the-guard-refused-its-own-output-2026-10-24", text: "The dirty-tree guard that refuses to sign on a tree differing from HEAD was applied to the WHOLE tree, including the attestation store. But the store is EXCLUDED from the materials digest - that is why committing the attestations does not invalidate them - so writing the store does not make the tree dirty for this purpose either. The bulk signing writes the store on its first decision, and the guard then refused every signing after the first: 236 of 237 decisions went unsigned." }
+
+commitment: |
+  After this decision closes:
+
+  1. The dirty-tree guard ignores the attestation store, because the
+     store is excluded from the materials digest.
+  2. The guard names the paths that made it refuse, so the failure
+     says WHICH file was in the way.
+  3. The bulk signing is a script, scripts/sign-store.sh, which runs
+     one decision per process and is therefore reproducible.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  The strongest objection is that excluding the store from the
+  dirtiness check opens a hole: a signer could edit the store and
+  claim the tree is clean.
+
+  The objection would be right if the store were part of the digest.
+  It is not - and that exclusion is load-bearing, not a convenience:
+  it is what makes "sign, then commit the attestations" a coherent
+  workflow, because committing them must not invalidate the very
+  attestations being committed. The hole does not exist because the
+  store's content is not covered by any digest; it is covered by
+  git, and the store's own integrity is the question of whether its
+  CONTENT matches what the verifier saw, which is exactly what the
+  materials digest answers - for the scope, not for the store.
+
+antithesis: |
+  The opposite claim would be that the guard should compare the
+  working tree against the INDEX rather than against HEAD, so that
+  staged content counts as committed and the signer can stage and
+  sign in one breath.
+
+  Rejected: the index is not a commit, and the gate evaluates a
+  commit. A digest computed over the index would be compared by the
+  gate against a digest computed over a tree - two different
+  functions again, which is the defect this release exists to
+  remove. The comparison has to be between two things of the same
+  kind, and a commit is the thing the gate compares.
+
+outcomes:
+  - id: the-store-is-not-dirtiness
+    statement: |
+      The guard refuses when the CONTENT the digest covers differs
+      from HEAD, and not when the store differs.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "scripts/sign-store.sh"
+    - "decisions/attest-store-is-excluded-from-dirtiness-2026-10.yaml"
+    - "attestations/attest-store-is-excluded-from-dirtiness-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+
+obligations:
+  - id: bulk-signing-completes
+    claim: |
+      scripts/sign-store.sh signs every decision with obligations, and
+      the result is reproducible across runs.
+    acceptance:
+      all:
+        - verifier: manual-bulk-signing-reproducible
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a signing workflow edits the store before signing"
+
+assumptions:
+  - id: the-store-is-covered-by-git
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The store's own integrity is git's business, not the digest's.
+      The digest answers "does this attestation still describe the
+      content it reviewed", and the store is not content any
+      obligation reviews.
+    consequence_if_false: |
+      If an obligation ever reviewed the store itself, the exclusion
+      would have to become a parameter rather than a constant.
