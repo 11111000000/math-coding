@@ -1,0 +1,97 @@
+---
+schema: math-coding/3.3
+id: verify-budget-and-warm-tree-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/failing-subject-backlog.sh
+body_sha: "sha256:0b9256035d3301f85d95441e139369c9304dcace6429d800237f808c3a67575f"
+yaml_sha: "sha256:0b9256035d3301f85d95441e139369c9304dcace6429d800237f808c3a67575f"
+
+intent: { source: "issue:a-longer-budget-made-things-worse-2026-10-24", text: "The per-verifier budget was raised from 60 s to 300 s on the theory that a cold dune build of 27k lines needs more than a minute. The theory was right and the fix was wrong: a verifier killed at the budget is reported as a FAILURE, so raising the ceiling turned 'this check needs a warm build tree' into 'this project is broken' - 54 failing subjects instead of 28, and a 21-minute signing run instead of 8." }
+
+commitment: |
+  After this decision closes:
+
+  1. The per-verifier budget is 90 s. It is a runaway check, not a
+     rebuild allowance.
+  2. The signing operation runs against a WARM build tree. A cold
+     rebuild is signalled by the timeout, not misreported as a
+     failure.
+  3. The budget and the warm tree are both recorded, because the
+     mistake is easy to repeat: the first instinct on seeing a
+     timeout is to raise the budget, and the budget is the wrong
+     dial.
+
+axiom_link:
+  - A1
+  - A2
+
+counterexample: |
+  The strongest objection is that a 90 s budget still turns a slow
+  machine into a false failure, so the project is trading accuracy
+  for speed.
+
+  The objection is right about the trade, and the trade is
+  unavoidable: some budget has to exist, and every budget converts
+  "too slow" into "failed". The question is only WHICH failure, and
+  the answer is that a timeout must be distinguishable from a
+  rejection. The kernel already has that distinction - Timeout is its
+  own outcome, not Fail - and this decision makes sure the budget
+  does not push genuine timeouts into the Fail bucket.
+
+antithesis: |
+  The opposite claim would be that the budget should be generous
+  enough for the slowest legitimate check on the slowest
+  legitimate machine, so that no timeout can ever be mistaken for a
+  failure.
+
+  Rejected: that budget is unbounded in practice, and a verifier
+  that hangs then blocks the corpus indefinitely - which is the
+  defect the non-terminating upward walk already caused once, in a
+  different form. A budget that a human can reason about is worth
+  more than a budget that cannot fail.
+
+outcomes:
+  - id: the-budget-is-a-runaway-guard
+    statement: |
+      The per-verifier budget is 90 s, and the signing operation
+      runs against a warm build tree so that a cold rebuild is not
+      mistaken for a broken project.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "decisions/verify-budget-and-warm-tree-2026-10.yaml"
+    - "attestations/verify-budget-and-warm-tree-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+
+obligations:
+  - id: the-budget-is-bounded
+    claim: |
+      A verifier gets 90 s, and a timeout is reported as a timeout
+      rather than as a failure of the project.
+    acceptance:
+      all:
+        - verifier: manual-verify-budget-bounded
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a legitimate verifier needs more than 90 s on a cold build tree"
+
+assumptions:
+  - id: the-tree-is-warm
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The signing operation runs after the build tree is warm. The
+      kernel does not warm it - it cannot, without running the same
+      build it is trying to measure.
+    consequence_if_false: |
+      A cold tree makes the dune-based verifiers time out, and a
+      timeout is a failure the project has to read as a failure.

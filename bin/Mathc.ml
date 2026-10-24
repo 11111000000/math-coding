@@ -2930,18 +2930,21 @@ let[@warning "-32"] do_attest () =
 
 (* The ceiling on ONE verifier's wall time.
  *
- * 60 s was enough for a fixture that runs in a second, and not
- * enough for a `dune build` on a cold cache: rebuilding 27k lines
- * of OCaml takes longer than that, and the verifier was killed
- * mid-build and reported as a FAILURE - a project defect caused by
- * a budget set for a different kind of check. The corpus signs ~800
- * obligations, a third of them dune-based, so this budget was the
- * single largest source of spurious failures.
+ * It was raised to 300 s on the theory that a cold `dune build` of
+ * 27k lines needs more than a minute. The theory was right and the
+ * fix was wrong: a verifier killed at 300 s is reported as a
+ * FAILURE, so raising the ceiling turned "this check needs a warm
+ * build tree" into "this project is broken" - and the signing run
+ * took 21 minutes instead of 8, with 54 failures instead of 28.
  *
- * Five minutes is generous for a fixture and survivable for a cold
- * rebuild. The budget exists to stop a runaway check, not to
- * second-guess the build. *)
-let[@warning "-32"] verify_timeout_s = 300
+ * The answer to a cold build is a warm build, not a longer budget.
+ * A budget exists to stop a runaway check; a cold rebuild is not a
+ * runaway check, and letting it run for five minutes to find that
+ * out is the same mistake in a different costume.
+ *
+ * 90 s: generous for a fixture, and a cold rebuild is signalled by
+ * the TIMEOUT rather than misreported as a failure. *)
+let[@warning "-32"] verify_timeout_s = 90
 
 (* How deep we already are in a chain of `mathc verify` invocations.
    Zero at the top level. Every sandboxed child receives depth+1. *)
