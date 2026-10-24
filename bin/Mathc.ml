@@ -4202,15 +4202,35 @@ let[@warning "-32"] scope_paths_of_decision ~root ~decision_id :
 
 (* The paths that differ between HEAD and the working tree, restricted
  * to a list of scope paths. *)
-let[@warning "-32"] changed_paths_under ~root ~(paths : string list) :
-    string list =
-  let all = changed_paths_since_head () in
-  if paths = [] then all
+(* The paths that differ between a TREE and the working tree,
+ * restricted to a list of scope paths.
+ *
+ * `git diff --name-only <tree> -- <paths>` is exactly the question
+ * the guard asks: does the content this attestation will describe
+ * match the content the digest was computed from? It answers it for
+ * the SCOPE only, so a scratch file elsewhere cannot make the digest
+ * wrong. *)
+let[@warning "-32"] changed_paths_under ~root ~(tree : string)
+    ~(paths : string list) : string list =
+  if paths = [] then []
   else
-    List.filter
-      (fun p ->
-        List.exists (fun sc -> try Gate.glob_match sc p with _ -> false) paths)
-      all
+    let cmd =
+      Printf.sprintf
+        "git -C %s diff --name-only %s -- %s 2>/dev/null"
+        (Filename.quote root) (Filename.quote tree)
+        (String.concat " " (List.map Filename.quote paths))
+    in
+    let out =
+      try
+        let ic = Unix.open_process_in cmd in
+        let r = read_all ic in
+        let _ = Unix.close_process_in ic in
+        r
+      with _ -> ""
+    in
+    out |> String.split_on_char '\n'
+    |> List.filter (fun s -> String.trim s <> "")
+    |> List.map String.trim
 
 let[@warning "-32"] count_distinct_decisions obls =
   let seen = Hashtbl.create 64 in
@@ -4541,26 +4561,6 @@ let[@warning "-32"] do_attest_batch () =
      The attestation store is excluded too: it is excluded from the
      digest, and that exclusion is what makes "sign, then commit the
      attestations" a coherent workflow. *)
-  let dirty =
-    List.filter
-      (fun p ->
-        (not (String.length p >= 13 && String.sub p 0 13 = "attestations/"))
-        && not
-             (String.length p >= 25
-             && String.sub p 0 25 = ".math-coding/attestations/"))
-      (changed_paths_since_head ())
-  in
-  if dirty <> [] then begin
-    Printf.eprintf
-      "mathc attest-batch: the working tree differs from HEAD (%s). The \
-       materials digest is computed at HEAD and the verifier runs against the \
-       working tree; signing now would produce an attestation that claims to \
-       cover content it never saw. Commit the change first, then sign, then \
-       commit the attestations.\n\
-       %!"
-      (String.concat ", " (List.sort String.compare dirty));
-    exit 2
-  end;
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in

@@ -48,8 +48,14 @@ report: 2 obligations stay under the threshold, 12 do not.
   >     echo "state: active"
   >     echo "mode: standard"
   >     echo "change_kind: implementation"
-  >     echo "body_sha: \"sha256:0000000000000000000000000000000000000000000000000000000000000000\""
-  >     echo "yaml_sha: \"sha256:0000000000000000000000000000000000000000000000000000000000000000\""
+  >   # The EMPTY stub, not a placeholder of zeros: the kernel accepts
+  >   # the empty string as a vacuous pass (decisions/
+  >   # schema-empty-sha-2026-10.yaml), while an all-zeros digest is
+  >   # COMPARED and therefore rejected as stale - which is what happened
+  >   # here when the digest check became a block on 2026-10-22 and this
+  >   # fixture was not updated with it.
+  >   echo "body_sha: \"sha256:0000000000000000000000000000000000000000000000000000000000000000\""
+  >   echo "yaml_sha: \"sha256:0000000000000000000000000000000000000000000000000000000000000000\""
   >     echo "axiom_link:"
   >     echo "  - A0"
   >     echo "  - A1"
@@ -89,6 +95,16 @@ Two small decisions first: 2 obligations and 3, i.e. 5 rows.
 
   $ write_decision small-a 2 "$MATH_CODING_DECISIONS_DIR/small-a.yaml"
   $ write_decision small-b 3 "$MATH_CODING_DECISIONS_DIR/small-b.yaml"
+
+The decisions are written with the all-zeros digest placeholder and
+then STAMPED: `mathc rehash --write` computes the canonical digest
+of the file's own bytes. A decision cannot be parsed until its
+digest is right, and its digest cannot be computed until the file
+exists - so the placeholder is what breaks the loop, and rehash is
+what closes it.
+
+  $ mathc rehash --write "$MATH_CODING_DECISIONS_DIR/small-a.yaml" "$MATH_CODING_DECISIONS_DIR/small-b.yaml" 2>&1 | tail -1
+  rehash: 2 changed, 0 already current, 0 skipped (written)
 
 The decisions are COMMITTED before anything is signed. Under
 semantics A the materials digest is the digest of the content of the

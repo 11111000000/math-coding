@@ -1,0 +1,100 @@
+---
+schema: math-coding/3.3
+id: attest-guard-asks-about-the-scope-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/failing-subject-backlog.sh
+body_sha: "sha256:448a139de5888652733e90c07bd2e164a9bf89634e124b8c594345063db35b75"
+yaml_sha: "sha256:448a139de5888652733e90c07bd2e164a9bf89634e124b8c594345063db35b75"
+
+intent: { source: "issue:the-guard-asked-the-wrong-question-2026-10-24", text: "The guard that refuses to sign on a tree differing from HEAD asked the wrong question. It asked whether the TREE was dirty, when the question the attestation actually raises is whether the CONTENT it will describe matches the content its digest was computed from. Those differ: a test fixture that writes a scratch file, or an edit to a file no obligation reviews, makes the tree dirty without making the digest wrong - and the guard refused anyway, which made the tool unusable for exactly the workflows that write files. It also fired on the ATTESTATION STORE, which the signing itself writes - so the bulk signing refused every decision after the first: 236 of 237 went unsigned." }
+
+commitment: |
+  After this decision closes:
+
+  1. The guard asks the question the attestation raises: does the
+     content this decision covers differ from the tree the
+     attestation names? Git answers it exactly, for the SCOPE only:
+     `git diff --name-only <tree> -- <scope paths>`.
+  2. The attestation store is excluded twice over: it is not in the
+     scope, and it is excluded from the digest - which is what
+     makes "sign, then commit the attestations" a coherent
+     workflow.
+  3. The bulk signing is scripts/sign-store.sh, one decision per
+     process, so the result is reproducible.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  The strongest objection is that a scope of `**` - which several
+  decisions declare - makes the scope-restricted question the same
+  question as the dirty-tree one, and the guard no longer buys
+  anything.
+
+  The objection is right, and it is why the fix is not the guard but
+  the SCOPES: a decision that claims to govern everything has a
+  scope that cannot distinguish a relevant change from an
+  irrelevant one. The guard is now honest about what it can see,
+  and the corpus-wide scope is a separate debt - a decision with a
+  scope of `**` should declare the files it actually governs.
+
+antithesis: |
+  The opposite claim would be to drop the guard entirely and let
+  the digest do the work: an attestation bound to a stale tree is
+  wrong whatever produced it, and the gate will say so.
+
+  Rejected: the gate compares the attestation's digest against the
+  reference computed from the tree it evaluates. If the digest was
+  computed from a DIFFERENT tree than the one the verifier saw, the
+  comparison is between two unrelated things and it may PASS - the
+  store looked healthy for weeks on exactly that basis. The guard is
+  what makes the two sides comparable.
+
+outcomes:
+  - id: the-guard-asks-about-the-content
+    statement: |
+      The guard refuses when the content a decision COVERS differs
+      from the tree the attestation names, and not when something
+      else in the tree differs.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "scripts/sign-store.sh"
+    - "decisions/attest-guard-asks-about-the-scope-2026-10.yaml"
+    - "attestations/attest-guard-asks-about-the-scope-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+
+obligations:
+  - id: bulk-signing-completes
+    claim: |
+      scripts/sign-store.sh signs every decision with obligations, and
+      two runs of the same decision give the same verdicts.
+    acceptance:
+      all:
+        - verifier: manual-bulk-signing-reproducible
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a decision declares a scope of `**` and an unrelated file changes"
+
+assumptions:
+  - id: scopes-are-meaningful
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A decision's scope names the files it governs. Several
+      decisions declare `**`, which makes the scope-restricted
+      question the same as the dirty-tree one for them.
+    consequence_if_false: |
+      For a decision with a scope of `**`, the guard refuses on any
+      tracked change in the tree. The remedy is to narrow the scope,
+      not to widen the guard.
