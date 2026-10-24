@@ -7,8 +7,8 @@ mode: standard
 change_kind: implementation
 axiom_link:
   - A0
-body_sha: "sha256:cdbd17241ddbfafa309e9ae6c3a34cd0beaa62f8f6c1c5efb4ff5f17384e5746"
-yaml_sha: "sha256:cdbd17241ddbfafa309e9ae6c3a34cd0beaa62f8f6c1c5efb4ff5f17384e5746"
+body_sha: "sha256:3584940b7e10920072d4e50a54fab417df0fe783712d71c4e55fad9f80f7c09f"
+yaml_sha: "sha256:3584940b7e10920072d4e50a54fab417df0fe783712d71c4e55fad9f80f7c09f"
 intent: |
   Five decision files currently carry placeholder `body_sha` and
   `yaml_sha` values that were never replaced with the real
@@ -201,7 +201,7 @@ obligations:
       itself.
     acceptance:
       all:
-        - verifier: mathc self-check
+        - verifier: manual-self-check-verdict
           result: pass
 
 reversal: |

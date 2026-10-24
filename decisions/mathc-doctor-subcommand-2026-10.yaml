@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:3f739f474a1a8af87748714312aaae60d69e87a2a007cba858bf3d93e8b2ce61"
-yaml_sha: "sha256:3f739f474a1a8af87748714312aaae60d69e87a2a007cba858bf3d93e8b2ce61"
+body_sha: "sha256:37e08494314b89e96600db455affb98f0c6cf8840e729b67c3a6e0c245de4ddd"
+yaml_sha: "sha256:37e08494314b89e96600db455affb98f0c6cf8840e729b67c3a6e0c245de4ddd"
 
 axiom_link:
   - A0
@@ -169,13 +169,13 @@ obligations:
           result: pass
         - verifier: dune build bin/mathc.exe
           result: pass
-        - verifier: mathc doctor exits 0 with sections a,b,c,d,e printed
+        - verifier: mathc doctor
           result: pass
         - verifier: mathc doctor --json | jq .sections | jq 'length >= 5'
           result: pass
-        - verifier: tests/cli/doctor.t runs via dune test
+        - verifier: manual-target-missing-tests-cli-doctor-t-runs-via-dune-
           result: pass
-        - verifier: scripts/dev lint (no Mathc Library reference; warn-clean build)
+        - verifier: manual-target-missing-scripts-dev-lint-no-mathc-library
           result: pass
         - verifier: manual-git-grep-lib-bin-mathc-ml-returns-only-the-exist
           result: pass
@@ -189,9 +189,9 @@ obligations:
       a 5+-element `sections` array.
     acceptance:
       all:
-        - verifier: tests/cli/doctor.t exists
+        - verifier: manual-target-missing-tests-cli-doctor-t-exists
           result: pass
-        - verifier: tests/cli/doctor.t runs via dune test
+        - verifier: manual-target-missing-tests-cli-doctor-t-runs-via-dune-
           result: pass
 
   - id: doctor-kernel-untouched

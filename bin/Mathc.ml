@@ -2928,7 +2928,20 @@ let[@warning "-32"] do_attest () =
 (* Every sandboxed run, original schemes and path forms alike, gets
    the same ceiling. Named so the number is stated once. *)
 
-let[@warning "-32"] verify_timeout_s = 60
+(* The ceiling on ONE verifier's wall time.
+ *
+ * 60 s was enough for a fixture that runs in a second, and not
+ * enough for a `dune build` on a cold cache: rebuilding 27k lines
+ * of OCaml takes longer than that, and the verifier was killed
+ * mid-build and reported as a FAILURE - a project defect caused by
+ * a budget set for a different kind of check. The corpus signs ~800
+ * obligations, a third of them dune-based, so this budget was the
+ * single largest source of spurious failures.
+ *
+ * Five minutes is generous for a fixture and survivable for a cold
+ * rebuild. The budget exists to stop a runaway check, not to
+ * second-guess the build. *)
+let[@warning "-32"] verify_timeout_s = 300
 
 (* How deep we already are in a chain of `mathc verify` invocations.
    Zero at the top level. Every sandboxed child receives depth+1. *)
@@ -3824,7 +3837,28 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
                    non-zero exit IS the check's own verdict, even
                    when it is silent: a script whose contract is
                    "exit 3 means fail" says exactly that by saying
-                   nothing. *)
+                   nothing.
+
+                   The `mathc` scheme is the exception, and the
+                   exception is not a special case - it is the
+                   KERNEL's own exit-code table (spec/semantics.md
+                   §4.3):
+
+                     0  accept      -> Pass
+                     1  reject      -> Fail
+                     2  input error -> Setup_fail (a malformed
+                                        argument is not a rejection)
+                     3  unknown     -> Skipped (the check ran and
+                                        could not conclude; an
+                                        UNKNOWN verdict is not a
+                                        REJECTION)
+
+                   Mapping 3 to Fail was the same defect as the
+                   wrapper that reported every dune test outcome as
+                   success, one level deeper: it read a
+                   non-conclusion as a conclusion. The opposite
+                   direction - an unknown read as a failure - is the
+                   same mistake with the sign flipped. *)
                 if n = 126 || n = 127 then Setup_fail else Fail
             | Unix.WSIGNALED _ -> Fail
             | Unix.WSTOPPED _ -> Fail)
@@ -3908,7 +3942,31 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
             | Pass -> (
                 match status with
                 | Unix.WEXITED 0 -> Pass
-                | Unix.WEXITED _ -> Fail
+                | Unix.WEXITED n ->
+                    Printf.eprintf "mathc verify: mathc exited %d\n%!" n;
+                    (* The exit codes of a mathc subcommand carry the
+                       KERNEL's own semantics (spec/semantics.md
+                       §4.3), and they are not the semantics of a
+                       shell script:
+
+                         0  accept      -> Pass
+                         1  reject      -> Fail
+                         2  input error -> Setup_fail (a malformed
+                                            argument is not a rejection)
+                         3  unknown     -> Skipped (the check ran and
+                                            could not conclude; an
+                                            UNKNOWN verdict is not a
+                                            REJECTION)
+
+                       Mapping 3 to Fail was the same defect as the
+                       wrapper that reported every dune test outcome
+                       as success, one level deeper: it read a
+                       non-conclusion as a conclusion. The opposite
+                       direction - an unknown read as a failure - is
+                       the same mistake with the sign flipped. *)
+                    if n = 3 then Skipped
+                    else if n = 2 then Setup_fail
+                    else Fail
                 | Unix.WSIGNALED _ -> Fail
                 | Unix.WSTOPPED _ -> Fail)
             | Fail | Skipped -> Fail

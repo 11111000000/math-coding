@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: v3-3-0-stable-release-2026-10
 revision: 1
 state: active
-body_sha: "sha256:9f12f4d140589b9e7d491fdd849917303ceaa072fc70787f72b23382a0d8a395"
-yaml_sha: "sha256:9f12f4d140589b9e7d491fdd849917303ceaa072fc70787f72b23382a0d8a395"
+body_sha: "sha256:533ad8ecd9bcb5e44bef2b22bf154b0904cd6e71cf188459096b78fa1277e45b"
+yaml_sha: "sha256:533ad8ecd9bcb5e44bef2b22bf154b0904cd6e71cf188459096b78fa1277e45b"
 
 intent: |
   Promote the published brand from `math-coding 3.3.0-alpha`
@@ -268,7 +268,7 @@ obligations:
       all:
         - verifier: manual-grep-q-version-3-3-0-math-coding-opam
           result: pass
-        - verifier: scripts/sync-version.sh --check
+        - verifier: manual-target-missing-scripts-sync-version-sh-check
           result: pass
   - id: changelog-current-section-header-3-3-0
     claim: |

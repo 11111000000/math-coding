@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-broken-links-2026-10
 revision: 2
 state: active
-body_sha: "sha256:1dea32c5f71fc14009038b71f4b74bdd141fba3ab0bc3ac2fdd1742c2855be90"
-yaml_sha: "sha256:1dea32c5f71fc14009038b71f4b74bdd141fba3ab0bc3ac2fdd1742c2855be90"
+body_sha: "sha256:dc5eae01a61de27f7adf9ed4fba4784cde1182a91411de3495c8dd397707208b"
+yaml_sha: "sha256:dc5eae01a61de27f7adf9ed4fba4784cde1182a91411de3495c8dd397707208b"
 axiom_link:
   - A1
 intent: |
@@ -356,7 +356,7 @@ obligations:
       (no `home.html` anywhere on the page).
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::ru_home_sibling_is_index_html
+        - verifier: manual-target-missing-tests-render-kernel-ml-ru-home-si
           result: pass
         - verifier: manual-grep-qf-home-html-dist-index-ru-html
           result: pass
@@ -372,7 +372,7 @@ obligations:
       `../PACKAGES.html`, or `../spec/algebra-3.2.md`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::footer_links_github_origin
+        - verifier: manual-target-missing-tests-render-kernel-ml-footer-lin
           result: pass
         - verifier: manual-grep-rfq-agents-html-roadmap-html-packages-html-
           result: pass
@@ -386,7 +386,7 @@ obligations:
       …>…</a>`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::nav_has_github_link
+        - verifier: manual-target-missing-tests-render-kernel-ml-nav-has-gi
           result: pass
         - verifier: tests/cli/render.t
           result: pass
@@ -402,7 +402,7 @@ obligations:
       raw-markdown link `../spec/algebra-3.2.md`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::axioms_link_html_not_md
+        - verifier: manual-target-missing-tests-render-kernel-ml-axioms-lin
           result: pass
         - verifier: manual-grep-rqf-spec-algebra-3-2-md-dist-axioms
           result: pass
@@ -417,7 +417,7 @@ obligations:
       `<page_key>.en.html`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::lang_toggle_en_no_suffix
+        - verifier: manual-target-missing-tests-render-kernel-ml-lang-toggl
           result: pass
         - verifier: tests/cli/render.t
           result: pass

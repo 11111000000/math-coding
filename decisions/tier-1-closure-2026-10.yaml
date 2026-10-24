@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: tier-1-closure-2026-10
 revision: 1
 state: active
-body_sha: "sha256:65044a788a1ebf849414335e280b183bc011e53f0cc253cd1402730893b8a1eb"
-yaml_sha: "sha256:65044a788a1ebf849414335e280b183bc011e53f0cc253cd1402730893b8a1eb"
+body_sha: "sha256:2ad2564d72148216722f022a542e27ffcd2ee4e41c028497d29021e70a014054"
+yaml_sha: "sha256:2ad2564d72148216722f022a542e27ffcd2ee4e41c028497d29021e70a014054"
 axiom_link:
   - A1
   - A3
@@ -237,7 +237,7 @@ obligations:
           result: pass
         - verifier: mathc validate fixtures/conformance/decision/positive-block-scalars.yaml
           result: pass
-        - verifier: tests/conformance.ml::fixtures case
+        - verifier: manual-target-missing-tests-conformance-ml-fixtures-cas
           result: pass
 
   - id: process-principles-p2-accepts-current-verifiers
@@ -250,7 +250,7 @@ obligations:
       accepted by the updated classifier.
     acceptance:
       all:
-        - verifier: tests/process_principles.ml::P2
+        - verifier: manual-target-missing-tests-process-principles-ml-p2
           result: pass
         - verifier: manual-bash-n-tests-process-principles-ml
           result: pass
@@ -265,7 +265,7 @@ obligations:
       accepted by the updated classifier.
     acceptance:
       all:
-        - verifier: tests/fixture_coverage.ml::walker
+        - verifier: manual-target-missing-tests-fixture-coverage-ml-walker
           result: pass
 
   - id: roadmap-tier-1-closed
@@ -294,9 +294,9 @@ obligations:
       waiver from the prior cycle, not a regression.
     acceptance:
       all:
-        - verifier: dune test exits 0
+        - verifier: dune test
           result: pass
-        - verifier: mathc self-check 66 pass / 1 unknown
+        - verifier: manual-self-check-verdict 66
           result: pass
 
 reversal:

@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:95ce578d933fc5f95b5f991f794e0274ce44417b239f6972f88c36870a828b19"
-yaml_sha: "sha256:95ce578d933fc5f95b5f991f794e0274ce44417b239f6972f88c36870a828b19"
+body_sha: "sha256:8f6a961b1740c7d0f93b2394ae0748819be72051415f254a1ebaa2cea737abdd"
+yaml_sha: "sha256:8f6a961b1740c7d0f93b2394ae0748819be72051415f254a1ebaa2cea737abdd"
 
 axiom_link:
   - A0
@@ -161,7 +161,7 @@ obligations:
           result: pass
         - verifier: manual-system-management-automation-language-parser-par
           result: pass
-        - verifier: scripts/install-tooling/install.ps1 -Help exits 0
+        - verifier: manual-target-missing-scripts-install-tooling-install-p
           result: pass
 
   - id: ps1-sha-verify

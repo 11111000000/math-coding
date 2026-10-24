@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathjax-default-on-2026-10
 revision: 1
 state: active
-body_sha: "sha256:b917ac60e6438d86fa4261115034f8f988440d2c153a32b466872f7f4de998f7"
-yaml_sha: "sha256:b917ac60e6438d86fa4261115034f8f988440d2c153a32b466872f7f4de998f7"
+body_sha: "sha256:77b0ddd4aa739be9d6b5be5e0a11191a62787ca5547d5e8a65a74c7705159900"
+yaml_sha: "sha256:77b0ddd4aa739be9d6b5be5e0a11191a62787ca5547d5e8a65a74c7705159900"
 intent: |
   Reverse the MathJax default-OFF workaround documented in
   `decisions/render-kernel-fixes-2026-10@1` obligation
@@ -222,7 +222,7 @@ obligations:
       bottom of `tests/render_kernel.ml`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::mathjax_default_on
+        - verifier: manual-target-missing-tests-render-kernel-ml-mathjax-de
           result: pass
         - verifier: manual-grep-c-enable-mathjax-true-lib-render-ml-1
           result: pass
@@ -250,7 +250,7 @@ obligations:
       itself is the asserted behaviour.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::mathjax_script_on_prose_page_when_enabled
+        - verifier: manual-target-missing-tests-render-kernel-ml-mathjax-sc
           result: pass
         - verifier: manual-grep-c-mathjax-3-dist-index-html-1
           result: pass

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: priority-drift
 revision: 3
 state: active
-body_sha: "sha256:0ebf35f2780f149dc93bc019526df4ee52b3ef5616f5e34ba532cd9ad0a64913"
-yaml_sha: "sha256:0ebf35f2780f149dc93bc019526df4ee52b3ef5616f5e34ba532cd9ad0a64913"
+body_sha: "sha256:bdde477aedc2b33a8d1ebfe962e33324e5eb44339f6155329d24fa9c155936c6"
+yaml_sha: "sha256:bdde477aedc2b33a8d1ebfe962e33324e5eb44339f6155329d24fa9c155936c6"
 intent: |
   Close deficit D3 from docs/AUDIT-0.0.11.md by adding a machine
   check that the priority table in spec/semantics.md
@@ -160,7 +160,7 @@ obligations:
       absent-on-one-side is reported explicitly.
     acceptance:
       all:
-        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
+        - verifier: dune build @tests/repo_structure/runtest --root .
           result: pass
 
   - id: priority-drift-fixture-implemented
@@ -178,7 +178,7 @@ obligations:
       (revision 1).
     acceptance:
       all:
-        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
+        - verifier: dune build @tests/repo_structure/runtest --root .
           result: pass
 
 reversal:

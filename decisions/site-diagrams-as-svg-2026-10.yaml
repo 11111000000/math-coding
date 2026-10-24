@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-diagrams-as-svg-2026-10
 revision: 1
 state: active
-body_sha: "sha256:33b0ca2045ebc5f60b0c0a5fcaf7b01ac98307e16015b14fc9ba96eef31bfd91"
-yaml_sha: "sha256:33b0ca2045ebc5f60b0c0a5fcaf7b01ac98307e16015b14fc9ba96eef31bfd91"
+body_sha: "sha256:15b7275c59c584ba53274246c5bc95df569a9ac70ccacaae6209be0f308cb932"
+yaml_sha: "sha256:15b7275c59c584ba53274246c5bc95df569a9ac70ccacaae6209be0f308cb932"
 axiom_link:
   - A3
 intent: |
@@ -89,9 +89,9 @@ obligations:
       `assets/style.css`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::mermaid_support_removed
+        - verifier: manual-target-missing-tests-render-kernel-ml-mermaid-su
           result: pass
-        - verifier: tests/render_kernel.ml::css_has_inline_figure_rules
+        - verifier: manual-target-missing-tests-render-kernel-ml-css-has-in
           result: pass
   - id: inline-figures-render-on-eight-pages
     outcome: inline-figures-render-on-eight-pages
@@ -101,7 +101,7 @@ obligations:
       wrappers and contain no Mermaid `<div class="mermaid">`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::inline_svg_figures_in_seven_pages
+        - verifier: manual-target-missing-tests-render-kernel-ml-inline-svg
           result: pass
 
 counterexample: |

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: editorial
-body_sha: "sha256:dacaa04277cb4ab6acf551cf797775f5dfb34face66680abbc064144e3aeb183"
-yaml_sha: "sha256:dacaa04277cb4ab6acf551cf797775f5dfb34face66680abbc064144e3aeb183"
+body_sha: "sha256:fa046bb180e40f9cf6c09872647b402e2abae7bb232c0f0d164428133f03be0e"
+yaml_sha: "sha256:fa046bb180e40f9cf6c09872647b402e2abae7bb232c0f0d164428133f03be0e"
 
 intent: |
   Reduce friction in the math-coding ux-3 workstream without
@@ -283,7 +283,7 @@ obligations:
           result: pass
         - verifier: mathc validate decisions/ux-3-cosign-image-2026-10.yaml
           result: pass
-        - verifier: scripts/install-tooling/install.sh --help
+        - verifier: manual-target-missing-scripts-install-tooling-install-s
           result: pass
 
   - id: p2-precommit-subcommand
@@ -388,9 +388,9 @@ obligations:
       unchanged.
     acceptance:
       all:
-        - verifier: scripts/slack2madr.py --help
+        - verifier: manual-target-missing-scripts-slack2madr-py-help
           result: pass
-        - verifier: scripts/confluence2madr.py --help
+        - verifier: manual-target-missing-scripts-confluence2madr-py-help
           result: pass
         - verifier: manual-python3-m-py-compile-scripts-slack2madr-py
           result: pass

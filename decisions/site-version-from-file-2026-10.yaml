@@ -4,9 +4,9 @@ id: site-version-from-file-2026-10
 revision: 2
 state: active
 
-body_sha: "sha256:e5df3d5024111457482228a4a8932dfd557bbe08fd64208a30492829a5082fc2"
+body_sha: "sha256:b0cd53afe5901f3d2fff15c415fe43940f363b678c757899536692f10572bec7"
 
-yaml_sha: "sha256:e5df3d5024111457482228a4a8932dfd557bbe08fd64208a30492829a5082fc2"
+yaml_sha: "sha256:b0cd53afe5901f3d2fff15c415fe43940f363b678c757899536692f10572bec7"
 
 intent: |
   Remove the hardcoded `3.0-alpha` and `v3.0.0` strings from
@@ -201,9 +201,9 @@ obligations:
       footer of every rendered page.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::version_in_hero_and_footer
+        - verifier: manual-target-missing-tests-render-kernel-ml-version-in
           result: pass
-        - verifier: tests/render_kernel.ml::version_default_reads_version_file
+        - verifier: manual-target-missing-tests-render-kernel-ml-version-de
           result: pass
         - verifier: manual-grep-qf-version-dist-index-html
           result: pass

@@ -229,7 +229,7 @@ obligations:
       The 5 temp-path-noise tests pass deterministically.
     acceptance:
       all:
-        - verifier: tests/fixtures/ci-cram-cleanup-batch2-temp-path-fixed.sh
+        - verifier: manual-target-missing-tests-fixtures-ci-cram-cleanup-ba
           result: pass
   - id: tier-3b-fixed
     outcome: stale-snapshots-regenerated

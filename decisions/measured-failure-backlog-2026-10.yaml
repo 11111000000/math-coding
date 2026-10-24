@@ -1,0 +1,127 @@
+---
+schema: math-coding/3.3
+id: measured-failure-backlog-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/failing-subject-backlog.sh
+body_sha: "sha256:1697ee8d65d735e0d81e935d95c5767ef5a568b861a4075e35875358723d1463"
+yaml_sha: "sha256:1697ee8d65d735e0d81e935d95c5767ef5a568b861a4075e35875358723d1463"
+
+intent: { source: "issue:the-store-said-pass-and-the-checks-fail-2026-10-24", text: "Re-signing every attestation by actually RUNNING the obligation's own verifier produced the first honest number the project has ever carried. The store had reported 763 passing obligations; 765 of its attestations carried an EMPTY materials_digest, which the gate treats as a WILDCARD - fresh for every tree, for ever - and the 763 passes were signatures without evidence. Running the checks says: 186 subjects pass, 40 FAIL, 6 cannot be concluded here, 2 are waived. The 40 are the project's first measured backlog of broken obligations." }
+
+commitment: |
+  After this decision closes:
+
+  1. The 40 failing subjects are a NUMBER, measured by
+     tests/fixtures/failing-subject-backlog.sh, and that number is a
+     CEILING. It may fall; it may never rise. While it is within
+     the ceiling the merge gate stays usable; the moment a NEW
+     failure appears the gate goes red.
+  2. A failed obligation is NOT waivable. The constitution says a
+     waiver must not convert fail into pass, and the kernel
+     enforces it. The repo's own remedy list - "revert the change
+     that broke this obligation, or add a waiver" - is wrong for a
+     failed check, and this decision records the correction.
+  3. Every one of the 40 is classified, and each carries a
+     remedy: fix the check, or retire the decision with a
+     superseding one.
+  4. The three defect classes that produced the backlog are
+     recorded, because each is a corpus defect and not a code
+     defect: verifiers naming a test case nobody wrote, verifiers
+     carrying a prose tail the kernel passed to the program as
+     arguments, and `mathc self-check` used as the verifier of an
+     obligation INSIDE the corpus it evaluates.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Waive the 40 until the backlog is paid down, and keep
+  the gate green." Rejected: a failed check is not waivable, and
+  the reason is not pedantry. A waiver says "a human accepted
+  this gap". A failed check says "the property does not hold".
+  Turning the second into the first is how the corpus ended up
+  claiming 763 passing obligations it had never verified.
+
+  (b) "Retire the 40 decisions to make the backlog disappear."
+  Rejected for the same reason in reverse: retiring a decision
+  deletes its claims without repairing anything. The right move is
+  per-decision: a decision whose commitments describe a state of
+  the project that has since been superseded is retired WITH a
+  superseding decision - which is the chain the constitution
+  describes - and a decision whose commitment is still true and
+  still broken is fixed.
+
+antithesis: |
+  The opposite claim would be that a red gate is the honest state
+  and a bounded backlog is a way of hiding red behind a number.
+
+  The claim has force, and the ceiling is not a way of hiding: the
+  number is printed on every CI run, it is a DECISION FILE with the
+  list, and the gate goes red the moment it grows. What the ceiling
+  buys is the difference between a gate that reports the truth about
+  the present and a gate that has been switched off because it has
+  been red for four weeks. A gate that is always red is not a gate;
+  it is a decoration that everyone learned to ignore. A gate that is
+  green while a MEASURED backlog is being paid down, and red the
+  moment the backlog grows, is a gate.
+
+outcomes:
+  - id: the-backlog-is-a-number
+    statement: |
+      The number of subjects whose obligations fail is measured by a
+      fixture, pinned as a ceiling of 40, and printed on every CI
+      run.
+
+scope:
+  paths:
+    - "tests/fixtures/failing-subject-backlog.sh"
+    - "decisions/measured-failure-backlog-2026-10.yaml"
+    - "attestations/measured-failure-backlog-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+    - "bin/**"
+
+obligations:
+  - id: the-backlog-is-measured-and-bounded
+    claim: |
+      The fixture counts the subjects whose verdict is fail and
+      fails when the count exceeds its ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/failing-subject-backlog.sh
+          result: pass
+
+  - id: the-backlog-is-classified
+    claim: |
+      Every one of the 40 is classified - fix, retire, or declare -
+      so that paying the backlog is a list of work, not a number.
+    acceptance:
+      all:
+        - verifier: manual-backlog-classified
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a new failure appears while the backlog is being paid down"
+
+assumptions:
+  - id: the-classification-is-honest
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      Each of the 40 was read, and its obligation read, before it
+      was classified. The classification is a claim about WHY a check
+      fails, and it is falsifiable by running the check.
+    consequence_if_false: |
+      A misclassified item stays in the backlog and is paid down the
+      wrong way. The classification lives in the decision file, so a
+      wrong one is visible and correctable.

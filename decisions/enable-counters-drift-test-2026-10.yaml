@@ -4,8 +4,8 @@ id: enable-counters-drift-test-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:2e57c70ef833619d6ee24ecbea3ff37a10b7b97fec5fa2a06e7d354b1288d886"
-yaml_sha: "sha256:2e57c70ef833619d6ee24ecbea3ff37a10b7b97fec5fa2a06e7d354b1288d886"
+body_sha: "sha256:fa3cf64188c657255338743baec90c14076aec7ab2001753113dc71e827a8b81"
+yaml_sha: "sha256:fa3cf64188c657255338743baec90c14076aec7ab2001753113dc71e827a8b81"
 axiom_link:
   - A0
 intent: |
@@ -197,7 +197,7 @@ obligations:
       subprocess is spawned.
     acceptance:
       all:
-        - verifier: tests/counters_drift.ml::check_no_drift
+        - verifier: manual-target-missing-tests-counters-drift-ml-check-no-
           result: pass
   - id: test-finds-no-drift
     statement: |

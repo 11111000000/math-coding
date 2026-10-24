@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: site-mobile-accordion-and-xbrowser-2026-10
 revision: 1
 state: active
-body_sha: "sha256:a5694389bd099d4d636acb1b18935e387b26434818f6fd8076a13597fc403159"
-yaml_sha: "sha256:a5694389bd099d4d636acb1b18935e387b26434818f6fd8076a13597fc403159"
+body_sha: "sha256:19e61c6a86acf5c3544b8ffab7225359a41d11b6e8c38b455f3b12e670e1c8e7"
+yaml_sha: "sha256:19e61c6a86acf5c3544b8ffab7225359a41d11b6e8c38b455f3b12e670e1c8e7"
 axiom_link:
   - A0
   - A1
@@ -348,7 +348,7 @@ obligations:
       `.nav-group-toggle` carries `aria-expanded="false"`.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
         - verifier: manual-grep-qf-display-block-assets-style-css-grep-e-me
           result: pass
@@ -362,7 +362,7 @@ obligations:
       and returns focus to its toggle.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
   - id: aria-controls-points-at-panel
     outcome: aria-controls-points-at-panel

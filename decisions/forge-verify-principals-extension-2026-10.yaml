@@ -5,8 +5,8 @@ revision: 1
 state: draft
 parents:
   - forge-principal-verification@1
-body_sha: "sha256:4b6314add21db8936d62909bbde2c39115e0071bd2250de954876b1cceebf5be"
-yaml_sha: "sha256:4b6314add21db8936d62909bbde2c39115e0071bd2250de954876b1cceebf5be"
+body_sha: "sha256:6599b81406a3bfedfea0f691d20379fcad0eaa96d42b81383f7c722397eb9409"
+yaml_sha: "sha256:6599b81406a3bfedfea0f691d20379fcad0eaa96d42b81383f7c722397eb9409"
 axiom_link:
   - A1
   - A4
@@ -259,7 +259,7 @@ obligations:
       all:
         - verifier: tests/cli/forge-verify.t
           result: pass
-        - verifier: tests/conformance.ml::required_principals_roundtrip
+        - verifier: manual-target-missing-tests-conformance-ml-required-pri
           result: pass
 
   - id: required-principals-ratchet-fixture
@@ -273,7 +273,7 @@ obligations:
       `lib/decision.ml::emit_decision` without loss.
     acceptance:
       all:
-        - verifier: tests/conformance.ml::required_principals_roundtrip
+        - verifier: manual-target-missing-tests-conformance-ml-required-pri
           result: pass
 
 counterexample: |

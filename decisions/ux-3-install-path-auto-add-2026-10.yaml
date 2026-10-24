@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:f7dd629b8c850f72ce82a0c4a1c9449352807ced5fe268470b497713c867a4e2"
-yaml_sha: "sha256:f7dd629b8c850f72ce82a0c4a1c9449352807ced5fe268470b497713c867a4e2"
+body_sha: "sha256:c9be92e45d750221140f0ee060f8268227ea41335da29f48bd7fd11fac033188"
+yaml_sha: "sha256:c9be92e45d750221140f0ee060f8268227ea41335da29f48bd7fd11fac033188"
 
 axiom_link:
   - A0
@@ -121,9 +121,9 @@ obligations:
       both paths of the RC update.
     acceptance:
       all:
-        - verifier: tests/scripts/install-path-auto-add.t exists
+        - verifier: manual-target-missing-tests-scripts-install-path-auto-a
           result: pass
-        - verifier: tests/scripts/install-path-auto-add.t runs via dune test
+        - verifier: manual-target-missing-tests-scripts-install-path-auto-a
           result: pass
 
 reversal:

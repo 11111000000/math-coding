@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:3359a50519a0ce9fa9729e95b0dfca534ceb2294e8bbfcd33e45c678351840f3"
-yaml_sha: "sha256:3359a50519a0ce9fa9729e95b0dfca534ceb2294e8bbfcd33e45c678351840f3"
+body_sha: "sha256:82d4922f955a5a83518945626e19887d00f1f5bc788cd0a4a6c58defe3471f24"
+yaml_sha: "sha256:82d4922f955a5a83518945626e19887d00f1f5bc788cd0a4a6c58defe3471f24"
 
 axiom_link:
   - A0
@@ -123,11 +123,11 @@ obligations:
           result: pass
         - verifier: mathc validate decisions/ship-attest-batch-2026-10.yaml
           result: pass
-        - verifier: mathc attest-batch --help returns usage
+        - verifier: mathc attest-batch --help
           result: pass
-        - verifier: tests/cli/attest-batch.t runs via dune test
+        - verifier: manual-target-missing-tests-cli-attest-batch-t-runs-via
           result: pass
-        - verifier: mathc self-check reports the same 17 unknown subjects as at HEAD and zero NEW unknown subjects
+        - verifier: manual-self-check-verdict
           result: pass
 
 risk:

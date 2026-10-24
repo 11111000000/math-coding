@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:cfa03cd7255b14d11bb9a4f5402172dbd603c9d856165e52e001ba4aa606cb37"
-yaml_sha: "sha256:cfa03cd7255b14d11bb9a4f5402172dbd603c9d856165e52e001ba4aa606cb37"
+body_sha: "sha256:41655bfee16c409f5a1e2d8018512534f31de3f32da2baf0ffb0bbf56561b523"
+yaml_sha: "sha256:41655bfee16c409f5a1e2d8018512534f31de3f32da2baf0ffb0bbf56561b523"
 
 axiom_link:
   - A0
@@ -471,9 +471,9 @@ obligations:
       all:
         - verifier: manual-bash-n-scripts-install-tooling-install-sh
           result: pass
-        - verifier: scripts/install-tooling/install.sh --help | grep -q -- --cosign-verify
+        - verifier: manual-target-missing-scripts-install-tooling-install-s
           result: pass
-        - verifier: scripts/install-tooling/install.sh --help | grep -q -- --no-cosign-verify
+        - verifier: manual-target-missing-scripts-install-tooling-install-s
           result: pass
         - verifier: manual-grep-q-cosign-verify-blob-scripts-install-toolin
           result: pass

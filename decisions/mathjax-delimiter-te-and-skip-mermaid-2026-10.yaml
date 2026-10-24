@@ -5,8 +5,8 @@ revision: 1
 state: superseded
 axiom_link:
   - A0
-body_sha: "sha256:80465e503153c6e8363470246e85562f47a96fa8a521785c3b129dff4a405023"
-yaml_sha: "sha256:80465e503153c6e8363470246e85562f47a96fa8a521785c3b129dff4a405023"
+body_sha: "sha256:9ce6abf3a60ad20273700014996d67e9ac6fa1f40e2b6da855abae329755cdf4"
+yaml_sha: "sha256:9ce6abf3a60ad20273700014996d67e9ac6fa1f40e2b6da855abae329755cdf4"
 intent: |
   Two regressions surfaced after PR #8 (mathjax-default-on-2026-10 +
   7 mermaid + 5 Formalization):
@@ -206,7 +206,7 @@ obligations:
       the JS source string `['\\(', '\\)']` and `['\\[', '\\]']`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::mathjax_uses_latex_delimiters
+        - verifier: manual-target-missing-tests-render-kernel-ml-mathjax-us
           result: pass
 
   - id: mathjax-skip-mermaid-source
@@ -227,7 +227,7 @@ obligations:
       the four edges plus the dashed back-edge.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::mermaid_in_seven_pages
+        - verifier: manual-target-missing-tests-render-kernel-ml-mermaid-in
           result: pass
 
 reversal:

@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:065336e175154c42a5d73cf98f7f45706d50bf5e6cefa327dddaab5a05c20b3a"
-yaml_sha: "sha256:065336e175154c42a5d73cf98f7f45706d50bf5e6cefa327dddaab5a05c20b3a"
+body_sha: "sha256:9969a3d037b87fb1e4c28cfd979a29791233bdfa3ac7d80e2d16ed4144075a89"
+yaml_sha: "sha256:9969a3d037b87fb1e4c28cfd979a29791233bdfa3ac7d80e2d16ed4144075a89"
 
 axiom_link:
   - A0
@@ -131,9 +131,9 @@ obligations:
       contains a Windows binary line.
     acceptance:
       all:
-        - verifier: tests/scripts/release-sha256sums-windows.t exists
+        - verifier: manual-target-missing-tests-scripts-release-sha256sums-
           result: pass
-        - verifier: tests/scripts/release-sha256sums-windows.t runs via dune test
+        - verifier: manual-target-missing-tests-scripts-release-sha256sums-
           result: pass
 
 reversal:

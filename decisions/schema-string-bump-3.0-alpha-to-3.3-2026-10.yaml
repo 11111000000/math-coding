@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.3-2026-10
 revision: 1
 state: active
-body_sha: "sha256:6a761473a27e12fb500dfa9d10d5072f8d58c1df948e9b57f577829c5dd730ba"
-yaml_sha: "sha256:6a761473a27e12fb500dfa9d10d5072f8d58c1df948e9b57f577829c5dd730ba"
+body_sha: "sha256:4563c548ba74db249f9cf58b15049fd748346b9036b4f48f00831ad876255551"
+yaml_sha: "sha256:4563c548ba74db249f9cf58b15049fd748346b9036b4f48f00831ad876255551"
 intent: |
   Bring the JSON-schema `$id` family from `3.0-alpha` to `3.3`,
   matching the published brand that this release cycle adopts.
@@ -183,7 +183,7 @@ obligations:
       all:
         - verifier: tests/cli/validate-positive.t
           result: pass
-        - verifier: tests/t2-1-mathc-validate-regression-free
+        - verifier: manual-target-missing-tests-t2-1-mathc-validate-regress
           result: pass
   - id: self-check-verdict-unchanged
     statement: |
@@ -192,7 +192,7 @@ obligations:
       pass/unknown distribution as before the bump.
     acceptance:
       all:
-        - verifier: mathc self-check
+        - verifier: manual-self-check-verdict
           result: pass
 
 reversal:

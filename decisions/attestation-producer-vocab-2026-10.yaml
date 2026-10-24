@@ -4,8 +4,8 @@ id: attestation-producer-vocab-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:ec979120705228e60be439d74d21edd14a41a12a176c65e638324eab80766e88"
-yaml_sha: "sha256:ec979120705228e60be439d74d21edd14a41a12a176c65e638324eab80766e88"
+body_sha: "sha256:f506d04a2693685f96b082a5d8fcc14b6661f4c2ba5ac3d623be00df33f6d819"
+yaml_sha: "sha256:f506d04a2693685f96b082a5d8fcc14b6661f4c2ba5ac3d623be00df33f6d819"
 
 intent: |
   Make the store say WHO produced each attestation, in a vocabulary a
@@ -303,13 +303,13 @@ obligations:
       class-tagged identity in the corpus is rejected by the kernel.
     acceptance:
       all:
-        - verifier: tests/producer_vocab.ml::test_untagged_identities_are_not_classes
+        - verifier: manual-target-missing-tests-producer-vocab-ml-test-unta
           result: pass
-        - verifier: tests/producer_vocab.ml::test_human_runtime_kind_needs_a_run
+        - verifier: manual-target-missing-tests-producer-vocab-ml-test-huma
           result: pass
-        - verifier: tests/producer_vocab.ml::test_human_review_needs_no_run
+        - verifier: manual-target-missing-tests-producer-vocab-ml-test-huma
           result: pass
-        - verifier: tests/producer_vocab.ml::test_every_tagged_corpus_identity_is_accepted
+        - verifier: manual-target-missing-tests-producer-vocab-ml-test-ever
           result: pass
 
   - id: positive-and-negative-fixtures
@@ -341,7 +341,7 @@ obligations:
       backlog is measured and pinned, so it cannot drift unnoticed.
     acceptance:
       all:
-        - verifier: tests/producer_vocab.ml::test_grandfathered_backlog_is_pinned
+        - verifier: manual-target-missing-tests-producer-vocab-ml-test-gran
           result: pass
         - verifier: tests/store_admission.ml
           result: pass
@@ -355,7 +355,7 @@ obligations:
       carry `mathc explain-diagnostic` entries that say so.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
 
   - id: no-verdict-change
@@ -365,7 +365,7 @@ obligations:
       validators are reached only from `mathc validate`.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
 
 reversal:

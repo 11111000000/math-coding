@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:afd780aa61f1a972b9592b9eba28236107b989504365e3aa777b60ef4f05ae76"
-yaml_sha: "sha256:afd780aa61f1a972b9592b9eba28236107b989504365e3aa777b60ef4f05ae76"
+body_sha: "sha256:95e557ef06c42775acd64814af58cb18010e7bf18aac7b41ac2603c824f7dd87"
+yaml_sha: "sha256:95e557ef06c42775acd64814af58cb18010e7bf18aac7b41ac2603c824f7dd87"
 axiom_link:
   - A0
   - A4
@@ -285,7 +285,7 @@ obligations:
       tree that does not.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml:dashboard_and_graph_html_landed
+        - verifier: manual-target-missing-tests-render-kernel-ml-dashboard-
           result: pass
 reversal:
   - signal: dashboard-not-needed

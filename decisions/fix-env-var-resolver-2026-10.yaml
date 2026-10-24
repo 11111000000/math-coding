@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:46ad437600ed20e779961effc1c072bd3755345e7d5d1c702a8b3b8948e53fd5"
-yaml_sha: "sha256:46ad437600ed20e779961effc1c072bd3755345e7d5d1c702a8b3b8948e53fd5"
+body_sha: "sha256:71fad909bd9684c9b290953d5675dfa3355f3400bd2c0d950332e0c378509a26"
+yaml_sha: "sha256:71fad909bd9684c9b290953d5675dfa3355f3400bd2c0d950332e0c378509a26"
 
 intent: |
   Route every CLI subcommand that writes or tree-walks the
@@ -218,7 +218,7 @@ obligations:
       all:
         - verifier: tests/cli/env-var-resolver.t
           result: pass
-        - verifier: mathc self-check
+        - verifier: manual-self-check-verdict
           result: pass
     evidence: tests-pass
   - id: env-var-attestations-dir-honoured
@@ -325,7 +325,7 @@ obligations:
       this decision's attestations are present.
     acceptance:
       all:
-        - verifier: mathc self-check
+        - verifier: manual-self-check-verdict
           result: pass
     evidence: tests-pass
 

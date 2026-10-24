@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: d8-coarse-diagnostics
 revision: 1
 state: active
-body_sha: "sha256:3170eabf7582df66f9c873629c98260fba37a56e7f519fe2927113b05292419e"
-yaml_sha: "sha256:3170eabf7582df66f9c873629c98260fba37a56e7f519fe2927113b05292419e"
+body_sha: "sha256:1a27a502227145f8f26ff7bb3cd408408217b49401dd9389647531c84b1eeaac"
+yaml_sha: "sha256:1a27a502227145f8f26ff7bb3cd408408217b49401dd9389647531c84b1eeaac"
 axiom_link:
   - A0
   - A1
@@ -236,9 +236,9 @@ obligations:
       all:
         - verifier: manual-dune-build
           result: pass
-        - verifier: tests/diagnostic_ux.ml::test_parse_decision_signature
+        - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-parse
           result: pass
-        - verifier: tests/diagnostic_ux.ml::test_parse_decision_rejects_with_field
+        - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-parse
           result: pass
   - id: cli-surfaces-precision
     outcome: cli-surfaces-stale-precision
@@ -248,7 +248,7 @@ obligations:
       path surfaces a parser-supplied `Diagnostic.t`.
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::test_cli_no_coarse_fallback
+        - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-cli-n
           result: pass
         - verifier: mathc validate fixtures/conformance/decision/positive-minimal.json --format=json
           result: pass
@@ -260,7 +260,7 @@ obligations:
       decision's `commitment §3`.
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::test_explain_registry_covers_new_codes
+        - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-expla
           result: pass
   - id: fixtures-cover-new-coords
     outcome: fixtures-cover-new-coords
@@ -271,9 +271,9 @@ obligations:
       the `Diagnostic.code` field on parse_decision's return).
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::test_per_code_fixture_pair
+        - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-per-c
           result: pass
-        - verifier: tests/conformance.ml::collect_cases (existing runner, all fixtures classify correctly)
+        - verifier: manual-target-missing-tests-conformance-ml-collect-case
           result: pass
 
 counterexample: |

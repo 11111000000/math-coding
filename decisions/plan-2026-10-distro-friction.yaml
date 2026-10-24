@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: editorial
 
-body_sha: "sha256:fe8d58f3ab85d40a4df14d1aace41cf9d48b1919bf8728cc3da460e5601c22a8"
-yaml_sha: "sha256:fe8d58f3ab85d40a4df14d1aace41cf9d48b1919bf8728cc3da460e5601c22a8"
+body_sha: "sha256:a7d2d4ebde43aef93bb12d74e237e662aa8a7211da7477824ad0e0435826a2eb"
+yaml_sha: "sha256:a7d2d4ebde43aef93bb12d74e237e662aa8a7211da7477824ad0e0435826a2eb"
 
 axiom_link:
   - A0
@@ -283,7 +283,7 @@ obligations:
           result: pass
         - verifier: manual-shellcheck-scripts-install-tooling-install-sh
           result: pass
-        - verifier: tests/scripts/install-path-auto-add.t
+        - verifier: manual-target-missing-tests-scripts-install-path-auto-a
           result: pass
 
   - id: d3-libc-auto-detect
@@ -309,7 +309,7 @@ obligations:
           result: pass
         - verifier: manual-shellcheck-scripts-install-tooling-install-sh
           result: pass
-        - verifier: tests/scripts/install-libc-auto-detect.t
+        - verifier: manual-target-missing-tests-scripts-install-libc-auto-d
           result: pass
 
   - id: d4-sha256sums-windows
@@ -331,7 +331,7 @@ obligations:
           result: pass
         - verifier: manual-yq-spec-github-workflows-release-yml
           result: pass
-        - verifier: tests/scripts/release-sha256sums-windows.t
+        - verifier: manual-target-missing-tests-scripts-release-sha256sums-
           result: pass
 
   - id: d5-winget-manifest
@@ -452,7 +452,7 @@ obligations:
           result: pass
         - verifier: mathc validate decisions/mathc-update-subcommand-2026-10.yaml
           result: pass
-        - verifier: mathc update --check exits 0 OR prints newer version
+        - verifier: mathc update --check
           result: pass
         - verifier: tests/cli/update.t
           result: pass
@@ -482,7 +482,7 @@ obligations:
           result: pass
         - verifier: mathc validate decisions/mathc-doctor-subcommand-2026-10.yaml
           result: pass
-        - verifier: mathc doctor exits 0 with sections a,b,c,d printed
+        - verifier: mathc doctor
           result: pass
         - verifier: mathc doctor --json | jq .sections | jq 'length >= 5'
           result: pass
@@ -559,7 +559,7 @@ obligations:
           result: pass
         - verifier: mathc validate decisions/install-tooling-default-tag-stable-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still succeeds (prior not deleted)
+        - verifier: mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still
           result: pass
         - verifier: manual-grep-q-stable-quickstart-md-grep-q-edge-usage-md
           result: pass

@@ -6,8 +6,8 @@ state: active
 mode: light
 change_kind: editorial
 
-body_sha: "sha256:62aec19bfcd6f370acd34cef7fe2b3de94ea7165bd0455fb1782cce0dc39faf0"
-yaml_sha: "sha256:62aec19bfcd6f370acd34cef7fe2b3de94ea7165bd0455fb1782cce0dc39faf0"
+body_sha: "sha256:57cd02e569fb253f9f9dd30dd35e983c40ee7d5ccb6cc66d6dc0dd2efa382a1d"
+yaml_sha: "sha256:57cd02e569fb253f9f9dd30dd35e983c40ee7d5ccb6cc66d6dc0dd2efa382a1d"
 
 axiom_link:
   - A1
@@ -111,7 +111,7 @@ obligations:
       obsolescence of the two staging repos.
     acceptance:
       all:
-        - verifier: scripts/dev-fast validate decisions/retire-staging-repos-2026-10.yaml
+        - verifier: manual-target-missing-scripts-dev-fast-validate-decisio
           result: pass
 
 risk:

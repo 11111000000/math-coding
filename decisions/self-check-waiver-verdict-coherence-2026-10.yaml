@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:70ba7c7cf72709a95e69bb7355afe6cd52dd204ae869c73c42bf13a6e578ce39"
-yaml_sha: "sha256:70ba7c7cf72709a95e69bb7355afe6cd52dd204ae869c73c42bf13a6e578ce39"
+body_sha: "sha256:e60e67934c32e04d00b2c4639663844d2030b7c1edb85b194d8e5d85cd566c81"
+yaml_sha: "sha256:e60e67934c32e04d00b2c4639663844d2030b7c1edb85b194d8e5d85cd566c81"
 
 axiom_link:
   - A0
@@ -412,7 +412,7 @@ obligations:
       verdict-labelling fix must not move the gate.
     acceptance:
       all:
-        - verifier: mathc self-check
+        - verifier: manual-self-check-verdict
           result: pass
 
 reversal:

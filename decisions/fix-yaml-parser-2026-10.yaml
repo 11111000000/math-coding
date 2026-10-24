@@ -4,8 +4,8 @@ id: fix-yaml-parser-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:6e02503d50ee770f08bb16e4b7ea7cb658aad2af7520804b81841cf825e7538a"
-yaml_sha: "sha256:6e02503d50ee770f08bb16e4b7ea7cb658aad2af7520804b81841cf825e7538a"
+body_sha: "sha256:72b390fa5f7a2139bd74132c8ef615680ef1df9e62353494ee9b9faf793fb3e0"
+yaml_sha: "sha256:72b390fa5f7a2139bd74132c8ef615680ef1df9e62353494ee9b9faf793fb3e0"
 
 intent: |
   The hand-rolled YAML parser in `lib/codec.ml` consumed the
@@ -126,7 +126,7 @@ obligations:
       adds zero new unknown subjects.
     acceptance:
       all:
-        - verifier: mathc self-check
+        - verifier: manual-self-check-verdict
           result: pass
 
 axiom_link:

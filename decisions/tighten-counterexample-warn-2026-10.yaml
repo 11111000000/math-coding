@@ -4,8 +4,8 @@ id: tighten-counterexample-warn-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:234e7ae942295b99095336bd157a8753feb8ed52fa1a2c0ea7dee5c4aae0e386"
-yaml_sha: "sha256:234e7ae942295b99095336bd157a8753feb8ed52fa1a2c0ea7dee5c4aae0e386"
+body_sha: "sha256:90ac1a9ac3f5f4a72feee7f3d7166bdc785ee1699aa3d7e77c97a50257411dcf"
+yaml_sha: "sha256:90ac1a9ac3f5f4a72feee7f3d7166bdc785ee1699aa3d7e77c97a50257411dcf"
 
 intent: |
   Tighten the `MC-COUNTEREXAMPLE-MISSING` diagnostic's
@@ -139,7 +139,7 @@ obligations:
       the kernel surface.
     acceptance:
       all:
-        - verifier: mathc self-check
+        - verifier: manual-self-check-verdict
           result: pass
 
   - id: mathc-validate-decision

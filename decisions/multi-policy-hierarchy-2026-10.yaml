@@ -4,8 +4,8 @@ id: multi-policy-hierarchy-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:365cd9d81b8b27184228c01291bad8bf30b02045e92efcf00453d239321bb255"
-yaml_sha: "sha256:365cd9d81b8b27184228c01291bad8bf30b02045e92efcf00453d239321bb255"
+body_sha: "sha256:7b956f91af621c99cbcbddf6a060abec3ba5434ba3f6a14737e01e7a0dba0399"
+yaml_sha: "sha256:7b956f91af621c99cbcbddf6a060abec3ba5434ba3f6a14737e01e7a0dba0399"
 axiom_link:
   - A0
 intent: |
@@ -323,7 +323,7 @@ obligations:
       is documented in a kernel-level comment block.
     acceptance:
       all:
-        - verifier: tests/policy_test.ml::resolve_policy_signature_introspectable
+        - verifier: manual-target-missing-tests-policy-test-ml-resolve-poli
           result: pass
 
   - id: cycle-detection
@@ -334,7 +334,7 @@ obligations:
       The diagnostic is registered in `lib/diagnostic.ml::explain`.
     acceptance:
       all:
-        - verifier: tests/policy_test.ml::resolve_policy_cycle_returns_MC_POLICY_CYCLE
+        - verifier: manual-target-missing-tests-policy-test-ml-resolve-poli
           result: pass
         - verifier: manual-diagnostic-explain-mc-policy-cycle-some-body
           result: pass
@@ -349,7 +349,7 @@ obligations:
       all:
         - verifier: manual-json-schema-validation-passes
           result: pass
-        - verifier: tests/policy_test.ml::parse_policy_with_parent_round_trips
+        - verifier: manual-target-missing-tests-policy-test-ml-parse-policy
           result: pass
 
   - id: spec-note-three-axes
@@ -379,9 +379,9 @@ obligations:
       after this change.
     acceptance:
       all:
-        - verifier: mathc self-check >= 67 pass
+        - verifier: manual-self-check-verdict >= 67
           result: pass
-        - verifier: mathc self-check == 0 fail
+        - verifier: manual-self-check-verdict == 0 fail
           result: pass
 
 reversal:

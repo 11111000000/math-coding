@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-deploy
 revision: 5
 state: active
-body_sha: "sha256:edca0e522a5442e09312e46d04bf5559a0effa71421aa297040b1cf76236a96d"
-yaml_sha: "sha256:edca0e522a5442e09312e46d04bf5559a0effa71421aa297040b1cf76236a96d"
+body_sha: "sha256:1a1c4a734091040c3756ac91cf354485c8639a326a0aac7b1bf4053ac6b643a1"
+yaml_sha: "sha256:1a1c4a734091040c3756ac91cf354485c8639a326a0aac7b1bf4053ac6b643a1"
 intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own
@@ -186,7 +186,7 @@ obligations:
     outcome: tufte-css
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::tufte_tokens_resolve
+        - verifier: manual-target-missing-tests-render-kernel-ml-tufte-toke
           result: pass
         - verifier: manual-grep-qf-charter-assets-style-css
           result: pass
@@ -204,7 +204,7 @@ obligations:
     outcome: sidenote-rendering
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::sidenote_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-sidenote-r
           result: pass
         - verifier: manual-grep-qf-class-sidenote-assets-style-css
           result: pass
@@ -221,7 +221,7 @@ obligations:
       all:
         - verifier: manual-grep-qf-mathjax-3-dist-methodology-html
           result: pass
-        - verifier: tests/render_kernel.ml::mathjax_in_head
+        - verifier: manual-target-missing-tests-render-kernel-ml-mathjax-in
           result: pass
 
   - id: bilingual-pairs
@@ -234,7 +234,7 @@ obligations:
     outcome: bilingual-content
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::bilingual_pairs_complete
+        - verifier: manual-target-missing-tests-render-kernel-ml-bilingual-
           result: pass
         - verifier: manual-grep-qf-lang-en-dist-index-html
           result: pass
@@ -253,7 +253,7 @@ obligations:
       all:
         - verifier: manual-grep-qf-base-href-math-coding-dist-index-html
           result: pass
-        - verifier: tests/render_kernel.ml::base_href_default
+        - verifier: manual-target-missing-tests-render-kernel-ml-base-href-
           result: pass
 
   - id: site-pages-extended
@@ -294,15 +294,15 @@ obligations:
     outcome: site-content-markup
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::table_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-table-rend
           result: pass
-        - verifier: tests/render_kernel.ml::bold_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-bold-rende
           result: pass
-        - verifier: tests/render_kernel.ml::blockquote_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-blockquote
           result: pass
-        - verifier: tests/render_kernel.ml::link_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-link-rende
           result: pass
-        - verifier: tests/render_kernel.ml::hr_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-hr-renders
           result: pass
         - verifier: manual-rendered-asset-manifesto
           result: pass

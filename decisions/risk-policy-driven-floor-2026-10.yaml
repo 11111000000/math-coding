@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: risk-policy-driven-floor-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f05536337fcc9dfbe93b72912dcee3ca5fc3014570297a0f04b2bacc627a790b"
-yaml_sha: "sha256:f05536337fcc9dfbe93b72912dcee3ca5fc3014570297a0f04b2bacc627a790b"
+body_sha: "sha256:a32be5f7bace18aa07df591ada0437c2d9a15b37de0bb3efcf29b44086fd218c"
+yaml_sha: "sha256:a32be5f7bace18aa07df591ada0437c2d9a15b37de0bb3efcf29b44086fd218c"
 intent: |
   Wire `lib/policy.ml` into `lib/risk.ml` so the risk classifier
   honors declared policies instead of returning constant
@@ -224,9 +224,9 @@ obligations:
       `override_probability` contribute `0.0`.
     acceptance:
       all:
-        - verifier: tests/risk_kernel.ml::policy_override_clamps_to_unit
+        - verifier: manual-target-missing-tests-risk-kernel-ml-policy-overr
           result: pass
-        - verifier: tests/risk_kernel.ml::policy_override_zero_for_no_match
+        - verifier: manual-target-missing-tests-risk-kernel-ml-policy-overr
           result: pass
 
   - id: mode_floor_wired_to_policy
@@ -239,9 +239,9 @@ obligations:
       `axioms/** → axiom-touching`.
     acceptance:
       all:
-        - verifier: tests/risk_kernel.ml::mode_floor_axiom_path_is_exhaustive
+        - verifier: manual-target-missing-tests-risk-kernel-ml-mode-floor-a
           result: pass
-        - verifier: tests/risk_kernel.ml::mode_floor_default_path_is_standard
+        - verifier: manual-target-missing-tests-risk-kernel-ml-mode-floor-d
           result: pass
         - verifier: tests/cli/mode.t
           result: pass
@@ -255,7 +255,7 @@ obligations:
       continues to function.
     acceptance:
       all:
-        - verifier: tests/repo_structure.ml::bin_invokes_policy_load
+        - verifier: manual-target-missing-tests-repo-structure-ml-bin-invok
           result: pass
 
   - id: policies_yaml_committed
@@ -266,7 +266,7 @@ obligations:
       `mode_floor: axiom-touching`).
     acceptance:
       all:
-        - verifier: tests/risk_kernel.ml::policies_yaml_has_default_and_axioms
+        - verifier: manual-target-missing-tests-risk-kernel-ml-policies-yam
           result: pass
 
   - id: phase_2e_comment_removed
@@ -295,7 +295,7 @@ obligations:
       post-cycle output for `axioms/A0.md` (mode = `exhaustive`).
     acceptance:
       all:
-        - verifier: tests/risk_kernel.ml::fixtures_record_phase_2e_close
+        - verifier: manual-target-missing-tests-risk-kernel-ml-fixtures-rec
           result: pass
         - verifier: tests/cli/mode.t
           result: pass

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: fix-wide-screen-padding-2026-10
 revision: 1
 state: active
-body_sha: "sha256:0e32916d8727937272d69cc3cd846369ebd24081cd550993ce3c282d86c4b7d4"
-yaml_sha: "sha256:0e32916d8727937272d69cc3cd846369ebd24081cd550993ce3c282d86c4b7d4"
+body_sha: "sha256:f7463a90a02debe7f4ec009849b98ce2911280042dcc4fc3212846d9f0fd9c32"
+yaml_sha: "sha256:f7463a90a02debe7f4ec009849b98ce2911280042dcc4fc3212846d9f0fd9c32"
 axiom_link:
   - A0
   - A1
@@ -186,7 +186,7 @@ obligations:
       clamp(2.4 rem, 5 vw, 3.4 rem)` on a single line.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
         - verifier: tests/cli/render.t::grep_no_calc_padding
           result: pass

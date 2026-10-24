@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: render-kernel-fixes-2026-10
 revision: 1
 state: active
-body_sha: "sha256:ffca208572c6a337187a8a20a770adeb0546e511815e736bd02640d0b200872d"
-yaml_sha: "sha256:ffca208572c6a337187a8a20a770adeb0546e511815e736bd02640d0b200872d"
+body_sha: "sha256:233c087fda3c0a4b3a51d206469d0c7d654fdbcfb02ece3ddb771683dd4c6ef5"
+yaml_sha: "sha256:233c087fda3c0a4b3a51d206469d0c7d654fdbcfb02ece3ddb771683dd4c6ef5"
 intent: |
   Close the ten concrete render-kernel defects catalogued in
   `analysis/site-render-defects.md` (commit-diagnostic branch
@@ -196,9 +196,9 @@ obligations:
       `>= 3` on the trimmed prefix.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::fenced_code_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-fenced-cod
           result: pass
-        - verifier: tests/render_kernel.ml::fenced_code_closing_fence_length_3
+        - verifier: manual-target-missing-tests-render-kernel-ml-fenced-cod
           result: pass
         - verifier: manual-rendered-asset-axioms-feedback
           result: pass
@@ -212,9 +212,9 @@ obligations:
       behaviour.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::list_continuation_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-list-conti
           result: pass
-        - verifier: tests/render_kernel.ml::list_single_item_still_one_li
+        - verifier: manual-target-missing-tests-render-kernel-ml-list-singl
           result: pass
         - verifier: manual-rendered-asset-axioms-feedback
           result: pass
@@ -226,9 +226,9 @@ obligations:
       (underscore) is supported with the same rule.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::italic_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-italic-ren
           result: pass
-        - verifier: tests/render_kernel.ml::italic_lone_asterisk_literal
+        - verifier: manual-target-missing-tests-render-kernel-ml-italic-lon
           result: pass
         - verifier: manual-rendered-asset-axioms-feedback
           result: pass
@@ -243,9 +243,9 @@ obligations:
       `enable_mathjax = true`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::mathjax_default_off
+        - verifier: manual-target-missing-tests-render-kernel-ml-mathjax-de
           result: pass
-        - verifier: tests/render_kernel.ml::mathjax_in_head
+        - verifier: manual-target-missing-tests-render-kernel-ml-mathjax-in
           result: pass
         - verifier: manual-grep-c-mathjax-dist-index-html-0
           result: pass
@@ -258,7 +258,7 @@ obligations:
       separated by a blank line in the rendered HTML.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::packages_page_has_grid
+        - verifier: manual-target-missing-tests-render-kernel-ml-packages-p
           result: pass
         - verifier: manual-grep-qf-class-mathc-packages-dist-packages-html
           result: pass
@@ -272,7 +272,7 @@ obligations:
       sibling).
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::ru_nav_omits_missing_sibling
+        - verifier: manual-target-missing-tests-render-kernel-ml-ru-nav-omi
           result: pass
         - verifier: manual-rendered-asset-methodology
           result: pass
@@ -288,7 +288,7 @@ obligations:
       only one emitted.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::axiom_page_single_h1
+        - verifier: manual-target-missing-tests-render-kernel-ml-axiom-page
           result: pass
         - verifier: manual-rendered-asset-axioms-feedback
           result: pass
@@ -305,7 +305,7 @@ obligations:
           result: pass
         - verifier: manual-grep-qf-mc-render-dist-index-html-exits-non-zero
           result: pass
-        - verifier: tests/render_kernel.ml::footer_mathc_render
+        - verifier: manual-target-missing-tests-render-kernel-ml-footer-mat
           result: pass
 
   - id: base-href-configurable
@@ -318,9 +318,9 @@ obligations:
       and a new `base_href_empty` test cover both branches.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::base_href_default
+        - verifier: manual-target-missing-tests-render-kernel-ml-base-href-
           result: pass
-        - verifier: tests/render_kernel.ml::base_href_empty
+        - verifier: manual-target-missing-tests-render-kernel-ml-base-href-
           result: pass
 
 reversal:

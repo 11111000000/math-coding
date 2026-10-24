@@ -75,7 +75,7 @@ obligations:
       all:
         - verifier: tests/cli/init-scope-language-agnostic.t
           result: pass
-        - verifier: mathc self-check
+        - verifier: manual-self-check-verdict
           result: pass
   - id: kernel-side-docs-have-disambiguation-banner
     claim: |

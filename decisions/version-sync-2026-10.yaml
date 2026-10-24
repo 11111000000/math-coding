@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: version-sync-2026-10
 revision: 1
 state: active
-body_sha: "sha256:b9689464026f28ede340fb3cd154f7e3d79f54848d3b676375480f4fc365eca8"
-yaml_sha: "sha256:b9689464026f28ede340fb3cd154f7e3d79f54848d3b676375480f4fc365eca8"
+body_sha: "sha256:0893e516dc28d3f718205125b436039ea579578d6b7b0b201e1bf99c3b44009c"
+yaml_sha: "sha256:0893e516dc28d3f718205125b436039ea579578d6b7b0b201e1bf99c3b44009c"
 intent: |
   Close the follow-up cycle announced in
   `decisions/site-version-from-file-2026-10.yaml:76-81`:
@@ -190,7 +190,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: scripts/sync-version.sh --check
+        - verifier: manual-target-missing-scripts-sync-version-sh-check
           result: pass
         - verifier: tests/fixtures/sync-version-clean-passes.sh
           result: pass
@@ -211,7 +211,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: scripts/sync-version.sh --write && git diff --quiet
+        - verifier: manual-target-missing-scripts-sync-version-sh-write-git
           result: pass
   - id: trap-log-entry-present
     claim: |

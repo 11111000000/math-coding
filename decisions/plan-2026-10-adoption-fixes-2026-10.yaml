@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:eab131ac7f079c7cf70446e4cb2ac120fe752b1345f3c03a1f79cf6ba4563952"
-yaml_sha: "sha256:eab131ac7f079c7cf70446e4cb2ac120fe752b1345f3c03a1f79cf6ba4563952"
+body_sha: "sha256:2c95d9864278702ed6517968e40e6ebda4766f94c76ed8d2331a002ed710b1c2"
+yaml_sha: "sha256:2c95d9864278702ed6517968e40e6ebda4766f94c76ed8d2331a002ed710b1c2"
 
 intent: |
   Convert the 9 recommendations from the 2026-10-17 adoption
@@ -204,7 +204,7 @@ obligations:
           result: pass
         - verifier: tests/cli/verify.t
           result: pass
-        - verifier: tests/cli/validate-parse-ok.t
+        - verifier: manual-target-missing-tests-cli-validate-parse-ok-t
           result: pass
 
   - id: b2-counterexample-warn-tightened

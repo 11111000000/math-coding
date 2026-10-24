@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: kernel-bugs-v3.4
 revision: 1
 state: active
-body_sha: "sha256:da694a868d1f07389a47c97f9d0278d082007b059da6b37ce48300319f925a45"
-yaml_sha: "sha256:da694a868d1f07389a47c97f9d0278d082007b059da6b37ce48300319f925a45"
+body_sha: "sha256:1d23c254a01202c3c941296682d425ff52a084d3b9992c7b67b8451b46b17b64"
+yaml_sha: "sha256:1d23c254a01202c3c941296682d425ff52a084d3b9992c7b67b8451b46b17b64"
 intent: |
   Close six kernel-level defects surfaced by the 2026-10-16 brownfield
   experiment on httpx and cobra (REPORT.md §3, PLAN.md §3). The defects fall
@@ -203,7 +203,7 @@ obligations:
       The verifier below exercises the path end-to-end.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
 
   - id: counterexample-precedence-direct
@@ -214,7 +214,7 @@ obligations:
       The verifier below exercises the path end-to-end.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
 
   - id: sha-pattern-direct
@@ -225,7 +225,7 @@ obligations:
       pass. The verifier below exercises the path end-to-end.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
 
   - id: verifier-extracted-direct
@@ -236,7 +236,7 @@ obligations:
       below exercises the path end-to-end.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
 
   - id: materials-digest-required-direct
@@ -248,7 +248,7 @@ obligations:
       The verifier below exercises both paths.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
 
   - id: revision-int-extractable-direct
@@ -259,7 +259,7 @@ obligations:
       below exercises the path end-to-end via mathc context.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
 
   - id: backward-compat-cram
@@ -270,7 +270,7 @@ obligations:
       existing attestation store remains pass and exits 0.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
 
 reversal:

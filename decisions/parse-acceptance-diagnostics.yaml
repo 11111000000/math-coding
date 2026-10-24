@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: parse-acceptance-diagnostics
 revision: 2
 state: active
-body_sha: "sha256:ee2cc4872ce0f4bf8cba9a8217fa146f5da36c2ac368913a8b77533865cd3f8f"
-yaml_sha: "sha256:ee2cc4872ce0f4bf8cba9a8217fa146f5da36c2ac368913a8b77533865cd3f8f"
+body_sha: "sha256:135321fd55517630b8e780e8b849eca9a7478249f3dabc4b5fb1e979c8841248"
+yaml_sha: "sha256:135321fd55517630b8e780e8b849eca9a7478249f3dabc4b5fb1e979c8841248"
 intent: |
   Close OCAML_BEST_PRACTICES §9.1: when an obligation's acceptance
   item carries both `verifier` and `review` fields on the same
@@ -93,9 +93,9 @@ obligations:
       present but unparseable), ShapeEmpty (neither).
     acceptance:
       all:
-        - verifier: tests/conformance.ml positive-ambiguous-acceptance
+        - verifier: manual-target-missing-tests-conformance-ml-positive-amb
           result: pass
-        - verifier: tests/conformance.ml positive-malformed-acceptance
+        - verifier: manual-target-missing-tests-conformance-ml-positive-mal
           result: pass
   - id: diagnostic-emission-cli
     outcome: diagnostic-emission

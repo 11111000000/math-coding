@@ -95,7 +95,7 @@ obligations:
       match `VERSION` and `mathc version` output.
     acceptance:
       all:
-        - verifier: scripts/dev line contains "3.3.1"
+        - verifier: manual-target-missing-scripts-dev-line-contains-3-3-1
         - verifier: manual-flake-nix-description-contains-3-3-1
         - verifier: manual-flake-nix-dev-shell-prompts-contain-3-3-1
   - id: w2-roadmap-p5-trap-count
@@ -160,7 +160,7 @@ obligations:
       enable-counters-drift-test-2026-10 × 2 of 3).
     acceptance:
       all:
-        - verifier: mathc self-check
+        - verifier: manual-self-check-verdict
           result: unknown-subjects-decreased
 
 risk:

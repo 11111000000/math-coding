@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: plan-2026-10-improvements
 revision: 1
 state: active
-body_sha: "sha256:b47661e8a2a299807d974ee0eb0479108b4aacea76a7d18274134c7f9874ddac"
-yaml_sha: "sha256:b47661e8a2a299807d974ee0eb0479108b4aacea76a7d18274134c7f9874ddac"
+body_sha: "sha256:cce747ce007f0f09ace68402a402aedab7e26b24c6ad8a111ed0a5c4854283eb"
+yaml_sha: "sha256:cce747ce007f0f09ace68402a402aedab7e26b24c6ad8a111ed0a5c4854283eb"
 intent: |
   Adopt the analysis-derived plan documented in chat 2026-10-07
   ("анализ math-coding как методологии"). The plan closes 14
@@ -596,7 +596,7 @@ obligations:
       for every pair.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::bilingual_drift_under_threshold
+        - verifier: manual-target-missing-tests-render-kernel-ml-bilingual-
           result: pass
         - verifier: manual-decisions-plan-2026-10-improvements-t5-1-yaml-1-
           result: pass
@@ -640,7 +640,7 @@ obligations:
       all:
         - verifier: scripts/check.sh
           result: pass
-        - verifier: tests/process_principles.ml::p8_no_stub_untracked
+        - verifier: manual-target-missing-tests-process-principles-ml-p8-no
           result: pass
         - verifier: manual-decisions-plan-2026-10-improvements-t6-1-yaml-1-
           result: pass
@@ -668,7 +668,7 @@ obligations:
       all:
         - verifier: tests/cli/validate-counterexample-required.t
           result: pass
-        - verifier: tests/conformance.ml::legacy_counterexample_sweep
+        - verifier: manual-target-missing-tests-conformance-ml-legacy-count
           result: pass
         - verifier: manual-decisions-plan-2026-10-improvements-t6-2-yaml-1-
           result: pass

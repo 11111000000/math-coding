@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:520b387d679616cc466400b3baf8d23d1cee5e7ad358551f7273d88cd8283b71"
-yaml_sha: "sha256:520b387d679616cc466400b3baf8d23d1cee5e7ad358551f7273d88cd8283b71"
+body_sha: "sha256:06beff7705dd1de23f676dd362e1b184a77f66d22a8dcfc49f1abfc58ea464db"
+yaml_sha: "sha256:06beff7705dd1de23f676dd362e1b184a77f66d22a8dcfc49f1abfc58ea464db"
 
 intent: |
   Convert the 9 recommendations from the 2026-10-17 adoption
@@ -131,7 +131,7 @@ obligations:
         - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/verify-sandbox-hardening-2026-11.yaml
           result: pass
-        - verifier: tests/cli/verify-sandbox.t
+        - verifier: manual-target-missing-tests-cli-verify-sandbox-t
           result: pass
 
   - id: a2-path-resolver-audit-shipped
@@ -253,7 +253,7 @@ obligations:
         - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/decisions/verifier-scheme-convention-2026-11.yaml
           result: pass
-        - verifier: tests/cli/verifier-scheme-warning.t
+        - verifier: manual-target-missing-tests-cli-verifier-scheme-warning
           result: pass
 
   - id: c6-experiment-doctor-instrumentation-shipped

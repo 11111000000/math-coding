@@ -24,6 +24,8 @@
 
 set -uo pipefail
 cd "$(dirname "$0")/../.."
+tmp_nc="$(mktemp)"
+trap 'rm -f "$tmp_nc"' EXIT
 
 fail=0
 ok()  { printf 'ok: %s\n' "$1"; }
@@ -76,8 +78,8 @@ fi
 # The bound must bind: a number that is already above the ceiling
 # must be reported as such. The audit command's own output is the
 # evidence.
-if "$PWD/_build/default/bin/mathc.exe" negative-control 2>/dev/null \
-     | grep -q "^negative-control: [0-9]* of [0-9]* decision"; then
+if "$PWD/_build/default/bin/mathc.exe" negative-control 2>/dev/null > "$tmp_nc"; then
+  grep -q "^negative-control: [0-9]* of [0-9]* decision" "$tmp_nc"
   ok "negative control: the audit command states the count and the total it was measured against"
 else
   bad "negative control: the audit command does not state its count — the ceiling cannot bind"

@@ -5,8 +5,8 @@ revision: 1
 state: superseded
 mode: light
 change_kind: implementation
-body_sha: "sha256:64206bed1ba89c6234ae7828e8deee4c2550bfcdb87443dbe257cd496e6627b6"
-yaml_sha: "sha256:64206bed1ba89c6234ae7828e8deee4c2550bfcdb87443dbe257cd496e6627b6"
+body_sha: "sha256:9e1ee7e1dba1803803db6dcceb09c4a37a1c864d2d60ad785d90c6d4a29dd6ab"
+yaml_sha: "sha256:9e1ee7e1dba1803803db6dcceb09c4a37a1c864d2d60ad785d90c6d4a29dd6ab"
 
 intent: |
   Реализовать Phase 1A из
@@ -83,9 +83,9 @@ obligations:
       бит-в-бит совпадают с до-переноса.
     acceptance:
       all:
-        - verifier: tests/render_kernel.exe (cases md-parse-* / html-escape-*)
+        - verifier: manual-target-missing-tests-render-kernel-exe-cases-md-
           result: pass
-        - verifier: tests/cli/render.t cram snapshot
+        - verifier: manual-target-missing-tests-cli-render-t-cram-snapshot
           result: pass
   - id: golden-identical
     claim: |
@@ -97,7 +97,7 @@ obligations:
       all:
         - verifier: dune promote (или ручная проверка diff)
           result: pass
-        - verifier: tests/cli/render.t cram snapshot
+        - verifier: manual-target-missing-tests-cli-render-t-cram-snapshot
           result: pass
 counterexample: |
   The strongest objection to this Phase 1A split is that edits

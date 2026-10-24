@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:c8cbba519b0be6b4ddc3979ec5161fc03315f38f6fc7c8f2993846ac834a98ff"
-yaml_sha: "sha256:c8cbba519b0be6b4ddc3979ec5161fc03315f38f6fc7c8f2993846ac834a98ff"
+body_sha: "sha256:8cd37ebc166022c935206cc3903cd29eb9ccedc0c28e9d5821d4e78b6ac1e717"
+yaml_sha: "sha256:8cd37ebc166022c935206cc3903cd29eb9ccedc0c28e9d5821d4e78b6ac1e717"
 intent: |
   Adopt a `.math-coding/` directory layout as the default for new
   `mathc init` runs and add three env-var overrides
@@ -197,7 +197,7 @@ obligations:
       unchanged.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
   - id: seven-hardcodes-rerouted-through-resolver
     statement: |
@@ -213,7 +213,7 @@ obligations:
       pre-commit hook body, which is unchanged).
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
   - id: install-ci-workflow-uses-embedded-template
     statement: |
@@ -229,7 +229,7 @@ obligations:
       identical to `templates/ci.yml`.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
   - id: backward-compat-untouched-existing-projects-at-head
     statement: |
@@ -243,7 +243,7 @@ obligations:
       remain unchanged.
     acceptance:
       all:
-        - verifier: scripts/dev ready
+        - verifier: manual-target-missing-scripts-dev-ready
           result: pass
 relations:
   addresses:

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: antithesis-mode-considered-2026-10
 revision: 1
 state: active
-body_sha: "sha256:63b904dcb9bf5db262df410eae9953b31cde8892bc3e82b99c5f9629ba5ebf6a"
-yaml_sha: "sha256:63b904dcb9bf5db262df410eae9953b31cde8892bc3e82b99c5f9629ba5ebf6a"
+body_sha: "sha256:7c4ffd110a8a04649a86fef2abbc71a226097a9b9c3860eb328715be3269b329"
+yaml_sha: "sha256:7c4ffd110a8a04649a86fef2abbc71a226097a9b9c3860eb328715be3269b329"
 intent: |
   Resolve the spec/code contradiction in
   `spec/algebra-3.2.md:422-423` vs
@@ -233,7 +233,7 @@ obligations:
       all:
         - verifier: tests/cli/validate-positive.t
           result: pass
-        - verifier: tests/t2-1-mathc-validate-regression-free
+        - verifier: manual-target-missing-tests-t2-1-mathc-validate-regress
           result: pass
   - id: synthetic-considered-rejected
     statement: |
@@ -244,7 +244,7 @@ obligations:
       `MC-ANTITHESIS-MISSING` on stderr.
     acceptance:
       all:
-        - verifier: tests/cli/validate-considered-missing-antithesis.t
+        - verifier: manual-target-missing-tests-cli-validate-considered-mis
           result: pass
   - id: synthetic-considered-accepted
     statement: |
@@ -255,7 +255,7 @@ obligations:
       `accept:` on stdout.
     acceptance:
       all:
-        - verifier: tests/cli/validate-considered-with-antithesis.t
+        - verifier: manual-target-missing-tests-cli-validate-considered-wit
           result: pass
   - id: dune-build-and-tests-green
     statement: |

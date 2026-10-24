@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: update-check-notify-2026-10
 revision: 1
 state: deferred
-body_sha: "sha256:d794fa5f69805eceeed69e7afa706747e9cf4fdd8842bad7cb0c5b9a57861821"
-yaml_sha: "sha256:d794fa5f69805eceeed69e7afa706747e9cf4fdd8842bad7cb0c5b9a57861821"
+body_sha: "sha256:215d9a7bbc84e82fb75e30edc055defd9de0bf90eb7beb23b968aa0d9bde2dc7"
+yaml_sha: "sha256:215d9a7bbc84e82fb75e30edc055defd9de0bf90eb7beb23b968aa0d9bde2dc7"
 
 intent: |
   Land a soft, opt-in update notification: when a user runs
@@ -169,7 +169,7 @@ obligations:
       network call when unset.
     acceptance:
       all:
-        - verifier: tests/cli/update-check.t
+        - verifier: manual-target-missing-tests-cli-update-check-t
           result: pass
   - id: env-var-on-prints-reminder
     outcome: env-var-prints-reminder
@@ -179,7 +179,7 @@ obligations:
       is published.
     acceptance:
       all:
-        - verifier: tests/cli/update-check.t
+        - verifier: manual-target-missing-tests-cli-update-check-t
           result: pass
 
 reversal:

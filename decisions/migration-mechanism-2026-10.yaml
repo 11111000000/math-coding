@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: migration-mechanism
 revision: 2
 state: active
-body_sha: "sha256:9bb79c4c7495b880ff6d4cdfa748edd3ab8e7e135b47c62a215c30957a1c8c2a"
-yaml_sha: "sha256:9bb79c4c7495b880ff6d4cdfa748edd3ab8e7e135b47c62a215c30957a1c8c2a"
+body_sha: "sha256:913b43179822435a2ba0593dc2ef7aede6b29a63ed947163224cc5ce93e38fd5"
+yaml_sha: "sha256:913b43179822435a2ba0593dc2ef7aede6b29a63ed947163224cc5ce93e38fd5"
 intent: |
   Give math-coding agents a deterministic, reproducible, kernel-driven
   way to migrate decisions/*.yaml between minor versions of the schema
@@ -196,7 +196,7 @@ obligations:
     outcome: kernel-migration-subcommand
     acceptance:
       all:
-        - verifier: scripts/dev lint
+        - verifier: manual-target-missing-scripts-dev-lint
           result: pass
         - verifier: tests/cli/migrate-dry-run.t
           result: pass

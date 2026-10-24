@@ -124,10 +124,87 @@ def is_executable(value):
     return False
 
 
-def classify(value, decision_id, path_exists):
+
+# Does the target a `tests/...` or `scripts/...` verifier names
+# actually exist?
+#
+# The corpus cites checks that were never written: a test case that
+# no file declares, a cram file that is not there, a script that was
+# renamed. 133 verifier strings named something that does not exist,
+# and the legacy attestations - all of them carrying an empty
+# materials_digest, which the gate treats as a WILDCARD - recorded
+# them as `pass`. A corpus that cites a check nobody wrote and
+# signs it as passing is not a corpus that is verified; it is a
+# corpus that is decorated.
+#
+# The forms the kernel can execute:
+#   tests/X.t          a cram file; dune runs the whole file
+#   tests/X.ml         an Alcotest module; `dune exec tests/X.exe`
+#   tests/X.ml::case   one case of that module
+#   tests/X.exe         the built binary of X.ml
+#   scripts/X           a shell fixture
+def target_exists(value, ml_cases):
+    base, _, sel = value.partition('::')
+    base = os.path.normpath(base)
+    if base.startswith('tests/'):
+        if base.endswith('.t'):
+            return os.path.exists(base)
+        if base.endswith('.exe'):
+            return os.path.exists(base) or os.path.exists(base[:-4] + '.ml')
+        if base.endswith('.ml'):
+            if not os.path.exists(base):
+                return False
+            if sel and sel not in ml_cases.get(base, set()):
+                return False
+            return True
+        return os.path.exists(base)
+    if base.startswith('scripts/'):
+        return os.path.exists(base)
+    return True
+
+
+# The corpus's verifier strings sometimes carry a PROSE TAIL after the
+# command: `dune build @tests/x/runtest --root . exits 0`. The
+# kernel's parse_verifier_string splits on whitespace and passes
+# EVERY token to the program, so dune was invoked with the argument
+# "exits" and then "0" - and reported a failure of the project for
+# a check that had nothing wrong with it.
+#
+# The tail always starts at a word that cannot begin an argument.
+PROSE_TAIL_WORDS = {
+    "exits", "passes", "pass", "contains", "is", "has", "reports",
+    "yields", "produces", "says", "prints", "returns", "fails",
+    "succeeds", "works", "non-zero", "zero", "empty", "one",
+}
+
+
+def strip_prose_tail(value):
+    """Cut a trailing prose clause off a command-shaped verifier."""
+    toks = value.split()
+    for i, t in enumerate(toks):
+        if t in PROSE_TAIL_WORDS:
+            return " ".join(toks[:i]).strip()
+    return value
+
+def classify(value, decision_id, path_exists, ml_cases):
     """Return (new_value, kind) for one verifier string."""
     raw = value.strip()
-    v = raw.strip('"').strip("'")
+
+    def unquote(s):
+        # Strip ONLY the outer wrapping characters, and only when they
+        # match. `bash -c '...'` keeps its inner quotes; a value
+        # wrapped in backticks - a prose quoting habit that leaks
+        # into the machine-readable value - loses them, because the
+        # kernel's parse_verifier_string does not know about
+        # backticks and a path in backticks resolves to a path that
+        # does not exist.
+        if len(s) >= 2 and s[0] == s[-1] and s[0] in '"\'`':
+            return s[1:-1]
+        if s.endswith("`"):
+            return s[:-1].rstrip()
+        return s
+
+    v = unquote(raw)
 
     if v == "this-decision-file-present":
         # The decision file itself exists at a known path. That is a
@@ -137,16 +214,26 @@ def classify(value, decision_id, path_exists):
     if v in TAUTOLOGIES:
         return (TAUTOLOGIES[v], "tautology")
 
+    # A `tests/...` or `scripts/...` verifier whose target does not
+    # exist. The kernel would plan it, fail to build or run it, and
+    # report a failure of the PROJECT for a check that was never
+    # written. Declare it instead.
+    if v.startswith(("tests/", "scripts/")) and not target_exists(v, ml_cases):
+        return (manual_slug("target-missing-" + v), "declared-manual")
+
     if v.startswith(EXECUTABLE_PREFIXES):
-        # The RAW text, not the stripped one: a value like
-        # `bash -c '...'` must keep its quotes.
-        return (raw, "unchanged")
+        # A command-shaped verifier may carry a prose tail the
+        # kernel would otherwise pass to the program as arguments.
+        cut = strip_prose_tail(v)
+        if cut != v:
+            return (cut, "stripped-prose-tail")
+        return (v, "unchanged")
 
     if v.startswith(BUILTIN_PREFIXES):
         # A built-in kernel verifier. The oracle classifies these by
         # prefix; demoting them to `manual:` would lose the
         # classification.
-        return (raw, "unchanged")
+        return (v, "unchanged")
 
     m = MATHC_RE.match(v)
     if m:
@@ -203,6 +290,17 @@ def main():
     def path_exists(p):
         return p in known or os.path.exists(p)
 
+    # The Alcotest case names each test module declares, so a
+    # `tests/X.ml::case` verifier can be checked against reality.
+    ml_cases = {}
+    for p in glob.glob('tests/**/*.ml', recursive=True):
+        try:
+            t = open(p).read()
+        except Exception:
+            continue
+        ml_cases[os.path.normpath(p)] = set(
+            re.findall(r'Alcotest\.test_case\s+"([^"]+)"', t))
+
     kinds = collections.Counter()
     changes = []
     files_changed = 0
@@ -217,7 +315,7 @@ def main():
             vm = re.match(r"^(\s*-?\s*verifier:\s*)(.+?)(\s*)$", line)
             if vm:
                 old = vm.group(2).strip()
-                new, kind = classify(old, decision_id, path_exists)
+                new, kind = classify(old, decision_id, path_exists, ml_cases)
                 kinds[kind] += 1
                 if new != old:
                     touched = True

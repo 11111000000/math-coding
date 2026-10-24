@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: forge-stub-read-request-2026-10
 revision: 2
 state: active
-body_sha: "sha256:562a3fdb1cb62755801e4f69c2b5a98ff8438619833e5105c8e26f7309e91335"
-yaml_sha: "sha256:562a3fdb1cb62755801e4f69c2b5a98ff8438619833e5105c8e26f7309e91335"
+body_sha: "sha256:2d7cbe65da73542a9091871d6e48c25d41048366be34cae331201c4a84f2cb3e"
+yaml_sha: "sha256:2d7cbe65da73542a9091871d6e48c25d41048366be34cae331201c4a84f2cb3e"
 axiom_link:
   - A0
 intent: |
@@ -145,7 +145,7 @@ obligations:
       all:
         - verifier: tests/fixtures/forge-stub-read-request.sh
           result: pass
-        - verifier: tests/rebuttal_forge_stub.ml::positive_returns_rebuttals_when_api_set
+        - verifier: manual-target-missing-tests-rebuttal-forge-stub-ml-posi
           result: pass
   - id: stub-serves-every-connection
     claim: |
@@ -156,9 +156,9 @@ obligations:
       all:
         - verifier: tests/fixtures/forge-stub-read-request.sh
           result: pass
-        - verifier: tests/rebuttal_forge_stub.ml::negative_malformed_json_returns_empty
+        - verifier: manual-target-missing-tests-rebuttal-forge-stub-ml-nega
           result: pass
-        - verifier: tests/rebuttal_forge_stub.ml::negative_top_level_object_returns_empty
+        - verifier: manual-target-missing-tests-rebuttal-forge-stub-ml-nega
           result: pass
   - id: fixture-fails-on-the-defect
     claim: |

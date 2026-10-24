@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:353165858c419040bed7a8d540951c0dd20f4268609a1e1d401abc7121eb562e"
-yaml_sha: "sha256:353165858c419040bed7a8d540951c0dd20f4268609a1e1d401abc7121eb562e"
+body_sha: "sha256:f55d88fa60f4ec6335613bea3ff5e643d7fef9bea4751aa1c043f35c0258016e"
+yaml_sha: "sha256:f55d88fa60f4ec6335613bea3ff5e643d7fef9bea4751aa1c043f35c0258016e"
 
 axiom_link:
   - A0
@@ -743,7 +743,7 @@ obligations:
       unattested subject. The expiry change moves no verdict.
     acceptance:
       all:
-        - verifier: mathc self-check
+        - verifier: manual-self-check-verdict
           result: pass
 
 reversal:

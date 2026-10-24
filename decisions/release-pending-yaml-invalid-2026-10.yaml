@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: release-pending-yaml-invalid-2026-10
 revision: 1
 state: active
-body_sha: "sha256:7b92466cc62d77cdb81cf7ef10db0dae67bb6bb369d9b7017d1e1b10506cb72f"
-yaml_sha: "sha256:7b92466cc62d77cdb81cf7ef10db0dae67bb6bb369d9b7017d1e1b10506cb72f"
+body_sha: "sha256:65d32d3275afcb1ebdf8b1b24a0b4a03b237aa3c48879c602366c3cdc0b01609"
+yaml_sha: "sha256:65d32d3275afcb1ebdf8b1b24a0b4a03b237aa3c48879c602366c3cdc0b01609"
 
 intent: |
   Make the release-pending gate exist, and stop it from reporting a
@@ -210,7 +210,7 @@ obligations:
       into `head -1`.
     acceptance:
       all:
-        - verifier: tests/repo_structure.exe workflow-yaml-well-formed
+        - verifier: manual-target-missing-tests-repo-structure-exe-workflow
           result: pass
         - verifier: manual-text-scan-no-pipefail-masking-in-release-pending
           result: pass
@@ -236,9 +236,9 @@ obligations:
       sixteen cases in the suite.
     acceptance:
       all:
-        - verifier: tests/repo_structure.exe workflow-yaml-well-formed
+        - verifier: manual-target-missing-tests-repo-structure-exe-workflow
           result: pass
-        - verifier: "dune test tests/repo_structure.exe"
+        - verifier: dune test tests/repo_structure.exe
           result: pass
   - id: this-decision-validates
     outcome: unparsable-workflow-fails-the-build
@@ -251,7 +251,7 @@ obligations:
       all:
         - verifier: mathc validate decisions/release-pending-yaml-invalid-2026-10.yaml
           result: pass
-        - verifier: "dune test tests/process_principles.exe"
+        - verifier: dune test tests/process_principles.exe
           result: pass
 
 assumptions:

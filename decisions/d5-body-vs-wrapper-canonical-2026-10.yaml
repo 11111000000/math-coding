@@ -4,8 +4,8 @@ id: d5-body-vs-wrapper-canonical-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:f662789d50ddcc5dae91541736ecbd217952ea46a278885403c86be87e800c24"
-yaml_sha: "sha256:f662789d50ddcc5dae91541736ecbd217952ea46a278885403c86be87e800c24"
+body_sha: "sha256:9d3ee0f6d0febcb33a75533100a27092ad5408dd83de483e2143cb96658bdfc1"
+yaml_sha: "sha256:9d3ee0f6d0febcb33a75533100a27092ad5408dd83de483e2143cb96658bdfc1"
 axiom_link:
   - A0
   - A3
@@ -540,11 +540,11 @@ obligations:
       all:
         - verifier: dune runtest
           result: pass
-        - verifier: tests/cli/body-vs-wrapper-canonical.t (positive)
+        - verifier: manual-target-missing-tests-cli-body-vs-wrapper-canonic
           result: pass
-        - verifier: tests/cli/body-vs-wrapper-canonical.t (negative)
+        - verifier: manual-target-missing-tests-cli-body-vs-wrapper-canonic
           result: pass
-        - verifier: tests/cli/body-vs-wrapper-canonical.t (spec §7.1 present)
+        - verifier: manual-target-missing-tests-cli-body-vs-wrapper-canonic
           result: pass
 
   - id: schema-unchanged

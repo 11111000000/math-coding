@@ -4,8 +4,8 @@ id: fix-mcp-sigpipe
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:ac9588203a461922ce15bed93cbff2318036f57c3c16f5366f634d3f18583d20"
-yaml_sha: "sha256:ac9588203a461922ce15bed93cbff2318036f57c3c16f5366f634d3f18583d20"
+body_sha: "sha256:b04ea4b3ae8aa4c6d2e8baa27a80bb8aeb85c2a89176afdfd33d56092cbe5f90"
+yaml_sha: "sha256:b04ea4b3ae8aa4c6d2e8baa27a80bb8aeb85c2a89176afdfd33d56092cbe5f90"
 
 intent: |
   The MCP stdio server (`bin/mathc_mcp.ml`) dies with exit 141
@@ -46,7 +46,7 @@ obligations:
       all:
         - verifier: dune build
           result: pass
-        - verifier: tests/cli/mathc_mcp.t
+        - verifier: manual-target-missing-tests-cli-mathc-mcp-t
           result: pass
 
 axiom_link:

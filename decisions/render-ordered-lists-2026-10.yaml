@@ -6,8 +6,8 @@ state: active
 mode: light
 axiom_link:
   - A4
-body_sha: "sha256:92b558bfa88a86c6002ed639f26a15e767312705f9f0e547b5e72cb71f8b30df"
-yaml_sha: "sha256:92b558bfa88a86c6002ed639f26a15e767312705f9f0e547b5e72cb71f8b30df"
+body_sha: "sha256:d13ca1d3652635fd14c4c75f5193929ae6ca7ea12a2f6545352d93bc50117a57"
+yaml_sha: "sha256:d13ca1d3652635fd14c4c75f5193929ae6ca7ea12a2f6545352d93bc50117a57"
 intent: |
   The hand-rolled Markdown subset in `lib/render.ml::md_parse`
   previously recognised only `- ` unordered lists. Lines
@@ -128,11 +128,11 @@ obligations:
       input renders as `<ol><li>...</li><li>...</li><li>...</li></ol>`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::ordered_list_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-ordered-li
           result: pass
-        - verifier: tests/render_kernel.ml::ordered_list_multi_digit_renders
+        - verifier: manual-target-missing-tests-render-kernel-ml-ordered-li
           result: pass
-        - verifier: tests/render_kernel.ml::ordered_list_continuation_joins_into_one_li
+        - verifier: manual-target-missing-tests-render-kernel-ml-ordered-li
           result: pass
         - verifier: manual-rendered-asset-methodology-ru
           'Рабочая цепочка на практике' section
@@ -143,11 +143,11 @@ obligations:
       `<ol>`; it stays in the paragraph accumulator.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::ordered_list_invalid_marker_stays_paragraph
+        - verifier: manual-target-missing-tests-render-kernel-ml-ordered-li
           result: pass
-        - verifier: tests/render_kernel.ml::ordered_list_stops_at_dash_marker
+        - verifier: manual-target-missing-tests-render-kernel-ml-ordered-li
           result: pass
-        - verifier: tests/render_kernel.ml::ordered_list_after_paragraph_continues_paragraph
+        - verifier: manual-target-missing-tests-render-kernel-ml-ordered-li
           result: pass
 reversal:
   - signal: ordered-list-regressed

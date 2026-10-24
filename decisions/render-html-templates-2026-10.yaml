@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:d2c624ac83cff1bcd02a3750971b05bb1157705cd209c8c78d924d46fb549d7e"
-yaml_sha: "sha256:d2c624ac83cff1bcd02a3750971b05bb1157705cd209c8c78d924d46fb549d7e"
+body_sha: "sha256:741eacac2878a07e0f310b304b2d603c30b1e696d85c7e27ddc1ac52246ea73b"
+yaml_sha: "sha256:741eacac2878a07e0f310b304b2d603c30b1e696d85c7e27ddc1ac52246ea73b"
 
 intent: |
   Реализовать дизайн из
@@ -89,7 +89,7 @@ obligations:
       all:
         - verifier: tests/render_kernel.exe
           result: pass
-        - verifier: tests/cli/render.t (cram)
+        - verifier: manual-target-missing-tests-cli-render-t-cram
           result: pass
   - id: no-io-in-lib-render
     claim: |
@@ -98,7 +98,7 @@ obligations:
       `open_in` / `open_in_bin`.
     acceptance:
       all:
-        - verifier: scripts/dev (grepproof)
+        - verifier: manual-target-missing-scripts-dev-grepproof
           result: pass
 
 counterexample: |

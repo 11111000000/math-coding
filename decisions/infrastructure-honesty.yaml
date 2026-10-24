@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: infrastructure-honesty
 revision: 2
 state: active
-body_sha: "sha256:fd39527e02ab506a82d4924743e55925d5070823e2d4b4ba1e87e0c27a9c24f8"
-yaml_sha: "sha256:fd39527e02ab506a82d4924743e55925d5070823e2d4b4ba1e87e0c27a9c24f8"
+body_sha: "sha256:5a80a7cb1a8da8e98283e73b530faadb4325f57a958ab40dbeae283fec74257b"
+yaml_sha: "sha256:5a80a7cb1a8da8e98283e73b530faadb4325f57a958ab40dbeae283fec74257b"
 intent: |
   Repair four classes of dishonest infrastructure state that the v3-alpha
   bootstrap inherited: CI workflows that reference non-existent paths,
@@ -92,7 +92,7 @@ obligations:
       (not scripts/render.sh), and dune commands that succeed.
     acceptance:
       all:
-        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
+        - verifier: dune build @tests/repo_structure/runtest --root .
           result: pass
 
   - id: pin-nixpkgs-commit
@@ -103,7 +103,7 @@ obligations:
       recorded in this decision's commit message.
     acceptance:
       all:
-        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
+        - verifier: dune build @tests/repo_structure/runtest --root .
           result: pass
 
   - id: verify-opam-checksum
@@ -114,7 +114,7 @@ obligations:
       known-good value before installation.
     acceptance:
       all:
-        - verifier: dune build @tests/repo_structure/runtest --root . exits 0
+        - verifier: dune build @tests/repo_structure/runtest --root .
           result: pass
 
   - id: wire-conformance-runner
@@ -125,7 +125,7 @@ obligations:
       tests/dune declares both digest_vectors and conformance test stanzas.
     acceptance:
       all:
-        - verifier: dune test passes
+        - verifier: dune test
           result: pass
 
 reversal:

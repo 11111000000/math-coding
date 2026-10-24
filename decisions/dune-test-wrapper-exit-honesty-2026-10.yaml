@@ -4,8 +4,8 @@ id: dune-test-wrapper-exit-honesty-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:c40f5922e7bf93312a1021c964d37ddd14787f12b0326f459f17b24c1c95c260"
-yaml_sha: "sha256:c40f5922e7bf93312a1021c964d37ddd14787f12b0326f459f17b24c1c95c260"
+body_sha: "sha256:a587c2debbd7375310eb071e43efa982634a12d975fcc3c3f1f82a03fe6045f8"
+yaml_sha: "sha256:a587c2debbd7375310eb071e43efa982634a12d975fcc3c3f1f82a03fe6045f8"
 
 axiom_link:
   - A1
@@ -214,7 +214,7 @@ obligations:
       the pre-fix wrapper this decision fixes.
     acceptance:
       all:
-        - verifier: scripts/dune-test-wrapper-propagates-failure.sh
+        - verifier: manual-target-missing-scripts-dune-test-wrapper-propaga
           result: pass
 
 assumptions:

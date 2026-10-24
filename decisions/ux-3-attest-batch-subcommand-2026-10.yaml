@@ -6,8 +6,8 @@ mode: standard
 change_kind: implementation
 revision: 1
 
-body_sha: "sha256:f03d4ac2b9b2e9045fe7b129851b2ef243b94b046d88a2b66827f140c4b4fcf4"
-yaml_sha: "sha256:f03d4ac2b9b2e9045fe7b129851b2ef243b94b046d88a2b66827f140c4b4fcf4"
+body_sha: "sha256:06d27a0fc4f6ec3b82c5b67d80ea91653cd243b55955cbce0090620dbff098c7"
+yaml_sha: "sha256:06d27a0fc4f6ec3b82c5b67d80ea91653cd243b55955cbce0090620dbff098c7"
 
 axiom_link:
   - A0
@@ -143,7 +143,7 @@ obligations:
       to `pass`.
     acceptance:
       all:
-        - verifier: tests/cli/attest-batch-positive.t runs via dune runtest
+        - verifier: manual-target-missing-tests-cli-attest-batch-positive-t
           result: pass
 
   - id: cram-attest-batch-malformed-passes
@@ -155,7 +155,7 @@ obligations:
       that names the path / line / reason.
     acceptance:
       all:
-        - verifier: tests/cli/attest-batch-malformed.t runs via dune runtest
+        - verifier: manual-target-missing-tests-cli-attest-batch-malformed-
           result: pass
 
   - id: cram-attest-batch-dry-run-passes
@@ -166,7 +166,7 @@ obligations:
       and every output's `id` matches the canonical-JSON SHA-256.
     acceptance:
       all:
-        - verifier: tests/cli/attest-batch-dry-run.t runs via dune runtest
+        - verifier: manual-target-missing-tests-cli-attest-batch-dry-run-t-
           result: pass
 
   - id: cram-attest-batch-from-decisions-passes
@@ -178,7 +178,7 @@ obligations:
       producer / kind / result match the CLI flags.
     acceptance:
       all:
-        - verifier: tests/cli/attest-batch-from-decisions.t runs via dune runtest
+        - verifier: manual-target-missing-tests-cli-attest-batch-from-decis
           result: pass
 
   - id: mathc-validate-accepts-this-decision
@@ -202,9 +202,9 @@ obligations:
       uses.
     acceptance:
       all:
-        - verifier: tests/cli/attest-batch-positive.t computes OCaml SHA via Python and asserts match
+        - verifier: manual-target-missing-tests-cli-attest-batch-positive-t
           result: pass
-        - verifier: tests/cli/attest-batch-dry-run.t computes OCaml SHA via Python and asserts match
+        - verifier: manual-target-missing-tests-cli-attest-batch-dry-run-t-
           result: pass
 
 reversal:

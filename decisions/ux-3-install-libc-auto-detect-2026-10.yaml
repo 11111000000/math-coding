@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:c8635ba633b6164d1754735398eead65b8a2d1031d17d3efa8853df7cc1a5563"
-yaml_sha: "sha256:c8635ba633b6164d1754735398eead65b8a2d1031d17d3efa8853df7cc1a5563"
+body_sha: "sha256:3da71e53414b76ea23e3a6042260439c9dd8c5f59eedc5671ad9ccdbecd654c9"
+yaml_sha: "sha256:3da71e53414b76ea23e3a6042260439c9dd8c5f59eedc5671ad9ccdbecd654c9"
 
 axiom_link:
   - A0
@@ -115,9 +115,9 @@ obligations:
       exercises both branches of `detect_libc`.
     acceptance:
       all:
-        - verifier: tests/scripts/install-libc-auto-detect.t exists
+        - verifier: manual-target-missing-tests-scripts-install-libc-auto-d
           result: pass
-        - verifier: tests/scripts/install-libc-auto-detect.t runs via dune test
+        - verifier: manual-target-missing-tests-scripts-install-libc-auto-d
           result: pass
 
 reversal:

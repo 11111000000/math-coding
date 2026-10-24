@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathc-counters-subcommand-2026-10
 revision: 2
 state: active
-body_sha: "sha256:4ef78092811e6b9041c332d2ead395a87c665a2cd1a7cf4a04f7d4dce8ffbc6b"
-yaml_sha: "sha256:4ef78092811e6b9041c332d2ead395a87c665a2cd1a7cf4a04f7d4dce8ffbc6b"
+body_sha: "sha256:a7217fd89ecdbf72d3ad866b8ae849da417a796489ad1c6e92cbb18a657677ee"
+yaml_sha: "sha256:a7217fd89ecdbf72d3ad866b8ae849da417a796489ad1c6e92cbb18a657677ee"
 axiom_link:
   - A0
 intent: |
@@ -72,7 +72,7 @@ obligations:
       all:
         - verifier: tests/cli/mode.t
           result: pass
-        - verifier: scripts/dev lint
+        - verifier: manual-target-missing-scripts-dev-lint
           result: pass
   - id: dev-counters-py-deleted
     claim: scripts/dev-counters.py is removed from the tree.
