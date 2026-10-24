@@ -6,8 +6,8 @@ description: |
   decisions", "we need an audit trail", or mentions obligations,
   attestations, or waiver in a project context. Do not trigger on casual
   uses of "decision" or "obligation" in ordinary conversation.
-compatible_with: mathc@>=3.6.0
-MC_VERSION=3.6.0
+compatible_with: mathc@>=3.7.0
+MC_VERSION=3.7.0
 ---
 
 # math-coding
