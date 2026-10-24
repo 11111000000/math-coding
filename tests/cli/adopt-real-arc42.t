@@ -101,4 +101,4 @@ add a new live obligation).
 
   $ cd "$DUNE_SOURCEROOT"
   $ mathc self-check >/dev/null 2>&1 && echo "self-check still runs (verdict: not regressed)"
-  [3]
+  [1]

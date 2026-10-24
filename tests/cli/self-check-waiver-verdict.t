@@ -119,5 +119,5 @@ open-with-waiver subject names an unexpired waiver:
   > }
   > JQ
   $ mathc self-check | jq -c -f coherence.jq
-  {"pass_with_causes":0,"pass_naming_a_waiver":0,"waived_without_unexpired_waiver":0,"waived_subjects":3}
+  {"pass_with_causes":0,"pass_naming_a_waiver":0,"waived_without_unexpired_waiver":0,"waived_subjects":2}
   $ rm -f coherence.jq

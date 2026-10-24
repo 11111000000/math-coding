@@ -31,7 +31,7 @@ it (NFR-3 is about startup, not the command's work).
 
   $ cd "$DUNE_SOURCEROOT"
   $ t=$(TIMEFORMAT='%R'; { time mathc self-check >/dev/null; } 2>&1)
-  [3]
+  [1]
   $ echo "mathc self-check: ${t}s" | sed -E -e "s/[0-9]+\.[0-9]+s/<T>s/" -e "s|$| (kernel work; not NFR-3 scope)|"
   mathc self-check: <T>s (kernel work; not NFR-3 scope)
 
