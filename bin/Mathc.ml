@@ -4149,6 +4149,39 @@ let[@warning "-32"] decisions_touching_changes
       else acc)
     scopes []
 
+(* The paths that differ between HEAD and the working tree. *)
+let[@warning "-32"] changed_paths_since_head () : string list =
+  let out =
+    try
+      let ic =
+        Unix.open_process_in
+          "git status --porcelain --untracked-files=normal 2>/dev/null"
+      in
+      let r = read_all ic in
+      let _ = Unix.close_process_in ic in
+      r
+    with _ -> ""
+  in
+  out
+  |> String.split_on_char '\n'
+  |> List.filter (fun s -> String.trim s <> "")
+  |> List.map (fun l ->
+         let l = String.trim l in
+         let idx =
+           match String.index_opt l ' ' with Some i -> i | None -> String.length l
+         in
+         let rest =
+           String.sub l (min idx (String.length l))
+             (String.length l - min idx (String.length l))
+           |> String.trim
+         in
+         let path =
+           match String.index_opt rest '\'' with
+           | Some i -> String.sub rest 0 i
+           | None -> rest
+         in
+         String.trim path)
+
 let[@warning "-32"] count_distinct_decisions obls =
   let seen = Hashtbl.create 64 in
   List.iter (fun (decision, _) -> Hashtbl.replace seen decision ()) obls;
@@ -4445,6 +4478,30 @@ let[@warning "-32"] do_attest_batch () =
   let issued_at = now_iso () in
   let root = root_with_env_precedence () in
   let candidate_tree = resolve_candidate_tree ~cmd:"attest-batch" ~root in
+  (* The materials digest is computed at `candidate_tree` - the last
+     COMMIT. The verifier, on the other hand, runs against the
+     WORKING TREE. If the two differ, the attestation would claim to
+     cover content it never saw, and the gate - which evaluates a
+     commit - would compare against the wrong thing.
+   *
+   * So: refuse to sign a dirty tree. The workflow becomes: commit the
+     change, sign (the working tree now IS the commit), commit the
+     attestations - and committing the attestations does not move the
+     scope digest, because the attestation store is EXCLUDED from the
+     scope digest for exactly that reason.
+   *
+   * This is not a convenience guard. I signed a whole store on a
+     dirty tree, and every one of those attestations was bound to
+     content the verifier had not seen. *)
+  if not (List.is_empty (changed_paths_since_head ())) then begin
+    Printf.eprintf
+      "mathc attest-batch: the working tree differs from HEAD. The \
+       materials digest is computed at HEAD and the verifier runs \
+       against the working tree; signing now would produce an \
+       attestation that claims to cover content it never saw. Commit \
+       the change first, then sign, then commit the attestations.\n%!";
+    exit 2
+  end;
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in

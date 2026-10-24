@@ -1,0 +1,98 @@
+---
+schema: math-coding/3.3
+id: attest-sign-requires-clean-tree-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/failing-subject-backlog.sh
+body_sha: "sha256:d102c4a0731890418296ad5adaff5cf708a5404bc641bf976057b548db72e82c"
+yaml_sha: "sha256:d102c4a0731890418296ad5adaff5cf708a5404bc641bf976057b548db72e82c"
+
+intent: { source: "issue:signed-on-a-dirty-tree-2026-10-24", text: "Under semantics A the materials digest of an attestation is the digest of the CONTENT of the files its decision's scope names, computed at candidate_tree - the last COMMIT. The verifier, on the other hand, runs against the WORKING TREE. I re-signed the whole store with the version bump and the digest rewrite still uncommitted, so every one of those attestations was bound to content the verifier had never seen: 200 subjects passed against a tree that did not exist." }
+
+commitment: |
+  After this decision closes:
+
+  1. `mathc attest-batch` refuses to sign when the working tree
+     differs from HEAD, and says why: the digest is computed at
+     HEAD and the verifier runs against the working tree, so
+     signing now would produce an attestation that claims to cover
+     content it never saw.
+  2. The workflow is therefore: commit the change, sign, commit
+     the attestations. Committing the attestations does not move
+     the scope digest, because the attestation store is EXCLUDED
+     from the scope digest.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  The strongest objection is that this makes the tool harder to use:
+  an author who wants to sign a change they have not committed yet
+  cannot, and must make a commit first - which the repository's own
+  history forbids for a change that is not ready.
+
+  The objection is right, and it describes the ACTUAL rule the
+  project has been living under for weeks: an attestation that
+  covers uncommitted content is not a record of anything, because the
+  content it claims to have verified does not exist anywhere. The
+  change has to become a commit before it can be a fact, and an
+  attestation about a fact that does not exist is a decoration.
+
+antithesis: |
+  The opposite claim would be to compute the digest from the
+  WORKING TREE instead of from HEAD, so signing works on a dirty
+  tree and the digest describes what the verifier saw.
+
+  Rejected: the gate evaluates a COMMIT. It computes its reference
+  from a commit's blobs. A digest computed from the working tree
+  would be a different function from the one the gate computes, and
+  the two would never be equal - which is the defect this whole
+  release exists to remove. Binding both sides to the same tree is
+  the only way the comparison can mean anything.
+
+outcomes:
+  - id: signing-is-bound-to-a-tree
+    statement: |
+      An attestation's materials digest and the tree the gate
+      evaluates are computed the same way, so the comparison is
+      between two things of the same kind.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "decisions/attest-sign-requires-clean-tree-2026-10.yaml"
+    - "attestations/attest-sign-requires-clean-tree-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+
+obligations:
+  - id: dirty-tree-refusal
+    claim: |
+      `mathc attest-batch` on a tree that differs from HEAD exits 2
+      and names the reason.
+    acceptance:
+      all:
+        - verifier: manual-dirty-tree-refusal
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a signing workflow depends on signing uncommitted content"
+
+assumptions:
+  - id: committing-first-is-normal
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The project's workflow commits the change and then signs it.
+      The pre-commit hook already enforces a decision alongside a
+      kernel change, so the commit comes first in any case.
+    consequence_if_false: |
+      A workflow that signs before committing has to change: it
+      would need the digest computed from the index instead of HEAD,
+      and the gate would have to compare against the index too.
