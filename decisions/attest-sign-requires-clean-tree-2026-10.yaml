@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: attest-sign-requires-clean-tree-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/failing-subject-backlog.sh
-body_sha: "sha256:d102c4a0731890418296ad5adaff5cf708a5404bc641bf976057b548db72e82c"
-yaml_sha: "sha256:d102c4a0731890418296ad5adaff5cf708a5404bc641bf976057b548db72e82c"
+body_sha: "sha256:799a0801c3422255b7dfdf1c0faeb97353086b766a166d4873a47d4423a59974"
+yaml_sha: "sha256:799a0801c3422255b7dfdf1c0faeb97353086b766a166d4873a47d4423a59974"
 
 intent: { source: "issue:signed-on-a-dirty-tree-2026-10-24", text: "Under semantics A the materials digest of an attestation is the digest of the CONTENT of the files its decision's scope names, computed at candidate_tree - the last COMMIT. The verifier, on the other hand, runs against the WORKING TREE. I re-signed the whole store with the version bump and the digest rewrite still uncommitted, so every one of those attestations was bound to content the verifier had never seen: 200 subjects passed against a tree that did not exist." }
 

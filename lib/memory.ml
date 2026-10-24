@@ -487,3 +487,9 @@ let[@warning "-32"] load_memory ~reader ~root ~recent_commits_raw
     recent_commits = parse_commits (split_lines recent_commits_raw);
     changed_paths = parse_changed_paths (split_lines changed_paths_raw);
   }
+
+(* The scope paths of a decision, from its raw YAML text. Same
+   extractor as the kernel's own reader, so a caller outside the
+   kernel reads the scope the gate reads. *)
+let[@warning "-32"] extract_scope_paths_of_raw raw =
+  extract_scope_paths (String.split_on_char '\n' raw)

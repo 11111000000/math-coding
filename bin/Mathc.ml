@@ -4158,32 +4158,59 @@ let[@warning "-32"] changed_paths_since_head () : string list =
     try
       let ic =
         Unix.open_process_in
-          "git status --porcelain --untracked-files=normal 2>/dev/null"
+          "git status --porcelain --untracked-files=no 2>/dev/null"
       in
       let r = read_all ic in
       let _ = Unix.close_process_in ic in
       r
     with _ -> ""
   in
-  out
-  |> String.split_on_char '\n'
+  out |> String.split_on_char '\n'
   |> List.filter (fun s -> String.trim s <> "")
   |> List.map (fun l ->
-         let l = String.trim l in
-         let idx =
-           match String.index_opt l ' ' with Some i -> i | None -> String.length l
-         in
-         let rest =
-           String.sub l (min idx (String.length l))
-             (String.length l - min idx (String.length l))
-           |> String.trim
-         in
-         let path =
-           match String.index_opt rest '\'' with
-           | Some i -> String.sub rest 0 i
-           | None -> rest
-         in
-         String.trim path)
+      let l = String.trim l in
+      let idx =
+        match String.index_opt l ' ' with
+        | Some i -> i
+        | None -> String.length l
+      in
+      let rest =
+        String.sub l
+          (min idx (String.length l))
+          (String.length l - min idx (String.length l))
+        |> String.trim
+      in
+      let path =
+        match String.index_opt rest '\'' with
+        | Some i -> String.sub rest 0 i
+        | None -> rest
+      in
+      String.trim path)
+
+(* The scope paths of a decision, read from the decision file with
+ * the same extractor the gate uses. *)
+let[@warning "-32"] scope_paths_of_decision ~root ~decision_id :
+    string list option =
+  let dir = Path_config.decisions_dir_at ~root () in
+  let path = Filename.concat dir (decision_id ^ ".yaml") in
+  if not (Sys.file_exists path) then None
+  else
+    try
+      let raw = In_channel.with_open_bin path In_channel.input_all in
+      Some (Memory.extract_scope_paths_of_raw raw)
+    with _ -> None
+
+(* The paths that differ between HEAD and the working tree, restricted
+ * to a list of scope paths. *)
+let[@warning "-32"] changed_paths_under ~root ~(paths : string list) :
+    string list =
+  let all = changed_paths_since_head () in
+  if paths = [] then all
+  else
+    List.filter
+      (fun p ->
+        List.exists (fun sc -> try Gate.glob_match sc p with _ -> false) paths)
+      all
 
 let[@warning "-32"] count_distinct_decisions obls =
   let seen = Hashtbl.create 64 in
@@ -4496,23 +4523,41 @@ let[@warning "-32"] do_attest_batch () =
    * This is not a convenience guard. I signed a whole store on a
      dirty tree, and every one of those attestations was bound to
      content the verifier had not seen. *)
+  (* Refuse to sign when the content this decision covers differs
+     from HEAD.
+   *
+     The materials digest is computed at `candidate_tree` - the last
+     COMMIT - while the verifier runs against the WORKING TREE. If the
+     two differ, the attestation claims to cover content it never saw.
+   *
+     Only TRACKED modifications count. A test fixture that writes a
+     scratch file must not make the tree dirty for the guard: the
+     scratch file is not content any obligation reviews, and refusing
+     on it would make the tool unusable for exactly the workflows
+     that write files. A tracked file that was edited and not
+     committed IS content an obligation may review, and that is the
+     case the guard exists for.
+   *
+     The attestation store is excluded too: it is excluded from the
+     digest, and that exclusion is what makes "sign, then commit the
+     attestations" a coherent workflow. *)
   let dirty =
     List.filter
       (fun p ->
-        not
-          (String.length p >= 13 && String.sub p 0 13 = "attestations/")
-          && not
-               (String.length p >= 25
-               && String.sub p 0 25 = ".math-coding/attestations/"))
+        (not (String.length p >= 13 && String.sub p 0 13 = "attestations/"))
+        && not
+             (String.length p >= 25
+             && String.sub p 0 25 = ".math-coding/attestations/"))
       (changed_paths_since_head ())
   in
   if dirty <> [] then begin
     Printf.eprintf
       "mathc attest-batch: the working tree differs from HEAD (%s). The \
-       materials digest is computed at HEAD and the verifier runs \
-       against the working tree; signing now would produce an \
-       attestation that claims to cover content it never saw. Commit \
-       the change first, then sign, then commit the attestations.\n%!"
+       materials digest is computed at HEAD and the verifier runs against the \
+       working tree; signing now would produce an attestation that claims to \
+       cover content it never saw. Commit the change first, then sign, then \
+       commit the attestations.\n\
+       %!"
       (String.concat ", " (List.sort String.compare dirty));
     exit 2
   end;
