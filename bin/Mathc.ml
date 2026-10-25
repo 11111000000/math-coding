@@ -4342,9 +4342,7 @@ let[@warning "-32"] run_one_verifier_memoized ~project_root ~sandbox_mode
   match Hashtbl.find_opt verifier_result_cache key with
   | Some o -> o
   | None ->
-      let o =
-        run_one_verifier ~project_root ~sandbox_mode ~verifier_string
-      in
+      let o = run_one_verifier ~project_root ~sandbox_mode ~verifier_string in
       Hashtbl.replace verifier_result_cache key o;
       o
 
@@ -4414,8 +4412,8 @@ let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
             let outcomes =
               List.map
                 (fun s ->
-                  run_one_verifier_memoized ~project_root:root
-                    ~sandbox_mode ~verifier_string:s)
+                  run_one_verifier_memoized ~project_root:root ~sandbox_mode
+                    ~verifier_string:s)
                 planned
             in
             aggregate_verifier_outcomes outcomes)

@@ -1,14 +1,14 @@
 ---
 schema: math-coding/3.3
 id: verifier-result-memo-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/signing-sweep-is-reproducible.sh
-body_sha: "sha256:34b193fc9b86809ca823478744f1eb11cb1ca5534d6e88793fdfbfeecda59f5f"
-yaml_sha: "sha256:34b193fc9b86809ca823478744f1eb11cb1ca5534d6e88793fdfbfeecda59f5f"
+body_sha: "sha256:dc5075a2b1ad6c71d586a9bf250c968cc05a85401e1076b506f2a0de9922b9aa"
+yaml_sha: "sha256:dc5075a2b1ad6c71d586a9bf250c968cc05a85401e1076b506f2a0de9922b9aa"
 
-intent: { source: "issue:signing-sweep-cost-and-reproducibility-2026-10-25", text: "A full re-signing of the corpus took 574 s, and 87% of that went into ten decisions. They are not ten slow checks: they are the same expensive checks repeated. Measured on this corpus, 1482 verifier strings across 242 decisions, of which 906 are distinct - 38% of the work was done twice. The repeats are the expensive ones: tests/repo_structure.ml appears 18 times and costs 7.2 s each (it runs dune fmt --preview over the whole tree), and dune build appears 24 times. Separately, the signing was non-reproducible: 28, then 54, then 73 failing subjects across three runs of the same corpus on the same kernel." }
+intent: { source: "issue:verification-loop-wall-clock-2026-10-25", text: "The verification loop had two slow legs, both measured. The signing sweep: 574 s, 87% of it in ten decisions that repeat a handful of expensive checks. The check suite: 41 of its ~110 s were two fixtures that wait a full 20 s each on a deliberately non-terminating stub, one of them orphaned and duplicating work the suite already ran. Both are fixed the same way: the checks that repeat are run once, and the checks that wait are made to wait less. A full re-signing of the corpus took 574 s, and 87% of that went into ten decisions. They are not ten slow checks: they are the same expensive checks repeated. Measured on this corpus, 1482 verifier strings across 242 decisions, of which 906 are distinct - 38% of the work was done twice. The repeats are the expensive ones: tests/repo_structure.ml appears 18 times and costs 7.2 s each (it runs dune fmt --preview over the whole tree), and dune build appears 24 times. Separately, the signing was non-reproducible: 28, then 54, then 73 failing subjects across three runs of the same corpus on the same kernel." }
 
 commitment: |
   After this decision closes:

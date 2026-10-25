@@ -50,7 +50,7 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # broken code never returns at all. 20 s is generous enough to
 # survive a loaded machine and short enough that the negative control
 # does not stall the suite for a minute.
-BUDGET=20
+BUDGET=5
 
 # Locate the binary under test. Prefer the local build; fall back to
 # PATH for the installed binary, which is the configuration that
