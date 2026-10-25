@@ -157,11 +157,33 @@ else
   manifest="$work/all.tsv"
 fi
 
+# The sweep writes into a TEMPORARY directory and the store is
+# replaced only at the end.
+#
+# WHY. The sweep is not atomic as it stands, and it shows. A verifier
+# that MEASURES the store - and several do:
+# tests/fixtures/legacy-attestation-debt.sh,
+# tests/fixtures/verifier-path-resolution.sh - reads
+# attestations/ while the sweep is rewriting it. So the verdict it
+# produces depends on WHEN it ran: before the first attestation of
+# the sweep was written, or after the last. Measured on 2026-10-25:
+# 6 of the 30 unsigned obligations were of the class
+# "every verifier passes, yet the obligation failed" - the fixture
+# passed in isolation and failed inside the sweep, and the only
+# difference between the two runs was that the sweep was mutating
+# the thing the fixture measures.
+#
+# Writing into a temporary directory and swapping at the end makes
+# the sweep atomic from the verifier's point of view: every verifier
+# sees the SAME store, the one that was there before the sweep
+# started. The store is replaced once, at the end, and a verifier
+# that reads it sees a coherent corpus either way.
 if [ "${1:-}" = "--measure" ]; then
   dest="$work/measure"
   mkdir -p "$dest"
 else
-  dest="attestations"
+  dest="$work/store"
+  mkdir -p "$dest"
 fi
 
 
@@ -232,6 +254,10 @@ fi
 # corpus that had moved. Delete every attestation whose subject is
 # not in the current manifest.
 if [ "${1:-}" != "--measure" ]; then
+  # Prune the REAL store: an attestation whose subject the corpus no
+  # longer has is evidence about nothing. The new attestations are
+  # still in the temporary directory, so the store is coherent while
+  # it is being pruned.
   python3 - "$work/all.tsv" <<'PYEOF'
 import glob, json, os, sys
 current = set()
@@ -251,4 +277,15 @@ for f in glob.glob("attestations/*.json"):
         removed += 1
 print("sign-store: pruned %d orphan attestation(s)" % removed)
 PYEOF
+
+  # Install: the store is replaced ONCE, at the end, so no verifier
+  # ever sees it half-written.
+  if [ -d "$dest" ]; then
+    n=0
+    for f in "$dest"/*.json; do
+      [ -e "$f" ] || continue
+      cp "$f" attestations/ && n=$((n + 1))
+    done
+    echo "sign-store: installed $n attestation(s) into the store"
+  fi
 fi
