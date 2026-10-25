@@ -1,0 +1,133 @@
+---
+schema: math-coding/3.3
+id: scope-invalidation-breadth-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/scope-invalidation-breadth.sh
+body_sha: "sha256:7f783e4997b2866f46f183409475b5b56fdefa002da02cf75f95e3820526b809"
+yaml_sha: "sha256:7f783e4997b2866f46f183409475b5b56fdefa002da02cf75f95e3820526b809"
+
+intent: { source: "issue:scope-breadth-made-the-verification-cycle-a-treadmill-2026-10-25", text: "The cost of touching a file is the number of decisions whose scope covers it: change such a file and every one of those decisions' attestations goes stale, because the materials digest no longer describes the tree the attestation claims to describe. Measured on 2026-10-25 with scripts/audit-scopes.py: 183 of the corpus's 246 decisions cover bin/Mathc.ml, 158 cover lib/decision.ml, 157 cover spec/algebra-3.2.md, 145 cover lib/gate.ml, 137 cover lib/diagnostic.ml. The most repeated scope PATTERNS are spec/** (139 decisions), schemas/** (125), axioms/** (124), bin/Mathc.ml (121) and lib/** (96). One edit to the kernel therefore makes three quarters of the corpus stale, and a full re-signing - 232 s, five times in one session - becomes necessary." }
+
+commitment: |
+  After this decision closes:
+
+  1. The breadth is MEASURED by a tool, not by an estimate:
+     scripts/audit-scopes.py reports, for every tracked file, how many
+     decisions' scopes cover it, using the kernel's own glob rules
+     (Gate.glob_match) so the number is the number the gate produces.
+  2. The breadth is PINNED as a ceiling that may only fall. A scope
+     that grows is a regression; a scope that narrows is progress.
+  3. The measurement is LIVE: the fixture inflates the corpus with a
+     decision that covers bin/Mathc.ml and requires the measured
+     breadth to move, so a fixture that compares two equal numbers
+     cannot pass.
+  4. The RULE this establishes: a scope may name only what the
+     obligation actually depends on. `lib/**` names nothing; the
+     obligation depends on a file.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Pin the breadth as an exact number and fail when it moves in
+  either direction." Rejected: narrowing a scope is the whole point,
+  and a pin that fails on improvement makes the improvement
+  impossible to land. The ceiling may only FALL, and a fall is
+  reported as progress, not as a failure.
+
+  (b) "Do nothing and accept the cost." Rejected on the measurement:
+  the cost is not a fixed 232 s, it is 232 s every time somebody
+  touches the kernel, and it was paid five times in a single session.
+  The re-signing is also what EXPOSES the debt - each pass over the
+  corpus found failures that the previous pass had hidden behind a
+  stale store. So the treadmill is not merely expensive: it is the
+  mechanism by which the debt becomes visible, and refusing to pay
+  it means refusing to look.
+
+antithesis: |
+  The opposite claim is that the breadth is not a defect but a
+  FEATURE: a broad scope is conservative. If a decision's scope names
+  everything under lib, then a change anywhere under lib is
+  acknowledged to invalidate it, and no reader can be surprised by a
+  stale attestation.
+
+  The claim has real force, and it identifies what must be preserved
+  in the narrowing: a narrowed scope must still cover everything the
+  obligation actually depends on. But conservatism purchased by
+  IGNORANCE is not conservatism - `lib/**` does not say "this
+  obligation depends on everything under lib"; it says "the author
+  did not work out what it depends on". A scope that names one file
+  is a claim that can be checked; a scope that names a directory is
+  an abdication that cannot.
+
+outcomes:
+  - id: the-breadth-is-measured-and-pinned
+    statement: |
+      The invalidation breadth of the corpus's files is measured by a
+      tool and pinned as a ceiling that may only fall.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/scope-invalidation-breadth.sh
+          result: pass
+
+  - id: the-measurement-is-live
+    claim: |
+      The measurement moves when the corpus moves, so the ceiling
+      comparison cannot be satisfied by two equal numbers.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/scope-invalidation-breadth.sh
+          result: pass
+
+scope:
+  paths:
+    - "scripts/audit-scopes.py"
+    - "tests/fixtures/scope-invalidation-breadth.sh"
+    - "decisions/scope-invalidation-breadth-2026-10.yaml"
+    - "attestations/scope-invalidation-breadth-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: the-breadth-does-not-grow
+    claim: |
+      No tracked file's invalidation breadth exceeds its pinned
+      ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/scope-invalidation-breadth.sh
+          result: pass
+
+  - id: the-measurement-is-not-vacuous
+    claim: |
+      An inflated corpus produces a larger measured breadth, and the
+      comparison tells the two apart.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/scope-invalidation-breadth.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a scope is widened to a glob that was not there before"
+
+assumptions:
+  - id: the-scope-is-the-set-of-dependencies
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A decision's scope.paths is the set of files its obligation
+      depends on.
+    consequence_if_false: |
+      Narrowing a scope to what the obligation actually reads would
+      leave out a file the obligation depends on, and the
+      attestation would claim a currency it does not have. The
+      narrowing must therefore be reviewed per decision, not
+      automated.
