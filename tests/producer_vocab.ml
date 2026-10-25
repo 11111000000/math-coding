@@ -375,8 +375,9 @@ let[@warning "-32"] test_machine_producers_are_unaffected () =
 
 (* --- the committed backlog, pinned ------------------------------ *)
 
-(* The grandfathered debt. 62 committed attestations carry an untagged
- * identity and 58 carry `human:` on a runtime kind (26 of those
+(* The grandfathered debt. 60 committed attestations carry an untagged
+ * identity (the re-sign that prunes orphans removed two of them) and
+ * 58 carry `human:` on a runtime kind (26 of those
  * `human:maintainer`, 32 provably agent-produced). They are NOT
  * rewritten: `id` is the sha256 of the attestation body, the body
  * contains `producer.identity`, and rewriting identity therefore mints
@@ -405,7 +406,7 @@ let[@warning "-32"] test_grandfathered_backlog_is_pinned () =
              (fun (i, _, k) -> class_prefix i = "human" && k <> "review")
              corpus)
       in
-      Alcotest.(check int) "untagged identities in the store" 5 untagged;
+      Alcotest.(check int) "untagged identities in the store" 3 untagged;
       Alcotest.(check int)
         "human: producers on a runtime kind in the store" 0 human_runtime
 
