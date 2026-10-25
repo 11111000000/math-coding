@@ -1,0 +1,127 @@
+---
+schema: math-coding/3.3
+id: decision-resolves-by-id-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/decision-resolves-by-id.sh
+body_sha: "sha256:1c28235af68b3cb98ca1af52c1334af36fb6ff7f4b963cc110a28867314700f8"
+yaml_sha: "sha256:1c28235af68b3cb98ca1af52c1334af36fb6ff7f4b963cc110a28867314700f8"
+
+intent: { source: "issue:kernel-resolved-decisions-by-file-name-2026-10-25", text: "The kernel resolved a decision by CONCATENATING its id with .yaml and looking for that file. Sixteen decisions in this corpus carry an id that differs from their file name - candidate-tree-resolves-to-a-commit lives in candidate-tree-resolves-to-a-commit-2026-10.yaml, bootstrap-v3 lives in decision.yaml, and eleven more - so for every one of them the file was not there, the parse failed, and every one of its obligations was reported as failed. Measured on 2026-10-25: 69 of the 110 obligations the re-signing refused to sign were failing for exactly this reason, and no message said so anywhere: the kernel could not find the decision it was asked about, and reported that as a broken check." }
+
+commitment: |
+  After this decision closes:
+
+  1. A decision is found by its ID, by scanning the decisions
+     directory - the same way the corpus is enumerated. The file name
+     is not load-bearing.
+  2. A decision whose id differs from its file name is resolved and
+     its obligations are verified, exactly like one whose name
+     matches.
+  3. The resolution is memoised per process: it happens once per
+     obligation, and the corpus is read once per resolution
+     otherwise.
+  4. A genuine failure still reports as a failure. The fix resolves
+     the decision; it does not make a broken check look like a
+     passing one.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Rename the sixteen files to match their ids." Rejected:
+  that makes the corpus obey the kernel instead of the other way
+  round, and it churns sixteen tracked paths for a defect that is
+  in the kernel. The corpus is ALREADY enumerated by scanning the
+  directory (Re_evaluation.list_decision_files), so the convention
+  that the file name must equal the id was never real - it was one
+  call site assuming it.
+
+  (b) "Fall back to the concatenation when the scan finds nothing."
+  Rejected: the fallback is what produced the silent failure in the
+  first place. A scan that finds nothing means the decision is not
+  in the corpus, and that is a fact worth stating rather than
+  papering over with a guess.
+
+antithesis: |
+  The opposite claim is that the id should not be the identity at
+  all, and that a decision should be addressed by its path - so that
+  a corpus could hold two decisions with the same id, and a
+  reference could name a file that has been renamed.
+
+  The claim identifies a real hazard - the id is only unique by
+  convention - but it does not describe this corpus, where every id
+  IS unique and the file names are not stable (they carry dates,
+  and sixteen of them already drifted from the id). Making the path
+  the identity would mean the corpus could not be renamed, which is
+  a worse constraint than the one it has.
+
+outcomes:
+  - id: a-decision-is-found-by-its-id
+    statement: |
+      A decision whose file name differs from its id is resolved, and
+      its obligations are verified.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/decision-resolves-by-id.sh
+          result: pass
+
+  - id: a-real-failure-is-still-a-failure
+    claim: |
+      The fix does not make a broken check look like a passing one.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/decision-resolves-by-id.sh
+          result: pass
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/fixtures/decision-resolves-by-id.sh"
+    - "decisions/decision-resolves-by-id-2026-10.yaml"
+    - "attestations/decision-resolves-by-id-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: the-id-resolves-regardless-of-the-file-name
+    claim: |
+      `mathc attest-batch --run-per-obligation` resolves a decision
+      whose file name differs from its id, and verifies its
+      obligations.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/decision-resolves-by-id.sh
+          result: pass
+
+  - id: a-failing-verifier-is-still-reported-as-failing
+    claim: |
+      An obligation whose verifier genuinely fails is still reported
+      as a failure and is still left unsigned.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/decision-resolves-by-id.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "two decisions in the corpus carry the same id"
+
+assumptions:
+  - id: the-id-is-unique-in-the-corpus
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      No two decisions in decisions/ carry the same id.
+    consequence_if_false: |
+      The scan keeps the FIRST file it finds for an id, so one of the
+      two would be verified against the other's content. The census
+      counts the subjects the corpus has, so a duplicate id would
+      show up there as a subject count that does not match the file
+      count.

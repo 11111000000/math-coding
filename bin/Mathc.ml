@@ -4346,10 +4346,63 @@ let[@warning "-32"] run_one_verifier_memoized ~project_root ~sandbox_mode
       Hashtbl.replace verifier_result_cache key o;
       o
 
+(* The file that holds a given decision id.
+ *
+ * WHY THIS IS NOT A CONCATENATION.
+ *
+ * The obvious implementation - the id plus ".yaml" - is wrong for a
+ * corpus that does not guarantee the file name matches the id, and
+ * it fails SILENTLY: the file is not there, the parse fails, and the
+ * obligation is reported as `fail`. Measured on this corpus on
+ * 2026-10-25: SIXTEEN decisions carry an id that differs from their
+ * file name (`candidate-tree-resolves-to-a-commit` lives in
+ * `candidate-tree-resolves-to-a-commit-2026-10.yaml`, and so on),
+ * and 69 of the 110 obligations the re-signing refused to sign were
+ * failing for exactly this reason - the kernel could not find the
+ * decision it was asked about.
+ *
+ * The file name is not load-bearing. The corpus is enumerated by
+ * SCANNING the decisions directory (see `list_decision_files`), and
+ * the id inside the file is the identity. So the resolution is a
+ * scan too, and the answer does not depend on how a file happens to
+ * be named.
+ *
+ * The index is memoised per process because the resolution happens
+ * once per obligation, and the corpus is read once per resolution
+ * otherwise: 882 obligations over 245 files would re-read the whole
+ * directory 882 times.
+ *)
+let[@warning "-32"] decision_id_index : (string, (string, string) Hashtbl.t) Hashtbl.t =
+  Hashtbl.create 4
+
+let[@warning "-32"] decision_path_for_id ~root ~decision_id =
+  let dir = Path_config.decisions_dir_at ~root () in
+  let index =
+    match Hashtbl.find_opt decision_id_index dir with
+    | Some i -> i
+    | None ->
+        let i = Hashtbl.create 256 in
+        List.iter
+          (fun path ->
+            match parse_file path with
+            | Error _ -> ()
+            | Ok (Jsonl.Object ps) -> (
+                match Schema.take_string ps "id" with
+                | Some id when id <> "" ->
+                    if not (Hashtbl.mem i id) then Hashtbl.replace i id path
+                | _ -> ())
+            | Ok _ -> ())
+          (Re_evaluation.list_decision_files root);
+        Hashtbl.replace decision_id_index dir i;
+        i
+  in
+  match Hashtbl.find_opt index decision_id with
+  | Some path -> path
+  | None -> Filename.concat dir (decision_id ^ ".yaml")
+
 let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
     ~obligation_id : verify_outcome =
-  let dir = Path_config.decisions_dir_at ~root () in
-  let path = Filename.concat dir (decision_id ^ ".yaml") in
+  let path = decision_path_for_id ~root ~decision_id in
   match parse_file path with
   | Error _ -> Fail
   | Ok v -> (
