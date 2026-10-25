@@ -4,15 +4,10 @@ id: plan-2026-10-distro-friction
 revision: 1
 state: active
 mode: standard
-change_kind: bugfix
+change_kind: editorial
 
-<<<<<<< HEAD
-body_sha: "sha256:51e3c7530afebc61777d83888b38019158aa6d4423d6a3f988467220e17c1394"
-yaml_sha: "sha256:51e3c7530afebc61777d83888b38019158aa6d4423d6a3f988467220e17c1394"
-=======
-body_sha: "sha256:51e3c7530afebc61777d83888b38019158aa6d4423d6a3f988467220e17c1394"
-yaml_sha: "sha256:51e3c7530afebc61777d83888b38019158aa6d4423d6a3f988467220e17c1394"
->>>>>>> feat/classify-the-remaining-failures
+body_sha: "sha256:9210e269814493888cc0c83aad366cb0c010c583319d9a6ae8367ed89308e932"
+yaml_sha: "sha256:9210e269814493888cc0c83aad366cb0c010c583319d9a6ae8367ed89308e932"
 
 axiom_link:
   - A0

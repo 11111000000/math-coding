@@ -4,13 +4,8 @@ id: d5-body-vs-wrapper-canonical-2026-10
 revision: 1
 state: active
 mode: standard
-<<<<<<< HEAD
-body_sha: "sha256:2235a9d3a184f4bc901fb3cd62ce8876a9a3ee232f63201aa72d2d0c4c480f9f"
-yaml_sha: "sha256:2235a9d3a184f4bc901fb3cd62ce8876a9a3ee232f63201aa72d2d0c4c480f9f"
-=======
-body_sha: "sha256:b9b5c04f0b948becce49d01dfad503357fc457326914c9a6f251594007584643"
-yaml_sha: "sha256:b9b5c04f0b948becce49d01dfad503357fc457326914c9a6f251594007584643"
->>>>>>> feat/classify-the-remaining-failures
+body_sha: "sha256:f8da53260fe8c25243608cc508a7623d5c79a22fb73590bd993cc7973b0248fb"
+yaml_sha: "sha256:f8da53260fe8c25243608cc508a7623d5c79a22fb73590bd993cc7973b0248fb"
 axiom_link:
   - A0
   - A3
