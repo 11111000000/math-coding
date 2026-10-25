@@ -149,12 +149,23 @@ if [ "${1:-}" = "--measure" ]; then
 else
   dest="attestations"
 fi
+# The sweep's own stderr is where "NOT signing ..." lives, and it is
+# the ONLY forensics for which verifier failed. The temp dir is
+# deleted on exit, so --keep-log copies it out.
+KEEP_LOG=""
+for a in "$@"; do
+  [ "$a" = "--keep-log" ] && KEEP_LOG=1
+done
 
 rc=0
 timeout 3600 "$BIN" attest-batch --manifest="$manifest" --out="$dest" \
      --run-per-obligation --skip-failing >"$work/sweep.log" 2>&1 || rc=$?
 sweep_e=$(date +%s)
 
+if [ -n "$KEEP_LOG" ]; then
+  cp "$work/sweep.log" ./sign-store-sweep.log 2>/dev/null || true
+  echo "sign-store: the sweep log is in ./sign-store-sweep.log"
+fi
 signed=$(find "$dest" -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
 not_signed=$(grep -c 'NOT signing' "$work/sweep.log" 2>/dev/null || true)
 echo "sign-store: sweep took $((sweep_e - sweep_s))s, $signed attestation(s) written, ${not_signed:-0} obligation(s) left unsigned because their verifier failed."
@@ -171,16 +182,21 @@ work = sys.argv[1]
 owner = {}
 for p in glob.glob('decisions/*.yaml'):
     t = open(p).read()
-    m = re.search(r'^id:\s*(\S+)', t, re.M)
+    m = re.search(r'^id:[ \t]*(\S+)', t, re.M)
     if not m:
         continue
     dec = m.group(1)
-    om = re.search(r'^obligations:\s*$(.*?)(?=^\S|\Z)', t, re.M | re.S)
+    om = re.search(r'^obligations:[ \t]*\r?\n(.*?)(?=^\S|\Z)', t, re.M | re.S)
     if not om:
         continue
-    for blk in re.split(r'^\s+-\s+id:\s*', om.group(1), flags=re.M)[1:]:
+    # The parse is deliberately NARROW, and it must stay narrow:
+    # `\s` matches a newline, so `^\s+-\s+id:` would split on a
+    # nested `- id:` and on a blank line, and the obligation a
+    # failure belongs to would be attributed to the wrong verifier.
+    # The census's own parse uses [ \t] for the same reason.
+    for blk in re.split(r'^[ \t]+-[ \t]+id:[ \t]*', om.group(1), flags=re.M)[1:]:
         o = blk.split()[0]
-        vs = re.findall(r'^\s+-\s+verifier:\s*(.+?)\s*$', blk, re.M)
+        vs = re.findall(r'^[ \t]+-[ \t]+verifier:[ \t]*(.+?)[ \t]*$', blk, re.M)
         if vs:
             owner[(dec, o)] = vs[0]
 counts = collections.Counter()
