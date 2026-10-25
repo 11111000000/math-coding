@@ -106,7 +106,26 @@ waiver, and exits 0:
   $ rm -rf "$tmp"
 
 Scenario 2 — live self-check: no pass subject carries a cause, and every
-open-with-waiver subject names an unexpired waiver:
+open-with-waiver subject names an unexpired waiver.
+
+NOTE ON `waived_subjects`. This used to be asserted to be 0, and it
+was 0 for a reason that had nothing to do with waivers: a `manual-`
+declaration was recorded as `pass` (the kernel laundered a
+declaration it could not execute into a check it never ran), so the
+subjects whose obligations are all declarations showed green, and
+nothing was ever waived.
+
+That was the lie. A `manual-` declaration is now recorded as
+review/inconclusive (decisions/honest-attestation-emission-2026-10),
+so the decisions whose obligations are ALL declarations have no
+passing attestation, and the waiver that covers them applies - which
+is what a waiver is for. `waived_subjects` is therefore a COMPOSITION
+claim about the corpus, not a coherence property, and the coherence
+property is the one beside it: every open-with-waiver subject names
+an unexpired waiver covering at least one obligation
+(`waived_without_unexpired_waiver`), and every one of them names a
+waiver at all (`waived_naming_a_waiver`). The count is reported, not
+asserted to be zero.
 
   $ cd "$DUNE_SOURCEROOT"
   $ cat > coherence.jq <<'JQ'
@@ -115,9 +134,10 @@ open-with-waiver subject names an unexpired waiver:
   >   pass_with_causes: ([.subjects[] | select(.verdict == "pass") | select((.causes | length) > 0 or (.remedies | length) > 0)] | length),
   >   pass_naming_a_waiver: ([.subjects[] | select(.verdict == "pass") | select((.waivers | length) > 0)] | length),
   >   waived_without_unexpired_waiver: ([.subjects[] | select(.verdict == "open-with-waiver") | select((.waivers | length) == 0 or ([.waivers[] | select(.expires_at <= $n or (.covers | length) == 0)] | length) > 0)] | length),
-  >   waived_subjects: ([.subjects[] | select(.verdict == "open-with-waiver")] | length)
+  >   waived_subjects: ([.subjects[] | select(.verdict == "open-with-waiver")] | length),
+  >   waived_naming_a_waiver: ([.subjects[] | select(.verdict == "open-with-waiver") | select((.waivers | length) > 0)] | length)
   > }
   > JQ
   $ mathc self-check | jq -c -f coherence.jq
-  {"pass_with_causes":0,"pass_naming_a_waiver":0,"waived_without_unexpired_waiver":0,"waived_subjects":0}
+  {"pass_with_causes":0,"pass_naming_a_waiver":0,"waived_without_unexpired_waiver":0,"waived_subjects":7,"waived_naming_a_waiver":7}
   $ rm -f coherence.jq
