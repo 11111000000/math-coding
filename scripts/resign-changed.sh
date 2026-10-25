@@ -55,7 +55,19 @@ if ! git rev-parse --verify --quiet "$BASE" >/dev/null 2>&1; then
   exit 2
 fi
 
-changed="$(git diff --name-only "$BASE" "$HEAD" 2>/dev/null | grep -v '^$' || true)"
+# The attestation store is EXCLUDED from the materials digest (the
+# store is evidence ABOUT the scope, not part of it, or an
+# attestation would be stale the moment it is committed). A change
+# to the store therefore cannot invalidate anything - so it must not
+# be counted as a changed file either. Without this filter, a range
+# that contains an earlier re-signing reports every attestation file
+# as changed, and the affected set becomes the whole corpus: the
+# narrow tool silently becomes the slow one.
+changed="$(
+  git diff --name-only "$BASE" "$HEAD" 2>/dev/null \
+    | grep -v '^$' \
+    | grep -vE '^(attestations/|\.math-coding/attestations/)' || true
+)"
 if [ -z "$changed" ]; then
   echo "resign-changed: no changed files between $BASE and $HEAD — nothing to re-sign"
   exit 0
