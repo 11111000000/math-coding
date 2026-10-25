@@ -4304,6 +4304,50 @@ let[@warning "-32"] collect_obligations v =
       | None -> [])
   | _ -> []
 
+(* A per-process memo of verifier results.
+ *
+ * WHY. Measured on this corpus on 2026-10-25: 1482 verifier strings
+ * across 242 decisions, of which only 906 are DISTINCT - 38% of the
+ * work was being done twice. The repeats are not cheap: the same
+ * `tests/repo_structure.ml` verifier appears 18 times and costs
+ * 7.2 s each (it runs `dune fmt --preview` over the whole tree), and
+ * `dune build` appears 24 times. A full re-signing of the corpus
+ * spent 574 s, and 87% of it went into the ten slowest decisions -
+ * almost all of them repetitions of a handful of expensive checks.
+ *
+ * The result of a verifier depends on the verifier string, the tree
+ * and the sandbox mode, and on nothing else: the same string asked
+ * the same question about the same tree gives the same answer,
+ * whoever asks it. Within one signing the tree is fixed, so the
+ * answer can be remembered.
+ *
+ * The cache is what makes a single-process sweep honest as well as
+ * fast. The corpus's signing was historically non-reproducible -
+ * 28, then 54, then 73 failing subjects across three runs of the
+ * same corpus on the same kernel - and the cause was the verifiers
+ * seeing DIFFERENT states of the shared build tree: a dune-based
+ * verifier ran against a tree another verifier had just rebuilt. A
+ * memo removes the second run of a check, and `sign-store.sh` warms
+ * the tree before the sweep, so the first run already sees the state
+ * every later check will see.
+ *
+ * The key includes the sandbox mode: the same verifier string means
+ * different things in strict mode and in the default mode. *)
+let[@warning "-32"] verifier_result_cache : (string, verify_outcome) Hashtbl.t =
+  Hashtbl.create 512
+
+let[@warning "-32"] run_one_verifier_memoized ~project_root ~sandbox_mode
+    ~verifier_string =
+  let key = sandbox_mode ^ "\000" ^ verifier_string in
+  match Hashtbl.find_opt verifier_result_cache key with
+  | Some o -> o
+  | None ->
+      let o =
+        run_one_verifier ~project_root ~sandbox_mode ~verifier_string
+      in
+      Hashtbl.replace verifier_result_cache key o;
+      o
+
 let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
     ~obligation_id : verify_outcome =
   let dir = Path_config.decisions_dir_at ~root () in
@@ -4370,8 +4414,8 @@ let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
             let outcomes =
               List.map
                 (fun s ->
-                  run_one_verifier ~project_root:root ~sandbox_mode
-                    ~verifier_string:s)
+                  run_one_verifier_memoized ~project_root:root
+                    ~sandbox_mode ~verifier_string:s)
                 planned
             in
             aggregate_verifier_outcomes outcomes)

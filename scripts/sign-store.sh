@@ -1,38 +1,46 @@
 #!/usr/bin/env bash
-# scripts/sign-store.sh — re-sign the attestation store, one decision per
-# process.
+# scripts/sign-store.sh — re-sign the attestation store.
 #
-# WHY ONE DECISION PER PROCESS.
+# WHAT IT DOES. For every decision with obligations:
+#   1. warm the build tree, so every verifier sees the same state;
+#   2. build one manifest of every (decision, obligation) pair;
+#   3. run `mathc attest-batch --manifest=... --run-per-obligation`
+#      ONCE, which EXECUTES each obligation's own verifier;
+#   4. an obligation whose verifier FAILED is left unsigned - a
+#      failed check must not be recorded as a pass, and the legacy
+#      signature is not silently replaced by a failure.
 #
-# Signing the whole corpus in one process is NOT reproducible. Measured
-# on 2026-10-24, three runs of the same corpus, the same kernel:
+# WHY ONE PROCESS.
 #
-#     28 failing subjects
-#     54 failing subjects
-#     73 failing subjects
+# Measured on 2026-10-25, a full re-signing took 574 s. The cost was
+# NOT the checks: the median decision took 266 ms and the p90 took
+# 2 s, but TEN decisions took between 2.4 s and 84.6 s, and those ten
+# accounted for 87% of the wall clock. They are not ten slow checks;
+# they are the SAME expensive checks repeated:
 #
-# The corpus has ~870 obligations and about a third of them are
-# dune-based. Every one of those runs `dune` in the SAME build tree,
-# with the SAME cram cache, under the SAME dune RPC daemon. They
-# interfere with one another: the build lock, the cache, and the
-# daemon's state are shared, and a verifier that ran a minute earlier
-# changes what a verifier running now sees.
+#     1482 verifier strings across 242 decisions
+#     906 of them distinct  -> 38% of the work was done twice
 #
-# Signing ONE decision per process removes the sharing: each
-# decision's verifiers start from the same known state, and the
-# result is reproducible. Measured: two runs of the same decision,
-# byte-identical verdicts, for every decision sampled.
+#     18x  tests/repo_structure.ml   7.2 s each = 130 s
+#     24x  dune build
+#     17x  tests/cli/install.t
 #
-# A measurement that changes when nothing changed is not a
-# measurement. It is a number, and the number was the point.
+# The kernel now memoises verifier results within a process (see
+# `verifier_result_cache` in bin/Mathc.ml), so one process over the
+# whole corpus does each distinct check once. Running 242 processes
+# gives every process its own empty cache, which is why the old
+# shape was slow.
 #
-# WHAT IT DOES. For each decision with obligations:
-#   1. build a one-decision manifest;
-#   2. run `mathc attest-batch --manifest=... --run-per-obligation`
-#      in its own process;
-#   3. an obligation whose verifier FAILED is left unsigned -
-#      a failed check must not be recorded as a pass, and the
-#      legacy signature is not silently replaced by a failure.
+# WHY THE TREE IS WARMED FIRST.
+#
+# The corpus's signing was historically non-reproducible: 28, then
+# 54, then 73 failing subjects across three runs of the same corpus
+# on the same kernel. The cause was the verifiers seeing DIFFERENT
+# states of the shared build tree - a dune-based verifier ran against
+# a tree another verifier had just rebuilt, so the same check could
+# pass on one decision and fail on another. Warming the tree once,
+# before anything runs, makes the first check see the state every
+# later check will see. The memo then keeps that state.
 #
 # The tree must be CLEAN: the materials digest is computed at HEAD
 # and the verifier runs against the working tree, and mathc refuses
@@ -41,6 +49,7 @@
 # Usage:
 #   scripts/sign-store.sh              # all decisions
 #   scripts/sign-store.sh <decision>   # one decision
+#   scripts/sign-store.sh --measure    # time it, write nothing
 
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -75,10 +84,22 @@ fi
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-# One manifest per decision.
+# --- 1. warm the tree ------------------------------------------------------
+# Every dune-based verifier then sees the same build state, which is
+# what makes the sweep reproducible. Without this, the first verifier
+# to run pays for the build and the rest see a different tree.
+warm_s=$(date +%s)
+if command -v dune >/dev/null 2>&1; then
+  dune build --root . @all >/dev/null 2>&1
+fi
+warm_e=$(date +%s)
+echo "sign-store: tree warm in $((warm_e - warm_s))s"
+
+# --- 2. one manifest for every (decision, obligation) ----------------------
 python3 - "$work" <<'PY'
-import glob, os, re, sys
+import glob, re, sys
 out = sys.argv[1]
+rows = 0
 for p in sorted(glob.glob('decisions/*.yaml')):
     if '/waivers/' in p:
         continue
@@ -91,29 +112,55 @@ for p in sorted(glob.glob('decisions/*.yaml')):
     obl = re.findall(r'^\s+-\s+id:\s*(\S+)', om.group(1), re.M)
     if not obl:
         continue
-    safe = re.sub(r'[^A-Za-z0-9_.-]', '_', dec)
-    with open(os.path.join(out, safe + '.tsv'), 'w') as fh:
+    with open(os.path.join(out, 'all.tsv'), 'a') as fh:
         for o in obl:
             fh.write('%s\t%s\ttest\tci:kernel:resign\tpass\n' % (dec, o))
-    with open(os.path.join(out, safe + '.id'), 'w') as fh:
-        fh.write(dec)
+            rows += 1
+print("sign-store: %d obligation(s) in the manifest" % rows)
 PY
 
-only="${1:-}"
-signed=0
-skipped=0
-for m in "$work"/*.tsv; do
-  [ -e "$m" ] || continue
-  dec="$(cat "${m%.tsv}.id")"
-  if [ -n "$only" ] && [ "$dec" != "$only" ]; then
-    continue
-  fi
-  if ! timeout 900 "$BIN" attest-batch --manifest="$m" --out=attestations \
-       --run-per-obligation --skip-failing >/dev/null 2>&1; then
-    skipped=$((skipped + 1))
-    echo "sign-store: $dec — not signed (a verifier failed, or the decision has no executable check)" >&2
-  fi
-  signed=$((signed + 1))
-done
+if [ ! -s "$work/all.tsv" ]; then
+  echo "sign-store: the manifest is empty - nothing to sign"
+  exit 0
+fi
 
-echo "sign-store: $signed decision(s) processed, $skipped not signed."
+# --- 3. sign ---------------------------------------------------------------
+only=""
+[ $# -ge 1 ] && [ "$1" != "--measure" ] && only="$1"
+
+sweep_s=$(date +%s)
+if [ -n "$only" ]; then
+  python3 - "$work/all.tsv" "$work/one.tsv" "$only" <<'PY'
+import sys
+src, dst, want = sys.argv[1], sys.argv[2], sys.argv[3]
+with open(src) as fh, open(dst, 'w') as out:
+    for line in fh:
+        if line.split('\t')[0] == want:
+            out.write(line)
+PY
+  manifest="$work/one.tsv"
+else
+  manifest="$work/all.tsv"
+fi
+
+if [ "${1:-}" = "--measure" ]; then
+  dest="$work/measure"
+  mkdir -p "$dest"
+else
+  dest="attestations"
+fi
+
+rc=0
+timeout 3600 "$BIN" attest-batch --manifest="$manifest" --out="$dest" \
+     --run-per-obligation --skip-failing >"$work/sweep.log" 2>&1 || rc=$?
+sweep_e=$(date +%s)
+
+signed=$(find "$dest" -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
+not_signed=$(grep -c 'NOT signing' "$work/sweep.log" 2>/dev/null || true)
+echo "sign-store: sweep took $((sweep_e - sweep_s))s, $signed attestation(s) written, ${not_signed:-0} obligation(s) left unsigned because their verifier failed."
+
+if [ "$rc" -ne 0 ]; then
+  echo "sign-store: the sweep exited $rc; the last lines were:" >&2
+  tail -5 "$work/sweep.log" >&2
+  exit "$rc"
+fi

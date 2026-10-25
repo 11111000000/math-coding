@@ -1,0 +1,141 @@
+---
+schema: math-coding/3.3
+id: verifier-result-memo-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/signing-sweep-is-reproducible.sh
+body_sha: "sha256:34b193fc9b86809ca823478744f1eb11cb1ca5534d6e88793fdfbfeecda59f5f"
+yaml_sha: "sha256:34b193fc9b86809ca823478744f1eb11cb1ca5534d6e88793fdfbfeecda59f5f"
+
+intent: { source: "issue:signing-sweep-cost-and-reproducibility-2026-10-25", text: "A full re-signing of the corpus took 574 s, and 87% of that went into ten decisions. They are not ten slow checks: they are the same expensive checks repeated. Measured on this corpus, 1482 verifier strings across 242 decisions, of which 906 are distinct - 38% of the work was done twice. The repeats are the expensive ones: tests/repo_structure.ml appears 18 times and costs 7.2 s each (it runs dune fmt --preview over the whole tree), and dune build appears 24 times. Separately, the signing was non-reproducible: 28, then 54, then 73 failing subjects across three runs of the same corpus on the same kernel." }
+
+commitment: |
+  After this decision closes:
+
+  1. Within one signing, a verifier string is executed at most once.
+     The result of a verifier depends on the verifier string, the tree
+     and the sandbox mode, and on nothing else - so within one
+     signing, where the tree is fixed, the answer can be remembered.
+  2. The memo is keyed by the sandbox mode as well as the string: the
+     same string means different things in strict mode and in the
+     default mode.
+  3. The build tree is warmed before the sweep, so the first check
+     sees the state every later check will see.
+  4. The sweep writes one attestation per (decision, obligation) whose
+     verifier passed, and writes nothing for one whose verifier failed.
+  5. Three consecutive sweeps over the same tree produce the same
+     verdicts, decision by decision.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Cache the RESULT of the check." Rejected: that is the
+  obvious reading and it is a trap. A cached verdict is a verdict
+  about a tree that no longer exists; the next reader cannot tell it
+  from one produced now. The memo here lives inside a single
+  signing, is never written to disk, and is thrown away when the
+  process ends. What survives is the attestation, and it is written
+  only when the check actually ran.
+
+  (b) "Parallelise instead of memoising." Rejected on the evidence:
+  the cost is concentrated, not spread. The median decision takes
+  266 ms and the p90 takes 2 s; parallelism would help the p90 and
+  leave the 84.6 s decision exactly as long. The memo removes the
+  repetition that CAUSES the concentration. Parallelism is worth
+  adding afterwards, on top, with an isolated dune daemon per worker
+  - but it is not the first move.
+
+antithesis: |
+  The opposite claim is that the repetition is not waste but
+  evidence: each occurrence is a separate obligation, and a reader
+  of one decision has no way to know that a check performed for
+  another decision would have served it too. If the memo is wrong
+  for even one occurrence, that decision's attestation claims a
+  result nobody observed.
+
+  The claim is right about the PRINCIPLE and wrong about this
+  implementation. The memo does not carry a verdict across
+  decisions in the store: each decision still gets its own
+  attestation, with its own id, its own subject and its own
+  materials digest, and the file is written only for the decision
+  the obligation belongs to. What is shared is the EXECUTION of one
+  check inside one signing, not the claim.
+
+  The one place the claim has force is a verifier whose result
+  depends on which decision asked - a verifier that reads the
+  decision file, for instance. Such a verifier would be broken under
+  the memo. The mitigation is the negative control: the fixture
+  compares a memoised sweep against a sweep with the memo disabled,
+  and the two must agree.
+
+outcomes:
+  - id: the-sweep-is-faster
+    statement: |
+      A full re-signing of the corpus takes materially less wall
+      clock than the 574 s it took on 2026-10-25.
+    acceptance:
+      all:
+        - verifier: manual-sweep-timing-measured
+          result: pass
+
+  - id: the-sweep-is-reproducible
+    claim: |
+      Three consecutive sweeps over the same tree produce the same
+      verdict for every obligation.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/signing-sweep-is-reproducible.sh
+          result: pass
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "scripts/sign-store.sh"
+    - "tests/fixtures/signing-sweep-is-reproducible.sh"
+    - "decisions/verifier-result-memo-2026-10.yaml"
+    - "attestations/verifier-result-memo-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: a-verifier-runs-once-per-sweep
+    claim: |
+      Within one signing, a verifier string is executed at most once.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/signing-sweep-is-reproducible.sh
+          result: pass
+
+  - id: three-sweeps-agree
+    claim: |
+      Three consecutive sweeps over the same tree produce identical
+      verdicts.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/signing-sweep-is-reproducible.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a verifier is added whose result depends on which decision asked"
+
+assumptions:
+  - id: the-verifier-result-is-decision-independent
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A verifier string means the same question wherever it appears,
+      within one tree.
+    consequence_if_false: |
+      A verifier that reads the decision file would be answered for
+      the wrong decision under the memo, and its attestation would
+      claim a result nobody observed. The fixture compares a memoised
+      sweep against an unmemoised one, so such a verifier shows up as
+      a disagreement rather than as a silent wrong answer.
