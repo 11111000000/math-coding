@@ -4,10 +4,10 @@ id: plan-2026-10-distro-friction
 revision: 1
 state: active
 mode: standard
-change_kind: editorial
+change_kind: bugfix
 
-body_sha: "sha256:9210e269814493888cc0c83aad366cb0c010c583319d9a6ae8367ed89308e932"
-yaml_sha: "sha256:9210e269814493888cc0c83aad366cb0c010c583319d9a6ae8367ed89308e932"
+body_sha: "sha256:5900ba7b975d5a1a2b578e7609c856bd28df2ee20f82f19a7a2ef27e545a09c0"
+yaml_sha: "sha256:5900ba7b975d5a1a2b578e7609c856bd28df2ee20f82f19a7a2ef27e545a09c0"
 
 axiom_link:
   - A0
