@@ -1,0 +1,143 @@
+---
+schema: math-coding/3.3
+id: honest-attestation-emission-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/executed-evidence-census.sh
+body_sha: "sha256:4ee0d80e51719907465131d3037641bc70cd960e42b6521cdd9e5313c29441d2"
+yaml_sha: "sha256:4ee0d80e51719907465131d3037641bc70cd960e42b6521cdd9e5313c29441d2"
+
+intent: { source: "issue:census-caught-dishonest-re-sign-2026-10-25", text: "The re-signing of the store wrote three kinds of attestation the corpus's own census had already declared dishonest. Measured after a re-sign over a corpus that had moved: 366 passes for non-executable verifiers (a manual- declaration recorded as a pass), 1216 runtime attestations that name no run (kind test/build with no producer.run anchor), and 333 orphan attestations (evidence about subjects the corpus no longer has). The census, tests/fixtures/executed-evidence-census.sh, had pinned ceilings of 364, 886 and 6 respectively, and it went red. The system worked: the guard caught the liar, and the liar was the tool the guard was supposed to certify." }
+
+commitment: |
+  After this decision closes:
+
+  1. A `manual-` acceptance item is a DECLARATION, not a check. The
+     kernel cannot know a human reviewed anything, so an attestation
+     for such an obligation carries `result: inconclusive` and
+     `kind_: review` - the shape the schema reserves for a human
+     declaration without a runtime anchor. It never carries
+     `result: pass`.
+  2. A runtime attestation (kind test/build/analysis/observation)
+     names the run that produced it in `producer.run`. The anchor for
+     `--run-per-obligation` is the mode itself, because the run IS the
+     per-obligation verifier execution.
+  3. The re-sign prunes the store: an attestation whose subject is
+     not in the corpus is deleted. Re-signing is a replace, not an
+     append.
+  4. The census goes green: unanchored runtime attestations,
+     passes for non-executable verifiers, and orphans are each at or
+     below their ceiling.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "A manual declaration IS a pass, because the decision author
+  declared it and the schema trusts the author." Rejected: that is
+  exactly the disease. The re-sign is a MACHINE; it cannot know that
+  the human who wrote `manual-` actually looked. Recording the
+  machine's re-read as `pass` launders a declaration into a check, and
+  the store then shows 366 green subjects nobody verified. A
+  declaration is honest when it says `review` and `inconclusive`.
+
+  (b) "Pruning orphans destroys provenance." Rejected on the
+  evidence: the orphans name subjects the corpus does not have. They
+  are not provenance; they are evidence about nothing. The legacy
+  attestations that ARE provenance name subjects that still exist,
+  and the prune leaves them untouched because their subject is still
+  in the corpus.
+
+antithesis: |
+  The opposite claim is that the re-sign should not exist at all:
+  its whole job is to re-certify a corpus, and any re-certification
+  that a human has not performed is itself a declaration, so the
+  re-sign should record `review`/`inconclusive` for EVERYTHING and
+  the census should pin zero runtime attestations.
+
+  The claim has force and is wrong in one precise place: the re-sign
+  EXECUTES the executable verifiers (`--run-per-obligation`), so for
+  those obligations the attestation names a run that genuinely
+  happened. The honest split is exactly what the change makes:
+  executable verifiers get a runtime kind with a run anchor, and
+  manual declarations get `review`/`inconclusive`. Collapsing both to
+  `review` would erase the one honest runtime claim the re-sign does
+  make.
+
+outcomes:
+  - id: the-re-sign-is-honest
+    statement: |
+      A re-sign writes `review`/`inconclusive` for manual declarations,
+      `producer.run` for runtime attestations, and prunes orphans.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/executed-evidence-census.sh
+          result: pass
+
+  - id: the-census-is-green
+    claim: |
+      The census's three ceilings hold after a re-sign.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/executed-evidence-census.sh
+          result: pass
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/attestations/batch.ml"
+    - "scripts/sign-store.sh"
+    - "tests/fixtures/executed-evidence-census.sh"
+    - "decisions/honest-attestation-emission-2026-10.yaml"
+    - "attestations/honest-attestation-emission-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: manual-declarations-are-not-passes
+    claim: |
+      An attestation for a `manual-` obligation carries
+      `result: inconclusive` and `kind_: review`.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/executed-evidence-census.sh
+          result: pass
+
+  - id: runtime-attestations-name-their-run
+    claim: |
+      A runtime attestation produced by the re-sign carries a
+      `producer.run` anchor.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/executed-evidence-census.sh
+          result: pass
+
+  - id: the-re-sign-prunes-orphans
+    claim: |
+      A re-sign deletes attestations whose subject is not in the corpus.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/executed-evidence-census.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "the re-sign records pass for an obligation with no executable verifier"
+
+assumptions:
+  - id: the-re-sign-is-the-only-machine-writer
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The store is written by the re-sign and by human attestations;
+      no other machine writes runtime attestations.
+    consequence_if_false: |
+      If another machine writes runtime attestations without a run
+      anchor, the census would still catch it, because the anchor
+      check is on the store, not on the writer.

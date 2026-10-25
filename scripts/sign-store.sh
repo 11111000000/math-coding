@@ -198,3 +198,33 @@ if [ "$rc" -ne 0 ]; then
   tail -5 "$work/sweep.log" >&2
   exit "$rc"
 fi
+
+# --- 4. prune orphans ------------------------------------------------------
+# A re-sign that only WRITES accumulates: an attestation for an
+# obligation that was renamed or removed stays on disk forever, and
+# the store fills with evidence about subjects the corpus does not
+# have. The census (tests/fixtures/executed-evidence-census.sh) calls
+# them orphans, and it was right: measured 333 after a re-sign over a
+# corpus that had moved. Delete every attestation whose subject is
+# not in the current manifest.
+if [ "${1:-}" != "--measure" ]; then
+  python3 - "$work/all.tsv" <<'PYEOF'
+import glob, json, os, sys
+current = set()
+for line in open(sys.argv[1], encoding="utf-8"):
+    p = line.rstrip("\n").split("\t")
+    if len(p) >= 2:
+        current.add((p[0], p[1]))
+removed = 0
+for f in glob.glob("attestations/*.json"):
+    try:
+        d = json.load(open(f, encoding="utf-8"))
+    except Exception:
+        continue
+    s = d.get("subject") or {}
+    if (s.get("decision"), s.get("obligation")) not in current:
+        os.remove(f)
+        removed += 1
+print("sign-store: pruned %d orphan attestation(s)" % removed)
+PYEOF
+fi

@@ -5043,21 +5043,41 @@ let[@warning "-32"] do_attest_batch () =
           let emit_one row =
             let decision = row.Batch.decision in
             let obligation = row.obligation in
-            let kind_ = row.kind_ in
             let producer = row.producer in
-            let result =
+            (* The result is the verdict the obligation's own verifier
+               produced, and the kind and the run anchor follow it.
+               A `manual-` declaration is NOT a pass: the kernel has
+               no way to know a human checked anything, so it records
+               the declaration as `inconclusive` with a `review` kind,
+               which is what the schema reserves for "a human
+               declaration without a runtime anchor"
+               (MC-MATERIALS-DIGEST-EMPTY's exemption). Recording a
+               declaration as `pass` is how the store filled with
+               passes nobody checked - measured: 366 of them, caught
+               by tests/fixtures/executed-evidence-census.sh.
+
+               A RUNTIME attestation (kind test/build/...) must name
+               the run that produced it; `producer.run` is that anchor
+               (decisions/attestation-producer-vocab-2026-10). The
+               anchor for --run-per-obligation is the mode itself,
+               because the run IS the per-obligation verifier
+               execution. *)
+            let kind_, result, run =
               if !run_per_obligation then
                 match
                   verdict_of_obligation ~root ~sandbox_mode:"none"
                     ~decision_id:decision ~obligation_id:obligation
                 with
-                | Pass -> "pass"
-                | Fail -> "fail"
-                | Skipped | Setup_fail -> "inconclusive"
-                | Manual_decl -> "pass"
-                | Timeout -> "fail"
-              else if String.trim !run_cmd = "" then row.result
-              else run_result
+                | Pass -> (row.kind_, "pass", "run-per-obligation")
+                | Fail -> (row.kind_, "fail", "run-per-obligation")
+                | Skipped | Setup_fail ->
+                    (row.kind_, "inconclusive", "run-per-obligation")
+                | Manual_decl -> ("review", "inconclusive", "")
+                | Timeout -> (row.kind_, "fail", "run-per-obligation")
+              else
+                ( row.kind_,
+                  (if String.trim !run_cmd = "" then row.result else run_result),
+                  (if String.trim !run_cmd = "" then "" else !run_cmd) )
             in
             if !skip_failing && result = "fail" then
               Printf.eprintf
@@ -5068,8 +5088,9 @@ let[@warning "-32"] do_attest_batch () =
                 decision obligation
             else begin
               let body =
-                Batch.make_attestation ~decision ~obligation ~kind_ ~producer
-                  ~result ~issued_at ~candidate_tree ~evidence_digest:run_digest
+                Batch.make_attestation ~producer_run:run ~decision ~obligation
+                  ~kind_ ~producer ~result ~issued_at ~candidate_tree
+                  ~evidence_digest:run_digest
                   ~materials_digest:(scope_digest decision)
               in
               let full = Batch.with_id body in
@@ -5215,24 +5236,27 @@ let[@warning "-32"] do_attest_batch () =
             else Hashtbl.mem scope_map decision_id
           in
           let emit (decision, obligation) =
-            let row_result =
+            let row_kind, row_result, row_run =
               if !run_per_obligation then
                 match
                   verdict_of_obligation ~root ~sandbox_mode:"none"
                     ~decision_id:decision ~obligation_id:obligation
                 with
-                | Pass -> "pass"
-                | Fail -> "fail"
-                | Skipped | Setup_fail -> "inconclusive"
-                | Manual_decl -> "pass"
-                | Timeout -> "fail"
-              else if String.trim !run_cmd = "" then !result
-              else run_result
+                | Pass -> (!kind, "pass", "run-per-obligation")
+                | Fail -> (!kind, "fail", "run-per-obligation")
+                | Skipped | Setup_fail ->
+                    (!kind, "inconclusive", "run-per-obligation")
+                | Manual_decl -> ("review", "inconclusive", "")
+                | Timeout -> (!kind, "fail", "run-per-obligation")
+              else
+                ( !kind,
+                  (if String.trim !run_cmd = "" then !result else run_result),
+                  (if String.trim !run_cmd = "" then "" else !run_cmd) )
             in
             let body =
-              Batch.make_attestation ~decision ~obligation ~kind_:!kind
-                ~producer:!producer ~result:row_result ~issued_at
-                ~candidate_tree ~evidence_digest:run_digest
+              Batch.make_attestation ~producer_run:row_run ~decision ~obligation
+                ~kind_:row_kind ~producer:!producer ~result:row_result
+                ~issued_at ~candidate_tree ~evidence_digest:run_digest
                 ~materials_digest:(scope_digest decision)
             in
             let full = Batch.with_id body in
