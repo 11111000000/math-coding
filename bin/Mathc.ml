@@ -4372,7 +4372,8 @@ let[@warning "-32"] run_one_verifier_memoized ~project_root ~sandbox_mode
  * otherwise: 882 obligations over 245 files would re-read the whole
  * directory 882 times.
  *)
-let[@warning "-32"] decision_id_index : (string, (string, string) Hashtbl.t) Hashtbl.t =
+let[@warning "-32"] decision_id_index :
+    (string, (string, string) Hashtbl.t) Hashtbl.t =
   Hashtbl.create 4
 
 let[@warning "-32"] decision_path_for_id ~root ~decision_id =

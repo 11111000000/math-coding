@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: decision-resolves-by-id-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/decision-resolves-by-id.sh
-body_sha: "sha256:1c28235af68b3cb98ca1af52c1334af36fb6ff7f4b963cc110a28867314700f8"
-yaml_sha: "sha256:1c28235af68b3cb98ca1af52c1334af36fb6ff7f4b963cc110a28867314700f8"
+body_sha: "sha256:56701fd3f69ef7619661f4424d747b68fc4b54e694fdc5c0d871e5f41b3b185d"
+yaml_sha: "sha256:56701fd3f69ef7619661f4424d747b68fc4b54e694fdc5c0d871e5f41b3b185d"
 
 intent: { source: "issue:kernel-resolved-decisions-by-file-name-2026-10-25", text: "The kernel resolved a decision by CONCATENATING its id with .yaml and looking for that file. Sixteen decisions in this corpus carry an id that differs from their file name - candidate-tree-resolves-to-a-commit lives in candidate-tree-resolves-to-a-commit-2026-10.yaml, bootstrap-v3 lives in decision.yaml, and eleven more - so for every one of them the file was not there, the parse failed, and every one of its obligations was reported as failed. Measured on 2026-10-25: 69 of the 110 obligations the re-signing refused to sign were failing for exactly this reason, and no message said so anywhere: the kernel could not find the decision it was asked about, and reported that as a broken check." }
 
@@ -25,6 +25,14 @@ commitment: |
   4. A genuine failure still reports as a failure. The fix resolves
      the decision; it does not make a broken check look like a
      passing one.
+
+  REVISION 2. The file this decision scopes was reformatted by
+  `dune fmt` after the fix was written. The formatting changes the
+  BYTES of bin/Mathc.ml, and the bytes are what the materials digest
+  is computed over - so the decision is amended here, with the
+  reformatted file, rather than the reformatted file being left as a
+  separate kernel change with no decision of its own. The rule did
+  not change; the digest did.
 
 axiom_link:
   - A0
