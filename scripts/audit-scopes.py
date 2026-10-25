@@ -202,13 +202,28 @@ def main():
     files = tracked_files()
 
     # Which decisions cover which file.
+    #
+    # The naive form - every decision against every file - is
+    # O(decisions x files x patterns) and took minutes on this
+    # corpus, which put the tool inside the fixture loop where a
+    # slow measurement is worse than no measurement. The match is
+    # done ONCE per DISTINCT pattern instead of once per
+    # (decision, pattern): the corpus has a few hundred distinct
+    # patterns against 2671 files, and the pattern -> files map is
+    # then inverted to files -> decisions.
     covered = collections.defaultdict(set)  # file -> {decision}
     pattern_count = collections.Counter()  # pattern -> decisions
-    for did, paths in corpus.items():
+    distinct = set()
+    for paths in corpus.values():
         for p in paths:
             pattern_count[p] += 1
-        for f in files:
-            if any(glob_match(p, f) for p in paths):
+            distinct.add(p)
+    pattern_files = {}
+    for p in distinct:
+        pattern_files[p] = [f for f in files if glob_match(p, f)]
+    for did, paths in corpus.items():
+        for p in paths:
+            for f in pattern_files.get(p, ()):
                 covered[f].add(did)
 
     breadth = {f: len(d) for f, d in covered.items()}
