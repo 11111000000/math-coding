@@ -4,8 +4,8 @@ id: site-dropdown-anim-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:a3eabcd1aab9b853be2bcb54562f399092128834fcf5a8509171932a2944b685"
-yaml_sha: "sha256:a3eabcd1aab9b853be2bcb54562f399092128834fcf5a8509171932a2944b685"
+body_sha: "sha256:5867dd8b8c20a7cc421d609dce16052c62ff4b0dc8aa48fe526c5929126e906b"
+yaml_sha: "sha256:5867dd8b8c20a7cc421d609dce16052c62ff4b0dc8aa48fe526c5929126e906b"
 change_kind: implementation
 axiom_link:
   - A0

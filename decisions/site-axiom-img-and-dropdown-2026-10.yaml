@@ -4,8 +4,8 @@ id: site-axiom-img-and-dropdown-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:d46e2441b009662c4f80e0707ba09cf823b9dc10b07ae00ad3d0b5cd5ac445fd"
-yaml_sha: "sha256:d46e2441b009662c4f80e0707ba09cf823b9dc10b07ae00ad3d0b5cd5ac445fd"
+body_sha: "sha256:cd75e9cce042df4c5f8c0f2260e566ae984ab263e6ca165a6c6c628ec414a233"
+yaml_sha: "sha256:cd75e9cce042df4c5f8c0f2260e566ae984ab263e6ca165a6c6c628ec414a233"
 change_kind: implementation
 axiom_link:
   - A0

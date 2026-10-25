@@ -4,8 +4,8 @@ id: mobile-menu-collapse-and-hide-on-scroll-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:09494547e2b0f072cf32997b4bb55fbf52d612a3c42889bb94c616c6b3dd74a3"
-yaml_sha: "sha256:09494547e2b0f072cf32997b4bb55fbf52d612a3c42889bb94c616c6b3dd74a3"
+body_sha: "sha256:be59e80624e41b958fcade66e5852f657c41b9c36dd7355fdaf42e838019f639"
+yaml_sha: "sha256:be59e80624e41b958fcade66e5852f657c41b9c36dd7355fdaf42e838019f639"
 change_kind: implementation
 axiom_link:
   - A0
