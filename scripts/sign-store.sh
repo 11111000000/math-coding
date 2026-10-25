@@ -97,7 +97,7 @@ echo "sign-store: tree warm in $((warm_e - warm_s))s"
 
 # --- 2. one manifest for every (decision, obligation) ----------------------
 python3 - "$work" <<'PY'
-import glob, re, sys
+import glob, os, re, sys
 out = sys.argv[1]
 rows = 0
 for p in sorted(glob.glob('decisions/*.yaml')):
