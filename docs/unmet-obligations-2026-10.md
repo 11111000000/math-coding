@@ -1,21 +1,20 @@
 # Unmet obligations - the 2026-10 re-signing
 
-**30 obligations the re-signing refused to sign.** An unsigned obligation is a GAP, not a pass: the kernel writes no attestation for it, so the corpus claims nothing about it.
+**14 obligations the re-signing refused to sign.** An unsigned obligation is a GAP, not a pass: the kernel writes no attestation for it, so the corpus claims nothing about it.
 
 ## The numbers
 
 | recommendation | obligations |
 | --- | --- |
-| `fix-the-verifier` | 15 |
+| `fix-the-verifier` | 0 |
 | `needs-a-toolchain` | 0 |
 | `declare-it-manual` | 1 |
-| `investigate` | 14 |
-| **total** | **30** |
+| `investigate` | 13 |
+| **total** | **14** |
 
 By class:
 
-- `all-pass-contradiction`: 6
-- `broken`: 23
+- `broken`: 13
 - `not-executable`: 1
 
 ## The method
@@ -34,61 +33,6 @@ The corpus is parsed with a deliberately narrow pattern (`[ \t]` for indentation
 
 ## The obligations
 
-### `audit-0.0.21-fixes/self-check-pass-fixture-covers-all`
-
-- decision file: `decisions/audit-0.0.21-fixes.yaml`
-- verdict: `broken`
-- recommendation: `investigate`
-- why: the verifier compares the COMMITTED fixture `tests/fixtures/self-check-pass/attestations/` against the LIVE obligation enumeration, and the corpus has grown since the fixture was generated: the pairs listed as MISSING below have no fixture file. The verifier is right; the fixture is stale
-
-Verifiers named by the obligation:
-
-- `scripts/check-self-check-fixture-coverage.sh` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `/home/az/Projects/math-coding/scripts/check-self-check-fixture-coverage.sh`:
-  |   MISSING   decision-resolves-by-id-2026-10-a-failing-verifier-is-still-reported-as-failing.json
-  |   MISSING   decision-resolves-by-id-2026-10-the-id-resolves-regardless-of-the-file-name.json
-  |   MISSING   honest-attestation-emission-2026-10-manual-declarations-are-not-passes.json
-  |   MISSING   honest-attestation-emission-2026-10-runtime-attestations-name-their-run.json
-  |   MISSING   honest-attestation-emission-2026-10-the-re-sign-prunes-orphans.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-breadth-does-not-grow.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-measurement-is-not-vacuous.json
-  | self-check-fixture-coverage: FAIL: 7 required pair(s) have no fixture file
-  | self-check-fixture-coverage: enumerated pairs = 880 (873 required, 7 exempt under portable-linux-musl)
-  | self-check-fixture-coverage: fixture files      = 873
-  | self-check-fixture-coverage: required covered   = 866
-  | self-check-fixture-coverage: exempt files present = 7 (not required)
-  | 
-```
-
-What the same verifier prints when it is re-run now:
-
-`scripts/check-self-check-fixture-coverage.sh`:
-
-```
-mathc verify: /home/az/.paseo/worktrees/3iuxqmnd/feat-classify-the-remaining-failures/scripts/check-self-check-fixture-coverage.sh exited 1
-mathc verify: output of `/home/az/.paseo/worktrees/3iuxqmnd/feat-classify-the-remaining-failures/scripts/check-self-check-fixture-coverage.sh`:
-  |   MISSING   decision-resolves-by-id-2026-10-a-failing-verifier-is-still-reported-as-failing.json
-  |   MISSING   decision-resolves-by-id-2026-10-the-id-resolves-regardless-of-the-file-name.json
-  |   MISSING   honest-attestation-emission-2026-10-manual-declarations-are-not-passes.json
-  |   MISSING   honest-attestation-emission-2026-10-runtime-attestations-name-their-run.json
-  |   MISSING   honest-attestation-emission-2026-10-the-re-sign-prunes-orphans.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-breadth-does-not-grow.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-measurement-is-not-vacuous.json
-  |   MISSING   unmet-obligations-inventory-2026-10-an-unsigned-obligation-is-a-gap.json
-  |   MISSING   unmet-obligations-inventory-2026-10-the-count-and-the-breakdown-are-recorded.json
-  |   MISSING   unmet-obligations-inventory-2026-10-the-inventory-covers-every-unsigned-obligation.json
-  | self-check-fixture-coverage: FAIL: 10 required pair(s) have no fixture file
-  | self-check-fixture-coverage: enumerated pairs = 883 (876 required, 7 exempt under portable-linux-musl)
-  | self-check-fixture-coverage: fixture files      = 873
-  | self-check-fixture-coverage: required covered   = 866
-  | self-check-fixture-coverage: exempt files present = 7 (not required)
-  |
-```
-
 ### `ci-cram-cleanup-batch2-2026-10/tier-3c-investigated`
 
 - decision file: `decisions/ci-cram-cleanup-batch2-2026-10.yaml`
@@ -102,70 +46,142 @@ Verifiers named by the obligation:
 - `file-exists text-scan-decisions/ci-cram-cleanup-batch2-gate-fail-t.yaml` -> **fail**
 - `file-exists text-scan-decisions/ci-cram-cleanup-batch2-doctor-t.yaml` -> **fail**
 
-### `d5-body-vs-wrapper-canonical-2026-10/kernel-test-asserts-algorithm`
+### `decision-required-attestations/kind-projection-known-and-roundtrippable`
 
-- decision file: `decisions/d5-body-vs-wrapper-canonical-2026-10.yaml`
+- decision file: `decisions/decision-required-attestations-2026-10.yaml`
 - verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `tests/body_canonical_test.ml::byte_range_algorithm`
-- why: the Alcotest selector is a regex against the GROUP name, and `stability` is a case inside the group `byte_range_algorithm`; naming the case matches no group, and alcotest answers "no tests to run, filter skipped everything"
+- recommendation: `investigate`
+- why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below
 
 Verifiers named by the obligation:
 
+- `scripts/check.sh` -> **fail**
 - `dune build` -> **pass**
-- `tests/body_canonical_test.ml::stability` -> **fail**
-- `tests/body_canonical_test.ml::sensitivity` -> **fail**
-- `tests/body_canonical_test.ml::insensitivity_to_placeholder` -> **fail**
-- `tests/body_canonical_test.ml::crlf_equals_lf` -> **fail**
+
+What the verifier printed during the re-signing:
+
+```
+mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
+  |   ok   3-2-cli-catalog-rows-present
+  |   ok   attest-batch-run-digest
+  |   ok   ci-green-batch1-fixes
+  |   ok   ci-prereqs-precede-consumers
+  |   ok   close-branches-runs
+  |   ok   cwd-independent-self-check
+  |   ok   decision-packges-spelling
+  |   ok   decision-resolves-by-id
+  |   ok   decisions-precommit-gate-rejects
+  |   ok   decisions-precommit-path-independent
+  |   ok   dev-cleanup-is-scoped
+  |   ok   dune-test-wrapper-propagates-failure
+  |   ok   executed-evidence-census
+  |   ok   failing-subject-backlog
+  |   ok   failing-verifier-is-named
+  |   ok   forge-stub-read-request
+  |   ok   gate-ref-validation
+  |   ok   impl-pending-files-present
+  |   ok   init-terminates-outside-tree
+  |   ok   legacy-attestation-debt
+  | (... truncated)
+```
 
 What the same verifier prints when it is re-run now:
 
-`tests/body_canonical_test.ml::stability`:
+`scripts/check.sh`:
 
 ```
-mathc verify: dune exited 1
-mathc verify: output of `dune exec ./tests/body_canonical_test.exe -- test ^stability$`:
-  | [31mInvalid request (no tests to run, filter skipped everything)![0m
-  | Testing `[1mbody_canonical_test[0m'.
-  | [2mThis run has ID `20C18HFB'.
-  | 
-  | [0m
+mathc verify: /home/az/Projects/math-coding/scripts/check.sh exited 1
+mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
+  |   ok   3-2-cli-catalog-rows-present
+  |   ok   attest-batch-run-digest
+  |   ok   ci-green-batch1-fixes
+  |   ok   ci-prereqs-precede-consumers
+  |   ok   close-branches-runs
+  |   ok   cwd-independent-self-check
+  |   ok   decision-packges-spelling
+  |   ok   decision-resolves-by-id
+  |   ok   decisions-precommit-gate-rejects
+  |   ok   decisions-precommit-path-independent
+  |   ok   dev-cleanup-is-scoped
+  |   ok   dune-test-wrapper-propagates-failure
+  |   ok   executed-evidence-census
+  |   ok   failing-subject-backlog
+  |   ok   failing-verifier-is-named
+  |   ok   forge-stub-read-request
+  |   ok   gate-ref-validation
+  |   ok   impl-pending-files-present
+  |   ok   init-terminates-outside-tree
+  |   ok   legacy-attestation-debt
+  | (... truncated)
 ```
 
-`tests/body_canonical_test.ml::sensitivity`:
+### `disable-counters-drift-test-2026-10/counters-drift-disabled`
+
+- decision file: `decisions/disable-counters-drift-test-2026-10.yaml`
+- verdict: `broken`
+- recommendation: `investigate`
+- why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below
+
+Verifiers named by the obligation:
+
+- `scripts/check.sh` -> **fail**
+- `manual-grep-f-counters-drift-tests-dune-grep-enabled-if` -> **skipped**
+
+What the verifier printed during the re-signing:
 
 ```
-mathc verify: dune exited 1
-mathc verify: output of `dune exec ./tests/body_canonical_test.exe -- test ^sensitivity$`:
-  | [31mInvalid request (no tests to run, filter skipped everything)![0m
-  | Testing `[1mbody_canonical_test[0m'.
-  | [2mThis run has ID `0D0LH7BZ'.
-  | 
-  | [0m
+mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
+  |   ok   3-2-cli-catalog-rows-present
+  |   ok   attest-batch-run-digest
+  |   ok   ci-green-batch1-fixes
+  |   ok   ci-prereqs-precede-consumers
+  |   ok   close-branches-runs
+  |   ok   cwd-independent-self-check
+  |   ok   decision-packges-spelling
+  |   ok   decision-resolves-by-id
+  |   ok   decisions-precommit-gate-rejects
+  |   ok   decisions-precommit-path-independent
+  |   ok   dev-cleanup-is-scoped
+  |   ok   dune-test-wrapper-propagates-failure
+  |   ok   executed-evidence-census
+  |   ok   failing-subject-backlog
+  |   ok   failing-verifier-is-named
+  |   ok   forge-stub-read-request
+  |   ok   gate-ref-validation
+  |   ok   impl-pending-files-present
+  |   ok   init-terminates-outside-tree
+  |   ok   legacy-attestation-debt
+  | (... truncated)
 ```
 
-`tests/body_canonical_test.ml::insensitivity_to_placeholder`:
+What the same verifier prints when it is re-run now:
+
+`scripts/check.sh`:
 
 ```
-mathc verify: dune exited 1
-mathc verify: output of `dune exec ./tests/body_canonical_test.exe -- test ^insensitivity_to_placeholder$`:
-  | [31mInvalid request (no tests to run, filter skipped everything)![0m
-  | Testing `[1mbody_canonical_test[0m'.
-  | [2mThis run has ID `EVUC1BJY'.
-  | 
-  | [0m
-```
-
-`tests/body_canonical_test.ml::crlf_equals_lf`:
-
-```
-mathc verify: dune exited 1
-mathc verify: output of `dune exec ./tests/body_canonical_test.exe -- test ^crlf_equals_lf$`:
-  | [31mInvalid request (no tests to run, filter skipped everything)![0m
-  | Testing `[1mbody_canonical_test[0m'.
-  | [2mThis run has ID `SHIL7X6Y'.
-  | 
-  | [0m
+mathc verify: /home/az/Projects/math-coding/scripts/check.sh exited 1
+mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
+  |   ok   3-2-cli-catalog-rows-present
+  |   ok   attest-batch-run-digest
+  |   ok   ci-green-batch1-fixes
+  |   ok   ci-prereqs-precede-consumers
+  |   ok   close-branches-runs
+  |   ok   cwd-independent-self-check
+  |   ok   decision-packges-spelling
+  |   ok   decision-resolves-by-id
+  |   ok   decisions-precommit-gate-rejects
+  |   ok   decisions-precommit-path-independent
+  |   ok   dev-cleanup-is-scoped
+  |   ok   dune-test-wrapper-propagates-failure
+  |   ok   executed-evidence-census
+  |   ok   failing-subject-backlog
+  |   ok   failing-verifier-is-named
+  |   ok   forge-stub-read-request
+  |   ok   gate-ref-validation
+  |   ok   impl-pending-files-present
+  |   ok   init-terminates-outside-tree
+  |   ok   legacy-attestation-debt
+  | (... truncated)
 ```
 
 ### `docker-availability-guarantee-2026-10/docker-image-healthcheck-runs`
@@ -196,276 +212,142 @@ What the same verifier prints when it is re-run now:
 mathc verify: mathc exited 2
 ```
 
-### `infrastructure-honesty/fix-ci-targets`
+### `exit-code-symmetry/constitution-14b-added`
 
-- decision file: `decisions/infrastructure-honesty.yaml`
+- decision file: `decisions/exit-code-symmetry-2026-10.yaml`
 - verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/repo_structure.exe`
-- why: `tests/repo_structure` is not a directory - dune says "Don't know about directory tests/repo_structure"; the module is `tests/repo_structure.ml`, so the runnable target is `tests/repo_structure.exe`
-
-Verifiers named by the obligation:
-
-- `dune build @tests/repo_structure/runtest --root .` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  | 
-```
-
-What the same verifier prints when it is re-run now:
-
-`dune build @tests/repo_structure/runtest --root .`:
-
-```
-mathc verify: dune exited 1
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  |
-```
-
-### `infrastructure-honesty/pin-nixpkgs-commit`
-
-- decision file: `decisions/infrastructure-honesty.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/repo_structure.exe`
-- why: `tests/repo_structure` is not a directory - dune says "Don't know about directory tests/repo_structure"; the module is `tests/repo_structure.ml`, so the runnable target is `tests/repo_structure.exe`
-
-Verifiers named by the obligation:
-
-- `dune build @tests/repo_structure/runtest --root .` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  | 
-```
-
-What the same verifier prints when it is re-run now:
-
-`dune build @tests/repo_structure/runtest --root .`:
-
-```
-mathc verify: dune exited 1
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  |
-```
-
-### `infrastructure-honesty/verify-opam-checksum`
-
-- decision file: `decisions/infrastructure-honesty.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/repo_structure.exe`
-- why: `tests/repo_structure` is not a directory - dune says "Don't know about directory tests/repo_structure"; the module is `tests/repo_structure.ml`, so the runnable target is `tests/repo_structure.exe`
-
-Verifiers named by the obligation:
-
-- `dune build @tests/repo_structure/runtest --root .` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  | 
-```
-
-What the same verifier prints when it is re-run now:
-
-`dune build @tests/repo_structure/runtest --root .`:
-
-```
-mathc verify: dune exited 1
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  |
-```
-
-### `install-tooling-default-tag-stable/install-sh-default-tag-is-latest`
-
-- decision file: `decisions/install-tooling-default-tag-stable-2026-10.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `file-exists decisions/install-tooling-default-tag-stable-2026-10.yaml`
-- why: `decisions/install-tooling-default-tag-stable.yaml` does not exist; the decision whose id is `install-tooling-default-tag-stable` is filed as `decisions/install-tooling-default-tag-stable-2026-10.yaml` - the corpus's convention lets a decision's id and its file name differ
-
-Verifiers named by the obligation:
-
-- `file-exists decisions/install-tooling-default-tag-stable.yaml` -> **fail**
-- `mathc validate decisions/install-tooling-default-tag-stable-2026-10.yaml` -> **pass**
-- `mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still` -> **fail**
-- `manual-grep-mc-version-default-latest-scripts-install-t` -> **skipped**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: mathc exited 2
-```
-
-What the same verifier prints when it is re-run now:
-
-`mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still`:
-
-```
-[warn] input/MC-INPUT: still: No such file or directory
-mathc verify: mathc exited 2
-```
-
-### `kernel-conformance-runner/enumerate-and-classify-fixtures`
-
-- decision file: `decisions/kernel-conformance-runner.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/conformance.exe`
-- why: the obligation's claim names the test the check is about (`conformance`); a verifier that runs the whole suite also runs checks the claim does not speak for
-
-Verifiers named by the obligation:
-
-- `dune build @tests/repo_structure/runtest --root .` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  | 
-```
-
-What the same verifier prints when it is re-run now:
-
-`dune build @tests/repo_structure/runtest --root .`:
-
-```
-mathc verify: dune exited 1
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  |
-```
-
-### `kernel-conformance-runner/parse-positive-and-negative-decision`
-
-- decision file: `decisions/kernel-conformance-runner.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/conformance.exe`
-- why: `tests/conformance` is not a directory - dune says "Don't know about directory tests/conformance"; the module is `tests/conformance.ml`, so the runnable target is `tests/conformance.exe`
-
-Verifiers named by the obligation:
-
-- `dune build @tests/conformance/runtest --root .` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `dune build @tests/conformance/runtest --root .`:
-  | Error: Don't know about directory tests/conformance specified on the command
-  | line!
-  | 
-```
-
-What the same verifier prints when it is re-run now:
-
-`dune build @tests/conformance/runtest --root .`:
-
-```
-mathc verify: dune exited 1
-mathc verify: output of `dune build @tests/conformance/runtest --root .`:
-  | Error: Don't know about directory tests/conformance specified on the command
-  | line!
-  |
-```
-
-### `kernel-conformance-runner/skip-non-decision-fixtures-with-warning`
-
-- decision file: `decisions/kernel-conformance-runner.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/conformance.exe`
-- why: `tests/conformance` is not a directory - dune says "Don't know about directory tests/conformance"; the module is `tests/conformance.ml`, so the runnable target is `tests/conformance.exe`
-
-Verifiers named by the obligation:
-
-- `dune build @tests/conformance/runtest --root .` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `dune build @tests/conformance/runtest --root .`:
-  | Error: Don't know about directory tests/conformance specified on the command
-  | line!
-  | 
-```
-
-What the same verifier prints when it is re-run now:
-
-`dune build @tests/conformance/runtest --root .`:
-
-```
-mathc verify: dune exited 1
-mathc verify: output of `dune build @tests/conformance/runtest --root .`:
-  | Error: Don't know about directory tests/conformance specified on the command
-  | line!
-  |
-```
-
-### `legacy-attestation-debt-2026-10/debt-is-measured-and-bounded`
-
-- decision file: `decisions/legacy-attestation-debt-2026-10.yaml`
-- verdict: `all-pass-contradiction`
 - recommendation: `investigate`
-- why: the verifier measures THE ATTESTATION STORE, and the re-signing is what writes the store: the check read the store mid-repair. The evidence below shows the number it measured against the ceiling it enforces
+- why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below
 
 Verifiers named by the obligation:
 
-- `tests/fixtures/legacy-attestation-debt.sh` -> **pass**
+- `tests/cli/gate-unknown-exit-3.t` -> **pass**
+- `scripts/check.sh` -> **fail**
 
 What the verifier printed during the re-signing:
 
 ```
-mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/legacy-attestation-debt.sh`:
-  | FAIL: inconclusive attestations: 165 EXCEEDS the ceiling 30 — the debt grew
-  | ok: negative control: an inflated corpus measures 27, above the ceiling 22
-  | 
-  | legacy-attestation-debt: FAIL
-  | 
+mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
+  |   ok   3-2-cli-catalog-rows-present
+  |   ok   attest-batch-run-digest
+  |   ok   ci-green-batch1-fixes
+  |   ok   ci-prereqs-precede-consumers
+  |   ok   close-branches-runs
+  |   ok   cwd-independent-self-check
+  |   ok   decision-packges-spelling
+  |   ok   decision-resolves-by-id
+  |   ok   decisions-precommit-gate-rejects
+  |   ok   decisions-precommit-path-independent
+  |   ok   dev-cleanup-is-scoped
+  |   ok   dune-test-wrapper-propagates-failure
+  |   ok   executed-evidence-census
+  |   ok   failing-subject-backlog
+  |   ok   failing-verifier-is-named
+  |   ok   forge-stub-read-request
+  |   ok   gate-ref-validation
+  |   ok   impl-pending-files-present
+  |   ok   init-terminates-outside-tree
+  |   ok   legacy-attestation-debt
+  | (... truncated)
 ```
 
-### `legacy-debt-paydown-2026-10/three-debts-are-measured-and-bounded`
+What the same verifier prints when it is re-run now:
 
-- decision file: `decisions/legacy-debt-paydown-2026-10.yaml`
-- verdict: `all-pass-contradiction`
+`scripts/check.sh`:
+
+```
+mathc verify: /home/az/Projects/math-coding/scripts/check.sh exited 1
+mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
+  |   ok   3-2-cli-catalog-rows-present
+  |   ok   attest-batch-run-digest
+  |   ok   ci-green-batch1-fixes
+  |   ok   ci-prereqs-precede-consumers
+  |   ok   close-branches-runs
+  |   ok   cwd-independent-self-check
+  |   ok   decision-packges-spelling
+  |   ok   decision-resolves-by-id
+  |   ok   decisions-precommit-gate-rejects
+  |   FAIL decisions-precommit-path-independent
+  |   ok   dev-cleanup-is-scoped
+  |   ok   dune-test-wrapper-propagates-failure
+  |   ok   executed-evidence-census
+  |   ok   failing-subject-backlog
+  |   ok   failing-verifier-is-named
+  |   ok   forge-stub-read-request
+  |   ok   gate-ref-validation
+  |   ok   impl-pending-files-present
+  |   ok   init-terminates-outside-tree
+  |   ok   legacy-attestation-debt
+  | (... truncated)
+```
+
+### `mathc-counters-subcommand-2026-10/dev-counters-py-deleted`
+
+- decision file: `decisions/mathc-counters-subcommand-2026-10.yaml`
+- verdict: `broken`
 - recommendation: `investigate`
-- why: the verifier measures THE ATTESTATION STORE, and the re-signing is what writes the store: the check read the store mid-repair. The evidence below shows the number it measured against the ceiling it enforces
+- why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below
 
 Verifiers named by the obligation:
 
-- `tests/fixtures/legacy-attestation-debt.sh` -> **pass**
+- `scripts/check.sh` -> **fail**
+- `tests/repo_structure.ml` -> **pass**
 
 What the verifier printed during the re-signing:
 
 ```
-mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/legacy-attestation-debt.sh`:
-  | FAIL: inconclusive attestations: 165 EXCEEDS the ceiling 30 — the debt grew
-  | ok: negative control: an inflated corpus measures 27, above the ceiling 22
-  | 
-  | legacy-attestation-debt: FAIL
-  | 
+mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
+  |   ok   3-2-cli-catalog-rows-present
+  |   ok   attest-batch-run-digest
+  |   ok   ci-green-batch1-fixes
+  |   ok   ci-prereqs-precede-consumers
+  |   ok   close-branches-runs
+  |   ok   cwd-independent-self-check
+  |   ok   decision-packges-spelling
+  |   ok   decision-resolves-by-id
+  |   ok   decisions-precommit-gate-rejects
+  |   ok   decisions-precommit-path-independent
+  |   ok   dev-cleanup-is-scoped
+  |   ok   dune-test-wrapper-propagates-failure
+  |   ok   executed-evidence-census
+  |   ok   failing-subject-backlog
+  |   ok   failing-verifier-is-named
+  |   ok   forge-stub-read-request
+  |   ok   gate-ref-validation
+  |   ok   impl-pending-files-present
+  |   ok   init-terminates-outside-tree
+  |   ok   legacy-attestation-debt
+  | (... truncated)
+```
+
+What the same verifier prints when it is re-run now:
+
+`scripts/check.sh`:
+
+```
+mathc verify: /home/az/Projects/math-coding/scripts/check.sh exited 1
+mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
+  |   ok   3-2-cli-catalog-rows-present
+  |   ok   attest-batch-run-digest
+  |   ok   ci-green-batch1-fixes
+  |   ok   ci-prereqs-precede-consumers
+  |   ok   close-branches-runs
+  |   ok   cwd-independent-self-check
+  |   ok   decision-packges-spelling
+  |   ok   decision-resolves-by-id
+  |   ok   decisions-precommit-gate-rejects
+  |   ok   decisions-precommit-path-independent
+  |   ok   dev-cleanup-is-scoped
+  |   ok   dune-test-wrapper-propagates-failure
+  |   ok   executed-evidence-census
+  |   ok   failing-subject-backlog
+  |   ok   failing-verifier-is-named
+  |   ok   forge-stub-read-request
+  |   ok   gate-ref-validation
+  |   ok   impl-pending-files-present
+  |   ok   init-terminates-outside-tree
+  |   ok   legacy-attestation-debt
+  | (... truncated)
 ```
 
 ### `mathc-doctor-subcommand-2026-10/doctor-subcommand-dispatched`
@@ -501,110 +383,6 @@ mathc doctor: unexpected argument: |
 mathc verify: mathc exited 2
 ```
 
-### `merlin-lsp-2026-10/tooling-coexistence-with-tests`
-
-- decision file: `decisions/merlin-lsp-2026-10.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/qcheck_parsers.exe tests/repo_structure.exe tests/traps.exe`
-- why: the obligation's claim names the tests the check is about (`qcheck_parsers`, `repo_structure`, `traps`); a verifier that runs the whole suite also runs checks the claim does not speak for
-
-Verifiers named by the obligation:
-
-- `scripts/dev` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `/home/az/Projects/math-coding/scripts/dev`:
-  | # math-coding 3.3.3 — repeatable development commands.
-  | #
-  | # Each subcommand prints what it is doing. None of them are silent.
-  | # Use these instead of "rm -rf _build" superstition.
-  | #
-  | # Usage:
-  | #   scripts/dev build                — compile kernel + CLI
-  | #   scripts/dev test                 — run conformance suite
-  | #   scripts/dev rebuild              — full rebuild (when build is wedged)
-  | #   scripts/dev lint                 — strict warnings-as-errors build
-  | #   scripts/dev verify               — full check before commit: build +
-  | #                                     dune test + scripts/check.sh + fmt
-  | #   scripts/dev check                — nix flake check
-  | #   scripts/dev close-branches       — list branches merged into main
-  | #                                     [--yes] also delete + push to origin
-  | #   scripts/dev init-hooks           — one-time: git config core.hooksPath
-  | #                                     .githooks
-  | #   scripts/dev precommit            — activate .githooks/ (idempotent)
-  | #                                     then exec git commit with the
-  | #                                     same args
-  | (... truncated)
-```
-
-What the same verifier prints when it is re-run now:
-
-`scripts/dev`:
-
-```
-mathc verify: /home/az/.paseo/worktrees/3iuxqmnd/feat-classify-the-remaining-failures/scripts/dev exited 1
-mathc verify: output of `/home/az/.paseo/worktrees/3iuxqmnd/feat-classify-the-remaining-failures/scripts/dev`:
-  | # math-coding 3.3.3 — repeatable development commands.
-  | #
-  | # Each subcommand prints what it is doing. None of them are silent.
-  | # Use these instead of "rm -rf _build" superstition.
-  | #
-  | # Usage:
-  | #   scripts/dev build                — compile kernel + CLI
-  | #   scripts/dev test                 — run conformance suite
-  | #   scripts/dev rebuild              — full rebuild (when build is wedged)
-  | #   scripts/dev lint                 — strict warnings-as-errors build
-  | #   scripts/dev verify               — full check before commit: build +
-  | #                                     dune test + scripts/check.sh + fmt
-  | #   scripts/dev check                — nix flake check
-  | #   scripts/dev close-branches       — list branches merged into main
-  | #                                     [--yes] also delete + push to origin
-  | #   scripts/dev init-hooks           — one-time: git config core.hooksPath
-  | #                                     .githooks
-  | #   scripts/dev precommit            — activate .githooks/ (idempotent)
-  | #                                     then exec git commit with the
-  | #                                     same args
-  | (... truncated)
-```
-
-### `plan-2026-10-distro-friction/d9-mathc-update-subcommand`
-
-- decision file: `decisions/plan-2026-10-distro-friction.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `mathc version --check`
-- why: `mathc update` has no `--check` flag - it exits 2 (input error); the obligation's claim names `mathc version --check`, which is the command the obligation is about
-
-Verifiers named by the obligation:
-
-- `file-exists decisions/plan-2026-10-distro-friction.yaml` -> **pass**
-- `mathc validate decisions/mathc-update-subcommand-2026-10.yaml` -> **pass**
-- `mathc update --check` -> **fail**
-- `tests/cli/update.t` -> **pass**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: mathc exited 2
-```
-
-What the same verifier prints when it is re-run now:
-
-`mathc update --check`:
-
-```
-update: unknown option '--check'.
-usage: mathc update [--channel=stable|edge|<ver>] [--yes]
-  --channel <s> what to install (stable|edge|vX.Y.Z); default stable
-  --yes  skip the confirmation prompt
-  -help  Display this list of options
-  --help  Display this list of options
-mathc verify: mathc exited 2
-```
-
 ### `plan-2026-10-distro-friction/d10-mathc-doctor-subcommand`
 
 - decision file: `decisions/plan-2026-10-distro-friction.yaml`
@@ -635,100 +413,74 @@ mathc doctor: unexpected argument: |
 mathc verify: mathc exited 2
 ```
 
-### `plan-2026-10-distro-friction/d13-channel-default-stable`
+### `plan-2026-10-improvements/t6-1-no-stub-without-tracking`
 
-- decision file: `decisions/plan-2026-10-distro-friction.yaml`
+- decision file: `decisions/plan-2026-10-improvements.yaml`
 - verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml`
-- why: `mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still` passes an English annotation (`still`) as a second positional to `mathc validate`, which then exits 2 (input error); the annotation is not an argument
+- recommendation: `investigate`
+- why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below
 
 Verifiers named by the obligation:
 
-- `file-exists decisions/plan-2026-10-distro-friction.yaml` -> **pass**
-- `mathc validate decisions/install-tooling-default-tag-stable-2026-10.yaml` -> **pass**
-- `mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still` -> **fail**
-- `manual-grep-q-stable-quickstart-md-grep-q-edge-usage-md` -> **skipped**
+- `scripts/check.sh` -> **fail**
+- `manual-target-missing-tests-process-principles-ml-p8-no` -> **skipped**
+- `manual-decisions-plan-2026-10-improvements-t6-1-yaml-1-` -> **skipped**
 
 What the verifier printed during the re-signing:
 
 ```
-mathc verify: mathc exited 2
+mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
+  |   ok   3-2-cli-catalog-rows-present
+  |   ok   attest-batch-run-digest
+  |   ok   ci-green-batch1-fixes
+  |   ok   ci-prereqs-precede-consumers
+  |   ok   close-branches-runs
+  |   ok   cwd-independent-self-check
+  |   ok   decision-packges-spelling
+  |   ok   decision-resolves-by-id
+  |   ok   decisions-precommit-gate-rejects
+  |   ok   decisions-precommit-path-independent
+  |   ok   dev-cleanup-is-scoped
+  |   ok   dune-test-wrapper-propagates-failure
+  |   ok   executed-evidence-census
+  |   ok   failing-subject-backlog
+  |   ok   failing-verifier-is-named
+  |   ok   forge-stub-read-request
+  |   ok   gate-ref-validation
+  |   ok   impl-pending-files-present
+  |   ok   init-terminates-outside-tree
+  |   ok   legacy-attestation-debt
+  | (... truncated)
 ```
 
 What the same verifier prints when it is re-run now:
 
-`mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still`:
+`scripts/check.sh`:
 
 ```
-[warn] input/MC-INPUT: still: No such file or directory
-mathc verify: mathc exited 2
-```
-
-### `priority-drift/priority-drift-detector`
-
-- decision file: `decisions/priority-drift.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/repo_structure.exe`
-- why: the obligation's claim names the test the check is about (`repo_structure`); a verifier that runs the whole suite also runs checks the claim does not speak for
-
-Verifiers named by the obligation:
-
-- `dune build @tests/repo_structure/runtest --root .` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  | 
-```
-
-What the same verifier prints when it is re-run now:
-
-`dune build @tests/repo_structure/runtest --root .`:
-
-```
-mathc verify: dune exited 1
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  |
-```
-
-### `priority-drift/priority-drift-fixture-implemented`
-
-- decision file: `decisions/priority-drift.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/repo_structure.exe`
-- why: the obligation's claim names the test the check is about (`repo_structure`); a verifier that runs the whole suite also runs checks the claim does not speak for
-
-Verifiers named by the obligation:
-
-- `dune build @tests/repo_structure/runtest --root .` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  | 
-```
-
-What the same verifier prints when it is re-run now:
-
-`dune build @tests/repo_structure/runtest --root .`:
-
-```
-mathc verify: dune exited 1
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  |
+mathc verify: /home/az/Projects/math-coding/scripts/check.sh exited 1
+mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
+  |   ok   3-2-cli-catalog-rows-present
+  |   ok   attest-batch-run-digest
+  |   ok   ci-green-batch1-fixes
+  |   ok   ci-prereqs-precede-consumers
+  |   ok   close-branches-runs
+  |   ok   cwd-independent-self-check
+  |   ok   decision-packges-spelling
+  |   ok   decision-resolves-by-id
+  |   ok   decisions-precommit-gate-rejects
+  |   ok   decisions-precommit-path-independent
+  |   ok   dev-cleanup-is-scoped
+  |   ok   dune-test-wrapper-propagates-failure
+  |   ok   executed-evidence-census
+  |   ok   failing-subject-backlog
+  |   ok   failing-verifier-is-named
+  |   ok   forge-stub-read-request
+  |   ok   gate-ref-validation
+  |   ok   impl-pending-files-present
+  |   ok   init-terminates-outside-tree
+  |   ok   legacy-attestation-debt
+  | (... truncated)
 ```
 
 ### `render-ordered-lists-2026-10/ordered-list-negative`
@@ -744,181 +496,208 @@ Verifiers named by the obligation:
 - `manual-target-missing-tests-render-kernel-ml-ordered-li` -> **skipped**
 - `manual-target-missing-tests-render-kernel-ml-ordered-li` -> **skipped**
 
-### `self-check-fixture-coverage-honest-2026-10/coverage-is-verified-by-a-reader-not-the-writer`
+### `unmet-obligations-inventory-2026-10/the-inventory-covers-every-unsigned-obligation`
 
-- decision file: `decisions/self-check-fixture-coverage-honest-2026-10.yaml`
+- decision file: `decisions/unmet-obligations-inventory-2026-10.yaml`
 - verdict: `broken`
 - recommendation: `investigate`
-- why: the verifier compares the COMMITTED fixture `tests/fixtures/self-check-pass/attestations/` against the LIVE obligation enumeration, and the corpus has grown since the fixture was generated: the pairs listed as MISSING below have no fixture file. The verifier is right; the fixture is stale
+- why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below
 
 Verifiers named by the obligation:
 
-- `scripts/check-self-check-fixture-coverage.sh` -> **fail**
+- `tests/fixtures/unmet-obligations-are-inventoried.sh` -> **fail**
 
 What the verifier printed during the re-signing:
 
 ```
-mathc verify: output of `/home/az/Projects/math-coding/scripts/check-self-check-fixture-coverage.sh`:
-  |   MISSING   decision-resolves-by-id-2026-10-a-failing-verifier-is-still-reported-as-failing.json
-  |   MISSING   decision-resolves-by-id-2026-10-the-id-resolves-regardless-of-the-file-name.json
-  |   MISSING   honest-attestation-emission-2026-10-manual-declarations-are-not-passes.json
-  |   MISSING   honest-attestation-emission-2026-10-runtime-attestations-name-their-run.json
-  |   MISSING   honest-attestation-emission-2026-10-the-re-sign-prunes-orphans.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-breadth-does-not-grow.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-measurement-is-not-vacuous.json
-  | self-check-fixture-coverage: FAIL: 7 required pair(s) have no fixture file
-  | self-check-fixture-coverage: enumerated pairs = 880 (873 required, 7 exempt under portable-linux-musl)
-  | self-check-fixture-coverage: fixture files      = 873
-  | self-check-fixture-coverage: required covered   = 866
-  | self-check-fixture-coverage: exempt files present = 7 (not required)
-  | 
+mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
+  | FAIL: the inventory does not cover every unsigned obligation:
+  |     antithesis-mode-considered-2026-10/dune-build-and-tests-green is unsigned in the sweep log and absent from the inventory
+  |     audit-0.0.21-fixes/schema-supports-yaml-decision-form is unsigned in the sweep log and absent from the inventory
+  |     audit-0.0.21-fixes/parser-accepts-yaml-form is unsigned in the sweep log and absent from the inventory
+  |     ci-cram-cleanup-batch2-2026-10/tier-3b-fixed is unsigned in the sweep log and absent from the inventory
+  |     cli-cram-tests/cli-tests-via-cram is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/corpus-scan-is-reproducible is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/offender-set-is-an-exact-set is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/kernel-holes-are-empty is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/cosmetic-markers-lose-nothing is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/a-wrong-fold-is-caught-not-just-a-wrong-stop is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/every-pin-is-mutation-checked is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/schema-enum-non-empty-after-rebuild is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/intent-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/scope-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/required-fields-still-correct is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/dune-test-clean is unsigned in the sweep log and absent from the inventory
+  |     d5-body-vs-wrapper-canonical-2026-10/spec-formalises-byte-range is unsigned in the sweep log and absent from the inventory
+  |     d5-body-vs-wrapper-canonical-2026-10/kernel-comment-references-decision is unsigned in the sweep log and absent from the inventory
+  |     d5-body-vs-wrapper-canonical-2026-10/cram-fixture-integration is unsigned in the sweep log and absent from the inventory
+  | (... truncated)
 ```
 
 What the same verifier prints when it is re-run now:
 
-`scripts/check-self-check-fixture-coverage.sh`:
+`tests/fixtures/unmet-obligations-are-inventoried.sh`:
 
 ```
-mathc verify: /home/az/.paseo/worktrees/3iuxqmnd/feat-classify-the-remaining-failures/scripts/check-self-check-fixture-coverage.sh exited 1
-mathc verify: output of `/home/az/.paseo/worktrees/3iuxqmnd/feat-classify-the-remaining-failures/scripts/check-self-check-fixture-coverage.sh`:
-  |   MISSING   decision-resolves-by-id-2026-10-a-failing-verifier-is-still-reported-as-failing.json
-  |   MISSING   decision-resolves-by-id-2026-10-the-id-resolves-regardless-of-the-file-name.json
-  |   MISSING   honest-attestation-emission-2026-10-manual-declarations-are-not-passes.json
-  |   MISSING   honest-attestation-emission-2026-10-runtime-attestations-name-their-run.json
-  |   MISSING   honest-attestation-emission-2026-10-the-re-sign-prunes-orphans.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-breadth-does-not-grow.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-measurement-is-not-vacuous.json
-  |   MISSING   unmet-obligations-inventory-2026-10-an-unsigned-obligation-is-a-gap.json
-  |   MISSING   unmet-obligations-inventory-2026-10-the-count-and-the-breakdown-are-recorded.json
-  |   MISSING   unmet-obligations-inventory-2026-10-the-inventory-covers-every-unsigned-obligation.json
-  | self-check-fixture-coverage: FAIL: 10 required pair(s) have no fixture file
-  | self-check-fixture-coverage: enumerated pairs = 883 (876 required, 7 exempt under portable-linux-musl)
-  | self-check-fixture-coverage: fixture files      = 873
-  | self-check-fixture-coverage: required covered   = 866
-  | self-check-fixture-coverage: exempt files present = 7 (not required)
-  |
+mathc verify: /home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh exited 1
+mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
+  | FAIL: the inventory does not cover every unsigned obligation:
+  |     decision-required-attestations/kind-projection-known-and-roundtrippable is unsigned in the sweep log and absent from the inventory
+  |     disable-counters-drift-test-2026-10/counters-drift-disabled is unsigned in the sweep log and absent from the inventory
+  |     exit-code-symmetry/constitution-14b-added is unsigned in the sweep log and absent from the inventory
+  |     mathc-counters-subcommand-2026-10/dev-counters-py-deleted is unsigned in the sweep log and absent from the inventory
+  |     plan-2026-10-improvements/t6-1-no-stub-without-tracking is unsigned in the sweep log and absent from the inventory
+  |     unmet-obligations-inventory-2026-10/the-inventory-covers-every-unsigned-obligation is unsigned in the sweep log and absent from the inventory
+  |     unmet-obligations-inventory-2026-10/the-count-and-the-breakdown-are-recorded is unsigned in the sweep log and absent from the inventory
+  |     unmet-obligations-inventory-2026-10/an-unsigned-obligation-is-a-gap is unsigned in the sweep log and absent from the inventory
+  |     audit-0.0.21-fixes/self-check-pass-fixture-covers-all is in the inventory but the sweep log does not name it
+  |     d5-body-vs-wrapper-canonical-2026-10/kernel-test-asserts-algorithm is in the inventory but the sweep log does not name it
+  |     infrastructure-honesty/fix-ci-targets is in the inventory but the sweep log does not name it
+  |     infrastructure-honesty/pin-nixpkgs-commit is in the inventory but the sweep log does not name it
+  |     infrastructure-honesty/verify-opam-checksum is in the inventory but the sweep log does not name it
+  |     install-tooling-default-tag-stable/install-sh-default-tag-is-latest is in the inventory but the sweep log does not name it
+  |     kernel-conformance-runner/enumerate-and-classify-fixtures is in the inventory but the sweep log does not name it
+  |     kernel-conformance-runner/parse-positive-and-negative-decision is in the inventory but the sweep log does not name it
+  |     kernel-conformance-runner/skip-non-decision-fixtures-with-warning is in the inventory but the sweep log does not name it
+  |     legacy-attestation-debt-2026-10/debt-is-measured-and-bounded is in the inventory but the sweep log does not name it
+  |     legacy-debt-paydown-2026-10/three-debts-are-measured-and-bounded is in the inventory but the sweep log does not name it
+  | (... truncated)
 ```
 
-### `self-check-fixture-coverage-honest-2026-10/the-builder-is-no-longer-any-obligations-verifier`
+### `unmet-obligations-inventory-2026-10/the-count-and-the-breakdown-are-recorded`
 
-- decision file: `decisions/self-check-fixture-coverage-honest-2026-10.yaml`
+- decision file: `decisions/unmet-obligations-inventory-2026-10.yaml`
 - verdict: `broken`
 - recommendation: `investigate`
-- why: the verifier compares the COMMITTED fixture `tests/fixtures/self-check-pass/attestations/` against the LIVE obligation enumeration, and the corpus has grown since the fixture was generated: the pairs listed as MISSING below have no fixture file. The verifier is right; the fixture is stale
+- why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below
 
 Verifiers named by the obligation:
 
-- `mathc validate decisions/audit-0.0.21-fixes.yaml` -> **pass**
-- `scripts/check-self-check-fixture-coverage.sh` -> **fail**
+- `tests/fixtures/unmet-obligations-are-inventoried.sh` -> **fail**
 
 What the verifier printed during the re-signing:
 
 ```
-mathc verify: output of `/home/az/Projects/math-coding/scripts/check-self-check-fixture-coverage.sh`:
-  |   MISSING   decision-resolves-by-id-2026-10-a-failing-verifier-is-still-reported-as-failing.json
-  |   MISSING   decision-resolves-by-id-2026-10-the-id-resolves-regardless-of-the-file-name.json
-  |   MISSING   honest-attestation-emission-2026-10-manual-declarations-are-not-passes.json
-  |   MISSING   honest-attestation-emission-2026-10-runtime-attestations-name-their-run.json
-  |   MISSING   honest-attestation-emission-2026-10-the-re-sign-prunes-orphans.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-breadth-does-not-grow.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-measurement-is-not-vacuous.json
-  | self-check-fixture-coverage: FAIL: 7 required pair(s) have no fixture file
-  | self-check-fixture-coverage: enumerated pairs = 880 (873 required, 7 exempt under portable-linux-musl)
-  | self-check-fixture-coverage: fixture files      = 873
-  | self-check-fixture-coverage: required covered   = 866
-  | self-check-fixture-coverage: exempt files present = 7 (not required)
-  | 
+mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
+  | FAIL: the inventory does not cover every unsigned obligation:
+  |     antithesis-mode-considered-2026-10/dune-build-and-tests-green is unsigned in the sweep log and absent from the inventory
+  |     audit-0.0.21-fixes/schema-supports-yaml-decision-form is unsigned in the sweep log and absent from the inventory
+  |     audit-0.0.21-fixes/parser-accepts-yaml-form is unsigned in the sweep log and absent from the inventory
+  |     ci-cram-cleanup-batch2-2026-10/tier-3b-fixed is unsigned in the sweep log and absent from the inventory
+  |     cli-cram-tests/cli-tests-via-cram is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/corpus-scan-is-reproducible is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/offender-set-is-an-exact-set is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/kernel-holes-are-empty is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/cosmetic-markers-lose-nothing is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/a-wrong-fold-is-caught-not-just-a-wrong-stop is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/every-pin-is-mutation-checked is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/schema-enum-non-empty-after-rebuild is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/intent-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/scope-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/required-fields-still-correct is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/dune-test-clean is unsigned in the sweep log and absent from the inventory
+  |     d5-body-vs-wrapper-canonical-2026-10/spec-formalises-byte-range is unsigned in the sweep log and absent from the inventory
+  |     d5-body-vs-wrapper-canonical-2026-10/kernel-comment-references-decision is unsigned in the sweep log and absent from the inventory
+  |     d5-body-vs-wrapper-canonical-2026-10/cram-fixture-integration is unsigned in the sweep log and absent from the inventory
+  | (... truncated)
 ```
 
 What the same verifier prints when it is re-run now:
 
-`scripts/check-self-check-fixture-coverage.sh`:
+`tests/fixtures/unmet-obligations-are-inventoried.sh`:
 
 ```
-mathc verify: /home/az/.paseo/worktrees/3iuxqmnd/feat-classify-the-remaining-failures/scripts/check-self-check-fixture-coverage.sh exited 1
-mathc verify: output of `/home/az/.paseo/worktrees/3iuxqmnd/feat-classify-the-remaining-failures/scripts/check-self-check-fixture-coverage.sh`:
-  |   MISSING   decision-resolves-by-id-2026-10-a-failing-verifier-is-still-reported-as-failing.json
-  |   MISSING   decision-resolves-by-id-2026-10-the-id-resolves-regardless-of-the-file-name.json
-  |   MISSING   honest-attestation-emission-2026-10-manual-declarations-are-not-passes.json
-  |   MISSING   honest-attestation-emission-2026-10-runtime-attestations-name-their-run.json
-  |   MISSING   honest-attestation-emission-2026-10-the-re-sign-prunes-orphans.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-breadth-does-not-grow.json
-  |   MISSING   scope-invalidation-breadth-2026-10-the-measurement-is-not-vacuous.json
-  |   MISSING   unmet-obligations-inventory-2026-10-an-unsigned-obligation-is-a-gap.json
-  |   MISSING   unmet-obligations-inventory-2026-10-the-count-and-the-breakdown-are-recorded.json
-  |   MISSING   unmet-obligations-inventory-2026-10-the-inventory-covers-every-unsigned-obligation.json
-  | self-check-fixture-coverage: FAIL: 10 required pair(s) have no fixture file
-  | self-check-fixture-coverage: enumerated pairs = 883 (876 required, 7 exempt under portable-linux-musl)
-  | self-check-fixture-coverage: fixture files      = 873
-  | self-check-fixture-coverage: required covered   = 866
-  | self-check-fixture-coverage: exempt files present = 7 (not required)
-  |
+mathc verify: /home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh exited 1
+mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
+  | FAIL: the inventory does not cover every unsigned obligation:
+  |     decision-required-attestations/kind-projection-known-and-roundtrippable is unsigned in the sweep log and absent from the inventory
+  |     disable-counters-drift-test-2026-10/counters-drift-disabled is unsigned in the sweep log and absent from the inventory
+  |     exit-code-symmetry/constitution-14b-added is unsigned in the sweep log and absent from the inventory
+  |     mathc-counters-subcommand-2026-10/dev-counters-py-deleted is unsigned in the sweep log and absent from the inventory
+  |     plan-2026-10-improvements/t6-1-no-stub-without-tracking is unsigned in the sweep log and absent from the inventory
+  |     unmet-obligations-inventory-2026-10/the-inventory-covers-every-unsigned-obligation is unsigned in the sweep log and absent from the inventory
+  |     unmet-obligations-inventory-2026-10/the-count-and-the-breakdown-are-recorded is unsigned in the sweep log and absent from the inventory
+  |     unmet-obligations-inventory-2026-10/an-unsigned-obligation-is-a-gap is unsigned in the sweep log and absent from the inventory
+  |     audit-0.0.21-fixes/self-check-pass-fixture-covers-all is in the inventory but the sweep log does not name it
+  |     d5-body-vs-wrapper-canonical-2026-10/kernel-test-asserts-algorithm is in the inventory but the sweep log does not name it
+  |     infrastructure-honesty/fix-ci-targets is in the inventory but the sweep log does not name it
+  |     infrastructure-honesty/pin-nixpkgs-commit is in the inventory but the sweep log does not name it
+  |     infrastructure-honesty/verify-opam-checksum is in the inventory but the sweep log does not name it
+  |     install-tooling-default-tag-stable/install-sh-default-tag-is-latest is in the inventory but the sweep log does not name it
+  |     kernel-conformance-runner/enumerate-and-classify-fixtures is in the inventory but the sweep log does not name it
+  |     kernel-conformance-runner/parse-positive-and-negative-decision is in the inventory but the sweep log does not name it
+  |     kernel-conformance-runner/skip-non-decision-fixtures-with-warning is in the inventory but the sweep log does not name it
+  |     legacy-attestation-debt-2026-10/debt-is-measured-and-bounded is in the inventory but the sweep log does not name it
+  |     legacy-debt-paydown-2026-10/three-debts-are-measured-and-bounded is in the inventory but the sweep log does not name it
+  | (... truncated)
 ```
 
-### `spec-cli-catalog/spec-cli-catalog-promoted`
+### `unmet-obligations-inventory-2026-10/an-unsigned-obligation-is-a-gap`
 
-- decision file: `decisions/spec-cli-catalog.yaml`
+- decision file: `decisions/unmet-obligations-inventory-2026-10.yaml`
 - verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/repo_structure.exe`
-- why: `tests/repo_structure` is not a directory - dune says "Don't know about directory tests/repo_structure"; the module is `tests/repo_structure.ml`, so the runnable target is `tests/repo_structure.exe`
+- recommendation: `investigate`
+- why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below
 
 Verifiers named by the obligation:
 
-- `dune build @tests/repo_structure/runtest --root .` -> **fail**
+- `tests/fixtures/unmet-obligations-are-inventoried.sh` -> **fail**
 
 What the verifier printed during the re-signing:
 
 ```
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  | 
+mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
+  | FAIL: the inventory does not cover every unsigned obligation:
+  |     antithesis-mode-considered-2026-10/dune-build-and-tests-green is unsigned in the sweep log and absent from the inventory
+  |     audit-0.0.21-fixes/schema-supports-yaml-decision-form is unsigned in the sweep log and absent from the inventory
+  |     audit-0.0.21-fixes/parser-accepts-yaml-form is unsigned in the sweep log and absent from the inventory
+  |     ci-cram-cleanup-batch2-2026-10/tier-3b-fixed is unsigned in the sweep log and absent from the inventory
+  |     cli-cram-tests/cli-tests-via-cram is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/corpus-scan-is-reproducible is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/offender-set-is-an-exact-set is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/kernel-holes-are-empty is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/cosmetic-markers-lose-nothing is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/a-wrong-fold-is-caught-not-just-a-wrong-stop is unsigned in the sweep log and absent from the inventory
+  |     corpus-silent-drop-inventory-2026-10/every-pin-is-mutation-checked is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/schema-enum-non-empty-after-rebuild is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/intent-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/scope-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/required-fields-still-correct is unsigned in the sweep log and absent from the inventory
+  |     counters-schema-introspection-fix-2026-10/dune-test-clean is unsigned in the sweep log and absent from the inventory
+  |     d5-body-vs-wrapper-canonical-2026-10/spec-formalises-byte-range is unsigned in the sweep log and absent from the inventory
+  |     d5-body-vs-wrapper-canonical-2026-10/kernel-comment-references-decision is unsigned in the sweep log and absent from the inventory
+  |     d5-body-vs-wrapper-canonical-2026-10/cram-fixture-integration is unsigned in the sweep log and absent from the inventory
+  | (... truncated)
 ```
 
 What the same verifier prints when it is re-run now:
 
-`dune build @tests/repo_structure/runtest --root .`:
+`tests/fixtures/unmet-obligations-are-inventoried.sh`:
 
 ```
-mathc verify: dune exited 1
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  |
-```
-
-### `spec-cli-catalog/spec-catalog-fixture-implemented`
-
-- decision file: `decisions/spec-cli-catalog.yaml`
-- verdict: `broken`
-- recommendation: `fix-the-verifier`
-- right target: `dune test --root . tests/repo_structure.exe`
-- why: the obligation's claim names the test the check is about (`repo_structure`); a verifier that runs the whole suite also runs checks the claim does not speak for
-
-Verifiers named by the obligation:
-
-- `dune build @tests/repo_structure/runtest --root .` -> **fail**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  | 
-```
-
-What the same verifier prints when it is re-run now:
-
-`dune build @tests/repo_structure/runtest --root .`:
-
-```
-mathc verify: dune exited 1
-mathc verify: output of `dune build @tests/repo_structure/runtest --root .`:
-  | Error: Don't know about directory tests/repo_structure specified on the
-  | command line!
-  |
+mathc verify: /home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh exited 1
+mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
+  | FAIL: the inventory does not cover every unsigned obligation:
+  |     decision-required-attestations/kind-projection-known-and-roundtrippable is unsigned in the sweep log and absent from the inventory
+  |     disable-counters-drift-test-2026-10/counters-drift-disabled is unsigned in the sweep log and absent from the inventory
+  |     exit-code-symmetry/constitution-14b-added is unsigned in the sweep log and absent from the inventory
+  |     mathc-counters-subcommand-2026-10/dev-counters-py-deleted is unsigned in the sweep log and absent from the inventory
+  |     plan-2026-10-improvements/t6-1-no-stub-without-tracking is unsigned in the sweep log and absent from the inventory
+  |     unmet-obligations-inventory-2026-10/the-inventory-covers-every-unsigned-obligation is unsigned in the sweep log and absent from the inventory
+  |     unmet-obligations-inventory-2026-10/the-count-and-the-breakdown-are-recorded is unsigned in the sweep log and absent from the inventory
+  |     unmet-obligations-inventory-2026-10/an-unsigned-obligation-is-a-gap is unsigned in the sweep log and absent from the inventory
+  |     audit-0.0.21-fixes/self-check-pass-fixture-covers-all is in the inventory but the sweep log does not name it
+  |     d5-body-vs-wrapper-canonical-2026-10/kernel-test-asserts-algorithm is in the inventory but the sweep log does not name it
+  |     infrastructure-honesty/fix-ci-targets is in the inventory but the sweep log does not name it
+  |     infrastructure-honesty/pin-nixpkgs-commit is in the inventory but the sweep log does not name it
+  |     infrastructure-honesty/verify-opam-checksum is in the inventory but the sweep log does not name it
+  |     install-tooling-default-tag-stable/install-sh-default-tag-is-latest is in the inventory but the sweep log does not name it
+  |     kernel-conformance-runner/enumerate-and-classify-fixtures is in the inventory but the sweep log does not name it
+  |     kernel-conformance-runner/parse-positive-and-negative-decision is in the inventory but the sweep log does not name it
+  |     kernel-conformance-runner/skip-non-decision-fixtures-with-warning is in the inventory but the sweep log does not name it
+  |     legacy-attestation-debt-2026-10/debt-is-measured-and-bounded is in the inventory but the sweep log does not name it
+  |     legacy-debt-paydown-2026-10/three-debts-are-measured-and-bounded is in the inventory but the sweep log does not name it
+  | (... truncated)
 ```
 
 ### `validator-actionable-error/existing-decisions-still-parse`
@@ -945,111 +724,5 @@ What the same verifier prints when it is re-run now:
 ```
 [warn] input/MC-INPUT: decisions/*.yaml: No such file or directory
 mathc verify: mathc exited 2
-```
-
-### `verifier-outcome-taxonomy-2026-10/the-debt-ceilings-are-pinned`
-
-- decision file: `decisions/verifier-outcome-taxonomy-2026-10.yaml`
-- verdict: `all-pass-contradiction`
-- recommendation: `investigate`
-- why: the verifier measures THE ATTESTATION STORE, and the re-signing is what writes the store: the check read the store mid-repair. The evidence below shows the number it measured against the ceiling it enforces
-
-Verifiers named by the obligation:
-
-- `tests/fixtures/legacy-attestation-debt.sh` -> **pass**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/legacy-attestation-debt.sh`:
-  | FAIL: inconclusive attestations: 165 EXCEEDS the ceiling 30 — the debt grew
-  | ok: negative control: an inflated corpus measures 27, above the ceiling 22
-  | 
-  | legacy-attestation-debt: FAIL
-  | 
-```
-
-### `verifier-path-resolution-2026-10/absolute-path-is-blocked`
-
-- decision file: `decisions/verifier-path-resolution-2026-10.yaml`
-- verdict: `all-pass-contradiction`
-- recommendation: `investigate`
-- why: `tests/fixtures/verifier-path-resolution.sh` sets `set -o pipefail` and pipes into `grep -q`: `grep -q` exits at the first match, the writer on the other end of the pipe takes SIGPIPE (141), and `pipefail` promotes that signal to a pipeline FAILURE. The check's verdict is a race, not a verdict - under load it reports a false failure while quoting the very string it was looking for. The fix is in the fixture: drop `-q` (plain `grep` reads the whole input) or use a herestring
-
-Verifiers named by the obligation:
-
-- `tests/fixtures/verifier-path-resolution.sh` -> **pass**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/verifier-path-resolution.sh`:
-  | FAIL: an absolute verifier path was not rejected (rc=1): reject: /tmp/tmp.ua4Zp1krIa/proj/abs.yaml
-  |   code: MC-VERIFIER-PATH-UNRESOLVED
-  | ok: the absolute case is a block
-  | ok: a missing relative verifier path leaves the verdict parse-ok
-  | ok: the missing relative case still reports the gap
-  | ok: a manual- declaration with an absolute path does not reject the file
-  | ok: the diagnostic is registered and explainable
-  | ok: a decision with no path key is clean — the diagnostic fires on the path, not on everything
-  | 
-  | verifier-path-resolution: FAIL
-  | 
-```
-
-### `verifier-path-resolution-2026-10/missing-relative-path-is-a-warning`
-
-- decision file: `decisions/verifier-path-resolution-2026-10.yaml`
-- verdict: `all-pass-contradiction`
-- recommendation: `investigate`
-- why: `tests/fixtures/verifier-path-resolution.sh` sets `set -o pipefail` and pipes into `grep -q`: `grep -q` exits at the first match, the writer on the other end of the pipe takes SIGPIPE (141), and `pipefail` promotes that signal to a pipeline FAILURE. The check's verdict is a race, not a verdict - under load it reports a false failure while quoting the very string it was looking for. The fix is in the fixture: drop `-q` (plain `grep` reads the whole input) or use a herestring
-
-Verifiers named by the obligation:
-
-- `tests/fixtures/verifier-path-resolution.sh` -> **pass**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/verifier-path-resolution.sh`:
-  | FAIL: an absolute verifier path was not rejected (rc=1): reject: /tmp/tmp.ua4Zp1krIa/proj/abs.yaml
-  |   code: MC-VERIFIER-PATH-UNRESOLVED
-  | ok: the absolute case is a block
-  | ok: a missing relative verifier path leaves the verdict parse-ok
-  | ok: the missing relative case still reports the gap
-  | ok: a manual- declaration with an absolute path does not reject the file
-  | ok: the diagnostic is registered and explainable
-  | ok: a decision with no path key is clean — the diagnostic fires on the path, not on everything
-  | 
-  | verifier-path-resolution: FAIL
-  | 
-```
-
-### `verifier-path-resolution-2026-10/the-diagnostic-is-explainable`
-
-- decision file: `decisions/verifier-path-resolution-2026-10.yaml`
-- verdict: `all-pass-contradiction`
-- recommendation: `investigate`
-- why: `tests/fixtures/verifier-path-resolution.sh` sets `set -o pipefail` and pipes into `grep -q`: `grep -q` exits at the first match, the writer on the other end of the pipe takes SIGPIPE (141), and `pipefail` promotes that signal to a pipeline FAILURE. The check's verdict is a race, not a verdict - under load it reports a false failure while quoting the very string it was looking for. The fix is in the fixture: drop `-q` (plain `grep` reads the whole input) or use a herestring
-
-Verifiers named by the obligation:
-
-- `tests/fixtures/verifier-path-resolution.sh` -> **pass**
-
-What the verifier printed during the re-signing:
-
-```
-mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/verifier-path-resolution.sh`:
-  | FAIL: an absolute verifier path was not rejected (rc=1): reject: /tmp/tmp.ua4Zp1krIa/proj/abs.yaml
-  |   code: MC-VERIFIER-PATH-UNRESOLVED
-  | ok: the absolute case is a block
-  | ok: a missing relative verifier path leaves the verdict parse-ok
-  | ok: the missing relative case still reports the gap
-  | ok: a manual- declaration with an absolute path does not reject the file
-  | ok: the diagnostic is registered and explainable
-  | ok: a decision with no path key is clean — the diagnostic fires on the path, not on everything
-  | 
-  | verifier-path-resolution: FAIL
-  | 
 ```
 
