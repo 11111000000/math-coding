@@ -125,8 +125,18 @@ read -r legacy unattested <<< "$(measure attestations)"
 # manual obligation, which is not a monotone debt but an artefact of
 # counting the wrong thing.
 #
-# So: the count is every inconclusive attestation, and the ceiling
-# is where it stands now. It may only fall.
+# So: the count is the UNDECLARED inconclusive - `result:
+# inconclusive` with a RUNTIME kind - and the ceiling is where it
+# stands now. It may only fall.
+#
+# The `kind_: review` shape is the honest record of a `manual-`
+# declaration (decisions/honest-attestation-emission-2026-10): the
+# kernel does not execute the verifier and now says so by writing
+# review/inconclusive instead of laundering the declaration into a
+# pass. A declaration is not debt; it is a gap that was declared. The
+# undeclared kind - an executable scheme that nonetheless did not run
+# - is what this ceiling bounds, and `kind_` now draws the line
+# cleanly where the verifier-string heuristic could not.
 inconclusive="$(python3 - <<'PYX'
 import json, subprocess
 fs = subprocess.run(['git','ls-files','attestations'],capture_output=True,text=True).stdout.split()
@@ -136,7 +146,7 @@ for f in fs:
         d = json.load(open(f))
     except Exception:
         continue
-    if d.get('result') == 'inconclusive':
+    if d.get('result') == 'inconclusive' and d.get('kind_') != 'review':
         n += 1
 print(n)
 PYX

@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: honest-attestation-emission-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/executed-evidence-census.sh
-body_sha: "sha256:4ee0d80e51719907465131d3037641bc70cd960e42b6521cdd9e5313c29441d2"
-yaml_sha: "sha256:4ee0d80e51719907465131d3037641bc70cd960e42b6521cdd9e5313c29441d2"
+body_sha: "sha256:9e1813b0320ffbb79ca765c0219c40c811703261287660d0d34765f48dd43e11"
+yaml_sha: "sha256:9e1813b0320ffbb79ca765c0219c40c811703261287660d0d34765f48dd43e11"
 
 intent: { source: "issue:census-caught-dishonest-re-sign-2026-10-25", text: "The re-signing of the store wrote three kinds of attestation the corpus's own census had already declared dishonest. Measured after a re-sign over a corpus that had moved: 366 passes for non-executable verifiers (a manual- declaration recorded as a pass), 1216 runtime attestations that name no run (kind test/build with no producer.run anchor), and 333 orphan attestations (evidence about subjects the corpus no longer has). The census, tests/fixtures/executed-evidence-census.sh, had pinned ceilings of 364, 886 and 6 respectively, and it went red. The system worked: the guard caught the liar, and the liar was the tool the guard was supposed to certify." }
 
@@ -92,6 +92,7 @@ scope:
     - "lib/attestations/batch.ml"
     - "scripts/sign-store.sh"
     - "tests/fixtures/executed-evidence-census.sh"
+    - "tests/fixtures/legacy-attestation-debt.sh"
     - "decisions/honest-attestation-emission-2026-10.yaml"
     - "attestations/honest-attestation-emission-2026-10-*.json"
   exclusions:

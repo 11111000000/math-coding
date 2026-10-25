@@ -5077,7 +5077,7 @@ let[@warning "-32"] do_attest_batch () =
               else
                 ( row.kind_,
                   (if String.trim !run_cmd = "" then row.result else run_result),
-                  (if String.trim !run_cmd = "" then "" else !run_cmd) )
+                  if String.trim !run_cmd = "" then "" else !run_cmd )
             in
             if !skip_failing && result = "fail" then
               Printf.eprintf
@@ -5251,7 +5251,7 @@ let[@warning "-32"] do_attest_batch () =
               else
                 ( !kind,
                   (if String.trim !run_cmd = "" then !result else run_result),
-                  (if String.trim !run_cmd = "" then "" else !run_cmd) )
+                  if String.trim !run_cmd = "" then "" else !run_cmd )
             in
             let body =
               Batch.make_attestation ~producer_run:row_run ~decision ~obligation

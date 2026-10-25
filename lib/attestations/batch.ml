@@ -189,8 +189,8 @@ let[@warning "-32"] parse_manifest body =
    the same set as `scripts/generate-attestations.py::make_attestation`
    (8 entries, "schema" ... "issued_at"). Insertion order is
    irrelevant because `serialize` sorts them. *)
-let[@warning "-32"] make_attestation ~producer_run ~evidence_digest
-    ~decision ~obligation ~kind_ ~producer ~result ~issued_at ~candidate_tree
+let[@warning "-32"] make_attestation ~producer_run ~evidence_digest ~decision
+    ~obligation ~kind_ ~producer ~result ~issued_at ~candidate_tree
     ~materials_digest =
   (* `materials_digest` is the digest of the CONTENT of the files the
      decision's scope names (semantics A) — the same value the gate
@@ -225,8 +225,9 @@ let[@warning "-32"] make_attestation ~producer_run ~evidence_digest
       ( "producer",
         Jsonl.Object
           ([ ("identity", Jsonl.String producer) ]
-          @ if producer_run = "" then []
-            else [ ("run", Jsonl.String producer_run) ]) );
+          @
+          if producer_run = "" then []
+          else [ ("run", Jsonl.String producer_run) ]) );
       ("result", Jsonl.String result);
       ("issued_at", Jsonl.String issued_at);
     ]
