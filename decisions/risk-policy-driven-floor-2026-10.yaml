@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: risk-policy-driven-floor-2026-10
 revision: 1
 state: active
-body_sha: "sha256:a32be5f7bace18aa07df591ada0437c2d9a15b37de0bb3efcf29b44086fd218c"
-yaml_sha: "sha256:a32be5f7bace18aa07df591ada0437c2d9a15b37de0bb3efcf29b44086fd218c"
+body_sha: "sha256:6ebe0b0c791fd9c7ade9db3511fec2de7a5cbab0566b7cf23048d347d5c75a96"
+yaml_sha: "sha256:6ebe0b0c791fd9c7ade9db3511fec2de7a5cbab0566b7cf23048d347d5c75a96"
 intent: |
   Wire `lib/policy.ml` into `lib/risk.ml` so the risk classifier
   honors declared policies instead of returning constant
@@ -149,7 +149,8 @@ scope:
     - "bin/Mathc.ml"
     - "policies.yaml"
     - "tests/risk_kernel.ml"
-    - "OCAML_BEST_PRACTICES.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/decision.ml"
     - "lib/codec.ml"

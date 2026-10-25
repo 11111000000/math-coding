@@ -4,8 +4,8 @@ id: d5-body-vs-wrapper-canonical-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:9d3ee0f6d0febcb33a75533100a27092ad5408dd83de483e2143cb96658bdfc1"
-yaml_sha: "sha256:9d3ee0f6d0febcb33a75533100a27092ad5408dd83de483e2143cb96658bdfc1"
+body_sha: "sha256:2235a9d3a184f4bc901fb3cd62ce8876a9a3ee232f63201aa72d2d0c4c480f9f"
+yaml_sha: "sha256:2235a9d3a184f4bc901fb3cd62ce8876a9a3ee232f63201aa72d2d0c4c480f9f"
 axiom_link:
   - A0
   - A3
@@ -246,9 +246,10 @@ scope:
     - "tests/body_canonical_test.ml"
     - "tests/cli/body-vs-wrapper-canonical.t"
     - "tests/dune"
-    - "OCAML_BEST_PRACTICES.md"
     - "decisions/d5-body-vs-wrapper-canonical-2026-10.yaml"
     - "attestations/d5-body-vs-wrapper-canonical-2026-10-*.json"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/gate.ml"
     - "lib/waiver.ml"

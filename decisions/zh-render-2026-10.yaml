@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: zh-render-2026-10
 revision: 2
 state: active
-body_sha: "sha256:c4811bd4bc9110f20ea037cb1ea728dc1400353d990a0635fc7660c58d5443de"
-yaml_sha: "sha256:c4811bd4bc9110f20ea037cb1ea728dc1400353d990a0635fc7660c58d5443de"
+body_sha: "sha256:04d728bb3f8e46116e850057ef26606765f424a579cf835df47a6815ce5de23d"
+yaml_sha: "sha256:04d728bb3f8e46116e850057ef26606765f424a579cf835df47a6815ce5de23d"
 intent: |
   Extend the `mathc render` kernel so the site can be published
   in Chinese alongside English and Russian.
@@ -137,10 +137,11 @@ commitment: |
 scope:
   paths:
     - bin/Mathc.ml
-    - lib/render.ml
     - scripts/render.sh
     - tests/cli/render.t
     - tests/render_kernel.ml
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
 
 outcomes:
   - id: kernel-accepts-zh-flag

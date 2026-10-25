@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-2026-10
 revision: 1
 state: active
-body_sha: "sha256:6512ba40c63f8ea1924bf6ba105cf3ceb8f036a22fcbbc9145932c49ee76e769"
-yaml_sha: "sha256:6512ba40c63f8ea1924bf6ba105cf3ceb8f036a22fcbbc9145932c49ee76e769"
+body_sha: "sha256:46e81a2d12344178458768b0da188452836546c117172c5eec93a9dabdd55104"
+yaml_sha: "sha256:46e81a2d12344178458768b0da188452836546c117172c5eec93a9dabdd55104"
 intent: |
   Replace the hand-curated `wget | chmod` adoption path in
   `adoption/SKILL.md:55-60` with a self-installing suite. The
@@ -221,27 +221,28 @@ scope:
     - release-asset-sha256
   paths:
     - "scripts/install-tooling/**"
-    - "scripts/sync-version.sh"  # read-only reference; W1 owns it
-    - "scripts/dist-adoption.sh"  # read-only reference; existing script
     - "Dockerfile.debian-slim"
     - ".github/workflows/docker.yml"
     - ".github/workflows/release.yml"
     - "flake.nix"
-    - "decisions/version-sync-2026-10.yaml"  # read-only reference
-    - "decisions/mcp-server-impl-pending.yaml"  # read-only reference
-    - "decisions/docker-alpine-impl-pending.yaml"  # read-only reference
-    - "decisions/auto-update-per-user-skill-impl-pending.yaml"  # read-only reference
     - "adoption/SKILL.md"
     - "tests/cli/install-*.t"
     - "tests/cli/install.t"
-    - "tests/cli/install-template-*.t"
     - "tests/cli/install.t"
     - "tests/cli/install.t"
-    - "OCAML_BEST_PRACTICES.md"
     - "USAGE.md"
     - "PACKAGES.md"
     - "ROADMAP.md"
     - "CHANGELOG.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "scripts/sync-version.sh"  # read-only reference; W1 owns it - malformed: a comment inside the quoted path
+  #   "scripts/dist-adoption.sh"  # read-only reference; existing script - malformed: a comment inside the quoted path
+  #   "decisions/version-sync-2026-10.yaml"  # read-only reference - malformed: a comment inside the quoted path
+  #   "decisions/mcp-server-impl-pending.yaml"  # read-only reference - malformed: a comment inside the quoted path
+  #   "decisions/docker-alpine-impl-pending.yaml"  # read-only reference - malformed: a comment inside the quoted path
+  #   "decisions/auto-update-per-user-skill-impl-pending.yaml"  # read-only reference - malformed: a comment inside the quoted path
+  #   tests/cli/install-template-*.t - no tracked file matches it
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/**"
     - "bin/**"

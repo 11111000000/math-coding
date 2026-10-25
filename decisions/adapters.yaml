@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: adapters
 revision: 3
 state: active
-body_sha: "sha256:1283e4181cbbad0196fc6a9f9950aa5dbaaa7bef0af32ad5514b2334aaf18a00"
-yaml_sha: "sha256:1283e4181cbbad0196fc6a9f9950aa5dbaaa7bef0af32ad5514b2334aaf18a00"
+body_sha: "sha256:a95bc8bf815a0a29f4495090532091fb3420aa84f6b5812c339fcbf7a9588765"
+yaml_sha: "sha256:a95bc8bf815a0a29f4495090532091fb3420aa84f6b5812c339fcbf7a9588765"
 intent: |
   Add the first non-CLI adapters to the math-coding 3.0-alpha
   protocol: a JUnit XML importer and a Git changed-files
@@ -87,7 +87,8 @@ scope:
     - "lib/dune"
     - "tests/cli/junit-adapter.t"
     - "tests/cli/git-adapter.t"
-    - "bootstrap/adapters.yaml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   bootstrap/adapters.yaml - no tracked file matches it
   exclusions:
     - "lib/codec.ml"
     - "lib/decision.ml"

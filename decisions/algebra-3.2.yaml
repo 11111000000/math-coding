@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: algebra-3.2
 revision: 2
 state: active
-body_sha: "sha256:0c67214e68f9858a30a85370ab877b9e088c03069927bb42599d8c6f6a524b8b"
-yaml_sha: "sha256:0c67214e68f9858a30a85370ab877b9e088c03069927bb42599d8c6f6a524b8b"
+body_sha: "sha256:e703fffc617923c37bb0042aae6f54abdf5ee48533af359d4debd53a4c98207c"
+yaml_sha: "sha256:e703fffc617923c37bb0042aae6f54abdf5ee48533af359d4debd53a4c98207c"
 intent: |
   Adopt `spec/algebra-3.2.md` as the authoritative formal specification
   of the math-coding 3.2-ideal kernel, supplementing (not replacing)
@@ -56,7 +56,6 @@ scope:
     - "lib/canonical.ml"
     - "lib/decision.ml"
     - "lib/gate.ml"
-    - \"lib/attestations/attestations.ml\"
     - "lib/capsule.ml"
     - "lib/memory.ml"
     - "lib/policy.ml"
@@ -80,6 +79,8 @@ scope:
     - "USAGE.md"
     - ".github/workflows/site.yml"
     - ".github/workflows/release.yml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   \"lib/attestations/attestations.ml\" - malformed: a comment inside the quoted path
   exclusions:
     - "axioms/**"            # axioms are immutable per A3 Self-Application
     - "spec/constitution.md" # I1-I14 preserved verbatim

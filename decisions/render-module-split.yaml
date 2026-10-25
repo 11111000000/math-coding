@@ -4,8 +4,8 @@ id: render-module-split
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:6b9900fa007752dc9bc13387c12dc3a53bcbb798b38b788c760d34a3627e3e32"
-yaml_sha: "sha256:6b9900fa007752dc9bc13387c12dc3a53bcbb798b38b788c760d34a3627e3e32"
+body_sha: "sha256:d29b90974a5d63a51a58e846c0eab4ce63970143fb936e02f9211f6aaed400a0"
+yaml_sha: "sha256:d29b90974a5d63a51a58e846c0eab4ce63970143fb936e02f9211f6aaed400a0"
 
 intent: |
   `lib/render.ml` is 3040 lines and is the single largest
@@ -41,12 +41,13 @@ outcomes:
 
 scope:
   paths:
-    - lib/render.ml
     - lib/render/render.ml
     - lib/render/dune
     - lib/dune
     - bin/dune
     - tests/dune
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
 
 obligations:
   - id: render-library-builds

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: time-honesty-storage
 revision: 2
 state: active
-body_sha: "sha256:99c12489cec20b88d4abbb0e4d5e0d4a3821443e663880d78c66f1461ec28024"
-yaml_sha: "sha256:99c12489cec20b88d4abbb0e4d5e0d4a3821443e663880d78c66f1461ec28024"
+body_sha: "sha256:5de62431936a7579c1afb2e6549dece1b47028af3fa5e3c0c968df52d9811015"
+yaml_sha: "sha256:5de62431936a7579c1afb2e6549dece1b47028af3fa5e3c0c968df52d9811015"
 intent: |
   Close the read side of A1 (Feedback) for time claims. The prior
   decision time-honesty@v1 registered obligations on the forward-
@@ -39,8 +39,9 @@ scope:
     - "bin/Mathc.ml"
     - "bin/dune"
     - ".gitignore"
-    - "bootstrap/time-honesty-storage.yaml"
-    - "tests/cram/**"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   bootstrap/time-honesty-storage.yaml - no tracked file matches it
+  #   tests/cram/** - no tracked file matches it
   exclusions:
     - "lib/**"
     - "spec/**"

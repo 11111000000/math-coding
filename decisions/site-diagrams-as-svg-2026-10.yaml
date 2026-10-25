@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-diagrams-as-svg-2026-10
 revision: 1
 state: active
-body_sha: "sha256:15b7275c59c584ba53274246c5bc95df569a9ac70ccacaae6209be0f308cb932"
-yaml_sha: "sha256:15b7275c59c584ba53274246c5bc95df569a9ac70ccacaae6209be0f308cb932"
+body_sha: "sha256:e22b364a4ffdbfc476a8a14b4c41c1762799ca5dbcc4f5560fbce1f80cbf3f5e"
+yaml_sha: "sha256:e22b364a4ffdbfc476a8a14b4c41c1762799ca5dbcc4f5560fbce1f80cbf3f5e"
 axiom_link:
   - A3
 intent: |
@@ -42,7 +42,6 @@ scope:
   capabilities:
     - site-illustration
   paths:
-    - "lib/render.ml"
     - "bin/Mathc.ml"
     - "assets/style.css"
     - "assets/site.js"
@@ -60,6 +59,8 @@ scope:
     - "assets/a3-self-application-flow.svg"
     - "assets/axiom-graph.svg"
     - "assets/bootstrap-regime.svg"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
 
 outcomes:
   - id: mermaid-removed-from-renderer

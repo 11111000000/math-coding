@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: editorial
 
-body_sha: "sha256:a7d2d4ebde43aef93bb12d74e237e662aa8a7211da7477824ad0e0435826a2eb"
-yaml_sha: "sha256:a7d2d4ebde43aef93bb12d74e237e662aa8a7211da7477824ad0e0435826a2eb"
+body_sha: "sha256:381c7e5250468181101ddd71194fd6f3c5301f797788f753d3df9fbcd88c8851"
+yaml_sha: "sha256:381c7e5250468181101ddd71194fd6f3c5301f797788f753d3df9fbcd88c8851"
 
 axiom_link:
   - A0
@@ -87,20 +87,21 @@ scope:
     - bootstrap-windows
     - binary-signing
     - cli-surface
-  paths:
-    - "decisions/<id>-2026-10.yaml"   # 13 sub-decisions
-    - "attestations/<id>-*.json"     # the attestations
-    - "scripts/install-tooling/install.sh"   # D2, D3
-    - "scripts/install-tooling/install.ps1"  # D1 (new)
-    - ".github/workflows/release.yml"      # D4, D6
-    - ".github/workflows/docker.yml"       # D8
-    - "tools/winget/**"            # D5 (new)
-    - "tools/scoop/**"             # D11 (new, subagent)
-    - "tools/homebrew/**"          # D12 (new, subagent)
-    - "QUICKSTART.md"              # surface update
-    - "USAGE.md"                   # surface update
-    - "site/install.md"            # surface update
-    - "templates/install.*"        # CI templates
+  paths: []
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "decisions/<id>-2026-10.yaml"   # 13 sub-decisions - a placeholder, never a path
+  #   "attestations/<id>-*.json"     # the attestations - a placeholder, never a path
+  #   "scripts/install-tooling/install.sh"   # D2, D3 - malformed: a comment inside the quoted path
+  #   "scripts/install-tooling/install.ps1"  # D1 (new) - malformed: a comment inside the quoted path
+  #   ".github/workflows/release.yml"      # D4, D6 - malformed: a comment inside the quoted path
+  #   ".github/workflows/docker.yml"       # D8 - malformed: a comment inside the quoted path
+  #   "tools/winget/**"            # D5 (new) - malformed: a comment inside the quoted path
+  #   "tools/scoop/**"             # D11 (new, subagent) - malformed: a comment inside the quoted path
+  #   "tools/homebrew/**"          # D12 (new, subagent) - malformed: a comment inside the quoted path
+  #   "QUICKSTART.md"              # surface update - malformed: a comment inside the quoted path
+  #   "USAGE.md"                   # surface update - malformed: a comment inside the quoted path
+  #   "site/install.md"            # surface update - malformed: a comment inside the quoted path
+  #   "templates/install.*"        # CI templates - malformed: a comment inside the quoted path
   exclusions:
     - "lib/**"        # per-sub-decision; never collective
     - "bin/Mathc.ml"  # per-sub-decision (D9, D10 only)

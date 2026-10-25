@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-deploy
 revision: 5
 state: active
-body_sha: "sha256:1a1c4a734091040c3756ac91cf354485c8639a326a0aac7b1bf4053ac6b643a1"
-yaml_sha: "sha256:1a1c4a734091040c3756ac91cf354485c8639a326a0aac7b1bf4053ac6b643a1"
+body_sha: "sha256:d1b3ade4c942442863a743d2429038709932365b156139a12761f9483f46cdbc"
+yaml_sha: "sha256:d1b3ade4c942442863a743d2429038709932365b156139a12761f9483f46cdbc"
 intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own
@@ -60,7 +60,6 @@ commitment: |
 
 scope:
   paths:
-    - lib/render.ml
     - lib/packages.ml
     - lib/dune
     - bin/Mathc.ml
@@ -74,6 +73,8 @@ scope:
     - tests/cli/render.t
     - flake.nix
     - decisions/site-deploy.yaml
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   exclusions:
     - lib/git/**
     - lib/junit/**

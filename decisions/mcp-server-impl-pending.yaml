@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mcp-server-impl-pending
 revision: 2
 state: retired
-body_sha: "sha256:3f944763511caad042c0d60a8adffd9053b16d23e7b25bf70c7ad4698ede75ae"
-yaml_sha: "sha256:3f944763511caad042c0d60a8adffd9053b16d23e7b25bf70c7ad4698ede75ae"
+body_sha: "sha256:d93397eda8e9e4951e8b50c65b9e91bbddaee1f666150c81dab0e54714d85ef7"
+yaml_sha: "sha256:d93397eda8e9e4951e8b50c65b9e91bbddaee1f666150c81dab0e54714d85ef7"
 intent: |
   Record the deferral of the MCP server obligation to Phase 2
   of the install-tooling-2026-10 work. The MCP adapter split
@@ -93,9 +93,10 @@ commitment: |
 scope:
   capabilities:
     - mcp-server-impl-deferred
-  paths:
-    - "lib/mcp/"   # not yet present in the repo
-    - "bin/mathc_mcp.ml"   # not yet present
+  paths: []
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "lib/mcp/"   # not yet present in the repo - malformed: a comment inside the quoted path
+  #   "bin/mathc_mcp.ml"   # not yet present - malformed: a comment inside the quoted path
   exclusions:
     - "lib/**"  # MCP server is its own sub-library
     - "bin/mathc.ml"  # the main dispatcher is unchanged in Phase 2

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: auto-update-per-user-skill-impl-pending
 revision: 1
 state: active
-body_sha: "sha256:28a75801f0f7f424f2db2c65ee2a2ebff74ec52588f35e5a08b1e2d33afbb3b8"
-yaml_sha: "sha256:28a75801f0f7f424f2db2c65ee2a2ebff74ec52588f35e5a08b1e2d33afbb3b8"
+body_sha: "sha256:606381383bb8dc06a9fdc7eee89db0097c6f7c9c5bbbab6dd5ff742b5d4d3c49"
+yaml_sha: "sha256:606381383bb8dc06a9fdc7eee89db0097c6f7c9c5bbbab6dd5ff742b5d4d3c49"
 intent: |
   Record the deferral of automatic per-user skill updates
   to a future cycle. Phase 1 of install-tooling-2026-10
@@ -89,9 +89,10 @@ commitment: |
 scope:
   capabilities:
     - per-user-skill-auto-update-deferred
-  paths:
-    - "scripts/install-tooling/install.sh"   # present after Phase 1 but no auto-update flag
-    - "~/.config/opencode/skills/math-coding/"   # user-side, runtime
+  paths: []
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "scripts/install-tooling/install.sh"   # present after Phase 1 but no auto-update flag - malformed: a comment inside the quoted path
+  #   "~/.config/opencode/skills/math-coding/"   # user-side, runtime - malformed: a comment inside the quoted path
   exclusions:
     - "lib/**"
     - "bin/**"

@@ -4,9 +4,9 @@ id: cli-canonical-name
 revision: 4
 state: active
 
-body_sha: "sha256:c6f8fd9ba3dd2149efd82507d6e846007474b51dd047ad1271407c39718b3086"
+body_sha: "sha256:03d6eff558ceb4a70d0eb4303c612a1c47ed2c71755dd8903144891155832cc5"
 
-yaml_sha: "sha256:c6f8fd9ba3dd2149efd82507d6e846007474b51dd047ad1271407c39718b3086"
+yaml_sha: "sha256:03d6eff558ceb4a70d0eb4303c612a1c47ed2c71755dd8903144891155832cc5"
 
 intent: |
   Collapse the project's three CLI referents (the legacy short
@@ -50,7 +50,6 @@ scope:
     - "lib/re_evaluation.ml"
     - "lib/capsule.ml"
     - "lib/packages.ml"
-    - "lib/render.ml"
     - "decisions/**"
     - "tests/**"
     - ".github/workflows/**"
@@ -63,7 +62,9 @@ scope:
     - "README.md"
     - "ROADMAP.md"
     - "CHANGELOG.md"
-    - "OCAML_BEST_PRACTICES.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
 
 
 outcomes:

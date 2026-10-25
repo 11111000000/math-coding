@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathc-packages-subcommand
 revision: 3
 state: active
-body_sha: "sha256:7b0f1659bb53dcaf0ece46756d4cf48b0cafedad8f747e1b3f0707f1c8cad82f"
-yaml_sha: "sha256:7b0f1659bb53dcaf0ece46756d4cf48b0cafedad8f747e1b3f0707f1c8cad82f"
+body_sha: "sha256:42b53002f9bea4016b846cf6f2162b99eec9df822e2c551ef9e0e298bdd0a533"
+yaml_sha: "sha256:42b53002f9bea4016b846cf6f2162b99eec9df822e2c551ef9e0e298bdd0a533"
 intent: |
   Add `mathc packages` — a kernel-level subcommand that enumerates
   every package (decision + obligation pair) in the repository,
@@ -51,15 +51,16 @@ scope:
     - lib/dune
     - bin/Mathc.ml
     - bin/dune
-    - tests/packages.ml
     - tests/dune
     - tests/cli/packages.t
-    - site/index.md
     - site/packages.md
     - scripts/render.sh
     - spec/semantics.md
     - schemas/common.json
     - decisions/mathc-packages-subcommand.yaml
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   tests/packages.ml - no tracked file matches it
+  #   site/index.md - no tracked file matches it
   exclusions:
     - lib/git/**
     - lib/junit/**

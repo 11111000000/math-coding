@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: adoption-experiment-results-2026-10
 revision: 1
 state: active
-body_sha: "sha256:4860fa67ef030d613be367005301d857f58189be244ac7cfffd4ebfbfb769cc7"
-yaml_sha: "sha256:4860fa67ef030d613be367005301d857f58189be244ac7cfffd4ebfbfb769cc7"
+body_sha: "sha256:a99b60ce33d90054aef02c2321cce278aa9a34aed9b12cb8277ccf786ca7aff5"
+yaml_sha: "sha256:a99b60ce33d90054aef02c2321cce278aa9a34aed9b12cb8277ccf786ca7aff5"
 
 intent: |
   Record the observed numbers of the math-coding adoption
@@ -65,7 +65,8 @@ outcomes:
 scope:
   paths:
     - "docs/experiments/adoption-2026-10.md"
-    - "~/Projects/math-coding-experiment/**"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   ~/Projects/math-coding-experiment/** - home-relative: resolves nowhere in the repository
   exclusions:
     - "lib/**"
     - "bin/Mathc.ml"

@@ -6,8 +6,8 @@ state: active
 mode: light
 change_kind: implementation
 
-body_sha: "sha256:f75b8879468a5676f7efe7517f05ac0a6f11842597e9843addcbd3d93088e1eb"
-yaml_sha: "sha256:f75b8879468a5676f7efe7517f05ac0a6f11842597e9843addcbd3d93088e1eb"
+body_sha: "sha256:f0c7303937ca18ebd578b33d6f0aa3feab64ce663c93d00ab434de91936a4cac"
+yaml_sha: "sha256:f0c7303937ca18ebd578b33d6f0aa3feab64ce663c93d00ab434de91936a4cac"
 
 axiom_link:
   - A0
@@ -87,7 +87,8 @@ scope:
     - pre-commit-hook-p8
   paths:
     - ".githooks/pre-commit"
-    - "OCAML_BEST_PRACTICES.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/**"
     - "bin/**"

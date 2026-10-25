@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathjax-default-on-2026-10
 revision: 1
 state: active
-body_sha: "sha256:77b0ddd4aa739be9d6b5be5e0a11191a62787ca5547d5e8a65a74c7705159900"
-yaml_sha: "sha256:77b0ddd4aa739be9d6b5be5e0a11191a62787ca5547d5e8a65a74c7705159900"
+body_sha: "sha256:e9a1f2c63d0b872b5142362ea40baa2873b75a1ab93aba9e59877dbfe94507a5"
+yaml_sha: "sha256:e9a1f2c63d0b872b5142362ea40baa2873b75a1ab93aba9e59877dbfe94507a5"
 intent: |
   Reverse the MathJax default-OFF workaround documented in
   `decisions/render-kernel-fixes-2026-10@1` obligation
@@ -99,11 +99,12 @@ scope:
     - site-content-markup
     - math-typesetting
   paths:
-    - "lib/render.ml"
     - "bin/Mathc.ml"
     - "tests/render_kernel.ml"
     - "decisions/mathjax-default-on-2026-10.yaml"
     - "attestations/mathjax-default-on-2026-10-*.json"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   exclusions:
     - "lib/packages.ml"
     - "lib/codec.ml"

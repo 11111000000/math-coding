@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: exit-code-symmetry
 revision: 1
 state: active
-body_sha: "sha256:b6a2eda3d9f592fd68adf8587965895daaac1ba70b3f4585c3782d69f3d8310d"
-yaml_sha: "sha256:b6a2eda3d9f592fd68adf8587965895daaac1ba70b3f4585c3782d69f3d8310d"
+body_sha: "sha256:04d6f491c05599999c128400518a13258395ba62777197f687ad7ddae4c6fa17"
+yaml_sha: "sha256:04d6f491c05599999c128400518a13258395ba62777197f687ad7ddae4c6fa17"
 axiom_link:
   - A0
   - A1
@@ -71,8 +71,9 @@ scope:
     - "bin/Mathc.ml"
     - "spec/constitution.md"
     - "tests/cli/gate-unknown-exit-3.t"
-    - "OCAML_BEST_PRACTICES.md"
     - "CHANGELOG.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/**"
     - "schemas/**"

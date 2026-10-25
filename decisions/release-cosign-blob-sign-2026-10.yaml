@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:41655bfee16c409f5a1e2d8018512534f31de3f32da2baf0ffb0bbf56561b523"
-yaml_sha: "sha256:41655bfee16c409f5a1e2d8018512534f31de3f32da2baf0ffb0bbf56561b523"
+body_sha: "sha256:17b4b180a6a5ed5560840f59d329d46b794f95b5269ca684559f66f8bd3f498d"
+yaml_sha: "sha256:17b4b180a6a5ed5560840f59d329d46b794f95b5269ca684559f66f8bd3f498d"
 
 axiom_link:
   - A0
@@ -384,8 +384,9 @@ scope:
     - ".github/workflows/release.yml"
     - "scripts/install-tooling/install.sh"
     - "scripts/install-tooling/install.ps1"
-    - "OCAML_BEST_PRACTICES.md"
     - "tests/scripts/release-cosign-blob.t"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/**"
     - "bin/**"

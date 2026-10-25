@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: time-honesty
 revision: 2
 state: active
-body_sha: "sha256:87d0b6e3a985cb80dd4866aec0bef1689658201f7283004c30bda03d594c0bb8"
-yaml_sha: "sha256:87d0b6e3a985cb80dd4866aec0bef1689658201f7283004c30bda03d594c0bb8"
+body_sha: "sha256:702715f77db4a48dc95a71f141d7668dcea965c02d6f66b493432d6588cb50e8"
+yaml_sha: "sha256:702715f77db4a48dc95a71f141d7668dcea965c02d6f66b493432d6588cb50e8"
 intent: |
   Close the A1 (Feedback) deficit in math-coding 3.0-alpha for
   agent narratives about the duration of work. Without an observable
@@ -36,8 +36,9 @@ scope:
     - "schemas/attestation.json"
     - "lib/domain.ml"
     - "spec/domain.md"
-    - "bootstrap/time-honesty.yaml"
-    - "tests/conformance/**"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   bootstrap/time-honesty.yaml - no tracked file matches it
+  #   tests/conformance/** - no tracked file matches it
   exclusions:
     - "spec/constitution.md"
     - "axioms/**"

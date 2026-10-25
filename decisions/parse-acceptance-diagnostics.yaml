@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: parse-acceptance-diagnostics
 revision: 2
 state: active
-body_sha: "sha256:135321fd55517630b8e780e8b849eca9a7478249f3dabc4b5fb1e979c8841248"
-yaml_sha: "sha256:135321fd55517630b8e780e8b849eca9a7478249f3dabc4b5fb1e979c8841248"
+body_sha: "sha256:6f5891e2a89352a8373b87362d328ba92cc31be447a9fef6114cfc2dab802f1a"
+yaml_sha: "sha256:6f5891e2a89352a8373b87362d328ba92cc31be447a9fef6114cfc2dab802f1a"
 intent: |
   Close OCAML_BEST_PRACTICES §9.1: when an obligation's acceptance
   item carries both `verifier` and `review` fields on the same
@@ -33,12 +33,13 @@ scope:
     - "lib/decision.ml"
     - "lib/diagnostic.ml"
     - "bin/Mathc.ml"
-    - "OCAML_BEST_PRACTICES.md"
     - "fixtures/conformance/decision/positive-ambiguous-acceptance.json"
     - "fixtures/conformance/decision/positive-malformed-acceptance.json"
     - "tests/cli/ambiguous-acceptance.t"
     - "tests/cli/malformed-acceptance.t"
-    - "bootstrap/parse-acceptance-diagnostics.yaml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
+  #   bootstrap/parse-acceptance-diagnostics.yaml - no tracked file matches it
   exclusions:
     - "lib/capsule.ml"
     - "lib/codec.ml"

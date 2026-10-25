@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-init-release-binary-noop-skill-2026-10
 revision: 1
 state: active
-body_sha: "sha256:dcdfbcb1ebaa622e7182790f5419ab4a9375a059aaed60a9f9703bfd2305bdc7"
-yaml_sha: "sha256:dcdfbcb1ebaa622e7182790f5419ab4a9375a059aaed60a9f9703bfd2305bdc7"
+body_sha: "sha256:e893a3519aa4e5463e8f3395e0dfb21582f93c58d773bff2ab00bb7d96fd40ac"
+yaml_sha: "sha256:e893a3519aa4e5463e8f3395e0dfb21582f93c58d773bff2ab00bb7d96fd40ac"
 
 intent: |
   Document the deliberate no-op behavior of
@@ -102,7 +102,8 @@ scope:
     - init-agent-skill-release-binary-noop
   paths:
     - "decisions/ux-3-init-release-binary-noop-skill-2026-10.yaml"
-    - "scripts/check-opencode-skill.sh"  # read-only verification
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "scripts/check-opencode-skill.sh"  # read-only verification - malformed: a comment inside the quoted path
   exclusions:
     - "lib/**"
     - "bin/**"

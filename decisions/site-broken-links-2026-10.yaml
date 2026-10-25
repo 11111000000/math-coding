@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-broken-links-2026-10
 revision: 2
 state: active
-body_sha: "sha256:dc5eae01a61de27f7adf9ed4fba4784cde1182a91411de3495c8dd397707208b"
-yaml_sha: "sha256:dc5eae01a61de27f7adf9ed4fba4784cde1182a91411de3495c8dd397707208b"
+body_sha: "sha256:f83bc6e750fab32533173f77fd441f7e1eb73388100287f22d3a8c9ffa981d7b"
+yaml_sha: "sha256:f83bc6e750fab32533173f77fd441f7e1eb73388100287f22d3a8c9ffa981d7b"
 axiom_link:
   - A1
 intent: |
@@ -194,7 +194,6 @@ scope:
     - site-footer-meta-doc-origin
     - site-nav-github-presence
   paths:
-    - "lib/render.ml"
     - "axioms/care.md"
     - "axioms/feedback.md"
     - "axioms/invariants.md"
@@ -202,6 +201,8 @@ scope:
     - "axioms/separation.md"
     - "tests/render_kernel.ml"
     - "tests/cli/render.t"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   exclusions:
     - "lib/policy.ml"
     - "lib/risk.ml"

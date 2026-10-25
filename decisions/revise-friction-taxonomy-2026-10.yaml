@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:94f8009f412ee29854467a4b178f72e4a671c772014bf1c323c047cdee88096a"
-yaml_sha: "sha256:94f8009f412ee29854467a4b178f72e4a671c772014bf1c323c047cdee88096a"
+body_sha: "sha256:8e4fea7b03d5aab5e2d07efd58fcce37656262b6067012f74f32d904f0a788f0"
+yaml_sha: "sha256:8e4fea7b03d5aab5e2d07efd58fcce37656262b6067012f74f32d904f0a788f0"
 
 intent: |
   Apply R6 of `docs/experiments/adoption-2026-10.md` §13 by
@@ -128,11 +128,12 @@ scope:
   paths:
     - "docs/experiments/adoption-2026-10.md"
     - "docs/experiments/adoption-2026-10-report-template.md"
-    - "~/Projects/math-coding-experiment/click/experiment-report.md"
-    - "~/Projects/math-coding-experiment/cobra/experiment-report.md"
-    - "~/Projects/math-coding-experiment/express/experiment-report.md"
-    - "~/Projects/math-coding-experiment/ripgrep/experiment-report.md"
-    - "~/Projects/math-coding-experiment/sinatra/experiment-report.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   ~/Projects/math-coding-experiment/click/experiment-report.md - home-relative: resolves nowhere in the repository
+  #   ~/Projects/math-coding-experiment/cobra/experiment-report.md - home-relative: resolves nowhere in the repository
+  #   ~/Projects/math-coding-experiment/express/experiment-report.md - home-relative: resolves nowhere in the repository
+  #   ~/Projects/math-coding-experiment/ripgrep/experiment-report.md - home-relative: resolves nowhere in the repository
+  #   ~/Projects/math-coding-experiment/sinatra/experiment-report.md - home-relative: resolves nowhere in the repository
   exclusions:
     - "lib/**"
     - "bin/**"

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: gate-attestation-store-fill
 revision: 2
 state: active
-body_sha: "sha256:bb3a76299ba02812315dba3e9906c497fd45811c3c69990aa834c6bc6238bae9"
-yaml_sha: "sha256:bb3a76299ba02812315dba3e9906c497fd45811c3c69990aa834c6bc6238bae9"
+body_sha: "sha256:429c671dc7069daee882015c5e8a99bd948124bc8f81c4c9aab7a8aa06edd327"
+yaml_sha: "sha256:429c671dc7069daee882015c5e8a99bd948124bc8f81c4c9aab7a8aa06edd327"
 intent: |
   Close ROADMAP Tier-1 #1 (`gate-attestation-store-fill`). The
   v3-alpha-0.0.19 `mathc gate` is a SCAFFOLD: lib/gate.ml:84-87
@@ -60,7 +60,6 @@ scope:
     - gate-attestation-store-fill
     - mathc-gate-blocking (exit-code basis)
   paths:
-    - "decisions/gate-attestation-store-fill-decision.yaml"  # this file
     - "lib/attestations/dune"
     - "lib/attestations/attestations.ml"
     - "lib/gate.ml"
@@ -71,6 +70,8 @@ scope:
     - "tests/cli/gate-fail.t"
     - "tests/cli/gate-stale.t"
     - "tests/cli/gate-empty.t"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "decisions/gate-attestation-store-fill-decision.yaml"  # this file - malformed: a comment inside the quoted path
   exclusions:
     - "lib/digest.ml"  # D4 OPEN; we do not touch the SHA-256 implementation here
     - "lib/junit/*.ml"

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: editorial
-body_sha: "sha256:fa046bb180e40f9cf6c09872647b402e2abae7bb232c0f0d164428133f03be0e"
-yaml_sha: "sha256:fa046bb180e40f9cf6c09872647b402e2abae7bb232c0f0d164428133f03be0e"
+body_sha: "sha256:1dd1ae99a21229d8f2559d20df7d6ccacb8a1110cca098912301ba4d69a7d0a2"
+yaml_sha: "sha256:1dd1ae99a21229d8f2559d20df7d6ccacb8a1110cca098912301ba4d69a7d0a2"
 
 intent: |
   Reduce friction in the math-coding ux-3 workstream without
@@ -73,24 +73,25 @@ scope:
     - kernel-lifecycle
     - ci-cd-surface
     - static-render
-  paths:
-    - "decisions/<id>-2026-10.yaml"   # the 12 sub-decisions
-    - "attestations/<id>-*.json"     # the attestations
-    - "QUICKSTART.md"                # P1
-    - "USAGE.md"                     # P1, P3b, P8
-    - "README.md"                    # P1
-    - "site/install.md"              # P3b
-    - "adoption/SKILL.md"            # P1, P7
-    - "OCAML_BEST_PRACTICES.md"      # P3a, P8
-    - "scripts/hotfix-cve.sh"        # P8
-    - "scripts/slack2madr.py"        # P11
-    - "scripts/confluence2madr.py"  # P11
-    - "tests/cli/*.t"                # cram tests
-    - "tests/scripts/*.t"            # cram tests for Python
-    - "tests/fixtures/*"             # test fixtures
-    - ".github/workflows/docker.yml"  # P3a
-    - ".github/workflows/release.yml" # P3a
-    - "scripts/install-tooling/install.sh"  # P3a
+  paths: []
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "decisions/<id>-2026-10.yaml"   # the 12 sub-decisions - a placeholder, never a path
+  #   "attestations/<id>-*.json"     # the attestations - a placeholder, never a path
+  #   "QUICKSTART.md"                # P1 - malformed: a comment inside the quoted path
+  #   "USAGE.md"                     # P1, P3b, P8 - malformed: a comment inside the quoted path
+  #   "README.md"                    # P1 - malformed: a comment inside the quoted path
+  #   "site/install.md"              # P3b - malformed: a comment inside the quoted path
+  #   "adoption/SKILL.md"            # P1, P7 - malformed: a comment inside the quoted path
+  #   "OCAML_BEST_PRACTICES.md"      # P3a, P8 - malformed: a comment inside the quoted path
+  #   "scripts/hotfix-cve.sh"        # P8 - malformed: a comment inside the quoted path
+  #   "scripts/slack2madr.py"        # P11 - malformed: a comment inside the quoted path
+  #   "scripts/confluence2madr.py"  # P11 - malformed: a comment inside the quoted path
+  #   "tests/cli/*.t"                # cram tests - malformed: a comment inside the quoted path
+  #   "tests/scripts/*.t"            # cram tests for Python - malformed: a comment inside the quoted path
+  #   "tests/fixtures/*"             # test fixtures - malformed: a comment inside the quoted path
+  #   ".github/workflows/docker.yml"  # P3a - malformed: a comment inside the quoted path
+  #   ".github/workflows/release.yml" # P3a - malformed: a comment inside the quoted path
+  #   "scripts/install-tooling/install.sh"  # P3a - malformed: a comment inside the quoted path
   exclusions:
     - "lib/**"        # per-sub-decision; never collective
     - "bin/Mathc.ml"  # per-sub-decision; never collective

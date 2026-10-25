@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-illustrations-2026-10
 revision: 1
 state: active
-body_sha: "sha256:5628b7c4a0629e343d3cfa542b9d169a1c39cfba00f9abc0e558b3b5882504b9"
-yaml_sha: "sha256:5628b7c4a0629e343d3cfa542b9d169a1c39cfba00f9abc0e558b3b5882504b9"
+body_sha: "sha256:aec6610e26b844f003519528f1ea04656315ca9eb03ebb03ea73d764ec73f392"
+yaml_sha: "sha256:aec6610e26b844f003519528f1ea04656315ca9eb03ebb03ea73d764ec73f392"
 axiom_link:
   - A2
 intent: |
@@ -62,11 +62,12 @@ commitment: |
 scope:
   paths:
     - "assets/**"
-    - "lib/render.ml"
-    - "site/index.md"
     - "site/methodology.md"
     - "site/foundations.md"
     - "site/axioms.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
+  #   site/index.md - no tracked file matches it
   decisions:
     - "site-deploy@5"
     - "site-quality-2026-10@1"
