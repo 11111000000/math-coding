@@ -124,13 +124,41 @@ def parse_unsigned(log_path):
     return out
 
 
+def decision_paths(decisions_dir):
+    """id -> path, by SCANNING the directory.
+
+    NOT by concatenating the id with ".yaml". Sixteen decisions in
+    this corpus carry an id that differs from their file name
+    (candidate-tree-resolves-to-a-commit lives in
+    candidate-tree-resolves-to-a-commit-2026-10.yaml), and
+    concatenating finds nothing - the very defect that was fixed in
+    the kernel on 2026-10-25. The file name is not load-bearing.
+    """
+    index = {}
+    for name in sorted(os.listdir(decisions_dir)):
+        if not name.endswith((".yaml", ".yml")):
+            continue
+        path = os.path.join(decisions_dir, name)
+        try:
+            text = open(path, encoding="utf-8", errors="replace").read()
+        except OSError:
+            continue
+        m = re.search(r"^id:[ \t]*(\S+)", text, re.M)
+        if m and m.group(1) not in index:
+            index[m.group(1)] = path
+    return index
+
+
 def probe_one(decisions_dir, decision, obligation, verifier, bin_path, keep):
     """Evaluate ONE verifier on its own and return its verdict.
 
     The probe decision is the original with its obligations block
     replaced by a single obligation carrying a single verifier.
     """
-    src = os.path.join(decisions_dir, decision + ".yaml")
+    index = decision_paths(decisions_dir)
+    src = index.get(decision)
+    if src is None:
+        return "no-such-decision"
     try:
         text = open(src, encoding="utf-8", errors="replace").read()
     except OSError:
