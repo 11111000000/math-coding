@@ -4401,11 +4401,51 @@ let[@warning "-32"] decision_path_for_id ~root ~decision_id =
   | Some path -> path
   | None -> Filename.concat dir (decision_id ^ ".yaml")
 
-let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
-    ~obligation_id : verify_outcome =
+(* The verdict of one obligation, together with the verifier strings
+ * that produced it.
+ *
+ * WHY THE VERDICT ALONE IS NOT ENOUGH. `verify_outcome` is one word,
+ * and a failure has an OWNER: the verifier string whose own outcome
+ * was `fail`. The aggregate throws the owner away - it collapses a
+ * list of outcomes into one word - so an obligation whose checks are
+ * [pass; fail] and one whose checks are [fail; pass] are the same
+ * word, and neither of them says which check broke.
+ *
+ * The owner is not something the caller can re-derive. The obvious
+ * reconstruction - "the FIRST verifier of the acceptance list" - is a
+ * GUESS, and it is wrong: measured over this corpus on 2026-10-25,
+ * 329 of the 889 obligations name more than one verifier, and 45 of
+ * them name a `manual:` declaration FIRST while also carrying an
+ * executable verifier. A `manual:` declaration cannot fail - the
+ * kernel cannot execute it and records it as a review - so the
+ * first-verifier guess accuses a declaration of breaking a check that
+ * some OTHER verifier broke. That guess is what
+ * scripts/sign-store.sh used, and it produced exactly those false
+ * accusations.
+ *
+ * So the kernel reports what it already knows. The failing list holds
+ * the verifier strings whose OWN outcome was `fail`, in the order the
+ * acceptance list names them. *)
+type obligation_verdict = {
+  ov_outcome : verify_outcome;
+  (* The verifier strings whose own outcome was `fail`. *)
+  ov_failing : string list;
+  (* Why no verifier could be named, when none could: the decision
+   * could not be read, or it does not carry the obligation. `None`
+   * when the verdict came from the verifiers themselves. *)
+  ov_unnamed : string option;
+}
+
+let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
+    ~obligation_id : obligation_verdict =
   let path = decision_path_for_id ~root ~decision_id in
   match parse_file path with
-  | Error _ -> Fail
+  | Error _ ->
+      {
+        ov_outcome = Fail;
+        ov_failing = [];
+        ov_unnamed = Some "the decision could not be read";
+      }
   | Ok v -> (
       let obl =
         List.find_opt
@@ -4413,7 +4453,12 @@ let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
           (collect_obligations v)
       in
       match obl with
-      | None -> Fail
+      | None ->
+          {
+            ov_outcome = Fail;
+            ov_failing = [];
+            ov_unnamed = Some "the decision does not carry the obligation";
+          }
       | Some (_, verifiers) ->
           (* A verifier that cannot even be PLANNED - an unknown
              scheme, a path outside the repository, a missing
@@ -4460,17 +4505,74 @@ let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
              - a declaration that cannot be invalidated is a
              decoration, and that is exactly what the binding
              prevents. *)
-          if planned = [] && verifiers <> [] then Manual_decl
-          else if planned = [] then Skipped
+          if planned = [] && verifiers <> [] then
+            { ov_outcome = Manual_decl; ov_failing = []; ov_unnamed = None }
+          else if planned = [] then
+            { ov_outcome = Skipped; ov_failing = []; ov_unnamed = None }
           else
             let outcomes =
               List.map
                 (fun s ->
-                  run_one_verifier_memoized ~project_root:root ~sandbox_mode
-                    ~verifier_string:s)
+                  ( s,
+                    run_one_verifier_memoized ~project_root:root ~sandbox_mode
+                      ~verifier_string:s ))
                 planned
             in
-            aggregate_verifier_outcomes outcomes)
+            (* The failing verifiers are the ones whose OWN outcome was
+               `fail` - not the first of the list, and not the first one
+               that could be planned. An aggregate is `fail` if and only
+               if some outcome is, so this list is exactly the set of
+               checks that made the obligation fail. *)
+            let failing =
+              List.filter_map
+                (fun (s, o) -> if o = Fail then Some s else None)
+                outcomes
+            in
+            {
+              ov_outcome = aggregate_verifier_outcomes (List.map snd outcomes);
+              ov_failing = failing;
+              ov_unnamed = None;
+            })
+
+(* The verdict, for the callers that only need the word. *)
+let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
+    ~obligation_id : verify_outcome =
+  (verdict_of_obligation_named ~root ~sandbox_mode ~decision_id ~obligation_id)
+    .ov_outcome
+
+(* What a refusal says about the check that broke.
+ *
+ * The NAME is the point. "its verifier failed" tells the operator
+ * that something broke and not what, and the thing that broke is
+ * somewhere else: the refusal is printed by the sweep, the sweep
+ * covers hundreds of obligations, and the operator is left to open
+ * the decision file and read every verifier of the obligation to find
+ * the one that failed. The corpus's own guess - the FIRST verifier of
+ * the acceptance list - is worse than useless when it is wrong,
+ * because it accuses a check that passed.
+ *
+ * So the clause names the verifier strings whose own outcome was
+ * `fail`, all of them, in the order the acceptance list names them.
+ *
+ * When there is no name to give - the decision could not be read, or
+ * it does not carry the obligation - the clause says THAT instead of
+ * pretending a verifier was at fault. There is a real case for it:
+ * a decision whose tail the parser could not read has no obligations
+ * block as far as the kernel is concerned, and the obligation is then
+ * reported as failed with no verifier to blame. *)
+let[@warning "-32"] failing_clause (v : obligation_verdict) =
+  match v.ov_failing with
+  | [] -> (
+      match v.ov_unnamed with
+      | Some why -> Printf.sprintf "it could not be checked: %s" why
+      | None -> (
+          (* The aggregate never returns `Timeout` today - it folds
+             one into `Skipped` - so this arm is a guard for the day
+             it does. *)
+          match v.ov_outcome with
+          | Timeout -> "its verifier timed out"
+          | _ -> "it could not be checked"))
+  | vs -> Printf.sprintf "its verifier failed: %s" (String.concat ", " vs)
 
 (* The decisions whose scope intersects the files changed since a
  * base ref.
@@ -5116,30 +5218,48 @@ let[@warning "-32"] do_attest_batch () =
                anchor for --run-per-obligation is the mode itself,
                because the run IS the per-obligation verifier
                execution. *)
-            let kind_, result, run =
+            (* The obligation's own verdict, when --run-per-obligation
+               asked for it. `None` when the flag is off: the verdict
+               is then the batch's, and there is no per-obligation
+               verifier to name. The verdict is computed ONCE - it is
+               the answer to two questions at once (what is the result,
+               and which verifier broke), and running the checks twice
+               would be a waste the memo table would hide but not
+               remove. *)
+            let verdict =
               if !run_per_obligation then
-                match
-                  verdict_of_obligation ~root ~sandbox_mode:"none"
-                    ~decision_id:decision ~obligation_id:obligation
-                with
-                | Pass -> (row.kind_, "pass", "run-per-obligation")
-                | Fail -> (row.kind_, "fail", "run-per-obligation")
-                | Skipped | Setup_fail ->
-                    (row.kind_, "inconclusive", "run-per-obligation")
-                | Manual_decl -> ("review", "inconclusive", "")
-                | Timeout -> (row.kind_, "fail", "run-per-obligation")
-              else
-                ( row.kind_,
-                  (if String.trim !run_cmd = "" then row.result else run_result),
-                  if String.trim !run_cmd = "" then "" else !run_cmd )
+                Some
+                  (verdict_of_obligation_named ~root ~sandbox_mode:"none"
+                     ~decision_id:decision ~obligation_id:obligation)
+              else None
+            in
+            let kind_, result, run =
+              match verdict with
+              | Some v -> (
+                  match v.ov_outcome with
+                  | Pass -> (row.kind_, "pass", "run-per-obligation")
+                  | Fail -> (row.kind_, "fail", "run-per-obligation")
+                  | Skipped | Setup_fail ->
+                      (row.kind_, "inconclusive", "run-per-obligation")
+                  | Manual_decl -> ("review", "inconclusive", "")
+                  | Timeout -> (row.kind_, "fail", "run-per-obligation"))
+              | None ->
+                  ( row.kind_,
+                    (if String.trim !run_cmd = "" then row.result
+                     else run_result),
+                    if String.trim !run_cmd = "" then "" else !run_cmd )
             in
             if !skip_failing && result = "fail" then
+              let clause =
+                match verdict with
+                | Some v -> failing_clause v
+                | None -> "the batch failed"
+              in
               Printf.eprintf
-                "mathc attest-batch: NOT signing %s/%s — its verifier failed. \
-                 No attestation is written for an obligation whose check did \
-                 not pass.\n\
+                "mathc attest-batch: NOT signing %s/%s — %s. No attestation is \
+                 written for an obligation whose check did not pass.\n\
                  %!"
-                decision obligation
+                decision obligation clause
             else begin
               let body =
                 Batch.make_attestation ~producer_run:run ~decision ~obligation
