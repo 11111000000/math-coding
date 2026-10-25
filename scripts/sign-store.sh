@@ -125,6 +125,20 @@ if [ ! -s "$work/all.tsv" ]; then
 fi
 
 # --- 3. sign ---------------------------------------------------------------
+# The flags are removed from the argument list first: a flag left in
+# place would be read as the decision to sign, and the sweep would
+# run against an empty manifest.
+KEEP_LOG=""
+args=()
+for a in "$@"; do
+  case "$a" in
+    --measure) args+=("--measure") ;;
+    --keep-log) KEEP_LOG=1 ;;
+    *) args+=("$a") ;;
+  esac
+done
+set -- "${args[@]+"${args[@]}"}"
+
 only=""
 [ $# -ge 1 ] && [ "$1" != "--measure" ] && only="$1"
 
@@ -149,13 +163,7 @@ if [ "${1:-}" = "--measure" ]; then
 else
   dest="attestations"
 fi
-# The sweep's own stderr is where "NOT signing ..." lives, and it is
-# the ONLY forensics for which verifier failed. The temp dir is
-# deleted on exit, so --keep-log copies it out.
-KEEP_LOG=""
-for a in "$@"; do
-  [ "$a" = "--keep-log" ] && KEEP_LOG=1
-done
+
 
 rc=0
 timeout 3600 "$BIN" attest-batch --manifest="$manifest" --out="$dest" \
