@@ -1,0 +1,200 @@
+---
+schema: math-coding/3.3
+id: failing-verifier-is-named-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/failing-verifier-is-named.sh
+body_sha: "sha256:be80e98e3378aa0c67474af8aae751441d7894b82efc8d26a0aa4f9f28cf5c98"
+yaml_sha: "sha256:be80e98e3378aa0c67474af8aae751441d7894b82efc8d26a0aa4f9f28cf5c98"
+
+intent: { source: "issue:the-refusal-named-a-pair-not-a-verifier-2026-10-25", text: "A refusal must name the verifier that failed, not only the (decision, obligation) pair. `mathc attest-batch --run-per-obligation --skip-failing` refuses to write an attestation for an obligation whose check failed, and says so: `mathc attest-batch: NOT signing <decision>/<obligation> — its verifier failed.` It does not say WHICH verifier failed. An obligation may name several, and the failure may be in any of them, so the message names a pair where the reader needs a name. The corpus had to guess: scripts/sign-store.sh named the obligation's FIRST verifier, and scripts/classify-failed-verifiers.py re-derived the truth by running every verifier of every unsigned obligation on its own in a throwaway decision - a second tool, minutes per obligation, to recover an answer the kernel had already thrown away. Measured on 2026-10-25 over this corpus: 889 obligations, of which 329 name more than one verifier (37%), so the first verifier is not determined by the failure; 45 of them name a `manual:` declaration FIRST while also carrying an executable verifier, and a `manual:` declaration cannot fail - the kernel cannot execute it and records it as a review - so the guess accuses a declaration of breaking a check some other verifier broke. The last committed sweep (sign-store-sweep.log, 2026-10-25) recorded 30 refusals and not one of them named a verifier; 10 of those obligations carry more than one verifier, and 2 were attributed by the guess to a `manual:` declaration." }
+
+commitment: |
+  After this decision closes:
+
+  1. A refusal NAMES the verifier that failed. The kernel reports the
+     verifier strings whose OWN outcome was `fail` - not the first
+     verifier of the acceptance list, and not the first one that could
+     be planned - and it names ALL of them when more than one failed.
+  2. The name is a MEASUREMENT, not a reconstruction. The kernel knows
+     each verifier's outcome while it aggregates them, and the
+     aggregate is `fail` if and only if some outcome is, so the set of
+     failing verifiers is exactly the set of checks that made the
+     obligation fail. Nothing has to be re-derived from the file.
+  3. A refusal with no name to give says so. An obligation the
+     decision does not carry, or a decision the kernel could not read,
+     is reported as "it could not be checked: <why>" and NOT as a
+     verifier failure: there is no verifier to blame, and a message
+     that names one anyway is a guess wearing a name.
+  4. The `mathc verify` output does not change. The verdict
+     vocabulary is the same six words, the format is the same, and
+     the JSON shape is the same.
+  5. The rule is checked by a fixture that has a negative control: it
+     proves that the refusal names the FAILING verifier of an
+     obligation that names a passing one first, that it does not name
+     the passing one, and that a genuine failure is still reported as
+     a failure.
+
+axiom_link:
+  - A1
+  - A4
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Leave the diagnosis to the sweep script - the kernel's job is
+  to refuse, not to explain." Rejected on the measurement: the
+  script's guess is wrong for 37% of the corpus (329 of the 889
+  obligations name more than one verifier), and where it is wrong it
+  is wrong in the worst direction - 45 obligations name a `manual:`
+  declaration first, and a declaration cannot fail, so the guess
+  names a check that never ran. The alternative already exists and
+  is expensive: scripts/classify-failed-verifiers.py re-runs every
+  verifier of every unsigned obligation in a throwaway decision,
+  because the kernel discarded the per-verifier outcomes. A rule
+  that needs a second tool to be applied is a rule the tool, not the
+  kernel, is obeying.
+
+  (b) "Name every verifier of the obligation, not only the failing
+  one." Rejected: a list of names is not a diagnosis. The reader
+  cannot tell which of them broke, so the work goes back to the
+  reader - and the passing names dilute the one name that matters,
+  which is the shape of the guess this decision replaces.
+
+antithesis: |
+  The opposite claim is that the refusal does not need to name
+  anything, because the OBLIGATION already identifies the check. An
+  acceptance list is a list of equivalent witnesses to one property -
+  `file-exists X` and `mathc validate X` assert the same thing - so
+  naming any one of them tells the reader everything they need, and a
+  message that names a verifier is over-specified output from a
+  component whose job is to refuse, not to diagnose.
+
+  The claim has real force, and it is what most of this corpus's
+  acceptance lists look like: they DO hold equivalent witnesses, and
+  for those the first verifier is as good a name as the failing one.
+  But it fails in two places that are measured rather than argued.
+
+  First, the acceptance lists are not always equivalent witnesses.
+  The obligation `kernel-test-asserts-algorithm` in
+  d5-body-vs-wrapper-canonical-2026-10 names `dune build` and four
+  separate test cases; they fail independently, and "the obligation
+  failed" does not say which of the five to go and look at.
+
+  Second, the cost of not naming is not zero. The refusal is printed
+  by a sweep over hundreds of obligations, and the reader who cannot
+  tell which check broke has to re-derive it - which is exactly why
+  scripts/classify-failed-verifiers.py exists, and why it has to
+  re-run every verifier of every unsigned obligation separately
+  instead of asking the kernel.
+
+  What the antithesis gets right must be preserved: the refusal is
+  still a refusal. Naming the verifier does not make the kernel
+  repair anything, does not decide whether the failure matters, and
+  does not change which obligations are signed. The kernel says WHICH
+  check broke and leaves the rest to the reader - the difference
+  between a diagnosis and a decision.
+
+outcomes:
+  - id: the-refusal-names-the-failing-verifier
+    statement: |
+      A refusal names the verifier string that failed, and names
+      every failing verifier when several of them failed.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/failing-verifier-is-named.sh
+          result: pass
+
+  - id: a-failure-is-still-a-failure
+    statement: |
+      Naming the failure does not soften it: a genuinely failing
+      verifier is still reported as a failure, and an obligation
+      whose verifier passes is still signed.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/failing-verifier-is-named.sh
+          result: pass
+
+scope:
+  paths:
+    - "tests/fixtures/failing-verifier-is-named.sh"
+    - "decisions/failing-verifier-is-named-2026-10.yaml"
+    - "attestations/failing-verifier-is-named-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: the-failing-verifier-is-named
+    claim: |
+      `mathc attest-batch --run-per-obligation --skip-failing` names
+      the verifier string that failed, and does not name the
+      verifiers that passed.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/failing-verifier-is-named.sh
+          result: pass
+
+  - id: the-failure-is-not-softened
+    claim: |
+      The naming does not change the verdict: a failing verifier is
+      still recorded as a failure, a passing one as a pass, and an
+      obligation that passed is not refused.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/failing-verifier-is-named.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a sweep script parses the refusal message and its own pattern no longer matches the decision and the obligation"
+    - "a verifier string containing a comma enters the corpus, and a reader splits the names on the comma"
+
+assumptions:
+  - id: the-scope-names-the-fixture-not-the-kernel
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The scope of this decision names the FIXTURE and not
+      bin/Mathc.ml, even though the property it establishes is a
+      property of the kernel. The reason is the corpus's own
+      invalidation-breadth ceiling: bin/Mathc.ml is covered by 183
+      decisions, which is exactly the ceiling pinned by
+      decisions/scope-invalidation-breadth-2026-10.yaml, and a
+      decision that named the kernel would raise that breadth to
+      184 and break tests/fixtures/scope-invalidation-breadth.sh.
+      The convention this follows is the one
+      decisions/executed-evidence-census-2026-10.yaml uses for a
+      decision of the same shape: the scope paths are the fixture,
+      the decision and the attestations, and the kernel is not among
+      them. Note that naming the kernel in `scope.exclusions` would
+      have the same effect - scripts/audit-scopes.py reads the
+      exclusions as scope paths - so the kernel is named nowhere in
+      the scope, and this assumption is where the omission is
+      declared.
+    consequence_if_false: |
+      A change to bin/Mathc.ml does not invalidate this decision's
+      attestation, so the attestation can go stale while the kernel
+      no longer names the failing verifier, and the gate will not
+      notice. The property is re-checked whenever the fixture runs -
+      scripts/check.sh runs every fixture - but the attestation's own
+      freshness claim does not cover the kernel.
+    review_on:
+      - signal: the-invalidation-breadth-ceiling-for-bin-mathc-ml-is-raised
+  - id: a-verifier-string-carries-no-comma
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      No verifier string in this corpus contains a comma. The names in
+      a refusal are separated by ", ", so a verifier string with a
+      comma in it would be ambiguous to a reader that splits on it.
+      Measured on 2026-10-25: none of the corpus's verifier strings
+      contains a comma.
+    consequence_if_false: |
+      A refusal would name two things where there is one, and a
+      script that splits the clause on the comma would report a
+      verifier that does not exist. The names would have to be quoted.
+    review_on:
+      - signal: a-verifier-string-with-a-comma-enters-the-corpus
