@@ -1,0 +1,14 @@
+ci-cram-cleanup-batch2-2026-10/tier-3c-investigated
+decision-required-attestations/kind-projection-known-and-roundtrippable
+disable-counters-drift-test-2026-10/counters-drift-disabled
+docker-availability-guarantee-2026-10/docker-image-healthcheck-runs
+exit-code-symmetry/constitution-14b-added
+mathc-counters-subcommand-2026-10/dev-counters-py-deleted
+mathc-doctor-subcommand-2026-10/doctor-subcommand-dispatched
+plan-2026-10-distro-friction/d10-mathc-doctor-subcommand
+plan-2026-10-improvements/t6-1-no-stub-without-tracking
+render-ordered-lists-2026-10/ordered-list-negative
+unmet-obligations-inventory-2026-10/the-inventory-covers-every-unsigned-obligation
+unmet-obligations-inventory-2026-10/the-count-and-the-breakdown-are-recorded
+unmet-obligations-inventory-2026-10/an-unsigned-obligation-is-a-gap
+validator-actionable-error/existing-decisions-still-parse

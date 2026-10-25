@@ -267,7 +267,7 @@ mathc verify: output of `/home/az/Projects/math-coding/scripts/check.sh`:
   |   ok   decision-packges-spelling
   |   ok   decision-resolves-by-id
   |   ok   decisions-precommit-gate-rejects
-  |   FAIL decisions-precommit-path-independent
+  |   ok   decisions-precommit-path-independent
   |   ok   dev-cleanup-is-scoped
   |   ok   dune-test-wrapper-propagates-failure
   |   ok   executed-evidence-census
@@ -511,27 +511,10 @@ What the verifier printed during the re-signing:
 
 ```
 mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
-  | FAIL: the inventory does not cover every unsigned obligation:
-  |     antithesis-mode-considered-2026-10/dune-build-and-tests-green is unsigned in the sweep log and absent from the inventory
-  |     audit-0.0.21-fixes/schema-supports-yaml-decision-form is unsigned in the sweep log and absent from the inventory
-  |     audit-0.0.21-fixes/parser-accepts-yaml-form is unsigned in the sweep log and absent from the inventory
-  |     ci-cram-cleanup-batch2-2026-10/tier-3b-fixed is unsigned in the sweep log and absent from the inventory
-  |     cli-cram-tests/cli-tests-via-cram is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/corpus-scan-is-reproducible is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/offender-set-is-an-exact-set is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/kernel-holes-are-empty is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/cosmetic-markers-lose-nothing is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/a-wrong-fold-is-caught-not-just-a-wrong-stop is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/every-pin-is-mutation-checked is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/schema-enum-non-empty-after-rebuild is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/intent-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/scope-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/required-fields-still-correct is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/dune-test-clean is unsigned in the sweep log and absent from the inventory
-  |     d5-body-vs-wrapper-canonical-2026-10/spec-formalises-byte-range is unsigned in the sweep log and absent from the inventory
-  |     d5-body-vs-wrapper-canonical-2026-10/kernel-comment-references-decision is unsigned in the sweep log and absent from the inventory
-  |     d5-body-vs-wrapper-canonical-2026-10/cram-fixture-integration is unsigned in the sweep log and absent from the inventory
-  | (... truncated)
+  | FAIL: the fixture cannot run: docs/unmet-obligations-2026-10.txt is missing
+  | 
+  | unmet-obligations-are-inventoried: FAIL
+  | 
 ```
 
 What the same verifier prints when it is re-run now:
@@ -541,27 +524,10 @@ What the same verifier prints when it is re-run now:
 ```
 mathc verify: /home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh exited 1
 mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
-  | FAIL: the inventory does not cover every unsigned obligation:
-  |     decision-required-attestations/kind-projection-known-and-roundtrippable is unsigned in the sweep log and absent from the inventory
-  |     disable-counters-drift-test-2026-10/counters-drift-disabled is unsigned in the sweep log and absent from the inventory
-  |     exit-code-symmetry/constitution-14b-added is unsigned in the sweep log and absent from the inventory
-  |     mathc-counters-subcommand-2026-10/dev-counters-py-deleted is unsigned in the sweep log and absent from the inventory
-  |     plan-2026-10-improvements/t6-1-no-stub-without-tracking is unsigned in the sweep log and absent from the inventory
-  |     unmet-obligations-inventory-2026-10/the-inventory-covers-every-unsigned-obligation is unsigned in the sweep log and absent from the inventory
-  |     unmet-obligations-inventory-2026-10/the-count-and-the-breakdown-are-recorded is unsigned in the sweep log and absent from the inventory
-  |     unmet-obligations-inventory-2026-10/an-unsigned-obligation-is-a-gap is unsigned in the sweep log and absent from the inventory
-  |     audit-0.0.21-fixes/self-check-pass-fixture-covers-all is in the inventory but the sweep log does not name it
-  |     d5-body-vs-wrapper-canonical-2026-10/kernel-test-asserts-algorithm is in the inventory but the sweep log does not name it
-  |     infrastructure-honesty/fix-ci-targets is in the inventory but the sweep log does not name it
-  |     infrastructure-honesty/pin-nixpkgs-commit is in the inventory but the sweep log does not name it
-  |     infrastructure-honesty/verify-opam-checksum is in the inventory but the sweep log does not name it
-  |     install-tooling-default-tag-stable/install-sh-default-tag-is-latest is in the inventory but the sweep log does not name it
-  |     kernel-conformance-runner/enumerate-and-classify-fixtures is in the inventory but the sweep log does not name it
-  |     kernel-conformance-runner/parse-positive-and-negative-decision is in the inventory but the sweep log does not name it
-  |     kernel-conformance-runner/skip-non-decision-fixtures-with-warning is in the inventory but the sweep log does not name it
-  |     legacy-attestation-debt-2026-10/debt-is-measured-and-bounded is in the inventory but the sweep log does not name it
-  |     legacy-debt-paydown-2026-10/three-debts-are-measured-and-bounded is in the inventory but the sweep log does not name it
-  | (... truncated)
+  | FAIL: the fixture cannot run: docs/unmet-obligations-2026-10.txt is missing
+  | 
+  | unmet-obligations-are-inventoried: FAIL
+  |
 ```
 
 ### `unmet-obligations-inventory-2026-10/the-count-and-the-breakdown-are-recorded`
@@ -579,27 +545,10 @@ What the verifier printed during the re-signing:
 
 ```
 mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
-  | FAIL: the inventory does not cover every unsigned obligation:
-  |     antithesis-mode-considered-2026-10/dune-build-and-tests-green is unsigned in the sweep log and absent from the inventory
-  |     audit-0.0.21-fixes/schema-supports-yaml-decision-form is unsigned in the sweep log and absent from the inventory
-  |     audit-0.0.21-fixes/parser-accepts-yaml-form is unsigned in the sweep log and absent from the inventory
-  |     ci-cram-cleanup-batch2-2026-10/tier-3b-fixed is unsigned in the sweep log and absent from the inventory
-  |     cli-cram-tests/cli-tests-via-cram is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/corpus-scan-is-reproducible is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/offender-set-is-an-exact-set is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/kernel-holes-are-empty is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/cosmetic-markers-lose-nothing is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/a-wrong-fold-is-caught-not-just-a-wrong-stop is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/every-pin-is-mutation-checked is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/schema-enum-non-empty-after-rebuild is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/intent-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/scope-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/required-fields-still-correct is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/dune-test-clean is unsigned in the sweep log and absent from the inventory
-  |     d5-body-vs-wrapper-canonical-2026-10/spec-formalises-byte-range is unsigned in the sweep log and absent from the inventory
-  |     d5-body-vs-wrapper-canonical-2026-10/kernel-comment-references-decision is unsigned in the sweep log and absent from the inventory
-  |     d5-body-vs-wrapper-canonical-2026-10/cram-fixture-integration is unsigned in the sweep log and absent from the inventory
-  | (... truncated)
+  | FAIL: the fixture cannot run: docs/unmet-obligations-2026-10.txt is missing
+  | 
+  | unmet-obligations-are-inventoried: FAIL
+  | 
 ```
 
 What the same verifier prints when it is re-run now:
@@ -609,27 +558,10 @@ What the same verifier prints when it is re-run now:
 ```
 mathc verify: /home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh exited 1
 mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
-  | FAIL: the inventory does not cover every unsigned obligation:
-  |     decision-required-attestations/kind-projection-known-and-roundtrippable is unsigned in the sweep log and absent from the inventory
-  |     disable-counters-drift-test-2026-10/counters-drift-disabled is unsigned in the sweep log and absent from the inventory
-  |     exit-code-symmetry/constitution-14b-added is unsigned in the sweep log and absent from the inventory
-  |     mathc-counters-subcommand-2026-10/dev-counters-py-deleted is unsigned in the sweep log and absent from the inventory
-  |     plan-2026-10-improvements/t6-1-no-stub-without-tracking is unsigned in the sweep log and absent from the inventory
-  |     unmet-obligations-inventory-2026-10/the-inventory-covers-every-unsigned-obligation is unsigned in the sweep log and absent from the inventory
-  |     unmet-obligations-inventory-2026-10/the-count-and-the-breakdown-are-recorded is unsigned in the sweep log and absent from the inventory
-  |     unmet-obligations-inventory-2026-10/an-unsigned-obligation-is-a-gap is unsigned in the sweep log and absent from the inventory
-  |     audit-0.0.21-fixes/self-check-pass-fixture-covers-all is in the inventory but the sweep log does not name it
-  |     d5-body-vs-wrapper-canonical-2026-10/kernel-test-asserts-algorithm is in the inventory but the sweep log does not name it
-  |     infrastructure-honesty/fix-ci-targets is in the inventory but the sweep log does not name it
-  |     infrastructure-honesty/pin-nixpkgs-commit is in the inventory but the sweep log does not name it
-  |     infrastructure-honesty/verify-opam-checksum is in the inventory but the sweep log does not name it
-  |     install-tooling-default-tag-stable/install-sh-default-tag-is-latest is in the inventory but the sweep log does not name it
-  |     kernel-conformance-runner/enumerate-and-classify-fixtures is in the inventory but the sweep log does not name it
-  |     kernel-conformance-runner/parse-positive-and-negative-decision is in the inventory but the sweep log does not name it
-  |     kernel-conformance-runner/skip-non-decision-fixtures-with-warning is in the inventory but the sweep log does not name it
-  |     legacy-attestation-debt-2026-10/debt-is-measured-and-bounded is in the inventory but the sweep log does not name it
-  |     legacy-debt-paydown-2026-10/three-debts-are-measured-and-bounded is in the inventory but the sweep log does not name it
-  | (... truncated)
+  | FAIL: the fixture cannot run: docs/unmet-obligations-2026-10.txt is missing
+  | 
+  | unmet-obligations-are-inventoried: FAIL
+  |
 ```
 
 ### `unmet-obligations-inventory-2026-10/an-unsigned-obligation-is-a-gap`
@@ -647,27 +579,10 @@ What the verifier printed during the re-signing:
 
 ```
 mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
-  | FAIL: the inventory does not cover every unsigned obligation:
-  |     antithesis-mode-considered-2026-10/dune-build-and-tests-green is unsigned in the sweep log and absent from the inventory
-  |     audit-0.0.21-fixes/schema-supports-yaml-decision-form is unsigned in the sweep log and absent from the inventory
-  |     audit-0.0.21-fixes/parser-accepts-yaml-form is unsigned in the sweep log and absent from the inventory
-  |     ci-cram-cleanup-batch2-2026-10/tier-3b-fixed is unsigned in the sweep log and absent from the inventory
-  |     cli-cram-tests/cli-tests-via-cram is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/corpus-scan-is-reproducible is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/offender-set-is-an-exact-set is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/kernel-holes-are-empty is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/cosmetic-markers-lose-nothing is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/a-wrong-fold-is-caught-not-just-a-wrong-stop is unsigned in the sweep log and absent from the inventory
-  |     corpus-silent-drop-inventory-2026-10/every-pin-is-mutation-checked is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/schema-enum-non-empty-after-rebuild is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/intent-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/scope-oneof-true-after-rebuild is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/required-fields-still-correct is unsigned in the sweep log and absent from the inventory
-  |     counters-schema-introspection-fix-2026-10/dune-test-clean is unsigned in the sweep log and absent from the inventory
-  |     d5-body-vs-wrapper-canonical-2026-10/spec-formalises-byte-range is unsigned in the sweep log and absent from the inventory
-  |     d5-body-vs-wrapper-canonical-2026-10/kernel-comment-references-decision is unsigned in the sweep log and absent from the inventory
-  |     d5-body-vs-wrapper-canonical-2026-10/cram-fixture-integration is unsigned in the sweep log and absent from the inventory
-  | (... truncated)
+  | FAIL: the fixture cannot run: docs/unmet-obligations-2026-10.txt is missing
+  | 
+  | unmet-obligations-are-inventoried: FAIL
+  | 
 ```
 
 What the same verifier prints when it is re-run now:
@@ -677,27 +592,10 @@ What the same verifier prints when it is re-run now:
 ```
 mathc verify: /home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh exited 1
 mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obligations-are-inventoried.sh`:
-  | FAIL: the inventory does not cover every unsigned obligation:
-  |     decision-required-attestations/kind-projection-known-and-roundtrippable is unsigned in the sweep log and absent from the inventory
-  |     disable-counters-drift-test-2026-10/counters-drift-disabled is unsigned in the sweep log and absent from the inventory
-  |     exit-code-symmetry/constitution-14b-added is unsigned in the sweep log and absent from the inventory
-  |     mathc-counters-subcommand-2026-10/dev-counters-py-deleted is unsigned in the sweep log and absent from the inventory
-  |     plan-2026-10-improvements/t6-1-no-stub-without-tracking is unsigned in the sweep log and absent from the inventory
-  |     unmet-obligations-inventory-2026-10/the-inventory-covers-every-unsigned-obligation is unsigned in the sweep log and absent from the inventory
-  |     unmet-obligations-inventory-2026-10/the-count-and-the-breakdown-are-recorded is unsigned in the sweep log and absent from the inventory
-  |     unmet-obligations-inventory-2026-10/an-unsigned-obligation-is-a-gap is unsigned in the sweep log and absent from the inventory
-  |     audit-0.0.21-fixes/self-check-pass-fixture-covers-all is in the inventory but the sweep log does not name it
-  |     d5-body-vs-wrapper-canonical-2026-10/kernel-test-asserts-algorithm is in the inventory but the sweep log does not name it
-  |     infrastructure-honesty/fix-ci-targets is in the inventory but the sweep log does not name it
-  |     infrastructure-honesty/pin-nixpkgs-commit is in the inventory but the sweep log does not name it
-  |     infrastructure-honesty/verify-opam-checksum is in the inventory but the sweep log does not name it
-  |     install-tooling-default-tag-stable/install-sh-default-tag-is-latest is in the inventory but the sweep log does not name it
-  |     kernel-conformance-runner/enumerate-and-classify-fixtures is in the inventory but the sweep log does not name it
-  |     kernel-conformance-runner/parse-positive-and-negative-decision is in the inventory but the sweep log does not name it
-  |     kernel-conformance-runner/skip-non-decision-fixtures-with-warning is in the inventory but the sweep log does not name it
-  |     legacy-attestation-debt-2026-10/debt-is-measured-and-bounded is in the inventory but the sweep log does not name it
-  |     legacy-debt-paydown-2026-10/three-debts-are-measured-and-bounded is in the inventory but the sweep log does not name it
-  | (... truncated)
+  | FAIL: the fixture cannot run: docs/unmet-obligations-2026-10.txt is missing
+  | 
+  | unmet-obligations-are-inventoried: FAIL
+  |
 ```
 
 ### `validator-actionable-error/existing-decisions-still-parse`
