@@ -120,6 +120,32 @@ else
   bad "the missing relative case reports no gap: $(printf '%s' "$out" | head -3)"
 fi
 
+# --- 2b. a MANUAL declaration is out of the rule's scope -------------------
+# `path:`/`needle:` on a `manual-` acceptance item is an ANNOTATION FOR
+# THE REVIEWER ("look in this file for this string"), not an executable
+# check. The kernel drops the key today, which is a separate defect
+# (recorded in the decision); until the schema carries it, an absolute
+# path there is a portability wart, not a broken obligation, and must
+# not reject the file.
+write_decision manual-probe none "$work/manual.yaml"
+python3 - "$work/manual.yaml" <<'PYEOF'
+import sys
+p = sys.argv[1]
+s = open(p).read()
+s = s.replace("        - verifier: file-exists x",
+              "        - verifier: manual-file-exists-unqualified")
+s = s.replace("          result: pass",
+              "          path: /home/someone/else/private.txt\n          result: pass")
+open(p, "w").write(s)
+PYEOF
+"$BIN" rehash --write "$work/manual.yaml" >/dev/null 2>&1
+out="$("$BIN" validate "$work/manual.yaml" 2>&1)"; rc=$?
+if [ "$rc" -eq 0 ]; then
+  ok "a manual- declaration with an absolute path does not reject the file"
+else
+  bad "a manual- declaration with an absolute path rejected the file (rc=$rc): $(printf '%s' "$out" | head -2)"
+fi
+
 # --- 3. the diagnostic is explainable --------------------------------------
 if "$BIN" explain-diagnostic MC-VERIFIER-PATH-UNRESOLVED 2>&1 \
      | grep -q '"code":"MC-VERIFIER-PATH-UNRESOLVED"'; then

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/verifier-path-resolution.sh
-body_sha: "sha256:04311367b8ff6b03453f64519928998f946424a75c3de976e01e6d7936442648"
-yaml_sha: "sha256:04311367b8ff6b03453f64519928998f946424a75c3de976e01e6d7936442648"
+body_sha: "sha256:f74c51a5490e29e790a2c084a05a7f9aaa41e510fa360bd3cd9da7d53829ce77"
+yaml_sha: "sha256:f74c51a5490e29e790a2c084a05a7f9aaa41e510fa360bd3cd9da7d53829ce77"
 
 intent: { source: "issue:verifier-path-dropped-silently-2026-10-23", text: "The kernel has no representation of a verifier's evidence path. Domain.Verifier carries two fields, id and result; Decision.parse_verifier reads two keys, verifier and result. A sibling path: (or needle:) key on an acceptance item was therefore dropped at parse time with no diagnostic. schemas/common.json already forbids it - additionalProperties false, properties verifier/result/review - but nothing enforced that schema, so additionalProperties false was documentation rather than a check. Measured on this corpus on 2026-10-22: 83 acceptance items named an absolute path, 28 of them into .paseo/worktrees/math-coding/<deleted-branch>/..., and every one of them validated clean." }
 
@@ -29,6 +29,12 @@ commitment: |
      make `mathc validate` unusable before the first build.
   4. The diagnostic is registered, named and explainable:
      `mathc explain-diagnostic MC-VERIFIER-PATH-UNRESOLVED`.
+  5. The rule is about the evidence path of an EXECUTABLE verifier.
+     A `manual-` acceptance item carries `path:`/`needle:` as an
+     ANNOTATION FOR THE REVIEWER - "look in this file, for this
+     string" - not as an executable check, and is out of the rule's
+     scope. An absolute path there is a portability wart, not a
+     broken obligation, and must not reject the file.
 
 axiom_link:
   - A0
@@ -74,12 +80,33 @@ antithesis: |
      outside the current directory can accept a path that does not
      exist in the project the decision lives in.
 
-  And one more, found while measuring: `shell-grep` is in the
-  canonical scheme allowlist (bin/Mathc.ml) but NOT in the
-  `mathc verify` executor, so a `shell-grep` verifier reports
-  `Skipped` and exits 0. The corpus carried 44 of them before the
-  migration in decisions/verifier-honesty-migration-2026-10.yaml;
-  after it, none.
+  And two more, found while measuring:
+
+  1. `shell-grep` is in the canonical scheme allowlist (bin/Mathc.ml)
+     but NOT in the `mathc verify` executor, so a `shell-grep`
+     verifier reports `Skipped` and exits 0. The corpus carried 44
+     of them before the migration in
+     decisions/verifier-honesty-migration-2026-10.yaml; after it,
+     none.
+
+  2. `text-scan-*` and `bash` are in the same allowlist and are also
+     never executed: `plan_verifier` knows only `dune`, `tests/` and
+     `scripts/`, and everything else becomes `Plan_skip`. So the
+     whole class "this file contains this string" is advertised and
+     unimplemented. The corpus carries 103 relative `path:`+`needle:`
+     annotations that mean exactly that - and they are dead twice
+     over: the parser drops the keys, and no scheme can express the
+     check. Two pieces of work, in order:
+
+     a. promote `path:`/`needle:` to supported annotations for
+        `manual-` acceptance items in schemas/common.json and carry
+        them through to the reviewer-facing output, so the annotation
+        stops being dropped;
+     b. implement the `text-scan-*` executor and migrate the
+        annotations to it, so the check stops being unimplemented.
+
+     Until (a) and (b) land, those annotations assert nothing, and
+     the corpus says so only by accident.
 
 outcomes:
   - id: an-unresolvable-path-is-a-verdict

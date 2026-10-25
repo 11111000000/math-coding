@@ -468,6 +468,19 @@ let[@warning "-32"] verifier_path_is_unresolvable p =
    document order. Mirrors `collect_verifier_scheme_diagnostics` above:
    walks raw Jsonl, not the parsed Domain tree, because the acceptance
    item's `path` never reaches the typed tree. *)
+(* A `manual-` acceptance item carries `path:`/`needle:` as an
+   ANNOTATION FOR THE REVIEWER - "look in this file, for this
+   string" - not as an executable check. The kernel drops the key,
+   which is why the annotation never reaches the reviewer; promoting
+   it into the schema is separate work, recorded in the decision.
+   This rule is about the evidence path of an EXECUTABLE verifier,
+   so a manual declaration is out of its scope: an absolute path
+   there is a portability wart, not a broken obligation. *)
+let[@warning "-32"] verifier_path_is_manual item_verifier =
+  let n = String.length "manual-" in
+  String.length item_verifier >= n
+  && String.sub item_verifier 0 n = "manual-"
+
 let[@warning "-32"] collect_verifier_path_violations ~file v =
   let root = verifier_path_project_root file in
   match v with
@@ -500,9 +513,16 @@ let[@warning "-32"] collect_verifier_path_violations ~file v =
                           match Schema.take_string ips "path" with
                           | Some p when String.trim p <> "" ->
                               let p = String.trim p in
-                              if p.[0] = '/' then [ (id, p, `Absolute) ]
+                              let manual =
+                                match Schema.take_string ips "verifier" with
+                                | Some vv -> verifier_path_is_manual vv
+                                | None -> false
+                              in
+                              if manual then []
+                              else if p.[0] = '/' then
+                                [ (id, p, `Absolute, false) ]
                               else if verifier_path_is_unresolvable p then
-                                [ (id, p, `Unresolvable) ]
+                                [ (id, p, `Unresolvable, false) ]
                               else
                                 (match root with
                                  | None -> []
@@ -512,7 +532,7 @@ let[@warning "-32"] collect_verifier_path_violations ~file v =
                                          (verifier_path_file_part p)
                                      in
                                      if Sys.file_exists target then []
-                                     else [ (id, p, `Missing) ])
+                                     else [ (id, p, `Missing, false) ])
                           | _ -> [])
                       | _ -> [])
                     lists)
@@ -521,7 +541,7 @@ let[@warning "-32"] collect_verifier_path_violations ~file v =
       | None -> [])
   | _ -> []
 
-let[@warning "-32"] verifier_path_diagnostic (id, p, reason) =
+let[@warning "-32"] verifier_path_diagnostic (id, p, reason, _manual) =
   let code = "MC-VERIFIER-PATH-UNRESOLVED" in
   let what, severity, remedy =
     match reason with
@@ -993,7 +1013,7 @@ let validate_with_counts path =
                                     in
                                     match
                                       List.find_opt
-                        (fun (_, _, r) -> r = `Absolute)
+                        (fun (_, _, r, _) -> r = `Absolute)
                         path_violations
                                     with
                                     | Some violation ->
