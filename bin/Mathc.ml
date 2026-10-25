@@ -374,7 +374,7 @@ let[@warning "-32"] collect_verifier_scheme_diagnostics v =
                   | None -> [])
               | _ -> [])
             obls
-      | None -> []
+      | None -> [])
   | _ -> []
 
 (* --- MC-VERIFIER-PATH-UNRESOLVED ------------------------------------
@@ -460,7 +460,7 @@ let[@warning "-32"] verifier_path_file_part p =
 let[@warning "-32"] verifier_path_is_unresolvable p =
   String.exists
     (fun c ->
-      match c with '$' | '{' | '}' | '~' | '*' | '?' | '$' -> true | _ -> false)
+      match c with '$' | '{' | '}' | '~' | '*' | '?' -> true | _ -> false)
     p
 
 (* Walk every obligation's acceptance list and classify the `path:` of
@@ -504,15 +504,15 @@ let[@warning "-32"] collect_verifier_path_violations ~file v =
                               else if verifier_path_is_unresolvable p then
                                 [ (id, p, `Unresolvable) ]
                               else
-                                match root with
-                                | None -> []
-                                | Some r ->
-                                    let target =
-                                      Filename.concat r
-                                        (verifier_path_file_part p)
-                                    in
-                                    if Sys.file_exists target then []
-                                    else [ (id, p, `Missing) ]
+                                (match root with
+                                 | None -> []
+                                 | Some r ->
+                                     let target =
+                                       Filename.concat r
+                                         (verifier_path_file_part p)
+                                     in
+                                     if Sys.file_exists target then []
+                                     else [ (id, p, `Missing) ])
                           | _ -> [])
                       | _ -> [])
                     lists)
@@ -974,7 +974,7 @@ let validate_with_counts path =
                                       collect_verifier_scheme_diagnostics v
                                       @ extra_diags
                                     in
-                                    (* MC-VERIFIER-PATH-UNRESOLVED
+(* MC-VERIFIER-PATH-UNRESOLVED
                                        (decisions/verifier-path-resolution-2026-10.yaml).
                                        The rule is enforced HERE, on the
                                        raw tree, rather than in `emit`:
@@ -1012,7 +1012,7 @@ let validate_with_counts path =
                                         let extra_diags =
                                           dup_diags @ extra_diags
                                         in
-                                        `Accept (d, extra_diags)))
+                                        `Accept (d, extra_diags))
                             | None ->
                                 (* D8 (Slice A): the parser now returns a typed
                            Diagnostic.t option. When parse_decision_yaml

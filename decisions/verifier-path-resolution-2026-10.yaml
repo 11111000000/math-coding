@@ -1,0 +1,148 @@
+---
+schema: math-coding/3.3
+id: verifier-path-resolution-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/verifier-path-resolution.sh
+body_sha: "sha256:707ad3efb54e27ef636cfd5e42c30893e0c23940a674d5e6a7af79ac820fd0d2"
+yaml_sha: "sha256:707ad3efb54e27ef636cfd5e42c30893e0c23940a674d5e6a7af79ac820fd0d2"
+
+intent: { source: "issue:verifier-path-dropped-silently-2026-10-23", text: "The kernel has no representation of a verifier's evidence path. Domain.Verifier carries two fields, id and result; Decision.parse_verifier reads two keys, verifier and result. A sibling path: (or needle:) key on an acceptance item was therefore dropped at parse time with no diagnostic. schemas/common.json already forbids it - additionalProperties false, properties verifier/result/review - but nothing enforced that schema, so additionalProperties false was documentation rather than a check. Measured on this corpus on 2026-10-22: 83 acceptance items named an absolute path, 28 of them into .paseo/worktrees/math-coding/<deleted-branch>/..., and every one of them validated clean." }
+
+commitment: |
+  After this decision closes:
+
+  1. A verifier's `path:` must resolve inside the project tree that
+     contains the decision. The project root is found by walking up
+     from the VALIDATED FILE, not from the process CWD, so
+     `mathc validate ../other/decisions/x.yaml` resolves `path:`
+     against `../other`.
+  2. An ABSOLUTE path is a Block. It is wrong in every case and for
+     every reader: it names one machine's directory layout, so it
+     resolves on the author's workstation and nowhere else. There is
+     no legitimate form of it, so there is nothing to grandfather.
+  3. A relative path that does not resolve, or that carries a shell
+     metacharacter or an unexpanded variable, is a Warn. It may
+     name a build artifact absent in a fresh checkout, a generated
+     file, or a `file.ml::case` selector; rejecting on that would
+     make `mathc validate` unusable before the first build.
+  4. The diagnostic is registered, named and explainable:
+     `mathc explain-diagnostic MC-VERIFIER-PATH-UNRESOLVED`.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "The schema already forbids the key, so the parser should
+  simply reject the file." Rejected: the schema is a DOCUMENT and
+  the parser is a CODE, and only the code is enforced. Rejecting
+  every decision with a sibling `path:` would also reject the ones
+  whose path is perfectly good, and the rule that matters is the
+  one about RESOLUTION, not the one about a key's presence.
+
+  (b) "Warn on every unresolvable path, absolute or not." Rejected:
+  an absolute path has no legitimate form. Warning about it would
+  let a decision that only its author can check sit in the corpus
+  with a note attached, which is precisely the defect: a decision
+  whose check cannot be performed by any reader.
+
+antithesis: |
+  The opposite claim would be that this rule is about the wrong thing
+  entirely, and that the rule the corpus actually needs is the one
+  adoption/SKILL.md already promises - "missing fixture: a verifier
+  naming a path that does not exist" - where the VERIFIER STRING
+  names the path, not a sibling key.
+
+  The claim is right, and it is recorded here as NOT FIXED. Two
+  defects remain open, deliberately, to keep the layers separate:
+
+  1. The promise in adoption/SKILL.md and USAGE.md - a verifier
+     naming a path that does not exist is refused - is not
+     implemented. The rule fixed here is about the EVIDENCE PATH
+     named by an acceptance item. The two are different rules and
+     they are enforced by different layers: this one by the
+     validator, that one by `mathc verify` and the fixture-coverage
+     check.
+
+  2. `file-exists` and `dir-exists` resolve against the process
+     CWD, not the project root, so `mathc validate` on a decision
+     outside the current directory can accept a path that does not
+     exist in the project the decision lives in.
+
+  And one more, found while measuring: `shell-grep` is in the
+  canonical scheme allowlist (bin/Mathc.ml) but NOT in the
+  `mathc verify` executor, so a `shell-grep` verifier reports
+  `Skipped` and exits 0. The corpus carried 44 of them before the
+  migration in decisions/verifier-honesty-migration-2026-10.yaml;
+  after it, none.
+
+outcomes:
+  - id: an-unresolvable-path-is-a-verdict
+    statement: |
+      A verifier path that cannot be resolved produces a verdict:
+      Block when absolute, Warn when relative and missing.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/diagnostic.ml"
+    - "tests/fixtures/verifier-path-resolution.sh"
+    - "decisions/verifier-path-resolution-2026-10.yaml"
+    - "attestations/verifier-path-resolution-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/decision.ml"
+    - "lib/domain.ml"
+
+obligations:
+  - id: absolute-path-is-blocked
+    claim: |
+      A decision whose acceptance item carries an absolute `path:`
+      is rejected with MC-VERIFIER-PATH-UNRESOLVED at severity block.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verifier-path-resolution.sh
+          result: pass
+
+  - id: missing-relative-path-is-a-warning
+    claim: |
+      A relative `path:` that does not resolve under the project
+      root leaves the verdict parse-ok and reports the gap as a
+      warning.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verifier-path-resolution.sh
+          result: pass
+
+  - id: the-diagnostic-is-explainable
+    claim: |
+      `mathc explain-diagnostic MC-VERIFIER-PATH-UNRESOLVED` returns
+      the definition, when it occurs and the remediation.
+    acceptance:
+      all:
+        - verifier: manual-verifier-path-diagnostic-explainable
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a decision names an evidence path outside the project tree"
+
+assumptions:
+  - id: the-path-key-is-rare
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A `path:` key on an acceptance item is not part of the schema
+      and is therefore rare; the corpus carried 83 of them before
+      the migration and none after.
+    consequence_if_false: |
+      If the corpus starts using `path:` widely, the rule has become
+      a de-facto schema and should be promoted into
+      schemas/common.json rather than diagnosed.

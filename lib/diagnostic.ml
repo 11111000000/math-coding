@@ -638,6 +638,42 @@ let mc_body_sha_pattern_violation ?(decision_id = "") ~field ~value
    The `obligation_id` and `scheme` parameters are
    interpolated into the message and the path; the diagnostic
    is registered in `lib/diagnostic.ml::explain`. *)
+(* MC-VERIFIER-PATH-UNRESOLVED: a verifier's evidence path does not
+   resolve inside the project tree that contains the decision.
+   *
+   * An ABSOLUTE path is wrong in every case - it is pinned to one
+   * machine's directory layout, so it resolves on the author's
+   * workstation and nowhere else - and is therefore a Block. A
+   * relative path that does not resolve is not necessarily an error:
+   * it may name a build artifact, a generated file, or a case
+   * selector, so it is a Warn that makes the gap visible.
+   *
+   * The schema forbids a sibling `path:` key on an acceptance item
+   * (schemas/common.json: additionalProperties false, properties
+   * verifier/result/review), but nothing enforced it: the parser
+   * dropped the key silently. This turns the silent drop into a
+   * verdict. *)
+let mc_verifier_path_unresolved ?(obligation_id = "") ?(path = "")
+    ?(reason = "does not resolve") ?(next_actions = []) () =
+  let code = "MC-VERIFIER-PATH-UNRESOLVED" in
+  let what =
+    Printf.sprintf "obligation %s: verifier path %s %s" obligation_id path reason
+  in
+  let default_actions =
+    [
+      ("edit", "make the path project-relative, or drop the key");
+      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc explain-diagnostic " ^ code);
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code ~kind:Input ~severity:Warn
+    ~path:[ Printf.sprintf "obligations.%s.acceptance.path" obligation_id ]
+    ~policy_rule:(Some "decisions/verifier-path-resolution-2026-10.yaml")
+    ~next_actions:actions what
+
 let mc_verifier_scheme_unknown ?(obligation_id = "") ?(scheme = "")
     ?(verifier = "") ?(next_actions = []) () =
   let code = "MC-VERIFIER-SCHEME-UNKNOWN" in
@@ -1121,6 +1157,21 @@ let explain (code : string) : string option =
          Add `negative_control: <path to a fixture>` naming the fixture\n\
          that demonstrates the verifier FAILS when the property it\n\
          guards is broken. A check that cannot fail is not a check.\n"
+  | "MC-VERIFIER-PATH-UNRESOLVED" ->
+      Some
+        "### Definition\n\
+         A verifier's evidence path does not resolve inside the project\n\
+         tree that contains the decision.\n\n\
+         ### Occurs when\n\
+         `mathc validate` walks the decision's acceptance items and finds\n\
+         a `path:` key that is absolute, or that names a file which does\n\
+         not exist under the project root. The schema forbids the key\n\
+         outright (schemas/common.json), but the parser used to drop it\n\
+         silently - so the obligation's recorded result was unbacked and\n\
+         nothing said so.\n\n\
+         ### Remediation\n\
+         Make the path project-relative and resolvable, or drop the key\n\
+         when the obligation has no in-tree subject.\n"
   | "MC-VERIFIER-SCHEME-UNKNOWN" ->
       Some
         "### Definition\n\
