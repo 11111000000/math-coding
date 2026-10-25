@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: editorial
 
-body_sha: "sha256:523e3965fe74f171dbea3e3bf2f62774cd44a89432c9b45c5713883aaafbf7ad"
-yaml_sha: "sha256:523e3965fe74f171dbea3e3bf2f62774cd44a89432c9b45c5713883aaafbf7ad"
+body_sha: "sha256:dfd9e3f7470dbc63d7c8d426e984644767cc6d43b765f96729e851687ce4d0d1"
+yaml_sha: "sha256:dfd9e3f7470dbc63d7c8d426e984644767cc6d43b765f96729e851687ce4d0d1"
 
 intent: |
   Flip the default install channel from the rolling prerelease
@@ -300,11 +300,11 @@ obligations:
       opt-in remains a documented, supported path.
     acceptance:
       all:
-        - verifier: file-exists decisions/install-tooling-default-tag-stable.yaml
+        - verifier: file-exists decisions/install-tooling-default-tag-stable-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/install-tooling-default-tag-stable-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still
+        - verifier: mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml
           result: pass
         - verifier: manual-grep-mc-version-default-latest-scripts-install-t
           result: pass

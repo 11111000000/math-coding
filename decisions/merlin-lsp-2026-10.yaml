@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: merlin-lsp-2026-10
 revision: 1
 state: active
-body_sha: "sha256:323e109edbdd1d5fa949521914c98159666df3cf9f92d38f71e065614d389afd"
-yaml_sha: "sha256:323e109edbdd1d5fa949521914c98159666df3cf9f92d38f71e065614d389afd"
+body_sha: "sha256:5600f3ca7dcba22908c0dc69085cd108d3de2c523f39067b632a1f2689f3a217"
+yaml_sha: "sha256:5600f3ca7dcba22908c0dc69085cd108d3de2c523f39067b632a1f2689f3a217"
 intent: |
   Wire OCaml IDE tooling (LSP / merlin) into the math-coding
   development loop so human editors (VSCode ocaml-platform,
@@ -176,7 +176,7 @@ obligations:
       `repo_structure` with zero failures.
     acceptance:
       all:
-        - verifier: scripts/dev
+        - verifier: dune test --root . tests/qcheck_parsers.exe tests/repo_structure.exe tests/traps.exe
           result: pass
 
 assumptions:

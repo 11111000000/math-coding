@@ -3,8 +3,6 @@ schema: math-coding/3.2
 id: spec-cli-catalog
 revision: 2
 state: active
-body_sha: "sha256:4bcaaaf2f9bfa0c1b71db0cb3e1629d25eccc8217e1e07a28494afd20e127292"
-yaml_sha: "sha256:4bcaaaf2f9bfa0c1b71db0cb3e1629d25eccc8217e1e07a28494afd20e127292"
 intent: |
   Close the docs/AUDIT-0.0.11.md "Promote `mathc validate`, `mathc
   context`, `mathc assess`, `mathc attest` in `spec/semantics.md`" gap
@@ -203,7 +201,7 @@ obligations:
       depend on it.
     acceptance:
       all:
-        - verifier: dune build @tests/repo_structure/runtest --root .
+        - verifier: dune test --root . tests/repo_structure.exe
           result: pass
 
   - id: spec-catalog-fixture-implemented
@@ -218,7 +216,7 @@ obligations:
       obligation spec-cli-catalog-promoted.
     acceptance:
       all:
-        - verifier: dune build @tests/repo_structure/runtest --root .
+        - verifier: dune test --root . tests/repo_structure.exe
           result: pass
 
 reversal:

@@ -1,0 +1,168 @@
+---
+schema: math-coding/3.3
+id: unmet-obligations-inventory-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/unmet-obligations-are-inventoried.sh
+body_sha: "sha256:6b23f2f058df6e978cf39ea6ad7fbf0dd5d5b54ecd42b7f1f4b00ab16c8de9f7"
+yaml_sha: "sha256:6b23f2f058df6e978cf39ea6ad7fbf0dd5d5b54ecd42b7f1f4b00ab16c8de9f7"
+
+intent: { source: "issue:the-resigning-refuses-to-sign-30-obligations-and-does-not-say-why-2026-10-25", text: "On 2026-10-25 the corpus's re-signing left 30 obligations unsigned: `mathc attest-batch --run-per-obligation` refuses to write an attestation for an obligation whose check FAILED, and says only `NOT signing <decision>/<obligation> - its verifier failed`. It does not say WHICH verifier failed, nor what the verifier printed. An obligation may name several verifiers and the failure may be in any of them, so the repair had to be re-derived by hand, one obligation at a time. (It was 110 until the same day: sixteen decisions carried an id that differs from their file name, the kernel could not find them, and it reported \"the decision I was asked about does not exist\" as \"the check failed\". That is fixed; these 30 are the real ones.)" }
+
+commitment: |
+  After this decision closes:
+
+  1. The inventory is COMPLETE. Every obligation the re-signing refused to
+     sign appears in docs/unmet-obligations-2026-10.md EXACTLY ONCE, with a
+     verdict and a recommendation. A report that silently omits the hard
+     cases is worse than no report, because it reads as "done".
+
+  2. Each entry carries the EVIDENCE, not the word "failed": the sandbox
+     output the verifier printed during the re-signing, and the output it
+     prints when it is re-run now.
+
+  3. Each entry carries a RECOMMENDATION from a closed set of four -
+     fix-the-verifier, needs-a-toolchain, declare-it-manual, investigate -
+     and for fix-the-verifier it names the RIGHT TARGET.
+
+  4. The RULE this establishes: AN UNSIGNED OBLIGATION IS A GAP, NOT A PASS.
+     The kernel writes no attestation for it, so the corpus claims nothing
+     about it. The count of unsigned obligations is a number of GAPS, and
+     an inventory that hides a gap is worse than a corpus that has one.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "Close the decision by re-signing: the failures are transient, so a
+  fresh sweep will sign them and there is nothing to inventory."
+  Rejected on the measurement: a fresh sweep over the tree the sweep ran
+  on reproduces them. The store the legacy-debt fixture measures held 293
+  attestations saying `inconclusive` against a ceiling of 30, and the
+  sweep's own writes are what brought it down to 24 - the check read the
+  repair in progress. A re-signing that passes because the tree moved is
+  not a diagnosis, and a corpus whose failures are transient still has
+  30 unverified obligations at any instant.
+
+  (b) "Record the failures as prose in the decision and move on; a machine
+  -readable inventory is over-engineering for 30 items."
+  Rejected on the shape of the failures: the thirty are not thirty of the
+  same thing. They are 15 wrong targets (a dune alias that names a
+  directory which does not exist, an Alcotest selector that names a case
+  where the selector wants a group, a decision file named by an id that
+  differs from its file name, an English annotation passed as an
+  argument), 14 that need a human, and 1 that is a manual declaration by
+  construction. A paragraph cannot carry a per-item verdict, and a
+  paragraph that says "several obligations have wrong targets" does not
+  say WHICH, so it cannot be worked through.
+
+antithesis: |
+  The opposite claim is that the inventory is not needed at all: the
+  re-signing's refusal is already the report. `NOT signing
+  <decision>/<obligation>` names the obligation, and the operator can run
+  `mathc verify` on it.
+
+  The claim has real force, and it identifies what the kernel is already
+  good at: it refuses, it names the subject, and it never writes a
+  signature for a check that did not pass. That is the behaviour this
+  decision depends on.
+
+  But the refusal is a STATEMENT, not a DIAGNOSIS. It says the check
+  failed; it does not say which verifier of the five failed, what that
+  verifier printed, whether the failure still reproduces, or whether the
+  target it names exists. Thirty refusals read as thirty identical
+  failures, and the natural - wrong - conclusion is that the corpus is
+  broken in thirty places of one kind. It is not: the thirty are
+  sixteen kinds of thing, and only a per-obligation, per-verifier
+  evaluation tells them apart. The refusal is what makes the inventory
+  necessary, not an alternative to it.
+
+outcomes:
+  - id: the-inventory-is-complete
+    statement: |
+      Every obligation the re-signing refused to sign appears in the
+      inventory exactly once, with a verdict and a recommendation.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/unmet-obligations-are-inventoried.sh
+          result: pass
+
+  - id: the-completeness-check-is-live
+    statement: |
+      The completeness check DETECTS a missing entry: removing one entry
+      from the inventory makes it fail.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/unmet-obligations-are-inventoried.sh
+          result: pass
+
+scope:
+  paths:
+    - "scripts/report-unmet-obligations.py"
+    - "tests/fixtures/unmet-obligations-are-inventoried.sh"
+    - "docs/unmet-obligations-2026-10.md"
+    - "decisions/unmet-obligations-inventory-2026-10.yaml"
+    - "sign-store-sweep.log"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: the-inventory-covers-every-unsigned-obligation
+    claim: |
+      Every obligation the re-signing refused to sign - the 30 named in
+      sign-store-sweep.log - appears in docs/unmet-obligations-2026-10.md
+      exactly once, with a verdict and a recommendation drawn from
+      {fix-the-verifier, needs-a-toolchain, declare-it-manual, investigate}.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/unmet-obligations-are-inventoried.sh
+          result: pass
+
+  - id: the-count-and-the-breakdown-are-recorded
+    claim: |
+      The inventory records the number of unsigned obligations (30) and
+      the breakdown by recommendation (fix-the-verifier 15,
+      needs-a-toolchain 0, declare-it-manual 1, investigate 14), and states
+      the METHOD - how every verifier was evaluated - so a reader can
+      reproduce it.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/unmet-obligations-are-inventoried.sh
+          result: pass
+
+  - id: an-unsigned-obligation-is-a-gap
+    claim: |
+      The inventory states the rule: an unsigned obligation is a GAP, not a
+      pass. The kernel writes no attestation for it, so the corpus claims
+      nothing about it, and the count of unsigned obligations is a count of
+      gaps.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/unmet-obligations-are-inventoried.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a re-signing leaves an obligation unsigned that the inventory does not name"
+    - "the sweep log is regenerated and the inventory no longer matches it"
+
+assumptions:
+  - id: the-sweep-log-is-the-census
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The sweep log (sign-store-sweep.log, written by scripts/sign-store.sh
+      with --keep-log) names every obligation the re-signing refused to
+      sign, once each.
+    consequence_if_false: |
+      An unsigned obligation that the log does not name would be absent
+      from the inventory, and the inventory would read as complete when it
+      is not. The fixture checks the inventory against the LOG, so it
+      fails as soon as the log names an obligation the inventory does not;
+      it cannot detect an obligation the log itself omits.
