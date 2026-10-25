@@ -834,6 +834,15 @@ def main():
     ap.add_argument("--bin", default=None)
     ap.add_argument("--out-json", default=None)
     ap.add_argument("--out-md", default=None)
+    ap.add_argument(
+        "--out-set",
+        default=None,
+        help="where to write the list of unsigned obligations, one per "
+        "line. This is the SMALL, TRACKED artefact the completeness "
+        "check compares the report against: the sweep log itself is a "
+        "per-run artefact of twelve thousand lines, and a fixture "
+        "that depends on it cannot run in a clean checkout.",
+    )
     ap.add_argument("--limit", type=int, default=0)
     ap.add_argument("--no-probe", action="store_true")
     args = ap.parse_args()
@@ -988,7 +997,12 @@ def main():
         with open(args.out_md, "w", encoding="utf-8") as fh:
             fh.write(render_markdown(out, args.log))
         print("wrote %s" % args.out_md, file=sys.stderr)
-    if not args.out_json and not args.out_md:
+    if args.out_set:
+        with open(args.out_set, "w", encoding="utf-8") as fh:
+            for o in obligations:
+                fh.write("%s/%s\n" % (o["decision"], o["obligation"]))
+        print("wrote %s" % args.out_set, file=sys.stderr)
+    if not args.out_json and not args.out_md and not args.out_set:
         print(json.dumps(out, indent=2, sort_keys=True))
     return 0
 

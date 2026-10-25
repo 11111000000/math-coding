@@ -26,7 +26,16 @@ set -uo pipefail
 cd "$(dirname "$0")/../.."
 
 REPORT="docs/unmet-obligations-2026-10.md"
-LOG="sign-store-sweep.log"
+# The set of unsigned obligations, as a SMALL TRACKED artefact.
+#
+# It used to be the sweep log, which is a per-run artefact of twelve
+# thousand lines that is rewritten by every signing - so a fixture
+# that depended on it could not run in a clean checkout, and the
+# signing itself refuses to run on a dirty tree, which means the log
+# cannot simply be tracked either. The set is fourteen lines, it is
+# regenerated with the report, and it is what the completeness claim
+# is actually about.
+SET="docs/unmet-obligations-2026-10.txt"
 DECISION="decisions/unmet-obligations-inventory-2026-10.yaml"
 
 RECOMMENDATIONS="fix-the-verifier needs-a-toolchain declare-it-manual investigate"
@@ -38,7 +47,7 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 
-for f in "$REPORT" "$LOG" "$DECISION"; do
+for f in "$REPORT" "$SET" "$DECISION"; do
   if [ ! -f "$f" ]; then
     bad "the fixture cannot run: $f is missing"
     echo
@@ -62,11 +71,11 @@ problems = []
 # --- the census: the obligations the kernel refused to sign ---------------
 unsigned = []
 for line in open(log_path, encoding="utf-8", errors="replace"):
-    m = re.search(r"NOT signing (\S+)/(\S+)", line)
-    if m:
-        pair = "%s/%s" % (m.group(1), m.group(2))
-        if pair not in unsigned:
-            unsigned.append(pair)
+    line = line.strip()
+    if not line or line.startswith("#"):
+        continue
+    if line not in unsigned:
+        unsigned.append(line)
 if not unsigned:
     problems.append("the sweep log names no unsigned obligation at all")
 
@@ -123,7 +132,7 @@ PY
 }
 
 # --- 1. the inventory is complete -----------------------------------------
-if out="$(check_inventory "$REPORT" "$LOG" 2>&1)"; then
+if out="$(check_inventory "$REPORT" "$SET" 2>&1)"; then
   ok "the inventory covers every obligation the sweep refused to sign: ${out#  }"
 else
   bad "the inventory does not cover every unsigned obligation:"
@@ -170,7 +179,7 @@ end = m.end() + (nxt.start() if nxt else len(text) - m.end())
 open(dst, "w", encoding="utf-8").write(text[:m.start()] + text[end:])
 PY
 
-if check_inventory "$work/doctored.md" "$LOG" >/dev/null 2>&1; then
+if check_inventory "$work/doctored.md" "$SET" >/dev/null 2>&1; then
   bad "the completeness check cannot detect a missing entry — it is vacuous"
 else
   ok "the completeness check DETECTS an inventory with one entry removed"
@@ -186,7 +195,7 @@ text = re.sub(r"^- verdict: `[^`]*`", "- verdict: ``", text, count=1, flags=re.M
 open(dst, "w", encoding="utf-8").write(text)
 PY
 
-if check_inventory "$work/no-verdict.md" "$LOG" >/dev/null 2>&1; then
+if check_inventory "$work/no-verdict.md" "$SET" >/dev/null 2>&1; then
   bad "the completeness check cannot detect an entry with no verdict"
 else
   ok "the completeness check DETECTS an entry with no verdict"
