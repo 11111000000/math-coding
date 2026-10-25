@@ -1,0 +1,168 @@
+---
+schema: math-coding/3.3
+id: executed-evidence-census-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/executed-evidence-census.sh
+body_sha: "sha256:c7df29cbf5aee40c2c550d6770cd04eb973cb963bf8314cc6fa683b838fa8e0f"
+yaml_sha: "sha256:c7df29cbf5aee40c2c550d6770cd04eb973cb963bf8314cc6fa683b838fa8e0f"
+
+intent:
+  source: "issue:the-store-claims-passes-nobody-checked-2026-10-25"
+  text: |
+    The attestation store grew from 68 files to 894 in four weeks. The
+    debt fixture counts the legacy attestations - the ones with an empty
+    materials_digest - and that debt was paid: 760 became 22, and then
+    894 attestations carry a real digest bound to a tree. What the debt
+    fixture does NOT count is what the re-signing bought with that
+    digest. Measured on 2026-10-25 at v3.7.2: 880 of the 894
+    attestations are runtime-kind and name no producer.run, so nothing
+    in them says what was executed; 364 of them record `result: pass`
+    for an obligation whose declared verifier the kernel cannot execute
+    at all - a `manual:` declaration, a `text-scan:` label, or a bare
+    slug that names no command; and 6 attestations name an obligation
+    the corpus does not have. The kernel answers `declared` for such
+    an obligation (bin/Mathc.ml: `Manual_decl`) and the honest answer
+    for a check nobody performed is `unknown`. But
+    `mathc attest-batch --run-per-obligation` maps `Manual_decl` to the
+    string "pass", so the store now carries machine-grade passes for
+    checks that were never run. The legacy debt fell because the number
+    was measured by a field the re-signing could fill, not by the thing
+    the debt was about. Nothing in the repository names the number that
+    would have caught that.
+
+commitment: |
+  After this decision closes:
+
+  1. The store is censused by a fixture, not by prose: how many
+     runtime attestations name no run, how many passes cover an
+     obligation the kernel cannot execute, and how many attestations
+     name an obligation the corpus does not have.
+  2. Each number is a CEILING. It may fall; it may never rise. A
+     fixture that only counted them would let them grow silently,
+     which is how 68 became 894 without anything saying so.
+  3. The fixture has a negative control: the same measurement against
+     a deliberately inflated store must be reported as over its
+     ceiling. A bound that has never been observed to bind is not
+     known to bind.
+  4. The census measures the DECLARED verifier of each obligation, read
+     from the decision corpus, and the store's own files. It does not
+     depend on the shape of a CLI's output format, and it counts the
+     whole tracked store - including the attestations of superseded and
+     retired decisions, which the gate no longer walks but which still
+     claim a pass.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+counterexample: |
+  (a) "The debt fixture already measures this - it has a third ceiling
+  for inconclusive attestations." Rejected: it counts attestations that
+  SAY inconclusive. The defect is the opposite: the attestations that
+  should say inconclusive say pass, because
+  `attest-batch --run-per-obligation` maps `Manual_decl` to "pass". The
+  fixture's own comment states the truth - "the gate reports them as
+  unknown, which is the truth" - and the kernel contradicts it. The
+  census measures the population the kernel is currently misreporting;
+  the debt fixture will measure it correctly once the kernel stops
+  lying, at which point the two meet and one of them can be retired.
+
+  (b) "Report the numbers in a decision and leave it at that."
+  Rejected: the legacy debt is what happened when a number lived only
+  in prose. It was re-described eleven times and paid once, when a
+  fixture made it countable. A census that is not a ceiling is a
+  census that becomes history.
+
+antithesis: |
+  The opposite claim would be that the store is fine, because the
+  attestation schema, the freshness check and the semantic-A digest
+  all work as designed: every runtime attestation now carries a
+  materials_digest that binds it to a tree, so a change to the tree
+  invalidates it, and `mathc gate` reports real failures - 86 of them
+  at the time of writing.
+
+  The claim is right about the failures, and it is exactly what makes
+  the census necessary. The 86 failures are the part of the corpus that
+  a machine can check. The other 364 passes are the part nobody can
+  check, and they are indistinguishable in the store from the 86: same
+  schema, same kind_, same digest, same producer. Freshness says the
+  claim is bound to a tree. It does not say the tree was looked at. The
+  two properties are independent, and the store only carries one of
+  them.
+
+outcomes:
+  - id: the-unexecuted-population-is-numbered
+    statement: |
+      A fixture reports how many passes in the store cover obligations
+      the kernel cannot execute, and pins that number as a ceiling.
+
+  - id: the-orphaned-attestations-are-numbered
+    statement: |
+      A fixture reports how many attestations name an obligation the
+      corpus does not have, and pins that number as a ceiling.
+
+scope:
+  paths:
+    - "tests/fixtures/executed-evidence-census.sh"
+    - "decisions/executed-evidence-census-2026-10.yaml"
+    - "attestations/executed-evidence-census-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+    - "bin/**"
+
+obligations:
+  - id: the-census-is-a-fixture
+    claim: |
+      `tests/fixtures/executed-evidence-census.sh` measures the three
+      numbers and fails when any of them exceeds its ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/executed-evidence-census.sh
+          result: pass
+
+  - id: the-ceilings-have-teeth
+    claim: |
+      The same measurement against a deliberately inflated store is
+      reported as over the ceiling, so the bound is known to bind.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/executed-evidence-census.sh
+          result: pass
+
+  - id: the-orphans-are-counted
+    claim: |
+      Every tracked attestation whose obligation the corpus does not
+      have is counted, and the count is bounded by a ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/executed-evidence-census.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a new decision adds an obligation whose verifier is a declaration"
+
+assumptions:
+  - id: the-declaration-is-the-authority
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The verifier an obligation DECLARES is the authority on what was
+      checked for it. The kernel's `mathc packages` view shows one
+      verifier per obligation, and for at least one obligation in the
+      corpus it shows a verifier that the decision does not declare
+      (`cram-fixtures-migrated-to-parse-ok` is shown with
+      `mathc verify --help`, which its decision file does not mention).
+      The census therefore reads the decision corpus, not the package
+      view.
+    consequence_if_false: |
+      If the kernel's view is the authority, the census measures a
+      different corpus than the gate and its ceiling is the wrong
+      number. The fixture would then have to read the package view
+      instead, and the leak above would have to be fixed first.
