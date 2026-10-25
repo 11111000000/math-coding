@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: kernel-conformance-runner
 revision: 2
 state: active
-body_sha: "sha256:57472b9c71cd3f2d9d436b1c750eb03764720a8cc0a933f8651a61eade589313"
-yaml_sha: "sha256:57472b9c71cd3f2d9d436b1c750eb03764720a8cc0a933f8651a61eade589313"
+body_sha: "sha256:daddd2ca75cc973e9a55d7d3fca083aa15b83e200d3da171f922263b7399be98"
+yaml_sha: "sha256:daddd2ca75cc973e9a55d7d3fca083aa15b83e200d3da171f922263b7399be98"
 intent: |
   Replace the ad-hoc `tests/conformance.ml.disabled` with a working
   conformance runner that walks fixtures/conformance/, exercises both
@@ -93,7 +93,7 @@ obligations:
       (decision/attestation), and dispatches to the appropriate parser.
     acceptance:
       all:
-        - verifier: dune build @tests/repo_structure/runtest --root .
+        - verifier: dune test --root . tests/conformance.exe
           result: pass
 
   - id: parse-positive-and-negative-decision
@@ -104,7 +104,7 @@ obligations:
       fixture parses to None or fails on a specific parse_error path.
     acceptance:
       all:
-        - verifier: dune build @tests/conformance/runtest --root .
+        - verifier: dune test --root . tests/conformance.exe
           result: pass
 
   - id: wire-conformance-into-dune-test
@@ -127,7 +127,7 @@ obligations:
       the parser gap, rather than silently passing or hard-failing.
     acceptance:
       all:
-        - verifier: dune build @tests/conformance/runtest --root .
+        - verifier: dune test --root . tests/conformance.exe
           result: pass
 
 reversal:

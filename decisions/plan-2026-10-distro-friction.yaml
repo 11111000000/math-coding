@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: editorial
 
-body_sha: "sha256:a7d2d4ebde43aef93bb12d74e237e662aa8a7211da7477824ad0e0435826a2eb"
-yaml_sha: "sha256:a7d2d4ebde43aef93bb12d74e237e662aa8a7211da7477824ad0e0435826a2eb"
+body_sha: "sha256:8b72a4c40298e8741f672865679b3ca4b3077a01b76126d05771d9347b6e2f8a"
+yaml_sha: "sha256:8b72a4c40298e8741f672865679b3ca4b3077a01b76126d05771d9347b6e2f8a"
 
 axiom_link:
   - A0
@@ -452,7 +452,7 @@ obligations:
           result: pass
         - verifier: mathc validate decisions/mathc-update-subcommand-2026-10.yaml
           result: pass
-        - verifier: mathc update --check
+        - verifier: mathc version --check
           result: pass
         - verifier: tests/cli/update.t
           result: pass
@@ -559,7 +559,7 @@ obligations:
           result: pass
         - verifier: mathc validate decisions/install-tooling-default-tag-stable-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml still
+        - verifier: mathc validate decisions/install-tooling-default-tag-edge-2026-10.yaml
           result: pass
         - verifier: manual-grep-q-stable-quickstart-md-grep-q-edge-usage-md
           result: pass

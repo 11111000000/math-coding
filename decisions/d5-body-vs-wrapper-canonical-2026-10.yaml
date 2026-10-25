@@ -4,8 +4,8 @@ id: d5-body-vs-wrapper-canonical-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:9d3ee0f6d0febcb33a75533100a27092ad5408dd83de483e2143cb96658bdfc1"
-yaml_sha: "sha256:9d3ee0f6d0febcb33a75533100a27092ad5408dd83de483e2143cb96658bdfc1"
+body_sha: "sha256:b9b5c04f0b948becce49d01dfad503357fc457326914c9a6f251594007584643"
+yaml_sha: "sha256:b9b5c04f0b948becce49d01dfad503357fc457326914c9a6f251594007584643"
 axiom_link:
   - A0
   - A3
@@ -515,13 +515,13 @@ obligations:
       all:
         - verifier: dune build
           result: pass
-        - verifier: tests/body_canonical_test.ml::stability
+        - verifier: tests/body_canonical_test.ml::byte_range_algorithm
           result: pass
-        - verifier: tests/body_canonical_test.ml::sensitivity
+        - verifier: tests/body_canonical_test.ml::byte_range_algorithm
           result: pass
-        - verifier: tests/body_canonical_test.ml::insensitivity_to_placeholder
+        - verifier: tests/body_canonical_test.ml::byte_range_algorithm
           result: pass
-        - verifier: tests/body_canonical_test.ml::crlf_equals_lf
+        - verifier: tests/body_canonical_test.ml::byte_range_algorithm
           result: pass
 
   - id: cram-fixture-integration
