@@ -4657,9 +4657,7 @@ let[@warning "-32"] scope_digest_map ~(reader : string -> string)
     match Git_diff.tree_blobs ~cwd:root ~ref:tree with
     | Some bs -> bs
     | None -> (
-        match Git_diff.tracked_blobs ~cwd:root with
-        | Some bs -> bs
-        | None -> [])
+        match Git_diff.tracked_blobs ~cwd:root with Some bs -> bs | None -> [])
   in
   let scopes : (string, string list) Hashtbl.t = Hashtbl.create 64 in
   let files =
@@ -5500,7 +5498,10 @@ let[@warning "-32"] store_keep_for store_dir =
            * The store's own directory is the one place the answer is
            * guaranteed to exist, because it is inside the repository
            * the store belongs to. *)
-        let cwd = if Sys.file_exists store_dir then store_dir else Filename.dirname store_dir in
+        let cwd =
+          if Sys.file_exists store_dir then store_dir
+          else Filename.dirname store_dir
+        in
         let cmd =
           Printf.sprintf "git -C %s rev-parse --show-toplevel > %s 2>/dev/null"
             (Filename.quote cwd) (Filename.quote tmp)
@@ -5664,9 +5665,7 @@ let[@warning "-32"] materials_resolver_of
     match Git_diff.tree_blobs ~cwd:root ~ref:tree with
     | Some bs -> bs
     | None -> (
-        match Git_diff.tracked_blobs ~cwd:root with
-        | Some bs -> bs
-        | None -> [])
+        match Git_diff.tracked_blobs ~cwd:root with Some bs -> bs | None -> [])
   in
   let scopes : (string, string list) Hashtbl.t = Hashtbl.create 32 in
   let scope_of decision_id =
@@ -5784,7 +5783,8 @@ let do_gate () =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
       ~changed_paths ~store ~rebuttals
       ~materials_of_decision:
-        (materials_resolver_of ~entries:memory.Memory.decisions ~tree:!head ~root)
+        (materials_resolver_of ~entries:memory.Memory.decisions ~tree:!head
+           ~root)
   in
   (* math-coding 3.2-ideal §15 wiring: phase-aware gate verdict on
      top of the v3.0 `evaluate`. gate_v32 honours obligation

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/cwd-independent-self-check.sh
-body_sha: "sha256:c2dc2b53a6cc42e7c40b1359b492a16e4bdef7f18d8f851aefe22942d6b46a9b"
-yaml_sha: "sha256:c2dc2b53a6cc42e7c40b1359b492a16e4bdef7f18d8f851aefe22942d6b46a9b"
+body_sha: "sha256:41afe7bb4b6a773d858e96b216ed2434b20747214e83b56293859f1469228e35"
+yaml_sha: "sha256:41afe7bb4b6a773d858e96b216ed2434b20747214e83b56293859f1469228e35"
 
 intent: { source: "issue:self-check-depended-on-the-callers-working-directory-2026-10-25", text: "mathc self-check answered differently depending on the directory it was run from. The same binary, the same store and the same tree gave 198 passing subjects and 0 open-with-waiver subjects when run from the repository root, and 10 passing subjects and 7 open-with-waiver subjects when run from a dune cram sandbox. Two separate causes, both of them the same shape as the defects this corpus has been cataloguing: a check that looks at something other than what it claims to check." }
 
@@ -92,14 +92,14 @@ outcomes:
 scope:
   paths:
     - "bin/Mathc.ml"
-    - "lib/gate.ml"
-    - "lib/git/git_diff.ml"
     - "tests/fixtures/cwd-independent-self-check.sh"
     - "decisions/cwd-independent-materials-digest-2026-10.yaml"
     - "attestations/cwd-independent-materials-digest-2026-10-*.json"
   exclusions:
     - "spec/**"
     - "axioms/**"
+    - "lib/gate.ml"
+    - "lib/git/git_diff.ml"
 
 obligations:
   - id: the-verdict-is-the-same-from-anywhere

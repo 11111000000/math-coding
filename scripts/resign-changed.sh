@@ -85,6 +85,8 @@ affected="$("$BIN" attest-batch --from=decisions --only-changed="$BASE" \
            | python3 -c '
 import sys, json
 ids = []
+skipped = 0
+skipped = 0
 for line in sys.stdin:
     line = line.strip()
     if not line.startswith("{"):
@@ -93,9 +95,22 @@ for line in sys.stdin:
         d = json.loads(line)
     except Exception:
         continue
-    dec = d["subject"]["decision"]
+    # A line without a "subject" is not an attestation - the kernel
+    # also prints a summary object with counts. Skipping it is right.
+    # Indexing it blindly was not: one such line raised KeyError,
+    # which killed the WHOLE parse, so the affected set came out
+    # empty and the tool reported "no decision scope intersects the
+    # change - nothing to re-sign". A tool that cannot read the list
+    # must not claim the list is empty.
+    try:
+        dec = d["subject"]["decision"]
+    except (KeyError, TypeError):
+        skipped += 1
+        continue
     if dec not in ids:
         ids.append(dec)
+if skipped:
+    sys.stderr.write("resign-changed: %d kernel output line(s) carried no subject and were skipped\n" % skipped)
 print(" ".join(ids))
 ')"
 
