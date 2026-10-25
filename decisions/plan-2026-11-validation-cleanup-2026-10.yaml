@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:bebe2aefc1b2a3a5d9a044325ee6aedaa4467562b158d02778a0d280fd855333"
-yaml_sha: "sha256:bebe2aefc1b2a3a5d9a044325ee6aedaa4467562b158d02778a0d280fd855333"
+body_sha: "sha256:407a23edce52e971e9515aa56deb0a5e843d5cbd97562c7b7632628429f0fa01"
+yaml_sha: "sha256:407a23edce52e971e9515aa56deb0a5e843d5cbd97562c7b7632628429f0fa01"
 
 intent: |
   Close the 35 pre-existing `mathc validate` rejections that were
@@ -117,7 +117,8 @@ scope:
     - "decisions/mathc-self-check-subcommand.yaml"
     - "decisions/yaml-block-scalars.yaml"
     - "attestations/audit-cleanup-2026-10-w*.json"
-    - "scripts/recompute-decision-sha.py"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   scripts/recompute-decision-sha.py - no tracked file matches it
   exclusions:
     - "lib/decision.ml"
     - "lib/diagnostic.ml"

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: audit-0.0.21-fixes-self-check-waiver-2026-10
 revision: 2
 state: active
-body_sha: "sha256:e29ac0f9db86515e19642afd07dd0e4780d25a30bd5f4bac2476f24c3758f70c"
-yaml_sha: "sha256:e29ac0f9db86515e19642afd07dd0e4780d25a30bd5f4bac2476f24c3758f70c"
+body_sha: "sha256:3d49cc9df879e9deaac15d0b179ad9fa166c68ae8d6904d1c32ecad9c2cb0935"
+yaml_sha: "sha256:3d49cc9df879e9deaac15d0b179ad9fa166c68ae8d6904d1c32ecad9c2cb0935"
 intent: |
   Record the structural deficit that prevents
   `decisions/audit-0.0.21-fixes.yaml` obligation
@@ -80,8 +80,9 @@ scope:
   capabilities: []
   paths:
     - "attestations/audit-0.0.21-fixes-*.json"
-    - "decisions/audit-0.0.21-fixes.yaml"  # read-only reference
-    - "decisions/portable-linux-musl.yaml"  # read-only reference
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "decisions/audit-0.0.21-fixes.yaml"  # read-only reference - malformed: a comment inside the quoted path
+  #   "decisions/portable-linux-musl.yaml"  # read-only reference - malformed: a comment inside the quoted path
   exclusions:
     - "lib/**"
     - "bin/**"

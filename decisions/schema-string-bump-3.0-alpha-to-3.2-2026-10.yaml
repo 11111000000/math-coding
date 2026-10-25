@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.2
 revision: 1
 state: active
-body_sha: "sha256:60fecb2079b95e847eb5ecad4b0b890c17ef8a83a1800366548c56cdcd06704b"
-yaml_sha: "sha256:60fecb2079b95e847eb5ecad4b0b890c17ef8a83a1800366548c56cdcd06704b"
+body_sha: "sha256:ba9d0705b18c3179b0bbd622dcb6a1b3cf37fc433125839f12cad49c68f4ef7c"
+yaml_sha: "sha256:ba9d0705b18c3179b0bbd622dcb6a1b3cf37fc433125839f12cad49c68f4ef7c"
 intent: |
   Close the schema-string drift between `decisions/*.yaml`
   (which have carried `math-coding/3.0-alpha` since v3.0.0.19)
@@ -106,11 +106,12 @@ scope:
     - "decisions/migrations/3.0-alpha-to-3.2.yaml"
     - "decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml"
     - "decisions/*.yaml"
-    - "tests/cli/validate-schema-string-3.2.t"
-    - "tests/cli/validate-schema-string-unknown.t"
     - "PACKAGES.md"
     - "ROADMAP.md"
     - "CHANGELOG.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   tests/cli/validate-schema-string-3.2.t - no tracked file matches it
+  #   tests/cli/validate-schema-string-unknown.t - no tracked file matches it
   exclusions:
     - "decisions/obligations.yaml"
     - "lib/**"

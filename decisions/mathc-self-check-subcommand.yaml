@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathc-self-check-subcommand
 revision: 4
 state: active
-body_sha: "sha256:a7c7b898b68fa052716206addce43ee08622ccafc4ac9ee1bdd72c080647ee95"
-yaml_sha: "sha256:a7c7b898b68fa052716206addce43ee08622ccafc4ac9ee1bdd72c080647ee95"
+body_sha: "sha256:a4db3e69dabb75837b2660a563e447bd2b11ae7b02c0741c5eab9fb0c936502b"
+yaml_sha: "sha256:a4db3e69dabb75837b2660a563e447bd2b11ae7b02c0741c5eab9fb0c936502b"
 intent: |
   Close ROADMAP Tier-1 #2 (`mathc self-check`) and thereby the
   AGENTS.md bootstrap-gate expiry condition verbatim: the
@@ -43,12 +43,13 @@ scope:
     - "spec/semantics.md"
     - "bin/Mathc.ml"
     - "lib/gate.ml"
-    - "lib/attestations/*.json"
     - "tests/cli/self-check-pass.t"
     - "tests/cli/self-check-fail.t"
     - "tests/cli/self-check-unknown.t"
     - "tests/fixtures/self-check-pass/**"
     - "tests/fixtures/self-check-fail/**"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/attestations/*.json - no tracked file matches it
 
 outcomes:
   - id: spec-row-promoted

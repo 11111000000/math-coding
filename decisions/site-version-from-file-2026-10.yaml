@@ -4,9 +4,9 @@ id: site-version-from-file-2026-10
 revision: 2
 state: active
 
-body_sha: "sha256:b0cd53afe5901f3d2fff15c415fe43940f363b678c757899536692f10572bec7"
+body_sha: "sha256:6b05036e393fbd6006a196b6ed14417cd0bfd94b0672225783854b49a463db83"
 
-yaml_sha: "sha256:b0cd53afe5901f3d2fff15c415fe43940f363b678c757899536692f10572bec7"
+yaml_sha: "sha256:6b05036e393fbd6006a196b6ed14417cd0bfd94b0672225783854b49a463db83"
 
 intent: |
   Remove the hardcoded `3.0-alpha` and `v3.0.0` strings from
@@ -45,12 +45,13 @@ scope:
     - site-version-source-of-truth
     - version-string-stability
   paths:
-    - "lib/render.ml"
     - "bin/Mathc.ml"
     - "VERSION"
     - "tests/render_kernel.ml"
     - "tests/cli/version.t"
     - "scripts/render.sh"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   exclusions:
     - "lib/policy.ml"
     - "lib/risk.ml"

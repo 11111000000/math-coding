@@ -4,8 +4,8 @@ id: fix-mcp-pipe-deadlock-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:5ba0d86f72a22ba1a8497941111bec650dba08f40eeee79a02e23c00b0968b10"
-yaml_sha: "sha256:5ba0d86f72a22ba1a8497941111bec650dba08f40eeee79a02e23c00b0968b10"
+body_sha: "sha256:dc200efac3238a30054d7d0a222335d46fa65b536b64e20fcbe3ffefe3efdc7f"
+yaml_sha: "sha256:dc200efac3238a30054d7d0a222335d46fa65b536b64e20fcbe3ffefe3efdc7f"
 
 intent: |
   Fix a pipe-buffer deadlock in `lib/mcp/dispatch.ml::run_with_args`.
@@ -58,7 +58,8 @@ scope:
   paths:
     - "lib/mcp/dispatch.ml"
     - "tests/cli/mcp-packages-large-output.t"
-    - "OCAML_BEST_PRACTICES.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/decision.ml"
     - "lib/policy.ml"

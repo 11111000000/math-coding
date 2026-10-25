@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:95e557ef06c42775acd64814af58cb18010e7bf18aac7b41ac2603c824f7dd87"
-yaml_sha: "sha256:95e557ef06c42775acd64814af58cb18010e7bf18aac7b41ac2603c824f7dd87"
+body_sha: "sha256:24c5298caf9c0ca20e4de5329851bc1b1096523110cbaaf4ab108c13979941d1"
+yaml_sha: "sha256:24c5298caf9c0ca20e4de5329851bc1b1096523110cbaaf4ab108c13979941d1"
 axiom_link:
   - A0
   - A4
@@ -236,12 +236,13 @@ scope:
     - mathc-render-dashboard
     - mathc-render-graph
   paths:
-    - "lib/render.ml"
-    - "assets/dashboard.html"
-    - "assets/graph.html"
     - "tests/render_kernel.ml"
     - "scripts/render.sh"
     - "decisions/render-dashboard-2026-10.yaml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
+  #   assets/dashboard.html - no tracked file matches it
+  #   assets/graph.html - no tracked file matches it
   exclusions:
     - "lib/decision.ml"
     - "lib/policy.ml"

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: render-kernel-fixes-2026-10
 revision: 1
 state: active
-body_sha: "sha256:233c087fda3c0a4b3a51d206469d0c7d654fdbcfb02ece3ddb771683dd4c6ef5"
-yaml_sha: "sha256:233c087fda3c0a4b3a51d206469d0c7d654fdbcfb02ece3ddb771683dd4c6ef5"
+body_sha: "sha256:dbf34d428d1107814e662509d9d77794760927469c2b52e5227de677b2613e8b"
+yaml_sha: "sha256:dbf34d428d1107814e662509d9d77794760927469c2b52e5227de677b2613e8b"
 intent: |
   Close the ten concrete render-kernel defects catalogued in
   `analysis/site-render-defects.md` (commit-diagnostic branch
@@ -108,13 +108,14 @@ scope:
     - markdown-subset-correctness
     - kernel-render-output
   paths:
-    - "lib/render.ml"
     - "bin/Mathc.ml"
     - "assets/style.css"
     - "tests/render_kernel.ml"
     - "tests/cli/render.t"
     - "scripts/render.sh"
     - ".github/workflows/site.yml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   exclusions:
     - "lib/packages.ml"
     - "lib/codec.ml"

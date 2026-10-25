@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: junit-entity-off-by-one-fix-2026-10
 revision: 1
 state: active
-body_sha: "sha256:281d4bc5ac546ebc12e306832faa522ebc833093f4ef2a890c910e4a277267e6"
-yaml_sha: "sha256:281d4bc5ac546ebc12e306832faa522ebc833093f4ef2a890c910e4a277267e6"
+body_sha: "sha256:f65178c66cb55448244c3b3ad3e29345ee6ce3c6fe94dd408a4a48279894c31c"
+yaml_sha: "sha256:f65178c66cb55448244c3b3ad3e29345ee6ce3c6fe94dd408a4a48279894c31c"
 intent: |
   Fix the off-by-one in `lib/junit/junit.ml:parse_attr_value`: the
   five entity-reference branches (`&amp;`, `&lt;`, `&gt;`, `&quot;`,
@@ -71,9 +71,10 @@ scope:
     - "lib/junit/junit.ml"
     - "tests/junit_test.ml"
     - "tests/dune"
-    - "OCAML_BEST_PRACTICES.md"
     - "decisions/junit-entity-off-by-one-fix-2026-10.yaml"
     - "PACKAGES.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/kernel/**"   (* "kernel" = the 19 flat modules under lib/ *)
     - "bin/**"

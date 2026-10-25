@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-polish-2026-10
 revision: 1
 state: active
-body_sha: "sha256:30b671a23abe99aa9f0872c53458ab91a53468c92058dfff3521781e84cf7b04"
-yaml_sha: "sha256:30b671a23abe99aa9f0872c53458ab91a53468c92058dfff3521781e84cf7b04"
+body_sha: "sha256:7486209d6935b66a1d7a42eace3a5fd6a6e41f613255c4dd1d54915ba72ad1ea"
+yaml_sha: "sha256:7486209d6935b66a1d7a42eace3a5fd6a6e41f613255c4dd1d54915ba72ad1ea"
 axiom_link:
   - A1
 intent: |
@@ -66,10 +66,11 @@ commitment: |
 scope:
   paths:
     - "assets/**"
-    - "lib/render.ml"
     - "lib/packages.ml"
     - "bin/Mathc.ml"
     - "tests/render_kernel.ml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   decisions:
     - "site-deploy@5"
     - "site-quality-2026-10@1"

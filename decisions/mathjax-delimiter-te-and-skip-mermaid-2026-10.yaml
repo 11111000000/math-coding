@@ -5,8 +5,8 @@ revision: 1
 state: superseded
 axiom_link:
   - A0
-body_sha: "sha256:9ce6abf3a60ad20273700014996d67e9ac6fa1f40e2b6da855abae329755cdf4"
-yaml_sha: "sha256:9ce6abf3a60ad20273700014996d67e9ac6fa1f40e2b6da855abae329755cdf4"
+body_sha: "sha256:e47c22ffc6e1385a420ae92a6ea6a4b70de82443c046473dae334d9d6e4d0faf"
+yaml_sha: "sha256:e47c22ffc6e1385a420ae92a6ea6a4b70de82443c046473dae334d9d6e4d0faf"
 intent: |
   Two regressions surfaced after PR #8 (mathjax-default-on-2026-10 +
   7 mermaid + 5 Formalization):
@@ -85,10 +85,11 @@ scope:
     - math-typesetting
     - mermaid-rendering
   paths:
-    - "lib/render.ml"
     - "tests/render_kernel.ml"
     - "decisions/mathjax-delimiter-te-and-skip-mermaid-2026-10.yaml"
     - "attestations/mathjax-delimiter-te-and-skip-mermaid-2026-10-*.json"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   exclusions:
     - "spec/algebra-3.2.md"
     - "spec/constitution.md"

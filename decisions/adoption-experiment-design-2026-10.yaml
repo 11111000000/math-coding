@@ -4,8 +4,8 @@ id: adoption-experiment-design-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:8bc15023f83a1d67755c225515146424ed4416382f357d2831906028332a740f"
-yaml_sha: "sha256:8bc15023f83a1d67755c225515146424ed4416382f357d2831906028332a740f"
+body_sha: "sha256:22f926fcdd0fe5ab2e4fbe1f56d353bf2c1ebcac21ba84521194c5977b7056c3"
+yaml_sha: "sha256:22f926fcdd0fe5ab2e4fbe1f56d353bf2c1ebcac21ba84521194c5977b7056c3"
 
 intent: |
   Conduct a brownfield adoption study of math-coding on five real
@@ -57,8 +57,9 @@ scope:
   paths:
     - "docs/experiments/adoption-2026-10.md"
     - "docs/experiments/adoption-2026-10-report-template.md"
-    - "docs/experiments/adoption-2026-10-backups.md"
-    - "~/Projects/math-coding-experiment/**"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   docs/experiments/adoption-2026-10-backups.md - no tracked file matches it
+  #   ~/Projects/math-coding-experiment/** - home-relative: resolves nowhere in the repository
   exclusions:
     - "lib/**"
     - "bin/Mathc.ml"

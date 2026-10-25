@@ -4,9 +4,9 @@ id: yaml-block-scalars-impl-pending
 revision: 4
 state: active
 
-body_sha: "sha256:364a70369eb887d4fc180fa9fe60a0bab5e7ed6ba8449fb6df613837694be504"
+body_sha: "sha256:7a70586d5ddf8a6545f73f27d80ba6c04a7c87c8dd07d84fb83f86b9e87bd220"
 
-yaml_sha: "sha256:364a70369eb887d4fc180fa9fe60a0bab5e7ed6ba8449fb6df613837694be504"
+yaml_sha: "sha256:7a70586d5ddf8a6545f73f27d80ba6c04a7c87c8dd07d84fb83f86b9e87bd220"
 
 intent: |
   Record that the parent obligation `yaml-block-scalars-supported`
@@ -100,14 +100,9 @@ commitment: |
 scope:
   capabilities:
     - yaml-block-scalars-impl-deferred
-  paths:
-    - |
-      lib/codec.ml (unchanged in this revision)
-    - |
-      tests/repo_structure.ml:test_yaml_block_scalars_structural
-      (replaces the deleted tests/fixtures/yaml-block-scalars.sh
-      which had subsumed into the OCaml/Alcotest suite during the
-      shell-to-OCaml migration in cli-cram-tests.yaml@1).
+  paths: []
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   | (x2) - a YAML block scalar, not a path
   exclusions:
     - |
       bootstrap/yaml-block-scalars.yaml (decision @rev2 unchanged)

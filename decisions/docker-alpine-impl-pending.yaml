@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: docker-alpine-impl-pending
 revision: 1
 state: active
-body_sha: "sha256:a69b32d6b46b5565bc4770e3e8c8a5cb66dc3abbbf9a72c4eeeab7eba11b0e44"
-yaml_sha: "sha256:a69b32d6b46b5565bc4770e3e8c8a5cb66dc3abbbf9a72c4eeeab7eba11b0e44"
+body_sha: "sha256:485f44adbee968c4cf0e6cf1e1b54b1e5fada843643416e14679eaf72a1c7c77"
+yaml_sha: "sha256:485f44adbee968c4cf0e6cf1e1b54b1e5fada843643416e14679eaf72a1c7c77"
 intent: |
   Record the deferral of the Alpine-based Docker image to
   Phase 3. Phase 1 of install-tooling-2026-10 ships only
@@ -74,9 +74,10 @@ commitment: |
 scope:
   capabilities:
     - docker-alpine-deferred
-  paths:
-    - "Dockerfile.alpine"   # not yet present in the repo
-    - ".github/workflows/docker.yml"   # not yet present; the Phase-1 file targets debian-slim only
+  paths: []
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "Dockerfile.alpine"   # not yet present in the repo - malformed: a comment inside the quoted path
+  #   ".github/workflows/docker.yml"   # not yet present; the Phase-1 file targets debian-slim only - malformed: a comment inside the quoted path
   exclusions:
     - "Dockerfile.debian-slim"   # owned by install-tooling-2026-10
     - ".github/workflows/release.yml"   # musl-release-asset wiring is a separate worktree

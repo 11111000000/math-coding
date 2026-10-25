@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:bff70e28c71632c1499b50e0c1d5757e85888de08b49da90ef08642f5ad074c8"
-yaml_sha: "sha256:bff70e28c71632c1499b50e0c1d5757e85888de08b49da90ef08642f5ad074c8"
+body_sha: "sha256:067f309d1c5d592dc7ef452a89c6f32a317ed920883573f18cdb4bff572b5376"
+yaml_sha: "sha256:067f309d1c5d592dc7ef452a89c6f32a317ed920883573f18cdb4bff572b5376"
 axiom_link:
   - A4
 intent: |
@@ -60,8 +60,9 @@ commitment: |
        allowlist (см. `scripts/render.sh [4/4]`).
 
 scope:
-  paths:
-    - lib/render.ml
+  paths: []
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
 
 outcomes:
   - id: ru-tagline-uses-russian-word

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: d8-coarse-diagnostics
 revision: 1
 state: active
-body_sha: "sha256:1a27a502227145f8f26ff7bb3cd408408217b49401dd9389647531c84b1eeaac"
-yaml_sha: "sha256:1a27a502227145f8f26ff7bb3cd408408217b49401dd9389647531c84b1eeaac"
+body_sha: "sha256:ef6cbb1caf8d48c4a341601ffb83f6addd5e3d26c127a0b8e9f2b35fd4e65118"
+yaml_sha: "sha256:ef6cbb1caf8d48c4a341601ffb83f6addd5e3d26c127a0b8e9f2b35fd4e65118"
 axiom_link:
   - A0
   - A1
@@ -120,12 +120,13 @@ scope:
     - "bin/Mathc.ml"
     - "tests/diagnostic_ux.ml"
     - "tests/conformance.ml"
-    - "fixtures/conformance/decision/negative-missing-schema.json"
-    - "fixtures/conformance/decision/positive-with-axis-and-counterexample.json"
-    - "fixtures/conformance/decision/negative-invalid-id-format.json"
-    - "fixtures/conformance/decision/negative-invalid-revision-format.json"
-    - "fixtures/conformance/decision/negative-invalid-axiom-link.json"
-    - "fixtures/conformance/decision/negative-missing-risk-owner.json"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   fixtures/conformance/decision/negative-missing-schema.json - no tracked file matches it
+  #   fixtures/conformance/decision/positive-with-axis-and-counterexample.json - no tracked file matches it
+  #   fixtures/conformance/decision/negative-invalid-id-format.json - no tracked file matches it
+  #   fixtures/conformance/decision/negative-invalid-revision-format.json - no tracked file matches it
+  #   fixtures/conformance/decision/negative-invalid-axiom-link.json - no tracked file matches it
+  #   fixtures/conformance/decision/negative-missing-risk-owner.json - no tracked file matches it
   exclusions:
     - "lib/memory.ml"
     - "lib/codec.ml"

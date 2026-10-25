@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-foundations-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:47eb5c55e896c23f016244bec801f634cbda18f6ddbc48b96178565a74d5a854"
-yaml_sha: "sha256:47eb5c55e896c23f016244bec801f634cbda18f6ddbc48b96178565a74d5a854"
+body_sha: "sha256:7b1ba115a1f98c9ec4735a2826fa707b47b70eff327ce1eedb91f1d0ac2c840e"
+yaml_sha: "sha256:7b1ba115a1f98c9ec4735a2826fa707b47b70eff327ce1eedb91f1d0ac2c840e"
 axiom_link:
   - A2
 intent: |
@@ -66,8 +66,9 @@ scope:
     - "assets/friction-envelope-plot.svg"
     - "assets/quality-radar.svg"
     - "assets/reasoning-budget.svg"
-    - "lib/render.ml"
-    - "dist/foundations.html"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
+  #   dist/foundations.html - no tracked file matches it
 
 outcomes:
   - id: foundations-svgs-render

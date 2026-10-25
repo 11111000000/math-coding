@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:feda8deacf8f160db9adf1e88f0dbd906e31f79c35b4d6c24bb91d1c25b6dac9"
-yaml_sha: "sha256:feda8deacf8f160db9adf1e88f0dbd906e31f79c35b4d6c24bb91d1c25b6dac9"
+body_sha: "sha256:5fdf887975c235e3ba2202b64a0b7ff3ad4cb6c8b81be0113b671b0e4a901ee2"
+yaml_sha: "sha256:5fdf887975c235e3ba2202b64a0b7ff3ad4cb6c8b81be0113b671b0e4a901ee2"
 
 intent: |
   Close the F9 finding from
@@ -97,9 +97,10 @@ scope:
   paths:
     - "bin/Mathc.ml"
     - "lib/path_config.ml"
-    - "tests/cli/verify-sandbox.t"
     - "decisions/verify-sandbox-hardening-2026-11.yaml"
     - "attestations/verify-sandbox-hardening-2026-11-*.json"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   tests/cli/verify-sandbox.t - no tracked file matches it
   exclusions:
     - "lib/attestations/**"
     - "lib/mcp/**"

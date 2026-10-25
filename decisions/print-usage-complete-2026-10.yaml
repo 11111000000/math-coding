@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: print-usage-complete-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f1a577135c3ace471f0bb3e19c9187f5af7b8c707877a3f289b083b1ae2c0093"
-yaml_sha: "sha256:f1a577135c3ace471f0bb3e19c9187f5af7b8c707877a3f289b083b1ae2c0093"
+body_sha: "sha256:10934a6a588d7fa0044e4aef4dd637c1dcb97c328c33b43814c09b1a64a8f4b0"
+yaml_sha: "sha256:10934a6a588d7fa0044e4aef4dd637c1dcb97c328c33b43814c09b1a64a8f4b0"
 
 intent: |
   Bring the `mathc --help` text emitted from `bin/Mathc.ml`'s
@@ -79,8 +79,9 @@ scope:
     - cli-help-text
   paths:
     - "bin/Mathc.ml"
-    - "tests/cli/help.t"  # if the help.t cram fixture exists; otherwise tests/cli/help-not-yet-existent.t is created
     - "decisions/print-usage-complete-2026-10.yaml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "tests/cli/help.t"  # if the help.t cram fixture exists; otherwise tests/cli/help-not-yet-existent.t is created - malformed: a comment inside the quoted path
   exclusions:
     - "lib/**"
     - "spec/**"

@@ -4,9 +4,9 @@ id: waiver-infrastructure-2026-10
 revision: 2
 state: active
 
-body_sha: "sha256:11e83ff02940ce7abcf33dd60433a184c9534ccc734d37794d9b98a271abd0f8"
+body_sha: "sha256:75daf8e7a9f754db974a5fa8e4484d1e16e53b9cdb03d430ea291d5c3acaae94"
 
-yaml_sha: "sha256:11e83ff02940ce7abcf33dd60433a184c9534ccc734d37794d9b98a271abd0f8"
+yaml_sha: "sha256:75daf8e7a9f754db974a5fa8e4484d1e16e53b9cdb03d430ea291d5c3acaae94"
 
 intent: |
   Introduce waiver files (schema `math-coding/waiver-3.0-alpha`)
@@ -69,7 +69,8 @@ scope:
     - "bin/Mathc.ml"
     - "tests/waiver_test.ml"
     - "tests/dune"
-    - "decisions/waivers/portable-linux-musl-2026-10.yaml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   decisions/waivers/portable-linux-musl-2026-10.yaml - no tracked file matches it
   exclusions:
     - "lib/gate.ml"        # aggregate unchanged
     - "spec/constitution.md"

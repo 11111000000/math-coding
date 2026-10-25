@@ -6,8 +6,8 @@ state: active
 mode: light
 axiom_link:
   - A4
-body_sha: "sha256:d13ca1d3652635fd14c4c75f5193929ae6ca7ea12a2f6545352d93bc50117a57"
-yaml_sha: "sha256:d13ca1d3652635fd14c4c75f5193929ae6ca7ea12a2f6545352d93bc50117a57"
+body_sha: "sha256:58f4dd7356dc209e2bba0df94116e97843ad185b6d85336173febd55546d889c"
+yaml_sha: "sha256:58f4dd7356dc209e2bba0df94116e97843ad185b6d85336173febd55546d889c"
 intent: |
   The hand-rolled Markdown subset in `lib/render.ml::md_parse`
   previously recognised only `- ` unordered lists. Lines
@@ -58,8 +58,9 @@ scope:
     - markdown-subset-correctness
     - site-content-markup
   paths:
-    - "lib/render.ml"
     - "tests/render_kernel.ml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   exclusions:
     - "schemas/**"
     - "decisions/**"

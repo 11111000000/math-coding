@@ -4,9 +4,9 @@ id: mcp-server-impl-2026-10
 revision: 2
 state: active
 
-body_sha: "sha256:ea08b32aefac26ce8ad8d6bbf804a5870adf299543ea7cb517fe558f2b59e0f2"
+body_sha: "sha256:14bf0bc0785ac131e8820ebd4b0db13f85a81f530b759b2ea4c5f9ad234e9c46"
 
-yaml_sha: "sha256:ea08b32aefac26ce8ad8d6bbf804a5870adf299543ea7cb517fe558f2b59e0f2"
+yaml_sha: "sha256:14bf0bc0785ac131e8820ebd4b0db13f85a81f530b759b2ea4c5f9ad234e9c46"
 
 intent: |
   Land the MCP server stub the Phase-2 deferral
@@ -130,8 +130,9 @@ scope:
     - lib/mcp/
     - bin/mathc_mcp.ml
     - bin/dune
-    - tests/mcp_test.ml
     - tests/dune
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   tests/mcp_test.ml - no tracked file matches it
   exclusions:
     - lib/decision.ml
     - lib/policy.ml

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:2c95d9864278702ed6517968e40e6ebda4766f94c76ed8d2331a002ed710b1c2"
-yaml_sha: "sha256:2c95d9864278702ed6517968e40e6ebda4766f94c76ed8d2331a002ed710b1c2"
+body_sha: "sha256:b3d0902d96508f7fc9a9f315a1aae34abedecccc9585bf7a793e2c61554ca024"
+yaml_sha: "sha256:b3d0902d96508f7fc9a9f315a1aae34abedecccc9585bf7a793e2c61554ca024"
 
 intent: |
   Convert the 9 recommendations from the 2026-10-17 adoption
@@ -60,16 +60,17 @@ scope:
     - doctor-subcommand-ship-status
     - brownfield-experiment-design
   paths:
-    - "decisions/<sub-decision-id>-2026-10.yaml"
-    - "attestations/<sub-decision-id>-*.json"
     - "lib/path_config.ml"
-    - "lib/yaml_mini.ml"
     - "lib/decision.ml"
     - "bin/Mathc.ml"
     - "scripts/generate-attestations.py"
-    - "tests/cli/<feature>.t"
     - "docs/experiments/adoption-2026-10.md"
     - "docs/experiments/brownfield-experiment-v2-2026-10.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   decisions/<sub-decision-id>-2026-10.yaml - a placeholder, never a path
+  #   attestations/<sub-decision-id>-*.json - a placeholder, never a path
+  #   lib/yaml_mini.ml - no tracked file matches it
+  #   tests/cli/<feature>.t - a placeholder, never a path
   exclusions:
     - "lib/attestations/**"
     - "lib/mcp/**"

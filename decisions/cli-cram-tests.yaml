@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: cli-cram-tests
 revision: 2
 state: active
-body_sha: "sha256:e8ef50ad6266e78a070f50c3d8f4d181e02f8301a2b1264d14e3ebf03d6776fb"
-yaml_sha: "sha256:e8ef50ad6266e78a070f50c3d8f4d181e02f8301a2b1264d14e3ebf03d6776fb"
+body_sha: "sha256:aa5772e3fdcd7ae17449dd166929745c36c3261af18a3d274bcd71c55d0663c6"
+yaml_sha: "sha256:aa5772e3fdcd7ae17449dd166929745c36c3261af18a3d274bcd71c55d0663c6"
 intent: |
   Replace the per-subcommand shell fixtures under tests/fixtures/
   (ambiguous-acceptance.sh, malformed-acceptance.sh,
@@ -67,16 +67,17 @@ scope:
     - bin/dune
     - tests/cli/dune
     - tests/cli/*.t
-    - bootstrap/parse-acceptance-diagnostics.yaml
-    - bootstrap/validate-and-context.yaml
-    - bootstrap/capsule-active-policy.yaml
-    - bootstrap/gate-decision.yaml
-    - bootstrap/adapters.yaml
-    - bootstrap/time-honesty.yaml
-    - bootstrap/time-honesty-storage.yaml
-    - OCAML_BEST_PRACTICES.md
     - PACKAGES.md
     - tests/dune
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   bootstrap/parse-acceptance-diagnostics.yaml - no tracked file matches it
+  #   bootstrap/validate-and-context.yaml - no tracked file matches it
+  #   bootstrap/capsule-active-policy.yaml - no tracked file matches it
+  #   bootstrap/gate-decision.yaml - no tracked file matches it
+  #   bootstrap/adapters.yaml - no tracked file matches it
+  #   bootstrap/time-honesty.yaml - no tracked file matches it
+  #   bootstrap/time-honesty-storage.yaml - no tracked file matches it
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - lib/**
     - spec/**

@@ -4,8 +4,8 @@ id: site-axiom-img-and-dropdown-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:cd75e9cce042df4c5f8c0f2260e566ae984ab263e6ca165a6c6c628ec414a233"
-yaml_sha: "sha256:cd75e9cce042df4c5f8c0f2260e566ae984ab263e6ca165a6c6c628ec414a233"
+body_sha: "sha256:8d105561db4f2d085f06702b44f51cde0ba1ec9eb329fa3e8ebfa342f1a4eb8c"
+yaml_sha: "sha256:8d105561db4f2d085f06702b44f51cde0ba1ec9eb329fa3e8ebfa342f1a4eb8c"
 change_kind: implementation
 axiom_link:
   - A0
@@ -172,11 +172,12 @@ scope:
     - kernel-render-output
   paths:
     - "assets/style.css"
-    - "lib/render.ml"
     - "site/axioms.md"
     - "site/axioms.ru.md"
     - "site/axioms.zh.md"
     - "axioms/separation.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   exclusions:
     - "lib/codec.ml"
     - "lib/decision.ml"

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: priority-drift
 revision: 3
 state: active
-body_sha: "sha256:bdde477aedc2b33a8d1ebfe962e33324e5eb44339f6155329d24fa9c155936c6"
-yaml_sha: "sha256:bdde477aedc2b33a8d1ebfe962e33324e5eb44339f6155329d24fa9c155936c6"
+body_sha: "sha256:3d1fdf39ba6cf8eb496cabbbe33b5b5aa64e33469d66e35a78a6f8382609e896"
+yaml_sha: "sha256:3d1fdf39ba6cf8eb496cabbbe33b5b5aa64e33469d66e35a78a6f8382609e896"
 intent: |
   Close deficit D3 from docs/AUDIT-0.0.11.md by adding a machine
   check that the priority table in spec/semantics.md
@@ -43,9 +43,10 @@ scope:
     - priority-drift-detector
   paths:
     - "tests/repo_structure.ml"
-    - "bootstrap/priority-drift.yaml"
-    - "OCAML_BEST_PRACTICES.md"
     - "docs/AUDIT-0.0.11.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   bootstrap/priority-drift.yaml - no tracked file matches it
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/**"
     - "bin/**"

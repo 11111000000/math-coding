@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-methodology-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:0c89c206aa0ad336856eabfe00a369cb529f4693afca1111118a13a5ea792143"
-yaml_sha: "sha256:0c89c206aa0ad336856eabfe00a369cb529f4693afca1111118a13a5ea792143"
+body_sha: "sha256:7f7ee0f5507c6137d55d8cada70f7e2bdb274e43b4e8f4c4b5cf5fee2833b9e1"
+yaml_sha: "sha256:7f7ee0f5507c6137d55d8cada70f7e2bdb274e43b4e8f4c4b5cf5fee2833b9e1"
 axiom_link:
   - A0
 intent: |
@@ -52,8 +52,9 @@ scope:
     - "assets/attestation-lifecycle.svg"
     - "assets/risk-bands.svg"
     - "assets/verdict-flow.svg"
-    - "lib/render.ml"
-    - "dist/methodology.html"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
+  #   dist/methodology.html - no tracked file matches it
 
 outcomes:
   - id: methodology-svgs-render

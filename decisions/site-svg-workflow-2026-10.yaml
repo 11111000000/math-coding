@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-svg-workflow-2026-10
 revision: 1
 state: superseded
-body_sha: "sha256:a8283b38ce09ec9649be47ae86fd7d3fc3c2681c0d8fb61d78503d122383ef00"
-yaml_sha: "sha256:a8283b38ce09ec9649be47ae86fd7d3fc3c2681c0d8fb61d78503d122383ef00"
+body_sha: "sha256:6efa0a1024f48dc3fd205541fb78c74cefaad379935d1f28dd504497737988b9"
+yaml_sha: "sha256:6efa0a1024f48dc3fd205541fb78c74cefaad379935d1f28dd504497737988b9"
 axiom_link:
   - A3
 intent: |
@@ -50,8 +50,9 @@ scope:
     - "assets/attestation-lifecycle.svg"
     - "assets/risk-bands.svg"
     - "assets/verdict-flow.svg"
-    - "lib/render.ml"
-    - "dist/workflow.html"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
+  #   dist/workflow.html - no tracked file matches it
 
 outcomes:
   - id: workflow-svg-render

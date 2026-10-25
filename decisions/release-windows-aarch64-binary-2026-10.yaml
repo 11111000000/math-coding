@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:3b94c3fe3807c05386d74c64d746b1332be992399c81cbdf2b353992fc385f0c"
-yaml_sha: "sha256:3b94c3fe3807c05386d74c64d746b1332be992399c81cbdf2b353992fc385f0c"
+body_sha: "sha256:df497cf713482d7ca7d90abd816f6df63f5419b1e9fb95d7a5178b7318a33d51"
+yaml_sha: "sha256:df497cf713482d7ca7d90abd816f6df63f5419b1e9fb95d7a5178b7318a33d51"
 
 axiom_link:
   - A0
@@ -128,7 +128,8 @@ scope:
     - bootstrap-windows
   paths:
     - ".github/workflows/release.yml"
-    - "scripts/install-tooling/install.ps1"   # verified-only; no change
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   "scripts/install-tooling/install.ps1"   # verified-only; no change - malformed: a comment inside the quoted path
   exclusions:
     - "lib/**"
     - "bin/Mathc.ml"

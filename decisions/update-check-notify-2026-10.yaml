@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: update-check-notify-2026-10
 revision: 1
 state: deferred
-body_sha: "sha256:215d9a7bbc84e82fb75e30edc055defd9de0bf90eb7beb23b968aa0d9bde2dc7"
-yaml_sha: "sha256:215d9a7bbc84e82fb75e30edc055defd9de0bf90eb7beb23b968aa0d9bde2dc7"
+body_sha: "sha256:eaf41606147ebc503eaf87bd20e70545274260847a83d4f218b4b888c12fd9cd"
+yaml_sha: "sha256:eaf41606147ebc503eaf87bd20e70545274260847a83d4f218b4b888c12fd9cd"
 
 intent: |
   Land a soft, opt-in update notification: when a user runs
@@ -104,9 +104,10 @@ scope:
   paths:
     - "bin/Mathc.ml"
     - "bin/dune"
-    - "lib/update_check/"
-    - "tests/cli/update-check.t"
     - "decisions/update-check-notify-2026-10.yaml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/update_check/ - no tracked file matches it
+  #   tests/cli/update-check.t - no tracked file matches it
   exclusions:
     - "lib/decision.ml"
     - "lib/canonical.ml"

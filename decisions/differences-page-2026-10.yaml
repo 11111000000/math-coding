@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: differences-page-2026-10
 revision: 1
 state: active
-body_sha: "sha256:2d67e85286568d1e0776ec18b521f4a61a8086b6655d8071ffe9b542dea611fe"
-yaml_sha: "sha256:2d67e85286568d1e0776ec18b521f4a61a8086b6655d8071ffe9b542dea611fe"
+body_sha: "sha256:b200e6b44dc0ed02eb82316f61ae321895dcd4da0175c4f97e06cf83b4fa4d1b"
+yaml_sha: "sha256:b200e6b44dc0ed02eb82316f61ae321895dcd4da0175c4f97e06cf83b4fa4d1b"
 axiom_link:
   - A0
   - A1
@@ -36,7 +36,8 @@ scope:
     - "site/differences.zh.md"
     - "scripts/render.sh"
     - "bin/Mathc.ml"
-    - "lib/render.ml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   decisions:
     - "site-deploy@5"
     - "site-redesign-2026-10@1"

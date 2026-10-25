@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: capsule-active-policy
 revision: 2
 state: active
-body_sha: "sha256:21d0a09920df0931bc0904d21dbc2560d1bcfa3ad4d3421159b6b5f208826ecb"
-yaml_sha: "sha256:21d0a09920df0931bc0904d21dbc2560d1bcfa3ad4d3421159b6b5f208826ecb"
+body_sha: "sha256:199f960d031967acddc286c42b6896421bd6667e863e2adca4182113ae43a2a5"
+yaml_sha: "sha256:199f960d031967acddc286c42b6896421bd6667e863e2adca4182113ae43a2a5"
 intent: |
   Close the spec/compliance gap noted in critical analysis
   2026-09-27: spec/semantics.md "context-prioritisation"
@@ -38,7 +38,8 @@ scope:
     - "tests/cli/context-budget-bound.t"
     - "tests/cli/context-required-for-gate.t"
     - "tests/cli/context-priority-order.t"
-    - "bootstrap/capsule-active-policy.yaml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   bootstrap/capsule-active-policy.yaml - no tracked file matches it
   exclusions:
     - "lib/codec.ml"
     - "lib/decision.ml"

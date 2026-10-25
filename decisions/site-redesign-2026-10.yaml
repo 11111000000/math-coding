@@ -4,8 +4,8 @@ id: site-redesign-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:0f44cb818b8057975309f01a4f2a80d4e8a48aa0c59ce83776d4cee032afbdaa"
-yaml_sha: "sha256:0f44cb818b8057975309f01a4f2a80d4e8a48aa0c59ce83776d4cee032afbdaa"
+body_sha: "sha256:e7cf24494a9525920d0af55b298ba2b1ed63bf615c4d0b432109bb9eefbe97bd"
+yaml_sha: "sha256:e7cf24494a9525920d0af55b298ba2b1ed63bf615c4d0b432109bb9eefbe97bd"
 axiom_link:
   - A0
   - A1
@@ -62,10 +62,11 @@ commitment: |
 
 scope:
   paths:
-    - "lib/render.ml"
     - "assets/style.css"
     - "assets/site.js"
     - "assets/logo.svg"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   decisions:
     - "site-quality-2026-10@1"
     - "site-quality-polish-2026-10@1"

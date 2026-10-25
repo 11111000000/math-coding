@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: ux-3-cosign-image-2026-10
 revision: 1
 state: active
-body_sha: "sha256:2f574f95436375fc6f50adb8ca1ce5b9a650a0319628ddefb0b8231ab4192bfa"
-yaml_sha: "sha256:2f574f95436375fc6f50adb8ca1ce5b9a650a0319628ddefb0b8231ab4192bfa"
+body_sha: "sha256:abb944bef78b44f3dfda9ab262fdd8f3c2974039e098495e825a019d2a95d392"
+yaml_sha: "sha256:abb944bef78b44f3dfda9ab262fdd8f3c2974039e098495e825a019d2a95d392"
 intent: |
   Phase 9 of the ux-3 workstream. Close the named gap in
   `decisions/install-tooling-2026-10.yaml` reversal-signal
@@ -288,8 +288,9 @@ scope:
     - ".github/workflows/docker.yml"
     - ".github/workflows/release.yml"
     - "scripts/install-tooling/install.sh"
-    - "OCAML_BEST_PRACTICES.md"
     - "tests/cli/install.t"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/**"
     - "bin/**"

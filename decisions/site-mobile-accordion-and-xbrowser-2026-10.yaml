@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: site-mobile-accordion-and-xbrowser-2026-10
 revision: 1
 state: active
-body_sha: "sha256:19e61c6a86acf5c3544b8ffab7225359a41d11b6e8c38b455f3b12e670e1c8e7"
-yaml_sha: "sha256:19e61c6a86acf5c3544b8ffab7225359a41d11b6e8c38b455f3b12e670e1c8e7"
+body_sha: "sha256:961c3a25d9f866357f5d4bf8a791ec260939b1c93645154ea945e9ea63ff569d"
+yaml_sha: "sha256:961c3a25d9f866357f5d4bf8a791ec260939b1c93645154ea945e9ea63ff569d"
 axiom_link:
   - A0
   - A1
@@ -196,9 +196,10 @@ scope:
     - site-a11y-focus-ring-fallback
     - site-motion-reduce-respected
   paths:
-  - "lib/render.ml"
   - "assets/site.js"
   - "assets/style.css"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   lib/render.ml - no tracked file matches it
   exclusions:
   - "lib/policy.ml"
   - "lib/risk.ml"

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: validate-and-context
 revision: 3
 state: active
-body_sha: "sha256:e6b06f91544e167e1617b0e5eb8453e82ef05620b5b6d4e2e21d87513a91bb7c"
-yaml_sha: "sha256:e6b06f91544e167e1617b0e5eb8453e82ef05620b5b6d4e2e21d87513a91bb7c"
+body_sha: "sha256:7e848551e8c7d3a139c2c0c07b03784a2da66414553a0b4a95e0309de376e6bc"
+yaml_sha: "sha256:7e848551e8c7d3a139c2c0c07b03784a2da66414553a0b4a95e0309de376e6bc"
 intent: |
   Close the deferred obligation `deferred-cli-context` from
   validate-and-context@1 by adding `mathc context BASE HEAD --budget N`
@@ -48,12 +48,13 @@ scope:
     - "lib/memory.ml"
     - "lib/capsule.ml"
     - "lib/dune"
-    - "OCAML_BEST_PRACTICES.md"
     - "spec/semantics.md"
     - "tests/cli/validate-positive.t"
     - "tests/cli/validate-negative.t"
     - "tests/cli/context-budget.t"
-    - "bootstrap/validate-and-context.yaml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
+  #   bootstrap/validate-and-context.yaml - no tracked file matches it
   exclusions:
     - "lib/decision.ml"
     - "lib/diagnostic.ml"

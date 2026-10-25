@@ -4,8 +4,8 @@ id: multi-policy-hierarchy-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:7b956f91af621c99cbcbddf6a060abec3ba5434ba3f6a14737e01e7a0dba0399"
-yaml_sha: "sha256:7b956f91af621c99cbcbddf6a060abec3ba5434ba3f6a14737e01e7a0dba0399"
+body_sha: "sha256:5b303c2dfb0746a1d1347d4db910b58737287b140692214a7e45cbe95113797e"
+yaml_sha: "sha256:5b303c2dfb0746a1d1347d4db910b58737287b140692214a7e45cbe95113797e"
 axiom_link:
   - A0
 intent: |
@@ -150,8 +150,9 @@ scope:
     - "tests/risk_kernel.ml"
     - "schemas/policy.json"
     - "spec/algebra-3.2.md"
-    - "OCAML_BEST_PRACTICES.md"
     - "policies.yaml"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/decision.ml"
     - "lib/codec.ml"

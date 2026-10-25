@@ -4,8 +4,8 @@ id: ux-3-hotfix-waiver-procedure-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:90fcf3adc60241849779fea3271e50e0e0d7f5c64d5215039216710261071f58"
-yaml_sha: "sha256:90fcf3adc60241849779fea3271e50e0e0d7f5c64d5215039216710261071f58"
+body_sha: "sha256:1202e3dc97a54ecfd01eb9814850f40152648dc3f51812b7221688e7a6161db7"
+yaml_sha: "sha256:1202e3dc97a54ecfd01eb9814850f40152648dc3f51812b7221688e7a6161db7"
 intent: |
   Phase 8 of the ux-3 workstream. Land a
   `scripts/hotfix-cve.sh` POSIX-sh wrapper that stamps a
@@ -131,7 +131,8 @@ scope:
     - "scripts/hotfix-cve.sh"
     - "tests/cli/install.t"
     - "USAGE.md"
-    - "OCAML_BEST_PRACTICES.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/**"
     - "lib/waiver.ml"

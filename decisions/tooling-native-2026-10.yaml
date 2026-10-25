@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: tooling-native
 revision: 1
 state: active
-body_sha: "sha256:77e94ff21617b4d0284b1b2e39ced6833dba4892731ae746e3bf963c60804158"
-yaml_sha: "sha256:77e94ff21617b4d0284b1b2e39ced6833dba4892731ae746e3bf963c60804158"
+body_sha: "sha256:f031a3246f5ed5e1e9219deab0cd34a51103e2a4ff7f4a8ff6f6341f6ff17309"
+yaml_sha: "sha256:f031a3246f5ed5e1e9219deab0cd34a51103e2a4ff7f4a8ff6f6341f6ff17309"
 intent: |
   Strengthen the existing "Toolchain preference (OCaml ecosystem over
   Python)" soft rule in AGENTS.md §Toolchain preference into a hard
@@ -50,10 +50,11 @@ scope:
     - agent-onboarding-clarified
   paths:
     - "AGENTS.md"
-    - "OCAML_BEST_PRACTICES.md"
     - ".githooks/pre-commit"
     - "scripts/dev"
     - "scripts/check-merlin.sh"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/**"
     - "bin/**"

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: version-sync-2026-10
 revision: 1
 state: active
-body_sha: "sha256:0893e516dc28d3f718205125b436039ea579578d6b7b0b201e1bf99c3b44009c"
-yaml_sha: "sha256:0893e516dc28d3f718205125b436039ea579578d6b7b0b201e1bf99c3b44009c"
+body_sha: "sha256:d07c1d319fefc785ff646c2129ff1c340db4445dcae51e321e8df8510fde2cf2"
+yaml_sha: "sha256:d07c1d319fefc785ff646c2129ff1c340db4445dcae51e321e8df8510fde2cf2"
 intent: |
   Close the follow-up cycle announced in
   `decisions/site-version-from-file-2026-10.yaml:76-81`:
@@ -109,7 +109,8 @@ scope:
     - scripts/sync-version.sh
     - tests/fixtures/sync-version-clean-passes.sh
     - tests/fixtures/sync-version-stale-fails.sh
-    - OCAML_BEST_PRACTICES.md
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - lib/***
     - bin/***

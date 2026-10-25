@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: formal-verifier-conventions
 revision: 2
 state: active
-body_sha: "sha256:ba736492a2163162820ed42f25b47cd257f037f456104ad26e6227ab4f2b8013"
-yaml_sha: "sha256:ba736492a2163162820ed42f25b47cd257f037f456104ad26e6227ab4f2b8013"
+body_sha: "sha256:3b0805d6ca2bfedb7f66268d95d1b5213194914eda3760c0b37646c4f2795905"
+yaml_sha: "sha256:3b0805d6ca2bfedb7f66268d95d1b5213194914eda3760c0b37646c4f2795905"
 intent: |
   Codify the convention for formal-verifier artefacts (TLA+, Coq,
   Alloy) without adding any runtime dependency. The project's
@@ -61,9 +61,10 @@ scope:
   capabilities:
     - formal-verifier-evidence-convention
   paths:
-    - "OCAML_BEST_PRACTICES.md"
     - "schemas/common.json"
     - "decisions/"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "lib/**"
     - "bin/**"

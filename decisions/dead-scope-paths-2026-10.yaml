@@ -1,0 +1,175 @@
+---
+schema: math-coding/3.3
+id: dead-scope-paths-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/no-dead-scope-paths.sh
+body_sha: "sha256:b5aebbea03ee19ab084a920ec8f62b7f83f9c3bf15f38edd56b4890b97b47c81"
+yaml_sha: "sha256:b5aebbea03ee19ab084a920ec8f62b7f83f9c3bf15f38edd56b4890b97b47c81"
+
+intent: { source: "issue:dead-scope-paths-named-nothing-2026-10-25", text: "A decision's scope.paths names the files its attestation's materials_digest is computed over: the digest is the digest of the CONTENT of the files the scope MATCHES (lib/gate.ml::scope_materials_digest). An entry that matches no tracked file therefore contributes nothing to the matched set - it is not a weaker claim, it is NO claim - and it says nothing about what the obligation actually depends on. Measured on 2026-10-25 over the corpus's 246 decisions that declare a scope.paths list: 81 of them carried at least one entry that matched no tracked file, 162 entries in all. The most repeated were lib/render.ml in 26 decisions (the file does not exist), OCAML_BEST_PRACTICES.md in 22 (it does not exist either), site/index.md in 3, and seven bootstrap/*.yaml paths - six of them in 2 decisions each - which are paths relative to decisions/ and name nothing in the repository. Two decisions named a PLACEHOLDER - decisions/<sub-decision-id>-2026-10.yaml and attestations/<id>-*.json - and two named a path whose trailing comment sat INSIDE the quoted string, so the path the kernel read was `decisions/audit-0.0.21-fixes.yaml\"  # read-only reference`: a path that names nothing, carrying a comment that documented a reference the scope was supposed to point at. A dead path is not merely harmless, it is a TRAP: it matches nothing today, and the day somebody creates a file with that name it starts silently invalidating attestations that nobody re-signed." }
+
+commitment: |
+  After this decision closes:
+
+  1. The dead scope paths are GONE from the corpus. Every one of the
+     162 entries that matched no tracked file has been removed from
+     the scope.paths of the 81 decisions that carried it. The removal
+     is done by scripts/prune-dead-scope-paths.py, which uses the
+     KERNEL's glob rules (Gate.glob_match, imported from
+     scripts/audit-scopes.py rather than re-implemented) and the
+     kernel's scope extraction (lib/memory.ml::extract_scope_paths).
+  2. Nothing was deleted SILENTLY. Each decision that was touched
+     carries the removed entries in its own text, as a comment under
+     the scope, naming the entry and saying why it named nothing: the
+     file is gone, the entry was a placeholder, the entry was a
+     comment written inside the quotes, the entry was a block scalar.
+     The record is a COMMENT and not a new top-level key:
+     schemas/decision.json closes the decision object with
+     additionalProperties: false, and a comment under the scope is the
+     corpus's own idiom for a note about a scope entry
+     (decisions/attestation-producer-vocab-2026-10.yaml carries one).
+  3. The corpus is CHECKED, not trusted. The fixture
+     tests/fixtures/no-dead-scope-paths.sh asserts that no decision
+     names a scope path that matches no tracked file, and it carries a
+     live NEGATIVE CONTROL: the same check over a throwaway copy of
+     the corpus that carries a dead path must find it and must exit
+     non-zero. A check that cannot fail is not a check.
+  4. The RULE this establishes: a scope may name only what the
+     obligation actually depends on, and only paths that resolve.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "REPAIR the malformed entries instead of removing them: move
+  the trailing comment outside the quotes and the scope names the
+  file the author meant." Rejected on the digest: a repaired entry
+  ENTERS the matched set, so every decision whose scope was repaired
+  has a materials digest that changes, and every one of those
+  attestations must be re-signed before the corpus is coherent
+  again. The removal changes no digest at all, because an entry that
+  matched nothing contributed nothing to the matched set. The repair
+  is the RIGHT repair and it is a SEPARATE decision, with the
+  re-signing in its budget; smuggling it in here would have made
+  this decision a lie about what it does. It is also the more
+  dangerous edit: a repaired entry is a NEW CLAIM about what the
+  obligation depends on, and nobody has checked that the author
+  meant the file the repair names.
+
+  (b) "Prune the dead entries under scope.exclusions and
+  scope.decisions too, so that scripts/audit-scopes.py reports no
+  dead path at all." Rejected on the kernel's definition of a scope:
+  lib/gate.ml::scope_materials_digest reads the decision's
+  scope.paths and nothing else - the exclusions are documentation the
+  gate never consults, and a scope.decisions entry is a
+  cross-reference to another decision, not a path. Measured after the
+  prune: 51 decisions still carry an entry under their scope block
+  that matches no tracked file, and every one of them is an exclusion,
+  a capability or a decision id. Removing them would not change a
+  single digest, and it would delete the author's own annotations -
+  "no kernel change", "the active policy", "owned by another session"
+  - which are the only thing those lines ever said. A line that says
+  nothing about a file is not a false claim about a dependency.
+
+antithesis: |
+  The opposite claim is that a scope path which matches nothing is
+  HARMLESS, and that removing it is churn at best and a loss of
+  evidence at worst.
+
+  The claim has real force. A scope is a CLAIM about the future: it
+  says "if you change a file under this glob, this decision's
+  attestation goes stale". A path that names no file today names no
+  file tomorrow either, so it costs nothing to keep - and the author
+  who wrote `lib/render.ml` in 2026-09 probably meant a file that
+  does not exist YET, a file that a worktree is going to create. By
+  that reading the dead path is a RESERVATION, and this decision
+  deletes reservations.
+
+  The claim identifies what a correct version of this decision must
+  preserve: an entry that names a file that is not here yet is a
+  different thing from an entry that names nothing and never will.
+  The pruning cannot tell them apart by matching alone, and it does
+  not pretend to: every removal is RECORDED in the decision's own
+  text, so a reservation is not lost - it is stated, with the reason
+  it was removed, where a reader of that decision will find it. What
+  is deleted is the ambiguity: a scope may no longer carry an entry
+  whose meaning is unstated. And the trap is not hypothetical - the
+  day somebody creates lib/render.ml, the day somebody creates
+  OCAML_BEST_PRACTICES.md, the reservations become silent
+  invalidators of 26 and 22 attestations respectively, and nobody
+  re-signed them, because nobody could tell that the scope had
+  started naming a real file.
+
+outcomes:
+  - id: no-decision-names-a-dead-scope-path
+    statement: |
+      No decision names a scope path that matches no tracked file.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/no-dead-scope-paths.sh
+          result: pass
+
+  - id: the-check-is-live
+    claim: |
+      The same check over a corpus carrying a dead scope path finds
+      it and exits non-zero, so the clean measurement is not
+      vacuously true.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/no-dead-scope-paths.sh
+          result: pass
+
+scope:
+  paths:
+    - "scripts/prune-dead-scope-paths.py"
+    - "tests/fixtures/no-dead-scope-paths.sh"
+    - "decisions/dead-scope-paths-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "scripts/sign-store.sh"
+
+obligations:
+  - id: the-corpus-names-only-resolvable-paths
+    claim: |
+      Every scope path in decisions/*.yaml matches at least one
+      tracked file, under the kernel's glob rules.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/no-dead-scope-paths.sh
+          result: pass
+
+  - id: the-removals-are-recorded
+    claim: |
+      Every decision whose scope was pruned names the removed
+      entries in its own text, with the reason each one named
+      nothing.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/no-dead-scope-paths.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a scope path is added that matches no tracked file"
+    - "a file named by a pruned scope path is created, so that the path becomes live again"
+
+assumptions:
+  - id: the-scope-is-the-set-of-dependencies
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A decision's scope.paths is the set of files its obligation
+      depends on, and the materials digest is computed over the
+      content of exactly those files.
+    consequence_if_false: |
+      If a scope may name files the obligation does not depend on,
+      then a dead path is not noise but a claim, and pruning it
+      removes evidence of an intended dependency. The pruning is
+      therefore recorded per decision rather than applied silently,
+      and the entries are recoverable from the decisions' own text.

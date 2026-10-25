@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: migration-mechanism
 revision: 2
 state: active
-body_sha: "sha256:913b43179822435a2ba0593dc2ef7aede6b29a63ed947163224cc5ce93e38fd5"
-yaml_sha: "sha256:913b43179822435a2ba0593dc2ef7aede6b29a63ed947163224cc5ce93e38fd5"
+body_sha: "sha256:3de2cc3e6c16804665fa26682e285bc4ce73970d2c7ef19cf0cd5e1a82b09f6e"
+yaml_sha: "sha256:3de2cc3e6c16804665fa26682e285bc4ce73970d2c7ef19cf0cd5e1a82b09f6e"
 intent: |
   Give math-coding agents a deterministic, reproducible, kernel-driven
   way to migrate decisions/*.yaml between minor versions of the schema
@@ -119,12 +119,13 @@ scope:
     - "tests/cli/migrate-dry-run.t"
     - "tests/cli/migrate-no-changes.t"
     - "tests/cli/migrate-malformed.t"
-    - "tests/cli/fixtures/migrate/"
-    - "OCAML_BEST_PRACTICES.md"
     - "AGENTS.md"
     - "ROADMAP.md"
     - "PACKAGES.md"
     - "CHANGELOG.md"
+  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  #   tests/cli/fixtures/migrate/ - no tracked file matches it
+  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   exclusions:
     - "schemas/**"
 
