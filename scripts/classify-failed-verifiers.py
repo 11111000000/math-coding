@@ -44,6 +44,14 @@ existed to be probed.
 The probe files are removed as they are used, and a trap removes the
 rest if the run is interrupted. They are never committed.
 
+Each probe is re-stamped with `mathc rehash --write` before it is
+run. The strict parser enforces the sha fields, so a probe carrying
+the original's digest is reported as having no obligations - which
+reads as `skipped` and is a FALSE reading of the verifier. (Measured:
+a stale probe made `dune build` look skipped when it in fact
+passes.) Re-stamping a throwaway probe asserts nothing about the
+corpus: the file exists only to be probed, and is deleted at once.
+
 USAGE
     scripts/classify-failed-verifiers.py [--log FILE] [--out FILE]
                                          [--decisions DIR] [--limit N]
@@ -158,6 +166,20 @@ def probe_one(decisions_dir, decision, obligation, verifier, bin_path, keep):
             fh.write(body)
     except OSError as exc:
         return "probe-unwritable: %s" % exc
+
+    # The probe must carry a CURRENT digest. `do_verify` parses the
+    # decision with the strict parser, which enforces the sha fields,
+    # so a probe whose digest is stale is reported as having no
+    # obligations at all - which reads as `skipped` and is a FALSE
+    # reading of the verifier. (Measured: a probe with a stale digest
+    # made `dune build` look skipped when it in fact passes.)
+    # Re-stamping a throwaway probe is not a lie about the corpus:
+    # the file exists only to be probed and is deleted immediately.
+    subprocess.run(
+        [bin_path, "rehash", "--write", probe_path],
+        capture_output=True,
+        text=True,
+    )
 
     try:
         proc = subprocess.run(
