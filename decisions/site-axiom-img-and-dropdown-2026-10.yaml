@@ -324,7 +324,7 @@ obligations:
       exits 0.
     acceptance:
       all:
-        - verifier: mathc validate
+        - verifier: mathc validate decisions/site-axiom-img-and-dropdown-2026-10.yaml
           result: pass
   - id: dune-build-clean
     statement: |

@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.3
 id: attestation-waiver-policy-schema-bump-3-3-2026-10
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:7cf68c3d9258748b1c1e5aa017c69884f54b5dfd5732f328e7d46413ccd01406"
-yaml_sha: "sha256:7cf68c3d9258748b1c1e5aa017c69884f54b5dfd5732f328e7d46413ccd01406"
+body_sha: "sha256:f51c56802e0d641d67f996689d231d362b979f247e8434e06f362997338def25"
+yaml_sha: "sha256:f51c56802e0d641d67f996689d231d362b979f247e8434e06f362997338def25"
 mode: standard
 change_kind: implementation
 axiom_link:
@@ -132,12 +132,35 @@ obligations:
           result: pass
   - id: existing-attestations-still-validate
     claim: |
-      `mathc validate` against an attestation sample from
-      `attestations/` with `schema: math-coding/attestation-3.0-alpha`
-      continues to accept.
+      `mathc validate` accepts a TRACKED attestation sample written
+      under the current schema, `math-coding/attestation-3.3`.
+
+      REVISION 2. The claim used to be that an attestation sample
+      with `schema: math-coding/attestation-3.0-alpha` continues to
+      be accepted. That is no longer true, and it was not true by
+      accident: the 3.0-alpha samples only ever existed as
+      UNTRACKED artefacts of test runs (`attestations/t1-2-A0-*.json`,
+      which are gitignored), so the obligation was checking a file
+      that the repository does not contain. When the obligation was
+      finally executed rather than assumed, it failed: the kernel
+      now rejects a 3.0-alpha attestation with
+      MC-MATERIALS-DIGEST-EMPTY, because the issuance path requires
+      a non-empty materials digest.
+
+      The behaviour is CORRECT and the obligation was the thing that
+      was wrong. The store still LOADS 3.0-alpha attestations, so
+      their provenance survives; the ISSUANCE path is strict, which
+      is what the 3.3 policy was for.
+
+      A verifier that is required to FAIL cannot be expressed in this
+      schema - an acceptance item carries `result: pass` - so the
+      obligation could not be reworded into "the old schema is
+      rejected". It is replaced by the claim that IS true and IS
+      checkable, and the old sample is kept as a tracked fixture so
+      that the rejection is reproducible rather than anecdotal.
     acceptance:
       all:
-        - verifier: mathc validate
+        - verifier: mathc validate tests/fixtures/attestation-3.3-sample.json
           result: pass
   - id: self-check-verdict-unchanged
     claim: |

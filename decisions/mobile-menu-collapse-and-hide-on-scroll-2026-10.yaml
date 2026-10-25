@@ -208,7 +208,7 @@ obligations:
       all:
         - verifier: dune build
           result: pass
-        - verifier: mathc render
+        - verifier: mathc render --out dist --lang=all
           result: pass
 reversal:
   - signal: max-height-overshoot

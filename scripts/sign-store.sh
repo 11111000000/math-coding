@@ -159,6 +159,40 @@ signed=$(find "$dest" -name '*.json' 2>/dev/null | wc -l | tr -d ' ')
 not_signed=$(grep -c 'NOT signing' "$work/sweep.log" 2>/dev/null || true)
 echo "sign-store: sweep took $((sweep_e - sweep_s))s, $signed attestation(s) written, ${not_signed:-0} obligation(s) left unsigned because their verifier failed."
 
+# WHICH verifiers failed. A count of failures is a number; a list of
+# the offenders is a diagnosis. Without it, "171 failed" is a fact
+# with no owner.
+if [ "${not_signed:-0}" -gt 0 ]; then
+  echo "sign-store: the failing verifier strings, most frequent first:"
+  python3 - "$work" <<'PYEOF'
+import collections, glob, os, re, sys
+work = sys.argv[1]
+# Which verifier string each obligation carries.
+owner = {}
+for p in glob.glob('decisions/*.yaml'):
+    t = open(p).read()
+    m = re.search(r'^id:\s*(\S+)', t, re.M)
+    if not m:
+        continue
+    dec = m.group(1)
+    om = re.search(r'^obligations:\s*$(.*?)(?=^\S|\Z)', t, re.M | re.S)
+    if not om:
+        continue
+    for blk in re.split(r'^\s+-\s+id:\s*', om.group(1), flags=re.M)[1:]:
+        o = blk.split()[0]
+        vs = re.findall(r'^\s+-\s+verifier:\s*(.+?)\s*$', blk, re.M)
+        if vs:
+            owner[(dec, o)] = vs[0]
+counts = collections.Counter()
+for line in open(os.path.join(work, 'sweep.log'), errors='replace'):
+    m = re.search(r'NOT signing (\S+)/(\S+)', line)
+    if m:
+        counts[owner.get((m.group(1), m.group(2)), '<unknown>')] += 1
+for v, n in counts.most_common(12):
+    print("    %4d  %s" % (n, v[:76]))
+PYEOF
+fi
+
 if [ "$rc" -ne 0 ]; then
   echo "sign-store: the sweep exited $rc; the last lines were:" >&2
   tail -5 "$work/sweep.log" >&2
