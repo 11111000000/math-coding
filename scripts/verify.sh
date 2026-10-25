@@ -71,8 +71,13 @@ fail() {
 stage "format"
 t0=$(date +%s)
 $DEV bash -c 'dune fmt --root .' >/dev/null 2>&1 || true
-$DEV bash -c 'dune fmt --root . --check' >/dev/null 2>&1 \
-  || fail "dune fmt --check reports drift after formatting"
+# The drift check is the repository's OWN: `dune fmt --check` does not
+# exist in dune 3.23 - the flag was invented, dune rejected it, and
+# the stage failed on a typo rather than on drift. scripts/fmt-check.sh
+# is the canonical wrapper: dune fmt --preview with promotion disabled,
+# which prints the diffs and exits 1 when there is any.
+bash scripts/fmt-check.sh >/dev/null 2>&1 \
+  || fail "the tree still has formatting drift after dune fmt"
 printf '  %ss\n' "$(( $(date +%s) - t0 ))"
 
 # --- 2. build and test ----------------------------------------------------
