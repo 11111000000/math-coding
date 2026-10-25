@@ -374,8 +374,204 @@ let[@warning "-32"] collect_verifier_scheme_diagnostics v =
                   | None -> [])
               | _ -> [])
             obls
+      | None -> []
+  | _ -> []
+
+(* --- MC-VERIFIER-PATH-UNRESOLVED ------------------------------------
+ *
+ * Why this exists. The kernel has no representation of a verifier's
+ * evidence path. `Domain.Verifier` (lib/domain.ml) carries exactly two
+ * fields, `id` and `result`; `Decision.parse_verifier` (lib/decision.ml)
+ * reads exactly two keys, `verifier` and `result`. A sibling `path:` (or
+ * `needle:`) key on an acceptance item is therefore dropped at parse
+ * time with no diagnostic. `schemas/common.json` already forbids it
+ * (`additionalProperties: false`, properties = verifier/result/review),
+ * but nothing enforces that schema: `lib/schema_embedded.ml` is the only
+ * copy of the schemas inside the kernel and has no referrer in lib/ or
+ * bin/, so `additionalProperties: false` is documentation, not a check.
+ *
+ * The consequence measured on this corpus (2026-10-22) before this rule:
+ * 83 acceptance items named an absolute path, 28 of them into
+ * `.paseo/worktrees/math-coding/<deleted-branch>/...`, and every one of
+ * them validated clean. `adoption/SKILL.md` and `USAGE.md` both promise
+ * the kernel refuses "missing fixture: a verifier naming a path that does
+ * not exist". It did not; that check was never implemented.
+ *
+ * The rule, in one sentence: a verifier's `path:` must resolve inside
+ * the project tree that contains the decision.
+ *
+ * Two severities, deliberately different:
+ *
+ *   - ABSOLUTE -> Block (rejects the file, exit 1). An absolute path is
+ *     wrong in every case and for every reader: it is pinned to one
+ *     machine's directory layout, so it resolves on the author's
+ *     workstation and nowhere else. There is no legitimate form of it,
+ *     so there is nothing to grandfather and no reason to defer.
+ *
+ *   - MISSING / UNRESOLVABLE -> Warn (verdict stays `parse-ok`). A
+ *     relative path that does not exist under the project root is not
+ *     necessarily an author error: it may name a build artifact
+ *     (`_build/...`, absent in a fresh checkout before the first
+ *     `dune build`), a generated file, or a `file.ml::case` selector.
+ *     Rejecting on that would make `mathc validate` unusable before the
+ *     first build. The diagnostic makes the gap visible instead.
+ *
+ * The project root is found by walking up from the VALIDATED FILE, not
+ * from the process CWD: `mathc validate ../other/decisions/x.yaml` must
+ * resolve `path:` against `../other`, which is what a reader means by
+ * "the project this decision lives in". When the file is not inside a
+ * project at all (no `dune-project` above it) there is no
+ * project-relative notion to check, so only the absolute clause fires.
+ *
+ * NOT DONE HERE, deliberately, to keep the layers separate: this rule is
+ * about the evidence path named by an acceptance item.
+ * `tests/fixture_coverage.ml` enforces the different rule "a decision
+ * must have a fixture for its obligation" and is left alone. Two further
+ * defects are recorded in
+ * `decisions/verifier-path-resolution-2026-10.yaml` and not fixed here:
+ * `shell-grep` is in the canonical scheme allowlist (line 223) but not in
+ * the `mathc verify` executor, so every `shell-grep` verifier in the
+ * corpus reports `Skipped` and exits 0; and `file-exists`/`dir-exists`
+ * resolve against the process CWD, not the project root.
+ *
+ * The diagnostic code is built with `Diagnostic.create` rather than a
+ * named constructor in `lib/diagnostic.ml`, because that module is under
+ * concurrent edit by another workstream. FOLLOW-UP: register
+ * `MC-VERIFIER-PATH-UNRESOLVED` in `Diagnostic.explain` once that
+ * contention clears; until then `mathc explain-diagnostic
+ * MC-VERIFIER-PATH-UNRESOLVED` exits 2 with "unknown diagnostic code". *)
+let[@warning "-32"] verifier_path_project_root file =
+  let rec climb d =
+    if d = "" || d = "/" || d = "." then None
+    else if Sys.file_exists (Filename.concat d "dune-project") then Some d
+    else climb (Filename.dirname d)
+  in
+  climb (Filename.dirname file)
+
+(* Split `file.ml::case` into the file part; anything with a shell
+   metacharacter or an unexpanded variable is not a path we can resolve
+   and is reported as UNRESOLVABLE rather than silently skipped. *)
+let[@warning "-32"] verifier_path_file_part p =
+  match String.index_opt p ':' with
+  | Some i when String.length p >= i + 3 && String.sub p (i + 1) 2 = "::" ->
+      String.sub p 0 i
+  | _ -> p
+
+let[@warning "-32"] verifier_path_is_unresolvable p =
+  String.exists
+    (fun c ->
+      match c with '$' | '{' | '}' | '~' | '*' | '?' | '$' -> true | _ -> false)
+    p
+
+(* Walk every obligation's acceptance list and classify the `path:` of
+   each item. Returns (absolute | missing | unresolvable) triples in
+   document order. Mirrors `collect_verifier_scheme_diagnostics` above:
+   walks raw Jsonl, not the parsed Domain tree, because the acceptance
+   item's `path` never reaches the typed tree. *)
+let[@warning "-32"] collect_verifier_path_violations ~file v =
+  let root = verifier_path_project_root file in
+  match v with
+  | Jsonl.Object ps -> (
+      match Schema.take_array ps "obligations" with
+      | Some obls ->
+          List.concat_map
+            (fun o ->
+              match o with
+              | Jsonl.Object ops -> (
+                  let id =
+                    match Schema.take_string ops "id" with
+                    | Some s -> s
+                    | None -> ""
+                  in
+                  let lists =
+                    match Schema.take_object ops "acceptance" with
+                    | None -> []
+                    | Some a ->
+                        List.concat_map
+                          (fun key ->
+                            match Schema.take_array a key with
+                            | Some xs -> xs | None -> [])
+                          [ "all"; "any" ]
+                  in
+                  List.concat_map
+                    (fun item ->
+                      match item with
+                      | Jsonl.Object ips -> (
+                          match Schema.take_string ips "path" with
+                          | Some p when String.trim p <> "" ->
+                              let p = String.trim p in
+                              if p.[0] = '/' then [ (id, p, `Absolute) ]
+                              else if verifier_path_is_unresolvable p then
+                                [ (id, p, `Unresolvable) ]
+                              else
+                                match root with
+                                | None -> []
+                                | Some r ->
+                                    let target =
+                                      Filename.concat r
+                                        (verifier_path_file_part p)
+                                    in
+                                    if Sys.file_exists target then []
+                                    else [ (id, p, `Missing) ]
+                          | _ -> [])
+                      | _ -> [])
+                    lists)
+              | _ -> [])
+            obls
       | None -> [])
   | _ -> []
+
+let[@warning "-32"] verifier_path_diagnostic (id, p, reason) =
+  let code = "MC-VERIFIER-PATH-UNRESOLVED" in
+  let what, severity, remedy =
+    match reason with
+    | `Absolute ->
+        ( Printf.sprintf
+            "obligation %s: verifier path %s is absolute. A verifier path \
+             must be relative to the project tree: an absolute path names \
+             one machine's directory layout and resolves nowhere else, so \
+             the obligation cannot be checked by any reader but its \
+             author."
+            id p,
+          Diagnostic.Block,
+          Printf.sprintf
+            "rewrite it as the project-relative path (for example \
+             %s), or delete the `path:` key when the obligation has no \
+             in-tree subject at all"
+            (String.concat "/" (List.rev
+               (List.tl (List.rev (String.split_on_char '/' p))))) )
+    | `Missing ->
+        ( Printf.sprintf
+            "obligation %s: verifier path %s does not exist under the \
+             project root. The obligation names a file no checkout can \
+             resolve, so its recorded result is unbacked. If the target \
+             is a build artifact or a generated file this is expected \
+             before a build; if it is meant to be tracked, the file is \
+             missing."
+            id p,
+          Diagnostic.Warn,
+          "add the file, or point the verifier at what it can check" )
+    | `Unresolvable ->
+        ( Printf.sprintf
+            "obligation %s: verifier path %s is not a resolvable path (it \
+             carries a shell metacharacter or an unexpanded variable). \
+             No code in the kernel expands shell syntax in a `path:` key, \
+             so the obligation's recorded result is unbacked."
+            id p,
+          Diagnostic.Warn,
+          "replace the variable or glob with the concrete project-relative \
+           path" )
+  in
+  Diagnostic.create ~code ~kind:Diagnostic.Input ~severity
+    ~path:[ Printf.sprintf "obligations.%s.acceptance.path" id ]
+    ~policy_rule:(Some "decisions/verifier-path-resolution-2026-10.yaml")
+    ~next_actions:
+      [
+        ("edit", remedy);
+        ("run", "mathc validate decisions/<file>.yaml");
+        ("run", "mathc explain-diagnostic " ^ code);
+      ]
+    what
 
 (* Required top-level fields per schemas/decision.json. Used by
    validate_with_counts to surface the FIRST missing field instead
@@ -778,8 +974,45 @@ let validate_with_counts path =
                                       collect_verifier_scheme_diagnostics v
                                       @ extra_diags
                                     in
-                                    let extra_diags = dup_diags @ extra_diags in
-                                    `Accept (d, extra_diags))
+                                    (* MC-VERIFIER-PATH-UNRESOLVED
+                                       (decisions/verifier-path-resolution-2026-10.yaml).
+                                       The rule is enforced HERE, on the
+                                       raw tree, rather than in `emit`:
+                                       `emit` exits 0 on every `Accept`
+                                       branch regardless of diagnostic
+                                       severity, so a Block diagnostic
+                                       attached to `extra_diags` would be
+                                       printed and then ignored. An
+                                       ABSOLUTE verifier path has to take
+                                       the `Reject` branch to actually
+                                       block. MISSING and UNRESOLVABLE
+                                       stay warnings and ride along. *)
+                                    let path_violations =
+                                      collect_verifier_path_violations ~file:path
+                                        v
+                                    in
+                                    match
+                                      List.find_opt
+                        (fun (_, _, r) -> r = `Absolute)
+                        path_violations
+                                    with
+                                    | Some violation ->
+                                        let diag =
+                                          verifier_path_diagnostic violation
+                                        in
+                                        `Reject (diag, diag.Diagnostic.message)
+                                    | None ->
+                                        let path_diags =
+                                          List.map verifier_path_diagnostic
+                                            path_violations
+                                        in
+                                        let extra_diags =
+                                          path_diags @ extra_diags
+                                        in
+                                        let extra_diags =
+                                          dup_diags @ extra_diags
+                                        in
+                                        `Accept (d, extra_diags)))
                             | None ->
                                 (* D8 (Slice A): the parser now returns a typed
                            Diagnostic.t option. When parse_decision_yaml
