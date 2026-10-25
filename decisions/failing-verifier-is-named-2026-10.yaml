@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/failing-verifier-is-named.sh
-body_sha: "sha256:be80e98e3378aa0c67474af8aae751441d7894b82efc8d26a0aa4f9f28cf5c98"
-yaml_sha: "sha256:be80e98e3378aa0c67474af8aae751441d7894b82efc8d26a0aa4f9f28cf5c98"
+body_sha: "sha256:62b34b3cb12c8c87023599f716cc0855236fdfaf63e7111d246d12347c2f3161"
+yaml_sha: "sha256:62b34b3cb12c8c87023599f716cc0855236fdfaf63e7111d246d12347c2f3161"
 
 intent: { source: "issue:the-refusal-named-a-pair-not-a-verifier-2026-10-25", text: "A refusal must name the verifier that failed, not only the (decision, obligation) pair. `mathc attest-batch --run-per-obligation --skip-failing` refuses to write an attestation for an obligation whose check failed, and says so: `mathc attest-batch: NOT signing <decision>/<obligation> — its verifier failed.` It does not say WHICH verifier failed. An obligation may name several, and the failure may be in any of them, so the message names a pair where the reader needs a name. The corpus had to guess: scripts/sign-store.sh named the obligation's FIRST verifier, and scripts/classify-failed-verifiers.py re-derived the truth by running every verifier of every unsigned obligation on its own in a throwaway decision - a second tool, minutes per obligation, to recover an answer the kernel had already thrown away. Measured on 2026-10-25 over this corpus: 889 obligations, of which 329 name more than one verifier (37%), so the first verifier is not determined by the failure; 45 of them name a `manual:` declaration FIRST while also carrying an executable verifier, and a `manual:` declaration cannot fail - the kernel cannot execute it and records it as a review - so the guess accuses a declaration of breaking a check some other verifier broke. The last committed sweep (sign-store-sweep.log, 2026-10-25) recorded 30 refusals and not one of them named a verifier; 10 of those obligations carry more than one verifier, and 2 were attributed by the guess to a `manual:` declaration." }
 
@@ -120,10 +120,19 @@ scope:
   paths:
     - "tests/fixtures/failing-verifier-is-named.sh"
     - "decisions/failing-verifier-is-named-2026-10.yaml"
-    - "attestations/failing-verifier-is-named-2026-10-*.json"
   exclusions:
     - "spec/**"
     - "axioms/**"
+    # The store is excluded from the materials digest by PREFIX
+    # (Gate.scope_materials_digest is called with
+    # store_exclude_prefixes (), not with this list), so an
+    # attestation of this decision contributes nothing to its own
+    # digest whatever it is called. Naming it here, rather than in
+    # paths, says so without asserting a dependency on a file that
+    # does not exist until the decision is signed - a path that names
+    # nothing today starts invalidating attestations the day
+    # somebody creates a file with that name.
+    - "attestations/failing-verifier-is-named-2026-10-*.json"
 
 obligations:
   - id: the-failing-verifier-is-named
