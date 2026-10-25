@@ -478,8 +478,7 @@ let[@warning "-32"] verifier_path_is_unresolvable p =
    there is a portability wart, not a broken obligation. *)
 let[@warning "-32"] verifier_path_is_manual item_verifier =
   let n = String.length "manual-" in
-  String.length item_verifier >= n
-  && String.sub item_verifier 0 n = "manual-"
+  String.length item_verifier >= n && String.sub item_verifier 0 n = "manual-"
 
 let[@warning "-32"] collect_verifier_path_violations ~file v =
   let root = verifier_path_project_root file in
@@ -490,7 +489,7 @@ let[@warning "-32"] collect_verifier_path_violations ~file v =
           List.concat_map
             (fun o ->
               match o with
-              | Jsonl.Object ops -> (
+              | Jsonl.Object ops ->
                   let id =
                     match Schema.take_string ops "id" with
                     | Some s -> s
@@ -503,7 +502,8 @@ let[@warning "-32"] collect_verifier_path_violations ~file v =
                         List.concat_map
                           (fun key ->
                             match Schema.take_array a key with
-                            | Some xs -> xs | None -> [])
+                            | Some xs -> xs
+                            | None -> [])
                           [ "all"; "any" ]
                   in
                   List.concat_map
@@ -511,7 +511,7 @@ let[@warning "-32"] collect_verifier_path_violations ~file v =
                       match item with
                       | Jsonl.Object ips -> (
                           match Schema.take_string ips "path" with
-                          | Some p when String.trim p <> "" ->
+                          | Some p when String.trim p <> "" -> (
                               let p = String.trim p in
                               let manual =
                                 match Schema.take_string ips "verifier" with
@@ -524,18 +524,18 @@ let[@warning "-32"] collect_verifier_path_violations ~file v =
                               else if verifier_path_is_unresolvable p then
                                 [ (id, p, `Unresolvable, false) ]
                               else
-                                (match root with
-                                 | None -> []
-                                 | Some r ->
-                                     let target =
-                                       Filename.concat r
-                                         (verifier_path_file_part p)
-                                     in
-                                     if Sys.file_exists target then []
-                                     else [ (id, p, `Missing, false) ])
+                                match root with
+                                | None -> []
+                                | Some r ->
+                                    let target =
+                                      Filename.concat r
+                                        (verifier_path_file_part p)
+                                    in
+                                    if Sys.file_exists target then []
+                                    else [ (id, p, `Missing, false) ])
                           | _ -> [])
                       | _ -> [])
-                    lists)
+                    lists
               | _ -> [])
             obls
       | None -> [])
@@ -547,40 +547,38 @@ let[@warning "-32"] verifier_path_diagnostic (id, p, reason, _manual) =
     match reason with
     | `Absolute ->
         ( Printf.sprintf
-            "obligation %s: verifier path %s is absolute. A verifier path \
-             must be relative to the project tree: an absolute path names \
-             one machine's directory layout and resolves nowhere else, so \
-             the obligation cannot be checked by any reader but its \
-             author."
+            "obligation %s: verifier path %s is absolute. A verifier path must \
+             be relative to the project tree: an absolute path names one \
+             machine's directory layout and resolves nowhere else, so the \
+             obligation cannot be checked by any reader but its author."
             id p,
           Diagnostic.Block,
           Printf.sprintf
-            "rewrite it as the project-relative path (for example \
-             %s), or delete the `path:` key when the obligation has no \
-             in-tree subject at all"
-            (String.concat "/" (List.rev
-               (List.tl (List.rev (String.split_on_char '/' p))))) )
+            "rewrite it as the project-relative path (for example %s), or \
+             delete the `path:` key when the obligation has no in-tree subject \
+             at all"
+            (String.concat "/"
+               (List.rev (List.tl (List.rev (String.split_on_char '/' p))))) )
     | `Missing ->
         ( Printf.sprintf
-            "obligation %s: verifier path %s does not exist under the \
-             project root. The obligation names a file no checkout can \
-             resolve, so its recorded result is unbacked. If the target \
-             is a build artifact or a generated file this is expected \
-             before a build; if it is meant to be tracked, the file is \
-             missing."
+            "obligation %s: verifier path %s does not exist under the project \
+             root. The obligation names a file no checkout can resolve, so its \
+             recorded result is unbacked. If the target is a build artifact or \
+             a generated file this is expected before a build; if it is meant \
+             to be tracked, the file is missing."
             id p,
           Diagnostic.Warn,
           "add the file, or point the verifier at what it can check" )
     | `Unresolvable ->
         ( Printf.sprintf
             "obligation %s: verifier path %s is not a resolvable path (it \
-             carries a shell metacharacter or an unexpanded variable). \
-             No code in the kernel expands shell syntax in a `path:` key, \
-             so the obligation's recorded result is unbacked."
+             carries a shell metacharacter or an unexpanded variable). No code \
+             in the kernel expands shell syntax in a `path:` key, so the \
+             obligation's recorded result is unbacked."
             id p,
           Diagnostic.Warn,
-          "replace the variable or glob with the concrete project-relative \
-           path" )
+          "replace the variable or glob with the concrete project-relative path"
+        )
   in
   Diagnostic.create ~code ~kind:Diagnostic.Input ~severity
     ~path:[ Printf.sprintf "obligations.%s.acceptance.path" id ]
@@ -948,7 +946,7 @@ let validate_with_counts path =
                                        was misleading for the second. *)
                                     let msg = first.Diagnostic.message in
                                     `Reject (first, msg)
-                                | [] ->
+                                | [] -> (
                                     let extra_diags =
                                       collect_ambiguous_acceptance_diagnostics v
                                     in
@@ -994,7 +992,7 @@ let validate_with_counts path =
                                       collect_verifier_scheme_diagnostics v
                                       @ extra_diags
                                     in
-(* MC-VERIFIER-PATH-UNRESOLVED
+                                    (* MC-VERIFIER-PATH-UNRESOLVED
                                        (decisions/verifier-path-resolution-2026-10.yaml).
                                        The rule is enforced HERE, on the
                                        raw tree, rather than in `emit`:
@@ -1008,13 +1006,13 @@ let validate_with_counts path =
                                        block. MISSING and UNRESOLVABLE
                                        stay warnings and ride along. *)
                                     let path_violations =
-                                      collect_verifier_path_violations ~file:path
-                                        v
+                                      collect_verifier_path_violations
+                                        ~file:path v
                                     in
                                     match
                                       List.find_opt
-                        (fun (_, _, r, _) -> r = `Absolute)
-                        path_violations
+                                        (fun (_, _, r, _) -> r = `Absolute)
+                                        path_violations
                                     with
                                     | Some violation ->
                                         let diag =
@@ -1032,7 +1030,7 @@ let validate_with_counts path =
                                         let extra_diags =
                                           dup_diags @ extra_diags
                                         in
-                                        `Accept (d, extra_diags))
+                                        `Accept (d, extra_diags)))
                             | None ->
                                 (* D8 (Slice A): the parser now returns a typed
                            Diagnostic.t option. When parse_decision_yaml
@@ -4641,11 +4639,25 @@ let[@warning "-32"] store_exclude_prefixes () : string list =
 let[@warning "-32"] scope_digest_map ~(reader : string -> string)
     ~(decisions_dir : string) ~(tree : string) :
     (string -> string) * (string, string list) Hashtbl.t =
+  (* The git lookups are anchored to the PROJECT ROOT, never to the
+     process's working directory. Asking git from the caller's
+     directory made the materials digest a function of where the
+     binary happened to be run: from the repository root the blobs
+     resolve and the digest is the digest of the decision's scope;
+     from anywhere else both commands fail, the blob list is empty,
+     and the digest becomes sha256("") - the digest of NOTHING. Every
+     attestation then fails to match, every subject goes stale, and
+     the ones a waiver covers come back open-with-waiver. Measured:
+     0 open-with-waiver subjects from the repository root, 7 from
+     anywhere else - same binary, same store, same tree.
+     The root is the parent of the decisions directory, which is where
+     the tree the digest is computed over lives. *)
+  let root = Filename.dirname decisions_dir in
   let blobs =
-    match Git_diff.tree_blobs ~cwd:(Sys.getcwd ()) ~ref:tree with
+    match Git_diff.tree_blobs ~cwd:root ~ref:tree with
     | Some bs -> bs
     | None -> (
-        match Git_diff.tracked_blobs ~cwd:(Sys.getcwd ()) with
+        match Git_diff.tracked_blobs ~cwd:root with
         | Some bs -> bs
         | None -> [])
   in
@@ -5469,9 +5481,29 @@ let[@warning "-32"] store_keep_for store_dir =
     Fun.protect
       ~finally:(fun () -> try Sys.remove tmp with _ -> ())
       (fun () ->
+        (* Ask git from the STORE's directory, not from the process's
+           working directory. The question being asked is "which
+           files of the store does the repository track", and that
+           question has the same answer whatever directory the caller
+           happens to be in. Asking it from the caller's directory
+           made the answer depend on the caller: from a directory
+           outside the repository git cannot answer at all, the
+           filter falls back to `any_file`, and `any_file` admits
+           every file on disk - including the 878 gitignored
+           attestations that test runs write into attestations/.
+           Those files carry stale material digests, so the subjects
+           they name stop being passes and fall back onto their
+           waivers. Measured on this repository: 0 open-with-waiver
+           subjects when the same binary ran from the repository
+           root, and 7 when it ran from anywhere else.
+           *
+           * The store's own directory is the one place the answer is
+           * guaranteed to exist, because it is inside the repository
+           * the store belongs to. *)
+        let cwd = if Sys.file_exists store_dir then store_dir else Filename.dirname store_dir in
         let cmd =
-          Printf.sprintf "git rev-parse --show-toplevel > %s 2>/dev/null"
-            (Filename.quote tmp)
+          Printf.sprintf "git -C %s rev-parse --show-toplevel > %s 2>/dev/null"
+            (Filename.quote cwd) (Filename.quote tmp)
         in
         if Sys.command cmd <> 0 then None
         else
@@ -5498,14 +5530,36 @@ let[@warning "-32"] store_keep_for store_dir =
         Some (String.sub a (k + 1) (String.length a - k - 1))
       else None
   in
-  let cwd = Sys.getcwd () in
   match toplevel () with
   | None -> Attestations.any_file
   | Some top -> (
       match relative_to_toplevel top store_dir with
       | None -> Attestations.any_file
       | Some rel -> (
-          match Git_diff.tracked_under ~cwd ~rel_dir:rel with
+          (* The pathspec `rel` is relative to the REPOSITORY TOPLEVEL,
+             so git must be asked with the toplevel as its working
+             directory. Asking it from the PROCESS's working directory
+             silently asks a different question: `git -C <cwd>
+             ls-files -- attestations` resolves the pathspec against
+             <cwd>, and from a directory that is not the toplevel it
+             either fails (no repository there) or - when the
+             directory happens to be INSIDE the repository, as a cram
+             sandbox under _build/ is - succeeds with an EMPTY list.
+             An empty list means "no file of the store is tracked",
+             which empties the store: every attestation stops counting
+             as evidence, and every waiver-covered subject drops back
+             to open-with-waiver.
+             *
+             * The consequence was measured: the same binary reported
+             * 0 open-with-waiver subjects when run from the repository
+             * root and 7 when run from a sandbox inside the
+             * repository. The filter was therefore a function of the
+             * caller's working directory, which is the opposite of
+             * what the resolution comment above promises: "the gate is
+             * reproducible from any working directory".
+             *
+             * Fix: ask git from the toplevel. *)
+          match Git_diff.tracked_under ~cwd:top ~rel_dir:rel with
           | None -> Attestations.any_file
           | Some names ->
               let table = Hashtbl.create ((List.length names * 2) + 1) in
@@ -5604,13 +5658,13 @@ let[@warning "-32"] gate_to_json (g : Gate.t) =
  * which is stable and computable by anyone. *)
 
 let[@warning "-32"] materials_resolver_of
-    ~(entries : Memory.decision_entry list) ~(tree : string) : string -> string
-    =
+    ~(entries : Memory.decision_entry list) ~(tree : string) ~(root : string) :
+    string -> string =
   let blobs =
-    match Git_diff.tree_blobs ~cwd:(Sys.getcwd ()) ~ref:tree with
+    match Git_diff.tree_blobs ~cwd:root ~ref:tree with
     | Some bs -> bs
     | None -> (
-        match Git_diff.tracked_blobs ~cwd:(Sys.getcwd ()) with
+        match Git_diff.tracked_blobs ~cwd:root with
         | Some bs -> bs
         | None -> [])
   in
@@ -5730,7 +5784,7 @@ let do_gate () =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
       ~changed_paths ~store ~rebuttals
       ~materials_of_decision:
-        (materials_resolver_of ~entries:memory.Memory.decisions ~tree:!head)
+        (materials_resolver_of ~entries:memory.Memory.decisions ~tree:!head ~root)
   in
   (* math-coding 3.2-ideal §15 wiring: phase-aware gate verdict on
      top of the v3.0 `evaluate`. gate_v32 honours obligation
@@ -6669,7 +6723,9 @@ let[@warning "-32"] do_self_check () =
      nothing that any producer ever wrote, so the freshness check
      could only ever pass on an attestation that carried no
      evidence. *)
-  let materials_of_decision = materials_resolver_of ~entries ~tree:"HEAD" in
+  let materials_of_decision =
+    materials_resolver_of ~entries ~tree:"HEAD" ~root
+  in
   let now = now_iso () in
   let evaluated =
     List.map

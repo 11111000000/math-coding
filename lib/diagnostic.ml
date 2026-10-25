@@ -657,7 +657,8 @@ let mc_verifier_path_unresolved ?(obligation_id = "") ?(path = "")
     ?(reason = "does not resolve") ?(next_actions = []) () =
   let code = "MC-VERIFIER-PATH-UNRESOLVED" in
   let what =
-    Printf.sprintf "obligation %s: verifier path %s %s" obligation_id path reason
+    Printf.sprintf "obligation %s: verifier path %s %s" obligation_id path
+      reason
   in
   let default_actions =
     [

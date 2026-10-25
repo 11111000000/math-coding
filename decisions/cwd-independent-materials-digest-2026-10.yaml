@@ -1,0 +1,131 @@
+---
+schema: math-coding/3.3
+id: cwd-independent-materials-digest-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/cwd-independent-self-check.sh
+body_sha: "sha256:c2dc2b53a6cc42e7c40b1359b492a16e4bdef7f18d8f851aefe22942d6b46a9b"
+yaml_sha: "sha256:c2dc2b53a6cc42e7c40b1359b492a16e4bdef7f18d8f851aefe22942d6b46a9b"
+
+intent: { source: "issue:self-check-depended-on-the-callers-working-directory-2026-10-25", text: "mathc self-check answered differently depending on the directory it was run from. The same binary, the same store and the same tree gave 198 passing subjects and 0 open-with-waiver subjects when run from the repository root, and 10 passing subjects and 7 open-with-waiver subjects when run from a dune cram sandbox. Two separate causes, both of them the same shape as the defects this corpus has been cataloguing: a check that looks at something other than what it claims to check." }
+
+commitment: |
+  After this decision closes:
+
+  1. The materials digest of a decision is the digest of the CONTENT
+     of the files its scope names, and it is the same value no
+     matter which directory the reader is standing in.
+  2. The attestation store's membership - which of its files count as
+     evidence - is likewise the same value from every working
+     directory.
+  3. `mathc self-check` run from the repository root, from an
+     unrelated directory, and from a sandbox inside the repository
+     produces the same subject verdicts.
+  4. The store's membership filter asks git from the store's own
+     directory, so the question it asks is always answerable, and
+     the fallback that admits gitignored files cannot be reached by
+     a caller standing somewhere else.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "The caller should just run it from the repository root."
+  Rejected: the comment in `find_project_root` promises the opposite
+  - "we anchor here so the CLI is reproducible from any working
+  directory" - and the cram harness cannot honour that promise, so
+  the harness is where the defect was found. A documented guarantee
+  that is false is worse than no guarantee: it teaches a reader that
+  the result depends on where they stand.
+
+  (b) "Make the digest fall back to a stable placeholder when git
+  cannot answer, and treat that placeholder as a wildcard."
+  Rejected: that was the bug. The placeholder sha256("") became the
+  digest of EVERY scope, so no attestation could ever match it, and
+  the subjects a waiver covers came back open-with-waiver. A
+  fallback that is reached in a common situation is not a fallback;
+  it is the normal path.
+
+antithesis: |
+  The opposite claim is that anchoring to the project root is itself
+  the mistake: a decision's scope should be resolved against the
+  CALLER's tree, because two checkouts of the same repository are
+  two different projects and a digest that does not distinguish them
+  conflates them.
+
+  The claim has force, and it names a real question - but it is not
+  this question. The scope paths are resolved against a project
+  root, and the project root is a property of the checkout, not of
+  the shell. The candidate tree is already resolved to a commit
+  (`decisions/candidate-tree-resolves-to-a-commit-2026-10`), and the
+  digest is computed over THAT tree's blobs. What was left was the
+  working directory as an accidental second input. The correct
+  resolution is not "resolve against the caller" but "resolve
+  against the project, consistently" - which is what the change
+  does.
+
+outcomes:
+  - id: the-verdict-does-not-depend-on-the-shell
+    statement: |
+      `mathc self-check` produces the same subject verdicts from the
+      repository root, from an unrelated directory, and from a
+      sandbox inside the repository.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/cwd-independent-self-check.sh
+          result: pass
+
+  - id: the-fixture-has-teeth
+    claim: |
+      The fixture fails when the anchoring is removed: restoring
+      `Sys.getcwd ()` in either place must make it fail, so it is a
+      check and not a ceremony.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/cwd-independent-self-check.sh
+          result: pass
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/gate.ml"
+    - "lib/git/git_diff.ml"
+    - "tests/fixtures/cwd-independent-self-check.sh"
+    - "decisions/cwd-independent-materials-digest-2026-10.yaml"
+    - "attestations/cwd-independent-materials-digest-2026-10-*.json"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: the-verdict-is-the-same-from-anywhere
+    claim: |
+      The subject verdicts of `mathc self-check` do not depend on the
+      working directory of the caller.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/cwd-independent-self-check.sh
+          result: pass
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a new git lookup is added that takes the process's working directory"
+
+assumptions:
+  - id: the-scope-is-resolved-against-the-project
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A decision's `scope.paths` are project-relative, and the
+      project is the checkout the candidate tree names.
+    consequence_if_false: |
+      If scopes are meant to be resolved against the caller's tree,
+      the anchoring is wrong and the digest must be made per-caller
+      - which would make an attestation's digest depend on where its
+      reader stood, and no attestation could be compared with any
+      other.
