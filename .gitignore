@@ -86,3 +86,4 @@ init.log
 # checkout (attest-batch-*). Empty dirs are invisible to git; the
 # prefix stays out of history either way.
 .test-math-coding/
+sign-store-sweep.log
