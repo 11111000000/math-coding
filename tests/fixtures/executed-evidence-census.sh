@@ -188,7 +188,25 @@ for f in files:
         continue
     if d.get('result') != 'pass':
         continue
-    if any(runnable(v) for v in verifiers):
+    # EVERY declared check must be executable -- the same rule the
+    # kernel applies. `acceptance.all` means ALL of them, and a
+    # decision whose obligations name a manual declaration alongside a
+    # runnable fixture is INCONCLUSIVE in the kernel: the declaration
+    # is not a check, and one real check does not make the rest of
+    # them real.
+    #
+    # This rule used to be `any`, and the difference was not a detail.
+    # Measured on 2026-10-26, against a store that had been re-signed
+    # with the current kernel: 279 machine-grade `pass` attestations
+    # sat on obligations that name a manual declaration beside a
+    # runnable fixture. The kernel had already downgraded every one of
+    # them to `inconclusive` -- the declarations were never checks --
+    # and this census was counting them as CHECKED, because one of
+    # their two verifiers existed. It reported 7 unexecuted passes
+    # where the truth was 286. A metric that reads a different thing
+    # from the thing it measures cannot keep a ceiling honest, and
+    # this one had been the instrument that said the store was clean.
+    if verifiers and all(runnable(v) for v in verifiers):
         continue
     unexecuted += 1
     family = verifiers[0].split()[0] if verifiers and verifiers[0].split() else '<none>'
