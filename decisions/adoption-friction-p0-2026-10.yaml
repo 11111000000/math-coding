@@ -1,0 +1,243 @@
+---
+schema: math-coding/3.3
+id: adoption-friction-p0
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:f92114978f01a3b5a8d128eefc475d0a49918dcc4e68669094cc50852c5bab11"
+yaml_sha: "sha256:f92114978f01a3b5a8d128eefc475d0a49918dcc4e68669094cc50852c5bab11"
+intent: |
+  Make the protocol usable by a project that adopts it, at the cost of
+  the fewest agent turns, with every check fast enough to run on every
+  change.
+
+  The 2026-10-26 audit of this repository measured the friction the
+  methodology creates for an adopter, by running the documented path in
+  an empty project with the released binary. The path was twelve
+  commands long, five of which were thrash caused by the kernel
+  contradicting itself, and it could not end in a green check at all:
+  `mathc self-check` reported `unknown` and exited 3 for ever, because
+  the store the gate read and the store the writer wrote were two
+  different directories. The project could adopt the protocol and never
+  see it pass.
+
+  The audit also found the same disease in the kernel's own machinery,
+  at three levels: the YAML parser had no branch for the flow sequence
+  (`key: [a, b]`), so the form the diagnostic itself recommended was
+  silently read as a string; the gate compared a materials digest
+  computed over the project root against one computed over a subtree of
+  it, so the two could never be equal; and the verification cycle
+  printed the self-check's exit code and then ignored it, so the cycle
+  reported "every stage passed" over a repository whose own self-check
+  said `fail`.
+axiom_link:
+  - A0
+  - A1
+  - A2
+commitment: |
+  Six defects, each with a fixture that fails against the pre-fix
+  binary and passes against this one.
+
+  (a) lib/codec.ml gains a YAML 1.2 §7.4 flow-sequence branch. A
+      value in bracket form is now an array. The consequences that
+      mattered: `axiom_link: [A0]` is read (the field used to be
+      ABSENT, and the decision was rejected with
+      MC-AXIOM-LINK-MISSING by a diagnostic that recommended exactly
+      that form), and `scope.paths: ["src/**"]` is read (the scope used
+      to be EMPTY, and an empty scope makes the materials digest a
+      digest of nothing — the freshness wildcard, for ever). A value
+      that starts with '[' but does not balance is NOT read as a
+      sequence: the parser falls back to the scalar reading, so a
+      malformed file is reported by the schema, not by a guess.
+
+  (b) bin/Mathc.ml::resolve_store_root uses
+      `Path_config.resolve_attestations_dir`, the same resolver the
+      writers use, instead of the hard-coded pre-3.4 path. One
+      resolver, one default.
+
+  (c) bin/Mathc.ml::scope_digest_map takes the PROJECT ROOT as an
+      argument instead of deriving it from the parent of the decisions
+      directory. Under the forward layout that parent is
+      `.math-coding/`, and `git ls-tree` is CWD-relative, so the
+      producer's scope matched nothing and it wrote the digest of
+      nothing — a value the gate, anchored at the project root, never
+      computed. The producer and the verifier now read the same tree.
+
+  (d) `mathc new-decision` defaults to the template the kernel
+      ACCEPTS. The pre-fix default template lacked `axiom_link` and
+      `counterexample`, so the scaffold was a file the next command
+      rejected. The minimal template gains a `counterexample` slot, and
+      the scaffold now WARNS when its scope still names the
+      placeholder path — a scope that matches no file is the freshness
+      wildcard, and the scaffold must not open it on the way in.
+      `--template=full` stays available.
+
+  (e) lib/new_decision/new_decision.ml::project_root consults the
+      operator's own directory BEFORE `$DUNE_SOURCEROOT`, and
+      recognises a math-coding layout marker as well as a dune
+      project. With a source build, `mathc new-decision x --write` in
+      an adopter's project wrote the decision into the KERNEL's own
+      `decisions/` directory: the adopter's project got no decision
+      and the kernel's corpus got a stranger's file.
+
+  (f) scripts/verify.sh treats the self-check's exit code as the
+      verdict it is. It was printed and then ignored, so the cycle
+      reported "every stage passed" over a red repository. `mathc
+      doctor` reports `fail` (not `warn`) when a store exists that the
+      gate cannot reach.
+
+  MEASURED, on an empty project with the released binary, the
+  documented path is seven commands and ends green: `mathc init`,
+  `mathc new-decision` (with the TODOs filled in), `mathc rehash`,
+  `mathc validate` (parse-ok), `mathc attest-batch`, `git commit`,
+  `mathc self-check` (verdict `pass`, exit 0). Before: twelve
+  commands, five of them thrash, and an exit-3 verdict for ever.
+
+  The corpus verdict is UNCHANGED by this decision: 250 subjects, the
+  same pass/unknown/waiver/fail distribution, the same single failing
+  subject (`plan-2026-10-distro-friction`). This decision changes no
+  verdict, no schema, and no gate rule. It repairs the paths BETWEEN
+  the operator and the verdict.
+outcomes:
+  - id: the-adopter-path-ends-green
+    statement: |
+      A project scaffolded by `mathc init` reaches `mathc self-check`
+      → `pass` (exit 0) in seven commands, with no environment variable
+      and no directory the operator has to create by hand.
+  - id: one-store-one-resolver
+    statement: |
+      The store the gate reads and the store the writer writes are the
+      same directory, under one resolver, for both the forward and the
+      legacy layout.
+  - id: the-cycle-cannot-report-success-over-a-failure
+    statement: |
+      `scripts/verify.sh` exits non-zero when `mathc self-check`
+      reports `fail` or `unknown`.
+scope:
+  paths:
+    - "lib/codec.ml"
+    - "lib/new_decision/new_decision.ml"
+    - "bin/Mathc.ml"
+    - "scripts/verify.sh"
+    - "tests/decision_parser_yaml.ml"
+    - "tests/cli/adoption-path-p0.t"
+    - "tests/cli/new-decision.t"
+    - "tests/cli/new-decision-axiom-warn.t"
+    - "tests/cli/nfr-3-cold-start.t"
+    - "tests/cli/self-check-waiver-verdict.t"
+    - "tests/cli/attest-batch.t"
+    - "tests/cli/attest-batch-malformed.t"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+obligations:
+  - id: the-flow-sequence-is-read-as-an-array
+    claim: |
+      `axiom_link: [A0]` and `scope.paths: ["src/**"]` are read as
+      arrays, and an unbalanced bracket is not guessed.
+    acceptance:
+      all:
+        - verifier: tests/decision_parser_yaml.exe
+          result: pass
+        - verifier: tests/cli/adoption-path-p0.t
+          result: pass
+  - id: the-adopter-path-ends-green
+    claim: |
+      The documented path in a scaffolded project ends in
+      `mathc self-check` → `pass`, exit 0, with no environment
+      variable set.
+    acceptance:
+      all:
+        - verifier: tests/cli/adoption-path-p0.t
+          result: pass
+  - id: the-cycle-cannot-report-success-over-a-failure
+    claim: |
+      `scripts/verify.sh` fails when the self-check is red, and the
+      doctor's attestation section fails when the gate cannot reach the
+      store.
+    acceptance:
+      all:
+        - verifier: tests/cli/adoption-path-p0.t
+          result: pass
+  - id: the-corpus-verdict-is-unchanged
+    claim: |
+      This decision changes no verdict: the subject count and the
+      pass/unknown/waiver/fail distribution are the ones the corpus
+      had before it.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/failing-subject-backlog.sh
+          result: pass
+        - verifier: tests/fixtures/executed-evidence-census.sh
+          result: pass
+negative_control: tests/cli/adoption-path-p0.t
+risk:
+  declared_triggers:
+    - the flow-sequence branch changes how a corpus file is read and a
+      decision that relied on the string reading silently changes shape
+    - the default template change moves a contract that
+      `ux-3-new-decision-subcommand-2026-10@1` recorded
+    - the writer's root change moves where `mathc new-decision` writes
+    - the verifier cycle starts failing on a corpus that is red today
+  owner: human:maintainer
+relations:
+  addresses:
+    - path-resolver-audit-2026-11@1
+    - kernel-fixes-found-bugs-2026-10@1
+  supersedes: []
+  superseded_by: []
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "The flow-sequence branch is a parser feature, not a fix: the
+  corpus does not use the bracket form, so nothing is broken." Rejected
+  on the measurement: the corpus does use it — `paths: []`,
+  `supersedes: []` and `declared_triggers: []` appear in four
+  decisions — and it reads those as the STRING "[]", not as an empty
+  array. And the form the adopter is told to use, in the skill
+  document and in the MC-AXIOM-LINK-MISSING diagnostic itself, is
+  `axiom_link: [A0]`, which the parser could not read. The parser was
+  not merely missing a feature; it was missing the form its own
+  documentation recommends.
+
+  (b) "The store resolver and the digest tree are two bugs in one
+  place, so one decision cannot cover them." Rejected: they are two
+  bugs in one PLACE, not one bug in two places. The first made the
+  gate read a directory the writer never wrote to; the second made
+  the writer compute a number over a different tree than the reader
+  computed it over. Both are the same question asked twice with two
+  answers, and the project's own decision
+  `kernel-fixes-found-bugs-2026-10@1` already named the pattern:
+  "the resolver asked a different question than the rest of the
+  kernel used".
+
+  (c) "The verification cycle should not start failing while the
+  corpus is red — that would block every change until the backlog is
+  paid." Rejected, and this is the strongest objection: the cycle
+  reporting success over a red repository is the defect, not the
+  fix. The corpus has one failing subject, measured, and it is pinned
+  as a ceiling by `tests/fixtures/failing-subject-backlog.sh`. The
+  operator sees the failure and can decide; a green light over a red
+  repository lets them decide nothing. The fix is the cycle telling
+  the truth, and the cost is one visible red line in a log that has
+  been lying about it.
+antithesis: |
+  The opposite claim would be that the adoption friction is the PRICE
+  of the protocol: a method that ties every change to a written
+  commitment, a list of obligations and bounded evidence is not
+  supposed to be free, and a project that cannot pay seven commands
+  for its first decision is not the kind of project this protocol is
+  for.
+
+  That is a real claim, and it is rejected for a mechanical reason
+  rather than a rhetorical one. The friction measured here is not the
+  protocol's friction — it is the kernel contradicting itself. Twelve
+  commands where seven are needed, five of them thrash, a scaffold
+  the next command rejects, a diagnostic that recommends a form the
+  parser cannot read, a gate that looks in a directory nobody wrote
+  to, and a digest that is computed over two different trees by the
+  two parties that must agree on it: none of that is the price of
+  writing down a commitment. It is the cost of six defects that the
+  protocol's own rules would have caught if the rules were wired to
+  the kernel that enforces them. The price of the protocol is the
+  decision and the evidence; the twelve commands were the defects.

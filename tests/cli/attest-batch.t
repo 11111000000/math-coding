@@ -42,6 +42,10 @@ subcommand without re-running --help twice).
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d) && cd "$tmpdir"
+  $ git init -q "$tmpdir"
+  $ git -C "$tmpdir" config user.email "t@t"
+  $ git -C "$tmpdir" config user.name "t"
+  $ git -C "$tmpdir" commit -q --allow-empty -m initial
   $ mathc="$INSIDE_DUNE/bin/mathc.exe"
   $ "$mathc" attest-batch --help > attest-batch-help.txt
   $ echo "exit=$?"
@@ -63,6 +67,10 @@ attestation store.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d) && cd "$tmpdir"
+  $ git init -q "$tmpdir"
+  $ git -C "$tmpdir" config user.email "t@t"
+  $ git -C "$tmpdir" config user.name "t"
+  $ git -C "$tmpdir" commit -q --allow-empty -m initial
   $ export MATH_CODING_DECISIONS_DIR=".test-math-coding/decisions"
   $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
   $ mkdir -p "$MATH_CODING_ATTESTATIONS_DIR"  # present, empty
@@ -159,6 +167,10 @@ finds 5 current pass attestations -> no gaps -> aggregate Pass
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d) && cd "$tmpdir"
+  $ git init -q "$tmpdir"
+  $ git -C "$tmpdir" config user.email "t@t"
+  $ git -C "$tmpdir" config user.name "t"
+  $ git -C "$tmpdir" commit -q --allow-empty -m initial
   $ echo '(lang dune 3.21)' > dune-project
   $ mkdir -p decisions attestations
   $ export MATH_CODING_ROOT="$tmpdir"

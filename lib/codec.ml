@@ -781,6 +781,106 @@ let[@warning "-32"] rec parse_yaml_inline_seq cur_indent vstr tokens =
   let more, rest2 = collect [] tokens in
   (Jsonl.Array (first_item :: more), rest2)
 
+(* Flow sequence: YAML 1.2 §7.4, the form `key: [a, b, c]`.
+ *
+ * WHY THIS BRANCH EXISTS. The parser had a branch for the §7.1
+ * inline sequence ("key: - foo") and a branch for block scalars,
+ * but none for the FLOW sequence. A value in bracket form fell
+ * through to `parse_yaml_scalar`, which returned the bracket
+ * text as a plain STRING. Three consequences, all of them silent:
+ *
+ *   - `axiom_link: [A0]` was read as the string "[A0]", so
+ *     `Schema.take_array` found no array, the field read as
+ *     absent, and the decision was rejected with
+ *     MC-AXIOM-LINK-MISSING. The diagnostic that fired told the
+ *     operator to write exactly that form.
+ *   - `scope.paths: ["src/**"]` was read as a string, so the
+ *     scope read as EMPTY (lib/decision.ml::parse_scope_yaml_form
+ *     takes `paths` only when it is an array). An empty scope
+ *     means the materials digest is computed over nothing, and
+ *     an empty digest is the freshness wildcard - the attestation
+ *     is fresh for every tree, for ever.
+ *   - `risk.declared_triggers: ["a", "b"]` and the empty `[]`
+ *     forms read as strings; the consumers that filter on an
+ *     array therefore saw nothing.
+ *
+ * The grammar handled here is the single-line flow sequence:
+ * brackets balance, items are separated by top-level commas, an
+ * item may be a plain scalar, a single-quoted or a double-quoted
+ * scalar, or a nested flow collection. A value that starts with
+ * '[' but does not balance is NOT read as a sequence: the parser
+ * falls back to the scalar reading, so a malformed file is
+ * reported by the schema and not by a guess. *)
+
+let[@warning "-32"] is_flow_seq_start s =
+  String.length s >= 1 && String.unsafe_get s 0 = '['
+
+(* Split a flow-sequence body on its top-level commas. Returns None
+   when the body does not balance or ends inside a quoted scalar: a
+   half-read flow sequence is worse than no flow sequence, because
+   it would look like a decision that was read. *)
+let[@warning "-32"] split_flow_items body =
+  let len = String.length body in
+  let items = ref [] in
+  let buf = Buffer.create len in
+  let depth = ref 0 in
+  let quote = ref '\000' in
+  let flush () =
+    items := Buffer.contents buf :: !items;
+    Buffer.clear buf
+  in
+  for i = 0 to len - 1 do
+    let c = String.unsafe_get body i in
+    if !quote <> '\000' then (
+      Buffer.add_char buf c;
+      if c = !quote then quote := '\000')
+    else
+      match c with
+      | '\'' | '"' ->
+          quote := c;
+          Buffer.add_char buf c
+      | '[' | '{' ->
+          incr depth;
+          Buffer.add_char buf c
+      | ']' | '}' ->
+          decr depth;
+          Buffer.add_char buf c
+      | ',' when !depth = 0 -> flush ()
+      | _ -> Buffer.add_char buf c
+  done;
+  if !quote <> '\000' || !depth <> 0 then None
+  else (
+    flush ();
+    Some (List.rev !items))
+
+(* One flow item. A quoted item is a string by definition (YAML
+   §7.3.3, §7.3.4); an unquoted one goes through the scalar reader,
+   so `0` is a number and `src/**` is a string. *)
+let[@warning "-32"] flow_item_value t =
+  let n = String.length t in
+  if
+    n >= 2
+    && ((String.unsafe_get t 0 = '"' && String.unsafe_get t (n - 1) = '"')
+       || (String.unsafe_get t 0 = '\'' && String.unsafe_get t (n - 1) = '\''))
+  then Jsonl.String (String.sub t 1 (n - 2))
+  else if t = "" then Jsonl.Null
+  else parse_yaml_scalar t
+
+let[@warning "-32"] parse_yaml_flow_seq s =
+  let n = String.length s in
+  if n < 2 || String.unsafe_get s 0 <> '[' || String.unsafe_get s (n - 1) <> ']'
+  then None
+  else
+    let body = String.sub s 1 (n - 2) in
+    if String.trim body = "" then Some (Jsonl.Array [])
+    else
+      match split_flow_items body with
+      | None -> None
+      | Some items ->
+          Some
+            (Jsonl.Array
+               (List.map (fun it -> flow_item_value (String.trim it)) items))
+
 (* Fold YAML 1.1 plain-scalar continuation: when a non-block
    scalar value at indent `cur_indent` is followed by one or
    more lines whose indent is greater than `cur_indent`,
@@ -953,25 +1053,37 @@ let[@warning "-32"] rec parse_yaml_pairs tokens cur_indent =
                      on a single line, with "- bar" continuations
                      on subsequent lines at the same indent. *)
                   parse_yaml_inline_seq cur_indent vstr rest
-                else
-                  let base_value = parse_yaml_scalar vstr in
-                  let suffix, rest2 =
-                    if vstr = "" then ("", rest)
-                    else fold_continuation rest cur_indent
-                  in
-                  let value =
-                    if suffix = "" then base_value
-                    else
-                      match base_value with
-                      | Jsonl.String s -> Jsonl.String (s ^ " " ^ suffix)
-                      | other -> other
-                  in
-                  (value, rest2)
+                else if is_flow_seq_start vstr then
+                  (* YAML 1.2 §7.4 flow sequence: "key: [a, b]".
+                     A value that starts with '[' but does not
+                     balance falls through to the scalar reading. *)
+                  match parse_yaml_flow_seq vstr with
+                  | Some v -> (v, rest)
+                  | None -> parse_yaml_scalar_value cur_indent vstr rest
+                else parse_yaml_scalar_value cur_indent vstr rest
               in
               loop ((key, value) :: acc) rest2)
     | _ -> (List.rev acc, tokens)
   in
   loop [] tokens
+
+(* A plain scalar value at value position, with the YAML 1.1
+   plain-scalar continuation folded in. Split out of
+   `parse_yaml_pairs` so the flow-sequence branch above can fall
+   back to it without duplicating the fold. *)
+and parse_yaml_scalar_value cur_indent vstr rest =
+  let base_value = parse_yaml_scalar vstr in
+  let suffix, rest2 =
+    if vstr = "" then ("", rest) else fold_continuation rest cur_indent
+  in
+  let value =
+    if suffix = "" then base_value
+    else
+      match base_value with
+      | Jsonl.String s -> Jsonl.String (s ^ " " ^ suffix)
+      | other -> other
+  in
+  (value, rest2)
 
 and parse_yaml_value tokens cur_indent =
   match tokens with

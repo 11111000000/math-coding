@@ -183,7 +183,11 @@ let template_minimal ~id ~paths =
     \          result: pass\n\n\
      axiom_link:\n\
     \  - A0\n\n\
-     risk:\n\
+     counterexample: |\n\
+    \  TODO: the strongest practical objection to this decision. At\n\
+    \  mode light this is a warning, not a block, but an empty slot\n\
+    \  is an admission that the counter-case was not considered.\n\n\
+    \     risk:\n\
     \  declared_triggers:\n\
     \    - <TODO: what-could-go-wrong>\n\
     \  owner: <human:role or human:name>\n\n\
@@ -386,17 +390,53 @@ let[@warning "-32"] climb_to_dune_project start =
    Steps (1) and (2) are unchanged and still win unconditionally
    (no `dune-project` existence check), because the env vars are the
    explicit override; step (4) is unchanged, so a non-dune project
-   behaves exactly as before. *)
+   behaves exactly as before.
+
+   THE ORDER OF (2) AND (3) IS WHAT CHANGED. `$DUNE_SOURCEROOT` is the
+   DUNE TEST HARNESS's hint about where the source tree is. It is not
+   a statement about the project the operator is working on. A writer
+   that prefers it over the operator's own directory writes into the
+   tree the harness pointed at.
+
+   Measured: with a source build, `mathc new-decision x --write` run
+   inside a fresh project wrote the decision into the KERNEL's own
+   `decisions/` directory, because the harness exported
+   `$DUNE_SOURCEROOT` and the chain preferred it over the cwd. The
+   adopter's project got no decision; the kernel's corpus got a
+   stranger's file. The cwd is now consulted BEFORE
+   `$DUNE_SOURCEROOT`, and the climb recognises a math-coding layout
+   marker (`dune-project`, `.math-coding/`, `decisions/`,
+   `attestations/`) rather than only a dune project — an adopter's Go
+   or Python repository has no `dune-project`, and the kernel must
+   still write its decision THERE.
+
+   `$DUNE_SOURCEROOT` remains as step (3), for the case the cwd cannot
+   answer at all. *)
 let project_root () =
   match Sys.getenv_opt "MATH_CODING_ROOT" with
   | Some p -> p
   | None -> (
-      match Sys.getenv_opt "DUNE_SOURCEROOT" with
+      let cwd = Sys.getcwd () in
+      let looks_like_project d =
+        List.exists
+          (fun name -> Sys.file_exists (Filename.concat d name))
+          [ "dune-project"; ".math-coding"; "decisions"; "attestations" ]
+      in
+      let climb start =
+        let rec loop d =
+          if looks_like_project d then Some d
+          else
+            let parent = Filename.dirname d in
+            if parent = d then None else loop parent
+        in
+        loop start
+      in
+      match climb cwd with
       | Some p -> p
       | None -> (
-          match climb_to_dune_project (Sys.getcwd ()) with
+          match Sys.getenv_opt "DUNE_SOURCEROOT" with
           | Some p -> p
-          | None -> Sys.getcwd ()))
+          | None -> cwd))
 
 (* mkdir -p. The single-level `Unix.mkdir` this replaces raised an
    uncaught `Unix_error (ENOENT, "mkdir", ...)` whenever the parent of
@@ -432,6 +472,33 @@ type options = {
   template_kind : template_kind;
 }
 
+(* `emit_scope_placeholder_warn`: the scaffold's scope path is a
+   placeholder that matches no file. A scope that matches no file
+   makes the materials digest a digest of NOTHING, and an empty
+   digest is the freshness wildcard: the attestation is fresh for
+   every tree, for ever, and no change can invalidate it. That is
+   the defect class `semantics A` closed for the store, and the
+   scaffold must not open it again on the way in.
+
+   The check is a string comparison, not a filesystem probe: the
+   scaffold is written before the project has any source tree, and
+   the placeholder is a known literal. *)
+let[@warning "-32"] emit_scope_placeholder_warn contents =
+  let placeholder = "<path/glob/that/this/decision/touches/**>" in
+  let is_placeholder_line line =
+    let t = String.trim line in
+    t = "- \"" ^ placeholder ^ "\"" || t = "- " ^ placeholder
+  in
+  if not (List.exists is_placeholder_line (String.split_on_char '\n' contents))
+  then ()
+  else
+    Printf.fprintf stderr
+      "deficit/MC-SCOPE-PLACEHOLDER: scope.paths still names the placeholder \
+       %s; a scope that matches no file makes the materials digest a digest of \
+       nothing, and an empty digest is the freshness wildcard. Replace it with \
+       the paths this decision actually covers.\n"
+      placeholder
+
 let run (opts : options) =
   match validate_id opts.id with
   | Error m ->
@@ -451,13 +518,14 @@ let run (opts : options) =
           flush stdout;
           (* Soft-warn to keep the printed scaffold informative
              even when no file is written. *)
-          if not (has_axiom_link_block contents) then
+          if not (has_axiom_link_block contents) then (
             let warn_paths =
               match paths_override with
               | Some ps -> ps
               | None -> extract_scope_paths contents
             in
-            emit_axiom_link_inference_warn warn_paths
+            emit_axiom_link_inference_warn warn_paths;
+            emit_scope_placeholder_warn contents)
       | Interactive_mode ->
           Printf.printf
             "mathc new-decision: --interactive is a no-op stub in this slice; \
@@ -506,4 +574,5 @@ let run (opts : options) =
               | None -> extract_scope_paths contents
             in
             emit_axiom_link_inference_warn warn_paths
-          end)
+          end;
+          emit_scope_placeholder_warn contents)

@@ -18,7 +18,13 @@ dedicated test, axiom-link-inference-2026-10) and grep or
 sed for the structural tokens we care about.
 
 Print path: id is kebab-case; mathc exits 0 and emits a YAML
-template with `id: <id>` and `schema: math-coding/3.2`.
+template with `id: <id>` and `schema: math-coding/3.3`. The
+DEFAULT template is the one the kernel accepts: the full
+3.2 template lacks `axiom_link` and `counterexample`, so the
+file it produced was REJECTED by `mathc validate` — a scaffold
+that the next command refused. `--template=full` is still
+available and still emits the 3.2 shape.
+
 We pin the first three lines (`--- schema: ..., id: <id>`)
 to verify the YAML front-matter without depending on the
 full body shape, which is load-bearing in a separate test.
@@ -27,9 +33,9 @@ full body shape, which is load-bearing in a separate test.
   $ tmpdir=$(mktemp -d)
   $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation 2>/dev/null | head -3
   ---
-  schema: math-coding/3.2
+  schema: math-coding/3.3
   id: jwt-rotation
-  $ grep -q '^schema: math-coding/3.2' <(MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation 2>/dev/null) \
+  $ grep -q '^schema: math-coding/3.3' <(MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation 2>/dev/null) \
   >   && echo "schema-string: ok"
   schema-string: ok
   $ rm -rf "$tmpdir"
@@ -56,7 +62,7 @@ sed-strip the tmpdir prefix instead).
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write 2>&1 | sed "s|$tmpdir|<TMP>|g"
-  deficit/MC-AXIOM-LINK-INFERENCE-EMPTY: scope.paths includes <path/glob/that/this/decision/touches/**>; top candidates: A0 (separation); add axiom_link
+  deficit/MC-SCOPE-PLACEHOLDER: scope.paths still names the placeholder <path/glob/that/this/decision/touches/**>; a scope that matches no file makes the materials digest a digest of nothing, and an empty digest is the freshness wildcard. Replace it with the paths this decision actually covers.
   mathc new-decision: wrote <TMP>/.math-coding/decisions/jwt-rotation.yaml
   $ test -f "$tmpdir/.math-coding/decisions/jwt-rotation.yaml" && echo "file: ok"
   file: ok
@@ -132,21 +138,25 @@ the user fills the stub in).
   relations.bootstrap-v3: ok
   $ mathc validate "$stub" 2>&1 | grep -qE '^(parse-ok|accept):' && echo "validate: ok"
   validate: ok
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-default-validates > "$tmpdir/default.yaml" 2>/dev/null
+  $ mathc validate "$tmpdir/default.yaml" 2>&1 | grep -qE '^(parse-ok|accept):' && echo "the default scaffold validates: ok"
+  the default scaffold validates: ok
   $ rm -rf "$tmpdir"
 
-Full template default: the existing 47-line output structure is
-preserved on schema `math-coding/3.2` (the shape ships from
-`ux-3-new-decision-subcommand-2026-10@1`). `--template=full`
-explicit and the bare default emit the same content.
+Full template: `--template=full` keeps the 3.2 shape (the shape
+ships from `ux-3-new-decision-subcommand-2026-10@1`). The
+DEFAULT is the minimal template — the one the kernel accepts —
+and the bare default emits the same content as
+`--template=minimal`.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ stub=$tmpdir/full-stub.yaml
-  $ default=$tmpdir/full-default.yaml
+  $ default=$tmpdir/default-stub.yaml
   $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-full-id --template=full > "$stub" 2>/dev/null
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-full-id > "$default" 2>/dev/null
-  $ diff -u "$stub" "$default" >/dev/null && echo "default == --template=full: ok"
-  default == --template=full: ok
+  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-min-id > "$default" 2>/dev/null
+  $ diff -u "$default" <(MATH_CODING_ROOT="$tmpdir" mathc new-decision test-min-id --template=minimal 2>/dev/null) >/dev/null && echo "default == --template=minimal: ok"
+  default == --template=minimal: ok
   $ grep -q '^schema: math-coding/3.2' "$stub" && echo "schema 3.2: ok"
   schema 3.2: ok
   $ rm -rf "$tmpdir"

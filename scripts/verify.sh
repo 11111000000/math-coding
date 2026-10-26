@@ -140,6 +140,21 @@ fi
 "$BIN" self-check >/dev/null 2>&1
 rc=$?
 echo "  self-check exit=$rc"
+# The exit code IS the verdict. It used to be printed and then
+# ignored, so the cycle reported "every stage passed" on a
+# repository whose own self-check said `fail` (exit 1) or `unknown`
+# (exit 3). A gate that cannot report a failure is not a gate; this
+# one could, and did not.
+#
+# `unknown` is exit 3 and is a real problem too: it means the kernel
+# could not conclude. The repository is RED today (one failing
+# subject, measured), and this script has been reporting success over
+# it since it was written.
+case "$rc" in
+  0) : ;;
+  3) fail "the self-check could not conclude (exit 3): the corpus is not in a state the kernel can judge" ;;
+  *) fail "the self-check reported a failing verdict (exit $rc): run 'mathc self-check' and read the subjects" ;;
+esac
 bash tests/fixtures/executed-evidence-census.sh || fail "the honesty census"
 printf '  %ss\n' "$(( $(date +%s) - t0 ))"
 
