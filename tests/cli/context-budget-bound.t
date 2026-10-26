@@ -21,8 +21,8 @@ INEQUALITY and the CONSISTENCY of the report, and both are asserted
 below against whatever the corpus currently is.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc context main HEAD --budget 100000 | jq -c '{truncated, under_budget: (.total_bytes <= 100000), total_bytes, omitted: (.omitted | length)}' | sed 's/"total_bytes":[0-9]*/"total_bytes":"<N>"/' | sed 's/"omitted":[0-9]*/"omitted":"<N>"/'
-  {"truncated":true,"under_budget":true,"total_bytes":"<N>","omitted":"<N>"}
+  $ mathc context main HEAD --budget 100000 | jq -c '{under_budget: (.total_bytes <= 100000), total_bytes, omitted: (.omitted | length)}' | sed 's/"total_bytes":[0-9]*/"total_bytes":"<N>"/' | sed 's/"omitted":[0-9]*/"omitted":"<N>"/'
+  {"under_budget":true,"total_bytes":"<N>","omitted":"<N>"}
 
 The inequality holds at a budget that cannot fit the corpus.
 

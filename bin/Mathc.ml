@@ -6529,11 +6529,26 @@ let[@warning "-32"] do_re_evaluate_decisions () =
                 ob.Domain.id
               |> String.map (fun c -> if c = '/' || c = ' ' then '_' else c)
             in
-            let result_str =
-              match ob_v with
-              | Re_evaluation.Inconclusive -> "inconclusive"
-              | _ -> "pass"
-            in
+            (* A re-evaluation verdict is NOT a check. The oracle
+               re-reads a decision and asks whether its claim
+               contradicts an axiom; it never executes the
+               obligation's verifier. "compatible" therefore means
+               "not contradicted", which is a REVIEW-class judgement
+               and not "the check passed".
+
+               The writer used to record it as `kind_: test` with
+               `result: pass`, an empty `materials_digest` (the
+               freshness wildcard) and no `producer.run` -- a
+               machine-grade pass with nothing behind it, 88 of them
+               in the store. That is the same laundering the v3.7.3
+               cycle removed from the `Manual_decl` arm, in the
+               neighbouring arm.
+
+               The honest record is a REVIEW, and a review that did
+               not run the check is `inconclusive`. The run it DOES
+               name is the re-evaluation itself, so the record is
+               anchored and re-runnable. *)
+            let result_str = "inconclusive" in
             let payload_str =
               Printf.sprintf "%s|%s|%s|%s|%s" d.Domain.id ob.Domain.id !axiom_id
                 result_str now
@@ -6555,10 +6570,16 @@ let[@warning "-32"] do_re_evaluate_decisions () =
                         ("candidate_tree", Jsonl.String candidate_tree);
                         ("materials_digest", Jsonl.String "");
                       ] );
-                  ("kind_", Jsonl.String "test");
+                  ("kind_", Jsonl.String "review");
                   ( "producer",
                     Jsonl.Object
-                      [ ("identity", Jsonl.String producer_identity) ] );
+                      [
+                        ("identity", Jsonl.String producer_identity);
+                        ( "run",
+                          Jsonl.String
+                            (Printf.sprintf "mathc re-evaluate-decisions %s"
+                               !axiom_id) );
+                      ] );
                   ("result", Jsonl.String result_str);
                   ("issued_at", Jsonl.String now);
                   ("axiom", Jsonl.String !axiom_id);
