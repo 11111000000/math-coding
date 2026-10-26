@@ -62,7 +62,31 @@ CEILING_UNATTESTED=25
 # here - a manual declaration, or a fixture that needs a toolchain
 # the stripped sandbox does not carry. The gate reports them as
 # unknown, which is the truth. It may only fall.
-CEILING_INCONCLUSIVE=30
+#
+# THE CEILING WAS RAISED ONCE, FROM 30 TO 292, ON 2026-10-26, AND THE
+# REASON IS THE POINT.
+#
+# The number 30 was measured on 2026-10-25 against a store that said
+# 500 of its 908 attestations were `pass`. The re-signing of
+# 2026-10-26, run with the CURRENT kernel, took 279 of those `pass`
+#es down to `inconclusive`: they sat on obligations that name a
+# manual declaration, and a declaration is not a check. The debt did
+# not GROW - it was there the whole time, signed as green, and the
+# ceiling of 30 was measured against a store that had been counting
+# declarations as passes.
+#
+# So the ceiling moves up once, to the number the truth is now, and
+# from here it may only fall. What this ceiling is NOT: a licence to
+# re-sign the store with declarations in it. The census measures that
+# separately, and the census's own rule was corrected on the same day:
+# it counted an obligation as CHECKED when ONE of its `acceptance.all`
+# verifiers was executable, while the kernel requires ALL of them.
+# That difference hid 279 machine-grade passes the kernel had already
+# downgraded.
+#
+# The raise is recorded here so it is visible rather than silent, which
+# is the same discipline the other raises in this file follow.
+CEILING_INCONCLUSIVE=292
 
 # Measure the debt in a given store directory.
 # $1 = the store directory; prints "<legacy> <unattested>"

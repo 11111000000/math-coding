@@ -572,6 +572,115 @@ let[@warning "-32"] policies_yaml_parses_with_no_remainder () =
     Alcotest.(check int)
       "policies.yaml leaves no unparsed remainder" 0 (List.length remaining)
 
+(* YAML 1.2 §7.4 flow sequence: `key: [a, b, c]`.
+ *
+ * The parser had a branch for the §7.1 inline sequence ("key: - foo")
+ * and none for the flow sequence, so a value in bracket form was read
+ * as the plain STRING "[a, b, c]". Three consequences, all silent:
+ *
+ *   - `axiom_link: [A0]` read as a string, so the field was ABSENT and
+ *     the decision was rejected with MC-AXIOM-LINK-MISSING -- by a
+ *     diagnostic that recommended writing exactly that form.
+ *   - `scope.paths: ["src/**"]` read as a string, so the scope read as
+ *     EMPTY, and an empty scope makes the materials digest a digest of
+ *     nothing: the freshness wildcard, forever.
+ *   - `risk.declared_triggers: ["a", "b"]` read as a string, so the
+ *     consumers that filter on an array saw nothing.
+ *
+ * These assertions reach the PARSER, not the corpus: a decision in
+ * decisions/ that used the bracket form would be one person's
+ * mistake, and the fix must hold for the next one too. *)
+let[@warning "-32"] flow_sequence_is_read_as_an_array () =
+  let yaml =
+    "id: t\n\
+     axiom_link: [A0, A3]\n\
+     scope:\n\
+    \  paths: [\"src/**\", \"tests/**\"]\n\
+     risk:\n\
+    \  declared_triggers: [\"a\", \"b\"]\n\
+     revision: 1\n"
+  in
+  let v, leftover = Codec.load_yaml_value_remaining yaml in
+  Alcotest.check Alcotest.int "read to EOF" 0 (List.length leftover);
+  (match seq_strings v "axiom_link" with
+  | Some items ->
+      Alcotest.(check (list string))
+        "the bracket form is an array, not a string" [ "A0"; "A3" ] items
+  | other -> Alcotest.failf "expected an array, got %s" (describe_items other));
+  (match v with
+  | Jsonl.Object pairs -> (
+      match List.assoc_opt "scope" pairs with
+      | Some (Jsonl.Object sp) -> (
+          match List.assoc_opt "paths" sp with
+          | Some (Jsonl.Array items) ->
+              Alcotest.(check (list string))
+                "the scope paths survive the bracket form"
+                [ "src/**"; "tests/**" ]
+                (List.map
+                   (function
+                     | Jsonl.String s -> s | other -> Jsonl.stringify other)
+                   items)
+          | _ -> Alcotest.fail "scope.paths is not an array")
+      | _ -> Alcotest.fail "scope is not an object")
+  | _ -> Alcotest.fail "the document is not an object");
+  match v with
+  | Jsonl.Object pairs -> (
+      match List.assoc_opt "risk" pairs with
+      | Some (Jsonl.Object rp) -> (
+          match List.assoc_opt "declared_triggers" rp with
+          | Some (Jsonl.Array items) ->
+              Alcotest.(check (list string))
+                "the triggers survive the bracket form" [ "a"; "b" ]
+                (List.map
+                   (function
+                     | Jsonl.String s -> s | other -> Jsonl.stringify other)
+                   items)
+          | _ -> Alcotest.fail "risk.declared_triggers is not an array")
+      | _ -> Alcotest.fail "risk is not an object")
+  | _ -> Alcotest.fail "the document is not an object"
+
+(* The empty bracket form is a legal flow sequence and means an empty
+   sequence -- not the string "[]". The corpus carries several of them
+   (`paths: []`, `supersedes: []`), and they were read as strings. *)
+let[@warning "-32"] empty_flow_sequence_is_an_empty_array () =
+  let yaml = "id: t\nrelations:\n  supersedes: []\nrevision: 1\n" in
+  let v, leftover = Codec.load_yaml_value_remaining yaml in
+  Alcotest.check Alcotest.int "read to EOF" 0 (List.length leftover);
+  match v with
+  | Jsonl.Object pairs -> (
+      match List.assoc_opt "relations" pairs with
+      | Some (Jsonl.Object rp) -> (
+          match List.assoc_opt "supersedes" rp with
+          | Some (Jsonl.Array items) ->
+              Alcotest.check Alcotest.int "the empty sequence is empty" 0
+                (List.length items)
+          | Some other ->
+              Alcotest.failf "the empty sequence read as %s, not an array"
+                (Jsonl.stringify other)
+          | None -> Alcotest.fail "relations.supersedes is absent")
+      | _ -> Alcotest.fail "relations is not an object")
+  | _ -> Alcotest.fail "the document is not an object"
+
+(* A value that starts with '[' but does not balance is NOT read as a
+   sequence. The parser falls back to the scalar reading, so a
+   malformed file is reported by the schema -- which knows what an
+   array is -- and not by the parser's guess. A half-read flow
+   sequence would look like a decision that WAS read. *)
+let[@warning "-32"] unbalanced_flow_sequence_is_not_guessed () =
+  let yaml = "id: t\naxiom_link: [A0\nrevision: 1\n" in
+  let v, _ = Codec.load_yaml_value_remaining yaml in
+  match v with
+  | Jsonl.Object pairs -> (
+      match List.assoc_opt "axiom_link" pairs with
+      | Some (Jsonl.String s) ->
+          Alcotest.(check (list string))
+            "the unbalanced value stays a scalar" [ "[A0" ] [ s ]
+      | Some other ->
+          Alcotest.failf "the unbalanced value was read as %s, not a scalar"
+            (Jsonl.stringify other)
+      | None -> Alcotest.fail "axiom_link is absent")
+  | _ -> Alcotest.fail "the document is not an object"
+
 let () =
   Alcotest.run
     ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
@@ -608,5 +717,14 @@ let () =
             seq_escaped_quote_does_not_close_the_scalar;
           Alcotest.test_case "policies.yaml leaves no remainder" `Quick
             policies_yaml_parses_with_no_remainder;
+        ] );
+      ( "flow-sequence",
+        [
+          Alcotest.test_case "the bracket form is read as an array" `Quick
+            flow_sequence_is_read_as_an_array;
+          Alcotest.test_case "the empty bracket form is an empty array" `Quick
+            empty_flow_sequence_is_an_empty_array;
+          Alcotest.test_case "an unbalanced bracket form is not guessed" `Quick
+            unbalanced_flow_sequence_is_not_guessed;
         ] );
     ]

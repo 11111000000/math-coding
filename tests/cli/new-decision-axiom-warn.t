@@ -33,7 +33,7 @@ Case 2: tests/ paths produce A1 (feedback).
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" MATH_CODING_NEW_DECISION_SCOPE_PATHS="tests/foo.ml" "$INSIDE_DUNE/bin/mathc.exe" new-decision ax-warn-tests 2>&1 | sed -n 's/.*top candidates: \(.*\); add axiom_link/top candidates: \1/p'
+  $ MATH_CODING_ROOT="$tmpdir" MATH_CODING_NEW_DECISION_SCOPE_PATHS="tests/foo.ml" "$INSIDE_DUNE/bin/mathc.exe" new-decision ax-warn-tests --template=full 2>&1 | sed -n 's/.*top candidates: \(.*\); add axiom_link/top candidates: \1/p'
   top candidates: A1 (feedback)
   $ rm -rf "$tmpdir"
 
@@ -41,7 +41,7 @@ Case 3: decisions/ paths produce A0 (separation) + A4 (care).
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" MATH_CODING_NEW_DECISION_SCOPE_PATHS="decisions/foo.yaml" "$INSIDE_DUNE/bin/mathc.exe" new-decision ax-warn-decisions 2>&1 | sed -n 's/.*top candidates: \(.*\); add axiom_link/top candidates: \1/p'
+  $ MATH_CODING_ROOT="$tmpdir" MATH_CODING_NEW_DECISION_SCOPE_PATHS="decisions/foo.yaml" "$INSIDE_DUNE/bin/mathc.exe" new-decision ax-warn-decisions --template=full 2>&1 | sed -n 's/.*top candidates: \(.*\); add axiom_link/top candidates: \1/p'
   top candidates: A0 (separation), A4 (care)
   $ rm -rf "$tmpdir"
 
@@ -50,7 +50,7 @@ Case 4: spec/ paths produce A0 (separation) + A3
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" MATH_CODING_NEW_DECISION_SCOPE_PATHS="spec/foo.md" "$INSIDE_DUNE/bin/mathc.exe" new-decision ax-warn-spec 2>&1 | sed -n 's/.*top candidates: \(.*\); add axiom_link/top candidates: \1/p'
+  $ MATH_CODING_ROOT="$tmpdir" MATH_CODING_NEW_DECISION_SCOPE_PATHS="spec/foo.md" "$INSIDE_DUNE/bin/mathc.exe" new-decision ax-warn-spec --template=full 2>&1 | sed -n 's/.*top candidates: \(.*\); add axiom_link/top candidates: \1/p'
   top candidates: A0 (separation), A3 (self-application)
   $ rm -rf "$tmpdir"
 
@@ -76,7 +76,7 @@ Negative case: paths that match no rule fall back to A0.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" MATH_CODING_NEW_DECISION_SCOPE_PATHS="random/foo.txt" "$INSIDE_DUNE/bin/mathc.exe" new-decision ax-warn-misc 2>&1 | sed -n 's/.*top candidates: \(.*\); add axiom_link/top candidates: \1/p'
+  $ MATH_CODING_ROOT="$tmpdir" MATH_CODING_NEW_DECISION_SCOPE_PATHS="random/foo.txt" "$INSIDE_DUNE/bin/mathc.exe" new-decision ax-warn-misc --template=full 2>&1 | sed -n 's/.*top candidates: \(.*\); add axiom_link/top candidates: \1/p'
   top candidates: A0 (separation)
   $ rm -rf "$tmpdir"
 
@@ -100,6 +100,6 @@ post-write emit), so Print-mode coverage is sufficient.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" MATH_CODING_NEW_DECISION_SCOPE_PATHS="lib/foo.ml" "$INSIDE_DUNE/bin/mathc.exe" new-decision ax-warn-write 2>&1 | grep -q "top candidates: A0 (separation), A1 (feedback)" && echo "write+warn: ok"
+  $ MATH_CODING_ROOT="$tmpdir" MATH_CODING_NEW_DECISION_SCOPE_PATHS="lib/foo.ml" "$INSIDE_DUNE/bin/mathc.exe" new-decision ax-warn-write --template=full 2>&1 | grep -q "top candidates: A0 (separation), A1 (feedback)" && echo "write+warn: ok"
   write+warn: ok
   $ rm -rf "$tmpdir"

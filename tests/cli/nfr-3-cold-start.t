@@ -29,9 +29,18 @@ time includes the kernel work, not just binary startup.
 We record the number for visibility but do not assert on
 it (NFR-3 is about startup, not the command's work).
 
+The EXIT CODE is not pinned either, and that is the point:
+the corpus's verdict is a moving number — it changes when the
+store is re-signed, when a decision is added, when a waiver
+expires. A fixture that pins it breaks on every such change,
+and a fixture that breaks whenever the project advances
+teaches people to ignore it. What is asserted is the CLASS:
+the command either concluded or it did not.
+
   $ cd "$DUNE_SOURCEROOT"
-  $ t=$(TIMEFORMAT='%R'; { time mathc self-check >/dev/null; } 2>&1)
-  [1]
+  $ t=$(TIMEFORMAT='%R'; { time mathc self-check >/dev/null 2>&1 || true; } 2>&1)
+  $ mathc self-check >/dev/null 2>&1; rc=$?; case $rc in 0|1|3) echo "exit is one of the documented verdicts";; *) echo "undocumented exit $rc"; exit 1;; esac
+  exit is one of the documented verdicts
   $ echo "mathc self-check: ${t}s" | sed -E -e "s/[0-9]+\.[0-9]+s/<T>s/" -e "s|$| (kernel work; not NFR-3 scope)|"
   mathc self-check: <T>s (kernel work; not NFR-3 scope)
 

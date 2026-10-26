@@ -138,6 +138,13 @@ asserted to be zero.
   >   waived_naming_a_waiver: ([.subjects[] | select(.verdict == "open-with-waiver") | select((.waivers | length) > 0)] | length)
   > }
   > JQ
-  $ mathc self-check | jq -c -f coherence.jq
-  {"pass_with_causes":0,"pass_naming_a_waiver":0,"waived_without_unexpired_waiver":0,"waived_subjects":7,"waived_naming_a_waiver":7}
-  $ rm -f coherence.jq
+  $ mathc self-check | jq -c -f coherence.jq > /tmp/coherence.json
+  $ jq -e '.pass_with_causes == 0' /tmp/coherence.json > /dev/null && echo "no pass subject carries a cause"
+  no pass subject carries a cause
+  $ jq -e '.pass_naming_a_waiver == 0' /tmp/coherence.json > /dev/null && echo "no pass subject names a waiver"
+  no pass subject names a waiver
+  $ jq -e '.waived_without_unexpired_waiver == 0' /tmp/coherence.json > /dev/null && echo "every waived subject names an unexpired waiver"
+  every waived subject names an unexpired waiver
+  $ jq -e '.waived_naming_a_waiver == .waived_subjects' /tmp/coherence.json > /dev/null && echo "every waived subject names a waiver at all"
+  every waived subject names a waiver at all
+  $ rm -f coherence.jq /tmp/coherence.json

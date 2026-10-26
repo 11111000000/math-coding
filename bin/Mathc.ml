@@ -1525,7 +1525,39 @@ let[@warning "-32"] find_project_root start =
 let[@warning "-32"] root_with_env_precedence () =
   match Sys.getenv_opt "MATH_CODING_ROOT" with
   | Some r when String.trim r <> "" && Sys.is_directory r -> r
-  | _ -> find_project_root (Sys.getcwd ())
+  | _ ->
+      (* The CWD wins over the binary's own tree.
+
+         `find_project_root` climbs from the executable's directory
+         before it climbs from the caller's directory, and that order
+         is right for a READER (`mathc self-check` run from anywhere
+         inside the kernel's own checkout should find that checkout)
+         and wrong for a WRITER. A writer puts files into the project
+         it is asked about, and "the project it is asked about" is
+         the directory the operator is standing in.
+
+         Measured: with a source build, `mathc new-decision x --write`
+         run inside an adopter's project wrote the decision into the
+         KERNEL's own `decisions/` directory, because the binary lived
+         under a `dune-project` ancestor and the climb found that one
+         first. The adopter's project got no decision; the kernel's
+         corpus got a stranger's file. `mathc init` in the same
+         directory did the right thing, because it resolves from the
+         cwd. Two commands, one directory, two targets.
+
+         The cwd climb is tried first here; `find_project_root` stays
+         as the fallback for the case the cwd cannot answer (a
+         directory that is not a project at all), which is the case the
+         executable-dir climb was invented for. *)
+      (* The CWD-first rule now lives in ONE place —
+         lib/new_decision/new_decision.ml::project_root — because moving
+         it here as well changed the anchor of every other writer, and
+         five existing fixtures depended on the old one (attest-batch
+         and its candidate_tree resolution, the two verify-sandbox deny
+         cases, the malformed-manifest diagnostic). A change that fixes
+         one command and moves five others is not a fix; it is a
+         relocation. Decision `adoption-friction-p0-2026-10`. *)
+      find_project_root (Sys.getcwd ())
 
 let[@warning "-32"] now_iso () =
   let tm = Unix.gmtime (Unix.time ()) in
@@ -4835,7 +4867,7 @@ let[@warning "-32"] store_exclude_prefixes () : string list =
  * the digest itself, and the `--only-changed` filter, which asks
  * which decisions' scope intersects the files a commit touched. *)
 let[@warning "-32"] scope_digest_map ~(reader : string -> string)
-    ~(decisions_dir : string) ~(tree : string) :
+    ~(decisions_dir : string) ~(root : string) ~(tree : string) :
     (string -> string) * (string, string list) Hashtbl.t =
   (* The git lookups are anchored to the PROJECT ROOT, never to the
      process's working directory. Asking git from the caller's
@@ -4850,7 +4882,6 @@ let[@warning "-32"] scope_digest_map ~(reader : string -> string)
      anywhere else - same binary, same store, same tree.
      The root is the parent of the decisions directory, which is where
      the tree the digest is computed over lives. *)
-  let root = Filename.dirname decisions_dir in
   let blobs =
     match Git_diff.tree_blobs ~cwd:root ~ref:tree with
     | Some bs -> bs
@@ -5175,7 +5206,7 @@ let[@warning "-32"] do_attest_batch () =
           let scope_digest, scope_map =
             scope_digest_map ~reader
               ~decisions_dir:(Path_config.decisions_dir_at ~root ())
-              ~tree:candidate_tree
+              ~root ~tree:candidate_tree
           in
           let scope_map =
             if String.trim !only_changed = "" then scope_map
@@ -5388,7 +5419,7 @@ let[@warning "-32"] do_attest_batch () =
           let scope_digest, scope_map =
             scope_digest_map ~reader
               ~decisions_dir:(Path_config.decisions_dir_at ~root ())
-              ~tree:candidate_tree
+              ~root ~tree:candidate_tree
           in
           let scope_map =
             if String.trim !only_changed = "" then scope_map
@@ -5819,7 +5850,29 @@ let[@warning "-32"] resolve_store_root project_root =
   match env_path with
   | Some s ->
       if Filename.is_relative s then Filename.concat project_root s else s
-  | None -> Filename.concat project_root "attestations"
+  | None ->
+      (* The DEFAULT must be the same default the rest of the kernel
+         uses. `Path_config.resolve_attestations_dir` decides the
+         layout ONCE per project — `.math-coding/attestations` for a
+         forward project, `attestations` for a pre-3.4 one — and the
+         env vars above still win outright.
+
+         This branch used to hard-code `attestations`, the LEGACY path.
+         The consequence was measured on a project scaffolded by
+         `mathc init`: the init creates `.math-coding/attestations`,
+         `mathc attest-batch` wrote there (it resolves through
+         `Path_config`), and the gate and `mathc self-check` looked in
+         `attestations/` and found nothing. The store was not empty —
+         it was somewhere else. `mathc packages` reported `pass` for
+         the same obligation whose `self-check` said "has no
+         attestations in the store", in the same directory, with the
+         same binary. A project that could not turn its own gate green
+         was a project that could not use the protocol at all.
+
+         Two resolvers with two defaults is the defect; one resolver
+         is the fix. Decision `adoption-friction-p0-2026-10`. *)
+      let rel = Path_config.resolve_attestations_dir ~root:project_root () in
+      if Filename.is_relative rel then Filename.concat project_root rel else rel
 
 let[@warning "-32"] gap_to_json (g : Gate.gap) =
   let fields =
@@ -9309,7 +9362,22 @@ let[@warning "-32"] do_new_decision () =
   end;
   let kind =
     match !template_kind with
-    | "" -> New_decision.Full
+    (* The DEFAULT is the template the kernel accepts. The full
+       template lacks `axiom_link` and `counterexample`, so the file
+       it produces is REJECTED by `mathc validate` (MC-AXIOM-LINK-
+       MISSING is a block) — the scaffold was not a scaffold but a
+       file the tool refused. An adopter's first command therefore
+       produced something the second command rejected, and the
+       remediation the rejection named (`axiom_link: [A0]`) was a
+       form the parser did not read either (see the flow-sequence
+       branch in lib/codec.ml).
+
+       The minimal template carries the kernel-required defaults in
+       the block form the parser reads, and the user fills the TODO
+       markers. `--template=full` stays available: the 3.2 shape
+       ships from `ux-3-new-decision-subcommand-2026-10@1` and some
+       adopters want it. Decision `adoption-friction-p0-2026-10`. *)
+    | "" -> New_decision.Minimal
     | "minimal" -> New_decision.Minimal
     | "full" -> New_decision.Full
     | other ->
