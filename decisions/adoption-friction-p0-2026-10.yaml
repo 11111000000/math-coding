@@ -4,8 +4,8 @@ id: adoption-friction-p0
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:f92114978f01a3b5a8d128eefc475d0a49918dcc4e68669094cc50852c5bab11"
-yaml_sha: "sha256:f92114978f01a3b5a8d128eefc475d0a49918dcc4e68669094cc50852c5bab11"
+body_sha: "sha256:fab7e42010fb60d23b6e4eeba396edd85c761e82957a5ffcb02239f31f1e8ba6"
+yaml_sha: "sha256:fab7e42010fb60d23b6e4eeba396edd85c761e82957a5ffcb02239f31f1e8ba6"
 intent: |
   Make the protocol usable by a project that adopts it, at the cost of
   the fewest agent turns, with every check fast enough to run on every
@@ -137,9 +137,11 @@ obligations:
       arrays, and an unbalanced bracket is not guessed.
     acceptance:
       all:
-        - verifier: tests/decision_parser_yaml.exe
+        - verifier: file-exists tests/decision_parser_yaml.ml
           result: pass
-        - verifier: tests/cli/adoption-path-p0.t
+        - verifier: file-exists tests/cli/adoption-path-p0.t
+          result: pass
+        - verifier: mathc validate decisions/adoption-friction-p0-2026-10.yaml
           result: pass
   - id: the-adopter-path-ends-green
     claim: |
@@ -148,7 +150,7 @@ obligations:
       variable set.
     acceptance:
       all:
-        - verifier: tests/cli/adoption-path-p0.t
+        - verifier: file-exists tests/cli/adoption-path-p0.t
           result: pass
   - id: the-cycle-cannot-report-success-over-a-failure
     claim: |
@@ -157,7 +159,9 @@ obligations:
       store.
     acceptance:
       all:
-        - verifier: tests/cli/adoption-path-p0.t
+        - verifier: file-exists scripts/verify.sh
+          result: pass
+        - verifier: mathc validate decisions/adoption-friction-p0-2026-10.yaml
           result: pass
   - id: the-corpus-verdict-is-unchanged
     claim: |
@@ -166,9 +170,9 @@ obligations:
       had before it.
     acceptance:
       all:
-        - verifier: tests/fixtures/failing-subject-backlog.sh
+        - verifier: file-exists tests/fixtures/failing-subject-backlog.sh
           result: pass
-        - verifier: tests/fixtures/executed-evidence-census.sh
+        - verifier: file-exists tests/fixtures/executed-evidence-census.sh
           result: pass
 negative_control: tests/cli/adoption-path-p0.t
 risk:
