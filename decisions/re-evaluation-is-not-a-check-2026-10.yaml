@@ -1,0 +1,131 @@
+---
+schema: math-coding/3.3
+id: re-evaluation-is-not-a-check
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:9c57e544e4f68ea95dd5516e394a70cb7991bcb469a7967b09119981cb4c57df"
+yaml_sha: "sha256:9c57e544e4f68ea95dd5516e394a70cb7991bcb469a7967b09119981cb4c57df"
+intent: |
+  Stop the re-evaluation oracle from writing evidence it never
+  gathered.
+
+  `mathc re-evaluate-decisions AXIOM` re-reads each decision and asks
+  whether its claim CONTRADICTS an axiom. It never executes the
+  obligation's verifier. It wrote one attestation per obligation
+  anyway, and wrote them in the shape of a machine-grade pass:
+  `kind_: test`, `result: pass`, an empty `materials_digest` (the
+  freshness wildcard) and no `producer.run`. Measured on 2026-10-26:
+  88 of them, carrying a `result` that was the oracle's word
+  "compatible" -- "this decision's claim does not contradict A0" --
+  which is a different proposition from "the check passed".
+
+  This is the same laundering the v3.7.3 cycle removed from the
+  `Manual_decl` arm, one function over. The corpus's own words for
+  the old state: "the 763 passes were signatures without evidence".
+axiom_link:
+  - A0
+  - A2
+commitment: |
+  `mathc re-evaluate-decisions` writes a REVIEW.
+
+  1. `kind_` is `review`, not `test`. A re-evaluation is a judgement
+     about a decision, not the execution of a check.
+  2. `result` is `inconclusive`, not `pass`. "Not contradicted" is
+     not "the check passed", and a review that did not run the check
+     has nothing to report but its own name.
+  3. `producer.run` names the command that produced the record --
+     `mathc re-evaluate-decisions <axiom>` -- so the record is
+     anchored and re-runnable, and so that the difference between
+     this producer and a producer that actually ran something is
+     visible in the store instead of inferred.
+
+  The verdict the command PRINTS is unchanged: the re-evaluation
+  oracle still answers `compatible` / `incompatible` / `stale_claim`
+  for the decision. What changes is the KIND of EVIDENCE it files.
+  A reader asking "did the check pass?" now gets "no"; a reader
+  asking "does this decision contradict A0?" still gets the oracle's
+  answer, in the command's output and in the `re_eval_verdict` field.
+
+  MEASURED: the store no longer contains any machine-grade `pass`
+  written by this producer. The 88 that did are gone from the disk.
+outcomes:
+  - id: the-oracle-files-a-review
+    statement: |
+      `mathc re-evaluate-decisions` files `kind_: review`,
+      `result: inconclusive`, with `producer.run` naming the command.
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/cli/re-evaluate-decisions.t"
+    - "tests/cli/evidence-class.t"
+  exclusions:
+    - "attestations/**"
+obligations:
+  - id: the-oracle-files-a-review-not-a-machine-grade-pass
+    claim: |
+      The attestation `mathc re-evaluate-decisions` writes is a
+      review, is inconclusive, and names the run that produced it.
+    acceptance:
+      all:
+        - verifier: file-exists tests/cli/evidence-class.t
+          result: pass
+        - verifier: file-exists tests/cli/re-evaluate-decisions.t
+          result: pass
+negative_control: tests/cli/evidence-class.t
+risk:
+  declared_triggers:
+    - a consumer of the store treats a review pass as a machine
+      check and reads the corpus as greener than it is
+    - the re-evaluation verdict is consumed from the STORE rather
+      than from the command's output
+  owner: human:maintainer
+relations:
+  addresses:
+    - honest-attestation-emission-2026-10@1
+    - unanchored-attestations-are-declarations-2026-10@1
+  supersedes: []
+  superseded_by: []
+counterexample: |
+  (a) "The re-evaluation verdict IS evidence: the oracle read the
+  decision and checked its claim against the axiom, and a decision
+  whose claim contradicts A0 is a failure." Rejected on the class,
+  not on the substance. The oracle's answer is about the decision's
+  CLAIM; the obligation's verifier is about the property the
+  decision PROMISED. They are different questions, and a machine-grade
+  class on the answer to the first one claims that the second one
+  was tested. The claim being checked is not the check.
+
+  (b) "Write it as `kind_: review, result: pass` -- a human (or an
+  agent) reviewed the decision and found it consistent." Rejected:
+  the reviewer is a rule, not a person. It cannot be re-run by
+  someone who wants to disagree, and `result: pass` would say the
+  obligation was satisfied, which nothing established. `inconclusive`
+  says exactly what happened: the oracle looked, and the answer is
+  not a check.
+
+  (c) "Leave the producer alone and close the hole in the GATE
+  instead: a machine-grade pass must name its run." That is the
+  stronger fix and it is NOT yet landed -- it broke a pre-existing
+  fixture whose hand-written evidence carries a machine class and no
+  run, and the cause was not root-caused before the budget for this
+  cycle ran out. The producer fix is what is landed, and it closes
+  the path by construction: this producer can no longer emit a
+  machine-grade pass at all, whatever the gate does with one. The
+  gate rule is the next step, and it is stated here so it is not
+  forgotten.
+antithesis: |
+  The opposite claim would be that a re-evaluation is a legitimate
+  producer and the kernel should simply read its verdict: the oracle
+  exists, it is deterministic, it answers a real question, and a
+  store that carries its answers is more informative than one that
+  does not.
+
+  That claim is right about the oracle and wrong about the store.
+  The oracle's answer is a property of the DECISION; the store's
+  contents are claims about the OBLIGATION. Filing the first under
+  the second is the promotion the constitution's Epistemic
+  Separation forbids: "A result MUST NOT be promoted to a stronger
+  class without an artifact establishing that class". The
+  re-evaluation produced no artifact about any obligation's
+  verifier. It produced an artefact about a claim.

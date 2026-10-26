@@ -41,8 +41,8 @@ been a silent `compatible`, post-T1.2-without-run it would be
   compatible_after_run
   $ ls "$tmp"/t1-2-A0-3-2-cli-catalog-mode-subcommand-spec-row.json > /dev/null
   $ jq -r '.kind_, .result, .re_eval_verdict, .producer.identity' < "$tmp"/t1-2-A0-3-2-cli-catalog-mode-subcommand-spec-row.json
-  test
-  pass
+  review
+  inconclusive
   compatible_after_run
   ci-bot:re-evaluate-decisions
 
