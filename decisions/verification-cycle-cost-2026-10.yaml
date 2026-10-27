@@ -1,0 +1,185 @@
+---
+schema: math-coding/3.3
+id: verification-cycle-cost
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:fff1d6faf3f996dc90f264326be98dc45bbd4f7a14df8305134db4538c34ec7f"
+yaml_sha: "sha256:fff1d6faf3f996dc90f264326be98dc45bbd4f7a14df8305134db4538c34ec7f"
+intent: |
+  Record what the verification cycle actually costs, measured, and
+  put the cost in the order of its leverage -- so that "make the
+  checks instant" stops being an opinion.
+
+  The requirement behind this decision is the one an adopter of the
+  protocol states first: the checks must be FAST ENOUGH TO RUN ON
+  EVERY CHANGE, and the whole method must be usable in a MINIMUM
+  NUMBER OF AGENT TURNS. A cycle that takes two minutes and rewrites
+  nine hundred files is not a check, it is a tax, and a tax that is
+  paid on every change is paid by not making changes.
+
+  This decision does NOT change any behaviour. It measures, and it
+  names the four levers in the order their measured cost sits.
+axiom_link:
+  - A1
+  - A4
+commitment: |
+  The measured profile of the cycle, at commit `be224a52`, on a warm
+  tree, and the four levers in the order of their cost.
+
+  MEASURED (`scripts/dev-profile.sh`, warm tree, 2026-10-26):
+
+  | link | cost | share |
+  |---|---|---|
+  | `scripts/check.sh` (33 shell fixtures + alcotest + cram + 2 linters) | **77.2 s** | **78 %** |
+  | `dune runtest` (34 alcotest binaries) | 10.5 s | 11 % |
+  | `dune build` | 6.2 s | 6 % |
+  | `nix develop` (one entry) | 3.2 s | 3 % |
+  | `mathc precommit` (over the whole corpus) | 1.8 s | 2 % |
+  | `dune runtest tests/cli` (cram, cached) | 0.6 s | 1 % |
+  | **total** | **~99 s** | |
+
+  The sweep (`scripts/sign-store.sh`) is a separate cost: 129–165 s
+  measured, and it rewrites 891 files whenever `bin/Mathc.ml`
+  changes.
+
+  THE PER-FIXTURE COST, measured individually (`tests/fixtures/*.sh`):
+
+  | fixture | cost | why it is slow |
+  |---|---|---|
+  | `decisions-precommit-gate-rejects` | 9.4 s | spawns its OWN `nix develop`, then runs the pre-commit gate over the corpus |
+  | `cwd-independent-self-check` | 7.1 s | runs the whole `mathc self-check` twice, from two directories |
+  | `scope-invalidation-breadth` | 6.5 s | a python scan of the scope paths of the corpus |
+  | `no-dead-scope-paths` | 5.2 s | a SECOND python scan of the same scope paths |
+  | `init-terminates-outside-tree` | 5.1 s | builds a sandbox outside the tree |
+  | `decisions-precommit-path-independent` | 2.2 s | spawns its own `nix develop` |
+  | `dev-cleanup-is-scoped` | 1.7 s | spawns its own `nix develop` |
+
+  The top five are 33.3 s of 77.2 s — 43 % of the aggregator, from
+  five of its thirty-three fixtures. The three that spawn their own
+  `nix develop` cost 13.3 s, of which about 3.6 s is the startup of
+  the dev shell alone: `scripts/check.sh` already runs inside that
+  shell, so the three pay for a shell they are standing in.
+
+  THE FOUR LEVERS, in the order their measured cost sits:
+
+  1. **One dev shell for the whole suite** (13.3 s of 77.2 s, of
+     which ~3.6 s is pure startup). The three fixtures that call
+     `nix develop` themselves must not: `scripts/check.sh` is
+     already inside it. This is the cheapest change in the list and
+     the first one to make.
+  2. **One scope scan, not two** (`scope-invalidation-breadth` 6.5 s
+     + `no-dead-scope-paths` 5.2 s = 11.7 s). Both walk the same
+     scope paths of the same corpus. They answer different questions
+     and must keep answering them, but they can read the same tree
+     once.
+  3. **The materials digest is computed per DECISION, and the corpus
+     has far fewer distinct scopes than decisions** (253 decisions,
+     100 distinct scope sets). The digest of a scope is a function of
+     the scope, so it is computed 2.5 times more often than it needs
+     to be. Memoising it by the scope set is a pure win.
+  4. **The sweep rewrites the whole store** (891 files, 129–165 s)
+     whenever one file that many decisions scope changes. This is
+     not only a time cost: it is 891 changed files in a diff that a
+     reviewer cannot read, and it is the reason a change to
+     `bin/Mathc.ml` produces a megabyte of noise.
+
+  THE TARGET, stated so that it can be falsified: the aggregator
+  under 30 s, the per-binary fast check under 3 s, and a change to
+  one kernel file rewriting no store file whose scope that change
+  does not cover.
+
+  MEASURED, and stated plainly: `scripts/dev test-fast` (the fast
+  path) takes 10.6 s for 25 tests across 4 binaries, and 0.7–1.5 s
+  for ONE binary. The fast path is the thing an agent can afford to
+  run on every change; the full cycle is the thing it should run
+  once. Today the difference between them is not enforced anywhere
+  except by convention.
+outcomes:
+  - id: the-cycle-cost-is-measured-not-asserted
+    statement: |
+      The cost of each link of the verification cycle is measured and
+      recorded, so that "make it fast" names the link rather than
+      the feeling.
+scope:
+  paths:
+    - "scripts/dev-profile.sh"
+    - "ROADMAP.md"
+    - "decisions/verification-cycle-cost-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+obligations:
+  - id: the-profile-is-reproducible
+    claim: |
+      `scripts/dev-profile.sh` prints the per-link cost of the cycle
+      on the tree it runs on.
+    acceptance:
+      all:
+        - verifier: file-exists scripts/dev-profile.sh
+          result: pass
+negative_control: tests/fixtures/scope-invalidation-breadth.sh
+risk:
+  declared_triggers:
+    - a lever is implemented and the measured profile is not
+      re-measured, so the record stops describing the cycle
+    - the fast path and the full cycle converge, and the "run it
+      once" discipline quietly stops being cheap
+  owner: human:maintainer
+relations:
+  addresses:
+    - verify-budget-and-warm-tree-2026-10@1
+    - process-fastpath-pattern-2026-10@1
+  supersedes: []
+  superseded_by: []
+counterexample: |
+  (a) "The cycle is slow because the corpus is large; the fix is to
+  make the corpus smaller." Rejected on the measurement: the corpus
+  is not what the cycle spends its time on. 78 % of the cycle is the
+  aggregator, and 43 % of the aggregator is five fixtures, three of
+  which pay for a dev shell they are already standing in. A smaller
+  corpus would make the digest cheaper by a few hundred
+  milliseconds; it would not make the three `nix develop` calls go
+  away.
+
+  (b) "Speed is a matter of taste; the protocol's value is in the
+  evidence, not in the seconds." Rejected mechanically: an evidence
+  chain that is not affordable per change is an evidence chain that
+  is not collected per change. The cost is not a taste question; it
+  decides whether the method is used at the moment it would have
+  prevented the defect, or after the defect, when it only records
+  it.
+
+  (c) "The sweep's 891 files are the price of honesty: every
+  attestation must name the tree it observed." Rejected as a
+  non-sequitur: the honesty requirement is that an attestation name
+  the tree it observed. It is not that an attestation whose scope
+  the change did not touch must be REWRITTEN. The store churn and
+  the honesty requirement are different things, and only the second
+  one is constitutional.
+antithesis: |
+  The opposite claim would be that the cost profile is not a property
+  of the method but a property of a corpus that grew past what a
+  method can carry: 253 decisions, 891 attestations, 1215 test
+  files, 129 cram transcripts. On that reading, the correct answer is
+  to STOP -- to freeze the corpus at a size where the cycle is
+  affordable, and to let the method govern the thing it was made for
+  (a project's own source) rather than its own bookkeeping.
+
+  That claim deserves a real answer, because the cost is real and it
+  does grow with the corpus. It is rejected on WHERE the cost sits.
+  The measured shares say the cost is not in the corpus's size: it
+  is in five fixtures, three dev-shell startups and two duplicate
+  scans. A corpus half the size would leave those five fixtures
+  costing the same, because they are not measuring the corpus --
+  they are measuring how the check is WIRED. The freeze would trade a
+  method that grows for a method that stops, and would do it to
+  preserve a cost that is mostly wiring.
+
+  What the claim does establish is a bound the method has not yet
+  reached: the corpus grows, the sweep grows with it, and the four
+  levers below buy time, not a ceiling. At some corpus size the
+  cycle stops being affordable per change and the fast path becomes
+  the only path, and then the question is whether the full evidence
+  is still worth what it costs. That question is real, it is not
+  answered here, and it should be asked against a MEASURED profile
+  rather than a remembered feeling.

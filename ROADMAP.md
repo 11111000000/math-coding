@@ -361,6 +361,31 @@ The protocol's job is the **assurance loop**: every commitment has a
 path to an observation, every observation has a known source class,
 every source class is bounded by subject/inputs/time.
 
+## The cost of the loop (measured 2026-10-26)
+
+The requirement an adopter states first is that the checks be cheap
+enough to run on EVERY change. Measured on a warm tree at
+`be224a52` (`scripts/dev-profile.sh`):
+
+| link | cost | share |
+|---|---|---|
+| `scripts/check.sh` | **77.2 s** | **78 %** |
+| `dune runtest` (alcotest) | 10.5 s | 11 % |
+| `dune build` | 6.2 s | 6 % |
+| `nix develop` (one entry) | 3.2 s | 3 % |
+| `mathc precommit` (corpus) | 1.8 s | 2 % |
+| cram (cached) | 0.6 s | 1 % |
+
+Five of the aggregator's thirty-three fixtures cost 43 % of it; three
+of those five pay for a `nix develop` they are already standing in.
+The sweep is a separate cost: 129–165 s and 891 rewritten files.
+
+Four levers, in the order of their measured cost, and the target
+against which they can be falsified, are in
+`decisions/verification-cycle-cost-2026-10.yaml`. The fast path
+(`scripts/dev test-fast`) is 0.7–1.5 s for ONE binary and is the
+only thing affordable per change.
+
 ## See also
 
 - `AGENTS.md` — agent conduct (defer to this file for priorities)
