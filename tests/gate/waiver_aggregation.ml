@@ -30,8 +30,8 @@
     10. a scoped waiver does cover its
         named obligation               -> Open_with_waiver
     11. a waived verdict carries the waiver that produced it
-        (Invariant 14c: a verdict that exits 0 under a waiver
-        must reference it, and that waiver must cover every gap)
+    (Invariant 14c: a verdict that exits 0 under a waiver
+    must reference it, and that waiver must cover every gap)
     12. the expiry boundary: at now == expires_at the waiver does
         NOT lift the gap (-> Unknown, exit 3, not exit 0 under a
         waiver the constitution calls expired), at expires_at - 1s
@@ -40,7 +40,11 @@
         time; the "- 1s" case is what stops the boundary from
         being fixed by moving the error one second earlier. The
         start boundary is pinned too (now == issued_at lifts), so a
-        "harmonised" strictly-open interval fails here as well. *)
+        "harmonised" strictly-open interval fails here as well.
+    13. a waiver that names NO gap covers nothing: the legacy
+        decision-wide form is revoked (constitution.md §Waivers
+        "MUST identify one gap"; see
+        decisions/exit-honesty-waivers-2026-10.yaml). *)
 
 open Alcotest
 
@@ -53,7 +57,12 @@ let[@warning "-32"] gap ?(kind = `MissingEvidence) obligation_id =
     next_actions = [];
   }
 
-let[@warning "-32"] waiver ?(obligation = None)
+(* A waiver identifies ONE gap (constitution.md §Waivers), so the
+   fixture names obligation "a" by default: the cases that are about
+   something else (the expiry boundary, the waivable kinds) must not
+   pass for the wrong reason. The one case that is about the revoked
+   decision-wide form passes `~obligation:None` explicitly. *)
+let[@warning "-32"] waiver ?(obligation = Some "a")
     ?(issued = "2026-10-01T00:00:00Z") ?(expires = "2027-10-01T00:00:00Z") id
     subject =
   {
@@ -99,8 +108,20 @@ let () =
       case "no gaps is Pass" ~gaps:[] ~waivers:[] ~expected:Gate.Pass;
       case "every gap waived is Open_with_waiver"
         ~gaps:[ gap "a"; gap "b" ]
-        ~waivers:[ waiver "w1" d ]
+        ~waivers:
+          [
+            waiver ~obligation:(Some "a") "w1" d;
+            waiver ~obligation:(Some "b") "w2" d;
+          ]
         ~expected:Gate.Open_with_waiver;
+      (* A waiver identifies ONE gap (constitution.md §Waivers). The
+         legacy decision-wide form -- a waiver that names no
+         obligation -- covers nothing; see
+         decisions/exit-honesty-waivers-2026-10.yaml. *)
+      case "a waiver that names no gap covers nothing"
+        ~gaps:[ gap "a" ]
+        ~waivers:[ waiver ~obligation:None "w1" d ]
+        ~expected:Gate.Unknown;
       case "partial coverage stays Unknown"
         ~gaps:[ gap "a"; gap "b" ]
         ~waivers:[ waiver ~obligation:(Some "a") "w1" d ]
@@ -161,9 +182,11 @@ let () =
       ( "a waived verdict names the waiver that produced it",
         `Quick,
         fun () ->
-          let w = waiver "w1" d in
+          let w1 = waiver ~obligation:(Some "a") "w1" d in
+          let w2 = waiver ~obligation:(Some "b") "w2" d in
           let verdict, covered =
-            Gate.aggregate_with_waivers [ w ] ~decision_id:d ~now:now_default
+            Gate.aggregate_with_waivers [ w1; w2 ] ~decision_id:d
+              ~now:now_default
               [ gap "a"; gap "b" ]
           in
           check string "verdict" "open-with-waiver"
@@ -172,14 +195,15 @@ let () =
                waiver must reference the waiver, and that waiver
                must cover EVERY gap in the verdict — not just the
                first. *)
-          check (list string) "covered waiver ids" [ "w1"; "w1" ]
+          check (list string) "covered waiver ids" [ "w1"; "w2" ]
             (List.map (fun (_, (w' : Waiver.t)) -> w'.Domain.id) covered);
           check (list string) "covered obligation ids" [ "a"; "b" ]
             (List.map (fun (g, _) -> g.Gate.obligation_id) covered);
           check bool "the returned waiver is the one passed in" true
             (List.for_all
                (fun (_, (w' : Waiver.t)) ->
-                 String.equal w'.Domain.id w.Domain.id)
+                 String.equal w'.Domain.id w1.Domain.id
+                 || String.equal w'.Domain.id w2.Domain.id)
                covered) );
     ]
   in

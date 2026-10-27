@@ -14,7 +14,10 @@ says "A merge with a Waiver MUST report `open-with-waiver`, never
 `pass`"; AGENTS.md §Friction says "A waiver is not Pass".
 
 Scenario 1 builds a synthetic project with ONE decision, TWO
-obligations, no attestations, and one decision-wide waiver. Both
+obligations, no attestations, and TWO waivers — one per gap, because
+a waiver identifies ONE gap (constitution.md §Waivers; see
+`decisions/exit-honesty-waivers-2026-10.yaml`, which revoked the
+decision-wide form). Both
 gaps are waivable and both are covered, so the subject verdict is
 `open-with-waiver` and the repository verdict is `open-with-waiver`
 too — the aggregate of a wholly-waived corpus is not `pass`.
@@ -83,10 +86,10 @@ waiver, and exits 0:
   > YAML
   $ mathc rehash decisions/waived.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
-  $ cat > decisions/waivers/w.yaml <<'YAML'
+  $ cat > decisions/waivers/alpha.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
   > kind: waiver
-  > id: fixture-waiver
+  > id: fixture-waiver-alpha
   > policy_id: waived
   > rule: obligation-missing-attestation
   > subject: waived
@@ -94,12 +97,27 @@ waiver, and exits 0:
   > issued_at: 2026-10-07T00:00:00Z
   > expires_at: 2027-10-07T00:00:00Z
   > reason: |
-  >   Fixture waiver covering every obligation of `waived`.
+  >   Fixture waiver for the alpha gap of `waived`.
+  > unverified_obligation: alpha-obligation
+  > YAML
+  $ cat > decisions/waivers/beta.yaml <<'YAML'
+  > schema: math-coding/waiver-3.0-alpha
+  > kind: waiver
+  > id: fixture-waiver-beta
+  > policy_id: waived
+  > rule: obligation-missing-attestation
+  > subject: waived
+  > issuer: human:maintainer
+  > issued_at: 2026-10-07T00:00:00Z
+  > expires_at: 2027-10-07T00:00:00Z
+  > reason: |
+  >   Fixture waiver for the beta gap of `waived`.
+  > unverified_obligation: beta-obligation
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check > /tmp/sc-waived.json; echo "exit=$?"
   exit=0
   $ jq -c '{verdict, subject: (.subjects[0] | {name, verdict, causes: (.causes | length), remedies: (.remedies | length), waivers})}' /tmp/sc-waived.json
-  {"verdict":"open-with-waiver","subject":{"name":"waived","verdict":"open-with-waiver","causes":2,"remedies":4,"waivers":[{"covers":["alpha-obligation","beta-obligation"],"expires_at":"2027-10-07T00:00:00Z","id":"fixture-waiver","issued_at":"2026-10-07T00:00:00Z","issuer":"human:maintainer","scope":"decision"}]}}
+  {"verdict":"open-with-waiver","subject":{"name":"waived","verdict":"open-with-waiver","causes":2,"remedies":4,"waivers":[{"covers":["alpha-obligation"],"expires_at":"2027-10-07T00:00:00Z","id":"fixture-waiver-alpha","issued_at":"2026-10-07T00:00:00Z","issuer":"human:maintainer","scope":"obligation"},{"covers":["beta-obligation"],"expires_at":"2027-10-07T00:00:00Z","id":"fixture-waiver-beta","issued_at":"2026-10-07T00:00:00Z","issuer":"human:maintainer","scope":"obligation"}]}}
   $ jq -e '[.subjects[] | select(.verdict == "pass" and ((.causes | length) > 0 or (.remedies | length) > 0))] | length == 0' /tmp/sc-waived.json > /dev/null && echo "no pass carries a cause"
   no pass carries a cause
   $ cd /

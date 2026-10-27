@@ -29,6 +29,9 @@
  *   - covers: at the expiry second -> None (the boundary the gate
  *     actually consults)
  *   - covers: empty list -> None
+ *   - covers: a waiver that names no gap covers NOTHING (the legacy
+ *     decision-wide form is revoked; see
+ *     decisions/exit-honesty-waivers-2026-10.yaml)
  *
  * Per OCAML_BEST_PRACTICES §11.18 we annotate the construction
  * site (`Domain.waiver` literal) so OCaml's structural row
@@ -185,25 +188,34 @@ let[@warning "-32"] global_waiver =
   }
 
 let test_covers_global_covers_every_obligation () =
+  (* The legacy decision-wide form is revoked: a waiver that names no
+     gap covers NOTHING. constitution.md §Waivers: "A waiver ... MUST
+     identify one gap", and Invariant 11: "a waiver MUST apply only to
+     its named gap, scope, revisions, gate and validity interval".
+     The form existed as a backward-compatibility shim for waivers
+     whose YAML front-matter expressed `unverified_obligation` as a
+     LIST (the schema declares the field a STRING, so the parser read
+     those files as naming nothing) — see
+     decisions/exit-honesty-waivers-2026-10.yaml. *)
   Alcotest.(check bool)
-    "global waiver covers obligation-x of its subject" true
+    "a waiver that names no gap covers no obligation" false
     (Option.is_some
        (Waiver.covers [ global_waiver ] ~decision_id:"global-subject"
           ~obligation_id:"any-obligation" ~now:"2026-12-01T00:00:00Z"));
   Alcotest.(check bool)
-    "global waiver covers obligation-y of its subject" true
+    "a waiver that names no gap covers no other obligation either" false
     (Option.is_some
        (Waiver.covers [ global_waiver ] ~decision_id:"global-subject"
           ~obligation_id:"a-different-obligation" ~now:"2026-12-01T00:00:00Z"))
 
 let test_covers_global_still_subject_scoped () =
-  (* A global waiver still does not cross decision boundaries;
-     the decision_id must match. *)
+  (* A waiver that names an obligation is scoped to its subject: the
+      decision_id must match. *)
   Alcotest.(check bool)
-    "global waiver does not cover a different subject" false
+    "a waiver does not cover a different subject" false
     (Option.is_some
-       (Waiver.covers [ global_waiver ] ~decision_id:"other-subject"
-          ~obligation_id:"any-obligation" ~now:"2026-12-01T00:00:00Z"))
+       (Waiver.covers [ sample_waiver ] ~decision_id:"other-subject"
+          ~obligation_id:"obligation-x" ~now:"2026-12-01T00:00:00Z"))
 
 let test_load_empty_dir () =
   (* Waiver.load uses Sys.readdir internally; the result on
@@ -228,6 +240,23 @@ let valid_yaml =
    issued_at: 2026-10-06T00:00:00Z\n\
    expires_at: 2027-04-06T00:00:00Z\n\
    reason: roundtrip test\n"
+
+(* The same file with the one field that identifies WHICH gap the
+   waiver accepts. A waiver without it names no gap and covers
+   nothing (constitution.md §Waivers: "MUST identify one gap"). *)
+let named_yaml =
+  "---\n\
+   schema: math-coding/waiver-3.0-alpha\n\
+   kind: waiver\n\
+   id: roundtrip-named-2026-10\n\
+   policy_id: bootstrap-v3\n\
+   rule: obligation-missing-attestation\n\
+   subject: roundtrip-subject\n\
+   issuer: human:maintainer\n\
+   issued_at: 2026-10-06T00:00:00Z\n\
+   expires_at: 2027-04-06T00:00:00Z\n\
+   reason: roundtrip test\n\
+   unverified_obligation: obligation-x\n"
 
 let test_load_valid () =
   match Waiver.parse valid_yaml with
@@ -264,11 +293,29 @@ let test_load_empty_file () =
     "empty file -> None" false
     (Option.is_some (Waiver.parse ""))
 
-(* Integration: covers after parse. The valid_yaml fixture
-   has no `unverified_obligation` field, so it is treated as a
-   global waiver that covers every obligation of the named
-   subject (T3.2 backward-compatibility clause). *)
+(* Integration: covers after parse. A waiver that names its gap
+   covers exactly that gap of its subject. *)
 let test_covers_after_load () =
+  match Waiver.parse named_yaml with
+  | None -> Alcotest.fail "expected valid YAML to parse"
+  | Some w ->
+      let result =
+        Waiver.covers [ w ] ~decision_id:"roundtrip-subject"
+          ~obligation_id:"obligation-x" ~now:"2026-12-01T00:00:00Z"
+      in
+      Alcotest.(check bool)
+        "parsed waiver covers its named gap" true (Option.is_some result);
+      let other =
+        Waiver.covers [ w ] ~decision_id:"roundtrip-subject"
+          ~obligation_id:"another-obligation" ~now:"2026-12-01T00:00:00Z"
+      in
+      Alcotest.(check bool)
+        "parsed waiver covers no gap but the one it names" false
+        (Option.is_some other)
+
+(* A waiver whose file names no gap covers nothing: the legacy
+   decision-wide form is revoked. *)
+let test_covers_after_load_without_named_gap () =
   match Waiver.parse valid_yaml with
   | None -> Alcotest.fail "expected valid YAML to parse"
   | Some w ->
@@ -277,15 +324,16 @@ let test_covers_after_load () =
           ~obligation_id:"any-obligation" ~now:"2026-12-01T00:00:00Z"
       in
       Alcotest.(check bool)
-        "parsed waiver covers its subject" true (Option.is_some result)
+        "a parsed waiver that names no gap covers nothing" false
+        (Option.is_some result)
 
 let test_covers_after_load_expired () =
-  match Waiver.parse valid_yaml with
+  match Waiver.parse named_yaml with
   | None -> Alcotest.fail "expected valid YAML to parse"
   | Some w ->
       let result =
         Waiver.covers [ w ] ~decision_id:"roundtrip-subject"
-          ~obligation_id:"any-obligation" ~now:"2027-12-01T00:00:00Z"
+          ~obligation_id:"obligation-x" ~now:"2027-12-01T00:00:00Z"
       in
       Alcotest.(check bool)
         "parsed waiver does not cover after expiry" false
@@ -337,6 +385,8 @@ let () =
       ( "load + covers",
         [
           Alcotest.test_case "covers after load" `Quick test_covers_after_load;
+          Alcotest.test_case "a waiver that names no gap covers nothing" `Quick
+            test_covers_after_load_without_named_gap;
           Alcotest.test_case "expired after load" `Quick
             test_covers_after_load_expired;
         ] );

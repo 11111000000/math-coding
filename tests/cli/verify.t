@@ -3,8 +3,12 @@ execute them in a sandbox, returning per-obligation verdicts.
 
 The verify command is registered in mathc as of v3.4.0-dev and
 emits a per-obligation pass | fail | skipped. The exit code
-is 0 when all obligations pass, 1 when any fail, 2 on input
-errors (path unreadable, malformed YAML).
+is 0 when at least one obligation was actually fulfilled, 1 when
+any fail, 3 when nothing was verified at all (every obligation
+landed on skipped / setup-fail / timeout / declared), 2 on input
+errors (path unreadable, malformed YAML). The exit code is the
+verdict table of spec/semantics.md §Kernel Output; see
+tests/cli/verify-exit.t for the three cases.
 
 The `--sandbox=MODE` flag (verify-sandbox-hardening-2026-11)
 is registered after `--format` and exercised separately in
@@ -23,6 +27,7 @@ flag itself appears in the auto-generated option list).
   $ mathc verify fixtures/conformance/decision/positive-minimal.json 2>/dev/null
   verify: fixtures/conformance/decision/positive-minimal.json
     bounded-fallback-amplification: skipped
+  [3]
 
 The accept/parse-ok rename is verified by validate:
 

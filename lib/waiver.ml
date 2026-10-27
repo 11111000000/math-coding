@@ -11,9 +11,12 @@
  *
  *   - load: enumerate and parse all waivers under a root path
  *   - covers: pick the active waiver for a
- *     (subject, obligation, now) triple; strict matching when the
- *     waiver carries `unverified_obligation`, legacy global coverage
- *     when the field is absent
+ *     (subject, obligation, now) triple, bounded by the class the
+ *     waiver declares (`rule`), the scope it names, and the one gap
+ *     it identifies (`unverified_obligation`)
+ *   - retain_covering: narrow a subject's waiver list to the
+ *     waivers whose declared class matches the class of the gap
+ *     they name
  *   - effective_at: predicate — is the waiver still in effect?
  *
  * The module is pure: load takes a `reader` callback so the
@@ -160,10 +163,138 @@ let[@warning "-32"] iso_lt a b = String.compare a b < 0
 let[@warning "-32"] effective_at w ~now =
   iso_le w.Domain.issued_at now && iso_lt now w.Domain.expires_at
 
-(* Find a waiver that covers the given (decision, obligation)
-   pair at the given moment. Strict matching when the waiver
-   carries an `unverified_obligation`; legacy global coverage
-   when the waiver omits that field.
+(* --- gap classes ------------------------------------------------------- *)
+(* The class of an AssuranceGap is what a waiver declares in its
+   `rule` field (schemas/waiver.json). The vocabulary lives HERE, in
+   the module that owns the waiver contract, because `lib/gate.ml`
+   depends on this module and this module must not depend on it: the
+   gate's gap kind is mapped onto these three classes by the caller
+   (bin/Mathc.ml), which is the only place that sees both.
+
+   The three classes are exactly the three waivable gap kinds of
+   lib/gate.ml (`MissingEvidence`, `StaleEvidence`, `Unknown`). A
+   decisive failure and a missing required review are NOT classes
+   here: constitution.md §Waivers says a waiver "MUST NOT convert
+   `fail`, `unknown` or `missing` into `pass`", and the gate already
+   refuses to waive a `FailedEvidence` gap. A waiver that names any
+   other class — or no class the kernel can read — names no gap the
+   kernel can check, and covers nothing. *)
+
+type gap_class = Missing_evidence | Stale_evidence | Inconclusive_evidence
+
+let[@warning "-32"] rule_of_class : gap_class -> string = function
+  | Missing_evidence -> "obligation-missing-attestation"
+  | Stale_evidence -> "obligation-stale-attestation"
+  | Inconclusive_evidence -> "obligation-inconclusive-attestation"
+
+let[@warning "-32"] class_of_rule : string -> gap_class option = function
+  | "obligation-missing-attestation" -> Some Missing_evidence
+  | "obligation-stale-attestation" -> Some Stale_evidence
+  | "obligation-inconclusive-attestation" -> Some Inconclusive_evidence
+  | _ -> None
+
+(* --- scope ------------------------------------------------------------- *)
+(* The subject's scope is the set of paths its decision governs
+   (`scope.paths`, carried by lib/memory.ml::decision_entry). A
+   waiver's scope must stay INSIDE it: a waiver that claims a path
+   the decision does not govern is accepting a gap that is not the
+   decision's gap. `Policy.path_matches` is the kernel's own glob
+   matcher for `scope.paths` ("does this scope pattern cover this
+   path"), used here in the direction the decision declares and the
+   waiver claims.
+
+   A `capability` or `interface` scope target cannot be checked
+   against the subject's paths, and the decision entry the kernel
+   carries does not name the subject's capabilities. A waiver that
+   declares one is therefore NOT applied: the kernel does not grant
+   relief it cannot bound. (Follow-up: carry the subject's
+   capabilities in the memory entry, then the check becomes
+   decidable. Recorded in decisions/exit-honesty-waivers-2026-10.) *)
+
+let[@warning "-32"] path_target_covered ~subject_paths ~path ~match_ =
+  List.exists
+    (fun s ->
+      match match_ with
+      | `Exact -> Policy.path_matches s path
+      | `Tree ->
+          (* The waiver claims the whole tree rooted at `path`; the
+             subject covers it when one of its scope paths covers
+             that path or names something inside that tree. *)
+          Policy.path_matches s path
+          || String.length s >= String.length path
+             && String.sub s 0 (String.length path) = path)
+    subject_paths
+
+let[@warning "-32"] scope_within ?subject_paths (w : Domain.waiver) =
+  match w.Domain.scope with
+  | [] ->
+      (* No scope declared. `scope` is OPTIONAL in schemas/waiver.json,
+         so an absent scope is not a lie about the subject: it is the
+         absence of a path restriction. The waiver's remaining bounds
+         — the named obligation, the declared class, the validity
+         interval — still apply. *)
+      true
+  | targets -> (
+      match subject_paths with
+      | None ->
+          (* The caller did not determine the subject's scope; the
+             scope check cannot be made here. *)
+          true
+      | Some paths ->
+          List.for_all
+            (fun (t : Domain.scope_target) ->
+              match t with
+              | Domain.PathTarget { path; match_ } ->
+                  path_target_covered ~subject_paths:paths ~path ~match_
+              | Domain.CapabilityTarget _ | Domain.InterfaceTarget _ -> false)
+            targets)
+
+(* --- the predicate ----------------------------------------------------- *)
+(* A waiver names the gap it accepts. constitution.md §Waivers: "A
+   waiver ... MUST identify one gap". A waiver whose
+   `unverified_obligation` is absent names NO gap, and a waiver that
+   names no gap covers nothing.
+
+   The legacy form — a waiver without `unverified_obligation`
+   covering every obligation of its decision — was a backward
+   compatibility shim (decisions/plan-2026-10-improvements/t3-2.yaml)
+   for waivers whose YAML front-matter expressed the field as a LIST.
+   The schema declares the field a STRING, so the parser read those
+   files as naming nothing, and the shim made each of them accept
+   every obligation of its decision: 8 waivers, 37 gaps, one named
+   gap each (measured; see decisions/exit-honesty-waivers-2026-10).
+   The shim is revoked here; the migration is in that decision. *)
+
+let[@warning "-32"] names_gap (w : Domain.waiver) ~obligation_id =
+  match w.Domain.unverified_obligation with
+  | Some obl_id -> String.equal obl_id obligation_id
+  | None -> false
+
+(* The declared class must match the class of the gap. `gap_class` is
+   the class of the gap the caller asks about; a caller that does not
+   determine it (the gate's pure aggregation) gets the "the rule
+   names a class the kernel can read" half of the check only, and the
+   caller that DOES determine it gets the whole check. *)
+
+let[@warning "-32"] declares_class ?gap_class (w : Domain.waiver) =
+  match class_of_rule w.Domain.rule with
+  | None -> false
+  | Some declared -> (
+      match gap_class with None -> true | Some c -> declared = c)
+
+(* Find a waiver that covers the given (decision, obligation) pair at
+   the given moment, and covers a gap of the given class within the
+   subject's scope.
+
+   The four bounds, all of them required:
+
+     - subject: the waiver's `subject` is the decision that owns the
+       gap;
+     - interval: `effective_at w ~now` (issued_at <= now < expires_at);
+     - the named gap: the waiver names THIS obligation
+       (`names_gap`);
+     - the declared class and scope: `declares_class` and
+       `scope_within`.
 
    Returns the first matching waiver; the kernel does not require
    the most-recent or most-specific — any one covering the
@@ -171,39 +302,47 @@ let[@warning "-32"] effective_at w ~now =
    open-with-waiver disposition (constitution.md §Waivers).
    Returns None when no waiver matches.
 
-   Strict matching rule (constitution.md §Self-application
-   item 11 "Waiver bounds: a waiver MUST apply only to its
-   named gap, scope" and spec/semantics.md §Waiver language
-   on "named obligation"):
-
-     - When `unverified_obligation = Some obl_id`, the waiver
-       covers ONLY the gap whose `(decision, obligation)` pair
-       equals `(w.subject, obl_id)`. A waiver named for
-       obligation A of decision D does NOT cover obligation B
-       of decision D, nor any obligation of decision E.
-
-     - When `unverified_obligation = None`, the waiver covers
-       EVERY obligation of its named decision (legacy global
-       behaviour). This preserves backward compatibility with
-       pre-existing waivers in `decisions/waivers/*.yaml` that
-       ship without `unverified_obligation` (the YAML front-
-       matter expresses it as a list; the JSON parser returns
-       None for non-scalar values, so the kernel reads these
-       as global).
-
    The explicit `(w : Domain.waiver)` annotation disambiguates
    `w.Domain.subject` from `Domain.gap.subject` and
    `Domain.diagnostic.subject`, both of which have type
    `id option`. Without the annotation OCaml's structural
    row polymorphism picks the wrong one (OCAML_BEST_PRACTICES
    §11.18). *)
-let[@warning "-32"] covers waivers ~decision_id ~obligation_id ~now =
+let[@warning "-32"] covers ?gap_class ?subject_paths waivers ~decision_id
+    ~obligation_id ~now =
   List.find_opt
     (fun (w : Domain.waiver) ->
       String.equal w.Domain.subject decision_id
-      && effective_at w ~now
-      &&
+      && effective_at w ~now && names_gap w ~obligation_id
+      && declares_class ?gap_class w
+      && scope_within ?subject_paths w)
+    waivers
+
+(* Keep the waivers of ONE subject that may cover the gaps of that
+   subject, given the class of each of its gaps.
+
+   `gaps` is the `(obligation_id, gap_class)` list of the subject's
+   gaps; a waiver whose named obligation is not among them, or whose
+   declared class differs from the class of that obligation's gap, is
+   dropped. What survives is what the aggregation that follows may
+   apply.
+
+   This is the class check in the form the CLI needs it: the gap's
+   class is a RUNTIME property of the (decision, obligation) pair —
+   it is read out of the attestation store — so it is known where the
+   gaps are computed, and not inside the pure aggregation that
+   consults the waivers. *)
+let[@warning "-32"] retain_covering (waivers : t list)
+    ~(gaps : (string * gap_class) list) ~subject_paths ~decision_id ~now =
+  List.filter
+    (fun (w : Domain.waiver) ->
       match w.Domain.unverified_obligation with
-      | None -> true
-      | Some obl_id -> String.equal obl_id obligation_id)
+      | None -> false
+      | Some obl_id -> (
+          match List.assoc_opt obl_id gaps with
+          | None -> false
+          | Some c ->
+              Option.is_some
+                (covers [ w ] ~gap_class:c ~subject_paths ~decision_id
+                   ~obligation_id:obl_id ~now)))
     waivers

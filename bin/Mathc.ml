@@ -5789,11 +5789,25 @@ let[@warning "-32"] do_verify () =
       Printf.printf "{\"path\":%s,\"verdicts\":[%s]}\n"
         (Jsonl.stringify (Jsonl.String path))
         items);
-  (* Exit code: 0 when all pass, 1 when any fail, 2 when the
-     input was unreadable (handled above). A path that has zero
-     obligations or all-skipped verdicts still exits 0: skipped
-     is not a failure, it is a "no information" status. *)
-  if List.exists (fun (_, v) -> v = Fail) verdicts then exit 1 else exit 0
+  (* Exit code (spec/semantics.md §Kernel Output "Verdict to exit
+     code"; constitution.md Invariant 14b: "exit code 0 MUST imply
+     verdict `Pass` or `Open_with_waiver`").
+
+       - a decisive failure of any obligation -> `Block` -> 1;
+       - at least one obligation actually FULFILLED -> `Pass` -> 0;
+       - nothing was fulfilled -> `Unknown` -> 3.
+
+     The third row is the one this command got wrong. `skipped`,
+     `setup-fail`, `timeout` and `declared` are all "the check did
+     not happen", and a command that verified nothing is not a
+     passing command: the previous code exited 0 for it, which is
+     `unknown != pass` laundering at the last place the distinction
+     can still be lost (the exit code). Measured on this repository
+     before the fix: `mathc verify` on a real decision printed seven
+     `skipped` verdicts and exited 0. *)
+  let has_fail = List.exists (fun (_, v) -> v = Fail) verdicts in
+  let has_pass = List.exists (fun (_, v) -> v = Pass) verdicts in
+  if has_fail then exit 1 else if has_pass then exit 0 else exit 3
 
 (* --- gate subcommand (gate-decision@1 scaffold) ---
  *
@@ -6441,7 +6455,31 @@ let do_re_evaluate () =
              ("obligations", Jsonl.Array status_per_obligation);
              ("ran", Jsonl.Bool false);
            ])
-      |> print_endline
+      |> print_endline;
+      (* Exit code (spec/semantics.md §Kernel Output "Verdict to exit
+         code"; constitution.md Invariant 14b).
+
+           - `compatible` / `compatible_after_run` -> `Pass` -> 0;
+           - `incompatible` / `stale_claim` -> `Block` -> 1: the
+             decision contradicts the axiom, or its claim is stale
+             and the gate's `re_evaluation_status(c) !=
+             stale_claim` precondition rejects it;
+           - `inconclusive` -> `Unknown` -> 3: the oracle could not
+             conclude, and an inconclusive evaluation is not a pass.
+
+         Before the fix every resolved pair exited 0, so a decision
+         that CONTRADICTS an axiom, or whose claim is stale, left
+         the command green. Note that the spec's own row for this
+         subcommand ("Exit code: 0 on a resolved pair") is narrower
+         than the verdict table the same spec declares normative for
+         every verdict-producing subcommand; the deviation and the
+         proposed spec wording are recorded in
+         decisions/exit-honesty-waivers-2026-10.yaml. *)
+      exit
+        (match v with
+        | Re_evaluation.Compatible | Re_evaluation.CompatibleAfterRun -> 0
+        | Re_evaluation.Incompatible | Re_evaluation.StaleClaim -> 1
+        | Re_evaluation.Inconclusive -> 3)
 
 (* --- re-evaluate-decisions subcommand (T1.2) ---
  *
@@ -6804,6 +6842,34 @@ let[@warning "-32"] list_decision_files dir = Memory.decision_document_paths dir
    file must agree about a decision's scope, or the materials digest
    of that decision is not reproducible. *)
 
+(* The gate's gap kind -> the waiver gap class.
+
+   The vocabulary of the class NAMES lives in `lib/waiver.ml` (it is
+   the waiver format's vocabulary: `schemas/waiver.json`'s `rule`
+   field). This mapping lives here because `lib/gate.ml` is a
+   separate module and `lib/waiver.ml` must not depend on it — the
+   dependency runs the other way.
+
+   The three kinds that are NOT waivable (`FailedEvidence`,
+   `MissingReview`) and the absent store map to no class at all: a
+   waiver cannot accept a decisive failure (constitution.md §Waivers
+   "MUST NOT convert `fail`, `unknown` or `missing` into `pass`"),
+   and the gate refuses those gaps independently
+   (`Gate.waivable_kind`). *)
+let[@warning "-32"] waiver_class_of_gap_kind
+    (kind :
+      [ `MissingEvidence
+      | `StaleEvidence
+      | `FailedEvidence
+      | `MissingReview
+      | `NoAttestationStore
+      | `Unknown ]) =
+  match kind with
+  | `MissingEvidence -> Some Waiver.Missing_evidence
+  | `StaleEvidence -> Some Waiver.Stale_evidence
+  | `Unknown -> Some Waiver.Inconclusive_evidence
+  | `FailedEvidence | `MissingReview | `NoAttestationStore -> None
+
 (* Per-decision evaluation. Walks every obligation in `entry` and
    computes its gap; aggregates gaps into the decision's subject
    verdict; returns (verdict, causes[], remedies[], waived[]).
@@ -6842,6 +6908,39 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
         Gate.obligation_gap ~decision_id:entry.Memory.decision_id
           ~obligation_id:obl_id ~materials_digest:materials ~store)
       entry.Memory.obligation_ids
+  in
+  (* The class and the scope of a waiver.
+
+     A waiver may accept a gap only when the gap's class is the
+     class the waiver DECLARES (`rule`), and only when the scope it
+     names stays inside the scope of the decision that owns the gap
+     (constitution.md Invariant 11: "a waiver MUST apply only to its
+     named gap, scope, revisions, gate and validity interval").
+
+     Both facts are read here and not inside `lib/gate.ml`, because
+     the class of a gap is a RUNTIME property of the (decision,
+     obligation) pair — it is read out of the attestation store, and
+     the gaps were computed three lines above — while the gate's
+     aggregation is a pure function of the gap list. The narrowed
+     list is what the aggregation consults, and the narrowing is
+     `Waiver.covers` itself, so the predicate and the filter cannot
+     disagree.
+
+     The narrowing is per subject, not per waiver: a waiver that
+     names an obligation of ANOTHER subject is dropped here, so the
+     aggregation never sees it. *)
+  let gap_classes =
+    List.filter_map
+      (fun (g : Gate.gap) ->
+        match waiver_class_of_gap_kind g.Gate.kind with
+        | None -> None
+        | Some c -> Some (g.Gate.obligation_id, c))
+      gaps
+  in
+  let waivers =
+    Waiver.retain_covering waivers ~gaps:gap_classes
+      ~subject_paths:entry.Memory.scope_paths
+      ~decision_id:entry.Memory.decision_id ~now
   in
   let verdict, covered =
     Gate.aggregate_with_waivers waivers ~decision_id:entry.Memory.decision_id
@@ -7708,10 +7807,18 @@ let[@warning "-32"] do_render () =
  *
  * `--fail-mode` toggles behaviour when the forge is unset
  * OR errors (the "fail-open" default): `open` (default)
- * returns `pass` with `forge_queried:false` and a reason;
- * `closed` returns `block` and exit 1 instead. The flag is
- * an A4 obligation; see
- * `decisions/forge-principal-verification-2026-10.yaml`. *)
+ * returns `unknown` with `forge_queried:false` and a reason;
+ * `closed` returns `block` and exit 1 instead. The flag is an
+ * A4 obligation; see
+ * `decisions/forge-principal-verification-2026-10.yaml`.
+ *
+ * The `open` mode used to return `pass` and exit 0, which
+ * asserted a membership nobody checked. It now returns `unknown`
+ * and exits 3 (the `unknown` row of the verdict table in
+ * spec/semantics.md §Kernel Output); see
+ * `decisions/exit-honesty-waivers-2026-10.yaml` for the
+ * conflict with the earlier decision's `fail-open-default`
+ * commitment and the migration that follows from it. *)
 let[@warning "-32"] do_forge_verify () =
   let org = ref "" in
   let team = ref "" in
@@ -7783,7 +7890,14 @@ let[@warning "-32"] do_forge_verify () =
     let verdict_str =
       match queried with
       | `NotConfigured | `CurlFailure ->
-          if !fail_mode = open_str then "pass" else "block"
+          (* The forge could not be reached, so the membership claim
+             was NOT evaluated. That is `unknown` — the claim is
+             inoperative — and not `pass`. The old code answered
+             `pass` here under the default fail-open mode, which is
+             `unknown != pass` laundering: the command asserted a
+             fact it never checked. `closed` still means "treat the
+             unreachable forge as a decisive failure" -> `block`. *)
+          if !fail_mode = open_str then "unknown" else "block"
       | `Queried true -> "pass"
       | `Queried false -> "block"
     in
@@ -7835,7 +7949,15 @@ let[@warning "-32"] do_forge_verify () =
     match queried with
     | `Queried true -> 0
     | `Queried false -> 1
-    | `NotConfigured | `CurlFailure -> if !fail_mode = "open" then 0 else 1
+    (* An unreachable forge is an infrastructure failure, not a
+       membership verdict: `unknown` -> 3 (spec/semantics.md
+       §Kernel Output "Verdict to exit code"; constitution.md
+       Invariant 14b). `--fail-mode closed` keeps its meaning — the
+       operator declares the unreachable forge a decisive failure —
+       and reports `block` -> 1. Both modes are non-zero: exit 0
+       here would mean "the committer is in the team", which nobody
+       checked. *)
+    | `NotConfigured | `CurlFailure -> if !fail_mode = "open" then 3 else 1
   in
   verdict_record queried;
   exit exit_code

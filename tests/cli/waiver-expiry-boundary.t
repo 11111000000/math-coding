@@ -88,6 +88,7 @@ Scenario 1 — a waiver past its `expires_at` covers nothing:
   > expires_at: 2026-10-08T00:00:00Z
   > reason: |
   >   Fixture waiver whose 24h term is over.
+  > unverified_obligation: alpha-obligation
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check > /tmp/sc-lapsed.json; echo "exit=$?"
   exit=3
@@ -117,6 +118,7 @@ Scenario 2 — control: the same project with a live waiver is
   > expires_at: 2027-10-07T00:00:00Z
   > reason: |
   >   Fixture waiver still inside its term.
+  > unverified_obligation: alpha-obligation
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check > /tmp/sc-live.json; echo "exit=$?"
   exit=0
