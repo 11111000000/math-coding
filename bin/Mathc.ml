@@ -1453,8 +1453,33 @@ let[@warning "-32"] run_git_command base head args =
   let _ = Unix.close_process_in ic in
   raw
 
-(* Project root: the directory containing `dune-project`. We anchor
-    here so the CLI is reproducible from any working directory.
+(* A directory that carries a math-coding layout marker.
+   The artifact layout exists WITH OR WITHOUT dune —
+   `lib/path_config.ml::effective_root` says so explicitly ("the
+   resolver requires only that the path exists and is a directory —
+   unlike `find_project_root`, which additionally requires a
+   `dune-project`, because the artifact layout exists with or
+   without dune"). An adopter's project is usually not a dune
+   project at all: it is a repository with `.math-coding/` in it.
+   The markers are the ones `Path_config.layout_of` probes, so the
+   root resolver and the path resolver answer the same question
+   about the same directory. *)
+let[@warning "-32"] has_math_coding_layout root =
+  List.exists
+    (fun rel -> Sys.file_exists (Filename.concat root rel))
+    [
+      ".math-coding";
+      ".math-coding/policy.yaml";
+      ".math-coding/decisions";
+      ".math-coding/attestations";
+      "decisions";
+      "decisions/decision.yaml";
+      "attestations";
+    ]
+
+(* Project root: the directory the operator is operating ON. We
+    anchor here so the CLI is reproducible from any working
+    directory.
     Mirrors the helper in tests/conformance.ml but the bin/ side
     follows the OCAML_BEST_PRACTICES §11.8 rule for production
     binaries (CLI defaults to CWD; agent can override via -C,
@@ -1463,26 +1488,67 @@ let[@warning "-32"] run_git_command base head args =
 
     Resolution chain (first hit wins):
       1. $MATH_CODING_ROOT (explicit, recommended for tests)
-      2. $DUNE_SOURCEROOT (dune cram runtime export; some versions
+      2. the OPERATOR'S OWN DIRECTORY, climbed. The directory the
+         operator is standing in is the project they are asking
+         about.
+      3. $DUNE_SOURCEROOT (dune cram runtime export; some versions
          of dune 3.x emit it empty when the test is launched via
-         dune runtest, so we still need the next two)
-      3. dirname $0 / dirname of Sys.executable_name (binary path;
+         dune runtest, so we still need the next one)
+      4. dirname $0 / dirname of Sys.executable_name (binary path;
          works even when cwd is unrelated to the project root, e.g.
-         in bwrap sandbox from cram)
-      4. walk up from cwd (the historical behaviour; works when
-         the user runs the binary from inside the project tree)
+         in bwrap sandbox from cram) — THE LAST RESORT.
+      5. the cwd itself, when nothing above answered.
 
-    Without (3), the cram sandbox of dune 3.23 + bwrap can place
-    mathc at a cwd where $DUNE_SOURCEROOT is unset and the walk
-    from cwd hits no `dune-project`. Symptom: decisions/[] in the
-    capsule collapses to fallback defaults (0 obligations, 0
-    triggers) even though the test fixture expects real counts,
-    because the loader's hardcoded 4 files are read with wrong cwd. *)
+    WHY THE BINARY'S DIRECTORY IS LAST, AND WHY IT WAS NOT. The
+    pre-fix chain climbed from the executable's directory BEFORE it
+    climbed from the caller's directory, on the theory that a reader
+    run from anywhere inside the kernel's own checkout should find
+    that checkout. The theory is right; the ORDER is wrong. With a
+    source build the binary lives under a `dune-project` ancestor —
+    the KERNEL's own checkout — and that ancestor won the race
+    against the operator's directory.
+
+    MEASURED, on a one-decision adopter project with its own git
+    repository (`.math-coding/decisions/adopter-dec.yaml`), running
+    the build-tree binary `_build/install/default/bin/mathc` from
+    inside it:
+
+      installed binary (~/.local/bin/mathc):
+        mathc counters -> decisions: 1, obligations: 1        OK
+      build-tree binary (_build/install/default/bin/mathc):
+        mathc counters -> decisions: 253, obligations: 892     WRONG
+        mathc self-check -> 252 subjects, first one
+          `release-pending-real-staleness-2026-10`, verdict `fail`
+
+    (An independent run of the same measurement on the same day saw
+    254 and 893: the corpus grew by one decision between the two
+    runs. The phenomenon is the same, and it is reproduced by
+    `tests/cli/decision-resolution.t`.)
+
+    The build-tree binary read the KERNEL's corpus — 253 decisions
+    instead of 1 — and exited 1 because the KERNEL's corpus is red,
+    not because the adopter's decision was unmet. The adopter's own
+    decision was never looked at. The installed binary was right
+    only by accident: it has no `dune-project` ancestor, so the
+    climb from its own directory found nothing and the walk fell
+    through to the operator's directory.
+
+    A second, independent defect sat underneath: the climb looked
+    for a `dune-project` only. The adopter's project is not a dune
+    project — it is a repository with `.math-coding/` in it — so
+    even with the order fixed the climb would have found nothing
+    and the kernel would have fallen back to the binary's tree
+    again. The climb now recognises the math-coding layout markers
+    as well (`has_math_coding_layout`).
+
+    Decision `decision-resolution-2026-10`. *)
 let[@warning "-32"] find_project_root start =
   let climb d =
     let rec loop d =
-      let candidate = Filename.concat d "dune-project" in
-      if Sys.file_exists candidate then Some d
+      if
+        Sys.file_exists (Filename.concat d "dune-project")
+        || has_math_coding_layout d
+      then Some d
       else
         let parent = Filename.dirname d in
         if parent = d then None else loop parent
@@ -1495,13 +1561,15 @@ let[@warning "-32"] find_project_root start =
   match Sys.getenv_opt "MATH_CODING_ROOT" with
   | Some root when has_dune_project root -> root
   | _ -> (
-      match Sys.getenv_opt "DUNE_SOURCEROOT" with
-      | Some root when has_dune_project root -> root
-      | _ -> (
-          match climb (Filename.dirname Sys.executable_name) with
-          | Some root -> root
-          | None -> (
-              match climb start with Some root -> root | None -> start)))
+      match climb start with
+      | Some root -> root
+      | None -> (
+          match Sys.getenv_opt "DUNE_SOURCEROOT" with
+          | Some root when has_dune_project root -> root
+          | _ -> (
+              match climb (Filename.dirname Sys.executable_name) with
+              | Some root -> root
+              | None -> start)))
 
 (* Same walk as `find_project_root`, but with `Path_config.effective_root`'s
    weaker env-var guard kept in front of it.
@@ -4415,17 +4483,25 @@ let[@warning "-32"] decision_path_for_id ~root ~decision_id =
     | Some i -> i
     | None ->
         let i = Hashtbl.create 256 in
+        (* The index is built from the RECURSIVE walk of the
+           decisions directory. The pre-fix index was built from
+           `Re_evaluation.list_decision_files`, which read ONE
+           directory — so a decision filed under
+           `decisions/<sub-directory>/` could not be resolved by
+           its id at all, and the lookup fell through to the
+           concatenation `<id>.yaml`, which is the guess that
+           produced the silent failures this corpus was measured
+           for. The id is the identity; the file name is not. *)
         List.iter
           (fun path ->
-            match parse_file path with
+            match read_file path with
             | Error _ -> ()
-            | Ok (Jsonl.Object ps) -> (
-                match Schema.take_string ps "id" with
+            | Ok raw -> (
+                match Memory.decision_document_id ~raw with
                 | Some id when id <> "" ->
                     if not (Hashtbl.mem i id) then Hashtbl.replace i id path
-                | _ -> ())
-            | Ok _ -> ())
-          (Re_evaluation.list_decision_files root);
+                | _ -> ()))
+          (Memory.decision_document_paths dir);
         Hashtbl.replace decision_id_index dir i;
         i
   in
@@ -4741,28 +4817,15 @@ let[@warning "-32"] is_top_level = Memory.is_top_level
 (* Find the first top-level `id: VALUE` line and return VALUE.
    VALUE is everything after the colon, trimmed. Block-scalar
    values (`id: |`) are skipped (they are not used in our
-   decisions). *)
-let[@warning "-32"] extract_top_level_id lines =
-  let rec loop = function
-    | [] -> None
-    | line :: rest -> (
-        if not (is_top_level line) then loop rest
-        else
-          let trimmed = String.trim line in
-          match String.index_opt trimmed ':' with
-          | Some i ->
-              let key = String.sub trimmed 0 i in
-              let v =
-                String.trim
-                  (String.sub trimmed (i + 1) (String.length trimmed - i - 1))
-              in
-              if
-                String.equal key "id" && v <> "" && v.[0] <> '|' && v.[0] <> '>'
-              then Some v
-              else loop rest
-          | None -> loop rest)
-  in
-  loop lines
+   decisions).
+
+   ONE implementation: the rule lives in lib/memory.ml, so the
+   corpus index, the capsule and this CLI cannot disagree about
+   which line is a document's id. The pre-fix copy in this file was
+   already top-level-strict; the copy in lib/packages.ml was not,
+   which is how the obligations aggregator came to impersonate the
+   decision `bootstrap-v3` and had to be excluded by file name. *)
+let[@warning "-32"] extract_top_level_id lines = Memory.top_level_id lines
 
 (* Collect `- id: NAME` items under the `obligations:` block.
    The block ends at the next top-level key. Multi-line scalar
@@ -4810,33 +4873,79 @@ let[@warning "-32"] extract_obligation_ids lines =
   in
   scan [] false lines
 
+(* Build a decision entry from the raw text of a decision document.
+   The id is the id the DOCUMENT DECLARES — the identity of a
+   decision is its id, not the name of the file it sits in. *)
+let[@warning "-32"] decision_entry_of_raw ~id raw =
+  if id = "" then None
+  else
+    let lines = String.split_on_char '\n' raw in
+    let obligation_ids = extract_obligation_ids lines in
+    let scope_paths = extract_scope_paths lines in
+    let stub : Memory.decision_entry =
+      {
+        Memory.decision_id = id;
+        Memory.revision = None;
+        Memory.source = raw;
+        Memory.obligations = List.length obligation_ids;
+        Memory.obligation_ids;
+        Memory.assumptions = 0;
+        Memory.risk_triggers = [];
+        Memory.scope_paths;
+        Memory.state = `Active;
+        Memory.verifier_per_obligation = [];
+      }
+    in
+    Some stub
+
 let[@warning "-32"] load_decision_entry reader path =
   match reader path with
   | "" -> None
-  | raw ->
-      let lines = String.split_on_char '\n' raw in
-      let decision_id =
-        match extract_top_level_id lines with Some id -> id | None -> ""
-      in
-      let obligation_ids = extract_obligation_ids lines in
-      let scope_paths = extract_scope_paths lines in
-      if decision_id = "" then None
-      else
-        let stub : Memory.decision_entry =
-          {
-            Memory.decision_id;
-            Memory.revision = None;
-            Memory.source = raw;
-            Memory.obligations = List.length obligation_ids;
-            Memory.obligation_ids;
-            Memory.assumptions = 0;
-            Memory.risk_triggers = [];
-            Memory.scope_paths;
-            Memory.state = `Active;
-            Memory.verifier_per_obligation = [];
-          }
-        in
-        Some stub
+  | raw -> (
+      match Memory.decision_document_id ~raw with
+      | None -> None
+      | Some id -> decision_entry_of_raw ~id raw)
+
+(* --- the corpus index -------------------------------------------------
+ *
+ * ONE walk of the decisions directory, ONE rule for what a decision
+ * is, ONE read per file. Every command that needs to know what
+ * decisions this project holds goes through this index, so the
+ * corpus is a single object rather than one picture per command.
+ *
+ * The walk is RECURSIVE (a decision filed under
+ * `decisions/<sub-directory>/` is a decision) and STRUCTURAL (a
+ * document is a decision when it declares a top-level id and does
+ * not belong to a non-decision schema family — the waiver files,
+ * the obligations aggregator, the migration manifests).
+ *
+ * Before this index there were five walks of the same directory,
+ * four of them flat, and one of them (`lib/packages.ml`) decided
+ * what to exclude by FILE NAME. The consequence was measurable: the
+ * sixteen decisions under `decisions/plan-2026-10-improvements/`
+ * were in no corpus at all, and `decision.yaml` — the root protocol
+ * decision `bootstrap-v3` — was in the self-check corpus but not in
+ * the packages corpus. *)
+type corpus_decision = {
+  path : string;
+  id : string;
+  raw : string;
+  entry : Memory.decision_entry;
+}
+
+let[@warning "-32"] load_corpus ~(reader : string -> string)
+    (decisions_dir : string) : corpus_decision list =
+  Memory.decision_document_paths decisions_dir
+  |> List.filter_map (fun path ->
+      match reader path with
+      | "" -> None
+      | raw -> (
+          match Memory.decision_document_id ~raw with
+          | None -> None
+          | Some id -> (
+              match decision_entry_of_raw ~id raw with
+              | None -> None
+              | Some entry -> Some { path; id; raw; entry })))
 
 (* The materials digest of each decision, under semantics A: the
  * digest of the CONTENT of the files the decision's scope names.
@@ -4889,20 +4998,15 @@ let[@warning "-32"] scope_digest_map ~(reader : string -> string)
         match Git_diff.tracked_blobs ~cwd:root with Some bs -> bs | None -> [])
   in
   let scopes : (string, string list) Hashtbl.t = Hashtbl.create 64 in
-  let files =
-    if Sys.file_exists decisions_dir && Sys.is_directory decisions_dir then
-      Array.to_list (Sys.readdir decisions_dir)
-      |> List.filter (fun n -> Filename.check_suffix n ".yaml")
-      |> List.map (Filename.concat decisions_dir)
-    else []
-  in
+  (* The scope map is built from the ONE corpus index, so a decision
+     filed under a sub-directory contributes its scope like any
+     other. The pre-fix walk read one directory, and a decision
+     outside it contributed no scope at all — so its materials
+     digest was the digest of nothing. *)
   List.iter
-    (fun p ->
-      match load_decision_entry reader p with
-      | Some e ->
-          Hashtbl.replace scopes e.Memory.decision_id e.Memory.scope_paths
-      | None -> ())
-    files;
+    (fun (d : corpus_decision) ->
+      Hashtbl.replace scopes d.id d.entry.Memory.scope_paths)
+    (load_corpus ~reader decisions_dir);
   let cache : (string, string) Hashtbl.t = Hashtbl.create 64 in
   let resolve decision_id =
     match Hashtbl.find_opt cache decision_id with
@@ -6098,32 +6202,24 @@ let do_gate () =
     let dec_dir =
       Filename.concat root (Path_config.resolve_decisions_dir ~root ())
     in
-    let dec_paths =
-      if Sys.file_exists dec_dir && Sys.is_directory dec_dir then
-        Array.to_list (Sys.readdir dec_dir)
-        |> List.filter (fun n -> Filename.check_suffix n ".yaml")
-        |> List.filter (fun n ->
-            not
-              (List.mem n
-                 [
-                   "decision.yaml";
-                   "obligations.yaml";
-                   "obligation-count-reconcile.yaml";
-                 ]))
-        |> List.map (fun n -> Filename.concat dec_dir n)
-      else []
+    let reader path =
+      try In_channel.with_open_bin path In_channel.input_all with _ -> ""
     in
+    (* The corpus index: every decision under the decisions
+       directory, recursively, and nothing else. The pre-fix walk
+       read ONE directory and excluded three files BY NAME —
+       `decision.yaml` among them, which is the root protocol
+       decision `bootstrap-v3`. So the phase-aware gate checked a
+       smaller obligation set than the capsule and than
+       `mathc self-check`. *)
     List.concat_map
-      (fun p ->
-        let raw =
-          try In_channel.with_open_bin p In_channel.input_all with _ -> ""
-        in
-        match Codec.load_yaml_string raw with
+      (fun (d : corpus_decision) ->
+        match Codec.load_yaml_string d.raw with
         | v -> (
             match Decision.parse_decision_yaml v with
-            | Some d -> d.Domain.obligations
+            | Some dec -> dec.Domain.obligations
             | None -> []))
-      dec_paths
+      (load_corpus ~reader dec_dir)
   in
   let first_decision_id =
     match memory.Memory.decisions with
@@ -6667,17 +6763,27 @@ let[@warning "-32"] verdict_to_pass_fail_unknown = function
    renaming. Decisions/ONBOARDING.md and decisions/rationale.md
    are markdown notes, not decisions, and are filtered out by
    extension. *)
-let[@warning "-32"] list_decision_files dir =
-  if not (Sys.file_exists dir) then []
-  else if not (Sys.is_directory dir) then []
-  else
-    try
-      Sys.readdir dir |> Array.to_list
-      |> List.filter (fun name ->
-          let sfx = Filename.extension name in
-          sfx = ".yaml" || sfx = ".yml" || sfx = ".json")
-      |> List.map (fun name -> Filename.concat dir name)
-    with _ -> []
+(* Enumerate decisions/*.yaml. Returns absolute paths. The .yaml
+   extension is the convention; we also accept .yml and .json so
+   future revisions can ship machine-authored decisions without
+   renaming. Decisions/ONBOARDING.md and decisions/rationale.md
+   are markdown notes, not decisions, and are filtered out by
+   extension.
+
+   The walk is RECURSIVE and it is the corpus index's walk
+   (`lib/memory.ml::decision_document_paths`): a decision filed
+   under `decisions/<sub-directory>/` is a decision. The pre-fix
+   version read ONE directory, so the sixteen decisions under
+   `decisions/plan-2026-10-improvements/` were in no corpus at
+   all — not in `mathc self-check`, not in `mathc packages`, not in
+   `mathc counters`. The decision that introduced the
+   counterexample rule was itself outside the gate.
+
+   The paths are CANDIDATES: whether a document IS a decision is
+   decided by the structural rule (`Memory.decision_document_id`),
+   which needs the file's content. `load_corpus` does both in one
+   read. *)
+let[@warning "-32"] list_decision_files dir = Memory.decision_document_paths dir
 
 (* Parse a single decision file via the existing Memory helper.
    Returns None on parse failure — the dispatcher is best-effort
@@ -7015,10 +7121,8 @@ let[@warning "-32"] do_self_check () =
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
-  let decision_files = list_decision_files decisions_dir in
-  let entries =
-    List.filter_map (fun p -> load_decision_entry reader p) decision_files
-  in
+  let corpus = load_corpus ~reader decisions_dir in
+  let entries = List.map (fun (d : corpus_decision) -> d.entry) corpus in
   let store_root = resolve_store_root root in
   let store =
     Attestations.load ~keep:(store_keep_for store_root) ~reader ~root:store_root
@@ -7828,40 +7932,61 @@ let[@warning "-32"] cram_test_files () : string list =
       |> List.sort String.compare
     with _ -> []
 
-(* Decisions enumeration: same rules as `dev-counters.py` for
-   `decisions.active` (the three meta-aggregators + 4 non-feature
-   schemas are excluded). *)
-let[@warning "-32"] decision_meta_files : string list =
-  [
-    "decision.yaml";
-    "obligations.yaml";
-    "obligation-count-reconcile.yaml";
-    "schema-empty-sha-2026-10.yaml";
-    "audit-0.0.21-fixes-self-check-waiver-2026-10.yaml";
-    "waiver-infrastructure-2026-10.yaml";
-    "lib-stale-comments-cleanup-2026-10.yaml";
-  ]
-
 (* `~root` is mandatory rather than optional on purpose. The single
    caller (`do_counters`) reaches this helper from inside a
    `Sys.chdir root` scope, so the bare resolver call happened to probe
    the right tree — correctness resting on a side-effect invisible at
    the call site. Passing the root explicitly removes that dependence
    and is the substitution the decision's `antithesis` records against
-   the chdir shortcut. Decision `path-probe-anchoring-2026-11`. *)
+   the chdir shortcut. Decision `path-probe-anchoring-2026-11`.
+ *
+ * The corpus, as the counters report it.
+ *
+ * `total` is the number of DECISION documents under the decisions
+ * directory: walked RECURSIVELY, and filtered by the kernel's ONE
+ * structural rule (a top-level id, and no non-decision schema
+ * family). `active` is the number of those whose lifecycle state is
+ * `active` or `draft` — the set the gate actually asks about
+ * (`lib/gate.ml::active_entries`).
+ *
+ * The pre-fix counter read ONE directory and subtracted seven files
+ * BY NAME to get `active`. Two of those seven are not meta files at
+ * all: `decision.yaml` is the root protocol decision `bootstrap-v3`,
+ * and `obligation-count-reconcile.yaml` is a decision with two
+ * obligations and two attestations. The remaining four were
+ * excluded for reasons no rule could recover. The count is now
+ * derived from the corpus instead of from a list of names.
+ *
+ * The paths are RELATIVE to the decisions directory, so a decision
+ * filed under a sub-directory is distinguishable from one at the top
+ * level: the pre-fix list held bare file names, which cannot say
+ * where a decision lives. *)
 let[@warning "-32"] enumerate_decisions ~root () : string list * int =
   let dir = Filename.concat root (Path_config.resolve_decisions_dir ~root ()) in
-  let files =
-    if Sys.file_exists dir && Sys.is_directory dir then
-      Sys.readdir dir |> Array.to_list
-      |> List.filter (fun f -> Filename.check_suffix f ".yaml")
-      |> List.sort String.compare
-    else []
+  let reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
+  let corpus = load_corpus ~reader dir in
+  let relative path =
+    let dl = String.length dir in
+    if String.length path > dl + 1 && String.sub path 0 dl = dir then
+      String.sub path (dl + 1) (String.length path - dl - 1)
+    else Filename.basename path
+  in
+  let paths = List.map (fun (d : corpus_decision) -> relative d.path) corpus in
   let active =
-    List.filter (fun f -> not (List.mem f decision_meta_files)) files
+    List.length
+      (List.filter
+         (fun (d : corpus_decision) ->
+           match
+             Memory.top_level_value ~key:"state"
+               (String.split_on_char '\n' d.raw)
+           with
+           | Some "retired" | Some "superseded" -> false
+           | _ -> true)
+         corpus)
   in
-  (files, List.length active)
+  (paths, active)
 
 (* Subprocess: run `mathc self-check` and parse the JSON. The
    executable is `Sys.executable_name` (the current process's
@@ -9726,19 +9851,18 @@ let[@warning "-32"] doctor_section_decisions () : doctor_section =
   let decisions_dir =
     Filename.concat root (Path_config.resolve_decisions_dir ~root ())
   in
-  let decision_files = list_decision_files decisions_dir in
   let reader path =
     try In_channel.with_open_bin path In_channel.input_all with _ -> ""
   in
+  (* The corpus index: every decision under the decisions directory,
+     recursively. The pre-fix walk read one directory, so the
+     sixteen decisions filed under
+     `decisions/plan-2026-10-improvements/` were neither counted
+     nor checked for orphans. *)
   let decision_ids =
-    List.filter_map
-      (fun p ->
-        match load_decision_entry reader p with
-        | Some entry ->
-            if entry.Memory.decision_id = "" then None
-            else Some entry.Memory.decision_id
-        | None -> None)
-      decision_files
+    List.map
+      (fun (d : corpus_decision) -> d.id)
+      (load_corpus ~reader decisions_dir)
   in
   let store_root = resolve_store_root root in
   let store =

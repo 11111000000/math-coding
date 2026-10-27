@@ -1,0 +1,510 @@
+---
+schema: math-coding/3.3
+id: decision-resolution
+revision: 1
+state: active
+mode: standard
+body_sha: "sha256:45727ba75bdaf173342ffa7fe0b01f44d33323ed06973c8cc0235928a9c5cc48"
+yaml_sha: "sha256:45727ba75bdaf173342ffa7fe0b01f44d33323ed06973c8cc0235928a9c5cc48"
+axiom_link:
+  - A0
+  - A1
+  - A3
+intent: |
+  Make the kernel read the project the operator is standing in, and
+  make it read that project's decisions the way the corpus says they
+  are written.
+
+  Two defects, one of them the root cause of the other.
+
+  (1) THE ROOT RESOLUTION ORDER. `bin/Mathc.ml::find_project_root`
+  climbed from the executable's own directory BEFORE it climbed from
+  the caller's directory. The theory behind that order was right — a
+  reader run from anywhere inside the kernel's own checkout should
+  find that checkout — but with a source build the binary lives under
+  a `dune-project` ancestor, and that ancestor is the KERNEL's
+  checkout. The kernel's tree won the race against the operator's
+  directory.
+
+  MEASURED, on a one-decision adopter project with its own git
+  repository and no `dune-project`, running the build-tree binary
+  `_build/install/default/bin/mathc` from inside it:
+
+    mathc counters   -> decisions: 253, obligations: 892
+    mathc self-check -> 252 subjects, the first one
+                        `release-pending-real-staleness-2026-10`,
+                        verdict `fail`, exit 1
+
+  The adopter's own decision was never looked at. The exit code 1
+  was the KERNEL's red corpus, not the adopter's. The INSTALLED
+  binary (`~/.local/bin/mathc`) reported `decisions: 1,
+  obligations: 1` in the same directory — right, but only by
+  accident: it has no `dune-project` ancestor, so the climb from its
+  own directory found nothing and the walk fell through to the
+  operator's directory.
+
+  Underneath the order sat a second defect: the climb looked for a
+  `dune-project` ONLY. An adopter's project is not a dune project;
+  it is a repository with `.math-coding/` in it. Even with the order
+  fixed, the climb would have found nothing and fallen back to the
+  binary's tree again.
+
+  (2) THE ENUMERATION. The corpus was walked with `Sys.readdir`,
+  which names the entries of ONE directory, and what counted as a
+  decision was decided by FILE NAME. Sixteen decisions live in
+  `decisions/plan-2026-10-improvements/`; before this change not one
+  of them was visible to `mathc self-check`, `mathc packages` or
+  `mathc counters`. Among them is
+  `t6-2-counterexample-required` — the decision that introduced the
+  counterexample rule — so the rule that demands a counterexample
+  was itself outside the gate. And `decisions/decision.yaml`, whose
+  id is `bootstrap-v3`, was excluded from `mathc packages` BY ITS
+  FILE NAME, so the packages corpus was a strict SUBSET of the
+  self-check corpus: two pictures of one world.
+commitment: |
+  1. THE OPERATOR'S DIRECTORY WINS. `find_project_root` resolves in
+     this order: `$MATH_CODING_ROOT` (explicit override), then the
+     operator's own directory (climbed), then `$DUNE_SOURCEROOT`,
+     then the executable's own directory (climbed) as the LAST
+     resort. The climb recognises a project by a `dune-project` OR
+     by a math-coding layout marker (`.math-coding/`, `decisions/`,
+     `attestations/` — the same markers `lib/path_config.ml::
+     layout_of` probes), because the artifact layout exists with or
+     without dune.
+
+  2. THE ENUMERATION IS RECURSIVE. One walker
+     (`lib/memory.ml::decision_document_paths`) enumerates the
+     decisions directory, sub-directories included, and every
+     command that needs to know what decisions the project holds
+     goes through it: `mathc self-check`, `mathc packages`,
+     `mathc counters`, `mathc doctor`, `mathc find`, the capsule
+     the gate reads, the gate's own obligation walk, and the
+     id-to-path index that `mathc attest-batch` resolves a decision
+     with.
+
+  3. A DECISION IS A DECISION BY ITS STRUCTURE, NOT BY ITS NAME. The
+     one rule (`lib/memory.ml::decision_document_id`): the document
+     declares a TOP-LEVEL `id:`, and it does not belong to one of
+     the known non-decision schema families (waiver, obligations
+     aggregator, attestation, migration manifest). The name-based
+     exclusion lists are gone: `lib/packages.ml::is_meta_filename`
+     and `bin/Mathc.ml::decision_meta_files` no longer exist.
+
+  3b. THE ID-TO-PATH RESOLUTION IS RECURSIVE TOO.
+      `bin/Mathc.ml::decision_path_for_id` built its index from a
+      FLAT walk of the decisions directory, so a decision filed in a
+      sub-directory was not in the index; the lookup fell through to
+      the concatenation `<id>.yaml`, the file was not there, and the
+      verdict was `fail` with the materials digest of NOTHING —
+      `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`,
+      the sha256 of the empty string. The batch still wrote the
+      attestation: a decision that was never READ was recorded as a
+      decision that FAILED, and the failure was silent.
+      MEASURED on the fixture's nested probe decision:
+
+      pre-fix:  result "fail", materials_digest sha256:e3b0c442...
+      post-fix: result "pass", materials_digest sha256:<the scope>
+
+  4. `decisions/decision.yaml` IS IN THE CORPUS, as the root
+     decision `bootstrap-v3`. It declares the decision schema, a
+     top-level id, a revision, a state, an intent, a commitment, a
+     scope, outcomes and seven obligations; it is a decision by every
+     structural test the kernel applies, and it was ALREADY a subject
+     of `mathc self-check` and of the gate's capsule. Excluding it
+     from `mathc packages` by name is what made the two corpora
+     differ. The document that IS service — the aggregator
+     `decisions/obligations.yaml`, schema
+     `math-coding/obligations-3.0-alpha`, whose id lives under
+     `decision:` and not at the top level — is excluded
+     structurally, with no name in sight.
+
+  5. MEASURED, on this corpus, before and after. The "after" column
+     is the corpus WITHOUT this decision — a decision adds itself
+     (one decision, five obligations, no attestation), so the corpus
+     this decision lands in reads 269 decisions and 961 obligations,
+     60 of them missing:
+
+     corpus decisions (the corpus index)      250 -> 268
+     `mathc packages` decisions               250 -> 268
+     `mathc self-check` subjects              252 -> 268
+     `mathc counters` decisions.total         253 -> 268
+     `mathc counters` decisions.active        246 -> 258
+     `mathc packages` obligations             892 -> 956
+       pass                                   215 -> 217
+       unknown                                671 -> 679
+       missing                                  1 ->  55
+       fail                                      5 ->   5
+     `mathc self-check` verdicts
+       pass                                    32 ->  32
+       unknown                                211 -> 227
+       open-with-waiver                         8 ->   8
+       fail                                     1 ->   1
+
+     The 64 obligations that appeared are accounted for: 55 belong to
+     the sixteen sub-directory decisions (54 with no attestation at
+     all, 1 attested but not passing), 7 to `bootstrap-v3`, and 2 to
+     `obligation-count-reconcile` (the second decision the
+     name-based exclusion had been hiding; both of its obligations
+     PASS). The failing-subject count did not move: the same single
+     subject (`plan-2026-10-distro-friction`) fails as before, and
+     the failing-subject ceiling of 11 in
+     `tests/fixtures/failing-subject-backlog.sh` still holds.
+
+     28 of the 268 decisions carry an id that differs from their file
+     name — 18 at the top level (`decision.yaml` -> `bootstrap-v3`,
+     `gate-attestation-store-fill-decision.yaml` ->
+     `gate-attestation-store-fill`, `dialectic-method-v3-2026-10.yaml`
+     -> `dialectic-method-v3`, and 15 more) and 10 in the
+     sub-directory (of which one differs only by the `@1` revision
+     suffix). This decision is the twenty-ninth: its own file name
+     carries the month and its id does not. Before the change the
+     packages corpus excluded one of them by name and the
+     sub-directory corpus excluded all ten.
+
+  7. WHAT THIS DECISION DOES NOT CHANGE, MEASURED. Four walkers
+     outside the scope of this change still read the TOP LEVEL of the
+     decisions directory, so the corpus they see is SMALLER than the
+     one the gate and the self-check see. Each is recorded here with
+     its measurement and its remedy, rather than silently left:
+
+     (a) `mathc negative-control` (bin/Mathc.ml::do_negative_control)
+         audits the top level only. It reports "186 of 254" today.
+         Widened to the sub-directory it would report "202 of 270":
+         all sixteen sub-decisions declare an executable verifier and
+         name no `negative_control`, and the sixteen are exactly the
+         debt they add. That is ABOVE the ceiling of 199 pinned in
+         `tests/fixtures/negative-control-debt.sh` — a monotone
+         contract ("it may fall; it may never rise") over a fixture
+         this change does not own. The audit therefore stays on the
+         top-level corpus until the debt is PAID: the remedy is to
+         give the sixteen sub-decisions a `negative_control:` each,
+         which lowers the count to 186, and then to widen the audit.
+
+     (b) `mathc migrate` (bin/Mathc.ml) plans the top level only.
+         The sixteen sub-decisions still carry
+         `schema: math-coding/3.0-alpha`: they were missed by the
+         3.0-alpha-to-3.2 bump, whose scope was the glob
+         `decisions/*.yaml`, which does not reach a sub-directory. A
+         recursive migrate would therefore plan sixteen
+         `bump-schema-string` actions — and
+         `tests/cli/migrate-bump-replay.t` pins that the live tree
+         emits ZERO actions after the bump. The remedy is a
+         follow-up decision that bumps the schema string of the
+         sixteen, and then widens the migrate walk. The sixteen
+         files are read-only in this change.
+
+     (c) `lib/re_evaluation.ml::list_decision_files` walks the top
+         level, so `mathc re-evaluate`, `mathc re-evaluate-decisions`
+         and `mathc graph` see 252 decisions where the gate and the
+         self-check see 269. The gate is not affected: it reads the
+         capsule (`lib/memory.ml::load_decisions`, now recursive) and
+         its own obligation walk (now recursive). The remedy is to
+         delegate that walker to
+         `Memory.decision_document_paths` — a three-line change in a
+         file this decision does not own.
+
+     (d) `lib/check/check.ml` — the walker behind `mathc precommit` —
+         reads the top level, so the sixteen sub-decisions are not
+         pre-commit validated. Measured: `mathc validate` accepts
+         all sixteen (exit 0 each), so nothing is currently red; the
+         gap is that the pre-commit gate does not see them. The
+         remedy is the same delegation as in (c).
+
+     (e) `tests/counters_reference.ml` computes its notion of
+         "decision files" with a NON-recursive `Sys.readdir` count
+         (253 at the time of measurement) while `mathc counters` now
+         reports 269. The test does not read the counters output, so
+         it passes; but the two definitions of the same quantity no
+         longer agree, and a document that states a live count would
+         be checked against the wrong one. The remedy is to make the
+         reference test count recursively.
+
+     (f) `lib/attestations/batch.ml::scan_decisions_for_obligations`
+         walks the top level, so `mathc attest-batch --from=decisions`
+         builds its manifest from 253 decisions and not from the 269
+         the corpus holds. The ID-TO-PATH resolution that
+         `attest-batch --run-per-obligation` uses IS recursive now
+         (`bin/Mathc.ml::decision_path_for_id` reads the shared
+         walk), so a decision in a sub-directory can be verified and
+         signed by id — it just is not DISCOVERED by the
+         `--from=decisions` enumeration. The remedy is to delegate
+         that walk to `Memory.decision_document_paths` as well; it
+         was left alone because the enumeration feeds the signing
+         path, and the attestation store is not this change's
+         surface.
+
+  8. The corpus verdict is NOT CLEANER THAN BEFORE, and is not
+     claimed to be: the sixteen sub-decisions arrive with 54
+     obligations that have no attestation at all, and they report
+     `unknown`. That is the honest state of a corpus that was
+     invisible yesterday — the gate can see them now, and what it
+     sees is unpaid debt, not new failure.
+
+  9. THE FIXTURE. `tests/cli/decision-resolution.t` builds a
+     two-decision project with its own git repository and NO
+     `dune-project`: one decision whose file name differs from its
+     id, one decision filed in a sub-directory. It asserts that the
+     build-tree binary reports those two decisions and not the
+     kernel's 269; that the same binary, copied out of the kernel's
+     tree, reports the same two; that `mathc find --obligation=`
+     resolves the nested decision by its id; and that the
+     self-check exit code is the operator's verdict (3, `unknown`)
+     and not the kernel's (1, `fail`).
+
+  10. THE SCOPE-INVALIDATION BREADTH GROWS BY EXACTLY ONE, and the
+      ceiling that pins it has to be raised with the reason written
+      down rather than silently. Measured with
+      `scripts/audit-scopes.py --decisions decisions --top 400`:
+      `bin/Mathc.ml` invalidates 185 decisions with this decision in
+      the corpus and 184 without it. The ceiling is 184, in
+      `tests/fixtures/scope-invalidation-breadth.sh`, and the corpus
+      made this exact move once before: on 2026-10-26 it was raised
+      from 183 to 184 because `re-evaluation-is-not-a-check-2026-10`
+      changes `bin/Mathc.ml` and "a decision whose scope does not
+      cover its own change cannot be invalidated by it". This
+      decision changes `bin/Mathc.ml` and its scope names it, so the
+      breadth grows by exactly one. The ceiling lives in
+      `tests/fixtures/`, which this change does not touch; the
+      one-line raise (184 -> 185) belongs to whoever owns that file,
+      and it is recorded here rather than left silent.
+scope:
+  capabilities:
+    - project-root-resolution
+    - corpus-enumeration
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/memory.ml"
+    - "lib/packages.ml"
+    - "tests/cli/decision-resolution.t"
+    - "decisions/decision-resolution-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "scripts/**"
+    - "tests/fixtures/**"
+    - ".github/**"
+    - "lib/gate.ml"
+    - "lib/waiver.ml"
+    - "lib/check/**"
+    - "lib/re_evaluation.ml"
+    - "spec/**"
+    - "axioms/**"
+outcomes:
+  - id: the-operator-project-is-the-project
+    statement: |
+      A `mathc` binary run inside a project reads THAT project's
+      decisions, whatever tree the binary itself was built in.
+  - id: the-corpus-is-walked-recursively
+    statement: |
+      A decision filed under `decisions/<sub-directory>/` is in the
+      corpus of `mathc self-check`, `mathc packages` and
+      `mathc counters`.
+  - id: a-decision-is-identified-by-its-id
+    statement: |
+      A decision whose file name differs from its id is reached by its
+      id, and the exclusion of non-decisions is structural rather
+      than a list of file names.
+assumptions:
+  - id: the-layout-markers-name-a-project
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A directory holding `.math-coding/`, `decisions/` or
+      `attestations/` is a math-coding project. The markers are the
+      ones `lib/path_config.ml::layout_of` probes, so the root
+      resolver and the path resolver answer the same question about
+      the same directory.
+    consequence_if_false: |
+      A repository that carries an unrelated `decisions/` directory
+      would be taken for a math-coding project, and the kernel would
+      read that tree instead of the one the operator meant. The
+      remedy is to narrow the marker list to `.math-coding/` plus
+      `decisions/decision.yaml`.
+    review_on:
+      - signal: an-adopter-project-is-misidentified
+  - id: the-corpus-counts-are-not-pinned-by-the-docs
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      No normative document states a live decision count. The
+      counters are the single source of truth
+      (`decisions/mathc-counters-subcommand-2026-10`), and
+      `tests/counters_reference.ml` asserts that PACKAGES.md and
+      ROADMAP.md do not restate them.
+    consequence_if_false: |
+      A document that states "N decisions" would drift by 18 the
+      moment this decision lands, and the drift detector would fail
+      on it.
+    review_on:
+      - signal: a-doc-states-a-decision-count
+obligations:
+  - id: the-operator-project-is-the-project
+    claim: |
+      A build-tree `mathc` binary run inside a project with its own
+      git repository and no `dune-project` reports that project's
+      decisions, and the same binary copied out of the kernel's tree
+      reports the same ones.
+    acceptance:
+      all:
+        - verifier: tests/cli/decision-resolution.t
+          result: pass
+        - verifier: mathc validate decisions/decision-resolution-2026-10.yaml
+          result: pass
+  - id: the-corpus-is-walked-recursively
+    claim: |
+      A decision filed under a sub-directory of the decisions
+      directory is a subject of `mathc self-check` and an entry of
+      `mathc packages`, keyed by its id.
+    acceptance:
+      all:
+        - verifier: tests/cli/decision-resolution.t
+          result: pass
+  - id: a-decision-is-found-by-its-id
+    claim: |
+      A decision whose file name differs from its id is resolved by
+      its id, in a sub-directory as well as at the top level, and the
+      non-decision documents under `decisions/` are excluded by what
+      they declare rather than by what they are named.
+    acceptance:
+      all:
+        - verifier: tests/cli/decision-resolution.t
+          result: pass
+  - id: the-corpus-verdict-is-not-worse
+    claim: |
+      The change adds subjects and obligations to the corpus; it
+      does not add a failing subject. The failing-subject count is
+      the same one as before (1), and the negative-control and
+      failing-subject ceilings still hold.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/failing-subject-backlog.sh
+          result: pass
+        - verifier: tests/fixtures/negative-control-debt.sh
+          result: pass
+  - id: the-kernel-still-builds-and-its-suite-is-green
+    claim: |
+      `dune build @install` succeeds and the full test suite —
+      125 cram transcripts, 34 Alcotest suites, and the 38
+      repo-state shell fixtures — is green.
+    acceptance:
+      all:
+        - verifier: dune build
+          result: pass
+        - verifier: scripts/check.sh
+          result: pass
+risk:
+  declared_triggers:
+    - the-cwd-climb-answers-a-different-project-than-the-gate
+    - the-layout-marker-matches-a-non-math-coding-directory
+    - a-command-that-walked-the-top-level-now-sees-more-decisions
+    - a-fixture-that-pinned-the-old-corpus-count
+  owner: human:maintainer
+relations:
+  addresses:
+    - decision-resolves-by-id-2026-10@2
+    - adoption-friction-p0-2026-10@1
+    - path-probe-anchoring-2026-11@1
+  revises: []
+  supersedes: []
+  superseded_by: []
+counterexample: |
+  Three counter-positions considered and rejected, and one question
+  the corpus answered by measurement rather than by argument.
+
+  (a) "THE BINARY'S DIRECTORY MUST WIN, because a reader run from
+  anywhere inside the kernel's checkout should find that checkout."
+  Rejected on the measurement: the kernel's checkout is found by the
+  CWD climb too, whenever the operator is inside it — the cwd climb
+  walks UP. The executable-dir climb only ever added a case the cwd
+  climb cannot serve: the operator standing in a directory that is
+  not a project at all, and asking about the kernel. That case is
+  preserved, as the LAST resort rather than the first.
+
+  (b) "A PROJECT IS A DIRECTORY WITH A `dune-project`; that is the
+  definition." Rejected: the definition was the kernel's own
+  convenience, imported from its build system into a protocol meant
+  for projects that do not use dune at all. The artifact layout
+  exists with or without dune — `lib/path_config.ml::effective_root`
+  says so in as many words, and the resolver it describes requires
+  only that the path exists and is a directory. A rule that makes
+  every non-dune adopter invisible is not a rule about projects; it
+  is a rule about the kernel's own tree.
+
+  (c) "THE SUBDIRECTORY IS A MISTAKE; THE SIXTEEN DECISIONS SHOULD BE
+  MOVED TO THE TOP LEVEL." Rejected: the corpus was written with a
+  sub-directory, and the file name is not load-bearing — that is the
+  very rule the corpus was measured for (`decision-resolves-by-id`).
+  Moving sixteen tracked files to satisfy a walker that could not
+  read a sub-directory makes the corpus obey the kernel instead of
+  the other way round. The remedy for a flat-walking kernel is a
+  walking kernel.
+
+  THE QUESTION: IS `decisions/decision.yaml` A DECISION OR A
+  SERVICE DOCUMENT? The corpus answered it structurally, and this
+  decision adopts the structural answer: it is a DECISION — the root
+  protocol decision `bootstrap-v3` — and it is IN the corpus.
+
+  The reasons, in order of weight:
+
+  (i) It is a decision by every structural test the kernel applies:
+  a decision schema (`math-coding/3.2`), a top-level id, a revision,
+  a state, an intent, a commitment, a scope, outcomes, and seven
+  obligations. The aggregator (`decisions/obligations.yaml`) is
+  NOT a decision by the same test: its schema family is
+  `math-coding/obligations-3.0-alpha` and its id lives under
+  `decision:`, not at the top level.
+
+  (ii) It was ALREADY a subject of `mathc self-check` and of the
+  gate's capsule before this change. Excluding it from
+  `mathc packages` by name is what made the packages corpus a
+  strict subset of the self-check corpus. The alternative — keeping
+  the exclusion — means two commands answer different questions
+  about the same repository, and the corpus is the thing the whole
+  protocol is about.
+
+  (iii) Its obligations carry attestations
+  (`attestations/bootstrap-v3-*.json`), so including it adds
+  evidence to the corpus, not noise: seven obligations, all
+  attested, none passing on the current tree.
+
+  The service document is not `decision.yaml`; it is
+  `decisions/obligations.yaml`, which mirrors the root decision's
+  obligation set for external readers. It is excluded because it
+  declares no top-level id — not because of its name.
+antithesis: |
+  The opposite claim is that a corpus index is a convenience and
+  should not be allowed to decide what a decision IS: the deciding
+  of that question belongs to the validator, and the index should
+  walk every YAML and let the validator sort them out.
+
+  The claim identifies a real hazard — a structural rule in the
+  index is a second place where "what is a decision" is answered,
+  and two places can drift. It does not describe this corpus, where
+  the validator's own dispatch (`lib/decision.ml::peek_schema_family`)
+  and the index's rule answer the same question the same way: a
+  top-level id, and no non-decision schema family. The index's rule
+  is the validator's rule minus one refinement (the validator also
+  requires `kind: waiver` on a waiver document), and it is stated
+  in ONE place, in `lib/memory.ml`, with the other readers
+  delegating to it.
+
+  The claim also misses the point that the alternative is not
+  "let the validator decide" but "walk every YAML". The eight waiver
+  files and the three migration manifests live under `decisions/`
+  too. A walker that admits them admits documents with ids of
+  their own into the corpus, and the corpus is keyed by id — so
+  `waiver-p8-hook-deficit-2026-10` would become a subject of the
+  self-check, with no obligations, reading as a policy that was
+  checked and passed. The rule has to be SOMEWHERE; the question is
+  whether it is in one place or in five.
+reversal:
+  - signal: the-cwd-climb-answers-the-wrong-project
+    condition: |
+      A command run from inside one project reports another
+      project's corpus because the cwd climb found a layout marker
+      higher up the tree than the project the operator meant.
+    action: rework
+  - signal: the-corpus-counts-drift-into-the-docs
+    condition: |
+      A normative document starts stating a live decision count and
+      the drift detector fails on it.
+    action: halt
