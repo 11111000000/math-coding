@@ -45,23 +45,6 @@ shopt -s nullglob
 fixtures=("$fixture_dir"/*.sh)
 shopt -u nullglob
 
-if [ "${1:-}" != "" ]; then
-  fixtures=("$fixture_dir/$1.sh")
-fi
-
-# `skip` is tracked apart from `pass` on purpose. The stub-lint and
-# svg-overflow verifiers exit 2 when python3 is missing or the script
-# itself errors; that used to print `ok ... skipped` AND increment the
-# pass counter, so a check that never executed was reported as a check
-# that passed. Environments without python3 still exit 0 overall, so
-# nothing is newly broken there - the summary just stops claiming a
-# check ran.
-pass=0
-fail=0
-skip=0
-skipped_names=()
-failed_names=()
-
 cleanup_dune() {
   # Surface a stale _build/.lock left by an interrupted previous
   # build. We DO NOT pkill dune processes here because the fixture
@@ -76,14 +59,65 @@ cleanup_dune() {
   fi
 }
 
+if [ "${1:-}" != "" ]; then
+  fixtures=("$fixture_dir/$1.sh")
+  # The documented contract of the single-fixture form is "run a
+  # single fixture by basename". The other steps used to run anyway,
+  # and the alcotest step -- which needs the test binaries BUILT --
+  # reported 34 spurious "FAIL <binary> (no build target)" lines on
+  # a tree where nothing had been built. Thirty-four failures that
+  # say nothing about the fixture the caller asked about is a report
+  # that lies, and it buries the one line that matters.
+  #
+  # So the single-fixture form runs that fixture, prints its reason
+  # on failure, and exits with its status. Nothing else.
+  if [ ! -f "${fixtures[0]}" ]; then
+    printf "check.sh: no such fixture: %s\n" "$fixture_dir/$1.sh" >&2
+    exit 2
+  fi
+  cleanup_dune
+  name=$(basename "${fixtures[0]}" .sh)
+  log=$(mktemp)
+  trap 'rm -f "$log"' EXIT
+  if "${fixtures[0]}" >"$log" 2>&1; then
+    printf "  ok   %s\n" "$name"
+    exit 0
+  else
+    printf "  FAIL %s\n" "$name"
+    tail -20 "$log" >&2 || true
+    exit 1
+  fi
+fi
+
+# `skip` is tracked apart from `pass` on purpose. The stub-lint and
+# svg-overflow verifiers exit 2 when python3 is missing or the script
+# itself errors; that used to print `ok ... skipped` AND increment the
+# pass counter, so a check that never executed was reported as a check
+# that passed. Environments without python3 still exit 0 overall, so
+# nothing is newly broken there - the summary just stops claiming a
+# check ran.
+pass=0
+fail=0
+skip=0
+failed_names=()
+# The per-fixture log. A fixture that fails must be able to say WHY,
+# and the log is what carries that reason to the aggregator's output.
+fixture_log=$(mktemp)
+
+
 for f in "${fixtures[@]}"; do
   cleanup_dune
   name=$(basename "$f" .sh)
-  if "$f" >/dev/null 2>&1; then
+  if "$f" >"$fixture_log" 2>&1; then
     printf "  ok   %s\n" "$name"
     pass=$((pass + 1))
   else
     printf "  FAIL %s\n" "$name"
+    # The reason, not just the name. A fixture whose output is
+    # discarded cannot say why it failed, and a red CI that cannot
+    # name its cause is a red CI nobody can fix: on 2026-10-27 that is
+    # how the project spent a month with a red main and no diagnosis.
+    tail -20 "$fixture_log" >&2 || true
     fail=$((fail + 1))
     failed_names+=("$name")
   fi
@@ -321,7 +355,16 @@ cram_dir_list=$(find tests -name '*.t' -exec dirname {} \; | sort -u)
 cram_dirs=$(printf '%s\n' "$cram_dir_list" | tr '\n' ' ')
 cram_dirs=${cram_dirs% }
 cram_log=$(mktemp)
-trap 'rm -f "$cram_log"' EXIT
+cram_build_log=$(mktemp)
+trap 'rm -f "$cram_log" "$cram_build_log" "$fixture_log"' EXIT
+# The build's own output goes to its OWN log, not to /dev/null.
+#
+# The build used to be silenced with `>/dev/null 2>&1`, so when it
+# failed the aggregator printed the tail of an EMPTY log and the CI
+# log said only "FAIL cram" with no reason -- the failing build said
+# nothing at all. A gate that cannot name its cause is not a gate;
+# it is a red light. The build log is printed on failure, and the
+# test log (which carries the cram diff) is printed too.
 if ! printf '%s\n' "$cram_dir_list" | grep -qx 'tests/cli'; then
   printf "  FAIL cram\n"
   printf 'cram discovery did not find tests/cli; found: [%s]\n' \
@@ -330,11 +373,14 @@ if ! printf '%s\n' "$cram_dir_list" | grep -qx 'tests/cli'; then
   failed_names+=("cram")
 elif ! nix develop .#test --command bash -c "
     $cram_clean
-    dune build --root . @install >/dev/null 2>&1 &&
+    dune build --root . @install > '$cram_build_log' 2>&1 &&
     dune runtest --root . $cram_dirs
 " >"$cram_log" 2>&1; then
   printf "  FAIL cram  [%s]\n" "$cram_dirs"
-  tail -20 "$cram_log" >&2 || true
+  printf '--- the build that preceded the test run ---\n' >&2
+  tail -20 "$cram_build_log" >&2 || true
+  printf '--- the test run ---\n' >&2
+  tail -40 "$cram_log" >&2 || true
   fail=$((fail + 1))
   failed_names+=("cram")
 else

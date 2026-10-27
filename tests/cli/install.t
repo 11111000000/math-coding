@@ -138,33 +138,61 @@ the live waiver schema (math-coding/waiver-3.3). This is the positive path.
 The kernel's `parse-ok` verdict is the live accept token (replaces the
 older `accept:` text after the validate-protocol bump).
 
+The waiver is written into a TEMPORARY tree, not into the repository.
+It used to be written into $DUNE_SOURCEROOT/decisions/waivers/, and that
+made the case depend on the machine in two ways at once. (1) The three
+cram directories (tests/cli, tests/mcp, tests/scripts) run in PARALLEL,
+and this was the only case that wrote into the source tree, so it raced
+every concurrent `mathc` invocation that loads the corpus -- a race that
+has no local reproduction and no visible symptom. (2) The source tree
+is the developer's checkout: a case that writes into it leaves a file
+behind when it fails, and the next case in the same run then reads a
+corpus that is not the corpus it expects.
+
+The verdict is asserted, not grepped away. The old form piped the
+kernel's output into `grep -q`, which prints nothing, so a rejection
+produced an exit status with no reason attached: the transcript showed
+`[1]` and nothing else, and the diff that reached CI said only "the
+expected 'validate: ok' did not appear". The kernel's own words are
+now printed when it refuses.
+
   $ cd "$DUNE_SOURCEROOT"
   $ hotfix_sh="$DUNE_SOURCEROOT/scripts/hotfix-cve.sh"
   $ ticket="cve-test-foo"
-  $ waiver="$DUNE_SOURCEROOT/decisions/waivers/hotfix-$ticket.yaml"
-  $ rm -f "$waiver"
-  $ "$hotfix_sh" "$ticket" >/dev/null && echo "wrote: ok"
+  $ tmp=$(mktemp -d)
+  $ (cd "$tmp" && "$hotfix_sh" "$ticket" >/dev/null) && echo "wrote: ok"
   wrote: ok
+  $ waiver="$tmp/decisions/waivers/hotfix-$ticket.yaml"
   $ test -f "$waiver" && echo "waiver file: ok"
   waiver file: ok
-  $ mathc validate "$waiver" 2>&1 | grep -qE '^(parse-ok|accept):' \
-  >   && echo "validate: ok"
+  $ validate_out=$(mathc validate "$waiver" 2>&1); validate_rc=$?
+  > if [ "$validate_rc" -eq 0 ] && printf '%s\n' "$validate_out" | grep -qE '^(parse-ok|accept):'; then
+  >   echo "validate: ok"
+  > else
+  >   echo "validate: FAILED (exit $validate_rc)"; printf '%s\n' "$validate_out"; exit 1
+  > fi
   validate: ok
-  $ rm -f "$waiver"
+  $ rm -rf "$tmp"
 
 hotfix-cve.sh refuses to write when the ticket id has shell metacharacters
 (`/`, `;`, space). The negative path exits 2 and leaves no waiver file.
 
+The refusal is observed in a TEMPORARY tree for the same reason as the
+positive path above: the assertion is about what the script wrote, and
+the tree it must not write into is the one it was run in.
+
   $ cd "$DUNE_SOURCEROOT"
   $ hotfix_sh="$DUNE_SOURCEROOT/scripts/hotfix-cve.sh"
-  $ if "$hotfix_sh" "bad/path" 2>/dev/null; then
+  $ tmp=$(mktemp -d)
+  $ if (cd "$tmp" && "$hotfix_sh" "bad/path" 2>/dev/null); then
   >   echo "FAIL: expected exit 2 on invalid ticket id"; exit 1
   > else
   >   echo "invalid ticket refused (exit $?)"
   > fi
   invalid ticket refused (exit 2)
-  $ ! test -f decisions/waivers/hotfix-bad.yaml && echo "no file written: ok"
+  $ ! test -f "$tmp/decisions/waivers/hotfix-bad.yaml" && echo "no file written: ok"
   no file written: ok
+  $ rm -rf "$tmp"
 
 install.sh --cosign-verify / --no-cosign-verify toggle the
 signature-verification default. Per

@@ -86,15 +86,32 @@ fi
 # The positive check. dune's dev profile already passes
 # `-warn-error +a`, so an ordinary build IS the warnings-as-errors
 # check -- and it is the check this gate ran before the non-existent
-# flag broke it. The test executables are built by the `runtest`
-# alias, not the default one, so `dune build` alone never compiles
-# them; they are part of the tree and carry the same bar.
+# flag broke it. The test executables are built by the `check` alias,
+# not the default one, so `dune build` alone never compiles them; they
+# are part of the tree and carry the same bar.
 if ! dune build --root . ; then
   echo "lint: FAIL -- the build emitted a warning" >&2
   exit 1
 fi
 
-if ! dune build --root . @runtest ; then
+# `@check`, NOT `@runtest`.
+#
+# `@runtest` is a RULE alias: building it RUNS the test suite. This
+# gate is about COMPILATION, and running the suite inside it had two
+# costs. (1) A failing TEST was reported as "a test executable emitted
+# a warning" -- a false diagnosis, because nothing warned; the test
+# simply failed. On 2026-10-27 that is exactly how the CI read: the
+# lint step said "a test executable emitted a warning" while the real
+# failure was one cram case, reported by a different step, with a
+# different (and also wrong) name. Two steps, two names, one cause.
+# (2) The suite ran twice per CI job -- once here, once in
+# `scripts/dev verify` -- so every run paid for it and the second run
+# was the one that could report a stale verdict.
+#
+# `@check` compiles the test executables without running them, which
+# is what a lint gate wants: the executables carry the same warning
+# bar, and nothing else changes.
+if ! dune build --root . @check ; then
   echo "lint: FAIL -- a test executable emitted a warning" >&2
   exit 1
 fi
