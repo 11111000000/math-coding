@@ -18,9 +18,19 @@
 # reviewable act in this file.
 #
 # WHY THE NEGATIVE CONTROL. A bound that has never been observed to
-# bind is not known to bind. Section 3 runs the same comparison
+# bind is not known to bind. Section 4 runs the same comparison
 # against a deliberately inflated corpus and requires the fixture to
 # report it as over the ceiling.
+#
+# WHAT WAS WRONG WITH THIS FILE, AND WHEN. On 2026-10-23, commit
+# 4004012e deleted the comparisons of sections 1 and 2 and kept the
+# two numbers. The file then read as if it pinned three ceilings and
+# pinned one. The commit that removed them said, in its own body,
+# that "the debt fixture now pins all three ceilings at their
+# current values" - the declaration and the code disagreed, and the
+# code was what ran. The comparisons are back, and
+# scripts/ceiling-monotonic.sh now fails a fixture that declares a
+# ceiling and never compares it.
 
 set -uo pipefail
 cd "$(dirname "$0")/../.."
@@ -40,9 +50,18 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # carry the literal HEAD and an empty digest - the same debt as the
 # rest, not new debt of a new kind.
 #
+# ceiling-raise: 760 -> 765, the 2026-10-23 session merge brought five legacy attestations with it
+#
 # The second ceiling FELL from 23 to 3 in the same commit, which is
 # the shape a ceiling should move in: the debt is being paid.
-CEILING_LEGACY=22
+#
+# MEASURED 2026-10-27, against the store at HEAD: 16 attestations
+# carry an empty materials_digest. The ceiling is pinned at 16 - the
+# number the truth is now - and it may only fall. The store is
+# re-signed from time to time and every re-signing replaces an
+# unanchored attestation with an anchored one, so this number moves
+# down and not up.
+CEILING_LEGACY=16
 # Raised from 23 to 28 on 2026-10-23, for a recorded reason: the
 # per-obligation re-signing re-ran the verifiers of five decisions
 # whose legacy attestation said `pass` without evidence, and their
@@ -50,7 +69,15 @@ CEILING_LEGACY=22
 # so those five decisions are now UNSIGNED rather than wrongly
 # signed. The count of decisions with no attestation rose; the
 # number of wrongly-signed decisions fell to zero.
-CEILING_UNATTESTED=25
+#
+# ceiling-raise: 23 -> 28, five decisions were left unsigned because their verifiers failed
+#
+# MEASURED 2026-10-27: one decision carries no attestation at all.
+# It is the file of the decision that pins these ceilings; its
+# attestation is written by the re-signing, which this change does
+# not run. The ceiling is pinned at 1, the number the truth is now.
+# It may only fall - and after the re-signing it must.
+CEILING_UNATTESTED=1
 # The DECLARED inconclusive - a `manual:` obligation, which the
 # kernel does not execute and says so - is not debt. The UNDECLARED
 # kind is: an obligation whose verifier the kernel CAN execute, that
@@ -86,6 +113,8 @@ CEILING_UNATTESTED=25
 #
 # The raise is recorded here so it is visible rather than silent, which
 # is the same discipline the other raises in this file follow.
+#
+# ceiling-raise: 30 -> 292, the re-signing of 2026-10-26 took 279 passes down to inconclusive
 CEILING_INCONCLUSIVE=292
 
 # Measure the debt in a given store directory.
@@ -128,6 +157,29 @@ PY
 }
 
 read -r legacy unattested <<< "$(measure attestations)"
+
+# --- 1. the legacy count must not exceed the ceiling --------------------
+# THIS COMPARISON WAS DELETED on 2026-10-23 by commit 4004012e, and
+# the ceiling was kept. The fixture then passed because the debt was
+# BELOW the ceiling and not because the ceiling was checked: a ceiling
+# that is never compared is not a bound. It is back, and it is the
+# first of the three.
+if [ "$legacy" -le "$CEILING_LEGACY" ]; then
+  ok "legacy attestations: $legacy (ceiling $CEILING_LEGACY)"
+else
+  bad "legacy attestations: $legacy EXCEEDS the ceiling $CEILING_LEGACY — the debt grew"
+fi
+
+# --- 2. the unattested-decision count must not exceed the ceiling -------
+# This one was deleted with the first, and it was the only ceiling in
+# the file that NOTHING referred to: not the real measurement, and not
+# the negative control. A number that is written down and never used
+# is a comment.
+if [ "$unattested" -le "$CEILING_UNATTESTED" ]; then
+  ok "decisions with no attestation: $unattested (ceiling $CEILING_UNATTESTED)"
+else
+  bad "decisions with no attestation: $unattested EXCEEDS the ceiling $CEILING_UNATTESTED — the debt grew"
+fi
 
 # The third kind of debt: an attestation that exists, is bound to a
 # tree, and says INCONCLUSIVE - the verifier named by the obligation
@@ -187,17 +239,29 @@ fi
 # A corpus with more legacy attestations than the ceiling must be
 # reported as over it. Without this, the ceiling could be satisfied
 # by a measurement that always returns zero.
+#
+# The control covers BOTH ceilings that were dead: the legacy count
+# and the unattested-decision count. A control that only proves the
+# first comparison fires leaves the second one free to be broken
+# without anyone noticing.
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-mkdir -p "$work/store"
+mkdir -p "$work/store" "$work/decisions"
 for i in $(seq 1 $((CEILING_LEGACY + 5))); do
   printf '{"schema":"math-coding/attestation-3.3","kind":"attestation","id":"sha256:0","kind_":"test","producer":{"identity":"x"},"result":"pass","issued_at":"2026-01-01T00:00:00Z","subject":{"decision":"d","obligation":"o","candidate_tree":"HEAD","materials_digest":""}}\n' \
     > "$work/store/legacy-$i.json"
 done
+# Decisions that NO attestation names: the synthetic form of the
+# second debt.
+for i in $(seq 1 $((CEILING_UNATTESTED + 5))); do
+  printf -- '---\nschema: math-coding/3.3\nid: synthetic-unattested-%s\nrevision: 1\nstate: active\nmode: light\n' "$i" \
+    > "$work/decisions/synthetic-unattested-$i.yaml"
+done
 # The control measures a synthetic store directly, not through git.
-read -r fake_legacy fake_unattested <<< "$(python3 - "$work/store" <<'PYCTRL'
-import glob, json, os, sys
+read -r fake_legacy fake_unattested <<< "$(python3 - "$work/store" "$work/decisions" <<'PYCTRL'
+import glob, json, os, re, sys
 n = 0
+have = set()
 for f in sorted(glob.glob(os.path.join(sys.argv[1], '*.json'))):
     try:
         d = json.load(open(f))
@@ -205,13 +269,27 @@ for f in sorted(glob.glob(os.path.join(sys.argv[1], '*.json'))):
         continue
     if not ((d.get('subject') or {}).get('materials_digest') or ''):
         n += 1
-print(n, 0)
+    dec = (d.get('subject') or {}).get('decision')
+    if dec:
+        have.add(dec)
+u = 0
+for f in sorted(glob.glob(os.path.join(sys.argv[2], '*.yaml'))):
+    m = re.search(r'^id:\s*(\S+)', open(f).read(), re.M)
+    if m and m.group(1) not in have:
+        u += 1
+print(n, u)
 PYCTRL
 )"
 if [ "$fake_legacy" -gt "$CEILING_LEGACY" ]; then
   ok "negative control: an inflated corpus measures $fake_legacy, above the ceiling $CEILING_LEGACY"
 else
   bad "negative control: the measurement did not detect an inflated corpus — the ceiling cannot bind"
+fi
+
+if [ "$fake_unattested" -gt "$CEILING_UNATTESTED" ]; then
+  ok "negative control: an inflated corpus measures $fake_unattested unattested decisions, above the ceiling $CEILING_UNATTESTED"
+else
+  bad "negative control: the measurement did not detect unattested decisions — the ceiling cannot bind"
 fi
 
 echo

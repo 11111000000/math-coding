@@ -81,6 +81,9 @@ bad() { printf "FAIL: %s\n" "$1"; fail=1; }
 #     Three slots of the ceiling are this decision's own three
 #     attestations, which the same signing path wrote.
 #
+# ceiling-raise: 881 -> 883, this decision's own three attestations are written by the same signing path
+# ceiling-raise: 883 -> 886, the re-signing of the verifier-path tree added three more unanchored attestations
+#
 #   UNEXECUTED 364 - passes claimed for obligations whose verifier the
 #     kernel cannot execute. The families are `manual-*` declarations
 #     (a declaration that a named file exists, or that a human read a

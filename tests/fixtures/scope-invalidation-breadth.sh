@@ -53,6 +53,8 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # discipline. The intent of this ceiling is that the breadth does
 # not grow without a decision that says why; from here it may only
 # fall.
+#
+# ceiling-raise: 183 -> 184, the re-evaluation decision changed bin/Mathc.ml and its scope must name the file it changes
 CEILING_BIN_MATHC=184
 CEILING_LIB_DECISION=158
 CEILING_LIB_GATE=145
