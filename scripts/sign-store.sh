@@ -313,7 +313,7 @@ PYEOF
   # sweep and fails inside it. They are not failures of the corpus;
   # they are failures of the ORDER.
   if [ "${not_signed:-0}" -gt 0 ]; then
-    python3 - "$work" "$work/second.tsv" <<'PY2'
+    python3 - "$work/sweep.log" "$work/second.tsv" <<'PY2'
 import re, sys
 log, out = sys.argv[1], sys.argv[2]
 rows = 0
