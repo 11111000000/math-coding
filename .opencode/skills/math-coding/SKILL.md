@@ -206,8 +206,17 @@ stub passes `mathc validate` (with the
 kernel-required defaults (`mode: light`, `axiom_link: [A0]`,
 `risk.owner`) are baked in. The user is expected to fill in
 the TODO markers and re-run `mathc validate` after their first
-edit. The full template (`--template=full`, the default) is
-preserved for backward compatibility with existing adopters.
+edit. The full template (`--template=full`) is preserved for
+backward compatibility with existing adopters.
+
+`--template=minimal` is the DEFAULT, and it is the default because
+the full template produces a file the kernel REJECTS: it carries no
+`axiom_link` and no `counterexample`, so `mathc validate` answers
+`MC-AXIOM-LINK-MISSING` (a block) to the very scaffold the previous
+command wrote. The minimal template carries the kernel-required
+defaults in the form the parser reads (`axiom_link:` as a block, not
+`axiom_link: [A0]` in the bracket form, which the YAML reader used
+to take for a plain string).
 
 ## Step 4. Validate and self-check
 
@@ -220,13 +229,36 @@ On a non-zero exit, the stderr line starts with an `MC-*` code. Run
 `mathc explain-diagnostic <CODE>` to get the remediation steps (Definition,
 Occurs when, Remediation) for that code.
 
-The first `mathc self-check` after a fresh bootstrap may return `stale`
-because no attestation has been recorded yet. That is expected; the
-gate does not block until a policy change makes a missing attestation
-an obligation.
+The first `mathc self-check` after a fresh bootstrap reports
+`unknown` and exits 3: the project has no decision yet, so there is
+nothing to judge. That is expected, and it is the ONLY state in
+which the kernel cannot conclude. As soon as the project has one
+decision and one attestation for it, the same command reports `pass`
+and exits 0.
+
+The whole path, measured on an empty project with the released
+binary, is seven commands:
+
+```bash
+mathc init .                                  # the forward layout
+mathc new-decision my-id --write              # a file the kernel accepts
+#   ... fill in the TODO markers ...
+mathc rehash --write .math-coding/decisions/my-id.yaml
+mathc validate .math-coding/decisions/my-id.yaml   # parse-ok
+mathc attest-batch --from=decisions --kind=review --producer=human:me
+git add -A && git commit -m "..."
+mathc self-check                              # pass, exit 0
+```
+
+No environment variable, and no directory the operator has to create
+by hand.
 
 To record an attestation when one is owed, write a file under
-`attestations/` matching `schemas/attestation.json`:
+`.math-coding/attestations/` (or `attestations/` on the pre-3.4
+legacy layout) matching `schemas/attestation.json`. The directory
+`mathc init` creates is the one the gate reads -- they are the same
+directory, resolved by one rule, and writing anywhere else produces
+an attestation the gate cannot see:
 
 ```json
 {
