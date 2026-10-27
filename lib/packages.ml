@@ -110,38 +110,17 @@ type package_list = {
 
 (* --- decision walker --- *)
 
-let[@warning "-32"] is_decision_filename name =
-  let sfx = Filename.extension name in
-  sfx = ".yaml" || sfx = ".yml" || sfx = ".json"
-
 (* Walk the decisions directory. Returns absolute paths in stable
-   alphabetical order (the kernel output is sorted by spec). *)
+   alphabetical order (the kernel output is sorted by spec).
+ *
+ * The walk is RECURSIVE and it is the ONE walk: the corpus is
+ * enumerated by `lib/memory.ml::decision_document_paths`, so
+ * `mathc packages`, `mathc self-check` and `mathc counters` all see
+ * the same decisions. The pre-fix version read ONE directory, so the
+ * sixteen decisions under `decisions/plan-2026-10-improvements/`
+ * were in no package list at all. *)
 let[@warning "-32"] list_decision_paths ~decisions_root =
-  if not (Sys.file_exists decisions_root) then []
-  else if not (Sys.is_directory decisions_root) then []
-  else
-    try
-      Sys.readdir decisions_root |> Array.to_list
-      |> List.filter is_decision_filename
-      |> List.sort String.compare
-      |> List.map (fun n -> Filename.concat decisions_root n)
-    with _ -> []
-
-(* Extract a decision id from a YAML/JSON string. Looks for a
-   top-level `id:` line after front-matter. The pattern is the
-   same as the existing self-check walker in bin/Mathc.ml. *)
-let[@warning "-32"] extract_top_level_id lines =
-  let rec scan = function
-    | [] -> None
-    | line :: rest ->
-        let trimmed = String.trim line in
-        if String.length trimmed > 4 && String.sub trimmed 0 4 = "id: " then
-          Some (String.trim (String.sub trimmed 4 (String.length trimmed - 4)))
-        else if String.length trimmed > 3 && String.sub trimmed 0 3 = "id:" then
-          Some (String.trim (String.sub trimmed 3 (String.length trimmed - 3)))
-        else scan rest
-  in
-  scan lines
+  Memory.decision_document_paths decisions_root
 
 (* Extract `verifier: <name>` entries from the YAML body in
    document order. Each obligation may carry multiple acceptance
@@ -290,13 +269,28 @@ let[@warning "-32"] extract_obligation_ids lines =
   scan [] lines
 
 (* Load a single decision into a stub. Returns None when the file
-   does not parse or has no top-level id. *)
+   does not parse or is not a decision at all.
+ *
+ * The id is the id the document DECLARES, read by the kernel's ONE
+   rule (`lib/memory.ml::decision_document_id`): a top-level `id:`,
+   and no non-decision schema family.
+ *
+ * WHY NOT BY FILE NAME. This module used to exclude three files by
+   name — `decision.yaml`, `obligations.yaml` and
+   `obligation-count-reconcile.yaml` — and the first of them
+   (`decision.yaml`, id `bootstrap-v3`) is the ROOT protocol
+   decision: excluding it by name meant `mathc packages` reported a
+   corpus SMALLER than the one `mathc self-check` checked. The
+   exclusions were a workaround for a line-scanner that read the
+   aggregator's nested `decision.id` as the document's own id; with
+   the id read at the top level, the aggregator no longer
+   impersonates a decision and no name list is needed. *)
 let[@warning "-32"] load_decision ~reader ~path =
   let raw = reader path in
   if raw = "" then None
   else
     let lines = String.split_on_char '\n' raw in
-    match extract_top_level_id lines with
+    match Memory.decision_document_id ~raw with
     | None -> None
     | Some decision_id ->
         let obligation_ids = extract_obligation_ids lines in
@@ -405,24 +399,25 @@ let[@warning "-32"] obligation_view ~now_iso ~obligation_id ~obligation_verifier
    caller loads the store from disk via Attestations.load; this
    module does not perform I/O on the store. This keeps the
    kernel/adapter boundary: lib/attestations/ is the I/O
-   boundary; lib/packages.ml is pure. *)
-let[@warning "-32"] is_meta_filename name =
-  let base = Filename.basename name in
-  match base with
-  | "decision.yaml" -> true
-  | "obligations.yaml" -> true
-  | "obligation-count-reconcile.yaml" -> true
-  | "ONBOARDING.md" -> true
-  | "rationale.md" -> true
-  | _ -> false
-
+   boundary; lib/packages.ml is pure.
+ *
+ * WHAT IS A DECISION HERE. The walk visits every candidate document
+   under the decisions directory (recursively) and keeps the ones
+   that ARE decisions, by the kernel's ONE structural rule
+   (`lib/memory.ml::decision_document_id`): a top-level `id:`, and
+   no non-decision schema family.
+ *
+ * There is no exclusion list by file name any more. The pre-fix
+ * module excluded `decision.yaml`, `obligations.yaml` and
+   `obligation-count-reconcile.yaml` by name — and `decision.yaml`
+ * is the ROOT protocol decision (`bootstrap-v3`), which
+ * `mathc self-check` already checked and `mathc packages` did not.
+ * The aggregator (`obligations.yaml`) is excluded structurally: it
+ * declares no top-level id, and its schema family is not a decision
+ * family. *)
 let[@warning "-32"] walk ~reader ~decisions_root ~store ~has_store ~now_iso
     ~policy_id =
-  let decisions_paths =
-    List.filter
-      (fun p -> not (is_meta_filename p))
-      (list_decision_paths ~decisions_root)
-  in
+  let decisions_paths = list_decision_paths ~decisions_root in
   let decisions =
     List.filter_map
       (fun path ->

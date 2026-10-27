@@ -48,6 +48,185 @@ let[@warning "-32"] is_top_level line =
     else if len >= 3 && line = "---" then false
     else true
 
+(* Split a string into its lines, dropping the terminators. *)
+let[@warning "-32"] split_lines s =
+  let len = String.length s in
+  let rec loop i acc =
+    if i >= len then List.rev acc
+    else
+      let rec find_eol j =
+        if j >= len || String.unsafe_get s j = '\n' then j else find_eol (j + 1)
+      in
+      let j = find_eol i in
+      loop (j + 1) (String.sub s i (j - i) :: acc)
+  in
+  loop 0 []
+
+(* Trim ASCII whitespace from both ends. *)
+let[@warning "-32"] trim s =
+  let len = String.length s in
+  let rec rtrim i =
+    if i <= 0 then i
+    else
+      let c = String.unsafe_get s (i - 1) in
+      if c = ' ' || c = '\t' || c = '\r' || c = '\n' then rtrim (i - 1) else i
+  in
+  let rec ltrim i =
+    if i >= len then i
+    else
+      let c = String.unsafe_get s i in
+      if c = ' ' || c = '\t' || c = '\r' || c = '\n' then ltrim (i + 1) else i
+  in
+  let a = ltrim 0 in
+  let b = rtrim len in
+  if b <= a then "" else String.sub s a (b - a)
+
+(* ---- the one decision walker -------------------------------------------
+ *
+ * EVERY command that enumerates the decisions directory goes through
+ * the helpers below. There is one walk, one rule for what a decision
+ * IS, and one id per document. Two enumerations of the same corpus
+ * are two pictures of one world, and the corpus is the thing the
+ * whole protocol is about.
+ *
+ * Two defects motivated the consolidation, and both were silent:
+ *
+ *   (a) The walk was FLAT. `Sys.readdir` names the entries of ONE
+ *       directory, so a decision filed in a sub-directory was in no
+ *       corpus at all. Sixteen decisions live in
+ *       `decisions/plan-2026-10-improvements/`; not one of them was
+ *       visible to `mathc self-check`, `mathc packages` or
+ *       `mathc counters`. The decision that introduced the
+ *       counterexample rule (`t6-2-counterexample-required`) was
+ *       itself outside the gate.
+ *
+ *   (b) The walk decided what to EXCLUDE by FILE NAME. The corpus
+ *       holds twenty-eight decisions whose file name differs from
+ *       their id — among them `decision.yaml`, whose id is
+ *       `bootstrap-v3`, the root protocol decision. A name-based
+ *       exclusion list therefore excluded a real decision and had to
+ *       be extended by hand for every new meta file.
+ *
+ * The rule below is structural: a document is a decision when it
+ * declares a TOP-LEVEL `id:` and does not belong to one of the
+ * known non-decision schema families. The file name is not
+ * load-bearing; the id is the identity.
+ *)
+
+(* The extensions a decision document may carry. `.yaml` is the
+   convention; `.yml` and `.json` are accepted so a machine-authored
+   decision need not be renamed. *)
+let[@warning "-32"] decision_extensions = [ ".yaml"; ".yml"; ".json" ]
+
+(* The schema families that live under `decisions/` and are NOT
+   decisions:
+     - `math-coding/waiver-*`       the waiver files in decisions/waivers/
+     - `math-coding/obligations-*`  the obligations aggregator
+     - `math-coding/attestation-*`  attestation documents
+     - `math-coding/migration-manifest` the manifests in decisions/migrations/
+   The rule reads the `schema:` the document DECLARES, not the name
+   of the file it sits in, so a waiver filed anywhere is recognised
+   and a decision filed anywhere is admitted. *)
+let[@warning "-32"] non_decision_schema_prefixes =
+  [
+    "math-coding/waiver-";
+    "math-coding/obligations-";
+    "math-coding/attestation-";
+    "math-coding/migration-manifest";
+  ]
+
+(* The value of the first TOP-LEVEL `key: value` line. "Top-level"
+   means column 0 — the same rule `is_top_level` already states. A
+   block-scalar value (`key: |`) is skipped: it is a container, not
+   a value. *)
+let[@warning "-32"] top_level_value ~key (lines : string list) : string option =
+  let rec loop = function
+    | [] -> None
+    | line :: rest -> (
+        if not (is_top_level line) then loop rest
+        else
+          let trimmed = trim line in
+          match String.index_opt trimmed ':' with
+          | Some i ->
+              let k = String.sub trimmed 0 i in
+              let v =
+                trim
+                  (String.sub trimmed (i + 1) (String.length trimmed - i - 1))
+              in
+              if String.equal k key && v <> "" && v.[0] <> '|' && v.[0] <> '>'
+              then Some v
+              else loop rest
+          | None -> loop rest)
+  in
+  loop lines
+
+(* The id a decision document declares. The `id:` of a decision lives
+   at column 0; an `id:` nested under `decision:` (the obligations
+   aggregator carries one) or under `obligations:` is not the
+   document's own id. *)
+let[@warning "-32"] top_level_id (lines : string list) : string option =
+  top_level_value ~key:"id" lines
+
+(* Is this document a DECISION, and what is its id?
+ *
+ * `None` means "not a decision": the document declares no top-level
+ * id (the obligations aggregator, the migration manifests), or it
+ * belongs to one of the known non-decision schema families (the
+ * waiver files). `Some id` means the document IS a decision and `id`
+ * is its identity.
+ *
+ * The test reads the raw text rather than the parsed tree on
+ * purpose: the corpus index must not depend on the YAML parser
+ * tolerating a document, or a decision whose body the parser cannot
+ * read would vanish from the corpus without a word. *)
+let[@warning "-32"] decision_document_id ~raw : string option =
+  let lines = split_lines raw in
+  match top_level_id lines with
+  | None -> None
+  | Some id -> (
+      match top_level_value ~key:"schema" lines with
+      | Some s ->
+          let sl = String.length s in
+          let is_non_decision =
+            List.exists
+              (fun p ->
+                let pl = String.length p in
+                sl >= pl && String.sub s 0 pl = p)
+              non_decision_schema_prefixes
+          in
+          if is_non_decision then None else Some id
+      | None -> Some id)
+
+(* Recursive walk of a decisions directory. Returns the paths of every
+   candidate document, in a stable order.
+ *
+ * Sub-directories are walked: a decision filed under
+   `decisions/<something>/` is a decision. Hidden entries (a leading
+   dot) are skipped: they are scratch, not corpus. The walk does NOT
+   decide what a decision IS — that is `decision_document_id`'s job,
+   and it needs the file's content. *)
+let[@warning "-32"] rec decision_document_paths (dir : string) : string list =
+  if not (Sys.file_exists dir) then []
+  else if not (Sys.is_directory dir) then []
+  else
+    let entries =
+      try Sys.readdir dir |> Array.to_list |> List.sort String.compare
+      with _ -> []
+    in
+    List.concat_map
+      (fun name ->
+        if String.length name = 0 || name.[0] = '.' then []
+        else
+          let path = Filename.concat dir name in
+          if Sys.is_directory path then decision_document_paths path
+          else if
+            List.exists
+              (fun e -> Filename.check_suffix name e)
+              decision_extensions
+          then [ path ]
+          else [])
+      entries
+
 (* The `scope.paths` of a decision, read from the raw YAML text.
  *
  * ONE implementation, used by every reader: the YAML parser path and
@@ -166,37 +345,6 @@ let[@warning "-32"] empty =
   }
 
 (* --- helpers --- *)
-
-let[@warning "-32"] split_lines s =
-  let len = String.length s in
-  let rec loop i acc =
-    if i >= len then List.rev acc
-    else
-      let rec find_eol j =
-        if j >= len || String.unsafe_get s j = '\n' then j else find_eol (j + 1)
-      in
-      let j = find_eol i in
-      loop (j + 1) (String.sub s i (j - i) :: acc)
-  in
-  loop 0 []
-
-let[@warning "-32"] trim s =
-  let len = String.length s in
-  let rec rtrim i =
-    if i <= 0 then i
-    else
-      let c = String.unsafe_get s (i - 1) in
-      if c = ' ' || c = '\t' || c = '\r' || c = '\n' then rtrim (i - 1) else i
-  in
-  let rec ltrim i =
-    if i >= len then i
-    else
-      let c = String.unsafe_get s i in
-      if c = ' ' || c = '\t' || c = '\r' || c = '\n' then ltrim (i + 1) else i
-  in
-  let a = ltrim 0 in
-  let b = rtrim len in
-  if b <= a then "" else String.sub s a (b - a)
 
 (* Best-effort YAML/JSON extraction of a few scalars we want for
    prioritisation. We do not need full schema validation here — that
@@ -360,50 +508,57 @@ let[@warning "-32"] read reader path =
 
 (* --- loader --- *)
 
+(* Every decision the project holds, loaded from the ONE walker above.
+ *
+ * The corpus is walked RECURSIVELY: a decision filed under
+ * `decisions/<sub-directory>/` is a decision, and it is in the
+ * corpus. The pre-fix loader read ONE directory, so the sixteen
+ * decisions under `decisions/plan-2026-10-improvements/` were
+ * invisible to the capsule, to the gate, and to every counter.
+ *
+ * The corpus is also filtered STRUCTURALLY: a document that declares
+ * no top-level id (the obligations aggregator) or that belongs to a
+ * non-decision schema family (the waiver files) is not a decision
+ * and is not loaded.
+ *
+ * A document that IS a decision but that the semantic parser rejects
+ * (a missing required field, an empty counterexample at mode >=
+ * standard) still gets an entry — a stub with the id the document
+ * DECLARES, not the name of the file it sits in. The pre-fix
+ * fallback named the file, which is the same confusion this change
+ * removes everywhere else: the id is the identity. *)
 let[@warning "-32"] load_decisions reader root =
   let dir = Filename.concat root (Path_config.resolve_decisions_dir ~root ()) in
-  let paths =
-    if Sys.file_exists dir && Sys.is_directory dir then
-      Array.to_list (Sys.readdir dir)
-      |> List.filter (fun n -> Filename.check_suffix n ".yaml")
-      |> List.map (fun n -> Filename.concat dir n)
-    else []
-  in
+  let paths = decision_document_paths dir in
   List.filter_map
     (fun p ->
       match read reader p with
       | None -> None
       | Some raw -> (
-          (* .yaml files parse cleanly; the bootstrap decision files
-           may embed front-matter that the YAML loader can still consume
-           because the leading '---' block is plain YAML. If parsing
-           fails, fall back to a minimal entry so the capsule still
-           names the decision file. *)
-          match parse_decision_yaml raw with
-          | Some entry -> Some entry
-          | None ->
-              let id =
-                let base = Filename.basename p in
-                match Filename.chop_suffix_opt ~suffix:".yaml" base with
-                | Some s -> s
-                | None -> (
-                    match Filename.chop_suffix_opt ~suffix:".md" base with
-                    | Some s -> s
-                    | None -> base)
-              in
-              Some
-                {
-                  decision_id = id;
-                  revision = None;
-                  source = raw;
-                  obligations = 0;
-                  obligation_ids = [];
-                  assumptions = 0;
-                  risk_triggers = [];
-                  scope_paths = [];
-                  state = `Active;
-                  verifier_per_obligation = [];
-                }))
+          match decision_document_id ~raw with
+          | None -> None
+          | Some id -> (
+              (* .yaml files parse cleanly; the bootstrap decision files
+               may embed front-matter that the YAML loader can still consume
+               because the leading '---' block is plain YAML. If parsing
+               fails, fall back to a minimal entry so the capsule still
+               names the decision. *)
+              match parse_decision_yaml raw with
+              | Some entry -> Some entry
+              | None ->
+                  Some
+                    {
+                      decision_id = id;
+                      revision = None;
+                      source = raw;
+                      obligations = 0;
+                      obligation_ids = [];
+                      assumptions = 0;
+                      risk_triggers = [];
+                      scope_paths = [];
+                      state = `Active;
+                      verifier_per_obligation = [];
+                    })))
     paths
 
 let[@warning "-32"] load_spec reader root : spec_doc list =
