@@ -10,7 +10,7 @@
 
 > Project author: Petr Kosov <p.b.kosov@yandex.ru>
 
-This repository implements math-coding 3.3. As of v3.0.0.19
+This repository implements math-coding 3.7. As of v3.0.0.19
 (commit `8fa7fcf`) the bootstrap gate has expired: `mathc self-check`
 is a blocking CI step per `constitution.md` Invariant 14. Verdicts
 produced by `mathc gate`, `mathc self-check`, and `mathc assess`

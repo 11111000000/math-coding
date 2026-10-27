@@ -5,58 +5,347 @@
 
 ## Unreleased
 
-Two cycles merged since v3.3.3. Neither bumps `VERSION`; both are
-kernel-side.
+**The protocol becomes reachable** (`adoption-friction-p0-2026-10@1`).
+The documented path for a project that adopts math-coding was twelve
+commands, five of them thrash caused by the kernel contradicting
+itself, and it could not end in a green check at all: `mathc
+self-check` reported `unknown` and exited 3 for ever, because the
+store the gate read and the store the writer wrote were two
+different directories. Measured on an empty project with the released
+binary, the path is now seven commands and ends green (exit 0), with
+no environment variable and no directory the operator creates by
+hand.
 
-**Applicability envelope is default-on** (`solo-default-on-2026-10@1`).
-A project with a single maintainer now receives `mathc init`
-scaffolding and the agent skill; the sole Path C class is
-`prototype_or_throwaway`. §28, `adoption/SKILL.md`, the `mathc init`
-output and `USAGE.md` all carry it, and the skill copies stay
-byte-identical.
+Six defects, each with a fixture that fails against the pre-fix
+binary: the YAML parser had no branch for the flow sequence
+(`key: [a, b]`), so the form the diagnostic itself recommended was
+silently read as a string — and `scope.paths: ["src/**"]` was read as
+an EMPTY scope, which makes the materials digest a digest of nothing;
+the gate and `attest-batch` resolved the store through two different
+resolvers; the producer computed the materials digest over a subtree
+of the project while the gate computed it over the project; the
+scaffold `mathc new-decision` wrote was a file the next command
+rejected; and `scripts/verify.sh` printed the self-check's exit code
+and then ignored it, so the cycle reported "every stage passed" over a
+red repository.
 
-**Found-bugs batch** (`kernel-fixes-found-bugs-2026-10@1`).
+**The honesty census measured a different thing from the kernel**
+(`adoption-friction-p0-2026-10@1`, the census fixture). It counted an
+obligation as CHECKED when ONE of its `acceptance.all` verifiers was
+executable, while the kernel requires ALL of them. It reported 7
+unexecuted passes where the truth was 286: a metric that reads a
+different thing from the thing it measures cannot keep a ceiling
+honest, and this one had been the instrument that said the store was
+clean.
 
-- `mathc adopt DIR` no longer writes into the caller's repository:
-  the children inherit `MATH_CODING_ROOT=<target>` and the arc42
-  side-decision stops hardcoding `<target>/decisions/...` (which
-  crashed with an uncaught `Sys_error` when the directory did not
-  exist).
-- The path resolver asks about the project being operated on
-  (`?root`, then `$MATH_CODING_ROOT`) instead of the process cwd, and
-  the three paths now share ONE layout decision per project.
-  Previously `mathc init /srv/app` could scaffold the legacy tree.
-- `mathc attest-batch` resolves input/output through the resolver,
-  creates parent directories (`mathc: internal error: Unix...ENOENT`
-  on a fresh target is gone), skips a TSV header row that used to
-  emit `decision_id-obligation_id.json`, and validates `kind_`/`result`
-  against the schema enums.
-- `spec/semantics.md` records that the `accept` verdict was renamed
-  `parse-ok` in `a602b361`.
-- Cram CLI baseline **51 red fixtures → 35** (unique `tests/cli/*.t`
-  files). Fixed: `attest-batch`,
-  `counterexample-warning`, `counterexample-warn`, `embedded-schemas`,
-  `import-adr`, `init`, `init-agent`, `init-defaults`, `init-legacy`,
-  `init-scope-language-agnostic`, `malformed-acceptance`,
-  `path-config-fallback`, `render`, `validate-considered-antithesis`
-  (an unquoted `<<EOF` heredoc was letting the shell execute a
-  backticked `mode: considered` in the fixture body),
-  `validate-counterexample-required`, `yaml-parser`.
-  Also: `scripts/install-tooling/install.sh` is mode 755 again, and
-  `forge-verify.t` polls its stub server instead of `sleep 0.2`.
+**The re-evaluation oracle files a review** (`re-evaluation-is-not-a-
+check-2026-10@1`). `mathc re-evaluate-decisions` re-reads a decision
+and asks whether its claim contradicts an axiom; it never executes the
+obligation's verifier. It wrote one attestation per obligation anyway,
+as `kind_: test`, `result: pass`, with an empty `materials_digest`
+and no `producer.run` — 88 machine-grade passes with nothing behind
+them. It now files `kind_: review`, `result: inconclusive`, anchored
+to the command that produced the record. The verdict the command
+PRINTS is unchanged; what changes is the KIND OF EVIDENCE it files.
 
-Pre-existing baseline failures that this cycle does NOT address:
-35 fixtures remain red — count drift (`gate-*.t` still assert
-`obligations: 183` against 672), stale digest / spec-line pins, and
-behaviour changes needing individual judgement (`mode: standard` →
-`tiny`, `doctor` pass → warn, `mcp.t` losing a diagnostic). They
-belong to the test-hardening cycle named in `plan-2026-12-*`.
-`tests/cli/gate-*.t` carry an unexplained discrepancy: a
-byte-identical copy of `gate-pass.t` reports 672 obligations where the
-original reports 0 under `dune test --force`, so those counts were
-left untouched rather than copied from the copy.
+The corpus is now RED on purpose: the honest re-signing took 279
+machine-grade passes to `inconclusive`, because they sat on
+obligations whose verifier is a declaration, and a declaration is not
+a check. The debt did not grow — it was signed green.
 
-## v3.3.3 — 2026-10-18 — current
+The notes for v3.4.0 … v3.7.4 are below; they used to live only in
+the git tag messages, which made this file — the one that calls
+itself the single source of truth — eleven releases stale.
+
+## v3.4.0 — 2026-10-23
+
+Four defects closed, each proven by a fixture that fails against the
+pre-fix binary and passes against this one, with a negative control
+in every fixture:
+
+  - mathc init never returned outside an in-tree build (725 s of CPU
+in one observed process, eight resident at once).
+  - attest-batch --manifest ignored --run and wrote an empty
+materials_digest for a runtime kind.
+  - materials_digest had no reference value: the gate compared
+against sha256 of path NAMES, the producers wrote sha256 of
+command output. The two could never be equal, so the freshness
+check only ever accepted the attestations that carried no
+evidence. Semantics A binds the digest to the content of the
+decision's scope.
+  - mathc gate failed OPEN on an unresolvable ref.
+
+The legacy-attestation debt is now a measured number with a ceiling
+that may only fall.
+
+## v3.4.1 — 2026-10-23
+
+scripts/dune-test-with-timeout.sh read its exit status with
+
+if run_dune; then ... exit 0; fi
+rc=$?
+
+Bash defines the exit status of a false 'if' with no 'else' as 0, so
+'rc=$?' always read 0 and the script exited 0 for EVERY 'dune test'
+outcome - including a total failure. That silently disarmed the fix
+in a198e179, which had taught scripts/dev::verify_test_suite to read
+the wrapper's exit status: the wrapper it reads could only ever
+return 0, so verify printed "verify dune test: ok" when the test
+suite failed outright.
+
+The fix moves 'rc=$?' inside the 'else'. The fixture stubs four dune
+exit statuses and scans the script for an ORPHANED 'rc=$?' - one
+sitting on the line after 'fi' - so the same class of defect is
+caught by a scan, not only by the one case someone remembered. It
+also rebuilds the pre-fix version as a control and shows that the
+control swallows the exit code.
+
+## v3.4.2 — 2026-10-23
+
+Two defects that made the verification chain report on the wrong
+thing.
+
+1. scripts/regenerate-self-check-fixture.sh regenerated the
+   self-check fixture by running scripts/generate-attestations.py -
+   which writes to <repo_root>/attestations - and then moving the
+   result with a glob over attestations/*.json. The glob matches
+   the LIVE store, so every regeneration moved the live attestations
+   into the fixture directory. Measured: 765 tracked attestations
+   went to 0. The fix fingerprints the live store before the
+   regeneration and asserts it is unchanged after each stage; the
+   run above reports 'live store attestations/: 1600 files,
+   unchanged (verified)'.
+
+2. scripts/check.sh ran the decisions-precommit gate as
+   'nix develop .#test --command bash -c "mathc precommit ..."',
+   assuming mathc is on PATH inside the test shell. It is not:
+   mkShell does not put a package derivation on PATH, and the
+   devShell's packages list is ocamlDeps ++ dune ++ buildTools. On a
+   developer machine the step passed only because a machine-local
+   ~/.local/bin/mathc existed; on a GitHub runner that artifact is
+   absent, the shell printed 'mathc: command not found', and the
+   step reported 'FAIL decisions-precommit' for a provably clean
+   corpus. The gate now invokes the binary by its build path.
+
+Also fixes two record constructions left without the scope_paths
+field that semantics A added to Memory.decision_entry.
+
+## v3.5.0 — 2026-10-23
+
+candidate_tree now names a real commit instead of the literal HEAD.
+749 of the 765 committed attestations carried the literal string
+HEAD; the rest carried branch NAMES, not commits. Under semantics A
+a materials digest bound to a floating ref binds nothing, so this
+and semantics A are one unit.
+
+attest-batch --run-per-obligation executes each row's own verifier
+and signs it with that verdict. The --manifest branch now refuses a
+runtime kind without --run, which it did not. --only-changed=BASE
+re-signs only the obligations whose scope a commit touched, and
+scripts/resign-changed.sh wires that into the commit cycle.
+
+## v3.5.1 — 2026-10-23
+
+The producer identities in the store were inconsistent: human 369,
+ci 251, agent 95, ci-bot 51, dune 6, sub-agent-A4-batchA 3, test 2.
+The prefix was not a declared class, so 'ci-bot:re-evaluate-decisions'
+- one command that emitted 793 signatures with three self-chosen
+values - was indistinguishable in kind from 'ci:fixture:attest-batch'.
+
+producer.identity is now class-tagged: human: a person, agent: a
+model-driven agent, ci: an automated job. A runtime kind signed by a
+human producer must name the run whose exit code produced it; a
+review needs no run. The legacy backlog is counted and pinned rather
+than rewritten, so the class can be imposed on what comes next
+without a 763-file rewrite in the same commit.
+
+## v3.5.2 — 2026-10-23
+
+scripts/dev-profile.sh times each link of the verification cycle
+separately. Measured, the dominant link was scripts/check.sh at
+84.7 s, not the 128 cram transcripts as assumed.
+
+  - 28 separate 'dune build' invocations, one per test binary,
+became one invocation.
+  - 'dune clean' before the cram phase became conditional on the
+kernel's content digest having moved. The clean is load-bearing
+against a cram cache bug that replays a stale transcript, but
+that staleness can only bite when the kernel changed.
+
+Also: sync-version.sh now maintains both copies of the skill
+document; the attestation-anchor pin is a ceiling rather than an
+equality; the cold-start budget reports SKIP rather than FAIL when
+the machine is too loaded for the measurement to mean anything; and
+a verifier that cannot be SET UP - no program, exit 126/127, or no
+output at all - is reported as inconclusive rather than as a
+failure. Silence is not a verdict.
+
+## v3.6.0 — 2026-10-23
+
+The verification chain now has three outcomes with three meanings: a
+verdict (the check ran and failed), a non-run (the check could not be
+set up) and a declaration (a human said so, bound to a tree). The
+corpus carries no prose verifier: 327 became 0. The legacy debt is
+three numbers with ceilings that may only fall: 22 legacy
+attestations, 30 inconclusive, 25 decisions with no attestation.
+
+self-check: 150 passing subjects, 81 unknown, 3 open-with-waiver.
+
+## v3.7.0 — 2026-10-24
+
+Every attestation is now signed by RUNNING the obligation's own
+verifier. The store used to report 763 passing obligations and carry
+765 attestations with an EMPTY materials_digest - a wildcard the gate
+treats as fresh for every tree, for ever. The 763 passes were
+signatures without evidence.
+
+The honest numbers: 200 subjects pass, 31 fail, 4 cannot be concluded
+here, 2 are waived. The 31 are the project's first MEASURED backlog
+of broken obligations, pinned as a ceiling that may only fall.
+
+Three corpus defects produced most of it, none of them a kernel
+defect: verifiers naming a test case nobody wrote; verifiers
+carrying a prose tail the kernel passed to the program as arguments
+("dune build @tests/x/runtest --root . exits 0" invoked dune with
+"exits" and "0"); and "mathc self-check" used as the verifier of
+an obligation INSIDE the corpus it evaluates - self-reference, and a
+deadlock.
+
+The gate now distinguishes four things it used to confuse: a verdict
+(the check ran and failed), a non-run (it could not be set up), a
+declaration (a human said so, bound to a tree), and a rejection. An
+unknown verdict is not a rejection, and a declaration is not a gap.
+
+## v3.7.1 — 2026-10-24
+
+Every attestation is signed by RUNNING the obligation's own verifier,
+one decision per process, so the result is reproducible. The store
+carries 204 passing subjects, 12 failing, 23 that cannot be concluded
+here and 2 waived - the first honest numbers the project has ever
+had, and the 12 are a measured backlog with a ceiling that may only
+fall.
+
+The chain now distinguishes four things it used to confuse: a VERDICT
+(the check ran and failed), a NON-RUN (it could not be set up), a
+DECLARATION (a human said so, bound to a tree), and a REJECTION. An
+unknown verdict is not a rejection; a declaration is not a gap; and
+silence is not a verdict either - a script whose contract is 'exit 3
+means fail' says exactly that by saying nothing.
+
+Three corpus defects produced most of the backlog, none of them a
+kernel defect: verifiers naming a test case nobody wrote; verifiers
+carrying a prose tail the kernel passed to the program as arguments
+("dune build @tests/x/runtest --root . exits 0" invoked dune with
+"exits" and "0"); and 'mathc self-check' used as the verifier of
+an obligation INSIDE the corpus it evaluates - self-reference, and a
+deadlock.
+
+The signing operation refuses on a tree whose content differs from
+the tree it will name, because an attestation bound to content the
+verifier never saw is a decoration. The bulk signing is
+scripts/sign-store.sh: one decision per process, because 870
+verifiers sharing one build tree and one cram cache are not a
+measurement.
+
+## v3.7.2 — 2026-10-24
+
+The specification is now an INDEX into the OCaml: what each concept
+guarantees, and which module implements it. Five sections that had no
+code counterpart, no reference from any code and no reference from any
+decision are removed - including one that was an exact duplicate of
+the constitution.
+
+AND the contract between the document and the code was NOT RUNNING.
+Three conformance fixtures read the specification from the cram
+sandbox, which does not contain spec/. So the fixture that compares
+the risk thresholds in the document against lib/risk.ml compared
+them against nothing, and the cram cache replayed its stale
+transcript while the suite reported green. They now read
+$DUNE_SOURCEROOT, so they read the current file, and the comparison
+is the mechanism that keeps the two in step.
+
+Also: 25 merged branches and 8 worktrees removed, 5 more branches
+deleted after verifying their substance is in main, one kept because
+it carries a feature that is genuinely not merged. The two copies of
+the OpenCode skill are now checked for byte-equality by a fixture.
+
+self-check: 204 passing subjects, 11 failing, 25 that cannot be
+concluded here, 2 waived.
+
+## v3.7.3 — 2026-10-25
+
+The signing sweep takes 232 s instead of 574 s (the tree is warmed
+first, and the kernel memoises verifier results within a process:
+1482 verifier strings across 242 decisions, of which 906 are
+distinct, so 38% of the work was being done twice).
+
+The verification cycle is one command, in the only order that works.
+dune fmt rewrites the bytes of bin/Mathc.ml and 183 of the corpus's
+246 decisions cover that file, so formatting after the re-signing
+invalidates three quarters of the corpus. It happened five times in
+one session; now the process makes the wrong order impossible.
+
+A decision is found by its ID, by scanning the decisions directory.
+Sixteen decisions carry an id that differs from their file name, and
+the kernel used to fail to find them and report every one of their
+obligations as a broken check - 69 of the 110 unsigned obligations
+were that one defect.
+
+A manual- declaration is recorded as review/inconclusive instead of
+being laundered into a pass: the kernel cannot know a human checked
+anything. The honesty census went from 886/364/6 over its ceiling
+to 18/7/0.
+
+The corpus's own guards had been measured against a store that was
+lying, so every honest fix broke a ceiling. They are recalibrated
+against the honest baseline, and the failing-subject backlog fell
+from 11 to 2.
+
+The specification is an index into the OCaml; five sections that no
+code, no test and no decision referenced were removed.
+
+## v3.7.4 — 2026-10-25 — current
+
+THE SWEEP. 574 s -> 170 s. The tree is warmed first, and the kernel
+memoises verifier results within a process: 1482 verifier strings
+across 242 decisions, of which 906 are distinct, so 38% of the work
+was being done twice - and the expensive ones were the repeats
+(tests/repo_structure.ml 18 times at 7.2 s each).
+
+THE SWEEP IS ATOMIC. It used to write attestations into the store
+while the verifiers ran, and several verifiers MEASURE the store, so
+their verdict depended on when they ran. Six obligations failed for
+that reason alone.
+
+THE REFUSAL NAMES THE CULPRIT. The kernel could say THAT an
+obligation failed but not WHICH of its verifiers, and the derivation
+had to be guesswork. 23 of the 24 remaining refusals now name the
+verifier that failed.
+
+THE KERNEL FINDS DECISIONS BY ID, by scanning the decisions
+directory. Sixteen decisions carry an id that differs from their file
+name, and the kernel reported 'the decision I was asked about does
+not exist' as 'the check failed'. 69 of the 110 unsigned obligations
+were that one defect.
+
+THE SCOPE NAMES NOTHING. 81 decisions carried a scope path that
+matched no tracked file: a file that no longer exists, a literal
+placeholder, a decision id pasted into a path, and a trailing comment
+inside the quoted string.
+
+THE GUARDS ARE RECALIBRATED against the honest baseline. They had
+been measured against a store that was lying, so every honest fix
+broke a ceiling. The honesty census went from 886/364/6 over its
+ceiling to 18/7/0, and the failing-subject backlog from 11 to 2.
+
+THE CYCLE IS ONE COMMAND. Format, build and test, re-sign, verdict,
+gate - in the only order that works. dune fmt rewrites the bytes of
+bin/Mathc.ml and 183 decisions cover that file, so formatting after
+the re-signing invalidates three quarters of the corpus. It happened
+five times in one session; now the process makes the wrong order
+impossible.
+
+## v3.3.3 — 2026-10-18
 
 Release-prep + F11/F12 cleanup + Batch B + Batch C + MCP
 pipe-deadlock fix. Closes the 9 recommendations from

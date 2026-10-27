@@ -1,4 +1,4 @@
-# math-coding 3.3
+# math-coding 3.7
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/11111000000/math-coding?sort=semver)](https://github.com/11111000000/math-coding/releases/latest)
@@ -6,7 +6,7 @@
 [![Site](https://img.shields.io/website?url=https%3A%2F%2F11111000000.github.io%2Fmath-coding%2F)](https://11111000000.github.io/math-coding/)
 
 > Author: Petr Kosov <p.b.kosov@yandex.ru>
-> Status: 3.3.3, current release v3.3.3. Bootstrap gate
+> Status: 3.7.4, current release v3.7.4. Bootstrap gate
 > expired at v3.0.0.19 (2026-09-29). The 3.2-ideal algebra
 > (`spec/algebra-3.2.md`) is normative alongside the prose specs.
 > License: Apache-2.0 (see `LICENSE`, `NOTICE`).
