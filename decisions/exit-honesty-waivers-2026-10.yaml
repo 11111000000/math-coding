@@ -1,0 +1,502 @@
+---
+schema: math-coding/3.3
+id: exit-honesty-waivers
+revision: 1
+state: active
+mode: standard
+body_sha: "sha256:2e1a682b6eb7223ed7fec7cfad39afd70b11b9bfbdff1a1a5881346f9982698a"
+yaml_sha: "sha256:2e1a682b6eb7223ed7fec7cfad39afd70b11b9bfbdff1a1a5881346f9982698a"
+axiom_link:
+  - A0
+  - A1
+  - A2
+  - A3
+intent: |
+  Two artefacts of this protocol were allowed to mean less than they
+  said, and both of them are the two artefacts a reader trusts most.
+
+  THE FIRST is the waiver. A waiver is the protocol's only way of
+  saying "this gap is accepted, by a named person, until a named
+  date". constitution.md §Waivers: "A waiver is explicit, scoped,
+  authorized, expiring acceptance of ONE AssuranceGap", and
+  Invariant 11: "a waiver MUST apply only to its named gap, scope,
+  revisions, gate and validity interval". `lib/waiver.ml::covers`
+  checked none of that except the subject and the time window: the
+  class the waiver declares (`rule`), the scope it names, and even
+  WHICH obligation it accepts were not read. The consequence was
+  measured on this repository, on the tree this decision lands on:
+
+    - `decisions/waivers/` holds 8 waiver files;
+    - between them they covered 37 obligation-gaps;
+    - 7 of the 8 name NO obligation at all (the field is absent),
+      and the 8th writes the field as a YAML LIST where
+      `schemas/waiver.json` declares a STRING, so the parser reads
+      it as absent too;
+    - all 8 declare the class `obligation-missing-attestation`,
+      while the 37 gaps they covered were 36 x `Unknown` (the store
+      holds attestations for them, but they report inconclusive or
+      infrastructure-error) and 1 x `StaleEvidence` (the
+      attestation's materials digest no longer matches).
+
+  So 36 of the 37 covered gaps were covered by a waiver that named
+  no gap, and NOT ONE of the 8 declared the class of the gap it
+  was covering. The reasons say why: 7 of the 8 carry the same
+  sentence, "Infrastructure-error attestations retained from
+  headless UI runs", which describes a state of the attestation
+  store that this repository no longer has.
+
+  THE SECOND is the exit code. spec/semantics.md §Kernel Output
+  ("Verdict to exit code") is normative for every
+  verdict-producing subcommand: `Pass` -> 0, `Open_with_waiver` ->
+  0, `Block` -> 1, `Unknown` -> 3, and constitution.md Invariant
+  14b restates it: "exit code 0 MUST imply verdict `Pass` or
+  `Open_with_waiver`". Three subcommands broke it, in the same
+  direction, and the direction is the one the invariant names as
+  laundering: "unknown != pass".
+
+    - `mathc verify FILE` on a real decision printed seven
+      `skipped` verdicts and exited 0. `skipped`, `setup-fail`,
+      `timeout` and `declared` are all "the check did not run";
+      a command that verified nothing is not a passing command.
+    - `mathc re-evaluate DECISION AXIOM` printed `incompatible`
+      (the decision contradicts the axiom) or `stale_claim` (the
+      gate's own precondition rejects it) and exited 0.
+    - `mathc forge-verify` with no forge configured printed
+      `verdict: pass` and exited 0 — it asserted a team membership
+      it never checked.
+
+  An exit code is the last place where the difference between "the
+  check passed" and "nobody checked" can still be lost, and these
+  three commands lost it there.
+commitment: |
+  Six commitments, each with a fixture that fails against the
+  pre-fix binary and passes against this one.
+
+  (a) `lib/waiver.ml` holds a waiver to FOUR bounds, all of them
+      required before a waiver covers a gap:
+
+        - the subject: the waiver's `subject` is the decision that
+          owns the gap;
+        - the interval: `issued_at <= now < expires_at` (unchanged;
+          the expiry second is outside the interval, per
+          Invariant 14c);
+        - the NAMED GAP: `unverified_obligation` names THIS
+          obligation. A waiver that names no gap covers NOTHING.
+          The legacy decision-wide form is REVOKED: it was a
+          backward-compatibility shim for waivers whose YAML
+          front-matter expressed the field as a list
+          (`decisions/plan-2026-10-improvements/t3-2.yaml`), and
+          the schema declares the field a string, so those files
+          were read as naming nothing and covered every obligation
+          of their decision;
+        - the DECLARED CLASS and the SCOPE: the class of the gap
+          must be the class the waiver declares in `rule`, and the
+          scope the waiver names must stay inside the scope of the
+          decision that owns the gap.
+
+  (b) The gap classes have a vocabulary, and it lives in the module
+      that owns the waiver contract (`lib/waiver.ml`):
+      `obligation-missing-attestation` (the store holds no
+      attestation for the obligation), `obligation-stale-attestation`
+      (it holds one, but none is current) and
+      `obligation-inconclusive-attestation` (it holds current
+      attestations, and none of them reports `pass`). A waiver that
+      declares any other class names a gap the kernel cannot check
+      and covers nothing. The three kinds that are not waivable
+      (`FailedEvidence`, `MissingReview`) and the absent store map
+      to no class at all: constitution.md §Waivers forbids a waiver
+      from converting a `fail` into anything else.
+
+  (c) The class of a gap is a RUNTIME property of the
+      (decision, obligation) pair — it is read out of the
+      attestation store — so it is known where the gaps are
+      computed. `bin/Mathc.ml::evaluate_decision` therefore
+      narrows the subject's waiver list to the waivers whose
+      declared class matches the class of the gap they name, using
+      `Waiver.covers` itself, and hands the narrowed list to the
+      aggregation. `lib/gate.ml` is NOT changed by this decision
+      (the pure aggregation of gaps is not where the class lives);
+      the follow-up that would make the check independent of its
+      caller is named under "What this decision does NOT do".
+
+  (d) `mathc verify` exits 1 when an obligation failed decisively,
+      0 when at least one obligation was actually fulfilled, and 3
+      when NOTHING was verified (every obligation landed on
+      skipped / setup-fail / timeout / declared). 2 stays the input
+      error.
+
+  (e) `mathc re-evaluate` exits 1 for `incompatible` and
+      `stale_claim` (both are `Block`: the decision contradicts the
+      axiom, or the gate's precondition rejects the claim), 3 for
+      `inconclusive` (`Unknown`: the oracle could not conclude), and
+      0 for `compatible` / `compatible_after_run`.
+
+  (f) `mathc forge-verify` reports `verdict: unknown` and exits 3
+      when the forge is not configured or the query fails, and
+      `verdict: block` with exit 1 under `--fail-mode closed`. The
+      default mode no longer answers `pass` for a membership it
+      never checked.
+
+  MEASURED, on the tree this decision lands on:
+
+    - `mathc self-check` before: 252 subjects, 32 pass, 211
+      unknown, 8 open-with-waiver, 1 fail; 37 obligation-gaps
+      covered by the 8 waivers; exit 1.
+    - `mathc self-check` after: 252 subjects, 32 pass, 219
+      unknown, 0 open-with-waiver, 1 fail; 0 obligation-gaps
+      covered by a waiver; exit 1 (UNCHANGED — the repository was
+      already failing on `plan-2026-10-distro-friction`).
+    - The eight subjects that lose the waiver relief:
+      `audit-0.0.21-fixes` (8 gaps),
+      `attestation-waiver-policy-schema-bump-3-3-2026-10` (5),
+      `kernel-typo-fixes-batch-2026-10` (7),
+      `mobile-menu-collapse-and-hide-on-scroll-2026-10` (3),
+      `p8-hook-deficit-2026-10` (2),
+      `render-module-split-phase1a-2026-10` (3),
+      `site-axiom-img-and-dropdown-2026-10` (5),
+      `site-dropdown-anim-2026-10` (4). Every one of them moves
+      from `open-with-waiver` to `unknown`; none of them moves to
+      `pass`.
+    - `mathc verify` before: `decisions/agent-onboarding.yaml`
+      printed four `skipped` and exited 0; `decisions/
+      time-honesty.yaml` printed three `skipped` and exited 0;
+      `decisions/priority-drift.yaml` printed two `skipped` and
+      exited 0. After: the same three commands exit 3. A decision
+      with one fulfilled and one skipped obligation
+      (`decisions/ux-3-install-libc-auto-detect-2026-10.yaml`)
+      exits 0 before and after — the command verified something,
+      and the per-obligation verdict stays per-obligation.
+    - `mathc re-evaluate 3-2-cli-catalog A0` printed `incompatible`
+      and exited 0 before; it exits 1 now.
+    - `mathc forge-verify --org=foo --team=bar --user=baz` with no
+      forge printed `verdict: pass` and exited 0 before; it prints
+      `verdict: unknown` and exits 3 now.
+
+  THE CONFLICTS this decision walks into, in full.
+
+  (1) The revoked decision-wide form was a COMMITMENT of an active
+      decision, not an accident. `decisions/plan-2026-10-
+      improvements/t3-2.yaml` says: "Pre-existing waivers that ship
+      without `unverified_obligation` ... retain their legacy global
+      coverage of every obligation of the named decision —
+      backward compatibility is preserved per AGENTS.md
+      §Self-application". Revoking it changes that decision's
+      commitment, so it is done HERE, under the currently active
+      policy, and the fixtures that pinned it are updated in the
+      same commit: `tests/cli/gate-waiver-scope.t` scenario 3,
+      `tests/waiver_test.ml` (the decision-wide cases) and
+      `tests/gate/waiver_aggregation.ml` (the cases that used ONE
+      waiver for TWO gaps now use one waiver per gap, so that they
+      still test what they claim to test).
+
+  (2) `decisions/forge-principal-verification-2026-10.yaml`
+      commits (b) and the outcome `fail-open-default` to: "`--fail-
+      mode open` (default) returns verdict=pass and exit 0 when
+      `MATH_CODING_FORGE_API` is unset or the curl call fails".
+      That commitment IS the defect Invariant 14b names: a verdict
+      of `pass` over a membership nobody checked. This decision
+      supersedes the clause. The flag keeps its meaning as "an
+      unreachable forge is not a decisive failure" and now reports
+      `unknown` (exit 3); `--fail-mode closed` keeps reporting
+      `block` (exit 1). The earlier decision's outcome text needs a
+      revision (rev 2) to say so; that revision is NOT part of this
+      commit and is listed under "What this decision does NOT do".
+
+  (3) `spec/semantics.md`'s row for `re-evaluate` says "Exit code:
+      0 on a resolved pair". The same spec's §Kernel Output says the
+      verdict table is "normative for every verdict-producing
+      subcommand", so the two sentences disagree about a subcommand
+      that produces a verdict. The spec is NOT edited here
+      (`spec/**` is outside this change), so the row is a KNOWN
+      DEVIATION of the shipped kernel, recorded here together with
+      the wording that would close it: "Exit code: 0 on a resolved
+      pair whose verdict is `compatible` or `compatible_after_run`;
+      1 on `incompatible` or `stale_claim`; 3 on `inconclusive`;
+      2 on missing arguments, an unknown DECISION_ID or an unknown
+      AXIOM_ID."
+
+  (4) `schemas/waiver.json` declares `unverified_obligation` a
+      STRING, and the eight existing files either omit it or write
+      it as a YAML LIST. The schema is not changed here. The
+      parser's reading is the honest one — a list is not a string —
+      and what has to change is the data.
+
+  THE MIGRATION for the eight existing waivers. None of the eight
+  can be made honest by editing one field: the class they declare
+  (`obligation-missing-attestation`) is not the class of any gap
+  they cover, and a waiver that names one obligation covers one
+  gap. There are two routes, and the choice is an operator's,
+  because the first one needs the producers to run again.
+
+  (i) CLOSE THE GAPS. The 37 gaps are not "missing attestations":
+      36 of them are `Unknown` — the store holds attestations for
+      them, but they report inconclusive or infrastructure-error —
+      and 1 is `StaleEvidence`, an attestation whose materials
+      digest no longer matches. The honest remedy is to re-run the
+      producers so that those attestations report `pass` against the
+      current tree, and to re-sign the stale one; then delete the
+      eight waiver files. `mathc self-check` prints the gap list per
+      subject, one `causes[]` entry per gap.
+
+  (ii) FILE ONE WAIVER PER GAP. If relief is needed before the
+      producers can run, each waiver must name ONE obligation,
+      declare the class that gap actually has
+      (`obligation-inconclusive-attestation` for the 36 `Unknown`
+      gaps, `obligation-stale-attestation` for the stale one),
+      carry a scope inside the decision's scope, a reason that
+      names the actual reason — the copy-pasted "Infrastructure-error
+      attestations retained from headless UI runs" describes a
+      store state this repository no longer has — an issuer and an
+      expiry. Under constitution.md §Waivers ("MUST identify one
+      gap") that is 37 files, not 8.
+
+  This decision applies NEITHER route: `decisions/waivers/**` is
+  outside the file set this change owns, and the choice between the
+  two routes needs the store's producers to be re-run. What it does
+  is make the eight files inert rather than silently load-bearing:
+  they no longer buy relief they never described.
+
+  WHAT THIS DECISION DOES NOT DO, on purpose.
+
+  (i) `lib/gate.ml` is not changed. The class of a gap is a RUNTIME
+      property, so the class check happens where the gaps are
+      computed (`bin/Mathc.ml::evaluate_decision`), and the pure
+      aggregation in `lib/gate.ml` consults the narrowed list. The
+      alternative — passing the gap's class into `Waiver.covers` at
+      the aggregation's own call site, one line in `lib/gate.ml` —
+      would make the check independent of its caller and is the
+      shape to prefer in a follow-up.
+
+  (ii) `decisions/waivers/*.yaml` is not rewritten; see the
+      migration above.
+
+  (iii) `spec/semantics.md` is not edited; see the conflict (3).
+
+  (iv) `decisions/forge-principal-verification-2026-10.yaml` is not
+      revised; its `fail-open-default` outcome needs a rev 2 that
+      says what the conflict (2) says. The revision is a follow-up
+      because revising it changes the digest of an attested
+      decision.
+
+  (v) `attestations/` is not re-signed. The fixtures this commit
+      changes are named by the scope of the decisions that claim
+      them (`tests/cli/forge-verify.t` is in the scope of
+      `forge-principal-verification`, `tests/cli/gate-waiver-scope.t`
+      in the scope of the t3-2 sub-decision), so the attestations of
+      those decisions go stale against the current tree. The store
+      is outside this change, and the repository's self-check was
+      already red for an unrelated subject
+      (`plan-2026-10-distro-friction`).
+outcomes:
+  - id: a-waiver-covers-what-it-declares
+    statement: |
+      `Waiver.covers` holds a waiver to the gap it names, the class
+      it declares and the scope it claims. A waiver that names no
+      gap covers nothing. The end-to-end fixture is
+      `tests/cli/waiver-scope.t` (six scenarios: the positive
+      case, the wrong declared class, the revoked decision-wide
+      form, a scope outside the decision's scope, a scope inside
+      it, and a waiver that names a sibling obligation).
+  - id: verify-exits-nonzero-when-it-verified-nothing
+    statement: |
+      `mathc verify` exits 3 when no obligation was fulfilled, 1
+      when one failed, 0 when at least one was fulfilled. The
+      fixture is `tests/cli/verify-exit.t` (five scenarios plus the
+      JSON shape).
+  - id: re-evaluate-and-forge-verify-stop-lying
+    statement: |
+      `mathc re-evaluate` exits 1 for `incompatible` and
+      `stale_claim`, 3 for `inconclusive`; `mathc forge-verify`
+      reports `unknown` and exits 3 when the forge is unreachable,
+      and `block` and exit 1 under `--fail-mode closed`.
+scope:
+  capabilities:
+    - waiver-coverage-bounds
+    - verdict-exit-honesty
+  paths:
+    - "lib/waiver.ml"
+    - "bin/Mathc.ml"
+    - "tests/cli/verify-exit.t"
+    - "tests/cli/waiver-scope.t"
+    - "tests/cli/verify.t"
+    - "tests/cli/forge-verify.t"
+    - "tests/cli/gate-waiver-scope.t"
+    - "tests/waiver_test.ml"
+    - "tests/gate/waiver_aggregation.ml"
+    - "decisions/exit-honesty-waivers-2026-10.yaml"
+  exclusions:
+    - "lib/gate.ml"
+    - "lib/memory.ml"
+    - "lib/packages.ml"
+    - "attestations/**"
+    - "scripts/**"
+    - "tests/fixtures/**"
+    - "schemas/**"
+    - "spec/**"
+    - "decisions/waivers/**"
+obligations:
+  - id: a-waiver-covers-what-it-declares
+    claim: |
+      `Waiver.covers` covers a gap only when the waiver names that
+      obligation, declares the class of that gap and keeps its
+      scope inside the scope of the decision that owns the gap. A
+      waiver that names no gap covers nothing.
+    acceptance:
+      all:
+        - verifier: file-exists tests/cli/waiver-scope.t
+          result: pass
+        - verifier: file-exists tests/waiver_test.ml
+          result: pass
+        - verifier: file-exists tests/gate/waiver_aggregation.ml
+          result: pass
+  - id: verify-exits-nonzero-when-it-verified-nothing
+    claim: |
+      `mathc verify` exits non-zero when no obligation was actually
+      fulfilled, and the exit code follows the verdict table of
+      spec/semantics.md §Kernel Output.
+    acceptance:
+      all:
+        - verifier: file-exists tests/cli/verify-exit.t
+          result: pass
+        - verifier: file-exists tests/cli/verify.t
+          result: pass
+  - id: re-evaluate-and-forge-verify-stop-lying
+    claim: |
+      `mathc re-evaluate` exits non-zero for `incompatible` and
+      `stale_claim`, and `mathc forge-verify` no longer reports
+      `pass` when the forge could not be reached.
+    acceptance:
+      all:
+        - verifier: file-exists tests/cli/forge-verify.t
+          result: pass
+  - id: the-decision-is-valid-and-hashed
+    claim: |
+      This decision file parses, validates against
+      `schemas/decision.json`, and carries the digests of its own
+      bytes.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/exit-honesty-waivers-2026-10.yaml
+          result: pass
+negative_control: tests/cli/waiver-scope.t
+risk:
+  declared_triggers:
+    - the class vocabulary and the one-gap rule leave a project with
+      no way to waive a whole decision, and the migration is not
+      applied by this decision
+    - the exit code of `mathc verify` changes for every decision
+      whose obligations are all skipped, including the ones a CI
+      pipeline treats as green
+    - `mathc forge-verify --fail-mode=open` no longer exits 0, so a
+      pipeline that gates on it needs the mode that matches its
+      policy
+    - the waiver files under `decisions/waivers/` are left in place
+      by this decision and are now inert; a reader that trusts them
+      will read relief where there is none
+  owner: human:maintainer
+relations:
+  addresses:
+    - self-check-waiver-verdict-coherence-2026-10@1
+    - exit-code-symmetry-2026-10@1
+    - forge-principal-verification@1
+    - plan-2026-10-improvements@1
+  supersedes: []
+  superseded_by: []
+counterexample: |
+  The strongest counter-position is that this decision removes the
+  protocol's only relief valve at the moment the repository needs
+  it, and that the honest reading of the exit codes is the other
+  way round.
+
+  (a) "The eight waivers are the reason eight subjects are not
+      blocking. Revoking the decision-wide form leaves the
+      repository with 219 unknown subjects and no way back except
+      writing 37 new waiver files."
+
+      The measurement refuses the premise: the relief was never
+      real. 36 of the 37 covered gaps were covered by a waiver that
+      named NO gap, and all 8 declared a class
+      (`obligation-missing-attestation`) that none of the 37 gaps
+      has. A waiver that names nothing and declares the wrong class
+      is not relief; it is a green tick over an unexamined gap. The
+      repository's own exit code does not change: it was 1 before
+      this decision and it is 1 after, because
+      `plan-2026-10-distro-friction` already fails on a decisive
+      `fail` attestation. What the decision removes is the ability
+      to read the 8 subjects as open-with-waiver; what it restores
+      is the ability to see them as the unknown they are.
+
+  (b) "The exit code of a verifier runner reports whether the
+      command ran, not whether the claim is verified. `mathc verify`
+      skipping an obligation it cannot run is information, not
+      failure."
+
+      That reading makes exit 0 mean "the command did not crash",
+      which is a property of the process, not of the decision. The
+      per-obligation verdicts are already printed, one per
+      obligation, so the information the counter-position defends is
+      not lost by the exit code; it is in the output. What the exit
+      code adds is the one bit a CI pipeline reads. And the
+      constitution is explicit that the bit must not be a pass:
+      Invariant 14b, "exit code 0 MUST imply verdict `Pass` or
+      `Open_with_waiver`", with the failure mode named in the same
+      breath — "`unknown != pass` and `exit 0 != verdict:Unknown`
+      are the same invariant stated twice".
+
+  (c) "A waiver should be able to accept a whole decision when the
+      decision is structurally unreachable (the case the first
+      waiver was written for: a musl build that cannot run on the
+      CI). One gap per waiver makes that impossible."
+
+      This is the strongest form of the objection, and it is
+      answered by the schema rather than by the decision: the
+      constitutional text says one gap, and `schemas/waiver.json`
+      says `unverified_obligation` is a single STRING. A waiver
+      that wants to cover four obligations has no representation in
+      the format. The port of that decision to the current schema
+      is a decision about the schema (a list-valued field, or four
+      files), and it is not this decision's to take: the honest
+      options are four single-gap waivers, or one waiver per gap
+      class with a scope that names the paths they share. What this
+      decision refuses is the third option that exists today and
+      that the constitution does not: a waiver that names nothing
+      and covers everything.
+antithesis: |
+  The opposite claim is that the exit code and the waiver are both
+  fine as they are, and that this decision mistakes the protocol's
+  friction for its defects.
+
+  The waiver case: a waiver whose `unverified_obligation` is absent
+  covering every obligation of its decision is a COMPATIBILITY
+  measure, not a bug — it is what lets a decision whose
+  infrastructure is structurally unreachable keep its whole
+  surface waived while the infrastructure is rebuilt, without
+  writing one file per obligation. The counter-position is
+  strengthened by the history: the first waiver
+  (`decisions/waivers/portable-linux-musl-2026-10.yaml`, deleted in
+  `1c8f476b`) listed four obligations in the YAML list form, and the
+  schema has never allowed a list. The compatibility shim exists
+  precisely because the schema could not express what the waiver
+  meant.
+
+  The exit-code case: `mathc verify` exiting 0 when an obligation
+  is skipped is the useful behaviour, because "skipped" is a
+  property of the ENVIRONMENT (no forge, no musl, no network), not
+  of the decision. A pipeline that runs the verifier suite on every
+  platform would go red on every platform that cannot run one of
+  the checks, and the signal that carries — the per-obligation
+  `skipped` line — is already in the output.
+
+  Both counter-positions are real, and the reply to them is the
+  same reply: this protocol separates what is DECLARED from what is
+  DERIVED, and the exit code is a DERIVED artefact. A declared
+  waiver without a named gap and a declared `verdict: pass` over an
+  unevaluated claim are the same shape of error — a promise the
+  system cannot keep, made in the one field a machine reads without
+  reading the rest. The compatibility the counter-positions defend
+  is real compatibility, and it is available: the honest forms are a
+  waiver per gap (one file per obligation, as the constitution asks)
+  and a verdict table with an `unknown` row that says what is
+  unknown. What is not available, and was never available, is
+  compatibility bought by letting the artefact claim more than it
+  checked.

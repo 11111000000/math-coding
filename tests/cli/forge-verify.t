@@ -12,12 +12,19 @@ Acceptance gates for `decisions/forge-principal-verification-2026-10.yaml`:
 
   $ cd "$DUNE_SOURCEROOT"
 
-Forge unset, fail-mode open (default): pass, exit 0.
+Forge unset, fail-mode open (default): unknown, exit 3. The forge
+could not be reached, so the membership claim was never evaluated:
+that is `unknown`, not `pass` (spec/semantics.md §Kernel Output
+"Verdict to exit code"; constitution.md Invariant 14b). Before
+decisions/exit-honesty-waivers-2026-10.yaml this case answered
+`pass` with exit 0, which asserted a membership nobody checked.
 
   $ env -u MATH_CODING_FORGE_API mathc forge-verify --org=foo --team=bar --user=baz
-  {"fail_mode":"open","forge_queried":false,"org":"foo","reason":"MATH_CODING_FORGE_API not set; fail-mode=open","team":"bar","user":"baz","verdict":"pass"}
+  {"fail_mode":"open","forge_queried":false,"org":"foo","reason":"MATH_CODING_FORGE_API not set; fail-mode=open","team":"bar","user":"baz","verdict":"unknown"}
+  [3]
   $ env -u MATH_CODING_FORGE_API mathc forge-verify --org=foo --team=bar --user=baz
-  {"fail_mode":"open","forge_queried":false,"org":"foo","reason":"MATH_CODING_FORGE_API not set; fail-mode=open","team":"bar","user":"baz","verdict":"pass"}
+  {"fail_mode":"open","forge_queried":false,"org":"foo","reason":"MATH_CODING_FORGE_API not set; fail-mode=open","team":"bar","user":"baz","verdict":"unknown"}
+  [3]
   $ echo $?
   0
 

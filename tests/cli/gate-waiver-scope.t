@@ -14,10 +14,10 @@ The cram fixture exercises four scenarios on the same
 decision: scenario 1 is positive (every gap has a named
 waiver; verdict open-with-waiver); scenario 2 is strict
 negative (only the alpha waiver is present; beta remains
-Unknown; verdict unknown); scenario 3 is global back-compat (a
-waiver whose unverified_obligation is missing from the YAML
-still covers every obligation of its decision; verdict
-open-with-waiver); scenario 4 is cross-decision negative (a
+Unknown; verdict unknown); scenario 3 is the revoked legacy
+decision-wide form (a waiver whose unverified_obligation is
+missing from the YAML names no gap, so it covers nothing; verdict
+unknown); scenario 4 is cross-decision negative (a
 waiver named for another decision does NOT lift the gate;
 verdict unknown).
 
@@ -174,8 +174,11 @@ Scenario 2 — strict negative (only alpha waiver; beta stays Unknown):
   $ cd /
   $ rm -rf "$tmp"
 
-Scenario 3 — global back-compat (legacy waiver without unverified_obligation
-covers every obligation of its decision):
+Scenario 3 — legacy global form (a waiver that names no gap) covers
+nothing: constitution.md §Waivers says a waiver MUST identify one
+gap, and the decision-wide form is revoked by
+`decisions/exit-honesty-waivers-2026-10.yaml`. The verdict is
+`unknown`, not `pass` and not `open-with-waiver`.
 
   $ tmp=$(mktemp -d)
   $ cd "$tmp"
@@ -223,11 +226,12 @@ covers every obligation of its decision):
   > issued_at: 2026-10-07T00:00:00Z
   > expires_at: 2027-10-07T00:00:00Z
   > reason: |
-  >   T3.2 fixture: legacy global waiver (no unverified_obligation
-  >   field). Must cover every obligation of t3-2-test-decision.
+  >   T3.2 fixture: the legacy decision-wide form (no
+  >   unverified_obligation field). It names no gap, so it covers
+  >   nothing and the subject stays unknown.
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
-  {"name":"t3-2-test-decision","verdict":"open-with-waiver"}
+  {"name":"t3-2-test-decision","verdict":"unknown"}
   $ cd /
   $ rm -rf "$tmp"
 
