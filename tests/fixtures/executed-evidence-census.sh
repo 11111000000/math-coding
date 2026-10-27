@@ -109,7 +109,7 @@ CEILING_ORPHANS=6
 # breakdown of the unexecuted passes goes to stderr.
 measure() {
   python3 - "$1" "$2" <<'PY'
-import json, os, re, sys, collections
+import glob, json, os, re, sys, collections
 
 store_list, decisions_dir = sys.argv[1], sys.argv[2]
 
@@ -119,10 +119,18 @@ store_list, decisions_dir = sys.argv[1], sys.argv[2]
 # parse is deliberately narrow: a top-level `obligations:` block, one
 # `  - id:` per obligation, `verifier:` lines inside it.
 obligations = {}  # (decision, obligation) -> [verifier, ...]
-for name in sorted(os.listdir(decisions_dir)):
-    if not name.endswith('.yaml'):
+# RECURSIVE. The walk used to read decisions_dir/*.yaml only, so a
+# decision filed in a sub-directory was invisible to the census: its
+# attestations were counted as ORPHANS -- evidence about a subject
+# the census did not know -- and the store looked like it carried 45
+# orphans it did not. The kernel's walk is recursive now
+# (lib/memory.ml::decision_document_paths); the instrument that
+# measures the corpus must walk the corpus the kernel walks.
+for path in sorted(glob.glob(os.path.join(decisions_dir, '**', '*.yaml'),
+                             recursive=True)):
+    name = os.path.relpath(path, decisions_dir)
+    if name.startswith('waivers' + os.sep) or '/waivers/' in name:
         continue
-    path = os.path.join(decisions_dir, name)
     try:
         text = open(path, encoding='utf-8', errors='replace').read()
     except OSError:

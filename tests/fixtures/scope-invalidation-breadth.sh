@@ -55,9 +55,17 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # fall.
 #
 # ceiling-raise: 183 -> 184, the re-evaluation decision changed bin/Mathc.ml and its scope must name the file it changes
-CEILING_BIN_MATHC=184
+# ceiling-raise: 184 -> 186, the two new kernel decisions
+# (evidence-class-gate, exit-honesty-waivers) scope bin/Mathc.ml,
+# and a decision that does not name the file it changes cannot be
+# invalidated by it. The breadth is a measurement of the corpus, and
+# the corpus grew. From here it may only fall.
+CEILING_BIN_MATHC=186
 CEILING_LIB_DECISION=158
-CEILING_LIB_GATE=145
+# ceiling-raise: 145 -> 147, the same two decisions scope
+# lib/gate.ml: the evidence-class rule and the waiver bound are
+# both in it. From here it may only fall.
+CEILING_LIB_GATE=147
 CEILING_LIB_DIAGNOSTIC=137
 
 work="$(mktemp -d)"

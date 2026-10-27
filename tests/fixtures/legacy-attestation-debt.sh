@@ -115,7 +115,13 @@ CEILING_UNATTESTED=1
 # is the same discipline the other raises in this file follow.
 #
 # ceiling-raise: 30 -> 292, the re-signing of 2026-10-26 took 279 passes down to inconclusive
-CEILING_INCONCLUSIVE=292
+# ceiling-raise: 292 -> 326, the corpus grew: 19 decisions that
+# the walk could not see became visible (16 of them in a
+# sub-directory), and each of them carries declarations, which are
+# INCONCLUSIVE by construction. The debt did not grow: the number of
+# obligations the kernel cannot execute grew, and the ceiling now
+# says so. From here it may only fall.
+CEILING_INCONCLUSIVE=326
 
 # Measure the debt in a given store directory.
 # $1 = the store directory; prints "<legacy> <unattested>"
