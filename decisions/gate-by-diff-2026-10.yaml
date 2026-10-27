@@ -1,0 +1,179 @@
+---
+schema: math-coding/3.2
+id: gate-by-diff-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:dd99d16c77874d2c0d8d5d580b53a122105fb357f49c42d61884c562ca22211e"
+yaml_sha: "sha256:dd99d16c77874d2c0d8d5d580b53a122105fb357f49c42d61884c562ca22211e"
+
+intent: |
+  The merge gate asks one question: does THIS change break the
+  commitments it claims to implement? It was asking a different one:
+  is the whole historical corpus still satisfied?
+
+  Measured on this repository on 2026-10-27: a commit that touched
+  eight files was checked against 962 obligations drawn from 266
+  active decisions, produced 826 gaps, and the verdict was `block`.
+  The verdict was not wrong -- those obligations really were
+  unverified -- but it was answering a question nobody asked, and it
+  made the gate unusable as a merge gate: every change was red for
+  the same unrelated reason.
+
+  The machinery for the right question already existed and was not
+  used: `decisions_touching_changes` computes exactly the set of
+  decisions whose scope names a changed file, and `attest-batch
+  --only-changed` already used it. The gate did not.
+
+  This decision introduces the two switches that make the question
+  answerable, WITHOUT switching the default yet:
+
+    --scope    evaluate only the decisions the change touches
+    --execute  run those decisions' verifiers on the candidate tree,
+               instead of reading what the store said about an older
+               tree
+
+  Both are off by default. The gate's old behaviour is what CI has
+  been running for months, and it is not switched over before the new
+  path has been measured and the fixtures that pin the old semantics
+  have been rewritten to pin the new ones. Parallel path first,
+  switch second, delete the old path third.
+
+  Two facts make the switches possible at all, and both were found by
+  running the thing rather than by reading it:
+
+  1. The scoped gate, measured on the same commit: 502 obligations,
+     493 gaps, verdict `unknown` instead of `block`. The remaining
+     gaps are `StaleEvidence` -- the check was executable, the
+     store's record of it was out of date, and the gate could not
+     tell the reader whether the check would pass. Running the check
+     settles it, and the check is the promise.
+
+  2. The verifier's own output interleaved into the gate's stdout,
+     which made the JSON document unparseable. The gate's stdout is
+     one JSON document; a verifier that prints ("parse-ok: ...")
+     breaks every reader of it. The child's output is captured and
+     its excerpt goes to stderr, and only when the verdict is not a
+     pass.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+  - A3
+
+commitment: |
+  The gate can be pointed at the question it is meant to answer, and
+  when it runs the checks it keeps its output contract: stdout is
+  one JSON document, stderr is for the human.
+
+outcomes:
+  - id: the-gate-can-ask-about-the-change
+    statement: |
+      `mathc gate --scope` evaluates only the decisions whose scope
+      names a file the change touches.
+  - id: the-gate-can-run-the-checks
+    statement: |
+      `mathc gate --execute` runs the touched decisions' verifiers on
+      the candidate tree instead of reading the store's record of an
+      older tree.
+  - id: the-gate-keeps-one-document-on-stdout
+    statement: |
+      A verifier that prints on stdout does not interleave its lines
+      into the gate's JSON; the excerpt goes to stderr, and only when
+      the verdict is not a pass.
+  - id: the-old-path-still-works
+    statement: |
+      With neither switch, the gate behaves exactly as it did: every
+      active decision, store-based, the same verdict.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/gate.ml"
+    - "tests/gate/state_filter.ml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-tree-compiles
+    claim: |
+      The kernel and the CLI build. A branch that does not compile
+      cannot be reviewed, and the failure this decision was written
+      for -- an unbound `execute` in `do_gate` -- is exactly the kind
+      of half-landed change that ends a session with the work
+      unusable.
+    acceptance:
+      all:
+        - verifier: dune build --root .
+          result: pass
+  - id: the-suite-is-green
+    claim: |
+      The conformance suite passes on the tree that carries these
+      switches.
+    acceptance:
+      all:
+        - verifier: dune test --root .
+          result: pass
+  - id: the-switches-are-reachable
+    claim: |
+      `mathc gate --help` names both switches, so the gate's
+      capabilities are discoverable from the gate itself rather than
+      from a document that can drift away from it.
+    acceptance:
+      all:
+        - verifier: mathc gate --help
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/gate-by-diff-2026-10.yaml` returns
+      exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/gate-by-diff-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - a gate that can be scoped can also be scoped TOO narrowly,
+      because a decision whose scope names nothing is never touched
+      and its obligations are never checked. The empty-scope
+      collision is still open (the digest of an empty scope is the
+      digest of nothing), and the switch must not become a way to
+      stop looking
+    - `--execute` runs checks during a gate, so a check that runs
+      `dune runtest` inside a `dune runtest` recurses. The escape
+      hatch (a gate invoked from a test does not execute) has to
+      exist before the default flips
+    - the old path stays available, so the corpus keeps two
+      semantics until the switch, and a reader of a verdict must
+      know which one produced it
+  owner: human:maintainer
+
+counterexample: |
+  "The gate was red because the obligations were unverified, so the
+  verdict was right and scoping only hides the truth."
+
+  Rejected on the measurement. The 826 gaps on an eight-file commit
+  belong to decisions whose scope names files that commit did not
+  touch. A change cannot break a commitment about a file it did not
+  change, so those gaps were not evidence about this change; they
+  were the standing state of the corpus, re-litigated on every
+  commit. The counterexample is correct about the gaps and wrong
+  about the question: a gate that reports the standing state of the
+  corpus on every commit has no signal left for the change.
+
+antithesis: |
+  The opposite claim is that the corpus-wide gate is the point: a
+  protocol that only checks what the diff touches cannot promise that
+  the whole corpus holds, and an adopter who wants that promise has
+  no way to get it.
+
+  That claim is right, and it is the reason the old path stays. The
+  promise is available -- as an audit, run on demand, over the whole
+  corpus -- and it is not available as the merge gate, because a
+  merge gate that never returns a verdict nobody reads is not a
+  stronger promise; it is a promise no one keeps. The two questions
+  want different tools, and making one command answer both is what
+  produced 826 gaps and a red gate for a month.

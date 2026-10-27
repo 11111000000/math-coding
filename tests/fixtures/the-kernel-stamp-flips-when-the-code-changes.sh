@@ -52,11 +52,22 @@ probe="lib/.stamp-probe.ml"
 cleanup() { rm -f "$probe"; }
 trap cleanup EXIT
 
+# 0. The baseline is THIS tree, not the last recorded one.
+#
+# The stamp records the digest of the tree as it was when it was last
+# recorded. On a tree with uncommitted work that is not the current
+# tree, so the stamp correctly says "changed" -- and a fixture that
+# asserted "unchanged" on such a tree would be asserting that the
+# work had not happened. The baseline for this fixture is the tree it
+# is running on, so it records it first and then asks the question
+# about itself.
+scripts/kernel-stamp.sh record >/dev/null 2>&1 || true
+
 # 1. The stamp says "unchanged" when nothing changed.
 before=$(scripts/kernel-stamp.sh changed 2>/dev/null || echo unknown)
 if [ "$before" != "unchanged" ]; then
   echo "the-kernel-stamp-flips-when-the-code-changes: FAIL" >&2
-  echo "  the stamp says '$before' on a tree this fixture did not touch" >&2
+  echo "  the stamp says '$before' immediately after recording it" >&2
   echo "  the clean would run on every invocation, and the suite would" >&2
   echo "  pay a full rebuild for a change that did not touch the code." >&2
   exit 1

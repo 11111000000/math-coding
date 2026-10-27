@@ -52,11 +52,28 @@ cleanup_dune() {
   # aggregator would race-kill it. (Bug discovered 2026-09-27 when
   # `scripts/dev verify` flake-killed dune via pkill race; the
   # fix is to do only the lock-file cleanup here.)
-  if [ -f _build/.lock ]; then
-    if ! pgrep -f 'dune' >/dev/null 2>&1; then
-      rm -f _build/.lock
-    fi
-  fi
+  #
+  # "Is a dune running?" is asked by the EXECUTABLE'S NAME, not by
+  # the command line. `pgrep -f dune` answered the wrong question:
+  # it matches every process whose command line CONTAINS the string
+  # "dune" -- including the shell that is running this aggregator,
+  # and including the `nix develop .#test --command bash -c 'dune
+  # build ...'` wrapper of a fixture. Measured on 2026-10-27: a
+  # dune left behind by an interrupted command kept the lock, and
+  # the check that was supposed to remove it could never fire,
+  # because the aggregator's own command line mentioned dune. The
+  # suite then failed with "Another Dune instance is currently
+  # running" -- a lock that was nobody's.
+  #
+  # The name is exact: the process's executable, not its arguments.
+  local pid exe
+  for pid in $(pgrep -x dune 2>/dev/null || true); do
+    exe=$(readlink "/proc/$pid/exe" 2>/dev/null || true)
+    case "$exe" in
+      */dune) return 0 ;;
+    esac
+  done
+  [ ! -f _build/.lock ] || rm -f _build/.lock || true
 }
 
 if [ "${1:-}" != "" ]; then

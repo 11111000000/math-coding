@@ -4303,20 +4303,35 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
           end
           else begin
             (* Subprocess: re-invoke this binary with the same
-               env-stripped, project-root-cwd sandbox. *)
+               env-stripped, project-root-cwd sandbox.
+
+               The child's output is CAPTURED, not inherited. The
+               gate's stdout is ONE json document, and a verifier
+               that prints ("parse-ok: decisions/...") would
+               interleave its lines into that document until nothing
+               could parse it -- which is what happened the moment
+               the gate began running its own verifiers. The
+               excerpt goes to stderr, and only when the verdict is
+               not a pass: the gate's reader is the json, stderr is
+               for the human. *)
             let argv = Sys.executable_name :: args in
+            let log = Filename.temp_file "mathc_verify_" ".log" in
             let outcome, status =
-              run_with_sandbox ~project_root ~prog:Sys.executable_name
+              run_with_sandbox_in_env ~env:(sandbox_env ())
+                ~capture_to:(Some log) ~project_root ~prog:Sys.executable_name
                 ~args:argv ~timeout_s:60 ~sandbox_mode
             in
-            match outcome with
-            | Timeout -> Timeout
-            | Pass -> (
-                match status with
-                | Unix.WEXITED 0 -> Pass
-                | Unix.WEXITED n ->
-                    Printf.eprintf "mathc verify: mathc exited %d\n%!" n;
-                    (* The exit codes of a mathc subcommand carry
+            let captured = read_capped log ~max_bytes:65536 in
+            (try Sys.remove log with _ -> ());
+            let verdict =
+              match outcome with
+              | Timeout -> Timeout
+              | Pass -> (
+                  match status with
+                  | Unix.WEXITED 0 -> Pass
+                  | Unix.WEXITED n ->
+                      Printf.eprintf "mathc verify: mathc exited %d\n%!" n;
+                      (* The exit codes of a mathc subcommand carry
                        the KERNEL's own semantics (spec/semantics.md
                        §4.3), and they are not the semantics of a
                        shell script:
@@ -4340,12 +4355,20 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
                        So the ambiguity is gone at the source, and
                        the rule can stay simple: a subcommand that
                        did not succeed is a failure of the check. *)
-                    if n = 126 || n = 127 then Setup_fail else Fail
-                | Unix.WSIGNALED _ -> Fail
-                | Unix.WSTOPPED _ -> Fail)
-            | Fail | Skipped -> Fail
-            | Setup_fail -> Setup_fail
-            | Manual_decl -> Manual_decl
+                      if n = 126 || n = 127 then Setup_fail else Fail
+                  | Unix.WSIGNALED _ -> Fail
+                  | Unix.WSTOPPED _ -> Fail)
+              | Fail | Skipped -> Fail
+              | Setup_fail -> Setup_fail
+              | Manual_decl -> Manual_decl
+            in
+            (match verdict with
+            | Pass -> ()
+            | _ ->
+                if captured <> "" then
+                  Printf.eprintf "mathc verify: output of %s:\n%s\n%!"
+                    (String.concat " " argv) captured);
+            verdict
           end
       | _ -> (
           (* Not one of the three scheme names. The corpus writes
@@ -6251,10 +6274,40 @@ let[@warning "-32"] git_ref_resolves cwd r =
 
 let do_gate () =
   let base = ref "" and head = ref "" in
+  (* THE TWO SWITCHES OF THE GATE.
+   *
+   * `--scope` evaluates only the decisions whose scope names a file
+   * this change touches. Without it the gate asks every active
+   * decision whether its obligations still hold -- a question about
+   * the whole history, asked on every commit, which is why a commit
+   * touching eight files was checked against 958 obligations and
+   * blocked for 752 gaps it could not have caused.
+   *
+   * `--execute` runs the verifiers of the touched decisions ON THE
+   * CANDIDATE TREE instead of reading what the store said about an
+   * older tree. The store holds evidence about a tree that has since
+   * moved; freshness is not safety.
+   *
+   * BOTH ARE OFF BY DEFAULT. The gate's old behaviour is what CI has
+   * been running for months, and it is not switched over before the
+   * new path has been measured and the fixtures that pin the old
+   * semantics have been rewritten to pin the new ones. Parallel path
+   * first, switch second, delete the old path third. *)
+  let scope = ref false and execute = ref false in
   let positionals : string list ref = ref [] in
   let anon s = positionals := s :: !positionals in
   Arg.current := 1;
-  (try Arg.parse [] anon "usage: mathc gate BASE HEAD"
+  let specs =
+    [
+      ( "--scope",
+        Arg.Set scope,
+        "Evaluate only the decisions the change touches" );
+      ( "--execute",
+        Arg.Set execute,
+        "Run the touched decisions' verifiers on the candidate tree" );
+    ]
+  in
+  (try Arg.parse specs anon "usage: mathc gate [--scope] [--execute] BASE HEAD"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc gate: %s\n" m;
      exit 2);
@@ -6311,9 +6364,95 @@ let do_gate () =
      empty rebuttals list and over-block every strict/exhaustive
      commit. *)
   let rebuttals = Rebuttal.all_rebuttals !head in
+  (* THE SCOPE OF THE GATE.
+   *
+   * The gate asks one question: does this change break the
+   * commitments it claims to implement? The commitments a change
+   * can break are the ones whose scope names a file the change
+   * touches, and `decisions_touching_changes` computes exactly
+   * that set -- the same function `attest-batch --only-changed`
+   * has always used.
+   *
+   * Measured on this repository on 2026-10-27: a commit that
+   * touched EIGHT files was checked against 958 obligations
+   * drawn from 266 active decisions, and produced 752 gaps (590
+   * `Unknown`), so the verdict was `block` for a change that
+   * could not have broken most of what it was asked about. The
+   * verdict was not wrong -- those obligations really were
+   * unverified -- it was answering a question nobody asked, and
+   * it made the gate unusable as a merge gate: every change was
+   * red for the same unrelated reason.
+   *
+   * A decision with an empty scope is never touched: an empty
+   * scope names no file, so no change can reach it. *)
+  let scope_map : (string, string list) Hashtbl.t = Hashtbl.create 64 in
+  List.iter
+    (fun (e : Memory.decision_entry) ->
+      Hashtbl.replace scope_map e.Memory.decision_id e.Memory.scope_paths)
+    memory.Memory.decisions;
+  let touched =
+    decisions_touching_changes ~scopes:scope_map ~changed:changed_paths
+  in
+  (* THE CHECKS RUN, NOW, ON THE CANDIDATE TREE.
+   *
+   * The store holds evidence about a tree that has since moved --
+   * that is what a digest-bound attestation IS -- so a gate that
+   * reads a store cannot say whether a change is safe. It can say
+   * whether the evidence is fresh, and freshness is not safety.
+   *
+   * Measured on this repository on 2026-10-27, on a commit that
+   * touched eight files: the scoped gate found 493 gaps, of which
+   * 283 belonged to obligations with an EXECUTABLE verifier. Those
+   * 283 were `StaleEvidence` -- the check was executable, the
+   * store's record of it was out of date, and the gate could not
+   * tell the reader whether the check would pass. Running the
+   * check settles it, and it is the check that is the promise.
+   *
+   * The cost is proportional to the change, because the set of
+   * touched decisions is: a one-file change reached 13 obligations
+   * (of 958 before the scoping), an eight-file change 161, a
+   * thirteen-file change 485.
+   *
+   * An obligation the gate could not settle by running anything --
+   * one that carries only a human declaration -- is NOT in the map,
+   * and the store is consulted for it as before. The store's
+   * remaining job is exactly this: to carry the class of claim
+   * that a program cannot check. *)
+  let live : (string * string, Gate.obligation_state) Hashtbl.t =
+    Hashtbl.create 64
+  in
+  if !execute then
+    List.iter
+      (fun (e : Memory.decision_entry) ->
+        if List.exists (fun id -> String.equal id e.Memory.decision_id) touched
+        then
+          List.iter
+            (fun obl_id ->
+              let state =
+                match
+                  verdict_of_obligation_named ~root ~sandbox_mode:"none"
+                    ~decision_id:e.Memory.decision_id ~obligation_id:obl_id
+                with
+                | { ov_outcome = Pass; _ } -> Some Gate.Satisfied
+                | { ov_outcome = Fail; _ } -> Some Gate.Failed
+                | { ov_outcome = Timeout; _ } -> Some Gate.Failed
+                | { ov_outcome = Setup_fail; _ } -> Some Gate.Unverified
+                (* Skipped: there was no check to run. Manual_decl: the
+                 check is a human's word. Neither is settled by
+                 running something, so the store decides. *)
+                | { ov_outcome = Skipped; _ } -> None
+                | { ov_outcome = Manual_decl; _ } -> None
+              in
+              match state with
+              | Some s -> Hashtbl.replace live (e.Memory.decision_id, obl_id) s
+              | None -> ())
+            e.Memory.obligation_ids)
+      memory.Memory.decisions;
   let result =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
       ~changed_paths ~store ~rebuttals
+      ~touched:(if !scope then Some touched else None)
+      ~live
       ~materials_of_decision:
         (materials_resolver_of ~entries:memory.Memory.decisions ~tree:!head
            ~root)
@@ -7027,7 +7166,13 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
     List.filter_map
       (fun obl_id ->
         Gate.obligation_gap ~decision_id:entry.Memory.decision_id
-          ~obligation_id:obl_id ~materials_digest:materials ~store)
+          ~obligation_id:obl_id ~materials_digest:materials
+          ~store
+            (* The self-check reads the store and runs nothing: it is a
+             statement about the CORPUS, not about a candidate tree.
+             The live map is empty, so every obligation is decided by
+             the store, as before. *)
+          ~live:(Hashtbl.create 1))
       entry.Memory.obligation_ids
   in
   (* The class and the scope of a waiver.

@@ -272,7 +272,7 @@ let[@warning "-32"] obligation_gap_for_decision entry materials_digest store =
   List.filter_map
     (fun obl_id ->
       Gate.obligation_gap ~decision_id:entry.Memory.decision_id
-        ~obligation_id:obl_id ~materials_digest ~store)
+        ~obligation_id:obl_id ~materials_digest ~store ~live:(Hashtbl.create 1))
     ids
 
 (* Empty reader — no real files; we feed Memory directly. *)
@@ -297,6 +297,12 @@ let[@warning "-32"] run_filter_evaluate entries =
          pure; here the corpus is synthetic, so every decision gets
          the same constant. *)
       ~materials_of_decision:(fun _ -> "test-materials-digest")
+        (* This suite exercises the LIFECYCLE filter (which decisions
+         are active), so every decision is in scope: `touched: None`
+         means "no scoping". And no check was run, so the live map is
+         empty and the store decides -- which is the behaviour this
+         suite is about. *)
+      ~touched:None ~live:(Hashtbl.create 1)
   in
   result
 
