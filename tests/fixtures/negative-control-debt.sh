@@ -34,6 +34,8 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # The ceiling. Measured 2026-10-23, the day the rule was introduced:
 # 224 decisions declare no negative control. It may fall; it may
 # never rise.
+#
+# ceiling-raise: 198 -> 199, the raise was not recorded when it happened; commit 1ee434dc changed the number alone
 CEILING=199
 
 count_without() {

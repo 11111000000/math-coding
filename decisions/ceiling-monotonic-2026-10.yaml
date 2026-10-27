@@ -1,0 +1,339 @@
+---
+schema: math-coding/3.3
+id: ceiling-monotonic
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:e24ceb3222c39ce3712aae0df0969669870d3ae9972cdc013ef33cbb1cde1384"
+yaml_sha: "sha256:e24ceb3222c39ce3712aae0df0969669870d3ae9972cdc013ef33cbb1cde1384"
+intent: |
+  Make the monotonicity of the debt ceilings MECHANICAL, so that the
+  promise "a ceiling may fall and may never rise" is kept by a
+  program instead of by the reader of a diff.
+
+  The corpus pins a number for each debt it is paying down, and calls
+  the number a CEILING. The numbers live in the fixture files under
+  `tests/fixtures/`, thirteen of them in six files. The convention
+  that a ceiling may only fall was, until this decision, upheld by
+  whoever happened to read the diff. The measurement says what that
+  is worth.
+
+  Measured between 2026-10-23 (the day the first ceiling was pinned)
+  and 2026-10-26, SEVEN ceilings were raised across six distinct
+  ceilings. Six of the seven carried a reason in the fixture file,
+  next to the number, in the words the corpus already uses ("the
+  raise is recorded here so it is visible rather than silent"). ONE
+  did not: commit 1ee434dc changed `CEILING=198` to `CEILING=199` in
+  `tests/fixtures/negative-control-debt.sh` and changed nothing else,
+  so that raise is visible only to someone who reads history.
+
+  The worse number is not the raise. It is that a ceiling can stop
+  BEING a ceiling without its number moving at all. On 2026-10-23,
+  commit 4004012e deleted the two comparisons of
+  `tests/fixtures/legacy-attestation-debt.sh` - the lines that put
+  the measured debt against `CEILING_LEGACY` and against
+  `CEILING_UNATTESTED` - and kept both numbers. The commit body of
+  that very commit says: "The debt fixture now pins all three
+  ceilings at their current values: 22 legacy attestations, 30
+  inconclusive, 25 decisions with no attestation. They may only
+  fall." The declaration and the code disagreed, and the code was
+  what ran. Measured at that commit, the two deleted comparisons were
+  GREEN: the store held exactly 22 legacy attestations and exactly
+  25 unattested decisions, so the two ceilings were met exactly. The
+  checks were removed while they were passing, and nothing in the
+  repository noticed for four days.
+
+  So the promise was not kept, and the mechanism that was supposed to
+  keep it could not see either failure: a silent raise leaves the
+  number alone, and a deleted comparison leaves the number alone.
+  Both are invisible to a reader who looks at the number.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+commitment: |
+  Two mechanisms, one script, one fixture, one CI step, and the
+  repair of the two dead ceilings.
+
+  (a) `scripts/ceiling-monotonic.sh` compares every `CEILING_*` in
+      `tests/fixtures/*.sh` with its value at a BASE COMMIT and fails
+      when the ceiling grew. It prints the ceiling, the file, the old
+      value, the new value and the size of the grow. The base is the
+      merge base with the push target in CI, and `HEAD~1` locally;
+      the comparison is between the WORKING TREE and that base, so a
+      local run answers the question the author is about to commit.
+
+      A raise is ACCEPTED when the comment block above the ceiling
+      carries a marker naming this exact transition:
+
+          # ceiling-raise: 22 -> 30, <the reason it had to grow>
+
+      The marker must name the old value AND the new value, so a
+      reason recorded for an earlier raise cannot authorise the next
+      one, and the reason must be non-empty. The marker is a
+      VISIBILITY mechanism, not an authorisation: the raise still has
+      to be justified in the commit and, where it is a meaningful
+      change, in a decision.
+
+      The script also fails a ceiling that is DECLARED and never
+      COMPARED. A ceiling counts as bound when at least one line
+      outside the fixture's negative-control section mentions it: the
+      negative control compares a SYNTHETIC corpus against the
+      ceiling, which proves the comparison can fire and proves
+      nothing about the real measurement. This is the check that
+      reproduces the 4004012e defect mechanically.
+
+      Exit 0 means the check ran and the corpus passed. Exit 1 means
+      a ceiling grew without a recorded reason, or a ceiling is not
+      bound. Exit 3 means the comparison could NOT be made - no base
+      commit, or no ceiling to compare - and that is `unknown`, not
+      `pass` (constitution.md Invariant 14b).
+
+  (b) `tests/fixtures/legacy-attestation-debt.sh` compares all three
+      of its debts against all three of its ceilings again. The two
+      comparisons deleted by 4004012e are restored, and the negative
+      control was extended to cover the unattested ceiling as well:
+      it now inflates the synthetic corpus in BOTH directions and
+      requires the fixture to report both as over their ceilings.
+
+      The two ceilings are pinned at the number the truth is now,
+      measured 2026-10-27: `CEILING_LEGACY=16` (was 22) and
+      `CEILING_UNATTESTED=1` (was 25). Both are falls, which is the
+      direction a ceiling may move. The one unattested decision is
+      the file of THIS decision, whose attestation the re-signing
+      writes; after the re-signing the ceiling must fall to 0.
+
+  (c) `tests/fixtures/ceiling-monotonic-check.sh` covers the
+      checker, with the negative control the project requires: a
+      synthetic corpus in which a ceiling HAS grown must make the
+      checker fail, and the failure must name the ceiling and the
+      size of the grow. The fixture also covers a ceiling that fell,
+      a raise that was recorded, a raise whose recorded reason names
+      a DIFFERENT transition, a block that carries two markers and
+      names the right one, a ceiling whose comparison was deleted
+      while its number stood, a repository with no base commit (exit
+      3, not exit 0) and a corpus with no ceiling at all (exit 3,
+      not exit 0).
+
+  (d) `.github/workflows/ci.yml` runs the checker as a named step,
+      and its checkout now fetches the history (`fetch-depth: 0`).
+      Without the history there is no base commit, the comparison
+      cannot run, and the check would exit 3 on every push - a red
+      step whose cause is the checkout configuration and not the
+      corpus.
+
+  THE INVENTORY, MEASURED. Thirteen ceilings in six fixture files:
+
+      tests/fixtures/executed-evidence-census.sh   3
+          CEILING_UNANCHORED=886  CEILING_UNEXECUTED=364
+          CEILING_ORPHANS=6
+      tests/fixtures/scope-invalidation-breadth.sh 4
+          CEILING_BIN_MATHC=184  CEILING_LIB_DECISION=158
+          CEILING_LIB_GATE=145  CEILING_LIB_DIAGNOSTIC=137
+      tests/fixtures/legacy-attestation-debt.sh    3
+          CEILING_LEGACY=16  CEILING_UNATTESTED=1
+          CEILING_INCONCLUSIVE=292
+      tests/fixtures/failing-subject-backlog.sh    1  CEILING=11
+      tests/fixtures/negative-control-debt.sh      1  CEILING=199
+      tests/fixtures/no-dead-scope-paths.sh        1  CEILING_DEAD=0
+
+  Before this change ELEVEN of the thirteen were compared against a
+  real measurement. `CEILING_LEGACY` was compared against a SYNTHETIC
+  corpus by the negative control and against nothing else, and
+  `CEILING_UNATTESTED` was compared against nothing at all - it was
+  the only ceiling in the repository that no line of code referred
+  to. After this change, thirteen of thirteen are compared.
+
+  The corpus verdict is UNCHANGED by this decision: no schema, no
+  gate rule, no attestation. It changes no verdict. It repairs the
+  promises BETWEEN the corpus and the reader.
+outcomes:
+  - id: the-ceiling-may-only-fall
+    statement: |
+      A ceiling in `tests/fixtures/*.sh` that is larger at HEAD than
+      at the base commit fails CI, unless the raise is recorded next
+      to the number with a marker naming that exact transition.
+  - id: a-declared-ceiling-is-a-bound
+    statement: |
+      A ceiling that is declared and never compared against a real
+      measurement fails CI, so a comparison cannot be deleted while
+      its number stays.
+  - id: the-debt-fixture-binds-its-three-ceilings
+    statement: |
+      `tests/fixtures/legacy-attestation-debt.sh` compares the legacy
+      count, the unattested-decision count and the inconclusive count
+      against their ceilings, and its negative control proves all
+      three comparisons can fire.
+  - id: the-check-is-not-vacuous
+    statement: |
+      The checker exits 3 - unknown, not pass - when there is no
+      base commit to compare against or no ceiling to compare, and
+      the fixture that covers it asserts both.
+scope:
+  paths:
+    - "scripts/ceiling-monotonic.sh"
+    - "tests/fixtures/ceiling-monotonic-check.sh"
+    - "tests/fixtures/legacy-attestation-debt.sh"
+    - "tests/fixtures/executed-evidence-census.sh"
+    - "tests/fixtures/negative-control-debt.sh"
+    - "tests/fixtures/scope-invalidation-breadth.sh"
+    - ".github/workflows/ci.yml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+obligations:
+  - id: a-grown-ceiling-fails-the-check
+    claim: |
+      A ceiling that grew against the base commit fails the checker,
+      and the failure names the ceiling and the size of the grow.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/ceiling-monotonic-check.sh
+          result: pass
+        - verifier: scripts/ceiling-monotonic.sh
+          result: pass
+  - id: a-raise-may-be-recorded-and-only-then
+    claim: |
+      A raise with a marker naming the exact transition passes the
+      checker and is reported as recorded; the same raise with a
+      marker naming a different transition fails it.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/ceiling-monotonic-check.sh
+          result: pass
+  - id: a-ceiling-that-is-never-compared-fails
+    claim: |
+      A ceiling whose comparison was deleted while its number stood
+      fails the checker, even though the number did not move.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/ceiling-monotonic-check.sh
+          result: pass
+  - id: the-three-legacy-ceilings-are-compared
+    claim: |
+      The legacy count, the unattested-decision count and the
+      inconclusive count are each compared against their ceiling, and
+      the negative control proves each comparison can fire.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/legacy-attestation-debt.sh
+          result: pass
+  - id: the-check-runs-in-ci
+    claim: |
+      CI runs the checker against the merge base with the push
+      target, with a checkout that has the history the comparison
+      needs.
+    acceptance:
+      all:
+        - verifier: scripts/ceiling-monotonic.sh
+          result: pass
+        - verifier: mathc validate decisions/ceiling-monotonic-2026-10.yaml
+          result: pass
+negative_control: tests/fixtures/ceiling-monotonic-check.sh
+risk:
+  declared_triggers:
+    - the recorded-raise marker becomes a rubber stamp, and the
+      check stops being a check while still reading green
+    - the bound check reports a fixture as unbound because the
+      comparison sits behind an indirection the reader cannot see
+    - a legitimate raise arrives without the marker and the step
+      goes red for a reason that is not the corpus
+    - `fetch-depth: 0` makes the CI checkout slower on every push
+    - the checker compares against a base that is not the branch
+      point, and a raise that the branch introduced reads as
+      inherited
+  owner: human:maintainer
+relations:
+  addresses:
+    - legacy-attestation-debt-2026-10@1
+    - legacy-debt-paydown-2026-10@1
+    - executed-evidence-census-2026-10@1
+    - scope-invalidation-breadth-2026-10@1
+    - negative-control-required-2026-10@1
+  supersedes: []
+  superseded_by: []
+reversal:
+  - signal: |
+      the recorded-raise marker is used on three consecutive raises
+      without a substantive reason
+    condition: |
+      the marker has become a formality rather than a record
+    action: rework
+  - signal: |
+      the bound check reports a fixture as unbound although the
+      fixture compares the ceiling correctly
+    condition: |
+      the indirection is legitimate and the check cannot see it
+    action: rework
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "The recorded-raise marker is a self-certifying escape hatch.
+  An author who wants to raise a ceiling writes a marker and the
+  check passes; the mechanism adds a ritual, not a guarantee."
+  Rejected on the measurement, and on the alternative. The
+  alternative - a hard failure with no way to express a legitimate
+  raise - was measured against the corpus's own history: SIX of the
+  SEVEN historical raises were legitimate and carried a reason. A
+  check that cannot express a legitimate raise does not stop the
+  raise; it routes it around the check, by editing the history or by
+  removing the check. The marker is not an authorisation, it is a
+  record: the raise still has to be justified in the commit and,
+  where it is meaningful, in a decision - and the marker puts the
+  reason next to the number, in the diff, where a reviewer sees it.
+  The hole this leaves - a marker that says nothing - is bounded by
+  the marker having to name the transition, by the reason having to
+  be non-empty, and by the commit and the decision record that sit
+  beside it. It is not bounded by the checker, and the checker does
+  not pretend to be.
+
+  (b) "The bound check is a heuristic over shell source: it looks
+  for a mention of the variable outside the negative-control section,
+  and a fixture that compares through a function, or through a
+  variable the reader cannot follow, would be reported as unbound."
+  Accepted as a true description of the check's method, and stated
+  in the script's own header. The failure direction matters: a
+  false report is a RED step with a one-line remedy ("compare the
+  measured value against the ceiling where the comparison happens"),
+  not a wrong green. The check errs towards reporting. The residual
+  risk is the opposite - a fixture that mentions the ceiling outside
+  the negative-control section without comparing anything - and that
+  is the hole this decision does NOT close.
+
+  (c) "The corpus is red anyway: `mathc self-check` reports `fail`
+  at HEAD, with 211 of 252 subjects unknown. One more green step
+  changes nothing." Partly true, and it is stated in the report
+  rather than hidden. It does not make the check useless: the
+  ceiling check guards a class of regression that the backlog does
+  not cover - a number that moves up, and a comparison that is
+  deleted - and it guards it against the corpus's own future
+  re-signings, which is when the numbers move.
+antithesis: |
+  The opposite claim would be that the convention WAS the mechanism,
+  and that a script is bureaucracy bought with a maintenance cost the
+  project does not need.
+
+  That is a real claim, and the corpus supports part of it: six of
+  the seven historical raises carried a reason in prose, next to the
+  number, written by the same author who wrote the raise. The
+  convention was being kept, by a person, most of the time. A
+  checker that only catches the seventh - the one nobody noticed -
+  is worth little on its own.
+
+  It is rejected because the failure the checker catches is not the
+  one the convention catches. The convention catches a raise that a
+  reader looks at. It cannot catch a comparison that was DELETED:
+  on 2026-10-23 the two numbers stayed, the two comparisons went,
+  and the commit that did it announced in its own body that "the
+  debt fixture now pins all three ceilings at their current values".
+  The number was still there. The promise was not. No reader of a
+  diff can see that, because the diff shows a number that did not
+  move - and the author's own summary of the change said the promise
+  was kept.
+
+  The cost is one script, one fixture, one CI step, and a comment
+  line on a raise. The benefit is that the promise is now kept by
+  something that cannot be tired, and that the one case the
+  convention never caught - a ceiling that stops being a ceiling -
+  is now a red step instead of a fact four days later.

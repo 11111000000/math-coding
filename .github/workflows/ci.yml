@@ -31,6 +31,21 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The full history, not a shallow clone.
+          #
+          # scripts/ceiling-monotonic.sh compares every CEILING_* in
+          # tests/fixtures/*.sh with its value at the BASE COMMIT, and
+          # the base commit does not exist in a depth-1 clone. A
+          # shallow clone would make the check exit 3 (unknown) on
+          # every run - a red step whose cause is the checkout
+          # configuration and not the corpus.
+          #
+          # The `mathc gate` step below already wanted the merge
+          # base with the push target and fell back to `GITHUB_SHA^`
+          # when it could not resolve one, which is the same defect
+          # one layer down.
+          fetch-depth: 0
 
       - name: Install nix
         uses: cachix/install-nix-action@v30
@@ -89,6 +104,31 @@ jobs:
         # ~3-5 min on a 4-core runner.
         run: ./scripts/dev verify
         timeout-minutes: 15
+
+      - name: ceiling monotonicity (a ceiling may only fall)
+        # scripts/ceiling-monotonic.sh reads every CEILING_* in
+        # tests/fixtures/*.sh, reads the same ceiling at the base
+        # commit, and fails when the ceiling grew.
+        #
+        # The base is the merge base with the push target, so a pull
+        # request is compared against the branch it targets. A raise
+        # is accepted only when the fixture records the transition
+        # next to the number:
+        #
+        #     # ceiling-raise: 22 -> 30, <the reason it had to grow>
+        #
+        # The check also fails a ceiling that is DECLARED and never
+        # COMPARED. That is not a hypothetical: on 2026-10-23 the
+        # comparisons of two of the three ceilings in
+        # tests/fixtures/legacy-attestation-debt.sh were deleted while
+        # the two numbers were kept, and the fixture then passed
+        # because the debt was below the ceiling rather than because
+        # the ceiling was checked.
+        #
+        # Exit 3 means the comparison did not run (no base commit, or
+        # no ceiling to compare). It is not a pass.
+        run: bash scripts/ceiling-monotonic.sh
+        timeout-minutes: 2
 
       - name: mathc self-check (bootstrap-gate block)
         # Tier-1 ROADMAP #2 / AGENTS.md §Bootstrap-gate expiry mechanism.
