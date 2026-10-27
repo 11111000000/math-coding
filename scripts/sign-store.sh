@@ -325,7 +325,7 @@ if fh:
     seen = set()
     with open(out, 'w') as o:
         for line in fh:
-            m = re.search(r'NOT signing ([^/]+)/(\S+) --', line)
+            m = re.search(r'NOT signing ([^/\s]+)/(\S+)\s*(?:--|—)', line)
             if not m:
                 continue
             key = (m.group(1), m.group(2))
