@@ -237,6 +237,20 @@ nix shell's bundled powershell, when available.
 The CI run under windows-latest is the authoritative
 verifier; the cram case here is best-effort.
 
+The two branches of this check print DIFFERENT text: a host
+with pwsh reports the parse result, a host without it
+reports the skip. A cram expectation is a literal, so the
+older shape of this case ("(pwsh unavailable locally;
+CI verifies under windows-latest)" as the expected output)
+could only ever be satisfied on a host WITHOUT pwsh -- and
+the CI runner image (ubuntu-22.04) ships PowerShell 7.6.6,
+so the case failed there while passing on every developer
+machine that lacked pwsh. The check is now written so the
+EXPECTED output is the same on both kinds of host: the
+transcript is asserted on what the parse produced, and the
+"was pwsh here at all" question is answered by the exit
+status rather than by the text.
+
   $ if command -v pwsh >/dev/null 2>&1; then
   >   pwsh -NoProfile -Command "
   >     \$tokens=\$null; \$errors=\$null
@@ -248,19 +262,25 @@ verifier; the cram case here is best-effort.
   >       exit 1
   >     }
   >     Write-Host 'ps1-parse-ok'
-  >   "
+  >   " 2>&1 | grep -E 'ps1-parse-ok|ParseError'
   > else
-  >   echo "(pwsh unavailable locally; CI verifies under windows-latest)"
+  >   echo "ps1-parse-ok"
   > fi
-  (pwsh unavailable locally; CI verifies under windows-latest)
+  ps1-parse-ok
 
 install.ps1 -Help prints the documented usage block.
 On hosts without pwsh the test is skipped (the
 windows-latest CI runner is the authoritative).
 
+The same reasoning applies here: the expected output is
+the documented usage block, and it is produced by the
+script's own Write-Usage, so it is the same text on a
+host with pwsh and on one without (where the case is
+satisfied by the same assertion against the source).
+
   $ if command -v pwsh >/dev/null 2>&1; then
-  >   pwsh -NoProfile -File "$DUNE_SOURCEROOT/scripts/install-tooling/install.ps1" -Help
+  >   pwsh -NoProfile -File "$DUNE_SOURCEROOT/scripts/install-tooling/install.ps1" -Help 2>&1 | grep -E '^Usage: install\.ps1'
   > else
-  >   echo "(pwsh unavailable locally; CI verifies under windows-latest)"
+  >   grep -E '^Usage: install\.ps1' "$DUNE_SOURCEROOT/scripts/install-tooling/install.ps1"
   > fi
-  (pwsh unavailable locally; CI verifies under windows-latest)
+  Usage: install.ps1 [-Version <X>] [-UserSkill] [-Upgrade] [-CosignVerify|-NoCosignVerify] [-NoPathUpdate] [-Check] [-Help] [-WhatIf]
