@@ -54,15 +54,29 @@ if [ -z "$bin" ]; then
   exit 1
 fi
 
-out="$("$bin" self-check 2>/dev/null)" || true
-count="$(printf '%s' "$out" | python3 -c '
+# The verdict is written to a FILE, not captured in a shell
+# variable. `mathc self-check` prints one JSON object per subject
+# with its causes and remedies, and that is 208 KB on this corpus
+# today -- past Linux's MAX_ARG_STRLEN (128 KB, 32 pages) for a
+# single argument. Carrying it in `$out` and piping it onward made
+# the exec of the reader fail with E2BIG ("Argument list too
+# long"), so the count came back empty and this fixture reported
+# "failing subjects: EXCEEDS the ceiling" against a blank
+# measurement. The failure mode is the dangerous direction: a
+# measurement that breaks as the corpus GROWS is a measurement
+# that stops measuring exactly when it matters most. A file has no
+# such ceiling.
+verdict_file="$(mktemp)"
+trap 'rm -f "$verdict_file"' EXIT
+"$bin" self-check > "$verdict_file" 2>/dev/null || true
+count="$(python3 -c '
 import sys, json
 try:
     d = json.load(sys.stdin)
 except Exception:
     print(-1); raise SystemExit
 print(sum(1 for s in d.get("subjects", []) if s.get("verdict") == "fail"))
-')"
+' < "$verdict_file")"
 
 if [ "$count" -lt 0 ]; then
   bad "could not read the self-check verdict"
@@ -78,14 +92,14 @@ fi
 
 # The negative control: a store that cannot be read must not be
 # reported as zero failures.
-if printf '%s' "$out" | python3 -c '
+if python3 -c '
 import sys, json
 try:
     d = json.load(sys.stdin)
 except Exception:
     print("unparseable"); raise SystemExit
 print("ok" if isinstance(d.get("subjects"), list) else "unparseable")
-' | grep -q ok; then
+' < "$verdict_file" | grep -q ok; then
   ok "the measurement parses a real verdict, so the count is not vacuous"
 else
   bad "the measurement could not parse a verdict — the count may be vacuous"

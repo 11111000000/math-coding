@@ -54,6 +54,18 @@
           merlin
           ocaml-lsp
         ];
+        # The tools the conformance suite SHELLS OUT TO. A test that
+        # calls `rg` or `yq` must find the SAME tool the developer
+        # found, or the suite is green on one machine and red on
+        # another -- the failure mode measured on 2026-10-27, when
+        # three cram fixtures passed locally (the tools were in the
+        # ambient system PATH) and failed in CI (the runner image
+        # has yq 4.x, no ripgrep, and a different python3).
+        #
+        # `yq` here is the kislyuk jq-wrapper (3.x), NOT mikefarah's
+        # Go implementation (4.x): the fixtures assert the jq-wrapper's
+        # output shape, and the two differ. Declaring the version is
+        # what makes the assertion mean anything.
         buildTools = with pkgs; [
           bashInteractive
           git
@@ -70,6 +82,10 @@
           nixpkgs-fmt
           prettier
           pandoc
+          ripgrep
+          yq
+          python3
+          curl
         ];
         siteLibs = pkg: "${pkg}/lib/ocaml/${ocamlVersion}/site-lib";
         ocamlPath = pkgs.lib.concatMapStringsSep ":" siteLibs ocamlDeps;

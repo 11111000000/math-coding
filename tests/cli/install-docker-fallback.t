@@ -50,14 +50,32 @@ network-error message AND the docker fallback to stderr;
 without the merge the diagnostic stays as a separate
 cram-captured line, breaking the expected block.
 
-  $ sh "$install_sh" --no-cosign-verify --docker-fallback --version=0.0.0-nonexistent 2>&1; echo "exit=$?"
+The expected output below is the block the script prints
+WHEN DOCKER IS ON PATH. The CI runner image (ubuntu-22.04)
+has no docker binary, and install.sh says so and exits 1
+instead -- so the literal expectation could only be
+satisfied on a host that happens to have docker, and the
+case failed in CI while passing on developer machines that
+did.
+
+The case is now written so the EXPECTED output is the same
+on both kinds of host. The script's own exit status is
+captured into a variable, and the docker-specific lines are
+checked against the branch that applies on THIS host --
+docker present (fallback printed, exit 0) or docker absent
+(the script says so, exit 1). Both branches print the same
+line, so the case fails if the contract is violated on
+either kind of host, and it does not fail a host for the
+absence of a tool it never claimed to provide.
+
+  $ sh "$install_sh" --no-cosign-verify --docker-fallback --version=0.0.0-nonexistent > install.out 2>&1; rc=$?
+  $ grep -E 'curl failed|diagnostic: MC-INSTALL-NETWORK' install.out
   install.sh: curl failed for https://github.com/11111000000/math-coding/releases/download/v0.0.0-nonexistent/SHA256SUMS
   diagnostic: MC-INSTALL-NETWORK
-  native install failed; Docker fallback available:
-  
-  docker pull ghcr.io/11111000000/mathc:0.0.0-nonexistent
-  docker run --rm -v "$(pwd):/repo" ghcr.io/11111000000/mathc:0.0.0-nonexistent --help
-  
-  install.sh: --docker-fallback printed; nothing was installed
-  exit=0
+  $ if command -v docker >/dev/null 2>&1; then
+  >   grep -qE 'Docker fallback available' install.out && grep -qE 'docker pull ghcr.io/11111000000/mathc:0.0.0-nonexistent' install.out && grep -qE 'docker run --rm ' install.out && [ "$rc" -eq 0 ] && echo "docker fallback contract: ok" || echo "docker fallback contract: VIOLATED"
+  > else
+  >   grep -qE 'docker binary not found on PATH' install.out && [ "$rc" -eq 1 ] && echo "docker fallback contract: ok" || echo "docker fallback contract: VIOLATED"
+  > fi
+  docker fallback contract: ok
 

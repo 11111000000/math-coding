@@ -207,9 +207,34 @@ case "$cmd" in
 
   lint)
     cleanup_dune_lock
-    # Treat warnings as errors via dune's --error-on-warnings flag.
-    # Exits nonzero if any test executable emits a warning.
-    run_in_shell "dune build --root . --error-on-warnings && dune test --root . --error-on-warnings && echo 'lint: clean'"
+    # Treat warnings as errors.
+    #
+    # The previous shape of this command passed dune's
+    # `--error-on-warnings` flag. That flag DOES NOT EXIST in dune
+    # 3.23.1 -- the pinned version in flake.lock -- so the command
+    # failed with "dune: unknown option '--error-on-warnings'" on
+    # every invocation, including the one in CI's failure-diagnostics
+    # step. The lint gate therefore never ran a single check.
+    #
+    # dune 3.23.1 already promotes every warning to an error in the
+    # default dev profile (measured: a bare `dune build` over a file
+    # with `match [] with [] -> 1` fails with "Error (warning 8
+    # [partial-match])" and exit 1). So the policy this command
+    # wanted is the policy dune already applies; the flag was
+    # cargo-cult.
+    #
+    # What the flag WOULD have added is the full warning set (-w @a)
+    # rather than the default subset. That stricter set is applied
+    # here through the environment, because dune 3.23.1 accepts
+    # `(env (dev (flags ...)))` in dune-workspace but rejects a
+    # `(profile ...)` stanza in dune-project. The repository is
+    # warning-clean under -w @a (measured: 0 warnings), so this
+    # raises the bar rather than lowering it.
+    #
+    # The wrapper is a script rather than an inline command because
+    # OCAMLPARAM needs the `_,name=value` form to clear the defaults
+    # first, and `run_in_shell` passes the command through `bash -c`.
+    run_in_shell "scripts/lint-warnings-as-errors.sh"
     ;;
 
   verify)
