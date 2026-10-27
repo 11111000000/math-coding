@@ -334,6 +334,107 @@ let[@warning "-32"] required_attestation_gap entry store =
             requireds)
   | _ -> []
 
+(* --- source class (constitution.md §Epistemic Separation) -----------------
+ *
+ * `kind_` is the SOURCE CLASS of an attestation (`schemas/attestation.json`,
+ * `lib/domain.ml::attestation.kind`): `test`, `build`, `analysis` and
+ * `observation` are RUNTIME classes -- the file claims that a check ran and
+ * passed -- while `review` is the WEAK class, a human declaration with no
+ * runtime anchor.
+ *
+ * The constitution says a result MUST NOT be promoted to a stronger class
+ * without an artifact establishing that class. `obligation_gap` used to
+ * promote EVERY `result: pass` to "this obligation holds", whatever the
+ * file's class was. A `kind_: test` attestation that names no
+ * `producer.run` and declares no machine producer says "a check ran and it
+ * passed", and the gate believed it, although nothing in the file
+ * established that a check ran at all. The claim was not stronger than the
+ * evidence behind it; it was stronger than the evidence UNDER it.
+ *
+ * The rule below is the gate-side half of
+ * `decisions/attestation-producer-vocab-2026-10.yaml` (which is the
+ * issuance-side half) and the whole of
+ * `decisions/evidence-class-gate-2026-10.yaml`:
+ *
+ *   - a RUNTIME-class pass satisfies the obligation only when the class is
+ *     ESTABLISHED: the attestation names the `producer.run` that produced
+ *     it, or its `producer.identity` declares the machine class `ci:`;
+ *   - a `review`-class pass satisfies the obligation as it stands. A
+ *     review claims nothing stronger than itself, so accepting it promotes
+ *     nothing -- the asymmetry is the same one
+ *     MC-PRODUCER-HUMAN-UNANCHORED rests on.
+ *
+ * The rule is asymmetric about FAILURES on purpose: a decisive `fail` is
+ * not an over-claim, so it still blocks. The kernel's job here is to stop
+ * understating the assurance, not to stop reporting bad news.
+ *
+ * The rule constrains SATISFACTION only. It says nothing about the
+ * `required_attestations:` gate (`required_attestation_satisfied` above),
+ * which asks whether a named `(kind_, producer)` pair is PRESENT in the
+ * store, not whether it discharges anything.
+ *
+ * MEASURED over the 916 TRACKED attestations on 2026-10-27 (the store
+ * loader admits only tracked files): 523 carry a runtime class, 226 of
+ * those report `pass`, and exactly 2 of the 226 name neither a run nor
+ * a `ci:` producer. Both belong to `site-diagrams-as-svg-2026-10`, and
+ * they are the only corpus verdict this rule moves (pass -> unknown).
+ * The other 224 runtime passes are established -- 220 name a run (218
+ * of them also carry a `ci:` identity) and 4 name a `ci:` identity
+ * alone -- and the 393 tracked review-class attestations are
+ * untouched: a review needs no anchor. *)
+
+(* Is this a RUNTIME class -- one that claims a check ran? *)
+let[@warning "-32"] runtime_class (a : Domain.attestation) : bool =
+  match a.Domain.kind with
+  | `Test | `Build | `Analysis | `Observation -> true
+  | `Review -> false
+
+(* The declared machine producer class. `producer.identity` is
+   `<class>:<subject>` with class in {human, agent, ci}
+   (`decisions/attestation-producer-vocab-2026-10.yaml`). Only `ci:` names
+   an automated job, so only `ci:` establishes a runtime class on its own:
+   `human:` is a person and `agent:` is a model-driven agent, and both are
+   declarations. `ci-bot:` is not a declared class at all -- it says nothing
+   about WHO produced the file, so it cannot establish that a check ran. *)
+let[@warning "-32"] declared_machine_producer (identity : string) : bool =
+  let prefix = "ci:" in
+  String.length identity >= String.length prefix
+  && String.sub identity 0 (String.length prefix) = prefix
+
+(* Does the attestation name the run that produced it? An empty or
+   whitespace-only `producer.run` is not a run: `mathc attest --run=""`
+   records a field, not an anchor. *)
+let[@warning "-32"] names_its_run (a : Domain.attestation) : bool =
+  match a.Domain.producer_run with
+  | Some r -> String.trim r <> ""
+  | None -> false
+
+(* Does this attestation ESTABLISH its own source class? A review-class
+   attestation is its own class and needs no further anchor; a runtime-class
+   attestation needs a runtime anchor. *)
+let[@warning "-32"] establishes_class (a : Domain.attestation) : bool =
+  (not (runtime_class a))
+  || names_its_run a
+  || declared_machine_producer a.Domain.producer_identity
+
+(* Does this attestation discharge the obligation it names? A pass whose
+   class is not established is a declaration wearing a machine label; it
+   does not discharge anything. *)
+let[@warning "-32"] satisfies_obligation (a : Domain.attestation) : bool =
+  a.Domain.result = Domain.Pass && establishes_class a
+
+(* The reader-facing explanation of a rejected pass. A pass lands here
+   only when BOTH anchors are absent, so the message states both: the
+   run is missing AND the producer does not declare the machine class.
+   Naming one of them would send a reader to look for the other. *)
+let[@warning "-32"] class_cause (a : Domain.attestation) : string =
+  Printf.sprintf
+    "attestation %s declares kind_=%s with producer.identity %S: the runtime \
+     class is not established -- it names no producer.run and its producer \
+     does not declare the machine class 'ci:' -- so this pass is a \
+     declaration, not an observation"
+    a.Domain.id (attestation_kind_str a) a.Domain.producer_identity
+
 let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
     ~store =
   let candidates = candidates_for ~store ~decision_id ~obligation_id in
@@ -402,11 +503,22 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
             ];
         }
   | _, current ->
-      let has_pass =
-        List.exists (fun a -> a.Domain.result = Domain.Pass) current
-      in
+      (* `has_pass` is the class-aware predicate, not "any attestation whose
+         result is Pass". A runtime-class pass counts only when its class is
+         established (see `establishes_class`); a review-class pass counts as
+         it stands. *)
+      let has_pass = List.exists satisfies_obligation current in
       let has_fail =
         List.exists (fun a -> a.Domain.result = Domain.Fail) current
+      in
+      (* The pass claims that were refused because their class was not
+         established. They are named in the gap so that a reader can see
+         WHY the obligation is not satisfied -- an unread gap is a hole the
+         next maintainer has to re-derive. *)
+      let class_rejected =
+        List.filter
+          (fun a -> a.Domain.result = Domain.Pass && not (establishes_class a))
+          current
       in
       if has_fail then
         Some
@@ -438,23 +550,40 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
               ];
           }
       else if not has_pass then
-        Some
-          {
-            obligation_id;
-            kind = `Unknown;
-            causes =
+        let causes =
+          match class_rejected with
+          | [] ->
               [
                 Printf.sprintf
                   "obligation %s of decision %s has current attestations but \
                    none reports pass (inconclusive or infrastructure-error)"
                   obligation_id decision_id;
-              ];
-            remedies =
+              ]
+          | refused ->
+              Printf.sprintf
+                "obligation %s of decision %s has %d attestation(s) reporting \
+                 pass whose source class is not established"
+                obligation_id decision_id (List.length refused)
+              :: List.map class_cause refused
+        in
+        let remedies =
+          match class_rejected with
+          | [] ->
               [
                 "investigate the inconclusive attestation; a fail or a new \
                  pass is required";
-              ];
-            next_actions =
+              ]
+          | _ ->
+              [
+                "name the run that produced the result (producer.run), or \
+                 reissue the attestation with a declared 'ci:' producer";
+                "or reissue it as kind_: review if it is a human judgement \
+                 with no runtime anchor";
+              ]
+        in
+        let next_actions =
+          match class_rejected with
+          | [] ->
               [
                 ( "run",
                   Printf.sprintf
@@ -465,8 +594,23 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                     "attestations/%s-%s.json   # re-author the inconclusive \
                      attestation"
                     decision_id obligation_id );
-              ];
-          }
+              ]
+          | _ ->
+              [
+                ( "edit",
+                  Printf.sprintf
+                    "attestations/%s-%s.json   # add producer.run, or reissue \
+                     with a 'ci:' producer"
+                    decision_id obligation_id );
+                ( "run",
+                  Printf.sprintf
+                    "mathc attest-batch --manifest=manifest.tsv \
+                     --run=\"<command>\"   # one TSV row: %s <TAB> %s <TAB> \
+                     test <TAB> ci:<name>"
+                    decision_id obligation_id );
+              ]
+        in
+        Some { obligation_id; kind = `Unknown; causes; remedies; next_actions }
       else None
 
 (* Aggregate per-obligation gaps into a single verdict.
