@@ -335,22 +335,17 @@ cleanup_dune
 # is made CONDITIONAL on the kernel's own content digest having
 # moved. A run that touched only decisions, fixtures or docs keeps
 # the build cache and skips the rebuild entirely.
-kernel_stamp_file=".local/kernel-stamp"
-# Everything the cram cache observes: the kernel, the TESTS, the
-# scripts they call, and the schemas. The cache goes stale when any
-# of them changes, and a stale cram cache replays a stale
-# transcript - which is how two fixtures stayed broken for a day
-# while the suite reported green.
-kernel_stamp_now="$(find lib bin tests scripts schemas -type f \( -name '*.ml' -o -name '*.mli' -o -name '*.t' -o -name '*.sh' -o -name '*.json' \) -print0 2>/dev/null \
-                     | sort -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)"
-mkdir -p .local
-if [ -f "$kernel_stamp_file" ] && [ "$(cat "$kernel_stamp_file")" = "$kernel_stamp_now" ]; then
-  printf '%s' "$kernel_stamp_now" > "$kernel_stamp_file"
-  cram_clean=""
-else
-  printf '%s' "$kernel_stamp_now" > "$kernel_stamp_file"
+#
+# The digest is computed by scripts/kernel-stamp.sh, which is the ONE
+# definition of "has the code changed?". `scripts/dev verify` asks
+# the same question before its first stage, and the two answers
+# cannot disagree about what the current digest is.
+if [ "$(scripts/kernel-stamp.sh changed 2>/dev/null || echo changed)" = "changed" ]; then
   cram_clean="dune clean &&"
+else
+  cram_clean=""
 fi
+scripts/kernel-stamp.sh record >/dev/null 2>&1 || true
 cram_dir_list=$(find tests -name '*.t' -exec dirname {} \; | sort -u)
 cram_dirs=$(printf '%s\n' "$cram_dir_list" | tr '\n' ' ')
 cram_dirs=${cram_dirs% }

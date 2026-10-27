@@ -4007,6 +4007,24 @@ type verifier_plan_result =
   (* a form verify knows, that cannot run: `fail` + reason *)
   | Plan_ok of verifier_plan
 
+(* How a verifier string is classified BEFORE anything runs.
+ *
+ * The distinction the boolean predicate could not make: a
+ * declaration is not a check, and a check that cannot be set up is
+ * a check whose outcome is unknown. Collapsing the second into the
+ * first removes the check from the list, and the obligation is then
+ * judged on what remains. *)
+type verifier_class =
+  | Executable
+  (* a check, and it can be set up *)
+  | Not_a_check
+  (* not a check at all: a `manual-` declaration, a scheme with no
+     execution rule *)
+  | Cannot_be_set_up
+(* a check that cannot be set up: the file is missing, the scheme
+     is unknown, the arguments are malformed. Its outcome is
+     UNKNOWN, and an unknown outcome is not a pass. *)
+
 let[@warning "-32"] reject_metachars ~what tokens =
   match List.find_map first_shell_metacharacter tokens with
   | Some c ->
@@ -4345,14 +4363,53 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
    acceptance item convention: `all` means every verifier must
    pass; `any` means at least one must pass. For v1 we report
    the strict `all` rule: pass if every verifier passes, fail
-   if any fails, skipped if every verifier is skipped. *)
+   if any fails, skipped if every verifier is skipped.
+
+   WHY `Setup_fail` OUTRANKS `Pass` HERE, AND WHY IT DID NOT BEFORE.
+
+   The order of these two tests is the whole content of the
+   function under the `all` rule, and it was wrong.
+
+   `Setup_fail` is the verdict for a verifier that COULD NOT BE
+   RUN: the tool it names is not on PATH, its file is not
+   executable, its arguments are malformed. The check did not
+   fail. The check did not happen. `Pass` is the verdict for a
+   check that ran and passed.
+
+   With `Pass` tested first, a sibling that passed masked the
+   sibling that could not run, and the obligation came out
+   `pass` -- a claim that every check passed, made by a program
+   that had run one of the two. That is the same defect the
+   constitution forbids in prose (Invariant 10: a missing, stale
+   or inconclusive state MUST remain distinguishable from a
+   passed one), reached by a different road: not by laundering a
+   missing attestation, but by laundering a missing CHECK.
+
+   Measured on this corpus on 2026-10-27: 175 of 984 obligations
+   carry more than one verifier, and at least one of those
+   verifiers is PATH-dependent (`dune`, `scripts/...`,
+   `tests/...`), so a machine without that tool could report
+   those obligations as satisfied without having run them. The
+   difference is not academic. `decisions/plan-2026-10-distro-friction`
+   obligation `d9-mathc-update-subcommand` was `pass` on a host
+   without `dune` and `fail` on a host with it -- the same
+   obligation, the same tree, two verdicts, and the false one was
+   the convenient one.
+
+   The order below is: a FAIL is decisive (a check that ran and
+   failed is a fact); a Setup_fail is next (a check that could
+   not run means the outcome is not known, and unknown is not
+   pass); only then may a Pass stand. `Manual_decl` is below
+   Pass because a manual declaration is not a check that failed
+   to run -- it is a human's word, and it neither establishes nor
+   refutes the obligation. *)
 let[@warning "-32"] aggregate_verifier_outcomes outcomes =
   match outcomes with
   | [] -> Skipped
   | _ ->
       if List.exists (fun o -> o = Fail) outcomes then Fail
-      else if List.exists (fun o -> o = Pass) outcomes then Pass
       else if List.exists (fun o -> o = Setup_fail) outcomes then Setup_fail
+      else if List.exists (fun o -> o = Pass) outcomes then Pass
       else if List.exists (fun o -> o = Manual_decl) outcomes then Manual_decl
       else Skipped
 
@@ -4577,45 +4634,83 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
              verifier that ran and reported failure is a `fail`; one
              that could not be set up is `inconclusive`, exactly like
              an obligation nobody could execute. *)
-          (* Which verifiers CAN be executed?
+          (* How a verifier string is CLASSIFIED, before anything runs.
            *
-           * The test must mirror run_one_verifier's dispatch
-           * EXACTLY. plan_verifier alone is not enough: the three
-           * ORIGINAL schemes - file-exists, dir-exists, mathc - are
-           * handled BEFORE plan_verifier is reached, and
+           * The three answers are different facts, and the old
+           * predicate collapsed two of them:
+           *
+           *   Executable       -- this is a check, and it can be set up.
+           *   Not_a_check      -- this is not a check at all: a
+           *                       `manual-` declaration, a scheme with
+           *                       no execution rule. Nothing ran and
+           *                       nothing was expected to.
+           *   Cannot_be_set_up -- this IS a check, and it could not be
+           *                       set up: the file is missing, the
+           *                       scheme is unknown, the arguments are
+           *                       malformed.
+           *
+           * The old predicate returned a bool, so `Cannot_be_set_up`
+           * and `Not_a_check` both came back FALSE and the verifier
+           * was DROPPED from the list. A check that could not be set
+           * up therefore vanished, and the obligation was judged on
+           * the verifiers that remained -- which is how an
+           * obligation whose only executable check was unrunnable
+           * could come out `pass`. The drop is the same laundering
+           * as the one in `aggregate_verifier_outcomes`, one step
+           * earlier: the unrunnable check was removed before the
+           * question of whether it had run was ever asked.
+           *
+           * The classification must mirror run_one_verifier's
+           * dispatch EXACTLY. plan_verifier alone is not enough:
+           * the three ORIGINAL schemes - file-exists, dir-exists,
+           * mathc - are handled BEFORE plan_verifier is reached, and
            * plan_verifier knows nothing about them. Filtering on
-           * plan_verifier alone therefore dropped every
-           * file-exists and mathc verifier on the floor, and the
-           * obligation came out inconclusive - 200 obligations whose
-           * check was perfectly executable, reported as a check that
-           * could not run. *)
-          let executable s =
+           * plan_verifier alone dropped every file-exists and
+           * mathc verifier on the floor, and the obligation came
+           * out inconclusive - 200 obligations whose check was
+           * perfectly executable, reported as a check that could
+           * not run. *)
+          let classify s =
             match parse_verifier_string s with
-            | None -> false
+            | None -> Not_a_check
             | Some (scheme, args) -> (
                 match scheme with
-                | "file-exists" | "dir-exists" -> args <> []
-                | "mathc" -> args <> []
+                | "file-exists" | "dir-exists" ->
+                    if args <> [] then Executable else Not_a_check
+                | "mathc" -> if args <> [] then Executable else Not_a_check
                 | _ -> (
                     match plan_verifier ~project_root:root scheme args with
-                    | Plan_ok _ -> true
-                    | Plan_fail _ -> false
-                    | Plan_skip -> false))
+                    | Plan_ok _ -> Executable
+                    | Plan_fail _ -> Cannot_be_set_up
+                    | Plan_skip -> Not_a_check))
           in
-          let planned = List.filter executable verifiers in
+          let classified = List.map (fun s -> (s, classify s)) verifiers in
+          let planned =
+            List.filter_map
+              (fun (s, c) -> if c = Executable then Some s else None)
+              classified
+          in
+          (* The checks that could not be set up. They are NOT
+              dropped: each one is a check whose outcome is unknown,
+              and the obligation's verdict has to say so. *)
+          let unrunnable =
+            List.filter_map
+              (fun (s, c) -> if c = Cannot_be_set_up then Some s else None)
+              classified
+          in
           (* An obligation whose only verifiers are `manual:`
-             declarations is not a gap - it is a HUMAN DECLARATION, and
-             the attestation system has a class for that: `review`.
-             Treating it as inconclusive made 466 declared obligations
-             unsatisfiable, which is the opposite of what a declaration
-             is for. The declaration is still bound to a tree through
-             the scope digest, so it goes stale when the scope changes
-             - a declaration that cannot be invalidated is a
-             decoration, and that is exactly what the binding
-             prevents. *)
-          if planned = [] && verifiers <> [] then
+              declarations is not a gap - it is a HUMAN DECLARATION, and
+              the attestation system has a class for that: `review`.
+              Treating it as inconclusive made 466 declared obligations
+              unsatisfiable, which is the opposite of what a declaration
+              is for. The declaration is still bound to a tree through
+              the scope digest, so it goes stale when the scope changes
+              - a declaration that cannot be invalidated is a
+              decoration, and that is exactly what the binding
+              prevents. *)
+          if planned = [] && unrunnable = [] && verifiers <> [] then
             { ov_outcome = Manual_decl; ov_failing = []; ov_unnamed = None }
-          else if planned = [] then
+          else if planned = [] && unrunnable = [] then
             { ov_outcome = Skipped; ov_failing = []; ov_unnamed = None }
           else
             let outcomes =
@@ -4625,12 +4720,13 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
                     run_one_verifier_memoized ~project_root:root ~sandbox_mode
                       ~verifier_string:s ))
                 planned
+              @ List.map (fun s -> (s, Setup_fail)) unrunnable
             in
             (* The failing verifiers are the ones whose OWN outcome was
-               `fail` - not the first of the list, and not the first one
-               that could be planned. An aggregate is `fail` if and only
-               if some outcome is, so this list is exactly the set of
-               checks that made the obligation fail. *)
+                `fail` - not the first of the list, and not the first one
+                that could be planned. An aggregate is `fail` if and only
+                if some outcome is, so this list is exactly the set of
+                checks that made the obligation fail. *)
             let failing =
               List.filter_map
                 (fun (s, o) -> if o = Fail then Some s else None)
@@ -5790,24 +5886,49 @@ let[@warning "-32"] do_verify () =
         (Jsonl.stringify (Jsonl.String path))
         items);
   (* Exit code (spec/semantics.md §Kernel Output "Verdict to exit
-     code"; constitution.md Invariant 14b: "exit code 0 MUST imply
-     verdict `Pass` or `Open_with_waiver`").
+      code"; constitution.md Invariant 14b: "exit code 0 MUST imply
+      verdict `Pass` or `Open_with_waiver`").
 
-       - a decisive failure of any obligation -> `Block` -> 1;
-       - at least one obligation actually FULFILLED -> `Pass` -> 0;
-       - nothing was fulfilled -> `Unknown` -> 3.
+        - a decisive failure of any obligation -> `Block` -> 1;
+        - an obligation that was NOT verified -> `Unknown` -> 3;
+        - every obligation verified and passed -> `Pass` -> 0.
 
-     The third row is the one this command got wrong. `skipped`,
-     `setup-fail`, `timeout` and `declared` are all "the check did
-     not happen", and a command that verified nothing is not a
-     passing command: the previous code exited 0 for it, which is
-     `unknown != pass` laundering at the last place the distinction
-     can still be lost (the exit code). Measured on this repository
-     before the fix: `mathc verify` on a real decision printed seven
-     `skipped` verdicts and exited 0. *)
+     The second row is the one this command got wrong, twice, for the
+     same reason.
+
+     First: `skipped`, `setup-fail`, `timeout` and `declared` are all
+     "the check did not happen", and a command that verified nothing
+     is not a passing command: the previous code exited 0 for it,
+     which is `unknown != pass` laundering at the last place the
+     distinction can still be lost (the exit code). Measured on this
+     repository before that fix: `mathc verify` on a real decision
+     printed seven `skipped` verdicts and exited 0.
+
+     Second, and this is the subtler one: the rule that replaced it
+     was "at least one obligation was actually FULFILLED -> 0". That
+     rule says a command that verified ONE obligation and could not
+     verify ANOTHER exits 0 -- and the exit code is the last place
+     the difference between "the check passed" and "the check did not
+     run" can still be lost, so losing it there loses it for good. A
+     decision with two obligations, one executable and one not, was
+     reported as verified.
+
+     The rule now is the strict one: exit 0 means EVERY obligation
+     was verified and passed. A command that verified part of a
+     decision has not verified the decision, and saying so is the
+     whole point of the exit code. *)
   let has_fail = List.exists (fun (_, v) -> v = Fail) verdicts in
-  let has_pass = List.exists (fun (_, v) -> v = Pass) verdicts in
-  if has_fail then exit 1 else if has_pass then exit 0 else exit 3
+  (* An obligation that was not verified. `skipped`, `setup-fail`,
+     `timeout` and `declared` all mean "the check did not happen",
+     and a claim whose check did not happen is an UNKNOWN claim.
+     It is not a failed claim, and it is not a fulfilled one. *)
+  let unverified =
+    List.exists (fun (_, v) -> v <> Pass && v <> Fail) verdicts
+  in
+  if has_fail then exit 1
+  else if unverified then exit 3
+  else if verdicts <> [] then exit 0
+  else exit 3
 
 (* --- gate subcommand (gate-decision@1 scaffold) ---
  *
