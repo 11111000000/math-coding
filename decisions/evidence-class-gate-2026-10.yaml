@@ -1,0 +1,365 @@
+---
+schema: math-coding/3.3
+id: evidence-class-gate
+revision: 1
+state: active
+mode: standard
+body_sha: "sha256:9ceace3c7845ed51c3d43f31d17b86d29da9645480f42dadb59764a5d4c150dd"
+yaml_sha: "sha256:9ceace3c7845ed51c3d43f31d17b86d29da9645480f42dadb59764a5d4c150dd"
+
+intent: |
+  Stop the gate from believing a machine-grade pass whose own file
+  establishes nothing about a check having run.
+
+  `kind_` is the SOURCE CLASS of an attestation: `test`, `build`,
+  `analysis` and `observation` say "a check ran and it passed"; `review`
+  is the weak class, a human declaration with no runtime anchor.
+  `spec/constitution.md` §Epistemic Separation says a result MUST NOT be
+  promoted to a stronger class without an artifact establishing that
+  class, and `axioms/feedback.md` (A1) names the failure mode in one
+  line: "an `Attestation` whose `result` is reported as `pass` when no
+  test, review, or observation has actually run ('Green CI' with no CI
+  is a failure mode)".
+
+  `lib/gate.ml::obligation_gap` did exactly that. Its pass predicate was
+  `a.result = Pass` -- the result alone, with no regard for the class
+  the file declared or for whether anything in the file established
+  that class. A hand-written file saying `kind_: test`, `result: pass`,
+  no `producer.run` and an undeclared producer identity was read by the
+  gate as "the obligation holds".
+
+  The WRITE side already refused that shape. `mathc attest-batch
+  --manifest` rejects a runtime-class row with no `--run` behind it, and
+  `mathc re-evaluate-decisions` writes a `review`, not a `test`
+  (`decisions/attestation-producer-vocab-2026-10.yaml` is the issuance
+  half; `tests/cli/evidence-class.t` is the issuance half's fixture).
+  The READ side did not. The gate is the only place where a claim
+  becomes a verdict, so the gate is the only place where the class rule
+  has to bite.
+
+  The asymmetry is the point. A `review` claims nothing stronger than
+  itself, so accepting a review promotes nothing and a rule against it
+  would forbid the most ordinary thing a maintainer does -- record that
+  they read something and agreed. A runtime class is an UPGRADE: it says
+  a check ran. An upgrade needs an artifact.
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+
+commitment: |
+  One rule, in `lib/gate.ml::obligation_gap`:
+
+    A RUNTIME-class attestation (`kind_` in `test | build | analysis |
+    observation`) reporting `result: pass` discharges the obligation it
+    names ONLY IF its source class is ESTABLISHED, which means:
+
+      (a) it names the `producer.run` that produced it (a non-empty,
+          non-whitespace string), OR
+      (b) its `producer.identity` declares the machine class `ci:`.
+
+    A `review`-class attestation reporting `result: pass` discharges the
+    obligation as it stands, with no anchor required.
+
+  Four properties of the rule are deliberate and are stated here so that
+  a later change to one of them is a change to THIS decision:
+
+  1. IT CONSTRAINS SATISFACTION ONLY. `required_attestation_satisfied`
+     asks whether a named `(kind_, producer)` pair is PRESENT in the
+     store; that is a presence requirement, not a discharge, and it is
+     not touched.
+
+  2. IT IS ASYMMETRIC ABOUT FAILURES. A decisive `fail` still blocks
+     whatever its class and whether or not it is anchored. The kernel's
+     job here is to stop UNDERSTATING the assurance, not to stop
+     reporting bad news.
+
+  3. IT IS ASYMMETRIC ABOUT CLASSES. `review` needs no anchor; the four
+     runtime classes do.
+
+  4. THE GAP SAYS WHY. A refused pass is named in the gap's `causes`,
+     with the attestation id, its `kind_` and its `producer.identity`,
+     and the gap carries remedies that an available authority can
+     execute. An unread gap is a hole the next maintainer has to
+     re-derive.
+
+  THE CHANGED VERDICTS, measured on this repository before and after
+  the change (`mathc self-check`, 2026-10-27, over the 252 subjects of
+  the corpus at HEAD):
+
+      before:  fail 1 | open-with-waiver 8 | pass 32 | unknown 211
+      after:   fail 1 | open-with-waiver 8 | pass 31 | unknown 212
+
+  Exactly ONE subject moves: `site-diagrams-as-svg-2026-10`, from
+  `pass` to `unknown`. Its only pass evidence for
+  `mermaid-removed-from-renderer` and
+  `inline-figures-render-on-eight-pages` is
+  `attestations/t1-2-A3-site-diagrams-as-svg-2026-10-*.json`: `kind_:
+  test`, `result: pass`, no `producer.run`, and the producer identity
+  `ci-bot:re-evaluate-decisions` -- an UNDECLARED class, since the
+  declared producer vocabulary is `human:` / `agent:` / `ci:`. The
+  verdict was `pass` because a file said `pass`. The file said nothing
+  about a check having run.
+
+  This decision file adds a 253rd subject, `evidence-class-gate`,
+  which is `unknown` because its three obligations have no attestations
+  yet. Writing them is a signing run, and this change does not perform
+  one: the store is not in this change's scope, and the signing script
+  is not run by it. The subject is recorded as unknown rather than
+  papered over, which is the same treatment 211 of the other 252
+  subjects already receive.
+
+  MEASURED over the 916 TRACKED attestations (the store loader admits
+  only tracked files; 1819 files sit on disk, 903 of them gitignored
+  test-run artefacts the loader refuses): 523 carry a runtime class,
+  226 of those report `pass`, and exactly 2 of the 226 name neither a
+  run nor a `ci:` producer -- the two files above. The other 224 are
+  established (220 name a run, 218 of them also carrying a `ci:`
+  identity; 4 name a `ci:` identity alone). The 393 tracked
+  review-class attestations are untouched: a review needs no anchor, and
+  3 of them report `pass`.
+
+  The shape `decisions/attestation-producer-vocab-2026-10.yaml`
+  counted as 88 on 2026-10-23 (`kind_` a runtime class, `result: pass`,
+  an empty `materials_digest`, no `producer.run`) counts 6 today. Four
+  of the 6 declare a `ci:fixture:` machine producer and are established
+  by this rule; two are not. The empty `materials_digest` in those 6
+  is a different rule's subject (MC-MATERIALS-DIGEST-EMPTY, an
+  issuance-side check), and this decision does not change how any of
+  the 6 is read -- the 4 that were `pass` before are `pass` after.
+
+  MIGRATION. The two grandfathered files are NOT rewritten. An
+  attestation `id` is the sha256 of the attestation's canonical body
+  with the `id` field removed, and `producer.identity` is part of that
+  body, so "correcting" a committed file means recomputing its evidence
+  identifier -- minting new provenance for evidence nobody re-ran. The
+  same reasoning as
+  `decisions/attestation-producer-vocab-2026-10.yaml::antithesis`
+  applies, and it is the reason that decision grandfathers 120 files
+  rather than rewriting them. The two obligations fall back to
+  `unknown`, which is the honest verdict for them, and the gap names
+  the remedy: re-sign the obligation with a named run
+  (`mathc attest-batch --manifest=... --run="<command>"`) or reissue it
+  as `kind_: review` if it is a human judgement.
+
+  RECOVERY. The rule is one predicate in one function. Reverting
+  `lib/gate.ml::obligation_gap` to `a.result = Pass` restores the
+  previous verdicts exactly; the change is not a migration and there is
+  no data to roll back, because no file is rewritten. The forward
+  recovery -- re-signing the two obligations above -- is a signing run,
+  not a code change.
+
+  AUTHORIZATION. This is a protected policy transition (a gate rule),
+  so it carries the constitution's §Self-application list: a decision
+  under the previously active policy (this one, at mode `standard`),
+  the strongest practical counterexample (below), positive and negative
+  conformance fixtures (`tests/cli/evidence-class.t`), a migration path
+  and a recovery path (above), the explicit list of changed verdicts
+  (above), and authorization by the previously active policy -- the
+  policy in force declares `mode_floor: standard` for `lib/**` and
+  `tests/**`, and the commit carrying this change touches exactly the
+  paths listed in `scope.paths`.
+
+outcomes:
+  - id: a-runtime-class-pass-must-establish-its-class
+    statement: |
+      `mathc gate` and `mathc self-check` treat a runtime-class
+      (`test | build | analysis | observation`) attestation reporting
+      `pass` as discharging its obligation only when it names a
+      non-empty `producer.run` or its `producer.identity` declares the
+      machine class `ci:`. A refused pass leaves the obligation
+      unsatisfied, produces an `Unknown` gap that names the attestation
+      and the reason, and the verdict is `unknown` with exit code 3.
+  - id: a-review-class-pass-is-accepted-as-it-stands
+    statement: |
+      A `kind_: review` attestation reporting `pass` discharges its
+      obligation with no `producer.run` and with a `human:` or `agent:`
+      producer. The rule constrains the UPGRADE to a runtime class, not
+      the declaration of a human judgement.
+  - id: the-corpus-moves-by-one-subject-and-the-delta-is-stated
+    statement: |
+      The rule moves exactly one corpus subject
+      (`site-diagrams-as-svg-2026-10`, `pass` -> `unknown`) and leaves
+      the other 251 alone. The measurement is stated above with the
+      counts it was taken from, so a reader can re-derive it rather
+      than trust it.
+
+scope:
+  paths:
+    - "lib/gate.ml"
+    - "tests/cli/evidence-class.t"
+    - "tests/cli/required-attestation.t"
+    - "decisions/evidence-class-gate-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-rule-refuses-an-unestablished-runtime-pass
+    outcome: a-runtime-class-pass-must-establish-its-class
+    claim: |
+      A runtime-class attestation reporting `pass` with no
+      `producer.run` and no `ci:` producer does NOT discharge its
+      obligation: the verdict is `unknown`, the exit code is 3, and the
+      gap names the class and the remedy.
+    acceptance:
+      all:
+        - verifier: tests/cli/evidence-class.t
+          result: pass
+        - verifier: mathc validate decisions/evidence-class-gate-2026-10.yaml
+          result: pass
+  - id: the-rule-accepts-both-anchors-and-the-review-class
+    outcome: a-review-class-pass-is-accepted-as-it-stands
+    claim: |
+      The same runtime-class pass discharges the obligation when it
+      names a `producer.run`, and when its producer declares the
+      machine class `ci:`; and a `review`-class pass discharges it as
+      it stands.
+    acceptance:
+      all:
+        - verifier: tests/cli/evidence-class.t
+          result: pass
+        - verifier: tests/cli/required-attestation.t
+          result: pass
+  - id: the-changed-verdicts-are-measured-and-stated
+    outcome: the-corpus-moves-by-one-subject-and-the-delta-is-stated
+    claim: |
+      The decision states the before/after verdict distribution over
+      the 252 corpus subjects, names the one subject that moves, and
+      names the two files whose evidence stops discharging anything.
+    acceptance:
+      all:
+        - verifier: file-exists lib/gate.ml
+          result: pass
+        - verifier: mathc validate decisions/evidence-class-gate-2026-10.yaml
+          result: pass
+
+negative_control: tests/cli/evidence-class.t
+
+counterexample: |
+  Three counter-positions considered and rejected.
+
+  (a) "The rule is a parser, not a judgement: `producer.run` is a free
+  string, so `run: 'x'` establishes nothing." Rejected on the ground
+  the rule actually stands on. The rule does not claim that a named run
+  is EXECUTED -- `mathc verify` is the thing that executes it, and
+  `decisions/attestation-producer-vocab-2026-10.yaml` records the
+  measured execution coverage as an explicit limit with its own
+  reversal signal. What the rule requires is that the file name the
+  command it is about, so that a reader CAN check it and a producer
+  whose run does not reproduce the recorded result is caught by a
+  named, failing verifier rather than by nobody looking. The cheap
+  forgery -- type a command that does not exist, assert a test passed
+  -- is still available, and this decision does not claim otherwise.
+
+  (b) "A runtime-class `fail` with no anchor is just as unanchored as a
+  pass, so the rule must treat them alike -- otherwise anyone can block
+  the gate by writing `kind_: test, result: fail, identity: x`." The
+  objection is right about the asymmetry and the rule accepts it as a
+  KNOWN LIMIT rather than as an oversight: the rule constrains
+  satisfaction only, so an unanchored fail still blocks. Two things
+  make that defensible and one makes it worth stating. It is
+  defensible because a fail is the conservative direction -- the gate
+  refusing to discharge an obligation cannot launder anything, and the
+  constitution's Proportionality section forbids the kernel from
+  LOWERING kernel-required friction, not from raising it. It is
+  defensible because the corpus carries NO such file: measured over
+  the 916 tracked attestations, all 5 of the runtime-class `fail`
+  attestations declare a `ci:` producer (`ci:kernel:resign`,
+  `ci:resign`), so not one of them is an unanchored fail and the
+  abuse has no precedent here. It is worth stating because the abuse
+  is real in principle: a repository that accepts hand-written
+  attestations from untrusted parties can be blocked at will by an
+  unanchored fail, and closing that would mean requiring an anchor for
+  failures too -- which would turn "the check failed" into "the check
+  failed AND someone proved it ran", a different rule with a different
+  cost. That rule belongs to its own decision, and this one records the
+  limit rather than pretending the asymmetry is free.
+
+  (c) "The corpus had 88 attestations of the wrong shape -- fix the
+  corpus first and the rule second." The count is from
+  `decisions/attestation-producer-vocab-2026-10.yaml` and it was true
+  of the 2026-10-23 corpus; the same shape counts 6 files today, and 2
+  of the 6 are unestablished. The corpus got cleaner because the
+  ISSUANCE side refused those files -- `mathc re-evaluate-decisions`
+  writes a `review`, and `mathc attest-batch --manifest` refuses a
+  runtime-class row with no `--run` behind it -- and the issuance side
+  only refused them because the corpus was being re-signed. Waiting
+  for the corpus to be clean before the gate refuses an unanchored
+  claim would be waiting for the gate to stop being one of the reasons
+  the corpus is clean.
+
+antithesis: |
+  The opposite claim would be that the gate's job is to read the store,
+  not to grade it: an attestation that says `result: pass` says `pass`,
+  and the class of the file that carries it is a question for the
+  issuer, not for the reader.
+
+  That claim is not wrong about the store. The store is a set of
+  signed claims, and a claim's authority is its signature, not its
+  shape. But the store's authority is exactly what the gate cannot
+  check: 0 of the 916 tracked attestations carry a `signature` block,
+  so there is no key_id, no key registry and no trust anchor (the
+  explicit `unknown` recorded as `human-tag-is-not-verifiable` in
+  `decisions/attestation-producer-vocab-2026-10.yaml`). What the gate
+  CAN check is the shape: whether the file that claims a check ran
+  names the check. A reader who is not told what produced a claim can
+  still be told whether the claim is anchored to anything.
+
+  And the cost of the reading this decision rejects is not abstract.
+  Before it, one subject of this repository reported `pass` on the
+  strength of two files whose producer identity (`ci-bot:...`) names no
+  class at all, whose `kind_` says `test`, and which name no run. That
+  subject is now `unknown`, which is the truth: nobody ran a check for
+  it. A reader who is told only "pass" cannot tell that from a subject
+  whose checks really did run.
+
+risk:
+  declared_triggers:
+    - a producer issues a runtime-class attestation with a run string
+      that no verifier can execute, and the rule accepts it as
+      anchored
+    - an unanchored runtime-class `fail` is used to block a gate at
+      will
+    - a brownfield adopter's existing store carries runtime-class passes
+      with neither a run nor a `ci:` producer and cannot rewrite them
+    - the corpus grows a second subject whose only pass evidence is an
+      unanchored runtime-class attestation
+  owner: human:maintainer
+
+relations:
+  addresses: []
+  refines:
+    - attestation-producer-vocab-2026-10
+  supersedes: []
+  superseded_by: []
+
+reversal:
+  - signal: verifier-execution-coverage-falls-below-the-named-run-threshold
+    condition: |
+      The measured share of attestations whose named `producer.run` is
+      actually executed by a verifier falls far enough that naming a run
+      stops being evidence of anything. The rule's anchor (a) would
+      then be a string that only satisfies the predicate.
+    action: rework
+    recovery: |
+      Replace anchor (a) with a rule that requires the named run to
+      have been EXECUTED and to have reproduced the recorded digest,
+      and demote anchor (b) to a declaration rather than an anchor.
+      The store has no key registry and no execution ledger today, so
+      the substrate for that rule has to be built before it can be
+      adopted.
+  - signal: a-brownfield-adopter-cannot-emit-a-declared-machine-class
+    condition: |
+      An adopter's existing tooling writes `producer.identity` values
+      with no class tag and cannot be changed without rewriting its
+      evidence store, so every runtime-class pass it holds is refused
+      by the gate.
+    action: rework
+    recovery: |
+      Relax the rule to require an anchor only where the store is
+      under the adopter's own control, or accept a `ci:`-prefixed
+      identity as a sufficient anchor for a store that predates the
+      vocabulary decision, and record the grandfathered set explicitly
+      rather than silently.

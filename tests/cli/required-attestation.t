@@ -130,6 +130,18 @@ no gap emitted:
 Decision with NO `required_attestations:` block is unchanged
 (no gap emitted; existing Pass/Block semantics unchanged):
 
+The attestation below is a RUNTIME-class one (`kind_: test`), so the gate
+requires its source class to be ESTABLISHED: it must name the
+`producer.run` that produced it, or its `producer.identity` must declare
+the machine class `ci:` (`decisions/evidence-class-gate-2026-10.yaml`).
+This fixture declares `ci:fixture` -- the identity every synthetic
+fixture store in this repository uses -- because it writes no run.
+The identity it used to carry, `ci-bot`, is an UNDECLARED class: the
+producer vocabulary is `human:` / `agent:` / `ci:`
+(`decisions/attestation-producer-vocab-2026-10.yaml`), and `ci-bot` is a
+grandfathered pre-vocabulary spelling that names no class at all, so it
+cannot establish that a check ran.
+
   $ tmp=$(mktemp -d)
   $ cd "$tmp"
   $ cat > dune-project <<EOF
@@ -172,7 +184,7 @@ Decision with NO `required_attestations:` block is unchanged
   $ git add decisions/ dune-project && git commit -q -m "add decision"
   $ mkdir -p attestations
   $ cat > attestations/no-req-sample-conformance-fixture-exe.json <<EOF
-  > {"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"no-req-sample","obligation":"ob1","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"ci-bot"},"result":"pass","issued_at":"2026-10-08T00:00:00Z","id":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+  > {"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"no-req-sample","obligation":"ob1","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"ci:fixture"},"result":"pass","issued_at":"2026-10-08T00:00:00Z","id":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
   > EOF
   $ git add attestations/ && git commit -q -m "attestation"
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc gate HEAD~1 HEAD > /tmp/no-req-gate.json
