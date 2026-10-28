@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: gaps-worklist-2026-10
-revision: 4
+revision: 5
 state: active
 mode: standard
 
-body_sha: "sha256:1d3b80d6e2a5b87bc99ec5cca0c2a154a0de463927621f4a66a942655d60cf88"
-yaml_sha: "sha256:1d3b80d6e2a5b87bc99ec5cca0c2a154a0de463927621f4a66a942655d60cf88"
+body_sha: "sha256:089d9ae13ad196d3ff0ab58dab04711a763f59ab1568821a93ddf2d12fd4dced"
+yaml_sha: "sha256:089d9ae13ad196d3ff0ab58dab04711a763f59ab1568821a93ddf2d12fd4dced"
 
 axiom_link:
   - A0
@@ -24,33 +24,34 @@ intent: |
   what can be done about it. The classes are the kernel's own
   dispatch, not a guess:
 
-  declaration     the verifier is a `manual-` declaration: the
-  kernel does not execute it and says so. The
-  promise is real, the check is not there.
-  unknown-scheme  the verifier names a command the kernel does not
-  know. It is neither a check nor a declaration: it
-  is empty. Twenty-four of them are named after
-  `mathc self-check` subcommands that were never
-  commands.
-  malformed       the verifier names a scheme the kernel KNOWS and
-  a string it cannot run (`tests/x.t (positive case)` -- a path
-  verifier with a case label after it). The scheme is right and the
-  string is wrong, and the honest name for that is not "unknown".
-  checkable       the kernel can execute it here. The gap is about
+  checkable          the kernel can run it here. The gap is about
   EVIDENCE: missing, stale, or failed.
-  unidentified    the obligation carries no id, so the gate never
-  decides it and no verdict can ever mention it.
+  not-a-check        the kernel does not run it at all: a `manual-`
+  declaration, or a scheme with no execution rule. The
+  pseudo-commands named after `mathc self-check` subcommands
+  that were never commands belong here.
+  cannot-be-set-up   it IS a check and it could not be set up: the
+  scheme is unknown, the arguments are malformed, or the file
+  it names is missing.
+  unidentified       the obligation carries no id, so the gate
+  never decides it and no verdict can ever mention it.
+
+  The classes are the kernel's OWN (`Executable`, `Not_a_check`,
+  `Cannot_be_set_up` -- the classification the sweep's runner
+  uses). The runner's dispatch was lifted out of it into
+  `classify_verifier` so that the worklist and the sweep call the
+  SAME function: two copies of that dispatch is how a corpus ends
+  up with two answers to one question.
 
   MEASURED on this repository, 2026-10-28, against the store of a
   tree two commits behind:
 
-  319 open promises, against a store signed for this tree:
-  declaration     239   a promise no program can run
-  unknown-scheme   32   a verifier that names a command nobody has
-  malformed        20   a known scheme, a string it cannot run
-  checkable        17   the evidence is missing or stale
-  unidentified     11   a promise no gate can name
-  by state: missing 52, unknown 267
+  332 open promises, against a store signed for this tree:
+  not-a-check        270   a promise the kernel does not run
+  checkable           43   the evidence is missing or stale
+  unidentified        11   a promise no gate can name
+  cannot-be-set-up     8   a check that could not be set up
+  by state: missing 49, unknown 283
 
   The earlier measurement of 578 was taken against a store two
   commits behind this tree, so 441 of those were stale evidence

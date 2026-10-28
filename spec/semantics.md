@@ -512,18 +512,20 @@ is a kernel verdict, not a CLI invocation fault). The table is
   on stdout with the keys `now`, `counts`, `open`, `waived`.
   `counts` carries `open`, `waived`, `by_class` and `by_state`.
   Every entry of `open` carries `decision`, `obligation`, `class`
-  (`declaration` | `unknown-scheme` | `checkable` | `unidentified`),
+  (`checkable` | `not-a-check` | `cannot-be-set-up` | `unidentified`),
   `state` (`missing` | `stale` | `failed` | `unknown` |
   `missing-review` | `no-store`), `verifiers[]`, `cause` and `action`.
   Every entry of `waived` carries `decision`, `obligation`, `waiver`,
   `issuer` and `expires_at`. With `--format=text`, the same list as
   lines: `decision/obligation  class state`, then the action, then
   the counts.
-  The CLASS is the kernel's own dispatch: `declaration` (the verifier
-  is a `manual-` declaration the kernel does not execute),
-  `unknown-scheme` (the verifier names a command the kernel does not
-  know), `checkable` (the kernel can execute it here; the gap is about
-  evidence), `unidentified` (the obligation carries no id, so no gate
+  The CLASS is the kernel's own classification -- the one the sweep's
+  runner uses (`Executable`, `Not_a_check`, `Cannot_be_set_up`):
+  `checkable` (the kernel can run it here; the gap is about
+  evidence), `not-a-check` (a `manual-` declaration, or a scheme with
+  no execution rule), `cannot-be-set-up` (a real check whose scheme
+  is unknown, whose arguments are malformed, or whose file is
+  missing), `unidentified` (the obligation carries no id, so no gate
   decides it). The `state` is read by `Gate.obligation_gap`, the same
   function the gate uses.
 - **Exit code**: `0` on success; `2` on an unknown `--format` value.
