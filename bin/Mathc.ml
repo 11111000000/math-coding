@@ -4170,7 +4170,8 @@ let[@warning "-32"] plan_verifier ~project_root scheme args =
 (* Run one argv in the sandbox and map its status to a verdict. The
    child's stdout/stderr are captured; on a non-pass verdict an
    excerpt goes to stderr. *)
-let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
+let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog
+    ~args =
   (* A repository script arrives here as an ABSOLUTE path that
      repo_file already proved is inside the root; only a bare
      program name (`dune`) is looked up on the child's PATH. *)
@@ -4189,7 +4190,7 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
         run_with_sandbox_in_env
           ~env:(sandbox_env_for_path_forms ())
           ~capture_to:(Some log) ~project_root ~prog:abs_prog
-          ~args:(abs_prog :: args) ~timeout_s:verify_timeout_s ~sandbox_mode
+          ~args:(abs_prog :: args) ~timeout_s ~sandbox_mode
       in
       let captured = read_capped log ~max_bytes:65536 in
       (try Sys.remove log with _ -> ());
@@ -4197,7 +4198,7 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
         match outcome with
         | Timeout ->
             Printf.eprintf "mathc verify: %s exceeded the %d s timeout\n%!" prog
-              verify_timeout_s;
+              timeout_s;
             Timeout
         | Pass -> (
             match status with
@@ -4248,18 +4249,19 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
             ~max_lines:20 captured);
       verdict
 
-let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode = function
+let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode ~timeout_s =
+  function
   | Plan_dune args ->
-      run_plan_argv ~project_root ~sandbox_mode ~prog:"dune" ~args
+      run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog:"dune" ~args
   | Plan_script (abs, args) ->
-      run_plan_argv ~project_root ~sandbox_mode ~prog:abs ~args
+      run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog:abs ~args
   | Plan_cram rel ->
-      run_plan_argv ~project_root ~sandbox_mode ~prog:"dune"
+      run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog:"dune"
         ~args:[ "runtest"; rel ]
   | Plan_binary (target, argv) ->
       let args = [ "exec"; target ] in
       let args = if argv = [] then args else args @ [ "--" ] @ argv in
-      run_plan_argv ~project_root ~sandbox_mode ~prog:"dune" ~args
+      run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog:"dune" ~args
 
 (* Run a single verifier string. Returns Pass | Fail | Skipped |
    Timeout. The sandbox is enforced by the scheme allowlist. In
@@ -4270,7 +4272,7 @@ let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode = function
    string is `skipped` (binary), with the human-readable reason
    surfaced through stderr by run_with_sandbox's `strict`
    branch. *)
-let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
+let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode ~timeout_s
     ~verifier_string =
   match parse_verifier_string verifier_string with
   | None -> Skipped
@@ -4331,7 +4333,7 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
             let outcome, status =
               run_with_sandbox_in_env ~env:(sandbox_env ())
                 ~capture_to:(Some log) ~project_root ~prog:Sys.executable_name
-                ~args:argv ~timeout_s:60 ~sandbox_mode
+                ~args:argv ~timeout_s ~sandbox_mode
             in
             let captured = read_capped log ~max_bytes:65536 in
             (try Sys.remove log with _ -> ());
@@ -4392,7 +4394,8 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
           | Plan_fail why ->
               Printf.eprintf "mathc verify: %s — %s\n%!" verifier_string why;
               Fail
-          | Plan_ok plan -> run_verifier_plan ~project_root ~sandbox_mode plan))
+          | Plan_ok plan ->
+              run_verifier_plan ~project_root ~sandbox_mode ~timeout_s plan))
 
 (* Aggregate per-obligation verdict. The semantics follow the
    acceptance item convention: `all` means every verifier must
@@ -4529,12 +4532,16 @@ let[@warning "-32"] verifier_result_cache : (string, verify_outcome) Hashtbl.t =
   Hashtbl.create 512
 
 let[@warning "-32"] run_one_verifier_memoized ~project_root ~sandbox_mode
-    ~verifier_string =
-  let key = sandbox_mode ^ "\000" ^ verifier_string in
+    ~timeout_s ~verifier_string =
+  let key =
+    sandbox_mode ^ "\000" ^ string_of_int timeout_s ^ "\000" ^ verifier_string
+  in
   match Hashtbl.find_opt verifier_result_cache key with
   | Some o -> o
   | None ->
-      let o = run_one_verifier ~project_root ~sandbox_mode ~verifier_string in
+      let o =
+        run_one_verifier ~project_root ~sandbox_mode ~timeout_s ~verifier_string
+      in
       Hashtbl.replace verifier_result_cache key o;
       o
 
@@ -4660,7 +4667,7 @@ type obligation_verdict = {
 }
 
 let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
-    ~obligation_id : obligation_verdict =
+    ~obligation_id ~refuse_suite ~timeout_s : obligation_verdict =
   let path = decision_path_for_id ~root ~decision_id in
   match parse_file path with
   | Error _ ->
@@ -4738,6 +4745,51 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
                 | "file-exists" | "dir-exists" ->
                     if args <> [] then Executable else Not_a_check
                 | "mathc" -> if args <> [] then Executable else Not_a_check
+                | "dune" -> (
+                    if
+                      (* A `dune` verifier runs the BUILD SYSTEM. The gate
+                       runs inside CI, where the suite has already run,
+                       and inside a cram test, where a `dune runtest`
+                       inside a `dune runtest` recurses and the
+                       recursion ends in a timeout, not in a verdict.
+                       So the gate refuses it and says so: the check
+                       did not run, and the obligation is reported as
+                       "could not be run against the candidate tree",
+                       which is what it is. *)
+                      refuse_suite
+                    then begin
+                      Printf.eprintf
+                        "mathc gate: not running the dune verifier %S: it \
+                         would nest the build system inside the gate\n\
+                         %!"
+                        s;
+                      Cannot_be_set_up
+                    end
+                    else
+                      match plan_verifier ~project_root:root scheme args with
+                      | Plan_ok _ -> Executable
+                      | Plan_fail _ -> Cannot_be_set_up
+                      | Plan_skip -> Not_a_check)
+                | _ when refuse_suite && starts_with "tests/" scheme ->
+                    (* A verifier that names a TEST is the suite by
+                       another name, and the suite is a separate step:
+                       `scripts/dev verify` runs it before the gate, in
+                       CI and on a developer machine alike. Run from
+                       inside the gate it is the same recursion one
+                       level down, and it is SLOW: measured on this
+                       repository, one `tests/cli/*.t` verifier took 47
+                       seconds of a 1 m 46 s gate run, because the case
+                       builds. The gate runs CHECKS -- the kernel's own
+                       subcommands, path checks, repository scripts --
+                       and reports the suite's verdicts from the step
+                       that ran them. *)
+                    Printf.eprintf
+                      "mathc gate: not running the test verifier %S: the suite \
+                       is a separate step, and running it here would nest it \
+                       inside the gate\n\
+                       %!"
+                      s;
+                    Cannot_be_set_up
                 | _ -> (
                     match plan_verifier ~project_root:root scheme args with
                     | Plan_ok _ -> Executable
@@ -4788,7 +4840,7 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
                 (fun s ->
                   ( s,
                     run_one_verifier_memoized ~project_root:root ~sandbox_mode
-                      ~verifier_string:s ))
+                      ~timeout_s ~verifier_string:s ))
                 planned
               @ List.map (fun s -> (s, Setup_fail)) unrunnable
             in
@@ -4817,8 +4869,9 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
 
 (* The verdict, for the callers that only need the word. *)
 let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
-    ~obligation_id : verify_outcome =
-  (verdict_of_obligation_named ~root ~sandbox_mode ~decision_id ~obligation_id)
+    ~obligation_id ~refuse_suite ~timeout_s : verify_outcome =
+  (verdict_of_obligation_named ~root ~sandbox_mode ~decision_id ~obligation_id
+     ~refuse_suite ~timeout_s)
     .ov_outcome
 
 (* What a refusal says about the check that broke.
@@ -5538,7 +5591,8 @@ let[@warning "-32"] do_attest_batch () =
               if !run_per_obligation then
                 Some
                   (verdict_of_obligation_named ~root ~sandbox_mode:"none"
-                     ~decision_id:decision ~obligation_id:obligation)
+                     ~decision_id:decision ~obligation_id:obligation
+                     ~refuse_suite:false ~timeout_s:verify_timeout_s)
               else None
             in
             let kind_, result, run =
@@ -5723,6 +5777,7 @@ let[@warning "-32"] do_attest_batch () =
                 match
                   verdict_of_obligation ~root ~sandbox_mode:"none"
                     ~decision_id:decision ~obligation_id:obligation
+                    ~refuse_suite:false ~timeout_s:verify_timeout_s
                 with
                 | Pass -> (!kind, "pass", "run-per-obligation")
                 | Fail -> (!kind, "fail", "run-per-obligation")
@@ -5934,7 +5989,8 @@ let[@warning "-32"] do_verify () =
         let outcomes =
           List.map
             (fun s ->
-              run_one_verifier ~project_root ~sandbox_mode ~verifier_string:s)
+              run_one_verifier ~project_root ~sandbox_mode
+                ~timeout_s:verify_timeout_s ~verifier_string:s)
             verifier_strings
         in
         let verdict = aggregate_verifier_outcomes outcomes in
@@ -6436,6 +6492,35 @@ let do_gate () =
   let live : (string * string, Gate.obligation_state) Hashtbl.t =
     Hashtbl.create 64
   in
+  (* THE BUDGET. A merge gate has to finish in bounded time. The work
+   * is proportional to the CHANGE, but a change that touches the
+   * kernel touches a hundred decisions, and each of them can name a
+   * check: on this repository, one commit that touched ten files
+   * reached 124 decisions carrying 69 `mathc`, 27 `dune` and 33
+   * fixture-path verifiers, and running them all took more than five
+   * minutes -- which is a gate nobody waits for, and a gate nobody
+   * waits for is not a gate.
+   *
+   * The budget is the honest way to bound it. When it runs out, the
+   * obligations that were NOT checked stay unverified, and the gate
+   * says how many they were. A gate that ran out of time does not
+   * say "everything passed"; it says "I did not check these, here
+   * is how many".
+   *
+   * MEASURED, this repository, the commit that touched ten files:
+   * with a 60 s budget the gate finished in 1 m 47 s, checked 94 of
+   * 538 obligations, and reported "the live-check budget of 60 s ran
+   * out; 444 obligation(s) were not checked". The default is
+   * therefore 30 s, and the budget is checked BETWEEN obligations:
+   * one verifier can still overrun it, by its own timeout. *)
+  let budget_s =
+    match Sys.getenv_opt "MATH_CODING_GATE_BUDGET_S" with
+    | Some s -> ( try float_of_string s with _ -> 30.0)
+    | None -> 30.0
+  in
+  let deadline = Unix.gettimeofday () +. budget_s in
+  let budget_spent = ref false in
+  let unchecked = ref 0 in
   (* `--no-execute` is a veto: it wins over `--execute` and over the
    * default, whatever the order of the flags. See the switch's
    * comment above for why the veto cannot be a toggle. *)
@@ -6446,55 +6531,69 @@ let do_gate () =
         then
           List.iter
             (fun obl_id ->
-              let state =
-                match
-                  verdict_of_obligation_named ~root ~sandbox_mode:"none"
-                    ~decision_id:e.Memory.decision_id ~obligation_id:obl_id
-                with
-                | { ov_outcome = Pass; _ } -> Some Gate.Satisfied
-                | { ov_outcome = Fail; _ } -> Some Gate.Failed
-                (* A check that TIMED OUT did not conclude. Reporting it
-                 * as `Failed` says "a check ran against the candidate
-                 * tree and failed", and the remedy the gap offers is
-                 * "revert the change that broke this obligation" --
-                 * advice that accuses the change of breaking something
-                 * when the truth is that the check never finished.
-                 * `Gate.Unverified` is the state that says exactly
-                 * that: "the check exists and could not be run, or it
-                 * could not conclude". *)
-                | { ov_outcome = Timeout; _ } -> Some Gate.Unverified
-                | { ov_outcome = Setup_fail; _ } -> Some Gate.Unverified
-                (* Skipped says two different things and the live path
-                 * has to tell them apart, because they must not be
-                 * settled by the same thing:
-                 *
-                 *   - `ov_ran = false`: there was NO CHECK to run --
-                 *     the obligation names no verifier at all. The
-                 *     store's record is the evidence for a claim no
-                 *     program can check, so the store decides.
-                 *   - `ov_ran = true`: a check WAS attempted and could
-                 *     not conclude. The aggregate folds a `Timeout`
-                 *     into `Skipped`, so this is the shape a check
-                 *     that ran out of time arrives in. The check
-                 *     exists and it established nothing, and the
-                 *     store's record is about an OLDER tree -- so
-                 *     letting the store settle it would let a check
-                 *     that did not run stand in for a check that
-                 *     passed. `Gate.Unverified` is the honest state.
-                 *
-                 * Manual_decl: the check is a human's word. Nothing
-                 * ran and nothing was expected to, so the store
-                 * decides. *)
-                | { ov_outcome = Skipped; ov_ran = true; _ } ->
-                    Some Gate.Unverified
-                | { ov_outcome = Skipped; ov_ran = false; _ } -> None
-                | { ov_outcome = Manual_decl; _ } -> None
-              in
-              match state with
-              | Some s -> Hashtbl.replace live (e.Memory.decision_id, obl_id) s
-              | None -> ())
+              if !budget_spent then incr unchecked
+              else if Unix.gettimeofday () > deadline then begin
+                budget_spent := true;
+                incr unchecked
+              end
+              else
+                let state =
+                  match
+                    verdict_of_obligation_named ~root ~sandbox_mode:"none"
+                      ~decision_id:e.Memory.decision_id ~obligation_id:obl_id
+                      ~refuse_suite:true ~timeout_s:10
+                  with
+                  | { ov_outcome = Pass; _ } -> Some Gate.Satisfied
+                  | { ov_outcome = Fail; _ } -> Some Gate.Failed
+                  (* A check that TIMED OUT did not conclude. Reporting it
+                   * as `Failed` says "a check ran against the candidate
+                   * tree and failed", and the remedy the gap offers is
+                   * "revert the change that broke this obligation" --
+                   * advice that accuses the change of breaking something
+                   * when the truth is that the check never finished.
+                   * `Gate.Unverified` is the state that says exactly
+                   * that: "the check exists and could not be run, or it
+                   * could not conclude". *)
+                  | { ov_outcome = Timeout; _ } -> Some Gate.Unverified
+                  | { ov_outcome = Setup_fail; _ } -> Some Gate.Unverified
+                  (* Skipped says two different things and the live path
+                   * has to tell them apart, because they must not be
+                   * settled by the same thing:
+                   *
+                   *   - `ov_ran = false`: there was NO CHECK to run --
+                   *     the obligation names no verifier at all. The
+                   *     store's record is the evidence for a claim no
+                   *     program can check, so the store decides.
+                   *   - `ov_ran = true`: a check WAS attempted and could
+                   *     not conclude. The aggregate folds a `Timeout`
+                   *     into `Skipped`, so this is the shape a check
+                   *     that ran out of time arrives in. The check
+                   *     exists and it established nothing, and the
+                   *     store's record is about an OLDER tree -- so
+                   *     letting the store settle it would let a check
+                   *     that did not run stand in for a check that
+                   *     passed. `Gate.Unverified` is the honest state.
+                   *
+                   * Manual_decl: the check is a human's word. Nothing
+                   * ran and nothing was expected to, so the store
+                   * decides. *)
+                  | { ov_outcome = Skipped; ov_ran = true; _ } ->
+                      Some Gate.Unverified
+                  | { ov_outcome = Skipped; ov_ran = false; _ } -> None
+                  | { ov_outcome = Manual_decl; _ } -> None
+                in
+                match state with
+                | Some s ->
+                    Hashtbl.replace live (e.Memory.decision_id, obl_id) s
+                | None -> ())
             e.Memory.obligation_ids)
       memory.Memory.decisions;
+  if !budget_spent then
+    Printf.eprintf
+      "mathc gate: the live-check budget of %.0f s ran out; %d obligation(s) \
+       were not checked\n\
+       %!"
+      budget_s !unchecked;
   let result =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
       ~changed_paths ~store ~rebuttals

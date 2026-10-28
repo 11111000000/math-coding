@@ -1,11 +1,11 @@
 ---
 schema: math-coding/3.2
 id: gate-scoped-default-2026-10
-revision: 2
+revision: 3
 state: active
 mode: light
-body_sha: "sha256:4b9e264e1f29cb202a00bac2c6e8aa545e75733833f53c8a228b9ffb371f47eb"
-yaml_sha: "sha256:4b9e264e1f29cb202a00bac2c6e8aa545e75733833f53c8a228b9ffb371f47eb"
+body_sha: "sha256:399f6ec2c632c2d5fff8316e2c27a70880785411583abd321a12a9374cb991ef"
+yaml_sha: "sha256:399f6ec2c632c2d5fff8316e2c27a70880785411583abd321a12a9374cb991ef"
 
 intent: |
   The gate had two switches and no default. This decision says which
@@ -106,6 +106,39 @@ intent: |
   dead scope paths was removed on 2026-10-28 with the rest of the
   corpus-debt tooling (decisions/corpus-meta-layer-2026-10.yaml),
   so from that date nothing in this repository watches for it.
+
+  THE GATE HAS TO FINISH, AND THE MEASUREMENT THAT FORCED IT.
+  Measured on this repository on 2026-10-28, on the commit that
+  touched ten files: the scoped gate reached 124 decisions carrying
+  69 `mathc`, 27 `dune` and 33 fixture-path verifiers. Running them
+  all took more than five minutes -- a gate nobody waits for is not
+  a gate. Three bounds now hold it:
+
+    1. THE GATE DOES NOT RUN THE BUILD SYSTEM. A `dune` verifier is
+       refused and named: it would nest `dune runtest` inside
+       `dune runtest`, and the recursion ends in a timeout, not in a
+       verdict. The check did not run, and the obligation says so.
+    2. THE GATE DOES NOT RUN THE SUITE. A verifier that names a
+       `tests/...` file is the suite by another name; the suite is a
+       separate step (`scripts/dev verify`), and one such verifier
+       took 47 seconds of a 1 m 46 s gate run, because the case
+       builds.
+    3. THE LIVE PATH HAS A BUDGET. 30 seconds by default
+       (`MATH_CODING_GATE_BUDGET_S` overrides it), checked BETWEEN
+       obligations, with a 10 s ceiling on one verifier. When the
+       budget runs out, the obligations that were not checked stay
+       unverified and the gate says how many they were: "the
+       live-check budget of 30 s ran out; 444 obligation(s) were not
+       checked". A gate that ran out of time does not say "everything
+       passed".
+
+  With the three bounds in place, the same gate run takes 23 seconds.
+  The verdict it returns for that commit is `block`, and the cause is
+  the STORE's stale `fail` attestations -- evidence about an older
+  tree -- not the live checks. That is the next thing the store's
+  generation has to answer: a store generated for THIS tree carries
+  no stale fail, because the sweep prunes what the run did not
+  observe.
 
 axiom_link:
   - A0
