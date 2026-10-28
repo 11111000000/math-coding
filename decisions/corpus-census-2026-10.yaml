@@ -1,0 +1,153 @@
+---
+schema: math-coding/3.2
+id: corpus-census-2026-10
+revision: 1
+state: active
+mode: light
+
+body_sha: "sha256:3ef3d6f377e3c085559568a2ce56e30eefbfff79405c925d163b8aa4e1a68c08"
+yaml_sha: "sha256:3ef3d6f377e3c085559568a2ce56e30eefbfff79405c925d163b8aa4e1a68c08"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  The corpus holds 288 decision files. Most of them are not rules:
+  they are WORK RECORDS -- a batch that was fixed, a page that was
+  written, a plan that was executed, a CLI behaviour that was
+  changed. A work record in the corpus is not a commitment; it is a
+  log entry that the gate has to re-read on every commit.
+
+  The census that produced this decision classified every file against
+  three criteria, in this order:
+
+    1. a PROTECTED TRANSITION -- the constitution, the schemas,
+       canonicalisation, the gate's rules, authority and waiver rules;
+    2. it fixes KERNEL SEMANTICS -- the digest algorithm, the verdict
+       vocabulary, the exit codes, the evidence class, the limits of
+       waiver, what self-check means;
+    3. it carries an EXECUTABLE VERIFIER -- its obligations name
+       checks a program can run -- and it is a standing rule rather
+       than a plan, a site/packaging work item, or a one-off script.
+
+  The result: 50 KEEP, 238 ARCHIVE. The 238 are plans expressed as
+  decisions, site and release decisions, one-off fix batches, and
+  decisions whose obligations are only `manual-` declarations -- a
+  promise no program can keep, which is prose, not an obligation.
+
+  WHERE THE ARCHIVE GOES. The kernel walks the decisions directory
+  RECURSIVELY (lib/memory.ml::decision_document_paths), so
+  `decisions/archive/` would still be corpus. The archive therefore
+  lives OUTSIDE the corpus directory, in `archive/decisions/`, and
+  stays in git: the history of a decision is worth keeping, and the
+  difference between "archived" and "deleted" is exactly the
+  difference between "the corpus is smaller" and "the history is
+  gone".
+
+  THE ORDER OF THE WORK, AND WHY IT IS NOT ONE COMMIT. A decision can
+  be archived only when nothing depends on it: a relation in another
+  decision, a waiver whose subject it is, a script or test that names
+  its path, a rule the kernel resolves by id. Moving it before its
+  dependents are fixed breaks the corpus's relation graph and the
+  tests that name it. So the census is applied in tranches, from the
+  unreferenced files outward, and every tranche is measured.
+
+commitment: |
+  1. A decision is ARCHIVED when it is a work record, a plan, a
+     site/release/packaging item, or a set of manual-only
+     obligations -- and when nothing depends on it.
+  2. The archive lives in `archive/decisions/`, outside the corpus
+     directory, and stays in git.
+  3. A decision is archived only after its references are fixed: a
+     relation to an archived decision is removed, a waiver whose
+     subject is archived goes with it, and a path reference in a
+     script or a test is updated.
+  4. A PROSE mention -- a changelog entry, a historical note, an
+     inventory line -- is not a dependency and is left alone: a
+     record of what happened is not a claim that it still happens.
+
+outcomes:
+  - id: the-corpus-holds-rules
+    statement: |
+      Every file left in `decisions/` is a standing rule: a protected
+      transition, a kernel semantic, or a rule with an executable
+      verifier.
+  - id: the-archive-is-outside-the-corpus
+    statement: |
+      `archive/decisions/` holds the archived work records, and the
+      kernel's recursive walk of the decisions directory does not see
+      them.
+
+scope:
+  paths:
+    - "decisions/**"
+    - "archive/decisions/**"
+    - "decisions/corpus-census-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-corpus-is-validated
+    claim: |
+      Every decision left in the corpus still validates: the
+      pre-commit gate over `decisions/*.yaml` passes.
+    acceptance:
+      all:
+        - verifier: bash scripts/pre-commit
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/corpus-census-2026-10.yaml` returns
+      exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/corpus-census-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "a decision is archived while a relation, a waiver or a path
+      reference still names it, and the corpus's relation graph
+      develops a dangling edge"
+    - "the census is applied to a file that was a rule after all: the
+      classification is a judgement, and a wrong judgement removes a
+      commitment from the gate"
+    - "the archive grows into a second corpus that nobody reads, and
+      the same treadmill starts again one directory over"
+  owner: human:maintainer
+
+counterexample: |
+  "The census is a judgement call dressed up as a measurement, and
+  moving 238 files is how a project loses its memory."
+
+  The objection is about the method, and it is right to be: a
+  classification that cannot be checked is not a measurement. That is
+  why the work is done in tranches from the outside in. A file with no
+  mention anywhere in the tree cannot be depended on by anything --
+  that is checkable, and it is what the first tranche is. A file that
+  something depends on is not archived until that dependency is
+  fixed, and the dependency list is written down before the move.
+
+  The second half of the objection is answered by where the archive
+  goes. The files stay in git, byte for byte, with their history; what
+  leaves is the CORPUS -- the set of things the gate holds each other
+  to. A decision that records a batch that was fixed in March is
+  history; the March commit is history too, and it says more.
+
+antithesis: |
+  The opposite claim is that the corpus should keep everything: a
+  decision is cheap to keep, and the corpus is the memory.
+
+  The measurement says the opposite. 771 of the corpus's verifier
+  slots are `manual-` declarations -- checks no program can run --
+  and the gate has been reporting 88% unknown because of them, for
+  weeks, on every commit. Keeping a file is not free: every decision
+  in the corpus is re-read, re-digested and re-gated on every commit,
+  and a corpus that cannot be satisfied is a corpus that teaches
+  everyone to ignore the verdict.
+
+  What is kept is what deserves to be kept: the protected surfaces,
+  the kernel semantics, the rules with executable checks. The rest is
+  still in git, one directory over, and still greppable.
