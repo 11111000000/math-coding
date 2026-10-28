@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: gaps-worklist-2026-10
-revision: 1
+revision: 2
 state: active
 mode: standard
 
-body_sha: "sha256:40976ae3f2c6fa4341ae2db8490fb990ac3fef9dba405be7399697405db11d0b"
-yaml_sha: "sha256:40976ae3f2c6fa4341ae2db8490fb990ac3fef9dba405be7399697405db11d0b"
+body_sha: "sha256:fb585fd306a162aa153060ee6e9c70703a594954ca0f83d8c700b331b8a0b1d8"
+yaml_sha: "sha256:fb585fd306a162aa153060ee6e9c70703a594954ca0f83d8c700b331b8a0b1d8"
 
 axiom_link:
   - A0
@@ -77,6 +77,9 @@ commitment: |
   corpus rests on time.
   5. The command is read-only and is in the allowlist a verifier may
   invoke.
+  6. The worklist's code is `dune fmt` clean: it was written by hand
+  and the formatter rewrapped it, and the formatter's output is the
+  tree's shape.
 
 outcomes:
   - id: every-open-promise-is-named

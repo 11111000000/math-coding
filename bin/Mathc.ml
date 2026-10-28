@@ -1289,8 +1289,8 @@ let print_usage oc =
      0|1|3\n\
     \  gaps [--format=json|text]        list every open promise: the \
      obligation, its class (declaration, unknown-scheme, checkable,\n\
-    \                                     unidentified), its state, and \
-     what can be done about it\n\
+    \                                     unidentified), its state, and what \
+     can be done about it\n\
     \  session-start                    write .local/session-start ISO timestamp\n\
     \  record --decision-id ID ...      append event to \
      decisions/execution-logs.jsonl\n\
@@ -8310,8 +8310,7 @@ let[@warning "-32"] gap_class_of_verifiers ~root (vs : string list) =
   if vs = [] then `Unidentified
   else if
     List.exists
-      (fun v ->
-        String.length v >= 7 && String.sub v 0 7 = "manual-")
+      (fun v -> String.length v >= 7 && String.sub v 0 7 = "manual-")
       vs
   then `Declaration
   else
@@ -8324,9 +8323,7 @@ let[@warning "-32"] gap_class_of_verifiers ~root (vs : string list) =
               match scheme with
               | "file-exists" | "dir-exists" | "mathc" -> args <> []
               | _ -> (
-                  match
-                    plan_verifier ~project_root:root scheme args
-                  with
+                  match plan_verifier ~project_root:root scheme args with
                   | Plan_ok _ -> true
                   | Plan_fail _ | Plan_skip -> false)))
         vs
@@ -8342,23 +8339,22 @@ let[@warning "-32"] gap_class_name = function
 let[@warning "-32"] gap_action cls state =
   match (cls, state) with
   | `Declaration, _ ->
-      "the verifier is a declaration: write the check, cover the gap \
-       with a dated waiver, or drop the promise"
+      "the verifier is a declaration: write the check, cover the gap with a \
+       dated waiver, or drop the promise"
   | `Unknown_scheme, _ ->
-      "the verifier names a command the kernel does not know: implement \
-       it, or declare what it was checking"
+      "the verifier names a command the kernel does not know: implement it, or \
+       declare what it was checking"
   | `Unidentified, _ ->
-      "the obligation has no id, so no gate ever decides it: give it an \
-       id, or drop the promise"
+      "the obligation has no id, so no gate ever decides it: give it an id, or \
+       drop the promise"
   | `Checkable, "missing" ->
-      "the check exists and the evidence does not: run \
-       scripts/sign-store.sh"
+      "the check exists and the evidence does not: run scripts/sign-store.sh"
   | `Checkable, "stale" -> "the evidence is stale: re-run the sweep"
   | `Checkable, "failed" ->
       "the check ran and failed: fix the code, or fix the promise"
   | `Checkable, _ ->
-      "the check could not be decided here: run it by hand and read what \
-       it says"
+      "the check could not be decided here: run it by hand and read what it \
+       says"
 
 let[@warning "-32"] do_gaps () =
   let format = ref "json" in
@@ -8433,7 +8429,7 @@ let[@warning "-32"] do_gaps () =
               in
               match gap with
               | None -> ()
-              | Some g ->
+              | Some g -> (
                   let cls =
                     gap_class_of_verifiers ~root detail.Memory.od_verifiers
                   in
@@ -8461,7 +8457,7 @@ let[@warning "-32"] do_gaps () =
                           detail.Memory.od_verifiers,
                           cause,
                           gap_action cls state )
-                        :: !open_items)
+                        :: !open_items))
           entry.Memory.obligation_details)
     entries;
   let open_items = List.rev !open_items in
@@ -8481,7 +8477,8 @@ let[@warning "-32"] do_gaps () =
     ^ String.concat ","
         (List.map
            (fun (k, v) ->
-             Jsonl.stringify (Jsonl.String k) ^ ":"
+             Jsonl.stringify (Jsonl.String k)
+             ^ ":"
              ^ Jsonl.stringify (Jsonl.Int v))
            pairs)
     ^ "}"
@@ -8500,16 +8497,18 @@ let[@warning "-32"] do_gaps () =
       waived_items;
     Printf.printf "by class: %s\n"
       (String.concat ", "
-         (List.map (fun (k, v) -> Printf.sprintf "%s=%d" k v)
+         (List.map
+            (fun (k, v) -> Printf.sprintf "%s=%d" k v)
             (count_by (fun (_, _, c, _, _, _, _) -> c) open_items)));
     Printf.printf "by state: %s\n"
       (String.concat ", "
-         (List.map (fun (k, v) -> Printf.sprintf "%s=%d" k v)
+         (List.map
+            (fun (k, v) -> Printf.sprintf "%s=%d" k v)
             (count_by (fun (_, _, _, s, _, _, _) -> s) open_items)));
     exit 0
   end;
   let item_json item =
-    let (d, o, c, s, vs, cause, action) = item in
+    let d, o, c, s, vs, cause, action = item in
     "{"
     ^ String.concat ","
         (List.map
@@ -8528,7 +8527,7 @@ let[@warning "-32"] do_gaps () =
     ^ "}"
   in
   let waived_json item =
-    let (d, o, (wid, issuer, expires)) = item in
+    let d, o, (wid, issuer, expires) = item in
     "{"
     ^ String.concat ","
         (List.map
@@ -8570,8 +8569,8 @@ let[@warning "-32"] do_gaps () =
              ( "open",
                "[" ^ String.concat "," (List.map item_json open_items) ^ "]" );
              ( "waived",
-               "[" ^ String.concat "," (List.map waived_json waived_items)
-               ^ "]" );
+               "[" ^ String.concat "," (List.map waived_json waived_items) ^ "]"
+             );
            ])
     ^ "}\n"
   in
