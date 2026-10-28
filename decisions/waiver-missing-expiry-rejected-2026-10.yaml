@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:83e6b25baf900ecaab3edc7f628cd802717ffa5e59254a60e9d8da3841e34f83"
-yaml_sha: "sha256:83e6b25baf900ecaab3edc7f628cd802717ffa5e59254a60e9d8da3841e34f83"
+body_sha: "sha256:d154709e842db20250f47bba95d07a85cc0772983518cd1f7e5bd39cebeda800"
+yaml_sha: "sha256:d154709e842db20250f47bba95d07a85cc0772983518cd1f7e5bd39cebeda800"
 
 axiom_link:
   - A0
@@ -62,6 +62,7 @@ outcomes:
 scope:
   paths:
     - "bin/Mathc.ml"
+    - "tests/fixtures/waiver-missing-expiry-rejected.sh"
     - "decisions/waiver-missing-expiry-rejected-2026-10.yaml"
   exclusions:
     - "attestations/**"
@@ -70,11 +71,13 @@ scope:
 obligations:
   - id: the-missing-expiry-is-rejected
     claim: |
-      A waiver without `expires_at` is rejected by the validator.
+      A waiver without `expires_at` is rejected by the validator, the
+      rejection names the field, and a waiver WITH an expiry is still
+      accepted.
     acceptance:
       all:
-        - verifier: mathc validate fixtures/conformance/waiver/negative-missing-expiry.json
-          result: fail
+        - verifier: tests/fixtures/waiver-missing-expiry-rejected.sh
+          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/waiver-missing-expiry-rejected-2026-10.yaml`
