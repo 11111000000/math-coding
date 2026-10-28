@@ -4,8 +4,8 @@ id: site-redesign-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:e7cf24494a9525920d0af55b298ba2b1ed63bf615c4d0b432109bb9eefbe97bd"
-yaml_sha: "sha256:e7cf24494a9525920d0af55b298ba2b1ed63bf615c4d0b432109bb9eefbe97bd"
+body_sha: "sha256:bb9d6ab3d1fb793dabdd28070ec301b906c1bee19fc911e39136df41c0d6d416"
+yaml_sha: "sha256:bb9d6ab3d1fb793dabdd28070ec301b906c1bee19fc911e39136df41c0d6d416"
 axiom_link:
   - A0
   - A1
@@ -117,69 +117,58 @@ obligations:
       The four-menu nav row fits a single line at 1280 px and
       1440 px viewports with 14-px mono text and a 1.0 em
       gutter.
+      screenshots/site-redesign/nav-1280.png and nav-1440.png show the nav in a single row with no wrap.
     acceptance:
-      verifier: manual-visual-diff
-      result: pass
-      detail: |
-        screenshots/site-redesign/nav-1280.png and
-        nav-1440.png show the nav in a single row with no
-        wrap.
+      all:
+        - verifier: manual-visual-diff
+          result: pass
   - id: logo-crisp-at-favicon-size
     statement: |
       assets/logo.svg renders at 16 px with all three
       primitives (left bracket, check mark, right bracket)
       legible.
+      Render the SVG to PNG at 16x16 with a 2x device-pixel ratio and verify the bracket-corner and check-mark remain distinguishable.
     acceptance:
-      verifier: manual-render-and-compare
-      result: pass
-      detail: |
-        Render the SVG to PNG at 16x16 with a 2x device-pixel
-        ratio and verify the bracket-corner and check-mark
-        remain distinguishable.
+      all:
+        - verifier: manual-render-and-compare
+          result: pass
   - id: homepage-first-viewport-shows-only-hero
     statement: |
       The first viewport on `/` on a 1440 x 900 window shows
       only the hero.
+      The screenshot at 1440 x 900 of `/` shows only the hero (logo, h1, tagline, two CTAs) and the first divider line above the next section.
     acceptance:
-      verifier: manual-visual-diff
-      result: pass
-      detail: |
-        The screenshot at 1440 x 900 of `/` shows only the
-        hero (logo, h1, tagline, two CTAs) and the first
-        divider line above the next section.
+      all:
+        - verifier: manual-visual-diff
+          result: pass
   - id: moderation-section-renders-terminal
     statement: |
       The Moderation section contains a `<pre class="mathc-terminal">`
       with a sample `mathc gate main feature/auth-fix`
       transcript.
+      grep 'mathc gate main feature/auth-fix' dist/index.html returns a non-empty result.
     acceptance:
-      verifier: manual-file-grep
-      result: pass
-      detail: |
-        grep 'mathc gate main feature/auth-fix' dist/index.html
-        returns a non-empty result.
+      all:
+        - verifier: manual-file-grep
+          result: pass
   - id: russian-page-mirrors-english-structure
     statement: |
       `dist/index.ru.html` carries the same five sections and
       structural classes as `dist/index.html`.
+      grep -c -e 'mathc-hero' -e 'mathc-section mathc-quickstart' -e 'mathc-section mathc-moderation' -e 'mathc-section mathc-methodology' -e 'mathc-section mathc-adopt' dist/index.html and the same on dist/index.ru.html return the same count.
     acceptance:
-      verifier: manual-file-grep
-      result: pass
-      detail: |
-        grep -c -e 'mathc-hero' -e 'mathc-section mathc-quickstart' -e 'mathc-section mathc-moderation' -e 'mathc-section mathc-methodology' -e 'mathc-section mathc-adopt' dist/index.html
-        and the same on dist/index.ru.html return the same
-        count.
+      all:
+        - verifier: manual-file-grep
+          result: pass
   - id: hero-width-uses-prose-column
     statement: |
       On viewports ≥ 1280 px the hero uses the full main
       column.
+      At 1440 x 900, evaluate in the browser: document.querySelector('.mathc-hero').offsetWidth is greater than 800.
     acceptance:
-      verifier: manual-browser-eval
-      result: pass
-      detail: |
-        At 1440 x 900, evaluate in the browser:
-        document.querySelector('.mathc-hero').offsetWidth
-        is greater than 800.
+      all:
+        - verifier: manual-browser-eval
+          result: pass
 
 antithesis: |
   The flat 12-link nav was a defensible default: every page

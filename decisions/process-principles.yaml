@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: process-principles
 revision: 5
 state: active
-body_sha: "sha256:23a68007c4310a19e59d2ddb58d59652d3e19a66a04bd85db76283d421f9d7d5"
-yaml_sha: "sha256:23a68007c4310a19e59d2ddb58d59652d3e19a66a04bd85db76283d421f9d7d5"
+body_sha: "sha256:75f5b281ce004789db5ac923ecda33e0be668a30a966942c289a6616f8f642bb"
+yaml_sha: "sha256:75f5b281ce004789db5ac923ecda33e0be668a30a966942c289a6616f8f642bb"
 intent: |
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as
@@ -302,6 +302,10 @@ obligations:
       sequence on demand.
     evidence: manual-acceptance
     owner: human:maintainer
+    acceptance:
+      all:
+        - verifier: manual-agent-conduct-review
+          result: pass
   - id: p4-merge-order-time-budget-kernel
     outcome: principles-recorded-as-obligations
     claim: |
@@ -316,6 +320,10 @@ obligations:
       pull-request ordering on demand.
     evidence: manual-acceptance
     owner: human:maintainer
+    acceptance:
+      all:
+        - verifier: manual-agent-conduct-review
+          result: pass
   - id: p5-cram-retired-shell-fixtures-only
     outcome: checkable-principles-asserted-by-fixture
     claim: |

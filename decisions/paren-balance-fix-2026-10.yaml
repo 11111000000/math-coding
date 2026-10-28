@@ -4,8 +4,8 @@ id: paren-balance-fix-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:62904dbd3f3a6616d07a4915a5943bb176089a6559112f02c5a5d95c0b09a5da"
-yaml_sha: "sha256:62904dbd3f3a6616d07a4915a5943bb176089a6559112f02c5a5d95c0b09a5da"
+body_sha: "sha256:ee6abf563817052c1535f7d7710b514f14bd73ce8211255d58ad3c8845a3b2a3"
+yaml_sha: "sha256:ee6abf563817052c1535f7d7710b514f14bd73ce8211255d58ad3c8845a3b2a3"
 axiom_link:
   - A3
 intent: |
@@ -70,37 +70,31 @@ obligations:
     statement: |
       `dune build` on a clean tree returns exit code 0 with no
       errors after this fix is applied.
+      `scripts/dev build` exits 0; the success line "build: ok" appears in the output.
     acceptance:
-      verifier: manual-shell
-      result: pass
-      detail: |
-        `scripts/dev build` exits 0; the success line "build: ok"
-        appears in the output.
+      all:
+        - verifier: manual-shell
+          result: pass
   - id: mathc-self-check-verdict-unchanged
     statement: |
       The overall self-check verdict and the per-subject pass /
       unknown / fail counts are unchanged from the pre-fix
       state.
+      `_build/install/default/bin/mathc self-check` returns the same JSON verdict as before the fix; only the `unknown` subjects that existed prior remain `unknown`, no new `fail` or new `unknown` is introduced.
     acceptance:
-      verifier: manual-shell
-      result: pass
-      detail: |
-        `_build/install/default/bin/mathc self-check` returns the
-        same JSON verdict as before the fix; only the `unknown`
-        subjects that existed prior remain `unknown`, no new
-        `fail` or new `unknown` is introduced.
+      all:
+        - verifier: manual-shell
+          result: pass
   - id: mathc-validate-d8-decision-unchanged
     statement: |
       The D8 fix decision
       `decisions/d8-coarse-diagnostics-2026-10.yaml` still
       validates.
+      `_build/install/default/bin/mathc validate decisions/d8-coarse-diagnostics-2026-10.yaml` returns verdict `accept`.
     acceptance:
-      verifier: manual-shell
-      result: pass
-      detail: |
-        `_build/install/default/bin/mathc validate
-         decisions/d8-coarse-diagnostics-2026-10.yaml` returns
-         verdict `accept`.
+      all:
+        - verifier: manual-shell
+          result: pass
 
 reversal: |
   If a future fix wants to keep the `| None -> (` wrap

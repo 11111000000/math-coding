@@ -1,0 +1,147 @@
+---
+schema: math-coding/3.3
+id: verifier-strings-the-kernel-can-read-2026-10
+revision: 1
+state: active
+mode: standard
+
+body_sha: "sha256:0c9e65c54000d6e45961eb138b9245ef27b3e8afec6408cbcb286eb3970dbc58"
+yaml_sha: "sha256:0c9e65c54000d6e45961eb138b9245ef27b3e8afec6408cbcb286eb3970dbc58"
+
+axiom_link:
+  - A0
+
+intent: |
+  THE WORKLIST FOUND NINETEEN PROMISES THE KERNEL CANNOT EVEN SEE.
+  Every one of them is a promise the corpus makes and the kernel
+  cannot decide, and the reason is never the promise -- it is the
+  spelling.
+
+  Eight of them name a scheme the kernel KNOWS and a string it cannot
+  run: a path verifier with a trailing case label after it
+  (`tests/cli/gate-waiver-scope.t scenario 1 (positive)`), a test
+  selector with a trailing description
+  (`tests/diagnostic_ux.ml::ambiguous_acceptance.has actions`). The
+  promise is real, the file is there, and the string after the path
+  is prose that belongs in the claim, not in the command.
+
+  Nine of them use the acceptance form the schema does not have:
+  `acceptance:` with `verifier:` as a MAP KEY instead of
+  `acceptance.all[].verifier`. The loader reads the list form and
+  silently finds no verifier, so those obligations look like promises
+  with no check at all -- and nobody noticed, because a promise with
+  no check is exactly what the corpus is full of.
+
+  Two of them name no verifier at all, and say so in prose: the
+  process-principles obligations P3 and P4, whose own claim says
+  "Acceptance is manual". A promise that says "a human reviews
+  this" should SAY IT in the field the kernel reads, not only in the
+  sentence above it.
+
+  MEASURED on this repository, 2026-10-28, through `mathc gaps`:
+
+    before: 8 `cannot-be-set-up`, 11 `unidentified`
+    after:  0 `cannot-be-set-up`,  0 `unidentified`
+
+  The remaining `not-a-check` promises (299, of which most are
+  `manual-` declarations) are a different matter: they are promises
+  the corpus INTENDS not to keep by machine, and they belong to the
+  census of promises, not to a spelling.
+
+commitment: |
+  1. A verifier string names a scheme and its arguments, and nothing
+     else: the prose around a check belongs in the claim.
+  2. Every obligation states its acceptance in the form the schema
+     has (`acceptance.all[].verifier`), so the loader and the
+     validator read the same field.
+  3. An obligation that no program can keep says so in its verifier
+     (`manual-...`), not only in the prose of its claim.
+  4. The worklist reports no promise the kernel cannot see: the
+     `cannot-be-set-up` and `unidentified` classes are empty.
+
+outcomes:
+  - id: every-promise-is-visible
+    statement: |
+      The worklist names every open promise, and no promise is
+      invisible to the kernel because of how it is spelled.
+  - id: the-scheme-convention-holds
+    statement: |
+      Every verifier string in the corpus names a scheme the kernel
+      knows and a string it can run.
+
+scope:
+  paths:
+    - "decisions/plan-2026-10-improvements/t3-2.yaml"
+    - "decisions/plan-2026-10-improvements/t4-1.yaml"
+    - "decisions/plan-2026-10-improvements/t6-2.yaml"
+    - "decisions/plan-2026-10-improvements/t1-2.yaml"
+    - "decisions/paren-balance-fix-2026-10.yaml"
+    - "decisions/process-principles.yaml"
+    - "decisions/site-redesign-2026-10.yaml"
+    - "decisions/verifier-strings-the-kernel-can-read-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-corpus-is-clean
+    claim: |
+      The worklist reports no `cannot-be-set-up` and no
+      `unidentified` promise.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/no-invisible-promises.sh
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/verifier-strings-the-kernel-can-read-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/verifier-strings-the-kernel-can-read-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "a decision that was written in the map form and was read as
+      'no check' is now read as a manual declaration, and the corpus
+      grows a visible gap that was previously invisible"
+    - "the trailing prose that left a verifier string is lost, and
+      the claim it belonged to no longer says how the check is to be
+      read"
+  owner: human:maintainer
+
+counterexample: |
+  "The trailing prose in a verifier string is not noise: it says
+  which scenario the promise is about, and deleting it makes the
+  promise broader than it was."
+
+  The claim is right about the intent and wrong about the form. The
+  kernel cannot run `tests/cli/gate-waiver-scope.t scenario 1
+  (positive)` -- there is no such command, and a check that cannot
+  be set up is a check whose outcome is UNKNOWN, not a narrower
+  check. The scenario label has to go somewhere the kernel reads, and
+  the place is the claim, which is prose about the promise. The
+  promise becomes broader (`the file passes`) and says so; what it
+  never was is narrower.
+
+  The second half of the objection is about the map form: maybe the
+  kernel should learn to read it instead. It could, and the loader
+  would then have two forms to keep in step with the validator's
+  parser -- which is the defect this whole line of work is about.
+  The schema has ONE form; the corpus now has one form; the loader
+  reads that form.
+
+antithesis: |
+  The opposite claim is that these nineteen promises are the visible
+  tip: the corpus's real problem is the 299 promises the kernel does
+  not run, and polishing the spelling of nineteen is noise.
+
+  The claim is right about the size and wrong about the order. The
+  nineteen were promises the kernel COULD have run and could not, and
+  they were invisible in the report precisely because they were
+  invisible -- a promise the kernel cannot see is a promise no gate
+  can hold, and it hides the ones it would have held. Fixing the
+  spelling first is what makes the census of the 299 possible: a
+  census that cannot tell a declaration from a broken spelling is a
+  census of nothing.

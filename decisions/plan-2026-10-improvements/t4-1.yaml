@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t4-1-diagnostics-actionable
 revision: 1
 state: active
-body_sha: "sha256:9214ead79417995837b3ff24a51bdbd7c32767fe556da3a6db766cbc6e8423a7"
-yaml_sha: "sha256:9214ead79417995837b3ff24a51bdbd7c32767fe556da3a6db766cbc6e8423a7"
+body_sha: "sha256:81cdec0222537c9ef9025a119892f335616ff9c555e7c878592427983b944c72"
+yaml_sha: "sha256:81cdec0222537c9ef9025a119892f335616ff9c555e7c878592427983b944c72"
 axiom_link:
   - A0
   - A1
@@ -137,15 +137,15 @@ obligations:
       supersede}.
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::ambiguous_acceptance.has actions
+        - verifier: tests/diagnostic_ux.ml::ambiguous_acceptance.has
           result: pass
-        - verifier: tests/diagnostic_ux.ml::malformed_acceptance.has actions
+        - verifier: tests/diagnostic_ux.ml::malformed_acceptance.has
           result: pass
-        - verifier: tests/diagnostic_ux.ml::mc_parse.has actions
+        - verifier: tests/diagnostic_ux.ml::mc_parse.has
           result: pass
-        - verifier: tests/diagnostic_ux.ml::mc_decision_invalid.has actions
+        - verifier: tests/diagnostic_ux.ml::mc_decision_invalid.has
           result: pass
-        - verifier: tests/diagnostic_ux.ml::mc_counterexample_missing.has actions
+        - verifier: tests/diagnostic_ux.ml::mc_counterexample_missing.has
           result: pass
         - verifier: tests/diagnostic_ux.ml::verb_whitelist.accepts whitelist
           result: pass
@@ -188,9 +188,9 @@ obligations:
       FailedEvidence, Unknown).
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::gate_gap_next_actions.missing evidence
+        - verifier: tests/diagnostic_ux.ml::gate_gap_next_actions.missing
           result: pass
-        - verifier: tests/diagnostic_ux.ml::gate_gap_next_actions.stale evidence
+        - verifier: tests/diagnostic_ux.ml::gate_gap_next_actions.stale
           result: pass
 
   - id: t4-1-ko-explain-registry-unchanged
@@ -204,7 +204,7 @@ obligations:
       MC-PARSE, MC-DECISION-INVALID, MC-COUNTEREXAMPLE-MISSING}.
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::registry.covers required codes
+        - verifier: tests/diagnostic_ux.ml::registry.covers
           result: pass
 
 reversal:

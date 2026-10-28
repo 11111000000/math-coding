@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t6-2-counterexample-required
 revision: 1
 state: active
-body_sha: "sha256:3408bd754de45505965ccb105ef2b4e15d6e44bd0cdbd710eb7e33b3d345c810"
-yaml_sha: "sha256:3408bd754de45505965ccb105ef2b4e15d6e44bd0cdbd710eb7e33b3d345c810"
+body_sha: "sha256:cdf31f688d99f1f7d2a8041d561ab517265ad09770978e1d3c27b06643f46ca8"
+yaml_sha: "sha256:cdf31f688d99f1f7d2a8041d561ab517265ad09770978e1d3c27b06643f46ca8"
 intent: |
   Enforce the schema-level required-ness of the `counterexample`
   field for decisions whose `mode` is `>= standard`.
@@ -507,7 +507,7 @@ obligations:
       exits 1 with severity=block.
     acceptance:
       all:
-        - verifier: tests/cli/validate-counterexample-required.t (negative scenario: code, severity)
+        - verifier: tests/cli/validate-counterexample-required.t
           result: pass
 
   - id: explain-registry-includes-dual-mode-counterexample
@@ -528,7 +528,7 @@ obligations:
       all:
         - verifier: mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING exits 0
           result: pass
-        - verifier: tests/cli/validate-counterexample-required.t (explain-dispatch scenario)
+        - verifier: tests/cli/validate-counterexample-required.t
           result: pass
 
   - id: existing-crams-regression-free
