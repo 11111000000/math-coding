@@ -1,0 +1,98 @@
+---
+schema: math-coding/3.3
+id: kernel-format-2026-10
+revision: 1
+state: active
+mode: tiny
+change_kind: editorial
+
+body_sha: "sha256:723ee673aa51ce8b4c4aa49cac8e98ad29a6cfb00dce1514a46b042e218099b3"
+yaml_sha: "sha256:723ee673aa51ce8b4c4aa49cac8e98ad29a6cfb00dce1514a46b042e218099b3"
+
+axiom_link:
+  - A0
+
+intent: |
+  `dune fmt` rewraps `bin/Mathc.ml`. The diff is the formatter's own
+  output and nothing else: line breaks inside string literals (the
+  backslash continuations keep the bytes identical), the layout of
+  one `let ... in`, and the punctuation of a record field that
+  dune's printer writes as `Memory.state;`.
+
+  The file was not formatted because the change that added the
+  self-check subject set was committed without running the formatter
+  -- the sweep could not sign the decisions whose verifier is `dune
+  fmt --preview`, and one of them (`format-circular-verifier-message-2026-10`)
+  was left unsigned for that reason. The formatter is not a
+  semantic change, and this decision records it in the same shape as
+  `decisions/format-circular-verifier-message-2026-10.yaml`, which
+  recorded a rewrap of a single message literal.
+
+commitment: |
+  The only change to `bin/Mathc.ml` in this commit is the output of
+  `dune fmt`. No verdict, no exit code, no message text, no
+  evaluation order and no digest changes.
+
+outcomes:
+  - id: the-tree-is-formatted
+    statement: |
+      `dune fmt --preview` exits 0 on this tree.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "decisions/kernel-format-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-tree-is-formatted
+    claim: |
+      `dune fmt --preview` exits 0 on this tree.
+    acceptance:
+      all:
+        - verifier: dune fmt --preview
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/kernel-format-2026-10.yaml` returns
+      exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/kernel-format-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "the formatter's output differs from the file's semantics: a
+      rewrap inside a string literal that drops or adds a space
+      changes the message, and only the byte-for-byte comparison of
+      the literal proves otherwise"
+  owner: human:maintainer
+
+counterexample: |
+  "A formatting commit that claims to change nothing is a commit
+  nobody can check, because the diff is 224 lines."
+
+  The claim is checked by the formatter itself: `dune fmt --preview`
+  is the verifier, and it fails on any tree that is not the
+  formatter's output. The diff is large because the file had drifted
+  from the formatter's output, not because the change is large: the
+  hunks are rewraps of literals and the punctuation of a record
+  field. The string literals keep their bytes through backslash
+  continuations, so the messages are the same messages.
+
+antithesis: |
+  The opposite claim is that the formatting should have been part of
+  the change that needed it, and that a separate commit for it is
+  ceremony.
+
+  It could not be. The pre-commit hook (P1) requires a commit that
+  touches the kernel to carry a decision, and the amend that would
+  have folded the formatting into the previous commit would have
+  failed that same hook, because the hook reads the diff of the
+  amend and the decision was already in the commit it amends. So the
+  formatting gets its own commit and its own decision, which is what
+  the project did the last time a merge brought an unformatted
+  kernel file in.

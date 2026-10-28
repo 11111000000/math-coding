@@ -847,10 +847,10 @@ let validate_with_counts path =
               `Accept_aggregate { kind = "waiver"; id; extra_diags = dup_diags }
           | None ->
               let msg =
-                "the waiver is missing a required field: expires_at (a \
-                 grant without a validity interval is not a grant; \
-                 schemas/waiver.json requires id, policy_id, rule, \
-                 subject, issuer, issued_at, expires_at and reason)"
+                "the waiver is missing a required field: expires_at (a grant \
+                 without a validity interval is not a grant; \
+                 schemas/waiver.json requires id, policy_id, rule, subject, \
+                 issuer, issued_at, expires_at and reason)"
               in
               `Reject
                 (Diagnostic.mc_decision_invalid ~path:[ "waiver" ] msg, msg))
@@ -5191,7 +5191,9 @@ let[@warning "-32"] extract_verifier_strings (lines : string list) =
       if String.length t > 10 && String.sub t 0 10 = "- verifier" then
         match String.index_opt t ':' with
         | Some i ->
-            let v = String.trim (String.sub t (i + 1) (String.length t - i - 1)) in
+            let v =
+              String.trim (String.sub t (i + 1) (String.length t - i - 1))
+            in
             let n = String.length v in
             if n >= 2 && v.[0] = '"' && v.[n - 1] = '"' then
               Some (String.sub v 1 (n - 2))
@@ -5239,7 +5241,7 @@ let[@warning "-32"] decision_entry_of_raw ~id raw =
         Memory.assumptions = 0;
         Memory.risk_triggers = [];
         Memory.scope_paths;
-        Memory.state = state;
+        Memory.state;
         Memory.verifier_per_obligation = verifiers;
       }
     in
@@ -7886,8 +7888,13 @@ type selfcheck_subject = {
 }
 
 let[@warning "-32"] selfcheck_subject ~name ~verdict ~causes ~remedies =
-  { sc_name = name; sc_verdict = verdict; sc_causes = causes;
-    sc_remedies = remedies; sc_waived = [] }
+  {
+    sc_name = name;
+    sc_verdict = verdict;
+    sc_causes = causes;
+    sc_remedies = remedies;
+    sc_waived = [];
+  }
 
 (* A decision is a STANDING RULE when it is in force AND it carries
    at least one obligation a program can run. The classification
@@ -7903,11 +7910,11 @@ let[@warning "-32"] standing_rule ~root (e : Memory.decision_entry) =
   let executable v =
     match parse_verifier_string v with
     | None -> false
-    | Some (scheme, args) ->
-        (match scheme with
+    | Some (scheme, args) -> (
+        match scheme with
         | "file-exists" | "dir-exists" | "mathc" -> args <> []
-        | _ ->
-            (match plan_verifier ~project_root:root scheme args with
+        | _ -> (
+            match plan_verifier ~project_root:root scheme args with
             | Plan_ok _ -> true
             | Plan_fail _ | Plan_skip -> false))
   in
@@ -7918,21 +7925,19 @@ let[@warning "-32"] selfcheck_walk_files dir =
   let rec walk acc d =
     if not (Sys.file_exists d && Sys.is_directory d) then acc
     else
-      (try
-         Sys.readdir d
-         |> Array.to_list
-         |> List.sort String.compare
-         |> List.fold_left
-              (fun acc n ->
-                let p = Filename.concat d n in
-                if Sys.is_directory p then walk acc p
-                else if
-                  Filename.extension n = ".json"
-                  || Filename.extension n = ".yaml"
-                then (Filename.concat (Filename.basename dir) n, p) :: acc
-                else acc)
-              acc
-       with _ -> acc)
+      try
+        Sys.readdir d |> Array.to_list |> List.sort String.compare
+        |> List.fold_left
+             (fun acc n ->
+               let p = Filename.concat d n in
+               if Sys.is_directory p then walk acc p
+               else if
+                 Filename.extension n = ".json"
+                 || Filename.extension n = ".yaml"
+               then (Filename.concat (Filename.basename dir) n, p) :: acc
+               else acc)
+             acc
+      with _ -> acc
   in
   List.rev (walk [] dir)
 
@@ -7940,20 +7945,20 @@ let[@warning "-32"] selfcheck_walk_files dir =
 let[@warning "-32"] selfcheck_schema_subjects root =
   selfcheck_walk_files (Filename.concat root "schemas")
   |> List.map (fun (rel, path) ->
-         let loads =
-           match parse_file path with Ok _ -> true | Error _ -> false
-         in
-         let causes =
-           if loads then []
-           else [ Printf.sprintf "the schema %s does not load" rel ]
-         in
-         let remedies =
-           if loads then []
-           else [ Printf.sprintf "repair schemas/%s so it loads" rel ]
-         in
-         selfcheck_subject ~name:("schema/" ^ rel)
-           ~verdict:(if loads then Gate.Pass else Gate.Block)
-           ~causes ~remedies)
+      let loads =
+        match parse_file path with Ok _ -> true | Error _ -> false
+      in
+      let causes =
+        if loads then []
+        else [ Printf.sprintf "the schema %s does not load" rel ]
+      in
+      let remedies =
+        if loads then []
+        else [ Printf.sprintf "repair schemas/%s so it loads" rel ]
+      in
+      selfcheck_subject ~name:("schema/" ^ rel)
+        ~verdict:(if loads then Gate.Pass else Gate.Block)
+        ~causes ~remedies)
 
 (* The conformance corpus: the executable form of the kernel-enforced
    rules. A `positive-` fixture must be ACCEPTED and a `negative-`
@@ -7962,37 +7967,37 @@ let[@warning "-32"] selfcheck_schema_subjects root =
 let[@warning "-32"] selfcheck_conformance_subjects root =
   selfcheck_walk_files (Filename.concat root "fixtures/conformance")
   |> List.map (fun (rel, path) ->
-         let base = Filename.basename path in
-         let is_prefix p = String.length base >= 9 && String.sub base 0 9 = p in
-         let expects_accept = is_prefix "positive-" in
-         let expects_reject = is_prefix "negative-" in
-         let accepted =
-           match validate_with_counts path with
-           | `Accept _ | `Accept_aggregate _ -> true
-           | `Reject _ | `Input_err _ -> false
-         in
-         let as_expected =
-           if expects_accept then accepted
-           else if expects_reject then not accepted
-           else true
-         in
-         let causes =
-           if as_expected then []
-           else
-             [
-               Printf.sprintf "the fixture %s %s" base
-                 (if expects_accept then "must be accepted and was not"
-                  else if expects_reject then "must be rejected and was not"
-                  else "has no expectation in its name");
-             ]
-         in
-         let remedies =
-           if as_expected then []
-           else [ Printf.sprintf "the kernel's reading of %s changed" base ]
-         in
-         selfcheck_subject ~name:("conformance/" ^ rel)
-           ~verdict:(if as_expected then Gate.Pass else Gate.Block)
-           ~causes ~remedies)
+      let base = Filename.basename path in
+      let is_prefix p = String.length base >= 9 && String.sub base 0 9 = p in
+      let expects_accept = is_prefix "positive-" in
+      let expects_reject = is_prefix "negative-" in
+      let accepted =
+        match validate_with_counts path with
+        | `Accept _ | `Accept_aggregate _ -> true
+        | `Reject _ | `Input_err _ -> false
+      in
+      let as_expected =
+        if expects_accept then accepted
+        else if expects_reject then not accepted
+        else true
+      in
+      let causes =
+        if as_expected then []
+        else
+          [
+            Printf.sprintf "the fixture %s %s" base
+              (if expects_accept then "must be accepted and was not"
+               else if expects_reject then "must be rejected and was not"
+               else "has no expectation in its name");
+          ]
+      in
+      let remedies =
+        if as_expected then []
+        else [ Printf.sprintf "the kernel's reading of %s changed" base ]
+      in
+      selfcheck_subject ~name:("conformance/" ^ rel)
+        ~verdict:(if as_expected then Gate.Pass else Gate.Block)
+        ~causes ~remedies)
 
 (* The invariants, as the constitution states them. Each one is checked
    against the corpus that executes the kernel-enforced rules: the
@@ -8012,26 +8017,25 @@ let[@warning "-32"] selfcheck_invariant_numbers root =
   in
   String.split_on_char '\n' text
   |> List.iter (fun line ->
-         if is_heading line then
-           in_section :=
-             String.length line >= 20
-             && String.sub line 3 17 = "Kernel Invariants"
-         else if
-           !in_section
-           && String.length line >= 2
-           && line.[0] <> ' '
-           && line.[1] <> ' '
-         then
-           (match String.index_opt line '.' with
-           | Some i when i > 0 && i <= 3 ->
-               let n = String.trim (String.sub line 0 i) in
-               let only_alnum =
-                 String.for_all
-                   (fun c -> ('0' <= c && c <= '9') || ('a' <= c && c <= 'z'))
-                   n
-               in
-               if n <> "" && only_alnum then numbers := n :: !numbers
-           | _ -> ()));
+      if is_heading line then
+        in_section :=
+          String.length line >= 20 && String.sub line 3 17 = "Kernel Invariants"
+      else if
+        !in_section
+        && String.length line >= 2
+        && line.[0] <> ' '
+        && line.[1] <> ' '
+      then
+        match String.index_opt line '.' with
+        | Some i when i > 0 && i <= 3 ->
+            let n = String.trim (String.sub line 0 i) in
+            let only_alnum =
+              String.for_all
+                (fun c -> ('0' <= c && c <= '9') || ('a' <= c && c <= 'z'))
+                n
+            in
+            if n <> "" && only_alnum then numbers := n :: !numbers
+        | _ -> ());
   List.rev !numbers
 
 let[@warning "-32"] selfcheck_invariant_subjects root corpus_green =
@@ -8049,9 +8053,9 @@ let[@warning "-32"] selfcheck_invariant_subjects root corpus_green =
   in
   selfcheck_invariant_numbers root
   |> List.map (fun n ->
-         selfcheck_subject ~name:("invariant/" ^ n)
-           ~verdict:(if corpus_green then Gate.Pass else Gate.Block)
-           ~causes ~remedies)
+      selfcheck_subject ~name:("invariant/" ^ n)
+        ~verdict:(if corpus_green then Gate.Pass else Gate.Block)
+        ~causes ~remedies)
 
 let[@warning "-32"] do_self_check () =
   let anon _ = raise (Arg.Bad "no positional arguments expected") in
@@ -8111,15 +8115,11 @@ let[@warning "-32"] do_self_check () =
     selfcheck_subject ~name:"kernel"
       ~verdict:(if has_digest then Gate.Pass else Gate.Unknown)
       ~causes:
-        (if has_digest then []
-         else [ "the kernel could not hash itself" ])
+        (if has_digest then [] else [ "the kernel could not hash itself" ])
       ~remedies:
-        (if has_digest then []
-         else [ "the kernel's sources are not readable" ])
+        (if has_digest then [] else [ "the kernel's sources are not readable" ])
   in
-  let standing, prose =
-    List.partition (standing_rule ~root) entries
-  in
+  let standing, prose = List.partition (standing_rule ~root) entries in
   let decision_subjects =
     List.map
       (fun entry ->
@@ -8128,13 +8128,17 @@ let[@warning "-32"] do_self_check () =
             ~materials:(materials_of_decision entry.Memory.decision_id)
             ~store ~waivers ~now entry
         in
-        { sc_name = "decision/" ^ entry.Memory.decision_id;
-          sc_verdict = verdict; sc_causes = causes; sc_remedies = remedies;
-          sc_waived = waived } )
+        {
+          sc_name = "decision/" ^ entry.Memory.decision_id;
+          sc_verdict = verdict;
+          sc_causes = causes;
+          sc_remedies = remedies;
+          sc_waived = waived;
+        })
       standing
   in
   let evaluated =
-    kernel_subject :: selfcheck_schema_subjects root
+    (kernel_subject :: selfcheck_schema_subjects root)
     @ conformance_subjects
     @ selfcheck_invariant_subjects root corpus_green
     @ decision_subjects
@@ -8158,7 +8162,9 @@ let[@warning "-32"] do_self_check () =
     match evaluated with
     | [] -> Gate.Unknown
     | _ ->
-        let verdicts = List.map (fun (s : selfcheck_subject) -> s.sc_verdict) evaluated in
+        let verdicts =
+          List.map (fun (s : selfcheck_subject) -> s.sc_verdict) evaluated
+        in
         if List.exists (fun v -> v = Gate.Block) verdicts then Gate.Block
         else if List.for_all (fun v -> v = Gate.Pass) verdicts then Gate.Pass
         else if
@@ -8190,9 +8196,7 @@ let[@warning "-32"] do_self_check () =
       (* How much of the corpus is NOT a subject, and why. The report
          is about what the kernel can decide; the size of what it
          cannot is part of the report, not a footnote. *)
-      ( "excluded_decisions",
-        Jsonl.stringify
-          (Jsonl.Int (List.length prose)) );
+      ("excluded_decisions", Jsonl.stringify (Jsonl.Int (List.length prose)));
       ("verdict", Jsonl.stringify (Jsonl.String top_string));
     ]
   in
